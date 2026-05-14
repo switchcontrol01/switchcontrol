@@ -1,0 +1,97 @@
+10. Add auth to WebSocket telemetry upgrade
+    File likely:
+
+- "server/lib/wsServer.ts"
+
+Requirements:
+
+- authenticate WebSocket upgrade
+- reject unauthenticated clients
+- apply connection limit per user/IP
+- log connect/disconnect events
+- add sane reconnect guidance to client if rejected
+- avoid reconnect storm
+
+11. Add reconnect storm protection client-side
+    File likely:
+
+- "client/src/lib/telemetryManager.ts"
+
+Requirements:
+
+- exponential backoff
+- cap reconnect attempts while hidden/minimized
+- no aggressive reconnect loop
+- reset backoff only after stable connection
+- log reconnect reason in debug mode only
+
+12. Reduce "syncAllTweaks" mount cost
+    Files likely:
+
+- "TweaksList.tsx"
+- "use-tweak-executor.ts"
+- Electron tweak executor
+
+Current issue:
+Opening Tweaks page can trigger a full sync spawning many PowerShell checks.
+
+Fix:
+
+- cache sync results for a short TTL, e.g. 60 seconds
+- do not run full sync on every mount
+- run lightweight visible-card sync first if possible
+- provide manual “Refresh states” button
+- avoid syncing unsupported tweaks
+- show progress state, not app freeze
+
+13. Add rate limit to "/api/system-intelligence/refresh"
+    File likely:
+
+- system intelligence route
+
+Requirements:
+
+- per-user rate limit: 1 call per 5 minutes
+- return cached data if rate limited where possible
+- do not run expensive "collect()" repeatedly
+- log rate-limit hits
+
+14. Review Postgres connection pooling
+    Files:
+
+- DB/Drizzle config
+- server startup config
+
+Requirements:
+
+- explicit pool limit
+- avoid unbounded DB connections
+- document current connection limit
+- ensure app can handle traffic without exceeding Postgres max connections
+- if needed, add pgBouncer recommendation/TODO for production
+
+15. Add Stripe event cleanup
+    Files:
+
+- "stripeEventStore"
+- DB job or startup cleanup
+
+Requirements:
+
+- delete Stripe idempotency records older than 30 days
+- keep enough history for debugging recent payment issues
+- do not delete admin audit logs accidentally
+- cleanup should be safe and logged
+
+PRIORITY 4 — TELEMETRY AND CLAIM HONESTY
+
+16. Label latency estimate clearly
+    Any dashboard latency estimate must say “estimated”.
+
+Use labels like:
+
+- “Estimated system overhead”
+- “Estimated latency pressure”
+- “Not a measured input-lag result”
+
+Do not present estimates as measured latency.

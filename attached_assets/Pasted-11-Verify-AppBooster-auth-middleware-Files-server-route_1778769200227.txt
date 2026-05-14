@@ -1,0 +1,80 @@
+11. Verify AppBooster auth middleware
+    Files:
+
+- "server/routes/appBooster.ts"
+- "server/routes.ts"
+
+"getUserId" falls back to "__legacy__".
+
+This is dangerous if the route is mounted without auth.
+
+Fix:
+
+- ensure AppBooster routes are behind auth middleware
+- if no authenticated user exists, return 401 instead of writing to "__legacy__"
+- remove or limit "__legacy__" fallback to migration-only code if truly needed
+
+Add log:
+"[AppBooster] blocked unauthenticated request"
+
+12. Add CSRF token TTL and clear-on-403
+    File:
+
+- "client/src/lib/api.ts"
+
+Current "_cachedCsrfToken" has no TTL.
+
+Add:
+
+- timestamp when token is fetched
+- TTL, for example 10 minutes
+- if token is older than TTL, refetch
+- if a request returns 403 and used cached CSRF token, clear token and retry once with a fresh token
+
+Do not infinite retry.
+
+Log once:
+"[CSRF] cached token expired/refreshed"
+
+13. Keep existing good parts unchanged
+    Do not rewrite:
+
+- sync generation counter
+- runtime unsupported override
+- runElevated result polling
+- PowerShell semaphore
+- ownership-aware apply wrapper
+- JWT reissue singleton
+- system intelligence cache/safe fields
+- advisor Promise.allSettled fault isolation
+
+These were audited as correct.
+
+CHECKLIST
+
+- "tcp-winhttp" shows unsupported and cannot be applied
+- Apply Safe skips risky, reboot, unsupported, network, WiFi, Bluetooth, print spooler, security, and service-breaking tweaks
+- Apply Safe logs applied and skipped IDs
+- risky metadata updated for WiFi, Bluetooth, print spooler
+- TweakCard shows max 3 badges
+- warning text comes from metadata, not ID hardcoding
+- page transition blur removed
+- banner positioning no longer hardcoded to "left-64"
+- backend warning appears after 20 seconds
+- network tweak routes require auth
+- network tweak report route has rate limit
+- advisor context filters network tweaks by user ID
+- AppBooster cannot write to "__legacy__" for unauthenticated users
+- CSRF token refreshes after TTL and clears on 403
+- no fake values added
+- no new polling loops added
+
+FINAL OUTPUT
+Return:
+
+- changed files
+- helper functions added
+- route/middleware changes
+- metadata changes
+- testing steps
+- any skipped item and why

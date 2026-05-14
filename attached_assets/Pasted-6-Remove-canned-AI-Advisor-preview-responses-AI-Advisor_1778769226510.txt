@@ -1,0 +1,106 @@
+6. Remove canned AI Advisor preview responses
+   AI Advisor must not show a fake diagnosis before a real scan.
+
+Before scan:
+
+- show empty state
+- show what the scan will analyze
+- show “Run scan to generate recommendations”
+
+After scan:
+
+- show real generated result only
+- if signals are degraded, show which signals failed
+
+PRIORITY 2 — MAKE APPLY SAFE ACTUALLY SAFE
+
+7. Implement strict Apply Safe guard
+   Files likely:
+
+- "TweaksList.tsx"
+- "store.ts"
+- "tweak-registry.ts"
+- "shared/tweak-tiers.ts"
+
+Do not call raw "enableRecommended" directly.
+
+Create a real guard:
+"isRecommendedSafeTweak(tweak)"
+
+A tweak is allowed in Apply Safe only if:
+
+- supported is true
+- runtime unsupported is false
+- risk is Safe
+- level is Recommended
+- requiresReboot is false
+- category is not Network
+- not Experimental
+- not Advanced
+- no bcdedit
+- no service-disabling unless harmless
+- verified apply/revert paths exist
+
+8. Add hard deny-list for Apply Safe
+   Never include these even if metadata says Recommended:
+
+Network:
+
+- "tcp-nagle"
+- "tcp-congestion"
+- "tcp-task-offload"
+- "tcp-timestamps"
+- "tcp-window-heuristics"
+- "udp-offloads"
+- "tcp-winhttp"
+
+Hardware/drivers:
+
+- "wifi"
+- "bluetooth"
+- "nic-flow-control"
+- any NIC tuner setting
+
+Virtualization/security:
+
+- "hyper-v"
+- "vbs"
+- "core-isolation"
+- any bcdedit tweak
+
+Services:
+
+- "fax-printer"
+- "win-search-index"
+- bluetooth service
+- wifi service
+
+Other:
+
+- every Experimental tweak
+- every unsupported tweak
+- every reboot-required tweak
+
+9. Reclassify risky metadata
+   Update tweak metadata so these are not treated as basic safe tweaks:
+
+- "fax-printer"
+  
+  - rename to “Disable Print Spooler”
+  - risk: Risky
+  - not Recommended
+  - warning: breaks printing, PDF printers, Adobe print/export workflows, virtual printers
+
+- "wifi"
+  
+  - risk: Risky or Moderate
+  - not Apply Safe
+  - warning: cuts WiFi until reverted
+
+- "bluetooth"
+  
+  - risk: Moderate or Risky
+  - not Apply Safe
+  - warning: breaks Bluetooth headsets, controllers, keyboards, mice, and voice chat
+
+PRIORITY 3 — SCALE AND STABILITY GUARDRAILS

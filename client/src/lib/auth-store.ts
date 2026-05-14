@@ -12,8 +12,10 @@ const _isPackagedElectron =
 
 const AUTH_DOMAIN = _isPackagedElectron ? "https://switchcontrol.org" : "";
 
+const isDebug = import.meta.env.DEV;
+
 if (typeof window !== 'undefined') {
-  console.log(`[Entitlements] AUTH_DOMAIN resolved — packaged=${_isPackagedElectron} domain="${AUTH_DOMAIN || '(same-origin)'}"`);
+  if (isDebug) { console.log(`[Entitlements] AUTH_DOMAIN resolved — packaged=${_isPackagedElectron} domain="${AUTH_DOMAIN || '(same-origin)'}"`); }
 }
 
 const TOKEN_KEY = "sc_auth_token_v2";
@@ -92,10 +94,10 @@ export const useAuthStore = create<AuthState>()(
           (newState === 'timed_out' || newState === 'cancelled') &&
           TERMINAL_STATES.includes(current)
         ) {
-          console.log(`[AuthState] Blocked ${current} → ${newState} (success cannot be overwritten)`);
+          if (isDebug) { console.log(`[AuthState] Blocked ${current} → ${newState} (success cannot be overwritten)`); }
           return;
         }
-        console.log(`[AuthState] ${current} → ${newState}`);
+        if (isDebug) { console.log(`[AuthState] ${current} → ${newState}`); }
         set({ electronAuthState: newState });
       },
       setOauthError: (oauthError) => set({ oauthError }),
@@ -115,7 +117,7 @@ export const useAuthStore = create<AuthState>()(
 
 if (typeof window !== 'undefined') {
   const _bootState = useAuthStore.getState();
-  console.log("[AUTH BOOT] persisted jwt length:", _bootState.jwt?.length, "token present:", !!_bootState.token, "user present:", !!_bootState.user);
+  if (isDebug) { console.log("[AUTH BOOT] persisted jwt length:", _bootState.jwt?.length, "token present:", !!_bootState.token, "user present:", !!_bootState.user); }
 }
 
 /**
@@ -162,7 +164,7 @@ export function safeGetJwt(): string | null {
       const fp = _jwtFingerprint(jwt);
       if (!_badJwtFingerprints.has(fp)) {
         _badJwtFingerprints.add(fp);
-        console.warn('[Auth] JWT has invalid format (not 3 parts) — cleared. tokenId:', fp);
+        if (isDebug) { console.warn('[Auth] JWT has invalid format (not 3 parts) — cleared. tokenId:', fp); }
       }
       useAuthStore.getState().setJwt(null);
       return null;
@@ -172,7 +174,7 @@ export function safeGetJwt(): string | null {
       const fp = _jwtFingerprint(jwt);
       if (!_badJwtFingerprints.has(fp)) {
         _badJwtFingerprints.add(fp);
-        console.warn('[Auth] JWT is expired — cleared. tokenId:', fp);
+        if (isDebug) { console.warn('[Auth] JWT is expired — cleared. tokenId:', fp); }
       }
       useAuthStore.getState().setJwt(null);
       return null;
@@ -182,7 +184,7 @@ export function safeGetJwt(): string | null {
     const fp = _jwtFingerprint(jwt);
     if (!_badJwtFingerprints.has(fp)) {
       _badJwtFingerprints.add(fp);
-      console.warn('[Auth] JWT is malformed (parse error) — cleared. tokenId:', fp);
+      if (isDebug) { console.warn('[Auth] JWT is malformed (parse error) — cleared. tokenId:', fp); }
     }
     useAuthStore.getState().setJwt(null);
     return null;
@@ -232,18 +234,18 @@ async function reissueJwtFromSession(): Promise<string | null> {
         credentials: 'include',
       });
       if (!response.ok) {
-        console.warn(`[AuthTruth] JWT reissue HTTP ${response.status}`);
+        if (isDebug) { console.warn(`[AuthTruth] JWT reissue HTTP ${response.status}`); }
         return null;
       }
       const data = await response.json();
       if (data?.jwt) {
         useAuthStore.getState().setJwt(data.jwt);
-        console.log(`[AuthTruth] JWT reissued — length=${data.jwt.length}`);
+        if (isDebug) { console.log(`[AuthTruth] JWT reissued — length=${data.jwt.length}`); }
         return data.jwt as string;
       }
       return null;
     } catch (err) {
-      console.warn('[AuthTruth] JWT reissue network error:', (err as Error).message);
+      if (isDebug) { console.warn('[AuthTruth] JWT reissue network error:', (err as Error).message); }
       return null;
     } finally {
       _jwtReissuePromise = null;
@@ -269,44 +271,44 @@ export async function resolveAuthState(): Promise<{
   verified: boolean;
   reason: string;
 }> {
-  console.log('[AuthTruth] resolveAuthState START');
+  if (isDebug) { console.log('[AuthTruth] resolveAuthState START'); }
   const store = useAuthStore.getState();
   const storedUser = store.user;
   const storedJwt = store.jwt;
 
   // Step 1: load stored
-  console.log(`[AuthTruth] step 1 loadStored user=${storedUser ? 'yes' : 'no'} jwt=${storedJwt ? 'yes' : 'no'}`);
+  if (isDebug) { console.log(`[AuthTruth] step 1 loadStored user=${storedUser ? 'yes' : 'no'} jwt=${storedJwt ? 'yes' : 'no'}`); }
 
   // Step 2: check JWT expiry (no delete)
   const jwtCheck = checkJwtExpiry();
-  console.log(`[AuthTruth] step 2 checkExpiry malformed=${jwtCheck.malformed} expired=${jwtCheck.expired}`);
+  if (isDebug) { console.log(`[AuthTruth] step 2 checkExpiry malformed=${jwtCheck.malformed} expired=${jwtCheck.expired}`); }
 
   let activeJwt = jwtCheck.jwt;
 
   if (jwtCheck.malformed && activeJwt) {
     const fp = _jwtFingerprint(activeJwt);
-    console.warn(`[AuthTruth] JWT malformed — clearing. tokenId: ${fp}`);
+    if (isDebug) { console.warn(`[AuthTruth] JWT malformed — clearing. tokenId: ${fp}`); }
     store.setJwt(null);
     activeJwt = null;
   }
 
   // Step 3: try reissue if expired
   if (jwtCheck.expired && activeJwt) {
-    console.log('[AuthTruth] step 3 reissueAttempt');
+    if (isDebug) { console.log('[AuthTruth] step 3 reissueAttempt'); }
     const reissued = await reissueJwtFromSession();
     if (reissued) {
-      console.log('[AuthTruth] step 3 reissue=SUCCESS');
+      if (isDebug) { console.log('[AuthTruth] step 3 reissue=SUCCESS'); }
       activeJwt = reissued;
     } else {
-      console.warn('[AuthTruth] step 3 reissue=FAILED — keeping expired JWT for one /api.me attempt');
+      if (isDebug) { console.warn('[AuthTruth] step 3 reissue=FAILED — keeping expired JWT for one /api.me attempt'); }
       // Do NOT clear — the cloud server may still honor the session cookie
     }
   } else {
-    console.log('[AuthTruth] step 3 reissue=SKIP');
+    if (isDebug) { console.log('[AuthTruth] step 3 reissue=SKIP'); }
   }
 
   // Step 4: call cloud /api/me
-  console.log('[AuthTruth] step 4 callCloud /api.me');
+  if (isDebug) { console.log('[AuthTruth] step 4 callCloud /api.me'); }
   try {
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     if (activeJwt) headers['Authorization'] = `Bearer ${activeJwt}`;
@@ -315,15 +317,15 @@ export async function resolveAuthState(): Promise<{
 
     if (!response.ok) {
       const status = response.status;
-      console.warn(`[AuthTruth] step 4 /api.me HTTP ${status}`);
+      if (isDebug) { console.warn(`[AuthTruth] step 4 /api.me HTTP ${status}`); }
       if (status === 401) {
         // Cloud says the JWT (and any session cookie) is invalid — truly logged out
-        console.log('[AuthTruth] step 4 401=LOGGED_OUT');
+        if (isDebug) { console.log('[AuthTruth] step 4 401=LOGGED_OUT'); }
         store.logout();
         return { user: null, jwt: null, verified: true, reason: 'logged_out_by_cloud' };
       }
       // Server error or network hiccup — preserve cached state, do NOT downgrade
-      console.log(`[AuthTruth] step 4 HTTP ${status}=PRESERVE_CACHED`);
+      if (isDebug) { console.log(`[AuthTruth] step 4 HTTP ${status}=PRESERVE_CACHED`); }
       return {
         user: storedUser,
         jwt: activeJwt,
@@ -333,10 +335,10 @@ export async function resolveAuthState(): Promise<{
     }
 
     const data = await response.json();
-    console.log(`[AuthTruth] step 4 /api.me success loggedIn=${data.loggedIn}`);
+    if (isDebug) { console.log(`[AuthTruth] step 4 /api.me success loggedIn=${data.loggedIn}`); }
 
     if (data.loggedIn === false) {
-      console.log(`[AuthTruth] source=cloud userId=${data.id} isPremium=false plan=free verified=true reason=logged-out`);
+      if (isDebug) { console.log(`[AuthTruth] source=cloud userId=${data.id} isPremium=false plan=free verified=true reason=logged-out`); }
       store.logout();
       return { user: null, jwt: null, verified: true, reason: 'logged_out_by_cloud' };
     }
@@ -366,14 +368,14 @@ export async function resolveAuthState(): Promise<{
     };
 
     store.setUser(user);
-    console.log(`[AuthTruth] step 5 resolved isPremium=${user.isPremium} plan=${user.plan}`);
-    console.log(`[AuthTruth] source=cloud userId=${user.id} isPremium=${user.isPremium} plan=${user.plan} verified=true`);
+    if (isDebug) { console.log(`[AuthTruth] step 5 resolved isPremium=${user.isPremium} plan=${user.plan}`); }
+    if (isDebug) { console.log(`[AuthTruth] source=cloud userId=${user.id} isPremium=${user.isPremium} plan=${user.plan} verified=true`); }
 
     return { user, jwt: activeJwt, verified: true, reason: 'cloud_confirmed' };
   } catch (err) {
     // Network failure — preserve cached state, do NOT downgrade
-    console.warn(`[AuthTruth] step 4 network error: ${(err as Error).message}`);
-    console.log(`[AuthTruth] source=cache userId=${storedUser?.id ?? 'none'} isPremium=${storedUser?.isPremium ?? false} plan=${storedUser?.plan ?? 'none'} verified=false reason=cloud-unavailable`);
+    if (isDebug) { console.warn(`[AuthTruth] step 4 network error: ${(err as Error).message}`); }
+    if (isDebug) { console.log(`[AuthTruth] source=cache userId=${storedUser?.id ?? 'none'} isPremium=${storedUser?.isPremium ?? false} plan=${storedUser?.plan ?? 'none'} verified=false reason=cloud-unavailable`); }
     return {
       user: storedUser,
       jwt: activeJwt,
@@ -393,16 +395,16 @@ function buildAuthHeaders(): HeadersInit {
 }
 
 export async function performFullLogout(reason: string): Promise<void> {
-  console.log(`[Auth] performFullLogout started — reason: ${reason}`);
+  if (isDebug) { console.log(`[Auth] performFullLogout started — reason: ${reason}`); }
   console.trace('[Auth] logout trace');
 
   try {
-    console.log('[Auth] Calling backend /auth/logout');
+    if (isDebug) { console.log('[Auth] Calling backend /auth/logout'); }
     const response = await fetch(`${AUTH_DOMAIN}/auth/logout`, {
       method: 'POST',
       credentials: 'include',
     });
-    console.log('[Auth] Backend logout response:', response.status);
+    if (isDebug) { console.log('[Auth] Backend logout response:', response.status); }
   } catch (err) {
     console.error('[Auth] Backend logout failed:', err);
   }
@@ -412,16 +414,16 @@ export async function performFullLogout(reason: string): Promise<void> {
 
   const api = (window as any).electronAPI;
   if (api?.clearAuthCookies) {
-    console.log('[Auth] Clearing Electron cookies (explicit sign-out)');
+    if (isDebug) { console.log('[Auth] Clearing Electron cookies (explicit sign-out)'); }
     await api.clearAuthCookies();
   }
 
-  console.log('[Auth] performFullLogout completed');
+  if (isDebug) { console.log('[Auth] performFullLogout completed'); }
 }
 
 export async function exchangeToken(token: string): Promise<AuthUser | null> {
   try {
-    console.log('[Auth] Exchanging token for session');
+    if (isDebug) { console.log('[Auth] Exchanging token for session'); }
     const response = await fetch(`${AUTH_DOMAIN}/api/auth/exchange`, {
       method: 'POST',
       headers: {
@@ -438,7 +440,7 @@ export async function exchangeToken(token: string): Promise<AuthUser | null> {
     }
 
     const data = await response.json();
-    console.log('[Auth] Token exchange result:', data);
+    if (isDebug) { console.log('[Auth] Token exchange result:', data); }
 
     if (!data.success || !data.user) {
       return null;
@@ -446,7 +448,7 @@ export async function exchangeToken(token: string): Promise<AuthUser | null> {
 
     if (data.jwt) {
       useAuthStore.getState().setJwt(data.jwt);
-      console.log(`[JWT] saved to memory — length=${data.jwt.length}`);
+      if (isDebug) { console.log(`[JWT] saved to memory — length=${data.jwt.length}`); }
       fetch(`${AUTH_DOMAIN}/api/activity/app-active`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${data.jwt}`, 'Content-Type': 'application/json' },
@@ -454,7 +456,7 @@ export async function exchangeToken(token: string): Promise<AuthUser | null> {
       }).then(r => console.log(`[Activity] app-active reported, status=${r.status}`))
         .catch(e => console.warn('[Activity] app-active fire-and-forget failed:', e));
     } else {
-      console.warn('[JWT] exchange response did NOT contain jwt field');
+      if (isDebug) { console.warn('[JWT] exchange response did NOT contain jwt field'); }
     }
 
     const user: AuthUser = {
@@ -473,7 +475,7 @@ export async function exchangeToken(token: string): Promise<AuthUser | null> {
       loggedIn: true,
     };
 
-    console.log(`[Auth] exchangeToken success, user=${user.id} isPremium=${user.isPremium} hasSeenPremiumUnlock=${user.hasSeenPremiumUnlock} hasSeenPremiumTour=${user.hasSeenPremiumTour} ts=${Date.now()}`);
+    if (isDebug) { console.log(`[Auth] exchangeToken success, user=${user.id} isPremium=${user.isPremium} hasSeenPremiumUnlock=${user.hasSeenPremiumUnlock} hasSeenPremiumTour=${user.hasSeenPremiumTour} ts=${Date.now()}`); }
     return user;
   } catch (err) {
     console.error('[Auth] Token exchange error:', err);
@@ -503,7 +505,7 @@ export async function validateToken(token: string): Promise<AuthUser | null> {
 
     const authMode = response.headers.get('X-Auth-Mode');
     const data = await response.json();
-    console.log(`[Auth] Session status: authMode=${authMode}`, data);
+    if (isDebug) { console.log(`[Auth] Session status: authMode=${authMode}`, data); }
 
     if (data.loggedIn === false) {
       return null;
@@ -542,24 +544,24 @@ export async function refreshEntitlements(): Promise<{ user: AuthUser | null }> 
     }
 
     const url = `${AUTH_DOMAIN}/api/me`;
-    console.log(`[AuthTruth] refreshEntitlements → ${url || '(same-origin)/api/me'} jwt=${jwt ? 'present' : 'missing'}`);
+    if (isDebug) { console.log(`[AuthTruth] refreshEntitlements → ${url || '(same-origin)/api/me'} jwt=${jwt ? 'present' : 'missing'}`); }
     const response = await fetch(url, {
       headers,
       credentials: 'include',
     });
 
     if (!response.ok) {
-      console.warn(`[AuthTruth] /api/me status=${response.status} (HTTP error). Preserving cached state, not downgrading.`);
-      console.log(`[AuthTruth] source=cache userId=${cachedUser?.id ?? 'none'} isPremium=${cachedUser?.isPremium ?? false} plan=${cachedUser?.plan ?? 'none'} verified=false reason=cloud-unavailable`);
+      if (isDebug) { console.warn(`[AuthTruth] /api/me status=${response.status} (HTTP error). Preserving cached state, not downgrading.`); }
+      if (isDebug) { console.log(`[AuthTruth] source=cache userId=${cachedUser?.id ?? 'none'} isPremium=${cachedUser?.isPremium ?? false} plan=${cachedUser?.plan ?? 'none'} verified=false reason=cloud-unavailable`); }
       return { user: cachedUser };
     }
 
     const authMode = response.headers.get('X-Auth-Mode');
     const data = await response.json();
-    console.log(`[AuthTruth] /api/me status=${response.status} authMode=${authMode} loggedIn=${data.loggedIn} isPremium=${data.isPremium} plan=${data.plan}`);
+    if (isDebug) { console.log(`[AuthTruth] /api/me status=${response.status} authMode=${authMode} loggedIn=${data.loggedIn} isPremium=${data.isPremium} plan=${data.plan}`); }
 
     if (data.loggedIn === false) {
-      console.log(`[AuthTruth] source=cloud userId=${data.id} isPremium=false plan=free verified=true reason=logged-out`);
+      if (isDebug) { console.log(`[AuthTruth] source=cloud userId=${data.id} isPremium=false plan=free verified=true reason=logged-out`); }
       store.logout();
       return { user: null };
     }
@@ -588,14 +590,14 @@ export async function refreshEntitlements(): Promise<{ user: AuthUser | null }> 
     };
 
     store.setUser(newUser);
-    console.log(`[AuthTruth] source=cloud userId=${newUser.id} isPremium=${newUser.isPremium} plan=${newUser.plan} verified=true`);
+    if (isDebug) { console.log(`[AuthTruth] source=cloud userId=${newUser.id} isPremium=${newUser.isPremium} plan=${newUser.plan} verified=true`); }
 
     return { user: newUser };
   } catch (err) {
     // Network or other error — do NOT clear cached user. Stale truth is better
     // than falsely downgrading a premium user who just lost connectivity.
-    console.warn(`[AuthTruth] refreshEntitlements network/error — preserving cached state. Error:`, (err as Error)?.message);
-    console.log(`[AuthTruth] source=cache userId=${cachedUser?.id ?? 'none'} isPremium=${cachedUser?.isPremium ?? false} plan=${cachedUser?.plan ?? 'none'} verified=false reason=cloud-unavailable`);
+    if (isDebug) { console.warn(`[AuthTruth] refreshEntitlements network/error — preserving cached state. Error:`, (err as Error)?.message); }
+    if (isDebug) { console.log(`[AuthTruth] source=cache userId=${cachedUser?.id ?? 'none'} isPremium=${cachedUser?.isPremium ?? false} plan=${cachedUser?.plan ?? 'none'} verified=false reason=cloud-unavailable`); }
     return { user: cachedUser };
   }
 }
@@ -607,7 +609,7 @@ export async function retryRefreshEntitlements(opts?: {
 }): Promise<{ ok: boolean; user: AuthUser | null; reason?: string }> {
   const { attempts = 6, delayMs = 500, initialDelayMs = 300 } = opts || {};
 
-  console.log(`[PremiumFlow] retryRefreshEntitlements starting — initialDelay=${initialDelayMs}ms, attempts=${attempts}, delay=${delayMs}ms`);
+  if (isDebug) { console.log(`[PremiumFlow] retryRefreshEntitlements starting — initialDelay=${initialDelayMs}ms, attempts=${attempts}, delay=${delayMs}ms`); }
 
   if (initialDelayMs > 0) {
     await new Promise(r => setTimeout(r, initialDelayMs));
@@ -615,22 +617,22 @@ export async function retryRefreshEntitlements(opts?: {
 
   for (let i = 0; i < attempts; i++) {
     if (i > 0) {
-      console.log(`[PremiumFlow] /api/me retry wait ${delayMs}ms...`);
+      if (isDebug) { console.log(`[PremiumFlow] /api/me retry wait ${delayMs}ms...`); }
       await new Promise(r => setTimeout(r, delayMs));
     }
 
-    console.log(`[PremiumFlow] /api/me attempt ${i + 1}/${attempts}`);
+    if (isDebug) { console.log(`[PremiumFlow] /api/me attempt ${i + 1}/${attempts}`); }
     const result = await refreshEntitlements();
 
     if (result.user && result.user.loggedIn) {
-      console.log(`[PremiumFlow] /api/me attempt ${i + 1}/${attempts} — loggedIn=true isPremium=${result.user.isPremium} hasSeenPremiumUnlock=${result.user.hasSeenPremiumUnlock}`);
+      if (isDebug) { console.log(`[PremiumFlow] /api/me attempt ${i + 1}/${attempts} — loggedIn=true isPremium=${result.user.isPremium} hasSeenPremiumUnlock=${result.user.hasSeenPremiumUnlock}`); }
       return { ok: true, user: result.user };
     }
 
-    console.log(`[PremiumFlow] /api/me attempt ${i + 1}/${attempts} — loggedIn=false, retrying...`);
+    if (isDebug) { console.log(`[PremiumFlow] /api/me attempt ${i + 1}/${attempts} — loggedIn=false, retrying...`); }
   }
 
-  console.warn(`[PremiumFlow] /api/me still loggedIn=false after ${attempts} attempts`);
+  if (isDebug) { console.warn(`[PremiumFlow] /api/me still loggedIn=false after ${attempts} attempts`); }
   return { ok: false, user: null, reason: 'not_logged_in_after_retries' };
 }
 
@@ -642,7 +644,7 @@ export async function postUnlockSeen(): Promise<boolean> {
       headers['Authorization'] = `Bearer ${jwt}`;
     }
 
-    console.log('[PremiumUnlock] posting unlock-seen...');
+    if (isDebug) { console.log('[PremiumUnlock] posting unlock-seen...'); }
     const response = await fetch(`${AUTH_DOMAIN}/api/premium/unlock-seen`, {
       method: 'POST',
       headers,
@@ -654,7 +656,7 @@ export async function postUnlockSeen(): Promise<boolean> {
       return false;
     }
 
-    console.log('[PremiumUnlock] unlock-seen success');
+    if (isDebug) { console.log('[PremiumUnlock] unlock-seen success'); }
 
     const store = useAuthStore.getState();
     if (store.user) {
@@ -676,7 +678,7 @@ export async function postResetTourFlags(): Promise<boolean> {
       headers['Authorization'] = `Bearer ${jwt}`;
     }
 
-    console.log('[FactoryReset] posting reset-tour-flags...');
+    if (isDebug) { console.log('[FactoryReset] posting reset-tour-flags...'); }
     const response = await fetch(`${AUTH_DOMAIN}/api/premium/reset-tour-flags`, {
       method: 'POST',
       headers,
@@ -684,11 +686,11 @@ export async function postResetTourFlags(): Promise<boolean> {
     });
 
     if (!response.ok) {
-      console.warn(`[FactoryReset] reset-tour-flags failed status=${response.status} (non-fatal)`);
+      if (isDebug) { console.warn(`[FactoryReset] reset-tour-flags failed status=${response.status} (non-fatal)`); }
       return false;
     }
 
-    console.log('[FactoryReset] reset-tour-flags success');
+    if (isDebug) { console.log('[FactoryReset] reset-tour-flags success'); }
 
     const store = useAuthStore.getState();
     if (store.user) {
@@ -697,7 +699,7 @@ export async function postResetTourFlags(): Promise<boolean> {
 
     return true;
   } catch (err) {
-    console.warn('[FactoryReset] reset-tour-flags error (non-fatal):', err);
+    if (isDebug) { console.warn('[FactoryReset] reset-tour-flags error (non-fatal):', err); }
     return false;
   }
 }
@@ -710,7 +712,7 @@ export async function postTourSeen(): Promise<boolean> {
       headers['Authorization'] = `Bearer ${jwt}`;
     }
 
-    console.log('[PremiumTour] posting tour-seen...');
+    if (isDebug) { console.log('[PremiumTour] posting tour-seen...'); }
     const response = await fetch(`${AUTH_DOMAIN}/api/premium/tour-seen`, {
       method: 'POST',
       headers,
@@ -722,7 +724,7 @@ export async function postTourSeen(): Promise<boolean> {
       return false;
     }
 
-    console.log('[PremiumTour] tour-seen success');
+    if (isDebug) { console.log('[PremiumTour] tour-seen success'); }
 
     const store = useAuthStore.getState();
     if (store.user) {
@@ -742,7 +744,7 @@ export async function postTrialActivationSeen(): Promise<boolean> {
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     if (jwt) headers['Authorization'] = `Bearer ${jwt}`;
 
-    console.log('[TrialActivation] posting trial-activation-seen...');
+    if (isDebug) { console.log('[TrialActivation] posting trial-activation-seen...'); }
     const response = await fetch(`${AUTH_DOMAIN}/api/premium/trial-activation-seen`, {
       method: 'POST',
       headers,
@@ -754,7 +756,7 @@ export async function postTrialActivationSeen(): Promise<boolean> {
       return false;
     }
 
-    console.log('[TrialActivation] trial-activation-seen success');
+    if (isDebug) { console.log('[TrialActivation] trial-activation-seen success'); }
     const store = useAuthStore.getState();
     if (store.user) {
       store.setUser({ ...store.user, hasSeenTrialActivation: true });
@@ -772,7 +774,7 @@ export async function postTrialTourSeen(): Promise<boolean> {
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     if (jwt) headers['Authorization'] = `Bearer ${jwt}`;
 
-    console.log('[TrialTour] posting trial-tour-seen...');
+    if (isDebug) { console.log('[TrialTour] posting trial-tour-seen...'); }
     const response = await fetch(`${AUTH_DOMAIN}/api/premium/trial-tour-seen`, {
       method: 'POST',
       headers,
@@ -784,7 +786,7 @@ export async function postTrialTourSeen(): Promise<boolean> {
       return false;
     }
 
-    console.log('[TrialTour] trial-tour-seen success');
+    if (isDebug) { console.log('[TrialTour] trial-tour-seen success'); }
     const store = useAuthStore.getState();
     if (store.user) {
       store.setUser({ ...store.user, hasSeenTrialTour: true });

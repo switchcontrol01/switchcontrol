@@ -173,7 +173,7 @@ function fmtNum(v: number | null | undefined, unit: string): string {
 export function GpuModal({ open, onOpenChange }: GpuModalProps) {
   // ── Sources of truth ────────────────────────────────────────────────────────
   const { profile, fetch: fetchProfile, loading: profileLoading } = useSystemIntelligenceStore();
-  const { telemetry } = useTelemetryStore();
+  const telemetry = useTelemetryStore(s => s.telemetry);
 
   // Sparkline history — accumulate GPU load samples while modal is open
   const [loadHistory, setLoadHistory] = useState<number[]>([]);

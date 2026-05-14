@@ -483,7 +483,7 @@ function ElectronAppContent() {
   // Minimum ms between focus-triggered entitlement refreshes to avoid hammering the server.
   // Kept low so that after an admin grant the next window-focus event reflects the
   // new plan quickly. Direct store patches (from handlePlanUpdated) bypass this entirely.
-  const ENTITLEMENT_REFRESH_COOLDOWN_MS = 5_000;
+  const ENTITLEMENT_REFRESH_COOLDOWN_MS = 30_000;
 
   useEffect(() => {
     if (!user?.loggedIn || phase !== 'authenticated') return;

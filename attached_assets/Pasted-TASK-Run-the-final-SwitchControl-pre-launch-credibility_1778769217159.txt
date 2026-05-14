@@ -1,0 +1,108 @@
+TASK
+Run the final SwitchControl pre-launch credibility, scale, and safety checklist.
+
+PROBLEM
+The app is now technically strong, but there are still launch risks that could damage trust if users or technical reviewers test it publicly.
+
+The main risks are:
+
+- fake or hardcoded UI claims
+- Apply Safe applying unsafe tweaks
+- unauthenticated WebSocket telemetry
+- PowerShell-heavy sync running too often
+- no scaling guardrails on expensive endpoints
+- weak crash/log visibility
+- technical users finding placebo/no-op tweaks
+
+GOAL
+Before public marketing or paid promotion, fix the issues most likely to:
+
+- break under user load
+- make the app look fake
+- get roasted by technical users
+- create support problems
+- damage trust
+
+This is not a redesign task. This is a final launch-hardening checklist.
+
+PRIORITY 1 — REMOVE PUBLIC TRUST KILLERS
+
+1. Remove hardcoded BIOS preview score
+   Find any BIOS Advisor preview score such as "82".
+
+Requirements:
+
+- do not show a numeric BIOS score until a real scan has run
+- before scan, show:
+  - “No BIOS scan yet”
+  - “Upload BIOS screenshots to generate a score”
+- score must be "null" or absent until generated from real scan data
+- no fake BIOS benchmark or pretend scan result
+
+2. Remove fake network before/after claims
+   Find all Network Tweaks pages, preview cards, graphs, tours, and marketing panels.
+
+Remove:
+
+- fake ping drops
+- fake FPS increases
+- fake latency before/after numbers
+- fake “boost” percentages
+
+Replace with honest wording:
+
+- “May reduce background network overhead on some systems”
+- “Effect depends on adapter, router, driver, ISP, and game server”
+- “Does not directly increase FPS”
+- “Verify with your own latency test”
+
+Only show before/after numbers if measured from real telemetry or a real benchmark.
+
+3. Mark "tcp-winhttp" unsupported
+   Files likely:
+
+- "electron/tweak-executor.js"
+- "client/src/lib/tweak-registry.ts"
+- any shared tweak metadata file
+
+Requirements:
+
+- "tcp-winhttp" must not appear as a working tweak
+- apply/revert must not pretend success
+- show unsupported reason:
+  “Apply and revert commands are identical. This tweak has no effect on this Windows version.”
+- exclude from Apply Safe and premium gating
+
+4. Remove fake service totals
+   Find hardcoded fake denominators such as:
+
+- "totalServices = 142"
+- "totalCleaners = 50"
+- "totalStartup = 24"
+
+Requirements:
+
+- do not show "x / 142" unless 142 is a real scanned count
+- use real counts only
+- if no real denominator exists, show absolute count only:
+  “Tweaks applied: 12”
+  “Startup entries found: 18”
+  “Cleanable categories: 6”
+
+5. Remove rotating fake status text
+   Remove rotating dashboard phrases such as:
+
+- “Memory pressure stable”
+- “Telemetry active”
+- “GPU ready”
+- “System balanced”
+- “CPU threads aligned”
+
+Replace with real status:
+
+- hardware name + real RAM in use
+- “Connecting to telemetry...”
+- “Telemetry unavailable”
+- “Last updated X seconds ago”
+
+No generated-sounding filler text.

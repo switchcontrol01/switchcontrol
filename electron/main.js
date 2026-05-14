@@ -2202,6 +2202,12 @@ ipcMain.handle('startup:scan', async () => {
     return { ok: false, error: 'Windows only', entries: [] };
   }
 
+  const _token = psLimiter.tryAcquire({ file: 'main.js', fn: 'startup:scan', reason: 'startup-scan' });
+  if (!_token) {
+    if (isDebug) verboseLog('[startup:scan] SKIPPED — scan already in flight');
+    return { ok: false, error: 'Scan already running', entries: [] };
+  }
+
   const PS_SCAN = `
 $entries=[System.Collections.Generic.List[hashtable]]::new();$errs=@()
 function EP($c){if(!$c){return $null};$c=$c.Trim();if($c -match '^"([^"]+)"'){return $Matches[1]};if($c -match '^([^\\s]+\\.[eE][xX][eE])'){return $Matches[1]};if($c -match '^([^\\s]+)'){return $Matches[1]};return $null}
@@ -2224,8 +2230,9 @@ try{Get-ScheduledTask -EA SilentlyContinue|ForEach-Object{$t=$_;$ht=$t.Triggers|
       '-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden',
       '-ExecutionPolicy', 'Bypass', '-Command', PS_SCAN,
     ], { windowsHide: true, timeout: 20000 }, (err, stdout, stderr) => {
+      psLimiter.release(_token);
       if (err) {
-        console.error('[startup:scan] powershell error:', err.message, stderr?.slice(0, 300));
+        if (isDebug) console.error('[startup:scan] powershell error:', err.message, stderr?.slice(0, 300));
         return resolve({ ok: false, error: err.message, entries: [] });
       }
       try {
@@ -2255,11 +2262,11 @@ try{Get-ScheduledTask -EA SilentlyContinue|ForEach-Object{$t=$_;$ht=$t.Triggers|
           ? raw.entries.map(sanitize).filter(Boolean)
           : [];
         if (raw.errors && raw.errors.length > 0) {
-          console.warn('[startup:scan] partial errors:', raw.errors);
+          if (isDebug) console.warn('[startup:scan] partial errors:', raw.errors);
         }
         resolve({ ok: true, entries });
       } catch (parseErr) {
-        console.error('[startup:scan] JSON parse error:', parseErr.message, stdout?.slice(0, 300));
+        if (isDebug) console.error('[startup:scan] JSON parse error:', parseErr.message, stdout?.slice(0, 300));
         resolve({ ok: false, error: 'JSON parse failed', entries: [] });
       }
     });
@@ -2504,18 +2511,22 @@ ipcMain.handle('appBooster:scanGames', async (event, games) => {
   }
   // Also check user-configured Xbox install dirs from registry (best-effort)
   try {
-    const { execSync } = require('child_process');
-    const out = execSync(
-      'reg query "HKLM\\SOFTWARE\\Microsoft\\GamingServices" /v "GamingRootPath" /reg:64 2>nul',
-      { timeout: 3000, encoding: 'utf8', windowsHide: true }
-    );
+    const { execFile } = require('child_process');
+    const out = await new Promise((resolve, reject) => {
+      execFile(
+        'reg',
+        ['query', 'HKLM\\SOFTWARE\\Microsoft\\GamingServices', '/v', 'GamingRootPath', '/reg:64'],
+        { timeout: 3000, encoding: 'utf8', windowsHide: true },
+        (err, stdout) => { if (err) reject(err); else resolve(stdout); }
+      );
+    });
     const m = out.match(/GamingRootPath\s+REG_SZ\s+(.+)/i);
     if (m) {
       const p = m[1].trim();
       if (p && !xboxRoots.includes(p)) xboxRoots.push(p);
     }
   } catch { /* registry key may not exist */ }
-  verboseLog('[AppBooster] Xbox roots found:', xboxRoots.length, xboxRoots);
+  if (isDebug) verboseLog('[AppBooster] Xbox roots found:', xboxRoots.length, xboxRoots);
 
   // ── helper: find exe inside a root directory (up to 3 levels deep) ─────────
   function findExeIn(rootDir, exeName, maxDepth = 3) {
@@ -2539,13 +2550,18 @@ ipcMain.handle('appBooster:scanGames', async (event, games) => {
   // know exactly where it lives, even if manifest / disk scans miss it.
   const runningProcMap = {}; // e.g. "fortniteclient-win64-shipping.exe" → "C:\...\Win64"
   try {
-    const { execSync } = require('child_process');
-    const psOut = execSync(
-      'powershell.exe -NoProfile -NonInteractive -Command ' +
-      '"Get-WmiObject Win32_Process | Where-Object { $_.ExecutablePath } | ' +
-      'ForEach-Object { $_.ExecutablePath } | ConvertTo-Json -Compress"',
-      { timeout: 6000, encoding: 'utf8', windowsHide: true }
-    );
+    const { execFile } = require('child_process');
+    const psOut = await new Promise((resolve, reject) => {
+      execFile(
+        'powershell.exe',
+        [
+          '-NoProfile', '-NonInteractive', '-Command',
+          'Get-WmiObject Win32_Process | Where-Object { $_.ExecutablePath } | ForEach-Object { $_.ExecutablePath } | ConvertTo-Json -Compress',
+        ],
+        { timeout: 6000, encoding: 'utf8', windowsHide: true },
+        (err, stdout) => { if (err) reject(err); else resolve(stdout); }
+      );
+    });
     let paths = [];
     try { paths = JSON.parse(psOut.trim()); } catch { /* single result, not array */ }
     if (typeof paths === 'string') paths = [paths];
@@ -2556,9 +2572,9 @@ ipcMain.handle('appBooster:scanGames', async (event, games) => {
         runningProcMap[base] = path.dirname(exeFullPath);
       }
     }
-    console.log(`[AppBooster] Running processes mapped: ${Object.keys(runningProcMap).length} exe(s) found`);
+    if (isDebug) console.log(`[AppBooster] Running processes mapped: ${Object.keys(runningProcMap).length} exe(s) found`);
   } catch (e) {
-    console.log('[AppBooster] Running process map failed (non-fatal):', e.message?.slice(0, 120));
+    if (isDebug) console.log('[AppBooster] Running process map failed (non-fatal):', e.message?.slice(0, 120));
   }
 
   // ── Per-game detection ────────────────────────────────────────────────────

@@ -21,6 +21,8 @@
 import { useTelemetryStore } from "@/stores/telemetryStore";
 import { usePerformanceStore } from "@/stores/performanceStore";
 
+const isDebug = import.meta.env.DEV;
+
 const SPIKE_THRESHOLD = 15;
 const UNAVAILABLE_TIMEOUT_MS = 8000;
 
@@ -36,12 +38,17 @@ const _spikeTimers: Record<string, ReturnType<typeof setTimeout>> = {};
 const RECONNECT_BASE_MS = 3_000;
 const RECONNECT_MAX_MS  = 30_000;
 let _reconnectDelay = RECONNECT_BASE_MS;
+let _lastReportedCpu = 0; // for LPM throttle threshold
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
 function detectSpike(history: (number | null)[], newVal: number | null): boolean {
   if (newVal == null) return false;
-  const prev = [...history].reverse().find((v) => v != null);
+  // Backward loop — no array copy
+  let prev: number | null = null;
+  for (let i = history.length - 1; i >= 0; i--) {
+    if (history[i] != null) { prev = history[i]; break; }
+  }
   if (prev == null) return false;
   return Math.abs(newVal - prev) >= SPIKE_THRESHOLD;
 }
@@ -75,13 +82,21 @@ async function buildWsUrl(): Promise<string> {
 
 // ── Connection logic ───────────────────────────────────────────────────────────
 
+let _unavailableSetOnce = false;
+
 function connect() {
-  if (_unavailableTimer) clearTimeout(_unavailableTimer);
-  _unavailableTimer = setTimeout(() => {
-    if (useTelemetryStore.getState().status !== "ready") {
-      useTelemetryStore.getState()._setStatus("unavailable");
-    }
-  }, UNAVAILABLE_TIMEOUT_MS);
+  if (_unavailableTimer) {
+    clearTimeout(_unavailableTimer);
+    _unavailableTimer = null;
+  }
+  if (!_unavailableSetOnce) {
+    _unavailableSetOnce = true;
+    _unavailableTimer = setTimeout(() => {
+      if (useTelemetryStore.getState().status !== "ready") {
+        useTelemetryStore.getState()._setStatus("unavailable");
+      }
+    }, UNAVAILABLE_TIMEOUT_MS);
+  }
 
   buildWsUrl()
     .then((wsUrl) => {
@@ -135,8 +150,11 @@ function connect() {
               if (gpuSpike) scheduleResetSpike("gpu");
             }
 
-            // Report CPU to LPM auto-governor (no-op if manual mode)
-            usePerformanceStore.getState().reportCpu(cpuVal ?? 0);
+            // Report CPU to LPM auto-governor (throttled — skip if change <5%)
+            if (Math.abs((cpuVal ?? 0) - _lastReportedCpu) >= 5) {
+              _lastReportedCpu = cpuVal ?? 0;
+              usePerformanceStore.getState().reportCpu(cpuVal ?? 0);
+            }
 
             // Single batched set() — one React render pass instead of 3
             st._onTick(
@@ -161,8 +179,9 @@ function connect() {
           _ws = null;
           useTelemetryStore.getState()._setConnected(false);
           if (_started) {
-            console.log(`[Telemetry] WebSocket closed — reconnecting in ${_reconnectDelay}ms`);
-            _reconnectTimer = setTimeout(connect, _reconnectDelay);
+            const delay = document.hidden ? RECONNECT_MAX_MS : _reconnectDelay;
+            if (isDebug) console.log(`[Telemetry] WebSocket closed — reconnecting in ${delay}ms (hidden=${document.hidden})`);
+            _reconnectTimer = setTimeout(connect, delay);
             _reconnectDelay = Math.min(_reconnectDelay * 2, RECONNECT_MAX_MS);
           }
         };
@@ -175,6 +194,16 @@ function connect() {
 
 // ── Public API ─────────────────────────────────────────────────────────────────
 
+function _handleVisibilityChange() {
+  if (!document.hidden && _started && !_ws && _reconnectTimer) {
+    // User returned — clear the long reconnect delay and try now
+    clearTimeout(_reconnectTimer);
+    _reconnectTimer = null;
+    _reconnectDelay = RECONNECT_BASE_MS;
+    connect();
+  }
+}
+
 export const telemetryManager = {
   /**
    * Start the singleton WebSocket. Idempotent — safe to call many times.
@@ -184,8 +213,9 @@ export const telemetryManager = {
       return; // silent no-op — already running, no log spam
     }
     _started = true;
-    console.log("[Telemetry] Manager starting");
+    if (isDebug) console.log("[Telemetry] Manager starting");
     connect();
+    document.addEventListener('visibilitychange', _handleVisibilityChange);
   },
 
   /**
@@ -212,7 +242,7 @@ export const telemetryManager = {
    * user action — never on route change.
    */
   hardReset() {
-    console.log("[Telemetry] hard reset triggered");
+    if (isDebug) console.log("[Telemetry] hard reset triggered");
     if (_reconnectTimer) clearTimeout(_reconnectTimer);
     if (_unavailableTimer) clearTimeout(_unavailableTimer);
     if (_ws) { _ws.close(); _ws = null; }
