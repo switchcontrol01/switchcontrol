@@ -39,12 +39,28 @@ export function useResetTweaks() {
   });
 }
 
+const GUARDED_TWEAK_IDS = new Set([
+  'bluetooth', 'wifi', 'disable-dcom', 'hyper-v', 'vbs', 'core-isolation', 'hdcp',
+  'fax-printer', 'disable-transparency', 'disable-animations',
+  'tcp-congestion', 'tcp-task-offload', 'tcp-nagle', 'nic-flow-control',
+]);
+
+function isRecommendedSafe(t: (typeof TWEAKS_DATA)[number]): boolean {
+  if (t.level !== 'Recommended') return false;
+  if (t.risk !== 'Safe') return false;
+  if (!t.supported) return false;
+  if (GUARDED_TWEAK_IDS.has(t.id)) return false;
+  if (t.requiresReboot) return false;
+  if (t.requiresAdmin === false) return true;
+  return true;
+}
+
 export function useApplyRecommended() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async () => {
       const recommendedIds = TWEAKS_DATA
-        .filter(t => t.level === 'Recommended' && t.risk === 'Safe' && t.supported)
+        .filter(isRecommendedSafe)
         .map(t => t.id);
       // In Electron, use the guarded bulk path to protect audio/network devices
       if (typeof window !== 'undefined' && (window as any).electronAPI?.tweaks) {

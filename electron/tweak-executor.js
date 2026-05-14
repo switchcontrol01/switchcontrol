@@ -609,6 +609,14 @@ const HKCU_TWEAKS = {
     revert: `Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced" -Name "SeparateProcess" -Value 0 -Type DWord -Force`,
     check:  `(Get-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced" -Name "SeparateProcess" -EA SilentlyContinue).SeparateProcess -eq 1`,
   },
+  'disable-wallpaper-compression': {
+    name: 'Disable Wallpaper Compression',
+    requiresAdmin: false,
+    requiresReboot: false,
+    apply:  `Set-ItemProperty -Path "HKCU:\\Control Panel\\Desktop" -Name "JPEGImportQuality" -Value 100 -Type DWord -Force`,
+    revert: `Remove-ItemProperty -Path "HKCU:\\Control Panel\\Desktop" -Name "JPEGImportQuality" -EA SilentlyContinue`,
+    check:  `(Get-ItemProperty -Path "HKCU:\\Control Panel\\Desktop" -Name "JPEGImportQuality" -EA SilentlyContinue).JPEGImportQuality -eq 100`,
+  },
 };
 
 // ─── ADMIN tweaks (HKLM / services / bcdedit – require elevation) ──────────────
@@ -761,7 +769,7 @@ const ADMIN_TWEAKS = {
     check:  `$s = Get-Service -Name XblAuthManager -EA SilentlyContinue; $s -and ($s.StartType -eq "Disabled")`,
   },
   'fax-printer': {
-    name: 'Disable Fax & Printer Services',
+    name: 'Disable Print Spooler',
     requiresAdmin:  true,
     requiresReboot: false,
     apply:  `$sp = Get-Service -Name Spooler -EA SilentlyContinue; if ($sp) { Stop-Service Spooler -Force -EA SilentlyContinue; Set-Service Spooler -StartupType Disabled }; $fx = Get-Service -Name Fax -EA SilentlyContinue; if ($fx) { Stop-Service Fax -Force -EA SilentlyContinue; Set-Service Fax -StartupType Disabled }`,
@@ -880,6 +888,38 @@ const ADMIN_TWEAKS = {
     apply:  `$p = "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon"; New-Item -Path $p -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path $p -Name "RestartApps" -Value 0 -Type DWord -Force`,
     revert: `$p = "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon"; Remove-ItemProperty -Path $p -Name "RestartApps" -EA SilentlyContinue`,
     check:  `(Get-ItemProperty -Path "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon" -Name "RestartApps" -EA SilentlyContinue).RestartApps -eq 0`,
+  },
+  'mmcss-nolazymode': {
+    name: 'Disable MMCSS Lazy Mode',
+    requiresAdmin: true,
+    requiresReboot: false,
+    apply:  `New-Item -Path "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile" -Name "NoLazyMode" -Value 1 -Type DWord -Force`,
+    revert: `Set-ItemProperty -Path "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile" -Name "NoLazyMode" -Value 0 -Type DWord -Force`,
+    check:  `(Get-ItemProperty -Path "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile" -Name "NoLazyMode" -EA SilentlyContinue).NoLazyMode -eq 1`,
+  },
+  'disable-lock-screen': {
+    name: 'Disable Lock Screen',
+    requiresAdmin: true,
+    requiresReboot: false,
+    apply:  `New-Item -Path "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\Personalization" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\Personalization" -Name "NoLockScreen" -Value 1 -Type DWord -Force`,
+    revert: `Remove-ItemProperty -Path "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\Personalization" -Name "NoLockScreen" -EA SilentlyContinue`,
+    check:  `(Get-ItemProperty -Path "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\Personalization" -Name "NoLockScreen" -EA SilentlyContinue).NoLockScreen -eq 1`,
+  },
+  'disable-dcom': {
+    name: 'Disable DCOM',
+    requiresAdmin: true,
+    requiresReboot: true,
+    apply:  `Set-ItemProperty -Path "HKLM:\\SOFTWARE\\Microsoft\\Ole" -Name "EnableDCOM" -Value "N" -Type String -Force`,
+    revert: `Set-ItemProperty -Path "HKLM:\\SOFTWARE\\Microsoft\\Ole" -Name "EnableDCOM" -Value "Y" -Type String -Force`,
+    check:  `(Get-ItemProperty -Path "HKLM:\\SOFTWARE\\Microsoft\\Ole" -Name "EnableDCOM" -EA SilentlyContinue).EnableDCOM -eq "N"`,
+  },
+  'svchost-split-threshold': {
+    name: 'Service Host Split Threshold',
+    requiresAdmin: true,
+    requiresReboot: false,
+    apply:  `Set-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control" -Name "SvcHostSplitThresholdInKB" -Value 67108864 -Type DWord -Force`,
+    revert: `Set-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control" -Name "SvcHostSplitThresholdInKB" -Value 380000 -Type DWord -Force`,
+    check:  `(Get-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control" -Name "SvcHostSplitThresholdInKB" -EA SilentlyContinue).SvcHostSplitThresholdInKB -ge 67108864`,
   },
 };
 
