@@ -73,8 +73,8 @@ function TrialCountdownBanner() {
       className="fixed top-0 left-64 right-0 z-50 flex items-center justify-between px-4 py-1.5 backdrop-blur"
       style={{
         background: ent.isTrialUrgent
-          ? "linear-gradient(90deg, rgba(220,38,38,0.18) 0%, rgba(168,85,247,0.14) 100%)"
-          : "linear-gradient(90deg, rgba(6,182,212,0.15) 0%, rgba(139,92,246,0.12) 100%)",
+          ? "linear-gradient(90deg, rgba(220,38,38,0.18) 0%, rgba(0,212,255,0.14) 100%)"
+          : "linear-gradient(90deg, rgba(6,182,212,0.15) 0%, rgba(0,212,255,0.12) 100%)",
         borderBottom: ent.isTrialUrgent
           ? "1px solid rgba(220,38,38,0.3)"
           : "1px solid rgba(6,182,212,0.25)",

@@ -108,7 +108,7 @@ function SteppedSelector({
               "relative flex flex-col items-center gap-1 px-2 py-3 rounded-xl border text-center transition-all duration-200",
               "text-[11px] font-medium leading-tight",
               isSelected
-                ? "bg-primary/15 border-primary/40 text-primary shadow-[0_0_16px_rgba(168,85,247,0.2)]"
+                ? "bg-primary/15 border-primary/40 text-primary shadow-[0_0_16px_rgba(0,212,255,0.2)]"
                 : "bg-white/[0.04] border-white/[0.08] text-white/50 hover:border-white/20 hover:text-white/70 hover:bg-white/[0.06]",
               disabled && "opacity-50 cursor-not-allowed",
             )}

@@ -94,7 +94,7 @@ const CategoryRow = memo(function CategoryRow({
       className={cn(
         "w-full flex items-center gap-3 px-3.5 py-3 rounded-xl border transition-all duration-200",
         expanded
-          ? cn(meta.bg, meta.border, "shadow-[0_0_12px_rgba(139,92,246,0.08)]")
+          ? cn(meta.bg, meta.border, "shadow-[0_0_12px_rgba(0,212,255,0.08)]")
           : "bg-white/[0.02] border-white/[0.06] hover:bg-white/[0.04] hover:border-white/[0.10]"
       )}
     >

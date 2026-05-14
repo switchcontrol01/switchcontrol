@@ -64,7 +64,7 @@ export function CleanerRecommendedCard({ items, findings, onApply, onReview, sca
       className={cn(
         "rounded-xl border p-4 transition-all duration-300",
         "bg-white/[0.03] border-white/[0.08]",
-        "shadow-[0_0_24px_rgba(139,92,246,0.08)]"
+        "shadow-[0_0_24px_rgba(0,212,255,0.08)]"
       )}
     >
       <div className="flex items-start justify-between gap-3">

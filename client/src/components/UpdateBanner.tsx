@@ -37,7 +37,7 @@ const URGENCY_STYLES = {
   normal: {
     border: 'border-violet-500/25',
     bg: 'bg-violet-500/5',
-    glow: 'shadow-[0_0_18px_-6px_rgba(139,92,246,0.25)]',
+    glow: 'shadow-[0_0_18px_-6px_rgba(0,212,255,0.25)]',
     accent: 'text-violet-400',
     badge: 'bg-violet-500/15 text-violet-300 border-violet-500/25',
     badgeLabel: 'Update Available',

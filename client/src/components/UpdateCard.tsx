@@ -78,7 +78,7 @@ const URGENCY_CONFIG = {
   normal: {
     border: 'border-violet-500/20',
     bg: 'bg-violet-500/4',
-    glow: 'shadow-[0_0_16px_-8px_rgba(139,92,246,0.2)]',
+    glow: 'shadow-[0_0_16px_-8px_rgba(0,212,255,0.2)]',
     accent: 'text-violet-400',
     badge: 'bg-violet-500/15 text-violet-300 border-violet-500/25 border',
     icon: <ArrowUpCircle className="size-4 text-violet-400" />,
@@ -266,7 +266,7 @@ export function UpdateCard() {
             {/* Progress bar */}
             <div className="h-1.5 w-full rounded-full bg-white/8 overflow-hidden">
               <motion.div
-                className="h-full rounded-full bg-gradient-to-r from-violet-500 to-cyan-400 shadow-[0_0_10px_rgba(139,92,246,0.6)]"
+                className="h-full rounded-full bg-gradient-to-r from-violet-500 to-cyan-400 shadow-[0_0_10px_rgba(0,212,255,0.6)]"
                 animate={{ width: `${downloadPercent}%` }}
                 transition={{ ease: 'linear', duration: 0.35 }}
               />

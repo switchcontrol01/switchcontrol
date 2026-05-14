@@ -43,12 +43,12 @@ export function WelcomeAnimation({
       duration: 3.5 + seededRandom(i * 11) * 4,
       drift: (seededRandom(i * 19) - 0.5) * 40,
       color: i % 5 === 0
-        ? "rgba(236,72,153,0.7)"
+        ? "rgba(245,158,11,0.7)"
         : i % 4 === 0
         ? "rgba(56,189,248,0.6)"
         : i % 3 === 0
         ? "rgba(192,132,252,0.8)"
-        : "rgba(139,92,246,0.6)",
+        : "rgba(0,212,255,0.6)",
     }));
   }, [introDelay]);
 
@@ -89,7 +89,7 @@ export function WelcomeAnimation({
       <div
         className="absolute inset-0 pointer-events-none z-0"
         style={{
-          backgroundImage: "radial-gradient(circle, rgba(139,92,246,0.12) 1px, transparent 1px)",
+          backgroundImage: "radial-gradient(circle, rgba(0,212,255,0.12) 1px, transparent 1px)",
           backgroundSize: "48px 48px",
           maskImage: "radial-gradient(ellipse 80% 80% at 50% 50%, black 30%, transparent 100%)",
           WebkitMaskImage: "radial-gradient(ellipse 80% 80% at 50% 50%, black 30%, transparent 100%)",
@@ -105,7 +105,7 @@ export function WelcomeAnimation({
           left: "50%", top: "50%",
           width: "80vw", height: "80vw",
           marginLeft: "-40vw", marginTop: "-40vw",
-          background: "radial-gradient(ellipse, rgba(139,92,246,0.3) 0%, rgba(99,102,241,0.08) 45%, transparent 70%)",
+          background: "radial-gradient(ellipse, rgba(0,212,255,0.3) 0%, rgba(99,102,241,0.08) 45%, transparent 70%)",
           filter: "blur(90px)",
         }}
         initial={{ opacity: 0.15, scale: 0.6 }}
@@ -119,7 +119,7 @@ export function WelcomeAnimation({
         style={{
           right: "5%", top: "5%",
           width: "40vw", height: "40vw",
-          background: "radial-gradient(ellipse, rgba(236,72,153,0.18) 0%, transparent 65%)",
+          background: "radial-gradient(ellipse, rgba(245,158,11,0.18) 0%, transparent 65%)",
           filter: "blur(70px)",
         }}
         initial={{ opacity: 0, x: 30 }}
@@ -165,7 +165,7 @@ export function WelcomeAnimation({
             width: "120vmax", height: "1px",
             transformOrigin: "left center",
             rotate: `${beam.angle}deg`,
-            background: "linear-gradient(90deg, transparent 0%, rgba(139,92,246,0.4) 40%, rgba(236,72,153,0.3) 60%, transparent 100%)",
+            background: "linear-gradient(90deg, transparent 0%, rgba(0,212,255,0.4) 40%, rgba(245,158,11,0.3) 60%, transparent 100%)",
             filter: "blur(1px)",
             opacity: beam.opacity,
           }}
@@ -239,7 +239,7 @@ export function WelcomeAnimation({
         <motion.div
           className="absolute -inset-8 rounded-[40%] pointer-events-none"
           style={{
-            background: "radial-gradient(ellipse, rgba(139,92,246,0.45) 0%, rgba(236,72,153,0.12) 50%, transparent 75%)",
+            background: "radial-gradient(ellipse, rgba(0,212,255,0.45) 0%, rgba(245,158,11,0.12) 50%, transparent 75%)",
             filter: "blur(20px)",
           }}
           initial={{ opacity: 0 }}
@@ -267,8 +267,8 @@ export function WelcomeAnimation({
                 width: 3, height: 3,
                 marginTop: -1.5, marginLeft: -1.5,
                 borderRadius: "50%",
-                background: i % 2 === 0 ? "rgba(192,132,252,0.9)" : "rgba(236,72,153,0.9)",
-                boxShadow: `0 0 6px ${i % 2 === 0 ? "rgba(192,132,252,0.9)" : "rgba(236,72,153,0.9)"}`,
+                background: i % 2 === 0 ? "rgba(192,132,252,0.9)" : "rgba(245,158,11,0.9)",
+                boxShadow: `0 0 6px ${i % 2 === 0 ? "rgba(192,132,252,0.9)" : "rgba(245,158,11,0.9)"}`,
                 transform: `rotate(${angle}deg) translateX(68px)`,
               }}
               animate={{ scale: [1, 1.6, 1], opacity: [0.7, 1, 0.7] }}
@@ -283,12 +283,12 @@ export function WelcomeAnimation({
           alt="SwitchControl"
           className="w-28 h-28 object-contain rounded-3xl relative z-10"
           draggable={false}
-          initial={{ filter: "drop-shadow(0 0 16px rgba(139,92,246,0.6)) drop-shadow(0 0 40px rgba(139,92,246,0.3))" }}
+          initial={{ filter: "drop-shadow(0 0 16px rgba(0,212,255,0.6)) drop-shadow(0 0 40px rgba(0,212,255,0.3))" }}
           animate={{
             filter: [
-              "drop-shadow(0 0 16px rgba(139,92,246,0.6)) drop-shadow(0 0 40px rgba(139,92,246,0.3))",
-              "drop-shadow(0 0 30px rgba(139,92,246,0.9)) drop-shadow(0 0 70px rgba(236,72,153,0.4))",
-              "drop-shadow(0 0 16px rgba(139,92,246,0.6)) drop-shadow(0 0 40px rgba(139,92,246,0.3))",
+              "drop-shadow(0 0 16px rgba(0,212,255,0.6)) drop-shadow(0 0 40px rgba(0,212,255,0.3))",
+              "drop-shadow(0 0 30px rgba(0,212,255,0.9)) drop-shadow(0 0 70px rgba(245,158,11,0.4))",
+              "drop-shadow(0 0 16px rgba(0,212,255,0.6)) drop-shadow(0 0 40px rgba(0,212,255,0.3))",
             ],
           }}
           transition={{ duration: 2.4, delay: introDelay + 0.8, repeat: Infinity, ease: "easeInOut" }}
@@ -356,8 +356,8 @@ export function WelcomeAnimation({
           <motion.div
             className="h-full rounded-full"
             style={{
-              background: "linear-gradient(90deg, rgba(139,92,246,0.8), rgba(236,72,153,0.9), rgba(56,189,248,0.8))",
-              boxShadow: "0 0 8px rgba(139,92,246,0.8)",
+              background: "linear-gradient(90deg, rgba(0,212,255,0.8), rgba(245,158,11,0.9), rgba(56,189,248,0.8))",
+              boxShadow: "0 0 8px rgba(0,212,255,0.8)",
             }}
             initial={{ width: "0%", x: "-100%" }}
             animate={{ width: "100%", x: "0%" }}
@@ -374,8 +374,8 @@ export function WelcomeAnimation({
               style={{
                 width: i === 1 ? 6 : 4,
                 height: i === 1 ? 6 : 4,
-                background: i === 1 ? "rgba(168,85,247,0.9)" : "rgba(168,85,247,0.5)",
-                boxShadow: i === 1 ? "0 0 8px rgba(168,85,247,0.8)" : "none",
+                background: i === 1 ? "rgba(0,212,255,0.9)" : "rgba(0,212,255,0.5)",
+                boxShadow: i === 1 ? "0 0 8px rgba(0,212,255,0.8)" : "none",
               }}
               animate={{
                 opacity: [0.3, 1, 0.3],

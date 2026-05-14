@@ -82,7 +82,7 @@ export function CleanerStatsGrid({
               className={cn(
                 "p-3.5 border transition-all duration-300",
                 card.glow
-                  ? cn(card.border, "shadow-[0_0_20px_rgba(139,92,246,0.12)]")
+                  ? cn(card.border, "shadow-[0_0_20px_rgba(0,212,255,0.12)]")
                   : "border-white/[0.07]"
               )}
             >

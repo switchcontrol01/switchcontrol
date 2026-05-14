@@ -77,16 +77,15 @@ const EASE_PREMIUM = [0.22, 1, 0.36, 1] as const;
 function SidebarAmbientGlow() {
   return (
     <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden>
-      {/* Top ambient orb — violet */}
+      {/* Top ambient orb — muted blue */}
       <motion.div
         className="absolute rounded-full"
         style={{
           width: 260,
           height: 260,
-          background: "radial-gradient(circle, rgba(139,92,246,0.13) 0%, transparent 70%)",
+          background: "radial-gradient(circle, rgba(0,212,255,0.06) 0%, transparent 70%)",
           top: -40,
           left: -60,
-          filter: "blur(8px)",
         }}
         animate={{
           x: [0, 18, -8, 0],
@@ -94,16 +93,15 @@ function SidebarAmbientGlow() {
         }}
         transition={{ duration: 22, repeat: Infinity, ease: "easeInOut" }}
       />
-      {/* Mid ambient orb — fuchsia */}
+      {/* Mid ambient orb — faint */}
       <motion.div
         className="absolute rounded-full"
         style={{
           width: 200,
           height: 200,
-          background: "radial-gradient(circle, rgba(168,85,247,0.09) 0%, transparent 70%)",
+          background: "radial-gradient(circle, rgba(42,49,58,0.08) 0%, transparent 70%)",
           top: "38%",
           left: -40,
-          filter: "blur(12px)",
         }}
         animate={{
           x: [0, -12, 10, 0],
@@ -112,16 +110,15 @@ function SidebarAmbientGlow() {
         }}
         transition={{ duration: 28, repeat: Infinity, ease: "easeInOut", delay: 4 }}
       />
-      {/* Bottom ambient orb — cyan tint */}
+      {/* Bottom ambient orb — muted */}
       <motion.div
         className="absolute rounded-full"
         style={{
           width: 180,
           height: 180,
-          background: "radial-gradient(circle, rgba(34,211,238,0.06) 0%, transparent 70%)",
+          background: "radial-gradient(circle, rgba(20,24,29,0.06) 0%, transparent 70%)",
           bottom: 80,
           left: -30,
-          filter: "blur(10px)",
         }}
         animate={{
           x: [0, 14, -6, 0],
@@ -164,12 +161,12 @@ function NavItemRow({
             <div
               className="absolute inset-0 rounded-xl"
               style={{
-                background: "linear-gradient(90deg, rgba(139,92,246,0.22) 0%, rgba(168,85,247,0.08) 70%, transparent 100%)",
+                background: "linear-gradient(90deg, rgba(0,212,255,0.18) 0%, rgba(0,212,255,0.06) 70%, transparent 100%)",
               }}
             />
             <div
               className="absolute -inset-[1px] rounded-[13px] border"
-              style={{ borderColor: "rgba(168,85,247,0.45)" }}
+              style={{ borderColor: "rgba(0,212,255,0.40)" }}
             />
           </motion.div>
         )}
@@ -189,7 +186,7 @@ function NavItemRow({
               className="absolute inset-0"
               style={{
                 background:
-                  "linear-gradient(105deg, rgba(139,92,246,0.32) 0%, rgba(168,85,247,0.18) 55%, rgba(217,70,239,0.08) 100%)",
+                  "linear-gradient(105deg, rgba(0,212,255,0.20) 0%, rgba(0,212,255,0.12) 55%, rgba(0,160,200,0.06) 100%)",
               }}
             />
             {/* Shimmer sweep — breathing */}
@@ -208,14 +205,14 @@ function NavItemRow({
               className="absolute inset-x-0 top-0 h-px"
               style={{
                 background:
-                  "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.12) 30%, rgba(255,255,255,0.18) 60%, transparent 100%)",
+                  "linear-gradient(90deg, transparent 0%, rgba(0,212,255,0.10) 30%, rgba(0,212,255,0.15) 60%, transparent 100%)",
               }}
             />
           </div>
           {/* Outer bloom */}
           <motion.div
             className="absolute inset-0 rounded-xl"
-            style={{ boxShadow: "0 0 0 1px rgba(139,92,246,0.22), 0 0 16px -2px rgba(139,92,246,0.22)" }}
+            style={{ boxShadow: "0 0 0 1px rgba(0,212,255,0.18), 0 0 16px -2px rgba(0,212,255,0.18)" }}
             animate={{ opacity: [0.8, 1, 0.8] }}
             transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
           />
@@ -244,7 +241,7 @@ function NavItemRow({
             className="absolute inset-0 rounded-xl"
             style={{
               background:
-                "linear-gradient(105deg, rgba(139,92,246,0.1) 0%, rgba(255,255,255,0.04) 100%)",
+                "linear-gradient(105deg, rgba(0,212,255,0.08) 0%, rgba(255,255,255,0.04) 100%)",
             }}
             initial={{ opacity: 0 }}
             animate={{ opacity: hovered ? 1 : 0 }}
@@ -263,8 +260,8 @@ function NavItemRow({
               transition={SPRING_SNAPPY}
               style={{
                 width: 3,
-                background: "linear-gradient(180deg, #c084fc 0%, #8b5cf6 60%, #a855f7 100%)",
-                boxShadow: "0 0 8px rgba(139,92,246,0.5)",
+                background: "linear-gradient(180deg, #33E0FF 0%, #00D4FF 60%, #33E0FF 100%)",
+                boxShadow: "0 0 8px rgba(0,212,255,0.40)",
               }}
             />
           )}
@@ -275,11 +272,11 @@ function NavItemRow({
           className="z-10 relative shrink-0"
           animate={
             isTourHighlighted
-              ? { scale: 1.08, filter: "drop-shadow(0 0 5px rgba(168,85,247,0.55))" }
+              ? { scale: 1.08, filter: "drop-shadow(0 0 5px rgba(0,212,255,0.40))" }
               : isActive
-              ? { scale: 1.08, filter: "drop-shadow(0 0 6px rgba(139,92,246,0.7))" }
+              ? { scale: 1.08, filter: "drop-shadow(0 0 6px rgba(0,212,255,0.50))" }
               : hovered
-              ? { scale: 1.06, filter: "drop-shadow(0 0 4px rgba(139,92,246,0.35))" }
+              ? { scale: 1.06, filter: "drop-shadow(0 0 4px rgba(0,212,255,0.25))" }
               : { scale: 1, filter: "none" }
           }
           transition={SPRING_SNAPPY}
@@ -411,7 +408,7 @@ export function Sidebar() {
               className="absolute inset-0"
               style={{
                 background:
-                  "radial-gradient(ellipse 100% 60% at 50% 50%, transparent 40%, rgba(139,92,246,0.07) 100%)",
+                  "radial-gradient(ellipse 100% 60% at 50% 50%, transparent 40%, rgba(20,24,29,0.4) 100%)",
               }}
             />
           </motion.div>
@@ -455,7 +452,7 @@ export function Sidebar() {
           className="sidebar-footer-inner p-4"
         >
           {/* User row */}
-          <div className="sidebar-user-row flex items-center gap-3 px-2 py-2 rounded-xl hover:bg-white/[0.03]">
+          <div className="sidebar-user-row flex items-center gap-3 px-2 py-2 rounded-xl hover:bg-[#2A313A]/60">
             {/* Avatar */}
             <div className="sidebar-avatar-wrap relative shrink-0">
               {avatarUrl ? (
@@ -465,7 +462,7 @@ export function Sidebar() {
                   className="size-9 rounded-full object-cover"
                 />
               ) : (
-                <div className="size-9 rounded-full bg-gradient-to-br from-violet-900/60 to-zinc-900 flex items-center justify-center text-xs font-mono text-violet-300/80 shadow-inner">
+                <div className="size-9 rounded-full bg-[#2A313A] border border-[#2A313A] flex items-center justify-center text-xs font-mono text-[#A0A8B3] shadow-inner">
                   {userInitials}
                 </div>
               )}
@@ -474,7 +471,7 @@ export function Sidebar() {
                 className="absolute inset-0 rounded-full pointer-events-none"
                 style={{
                   boxShadow: ent.showPremiumBadge
-                    ? "0 0 0 1.5px rgba(139,92,246,0.35), 0 0 6px rgba(139,92,246,0.2)"
+                    ? "0 0 0 1.5px rgba(0,212,255,0.25), 0 0 6px rgba(139,92,246,0.2)"
                     : "0 0 0 1.5px rgba(255,255,255,0.1)",
                 }}
               />

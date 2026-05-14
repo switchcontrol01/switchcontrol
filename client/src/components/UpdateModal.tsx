@@ -74,15 +74,15 @@ const PALETTE = {
   },
   normal: {
     label:      "New Build Ready",
-    badgeBg:    "rgba(139,92,246,0.12)",
-    badgeBorder:"rgba(139,92,246,0.30)",
+    badgeBg:    "rgba(0,212,255,0.12)",
+    badgeBorder:"rgba(0,212,255,0.30)",
     badgeText:  "rgba(196,181,253,0.95)",
     icon:       <ArrowUpCircle className="size-5 text-violet-400" />,
     glow:       "shadow-[0_0_80px_rgba(109,40,217,0.20)]",
     bar:        "from-violet-500 via-purple-400 to-cyan-400",
-    accent:     "#a78bfa",
+    accent:     "#33E0FF",
     accentCls:  "text-violet-400",
-    orbitColor: "rgba(139,92,246,0.55)",
+    orbitColor: "rgba(0,212,255,0.55)",
     canDismiss: true,
   },
 } as const;
@@ -432,7 +432,7 @@ function DownloadingView({ percent, transferred, total, bps, urgency }: Download
             className="absolute inset-0 rounded-full blur-2xl opacity-30"
             animate={{ opacity: [0.2, 0.45, 0.2] }}
             transition={{ repeat: Infinity, duration: 2.2, ease: "easeInOut" }}
-            style={{ background: "radial-gradient(ellipse at left, rgba(139,92,246,0.6) 0%, transparent 70%)" }}
+            style={{ background: "radial-gradient(ellipse at left, rgba(0,212,255,0.6) 0%, transparent 70%)" }}
           />
         </div>
       </div>

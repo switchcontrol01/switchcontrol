@@ -436,14 +436,14 @@ body {
   gap: 4px;
   padding: 2px 7px 2px 5px;
   border-radius: 4px;
-  background: hsl(252 30% 20% / 0.6);
-  border: 1px solid hsl(252 40% 45% / 0.3);
+  background: rgba(0, 212, 255, 0.10);
+  border: 1px solid rgba(0, 212, 255, 0.25);
   width: fit-content;
   cursor: default;
 }
 
 .premium-badge-text {
-  color: hsl(252 60% 75%);
+  color: #00D4FF;
   font-weight: 600;
   font-size: 10px;
   letter-spacing: 0.06em;
@@ -464,18 +464,8 @@ body {
 
 /* ── Sidebar outer shell ── */
 .sidebar-shell {
-  background:
-    /* Top gradient wash */
-    linear-gradient(
-      180deg,
-      rgba(139, 92, 246, 0.06) 0%,
-      rgba(17, 12, 28, 0.92) 20%,
-      rgba(13, 10, 22, 0.96) 100%
-    ),
-    hsl(260 20% 6%);
-  backdrop-filter: blur(24px) saturate(1.3);
-  -webkit-backdrop-filter: blur(24px) saturate(1.3);
-  border-right: 1px solid rgba(139, 92, 246, 0.12);
+  background: #14181D;
+  border-right: 1px solid #2A313A;
   box-shadow:
     /* Right-facing depth shadow */
     4px 0 32px -8px rgba(0, 0, 0, 0.6),
@@ -486,8 +476,8 @@ body {
 /* ── Grid texture overlay ── */
 .sidebar-grid-overlay {
   background-image:
-    linear-gradient(rgba(139, 92, 246, 0.025) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(139, 92, 246, 0.025) 1px, transparent 1px);
+    linear-gradient(rgba(0, 212, 255, 0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 212, 255, 0.015) 1px, transparent 1px);
   background-size: 24px 24px;
   opacity: 0.6;
 }
@@ -497,8 +487,8 @@ body {
   background: linear-gradient(
     180deg,
     transparent 0%,
-    rgba(139, 92, 246, 0.15) 40%,
-    rgba(139, 92, 246, 0.10) 70%,
+    rgba(0, 212, 255, 0.08) 40%,
+    rgba(0, 212, 255, 0.06) 70%,
     transparent 100%
   );
   opacity: 0.6;
@@ -512,29 +502,18 @@ body {
   width: 18px;
   height: 14px;
   border-radius: 4px;
-  background: rgba(139, 92, 246, 0.14);
-  border: 1px solid rgba(139, 92, 246, 0.22);
+  background: rgba(0, 212, 255, 0.12);
+  border: 1px solid rgba(0, 212, 255, 0.25);
 }
 
 /* ── Footer dock ── */
 .sidebar-footer-dock {
-  background: linear-gradient(
-    180deg,
-    transparent 0%,
-    rgba(13, 10, 24, 0.7) 100%
-  );
-  backdrop-filter: blur(8px);
+  background: #14181D;
+  border-top: 1px solid #2A313A;
 }
 
 .sidebar-footer-seam {
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(139, 92, 246, 0.10) 30%,
-    rgba(139, 92, 246, 0.08) 70%,
-    transparent 100%
-  );
-  opacity: 0.6;
+  display: none;
 }
 
 .sidebar-footer-inner {
@@ -2060,7 +2039,7 @@ textarea,
   100% { background-position: 200% center; }
 }
 .hero-text-glow {
-  text-shadow: 0 0 30px rgba(139, 92, 246, 0.15), 0 0 60px rgba(139, 92, 246, 0.08);
+  text-shadow: 0 0 30px rgba(0, 212, 255, 0.08), 0 0 60px rgba(139, 92, 246, 0.08);
 }
 
 .hero-accent-glow {
@@ -2068,7 +2047,7 @@ textarea,
 }
 
 .mockup-card-glow {
-  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.04), 0 0 20px -8px rgba(139, 92, 246, 0.15);
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.04), 0 0 20px -8px rgba(0, 212, 255, 0.08);
   transition: box-shadow 0.4s ease;
 }
 .mockup-card-glow:hover {
@@ -2269,11 +2248,11 @@ button, a, nav, header, footer, label {
 }
 @keyframes greetingBreathe {
   0%, 100% { text-shadow: 0 0 0px transparent; }
-  50%       { text-shadow: 0 0 18px rgba(168,85,247,0.40), 0 0 36px rgba(0,210,255,0.18); }
+  50%       { text-shadow: 0 0 18px rgba(0,212,255,0.25), 0 0 36px rgba(0,212,255,0.10); }
 }
 
 .username-gradient {
-  background: linear-gradient(90deg, #fff 0%, #a78bfa 30%, #22d3ee 60%, #a78bfa 80%, #fff 100%);
+  background: linear-gradient(90deg, #fff 0%, #A0A8B3 30%, #00D4FF 60%, #A0A8B3 80%, #fff 100%);
   background-size: 280% 100%;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -2468,7 +2447,7 @@ button, a, nav, header, footer, label {
 /* Card focus/selected glow border */
 .glow-border-cyan { box-shadow: 0 0 0 1px rgba(6,182,212,0.4), 0 0 20px rgba(6,182,212,0.08); }
 .glow-border-emerald { box-shadow: 0 0 0 1px rgba(52,211,153,0.4), 0 0 20px rgba(52,211,153,0.08); }
-.glow-border-primary { box-shadow: 0 0 0 1px rgba(139,92,246,0.4), 0 0 20px rgba(139,92,246,0.08); }
+.glow-border-primary { box-shadow: 0 0 0 1px rgba(0,212,255,0.3), 0 0 20px rgba(0,212,255,0.06); }
 
 /* Micro slide-in for list items */
 @keyframes slide-in-from-left {

@@ -323,9 +323,9 @@ export function MemoryCleanerModal({ open, onOpenChange }: MemoryCleanerModalPro
                   className="absolute inset-0 rounded-full"
                   animate={{
                     boxShadow: [
-                      "0 0 0 0 rgba(139,92,246,0)",
-                      "0 0 30px 10px rgba(139,92,246,0.15)",
-                      "0 0 0 0 rgba(139,92,246,0)",
+                      "0 0 0 0 rgba(0,212,255,0)",
+                      "0 0 30px 10px rgba(0,212,255,0.15)",
+                      "0 0 0 0 rgba(0,212,255,0)",
                     ],
                   }}
                   transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}

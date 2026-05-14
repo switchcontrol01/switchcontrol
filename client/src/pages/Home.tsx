@@ -206,7 +206,7 @@ function BiosScoreSummaryCard({ isPremium }: { isPremium: boolean }) {
       </div>
       <div className="px-6 pb-6 space-y-4">
         {(!hasScanned || !scores) ? (
-          <div className="p-4 rounded-lg border border-dashed border-white/10 bg-white/[0.02] text-center space-y-2">
+          <div className="p-4 rounded-lg border border-dashed border-[#2A313A] bg-[#1A1F26] text-center space-y-2">
             <Target className="size-6 text-muted-foreground/40 mx-auto" />
             <p className="text-xs text-muted-foreground" data-testid="text-bios-not-analyzed">BIOS configuration not yet analyzed</p>
             <p className="text-[10px] text-muted-foreground/60">Scan detects XMP profiles, power limits, and scheduling settings.</p>

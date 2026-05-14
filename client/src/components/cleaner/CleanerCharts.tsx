@@ -36,7 +36,7 @@ const AXIS_PROPS = {
 } as const;
 
 const CAT_COLORS: Record<string, string> = {
-  storage: "#a78bfa",
+  storage: "#33E0FF",
   privacy: "#22d3ee",
   latency: "#f97316",
   performance: "#4ade80",
@@ -101,8 +101,8 @@ function JunkTrendChart({ scanHistory }: { scanHistory: ScanHistoryEntry[] }) {
           <AreaChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
             <defs>
               <linearGradient id="junkGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%"  stopColor="#a78bfa" stopOpacity={0.35} />
-                <stop offset="95%" stopColor="#a78bfa" stopOpacity={0} />
+                <stop offset="5%"  stopColor="#33E0FF" stopOpacity={0.35} />
+                <stop offset="95%" stopColor="#33E0FF" stopOpacity={0} />
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
@@ -114,9 +114,9 @@ function JunkTrendChart({ scanHistory }: { scanHistory: ScanHistoryEntry[] }) {
               labelStyle={{ color: "rgba(148,163,184,0.7)", fontSize: 10 }}
             />
             <Area
-              type="monotone" dataKey="mb" stroke="#a78bfa" strokeWidth={2}
-              fill="url(#junkGrad)" dot={{ fill: "#a78bfa", r: 3, strokeWidth: 0 }}
-              activeDot={{ r: 5, fill: "#a78bfa" }}
+              type="monotone" dataKey="mb" stroke="#33E0FF" strokeWidth={2}
+              fill="url(#junkGrad)" dot={{ fill: "#33E0FF", r: 3, strokeWidth: 0 }}
+              activeDot={{ r: 5, fill: "#33E0FF" }}
             />
           </AreaChart>
         </ResponsiveContainer>

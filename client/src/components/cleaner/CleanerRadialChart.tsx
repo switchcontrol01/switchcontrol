@@ -16,7 +16,7 @@ interface Props {
 }
 
 const CAT_COLORS: Record<string, string> = {
-  storage: "#a78bfa",
+  storage: "#33E0FF",
   privacy: "#22d3ee",
   latency: "#f97316",
   performance: "#4ade80",

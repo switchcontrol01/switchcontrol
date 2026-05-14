@@ -148,7 +148,7 @@ function RadarGraph({ axes, size = 140, delay = 0 }: { axes: RadarAxis[]; size?:
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} overflow="visible">
       <defs>
         <radialGradient id={`radg-${id}`} cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stopColor="#7c3aed" stopOpacity="0.18" />
+          <stop offset="0%" stopColor="#00A3CC" stopOpacity="0.18" />
           <stop offset="100%" stopColor="#06b6d4" stopOpacity="0.04" />
         </radialGradient>
         <filter id={`radf-${id}`}>
@@ -185,7 +185,7 @@ function RadarGraph({ axes, size = 140, delay = 0 }: { axes: RadarAxis[]; size?:
       />
 
       {/* Data border */}
-      <motion.path d={dataPath} fill="none" stroke="#7c3aed" strokeWidth="1.4"
+      <motion.path d={dataPath} fill="none" stroke="#00A3CC" strokeWidth="1.4"
         filter={`url(#radf-${id})`}
         initial={{ strokeDasharray: perim, strokeDashoffset: perim, opacity: 0.8 }}
         animate={{ strokeDashoffset: 0, opacity: 1 }}
@@ -220,7 +220,7 @@ function RadarGraph({ axes, size = 140, delay = 0 }: { axes: RadarAxis[]; size?:
 
       {/* Breathing center glow */}
       <motion.circle cx={cx} cy={cy} r={maxR * 0.15}
-        fill="#7c3aed" fillOpacity="0"
+        fill="#00A3CC" fillOpacity="0"
         animate={{ r: [maxR * 0.12, maxR * 0.18, maxR * 0.12], fillOpacity: [0.08, 0.14, 0.08] }}
         transition={{ delay: delay + 1.2, duration: 3.5, repeat: Infinity, ease: "easeInOut" }}
       />
@@ -260,8 +260,8 @@ export function BiosAnalyticsRings({
       label: "Security",
       sublabel: "Posture",
       value: data.hasScanned ? data.securityScore : 0,
-      color: "#8b5cf6",
-      glowColor: "rgba(139,92,246,0.5)",
+      color: "#00D4FF",
+      glowColor: "rgba(0,212,255,0.5)",
     },
     {
       label: "Firmware",
@@ -281,7 +281,7 @@ export function BiosAnalyticsRings({
 
   const radarAxes = [
     { label: "Latency", value: data.hasScanned ? (data.latencyScore ?? data.firmwareScore) : 0, color: "#06b6d4" },
-    { label: "Memory", value: data.hasScanned ? data.memoryScore : 0, color: "#8b5cf6" },
+    { label: "Memory", value: data.hasScanned ? data.memoryScore : 0, color: "#00D4FF" },
     { label: "Security", value: data.hasScanned ? data.securityScore : 0, color: "#d946ef" },
     { label: "Power", value: data.hasScanned ? data.performanceScore : 0, color: "#f59e0b" },
     { label: "Stability", value: data.hasScanned ? (data.stabilityScore ?? data.firmwareScore) : 0, color: "#34d399" },

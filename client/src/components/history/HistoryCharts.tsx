@@ -12,7 +12,7 @@ import type { EnrichedItem } from "@/pages/History";
 // ── Module color palette ───────────────────────────────────────────────────
 
 export const MODULE_COLORS: Record<string, string> = {
-  Tweaks:        "#8b5cf6",
+  Tweaks:        "#00D4FF",
   Security:      "#10b981",
   Power:         "#f59e0b",
   Network:       "#3b82f6",
@@ -101,14 +101,14 @@ function ActionsOverTime({ items }: { items: EnrichedItem[] }) {
           <AreaChart data={data} margin={{ top: 4, right: 0, bottom: 0, left: -28 }}>
             <defs>
               <linearGradient id="aot-grad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} />
-                <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
+                <stop offset="5%" stopColor="#00D4FF" stopOpacity={0.3} />
+                <stop offset="95%" stopColor="#00D4FF" stopOpacity={0} />
               </linearGradient>
             </defs>
             <XAxis dataKey="date" tick={{ fontSize: 9, fill: "rgba(255,255,255,0.35)" }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
             <YAxis tick={{ fontSize: 9, fill: "rgba(255,255,255,0.35)" }} tickLine={false} axisLine={false} allowDecimals={false} width={28} />
-            <Tooltip {...CUSTOM_TOOLTIP_STYLE} itemStyle={{ color: "#8b5cf6" }} formatter={(v: any) => [v, "Actions"]} />
-            <Area type="monotone" dataKey="total" stroke="#8b5cf6" strokeWidth={1.5} fill="url(#aot-grad)" dot={false} />
+            <Tooltip {...CUSTOM_TOOLTIP_STYLE} itemStyle={{ color: "#00D4FF" }} formatter={(v: any) => [v, "Actions"]} />
+            <Area type="monotone" dataKey="total" stroke="#00D4FF" strokeWidth={1.5} fill="url(#aot-grad)" dot={false} />
           </AreaChart>
         </ResponsiveContainer>
       )}
