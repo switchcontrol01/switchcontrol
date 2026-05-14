@@ -362,6 +362,9 @@ async function executeActionForReal(
       };
     }
     const result = await eApi.appBooster.executeAction({ type: action.id, mode, executable, installPath, gameName });
+    if (!result.success && result.error?.includes("Unknown action type")) {
+      return { id: action.id, label: action.label, status: "failed", message: "Unsupported optimization action for manual game.", verified: false };
+    }
     if (!result.success && result.error?.includes("admin")) {
       return { id: action.id, label: action.label, status: "admin-required", message: result.error, verified: false };
     }

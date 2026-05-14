@@ -2584,7 +2584,10 @@ ipcMain.handle('appBooster:executeAction', async (event, { type, mode, executabl
 
   // ── Phase 1: validate all inputs before touching the limiter ─────────────────
   // Unknown type/mode is caught here so the limiter is never acquired needlessly.
-  const VALID_BOOSTER_TYPES = ['cpu-priority', 'fso-disable', 'gpu-preference', 'network-qos'];
+  const VALID_BOOSTER_TYPES = [
+    'cpu-priority', 'fso-disable', 'gpu-preference', 'network-qos',
+    'manual-high-perf-plan', 'manual-game-mode', 'manual-nagle', 'manual-visual-fx',
+  ];
   const VALID_BOOSTER_MODES = ['apply', 'revert', 'check'];
   if (!VALID_BOOSTER_TYPES.includes(type) || !VALID_BOOSTER_MODES.includes(mode)) {
     return { success: false, error: `Unknown action type "${type}" or mode "${mode}"`, verified: false };
@@ -2635,6 +2638,27 @@ ipcMain.handle('appBooster:executeAction', async (event, { type, mode, executabl
       apply:  `$pn = "${safeGameName} SC-Boost"; if (!(Get-NetQosPolicy -Name $pn -EA SilentlyContinue)) { New-NetQosPolicy -Name $pn -AppPathNameMatchCondition "${safeExePath}" -IPProtocolMatchCondition Both -DSCPAction 46 -NetworkProfile All -Confirm:$false -EA SilentlyContinue }; Write-Output "ok"`,
       revert: `Remove-NetQosPolicy -Name "${safeGameName} SC-Boost" -Confirm:$false -EA SilentlyContinue; Write-Output "ok"`,
       check:  `if (Get-NetQosPolicy -Name "${safeGameName} SC-Boost" -EA SilentlyContinue) { "true" } else { "false" }`,
+    },
+    // ── Manual-game generic global system tweaks ──────────────────────────────
+    'manual-high-perf-plan': {
+      apply:  `powercfg /setactive 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c; Write-Output "ok"`,
+      revert: `powercfg /setactive 381b4222-f694-41f0-9685-ff5bb260df2e; Write-Output "ok"`,
+      check:  `if ((powercfg /getactivescheme) -match "8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c") { "true" } else { "false" }`,
+    },
+    'manual-game-mode': {
+      apply:  `Set-ItemProperty -Path "HKCU:\Software\Microsoft\GameBar" -Name "AllowAutoGameMode" -Value 1 -Type DWord -Force -EA SilentlyContinue; Set-ItemProperty -Path "HKCU:\Software\Microsoft\GameBar" -Name "AutoGameModeEnabled" -Value 1 -Type DWord -Force -EA SilentlyContinue; Write-Output "ok"`,
+      revert: `Set-ItemProperty -Path "HKCU:\Software\Microsoft\GameBar" -Name "AllowAutoGameMode" -Value 0 -Type DWord -Force -EA SilentlyContinue; Set-ItemProperty -Path "HKCU:\Software\Microsoft\GameBar" -Name "AutoGameModeEnabled" -Value 0 -Type DWord -Force -EA SilentlyContinue; Write-Output "ok"`,
+      check:  `$v = (Get-ItemProperty "HKCU:\Software\Microsoft\GameBar" -EA SilentlyContinue).AutoGameModeEnabled; if ($v -eq 1) { "true" } else { "false" }`,
+    },
+    'manual-nagle': {
+      apply:  `Get-ChildItem "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces" | ForEach-Object { Set-ItemProperty -Path $_.PSPath -Name "TcpAckFrequency" -Value 1 -Type DWord -Force -EA SilentlyContinue; Set-ItemProperty -Path $_.PSPath -Name "TCPNoDelay" -Value 1 -Type DWord -Force -EA SilentlyContinue }; Write-Output "ok"`,
+      revert: `Get-ChildItem "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces" | ForEach-Object { Remove-ItemProperty -Path $_.PSPath -Name "TcpAckFrequency" -Force -EA SilentlyContinue; Remove-ItemProperty -Path $_.PSPath -Name "TCPNoDelay" -Force -EA SilentlyContinue }; Write-Output "ok"`,
+      check:  `$i = (Get-ChildItem "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces")[0]; $v = (Get-ItemProperty $i.PSPath -EA SilentlyContinue).TCPNoDelay; if ($v -eq 1) { "true" } else { "false" }`,
+    },
+    'manual-visual-fx': {
+      apply:  `Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects" -Name "VisualFXSetting" -Value 2 -Type DWord -Force -EA SilentlyContinue; Write-Output "ok"`,
+      revert: `Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects" -Name "VisualFXSetting" -Value 1 -Type DWord -Force -EA SilentlyContinue; Write-Output "ok"`,
+      check:  `$v = (Get-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects" -EA SilentlyContinue).VisualFXSetting; if ($v -eq 2) { "true" } else { "false" }`,
     },
   };
 
