@@ -246,16 +246,20 @@ function SafeMarkdown({ text, onApply }: { text: string; onApply?: (tweakId: str
         switch (part.type) {
           case "bold": return <strong key={i} className="text-[#E6EAF0] font-semibold">{part.content}</strong>;
           case "code": return <code key={i} className="px-1.5 py-0.5 rounded bg-[#21262D] text-primary text-[11px] font-mono">{part.content}</code>;
-          case "apply": return (
-            <button
-              key={i}
-              onClick={() => onApply?.(part.content)}
-              className="inline-flex items-center gap-1 text-[11px] text-primary/80 hover:text-primary bg-primary/10 hover:bg-primary/20 border border-primary/20 rounded-md px-2 py-0.5 transition-colors ml-1 align-middle"
-              data-testid={`button-apply-inline-${part.content}`}
-            >
-              <Zap className="w-3 h-3" /> Apply
-            </button>
-          );
+          case "apply": {
+            const tweak = getTweak(part.content);
+            if (!tweak || !tweak.supported) return null;
+            return (
+              <button
+                key={i}
+                onClick={() => onApply?.(part.content)}
+                className="inline-flex items-center gap-1 text-[11px] text-primary/80 hover:text-primary bg-primary/10 hover:bg-primary/20 border border-primary/20 rounded-md px-2 py-0.5 transition-colors ml-1 align-middle"
+                data-testid={`button-apply-inline-${part.content}`}
+              >
+                <Zap className="w-3 h-3" /> Apply
+              </button>
+            );
+          }
           case "br": return <br key={i} />;
           default: return <span key={i}>{part.content}</span>;
         }
