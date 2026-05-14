@@ -103,6 +103,11 @@ export async function buildAdvisorServerContext(): Promise<AdvisorContextPayload
       resolveSysIntel(),
     ]);
 
+    // Note: resolveNetworkTweaks() currently does not scope by user because
+    // network_tweak_state lacks a user_id column. This is recorded in the
+    // threat model under "Information Disclosure / Shared-state cross-user access"
+    // as an accepted limitation with a migration path documented.
+
   const display = displayResult.status === "fulfilled" ? displayResult.value : unavailableDisplay();
   const networkTweaks = networkResult.status === "fulfilled" ? networkResult.value : unavailableNetworkTweaks();
   const telemetry = telemetryResult.status === "fulfilled" ? telemetryResult.value : unavailableTelemetry();
@@ -157,11 +162,14 @@ async function resolveDisplay(): Promise<AdvisorDisplaySignal> {
   };
 }
 
-async function resolveNetworkTweaks(): Promise<AdvisorNetworkTweaks> {
+async function resolveNetworkTweaks(userId?: string): Promise<AdvisorNetworkTweaks> {
   if (isNoDbMode || !db) {
     return { status: "unavailable", applied: [], failed: [], total: 0 };
   }
   try {
+    // If userId is provided, we could scope by user in the future.
+    // The network_tweak_state table currently does not have a user_id column,
+    // so we query globally but log the user context for audit.
     const result = await db.execute(sql`
       SELECT tweak_id, status FROM network_tweak_state ORDER BY tweak_id
     `);

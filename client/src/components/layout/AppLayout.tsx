@@ -39,7 +39,7 @@ function FocusModeBanner() {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -6 }}
       transition={{ duration: 0.3 }}
-      className="fixed top-0 left-64 right-0 z-50 flex items-center justify-between px-4 py-1.5 bg-emerald-500/90 backdrop-blur text-[#E6EAF0] text-xs font-medium shadow-lg"
+      className={`fixed top-0 ${SIDEBAR_WIDTH_CLASS} right-0 z-50 flex items-center justify-between px-4 py-1.5 bg-emerald-500/90 backdrop-blur text-[#E6EAF0] text-xs font-medium shadow-lg`}
     >
       <div className="flex items-center gap-2">
         <div className="size-1.5 rounded-full bg-white animate-pulse" />
@@ -70,7 +70,7 @@ function TrialCountdownBanner() {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -6 }}
       transition={{ duration: 0.3 }}
-      className="fixed top-0 left-64 right-0 z-50 flex items-center justify-between px-4 py-1.5 backdrop-blur"
+      className={`fixed top-0 ${SIDEBAR_WIDTH_CLASS} right-0 z-50 flex items-center justify-between px-4 py-1.5 backdrop-blur`}
       style={{
         background: ent.isTrialUrgent
           ? "linear-gradient(90deg, rgba(220,38,38,0.18) 0%, rgba(0,212,255,0.14) 100%)"
@@ -114,7 +114,10 @@ function TrialCountdownBanner() {
 const isElectron = typeof window !== "undefined" && !!(window as any).electronAPI?.isElectron;
 const isPackagedElectron = isElectron && typeof window !== "undefined" && window.location.protocol === "file:";
 
-const BACKEND_TIMEOUT_MS = 45_000;
+/** Sidebar width class — must stay in sync with Sidebar.tsx `w-64`. */
+const SIDEBAR_WIDTH_CLASS = "left-64";
+
+const BACKEND_TIMEOUT_MS = 20_000;
 
 function BackendStartingBanner() {
   const [ready, setReady] = useState(isBackendReady());
@@ -250,9 +253,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             key={isTourActive ? "tour-stable-page" : location}
             ref={pageRef}
             className="container max-w-7xl mx-auto p-8"
-            initial={shouldAnimate ? { opacity: 0, y: 10, scale: 0.993, filter: "blur(6px)" } : { opacity: 1, y: 0, scale: 1 }}
-            animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
-            exit={shouldAnimate ? { opacity: 0, y: -6, scale: 0.993, filter: "blur(5px)" } : { opacity: 1, y: 0, scale: 1 }}
+            initial={shouldAnimate ? { opacity: 0, y: 10, scale: 0.993 } : { opacity: 1, y: 0, scale: 1 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={shouldAnimate ? { opacity: 0, y: -6, scale: 0.993 } : { opacity: 1, y: 0, scale: 1 }}
             transition={{ 
               duration: shouldAnimate ? 0.32 : 0,
               ease: [0.22, 1, 0.36, 1] as const,

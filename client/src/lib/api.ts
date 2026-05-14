@@ -376,9 +376,15 @@ if (typeof window !== 'undefined' && isElectron) {
 }
 
 let _cachedCsrfToken: string | null = null;
+let _cachedCsrfTokenAt: number = 0;
+const CSRF_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
 function getCsrfToken(): string | null {
-  if (_cachedCsrfToken) return _cachedCsrfToken;
+  if (_cachedCsrfToken && Date.now() - _cachedCsrfTokenAt < CSRF_TTL_MS) {
+    return _cachedCsrfToken;
+  }
+  _cachedCsrfToken = null;
+  _cachedCsrfTokenAt = 0;
   try {
     const match = document.cookie.match(/(?:^|;\s*)_csrf=([^;]*)/);
     return match ? decodeURIComponent(match[1]) : null;
@@ -410,7 +416,8 @@ async function ensureCsrfToken(): Promise<string> {
   }
 
   _cachedCsrfToken = data.token;
-  console.log(`[API] CSRF token cached in memory (cookie may be cross-origin inaccessible)`);
+  _cachedCsrfTokenAt = Date.now();
+  console.log(`[API] CSRF token cached in memory (TTL ${CSRF_TTL_MS / 60000} min)`);
   return data.token;
 }
 
@@ -585,6 +592,34 @@ export async function apiFetch(
       throw new ApiError(0, "Could not reach the server. Please check your connection and try again.");
     }
     throw err;
+  }
+
+  // CSRF 403 clear-and-retry: if the server rejects the token (expired or rotated),
+  // clear the cache, fetch a fresh one, and retry the request exactly once.
+  if (res.status === 403 && withCsrf && !cloudOnly) {
+    const body = await res.json().catch(() => ({} as any));
+    const isCsrfRejection = body?.error === 'invalid_csrf' || body?.error === 'csrf_mismatch';
+    if (isCsrfRejection) {
+      console.warn('[API] CSRF token rejected — clearing cache and retrying once');
+      _cachedCsrfToken = null;
+      _cachedCsrfTokenAt = 0;
+      const freshToken = await ensureCsrfToken();
+      headers['x-csrf-token'] = freshToken;
+      try {
+        res = await fetch(url, {
+          ...options,
+          credentials: 'include',
+          headers,
+          signal: fetchSignal,
+        });
+      } catch (retryErr) {
+        if (retryErr instanceof DOMException && retryErr.name === 'AbortError') throw retryErr;
+        if (isNetworkError(retryErr)) {
+          throw new ApiError(0, "Could not reach the server. Please check your connection and try again.");
+        }
+        throw retryErr;
+      }
+    }
   }
 
   if (!res.ok) {

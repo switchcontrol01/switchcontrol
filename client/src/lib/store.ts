@@ -166,13 +166,24 @@ export const useStore = create<AppState>()(
       },
       
       enableRecommended: () => {
+        // Defense-in-depth exclusion list: IDs that should never be auto-applied
+        // even if they happen to pass the general filter criteria.
+        const EXCLUDED_IDS = new Set([
+          'fast-startup', 'core-isolation', 'vbs', 'hyper-v', 'p-states',
+          'bluetooth', 'wifi', 'fax-printer', 'irq-priority', 'timer-res',
+          'desktop-comp', 'hdcp', 'mouse-queue-size', 'kbd-queue-size',
+          'disable-dcom',
+        ]);
+
         const recommendedIds = TWEAKS_DATA
           .filter(t =>
             t.level === 'Recommended' &&
             t.risk === 'Safe' &&
             t.supported &&
             !t.requiresReboot &&
-            t.category !== 'Network'
+            t.category !== 'Network' &&
+            t.category !== 'Security' &&
+            !EXCLUDED_IDS.has(t.id)
           )
           .map(t => t.id);
           

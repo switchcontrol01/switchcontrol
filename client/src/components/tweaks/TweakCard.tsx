@@ -259,29 +259,32 @@ export function TweakCard({ tweak, isEnabled, onToggle, isVerifying = false, isH
   }, [isLocked, isUnsupported, isReal, executeTweak, tweak.id, isEnabled, onToggle, showFailure, startMeasure, clearImpact]);
 
   // ── Badge strip ──────────────────────────────────────────────────────────────
-  const realBadge = !isUnsupported && isReal ? (
-    <span className="text-[10px] font-medium px-2 py-0.5 rounded-full border bg-cyan-500/10 text-cyan-400 border-cyan-500/20">
-      <Zap className="inline-block size-3 mr-0.5 -mt-0.5" /> Real
-    </span>
-  ) : null;
-
-  const unsupportedBadge = isUnsupported ? (
-    <span className="text-[10px] font-medium px-2 py-0.5 rounded-full border bg-zinc-500/10 text-zinc-400 border-zinc-500/20">
+  // Priority-ordered badge list (max 3 displayed). Info badges (level/risk) always shown.
+  const allBadges: React.ReactNode[] = [];
+  if (isLocked) allBadges.push(<PremiumBadge key="premium" className="text-[10px] px-2 py-0.5" />);
+  if (isUnsupported) allBadges.push(
+    <span key="unsupported" className="text-[10px] font-medium px-2 py-0.5 rounded-full border bg-zinc-500/10 text-zinc-400 border-zinc-500/20">
       <ShieldOff className="inline-block size-3 mr-0.5 -mt-0.5" /> Unsupported
     </span>
-  ) : null;
-
-  const rebootBadge = tweak.requiresReboot && !isUnsupported ? (
-    <span className="text-[10px] font-medium px-2 py-0.5 rounded-full border bg-yellow-500/10 text-yellow-400 border-yellow-500/20">
+  );
+  if (!isLocked && !isUnsupported && tweak.risk === 'Risky') allBadges.push(
+    <span key="risk" className="text-[10px] font-medium px-2 py-0.5 rounded-full border bg-red-500/10 text-red-400 border-red-500/20">Risky</span>
+  );
+  if (!isLocked && !isUnsupported && tweak.requiresReboot) allBadges.push(
+    <span key="restart" className="text-[10px] font-medium px-2 py-0.5 rounded-full border bg-yellow-500/10 text-yellow-400 border-yellow-500/20">
       <RefreshCw className="inline-block size-3 mr-0.5 -mt-0.5" /> Restart
     </span>
-  ) : null;
-
-  const adminBadge = isReal && needsAdmin && !isUnsupported ? (
-    <span className="text-[10px] font-medium px-2 py-0.5 rounded-full border bg-orange-500/10 text-orange-400 border-orange-500/20">
-      Admin
+  );
+  if (!isLocked && !isUnsupported && isReal && needsAdmin) allBadges.push(
+    <span key="admin" className="text-[10px] font-medium px-2 py-0.5 rounded-full border bg-orange-500/10 text-orange-400 border-orange-500/20">Admin</span>
+  );
+  if (!isLocked && !isUnsupported && isReal) allBadges.push(
+    <span key="real" className="text-[10px] font-medium px-2 py-0.5 rounded-full border bg-cyan-500/10 text-cyan-400 border-cyan-500/20">
+      <Zap className="inline-block size-3 mr-0.5 -mt-0.5" /> Real
     </span>
-  ) : null;
+  );
+
+  const visiblePriorityBadges = allBadges.slice(0, 3);
 
   return (
     <>
@@ -320,11 +323,7 @@ export function TweakCard({ tweak, isEnabled, onToggle, isVerifying = false, isH
                     {tweak.title}
                   </h3>
                   <div className="flex items-center gap-1.5 flex-wrap opacity-80 group-hover:opacity-100 transition-opacity">
-                    {isLocked && <PremiumBadge className="text-[10px] px-2 py-0.5" />}
-                    {unsupportedBadge}
-                    {!isLocked && realBadge}
-                    {!isLocked && rebootBadge}
-                    {!isLocked && adminBadge}
+                    {visiblePriorityBadges}
                     <LevelBadge level={tweak.level} />
                     <RiskBadge level={tweak.risk} />
                   </div>
@@ -521,22 +520,20 @@ export function TweakCard({ tweak, isEnabled, onToggle, isVerifying = false, isH
                     </div>
                   )}
 
-                  {["hyper-v", "vbs", "core-isolation"].includes(tweak.id) && (
-                    <div className="flex items-start gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-300 text-xs">
-                      <AlertTriangle className="size-4 shrink-0 mt-0.5 text-red-400" />
+                  {/* Modal hard-warning banner driven by metadata (no hardcoded IDs) */}
+                  {tweak.detailsConfig?.warningText && (
+                    <div className={cn(
+                      "flex items-start gap-2 p-3 rounded-lg text-xs",
+                      tweak.risk === 'Risky'
+                        ? "bg-red-500/10 border border-red-500/20 text-red-300"
+                        : "bg-yellow-500/10 border border-yellow-500/20 text-yellow-300"
+                    )}>
+                      <AlertTriangle className={cn("size-4 shrink-0 mt-0.5", tweak.risk === 'Risky' ? "text-red-400" : "")} />
                       <div>
-                        <span className="font-medium text-red-200 block mb-1">Security Warning</span>
-                        Disabling this feature reduces protection against kernel-level attacks and will break WSL2, Docker Desktop, Android emulators, and Windows Sandbox. Only disable on dedicated gaming builds.
-                      </div>
-                    </div>
-                  )}
-
-                  {["wifi", "bluetooth"].includes(tweak.id) && (
-                    <div className="flex items-start gap-2 p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20 text-yellow-300 text-xs">
-                      <AlertTriangle className="size-4 shrink-0 mt-0.5" />
-                      <div>
-                        <span className="font-medium text-yellow-200">Not Recommended for Most Users. </span>
-                        Only disable if you use exclusively wired connections and don't rely on this hardware.
+                        <span className={cn("font-medium block mb-1", tweak.risk === 'Risky' ? "text-red-200" : "text-yellow-200")}>
+                          {tweak.risk === 'Risky' ? 'Security Warning' : 'Caution'}
+                        </span>
+                        {tweak.detailsConfig.warningText}
                       </div>
                     </div>
                   )}

@@ -42,8 +42,10 @@ const memStates = new Map<string, MemStateRow>();  // key: `${userId}:${slug}`
 
 function memKey(userId: string, slug: string) { return `${userId}:${slug}`; }
 
-function getUserId(req: Request): string {
-  return (req as any).cloudUser?.id ?? '__legacy__';
+function getUserId(req: Request): string | null {
+  const id = (req as any).cloudUser?.id;
+  if (!id) return null;
+  return id;
 }
 
 // ── DB init and safe migration ────────────────────────────────────────────────
@@ -379,6 +381,15 @@ async function addHistory(userId: string, slug: string, operation: string, statu
         VALUES (${userId}, ${slug}, ${operation}, ${status}, cast(${json} as jsonb))`
   );
 }
+
+// ── Auth guard (defense-in-depth: requireJwt is already applied at parent router) ──
+router.use((req: Request, res: Response, next) => {
+  const userId = getUserId(req);
+  if (!userId) {
+    return res.status(401).json({ error: "Authentication required." });
+  }
+  next();
+});
 
 // ── Routes ────────────────────────────────────────────────────────────────────
 

@@ -456,6 +456,10 @@ const UNSUPPORTED_TWEAKS = {
   // with a hard block; this entry prevents any accidental toggle-path execution.
   'mouse-queue-size': "Requires driver/service not installed — MouseDataQueueSize (mouclass kernel driver) modification can cause complete mouse failure requiring Safe Mode recovery. Disabled for safety.",
   'kbd-queue-size':   "Requires driver/service not installed — KeyboardDataQueueSize (kbdclass kernel driver) modification can cause complete keyboard failure requiring Safe Mode recovery. Disabled for safety.",
+  // WinHTTP autotuning is a netsh command, not a persistent registry tweak.
+  // The effect resets when the network adapter restarts. Marked unsupported
+  // because the app does not ship a persistent agent to maintain it.
+  'tcp-winhttp':      "Helper not bundled — WinHTTP autotuning is applied via netsh and resets when the network adapter restarts. No persistent agent is shipped in this build.",
 };
 
 // ─── TweakSupport audit logger ────────────────────────────────────────────────

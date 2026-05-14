@@ -63,6 +63,9 @@ export interface TweakDetailsConfig {
   registryType?: string;
   whoShouldAvoid?: string;
   technicalNote?: string;
+  /** Hard warning shown in the detail modal for high-risk tweaks.
+   *  When present, the modal renders a prominent alert banner with this text. */
+  warningText?: string;
 }
 
 // ── Core registry type ────────────────────────────────────────────────────────
@@ -179,6 +182,9 @@ const BASE: BaseTweak[] = [
     expected: { cpu: "Medium", ram: "Low", gpu: "None", disk: "None", network: "None", latency: "Low", stabilityRisk: "Medium" },
     category: "System and Power", level: "Experimental", risk: "Risky",
     requiresReboot: true, supported: true, requiresAdmin: true,
+    detailsConfig: {
+      warningText: "Disabling this feature reduces protection against kernel-level attacks and will break WSL2, Docker Desktop, Android emulators, and Windows Sandbox. Only disable on dedicated gaming builds.",
+    },
   },
   {
     id: "vbs",
@@ -192,6 +198,9 @@ const BASE: BaseTweak[] = [
     expected: { cpu: "Medium", ram: "Low", gpu: "None", disk: "None", network: "None", latency: "Low", stabilityRisk: "High" },
     category: "System and Power", level: "Experimental", risk: "Risky",
     requiresReboot: true, supported: true, requiresAdmin: true,
+    detailsConfig: {
+      warningText: "Disabling this feature reduces protection against kernel-level attacks and will break WSL2, Docker Desktop, Android emulators, and Windows Sandbox. Only disable on dedicated gaming builds.",
+    },
   },
   {
     id: "hyper-v",
@@ -206,6 +215,9 @@ const BASE: BaseTweak[] = [
     category: "System and Power", level: "Advanced", risk: "Risky",
     requiresReboot: true, supported: true, requiresAdmin: true,
     whoShouldAvoid: "Developers using WSL2, Docker Desktop, or Windows Sandbox. Anyone using Android apps on Windows.",
+    detailsConfig: {
+      warningText: "Disabling this feature reduces protection against kernel-level attacks and will break WSL2, Docker Desktop, Android emulators, and Windows Sandbox. Only disable on dedicated gaming builds.",
+    },
   },
   {
     id: "p-states",
@@ -832,6 +844,9 @@ const BASE: BaseTweak[] = [
     category: "Network", level: "Advanced", risk: "Risky",
     supported: true, requiresAdmin: true,
     whoShouldAvoid: "Anyone using Bluetooth headsets, wireless controllers, Bluetooth mice/keyboard, or Bluetooth speakers. Discord and Fortnite voice chat users.",
+    detailsConfig: {
+      warningText: "Not Recommended for Most Users. Only disable if you use exclusively wired connections and don't rely on this hardware.",
+    },
   },
   {
     id: "wifi",
@@ -847,6 +862,9 @@ const BASE: BaseTweak[] = [
     category: "Network", level: "Advanced", risk: "Risky",
     whoShouldAvoid: "Laptop users, anyone relying on Wi-Fi as primary or backup connection, users without a working Ethernet connection.",
     supported: true, requiresAdmin: true,
+    detailsConfig: {
+      warningText: "Not Recommended for Most Users. Only disable if you use exclusively wired connections and don't rely on this hardware.",
+    },
   },
 
   // ── Debloat and Apps ──────────────────────────────────────────────────────

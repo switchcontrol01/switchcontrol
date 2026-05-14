@@ -6,8 +6,22 @@
 import { Router } from "express";
 import { sql } from "drizzle-orm";
 import { db, isNoDbMode } from "../db";
+import { requireJwt } from "../middleware/requireCloudAuth";
+import rateLimit from "express-rate-limit";
 
 const router = Router();
+
+// Rate limiter for network tweak mutation endpoints
+// Max 30 report submissions per user per 15 minutes.
+const networkTweakRateLimit = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  validate: { xForwardedForHeader: false, keyGeneratorIpFallback: false },
+  keyGenerator: (req: any) => req.cloudUser?.id || req.ip || 'unknown',
+  message: { ok: false, error: "Rate limit reached. Please try again later." },
+});
 
 // ── Allowlist of valid network tweak IDs ─────────────────────────────────────
 // Derived from client/src/lib/network-tweaks-data.ts — must stay in sync.
@@ -56,7 +70,7 @@ initTables().catch(err => console.error("[NetworkTweaks] table init error:", err
 
 // ── GET /api/network-tweaks/state ─────────────────────────────────────────────
 
-router.get("/state", async (_req, res) => {
+router.get("/state", requireJwt, async (_req, res) => {
   if (isNoDbMode || !db) return res.json({ ok: true, state: {} });
   try {
     const result = await db.execute(sql`
@@ -82,7 +96,7 @@ router.get("/state", async (_req, res) => {
 
 // ── POST /api/network-tweaks/:tweakId/report ──────────────────────────────────
 
-router.post("/:tweakId/report", async (req, res) => {
+router.post("/:tweakId/report", requireJwt, networkTweakRateLimit, async (req, res) => {
   const { tweakId } = req.params;
 
   if (!VALID_TWEAK_IDS.has(tweakId)) {
