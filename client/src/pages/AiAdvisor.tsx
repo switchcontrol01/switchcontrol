@@ -1220,6 +1220,7 @@ export default function AiAdvisor() {
       },
       powerPlan: powerPlanFromIntel ?? undefined,
       recentHistory,
+      isElectron: isElectronApp,
     };
     setContext(ctx);
     contextRef.current = ctx;

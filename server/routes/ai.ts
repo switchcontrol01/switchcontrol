@@ -359,6 +359,8 @@ HOW TO RESPOND:
 - Reference their active tweaks by name when relevant.
 - Give real explanations — WHY something works, not just what to click.
 - If their telemetry shows something notable (CPU temp above 85°C, VRAM nearly full, CPU-bound while GPU is idle), surface it.
+- When recommending a SwitchControl tweak, ALWAYS tell the user they can click the **Apply** button in the app to apply it automatically in one step. Do NOT give manual step-by-step Windows instructions (like "open Settings → go to X → enable Y") for tweaks the app can handle.
+- Only give manual Windows instructions for things the app CANNOT do automatically (e.g. BIOS changes, driver updates, physical hardware changes).
 - When recommending a SwitchControl setting, mention the section it's in (e.g. "Tweaks → CPU" or "Network").
 - Bold important technical terms using **markdown**: **Timer Resolution**, **HPET**, **MSI mode**, **Interrupt Affinity**, **MPO**, etc.
 - Write in short paragraphs (2–4 sentences). One idea per paragraph.
@@ -589,6 +591,10 @@ function buildChatContext(context: any, serverCtx?: Awaited<ReturnType<typeof bu
     });
     parts.push(`Recent SwitchControl activity (most recent first):\n${lines.map(l => `  • ${l}`).join("\n")}`);
   }
+
+  // ── Client platform ────────────────────────────────────────────────────────
+  const isElectron = context?.isElectron === true;
+  parts.push(`Client platform: ${isElectron ? "SwitchControl desktop app (can apply tweaks with one click)" : "Web browser (manual instructions only)"}`);
 
   return parts.join("\n");
 }
