@@ -1,4 +1,5 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -94,7 +95,8 @@ const SORTS: { id: SortType; label: string }[] = [
   { id: "publisher",          label: "Publisher" },
 ];
 
-// ── Confirm dialog ────────────────────────────────────────────────────────────
+// ── Confirm dialog (ported to body so fixed positioning works inside any
+//    transformed / scrolled ancestor) ──────────────────────────────────────────
 
 function ConfirmDialog({
   app,
@@ -106,9 +108,49 @@ function ConfirmDialog({
   onCancel: () => void;
 }) {
   const isUnknown = app.trustLabel === "unknown";
+  const confirmBtnRef = useRef<HTMLButtonElement | null>(null);
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+  // Scroll lock + Escape close + focus confirm button on open
+  useEffect(() => {
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    // Focus confirm button after a short delay so screen readers catch the
+    // newly-ported dialog
+    const focusTimer = setTimeout(() => {
+      confirmBtnRef.current?.focus();
+    }, 50);
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        onCancel();
+      }
+    };
+    document.addEventListener("keydown", onKey);
+
+    return () => {
+      document.body.style.overflow = previous;
+      document.removeEventListener("keydown", onKey);
+      clearTimeout(focusTimer);
+    };
+  }, [onCancel]);
+
+  const handleConfirm = () => {
+    // eslint-disable-next-line no-console
+    console.log(`[Debloat] uninstall confirmed appName=${app.name} method=${app.uninstallMethod}`);
+    onConfirm();
+  };
+
+  return createPortal(
+    <motion.div
+      key={`confirm-${app.id}`}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.18 }}
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+    >
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -146,16 +188,28 @@ function ConfirmDialog({
           </div>
 
           <div className="flex gap-2">
-            <Button variant="outline" className="flex-1 h-9 text-sm" onClick={onCancel}
-              data-testid="button-cancel-uninstall">Cancel</Button>
-            <Button variant="destructive" className="flex-1 h-9 text-sm gap-2" onClick={onConfirm}
-              data-testid="button-confirm-uninstall">
+            <Button
+              variant="outline"
+              className="flex-1 h-9 text-sm"
+              onClick={onCancel}
+              data-testid="button-cancel-uninstall"
+            >
+              Cancel
+            </Button>
+            <Button
+              ref={confirmBtnRef}
+              variant="destructive"
+              className="flex-1 h-9 text-sm gap-2"
+              onClick={handleConfirm}
+              data-testid="button-confirm-uninstall"
+            >
               <Trash2 className="size-3.5" />Uninstall
             </Button>
           </div>
         </GlassCard>
       </motion.div>
-    </div>
+    </motion.div>,
+    document.body
   );
 }
 
@@ -668,7 +722,11 @@ export function InstalledAppsPanel() {
                       app={app}
                       result={results[app.id]}
                       uninstallingId={uninstallingId}
-                      onUninstall={setConfirmApp}
+                      onUninstall={(app) => {
+                        // eslint-disable-next-line no-console
+                        console.log(`[Debloat] uninstall confirm opened appName=${app.name} source=installed_apps_list`);
+                        setConfirmApp(app);
+                      }}
                     />
                   </motion.div>
                 ))}
@@ -689,7 +747,11 @@ export function InstalledAppsPanel() {
           <ConfirmDialog
             app={confirmApp}
             onConfirm={() => doUninstall(confirmApp)}
-            onCancel={() => setConfirmApp(null)}
+            onCancel={() => {
+              // eslint-disable-next-line no-console
+              console.log("[Debloat] uninstall confirm closed");
+              setConfirmApp(null);
+            }}
           />
         )}
       </AnimatePresence>
