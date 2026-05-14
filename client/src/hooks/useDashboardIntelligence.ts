@@ -208,50 +208,133 @@ export function useDashboardIntelligence(enabled = true): DashboardIntelligenceS
     } catch (_) {}
   }, []);
 
+  const runningRef = useRef(false);
+  const inFlightRef = useRef(false);
+  const lastRunRef = useRef({
+    instability: 0,
+    dna: 0,
+    problems: 0,
+    latency: 0,
+    ram: 0,
+  });
+
   useEffect(() => {
     if (!enabled) return;
-    if (initRef.current) return;
-    initRef.current = true;
 
-    let intervals: ReturnType<typeof setInterval>[] = [];
+    let cancelled = false;
+    runningRef.current = true;
 
-    const startIntervals = () => {
-      if (intervals.length > 0) return; // already running
-      fetchAll();
-      intervals = [
-        // Instability uses cached telemetry — 8 s
-        setInterval(() => fetchJSON<InstabilityData>("/api/dashboard-intelligence/instability").then(setInstability).catch(() => {}),          8_000),
-        // System DNA changes slowly — 20 s
-        setInterval(() => fetchJSON<SystemDNAData>("/api/dashboard-intelligence/system-dna").then(setDna).catch(() => {}),                    20_000),
-        // Active problems — 15 s
-        setInterval(() => fetchJSON<ActiveProblemsData>("/api/dashboard-intelligence/active-problems").then(setProblems).catch(() => {}),     15_000),
-        // Latency estimate changes rarely — 12 s
-        setInterval(() => fetchJSON<LatencyData>("/api/dashboard-intelligence/latency-estimate").then(setLatency).catch(() => {}),            12_000),
-        // /ram-analysis: server caches 8 s — poll at 30 s
-        setInterval(() => fetchJSON<SmartRamProfile>("/api/dashboard-intelligence/ram-analysis").then(setRam).catch(() => {}),               30_000),
-      ];
+    const TTL = {
+      latency: 2000,
+      instability: 8000,
+      problems: 15000,
+      dna: 20000,
+      ram: 30000,
     };
 
-    const stopIntervals = () => {
-      intervals.forEach(clearInterval);
-      intervals = [];
-    };
+    async function schedulerTick() {
+      if (cancelled) return;
+      if (!runningRef.current) return;
+      if (document.hidden) return;
+      if (inFlightRef.current) return;
+
+      inFlightRef.current = true;
+
+      try {
+        const now = Date.now();
+        const tasks: Promise<void>[] = [];
+
+        if (now - lastRunRef.current.latency >= TTL.latency) {
+          lastRunRef.current.latency = now;
+          tasks.push(
+            fetchJSON<LatencyData>("/api/dashboard-intelligence/latency-estimate")
+              .then(setLatency)
+              .catch(() => {})
+          );
+        }
+
+        if (now - lastRunRef.current.instability >= TTL.instability) {
+          lastRunRef.current.instability = now;
+          tasks.push(
+            fetchJSON<InstabilityData>("/api/dashboard-intelligence/instability")
+              .then(setInstability)
+              .catch(() => {})
+          );
+        }
+
+        if (now - lastRunRef.current.problems >= TTL.problems) {
+          lastRunRef.current.problems = now;
+          tasks.push(
+            fetchJSON<ActiveProblemsData>("/api/dashboard-intelligence/active-problems")
+              .then(setProblems)
+              .catch(() => {})
+          );
+        }
+
+        if (now - lastRunRef.current.dna >= TTL.dna) {
+          lastRunRef.current.dna = now;
+          tasks.push(
+            fetchJSON<SystemDNAData>("/api/dashboard-intelligence/system-dna")
+              .then(setDna)
+              .catch(() => {})
+          );
+        }
+
+        if (now - lastRunRef.current.ram >= TTL.ram) {
+          lastRunRef.current.ram = now;
+          tasks.push(
+            fetchJSON<SmartRamProfile>("/api/dashboard-intelligence/ram-analysis")
+              .then(setRam)
+              .catch(() => {})
+          );
+        }
+
+        if (tasks.length > 0) {
+          await Promise.allSettled(tasks);
+        }
+
+        setLoading(false);
+      } finally {
+        inFlightRef.current = false;
+      }
+    }
+
+    async function loop() {
+      if (!initRef.current) {
+        initRef.current = true;
+        await fetchAll();
+        const now = Date.now();
+        lastRunRef.current = {
+          instability: now,
+          dna: now,
+          problems: now,
+          latency: now,
+          ram: now,
+        };
+        setLoading(false);
+      }
+
+      while (!cancelled && runningRef.current) {
+        await schedulerTick();
+        await new Promise((r) => setTimeout(r, 1000));
+      }
+    }
 
     const handleVisibility = () => {
-      if (document.hidden) {
-        stopIntervals();
-      } else {
-        startIntervals();
+      if (!document.hidden && runningRef.current) {
+        schedulerTick();
       }
     };
 
-    document.addEventListener('visibilitychange', handleVisibility);
-    if (!document.hidden) startIntervals();
+    document.addEventListener("visibilitychange", handleVisibility);
+    loop();
 
     return () => {
-      stopIntervals();
-      document.removeEventListener('visibilitychange', handleVisibility);
-      initRef.current = false; // allow re-arm if disabled then re-enabled
+      cancelled = true;
+      runningRef.current = false;
+      inFlightRef.current = false;
+      document.removeEventListener("visibilitychange", handleVisibility);
+      initRef.current = false;
     };
   }, [enabled, fetchAll]);
 
