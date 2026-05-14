@@ -1186,7 +1186,7 @@ export default function AdminPage() {
 
   if (authorized === null) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: "#07090D" }}>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: "#14181D" }}>
         <div className="w-8 h-8 rounded-full border-2 border-violet-500/40 border-t-violet-400 animate-spin" />
       </div>
     );
@@ -1194,7 +1194,7 @@ export default function AdminPage() {
 
   if (authorized === false) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-4" style={{ background: "#07090D" }}>
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4" style={{ background: "#14181D" }}>
         <div className="text-4xl">🔒</div>
         <h1 className="text-xl font-semibold text-white">Admin Access Required</h1>
         <p className="text-sm text-white/40">
@@ -1213,7 +1213,7 @@ export default function AdminPage() {
   ];
 
   return (
-    <div className="min-h-screen text-white" style={{ background: "#07090D" }}>
+    <div className="min-h-screen text-white" style={{ background: "#14181D" }}>
       {/* Header */}
       <div className="border-b border-white/8 px-6 py-4 sticky top-0 z-20"
         style={{ background: "rgba(7,9,13,0.95)", backdropFilter: "blur(12px)" }}>

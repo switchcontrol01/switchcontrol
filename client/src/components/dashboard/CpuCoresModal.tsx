@@ -57,7 +57,7 @@ function CoreBar({ core, index }: { core: CpuCore; index: number }) {
           transition={{ type: "spring", stiffness: 120, damping: 20 }}
         />
         {isCritical && (
-          <div className="absolute inset-0 rounded-full animate-pulse opacity-30 bg-red-500/30" />
+          <div className="absolute inset-0 rounded-full bg-red-500/20" />
         )}
       </div>
     </motion.div>
