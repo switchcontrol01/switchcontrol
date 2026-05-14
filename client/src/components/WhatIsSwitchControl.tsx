@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Zap, Monitor, Wifi, Shield, RotateCcw } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -23,18 +23,18 @@ function catmullRom(pts: [number, number][]) {
   return d;
 }
 
-// ── Live streaming sparkline — new data point every interval, path morphs ───
+// ── Live streaming sparkline — GPU OPTIMIZED: removed feGaussianBlur filter ───
 interface LiveSparklineProps {
   initialPoints: number[];
-  generate: () => number;   // called each tick to produce the next value
-  color: string;            // 'rgba(R,G,B,'  — trailing comma, no close paren
+  generate: () => number;
+  color: string;
   height?: number;
-  interval?: number;        // ms between ticks
-  uid: string;              // stable unique id for SVG defs
+  interval?: number;
+  uid: string;
 }
 
 function LiveSparkline({
-  initialPoints, generate, color, height = 64, interval = 200, uid,
+  initialPoints, generate, color, height = 64, interval = 400, uid,
 }: LiveSparklineProps) {
   const W = 260; const H = height;
   const pad = 4;
@@ -43,7 +43,7 @@ function LiveSparkline({
 
   const [points, setPoints] = useState<number[]>(initialPoints);
 
-  // Stream new data every tick
+  /* GPU: throttled from 200ms -> 400ms */
   useEffect(() => {
     const id = setInterval(() => {
       setPoints(prev => [...prev.slice(1), Math.min(100, Math.max(0, generate()))]);
@@ -66,10 +66,7 @@ function LiveSparkline({
           <stop offset="0%" stopColor={`${color}0.25)`} />
           <stop offset="100%" stopColor={`${color}0)`} />
         </linearGradient>
-        <filter id={`${uid}-glow`}>
-          <feGaussianBlur stdDeviation="2.5" result="blur" />
-          <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
-        </filter>
+        {/* GPU: removed feGaussianBlur filter — using CSS glow via stroke opacity instead */}
       </defs>
 
       {/* Fill — morphs smoothly as path changes */}
@@ -77,47 +74,45 @@ function LiveSparkline({
         d={fillPath}
         fill={`url(#${uid}-fill)`}
         animate={{ d: fillPath }}
-        transition={{ duration: 0.16, ease: 'easeOut' }}
+        transition={{ duration: 0.3, ease: 'easeOut' }}
       />
 
-      {/* Line — morphs as data shifts */}
+      {/* Line — no blur filter, just stroke */}
       <motion.path
         d={linePath}
         fill="none"
-        stroke={`${color}0.9)`}
+        stroke={`${color}0.85)`}
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
-        filter={`url(#${uid}-glow)`}
         animate={{ d: linePath }}
-        transition={{ duration: 0.16, ease: 'easeOut' }}
+        transition={{ duration: 0.3, ease: 'easeOut' }}
       />
 
-      {/* Glow dot at the live tip */}
+      {/* Glow dot at the live tip — no blur filter */}
       <motion.circle
         cx={lastPt[0]}
         cy={lastPt[1]}
         r={4}
-        fill={`${color}1)`}
-        filter={`url(#${uid}-glow)`}
+        fill={`${color}0.9)`}
         animate={{ cx: lastPt[0], cy: lastPt[1] }}
-        transition={{ duration: 0.16, ease: 'easeOut' }}
+        transition={{ duration: 0.3, ease: 'easeOut' }}
       />
-      {/* Outer pulse ring */}
+      {/* Outer pulse ring — CSS animation instead of SVG filter */}
       <motion.circle
         cx={lastPt[0]}
         cy={lastPt[1]}
         r={4}
         fill="none"
-        stroke={`${color}0.5)`}
+        stroke={`${color}0.4)`}
         strokeWidth="1.5"
         animate={{
           cx: lastPt[0], cy: lastPt[1],
-          r: [4, 10], opacity: [0.6, 0],
+          r: [4, 10], opacity: [0.4, 0],
         }}
         transition={{
-          cx: { duration: 0.16, ease: 'easeOut' },
-          cy: { duration: 0.16, ease: 'easeOut' },
+          cx: { duration: 0.3, ease: 'easeOut' },
+          cy: { duration: 0.3, ease: 'easeOut' },
           r: { duration: 1.2, repeat: Infinity, ease: 'easeOut' },
           opacity: { duration: 1.2, repeat: Infinity, ease: 'easeOut' },
         }}
@@ -382,138 +377,108 @@ export function WhatIsSwitchControl() {
                 <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.06)' }} />
               </div>
 
-              {/* Graph tabs */}
-              <div className="mb-6">
+              {/* ── Graph tabs ── */}
+              <div className="mb-7">
                 {/* Tab selector */}
-                <div className="flex justify-center gap-2 mb-5">
-                  {tabGraphs.map((tab) => (
-                    <button
-                      key={tab.id}
-                      onClick={() => switchTab(tab.id)}
-                      className={cn(
-                        "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium",
-                        "transition-all duration-300 ease-out",
-                        activeTab === tab.id
-                          ? "bg-primary/20 text-primary border border-primary/40 shadow-lg shadow-primary/20"
-                          : "bg-white/[0.03] text-zinc-400 border border-white/5 hover:bg-white/[0.06] hover:text-zinc-200"
-                      )}
-                      data-testid={`tab-${tab.id}`}
-                    >
-                      {tab.icon}
-                      <span>{tab.label}</span>
-                    </button>
-                  ))}
+                <div className="flex items-center justify-center gap-1.5 mb-6">
+                  {tabGraphs.map(t => {
+                    const isActive = t.id === activeTab;
+                    return (
+                      <button
+                        key={t.id}
+                        onClick={() => switchTab(t.id)}
+                        className={cn(
+                          'flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-[13px] font-medium transition-all duration-200',
+                          isActive
+                            ? 'bg-white/[0.08] text-white shadow-sm'
+                            : 'text-white/40 hover:text-white/60 hover:bg-white/[0.04]'
+                        )}
+                      >
+                        {t.icon}
+                        {t.label}
+                      </button>
+                    );
+                  })}
                 </div>
 
-                {/* Graph panel */}
+                {/* ── Side-by-side graphs ── */}
                 <AnimatePresence mode="wait">
                   <motion.div
-                    key={`${activeTab}-${animKey}`}
-                    initial={{ opacity: 0, y: 12 }}
+                    key={animKey}
+                    initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -8 }}
-                    transition={{ duration: 0.28, ease: 'easeOut' }}
-                    className={cn(
-                      "rounded-xl overflow-hidden",
-                      "bg-gradient-to-br from-white/[0.05] to-white/[0.02]",
-                      "border border-white/[0.07]"
-                    )}
-                    style={{ boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.06), 0 8px 32px rgba(0,0,0,0.3)' }}
+                    exit={{ opacity: 0, y: -4 }}
+                    transition={{ duration: 0.25, ease: 'easeOut' }}
+                    className="grid grid-cols-1 md:grid-cols-2 gap-5"
                   >
-                    {/* Y-axis label + grid lines bg */}
-                    <div className="px-5 pt-5 pb-4">
-                      {/* Y label */}
+                    {/* Before graph */}
+                    <div
+                      className="rounded-xl p-4"
+                      style={{
+                        background: 'rgba(255,255,255,0.03)',
+                        border: '1px solid rgba(255,255,255,0.07)',
+                      }}
+                    >
                       <div className="flex items-center justify-between mb-3">
-                        <span className="text-[10px] uppercase tracking-[0.14em] text-zinc-500 font-semibold">
-                          {activeGraph.yLabel}
+                        <span className="text-xs font-semibold text-white/40">{activeGraph.before.label}</span>
+                        <span className="text-[11px] text-white/30">{activeGraph.yLabel}</span>
+                      </div>
+                      <LiveSparkline
+                        initialPoints={activeGraph.before.points}
+                        generate={activeGraph.before.generate}
+                        color={activeGraph.before.color}
+                        uid={`before-${activeGraph.id}`}
+                      />
+                      <div className="mt-2 flex items-baseline gap-1.5">
+                        <span className="text-xl font-bold" style={{ color: activeGraph.before.color.replace('rgba', '').replace(',', '') === '239,68,68' ? '#ef4444' : activeGraph.before.color.replace('rgba', '').replace(',', '') === '249,115,22' ? '#f97316' : '#ef4444' }}>
+                          {activeGraph.before.stat}
                         </span>
-                        <span className="text-[10px] text-zinc-600">time →</span>
+                        <span className="text-[11px] text-white/40">{activeGraph.before.unit}</span>
+                        <span className="ml-auto text-[11px] text-white/25">{activeGraph.before.caption}</span>
                       </div>
+                    </div>
 
-                      {/* Two sparklines side by side */}
-                      <div className="grid grid-cols-2 gap-4">
-                        {/* Before */}
-                        <div
-                          className="rounded-lg p-3"
-                          style={{
-                            background: 'rgba(239,68,68,0.04)',
-                            border: `1px solid rgba(239,68,68,0.12)`,
-                          }}
-                        >
-                          <div className="flex items-center justify-between mb-2">
-                            <span
-                              className="text-[9px] font-bold uppercase tracking-[0.15em]"
-                              style={{ color: activeGraph.before.color + '0.6)' }}
-                            >
-                              {activeGraph.before.label}
-                            </span>
-                            <span
-                              className="text-xs font-mono font-bold tabular-nums"
-                              style={{ color: activeGraph.before.color + '0.85)' }}
-                            >
-                              {activeGraph.before.stat}{' '}
-                              <span className="text-[10px] font-normal opacity-70">{activeGraph.before.unit}</span>
-                            </span>
-                          </div>
-                          <LiveSparkline
-                            initialPoints={activeGraph.before.points}
-                            generate={activeGraph.before.generate}
-                            color={activeGraph.before.color}
-                            height={64}
-                            uid={`${activeTab}-before`}
-                          />
-                          <p className="text-[10px] text-zinc-500 mt-2 text-center">{activeGraph.before.caption}</p>
-                        </div>
-
-                        {/* After */}
-                        <div
-                          className="rounded-lg p-3"
-                          style={{
-                            background: `${activeGraph.after.color}0.04)`,
-                            border: `1px solid ${activeGraph.after.color}0.14)`,
-                          }}
-                        >
-                          <div className="flex items-center justify-between mb-2">
-                            <span
-                              className="text-[9px] font-bold uppercase tracking-[0.15em]"
-                              style={{ color: activeGraph.after.color + '0.6)' }}
-                            >
-                              {activeGraph.after.label}
-                            </span>
-                            <span
-                              className="text-xs font-mono font-bold tabular-nums"
-                              style={{ color: activeGraph.after.color + '0.85)' }}
-                            >
-                              {activeGraph.after.stat}{' '}
-                              <span className="text-[10px] font-normal opacity-70">{activeGraph.after.unit}</span>
-                            </span>
-                          </div>
-                          <LiveSparkline
-                            initialPoints={activeGraph.after.points}
-                            generate={activeGraph.after.generate}
-                            color={activeGraph.after.color}
-                            height={64}
-                            uid={`${activeTab}-after`}
-                          />
-                          <p className="text-[10px] text-zinc-500 mt-2 text-center">{activeGraph.after.caption}</p>
-                        </div>
+                    {/* After graph */}
+                    <div
+                      className="rounded-xl p-4"
+                      style={{
+                        background: 'rgba(255,255,255,0.03)',
+                        border: '1px solid rgba(255,255,255,0.07)',
+                      }}
+                    >
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-xs font-semibold text-primary/70">{activeGraph.after.label}</span>
+                        <span className="text-[11px] text-white/30">{activeGraph.yLabel}</span>
                       </div>
-
-                      {/* Description */}
-                      <p className="text-sm text-zinc-400 leading-relaxed text-center mt-4">
-                        {activeGraph.description}
-                      </p>
+                      <LiveSparkline
+                        initialPoints={activeGraph.after.points}
+                        generate={activeGraph.after.generate}
+                        color={activeGraph.after.color}
+                        uid={`after-${activeGraph.id}`}
+                      />
+                      <div className="mt-2 flex items-baseline gap-1.5">
+                        <span className="text-xl font-bold" style={{ color: activeGraph.after.color.replace('rgba', '').replace(',', '') === '168,85,247' ? '#a855f7' : activeGraph.after.color.replace('rgba', '').replace(',', '') === '34,197,94' ? '#22c55e' : '#06b6d4' }}>
+                          {activeGraph.after.stat}
+                        </span>
+                        <span className="text-[11px] text-white/40">{activeGraph.after.unit}</span>
+                        <span className="ml-auto text-[11px] text-white/25">{activeGraph.after.caption}</span>
+                      </div>
                     </div>
                   </motion.div>
                 </AnimatePresence>
               </div>
 
-              {/* Footer */}
-              <div className="text-center pt-4 border-t border-white/5">
-                <div className="flex items-center justify-center gap-2 text-sm text-zinc-500">
-                  <RotateCcw className="w-4 h-4" />
-                  <span>Every change is explained. Every change is reversible.</span>
-                </div>
+              {/* ── Bottom trust strip ── */}
+              <div className="flex items-center justify-center gap-5 text-[11px] text-white/25">
+                <span className="flex items-center gap-1.5">
+                  <RotateCcw className="w-3 h-3" />
+                  Safe to revert
+                </span>
+                <span className="w-1 h-1 rounded-full bg-white/15" />
+                <span className="flex items-center gap-1.5">
+                  <Shield className="w-3 h-3" />
+                  No background services
+                </span>
               </div>
             </div>
           </div>

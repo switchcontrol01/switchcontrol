@@ -3,13 +3,15 @@ import { useMotion } from "@/lib/motion";
 
 /* ─────────────────────────────────────────────────────────────
    AppBackground
-   CPU-reduction strategy (ancient-PC friendly):
+   CPU-reduction strategy:
    • All orb breathing uses CSS @keyframes — compositor-thread,
      zero JS interpolation per frame.
    • prefersReducedMotion → 2 fully static orbs, zero animation.
    • Hardware-concurrency ≤ 4 (low-end) → same static path.
    • Cursor spotlight RAF starts only on first mousemove,
      stops automatically after 3 s of mouse idle.
+   • GPU: removed mixBlendMode from cursor spotlight (expensive)
+   • GPU: reduced blur sizes on all orbs
    ───────────────────────────────────────────────────────────── */
 
 function lerp(a: number, b: number, t: number) {
@@ -18,27 +20,27 @@ function lerp(a: number, b: number, t: number) {
 
 const CSS = `
   @keyframes sc-orb-a {
-    0%,100%{ opacity:.70; transform:scale(1) translate(0px,0px); }
-    35%    { opacity:1;    transform:scale(1.12) translate(20px,15px); }
-    65%    { opacity:.85;  transform:scale(1.04) translate(-10px,-8px); }
+    0%,100%{ opacity:.65; transform:scale(1) translate(0px,0px); }
+    35%    { opacity:.90; transform:scale(1.08) translate(16px,12px); }
+    65%    { opacity:.78;  transform:scale(1.03) translate(-8px,-6px); }
   }
   @keyframes sc-orb-b {
-    0%,100%{ opacity:.55; transform:scale(1) translate(0px,0px); }
-    35%    { opacity:.90; transform:scale(1.16) translate(-18px,-12px); }
-    65%    { opacity:.70; transform:scale(1.06) translate(10px,6px); }
+    0%,100%{ opacity:.50; transform:scale(1) translate(0px,0px); }
+    35%    { opacity:.82; transform:scale(1.12) translate(-14px,-10px); }
+    65%    { opacity:.65; transform:scale(1.04) translate(8px,4px); }
   }
   @keyframes sc-orb-c {
-    0%,100%{ opacity:.45; transform:scale(1) translate(0px,0px); }
-    35%    { opacity:.78; transform:scale(1.18) translate(-12px,0px); }
-    65%    { opacity:.55; transform:scale(1.06) translate(8px,0px); }
+    0%,100%{ opacity:.40; transform:scale(1) translate(0px,0px); }
+    35%    { opacity:.70; transform:scale(1.14) translate(-10px,0px); }
+    65%    { opacity:.50; transform:scale(1.04) translate(6px,0px); }
   }
   @keyframes sc-orb-d {
-    0%,100%{ opacity:.35; transform:scale(1) translate(0px,0px); }
-    50%    { opacity:.62; transform:scale(1.14) translate(14px,-10px); }
+    0%,100%{ opacity:.30; transform:scale(1) translate(0px,0px); }
+    50%    { opacity:.55; transform:scale(1.10) translate(10px,-8px); }
   }
   @keyframes sc-orb-e {
-    0%,100%{ opacity:.40; transform:scale(.9); }
-    50%    { opacity:.85; transform:scale(1.1); }
+    0%,100%{ opacity:.35; transform:scale(.92); }
+    50%    { opacity:.75; transform:scale(1.06); }
   }
   @keyframes sc-wave-a {
     0%,100%{ transform:translateX(0px); }
@@ -118,14 +120,14 @@ export function AppBackground() {
         <div className="absolute" style={{
           top: "-5%", left: "-5%",
           width: "65vw", height: "65vw",
-          background: "radial-gradient(ellipse, rgba(139,92,246,0.18) 0%, rgba(100,50,210,0.06) 45%, transparent 68%)",
-          filter: "blur(80px)",
+          background: "radial-gradient(ellipse, rgba(139,92,246,0.14) 0%, rgba(100,50,210,0.04) 45%, transparent 68%)",
+          filter: "blur(60px)",
         }} />
         <div className="absolute" style={{
           bottom: "-8%", right: "-6%",
           width: "58vw", height: "58vw",
-          background: "radial-gradient(ellipse, rgba(0,200,255,0.14) 0%, rgba(0,140,220,0.05) 45%, transparent 70%)",
-          filter: "blur(90px)",
+          background: "radial-gradient(ellipse, rgba(0,200,255,0.10) 0%, rgba(0,140,220,0.03) 45%, transparent 70%)",
+          filter: "blur(70px)",
         }} />
         <div className="absolute inset-0" style={{
           background: "radial-gradient(ellipse 85% 85% at 50% 50%, transparent 32%, rgba(7,9,13,0.90) 100%)",
@@ -143,36 +145,36 @@ export function AppBackground() {
         style={{ zIndex: 0 }}
         aria-hidden="true"
       >
-        {/* Layer 1: breathing ambient orbs */}
+        {/* Layer 1: breathing ambient orbs — GPU: reduced blur sizes */}
         <div className="absolute" style={{
           top: "-5%", left: "-5%",
           width: "65vw", height: "65vw",
-          background: "radial-gradient(ellipse, rgba(139,92,246,0.22) 0%, rgba(100,50,210,0.08) 45%, transparent 68%)",
-          filter: "blur(80px)",
+          background: "radial-gradient(ellipse, rgba(139,92,246,0.18) 0%, rgba(100,50,210,0.06) 45%, transparent 68%)",
+          filter: "blur(60px)",
           willChange: "transform, opacity",
           animation: "sc-orb-a 18s ease-in-out infinite",
         }} />
         <div className="absolute" style={{
           bottom: "-8%", right: "-6%",
           width: "58vw", height: "58vw",
-          background: "radial-gradient(ellipse, rgba(0,200,255,0.18) 0%, rgba(0,140,220,0.07) 45%, transparent 70%)",
-          filter: "blur(90px)",
+          background: "radial-gradient(ellipse, rgba(0,200,255,0.14) 0%, rgba(0,140,220,0.05) 45%, transparent 70%)",
+          filter: "blur(70px)",
           willChange: "transform, opacity",
           animation: "sc-orb-b 20s ease-in-out 3s infinite",
         }} />
         <div className="absolute" style={{
           top: "-2%", right: "5%",
           width: "42vw", height: "42vw",
-          background: "radial-gradient(ellipse, rgba(236,72,153,0.14) 0%, transparent 65%)",
-          filter: "blur(75px)",
+          background: "radial-gradient(ellipse, rgba(236,72,153,0.10) 0%, transparent 65%)",
+          filter: "blur(55px)",
           willChange: "transform, opacity",
           animation: "sc-orb-c 22s ease-in-out 7s infinite",
         }} />
         <div className="absolute" style={{
           bottom: "5%", left: "8%",
           width: "38vw", height: "38vw",
-          background: "radial-gradient(ellipse, rgba(255,160,50,0.11) 0%, transparent 65%)",
-          filter: "blur(70px)",
+          background: "radial-gradient(ellipse, rgba(255,160,50,0.08) 0%, transparent 65%)",
+          filter: "blur(50px)",
           willChange: "transform, opacity",
           animation: "sc-orb-d 25s ease-in-out 12s infinite",
         }} />
@@ -180,8 +182,8 @@ export function AppBackground() {
           top: "50%", left: "50%",
           width: "40vw", height: "40vw",
           marginLeft: "-20vw", marginTop: "-20vw",
-          background: "radial-gradient(ellipse, rgba(168,85,247,0.16) 0%, rgba(0,210,255,0.08) 50%, transparent 72%)",
-          filter: "blur(55px)",
+          background: "radial-gradient(ellipse, rgba(168,85,247,0.12) 0%, rgba(0,210,255,0.06) 50%, transparent 72%)",
+          filter: "blur(45px)",
           willChange: "transform, opacity",
           animation: "sc-orb-e 12s ease-in-out infinite",
         }} />
@@ -189,7 +191,7 @@ export function AppBackground() {
         {/* Layer 2: energy-flow wave grid (CSS-animated — no framer overhead) */}
         <div
           className="absolute inset-0 overflow-hidden"
-          style={{ opacity: 0.13, transform: "rotate(-8deg) scale(1.5)" }}
+          style={{ opacity: 0.10, transform: "rotate(-8deg) scale(1.5)" }}
         >
           <div className="absolute inset-0" style={{ animation: "sc-wave-a 24s linear infinite" }}>
             <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
@@ -223,7 +225,8 @@ export function AppBackground() {
           backgroundSize: "28px 28px",
         }} />
 
-        {/* Layer 3: cursor spotlight — starts hidden, moved on mousemove */}
+        {/* Layer 3: cursor spotlight — starts hidden, moved on mousemove */
+        /* GPU: removed mixBlendMode: screen (very expensive compositing) */}
         <div
           ref={spotRef}
           style={{
@@ -231,9 +234,8 @@ export function AppBackground() {
             top: 0, left: 0,
             width: "350px", height: "350px",
             borderRadius: "50%",
-            background: "radial-gradient(circle, rgba(168,85,247,0.13) 0%, rgba(0,210,255,0.06) 50%, transparent 72%)",
-            filter: "blur(28px)",
-            mixBlendMode: "screen",
+            background: "radial-gradient(circle, rgba(168,85,247,0.10) 0%, rgba(0,210,255,0.04) 50%, transparent 72%)",
+            filter: "blur(24px)",
             willChange: "transform",
             pointerEvents: "none",
             transform: "translate(-500px,-500px)",

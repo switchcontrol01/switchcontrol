@@ -138,12 +138,9 @@ const VARIANT_CONFIG: Record<BackgroundVariant, {
       { Component: FrametimeWave, opacity: 0.06, drift: "ws-drift-3", position: "absolute bottom-[20%] inset-x-0 h-[200px]" },
     ],
     glowHotspots: [
-      { color: "hsl(270 55% 55%)", size: "700px", position: "top-[3%] left-[3%]", opacity: 0.22 },
-      { color: "hsl(280 50% 50%)", size: "550px", position: "top-[45%] right-[-5%]", opacity: 0.15 },
-      { color: "hsl(190 70% 45%)", size: "400px", position: "bottom-[15%] left-[30%]", opacity: 0.10 },
-      { color: "hsl(260 60% 50%)", size: "300px", position: "bottom-[40%] right-[20%]", opacity: 0.08 },
-      { color: "hsl(260 60% 50%)", size: "600px", position: "top-[20%] right-[10%]", opacity: 0.18 },
-      { color: "hsl(200 80% 40%)", size: "500px", position: "bottom-[10%] left-[40%]", opacity: 0.12 },
+      { color: "hsl(270 55% 55%)", size: "600px", position: "top-[3%] left-[3%]", opacity: 0.18 },
+      { color: "hsl(280 50% 50%)", size: "450px", position: "top-[45%] right-[-5%]", opacity: 0.12 },
+      { color: "hsl(260 60% 50%)", size: "500px", position: "top-[20%] right-[10%]", opacity: 0.14 },
     ],
     silhouettes: true,
     bgImages: [
@@ -164,9 +161,8 @@ const VARIANT_CONFIG: Record<BackgroundVariant, {
       { Component: TopoLines, opacity: 0.03, drift: "ws-drift-2", position: "inset-0" },
     ],
     glowHotspots: [
-      { color: "hsl(270 55% 55%)", size: "600px", position: "top-[8%] left-[8%]", opacity: 0.18 },
-      { color: "hsl(280 45% 50%)", size: "450px", position: "bottom-[20%] right-[5%]", opacity: 0.12 },
-      { color: "hsl(190 70% 45%)", size: "350px", position: "top-[60%] left-[40%]", opacity: 0.06 },
+      { color: "hsl(270 55% 55%)", size: "500px", position: "top-[8%] left-[8%]", opacity: 0.14 },
+      { color: "hsl(280 45% 50%)", size: "380px", position: "bottom-[20%] right-[5%]", opacity: 0.08 },
     ],
     silhouettes: true,
     bgImages: [
@@ -186,8 +182,8 @@ const VARIANT_CONFIG: Record<BackgroundVariant, {
       { Component: PcbTraces, opacity: 0.03, drift: "ws-drift-3", position: "inset-0" },
     ],
     glowHotspots: [
-      { color: "hsl(270 50% 55%)", size: "550px", position: "top-[15%] left-[15%]", opacity: 0.18 },
-      { color: "hsl(190 70% 50%)", size: "400px", position: "bottom-[25%] right-[10%]", opacity: 0.10 },
+      { color: "hsl(270 50% 55%)", size: "450px", position: "top-[15%] left-[15%]", opacity: 0.14 },
+      { color: "hsl(190 70% 50%)", size: "350px", position: "bottom-[25%] right-[10%]", opacity: 0.08 },
     ],
     silhouettes: false,
     bgImages: [
@@ -219,7 +215,7 @@ const VARIANT_CONFIG: Record<BackgroundVariant, {
       { Component: TopoLines, opacity: 0.025, drift: "ws-drift-1", position: "inset-0" },
     ],
     glowHotspots: [
-      { color: "hsl(270 45% 50%)", size: "450px", position: "top-[5%] right-[15%]", opacity: 0.10 },
+      { color: "hsl(270 45% 50%)", size: "380px", position: "top-[5%] right-[15%]", opacity: 0.08 },
     ],
     silhouettes: false,
     bgImages: [
@@ -238,8 +234,8 @@ const VARIANT_CONFIG: Record<BackgroundVariant, {
       { Component: PacketRoute, opacity: 0.03, drift: "ws-drift-3", position: "inset-0" },
     ],
     glowHotspots: [
-      { color: "hsl(270 55% 55%)", size: "550px", position: "top-[15%] left-[20%]", opacity: 0.18 },
-      { color: "hsl(190 70% 50%)", size: "400px", position: "bottom-[15%] right-[15%]", opacity: 0.12 },
+      { color: "hsl(270 55% 55%)", size: "450px", position: "top-[15%] left-[20%]", opacity: 0.14 },
+      { color: "hsl(190 70% 50%)", size: "350px", position: "bottom-[15%] right-[15%]", opacity: 0.08 },
     ],
     silhouettes: false,
     bgImages: [
@@ -249,25 +245,14 @@ const VARIANT_CONFIG: Record<BackgroundVariant, {
   },
 };
 
+/* GPU-OPTIMIZED: reduced from 18 to 6 particles, no blur, only transform+opacity */
 const PARTICLE_POSITIONS = [
-  { x: "8%", y: "12%", size: 2, delay: 0, speed: 18 },
-  { x: "23%", y: "34%", size: 1.5, delay: 2, speed: 22 },
-  { x: "67%", y: "8%", size: 2.5, delay: 4, speed: 25 },
-  { x: "45%", y: "56%", size: 1, delay: 1, speed: 20 },
-  { x: "82%", y: "23%", size: 2, delay: 6, speed: 28 },
-  { x: "15%", y: "72%", size: 1.5, delay: 3, speed: 16 },
-  { x: "55%", y: "45%", size: 2, delay: 5, speed: 24 },
-  { x: "91%", y: "67%", size: 1, delay: 0.5, speed: 19 },
-  { x: "34%", y: "88%", size: 2.5, delay: 7, speed: 30 },
-  { x: "72%", y: "78%", size: 1.5, delay: 2.5, speed: 21 },
-  { x: "5%", y: "45%", size: 1, delay: 4.5, speed: 17 },
-  { x: "48%", y: "22%", size: 2, delay: 1.5, speed: 26 },
-  { x: "88%", y: "42%", size: 1.5, delay: 3.5, speed: 23 },
-  { x: "29%", y: "61%", size: 2, delay: 6.5, speed: 15 },
-  { x: "61%", y: "91%", size: 1, delay: 0.8, speed: 27 },
-  { x: "76%", y: "55%", size: 2.5, delay: 5.5, speed: 20 },
-  { x: "42%", y: "5%", size: 1.5, delay: 8, speed: 22 },
-  { x: "18%", y: "28%", size: 1, delay: 3.2, speed: 18 },
+  { x: "12%", y: "18%", size: 2, delay: 0, speed: 22 },
+  { x: "72%", y: "12%", size: 2, delay: 4, speed: 28 },
+  { x: "25%", y: "68%", size: 1.5, delay: 2, speed: 20 },
+  { x: "85%", y: "55%", size: 1.5, delay: 6, speed: 24 },
+  { x: "50%", y: "42%", size: 1, delay: 1, speed: 18 },
+  { x: "45%", y: "88%", size: 1.5, delay: 5, speed: 26 },
 ];
 
 export function WebsiteBackground({ variant = "landing" }: WebsiteBackgroundProps) {
@@ -278,9 +263,17 @@ export function WebsiteBackground({ variant = "landing" }: WebsiteBackgroundProp
   const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
   const config = VARIANT_CONFIG[variant];
 
+  /* GPU: throttle mouse RAF to every other frame on low-end */
+  const skipFrame = useRef(false);
   const handleMouseMove = useCallback((e: MouseEvent) => {
-    if (rafRef.current !== null || isMobile) return;
+    if (isMobile) return;
+    if (rafRef.current !== null) return;
     rafRef.current = requestAnimationFrame(() => {
+      skipFrame.current = !skipFrame.current;
+      if (!skipFrame.current) {
+        rafRef.current = null;
+        return;
+      }
       setMousePos({
         x: e.clientX / window.innerWidth,
         y: e.clientY / window.innerHeight,
@@ -333,13 +326,12 @@ export function WebsiteBackground({ variant = "landing" }: WebsiteBackgroundProp
             backgroundSize: "cover",
             backgroundPosition: "center",
             opacity: img.opacity,
-            mixBlendMode: "screen",
-            filter: "blur(8px) contrast(1.2)",
             transform: `rotate(-3deg) scale(1.08) translateY(${i % 2 === 0 ? -parallaxOffset * 0.4 : parallaxOffset * 0.3}px)`,
           }}
         />
       ))}
 
+      {/* GPU: reduced from 4 sun streaks to 2, lower opacity */}
       {(config.sunStreaks !== false) && (<>
       <div
         className="absolute ws-sun-streak-1"
@@ -348,25 +340,11 @@ export function WebsiteBackground({ variant = "landing" }: WebsiteBackgroundProp
           left: "-10%",
           width: "120%",
           height: "80%",
-          background: "linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(180,140,255,0.14) 15%, transparent 40%)",
-          opacity: beamFade,
+          background: "linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(180,140,255,0.10) 15%, transparent 40%)",
+          opacity: beamFade * 0.7,
           transform: `translateY(${-parallaxOffset * 0.2}px)`,
         }}
       />
-
-      <div
-        className="absolute ws-sun-streak-2"
-        style={{
-          top: "-15%",
-          left: "5%",
-          width: "60%",
-          height: "70%",
-          background: "linear-gradient(145deg, rgba(255,255,255,0.06) 0%, rgba(140,180,255,0.10) 20%, transparent 45%)",
-          opacity: beamFade * 0.7,
-          transform: `translateY(${-parallaxOffset * 0.15}px)`,
-        }}
-      />
-
       <div
         className="absolute ws-sun-streak-3"
         style={{
@@ -374,22 +352,9 @@ export function WebsiteBackground({ variant = "landing" }: WebsiteBackgroundProp
           left: "-5%",
           width: "50%",
           height: "90%",
-          background: "linear-gradient(125deg, rgba(200,180,255,0.18) 0%, rgba(130,200,255,0.10) 25%, transparent 50%)",
-          opacity: beamFade * 0.5,
+          background: "linear-gradient(125deg, rgba(200,180,255,0.12) 0%, rgba(130,200,255,0.08) 25%, transparent 50%)",
+          opacity: beamFade * 0.35,
           transform: `translateY(${-parallaxOffset * 0.1}px)`,
-        }}
-      />
-
-      <div
-        className="absolute ws-sun-streak-4"
-        style={{
-          bottom: "-10%",
-          right: "-5%",
-          width: "60%",
-          height: "70%",
-          background: "linear-gradient(315deg, rgba(180,140,255,0.06) 0%, rgba(140,180,255,0.05) 15%, transparent 40%)",
-          opacity: beamFade * 0.4,
-          transform: `rotate(-30deg) translateY(${parallaxOffset * 0.1}px)`,
         }}
       />
       </>)}
@@ -401,7 +366,7 @@ export function WebsiteBackground({ variant = "landing" }: WebsiteBackgroundProp
           left: "-5%",
           width: "60%",
           height: "50%",
-          background: "radial-gradient(ellipse at 20% 20%, rgba(180,140,255,0.18) 0%, rgba(150,110,220,0.12) 20%, rgba(120,80,200,0.06) 40%, transparent 65%)",
+          background: "radial-gradient(ellipse at 20% 20%, rgba(180,140,255,0.14) 0%, rgba(150,110,220,0.09) 20%, rgba(120,80,200,0.04) 40%, transparent 65%)",
           opacity: beamFade,
         }}
       />
@@ -413,7 +378,7 @@ export function WebsiteBackground({ variant = "landing" }: WebsiteBackgroundProp
           right: "-10%",
           width: "40%",
           height: "35%",
-          background: "radial-gradient(ellipse at 80% 15%, rgba(180,160,255,0.05) 0%, transparent 60%)",
+          background: "radial-gradient(ellipse at 80% 15%, rgba(180,160,255,0.04) 0%, transparent 60%)",
         }}
       />
       <div
@@ -423,7 +388,7 @@ export function WebsiteBackground({ variant = "landing" }: WebsiteBackgroundProp
           left: "30%",
           width: "40%",
           height: "25%",
-          background: "radial-gradient(ellipse at 50% 90%, rgba(130,100,200,0.06) 0%, transparent 60%)",
+          background: "radial-gradient(ellipse at 50% 90%, rgba(130,100,200,0.04) 0%, transparent 60%)",
         }}
       />
       <div
@@ -433,7 +398,7 @@ export function WebsiteBackground({ variant = "landing" }: WebsiteBackgroundProp
           left: "-5%",
           width: "8%",
           height: "40%",
-          background: "linear-gradient(90deg, rgba(160,130,255,0.04) 0%, transparent 100%)",
+          background: "linear-gradient(90deg, rgba(160,130,255,0.03) 0%, transparent 100%)",
         }}
       />
       <div
@@ -443,15 +408,15 @@ export function WebsiteBackground({ variant = "landing" }: WebsiteBackgroundProp
           right: "-5%",
           width: "8%",
           height: "50%",
-          background: "linear-gradient(270deg, rgba(140,120,255,0.03) 0%, transparent 100%)",
+          background: "linear-gradient(270deg, rgba(140,120,255,0.02) 0%, transparent 100%)",
         }}
       />
 
       <div
         className="absolute inset-0"
         style={{
-          opacity: 0.015,
-          backgroundImage: "repeating-linear-gradient(0deg, transparent, transparent 99px, rgba(140,120,255,0.15) 100px), repeating-linear-gradient(90deg, transparent, transparent 99px, rgba(140,120,255,0.1) 100px)",
+          opacity: 0.012,
+          backgroundImage: "repeating-linear-gradient(0deg, transparent, transparent 99px, rgba(140,120,255,0.12) 100px), repeating-linear-gradient(90deg, transparent, transparent 99px, rgba(140,120,255,0.08) 100px)",
           backgroundSize: "100px 100px",
           transform: `translateY(${parallaxOffset * 0.1}px)`,
         }}
@@ -473,11 +438,12 @@ export function WebsiteBackground({ variant = "landing" }: WebsiteBackgroundProp
 
       {variant === "landing" && <BlueprintImageOverlay />}
 
+      {/* GPU: blur reduced 120px -> 60px, count halved for all variants */}
       {config.glowHotspots.map((spot, i) => (
         <div
           key={i}
           className={cn(
-            "absolute rounded-full blur-[120px]",
+            "absolute rounded-full blur-[60px]",
             spot.position,
             i === 0 ? "ws-glow-drift-1" : i === 1 ? "ws-glow-drift-2" : "ws-glow-drift-3"
           )}
@@ -505,7 +471,6 @@ export function WebsiteBackground({ variant = "landing" }: WebsiteBackgroundProp
                 linear-gradient(135deg, transparent 40%, hsl(270 40% 50%) 40%, hsl(270 40% 50%) 41%, transparent 41%),
                 linear-gradient(135deg, transparent 50%, hsl(270 40% 50%) 50%, hsl(270 40% 50%) 51%, transparent 51%)
               `,
-              filter: "blur(1px)",
               transform: `translateY(${-parallaxOffset * 0.3}px)`,
             }}
           />
@@ -526,6 +491,7 @@ export function WebsiteBackground({ variant = "landing" }: WebsiteBackgroundProp
         </>
       )}
 
+      {/* GPU: reduced from 18 to 6 particles, no glow blur, just opacity/transform */}
       {!isMobile && config.particles && (
         <div className="absolute inset-0">
           {PARTICLE_POSITIONS.map((p, i) => (
@@ -537,7 +503,7 @@ export function WebsiteBackground({ variant = "landing" }: WebsiteBackgroundProp
                 top: p.y,
                 width: `${p.size}px`,
                 height: `${p.size}px`,
-                background: i % 3 === 0 ? "rgba(180,140,255,0.25)" : i % 3 === 1 ? "rgba(140,200,255,0.2)" : "rgba(255,255,255,0.15)",
+                background: i % 3 === 0 ? "rgba(180,140,255,0.20)" : i % 3 === 1 ? "rgba(140,200,255,0.16)" : "rgba(255,255,255,0.12)",
                 animationDelay: `${p.delay}s`,
                 ["--particle-speed" as string]: `${p.speed}s`,
               }}
@@ -546,20 +512,21 @@ export function WebsiteBackground({ variant = "landing" }: WebsiteBackgroundProp
         </div>
       )}
 
+      {/* GPU: reduced spotlight from 700px -> 350px, lower opacity */}
       {!isMobile && (
         <div
-          className="absolute w-[700px] h-[700px] rounded-full transition-all duration-[2000ms] ease-out"
+          className="absolute w-[350px] h-[350px] rounded-full transition-all duration-[2000ms] ease-out"
           style={{
             left: `${mousePos.x * 100}%`,
             top: `${mousePos.y * 100}%`,
             transform: "translate(-50%, -50%)",
-            background: "radial-gradient(circle, rgba(180,140,255,0.08) 0%, rgba(140,120,200,0.03) 40%, transparent 70%)",
+            background: "radial-gradient(circle, rgba(180,140,255,0.05) 0%, rgba(140,120,200,0.02) 40%, transparent 70%)",
           }}
         />
       )}
 
       <div
-        className="absolute inset-0 opacity-[0.02]"
+        className="absolute inset-0 opacity-[0.015]"
         style={{
           backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
         }}
@@ -575,8 +542,8 @@ export function SectionGlow({ color = "purple", intensity = "normal" }: { color?
     mixed: "radial-gradient(ellipse 60% 45% at 40% 50%, hsl(270 50% 45% / VAR) 0%, transparent 70%), radial-gradient(ellipse 50% 35% at 70% 50%, hsl(190 70% 40% / VARHALF) 0%, transparent 70%)",
   };
 
-  const opacity = intensity === "strong" ? "0.12" : "0.07";
-  const opacityHalf = intensity === "strong" ? "0.06" : "0.035";
+  const opacity = intensity === "strong" ? "0.10" : "0.06";
+  const opacityHalf = intensity === "strong" ? "0.05" : "0.03";
 
   return (
     <div
