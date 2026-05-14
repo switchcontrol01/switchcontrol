@@ -31,7 +31,7 @@ const PRIORITY_CONFIG: Record<PriorityLabel, {
   "good-opportunity":  { label: "Good Opportunity",   color: "text-violet-400",  bg: "bg-violet-500/12",  border: "border-violet-500/20" },
   "rebuilds-quickly":  { label: "Rebuilds Quickly",   color: "text-amber-400",   bg: "bg-amber-500/12",   border: "border-amber-500/20" },
   "minor":             { label: "Minor",               color: "text-zinc-400",    bg: "bg-zinc-500/10",    border: "border-zinc-500/15" },
-  "not-found":         { label: "Not Found",           color: "text-muted-foreground", bg: "bg-white/4", border: "border-white/8" },
+  "not-found":         { label: "Not Found",           color: "text-muted-foreground", bg: "bg-[#21262D]", border: "border-[#2A313A]" },
 };
 
 const REBUILD_ITEMS = new Set(["thumbcache", "discord_cache", "steam_htmlcache", "shader_cache", "anticheat_temp"]);

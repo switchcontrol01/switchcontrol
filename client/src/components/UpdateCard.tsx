@@ -195,7 +195,7 @@ export function UpdateCard() {
           >
             <GlassCard className={`p-4 space-y-3 ${urgCfg.border} ${urgCfg.bg} ${urgCfg.glow}`}>
               <div className="flex items-start gap-3">
-                <div className="size-9 rounded-full bg-white/5 flex items-center justify-center shrink-0 mt-0.5">
+                <div className="size-9 rounded-full bg-[#21262D] flex items-center justify-center shrink-0 mt-0.5">
                   {urgCfg.icon}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -230,7 +230,7 @@ export function UpdateCard() {
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: 'auto' }}
                       exit={{ opacity: 0, height: 0 }}
-                      className="mt-2 p-3 rounded-lg backdrop-blur-md bg-white/5 border border-white/10 max-h-40 overflow-y-auto"
+                      className="mt-2 p-3 rounded-lg backdrop-blur-md bg-[#21262D] border border-[#2A313A] max-h-40 overflow-y-auto"
                     >
                       <RenderMarkdown markdown={releaseNotes} />
                     </motion.div>
@@ -242,7 +242,7 @@ export function UpdateCard() {
                 size="sm"
                 onClick={download}
                 data-testid="button-updater-download"
-                className={`gap-2 text-xs w-full justify-center bg-white/5 hover:bg-white/10 border ${urgCfg.border} ${urgCfg.accent}`}
+                className={`gap-2 text-xs w-full justify-center bg-[#21262D] hover:bg-[#2A313A] border ${urgCfg.border} ${urgCfg.accent}`}
                 variant="outline"
               >
                 <Download className="size-3.5" />

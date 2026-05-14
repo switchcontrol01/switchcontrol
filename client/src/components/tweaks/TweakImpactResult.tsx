@@ -36,7 +36,7 @@ function DeltaChip({
     : "text-amber-400";
 
   const bgClass = isNeutral
-    ? "bg-white/5 border-white/10"
+    ? "bg-[#21262D] border-[#2A313A]0"
     : isGood
     ? "bg-emerald-500/10 border-emerald-500/20"
     : "bg-amber-500/10 border-amber-500/20";

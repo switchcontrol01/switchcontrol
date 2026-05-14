@@ -47,12 +47,12 @@ export function HwBadge({
 //  • backdrop-blur-xl lives ONLY here — never on the backdrop, never on a wrapper
 //  • No nested glass-surface-bg + another backdrop-blur — one combo only
 //  • No radial-gradient glow wrappers with filter: blur(1px)
-//  • No bg-white/... tints that wash out the blur
+//  • No bg-[#1A1F26].. tints that wash out the blur
 export function GlassModalSurface({ className, children, ...props }: HTMLAttributes<HTMLDivElement>) {
   return (
     <div
       className={cn(
-        "relative bg-[#0b1020]/70 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden shadow-2xl",
+        "relative bg-[#0b1020]/70 backdrop-blur-xl border border-[#2A313A]0 rounded-2xl overflow-hidden shadow-2xl",
         className
       )}
       {...props}
@@ -127,7 +127,7 @@ export function GlassModalLayout({
           >
             {/* Single-source glass surface — no extra blur layers, no radial glow wrapper */}
             <div
-              className="relative bg-[#0b1020]/70 border border-white/10 rounded-2xl overflow-hidden shadow-2xl backdrop-blur-xl"
+              className="relative bg-[#0b1020]/70 border border-[#2A313A]0 rounded-2xl overflow-hidden shadow-2xl backdrop-blur-xl"
             >
               <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none" />
 
@@ -144,7 +144,7 @@ export function GlassModalLayout({
                 </div>
                 <button
                   onClick={handleClose}
-                  className="p-1.5 -mr-1.5 -mt-0.5 rounded-md hover:bg-white/10 transition-colors shrink-0"
+                  className="p-1.5 -mr-1.5 -mt-0.5 rounded-md hover:bg-[#2A313A] transition-colors shrink-0"
                   data-testid="button-close-modal"
                 >
                   <X className="size-4 text-muted-foreground" />

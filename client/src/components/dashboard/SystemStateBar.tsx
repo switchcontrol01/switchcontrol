@@ -11,7 +11,7 @@ const DOT_GLOW: Record<string, string> = {
   "bg-amber-500":   "0 0 6px rgba(251,191,36,0.8), 0 0 12px rgba(251,191,36,0.3)",
   "bg-amber-400":   "0 0 6px rgba(251,191,36,0.7)",
   "bg-red-500":     "0 0 6px rgba(239,68,68,0.8),  0 0 12px rgba(239,68,68,0.3)",
-  "bg-white/30":    "none",
+  "bg-[#1A1F26]0":    "none",
 };
 
 const INTERFERENCE_CHIP: Record<string, string> = {

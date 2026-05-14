@@ -77,7 +77,7 @@ export function CleanerProgressTimeline({ phase, currentStep, cleanProgress = 0 
               </motion.div>
 
               {i < STEPS.length - 1 && (
-                <div className={cn("flex-1 h-px rounded-full transition-all", completed ? "bg-emerald-500/30" : "bg-white/5")} />
+                <div className={cn("flex-1 h-px rounded-full transition-all", completed ? "bg-emerald-500/30" : "bg-[#21262D]")} />
               )}
             </div>
           );
@@ -85,7 +85,7 @@ export function CleanerProgressTimeline({ phase, currentStep, cleanProgress = 0 
       </div>
 
       {/* Progress bar */}
-      <div className="mt-3 h-1 rounded-full bg-white/5 overflow-hidden">
+      <div className="mt-3 h-1 rounded-full bg-[#21262D] overflow-hidden">
         <motion.div
           className={cn("h-full rounded-full", done ? "bg-emerald-500" : "bg-gradient-to-r from-amber-500 to-primary")}
           initial={{ width: 0 }}

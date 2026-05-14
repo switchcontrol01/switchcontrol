@@ -345,7 +345,7 @@ function PropertyControl({ adapterName, propKey, meta, capability }: PropertyCon
                 : r.outcome === 'elevation_denied'
                   ? "border-orange-500/20 bg-orange-500/10 text-orange-300"
                   : r.outcome === 'unsupported_on_adapter'
-                    ? "border-white/10 bg-white/[0.04] text-white/40"
+                    ? "border-[#2A313A]0 bg-white/[0.04] text-white/40"
                     : "border-red-500/20 bg-red-500/10 text-red-300";
               const icon = r.ok
                 ? isWarnVerify
@@ -386,7 +386,7 @@ function PropertyControl({ adapterName, propKey, meta, capability }: PropertyCon
             "h-7 px-3 text-[11px] gap-1.5",
             isDirty
               ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 hover:bg-cyan-500/30"
-              : "bg-white/5 text-white/25 border border-white/[0.06]"
+              : "bg-[#21262D] text-white/25 border border-white/[0.06]"
           )}
         >
           {state.applying ? <Loader2 className="size-3 animate-spin" /> : <CheckCircle2 className="size-3" />}
@@ -397,7 +397,7 @@ function PropertyControl({ adapterName, propKey, meta, capability }: PropertyCon
           variant="ghost"
           onClick={reset}
           disabled={state.applying}
-          className="h-7 px-2.5 text-[11px] gap-1.5 text-white/30 hover:text-white/60 hover:bg-white/5 border border-white/[0.04]"
+          className="h-7 px-2.5 text-[11px] gap-1.5 text-white/30 hover:text-white/60 hover:bg-[#21262D] border border-white/[0.04]"
         >
           <RotateCcw className="size-3" />
           Reset

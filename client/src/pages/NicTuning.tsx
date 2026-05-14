@@ -268,7 +268,7 @@ function FeaturePill({
         "size-1.5 rounded-full",
         isOn ? "bg-emerald-400 shadow-[0_0_4px_rgba(52,211,153,0.8)]"
         : isOff ? "bg-red-400/60"
-        : "bg-white/20"
+        : "bg-[#1A1F26]0"
       )} />
       {label}
     </div>
@@ -305,7 +305,7 @@ function PropertyHeatmap({
           >
             <span className={cn(
               "size-1.5 rounded-full",
-              loading ? "bg-white/10"
+              loading ? "bg-[#2A313A]"
               : supported ? "bg-cyan-400 shadow-[0_0_4px_rgba(34,211,238,0.7)]"
               : "bg-white/15"
             )} />
@@ -466,11 +466,11 @@ function PropertyControl({ adapterName, propKey, meta, capability }: PropertyCon
       </AnimatePresence>
 
       <div className="flex items-center gap-2 mt-2.5">
-        <Button size="sm" onClick={apply} disabled={state.applying || !isDirty} className={cn("h-7 px-3 text-[11px] gap-1.5", isDirty ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 hover:bg-cyan-500/30" : "bg-white/5 text-white/25 border border-white/[0.06]")}>
+        <Button size="sm" onClick={apply} disabled={state.applying || !isDirty} className={cn("h-7 px-3 text-[11px] gap-1.5", isDirty ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 hover:bg-cyan-500/30" : "bg-[#21262D] text-white/25 border border-white/[0.06]")}>
           {state.applying ? <Loader2 className="size-3 animate-spin" /> : <CheckCircle2 className="size-3" />}
           Apply
         </Button>
-        <Button size="sm" variant="ghost" onClick={reset} disabled={state.applying} className="h-7 px-2.5 text-[11px] gap-1.5 text-white/30 hover:text-white/60 hover:bg-white/5 border border-white/[0.04]">
+        <Button size="sm" variant="ghost" onClick={reset} disabled={state.applying} className="h-7 px-2.5 text-[11px] gap-1.5 text-white/30 hover:text-white/60 hover:bg-[#21262D] border border-white/[0.04]">
           <RotateCcw className="size-3" />
           Reset
         </Button>
@@ -630,7 +630,7 @@ function NetworkThroughputCard({ adapterName }: { adapterName: string }) {
                 ? hasActivity
                   ? "bg-cyan-400 shadow-[0_0_6px_rgba(34,211,238,0.8)] animate-pulse"
                   : "bg-emerald-400 shadow-[0_0_4px_rgba(52,211,153,0.7)]"
-                : "bg-white/20",
+                : "bg-[#1A1F26]0",
             )}
           />
           <span className={cn("text-[10px] font-medium", connected ? "text-white/40" : "text-white/20")}>
@@ -1015,7 +1015,7 @@ export default function NicTuningPage() {
                 <div className="flex items-center gap-4 shrink-0">
                   <div className="text-right hidden sm:block">
                     <div className="flex items-center gap-1.5 justify-end">
-                      <span className={cn("size-1.5 rounded-full", isOnline ? "bg-emerald-400 shadow-[0_0_4px_rgba(52,211,153,0.9)]" : "bg-white/20")} />
+                      <span className={cn("size-1.5 rounded-full", isOnline ? "bg-emerald-400 shadow-[0_0_4px_rgba(52,211,153,0.9)]" : "bg-[#1A1F26]0")} />
                       <span className={cn("text-xs font-medium", isOnline ? "text-emerald-400" : "text-white/40")}>{activeAdapter.status}</span>
                     </div>
                     <p className="text-[10px] text-white/30 mt-0.5 truncate max-w-[200px]">{activeAdapter.name}</p>
@@ -1092,7 +1092,7 @@ export default function NicTuningPage() {
                       : "bg-white/[0.03] border-white/[0.07] text-white/50 hover:bg-white/[0.06] hover:text-white/70"
                   )}
                 >
-                  <span className={cn("size-1.5 rounded-full shrink-0", on ? "bg-emerald-400" : "bg-white/20")} />
+                  <span className={cn("size-1.5 rounded-full shrink-0", on ? "bg-emerald-400" : "bg-[#1A1F26]0")} />
                   {adapter.name}
                 </button>
               );

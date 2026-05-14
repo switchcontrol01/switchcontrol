@@ -73,7 +73,7 @@ export function TrustLayer({ tweak, isOpen, delta, className }: TrustLayerProps)
           transition={{ duration: 0.22, ease: "easeInOut" }}
           className={cn("overflow-hidden", className)}
         >
-          <div className="px-4 pb-4 pt-3 border-t border-white/8 space-y-4">
+          <div className="px-4 pb-4 pt-3 border-t border-[#2A313A] space-y-4">
             <div className="flex items-center gap-4 flex-wrap">
               <div className="flex items-center gap-1.5">
                 <RiskIcon className={cn("size-3.5", riskCfg.color)} />

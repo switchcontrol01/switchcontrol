@@ -85,7 +85,7 @@ export function IntentModeSelector({
                     "border-white/20 bg-white/8",
                     mode.glow
                   )
-                : "border-white/8 bg-white/3 hover:bg-white/5 hover:border-white/12"
+                : "border-[#2A313A] bg-[#1A1F26] hover:bg-[#21262D] hover:border-[#2A313A]2"
             )}
           >
             {active && (

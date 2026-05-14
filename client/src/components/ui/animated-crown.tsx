@@ -56,7 +56,7 @@ export function AnimatedCrown({
             transition={{ duration: 0.12 }}
             className="absolute top-full mt-2 left-1/2 -translate-x-1/2 z-50"
           >
-            <div className="px-2.5 py-1 rounded-md bg-zinc-900 border border-white/10 shadow-xl whitespace-nowrap">
+            <div className="px-2.5 py-1 rounded-md bg-zinc-900 border border-[#2A313A]0 shadow-xl whitespace-nowrap">
               <span className="text-xs text-white/80">{tooltipText}</span>
             </div>
           </motion.div>

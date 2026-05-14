@@ -236,7 +236,7 @@ export function TweaksList() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             data-testid="input-search-tweaks"
-            className="pl-9 bg-black/40 border-white/5 focus:border-primary/50 transition-all rounded-xl h-10"
+            className="pl-9 bg-[#1A1F26] border-[#2A313A] focus:border-primary/50 transition-all rounded-xl h-10"
           />
         </div>
 
@@ -254,7 +254,7 @@ export function TweaksList() {
             variant="outline" size="sm"
             onClick={resetData}
             data-testid="button-reset-tweaks"
-            className="h-9 gap-2 border-white/5 hover:bg-white/5"
+            className="h-9 gap-2 border-[#2A313A] hover:bg-[#2A313A]"
           >
             <RotateCcw className="size-4" />
             Reset
@@ -269,7 +269,7 @@ export function TweaksList() {
               "h-9 w-9 p-0 transition-colors",
               showRisky
                 ? "text-orange-400 bg-orange-500/10 border border-orange-500/25 hover:bg-orange-500/20"
-                : "hover:bg-white/5"
+                : "hover:bg-[#2A313A]"
             )}
           >
             <SlidersHorizontal className="size-4" />
@@ -291,7 +291,7 @@ export function TweaksList() {
                 "inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[11px] font-semibold tracking-wide border transition-all duration-300",
                 isActive
                   ? tab.activeClass
-                  : "bg-white/[0.04] text-white/40 border-white/[0.07] hover:text-white/60 hover:border-white/15"
+                  : "bg-[#1A1F26] text-[#6B7380] border-[#2A313A] hover:text-[#A0A8B3] hover:border-[#2A313A]"
               )}
             >
               <Icon className={cn("size-3", isActive ? "" : tab.color)} />
@@ -318,7 +318,7 @@ export function TweaksList() {
                   "px-4 py-1.5 rounded-full text-xs font-medium transition-all duration-300 border",
                   activeChip === chip
                     ? "bg-primary text-white border-primary shadow-[0_0_15px_rgba(0,212,255,0.3)]"
-                    : "bg-white/5 text-muted-foreground border-white/5 hover:border-white/10"
+                    : "bg-[#1A1F26] text-[#6B7380] border-[#2A313A] hover:border-[#2A313A]"
                 )}
               >
                 {chip}
@@ -333,7 +333,7 @@ export function TweaksList() {
         {warnLevel && LEVEL_WARN[warnLevel] && (
           <>
             <motion.div
-              className="fixed inset-0 z-40 bg-black/40"
+              className="fixed inset-0 z-40 bg-[#1A1F26]"
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => setWarnLevel(null)}
             />
@@ -358,7 +358,7 @@ export function TweaksList() {
                   <button
                     onClick={() => setWarnLevel(null)}
                     data-testid="button-level-warn-cancel"
-                    className="px-4 py-2 rounded-lg text-sm text-white/50 hover:text-white/80 hover:bg-white/5 transition-colors"
+                    className="px-4 py-2 rounded-lg text-sm text-[#6B7380] hover:text-[#E6EAF0] hover:bg-[#2A313A] transition-colors"
                   >
                     Cancel
                   </button>

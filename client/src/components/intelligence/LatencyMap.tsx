@@ -27,21 +27,21 @@ const STATUS_COLOR: Record<Stage["status"], string> = {
   good: "text-emerald-400 border-emerald-500/30 bg-emerald-500/5",
   warn: "text-amber-400 border-amber-500/30 bg-amber-500/5",
   bad:  "text-red-400 border-red-500/30 bg-red-500/5",
-  idle: "text-muted-foreground border-white/10 bg-white/[0.02]",
+  idle: "text-muted-foreground border-[#2A313A]0 bg-white/[0.02]",
 };
 
 const STATUS_DOT: Record<Stage["status"], string> = {
   good: "bg-emerald-400",
   warn: "bg-amber-400",
   bad:  "bg-red-400",
-  idle: "bg-white/20",
+  idle: "bg-[#1A1F26]0",
 };
 
 const PARTICLE_COLOR: Record<Stage["status"], string> = {
   good: "bg-emerald-400",
   warn: "bg-amber-400",
   bad:  "bg-red-500",
-  idle: "bg-white/20",
+  idle: "bg-[#1A1F26]0",
 };
 
 const CONNECTOR_GLOW: Record<Stage["status"], string> = {
@@ -141,7 +141,7 @@ export function LatencyMap({ className, compact = false }: LatencyMapProps) {
               <span className="text-[11px] font-mono font-semibold tabular-nums mt-0.5 leading-none">{stage.value}</span>
             </div>
             {i < stages.length - 1 && (
-              <div className="relative h-[1px] w-3 bg-white/10 flex-shrink-0 overflow-hidden" />
+              <div className="relative h-[1px] w-3 bg-[#2A313A] flex-shrink-0 overflow-hidden" />
             )}
           </div>
         ))}

@@ -110,7 +110,7 @@ export function CleanerRecommendedCard({ items, findings, onApply, onReview, sca
             onClick={onReview}
             variant="ghost"
             size="sm"
-            className="h-8 px-3 text-xs rounded-lg text-white/50 hover:text-white hover:bg-white/5"
+            className="h-8 px-3 text-xs rounded-lg text-white/50 hover:text-white hover:bg-[#21262D]"
           >
             Review
             <ChevronRight className="size-3 ml-0.5" />

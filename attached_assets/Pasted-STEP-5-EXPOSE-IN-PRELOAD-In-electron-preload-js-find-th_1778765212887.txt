@@ -1,0 +1,100 @@
+STEP 5: EXPOSE IN PRELOAD
+
+In electron/preload.js, find the section where other IPC bridges are exposed. Add a processControl namespace following the exact same pattern used for existing namespaces. Expose:
+
+    scan: () => ipcRenderer.invoke('processControl:scan')
+    applySafe: () => ipcRenderer.invoke('processControl:applySafe')
+    applyCompetitive: () => ipcRenderer.invoke('processControl:applyCompetitive')
+    applyExtreme: (plan) => ipcRenderer.invoke('processControl:applyExtreme', plan)
+    restoreLast: () => ipcRenderer.invoke('processControl:restoreLast')
+    getLastResult: () => ipcRenderer.invoke('processControl:getLastResult')
+    getProtectedList: () => ipcRenderer.invoke('processControl:getProtectedList')
+
+Validate that plan in applyExtreme is a plain object before invoking. Return early with an error if it is not.
+STEP 6: CREATE THE HOOK
+
+Create client/src/hooks/useProcessControl.ts.
+
+This hook manages all Process Control state. It must:
+
+    Store status, scanResult, lastResult, actionPlan, beforeAfter using useState
+    Expose a scan() function that calls window.electronAPI.processControl.scan(), sets status to scanning before and idle after, stores result, never calls scan automatically on mount unless lastResult is null
+    Expose applySafe(), applyCompetitive(), applyExtreme(plan) functions that set status to applying, call the IPC, set status to verified on success
+    Expose restoreLast() that calls the IPC and returns the restore result
+    Expose getProtectedList() that calls the IPC once on first use and caches the result
+    Never trigger a scan from a useEffect with no dependencies. Scan only when explicitly called.
+    Use useRef for single-flight guards to prevent double-invocation from React StrictMode
+
+Return all state and all functions from the hook.
+STEP 7: CREATE FRONTEND COMPONENTS
+
+Create each component file. Every component uses the matte dark style with cyan accent. Use Tailwind classes matching the existing app style. No heavy chart libraries. All animations use transform and opacity only. All animations pause when document.hidden is true.
+
+client/src/components/process-control/SystemPressureMeter.tsx
+
+A large SVG radial arc gauge. Props: score (0-100), animating (boolean). The arc fills from left to right. Color zones: 0-40 = emerald, 40-70 = amber, 70-100 = red. The needle or fill animates smoothly using CSS transition on stroke-dashoffset. Shows a number in the center counting up/down via requestAnimationFrame. Label below says "System Pressure". Shield icon appears when score drops after optimization. No canvas.
+
+client/src/components/process-control/ProcessWeightRings.tsx
+
+Six mini circular rings in a grid. One per category: System Core, Background Apps, Startup Weight, Vendor Utilities, Network/Audio Protected, Unknown Review. Props: categories (Record of category name to impact score 0-100). Each ring is a small SVG circle with a stroke-dashoffset arc. Protected categories show a small shield icon instead of a fill. After optimization, cleaned categories animate their fill draining to zero. Ring that has applicable actions glows with a subtle cyan ring border.
+
+client/src/components/process-control/BeforeAfterImpactBars.tsx
+
+Four horizontal bars showing before and after values. Metrics: Process Count, Background Load, Startup Weight, RAM Used by Targets. Props: before and after (both BeforeAfterResult or null). Each bar has a label, the before value on the left shrinking, and the after value animating in. If after is null, show only the before bar in neutral color. Numbers count down smoothly using requestAnimationFrame when after values arrive. Show "Not enough data to measure yet" text if values are null.
+
+client/src/components/process-control/ProcessTrendGraph.tsx
+
+A lightweight SVG line graph. Props: history (array of { ts: number, pressure: number, processCount: number }). Draws two lines: one for pressure (cyan), one for process count (normalized, gray). X axis is time. Y axis is 0-100. After optimization events, draw a vertical dashed marker line labeled "Optimized". Maximum 60 data points, older ones shift off left. No external chart library. Pure SVG path drawn from data.
+
+client/src/components/process-control/ProcessActionTimeline.tsx
+
+Six sequential steps shown as a vertical timeline. Steps: Preparing safe plan, Protecting critical processes, Applying selected actions, Verifying system state, Building before/after result, Done. Props: currentStep (0-6), status. Each step has a circle indicator. Completed steps show a filled cyan circle with checkmark. Current step pulses. Future steps are dim. No fake delays. Only advance when the backend actually signals progress via the status prop.
+
+client/src/components/process-control/ProcessGravityAnimation.tsx
+
+Shows process chips collapsing inward when optimizing. Props: processes (array of process names to animate), trigger (boolean). When trigger fires, render small chips with process names. Each chip uses a CSS animation with transform: translate moving toward center combined with opacity: 0. Stagger each chip by 50ms. Show a final pulse circle when all chips have faded. Use transform and opacity only. Pause when document.hidden. After animation completes show nothing.
+
+client/src/components/process-control/ProcessGroupAccordion.tsx
+
+Collapsible group rows for the process list. Props: group (category name), processes (ProcessEntry array), onSelect. Collapsed state shows: group name, process count, total RAM in MB, total CPU percent, risk badge, mini horizontal bar for impact. Expanded state shows a compact table of processes with name, RAM, CPU, safety badge, recommended action badge, and a checkbox to include/exclude from plan. Protected processes show a lock icon and cannot be checked. Unknown processes show a review badge.
+
+client/src/components/process-control/ProcessActionPanel.tsx
+
+A sticky side panel showing the current plan summary. Props: plan (ActionPlan or null), onApplySafe, onApplyCompetitive, onApplyExtreme, onRestoreLast, onViewPlan. Shows: selected actions count, estimated RAM to free, estimated CPU reduction, protected processes count, risk level chip. Two primary buttons: Apply Safe, Apply Competitive. One advanced button: Extreme Review (opens modal). One secondary button: Restore Last (disabled if no restore point). One text button: View Exact Actions.
+
+client/src/components/process-control/ProcessPlanModal.tsx
+
+A modal showing the full action plan before applying. Props: plan (ActionPlan), onConfirm, onCancel, isExtreme (boolean). Shows three sections: what will be stopped (with process names), what will have priority lowered, what is protected and untouched. For extreme mode shows a hard warning box. Confirm button says "Apply Plan" for safe/competitive and "I understand, apply extreme plan" for extreme. Cannot be dismissed by clicking backdrop for extreme mode.
+
+client/src/components/process-control/RestoreResultModal.tsx
+
+A modal showing restore results. Props: result (object with restored array and failed array), onClose. Shows what was successfully restored and what could not be (with reason). If nothing could be restored shows a clear explanation. Close button.
+
+client/src/components/process-control/ProcessControlHero.tsx
+
+The top hero section of the page. Props: status, lastScanTime, protectedCount, onScan, onApplySafe. Shows title "Process Control", subtitle "Reduce background load without breaking Windows, audio, networking, launchers, or anti-cheat.", a status chip that shows the current status with color (gray=idle, blue=scanning, amber=applying, green=verified, red=error), primary button "Analyze System", secondary button "Apply Safe Optimization", last scan time as relative time if available, protected count chip showing "X processes protected".
+STEP 8: CREATE THE MAIN PAGE
+
+Create client/src/pages/ProcessControl.tsx.
+
+Import and use useAuth to get isPremium. If not premium, render the PremiumPageOverlay with:
+
+    featureName="Process Control is a Premium Feature"
+    description="Reduce background load safely, apply gaming profiles, and see before/after system impact."
+    buttonText="Unlock Process Control"
+
+If premium, render the full page using all the components above. Layout:
+
+Top: ProcessControlHero Below hero in a two-column layout (main content left, action panel right sticky):
+
+    Left column top: SystemPressureMeter and ProcessWeightRings side by side
+    Left column: BeforeAfterImpactBars
+    Left column: ProcessTrendGraph
+    Left column: ProcessActionTimeline (only visible when status is applying or verified)
+    Left column: ProcessGravityAnimation (only visible when optimizing)
+    Left column: ProcessGroupAccordion repeated for each category group
+    Right column sticky: ProcessActionPanel
+
+Modals rendered at root level: ProcessPlanModal, RestoreResultModal.
+
+Wire all state from useProcessControl. On first mount, call getLastResult() to restore any previous scan from cache. Do not auto-scan on mount. Only scan when the user clicks Analyze System.

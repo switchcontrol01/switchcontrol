@@ -106,7 +106,7 @@ export function CleanerHero({
             <Button
               variant="ghost"
               onClick={onSelectRecommended}
-              className="h-10 px-4 text-sm rounded-xl text-white/70 hover:text-white hover:bg-white/5"
+              className="h-10 px-4 text-sm rounded-xl text-white/70 hover:text-white hover:bg-[#21262D]"
             >
               Select Recommended
             </Button>
@@ -120,7 +120,7 @@ export function CleanerHero({
             "ml-auto flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium border transition-all",
             safeOnly
               ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
-              : "border-white/10 bg-white/[0.03] text-white/50 hover:text-white/70"
+              : "border-[#2A313A]0 bg-white/[0.03] text-white/50 hover:text-white/70"
           )}
         >
           <ShieldCheck className="size-3.5" />

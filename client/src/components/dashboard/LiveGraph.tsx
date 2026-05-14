@@ -871,7 +871,7 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
           <Button
             variant="ghost"
             size="sm"
-            className="h-6 w-6 p-0 ml-1 hover:bg-white/10 shrink-0"
+            className="h-6 w-6 p-0 ml-1 hover:bg-[#2A313A] shrink-0"
             onClick={() => setExpanded(!expanded)}
             title={expanded ? "Collapse graph" : "Expand graph"}
             data-testid="button-expand-graph"
@@ -904,10 +904,10 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
                 className={cn(
                   "flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium border transition-colors duration-200",
                   isSoloed
-                    ? "border-white/50 bg-white/15 text-white ring-1 ring-white/20"
+                    ? "border-[#2A313A]0 bg-white/15 text-white ring-1 ring-white/20"
                     : isDimmed
                       ? "border-white/[0.06] bg-transparent text-white/30"
-                      : "border-white/20 bg-white/[0.07] text-white/90 hover:bg-white/10"
+                      : "border-white/20 bg-white/[0.07] text-white/90 hover:bg-[#2A313A]"
                 )}
               >
                 <span
@@ -922,7 +922,7 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
             <button
               onClick={resetView}
               data-testid="button-reset-view"
-              className="px-2 py-0.5 rounded text-[10px] font-medium border border-white/20 bg-white/5 text-white/50 hover:text-white/80 hover:bg-white/10 transition-all ml-1"
+              className="px-2 py-0.5 rounded text-[10px] font-medium border border-white/20 bg-[#21262D] text-white/50 hover:text-white/80 hover:bg-[#2A313A] transition-all ml-1"
             >
               Reset view
             </button>

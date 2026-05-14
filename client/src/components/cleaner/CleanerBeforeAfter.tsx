@@ -37,7 +37,7 @@ export function CleanerBeforeAfter({ beforeBytes, afterBytes, removedBytes, visi
             </span>
             <span className="text-white/70 tabular-nums">{hasData ? fmtBytes(beforeBytes) : "—"}</span>
           </div>
-          <div className="h-3 rounded-full bg-white/5 overflow-hidden">
+          <div className="h-3 rounded-full bg-[#21262D] overflow-hidden">
             <motion.div
               className="h-full rounded-full bg-red-500/40"
               initial={{ width: 0 }}
@@ -69,7 +69,7 @@ export function CleanerBeforeAfter({ beforeBytes, afterBytes, removedBytes, visi
               {hasData ? fmtBytes(afterBytes) : "—"}
             </span>
           </div>
-          <div className="h-3 rounded-full bg-white/5 overflow-hidden relative">
+          <div className="h-3 rounded-full bg-[#21262D] overflow-hidden relative">
             <motion.div
               className="h-full rounded-full bg-emerald-500/50"
               initial={{ width: 0 }}

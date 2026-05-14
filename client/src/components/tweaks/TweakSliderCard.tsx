@@ -121,7 +121,7 @@ function SteppedSelector({
             {(preset.isDefault || preset.isRecommended) && (
               <span className={cn(
                 "text-[9px] px-1.5 py-0.5 rounded-full",
-                preset.isRecommended ? "bg-cyan-500/15 text-cyan-400" : "bg-white/10 text-white/40"
+                preset.isRecommended ? "bg-cyan-500/15 text-cyan-400" : "bg-[#2A313A] text-white/40"
               )}>
                 {preset.isRecommended ? "Recommended" : "Default"}
               </span>
@@ -180,7 +180,7 @@ function ContinuousSlider({
               className="absolute top-0 -translate-x-1/2"
               style={{ left: `${((config.defaultValue - config.min) / (config.max - config.min)) * 100}%` }}
             >
-              <div className="w-0.5 h-2.5 bg-white/25 rounded-full" />
+              <div className="w-0.5 h-2.5 bg-[#1A1F26]5 rounded-full" />
               <span className="absolute left-1/2 top-3 -translate-x-1/2 text-[9px] text-white/30 whitespace-nowrap">
                 Default
               </span>
@@ -390,7 +390,7 @@ export function TweakSliderCard({ tweak }: TweakSliderCardProps) {
             onClick={() => setTrustOpen(!trustOpen)}
             data-testid={`button-trust-${tweak.id}`}
             className={cn(
-              "size-8 rounded-full flex items-center justify-center transition-all hover:bg-white/10",
+              "size-8 rounded-full flex items-center justify-center transition-all hover:bg-[#2A313A]",
               trustOpen ? "text-primary" : "text-muted-foreground opacity-0 group-hover:opacity-100"
             )}
             title="Show impact details"
@@ -523,7 +523,7 @@ export function TweakSliderCard({ tweak }: TweakSliderCardProps) {
                 "h-8 px-4 text-xs gap-2 transition-all",
                 isDirty
                   ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 hover:bg-cyan-500/30"
-                  : "bg-white/5 text-white/30 border border-white/10"
+                  : "bg-[#21262D] text-white/30 border border-[#2A313A]0"
               )}
             >
               {isApplying ? <Loader2 className="size-3 animate-spin" /> : <CheckCircle2 className="size-3" />}
@@ -536,7 +536,7 @@ export function TweakSliderCard({ tweak }: TweakSliderCardProps) {
               onClick={reset}
               disabled={disabled || state.currentValue === config.defaultValue}
               data-testid={`button-reset-slider-${tweak.id}`}
-              className="h-8 px-3 text-xs gap-2 text-white/40 hover:text-white/70 hover:bg-white/5 border border-white/[0.06]"
+              className="h-8 px-3 text-xs gap-2 text-white/40 hover:text-white/70 hover:bg-[#21262D] border border-white/[0.06]"
             >
               <RotateCcw className="size-3" />
               Reset to Default

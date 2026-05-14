@@ -64,7 +64,7 @@ export function StartupBars({ apps, visible }: Props) {
                   {Math.round(bar.value)}{bar.unit}
                 </span>
               </div>
-              <div className="h-2.5 rounded-full bg-white/5 overflow-hidden">
+              <div className="h-2.5 rounded-full bg-[#21262D] overflow-hidden">
                 <motion.div
                   className="h-full rounded-full"
                   style={{ backgroundColor: bar.color }}

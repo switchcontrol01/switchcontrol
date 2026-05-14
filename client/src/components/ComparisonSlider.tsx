@@ -86,7 +86,7 @@ export function ComparisonSlider({
         ref={containerRef}
         className={cn(
           "relative h-32 rounded-xl overflow-hidden cursor-ew-resize select-none",
-          "border border-white/10 bg-gradient-to-r from-red-500/10 to-emerald-500/10",
+          "border border-[#2A313A]0 bg-gradient-to-r from-red-500/10 to-emerald-500/10",
           isDragging && "ring-2 ring-primary/50"
         )}
         style={{ touchAction: 'pan-y', contain: 'layout style' }}
@@ -204,7 +204,7 @@ export function ScrollIndicator() {
         <motion.div
           animate={{ opacity: prefersReducedMotion ? [1, 0.6, 1] : [1, 0.3, 1] }}
           transition={{ duration: prefersReducedMotion ? 2.5 : 1.5, repeat: Infinity, ease: "easeInOut" }}
-          className="w-1 h-2 rounded-full bg-white/50"
+          className="w-1 h-2 rounded-full bg-[#21262D]0"
         />
       </motion.div>
     </motion.button>

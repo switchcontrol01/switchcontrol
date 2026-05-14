@@ -45,7 +45,7 @@ export function StartupBrokenEntries({ apps, onFixAll, visible }: Props) {
           </Button>
           <button
             onClick={() => setExpanded(e => !e)}
-            className="p-1 rounded hover:bg-white/5 text-white/40 hover:text-white/70 transition-colors"
+            className="p-1 rounded hover:bg-[#21262D] text-white/40 hover:text-white/70 transition-colors"
           >
             {expanded ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
           </button>

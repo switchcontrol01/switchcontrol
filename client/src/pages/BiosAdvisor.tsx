@@ -166,7 +166,7 @@ function ConfidenceBadge({ confidence }: { confidence: number }) {
   const color = pct >= 85 ? "text-emerald-400 border-emerald-500/25" :
                 pct >= 65 ? "text-blue-400 border-blue-500/25" :
                 pct >= 45 ? "text-amber-400 border-amber-500/25" :
-                "text-muted-foreground border-white/10";
+                "text-muted-foreground border-[#2A313A]0";
   return (
     <Badge variant="outline" className={cn("text-[9px] font-mono", color)}>
       {pct}%
@@ -249,7 +249,7 @@ function BiosSettingCard({ setting, detection, index }: { setting: BiosSetting; 
               transition={{ duration: 0.3 }}
               className="overflow-hidden"
             >
-              <div className="px-4 pb-4 border-t border-white/10">
+              <div className="px-4 pb-4 border-t border-[#2A313A]0">
                 <div className="flex gap-1 mt-3 mb-3 p-0.5 rounded-lg bg-white/[0.03] border border-white/[0.06] w-fit">
                   {tabItems.map(tab => (
                     <button
@@ -259,7 +259,7 @@ function BiosSettingCard({ setting, detection, index }: { setting: BiosSetting; 
                         "px-3 py-1.5 text-[10px] font-medium rounded-md transition-all",
                         activeTab === tab.key
                           ? "bg-primary/20 text-primary border border-primary/30"
-                          : "text-muted-foreground hover:text-white hover:bg-white/5 border border-transparent"
+                          : "text-muted-foreground hover:text-white hover:bg-[#21262D] border border-transparent"
                       )}
                       data-testid={`tab-${tab.key}-${setting.id}`}
                     >
@@ -368,7 +368,7 @@ function BiosSettingCard({ setting, detection, index }: { setting: BiosSetting; 
                     animate={{ opacity: 1 }}
                     transition={{ duration: 0.2 }}
                   >
-                    <div className="p-3 rounded-lg bg-white/5 border border-white/10">
+                    <div className="p-3 rounded-lg bg-[#21262D] border border-[#2A313A]0">
                       <h4 className="text-xs font-medium text-white/80 mb-3 flex items-center gap-1">
                         <ExternalLink className="w-3 h-3" /> Where to find in BIOS
                       </h4>
@@ -424,7 +424,7 @@ function OpportunityCard({ opportunity, index }: { opportunity: ReturnType<typeo
           </Badge>
           <div className="flex gap-1 ml-auto">
             {setting.affects.map(a => (
-              <span key={a} className="text-[9px] text-white/40 bg-white/5 px-1.5 py-0.5 rounded">{a}</span>
+              <span key={a} className="text-[9px] text-white/40 bg-[#21262D] px-1.5 py-0.5 rounded">{a}</span>
             ))}
           </div>
         </div>
@@ -451,7 +451,7 @@ function OpportunityCard({ opportunity, index }: { opportunity: ReturnType<typeo
               transition={{ duration: 0.2 }}
               className="overflow-hidden"
             >
-              <div className="mt-3 pt-3 border-t border-white/10 space-y-2">
+              <div className="mt-3 pt-3 border-t border-[#2A313A]0 space-y-2">
                 {setting.motherboardPaths.map((path) => (
                   <div key={path.brand} className="text-xs">
                     <span className="text-primary font-medium">{path.brand}:</span>
@@ -848,7 +848,7 @@ export default function BiosAdvisor() {
           const getInferBadge = (state: "confirmed" | "likely" | "unknown") =>
             state === "confirmed" ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" :
             state === "likely"    ? "bg-amber-500/15 text-amber-400 border-amber-500/30" :
-                                    "bg-white/5 text-white/40 border-white/10";
+                                    "bg-[#21262D] text-white/40 border-[#2A313A]0";
 
           return (
             <Item>
@@ -1040,7 +1040,7 @@ export default function BiosAdvisor() {
                   {Object.entries(categoryScores).map(([cat, data]) => {
                     const Icon = CATEGORY_ICONS[cat as BiosCategory];
                     return (
-                      <div key={cat} className="flex items-center gap-2 p-2 rounded-lg bg-white/5 border border-white/10">
+                      <div key={cat} className="flex items-center gap-2 p-2 rounded-lg bg-[#21262D] border border-[#2A313A]0">
                         {Icon && <Icon className="w-3.5 h-3.5 text-muted-foreground shrink-0" />}
                         <div className="flex-1 min-w-0">
                           <div className="text-[10px] text-muted-foreground truncate">{cat.split(" ")[0]}</div>
@@ -1112,7 +1112,7 @@ export default function BiosAdvisor() {
                   </div>
                 )}
                 {scanChanged === false && (
-                  <div className="flex items-center gap-2 p-2 rounded bg-white/5 border border-white/10 text-[11px] text-muted-foreground flex-1">
+                  <div className="flex items-center gap-2 p-2 rounded bg-[#21262D] border border-[#2A313A]0 text-[11px] text-muted-foreground flex-1">
                     <Info className="w-3.5 h-3.5 shrink-0" />
                     No detectable firmware-related behavior changes since last scan.
                   </div>
@@ -1159,7 +1159,7 @@ export default function BiosAdvisor() {
                             input.status === "User Confirmed" ? "border-cyan-500/25" :
                             input.status === "Detected" ? "border-emerald-500/25" :
                             input.status === "Inferred" ? "border-blue-500/25" :
-                            "border-white/10"
+                            "border-[#2A313A]0"
                           )}>
                             {input.status}
                           </Badge>
@@ -1396,7 +1396,7 @@ export default function BiosAdvisor() {
                         "flex items-center gap-2 px-4 py-3 rounded-lg border transition-all data-[state=active]:bg-transparent",
                         isActive 
                           ? `bg-gradient-to-br ${CATEGORY_COLORS[category]}`
-                          : "bg-card/50 border-border/50 hover:bg-white/5"
+                          : "bg-card/50 border-border/50 hover:bg-[#21262D]"
                       )}
                     >
                       <Icon className={cn("w-4 h-4", isActive ? "text-white" : "text-muted-foreground")} />
@@ -1437,7 +1437,7 @@ export default function BiosAdvisor() {
         )}
 
         <Item>
-          <GlassCard className="p-4 bg-white/5">
+          <GlassCard className="p-4 bg-[#21262D]">
             <div className="flex items-start gap-3">
               <Info className="w-5 h-5 text-primary shrink-0 mt-0.5" />
               <div>
@@ -1445,7 +1445,7 @@ export default function BiosAdvisor() {
                 <p className="text-xs text-muted-foreground mb-3">{BIOS_ACCESS_INSTRUCTIONS.general}</p>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
                   {Object.entries(BIOS_ACCESS_INSTRUCTIONS.brands).map(([brand, info]) => (
-                    <div key={brand} className="p-2 rounded bg-white/5 text-center">
+                    <div key={brand} className="p-2 rounded bg-[#21262D] text-center">
                       <p className="text-xs font-medium text-white">{brand}</p>
                       <p className="text-[10px] text-primary">{info.key}</p>
                     </div>

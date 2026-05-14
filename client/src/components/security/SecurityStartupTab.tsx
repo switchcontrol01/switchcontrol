@@ -104,7 +104,7 @@ function StartupRow({ item, hasSecurity }: { item: StartupItem; hasSecurity: boo
   }, [hasSecurity, item.command]);
 
   return (
-    <div className={cn("rounded-xl border border-white/8 overflow-hidden transition-all", item.recommendation === "disable" ? "border-red-500/20" : item.recommendation === "review" ? "border-amber-500/15" : "")}>
+    <div className={cn("rounded-xl border border-[#2A313A] overflow-hidden transition-all", item.recommendation === "disable" ? "border-red-500/20" : item.recommendation === "review" ? "border-amber-500/15" : "")}>
       {/* Main row */}
       <div
         className="flex items-center gap-3 p-3.5 cursor-pointer hover:bg-white/[0.02] transition-colors"
@@ -142,7 +142,7 @@ function StartupRow({ item, hasSecurity }: { item: StartupItem; hasSecurity: boo
             transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
             className="overflow-hidden"
           >
-            <div className="border-t border-white/8 p-3.5 space-y-3 bg-white/[0.02]">
+            <div className="border-t border-[#2A313A] p-3.5 space-y-3 bg-white/[0.02]">
               {/* Command path */}
               <div>
                 <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Command</p>
@@ -187,7 +187,7 @@ function StartupRow({ item, hasSecurity }: { item: StartupItem; hasSecurity: boo
                     {showDelay && (
                       <motion.div
                         initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
-                        className="absolute top-full left-0 mt-1 bg-zinc-900 border border-white/10 rounded-lg shadow-xl z-10 overflow-hidden min-w-32"
+                        className="absolute top-full left-0 mt-1 bg-zinc-900 border border-[#2A313A]0 rounded-lg shadow-xl z-10 overflow-hidden min-w-32"
                       >
                         {DELAY_OPTIONS.map(opt => (
                           <button key={opt.iso} onClick={() => applyDelay(opt.iso)}
@@ -261,7 +261,7 @@ export function SecurityStartupTab({
               {(["all", "review", "disable"] as const).map(f => (
                 <button key={f} onClick={() => setFilter(f)}
                   className={cn("px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors capitalize",
-                    filter === f ? "bg-white/10 text-foreground" : "text-muted-foreground hover:text-foreground/70"
+                    filter === f ? "bg-[#2A313A] text-foreground" : "text-muted-foreground hover:text-foreground/70"
                   )}>
                   {f === "all" ? "All" : f === "review" ? "Review" : "Disable"}
                 </button>
@@ -287,7 +287,7 @@ export function SecurityStartupTab({
         )}
 
         {startupItems.length > 0 && (
-          <div className="mt-4 pt-3 border-t border-white/5 text-[11px] text-muted-foreground/50">
+          <div className="mt-4 pt-3 border-t border-[#2A313A] text-[11px] text-muted-foreground/50">
             Actions use the Windows StartupApproved registry key — same mechanism as Task Manager. Delays use Task Scheduler.
           </div>
         )}

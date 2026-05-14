@@ -409,7 +409,7 @@ export default function PremiumSuccess() {
 
                 <button
                   onClick={() => navigate("/download")}
-                  className="w-full h-11 rounded-lg border border-white/[0.06] bg-transparent text-white/30 text-xs tracking-wider uppercase transition-all duration-300 hover:text-white/50 hover:border-white/10 flex items-center justify-center gap-2"
+                  className="w-full h-11 rounded-lg border border-white/[0.06] bg-transparent text-white/30 text-xs tracking-wider uppercase transition-all duration-300 hover:text-white/50 hover:border-[#2A313A]0 flex items-center justify-center gap-2"
                   data-testid="button-goto-download"
                 >
                   <Download className="size-3.5" />
@@ -434,7 +434,7 @@ export default function PremiumSuccess() {
             <p className="text-sm text-white/40 mb-8 max-w-xs mx-auto">{error}</p>
             <button
               onClick={() => navigate("/pricing")}
-              className="h-11 px-8 rounded-lg border border-white/[0.08] text-white/40 text-xs tracking-wider uppercase transition-all duration-300 hover:text-white/60 hover:border-white/15"
+              className="h-11 px-8 rounded-lg border border-white/[0.08] text-white/40 text-xs tracking-wider uppercase transition-all duration-300 hover:text-white/60 hover:border-[#2A313A]5"
               data-testid="button-back-pricing"
             >
               Back to pricing

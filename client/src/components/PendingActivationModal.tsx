@@ -92,7 +92,7 @@ export function PendingActivationModal({ show, onUpgradeDetected, onDismiss }: P
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+        className="fixed inset-0 z-[100] bg-[#14181D] backdrop-blur-sm flex items-center justify-center p-4"
       >
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -125,7 +125,7 @@ export function PendingActivationModal({ show, onUpgradeDetected, onDismiss }: P
                     Attempt {retryCount + 1}
                   </p>
                 </div>
-                <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden">
+                <div className="w-full h-1 bg-[#2A313A] rounded-full overflow-hidden">
                   <motion.div
                     className="h-full bg-gradient-to-r from-purple-500 to-pink-500"
                     initial={{ width: '100%' }}

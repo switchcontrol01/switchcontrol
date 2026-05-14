@@ -73,7 +73,7 @@ export function CleanerActionPanel({
                 <Button
                   variant="ghost"
                   onClick={onScan}
-                  className="h-9 px-3 text-sm rounded-lg text-white/50 hover:text-white hover:bg-white/5"
+                  className="h-9 px-3 text-sm rounded-lg text-white/50 hover:text-white hover:bg-[#21262D]"
                 >
                   <ScanLine className="size-3.5 mr-1.5" />
                   Rescan
@@ -96,7 +96,7 @@ export function CleanerActionPanel({
                 <span className="text-amber-400/80">Admin: {Math.round(adminPct)}%</span>
               </div>
             )}
-            <div className="flex-1 h-1.5 rounded-full bg-white/5 overflow-hidden ml-1">
+            <div className="flex-1 h-1.5 rounded-full bg-[#21262D] overflow-hidden ml-1">
               <div
                 className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-cyan-500 transition-all duration-500"
                 style={{ width: `${hasSelection ? (selectedBytes / Math.max(totalFound, 1)) * 100 : 0}%` }}
@@ -116,7 +116,7 @@ export function CleanerActionPanel({
             className={cn(
               "px-2.5 py-1 rounded-md text-[11px] font-medium border transition-all",
               filterType === f.id
-                ? "bg-white/10 border-white/20 text-white"
+                ? "bg-[#2A313A] border-white/20 text-white"
                 : "bg-transparent border-white/[0.06] text-white/40 hover:text-white/60 hover:bg-white/[0.03]"
             )}
           >

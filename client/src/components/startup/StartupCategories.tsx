@@ -57,7 +57,7 @@ export function StartupCategories({ apps, activeTab, onTabChange, visible }: Pro
             className={cn(
               "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all",
               isActive
-                ? "bg-white/10 border-white/20 text-white"
+                ? "bg-[#2A313A] border-white/20 text-white"
                 : "bg-transparent border-white/[0.06] text-white/40 hover:text-white/60 hover:bg-white/[0.03]"
             )}
           >

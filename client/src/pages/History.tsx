@@ -548,7 +548,7 @@ export default function History() {
                   <motion.div
                     initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.15 }}
-                    className="absolute right-0 top-full mt-1.5 bg-zinc-900 border border-white/10 rounded-xl shadow-2xl z-20 overflow-hidden min-w-44"
+                    className="absolute right-0 top-full mt-1.5 bg-zinc-900 border border-[#2A313A]0 rounded-xl shadow-2xl z-20 overflow-hidden min-w-44"
                   >
                     <button className="w-full flex items-center gap-2 px-3.5 py-2.5 text-xs hover:bg-white/8 transition-colors text-left"
                       onClick={exportAllJSON} data-testid="button-export-all-json">
@@ -627,7 +627,7 @@ export default function History() {
               <Input
                 value={search} onChange={e => setSearch(e.target.value)}
                 placeholder="Search actions, modules, results…"
-                className="pl-9 bg-white/[0.04] border-white/10 h-9 text-sm"
+                className="pl-9 bg-white/[0.04] border-[#2A313A]0 h-9 text-sm"
                 data-testid="input-search-history"
               />
               {search && (
@@ -637,11 +637,11 @@ export default function History() {
                 </button>
               )}
             </div>
-            <Button variant="outline" size="icon" className={cn("h-9 w-9 border-white/10 shrink-0", showFilters && "bg-white/10 border-white/20")}
+            <Button variant="outline" size="icon" className={cn("h-9 w-9 border-[#2A313A]0 shrink-0", showFilters && "bg-[#2A313A] border-white/20")}
               onClick={() => setShowFilters(v => !v)} data-testid="button-toggle-filters">
               <Filter className="size-3.5" />
             </Button>
-            <Button variant="outline" size="icon" className="h-9 w-9 border-white/10 shrink-0"
+            <Button variant="outline" size="icon" className="h-9 w-9 border-[#2A313A]0 shrink-0"
               onClick={() => setSortDesc(v => !v)} title={sortDesc ? "Newest first" : "Oldest first"}
               data-testid="button-sort-toggle">
               <ArrowUpDown className="size-3.5" />

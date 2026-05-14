@@ -149,7 +149,7 @@ function ConfirmDialog({
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.18 }}
-      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-[#14181D] backdrop-blur-sm"
     >
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
@@ -337,7 +337,7 @@ function AppRow({
             </Button>
           )}
           <button
-            className="size-7 rounded-md flex items-center justify-center text-muted-foreground/50 hover:text-muted-foreground hover:bg-white/5 transition-colors"
+            className="size-7 rounded-md flex items-center justify-center text-muted-foreground/50 hover:text-muted-foreground hover:bg-[#21262D] transition-colors"
             onClick={() => setExpanded(e => !e)}
           >
             {expanded ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}
@@ -537,7 +537,7 @@ export function InstalledAppsPanel() {
   if (!isElectronAvail) {
     return (
       <GlassCard className="p-8 text-center space-y-3">
-        <div className="size-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mx-auto">
+        <div className="size-12 rounded-full bg-[#21262D] border border-[#2A313A]0 flex items-center justify-center mx-auto">
           <Monitor className="size-5 text-muted-foreground/50" />
         </div>
         <p className="font-medium text-sm">Installed Apps Scan</p>
@@ -581,7 +581,7 @@ export function InstalledAppsPanel() {
             <Package className="size-4 text-primary" />
             Installed Apps
             {stats.total > 0 && (
-              <Badge variant="outline" className="text-xs text-muted-foreground border-white/10">{stats.total}</Badge>
+              <Badge variant="outline" className="text-xs text-muted-foreground border-[#2A313A]0">{stats.total}</Badge>
             )}
           </h3>
           {scannedAt && (
@@ -638,7 +638,7 @@ export function InstalledAppsPanel() {
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Search name, publisher, version…"
-              className="pl-9 bg-white/[0.04] border-white/10 h-9 text-sm"
+              className="pl-9 bg-white/[0.04] border-[#2A313A]0 h-9 text-sm"
               data-testid="input-search-apps"
             />
             {search && (
@@ -649,7 +649,7 @@ export function InstalledAppsPanel() {
             )}
           </div>
           {/* Sort dropdown (simple buttons) */}
-          <div className="flex gap-0.5 bg-white/[0.04] border border-white/10 rounded-lg p-0.5 shrink-0">
+          <div className="flex gap-0.5 bg-white/[0.04] border border-[#2A313A]0 rounded-lg p-0.5 shrink-0">
             <ArrowUpDown className="size-3.5 text-muted-foreground/50 m-auto ml-2 mr-1" />
             <select
               value={sort}

@@ -157,11 +157,11 @@ export function ModuleShowcase() {
             exit={{ opacity: 0, y: prefersReducedMotion ? -5 : -10, height: 0 }}
             transition={{ duration: prefersReducedMotion ? 0.15 : 0.3 }}
           >
-            <Card className={cn("bg-gradient-to-br border-white/10 overflow-hidden", activeModule.color)}>
+            <Card className={cn("bg-gradient-to-br border-[#2A313A]0 overflow-hidden", activeModule.color)}>
               <CardContent className="p-6">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
-                    <div className="p-3 rounded-xl bg-white/10">
+                    <div className="p-3 rounded-xl bg-[#2A313A]">
                       <activeModule.icon className="size-6 text-white" />
                     </div>
                     <div>
@@ -171,7 +171,7 @@ export function ModuleShowcase() {
                   </div>
                   <button 
                     onClick={() => setSelectedModule(null)}
-                    className="p-2 hover:bg-white/10 rounded-lg transition-colors focus:ring-2 focus:ring-primary/50 focus:outline-none"
+                    className="p-2 hover:bg-[#2A313A] rounded-lg transition-colors focus:ring-2 focus:ring-primary/50 focus:outline-none"
                     aria-label="Close module details"
                     data-testid="button-close-module"
                   >
@@ -189,7 +189,7 @@ export function ModuleShowcase() {
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ delay: i * (prefersReducedMotion ? 0.05 : 0.1) }}
                     >
-                      <Badge variant="outline" className="bg-white/10 border-white/20 text-white/90">
+                      <Badge variant="outline" className="bg-[#2A313A] border-white/20 text-white/90">
                         {item}
                       </Badge>
                     </motion.div>
@@ -197,7 +197,7 @@ export function ModuleShowcase() {
                 </div>
                 
                 <motion.div
-                  className="mt-4 pt-4 border-t border-white/10"
+                  className="mt-4 pt-4 border-t border-[#2A313A]0"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: prefersReducedMotion ? 0.15 : 0.3 }}

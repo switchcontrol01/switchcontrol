@@ -11,7 +11,7 @@ interface Props {
  */
 export function CleanerScanEnergyLine({ active }: Props) {
   return (
-    <div className="relative h-0.5 w-full overflow-hidden rounded-full bg-white/5">
+    <div className="relative h-0.5 w-full overflow-hidden rounded-full bg-[#21262D]">
       {active && (
         <>
           <div

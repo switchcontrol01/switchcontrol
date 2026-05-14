@@ -93,7 +93,7 @@ function GraphHeader({
 }) {
   return (
     <div className="flex items-center gap-2 mb-3">
-      <div className="w-5 h-5 rounded-md bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
+      <div className="w-5 h-5 rounded-md bg-[#21262D] border border-[#2A313A]0 flex items-center justify-center shrink-0">
         <Icon className="size-2.5 text-white/50" />
       </div>
       <div className="flex-1 min-w-0">
@@ -547,7 +547,7 @@ export function DisplaySignalGraph({ delay = 0 }: { delay?: number }) {
             <div className="flex items-center gap-1.5">
               <span className={cn(
                 "size-1.5 rounded-full",
-                profile ? "bg-emerald-400 animate-pulse" : "bg-white/20"
+                profile ? "bg-emerald-400 animate-pulse" : "bg-[#1A1F26]0"
               )} />
               <span className="text-[9px] text-white/30 uppercase tracking-widest">
                 {profile ? "Live" : "Loading"}
@@ -560,7 +560,7 @@ export function DisplaySignalGraph({ delay = 0 }: { delay?: number }) {
             {score !== null ? (
               <ScoreRing score={score} color={scoreColor} />
             ) : (
-              <div className="w-[52px] h-[52px] rounded-full border-2 border-white/10 flex items-center justify-center shrink-0">
+              <div className="w-[52px] h-[52px] rounded-full border-2 border-[#2A313A]0 flex items-center justify-center shrink-0">
                 <span className="text-[9px] text-white/25">—</span>
               </div>
             )}

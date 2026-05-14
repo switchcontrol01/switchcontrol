@@ -53,7 +53,7 @@ export function StartupTimeline({ apps, visible }: Props) {
       </div>
 
       {/* Timeline bar */}
-      <div className="flex h-5 rounded-lg overflow-hidden bg-white/5">
+      <div className="flex h-5 rounded-lg overflow-hidden bg-[#21262D]">
         {segments.map((seg, i) => (
           <motion.div
             key={seg.app.entry.id}
@@ -66,7 +66,7 @@ export function StartupTimeline({ apps, visible }: Props) {
           >
             {/* Tooltip on hover */}
             <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
-              <div className="px-2 py-1 rounded-md bg-[#0c0c14]/90 border border-white/10 text-[10px] text-white whitespace-nowrap shadow-xl">
+              <div className="px-2 py-1 rounded-md bg-[#0c0c14]/90 border border-[#2A313A]0 text-[10px] text-white whitespace-nowrap shadow-xl">
                 {seg.app.entry.name} · {Math.round(seg.app.delayMs)}ms
               </div>
             </div>

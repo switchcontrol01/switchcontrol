@@ -49,7 +49,7 @@ function ProcessRow({ process, hasSecurity }: { process: ProcessTrustItem; hasSe
   return (
     <div className={cn(
       "rounded-xl border overflow-hidden transition-all",
-      process.trustState === "suspicious" ? "border-red-500/25" : process.trustState === "review" ? "border-amber-500/15" : "border-white/8"
+      process.trustState === "suspicious" ? "border-red-500/25" : process.trustState === "review" ? "border-amber-500/15" : "border-[#2A313A]"
     )}>
       <div
         className="flex items-center gap-3 p-3.5 cursor-pointer hover:bg-white/[0.02] transition-colors"
@@ -91,7 +91,7 @@ function ProcessRow({ process, hasSecurity }: { process: ProcessTrustItem; hasSe
             transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
             className="overflow-hidden"
           >
-            <div className="border-t border-white/8 p-3.5 bg-white/[0.02] space-y-3">
+            <div className="border-t border-[#2A313A] p-3.5 bg-white/[0.02] space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Trust State</p>
@@ -194,9 +194,9 @@ export function SecurityProcessesTab({
           {[
             { label: `${suspiciousCount} suspicious`, color: "text-red-400 border-red-500/25 bg-red-500/10", active: suspiciousCount > 0 },
             { label: `${reviewCount} review`,    color: "text-amber-400 border-amber-500/25 bg-amber-500/10", active: reviewCount > 0 },
-            { label: `${processTrust.length} total`, color: "text-muted-foreground border-white/10 bg-white/5", active: false },
+            { label: `${processTrust.length} total`, color: "text-muted-foreground border-[#2A313A]0 bg-[#21262D]", active: false },
           ].map(c => (
-            <Badge key={c.label} variant="outline" className={cn("gap-1 text-xs", c.active ? c.color : "text-muted-foreground border-white/10 bg-white/5")}>
+            <Badge key={c.label} variant="outline" className={cn("gap-1 text-xs", c.active ? c.color : "text-muted-foreground border-[#2A313A]0 bg-[#21262D]")}>
               {c.label}
             </Badge>
           ))}
@@ -214,7 +214,7 @@ export function SecurityProcessesTab({
               {(["all", "suspicious", "review"] as const).map(f => (
                 <button key={f} onClick={() => setFilter(f)}
                   className={cn("px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors capitalize",
-                    filter === f ? "bg-white/10 text-foreground" : "text-muted-foreground hover:text-foreground/70"
+                    filter === f ? "bg-[#2A313A] text-foreground" : "text-muted-foreground hover:text-foreground/70"
                   )}>
                   {f}
                 </button>
@@ -239,7 +239,7 @@ export function SecurityProcessesTab({
           </div>
         )}
 
-        <div className="mt-4 pt-3 border-t border-white/5 text-[11px] text-muted-foreground/50 flex items-center gap-1.5">
+        <div className="mt-4 pt-3 border-t border-[#2A313A] text-[11px] text-muted-foreground/50 flex items-center gap-1.5">
           <Info className="size-3.5 shrink-0" />
           Trust state is based on executable path location. Signature verification requires Windows Admin privileges.
         </div>

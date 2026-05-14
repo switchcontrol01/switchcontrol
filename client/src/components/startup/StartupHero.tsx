@@ -57,7 +57,7 @@ export function StartupHero({ scanStatus, apps, onScan, onOptimize, onReview }: 
           {hasScan && (
             <Badge
               variant="outline"
-              className="border-white/10 text-white/70"
+              className="border-[#2A313A]0 text-white/70"
               style={{ color, borderColor: `${color}40`, backgroundColor: `${color}10` }}
             >
               {label} ({score})
@@ -126,7 +126,7 @@ export function StartupHero({ scanStatus, apps, onScan, onOptimize, onReview }: 
           <Button
             variant="ghost"
             onClick={onReview}
-            className="h-10 px-4 text-sm rounded-xl text-white/70 hover:text-white hover:bg-white/5"
+            className="h-10 px-4 text-sm rounded-xl text-white/70 hover:text-white hover:bg-[#21262D]"
           >
             <ListFilter className="size-4 mr-1.5" />
             Review Apps

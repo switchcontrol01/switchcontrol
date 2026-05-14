@@ -183,7 +183,7 @@ function IssueCard({
                 {cfg.label}
               </span>
               {issue.confidence !== "confirmed" && (
-                <span className="text-[10px] text-white/30 border border-white/10 px-1.5 py-0.5 rounded">
+                <span className="text-[10px] text-white/30 border border-[#2A313A]0 px-1.5 py-0.5 rounded">
                   {CONFIDENCE_LABEL[issue.confidence]}
                 </span>
               )}
@@ -221,7 +221,7 @@ function IssueCard({
               transition={{ duration: 0.22, ease: "easeOut" }}
               className="overflow-hidden"
             >
-              <div className="px-3.5 pb-3.5 space-y-2.5 border-t border-white/5 pt-2.5">
+              <div className="px-3.5 pb-3.5 space-y-2.5 border-t border-[#2A313A] pt-2.5">
                 <div>
                   <p className="text-[10px] font-semibold uppercase tracking-wider text-white/30 mb-0.5">Why it matters</p>
                   <p className="text-xs text-white/60 leading-relaxed">{issue.reason}</p>

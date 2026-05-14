@@ -280,7 +280,7 @@ function SignalRow({ signal }: { signal: SystemSignal }) {
           {LEVEL_LABELS[signal.level]}
         </span>
       </div>
-      <div className="relative h-1 rounded-full bg-white/5 ml-6 overflow-hidden">
+      <div className="relative h-1 rounded-full bg-[#21262D] ml-6 overflow-hidden">
         <motion.div
           className={cn("absolute inset-y-0 left-0 rounded-full", LEVEL_BAR_COLORS[signal.level])}
           initial={{ width: 0 }}
@@ -338,7 +338,7 @@ function CategoryBars({ rankings }: { rankings: TweakRanking[] }) {
               {cat.count > 0 ? `${cat.count} opp.` : "—"}
             </span>
           </div>
-          <div className="relative h-1.5 rounded-full bg-white/5 overflow-hidden">
+          <div className="relative h-1.5 rounded-full bg-[#21262D] overflow-hidden">
             <motion.div
               className="absolute inset-y-0 left-0 rounded-full"
               style={{ background: cat.color, opacity: cat.score > 5 ? 0.8 : 0.2 }}
@@ -363,16 +363,16 @@ function PriorityTweakItem({ rank, ranking }: { rank: number; ranking: TweakRank
     ? "bg-red-500/15 text-red-400 border-red-500/25"
     : ranking.relevance === "medium"
     ? "bg-orange-500/15 text-orange-400 border-orange-500/25"
-    : "bg-white/5 text-white/35 border-white/10";
+    : "bg-[#21262D] text-white/35 border-[#2A313A]0";
 
   return (
     <motion.div
-      className="flex items-start gap-3 p-3 rounded-xl border border-white/5 bg-white/[0.025] hover:bg-white/[0.04] transition-colors"
+      className="flex items-start gap-3 p-3 rounded-xl border border-[#2A313A] bg-white/[0.025] hover:bg-white/[0.04] transition-colors"
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.38, delay: rank * 0.07, ease: [0.22, 1, 0.36, 1] }}
     >
-      <div className="flex items-center justify-center size-6 rounded-full bg-white/5 border border-white/10 shrink-0 mt-0.5">
+      <div className="flex items-center justify-center size-6 rounded-full bg-[#21262D] border border-[#2A313A]0 shrink-0 mt-0.5">
         <span className="text-[10px] font-bold text-white/40">#{rank}</span>
       </div>
       <div className="flex-1 min-w-0 space-y-1.5">
@@ -383,7 +383,7 @@ function PriorityTweakItem({ rank, ranking }: { rank: number; ranking: TweakRank
           </span>
         </div>
         <p className="text-[10px] text-white/40 leading-snug line-clamp-2">{ranking.reason}</p>
-        <div className="relative h-0.5 rounded-full bg-white/5 mt-2">
+        <div className="relative h-0.5 rounded-full bg-[#21262D] mt-2">
           <motion.div
             className="absolute inset-y-0 left-0 rounded-full"
             style={{
@@ -405,7 +405,7 @@ function PriorityTweakItem({ rank, ranking }: { rank: number; ranking: TweakRank
 // ── Skeleton placeholder ───────────────────────────────────────────────────────
 
 function SkeletonPulse({ className }: { className?: string }) {
-  return <div className={cn("rounded animate-pulse bg-white/5", className)} />;
+  return <div className={cn("rounded animate-pulse bg-[#21262D]", className)} />;
 }
 
 // ── Reveal wrapper — staggered blur+slide entrance ────────────────────────────
@@ -488,7 +488,7 @@ export function TweakIntelligenceLayer() {
           )}
           <button
             onClick={() => setCollapsed((c) => !c)}
-            className="p-1.5 rounded-lg text-white/30 hover:text-white/60 hover:bg-white/5 transition-all"
+            className="p-1.5 rounded-lg text-white/30 hover:text-white/60 hover:bg-[#21262D] transition-all"
             data-testid="button-toggle-intelligence"
           >
             {collapsed ? <ChevronDown className="size-4" /> : <ChevronUp className="size-4" />}
@@ -550,7 +550,7 @@ export function TweakIntelligenceLayer() {
                       </div>
 
                       {/* Dimension legend */}
-                      <div className="space-y-1 pt-1 border-t border-white/5">
+                      <div className="space-y-1 pt-1 border-t border-[#2A313A]">
                         {intel.posture.map((d) => (
                           <div key={d.id} className="flex items-center justify-between">
                             <div className="flex items-center gap-1.5">
@@ -612,7 +612,7 @@ export function TweakIntelligenceLayer() {
                   )}
 
                   {/* CPU Sparkline */}
-                  <div className="pt-2 border-t border-white/5 space-y-1">
+                  <div className="pt-2 border-t border-[#2A313A] space-y-1">
                     <div className="flex items-center justify-between">
                       <span className="text-[9px] text-white/25 uppercase tracking-wider">CPU Load (last {cpuHistory.length}s)</span>
                       {cpuHistory.length > 0 && (
@@ -660,7 +660,7 @@ export function TweakIntelligenceLayer() {
 
                   {/* Applied count */}
                   {!intel.loading && intel.overallCoverage > 0 && (
-                    <div className="pt-3 border-t border-white/5 flex items-center gap-1.5">
+                    <div className="pt-3 border-t border-[#2A313A] flex items-center gap-1.5">
                       <RefreshCw className="size-3 text-white/20" />
                       <span className="text-[9px] text-white/25">
                         {intel.rankings.filter((r) => r.alreadyApplied).length} tweaks already applied

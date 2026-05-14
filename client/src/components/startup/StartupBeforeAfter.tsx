@@ -33,7 +33,7 @@ export function StartupBeforeAfter({ beforeMs, afterMs, visible }: Props) {
             <span className="text-muted-foreground/50">Before</span>
             <span className="text-white/70 tabular-nums">{hasData ? fmtBootTime(beforeMs) : "—"}</span>
           </div>
-          <div className="h-3 rounded-full bg-white/5 overflow-hidden">
+          <div className="h-3 rounded-full bg-[#21262D] overflow-hidden">
             <motion.div
               className="h-full rounded-full bg-orange-500/40"
               initial={{ width: 0 }}
@@ -62,7 +62,7 @@ export function StartupBeforeAfter({ beforeMs, afterMs, visible }: Props) {
               {hasData ? fmtBootTime(afterMs) : "—"}
             </span>
           </div>
-          <div className="h-3 rounded-full bg-white/5 overflow-hidden">
+          <div className="h-3 rounded-full bg-[#21262D] overflow-hidden">
             <motion.div
               className="h-full rounded-full bg-emerald-500/50"
               initial={{ width: 0 }}

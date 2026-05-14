@@ -235,15 +235,15 @@ function BiosScoreSummaryCard({ isPremium }: { isPremium: boolean }) {
               </span>
             </div>
             <div className="grid grid-cols-3 gap-2 text-center">
-              <div className="p-1.5 rounded bg-white/5">
+              <div className="p-1.5 rounded bg-[#21262D]">
                 <div className="text-xs font-bold text-primary">{Number.isFinite(scores.latency) ? scores.latency : 0}</div>
                 <div className="text-[9px] text-muted-foreground">Latency</div>
               </div>
-              <div className="p-1.5 rounded bg-white/5">
+              <div className="p-1.5 rounded bg-[#21262D]">
                 <div className="text-xs font-bold text-blue-400">{Number.isFinite(scores.frametime) ? scores.frametime : 0}</div>
                 <div className="text-[9px] text-muted-foreground">Frametime</div>
               </div>
-              <div className="p-1.5 rounded bg-white/5">
+              <div className="p-1.5 rounded bg-[#21262D]">
                 <div className="text-xs font-bold text-emerald-400">{Number.isFinite(scores.stability) ? scores.stability : 0}</div>
                 <div className="text-[9px] text-muted-foreground">Stability</div>
               </div>
@@ -829,7 +829,7 @@ export default function Home() {
                     {sysIntel.profile.network.interfaces.slice(0, 4).map((iface, i) => (
                       <div key={i} className="flex items-center justify-between gap-2 text-xs">
                         <div className="flex items-center gap-1.5 min-w-0">
-                          <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${iface.operstate === "up" ? "bg-emerald-400" : "bg-white/20"}`} />
+                          <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${iface.operstate === "up" ? "bg-emerald-400" : "bg-[#1A1F26]0"}`} />
                           <span className="text-white/60 truncate">{iface.name ?? "Interface"}</span>
                           <span className={`text-[10px] px-1 py-0 rounded border font-medium ${iface.wifi ? "text-blue-400 border-blue-500/20 bg-blue-500/10" : "text-emerald-400 border-emerald-500/20 bg-emerald-500/10"}`}>
                             {iface.wifi ? "Wi-Fi" : "Ethernet"}
@@ -901,7 +901,7 @@ export default function Home() {
                             ? "bg-emerald-400"
                             : evt.type === "spike_detected"
                             ? "bg-red-400"
-                            : "bg-white/30"
+                            : "bg-[#1A1F26]0"
                         }`} />
                         <div className="flex-1 min-w-0">
                           <p className="text-[11px] text-white/70 leading-tight truncate">{evt.label}</p>

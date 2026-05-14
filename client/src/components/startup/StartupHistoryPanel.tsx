@@ -55,7 +55,7 @@ export function StartupHistoryPanel({ history, loading, onBack }: Props) {
       {loading ? (
         <div className="space-y-2">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="h-8 rounded-lg bg-white/5 animate-pulse" />
+            <div key={i} className="h-8 rounded-lg bg-[#21262D] animate-pulse" />
           ))}
         </div>
       ) : history.length === 0 ? (

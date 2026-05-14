@@ -224,7 +224,7 @@ export function MetricSparkCard({
   return (
     <div
       className={cn(
-        "rounded-xl border bg-white/3 border-white/8 p-3 space-y-2 hover:bg-white/5 hover:border-white/12 transition-all duration-200",
+        "rounded-xl border bg-[#1A1F26] border-[#2A313A] p-3 space-y-2 hover:bg-[#21262D] hover:border-[#2A313A]2 transition-all duration-200",
         className
       )}
       style={{ animationDelay: `${delay}ms` }}

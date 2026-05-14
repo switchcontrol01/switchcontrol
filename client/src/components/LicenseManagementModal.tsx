@@ -401,7 +401,7 @@ export function LicenseManagementModal({ open, onOpenChange, isPremium, userId }
           </InfoRow>
           <InfoRow label="Status">
             <div className="flex items-center gap-2">
-              <span className="relative inline-flex rounded-full size-1.5 bg-white/25" />
+              <span className="relative inline-flex rounded-full size-1.5 bg-[#1A1F26]5" />
               <span className="text-[12px] text-white/45 font-medium">No License</span>
             </div>
           </InfoRow>

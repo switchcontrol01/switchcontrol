@@ -21,7 +21,7 @@ export function MotionCard({
   return (
     <motion.div
       className={cn(
-        "rounded-xl border border-white/5 bg-card/50 backdrop-blur-sm",
+        "rounded-xl border border-[#2A313A] bg-card/50 backdrop-blur-sm",
         onClick && "cursor-pointer",
         className
       )}
@@ -60,7 +60,7 @@ export function MotionButton({
       className={cn(
         "relative overflow-hidden rounded-lg px-4 py-2 font-medium transition-colors",
         variant === "default" && "bg-primary text-primary-foreground hover:bg-primary/90",
-        variant === "ghost" && "hover:bg-white/5",
+        variant === "ghost" && "hover:bg-[#21262D]",
         variant === "premium" && "bg-gradient-to-r from-purple-600 to-pink-600 text-white",
         disabled && "opacity-50 cursor-not-allowed",
         className

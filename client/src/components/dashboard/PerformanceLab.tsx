@@ -76,7 +76,7 @@ function qualityColor(q: string) {
 function confidenceColor(c: string) {
   if (c === "high")   return "text-emerald-400 border-emerald-500/25 bg-emerald-500/6";
   if (c === "medium") return "text-amber-400   border-amber-500/25   bg-amber-500/6";
-  return "text-white/40 border-white/10 bg-white/[0.03]";
+  return "text-white/40 border-[#2A313A]0 bg-white/[0.03]";
 }
 
 // ── Animated counter ─────────────────────────────────────────────────────────
@@ -216,8 +216,8 @@ function StabilityScoreCard({ data }: { data: InstabilityData | null }) {
             {data ? (
               <StabilityArc score={data.score} prefersReducedMotion={prefersReducedMotion} />
             ) : (
-              <div className="w-full h-full rounded-full border-2 border-white/5 flex items-center justify-center">
-                <div className="size-8 rounded-full border border-white/10 bg-white/[0.03] animate-pulse" />
+              <div className="w-full h-full rounded-full border-2 border-[#2A313A] flex items-center justify-center">
+                <div className="size-8 rounded-full border border-[#2A313A]0 bg-white/[0.03] animate-pulse" />
               </div>
             )}
             {/* Center score */}
@@ -404,7 +404,7 @@ function InputLatencyCard({ data }: { data: LatencyData | null }) {
             Input Latency
           </h3>
           {data && (
-            <span className="text-[9px] font-medium px-1.5 py-0.5 rounded border border-white/10 text-white/30">
+            <span className="text-[9px] font-medium px-1.5 py-0.5 rounded border border-[#2A313A]0 text-white/30">
               Estimated
             </span>
           )}
@@ -629,7 +629,7 @@ function WhatCausedThatCard({
                 const isTweakVerify = causation.primaryCause.id === "tweak-verification" || causation.primaryCause.id === "tweak-check-single";
                 const borderBg =
                   causation.noIssue   ? "border-emerald-500/20 bg-emerald-500/[0.05]"
-                  : isUncertain       ? "border-white/10 bg-white/[0.03]"
+                  : isUncertain       ? "border-[#2A313A]0 bg-white/[0.03]"
                   : isTweakVerify     ? "border-violet-500/20 bg-violet-500/[0.05]"
                   :                     "border-amber-500/20 bg-amber-500/[0.05]";
                 const labelColor =
@@ -699,7 +699,7 @@ function WhatCausedThatCard({
                   <p className="text-[10px] text-muted-foreground/50 uppercase tracking-wider">Also contributing</p>
                   {causation.allCauses.slice(1, 3).map(c => (
                     <div key={c.id} className="flex items-center gap-2">
-                      <div className="size-1.5 rounded-full bg-white/20 shrink-0" />
+                      <div className="size-1.5 rounded-full bg-[#1A1F26]0 shrink-0" />
                       <span className="text-[10px] text-white/50">{c.label}</span>
                       <span className={cn("text-[9px] ml-auto", confidenceColor(c.confidence))}>{c.confidence}</span>
                     </div>
@@ -712,7 +712,7 @@ function WhatCausedThatCard({
                 size="sm"
                 variant="outline"
                 onClick={analyzeCause}
-                className="w-full text-[11px] h-7 border-white/10 text-white/40 hover:text-white/70"
+                className="w-full text-[11px] h-7 border-[#2A313A]0 text-white/40 hover:text-white/70"
                 data-testid="button-re-analyze"
               >
                 <RefreshCw className="size-3 mr-1.5" />
@@ -1028,7 +1028,7 @@ function SmartRAMCard({
             <div className="space-y-1.5">
               {data.topProcesses.slice(0, 5).map((proc, i) => (
                 <div key={i} className="flex items-center gap-2">
-                  <div className="h-1 rounded-full bg-white/10 flex-1 relative overflow-hidden" title={proc.ramMb !== null ? `${proc.ramMb} MB` : undefined}>
+                  <div className="h-1 rounded-full bg-[#2A313A] flex-1 relative overflow-hidden" title={proc.ramMb !== null ? `${proc.ramMb} MB` : undefined}>
                     <motion.div
                       className="h-full rounded-full bg-gradient-to-r from-teal-500/60 to-cyan-500/40"
                       initial={{ width: 0 }}

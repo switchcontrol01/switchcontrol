@@ -355,7 +355,7 @@ export function ApplyTweaksFlowModal({
             {phase === "complete" && (
               <button
                 onClick={onClose}
-                className="w-7 h-7 rounded-lg flex items-center justify-center text-white/30 hover:text-white hover:bg-white/10 transition-all"
+                className="w-7 h-7 rounded-lg flex items-center justify-center text-white/30 hover:text-white hover:bg-[#2A313A] transition-all"
               >
                 <X className="size-4" />
               </button>
@@ -407,7 +407,7 @@ export function ApplyTweaksFlowModal({
                     )}>
                       {isDone ? <CheckCircle2 className="size-2.5" /> :
                        isCurrent ? <div className="size-1.5 rounded-full bg-primary" /> :
-                       <div className="size-1 rounded-full bg-white/20" />}
+                       <div className="size-1 rounded-full bg-[#1A1F26]0" />}
                     </div>
                     <span className={cn(
                       "text-[11px]",

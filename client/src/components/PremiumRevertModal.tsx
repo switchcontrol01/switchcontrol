@@ -417,7 +417,7 @@ export function PremiumRevertModal({ open, onClose, report, onRetry, reason }: P
               {/* Close button */}
               <button
                 onClick={onClose}
-                className="absolute right-3 top-3 z-20 p-1.5 rounded-lg hover:bg-white/10 transition-colors"
+                className="absolute right-3 top-3 z-20 p-1.5 rounded-lg hover:bg-[#2A313A] transition-colors"
                 data-testid="button-close-revert-modal"
               >
                 <X className="size-4 text-white/40 hover:text-white/70 transition-colors" />

@@ -116,7 +116,7 @@ export function UpdateBanner() {
                           transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
                           className="overflow-hidden"
                         >
-                          <div className="mt-1.5 p-3 rounded-lg backdrop-blur-md bg-white/5 border border-white/10 max-h-40 overflow-y-auto">
+                          <div className="mt-1.5 p-3 rounded-lg backdrop-blur-md bg-[#21262D] border border-[#2A313A]0 max-h-40 overflow-y-auto">
                             <RenderMarkdown markdown={releaseNotes!} />
                           </div>
                         </motion.div>
@@ -138,7 +138,7 @@ export function UpdateBanner() {
                   </span>
                 </div>
                 {/* Progress bar */}
-                <div className="h-1 w-full rounded-full bg-white/10 overflow-hidden">
+                <div className="h-1 w-full rounded-full bg-[#2A313A] overflow-hidden">
                   <motion.div
                     className="h-full rounded-full bg-gradient-to-r from-violet-500 to-cyan-400"
                     animate={{ width: `${downloadPercent}%` }}
@@ -176,7 +176,7 @@ export function UpdateBanner() {
                           transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
                           className="overflow-hidden"
                         >
-                          <div className="mt-1.5 p-3 rounded-lg backdrop-blur-md bg-white/5 border border-white/10 max-h-40 overflow-y-auto">
+                          <div className="mt-1.5 p-3 rounded-lg backdrop-blur-md bg-[#21262D] border border-[#2A313A]0 max-h-40 overflow-y-auto">
                             <RenderMarkdown markdown={releaseNotes!} />
                           </div>
                         </motion.div>
@@ -196,7 +196,7 @@ export function UpdateBanner() {
                 variant="outline"
                 onClick={download}
                 data-testid="button-updater-download"
-                className={`h-7 text-xs border-current gap-1.5 ${style.accent} hover:bg-white/5`}
+                className={`h-7 text-xs border-current gap-1.5 ${style.accent} hover:bg-[#21262D]`}
               >
                 <Download className="size-3" />
                 Download
@@ -217,7 +217,7 @@ export function UpdateBanner() {
               <button
                 onClick={() => setDismissedVersion(availableVersion)}
                 data-testid="button-updater-dismiss"
-                className="size-6 rounded-md flex items-center justify-center text-white/30 hover:text-white/60 hover:bg-white/5 transition-colors"
+                className="size-6 rounded-md flex items-center justify-center text-white/30 hover:text-white/60 hover:bg-[#21262D] transition-colors"
                 aria-label="Dismiss update banner"
               >
                 <X className="size-3.5" />

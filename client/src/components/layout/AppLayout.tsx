@@ -166,8 +166,8 @@ function BackendStartingBanner() {
   }
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 flex items-center gap-2 px-3 py-1.5 rounded-lg bg-black/60 border border-white/[0.07] text-[11px] text-white/35 backdrop-blur-md shadow-lg">
-      <Loader2 className="size-3 animate-spin shrink-0 text-white/25" />
+    <div className="fixed bottom-4 right-4 z-50 flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#1A1F26] border border-white/[0.07] text-[11px] text-[#6B7380] backdrop-blur-md shadow-lg">
+      <Loader2 className="size-3 animate-spin shrink-0 text-[#6B7380]" />
       <span>Starting backend…</span>
     </div>
   );

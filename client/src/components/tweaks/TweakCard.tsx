@@ -304,8 +304,8 @@ export function TweakCard({ tweak, isEnabled, onToggle, isVerifying = false, isH
             isEnabled && !isUnsupported
               ? "border-primary/30 bg-primary/5 shadow-[0_0_20px_-5px_hsl(var(--primary)/0.15)]"
               : isVerifying && !isUnsupported && !failureInfo
-              ? "border-white/[0.09] animate-pulse"
-              : "hover:border-white/[0.13] hover:bg-white/[0.05]",
+              ? "border-[#2A313A]"
+              : "hover:border-[#2A313A] hover:bg-[#21262D]",
             isUnsupported && "opacity-60 cursor-not-allowed",
             failureInfo && "border-red-500/20"
           )}
@@ -342,7 +342,7 @@ export function TweakCard({ tweak, isEnabled, onToggle, isVerifying = false, isH
                   onClick={() => setTrustOpen(!trustOpen)}
                   data-testid={`button-trust-${tweak.id}`}
                   className={cn(
-                    "size-8 hover:bg-white/10 transition-all duration-300 rounded-full",
+                    "size-8 hover:bg-[#2A313A] transition-all duration-300 rounded-full",
                     trustOpen ? "text-primary opacity-100" : "text-muted-foreground opacity-0 group-hover:opacity-100"
                   )}
                   title="Show impact details"
@@ -354,7 +354,7 @@ export function TweakCard({ tweak, isEnabled, onToggle, isVerifying = false, isH
                 <Button
                   variant="ghost" size="icon" onClick={openModal}
                   data-testid={`button-info-${tweak.id}`}
-                  className="size-8 text-muted-foreground hover:text-foreground hover:bg-white/10 opacity-0 group-hover:opacity-100 transition-all duration-300 rounded-full"
+                  className="size-8 text-muted-foreground hover:text-foreground hover:bg-[#2A313A] opacity-0 group-hover:opacity-100 transition-all duration-300 rounded-full"
                 >
                   <Info className="size-4" />
                 </Button>
@@ -431,7 +431,7 @@ export function TweakCard({ tweak, isEnabled, onToggle, isVerifying = false, isH
         {open && (
           <>
             <motion.div
-              className="fixed inset-0 z-40 bg-black/35 pointer-events-auto"
+              className="fixed inset-0 z-40 bg-[#14181D]/80 pointer-events-auto"
               onClick={closeModal} data-testid="modal-backdrop"
               variants={modalBackdrop} initial="initial" animate="animate" exit="exit"
             />
@@ -444,7 +444,7 @@ export function TweakCard({ tweak, isEnabled, onToggle, isVerifying = false, isH
               <GlassModalSurface className="p-6">
                 <motion.button
                   type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setOpen(false); }}
-                  className="absolute right-4 top-4 z-[60] rounded-sm p-2 opacity-70 hover:opacity-100 hover:bg-white/10 transition-opacity"
+                  className="absolute right-4 top-4 z-[60] rounded-sm p-2 opacity-70 hover:opacity-100 hover:bg-[#2A313A] transition-opacity"
                   data-testid="button-close-modal"
                   whileHover={{ scale: prefersReducedMotion ? 1.05 : 1.1 }}
                   whileTap={{ scale: prefersReducedMotion ? 0.95 : 0.9 }}

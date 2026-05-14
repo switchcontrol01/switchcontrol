@@ -59,7 +59,7 @@ function sessionAge(ms: number): string {
 const CONFIDENCE_COLORS: Record<string, string> = {
   high:   "text-emerald-400 border-emerald-500/25 bg-emerald-500/6",
   medium: "text-amber-400   border-amber-500/25   bg-amber-500/6",
-  low:    "text-white/40    border-white/10        bg-white/[0.03]",
+  low:    "text-white/40    border-[#2A313A]0        bg-white/[0.03]",
 };
 
 const EVENT_ICONS: Record<string, ReactNode> = {
