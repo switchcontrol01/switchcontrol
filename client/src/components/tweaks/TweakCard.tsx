@@ -319,7 +319,7 @@ export function TweakCard({ tweak, isEnabled, onToggle, isVerifying = false, isH
             <div className="flex items-start gap-4 flex-1 min-w-0">
               <div className="flex-1 min-w-0 space-y-2">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className={cn("font-medium text-sm transition-colors", isEnabled && !isUnsupported ? "text-primary-foreground" : "text-foreground group-hover:text-[#E6EAF0]")}>
+                  <h3 className={cn("font-medium text-sm transition-colors", isEnabled && !isUnsupported ? "text-[#E6EAF0]" : "text-foreground group-hover:text-[#E6EAF0]")}>
                     {tweak.title}
                   </h3>
                   <div className="flex items-center gap-1.5 flex-wrap opacity-80 group-hover:opacity-100 transition-opacity">

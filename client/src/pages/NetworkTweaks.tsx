@@ -341,7 +341,7 @@ function NetworkTweakCard({ tweak, tweakState, onToggle, onInfoClick, isVerifyin
               isUnavailable
                 ? "text-muted-foreground"
                 : isEnabled
-                ? "text-primary-foreground"
+                ? "text-[#E6EAF0]"
                 : "text-foreground group-hover:text-[#E6EAF0]"
             )}>
               {tweak.name}

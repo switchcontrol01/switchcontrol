@@ -297,7 +297,7 @@ function BiosSettingCard({ setting, detection, index }: { setting: BiosSetting; 
                         <p className="text-sm text-[#E6EAF0]">{setting.whatItIs}</p>
                         <div className="flex flex-wrap gap-1.5">
                           {setting.affects.map((affect) => (
-                            <Badge key={affect} className="text-[10px] bg-[#00D4FF] text-[#33E0FF] border border-[#00D4FF] hover:bg-[#00D4FF]">{affect}</Badge>
+                            <Badge key={affect} className="text-[10px] bg-primary/15 text-primary border border-primary/30 hover:bg-primary/25">{affect}</Badge>
                           ))}
                         </div>
                       </div>
@@ -852,12 +852,12 @@ export default function BiosAdvisor() {
 
           return (
             <Item>
-              <GlassCard className="p-4 bg-[#00D4FF] border-[#00D4FF]">
+              <GlassCard className="p-4 border-primary/20">
                 <div className="flex items-center gap-2 mb-3">
-                  <div className="w-5 h-5 rounded-md bg-[#00D4FF] border border-[#00D4FF] flex items-center justify-center shrink-0">
-                    <Cpu className="size-2.5 text-[#00D4FF]" />
+                  <div className="w-5 h-5 rounded-md bg-primary/20 border border-primary/30 flex items-center justify-center shrink-0">
+                    <Cpu className="size-2.5 text-primary" />
                   </div>
-                  <span className="text-xs font-semibold text-[#33E0FF] uppercase tracking-wider">Hardware Profile</span>
+                  <span className="text-xs font-semibold text-primary uppercase tracking-wider">Hardware Profile</span>
                   <span className="ml-auto text-[10px] text-[#6B7380] font-mono">Collected {new Date(si.collectedAt).toLocaleTimeString()}</span>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -959,10 +959,10 @@ export default function BiosAdvisor() {
               style={{ background: "radial-gradient(ellipse 70% 50% at 50% -20%, rgba(124,58,237,0.08), transparent)" }}
             />
             <div className="flex items-center gap-2 mb-5">
-              <div className="w-5 h-5 rounded-md bg-[#00D4FF] border border-[#00D4FF] flex items-center justify-center shrink-0">
-                <Target className="size-2.5 text-[#00D4FF]" />
+              <div className="w-5 h-5 rounded-md bg-primary/20 border border-primary/30 flex items-center justify-center shrink-0">
+                <Target className="size-2.5 text-primary" />
               </div>
-              <span className="text-xs font-semibold text-[#33E0FF] uppercase tracking-wider">Firmware Analytics</span>
+              <span className="text-xs font-semibold text-primary uppercase tracking-wider">Firmware Analytics</span>
               {!hasScanned && (
                 <span className="text-[9px] text-[#6B7380]/50 italic ml-1">· Run analysis to populate</span>
               )}
@@ -995,10 +995,10 @@ export default function BiosAdvisor() {
 
         {photoDetections.length > 0 && (
           <Item>
-            <GlassCard className="p-3 bg-[#00D4FF] border-[#00D4FF]">
+            <GlassCard className="p-3 border-primary/20">
               <div className="flex items-center gap-2 text-xs">
-                <Camera className="w-3.5 h-3.5 text-[#00D4FF]" />
-                <span className="text-[#00D4FF] font-medium">{photoDetections.length} settings derived from BIOS photo analysis</span>
+                <Camera className="w-3.5 h-3.5 text-primary" />
+                <span className="text-primary font-medium">{photoDetections.length} settings derived from BIOS photo analysis</span>
                 <span className="text-[9px] text-muted-foreground ml-auto italic">AI-interpreted — verify against your actual BIOS</span>
               </div>
             </GlassCard>
