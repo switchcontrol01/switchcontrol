@@ -50,7 +50,7 @@ export function FileGravityCore({ items, trigger, onComplete, className }: Props
   if (phase === "idle" && !trigger) return null;
 
   return (
-    <div className={cn("relative w-full h-48 overflow-hidden rounded-xl", className)}>
+    <div className={cn("relative w-full overflow-hidden rounded-xl", className)}>
       <AnimatePresence>
         {phase !== "clear" && phase !== "idle" && (
           <>

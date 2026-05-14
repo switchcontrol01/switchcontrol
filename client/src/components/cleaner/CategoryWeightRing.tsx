@@ -20,7 +20,8 @@ interface Props {
   onSelect?: (id: string) => void;
 }
 
-const R = 54;
+const SIZE = 96;
+const R = 42;
 const CIRCUMFERENCE = 2 * Math.PI * R;
 
 export function CategoryWeightRing({
@@ -44,7 +45,7 @@ export function CategoryWeightRing({
   return (
     <div
       className={cn(
-        "grid grid-cols-2 gap-4 sm:grid-cols-4",
+        "grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-2 xl:grid-cols-4",
         className
       )}
     >
@@ -90,9 +91,9 @@ export function CategoryWeightRing({
 
             {/* SVG Ring */}
             <svg
-              width="120"
-              height="120"
-              viewBox="0 0 120 120"
+              width={SIZE}
+              height={SIZE}
+              viewBox={`0 0 ${SIZE} ${SIZE}`}
               className="mb-2"
             >
               <defs>
@@ -107,27 +108,27 @@ export function CategoryWeightRing({
 
               {/* Track */}
               <circle
-                cx="60"
-                cy="60"
+                cx={SIZE / 2}
+                cy={SIZE / 2}
                 r={R}
                 fill="none"
                 stroke="rgba(255,255,255,0.06)"
-                strokeWidth="6"
+                strokeWidth="5"
               />
 
               {/* Animated stroke */}
               <motion.circle
-                cx="60"
-                cy="60"
+                cx={SIZE / 2}
+                cy={SIZE / 2}
                 r={R}
                 fill="none"
                 stroke={r.color}
-                strokeWidth="6"
+                strokeWidth="5"
                 strokeLinecap="round"
                 strokeDasharray={`${r.dash} ${r.gap}`}
                 strokeDashoffset={0}
                 filter={isSelected ? `url(#glow-${r.id})` : undefined}
-                transform="rotate(-90 60 60)"
+                transform={`rotate(-90 ${SIZE / 2} ${SIZE / 2})`}
                 initial={{ strokeDasharray: `0 ${CIRCUMFERENCE}` }}
                 animate={{
                   strokeDasharray:
