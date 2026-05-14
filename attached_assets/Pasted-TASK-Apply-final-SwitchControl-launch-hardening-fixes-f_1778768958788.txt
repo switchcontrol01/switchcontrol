@@ -1,0 +1,149 @@
+TASK:
+Apply final SwitchControl launch hardening fixes from the latest Stripe, auth, admin, WebSocket, and webhook audit.
+
+PROBLEM:
+The payment/auth system is mostly solid, but there are remaining launch-blocking risks:
+
+1. Stripe confirm can still be dangerous if not authenticated.
+2. Premium unlock animation may not replay after a webhook premium grant.
+3. Refunds/chargebacks do not revoke premium.
+4. WebSocket telemetry may expose live system data without auth.
+5. Admin bootstrap key path may remain usable after admins exist.
+6. retryRefreshEntitlements has no singleton guard.
+7. Deep link inline JS should use JSON.stringify.
+8. Production secrets need hard guards.
+
+GOAL:
+Harden the app before public launch without breaking the existing website payment flow, Electron deep link login, premium tour, or admin tools.
+
+IMPLEMENTATION:
+
+1. Stripe webhook premium grant flags
+   Find handleCheckoutCompleted or the DB update that sets premium after checkout.session.completed.
+
+Update the DB set block so Stripe webhook grants reset animation flags:
+
+hasSeenPremiumUnlock: false
+hasSeenPremiumTour: false
+
+Keep:
+isPremium: true
+plan: "premium"
+premiumActivatedAt: now
+updatedAt: now
+
+This ensures a user who buys again sees the premium unlock animation again.
+
+2. Add refund and chargeback handling
+   In the Stripe webhook switch statement, add handlers for refund-related events.
+
+Handle at minimum:
+charge.refunded
+charge.dispute.created
+
+For now:
+
+- Resolve the user from Stripe customer ID, payment intent, or metadata if available.
+- Set plan back to "free".
+- Set isPremium false.
+- Clear premiumActivatedAt only if existing code already treats it as nullable.
+- Add clear logs:
+  [Stripe] Premium revoked due to refund
+  [Stripe] Premium revoked due to dispute
+
+Do not revoke if the user cannot be safely resolved. Log and skip.
+
+3. /api/stripe/confirm auth
+   Make sure /api/stripe/confirm requires an authenticated user before doing anything.
+
+Rules:
+
+- No auth → 401
+- Auth user does not match checkout session user → 403
+- Wrong price ID → no premium grant
+- Invalid session → no premium grant
+- Correct authenticated owner + valid paid session → ok
+
+Do not trust only session_id.
+
+4. Rate limit /api/stripe/confirm
+   Add an in-memory rate limiter keyed by IP + session_id.
+
+Limit:
+5 attempts per 60 seconds.
+
+Return 429 before calling Stripe if exceeded.
+
+5. WebSocket telemetry auth
+   Find /ws/telemetry or telemetry WebSocket upgrade logic.
+
+Require valid auth before sending telemetry.
+
+Do not send CPU, RAM, GPU, disk, or network telemetry to unauthenticated clients.
+
+If unauthorized:
+
+- close socket
+- log safely
+- do not leak telemetry payloads
+
+6. Admin bootstrap lockout
+   Find admin bootstrap route.
+
+If ADMIN_SETUP_KEY is used, check admin count first.
+
+If admin count > 0:
+return 403 with:
+"Bootstrap disabled because an admin already exists."
+
+Only allow bootstrap when zero admins exist.
+
+7. retryRefreshEntitlements singleton guard
+   In auth-store.ts, wrap retryRefreshEntitlements with a module-level in-flight Promise.
+
+Behavior:
+
+- If retry already running, return the existing Promise.
+- When it finishes, clear the guard.
+- Do not start parallel /api/me retry loops.
+
+8. Reduce App.tsx payment retry calls
+   Find any retryRefreshEntitlements calls using attempts: 30.
+
+Reduce to:
+attempts: 8
+delayMs: 500
+initialDelayMs: 300
+
+Trust PendingActivationModal if webhook is slow.
+
+9. Deep link inline JS safety
+   Find /auth/desktop-success or any page that injects switchcontrol:// into inline JS.
+
+Replace raw interpolation:
+
+var deepLink = "${deepLink}";
+
+with:
+
+var deepLink = ${JSON.stringify(deepLink)};
+
+Do not break the existing auto-open behavior.
+
+10. Validate x-electron-uid
+    Where x-electron-uid is accepted, validate format before trusting it.
+
+Use a strict regex like:
+^[a-zA-Z0-9_-]{8,64}$
+
+Reject invalid values.
+
+11. Production secret guards
+    In production:
+
+- SESSION_SECRET must exist.
+- JWT_SECRET must exist.
+- JWT_SECRET must not fall back to SESSION_SECRET.
+- STRIPE_WEBHOOK_SECRET must exist.
+
+Fail fast on boot if missing.

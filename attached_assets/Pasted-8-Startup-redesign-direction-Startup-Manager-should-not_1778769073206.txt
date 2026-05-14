@@ -1,0 +1,99 @@
+8. Startup redesign direction
+Startup Manager should not be a massive broken-entry list.
+
+Only show real installed startup entries:
+- registry Run keys
+- startup folders
+- scheduled tasks with valid executables
+- installed app linked entries
+
+Do not show random project files, node files, downloads, source files, or broken dev paths as startup apps.
+
+Visuals:
+- Startup Weight Meter
+- boot impact bars
+- trusted vs broken grouped sections
+- missing file section collapsed by default
+- “fix broken entries” action
+
+9. Animation rules
+Use Apple-style animation:
+- slow
+- delicate
+- smooth
+- confident
+- not bouncy
+- not hyperactive
+
+Timing:
+- hover: 120-180ms
+- click: 90-140ms
+- page entry: 320-520ms
+- card stagger: 45-75ms
+- success pulse: 500-800ms
+
+Use:
+- transform
+- opacity
+- clip-path only if cheap
+
+Avoid:
+- constant blur changes
+- infinite heavy animations
+- animating width/height where possible
+- canvas unless paused offscreen
+- layout thrashing
+
+10. Micro-interactions
+Every action needs feedback:
+- hover lift
+- click compress
+- toggle slide
+- selected glow
+- verified check flash
+- failed action shake
+- success shimmer
+- risk warning pulse
+
+But keep it subtle. No toy UI.
+
+11. Typography
+Make text hierarchy clearer:
+- page titles bigger
+- section labels smaller and uppercase
+- descriptions shorter
+- warnings direct
+- technical paths hidden under advanced details
+
+No massive paragraphs inside cards.
+
+12. Remove AI-template traits
+Avoid:
+- too many gradient blobs
+- same rounded rectangle everywhere
+- vague “AI Advisor” style copy
+- excessive badges
+- “premium glass” on every element
+- identical card sizes
+- fake-looking animations
+
+Add:
+- practical layout
+- real data visualization
+- compact controls
+- strong spacing contrast
+- specific technical wording
+
+13. Performance rules
+No CPU spike garbage.
+
+Requirements:
+- no new polling loops
+- no repeated system scans on render
+- no PowerShell from UI animation
+- no heavy animation while app hidden
+- no constant Recharts remounting
+- pause decorative animation on document.hidden
+- memoize chart data
+- virtualize long lists if over 50 rows
+- use cached telemetry only

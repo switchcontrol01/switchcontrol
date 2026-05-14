@@ -1,0 +1,143 @@
+TASK
+Rebuild the SwitchControl visual identity so the app no longer looks like an AI-generated template.
+
+PROBLEM
+The app has decent features, but the UI feels generic:
+- too many identical glass cards
+- too much purple/blue glow
+- weak hierarchy
+- too many pills and badges
+- pages feel like grids of random blocks
+- advanced users think it looks fake or AI-made
+
+GOAL
+Make SwitchControl feel like a real premium Windows performance tool:
+- sharper visual identity
+- less generic glassmorphism
+- stronger hierarchy
+- fewer repeated card layouts
+- better spacing
+- better interaction feedback
+- less glow spam
+- more confidence and utility
+- still dark, modern, and gaming-focused
+
+IMPLEMENTATION
+
+1. Create a real design system
+Define 3 surface types only:
+
+A. Primary Surface
+Used for page hero, main dashboard module, scan result, important focus area.
+- larger
+- stronger border
+- subtle glow only if active
+- unique layout
+
+B. Secondary Surface
+Used for normal cards.
+- low blur
+- subtle border
+- no constant glow
+- clean hover only
+
+C. Utility Surface
+Used for small stats, badges, compact controls.
+- flatter
+- low contrast
+- minimal effects
+
+Stop using the same glass card style everywhere.
+
+2. Reduce glow spam
+Glow should only appear on:
+- active route
+- selected item
+- scan in progress
+- successful action
+- dangerous warning
+- hover focus
+
+Do not glow every card by default.
+
+3. Fix color identity
+Use this hierarchy:
+
+Base:
+- matte dark charcoal
+- deep navy black
+- subtle noise texture optional
+
+Primary accent:
+- electric cyan or violet, pick one as dominant
+
+Secondary accent:
+- use only for state changes, not everywhere
+
+Danger:
+- red/orange only for real risk
+
+Success:
+- green only after verified success
+
+Do not make everything purple and blue at the same time.
+
+4. Page structure rules
+Every page must have:
+- one clear hero/focus area
+- one main action
+- one visual summary
+- one detail section
+
+No page should open as a wall of cards or switches.
+
+5. Dashboard redesign direction
+Dashboard should feel like a command center, not a card dump.
+
+Structure:
+- top hero: System Pressure / Optimization State
+- left: real-time system state
+- center: live graph
+- right: actions / detected issues
+- bottom: recent actions and quick modules
+
+Add:
+- System Pressure Meter
+- before/after impact bars where useful
+- live graph warm-in animation
+- compact hardware identity row
+
+6. Tweaks redesign direction
+Tweaks should not be a giant switch list.
+
+Structure:
+- top: safety score + selected profile
+- quick buttons:
+  - Safe Only
+  - Competitive
+  - Undo Recent
+  - Review Risky
+- grouped accordions:
+  - Safe System
+  - Network
+  - GPU
+  - Services
+  - Advanced Risk
+- each tweak row must explain:
+  - what it changes
+  - risk
+  - verified state
+  - rollback available
+
+Advanced users must not see random vague toggles.
+
+7. Cleaner redesign direction
+Cleaner should become a visual cleanup command center.
+
+Use:
+- Category Weight Rings
+- System Pressure Meter
+- File Gravity cleanup animation
+- Before vs After cleanup bar
+- compact accordions instead of long lists
+- sticky action panel

@@ -69,12 +69,17 @@ function CompletionMoment({ onDone, isPremium }: { onDone: () => void; isPremium
   // references from inline arrow functions) never restart the timers.
   const onDoneRef = useRef(onDone);
   onDoneRef.current = onDone;
+  const cancelledRef = useRef(false);
 
   useEffect(() => {
-    const t1 = setTimeout(() => setPhase('hold'), TOUR_COMPLETION_TIMING.holdMs);
-    const t2 = setTimeout(() => setPhase('exit'), TOUR_COMPLETION_TIMING.exitMs);
-    const t3 = setTimeout(() => onDoneRef.current(), TOUR_COMPLETION_TIMING.doneMs);
-    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
+    cancelledRef.current = false;
+    const t1 = setTimeout(() => { if (!cancelledRef.current) setPhase('hold'); }, TOUR_COMPLETION_TIMING.holdMs);
+    const t2 = setTimeout(() => { if (!cancelledRef.current) setPhase('exit'); }, TOUR_COMPLETION_TIMING.exitMs);
+    const t3 = setTimeout(() => { if (!cancelledRef.current) onDoneRef.current(); }, TOUR_COMPLETION_TIMING.doneMs);
+    return () => {
+      cancelledRef.current = true;
+      clearTimeout(t1); clearTimeout(t2); clearTimeout(t3);
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // intentionally empty — timers must run exactly once on mount
 
@@ -446,17 +451,18 @@ export function TourShell({
     // Triple-rAF: mount → style → layout → commit → reveal
     // Three frames guarantee the browser has fully painted both elements
     // and calculated their final geometry before we make them visible.
+    rafRefs.current = [];
     const r1 = requestAnimationFrame(() => {
+      rafRefs.current.push(r1);
       const r2 = requestAnimationFrame(() => {
+        rafRefs.current.push(r2);
         const r3 = requestAnimationFrame(() => {
+          rafRefs.current.push(r3);
           setRevealed(true);
           console.log('[TourTransition] revealed — first visible frame');
         });
-        rafRefs.current = [r3];
       });
-      rafRefs.current = [r2];
     });
-    rafRefs.current = [r1];
   }, [show]);
 
   useEffect(() => {
@@ -474,7 +480,7 @@ export function TourShell({
       // overlay doesn't linger and block scroll/clicks after the tour exits.
       setCompleting(false);
     }
-  }, [show]);
+  }, [show, applyStep, setTourActive, setTourHighlight, setTourNavigating]);
 
   const step = steps[stepIndex];
   const total = steps.length;
@@ -482,9 +488,9 @@ export function TourShell({
 
   const handleNext = useCallback(() => {
     if (isLast) {
-      // Navigate to the canonical root so the dashboard settles on one
-      // consistent Route element and stops oscillating between "/" and "/dashboard".
-      navigate('/');
+      // Navigate to the canonical dashboard route so the dashboard settles
+      // on one consistent Route element.
+      navigate('/dashboard');
       setTourHighlight(null);
       setCompleting(true);
     } else {

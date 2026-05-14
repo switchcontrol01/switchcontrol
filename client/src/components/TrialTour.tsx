@@ -24,13 +24,19 @@ function GlassPanel({ children, className = "", cyan = false }: { children: Reac
 
 function LiveCountdown({ trialEndsAt }: { trialEndsAt: string | null }) {
   const [text, setText] = useState(() => formatTrialCountdown(trialEndsAt));
-  const [rem, setRem] = useState(() => getTrialTimeRemaining(trialEndsAt));
 
   useEffect(() => {
     if (!trialEndsAt) return;
-    const id = setInterval(() => {
+    const initialRem = getTrialTimeRemaining(trialEndsAt);
+    if (initialRem.expired) {
       setText(formatTrialCountdown(trialEndsAt));
-      setRem(getTrialTimeRemaining(trialEndsAt));
+      return;
+    }
+    const id = setInterval(() => {
+      if (document.hidden) return;
+      const r = getTrialTimeRemaining(trialEndsAt);
+      setText(formatTrialCountdown(trialEndsAt));
+      if (r.expired) clearInterval(id);
     }, 1000);
     return () => clearInterval(id);
   }, [trialEndsAt]);
@@ -116,7 +122,10 @@ function AiAdvisorPreview() {
   ];
 
   useEffect(() => {
-    const id = setInterval(() => setStep(s => (s + 1) % steps.length), 3200);
+    const id = setInterval(() => {
+      if (document.hidden) return;
+      setStep(s => (s + 1) % steps.length);
+    }, 3200);
     return () => clearInterval(id);
   }, []);
 
@@ -200,6 +209,9 @@ function BiosPreview() {
         <span className="text-[10px] font-bold uppercase tracking-[0.16em]" style={{ color: "rgba(6,182,212,0.75)" }}>
           BIOS Advisor
         </span>
+        <span className="ml-auto text-[8px] px-1.5 py-0.5 rounded" style={{ color: "rgba(255,255,255,0.3)", background: "rgba(255,255,255,0.06)" }}>
+          Example preview
+        </span>
       </div>
 
       <div className="space-y-1.5">
@@ -234,15 +246,24 @@ function BiosPreview() {
 }
 
 function NetworkPreview() {
-  const metrics = [
-    { label: "Ping", before: 28, after: 12, unit: "ms", color: "rgba(6,182,212,0.9)", lower: true },
-    { label: "Jitter", before: 8, after: 2, unit: "ms", color: "rgba(139,92,246,0.9)", lower: true },
-    { label: "FPS", before: 82, after: 127, unit: "", color: "rgba(52,211,153,0.9)", lower: false },
+  type Metric = {
+    label: string;
+    before: string;
+    after: string;
+    color: string;
+  };
+  const metrics: Metric[] = [
+    { label: "Ping", before: "28ms", after: "12ms", color: "rgba(6,182,212,0.9)" },
+    { label: "Jitter", before: "8ms", after: "2ms", color: "rgba(139,92,246,0.9)" },
+    { label: "Packet Stability", before: "94%", after: "99.8%", color: "rgba(52,211,153,0.9)" },
   ];
   const [phase, setPhase] = useState(0);
 
   useEffect(() => {
-    const id = setInterval(() => setPhase(p => (p + 1) % 2), 2000);
+    const id = setInterval(() => {
+      if (document.hidden) return;
+      setPhase(p => (p + 1) % 2);
+    }, 2000);
     return () => clearInterval(id);
   }, []);
 
@@ -275,7 +296,7 @@ function NetworkPreview() {
                 animate={{ color: improved ? m.color : "rgba(255,255,255,0.55)" }}
                 transition={{ duration: 0.4 }}
               >
-                {val}{m.unit}
+                {val}
               </motion.div>
               {improved && (
                 <motion.div
@@ -285,7 +306,7 @@ function NetworkPreview() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3 }}
                 >
-                  {m.lower ? `↓${m.before - m.after}${m.unit}` : `↑${m.after - m.before}`}
+                  Improved
                 </motion.div>
               )}
             </div>

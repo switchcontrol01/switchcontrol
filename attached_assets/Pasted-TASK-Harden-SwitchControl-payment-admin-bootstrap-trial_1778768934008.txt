@@ -1,0 +1,139 @@
+TASK:
+Harden SwitchControl payment, admin bootstrap, trial, WebSocket, and auth security before public launch.
+
+PROBLEM:
+Recent audits found several high-risk backend issues:
+
+1. /api/stripe/confirm may grant premium without requiring authentication.
+2. /api/stripe/confirm has no rate limiting.
+3. Admin bootstrap with ADMIN_SETUP_KEY may still work after admins already exist.
+4. WebSocket telemetry may expose live system data without auth.
+5. retryRefreshEntitlements can stack multiple /api/me calls.
+6. Expired JWT may be cleared on temporary network failure.
+7. Deep links are passed into renderer without validation.
+8. /api/user/premium-status may expose unnecessary unauthenticated premium state.
+9. hasUsedTrial is tracked but not clearly enforced or documented.
+
+GOAL:
+Make the system safe for public launch without breaking the current payment flow, Electron login flow, premium tour, or admin tools.
+
+IMPLEMENTATION:
+
+1. Harden /api/stripe/confirm
+
+- Locate the /api/stripe/confirm route.
+- Require an authenticated user before doing anything.
+- Do not allow this route to grant premium unless the authenticated user owns the Stripe checkout session.
+- If no logged-in user or JWT user exists, return 401.
+- If checkoutUserId does not match the authenticated user id, return 403.
+- Keep Stripe session retrieval and price validation.
+- Keep webhook as the true source of premium activation.
+- If confirm is used as fallback, it must still require auth and ownership.
+
+Required behavior:
+
+- Unauthenticated request → 401
+- Authenticated wrong user → 403
+- Authenticated correct user with valid paid session → ok
+- Invalid session_id → safe error, no premium grant
+- Wrong price ID → safe error, no premium grant
+
+2. Add rate limiting to /api/stripe/confirm
+
+- Add a small in-memory limiter keyed by session_id + IP.
+- Limit to 5 attempts per 60 seconds.
+- Return 429 after limit.
+- Do not call Stripe if rate limited.
+- Clean expired limiter entries.
+
+3. Protect or remove /api/user/premium-status
+
+- Prefer replacing usage with /api/me.
+- If the route must stay, require auth.
+- Do not expose premium status for unauthenticated users except a generic authenticated:false response.
+- Do not allow this route to be used as an oracle for premium checks.
+
+4. Harden admin bootstrap
+
+- Locate admin bootstrap route, likely /api/admin/bootstrap.
+- If ADMIN_SETUP_KEY is used, first check if any admin already exists.
+- If admin count > 0, return 403 and do not grant admin.
+- First-admin bootstrap can remain, but only when zero admins exist.
+- Keep the advisory lock / transaction protection.
+- Add logs:
+  [AdminBootstrap] blocked key path because admin already exists
+  [AdminBootstrap] first admin granted
+  [AdminBootstrap] rejected invalid setup attempt
+
+5. WebSocket telemetry auth
+
+- Find the telemetry WebSocket upgrade/start logic.
+- Require a valid authenticated Electron/local session or valid token before sending live telemetry.
+- Reject unauthenticated WebSocket clients.
+- Ensure it only binds to safe local context in Electron.
+- Do not expose CPU, RAM, GPU, disk, network telemetry to random clients.
+- Add safe close code/reason for unauthorized clients.
+
+6. Add singleton guard to retryRefreshEntitlements
+
+- Locate retryRefreshEntitlements.
+- Add module-level in-flight Promise guard.
+- If a retry is already running, return the existing Promise.
+- Do not allow multiple components to start parallel /api/me retry loops.
+- Keep behavior compatible with current callers.
+
+Example structure:
+let retryEntitlementsInFlight: Promise<any> | null = null;
+
+export async function retryRefreshEntitlements(opts) {
+if (retryEntitlementsInFlight) return retryEntitlementsInFlight;
+retryEntitlementsInFlight = doRetryRefreshEntitlements(opts)
+.finally(() => {
+retryEntitlementsInFlight = null;
+});
+return retryEntitlementsInFlight;
+}
+
+7. Do not clear JWT on network failure
+
+- Find safeGetJwt/apiFetch/tryReissueJwt logic.
+- If JWT is expired, try reissue.
+- Only clear JWT if the server explicitly returns 401/invalid session.
+- Do not clear JWT on:
+  network error
+  timeout
+  backend down
+  DNS failure
+  5xx
+- This prevents users being logged out because the backend is temporarily down.
+
+8. Validate deep links before sending to renderer
+
+- In electron/main.js, find deliverDeepLink or equivalent.
+- Reject deep links that:
+  are not strings
+  do not start with switchcontrol://
+  exceed 2048 chars
+  have unexpected host/path
+- Only allow expected auth/payment paths:
+  switchcontrol://auth/callback
+  switchcontrol://premium/activated
+  switchcontrol://billing/success
+  or whatever current app already supports
+- Do not send rejected URLs to renderer.
+- Log rejection safely without printing full token/code.
+
+9. Inline JS deep link safety
+
+- Find /auth/desktop-success or equivalent success page.
+- Any deepLink inserted into inline JavaScript must use JSON.stringify(deepLink), not raw string interpolation.
+- Do not break the current switchcontrol:// redirect behavior.
+
+10. Trial policy
+
+- Confirm users cannot self-activate trials.
+- Leave admin-granted trials allowed.
+- Add a clear comment near setUserPlan:
+  Trials are admin-granted only. hasUsedTrial is tracked for policy/audit. Multiple admin grants are intentionally allowed unless this guard is enabled.
+- If there is currently a public trial activation route, remove it or require admin.
+- Do not accidentally block admin trial grants unless the codebase already intends one-trial-per-user.

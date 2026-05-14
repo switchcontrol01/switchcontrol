@@ -1,0 +1,120 @@
+COMPONENTS TO CREATE
+client/src/pages/ExtremeLabs.tsx
+
+client/src/components/extreme-labs/ExtremeLabsGateModal.tsx
+client/src/components/extreme-labs/ExtremeLabsHero.tsx
+client/src/components/extreme-labs/LatencyPressureMeter.tsx
+client/src/components/extreme-labs/ExtremeBeforeAfterBars.tsx
+client/src/components/extreme-labs/ExtremeTweakCard.tsx
+client/src/components/extreme-labs/ExtremeRiskMap.tsx
+client/src/components/extreme-labs/ExtremeTimeline.tsx
+client/src/components/extreme-labs/ExtremeSessionGraph.tsx
+client/src/components/extreme-labs/ExtremePlanModal.tsx
+client/src/components/extreme-labs/ExtremeRestoreModal.tsx
+
+client/src/hooks/useExtremeLabs.ts
+client/src/types/extreme-labs.ts
+
+electron/extreme-labs.js
+Expose IPC in preload.js under:
+window.electronAPI.extremeLabs
+
+PERFORMANCE RULES
+No polling.
+No setInterval.
+No scanning on every render.
+No PowerShell in React.
+No repeated WMI calls.
+No heavy chart library.
+Use SVG graphs.
+Use cached analyze result.
+Use single-flight guards.
+Pause decorative animations when document.hidden.
+
+TEST CHECKLIST
+- Free user sees premium lock
+- Premium user sees entry warning
+- Cannot enter without restore protection
+- Restore point failure blocks entry
+- Baseline file is created atomically
+- Analyze runs only when clicked
+- Selected tweaks show exact plan
+- Apply verifies each tweak
+- Before/after graphs use real measured values
+- Unsafe destructive tweaks are not present
+- Restore Baseline works
+- No CPU spike while idle
+- No background polling
+- TypeScript passes
+
+FINAL OUTPUT
+Return:
+- files changed
+- files created
+- route added
+- IPC handlers added
+- tweak categories added
+- baseline fields saved
+- restore behavior
+- test results
+Switch Mod <keyboardwells@gmail.com>
+	
+Thu 30 Apr, 22:50
+	
+	
+to me
+TASK
+Add an Extreme Labs tweak called Advanced Frame Queue Control.
+
+PURPOSE
+Expose FlipQueueSize-style frame queue tuning as an advanced experimental latency tweak. This must be honest, reversible, hardware-gated, and never treated as a guaranteed performance boost.
+
+TWEAK NAME
+Advanced Frame Queue Control
+
+SHORT DESCRIPTION
+Can reduce input delay in some scenarios, but may introduce stutter or frame pacing instability. Use with testing.
+
+CATEGORY
+Extreme Labs → Latency Core / GPU Timing
+
+RISK
+Advanced / Experimental
+
+RECOMMENDED
+No
+
+SAFE APPLY
+No
+
+REQUIRES RESTART
+Yes, or at minimum require game restart and driver reload note.
+
+SUPPORTED STATES
+- Auto / Driver Controlled
+- Low Latency Queue
+- Balanced Queue
+- Stability Queue
+
+UI COPY
+
+Main description:
+Advanced Frame Queue Control adjusts how aggressively the system or GPU driver queues rendered frames before display. Lower queue depth can reduce input delay in some games, but may increase stutter, frametime spikes, or instability depending on GPU, driver, API, and game engine.
+
+Warning:
+This is experimental and driver-dependent. Some systems ignore this setting completely. Test before keeping it enabled.
+
+Option descriptions:
+Auto / Driver Controlled:
+Lets Windows and the GPU driver manage frame queue behavior.
+
+Low Latency Queue:
+Attempts to reduce queued frames for lower input delay. May increase stutter or reduce smoothness.
+
+Balanced Queue:
+A middle-ground setting for latency and frame pacing.
+
+Stability Queue:
+Allows more buffering for smoother frame pacing but may increase input delay.
+
+IMPLEMENTATION REQUIREMENTS

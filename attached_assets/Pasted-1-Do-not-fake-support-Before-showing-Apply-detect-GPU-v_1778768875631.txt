@@ -1,0 +1,110 @@
+1. Do not fake support
+Before showing Apply:
+- detect GPU vendor
+- detect driver info if possible
+- detect whether the relevant registry path/value exists or can be safely created
+- if unsupported, show Unsupported with reason
+
+Unsupported message:
+Frame queue control is not reliably exposed on this system or driver. SwitchControl will not apply a fake registry tweak.
+
+2. Hardware gating
+This tweak must be shown only inside Extreme Labs.
+Never show it in Safe, Moderate, Apply Recommended, or normal GPU tweaks.
+
+3. Baseline capture
+Before applying:
+- read current value
+- store baseline in extreme-labs-baseline.json
+- if no value exists, store that it did not exist
+- restore must remove the value if it did not originally exist
+
+4. Apply behavior
+Implement dropdown, not simple toggle.
+
+Modes:
+Auto / Driver Controlled:
+restore baseline if available, otherwise remove custom value
+
+Low Latency Queue:
+set value to lowest supported safe value
+
+Balanced Queue:
+set balanced value
+
+Stability Queue:
+set higher queue value
+
+Do not hardcode blindly without checking existing registry implementation and GPU vendor. If exact registry path is not reliable, return unsupported.
+
+5. Verification
+After apply:
+- read value back
+- compare expected value
+- return verified true/false
+- if not verified, show failed state and do not claim success
+
+6. UI card requirements
+The tweak card must show:
+- Experimental badge
+- GPU Timing badge
+- Requires restart/game restart badge
+- Current mode
+- Selected mode
+- Risk: may increase stutter
+- What it changes
+- What it may break
+- Verification result
+- Restore available
+
+7. Before/after graph
+Add mini graph on the card:
+- Input delay estimate: before/after if measurable
+- Frametime stability: before/after if measurable
+- If not measurable, show:
+“Not enough data to measure yet”
+
+Do not invent ms improvements.
+
+8. Plan modal text
+When selected, the Extreme Labs plan modal must show:
+
+Advanced Frame Queue Control
+Current: [current value or Auto]
+New: [selected mode]
+Risk: May reduce input delay, but can cause stutter or unstable frame pacing.
+Rollback: Available if baseline captured.
+Testing required: Yes.
+
+9. Restore behavior
+Restore Baseline must:
+- restore original value if it existed
+- remove custom value if it did not exist before
+- verify after restore
+
+10. Logging
+Add logs:
+[ExtremeLabs:FrameQueue] detected vendor=...
+[ExtremeLabs:FrameQueue] unsupported reason=...
+[ExtremeLabs:FrameQueue] baseline value=...
+[ExtremeLabs:FrameQueue] apply mode=...
+[ExtremeLabs:FrameQueue] verify expected=... actual=...
+[ExtremeLabs:FrameQueue] restored
+
+HARD RULES
+- Do not call this “FPS boost”
+- Do not claim guaranteed lower latency
+- Do not add to Apply Recommended
+- Do not apply if unsupported
+- Do not fake verification
+- Do not hide stutter risk
+- Do not overwrite baseline blindly
+
+FINAL OUTPUT
+Return:
+- files changed
+- registry path/value used if supported
+- unsupported fallback behavior
+- baseline/restore behavior
+- verification result
+- TypeScript result

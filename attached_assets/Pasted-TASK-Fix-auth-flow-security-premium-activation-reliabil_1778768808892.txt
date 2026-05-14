@@ -1,0 +1,137 @@
+TASK: Fix auth flow security, premium activation reliability, and Electron deep-link safety
+
+PROBLEM:
+Current implementation has:
+
+- Unauthenticated premium grant risk
+- Premium tour sometimes not triggering after payment
+- Unsafe deep-link injection pattern
+- Weak Electron UID validation
+- Missing rate limits on auth exchange
+- Over-aggressive entitlement retry loop
+- Weak production secret enforcement
+
+GOAL:
+Harden payment/auth flow, ensure premium always activates reliably, and remove exploit paths while keeping UX smooth.
+
+---
+
+IMPLEMENTATION:
+
+1) FIX PREMIUM TOUR NOT TRIGGERING (CRITICAL)
+
+In App.tsx (deep link premium activation flow):
+
+REPLACE:
+triggerFlowReset();
+
+WITH:
+setTimeout(() => triggerFlowReset(), 0);
+
+Reason:
+Ensures React state (entitlementsOk) commits before flow evaluation runs.
+
+---
+
+2) VALIDATE x-electron-uid (SECURITY)
+
+In requireJwt middleware:
+
+REPLACE:
+if (typeof electronUid === 'string' && electronUid.length > 0)
+
+WITH:
+if (
+typeof electronUid === 'string' &&
+/^[a-zA-Z0-9_-]{8,64}$/.test(electronUid)
+)
+
+Reason:
+Prevents malformed or malicious IDs from entering system.
+
+---
+
+3) FIX DEEP LINK INJECTION (SECURITY)
+
+In /auth/desktop-success route:
+
+REPLACE:
+var deepLink = "${deepLink}";
+
+WITH:
+var deepLink = ${JSON.stringify(deepLink)};
+
+Reason:
+Prevents JS injection if code format ever changes.
+
+---
+
+4) RATE LIMIT AUTH EXCHANGE (SECURITY)
+
+Add at top of file:
+
+const _exchangeAttempts = new Map();
+
+In /api/auth/exchange:
+
+ADD before logic:
+
+const ip = req.ip || 'unknown';
+const now = Date.now();
+const record = _exchangeAttempts.get(ip);
+
+if (record && now < record.resetAt) {
+if (record.count >= 10) {
+return res.status(429).json({ success: false, error: 'Too many attempts' });
+}
+record.count++;
+} else {
+_exchangeAttempts.set(ip, { count: 1, resetAt: now + 60000 });
+}
+
+---
+
+5) CAP ELECTRON AUTH CODE STORAGE
+
+At declaration:
+
+const MAX_PENDING_CODES = 1000;
+
+In generateElectronCode:
+
+ADD:
+
+if (electronAuthCodes.size >= MAX_PENDING_CODES) {
+const oldest = electronAuthCodes.entries().next().value;
+if (oldest) electronAuthCodes.delete(oldest[0]);
+}
+
+REMOVE cleanup loop inside function.
+
+ADD global cleanup:
+
+setInterval(() => {
+const cutoff = Date.now() - ELECTRON_CODE_TTL;
+for (const [key, val] of electronAuthCodes) {
+if (val.createdAt < cutoff) electronAuthCodes.delete(key);
+}
+}, 5 * 60 * 1000);
+
+---
+
+6) FIX ENTITLEMENT RETRY OVERLOAD
+
+In retryRefreshEntitlements call for premium activation:
+
+REPLACE:
+attempts: 30,
+delayMs: 1000,
+
+WITH:
+attempts: 8,
+delayMs: 500,
+
+Reason:
+Reduces DB spam and prevents 30s UI lock. Pending modal handles rest.
+
+---

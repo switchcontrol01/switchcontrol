@@ -1,0 +1,109 @@
+TASK:
+Harden SwitchControl before public launch based on the latest security/payment/telemetry audit.
+
+PROBLEM:
+Several routes and Electron handlers still have security, trust, or performance issues. The main risk is premium/payment logic, unauthenticated telemetry exposure, fake RAM data, and blocking Electron main-process calls.
+
+GOAL:
+Fix the high-risk issues without breaking the existing payment flow, premium tour, desktop auth, or Electron local/cloud split.
+
+IMPLEMENTATION:
+
+1. Fix "/api/stripe/confirm"
+
+- Add "requireJwt" to this route.
+- Use "req.cloudUser?.id || req.user?.id" as the authenticated user ID.
+- If no authenticated user exists, return 401.
+- If authenticated user ID does not match the Stripe checkout "client_reference_id" or "metadata.userId", return 403.
+- Only confirm premium after Stripe API verification and ownership match.
+
+2. Add rate limiting to "/api/stripe/create-checkout-session"
+
+- Limit to around 5 checkout session creations per user/IP per hour.
+- Use user ID when available, otherwise IP.
+- Do not allow free users to spam Stripe checkout session creation.
+
+3. Protect "/api/metrics/snapshot"
+
+- Add "requireJwt".
+- This route exposes server telemetry and should not be public.
+
+4. Remove or replace fake "/api/clear-ram"
+
+- Do not return random RAM freed values.
+- Either remove this route or wire it to the real Electron RAM cleaner path.
+- Never store fake RAM values in DB.
+
+5. Fix premium tour race
+
+- Anywhere "setEntitlementsOk(true)" and "triggerFlowReset()" happen together, delay the reset:
+  "setTimeout(() => triggerFlowReset(), 0);"
+- This prevents React batching from firing the flow check before entitlement state commits.
+
+6. Harden Stripe webhook grant
+
+- When webhook grants premium, also reset:
+  "hasSeenPremiumUnlock: false"
+  "hasSeenPremiumTour: false"
+- This lets returning buyers see the premium unlock flow again.
+
+7. Add refund/chargeback handling
+
+- Add Stripe webhook handling for refunds/chargebacks where possible.
+- If a payment is refunded or disputed, revoke premium or mark the user for review.
+- Do not leave refunded users premium forever.
+
+8. Harden deep links
+
+- In "main.js", validate deep links before sending to renderer:
+  - must be a string
+  - must start with "switchcontrol://"
+  - max length 2048
+- In preload "auth.onCallback", also reject invalid URLs before calling the renderer callback.
+- In website inline JS, use "JSON.stringify(deepLink)" instead of raw string interpolation.
+
+9. Validate Electron identity headers
+
+- Validate "x-electron-uid" format in "requireJwt".
+- Reject anything not matching a safe ID pattern.
+  Example:
+  "/^[a-zA-Z0-9_-]{8,64}$/"
+
+10. Add singleton guard to "retryRefreshEntitlements"
+
+- Prevent multiple retry loops running at the same time.
+- Use a module-level "_retryInFlight" promise.
+- Return the existing promise if one is already running.
+
+11. Production secret hardening
+
+- In production, hard fail if "SESSION_SECRET" is missing.
+- In production, hard fail if "JWT_SECRET" is missing or falling back to "SESSION_SECRET".
+- JWT and session secrets must be separate.
+
+12. Rate limit "/api/auth/exchange"
+
+- Add per-IP rate limiting.
+- Prevent unlimited random one-time-code probes.
+
+13. Cap Electron auth code map
+
+- Add max pending one-time auth codes.
+- Add scheduled cleanup.
+- Avoid unbounded memory growth.
+
+14. Fix "appBooster:scanGames"
+
+- Replace all "execSync" calls with async "execFile".
+- Do not block Electron main process.
+- Use existing "psLimiter" if appropriate.
+
+15. Fix telemetry IPC duplication
+
+- "telemetry:getBasic" and "telemetry:getEnhanced" should read from "liveTelemetryCache" first.
+- Avoid fresh "si.currentLoad()", "si.mem()", and "si.cpuTemperature()" calls unless cache is missing.
+
+16. Validate stored device ID
+
+- In "getOrCreateDeviceId", validate loaded "deviceId" before using it.
+- If malformed, regenerate it.

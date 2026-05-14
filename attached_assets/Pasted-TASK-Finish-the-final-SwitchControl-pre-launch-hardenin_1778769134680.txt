@@ -1,0 +1,147 @@
+TASK
+Finish the final SwitchControl pre-launch hardening pass.
+
+PROBLEM
+Most major security, performance, UI, premium, Stripe, device lock, and telemetry issues have already been audited. The remaining issues are not feature work. They are launch hardening.
+
+GOAL
+Fix the remaining production-readiness gaps before public marketing:
+
+- safer auth/login flow
+- safer packaged Electron build
+- proper data deletion
+- basic web security headers
+- update security verification
+- package contents audit
+
+IMPLEMENTATION
+
+1. Add rate limit to Google OAuth start route
+   Find the Google OAuth initiation route, likely:
+
+/auth/google
+
+Add per-IP rate limiting:
+
+- max 10 requests per minute
+- return 429 with a clean JSON/error response
+- do not break normal Google login
+- log rate-limit hits with IP and timestamp
+
+2. Add CSP headers for web server
+   Add Content Security Policy middleware for the web version on switchcontrol.org.
+
+Use a safe policy that allows:
+
+- self scripts/styles
+- required Google OAuth resources if needed
+- Stripe checkout resources if needed
+- Replit/dev domains only in development
+
+Do not use unsafe wildcards unless required.
+
+Also add:
+
+- X-Content-Type-Options: nosniff
+- Referrer-Policy: strict-origin-when-cross-origin
+- X-Frame-Options or CSP frame-ancestors
+- Permissions-Policy with unnecessary features disabled
+
+Make sure it does not break Stripe checkout, Google auth, or the Electron app.
+
+3. Audit and secure Electron auto-update
+   Find updaterService / electron-updater config.
+
+Verify:
+
+- updates only come from the official trusted release URL
+- releases are signed
+- unsigned or invalid updates cannot install
+- update errors are logged cleanly
+- no dev update URL is used in production
+
+If signing is not configured, add a clear TODO/blocking warning in production logs and disable auto-install until signing is correctly configured.
+
+4. Add packaged build audit script
+   Add a script that checks the packaged app contents.
+
+It should inspect:
+
+- app.asar
+- resources directory
+- bundled files
+
+Flag if these are included:
+
+- .env
+- .env.local
+- .env.production
+- private keys
+- secrets
+- raw source maps if not intended
+- test files
+- debug logs
+- credentials
+- local database files
+- unnecessary large dev files
+
+Add npm script:
+npm run audit:package
+
+Output should clearly show PASS or FAIL.
+
+5. Fix GDPR/data deletion cascade
+   Audit deleteUser in storage/admin routes.
+
+When deleting a user, remove or anonymize related user data from tables such as:
+
+- cleaner_history
+- focus_sessions
+- applied tweaks/history entries
+- AI scan history
+- BIOS scan/history if present
+- device binding records
+- entitlement/session records where applicable
+
+Admin audit logs may be preserved, but they should not keep unnecessary personal data beyond what is needed for abuse/audit records.
+
+Return a summary of what is deleted, anonymized, or intentionally retained.
+
+6. Add delete-user safety confirmation
+   Admin delete user flow must require:
+
+- reason field
+- confirmation text or second confirmation
+- audit log entry
+- backend validation that reason is not blank
+
+7. Add lightweight smoke test checklist
+   Add or document tests for:
+
+Auth:
+
+- Google login works
+- Electron OAuth deep link works
+- /auth/google rate limit triggers after limit
+
+Security:
+
+- CSP does not break website
+- Stripe checkout works
+- Stripe webhook still works
+- /api/me works with JWT/session
+
+Data deletion:
+
+- deleting a user removes related records
+- admin log remains with minimal needed info
+
+Package:
+
+- package audit script passes
+- no env/secrets in app.asar/resources
+
+Auto-update:
+
+- production update URL is trusted
+- unsigned/dev update source is not accepted

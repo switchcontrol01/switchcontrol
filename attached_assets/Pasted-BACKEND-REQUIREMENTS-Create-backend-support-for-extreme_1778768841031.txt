@@ -1,0 +1,98 @@
+BACKEND REQUIREMENTS
+Create backend support for:
+
+extremeLabs:createRestorePoint
+extremeLabs:createBaseline
+extremeLabs:getGateStatus
+extremeLabs:analyze
+extremeLabs:buildPlan
+extremeLabs:applySelected
+extremeLabs:restoreBaseline
+extremeLabs:getLastResult
+
+All backend actions must:
+- verify admin where needed
+- use existing elevation pattern
+- capture baseline before write
+- verify after write
+- return structured result
+- never return fake success
+- log clear messages
+
+Logs:
+[ExtremeLabs:Gate]
+[ExtremeLabs:RestorePoint]
+[ExtremeLabs:Baseline]
+[ExtremeLabs:Analyze]
+[ExtremeLabs:Plan]
+[ExtremeLabs:Apply]
+[ExtremeLabs:Verify]
+[ExtremeLabs:Restore]
+
+BASELINE REQUIREMENTS
+Before entering page:
+- create restore point
+- save registry baseline for all keys Extreme Labs can modify
+- save service startup baselines for all services Extreme Labs can modify
+- save bcdedit current values for any boot/timer tweak
+- save network global state where supported
+- save timestamp
+
+Store in app data:
+extreme-labs-baseline.json
+
+Use atomic write:
+write temp file, then rename.
+
+APPLY FLOW
+User selects tweaks.
+Click Apply Selected.
+Show plan modal first.
+
+Plan modal shows:
+- exact tweaks selected
+- exact registry keys/commands
+- current value
+- new value
+- risk level
+- restart required
+- what could break
+- rollback available or not
+
+User must confirm:
+I understand, apply selected tweaks
+
+After confirm:
+- timeline animates
+- apply one by one
+- verify one by one
+- update each card result
+- show before/after graph
+- show restart required if needed
+
+TWEAK CARD COPY STYLE
+No fake marketing.
+
+Use wording like:
+- “May reduce scheduling delay on some systems”
+- “Hardware-dependent”
+- “Can increase CPU wakeups”
+- “Can worsen latency on some systems”
+- “Requires restart”
+- “Rollback available”
+
+Do not write:
+- “boosts FPS”
+- “removes all delay”
+- “guaranteed”
+- “AI optimized”
+
+UI STYLE
+Use the new SwitchControl style:
+- matte black / charcoal base
+- cyan main accent
+- one secondary accent only
+- glow only on interaction or success
+- no rainbow gradients
+- no fake neon spam
+- no default admin panel

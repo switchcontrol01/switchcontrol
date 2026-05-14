@@ -71,7 +71,10 @@ const RAM_POINTS = [55, 58, 60, 57, 62, 65, 61, 63, 60, 58, 62, 64, 61, 62, 62];
 function DashboardPreview() {
   const [tick, setTick] = useState(0);
   useEffect(() => {
-    const id = setInterval(() => setTick(t => t + 1), 2000);
+    const id = setInterval(() => {
+      if (document.hidden) return;
+      setTick(t => t + 1);
+    }, 2000);
     return () => clearInterval(id);
   }, []);
 
@@ -148,11 +151,11 @@ const BEFORE_FPS = [87, 84, 82, 88, 79, 83, 81, 86, 80, 84, 83, 82, 85, 81, 83];
 const AFTER_FPS  = [118, 124, 121, 126, 119, 123, 120, 127, 122, 125, 121, 124, 128, 122, 126];
 
 const TWEAKS_LIST = [
-  { label: 'Timer Resolution', active: true,  color: 'rgba(168,85,247,' },
-  { label: 'Interrupt Affinity', active: true,  color: 'rgba(168,85,247,' },
-  { label: 'Game Mode',       active: true,  color: 'rgba(168,85,247,' },
-  { label: 'Power Throttling', active: false, color: 'rgba(255,255,255,' },
-  { label: 'Superfetch',      active: false, color: 'rgba(255,255,255,' },
+  { label: 'Game Mode',           active: true,  color: 'rgba(0,212,255,' },
+  { label: 'Disable Transparency', active: true,  color: 'rgba(0,212,255,' },
+  { label: 'Disable Animations',   active: true,  color: 'rgba(0,212,255,' },
+  { label: 'Disable Xbox Game Bar', active: true,  color: 'rgba(0,212,255,' },
+  { label: 'Power Throttling',     active: false, color: 'rgba(255,255,255,' },
 ];
 
 function TweaksPreview() {
@@ -168,7 +171,7 @@ function TweaksPreview() {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.4 }}
           >
-            3 active
+            4 active
           </motion.span>
         </div>
 
@@ -214,7 +217,7 @@ function TweaksPreview() {
               animate={{ opacity: 1 }}
               transition={{ delay: 0.9 }}
             >
-              +43% avg
+              Demo illustration
             </motion.span>
           </div>
           <div className="relative" style={{ height: 36 }}>
@@ -342,16 +345,16 @@ function BiosPreview() {
                 </defs>
               </svg>
               <motion.div
-                className="absolute inset-0 flex items-center justify-center text-xs font-bold"
+                className="absolute inset-0 flex items-center justify-center text-[10px] font-bold"
                 style={{ color: '#22d3ee' }}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.6 }}
               >
-                82
+                Demo
               </motion.div>
             </div>
-            <span className="text-[8px] uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.25)' }}>Score</span>
+            <span className="text-[8px] uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.25)' }}>Example</span>
           </div>
 
           {/* Rows */}
@@ -405,7 +408,7 @@ const CONFIDENCE_POINTS = [65, 68, 72, 69, 74, 78, 76, 80, 77, 82, 80, 84, 82, 8
 
 const MESSAGES = [
   { from: 'user', text: 'How do I reduce input lag?' },
-  { from: 'ai',   text: 'Enable Timer Resolution + disable HPET. Expected: −3ms input latency.' },
+  { from: 'ai',   text: 'Enable Game Mode + disable HPET. Expected: −3ms input latency.' },
 ];
 
 function AiAdvisorPreview() {
