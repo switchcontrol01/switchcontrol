@@ -167,7 +167,13 @@ export const useStore = create<AppState>()(
       
       enableRecommended: () => {
         const recommendedIds = TWEAKS_DATA
-          .filter(t => t.level === 'Recommended' && t.risk === 'Safe' && t.supported)
+          .filter(t =>
+            t.level === 'Recommended' &&
+            t.risk === 'Safe' &&
+            t.supported &&
+            !t.requiresReboot &&
+            t.category !== 'Network'
+          )
           .map(t => t.id);
           
         set((state) => {

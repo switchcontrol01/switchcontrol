@@ -36,24 +36,6 @@ export const StatCard = memo(function StatCard({
 }: StatCardProps) {
   return (
     <GlassCard blur="none" className={cn("relative overflow-hidden", className)}>
-      <style>{`
-        @keyframes sc-shimmer {
-          0%   { background-position: -200% center; }
-          100% { background-position:  200% center; }
-        }
-        .sc-shimmer {
-          background: linear-gradient(
-            90deg,
-            rgba(255,255,255,0.03) 25%,
-            rgba(255,255,255,0.07) 50%,
-            rgba(255,255,255,0.03) 75%
-          );
-          background-size: 200% auto;
-          border-radius: 5px;
-          animation: sc-shimmer 1.6s linear infinite;
-        }
-      `}</style>
-
       <div className="p-5">
         <div className="flex flex-row items-center justify-between space-y-0 pb-2">
           <div className="text-sm font-medium text-[#A0A8B3]">

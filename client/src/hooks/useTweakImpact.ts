@@ -16,7 +16,7 @@
  * • Only CPU load, RAM usage, and process count are reliable enough to report;
  *   disk and network are too noisy over a 3.5s window on a live system.
  */
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { useTelemetryStore } from "@/stores/telemetryStore";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -67,6 +67,18 @@ export function useTweakImpact() {
   const [impacts, setImpacts] = useState<Record<string, TweakImpactResult>>({});
   const [measuring, setMeasuring] = useState<string | null>(null);
   const settleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      if (settleTimer.current) {
+        clearTimeout(settleTimer.current);
+        settleTimer.current = null;
+      }
+    };
+  }, []);
 
   /**
    * Call BEFORE the tweak executes.
@@ -83,6 +95,7 @@ export function useTweakImpact() {
       const commit = () => {
         if (settleTimer.current) clearTimeout(settleTimer.current);
         settleTimer.current = setTimeout(() => {
+          if (!mountedRef.current) return;
           setMeasuring(null);
           const after = captureSnapshot();
 
@@ -125,6 +138,7 @@ export function useTweakImpact() {
           // Only persist if there is something meaningful to show
           if (Object.keys(deltas).length === 0) return;
 
+          if (!mountedRef.current) return;
           setImpacts((prev) => ({
             ...prev,
             [tweakId]: { tweakId, appliedAt, action, before, after, deltas, summary },

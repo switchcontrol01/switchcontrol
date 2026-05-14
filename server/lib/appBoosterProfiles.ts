@@ -111,17 +111,41 @@ function buildGpuPrefPs(exePath: string, mode: "apply" | "revert" | "check"): st
   return `(Get-ItemProperty -Path "${regKey}" -Name "${exePath}" -EA SilentlyContinue)."${exePath}" -like "*GpuPreference=2*"`;
 }
 
+// ── PowerShell string escaping ───────────────────────────────────────────────
+
+/** Escape a value for safe inclusion inside a double-quoted PowerShell string. */
+function psEscape(val: string): string {
+  return val.replace(/[`$"]/g, "`$&");
+}
+
+/** Validate that a path looks like a real Windows file path (not injection). */
+function isSafeWindowsPath(p: string): boolean {
+  // Reject any path containing PowerShell metacharacters that could break out of quoting
+  if (/[;&|<>(){}\[\]$\n\r]/.test(p)) return false;
+  // Require .exe extension for game executables
+  if (!/\.exe$/i.test(p)) return false;
+  // Max reasonable path length
+  if (p.length > 260) return false;
+  return true;
+}
+
 function buildNetworkQosPs(
   gameName: string,
   exePath: string,
   mode: "apply" | "revert" | "check"
 ): string {
   const policyName = `${gameName} SC-Boost`;
+  if (!isSafeWindowsPath(exePath)) {
+    // Return a no-op that safely fails instead of injecting untrusted input
+    return `Write-Error 'Invalid exePath — blocked by path validation'; exit 1`;
+  }
+  const safeExe = psEscape(exePath);
+  const safePolicy = psEscape(policyName);
   if (mode === "apply")
-    return `if (!(Get-NetQosPolicy -Name "${policyName}" -EA SilentlyContinue)) { New-NetQosPolicy -Name "${policyName}" -AppPathNameMatchCondition "${exePath}" -IPProtocolMatchCondition Both -DSCPAction 46 -NetworkProfile All -Confirm:$false -EA SilentlyContinue }`;
+    return `if (!(Get-NetQosPolicy -Name "${safePolicy}" -EA SilentlyContinue)) { New-NetQosPolicy -Name "${safePolicy}" -AppPathNameMatchCondition "${safeExe}" -IPProtocolMatchCondition Both -DSCPAction 46 -NetworkProfile All -Confirm:$false -EA SilentlyContinue }`;
   if (mode === "revert")
-    return `Remove-NetQosPolicy -Name "${policyName}" -Confirm:$false -EA SilentlyContinue`;
-  return `(Get-NetQosPolicy -Name "${policyName}" -EA SilentlyContinue) -ne $null`;
+    return `Remove-NetQosPolicy -Name "${safePolicy}" -Confirm:$false -EA SilentlyContinue`;
+  return `(Get-NetQosPolicy -Name "${safePolicy}" -EA SilentlyContinue) -ne $null`;
 }
 
 export function buildActionsForGame(game: GameMeta, installPath: string | null): ProfileAction[] {

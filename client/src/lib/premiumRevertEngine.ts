@@ -191,10 +191,13 @@ async function revertSingleNetworkTweak(
     }
 
     // 5. Report and clear
-    await fetch(`/api/network-tweaks/${tweakId}/report`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'disable', success: true, verified: true, message: 'Reverted on premium expiry' }),
+    // Use apiPost so the CSRF token is injected automatically (withCsrf: true).
+    const { apiPost } = await import('./api');
+    await apiPost(`/network-tweaks/${tweakId}/report`, {
+      action: 'disable',
+      success: true,
+      verified: true,
+      message: 'Reverted on premium expiry',
     }).catch(() => {});
 
     useTweakOwnershipStore.getState().recordNetworkTweakRevertSuccess(tweakId);
