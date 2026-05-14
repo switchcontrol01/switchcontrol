@@ -36,7 +36,8 @@ import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
 import { useLocation } from "wouter";
 import { AiTweakRecommendationCards, AiTweakRecommendation } from "@/components/ai/AiTweakRecommendationCard";
 import { ApplyTweaksFlowModal } from "@/components/ai/ApplyTweaksFlowModal";
-import { isElectronWithTweaks } from "@/hooks/use-tweak-executor";
+import { isElectronWithTweaks, useTweakExecutor } from "@/hooks/use-tweak-executor";
+import { getTweak } from "@/lib/tweak-registry";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -220,19 +221,20 @@ const THINKING_PHASES = [
 
 // ── Utility components ────────────────────────────────────────────────────────
 
-function SafeMarkdown({ text }: { text: string }) {
-  const parts: Array<{ type: "text" | "bold" | "code" | "br"; content: string }> = [];
+function SafeMarkdown({ text, onApply }: { text: string; onApply?: (tweakId: string) => void }) {
+  const parts: Array<{ type: "text" | "bold" | "code" | "apply" | "br"; content: string }> = [];
   const lines = text.split("\n");
   for (let i = 0; i < lines.length; i++) {
     if (i > 0) parts.push({ type: "br", content: "" });
     let line = lines[i];
     if (line.startsWith("- ")) line = "• " + line.slice(2);
-    const regex = /\*\*(.*?)\*\*|`([^`]+)`/g;
+    const regex = /\*\*(.*?)\*\*|`([^`]+)`|<<APPLY:(.*?)>>/g;
     let lastIndex = 0, match;
     while ((match = regex.exec(line)) !== null) {
       if (match.index > lastIndex) parts.push({ type: "text", content: line.slice(lastIndex, match.index) });
       if (match[1] !== undefined) parts.push({ type: "bold", content: match[1] });
       else if (match[2] !== undefined) parts.push({ type: "code", content: match[2] });
+      else if (match[3] !== undefined) parts.push({ type: "apply", content: match[3] });
       lastIndex = regex.lastIndex;
     }
     if (lastIndex < line.length) parts.push({ type: "text", content: line.slice(lastIndex) });
@@ -243,6 +245,16 @@ function SafeMarkdown({ text }: { text: string }) {
         switch (part.type) {
           case "bold": return <strong key={i} className="text-[#E6EAF0] font-semibold">{part.content}</strong>;
           case "code": return <code key={i} className="px-1.5 py-0.5 rounded bg-[#21262D] text-primary text-[11px] font-mono">{part.content}</code>;
+          case "apply": return (
+            <button
+              key={i}
+              onClick={() => onApply?.(part.content)}
+              className="inline-flex items-center gap-1 text-[11px] text-primary/80 hover:text-primary bg-primary/10 hover:bg-primary/20 border border-primary/20 rounded-md px-2 py-0.5 transition-colors ml-1 align-middle"
+              data-testid={`button-apply-inline-${part.content}`}
+            >
+              <Zap className="w-3 h-3" /> Apply
+            </button>
+          );
           case "br": return <br key={i} />;
           default: return <span key={i}>{part.content}</span>;
         }
@@ -433,7 +445,7 @@ function DiagnosticCard({ findings, onApply }: { findings: DiagnosticFinding[]; 
 
 // ── Answer Card (auto-reveal detail) ─────────────────────────────────────────
 
-function AnswerCard({ summary, detail }: { summary: string; detail?: string }) {
+function AnswerCard({ summary, detail, onApply }: { summary: string; detail?: string; onApply?: (tweakId: string) => void }) {
   const [detailVisible, setDetailVisible] = useState(false);
 
   useEffect(() => {
@@ -445,7 +457,7 @@ function AnswerCard({ summary, detail }: { summary: string; detail?: string }) {
   return (
     <div className="space-y-2">
       <p className="text-[13px] text-[#E6EAF0] leading-relaxed font-medium">
-        <SafeMarkdown text={summary} />
+        <SafeMarkdown text={summary} onApply={onApply} />
       </p>
       <AnimatePresence>
         {detail && detailVisible && (
@@ -460,7 +472,7 @@ function AnswerCard({ summary, detail }: { summary: string; detail?: string }) {
               if (!trimmed) return null;
               return (
                 <p key={i} className={trimmed.match(/^\d+\./) ? "pl-0" : ""}>
-                  <SafeMarkdown text={trimmed} />
+                  <SafeMarkdown text={trimmed} onApply={onApply} />
                 </p>
               );
             })}
@@ -784,11 +796,12 @@ function ImageAttachmentPill({ image, onRemove }: { image: AttachedImage; onRemo
 
 // ── Message Bubble ─────────────────────────────────────────────────────────────
 
-function ChatBubble({ msg, isSlow, reducedMotion, onApply, isAdmin, isPremium, onOpenUpgrade, onViewTweaks }: {
+function ChatBubble({ msg, isSlow, reducedMotion, onApply, onApplyInline, isAdmin, isPremium, onOpenUpgrade, onViewTweaks }: {
   msg: ChatMessage;
   isSlow: boolean;
   reducedMotion: boolean;
   onApply?: (recs: AiTweakRecommendation[]) => void;
+  onApplyInline?: (tweakId: string) => void;
   isAdmin?: boolean;
   isPremium?: boolean;
   onOpenUpgrade?: () => void;
@@ -850,9 +863,9 @@ function ChatBubble({ msg, isSlow, reducedMotion, onApply, isAdmin, isPremium, o
                       onViewDetails={() => onViewTweaks?.()}
                       onOpenUpgrade={() => onOpenUpgrade?.()}
                     />
-                  : <AnswerCard summary={msg.structured.summary} detail={(msg.structured as { type: "answer"; summary: string; detail?: string }).detail} />
+                  : <AnswerCard summary={msg.structured.summary} detail={(msg.structured as { type: "answer"; summary: string; detail?: string }).detail} onApply={onApplyInline} />
               : <>
-                  <SafeMarkdown text={msg.content} />
+                  <SafeMarkdown text={msg.content} onApply={onApplyInline} />
                   {msg.isStreaming && (
                     <span className="inline-block w-px h-[14px] bg-primary/60 ml-0.5 align-middle animate-[blink_0.75s_step-end_infinite]" />
                   )}
@@ -1567,6 +1580,47 @@ export default function AiAdvisor() {
     setShowApplyModal(true);
   }, [isElectronApp]);
 
+  const { executeTweak, checkTweakStatus } = useTweakExecutor();
+
+  const handleApplyInline = useCallback(async (tweakId: string) => {
+    if (!isElectronApp) {
+      setMessages(prev => [...prev, {
+        id: `not-electron-${Date.now()}`, role: "system" as const,
+        content: "Tweaks can only be applied from the desktop app. Download SwitchControl for Windows to apply optimizations.",
+        timestamp: new Date(),
+      }]);
+      return;
+    }
+    const tweak = getTweak(tweakId);
+    if (!tweak || !tweak.supported) {
+      setMessages(prev => [...prev, {
+        id: `unsupported-${Date.now()}`, role: "system" as const,
+        content: `Tweak "${tweakId}" is not available on this system.`,
+        timestamp: new Date(),
+      }]);
+      return;
+    }
+    const status = await checkTweakStatus(tweakId);
+    const currentlyEnabled = status?.isApplied ?? false;
+    if (currentlyEnabled) {
+      setMessages(prev => [...prev, {
+        id: `already-on-${Date.now()}`, role: "system" as const,
+        content: `"${tweak.title}" is already enabled.`,
+        timestamp: new Date(),
+      }]);
+      return;
+    }
+    const result = await executeTweak(tweakId, false);
+    if (result.success) {
+      setMessages(prev => [...prev, {
+        id: `applied-${Date.now()}`, role: "system" as const,
+        content: `"${tweak.title}" applied successfully${result.requiresReboot ? " — restart required" : ""}.`,
+        timestamp: new Date(),
+      }]);
+    }
+    // Failure toast is already shown by executeTweak hook; no extra message needed
+  }, [isElectronApp, executeTweak, checkTweakStatus]);
+
   const handleAiApplyDone = useCallback((results?: { rec: AiTweakRecommendation; outcome: { success: boolean; failureType?: string | null } }[]) => {
     // Refresh tweak state after batch apply
     const api = (window as any).electronAPI?.tweaks;
@@ -1688,6 +1742,7 @@ export default function AiAdvisor() {
                     isSlow={msg.isThinking ? isSlowRequest : false}
                     reducedMotion={prefersReducedMotion}
                     onApply={handleApplyAiRecommendations}
+                    onApplyInline={handleApplyInline}
                     isAdmin={isAdmin}
                     isPremium={isPremium}
                     onOpenUpgrade={openUpgradeModal}
