@@ -109,7 +109,11 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "runAfterFinish": true,
-      "shortcutName": "SwitchControl"
+      "shortcutName": "SwitchControl",
+      "warningsAsErrors": true,
+      "installerHeader": "build/installerHeader.bmp",
+      "installerSidebar": "build/installerSidebar.bmp",
+      "license": "build/LICENSE.txt"
     }
   }
 }

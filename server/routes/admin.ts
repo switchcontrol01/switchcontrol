@@ -391,7 +391,7 @@ router.patch("/users/:id/admin-status", requireAdmin, writeLimiter, async (req, 
 
 const deleteUserSchema = z.object({
   confirm: z.literal(true),
-  reason: z.string().max(500).optional(),
+  reason: z.string().min(1, "Reason is required for data-deletion audit trail.").max(500),
 });
 
 // DELETE /api/admin/users/:id
@@ -403,7 +403,10 @@ router.delete("/users/:id", requireAdmin, writeLimiter, async (req, res) => {
   }
 
   const parsed = deleteUserSchema.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ error: "Must confirm deletion with { confirm: true }." });
+  if (!parsed.success) {
+    const first = parsed.error.errors[0];
+    return res.status(400).json({ error: first?.message || "Must confirm deletion with { confirm: true, reason }." });
+  }
 
   const targetId = req.params.id;
 
@@ -414,12 +417,12 @@ router.delete("/users/:id", requireAdmin, writeLimiter, async (req, res) => {
     const snapshot = { email: existing.email, plan: existing.plan, isPremium: existing.isPremium, isAdmin: existing.isAdmin };
 
     // Audit BEFORE deletion — admin logs are preserved (no FK cascade) for the audit trail
-    await auditLog(admin.id, targetId, "delete_user", snapshot, null, { reason: parsed.data.reason ?? null });
-    console.warn(`[admin] ${admin.email} DELETED user=${targetId} (${existing.email}) reason="${parsed.data.reason ?? ""}"`);
+    await auditLog(admin.id, targetId, "delete_user", snapshot, null, { reason: parsed.data.reason });
+    console.warn(`[admin] ${admin.email} DELETED user=${targetId} (${existing.email}) reason="${parsed.data.reason}"`);
 
     await storage.deleteUser(targetId);
     res.json({ ok: true, deleted: { id: targetId, ...snapshot } });
-  } catch (err) {
+  } catch (err: any) {
     console.error("[admin] deleteUser error:", err);
     res.status(500).json({ error: "Failed to delete user." });
   }

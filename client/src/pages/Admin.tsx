@@ -181,10 +181,11 @@ function ConfirmModal({ title, description, confirmLabel = "Confirm", danger, re
 
 function DeleteUserModal({ user, onClose, onDeleted }: { user: AdminUser; onClose: () => void; onDeleted: () => void }) {
   const [confirm, setConfirm] = useState("");
+  const [reason, setReason] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const canDelete = confirm === (user.email || user.id);
+  const canDelete = confirm === (user.email || user.id) && reason.trim().length > 0;
 
   const submit = async () => {
     setLoading(true);
@@ -193,7 +194,7 @@ function DeleteUserModal({ user, onClose, onDeleted }: { user: AdminUser; onClos
       const r = await fetch(`/api/admin/users/${user.id}`, {
         method: "DELETE",
         headers: buildHeaders() as any,
-        body: JSON.stringify({ confirm: true }),
+        body: JSON.stringify({ confirm: true, reason: reason.trim() }),
       });
       const data = await r.json();
       if (!r.ok) throw new Error(data.error || "Failed to delete");
@@ -225,6 +226,15 @@ function DeleteUserModal({ user, onClose, onDeleted }: { user: AdminUser; onClos
           onChange={(e) => setConfirm(e.target.value)}
           data-testid="input-delete-confirm"
           placeholder={user.email || user.id || ""}
+          className="w-full rounded-lg bg-[#21262D] border border-red-500/20 px-3 py-2 text-sm text-[#E6EAF0] placeholder-[#6B7380] outline-none focus:border-red-500/50 transition-colors mb-3"
+        />
+        <label className="block text-xs text-[#6B7380] mb-1.5">Reason for deletion (required for audit trail)</label>
+        <input
+          type="text"
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+          data-testid="input-delete-reason"
+          placeholder="e.g. User requested GDPR deletion"
           className="w-full rounded-lg bg-[#21262D] border border-red-500/20 px-3 py-2 text-sm text-[#E6EAF0] placeholder-[#6B7380] outline-none focus:border-red-500/50 transition-colors mb-4"
         />
         {error && (

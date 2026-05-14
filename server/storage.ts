@@ -644,8 +644,31 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteUser(userId: string): Promise<void> {
-    // Intentionally preserve adminLogs for audit trail — targetUserId is varchar, no FK constraint
-    await db!.delete(users).where(eq(users.id, userId));
+    if (!db) throw new Error("Database not available");
+    await db.transaction(async (tx) => {
+      // 1. Resolve user_settings row for this user
+      const [settings] = await tx.select({ id: userSettings.id }).from(userSettings).where(eq(userSettings.userId, userId));
+
+      // 2. Cascade child tables by settingsId
+      if (settings) {
+        await tx.delete(appliedTweaks).where(eq(appliedTweaks.settingsId, settings.id));
+        await tx.delete(historyEntries).where(eq(historyEntries.settingsId, settings.id));
+        await tx.delete(aiScans).where(eq(aiScans.settingsId, settings.id));
+        await tx.delete(userSettings).where(eq(userSettings.id, settings.id));
+      }
+
+      // 3. Drop ad-hoc tables that use user_id directly (not part of shared schema)
+      await tx.execute(drizzleSql`DELETE FROM focus_sessions WHERE user_id = ${userId}`);
+      await tx.execute(drizzleSql`DELETE FROM app_booster_games WHERE user_id = ${userId}`);
+      await tx.execute(drizzleSql`DELETE FROM app_booster_state WHERE user_id = ${userId}`);
+      await tx.execute(drizzleSql`DELETE FROM app_booster_history WHERE user_id = ${userId}`);
+
+      // 4. Finally delete the user
+      await tx.delete(users).where(eq(users.id, userId));
+
+      // 5. Anonymize adminLogs references (targetUserId remains as audit trail, but scrub the deleted user from it)
+      await tx.execute(drizzleSql`UPDATE admin_logs SET target_user_id = NULL, metadata = metadata || ${JSON.stringify({ deleted: true })}::jsonb WHERE target_user_id = ${userId}`);
+    });
   }
 
   async countAdmins(): Promise<number> {

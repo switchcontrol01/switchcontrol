@@ -42,10 +42,22 @@ app.use(helmet({
       }
     : false,
   crossOriginEmbedderPolicy: false,
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+  dnsPrefetchControl: { allow: false },
   hsts: isProd ? { maxAge: 31536000, includeSubDomains: true, preload: true } : false,
   referrerPolicy: { policy: "strict-origin-when-cross-origin" },
   frameguard: { action: "sameorigin" },
+  permittedCrossDomainPolicies: false,
 }));
+
+// Permissions-Policy is not yet in Helmet; set manually for defense-in-depth.
+app.use((_req, res, next) => {
+  res.setHeader(
+    "Permissions-Policy",
+    "accelerometer=(), ambient-light-sensor=(), autoplay=(), battery=(), camera=(), display-capture=(), document-domain=(), encrypted-media=(), execution-while-not-rendered=(), execution-while-out-of-viewport=(), fullscreen=(), geolocation=(), gyroscope=(), keyboard-map=(), magnetometer=(), microphone=(), midi=(), navigation-override=(), payment=(), picture-in-picture=(), publickey-credentials-get=(), screen-wake-lock=(), serial=(), sync-xhr=(), usb=(), web-share=(), xr-spatial-tracking=(), clipboard-read=(), clipboard-write=()"
+  );
+  next();
+});
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -63,8 +75,21 @@ const meLimiter = rateLimit({
   message: { error: "Too many requests, please slow down" }
 });
 
+const oauthStartLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many OAuth initiations. Please try again in a minute." },
+  handler: (req, res) => {
+    console.warn(`[RateLimit] OAuth start rate-limited IP: ${req.ip}`);
+    res.status(429).json({ error: "Too many OAuth initiations. Please try again in a minute." });
+  },
+});
+
 app.use("/api/auth", authLimiter);
 app.use("/api/me", meLimiter);
+app.use("/auth/google", oauthStartLimiter);
 
 const isElectronBackend = process.env.ELECTRON_BACKEND === '1';
 

@@ -218,6 +218,17 @@ function initUpdater(isDev = false) {
   autoUpdater.forceDevUpdateConfig  = false;
   autoUpdater.channel               = electronChannel;
 
+  // ── Code signing verification guard ─────────────────────────────────────
+  // electron-updater verifies SHA-512 in latest.yml by default when publisher
+  // name is configured. Windows requires a code-signing certificate (EV or
+  // OV) via WIN_CSC_LINK / WIN_CSC_KEY_PASSWORD environment variables at
+  // build time. Without it, SmartScreen will flag the installer and auto-
+  // update hashes won't be verifiable. Log a startup warning if unsigned.
+  const isSigned = process.env.WIN_CSC_LINK || (app.isPackaged && process.platform === 'win32');
+  if (!isSigned) {
+    console.warn('[Updater] WARNING: no code-signing certificate detected. Installers will trigger SmartScreen warnings and update verification may fail.');
+  }
+
   // ── Explicit feed URL override ─────────────────────────────────────────────
   // setFeedURL overrides the app-update.yml baked into the installer at build
   // time. This guarantees the correct R2 host is used regardless of which
