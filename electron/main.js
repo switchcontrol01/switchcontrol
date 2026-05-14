@@ -1149,7 +1149,7 @@ ipcMain.handle('memory:clean', async (event, mode) => {
     return {
       error: true,
       helperMissing: true,
-      message: 'Memory cleaner helper is missing. Please reinstall SwitchControl or check for an update.',
+      message: 'Memory helper is missing from this installation. Please update or reinstall SwitchControl.',
     };
   }
 

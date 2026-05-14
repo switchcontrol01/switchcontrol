@@ -122,27 +122,31 @@ function _withPsSemaphore(fn) {
 let _tweak_psCount = 0;
 
 function runPowerShell(command) {
-  const id = ++_tweak_psCount;
-  const t0 = Date.now();
-  console.log(`[PS:tweak-executor] #${id} runPowerShell SPAWN ts=${t0}`);
-  return new Promise((resolve, reject) => {
-    const wrapped = `try { ${command}; exit 0 } catch { Write-Error $_.Exception.Message; exit 1 }`;
-    execFile(
-      'powershell',
-      ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-Command', wrapped],
-      { timeout: 30000, windowsHide: true },
-      (error, stdout, stderr) => {
-        const dur = Date.now() - t0;
-        if (error) {
-          const msg = stderr?.trim() || stdout?.trim() || error.message;
-          console.log(`[PS:tweak-executor] #${id} runPowerShell FAIL ${dur}ms`);
-          reject(new Error(msg));
-        } else {
-          console.log(`[PS:tweak-executor] #${id} runPowerShell OK ${dur}ms`);
-          resolve(stdout.trim());
+  // Acquire semaphore slot before spawning — queues if MAX_PS_CONCURRENT is full.
+  // This prevents apply/revert bursts from spawning unlimited powershell.exe children.
+  return _withPsSemaphore(() => {
+    const id = ++_tweak_psCount;
+    const t0 = Date.now();
+    console.log(`[PS:tweak-executor] #${id} runPowerShell SPAWN ts=${t0} active=${_psActive}`);
+    return new Promise((resolve, reject) => {
+      const wrapped = `try { ${command}; exit 0 } catch { Write-Error $_.Exception.Message; exit 1 }`;
+      execFile(
+        'powershell',
+        ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-Command', wrapped],
+        { timeout: 30000, windowsHide: true },
+        (error, stdout, stderr) => {
+          const dur = Date.now() - t0;
+          if (error) {
+            const msg = stderr?.trim() || stdout?.trim() || error.message;
+            console.log(`[PS:tweak-executor] #${id} runPowerShell FAIL ${dur}ms`);
+            reject(new Error(msg));
+          } else {
+            console.log(`[PS:tweak-executor] #${id} runPowerShell OK ${dur}ms`);
+            resolve(stdout.trim());
+          }
         }
-      }
-    );
+      );
+    });
   });
 }
 
