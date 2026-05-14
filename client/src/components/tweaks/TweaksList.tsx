@@ -427,7 +427,8 @@ export function TweaksList() {
                     syncing &&
                     isElectron &&
                     isRealTweak(tweak.id) &&
-                    !getTweakEnabled(tweak.id)
+                    !getTweakEnabled(tweak.id) &&
+                    tweak.id !== highlightId
                   }
                   isHighlighted={tweak.id === highlightId}
                   runtimeUnsupportedReason={runtimeUnsupportedReasons[tweak.id]}
