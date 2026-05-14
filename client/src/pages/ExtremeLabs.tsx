@@ -259,9 +259,9 @@ function TweakCard({
         </div>
         <div className="shrink-0">
           {tweak.reviewOnly ? (
-            <Button size="sm" variant="outline" className="text-xs" disabled>
-              <Info className="size-3 mr-1" /> Review
-            </Button>
+            <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground/60 px-2 py-1 rounded border border-muted-foreground/10 bg-muted-foreground/5">
+              <Info className="size-3" /> Info only
+            </span>
           ) : isApplied ? (
             <div className="flex items-center gap-1.5">
               <span className="text-xs text-emerald-400 flex items-center gap-1">
