@@ -239,9 +239,31 @@ function SafeMarkdown({ text, onApply }: { text: string; onApply?: (tweakId: str
     }
     if (lastIndex < line.length) parts.push({ type: "text", content: line.slice(lastIndex) });
   }
+
+  // Fallback: scan bold text for known tweak titles and auto-inject Apply buttons
+  // when no explicit <<APPLY:>> marker was already emitted for that tweak.
+  const appliedTweakIds = new Set(parts.filter(p => p.type === "apply").map(p => p.content));
+  const partsWithFallback: typeof parts = [];
+  for (const part of parts) {
+    if (part.type === "bold" && onApply) {
+      const foundTweak = TWEAKS_DATA.find(t =>
+        !appliedTweakIds.has(t.id) &&
+        (t.title.toLowerCase() === part.content.toLowerCase() ||
+         part.content.toLowerCase().includes(t.title.toLowerCase()))
+      );
+      if (foundTweak) {
+        partsWithFallback.push(part); // bold text
+        partsWithFallback.push({ type: "apply", content: foundTweak.id });
+        appliedTweakIds.add(foundTweak.id);
+        continue;
+      }
+    }
+    partsWithFallback.push(part);
+  }
+
   return (
     <span>
-      {parts.map((part, i) => {
+      {partsWithFallback.map((part, i) => {
         switch (part.type) {
           case "bold": return <strong key={i} className="text-[#E6EAF0] font-semibold">{part.content}</strong>;
           case "code": return <code key={i} className="px-1.5 py-0.5 rounded bg-[#21262D] text-primary text-[11px] font-mono">{part.content}</code>;
