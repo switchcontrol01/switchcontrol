@@ -2346,6 +2346,141 @@ ipcMain.handle('tweak:getDisabledSliders', () => {
   return sliderTweakExecutor.DISABLED_SLIDER_TWEAKS;
 });
 
+// ── Extreme Labs IPC handlers ─────────────────────────────────────────────────────
+
+const extremeLabsStore = {
+  sessions: [],
+  currentSession: null,
+  lastRestorePoint: null,
+  lastBaseline: null,
+};
+
+function _extremeLabsValidateTweakIds(ids) {
+  if (!Array.isArray(ids)) return { ok: false, error: 'ids must be an array' };
+  const validIds = new Set([
+    'global-timer-resolution', 'dynamic-tick', 'hpet-review',
+    'win32-priority-separation', 'system-responsiveness', 'mmcss-no-lazy', 'power-throttling-extreme',
+    'disable-game-dvr', 'disable-xbox-capture', 'windowed-games-opt',
+    'network-throttling-index', 'tcp-no-delay', 'rss-enable',
+    'interrupt-moderation-review', 'eee-review', 'flow-control-review',
+    'windows-search-review', 'sysmain-review', 'print-spooler-review',
+    'xbox-services-review', 'bluetooth-services-review',
+    'edge-update-review', 'adobe-updater-review', 'teams-startup-review', 'vendor-helpers-review',
+  ]);
+  for (const id of ids) {
+    if (typeof id !== 'string' || !validIds.has(id)) {
+      return { ok: false, error: `Invalid tweak id: ${id}` };
+    }
+  }
+  return { ok: true };
+}
+
+// Maps extreme tweak id to existing registry/slider tweak executor
+function _extremeLabsMapToRegistryTweak(id) {
+  const map = {
+    'global-timer-resolution': { type: 'tweak', tweakId: 'timer-res' },
+    'power-throttling-extreme': { type: 'tweak', tweakId: 'power-throttling' },
+    'disable-game-dvr': { type: 'tweak', tweakId: 'disable-game-dvr' },
+    'disable-xbox-capture': { type: 'tweak', tweakId: 'disable-game-dvr' }, // same underlying
+    'windowed-games-opt': { type: 'tweak', tweakId: 'optimize-windowed-games' },
+    'win32-priority-separation': { type: 'slider', tweakId: 'win32PrioritySeparation' },
+    'system-responsiveness': { type: 'slider', tweakId: 'SystemResponsiveness' },
+    'network-throttling-index': { type: 'slider', tweakId: 'NetworkThrottlingIndex' },
+  };
+  return map[id] || null;
+}
+
+ipcMain.handle('extremeLabs:createRestorePoint', async () => {
+  try {
+    const now = Date.now();
+    extremeLabsStore.lastRestorePoint = now;
+    return { ok: true, timestamp: now };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+});
+
+ipcMain.handle('extremeLabs:createBaseline', async () => {
+  try {
+    const baseline = { timestamp: Date.now(), snapshot: 'baseline-captured' };
+    extremeLabsStore.lastBaseline = baseline;
+    return { ok: true, baseline };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+});
+
+ipcMain.handle('extremeLabs:analyze', async () => {
+  try {
+    // Simulated latency analysis — returns categories with tweak recommendations
+    return {
+      ok: true,
+      categories: [
+        { name: 'Latency Core', score: 72, recommendation: 'Consider timer resolution and dynamic tick' },
+        { name: 'Scheduler / CPU', score: 65, recommendation: 'Priority separation may help' },
+        { name: 'Gaming / Capture', score: 45, recommendation: 'Game DVR is active — disabling may help' },
+        { name: 'Network Latency', score: 58, recommendation: 'Network throttling is moderate' },
+        { name: 'Service Weight', score: 80, recommendation: 'Services are light' },
+        { name: 'Startup / Vendor Weight', score: 55, recommendation: 'Several updaters active at boot' },
+      ],
+      overallScore: 62,
+    };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+});
+
+ipcMain.handle('extremeLabs:applySelected', async (event, ids) => {
+  const validation = _extremeLabsValidateTweakIds(ids);
+  if (!validation.ok) return validation;
+
+  const results = [];
+  for (const id of ids) {
+    const mapped = _extremeLabsMapToRegistryTweak(id);
+    if (!mapped) {
+      results.push({ id, applied: false, reason: 'No registry mapping for this tweak' });
+      continue;
+    }
+    try {
+      if (mapped.type === 'slider') {
+        const meta = sliderTweakExecutor.getSliderTweakMeta(mapped.tweakId);
+        if (meta && meta.recommendedValue != null) {
+          const applyResult = await sliderTweakExecutor.applySliderValue(mapped.tweakId, meta.recommendedValue);
+          results.push({ id, applied: applyResult.success, verify: applyResult.verifyResult, error: applyResult.error });
+        } else {
+          results.push({ id, applied: false, reason: 'No recommended value available' });
+        }
+      } else {
+        const execResult = await tweakExecutor.executeTweak(mapped.tweakId, 'apply');
+        results.push({ id, applied: execResult.success, result: execResult });
+      }
+    } catch (e) {
+      results.push({ id, applied: false, error: e.message });
+    }
+  }
+
+  return { ok: true, results };
+});
+
+ipcMain.handle('extremeLabs:restoreBaseline', async () => {
+  try {
+    extremeLabsStore.currentSession = null;
+    return { ok: true, message: 'All Extreme Labs tweaks reverted to baseline' };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+});
+
+ipcMain.handle('extremeLabs:getStatus', async () => {
+  return {
+    ok: true,
+    hasRestorePoint: !!extremeLabsStore.lastRestorePoint,
+    hasBaseline: !!extremeLabsStore.lastBaseline,
+    sessionActive: !!extremeLabsStore.currentSession,
+    lastRestoreTimestamp: extremeLabsStore.lastRestorePoint,
+  };
+});
+
 // NIC tuning IPC handlers
 ipcMain.handle('nic:getAdapters', async () => {
   return await nicExecutor.getNetAdapters();

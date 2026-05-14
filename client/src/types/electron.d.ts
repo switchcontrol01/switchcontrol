@@ -186,6 +186,15 @@ declare global {
         executeAction: (params: { type: string; mode: 'apply' | 'revert' | 'check'; executable: string; installPath: string | null; gameName: string }) => Promise<{ success: boolean; verified: boolean; message?: string; error?: string }>;
       };
 
+      extremeLabs: {
+        createRestorePoint: () => Promise<{ ok: boolean; timestamp?: number; error?: string }>;
+        createBaseline: () => Promise<{ ok: boolean; baseline?: { timestamp: number; snapshot: string }; error?: string }>;
+        analyze: () => Promise<{ ok: boolean; categories?: Array<{ name: string; score: number; recommendation: string }>; overallScore?: number; error?: string }>;
+        applySelected: (ids: string[]) => Promise<{ ok: boolean; results?: Array<{ id: string; applied: boolean; reason?: string; error?: string; verify?: any; result?: any }>; error?: string }>;
+        restoreBaseline: () => Promise<{ ok: boolean; message?: string; error?: string }>;
+        getStatus: () => Promise<{ ok: boolean; hasRestorePoint: boolean; hasBaseline: boolean; sessionActive: boolean; lastRestoreTimestamp: number | null; error?: string }>;
+      };
+
       updater: {
         getState: () => Promise<UpdaterState>;
         check: () => Promise<boolean>;

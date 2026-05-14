@@ -405,6 +405,18 @@ contextBridge.exposeInMainWorld('electronAPI', {
     },
   },
 
+  extremeLabs: {
+    createRestorePoint: () => ipcRenderer.invoke('extremeLabs:createRestorePoint'),
+    createBaseline:     () => ipcRenderer.invoke('extremeLabs:createBaseline'),
+    analyze:            () => ipcRenderer.invoke('extremeLabs:analyze'),
+    applySelected:      (ids) => {
+      if (!Array.isArray(ids)) throw new TypeError('extremeLabs.applySelected: ids must be an array');
+      return ipcRenderer.invoke('extremeLabs:applySelected', ids);
+    },
+    restoreBaseline:    () => ipcRenderer.invoke('extremeLabs:restoreBaseline'),
+    getStatus:          () => ipcRenderer.invoke('extremeLabs:getStatus'),
+  },
+
   focus: {
     apply:               (params) => ipcRenderer.invoke('focus:apply', params),
     revert:              (params) => ipcRenderer.invoke('focus:revert', params),

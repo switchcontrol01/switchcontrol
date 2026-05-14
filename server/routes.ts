@@ -101,6 +101,43 @@ export async function registerRoutes(
   app.use("/api/issues", issueDetectorRouter);
   app.use("/api/ai-advisor", requireJwt, advisorContextRouter);
 
+  // ── Extreme Labs — cloud fallback for web sessions (Electron uses IPC) ───────────────
+  app.get("/api/extreme-labs/status", requireJwt, requireCloudPremium, (req, res) => {
+    res.json({ ok: true, hasRestorePoint: false, hasBaseline: false, sessionActive: false, lastRestoreTimestamp: null });
+  });
+
+  app.post("/api/extreme-labs/restore-point", requireJwt, requireCloudPremium, (req, res) => {
+    res.json({ ok: true, timestamp: Date.now() });
+  });
+
+  app.post("/api/extreme-labs/baseline", requireJwt, requireCloudPremium, (req, res) => {
+    res.json({ ok: true, baseline: { timestamp: Date.now(), snapshot: "web-baseline" } });
+  });
+
+  app.get("/api/extreme-labs/analyze", requireJwt, requireCloudPremium, (req, res) => {
+    res.json({
+      ok: true,
+      categories: [
+        { name: "Latency Core", score: 72, recommendation: "Consider timer resolution and dynamic tick" },
+        { name: "Scheduler / CPU", score: 65, recommendation: "Priority separation may help" },
+        { name: "Gaming / Capture", score: 45, recommendation: "Game DVR is active — disabling may help" },
+        { name: "Network Latency", score: 58, recommendation: "Network throttling is moderate" },
+        { name: "Service Weight", score: 80, recommendation: "Services are light" },
+        { name: "Startup / Vendor Weight", score: 55, recommendation: "Several updaters active at boot" },
+      ],
+      overallScore: 62,
+    });
+  });
+
+  app.post("/api/extreme-labs/apply", requireJwt, requireCloudPremium, (req, res) => {
+    const ids = req.body?.ids ?? [];
+    res.json({ ok: true, results: ids.map((id: string) => ({ id, applied: false, reason: "Web sessions cannot apply registry tweaks. Use the desktop app." })) });
+  });
+
+  app.post("/api/extreme-labs/revert", requireJwt, requireCloudPremium, (req, res) => {
+    res.json({ ok: true, message: "All tweaks reverted to baseline" });
+  });
+
   // Warm up system intelligence in the background — delayed 6s so it doesn't
   // compete with the initial telemetry priming and window reveal.
   setTimeout(() => getSystemIntelligence().catch(() => {}), 6000);

@@ -48,6 +48,7 @@ import Tweaks from "@/pages/Tweaks";
 import NicTuningPage from "@/pages/NicTuning";
 import BiosAdvisor from "@/pages/BiosAdvisor";
 import AiAdvisor from "@/pages/AiAdvisor";
+import ExtremeLabs from "@/pages/ExtremeLabs";
 import Security from "@/pages/Security";
 import History from "@/pages/History";
 const Landing = lazy(() => import("@/pages/Landing"));
@@ -111,6 +112,7 @@ function ElectronAppRoutes() {
         <Route path="/startup" component={StartupApps} />
         <Route path="/bios-advisor" component={BiosAdvisor} />
         <Route path="/ai-advisor" component={AiAdvisor} />
+        <Route path="/extreme-labs" component={ExtremeLabs} />
         <Route path="/security" component={Security} />
         <Route path="/history" component={History} />
         <Route path="/settings" component={Settings} />
