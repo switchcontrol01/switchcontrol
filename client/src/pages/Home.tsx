@@ -437,7 +437,7 @@ export default function Home() {
     if (specsLoadedRef.current) return;
     specsLoadedRef.current = true;
 
-    const SPEC_TIMEOUT_MS = 8_000;
+    const SPEC_TIMEOUT_MS = 18_000;
 
     const api = (window as any).electronAPI;
     if (api?.system?.getSpecs) {

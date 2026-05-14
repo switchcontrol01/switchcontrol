@@ -1525,35 +1525,37 @@ async function loadSystemSpecs() {
   }
 
   try {
-    // Fetch all data in parallel with individual try/catch + timeout
+    // Fetch all data in parallel with individual try/catch + timeout.
+    // si.cpu() can take 6-12 s on first WMI cold-start (especially AMD
+    // systems), so we give it a generous 15 s.  The others are fast.
     let cpu = { brand: 'Unknown CPU', cores: 0, speed: 0 };
     let mem = { total: 0, available: 0 };
     let graphics = { controllers: [] };
     let fsData = [];
 
-    try {
-      cpu = await siWithTimeout(() => si.cpu(), 5_000, 'si.cpu()');
-    } catch (e) {
-      console.error('[SwitchControl] Failed to get CPU info:', e.message || e);
-    }
+    const [cpuResult, memResult, graphicsResult, fsResult] = await Promise.all([
+      siWithTimeout(() => si.cpu(), 15_000, 'si.cpu()').catch(e => {
+        console.error('[SwitchControl] Failed to get CPU info:', e.message || e);
+        return cpu;
+      }),
+      siWithTimeout(() => si.mem(), 5_000, 'si.mem()').catch(e => {
+        console.error('[SwitchControl] Failed to get memory info:', e.message || e);
+        return mem;
+      }),
+      siWithTimeout(() => si.graphics(), 5_000, 'si.graphics()').catch(e => {
+        console.error('[SwitchControl] Failed to get graphics info:', e.message || e);
+        return graphics;
+      }),
+      siWithTimeout(() => si.fsSize(), 5_000, 'si.fsSize()').catch(e => {
+        console.error('[SwitchControl] Failed to get disk info:', e.message || e);
+        return fsData;
+      })
+    ]);
 
-    try {
-      mem = await siWithTimeout(() => si.mem(), 5_000, 'si.mem()');
-    } catch (e) {
-      console.error('[SwitchControl] Failed to get memory info:', e.message || e);
-    }
-
-    try {
-      graphics = await siWithTimeout(() => si.graphics(), 5_000, 'si.graphics()');
-    } catch (e) {
-      console.error('[SwitchControl] Failed to get graphics info:', e.message || e);
-    }
-
-    try {
-      fsData = await siWithTimeout(() => si.fsSize(), 5_000, 'si.fsSize()');
-    } catch (e) {
-      console.error('[SwitchControl] Failed to get disk info:', e.message || e);
-    }
+    cpu = cpuResult;
+    mem = memResult;
+    graphics = graphicsResult;
+    fsData = fsResult;
 
     const totalGB = (mem.total || 0) / 1024 / 1024 / 1024;
     const freeGB = (mem.available || 0) / 1024 / 1024 / 1024;
@@ -1573,7 +1575,7 @@ async function loadSystemSpecs() {
       };
     });
 
-    cachedSpecs = {
+    const result = {
       cpu: {
         model: cpu.brand || 'Unknown CPU',
         cores: cpu.physicalCores || cpu.cores || 0,
@@ -1602,9 +1604,18 @@ async function loadSystemSpecs() {
       disks: disks
     };
 
-    cachedSpecsTime = Date.now();
-    console.log('[SwitchControl] System specs loaded:', cachedSpecs.cpu.model, cachedSpecs.gpu.model);
-    return cachedSpecs;
+    // Only cache when we got a real CPU model.  On some systems si.cpu()
+    // times out on the first WMI cold-start and returns the default
+    // "Unknown CPU".  If we cache that, the user is stuck for 5 minutes.
+    const hasRealCpu = cpu.brand && cpu.brand !== 'Unknown CPU';
+    if (hasRealCpu) {
+      cachedSpecs = result;
+      cachedSpecsTime = Date.now();
+      console.log('[SwitchControl] System specs loaded:', cachedSpecs.cpu.model, cachedSpecs.gpu.model);
+    } else {
+      console.warn('[SwitchControl] CPU info incomplete — returning but NOT caching so next call retries');
+    }
+    return result;
 
   } catch (e) {
     console.error('[SwitchControl] getSpecs error:', e);
