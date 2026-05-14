@@ -189,6 +189,200 @@ export function safeGetJwt(): string | null {
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────────────────────────────
+// Auth-truth hardening: startup sequence, expiry checks, reissue, and cloud resolution.
+// ─────────────────────────────────────────────────────────────────────────────────────────────────────
+
+interface JwtCheckResult {
+  jwt: string | null;
+  expired: boolean;
+  malformed: boolean;
+  exp: number | null;
+}
+
+/** Check JWT expiry WITHOUT deleting it. Returns detailed result for orchestration. */
+export function checkJwtExpiry(): JwtCheckResult {
+  const jwt = useAuthStore.getState().jwt;
+  if (!jwt) return { jwt: null, expired: false, malformed: false, exp: null };
+  try {
+    const parts = jwt.split('.');
+    if (parts.length !== 3) {
+      return { jwt, expired: false, malformed: true, exp: null };
+    }
+    const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+    const exp = payload.exp ? Number(payload.exp) : null;
+    const isExpired = exp !== null && Math.floor(Date.now() / 1000) >= exp;
+    return { jwt, expired: isExpired, malformed: false, exp };
+  } catch {
+    return { jwt, expired: false, malformed: true, exp: null };
+  }
+}
+
+// Deduplicates concurrent reissue requests across the app.
+let _jwtReissuePromise: Promise<string | null> | null = null;
+
+/** Attempts a JWT reissue from the cloud server using the session cookie.
+ *  Returns the new JWT, or null if the session is expired/gone. */
+async function reissueJwtFromSession(): Promise<string | null> {
+  if (_jwtReissuePromise) return _jwtReissuePromise;
+  _jwtReissuePromise = (async () => {
+    try {
+      const response = await fetch(`${AUTH_DOMAIN}/api/auth/reissue-jwt`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (!response.ok) {
+        console.warn(`[AuthTruth] JWT reissue HTTP ${response.status}`);
+        return null;
+      }
+      const data = await response.json();
+      if (data?.jwt) {
+        useAuthStore.getState().setJwt(data.jwt);
+        console.log(`[AuthTruth] JWT reissued — length=${data.jwt.length}`);
+        return data.jwt as string;
+      }
+      return null;
+    } catch (err) {
+      console.warn('[AuthTruth] JWT reissue network error:', (err as Error).message);
+      return null;
+    } finally {
+      _jwtReissuePromise = null;
+    }
+  })();
+  return _jwtReissuePromise;
+}
+
+/** Full auth-truth resolution with the mandated startup order:
+ *  1. Load stored user/JWT
+ *  2. Check JWT expiry WITHOUT deleting it
+ *  3. Try JWT reissue if expired
+ *  4. Call cloud /api/me
+ *  5. Resolve premium/trial from cloud response
+ *  6. Return verified state (device validation should happen AFTER this)
+ *
+ *  Premium is NEVER downgraded on network/server failure.
+ *  Only downgrade when cloud explicitly says loggedIn=false or plan=free.
+ */
+export async function resolveAuthState(): Promise<{
+  user: AuthUser | null;
+  jwt: string | null;
+  verified: boolean;
+  reason: string;
+}> {
+  console.log('[AuthTruth] resolveAuthState START');
+  const store = useAuthStore.getState();
+  const storedUser = store.user;
+  const storedJwt = store.jwt;
+
+  // Step 1: load stored
+  console.log(`[AuthTruth] step 1 loadStored user=${storedUser ? 'yes' : 'no'} jwt=${storedJwt ? 'yes' : 'no'}`);
+
+  // Step 2: check JWT expiry (no delete)
+  const jwtCheck = checkJwtExpiry();
+  console.log(`[AuthTruth] step 2 checkExpiry malformed=${jwtCheck.malformed} expired=${jwtCheck.expired}`);
+
+  let activeJwt = jwtCheck.jwt;
+
+  if (jwtCheck.malformed && activeJwt) {
+    const fp = _jwtFingerprint(activeJwt);
+    console.warn(`[AuthTruth] JWT malformed — clearing. tokenId: ${fp}`);
+    store.setJwt(null);
+    activeJwt = null;
+  }
+
+  // Step 3: try reissue if expired
+  if (jwtCheck.expired && activeJwt) {
+    console.log('[AuthTruth] step 3 reissueAttempt');
+    const reissued = await reissueJwtFromSession();
+    if (reissued) {
+      console.log('[AuthTruth] step 3 reissue=SUCCESS');
+      activeJwt = reissued;
+    } else {
+      console.warn('[AuthTruth] step 3 reissue=FAILED — keeping expired JWT for one /api.me attempt');
+      // Do NOT clear — the cloud server may still honor the session cookie
+    }
+  } else {
+    console.log('[AuthTruth] step 3 reissue=SKIP');
+  }
+
+  // Step 4: call cloud /api/me
+  console.log('[AuthTruth] step 4 callCloud /api.me');
+  try {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (activeJwt) headers['Authorization'] = `Bearer ${activeJwt}`;
+
+    const response = await fetch(`${AUTH_DOMAIN}/api/me`, { headers, credentials: 'include' });
+
+    if (!response.ok) {
+      const status = response.status;
+      console.warn(`[AuthTruth] step 4 /api.me HTTP ${status}`);
+      if (status === 401) {
+        // Cloud says the JWT (and any session cookie) is invalid — truly logged out
+        console.log('[AuthTruth] step 4 401=LOGGED_OUT');
+        store.logout();
+        return { user: null, jwt: null, verified: true, reason: 'logged_out_by_cloud' };
+      }
+      // Server error or network hiccup — preserve cached state, do NOT downgrade
+      console.log(`[AuthTruth] step 4 HTTP ${status}=PRESERVE_CACHED`);
+      return {
+        user: storedUser,
+        jwt: activeJwt,
+        verified: false,
+        reason: `cloud_unavailable_${status}`,
+      };
+    }
+
+    const data = await response.json();
+    console.log(`[AuthTruth] step 4 /api.me success loggedIn=${data.loggedIn}`);
+
+    if (data.loggedIn === false) {
+      console.log(`[AuthTruth] source=cloud userId=${data.id} isPremium=false plan=free verified=true reason=logged-out`);
+      store.logout();
+      return { user: null, jwt: null, verified: true, reason: 'logged_out_by_cloud' };
+    }
+
+    // Step 5: resolve premium/trial from cloud truth
+    const resolvedPlan: string = data.plan || (data.isPremium ? 'premium' : 'free');
+    const resolvedIsPremium: boolean = !!(
+      data.isPremium ||
+      data.plan === 'premium' ||
+      (data.plan === 'trial' && !!data.trialEndsAt && new Date() < new Date(data.trialEndsAt))
+    );
+
+    const user: AuthUser = {
+      id: data.id || storedUser?.id || '',
+      email: data.email || null,
+      username: data.name || data.firstName || null,
+      avatarUrl: data.avatar || null,
+      plan: resolvedPlan,
+      isPremium: resolvedIsPremium,
+      trialEndsAt: data.trialEndsAt || null,
+      isAdmin: data.isAdmin || false,
+      hasSeenPremiumUnlock: !!data.hasSeenPremiumUnlock,
+      hasSeenPremiumTour: !!data.hasSeenPremiumTour,
+      hasSeenTrialActivation: !!data.hasSeenTrialActivation,
+      hasSeenTrialTour: !!data.hasSeenTrialTour,
+      loggedIn: true,
+    };
+
+    store.setUser(user);
+    console.log(`[AuthTruth] step 5 resolved isPremium=${user.isPremium} plan=${user.plan}`);
+    console.log(`[AuthTruth] source=cloud userId=${user.id} isPremium=${user.isPremium} plan=${user.plan} verified=true`);
+
+    return { user, jwt: activeJwt, verified: true, reason: 'cloud_confirmed' };
+  } catch (err) {
+    // Network failure — preserve cached state, do NOT downgrade
+    console.warn(`[AuthTruth] step 4 network error: ${(err as Error).message}`);
+    console.log(`[AuthTruth] source=cache userId=${storedUser?.id ?? 'none'} isPremium=${storedUser?.isPremium ?? false} plan=${storedUser?.plan ?? 'none'} verified=false reason=cloud-unavailable`);
+    return {
+      user: storedUser,
+      jwt: activeJwt,
+      verified: false,
+      reason: 'network_error',
+    };
+  }
+}
+
 function buildAuthHeaders(): HeadersInit {
   const jwt = safeGetJwt();
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };

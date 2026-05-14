@@ -32,11 +32,48 @@ import { getSnapshot, getSystemSpecs, getSchedulerStats, startTelemetryPolling }
 import { setupWebSocketServer } from "./lib/wsServer";
 import { signJwt } from "./lib/jwt";
 
+const isElectronBackend = process.env.ELECTRON_BACKEND === '1';
+
+// ── Cloud-truth routes must never be served by the embedded local backend ──────
+// In packaged Electron the local backend has no Stripe keys, no JWT secret,
+// and no session state. All auth / premium / billing / admin / device calls
+// must go to the cloud. The fetch interceptor in api.ts already routes them
+// there, but we also reject at the local server layer as a defense-in-depth
+// hardening measure.
+const CLOUD_TRUTH_ROUTE_PREFIXES = [
+  "/api/me",
+  "/api/auth",
+  "/api/premium",
+  "/api/stripe",
+  "/api/billing",
+  "/api/device",
+  "/api/admin",
+];
+
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
-  
+
+  // Local-backend 409 shield — installed before any route handler.
+  if (isElectronBackend) {
+    app.use((req, res, next) => {
+      const path = req.path;
+      const isCloudTruth = CLOUD_TRUTH_ROUTE_PREFIXES.some(
+        prefix => path === prefix || path.startsWith(prefix + "/")
+      );
+      if (isCloudTruth) {
+        console.log(`[LocalRouteBlocked] path=${path} reason=cloud_route_required backend=local`);
+        return res.status(409).json({
+          error: "cloud_route_required",
+          message: "This route must be called against the cloud server, not the local backend.",
+          cloudUrl: "https://switchcontrol.org" + path,
+        });
+      }
+      next();
+    });
+  }
+
   setupGoogleAuth(app);
   setupDiscordAuth(app);
 
@@ -566,12 +603,15 @@ export async function registerRoutes(
 
   // Read-only payment status check — used by the success page to show the correct state.
   // This route NEVER grants premium. Premium is exclusively granted by the Stripe webhook.
-  app.post("/api/stripe/confirm", async (req, res) => {
+  app.post("/api/stripe/confirm", requireJwt, async (req, res) => {
     try {
       const { session_id } = req.body;
       if (!session_id || typeof session_id !== 'string') {
         return res.status(400).json({ ok: false, error: "session_id required" });
       }
+
+      const cloudUser = req.cloudUser!;
+      console.log(`[AuthRoute] /api/stripe/confirm called userId=${cloudUser.id}`);
 
       const stripe = await getUncachableStripeClient();
       const session = await stripe.checkout.sessions.retrieve(session_id);
@@ -581,17 +621,18 @@ export async function registerRoutes(
         return res.status(400).json({ ok: false, error: "not_paid" });
       }
 
-      // Verify the session belongs to the logged-in user.
+      // Verify the session belongs to the authenticated user.
+      // checkoutUserId is pulled from the Stripe API session object, NOT from the body.
       const checkoutUserId = session.client_reference_id || session.metadata?.userId;
-      const loggedInUser = (req as any).user;
 
       if (!checkoutUserId) {
         console.error(`[Stripe] /confirm — session ${session_id} has no user mapping`);
         return res.status(400).json({ ok: false, error: "missing_user_mapping" });
       }
 
-      if (loggedInUser?.id && loggedInUser.id !== checkoutUserId) {
-        console.error(`[Stripe] /confirm — user mismatch: logged in as ${loggedInUser.id}, session was for ${checkoutUserId}`);
+      // Hard trust: the authenticated user MUST match the checkout session owner.
+      if (cloudUser.id !== checkoutUserId) {
+        console.error(`[Stripe] /confirm — user mismatch: authenticated=${cloudUser.id}, session was for ${checkoutUserId}`);
         return res.status(403).json({ ok: false, error: "user_mismatch" });
       }
 

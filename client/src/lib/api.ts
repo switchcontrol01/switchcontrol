@@ -15,6 +15,26 @@ const CLOUD_ONLY_API_PREFIXES = [
   "/api/admin",
 ];
 
+// Defense-in-depth: no cloud-truth request should ever reach the local backend.
+// The fetch interceptor below enforces this for packaged Electron. If a cloud-only
+// request somehow slips through with a localhost origin, we rewrite it to the cloud.
+function _ensureCloudOrigin(url: string): string {
+  if (!url.startsWith("http")) return url;
+  try {
+    const u = new URL(url);
+    const isLocalhost = u.hostname === "localhost" || u.hostname === "127.0.0.1" || u.hostname === "::1";
+    const isCloudTruth = isCloudOnlyApiPath(u.pathname);
+    if (isLocalhost && isCloudTruth) {
+      const fixed = `${CLOUD_API_ORIGIN}${u.pathname}${u.search}${u.hash}`;
+      console.log(`[AuthRoute] Rewriting localhost cloud-truth request ${u.pathname} → ${CLOUD_API_ORIGIN}`);
+      return fixed;
+    }
+    return url;
+  } catch {
+    return url;
+  }
+}
+
 export function isCloudOnlyApiPath(url: string): boolean {
   try {
     const parsed = url.startsWith("http") ? new URL(url) : null;
@@ -469,6 +489,10 @@ export async function apiFetch(
     const base = await resolveApiBase();
     url = path.startsWith('http') ? path : `${base}${path.startsWith('/') ? path : `/${path}`}`;
   }
+
+  // Defense-in-depth: if a cloud-truth request somehow has a localhost URL,
+  // force it to the cloud origin regardless of path classification.
+  url = _ensureCloudOrigin(url);
 
   const headers: Record<string, string> = {};
   if (options.headers) {

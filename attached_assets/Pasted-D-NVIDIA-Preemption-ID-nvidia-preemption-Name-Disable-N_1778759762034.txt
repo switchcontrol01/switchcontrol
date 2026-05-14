@@ -1,0 +1,123 @@
+D. NVIDIA Preemption
+
+ID: nvidia-preemption
+Name: Disable NVIDIA Preemption
+Category: GPU Tweaks
+Risk: Risky
+Recommended: No
+NVIDIA only: Yes
+
+Requirement:
+Only supported if NVIDIA GPU is detected AND a real NVIDIA profile helper exists.
+
+Warning:
+May cause instability, driver issues, or worse performance depending on driver version. Not recommended for most users.
+
+If helper missing:
+Return unsupported:
+
+"Requires NVIDIA profile helper. Not bundled in this build."
+
+Do not add fake registry writes.
+
+---
+
+E. NVIDIA Clock Policy
+
+ID: nvidia-unrestrict-clock-policy
+Name: Unrestrict NVIDIA Clock Policy
+Category: GPU Tweaks
+Risk: Advanced
+Recommended: No
+NVIDIA only: Yes
+
+Requirement:
+Only supported if NVIDIA GPU is detected AND a real NVIDIA profile helper exists.
+
+Warning:
+Can increase power draw and heat. Results depend on driver and power plan.
+
+If helper missing:
+Return unsupported:
+
+"Requires NVIDIA profile helper. Not bundled in this build."
+
+---
+
+F. Disable Lock Screen
+
+ID: disable-lock-screen
+Name: Disable Lock Screen
+Category: Windows UX
+Risk: Safe
+Recommended: No
+Admin: Yes
+
+Registry:
+HKLM\SOFTWARE\Policies\Microsoft\Windows\Personalization
+
+Apply:
+NoLockScreen = 1 DWORD
+
+Revert:
+Restore baseline.
+If no baseline existed, remove NoLockScreen.
+
+Check:
+NoLockScreen equals 1.
+
+Warning:
+Removes the Windows lock screen before sign-in. Does not remove account password or Windows Hello.
+
+---
+
+G. Disable Transparency Effects
+
+ID: disable-transparency
+Name: Disable Transparency Effects
+Category: Windows UX
+Risk: Safe
+Recommended: Optional
+Admin: No
+
+Registry:
+HKCU\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize
+
+Apply:
+EnableTransparency = 0 DWORD
+
+Revert:
+Restore baseline or set EnableTransparency = 1.
+
+Check:
+EnableTransparency equals 0.
+
+Important:
+If this already exists, audit it only. Do not duplicate.
+
+---
+
+H. Disable Wallpaper Compression
+
+ID: disable-wallpaper-compression
+Name: Disable Wallpaper Compression
+Category: Windows UX
+Risk: Safe
+Recommended: No
+Admin: No
+
+Registry:
+HKCU\Control Panel\Desktop
+
+Apply:
+JPEGImportQuality = 100 DWORD
+
+Revert:
+Restore baseline.
+If no baseline existed, remove JPEGImportQuality.
+
+Check:
+JPEGImportQuality equals 100.
+
+Warning:
+Visual-only tweak. No gaming performance gain.

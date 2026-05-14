@@ -15,7 +15,7 @@ import { TrialTour } from "@/components/TrialTour";
 import { GuidedTour } from "@/components/GuidedTour";
 import { WindowControls } from "@/components/WindowControls";
 import { AnimatePresence, motion } from "framer-motion";
-import { useAuthStore, validateToken, exchangeToken, AuthUser, refreshEntitlements, retryRefreshEntitlements, triggerFlowReset, performFullLogout, postUnlockSeen, postTourSeen, postResetTourFlags, postTrialActivationSeen, postTrialTourSeen } from "@/lib/auth-store";
+import { useAuthStore, validateToken, exchangeToken, AuthUser, refreshEntitlements, retryRefreshEntitlements, triggerFlowReset, performFullLogout, postUnlockSeen, postTourSeen, postResetTourFlags, postTrialActivationSeen, postTrialTourSeen, resolveAuthState } from "@/lib/auth-store";
 import { tryReissueJwt } from "@/lib/api";
 import { isTrialActive } from "@/lib/trialCountdown";
 import { telemetryManager } from "@/lib/telemetryManager";
@@ -705,154 +705,112 @@ function ElectronAppContent() {
 
     const checkAuth = async () => {
       const hasCredential = !!(token || jwt);
-      console.log('[Auth] Boot: token present:', !!token, 'jwt present:', !!jwt, 'user present:', !!user, 'premium:', user?.isPremium);
-      console.log('[Entitlements] startup restore begin — hasCredential:', hasCredential, 'cached isPremium:', user?.isPremium ?? 'n/a', 'plan:', user?.plan ?? 'n/a');
+      console.log('[AuthTruth] Boot: token present:', !!token, 'jwt present:', !!jwt, 'user present:', !!user, 'premium:', user?.isPremium);
+      console.log('[AuthTruth] startup restore begin — hasCredential:', hasCredential, 'cached isPremium:', user?.isPremium ?? 'n/a', 'plan:', user?.plan ?? 'n/a');
 
-      if (hasCredential && user) {
-        console.log('[Auth] Using stored user data:', user.id, 'isPremium:', user.isPremium);
+      // ── Hardened startup order ──────────────────────────────────────────────────────────────────────
+      // 1. Load stored user/JWT
+      // 2. Check JWT expiry without deleting it
+      // 3. Try JWT reissue if expired
+      // 4. Call cloud /api/me
+      // 5. Resolve premium/trial from cloud response
+      // 6. Set entitlementsVerified (device validation happens AFTER this, in the
+      //    dedicated usePremiumDeviceLock hook which only fires when
+      //    entitlementsOk && isPremium && !trial)
+      //
+      // Premium is NEVER downgraded on network/server failure.
+      // Only downgrade when cloud explicitly says loggedIn=false or plan=free.
+      // ────────────────────────────────────────────────────────────────────────────────
 
-        // Force a fresh entitlement fetch BEFORE transitioning to the dashboard so
-        // there is no startup window where the UI shows stale (potentially wrong)
-        // isPremium state. Mark entitlementsAttempted so the post-auth effect skips
-        // its duplicate fetch. A 8 s timeout prevents the splash from hanging
-        // if the server is unreachable at startup.
-        //
-        // AUTH GATE: serverExplicitlyRejected tracks whether the server was reachable
-        // AND returned no valid session. Only set to true when the fetch completed (not
-        // timed out) and still returned null — meaning the JWT is expired or revoked.
-        // Network errors / timeouts use grace-store fallback and do NOT force logout,
-        // to allow offline / slow-network app usage.
-        let serverExplicitlyRejected = false;
+      const authState = await resolveAuthState();
+      console.log(`[AuthTruth] Boot resolved verified=${authState.verified} reason=${authState.reason} user=${authState.user ? 'yes' : 'no'}`);
 
-        try {
-          let timedOut = false;
-          const _timeout = new Promise<{ user: null }>((resolve) =>
-            setTimeout(() => { timedOut = true; resolve({ user: null }); }, 2500)
-          );
-          const result = await Promise.race([refreshEntitlements(), _timeout]);
-          if (result.user) {
-            console.log('[Entitlements] startup fetch OK — isPremium:', result.user.isPremium, 'plan:', result.user.plan);
-            setEntitlementsOk(true);
-            setEntitlementsVerified(true);
-            usePremiumGraceStore.getState().setVerified(
-              result.user.isPremium,
-              result.user.plan ?? null,
-              result.user.id ?? null,
-            );
-          } else if (timedOut) {
-            // Server took > 8 s — treat like a network error, check grace store
-            console.warn('[Entitlements] startup fetch timed out — checking grace store');
-            const graceStatus = usePremiumGraceStore.getState().getStatus(false);
-            console.log('[Entitlements] startup grace store status (timeout):', graceStatus);
-            if (graceStatus === 'active' || graceStatus === 'grace') {
-              console.log('[Entitlements] grace fallback on timeout — entitlementsVerified set');
-              setEntitlementsVerified(true);
-            } else {
-              // Timeout + no grace: conservative — allow session but without entitlements
-              console.warn('[Entitlements] startup timeout, no grace — allowing session in free state');
-            }
-          } else {
-            // Server responded but returned no valid user (loggedIn: false, 401, etc.)
-            // This is an EXPLICIT rejection — the stored JWT is expired or revoked.
-            console.warn('[Auth] Boot: server explicitly rejected stored credentials — loggedIn=false or 4xx');
-            const graceStatus = usePremiumGraceStore.getState().getStatus(true);
-            console.log('[Entitlements] startup grace store status (rejected):', graceStatus);
-            if (graceStatus === 'active' || graceStatus === 'grace') {
-              // Grace store was verified recently — allow session but flag for re-auth soon
-              console.log('[Entitlements] grace fallback on rejection — entitlementsVerified set');
-              setEntitlementsVerified(true);
-            } else {
-              // Server said no AND no grace fallback → must force logout
-              console.error('[Auth] Boot: JWT rejected by server + no grace store — forcing logout');
-              serverExplicitlyRejected = true;
-            }
-          }
-        } catch (err) {
-          // Network error — server completely unreachable (no internet, server down)
-          // Do NOT force logout; allow the cached session with grace-store fallback.
-          console.warn('[Entitlements] startup fetch error (network unreachable) — checking grace store:', err);
-          const graceStatus = usePremiumGraceStore.getState().getStatus(false);
-          if (graceStatus === 'active' || graceStatus === 'grace') {
-            console.log('[Entitlements] grace fallback on network error — entitlementsVerified set');
-            setEntitlementsVerified(true);
-          } else {
-            console.warn('[Entitlements] network error + no grace — allowing session in free state');
-          }
-        }
+      setEntitlementsAttempted(true);
 
-        setEntitlementsAttempted(true);
+      if (authState.verified && authState.user) {
+        // Cloud confirmed — use truth
+        setEntitlementsOk(true);
+        setEntitlementsVerified(true);
+        usePremiumGraceStore.getState().setVerified(
+          authState.user.isPremium,
+          authState.user.plan ?? null,
+          authState.user.id ?? null,
+        );
+        console.log('[AuthTruth] Boot: cloud-confirmed — entitlementsVerified=true');
 
-        // Proactively reissue the JWT if it has expired or is within 1 day of expiry.
-        // This way local API calls (App Booster, etc.) have a fresh token ready before
-        // the user navigates anywhere — avoiding the first-request 401 in Electron.
-        if (isElectron) {
-          const storedJwt = useAuthStore.getState().jwt;
-          if (storedJwt) {
-            try {
-              const parts = storedJwt.split('.');
-              if (parts.length === 3) {
-                const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
-                const nowSec = Math.floor(Date.now() / 1000);
-                const oneDaySec = 86400;
-                if (payload.exp && nowSec >= payload.exp - oneDaySec) {
-                  console.log('[Auth] Boot: JWT expired or expiring within 24h — proactive reissue...');
-                  tryReissueJwt().catch(() => {});
-                }
+        // Proactive reissue if JWT within 1 day of expiry
+        if (isElectron && authState.jwt) {
+          try {
+            const parts = authState.jwt.split('.');
+            if (parts.length === 3) {
+              const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+              const nowSec = Math.floor(Date.now() / 1000);
+              if (payload.exp && nowSec >= payload.exp - 86400) {
+                console.log('[AuthTruth] Boot: JWT expiring within 24h — proactive reissue...');
+                tryReissueJwt().catch(() => {});
               }
-            } catch {
-              // Non-critical — api.ts will handle it on first API call
             }
+          } catch {
+            // Non-critical
           }
         }
 
-        // AUTH GATE: if server explicitly rejected the token, clear all state and
-        // force the user back to the login screen — do NOT proceed to dashboard.
-        if (serverExplicitlyRejected) {
-          console.error('[Auth] Boot: forcing logout — dashboard mount blocked');
-          storeLogout();
-          setPhase("unauthenticated");
-          return;
-        }
-
-        const welcomeKey = `sc_welcomed_${user.id}`;
+        // Transition to dashboard/welcome
+        const targetUser = authState.user;
+        const welcomeKey = `sc_welcomed_${targetUser.id}`;
         const hasBeenWelcomed = localStorage.getItem(welcomeKey);
-
         if (!hasBeenWelcomed) {
-          console.log('[App] First time user detected, showing welcome');
           setIsFirstLogin(true);
           localStorage.setItem(welcomeKey, 'true');
           setPhase("welcome");
         } else {
           setPhase("authenticated");
         }
-      } else if (hasCredential && !user) {
-        console.log('[App] Credential exists but no user, re-exchanging...');
-        setValidating(true);
-        const exchangedUser = token ? await exchangeToken(token) : await validateToken('jwt');
-        setValidating(false);
-
-        if (exchangedUser) {
-          setUser(exchangedUser);
-
-          const welcomeKey = `sc_welcomed_${exchangedUser.id}`;
-          const hasBeenWelcomed = localStorage.getItem(welcomeKey);
-
-          if (!hasBeenWelcomed) {
-            console.log('[App] First time user detected, showing welcome');
-            setIsFirstLogin(true);
-            localStorage.setItem(welcomeKey, 'true');
-            setPhase("welcome");
-          } else {
-            setPhase("authenticated");
-          }
-        } else {
-          console.log('[App] Boot: credential validation failed — clearing store');
-          storeLogout();
-          setPhase("unauthenticated");
-        }
-      } else {
-        setPhase("unauthenticated");
+        return;
       }
+
+      if (authState.reason === 'logged_out_by_cloud') {
+        // Cloud explicitly rejected the session — clear and force login
+        console.warn('[AuthTruth] Boot: logged_out_by_cloud — forcing logout');
+        storeLogout();
+        setPhase("unauthenticated");
+        return;
+      }
+
+      // Unverified (network/server error) but we have cached user — preserve it
+      if (authState.user) {
+        console.warn('[AuthTruth] Boot: cloud unreachable — preserving cached session. isPremium cached=', authState.user.isPremium);
+        // Do NOT clear premium; mark unverified so device lock stays off
+        setEntitlementsOk(true); // allow UI to proceed with cached data
+        setEntitlementsVerified(false); // but mark as unverified (cloud not confirmed)
+        const graceStatus = usePremiumGraceStore.getState().getStatus(false);
+        if (graceStatus === 'active' || graceStatus === 'grace') {
+          console.log('[AuthTruth] Boot: grace store active — entitlementsVerified via grace');
+          setEntitlementsVerified(true);
+        }
+
+        const targetUser = authState.user;
+        const welcomeKey = `sc_welcomed_${targetUser.id}`;
+        const hasBeenWelcomed = localStorage.getItem(welcomeKey);
+        if (!hasBeenWelcomed) {
+          setIsFirstLogin(true);
+          localStorage.setItem(welcomeKey, 'true');
+          setPhase("welcome");
+        } else {
+          setPhase("authenticated");
+        }
+        return;
+      }
+
+      // No user at all — show login
+      if (hasCredential && !authState.user) {
+        // Has credential but couldn't resolve — maybe just a network hiccup
+        console.log('[AuthTruth] Boot: has credential but no resolved user — showing login');
+        setPhase("unauthenticated");
+        return;
+      }
+
+      setPhase("unauthenticated");
     };
 
     checkAuth();
