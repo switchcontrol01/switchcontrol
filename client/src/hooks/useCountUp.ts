@@ -35,7 +35,9 @@ export function useCountUp(target: number, options?: {
 
     const tick = (ts: number) => {
       if (document.hidden) {
-        rafRef.current = requestAnimationFrame(tick);
+        // Skip: don't burn CPU on hidden tabs.
+        // Resume naturally via the "visible" branch when tab returns.
+        rafRef.current = null;
         return;
       }
       if (startTimeRef.current === null) startTimeRef.current = ts;

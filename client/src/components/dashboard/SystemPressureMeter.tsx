@@ -1,4 +1,4 @@
-import { useMemo, useRef, useEffect, useState } from "react";
+import { useMemo, useRef, useEffect, useState, memo } from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
@@ -21,7 +21,7 @@ function pressureColor(p: number): string {
   return "#ef4444"; // red
 }
 
-export function SystemPressureMeter({
+export const SystemPressureMeter = memo(function SystemPressureMeter({
   cpuPercent,
   ramPercent,
   diskPercent,
@@ -142,7 +142,7 @@ export function SystemPressureMeter({
       </div>
     </div>
   );
-}
+});
 
 function MetricRow({
   label,

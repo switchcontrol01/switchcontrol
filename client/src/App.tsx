@@ -237,21 +237,7 @@ function ElectronAppContent() {
   }, [realtimeMetricsEnabled]);
 
   // React to the "Pause when minimized" toggle + document visibility changes.
-  useEffect(() => {
-    const handleVisibility = () => {
-      if (!pauseWhenMinimized) return;
-      if (document.hidden) {
-        telemetryManager.pause();
-      } else {
-        // Only resume if the user hasn't separately disabled real-time metrics
-        if (realtimeMetricsEnabled) telemetryManager.resume();
-      }
-    };
-    document.addEventListener('visibilitychange', handleVisibility);
-    // Apply immediately so current state is reflected on toggle
-    handleVisibility();
-    return () => document.removeEventListener('visibilitychange', handleVisibility);
-  }, [pauseWhenMinimized, realtimeMetricsEnabled]);
+  // NOTE: merged into the single visibility listener at line ~536 — no duplicate.
 
   // login_success → next phase.
   // First-time users: 500ms (welcome animation plays next, no need to hold long).

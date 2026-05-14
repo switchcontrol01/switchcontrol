@@ -13,7 +13,7 @@ const GlassCard = React.forwardRef<
     hoverEffect?: boolean;
     blur?: "xl" | "sm" | "none";
   }
->(({ className, hoverEffect = true, blur = "xl", ...props }, ref) => (
+>(({ className, hoverEffect = true, blur = "sm", ...props }, ref) => (
   <div
     ref={ref}
     className={cn(

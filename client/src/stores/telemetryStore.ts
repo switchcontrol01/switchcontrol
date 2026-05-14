@@ -49,7 +49,9 @@ interface TelemetryStoreState {
   ) => void;
 }
 
-// slice(1) is faster than spread+shift for arrays that are already at max length
+// slice(1) + push() is the fastest way to maintain a capped array of small
+// fixed size (60 elements). It creates only 1 new array object per tick,
+// which is negligible overhead compared to chart rendering.
 function appendCapped<T>(arr: T[], val: T): T[] {
   if (arr.length < HISTORY_LEN) {
     return arr.concat([val]);

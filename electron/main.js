@@ -1513,7 +1513,6 @@ ipcMain.handle('telemetry:getBasic', async () => {
   const cpuTemp = safeNum(temps?.main || 0);
   const ramTotal = Math.round((mem?.total || 0) / (1024 * 1024 * 1024));
   const ramUsed = Math.round((((mem?.total || 0) - (mem?.available || 0)) / (mem?.total || 1)) * 100);
-  console.log('[Telemetry] cache_used=true handler=telemetry:getBasic');
   return {
     cpuUsage: safeNum(load?.currentLoad || 0),
     ramUsage: ramUsed,
@@ -1534,7 +1533,6 @@ ipcMain.handle('telemetry:getEnhanced', async () => {
   const { load, mem, temps } = liveTelemetryCache;
   const cpuTemp = safeNum(temps?.main || 0);
   const gpuTemp = gpuPollCache.temp;
-  console.log('[Telemetry] cache_used=true handler=telemetry:getEnhanced');
   return {
     cpuUsage: safeNum(load?.currentLoad || 0),
     cpuCores: (load?.cpus || []).map(c => safeNum(c.load || 0)),
@@ -1853,8 +1851,17 @@ ipcMain.handle('telemetry:getMemoryDetails', async () => {
   }
 });
 
+// ── GPU info cache (si.graphics is ~300–600ms; cache for 30s) ─────────────────
+let _gpuInfoCache = null;
+let _gpuInfoCacheTs = 0;
+const GPU_INFO_TTL_MS = 30_000;
+
 ipcMain.handle('telemetry:getGpu', async () => {
   try {
+    const now = Date.now();
+    if (_gpuInfoCache && (now - _gpuInfoCacheTs) < GPU_INFO_TTL_MS) {
+      return { ..._gpuInfoCache, cached: true };
+    }
     const graphics = await si.graphics();
     const ctrl = (graphics.controllers || [])[0];
     if (!ctrl) return null;
@@ -1905,6 +1912,8 @@ ipcMain.handle('telemetry:getGpu', async () => {
     }
 
     // Fail honestly: if temp/load are still null, UI will show "Unavailable" rather than 0
+    _gpuInfoCache = { ...result };
+    _gpuInfoCacheTs = Date.now();
     verboseLog(`[telemetry:getGpu] model=${result.model} vendor=${result.vendor} load=${result.load} temp=${result.temperature} vram=${result.vram}MB power=${result.powerDraw}W`);
     return result;
   } catch (e) {

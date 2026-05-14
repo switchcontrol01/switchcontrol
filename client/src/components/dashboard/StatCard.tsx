@@ -3,7 +3,7 @@ import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { LucideIcon } from "lucide-react";
-import { ReactNode } from "react";
+import { ReactNode, memo } from "react";
 
 interface StatCardProps {
   title: string | ReactNode;
@@ -20,7 +20,7 @@ interface StatCardProps {
   loading?: boolean;
 }
 
-export function StatCard({
+export const StatCard = memo(function StatCard({
   title,
   value,
   total,
@@ -35,7 +35,7 @@ export function StatCard({
   loading = false,
 }: StatCardProps) {
   return (
-    <GlassCard className={cn("relative overflow-hidden group", className)}>
+    <GlassCard blur="none" className={cn("relative overflow-hidden group", className)}>
       <style>{`
         @keyframes sc-shimmer {
           0%   { background-position: -200% center; }
@@ -85,10 +85,10 @@ export function StatCard({
                 </>
               ) : (
                 <>
-                  <div className="text-2xl font-bold font-data tracking-tight text-white drop-shadow-sm">
+                  <div className="text-2xl font-bold font-data tracking-tight text-white drop-shadow-sm tabular-nums">
                     {value}
-                    {unit && <span className="text-sm font-normal text-muted-foreground ml-1">{unit}</span>}
-                    {total && <span className="text-sm font-normal text-muted-foreground ml-1">/ {total} {unit}</span>}
+                    {unit && <span className="text-sm font-normal text-muted-foreground ml-1 tabular-nums">{unit}</span>}
+                    {total && <span className="text-sm font-normal text-muted-foreground ml-1 tabular-nums">/ {total} {unit}</span>}
                   </div>
                   {subtext && (
                     <p className="text-xs text-muted-foreground font-medium truncate max-w-[140px]">
@@ -129,7 +129,12 @@ export function StatCard({
         </div>
       </div>
 
-      <div className="absolute -right-12 -top-12 h-32 w-32 bg-primary/10 blur-3xl rounded-full pointer-events-none group-hover:bg-primary/20 transition-colors duration-500" />
+      {/* Decorative glow — static, no hover transition to avoid re-render churn */}
+      <div
+        className="absolute -right-12 -top-12 h-32 w-32 bg-primary/10 rounded-full pointer-events-none"
+        style={{ filter: "blur(48px)" }}
+        aria-hidden="true"
+      />
     </GlassCard>
   );
-}
+});

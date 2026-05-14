@@ -304,7 +304,11 @@ const LIVE_STATUSES = [
 function useLiveStatus(): string {
   const [idx, setIdx] = useState(() => Math.floor(Math.random() * LIVE_STATUSES.length));
   useEffect(() => {
-    const id = setInterval(() => setIdx(prev => (prev + 1) % LIVE_STATUSES.length), 3500);
+    // Advance status text every 3.5s but only when tab is visible — skip when hidden
+    const id = setInterval(() => {
+      if (document.hidden) return;
+      setIdx(prev => (prev + 1) % LIVE_STATUSES.length);
+    }, 3500);
     return () => clearInterval(id);
   }, []);
   return LIVE_STATUSES[idx];

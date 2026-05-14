@@ -1,0 +1,101 @@
+We need to stop feature expansion temporarily and consolidate the product into one coherent system.
+
+Current priority is NOT adding more effects or random tweaks.
+
+New direction:
+SwitchControl should feel like a trustworthy system optimization platform, not a “gamer tweak pack.”
+
+Focus areas for the next sprint:
+
+1. Visual Language System
+   Create a unified motion + visual ruleset across the app.
+
+Rules:
+
+- Pressure systems = slow tension motion, amber/red gradients
+- Cleanup systems = gravity/collapse motion
+- Success states = short outward pulse only
+- Dangerous tweaks = sharper/stiffer motion
+- AI analysis = converging/scanning motion
+- Premium = restrained glow, no RGB spam
+
+Goal:
+Every component should feel like part of the same operating system.
+
+2. Motion Hierarchy
+   Reduce unnecessary motion.
+
+High-priority motion only:
+
+- clean completed
+- tweak applied
+- scan complete
+- pressure spike
+- error state
+
+Low-priority:
+
+- idle dashboards
+- static telemetry
+- backgrounds
+
+Remove decorative infinite loops where possible.
+
+3. Telemetry Trust Pass
+   System telemetry must stay fully honest and verifiable.
+
+Requirements:
+
+- no fake benchmark boosts
+- no synthetic FPS gains
+- no inflated optimization scores
+- if a tweak changes nothing, explicitly show no measurable impact
+- all displayed states must come from verified telemetry or real system reads
+
+Add:
+
+- sustained pressure tracking
+- transient spike filtering/smoothing
+- telemetry explanation layer
+
+4. GPU Optimization Pass
+   Before adding more visual systems, reduce GPU usage further.
+
+Targets:
+
+- landing page idle GPU usage under 20-30%
+- dashboard idle under 15%
+
+Audit:
+
+- backdrop-filter usage
+- large blur radii
+- layered transparency
+- SVG filters
+- infinite animations
+- oversized gradients
+- mix-blend-mode usage
+
+Profile all pages before adding new effects.
+
+5. AI Advisor Direction
+   Position AI Advisor as a “system analyst,” not fake AI hype.
+
+Good:
+
+- telemetry interpretation
+- contradiction detection
+- rollback recommendations
+- sustained pressure analysis
+- safe optimization recommendations
+- hardware-aware advice
+
+Avoid:
+
+- fake intelligence
+- exaggerated language
+- generic gaming boost claims
+- placebo recommendations
+
+Goal:
+Move SwitchControl away from “tweak app” and toward a high-trust optimization platform with premium visualized system state.
