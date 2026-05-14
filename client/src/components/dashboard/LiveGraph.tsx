@@ -980,10 +980,11 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
                   style={{ strokeOpacity: lineOpacity("ram"), transition: "stroke-opacity 250ms ease", filter: showGlowLines ? `drop-shadow(0 0 2px ${C.ram}88)` : undefined, animation: "sc-line-breathe 3s ease-in-out infinite" }}
                   dot={(props: any) => {
                     if (props.index !== data.length - 1) return <g key={props.key} />;
+                    if (typeof props.cx !== 'number' || typeof props.cy !== 'number' || !Number.isFinite(props.cx) || !Number.isFinite(props.cy)) return <g key={props.key} />;
                     return (
                       <g key={props.key}>
-                        <circle cx={props.cx} cy={props.cy} r={3.5} fill={C.ram} style={{ filter: `drop-shadow(0 0 6px ${C.ram})`, opacity: 0.92 }} />
-                        <circle cx={props.cx} cy={props.cy} r={3.5} fill="none" stroke={C.ram} strokeWidth={1.5} style={{ animation: "sc-end-ring 2s ease-out infinite" }} />
+                        <circle cx={props.cx} cy={props.cy} r={4} fill={C.ram} style={{ filter: `drop-shadow(0 0 6px ${C.ram})`, opacity: 0.92 }} />
+                        <circle cx={props.cx} cy={props.cy} r={4} fill="none" stroke={C.ram} strokeWidth={1.5} style={{ animation: "sc-end-ring 2s ease-out infinite" }} />
                       </g>
                     );
                   }}
@@ -1012,10 +1013,11 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
                   style={{ strokeOpacity: lineOpacity("cpu"), transition: "stroke-opacity 250ms ease", filter: showGlowLines ? `drop-shadow(0 0 2px ${C.cpuLoad}88)` : undefined, animation: "sc-line-breathe 3.4s ease-in-out infinite 0.6s" }}
                   dot={(props: any) => {
                     if (props.index !== data.length - 1) return <g key={props.key} />;
+                    if (typeof props.cx !== 'number' || typeof props.cy !== 'number' || !Number.isFinite(props.cx) || !Number.isFinite(props.cy)) return <g key={props.key} />;
                     return (
                       <g key={props.key}>
-                        <circle cx={props.cx} cy={props.cy} r={3.5} fill={C.cpuLoad} style={{ filter: `drop-shadow(0 0 6px ${C.cpuLoad})`, opacity: 0.92 }} />
-                        <circle cx={props.cx} cy={props.cy} r={3.5} fill="none" stroke={C.cpuLoad} strokeWidth={1.5} style={{ animation: "sc-end-ring 2s ease-out infinite 0.4s" }} />
+                        <circle cx={props.cx} cy={props.cy} r={4} fill={C.cpuLoad} style={{ filter: `drop-shadow(0 0 6px ${C.cpuLoad})`, opacity: 0.92 }} />
+                        <circle cx={props.cx} cy={props.cy} r={4} fill="none" stroke={C.cpuLoad} strokeWidth={1.5} style={{ animation: "sc-end-ring 2s ease-out infinite 0.4s" }} />
                       </g>
                     );
                   }}
@@ -1045,10 +1047,11 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
                   style={{ strokeOpacity: lineOpacity("gpu"), transition: "stroke-opacity 250ms ease", filter: showGlowLines ? `drop-shadow(0 0 2px ${C.gpuLoad}88)` : undefined, animation: "sc-line-breathe 2.8s ease-in-out infinite 1.1s" }}
                   dot={(props: any) => {
                     if (props.index !== data.length - 1) return <g key={props.key} />;
+                    if (typeof props.cx !== 'number' || typeof props.cy !== 'number' || !Number.isFinite(props.cx) || !Number.isFinite(props.cy)) return <g key={props.key} />;
                     return (
                       <g key={props.key}>
-                        <circle cx={props.cx} cy={props.cy} r={3.5} fill={C.gpuLoad} style={{ filter: `drop-shadow(0 0 6px ${C.gpuLoad})`, opacity: 0.92 }} />
-                        <circle cx={props.cx} cy={props.cy} r={3.5} fill="none" stroke={C.gpuLoad} strokeWidth={1.5} style={{ animation: "sc-end-ring 2s ease-out infinite 0.8s" }} />
+                        <circle cx={props.cx} cy={props.cy} r={4} fill={C.gpuLoad} style={{ filter: `drop-shadow(0 0 6px ${C.gpuLoad})`, opacity: 0.92 }} />
+                        <circle cx={props.cx} cy={props.cy} r={4} fill="none" stroke={C.gpuLoad} strokeWidth={1.5} style={{ animation: "sc-end-ring 2s ease-out infinite 0.8s" }} />
                       </g>
                     );
                   }}

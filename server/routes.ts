@@ -63,8 +63,9 @@ export async function registerRoutes(
   app.use("/api/issues", issueDetectorRouter);
   app.use("/api/ai-advisor", requireJwt, advisorContextRouter);
 
-  // Warm up system intelligence in the background — doesn't block server start
-  getSystemIntelligence().catch(() => {});
+  // Warm up system intelligence in the background — delayed 6s so it doesn't
+  // compete with the initial telemetry priming and window reveal.
+  setTimeout(() => getSystemIntelligence().catch(() => {}), 6000);
 
   // Cloud connectivity probe — used by packaged Electron to verify JWT auth without an OpenAI call
   app.post("/api/ai/cloud-probe", requireJwt, requireCloudPremium, (req, res) => {
