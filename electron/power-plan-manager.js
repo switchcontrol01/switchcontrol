@@ -24,7 +24,9 @@ function loadState() {
 function saveState(state) {
   try {
     ensureDir();
-    fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2));
+    const tmpFile = STATE_FILE + '.tmp';
+    fs.writeFileSync(tmpFile, JSON.stringify(state, null, 2), { encoding: 'utf8' });
+    fs.renameSync(tmpFile, STATE_FILE);
   } catch (e) {
     console.error('[PowerPlan] saveState failed:', e.message);
   }

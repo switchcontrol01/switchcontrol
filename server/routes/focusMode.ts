@@ -4,6 +4,7 @@
  */
 
 import { Router, Request, Response } from "express";
+import { z } from "zod";
 import { db } from "../db";
 import { sql } from "drizzle-orm";
 
@@ -188,16 +189,47 @@ router.get("/actions", (req: Request, res: Response) => {
   res.json({ ok: true, actions: ACTION_DESCRIPTIONS });
 });
 
+// ── Zod schemas for request body validation ─────────────────────────────────────────────────────────────────────
+
+const FocusSettingsSchema = z.object({
+  notifications: z.boolean().optional().default(false),
+  overlays: z.boolean().optional().default(false),
+  backgroundApps: z.boolean().optional().default(false),
+  networkPriority: z.boolean().optional().default(false),
+  inputLockdown: z.boolean().optional().default(false),
+  powerLock: z.boolean().optional().default(false),
+});
+
+const EnableBodySchema = z.object({
+  profileId: z.string().min(1).max(64),
+  settings: FocusSettingsSchema,
+  durationMinutes: z.number().int().min(0).max(1440).optional().default(0),
+  electronResults: z.record(z.any()).optional(),
+  appliedState: z.record(z.any()).optional(),
+  verification: z.record(z.any()).optional(),
+  triggerSource: z.string().max(32).optional().default("manual"),
+});
+
+const DisableBodySchema = z.object({
+  electronRevertResults: z.record(z.any()).optional(),
+  verificationAfterRevert: z.record(z.any()).optional(),
+});
+
+const TriggerFiredBodySchema = z.object({
+  triggerId: z.string().min(1).max(64),
+  meta: z.record(z.any()).optional(),
+});
+
 // POST /api/focus/enable
 router.post("/enable", async (req: Request, res: Response) => {
   const userId = getUserId(req);
   if (!userId) return res.status(401).json({ ok: false, error: "Unauthorized" });
 
-  const { profileId, settings, durationMinutes, electronResults, appliedState, verification, triggerSource } = req.body;
-
-  if (!profileId || !settings) {
-    return res.status(400).json({ ok: false, error: "profileId and settings required" });
+  const parse = EnableBodySchema.safeParse(req.body);
+  if (!parse.success) {
+    return res.status(400).json({ ok: false, error: "Invalid request body", issues: parse.error.issues });
   }
+  const { profileId, settings, durationMinutes, electronResults, appliedState, verification, triggerSource } = parse.data;
 
   const currentState = activeStates.get(userId);
   if (currentState?.active) {
@@ -271,8 +303,13 @@ router.post("/disable", async (req: Request, res: Response) => {
   const userId = getUserId(req);
   if (!userId) return res.status(401).json({ ok: false, error: "Unauthorized" });
 
+  const parse = DisableBodySchema.safeParse(req.body);
+  if (!parse.success) {
+    return res.status(400).json({ ok: false, error: "Invalid request body", issues: parse.error.issues });
+  }
+
   const activeState = activeStates.get(userId);
-  const { electronRevertResults, verificationAfterRevert } = req.body;
+  const { electronRevertResults, verificationAfterRevert } = parse.data;
 
   if (!activeState?.active) {
     return res.json({ ok: true, message: "Focus Mode was not active" });
@@ -338,14 +375,14 @@ router.post("/verify", async (req: Request, res: Response) => {
   const userId = getUserId(req);
   if (!userId) return res.status(401).json({ ok: false, error: "Unauthorized" });
 
-  const { electronVerification } = req.body;
+  const rawBody = req.body ?? {};
   const state = activeStates.get(userId) ?? null;
   if (!state) return res.json({ ok: true, active: false });
 
   res.json({
     ok: true,
     active: true,
-    verification: electronVerification ?? state.verification,
+    verification: rawBody.electronVerification ?? state.verification,
     settings: state.settings,
   });
 });
@@ -355,7 +392,11 @@ router.post("/trigger-fired", async (req: Request, res: Response) => {
   const userId = getUserId(req);
   if (!userId) return res.status(401).json({ ok: false, error: "Unauthorized" });
 
-  const { triggerId, meta } = req.body;
+  const parse = TriggerFiredBodySchema.safeParse(req.body);
+  if (!parse.success) {
+    return res.status(400).json({ ok: false, error: "Invalid request body", issues: parse.error.issues });
+  }
+  const { triggerId, meta } = parse.data;
   console.log(`[FocusMode] Trigger fired: ${triggerId} userId=${userId}`, meta);
   res.json({ ok: true, triggerId, meta });
 });

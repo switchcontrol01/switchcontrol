@@ -223,26 +223,36 @@ ipcMain.handle('startup:setEnabled', async (event, params) => {
   const { source, registryName, taskPath, folderPath, enabled } = params || {};
   const flag = enabled ? 2 : 3; // 2=enabled, 3=disabled (Task Manager convention)
 
+  // Input sanitization guards
+  function sanitizeName(str, maxLen = 128) {
+    if (typeof str !== 'string') return '';
+    return str.replace(/[^A-Za-z0-9._\s-]/g, '').slice(0, maxLen);
+  }
+  function psEscape(str) {
+    if (typeof str !== 'string') return '';
+    return str.replace(/'/g, "''");
+  }
+
   try {
     let cmd = '';
 
     if (source === 'registry-hkcu' && registryName) {
-      const safeName = registryName.replace(/'/g, "''");
+      const safeName = psEscape(sanitizeName(registryName));
       const approvedPath = 'HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved\\Run';
       cmd = `$val=[byte[]](${flag},0,0,0,0,0,0,0,0,0,0,0); If(!(Test-Path '${approvedPath}')){New-Item -Path '${approvedPath}' -Force|Out-Null}; Set-ItemProperty -Path '${approvedPath}' -Name '${safeName}' -Value $val -Type Binary -Force; Write-Output 'ok'`;
 
     } else if (source === 'registry-hklm' && registryName) {
-      const safeName = registryName.replace(/'/g, "''");
+      const safeName = psEscape(sanitizeName(registryName));
       const approvedPath = 'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved\\Run';
       cmd = `$val=[byte[]](${flag},0,0,0,0,0,0,0,0,0,0,0); If(!(Test-Path '${approvedPath}')){New-Item -Path '${approvedPath}' -Force|Out-Null}; Set-ItemProperty -Path '${approvedPath}' -Name '${safeName}' -Value $val -Type Binary -Force; Write-Output 'ok'`;
 
     } else if (source === 'startup-folder-user' && folderPath) {
-      const safeName = require('path').basename(folderPath).replace(/'/g, "''");
+      const safeName = psEscape(sanitizeName(require('path').basename(folderPath)));
       const approvedPath = 'HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved\\StartupFolder';
       cmd = `$val=[byte[]](${flag},0,0,0,0,0,0,0,0,0,0,0); If(!(Test-Path '${approvedPath}')){New-Item -Path '${approvedPath}' -Force|Out-Null}; Set-ItemProperty -Path '${approvedPath}' -Name '${safeName}' -Value $val -Type Binary -Force; Write-Output 'ok'`;
 
     } else if (source === 'startup-folder-common' && folderPath) {
-      const safeName = require('path').basename(folderPath).replace(/'/g, "''");
+      const safeName = psEscape(sanitizeName(require('path').basename(folderPath)));
       const approvedPath = 'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved\\StartupFolder';
       cmd = `$val=[byte[]](${flag},0,0,0,0,0,0,0,0,0,0,0); If(!(Test-Path '${approvedPath}')){New-Item -Path '${approvedPath}' -Force|Out-Null}; Set-ItemProperty -Path '${approvedPath}' -Name '${safeName}' -Value $val -Type Binary -Force; Write-Output 'ok'`;
 
@@ -250,8 +260,8 @@ ipcMain.handle('startup:setEnabled', async (event, params) => {
       const parts = taskPath.split('\\').filter(Boolean);
       const taskName = parts.pop() || taskPath;
       const taskFolder = parts.length > 0 ? '\\' + parts.join('\\') + '\\' : '\\';
-      const safeFolder = taskFolder.replace(/'/g, "''");
-      const safeTName = taskName.replace(/'/g, "''");
+      const safeFolder = psEscape(taskFolder.replace(/[^\\A-Za-z0-9._\s-]/g, ''));
+      const safeTName  = psEscape(sanitizeName(taskName));
       const verb = enabled ? 'Enable' : 'Disable';
       cmd = `${verb}-ScheduledTask -TaskPath '${safeFolder}' -TaskName '${safeTName}' -EA SilentlyContinue | Out-Null; Write-Output 'ok'`;
 
@@ -281,14 +291,37 @@ ipcMain.handle('startup:setDelay', async (event, { name, executable, delayIso, r
     return { ok: false, reason: 'not-windows' };
   }
 
-  const taskName = `SC-Delay-${name.replace(/[^a-zA-Z0-9]/g, '-')}`;
+  // Sanitize inputs: name becomes task name, executable must be a real file path
+  function sanitizeStartupName(str) {
+    if (typeof str !== 'string') return '';
+    return str.replace(/[^a-zA-Z0-9]/g, '-').slice(0, 64);
+  }
+  function validateExePath(str) {
+    if (typeof str !== 'string') return false;
+    // Must look like a Windows executable path: drive letter or UNC or well-known system path
+    return /^([A-Z]:\\|\\\\|\\?\[A-Z]:\\|C:\\Windows\\System32\\|C:\\Program Files\\)/i.test(str) &&
+           str.length <= 512 &&
+           !str.includes(';') &&
+           !str.includes('|') &&
+           !str.includes('&') &&
+           !str.includes('`');
+  }
+  function psEscape(str) {
+    if (typeof str !== 'string') return '';
+    return str.replace(/'/g, "''");
+  }
+
+  const taskName = `SC-Delay-${sanitizeStartupName(name)}`;
+  if (!taskName || taskName.length < 10) {
+    return { ok: false, error: 'Invalid name' };
+  }
 
   try {
     if (!delayIso || !executable) {
       // Remove the task if it exists
       const removeCmd = `
-        If (Get-ScheduledTask -TaskName '${taskName}' -ErrorAction SilentlyContinue) {
-          Unregister-ScheduledTask -TaskName '${taskName}' -Confirm:$false
+        If (Get-ScheduledTask -TaskName '${psEscape(taskName)}' -ErrorAction SilentlyContinue) {
+          Unregister-ScheduledTask -TaskName '${psEscape(taskName)}' -Confirm:$false
           Write-Output 'removed'
         } Else {
           Write-Output 'notfound'
@@ -299,14 +332,18 @@ ipcMain.handle('startup:setDelay', async (event, { name, executable, delayIso, r
       return { ok: true, taskName, action: 'removed' };
     }
 
+    if (!validateExePath(executable)) {
+      return { ok: false, error: 'Executable path looks unsafe or malformed' };
+    }
+
     // Create/update delayed task
-    const escapedExe = executable.replace(/'/g, "''");
+    const escapedExe = psEscape(executable);
     const createCmd = `
       $action  = New-ScheduledTaskAction -Execute '${escapedExe}'
       $trigger = New-ScheduledTaskTrigger -AtLogOn
-      $trigger.Delay = '${delayIso}'
+      $trigger.Delay = '${psEscape(delayIso)}'
       $settings = New-ScheduledTaskSettingsSet -ExecutionTimeLimit (New-TimeSpan -Hours 1) -StartWhenAvailable
-      Register-ScheduledTask -TaskName '${taskName}' -Action $action -Trigger $trigger -Settings $settings -RunLevel Limited -Force | Out-Null
+      Register-ScheduledTask -TaskName '${psEscape(taskName)}' -Action $action -Trigger $trigger -Settings $settings -RunLevel Limited -Force | Out-Null
       Write-Output 'created'
     `;
     const r = await runPowerShell(createCmd, 10000);

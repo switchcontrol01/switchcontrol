@@ -318,8 +318,10 @@ async function pollTriggers() {
 
   // Fullscreen trigger
   if (enabledTriggers.fullscreen) {
-    const result = await ps(`
-      Add-Type @'
+    // Cache the compiled WinUtil type so Add-Type is only compiled once per process.
+    if (!global.__focusWinUtilCompiled) {
+      await ps(`
+        Add-Type @'
 using System;
 using System.Runtime.InteropServices;
 public class WinUtil {
@@ -337,6 +339,11 @@ public class WinUtil {
     }
 }
 '@ -ErrorAction SilentlyContinue
+        Write-Output 'compiled'
+      `);
+      global.__focusWinUtilCompiled = true;
+    }
+    const result = await ps(`
       try { if ([WinUtil]::IsFullscreen()) { Write-Output "fullscreen:true" } else { Write-Output "fullscreen:false" } }
       catch { Write-Output "fullscreen:false" }
     `);

@@ -16,6 +16,24 @@ const { ipcMain } = require('electron');
 const { execFile, spawn } = require('child_process');
 const fs = require('fs');
 
+// ── Input validation helpers ─────────────────────────────────────────────────
+
+function psEscape(str) {
+  if (typeof str !== 'string') return '';
+  return str.replace(/'/g, "''");
+}
+
+const SAFE_REG_PATH_RE   = /^HK(CU|LM):\\[A-Za-z0-9\s._-]+(\\[A-Za-z0-9\s._-]+)*$/;
+const SAFE_REG_NAME_RE   = /^[A-Za-z0-9\s._-]{1,64}$/;
+const SAFE_PACKAGE_RE    = /^[A-Za-z0-9._-]{1,128}$/;
+const SAFE_SERVICE_RE    = /^[A-Za-z0-9_-]{1,64}$/;
+const MAX_STR_LEN        = 512;
+
+function isSafeRegPath(v)   { return typeof v === 'string' && v.length <= MAX_STR_LEN && SAFE_REG_PATH_RE.test(v); }
+function isSafeRegName(v)   { return typeof v === 'string' && v.length <= MAX_STR_LEN && SAFE_REG_NAME_RE.test(v); }
+function isSafePackageName(v) { return typeof v === 'string' && v.length <= MAX_STR_LEN && SAFE_PACKAGE_RE.test(v); }
+function isSafeServiceName(v)   { return typeof v === 'string' && v.length <= MAX_STR_LEN && SAFE_SERVICE_RE.test(v); }
+
 // ── PowerShell runners ────────────────────────────────────────────────────────
 
 function runPS(cmd, timeoutMs = 15000) {
@@ -79,16 +97,24 @@ ipcMain.handle('debloat:scan', async (event, items) => {
   for (const item of items) {
     try {
       if (item.type === 'appx') {
+        if (!isSafePackageName(item.packageName)) {
+          results[item.id] = { present: true, error: 'invalid-package-name' };
+          continue;
+        }
         const out = await runPS(
-          `$p = Get-AppxPackage -Name '${item.packageName}' -ErrorAction SilentlyContinue; ` +
+          `$p = Get-AppxPackage -Name '${psEscape(item.packageName)}' -ErrorAction SilentlyContinue; ` +
           `If ($p) { Write-Output 'present' } Else { Write-Output 'absent' }`,
           8000
         );
         results[item.id] = { present: out.includes('present') };
 
       } else if (item.type === 'registry') {
+        if (!isSafeRegPath(item.regPath) || !isSafeRegName(item.regName)) {
+          results[item.id] = { present: true, error: 'invalid-registry-key' };
+          continue;
+        }
         const out = await runPS(
-          `Try { $v = (Get-ItemProperty -Path '${item.regPath}' -Name '${item.regName}' -ErrorAction Stop).'${item.regName}'; Write-Output $v } Catch { Write-Output '__missing__' }`,
+          `Try { $v = (Get-ItemProperty -Path '${psEscape(item.regPath)}' -Name '${psEscape(item.regName)}' -ErrorAction Stop).'${psEscape(item.regName)}'; Write-Output $v } Catch { Write-Output '__missing__' }`,
           6000
         );
         const val = out.replace(/\r?\n/g, '').trim();
@@ -96,8 +122,12 @@ ipcMain.handle('debloat:scan', async (event, items) => {
         results[item.id] = { present: val !== expectedDisabled && val !== '__missing__' };
 
       } else if (item.type === 'service') {
+        if (!isSafeServiceName(item.serviceName)) {
+          results[item.id] = { present: true, error: 'invalid-service-name' };
+          continue;
+        }
         const out = await runPS(
-          `Try { $s = Get-Service -Name '${item.serviceName}' -ErrorAction Stop; Write-Output $s.StartType } Catch { Write-Output '__missing__' }`,
+          `Try { $s = Get-Service -Name '${psEscape(item.serviceName)}' -ErrorAction Stop; Write-Output $s.StartType } Catch { Write-Output '__missing__' }`,
           6000
         );
         const startType = out.trim().toLowerCase();
@@ -130,8 +160,11 @@ ipcMain.handle('debloat:removeItem', async (event, item) => {
     let cmd = '';
 
     if (item.type === 'appx') {
+      if (!isSafePackageName(item.packageName)) {
+        return { ok: false, status: 'unsupported', error: 'Invalid package name' };
+      }
       cmd = `
-        $pkg = Get-AppxPackage -Name '${item.packageName}' -ErrorAction SilentlyContinue
+        $pkg = Get-AppxPackage -Name '${psEscape(item.packageName)}' -ErrorAction SilentlyContinue
         If ($pkg) {
           $pkg | Remove-AppxPackage -ErrorAction Stop
           Write-Output 'removed'
@@ -141,20 +174,27 @@ ipcMain.handle('debloat:removeItem', async (event, item) => {
       `;
 
     } else if (item.type === 'registry') {
+      if (!isSafeRegPath(item.regPath) || !isSafeRegName(item.regName)) {
+        return { ok: false, status: 'unsupported', error: 'Invalid registry key' };
+      }
       const val = item.regValueDisabled;
       const valType = typeof val === 'number' ? 'DWord' : 'String';
+      const valLiteral = valType === 'DWord' ? parseInt(val, 10) || 0 : `'${psEscape(String(val))}'`;
       cmd = `
-        If (!(Test-Path '${item.regPath}')) { New-Item -Path '${item.regPath}' -Force | Out-Null }
-        Set-ItemProperty -Path '${item.regPath}' -Name '${item.regName}' -Value ${val} -Type ${valType} -Force
+        If (!(Test-Path '${psEscape(item.regPath)}')) { New-Item -Path '${psEscape(item.regPath)}' -Force | Out-Null }
+        Set-ItemProperty -Path '${psEscape(item.regPath)}' -Name '${psEscape(item.regName)}' -Value ${valLiteral} -Type ${valType} -Force
         Write-Output 'removed'
       `;
 
     } else if (item.type === 'service') {
+      if (!isSafeServiceName(item.serviceName)) {
+        return { ok: false, status: 'unsupported', error: 'Invalid service name' };
+      }
       cmd = `
-        $svc = Get-Service -Name '${item.serviceName}' -ErrorAction SilentlyContinue
+        $svc = Get-Service -Name '${psEscape(item.serviceName)}' -ErrorAction SilentlyContinue
         If (!$svc) { Write-Output 'already-absent'; Exit }
-        Stop-Service -Name '${item.serviceName}' -Force -ErrorAction SilentlyContinue
-        Set-Service -Name '${item.serviceName}' -StartupType Disabled -ErrorAction Stop
+        Stop-Service -Name '${psEscape(item.serviceName)}' -Force -ErrorAction SilentlyContinue
+        Set-Service -Name '${psEscape(item.serviceName)}' -StartupType Disabled -ErrorAction Stop
         Write-Output 'removed'
       `;
     } else {
@@ -189,9 +229,12 @@ ipcMain.handle('debloat:restoreItem', async (event, item) => {
     let cmd = '';
 
     if (item.type === 'appx') {
+      if (!isSafePackageName(item.packageName)) {
+        return { ok: false, status: 'unsupported', error: 'Invalid package name' };
+      }
       cmd = `
         $prov = Get-AppxProvisionedPackage -Online -ErrorAction SilentlyContinue |
-          Where-Object { $_.DisplayName -like '*${item.packageName.replace('Microsoft.', '')}*' } |
+          Where-Object { $_.DisplayName -like '*${psEscape(item.packageName.replace('Microsoft.', ''))}*' } |
           Select-Object -First 1
         If ($prov) {
           Add-AppxPackage -DisableDevelopmentMode -Register "$($prov.InstallLocation)\\AppXManifest.xml" -ErrorAction Stop
@@ -202,21 +245,28 @@ ipcMain.handle('debloat:restoreItem', async (event, item) => {
       `;
 
     } else if (item.type === 'registry') {
+      if (!isSafeRegPath(item.regPath) || !isSafeRegName(item.regName)) {
+        return { ok: false, status: 'unsupported', error: 'Invalid registry key' };
+      }
       const val = item.regValueDefault;
       const valType = typeof val === 'number' ? 'DWord' : 'String';
+      const valLiteral = valType === 'DWord' ? parseInt(val, 10) || 0 : `'${psEscape(String(val))}'`;
       cmd = `
-        If (!(Test-Path '${item.regPath}')) { New-Item -Path '${item.regPath}' -Force | Out-Null }
-        Set-ItemProperty -Path '${item.regPath}' -Name '${item.regName}' -Value ${val} -Type ${valType} -Force
+        If (!(Test-Path '${psEscape(item.regPath)}')) { New-Item -Path '${psEscape(item.regPath)}' -Force | Out-Null }
+        Set-ItemProperty -Path '${psEscape(item.regPath)}' -Name '${psEscape(item.regName)}' -Value ${valLiteral} -Type ${valType} -Force
         Write-Output 'restored'
       `;
 
     } else if (item.type === 'service') {
+      if (!isSafeServiceName(item.serviceName)) {
+        return { ok: false, status: 'unsupported', error: 'Invalid service name' };
+      }
       const startType = item.defaultStartType ?? 'Automatic';
       cmd = `
-        $svc = Get-Service -Name '${item.serviceName}' -ErrorAction SilentlyContinue
+        $svc = Get-Service -Name '${psEscape(item.serviceName)}' -ErrorAction SilentlyContinue
         If (!$svc) { Write-Output 'not-found'; Exit }
-        Set-Service -Name '${item.serviceName}' -StartupType ${startType} -ErrorAction Stop
-        Start-Service -Name '${item.serviceName}' -ErrorAction SilentlyContinue
+        Set-Service -Name '${psEscape(item.serviceName)}' -StartupType ${startType} -ErrorAction Stop
+        Start-Service -Name '${psEscape(item.serviceName)}' -ErrorAction SilentlyContinue
         Write-Output 'restored'
       `;
     } else {
@@ -252,24 +302,27 @@ ipcMain.handle('debloat:verifyItem', async (event, item) => {
 
 async function verifyItem(item) {
   if (item.type === 'appx') {
+    if (!isSafePackageName(item.packageName)) return false;
     const out = await runPS(
-      `$p = Get-AppxPackage -Name '${item.packageName}' -ErrorAction SilentlyContinue; ` +
+      `$p = Get-AppxPackage -Name '${psEscape(item.packageName)}' -ErrorAction SilentlyContinue; ` +
       `If ($p) { Write-Output 'present' } Else { Write-Output 'absent' }`,
       8000
     );
     return out.includes('absent');
 
   } else if (item.type === 'registry') {
+    if (!isSafeRegPath(item.regPath) || !isSafeRegName(item.regName)) return false;
     const out = await runPS(
-      `Try { $v = (Get-ItemProperty -Path '${item.regPath}' -Name '${item.regName}' -ErrorAction Stop).'${item.regName}'; Write-Output $v } Catch { Write-Output '__missing__' }`,
+      `Try { $v = (Get-ItemProperty -Path '${psEscape(item.regPath)}' -Name '${psEscape(item.regName)}' -ErrorAction Stop).'${psEscape(item.regName)}'; Write-Output $v } Catch { Write-Output '__missing__' }`,
       6000
     );
     const val = out.trim();
     return val === String(item.regValueDisabled) || val === '__missing__';
 
   } else if (item.type === 'service') {
+    if (!isSafeServiceName(item.serviceName)) return false;
     const out = await runPS(
-      `Try { (Get-Service -Name '${item.serviceName}' -ErrorAction Stop).StartType } Catch { Write-Output '__missing__' }`,
+      `Try { (Get-Service -Name '${psEscape(item.serviceName)}' -ErrorAction Stop).StartType } Catch { Write-Output '__missing__' }`,
       6000
     );
     return out.trim().toLowerCase() === 'disabled';
