@@ -290,22 +290,36 @@ function getTimeOfDay(): DashboardTimeOfDay {
 
 function useLiveStatus(): string {
   const [status, setStatus] = useState("Connecting to telemetry...");
-  const { telemetry } = useLiveTelemetry();
+  const { telemetry, status: telStatus } = useLiveTelemetry();
 
   useEffect(() => {
     if (!telemetry) {
-      setStatus("Connecting to telemetry...");
+      setStatus(telStatus === "unavailable" ? "Telemetry unavailable" : "Connecting to telemetry...");
       return;
     }
     const cpu = telemetry.cpu?.usagePct ?? null;
     const ramUsed = telemetry.ram?.usedGb ?? null;
     const ramTotal = telemetry.ram?.totalGb ?? null;
-    if (cpu !== null && ramUsed !== null && ramTotal !== null) {
-      setStatus(`CPU ${cpu.toFixed(0)}% · ${ramUsed.toFixed(1)}/${ramTotal.toFixed(1)}GB RAM`);
-    } else {
-      setStatus("Telemetry active · waiting for data");
+    const gpu = telemetry.gpu?.load ?? null;
+    const temp = telemetry.temps?.cpu ?? null;
+
+    // Build honest status from whatever real data we have
+    const parts: string[] = [];
+    if (cpu !== null) parts.push(`CPU ${cpu.toFixed(0)}%`);
+    if (temp !== null) parts.push(`${temp.toFixed(0)}°C`);
+    if (ramUsed !== null && ramTotal !== null) {
+      parts.push(`RAM ${ramUsed.toFixed(1)}/${ramTotal.toFixed(1)}GB`);
+    } else if (ramUsed !== null) {
+      parts.push(`RAM ${ramUsed.toFixed(1)}GB`);
     }
-  }, [telemetry]);
+    if (gpu !== null) parts.push(`GPU ${gpu.toFixed(0)}%`);
+
+    if (parts.length > 0) {
+      setStatus(parts.join(" · "));
+    } else {
+      setStatus("Waiting for telemetry data...");
+    }
+  }, [telemetry, telStatus]);
 
   return status;
 }
@@ -540,9 +554,10 @@ export default function Home() {
   const diskPercent = currentDiskTotal > 0 ? (currentDiskUsed / currentDiskTotal) * 100 : 0;
 
   const totalTweaks = TWEAKS_DATA.length;
-  const totalServices = 142;
-  const totalCleaners = 50;
-  const totalStartup = 24;
+  // Honest absolute counts only — no fake denominators
+  const servicesCount = account.stats.servicesDisabled;
+  const cleanersCount = account.stats.cleanersRun;
+  const startupCount = account.stats.startupAppsDisabled;
 
   // ── Dashboard content staging ────────────────────────────────────────────────
   // Wait until the App-level entry blur has partially cleared before revealing
@@ -961,23 +976,23 @@ export default function Home() {
                 <div className="space-y-1.5">
                   <div className="flex justify-between text-xs font-medium">
                     <span className="text-muted-foreground">Services disabled</span>
-                    <span className="text-[#E6EAF0] font-mono">{account.stats.servicesDisabled} / {totalServices}</span>
+                    <span className="text-[#E6EAF0] font-mono">{servicesCount}</span>
                   </div>
-                  <Progress value={(account.stats.servicesDisabled / totalServices) * 100} className="h-1" />
+                  <Progress value={servicesCount > 0 ? 100 : 0} className="h-1" />
                 </div>
                 <div className="space-y-1.5">
                   <div className="flex justify-between text-xs font-medium">
                     <span className="text-muted-foreground">Cleaners run</span>
-                    <span className="text-[#E6EAF0] font-mono">{account.stats.cleanersRun} / {totalCleaners}</span>
+                    <span className="text-[#E6EAF0] font-mono">{cleanersCount}</span>
                   </div>
-                  <Progress value={(account.stats.cleanersRun / totalCleaners) * 100} className="h-1" />
+                  <Progress value={cleanersCount > 0 ? 100 : 0} className="h-1" />
                 </div>
                 <div className="space-y-1.5">
                   <div className="flex justify-between text-xs font-medium">
                     <span className="text-muted-foreground">Startup apps disabled</span>
-                    <span className="text-[#E6EAF0] font-mono">{account.stats.startupAppsDisabled} / {totalStartup}</span>
+                    <span className="text-[#E6EAF0] font-mono">{startupCount}</span>
                   </div>
-                  <Progress value={(account.stats.startupAppsDisabled / totalStartup) * 100} className="h-1" />
+                  <Progress value={startupCount > 0 ? 100 : 0} className="h-1" />
                 </div>
               </div>
               

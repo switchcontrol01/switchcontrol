@@ -213,10 +213,9 @@ function ChartCard({
       <div className="absolute inset-0 rounded-2xl pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500"
         style={{ boxShadow: `inset 0 0 0 1px ${accentAfter}28` }} />
 
-      {/* Live badge */}
+      {/* Demo badge */}
       <div className="absolute top-3.5 right-4 flex items-center gap-1.5">
-        <span className="w-1.5 h-1.5 rounded-full chart-live-blink" style={{ backgroundColor: accentAfter }} />
-        <span className="text-[9px] text-[#6B7380]/50 uppercase tracking-widest">Live</span>
+        <span className="text-[9px] text-[#6B7380]/50 uppercase tracking-widest">Illustrative</span>
       </div>
 
       {/* Header */}
@@ -232,8 +231,13 @@ function ChartCard({
         </div>
         <ImprovPill text={improvText} positive={improvPositive} />
 
+        {/* Disclaimer */}
+        <p className="text-[9px] text-[#6B7380]/60 mt-2 leading-relaxed">
+          Not measured data. Effects vary by system.
+        </p>
+
         {/* Stat row */}
-        <div className="flex items-center gap-3 mt-4">
+        <div className="flex items-center gap-3 mt-3">
           <StatBadge label={beforeLabel} rawValue={beforeRaw} unit={beforeUnit} prefix={beforePrefix} color={accentBefore} dim active={inView} />
           <div className="flex-1 h-px" style={{ background: `linear-gradient(90deg, ${accentBefore}28, transparent, ${accentAfter}28)` }} />
           <Zap className="size-3.5 shrink-0 chart-zap-pulse" style={{ color: accentAfter, opacity: 0.5 }} />

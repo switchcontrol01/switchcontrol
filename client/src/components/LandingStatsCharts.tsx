@@ -203,8 +203,8 @@ export function LandingStatsCharts() {
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
       <StatChartCard
-        value="-12ms"
-        label="Avg Latency Reduction"
+        value="~12ms"
+        label="Estimated Latency"
         accent="emerald"
         beforeColor="#f87171"
         afterColor="#34d399"
@@ -223,8 +223,8 @@ export function LandingStatsCharts() {
         }
       />
       <StatChartCard
-        value="-8ms"
-        label="Input Delay Improvement"
+        value="~8ms"
+        label="Estimated Input"
         accent="cyan"
         beforeColor="#fb923c"
         afterColor="#22d3ee"

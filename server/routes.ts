@@ -156,8 +156,24 @@ export async function registerRoutes(
     });
   });
 
-  app.get("/api/health", (_req, res) => {
-    res.json({ status: "ok", timestamp: Date.now() });
+  app.get("/api/health", async (_req, res) => {
+    const uptime = process.uptime();
+    let dbReachable = false;
+    try {
+      if (pool) {
+        await pool.query("SELECT 1");
+        dbReachable = true;
+      }
+    } catch {
+      dbReachable = false;
+    }
+    res.json({
+      status: "ok",
+      version: process.env.npm_package_version || "unknown",
+      uptime: Math.floor(uptime),
+      dbReachable,
+      timestamp: Date.now(),
+    });
   });
 
   // JWT reissue — Electron clients call this against the cloud server when their

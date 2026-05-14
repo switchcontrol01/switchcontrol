@@ -20,5 +20,18 @@ if (isNoDbMode) {
   console.log(`[DB] ${label} — no DATABASE_URL present, using in-memory mock storage.`);
 }
 
-export const pool = isNoDbMode ? null : new Pool({ connectionString: process.env.DATABASE_URL });
+// Pool configuration: explicit limits to avoid unbounded connections.
+// In production with high traffic, consider pgBouncer for connection pooling.
+const POOL_CONFIG = {
+  connectionString: process.env.DATABASE_URL,
+  max: 10,           // max connections in pool
+  idleTimeoutMillis: 30_000,
+  connectionTimeoutMillis: 5_000,
+};
+
+export const pool = isNoDbMode ? null : new Pool(POOL_CONFIG);
 export const db = isNoDbMode ? null : drizzle(pool!, { schema });
+
+if (!isNoDbMode) {
+  console.log(`[DB] Pool configured: max=${POOL_CONFIG.max}, idleTimeout=${POOL_CONFIG.idleTimeoutMillis}ms`);
+}

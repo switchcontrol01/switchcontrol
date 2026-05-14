@@ -64,7 +64,7 @@ function logEntry(entry) {
       try { logs = JSON.parse(fs.readFileSync(TWEAK_LOG_FILE, 'utf8')); } catch {}
     }
     logs.unshift({ ...entry, timestamp: new Date().toISOString() });
-    if (logs.length > 200) logs = logs.slice(0, 200);
+    if (logs.length > 500) logs = logs.slice(0, 500);
     fs.writeFileSync(TWEAK_LOG_FILE, JSON.stringify(logs, null, 2));
   } catch (e) { console.error('[TweakExecutor] logEntry failed:', e.message); }
 }

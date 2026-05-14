@@ -52,3 +52,21 @@ export async function markEventProcessed(eventId: string): Promise<void> {
     [eventId]
   );
 }
+
+/**
+ * Clean up old Stripe event records (older than 30 days).
+ * Keeps enough history for debugging recent payment issues.
+ * Safe to run periodically (e.g., on startup or via a scheduled job).
+ */
+export async function cleanupOldStripeEvents(daysToKeep = 30): Promise<number> {
+  if (!pool) return 0;
+  await ensureTable();
+  const result = await pool.query(
+    `DELETE FROM stripe_processed_events WHERE processed_at < NOW() - INTERVAL '${daysToKeep} days'`
+  );
+  const deleted = result.rowCount ?? 0;
+  if (deleted > 0) {
+    console.log(`[StripeEventStore] Cleaned up ${deleted} event records older than ${daysToKeep} days`);
+  }
+  return deleted;
+}

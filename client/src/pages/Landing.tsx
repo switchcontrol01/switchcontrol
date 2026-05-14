@@ -957,9 +957,9 @@ export default function Landing() {
           <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 70% 40% at 50% 50%, hsl(190 70% 40% / 0.03) 0%, transparent 70%)" }} />
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <SectionHeader
-              title="Real Results,"
-              titleAccent="Real Improvements"
-              subtitle="Live performance data from sessions before and after SwitchControl optimization."
+              title="System Insights,"
+              titleAccent="Illustrated Impact"
+              subtitle="Estimated behavior patterns based on tweak theory. Your results will vary by hardware, game, and network conditions. Verify with your own measurements."
             />
 
             <LandingPerformanceCharts />

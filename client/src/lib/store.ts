@@ -168,10 +168,18 @@ export const useStore = create<AppState>()(
       enableRecommended: () => {
         // Defense-in-depth exclusion list: IDs that should never be auto-applied
         // even if they happen to pass the general filter criteria.
+        // Hard deny-list: never auto-apply these even if metadata says Recommended.
+        // Includes: Network, Security, virtualization, service-disabling, hardware,
+        // reboot-required, and any known problematic tweaks.
         const EXCLUDED_IDS = new Set([
+          // Virtualization / security (breaks WSL2, Docker, Sandbox, HVCI)
           'fast-startup', 'core-isolation', 'vbs', 'hyper-v', 'p-states',
-          'bluetooth', 'wifi', 'fax-printer', 'irq-priority', 'timer-res',
-          'desktop-comp', 'hdcp', 'mouse-queue-size', 'kbd-queue-size',
+          // Hardware / network (breaks WiFi, Bluetooth, printing)
+          'bluetooth', 'wifi', 'fax-printer', 'nic-flow-control',
+          'irq-priority', 'timer-res', 'desktop-comp', 'hdcp',
+          // Input queue tweaks (not universally safe)
+          'mouse-queue-size', 'kbd-queue-size',
+          // DCOM / RPC (can break apps)
           'disable-dcom',
         ]);
 

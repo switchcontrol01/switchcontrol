@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import logoImg from "@/assets/logo.webp";
-import { getTagline } from "@/lib/taglines";
+import { getHonestTagline } from "@/lib/taglines";
 
 interface SplashProps {
   onComplete: () => void;
@@ -39,7 +39,7 @@ export default function Splash({ onComplete }: SplashProps) {
   const [textVisible, setTextVisible] = useState(false);
   const [sweepVisible, setSweepVisible] = useState(false);
   const [progress, setProgress]   = useState(0);
-  const tagline = useMemo(() => getTagline(), []);
+  const tagline = useMemo(() => getHonestTagline(), []);
 
   // ── Logo decode + double-rAF handshake ───────────────────────────────────
   useEffect(() => {

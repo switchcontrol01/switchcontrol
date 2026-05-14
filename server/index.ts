@@ -17,6 +17,7 @@ import { WebhookHandlers } from "./webhookHandlers";
 import { csrfTokenMiddleware } from "./middleware/csrf";
 import { runJwtSelfTest } from "./lib/jwt";
 import { runDeviceBindingMigration } from "./lib/deviceBindingMigration";
+import { cleanupOldStripeEvents } from "./lib/stripeEventStore";
 import fs from "fs";
 import path from "path";
 
@@ -394,6 +395,7 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
     Promise.all([
       withTimeout(initStripe(),        8_000, "initStripe"),
       withTimeout(ensureAdminUsers(),  8_000, "ensureAdminUsers"),
+      withTimeout(cleanupOldStripeEvents(), 8_000, "cleanupStripeEvents"),
     ]).catch(e => console.error("[Startup] Background init error:", e));
   });
 })();
