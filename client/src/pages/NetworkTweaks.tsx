@@ -127,7 +127,7 @@ function buildInitialStateMap(): StateMap {
   return initial;
 }
 
-// ── fetch from backend ────────────────────────────────────────────────────────
+// ── fetch from backend (DB state — stale, NOT verified Windows state) ─────────
 
 async function fetchBackendState(): Promise<StateMap> {
   try {
@@ -140,6 +140,58 @@ async function fetchBackendState(): Promise<StateMap> {
     }
     return map;
   } catch {
+    return {};
+  }
+}
+
+// ── fetch REAL Windows state via Electron IPC (source of truth) ───────────────
+
+async function fetchVerifiedWindowsState(): Promise<StateMap> {
+  if (!isElectron) return {};
+  try {
+    const api = (window as typeof window & {
+      electronAPI: {
+        networkTweaks: {
+          checkAll: () => Promise<Record<string, {
+            tweakId: string;
+            applied: boolean | null;
+            disabled?: boolean;
+            reason?: string;
+            error?: string;
+          }>>;
+        };
+      };
+    }).electronAPI.networkTweaks;
+
+    console.log('[NetworkTweaks] mount — hydrating verified status');
+    const results = await api.checkAll();
+    const map: StateMap = {};
+    let verifiedCount = 0;
+    let inconclusiveCount = 0;
+
+    for (const [id, result] of Object.entries(results)) {
+      if (result.disabled) {
+        map[id] = { status: "unavailable", message: result.reason };
+        console.log(`[NetworkTweaks] status loaded tweakId=${id} enabled=null verified=true source=disabled`);
+      } else if (result.applied === true) {
+        map[id] = { status: "enabled" };
+        verifiedCount++;
+        console.log(`[NetworkTweaks] status loaded tweakId=${id} enabled=true verified=true source=windows`);
+      } else if (result.applied === false) {
+        map[id] = { status: "idle" };
+        verifiedCount++;
+        console.log(`[NetworkTweaks] status loaded tweakId=${id} enabled=false verified=true source=windows`);
+      } else {
+        // null = inconclusive check script result
+        inconclusiveCount++;
+        console.log(`[NetworkTweaks] status loaded tweakId=${id} enabled=null verified=false source=inconclusive`);
+      }
+    }
+    console.log(`[NetworkTweaks] status loaded total=${Object.keys(results).length} confirmed=${verifiedCount} inconclusive=${inconclusiveCount}`);
+    return map;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.log('[NetworkTweaks] backend status failed — using stale cache:', msg);
     return {};
   }
 }
@@ -610,31 +662,56 @@ function NetworkTweaksContent() {
     setToasts(prev => prev.filter(t => t.id !== id));
   }
 
-  // Load persisted state from backend — only after auth is confirmed.
-  // The `mounted` flag prevents a stale HTTP response (from a previous mount
-  // that was still in-flight when the user navigated away) from overwriting
-  // the fresh state on the new mount.
+  // On mount: verify real Windows state (Electron) or load DB state (web).
+  // Verified Windows state is the SOURCE OF TRUTH and overwrites everything.
+  // DB state is only used as fallback for tweaks whose check script returned
+  // inconclusive (applied === null) and for web mode where IPC is unavailable.
   useEffect(() => {
     if (!user?.loggedIn) return;
     let mounted = true;
     timingMark("fetch-state");
-    fetchBackendState().then(backendState => {
+    console.log('[NetworkTweaks] mount — hydrating verified status');
+    setFetching(true);
+
+    (async () => {
+      // Step 1: Fetch DB state (stale, but better than nothing as fallback)
+      const dbState = await fetchBackendState();
+
+      // Step 2: In Electron, fetch REAL Windows state via IPC (source of truth)
+      let verifiedState: StateMap = {};
+      if (isElectron) {
+        try {
+          verifiedState = await fetchVerifiedWindowsState();
+        } catch {
+          // IPC failed — we still have dbState as fallback below
+        }
+      }
+
       if (!mounted) {
-        console.log('[NetworkTweaks:CACHE] stale fetch response discarded (component remounted)');
+        console.log('[NetworkTweaks] stale fetch response discarded (component remounted)');
         return;
       }
+
       setStateMap(prev => {
         const next = { ...prev };
-        for (const [id, s] of Object.entries(backendState)) {
+        for (const [id, s] of Object.entries(dbState)) {
           if (next[id] && next[id].status !== "unavailable") {
             next[id] = { ...next[id], ...s };
           }
         }
+        // Verified Windows state OVERWRITES DB state for every tweak we could
+        // confirm. This prevents the "restart shows disabled" bug.
+        for (const [id, s] of Object.entries(verifiedState)) {
+          next[id] = { ...s };
+        }
         return next;
       });
+
       setFetching(false);
       timingMark("fetch-state-done");
-    });
+      console.log('[NetworkTweaks] mount — hydration complete');
+    })();
+
     return () => { mounted = false; };
   }, [user?.loggedIn]); // eslint-disable-line
 
@@ -707,6 +784,32 @@ function NetworkTweaksContent() {
         }
 
         addToast(tweak.id, result.success, result.message);
+
+        // ── Re-verify this tweak's real Windows state after apply/revert ──────────
+        // The execute result's .verified field is the executor's internal claim.
+        // We re-run the check script independently to confirm the system actually
+        // reflects the change. This catches cases where PowerShell succeeded but
+        // the registry value did not stick.
+        if (result.success && !result.disabled) {
+          try {
+            const api = (window as typeof window & {
+              electronAPI: { networkTweaks: { checkStatus: (id: string) => Promise<{ tweakId: string; applied: boolean | null; disabled?: boolean; error?: string }> } };
+            }).electronAPI.networkTweaks;
+            const verify = await api.checkStatus(tweak.id);
+            if (!verify.error && !verify.disabled && verify.applied !== null) {
+              const verifiedStatus: TweakStatus = verify.applied ? "enabled" : "idle";
+              setStateMap(prev => ({
+                ...prev,
+                [tweak.id]: { status: verifiedStatus, message: result.message },
+              }));
+              console.log(`[NetworkTweaks] apply verified tweakId=${tweak.id} applied=${verify.applied}`);
+            } else {
+              console.log(`[NetworkTweaks] apply re-check inconclusive tweakId=${tweak.id} applied=${verify.applied} error=${verify.error}`);
+            }
+          } catch (e) {
+            console.log('[NetworkTweaks] apply re-check failed tweakId=' + tweak.id, e);
+          }
+        }
       } else {
         // Web mode — stage the change (no real OS execution)
         const stagedStatus: TweakStatus = action === "enable" ? "staged" : "idle";

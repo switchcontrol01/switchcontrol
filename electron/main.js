@@ -2743,13 +2743,30 @@ ipcMain.handle('networkTweaks:checkAll', async () => {
     return skipped;
   }
   const t0 = Date.now();
-  console.log('[PS-Exec] start file=main.js fn=networkTweaks:checkAll reason=net-tweak-check-all');
+  console.log('[NetworkTweaks] checkAllStatus start');
   try {
     const result = await networkTweakExecutor.checkAllNetworkTweakStatus();
-    console.log(`[PS-Exec] done file=main.js fn=networkTweaks:checkAll ms=${Date.now() - t0}`);
+    let enabled = 0, disabled = 0, inconclusive = 0;
+    for (const [id, r] of Object.entries(result)) {
+      if (r.disabled) {
+        disabled++;
+        console.log(`[NetworkTweaks] checkStatus tweakId=${id} enabled=null source=disabled`);
+      } else if (r.applied === true) {
+        enabled++;
+        console.log(`[NetworkTweaks] checkStatus tweakId=${id} enabled=true source=registry/netsh/adapter`);
+      } else if (r.applied === false) {
+        disabled++;
+        console.log(`[NetworkTweaks] checkStatus tweakId=${id} enabled=false source=registry/netsh/adapter`);
+      } else {
+        inconclusive++;
+        console.log(`[NetworkTweaks] checkStatus tweakId=${id} enabled=null source=inconclusive`);
+      }
+    }
+    const durationMs = Date.now() - t0;
+    console.log(`[NetworkTweaks] checkAllStatus done count=${Object.keys(result).length} enabled=${enabled} disabled=${disabled} inconclusive=${inconclusive} durationMs=${durationMs}`);
     return result;
   } catch (e) {
-    console.error('[IPC] networkTweaks:checkAll error:', e.message);
+    console.error('[NetworkTweaks] checkAllStatus error:', e.message);
     return {};
   } finally {
     psLimiter.release(_token);
