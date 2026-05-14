@@ -465,18 +465,16 @@ export default function ProcessManager() {
               animate={{ scale: 1, opacity: 1 }}
               transition={{ duration: 0.3 }}
             >
-              <div className="relative inline-flex items-center justify-center mb-4">
+              <div className="relative flex items-center justify-center mb-4 w-14 h-14">
                 <motion.div
                   className="absolute inset-0 rounded-full border-2 border-primary/20"
                   animate={{ rotate: 360 }}
                   transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                  style={{ width: 56, height: 56, margin: -6 }}
                 />
                 <motion.div
                   className="absolute inset-0 rounded-full border-t-2 border-primary/60"
                   animate={{ rotate: -360 }}
                   transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
-                  style={{ width: 56, height: 56, margin: -6 }}
                 />
                 <Cpu className="size-6 text-primary relative z-10" />
               </div>
