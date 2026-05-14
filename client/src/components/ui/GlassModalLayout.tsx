@@ -118,10 +118,10 @@ export function GlassModalLayout({
           />
           {/* Modal container */}
           <motion.div
-            className={`fixed z-[101] left-1/2 top-1/2 w-[calc(100%-2rem)] ${maxWidth}`}
-            initial={{ opacity: 0, scale: 0.96, y: "-42%" }}
-            animate={{ opacity: 1, scale: 1, y: "-50%" }}
-            exit={{ opacity: 0, scale: 0.96, y: "-48%" }}
+            className={`fixed z-[101] left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100%-2rem)] ${maxWidth}`}
+            initial={{ opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.96 }}
             transition={spring}
             data-testid={testId}
           >

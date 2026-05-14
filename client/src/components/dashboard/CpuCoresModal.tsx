@@ -148,7 +148,7 @@ export function CpuCoresModal({ open, onOpenChange, cpuName, coreCount, threadCo
               ? "border-red-500/30 bg-red-500/5"
               : isHighAvg
               ? "border-amber-500/30 bg-amber-500/5"
-              : "border-[#00D4FF] bg-[#00D4FF]"
+              : "border-cyan-500/20 bg-[#21262D]"
           )}
         >
           {isCriticalAvg && (
@@ -157,7 +157,7 @@ export function CpuCoresModal({ open, onOpenChange, cpuName, coreCount, threadCo
           <p
             className={cn(
               "text-2xl font-bold tabular-nums relative z-10",
-              isCriticalAvg ? "text-red-400" : isHighAvg ? "text-amber-400" : "text-[#00D4FF]"
+              isCriticalAvg ? "text-red-400" : isHighAvg ? "text-amber-400" : "text-cyan-400"
             )}
             data-testid="text-avg-cpu-load"
           >
