@@ -14,6 +14,7 @@ import { useLiveTelemetry, formatKbps } from "@/hooks/useLiveTelemetry";
 import { PredictiveWarnings } from "@/components/intelligence/PredictiveWarnings";
 import { LatencyMap } from "@/components/intelligence/LatencyMap";
 import { SystemAura } from "@/components/intelligence/SystemAura";
+import { SystemPressureMeter } from "@/components/dashboard/SystemPressureMeter";
 import { Button } from "@/components/ui/button";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Link, useLocation } from "wouter";
@@ -675,11 +676,22 @@ export default function Home() {
 
         {/* Activity Monitor Grid */}
         <Reveal className="space-y-4">
-          <h2 className="text-lg font-semibold tracking-tight text-white/90 flex items-center gap-2">
-            <Activity className="size-5 text-primary" />
-            Activity Monitor
-          </h2>
-          
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold tracking-tight text-white/90 flex items-center gap-2">
+              <Activity className="size-5 text-primary" />
+              Activity Monitor
+            </h2>
+            {liveTel && (
+              <SystemPressureMeter
+                cpuPercent={liveTel.cpu.load}
+                ramPercent={liveTel.ram.usedPercent}
+                diskPercent={liveTel.disk.activeTimePct ?? 0}
+                processCount={liveTel.processes.total}
+                className="hidden md:flex w-44 py-2.5 px-3"
+              />
+            )}
+          </div>
+
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <div>
               <StatCard

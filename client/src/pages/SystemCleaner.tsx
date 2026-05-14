@@ -13,8 +13,9 @@ import {
 
 import { CleanerHero } from "@/components/cleaner/CleanerHero";
 import { CleanerStatsGrid } from "@/components/cleaner/CleanerStatsGrid";
-import { CleanerRadialChart, useRadialData } from "@/components/cleaner/CleanerRadialChart";
-import { CleanerBeforeAfter } from "@/components/cleaner/CleanerBeforeAfter";
+import { CategoryWeightRing } from "@/components/cleaner/CategoryWeightRing";
+import { FileGravityCore, useGravityTrigger } from "@/components/cleaner/FileGravityCore";
+import { ImpactComparisonBar } from "@/components/cleaner/ImpactComparisonBar";
 import { CleanerCategoryAccordion } from "@/components/cleaner/CleanerCategoryAccordion";
 import { CleanerActionPanel } from "@/components/cleaner/CleanerActionPanel";
 import { CleanerRecommendedCard } from "@/components/cleaner/CleanerRecommendedCard";
@@ -261,7 +262,38 @@ export default function SystemCleaner() {
     return best.bytes > 0 ? { name: names[best.cat] ?? best.cat, bytes: best.bytes } : null;
   }, [categoryTotals]);
 
-  const radialData = useRadialData(categoryTotals);
+  const { trigger: gravityTrigger, fire: fireGravity } = useGravityTrigger();
+
+  const ringItems = useMemo(() => {
+    if (!categoryTotals) return [];
+    const colors: Record<string, string> = {
+      storage: "#a78bfa", privacy: "#22d3ee", latency: "#f97316", performance: "#4ade80",
+    };
+    const names: Record<string, string> = {
+      storage: "Storage", privacy: "Privacy", latency: "Latency", performance: "Performance",
+    };
+    return Object.entries(categoryTotals)
+      .filter(([, v]) => v.sizeBytes > 0)
+      .map(([cat, v]) => ({
+        id: cat,
+        label: names[cat] ?? cat,
+        valueBytes: v.sizeBytes,
+        color: colors[cat] ?? "#94a3b8",
+        selected: false,
+        cleaned: false,
+      }));
+  }, [categoryTotals]);
+
+  const ringItemsWithState = useMemo(() => {
+    return ringItems.map((r) => {
+      const catItems = categories[r.id as CleanCategory] ?? [];
+      const anySelected = catItems.some((i) => selected.has(i.id));
+      const wasCleaned = session?.results
+        ? catItems.some((i) => session.results[i.id]?.status === "cleaned")
+        : false;
+      return { ...r, selected: anySelected, cleaned: wasCleaned };
+    });
+  }, [ringItems, categories, selected, session]);
 
   const safePct = useMemo(() => {
     const safeItems = allItems.filter(i => i.risk === "safe");
@@ -354,10 +386,16 @@ export default function SystemCleaner() {
           />
         ) : phase === "result" && session ? (
           <div className="space-y-5">
-            <CleanerBeforeAfter
-              beforeBytes={session.beforeBytes}
-              afterBytes={Math.max(0, session.beforeBytes - session.summary.totalBytesRemoved)}
-              removedBytes={session.summary.totalBytesRemoved}
+            <ImpactComparisonBar
+              items={[
+                {
+                  label: "Reclaimed Space",
+                  before: session.beforeBytes,
+                  after: Math.max(0, session.beforeBytes - session.summary.totalBytesRemoved),
+                  unit: "bytes",
+                  color: "#22d3ee",
+                },
+              ]}
               visible={true}
             />
             <CleanerProgressTimeline phase="done" cleanProgress={1} />
@@ -379,7 +417,7 @@ export default function SystemCleaner() {
               selectedCount={selected.size}
               lastScanAt={lastScan ? new Date(lastScan.ran_at).toLocaleString() : null}
               onScan={runScan}
-              onClean={runClean}
+              onClean={() => { fireGravity(); runClean(); }}
               onSelectRecommended={applyRecommended}
               safeOnly={safeOnly}
               onToggleSafeOnly={() => setSafeOnly(v => !v)}
@@ -405,17 +443,47 @@ export default function SystemCleaner() {
               visible={scanStatus === "done"}
             />
 
+            {/* File gravity animation */}
+            <FileGravityCore
+              items={selectedItems.map(i => ({ id: i.id, label: i.name, category: i.category }))}
+              trigger={gravityTrigger}
+            />
+
             {/* Two-column layout: chart + before/after | accordions + action panel */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               {/* Left: visual system */}
               <div className="lg:col-span-1 space-y-4">
                 {scanStatus === "done" && (
                   <>
-                    <CleanerRadialChart categories={radialData} totalBytes={totalScanBytes} visible={true} />
-                    <CleanerBeforeAfter
-                      beforeBytes={totalScanBytes}
-                      afterBytes={Math.max(0, totalScanBytes - selectedBytes)}
-                      removedBytes={selectedBytes}
+                    <CategoryWeightRing
+                      items={ringItemsWithState}
+                      maxBytes={totalScanBytes}
+                      onSelect={(cat) => {
+                        const catItems = categories[cat as CleanCategory] ?? [];
+                        const allSel = catItems.every(i => selected.has(i.id));
+                        setSelected(prev => {
+                          const n = new Set(prev);
+                          catItems.forEach(i => allSel ? n.delete(i.id) : n.add(i.id));
+                          return n;
+                        });
+                      }}
+                    />
+                    <ImpactComparisonBar
+                      items={[
+                        {
+                          label: "Selected Size",
+                          before: totalScanBytes,
+                          after: Math.max(0, totalScanBytes - selectedBytes),
+                          unit: "bytes",
+                          color: "#a78bfa",
+                        },
+                        {
+                          label: "File Count",
+                          before: Object.values(findings).reduce((a, f) => a + (f.fileCount ?? 0), 0),
+                          after: Object.values(findings).reduce((a, f) => a + (selected.has(f.id) ? 0 : (f.fileCount ?? 0)), 0),
+                          color: "#22d3ee",
+                        },
+                      ]}
                       visible={true}
                     />
                   </>
@@ -444,7 +512,7 @@ export default function SystemCleaner() {
                   adminPct={adminPct}
                   cleaning={cleaning}
                   currentCleanId={currentCleanId}
-                  onClean={runClean}
+                  onClean={() => { fireGravity(); runClean(); }}
                   onScan={runScan}
                   filterType={filterType}
                   onFilterChange={handleFilterChange}
