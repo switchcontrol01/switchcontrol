@@ -50,7 +50,7 @@ export function PremiumCardOverlay({
 
   return (
     <div
-      className="relative h-full min-h-[280px] rounded-xl overflow-hidden flex items-center justify-center border border-[#2A313A]"
+      className="relative h-full min-h-[320px] rounded-xl flex flex-col justify-center border border-[#2A313A] p-3"
       style={{
         background: "linear-gradient(135deg,rgba(10,8,22,0.97) 0%,rgba(30,18,55,0.95) 100%)",
       }}

@@ -11,6 +11,7 @@
 
 import { createPortal } from "react-dom";
 import { Crown, Check, ArrowRight } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { motion } from "@/lib/motion";
 import { useAttentionBounce } from "@/hooks/useAttentionBounce";
@@ -140,9 +141,14 @@ export function PremiumOverlayCard({
 
   const benefits = getBenefits(displayName || featureName);
 
+  const isCard = variant === "card";
+
   const cardInner = (
     <motion.div
-      className="relative text-left p-7 rounded-2xl max-w-md w-full mx-4 space-y-5"
+      className={cn(
+        "relative text-left rounded-2xl w-full space-y-4",
+        isCard ? "p-5" : "p-7 max-w-md mx-4"
+      )}
       style={{
         background: "linear-gradient(135deg,rgba(255,255,255,0.12) 0%,rgba(195,165,255,0.09) 45%,rgba(255,255,255,0.11) 100%)",
         backdropFilter: "blur(36px)",
@@ -157,16 +163,19 @@ export function PremiumOverlayCard({
       data-testid="premium-overlay-card"
     >
       {/* Header row: crown orb + labels */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3">
         <CrownOrb />
-        <div>
+        <div className="min-w-0">
           <p
             className="text-[10px] font-semibold uppercase tracking-[0.18em] mb-0.5"
             style={{ color: premiumColor.lighter }}
           >
             Premium Feature
           </p>
-          <h3 className="text-[1.2rem] font-bold text-[#E6EAF0] leading-tight">
+          <h3 className={cn(
+            "font-bold text-[#E6EAF0] leading-tight truncate",
+            isCard ? "text-base" : "text-[1.2rem]"
+          )}>
             {displayName || featureName}
           </h3>
         </div>
@@ -184,39 +193,51 @@ export function PremiumOverlayCard({
       />
 
       {/* Feature benefit bullets */}
-      <ul className="space-y-2.5">
+      <ul className="space-y-2">
         {benefits.map((b, i) => (
-          <li key={i} className="flex items-start gap-3">
+          <li key={i} className="flex items-start gap-2.5">
             <span
               className="mt-0.5 flex-shrink-0 inline-flex w-4 h-4 items-center justify-center rounded-full"
               style={{ background: premiumRgba.glow20 }}
             >
               <Check className="w-2.5 h-2.5" style={{ color: premiumColor.lighter }} />
             </span>
-            <span className="text-sm text-[#E6EAF0]/65 leading-snug">{b}</span>
+            <span className={cn(
+              "text-[#E6EAF0]/65 leading-snug",
+              isCard ? "text-xs" : "text-sm"
+            )}>{b}</span>
           </li>
         ))}
       </ul>
 
       {/* CTA buttons */}
-      <div className="flex items-center gap-2.5 pt-0.5">
+      <div className={cn(
+        "flex items-center gap-2",
+        isCard && "flex-wrap"
+      )}>
         <Button
           onClick={openPricing}
-          className="flex-1 text-[#E6EAF0] font-semibold py-2.5 rounded-xl"
+          className={cn(
+            "text-[#E6EAF0] font-semibold rounded-xl",
+            isCard ? "flex-1 min-w-[120px] py-2 text-xs" : "flex-1 py-2.5"
+          )}
           style={{
             background: `linear-gradient(135deg,${premiumColor.main},${premiumColor.end})`,
             boxShadow: `0 4px 22px ${premiumRgba.glow35},0 0 0 1px rgba(255,255,255,0.10) inset`,
           }}
           data-testid="button-unlock-premium"
         >
-          <Crown className="size-3.5 mr-2" />
+          <Crown className={cn("mr-1.5", isCard ? "size-3" : "size-3.5")} />
           {buttonText ?? `Unlock ${displayName || featureName}`}
         </Button>
 
         <Button
           variant="outline"
           onClick={openPricing}
-          className="text-[#A0A8B3] hover:text-[#E6EAF0] transition-colors rounded-xl"
+          className={cn(
+            "text-[#A0A8B3] hover:text-[#E6EAF0] transition-colors rounded-xl whitespace-nowrap",
+            isCard ? "px-3 py-2 text-xs" : "px-4 py-2.5"
+          )}
           style={{
             background: "rgba(255,255,255,0.05)",
             borderColor: "rgba(255,255,255,0.12)",
@@ -224,7 +245,7 @@ export function PremiumOverlayCard({
           data-testid="button-view-plans"
         >
           View plans
-          <ArrowRight className="size-3.5 ml-1.5" />
+          <ArrowRight className={cn("ml-1.5", isCard ? "size-3" : "size-3.5")} />
         </Button>
       </div>
     </motion.div>
