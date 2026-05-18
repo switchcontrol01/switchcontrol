@@ -399,32 +399,86 @@ router.delete("/users/:id", requireAdmin, writeLimiter, async (req, res) => {
   const admin = getAdminId(req);
 
   if (req.params.id === admin.id) {
-    return res.status(400).json({ error: "You cannot delete your own admin account." });
+    return res.status(400).json({ success: false, error: "You cannot delete your own admin account." });
   }
 
   const parsed = deleteUserSchema.safeParse(req.body);
   if (!parsed.success) {
     const first = parsed.error.errors[0];
-    return res.status(400).json({ error: first?.message || "Must confirm deletion with { confirm: true, reason }." });
+    return res.status(400).json({ success: false, error: first?.message || "Must confirm deletion with { confirm: true, reason }." });
   }
 
   const targetId = req.params.id;
 
   try {
     const existing = await storage.getUser(targetId);
-    if (!existing) return res.status(404).json({ error: "User not found." });
+    if (!existing) {
+      console.warn(`[admin:delete] NOT FOUND — admin=${admin.email} targetId=${targetId}`);
+      return res.status(404).json({ success: false, error: "User not found." });
+    }
 
-    const snapshot = { email: existing.email, plan: existing.plan, isPremium: existing.isPremium, isAdmin: existing.isAdmin };
+    const snapshot = {
+      email:      existing.email,
+      plan:       existing.plan,
+      isPremium:  existing.isPremium,
+      isAdmin:    existing.isAdmin,
+      stripeCustomerId: existing.stripeCustomerId ?? null,
+    };
 
-    // Audit BEFORE deletion — admin logs are preserved (no FK cascade) for the audit trail
+    console.warn(
+      `[admin:delete] STARTING — ` +
+      `admin=${admin.email} (${admin.id}) ` +
+      `target=${existing.email ?? "(no email)"} (${targetId}) ` +
+      `plan=${existing.plan} isPremium=${existing.isPremium} ` +
+      `stripeCustomerId=${existing.stripeCustomerId ?? "none"} ` +
+      `reason="${parsed.data.reason}"`,
+    );
+
+    // Revoke Stripe subscription if the customer has one — best-effort (never blocks deletion)
+    if (existing.stripeCustomerId) {
+      try {
+        const stripe = getStripeClient();
+        if (stripe) {
+          const subs = await stripe.subscriptions.list({ customer: existing.stripeCustomerId, status: "active", limit: 10 });
+          for (const sub of subs.data) {
+            await stripe.subscriptions.cancel(sub.id);
+            console.log(`[admin:delete] Cancelled Stripe sub ${sub.id} for customer ${existing.stripeCustomerId}`);
+          }
+        }
+      } catch (stripeErr: any) {
+        // Non-fatal — log and continue with DB deletion
+        console.error(`[admin:delete] Stripe cleanup failed (non-fatal): ${stripeErr.message}`);
+      }
+    }
+
+    // Audit BEFORE deletion — the log entry must exist before the user row is gone
     await auditLog(admin.id, targetId, "delete_user", snapshot, null, { reason: parsed.data.reason });
-    console.warn(`[admin] ${admin.email} DELETED user=${targetId} (${existing.email}) reason="${parsed.data.reason}"`);
 
+    // Delete the user and all associated rows (sessions, settings, tweaks, history, etc.)
     await storage.deleteUser(targetId);
-    res.json({ ok: true, deleted: { id: targetId, ...snapshot } });
+
+    console.warn(
+      `[admin:delete] SUCCESS — ` +
+      `admin=${admin.email} target=${existing.email ?? targetId}`,
+    );
+
+    res.json({ success: true, ok: true, deleted: { id: targetId, ...snapshot } });
   } catch (err: any) {
-    console.error("[admin] deleteUser error:", err);
-    res.status(500).json({ error: "Failed to delete user." });
+    console.error(
+      `[admin:delete] FAILED — ` +
+      `admin=${admin.email} targetId=${targetId} ` +
+      `error="${err?.message}" code=${err?.code ?? "none"}\n` +
+      (err?.stack ?? ""),
+    );
+
+    // Return a structured error so the frontend can show the real reason
+    const userMessage =
+      err?.code === "23503" ? "Deletion blocked by a database foreign-key constraint. Contact the developer." :
+      err?.code === "23502" ? "Deletion failed: a required column became null unexpectedly." :
+      err?.message?.includes("not found") ? "User not found." :
+      "Deletion failed — see server logs for details.";
+
+    res.status(500).json({ success: false, error: userMessage });
   }
 });
 

@@ -180,80 +180,165 @@ function ConfirmModal({ title, description, confirmLabel = "Confirm", danger, re
 // ─── Delete User Modal ────────────────────────────────────────────────────────
 
 function DeleteUserModal({ user, onClose, onDeleted }: { user: AdminUser; onClose: () => void; onDeleted: () => void }) {
-  const [confirm, setConfirm] = useState("");
-  const [reason, setReason] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [understood, setUnderstood] = useState(false);
+  const [loading, setLoading]       = useState(false);
+  const [error, setError]           = useState<string | null>(null);
 
-  const canDelete = confirm === (user.email || user.id) && reason.trim().length > 0;
+  const AUDIT_REASON = "Admin deletion via admin panel";
+
+  const planLabel: Record<string, string> = {
+    premium: "Premium",
+    trial:   "Trial",
+    free:    "Free",
+  };
 
   const submit = async () => {
+    if (!understood || loading) return;
     setLoading(true);
     setError(null);
     try {
       const r = await fetch(`/api/admin/users/${user.id}`, {
         method: "DELETE",
         headers: buildHeaders() as any,
-        body: JSON.stringify({ confirm: true, reason: reason.trim() }),
+        body: JSON.stringify({ confirm: true, reason: AUDIT_REASON }),
       });
-      const data = await r.json();
-      if (!r.ok) throw new Error(data.error || "Failed to delete");
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok || data.success === false) {
+        throw new Error(data.error || `Server returned ${r.status}`);
+      }
       onDeleted();
     } catch (e: any) {
       setError(e.message);
-    } finally {
       setLoading(false);
     }
   };
 
+  const createdLabel = user.createdAt
+    ? new Date(user.createdAt).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })
+    : "Unknown";
+
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-[#14181D]/80 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-[#07090D]/85 backdrop-blur-sm" onClick={!loading ? onClose : undefined} />
       <div
-        className="relative w-full max-w-sm rounded-2xl border border-red-500/20 p-6 shadow-2xl"
-        style={{ background: "linear-gradient(145deg, rgba(239,68,68,0.05) 0%, rgba(7,9,13,0.97) 100%)" }}
+        className="relative w-full max-w-md rounded-2xl border border-red-500/25 p-6 shadow-2xl"
+        style={{ background: "linear-gradient(160deg, rgba(239,68,68,0.06) 0%, rgba(7,9,13,0.98) 50%, rgba(7,9,13,0.98) 100%)" }}
       >
-        <h3 className="text-base font-semibold text-red-300 mb-1">Delete User</h3>
-        <p className="text-sm text-[#A0A8B3] mb-4">
-          This will permanently delete <strong className="text-[#E6EAF0]">{user.displayName}</strong> and all their associated data. This action cannot be undone.
-        </p>
-        <label className="block text-xs text-[#6B7380] mb-1.5">
-          Type <span className="font-mono text-[#A0A8B3]">{user.email || user.id}</span> to confirm
+        {/* Header */}
+        <div className="flex items-start gap-3 mb-5">
+          <div className="flex-shrink-0 w-9 h-9 rounded-xl bg-red-500/15 border border-red-500/25 flex items-center justify-center">
+            <svg className="w-4 h-4 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+          </div>
+          <div>
+            <h3 className="text-base font-semibold text-[#E6EAF0] leading-tight">Delete User Account</h3>
+            <p className="text-xs text-[#6B7380] mt-0.5">This action is permanent and cannot be undone</p>
+          </div>
+        </div>
+
+        {/* User details card */}
+        <div className="rounded-xl bg-[#0F1318] border border-[#1E252E] p-4 mb-4 space-y-2">
+          <DetailRow label="Email"    value={user.email || "—"} mono />
+          <DetailRow label="Name"     value={user.displayName} />
+          <DetailRow label="Plan"     value={planLabel[user.effectivePlan] ?? user.effectivePlan ?? "Free"} />
+          <DetailRow label="User ID"  value={user.id} mono truncate />
+          <DetailRow label="Created"  value={createdLabel} />
+        </div>
+
+        {/* Warning */}
+        <div className="flex gap-2.5 rounded-xl bg-red-500/8 border border-red-500/20 px-3.5 py-3 mb-4">
+          <svg className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+          </svg>
+          <p className="text-xs text-red-300 leading-relaxed">
+            This permanently deletes the account, all settings, history, AI scans, and active sessions.
+            Any active Stripe subscription will be cancelled.
+          </p>
+        </div>
+
+        {/* Confirmation checkbox */}
+        <label
+          className="flex items-start gap-3 rounded-xl border border-[#2A313A] px-3.5 py-3 mb-4 cursor-pointer select-none hover:border-red-500/30 transition-colors"
+          data-testid="label-delete-understand"
+        >
+          <div className="relative flex-shrink-0 mt-0.5">
+            <input
+              type="checkbox"
+              checked={understood}
+              onChange={(e) => setUnderstood(e.target.checked)}
+              disabled={loading}
+              data-testid="checkbox-delete-understand"
+              className="sr-only"
+            />
+            <div className={`w-4 h-4 rounded flex items-center justify-center border transition-all ${
+              understood
+                ? "bg-red-600/80 border-red-500"
+                : "bg-[#21262D] border-[#3A424E]"
+            }`}>
+              {understood && (
+                <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              )}
+            </div>
+          </div>
+          <span className="text-xs text-[#A0A8B3] leading-relaxed">
+            I understand this action is permanent and will delete all data associated with this account
+          </span>
         </label>
-        <input
-          type="text"
-          value={confirm}
-          onChange={(e) => setConfirm(e.target.value)}
-          data-testid="input-delete-confirm"
-          placeholder={user.email || user.id || ""}
-          className="w-full rounded-lg bg-[#21262D] border border-red-500/20 px-3 py-2 text-sm text-[#E6EAF0] placeholder-[#6B7380] outline-none focus:border-red-500/50 transition-colors mb-3"
-        />
-        <label className="block text-xs text-[#6B7380] mb-1.5">Reason for deletion (required for audit trail)</label>
-        <input
-          type="text"
-          value={reason}
-          onChange={(e) => setReason(e.target.value)}
-          data-testid="input-delete-reason"
-          placeholder="e.g. User requested GDPR deletion"
-          className="w-full rounded-lg bg-[#21262D] border border-red-500/20 px-3 py-2 text-sm text-[#E6EAF0] placeholder-[#6B7380] outline-none focus:border-red-500/50 transition-colors mb-4"
-        />
+
+        {/* Error banner */}
         {error && (
-          <p className="text-red-400 text-xs mb-4 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">{error}</p>
+          <div className="flex gap-2 rounded-lg bg-red-500/10 border border-red-500/25 px-3 py-2.5 mb-4" data-testid="text-delete-error">
+            <svg className="w-3.5 h-3.5 text-red-400 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+            </svg>
+            <p className="text-red-300 text-xs leading-relaxed">{error}</p>
+          </div>
         )}
+
+        {/* Buttons */}
         <div className="flex gap-3">
-          <button onClick={onClose} disabled={loading} className="flex-1 rounded-xl px-4 py-2.5 text-sm font-medium bg-[#21262D] border border-[#2A313A] text-[#A0A8B3] hover:text-[#E6EAF0] transition-colors disabled:opacity-50">
+          <button
+            onClick={onClose}
+            disabled={loading}
+            data-testid="button-delete-cancel"
+            className="flex-1 rounded-xl px-4 py-2.5 text-sm font-medium bg-[#1A1F27] border border-[#2A313A] text-[#A0A8B3] hover:text-[#E6EAF0] hover:border-[#3A424E] transition-all disabled:opacity-40"
+          >
             Cancel
           </button>
           <button
             onClick={submit}
-            disabled={!canDelete || loading}
+            disabled={!understood || loading}
             data-testid="button-delete-confirm"
-            className="flex-1 rounded-xl px-4 py-2.5 text-sm font-medium border bg-red-600/25 border-red-500/35 text-red-300 hover:bg-red-600/40 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+            className="flex-1 rounded-xl px-4 py-2.5 text-sm font-semibold border bg-red-600/30 border-red-500/40 text-red-300 hover:bg-red-600/50 hover:border-red-500/60 hover:text-red-200 transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
-            {loading ? "Deleting…" : "Delete Permanently"}
+            {loading ? (
+              <>
+                <svg className="w-3.5 h-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                Deleting…
+              </>
+            ) : (
+              "Delete User Account"
+            )}
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+function DetailRow({ label, value, mono, truncate }: { label: string; value: string; mono?: boolean; truncate?: boolean }) {
+  return (
+    <div className="flex items-center justify-between gap-3 min-w-0">
+      <span className="text-xs text-[#6B7380] flex-shrink-0">{label}</span>
+      <span className={`text-xs text-[#C4CAD4] text-right ${mono ? "font-mono" : ""} ${truncate ? "truncate max-w-[180px]" : ""}`}>
+        {value}
+      </span>
     </div>
   );
 }

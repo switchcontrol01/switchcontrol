@@ -1,0 +1,86 @@
+PROBLEM:
+The SwitchControl admin panel UI renders correctly, but backend-powered sections are non-functional.
+
+Observed issues:
+
+- Top stats cards show all zeros (Users, Premium, Trial, Free, Stripe Events)
+- System Health button/panel never loads
+- Stripe Webhook Events panel empty
+- "Load Stripe" button inside user detail never works
+- Electron logs show:
+  - STRIPE_SECRET_KEY: will_use=false
+  - ERR_CERT_AUTHORITY_INVALID
+- This strongly indicates packaged Electron backend is missing Stripe credentials and/or failing HTTPS requests.
+
+GOAL:
+Restore full backend functionality for the admin panel in packaged Electron builds.
+
+IMPLEMENTATION:
+
+1. Verify ALL admin API routes are mounted and reachable in packaged Electron:
+   
+   - /api/admin/stats
+   - /api/admin/system-health
+   - /api/admin/stripe-events
+   - /api/admin/user/:id/stripe
+
+2. Add backend logging to every admin route:
+   
+   - request received
+   - auth result
+   - Stripe initialized true/false
+   - response status
+   - caught exceptions
+
+3. Fix DesktopSecrets loading:
+   
+   - Persist and load:
+     - STRIPE_SECRET_KEY
+     - GOOGLE_CLIENT_ID
+     - GOOGLE_CLIENT_SECRET
+   - not just JWT_SECRET and SESSION_SECRET
+
+4. Add explicit startup diagnostics:
+   console.log("[Admin] Stripe initialized:", !!process.env.STRIPE_SECRET_KEY)
+
+5. Investigate HTTPS certificate failure:
+   Error:
+   ERR_CERT_AUTHORITY_INVALID
+   
+   Determine which external request causes this:
+   
+   - Stripe API
+   - Google auth
+   - updater
+   - webhook validation
+   - admin fetch
+
+6. Ensure packaged Electron admin requests route correctly:
+   
+   - must use local backend:
+     http://127.0.0.1:<port>/api
+   - must NOT accidentally hit cloud routes
+
+7. Add frontend admin fetch error logging:
+   
+   - status codes
+   - JSON payload
+   - fetch exceptions
+
+8. Remove silent fallback values:
+   
+   - do not default admin stats to 0 when request fails
+   - show backend error state instead
+
+CHECKLIST:
+
+- Admin stats load real values
+- Stripe webhook events render
+- System health works
+- Load Stripe button returns customer data
+- No ERR_CERT_AUTHORITY_INVALID errors
+- STRIPE_SECRET_KEY detected in packaged Electron logs
+- Admin API routes return non-empty payloads
+
+FINAL OUTPUT:
+Fully functional packaged Electron admin panel with working Stripe integration, live stats, webhook visibility, and backend diagnostics.

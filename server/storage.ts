@@ -663,11 +663,27 @@ export class DatabaseStorage implements IStorage {
       await tx.execute(drizzleSql`DELETE FROM app_booster_state WHERE user_id = ${userId}`);
       await tx.execute(drizzleSql`DELETE FROM app_booster_history WHERE user_id = ${userId}`);
 
-      // 4. Finally delete the user
+      // 4. Clear active sessions for this user.
+      // The sessions table stores JSONB payloads — we scrub any session whose
+      // 'passport.user' or 'userId' field matches the deleted user.
+      await tx.execute(drizzleSql`
+        DELETE FROM sessions
+        WHERE (sess->>'userId')              = ${userId}
+           OR (sess->'passport'->>'user')    = ${userId}
+      `);
+
+      // 5. Finally delete the user row.
       await tx.delete(users).where(eq(users.id, userId));
 
-      // 5. Anonymize adminLogs references (targetUserId remains as audit trail, but scrub the deleted user from it)
-      await tx.execute(drizzleSql`UPDATE admin_logs SET target_user_id = NULL, metadata = metadata || ${JSON.stringify({ deleted: true })}::jsonb WHERE target_user_id = ${userId}`);
+      // 6. Mark adminLogs entries that targeted this user as deleted.
+      //    We CANNOT set target_user_id = NULL (the column is NOT NULL).
+      //    Instead we patch the metadata jsonb to record the deletion without
+      //    touching the non-nullable FK-equivalent column.
+      await tx.execute(drizzleSql`
+        UPDATE admin_logs
+           SET metadata = COALESCE(metadata, '{}'::jsonb) || '{"targetDeleted":true}'::jsonb
+         WHERE target_user_id = ${userId}
+      `);
     });
   }
 
