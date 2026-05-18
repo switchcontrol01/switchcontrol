@@ -32,7 +32,7 @@ import issueDetectorRouter from "./routes/issueDetector";
 import advisorContextRouter from "./routes/advisorContext";
 import { getSystemIntelligence } from "./lib/systemIntelligence";
 import { getSnapshot, getSystemSpecs, getSchedulerStats, startTelemetryPolling } from "./lib/telemetry";
-import { setupWebSocketServer } from "./lib/wsServer";
+import { broadcastNow, setupWebSocketServer } from "./lib/wsServer";
 import { signJwt } from "./lib/jwt";
 
 const isElectronBackend = process.env.ELECTRON_BACKEND === '1';
@@ -476,6 +476,16 @@ export async function registerRoutes(
     } catch (error) {
       console.error("AI scan error:", error);
       res.status(500).json({ error: "Failed to run AI scan" });
+    }
+  });
+
+  // Force an immediate RAM refresh and WebSocket broadcast — called after memory clean
+  app.post("/api/telemetry/force-refresh", requireJwt, async (_req, res) => {
+    try {
+      await broadcastNow();
+      res.json({ ok: true });
+    } catch (e: any) {
+      res.json({ ok: false, error: e?.message });
     }
   });
 

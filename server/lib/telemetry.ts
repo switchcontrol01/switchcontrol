@@ -458,6 +458,32 @@ export async function getSnapshot(): Promise<TelemetrySnapshot> {
   return getCachedSnapshot();
 }
 
+// refreshRamNow: force a fresh si.mem() read and patch the cached snapshot.
+// Called immediately after a memory clean so the WebSocket broadcast reflects
+// the post-clean RAM value without waiting for the next scheduler tick.
+export async function refreshRamNow(): Promise<void> {
+  try {
+    const memRes = await si.mem().catch(() => null);
+    if (!memRes || !cachedSnapshot) return;
+    const totalBytes = memRes.total;
+    const usedBytes  = memRes.used;
+    const totalGB    = totalBytes / 1073741824;
+    const usedGB     = usedBytes  / 1073741824;
+    const usedPercent = totalGB > 0 ? (usedGB / totalGB) * 100 : 0;
+    cachedSnapshot = {
+      ...cachedSnapshot,
+      ts: Date.now(),
+      ram: {
+        totalGB:    parseFloat(totalGB.toFixed(2)),
+        usedGB:     parseFloat(usedGB.toFixed(2)),
+        usedPercent: parseFloat(usedPercent.toFixed(1)),
+      },
+    };
+  } catch (e: any) {
+    console.warn("[Telemetry] refreshRamNow error:", e?.message);
+  }
+}
+
 // ── Scheduler stats ───────────────────────────────────────────────────────────
 
 export function getSchedulerStats(): SchedulerStats {

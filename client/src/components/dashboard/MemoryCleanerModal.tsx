@@ -183,10 +183,9 @@ export function MemoryCleanerModal({ open, onOpenChange }: MemoryCleanerModalPro
 
         setResult(res);
 
-        // Do NOT manually patch usedRamGb here.
-        // The live telemetry (WebSocket / IPC) updates RAM every 1-2 seconds
-        // automatically, so the card will reflect the real post-clean value
-        // without a floor bug.
+        // Force an immediate telemetry refresh so the dashboard RAM card
+        // updates right away instead of waiting for the next 2-second poll.
+        fetch("/api/telemetry/force-refresh", { method: "POST" }).catch(() => {});
       } else {
         await minDelay;
         clearRam();

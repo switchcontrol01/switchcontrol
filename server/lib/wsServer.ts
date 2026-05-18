@@ -1,7 +1,7 @@
 import { Server as HttpServer } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { parse as parseUrl } from "url";
-import { getCachedSnapshot, getSnapshot } from "./telemetry";
+import { getCachedSnapshot, getSnapshot, refreshRamNow } from "./telemetry";
 import { verifyJwt, jwtFingerprint, peekJwtExpiry } from "./jwt";
 import { isKilled } from "./killSwitch";
 
@@ -192,6 +192,20 @@ export function setupWebSocketServer(httpServer: HttpServer) {
   }, 2000);
 
   console.log("[WS] Live telemetry WebSocket server ready at /ws/telemetry (auth required)");
+}
+
+// broadcastNow: force a fresh RAM reading then immediately broadcast to all
+// connected clients. Used after memory clean so the dashboard updates instantly.
+export async function broadcastNow(): Promise<void> {
+  await refreshRamNow();
+  if (!wss || wss.clients.size === 0) return;
+  const snap = getCachedSnapshot();
+  if (snap.status === "loading") return;
+  const msg = JSON.stringify({ type: "telemetry", data: snap });
+  lastBroadcastPayload = msg; // update dedup reference
+  wss.clients.forEach((client) => {
+    if (client.readyState === WebSocket.OPEN) client.send(msg);
+  });
 }
 
 export function teardownWebSocketServer() {
