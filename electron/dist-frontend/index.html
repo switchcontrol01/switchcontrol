@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en" style="background:#07090D;color-scheme:dark;opacity:0;transition:opacity 200ms ease-out;height:100%;width:100%;overflow:hidden;">
   <head>
+    <meta name="google-site-verification" content="7Go-YIR3WALNYY6u19nKMEUG1nSTgugkNssIoYuwEL8" />
     <!--
       CRITICAL DARK-PAINT GUARANTEE
       ─────────────────────────────
@@ -31,6 +32,16 @@
         height: 100%;
         background: #07090D !important;
         overflow: hidden;
+      }
+
+      /* Web path: sc-web class is added synchronously by the inline script below.
+         CSS selectors apply to elements parsed AFTER the class is set, so #root
+         (which appears after the script tag) correctly picks up these overrides. */
+      html.sc-web,
+      html.sc-web body,
+      html.sc-web #root {
+        overflow: auto !important;
+        height: auto !important;
       }
 
       /* Bulletproof dark cover — painted by the browser before ANY JS runs.
@@ -86,8 +97,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Playfair+Display:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <script type="module" crossorigin src="./assets/index-dJ2_uCA-.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-BvjRyFYg.css">
+    <script type="module" crossorigin src="./assets/index-DrdLqOri.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-B6Zw0vnA.css">
   </head>
   <body style="margin:0;padding:0;background:#07090D;overflow:hidden;height:100%;width:100%;">
 
@@ -113,13 +124,10 @@
       }else{
         var s=document.getElementById('startup-shell');if(s)s.style.display='none';
         document.documentElement.style.opacity='1';
-        document.documentElement.style.overflow='';
-        document.documentElement.style.height='';
-        document.body.style.overflow='';
-        document.body.style.height='';
-        // Website path: body::before not needed, remove it immediately
+        // sc-web class unlocks overflow/height on html, body, AND #root (parsed later)
+        // via the html.sc-web CSS rule in the <style> block above.
+        document.documentElement.classList.add('sc-web');
         document.body.classList.add('sc-first-frame-ready');
-        var r=document.getElementById('root');if(r)r.style.height='';
       }
     </script>
 

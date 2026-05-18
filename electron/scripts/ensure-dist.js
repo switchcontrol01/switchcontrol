@@ -111,4 +111,76 @@ if (dedupCount > 0) {
   console.log(`[ensure-dist] Deduplicated ${dedupCount} PNG file(s) vs WebP (${Math.round(dedupBytes / 1024)}KB freed)`);
 }
 
+// --- Build guard: fail the build if forbidden dev/source junk is present ---
+// This catches regressions BEFORE they ship to users. Examples of things that
+// must never end up in dist-frontend: replit.md, attached_assets/, screenshots/,
+// arbitrary .md / .txt notes, raw source files, etc.
+const FORBIDDEN_FILE_PATTERNS = [
+  /\.md$/i,
+  /\.txt$/i,
+  /^replit\./i,
+  /^README/i,
+  /^CHANGELOG/i,
+  /^LICENSE/i,
+  /\.log$/i,
+  /\.ts$/i,
+  /\.tsx$/i,
+];
+const FORBIDDEN_DIR_NAMES = new Set([
+  "attached_assets",
+  "screenshots",
+  "docs",
+  "test",
+  "tests",
+  "__tests__",
+  ".git",
+  ".local",
+  "node_modules",
+  "src",
+  "server",
+  "shared",
+  "client",
+]);
+
+const violations = [];
+function scanForJunk(dir, relPath = "") {
+  if (!fs.existsSync(dir)) return;
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const childRel = relPath ? `${relPath}/${entry.name}` : entry.name;
+    const childAbs = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      if (FORBIDDEN_DIR_NAMES.has(entry.name)) {
+        violations.push(`directory: ${childRel}/`);
+        continue;
+      }
+      scanForJunk(childAbs, childRel);
+    } else {
+      for (const pattern of FORBIDDEN_FILE_PATTERNS) {
+        if (pattern.test(entry.name)) {
+          violations.push(`file: ${childRel}`);
+          break;
+        }
+      }
+    }
+  }
+}
+scanForJunk(electronDist);
+
+if (violations.length > 0) {
+  console.error("");
+  console.error("[ensure-dist] BUILD GUARD FAILED");
+  console.error("[ensure-dist] Forbidden files found in dist-frontend that must not ship to users:");
+  for (const v of violations) {
+    console.error(`  - ${v}`);
+  }
+  console.error("");
+  console.error("[ensure-dist] Fix by either:");
+  console.error("  1. Removing the offending file from client/public/ or client/src/");
+  console.error("  2. Adding it to WEBSITE_ONLY_FILES above if it's an intentional website-only asset");
+  console.error("  3. Adjusting FORBIDDEN_FILE_PATTERNS / FORBIDDEN_DIR_NAMES if too strict");
+  console.error("");
+  process.exit(1);
+}
+
+console.log("[ensure-dist] Build guard passed — no forbidden files in dist-frontend");
 console.log("[ensure-dist] Done — dist-frontend is clean and ready for packaging");
