@@ -1,0 +1,147 @@
+TASK:
+FINAL PRE-1.0.9 FULL SYSTEM AUDIT + BUG FIX PASS FOR SWITCHCONTROL
+
+GOAL:
+Perform a full production-grade audit of SwitchControl before releasing v1.0.9.
+
+This is NOT a partial patch task.
+This is a full verification + stabilization pass.
+
+The app currently has multiple confirmed issues involving:
+
+- API routing
+- JWT/session handling
+- WebSocket auth
+- admin panel deletion
+- Electron packaging
+- telemetry
+- tweak persistence
+- production asset cleanup
+- UI polish
+- installer bloat
+- network tweak validation
+- OAuth deep linking
+- process manager duplication
+- debloater icons
+
+You must VERIFY every issue directly in code and fix root causes properly.
+Do not apply surface-level patches.
+
+==================================================
+SECTION 1: CLOUD API ROUTING
+
+PROBLEM:
+Some routes incorrectly hit the local Electron backend instead of cloud APIs.
+
+CONFIRMED ISSUES:
+
+- AI Advisor 403/session expired
+- BIOS advisor failures
+- admin panel failing
+- network tweak reporting inconsistencies
+
+TASKS:
+
+1. Audit:
+
+- client/src/lib/api.ts
+- all fetch wrappers
+- auth token injection
+- cloud routing logic
+
+2. Ensure these prefixes are routed to cloud backend ONLY:
+
+"/api/ai"
+"/api/bios"
+"/api/admin"
+"/api/network-tweaks"
+
+3. Confirm:
+
+- JWT token forwarding works
+- Authorization headers persist
+- session state survives navigation
+- Electron local backend is NOT handling cloud-only APIs
+
+4. Verify:
+
+- AI Advisor works
+- BIOS Advisor works
+- admin APIs work
+- tweak report APIs work
+
+==================================================
+SECTION 2: JWT + TELEMETRY WEBSOCKET
+
+CONFIRMED ISSUE:
+Logs show:
+
+[AUTH] JWT verification failed: invalid signature
+[WS] Rejected telemetry client (invalid or expired token)
+
+This is a REAL issue.
+
+TASKS:
+
+1. Audit:
+
+- Electron JWT generation
+- renderer token usage
+- telemetry websocket auth flow
+- backend token verification
+- token source mismatch
+- session restoration
+
+2. Verify:
+
+- renderer and backend use SAME JWT secret
+- persisted desktop-secrets.json is loaded correctly
+- token refresh/reconnect logic is valid
+- websocket reconnect does NOT use stale tokens
+
+3. Fix:
+
+- telemetry websocket auth rejection
+- invalid signature spam
+- false websocket connected state
+
+4. Confirm:
+
+- telemetry graphs stay live
+- websocket stays authenticated
+- no auth spam in logs
+
+==================================================
+SECTION 3: ADMIN PANEL
+
+CONFIRMED ISSUES:
+
+- delete user sometimes fails
+- requiring exact email entry is poor UX
+
+TASKS:
+
+1. Replace current delete confirmation flow.
+
+REMOVE:
+
+- exact email typing requirement
+
+REPLACE WITH:
+
+- modern double confirmation modal:
+  "Are you sure you want to permanently delete this user?"
+
+2. Fix actual backend deletion failure.
+
+Audit:
+
+- admin routes
+- auth middleware
+- database delete logic
+- cloud API routing
+- permissions
+- error handling
+
+3. Return proper errors instead of generic:
+   "failed to delete user"
