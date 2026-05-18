@@ -371,7 +371,7 @@ function EntryModal({
 
   if (step === "analyzing") {
     return (
-      <div className="fixed inset-0 z-[60] flex items-center justify-center bg-[#0A0E14]/90 backdrop-blur-xl">
+      <div className="fixed top-0 bottom-0 left-64 right-0 z-[60] flex items-center justify-center bg-[#0A0E14]/90 backdrop-blur-xl">
         <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="flex flex-col items-center gap-6">
           <div className="relative">
             <motion.div className="w-16 h-16 rounded-full border-2 border-[#00D4FF]/30" animate={{ rotate: 360 }} transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }} style={{ borderTopColor: "#00D4FF" }} />
@@ -390,7 +390,7 @@ function EntryModal({
   }
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-[#0A0E14]/90 backdrop-blur-xl">
+    <div className="fixed top-0 bottom-0 left-64 right-0 z-[60] flex items-center justify-center bg-[#0A0E14]/90 backdrop-blur-xl">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.4 }} className="w-full max-w-lg mx-4">
         <div className="flex items-center gap-2 mb-6">
           {[1, 2, 3].map((n) => (
