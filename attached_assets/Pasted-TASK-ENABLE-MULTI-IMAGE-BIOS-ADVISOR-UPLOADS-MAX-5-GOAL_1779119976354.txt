@@ -1,0 +1,125 @@
+TASK: ENABLE MULTI-IMAGE BIOS ADVISOR UPLOADS (MAX 5)
+
+GOAL:
+Allow users to upload and analyze up to 5 BIOS screenshots/images at once inside BIOS Advisor.
+
+Current issue:
+Only one image is accepted and processed.
+
+Required behavior:
+- User can upload 1 to 5 images
+- Drag/drop and file picker both support multiple images
+- Images preview before submit
+- Backend processes ALL uploaded images
+- AI receives ALL images together in ONE analysis request
+- Prevent uploads above 5 files
+- Prevent duplicate uploads
+- Preserve existing single-image compatibility
+
+IMPLEMENTATION REQUIREMENTS:
+
+--------------------------------------------------
+1. FRONTEND FILE INPUT
+--------------------------------------------------
+
+Find BIOS Advisor upload component.
+
+Change file input:
+
+FROM:
+multiple={false}
+
+TO:
+multiple
+
+Accept:
+image/png
+image/jpeg
+image/webp
+
+Add validation:
+- max 5 files
+- max size per image: 10MB
+- remove duplicates by:
+  filename + size + lastModified
+
+If user exceeds limit:
+show:
+"You can upload up to 5 BIOS screenshots."
+
+--------------------------------------------------
+2. FRONTEND STATE REWORK
+--------------------------------------------------
+
+Replace:
+selectedImage
+uploadedImage
+
+WITH:
+selectedImages: File[]
+
+Update all upload logic to use arrays.
+
+Requirements:
+- append new files without replacing old ones
+- allow removing individual images
+- preserve upload order
+
+Add preview gallery:
+- thumbnail grid
+- remove button per image
+- loading state per image optional
+
+--------------------------------------------------
+3. API REQUEST UPDATE
+--------------------------------------------------
+
+Current backend likely expects:
+FormData -> image
+
+Update to:
+images[]
+
+FormData example:
+
+formData.append("images", file1)
+formData.append("images", file2)
+
+Do NOT send separate requests.
+Send ONE combined request.
+
+--------------------------------------------------
+4. BACKEND MULTIPART SUPPORT
+--------------------------------------------------
+
+Update backend upload middleware.
+
+Current:
+upload.single("image")
+
+Replace with:
+upload.array("images", 5)
+
+Reject:
+- more than 5 files
+- non-image uploads
+
+Return explicit errors.
+
+--------------------------------------------------
+5. AI ANALYSIS PIPELINE
+--------------------------------------------------
+
+Current logic likely processes one image.
+
+Update pipeline so:
+ALL uploaded BIOS screenshots are analyzed together.
+
+Requirements:
+- merge extracted BIOS data across images
+- avoid duplicate settings
+- prioritize highest-confidence OCR result
+- preserve compatibility with mixed BIOS pages
+
+Prompt should mention:
+"Multiple BIOS screenshots may be provided. Combine all visible settings into one unified analysis."

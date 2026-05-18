@@ -1,9 +1,14 @@
 /**
  * ExtremeLabs.tsx
  *
- * Premium-only advanced latency tuning section.
+ * Advanced latency and delay tuning for power users.
  * Entry modal → restore point → unlocked dashboard.
- * Honest, hardware-dependent copy. No fake marketing.
+ *
+ * Entitlement tiers:
+ *  - free / trial_expired  → can view analysis + browse tweaks; Apply is locked
+ *  - trial_active          → full access (same as premium)
+ *  - premium / premium_grace → full access
+ *  - unverified            → premium wall
  */
 
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
@@ -12,12 +17,11 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { GlassCard, UtilityCard } from "@/components/ui/glass-card";
 import { Button } from "@/components/ui/button";
 import { useEntitlementUiState } from "@/hooks/useEntitlementUiState";
+import type { EntitlementUiStatus } from "@/lib/entitlementResolver";
 import { PremiumPageOverlay } from "@/components/ui/premium-page-overlay";
 import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
 import { useToast } from "@/hooks/use-toast";
 import { useLiveTelemetry } from "@/hooks/useLiveTelemetry";
-import { useStore } from "@/lib/store";
-import { useTweakOwnershipStore } from "@/stores/tweakOwnershipStore";
 import { motion, AnimatePresence } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
@@ -28,7 +32,6 @@ import {
   getImpactColor,
   type ExtremeTweak,
   type RiskBadge,
-  type RiskArea,
 } from "@/lib/extreme-labs-data";
 
 import {
@@ -39,7 +42,6 @@ import {
   ArrowLeft,
   ArrowRight,
   Check,
-  X,
   RotateCcw,
   Timer,
   Cpu,
@@ -50,21 +52,42 @@ import {
   ChevronDown,
   Filter,
   Flame,
-  Info,
   Gauge,
   TrendingDown,
+  Lock,
 } from "lucide-react";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
 type WizardStep = "warning" | "restore" | "analyzing" | "dashboard";
 
-interface LabSession {
-  id: string;
-  createdAt: number;
-  baselineSnapshot: string;
-  tweaksApplied: string[];
-  status: "active" | "reverted" | "failed";
+interface ApplyBatchResult {
+  applied: number;
+  failed: number;
+  skipped: number;
+  adminBlocked: number;
+  notSupported: number;
+  details: Array<{ id: string; ok: boolean; reason?: string }>;
+}
+
+// ── Entitlement helpers (single source of truth for Extreme Labs) ─────────────
+
+function canRunExtremeAnalysis(status: EntitlementUiStatus): boolean {
+  // All logged-in users can run analysis — it's the funnel
+  return status !== "unverified";
+}
+
+function canApplyExtremeTweaks(status: EntitlementUiStatus): boolean {
+  // trial_active users get full apply access
+  return (
+    status === "premium" ||
+    status === "premium_grace" ||
+    status === "trial_active"
+  );
+}
+
+function elLog(tag: "ExtremeLabs" | "ExtremeLabsApply" | "ExtremeLabsEntitlement", data: Record<string, unknown>) {
+  console.log(`[${tag}]`, JSON.stringify(data));
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -101,24 +124,15 @@ function computeLatencyScore(telemetry: ReturnType<typeof useLiveTelemetry>["tel
 // ── SVG Gauge Component ──────────────────────────────────────────────────────
 
 function LatencyGauge({ value, label }: { value: number; label: string }) {
-  // value 0-100 (lower is better latency)
   const clamped = Math.min(100, Math.max(0, value));
-  const angle = (clamped / 100) * 270 - 135; // -135 to +135 degrees
+  const angle = (clamped / 100) * 270 - 135;
   const color = clamped < 40 ? "#22c55e" : clamped < 70 ? "#f59e0b" : "#ef4444";
 
   return (
     <div className="flex flex-col items-center gap-2">
       <div className="relative w-48 h-28">
         <svg viewBox="0 0 200 120" className="w-full h-full">
-          {/* Background arc */}
-          <path
-            d="M 20 100 A 80 80 0 0 1 180 100"
-            fill="none"
-            stroke="#2A313A"
-            strokeWidth="12"
-            strokeLinecap="round"
-          />
-          {/* Colored arc */}
+          <path d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke="#2A313A" strokeWidth="12" strokeLinecap="round" />
           <path
             d="M 20 100 A 80 80 0 0 1 180 100"
             fill="none"
@@ -128,20 +142,13 @@ function LatencyGauge({ value, label }: { value: number; label: string }) {
             strokeDasharray={`${(clamped / 100) * 251} 251`}
             style={{ transition: "stroke-dasharray 1s ease-out" }}
           />
-          {/* Needle */}
           <line
-            x1="100"
-            y1="100"
-            x2="100"
-            y2="35"
-            stroke={color}
-            strokeWidth="3"
-            strokeLinecap="round"
+            x1="100" y1="100" x2="100" y2="35"
+            stroke={color} strokeWidth="3" strokeLinecap="round"
             transform={`rotate(${angle} 100 100)`}
             style={{ transition: "transform 1s ease-out" }}
           />
           <circle cx="100" cy="100" r="5" fill={color} />
-          {/* Gradient */}
           <defs>
             <linearGradient id="gaugeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
               <stop offset="0%" stopColor="#22c55e" />
@@ -161,18 +168,8 @@ function LatencyGauge({ value, label }: { value: number; label: string }) {
 
 // ── Before/After Bar Component ─────────────────────────────────────────────
 
-function ImpactBar({
-  label,
-  before,
-  after,
-  unit,
-  better,
-}: {
-  label: string;
-  before: number;
-  after: number;
-  unit: string;
-  better: "lower" | "higher";
+function ImpactBar({ label, before, after, unit, better }: {
+  label: string; before: number; after: number; unit: string; better: "lower" | "higher";
 }) {
   const max = Math.max(before, after, 1);
   const beforePct = (before / max) * 100;
@@ -193,28 +190,16 @@ function ImpactBar({
         <div className="flex items-center gap-2">
           <span className="text-xs text-muted-foreground w-12 shrink-0">Before</span>
           <div className="flex-1 h-2 bg-[#1A1F26] rounded-full overflow-hidden">
-            <motion.div
-              className="h-full bg-[#3A414D] rounded-full"
-              initial={{ width: 0 }}
-              animate={{ width: `${beforePct}%` }}
-              transition={{ duration: 0.8, ease: "easeOut" }}
-            />
+            <motion.div className="h-full bg-[#3A414D] rounded-full" initial={{ width: 0 }} animate={{ width: `${beforePct}%` }} transition={{ duration: 0.8, ease: "easeOut" }} />
           </div>
           <span className="text-xs text-muted-foreground w-16 text-right">{before}{unit}</span>
         </div>
         <div className="flex items-center gap-2">
           <span className="text-xs text-muted-foreground w-12 shrink-0">After</span>
           <div className="flex-1 h-2 bg-[#1A1F26] rounded-full overflow-hidden">
-            <motion.div
-              className={cn("h-full rounded-full", improved ? "bg-emerald-500" : "bg-[#00D4FF]")}
-              initial={{ width: 0 }}
-              animate={{ width: `${afterPct}%` }}
-              transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
-            />
+            <motion.div className={cn("h-full rounded-full", improved ? "bg-emerald-500" : "bg-[#00D4FF]")} initial={{ width: 0 }} animate={{ width: `${afterPct}%` }} transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }} />
           </div>
-          <span className={cn("text-xs w-16 text-right font-medium", improved ? "text-emerald-400" : "text-[#00D4FF]")}>
-            {after}{unit}
-          </span>
+          <span className={cn("text-xs w-16 text-right font-medium", improved ? "text-emerald-400" : "text-[#00D4FF]")}>{after}{unit}</span>
         </div>
       </div>
     </div>
@@ -230,6 +215,8 @@ function TweakCard({
   onApply,
   onUndo,
   disabled,
+  premiumLocked,
+  onUpgrade,
 }: {
   tweak: ExtremeTweak;
   isApplied: boolean;
@@ -237,6 +224,8 @@ function TweakCard({
   onApply: () => void;
   onUndo: () => void;
   disabled: boolean;
+  premiumLocked: boolean;
+  onUpgrade: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
 
@@ -273,6 +262,15 @@ function TweakCard({
                 <RotateCcw className="size-3" />
               </Button>
             </div>
+          ) : premiumLocked ? (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="text-xs text-muted-foreground hover:text-purple-400 h-7 px-2 border border-[#2A313A]/60"
+              onClick={onUpgrade}
+            >
+              <Lock className="size-3 mr-1" /> Premium
+            </Button>
           ) : (
             <Button
               size="sm"
@@ -287,7 +285,6 @@ function TweakCard({
         </div>
       </div>
 
-      {/* Expandable details */}
       <button
         onClick={() => setExpanded(!expanded)}
         className="flex items-center gap-1 text-xs text-muted-foreground hover:text-[#00D4FF] mt-3 transition-colors"
@@ -365,48 +362,19 @@ function EntryModal({
   restoreError: string | null;
 }) {
   const warnings = [
-    {
-      icon: AlertTriangle,
-      title: "System-level registry changes",
-      text: "These tweaks modify Windows scheduling, network, and service settings. Some require a restart to take effect.",
-    },
-    {
-      icon: Flame,
-      title: "Anti-cheat compatibility risk",
-      text: "Some tweaks (e.g., MMCSS NoLazyMode, timer resolution changes) may trigger anti-cheat flags in competitive games.",
-    },
-    {
-      icon: Wifi,
-      title: "Network stability trade-offs",
-      text: "TCP NoDelay and interrupt moderation changes can increase packet overhead. May worsen latency on some connections.",
-    },
-    {
-      icon: Activity,
-      title: "Hardware-dependent results",
-      text: "The same tweak can improve latency on one system and worsen it on another. Always measure with built-in diagnostics.",
-    },
-    {
-      icon: Shield,
-      title: "Automatic restore point",
-      text: "A restore point is required before any changes. You can revert everything at any time from this page.",
-    },
+    { icon: AlertTriangle, title: "System-level registry changes", text: "These tweaks modify Windows scheduling, network, and service settings. Some require a restart to take effect." },
+    { icon: Flame, title: "Anti-cheat compatibility risk", text: "Some tweaks (e.g., MMCSS NoLazyMode, timer resolution changes) may trigger anti-cheat flags in competitive games." },
+    { icon: Wifi, title: "Network stability trade-offs", text: "TCP NoDelay and interrupt moderation changes can increase packet overhead. May worsen latency on some connections." },
+    { icon: Activity, title: "Hardware-dependent results", text: "The same tweak can improve latency on one system and worsen it on another. Always measure with built-in diagnostics." },
+    { icon: Shield, title: "Automatic restore point", text: "A restore point is required before any changes. You can revert everything at any time from this page." },
   ];
 
   if (step === "analyzing") {
     return (
       <div className="fixed inset-0 z-[60] flex items-center justify-center bg-[#0A0E14]/90 backdrop-blur-xl">
-        <motion.div
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          className="flex flex-col items-center gap-6"
-        >
+        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="flex flex-col items-center gap-6">
           <div className="relative">
-            <motion.div
-              className="w-16 h-16 rounded-full border-2 border-[#00D4FF]/30"
-              animate={{ rotate: 360 }}
-              transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
-              style={{ borderTopColor: "#00D4FF" }}
-            />
+            <motion.div className="w-16 h-16 rounded-full border-2 border-[#00D4FF]/30" animate={{ rotate: 360 }} transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }} style={{ borderTopColor: "#00D4FF" }} />
             <Zap className="size-6 text-[#00D4FF] absolute inset-0 m-auto" />
           </div>
           <div className="text-center">
@@ -414,12 +382,7 @@ function EntryModal({
             <p className="text-sm text-muted-foreground mt-1">This takes 10-15 seconds</p>
           </div>
           <div className="w-64 h-1.5 bg-[#1A1F26] rounded-full overflow-hidden">
-            <motion.div
-              className="h-full bg-gradient-to-r from-[#00D4FF] to-[#00D4FF]/50 rounded-full"
-              initial={{ width: "0%" }}
-              animate={{ width: `${progress}%` }}
-              transition={{ duration: 0.5 }}
-            />
+            <motion.div className="h-full bg-gradient-to-r from-[#00D4FF] to-[#00D4FF]/50 rounded-full" initial={{ width: "0%" }} animate={{ width: `${progress}%` }} transition={{ duration: 0.5 }} />
           </div>
         </motion.div>
       </div>
@@ -428,14 +391,7 @@ function EntryModal({
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-[#0A0E14]/90 backdrop-blur-xl">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -20 }}
-        transition={{ duration: 0.4 }}
-        className="w-full max-w-lg mx-4"
-      >
-        {/* Progress rail */}
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.4 }} className="w-full max-w-lg mx-4">
         <div className="flex items-center gap-2 mb-6">
           {[1, 2, 3].map((n) => (
             <div key={n} className="flex-1 h-1 rounded-full bg-[#1A1F26] overflow-hidden">
@@ -464,16 +420,9 @@ function EntryModal({
                   <p className="text-xs text-muted-foreground">Extreme Labs makes deep system changes</p>
                 </div>
               </div>
-
               <div className="space-y-3 mb-6">
                 {warnings.map((w, i) => (
-                  <motion.div
-                    key={w.title}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.1, duration: 0.3 }}
-                    className="flex gap-3 p-3 rounded-lg bg-[#1A1F26] border border-[#2A313A]/60"
-                  >
+                  <motion.div key={w.title} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.1, duration: 0.3 }} className="flex gap-3 p-3 rounded-lg bg-[#1A1F26] border border-[#2A313A]/60">
                     <w.icon className="size-4 text-amber-400 shrink-0 mt-0.5" />
                     <div>
                       <p className="text-sm font-medium text-[#E6EAF0]">{w.title}</p>
@@ -482,7 +431,6 @@ function EntryModal({
                   </motion.div>
                 ))}
               </div>
-
               <div className="flex justify-end">
                 <Button onClick={onNext} className="bg-[#00D4FF] hover:bg-[#00D4FF]/90 text-[#0A0E14]">
                   I understand <ArrowRight className="size-4 ml-1" />
@@ -502,44 +450,25 @@ function EntryModal({
                   <p className="text-xs text-muted-foreground">Required before any changes can be made</p>
                 </div>
               </div>
-
               <div className="p-4 rounded-lg bg-[#1A1F26] border border-[#2A313A]/60 mb-6">
-                <p className="text-sm text-[#E6EAF0] mb-2">
-                  A system restore point lets you undo all changes instantly if anything goes wrong.
-                </p>
+                <p className="text-sm text-[#E6EAF0] mb-2">A system restore point lets you undo all changes instantly if anything goes wrong.</p>
                 <ul className="space-y-1.5 text-xs text-muted-foreground">
-                  <li className="flex items-center gap-2">
-                    <Check className="size-3 text-emerald-400" /> Captures current registry state
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <Check className="size-3 text-emerald-400" /> One-click revert from this page
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <Check className="size-3 text-emerald-400" /> Does not delete personal files
-                  </li>
+                  <li className="flex items-center gap-2"><Check className="size-3 text-emerald-400" /> Captures current registry state</li>
+                  <li className="flex items-center gap-2"><Check className="size-3 text-emerald-400" /> One-click revert from this page</li>
+                  <li className="flex items-center gap-2"><Check className="size-3 text-emerald-400" /> Does not delete personal files</li>
                 </ul>
               </div>
-
               {restoreError && (
                 <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 mb-4 text-sm text-red-400">
                   {restoreError}
                 </div>
               )}
-
               <div className="flex justify-between">
                 <Button variant="ghost" onClick={onBack} className="text-muted-foreground">
                   <ArrowLeft className="size-4 mr-1" /> Back
                 </Button>
-                <Button
-                  onClick={onComplete}
-                  disabled={isRestoring}
-                  className="bg-emerald-500 hover:bg-emerald-500/90 text-white"
-                >
-                  {isRestoring ? (
-                    <><Loader2 className="size-4 animate-spin mr-1" /> Creating...</>
-                  ) : (
-                    <><Shield className="size-4 mr-1" /> Create Restore Point</>
-                  )}
+                <Button onClick={onComplete} disabled={isRestoring} className="bg-emerald-500 hover:bg-emerald-500/90 text-white">
+                  {isRestoring ? <><Loader2 className="size-4 animate-spin mr-1" /> Creating...</> : <><Shield className="size-4 mr-1" /> Create Restore Point</>}
                 </Button>
               </div>
             </>
@@ -560,6 +489,8 @@ function ExtremeDashboard({
   activeFilter,
   onSetFilter,
   isApplyingId,
+  canApply,
+  onUpgrade,
 }: {
   appliedTweaks: Set<string>;
   onApplyTweak: (id: string) => void;
@@ -568,6 +499,8 @@ function ExtremeDashboard({
   activeFilter: "all" | RiskBadge | "nic";
   onSetFilter: (f: "all" | RiskBadge | "nic") => void;
   isApplyingId: string | null;
+  canApply: boolean;
+  onUpgrade: () => void;
 }) {
   const { telemetry } = useLiveTelemetry();
   const latencyScore = computeLatencyScore(telemetry);
@@ -593,6 +526,30 @@ function ExtremeDashboard({
 
   return (
     <div className="space-y-6">
+      {/* Free-user notice banner */}
+      {!canApply && (
+        <div className="flex items-center justify-between gap-4 p-4 rounded-xl bg-purple-500/10 border border-purple-500/20">
+          <div className="flex items-center gap-3">
+            <Lock className="size-4 text-purple-400 shrink-0" />
+            <div>
+              <p className="text-sm font-medium text-[#E6EAF0]">
+                Analysis available on free plans. Applying optimization packs requires Premium.
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Browse tweaks, view impact estimates, and explore recommendations below.
+              </p>
+            </div>
+          </div>
+          <Button
+            size="sm"
+            className="bg-purple-500 hover:bg-purple-500/90 text-white shrink-0 text-xs"
+            onClick={onUpgrade}
+          >
+            Upgrade
+          </Button>
+        </div>
+      )}
+
       {/* Top stats row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <UtilityCard className="p-4 flex flex-col items-center justify-center">
@@ -612,20 +569,16 @@ function ExtremeDashboard({
         </UtilityCard>
         <UtilityCard className="p-4 flex flex-col items-center justify-center">
           <Timer className="size-5 text-emerald-400 mb-2" />
-          <div className="text-2xl font-bold text-[#E6EAF0]">
-            {appliedCount > 0 ? "Active" : "Ready"}
-          </div>
+          <div className="text-2xl font-bold text-[#E6EAF0]">{appliedCount > 0 ? "Active" : "Ready"}</div>
           <div className="text-xs text-muted-foreground">Session status</div>
         </UtilityCard>
       </div>
 
       {/* Graphs row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Latency Pressure Gauge */}
         <GlassCard className="p-5 flex flex-col items-center">
           <h3 className="text-sm font-medium text-[#E6EAF0] mb-4 flex items-center gap-2">
-            <Gauge className="size-4 text-[#00D4FF]" />
-            Latency Pressure
+            <Gauge className="size-4 text-[#00D4FF]" /> Latency Pressure
           </h3>
           <LatencyGauge value={latencyScore} label="System Load Score (lower is better)" />
           <p className="text-[10px] text-muted-foreground mt-3 text-center max-w-[200px]">
@@ -633,11 +586,9 @@ function ExtremeDashboard({
           </p>
         </GlassCard>
 
-        {/* Before/After Impact */}
         <GlassCard className="p-5">
           <h3 className="text-sm font-medium text-[#E6EAF0] mb-4 flex items-center gap-2">
-            <TrendingDown className="size-4 text-emerald-400" />
-            Estimated Impact
+            <TrendingDown className="size-4 text-emerald-400" /> Estimated Impact
           </h3>
           <div className="space-y-4">
             <ImpactBar label="Scheduling delay" before={8} after={appliedCount > 2 ? 5 : 8} unit="ms" better="lower" />
@@ -649,11 +600,9 @@ function ExtremeDashboard({
           </p>
         </GlassCard>
 
-        {/* Risk Distribution */}
         <GlassCard className="p-5">
           <h3 className="text-sm font-medium text-[#E6EAF0] mb-4 flex items-center gap-2">
-            <Flame className="size-4 text-red-400" />
-            Risk Distribution
+            <Flame className="size-4 text-red-400" /> Risk Distribution
           </h3>
           <div className="space-y-3">
             {(["Safe", "Moderate", "Risky", "High"] as RiskBadge[]).map((risk) => {
@@ -666,13 +615,7 @@ function ExtremeDashboard({
                     <span className="text-muted-foreground">{count}</span>
                   </div>
                   <div className="h-1.5 bg-[#1A1F26] rounded-full overflow-hidden">
-                    <motion.div
-                      className="h-full rounded-full"
-                      style={{ backgroundColor: getRiskColor(risk) }}
-                      initial={{ width: 0 }}
-                      animate={{ width: `${pct}%` }}
-                      transition={{ duration: 0.6, ease: "easeOut" }}
-                    />
+                    <motion.div className="h-full rounded-full" style={{ backgroundColor: getRiskColor(risk) }} initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ duration: 0.6, ease: "easeOut" }} />
                   </div>
                 </div>
               );
@@ -736,6 +679,8 @@ function ExtremeDashboard({
                   onApply={() => onApplyTweak(tweak.id)}
                   onUndo={() => onUndoTweak(tweak.id)}
                   disabled={isApplyingId !== null && isApplyingId !== tweak.id}
+                  premiumLocked={!canApply}
+                  onUpgrade={onUpgrade}
                 />
               ))}
             </div>
@@ -762,44 +707,57 @@ export default function ExtremeLabs() {
   const isElectron = getIsElectron();
   const electronApi = getElectronApi();
   const entitlement = useEntitlementUiState();
-  const isPremium = entitlement.status === "premium_grace" || entitlement.status === "premium";
+  const { status: entitlementStatus } = entitlement;
+  const canApply = canApplyExtremeTweaks(entitlementStatus);
+  const canAnalyze = canRunExtremeAnalysis(entitlementStatus);
   const { openUpgradeModal } = useUpgradeModal();
   const { toast } = useToast();
 
-  // Wizard state
   const [wizardStep, setWizardStep] = useState<WizardStep>("warning");
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
   const [restoreError, setRestoreError] = useState<string | null>(null);
   const [analyzingProgress, setAnalyzingProgress] = useState(0);
   const [isApplying, setIsApplying] = useState<string | null>(null);
-
-  // Applied tweaks
   const [appliedTweaks, setAppliedTweaks] = useState<Set<string>>(new Set());
   const [activeFilter, setActiveFilter] = useState<"all" | RiskBadge | "nic">("all");
 
-  // Check if already unlocked (localStorage)
   useEffect(() => {
     if (typeof window === "undefined") return;
     const unlocked = localStorage.getItem("extreme-labs-unlocked") === "true";
     if (unlocked) setIsUnlocked(true);
-  }, []);
 
-  // Wizard handlers
+    elLog("ExtremeLabs", {
+      userTier: entitlementStatus,
+      trial: entitlementStatus === "trial_active",
+      premium: entitlementStatus === "premium" || entitlementStatus === "premium_grace",
+      desktopMode: isElectron,
+      canApply,
+      canAnalyze,
+    });
+  }, [entitlementStatus, isElectron, canApply, canAnalyze]);
+
   const handleCreateRestorePoint = useCallback(async () => {
+    if (!canApply) {
+      elLog("ExtremeLabsEntitlement", { action: "createRestorePoint", allowed: false, reason: "not_premium" });
+      openUpgradeModal();
+      return;
+    }
+    if (!isElectron) {
+      toast({ title: "Desktop app required", description: "Extreme Labs requires the SwitchControl desktop app.", variant: "destructive" });
+      return;
+    }
+
+    elLog("ExtremeLabsEntitlement", { action: "createRestorePoint", allowed: true, reason: entitlementStatus });
     setIsRestoring(true);
     setRestoreError(null);
 
     try {
-      if (isElectron && electronApi) {
+      if (electronApi) {
         const result = await electronApi.extremeLabs.createRestorePoint();
         if (!result.ok) throw new Error(result.error || "Restore point failed");
-      } else {
-        // Web fallback — simulate delay
-        await new Promise((r) => setTimeout(r, 1500));
       }
 
-      // Transition to analyzing
       setWizardStep("analyzing");
       setAnalyzingProgress(0);
 
@@ -823,37 +781,75 @@ export default function ExtremeLabs() {
     } finally {
       setIsRestoring(false);
     }
-  }, [isElectron, electronApi, toast]);
+  }, [canApply, isElectron, electronApi, toast, openUpgradeModal, entitlementStatus]);
 
   const handleApplyTweak = useCallback(async (id: string) => {
+    if (!canApply) {
+      elLog("ExtremeLabsEntitlement", { action: "applyTweak", allowed: false, reason: "not_premium", tweakId: id });
+      openUpgradeModal();
+      return;
+    }
+    if (!isElectron) {
+      toast({ title: "Desktop app required", description: "Applying tweaks requires the SwitchControl desktop app.", variant: "destructive" });
+      return;
+    }
+
+    elLog("ExtremeLabsEntitlement", { action: "applyTweak", allowed: true, reason: entitlementStatus, tweakId: id });
     setIsApplying(id);
+
     try {
-      if (isElectron && electronApi) {
+      if (electronApi) {
         const result = await electronApi.extremeLabs.applySelected([id]);
         if (!result.ok) throw new Error(result.error || "Apply failed");
+
         const item = result.results?.find((r: any) => r.id === id);
-        if (item && !item.applied) {
-          toast({ title: "Could not apply", description: item.reason || item.error || "Unknown error", variant: "destructive" });
-          return;
+        if (item) {
+          if (item.adminRequired) {
+            toast({
+              title: "Administrator access required",
+              description: "This optimization requires the app to be run as Administrator. Right-click the app and choose 'Run as administrator'.",
+              variant: "destructive",
+            });
+            elLog("ExtremeLabsApply", { requested: [id], applied: 0, failed: 0, blocked: 1, adminRequired: 1 });
+            return;
+          }
+          if (item.notSupported) {
+            toast({
+              title: "Not supported on this build",
+              description: item.reason || "This tweak requires a helper agent that is not bundled in this version.",
+              variant: "destructive",
+            });
+            elLog("ExtremeLabsApply", { requested: [id], applied: 0, failed: 0, blocked: 0, adminRequired: 0, notSupported: 1, reason: item.reason });
+            return;
+          }
+          if (!item.applied) {
+            toast({ title: "Could not apply", description: item.reason || item.error || "Unknown error", variant: "destructive" });
+            elLog("ExtremeLabsApply", { requested: [id], applied: 0, failed: 1, blocked: 0, adminRequired: 0, reason: item.reason || item.error });
+            return;
+          }
         }
       }
-      setAppliedTweaks((prev) => {
-        const next = new Set(prev);
-        next.add(id);
-        return next;
-      });
+
+      setAppliedTweaks((prev) => { const next = new Set(prev); next.add(id); return next; });
       toast({ title: "Tweak applied", description: "Change is active. Monitor for issues." });
+      elLog("ExtremeLabsApply", { requested: [id], applied: 1, failed: 0, blocked: 0, adminRequired: 0 });
     } catch (e: any) {
       toast({ title: "Apply failed", description: e?.message, variant: "destructive" });
+      elLog("ExtremeLabsApply", { requested: [id], applied: 0, failed: 1, blocked: 0, adminRequired: 0, error: e?.message });
     } finally {
       setIsApplying(null);
     }
-  }, [isElectron, electronApi, toast]);
+  }, [canApply, isElectron, electronApi, toast, openUpgradeModal, entitlementStatus]);
 
   const handleUndoTweak = useCallback(async (id: string) => {
+    if (!isElectron) {
+      toast({ title: "Desktop app required", description: "Reverting tweaks requires the SwitchControl desktop app.", variant: "destructive" });
+      return;
+    }
+
     setIsApplying(id);
     try {
-      if (isElectron && electronApi) {
+      if (electronApi) {
         const tweak = EXTREME_TWEAKS.find((t) => t.id === id);
         if (!tweak) throw new Error("Tweak not found");
         const mappedRegistry = tweak.registryTweakId;
@@ -870,11 +866,7 @@ export default function ExtremeLabs() {
           }
         }
       }
-      setAppliedTweaks((prev) => {
-        const next = new Set(prev);
-        next.delete(id);
-        return next;
-      });
+      setAppliedTweaks((prev) => { const next = new Set(prev); next.delete(id); return next; });
       toast({ title: "Tweak reverted", description: "Change has been undone." });
     } catch (e: any) {
       toast({ title: "Revert failed", description: e?.message, variant: "destructive" });
@@ -884,10 +876,24 @@ export default function ExtremeLabs() {
   }, [isElectron, electronApi, toast]);
 
   const handleRevertAll = useCallback(async () => {
+    if (!isElectron) {
+      toast({ title: "Desktop app required", description: "Reverting tweaks requires the SwitchControl desktop app.", variant: "destructive" });
+      return;
+    }
     try {
-      if (isElectron && electronApi) {
+      if (electronApi) {
         const result = await electronApi.extremeLabs.restoreBaseline();
         if (!result.ok) throw new Error(result.error || "Revert failed");
+
+        const batchResult: ApplyBatchResult = {
+          applied: 0,
+          failed: result.results?.filter((r: any) => !r.reverted).length ?? 0,
+          skipped: 0,
+          adminBlocked: 0,
+          notSupported: 0,
+          details: result.results ?? [],
+        };
+        elLog("ExtremeLabsApply", { action: "revertAll", ...batchResult });
       }
       setAppliedTweaks(new Set());
       toast({ title: "All tweaks reverted", description: "System restored to baseline." });
@@ -896,8 +902,8 @@ export default function ExtremeLabs() {
     }
   }, [isElectron, electronApi, toast]);
 
-  // If not premium, show overlay
-  if (!isPremium) {
+  // Unverified = show full premium wall (not logged in)
+  if (entitlementStatus === "unverified") {
     return (
       <AppLayout>
         <div className="p-6">
@@ -910,7 +916,7 @@ export default function ExtremeLabs() {
           <div className="mt-8">
             <PremiumPageOverlay
               featureName="Extreme Labs is a Premium Feature"
-              buttonText="Unlock Premium"
+              buttonText="Sign In / Upgrade"
               description="Advanced latency tuning, system-level registry tweaks, and real-time impact monitoring are available with SwitchControl Premium."
             />
           </div>
@@ -919,6 +925,8 @@ export default function ExtremeLabs() {
     );
   }
 
+  // Free / trial_expired — show the page but Apply is locked
+  // Premium / trial_active — show with full access (gated behind wizard if not yet unlocked)
   return (
     <AppLayout>
       <div className="p-6 max-w-6xl mx-auto">
@@ -958,11 +966,20 @@ export default function ExtremeLabs() {
               activeFilter={activeFilter}
               onSetFilter={setActiveFilter}
               isApplyingId={isApplying}
+              canApply={canApply}
+              onUpgrade={openUpgradeModal}
             />
           ) : (
             <EntryModal
               step={wizardStep}
-              onNext={() => setWizardStep("restore")}
+              onNext={() => {
+                if (!canApply) {
+                  elLog("ExtremeLabsEntitlement", { action: "entryWizard", allowed: false, reason: "not_premium" });
+                  openUpgradeModal();
+                  return;
+                }
+                setWizardStep("restore");
+              }}
               onBack={() => setWizardStep("warning")}
               onComplete={handleCreateRestorePoint}
               progress={analyzingProgress}

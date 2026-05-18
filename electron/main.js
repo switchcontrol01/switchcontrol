@@ -2491,40 +2491,88 @@ ipcMain.handle('extremeLabs:applySelected', async (event, ids) => {
   if (!validation.ok) return validation;
 
   const results = [];
+  let appliedCount = 0, failedCount = 0, adminBlockedCount = 0, notSupportedCount = 0;
+
   for (const id of ids) {
     const mapped = _extremeLabsMapToRegistryTweak(id);
     if (!mapped) {
+      console.log('[ExtremeLabsApply]', JSON.stringify({ id, applied: false, reason: 'missingTweak', registryLookupFailed: true }));
       results.push({ id, applied: false, reason: 'No registry mapping for this tweak' });
+      failedCount++;
       continue;
     }
+
+    // Check if mapped tweak is known-unsupported before attempting execution
+    if (mapped.type === 'tweak' && tweakExecutor.isUnsupported && tweakExecutor.isUnsupported(mapped.tweakId)) {
+      const unsupportedReason = tweakExecutor.getUnsupportedReason ? tweakExecutor.getUnsupportedReason(mapped.tweakId) : 'Not supported in this build';
+      console.log('[ExtremeLabsApply]', JSON.stringify({ id, applied: false, notSupported: true, tweakId: mapped.tweakId, reason: unsupportedReason }));
+      results.push({ id, applied: false, notSupported: true, reason: unsupportedReason });
+      notSupportedCount++;
+      continue;
+    }
+
     try {
       if (mapped.type === 'slider') {
         const meta = sliderTweakExecutor.getSliderTweakMeta(mapped.tweakId);
         if (meta && meta.recommendedValue != null) {
           const applyResult = await sliderTweakExecutor.applySliderValue(mapped.tweakId, meta.recommendedValue);
-          results.push({ id, applied: applyResult.success, verify: applyResult.verifyResult, error: applyResult.error });
+          const ok = applyResult.success;
+          if (ok) appliedCount++; else failedCount++;
+          console.log('[ExtremeLabsApply]', JSON.stringify({ id, applied: ok, tweakId: mapped.tweakId, type: 'slider', error: applyResult.error }));
+          results.push({ id, applied: ok, verify: applyResult.verifyResult, error: applyResult.error });
         } else {
+          console.log('[ExtremeLabsApply]', JSON.stringify({ id, applied: false, tweakId: mapped.tweakId, reason: 'noRecommendedValue' }));
           results.push({ id, applied: false, reason: 'No recommended value available' });
+          failedCount++;
         }
       } else if (mapped.type === 'nic') {
         const adapters = await nicExecutor.getNetAdapters();
         const physical = adapters.find(a => a.status === 'Up' && !/loopback|bluetooth|hyper|virtual|tunnel|vpn/i.test(a.name));
         if (!physical) {
+          console.log('[ExtremeLabsApply]', JSON.stringify({ id, applied: false, type: 'nic', reason: 'noAdapterFound' }));
           results.push({ id, applied: false, reason: 'No suitable network adapter found' });
+          failedCount++;
           continue;
         }
         const setResult = await nicExecutor.setNicProperty(physical.name, mapped.propertyKey, mapped.enabledValue);
-        results.push({ id, applied: setResult.ok && setResult.outcome === 'write_succeeded_verified', result: setResult });
+        const ok = setResult.ok && setResult.outcome === 'write_succeeded_verified';
+        if (ok) appliedCount++; else failedCount++;
+        console.log('[ExtremeLabsApply]', JSON.stringify({ id, applied: ok, type: 'nic', adapter: physical.name, outcome: setResult.outcome }));
+        results.push({ id, applied: ok, result: setResult });
       } else {
         const execResult = await tweakExecutor.executeTweak(mapped.tweakId, 'apply');
-        results.push({ id, applied: execResult.success, result: execResult });
+        const ok = execResult.success;
+        // Detect admin elevation failure
+        const adminRequired = !ok && (
+          /requires.*admin|access.*denied|elevation|privileged|run as administrator/i.test(execResult.error || '') ||
+          execResult.exitCode === 5
+        );
+        if (adminRequired) {
+          adminBlockedCount++;
+          console.log('[ExtremeLabsApply]', JSON.stringify({ id, applied: false, adminRequired: true, tweakId: mapped.tweakId, error: execResult.error }));
+          results.push({ id, applied: false, adminRequired: true, reason: 'Administrator access required for this optimization. Run the app as Administrator.' });
+        } else {
+          if (ok) appliedCount++; else failedCount++;
+          console.log('[ExtremeLabsApply]', JSON.stringify({ id, applied: ok, tweakId: mapped.tweakId, type: 'tweak', error: execResult.error }));
+          results.push({ id, applied: ok, result: execResult });
+        }
       }
     } catch (e) {
+      failedCount++;
+      console.log('[ExtremeLabsApply]', JSON.stringify({ id, applied: false, error: e.message }));
       results.push({ id, applied: false, error: e.message });
     }
   }
 
-  return { ok: true, results };
+  console.log('[ExtremeLabsApply]', JSON.stringify({
+    requested: ids.length,
+    applied: appliedCount,
+    failed: failedCount,
+    adminBlocked: adminBlockedCount,
+    notSupported: notSupportedCount,
+  }));
+
+  return { ok: true, results, summary: { applied: appliedCount, failed: failedCount, adminBlocked: adminBlockedCount, notSupported: notSupportedCount } };
 });
 
 ipcMain.handle('extremeLabs:restoreBaseline', async () => {

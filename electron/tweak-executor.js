@@ -1426,6 +1426,14 @@ async function executeTweakWithOwnership(tweakId, action) {
   return result;
 }
 
+function isUnsupported(tweakId) {
+  return Object.prototype.hasOwnProperty.call(UNSUPPORTED_TWEAKS, tweakId);
+}
+
+function getUnsupportedReason(tweakId) {
+  return UNSUPPORTED_TWEAKS[tweakId] || null;
+}
+
 module.exports = {
   executeTweak,
   executeTweakWithOwnership,
@@ -1434,6 +1442,8 @@ module.exports = {
   getLocalState,
   getTweakInfo,
   getExecutionLog,
+  isUnsupported,
+  getUnsupportedReason,
   ALL_TWEAKS,
   HKCU_TWEAKS,
   ADMIN_TWEAKS,
