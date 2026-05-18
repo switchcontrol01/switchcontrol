@@ -1525,16 +1525,23 @@ export default function AiAdvisor() {
           });
         }
         if (recs.length > 0) {
-          setMessages(prev => [
-            ...prev,
-            {
-              id: `recs-${assistantId}`,
-              role: "assistant" as const,
-              content: "",
-              timestamp: new Date(),
-              structured: { type: "recommendations" as const, items: recs },
-            },
-          ]);
+          setMessages(prev => {
+            const stripped = prev.map(m =>
+              m.id === assistantId
+                ? { ...m, content: m.content.replace(/<<APPLY:[a-z0-9-]+>>/gi, "").replace(/\s{2,}/g, " ").trim() }
+                : m
+            );
+            return [
+              ...stripped,
+              {
+                id: `recs-${assistantId}`,
+                role: "assistant" as const,
+                content: "",
+                timestamp: new Date(),
+                structured: { type: "recommendations" as const, items: recs },
+              },
+            ];
+          });
           setTimeout(() => {
             const el = scrollContainerRef.current;
             if (el) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
@@ -1576,11 +1583,6 @@ export default function AiAdvisor() {
     abortRef.current?.abort();
     cancelReveal();
     clearStore();
-    setLoading(false);
-    setIsStreaming(false);
-    setInput("");
-    setAttachedImage(null);
-    setImageError(null);
 
     const ctx = contextRef.current;
     const { cpu, gpu, ram } = ctx?.system ?? {};
@@ -1601,12 +1603,21 @@ export default function AiAdvisor() {
       resetText = `Ask about your system state, or use a quick action for a targeted analysis.\n\nUpload a screenshot for visual analysis.`;
     }
 
-    setMessages([{
+    const welcomeMsg: ChatMessage = {
       id: "welcome",
       role: "assistant",
       content: resetText,
       timestamp: new Date(),
-    }]);
+    };
+
+    flushSync(() => {
+      setMessages([welcomeMsg]);
+      setLoading(false);
+      setIsStreaming(false);
+      setInput("");
+      setAttachedImage(null);
+      setImageError(null);
+    });
   };
 
   const handleQuickAction = useCallback((prompt: string) => {
