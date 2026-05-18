@@ -871,9 +871,15 @@ export class DatabaseStorage implements IStorage {
       .from(users)
       .where(drizzleSql`${users.premiumBoundDeviceId} IS NOT NULL`);
 
-    const [{ totalStripeEvents }] = await db!
-      .select({ totalStripeEvents: count() })
-      .from(stripeWebhookEvents);
+    let totalStripeEvents = 0;
+    try {
+      const [row] = await db!
+        .select({ totalStripeEvents: count() })
+        .from(stripeWebhookEvents);
+      totalStripeEvents = Number(row.totalStripeEvents);
+    } catch {
+      // table may not exist yet in this environment — return 0 gracefully
+    }
 
     return {
       totalUsers: Number(totalUsers),
@@ -882,7 +888,7 @@ export class DatabaseStorage implements IStorage {
       freeUsers: Number(freeUsers),
       adminCount: Number(adminCount),
       deviceLockedUsers: Number(deviceLockedUsers),
-      totalStripeEvents: Number(totalStripeEvents),
+      totalStripeEvents,
     };
   }
 
