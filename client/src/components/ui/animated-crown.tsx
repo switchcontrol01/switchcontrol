@@ -84,7 +84,7 @@ export function PremiumBadge({
       className={cn(
         "inline-flex items-center gap-1 px-2 py-0.5 rounded",
         "text-[10px] font-semibold uppercase tracking-wide",
-        "bg-[#00D4FF] border border-[#00D4FF] text-[#00D4FF]/80",
+        "bg-[#00D4FF]/10 border border-[#00D4FF]/30 text-[#00D4FF]",
         className
       )}
     >
