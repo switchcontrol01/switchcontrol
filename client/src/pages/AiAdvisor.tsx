@@ -1451,9 +1451,16 @@ export default function AiAdvisor() {
         }
       }
 
+      // Always inject isElectron at the top level of context so the server
+      // knows the correct platform even if ctx is null or was built before
+      // the page fully hydrated (e.g. first message after a chat reset).
+      const contextWithPlatform = ctx
+        ? { ...ctx, isElectron: isElectronApp }
+        : { isElectron: isElectronApp };
+
       const requestBody: Record<string, unknown> = {
         messages: chatHistory,
-        context: ctx,
+        context: contextWithPlatform,
       };
       if (imgData?.base64 && imgData.base64.length > 10) {
         requestBody.imageData = imgData.base64;
