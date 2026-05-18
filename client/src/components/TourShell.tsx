@@ -384,6 +384,7 @@ export function TourShell({
   const [revealed, setRevealed] = useState(false);
   const rafRefs = useRef<number[]>([]);
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const wasShownRef = useRef(false);
   const [, navigate] = useLocation();
   const { setTourHighlight, setTourActive, setTourNavigating } = useTourStore();
 
@@ -433,7 +434,7 @@ export function TourShell({
     }
 
     if (!show) {
-      console.log('[TourTransition] tour dismissed — fading out');
+      if (wasShownRef.current) console.log('[TourTransition] tour dismissed — fading out');
       setRevealed(false);
       dismissTimerRef.current = setTimeout(() => {
         setMounted(false);
@@ -444,6 +445,7 @@ export function TourShell({
 
     // Mount both elements immediately — they start invisible (opacity:0 via
     // Framer initial props). No visible change on this frame.
+    wasShownRef.current = true;
     setMounted(true);
     setRevealed(false);
     console.log('[TourTransition] mounted (invisible)');

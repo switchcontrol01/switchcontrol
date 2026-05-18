@@ -204,7 +204,7 @@ export function ApplyTweaksFlowModal({
   // Elapsed ticker (1s resolution) — only while running
   useEffect(() => {
     if (!isOpen || phase === "idle" || phase === "complete") return;
-    const id = setInterval(() => setNow(Date.now()), 1000);
+    const id = setInterval(() => setNow(Date.now()), 2000);
     return () => clearInterval(id);
   }, [isOpen, phase]);
 

@@ -210,7 +210,7 @@ export function ApplyProgressOverlay({ isOpen, state, onClose, onViewResults }: 
   // Tick elapsed time
   useEffect(() => {
     if (!isOpen || state.phase === "complete") return;
-    const id = setInterval(() => setNow(Date.now()), 1000);
+    const id = setInterval(() => setNow(Date.now()), 2000);
     return () => clearInterval(id);
   }, [isOpen, state.phase]);
 

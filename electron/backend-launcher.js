@@ -170,6 +170,7 @@ async function startBackend(app) {
     }
     console.log('[Backend] =====================================');
 
+    const appVersion = (() => { try { return require('./package.json').version; } catch { return undefined; } })();
     const env = {
       ...process.env,
       ...configSecrets,
@@ -178,6 +179,7 @@ async function startBackend(app) {
       ELECTRON_BACKEND: '1',
       ELECTRON_RUN_AS_NODE: '1',
       ELECTRON_USER_DATA: userDataPath,
+      ...(appVersion ? { npm_package_version: appVersion } : {}),
     };
 
     console.log('[Backend] ===== CHILD ENV KEY DIAGNOSTICS =====');
