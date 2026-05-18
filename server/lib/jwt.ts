@@ -1,33 +1,91 @@
 import jwt from "jsonwebtoken";
+import crypto from "crypto";
 
-const _jwtSecret = (process.env.JWT_SECRET || "").trim();
-const _sessionSecret = (process.env.SESSION_SECRET || "").trim();
-const JWT_SECRET = _jwtSecret || _sessionSecret;
-
-// Lazy secret accessor: returns the secret or a fallback.
-// Fatal checks run at USE time, not at module import time, so the server
-// can start and serve /api/health even if secrets are temporarily missing.
+/**
+ * Get the current JWT secret at call time (truly lazy).
+ *
+ * IMPORTANT: We read process.env at every call — NOT at module load time.
+ * This allows desktop-secrets.ts to inject JWT_SECRET / SESSION_SECRET into
+ * process.env before the first JWT operation, regardless of module import order.
+ *
+ * The old pattern `const JWT_SECRET = process.env.JWT_SECRET` (module-level
+ * constant) caused "invalid signature" errors when jwt.ts was imported by any
+ * transitive dependency before desktop-secrets.ts had run.
+ */
 function getSecret(): string {
+  const jwtSecret     = (process.env.JWT_SECRET     || "").trim();
+  const sessionSecret = (process.env.SESSION_SECRET || "").trim();
+  const secret = jwtSecret || sessionSecret;
+
   if (process.env.NODE_ENV === "production") {
-    if (!JWT_SECRET) {
+    if (!secret) {
       throw new Error("[FATAL] JWT secret not configured in production");
     }
-    if (JWT_SECRET.length < 32) {
-      throw new Error(`[FATAL] JWT secret too short (${JWT_SECRET.length} chars, minimum 32 required)`);
+    if (secret.length < 32) {
+      throw new Error(`[FATAL] JWT secret too short (${secret.length} chars, minimum 32 required)`);
     }
   }
-  return JWT_SECRET || "sc-jwt-insecure-dev-only";
+  return secret || "sc-jwt-insecure-dev-only";
+}
+
+/**
+ * First 8 hex chars of the SHA-256 of the secret.
+ * Safe to log — does not expose any usable secret material.
+ * Used to detect secret drift across restarts (both values must match).
+ */
+function secretFingerprint(): string {
+  try {
+    const s = getSecret();
+    return crypto.createHash("sha256").update(s).digest("hex").substring(0, 8);
+  } catch {
+    return "no-secret";
+  }
+}
+
+/**
+ * Short token fingerprint — first 8 chars of header + first 8 chars of payload.
+ * Enough to identify a specific token in logs without exposing any secret.
+ */
+export function jwtFingerprint(token: string): string {
+  try {
+    const parts = token.split(".");
+    return (parts[0] ?? "").substring(0, 8) + "." + (parts[1] ?? "").substring(0, 8);
+  } catch {
+    return "malformed";
+  }
+}
+
+/**
+ * Decode the token WITHOUT verifying the signature — used only to check
+ * structural validity and expiry so we can produce a more precise error reason.
+ */
+export function peekJwtExpiry(token: string): "expired" | "not_expired" | "malformed" {
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 3) return "malformed";
+    const raw = Buffer.from(parts[1], "base64").toString("utf-8");
+    const payload = JSON.parse(raw) as Record<string, unknown>;
+    const exp = typeof payload.exp === "number" ? payload.exp : null;
+    if (exp !== null && Math.floor(Date.now() / 1000) > exp) return "expired";
+    return "not_expired";
+  } catch {
+    return "malformed";
+  }
 }
 
 // Pre-flight validation (used by startup self-test and health checks)
 export function validateJwtConfig(): { ok: boolean; secretLength: number; message: string } {
-  if (!JWT_SECRET) {
+  const jwtSecret     = (process.env.JWT_SECRET     || "").trim();
+  const sessionSecret = (process.env.SESSION_SECRET || "").trim();
+  const secret = jwtSecret || sessionSecret;
+
+  if (!secret) {
     return { ok: false, secretLength: 0, message: "JWT_SECRET and SESSION_SECRET are both missing" };
   }
-  if (JWT_SECRET.length < 32) {
-    return { ok: false, secretLength: JWT_SECRET.length, message: `JWT secret too short (${JWT_SECRET.length} chars, min 32)` };
+  if (secret.length < 32) {
+    return { ok: false, secretLength: secret.length, message: `JWT secret too short (${secret.length} chars, min 32)` };
   }
-  return { ok: true, secretLength: JWT_SECRET.length, message: "JWT secret configured" };
+  return { ok: true, secretLength: secret.length, message: `JWT secret configured (secretFp=${secretFingerprint()})` };
 }
 
 export interface JwtPayload {
@@ -38,11 +96,13 @@ export interface JwtPayload {
 }
 
 export function signJwt(userId: string): string {
-  const token = jwt.sign({ sub: userId }, getSecret(), {
+  const secret = getSecret();
+  const token = jwt.sign({ sub: userId }, secret, {
     algorithm: "HS256",
     expiresIn: "30d",
     issuer: "switchcontrol",
   });
+  console.log(`[JWT] signed — userId=${userId} secretFp=${secretFingerprint()} tokenFp=${jwtFingerprint(token)}`);
   return token;
 }
 
@@ -57,7 +117,11 @@ export function verifyJwt(token: string, silent = false): JwtPayload | null {
     }) as JwtPayload;
     return decoded;
   } catch (err: any) {
-    if (!silent) console.error("[AUTH] JWT verification failed:", err.message);
+    if (!silent) {
+      const tokenFp  = jwtFingerprint(token);
+      const secretFp = secretFingerprint();
+      console.error(`[AUTH] JWT verification failed: ${err.message} | tokenFp=${tokenFp} secretFp=${secretFp}`);
+    }
     return null;
   }
 }
@@ -65,15 +129,14 @@ export function verifyJwt(token: string, silent = false): JwtPayload | null {
 export function runJwtSelfTest(): void {
   console.log("[JWT] ===== SELF-TEST START =====");
 
-  // Guard: if secrets are missing or too short, log the config issue and
-  // skip the tests that require a real secret. This prevents the server from
-  // crashing in a loop when env vars are temporarily unset.
   const config = validateJwtConfig();
   if (!config.ok) {
     console.error(`[JWT] SKIP: ${config.message}`);
     console.log("[JWT] ===== SELF-TEST END =====");
     return;
   }
+
+  console.log(`[JWT] config OK — ${config.message}`);
 
   const secret = getSecret();
   if (process.env.NODE_ENV === "production" && secret.length < 32) {
@@ -115,8 +178,6 @@ export function runJwtSelfTest(): void {
     console.error("[JWT] FAIL: empty token was NOT rejected");
   }
 
-  // alg=none test: jsonwebtoken v9 rejects empty secrets even for alg=none,
-  // so we guard this behind the config check above and wrap in try-catch.
   try {
     const algNoneToken = jwt.sign({ sub: testUserId }, "", { algorithm: "none" as any });
     const algNoneResult = verifyJwt(algNoneToken, true);

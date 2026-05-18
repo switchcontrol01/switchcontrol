@@ -17,6 +17,7 @@ if (isDebug) {
   console.log('========================================');
   console.log('[STARTUP:1] electron main.js TOP — file logger initialized');
   console.log('[STARTUP:1] log directory:', _LOG_PATHS.logDir);
+  console.log('[STARTUP:1] crash log dir:', _LOG_PATHS.crashDir);
   console.log('[STARTUP:1] startup log:', _LOG_PATHS.startupLog);
   console.log('[STARTUP:1] latest log:', _LOG_PATHS.latestLog);
   console.log('[STARTUP:1] backend log:', _LOG_PATHS.backendLog);

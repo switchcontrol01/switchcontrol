@@ -46,7 +46,8 @@ const APPDATA_BASE = process.env.APPDATA
   ? path.join(process.env.APPDATA, 'SwitchControl')
   : path.join(os.homedir(), 'AppData', 'Roaming', 'SwitchControl');
 
-const LOG_DIR = path.join(APPDATA_BASE, 'logs');
+const LOG_DIR   = path.join(APPDATA_BASE, 'logs');
+const CRASH_DIR = path.join(LOG_DIR, 'crashes');
 
 // ── Debug flag (shared with main.js / updater.js) ────────────────────────────
 
@@ -75,6 +76,12 @@ function isoMs() {
 function ensureDir() {
   try {
     if (!fs.existsSync(LOG_DIR)) fs.mkdirSync(LOG_DIR, { recursive: true });
+  } catch (e) {}
+}
+
+function ensureCrashDir() {
+  try {
+    if (!fs.existsSync(CRASH_DIR)) fs.mkdirSync(CRASH_DIR, { recursive: true });
   } catch (e) {}
 }
 
@@ -305,13 +312,14 @@ function hookConsole() {
 }
 
 /**
- * Write a dedicated crash dump file — only on fatal errors, always, even in production.
- * Named crash-YYYY-MM-DD_HH-MM-SS.log so they are easy to find.
+ * Write a dedicated crash dump file to logs/crashes/.
+ * Named crash-YYYY-MM-DD_HH-MM-SS.log so they are easy to sort/find.
+ * Keeps the last 20 crash files — oldest are pruned automatically.
  */
 function writeCrashDump(type, message) {
   try {
-    ensureDir();
-    const crashPath = path.join(LOG_DIR, `crash-${ts()}.log`);
+    ensureCrashDir();
+    const crashPath = path.join(CRASH_DIR, `crash-${ts()}.log`);
     const content = [
       `SwitchControl crash dump`,
       `Time: ${isoMs()}`,
@@ -323,6 +331,17 @@ function writeCrashDump(type, message) {
       message,
     ].join('\n');
     fs.writeFileSync(crashPath, content, 'utf-8');
+
+    // Prune oldest crash files — keep last 20
+    try {
+      const files = fs.readdirSync(CRASH_DIR)
+        .filter(f => f.startsWith('crash-'))
+        .sort();
+      while (files.length > 20) {
+        const oldest = files.shift();
+        try { fs.unlinkSync(path.join(CRASH_DIR, oldest)); } catch (_e) {}
+      }
+    } catch (_e) {}
   } catch (e) {}
 }
 
@@ -345,6 +364,7 @@ function getPaths() {
   } catch (e) {}
   return {
     logDir:      LOG_DIR,
+    crashDir:    CRASH_DIR,
     startupLog:  _logFilePath,
     latestLog:   _latestPath,
     backendLog:  _backendPath,
@@ -352,9 +372,14 @@ function getPaths() {
   };
 }
 
+function getCrashDir() {
+  return CRASH_DIR;
+}
+
 module.exports = {
   init,
   appendBackend,
   getPaths,
+  getCrashDir,
   isDebug,
 };

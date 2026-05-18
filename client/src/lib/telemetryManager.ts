@@ -16,10 +16,18 @@
  *
  * All console.log calls that previously fired inside the WebSocket message handler
  * (hot path, once per tick) have been removed. Logs for connection events only.
+ *
+ * AUTH FAILURE HANDLING
+ * ─────────────────────
+ * When the server closes the WebSocket with code 1008 (auth failure), we do NOT
+ * reconnect automatically — reconnecting with a stale JWT would just loop.
+ * Instead we clear the stored JWT so the next auth cycle picks up a fresh one.
+ * Close reasons: token_expired | token_invalid_signature | token_malformed
  */
 
 import { useTelemetryStore } from "@/stores/telemetryStore";
 import { usePerformanceStore } from "@/stores/performanceStore";
+import { useAuthStore } from "@/lib/authStore";
 
 const isDebug = import.meta.env.DEV;
 
@@ -40,6 +48,10 @@ const RECONNECT_BASE_MS = 3_000;
 const RECONNECT_MAX_MS  = 30_000;
 let _reconnectDelay = RECONNECT_BASE_MS;
 let _lastReportedCpu = 0; // for LPM throttle threshold
+
+// ── Auth failure state ─────────────────────────────────────────────────────────
+// After a 1008 auth rejection we pause reconnects until the JWT is refreshed.
+let _authRejected = false;
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -108,6 +120,7 @@ function connect() {
 
         socket.onopen = () => {
           console.log("[Telemetry] WebSocket connected");
+          _authRejected = false; // reset on successful connect
           _reconnectDelay = RECONNECT_BASE_MS; // reset backoff on successful connect
           useTelemetryStore.getState()._setConnected(true);
         };
@@ -177,12 +190,27 @@ function connect() {
 
         socket.onerror = () => {};
 
-        socket.onclose = () => {
+        socket.onclose = (event: CloseEvent) => {
           _ws = null;
           useTelemetryStore.getState()._setConnected(false);
+
+          // Code 1008 = server rejected our JWT (auth failure).
+          // Reconnecting immediately with the same stale token would just loop.
+          // Clear the JWT so the next auth cycle fetches a fresh one, then stop.
+          if (event.code === 1008) {
+            const reason = event.reason || "unknown";
+            console.warn(`[Telemetry] WebSocket auth rejected (1008) reason="${reason}" — clearing JWT, suppressing reconnect`);
+            _authRejected = true;
+            _started = false;
+            // Clear the stored JWT so re-auth picks up a fresh token
+            useAuthStore.getState().setJwt(null);
+            useTelemetryStore.getState()._setStatus("unavailable");
+            return; // do NOT schedule a reconnect
+          }
+
           if (_started) {
             const delay = document.hidden ? RECONNECT_MAX_MS : _reconnectDelay;
-            if (isDebug) console.log(`[Telemetry] WebSocket closed — reconnecting in ${delay}ms (hidden=${document.hidden})`);
+            if (isDebug) console.log(`[Telemetry] WebSocket closed code=${event.code} — reconnecting in ${delay}ms (hidden=${document.hidden})`);
             _reconnectTimer = setTimeout(connect, delay);
             _reconnectDelay = Math.min(_reconnectDelay * 2, RECONNECT_MAX_MS);
           }
@@ -209,11 +237,13 @@ function _handleVisibilityChange() {
 export const telemetryManager = {
   /**
    * Start the singleton WebSocket. Idempotent — safe to call many times.
+   * Also clears the auth-rejected flag so a fresh JWT attempt can proceed.
    */
   start() {
     if (_started) {
       return; // silent no-op — already running, no log spam
     }
+    _authRejected = false;
     _started = true;
     if (isDebug) console.log("[Telemetry] Manager starting");
     connect();
@@ -246,6 +276,14 @@ export const telemetryManager = {
   },
 
   /**
+   * Whether the last connection attempt was rejected due to an auth failure.
+   * Cleared automatically when start() is called again.
+   */
+  get authRejected() {
+    return _authRejected;
+  },
+
+  /**
    * Force a hard reset (clears history + reconnects). Only call on explicit
    * user action — never on route change.
    */
@@ -255,6 +293,7 @@ export const telemetryManager = {
     if (_unavailableTimer) clearTimeout(_unavailableTimer);
     if (_ws) { _ws.close(); _ws = null; }
     _reconnectDelay = RECONNECT_BASE_MS; // reset backoff on explicit user-triggered reset
+    _authRejected = false;
 
     const st = useTelemetryStore.getState();
     st._setConnected(false);
