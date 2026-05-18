@@ -4,10 +4,10 @@ import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import {
   Shield,
-  Database,
-  Undo2,
+  Gauge,
+  Sparkles,
   Activity,
-  Layout,
+  Package,
   Crown,
   Layers,
   ArrowRight,
@@ -17,34 +17,34 @@ import { Link } from "wouter";
 
 const STEPS = [
   {
-    icon: Shield,
-    label: "Backend Hardened",
-    desc: "Cloud auth, premium gating, and device lock all route through the real backend. No more faked premium status.",
-  },
-  {
-    icon: Database,
-    label: "Fake Data Removed",
-    desc: "All simulated performance numbers replaced with real telemetry. What you see is what your system reports.",
-  },
-  {
-    icon: Undo2,
-    label: "Apply Safe Rebuilt",
-    desc: "Every tweak now verifies its state before and after. Revert works for every change, not just most.",
+    icon: Gauge,
+    label: "Input Latency Fixed",
+    desc: "The latency monitor was showing 1.4ms on every PC due to a hardcoded formula. It now uses continuous scaling against real CPU, RAM, and process load.",
   },
   {
     icon: Activity,
-    label: "Telemetry Optimized",
-    desc: "Live CPU, RAM, GPU, disk, and network stats refresh every 1.5 seconds with zero polling overhead.",
+    label: "Smarter Diagnostics",
+    desc: "Dashboard intelligence estimates now respond proportionally across the full load range — not just when you hit a hard threshold.",
   },
   {
-    icon: Layout,
-    label: "UI Rebuilt",
-    desc: "Glass panels, depth animations, and responsive scroll storytelling across every page.",
+    icon: Sparkles,
+    label: "AI Advisor — Apply from Chat",
+    desc: "The AI Advisor now surfaces inline tweak cards directly in the conversation. See a recommendation and apply it in one click, without leaving the chat.",
+  },
+  {
+    icon: Shield,
+    label: "Admin Panel Reliability",
+    desc: "Fixed a stats loading error that appeared on fresh installs due to a missing database table. Auto-resolved on startup going forward.",
+  },
+  {
+    icon: Package,
+    label: "Leaner Installer",
+    desc: "Website-only assets — SEO files, blueprint images, and sitemap data — are now excluded from the installer package.",
   },
   {
     icon: Crown,
-    label: "Premium Flow Fixed",
-    desc: "Stripe checkout, device binding, and entitlements all work end-to-end with no workarounds.",
+    label: "Premium Entitlements Stable",
+    desc: "Device binding, grace window handling, and trial countdown logic all run through a single resolver — no more disagreeing UI states.",
   },
 ];
 
@@ -88,19 +88,19 @@ export default function ReleaseStory() {
           <Reveal>
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.08] text-xs font-mono text-white/30 mb-6">
               <Layers className="w-3 h-3" />
-              Version 1.0.8
+              Version 1.0.9
             </div>
           </Reveal>
           <Reveal delay={0.1}>
             <h2 className="text-3xl md:text-5xl font-extrabold text-white mb-4 leading-tight">
-              Rebuilt{" "}
-              <span className="font-light italic text-white/50">from the ground up.</span>
+              Sharper{" "}
+              <span className="font-light italic text-white/50">than ever.</span>
             </h2>
           </Reveal>
           <Reveal delay={0.2}>
             <p className="text-white/30 max-w-lg mx-auto text-sm md:text-base leading-relaxed">
-              Six major systems rebuilt. Cloud auth hardened. UI reimagined.
-              This is the version we always wanted to ship.
+              Smarter diagnostics, a leaner installer, and a faster AI workflow.
+              Every number you see now reflects what your PC is actually doing.
             </p>
           </Reveal>
         </div>
