@@ -117,18 +117,30 @@ async function buildWsUrl(): Promise<string> {
 // ── Connection logic ───────────────────────────────────────────────────────────
 
 function connect() {
+  // Clear any pending unavailable timer from a previous attempt.
   if (_unavailableTimer) {
     clearTimeout(_unavailableTimer);
     _unavailableTimer = null;
   }
-  _unavailableTimer = setTimeout(() => {
-    if (useTelemetryStore.getState().status !== "ready") {
-      useTelemetryStore.getState()._setStatus("unavailable");
-    }
-  }, UNAVAILABLE_TIMEOUT_MS);
 
+  // NOTE: The unavailable timer is intentionally started AFTER buildWsUrl()
+  // resolves — NOT at the top of connect(). In Electron, buildWsUrl() polls
+  // the backend port (up to 30s) before it can even create a socket, so
+  // starting the timer here would race and fire before the WS is alive.
   buildWsUrl()
     .then((wsUrl) => {
+      // Start the "gave up waiting for data" timer only now that we have a URL
+      // and are about to open the socket.
+      if (_unavailableTimer) {
+        clearTimeout(_unavailableTimer);
+        _unavailableTimer = null;
+      }
+      _unavailableTimer = setTimeout(() => {
+        if (useTelemetryStore.getState().status !== "ready") {
+          useTelemetryStore.getState()._setStatus("unavailable");
+        }
+      }, UNAVAILABLE_TIMEOUT_MS);
+
       try {
         const socket = new WebSocket(wsUrl);
         _ws = socket;

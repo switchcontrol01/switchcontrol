@@ -398,6 +398,28 @@ export default function Home() {
     if (prevMemCleanerRef.current && !memCleanerOpen) {
       addEvent({ type: "memory_cleaned", label: "Memory cleaner completed", ts: Date.now() });
       setLastAction({ action: "Memory cleaner", result: "RAM cleared — system headroom restored", ts: Date.now(), positive: true });
+      // Re-poll RAM so the Memory card reflects the freed headroom even when
+      // telemetry WebSocket is unavailable.  Use si.mem() directly (fast, <200ms)
+      // rather than the full getSpecs() which re-runs WMI/GPU queries.
+      const api = (window as any).electronAPI;
+      if (api?.system?.getSpecs) {
+        setTimeout(() => {
+          withTimeout(api.system.getSpecs(), 8_000, null)
+            .then((fresh: any) => {
+              if (!fresh?.ram) return;
+              const totalGB = fresh.ram.totalGB ?? fresh.ram.total ?? 0;
+              const usedGB  = fresh.ram.usedGB  ?? fresh.ram.used  ?? 0;
+              if (totalGB > 0) {
+                setStats(prev => ({
+                  ...prev,
+                  totalRamGb: Math.round(totalGB),
+                  usedRamGb: parseFloat(Number(usedGB).toFixed(1)),
+                }));
+              }
+            })
+            .catch(() => {/* non-fatal */});
+        }, 1_500); // give the OS 1.5s to fully settle after EmptyWorkingSet
+      }
     }
     prevMemCleanerRef.current = memCleanerOpen;
   // eslint-disable-next-line react-hooks/exhaustive-deps
