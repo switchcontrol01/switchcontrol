@@ -433,14 +433,49 @@ function downloadUpdate() {
 
   try {
     console.log('[Updater] Starting download...');
-    _autoUpdater.downloadUpdate();
+    const dlPromise = _autoUpdater.downloadUpdate();
+    // downloadUpdate() returns a Promise — attach .catch() so that any TLS or
+    // network rejection during the download is handled as a structured error
+    // rather than an unhandled rejection that pollutes the crash-dump directory.
+    if (dlPromise && typeof dlPromise.catch === 'function') {
+      dlPromise.catch((err) => {
+        const msg = err?.message || 'downloadUpdate promise rejected';
+        const code = err?.code || '';
+        const isTls = code.startsWith('ERR_CERT') ||
+          code === 'ERR_SSL_PROTOCOL_ERROR' ||
+          code === 'UNABLE_TO_VERIFY_LEAF_SIGNATURE' ||
+          msg.toLowerCase().includes('certificate') ||
+          msg.toLowerCase().includes('cert') ||
+          msg.toLowerCase().includes('tls') ||
+          msg.toLowerCase().includes('ssl');
+
+        if (isTls) {
+          console.warn(`[Updater] TLS/certificate failure during download (non-fatal) — code=${code} msg=${msg}`);
+        } else {
+          console.error(`[Updater] downloadUpdate promise rejected — code=${code} msg=${msg}`);
+        }
+        _consecutiveFailures += 1;
+        state = { ...state, status: 'error', errorMessage: msg };
+        broadcast('error');
+        try {
+          cl()?.writeCritical({
+            category: 'updater_failure',
+            severity: isTls ? 'warning' : 'error',
+            source: 'downloadUpdate:promise',
+            message: `${isTls ? '[TLS] ' : ''}Download rejected: ${msg}`,
+            stack: err?.stack,
+          });
+        } catch (e) {}
+      });
+    }
     return { ok: true };
   } catch (err) {
     const msg = err?.message || 'downloadUpdate failed';
     _consecutiveFailures += 1;
-    console.error('[Updater] downloadUpdate threw:', msg);
+    console.error('[Updater] downloadUpdate threw (soft fail):', msg);
     state = { ...state, status: 'error', errorMessage: msg };
     broadcast('error');
+    try { cl()?.writeCritical({ category: 'updater_failure', severity: 'error', source: 'downloadUpdate', message: msg, stack: err?.stack }); } catch (e) {}
     return { ok: false, reason: 'exception', error: msg };
   }
 }

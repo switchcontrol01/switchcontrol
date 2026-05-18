@@ -53,6 +53,11 @@ let _lastReportedCpu = 0; // for LPM throttle threshold
 // After a 1008 auth rejection we pause reconnects until the JWT is refreshed.
 let _authRejected = false;
 
+// ── Reconnect diagnostics ──────────────────────────────────────────────────────
+// Tracks consecutive reconnect attempts since the last successful open.
+// Resets to 0 on onopen. Used for structured reconnect logging.
+let _reconnectCount = 0;
+
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
 function detectSpike(history: (number | null)[], newVal: number | null): boolean {
@@ -77,8 +82,18 @@ async function buildWsUrl(): Promise<string> {
   const electronAPI = (window as any).electronAPI;
   // Include JWT so the server can authenticate telemetry subscribers.
   // The server rejects unauthenticated WebSocket clients (close 1008).
-  const { safeGetJwt } = await import("@/lib/auth-store");
+  const { safeGetJwt, decodeJwtPayload } = await import("@/lib/auth-store");
   const jwt = safeGetJwt();
+
+  // Log token issuer so we can detect secret-drift or wrong-issuer failures before they happen
+  if (jwt) {
+    const payload = decodeJwtPayload(jwt);
+    const iss = payload?.iss ?? "(missing)";
+    const sub = payload?.sub ?? "(none)";
+    console.log(`[Telemetry:ws] building url — iss=${iss} sub=${sub}`);
+  } else {
+    console.warn("[Telemetry:ws] building url — no JWT available (unauthenticated connect will be rejected)");
+  }
   const authSuffix = jwt ? `?jwt=${encodeURIComponent(jwt)}` : "";
 
   if (electronAPI?.isElectron && window.location.protocol === "file:") {
@@ -119,9 +134,13 @@ function connect() {
         _ws = socket;
 
         socket.onopen = () => {
-          console.log("[Telemetry] WebSocket connected");
-          _authRejected = false; // reset on successful connect
-          _reconnectDelay = RECONNECT_BASE_MS; // reset backoff on successful connect
+          const wasReconnect = _reconnectCount > 0;
+          console.log(
+            `[Telemetry:ws] event=connected attempt=${_reconnectCount + 1} wasReconnect=${wasReconnect}`,
+          );
+          _reconnectCount = 0; // reset on successful open
+          _authRejected = false;
+          _reconnectDelay = RECONNECT_BASE_MS;
           useTelemetryStore.getState()._setConnected(true);
         };
 
@@ -194,12 +213,15 @@ function connect() {
           _ws = null;
           useTelemetryStore.getState()._setConnected(false);
 
+          const closeReason = event.reason || "(none)";
+
           // Code 1008 = server rejected our JWT (auth failure).
           // Reconnecting immediately with the same stale token would just loop.
           // Clear the JWT so the next auth cycle fetches a fresh one, then stop.
           if (event.code === 1008) {
-            const reason = event.reason || "unknown";
-            console.warn(`[Telemetry] WebSocket auth rejected (1008) reason="${reason}" — clearing JWT, suppressing reconnect`);
+            console.warn(
+              `[Telemetry:ws] event=auth_rejected code=1008 reason="${closeReason}" — clearing JWT, suppressing reconnect`,
+            );
             _authRejected = true;
             _started = false;
             // Clear the stored JWT so re-auth picks up a fresh token
@@ -209,8 +231,13 @@ function connect() {
           }
 
           if (_started) {
+            _reconnectCount += 1;
             const delay = document.hidden ? RECONNECT_MAX_MS : _reconnectDelay;
-            if (isDebug) console.log(`[Telemetry] WebSocket closed code=${event.code} — reconnecting in ${delay}ms (hidden=${document.hidden})`);
+            // Always log reconnect — this is critical for diagnosing disconnect loops
+            console.log(
+              `[Telemetry:ws] event=reconnect attempt=${_reconnectCount} delay=${delay}ms ` +
+              `closeCode=${event.code} closeReason="${closeReason}" hidden=${document.hidden}`,
+            );
             _reconnectTimer = setTimeout(connect, delay);
             _reconnectDelay = Math.min(_reconnectDelay * 2, RECONNECT_MAX_MS);
           }

@@ -80,53 +80,51 @@ export interface AuthStateResolution {
  */
 export async function resolveAuthState(): Promise<AuthStateResolution> {
   const requestId = Math.random().toString(36).slice(2, 8);
-  if (isDebug) console.log(`[AuthTruth] resolveAuthState START reqId=${requestId}`);
+
+  // Always log hydration start — critical for diagnosing startup order issues
+  console.log(`[HYDRATE:1] resolveAuthState start reqId=${requestId}`);
 
   const store = useAuthStore.getState();
   const storedUser = store.user;
   const storedJwt = store.jwt;
 
   // Step 1: loaded from persisted store (hydration already validated by authStore.ts merge)
-  if (isDebug) {
-    console.log(
-      `[AuthTruth] step1 loaded — user=${storedUser?.id ?? 'none'} jwt=${storedJwt ? 'yes' : 'no'}`,
-    );
-  }
+  console.log(
+    `[HYDRATE:1] persisted — user=${storedUser?.id ?? 'none'} jwt=${storedJwt ? 'present' : 'absent'}`,
+  );
 
   // Step 2+3: validate JWT structure and expiry (non-destructive check)
   const jwtCheck = checkJwtExpiry(storedJwt);
-  if (isDebug) {
-    console.log(
-      `[AuthTruth] step2 jwtCheck — malformed=${jwtCheck.malformed} expired=${jwtCheck.expired}`,
-    );
-  }
+  console.log(
+    `[HYDRATE:2] jwtCheck — malformed=${jwtCheck.malformed} expired=${jwtCheck.expired}`,
+  );
 
   let activeJwt: string | null = storedJwt;
 
   if (jwtCheck.malformed && activeJwt) {
     const fp = jwtFingerprint(activeJwt);
-    if (isDebug) console.warn(`[AuthTruth] JWT malformed — clearing. tokenId=${fp}`);
+    console.warn(`[HYDRATE:2] JWT malformed — clearing. tokenFp=${fp}`);
     store.setJwt(null);
     activeJwt = null;
   }
 
   // Step 4: reissue if expired
   if (jwtCheck.expired && activeJwt) {
-    if (isDebug) console.log('[AuthTruth] step4 JWT expired — attempting reissue');
+    console.log('[HYDRATE:4] JWT expired — attempting reissue via session cookie');
     const reissued = await reissueJwtFromSession();
     if (reissued) {
       store.setJwt(reissued);
       activeJwt = reissued;
-      if (isDebug) console.log('[AuthTruth] step4 reissue=SUCCESS');
+      console.log('[HYDRATE:4] reissue=SUCCESS');
     } else {
-      if (isDebug) console.warn('[AuthTruth] step4 reissue=FAILED — sending expired JWT for one /api/me attempt (session cookie may still be valid)');
+      console.warn('[HYDRATE:4] reissue=FAILED — proceeding with expired JWT (session cookie may still be valid)');
     }
   } else {
-    if (isDebug) console.log('[AuthTruth] step4 reissue=SKIP');
+    if (isDebug) console.log('[HYDRATE:4] reissue=SKIP (jwt not expired)');
   }
 
   // Step 5: call cloud /api/me
-  if (isDebug) console.log(`[AuthTruth] step5 /api/me reqId=${requestId}`);
+  console.log(`[HYDRATE:5] /api/me — jwt=${activeJwt ? 'present' : 'absent'} reqId=${requestId}`);
 
   try {
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
@@ -135,34 +133,30 @@ export async function resolveAuthState(): Promise<AuthStateResolution> {
     const resp = await fetch(`${AUTH_DOMAIN}/api/me`, { headers, credentials: 'include' });
 
     if (!resp.ok) {
-      if (isDebug) console.warn(`[AuthTruth] /api/me HTTP ${resp.status} reqId=${requestId}`);
-
       if (resp.status === 401) {
-        if (isDebug) console.log(`[AuthTruth] 401=LOGGED_OUT — clearing state reqId=${requestId}`);
+        console.log(`[HYDRATE:5] result=logged_out status=401 reqId=${requestId}`);
         bumpMeGeneration();
         store.logout();
         return { user: null, jwt: null, verified: true, reason: 'logged_out_by_cloud' };
       }
 
       // 5xx / network hiccup — preserve cached state, do NOT downgrade premium
-      if (isDebug) {
-        console.warn(
-          `[AuthTruth] HTTP ${resp.status}=PRESERVE_CACHED — ` +
-          `userId=${storedUser?.id ?? 'none'} isPremium=${storedUser?.isPremium ?? false} reqId=${requestId}`,
-        );
-      }
+      console.warn(
+        `[HYDRATE:5] result=preserve_cached status=${resp.status} ` +
+        `userId=${storedUser?.id ?? 'none'} isPremium=${storedUser?.isPremium ?? false} reqId=${requestId}`,
+      );
       return { user: storedUser, jwt: activeJwt, verified: false, reason: `cloud_unavailable_${resp.status}` };
     }
 
     const data = await resp.json();
     if (isDebug) {
       console.log(
-        `[AuthTruth] /api/me OK loggedIn=${data.loggedIn} isPremium=${data.isPremium} plan=${data.plan} reqId=${requestId}`,
+        `[HYDRATE:5] /api/me OK loggedIn=${data.loggedIn} isPremium=${data.isPremium} plan=${data.plan} reqId=${requestId}`,
       );
     }
 
     if (data.loggedIn === false) {
-      if (isDebug) console.log(`[AuthTruth] loggedIn=false → logout reqId=${requestId}`);
+      console.log(`[HYDRATE:5] result=logged_out loggedIn=false reqId=${requestId}`);
       bumpMeGeneration();
       store.logout();
       return { user: null, jwt: null, verified: true, reason: 'logged_out_by_cloud' };
@@ -172,21 +166,18 @@ export async function resolveAuthState(): Promise<AuthStateResolution> {
     const user = normalizeApiMeUser(data, storedUser);
     store.setUser(user);
 
-    if (isDebug) {
-      console.log(
-        `[AuthTruth] source=cloud userId=${user.id} isPremium=${user.isPremium} ` +
-        `plan=${user.plan} isAdmin=${user.isAdmin} verified=true reqId=${requestId}`,
-      );
-    }
+    // Always log final hydration result — critical for auth lifecycle tracing
+    console.log(
+      `[HYDRATE:6] result=verified source=cloud userId=${user.id} isPremium=${user.isPremium} ` +
+      `plan=${user.plan} isAdmin=${user.isAdmin} reqId=${requestId}`,
+    );
 
     return { user, jwt: activeJwt, verified: true, reason: 'cloud_confirmed' };
   } catch (err) {
     // Network failure — do NOT downgrade premium
-    if (isDebug) {
-      console.warn(
-        `[AuthTruth] network error — preserving cached state. reqId=${requestId} error=${(err as Error).message}`,
-      );
-    }
+    console.warn(
+      `[HYDRATE:5] result=network_error preserve_cached=true reqId=${requestId} error=${(err as Error).message}`,
+    );
     return {
       user: storedUser,
       jwt: activeJwt,

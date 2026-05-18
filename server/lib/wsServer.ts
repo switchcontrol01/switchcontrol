@@ -35,6 +35,22 @@ function getWsToken(req: any): string | null {
   return null;
 }
 
+/**
+ * Peek at the token's iss claim without verifying the signature.
+ * Used only for diagnostic logging when validation fails.
+ */
+function peekIss(token: string): string {
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 3) return "(malformed)";
+    const raw = Buffer.from(parts[1], "base64").toString("utf-8");
+    const peek = JSON.parse(raw) as Record<string, unknown>;
+    return typeof peek.iss === "string" ? peek.iss : "(missing)";
+  } catch {
+    return "(error)";
+  }
+}
+
 export function setupWebSocketServer(httpServer: HttpServer) {
   wss = new WebSocketServer({ server: httpServer, path: "/ws/telemetry" });
 
@@ -50,42 +66,51 @@ export function setupWebSocketServer(httpServer: HttpServer) {
     // Auth gate
     const token = getWsToken(req);
     if (!token) {
-      console.warn("[WS] Rejected unauthenticated telemetry client (no token)");
+      console.warn("[WS:auth] phase=rejected reason=no_token");
       ws.close(1008, "Authentication required");
       return;
     }
 
     const tokenFp = jwtFingerprint(token);
+
+    // ── Phase: validating ──────────────────────────────────────────────────────
+    console.log(`[WS:auth] phase=validating tokenFp=${tokenFp}`);
+
     const payload = verifyJwt(token);
 
     if (!payload || !payload.sub) {
       // Distinguish expired from invalid-signature for better client-side handling
       const expiryStatus = peekJwtExpiry(token);
+      const iss = peekIss(token);
+
       if (expiryStatus === "expired") {
-        console.warn(`[WS] Rejected telemetry client — token expired | tokenFp=${tokenFp}`);
+        console.warn(`[WS:auth] phase=rejected reason=token_expired tokenFp=${tokenFp} iss=${iss}`);
         ws.close(1008, "token_expired");
       } else if (expiryStatus === "malformed") {
-        console.warn(`[WS] Rejected telemetry client — token malformed | tokenFp=${tokenFp}`);
+        console.warn(`[WS:auth] phase=rejected reason=token_malformed tokenFp=${tokenFp} iss=${iss}`);
         ws.close(1008, "token_malformed");
       } else {
         // Structurally valid and not expired → wrong signature (secret drift)
-        console.warn(`[WS] Rejected telemetry client — invalid signature | tokenFp=${tokenFp}`);
+        console.warn(`[WS:auth] phase=rejected reason=invalid_signature tokenFp=${tokenFp} iss=${iss}`);
         ws.close(1008, "token_invalid_signature");
       }
       return;
     }
 
     const userId = payload.sub;
+    const iss = payload.iss || "(missing)";
 
     // Per-user connection limit — prevents Electron reconnect storms
     const current = userConnectionCount.get(userId) ?? 0;
     if (current >= MAX_CONNECTIONS_PER_USER) {
-      console.warn(`[WS] Connection limit hit userId=${userId} count=${current} — rejecting`);
+      console.warn(`[WS:auth] phase=rejected reason=too_many_connections userId=${userId} count=${current}`);
       ws.close(1008, "Too many connections");
       return;
     }
     userConnectionCount.set(userId, current + 1);
-    console.log(`[WS] Authenticated userId=${userId} connections=${current + 1} tokenFp=${tokenFp}`);
+
+    // ── Phase: accepted ────────────────────────────────────────────────────────
+    console.log(`[WS:auth] phase=accepted userId=${userId} connections=${current + 1} tokenFp=${tokenFp} iss=${iss}`);
 
     (ws as any).__userId = userId;
 
@@ -93,8 +118,15 @@ export function setupWebSocketServer(httpServer: HttpServer) {
       const n = (userConnectionCount.get(userId) ?? 1) - 1;
       if (n <= 0) userConnectionCount.delete(userId);
       else userConnectionCount.set(userId, n);
-      if (code !== 1000 && code !== 1001) {
-        console.log(`[WS] userId=${userId} disconnected code=${code} reason=${reason?.toString() || "(none)"}`);
+
+      // Always log disconnect — the reason and code are essential for reconnect diagnosis
+      const reasonStr = reason?.toString() || "(none)";
+      if (code === 1000 || code === 1001) {
+        // Clean close — log at info level
+        console.log(`[WS:disconnect] userId=${userId} code=${code} reason=${reasonStr} type=clean`);
+      } else {
+        // Unexpected close — log at warn level so it stands out
+        console.warn(`[WS:disconnect] userId=${userId} code=${code} reason=${reasonStr} type=unexpected`);
       }
     });
 

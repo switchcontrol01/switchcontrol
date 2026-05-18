@@ -149,9 +149,12 @@ export function validateAndClearJwt(
  */
 export async function reissueJwtFromSession(): Promise<string | null> {
   if (_jwtReissuePromise) {
-    if (isDebug) console.log('[JWT] reissue already in flight — deduped');
+    // Dedup is silent — the original call already has logging
     return _jwtReissuePromise;
   }
+
+  // Always log token refresh start — critical event for auth lifecycle tracing
+  console.log('[JWT:refresh] event=start source=session_cookie');
 
   _jwtReissuePromise = (async () => {
     try {
@@ -161,24 +164,31 @@ export async function reissueJwtFromSession(): Promise<string | null> {
       });
 
       if (!resp.ok) {
-        if (isDebug) console.warn(`[JWT] reissue HTTP ${resp.status}`);
+        // Always log token refresh failure
+        console.warn(`[JWT:refresh] event=failed reason=http_${resp.status}`);
         return null;
       }
 
       const data = await resp.json();
-      if (!data?.jwt || typeof data.jwt !== 'string') return null;
+      if (!data?.jwt || typeof data.jwt !== 'string') {
+        console.warn('[JWT:refresh] event=failed reason=no_jwt_in_response');
+        return null;
+      }
 
       // Validate before accepting
       const check = checkJwtExpiry(data.jwt);
       if (check.malformed || check.expired) {
-        if (isDebug) console.warn('[JWT] reissue returned invalid token — discarded');
+        console.warn(`[JWT:refresh] event=failed reason=invalid_token malformed=${check.malformed} expired=${check.expired}`);
         return null;
       }
 
-      if (isDebug) console.log('[JWT] reissue=SUCCESS length=' + data.jwt.length);
+      // Always log token refresh success
+      const newFp = jwtFingerprint(data.jwt);
+      console.log(`[JWT:refresh] event=success tokenFp=${newFp}`);
       return data.jwt as string;
     } catch (err) {
-      if (isDebug) console.warn('[JWT] reissue network error:', (err as Error).message);
+      // Always log network-level refresh failures
+      console.warn('[JWT:refresh] event=failed reason=network error=' + (err as Error).message);
       return null;
     } finally {
       _jwtReissuePromise = null;

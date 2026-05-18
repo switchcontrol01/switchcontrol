@@ -117,12 +117,12 @@ export const useAuthStore = create<AuthState>()(
           (newState === 'timed_out' || newState === 'cancelled') &&
           TERMINAL_STATES.includes(current)
         ) {
-          if (isDebug) {
-            console.log(`[AuthStore] Blocked ${current} → ${newState} (success cannot be overwritten)`);
-          }
+          // Always log blocked transitions — helps diagnose race conditions
+          console.log(`[AuthState] transition BLOCKED ${current} → ${newState} (terminal state protected)`);
           return;
         }
-        if (isDebug) console.log(`[AuthStore] electronAuthState ${current} → ${newState}`);
+        // Always log auth state transitions — critical for Electron auth lifecycle tracing
+        console.log(`[AuthState] transition ${current} → ${newState}`);
         set({ electronAuthState: newState });
       },
 
