@@ -1,4 +1,4 @@
-import { useAppAuth } from "@/App";
+import { useAppAuth } from "@/lib/appAuthContext";
 import { refreshEntitlements } from "@/lib/auth-store";
 
 export function useAuth() {

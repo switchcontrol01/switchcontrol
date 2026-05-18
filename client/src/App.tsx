@@ -1,4 +1,4 @@
-import React, { useEffect, useState, createContext, useContext, useCallback, lazy, Suspense } from "react";
+import React, { useEffect, useState, useCallback, lazy, Suspense } from "react";
 import { PerformanceOverlay } from "@/components/debug/PerformanceOverlay";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { Router, Route, Switch } from "wouter";
@@ -69,29 +69,11 @@ const isElectron = typeof window !== 'undefined' && !!(window as any).electronAP
 
 type AppPhase = "splash" | "booting" | "unauthenticated" | "login_success" | "welcome" | "authenticated";
 
-interface AppAuthContextValue {
-  user: AuthUser | null;
-  isPremium: boolean;
-  entitlementsVerified: boolean;
-  isSigningOut: boolean;
-  logout: () => void;
-  factoryReset: () => Promise<void>;
-  safeRefreshEntitlements: () => Promise<{ user: AuthUser | null }>;
-}
-
-const AppAuthContext = createContext<AppAuthContextValue>({
-  user: null,
-  isPremium: false,
-  entitlementsVerified: false,
-  isSigningOut: false,
-  logout: () => {},
-  factoryReset: async () => {},
-  safeRefreshEntitlements: async () => ({ user: null }),
-});
-
-export function useAppAuth() {
-  return useContext(AppAuthContext);
-}
+// AppAuthContext, AppAuthContextValue, and useAppAuth live in a dedicated
+// file to avoid a circular import: use-auth.ts → App.tsx → SystemCleaner (lazy) → use-auth.ts
+export type { AppAuthContextValue } from "@/lib/appAuthContext";
+export { useAppAuth } from "@/lib/appAuthContext";
+import { AppAuthContext } from "@/lib/appAuthContext";
 
 const DarkFallback = () => (
   <div style={{ position: "fixed", inset: 0, background: "#07090D" }} />
