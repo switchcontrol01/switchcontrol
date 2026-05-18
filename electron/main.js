@@ -2521,7 +2521,7 @@ ipcMain.handle('extremeLabs:applySelected', async (event, ids) => {
           failedCount++;
         }
       } else if (mapped.type === 'nic') {
-        const adapters = await nicExecutor.getNetAdapters();
+        const { adapters = [] } = await nicExecutor.getNetAdapters();
         const physical = adapters.find(a => a.status === 'Up' && !/loopback|bluetooth|hyper|virtual|tunnel|vpn/i.test(a.name));
         if (!physical) {
           console.log('[ExtremeLabsApply]', JSON.stringify({ id, applied: false, type: 'nic', reason: 'noAdapterFound' }));
@@ -2591,7 +2591,7 @@ ipcMain.handle('extremeLabs:restoreBaseline', async () => {
           const resetResult = await sliderTweakExecutor.resetSliderValue(mapped.tweakId);
           results.push({ id, reverted: resetResult.success, error: resetResult.error });
         } else if (mapped.type === 'nic') {
-          const adapters = await nicExecutor.getNetAdapters();
+          const { adapters = [] } = await nicExecutor.getNetAdapters();
           const physical = adapters.find(a => a.status === 'Up' && !/loopback|bluetooth|hyper|virtual|tunnel|vpn/i.test(a.name));
           if (!physical) { results.push({ id, reverted: false, reason: 'No adapter' }); continue; }
           const resetResult = await nicExecutor.resetNicProperty(physical.name, mapped.propertyKey);
