@@ -1,6 +1,17 @@
 /**
  * Login — Electron-only sign-in screen.
  *
+ * Login state machine:
+ *   idle → authorizing  (user clicks login)
+ *   authorizing → idle  (user cancels)
+ *   authorizing → recovery  (45s soft timeout — auth exchange keeps running)
+ *   authorizing → failed  (browser failed to open)
+ *   recovery → authorizing  (retry)
+ *   failed → idle  (try again)
+ *
+ * Manual code input is NEVER shown during normal authorizing flow.
+ * It lives inside an expandable section in recovery state only.
+ *
  * Performance rules:
  *  · Never animate the `background` CSS property — use opacity/transform only.
  *  · No scaleY/scaleX on large blurred elements — compositor can't handle it.
@@ -18,7 +29,13 @@ import { useAuthStore, exchangeToken } from "@/lib/auth-store";
 import logoImg from "@/assets/logo.webp";
 
 const AUTH_DOMAIN = "https://switchcontrol.org";
-const OAUTH_TIMEOUT_MS = 120_000;
+
+// After this delay the UI moves to "recovery" but the auth exchange keeps running.
+const SOFT_TIMEOUT_MS = 45_000;
+
+// ── Login state machine ────────────────────────────────────────────────────────
+
+type LoginState = "idle" | "authorizing" | "recovery" | "failed";
 
 // ── SVG icons ─────────────────────────────────────────────────────────────────
 
@@ -54,11 +71,10 @@ const PARTICLES = Array.from({ length: 22 }, (_, i) => ({
   duration: 3.4 + (i % 6) * 0.55,
   dx: (i % 5 === 0 ? -1 : 1) * (9 + (i % 4) * 8),
   dy: 58 + (i % 5) * 20,
-  glow: i % 6 === 0,   // ~4 bright particles
+  glow: i % 6 === 0,
 }));
 
 // ── Floating particle ─────────────────────────────────────────────────────────
-// Cheap: only opacity + transform. Box-shadow only on glow particles.
 
 function FloatingParticle({ startX, startY, size, hue, delay, duration, dx, dy, glow }: {
   startX: number; startY: number; size: number; hue: number;
@@ -85,119 +101,154 @@ function FloatingParticle({ startX, startY, size, hue, delay, duration, dx, dy, 
   );
 }
 
+// ── Spinner ───────────────────────────────────────────────────────────────────
+
+function Spinner() {
+  return (
+    <div className="relative w-12 h-12">
+      <div className="absolute inset-0 rounded-full border-2 border-white/10" />
+      <motion.div
+        className="absolute inset-0 rounded-full border-2 border-transparent border-t-primary"
+        animate={{ rotate: 360 }}
+        transition={{ duration: 1.4, repeat: Infinity, ease: "linear" }}
+      />
+      <div
+        className="absolute inset-2 rounded-full border border-primary/20"
+        style={{ boxShadow: "0 0 12px rgba(168,85,247,0.28)" }}
+      />
+    </div>
+  );
+}
+
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function Login({ succeeded = false }: { succeeded?: boolean }) {
-  const [isLoading, setIsLoading] = useState<"google" | "discord" | null>(null);
+  const [loginState, setLoginState] = useState<LoginState>("idle");
+  const [loginProvider, setLoginProvider] = useState<"google" | "discord" | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [recoveryExpanded, setRecoveryExpanded] = useState(false);
   const [pastedCode, setPastedCode] = useState("");
   const [isPasting, setIsPasting] = useState(false);
-  const oauthTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const softTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { electronAuthState, oauthError } = useAuthStore();
 
-  const clearAllTimers = useCallback(() => {
-    if (oauthTimeoutRef.current) {
-      clearTimeout(oauthTimeoutRef.current);
-      oauthTimeoutRef.current = null;
+  const clearSoftTimeout = useCallback(() => {
+    if (softTimeoutRef.current) {
+      clearTimeout(softTimeoutRef.current);
+      softTimeoutRef.current = null;
     }
   }, []);
 
+  // Auth progressed successfully — clear UI back to idle / let App.tsx handle transition
   useEffect(() => {
-    if (electronAuthState === 'callback_received' || electronAuthState === 'exchanging' || electronAuthState === 'authenticated') {
-      console.log('[Login] Auth state reached', electronAuthState, '— clearing UI');
-      clearAllTimers();
-      setIsLoading(null);
+    if (
+      electronAuthState === "callback_received" ||
+      electronAuthState === "exchanging" ||
+      electronAuthState === "authenticated"
+    ) {
+      clearSoftTimeout();
+      setLoginState("idle");
       setError(null);
     }
-  }, [electronAuthState, clearAllTimers]);
+  }, [electronAuthState, clearSoftTimeout]);
 
+  // Store-level OAuth error (deep link failure, etc.)
   useEffect(() => {
     if (oauthError) {
-      console.log('[Login] OAuth error from store:', oauthError);
-      clearAllTimers();
-      setIsLoading(null);
+      clearSoftTimeout();
+      setLoginState("failed");
       setError(oauthError);
       useAuthStore.getState().setOauthError(null);
     }
-  }, [oauthError, clearAllTimers]);
+  }, [oauthError, clearSoftTimeout]);
 
-  useEffect(() => {
-    return () => { clearAllTimers(); };
-  }, [clearAllTimers]);
+  useEffect(() => () => clearSoftTimeout(), [clearSoftTimeout]);
 
   const handleCancel = useCallback(() => {
-    console.log('[Login] User cancelled login');
-    useAuthStore.getState().setElectronAuthState('cancelled');
-    clearAllTimers();
-    setIsLoading(null);
+    useAuthStore.getState().setElectronAuthState("cancelled");
+    clearSoftTimeout();
+    setLoginState("idle");
+    setLoginProvider(null);
     setError(null);
+    setRecoveryExpanded(false);
     setPastedCode("");
-    setIsPasting(false);
-  }, [clearAllTimers]);
+  }, [clearSoftTimeout]);
+
+  const handleLogin = useCallback(async (provider: "google" | "discord") => {
+    setError(null);
+    setLoginProvider(provider);
+    setRecoveryExpanded(false);
+    setPastedCode("");
+
+    const api = (window as any).electronAPI;
+    const isElectron = api?.isElectron && api?.openExternal;
+
+    if (!isElectron) {
+      setLoginState("failed");
+      setError("This app must be run inside the SwitchControl desktop app.");
+      return;
+    }
+
+    setLoginState("authorizing");
+    useAuthStore.getState().setElectronAuthState("opening_browser");
+
+    try {
+      const authUrl = `${AUTH_DOMAIN}/auth/${provider}?source=electron`;
+      await api.openExternal(authUrl);
+      useAuthStore.getState().setElectronAuthState("waiting_for_callback");
+
+      // Soft timeout: only moves the UI to recovery — the auth exchange keeps running.
+      clearSoftTimeout();
+      softTimeoutRef.current = setTimeout(() => {
+        const current = useAuthStore.getState().electronAuthState;
+        if (
+          current === "callback_received" ||
+          current === "exchanging" ||
+          current === "authenticated"
+        ) {
+          return; // auth already succeeded — ignore
+        }
+        setLoginState("recovery");
+        softTimeoutRef.current = null;
+      }, SOFT_TIMEOUT_MS);
+    } catch {
+      useAuthStore.getState().setElectronAuthState("failed");
+      setLoginState("failed");
+      setError("Failed to open browser. Please try again.");
+    }
+  }, [clearSoftTimeout]);
+
+  const handleRetry = useCallback(() => {
+    if (loginProvider) {
+      handleLogin(loginProvider);
+    } else {
+      setLoginState("idle");
+    }
+  }, [loginProvider, handleLogin]);
 
   const handlePasteCode = useCallback(async () => {
     if (!pastedCode.trim()) return;
     setIsPasting(true);
     setError(null);
-    useAuthStore.getState().setElectronAuthState('exchanging');
+    useAuthStore.getState().setElectronAuthState("exchanging");
     try {
       const user = await exchangeToken(pastedCode.trim());
       if (user) {
         useAuthStore.getState().setToken(pastedCode.trim());
         useAuthStore.getState().setUser(user);
-        useAuthStore.getState().setElectronAuthState('authenticated');
+        useAuthStore.getState().setElectronAuthState("authenticated");
       } else {
-        setError('Invalid or expired code. Please sign in via your browser again.');
-        useAuthStore.getState().setElectronAuthState('failed');
+        setError("Invalid or expired code. Please sign in via your browser again.");
+        useAuthStore.getState().setElectronAuthState("failed");
       }
-    } catch (err) {
-      console.error('[Login] Paste code exchange failed:', err);
-      setError('Code verification failed. Please try again.');
-      useAuthStore.getState().setElectronAuthState('failed');
+    } catch {
+      setError("Code verification failed. Please try again.");
+      useAuthStore.getState().setElectronAuthState("failed");
     } finally {
       setIsPasting(false);
     }
   }, [pastedCode]);
-
-  const handleLogin = async (provider: "google" | "discord") => {
-    setIsLoading(provider);
-    setError(null);
-    useAuthStore.getState().setElectronAuthState('opening_browser');
-
-    const api = (window as any).electronAPI;
-    const isElectron = api?.isElectron && api?.openExternal;
-
-    if (isElectron) {
-      const authUrl = `${AUTH_DOMAIN}/auth/${provider}?source=electron`;
-      console.log('[Login] Opening external auth URL:', authUrl);
-      try {
-        await api.openExternal(authUrl);
-        useAuthStore.getState().setElectronAuthState('waiting_for_callback');
-
-        clearAllTimers();
-        oauthTimeoutRef.current = setTimeout(() => {
-          const currentState = useAuthStore.getState().electronAuthState;
-          if (currentState === 'callback_received' || currentState === 'exchanging' || currentState === 'authenticated') {
-            console.log('[Login] Timeout fired but auth already progressed to', currentState, '— ignoring');
-            return;
-          }
-          console.warn('[Login] OAuth timeout — no callback within', OAUTH_TIMEOUT_MS, 'ms');
-          useAuthStore.getState().setElectronAuthState('timed_out');
-          setIsLoading(null);
-          setError("Login timed out. Please try again.");
-          oauthTimeoutRef.current = null;
-        }, OAUTH_TIMEOUT_MS);
-      } catch (err) {
-        console.error('[Login] Failed to open auth URL:', err);
-        useAuthStore.getState().setElectronAuthState('failed');
-        setError("Failed to open browser. Please try again.");
-        setIsLoading(null);
-      }
-    } else {
-      setError("This app must be run inside the SwitchControl desktop app.");
-      setIsLoading(null);
-    }
-  };
 
   return (
     <div className="fixed inset-0 bg-[#080810] overflow-hidden flex items-center justify-center">
@@ -247,8 +298,7 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
         transition={{ duration: 7, repeat: Infinity, ease: "easeInOut", delay: 2 }}
       />
 
-      {/* D: Left atmospheric beam — single layer, no conic, no scaleY.
-          blur(18px) applied once via static style, not animated. */}
+      {/* D: Left atmospheric beam */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <motion.div
           className="absolute"
@@ -263,7 +313,6 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
           animate={{ opacity: [0.5, 0.9, 0.5] }}
           transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
         />
-        {/* Specular glint on left edge */}
         <motion.div
           className="absolute"
           style={{
@@ -279,7 +328,7 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
         />
       </div>
 
-      {/* E: Two thin diagonal beam lines — opacity only, no scaleY */}
+      {/* E: Two thin diagonal beam lines */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         {[
           { angle: -22, left: "38%", top: "38%", width: 2, length: "150%", opacity: 0.055, delay: 0, dur: 6 },
@@ -321,22 +370,19 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
         </svg>
       </div>
 
-      {/* G: 22 floating particles — glow only on 4 bright ones */}
+      {/* G: 22 floating particles */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         {PARTICLES.map(p => (
           <FloatingParticle key={p.id} {...p} />
         ))}
       </div>
 
-      {/* H: Static vignettes — no animation needed */}
+      {/* H: Static vignettes */}
       <div className="absolute inset-0 bg-gradient-to-t from-[#080810] via-transparent to-[#080810]/75 pointer-events-none" />
       <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse at center, transparent 0%, #080810 76%)" }} />
 
       {/*
         ── LOGIN CARD ────────────────────────────────────────────────────────
-        Card-level halos use opacity-only. No scaleY or scaleX.
-        Outer halo blur reduced from 24px → 14px.
-        Blazes kept but scaleY removed.
       */}
       <motion.div
         initial={{ opacity: 0, y: 18, scale: 0.96 }}
@@ -344,7 +390,7 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
         transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
         className="relative z-10 w-full max-w-md mx-4"
       >
-        {/* Wide outer halo — blur 14px (was 24px), opacity only */}
+        {/* Wide outer halo */}
         <motion.div
           className="absolute -inset-6 rounded-3xl pointer-events-none"
           style={{
@@ -355,7 +401,7 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
           transition={{ duration: 4.2, repeat: Infinity, ease: "easeInOut" }}
         />
 
-        {/* Left-edge blaze — opacity only (no scaleY) */}
+        {/* Left-edge blaze */}
         <motion.div
           className="absolute rounded-3xl pointer-events-none"
           style={{
@@ -368,7 +414,7 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
           transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }}
         />
 
-        {/* Right-edge blaze — opacity only (no scaleY) */}
+        {/* Right-edge blaze */}
         <motion.div
           className="absolute rounded-3xl pointer-events-none"
           style={{
@@ -420,11 +466,8 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
         >
           <div className="absolute inset-0 bg-gradient-to-r from-#00D4FF/8 via-transparent to-blue-500/8 pointer-events-none" />
 
+          {/* ── Header ── */}
           <div className="relative flex flex-col items-center gap-6 mb-8">
-            {/*
-              Logo glow: animate opacity of the glow wrapper, not boxShadow.
-              Static shadow on the wrapper + opacity pulse = compositor-only work.
-            */}
             <div className="relative">
               <motion.div
                 className="absolute inset-0 rounded-[22%] pointer-events-none"
@@ -450,7 +493,10 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
               >
-                Welcome to <span className="bg-gradient-to-r from-primary to-pink-400 bg-clip-text text-transparent">SwitchControl</span>
+                Welcome to{" "}
+                <span className="bg-gradient-to-r from-primary to-pink-400 bg-clip-text text-transparent">
+                  SwitchControl
+                </span>
               </motion.h1>
               <motion.p
                 className="text-muted-foreground text-sm"
@@ -463,6 +509,7 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
             </div>
           </div>
 
+          {/* ── Error banner ── */}
           <AnimatePresence>
             {error && (
               <motion.div
@@ -477,8 +524,11 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
             )}
           </AnimatePresence>
 
+          {/* ── State-driven body ── */}
           <div className="relative space-y-3">
             <AnimatePresence mode="wait">
+
+              {/* ── EXCHANGING / CALLBACK — server is processing ── */}
               {(electronAuthState === "exchanging" || electronAuthState === "callback_received") ? (
                 <motion.div
                   key="exchanging"
@@ -488,40 +538,28 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
                   transition={{ duration: 0.25 }}
                   className="flex flex-col items-center gap-4 py-4"
                 >
-                  <div className="relative w-12 h-12 mb-1">
-                    <div className="absolute inset-0 rounded-full border-2 border-white/10" />
-                    <motion.div
-                      className="absolute inset-0 rounded-full border-2 border-transparent border-t-primary"
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 1.4, repeat: Infinity, ease: "linear" }}
-                    />
-                    <div className="absolute inset-2 rounded-full border border-primary/20" style={{ boxShadow: "0 0 12px rgba(168,85,247,0.28)" }} />
-                  </div>
+                  <Spinner />
                   <span className="text-sm text-white/70 font-medium">Verifying your account...</span>
                   <p className="text-[11px] text-white/35">Securely connecting · this may take a moment</p>
                 </motion.div>
 
-              ) : isLoading ? (
+              ) : loginState === "authorizing" ? (
+                /* ── AUTHORIZING — waiting for browser callback ── */
                 <motion.div
-                  key="loading"
+                  key="authorizing"
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.95 }}
                   transition={{ duration: 0.2 }}
                   className="flex flex-col items-center gap-4 py-4"
                 >
-                  <motion.div
-                    className="relative w-12 h-12 mb-1"
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                  >
-                    <div className="absolute inset-0 rounded-full border-2 border-white/10" />
-                    <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-primary" />
-                  </motion.div>
-                  <span className="text-sm text-muted-foreground">
-                    Waiting for {isLoading === "google" ? "Google" : "Discord"} sign-in...
+                  <Spinner />
+                  <span className="text-sm text-white/70 font-medium">
+                    Waiting for secure browser login...
                   </span>
-                  <p className="text-[11px] text-muted-foreground/60">Complete sign-in in your browser to continue</p>
+                  <p className="text-[11px] text-white/35">
+                    Complete sign-in in your browser to continue
+                  </p>
                   <motion.button
                     onClick={handleCancel}
                     className="text-sm font-medium text-white/90 hover:text-white transition-all duration-150 px-6 py-2.5 rounded-xl border border-white/20 hover:border-white/40 bg-white/5 hover:bg-white/10 shadow-sm mt-1"
@@ -533,7 +571,120 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
                   </motion.button>
                 </motion.div>
 
+              ) : loginState === "recovery" ? (
+                /* ── RECOVERY — soft timeout hit, auth still running ── */
+                <motion.div
+                  key="recovery"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.3 }}
+                  className="flex flex-col gap-4 py-2"
+                >
+                  <div className="text-center">
+                    <p className="text-sm text-white/60 font-medium">Login is taking longer than expected</p>
+                    <p className="text-[11px] text-white/30 mt-1">Still waiting for your browser — you can retry or wait a bit longer</p>
+                  </div>
+
+                  {/* Primary: retry */}
+                  <motion.button
+                    onClick={handleRetry}
+                    className="w-full h-11 rounded-xl text-sm font-semibold text-white bg-primary/80 hover:bg-primary transition-all duration-200 shadow-lg hover:shadow-primary/30"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.97 }}
+                    data-testid="button-login-retry"
+                  >
+                    Retry Login
+                  </motion.button>
+
+                  {/* Cancel — secondary */}
+                  <button
+                    onClick={handleCancel}
+                    className="text-xs text-white/30 hover:text-white/55 transition-colors text-center"
+                    data-testid="button-login-cancel-recovery"
+                  >
+                    Cancel and go back
+                  </button>
+
+                  {/* Expandable manual recovery */}
+                  <div className="border-t border-white/[0.06] pt-3">
+                    <button
+                      onClick={() => setRecoveryExpanded(v => !v)}
+                      className="w-full flex items-center justify-between text-[11px] text-white/30 hover:text-white/50 transition-colors"
+                      data-testid="button-recovery-expand"
+                    >
+                      <span>Having trouble? Manual recovery</span>
+                      <motion.span
+                        animate={{ rotate: recoveryExpanded ? 180 : 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="text-white/25"
+                      >
+                        ▾
+                      </motion.span>
+                    </button>
+
+                    <AnimatePresence>
+                      {recoveryExpanded && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
+                          transition={{ duration: 0.25 }}
+                          className="overflow-hidden"
+                        >
+                          <div className="pt-3 space-y-2">
+                            <p className="text-[11px] text-white/25 text-center">
+                              If your browser blocked the app, paste your auth code below
+                            </p>
+                            <div className="flex gap-2">
+                              <input
+                                type="text"
+                                value={pastedCode}
+                                onChange={(e) => setPastedCode(e.target.value)}
+                                onKeyDown={(e) => e.key === "Enter" && handlePasteCode()}
+                                placeholder="Paste auth code..."
+                                className="flex-1 bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-2 text-sm text-white/70 placeholder:text-white/25 focus:outline-none focus:border-purple-400/30 focus:bg-white/[0.06] transition-all"
+                                data-testid="input-paste-code"
+                              />
+                              <Button
+                                onClick={handlePasteCode}
+                                disabled={!pastedCode.trim() || isPasting}
+                                className="h-auto px-4 bg-purple-500/20 hover:bg-purple-500/30 text-purple-300/80 text-xs rounded-xl border border-purple-400/20 disabled:opacity-30 disabled:cursor-not-allowed"
+                                data-testid="button-paste-verify"
+                              >
+                                {isPasting ? "Verifying..." : "Verify"}
+                              </Button>
+                            </div>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                </motion.div>
+
+              ) : loginState === "failed" ? (
+                /* ── FAILED — hard error (browser wouldn't open, etc.) ── */
+                <motion.div
+                  key="failed"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.25 }}
+                  className="flex flex-col gap-3 py-2"
+                >
+                  <motion.button
+                    onClick={() => { setLoginState("idle"); setError(null); }}
+                    className="w-full h-11 rounded-xl text-sm font-semibold text-white bg-white/10 hover:bg-white/15 border border-white/20 transition-all duration-200"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.97 }}
+                    data-testid="button-login-try-again"
+                  >
+                    Try Again
+                  </motion.button>
+                </motion.div>
+
               ) : (
+                /* ── IDLE — default login buttons ── */
                 <motion.div
                   key="buttons"
                   initial={{ opacity: 0 }}
@@ -575,35 +726,6 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
                       Continue with Discord
                     </Button>
                   </motion.div>
-
-                  {/* Paste-code fallback — for browsers that block protocol links entirely */}
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.7 }}
-                    className="mt-4 pt-4 border-t border-white/5"
-                  >
-                    <p className="text-[11px] text-white/25 text-center mb-2">Browser blocking the app? Paste your code below</p>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={pastedCode}
-                        onChange={(e) => setPastedCode(e.target.value)}
-                        onKeyDown={(e) => e.key === "Enter" && handlePasteCode()}
-                        placeholder="Paste auth code..."
-                        className="flex-1 bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-2 text-sm text-white/70 placeholder:text-white/25 focus:outline-none focus:border-purple-400/30 focus:bg-white/[0.06] transition-all"
-                        data-testid="input-paste-code"
-                      />
-                      <Button
-                        onClick={handlePasteCode}
-                        disabled={!pastedCode.trim() || isPasting}
-                        className="h-auto px-4 bg-purple-500/20 hover:bg-purple-500/30 text-purple-300/80 text-xs rounded-xl border border-purple-400/20 disabled:opacity-30 disabled:cursor-not-allowed"
-                        data-testid="button-paste-verify"
-                      >
-                        {isPasting ? "Verifying..." : "Verify"}
-                      </Button>
-                    </div>
-                  </motion.div>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -639,9 +761,6 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
 
       {/*
         ── SUCCESS OVERLAY ───────────────────────────────────────────────────
-        Simplified: one expanding bloom + vignette.
-        The inner core pulse removed (was two overlapping full-screen scale
-        animations running simultaneously with the parent's blur exit).
       */}
       <AnimatePresence>
         {succeeded && (
@@ -653,7 +772,6 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3, ease: "easeOut" }}
           >
-            {/* Single expanding radial bloom */}
             <motion.div
               className="absolute inset-0"
               style={{
@@ -663,7 +781,6 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
               animate={{ scale: 1.3, opacity: 1 }}
               transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
             />
-            {/* Vignette deepening */}
             <motion.div
               className="absolute inset-0"
               style={{

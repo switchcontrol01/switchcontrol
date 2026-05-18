@@ -1,0 +1,97 @@
+TASK:
+Fix tweak slider persistence and unsupported BIOS tweak UX.
+
+PROBLEM 1:
+Users see BIOS tweaks/settings that their hardware does not support, especially on laptops/OEM systems.
+
+Current behavior makes users think:
+
+- the app is inaccurate
+- the tweak system is fake
+- unsupported tweaks should exist on their hardware
+
+GOAL:
+Improve trust and clarity around BIOS tweak availability.
+
+IMPLEMENTATION:
+
+1. Add hardware capability awareness to BIOS Advisor.
+2. Detect:
+   - laptop devices
+   - OEM systems
+   - unsupported BIOS environments where possible
+3. Add clear labels:
+   - "Hardware dependent"
+   - "May not exist on all systems"
+   - "OEM BIOS may hide this option"
+4. Unsupported/unavailable tweaks should:
+   - appear visually muted
+   - show informational tooltip
+   - NOT appear as universally available
+
+IMPORTANT:
+Do NOT pretend unsupported BIOS options are available.
+
+---
+
+PROBLEM 2:
+Certain slider tweaks visually reset after navigation/reopen.
+
+Affected examples:
+
+- foreground/background priority balance
+- MMCSS background reservation
+- related scheduler/performance sliders
+
+This severely damages trust because users assume tweaks are not actually applying.
+
+GOAL:
+Ensure slider UI always reflects REAL persisted system state.
+
+LIKELY ROOT CAUSES TO AUDIT:
+
+- frontend state not synced with backend registry reads
+- incorrect registry parsing
+- decimal/hex conversion mismatch
+- async race conditions during mount
+- fallback/default values overriding actual registry values
+- failed registry reads silently returning defaults
+- state overwritten during remount
+
+IMPLEMENTATION:
+
+1. Audit ALL slider-based tweaks.
+
+2. Ensure registry/system values are:
+   
+   - re-read correctly on page load
+   - normalized consistently
+   - reflected in UI accurately
+
+3. Verify:
+   
+   - applied value
+   - persisted registry value
+   - displayed slider value
+     are always identical.
+
+4. Add structured logs for:
+   
+   - tweak apply
+   - registry write
+   - registry read
+   - slider hydration
+
+5. Never silently fallback to defaults if registry parsing fails.
+
+6. Specifically audit:
+   
+   - Win32PrioritySeparation
+   - SystemResponsiveness
+   - MMCSS-related tweaks
+
+7. Ensure backend truth is authoritative.
+   Frontend slider state must always hydrate from actual persisted values.
+
+FINAL RESULT:
+Users should never see sliders visually reset unless the tweak truly reverted on the system.
