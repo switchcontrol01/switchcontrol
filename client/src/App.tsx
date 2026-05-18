@@ -16,6 +16,7 @@ import { GuidedTour } from "@/components/GuidedTour";
 import { WindowControls } from "@/components/WindowControls";
 import { AnimatePresence, motion } from "framer-motion";
 import { useAuthStore, validateToken, exchangeToken, AuthUser, refreshEntitlements, retryRefreshEntitlements, triggerFlowReset, performFullLogout, postUnlockSeen, postTourSeen, postResetTourFlags, postTrialActivationSeen, postTrialTourSeen, resolveAuthState } from "@/lib/auth-store";
+import { clearSwitchControlStorage } from "@/lib/storageUtils";
 import { tryReissueJwt } from "@/lib/api";
 import { isTrialActive } from "@/lib/trialCountdown";
 import { telemetryManager } from "@/lib/telemetryManager";
@@ -873,8 +874,7 @@ function ElectronAppContent() {
     setActiveFlow("none");
     await postResetTourFlags();
     await performFullLogout('factory_reset');
-    localStorage.clear();
-    sessionStorage.clear();
+    clearSwitchControlStorage();
     if (isElectron && (window as any).electronAPI?.resetAppData) {
       await (window as any).electronAPI.resetAppData();
     } else {
@@ -1260,8 +1260,7 @@ function WebsiteContent() {
     logout: handleLogout,
     isSigningOut: false,
     factoryReset: async () => {
-      localStorage.clear();
-      sessionStorage.clear();
+      clearSwitchControlStorage();
       window.location.reload();
     },
     safeRefreshEntitlements: async () => ({ user: null }),

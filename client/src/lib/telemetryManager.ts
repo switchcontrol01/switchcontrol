@@ -29,6 +29,7 @@ const UNAVAILABLE_TIMEOUT_MS = 8000;
 // ── Module-level singleton state ───────────────────────────────────────────────
 
 let _started = false;
+let _listenerAttached = false; // separate from _started so hardReset() can't stack duplicate listeners
 let _paused = false;      // true = connected but discarding incoming data
 let _ws: WebSocket | null = null;
 let _reconnectTimer: ReturnType<typeof setTimeout> | null = null;
@@ -216,7 +217,13 @@ export const telemetryManager = {
     _started = true;
     if (isDebug) console.log("[Telemetry] Manager starting");
     connect();
-    document.addEventListener('visibilitychange', _handleVisibilityChange);
+    // Guard separately from _started: hardReset() resets _started but must not
+    // re-register an additional listener on each call — one is enough for the
+    // full app lifetime.
+    if (!_listenerAttached) {
+      document.addEventListener('visibilitychange', _handleVisibilityChange);
+      _listenerAttached = true;
+    }
   },
 
   /**
