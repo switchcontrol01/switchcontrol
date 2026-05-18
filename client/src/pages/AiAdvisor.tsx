@@ -1740,7 +1740,7 @@ export default function AiAdvisor() {
 
         {/* Header */}
         <motion.div
-          className="relative z-10 flex items-center justify-between mb-4 shrink-0"
+          className="relative z-30 flex items-center justify-between mb-4 shrink-0"
           initial={{ opacity: 0, y: -12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
@@ -1830,7 +1830,7 @@ export default function AiAdvisor() {
         </motion.div>
 
         {/* Two-column main layout */}
-        <div className="relative z-10 flex-1 min-h-0 flex gap-4">
+        <div className="relative flex-1 min-h-0 flex gap-4">
 
           {/* ── LEFT PANEL ── */}
           <div className="w-56 shrink-0 flex flex-col gap-3 overflow-y-auto scrollbar-thin">
