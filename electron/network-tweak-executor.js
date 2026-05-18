@@ -592,9 +592,23 @@ const TWEAK_REGISTRY = {
       Write-Output "ok"
     `,
     check: `
-      $adapters = Get-WmiObject Win32_NetworkAdapterConfiguration -Filter "IPEnabled=TRUE";
-      $disabled = $adapters | Where-Object { $_.TcpipNetbiosOptions -eq 2 };
-      if ($disabled.Count -gt 0) { "true" } else { "false" }
+      # Registry-based check — persists through reboots and adapter remounts.
+      # WMI (Win32_NetworkAdapterConfiguration.TcpipNetbiosOptions) reflects
+      # transient adapter state and resets to 0 after a remount/reboot even
+      # when the registry value is still 2 (disabled).
+      # HKLM:\SYSTEM\CurrentControlSet\Services\NetBT\Parameters\Interfaces
+      # contains a sub-key per adapter (Tcpip_{GUID}) with NetbiosOptions:
+      #   0 = use DHCP setting  1 = enabled  2 = disabled
+      $root = 'HKLM:\SYSTEM\CurrentControlSet\Services\NetBT\Parameters\Interfaces'
+      if (-not (Test-Path $root)) { "false"; exit }
+      $keys = Get-ChildItem -Path $root -ErrorAction SilentlyContinue
+      if (-not $keys -or $keys.Count -eq 0) { "false"; exit }
+      $anyDisabled = $false
+      foreach ($k in $keys) {
+        $v = (Get-ItemProperty -Path $k.PSPath -Name NetbiosOptions -ErrorAction SilentlyContinue).NetbiosOptions
+        if ($v -eq 2) { $anyDisabled = $true; break }
+      }
+      if ($anyDisabled) { "true" } else { "false" }
     `,
   },
 

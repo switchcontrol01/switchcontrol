@@ -664,11 +664,31 @@ export class DatabaseStorage implements IStorage {
         await tx.delete(userSettings).where(eq(userSettings.id, settings.id));
       }
 
-      // 3. Drop ad-hoc tables that use user_id directly (not part of shared schema)
-      await tx.execute(drizzleSql`DELETE FROM focus_sessions WHERE user_id = ${userId}`);
-      await tx.execute(drizzleSql`DELETE FROM app_booster_games WHERE user_id = ${userId}`);
-      await tx.execute(drizzleSql`DELETE FROM app_booster_state WHERE user_id = ${userId}`);
-      await tx.execute(drizzleSql`DELETE FROM app_booster_history WHERE user_id = ${userId}`);
+      // 3. Drop ad-hoc tables that use user_id directly (not part of shared schema).
+      //    These tables are created lazily by feature modules and may not exist in
+      //    all environments (e.g. fresh deploys). Wrap each in a SAVEPOINT so a
+      //    missing-relation error (42P01) rolls back only that statement and lets
+      //    the transaction continue, instead of aborting the entire deletion.
+      const adHocTables = [
+        "focus_sessions",
+        "app_booster_games",
+        "app_booster_state",
+        "app_booster_history",
+      ] as const;
+      for (const tbl of adHocTables) {
+        const sp = `del_adhoc_${tbl}`;
+        await tx.execute(drizzleSql.raw(`SAVEPOINT ${sp}`));
+        try {
+          // Table name is a hardcoded string from the array above — safe to interpolate.
+          await tx.execute(drizzleSql.raw(`DELETE FROM ${tbl} WHERE user_id = '${userId.replace(/'/g, "''")}'`));
+          await tx.execute(drizzleSql.raw(`RELEASE SAVEPOINT ${sp}`));
+        } catch (e: any) {
+          await tx.execute(drizzleSql.raw(`ROLLBACK TO SAVEPOINT ${sp}`));
+          // Only suppress "relation does not exist" — any other error should bubble up.
+          if (e?.code !== "42P01") throw e;
+          console.log(`[deleteUser] table "${tbl}" does not exist — skipping (non-fatal)`);
+        }
+      }
 
       // 4. Clear active sessions for this user.
       // The sessions table stores JSONB payloads — we scrub any session whose

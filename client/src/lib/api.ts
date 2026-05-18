@@ -15,6 +15,7 @@ const CLOUD_ONLY_API_PREFIXES = [
   "/api/admin",
   "/api/ai",
   "/api/bios",
+  "/api/network-tweaks",
 ];
 
 // Defense-in-depth: no cloud-truth request should ever reach the local backend.
