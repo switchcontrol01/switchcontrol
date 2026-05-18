@@ -1,0 +1,154 @@
+TASK:
+Implement fully functional AI Advisor tweak recommendations + one-click apply system inside SwitchControl.
+
+GOAL:
+Allow the AI Advisor to intelligently recommend real tweaks based on the user’s question, display them in a clean interactive UI card inside chat, and allow direct application/revert of tweaks with persistent synced state across the entire app.
+
+This must behave EXACTLY the same as if the user enabled the tweak manually elsewhere in the app.
+
+CORE REQUIREMENTS:
+
+1. AI ADVISOR TWEAK UNDERSTANDING
+
+The AI Advisor must understand:
+
+- performance questions
+- latency questions
+- FPS optimization
+- Windows debloat
+- RAM optimization
+- gaming tweaks
+- networking tweaks
+- CPU scheduling
+- telemetry/privacy tweaks
+- explanations of tweaks
+- “what does this do?”
+- “how do I optimize my PC?”
+- “best tweaks for Fortnite?”
+- “reduce input delay”
+- etc
+
+The AI response system should:
+
+- identify relevant tweakIds
+- attach tweak metadata
+- include confidence
+- include category
+- include risk level
+- include whether reboot required
+
+The AI must NEVER hallucinate fake tweak IDs.
+Only use registered tweak IDs from ALL_TWEAKS / tweak registry.
+
+2. AI RESPONSE STRUCTURE
+
+Extend the AI response payload to support:
+
+{
+message: string,
+suggestedTweaks: [
+{
+tweakId: string,
+title: string,
+description: string,
+category: string,
+risk: "low" | "medium" | "high",
+rebootRequired: boolean
+}
+]
+}
+
+3. AI ADVISOR UI CARDS
+
+Inside AiAdvisor.tsx:
+
+Render a clean modern tweak suggestion card BELOW the AI message.
+
+Requirements:
+
+- compact
+- glassmorphism style matching current app
+- subtle hover animations
+- isolated card container
+- smooth mount animation
+- responsive
+- not oversized
+- visually separated from plain chat text
+
+Each card must include:
+
+- tweak name
+- short description
+- category
+- reboot badge if required
+- current state
+- Apply button
+- Revert button (if enabled)
+- loading animation
+- success animation
+- error state
+
+4. APPLY FLOW
+
+When Apply is pressed:
+
+- call the SAME backend execution path used by manual tweak toggles
+- do NOT create a separate AI-only tweak system
+- use existing tweak executor pipeline
+- use identical tweak state storage
+
+Flow:
+AI Card → tweak execution → persistence → global state update
+
+5. PERSISTENCE REQUIREMENTS
+
+Critical:
+
+If AI applies a tweak:
+
+- tweak MUST remain enabled after:
+  - app restart
+  - tab switch
+  - dashboard reload
+  - AI chat reset
+  - Electron relaunch
+
+The tweak state must sync globally across:
+
+- Dashboard
+- Tweaks page
+- AI Advisor
+- Network page
+- Extreme Labs
+- all Zustand stores
+
+No desync allowed.
+
+6. GLOBAL STATE SYNCHRONIZATION
+
+Audit ALL tweak state logic.
+
+Currently there are desync/state mismatch problems.
+
+Need:
+
+- single source of truth
+- proper persistence
+- optimistic updates
+- backend confirmation
+- Zustand synchronization
+- hydration on launch
+- no duplicate state systems
+
+AI-applied tweaks and manually-applied tweaks must be indistinguishable internally.
+
+7. ANIMATIONS
+
+Add polished animations:
+
+- apply loading pulse
+- success glow/check
+- disabled state transition
+- smooth height transitions
+- Framer Motion support
+- no layout jumping

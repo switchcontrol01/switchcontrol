@@ -150,6 +150,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
         callback(url);
       };
       ipcRenderer.on('auth-callback', handler);
+      // Signal to main that the renderer auth listener is now registered and
+      // ready to receive deep-link callbacks. Main holds any pending deep link
+      // until this fires instead of relying on the did-finish-load timing.
+      ipcRenderer.send('renderer:auth-ready');
       return () => ipcRenderer.removeListener('auth-callback', handler);
     },
   },

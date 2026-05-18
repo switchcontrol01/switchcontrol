@@ -843,15 +843,10 @@ function createWindow() {
       }
     }
 
-    if (pendingDeepLinkUrl) {
-      if (isValidDeepLink(pendingDeepLinkUrl)) {
-        verboseLog(`[DeepLink] ✓ delivering queued validated link | path=${new URL(pendingDeepLinkUrl).pathname}`);
-        mainWindow.webContents.send('auth-callback', pendingDeepLinkUrl);
-      } else {
-        verboseLog(`[DeepLink] ✗ dropped queued invalid link: ${pendingDeepLinkUrl}`);
-      }
-      pendingDeepLinkUrl = null;
-    }
+    // Deep link delivery intentionally moved to 'renderer:auth-ready' handler
+    // below. did-finish-load fires when Chromium parses the JS bundle, but
+    // React's useEffect (which registers the auth-callback IPC listener) runs
+    // after the first browser paint. Delivering here races against that.
   });
   
   // Send focus events to renderer for UI cleanup
@@ -1162,6 +1157,25 @@ function getOrCreateDeviceId() {
 }
 
 let cachedDeviceId = null;
+
+// ── Deep link delivery — triggered when React registers its auth-callback listener ──
+// React's useEffect that calls electronAPI.auth.onCallback() runs after the
+// first browser paint, which is AFTER did-finish-load. Delivering a pending
+// deep link at did-finish-load races against that registration. Instead the
+// preload sends 'renderer:auth-ready' the moment onCallback() is called,
+// and we deliver the queued URL only then.
+ipcMain.on('renderer:auth-ready', () => {
+  verboseLog('[DeepLink] renderer:auth-ready received — React auth listener is registered');
+  if (pendingDeepLinkUrl) {
+    if (isValidDeepLink(pendingDeepLinkUrl)) {
+      verboseLog(`[DeepLink] ✓ delivering queued validated link after renderer-ready | path=${new URL(pendingDeepLinkUrl).pathname}`);
+      if (mainWindow) mainWindow.webContents.send('auth-callback', pendingDeepLinkUrl);
+    } else {
+      verboseLog(`[DeepLink] ✗ dropped queued invalid link: ${pendingDeepLinkUrl}`);
+    }
+    pendingDeepLinkUrl = null;
+  }
+});
 
 // App info handlers
 ipcMain.handle('app:getVersion', () => app.getVersion());
