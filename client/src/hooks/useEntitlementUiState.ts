@@ -15,7 +15,7 @@
  */
 
 import { useState, useEffect } from "react";
-import { useAppAuth } from "@/App";
+import { useAppAuth } from "@/lib/appAuthContext";
 import { usePremiumGraceStore } from "@/stores/premiumGraceStore";
 import { useNetworkStore } from "@/stores/networkStore";
 import {

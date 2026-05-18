@@ -12,7 +12,7 @@ import { Settings as SettingsIcon, RotateCcw, Trash2, FolderOpen, ExternalLink, 
 import { UpdateCard } from "@/components/UpdateCard";
 import { useToast } from "@/hooks/use-toast";
 import { SOCIAL_LINKS } from "@/config/socialLinks";
-import { useAppAuth } from "@/App";
+import { useAppAuth } from "@/lib/appAuthContext";
 import { useAuthStore } from "@/lib/auth-store";
 import { LicenseManagementModal } from "@/components/LicenseManagementModal";
 import { useState, useEffect, useCallback } from "react";

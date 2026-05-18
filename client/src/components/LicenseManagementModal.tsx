@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { useAppAuth } from "@/App";
+import { useAppAuth } from "@/lib/appAuthContext";
 import {
   Shield, RefreshCw, RotateCcw, Mail, CheckCircle2,
   Loader2, Copy, X, Cpu, Wifi, WifiOff, Clock, AlertTriangle,
