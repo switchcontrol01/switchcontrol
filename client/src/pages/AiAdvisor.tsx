@@ -5,18 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cloudApiGet } from "@/lib/cloud-api";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import {
   Brain, Cpu, MemoryStick, HardDrive, Wifi, Gamepad2,
-  AlertTriangle, Loader2, Zap, Send, RotateCcw,
+  AlertTriangle, Loader2, Zap, Send, SquarePen,
   Bot, User, MonitorCog, Activity, Eye, Monitor,
   Paperclip, X, CheckCircle2, TrendingUp, ChevronRight,
 } from "lucide-react";
@@ -942,7 +932,8 @@ export default function AiAdvisor() {
   const [isSlowRequest, setIsSlowRequest] = useState(false);
   const [attachedImage, setAttachedImage] = useState<AttachedImage | null>(null);
   const [imageError, setImageError] = useState<string | null>(null);
-  const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [showNewChatConfirm, setShowNewChatConfirm] = useState(false);
+  const [isClearingChat, setIsClearingChat] = useState(false);
   const [inputFocused, setInputFocused] = useState(false);
   const [advisorCtxData, setAdvisorCtxData] = useState<AdvisorContextData | null>(null);
 
@@ -1773,16 +1764,68 @@ export default function AiAdvisor() {
             </div>
           </div>
           {messages.length > 2 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowClearConfirm(true)}
-              className="text-[11px] text-muted-foreground hover:text-[#E6EAF0] h-7 px-2"
-              data-testid="button-new-chat"
-            >
-              <RotateCcw className="w-3 h-3 mr-1" />
-              New Chat
-            </Button>
+            <div className="relative" data-testid="new-chat-wrapper">
+              {/* New Chat button */}
+              <button
+                onClick={() => setShowNewChatConfirm(v => !v)}
+                data-testid="button-new-chat"
+                className={cn(
+                  "flex items-center gap-1.5 h-7 px-3 rounded-full text-[11px] font-medium transition-all duration-200 select-none",
+                  "border border-white/[0.08] bg-white/[0.04] hover:bg-white/[0.08]",
+                  showNewChatConfirm
+                    ? "text-[#E6EAF0] border-white/[0.14] bg-white/[0.08]"
+                    : "text-muted-foreground hover:text-[#E6EAF0]"
+                )}
+              >
+                <SquarePen className="w-3 h-3" />
+                New Chat
+              </button>
+
+              {/* Inline confirm popover */}
+              <AnimatePresence>
+                {showNewChatConfirm && (
+                  <>
+                    {/* Click-outside backdrop */}
+                    <div
+                      className="fixed inset-0 z-40"
+                      onClick={() => setShowNewChatConfirm(false)}
+                    />
+                    <motion.div
+                      className="absolute right-0 top-full mt-2 z-50 w-52 rounded-xl border border-white/[0.10] bg-[#13141c]/95 backdrop-blur-xl shadow-xl shadow-black/40 overflow-hidden"
+                      initial={{ opacity: 0, scale: 0.94, y: -6 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.94, y: -6 }}
+                      transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+                      data-testid="confirm-new-chat-popover"
+                    >
+                      <div className="px-4 pt-3.5 pb-1">
+                        <p className="text-[12px] font-semibold text-[#E6EAF0] leading-tight">Start a new chat?</p>
+                        <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">This conversation will be cleared.</p>
+                      </div>
+                      <div className="flex gap-2 px-3 pb-3 pt-2">
+                        <button
+                          onClick={() => setShowNewChatConfirm(false)}
+                          className="flex-1 h-7 rounded-lg text-[11px] font-medium text-muted-foreground hover:text-[#E6EAF0] border border-white/[0.08] hover:bg-white/[0.05] transition-colors"
+                          data-testid="button-new-chat-cancel"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowNewChatConfirm(false);
+                            setIsClearingChat(true);
+                          }}
+                          className="flex-1 h-7 rounded-lg text-[11px] font-medium text-white bg-primary/80 hover:bg-primary transition-colors"
+                          data-testid="button-new-chat-confirm"
+                        >
+                          Clear
+                        </button>
+                      </div>
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
+            </div>
           )}
         </motion.div>
 
@@ -1808,7 +1851,20 @@ export default function AiAdvisor() {
           </div>
 
           {/* ── RIGHT PANEL: Chat ── */}
-          <div className="flex-1 min-w-0 flex flex-col">
+          <motion.div
+            className="flex-1 min-w-0 flex flex-col"
+            animate={isClearingChat
+              ? { opacity: 0, filter: "blur(12px)", scale: 0.97 }
+              : { opacity: 1, filter: "blur(0px)", scale: 1 }
+            }
+            transition={{ duration: 0.32, ease: [0.32, 0, 0.67, 0] }}
+            onAnimationComplete={() => {
+              if (isClearingChat) {
+                handleReset();
+                setIsClearingChat(false);
+              }
+            }}
+          >
 
             {/* Messages */}
             <div
@@ -1950,7 +2006,7 @@ export default function AiAdvisor() {
                   : "AI suggestions only. You are responsible for any system changes."}
               </p>
             </div>
-          </div>
+          </motion.div>
         </div>
       </div>
 
@@ -1961,30 +2017,6 @@ export default function AiAdvisor() {
           description="System analysis, image-based troubleshooting, AI optimization suggestions, and game-specific tuning are available with SwitchControl Premium."
         />
       )}
-
-      <AlertDialog open={showClearConfirm} onOpenChange={setShowClearConfirm}>
-        <AlertDialogContent data-testid="dialog-clear-chat">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Clear chat history?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will delete your entire conversation and start a fresh chat. This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel data-testid="button-clear-chat-cancel">Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                setShowClearConfirm(false);
-                handleReset();
-              }}
-              className="bg-red-600 hover:bg-red-700 text-[#E6EAF0]"
-              data-testid="button-clear-chat-confirm"
-            >
-              Clear Chat
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
       {/* Batch apply modal for AI tweak recommendations */}
       <ApplyTweaksFlowModal
