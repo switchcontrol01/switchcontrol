@@ -1,0 +1,108 @@
+6. FIX ADMIN/ELEVATION HANDLING
+--------------------------------------------------
+
+If tweak requires admin:
+- explicitly detect before apply
+- explain requirement clearly
+
+If packaged app not elevated:
+show:
+"Administrator access required for this optimization."
+
+DO NOT:
+- silently fallback
+- silently fail
+
+--------------------------------------------------
+7. FREE TRIAL SAFETY LIMITS
+--------------------------------------------------
+
+Prevent abuse.
+
+Examples:
+- limit applies/day
+- limit optimization packs
+- cooldowns
+- hardware scan limits
+
+But KEEP analysis working.
+
+Analysis should become your funnel.
+Not a broken teaser.
+
+--------------------------------------------------
+8. GRACEFUL DEGRADATION
+--------------------------------------------------
+
+If:
+- tweak missing
+- PowerShell blocked
+- admin denied
+- registry path unavailable
+
+Then:
+- continue remaining tweaks safely
+- show partial completion summary
+
+NEVER hard fail entire optimization batch.
+
+--------------------------------------------------
+9. LOGGING
+--------------------------------------------------
+
+Add logs:
+
+[ExtremeLabs]
+userTier:
+trial:
+premium:
+desktopMode:
+
+[ExtremeLabsApply]
+requested:
+applied:
+failed:
+blocked:
+adminRequired:
+
+[ExtremeLabsEntitlement]
+action:
+allowed:
+reason:
+
+--------------------------------------------------
+10. UX GOAL
+--------------------------------------------------
+
+FREE USER EXPERIENCE:
+"Useful and trustworthy"
+
+PREMIUM EXPERIENCE:
+"Powerful and verified"
+
+NOT:
+"Randomly broken"
+
+--------------------------------------------------
+CHECKLIST
+--------------------------------------------------
+
+[ ] free analysis works consistently
+[ ] premium checks centralized
+[ ] no silent failures
+[ ] missing tweak IDs fixed
+[ ] admin requirements explicit
+[ ] apply verification added
+[ ] partial failure handling added
+[ ] trial logic clarified
+[ ] logs added
+[ ] packaged Electron tested
+
+FINAL OUTPUT REQUIRED:
+
+- entitlement architecture summary
+- files modified
+- missing tweak audit
+- before/after behavior
+- free vs premium behavior matrix
+- packaged production verification

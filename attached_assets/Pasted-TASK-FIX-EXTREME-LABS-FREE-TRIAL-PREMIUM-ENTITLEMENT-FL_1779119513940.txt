@@ -1,0 +1,124 @@
+TASK: FIX EXTREME LABS FREE TRIAL + PREMIUM ENTITLEMENT FLOW
+
+GOAL:
+Extreme Labs must behave predictably for:
+- free users
+- free trials
+- premium users
+- packaged Electron users
+
+Current issue:
+Users think Extreme Labs is broken because:
+- analysis partially works
+- some tweaks silently fail
+- premium restrictions unclear
+- UI behaves inconsistently
+- desktop/admin requirements not surfaced properly
+
+We need deterministic entitlement behavior.
+
+--------------------------------------------------
+1. DEFINE FEATURE TIERS CLEARLY
+--------------------------------------------------
+
+FREE USERS:
+- can open Extreme Labs
+- can run system analysis
+- can view recommendations
+- can preview suggested tweaks
+- CANNOT bulk apply premium tweak sets
+
+FREE TRIAL USERS:
+- can run analysis
+- can apply LIMITED number of tweaks
+- OR temporary full access depending on business logic
+
+PREMIUM USERS:
+- full analysis
+- full tweak apply
+- advanced optimization systems
+
+NEVER silently block actions.
+
+--------------------------------------------------
+2. CENTRALIZE ENTITLEMENT LOGIC
+--------------------------------------------------
+
+Create centralized entitlement helper.
+
+DO NOT scatter:
+if (premium)
+checks across components.
+
+Create:
+- hasPremiumAccess()
+- hasTrialAccess()
+- canApplyExtremeTweaks()
+- canRunExtremeAnalysis()
+
+Single source of truth only.
+
+--------------------------------------------------
+3. FIX UI CONFUSION
+--------------------------------------------------
+
+If free user attempts premium apply:
+
+DO NOT:
+- fail silently
+- show generic error
+- behave like broken desktop mode
+
+SHOW:
+"Extreme Labs analysis is available on free plans.
+Applying optimization packs requires Premium."
+
+OR:
+"Trial limit reached."
+
+Explicit clarity.
+
+--------------------------------------------------
+4. FIX MISSING TWEAK IDS
+--------------------------------------------------
+
+Audit:
+_extremeLabsMapToRegistryTweak
+
+Verify EVERY mapped tweak exists in:
+ALL_TWEAKS registry.
+
+If tweak missing:
+- remove mapping
+OR
+- implement tweak properly
+
+DO NOT silently continue.
+
+Add logs:
+[ExtremeLabs]
+missingTweak:
+registryLookupFailed:
+
+--------------------------------------------------
+5. FIX APPLY FLOW VERIFICATION
+--------------------------------------------------
+
+Current problem:
+UI may show success before actual verification.
+
+Requirements:
+
+After tweak apply:
+- verify execution success
+- verify actual system change if possible
+- aggregate failures correctly
+
+Result should include:
+- applied
+- skipped
+- failed
+- premiumBlocked
+- adminBlocked
+
+NO fake success states.

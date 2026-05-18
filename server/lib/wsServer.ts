@@ -3,9 +3,17 @@ import { WebSocketServer, WebSocket } from "ws";
 import { parse as parseUrl } from "url";
 import { getCachedSnapshot, getSnapshot } from "./telemetry";
 import { verifyJwt } from "./jwt";
+import { isKilled } from "./killSwitch";
 
 let wss: WebSocketServer | null = null;
 let broadcastInterval: NodeJS.Timeout | null = null;
+
+// Per-user connection limit — prevents reconnect storms from Electron
+const MAX_CONNECTIONS_PER_USER = 3;
+const userConnectionCount = new Map<string, number>();
+
+// Payload dedup — skip broadcast when nothing has changed
+let lastBroadcastPayload: string | null = null;
 
 /**
  * Extract a JWT from an incoming WebSocket upgrade request.
@@ -33,9 +41,13 @@ export function setupWebSocketServer(httpServer: HttpServer) {
   wss.on("connection", (ws: WebSocket, req: any) => {
     ws.on("error", () => {});
 
-    // Auth gate: reject unauthenticated clients before sending telemetry.
-    // Telemetry carries live CPU temp, RAM usage, GPU state, disk I/O, network
-    // throughput — only the authenticated app owner should see it.
+    // Kill switch — if telemetry is disabled, reject new connections gracefully
+    if (isKilled("telemetry")) {
+      ws.close(1001, "Telemetry temporarily disabled");
+      return;
+    }
+
+    // Auth gate
     const token = getWsToken(req);
     if (!token) {
       console.warn("[WS] Rejected unauthenticated telemetry client (no token)");
@@ -48,17 +60,34 @@ export function setupWebSocketServer(httpServer: HttpServer) {
       ws.close(1008, "Invalid or expired token");
       return;
     }
-    // Tag the socket with the verified user id for future per-user features
-    (ws as any).__userId = payload.sub;
-    console.log(`[WS] Authenticated telemetry client userId=${payload.sub}`);
 
-    // Send cached snapshot immediately (no await, instant response)
+    const userId = payload.sub;
+
+    // Per-user connection limit — prevents Electron reconnect storms
+    const current = userConnectionCount.get(userId) ?? 0;
+    if (current >= MAX_CONNECTIONS_PER_USER) {
+      console.warn(`[WS] Connection limit hit userId=${userId} count=${current} — rejecting`);
+      ws.close(1008, "Too many connections");
+      return;
+    }
+    userConnectionCount.set(userId, current + 1);
+    console.log(`[WS] Authenticated userId=${userId} connections=${current + 1}`);
+
+    (ws as any).__userId = userId;
+
+    ws.on("close", () => {
+      const n = (userConnectionCount.get(userId) ?? 1) - 1;
+      if (n <= 0) userConnectionCount.delete(userId);
+      else userConnectionCount.set(userId, n);
+    });
+
+    // Send cached snapshot immediately
     const cached = getCachedSnapshot();
     if (ws.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify({ type: "telemetry", data: cached }));
     }
 
-    // Also send a fresh snapshot shortly after connect (covers the loading → ready transition)
+    // Send a fresh snapshot shortly after connect
     getSnapshot()
       .then((snap) => {
         if (ws.readyState === WebSocket.OPEN) {
@@ -68,14 +97,15 @@ export function setupWebSocketServer(httpServer: HttpServer) {
       .catch(() => {});
   });
 
-  // Broadcast cached snapshot to all clients every 2 seconds.
-  // (background polling in telemetry.ts refreshes the cache independently)
-  // 2 s matches the telemetry polling base interval for real-time feel.
+  // Broadcast every 2 seconds — skip if payload unchanged (dedup)
   broadcastInterval = setInterval(() => {
     if (!wss || wss.clients.size === 0) return;
+    if (isKilled("telemetry")) return;
     const snap = getCachedSnapshot();
-    if (snap.status === "loading") return; // skip until we have real data
+    if (snap.status === "loading") return;
     const msg = JSON.stringify({ type: "telemetry", data: snap });
+    if (msg === lastBroadcastPayload) return; // nothing changed, skip
+    lastBroadcastPayload = msg;
     wss.clients.forEach((client) => {
       if (client.readyState === WebSocket.OPEN) {
         client.send(msg);

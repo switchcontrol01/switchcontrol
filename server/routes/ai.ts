@@ -1,48 +1,24 @@
 import { Router, Request, Response } from "express";
 import { z } from "zod";
-import rateLimit from "express-rate-limit";
 import OpenAI from "openai";
 import crypto from "crypto";
 import { buildAdvisorServerContext } from "./advisorContext";
+import { aiPerWindowLimiter, aiHourlyLimiter } from "../middleware/rateLimiter";
+import { killSwitchMiddleware } from "../lib/killSwitch";
 
 const aiRouter = Router();
 
-// ---------------------------------------------------------------------------
-// Rate limiters — keyed by authenticated cloudUser.id from JWT middleware
-// ---------------------------------------------------------------------------
-
-const aiLimiter = rateLimit({
-  windowMs: 5 * 60 * 1000,
-  max: 10,
-  standardHeaders: true,
-  legacyHeaders: false,
-  validate: { xForwardedForHeader: false, keyGeneratorIpFallback: false },
-  keyGenerator: (req: Request) => {
-    if ((req as any).cloudUser?.id) return `cloud:${(req as any).cloudUser.id}`;
-    const raw = req.headers["x-device-id"] as string | undefined;
-    if (raw && raw.length >= 16 && raw.length <= 128 && /^[a-zA-Z0-9_-]+$/.test(raw)) return `device:${raw}`;
-    return req.ip || req.socket?.remoteAddress || "fallback";
-  },
-  message: { error: "Too many AI requests. Please wait a few minutes.", retryAfterSeconds: 300 },
-});
-
-const aiHourlyLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000,
-  max: 40,
-  standardHeaders: true,
-  legacyHeaders: false,
-  validate: { xForwardedForHeader: false, keyGeneratorIpFallback: false },
-  keyGenerator: (req: Request) => {
-    if ((req as any).cloudUser?.id) return `hourly:cloud:${(req as any).cloudUser.id}`;
-    const raw = req.headers["x-device-id"] as string | undefined;
-    if (raw && raw.length >= 16 && raw.length <= 128 && /^[a-zA-Z0-9_-]+$/.test(raw)) return `hourly:device:${raw}`;
-    return `hourly:${req.ip || req.socket?.remoteAddress || "fallback"}`;
-  },
-  message: { error: "Hourly AI request limit reached. Please try again later.", retryAfterSeconds: 3600 },
-});
-
-aiRouter.use(aiLimiter);
+// Kill switch + rate limits applied to all AI routes
+aiRouter.use(killSwitchMiddleware("ai"));
+aiRouter.use(aiPerWindowLimiter);
 aiRouter.use(aiHourlyLimiter);
+
+// ---------------------------------------------------------------------------
+// In-flight request deduplication
+// Prevents double-click / reconnect replay from firing duplicate OpenAI calls.
+// Key: userId+hash. Value: the in-flight Promise.
+// ---------------------------------------------------------------------------
+const inFlightRequests = new Map<string, Promise<any>>();
 
 // ---------------------------------------------------------------------------
 // Cache
@@ -809,6 +785,19 @@ aiRouter.post("/advice", async (req: Request, res: Response) => {
     return res.json(cached);
   }
 
+  // In-flight deduplication — prevent double-click / reconnect replay firing two OpenAI calls
+  const dedupKey = `${cloudUser?.id}:${cacheKey}`;
+  const existing = inFlightRequests.get(dedupKey);
+  if (existing) {
+    console.log(`[AIRequest] hash=${cacheKey.slice(0, 12)} deduplicated=true user=${cloudUser?.id}`);
+    try {
+      const result = await existing;
+      return res.json(result);
+    } catch {
+      return res.status(503).json({ error: "AI service error. Please try again." });
+    }
+  }
+
   let openai: OpenAI;
   try {
     openai = getOpenAI();
@@ -816,6 +805,17 @@ aiRouter.post("/advice", async (req: Request, res: Response) => {
     console.error(`[AI:advice] OPENAI_API_KEY missing on cloud server`);
     return res.status(503).json({ error: "AI service is temporarily unavailable." });
   }
+
+  // Register the in-flight promise so parallel requests join instead of duplicate
+  let resolveInflight!: (v: AiAdviceResponse) => void;
+  let rejectInflight!: (e: any) => void;
+  const inflightPromise = new Promise<AiAdviceResponse>((res, rej) => {
+    resolveInflight = res;
+    rejectInflight = rej;
+  });
+  inFlightRequests.set(dedupKey, inflightPromise);
+  // Auto-clean after 60s max (prevents memory leak if something throws early)
+  const inflight_cleanup = setTimeout(() => inFlightRequests.delete(dedupKey), 60_000);
 
   try {
     const maxTokens = parseInt(process.env.AI_MAX_TOKENS || "1100", 10);
@@ -892,12 +892,18 @@ aiRouter.post("/advice", async (req: Request, res: Response) => {
     };
 
     setCache(cacheKey, advice);
+    clearTimeout(inflight_cleanup);
+    inFlightRequests.delete(dedupKey);
+    resolveInflight(advice);
 
     const duration = Date.now() - requestStart;
     console.log(`[AI:advice] OK | user=${cloudUser?.id} | goal=${parsed.data.goal} | state=${advice.userState} | score=${advice.readinessScore} | ${duration}ms`);
 
     return res.json(advice);
   } catch (error: any) {
+    clearTimeout(inflight_cleanup);
+    inFlightRequests.delete(dedupKey);
+    rejectInflight(error);
     const duration = Date.now() - requestStart;
     const status = error?.status;
     console.error(`[AI:advice] ERROR | user=${cloudUser?.id} | status=${status} | ${error?.message || "unknown"} | ${duration}ms`);

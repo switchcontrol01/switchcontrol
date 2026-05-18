@@ -6,9 +6,9 @@ import express, { type Request, Response, NextFunction } from "express";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import helmet from "helmet";
-import rateLimit from "express-rate-limit";
 import crypto from "crypto";
 import { registerRoutes } from "./routes";
+import { authLimiter, oauthStartLimiter, meLimiter, stripeLimiter, systemLimiter, telemetryRestLimiter } from "./middleware/rateLimiter";
 import { serveStatic } from "./static";
 import { storage } from "./storage";
 import { createServer } from "http";
@@ -60,37 +60,15 @@ app.use((_req, res, next) => {
   next();
 });
 
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: "Too many authentication attempts, please try again later" }
-});
-
-const meLimiter = rateLimit({
-  windowMs: 1 * 60 * 1000,
-  max: 60,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: "Too many requests, please slow down" }
-});
-
-const oauthStartLimiter = rateLimit({
-  windowMs: 1 * 60 * 1000,
-  max: 10,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: "Too many OAuth initiations. Please try again in a minute." },
-  handler: (req, res) => {
-    console.warn(`[RateLimit] OAuth start rate-limited IP: ${req.ip}`);
-    res.status(429).json({ error: "Too many OAuth initiations. Please try again in a minute." });
-  },
-});
-
 app.use("/api/auth", authLimiter);
 app.use("/api/me", meLimiter);
 app.use("/auth/google", oauthStartLimiter);
+app.use("/api/stripe", stripeLimiter);
+app.use("/api/billing", stripeLimiter);
+app.use("/api/telemetry", telemetryRestLimiter);
+app.use("/api/metrics", telemetryRestLimiter);
+app.use("/api/system-intelligence", systemLimiter);
+app.use("/api/issues", systemLimiter);
 
 const isElectronBackend = process.env.ELECTRON_BACKEND === '1';
 

@@ -11,6 +11,7 @@ import { getTierFromTweakCount, getRandomMessage, getSmartRecommendations, type 
 import { csrfProtection, generateCsrfToken } from "./middleware/csrf";
 import { requireJwt, requireCloudPremium } from "./middleware/requireCloudAuth";
 import rateLimit from "express-rate-limit";
+import { killSwitchMiddleware } from "./lib/killSwitch";
 import { resolveEffectivePlan } from "./lib/planUtils";
 import aiRouter from "./routes/ai";
 import biosRouter from "./routes/bios";
@@ -80,9 +81,9 @@ export async function registerRoutes(
   setupDiscordAuth(app);
 
   app.use("/api/ai", requireJwt, requireCloudPremium, aiRouter);
-  app.use("/api/bios", requireJwt, requireCloudPremium, biosRouter);
+  app.use("/api/bios", killSwitchMiddleware("bios"), requireJwt, requireCloudPremium, biosRouter);
   app.use("/api/security", securityRouter);
-  app.use("/api/network", networkDiagnosticsRouter);
+  app.use("/api/network", killSwitchMiddleware("network_diag"), networkDiagnosticsRouter);
   app.use("/api/admin", (req, res, next) => {
     if (['POST', 'PATCH', 'PUT', 'DELETE'].includes(req.method)) {
       return csrfProtection(req, res, next);
@@ -96,14 +97,14 @@ export async function registerRoutes(
   app.use("/api/dashboard-intelligence", dashboardIntelligenceRouter);
   app.use("/api/startup", startupAppsRouter);
   app.use("/api/debloat", debloaterRouter);
-  app.use("/api/cleaner", requireJwt, cleanerRouter);
+  app.use("/api/cleaner", killSwitchMiddleware("cleaner"), requireJwt, cleanerRouter);
   app.use("/api/focus", requireJwt, focusModeRouter);
   app.use("/api/system-intelligence", systemIntelligenceRouter);
   app.use("/api/issues", issueDetectorRouter);
   app.use("/api/ai-advisor", requireJwt, advisorContextRouter);
 
   // ── Extreme Labs — cloud fallback for web sessions (Electron uses IPC) ───────────────
-  app.get("/api/extreme-labs/status", requireJwt, requireCloudPremium, (req, res) => {
+  app.get("/api/extreme-labs/status", killSwitchMiddleware("extreme_labs"), requireJwt, requireCloudPremium, (req, res) => {
     res.json({ ok: true, hasRestorePoint: false, hasBaseline: false, sessionActive: false, lastRestoreTimestamp: null });
   });
 
