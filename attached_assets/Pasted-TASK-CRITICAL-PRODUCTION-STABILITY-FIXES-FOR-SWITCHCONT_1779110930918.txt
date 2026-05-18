@@ -1,0 +1,156 @@
+TASK: CRITICAL PRODUCTION STABILITY FIXES FOR SWITCHCONTROL DESKTOP
+
+We now have real external user testing and several core systems are failing simultaneously. These are NOT isolated bugs. They indicate architectural routing and native execution issues between Electron, web mode, local backend, and cloud backend.
+
+PROBLEMS REPORTED:
+
+1. Extreme Labs does not work on free trial
+Tester says app behaves like web/dev mode instead of packaged Electron/npm build.
+
+
+2. Power Profiles show “applied” but do not actually apply on tester PC.
+
+
+3. AI Advisor says:
+“Session expired, please login again”
+
+
+4. Cleaner is not working at all.
+
+
+5. Dashboard telemetry is delayed and inaccurate compared to System Information.
+
+
+6. Electron updater crash:
+Cannot find channel "latest.yml" update info
+404 from:
+https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev/latest.yml
+
+
+
+GOAL:
+
+Stabilize packaged production Electron build so:
+
+desktop mode is always correctly detected
+
+local native actions actually execute
+
+auth remains persistent
+
+telemetry reflects real-time data
+
+updater does not crash app
+
+cloud/local routing is separated correctly
+
+
+IMPLEMENTATION REQUIREMENTS:
+
+
+---
+
+1. FIX ELECTRON VS WEB MODE DETECTION
+
+
+
+
+---
+
+Problem:
+App is falling back into web/dev behavior in packaged builds.
+
+Audit ALL checks involving:
+
+window.electronAPI
+
+process.env
+
+import.meta.env
+
+localhost detection
+
+REPLIT_DEV_DOMAIN
+
+embedded mode flags
+
+desktop mode flags
+
+
+Ensure packaged Electron ALWAYS uses:
+
+Electron preload bridge
+
+local IPC/native functionality
+
+packaged production API routing
+
+
+Add logs:
+[RuntimeMode]
+[DesktopMode]
+[EmbeddedMode]
+[CloudRoute]
+[LocalRoute]
+
+On app startup print:
+
+detected mode
+
+backend target
+
+auth target
+
+whether preload bridge exists
+
+
+
+---
+
+2. FIX POWER PROFILE APPLICATION
+
+
+
+
+---
+
+Problem:
+UI claims success but power plan not actually applying.
+
+Likely causes:
+
+PowerShell execution permissions
+
+wrong GUID
+
+command silently failing
+
+UI optimistic success state
+
+
+Requirements:
+
+verify actual active power plan after applying
+
+use:
+powercfg /GETACTIVESCHEME
+after apply
+
+
+Only show success if active scheme actually changed.
+
+Add logs:
+[PowerProfile]
+Requested:
+Applied:
+Verified:
+
+If apply fails:
+
+return explicit error
+
+show proper UI failure state
+
+
+
+---

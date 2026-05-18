@@ -1,0 +1,165 @@
+4. FIX CLEANER
+
+
+
+
+---
+
+Problem:
+Cleaner not executing on tester machine.
+
+Likely:
+
+helper exe missing from packaged resources
+
+wrong path
+
+permissions
+
+Electron IPC failure
+
+
+Verify:
+resources/bin/sc_memory.exe
+exists in packaged install.
+
+Verify:
+process.resourcesPath
+
+Add diagnostics:
+[MemoryCleaner]
+helperExists:
+spawnPath:
+exitCode:
+stderr:
+
+If helper missing:
+show:
+“Memory helper missing. Please reinstall or update SwitchControl.”
+
+NOT:
+“Desktop app required”
+
+
+---
+
+5. FIX DASHBOARD TELEMETRY ACCURACY
+
+
+
+
+---
+
+Problem:
+Telemetry delayed and inconsistent vs actual system info.
+
+Likely:
+
+stale caching
+
+polling overlap
+
+blocked PowerShell queue
+
+mixed telemetry sources
+
+
+Requirements:
+
+reduce telemetry latency
+
+ensure same telemetry source used consistently
+
+prevent overlapping polling loops
+
+do NOT block live telemetry behind PowerShell limiter
+
+
+GPU polling:
+
+cache expensive counters
+
+no repeated heavy PowerShell calls
+
+
+Target:
+dashboard values should closely match Task Manager/SystemInformation in real time.
+
+Add logs:
+[Telemetry]
+pollStart:
+pollEnd:
+cacheAge:
+source:
+
+
+---
+
+6. FIX AUTO UPDATER CRASH
+
+
+
+
+---
+
+Current crash:
+latest.yml returns 404 from R2 bucket.
+
+Requirements:
+
+updater must NEVER hard crash app
+
+gracefully handle missing latest.yml
+
+disable updater if manifest unavailable
+
+
+Verify:
+
+latest.yml uploaded correctly
+
+correct public URL
+
+provider config matches actual bucket structure
+
+
+Add logs:
+[Updater]
+feedURL:
+manifestURL:
+status:
+
+If update check fails:
+
+soft fail only
+
+no unhandled rejection
+
+
+
+---
+
+CHECKLIST
+
+[ ] packaged Electron correctly detected
+[ ] preload bridge working
+[ ] Extreme Labs works in packaged build
+[ ] power profiles verified after apply
+[ ] AI Advisor persistent login fixed
+[ ] cleaner helper executes correctly
+[ ] telemetry matches real system values
+[ ] updater no longer crashes
+[ ] all failures produce explicit logs
+[ ] no silent success states
+
+FINAL OUTPUT REQUIRED:
+
+commit summary
+
+root causes found
+
+files modified
+
+before/after behavior
+
+production test confirmation on packaged installer
