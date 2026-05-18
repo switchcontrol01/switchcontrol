@@ -791,7 +791,7 @@ function ImageAttachmentPill({ image, onRemove }: { image: AttachedImage; onRemo
 
 // ── Message Bubble ─────────────────────────────────────────────────────────────
 
-function ChatBubble({ msg, isSlow, reducedMotion, onApply, onApplyInline, isAdmin, isPremium, onOpenUpgrade, onViewTweaks }: {
+function ChatBubble({ msg, isSlow, reducedMotion, onApply, onApplyInline, isAdmin, isPremium, onOpenUpgrade, onViewTweaks, onViewNetwork }: {
   msg: ChatMessage;
   isSlow: boolean;
   reducedMotion: boolean;
@@ -801,6 +801,7 @@ function ChatBubble({ msg, isSlow, reducedMotion, onApply, onApplyInline, isAdmi
   isPremium?: boolean;
   onOpenUpgrade?: () => void;
   onViewTweaks?: () => void;
+  onViewNetwork?: () => void;
 }) {
   const anim = reducedMotion
     ? { initial: { opacity: 1 }, animate: { opacity: 1 }, transition: { duration: 0 } }
@@ -856,6 +857,7 @@ function ChatBubble({ msg, isSlow, reducedMotion, onApply, onApplyInline, isAdmi
                       onApplyOne={rec => onApply?.([rec])}
                       onApplyAll={recs => onApply?.(recs)}
                       onViewDetails={() => onViewTweaks?.()}
+                      onViewNetwork={() => onViewNetwork?.()}
                       onOpenUpgrade={() => onOpenUpgrade?.()}
                     />
                   : <AnswerCard summary={msg.structured.summary} detail={(msg.structured as { type: "answer"; summary: string; detail?: string }).detail} onApply={onApplyInline} />
@@ -1710,6 +1712,10 @@ export default function AiAdvisor() {
     navigate("/tweaks");
   }, [navigate]);
 
+  const handleViewNetworkTweaks = useCallback(() => {
+    navigate("/network-tweaks");
+  }, [navigate]);
+
   const handleImageUploadAction = useCallback((prompt: string) => {
     setInput(prompt);
     fileInputRef.current?.click();
@@ -1823,6 +1829,7 @@ export default function AiAdvisor() {
                     isPremium={isPremium}
                     onOpenUpgrade={openUpgradeModal}
                     onViewTweaks={handleViewTweakDetails}
+                    onViewNetwork={handleViewNetworkTweaks}
                   />
                 ))}
               </AnimatePresence>
