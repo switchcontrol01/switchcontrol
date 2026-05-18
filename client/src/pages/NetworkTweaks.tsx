@@ -106,12 +106,45 @@ async function reportResult(
   }
 }
 
+// ── Persistent state cache (localStorage) ────────────────────────────────────
+// Survives full app restarts. Stores the last verified Windows state so that
+// on cold start we show the correct applied/idle badges immediately — before
+// checkAll finishes — instead of flashing "idle" for every tweak.
+const LS_KEY = 'sc-net-tweak-state-v1';
+
+function loadPersistedState(): Record<string, TweakStatus> | null {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Record<string, TweakStatus>;
+    if (typeof parsed !== 'object' || parsed === null) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function savePersistedState(map: StateMap): void {
+  try {
+    const out: Record<string, TweakStatus> = {};
+    for (const [id, s] of Object.entries(map)) {
+      // Only persist confirmed states — not transient ones like "applying"
+      if (s.status === "enabled" || s.status === "idle" || s.status === "unavailable") {
+        out[id] = s.status;
+      }
+    }
+    localStorage.setItem(LS_KEY, JSON.stringify(out));
+  } catch {
+    // Storage full or unavailable — non-fatal
+  }
+}
+
 // ── Session-level state cache ─────────────────────────────────────────────────
 // Survives component remounts (tab switches, route changes) within the same
 // app session.  On first mount the component initialises from this cache so
 // the user never sees a false "idle/off" flash when they return to the page.
 // Reset to null only on full app reload — intentional, because a cold start
-// always re-fetches from the backend anyway.
+// loads from localStorage instead.
 let _networkTweakStateCache: StateMap | null = null;
 
 function buildInitialStateMap(): StateMap {
@@ -119,10 +152,24 @@ function buildInitialStateMap(): StateMap {
     console.log('[NetworkTweaks:CACHE] cache hit — rehydrating from session cache');
     return { ..._networkTweakStateCache };
   }
-  console.log('[NetworkTweaks:CACHE] cache miss — initialising to idle');
+
+  // On cold start, seed from localStorage so applied tweaks show immediately
+  // without waiting for checkAll to complete.
+  const persisted = loadPersistedState();
   const initial: StateMap = {};
   for (const t of NETWORK_TWEAKS) {
-    initial[t.id] = { status: t.unavailable ? "unavailable" : "idle" };
+    const savedStatus = persisted?.[t.id];
+    const status: TweakStatus =
+      t.unavailable ? "unavailable" :
+      (savedStatus === "enabled" || savedStatus === "idle" || savedStatus === "unavailable")
+        ? savedStatus
+        : "idle";
+    initial[t.id] = { status };
+  }
+  if (persisted) {
+    console.log('[NetworkTweaks:CACHE] cold start — seeded from localStorage persisted state');
+  } else {
+    console.log('[NetworkTweaks:CACHE] cache miss — initialising to idle (no persisted state)');
   }
   return initial;
 }
@@ -704,6 +751,11 @@ function NetworkTweaksContent() {
         for (const [id, s] of Object.entries(verifiedState)) {
           next[id] = { ...s };
         }
+        // Persist to localStorage so the next cold start shows the correct
+        // applied/idle badges immediately — before checkAll runs again.
+        if (Object.keys(verifiedState).length > 0) {
+          savePersistedState(next);
+        }
         return next;
       });
 
@@ -765,10 +817,13 @@ function NetworkTweaksContent() {
           ? (result.verified ? "enabled" : "enabled_unverified")
           : "idle";
 
-        setStateMap(prev => ({
-          ...prev,
-          [tweak.id]: { status: newStatus, message: result.message },
-        }));
+        setStateMap(prev => {
+          const next = { ...prev, [tweak.id]: { status: newStatus, message: result.message } };
+          // Persist immediately on success so if re-verify is skipped/inconclusive
+          // the persisted state is still updated.
+          if (result.success && !result.disabled) savePersistedState(next);
+          return next;
+        });
 
         // ── Ownership recording ──────────────────────────────────────────────
         if (result.success && !result.disabled) {
@@ -798,10 +853,11 @@ function NetworkTweaksContent() {
             const verify = await api.checkStatus(tweak.id);
             if (!verify.error && !verify.disabled && verify.applied !== null) {
               const verifiedStatus: TweakStatus = verify.applied ? "enabled" : "idle";
-              setStateMap(prev => ({
-                ...prev,
-                [tweak.id]: { status: verifiedStatus, message: result.message },
-              }));
+              setStateMap(prev => {
+                const next = { ...prev, [tweak.id]: { status: verifiedStatus, message: result.message } };
+                savePersistedState(next);
+                return next;
+              });
               console.log(`[NetworkTweaks] apply verified tweakId=${tweak.id} applied=${verify.applied}`);
             } else {
               console.log(`[NetworkTweaks] apply re-check inconclusive tweakId=${tweak.id} applied=${verify.applied} error=${verify.error}`);
