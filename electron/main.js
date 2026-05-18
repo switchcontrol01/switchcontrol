@@ -3743,6 +3743,7 @@ app.on('window-all-closed', () => {
 app.on('before-quit', () => {
   _telemetryLoopActive = false; // signals the async loop to stop after current poll
   console.log('[telemetry:poll] async loop stop requested on quit');
+  tweakExecutor.cleanupTimerResProcess();
   backendLauncher.stopBackend();
 });
 

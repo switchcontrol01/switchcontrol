@@ -448,7 +448,7 @@ function enrichFailure(baseResult, failureType) {
 const UNSUPPORTED_TWEAKS = {
   'p-states':         "Requires driver/service not installed — CPU P-state control needs a kernel-mode agent calling ACPI driver interfaces. Cannot be applied persistently via registry.",
   'irq-priority':     "Requires driver/service not installed — interrupt affinity control is not accessible from user-mode. Needs a signed kernel driver or MSR write access.",
-  'timer-res':        "Helper not bundled — timer resolution requires a persistent agent calling timeBeginPeriod(). The effect resets when the process exits. No agent is shipped in this build.",
+  // timer-res is now handled via a persistent in-process PowerShell agent
   'desktop-comp':     "Unsupported on Windows 10/11 — Desktop Window Manager (DWM) is an integral system compositor and cannot be disabled. Disabling DWM was only possible on Windows XP/Vista.",
   'hdcp':             "Requires driver/service not installed — HDCP enforcement is controlled at the GPU hardware/display-driver level and cannot be reliably toggled via software or registry.",
   // Disabled in v1.0.2 — kernel input driver parameters can cause unrecoverable
@@ -740,6 +740,13 @@ const ADMIN_TWEAKS = {
     // apply/revert/check are handled specially below (requires NVIDIA detection)
     _special: 'nvidia-telemetry',
   },
+  'timer-res': {
+    name: 'Global Timer Resolution',
+    requiresAdmin:  false,
+    requiresReboot: false,
+    // apply/revert/check handled by persistent PowerShell agent below
+    _special: 'timer-res',
+  },
   'tune-priority': {
     name: 'Tune Process Priority',
     requiresAdmin:  true,
@@ -995,6 +1002,72 @@ const ADMIN_TWEAKS = {
 // Merged lookup (no unsupported tweaks here)
 const ALL_TWEAKS = { ...HKCU_TWEAKS, ...ADMIN_TWEAKS };
 
+// ─── Timer Resolution persistent agent ────────────────────────────────────────
+// Windows timeBeginPeriod() / NtSetTimerResolution() effects are process-scoped.
+// We spawn a hidden PowerShell process that holds 0.5ms timer resolution for as
+// long as SwitchControl is running, and kill it on revert or app exit.
+const { spawn } = require('child_process');
+let _timerResProcess = null;
+
+const TIMER_RES_SCRIPT = `
+Add-Type -TypeDefinition @"
+using System;
+using System.Runtime.InteropServices;
+public class TimerResAgent {
+    [DllImport("ntdll.dll")] public static extern int NtSetTimerResolution(int Desired, bool Set, out int Current);
+    [DllImport("winmm.dll")] public static extern uint timeBeginPeriod(uint p);
+    [DllImport("winmm.dll")] public static extern uint timeEndPeriod(uint p);
+}
+"@
+$cur = 0
+[TimerResAgent]::NtSetTimerResolution(5000, $true, [ref]$cur)
+[TimerResAgent]::timeBeginPeriod(1)
+while ($true) { Start-Sleep -Seconds 30 }
+`.trim();
+
+function _startTimerResAgent() {
+  if (_timerResProcess && !_timerResProcess.killed) {
+    console.log('[TimerRes] agent already running, pid=%d', _timerResProcess.pid);
+    return true;
+  }
+  try {
+    const proc = spawn('powershell.exe', [
+      '-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden',
+      '-Command', TIMER_RES_SCRIPT,
+    ], { detached: false, stdio: 'ignore' });
+    proc.on('error', (err) => console.warn('[TimerRes] agent spawn error:', err.message));
+    proc.on('exit', (code) => {
+      console.log('[TimerRes] agent exited, code=%s', code);
+      if (_timerResProcess === proc) _timerResProcess = null;
+    });
+    _timerResProcess = proc;
+    console.log('[TimerRes] agent started, pid=%d', proc.pid);
+    return true;
+  } catch (err) {
+    console.error('[TimerRes] failed to start agent:', err.message);
+    return false;
+  }
+}
+
+function _stopTimerResAgent() {
+  if (!_timerResProcess || _timerResProcess.killed) {
+    _timerResProcess = null;
+    console.log('[TimerRes] no agent running');
+    return;
+  }
+  try {
+    _timerResProcess.kill();
+    console.log('[TimerRes] agent killed, pid=%d', _timerResProcess.pid);
+  } catch (err) {
+    console.warn('[TimerRes] kill failed:', err.message);
+  }
+  _timerResProcess = null;
+}
+
+function cleanupTimerResProcess() {
+  _stopTimerResAgent();
+}
+
 // ─── Special handlers ──────────────────────────────────────────────────────────
 async function executeNvidiaTelemetry(action) {
   // Detect NVIDIA GPU
@@ -1044,6 +1117,12 @@ async function verifyTweak(tweakId) {
 
   const tweak = ALL_TWEAKS[tweakId];
   if (!tweak) return { isApplied: false, verified: false };
+
+  if (tweak._special === 'timer-res') {
+    const isRunning = !!((_timerResProcess) && !_timerResProcess.killed);
+    logTweakSupport(tweakId, true, 'persistent PowerShell agent', { osRelease: osVer, helperFound: isRunning });
+    return { isApplied: isRunning, verified: true };
+  }
 
   if (tweak._special === 'nvidia-telemetry') {
     const hasNv = await checkPowerShell("(Get-CimInstance Win32_VideoController -EA SilentlyContinue | Where-Object { $_.Name -like '*NVIDIA*' }) -ne $null");
@@ -1226,6 +1305,41 @@ async function executeTweak(tweakId, action) {
   }
 
   // 4. Special-case handlers
+  if (tweak._special === 'timer-res') {
+    try {
+      let ok = false;
+      let message = '';
+      if (action === 'apply') {
+        ok = _startTimerResAgent();
+        message = ok
+          ? 'Timer resolution set to 0.5ms — persistent agent running.'
+          : 'Failed to start timer resolution agent. Check that PowerShell is available.';
+      } else {
+        _stopTimerResAgent();
+        ok = true;
+        message = 'Timer resolution agent stopped — resolution returned to default.';
+      }
+      const result = {
+        success:        ok,
+        unsupported:    false,
+        requiresReboot: false,
+        requiresAdmin:  false,
+        commandsRun:    ['[timer-res agent] ' + (action === 'apply' ? 'spawn powershell.exe NtSetTimerResolution(5000)' : 'kill agent')],
+        message,
+        error:          ok ? null : message,
+      };
+      logEntry({ tweakId, action, result, ms: Date.now() - startTime });
+      return result;
+    } catch (err) {
+      const result = {
+        success: false, unsupported: false, requiresReboot: false, requiresAdmin: false,
+        commandsRun: [], message: null, error: err.message,
+      };
+      logEntry({ tweakId, action, result, ms: Date.now() - startTime });
+      return result;
+    }
+  }
+
   if (tweak._special === 'nvidia-telemetry') {
     try {
       const res = await executeNvidiaTelemetry(action);
@@ -1444,6 +1558,7 @@ module.exports = {
   getExecutionLog,
   isUnsupported,
   getUnsupportedReason,
+  cleanupTimerResProcess,
   ALL_TWEAKS,
   HKCU_TWEAKS,
   ADMIN_TWEAKS,
