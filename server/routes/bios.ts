@@ -26,6 +26,12 @@ const biosLimiter = rateLimit({
 biosRouter.use(biosLimiter);
 
 // ---------------------------------------------------------------------------
+// In-flight dedup — prevents duplicate concurrent requests per user
+// ---------------------------------------------------------------------------
+
+const inFlightScans = new Map<string, Promise<any>>();
+
+// ---------------------------------------------------------------------------
 // Helper: get OpenAI client (OPENAI_API_KEY lives on cloud server only)
 // ---------------------------------------------------------------------------
 
@@ -41,14 +47,33 @@ function getOpenAI(): OpenAI {
 // Schemas
 // ---------------------------------------------------------------------------
 
-const photoScanSchema = z.object({
-  imageBase64: z.string().min(100).max(10_000_000, "Image too large. Please use an image under 7MB."),
+const imageItemSchema = z.object({
+  imageBase64: z.string().min(100).max(10_000_000, "Single image too large (max ~7MB)."),
   mimeType: z.enum(["image/png", "image/jpeg", "image/webp"]),
 });
 
-const BIOS_PHOTO_PROMPT = `You are a BIOS firmware settings analyzer for competitive gaming PC optimization. The user has uploaded a photo of their BIOS screen.
+// Accepts either legacy single-image OR new multi-image array
+const photoScanSchema = z.union([
+  // Legacy single-image format (backward compat)
+  z.object({
+    imageBase64: z.string().min(100).max(10_000_000, "Image too large. Please use an image under 7MB."),
+    mimeType: z.enum(["image/png", "image/jpeg", "image/webp"]),
+    images: z.undefined().optional(),
+  }),
+  // New multi-image format
+  z.object({
+    images: z.array(imageItemSchema).min(1).max(5, "Maximum 5 images per scan."),
+    imageBase64: z.undefined().optional(),
+    mimeType: z.undefined().optional(),
+  }),
+]);
 
-Extract any visible BIOS settings from the image. Focus specifically on these settings if visible:
+// Total base64 limit ~53MB (covers 40MB actual data with base64 overhead)
+const MAX_TOTAL_BASE64_CHARS = 53_000_000;
+
+const BIOS_PHOTO_PROMPT = `You are a BIOS firmware settings analyzer for competitive gaming PC optimization. The user has uploaded one or more photos of their BIOS screen.
+
+Extract any visible BIOS settings from ALL images provided. If the same setting appears in multiple images, use the clearest/most readable value. Focus specifically on these settings if visible:
 - PBO (Precision Boost Overdrive) — status and any values
 - XMP / EXPO — status and memory speed
 - SMT / Hyper-Threading — enabled or disabled
@@ -68,14 +93,16 @@ For each setting you can identify, return a JSON object with:
 - value: the detected value as shown in the BIOS (e.g. "Enabled", "Disabled", "Auto", the numeric value)
 - confidence: your confidence 0.0-1.0 in the reading
 - reason: brief explanation of what you see in the image
+- imageIndex: which image (0-based) this was detected from
 - isOptimalForGaming: true if this detected value is the recommended setting for competitive gaming performance, false if it is suboptimal or hurts performance. Examples: XMP "Enabled" = true, XMP "Disabled" = false, C-States "Disabled" = true (good for latency), C-States "Enabled" = false (bad for latency), PBO "Enabled" = true, Spread Spectrum "Enabled" = false (adds jitter).
 
 Return ONLY a JSON array. If you cannot read any settings, return an empty array [].
-Do not guess settings that are not visible. Only report what you can actually see in the image.
+Do not guess settings that are not visible. Only report what you can actually see in the images.
 Be honest: if a setting visible in the image is NOT at the recommended gaming value, set isOptimalForGaming to false — this is critical for accurate scoring.`;
 
 // ---------------------------------------------------------------------------
 // POST /bios/photo-scan
+// Accepts single image (legacy) OR array of up to 5 images (new multi format)
 // ---------------------------------------------------------------------------
 
 const ALLOWED_SETTING_IDS = new Set([
@@ -93,12 +120,18 @@ biosRouter.post("/photo-scan", async (req: Request, res: Response) => {
   const requestId = crypto.randomUUID().slice(0, 8);
   const cloudUser = (req as any).cloudUser as { id: string; isPremium: boolean } | undefined;
 
-  // Proof log — shows full chain in server logs
   console.log(`[BIOS:photo-scan:${requestId}] ${new Date().toISOString()} | user=${cloudUser?.id ?? "none"} premium=${cloudUser?.isPremium ?? false} | bearer=${!!req.headers.authorization}`);
 
   if (!cloudUser?.isPremium) {
     console.warn(`[BIOS:photo-scan:${requestId}] FORBIDDEN | user=${cloudUser?.id ?? "none"} premium=false`);
     return res.status(403).json({ error: "Premium required." });
+  }
+
+  // Spam protection — reject if this user already has a scan in flight
+  const userId = cloudUser.id;
+  if (inFlightScans.has(userId)) {
+    console.warn(`[BIOS:photo-scan:${requestId}] DUPLICATE in-flight for user=${userId}`);
+    return res.status(429).json({ error: "A scan is already in progress. Please wait for it to complete." });
   }
 
   let openai: OpenAI;
@@ -109,106 +142,139 @@ biosRouter.post("/photo-scan", async (req: Request, res: Response) => {
     return res.status(503).json({ error: "AI service is temporarily unavailable." });
   }
 
-  try {
-    const parsed = photoScanSchema.safeParse(req.body);
-    if (!parsed.success) {
-      const sizeIssue = parsed.error.issues.find(i => i.path.includes("imageBase64") && i.code === "too_big");
-      if (sizeIssue) return res.status(413).json({ error: "Image too large. Please use an image under 7MB." });
-      return res.status(400).json({ error: "Invalid request body", details: parsed.error.issues });
-    }
-
-    const { imageBase64, mimeType } = parsed.data;
-    console.log(`[BIOS:photo-scan:${requestId}] Calling OpenAI | user=${cloudUser?.id} | image=${Math.round(imageBase64.length / 1024)}KB | type=${mimeType}`);
-
-    const startTime = Date.now();
-
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
-        {
-          role: "user",
-          content: [
-            { type: "text", text: BIOS_PHOTO_PROMPT },
-            {
-              type: "image_url",
-              image_url: {
-                url: `data:${mimeType};base64,${imageBase64}`,
-                detail: "high",
-              },
-            },
-          ],
-        },
-      ],
-      max_tokens: 2000,
-      temperature: 0.1,
-    });
-
-    const duration = Date.now() - startTime;
-    const content = response.choices[0]?.message?.content || "[]";
-    console.log(`[BIOS:photo-scan:${requestId}] OpenAI OK | user=${cloudUser?.id} | ${duration}ms`);
-
-    let rawSettings: any[] = [];
+  const scanPromise = (async () => {
     try {
-      const jsonMatch = content.match(/\[[\s\S]*\]/);
-      if (jsonMatch) rawSettings = JSON.parse(jsonMatch[0]);
-    } catch {
-      console.error(`[BIOS:photo-scan:${requestId}] Failed to parse response`);
-      return res.status(500).json({ error: "Failed to parse BIOS photo analysis. Please try again." });
+      const parsed = photoScanSchema.safeParse(req.body);
+      if (!parsed.success) {
+        const sizeIssue = parsed.error.issues.find(i => i.path.includes("imageBase64") && i.code === "too_big");
+        if (sizeIssue) return res.status(413).json({ error: "Image too large. Please use an image under 7MB." });
+        return res.status(400).json({ error: "Invalid request body", details: parsed.error.issues });
+      }
+
+      // Normalize to array regardless of input format
+      let images: Array<{ imageBase64: string; mimeType: string }>;
+      if ("images" in parsed.data && parsed.data.images) {
+        images = parsed.data.images;
+      } else {
+        images = [{ imageBase64: (parsed.data as any).imageBase64, mimeType: (parsed.data as any).mimeType }];
+      }
+
+      // Total size guard
+      const totalChars = images.reduce((sum, img) => sum + img.imageBase64.length, 0);
+      if (totalChars > MAX_TOTAL_BASE64_CHARS) {
+        return res.status(413).json({ error: "Total upload size too large. Keep total images under 40MB." });
+      }
+
+      const imageSizesKb = images.map(img => Math.round(img.imageBase64.length / 1024));
+      console.log(`[BIOSUpload] ${JSON.stringify({ count: images.length, sizes: imageSizesKb, requestId })}`);
+
+      // Build OpenAI message content — all images in one call
+      const imageBlocks: any[] = images.map(img => ({
+        type: "image_url",
+        image_url: {
+          url: `data:${img.mimeType};base64,${img.imageBase64}`,
+          detail: "high",
+        },
+      }));
+
+      console.log(`[BIOS:photo-scan:${requestId}] Calling OpenAI | user=${cloudUser?.id} | images=${images.length} totalKB=${Math.round(totalChars / 1024)}`);
+
+      const startTime = Date.now();
+
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          {
+            role: "user",
+            content: [
+              { type: "text", text: BIOS_PHOTO_PROMPT },
+              ...imageBlocks,
+            ],
+          },
+        ],
+        max_tokens: Math.min(4000, 1500 + images.length * 500),
+        temperature: 0.1,
+      });
+
+      const duration = Date.now() - startTime;
+      const content = response.choices[0]?.message?.content || "[]";
+      console.log(`[BIOS:photo-scan:${requestId}] OpenAI OK | user=${cloudUser?.id} | ${duration}ms | images=${images.length}`);
+
+      let rawSettings: any[] = [];
+      try {
+        const jsonMatch = content.match(/\[[\s\S]*\]/);
+        if (jsonMatch) rawSettings = JSON.parse(jsonMatch[0]);
+      } catch {
+        console.error(`[BIOS:photo-scan:${requestId}] Failed to parse response`);
+        return res.status(500).json({ error: "Failed to parse BIOS photo analysis. Please try again." });
+      }
+
+      // Validate, whitelist, deduplicate (keep highest confidence per settingId across all images)
+      const seenIds = new Map<string, any>();
+      let droppedCount = 0;
+      let ocrSuccessCount = 0;
+
+      for (const s of rawSettings) {
+        const settingId = String(s.settingId || "").trim();
+        if (!settingId || typeof s.value !== "string") { droppedCount++; continue; }
+        if (!ALLOWED_SETTING_IDS.has(settingId)) {
+          console.warn(`[BIOS:photo-scan:${requestId}] Rejected unknown settingId: ${settingId}`);
+          droppedCount++;
+          continue;
+        }
+        const confidence = typeof s.confidence === "number" ? Math.max(0, Math.min(1, s.confidence)) : 0.7;
+        if (confidence < MIN_PHOTO_CONFIDENCE) {
+          console.log(`[BIOS:photo-scan:${requestId}] Dropped low-confidence entry: ${settingId} (${Math.round(confidence * 100)}%)`);
+          droppedCount++;
+          continue;
+        }
+        ocrSuccessCount++;
+        // Keep highest confidence per settingId (merges across images)
+        const existing = seenIds.get(settingId);
+        if (!existing || confidence > existing.confidence) {
+          seenIds.set(settingId, { ...s, confidence });
+        }
+      }
+
+      const duplicatesRemoved = ocrSuccessCount - seenIds.size;
+
+      console.log(`[BIOSAnalysis] ${JSON.stringify({ imagesProcessed: images.length, ocrSuccess: ocrSuccessCount, combinedSettings: seenIds.size, dropped: droppedCount, duplicatesRemoved, requestId })}`);
+
+      if (droppedCount > 0) {
+        console.log(`[BIOS:photo-scan:${requestId}] Dropped ${droppedCount} entries (invalid id, unknown, or low confidence)`);
+      }
+
+      const detections = Array.from(seenIds.values()).map((s: any) => {
+        const status = s.confidence >= 0.8 ? "Photo Verified" : "Photo Suspected";
+        const entry: Record<string, unknown> = {
+          settingId: String(s.settingId),
+          status,
+          confidence: s.confidence,
+          reason: `Derived from BIOS photo analysis: ${String(s.reason || s.value)}`,
+          detectedValue: String(s.value),
+        };
+        if (typeof s.isOptimalForGaming === "boolean") {
+          entry.isOptimal = s.isOptimalForGaming;
+        }
+        return entry;
+      });
+
+      console.log(`[BIOS:photo-scan:${requestId}] OK | user=${cloudUser?.id} | detections=${detections.length} dropped=${droppedCount}`);
+      return res.json({ detections, settingsFound: detections.length, analysisTimeMs: duration, imagesProcessed: images.length });
+
+    } catch (err: any) {
+      const status = err?.status;
+      console.error(`[BIOS:photo-scan:${requestId}] ERROR | user=${cloudUser?.id} | status=${status} | ${err?.message || "unknown"}`);
+      if (status === 429) return res.status(429).json({ error: "Rate limit reached. Please wait a moment." });
+      return res.status(500).json({ error: "Photo analysis failed. Please try again." });
     }
+  })();
 
-    // Validate, whitelist, deduplicate (keep highest confidence per settingId)
-    const seenIds = new Map<string, any>();
-    let droppedCount = 0;
-
-    for (const s of rawSettings) {
-      const settingId = String(s.settingId || "").trim();
-      if (!settingId || typeof s.value !== "string") { droppedCount++; continue; }
-      if (!ALLOWED_SETTING_IDS.has(settingId)) {
-        console.warn(`[BIOS:photo-scan:${requestId}] Rejected unknown settingId: ${settingId}`);
-        droppedCount++;
-        continue;
-      }
-      const confidence = typeof s.confidence === "number" ? Math.max(0, Math.min(1, s.confidence)) : 0.7;
-      if (confidence < MIN_PHOTO_CONFIDENCE) {
-        console.log(`[BIOS:photo-scan:${requestId}] Dropped low-confidence entry: ${settingId} (${Math.round(confidence * 100)}%)`);
-        droppedCount++;
-        continue;
-      }
-      const existing = seenIds.get(settingId);
-      if (!existing || confidence > existing.confidence) {
-        seenIds.set(settingId, { ...s, confidence });
-      }
-    }
-
-    if (droppedCount > 0) {
-      console.log(`[BIOS:photo-scan:${requestId}] Dropped ${droppedCount} entries (invalid id, unknown, or low confidence)`);
-    }
-
-    const detections = Array.from(seenIds.values()).map((s: any) => {
-      // Honest status: Photo Verified for high-confidence, Photo Suspected for medium
-      const status = s.confidence >= 0.8 ? "Photo Verified" : "Photo Suspected";
-      const entry: Record<string, unknown> = {
-        settingId: String(s.settingId),
-        status,
-        confidence: s.confidence,
-        reason: `Derived from BIOS photo analysis: ${String(s.reason || s.value)}`,
-        detectedValue: String(s.value),
-      };
-      // Pass through isOptimalForGaming from AI response when present
-      if (typeof s.isOptimalForGaming === "boolean") {
-        entry.isOptimal = s.isOptimalForGaming;
-      }
-      return entry;
-    });
-
-    console.log(`[BIOS:photo-scan:${requestId}] OK | user=${cloudUser?.id} | detections=${detections.length} dropped=${droppedCount}`);
-    return res.json({ detections, settingsFound: detections.length, analysisTimeMs: duration });
-
-  } catch (err: any) {
-    const status = err?.status;
-    console.error(`[BIOS:photo-scan:${requestId}] ERROR | user=${cloudUser?.id} | status=${status} | ${err?.message || "unknown"}`);
-    if (status === 429) return res.status(429).json({ error: "Rate limit reached. Please wait a moment." });
-    return res.status(500).json({ error: "Photo analysis failed. Please try again." });
+  inFlightScans.set(userId, scanPromise);
+  try {
+    await scanPromise;
+  } finally {
+    inFlightScans.delete(userId);
   }
 });
 
@@ -233,7 +299,6 @@ const explainSchema = z.object({
     stability: z.number(),
     competitiveReadiness: z.number(),
   }),
-  // Optional system intelligence enrichment
   motherboard: z.string().max(200).optional(),
   biosVersion: z.string().max(100).optional(),
   biosDate: z.string().max(50).optional(),
@@ -266,7 +331,6 @@ biosRouter.post("/explain", async (req: Request, res: Response) => {
   const requestId = crypto.randomUUID().slice(0, 8);
   const cloudUser = (req as any).cloudUser as { id: string; isPremium: boolean } | undefined;
 
-  // Proof log
   console.log(`[BIOS:explain:${requestId}] ${new Date().toISOString()} | user=${cloudUser?.id ?? "none"} premium=${cloudUser?.isPremium ?? false} | bearer=${!!req.headers.authorization}`);
 
   if (!cloudUser?.isPremium) {

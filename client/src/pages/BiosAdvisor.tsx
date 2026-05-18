@@ -10,8 +10,64 @@ import {
   CheckCircle, HelpCircle, Shield,
   Activity, TrendingUp, Info, ExternalLink,
   Sparkles, Loader2, ChevronDown, BookOpen, Target,
-  Upload, Camera, Eye, RefreshCw
+  Upload, Camera, Eye, RefreshCw, X, ImagePlus
 } from "lucide-react";
+
+// ── Multi-image upload types ─────────────────────────────────────────────────
+
+interface PendingImage {
+  id: string;
+  name: string;
+  sizeKb: number;
+  previewUrl: string;
+  base64: string;
+  mimeType: string;
+}
+
+const MAX_IMAGES = 5;
+const MAX_PER_FILE_BYTES = 7 * 1024 * 1024;
+const MAX_TOTAL_BYTES = 40 * 1024 * 1024;
+
+async function compressImageIfNeeded(file: File): Promise<{ base64: string; mimeType: string; sizeKb: number }> {
+  // If under limit, just read as-is
+  if (file.size <= MAX_PER_FILE_BYTES) {
+    const base64 = await new Promise<string>((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve((r.result as string).split(",")[1]);
+      r.onerror = reject;
+      r.readAsDataURL(file);
+    });
+    return { base64, mimeType: file.type, sizeKb: Math.round(file.size / 1024) };
+  }
+  // Compress via canvas
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const canvas = document.createElement("canvas");
+      // Scale down proportionally to target ~5MB output
+      const scale = Math.sqrt((MAX_PER_FILE_BYTES * 0.7) / file.size);
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      const ctx = canvas.getContext("2d")!;
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) { reject(new Error("Compression failed")); return; }
+          const r = new FileReader();
+          r.onload = () => resolve({ base64: (r.result as string).split(",")[1], mimeType: "image/jpeg", sizeKb: Math.round(blob.size / 1024) });
+          r.onerror = reject;
+          r.readAsDataURL(blob);
+        },
+        "image/jpeg",
+        0.82
+      );
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Failed to load image")); };
+    img.src = url;
+  });
+}
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence, useMotion } from "@/lib/motion";
 import { useAuth } from "@/hooks/use-auth";
@@ -544,7 +600,10 @@ export default function BiosAdvisor() {
   const [aiExplainError, setAiExplainError] = useState<string | null>(null);
   const [photoUploading, setPhotoUploading] = useState(false);
   const [photoError, setPhotoError] = useState<string | null>(null);
+  const [pendingImages, setPendingImages] = useState<PendingImage[]>([]);
+  const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const submittingRef = useRef(false);
 
   const allDetections = useMemo(() => {
     const map = new Map<string, FirmwareDetection>();
@@ -653,54 +712,127 @@ export default function BiosAdvisor() {
     setTimeout(() => setScanState("idle"), 800);
   }, [analysisHash, hasScanned, scores, stats, photoDetections, completeScan]);
 
-  const handlePhotoUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  // Add files to the pending queue (validates, deduplicates, compresses if needed)
+  const handleFilesAdded = useCallback(async (files: FileList | File[]) => {
+    const fileArr = Array.from(files);
+    if (fileArr.length === 0) return;
 
     if (!isOnline) {
       setPhotoError("BIOS photo analysis requires internet. You are currently offline.");
-      if (fileInputRef.current) fileInputRef.current.value = "";
       return;
     }
 
+    setPhotoError(null);
     const validTypes = ["image/png", "image/jpeg", "image/webp"];
-    if (!validTypes.includes(file.type)) {
-      setPhotoError("Please upload a PNG, JPEG, or WebP image.");
-      return;
-    }
-    const MAX_FILE_SIZE = 7 * 1024 * 1024;
-    if (file.size > MAX_FILE_SIZE) {
-      setPhotoError("Image must be under 7MB (base64 encoding increases size ~33%).");
+    const existing = pendingImages;
+    const slots = MAX_IMAGES - existing.length;
+
+    if (slots <= 0) {
+      setPhotoError(`Maximum ${MAX_IMAGES} images allowed. Remove some before adding more.`);
       return;
     }
 
+    const toProcess = fileArr.slice(0, slots);
+    const skippedCount = fileArr.length - toProcess.length;
+    let duplicatesRemoved = 0;
+    const added: PendingImage[] = [];
+    const errors: string[] = [];
+
+    // Current total size of already-pending images (approx from base64 len)
+    let currentTotalBytes = existing.reduce((s, img) => s + img.sizeKb * 1024, 0);
+
+    for (const file of toProcess) {
+      if (!validTypes.includes(file.type)) {
+        errors.push(`${file.name}: not a PNG, JPEG, or WebP image.`);
+        continue;
+      }
+
+      // Dedup by name+size fingerprint
+      const fingerprint = `${file.name}::${file.size}`;
+      const isDup = existing.some(p => p.id === fingerprint) || added.some(p => p.id === fingerprint);
+      if (isDup) { duplicatesRemoved++; continue; }
+
+      // Total size guard
+      if (currentTotalBytes + file.size > MAX_TOTAL_BYTES) {
+        errors.push(`${file.name}: would exceed 40MB total limit.`);
+        continue;
+      }
+
+      try {
+        const compressed = await compressImageIfNeeded(file);
+        const previewUrl = URL.createObjectURL(file);
+        added.push({
+          id: fingerprint,
+          name: file.name,
+          sizeKb: compressed.sizeKb,
+          previewUrl,
+          base64: compressed.base64,
+          mimeType: compressed.mimeType,
+        });
+        currentTotalBytes += file.size;
+      } catch {
+        errors.push(`${file.name}: failed to process image.`);
+      }
+    }
+
+    console.log(`[BIOSUpload] ${JSON.stringify({ count: added.length, sizes: added.map(i => i.sizeKb), duplicatesRemoved, skipped: skippedCount })}`);
+
+    if (errors.length > 0) setPhotoError(errors[0]);
+    if (added.length > 0) {
+      setPendingImages(prev => [...prev, ...added]);
+    }
+
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }, [isOnline, pendingImages]);
+
+  // Remove one image from pending queue
+  const handleRemoveImage = useCallback((id: string) => {
+    setPendingImages(prev => {
+      const removed = prev.find(p => p.id === id);
+      if (removed) URL.revokeObjectURL(removed.previewUrl);
+      return prev.filter(p => p.id !== id);
+    });
+  }, []);
+
+  // Clear all pending images
+  const handleClearImages = useCallback(() => {
+    setPendingImages(prev => { prev.forEach(p => URL.revokeObjectURL(p.previewUrl)); return []; });
+    setPhotoError(null);
+  }, []);
+
+  // Submit all pending images to backend
+  const handleSubmitImages = useCallback(async () => {
+    if (submittingRef.current || pendingImages.length === 0) return;
+    submittingRef.current = true;
     setPhotoUploading(true);
     setPhotoError(null);
 
-    try {
-      const reader = new FileReader();
-      const base64 = await new Promise<string>((resolve, reject) => {
-        reader.onload = () => {
-          const result = reader.result as string;
-          resolve(result.split(",")[1]);
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
+    const count = pendingImages.length;
+    console.log(`[BIOSUpload] ${JSON.stringify({ count, sizes: pendingImages.map(i => i.sizeKb), duplicatesRemoved: 0 })}`);
 
-      console.log(`[BiosAdvisor] photo-scan request | file=${file.name} size=${(file.size/1024).toFixed(0)}KB type=${file.type}`);
-      const data = await cloudApiPost("/bios/photo-scan", { imageBase64: base64, mimeType: file.type });
-      console.log(`[BiosAdvisor] photo-scan response | detections=${data.detections?.length ?? 0} timeMs=${data.analysisTimeMs}`);
+    try {
+      const payload = count === 1
+        // Single-image format (backward compat with backend)
+        ? { imageBase64: pendingImages[0].base64, mimeType: pendingImages[0].mimeType }
+        // Multi-image format
+        : { images: pendingImages.map(p => ({ imageBase64: p.base64, mimeType: p.mimeType })) };
+
+      console.log(`[BiosAdvisor] photo-scan request | images=${count} sizes=[${pendingImages.map(p => p.sizeKb + "KB").join(", ")}]`);
+      const data = await cloudApiPost("/bios/photo-scan", payload);
+      console.log(`[BiosAdvisor] photo-scan response | detections=${data.detections?.length ?? 0} imagesProcessed=${data.imagesProcessed ?? 1} timeMs=${data.analysisTimeMs}`);
 
       if (data.detections && data.detections.length > 0) {
         storeSetPhotoDetections(data.detections);
-        // Recompute scores with merged detections so store stays in sync with BiosAdvisor display
         const mergedSettings = applyDetectionsToSettings(BIOS_SETTINGS, detections, data.detections);
         const mergedScores = calculateBiosScores(mergedSettings);
         const mergedLevel = getOptimizationLevel(mergedScores.competitiveReadiness);
         storeUpdateScores(mergedScores, mergedLevel);
+        // Clear queue on success
+        setPendingImages(prev => { prev.forEach(p => URL.revokeObjectURL(p.previewUrl)); return []; });
       } else {
-        setPhotoError("No BIOS settings could be identified in this image. Try a clearer photo.");
+        setPhotoError(count > 1
+          ? "No BIOS settings could be identified in any of the uploaded images. Try clearer photos."
+          : "No BIOS settings could be identified in this image. Try a clearer photo.");
       }
     } catch (err: unknown) {
       const displayMsg = getUserFriendlyError(err);
@@ -708,9 +840,26 @@ export default function BiosAdvisor() {
       setPhotoError(displayMsg);
     } finally {
       setPhotoUploading(false);
+      submittingRef.current = false;
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
-  }, [storeSetPhotoDetections, storeUpdateScores, detections, isOnline]);
+  }, [pendingImages, storeSetPhotoDetections, storeUpdateScores, detections]);
+
+  // Drag-and-drop handlers
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(true);
+  }, []);
+
+  const handleDragLeave = useCallback(() => setIsDragOver(false), []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    if (photoUploading) return;
+    const files = e.dataTransfer.files;
+    if (files.length > 0) handleFilesAdded(files);
+  }, [photoUploading, handleFilesAdded]);
 
   const handleAiExplain = useCallback(async () => {
     if (allDetections.length === 0) return;
@@ -803,22 +952,44 @@ export default function BiosAdvisor() {
                 ref={fileInputRef}
                 type="file"
                 accept="image/png,image/jpeg,image/webp"
+                multiple
                 className="hidden"
-                onChange={handlePhotoUpload}
+                onChange={(e) => { if (e.target.files?.length) handleFilesAdded(e.target.files); }}
                 data-testid="input-bios-photo"
               />
-              <Button 
+              <Button
                 variant="outline"
                 size="sm"
-                className="text-xs border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10 disabled:opacity-40"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={photoUploading || !isOnline}
+                className={cn(
+                  "text-xs border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10 disabled:opacity-40",
+                  isDragOver && "bg-cyan-500/10 border-cyan-400/60"
+                )}
+                onClick={() => { if (!photoUploading && !isOnline) return; fileInputRef.current?.click(); }}
+                disabled={photoUploading || !isOnline || pendingImages.length >= MAX_IMAGES}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
                 data-testid="button-upload-photo"
-                title={!isOnline ? "Photo scan unavailable offline" : undefined}
+                title={!isOnline ? "Photo scan unavailable offline" : pendingImages.length >= MAX_IMAGES ? `Maximum ${MAX_IMAGES} images reached` : undefined}
               >
-                {photoUploading ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Camera className="w-3.5 h-3.5 mr-1.5" />}
-                {photoUploading ? "Scanning..." : !isOnline ? "Offline" : "Upload BIOS Photo"}
+                <ImagePlus className="w-3.5 h-3.5 mr-1.5" />
+                {!isOnline ? "Offline" : pendingImages.length > 0 ? `${pendingImages.length}/${MAX_IMAGES} added` : "Add BIOS Photos"}
               </Button>
+              {pendingImages.length > 0 && (
+                <Button
+                  size="sm"
+                  className="text-xs bg-cyan-500 hover:bg-cyan-500/90 text-[#0A0E14] disabled:opacity-40"
+                  onClick={handleSubmitImages}
+                  disabled={photoUploading || !isOnline}
+                  data-testid="button-analyze-photos"
+                >
+                  {photoUploading ? (
+                    <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />Analyzing {pendingImages.length} screenshot{pendingImages.length > 1 ? "s" : ""}...</>
+                  ) : (
+                    <><Camera className="w-3.5 h-3.5 mr-1.5" />Analyze {pendingImages.length} screenshot{pendingImages.length > 1 ? "s" : ""}</>
+                  )}
+                </Button>
+              )}
               <Button 
                 onClick={handleScan} 
                 disabled={isScanning}
@@ -990,6 +1161,50 @@ export default function BiosAdvisor() {
               {photoError}
               <Button variant="ghost" size="sm" className="ml-auto text-[10px] text-red-300 hover:text-[#E6EAF0] h-6" onClick={() => setPhotoError(null)}>Dismiss</Button>
             </div>
+          </Item>
+        )}
+
+        {pendingImages.length > 0 && !photoUploading && (
+          <Item>
+            <GlassCard className="p-3 border-cyan-500/20">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2 text-xs text-cyan-400">
+                  <ImagePlus className="w-3.5 h-3.5" />
+                  <span className="font-medium">{pendingImages.length}/{MAX_IMAGES} screenshots queued</span>
+                  <span className="text-muted-foreground">— drag more or click &ldquo;Add BIOS Photos&rdquo;</span>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-[10px] text-muted-foreground hover:text-red-400 h-6 px-2"
+                  onClick={handleClearImages}
+                  data-testid="button-clear-photos"
+                >
+                  Clear all
+                </Button>
+              </div>
+              <div className="flex gap-2 flex-wrap">
+                {pendingImages.map((img) => (
+                  <div key={img.id} className="relative group">
+                    <img
+                      src={img.previewUrl}
+                      alt={img.name}
+                      className="w-16 h-16 object-cover rounded border border-[#2A313A] group-hover:border-cyan-500/40 transition-colors"
+                    />
+                    <button
+                      className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#0A0E14] border border-[#2A313A] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500/20 hover:border-red-500/40"
+                      onClick={() => handleRemoveImage(img.id)}
+                      title={`Remove ${img.name}`}
+                    >
+                      <X className="w-2.5 h-2.5 text-muted-foreground hover:text-red-400" />
+                    </button>
+                    <div className="absolute bottom-0 left-0 right-0 text-[8px] text-center bg-[#0A0E14]/80 text-muted-foreground rounded-b px-0.5 truncate">
+                      {img.sizeKb}KB
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </GlassCard>
           </Item>
         )}
 

@@ -1,0 +1,111 @@
+You are auditing and hardening the SwitchControl auth store and entitlement flow.
+
+Goals:
+
+- Eliminate auth desync between Electron packaged app, local dev, and cloud.
+- Prevent false premium downgrades.
+- Prevent stale Zustand state from overriding verified cloud truth.
+- Prevent race conditions during OAuth callback and entitlement refresh.
+- Ensure login/logout state becomes deterministic and recoverable.
+- Reduce duplicate API calls and infinite retry loops.
+- Ensure JWT/session handling survives Electron packaged mode correctly.
+
+Hardening requirements:
+
+1. Single Source of Truth
+
+- Cloud "/api/me" response is the only authority for:
+  - loggedIn
+  - isPremium
+  - plan
+  - trial state
+  - admin state
+- Cached Zustand state must NEVER override cloud-confirmed truth.
+- Cached state may only be used as temporary fallback during network/server outages.
+
+2. JWT Handling
+
+- Reject malformed JWTs immediately.
+- Reject expired JWTs immediately unless a reissue succeeds.
+- Never silently continue with invalid tokens.
+- Add centralized JWT decode utility.
+- Add safe base64url decoding.
+- Add clock skew tolerance of 30 seconds for expiry checks.
+- Prevent duplicate JWT reissue calls globally.
+- Never spam console repeatedly for same invalid token.
+
+3. Auth Startup Sequence
+   Enforce exact order:
+4. Load persisted state
+5. Validate JWT structure
+6. Check JWT expiry
+7. Attempt JWT reissue
+8. Call "/api/me"
+9. Resolve entitlements
+10. Mark auth ready
+11. THEN allow protected routes/UI rendering
+
+No protected UI should render before auth resolution finishes.
+
+4. Race Condition Prevention
+
+- Prevent overlapping "/api/me" requests.
+- Prevent OAuth deep-link callbacks from triggering parallel exchanges.
+- Prevent logout during active exchange.
+- Prevent stale requests from overwriting newer auth state.
+- Add request versioning or requestId guards.
+
+5. Electron Hardening
+
+- Ensure packaged Electron always uses:
+  "https://switchcontrol.org"
+- Ensure browser/dev always use same-origin.
+- Validate Electron preload API existence safely.
+- Prevent crashes if preload fails.
+- Ensure auth survives app relaunch.
+- Ensure cookies clear correctly on logout.
+
+6. Zustand Persistence Hardening
+
+- Add persistence versioning/migration.
+- Prevent corrupted persisted auth objects from hydrating.
+- Validate persisted user shape before use.
+- Never persist transient flags:
+  - isValidating
+  - oauthError
+  - electronAuthState
+
+7. Entitlement Refresh Hardening
+
+- Deduplicate refresh calls globally.
+- Add exponential backoff.
+- Stop retries after deterministic auth failure.
+- Preserve premium during:
+  - network outages
+  - 5xx errors
+  - temporary server issues
+- Only downgrade on explicit authenticated cloud response.
+
+8. Logout Hardening
+
+- Full logout must:
+  - clear Zustand
+  - clear cookies
+  - clear JWT
+  - clear stale premium flags
+  - invalidate in-flight auth requests
+- Ensure logout cannot be reverted by late async responses.
+
+9. Observability
+   Add structured logs:
+
+- requestId
+- auth source
+- auth mode
+- entitlement source
+- JWT lifecycle
+- refresh attempts
+- retry causes
+- logout reasons
+
+Logs must be concise and deduplicated.
