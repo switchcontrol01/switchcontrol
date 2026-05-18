@@ -451,13 +451,13 @@ export default function Home() {
             return;
           }
 
-          // AMD WMI cold-start returns "Unknown CPU" / 0 cores on first call.
-          // If we got incomplete CPU data, retry after 5s to get the real values.
+          // AMD WMI cold-start can return "Unknown CPU" / 0 cores if the pre-warm
+          // didn't complete in time. Retry quickly (2s) to get the real values.
           const cpuOk = specs.cpu?.model && specs.cpu.model !== 'Unknown CPU' && (specs.cpu?.cores ?? 0) > 0;
           if (!cpuOk) {
-            console.warn('[SwitchControl] CPU data incomplete (WMI cold-start?) — will retry in 5s');
+            console.warn('[SwitchControl] CPU data incomplete — will retry in 2s');
             setTimeout(() => {
-              withTimeout(api.system.getSpecs(), SPEC_TIMEOUT_MS, null).then((retrySpecs: SystemSpecs | null | undefined) => {
+              withTimeout(api.system.getSpecs(), 25_000, null).then((retrySpecs: SystemSpecs | null | undefined) => {
                 if (!retrySpecs) return;
                 const retryCpuOk = retrySpecs.cpu?.model && retrySpecs.cpu.model !== 'Unknown CPU' && (retrySpecs.cpu?.cores ?? 0) > 0;
                 if (retryCpuOk) {

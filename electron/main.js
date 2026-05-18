@@ -1528,20 +1528,22 @@ async function loadSystemSpecs() {
     let graphics = { controllers: [] };
     let fsData = [];
 
+    // si.cpu() on AMD systems takes 6-12s on first WMI cold-start.
+    // Give it 20s so it never times out and falls back to "Unknown CPU".
     const [cpuResult, memResult, graphicsResult, fsResult] = await Promise.all([
-      siWithTimeout(() => si.cpu(), 5_000, 'si.cpu()').catch(e => {
+      siWithTimeout(() => si.cpu(), 20_000, 'si.cpu()').catch(e => {
         console.error('[SwitchControl] Failed to get CPU info:', e.message || e);
         return cpu;
       }),
-      siWithTimeout(() => si.mem(), 5_000, 'si.mem()').catch(e => {
+      siWithTimeout(() => si.mem(), 8_000, 'si.mem()').catch(e => {
         console.error('[SwitchControl] Failed to get memory info:', e.message || e);
         return mem;
       }),
-      siWithTimeout(() => si.graphics(), 5_000, 'si.graphics()').catch(e => {
+      siWithTimeout(() => si.graphics(), 8_000, 'si.graphics()').catch(e => {
         console.error('[SwitchControl] Failed to get graphics info:', e.message || e);
         return graphics;
       }),
-      siWithTimeout(() => si.fsSize(), 5_000, 'si.fsSize()').catch(e => {
+      siWithTimeout(() => si.fsSize(), 8_000, 'si.fsSize()').catch(e => {
         console.error('[SwitchControl] Failed to get disk info:', e.message || e);
         return fsData;
       })
@@ -3603,6 +3605,18 @@ app.whenReady().then(async () => {
   // Telemetry starts AFTER window is shown + 2000ms (see ipcMain.once 'app:first-frame-ready').
   // This prevents GPU prewarm / PowerShell cold-start from racing with first-paint animations.
   createWindow();
+
+  // ── C-ter. Pre-warm system specs in the background immediately after window creation.
+  // si.cpu() on AMD systems takes 6-12s on first WMI cold-start. By firing this
+  // now (while splash/auth is showing), the result is cached before the user
+  // reaches the dashboard, so the Activity Monitor cards load instantly.
+  setTimeout(() => {
+    loadSystemSpecs().then(specs => {
+      console.log('[PREWARM] specs ready —', specs?.cpu?.model, '|', specs?.gpu?.model);
+    }).catch(e => {
+      console.warn('[PREWARM] specs pre-warm failed (non-fatal):', e?.message);
+    });
+  }, 500);
 
   // ── C-bis. Cold-start deep-link catch (Windows protocol launch when app was not running) ─
   // On Windows a protocol launch passes the URL as a command-line argument when the app
