@@ -78,8 +78,12 @@ const isProd = !isDev;
 const allowDebug = process.env.DEBUG_MODE === 'true';
 verboseLog('[BOOT] app.isPackaged:', app.isPackaged, '| isDev:', isDev, '| DEBUG_MODE:', allowDebug);
 
-// DevTools is always allowed — no lock function needed.
-function lockDevTools(win) { /* intentionally empty — DevTools unrestricted */ }
+// DevTools is fully disabled in production.
+function lockDevTools(win) {
+  if (!win) return;
+  win.webContents.closeDevTools();
+  win.webContents.on('devtools-opened', () => win.webContents.closeDevTools());
+}
 const PROTOCOL_NAME = 'switchcontrol';
 let mainWindow = null;
 
@@ -637,7 +641,7 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false, // Required for systeminformation
-      devTools: true, // Always enabled
+      devTools: false, // Disabled — cannot be opened
       backgroundThrottling: false, // Prevent timer throttling when window loses focus
       additionalArguments: isDev ? [] : ['--switchcontrol-prod'],
       paintWhenInitiallyHidden: true, // Ensure Chromium paints frames even while window is hidden
@@ -645,7 +649,7 @@ function createWindow() {
   });
   console.log('[LAUNCH:1] BrowserWindow constructed — show:false, paintWhenInitiallyHidden:true, isVisible:', mainWindow.isVisible());
 
-  // ── DevTools shortcuts — always enabled ──────────────────────────────────────
+  // ── Block all DevTools keyboard shortcuts ─────────────────────────────────
   mainWindow.webContents.on('before-input-event', (event, input) => {
     const key = input.key.toLowerCase();
     const isDevToolsShortcut =
@@ -654,17 +658,11 @@ function createWindow() {
       (input.control && input.shift && key === 'j') ||
       (input.meta && input.alt && key === 'i');
     if (!isDevToolsShortcut) return;
-    mainWindow.webContents.toggleDevTools();
-    event.preventDefault();
+    event.preventDefault(); // Block — do not open DevTools
   });
+  lockDevTools(mainWindow);
 
-  // Auto-open DevTools on launch when DEBUG_MODE=true
-  if (process.env.DEBUG_MODE === 'true') {
-    mainWindow.webContents.once('did-finish-load', () => {
-      console.log('[DevTools] Auto-opening DevTools (DEBUG_MODE=true)');
-      mainWindow.webContents.openDevTools({ mode: 'detach' });
-    });
-  }
+  // DevTools auto-open removed — disabled unconditionally.
 
   const { session: electronSession } = require('electron');
   electronSession.defaultSession.webRequest.onHeadersReceived(
@@ -3642,11 +3640,7 @@ app.whenReady().then(async () => {
     });
   }
 
-  // Register DevTools IPC handler — always enabled
-  ipcMain.handle('app:openDevTools', (event) => {
-    if (mainWindow) mainWindow.webContents.openDevTools({ mode: 'detach' });
-    return { success: true };
-  });
+  // app:openDevTools IPC removed — DevTools is disabled.
 
   // ── Updater boot ─────────────────────────────────────────────────────────
   updaterService.initUpdater(isDev);
