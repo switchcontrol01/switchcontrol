@@ -13,6 +13,7 @@ import { isElectronWithTweaks } from '@/hooks/use-tweak-executor';
 import { runPremiumRevert, hasPremiumItemsToRevert, PremiumRevertReport } from '@/lib/premiumRevertEngine';
 import { isTrialActive } from '@/lib/trialCountdown';
 import { useTrialExpiryStore } from '@/stores/trialExpiryStore';
+import { useTweakOwnershipStore } from '@/stores/tweakOwnershipStore';
 
 interface UsePremiumExpiryOptions {
   isPremium: boolean;
@@ -196,6 +197,10 @@ export function usePremiumExpiry({
     revertReport,
     closeRevertModal: () => {
       setModalOpen(false);
+      // Clear all app-applied premium ownership records so the "items to revert"
+      // check never fires again on future launches (all items were already
+      // processed — reverted or skipped due to user changes).
+      useTweakOwnershipStore.getState().clearPremiumOwnership();
       // Release the gate suppression — premium overlays return to normal after user
       // has seen the revert summary and dismissed the modal.
       useTrialExpiryStore.getState().setTrialEndingFlowActive(false);

@@ -77,6 +77,10 @@ interface TweakOwnershipState {
   // ── Baseline ─────────────────────────────────────────────────────────────────
   setBaselineInitialized: () => void;
   resetOwnership: () => void;
+  /** Clear all app-applied premium entries after the revert modal is dismissed.
+   *  Preserves baseline-only (appliedByApp=false) records and baselineInitialized
+   *  so the baseline scan does not need to run again. */
+  clearPremiumOwnership: () => void;
 }
 
 export const useTweakOwnershipStore = create<TweakOwnershipState>()(
@@ -260,6 +264,17 @@ export const useTweakOwnershipStore = create<TweakOwnershipState>()(
 
       resetOwnership() {
         set({ appliedTweaks: {}, networkTweaks: {}, powerPlan: null, baselineInitialized: false });
+      },
+
+      clearPremiumOwnership() {
+        set(s => {
+          const remaining: Record<string, TweakOwnership> = {};
+          for (const [id, rec] of Object.entries(s.appliedTweaks)) {
+            if (!rec.appliedByApp) remaining[id] = rec;
+          }
+          return { appliedTweaks: remaining, networkTweaks: {}, powerPlan: null };
+        });
+        console.log('[Ownership] clearPremiumOwnership — app-applied premium entries removed');
       },
     }),
     {

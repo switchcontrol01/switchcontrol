@@ -1,0 +1,785 @@
+[2026-05-18T18:46:22.333Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [App] Window focused, refreshing entitlements...
+[2026-05-18T18:46:22.334Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:124) [Window] Focus event received
+[2026-05-18T18:46:22.334Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [App] Electron window focus (passive)
+[2026-05-18T18:46:22.800Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: false
+[2026-05-18T18:47:09.806Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [App] Window focused, refreshing entitlements...
+[2026-05-18T18:47:09.806Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:124) [Window] Focus event received
+[2026-05-18T18:47:09.807Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [App] Electron window focus (passive)
+[2026-05-18T18:47:10.208Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-18T18:47:10.211Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:245) [ExtremeLabs] {"userTier":"premium","trial":false,"premium":true,"desktopMode":true,"canApply":true,"canAnalyze":true}
+[2026-05-18T18:47:10.212Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:29) [DeviceLock] target=cloud userId=present deviceIdPresent=true
+[2026-05-18T18:47:10.212Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [AppFlow] Flow eval — isPremium: true plan: premium trialEndsAt: null hasSeenTrialActivation: true hasSeenTrialTour: true hasSeenUnlock: false hasSeenTour: true isFirstTimeUser: false isFirstLogin: false entitlementsAttempted: true entitlementsOk: true unlockFired: false trialUnlockFired: false
+[2026-05-18T18:47:10.213Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [AppFlow] PRIORITY 4: Premium unlock animation — triggering
+[2026-05-18T18:47:10.213Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-18T18:47:10.229Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:29) [CloudAPI] 2026-05-18T18:47:10.229Z | POST /device/premium-validate | auth=false | base=https://switchcontrol.org/api
+[2026-05-18T18:47:10.640Z] [ERROR] [Renderer:warn] (index-B7MeDCVu.js:29) [CloudAPI] 401 on /device/premium-validate — attempting JWT reissue before failing...
+[2026-05-18T18:47:10.977Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [AppFlow] Unlock animation complete — transitioning to premiumTour
+[2026-05-18T18:47:10.978Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-18T18:47:10.981Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:26) [TourTransition] mounted (invisible)
+[2026-05-18T18:47:10.997Z] [ERROR] [Renderer:warn] (index-B7MeDCVu.js:28) [Telemetry:ws] building url — no JWT available (unauthenticated connect will be rejected)
+[2026-05-18T18:47:11.009Z] [ERROR] [Backend:stderr] [WS:auth] phase=rejected reason=no_token
+[2026-05-18T18:47:11.011Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:28) [Telemetry:ws] event=connected attempt=1 wasReconnect=false
+[2026-05-18T18:47:11.012Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:26) [TourTransition] revealed — first visible frame
+[2026-05-18T18:47:11.016Z] [ERROR] [Renderer:warn] (index-B7MeDCVu.js:28) [Telemetry:ws] event=auth_rejected code=1008 reason="Authentication required" — clearing JWT, suppressing reconnect
+[2026-05-18T18:47:11.016Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-18T18:47:11.046Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:158) [Dashboard] mounted
+[2026-05-18T18:47:11.046Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:158) [ActivityMonitor] mounted — no cached history yet, status: unavailable
+[2026-05-18T18:47:11.061Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:64224/api
+[2026-05-18T18:47:11.062Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:10) [AuthRoute] path=/api/dashboard-intelligence/system-dna target=local reason=system-route base=http://127.0.0.1:64224/api
+[2026-05-18T18:47:11.062Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:64224/api
+[2026-05-18T18:47:11.062Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:64224/api
+[2026-05-18T18:47:11.062Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:10) [AuthRoute] path=/api/dashboard-intelligence/ram-analysis target=local reason=system-route base=http://127.0.0.1:64224/api
+[2026-05-18T18:47:11.062Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:10) [AuthRoute] path=/api/dashboard-intelligence/display-signal target=local reason=system-route base=http://127.0.0.1:64224/api
+[2026-05-18T18:47:11.067Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:64224/api
+[2026-05-18T18:47:11.067Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:10) [AuthRoute] path=/api/dashboard-intelligence/system-dna target=local reason=system-route base=http://127.0.0.1:64224/api
+[2026-05-18T18:47:11.067Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:64224/api
+[2026-05-18T18:47:11.068Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:64224/api
+[2026-05-18T18:47:11.068Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:10) [AuthRoute] path=/api/dashboard-intelligence/ram-analysis target=local reason=system-route base=http://127.0.0.1:64224/api
+[2026-05-18T18:47:11.068Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:10) [AuthRoute] path=/api/dashboard-intelligence/display-signal target=local reason=system-route base=http://127.0.0.1:64224/api
+[2026-05-18T18:47:11.068Z] [ERROR] [Renderer:warn] (index-B7MeDCVu.js:28) [Telemetry:ws] building url — no JWT available (unauthenticated connect will be rejected)
+[2026-05-18T18:47:11.120Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-18T18:47:11.139Z] [ERROR] [Backend:stderr] [WS:auth] phase=rejected reason=no_token
+[2026-05-18T18:47:11.151Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:28) [Telemetry:ws] event=connected attempt=1 wasReconnect=false
+[2026-05-18T18:47:11.169Z] [ERROR] [Renderer:warn] (index-B7MeDCVu.js:28) [Telemetry:ws] event=auth_rejected code=1008 reason="Authentication required" — clearing JWT, suppressing reconnect
+[2026-05-18T18:47:11.170Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-18T18:47:11.189Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:10) [API] JWT silently reissued — fresh token stored
+[2026-05-18T18:47:11.189Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-18T18:47:11.202Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:29) [CloudAPI] JWT reissued — retrying /device/premium-validate...
+[2026-05-18T18:47:11.210Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:29) [CloudAPI] 2026-05-18T18:47:11.210Z | POST /device/premium-validate | auth=true | base=https://switchcontrol.org/api | retry=1
+[2026-05-18T18:47:11.409Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:26) [TourTransition] card fully visible
+[2026-05-18T18:47:11.443Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-18T18:47:11.766Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:29) [CloudAPI] OK | POST /device/premium-validate | status=200
+[2026-05-18T18:47:11.766Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:29) [DeviceLock] First bind — device registered
+[2026-05-18T18:47:11.766Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-18T18:47:12.268Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:10) [AuthRoute] path=/api/startup/apps target=local reason=system-route base=http://127.0.0.1:64224/api
+[2026-05-18T18:47:13.480Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:10) [AuthRoute] path=/api/issues/detect target=local reason=system-route base=http://127.0.0.1:64224/api
+[2026-05-18T18:47:23.093Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [AppFlow] Premium tour complete — persisting before clearing flow
+[2026-05-18T18:47:23.093Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-18T18:47:23.737Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-18T18:47:23.748Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-18T18:47:23.754Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:26) [TourTransition] tour dismissed — fading out
+[2026-05-18T18:47:23.755Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [AppFlow] Flow eval — isPremium: true plan: premium trialEndsAt: null hasSeenTrialActivation: true hasSeenTrialTour: true hasSeenUnlock: true hasSeenTour: true isFirstTimeUser: false isFirstLogin: false entitlementsAttempted: true entitlementsOk: true unlockFired: true trialUnlockFired: false
+[2026-05-18T18:47:23.755Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [AppFlow] No flow conditions met — staying idle
+[2026-05-18T18:47:24.210Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:64224/api
+[2026-05-18T18:47:24.255Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:26) [TourTransition] unmounted
+[2026-05-18T18:47:29.213Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:64224/api
+[2026-05-18T18:47:29.417Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-18T18:47:29.418Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:140) [calculateBiosScores] settings=36 | latencyTotal=33.01 frametime=32.33999999999999 stability=27.18 | clamped: latency=33.01 frametime=32.33999999999999 stability=27.18 cr=32
+[2026-05-18T18:47:29.447Z] [ERROR] [Renderer:error] (index-B7MeDCVu.js:11) Error: <circle> attribute r: Expected length, "undefined".
+[2026-05-18T18:47:35.636Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-18T18:47:35.651Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:231) [AI:CONTEXT] source=zustand-store enabled=37 disabled=30
+[2026-05-18T18:47:35.651Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:231) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, synth-timers, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-18T18:47:35.651Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:231) [AI:CONTEXT] system-intelligence enriched | MB=X870E AORUS PRO ICE | BIOS=F12a | net=Wi-Fi 1201Mbps (Wi-Fi)
+[2026-05-18T18:47:35.651Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:231) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz" ramTotalGB=31.6 disk="SKHynix_HFS512GEJ9X115N 512.1GB SSD"
+[2026-05-18T18:47:35.654Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:28) [Telemetry:ws] building url — iss=switchcontrol sub=64f0e669-6db6-42e7-a68a-681f9f5db567
+[2026-05-18T18:47:35.661Z] [LOG] [Backend:stdout] [WS:auth] phase=validating tokenFp=eyJhbGci.eyJzdWIi
+[2026-05-18T18:47:35.662Z] [ERROR] [Backend:stderr] [AUTH] JWT verification failed: invalid signature | tokenFp=eyJhbGci.eyJzdWIi secretFp=a7969729 iss=switchcontrol age=12s exp=valid (exp in 2591988s) authMode=jwt
+[2026-05-18T18:47:35.662Z] [ERROR] [Backend:stderr] [WS:auth] phase=rejected reason=invalid_signature tokenFp=eyJhbGci.eyJzdWIi iss=switchcontrol
+[2026-05-18T18:47:35.666Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:28) [Telemetry:ws] event=connected attempt=1 wasReconnect=false
+[2026-05-18T18:47:35.668Z] [ERROR] [Renderer:warn] (index-B7MeDCVu.js:28) [Telemetry:ws] event=auth_rejected code=1008 reason="token_invalid_signature" — clearing JWT, suppressing reconnect
+[2026-05-18T18:47:35.669Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-18T18:47:46.779Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:239) [AI:INPUT] sending_message="what tweaks should i apply"
+[2026-05-18T18:47:46.779Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:239) [AI:INPUT] enabled_tweaks=37 disabled_tweaks=30
+[2026-05-18T18:47:46.779Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:239) [AI:INPUT] enabled_tweak_ids=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, synth-timers, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-18T18:47:46.779Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:239) [AI:INPUT] hardware cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz"
+[2026-05-18T18:47:46.785Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:29) [CloudAPI] 2026-05-18T18:47:46.785Z | POST /ai/chat | auth=false | base=https://switchcontrol.org/api
+[2026-05-18T18:47:47.114Z] [ERROR] [Renderer:warn] (index-B7MeDCVu.js:29) [CloudAPI] 401 on /ai/chat — attempting JWT reissue before failing...
+[2026-05-18T18:47:47.675Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:10) [API] JWT silently reissued — fresh token stored
+[2026-05-18T18:47:47.675Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-18T18:47:47.678Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:29) [CloudAPI] JWT reissued — retrying /ai/chat...
+[2026-05-18T18:47:47.680Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:29) [CloudAPI] 2026-05-18T18:47:47.680Z | POST /ai/chat | auth=true | base=https://switchcontrol.org/api | retry=1
+[2026-05-18T18:47:54.638Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:29) [CloudAPI] OK | POST /ai/chat | status=200
+[2026-05-18T18:47:54.639Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:239) [AI:OUTPUT] chars=1231 preview="Given your system's current state and the tweaks you already have enabled, here are a few recommendations that could fur…"
+[2026-05-18T18:47:59.350Z] [ERROR] [Renderer:warn] (index-B7MeDCVu.js:11) [IntervalGuard] ⚠ setInterval(1000ms) clamped to 2000ms. Caller:     at file:///C:/Program%20Files/SwitchControl/resources/dist/assets/index-B7MeDCVu.js:229:10580 |     at Cm (file:///C:/Program%20Files/SwitchControl/resources/dist/assets/index-B7MeDCVu.js:9:93672)
+[2026-05-18T18:48:00.051Z] [LOG] [PS] start file=main.js fn=tweak:checkStatus:preemption reason=tweak-check-status id=7 active=1
+[2026-05-18T18:48:00.051Z] [LOG] [PS:tweak-executor] #4 queryPowerShell SPAWN ts=1779130080051 active=1
+[2026-05-18T18:48:00.053Z] [ERROR] [Renderer:warn] (index-B7MeDCVu.js:11) [IntervalGuard] ⚠ setInterval(1000ms) clamped to 2000ms. Caller:     at file:///C:/Program%20Files/SwitchControl/resources/dist/assets/index-B7MeDCVu.js:229:10580 |     at Cm (file:///C:/Program%20Files/SwitchControl/resources/dist/assets/index-B7MeDCVu.js:9:93672)
+[2026-05-18T18:48:00.739Z] [LOG] [PS:tweak-executor] #4 queryPowerShell OK 688ms
+[2026-05-18T18:48:00.739Z] [LOG] [PS] end file=main.js fn=tweak:checkStatus:preemption id=7 duration=688ms active=0 calls60s=1
+[2026-05-18T18:48:00.739Z] [LOG] [PS] start file=main.js fn=tweak:execute:preemption reason=tweak-apply id=8 active=1
+[2026-05-18T18:48:00.740Z] [LOG] [PS-Exec] start file=main.js fn=tweak:execute:preemption reason=tweak-apply
+[2026-05-18T18:48:00.740Z] [LOG] [PS:tweak-executor] #5 queryPowerShell SPAWN ts=1779130080740 active=1
+[2026-05-18T18:48:01.293Z] [LOG] [PS:tweak-executor] #5 queryPowerShell OK 553ms
+[2026-05-18T18:48:01.293Z] [LOG] [TweakExecutor] APPLY preemption
+[2026-05-18T18:48:01.293Z] [LOG] [PS:tweak-executor] #6 runPowerShell SPAWN ts=1779130081293 active=1
+[2026-05-18T18:48:01.967Z] [LOG] [PS:tweak-executor] #6 runPowerShell OK 674ms
+[2026-05-18T18:48:01.967Z] [LOG] [PS:tweak-executor] #7 queryPowerShell SPAWN ts=1779130081967 active=1
+[2026-05-18T18:48:02.577Z] [LOG] [PS:tweak-executor] #7 queryPowerShell OK 610ms
+[2026-05-18T18:48:02.578Z] [LOG] [TweakExecutor:PERSIST] preemption → true (hkcu, verified) written
+[2026-05-18T18:48:02.581Z] [LOG] [OwnershipStore] apply recorded: tweak:preemption appliedValue=true
+[2026-05-18T18:48:02.581Z] [LOG] [PS] end file=main.js fn=tweak:execute:preemption id=8 duration=1842ms active=0 calls60s=2
+[2026-05-18T18:48:02.581Z] [LOG] [PS] start file=main.js fn=tweak:checkStatus:preemption reason=tweak-check-status id=9 active=1
+[2026-05-18T18:48:02.581Z] [LOG] [PS:tweak-executor] #8 queryPowerShell SPAWN ts=1779130082581 active=1
+[2026-05-18T18:48:03.168Z] [LOG] [PS:tweak-executor] #8 queryPowerShell OK 587ms
+[2026-05-18T18:48:03.169Z] [LOG] [PS] end file=main.js fn=tweak:checkStatus:preemption id=9 duration=588ms active=0 calls60s=3
+[2026-05-18T18:48:03.169Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:28) [Ownership:TWEAK] recorded apply tweakId="preemption" prev=false applied=true premium=true
+[2026-05-18T18:48:03.173Z] [ERROR] [Renderer:warn] (index-B7MeDCVu.js:11) [IntervalGuard] ⚠ setInterval(1000ms) clamped to 2000ms. Caller:     at file:///C:/Program%20Files/SwitchControl/resources/dist/assets/index-B7MeDCVu.js:229:10580 |     at Cm (file:///C:/Program%20Files/SwitchControl/resources/dist/assets/index-B7MeDCVu.js:9:93672)
+[2026-05-18T18:48:04.170Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:28) [Tweaks:SET] id="preemption" enabled=true (from system sync)
+[2026-05-18T18:48:04.170Z] [LOG] [PS] start file=main.js fn=tweak:syncAll reason=tweak-sync-all id=10 active=1
+[2026-05-18T18:48:04.171Z] [LOG] [PS-Exec] start file=main.js fn=tweak:syncAll reason=tweak-sync-all — 61 checks
+[2026-05-18T18:48:04.171Z] [LOG] [PS:tweak-executor] #9 queryPowerShell SPAWN ts=1779130084171 active=1
+[2026-05-18T18:48:04.172Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:245) [AI:APPLY] batch complete — 1 applied, 0 failed
+[2026-05-18T18:48:04.172Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-18T18:48:04.174Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:231) [AI:CONTEXT] source=zustand-store enabled=38 disabled=29
+[2026-05-18T18:48:04.174Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:231) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, synth-timers, usb-selective-suspend, disable-pointer-precision, preemption, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-18T18:48:04.175Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:231) [AI:CONTEXT] system-intelligence enriched | MB=X870E AORUS PRO ICE | BIOS=F12a | net=Wi-Fi 1201Mbps (Wi-Fi)
+[2026-05-18T18:48:04.175Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:231) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz" ramTotalGB=31.6 disk="SKHynix_HFS512GEJ9X115N 512.1GB SSD"
+[2026-05-18T18:48:04.828Z] [LOG] [PS:tweak-executor] #9 queryPowerShell OK 657ms
+[2026-05-18T18:48:04.828Z] [LOG] [PS:tweak-executor] #10 queryPowerShell SPAWN ts=1779130084828 active=1
+[2026-05-18T18:48:05.431Z] [LOG] [PS:tweak-executor] #10 queryPowerShell OK 603ms
+[2026-05-18T18:48:05.431Z] [LOG] [PS:tweak-executor] #11 queryPowerShell SPAWN ts=1779130085431 active=1
+[2026-05-18T18:48:06.028Z] [LOG] [PS:tweak-executor] #11 queryPowerShell OK 597ms
+[2026-05-18T18:48:06.028Z] [LOG] [PS:tweak-executor] #12 queryPowerShell SPAWN ts=1779130086028 active=1
+[2026-05-18T18:48:06.571Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-18T18:48:06.624Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:179) [Tweaks:LOAD] source=zustand-persist enabled=38 total_known=51
+[2026-05-18T18:48:06.625Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:179) [Tweaks:LOAD] enabled_ids=gaming-mode, notifications, copilot, cortana, search-highlights, storage-sense, compact-explorer, recent-files, xbox-bar, bg-apps, disable-pointer-precision, disable-animations, show-file-extensions, hibernation, fast-startup, energy-logging, maintenance, vbs, page-combining, prefetch, superfetch, mem-opt, telemetry, tune-priority, bluetooth, xbox-services, fax-printer, synth-timers, preemption, disable-mpo, usb-selective-suspend, pcie-link-state, disable-delivery-opt, win-search-index, disable-activity-history, power-throttling, disable-auto-restart-apps, disable-wallpaper-compression
+[2026-05-18T18:48:06.625Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:179) [Tweaks:SYNC] hydration start gen=1
+[2026-05-18T18:48:06.625Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=tweak:syncAll reason=tweak-sync-all activeOwner=main.js::tweak:syncAll activeSince=2026-05-18T18:48:04.170Z
+[2026-05-18T18:48:06.625Z] [LOG] [tweak:syncAll] returning explicit skipped result — sync already in progress
+[2026-05-18T18:48:06.626Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:10) [AuthRoute] path=/api/tweak-intelligence/system-state target=local reason=system-route base=http://127.0.0.1:64224/api
+[2026-05-18T18:48:06.626Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:10) [AuthRoute] path=/api/tweak-intelligence/rankings?applied=gaming-mode%2Cnotifications%2Ccopilot%2Ccortana%2Csearch-highlights%2Cstorage-sense%2Ccompact-explorer%2Crecent-files%2Cxbox-bar%2Cbg-apps%2Cdisable-pointer-precision%2Cdisable-animations%2Cshow-file-extensions%2Chibernation%2Cfast-startup%2Cenergy-logging%2Cmaintenance%2Cvbs%2Cpage-combining%2Cprefetch%2Csuperfetch%2Cmem-opt%2Ctelemetry%2Ctune-priority%2Cbluetooth%2Cxbox-services%2Cfax-printer%2Csynth-timers%2Cpreemption%2Cdisable-mpo%2Cusb-selective-suspend%2Cpcie-link-state%2Cdisable-delivery-opt%2Cwin-search-index%2Cdisable-activity-history%2Cpower-throttling%2Cdisable-auto-restart-apps%2Cdisable-wallpaper-compression target=local reason=system-route base=http://127.0.0.1:64224/api
+[2026-05-18T18:48:06.626Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:10) [AuthRoute] path=/api/tweak-intelligence/posture?applied=gaming-mode%2Cnotifications%2Ccopilot%2Ccortana%2Csearch-highlights%2Cstorage-sense%2Ccompact-explorer%2Crecent-files%2Cxbox-bar%2Cbg-apps%2Cdisable-pointer-precision%2Cdisable-animations%2Cshow-file-extensions%2Chibernation%2Cfast-startup%2Cenergy-logging%2Cmaintenance%2Cvbs%2Cpage-combining%2Cprefetch%2Csuperfetch%2Cmem-opt%2Ctelemetry%2Ctune-priority%2Cbluetooth%2Cxbox-services%2Cfax-printer%2Csynth-timers%2Cpreemption%2Cdisable-mpo%2Cusb-selective-suspend%2Cpcie-link-state%2Cdisable-delivery-opt%2Cwin-search-index%2Cdisable-activity-history%2Cpower-throttling%2Cdisable-auto-restart-apps%2Cdisable-wallpaper-compression target=local reason=system-route base=http://127.0.0.1:64224/api
+[2026-05-18T18:48:06.645Z] [ERROR] [Renderer:warn] (index-B7MeDCVu.js:179) [SliderHydration] svchost-split-threshold: read failed — Unknown slider tweak: svchost-split-threshold
+[2026-05-18T18:48:06.645Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:28) [TweakExecutor] syncAll skipped by main process — using cached state
+[2026-05-18T18:48:06.645Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:179) [Tweaks:SYNC] skipped (no results from syncAll)
+[2026-05-18T18:48:06.661Z] [LOG] [PS:tweak-executor] #12 queryPowerShell OK 633ms
+[2026-05-18T18:48:06.661Z] [LOG] [PS:tweak-executor] #13 queryPowerShell SPAWN ts=1779130086661 active=1
+[2026-05-18T18:48:07.657Z] [LOG] [SliderExecutor] READ menu-show-delay: value=0 raw="0"
+[2026-05-18T18:48:07.658Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:179) [SliderHydration] menu-show-delay: value=0 missing=false
+[2026-05-18T18:48:07.661Z] [LOG] [SliderExecutor] READ win32-priority-sep: value=38 raw="38"
+[2026-05-18T18:48:07.667Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:179) [SliderHydration] win32-priority-sep: value=38 missing=false
+[2026-05-18T18:48:07.694Z] [LOG] [SliderExecutor] READ sys-responsiveness: value=1 raw="1"
+[2026-05-18T18:48:07.698Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:179) [SliderHydration] sys-responsiveness: value=1 missing=false
+[2026-05-18T18:48:07.714Z] [LOG] [SliderExecutor] READ net-throttle-index: key absent — returning built-in default 10
+[2026-05-18T18:48:07.716Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:179) [SliderHydration] net-throttle-index: value=10 missing=true
+[2026-05-18T18:48:07.720Z] [LOG] [SliderExecutor] READ wait-to-kill-app: value=4000 raw="4000"
+[2026-05-18T18:48:07.724Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:179) [SliderHydration] wait-to-kill-app: value=4000 missing=false
+[2026-05-18T18:48:07.730Z] [LOG] [SliderExecutor] READ hung-app-timeout: value=2000 raw="2000"
+[2026-05-18T18:48:07.734Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:179) [SliderHydration] hung-app-timeout: value=2000 missing=false
+[2026-05-18T18:48:07.766Z] [LOG] [SliderExecutor] READ low-level-hooks-timeout: value=1000 raw="1000"
+[2026-05-18T18:48:07.768Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:179) [SliderHydration] low-level-hooks-timeout: value=1000 missing=false
+[2026-05-18T18:48:07.914Z] [LOG] [PS:tweak-executor] #13 queryPowerShell OK 1253ms
+[2026-05-18T18:48:07.914Z] [LOG] [PS:tweak-executor] #14 queryPowerShell SPAWN ts=1779130087914 active=1
+[2026-05-18T18:48:08.505Z] [LOG] [PS:tweak-executor] #14 queryPowerShell OK 591ms
+[2026-05-18T18:48:08.505Z] [LOG] [PS:tweak-executor] #15 queryPowerShell SPAWN ts=1779130088505 active=1
+[2026-05-18T18:48:09.093Z] [LOG] [PS:tweak-executor] #15 queryPowerShell OK 588ms
+[2026-05-18T18:48:09.093Z] [LOG] [PS:tweak-executor] #16 queryPowerShell SPAWN ts=1779130089093 active=1
+[2026-05-18T18:48:09.214Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-18T18:48:09.231Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:231) [AI:CONTEXT] source=zustand-store enabled=38 disabled=29
+[2026-05-18T18:48:09.231Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:231) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, synth-timers, usb-selective-suspend, disable-pointer-precision, preemption, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-18T18:48:09.231Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:231) [AI:CONTEXT] system-intelligence enriched | MB=X870E AORUS PRO ICE | BIOS=F12a | net=Wi-Fi 1201Mbps (Wi-Fi)
+[2026-05-18T18:48:09.231Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:231) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz" ramTotalGB=31.6 disk="SKHynix_HFS512GEJ9X115N 512.1GB SSD"
+[2026-05-18T18:48:09.234Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:28) [Telemetry:ws] building url — iss=switchcontrol sub=64f0e669-6db6-42e7-a68a-681f9f5db567
+[2026-05-18T18:48:09.242Z] [LOG] [Backend:stdout] [WS:auth] phase=validating tokenFp=eyJhbGci.eyJzdWIi
+[2026-05-18T18:48:09.242Z] [ERROR] [Backend:stderr] [AUTH] JWT verification failed: invalid signature | tokenFp=eyJhbGci.eyJzdWIi secretFp=a7969729 iss=switchcontrol age=10s exp=valid (exp in 2591990s) authMode=jwt
+[2026-05-18T18:48:09.243Z] [ERROR] [Backend:stderr] [WS:auth] phase=rejected reason=invalid_signature tokenFp=eyJhbGci.eyJzdWIi iss=switchcontrol
+[2026-05-18T18:48:09.247Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:28) [Telemetry:ws] event=connected attempt=1 wasReconnect=false
+[2026-05-18T18:48:09.250Z] [ERROR] [Renderer:warn] (index-B7MeDCVu.js:28) [Telemetry:ws] event=auth_rejected code=1008 reason="token_invalid_signature" — clearing JWT, suppressing reconnect
+[2026-05-18T18:48:09.250Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-18T18:48:09.678Z] [LOG] [PS:tweak-executor] #16 queryPowerShell OK 585ms
+[2026-05-18T18:48:09.678Z] [LOG] [PS:tweak-executor] #17 queryPowerShell SPAWN ts=1779130089678 active=1
+[2026-05-18T18:48:10.261Z] [LOG] [PS:tweak-executor] #17 queryPowerShell OK 583ms
+[2026-05-18T18:48:10.261Z] [LOG] [PS:tweak-executor] #18 queryPowerShell SPAWN ts=1779130090261 active=1
+[2026-05-18T18:48:10.851Z] [LOG] [PS:tweak-executor] #18 queryPowerShell OK 590ms
+[2026-05-18T18:48:10.851Z] [LOG] [PS:tweak-executor] #19 queryPowerShell SPAWN ts=1779130090851 active=1
+[2026-05-18T18:48:11.504Z] [LOG] [PS:tweak-executor] #19 queryPowerShell OK 653ms
+[2026-05-18T18:48:11.504Z] [LOG] [PS:tweak-executor] #20 queryPowerShell SPAWN ts=1779130091504 active=1
+[2026-05-18T18:48:11.768Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-18T18:48:11.811Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:179) [Tweaks:LOAD] source=zustand-persist enabled=38 total_known=51
+[2026-05-18T18:48:11.811Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:179) [Tweaks:LOAD] enabled_ids=gaming-mode, notifications, copilot, cortana, search-highlights, storage-sense, compact-explorer, recent-files, xbox-bar, bg-apps, disable-pointer-precision, disable-animations, show-file-extensions, hibernation, fast-startup, energy-logging, maintenance, vbs, page-combining, prefetch, superfetch, mem-opt, telemetry, tune-priority, bluetooth, xbox-services, fax-printer, synth-timers, preemption, disable-mpo, usb-selective-suspend, pcie-link-state, disable-delivery-opt, win-search-index, disable-activity-history, power-throttling, disable-auto-restart-apps, disable-wallpaper-compression
+[2026-05-18T18:48:11.812Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:179) [Tweaks:SYNC] hydration start gen=2
+[2026-05-18T18:48:11.812Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=tweak:syncAll reason=tweak-sync-all activeOwner=main.js::tweak:syncAll activeSince=2026-05-18T18:48:04.170Z
+[2026-05-18T18:48:11.812Z] [LOG] [tweak:syncAll] returning explicit skipped result — sync already in progress
+[2026-05-18T18:48:11.813Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:10) [AuthRoute] path=/api/tweak-intelligence/system-state target=local reason=system-route base=http://127.0.0.1:64224/api
+[2026-05-18T18:48:11.813Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:10) [AuthRoute] path=/api/tweak-intelligence/rankings?applied=gaming-mode%2Cnotifications%2Ccopilot%2Ccortana%2Csearch-highlights%2Cstorage-sense%2Ccompact-explorer%2Crecent-files%2Cxbox-bar%2Cbg-apps%2Cdisable-pointer-precision%2Cdisable-animations%2Cshow-file-extensions%2Chibernation%2Cfast-startup%2Cenergy-logging%2Cmaintenance%2Cvbs%2Cpage-combining%2Cprefetch%2Csuperfetch%2Cmem-opt%2Ctelemetry%2Ctune-priority%2Cbluetooth%2Cxbox-services%2Cfax-printer%2Csynth-timers%2Cpreemption%2Cdisable-mpo%2Cusb-selective-suspend%2Cpcie-link-state%2Cdisable-delivery-opt%2Cwin-search-index%2Cdisable-activity-history%2Cpower-throttling%2Cdisable-auto-restart-apps%2Cdisable-wallpaper-compression target=local reason=system-route base=http://127.0.0.1:64224/api
+[2026-05-18T18:48:11.813Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:10) [AuthRoute] path=/api/tweak-intelligence/posture?applied=gaming-mode%2Cnotifications%2Ccopilot%2Ccortana%2Csearch-highlights%2Cstorage-sense%2Ccompact-explorer%2Crecent-files%2Cxbox-bar%2Cbg-apps%2Cdisable-pointer-precision%2Cdisable-animations%2Cshow-file-extensions%2Chibernation%2Cfast-startup%2Cenergy-logging%2Cmaintenance%2Cvbs%2Cpage-combining%2Cprefetch%2Csuperfetch%2Cmem-opt%2Ctelemetry%2Ctune-priority%2Cbluetooth%2Cxbox-services%2Cfax-printer%2Csynth-timers%2Cpreemption%2Cdisable-mpo%2Cusb-selective-suspend%2Cpcie-link-state%2Cdisable-delivery-opt%2Cwin-search-index%2Cdisable-activity-history%2Cpower-throttling%2Cdisable-auto-restart-apps%2Cdisable-wallpaper-compression target=local reason=system-route base=http://127.0.0.1:64224/api
+[2026-05-18T18:48:11.832Z] [ERROR] [Renderer:warn] (index-B7MeDCVu.js:179) [SliderHydration] svchost-split-threshold: read failed — Unknown slider tweak: svchost-split-threshold
+[2026-05-18T18:48:11.834Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:28) [TweakExecutor] syncAll skipped by main process — using cached state
+[2026-05-18T18:48:11.835Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:179) [Tweaks:SYNC] skipped (no results from syncAll)
+[2026-05-18T18:48:12.314Z] [LOG] [PS:tweak-executor] #20 queryPowerShell OK 810ms
+[2026-05-18T18:48:12.315Z] [LOG] [PS:tweak-executor] #21 queryPowerShell SPAWN ts=1779130092315 active=1
+[2026-05-18T18:48:12.806Z] [LOG] [SliderExecutor] READ wait-to-kill-app: value=4000 raw="4000"
+[2026-05-18T18:48:12.808Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:179) [SliderHydration] wait-to-kill-app: value=4000 missing=false
+[2026-05-18T18:48:12.818Z] [LOG] [SliderExecutor] READ sys-responsiveness: value=1 raw="1"
+[2026-05-18T18:48:12.818Z] [LOG] [SliderExecutor] READ net-throttle-index: key absent — returning built-in default 10
+[2026-05-18T18:48:12.822Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:179) [SliderHydration] sys-responsiveness: value=1 missing=false
+[2026-05-18T18:48:12.822Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:179) [SliderHydration] net-throttle-index: value=10 missing=true
+[2026-05-18T18:48:12.839Z] [LOG] [SliderExecutor] READ win32-priority-sep: value=38 raw="38"
+[2026-05-18T18:48:12.840Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:179) [SliderHydration] win32-priority-sep: value=38 missing=false
+[2026-05-18T18:48:12.849Z] [LOG] [SliderExecutor] READ menu-show-delay: value=0 raw="0"
+[2026-05-18T18:48:12.854Z] [LOG] [SliderExecutor] READ hung-app-timeout: value=2000 raw="2000"
+[2026-05-18T18:48:12.854Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:179) [SliderHydration] menu-show-delay: value=0 missing=false
+[2026-05-18T18:48:12.856Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:179) [SliderHydration] hung-app-timeout: value=2000 missing=false
+[2026-05-18T18:48:12.889Z] [LOG] [SliderExecutor] READ low-level-hooks-timeout: value=1000 raw="1000"
+[2026-05-18T18:48:12.891Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:179) [SliderHydration] low-level-hooks-timeout: value=1000 missing=false
+[2026-05-18T18:48:13.179Z] [LOG] [PS:tweak-executor] #21 queryPowerShell OK 864ms
+[2026-05-18T18:48:13.179Z] [LOG] [PS:tweak-executor] #22 queryPowerShell SPAWN ts=1779130093179 active=1
+[2026-05-18T18:48:13.768Z] [LOG] [PS:tweak-executor] #22 queryPowerShell OK 589ms
+[2026-05-18T18:48:13.769Z] [LOG] [PS:tweak-executor] #23 queryPowerShell SPAWN ts=1779130093769 active=1
+[2026-05-18T18:48:14.360Z] [LOG] [PS:tweak-executor] #23 queryPowerShell OK 591ms
+[2026-05-18T18:48:14.360Z] [LOG] [PS:tweak-executor] #24 queryPowerShell SPAWN ts=1779130094360 active=1
+[2026-05-18T18:48:14.942Z] [LOG] [PS:tweak-executor] #24 queryPowerShell OK 582ms
+[2026-05-18T18:48:14.942Z] [LOG] [PS:tweak-executor] #25 queryPowerShell SPAWN ts=1779130094942 active=1
+[2026-05-18T18:48:15.527Z] [LOG] [PS:tweak-executor] #25 queryPowerShell OK 585ms
+[2026-05-18T18:48:15.527Z] [LOG] [PS:tweak-executor] #26 queryPowerShell SPAWN ts=1779130095527 active=1
+[2026-05-18T18:48:15.935Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:179) [Tweaks:TOGGLE_START] id="preemption" action=revert isReal=true
+[2026-05-18T18:48:15.935Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:179) [Tweaks:BACKEND_ACTION] id="preemption" calling executeTweak action=revert
+[2026-05-18T18:48:15.935Z] [LOG] [PS] start file=main.js fn=tweak:execute:preemption reason=tweak-revert id=11 active=2
+[2026-05-18T18:48:15.935Z] [LOG] [PS-Exec] start file=main.js fn=tweak:execute:preemption reason=tweak-revert
+[2026-05-18T18:48:15.936Z] [LOG] [TweakExecutor] REVERT preemption
+[2026-05-18T18:48:15.936Z] [LOG] [PS:tweak-executor] #27 runPowerShell SPAWN ts=1779130095936 active=2
+[2026-05-18T18:48:16.116Z] [LOG] [PS:tweak-executor] #26 queryPowerShell OK 589ms
+[2026-05-18T18:48:16.116Z] [LOG] [PS:tweak-executor] #28 queryPowerShell SPAWN ts=1779130096116 active=2
+[2026-05-18T18:48:16.548Z] [LOG] [PS:tweak-executor] #27 runPowerShell OK 612ms
+[2026-05-18T18:48:16.549Z] [LOG] [PS-Semaphore] queued — 2/2 slots active, queue=1
+[2026-05-18T18:48:16.549Z] [LOG] [PS:tweak-executor] #29 queryPowerShell SPAWN ts=1779130096549 active=2
+[2026-05-18T18:48:16.704Z] [LOG] [PS:tweak-executor] #28 queryPowerShell OK 588ms
+[2026-05-18T18:48:16.704Z] [LOG] [PS:tweak-executor] #30 queryPowerShell SPAWN ts=1779130096704 active=2
+[2026-05-18T18:48:17.168Z] [LOG] [PS:tweak-executor] #29 queryPowerShell OK 619ms
+[2026-05-18T18:48:17.169Z] [LOG] [TweakExecutor:PERSIST] preemption → false (hkcu, verified) written
+[2026-05-18T18:48:17.170Z] [LOG] [OwnershipStore] apply recorded: tweak:preemption appliedValue=false
+[2026-05-18T18:48:17.170Z] [LOG] [PS] end file=main.js fn=tweak:execute:preemption id=11 duration=1235ms active=1 calls60s=4
+[2026-05-18T18:48:17.171Z] [LOG] [PS] start file=main.js fn=tweak:checkStatus:preemption reason=tweak-check-status id=12 active=2
+[2026-05-18T18:48:17.171Z] [LOG] [PS:tweak-executor] #31 queryPowerShell SPAWN ts=1779130097171 active=2
+[2026-05-18T18:48:17.756Z] [LOG] [PS:tweak-executor] #31 queryPowerShell OK 585ms
+[2026-05-18T18:48:17.756Z] [LOG] [PS] end file=main.js fn=tweak:checkStatus:preemption id=12 duration=585ms active=1 calls60s=5
+[2026-05-18T18:48:17.757Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:28) [Ownership:TWEAK] cleared after revert tweakId="preemption"
+[2026-05-18T18:48:17.757Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:179) [Tweaks:RESULT] id="preemption" success=true action=revert
+[2026-05-18T18:48:17.757Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:28) [Tweaks:TOGGLE] id="preemption" title="Enable Hardware GPU Scheduling" ON→OFF
+[2026-05-18T18:48:17.757Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:28) [Tweaks:STATE] enabled_count=37 | tweak="preemption" applied=false
+[2026-05-18T18:48:17.757Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-18T18:48:17.765Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:10) [AuthRoute] path=/api/tweak-intelligence/system-state target=local reason=system-route base=http://127.0.0.1:64224/api
+[2026-05-18T18:48:17.766Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:10) [AuthRoute] path=/api/tweak-intelligence/rankings?applied=gaming-mode%2Cnotifications%2Ccopilot%2Ccortana%2Csearch-highlights%2Cstorage-sense%2Ccompact-explorer%2Crecent-files%2Cxbox-bar%2Cbg-apps%2Cdisable-pointer-precision%2Cdisable-animations%2Cshow-file-extensions%2Chibernation%2Cfast-startup%2Cenergy-logging%2Cmaintenance%2Cvbs%2Cpage-combining%2Cprefetch%2Csuperfetch%2Cmem-opt%2Ctelemetry%2Ctune-priority%2Cbluetooth%2Cxbox-services%2Cfax-printer%2Csynth-timers%2Cdisable-mpo%2Cusb-selective-suspend%2Cpcie-link-state%2Cdisable-delivery-opt%2Cwin-search-index%2Cdisable-activity-history%2Cpower-throttling%2Cdisable-auto-restart-apps%2Cdisable-wallpaper-compression target=local reason=system-route base=http://127.0.0.1:64224/api
+[2026-05-18T18:48:17.766Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:10) [AuthRoute] path=/api/tweak-intelligence/posture?applied=gaming-mode%2Cnotifications%2Ccopilot%2Ccortana%2Csearch-highlights%2Cstorage-sense%2Ccompact-explorer%2Crecent-files%2Cxbox-bar%2Cbg-apps%2Cdisable-pointer-precision%2Cdisable-animations%2Cshow-file-extensions%2Chibernation%2Cfast-startup%2Cenergy-logging%2Cmaintenance%2Cvbs%2Cpage-combining%2Cprefetch%2Csuperfetch%2Cmem-opt%2Ctelemetry%2Ctune-priority%2Cbluetooth%2Cxbox-services%2Cfax-printer%2Csynth-timers%2Cdisable-mpo%2Cusb-selective-suspend%2Cpcie-link-state%2Cdisable-delivery-opt%2Cwin-search-index%2Cdisable-activity-history%2Cpower-throttling%2Cdisable-auto-restart-apps%2Cdisable-wallpaper-compression target=local reason=system-route base=http://127.0.0.1:64224/api
+[2026-05-18T18:48:17.994Z] [LOG] [PS:tweak-executor] #30 queryPowerShell OK 1290ms
+[2026-05-18T18:48:17.994Z] [LOG] [PS:tweak-executor] #32 queryPowerShell SPAWN ts=1779130097994 active=1
+[2026-05-18T18:48:18.667Z] [LOG] [PS:tweak-executor] #32 queryPowerShell OK 673ms
+[2026-05-18T18:48:18.667Z] [LOG] [PS:tweak-executor] #33 queryPowerShell SPAWN ts=1779130098667 active=1
+[2026-05-18T18:48:18.891Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-18T18:48:18.906Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:10) [AuthRoute] path=/api/debloat/items?role=gaming&level=safe target=local reason=system-route base=http://127.0.0.1:64224/api
+[2026-05-18T18:48:18.907Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:10) [AuthRoute] path=/api/debloat/history target=local reason=system-route base=http://127.0.0.1:64224/api
+[2026-05-18T18:48:18.907Z] [ERROR] [Renderer:warn] (index-B7MeDCVu.js:28) [Telemetry:ws] building url — no JWT available (unauthenticated connect will be rejected)
+[2026-05-18T18:48:18.915Z] [ERROR] [Backend:stderr] [WS:auth] phase=rejected reason=no_token
+[2026-05-18T18:48:18.920Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:28) [Telemetry:ws] event=connected attempt=1 wasReconnect=false
+[2026-05-18T18:48:18.927Z] [ERROR] [Renderer:warn] (index-B7MeDCVu.js:28) [Telemetry:ws] event=auth_rejected code=1008 reason="Authentication required" — clearing JWT, suppressing reconnect
+[2026-05-18T18:48:18.928Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-18T18:48:19.302Z] [LOG] [PS:tweak-executor] #33 queryPowerShell OK 635ms
+[2026-05-18T18:48:19.302Z] [LOG] [PS:tweak-executor] #34 queryPowerShell SPAWN ts=1779130099302 active=1
+[2026-05-18T18:48:19.530Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-18T18:48:19.929Z] [LOG] [PS:tweak-executor] #34 queryPowerShell OK 627ms
+[2026-05-18T18:48:19.929Z] [LOG] [PS:tweak-executor] #35 queryPowerShell SPAWN ts=1779130099929 active=1
+[2026-05-18T18:48:20.015Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-18T18:48:20.028Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:231) [AI:CONTEXT] source=zustand-store enabled=37 disabled=30
+[2026-05-18T18:48:20.029Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:231) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, synth-timers, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-18T18:48:20.029Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:231) [AI:CONTEXT] system-intelligence enriched | MB=X870E AORUS PRO ICE | BIOS=F12a | net=Wi-Fi 1201Mbps (Wi-Fi)
+[2026-05-18T18:48:20.029Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:231) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz" ramTotalGB=31.6 disk="SKHynix_HFS512GEJ9X115N 512.1GB SSD"
+[2026-05-18T18:48:20.032Z] [ERROR] [Renderer:warn] (index-B7MeDCVu.js:28) [Telemetry:ws] building url — no JWT available (unauthenticated connect will be rejected)
+[2026-05-18T18:48:20.040Z] [ERROR] [Backend:stderr] [WS:auth] phase=rejected reason=no_token
+[2026-05-18T18:48:20.045Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:28) [Telemetry:ws] event=connected attempt=1 wasReconnect=false
+[2026-05-18T18:48:20.049Z] [ERROR] [Renderer:warn] (index-B7MeDCVu.js:28) [Telemetry:ws] event=auth_rejected code=1008 reason="Authentication required" — clearing JWT, suppressing reconnect
+[2026-05-18T18:48:20.049Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-18T18:48:20.329Z] [ERROR] [Renderer:warn] (index-B7MeDCVu.js:29) [CloudAPI] 401 on GET /ai-advisor/context — attempting JWT reissue...
+[2026-05-18T18:48:20.607Z] [LOG] [PS:tweak-executor] #35 queryPowerShell OK 678ms
+[2026-05-18T18:48:20.608Z] [LOG] [PS:tweak-executor] #36 queryPowerShell SPAWN ts=1779130100608 active=1
+[2026-05-18T18:48:20.900Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:10) [API] JWT silently reissued — fresh token stored
+[2026-05-18T18:48:20.901Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-18T18:48:20.904Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:29) [CloudAPI] JWT reissued — retrying GET /ai-advisor/context...
+[2026-05-18T18:48:21.252Z] [LOG] [PS:tweak-executor] #36 queryPowerShell OK 644ms
+[2026-05-18T18:48:21.252Z] [LOG] [PS:tweak-executor] #37 queryPowerShell SPAWN ts=1779130101252 active=1
+[2026-05-18T18:48:21.708Z] [LOG] [Perf] minimized → pausing all loops (telemetry, no IPC polls while hidden)
+[2026-05-18T18:48:22.191Z] [LOG] [PS:tweak-executor] #37 queryPowerShell OK 939ms
+[2026-05-18T18:48:22.191Z] [LOG] [PS:tweak-executor] #38 queryPowerShell SPAWN ts=1779130102191 active=1
+[2026-05-18T18:48:22.838Z] [LOG] [Perf] restored → resuming telemetry loop
+[2026-05-18T18:48:22.841Z] [LOG] [PS:tweak-executor] #38 queryPowerShell OK 650ms
+[2026-05-18T18:48:22.841Z] [LOG] [PS:tweak-executor] #39 queryPowerShell SPAWN ts=1779130102841 active=1
+[2026-05-18T18:48:22.843Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:124) [Window] Focus event received
+[2026-05-18T18:48:22.843Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [App] Electron window focus (passive)
+[2026-05-18T18:48:23.459Z] [LOG] [PS:tweak-executor] #39 queryPowerShell OK 618ms
+[2026-05-18T18:48:23.459Z] [LOG] [PS:tweak-executor] #40 queryPowerShell SPAWN ts=1779130103459 active=1
+[2026-05-18T18:48:24.087Z] [LOG] [PS:tweak-executor] #40 queryPowerShell OK 628ms
+[2026-05-18T18:48:24.087Z] [LOG] [PS:tweak-executor] #41 queryPowerShell SPAWN ts=1779130104087 active=1
+[2026-05-18T18:48:24.681Z] [LOG] [PS:tweak-executor] #41 queryPowerShell OK 594ms
+[2026-05-18T18:48:24.681Z] [LOG] [PS:tweak-executor] #42 queryPowerShell SPAWN ts=1779130104681 active=1
+[2026-05-18T18:48:25.476Z] [LOG] [PS:tweak-executor] #42 queryPowerShell OK 795ms
+[2026-05-18T18:48:25.477Z] [LOG] [TweakSupport] id=nvidia-telemetry, supported=false, reason="No NVIDIA GPU detected", os=10.0.26200, helperFound=false
+[2026-05-18T18:48:25.477Z] [LOG] [PS:tweak-executor] #43 queryPowerShell SPAWN ts=1779130105477 active=1
+[2026-05-18T18:48:26.108Z] [LOG] [PS:tweak-executor] #43 queryPowerShell OK 631ms
+[2026-05-18T18:48:26.108Z] [LOG] [PS:tweak-executor] #44 queryPowerShell SPAWN ts=1779130106108 active=1
+[2026-05-18T18:48:26.706Z] [LOG] [PS:tweak-executor] #44 queryPowerShell OK 598ms
+[2026-05-18T18:48:26.706Z] [LOG] [PS:tweak-executor] #45 queryPowerShell SPAWN ts=1779130106706 active=1
+[2026-05-18T18:48:27.293Z] [LOG] [PS:tweak-executor] #45 queryPowerShell OK 587ms
+[2026-05-18T18:48:27.294Z] [LOG] [PS:tweak-executor] #46 queryPowerShell SPAWN ts=1779130107294 active=1
+[2026-05-18T18:48:27.922Z] [LOG] [PS:tweak-executor] #46 queryPowerShell OK 628ms
+[2026-05-18T18:48:27.922Z] [LOG] [PS:tweak-executor] #47 queryPowerShell SPAWN ts=1779130107922 active=1
+[2026-05-18T18:48:28.535Z] [LOG] [PS:tweak-executor] #47 queryPowerShell OK 613ms
+[2026-05-18T18:48:28.535Z] [LOG] [PS:tweak-executor] #48 queryPowerShell SPAWN ts=1779130108535 active=1
+[2026-05-18T18:48:29.241Z] [LOG] [PS:tweak-executor] #48 queryPowerShell OK 706ms
+[2026-05-18T18:48:29.241Z] [LOG] [PS:tweak-executor] #49 queryPowerShell SPAWN ts=1779130109241 active=1
+[2026-05-18T18:48:29.883Z] [LOG] [PS:tweak-executor] #49 queryPowerShell OK 642ms
+[2026-05-18T18:48:29.883Z] [LOG] [PS:tweak-executor] #50 queryPowerShell SPAWN ts=1779130109883 active=1
+[2026-05-18T18:48:30.470Z] [LOG] [PS:tweak-executor] #50 queryPowerShell OK 587ms
+[2026-05-18T18:48:30.470Z] [LOG] [PS:tweak-executor] #51 queryPowerShell SPAWN ts=1779130110470 active=1
+[2026-05-18T18:48:31.192Z] [LOG] [PS:tweak-executor] #51 queryPowerShell OK 722ms
+[2026-05-18T18:48:31.193Z] [LOG] [TweakSupport] id=usb-selective-suspend, supported=true, reason="powercfg USB setting present", os=10.0.26200, helperFound=true
+[2026-05-18T18:48:31.193Z] [LOG] [PS:tweak-executor] #52 queryPowerShell SPAWN ts=1779130111193 active=1
+[2026-05-18T18:48:31.893Z] [LOG] [PS:tweak-executor] #52 queryPowerShell OK 700ms
+[2026-05-18T18:48:31.893Z] [LOG] [PS:tweak-executor] #53 queryPowerShell SPAWN ts=1779130111893 active=1
+[2026-05-18T18:48:32.554Z] [LOG] [PS:tweak-executor] #53 queryPowerShell OK 661ms
+[2026-05-18T18:48:32.554Z] [LOG] [PS:tweak-executor] #54 queryPowerShell SPAWN ts=1779130112554 active=1
+[2026-05-18T18:48:33.176Z] [LOG] [PS:tweak-executor] #54 queryPowerShell OK 622ms
+[2026-05-18T18:48:33.176Z] [LOG] [PS:tweak-executor] #55 queryPowerShell SPAWN ts=1779130113176 active=1
+[2026-05-18T18:48:33.871Z] [LOG] [PS:tweak-executor] #55 queryPowerShell OK 695ms
+[2026-05-18T18:48:33.871Z] [LOG] [PS:tweak-executor] #56 queryPowerShell SPAWN ts=1779130113871 active=1
+[2026-05-18T18:48:34.503Z] [LOG] [PS:tweak-executor] #56 queryPowerShell OK 632ms
+[2026-05-18T18:48:34.503Z] [LOG] [PS:tweak-executor] #57 queryPowerShell SPAWN ts=1779130114503 active=1
+[2026-05-18T18:48:35.132Z] [LOG] [PS:tweak-executor] #57 queryPowerShell OK 629ms
+[2026-05-18T18:48:35.133Z] [LOG] [PS:tweak-executor] #58 queryPowerShell SPAWN ts=1779130115133 active=1
+[2026-05-18T18:48:35.717Z] [LOG] [PS:tweak-executor] #58 queryPowerShell OK 584ms
+[2026-05-18T18:48:35.717Z] [LOG] [PS:tweak-executor] #59 queryPowerShell SPAWN ts=1779130115717 active=1
+[2026-05-18T18:48:36.323Z] [LOG] [PS:tweak-executor] #59 queryPowerShell OK 606ms
+[2026-05-18T18:48:36.323Z] [LOG] [PS:tweak-executor] #60 queryPowerShell SPAWN ts=1779130116323 active=1
+[2026-05-18T18:48:36.954Z] [LOG] [PS:tweak-executor] #60 queryPowerShell OK 631ms
+[2026-05-18T18:48:36.954Z] [LOG] [PS:tweak-executor] #61 queryPowerShell SPAWN ts=1779130116954 active=1
+[2026-05-18T18:48:37.611Z] [LOG] [PS:tweak-executor] #61 queryPowerShell OK 657ms
+[2026-05-18T18:48:37.612Z] [LOG] [PS:tweak-executor] #62 queryPowerShell SPAWN ts=1779130117612 active=1
+[2026-05-18T18:48:38.197Z] [LOG] [PS:tweak-executor] #62 queryPowerShell OK 585ms
+[2026-05-18T18:48:38.197Z] [LOG] [PS:tweak-executor] #63 queryPowerShell SPAWN ts=1779130118197 active=1
+[2026-05-18T18:48:38.800Z] [LOG] [PS:tweak-executor] #63 queryPowerShell OK 603ms
+[2026-05-18T18:48:38.801Z] [LOG] [PS:tweak-executor] #64 queryPowerShell SPAWN ts=1779130118801 active=1
+[2026-05-18T18:48:39.448Z] [LOG] [PS:tweak-executor] #64 queryPowerShell OK 647ms
+[2026-05-18T18:48:39.448Z] [LOG] [PS:tweak-executor] #65 queryPowerShell SPAWN ts=1779130119448 active=1
+[2026-05-18T18:48:40.188Z] [LOG] [PS:tweak-executor] #65 queryPowerShell OK 740ms
+[2026-05-18T18:48:40.189Z] [LOG] [PS:tweak-executor] #66 queryPowerShell SPAWN ts=1779130120189 active=1
+[2026-05-18T18:48:40.891Z] [LOG] [PS:tweak-executor] #66 queryPowerShell OK 702ms
+[2026-05-18T18:48:40.891Z] [LOG] [PS:tweak-executor] #67 queryPowerShell SPAWN ts=1779130120891 active=1
+[2026-05-18T18:48:41.637Z] [LOG] [PS:tweak-executor] #67 queryPowerShell OK 745ms
+[2026-05-18T18:48:41.637Z] [LOG] [PS:tweak-executor] #68 queryPowerShell SPAWN ts=1779130121637 active=1
+[2026-05-18T18:48:42.313Z] [LOG] [PS:tweak-executor] #68 queryPowerShell OK 676ms
+[2026-05-18T18:48:42.314Z] [LOG] [PS:tweak-executor] #69 queryPowerShell SPAWN ts=1779130122314 active=1
+[2026-05-18T18:48:42.945Z] [LOG] [PS:tweak-executor] #69 queryPowerShell OK 631ms
+[2026-05-18T18:48:42.945Z] [LOG] [PS:tweak-executor] #70 queryPowerShell SPAWN ts=1779130122945 active=1
+[2026-05-18T18:48:43.569Z] [LOG] [PS:tweak-executor] #70 queryPowerShell OK 624ms
+[2026-05-18T18:48:43.569Z] [LOG] [PS:tweak-executor] #71 queryPowerShell SPAWN ts=1779130123569 active=1
+[2026-05-18T18:48:44.191Z] [LOG] [PS:tweak-executor] #71 queryPowerShell OK 622ms
+[2026-05-18T18:48:44.191Z] [LOG] [PS:tweak-executor] #72 queryPowerShell SPAWN ts=1779130124191 active=1
+[2026-05-18T18:48:44.802Z] [LOG] [PS:tweak-executor] #72 queryPowerShell OK 611ms
+[2026-05-18T18:48:44.802Z] [LOG] [PS-Exec] done file=main.js fn=tweak:syncAll ms=40631
+[2026-05-18T18:48:44.802Z] [LOG] [PS] end file=main.js fn=tweak:syncAll id=10 duration=40632ms active=0 calls60s=6
+[2026-05-18T18:48:47.081Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [App] Window focused, refreshing entitlements...
+[2026-05-18T18:48:47.082Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:124) [Window] Focus event received
+[2026-05-18T18:48:47.082Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [App] Electron window focus (passive)
+[2026-05-18T18:48:47.664Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-18T18:48:48.515Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-18T18:48:49.427Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-18T18:48:49.436Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:231) [AI:CONTEXT] source=zustand-store enabled=37 disabled=30
+[2026-05-18T18:48:49.436Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:231) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, synth-timers, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-18T18:48:49.436Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:231) [AI:CONTEXT] system-intelligence enriched | MB=X870E AORUS PRO ICE | BIOS=F12a | net=Wi-Fi 1201Mbps (Wi-Fi)
+[2026-05-18T18:48:49.436Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:231) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz" ramTotalGB=31.6 disk="SKHynix_HFS512GEJ9X115N 512.1GB SSD"
+[2026-05-18T18:48:49.439Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:28) [Telemetry:ws] building url — iss=switchcontrol sub=64f0e669-6db6-42e7-a68a-681f9f5db567
+[2026-05-18T18:48:49.446Z] [LOG] [Backend:stdout] [WS:auth] phase=validating tokenFp=eyJhbGci.eyJzdWIi
+[2026-05-18T18:48:49.446Z] [ERROR] [Backend:stderr] [AUTH] JWT verification failed: invalid signature | tokenFp=eyJhbGci.eyJzdWIi secretFp=a7969729 iss=switchcontrol age=16s exp=valid (exp in 2591984s) authMode=jwt
+[2026-05-18T18:48:49.447Z] [ERROR] [Backend:stderr] [WS:auth] phase=rejected reason=invalid_signature tokenFp=eyJhbGci.eyJzdWIi iss=switchcontrol
+[2026-05-18T18:48:49.450Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:28) [Telemetry:ws] event=connected attempt=1 wasReconnect=false
+[2026-05-18T18:48:49.453Z] [ERROR] [Renderer:warn] (index-B7MeDCVu.js:28) [Telemetry:ws] event=auth_rejected code=1008 reason="token_invalid_signature" — clearing JWT, suppressing reconnect
+[2026-05-18T18:48:49.453Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-18T18:48:52.400Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-18T18:48:53.539Z] [ERROR] [Renderer:warn] (index-B7MeDCVu.js:11) [IntervalGuard] ⚠ setInterval(250ms) clamped to 2000ms. Caller:     at file:///C:/Program%20Files/SwitchControl/resources/dist/assets/index-B7MeDCVu.js:246:21358 |     at wO (file:///C:/Program%20Files/SwitchControl/resources/dist/assets/index-B7MeDCVu.js:9:128726)
+[2026-05-18T18:48:54.411Z] [LOG] [ProcessControl:Scan] complete — total=135 protected=94 safe=3 duration=872ms
+[2026-05-18T18:48:56.195Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-18T18:48:58.045Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-18T18:48:59.232Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-18T18:48:59.274Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:179) [Tweaks:LOAD] source=zustand-persist enabled=37 total_known=51
+[2026-05-18T18:48:59.274Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:179) [Tweaks:LOAD] enabled_ids=gaming-mode, notifications, copilot, cortana, search-highlights, storage-sense, compact-explorer, recent-files, xbox-bar, bg-apps, disable-pointer-precision, disable-animations, show-file-extensions, hibernation, fast-startup, energy-logging, maintenance, vbs, page-combining, prefetch, superfetch, mem-opt, telemetry, tune-priority, bluetooth, xbox-services, fax-printer, synth-timers, disable-mpo, usb-selective-suspend, pcie-link-state, disable-delivery-opt, win-search-index, disable-activity-history, power-throttling, disable-auto-restart-apps, disable-wallpaper-compression
+[2026-05-18T18:48:59.274Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:179) [Tweaks:SYNC] hydration start gen=3
+[2026-05-18T18:48:59.275Z] [LOG] [PS] start file=main.js fn=tweak:syncAll reason=tweak-sync-all id=13 active=1
+[2026-05-18T18:48:59.275Z] [LOG] [PS-Exec] start file=main.js fn=tweak:syncAll reason=tweak-sync-all — 61 checks
+[2026-05-18T18:48:59.275Z] [LOG] [PS:tweak-executor] #73 queryPowerShell SPAWN ts=1779130139275 active=1
+[2026-05-18T18:48:59.277Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:10) [AuthRoute] path=/api/tweak-intelligence/system-state target=local reason=system-route base=http://127.0.0.1:64224/api
+[2026-05-18T18:48:59.277Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:10) [AuthRoute] path=/api/tweak-intelligence/rankings?applied=gaming-mode%2Cnotifications%2Ccopilot%2Ccortana%2Csearch-highlights%2Cstorage-sense%2Ccompact-explorer%2Crecent-files%2Cxbox-bar%2Cbg-apps%2Cdisable-pointer-precision%2Cdisable-animations%2Cshow-file-extensions%2Chibernation%2Cfast-startup%2Cenergy-logging%2Cmaintenance%2Cvbs%2Cpage-combining%2Cprefetch%2Csuperfetch%2Cmem-opt%2Ctelemetry%2Ctune-priority%2Cbluetooth%2Cxbox-services%2Cfax-printer%2Csynth-timers%2Cdisable-mpo%2Cusb-selective-suspend%2Cpcie-link-state%2Cdisable-delivery-opt%2Cwin-search-index%2Cdisable-activity-history%2Cpower-throttling%2Cdisable-auto-restart-apps%2Cdisable-wallpaper-compression target=local reason=system-route base=http://127.0.0.1:64224/api
+[2026-05-18T18:48:59.277Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:10) [AuthRoute] path=/api/tweak-intelligence/posture?applied=gaming-mode%2Cnotifications%2Ccopilot%2Ccortana%2Csearch-highlights%2Cstorage-sense%2Ccompact-explorer%2Crecent-files%2Cxbox-bar%2Cbg-apps%2Cdisable-pointer-precision%2Cdisable-animations%2Cshow-file-extensions%2Chibernation%2Cfast-startup%2Cenergy-logging%2Cmaintenance%2Cvbs%2Cpage-combining%2Cprefetch%2Csuperfetch%2Cmem-opt%2Ctelemetry%2Ctune-priority%2Cbluetooth%2Cxbox-services%2Cfax-printer%2Csynth-timers%2Cdisable-mpo%2Cusb-selective-suspend%2Cpcie-link-state%2Cdisable-delivery-opt%2Cwin-search-index%2Cdisable-activity-history%2Cpower-throttling%2Cdisable-auto-restart-apps%2Cdisable-wallpaper-compression target=local reason=system-route base=http://127.0.0.1:64224/api
+[2026-05-18T18:48:59.292Z] [ERROR] [Renderer:warn] (index-B7MeDCVu.js:179) [SliderHydration] svchost-split-threshold: read failed — Unknown slider tweak: svchost-split-threshold
+[2026-05-18T18:49:00.309Z] [LOG] [SliderExecutor] READ menu-show-delay: value=0 raw="0"
+[2026-05-18T18:49:00.312Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:179) [SliderHydration] menu-show-delay: value=0 missing=false
+[2026-05-18T18:49:00.349Z] [LOG] [SliderExecutor] READ low-level-hooks-timeout: value=1000 raw="1000"
+[2026-05-18T18:49:00.352Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:179) [SliderHydration] low-level-hooks-timeout: value=1000 missing=false
+[2026-05-18T18:49:00.353Z] [LOG] [SliderExecutor] READ hung-app-timeout: value=2000 raw="2000"
+[2026-05-18T18:49:00.355Z] [LOG] [SliderExecutor] READ wait-to-kill-app: value=4000 raw="4000"
+[2026-05-18T18:49:00.358Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:179) [SliderHydration] hung-app-timeout: value=2000 missing=false
+[2026-05-18T18:49:00.362Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:179) [SliderHydration] wait-to-kill-app: value=4000 missing=false
+[2026-05-18T18:49:00.364Z] [LOG] [SliderExecutor] READ win32-priority-sep: value=38 raw="38"
+[2026-05-18T18:49:00.368Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:179) [SliderHydration] win32-priority-sep: value=38 missing=false
+[2026-05-18T18:49:00.376Z] [LOG] [SliderExecutor] READ net-throttle-index: key absent — returning built-in default 10
+[2026-05-18T18:49:00.376Z] [LOG] [PS:tweak-executor] #73 queryPowerShell OK 1101ms
+[2026-05-18T18:49:00.377Z] [LOG] [PS:tweak-executor] #74 queryPowerShell SPAWN ts=1779130140377 active=1
+[2026-05-18T18:49:00.378Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:179) [SliderHydration] net-throttle-index: value=10 missing=true
+[2026-05-18T18:49:00.437Z] [LOG] [SliderExecutor] READ sys-responsiveness: value=1 raw="1"
+[2026-05-18T18:49:00.437Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:179) [SliderHydration] sys-responsiveness: value=1 missing=false
+[2026-05-18T18:49:00.470Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-18T18:49:00.473Z] [ERROR] [Renderer:error] (index-B7MeDCVu.js:9) Error: <path> attribute d: Expected path command, "M -200 70% Q 300 55% 600 …".
+[2026-05-18T18:49:00.473Z] [ERROR] [Renderer:error] (index-B7MeDCVu.js:9) Error: <path> attribute d: Expected path command, "M 0 20% Q 400 35% 700 …".
+[2026-05-18T18:49:00.978Z] [LOG] [PS:tweak-executor] #74 queryPowerShell OK 601ms
+[2026-05-18T18:49:00.978Z] [LOG] [PS:tweak-executor] #75 queryPowerShell SPAWN ts=1779130140978 active=1
+[2026-05-18T18:49:01.599Z] [LOG] [PS:tweak-executor] #75 queryPowerShell OK 621ms
+[2026-05-18T18:49:01.600Z] [LOG] [PS:tweak-executor] #76 queryPowerShell SPAWN ts=1779130141600 active=1
+[2026-05-18T18:49:02.186Z] [LOG] [PS:tweak-executor] #76 queryPowerShell OK 586ms
+[2026-05-18T18:49:02.186Z] [LOG] [PS:tweak-executor] #77 queryPowerShell SPAWN ts=1779130142186 active=1
+[2026-05-18T18:49:02.784Z] [LOG] [PS:tweak-executor] #77 queryPowerShell OK 598ms
+[2026-05-18T18:49:02.784Z] [LOG] [PS:tweak-executor] #78 queryPowerShell SPAWN ts=1779130142784 active=1
+[2026-05-18T18:49:03.381Z] [LOG] [PS:tweak-executor] #78 queryPowerShell OK 597ms
+[2026-05-18T18:49:03.381Z] [LOG] [PS:tweak-executor] #79 queryPowerShell SPAWN ts=1779130143381 active=1
+[2026-05-18T18:49:03.990Z] [LOG] [PS:tweak-executor] #79 queryPowerShell OK 609ms
+[2026-05-18T18:49:03.990Z] [LOG] [PS:tweak-executor] #80 queryPowerShell SPAWN ts=1779130143990 active=1
+[2026-05-18T18:49:04.589Z] [LOG] [PS:tweak-executor] #80 queryPowerShell OK 599ms
+[2026-05-18T18:49:04.589Z] [LOG] [PS:tweak-executor] #81 queryPowerShell SPAWN ts=1779130144589 active=1
+[2026-05-18T18:49:05.177Z] [LOG] [PS:tweak-executor] #81 queryPowerShell OK 588ms
+[2026-05-18T18:49:05.178Z] [LOG] [PS:tweak-executor] #82 queryPowerShell SPAWN ts=1779130145178 active=1
+[2026-05-18T18:49:05.442Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-18T18:49:05.443Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:158) [Timing] AppBooster | mount | +0ms
+[2026-05-18T18:49:05.446Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:172) [GameIcon] slug="fortnite" → canon="fortnite" source=vite-bundle url="file:///C:/Program%20Files/SwitchControl/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-05-18T18:49:05.456Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:158) [Timing] AppBooster | mount | +13ms
+[2026-05-18T18:49:05.458Z] [ERROR] [Renderer:warn] (index-B7MeDCVu.js:28) [Telemetry:ws] building url — no JWT available (unauthenticated connect will be rejected)
+[2026-05-18T18:49:05.460Z] [LOG] [Backend:stdout] [AppBooster] GET /games userId=64f0e669-6db6-42e7-a68a-681f9f5db567 — catalog: 16, installed: 0
+[2026-05-18T18:49:05.464Z] [ERROR] [Backend:stderr] [WS:auth] phase=rejected reason=no_token
+[2026-05-18T18:49:05.466Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:172) [GameIcon] LOAD OK — slug="fortnite" src="file:///C:/Program%20Files/SwitchControl/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-05-18T18:49:05.469Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:28) [Telemetry:ws] event=connected attempt=1 wasReconnect=false
+[2026-05-18T18:49:05.469Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:158) [Timing] AppBooster | mount | +0ms
+[2026-05-18T18:49:05.475Z] [ERROR] [Renderer:warn] (index-B7MeDCVu.js:28) [Telemetry:ws] event=auth_rejected code=1008 reason="Authentication required" — clearing JWT, suppressing reconnect
+[2026-05-18T18:49:05.475Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-18T18:49:05.475Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:158) [Timing] AppBooster | mount | +0ms
+[2026-05-18T18:49:05.493Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:158) [Timing] AppBooster | scan-start | +50ms
+[2026-05-18T18:49:05.493Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:158) [Timing] AppBooster | mount | +0ms
+[2026-05-18T18:49:05.495Z] [LOG] [AppBooster] Epic manifest: fortnitelauncher.exe → C:\Program Files\Epic Games\Fortnite\FortniteGame\Binaries\Win64
+[2026-05-18T18:49:05.825Z] [LOG] [PS:tweak-executor] #82 queryPowerShell OK 647ms
+[2026-05-18T18:49:05.825Z] [LOG] [PS:tweak-executor] #83 queryPowerShell SPAWN ts=1779130145825 active=1
+[2026-05-18T18:49:06.284Z] [LOG] [AppBooster]   fortnite: detected=true path=C:\Program Files\Epic Games\Fortnite\FortniteGame\Binaries\Win64
+[2026-05-18T18:49:06.289Z] [LOG] [AppBooster]   apex-legends: detected=false
+[2026-05-18T18:49:06.295Z] [LOG] [AppBooster]   warzone: detected=false
+[2026-05-18T18:49:06.300Z] [LOG] [AppBooster]   valorant: detected=false
+[2026-05-18T18:49:06.305Z] [LOG] [AppBooster]   cs2: detected=false
+[2026-05-18T18:49:06.311Z] [LOG] [AppBooster]   overwatch2: detected=false
+[2026-05-18T18:49:06.316Z] [LOG] [AppBooster]   rainbow-six-siege: detected=false
+[2026-05-18T18:49:06.321Z] [LOG] [AppBooster]   msfs-2024: detected=false
+[2026-05-18T18:49:06.326Z] [LOG] [AppBooster]   msfs-2020: detected=false
+[2026-05-18T18:49:06.332Z] [LOG] [AppBooster]   gta5: detected=false
+[2026-05-18T18:49:06.338Z] [LOG] [AppBooster]   cyberpunk: detected=false
+[2026-05-18T18:49:06.343Z] [LOG] [AppBooster]   elden-ring: detected=false
+[2026-05-18T18:49:06.348Z] [LOG] [AppBooster]   league-of-legends: detected=false
+[2026-05-18T18:49:06.354Z] [LOG] [AppBooster]   world-of-warcraft: detected=false
+[2026-05-18T18:49:06.360Z] [LOG] [AppBooster]   rocket-league: detected=false
+[2026-05-18T18:49:06.366Z] [LOG] [AppBooster]   minecraft: detected=false
+[2026-05-18T18:49:06.366Z] [LOG] [AppBooster] scanGames done — 1/16 detected
+[2026-05-18T18:49:06.367Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:10) [API] Fetching CSRF token from http://127.0.0.1:64224/api/csrf-token
+[2026-05-18T18:49:06.369Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:10) [API] CSRF token cached in memory (TTL 10 min)
+[2026-05-18T18:49:06.370Z] [LOG] [Backend:stdout] [AppBooster] POST /games/scan userId=64f0e669-6db6-42e7-a68a-681f9f5db567 — 16 result(s), 1 detected
+[2026-05-18T18:49:06.372Z] [LOG] [Backend:stdout] [AppBooster] GET /games userId=64f0e669-6db6-42e7-a68a-681f9f5db567 — catalog: 16, installed: 1
+[2026-05-18T18:49:06.373Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:158) [Timing] AppBooster | scan-done | +930ms
+[2026-05-18T18:49:06.374Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:158) [Timing] AppBooster | mount | +0ms
+[2026-05-18T18:49:06.374Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:172) [GameIcon] slug="fortnite" → canon="fortnite" source=vite-bundle url="file:///C:/Program%20Files/SwitchControl/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-05-18T18:49:06.380Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:172) [GameIcon] LOAD OK — slug="fortnite" src="file:///C:/Program%20Files/SwitchControl/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-05-18T18:49:06.381Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:158) [Timing] AppBooster | mount | +0ms
+[2026-05-18T18:49:06.381Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:172) [GameIcon] slug="fortnite" → canon="fortnite" source=vite-bundle url="file:///C:/Program%20Files/SwitchControl/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-05-18T18:49:06.425Z] [LOG] [PS:tweak-executor] #83 queryPowerShell OK 600ms
+[2026-05-18T18:49:06.425Z] [LOG] [PS:tweak-executor] #84 queryPowerShell SPAWN ts=1779130146425 active=1
+[2026-05-18T18:49:06.683Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:172) [GameIcon] slug="fortnite" → canon="fortnite" source=vite-bundle url="file:///C:/Program%20Files/SwitchControl/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-05-18T18:49:06.694Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:172) [GameIcon] LOAD OK — slug="fortnite" src="file:///C:/Program%20Files/SwitchControl/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-05-18T18:49:07.012Z] [LOG] [PS:tweak-executor] #84 queryPowerShell OK 587ms
+[2026-05-18T18:49:07.013Z] [LOG] [PS:tweak-executor] #85 queryPowerShell SPAWN ts=1779130147013 active=1
+[2026-05-18T18:49:07.280Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:158) [Timing] AppBooster | mount | +0ms
+[2026-05-18T18:49:07.281Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:172) [GameIcon] slug="fortnite" → canon="fortnite" source=vite-bundle url="file:///C:/Program%20Files/SwitchControl/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-05-18T18:49:07.282Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:172) [GameIcon] slug="minecraft" → canon="minecraft" source=vite-bundle url="file:///C:/Program%20Files/SwitchControl/resources/dist/assets/minecraft-BN8Y9AuC.png"
+[2026-05-18T18:49:07.282Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:172) [GameIcon] slug="fortnite" → canon="fortnite" source=vite-bundle url="file:///C:/Program%20Files/SwitchControl/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-05-18T18:49:07.296Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:172) [GameIcon] LOAD OK — slug="fortnite" src="file:///C:/Program%20Files/SwitchControl/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-05-18T18:49:07.296Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:172) [GameIcon] LOAD OK — slug="minecraft" src="file:///C:/Program%20Files/SwitchControl/resources/dist/assets/minecraft-BN8Y9AuC.png"
+[2026-05-18T18:49:07.617Z] [LOG] [PS:tweak-executor] #85 queryPowerShell OK 604ms
+[2026-05-18T18:49:07.617Z] [LOG] [PS:tweak-executor] #86 queryPowerShell SPAWN ts=1779130147617 active=1
+[2026-05-18T18:49:08.216Z] [LOG] [PS:tweak-executor] #86 queryPowerShell OK 599ms
+[2026-05-18T18:49:08.216Z] [LOG] [PS:tweak-executor] #87 queryPowerShell SPAWN ts=1779130148216 active=1
+[2026-05-18T18:49:08.806Z] [LOG] [PS:tweak-executor] #87 queryPowerShell OK 590ms
+[2026-05-18T18:49:08.806Z] [LOG] [PS:tweak-executor] #88 queryPowerShell SPAWN ts=1779130148806 active=1
+[2026-05-18T18:49:08.826Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-18T18:49:08.835Z] [LOG] [PS:nic-executor] #1 queryPS SPAWN ts=1779130148835
+[2026-05-18T18:49:09.410Z] [LOG] [PS:tweak-executor] #88 queryPowerShell OK 604ms
+[2026-05-18T18:49:09.410Z] [LOG] [PS:tweak-executor] #89 queryPowerShell SPAWN ts=1779130149410 active=1
+[2026-05-18T18:49:10.001Z] [LOG] [PS:tweak-executor] #89 queryPowerShell OK 591ms
+[2026-05-18T18:49:10.001Z] [LOG] [PS:tweak-executor] #90 queryPowerShell SPAWN ts=1779130150001 active=1
+[2026-05-18T18:49:10.240Z] [LOG] [PS:nic-executor] #1 queryPS OK 1405ms
+[2026-05-18T18:49:10.246Z] [LOG] [PS:nic-executor] #2 queryPS SPAWN ts=1779130150246
+[2026-05-18T18:49:10.255Z] [ERROR] [Renderer:warn] (index-B7MeDCVu.js:28) [Telemetry:ws] building url — no JWT available (unauthenticated connect will be rejected)
+[2026-05-18T18:49:10.258Z] [ERROR] [Backend:stderr] [WS:auth] phase=rejected reason=no_token
+[2026-05-18T18:49:10.262Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:28) [Telemetry:ws] event=connected attempt=1 wasReconnect=false
+[2026-05-18T18:49:10.262Z] [ERROR] [Renderer:warn] (index-B7MeDCVu.js:28) [Telemetry:ws] event=auth_rejected code=1008 reason="Authentication required" — clearing JWT, suppressing reconnect
+[2026-05-18T18:49:10.263Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-18T18:49:10.663Z] [LOG] [PS:tweak-executor] #90 queryPowerShell OK 662ms
+[2026-05-18T18:49:10.663Z] [LOG] [PS:tweak-executor] #91 queryPowerShell SPAWN ts=1779130150663 active=1
+[2026-05-18T18:49:11.295Z] [LOG] [PS:tweak-executor] #91 queryPowerShell OK 632ms
+[2026-05-18T18:49:11.296Z] [LOG] [PS:tweak-executor] #92 queryPowerShell SPAWN ts=1779130151296 active=1
+[2026-05-18T18:49:11.499Z] [LOG] [PS:nic-executor] #2 queryPS OK 1253ms
+[2026-05-18T18:49:12.582Z] [LOG] [PS:tweak-executor] #92 queryPowerShell OK 1286ms
+[2026-05-18T18:49:12.582Z] [LOG] [PS:tweak-executor] #93 queryPowerShell SPAWN ts=1779130152582 active=1
+[2026-05-18T18:49:13.250Z] [LOG] [PS:tweak-executor] #93 queryPowerShell OK 668ms
+[2026-05-18T18:49:13.250Z] [LOG] [PS:tweak-executor] #94 queryPowerShell SPAWN ts=1779130153250 active=1
+[2026-05-18T18:49:13.896Z] [LOG] [PS:tweak-executor] #94 queryPowerShell OK 646ms
+[2026-05-18T18:49:13.896Z] [LOG] [PS:tweak-executor] #95 queryPowerShell SPAWN ts=1779130153896 active=1
+[2026-05-18T18:49:14.544Z] [LOG] [PS:tweak-executor] #95 queryPowerShell OK 648ms
+[2026-05-18T18:49:14.544Z] [LOG] [PS:tweak-executor] #96 queryPowerShell SPAWN ts=1779130154544 active=1
+[2026-05-18T18:49:15.224Z] [LOG] [PS:tweak-executor] #96 queryPowerShell OK 680ms
+[2026-05-18T18:49:15.225Z] [LOG] [PS:tweak-executor] #97 queryPowerShell SPAWN ts=1779130155225 active=1
+[2026-05-18T18:49:15.860Z] [LOG] [PS:tweak-executor] #97 queryPowerShell OK 635ms
+[2026-05-18T18:49:15.860Z] [LOG] [PS:tweak-executor] #98 queryPowerShell SPAWN ts=1779130155860 active=1
+[2026-05-18T18:49:16.841Z] [LOG] [PS:tweak-executor] #98 queryPowerShell OK 981ms
+[2026-05-18T18:49:16.841Z] [LOG] [PS:tweak-executor] #99 queryPowerShell SPAWN ts=1779130156841 active=1
+[2026-05-18T18:49:17.520Z] [LOG] [PS:tweak-executor] #99 queryPowerShell OK 679ms
+[2026-05-18T18:49:17.520Z] [LOG] [PS:tweak-executor] #100 queryPowerShell SPAWN ts=1779130157520 active=1
+[2026-05-18T18:49:18.116Z] [LOG] [PS:tweak-executor] #100 queryPowerShell OK 596ms
+[2026-05-18T18:49:18.116Z] [LOG] [PS:tweak-executor] #101 queryPowerShell SPAWN ts=1779130158116 active=1
+[2026-05-18T18:49:18.727Z] [LOG] [PS:tweak-executor] #101 queryPowerShell OK 611ms
+[2026-05-18T18:49:18.727Z] [LOG] [PS:tweak-executor] #102 queryPowerShell SPAWN ts=1779130158727 active=1
+[2026-05-18T18:49:19.330Z] [LOG] [PS:tweak-executor] #102 queryPowerShell OK 603ms
+[2026-05-18T18:49:19.330Z] [LOG] [PS:tweak-executor] #103 queryPowerShell SPAWN ts=1779130159330 active=1
+[2026-05-18T18:49:20.155Z] [LOG] [PS:tweak-executor] #103 queryPowerShell OK 825ms
+[2026-05-18T18:49:20.155Z] [LOG] [TweakSupport] id=nvidia-telemetry, supported=false, reason="No NVIDIA GPU detected", os=10.0.26200, helperFound=false
+[2026-05-18T18:49:20.156Z] [LOG] [PS:tweak-executor] #104 queryPowerShell SPAWN ts=1779130160156 active=1
+[2026-05-18T18:49:20.830Z] [LOG] [PS:tweak-executor] #104 queryPowerShell OK 674ms
+[2026-05-18T18:49:20.830Z] [LOG] [PS:tweak-executor] #105 queryPowerShell SPAWN ts=1779130160830 active=1
+[2026-05-18T18:49:21.446Z] [LOG] [PS:tweak-executor] #105 queryPowerShell OK 616ms
+[2026-05-18T18:49:21.447Z] [LOG] [PS:tweak-executor] #106 queryPowerShell SPAWN ts=1779130161447 active=1
+[2026-05-18T18:49:22.041Z] [LOG] [PS:tweak-executor] #106 queryPowerShell OK 594ms
+[2026-05-18T18:49:22.041Z] [LOG] [PS:tweak-executor] #107 queryPowerShell SPAWN ts=1779130162041 active=1
+[2026-05-18T18:49:22.634Z] [LOG] [PS:tweak-executor] #107 queryPowerShell OK 593ms
+[2026-05-18T18:49:22.635Z] [LOG] [PS:tweak-executor] #108 queryPowerShell SPAWN ts=1779130162635 active=1
+[2026-05-18T18:49:23.307Z] [LOG] [PS:tweak-executor] #108 queryPowerShell OK 672ms
+[2026-05-18T18:49:23.307Z] [LOG] [PS:tweak-executor] #109 queryPowerShell SPAWN ts=1779130163307 active=1
+[2026-05-18T18:49:24.015Z] [LOG] [PS:tweak-executor] #109 queryPowerShell OK 707ms
+[2026-05-18T18:49:24.015Z] [LOG] [PS:tweak-executor] #110 queryPowerShell SPAWN ts=1779130164015 active=1
+[2026-05-18T18:49:24.672Z] [LOG] [PS:tweak-executor] #110 queryPowerShell OK 657ms
+[2026-05-18T18:49:24.672Z] [LOG] [PS:tweak-executor] #111 queryPowerShell SPAWN ts=1779130164672 active=1
+[2026-05-18T18:49:25.266Z] [LOG] [PS:tweak-executor] #111 queryPowerShell OK 594ms
+[2026-05-18T18:49:25.266Z] [LOG] [PS:tweak-executor] #112 queryPowerShell SPAWN ts=1779130165266 active=1
+[2026-05-18T18:49:26.001Z] [LOG] [PS:tweak-executor] #112 queryPowerShell OK 735ms
+[2026-05-18T18:49:26.001Z] [LOG] [TweakSupport] id=usb-selective-suspend, supported=true, reason="powercfg USB setting present", os=10.0.26200, helperFound=true
+[2026-05-18T18:49:26.001Z] [LOG] [PS:tweak-executor] #113 queryPowerShell SPAWN ts=1779130166001 active=1
+[2026-05-18T18:49:26.658Z] [LOG] [PS:tweak-executor] #113 queryPowerShell OK 657ms
+[2026-05-18T18:49:26.658Z] [LOG] [PS:tweak-executor] #114 queryPowerShell SPAWN ts=1779130166658 active=1
+[2026-05-18T18:49:27.328Z] [LOG] [PS:tweak-executor] #114 queryPowerShell OK 670ms
+[2026-05-18T18:49:27.329Z] [LOG] [PS:tweak-executor] #115 queryPowerShell SPAWN ts=1779130167329 active=1
+[2026-05-18T18:49:27.949Z] [LOG] [PS:tweak-executor] #115 queryPowerShell OK 620ms
+[2026-05-18T18:49:27.950Z] [LOG] [PS:tweak-executor] #116 queryPowerShell SPAWN ts=1779130167950 active=1
+[2026-05-18T18:49:28.564Z] [LOG] [PS:tweak-executor] #116 queryPowerShell OK 614ms
+[2026-05-18T18:49:28.564Z] [LOG] [PS:tweak-executor] #117 queryPowerShell SPAWN ts=1779130168564 active=1
+[2026-05-18T18:49:29.252Z] [LOG] [PS:tweak-executor] #117 queryPowerShell OK 688ms
+[2026-05-18T18:49:29.252Z] [LOG] [PS:tweak-executor] #118 queryPowerShell SPAWN ts=1779130169252 active=1
+[2026-05-18T18:49:29.904Z] [LOG] [PS:tweak-executor] #118 queryPowerShell OK 652ms
+[2026-05-18T18:49:29.904Z] [LOG] [PS:tweak-executor] #119 queryPowerShell SPAWN ts=1779130169904 active=1
+[2026-05-18T18:49:30.506Z] [LOG] [PS:tweak-executor] #119 queryPowerShell OK 602ms
+[2026-05-18T18:49:30.506Z] [LOG] [PS:tweak-executor] #120 queryPowerShell SPAWN ts=1779130170506 active=1
+[2026-05-18T18:49:31.106Z] [LOG] [PS:tweak-executor] #120 queryPowerShell OK 600ms
+[2026-05-18T18:49:31.106Z] [LOG] [PS:tweak-executor] #121 queryPowerShell SPAWN ts=1779130171106 active=1
+[2026-05-18T18:49:31.704Z] [LOG] [PS:tweak-executor] #121 queryPowerShell OK 598ms
+[2026-05-18T18:49:31.704Z] [LOG] [PS:tweak-executor] #122 queryPowerShell SPAWN ts=1779130171704 active=1
+[2026-05-18T18:49:32.319Z] [LOG] [PS:tweak-executor] #122 queryPowerShell OK 615ms
+[2026-05-18T18:49:32.319Z] [LOG] [PS:tweak-executor] #123 queryPowerShell SPAWN ts=1779130172319 active=1
+[2026-05-18T18:49:32.982Z] [LOG] [PS:tweak-executor] #123 queryPowerShell OK 663ms
+[2026-05-18T18:49:32.982Z] [LOG] [PS:tweak-executor] #124 queryPowerShell SPAWN ts=1779130172982 active=1
+[2026-05-18T18:49:33.595Z] [LOG] [PS:tweak-executor] #124 queryPowerShell OK 613ms
+[2026-05-18T18:49:33.596Z] [LOG] [PS:tweak-executor] #125 queryPowerShell SPAWN ts=1779130173596 active=1
+[2026-05-18T18:49:33.742Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [App] Window focused, refreshing entitlements...
+[2026-05-18T18:49:33.743Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:124) [Window] Focus event received
+[2026-05-18T18:49:33.743Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [App] Electron window focus (passive)
+[2026-05-18T18:49:34.201Z] [LOG] [PS:tweak-executor] #125 queryPowerShell OK 605ms
+[2026-05-18T18:49:34.201Z] [LOG] [PS:tweak-executor] #126 queryPowerShell SPAWN ts=1779130174201 active=1
+[2026-05-18T18:49:34.642Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-18T18:49:34.643Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:158) [Timing] FocusMode | mount | +0ms
+[2026-05-18T18:49:34.668Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:158) [Timing] FocusMode | fetch-state | +25ms
+[2026-05-18T18:49:34.671Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:10) [AuthRoute] path=/api/focus/state target=local reason=system-route base=http://127.0.0.1:64224/api
+[2026-05-18T18:49:34.672Z] [ERROR] [Renderer:warn] (index-B7MeDCVu.js:28) [Telemetry:ws] building url — no JWT available (unauthenticated connect will be rejected)
+[2026-05-18T18:49:34.683Z] [ERROR] [Backend:stderr] [WS:auth] phase=rejected reason=no_token
+[2026-05-18T18:49:34.687Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:158) [Timing] FocusMode | fetch-state-done | +45ms
+[2026-05-18T18:49:34.688Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:28) [Telemetry:ws] event=connected attempt=1 wasReconnect=false
+[2026-05-18T18:49:34.688Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:158) [Timing] FocusMode | mount | +0ms
+[2026-05-18T18:49:34.692Z] [ERROR] [Renderer:warn] (index-B7MeDCVu.js:28) [Telemetry:ws] event=auth_rejected code=1008 reason="Authentication required" — clearing JWT, suppressing reconnect
+[2026-05-18T18:49:34.693Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-18T18:49:34.693Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:158) [Timing] FocusMode | mount | +0ms
+[2026-05-18T18:49:35.025Z] [LOG] [PS:tweak-executor] #126 queryPowerShell OK 824ms
+[2026-05-18T18:49:35.025Z] [LOG] [PS:tweak-executor] #127 queryPowerShell SPAWN ts=1779130175025 active=1
+[2026-05-18T18:49:35.066Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:10) [AuthRoute] path=/api/focus/history target=local reason=system-route base=http://127.0.0.1:64224/api
+[2026-05-18T18:49:35.068Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:158) [Timing] FocusMode | fetch-history-done | +426ms
+[2026-05-18T18:49:35.069Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:158) [Timing] FocusMode | mount | +0ms
+[2026-05-18T18:49:35.323Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-18T18:49:35.324Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:158) [Timing] AppBooster | mount | +0ms
+[2026-05-18T18:49:35.327Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:172) [GameIcon] slug="fortnite" → canon="fortnite" source=vite-bundle url="file:///C:/Program%20Files/SwitchControl/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-05-18T18:49:35.334Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:158) [Timing] AppBooster | mount | +10ms
+[2026-05-18T18:49:35.337Z] [ERROR] [Renderer:warn] (index-B7MeDCVu.js:28) [Telemetry:ws] building url — no JWT available (unauthenticated connect will be rejected)
+[2026-05-18T18:49:35.338Z] [LOG] [Backend:stdout] [AppBooster] GET /games userId=64f0e669-6db6-42e7-a68a-681f9f5db567 — catalog: 16, installed: 1
+[2026-05-18T18:49:35.344Z] [ERROR] [Backend:stderr] [WS:auth] phase=rejected reason=no_token
+[2026-05-18T18:49:35.345Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:172) [GameIcon] LOAD OK — slug="fortnite" src="file:///C:/Program%20Files/SwitchControl/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-05-18T18:49:35.350Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:28) [Telemetry:ws] event=connected attempt=1 wasReconnect=false
+[2026-05-18T18:49:35.350Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:158) [Timing] AppBooster | mount | +0ms
+[2026-05-18T18:49:35.350Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:172) [GameIcon] slug="fortnite" → canon="fortnite" source=vite-bundle url="file:///C:/Program%20Files/SwitchControl/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-05-18T18:49:35.355Z] [ERROR] [Renderer:warn] (index-B7MeDCVu.js:28) [Telemetry:ws] event=auth_rejected code=1008 reason="Authentication required" — clearing JWT, suppressing reconnect
+[2026-05-18T18:49:35.355Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-18T18:49:35.356Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:158) [Timing] AppBooster | mount | +0ms
+[2026-05-18T18:49:35.356Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:172) [GameIcon] slug="fortnite" → canon="fortnite" source=vite-bundle url="file:///C:/Program%20Files/SwitchControl/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-05-18T18:49:35.362Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:158) [Timing] AppBooster | scan-start | +38ms
+[2026-05-18T18:49:35.362Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:158) [Timing] AppBooster | mount | +0ms
+[2026-05-18T18:49:35.363Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:172) [GameIcon] slug="fortnite" → canon="fortnite" source=vite-bundle url="file:///C:/Program%20Files/SwitchControl/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-05-18T18:49:35.364Z] [LOG] [AppBooster] Epic manifest: fortnitelauncher.exe → C:\Program Files\Epic Games\Fortnite\FortniteGame\Binaries\Win64
+[2026-05-18T18:49:35.649Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-18T18:49:35.649Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:158) [Timing] AppBooster | mount | +0ms
+[2026-05-18T18:49:35.650Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:172) [GameIcon] slug="fortnite" → canon="fortnite" source=vite-bundle url="file:///C:/Program%20Files/SwitchControl/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-05-18T18:49:35.776Z] [LOG] [PS:tweak-executor] #127 queryPowerShell OK 751ms
+[2026-05-18T18:49:35.776Z] [LOG] [PS:tweak-executor] #128 queryPowerShell SPAWN ts=1779130175776 active=1
+[2026-05-18T18:49:36.281Z] [LOG] [AppBooster]   fortnite: detected=true path=C:\Program Files\Epic Games\Fortnite\FortniteGame\Binaries\Win64
+[2026-05-18T18:49:36.287Z] [LOG] [AppBooster]   apex-legends: detected=false
+[2026-05-18T18:49:36.293Z] [LOG] [AppBooster]   warzone: detected=false
+[2026-05-18T18:49:36.299Z] [LOG] [AppBooster]   valorant: detected=false
+[2026-05-18T18:49:36.304Z] [LOG] [AppBooster]   cs2: detected=false
+[2026-05-18T18:49:36.310Z] [LOG] [AppBooster]   overwatch2: detected=false
+[2026-05-18T18:49:36.315Z] [LOG] [AppBooster]   rainbow-six-siege: detected=false
+[2026-05-18T18:49:36.321Z] [LOG] [AppBooster]   msfs-2024: detected=false
+[2026-05-18T18:49:36.326Z] [LOG] [AppBooster]   msfs-2020: detected=false
+[2026-05-18T18:49:36.331Z] [LOG] [AppBooster]   gta5: detected=false
+[2026-05-18T18:49:36.336Z] [LOG] [AppBooster]   cyberpunk: detected=false
+[2026-05-18T18:49:36.341Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-18T18:49:36.343Z] [LOG] [AppBooster]   elden-ring: detected=false
+[2026-05-18T18:49:36.343Z] [ERROR] [Renderer:error] (index-B7MeDCVu.js:9) Error: <path> attribute d: Expected path command, "M -200 70% Q 300 55% 600 …".
+[2026-05-18T18:49:36.343Z] [ERROR] [Renderer:error] (index-B7MeDCVu.js:9) Error: <path> attribute d: Expected path command, "M 0 20% Q 400 35% 700 …".
+[2026-05-18T18:49:36.348Z] [LOG] [AppBooster]   league-of-legends: detected=false
+[2026-05-18T18:49:36.355Z] [LOG] [AppBooster]   world-of-warcraft: detected=false
+[2026-05-18T18:49:36.362Z] [LOG] [AppBooster]   rocket-league: detected=false
+[2026-05-18T18:49:36.371Z] [LOG] [AppBooster]   minecraft: detected=false
+[2026-05-18T18:49:36.371Z] [LOG] [AppBooster] scanGames done — 1/16 detected
+[2026-05-18T18:49:36.373Z] [LOG] [Backend:stdout] [AppBooster] POST /games/scan userId=64f0e669-6db6-42e7-a68a-681f9f5db567 — 16 result(s), 1 detected
+[2026-05-18T18:49:36.375Z] [LOG] [Backend:stdout] [AppBooster] GET /games userId=64f0e669-6db6-42e7-a68a-681f9f5db567 — catalog: 16, installed: 1
+[2026-05-18T18:49:36.379Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:158) [Timing] AppBooster | scan-done | +1055ms
+[2026-05-18T18:49:36.562Z] [LOG] [PS:tweak-executor] #128 queryPowerShell OK 786ms
+[2026-05-18T18:49:36.562Z] [LOG] [PS:tweak-executor] #129 queryPowerShell SPAWN ts=1779130176562 active=1
+[2026-05-18T18:49:36.828Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-18T18:49:36.874Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:179) [Tweaks:LOAD] source=zustand-persist enabled=37 total_known=51
+[2026-05-18T18:49:36.874Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:179) [Tweaks:LOAD] enabled_ids=gaming-mode, notifications, copilot, cortana, search-highlights, storage-sense, compact-explorer, recent-files, xbox-bar, bg-apps, disable-pointer-precision, disable-animations, show-file-extensions, hibernation, fast-startup, energy-logging, maintenance, vbs, page-combining, prefetch, superfetch, mem-opt, telemetry, tune-priority, bluetooth, xbox-services, fax-printer, synth-timers, disable-mpo, usb-selective-suspend, pcie-link-state, disable-delivery-opt, win-search-index, disable-activity-history, power-throttling, disable-auto-restart-apps, disable-wallpaper-compression
+[2026-05-18T18:49:36.874Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:179) [Tweaks:SYNC] hydration start gen=4
+[2026-05-18T18:49:36.874Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=tweak:syncAll reason=tweak-sync-all activeOwner=main.js::tweak:syncAll activeSince=2026-05-18T18:48:59.275Z
+[2026-05-18T18:49:36.875Z] [LOG] [tweak:syncAll] returning explicit skipped result — sync already in progress
+[2026-05-18T18:49:36.875Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:10) [AuthRoute] path=/api/tweak-intelligence/system-state target=local reason=system-route base=http://127.0.0.1:64224/api
+[2026-05-18T18:49:36.875Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:10) [AuthRoute] path=/api/tweak-intelligence/rankings?applied=gaming-mode%2Cnotifications%2Ccopilot%2Ccortana%2Csearch-highlights%2Cstorage-sense%2Ccompact-explorer%2Crecent-files%2Cxbox-bar%2Cbg-apps%2Cdisable-pointer-precision%2Cdisable-animations%2Cshow-file-extensions%2Chibernation%2Cfast-startup%2Cenergy-logging%2Cmaintenance%2Cvbs%2Cpage-combining%2Cprefetch%2Csuperfetch%2Cmem-opt%2Ctelemetry%2Ctune-priority%2Cbluetooth%2Cxbox-services%2Cfax-printer%2Csynth-timers%2Cdisable-mpo%2Cusb-selective-suspend%2Cpcie-link-state%2Cdisable-delivery-opt%2Cwin-search-index%2Cdisable-activity-history%2Cpower-throttling%2Cdisable-auto-restart-apps%2Cdisable-wallpaper-compression target=local reason=system-route base=http://127.0.0.1:64224/api
+[2026-05-18T18:49:36.875Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:10) [AuthRoute] path=/api/tweak-intelligence/posture?applied=gaming-mode%2Cnotifications%2Ccopilot%2Ccortana%2Csearch-highlights%2Cstorage-sense%2Ccompact-explorer%2Crecent-files%2Cxbox-bar%2Cbg-apps%2Cdisable-pointer-precision%2Cdisable-animations%2Cshow-file-extensions%2Chibernation%2Cfast-startup%2Cenergy-logging%2Cmaintenance%2Cvbs%2Cpage-combining%2Cprefetch%2Csuperfetch%2Cmem-opt%2Ctelemetry%2Ctune-priority%2Cbluetooth%2Cxbox-services%2Cfax-printer%2Csynth-timers%2Cdisable-mpo%2Cusb-selective-suspend%2Cpcie-link-state%2Cdisable-delivery-opt%2Cwin-search-index%2Cdisable-activity-history%2Cpower-throttling%2Cdisable-auto-restart-apps%2Cdisable-wallpaper-compression target=local reason=system-route base=http://127.0.0.1:64224/api
+[2026-05-18T18:49:36.892Z] [ERROR] [Renderer:warn] (index-B7MeDCVu.js:179) [SliderHydration] svchost-split-threshold: read failed — Unknown slider tweak: svchost-split-threshold
+[2026-05-18T18:49:36.894Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:28) [TweakExecutor] syncAll skipped by main process — using cached state
+[2026-05-18T18:49:36.895Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:179) [Tweaks:SYNC] skipped (no results from syncAll)
+[2026-05-18T18:49:37.523Z] [LOG] [PS:tweak-executor] #129 queryPowerShell OK 961ms
+[2026-05-18T18:49:37.523Z] [LOG] [PS:tweak-executor] #130 queryPowerShell SPAWN ts=1779130177523 active=1
+[2026-05-18T18:49:37.636Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-18T18:49:37.683Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:158) [Dashboard] mounted
+[2026-05-18T18:49:37.683Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:158) [ActivityMonitor] mounted — no cached history yet, status: unavailable
+[2026-05-18T18:49:37.720Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:64224/api
+[2026-05-18T18:49:37.720Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:10) [AuthRoute] path=/api/dashboard-intelligence/system-dna target=local reason=system-route base=http://127.0.0.1:64224/api
+[2026-05-18T18:49:37.721Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:64224/api
+[2026-05-18T18:49:37.721Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:64224/api
+[2026-05-18T18:49:37.721Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:10) [AuthRoute] path=/api/dashboard-intelligence/ram-analysis target=local reason=system-route base=http://127.0.0.1:64224/api
+[2026-05-18T18:49:37.721Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:10) [AuthRoute] path=/api/dashboard-intelligence/display-signal target=local reason=system-route base=http://127.0.0.1:64224/api
+[2026-05-18T18:49:37.721Z] [ERROR] [Renderer:warn] (index-B7MeDCVu.js:28) [Telemetry:ws] building url — no JWT available (unauthenticated connect will be rejected)
+[2026-05-18T18:49:37.759Z] [ERROR] [Backend:stderr] [WS:auth] phase=rejected reason=no_token
+[2026-05-18T18:49:37.762Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:28) [Telemetry:ws] event=connected attempt=1 wasReconnect=false
+[2026-05-18T18:49:37.779Z] [ERROR] [Renderer:warn] (index-B7MeDCVu.js:28) [Telemetry:ws] event=auth_rejected code=1008 reason="Authentication required" — clearing JWT, suppressing reconnect
+[2026-05-18T18:49:37.779Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-18T18:49:38.074Z] [LOG] [SliderExecutor] READ win32-priority-sep: value=38 raw="38"
+[2026-05-18T18:49:38.087Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:179) [SliderHydration] win32-priority-sep: value=38 missing=false
+[2026-05-18T18:49:38.189Z] [LOG] [SliderExecutor] READ net-throttle-index: key absent — returning built-in default 10
+[2026-05-18T18:49:38.190Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:179) [SliderHydration] net-throttle-index: value=10 missing=true
+[2026-05-18T18:49:38.249Z] [LOG] [SliderExecutor] READ low-level-hooks-timeout: value=1000 raw="1000"
+[2026-05-18T18:49:38.250Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:179) [SliderHydration] low-level-hooks-timeout: value=1000 missing=false
+[2026-05-18T18:49:38.282Z] [LOG] [SliderExecutor] READ menu-show-delay: value=0 raw="0"
+[2026-05-18T18:49:38.284Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:179) [SliderHydration] menu-show-delay: value=0 missing=false
+[2026-05-18T18:49:38.377Z] [LOG] [SliderExecutor] READ wait-to-kill-app: value=4000 raw="4000"
+[2026-05-18T18:49:38.379Z] [LOG] [SliderExecutor] READ hung-app-timeout: value=2000 raw="2000"
+[2026-05-18T18:49:38.380Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:179) [SliderHydration] wait-to-kill-app: value=4000 missing=false
+[2026-05-18T18:49:38.381Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:179) [SliderHydration] hung-app-timeout: value=2000 missing=false
+[2026-05-18T18:49:38.385Z] [LOG] [SliderExecutor] READ sys-responsiveness: value=1 raw="1"
+[2026-05-18T18:49:38.386Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:179) [SliderHydration] sys-responsiveness: value=1 missing=false
+[2026-05-18T18:49:38.886Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:10) [AuthRoute] path=/api/startup/apps target=local reason=system-route base=http://127.0.0.1:64224/api
+[2026-05-18T18:49:40.655Z] [LOG] [PS:tweak-executor] #130 queryPowerShell OK 3132ms
+[2026-05-18T18:49:40.655Z] [LOG] [PS:tweak-executor] #131 queryPowerShell SPAWN ts=1779130180655 active=1
+[2026-05-18T18:49:41.321Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-18T18:49:41.338Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:245) [ExtremeLabs] {"userTier":"premium","trial":false,"premium":true,"desktopMode":true,"canApply":true,"canAnalyze":true}
+[2026-05-18T18:49:41.352Z] [ERROR] [Renderer:warn] (index-B7MeDCVu.js:28) [Telemetry:ws] building url — no JWT available (unauthenticated connect will be rejected)
+[2026-05-18T18:49:41.363Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:10) [AuthRoute] path=/api/issues/detect target=local reason=system-route base=http://127.0.0.1:64224/api
+[2026-05-18T18:49:41.366Z] [ERROR] [Backend:stderr] [WS:auth] phase=rejected reason=no_token
+[2026-05-18T18:49:41.381Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:28) [Telemetry:ws] event=connected attempt=1 wasReconnect=false
+[2026-05-18T18:49:41.400Z] [ERROR] [Renderer:warn] (index-B7MeDCVu.js:28) [Telemetry:ws] event=auth_rejected code=1008 reason="Authentication required" — clearing JWT, suppressing reconnect
+[2026-05-18T18:49:41.400Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-18T18:49:41.737Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-18T18:49:41.739Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:140) [calculateBiosScores] settings=36 | latencyTotal=33.01 frametime=32.33999999999999 stability=27.18 | clamped: latency=33.01 frametime=32.33999999999999 stability=27.18 cr=32
+[2026-05-18T18:49:41.782Z] [ERROR] [Renderer:error] (index-B7MeDCVu.js:11) Error: <circle> attribute r: Expected length, "undefined".
+[2026-05-18T18:49:41.896Z] [LOG] [PS:tweak-executor] #131 queryPowerShell OK 1241ms
+[2026-05-18T18:49:41.896Z] [LOG] [PS:tweak-executor] #132 queryPowerShell SPAWN ts=1779130181896 active=1
+[2026-05-18T18:49:42.584Z] [LOG] [PS:tweak-executor] #132 queryPowerShell OK 688ms
+[2026-05-18T18:49:42.584Z] [LOG] [PS:tweak-executor] #133 queryPowerShell SPAWN ts=1779130182584 active=1
+[2026-05-18T18:49:42.660Z] [LOG] [SwitchControl] System specs loaded: Ryzen 7 9800X3D 8-Core Processor AMD Radeon RX 7800 XT
+[2026-05-18T18:49:42.681Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-18T18:49:42.800Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-18T18:49:42.818Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:231) [AI:CONTEXT] source=zustand-store enabled=37 disabled=30
+[2026-05-18T18:49:42.818Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:231) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, synth-timers, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-18T18:49:42.819Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:231) [AI:CONTEXT] system-intelligence enriched | MB=X870E AORUS PRO ICE | BIOS=F12a | net=Wi-Fi 1201Mbps (Wi-Fi)
+[2026-05-18T18:49:42.819Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:231) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz" ramTotalGB=31.6 disk="SKHynix_HFS512GEJ9X115N 512.1GB SSD"
+[2026-05-18T18:49:42.823Z] [ERROR] [Renderer:warn] (index-B7MeDCVu.js:28) [Telemetry:ws] building url — no JWT available (unauthenticated connect will be rejected)
+[2026-05-18T18:49:42.833Z] [ERROR] [Backend:stderr] [WS:auth] phase=rejected reason=no_token
+[2026-05-18T18:49:42.840Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:28) [Telemetry:ws] event=connected attempt=1 wasReconnect=false
+[2026-05-18T18:49:42.844Z] [ERROR] [Renderer:warn] (index-B7MeDCVu.js:28) [Telemetry:ws] event=auth_rejected code=1008 reason="Authentication required" — clearing JWT, suppressing reconnect
+[2026-05-18T18:49:42.844Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-18T18:49:43.120Z] [ERROR] [Renderer:warn] (index-B7MeDCVu.js:29) [CloudAPI] 401 on GET /ai-advisor/context — attempting JWT reissue...
+[2026-05-18T18:49:43.701Z] [LOG] [PS:tweak-executor] #133 queryPowerShell OK 1117ms
+[2026-05-18T18:49:43.701Z] [LOG] [PS-Exec] done file=main.js fn=tweak:syncAll ms=44426
+[2026-05-18T18:49:43.701Z] [LOG] [PS] end file=main.js fn=tweak:syncAll id=13 duration=44426ms active=0 calls60s=2
+[2026-05-18T18:49:43.703Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:179) [Tweaks:SYNC] stale result discarded gen=3 current=4
+[2026-05-18T18:49:43.735Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:10) [API] JWT silently reissued — fresh token stored
+[2026-05-18T18:49:43.735Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-18T18:49:43.740Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:29) [CloudAPI] JWT reissued — retrying GET /ai-advisor/context...
+[2026-05-18T18:49:45.693Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:239) [AI:INPUT] sending_message="What tweaks are safe to enable without risk?"
+[2026-05-18T18:49:45.693Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:239) [AI:INPUT] enabled_tweaks=37 disabled_tweaks=30
+[2026-05-18T18:49:45.693Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:239) [AI:INPUT] enabled_tweak_ids=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, synth-timers, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-18T18:49:45.693Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:239) [AI:INPUT] hardware cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz"
+[2026-05-18T18:49:45.700Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:29) [CloudAPI] 2026-05-18T18:49:45.700Z | POST /ai/chat | auth=true | base=https://switchcontrol.org/api
+[2026-05-18T18:49:48.029Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:124) [Window] Focus event received
+[2026-05-18T18:49:48.030Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [App] Electron window focus (passive)
+[2026-05-18T18:49:49.856Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:29) [CloudAPI] OK | POST /ai/chat | status=200
+[2026-05-18T18:49:49.856Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:239) [AI:OUTPUT] chars=776 preview="Most tweaks in SwitchControl are designed to optimize your system's performance without introducing risks. Here are some…"
+[2026-05-18T18:50:02.391Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:124) [Window] Focus event received
+[2026-05-18T18:50:02.391Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [App] Electron window focus (passive)
+[2026-05-18T18:50:12.990Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:239) [AI:INPUT] sending_message="can you applyir"
+[2026-05-18T18:50:12.990Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:239) [AI:INPUT] enabled_tweaks=37 disabled_tweaks=30
+[2026-05-18T18:50:12.990Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:239) [AI:INPUT] enabled_tweak_ids=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, synth-timers, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-18T18:50:12.990Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:239) [AI:INPUT] hardware cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz"
+[2026-05-18T18:50:12.996Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:29) [CloudAPI] 2026-05-18T18:50:12.996Z | POST /ai/chat | auth=true | base=https://switchcontrol.org/api
+[2026-05-18T18:50:15.859Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:29) [CloudAPI] OK | POST /ai/chat | status=200
+[2026-05-18T18:50:15.860Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:239) [AI:OUTPUT] chars=390 preview="I can't apply tweaks directly, but you can easily enable them yourself in the SwitchControl app. Just navigate to the re…"
+[2026-05-18T18:50:50.529Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [App] Window focused, refreshing entitlements...
+[2026-05-18T18:50:50.530Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:124) [Window] Focus event received
+[2026-05-18T18:50:50.530Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [App] Electron window focus (passive)
+[2026-05-18T18:50:51.098Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-18T18:50:51.098Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:158) [Timing] StartupApps | mount | +0ms
+[2026-05-18T18:50:51.110Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:158) [Timing] StartupApps | startup-scan | +12ms
+[2026-05-18T18:50:51.111Z] [LOG] [PS] start file=main.js fn=startup:scan reason=startup-scan id=14 active=1
+[2026-05-18T18:50:51.112Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:158) [Timing] StartupApps | mount | +0ms
+[2026-05-18T18:50:52.255Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-18T18:50:52.255Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:158) [Timing] StartupApps | mount | +0ms
+[2026-05-18T18:50:52.271Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-18T18:50:52.283Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:10) [AuthRoute] path=/api/debloat/items?role=gaming&level=safe target=local reason=system-route base=http://127.0.0.1:64224/api
+[2026-05-18T18:50:52.283Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:10) [AuthRoute] path=/api/debloat/history target=local reason=system-route base=http://127.0.0.1:64224/api
+[2026-05-18T18:50:52.283Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:28) [Telemetry:ws] building url — iss=switchcontrol sub=64f0e669-6db6-42e7-a68a-681f9f5db567
+[2026-05-18T18:50:52.290Z] [LOG] [Backend:stdout] [WS:auth] phase=validating tokenFp=eyJhbGci.eyJzdWIi
+[2026-05-18T18:50:52.290Z] [ERROR] [Backend:stderr] [AUTH] JWT verification failed: invalid signature | tokenFp=eyJhbGci.eyJzdWIi secretFp=a7969729 iss=switchcontrol age=56s exp=valid (exp in 2591944s) authMode=jwt
+[2026-05-18T18:50:52.291Z] [ERROR] [Backend:stderr] [WS:auth] phase=rejected reason=invalid_signature tokenFp=eyJhbGci.eyJzdWIi iss=switchcontrol
+[2026-05-18T18:50:52.296Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:28) [Telemetry:ws] event=connected attempt=1 wasReconnect=false
+[2026-05-18T18:50:52.304Z] [ERROR] [Renderer:warn] (index-B7MeDCVu.js:28) [Telemetry:ws] event=auth_rejected code=1008 reason="token_invalid_signature" — clearing JWT, suppressing reconnect
+[2026-05-18T18:50:52.304Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-18T18:50:52.514Z] [LOG] [PS] end file=main.js fn=startup:scan id=14 duration=1404ms active=0 calls60s=1
+[2026-05-18T18:50:52.515Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:158) [Timing] StartupApps | startup-scan-done | +1417ms
+[2026-05-18T18:50:52.527Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-18T18:50:52.527Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:158) [Timing] SystemCleaner | mount | +0ms
+[2026-05-18T18:50:52.528Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:158) [Timing] SystemCleaner | mount | +0ms
+[2026-05-18T18:50:52.529Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:158) [Timing] SystemCleaner | mount | +0ms
+[2026-05-18T18:50:52.530Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-18T18:50:52.530Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:158) [Timing] SystemCleaner | mount | +0ms
+[2026-05-18T18:50:52.530Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:158) [Timing] SystemCleaner | mount | +0ms
+[2026-05-18T18:50:52.531Z] [LOG] [Renderer:info] (index-B7MeDCVu.js:158) [Timing] SystemCleaner | mount | +0ms
+[2026-05-18T18:50:52.533Z] [ERROR] [Renderer:error] (index-B7MeDCVu.js:9) ReferenceError: Cannot access 'Ge' before initialization
+[2026-05-18T18:50:52.534Z] [ERROR] [Renderer:error] (index-B7MeDCVu.js:11) [ErrorBoundary] Render error caught: Cannot access 'Ge' before initialization
