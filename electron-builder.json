@@ -8,6 +8,12 @@
   },
   "files": [
     "dist/**/*",
+    "!dist/google*.html",
+    "!dist/sitemap.xml",
+    "!dist/robots.txt",
+    "!dist/og-image.png",
+    "!dist/opengraph.jpg",
+    "!dist/android-chrome-*.png",
     "electron/**/*",
     "!electron/native/**",
     "!electron/scripts/**",

@@ -81,7 +81,18 @@
     "extraResources": [
       {
         "from": "dist-frontend",
-        "to": "dist"
+        "to": "dist",
+        "filter": [
+          "**/*",
+          "!google*.html",
+          "!sitemap.xml",
+          "!robots.txt",
+          "!og-image.png",
+          "!opengraph.jpg",
+          "!android-chrome-*.png",
+          "!*.md",
+          "!*.txt"
+        ]
       },
       {
         "from": "../dist/index.cjs",
