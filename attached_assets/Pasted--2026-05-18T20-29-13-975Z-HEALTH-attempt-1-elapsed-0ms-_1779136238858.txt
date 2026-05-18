@@ -1,0 +1,43 @@
+[2026-05-18T20:29:13.975Z] HEALTH attempt=1 elapsed=0ms ERR ECONNREFUSED connect ECONNREFUSED 127.0.0.1:50374
+[2026-05-18T20:29:14.026Z] HEALTH attempt=2 elapsed=55ms ERR ECONNREFUSED connect ECONNREFUSED 127.0.0.1:50374
+[2026-05-18T20:29:14.077Z] HEALTH attempt=3 elapsed=106ms ERR ECONNREFUSED connect ECONNREFUSED 127.0.0.1:50374
+[2026-05-18T20:29:14.087Z] STDOUT [DesktopSecrets] ELECTRON_BACKEND mode — bootstrapping secrets
+[2026-05-18T20:29:14.088Z] STDOUT [DesktopSecrets] Secrets file path: C:\Users\SwitchTech\AppData\Roaming\SwitchControl\desktop-secrets.json
+[2026-05-18T20:29:14.088Z] STDOUT [DesktopSecrets] Loaded persisted secrets from: C:\Users\SwitchTech\AppData\Roaming\SwitchControl\desktop-secrets.json
+[2026-05-18T20:29:14.088Z] STDOUT [DesktopSecrets] JWT_SECRET: loaded from persisted file
+[2026-05-18T20:29:14.089Z] STDOUT [DesktopSecrets] SESSION_SECRET: loaded from persisted file
+[2026-05-18T20:29:14.089Z] STDOUT [DesktopSecrets] Bootstrap complete — JWT_SECRET and SESSION_SECRET are set
+[2026-05-18T20:29:14.128Z] HEALTH attempt=4 elapsed=157ms ERR ECONNREFUSED connect ECONNREFUSED 127.0.0.1:50374
+[2026-05-18T20:29:14.174Z] STDOUT [DB] Electron offline mode — no DATABASE_URL present, using in-memory mock storage.
+[2026-05-18T20:29:14.178Z] HEALTH attempt=5 elapsed=208ms ERR ECONNREFUSED connect ECONNREFUSED 127.0.0.1:50374
+[2026-05-18T20:29:14.196Z] STDOUT [Stripe] Billing not configured on local backend — expected in Electron mode.
+[2026-05-18T20:29:14.229Z] HEALTH attempt=6 elapsed=258ms ERR ECONNREFUSED connect ECONNREFUSED 127.0.0.1:50374
+[2026-05-18T20:29:14.239Z] STDOUT [FocusMode] Skipping DB init — running without database (Electron offline / dev no-DB mode).
+[2026-05-18T20:29:14.249Z] STDOUT [JWT] ===== SELF-TEST START =====
+[2026-05-18T20:29:14.249Z] STDOUT [JWT] config OK — JWT secret configured (secretFp=a53750b4)
+[2026-05-18T20:29:14.250Z] STDOUT [JWT] signed — userId=self-test-user-000 secretFp=a53750b4 tokenFp=eyJhbGci.eyJzdWIi
+[2026-05-18T20:29:14.250Z] STDOUT [JWT] PASS: valid token → sub=self-test-user-000 exp=1781728154
+[2026-05-18T20:29:14.251Z] STDOUT [JWT] PASS: invalid token → null (rejected)
+[2026-05-18T20:29:14.251Z] STDOUT [JWT] PASS: expired token → null (rejected)
+[2026-05-18T20:29:14.251Z] STDOUT [JWT] PASS: empty token → null (fallback to cookie path)
+[2026-05-18T20:29:14.252Z] STDOUT [JWT] PASS: alg=none token → null (rejected)
+[2026-05-18T20:29:14.252Z] STDOUT [JWT] PASS: wrong issuer token → null (rejected)
+[2026-05-18T20:29:14.252Z] STDOUT [JWT] ===== SELF-TEST END =====
+[2026-05-18T20:29:14.253Z] STDOUT [AUTH] Google OAuth not configured on local backend — expected in Electron mode (auth handled by cloud server).
+[2026-05-18T20:29:14.253Z] STDOUT [AUTH] Using memory session store (NO-DB / Electron desktop mode)
+[2026-05-18T20:29:14.253Z] STDOUT [AUTH] ===== SESSION COOKIE CONFIG =====
+[2026-05-18T20:29:14.253Z] STDOUT [AUTH] production: true
+[2026-05-18T20:29:14.253Z] STDOUT [AUTH] electronBackend: true
+[2026-05-18T20:29:14.253Z] STDOUT [AUTH] cookie: {"httpOnly":true,"secure":false,"sameSite":"lax","maxAge":604800000,"path":"/"}
+[2026-05-18T20:29:14.254Z] STDOUT [AUTH] ================================
+[2026-05-18T20:29:14.254Z] STDOUT [AUTH] Discord OAuth not configured on local backend — expected in Electron mode (auth handled by cloud server).
+[2026-05-18T20:29:14.255Z] STDOUT [WS] Live telemetry WebSocket server ready at /ws/telemetry (auth required)
+[2026-05-18T20:29:14.265Z] STDOUT 8:29:14 AM [express] serving on 127.0.0.1:50374
+[2026-05-18T20:29:14.387Z] Health check PASSED — attempt 7, 417ms elapsed, body={"status":"ok","version":"1.0.9","uptime":0,"dbReachable":false,"timestamp":1779136154385}
+[2026-05-18T20:29:18.365Z] STDOUT [SysIntelligence] Collecting full system profile…
+[2026-05-18T20:29:21.146Z] STDOUT [WS:auth] phase=accepted (electron-local) userId=64f0e669-6db6-42e7-a68a-681f9f5db567 tokenFp=eyJhbGci.eyJzdWIi
+[2026-05-18T20:29:21.146Z] STDOUT [WS:auth] phase=accepted userId=64f0e669-6db6-42e7-a68a-681f9f5db567 connections=1 tokenFp=eyJhbGci.eyJzdWIi iss=switchcontrol
+[2026-05-18T20:29:28.244Z] STDOUT [SysIntelligence] Collection complete in 9908ms | MB=X870E AORUS PRO ICE | BIOS=F12a | CPU=Ryzen 7 9800X3D 8-Core Processor | GPUs=1 | RAMsticks=2
+[2026-05-18T20:30:03.181Z] STDOUT [AppBooster] GET /games userId=64f0e669-6db6-42e7-a68a-681f9f5db567 — catalog: 16, installed: 0
+[2026-05-18T20:30:04.254Z] STDOUT [AppBooster] POST /games/scan userId=64f0e669-6db6-42e7-a68a-681f9f5db567 — 16 result(s), 1 detected
+[2026-05-18T20:30:04.258Z] STDOUT [AppBooster] GET /games userId=64f0e669-6db6-42e7-a68a-681f9f5db567 — catalog: 16, installed: 1
