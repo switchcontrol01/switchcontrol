@@ -120,6 +120,8 @@ const taskTimings: Record<string, { lastDurationMs: number; lastRunTs: number }>
 let lastOverBudgetLogTs = 0;
 // Network stats TTL — don't poll every tick
 let lastNetTs = 0;
+let cachedRxSec = 0;  // last known rx bytes/sec — held between polls
+let cachedTxSec = 0;  // last known tx bytes/sec — held between polls
 
 // ── GPU controller selection ──────────────────────────────────────────────────
 
@@ -311,18 +313,21 @@ async function tick(): Promise<void> {
   const safeUsedGB  = usedGB  > 0 ? usedGB  : 0;
 
   // Network — systeminformation already computes differential rx_sec / tx_sec
-  let rx_sec = 0;
-  let tx_sec = 0;
   if (netRes && netRes.length > 0) {
-    // Pick best physical interface: skip loopback/virtual, prefer highest traffic
-    const iface = netRes
-      .filter((n: any) => !/loopback|lo|tun|vpn|veth|docker|vmware|hyper-v/i.test(n.iface || ''))
-      .sort((a: any, b: any) => (b.rx_bytes + b.tx_bytes) - (a.rx_bytes + a.tx_bytes))[0]
+    // Pick best physical interface: skip loopback/virtual, prefer highest current traffic
+    const candidates = netRes.filter(
+      (n: any) => !/loopback|lo|tun|vpn|veth|docker|vmware|hyper-v/i.test(n.iface || '')
+    );
+    const iface = candidates
+      .sort((a: any, b: any) => ((b.rx_sec ?? 0) + (b.tx_sec ?? 0)) - ((a.rx_sec ?? 0) + (a.tx_sec ?? 0)))[0]
       ?? netRes[0];
-    // Use systeminformation's pre-computed per-second rates (they work from first call)
-    rx_sec = Math.max(0, iface.rx_sec ?? 0);
-    tx_sec = Math.max(0, iface.tx_sec ?? 0);
+    // Update cache — held until next poll so ticks between polls keep the last reading
+    cachedRxSec = Math.max(0, iface.rx_sec ?? 0);
+    cachedTxSec = Math.max(0, iface.tx_sec ?? 0);
   }
+  // Use cached values (updated on poll, held constant between polls)
+  const rx_sec = cachedRxSec;
+  const tx_sec = cachedTxSec;
 
   // ── 3. Heavy task rotation — ONE at a time, ONE per tick ─────────────────
   // Priority order: cpuTemp → disk → GPU → processes
