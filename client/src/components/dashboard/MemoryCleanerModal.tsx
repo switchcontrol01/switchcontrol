@@ -167,13 +167,10 @@ export function MemoryCleanerModal({ open, onOpenChange }: MemoryCleanerModalPro
 
         setResult(res);
 
-        if (res.estimated_mb_freed > 0) {
-          const freedGb = res.estimated_mb_freed / 1024;
-          const { stats } = useStore.getState();
-          const currentUsed = typeof stats.usedRamGb === "number" && Number.isFinite(stats.usedRamGb) ? stats.usedRamGb : 0;
-          const newUsed = Math.max(1.0, currentUsed - freedGb);
-          setStats({ usedRamGb: parseFloat(newUsed.toFixed(1)) });
-        }
+        // Do NOT manually patch usedRamGb here.
+        // The live telemetry (WebSocket / IPC) updates RAM every 1-2 seconds
+        // automatically, so the card will reflect the real post-clean value
+        // without a floor bug.
       } else {
         await minDelay;
         clearRam();

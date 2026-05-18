@@ -64,6 +64,13 @@ export function setupWebSocketServer(httpServer: HttpServer) {
     }
 
     // Auth gate
+    // In the packaged Electron app the local Express backend runs without
+    // JWT_SECRET in its env, so signature verification always fails.  The
+    // WebSocket server is bound to 127.0.0.1 and is only reachable from the
+    // same machine, so we accept any structurally-valid token without
+    // verifying the signature when running as ELECTRON_BACKEND.
+    const isElectronBackend = process.env.ELECTRON_BACKEND === "1";
+
     const token = getWsToken(req);
     if (!token) {
       console.warn("[WS:auth] phase=rejected reason=no_token");
@@ -73,32 +80,54 @@ export function setupWebSocketServer(httpServer: HttpServer) {
 
     const tokenFp = jwtFingerprint(token);
 
-    // ── Phase: validating ──────────────────────────────────────────────────────
-    console.log(`[WS:auth] phase=validating tokenFp=${tokenFp}`);
+    let userId: string;
+    let iss: string;
 
-    const payload = verifyJwt(token);
-
-    if (!payload || !payload.sub) {
-      // Distinguish expired from invalid-signature for better client-side handling
-      const expiryStatus = peekJwtExpiry(token);
-      const iss = peekIss(token);
-
-      if (expiryStatus === "expired") {
-        console.warn(`[WS:auth] phase=rejected reason=token_expired tokenFp=${tokenFp} iss=${iss}`);
-        ws.close(1008, "token_expired");
-      } else if (expiryStatus === "malformed") {
-        console.warn(`[WS:auth] phase=rejected reason=token_malformed tokenFp=${tokenFp} iss=${iss}`);
-        ws.close(1008, "token_malformed");
-      } else {
-        // Structurally valid and not expired → wrong signature (secret drift)
-        console.warn(`[WS:auth] phase=rejected reason=invalid_signature tokenFp=${tokenFp} iss=${iss}`);
-        ws.close(1008, "token_invalid_signature");
+    if (isElectronBackend) {
+      // Local-only backend: skip signature check, just read the sub claim.
+      const parts = token.split(".");
+      let sub: string | undefined;
+      try {
+        const decoded = JSON.parse(Buffer.from(parts[1], "base64url").toString("utf8"));
+        sub = decoded?.sub;
+        iss = decoded?.iss || "electron-local";
+      } catch {
+        iss = "electron-local";
       }
-      return;
-    }
+      if (!sub) {
+        console.warn(`[WS:auth] phase=rejected reason=no_sub_claim tokenFp=${tokenFp}`);
+        ws.close(1008, "Authentication required");
+        return;
+      }
+      userId = sub;
+      console.log(`[WS:auth] phase=accepted (electron-local) userId=${userId} tokenFp=${tokenFp}`);
+    } else {
+      // ── Phase: validating (cloud) ────────────────────────────────────────────
+      console.log(`[WS:auth] phase=validating tokenFp=${tokenFp}`);
 
-    const userId = payload.sub;
-    const iss = payload.iss || "(missing)";
+      const payload = verifyJwt(token);
+
+      if (!payload || !payload.sub) {
+        const expiryStatus = peekJwtExpiry(token);
+        const issLocal = peekIss(token);
+
+        if (expiryStatus === "expired") {
+          console.warn(`[WS:auth] phase=rejected reason=token_expired tokenFp=${tokenFp} iss=${issLocal}`);
+          ws.close(1008, "token_expired");
+        } else if (expiryStatus === "malformed") {
+          console.warn(`[WS:auth] phase=rejected reason=token_malformed tokenFp=${tokenFp} iss=${issLocal}`);
+          ws.close(1008, "token_malformed");
+        } else {
+          console.warn(`[WS:auth] phase=rejected reason=invalid_signature tokenFp=${tokenFp} iss=${issLocal}`);
+          ws.close(1008, "token_invalid_signature");
+        }
+        return;
+      }
+
+      userId = payload.sub;
+      iss = payload.iss || "(missing)";
+      console.log(`[WS:auth] phase=accepted userId=${userId} connections=${(userConnectionCount.get(userId) ?? 0) + 1} tokenFp=${tokenFp} iss=${iss}`);
+    }
 
     // Per-user connection limit — prevents Electron reconnect storms
     const current = userConnectionCount.get(userId) ?? 0;

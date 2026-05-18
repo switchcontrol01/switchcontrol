@@ -448,6 +448,29 @@ export default function Home() {
             setSpecStatus("unavailable");
             return;
           }
+
+          // AMD WMI cold-start returns "Unknown CPU" / 0 cores on first call.
+          // If we got incomplete CPU data, retry after 5s to get the real values.
+          const cpuOk = specs.cpu?.model && specs.cpu.model !== 'Unknown CPU' && (specs.cpu?.cores ?? 0) > 0;
+          if (!cpuOk) {
+            console.warn('[SwitchControl] CPU data incomplete (WMI cold-start?) — will retry in 5s');
+            setTimeout(() => {
+              withTimeout(api.system.getSpecs(), SPEC_TIMEOUT_MS, null).then((retrySpecs: SystemSpecs | null | undefined) => {
+                if (!retrySpecs) return;
+                const retryCpuOk = retrySpecs.cpu?.model && retrySpecs.cpu.model !== 'Unknown CPU' && (retrySpecs.cpu?.cores ?? 0) > 0;
+                if (retryCpuOk) {
+                  setStats({
+                    cpuName: retrySpecs.cpu.model,
+                    cpuCores: retrySpecs.cpu.cores,
+                    cpuThreads: retrySpecs.cpu.threads || 0,
+                    cpuSpeed: retrySpecs.cpu.speed || 'Unavailable',
+                  });
+                  console.log('[SwitchControl] CPU retry succeeded:', retrySpecs.cpu.model);
+                }
+              }).catch(() => {});
+            }, 5_000);
+          }
+
           if (api?.telemetry?.getGpu) {
             api.telemetry.getGpu().then((gpuData: any) => {
               const gpu = Array.isArray(gpuData) ? gpuData[0] : gpuData;
