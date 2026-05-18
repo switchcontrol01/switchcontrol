@@ -149,17 +149,35 @@ export function useSliderTweak(tweakId: string, config: SliderConfig) {
       }
       const result: { value: number | null; missing?: boolean; error: string | null } =
         await api.readValue(tweakId);
-      if (result.error || result.value === null) {
-        // Fallback to default
+
+      // Real read error: PowerShell timed out, access denied, or other failure.
+      // value is null AND error is set. Do NOT silently substitute the default —
+      // the default might not reflect what's actually in the registry (or what was
+      // previously applied). Keep currentValue null so the UI shows "—" not a fake value.
+      if (result.error && result.value === null) {
+        console.warn(`[SliderHydration] ${tweakId}: read failed — ${result.error}`);
+        setState(s => ({
+          ...s,
+          currentValue:   null,
+          pendingValue:   s.pendingValue ?? config.defaultValue,
+          isUsingDefault: false,
+          status:         'idle',
+          lastError:      result.error,
+        }));
+      } else if (result.value === null) {
+        // value is null but no error — shouldn't occur after executor fix, but handle gracefully
         setState(s => ({
           ...s,
           currentValue:   config.defaultValue,
           pendingValue:   s.pendingValue ?? config.defaultValue,
           isUsingDefault: true,
           status:         'idle',
-          lastError:      result.error ?? null,
+          lastError:      null,
         }));
       } else {
+        // Successful read: value is the live registry value.
+        // missing=true means the key didn't exist and the executor returned the built-in default.
+        console.log(`[SliderHydration] ${tweakId}: value=${result.value} missing=${result.missing ?? false}`);
         setState(s => ({
           ...s,
           currentValue:   result.value!,

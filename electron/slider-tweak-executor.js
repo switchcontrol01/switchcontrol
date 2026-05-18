@@ -409,7 +409,13 @@ const SLIDER_TWEAKS = {
 
 /**
  * Read the current numeric value from the registry.
- * Returns { value: number|null, raw: string|null, error: string|null }
+ * Returns { value: number|null, raw: string|null, missing?: boolean, error: string|null }
+ *
+ * Distinguishes two separate failure modes:
+ *   missing: true  — PowerShell ran OK but the registry key/value does not exist yet.
+ *                    The defaultValue is returned as a safe stand-in.
+ *   error: string  — PowerShell itself timed out, crashed, or was denied access.
+ *                    value is null; the UI should show an error state, NOT the default.
  */
 async function readSliderValue(tweakId) {
   const def = SLIDER_TWEAKS[tweakId];
@@ -417,15 +423,31 @@ async function readSliderValue(tweakId) {
 
   try {
     const raw = await queryPS(def.readCommand());
-    if (raw === null || raw === '' || raw.toLowerCase() === 'false') {
+
+    // queryPS resolves to null only when execFile itself errors (timeout, access denied, etc.)
+    // This is a real failure — do NOT silently pretend the value is the default.
+    if (raw === null) {
+      console.warn(`[SliderExecutor] READ ${tweakId}: PowerShell failed (null output) — registry read error`);
+      return { value: null, raw: null, missing: false, error: 'Registry read failed (PowerShell timeout or access denied)' };
+    }
+
+    // Empty string or 'false' means the property doesn't exist in the registry.
+    // The system is using the Windows built-in default; report as missing, not an error.
+    if (raw === '' || raw.toLowerCase() === 'false') {
+      console.log(`[SliderExecutor] READ ${tweakId}: key absent — returning built-in default ${def.defaultValue}`);
       return { value: def.defaultValue, raw: String(def.defaultValue), missing: true, error: null };
     }
+
     const num = parseInt(raw, 10);
     if (isNaN(num)) {
+      console.warn(`[SliderExecutor] READ ${tweakId}: non-numeric output "${raw}" — returning default`);
       return { value: def.defaultValue, raw, missing: false, error: null };
     }
+
+    console.log(`[SliderExecutor] READ ${tweakId}: value=${num} raw="${raw}"`);
     return { value: num, raw, missing: false, error: null };
   } catch (err) {
+    console.error(`[SliderExecutor] READ ${tweakId}: exception — ${err.message}`);
     return { value: null, raw: null, missing: false, error: err.message };
   }
 }

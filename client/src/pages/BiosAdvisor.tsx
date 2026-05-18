@@ -73,6 +73,14 @@ import { motion, AnimatePresence, useMotion } from "@/lib/motion";
 import { useAuth } from "@/hooks/use-auth";
 import { useNetworkStatus } from "@/hooks/use-network-status";
 import { useSystemIntelligence } from "@/hooks/useSystemIntelligence";
+import { useSystemIntelligenceStore } from "@/stores/systemIntelligenceStore";
+import {
+  getPlatformAvailability,
+  isLaptopChassisType,
+  detectCpuVendor,
+  isSettingUnsupported,
+  type PlatformAvailability,
+} from "@/lib/biosAdvisorPlatform";
 import { getUserFriendlyError } from "@/lib/api";
 import { cloudApiPost } from "@/lib/cloud-api";
 import { 
@@ -232,10 +240,28 @@ function ConfidenceBadge({ confidence }: { confidence: number }) {
 
 type ExpandedTab = "overview" | "details" | "location";
 
-function BiosSettingCard({ setting, detection, index }: { setting: BiosSetting; detection?: FirmwareDetection; index: number }) {
+interface PlatformInfo {
+  isLaptop: boolean;
+  cpuVendor: "amd" | "intel" | "unknown";
+}
+
+function BiosSettingCard({
+  setting,
+  detection,
+  index,
+  platformInfo,
+}: {
+  setting: BiosSetting;
+  detection?: FirmwareDetection;
+  index: number;
+  platformInfo?: PlatformInfo;
+}) {
   const [expanded, setExpanded] = useState(false);
   const [activeTab, setActiveTab] = useState<ExpandedTab>("overview");
   const { prefersReducedMotion } = useMotion();
+
+  const avail: PlatformAvailability = getPlatformAvailability(setting.id);
+  const isUnsupported = platformInfo ? isSettingUnsupported(setting.id, platformInfo) : false;
   
   const impactColors = {
     High: "bg-red-500/20 text-red-400 border-red-500/30",
@@ -262,7 +288,8 @@ function BiosSettingCard({ setting, detection, index }: { setting: BiosSetting; 
       <GlassCard 
         className={cn(
           "overflow-hidden transition-all duration-300 group",
-          expanded && "ring-1 ring-primary/30"
+          expanded && "ring-1 ring-primary/30",
+          isUnsupported && "opacity-60"
         )}
         data-testid={`bios-setting-${setting.id}`}
       >
@@ -275,11 +302,21 @@ function BiosSettingCard({ setting, detection, index }: { setting: BiosSetting; 
         >
           <div className="flex items-start justify-between gap-3">
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
+              <div className="flex items-center gap-2 mb-1 flex-wrap">
                 <h3 className="font-semibold text-[#E6EAF0] text-sm truncate">{setting.name}</h3>
                 <Badge variant="outline" className={cn("text-[10px] shrink-0", impactColors[setting.impact])}>
                   {setting.impact} Impact
                 </Badge>
+                {isUnsupported && (
+                  <Badge
+                    variant="outline"
+                    className="text-[10px] shrink-0 bg-amber-500/10 text-amber-400 border-amber-500/30 flex items-center gap-0.5"
+                    title={avail.platformNote}
+                  >
+                    <AlertTriangle className="w-2.5 h-2.5" />
+                    Hardware dependent
+                  </Badge>
+                )}
               </div>
               <div className="flex items-center gap-2 text-xs">
                 <StatusIcon className={cn("w-3.5 h-3.5", statusColor)} />
@@ -288,6 +325,12 @@ function BiosSettingCard({ setting, detection, index }: { setting: BiosSetting; 
               </div>
               {detection?.reason && (
                 <p className="text-[10px] text-[#A0A8B3] mt-1 line-clamp-1">{detection.reason}</p>
+              )}
+              {isUnsupported && avail.platformNote && (
+                <p className="text-[10px] text-amber-400/70 mt-1 flex items-center gap-1">
+                  <Info className="w-3 h-3 shrink-0" />
+                  {avail.platformNote}
+                </p>
               )}
             </div>
             <motion.div animate={{ rotate: expanded ? 180 : 0 }} transition={{ duration: 0.2 }}>
@@ -573,6 +616,14 @@ export default function BiosAdvisor() {
   const { isOnline } = useNetworkStatus();
   const { stats } = useStore();
   const sysIntel = useSystemIntelligence();
+  const { chassisType, batteryPresent } = useSystemIntelligenceStore();
+
+  const platformInfo: PlatformInfo = useMemo(() => {
+    const cpuStr = sysIntel.cpu || stats.cpuName || null;
+    const cpuVendor = detectCpuVendor(cpuStr);
+    const isLaptop = isLaptopChassisType(chassisType) || (batteryPresent === true && chassisType === null);
+    return { isLaptop, cpuVendor };
+  }, [sysIntel.cpu, stats.cpuName, chassisType, batteryPresent]);
 
   const {
     hasScanned,
@@ -1641,7 +1692,8 @@ export default function BiosAdvisor() {
                         key={setting.id} 
                         setting={setting} 
                         detection={allDetections.find(d => d.settingId === setting.id)}
-                        index={index} 
+                        index={index}
+                        platformInfo={platformInfo}
                       />
                     ))}
                   </motion.div>
