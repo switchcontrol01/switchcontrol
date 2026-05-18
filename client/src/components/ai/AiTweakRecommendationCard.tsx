@@ -85,7 +85,7 @@ function TweakMiniCard({
               {riskCfg.label}
             </Badge>
             {tweak.premium && (
-              <Badge variant="outline" className="text-[9px] h-4 px-1.5 border border-[#00D4FF] text-[#00D4FF] bg-[#00D4FF]">
+              <Badge variant="outline" className="text-[9px] h-4 px-1.5 border border-[#00D4FF]/40 text-[#00D4FF] bg-[#00D4FF]/10">
                 <Lock className="size-2.5 mr-1" />Premium
               </Badge>
             )}
@@ -117,7 +117,7 @@ function TweakMiniCard({
             </button>
 
             {isLocked ? (
-              <Button size="sm" variant="outline" className="h-7 text-[11px] gap-1 border-[#00D4FF] text-[#00D4FF] hover:bg-[#00D4FF]"
+              <Button size="sm" variant="outline" className="h-7 text-[11px] gap-1 border-[#00D4FF]/40 text-[#00D4FF] hover:bg-[#00D4FF]/15 hover:border-[#00D4FF]/60"
                 onClick={onOpenUpgrade}>
                 <Lock className="size-3" />Upgrade
               </Button>
