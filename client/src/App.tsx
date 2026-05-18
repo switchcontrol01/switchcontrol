@@ -38,7 +38,9 @@ import { WelcomeAnimation } from "@/components/WelcomeAnimation";
 import { OnboardingTour } from "@/components/OnboardingTour";
 import Home from "@/pages/Home";
 import NetworkTweaks from "@/pages/NetworkTweaks";
-const SystemCleaner = lazy(() => import("@/pages/SystemCleaner"));
+// Pre-start the import at module load time so Suspense resolves instantly on first navigation (no black flash).
+const _systemCleanerChunk = import("@/pages/SystemCleaner");
+const SystemCleaner = lazy(() => _systemCleanerChunk);
 import Settings from "@/pages/Settings";
 import PowerPlan from "@/pages/PowerPlan";
 import AppBooster from "@/pages/AppBooster";
