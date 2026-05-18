@@ -38,7 +38,7 @@ import { WelcomeAnimation } from "@/components/WelcomeAnimation";
 import { OnboardingTour } from "@/components/OnboardingTour";
 import Home from "@/pages/Home";
 import NetworkTweaks from "@/pages/NetworkTweaks";
-import SystemCleaner from "@/pages/SystemCleaner";
+const SystemCleaner = lazy(() => import("@/pages/SystemCleaner"));
 import Settings from "@/pages/Settings";
 import PowerPlan from "@/pages/PowerPlan";
 import AppBooster from "@/pages/AppBooster";
