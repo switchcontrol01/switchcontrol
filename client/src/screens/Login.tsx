@@ -59,44 +59,48 @@ function DiscordIcon({ className }: { className?: string }) {
 }
 
 // ── Static particle data — defined once at module level, never re-randomised ──
-// 22 particles total. Only the 4 "glow" ones get a box-shadow.
+// 22 particles spread radially from center. Only every 6th particle gets a glow.
 
-const PARTICLES = Array.from({ length: 22 }, (_, i) => ({
-  id: i,
-  startX: (i * 4.7 + i * i * 0.11) % 94 + 3,
-  startY: (i * 6.3 + i * 0.8) % 90 + 5,
-  size: 0.9 + (i % 4) * 0.35,
-  hue: [250, 258, 265, 272, 280, 195, 185][i % 7],
-  delay: (i * 0.19) % 2.6,
-  duration: 3.4 + (i % 6) * 0.55,
-  dx: (i % 5 === 0 ? -1 : 1) * (9 + (i % 4) * 8),
-  dy: 58 + (i % 5) * 20,
-  glow: i % 6 === 0,
-}));
+const PARTICLES = Array.from({ length: 22 }, (_, i) => {
+  const angle = (i / 22) * Math.PI * 2 + i * 0.18;
+  return {
+    id: i,
+    angle,
+    distance: 140 + (i % 5) * 52,
+    size: 0.9 + (i % 4) * 0.35,
+    hue: [250, 258, 265, 272, 280, 195, 185][i % 7],
+    delay: (i * 0.21) % 3.0,
+    duration: 3.6 + (i % 6) * 0.55,
+    glow: i % 6 === 0,
+  };
+});
 
 // ── Floating particle ─────────────────────────────────────────────────────────
 
-function FloatingParticle({ startX, startY, size, hue, delay, duration, dx, dy, glow }: {
-  startX: number; startY: number; size: number; hue: number;
-  delay: number; duration: number; dx: number; dy: number; glow: boolean;
+function FloatingParticle({ angle, distance, size, hue, delay, duration, glow }: {
+  angle: number; distance: number; size: number; hue: number;
+  delay: number; duration: number; glow: boolean;
 }) {
   const alpha = 0.55 + (size > 1.5 ? 0.25 : 0.1);
   const color = `hsla(${hue}, 80%, 72%, ${alpha})`;
   const px = Math.round(size * 4.2);
+  const dx = Math.cos(angle) * distance;
+  const dy = Math.sin(angle) * distance;
   return (
     <motion.div
       className="absolute rounded-full"
       style={{
-        left: `${startX}%`,
-        top: `${startY}%`,
+        left: "50%",
+        top: "50%",
+        marginLeft: -px / 2,
+        marginTop: -px / 2,
         width: px,
         height: px,
         background: color,
         ...(glow ? { boxShadow: `0 0 ${Math.round(size * 7)}px ${color}` } : {}),
       }}
-      initial={{ opacity: 0 }}
-      animate={{ y: -dy, x: dx, opacity: [0, alpha, alpha * 0.5, 0] }}
-      transition={{ duration, delay, repeat: 2, ease: "easeOut" }}
+      animate={{ x: dx, y: dy, opacity: [0, alpha, alpha * 0.5, 0], scale: [0.3, 1, 0.7, 0] }}
+      transition={{ duration, delay, repeat: Infinity, repeatDelay: 0.4, ease: "easeOut" }}
     />
   );
 }
@@ -377,9 +381,9 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
         ))}
       </div>
 
-      {/* H: Static vignettes */}
+      {/* H: Static vignettes — center kept light so card glass has something to blur */}
       <div className="absolute inset-0 bg-gradient-to-t from-[#080810] via-transparent to-[#080810]/75 pointer-events-none" />
-      <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse at center, transparent 0%, #080810 76%)" }} />
+      <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 70% 70% at 50% 50%, transparent 32%, rgba(8,8,16,0.62) 76%)" }} />
 
       {/*
         ── LOGIN CARD ────────────────────────────────────────────────────────
@@ -456,8 +460,9 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
         />
 
         <div
-          className="relative bg-card/90 backdrop-blur-2xl rounded-2xl p-8 overflow-hidden"
+          className="relative backdrop-blur-2xl rounded-2xl p-8 overflow-hidden"
           style={{
+            background: "rgba(8, 8, 20, 0.44)",
             border: "1px solid rgba(255,255,255,0.11)",
             borderLeft: "1px solid rgba(192,132,252,0.42)",
             borderRight: "1px solid rgba(96,165,250,0.38)",
