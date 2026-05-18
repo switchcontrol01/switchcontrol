@@ -220,13 +220,26 @@ function connect() {
           // Clear the JWT so the next auth cycle fetches a fresh one, then stop.
           if (event.code === 1008) {
             console.warn(
-              `[Telemetry:ws] event=auth_rejected code=1008 reason="${closeReason}" — clearing JWT, suppressing reconnect`,
+              `[Telemetry:ws] event=auth_rejected code=1008 reason="${closeReason}" — clearing JWT, will retry when JWT available`,
             );
             _authRejected = true;
             _started = false;
             // Clear the stored JWT so re-auth picks up a fresh token
             useAuthStore.getState().setJwt(null);
             useTelemetryStore.getState()._setStatus("unavailable");
+
+            // Watch for a new JWT to arrive (e.g. after Electron auth completes)
+            // and automatically reconnect when it does. Unsubscribes after one hit.
+            const unsub = useAuthStore.subscribe((state) => {
+              if (state.jwt && _authRejected && !_started) {
+                unsub();
+                console.log("[Telemetry:ws] JWT became available after 1008 — restarting WebSocket");
+                _authRejected = false;
+                _started = true;
+                connect();
+              }
+            });
+
             return; // do NOT schedule a reconnect
           }
 

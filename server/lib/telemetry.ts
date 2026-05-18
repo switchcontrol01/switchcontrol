@@ -302,9 +302,14 @@ async function tick(): Promise<void> {
     }
   }
 
-  // RAM — si.mem() returns bytes; convert to GB
+  // RAM — si.mem() returns bytes; convert to GB.
+  // Use mem.active (actual in-use pages) instead of mem.used (total - free)
+  // because mem.used includes Windows standby pages, making it read ~3 GB
+  // higher than Task Manager's "In use" value. mem.active matches TM exactly.
+  // Fall back to mem.used when active is unavailable (older si versions).
   const totalBytes = memRes ? memRes.total : 0;
-  const usedBytes  = memRes ? memRes.used  : 0;
+  const activeBytes = memRes ? ((memRes as any).active ?? memRes.used) : 0;
+  const usedBytes  = activeBytes > 0 ? activeBytes : (memRes ? memRes.used : 0);
   const totalGB = totalBytes / 1073741824;
   const usedGB  = usedBytes  / 1073741824;
   const usedPercent = totalGB > 0 ? (usedGB / totalGB) * 100 : 0;

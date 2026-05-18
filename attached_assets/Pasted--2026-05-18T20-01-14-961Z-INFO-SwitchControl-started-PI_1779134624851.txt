@@ -1,0 +1,427 @@
+
+[2026-05-18T20:01:14.961Z] [INFO] SwitchControl started — PID:2252 platform:win32/x64 node:20.18.3
+[2026-05-18T20:01:14.994Z] [LOG] [Security] IPC handlers registered
+[2026-05-18T20:01:14.996Z] [LOG] [Debloat] IPC handlers registered
+[2026-05-18T20:01:14.996Z] [LOG] [Cleaner] IPC handlers registered
+[2026-05-18T20:01:14.997Z] [LOG] [FocusHelper] IPC handlers registered
+[2026-05-18T20:01:15.020Z] [LOG] [STARTUP] whenReady — v1.0.9 | isDev:false | pid:2252
+[2026-05-18T20:01:15.024Z] [LOG] [ConfigStore] Initialized — file: C:\Users\SwitchTech\AppData\Roaming\SwitchControl\sc-config.json
+[2026-05-18T20:01:15.039Z] [LOG] [LAUNCH:1] BrowserWindow constructed — show:false, paintWhenInitiallyHidden:true, isVisible: false
+[2026-05-18T20:01:15.040Z] [LOG] [LAUNCH:2] packaged mode — indexPath: C:\Program Files\SwitchControl\resources\dist\index.html | exists: true
+[2026-05-18T20:01:15.054Z] [LOG] [Backend] ===== STARTUP DIAGNOSTICS =====
+[2026-05-18T20:01:15.054Z] [LOG] [Backend] process.execPath: C:\Program Files\SwitchControl\SwitchControl.exe
+[2026-05-18T20:01:15.054Z] [LOG] [Backend] process.resourcesPath: C:\Program Files\SwitchControl\resources
+[2026-05-18T20:01:15.054Z] [LOG] [Backend] app.isPackaged: true
+[2026-05-18T20:01:15.055Z] [LOG] [Backend] app.getAppPath(): C:\Program Files\SwitchControl\resources\app.asar
+[2026-05-18T20:01:15.055Z] [LOG] [Backend] Expected bundle path: C:\Program Files\SwitchControl\resources\dist\index.cjs
+[2026-05-18T20:01:15.055Z] [LOG] [Backend] Bundle size: 2.9 MB
+[2026-05-18T20:01:15.120Z] [LOG] [Updater] init — v1.0.9 | channel:stable | https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev
+[2026-05-18T20:01:15.120Z] [LOG] [STARTUP] app ready — 100ms from whenReady
+[2026-05-18T20:01:15.122Z] [LOG] [Backend] Free port found: 49714
+[2026-05-18T20:01:15.123Z] [LOG] [Backend] ELECTRON_USER_DATA: C:\Users\SwitchTech\AppData\Roaming\SwitchControl
+[2026-05-18T20:01:15.123Z] [LOG] [Backend] ===== ENV KEY DIAGNOSTICS =====
+[2026-05-18T20:01:15.123Z] [LOG] [Backend]   OPENAI_API_KEY: parent_env=false | config_file=false | will_use=false
+[2026-05-18T20:01:15.123Z] [LOG] [Backend]   STRIPE_SECRET_KEY: parent_env=false | config_file=false | will_use=false
+[2026-05-18T20:01:15.123Z] [LOG] [Backend]   GOOGLE_CLIENT_ID: parent_env=false | config_file=false | will_use=false
+[2026-05-18T20:01:15.123Z] [LOG] [Backend]   GOOGLE_CLIENT_SECRET: parent_env=false | config_file=false | will_use=false
+[2026-05-18T20:01:15.124Z] [LOG] [Backend]   JWT_SECRET: parent_env=false | config_file=false | will_use=false
+[2026-05-18T20:01:15.124Z] [LOG] [Backend]   SESSION_SECRET: parent_env=false | config_file=false | will_use=false
+[2026-05-18T20:01:15.124Z] [LOG] [Backend] =====================================
+[2026-05-18T20:01:15.124Z] [LOG] [Backend] ===== CHILD ENV KEY DIAGNOSTICS =====
+[2026-05-18T20:01:15.124Z] [LOG] [Backend]   child_env OPENAI_API_KEY: false
+[2026-05-18T20:01:15.124Z] [LOG] [Backend]   child_env STRIPE_SECRET_KEY: false
+[2026-05-18T20:01:15.124Z] [LOG] [Backend]   child_env GOOGLE_CLIENT_ID: false
+[2026-05-18T20:01:15.125Z] [LOG] [Backend]   child_env GOOGLE_CLIENT_SECRET: false
+[2026-05-18T20:01:15.125Z] [LOG] [Backend]   child_env JWT_SECRET: false
+[2026-05-18T20:01:15.125Z] [LOG] [Backend]   child_env SESSION_SECRET: false
+[2026-05-18T20:01:15.125Z] [LOG] [Backend] AI_MODEL in child env: (not set, will use gpt-4o-mini)
+[2026-05-18T20:01:15.125Z] [LOG] [Backend] DATABASE_URL in child env: NO — Electron offline mode (expected; cloud DB unreachable from user machine)
+[2026-05-18T20:01:15.125Z] [LOG] [Backend] ELECTRON_BACKEND in child env: 1
+[2026-05-18T20:01:15.125Z] [LOG] [Backend] ==========================================
+[2026-05-18T20:01:15.125Z] [LOG] [Backend] Spawning child process...
+[2026-05-18T20:01:15.126Z] [LOG] [Backend]   execPath: C:\Program Files\SwitchControl\SwitchControl.exe
+[2026-05-18T20:01:15.126Z] [LOG] [Backend]   script: C:\Program Files\SwitchControl\resources\dist\index.cjs
+[2026-05-18T20:01:15.126Z] [LOG] [Backend]   ELECTRON_RUN_AS_NODE: 1 (runs as plain Node.js)
+[2026-05-18T20:01:15.126Z] [LOG] [Backend]   PORT: 49714
+[2026-05-18T20:01:15.126Z] [LOG] [Backend]   cwd: C:\Program Files\SwitchControl\resources\dist
+[2026-05-18T20:01:15.131Z] [LOG] [Backend] Child process spawned, PID: 6944
+[2026-05-18T20:01:15.131Z] [LOG] [Backend] Polling health endpoint: http://127.0.0.1:49714/api/health
+[2026-05-18T20:01:15.315Z] [LOG] [Backend:stdout] [DesktopSecrets] ELECTRON_BACKEND mode — bootstrapping secrets
+[2026-05-18T20:01:15.316Z] [LOG] [Backend:stdout] [DesktopSecrets] Secrets file path: C:\Users\SwitchTech\AppData\Roaming\SwitchControl\desktop-secrets.json
+[2026-05-18T20:01:15.316Z] [LOG] [Backend:stdout] [DesktopSecrets] Loaded persisted secrets from: C:\Users\SwitchTech\AppData\Roaming\SwitchControl\desktop-secrets.json
+[2026-05-18T20:01:15.316Z] [LOG] [Backend:stdout] [DesktopSecrets] JWT_SECRET: loaded from persisted file
+[2026-05-18T20:01:15.317Z] [LOG] [Backend:stdout] [DesktopSecrets] SESSION_SECRET: loaded from persisted file
+[2026-05-18T20:01:15.317Z] [LOG] [Backend:stdout] [DesktopSecrets] Bootstrap complete — JWT_SECRET and SESSION_SECRET are set
+[2026-05-18T20:01:15.370Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:10) [RuntimeMode] electron=true | packaged=true | protocol=file: | preload=true | backendTarget=embedded-local | authTarget=cloud
+[2026-05-18T20:01:15.370Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:10) [API] Electron fetch interceptor installed | packaged=true (cloud-only-routes=blocked-from-local)
+[2026-05-18T20:01:15.373Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:28) [Store:REHYDRATE] total_stored=10 enabled=10 source=localStorage
+[2026-05-18T20:01:15.374Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:29) [CloudAPI] base=https://switchcontrol.org/api packaged=true electron=true
+[2026-05-18T20:01:15.380Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:143) [BiosStore] hydrated | scores from storage: {"latency":56,"frametime":51,"stability":16,"competitiveReadiness":50,"grade":"Needs Tuning","profileBias":"Latency-biased"}
+[2026-05-18T20:01:15.380Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:143) [BiosStore] hydrated | sanitized scores: {"latency":56,"frametime":51,"stability":16,"competitiveReadiness":50,"grade":"Needs Tuning","profileBias":"Latency-biased"}
+[2026-05-18T20:01:15.381Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:11) [IntervalGuard] installed — min interval enforced at 2000ms
+[2026-05-18T20:01:15.382Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:236) [LAUNCH:R0] renderer bootstrap — opacity locked to 0 | t=+341ms
+[2026-05-18T20:01:15.382Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:236) [LAUNCH:R1] createRoot dispatching | t=+341ms
+[2026-05-18T20:01:15.383Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:506) [SwitchControl Desktop] Preload initialized - unified API ready
+[2026-05-18T20:01:15.383Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:507) [SwitchControl Desktop] Platform: win32
+[2026-05-18T20:01:15.383Z] [LOG] [LAUNCH:3] did-finish-load — HTML/JS fully parsed by Chromium (first-frame-ready IPC pending)
+[2026-05-18T20:01:15.383Z] [LOG] [LAUNCH:2] loadFile() promise RESOLVED
+[2026-05-18T20:01:15.384Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:10) [API] Backend port not ready, retrying in 200ms… (elapsed 13ms, attempt 1)
+[2026-05-18T20:01:15.387Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:236) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: true
+[2026-05-18T20:01:15.393Z] [LOG] [Backend:stdout] [DB] Electron offline mode — no DATABASE_URL present, using in-memory mock storage.
+[2026-05-18T20:01:15.402Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:29) [LAUNCH:R2] Splash mounted | t=+362ms
+[2026-05-18T20:01:15.403Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:236) [App] Registering deep link auth callback (once)
+[2026-05-18T20:01:15.407Z] [LOG] [Backend:stdout] [Stripe] Billing not configured on local backend — expected in Electron mode.
+[2026-05-18T20:01:15.421Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:29) [LAUNCH:R3] splash ready: logo decoded, compositor frame ready | t=+381ms
+[2026-05-18T20:01:15.422Z] [LOG] [LAUNCH:4] first-frame-ready received — 2-rAF dark frame confirmed | +368ms
+[2026-05-18T20:01:15.432Z] [LOG] [LAUNCH:5] mainWindow.show() — opacity:0 (anti-DWM-flash) | +378ms
+[2026-05-18T20:01:15.433Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:29) [LAUNCH:R3] first-frame-ready IPC sent | t=+381ms
+[2026-05-18T20:01:15.447Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:124) [Window] Focus event received
+[2026-05-18T20:01:15.447Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:236) [App] Electron window focus (passive)
+[2026-05-18T20:01:15.448Z] [LOG] [LAUNCH:5b] opacity restored to 1 — dark frame in DWM pipeline | +394ms
+[2026-05-18T20:01:15.449Z] [LOG] [LAUNCH:5c] app:window-shown sent to renderer | +395ms
+[2026-05-18T20:01:15.449Z] [LOG] [LAUNCH:6] focus() — launch sequence complete | +395ms
+[2026-05-18T20:01:15.451Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:137) [LAUNCH] app:window-shown received — starting opacity reveal
+[2026-05-18T20:01:15.451Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:29) [LAUNCH:R3b] app:window-shown received | t=+411ms
+[2026-05-18T20:01:15.451Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:29) [LAUNCH:R4] reveal triggered by app:window-shown | t=+411ms
+[2026-05-18T20:01:15.451Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:29) [LAUNCH:R4] sc-first-frame-ready set — body::before fading (120ms)
+[2026-05-18T20:01:15.452Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:29) [LAUNCH:R5] renderer reveal started — opacity 0→1 | t=+411ms
+[2026-05-18T20:01:15.498Z] [LOG] [Backend:stdout] [FocusMode] Skipping DB init — running without database (Electron offline / dev no-DB mode).
+[2026-05-18T20:01:15.508Z] [LOG] [Backend:stdout] [JWT] ===== SELF-TEST START =====
+[2026-05-18T20:01:15.509Z] [LOG] [Backend:stdout] [JWT] config OK — JWT secret configured (secretFp=a53750b4)
+[2026-05-18T20:01:15.510Z] [LOG] [Backend:stdout] [JWT] signed — userId=self-test-user-000 secretFp=a53750b4 tokenFp=eyJhbGci.eyJzdWIi
+[2026-05-18T20:01:15.510Z] [LOG] [Backend:stdout] [JWT] PASS: valid token → sub=self-test-user-000 exp=1781726475
+[2026-05-18T20:01:15.511Z] [LOG] [Backend:stdout] [JWT] PASS: invalid token → null (rejected)
+[2026-05-18T20:01:15.511Z] [LOG] [Backend:stdout] [JWT] PASS: expired token → null (rejected)
+[2026-05-18T20:01:15.511Z] [LOG] [Backend:stdout] [JWT] PASS: empty token → null (fallback to cookie path)
+[2026-05-18T20:01:15.512Z] [LOG] [Backend:stdout] [JWT] PASS: alg=none token → null (rejected)
+[2026-05-18T20:01:15.512Z] [LOG] [Backend:stdout] [JWT] PASS: wrong issuer token → null (rejected)
+[2026-05-18T20:01:15.512Z] [LOG] [Backend:stdout] [JWT] ===== SELF-TEST END =====
+[2026-05-18T20:01:15.513Z] [LOG] [Backend:stdout] [AUTH] Google OAuth not configured on local backend — expected in Electron mode (auth handled by cloud server).
+[2026-05-18T20:01:15.513Z] [LOG] [Backend:stdout] [AUTH] Using memory session store (NO-DB / Electron desktop mode)
+[2026-05-18T20:01:15.513Z] [LOG] [Backend:stdout] [AUTH] ===== SESSION COOKIE CONFIG =====
+[2026-05-18T20:01:15.513Z] [LOG] [Backend:stdout] [AUTH] production: true
+[2026-05-18T20:01:15.513Z] [LOG] [Backend:stdout] [AUTH] electronBackend: true
+[2026-05-18T20:01:15.514Z] [LOG] [Backend:stdout] [AUTH] cookie: {"httpOnly":true,"secure":false,"sameSite":"lax","maxAge":604800000,"path":"/"}
+[2026-05-18T20:01:15.514Z] [LOG] [Backend:stdout] [AUTH] ================================
+[2026-05-18T20:01:15.514Z] [LOG] [Backend:stdout] [AUTH] Discord OAuth not configured on local backend — expected in Electron mode (auth handled by cloud server).
+[2026-05-18T20:01:15.515Z] [LOG] [Backend:stdout] [WS] Live telemetry WebSocket server ready at /ws/telemetry (auth required)
+[2026-05-18T20:01:15.529Z] [LOG] [Backend:stdout] 8:01:15 AM [express] serving on 127.0.0.1:49714
+[2026-05-18T20:01:15.584Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:10) [API] Backend port not ready, retrying in 400ms… (elapsed 214ms, attempt 2)
+[2026-05-18T20:01:15.592Z] [LOG] [Backend] Health check PASSED — attempt 7, 460ms elapsed, body={"status":"ok","version":"1.0.9","uptime":0,"dbReachable":false,"timestamp":1779134475590}
+[2026-05-18T20:01:15.592Z] [LOG] [Backend] ===== BACKEND READY =====
+[2026-05-18T20:01:15.593Z] [LOG] [Backend] PID: 6944
+[2026-05-18T20:01:15.593Z] [LOG] [Backend] Port: 49714
+[2026-05-18T20:01:15.593Z] [LOG] [Backend] Ready: true
+[2026-05-18T20:01:15.593Z] [LOG] [Backend] getBackendPort() will return: 49714
+[2026-05-18T20:01:15.593Z] [LOG] [Backend] isBackendReady() will return: true
+[2026-05-18T20:01:15.593Z] [LOG] [Backend] ========================
+[2026-05-18T20:01:15.593Z] [LOG] [STARTUP] backend ready — port 49714 (573ms)
+[2026-05-18T20:01:15.593Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:104) [Backend] backend-ready event received, port: 49714
+[2026-05-18T20:01:15.594Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:10) [API] Backend-ready push: base=http://127.0.0.1:49714/api (was: unset)
+[2026-05-18T20:01:15.594Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:10) [API] Backend port resolved: 49714 (224ms, push or poll)
+[2026-05-18T20:01:15.594Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:10) [API] Packaged Electron API base: http://127.0.0.1:49714/api
+[2026-05-18T20:01:15.594Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:10) [API] Resolved: http://127.0.0.1:49714/api | electron=true packaged=true
+[2026-05-18T20:01:15.652Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:29) [LAUNCH:R4b] startup-shell removed from DOM
+[2026-05-18T20:01:15.652Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:29) [LAUNCH:R6] renderer reveal completed (200ms elapsed) | t=+612ms
+[2026-05-18T20:01:15.903Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:26) [TourTransition] unmounted
+[2026-05-18T20:01:15.904Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:26) [TourTransition] unmounted
+[2026-05-18T20:01:17.174Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:29) [LAUNCH:R5] Splash onComplete — handing off to App
+[2026-05-18T20:01:17.174Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:236) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: true
+[2026-05-18T20:01:17.176Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:236) [AuthTruth] Boot: token present: true jwt present: true user present: true premium: true
+[2026-05-18T20:01:17.176Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:236) [AuthTruth] startup restore begin — hasCredential: true cached isPremium: true plan: premium
+[2026-05-18T20:01:17.176Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:10) [HYDRATE:1] resolveAuthState start reqId=hutmve
+[2026-05-18T20:01:17.176Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:10) [HYDRATE:1] persisted — user=64f0e669-6db6-42e7-a68a-681f9f5db567 jwt=present
+[2026-05-18T20:01:17.176Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:10) [HYDRATE:2] jwtCheck — malformed=false expired=false
+[2026-05-18T20:01:17.177Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:10) [HYDRATE:5] /api/me — jwt=present reqId=hutmve
+[2026-05-18T20:01:17.177Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:236) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: true
+[2026-05-18T20:01:17.449Z] [LOG] [LAUNCH:7] starting telemetry — 2000ms post window-shown | +2395ms
+[2026-05-18T20:01:18.431Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:10) [HYDRATE:6] result=verified source=cloud userId=64f0e669-6db6-42e7-a68a-681f9f5db567 isPremium=true plan=premium isAdmin=true reqId=hutmve
+[2026-05-18T20:01:18.431Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:236) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: true
+[2026-05-18T20:01:18.432Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:236) [AuthTruth] Boot resolved verified=true reason=cloud_confirmed user=yes
+[2026-05-18T20:01:18.432Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:29) [Premium] Grace snapshot updated — isPremium=true plan=premium userId=64f0e669-6db6-42e7-a68a-681f9f5db567
+[2026-05-18T20:01:18.432Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:236) [AuthTruth] Boot: cloud-confirmed — entitlementsVerified=true
+[2026-05-18T20:01:18.433Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:236) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-18T20:01:18.519Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:29) [Network] Heartbeat started (interval=30000ms)
+[2026-05-18T20:01:18.520Z] [WARN] [telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.
+[2026-05-18T20:01:18.521Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:155) [Dashboard] mounted
+[2026-05-18T20:01:18.521Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:155) [ActivityMonitor] mounted — no cached history yet, status: loading
+[2026-05-18T20:01:18.557Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:236) [Handoff] dashboard fade-in started
+[2026-05-18T20:01:18.557Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:29) [DeviceLock] target=cloud userId=present deviceIdPresent=true
+[2026-05-18T20:01:18.558Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:29) [PremiumExpiry] Initial state recorded — active=true plan=premium trialEndsAt=null
+[2026-05-18T20:01:18.558Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:236) [TourTransition] phase entered authenticated — waiting 500ms for dashboard to stabilize
+[2026-05-18T20:01:18.558Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:236) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-18T20:01:18.559Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:49714/api
+[2026-05-18T20:01:18.559Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:10) [AuthRoute] path=/api/dashboard-intelligence/system-dna target=local reason=system-route base=http://127.0.0.1:49714/api
+[2026-05-18T20:01:18.559Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:49714/api
+[2026-05-18T20:01:18.560Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:49714/api
+[2026-05-18T20:01:18.560Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:10) [AuthRoute] path=/api/dashboard-intelligence/ram-analysis target=local reason=system-route base=http://127.0.0.1:49714/api
+[2026-05-18T20:01:18.560Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:10) [AuthRoute] path=/api/dashboard-intelligence/display-signal target=local reason=system-route base=http://127.0.0.1:49714/api
+[2026-05-18T20:01:18.560Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:10) [AuthRoute] path=/api/system-intelligence/profile target=local reason=system-route base=http://127.0.0.1:49714/api
+[2026-05-18T20:01:18.560Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:28) [Telemetry:ws] building url — iss=switchcontrol sub=64f0e669-6db6-42e7-a68a-681f9f5db567
+[2026-05-18T20:01:18.604Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:29) [CloudAPI] 2026-05-18T20:01:18.604Z | POST /device/premium-validate | auth=true | base=https://switchcontrol.org/api
+[2026-05-18T20:01:18.609Z] [LOG] [Backend:stdout] [SysIntelligence] Collecting full system profile…
+[2026-05-18T20:01:18.899Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:236) [Handoff] dashboard fade-in complete — layout stable
+[2026-05-18T20:01:19.029Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:236) [TourTransition] dashboard stable — tours unblocked
+[2026-05-18T20:01:19.030Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:236) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-18T20:01:19.041Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:236) [AppFlow] Flow eval — isPremium: true plan: premium trialEndsAt: null hasSeenTrialActivation: true hasSeenTrialTour: true hasSeenUnlock: true hasSeenTour: true isFirstTimeUser: false isFirstLogin: false entitlementsAttempted: true entitlementsOk: true unlockFired: false trialUnlockFired: false
+[2026-05-18T20:01:19.041Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:236) [AppFlow] No flow conditions met — staying idle
+[2026-05-18T20:01:19.443Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:29) [CloudAPI] OK | POST /device/premium-validate | status=200
+[2026-05-18T20:01:19.451Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:29) [DeviceLock] Valid device
+[2026-05-18T20:01:19.451Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:236) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-18T20:01:19.722Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:10) [AuthRoute] path=/api/startup/apps target=local reason=system-route base=http://127.0.0.1:49714/api
+[2026-05-18T20:01:21.383Z] [LOG] [Backend:stdout] [WS:auth] phase=accepted (electron-local) userId=64f0e669-6db6-42e7-a68a-681f9f5db567 tokenFp=eyJhbGci.eyJzdWIi
+[2026-05-18T20:01:21.383Z] [LOG] [Backend:stdout] [WS:auth] phase=accepted userId=64f0e669-6db6-42e7-a68a-681f9f5db567 connections=1 tokenFp=eyJhbGci.eyJzdWIi iss=switchcontrol
+[2026-05-18T20:01:21.384Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:28) [Telemetry:ws] event=connected attempt=1 wasReconnect=false
+[2026-05-18T20:01:21.862Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:236) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-18T20:01:22.450Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=1 active=1
+[2026-05-18T20:01:23.121Z] [INFO] Checking for update
+[2026-05-18T20:01:23.121Z] [LOG] [Updater] Checking for update...
+[2026-05-18T20:01:23.376Z] [INFO] Update for version 1.0.9 is not available (latest version: 1.0.9, downgrade is allowed).
+[2026-05-18T20:01:23.376Z] [LOG] [Updater] No update available — current version is latest.
+[2026-05-18T20:01:23.522Z] [ERROR] [SwitchControl] Failed to get CPU info: si.cpu() timed out after 5000ms
+[2026-05-18T20:01:23.522Z] [WARN] [SwitchControl] CPU info incomplete — returning but NOT caching so next call retries
+[2026-05-18T20:01:23.632Z] [ERROR] [Renderer:warn] (index-D3jdFAYQ.js:155) [SwitchControl] CPU data incomplete (WMI cold-start?) — will retry in 5s
+[2026-05-18T20:01:23.660Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:236) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-18T20:01:23.661Z] [WARN] [telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.
+[2026-05-18T20:01:26.064Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:10) [AuthRoute] path=/api/issues/detect target=local reason=system-route base=http://127.0.0.1:49714/api
+[2026-05-18T20:01:26.459Z] [WARN] [GPU:perf] PowerShell error (fail 1): Command failed: powershell -NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy Bypass -Command try {
+  $s = (Get-Counter '\GPU Engine(*)\Utilization Percentage' -ErrorAction Stop).CounterSamples
+  $byType = $s | Group-Object { if ($_.InstanceName -match '_engtype_(.+)$') { $Matches[1] } else { 'other' } }
+  $engines = @{}
+  $maxLoad = 0.0
+  foreach ($g in $byType) {
+    # Sum across all process instances of this engine type to get total engine load
+    $engineSum = [Math]::Round(($g.Group | Measure-Object -Property CookedValue -Sum).Sum, 2)
+    $engines[$g.Name] = $engineSum
+    if ($engineSum -gt $maxLoad) { $maxLoad = $engineSum }
+  }
+  $enginesJson = ($engines.GetEnumerator() | ForEach-Object { '"' + $_.Key + '":' + $_.Value }) -join ','
+  '{"max":' + [Math]::Round($maxLoad, 2) + ',"engines":{' + $enginesJson + '}}'
+} catch {
+  '{"max":-1,"engines":{}}'
+}
+
+[2026-05-18T20:01:26.459Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=1 duration=4009ms active=0 calls60s=1
+[2026-05-18T20:01:28.262Z] [LOG] [Backend:stdout] [SysIntelligence] Collection complete in 9653ms | MB=X870E AORUS PRO ICE | BIOS=F12a | CPU=Ryzen 7 9800X3D 8-Core Processor | GPUs=1 | RAMsticks=2
+[2026-05-18T20:01:28.264Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:155) [SysIntelligence] Profile loaded | MB=X870E AORUS PRO ICE | BIOS=F12a | CPU=Ryzen 7 9800X3D 8-Core Processor
+[2026-05-18T20:01:28.521Z] [WARN] [telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.
+[2026-05-18T20:01:31.753Z] [LOG] [SwitchControl] System specs loaded: Ryzen 7 9800X3D 8-Core Processor AMD Radeon RX 7800 XT
+[2026-05-18T20:01:31.755Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:155) [SwitchControl] CPU retry succeeded: Ryzen 7 9800X3D 8-Core Processor
+[2026-05-18T20:01:31.756Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:236) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-18T20:01:35.569Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:236) [App] Window focused, refreshing entitlements...
+[2026-05-18T20:01:35.571Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:124) [Window] Focus event received
+[2026-05-18T20:01:35.571Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:236) [App] Electron window focus (passive)
+[2026-05-18T20:01:35.919Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:49714/api
+[2026-05-18T20:01:36.267Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:236) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-18T20:01:38.683Z] [LOG] [Renderer:info] (MemoryCleanerModal-CrRljGCm.js:1) [MemoryCleaner] mode selected: advanced
+[2026-05-18T20:01:38.684Z] [LOG] [Memory] mode=advanced expected helper: C:\Program Files\SwitchControl\resources\bin\sc_memory.exe | exists: true | isPackaged: true
+[2026-05-18T20:01:39.010Z] [LOG] [Memory] stdout raw: {"mode":"advanced","processes_scanned":134,"processes_trimmed":62,"estimated_mb_freed":4343.1,"top_trimmed":[{"name":"firefox.exe","pid":10272,"mb_freed":683.9},{"name":"firefox.exe","pid":9916,"mb_freed":591.5},{"name":"firefox.exe","pid":4868,"mb_freed":377.7},{"name":"firefox.exe","pid":10008,"mb_freed":304.9},{"name":"explorer.exe","pid":4092,"mb_freed":293.8}],"execution_ms":314,"errors_count":14}
+[2026-05-18T20:01:39.011Z] [LOG] [Memory] advanced mode: scanned=134 trimmed=62 freed=4343.1MB
+[2026-05-18T20:01:39.883Z] [LOG] [Renderer:info] (MemoryCleanerModal-CrRljGCm.js:1) [MemoryCleaner] raw result from electronAPI.memory.clean: {"mode":"advanced","processes_scanned":134,"processes_trimmed":62,"estimated_mb_freed":4343.1,"top_trimmed":[{"name":"firefox.exe","pid":10272,"mb_freed":683.9},{"name":"firefox.exe","pid":9916,"mb_freed":591.5},{"name":"firefox.exe","pid":4868,"mb_freed":377.7},{"name":"firefox.exe","pid":10008,"mb_freed":304.9},{"name":"explorer.exe","pid":4092,"mb_freed":293.8}],"execution_ms":314,"errors_count":14}
+[2026-05-18T20:01:39.884Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:10) [AuthRoute] path=/api/telemetry/force-refresh target=local reason=system-route base=http://127.0.0.1:49714/api
+[2026-05-18T20:01:40.924Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:49714/api
+[2026-05-18T20:01:45.928Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:49714/api
+[2026-05-18T20:01:55.933Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:49714/api
+[2026-05-18T20:01:55.934Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:49714/api
+[2026-05-18T20:01:55.934Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:49714/api
+[2026-05-18T20:02:04.512Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:124) [Window] Focus event received
+[2026-05-18T20:02:04.512Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:236) [App] Electron window focus (passive)
+[2026-05-18T20:02:05.377Z] [LOG] [Perf] minimized → pausing all loops (telemetry, no IPC polls while hidden)
+[2026-05-18T20:02:05.942Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:49714/api
+[2026-05-18T20:02:10.946Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:49714/api
+[2026-05-18T20:02:15.949Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:49714/api
+[2026-05-18T20:02:18.530Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:10) [AuthRoute] path=/api/dashboard-intelligence/display-signal target=local reason=system-route base=http://127.0.0.1:49714/api
+[2026-05-18T20:02:20.711Z] [LOG] [Perf] restored → resuming telemetry loop
+[2026-05-18T20:02:20.773Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:236) [App] Window focused, refreshing entitlements...
+[2026-05-18T20:02:20.773Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:124) [Window] Focus event received
+[2026-05-18T20:02:20.773Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:236) [App] Electron window focus (passive)
+[2026-05-18T20:02:21.532Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:236) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-18T20:02:25.953Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:49714/api
+[2026-05-18T20:02:25.953Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:49714/api
+[2026-05-18T20:02:25.954Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:49714/api
+[2026-05-18T20:02:25.954Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:10) [AuthRoute] path=/api/dashboard-intelligence/system-dna target=local reason=system-route base=http://127.0.0.1:49714/api
+[2026-05-18T20:02:25.954Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:10) [AuthRoute] path=/api/dashboard-intelligence/ram-analysis target=local reason=system-route base=http://127.0.0.1:49714/api
+[2026-05-18T20:02:31.924Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:124) [Window] Focus event received
+[2026-05-18T20:02:31.924Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:236) [App] Electron window focus (passive)
+[2026-05-18T20:02:37.435Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:49714/api
+[2026-05-18T20:02:42.441Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:49714/api
+[2026-05-18T20:02:47.444Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:49714/api
+[2026-05-18T20:02:49.618Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:124) [Window] Focus event received
+[2026-05-18T20:02:49.618Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:236) [App] Electron window focus (passive)
+[2026-05-18T20:02:50.650Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:236) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-18T20:02:50.716Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:169) [Tweaks:LOAD] source=zustand-persist enabled=10 total_known=10
+[2026-05-18T20:02:50.716Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:169) [Tweaks:LOAD] enabled_ids=disable-wallpaper-compression, hibernation, maintenance, energy-logging, notifications, power-throttling, fast-startup, bg-apps, superfetch, gaming-mode
+[2026-05-18T20:02:50.716Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:169) [Tweaks:SYNC] hydration start gen=1
+[2026-05-18T20:02:50.717Z] [LOG] [PS] start file=main.js fn=tweak:syncAll reason=tweak-sync-all id=2 active=1
+[2026-05-18T20:02:50.717Z] [LOG] [PS-Exec] start file=main.js fn=tweak:syncAll reason=tweak-sync-all — 61 checks
+[2026-05-18T20:02:50.717Z] [LOG] [PS:tweak-executor] #1 queryPowerShell SPAWN ts=1779134570717 active=1
+[2026-05-18T20:02:50.733Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:10) [AuthRoute] path=/api/tweak-intelligence/system-state target=local reason=system-route base=http://127.0.0.1:49714/api
+[2026-05-18T20:02:50.733Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:10) [AuthRoute] path=/api/tweak-intelligence/rankings?applied=disable-wallpaper-compression%2Chibernation%2Cmaintenance%2Cenergy-logging%2Cnotifications%2Cpower-throttling%2Cfast-startup%2Cbg-apps%2Csuperfetch%2Cgaming-mode target=local reason=system-route base=http://127.0.0.1:49714/api
+[2026-05-18T20:02:50.733Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:10) [AuthRoute] path=/api/tweak-intelligence/posture?applied=disable-wallpaper-compression%2Chibernation%2Cmaintenance%2Cenergy-logging%2Cnotifications%2Cpower-throttling%2Cfast-startup%2Cbg-apps%2Csuperfetch%2Cgaming-mode target=local reason=system-route base=http://127.0.0.1:49714/api
+[2026-05-18T20:02:50.756Z] [ERROR] [Renderer:warn] (index-D3jdFAYQ.js:169) [SliderHydration] svchost-split-threshold: read failed — Unknown slider tweak: svchost-split-threshold
+[2026-05-18T20:02:51.845Z] [LOG] [SliderExecutor] READ sys-responsiveness: value=1 raw="1"
+[2026-05-18T20:02:51.845Z] [LOG] [SliderExecutor] READ hung-app-timeout: value=2000 raw="2000"
+[2026-05-18T20:02:51.846Z] [LOG] [SliderExecutor] READ win32-priority-sep: value=38 raw="38"
+[2026-05-18T20:02:51.846Z] [LOG] [SliderExecutor] READ low-level-hooks-timeout: value=1000 raw="1000"
+[2026-05-18T20:02:51.847Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:169) [SliderHydration] sys-responsiveness: value=1 missing=false
+[2026-05-18T20:02:51.847Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:169) [SliderHydration] hung-app-timeout: value=2000 missing=false
+[2026-05-18T20:02:51.847Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:169) [SliderHydration] win32-priority-sep: value=38 missing=false
+[2026-05-18T20:02:51.847Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:169) [SliderHydration] low-level-hooks-timeout: value=1000 missing=false
+[2026-05-18T20:02:51.886Z] [LOG] [SliderExecutor] READ net-throttle-index: key absent — returning built-in default 10
+[2026-05-18T20:02:51.888Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:169) [SliderHydration] net-throttle-index: value=10 missing=true
+[2026-05-18T20:02:51.905Z] [LOG] [PS:tweak-executor] #1 queryPowerShell OK 1188ms
+[2026-05-18T20:02:51.906Z] [LOG] [PS:tweak-executor] #2 queryPowerShell SPAWN ts=1779134571906 active=1
+[2026-05-18T20:02:51.912Z] [LOG] [SliderExecutor] READ wait-to-kill-app: value=4000 raw="4000"
+[2026-05-18T20:02:51.914Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:169) [SliderHydration] wait-to-kill-app: value=4000 missing=false
+[2026-05-18T20:02:51.936Z] [LOG] [SliderExecutor] READ menu-show-delay: value=0 raw="0"
+[2026-05-18T20:02:51.938Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:169) [SliderHydration] menu-show-delay: value=0 missing=false
+[2026-05-18T20:02:52.452Z] [LOG] [PS:tweak-executor] #2 queryPowerShell OK 546ms
+[2026-05-18T20:02:52.452Z] [LOG] [PS:tweak-executor] #3 queryPowerShell SPAWN ts=1779134572452 active=1
+[2026-05-18T20:02:52.983Z] [LOG] [PS:tweak-executor] #3 queryPowerShell OK 531ms
+[2026-05-18T20:02:52.983Z] [LOG] [PS:tweak-executor] #4 queryPowerShell SPAWN ts=1779134572983 active=1
+[2026-05-18T20:02:53.504Z] [LOG] [PS:tweak-executor] #4 queryPowerShell OK 521ms
+[2026-05-18T20:02:53.505Z] [LOG] [PS:tweak-executor] #5 queryPowerShell SPAWN ts=1779134573505 active=1
+[2026-05-18T20:02:54.072Z] [LOG] [PS:tweak-executor] #5 queryPowerShell OK 567ms
+[2026-05-18T20:02:54.073Z] [LOG] [PS:tweak-executor] #6 queryPowerShell SPAWN ts=1779134574073 active=1
+[2026-05-18T20:02:54.601Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:236) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-18T20:02:54.604Z] [ERROR] [Renderer:error] (index-D3jdFAYQ.js:9) Error: <path> attribute d: Expected path command, "M -200 70% Q 300 55% 600 …".
+[2026-05-18T20:02:54.605Z] [ERROR] [Renderer:error] (index-D3jdFAYQ.js:9) Error: <path> attribute d: Expected path command, "M 0 20% Q 400 35% 700 …".
+[2026-05-18T20:02:54.631Z] [LOG] [PS:tweak-executor] #6 queryPowerShell OK 558ms
+[2026-05-18T20:02:54.631Z] [LOG] [PS:tweak-executor] #7 queryPowerShell SPAWN ts=1779134574631 active=1
+[2026-05-18T20:02:55.211Z] [LOG] [PS:tweak-executor] #7 queryPowerShell OK 580ms
+[2026-05-18T20:02:55.212Z] [LOG] [PS:tweak-executor] #8 queryPowerShell SPAWN ts=1779134575212 active=1
+[2026-05-18T20:02:55.316Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:236) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-18T20:02:55.317Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:155) [Timing] AppBooster | mount | +0ms
+[2026-05-18T20:02:55.321Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:162) [GameIcon] slug="fortnite" → canon="fortnite" source=vite-bundle url="file:///C:/Program%20Files/SwitchControl/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-05-18T20:02:55.331Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:155) [Timing] AppBooster | mount | +14ms
+[2026-05-18T20:02:55.335Z] [LOG] [Backend:stdout] [AppBooster] GET /games userId=64f0e669-6db6-42e7-a68a-681f9f5db567 — catalog: 16, installed: 0
+[2026-05-18T20:02:55.341Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:162) [GameIcon] LOAD OK — slug="fortnite" src="file:///C:/Program%20Files/SwitchControl/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-05-18T20:02:55.346Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:155) [Timing] AppBooster | mount | +0ms
+[2026-05-18T20:02:55.393Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:155) [Timing] AppBooster | scan-start | +76ms
+[2026-05-18T20:02:55.394Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:155) [Timing] AppBooster | mount | +0ms
+[2026-05-18T20:02:55.397Z] [LOG] [AppBooster] Epic manifest: fortnitelauncher.exe → C:\Program Files\Epic Games\Fortnite\FortniteGame\Binaries\Win64
+[2026-05-18T20:02:55.798Z] [LOG] [PS:tweak-executor] #8 queryPowerShell OK 586ms
+[2026-05-18T20:02:55.798Z] [LOG] [PS:tweak-executor] #9 queryPowerShell SPAWN ts=1779134575798 active=1
+[2026-05-18T20:02:56.162Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:236) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-18T20:02:56.163Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:155) [Timing] FocusMode | mount | +0ms
+[2026-05-18T20:02:56.186Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:155) [Timing] FocusMode | fetch-state | +23ms
+[2026-05-18T20:02:56.190Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:10) [AuthRoute] path=/api/focus/state target=local reason=system-route base=http://127.0.0.1:49714/api
+[2026-05-18T20:02:56.207Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:155) [Timing] FocusMode | fetch-state-done | +44ms
+[2026-05-18T20:02:56.244Z] [LOG] [AppBooster]   fortnite: detected=true path=C:\Program Files\Epic Games\Fortnite\FortniteGame\Binaries\Win64
+[2026-05-18T20:02:56.250Z] [LOG] [AppBooster]   apex-legends: detected=false
+[2026-05-18T20:02:56.256Z] [LOG] [AppBooster]   warzone: detected=false
+[2026-05-18T20:02:56.261Z] [LOG] [AppBooster]   valorant: detected=false
+[2026-05-18T20:02:56.266Z] [LOG] [AppBooster]   cs2: detected=false
+[2026-05-18T20:02:56.271Z] [LOG] [AppBooster]   overwatch2: detected=false
+[2026-05-18T20:02:56.278Z] [LOG] [AppBooster]   rainbow-six-siege: detected=false
+[2026-05-18T20:02:56.283Z] [LOG] [AppBooster]   msfs-2024: detected=false
+[2026-05-18T20:02:56.289Z] [LOG] [AppBooster]   msfs-2020: detected=false
+[2026-05-18T20:02:56.294Z] [LOG] [AppBooster]   gta5: detected=false
+[2026-05-18T20:02:56.299Z] [LOG] [AppBooster]   cyberpunk: detected=false
+[2026-05-18T20:02:56.303Z] [LOG] [AppBooster]   elden-ring: detected=false
+[2026-05-18T20:02:56.309Z] [LOG] [AppBooster]   league-of-legends: detected=false
+[2026-05-18T20:02:56.314Z] [LOG] [AppBooster]   world-of-warcraft: detected=false
+[2026-05-18T20:02:56.319Z] [LOG] [AppBooster]   rocket-league: detected=false
+[2026-05-18T20:02:56.324Z] [LOG] [AppBooster]   minecraft: detected=false
+[2026-05-18T20:02:56.324Z] [LOG] [AppBooster] scanGames done — 1/16 detected
+[2026-05-18T20:02:56.326Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:10) [API] Fetching CSRF token from http://127.0.0.1:49714/api/csrf-token
+[2026-05-18T20:02:56.328Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:10) [API] CSRF token cached in memory (TTL 10 min)
+[2026-05-18T20:02:56.329Z] [LOG] [Backend:stdout] [AppBooster] POST /games/scan userId=64f0e669-6db6-42e7-a68a-681f9f5db567 — 16 result(s), 1 detected
+[2026-05-18T20:02:56.331Z] [LOG] [Backend:stdout] [AppBooster] GET /games userId=64f0e669-6db6-42e7-a68a-681f9f5db567 — catalog: 16, installed: 1
+[2026-05-18T20:02:56.332Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:155) [Timing] AppBooster | scan-done | +1015ms
+[2026-05-18T20:02:56.345Z] [LOG] [PS:tweak-executor] #9 queryPowerShell OK 547ms
+[2026-05-18T20:02:56.345Z] [LOG] [PS:tweak-executor] #10 queryPowerShell SPAWN ts=1779134576345 active=1
+[2026-05-18T20:02:56.491Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:10) [AuthRoute] path=/api/focus/history target=local reason=system-route base=http://127.0.0.1:49714/api
+[2026-05-18T20:02:56.494Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:155) [Timing] FocusMode | fetch-history-done | +331ms
+[2026-05-18T20:02:56.494Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:155) [Timing] FocusMode | mount | +0ms
+[2026-05-18T20:02:56.877Z] [LOG] [PS:tweak-executor] #10 queryPowerShell OK 532ms
+[2026-05-18T20:02:56.877Z] [LOG] [PS:tweak-executor] #11 queryPowerShell SPAWN ts=1779134576877 active=1
+[2026-05-18T20:02:57.242Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:236) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-18T20:02:57.250Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:155) [Timing] SystemCleaner | mount | +0ms
+[2026-05-18T20:02:57.250Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:155) [Timing] SystemCleaner | mount | +0ms
+[2026-05-18T20:02:57.251Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:155) [Timing] SystemCleaner | mount | +0ms
+[2026-05-18T20:02:57.251Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:155) [Timing] SystemCleaner | mount | +0ms
+[2026-05-18T20:02:57.251Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:155) [Timing] SystemCleaner | mount | +0ms
+[2026-05-18T20:02:57.252Z] [LOG] [Renderer:info] (index-D3jdFAYQ.js:155) [Timing] SystemCleaner | mount | +0ms
+[2026-05-18T20:02:57.406Z] [LOG] [PS:tweak-executor] #11 queryPowerShell OK 529ms
+[2026-05-18T20:02:57.406Z] [LOG] [PS:tweak-executor] #12 queryPowerShell SPAWN ts=1779134577406 active=1
+[2026-05-18T20:02:57.569Z] [ERROR] [Renderer:error] (index-D3jdFAYQ.js:9) ReferenceError: Cannot access 'Ce' before initialization
+[2026-05-18T20:02:57.569Z] [ERROR] [Renderer:error] (index-D3jdFAYQ.js:11) [ErrorBoundary] Render error caught: Cannot access 'Ce' before initialization
+[2026-05-18T20:02:57.989Z] [LOG] [PS:tweak-executor] #12 queryPowerShell OK 583ms
+[2026-05-18T20:02:57.989Z] [LOG] [PS:tweak-executor] #13 queryPowerShell SPAWN ts=1779134577989 active=1
+[2026-05-18T20:02:58.519Z] [LOG] [PS:tweak-executor] #13 queryPowerShell OK 530ms
+[2026-05-18T20:02:58.519Z] [LOG] [PS:tweak-executor] #14 queryPowerShell SPAWN ts=1779134578519 active=1
+[2026-05-18T20:02:59.037Z] [LOG] [PS:tweak-executor] #14 queryPowerShell OK 518ms
+[2026-05-18T20:02:59.037Z] [LOG] [PS:tweak-executor] #15 queryPowerShell SPAWN ts=1779134579037 active=1
+[2026-05-18T20:02:59.558Z] [LOG] [PS:tweak-executor] #15 queryPowerShell OK 521ms
+[2026-05-18T20:02:59.558Z] [LOG] [PS:tweak-executor] #16 queryPowerShell SPAWN ts=1779134579558 active=1
+[2026-05-18T20:03:00.068Z] [LOG] [PS:tweak-executor] #16 queryPowerShell OK 510ms
+[2026-05-18T20:03:00.068Z] [LOG] [PS:tweak-executor] #17 queryPowerShell SPAWN ts=1779134580068 active=1
+[2026-05-18T20:03:00.587Z] [LOG] [PS:tweak-executor] #17 queryPowerShell OK 519ms
+[2026-05-18T20:03:00.587Z] [LOG] [PS:tweak-executor] #18 queryPowerShell SPAWN ts=1779134580587 active=1
+[2026-05-18T20:03:01.129Z] [LOG] [PS:tweak-executor] #18 queryPowerShell OK 542ms
+[2026-05-18T20:03:01.129Z] [LOG] [PS:tweak-executor] #19 queryPowerShell SPAWN ts=1779134581129 active=1
+[2026-05-18T20:03:01.675Z] [LOG] [PS:tweak-executor] #19 queryPowerShell OK 546ms
+[2026-05-18T20:03:01.675Z] [LOG] [PS:tweak-executor] #20 queryPowerShell SPAWN ts=1779134581675 active=1
+[2026-05-18T20:03:02.972Z] [LOG] [PS:tweak-executor] #20 queryPowerShell OK 1297ms
+[2026-05-18T20:03:02.972Z] [LOG] [PS:tweak-executor] #21 queryPowerShell SPAWN ts=1779134582972 active=1
+[2026-05-18T20:03:03.564Z] [LOG] [PS:tweak-executor] #21 queryPowerShell OK 592ms
+[2026-05-18T20:03:03.564Z] [LOG] [PS:tweak-executor] #22 queryPowerShell SPAWN ts=1779134583564 active=1
+[2026-05-18T20:03:04.092Z] [LOG] [PS:tweak-executor] #22 queryPowerShell OK 528ms
+[2026-05-18T20:03:04.092Z] [LOG] [PS:tweak-executor] #23 queryPowerShell SPAWN ts=1779134584092 active=1
+[2026-05-18T20:03:04.624Z] [LOG] [PS:tweak-executor] #23 queryPowerShell OK 532ms
+[2026-05-18T20:03:04.624Z] [LOG] [PS:tweak-executor] #24 queryPowerShell SPAWN ts=1779134584624 active=1
+[2026-05-18T20:03:05.331Z] [LOG] [PS:tweak-executor] #24 queryPowerShell OK 707ms
+[2026-05-18T20:03:05.331Z] [LOG] [PS:tweak-executor] #25 queryPowerShell SPAWN ts=1779134585331 active=1
+[2026-05-18T20:03:05.885Z] [LOG] [PS:tweak-executor] #25 queryPowerShell OK 554ms
+[2026-05-18T20:03:05.885Z] [LOG] [PS:tweak-executor] #26 queryPowerShell SPAWN ts=1779134585885 active=1
+[2026-05-18T20:03:06.759Z] [LOG] [PS:tweak-executor] #26 queryPowerShell OK 874ms
+[2026-05-18T20:03:06.759Z] [LOG] [PS:tweak-executor] #27 queryPowerShell SPAWN ts=1779134586759 active=1
+[2026-05-18T20:03:07.353Z] [LOG] [PS:tweak-executor] #27 queryPowerShell OK 594ms
+[2026-05-18T20:03:07.353Z] [LOG] [PS:tweak-executor] #28 queryPowerShell SPAWN ts=1779134587353 active=1
+[2026-05-18T20:03:07.936Z] [LOG] [PS:tweak-executor] #28 queryPowerShell OK 583ms
+[2026-05-18T20:03:07.936Z] [LOG] [PS:tweak-executor] #29 queryPowerShell SPAWN ts=1779134587936 active=1
+[2026-05-18T20:03:08.495Z] [LOG] [PS:tweak-executor] #29 queryPowerShell OK 559ms
+[2026-05-18T20:03:08.496Z] [LOG] [PS:tweak-executor] #30 queryPowerShell SPAWN ts=1779134588496 active=1
+[2026-05-18T20:03:09.036Z] [LOG] [PS:tweak-executor] #30 queryPowerShell OK 540ms
+[2026-05-18T20:03:09.036Z] [LOG] [PS:tweak-executor] #31 queryPowerShell SPAWN ts=1779134589036 active=1
+[2026-05-18T20:03:09.820Z] [LOG] [PS:tweak-executor] #31 queryPowerShell OK 784ms
+[2026-05-18T20:03:09.820Z] [LOG] [TweakSupport] id=nvidia-telemetry, supported=false, reason="No NVIDIA GPU detected", os=10.0.26200, helperFound=false
+[2026-05-18T20:03:09.820Z] [LOG] [PS:tweak-executor] #32 queryPowerShell SPAWN ts=1779134589820 active=1
+[2026-05-18T20:03:10.383Z] [LOG] [PS:tweak-executor] #32 queryPowerShell OK 563ms
+[2026-05-18T20:03:10.383Z] [LOG] [PS:tweak-executor] #33 queryPowerShell SPAWN ts=1779134590383 active=1
+[2026-05-18T20:03:10.986Z] [LOG] [PS:tweak-executor] #33 queryPowerShell OK 603ms
+[2026-05-18T20:03:10.986Z] [LOG] [PS:tweak-executor] #34 queryPowerShell SPAWN ts=1779134590986 active=1
+[2026-05-18T20:03:11.538Z] [LOG] [PS:tweak-executor] #34 queryPowerShell OK 552ms
+[2026-05-18T20:03:11.538Z] [LOG] [PS:tweak-executor] #35 queryPowerShell SPAWN ts=1779134591538 active=1
+[2026-05-18T20:03:12.112Z] [LOG] [PS:tweak-executor] #35 queryPowerShell OK 574ms
+[2026-05-18T20:03:12.112Z] [LOG] [PS:tweak-executor] #36 queryPowerShell SPAWN ts=1779134592112 active=1
+[2026-05-18T20:03:12.664Z] [LOG] [PS:tweak-executor] #36 queryPowerShell OK 552ms
+[2026-05-18T20:03:12.664Z] [LOG] [PS:tweak-executor] #37 queryPowerShell SPAWN ts=1779134592664 active=1
+[2026-05-18T20:03:13.335Z] [LOG] [PS:tweak-executor] #37 queryPowerShell OK 671ms
+[2026-05-18T20:03:13.336Z] [LOG] [PS:tweak-executor] #38 queryPowerShell SPAWN ts=1779134593336 active=1
+[2026-05-18T20:03:13.991Z] [LOG] [PS:tweak-executor] #38 queryPowerShell OK 655ms
+[2026-05-18T20:03:13.991Z] [LOG] [PS:tweak-executor] #39 queryPowerShell SPAWN ts=1779134593991 active=1
+[2026-05-18T20:03:14.603Z] [LOG] [PS:tweak-executor] #39 queryPowerShell OK 612ms
+[2026-05-18T20:03:14.603Z] [LOG] [PS:tweak-executor] #40 queryPowerShell SPAWN ts=1779134594603 active=1
+[2026-05-18T20:03:15.283Z] [LOG] [PS:tweak-executor] #40 queryPowerShell OK 680ms
+[2026-05-18T20:03:15.283Z] [LOG] [TweakSupport] id=usb-selective-suspend, supported=true, reason="powercfg USB setting present", os=10.0.26200, helperFound=true
+[2026-05-18T20:03:15.283Z] [LOG] [PS:tweak-executor] #41 queryPowerShell SPAWN ts=1779134595283 active=1
+[2026-05-18T20:03:15.886Z] [LOG] [PS:tweak-executor] #41 queryPowerShell OK 603ms
+[2026-05-18T20:03:15.886Z] [LOG] [PS:tweak-executor] #42 queryPowerShell SPAWN ts=1779134595886 active=1
+[2026-05-18T20:03:16.593Z] [LOG] [PS:tweak-executor] #42 queryPowerShell OK 707ms
+[2026-05-18T20:03:16.593Z] [LOG] [PS:tweak-executor] #43 queryPowerShell SPAWN ts=1779134596593 active=1
+[2026-05-18T20:03:17.143Z] [LOG] [PS:tweak-executor] #43 queryPowerShell OK 550ms
+[2026-05-18T20:03:17.143Z] [LOG] [PS:tweak-executor] #44 queryPowerShell SPAWN ts=1779134597143 active=1
+[2026-05-18T20:03:17.703Z] [LOG] [PS:tweak-executor] #44 queryPowerShell OK 560ms
+[2026-05-18T20:03:17.703Z] [LOG] [PS:tweak-executor] #45 queryPowerShell SPAWN ts=1779134597703 active=1
+[2026-05-18T20:03:18.249Z] [LOG] [PS:tweak-executor] #45 queryPowerShell OK 546ms
+[2026-05-18T20:03:18.249Z] [LOG] [PS:tweak-executor] #46 queryPowerShell SPAWN ts=1779134598249 active=1
+[2026-05-18T20:03:18.864Z] [LOG] [PS:tweak-executor] #46 queryPowerShell OK 615ms
+[2026-05-18T20:03:18.864Z] [LOG] [PS:tweak-executor] #47 queryPowerShell SPAWN ts=1779134598864 active=1
+[2026-05-18T20:03:19.406Z] [LOG] [PS:tweak-executor] #47 queryPowerShell OK 542ms
+[2026-05-18T20:03:19.407Z] [LOG] [PS:tweak-executor] #48 queryPowerShell SPAWN ts=1779134599407 active=1
+[2026-05-18T20:03:19.972Z] [LOG] [PS:tweak-executor] #48 queryPowerShell OK 565ms
+[2026-05-18T20:03:19.973Z] [LOG] [PS:tweak-executor] #49 queryPowerShell SPAWN ts=1779134599973 active=1
+[2026-05-18T20:03:20.508Z] [LOG] [PS:tweak-executor] #49 queryPowerShell OK 535ms
+[2026-05-18T20:03:20.508Z] [LOG] [PS:tweak-executor] #50 queryPowerShell SPAWN ts=1779134600508 active=1
