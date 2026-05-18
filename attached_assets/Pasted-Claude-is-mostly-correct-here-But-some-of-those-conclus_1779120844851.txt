@@ -1,0 +1,171 @@
+Claude is mostly correct here. But some of those conclusions are assumptions, not proven root causes yet.
+
+From the App.tsx you pasted, these are the things I can confidently say:
+
+1. Your auth flow is extremely state-heavy.
+
+
+2. You have multiple overlapping entitlement refresh systems.
+
+
+3. You have several places where UI state can desync from backend truth.
+
+
+4. Your startup pipeline is doing too much synchronously.
+
+
+5. Your flow guards are becoming unmaintainable.
+
+
+
+The biggest danger right now is not individual bugs. It is architecture drift. You are stacking patch logic on patch logic.
+
+Here is the real breakdown.
+
+
+---
+
+The actually dangerous problems
+
+1. Auth and entitlement system is overcomplicated
+
+You currently have:
+
+resolveAuthState()
+
+refreshEntitlements()
+
+retryRefreshEntitlements()
+
+usePremiumGraceStore
+
+usePremiumExpiry
+
+device lock checks
+
+flow reset refs
+
+localStorage guards
+
+session refs
+
+visibility refreshes
+
+focus refreshes
+
+premium verification
+
+JWT reissue
+
+cloud validation
+
+cached fallback logic
+
+
+This is now a distributed state machine.
+
+That means:
+
+race conditions
+
+stale state
+
+duplicate refreshes
+
+conflicting UI transitions
+
+intermittent login failures
+
+
+are guaranteed eventually.
+
+This is the real issue behind half your bugs.
+
+
+---
+
+Biggest architectural mistake
+
+You are mixing:
+
+auth state
+
+entitlement state
+
+onboarding state
+
+animation state
+
+premium lifecycle state
+
+device validation state
+
+
+inside App.tsx.
+
+Your App.tsx is acting like:
+
+router
+
+auth orchestrator
+
+premium orchestrator
+
+animation coordinator
+
+telemetry bootstrapper
+
+entitlement sync manager
+
+recovery manager
+
+
+That file is massive because it is doing the work of like 6 systems.
+
+
+---
+
+Claude was RIGHT about these
+
+AI Advisor 403
+
+Very likely correct.
+
+If /api/ai and /api/bios are not in cloud-only routing, Electron may hit localhost instead of cloud backend.
+
+That absolutely causes fake auth expiry behavior.
+
+Good catch.
+
+
+---
+
+TELEMETRY_BASE_MS = 4000
+
+Also probably correct.
+
+Your startup already has:
+
+splash
+
+auth validation
+
+entitlement hydration
+
+welcome animation
+
+telemetry
+
+device checks
+
+React Query boot
+
+motion initialization
+
+
+You are overloading startup.
+
+2s is more reasonable.
+
+
+---
