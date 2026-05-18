@@ -229,6 +229,17 @@ function ElectronAppContent() {
     telemetryManager.start();
   }, [phase]);
 
+  // Recovery: if the WS was rejected (no_token) during startup because the
+  // JWT wasn't ready yet, re-start the manager as soon as a fresh JWT lands.
+  // The `start()` call is idempotent when already running, so this is safe.
+  useEffect(() => {
+    if (phase !== 'authenticated') return;
+    if (!jwt) return;
+    if (!telemetryManager.authRejected) return;
+    console.log('[Telemetry] JWT now available after prior auth rejection — restarting manager');
+    telemetryManager.start();
+  }, [jwt, phase]);
+
   // React to the "Real-time Metrics" toggle.
   // When disabled the telemetry WS stays connected but messages are discarded,
   // so re-enabling instantly resumes without a reconnect.
