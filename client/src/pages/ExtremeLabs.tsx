@@ -974,8 +974,10 @@ export default function ExtremeLabs() {
               step={wizardStep}
               onNext={() => {
                 if (!canApply) {
-                  elLog("ExtremeLabsEntitlement", { action: "entryWizard", allowed: false, reason: "not_premium" });
-                  openUpgradeModal();
+                  // Free users: acknowledge disclaimer and browse in read-only mode.
+                  // The premium gate fires per-tweak when they click Apply — not here.
+                  elLog("ExtremeLabsEntitlement", { action: "entryWizard", allowed: true, reason: "browse_mode" });
+                  setIsUnlocked(true);
                   return;
                 }
                 setWizardStep("restore");
