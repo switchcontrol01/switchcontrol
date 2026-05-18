@@ -558,10 +558,10 @@ function isValidDeepLink(url) {
     const parsed = new URL(url);
     if (parsed.protocol !== 'switchcontrol:') return false;
     if (!ALLOWED_DEEP_LINK_PATHS.has(parsed.pathname)) return false;
-    // Only allow alphanumeric, underscore, hyphen query params (no shell escapes, no HTML)
+    // Only allow alphanumeric, underscore, hyphen, dot, colon in query params (no shell escapes, no HTML)
     for (const [key, val] of parsed.searchParams) {
       if (!/^[a-zA-Z0-9_-]+$/.test(key)) return false;
-      if (!/^[a-zA-Z0-9_:-]+$/.test(val)) return false;
+      if (!/^[a-zA-Z0-9_.:-]+$/.test(val)) return false;
     }
     return true;
   } catch {
