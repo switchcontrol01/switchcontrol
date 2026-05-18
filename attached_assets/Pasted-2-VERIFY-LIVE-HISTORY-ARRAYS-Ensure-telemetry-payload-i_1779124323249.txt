@@ -1,0 +1,146 @@
+2. VERIFY LIVE HISTORY ARRAYS
+   Ensure telemetry payload includes:
+
+- rx history
+- tx history
+- cpu history
+- ram history
+- gpu history
+
+Graphs must never render empty while showing "connected".
+
+3. REMOVE FAKE STATES
+   If telemetry missing:
+
+- show unavailable state
+- show reconnecting state
+- show initialization state
+
+NEVER:
+
+- animate fake values
+- show fake throughput
+- show dead sparklines
+
+==================================================
+PHASE 6 — WINDOWS DEEP LINK AUTH FIX
+
+FILE:
+electron/main.js
+
+VERIFY WINDOWS ELECTRON AUTH FLOW:
+
+1. 
+
+app.setAsDefaultProtocolClient('switchcontrol')
+
+2. 
+
+app.requestSingleInstanceLock()
+
+3. 
+
+Handle second-instance event.
+
+4. 
+
+Parse process.argv for:
+switchcontrol://auth/callback
+
+IMPORTANT:
+Windows does NOT use open-url event like macOS.
+
+VERIFY:
+
+- callback parsing
+- token forwarding
+- renderer auth hydration
+
+==================================================
+PHASE 7 — DEBLOATER PROFESSIONALIZATION
+
+ISSUE:
+Installed apps use generic cyan placeholders instead of real app branding.
+
+TASKS:
+
+1. Extract real app icons using:
+
+- DisplayIcon registry value
+- executable icon extraction
+- UWP logo assets
+
+2. Add icon cache system.
+
+3. Replace ALL generic cyan placeholders.
+
+4. Add proper fallback hierarchy:
+
+- game icon
+- driver icon
+- Microsoft icon
+- utility icon
+
+GOAL:
+Debloater visually matches professional Windows utilities.
+
+==================================================
+PHASE 8 — REMOVE TRUST-DAMAGING UI
+
+CRITICAL RULE:
+If a panel is incomplete, dead, fake, or disconnected:
+HIDE IT until functional.
+
+REMOVE OR DISABLE:
+
+- empty enterprise cards
+- dead metrics
+- fake graphs
+- non-functional buttons
+- placeholder analytics
+
+GOAL:
+Everything visible must work.
+
+==================================================
+PHASE 9 — FINAL TRUST PASS
+
+SwitchControl must feel:
+
+- real
+- measurable
+- technically honest
+- responsive
+- stable
+- transparent
+
+DO NOT:
+
+- fake telemetry
+- inflate optimization claims
+- show placeholder systems
+- show disconnected backend UI
+
+FOCUS:
+
+- consistency
+- reliability
+- responsiveness
+- architectural stability
+
+FINAL VALIDATION CHECKLIST:
+
+[ ] websocket auth stable
+[ ] telemetry graphs live
+[ ] admin cards functional
+[ ] stripe loader functional
+[ ] delete user functional
+[ ] AI advisor routing fixed
+[ ] BIOS advisor routing fixed
+[ ] network tweaks persist visually
+[ ] deep link auth works
+[ ] debloater icons real
+[ ] no dead UI remaining
+[ ] telemetry reconnect states handled properly
+[ ] frontend/backend routing clean
+[ ] no fake connected states

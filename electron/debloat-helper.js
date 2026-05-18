@@ -12,56 +12,119 @@
  *  - Rich structured result with methodUsed, executable, exitCode, errorDetail
  */
 
-const { ipcMain, shell } = require('electron');
+const { ipcMain, shell, app: electronApp } = require('electron');
 const { execFile, spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
 // ── Icon cache ────────────────────────────────────────────────────────────────
-const ICON_CACHE_DIR = path.join(os.tmpdir(), 'switchcontrol-icons');
-let _lastScanApps = new Map(); // id -> app (for lazy icon resolution)
-
-function ensureIconCache() {
-  if (!fs.existsSync(ICON_CACHE_DIR)) fs.mkdirSync(ICON_CACHE_DIR, { recursive: true });
+// Persistent cache in userData (survives app restarts, unlike os.tmpdir).
+// Falls back to tmpdir if userData isn't available (very early startup).
+function getIconCacheDir() {
+  try {
+    return path.join(electronApp.getPath('userData'), 'icon-cache');
+  } catch {
+    return path.join(os.tmpdir(), 'switchcontrol-icon-cache');
+  }
 }
 
-function resolveIconPath(app) {
-  // 1. DisplayIcon from registry (strip ,0 suffix)
-  let raw = (app.displayIcon || '').split(',')[0].trim();
-  if (raw && fs.existsSync(raw)) return raw;
+let _lastScanApps = new Map(); // id -> app (for lazy icon resolution)
 
-  // 2. Try to find exe in InstallLocation
-  const loc = app.installLocation;
-  if (loc && fs.existsSync(loc)) {
+// ── Environment variable expansion ───────────────────────────────────────────
+// Expands Windows-style %VAR% tokens in registry values.
+// Falls back to Node's process.env which mirrors the Win32 environment block.
+function expandEnvVars(str) {
+  if (!str || typeof str !== 'string') return '';
+  return str.replace(/%([^%]+)%/g, (match, key) => {
+    const val = process.env[key] ?? process.env[key.toUpperCase()];
+    return val !== undefined ? val : match; // leave unexpanded tokens as-is
+  });
+}
+
+// ── Icon path resolver ────────────────────────────────────────────────────────
+// Priority order:
+//   1. DisplayIcon registry value (expand env vars, strip icon index)
+//   2. Best-match exe in InstallLocation
+//   3. Exe extracted from QuietUninstallString / UninstallString
+function resolveIconPath(app) {
+  // ── 1. DisplayIcon ──────────────────────────────────────────────────────────
+  let raw = String(app.displayIcon || '').trim();
+
+  // Handle both quoted and unquoted forms, then strip trailing ,N icon index:
+  //   "C:\Prog\app.exe",0   →  C:\Prog\app.exe
+  //   C:\Prog\app.exe,-1    →  C:\Prog\app.exe
+  //   "C:\Prog\app.exe"     →  C:\Prog\app.exe
+  const qm = raw.match(/^"([^"]+)"(?:,\s*-?\d+)?\s*$/);
+  if (qm) {
+    raw = qm[1];
+  } else {
+    // Unquoted — only strip trailing ,N (not mid-path commas)
+    raw = raw.replace(/,\s*-?\d+\s*$/, '').trim();
+  }
+
+  raw = expandEnvVars(raw);
+
+  if (raw.length > 4 && fs.existsSync(raw)) return raw;
+
+  // ── 2. Best exe in InstallLocation ─────────────────────────────────────────
+  const loc = expandEnvVars(String(app.installLocation || '').trim());
+  if (loc && loc.length > 3 && fs.existsSync(loc)) {
     try {
-      const files = fs.readdirSync(loc);
-      const exe = files.find(f => f.toLowerCase().endsWith('.exe'));
-      if (exe) { const p = path.join(loc, exe); if (fs.existsSync(p)) return p; }
+      const entries = fs.readdirSync(loc).filter(f => f.toLowerCase().endsWith('.exe'));
+      if (entries.length > 0) {
+        const appNameNorm = String(app.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        const scored = entries.map(f => {
+          const base = path.basename(f, '.exe').toLowerCase().replace(/[^a-z0-9]/g, '');
+          let score = 0;
+          if (base === appNameNorm) score = 100;
+          else if (appNameNorm.startsWith(base) || base.startsWith(appNameNorm)) score = 50;
+          else if (appNameNorm.length >= 4 && (appNameNorm.includes(base) || base.includes(appNameNorm.slice(0, 4)))) score = 25;
+          // Shorter basenames are usually the main exe; longer ones are helpers
+          score -= base.length * 0.1;
+          // Deprioritize obvious helper/updater patterns
+          if (/update|uninstall|setup|helper|crash|report|launcher|installer/i.test(f)) score -= 40;
+          return { f, score };
+        });
+        scored.sort((a, b) => b.score - a.score);
+        const best = path.join(loc, scored[0].f);
+        if (fs.existsSync(best)) return best;
+      }
     } catch {}
   }
 
-  // 3. Extract exe path from uninstall string
-  const unStr = app.uninstallString || '';
-  const m = unStr.match(/"([^"]+\.exe)"/i) || unStr.match(/^([^\s]+\.exe)/i);
-  if (m && fs.existsSync(m[1])) return m[1];
+  // ── 3. Extract exe from uninstall strings ──────────────────────────────────
+  for (const s of [String(app.quietUninstall || ''), String(app.uninstallString || '')]) {
+    const us = expandEnvVars(s.trim());
+    if (!us || us.length < 4) continue;
+    // Quoted path: "C:\path\app.exe"
+    const qm2 = us.match(/^"([^"]+\.exe)"/i);
+    if (qm2 && fs.existsSync(qm2[1])) return qm2[1];
+    // Unquoted absolute path: C:\path\app.exe
+    const um = us.match(/^([A-Za-z]:[^\s,;]+\.exe)/i);
+    if (um && fs.existsSync(um[1])) return um[1];
+  }
 
   return null;
 }
 
 async function getAppIconDataUrl(appId, app) {
-  ensureIconCache();
-  const cacheFile = path.join(ICON_CACHE_DIR, `${appId}.png`);
+  const cacheDir = getIconCacheDir();
+  if (!fs.existsSync(cacheDir)) {
+    try { fs.mkdirSync(cacheDir, { recursive: true }); } catch {}
+  }
+  const cacheFile = path.join(cacheDir, `${appId}.png`);
   if (fs.existsSync(cacheFile)) {
     return `data:image/png;base64,${fs.readFileSync(cacheFile).toString('base64')}`;
   }
   const iconPath = resolveIconPath(app);
   if (!iconPath) return null;
   try {
-    const img = await shell.getFileIcon(iconPath, { size: 'normal' });
+    // 'large' gives 32×32 on most systems; use it for crispier icons
+    const img = await shell.getFileIcon(iconPath, { size: 'large' });
     if (!img || img.isEmpty()) return null;
     const buf = img.toPNG();
-    fs.writeFileSync(cacheFile, buf);
+    try { fs.writeFileSync(cacheFile, buf); } catch {}
     return `data:image/png;base64,${buf.toString('base64')}`;
   } catch (e) {
     console.warn('[InstalledApps] getFileIcon failed for', iconPath, e.message);

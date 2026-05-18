@@ -12,6 +12,7 @@ import {
   RefreshCw, Search, X, Package, Shield, ShieldOff, AlertTriangle,
   CheckCircle2, XCircle, Trash2, ChevronDown, ChevronUp, Monitor,
   ArrowUpDown, Lock, Zap, HardDrive, Info, Loader2,
+  Gamepad2, Cpu, ShieldCheck, Music, Code2,
 } from "lucide-react";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -64,6 +65,51 @@ type InstalledAppsAPI = {
 function getInstalledAppsAPI(): InstalledAppsAPI | undefined {
   return (window as any).electronAPI?.installedApps as InstalledAppsAPI | undefined;
 }
+
+// ── Category detection ────────────────────────────────────────────────────────
+// Classifies apps by heuristic name/publisher matching for distinct fallback icons.
+// This replaces the single cyan placeholder used for all unrecognized apps.
+
+type AppCategory = "gaming" | "driver" | "security" | "media" | "dev" | "microsoft" | "generic";
+
+function detectCategory(app: InstalledApp): AppCategory {
+  if (app.trustLabel === "microsoft") return "microsoft";
+  const combined = (app.name + " " + (app.publisher || "")).toLowerCase();
+
+  if (
+    /steam|epic games|gog\.com|origin|ubisoft|riot games|blizzard|bethesda|battle\.?net|electronic arts|valve corporation|activision/i.test(combined) ||
+    /\bgame\b|gaming|esports|game launcher/i.test(app.name)
+  ) return "gaming";
+
+  if (
+    /\bdriver\b|firmware|chipset/i.test(app.name) ||
+    /nvidia|amd\b|advanced micro devices|realtek|qualcomm|marvell|broadcom|creative labs|corsair|logitech|steelseries|razer/i.test(combined)
+  ) return "driver";
+
+  if (
+    /\bdefender\b|antivirus|anti-virus|internet security|kaspersky|norton|mcafee|bitdefender|avast|avg|webroot|eset|sophos|malwarebytes|symantec/i.test(combined)
+  ) return "security";
+
+  if (
+    /vlc|spotify|media player|winamp|foobar|itunes|k-lite|codec|directshow|photoshop|lightroom|gimp|audacity|obs\b|streamlabs/i.test(combined)
+  ) return "media";
+
+  if (
+    /visual studio|\.net\s|node\.js|python\s|jdk|jre|android studio|git\s|docker|sdk\b|runtime\b|redistributable|microsoft c\+\+/i.test(combined)
+  ) return "dev";
+
+  return "generic";
+}
+
+const CATEGORY_CONFIG: Record<AppCategory, { icon: React.FC<{ className?: string }>; cls: string }> = {
+  gaming:    { icon: Gamepad2,    cls: "bg-purple-500/15 text-purple-400 border-purple-500/25" },
+  driver:    { icon: Cpu,         cls: "bg-sky-500/15 text-sky-400 border-sky-500/25" },
+  security:  { icon: ShieldCheck, cls: "bg-emerald-500/15 text-emerald-400 border-emerald-500/25" },
+  media:     { icon: Music,       cls: "bg-pink-500/15 text-pink-400 border-pink-500/25" },
+  dev:       { icon: Code2,       cls: "bg-amber-500/15 text-amber-400 border-amber-500/25" },
+  microsoft: { icon: Monitor,     cls: "bg-blue-500/15 text-blue-400 border-blue-500/25" },
+  generic:   { icon: Package,     cls: "bg-zinc-500/15 text-zinc-500 border-zinc-700/50" },
+};
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
@@ -222,17 +268,20 @@ function AppRow({
   app,
   result,
   uninstallingId,
+  isIconLoading,
   onUninstall,
 }: {
   app: InstalledApp;
   result?: AppResult;
   uninstallingId: string | null;
+  isIconLoading: boolean;
   onUninstall: (app: InstalledApp) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const tCfg   = TRUST_CONFIG[app.trustLabel] ?? TRUST_CONFIG.unknown;
   const mCfg   = METHOD_CONFIG[app.uninstallMethod] ?? METHOD_CONFIG.none;
-  const TrIcon = tCfg.icon;
+  const catCfg = CATEGORY_CONFIG[detectCategory(app)];
+  const CatIcon = catCfg.icon;
   const isProcessing = uninstallingId === app.id;
 
   const installDateFormatted = useMemo(() => {
@@ -269,17 +318,19 @@ function AppRow({
     )} data-testid={`app-row-${app.id}`}>
       {/* Main row */}
       <div className="flex items-center gap-3 p-3 sm:p-3.5 hover:bg-[#1A1F26] transition-colors">
-        {/* Icon */}
-        {app.iconDataUrl ? (
+        {/* Icon — shimmer while loading, real icon or category fallback once resolved */}
+        {isIconLoading && !app.iconDataUrl ? (
+          <div className="size-9 rounded-xl shrink-0 bg-[#21262D] border border-[#2A313A] animate-pulse" />
+        ) : app.iconDataUrl ? (
           <img
             src={app.iconDataUrl}
             alt=""
-            className="size-8 rounded-lg shrink-0 object-contain bg-[#1A1F26] border border-[#2A313A]"
+            className="size-9 rounded-xl shrink-0 object-contain bg-[#1A1F26] border border-[#2A313A]"
             data-testid={`app-icon-${app.id}`}
           />
         ) : (
-          <div className={cn("size-8 rounded-lg flex items-center justify-center shrink-0 border", tCfg.cls)}>
-            <TrIcon className="size-3.5" />
+          <div className={cn("size-9 rounded-xl flex items-center justify-center shrink-0 border", catCfg.cls)}>
+            <CatIcon className="size-4" />
           </div>
         )}
 
@@ -444,6 +495,9 @@ export function InstalledAppsPanel() {
   const [confirmApp,    setConfirmApp]    = useState<InstalledApp | null>(null);
   const [uninstallingId, setUninstallingId] = useState<string | null>(null);
   const [results,       setResults]       = useState<Record<string, AppResult>>({});
+  // Tracks which app IDs are still waiting for their icon to resolve.
+  // Used to show shimmer placeholders while icons load asynchronously.
+  const [iconLoadingIds, setIconLoadingIds] = useState<Set<string>>(new Set());
 
   const isElectronAvail = typeof window !== "undefined" && !!getInstalledAppsAPI();
 
@@ -457,14 +511,29 @@ export function InstalledAppsPanel() {
       if (res.ok) {
         setApps(res.apps);
         setScannedAt(res.scannedAt);
-        // Lazy-load icons after scan
-        if (api.icon) {
+        // Mark every app as icon-loading before firing requests
+        if (api.icon && res.apps.length > 0) {
+          setIconLoadingIds(new Set(res.apps.map((a: InstalledApp) => a.id)));
           for (const app of res.apps) {
-            api.icon(app.id).then(dataUrl => {
-              if (dataUrl) {
-                setApps(prev => prev.map(a => a.id === app.id ? { ...a, iconDataUrl: dataUrl } : a));
-              }
-            }).catch(() => {});
+            api.icon(app.id)
+              .then((dataUrl: string | null) => {
+                // Remove from loading set whether or not an icon was found
+                setIconLoadingIds(prev => {
+                  const next = new Set(prev);
+                  next.delete(app.id);
+                  return next;
+                });
+                if (dataUrl) {
+                  setApps(prev => prev.map(a => a.id === app.id ? { ...a, iconDataUrl: dataUrl } : a));
+                }
+              })
+              .catch(() => {
+                setIconLoadingIds(prev => {
+                  const next = new Set(prev);
+                  next.delete(app.id);
+                  return next;
+                });
+              });
           }
         }
       } else {
@@ -744,6 +813,7 @@ export function InstalledAppsPanel() {
                       app={app}
                       result={results[app.id]}
                       uninstallingId={uninstallingId}
+                      isIconLoading={iconLoadingIds.has(app.id)}
                       onUninstall={(app) => {
                         // eslint-disable-next-line no-console
                         console.log(`[Debloat] uninstall confirm opened appName=${app.name} source=installed_apps_list`);

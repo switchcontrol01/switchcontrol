@@ -1,0 +1,206 @@
+PRIORITY STABILIZATION + TRUST PASS FOR SWITCHCONTROL
+GOAL: Fix architecture inconsistencies, broken admin systems, telemetry/auth instability, dead UI states, and credibility issues before adding more features.
+
+==================================================
+PHASE 1 — CRITICAL AUTH + TELEMETRY STABILIZATION
+
+ISSUE:
+Telemetry websocket repeatedly fails authentication.
+
+LOGS:
+[AUTH] JWT verification failed: invalid signature
+[WS] Rejected telemetry client
+
+THIS IS CRITICAL.
+Live telemetry, graphs, NIC throughput, dashboard activity, and realtime UI credibility depend on this.
+
+TASKS:
+
+1. AUDIT JWT SECRET FLOW
+   Verify:
+
+- Electron backend
+- local websocket server
+- cloud backend
+- auth middleware
+- telemetry auth
+  ALL use the SAME JWT_SECRET source.
+
+Ensure:
+
+- persisted desktop secrets
+- cloud auth secrets
+- websocket verification
+  are not mismatched.
+
+2. VERIFY TOKEN SOURCE
+   Inspect websocket connection flow:
+
+- identify where telemetry websocket token originates
+- verify token is not stale
+- verify token is not regenerated with a different secret
+- verify token refresh logic
+
+3. ADD DEBUG LOGGING
+   Add temporary logs:
+
+- JWT issuer
+- token expiration
+- token source
+- verification secret hash prefix
+- websocket auth payload
+
+DO NOT log full secrets.
+
+4. FAIL SAFELY
+   If websocket auth fails:
+
+- renderer must show telemetry unavailable
+- do NOT show fake "connected" state
+- do NOT animate fake graphs
+
+==================================================
+PHASE 2 — CLOUD VS LOCAL ROUTING FIX
+
+FILE:
+client/src/lib/api.ts
+
+TASK:
+Add ALL cloud-only routes to CLOUD_ONLY_API_PREFIXES.
+
+ADD:
+"/api/ai"
+"/api/bios"
+"/api/admin"
+"/api/network-tweaks"
+
+GOAL:
+Prevent Electron local backend from receiving routes that only exist on cloud infrastructure.
+
+VERIFY:
+
+- admin routes resolve correctly
+- AI advisor resolves correctly
+- BIOS advisor resolves correctly
+- network tweak persistence works
+
+==================================================
+PHASE 3 — ADMIN PANEL RESTORATION
+
+ISSUES:
+
+- top admin cards dead
+- stripe webhook events empty
+- system health empty
+- stripe load button broken
+- delete user failing
+
+TASKS:
+
+1. VERIFY FULL ADMIN ROUTE FILE
+   Ensure production uses FULL admin route implementation.
+   Current deployed version appears stripped/incomplete.
+
+REQUIRED ENDPOINTS:
+
+- /api/admin/stats
+- /api/admin/system-health
+- /api/admin/trials-expiring
+- /api/admin/stripe-events
+- /api/admin/user/:id/stripe
+- delete user endpoint
+
+2. FIX STRIPE LOAD BUTTON
+   Current button never loads customer data.
+
+VERIFY:
+
+- stripe customer ID exists
+- backend route resolves
+- auth middleware passes
+- stripe secret available on cloud backend
+
+3. DELETE USER UX REWORK
+   REMOVE:
+   Exact email confirmation requirement.
+
+REPLACE WITH:
+Modal confirmation:
+
+"Are you sure you want to permanently delete this user account?"
+
+BUTTONS:
+
+- Cancel
+- Delete Permanently
+
+REQUIRE:
+
+- loading state
+- success toast
+- error toast
+- backend response logging
+
+FIX:
+Current delete endpoint returning failure.
+
+VERIFY:
+
+- auth permissions
+- cascade deletes
+- stripe cleanup
+- foreign key constraints
+
+==================================================
+PHASE 4 — NETWORK TWEAK RELIABILITY
+
+FILE:
+electron/network-tweak-executor.js
+
+ISSUE:
+WMI checks return default adapter values after remount/reboot.
+
+RESULT:
+Tweaks visually disable even though registry values persist.
+
+TASK:
+Replace WMI-based sec-netbios CHECK logic with registry-based validation.
+
+Use persistent registry reads instead of transient adapter state.
+
+ALSO:
+Audit ALL network tweak checks using:
+
+- WMI
+- transient netsh state
+- adapter runtime values
+
+Replace unstable checks with:
+
+- registry validation
+- persisted OS state
+- deterministic outputs
+
+GOAL:
+Tweaks remain visually consistent across:
+
+- remounts
+- app restart
+- reboot
+- adapter refresh
+
+==================================================
+PHASE 5 — TELEMETRY + GRAPH STABILIZATION
+
+TASKS:
+
+1. Reduce telemetry polling latency.
+
+FILES:
+
+- electron/main.js
+- server/lib/telemetry.ts
+
+CHANGE:
+TELEMETRY_BASE_MS → 2000
+POLL_BASE_MS → 2000
