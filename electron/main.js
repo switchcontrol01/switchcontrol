@@ -549,6 +549,11 @@ if (process.defaultApp) {
 verboseLog(`[Protocol] registered: ${protocolRegistered} | isDefault: ${app.isDefaultProtocolClient(PROTOCOL_NAME)} | isDev: ${isDev}`);
 
 // Whitelist of allowed deep-link paths. Anything else is silently dropped.
+//
+// IMPORTANT: new URL('switchcontrol://auth/callback?...') parses as:
+//   hostname = 'auth',  pathname = '/callback'
+// — NOT pathname = '/auth/callback'.  We therefore reconstruct the
+// canonical path as '/' + hostname + pathname before the whitelist check.
 const ALLOWED_DEEP_LINK_PATHS = new Set([
   '/auth/callback',
 ]);
@@ -557,7 +562,17 @@ function isValidDeepLink(url) {
   try {
     const parsed = new URL(url);
     if (parsed.protocol !== 'switchcontrol:') return false;
-    if (!ALLOWED_DEEP_LINK_PATHS.has(parsed.pathname)) return false;
+
+    // The URL spec treats the segment between '//' and the next '/' as the
+    // hostname, so 'switchcontrol://auth/callback' gives hostname='auth',
+    // pathname='/callback'.  Reconstruct the logical path for the whitelist.
+    const canonicalPath = '/' + (parsed.hostname || '') + (parsed.pathname || '');
+
+    if (!ALLOWED_DEEP_LINK_PATHS.has(canonicalPath)) {
+      verboseLog(`[DeepLink] ✗ path not in whitelist: "${canonicalPath}" (hostname="${parsed.hostname}" pathname="${parsed.pathname}")`);
+      return false;
+    }
+
     // Only allow alphanumeric, underscore, hyphen, dot, colon in query params (no shell escapes, no HTML)
     for (const [key, val] of parsed.searchParams) {
       if (!/^[a-zA-Z0-9_-]+$/.test(key)) return false;
