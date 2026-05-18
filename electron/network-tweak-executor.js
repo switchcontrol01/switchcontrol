@@ -582,20 +582,31 @@ const TWEAK_REGISTRY = {
   'sec-netbios': {
     requiresAdmin: true,
     apply: `
-      $adapters = Get-WmiObject Win32_NetworkAdapterConfiguration -Filter "IPEnabled=TRUE";
-      foreach ($a in $adapters) { $a.SetTcpipNetbios(2) | Out-Null }
+      # Write NetbiosOptions=2 (disabled) directly to the registry for every
+      # Tcpip_{GUID} sub-key under NetBT\Parameters\Interfaces.
+      # WMI SetTcpipNetbios() is deprecated on Windows 11 and silently fails to
+      # update the registry, so we write the registry directly instead.
+      $root = 'HKLM:\SYSTEM\CurrentControlSet\Services\NetBT\Parameters\Interfaces'
+      if (Test-Path $root) {
+        $keys = Get-ChildItem -Path $root -ErrorAction SilentlyContinue
+        foreach ($k in $keys) {
+          Set-ItemProperty -Path $k.PSPath -Name NetbiosOptions -Value 2 -Type DWord -Force -ErrorAction SilentlyContinue
+        }
+      }
       Write-Output "ok"
     `,
     revert: `
-      $adapters = Get-WmiObject Win32_NetworkAdapterConfiguration -Filter "IPEnabled=TRUE";
-      foreach ($a in $adapters) { $a.SetTcpipNetbios(0) | Out-Null }
+      # Restore NetbiosOptions=0 (use DHCP/default) on all adapter sub-keys.
+      $root = 'HKLM:\SYSTEM\CurrentControlSet\Services\NetBT\Parameters\Interfaces'
+      if (Test-Path $root) {
+        $keys = Get-ChildItem -Path $root -ErrorAction SilentlyContinue
+        foreach ($k in $keys) {
+          Set-ItemProperty -Path $k.PSPath -Name NetbiosOptions -Value 0 -Type DWord -Force -ErrorAction SilentlyContinue
+        }
+      }
       Write-Output "ok"
     `,
     check: `
-      # Registry-based check — persists through reboots and adapter remounts.
-      # WMI (Win32_NetworkAdapterConfiguration.TcpipNetbiosOptions) reflects
-      # transient adapter state and resets to 0 after a remount/reboot even
-      # when the registry value is still 2 (disabled).
       # HKLM:\SYSTEM\CurrentControlSet\Services\NetBT\Parameters\Interfaces
       # contains a sub-key per adapter (Tcpip_{GUID}) with NetbiosOptions:
       #   0 = use DHCP setting  1 = enabled  2 = disabled
