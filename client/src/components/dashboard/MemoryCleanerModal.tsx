@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { GlassModalLayout, HwBadge } from "@/components/ui/GlassModalLayout";
 import { cn } from "@/lib/utils";
@@ -36,25 +36,41 @@ const isElectron = typeof window !== "undefined" && !!(window as any).electronAP
 
 function AnimatedCounter({ value, duration = 800 }: { value: number; duration?: number }) {
   const [display, setDisplay] = useState(0);
-  const startTime = useRef<number | null>(null);
-  const rafId = useRef<number>(0);
+  const startTimeRef = useRef<number | null>(null);
+  const rafIdRef = useRef<number>(0);
+  const valueRef = useRef(value);
+  const durationRef = useRef(duration);
 
-  const animateRef = useRef<(timestamp: number) => void>();
-  animateRef.current = (timestamp: number) => {
-    if (!startTime.current) startTime.current = timestamp;
-    const progress = Math.min((timestamp - startTime.current) / duration, 1);
-    const eased = 1 - Math.pow(1 - progress, 3);
-    setDisplay(parseFloat((eased * value).toFixed(1)));
-    if (progress < 1) {
-      rafId.current = requestAnimationFrame(animateRef.current!);
+  // Keep refs current so the rAF callback always sees latest values
+  valueRef.current = value;
+  durationRef.current = duration;
+
+  const startAnimation = useCallback(() => {
+    startTimeRef.current = null;
+    cancelAnimationFrame(rafIdRef.current);
+
+    const animate = (timestamp: number) => {
+      if (!startTimeRef.current) startTimeRef.current = timestamp;
+      const progress = Math.min(
+        (timestamp - startTimeRef.current) / durationRef.current,
+        1
+      );
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setDisplay(parseFloat((eased * valueRef.current).toFixed(1)));
+      if (progress < 1) {
+        rafIdRef.current = requestAnimationFrame(animate);
+      }
+    };
+
+    rafIdRef.current = requestAnimationFrame(animate);
+  }, []);
+
+  useEffect(() => {
+    if (value > 0) {
+      startAnimation();
     }
-  };
-
-  if (display === 0 && value > 0) {
-    startTime.current = null;
-    cancelAnimationFrame(rafId.current);
-    rafId.current = requestAnimationFrame(animateRef.current);
-  }
+    return () => cancelAnimationFrame(rafIdRef.current);
+  }, [value, startAnimation]);
 
   return <>{display}</>;
 }

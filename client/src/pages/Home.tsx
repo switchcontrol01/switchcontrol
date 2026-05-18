@@ -19,7 +19,7 @@ import { Button } from "@/components/ui/button";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Link, useLocation } from "wouter";
 import { Progress } from "@/components/ui/progress";
-import { useState, useCallback, useEffect, useRef, useMemo } from "react";
+import { useState, useCallback, useEffect, useRef, useMemo, lazy, Suspense } from "react";
 import { format } from "date-fns";
 import { TWEAKS_DATA } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
@@ -30,7 +30,9 @@ import { PremiumCardOverlay } from "@/components/ui/premium-page-overlay";
 import { useBiosAdvisorStore } from "@/stores/biosAdvisorStore";
 import { useSystemIntelligence } from "@/hooks/useSystemIntelligence";
 
-import { MemoryCleanerModal } from "@/components/dashboard/MemoryCleanerModal";
+const MemoryCleanerModal = lazy(() =>
+  import("@/components/dashboard/MemoryCleanerModal").then((m) => ({ default: m.MemoryCleanerModal }))
+);
 import { CpuCoresModal } from "@/components/dashboard/CpuCoresModal";
 import { MemoryIntelligenceModal } from "@/components/dashboard/MemoryIntelligenceModal";
 import { GpuModal } from "@/components/dashboard/GpuModal";
@@ -1065,7 +1067,9 @@ export default function Home() {
         </motion.div>{/* end staged content reveal */}
       </div>
 
-      <MemoryCleanerModal open={memCleanerOpen} onOpenChange={setMemCleanerOpen} />
+      <Suspense fallback={null}>
+        <MemoryCleanerModal open={memCleanerOpen} onOpenChange={setMemCleanerOpen} />
+      </Suspense>
       <CpuCoresModal
         open={cpuModalOpen}
         onOpenChange={setCpuModalOpen}
