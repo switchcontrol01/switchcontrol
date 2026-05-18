@@ -1497,6 +1497,42 @@ export default function AiAdvisor() {
 
       revealContent(assistantId, textToReveal, () => {
         inputRef.current?.focus();
+
+        // Parse <<APPLY:tweakId>> markers from the revealed text and generate
+        // a dedicated recommendation-cards message so the user gets the full
+        // Apply / Apply All / Details UI below the AI's explanation.
+        const APPLY_RE = /<<APPLY:([a-z0-9-]+)>>/gi;
+        const seen = new Set<string>();
+        const recs: AiTweakRecommendation[] = [];
+        let m: RegExpExecArray | null;
+        while ((m = APPLY_RE.exec(textToReveal)) !== null) {
+          const id = m[1].toLowerCase();
+          if (seen.has(id)) continue;
+          seen.add(id);
+          const tweak = getTweak(id);
+          if (!tweak || !tweak.supported) continue;
+          recs.push({
+            tweakId: id,
+            reason: tweak.description.slice(0, 120),
+            expectedImpact: tweak.impact?.[0] ?? undefined,
+          });
+        }
+        if (recs.length > 0) {
+          setMessages(prev => [
+            ...prev,
+            {
+              id: `recs-${assistantId}`,
+              role: "assistant" as const,
+              content: "",
+              timestamp: new Date(),
+              structured: { type: "recommendations" as const, items: recs },
+            },
+          ]);
+          setTimeout(() => {
+            const el = scrollContainerRef.current;
+            if (el) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+          }, 80);
+        }
       });
 
     } catch (err: unknown) {
@@ -1943,10 +1979,9 @@ export default function AiAdvisor() {
           setShowApplyModal(false);
           setApplyModalRecs([]);
         }}
-        onDone={() => {
-          handleAiApplyDone();
-          setShowApplyModal(false);
-          setApplyModalRecs([]);
+        onDone={(results) => {
+          handleAiApplyDone(results);
+          // Don't close here — user stays on the results screen until they click Close
         }}
         onViewTweaks={handleViewTweakDetails}
       />

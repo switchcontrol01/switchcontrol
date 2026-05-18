@@ -481,14 +481,15 @@ function buildChatContext(context: any, serverCtx?: Awaited<ReturnType<typeof bu
   }
 
   // ── Tweaks ────────────────────────────────────────────────────────────────
+  // IDs are included so the AI can embed <<APPLY:id>> markers in its response.
   if (context?.enabledTweaks?.length > 0) {
-    const all = (context.enabledTweaks as any[]).map((t: any) => t.title);
+    const all = (context.enabledTweaks as any[]).map((t: any) => `${t.title} [id:${t.id}]`);
     parts.push(`Active SwitchControl tweaks (${all.length} enabled): ${all.join(", ")}`);
   } else {
     parts.push("Active SwitchControl tweaks: none enabled yet");
   }
   if (context?.disabledTweaks?.length > 0) {
-    const avail = (context.disabledTweaks as any[]).map((t: any) => t.title);
+    const avail = (context.disabledTweaks as any[]).map((t: any) => `${t.title} [id:${t.id}]`);
     parts.push(`Available tweaks not yet enabled (${avail.length}): ${avail.join(", ")}`);
   }
 

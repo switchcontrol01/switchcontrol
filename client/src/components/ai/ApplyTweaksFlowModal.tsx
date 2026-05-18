@@ -262,10 +262,15 @@ export function ApplyTweaksFlowModal({
       if (!tweak) continue;
 
       setCurrentIdx(i);
+      setStepStatus(prev => ({ ...prev, [`tweak-${rec.tweakId}`]: "active" }));
       const outcome = await executeTweak(rec.tweakId, false); // apply = !currentlyEnabled
       runResults.push({ rec, outcome });
       setResults([...runResults]);
       if (outcome.requiresReboot) setAnyReboot(true);
+      setStepStatus(prev => ({
+        ...prev,
+        [`tweak-${rec.tweakId}`]: outcome.success ? "done" : "failed",
+      }));
     }
 
     // 4. Post-flow: verifying
@@ -397,21 +402,25 @@ export function ApplyTweaksFlowModal({
                 const st = stepStatus[step.id] ?? "pending";
                 const isCurrent = st === "active";
                 const isDone = st === "done";
+                const isFailed = st === "failed";
                 return (
                   <div key={step.id} className="flex items-center gap-2">
                     <div className={cn(
                       "size-4 rounded-full flex items-center justify-center shrink-0 border",
-                      isDone ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-400" :
+                      isDone   ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-400" :
+                      isFailed ? "bg-red-500/15 border-red-500/30 text-red-400" :
                       isCurrent ? "bg-primary/15 border-primary/30 text-primary animate-pulse" :
                       "bg-[#1A1F26] border-[#2A313A] text-[#6B7380]/50"
                     )}>
-                      {isDone ? <CheckCircle2 className="size-2.5" /> :
+                      {isDone   ? <CheckCircle2 className="size-2.5" /> :
+                       isFailed ? <XCircle className="size-2.5" /> :
                        isCurrent ? <div className="size-1.5 rounded-full bg-primary" /> :
                        <div className="size-1 rounded-full bg-[#1A1F26]0" />}
                     </div>
                     <span className={cn(
                       "text-[11px]",
-                      isDone ? "text-emerald-400/70" :
+                      isDone   ? "text-emerald-400/70" :
+                      isFailed ? "text-red-400/70" :
                       isCurrent ? "text-[#E6EAF0]" :
                       "text-[#6B7380]"
                     )}>{step.label}</span>
