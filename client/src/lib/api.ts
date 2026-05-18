@@ -55,7 +55,13 @@ export function toCloudUrl(pathOrUrl: string): string {
 }
 
 if (typeof window !== 'undefined') {
-  console.log(`[API] Init: electron=${isElectron}, packaged=${isPackagedElectron}, protocol=${window.location?.protocol}`);
+  console.log(
+    `[RuntimeMode] electron=${isElectron} | packaged=${isPackagedElectron} | ` +
+    `protocol=${window.location?.protocol} | ` +
+    `preload=${!!(window as any).electronAPI} | ` +
+    `backendTarget=${isPackagedElectron ? 'embedded-local' : isElectron ? 'embedded-local' : 'same-origin'} | ` +
+    `authTarget=${isPackagedElectron ? 'cloud' : 'same-origin'}`
+  );
 
   // Boot-time JWT sanity check: clear any persisted JWT that is expired or
   // malformed before the first API call goes out. Without this, apps that

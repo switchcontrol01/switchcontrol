@@ -121,6 +121,24 @@ export async function cloudApiPost<T = any>(
         else if (data.message) rawMsg = data.message;
       } catch {}
 
+      // JWT refresh-before-fail: if the cloud says 401, try silently reissuing
+      // the JWT once before giving up. This fixes "Session expired" in packaged
+      // Electron where the local JWT can expire while the cloud session cookie
+      // is still valid.
+      if (res.status === 401 && attemptNum === 1) {
+        console.warn(`[CloudAPI] 401 on ${path} — attempting JWT reissue before failing...`);
+        try {
+          const { tryReissueJwt } = await import("./api");
+          const freshJwt = await tryReissueJwt();
+          if (freshJwt) {
+            console.log(`[CloudAPI] JWT reissued — retrying ${path}...`);
+            return attempt(2);
+          }
+        } catch (reissueErr) {
+          console.warn(`[CloudAPI] JWT reissue failed:`, reissueErr);
+        }
+      }
+
       const normalized = getCloudUserFacingError(new Error(rawMsg), res.status);
       console.error(`[CloudAPI] HTTP ${res.status} | POST ${path} | ${normalized.userMessage}`);
 
@@ -159,6 +177,18 @@ export async function cloudApiGet<T = any>(
     signal: options?.signal,
   });
   if (!res.ok) {
+    // JWT refresh-before-fail for GET too
+    if (res.status === 401) {
+      console.warn(`[CloudAPI] 401 on GET ${path} — attempting JWT reissue...`);
+      try {
+        const { tryReissueJwt } = await import("./api");
+        const freshJwt = await tryReissueJwt();
+        if (freshJwt) {
+          console.log(`[CloudAPI] JWT reissued — retrying GET ${path}...`);
+          return cloudApiGet(path, options);
+        }
+      } catch {}
+    }
     const body = await res.json().catch(() => ({}));
     throw new ApiError(res.status, body?.error ?? `Request failed: ${res.status}`);
   }

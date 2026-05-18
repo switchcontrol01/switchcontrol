@@ -378,7 +378,9 @@ function checkForUpdates() {
   } catch (err) {
     const msg = err?.message || 'checkForUpdates failed';
     _consecutiveFailures += 1;
-    console.error('[Updater] checkForUpdates threw:', msg);
+    console.error('[Updater] checkForUpdates threw (soft fail):', msg);
+    // SOFT FAIL: do NOT hard-crash the app. Set state to error so UI can
+    // show "Check failed" but the process continues running normally.
     state = { ...state, status: 'error', errorMessage: msg };
     broadcast('error');
     try { cl()?.writeCritical({ category: 'updater_failure', severity: 'error', source: 'checkForUpdates', message: msg, stack: err?.stack }); } catch (e) {}

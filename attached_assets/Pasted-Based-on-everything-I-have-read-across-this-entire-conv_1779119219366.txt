@@ -1,0 +1,73 @@
+Based on everything I have read across this entire conversation, here is my honest answer.
+
+---
+
+## Will that script fix the dashboard load time?
+
+**No. Not directly.**
+
+The dashboard load time and delayed stats are caused by things that script does not address specifically enough. Here is what is actually causing each symptom based on the code I have read.
+
+**RAM showing wrong or delayed:**
+The dashboard calls `system:getSpecs` which calls `si.cpu()` with a 15 second timeout. On some systems `si.cpu()` takes 6-12 seconds on first WMI cold start. The specs are not cached until a real CPU model comes back. Until then the dashboard shows zeros. The script tells Replit to add logs but does not fix the underlying cold start problem.
+
+**Dashboard taking 20 seconds to load on tab switch:**
+Every time you navigate away and back, `Home.tsx` remounts. `specsLoadedRef` prevents duplicate spec calls but `useSystemIntelligence` calls `fetch()` on every mount which hits `/api/system-intelligence/profile`. That endpoint runs `collect()` which calls 15+ `systeminformation` functions in parallel including `si.processes()` which takes 2-3 seconds. The 30 minute cache TTL only helps if the component stays mounted. On tab switch the store persists but the hook re-triggers `fetch()` which checks the TTL. If you switch tabs fast the cache is still valid and it skips. If 30 minutes passed it re-collects. The script does not fix this.
+
+**GPU showing 0% or delayed:**
+As I found in the code, GPU load only updates when `telemetry:refreshGpuLoad` is called explicitly. The background loop never polls GPU load. The script mentions adding logs to telemetry but does not specifically fix the GPU load gap.
+
+**Stats not matching Task Manager:**
+The telemetry WebSocket polls the server every 4-5 seconds. The server itself runs a poll loop. Total round trip is up to 9 seconds. Task Manager refreshes every second. The script does not change poll intervals.
+
+---
+
+## Will it fix AI Advisor not working?
+
+**Partially, but only if Replit actually adds `/api/ai` to `CLOUD_ONLY_API_PREFIXES`.**
+
+The script says "all auth/premium/AI routes MUST use cloud API only" but it does not tell Replit the exact file to edit or the exact line to add. Replit may implement this incorrectly or incompletely. The specific fix I found is:
+
+In `client/src/lib/api.ts`, add `/api/ai` and `/api/bios` to this array:
+
+```typescript
+const CLOUD_ONLY_API_PREFIXES = [
+  "/api/me",
+  "/api/auth",
+  "/api/premium",
+  "/api/device",
+  "/api/stripe",
+  "/api/billing",
+  "/api/admin",
+  "/api/ai", // ADD THIS
+  "/api/bios", // ADD THIS
+];
+```
+
+Without that specific change the AI Advisor always hits the local embedded backend which always returns `isPremium: false` which always returns 403 which the client shows as session expired.
+
+---
+
+## Will it fix Power Plan?
+
+**Maybe. Depends on the tester.**
+
+The root cause I found is the `requestedExecutionLevel` mismatch. Your `electron-builder.json` has `asInvoker` but the code expects `requireAdministrator`. Fix that in `electron-builder.json`:
+
+```json
+"requestedExecutionLevel": "requireAdministrator"
+```
+
+The script tells Replit to add verification logs but does not tell it to fix the builder config. Replit will probably add the log statements but miss the actual root cause.
+
+---
+
+## Will it fix the Cleaner?
+
+**Only if `sc_memory.exe` actually exists in `electron/bin/`.**
+
+The code for the cleaner is correct. The IPC handler checks for the binary, logs the path, and returns `helperMissing: true` if it is not found. The script adds more diagnostics but the cleaner will still not work if the binary is not there. You need to verify the file exists before packaging.
+
+The PowerShell-based cleaner in `cleaner-helper.js` which handles scan and clean does not need the binary and should work already. If the cleaner page is completely broken including the scan, the IPC handlers may not be registering. Check your startup log for `[Cleaner] IPC handlers registered`.
+
+---

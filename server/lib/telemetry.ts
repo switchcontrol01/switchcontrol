@@ -300,10 +300,15 @@ async function tick(): Promise<void> {
     }
   }
 
-  // RAM
-  const totalGB = memRes ? memRes.total / 1073741824 : 0;
-  const usedGB = memRes ? memRes.used / 1073741824 : 0;
+  // RAM — si.mem() returns bytes; convert to GB
+  const totalBytes = memRes ? memRes.total : 0;
+  const usedBytes  = memRes ? memRes.used  : 0;
+  const totalGB = totalBytes / 1073741824;
+  const usedGB  = usedBytes  / 1073741824;
   const usedPercent = totalGB > 0 ? (usedGB / totalGB) * 100 : 0;
+  // Defensive: never emit 0/0 when we have real RAM installed
+  const safeTotalGB = totalGB > 0 ? totalGB : 0;
+  const safeUsedGB  = usedGB  > 0 ? usedGB  : 0;
 
   // Network — systeminformation already computes differential rx_sec / tx_sec
   let rx_sec = 0;
@@ -388,8 +393,8 @@ async function tick(): Promise<void> {
       cores: loadRes?.cpus?.length ?? 0,
     },
     ram: {
-      totalGB: parseFloat(totalGB.toFixed(2)),
-      usedGB: parseFloat(usedGB.toFixed(2)),
+      totalGB: parseFloat(safeTotalGB.toFixed(2)),
+      usedGB: parseFloat(safeUsedGB.toFixed(2)),
       usedPercent: parseFloat(usedPercent.toFixed(1)),
     },
     network: {
