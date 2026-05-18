@@ -94,8 +94,10 @@ router.get("/users", requireAdmin, readLimiter, async (req, res) => {
     const plan = (req.query.plan as string | undefined) || undefined;
     const stripeCustomerId = (req.query.stripeCustomerId as string | undefined)?.trim() || undefined;
     const deviceId = (req.query.deviceId as string | undefined)?.trim() || undefined;
+    const hasAppRaw = (req.query.hasInstalledApp as string | undefined);
+    const hasInstalledApp = hasAppRaw === "true" ? true : hasAppRaw === "false" ? false : undefined;
 
-    const { users, total } = await storage.listUsers({ limit, offset, search, plan, stripeCustomerId, deviceId });
+    const { users, total } = await storage.listUsers({ limit, offset, search, plan, stripeCustomerId, deviceId, hasInstalledApp });
 
     res.json({
       users: users.map(serializeUser),

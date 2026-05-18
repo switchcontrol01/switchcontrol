@@ -30,6 +30,7 @@ export interface ListUsersOpts {
   plan?: string;
   stripeCustomerId?: string;
   deviceId?: string;
+  hasInstalledApp?: boolean;
 }
 
 export interface SetPlanOpts {
@@ -537,6 +538,12 @@ export class DatabaseStorage implements IStorage {
           eq(users.premiumLastSeenDeviceId, opts.deviceId)
         )
       );
+    }
+
+    if (opts.hasInstalledApp === true) {
+      conditions.push(eq(users.hasInstalledApp, true));
+    } else if (opts.hasInstalledApp === false) {
+      conditions.push(eq(users.hasInstalledApp, false));
     }
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;

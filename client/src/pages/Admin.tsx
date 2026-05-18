@@ -1113,13 +1113,13 @@ function UserDetailPanel({ user, logs, onClose, onPlanUpdated, onDeleted }: {
             {/* Main Actions */}
             <div className="space-y-2">
               <button onClick={() => setShowSetPlan(true)} data-testid="button-set-plan"
-                className="w-full rounded-xl px-4 py-3 text-sm font-medium bg-[#00D4FF]/22 border border-[#00D4FF] text-[#00D4FF] hover:bg-[#00D4FF]/32 transition-all">
+                className="w-full rounded-xl px-4 py-3 text-sm font-medium bg-[#00D4FF]/10 border border-[#00D4FF]/30 text-[#00D4FF] hover:bg-[#00D4FF]/18 transition-all">
                 Set Plan
               </button>
 
               {effectivePlan !== "premium" && (
                 <button onClick={upgradePremium} data-testid="button-upgrade-premium"
-                  className="w-full rounded-xl px-4 py-3 text-sm font-medium bg-[#00D4FF] border border-[#00D4FF]/25 text-[#33E0FF] hover:bg-[#00D4FF] transition-all">
+                  className="w-full rounded-xl px-4 py-3 text-sm font-medium bg-purple-500/15 border border-purple-500/35 text-purple-300 hover:bg-purple-500/25 transition-all">
                   Upgrade to Premium
                 </button>
               )}
@@ -1228,6 +1228,7 @@ export default function AdminPage() {
   const [pages, setPages] = useState(1);
   const [search, setSearch] = useState("");
   const [planFilter, setPlanFilter] = useState("");
+  const [appFilter, setAppFilter] = useState<"" | "yes" | "no">("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [authorized, setAuthorized] = useState<boolean | null>(null);
@@ -1242,6 +1243,7 @@ export default function AdminPage() {
   // Stats
   const [stats, setStats] = useState<any>(null);
   const [statsLoading, setStatsLoading] = useState(false);
+  const [statsError, setStatsError] = useState<string | null>(null);
 
   // Trials expiring
   const [trialsExpiring, setTrialsExpiring] = useState<AdminUser[]>([]);
@@ -1291,7 +1293,7 @@ export default function AdminPage() {
 
   useEffect(() => { checkAdmin(); }, [checkAdmin]);
 
-  const fetchUsers = useCallback(async (p: number, s: string, plan: string, stripeCid?: string, devId?: string) => {
+  const fetchUsers = useCallback(async (p: number, s: string, plan: string, stripeCid?: string, devId?: string, app?: "" | "yes" | "no") => {
     setLoading(true);
     setError(null);
     try {
@@ -1300,6 +1302,8 @@ export default function AdminPage() {
       if (plan) params.set("plan", plan);
       if (stripeCid) params.set("stripeCustomerId", stripeCid);
       if (devId) params.set("deviceId", devId);
+      if (app === "yes") params.set("hasInstalledApp", "true");
+      if (app === "no") params.set("hasInstalledApp", "false");
       const r = await fetch(`/api/admin/users?${params}`, { headers: buildHeaders() as any });
       if (!r.ok) throw new Error("Failed to fetch users");
       const data = await r.json();
@@ -1314,21 +1318,29 @@ export default function AdminPage() {
   }, []);
 
   useEffect(() => {
-    if (authorized === true) fetchUsers(page, search, planFilter);
-  }, [authorized, page, planFilter]);
+    if (authorized === true) fetchUsers(page, search, planFilter, stripeSearch || undefined, deviceSearch || undefined, appFilter);
+  }, [authorized, page, planFilter, appFilter]);
 
   const handleSearchChange = (value: string) => {
     setSearch(value);
     clearTimeout(searchTimeout.current);
-    searchTimeout.current = setTimeout(() => { setPage(1); fetchUsers(1, value, planFilter); }, 350);
+    searchTimeout.current = setTimeout(() => { setPage(1); fetchUsers(1, value, planFilter, stripeSearch || undefined, deviceSearch || undefined, appFilter); }, 350);
   };
 
   const fetchStats = useCallback(async () => {
     setStatsLoading(true);
+    setStatsError(null);
     try {
       const r = await fetch("/api/admin/stats", { headers: buildHeaders() as any });
-      if (r.ok) setStats(await r.json());
-    } catch {}
+      if (r.ok) {
+        setStats(await r.json());
+      } else {
+        const d = await r.json().catch(() => ({}));
+        setStatsError(d.error || `Stats unavailable (${r.status})`);
+      }
+    } catch (e: any) {
+      setStatsError(e.message || "Network error fetching stats");
+    }
     setStatsLoading(false);
   }, []);
 
@@ -1371,6 +1383,8 @@ export default function AdminPage() {
     if (planFilter) params.set("plan", planFilter);
     if (stripeSearch) params.set("stripeCustomerId", stripeSearch);
     if (deviceSearch) params.set("deviceId", deviceSearch);
+    if (appFilter === "yes") params.set("hasInstalledApp", "true");
+    if (appFilter === "no") params.set("hasInstalledApp", "false");
     window.location.href = `/api/admin/users/export?${params}`;
   };
 
@@ -1491,18 +1505,27 @@ export default function AdminPage() {
 
       <div className="max-w-7xl mx-auto px-6 py-6">
         {/* Stats Bar */}
+        {statsError && (
+          <div className="mb-4 rounded-xl border border-red-500/25 px-4 py-2.5 text-sm text-red-400 flex items-center gap-2" style={{ background: "rgba(239,68,68,0.06)" }}>
+            <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+            </svg>
+            Stats failed to load: {statsError}
+            <button onClick={fetchStats} className="ml-auto text-xs underline hover:text-red-300">Retry</button>
+          </div>
+        )}
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 mb-6">
           {[
-            { label: "Users", value: stats?.totalUsers ?? 0, color: "text-[#E6EAF0]" },
-            { label: "Premium", value: stats?.premiumUsers ?? 0, color: "text-[#00D4FF]" },
-            { label: "Trial", value: stats?.trialUsers ?? 0, color: "text-cyan-300" },
-            { label: "Free", value: stats?.freeUsers ?? 0, color: "text-[#6B7380]" },
-            { label: "Admins", value: stats?.adminCount ?? 0, color: "text-orange-300" },
-            { label: "Locked", value: stats?.deviceLockedUsers ?? 0, color: "text-amber-300" },
-            { label: "Stripe Events", value: stats?.totalStripeEvents ?? 0, color: "text-[#A0A8B3]" },
+            { label: "Users", value: stats?.totalUsers, color: "text-[#E6EAF0]" },
+            { label: "Premium", value: stats?.premiumUsers, color: "text-[#00D4FF]" },
+            { label: "Trial", value: stats?.trialUsers, color: "text-cyan-300" },
+            { label: "Free", value: stats?.freeUsers, color: "text-[#6B7380]" },
+            { label: "Admins", value: stats?.adminCount, color: "text-orange-300" },
+            { label: "Locked", value: stats?.deviceLockedUsers, color: "text-amber-300" },
+            { label: "Stripe Events", value: stats?.totalStripeEvents, color: "text-[#A0A8B3]" },
           ].map((s) => (
             <div key={s.label} className="rounded-xl border border-[#2A313A] p-3 text-center" style={{ background: "rgba(255,255,255,0.03)" }}>
-              <p className={`text-lg font-semibold ${s.color}`}>{statsLoading ? "—" : s.value}</p>
+              <p className={`text-lg font-semibold ${s.color}`}>{statsLoading ? "—" : (statsError ? "?" : (s.value ?? "—"))}</p>
               <p className="text-xs text-[#6B7380]">{s.label}</p>
             </div>
           ))}
@@ -1586,20 +1609,20 @@ export default function AdminPage() {
               placeholder="Stripe Customer ID…"
               value={stripeSearch}
               onChange={(e) => setStripeSearch(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && fetchUsers(1, search, planFilter, e.currentTarget.value, deviceSearch)}
+              onKeyDown={(e) => e.key === "Enter" && fetchUsers(1, search, planFilter, e.currentTarget.value, deviceSearch, appFilter)}
               className="w-full rounded-xl bg-[#21262D] border border-[#2A313A] pl-9 pr-4 py-2.5 text-sm text-[#E6EAF0] font-mono placeholder-[#6B7380] outline-none focus:border-[#00D4FF] transition-colors"
             />
           </div>
           <div className="relative">
             <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6B7380]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2z" />
             </svg>
             <input
               type="text"
               placeholder="Device ID…"
               value={deviceSearch}
               onChange={(e) => setDeviceSearch(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && fetchUsers(1, search, planFilter, stripeSearch, e.currentTarget.value)}
+              onKeyDown={(e) => e.key === "Enter" && fetchUsers(1, search, planFilter, stripeSearch, e.currentTarget.value, appFilter)}
               className="w-full rounded-xl bg-[#21262D] border border-[#2A313A] pl-9 pr-4 py-2.5 text-sm text-[#E6EAF0] font-mono placeholder-[#6B7380] outline-none focus:border-[#00D4FF] transition-colors"
             />
           </div>
@@ -1616,7 +1639,7 @@ export default function AdminPage() {
               ))}
             </select>
             <button
-              onClick={() => fetchUsers(page, search, planFilter, stripeSearch, deviceSearch)}
+              onClick={() => fetchUsers(page, search, planFilter, stripeSearch, deviceSearch, appFilter)}
               data-testid="button-refresh-users"
               className="rounded-xl px-4 py-2.5 text-sm font-medium bg-[#21262D] border border-[#2A313A] text-[#A0A8B3] hover:text-[#E6EAF0] hover:bg-[#2A313A] transition-colors"
             >
@@ -1630,6 +1653,32 @@ export default function AdminPage() {
               Export CSV
             </button>
           </div>
+        </div>
+        {/* Has App Filter Row */}
+        <div className="flex items-center gap-2 mb-4 flex-wrap">
+          <span className="text-xs text-[#6B7380] font-medium">Has App:</span>
+          {(["", "yes", "no"] as const).map((val) => {
+            const label = val === "" ? "All" : val === "yes" ? "Yes" : "No";
+            const active = appFilter === val;
+            return (
+              <button
+                key={val}
+                onClick={() => { setAppFilter(val); setPage(1); }}
+                data-testid={`filter-app-${label.toLowerCase()}`}
+                className={`rounded-full px-3 py-1 text-xs font-medium border transition-all ${
+                  active
+                    ? val === "yes"
+                      ? "bg-cyan-500/20 border-cyan-500/50 text-cyan-300"
+                      : val === "no"
+                      ? "bg-[#6B7380]/20 border-[#6B7380]/50 text-[#A0A8B3]"
+                      : "bg-[#2A313A] border-[#3A424D] text-[#E6EAF0]"
+                    : "bg-transparent border-[#2A313A] text-[#6B7380] hover:border-[#3A424D] hover:text-[#A0A8B3]"
+                }`}
+              >
+                {label}
+              </button>
+            );
+          })}
         </div>
 
         {/* Device Lock Lookup */}
