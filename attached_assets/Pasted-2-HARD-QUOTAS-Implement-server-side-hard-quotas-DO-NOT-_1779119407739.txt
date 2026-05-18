@@ -1,0 +1,164 @@
+2. HARD QUOTAS
+
+---
+
+Implement server-side hard quotas.
+
+DO NOT rely on frontend restrictions.
+
+Requirements:
+
+FREE USERS:
+
+- capped AI requests/day
+- capped telemetry refresh frequency
+- capped advanced analysis usage
+
+PREMIUM USERS:
+
+- higher quotas
+- separate limits
+
+Track:
+
+- daily
+- hourly
+- rolling windows
+
+Requirements:
+
+- persistent storage
+- reset windows correctly
+- survive server restarts
+
+Add logs:
+[Quota]
+user:
+route:
+usage:
+limit:
+blocked:
+
+If quota exceeded:
+
+- gracefully deny request
+- NEVER crash route
+- NEVER queue infinite retries
+
+---
+
+3. TELEMETRY BATCHING + THROTTLING
+
+---
+
+Current telemetry likely sends too many updates.
+
+Implement batching system.
+
+Requirements:
+
+- combine telemetry updates
+- reduce websocket spam
+- avoid redundant payloads
+- only send changed values when possible
+
+Add:
+
+- debounce
+- throttling
+- adaptive polling
+
+Desktop client should:
+
+- avoid overlapping polling loops
+- avoid duplicate GPU polling
+- avoid repeated expensive PowerShell calls
+
+Server should:
+
+- cache expensive telemetry briefly
+- deduplicate identical telemetry requests
+
+Target:
+
+- significantly lower backend load
+- lower CPU usage
+- lower bandwidth usage
+
+Add logs:
+[TelemetryBatch]
+batched:
+deduplicated:
+cacheHit:
+cacheMiss:
+
+---
+
+4. CACHING LAYER
+
+---
+
+Implement proper server-side caching.
+
+Targets:
+
+- AI recommendations
+- hardware analysis
+- telemetry snapshots
+- benchmark metadata
+- static config payloads
+
+Requirements:
+
+- short TTL caches where appropriate
+- prevent duplicate expensive calculations
+- invalidate correctly
+- avoid stale auth-sensitive data
+
+DO NOT cache:
+
+- auth truth
+- premium verification
+- security-sensitive user state
+
+Add logs:
+[Cache]
+key:
+hit:
+miss:
+ttl:
+
+---
+
+5. AI COOLDOWNS
+
+---
+
+Prevent AI spam and duplicate requests.
+
+Requirements:
+
+- cooldown timers per user/device
+- reject rapid-fire repeated prompts
+- prevent double-click duplicate calls
+- prevent reconnect replay spam
+
+Implement:
+
+- request hashing
+- identical prompt deduplication
+- short-term memory window
+
+Example:
+If same prompt submitted repeatedly within cooldown:
+
+- return cached response
+  OR
+- reject politely
+
+Add logs:
+[AIRequest]
+hash:
+deduplicated:
+cooldownActive:
+cachedResponse:

@@ -18,10 +18,14 @@
       "filter": ["**/*"]
     }
   ],
+  "publish": {
+    "provider": "generic",
+    "url": "https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev/"
+  },
   "win": {
     "target": "nsis",
     "icon": "dist/app-icon.ico",
-    "requestedExecutionLevel": "asInvoker"
+    "requestedExecutionLevel": "requireAdministrator"
   },
   "nsis": {
     "oneClick": false,

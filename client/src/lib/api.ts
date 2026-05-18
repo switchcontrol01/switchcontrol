@@ -13,6 +13,8 @@ const CLOUD_ONLY_API_PREFIXES = [
   "/api/stripe",
   "/api/billing",
   "/api/admin",
+  "/api/ai",
+  "/api/bios",
 ];
 
 // Defense-in-depth: no cloud-truth request should ever reach the local backend.

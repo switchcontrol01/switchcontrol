@@ -1,0 +1,164 @@
+6. REQUEST DEDUPLICATION
+
+---
+
+Implement backend request deduplication.
+
+Problem:
+Desktop reconnects and UI refreshes may create:
+
+- duplicate AI calls
+- duplicate telemetry fetches
+- duplicate optimization execution
+
+Requirements:
+
+Detect:
+
+- same request payload
+- same user/device
+- same action within short time window
+
+If duplicate:
+
+- reuse existing promise/result
+- DO NOT execute duplicate expensive work
+
+Critical for:
+
+- AI
+- telemetry
+- tweak execution
+- hardware scans
+
+Add logs:
+[RequestDedup]
+requestId:
+reused:
+preventedDuplicate:
+
+---
+
+7. KILL SWITCHES
+
+---
+
+Implement emergency server-side kill switches.
+
+Requirements:
+
+Ability to instantly disable:
+
+- AI routes
+- updater checks
+- telemetry streaming
+- benchmark systems
+- Extreme Labs
+- cleaner
+- cloud sync
+
+WITHOUT redeploying app.
+
+Implement:
+
+- centralized feature flags
+- runtime config
+- environment override support
+
+If disabled:
+
+- frontend receives graceful explanation
+- app remains stable
+
+Add logs:
+[KillSwitch]
+feature:
+enabled:
+reason:
+
+---
+
+8. GRACEFUL DEGRADATION
+
+---
+
+System must NEVER collapse fully if one service fails.
+
+Requirements:
+
+If AI fails:
+
+- dashboard still works
+
+If telemetry fails:
+
+- app still launches
+
+If updater fails:
+
+- no crash
+- no unhandled rejection
+
+If cloud unavailable:
+
+- local-only features continue
+
+If cache fails:
+
+- fallback safely
+
+If PowerShell fails:
+
+- explicit user-facing error
+
+Eliminate:
+
+- infinite retry loops
+- cascading failures
+- silent failures
+- fake success states
+
+Add logs:
+[GracefulDegradation]
+service:
+fallbackUsed:
+reason:
+
+---
+
+9. OBSERVABILITY + DEBUGGING
+
+---
+
+Implement structured logging everywhere.
+
+Requirements:
+
+Every critical system must log:
+
+- start
+- success
+- fail
+- latency
+- fallback usage
+
+Critical systems:
+
+- auth
+- AI
+- telemetry
+- updater
+- cleaner
+- power plans
+- tweak execution
+- websocket sync
+
+Include:
+
+- timestamps
+- route source
+- desktop/cloud mode
+- execution duration
+
+Goal:
+Production issues must become diagnosable quickly.

@@ -199,7 +199,7 @@ let gpuExistsOnHardware = false;
 // ── Performance governor ──────────────────────────────────────────────────────
 // Base poll interval.  Stays at TELEMETRY_BASE_MS while CPU is normal.
 // Auto-throttles to TELEMETRY_SLOW_MS when load exceeds the threshold.
-const TELEMETRY_BASE_MS      = 4000;   // normal polling cadence (4s for lower CPU)
+const TELEMETRY_BASE_MS      = 2000;   // normal polling cadence
 const TELEMETRY_SLOW_MS      = 8000;   // low-end / over-budget mode
 const TELEMETRY_GOVERNOR_PCT = 50;     // engage slow mode when cpu > 50%
 let _telemetryCurrentIntervalMs = TELEMETRY_BASE_MS;
@@ -501,9 +501,11 @@ async function startTelemetryPolling() {
     }
   }).catch(() => {});
 
-  // GPU perf counter and LHM prewarm removed — both are expensive at launch.
-  // GPU load: use telemetry:refreshGpuLoad IPC (on-demand).
-  // GPU/LHM deep data: use telemetry:refreshDeepHardware IPC (on-demand).
+  // Seed GPU load 5 seconds after telemetry starts so the dashboard shows
+  // a real value from first load without waiting for a user action.
+  setTimeout(() => {
+    getGpuPerfCounterLoad().catch(() => {});
+  }, 5000);
 
   // First call to differential APIs always returns 0 — prime them and seed lastDiskSnapshot
   // so that the first real pollTelemetry() can compute disk deltas immediately.
@@ -1534,7 +1536,7 @@ async function loadSystemSpecs() {
     let fsData = [];
 
     const [cpuResult, memResult, graphicsResult, fsResult] = await Promise.all([
-      siWithTimeout(() => si.cpu(), 15_000, 'si.cpu()').catch(e => {
+      siWithTimeout(() => si.cpu(), 5_000, 'si.cpu()').catch(e => {
         console.error('[SwitchControl] Failed to get CPU info:', e.message || e);
         return cpu;
       }),
