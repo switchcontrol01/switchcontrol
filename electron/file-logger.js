@@ -252,6 +252,76 @@ function format(level, args) {
   return `[${isoMs()}] [${level}] ${parts.join(' ')}\n`;
 }
 
+// ── TLS / network error helpers ────────────────────────────────────────────────
+
+/**
+ * Returns true when an error code or message string indicates a TLS /
+ * certificate / network-layer failure.  These are non-fatal — the network
+ * request simply fails and the calling code should handle it gracefully.
+ * Keeping them separate avoids polluting the crash-dump directory with
+ * routine connectivity noise.
+ *
+ * @param {string} code  err.code  (may be empty string)
+ * @param {string} msg   err.message or String(reason)
+ * @returns {boolean}
+ */
+function _isTlsError(code, msg) {
+  if (!code && !msg) return false;
+  const codeStr = String(code || '').toUpperCase();
+  const msgStr  = String(msg  || '').toLowerCase();
+
+  // Chromium net error codes
+  if (codeStr.startsWith('ERR_CERT'))                          return true;
+  if (codeStr === 'ERR_SSL_PROTOCOL_ERROR')                    return true;
+  if (codeStr === 'ERR_SSL_VERSION_OR_CIPHER_MISMATCH')        return true;
+  if (codeStr === 'ERR_FAILED')                                {
+    // ERR_FAILED alone is too broad — only treat as TLS if the message says so
+  }
+  // Node.js TLS codes
+  if (codeStr === 'UNABLE_TO_VERIFY_LEAF_SIGNATURE')           return true;
+  if (codeStr === 'CERT_HAS_EXPIRED')                          return true;
+  if (codeStr === 'SELF_SIGNED_CERT_IN_CHAIN')                 return true;
+  if (codeStr === 'DEPTH_ZERO_SELF_SIGNED_CERT')               return true;
+  if (codeStr === 'CERT_UNTRUSTED')                            return true;
+  if (codeStr === 'EPROTO')                                    return true;
+
+  // Message-based heuristics (catch electron-updater error strings)
+  if (msgStr.includes('certificate'))                          return true;
+  if (msgStr.includes('err_cert'))                             return true;
+  if (msgStr.includes('ssl'))                                  return true;
+  if (msgStr.includes('tls'))                                  return true;
+
+  return false;
+}
+
+/**
+ * Extract extra diagnostic context from a TLS/network error object.
+ * Returns a compact one-line string (or empty string if nothing useful found).
+ *
+ * @param {unknown} err
+ * @returns {string}
+ */
+function _tlsExtraInfo(err) {
+  if (!err || typeof err !== 'object') return '';
+  const parts = [];
+
+  // Attempt to extract hostname from common error properties
+  const url = err.url || err.requestUrl || '';
+  if (url) {
+    try {
+      const { hostname } = new URL(url);
+      parts.push('hostname=' + hostname);
+    } catch (_) {
+      parts.push('url=' + String(url).substring(0, 80));
+    }
+  }
+  if (err.code)    parts.push('code='    + err.code);
+  if (err.host)    parts.push('host='    + err.host);
+  if (err.address) parts.push('address=' + err.address);
+
+  return parts.length ? '[' + parts.join(' ') + ']' : '';
+}
+
 // ── Console hook ──────────────────────────────────────────────────────────────
 
 let _origLog, _origWarn, _origError, _origInfo;
@@ -280,34 +350,56 @@ function hookConsole() {
   };
 
   process.on('uncaughtException', (err) => {
-    writeRaw(format('FATAL', ['uncaughtException:', err.stack || err.message]));
-    writeCrashDump('uncaughtException', err.stack || err.message);
     try {
-      const cl = getCriticalLogger();
-      if (cl) cl.writeCritical({
-        category: 'backend_failure',
-        severity: 'fatal',
-        source:   'uncaughtException',
-        message:  err.message || String(err),
-        stack:    err.stack,
-      });
-    } catch (e) {}
+      const code      = err && err.code ? String(err.code) : '';
+      const isTls     = _isTlsError(code, err && err.message ? err.message : '');
+      const prefix    = isTls ? 'uncaughtException [TLS]' : 'uncaughtException';
+      const extraInfo = isTls ? _tlsExtraInfo(err) : '';
+      writeRaw(format('FATAL', [prefix + ':', err.stack || err.message, extraInfo].filter(Boolean)));
+      writeCrashDump(prefix, err.stack || err.message + (extraInfo ? '\n' + extraInfo : ''));
+      try {
+        const cl = getCriticalLogger();
+        if (cl) cl.writeCritical({
+          category: 'backend_failure',
+          severity: isTls ? 'error' : 'fatal',
+          source:   prefix,
+          message:  (isTls ? '[TLS] ' : '') + (err.message || String(err)),
+          stack:    err.stack,
+        });
+      } catch (e) {}
+    } catch (_e) {}
   });
+
   process.on('unhandledRejection', (reason) => {
-    const msg = reason && reason.stack ? reason.stack : String(reason);
-    const err = reason instanceof Error ? reason : null;
-    writeRaw(format('FATAL', ['unhandledRejection:', msg]));
-    writeCrashDump('unhandledRejection', msg);
     try {
-      const cl = getCriticalLogger();
-      if (cl) cl.writeCritical({
-        category: 'backend_failure',
-        severity: 'fatal',
-        source:   'unhandledRejection',
-        message:  err ? err.message : String(reason),
-        stack:    err ? err.stack : undefined,
-      });
-    } catch (e) {}
+      const err       = reason instanceof Error ? reason : null;
+      const code      = err && err.code ? String(err.code) : '';
+      const rawMsg    = err ? err.message : String(reason);
+      const isTls     = _isTlsError(code, rawMsg);
+      const prefix    = isTls ? 'unhandledRejection [TLS]' : 'unhandledRejection';
+      const extraInfo = isTls ? _tlsExtraInfo(err || reason) : '';
+      const fullMsg   = err && err.stack ? err.stack : rawMsg;
+
+      // TLS errors are logged as WARN (non-fatal, handled by network layer).
+      // Other unhandled rejections are FATAL.
+      const level = isTls ? 'WARN' : 'FATAL';
+      writeRaw(format(level, [prefix + ':', fullMsg, extraInfo].filter(Boolean)));
+
+      // Only write a crash dump for genuinely unexpected rejections, not TLS noise.
+      if (!isTls) {
+        writeCrashDump(prefix, fullMsg);
+      }
+      try {
+        const cl = getCriticalLogger();
+        if (cl) cl.writeCritical({
+          category: 'backend_failure',
+          severity: isTls ? 'warning' : 'fatal',
+          source:   prefix,
+          message:  (isTls ? '[TLS] ' : '') + rawMsg,
+          stack:    err ? err.stack : undefined,
+        });
+      } catch (e) {}
+    } catch (_e) {}
   });
 }
 

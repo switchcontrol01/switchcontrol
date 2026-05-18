@@ -3704,6 +3704,53 @@ app.whenReady().then(async () => {
   console.log(`[STARTUP] app ready — ${Date.now() - bootStart}ms from whenReady`);
 });
 
+// ── TLS / certificate diagnostics ─────────────────────────────────────────────
+// Fires whenever Chromium's network stack encounters a certificate error —
+// this covers the renderer's fetch(), Electron net.request(), electron-updater,
+// and any other Chromium networking subsystem.
+//
+// We ALWAYS deny (callback(false)) — we never bypass TLS validation.
+// The handler exists purely to log certificate details before the request fails,
+// so the crash logs have hostname, issuer, fingerprint, and error code instead
+// of just a raw ERR_CERT_AUTHORITY_INVALID string.
+//
+// Because we deny here, the network request fails gracefully as a regular HTTP
+// error rather than an unhandled rejection.
+app.on('certificate-error', (event, webContents, url, error, certificate, callback) => {
+  event.preventDefault(); // take ownership of the callback
+
+  let hostname = '(unknown)';
+  try { hostname = new URL(url).hostname; } catch (_e) {}
+
+  const issuer      = certificate?.issuerName   || '(no issuer)';
+  const subject     = certificate?.subjectName  || '(no subject)';
+  const fingerprint = certificate?.fingerprint  || '(no fingerprint)';
+  let   validRange  = '(unknown)';
+  try {
+    const from = certificate.validStart  ? new Date(certificate.validStart  * 1000).toISOString().substring(0, 10) : '?';
+    const to   = certificate.validExpiry ? new Date(certificate.validExpiry * 1000).toISOString().substring(0, 10) : '?';
+    validRange = `${from} → ${to}`;
+  } catch (_e) {}
+
+  console.error(
+    `[TLS] Certificate error — hostname=${hostname} error=${error} ` +
+    `issuer="${issuer}" subject="${subject}" fingerprint=${fingerprint} ` +
+    `valid=${validRange}`,
+  );
+
+  try {
+    criticalLogger.writeCritical({
+      category: 'backend_failure',
+      severity: 'warning',
+      source:   'certificate-error',
+      message:  `TLS cert error for ${hostname}: ${error} | issuer="${issuer}"`,
+    });
+  } catch (_e) {}
+
+  // DENY — never bypass TLS validation
+  callback(false);
+});
+
 app.on('window-all-closed', () => {
   backendLauncher.stopBackend();
   if (process.platform !== 'darwin') app.quit();

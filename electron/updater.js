@@ -373,7 +373,39 @@ function checkForUpdates() {
   broadcast('checking-for-update');
 
   try {
-    _autoUpdater.checkForUpdates();
+    // checkForUpdates() returns a Promise. The try-catch only catches
+    // synchronous throws — we MUST attach .catch() to the returned Promise
+    // to prevent TLS/network rejections from becoming unhandled rejections
+    // that crash the process via the global unhandledRejection handler.
+    const checkPromise = _autoUpdater.checkForUpdates();
+    if (checkPromise && typeof checkPromise.catch === 'function') {
+      checkPromise.catch((err) => {
+        const msg = err?.message || 'checkForUpdates promise rejected';
+        const code = err?.code || '';
+        const isTlsError = code.startsWith('ERR_CERT') ||
+          code === 'ERR_SSL_PROTOCOL_ERROR' ||
+          code === 'UNABLE_TO_VERIFY_LEAF_SIGNATURE' ||
+          (msg.includes('certificate') || msg.includes('CERT') || msg.includes('TLS') || msg.includes('SSL'));
+
+        if (isTlsError) {
+          console.warn(`[Updater] TLS/certificate failure (non-fatal) — code=${code} msg=${msg}`);
+        } else {
+          console.error(`[Updater] checkForUpdates promise rejected — code=${code} msg=${msg}`);
+        }
+        _consecutiveFailures += 1;
+        state = { ...state, status: 'error', errorMessage: msg };
+        broadcast('error');
+        try {
+          cl()?.writeCritical({
+            category: 'updater_failure',
+            severity: isTlsError ? 'warning' : 'error',
+            source: 'checkForUpdates:promise',
+            message: `${isTlsError ? '[TLS] ' : ''}Updater check rejected: ${msg}`,
+            stack: err?.stack,
+          });
+        } catch (e) {}
+      });
+    }
     return { ok: true };
   } catch (err) {
     const msg = err?.message || 'checkForUpdates failed';

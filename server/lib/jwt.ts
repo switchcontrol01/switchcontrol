@@ -120,7 +120,35 @@ export function verifyJwt(token: string, silent = false): JwtPayload | null {
     if (!silent) {
       const tokenFp  = jwtFingerprint(token);
       const secretFp = secretFingerprint();
-      console.error(`[AUTH] JWT verification failed: ${err.message} | tokenFp=${tokenFp} secretFp=${secretFp}`);
+
+      // Decode payload WITHOUT signature verification to pull diagnostics from
+      // the token that just failed — never log raw payload values (privacy).
+      let iss = "(missing)";
+      let tokenAge = "(no iat)";
+      let expStatus = "(no exp)";
+      try {
+        const parts = token.split(".");
+        if (parts.length === 3) {
+          const raw = Buffer.from(parts[1], "base64").toString("utf-8");
+          const peek = JSON.parse(raw) as Record<string, unknown>;
+          const nowSec = Math.floor(Date.now() / 1000);
+          iss = typeof peek.iss === "string" ? peek.iss : "(missing)";
+          if (typeof peek.iat === "number") {
+            tokenAge = `${nowSec - peek.iat}s`;
+          }
+          if (typeof peek.exp === "number") {
+            expStatus = peek.exp > nowSec
+              ? `valid (exp in ${peek.exp - nowSec}s)`
+              : `expired (${nowSec - peek.exp}s ago)`;
+          }
+        }
+      } catch {}
+
+      console.error(
+        `[AUTH] JWT verification failed: ${err.message} | ` +
+        `tokenFp=${tokenFp} secretFp=${secretFp} ` +
+        `iss=${iss} age=${tokenAge} exp=${expStatus} authMode=jwt`,
+      );
     }
     return null;
   }
