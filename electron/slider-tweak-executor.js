@@ -403,6 +403,31 @@ const SLIDER_TWEAKS = {
     writeCommand:  (v) => `Set-ItemProperty -Path 'HKCU:\\Control Panel\\Desktop' -Name 'WaitToKillAppTimeout' -Value '${v}' -Type String -Force`,
     verifyCommand: (v) => `(Get-ItemProperty -Path 'HKCU:\\Control Panel\\Desktop' -Name 'WaitToKillAppTimeout' -EA SilentlyContinue).WaitToKillAppTimeout -eq '${v}'`,
   },
+
+  /**
+   * SvcHostSplitThresholdInKB — controls how Windows groups services into shared
+   * svchost.exe instances based on installed RAM (in KB).
+   * Windows 10 1703+ uses this to decide whether to split each service into its
+   * own process. Default varies by edition (~380000 KB on home/pro 8GB+ systems).
+   * Higher values = more isolated svchost instances (better crash containment,
+   * more RAM). Lower values = fewer processes (less RAM, less isolation).
+   * Stepped presets only — 8 GB / 16 GB / 32 GB / 64 GB.
+   * Requires admin (HKLM). No restart needed — applies to new service launches.
+   */
+  'svchost-split-threshold': {
+    name:          'Service Host Split Threshold',
+    requiresAdmin: true,
+    requiresReboot: false,
+    regPath:       'HKLM:\\SYSTEM\\CurrentControlSet\\Control',
+    regName:       'SvcHostSplitThresholdInKB',
+    regType:       'DWord',
+    defaultValue:  380000,
+    safeMin:       8388608,
+    safeMax:       67108864,
+    readCommand:   () => `(Get-ItemProperty -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Control' -Name 'SvcHostSplitThresholdInKB' -EA SilentlyContinue).SvcHostSplitThresholdInKB`,
+    writeCommand:  (v) => `New-Item -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Control' -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Control' -Name 'SvcHostSplitThresholdInKB' -Value ${v} -Type DWord -Force`,
+    verifyCommand: (v) => `(Get-ItemProperty -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Control' -Name 'SvcHostSplitThresholdInKB' -EA SilentlyContinue).SvcHostSplitThresholdInKB -eq ${v}`,
+  },
 };
 
 // ─── Public API ────────────────────────────────────────────────────────────────
