@@ -28,6 +28,7 @@
 import { useTelemetryStore } from "@/stores/telemetryStore";
 import { usePerformanceStore } from "@/stores/performanceStore";
 import { useAuthStore } from "@/lib/authStore";
+import type { LiveTelemetry } from "@/hooks/useLiveTelemetry";
 
 const isDebug = import.meta.env.DEV;
 
@@ -274,6 +275,131 @@ function connect() {
     .catch(() => useTelemetryStore.getState()._setStatus("unavailable"));
 }
 
+// ── Electron IPC polling mode ──────────────────────────────────────────────────
+// In packaged Electron, `electronAPI.telemetry.getLive` provides real system
+// telemetry via IPC. We poll it here and feed results into useTelemetryStore so
+// ALL useLiveTelemetry() consumers (PremiumDashboardGraphs, AI advisor, etc.)
+// get live data — not just LiveGraph which maintains its own local state.
+//
+// This avoids the JWT-timing issue with the local WebSocket server: the WS
+// connection requires a JWT in the auth store at connect time, which is often
+// not present yet when the manager first starts. IPC has no such requirement.
+
+let _ipcPollActive = false;
+let _ipcPollTimer: ReturnType<typeof setTimeout> | null = null;
+
+function _safeNum(v: unknown, fallback = 0): number {
+  return typeof v === "number" && isFinite(v) ? v : fallback;
+}
+
+async function _ipcPollTick(): Promise<void> {
+  const electronAPI = (window as any).electronAPI;
+  if (!electronAPI?.telemetry?.getLive) return;
+
+  try {
+    const live = await electronAPI.telemetry.getLive();
+    if (!live) return;
+
+    const cpuLoad       = _safeNum(live.cpu?.usagePct, 0);
+    const cpuCores      = _safeNum(live.cpu?.coreCount, 0);
+    const cpuTemp: number | null = live.cpu?.tempC > 0 ? _safeNum(live.cpu.tempC) : null;
+
+    const ramTotalGB    = _safeNum(live.ram?.totalGb, 0);
+    const ramUsedGB     = _safeNum(live.ram?.usedGb, 0);
+    const ramUsedPct    = ramTotalGB > 0
+      ? _safeNum(live.ram?.usagePct, parseFloat(((ramUsedGB / ramTotalGB) * 100).toFixed(1)))
+      : 0;
+
+    const rxKBps        = _safeNum(live.network?.rxKBps, 0);
+    const txKBps        = _safeNum(live.network?.txKBps, 0);
+
+    const gpuLoadRaw: number | null = live.gpu?.usagePct != null && live.gpu.usagePct >= 0
+      ? _safeNum(live.gpu.usagePct) : null;
+    const gpuTemp: number | null  = live.gpu?.tempC > 0 ? _safeNum(live.gpu.tempC) : null;
+    const gpuVramUsed: number | null  = live.gpu?.vramUsedMb  != null ? _safeNum(live.gpu.vramUsedMb) : null;
+    const gpuVramTotal: number | null = live.gpu?.vramTotalMb != null && live.gpu.vramTotalMb > 0
+      ? _safeNum(live.gpu.vramTotalMb) : null;
+    const gpuVramPct: number | null = live.gpu?.vramUsagePct != null
+      ? _safeNum(live.gpu.vramUsagePct)
+      : (gpuVramUsed != null && gpuVramTotal != null && gpuVramTotal > 0
+          ? parseFloat(((gpuVramUsed / gpuVramTotal) * 100).toFixed(1)) : null);
+    const gpuClockMhz: number | null = live.gpu?.clockMhz > 0 ? _safeNum(live.gpu.clockMhz) : null;
+
+    const diskActiveTime: number | null  = live.disk?.activeTimePct != null ? _safeNum(live.disk.activeTimePct) : null;
+    const diskReadKBps: number | null    = live.disk?.readKBps   != null ? _safeNum(live.disk.readKBps)   : null;
+    const diskWriteKBps: number | null   = live.disk?.writeKBps  != null ? _safeNum(live.disk.writeKBps)  : null;
+    const diskAvailable: boolean         = live.disk?.available ?? false;
+
+    const telemetry: LiveTelemetry = {
+      ts: Date.now(),
+      status: "ready",
+      cpu:     { load: cpuLoad, speed: 0, cores: cpuCores },
+      ram:     { totalGB: ramTotalGB, usedGB: ramUsedGB, usedPercent: ramUsedPct },
+      network: { rx_sec: rxKBps * 1024, tx_sec: txKBps * 1024, latency_ms: 0 },
+      temps:   { cpu: cpuTemp, gpu: gpuTemp },
+      gpu: {
+        load: gpuLoadRaw, vramUsedMb: gpuVramUsed, vramTotalMb: gpuVramTotal,
+        vramPercent: gpuVramPct, tempC: gpuTemp, clockMhz: gpuClockMhz,
+        name: live.gpu?.model ?? null,
+      },
+      disk:      { activeTimePct: diskActiveTime, readKBps: diskReadKBps, writeKBps: diskWriteKBps, available: diskAvailable },
+      processes: { running: 0, total: 0 },
+      load_trend: "stable",
+    };
+
+    const st = useTelemetryStore.getState();
+    const h  = st.history;
+
+    const cpuSpike = detectSpike(h.cpu, cpuLoad);
+    const ramSpike = detectSpike(h.ram, ramUsedPct);
+    const gpuSpike = detectSpike(h.gpu, gpuLoadRaw);
+    let newSpikes = null;
+    if (cpuSpike || ramSpike || gpuSpike) {
+      newSpikes = {
+        cpu: cpuSpike ? true : st.spikes.cpu,
+        ram: ramSpike ? true : st.spikes.ram,
+        gpu: gpuSpike ? true : st.spikes.gpu,
+      };
+      if (cpuSpike) scheduleResetSpike("cpu");
+      if (ramSpike) scheduleResetSpike("ram");
+      if (gpuSpike) scheduleResetSpike("gpu");
+    }
+
+    if (Math.abs(cpuLoad - _lastReportedCpu) >= 5) {
+      _lastReportedCpu = cpuLoad;
+      usePerformanceStore.getState().reportCpu(cpuLoad);
+    }
+
+    st._onTick(
+      telemetry, newSpikes,
+      cpuLoad, ramUsedPct, gpuLoadRaw, gpuVramPct,
+      rxKBps, txKBps,
+      diskActiveTime, diskReadKBps, diskWriteKBps,
+    );
+  } catch {}
+}
+
+function _startIpcPolling(): void {
+  if (_ipcPollActive) return;
+  _ipcPollActive = true;
+
+  async function loop(): Promise<void> {
+    await _ipcPollTick();
+    if (_ipcPollActive) {
+      _ipcPollTimer = setTimeout(loop, 2000);
+    }
+  }
+  loop();
+}
+
+function _stopIpcPolling(): void {
+  _ipcPollActive = false;
+  if (_ipcPollTimer) {
+    clearTimeout(_ipcPollTimer);
+    _ipcPollTimer = null;
+  }
+}
+
 // ── Public API ─────────────────────────────────────────────────────────────────
 
 function _handleVisibilityChange() {
@@ -297,7 +423,20 @@ export const telemetryManager = {
     }
     _authRejected = false;
     _started = true;
-    if (isDebug) console.log("[Telemetry] Manager starting");
+
+    // In packaged Electron, use IPC polling instead of WebSocket.
+    // IPC has no JWT-timing requirement and directly reads from main-process
+    // telemetry (the same source LiveGraph uses). All useLiveTelemetry()
+    // consumers (PremiumDashboardGraphs, AI advisor, etc.) then get real data.
+    const electronAPI = (window as any).electronAPI;
+    if (electronAPI?.telemetry?.getLive) {
+      if (isDebug) console.log("[Telemetry] Electron IPC mode — polling via IPC");
+      _startIpcPolling();
+      useTelemetryStore.getState()._setConnected(true);
+      return;
+    }
+
+    if (isDebug) console.log("[Telemetry] Manager starting (WebSocket mode)");
     connect();
     // Guard separately from _started: hardReset() resets _started but must not
     // re-register an additional listener on each call — one is enough for the
@@ -341,6 +480,10 @@ export const telemetryManager = {
    */
   hardReset() {
     if (isDebug) console.log("[Telemetry] hard reset triggered");
+
+    // Stop IPC poll loop if active
+    _stopIpcPolling();
+
     if (_reconnectTimer) clearTimeout(_reconnectTimer);
     if (_unavailableTimer) clearTimeout(_unavailableTimer);
     if (_ws) { _ws.close(); _ws = null; }

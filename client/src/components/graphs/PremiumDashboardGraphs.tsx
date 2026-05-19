@@ -14,6 +14,7 @@ import { TelemetrySparkline, type SparklinePoint } from "./TelemetrySparkline";
 import { useLiveTelemetry } from "@/hooks/useLiveTelemetry";
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
+import { cloudApiGet } from "@/lib/cloud-api";
 import type { DisplaySignalProfile } from "@/hooks/useDashboardIntelligence";
 
 const HISTORY_LEN = 50;
@@ -495,8 +496,7 @@ export function DisplaySignalGraph({ delay = 0 }: { delay?: number }) {
   useEffect(() => {
     if (!user?.loggedIn) return;
     const load = () =>
-      fetch("/api/dashboard-intelligence/display-signal")
-        .then(r => r.json())
+      cloudApiGet<DisplaySignalProfile>("/dashboard-intelligence/display-signal")
         .then((d: DisplaySignalProfile) => {
           setProfile(d);
           if (d.ts !== prevTs) { setChanged(true); setPrevTs(d.ts); }
