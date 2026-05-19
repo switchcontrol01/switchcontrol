@@ -104,6 +104,34 @@ async function runElevated(command) {
   }
 }
 
+// ── Ring-buffer fallback (Set/Get-NetAdapterRingBuffer) ───────────────────────
+// Some NICs (Realtek, AMD) do not expose *ReceiveBuffers / *TransmitBuffers
+// through Get-NetAdapterAdvancedProperty. Windows has a dedicated cmdlet that
+// works on these adapters. We fall back to it automatically.
+
+const RING_BUFFER_PROPS = new Set(['ReceiveBuffers', 'TransmitBuffers']);
+
+async function _rbRead(safeAdapter, propertyKey) {
+  const field = propertyKey === 'ReceiveBuffers' ? 'RxCurrentBufferCount' : 'TxCurrentBufferCount';
+  const maxField = propertyKey === 'ReceiveBuffers' ? 'RxMaxBufferCount' : 'TxMaxBufferCount';
+  const raw = await queryPS(
+    `$rb = Get-NetAdapterRingBuffer -Name '${safeAdapter}' -EA SilentlyContinue; ` +
+    `if ($rb) { [PSCustomObject]@{ current=$rb.${field}; max=$rb.${maxField} } | ConvertTo-Json -Compress } else { 'null' }`
+  );
+  if (!raw || raw === 'null') return null;
+  try {
+    const p = JSON.parse(raw);
+    return { current: p.current ?? null, max: p.max ?? null };
+  } catch { return null; }
+}
+
+async function _rbSet(safeAdapter, propertyKey, value) {
+  const param = propertyKey === 'ReceiveBuffers' ? 'RxBufferSize' : 'TxBufferSize';
+  const num = parseInt(value, 10);
+  if (isNaN(num)) return { ok: false, error: 'Value must be a number' };
+  return runElevated(`Set-NetAdapterRingBuffer -Name '${safeAdapter}' -${param} ${num} -EA Stop`);
+}
+
 // ── NIC property definitions ──────────────────────────────────────────────────
 
 const NIC_PROPERTY_DEFS = {
@@ -427,6 +455,21 @@ async function getAdapterCapabilities(adapterName) {
         displayName:     match.DisplayName,
         validValues,
       };
+    } else if (RING_BUFFER_PROPS.has(key)) {
+      // Fallback: some NICs (Realtek, AMD) expose ring buffers via Get-NetAdapterRingBuffer
+      const rb = await _rbRead(safeAdapter, key);
+      if (rb && rb.current !== null) {
+        capabilities[key] = {
+          supported:    true,
+          currentValue: String(rb.current),
+          registryKeyword: null,
+          displayName:     null,
+          validValues:     null,
+          viaRingBuffer:   true,
+        };
+      } else {
+        capabilities[key] = { supported: false, currentValue: null, validValues: null };
+      }
     } else {
       capabilities[key] = { supported: false, currentValue: null, validValues: null };
     }
@@ -463,6 +506,22 @@ async function readNicProperty(adapterName, propertyKey) {
   );
 
   if (!raw || raw === 'null' || raw === '') {
+    // Fallback: try Get-NetAdapterRingBuffer for ReceiveBuffers / TransmitBuffers
+    if (RING_BUFFER_PROPS.has(propertyKey)) {
+      const rb = await _rbRead(safeAdapter, propertyKey);
+      if (rb && rb.current !== null) {
+        return {
+          value:           String(rb.current),
+          registryValue:   String(rb.current),
+          displayValue:    String(rb.current),
+          registryKeyword: null,
+          displayName:     null,
+          supported:       true,
+          viaRingBuffer:   true,
+          error:           null,
+        };
+      }
+    }
     return { value: null, registryValue: null, displayValue: null, registryKeyword: null, displayName: null, supported: false, error: null };
   }
 
@@ -512,6 +571,32 @@ async function setNicProperty(adapterName, propertyKey, value) {
   // Discover the real RegistryKeyword and DisplayName from the driver
   const prop = await discoverProperty(safeAdapter, def);
   if (!prop) {
+    // Fallback: use Set-NetAdapterRingBuffer for buffer properties on NICs that
+    // don't expose them through Get-NetAdapterAdvancedProperty (Realtek, AMD, etc.)
+    if (RING_BUFFER_PROPS.has(propertyKey)) {
+      const rbResult = await _rbSet(safeAdapter, propertyKey, value);
+      if (!rbResult.ok) {
+        const isUac = /cancel|denied|elevat|access|uac/i.test(rbResult.error || '');
+        return {
+          ok:          false,
+          outcome:     isUac ? 'elevation_denied' : 'write_failed',
+          verified:    false,
+          actualValue: null,
+          error:       rbResult.error,
+        };
+      }
+      // Verify readback
+      const rb = await _rbRead(safeAdapter, propertyKey);
+      const readbackVal = rb ? String(rb.current) : null;
+      const verified = readbackVal !== null && String(parseInt(value, 10)) === readbackVal;
+      return {
+        ok:          true,
+        outcome:     verified ? 'write_succeeded_verified' : 'write_succeeded_verify_failed',
+        verified,
+        actualValue: readbackVal,
+        error:       verified ? null : 'Value written but readback did not confirm.',
+      };
+    }
     return {
       ok:          false,
       outcome:     'unsupported_on_adapter',
@@ -574,6 +659,27 @@ async function resetNicProperty(adapterName, propertyKey) {
   // Discover both RegistryKeyword and actual DisplayName from the driver
   const prop = await discoverProperty(safeAdapter, def);
   if (!prop) {
+    // Fallback: reset buffer properties via Set-NetAdapterRingBuffer using def.defaultValue
+    if (RING_BUFFER_PROPS.has(propertyKey)) {
+      const defaultVal = def.defaultValue ?? 256;
+      const rbResult = await _rbSet(safeAdapter, propertyKey, defaultVal);
+      if (!rbResult.ok) {
+        const isUac = /cancel|denied|elevat|access|uac/i.test(rbResult.error || '');
+        return {
+          ok:          false,
+          outcome:     isUac ? 'elevation_denied' : 'reset_failed',
+          actualValue: null,
+          error:       rbResult.error,
+        };
+      }
+      const rb = await _rbRead(safeAdapter, propertyKey);
+      return {
+        ok:          true,
+        outcome:     'reset_verified',
+        actualValue: rb ? String(rb.current) : String(defaultVal),
+        error:       null,
+      };
+    }
     return {
       ok:          false,
       outcome:     'unsupported_on_adapter',
