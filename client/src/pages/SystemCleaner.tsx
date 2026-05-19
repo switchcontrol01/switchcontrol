@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { usePageTiming } from "@/lib/page-timing";
+import { cloudApiGet, cloudApiPost } from "@/lib/cloud-api";
 import {
   Trash2, Shield, Zap, RefreshCw, CheckCircle2, History,
   AlertCircle, ChevronDown, HardDrive, Lock, Wifi, Cpu,
@@ -484,8 +485,7 @@ export default function SystemCleaner() {
 
   const loadCategories = useCallback(async (m: CleanMode) => {
     try {
-      const res  = await fetch(`/api/cleaner/categories?mode=${m}`);
-      const data = await res.json();
+      const data = await cloudApiGet<any>(`/cleaner/categories?mode=${m}`);
       if (data.ok) {
         setCategories(data.categories);
         const defaults = new Set<string>(
@@ -499,8 +499,10 @@ export default function SystemCleaner() {
 
   const loadHistory = useCallback(async () => {
     try {
-      const [hRes, shRes] = await Promise.all([fetch("/api/cleaner/history"), fetch("/api/cleaner/scan-history")]);
-      const [hData, shData] = await Promise.all([hRes.json(), shRes.json()]);
+      const [hData, shData] = await Promise.all([
+        cloudApiGet<any>("/cleaner/history"),
+        cloudApiGet<any>("/cleaner/scan-history"),
+      ]);
       if (hData.ok)  setHistory(hData.history);
       if (shData.ok) setScanHistory(shData.history);
     } catch {}
@@ -533,11 +535,7 @@ export default function SystemCleaner() {
     }
 
     try {
-      const res  = await fetch("/api/cleaner/scan", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mode, electronResults }),
-      });
-      const data = await res.json();
+      const data = await cloudApiPost<any>("/cleaner/scan", { mode, electronResults });
       if (data.ok) {
         setFindings(data.findings);
         setScanSummary(data.summary);
@@ -580,11 +578,7 @@ export default function SystemCleaner() {
     }
 
     try {
-      const res  = await fetch("/api/cleaner/clean", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mode, itemIds: ids, electronResults }),
-      });
-      const data = await res.json();
+      const data = await cloudApiPost<any>("/cleaner/clean", { mode, itemIds: ids, electronResults });
       if (data.ok) {
         setCleanResults(data.results);
         setSession({ results: data.results, summary: data.summary, ranAt: new Date().toISOString() });
