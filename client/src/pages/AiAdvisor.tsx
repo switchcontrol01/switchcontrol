@@ -7,7 +7,7 @@ import { cloudApiGet } from "@/lib/cloud-api";
 import {
   Brain, Cpu, MemoryStick, HardDrive, Wifi, Gamepad2,
   AlertTriangle, Loader2, Zap, Send, SquarePen,
-  Bot, User, MonitorCog, Activity, Eye, Monitor,
+  Bot, User, MonitorCog, Activity, Layers, Monitor,
   Paperclip, X, CheckCircle2, TrendingUp, ChevronRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -633,7 +633,7 @@ function SystemProfileCard({ context }: { context: SystemContext | null }) {
       {hasAny ? (
         <div>
           {s?.cpu && <SystemSpecRow icon={Cpu} label="CPU" value={s.cpu} color="bg-primary/10 text-primary/70" />}
-          {s?.gpu && <SystemSpecRow icon={Eye} label="GPU" value={s.gpu} color="bg-[#00D4FF] text-[#00D4FF]/70" />}
+          {s?.gpu && <SystemSpecRow icon={Layers} label="GPU" value={s.gpu} color="bg-[#00D4FF]/10 text-[#00D4FF]/70" />}
           {s?.ram && <SystemSpecRow icon={MemoryStick} label="RAM" value={s.ram} color="bg-cyan-500/10 text-cyan-400/70" />}
           {s?.storage && <SystemSpecRow icon={HardDrive} label="Storage" value={s.storage} color="bg-emerald-500/10 text-emerald-400/70" />}
           {s?.motherboard && <SystemSpecRow icon={MonitorCog} label="Board" value={s.motherboard} color="bg-orange-500/10 text-orange-400/70" />}
