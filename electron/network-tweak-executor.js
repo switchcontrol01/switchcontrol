@@ -296,7 +296,7 @@ const TWEAK_REGISTRY = {
     check: `
       $out = netsh int tcp show global 2>&1;
       $line = @($out) | Where-Object { $_ -imatch 'timestamp' } | Select-Object -First 1;
-      if ($line) { if ($line -imatch ':\s*disabled') { 'true' } else { 'false' } } else { 'false' }
+      if ($line) { if ($line -imatch ':\\s*disabled') { 'true' } else { 'false' } } else { 'false' }
     `,
   },
 
@@ -313,7 +313,7 @@ const TWEAK_REGISTRY = {
     check: `
       $out = netsh int tcp show heuristics 2>&1;
       $line = @($out) | Where-Object { $_ -imatch 'heuristic|scaling' } | Select-Object -First 1;
-      if ($line) { if ($line -imatch ':\s*disabled') { 'true' } else { 'false' } } else { 'false' }
+      if ($line) { if ($line -imatch ':\\s*disabled') { 'true' } else { 'false' } } else { 'false' }
     `,
   },
 
@@ -370,8 +370,8 @@ const TWEAK_REGISTRY = {
     `,
     check: `
       $out = netsh int tcp show global 2>&1;
-      $line = @($out) | Where-Object { $_ -imatch 'receive.side.scal|rss\b' } | Select-Object -First 1;
-      if ($line) { if ($line -imatch ':\s*enabled') { 'true' } else { 'false' } } else { 'false' }
+      $line = @($out) | Where-Object { $_ -imatch 'receive.side.scal|rss\\b' } | Select-Object -First 1;
+      if ($line) { if ($line -imatch ':\\s*enabled') { 'true' } else { 'false' } } else { 'false' }
     `,
   },
 
@@ -432,7 +432,7 @@ const TWEAK_REGISTRY = {
     check: `
       $out = netsh int tcp show global 2>&1;
       $line = @($out) | Where-Object { $_ -imatch 'auto.tun' } | Select-Object -First 1;
-      if ($line) { if ($line -imatch ':\s*normal') { 'true' } else { 'false' } } else { 'false' }
+      if ($line) { if ($line -imatch ':\\s*normal') { 'true' } else { 'false' } } else { 'false' }
     `,
   },
 
