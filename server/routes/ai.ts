@@ -363,6 +363,15 @@ ACTION MARKERS:
 - Navigate: <<NAV:/route:Label>> — frontend converts to a "Go to Section" button. Use whenever user asks where something is.
 - Both types of markers are stripped from display text and replaced with buttons — they will NOT appear as raw text.
 
+EXECUTION CONTRACT (HARDEST RULE — VIOLATION BREAKS THE APP):
+You are FORBIDDEN from writing any of these phrases unless they are followed within the same sentence by a valid <<APPLY:tweakId>> marker using an id from the lists above:
+  "I'll apply", "I will apply", "Applying", "Let me apply", "Let's apply",
+  "I'll enable", "I will enable", "Enabling", "Let me enable", "Let's enable",
+  "I'll turn on", "I will turn on", "Turning on", "I'll activate", "Activating",
+  "I'll optimize", "Optimizing for you", "I'll do it", "Doing it now",
+  "I'll set", "Setting", "I'll configure", "Configuring"
+If you cannot find a matching tweak id in the system state, you MUST instead use offer-language: "I can apply X if you'd like" or "I recommend enabling X — tap Apply below" — never claim to be performing the action. A response that promises execution without a marker is a critical failure.
+
 HOW TO RESPOND:
 - Be direct, specific, and genuinely informative. This is the whole point.
 - Always use the actual hardware model names from context — never "your CPU", say the model like "EPYC 9B14" or "RTX 4090".
@@ -640,6 +649,147 @@ function buildChatContext(context: any, serverCtx?: Awaited<ReturnType<typeof bu
 }
 
 // ---------------------------------------------------------------------------
+// Execution contract enforcement
+// ---------------------------------------------------------------------------
+// The model sometimes verbally promises "I'll apply X" without emitting an
+// <<APPLY:id>> marker. The frontend then has nothing to render as a button,
+// so the user sees a false promise. This function is the deterministic
+// safety net:
+//   1. If APPLY markers already exist → nothing to do.
+//   2. Otherwise, scan execution phrases and try to inject markers by
+//      name-matching tweak titles from the user's context.
+//   3. If no match → rewrite execution claims into offer language so the
+//      AI never falsely claims to be performing an action.
+// ---------------------------------------------------------------------------
+
+const EXEC_PHRASE_RE = /\b(I'?ll apply|I will apply|Let me apply|Let'?s apply|I'?ll enable|I will enable|Let me enable|Let'?s enable|I'?ll turn on|I will turn on|I'?ll activate|I'?ll optimize|Optimizing for you|I'?ll do it|Doing it now|I'?ll set|I'?ll configure)\b/gi;
+
+const USER_APPLY_INTENT_RE = /\b(apply (it|them|these|some|that|this|for me|for em)|do it (for me|now)?|turn (it|them) on|optimi[sz]e (my|the) pc|enable (it|them|that)|just apply|yes apply|go ahead|apply now)\b/i;
+
+type TweakCtx = { id: string; title: string };
+
+function collectKnownTweaks(context: any): TweakCtx[] {
+  const out: TweakCtx[] = [];
+  for (const list of [context?.enabledTweaks, context?.disabledTweaks]) {
+    if (!Array.isArray(list)) continue;
+    for (const t of list) {
+      if (t && typeof t.id === "string" && typeof t.title === "string") {
+        out.push({ id: t.id, title: t.title });
+      }
+    }
+  }
+  return out;
+}
+
+function findTweakByMention(text: string, known: TweakCtx[]): TweakCtx | null {
+  const lower = text.toLowerCase();
+  // Prefer longest title match (avoids matching "Timer" inside "Timer Resolution Hung App")
+  const sorted = [...known].sort((a, b) => b.title.length - a.title.length);
+  for (const t of sorted) {
+    const title = t.title.toLowerCase();
+    if (title.length >= 4 && lower.includes(title)) return t;
+  }
+  return null;
+}
+
+const REWRITE_MAP: Array<[RegExp, string]> = [
+  [/\bI'?ll apply\b/gi, "I can apply"],
+  [/\bI will apply\b/gi, "I can apply"],
+  [/\bLet me apply\b/gi, "I can apply"],
+  [/\bLet'?s apply\b/gi, "I can apply"],
+  [/\bI'?ll enable\b/gi, "I can enable"],
+  [/\bI will enable\b/gi, "I can enable"],
+  [/\bLet me enable\b/gi, "I can enable"],
+  [/\bLet'?s enable\b/gi, "I can enable"],
+  [/\bI'?ll turn on\b/gi, "I can turn on"],
+  [/\bI will turn on\b/gi, "I can turn on"],
+  [/\bI'?ll activate\b/gi, "I can activate"],
+  [/\bI'?ll optimize\b/gi, "I can optimize"],
+  [/\bOptimizing for you\b/gi, "Ready to optimize"],
+  [/\bI'?ll do it\b/gi, "I can do it"],
+  [/\bDoing it now\b/gi, "Ready to proceed"],
+  [/\bI'?ll set\b/gi, "I can set"],
+  [/\bI'?ll configure\b/gi, "I can configure"],
+];
+
+function rewriteExecutionClaim(sentence: string): string {
+  let out = sentence;
+  for (const [re, rep] of REWRITE_MAP) out = out.replace(re, rep);
+  return out;
+}
+
+function attachMarker(sentence: string, id: string): string {
+  const trimmed = sentence.trimEnd();
+  const punct = /[.!?]$/.test(trimmed) ? trimmed.slice(-1) : "";
+  const body = punct ? trimmed.slice(0, -1) : trimmed;
+  return `${body} <<APPLY:${id}>>${punct}`;
+}
+
+function enforceApplyContract(
+  raw: string,
+  context: any,
+  lastUserMsg: string,
+  userId: string | undefined,
+): { content: string; injected: string[]; rewritten: number; intentDetected: boolean } {
+  const intentDetected = USER_APPLY_INTENT_RE.test(lastUserMsg || "");
+  const known = collectKnownTweaks(context);
+  const totalExec = (raw.match(EXEC_PHRASE_RE) || []).length;
+
+  console.log(
+    `[AI:action] user=${userId ?? "none"} intentDetected=${intentDetected} ` +
+    `execPhrases=${totalExec} knownTweaks=${known.length}`,
+  );
+
+  if (totalExec === 0) {
+    return { content: raw, injected: [], rewritten: 0, intentDetected };
+  }
+
+  const injected: string[] = [];
+  let rewritten = 0;
+
+  // Process sentence-by-sentence. A sentence is "compliant" if it either
+  // contains no execution language, or already contains an APPLY marker.
+  // Non-compliant sentences get a marker injected (if we can match a tweak)
+  // or rewritten into offer language.
+  const sentences = raw.split(/(?<=[.!?])\s+/);
+  const out: string[] = [];
+  const APPLY_IN_SENTENCE = /<<APPLY:[a-z0-9-]+>>/i;
+
+  for (const sentence of sentences) {
+    EXEC_PHRASE_RE.lastIndex = 0;
+    const hasExec = EXEC_PHRASE_RE.test(sentence);
+    EXEC_PHRASE_RE.lastIndex = 0;
+
+    if (!hasExec || APPLY_IN_SENTENCE.test(sentence)) {
+      out.push(sentence);
+      continue;
+    }
+
+    // This sentence promises execution but has no marker. Try to inject.
+    const match = findTweakByMention(sentence, known);
+    if (match) {
+      if (!injected.includes(match.id)) {
+        injected.push(match.id);
+        console.log(`[AI:action] tweakId=${match.id} valid=true source=injected`);
+      }
+      out.push(attachMarker(sentence, match.id));
+    } else {
+      rewritten++;
+      console.warn(`[AI:contract] no_tweak_match — rewriting: "${sentence.slice(0, 90)}"`);
+      out.push(rewriteExecutionClaim(sentence));
+    }
+  }
+
+  const finalContent = out.join(" ");
+  console.log(
+    `[AI:action] recommendationCard rendered=${injected.length > 0} ` +
+    `injected=[${injected.join(",")}] rewritten=${rewritten}`,
+  );
+
+  return { content: finalContent, injected, rewritten, intentDetected };
+}
+
+// ---------------------------------------------------------------------------
 // Helper: get OpenAI client (OPENAI_API_KEY lives on cloud server only)
 // ---------------------------------------------------------------------------
 
@@ -797,9 +947,14 @@ aiRouter.post("/chat", async (req: Request, res: Response) => {
       return res.status(502).json({ error: "AI returned an empty response. Please try again." });
     }
 
-    const previewOutput = rawContent.slice(0, 150).replace(/\n/g, " ");
-    console.log(`[AI:chat] OK | user=${cloudUser?.id} | chars=${rawContent.length} | preview="${previewOutput}${rawContent.length > 150 ? "…" : ""}"`);
-    return res.json({ role: "assistant", content: rawContent });
+    // Find the most recent user message for intent classification
+    const lastUserMsg = [...messages].reverse().find((m: any) => m?.role === "user")?.content || "";
+    const enforced = enforceApplyContract(rawContent, context, String(lastUserMsg), cloudUser?.id);
+    const finalContent = enforced.content;
+
+    const previewOutput = finalContent.slice(0, 150).replace(/\n/g, " ");
+    console.log(`[AI:chat] OK | user=${cloudUser?.id} | chars=${finalContent.length} | injected=${enforced.injected.length} rewritten=${enforced.rewritten} | preview="${previewOutput}${finalContent.length > 150 ? "…" : ""}"`);
+    return res.json({ role: "assistant", content: finalContent });
 
   } catch (error: any) {
     const status = error?.status;
