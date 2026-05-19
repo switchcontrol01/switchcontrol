@@ -687,8 +687,8 @@ export default function SystemCleaner() {
 
           {/* ────────────────── IDLE ──────────────────────────────────────── */}
           {phase === "idle" && (
-            <motion.div key="idle" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }}
-              transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }} className="space-y-4">
+            <motion.div key="idle" initial={{ opacity: 1, y: 0 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }}
+              transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }} className="space-y-4">
 
               {/* Hero card */}
               <div className="relative rounded-2xl border border-white/[0.08] bg-gradient-to-br from-white/[0.03] to-white/[0.01] overflow-hidden p-8">
