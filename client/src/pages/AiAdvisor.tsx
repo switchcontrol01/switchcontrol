@@ -7,7 +7,7 @@ import { cloudApiGet } from "@/lib/cloud-api";
 import {
   Brain, Cpu, MemoryStick, HardDrive, Wifi, Gamepad2,
   AlertTriangle, Loader2, Zap, Send, SquarePen,
-  Bot, User, MonitorCog, Activity, Layers, Monitor,
+  Bot, User, MonitorCog, Activity, Layers, Monitor, Eye,
   Paperclip, X, CheckCircle2, TrendingUp, ChevronRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
