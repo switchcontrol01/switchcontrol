@@ -372,8 +372,14 @@ async function tick(): Promise<void> {
           vramUsed != null && vramTotal > 0
             ? parseFloat(((vramUsed / vramTotal) * 100).toFixed(1))
             : null;
+        const vendorLower = ((ctrl as any).vendor || "").toLowerCase();
+        const isAmd = vendorLower.includes("amd") || vendorLower.includes("advanced micro");
+        const rawLoad = (ctrl as any).utilizationGpu;
+        // systeminformation often returns 0 for AMD utilization when the sensor
+        // is unreadable — treat 0 as unavailable for AMD, same as Electron does.
+        const load: number | null = (isAmd && rawLoad === 0) ? null : (rawLoad ?? null);
         return {
-          load: (ctrl as any).utilizationGpu ?? null,
+          load,
           vramUsedMb: vramUsed,
           vramTotalMb: vramTotal > 0 ? vramTotal : null,
           vramPercent: vramPct,
