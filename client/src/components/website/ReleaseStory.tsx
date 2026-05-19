@@ -18,33 +18,33 @@ import { Link } from "wouter";
 const STEPS = [
   {
     icon: Gauge,
-    label: "Input Latency Fixed",
-    desc: "The latency monitor was showing 1.4ms on every PC due to a hardcoded formula. It now uses continuous scaling against real CPU, RAM, and process load.",
+    label: "Real Hardware Detection",
+    desc: "Display Signal now falls back to a direct PowerShell query when systeminformation times out — GPU name, resolution, and refresh rate populate reliably on every system.",
   },
   {
     icon: Activity,
-    label: "Smarter Diagnostics",
-    desc: "Dashboard intelligence estimates now respond proportionally across the full load range — not just when you hit a hard threshold.",
-  },
-  {
-    icon: Sparkles,
-    label: "AI Advisor — Apply from Chat",
-    desc: "The AI Advisor now surfaces inline tweak cards directly in the conversation. See a recommendation and apply it in one click, without leaving the chat.",
+    label: "Extreme Labs Sliders Fixed",
+    desc: "Win32PrioritySeparation, System Responsiveness, and all 7 Extreme Labs sliders now apply correctly with proper executor IDs and gaming-tuned recommended values.",
   },
   {
     icon: Shield,
-    label: "Admin Panel Reliability",
-    desc: "Fixed a stats loading error that appeared on fresh installs due to a missing database table. Auto-resolved on startup going forward.",
+    label: "NIC Ring Buffer Support",
+    desc: "Receive Buffers and Transmit Buffers now work on Realtek and AMD adapters using the Set-NetAdapterRingBuffer fallback path when driver advanced properties aren't available.",
   },
   {
     icon: Package,
-    label: "Leaner Installer",
-    desc: "Website-only assets — SEO files, blueprint images, and sitemap data — are now excluded from the installer package.",
+    label: "Instant Page Transitions",
+    desc: "Navigating between pages no longer shows a black flash. New pages appear immediately and slide in smoothly.",
+  },
+  {
+    icon: Sparkles,
+    label: "App Launch Reliability",
+    desc: "Fixed a rare black-screen-on-launch caused by a missing icon import. The app now starts cleanly every time.",
   },
   {
     icon: Crown,
-    label: "Premium Entitlements Stable",
-    desc: "Device binding, grace window handling, and trial countdown logic all run through a single resolver — no more disagreeing UI states.",
+    label: "Cleaner Dashboard",
+    desc: "System Pressure widget removed and CPU card now shows your processor name instead of live load percentage.",
   },
 ];
 
@@ -93,14 +93,14 @@ export default function ReleaseStory() {
           </Reveal>
           <Reveal delay={0.1}>
             <h2 className="text-3xl md:text-5xl font-extrabold text-white mb-4 leading-tight">
-              Sharper{" "}
-              <span className="font-light italic text-white/50">than ever.</span>
+              Hardware Compatibility{" "}
+              <span className="font-light italic text-white/50">sorted.</span>
             </h2>
           </Reveal>
           <Reveal delay={0.2}>
             <p className="text-white/30 max-w-lg mx-auto text-sm md:text-base leading-relaxed">
-              Smarter diagnostics, a leaner installer, and a faster AI workflow.
-              Every number you see now reflects what your PC is actually doing.
+              Broader NIC support, Extreme Labs slider fixes, and display
+              detection that works on every system — not just the ideal ones.
             </p>
           </Reveal>
         </div>
