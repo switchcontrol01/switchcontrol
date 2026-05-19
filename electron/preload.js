@@ -64,7 +64,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   isElectron: true,
 
   // ── Launch handshake: renderer signals first branded frame is painted ────────
-  signalFirstFrameReady: () => ipcRenderer.send('app:first-frame-ready'),
+  signalFirstFrameReady:    () => ipcRenderer.send('app:first-frame-ready'),
+  signalDashboardMounted:   () => ipcRenderer.send('app:dashboard-mounted'),
 
   // ── Low-risk read-only ──────────────────────────────────────────────────────
   getVersion:      () => ipcRenderer.invoke('app:getVersion'),

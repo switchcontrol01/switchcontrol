@@ -1,0 +1,94 @@
+AI Advisor still needs stronger action routing and hardware awareness.
+
+Right now it is too passive and inconsistent. Sometimes it explains a tweak but never exposes the Apply button or direct action path, even when the tweak exists and is executable.
+
+Required behavior changes:
+
+1. Action Detection Layer
+   If the user asks:
+
+- "where is this"
+- "show me this"
+- "open this"
+- "take me there"
+- "how do I enable this"
+
+The AI should NOT just explain it in text.
+
+It should automatically choose ONE of these actions:
+
+- Open the relevant tweak page
+- Highlight the tweak card
+- Render an Apply button
+- Render a "View in Tweaks" button
+- Render a graph/visualization if the request is analytical
+
+The AI should detect intent instead of relying on exact prompt wording.
+
+Examples:
+
+- "show me MPO" → jump to Disable MPO tweak card
+- "where is memory integrity" → open Security tweaks section
+- "optimize latency" → show grouped actionable tweaks with Apply buttons
+- "compare ram usage" → generate graph/visual analysis instead of plain text
+
+2. Laptop / Desktop Detection Enforcement
+   The AI must become platform-aware before recommending tweaks.
+
+Current issue:
+Laptop users can still receive desktop-only tweak recommendations or BIOS advice.
+
+Required:
+Before generating actions or recommendations, AI Advisor must classify:
+
+- Laptop
+- Desktop
+- Intel
+- AMD
+- Battery-powered
+- Virtualized environment
+
+Then filter or downgrade unsupported recommendations.
+
+Examples:
+
+- PBO / Curve Optimizer → hidden or warning on laptops
+- USB selective suspend tweaks → contextual warning on laptops
+- Desktop-only BIOS tuning → blocked on unsupported hardware
+- GPU overclock suggestions → avoided on integrated graphics laptops
+
+3. Strict Action Priority System
+   AI Advisor should follow this priority order:
+
+Priority 1:
+Apply tweak directly if safe + known tweak exists
+
+Priority 2:
+Navigate user to tweak location
+
+Priority 3:
+Render visual graph/analysis
+
+Priority 4:
+Fallback to explanation text
+
+Right now the system jumps to explanation too early.
+
+4. Recommendation Reliability
+   The AI should NEVER emit fake tweak IDs or hallucinated actions.
+
+If a tweak cannot be mapped confidently:
+
+- do not render Apply button
+- fallback to navigation/search instead
+
+All actions must validate against the real tweak registry before rendering.
+
+5. UX Goal
+   The advisor should feel like:
+
+- an intelligent control layer for the app
+  NOT
+- a chatbot that only talks about tweaks
+
+The AI should actively operate the app interface whenever possible instead of explaining where features are manually.

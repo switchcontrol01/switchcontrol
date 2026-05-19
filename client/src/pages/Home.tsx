@@ -346,6 +346,13 @@ export default function Home() {
     } else {
       console.log('[ActivityMonitor] mounted — no cached history yet, status:', telStatus);
     }
+
+    // Signal Electron that the dashboard is stable for boot metrics + background
+    // system intelligence deep collection trigger.
+    const api = (window as any).electronAPI;
+    if (api?.signalDashboardMounted) {
+      api.signalDashboardMounted();
+    }
   }, []);
   // ── End lifecycle logging ────────────────────────────────────────────────────
   const { addEvent, setLastAction, events: activityEvents } = useDashboardActivityStore();
@@ -581,20 +588,25 @@ export default function Home() {
   }, [withTimeout]);
 
   useEffect(() => {
-    const api = (window as any).electronAPI;
-    if (api?.system?.getAllDisks) {
-      api.system.getAllDisks().then((disks: DiskInfo[]) => {
-        if (disks && disks.length > 0) {
-          setAllDisks(disks);
-          const mainIndex = disks.findIndex((d: DiskInfo) => d.mount === 'C:' || d.mount === '/');
-          if (mainIndex >= 0) {
-            setSelectedDiskIndex(mainIndex);
+    // Stagger disk enumeration 120ms after mount — keeps the first-paint smooth
+    // by not competing with spec-load and telemetry WS connection simultaneously.
+    const t = setTimeout(() => {
+      const api = (window as any).electronAPI;
+      if (api?.system?.getAllDisks) {
+        api.system.getAllDisks().then((disks: DiskInfo[]) => {
+          if (disks && disks.length > 0) {
+            setAllDisks(disks);
+            const mainIndex = disks.findIndex((d: DiskInfo) => d.mount === 'C:' || d.mount === '/');
+            if (mainIndex >= 0) {
+              setSelectedDiskIndex(mainIndex);
+            }
           }
-        }
-      }).catch((err: unknown) => {
-        console.error('[SwitchControl] Failed to get disks:', err);
-      });
-    }
+        }).catch((err: unknown) => {
+          console.error('[SwitchControl] Failed to get disks:', err);
+        });
+      }
+    }, 120);
+    return () => clearTimeout(t);
   }, []);
 
   const handleTelemetryUpdate = useCallback((data: TelemetryData) => {

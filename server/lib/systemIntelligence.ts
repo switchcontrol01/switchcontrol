@@ -8,11 +8,15 @@
 import si from "systeminformation";
 import { execFile } from "child_process";
 import { promisify } from "util";
+import * as os from "os";
+import * as path from "path";
+import * as fsp from "fs/promises";
 
 const execFileAsync = promisify(execFile);
 
-const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
-const PS_TIMEOUT_MS = 8_000;
+const CACHE_TTL_MS     = 30 * 60 * 1000; // 30-minute in-memory refresh
+const DISK_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24-hour disk persistence
+const PS_TIMEOUT_MS    = 5_000; // reduced from 8s — any PS call that hangs logs a warning
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -184,11 +188,75 @@ export interface SystemIntelligenceProfile {
   collectedAt: string;
 }
 
-// ── Cache ─────────────────────────────────────────────────────────────────────
+// ── Disk cache (24-hour persistence across restarts) ──────────────────────────
+
+function _diskCachePath(): string {
+  const base = process.env.APPDATA ?? os.homedir();
+  return path.join(base, "SwitchControl", "cache", "system-profile.json");
+}
+
+async function _loadDiskCache(): Promise<SystemIntelligenceProfile | null> {
+  try {
+    const raw = await fsp.readFile(_diskCachePath(), "utf-8");
+    const { timestamp, profile } = JSON.parse(raw) as { timestamp: number; profile: SystemIntelligenceProfile };
+    const ageMs = Date.now() - timestamp;
+    if (ageMs < DISK_CACHE_TTL_MS) {
+      console.log(`[SysIntelligence] Disk cache hit — age=${Math.round(ageMs / 60000)}min`);
+      return profile;
+    }
+    console.log("[SysIntelligence] Disk cache stale — background refresh scheduled");
+    return profile; // return stale rather than null so dashboard has something
+  } catch {
+    return null; // first launch or corrupted cache
+  }
+}
+
+async function _saveDiskCache(profile: SystemIntelligenceProfile): Promise<void> {
+  try {
+    const p = _diskCachePath();
+    await fsp.mkdir(path.dirname(p), { recursive: true });
+    await fsp.writeFile(p, JSON.stringify({ timestamp: Date.now(), profile }), "utf-8");
+    console.log("[SysIntelligence] Disk cache updated");
+  } catch (e: any) {
+    console.warn("[SysIntelligence] Disk cache write failed:", e.message);
+  }
+}
+
+// ── Per-call timeout wrapper ───────────────────────────────────────────────────
+// Any WMI/si call that exceeds the limit is aborted with a warning, returning
+// the rejected error so Promise.allSettled() marks it as failed (safe fallback).
+
+function siTimeout<T>(label: string, p: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    p,
+    new Promise<never>((_, reject) =>
+      setTimeout(() => {
+        console.warn(`[SysIntelligence] phase=timeout source=${label} limit=${ms}ms`);
+        reject(new Error(`${label} timed out after ${ms}ms`));
+      }, ms),
+    ),
+  ]);
+}
+
+// ── In-memory cache ───────────────────────────────────────────────────────────
 
 let _cache: SystemIntelligenceProfile | null = null;
 let _cacheAt: number = 0;
 let _collectingPromise: Promise<SystemIntelligenceProfile> | null = null;
+let _phaseAPromise: Promise<SystemIntelligenceProfile> | null = null;
+let _diskCacheBootstrapped = false;
+
+// Pre-populate in-memory cache from disk at module load time (fire-and-forget).
+// This ensures getCachedSystemIntelligence() returns something useful on first
+// request even before any async collection completes.
+void _loadDiskCache().then((cached) => {
+  _diskCacheBootstrapped = true;
+  if (cached && !_cache) {
+    _cache   = cached;
+    _cacheAt = 0; // treat as stale so next call triggers background refresh
+    console.log("[SysIntelligence] In-memory cache pre-populated from disk");
+  }
+});
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -357,7 +425,7 @@ try {
 // ── Main collector ────────────────────────────────────────────────────────────
 
 async function collect(): Promise<SystemIntelligenceProfile> {
-  console.log("[SysIntelligence] Collecting full system profile…");
+  console.log("[SysIntelligence] phase=full start — deep collection");
   const startMs = Date.now();
 
   const [
@@ -366,21 +434,21 @@ async function collect(): Promise<SystemIntelligenceProfile> {
     procsRes, osRes, batteryRes, usersRes,
     platformStates, monitorEdidRes,
   ] = await Promise.allSettled([
-    si.baseboard(),
-    si.bios(),
-    si.cpu(),
-    si.graphics(),
-    si.memLayout(),
-    si.diskLayout(),
-    si.fsSize(),
-    si.networkInterfaces("*"),
-    si.networkConnections(),
-    si.processes(),
-    si.osInfo(),
-    si.battery(),
-    si.users(),
-    collectWindowsPlatformStates(),
-    collectMonitorEdidNames(),
+    siTimeout("baseboard",    si.baseboard(),           3_000),
+    siTimeout("bios",         si.bios(),                3_000),
+    siTimeout("cpu",          si.cpu(),                 8_000), // AMD cold-start can be 5-6s
+    siTimeout("graphics",     si.graphics(),            4_000),
+    siTimeout("memLayout",    si.memLayout(),           4_000),
+    siTimeout("diskLayout",   si.diskLayout(),          4_000),
+    siTimeout("fsSize",       si.fsSize(),              4_000),
+    siTimeout("netIf",        si.networkInterfaces("*"),4_000),
+    siTimeout("netConn",      si.networkConnections(),  5_000), // can be slow on loaded systems
+    siTimeout("processes",    si.processes(),           5_000), // slow — enumerate all PIDs
+    siTimeout("osInfo",       si.osInfo(),              3_000),
+    siTimeout("battery",      si.battery(),             3_000),
+    siTimeout("users",        si.users(),               3_000),
+    siTimeout("platformPS",   collectWindowsPlatformStates(), 5_000),
+    siTimeout("monitorEDID",  collectMonitorEdidNames(),       5_000),
   ]);
   const edidNames: Array<{ name: string; manufacturer: string }> =
     monitorEdidRes.status === "fulfilled" ? monitorEdidRes.value : [];
@@ -551,7 +619,7 @@ async function collect(): Promise<SystemIntelligenceProfile> {
   const topMemory = filterProcs(sortedByMem).filter(p => (p.memoryMb ?? 0) > 0);
 
   // ── OS ──
-  const os = osRes.status === "fulfilled" ? osRes.value : null;
+  const osData = osRes.status === "fulfilled" ? osRes.value : null;
 
   // ── Battery + Chassis ──
   const bat = batteryRes.status === "fulfilled" ? batteryRes.value : null;
@@ -559,7 +627,6 @@ async function collect(): Promise<SystemIntelligenceProfile> {
   // ── Users ──
   const usersRaw = usersRes.status === "fulfilled" ? (usersRes.value as any[]) : [];
   let currentUser: string | null = null;
-  try { currentUser = safeStr(os?.hostname ? undefined : undefined) ?? null; } catch {}
   try { currentUser = safeStr(usersRaw[0]?.user) ?? null; } catch {}
 
   const sessions = usersRaw.map((u: any) => ({
@@ -658,10 +725,10 @@ async function collect(): Promise<SystemIntelligenceProfile> {
     network: { defaultInterface, defaultGateway, interfaces: ifaces, activeConnections },
     processes: { topCpu, topMemory },
     platform: {
-      os: safeStr(os?.distro ?? os?.platform),
-      build: safeStr(os?.build ?? os?.release),
-      hostname: safeStr(os?.hostname),
-      uptimeSec: safeNum(os?.uptime ?? null),
+      os: safeStr(osData?.distro ?? osData?.platform),
+      build: safeStr(osData?.build ?? osData?.release),
+      hostname: safeStr(osData?.hostname),
+      uptimeSec: safeNum((osData as any)?.uptime ?? null),
       ...pStates,
     },
     device: {
@@ -676,8 +743,69 @@ async function collect(): Promise<SystemIntelligenceProfile> {
   };
 
   const dur = Date.now() - startMs;
-  console.log(`[SysIntelligence] Collection complete in ${dur}ms | MB=${profile.baseboard.model} | BIOS=${profile.bios.version} | CPU=${profile.cpu.brand} | GPUs=${profile.gpu.controllers.length} | RAMsticks=${profile.memory.sticks.length}`);
+  console.log(`[SysIntelligence] phase=full complete in ${dur}ms | MB=${profile.baseboard.model} | BIOS=${profile.bios.version} | CPU=${profile.cpu.brand} | GPUs=${profile.gpu.controllers.length} | RAMsticks=${profile.memory.sticks.length}`);
 
+  void _saveDiskCache(profile); // persist to disk (fire-and-forget, never blocks return)
+  return profile;
+}
+
+// ── Phase A fast collector ─────────────────────────────────────────────────────
+// Collects only the 5 identity fields in <1s for immediate dashboard hydration.
+// Everything else returns empty/null — the full collect() fills them in later.
+
+async function collectFast(): Promise<SystemIntelligenceProfile> {
+  const t = Date.now();
+  console.log("[SysIntelligence] phase=A start — identity collection");
+
+  const [bbRes, biosRes, cpuRes, graphicsRes, memRes] = await Promise.allSettled([
+    siTimeout("A.baseboard", si.baseboard(), 3_000),
+    siTimeout("A.bios",      si.bios(),      3_000),
+    siTimeout("A.cpu",       si.cpu(),       7_000), // AMD WMI cold-start
+    siTimeout("A.graphics",  si.graphics(),  3_000),
+    siTimeout("A.mem",       si.mem(),       2_000),
+  ]);
+
+  const bb       = bbRes.status      === "fulfilled" ? (bbRes.value as any)       : null;
+  const bios     = biosRes.status    === "fulfilled" ? (biosRes.value as any)     : null;
+  const cpu      = cpuRes.status     === "fulfilled" ? (cpuRes.value as any)      : null;
+  const graphics = graphicsRes.status === "fulfilled" ? (graphicsRes.value as any) : null;
+  const mem      = memRes.status     === "fulfilled" ? (memRes.value as any)      : null;
+
+  const memTotalMb = mem?.total > 0 ? Math.round(mem.total / 1024 / 1024) : null;
+  const controllers: SipController[] = (graphics?.controllers ?? []).map((c: any) => ({
+    name: safeStr(c.model), vendor: safeStr(c.vendor), subVendor: null, vendorId: null,
+    deviceId: null, vramMb: safeNum(typeof c.vram === "number" ? c.vram : null),
+    vramDynamic: null, bus: safeStr(c.bus), external: null,
+  })).filter((c: SipController) => c.name !== null);
+
+  const nullInf: SipInference = { state: "unknown", reason: "Pending deep scan." };
+  const profile: SystemIntelligenceProfile = {
+    baseboard:  { manufacturer: safeStr(bb?.manufacturer), model: safeStr(bb?.model), version: safeStr(bb?.version) },
+    bios:       { vendor: safeStr(bios?.vendor), version: safeStr(bios?.version), releaseDate: safeStr(bios?.releaseDate) },
+    cpu: {
+      manufacturer: safeStr(cpu?.manufacturer), brand: safeStr(cpu?.brand),
+      physicalCores: safeNum(cpu?.physicalCores ?? null), logicalCores: safeNum(cpu?.cores ?? null),
+      socket: safeStr(cpu?.socket), speedGHz: cpu?.speed != null ? parseFloat(cpu.speed.toFixed(2)) : null,
+    },
+    gpu:        { controllers, displays: [] },
+    memory:     { totalMb: memTotalMb, sticks: [], inferredDualChannel: null },
+    storage:    { layout: [], filesystems: [] },
+    network:    { defaultInterface: null, defaultGateway: null, interfaces: [], activeConnections: [] },
+    processes:  { topCpu: [], topMemory: [] },
+    platform:   {
+      os: null, build: null, hostname: null, uptimeSec: null,
+      secureBootEnabled: null, tpmPresent: null, hypervisorPresent: null,
+      virtualizationEnabled: null, vbsEnabled: null, memoryIntegrityEnabled: null,
+      uefiBoot: null, resizeBarEnabled: null,
+    },
+    device:     { batteryPresent: null, batteryPercent: null, chassisType: null },
+    users:      { currentUser: null, sessions: [] },
+    containers: { dockerDetected: null, containers: [] },
+    inference:  { expoOrXmp: nullInf, biosFreshness: nullInf },
+    collectedAt: new Date().toISOString(),
+  };
+
+  console.log(`[SysIntelligence] phase=A complete in ${Date.now() - t}ms | CPU=${profile.cpu.brand} | GPU=${controllers[0]?.name ?? "n/a"} | RAM=${memTotalMb}MB`);
   return profile;
 }
 
@@ -686,6 +814,7 @@ async function collect(): Promise<SystemIntelligenceProfile> {
 /**
  * Returns the cached profile, refreshing if stale or on first call.
  * If a collection is already in-flight, awaits the same promise (no double-collect).
+ * On repeat launches the disk cache pre-populates _cache so this returns instantly.
  */
 export async function getSystemIntelligence(forceRefresh = false): Promise<SystemIntelligenceProfile> {
   const stale = Date.now() - _cacheAt > CACHE_TTL_MS;
@@ -706,6 +835,55 @@ export async function getSystemIntelligence(forceRefresh = false): Promise<Syste
   });
 
   return _collectingPromise;
+}
+
+/**
+ * Phase A — returns minimal identity profile (<1s on cold start).
+ * If in-memory cache already has data (disk-restored on warm launch), returns it instantly.
+ * Otherwise runs collectFast() and stores the result so subsequent calls skip collection.
+ * A background full collect() is always scheduled after Phase A completes.
+ */
+export async function getFastSystemIntelligence(): Promise<SystemIntelligenceProfile> {
+  // Disk-restored cache: already populated, just return it
+  if (_cache) return _cache;
+
+  // Deduplicate concurrent callers
+  if (_phaseAPromise) return _phaseAPromise;
+
+  _phaseAPromise = collectFast().then((p) => {
+    // Only write Phase A data if there is no richer full profile yet
+    if (!_cache) {
+      _cache   = p;
+      _cacheAt = 0; // keep marked stale so full collect() still runs
+    }
+    _phaseAPromise = null;
+
+    // Immediately schedule full background collection (non-blocking)
+    if (!_collectingPromise) {
+      void getSystemIntelligence();
+    }
+
+    return _cache!;
+  }).catch((err) => {
+    console.error("[SysIntelligence] Phase A failed:", err);
+    _phaseAPromise = null;
+    if (_cache) return _cache;
+    throw err;
+  });
+
+  return _phaseAPromise;
+}
+
+/**
+ * Triggers background deep collection without blocking the caller.
+ * Call this after the dashboard is visible (5s post-stable).
+ */
+export function triggerBackgroundCollection(): void {
+  if (_collectingPromise) return; // already running
+  const stale = Date.now() - _cacheAt > CACHE_TTL_MS;
+  if (!stale && _cache) return; // fresh enough
+  console.log("[SysIntelligence] Background deep collection triggered");
+  void getSystemIntelligence();
 }
 
 /**

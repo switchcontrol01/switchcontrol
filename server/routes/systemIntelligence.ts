@@ -7,7 +7,12 @@
 
 import { Router } from "express";
 import rateLimit from "express-rate-limit";
-import { getSystemIntelligence, invalidateSystemIntelligence } from "../lib/systemIntelligence";
+import {
+  getSystemIntelligence,
+  getFastSystemIntelligence,
+  triggerBackgroundCollection,
+  invalidateSystemIntelligence,
+} from "../lib/systemIntelligence";
 
 // Per-user rate limit: 1 refresh per 5 minutes to prevent expensive
 // re-collection from being spammed.
@@ -29,6 +34,30 @@ const refreshRateLimit = rateLimit({
 });
 
 const router = Router();
+
+/**
+ * GET /fast — Phase A only: CPU brand, RAM total, GPU name, BIOS/baseboard.
+ * Responds in <1s (7s worst-case on AMD cold-start, then cached forever).
+ * Automatically schedules a background full collection after returning.
+ */
+router.get("/fast", async (_req, res) => {
+  try {
+    const profile = await getFastSystemIntelligence();
+    res.json(profile);
+  } catch (err: any) {
+    console.error("[SysIntelligence] /fast error:", err?.message);
+    res.status(500).json({ error: "Failed to collect fast system profile." });
+  }
+});
+
+/**
+ * POST /trigger-background — nudges a background deep collection.
+ * Called by the dashboard after it's stable (no auth required — just a hint).
+ */
+router.post("/trigger-background", (_req, res) => {
+  triggerBackgroundCollection();
+  res.json({ ok: true });
+});
 
 router.get("/profile", async (_req, res) => {
   try {

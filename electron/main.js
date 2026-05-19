@@ -875,8 +875,32 @@ function createWindow() {
     }
   }, 5000);
 
+  // ── Boot metrics — single source of truth for startup timing ─────────────────
+  // Timestamps (ms since process start) are written at each lifecycle event and
+  // printed as a unified [BOOT] summary when the dashboard signals it is stable.
+  const _bm = {
+    whenReady:       Date.now(),
+    firstFrameReady: 0,
+    windowShown:     0,
+    telemetryStart:  0,
+    dashboardMounted:0,
+  };
+
+  ipcMain.on('app:dashboard-mounted', () => {
+    if (_bm.dashboardMounted) return; // already fired
+    _bm.dashboardMounted = Date.now();
+    const rel = (t) => t ? `${t - _bm.whenReady}ms` : 'pending';
+    console.log('[BOOT] ──────────────────────────────────────────');
+    console.log(`[BOOT] firstFrameReady  = ${rel(_bm.firstFrameReady)}`);
+    console.log(`[BOOT] windowShown      = ${rel(_bm.windowShown)}`);
+    console.log(`[BOOT] telemetryStart   = ${rel(_bm.telemetryStart)}`);
+    console.log(`[BOOT] dashboardMounted = ${rel(_bm.dashboardMounted)}`);
+    console.log('[BOOT] ──────────────────────────────────────────');
+  });
+
   ipcMain.once('app:first-frame-ready', () => {
     _firstFrameReadyFired = true;
+    _bm.firstFrameReady = Date.now();
     clearTimeout(showFallbackTimer);
     console.log(`[LAUNCH:4] first-frame-ready received — 2-rAF dark frame confirmed | ${launchMs()}`);
     if (!mainWindow || mainWindow.isVisible()) return;
@@ -900,6 +924,7 @@ function createWindow() {
       mainWindow.setOpacity(1);
       console.log(`[LAUNCH:5b] opacity restored to 1 — dark frame in DWM pipeline | ${launchMs()}`);
       // Tell renderer window is on screen — Splash begins html 0→1 opacity reveal.
+      _bm.windowShown = Date.now();
       mainWindow.webContents.send('app:window-shown');
       console.log(`[LAUNCH:5c] app:window-shown sent to renderer | ${launchMs()}`);
       mainWindow.focus();
@@ -913,6 +938,7 @@ function createWindow() {
       // (2-4s PowerShell startup) competed for CPU/GPU with the first-paint animation.
       // State machine: hidden → mounted → visible (now) → telemetry starts (+2000ms)
       setTimeout(() => {
+        _bm.telemetryStart = Date.now();
         console.log(`[LAUNCH:7] starting telemetry — 2000ms post window-shown | ${launchMs()}`);
         startTelemetryPolling().catch(e => console.error('[telemetry:poll] startTelemetryPolling error:', e.message));
       }, 2000);
