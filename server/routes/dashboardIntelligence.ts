@@ -1,6 +1,64 @@
 import { Router } from "express";
 import { getCachedSnapshot } from "../lib/telemetry";
 import si from "systeminformation";
+import { execFile } from "child_process";
+import { promisify } from "util";
+
+const execFileAsync = promisify(execFile);
+const isWindows = process.platform === "win32";
+
+async function runDisplayPS(script: string): Promise<string | null> {
+  if (!isWindows) return null;
+  try {
+    const { stdout } = await execFileAsync(
+      "powershell.exe",
+      ["-NonInteractive", "-NoProfile", "-Command", script],
+      { timeout: 6_000, windowsHide: true }
+    );
+    return stdout.trim();
+  } catch {
+    return null;
+  }
+}
+
+interface PsVideoController {
+  Name?: string;
+  CurrentHorizontalResolution?: number;
+  CurrentVerticalResolution?: number;
+  CurrentRefreshRate?: number;
+  AdapterRAM?: number;
+  VideoModeDescription?: string;
+}
+
+async function collectDisplayViaPowerShell(): Promise<{ controllers: any[]; displays: any[] }> {
+  const raw = await runDisplayPS(`
+try {
+  $vcs = Get-CimInstance -ClassName Win32_VideoController -ErrorAction Stop |
+    Select-Object Name, CurrentHorizontalResolution, CurrentVerticalResolution,
+                  CurrentRefreshRate, AdapterRAM, VideoModeDescription
+  $vcs | ConvertTo-Json -Depth 2 -Compress
+} catch { Write-Output '[]' }
+`);
+  if (!raw) return { controllers: [], displays: [] };
+  try {
+    const parsed: PsVideoController[] = Array.isArray(JSON.parse(raw))
+      ? JSON.parse(raw) : [JSON.parse(raw)];
+    const controllers = parsed.map((v: PsVideoController) => ({ model: v.Name ?? null }));
+    const displays = parsed
+      .filter((v: PsVideoController) => (v.CurrentHorizontalResolution ?? 0) > 0)
+      .map((v: PsVideoController) => ({
+        model:               null,
+        currentResX:         v.CurrentHorizontalResolution ?? null,
+        currentResY:         v.CurrentVerticalResolution  ?? null,
+        currentRefreshRate:  v.CurrentRefreshRate          ?? null,
+        pixelDepth:          null,
+        connection:          null,
+      }));
+    return { controllers, displays };
+  } catch {
+    return { controllers: [], displays: [] };
+  }
+}
 
 const router = Router();
 
@@ -853,11 +911,29 @@ router.get("/display-signal", async (_req, res) => {
       return res.json(displaySignalCache.data);
     }
 
-    const gfx = await si.graphics();
+    // si.graphics() is slow/unreliable on some Windows machines; wrap with 4s timeout
+    // and fall back to a direct PowerShell CIM query which is much faster.
+    let gfx: { controllers: any[]; displays: any[] } | null = null;
+    try {
+      gfx = await Promise.race([
+        si.graphics(),
+        new Promise<null>((_, reject) => setTimeout(() => reject(new Error("timeout")), 4_000)),
+      ]) as any;
+    } catch {
+      gfx = null;
+    }
+
+    // If si.graphics() timed out or returned no displays, try PowerShell directly
+    if (!gfx || (gfx.displays ?? []).length === 0) {
+      const ps = await collectDisplayViaPowerShell();
+      if (ps.displays.length > 0) {
+        gfx = ps;
+      }
+    }
 
     // Normalize a display from systeminformation — be explicit when data is absent
-    const rawDisps = gfx.displays ?? [];
-    const rawCtrl  = gfx.controllers?.[0] ?? null;
+    const rawDisps = gfx?.displays ?? [];
+    const rawCtrl  = gfx?.controllers?.[0] ?? null;
 
     const gpuName: string | null = rawCtrl?.model?.trim() || null;
 
