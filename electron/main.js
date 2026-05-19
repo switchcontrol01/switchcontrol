@@ -2445,10 +2445,10 @@ function _extremeLabsMapToRegistryTweak(id) {
     'disable-game-dvr': { type: 'tweak', tweakId: 'disable-game-dvr' },
     'disable-xbox-capture': { type: 'tweak', tweakId: 'disable-game-dvr' }, // same underlying
     'windowed-games-opt': { type: 'tweak', tweakId: 'optimize-windowed-games' },
-    'win32-priority-separation': { type: 'slider', tweakId: 'win32PrioritySeparation' },
-    'system-responsiveness': { type: 'slider', tweakId: 'SystemResponsiveness' },
+    'win32-priority-separation': { type: 'slider', tweakId: 'win32-priority-sep', recommendedValue: 26 },
+    'system-responsiveness': { type: 'slider', tweakId: 'sys-responsiveness', recommendedValue: 10 },
     'mmcss-no-lazy': { type: 'tweak', tweakId: 'mmcss-nolazymode' },
-    'network-throttling-index': { type: 'slider', tweakId: 'NetworkThrottlingIndex' },
+    'network-throttling-index': { type: 'slider', tweakId: 'net-throttle-index', recommendedValue: 4294967295 },
     'tcp-no-delay': { type: 'tweak', tweakId: 'tcp-no-delay' },
     'rss-enable': { type: 'nic', propertyKey: 'rss', enabledValue: 'Enabled' },
     'interrupt-moderation': { type: 'nic', propertyKey: 'interruptModeration', enabledValue: 'Disabled' },
@@ -2535,9 +2535,10 @@ ipcMain.handle('extremeLabs:applySelected', async (event, ids) => {
     try {
       if (mapped.type === 'slider') {
         const meta = sliderTweakExecutor.getSliderTweakMeta(mapped.tweakId);
-        if (meta && meta.recommendedValue != null) {
-          const applyResult = await sliderTweakExecutor.applySliderValue(mapped.tweakId, meta.recommendedValue);
-          const ok = applyResult.success;
+        const recommendedValue = mapped.recommendedValue != null ? mapped.recommendedValue : (meta && meta.recommendedValue);
+        if (recommendedValue != null) {
+          const applyResult = await sliderTweakExecutor.applySliderValue(mapped.tweakId, recommendedValue);
+          const ok = applyResult.ok;
           if (ok) appliedCount++; else failedCount++;
           console.log('[ExtremeLabsApply]', JSON.stringify({ id, applied: ok, tweakId: mapped.tweakId, type: 'slider', error: applyResult.error }));
           results.push({ id, applied: ok, verify: applyResult.verifyResult, error: applyResult.error });
