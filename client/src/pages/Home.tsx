@@ -14,7 +14,6 @@ import { useLiveTelemetry, formatKbps } from "@/hooks/useLiveTelemetry";
 import { PredictiveWarnings } from "@/components/intelligence/PredictiveWarnings";
 import { LatencyMap } from "@/components/intelligence/LatencyMap";
 import { SystemAura } from "@/components/intelligence/SystemAura";
-import { SystemPressureMeter } from "@/components/dashboard/SystemPressureMeter";
 import { Button } from "@/components/ui/button";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Link, useLocation } from "wouter";
@@ -765,15 +764,6 @@ export default function Home() {
               <Activity className="size-5 text-primary" />
               Activity Monitor
             </h2>
-            {liveTel && (
-              <SystemPressureMeter
-                cpuPercent={liveTel.cpu.load}
-                ramPercent={liveTel.ram.usedPercent}
-                diskPercent={liveTel.disk.activeTimePct ?? 0}
-                processCount={liveTel.processes.total}
-                className="hidden md:flex w-44 py-2.5 px-3"
-              />
-            )}
           </div>
 
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -796,7 +786,7 @@ export default function Home() {
             <div>
               <StatCard
                 title="CPU"
-                value={liveTel ? `${liveTel.cpu.load.toFixed(0)}%` : stats.cpuName}
+                value={stats.cpuName}
                 icon={Cpu}
                 onIconClick={() => setCpuModalOpen(true)}
                 subtext={
