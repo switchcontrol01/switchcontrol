@@ -28,6 +28,8 @@ import { AiTweakRecommendationCards, AiTweakRecommendation } from "@/components/
 import { ApplyTweaksFlowModal } from "@/components/ai/ApplyTweaksFlowModal";
 import { isElectronWithTweaks, useTweakExecutor } from "@/hooks/use-tweak-executor";
 import { getTweak } from "@/lib/tweak-registry";
+import { useTweakOwnershipStore } from "@/stores/tweakOwnershipStore";
+import { EXTREME_TWEAKS } from "@/lib/extreme-labs-data";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -43,7 +45,8 @@ interface DiagnosticFinding {
 type ChatStructured =
   | { type: "diagnostic"; findings: DiagnosticFinding[] }
   | { type: "answer"; summary: string; detail?: string }
-  | { type: "recommendations"; items: AiTweakRecommendation[] };
+  | { type: "recommendations"; items: AiTweakRecommendation[] }
+  | { type: "navigation"; items: Array<{ route: string; label: string }> };
 
 interface ChatMessage {
   id: string;
@@ -84,6 +87,10 @@ interface SystemContext {
   telemetry: Record<string, number | string | null>;
   powerPlan?: string;
   recentHistory?: Array<{ action: string; page: string; result: string; timestamp: string }>;
+  networkTweaksApplied?: Array<{ id: string; label: string }>;
+  powerPlanApplied?: string | null;
+  extremeLabsApplied?: Array<{ id: string; title: string }>;
+  platform?: { isLaptop: boolean; cpuVendor: "amd" | "intel" | "unknown" };
 }
 
 interface AdvisorCoverage {
@@ -781,7 +788,31 @@ function ImageAttachmentPill({ image, onRemove }: { image: AttachedImage; onRemo
 
 // ── Message Bubble ─────────────────────────────────────────────────────────────
 
-function ChatBubble({ msg, isSlow, reducedMotion, onApply, onApplyInline, isAdmin, isPremium, onOpenUpgrade, onViewTweaks, onViewNetwork }: {
+function NavigationCard({ items, onNavigate }: {
+  items: Array<{ route: string; label: string }>;
+  onNavigate?: (route: string) => void;
+}) {
+  return (
+    <div className="flex flex-col gap-2">
+      <p className="text-[12px] text-[#6B7380] mb-0.5">Navigate to section:</p>
+      <div className="flex flex-wrap gap-2">
+        {items.map((item, i) => (
+          <button
+            key={i}
+            onClick={() => onNavigate?.(item.route)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-500/10 border border-cyan-500/25 text-cyan-300 text-[12px] font-medium hover:bg-cyan-500/20 hover:border-cyan-400/40 transition-all"
+            data-testid={`button-nav-${item.route.replace(/\//g, "-")}`}
+          >
+            <ChevronRight className="w-3 h-3" />
+            {item.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ChatBubble({ msg, isSlow, reducedMotion, onApply, onApplyInline, isAdmin, isPremium, onOpenUpgrade, onViewTweaks, onViewNetwork, onNavigate }: {
   msg: ChatMessage;
   isSlow: boolean;
   reducedMotion: boolean;
@@ -792,6 +823,7 @@ function ChatBubble({ msg, isSlow, reducedMotion, onApply, onApplyInline, isAdmi
   onOpenUpgrade?: () => void;
   onViewTweaks?: () => void;
   onViewNetwork?: () => void;
+  onNavigate?: (route: string) => void;
 }) {
   const anim = reducedMotion
     ? { initial: { opacity: 1 }, animate: { opacity: 1 }, transition: { duration: 0 } }
@@ -850,6 +882,8 @@ function ChatBubble({ msg, isSlow, reducedMotion, onApply, onApplyInline, isAdmi
                       onViewNetwork={() => onViewNetwork?.()}
                       onOpenUpgrade={() => onOpenUpgrade?.()}
                     />
+                  : msg.structured.type === "navigation"
+                    ? <NavigationCard items={msg.structured.items} onNavigate={onNavigate} />
                   : <AnswerCard summary={msg.structured.summary} detail={(msg.structured as { type: "answer"; summary: string; detail?: string }).detail} onApply={onApplyInline} />
               : <>
                   <SafeMarkdown text={msg.content} onApply={onApplyInline} />
@@ -944,6 +978,7 @@ export default function AiAdvisor() {
   const auth = useAuth();
   const isAdmin = !!auth.user?.isAdmin;
   const isElectronApp = isElectronWithTweaks();
+  const ownership = useTweakOwnershipStore();
 
   // Fetch server-side advisor context for coverage panel
   useEffect(() => {
@@ -1222,6 +1257,31 @@ export default function AiAdvisor() {
       powerPlan: powerPlanFromIntel ?? undefined,
       recentHistory,
       isElectron: isElectronApp,
+      // ── Extended cross-section tweak coverage ────────────────────────────────
+      networkTweaksApplied: Object.entries(ownership.networkTweaks)
+        .filter(([, rec]) => rec.appliedByApp)
+        .map(([id, rec]) => ({ id, label: rec.label })),
+      powerPlanApplied: ownership.powerPlan?.appliedByApp
+        ? ownership.powerPlan.appliedPlanName
+        : null,
+      extremeLabsApplied: EXTREME_TWEAKS
+        .filter(ext => {
+          if (ext.registryTweakId) return !!tweaks[ext.registryTweakId];
+          if (ext.sliderTweakId) return !!tweaks[ext.sliderTweakId];
+          return false;
+        })
+        .map(ext => ({ id: ext.id, title: ext.title })),
+      platform: (() => {
+        const cpuStr = stats.cpuName || si?.cpu.brand || "";
+        const cpuVendor: "amd" | "intel" | "unknown" =
+          /amd/i.test(cpuStr) ? "amd" :
+          /intel/i.test(cpuStr) ? "intel" : "unknown";
+        const chassisType = Number(si?.device?.chassisType ?? 0);
+        const laptopChassis = [9, 10, 14, 30, 31, 32].includes(chassisType);
+        // Also infer from CPU suffix pattern (e.g. 7945HX, 13700H, 5800U)
+        const mobileSuffix = /\b\d{4,5}(H|HS|HK|HX|HQ|U|P|G)\b/i.test(cpuStr);
+        return { isLaptop: laptopChassis || mobileSuffix, cpuVendor };
+      })(),
     };
     setContext(ctx);
     contextRef.current = ctx;
@@ -1530,6 +1590,37 @@ export default function AiAdvisor() {
             if (el) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
           }, 80);
         }
+
+        // ── Parse <<NAV:/route:Label>> markers → navigation button card ──────
+        const NAV_RE = /<<NAV:(\/[a-zA-Z0-9/-]+):([^>]+)>>/g;
+        const navItems: Array<{ route: string; label: string }> = [];
+        let nm: RegExpExecArray | null;
+        while ((nm = NAV_RE.exec(textToReveal)) !== null) {
+          navItems.push({ route: nm[1].trim(), label: nm[2].trim() });
+        }
+        if (navItems.length > 0) {
+          setMessages(prev => {
+            const stripped = prev.map(m =>
+              m.id === assistantId
+                ? { ...m, content: m.content.replace(/<<NAV:\/[^>]+>>/g, "").replace(/\s{2,}/g, " ").trim() }
+                : m
+            );
+            return [
+              ...stripped,
+              {
+                id: `nav-${assistantId}`,
+                role: "assistant" as const,
+                content: "",
+                timestamp: new Date(),
+                structured: { type: "navigation" as const, items: navItems },
+              },
+            ];
+          });
+          setTimeout(() => {
+            const el = scrollContainerRef.current;
+            if (el) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+          }, 80);
+        }
       });
 
     } catch (err: unknown) {
@@ -1705,6 +1796,10 @@ export default function AiAdvisor() {
 
   const handleViewNetworkTweaks = useCallback(() => {
     navigate("/network-tweaks");
+  }, [navigate]);
+
+  const handleNavigateTo = useCallback((route: string) => {
+    navigate(route);
   }, [navigate]);
 
   const handleImageUploadAction = useCallback((prompt: string) => {
@@ -1886,6 +1981,7 @@ export default function AiAdvisor() {
                     onOpenUpgrade={openUpgradeModal}
                     onViewTweaks={handleViewTweakDetails}
                     onViewNetwork={handleViewNetworkTweaks}
+                    onNavigate={handleNavigateTo}
                   />
                 ))}
               </AnimatePresence>
