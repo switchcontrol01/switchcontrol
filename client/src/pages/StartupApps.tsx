@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { cloudApiPost, cloudApiGet } from "@/lib/cloud-api";
 import { motion } from "@/lib/motionTokens";
 import {
   List, RefreshCw, AlertTriangle, History, Laptop2,
@@ -118,11 +119,9 @@ export default function StartupApps() {
         if (!result?.ok) throw new Error(result?.error ?? "Toggle failed");
       }
 
-      // Log
-      await fetch(`/api/startup/apps/${id}/toggle`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: app.entry.name, source: app.entry.source, enabled }),
+      // Log to cloud DB (cloudApiPost resolves correct base URL in Electron)
+      await cloudApiPost(`/startup/apps/${id}/toggle`, {
+        name: app.entry.name, source: app.entry.source, enabled,
       }).catch(() => {});
 
       toast({ title: `${app.entry.name} ${enabled ? "enabled" : "disabled"}` });
@@ -151,8 +150,7 @@ export default function StartupApps() {
   const fetchHistory = useCallback(async () => {
     setLoadingHistory(true);
     try {
-      const res = await fetch("/api/startup/history");
-      const data = await res.json();
+      const data = await cloudApiGet<{ ok: boolean; history: any[] }>("/startup/history");
       if (data.ok) setHistory(data.history ?? []);
     } catch {} finally { setLoadingHistory(false); }
   }, []);
