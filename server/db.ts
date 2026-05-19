@@ -34,4 +34,9 @@ export const db = isNoDbMode ? null : drizzle(pool!, { schema });
 
 if (!isNoDbMode) {
   console.log(`[DB] Pool configured: max=${POOL_CONFIG.max}, idleTimeout=${POOL_CONFIG.idleTimeoutMillis}ms`);
+  // Prevent unhandled 'error' events from crashing the process when the DB
+  // drops a connection (e.g. during Replit managed-DB maintenance restarts).
+  pool!.on("error", (err) => {
+    console.error("[DB] Pool idle-client error (non-fatal):", err.message);
+  });
 }
