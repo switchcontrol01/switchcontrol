@@ -1,15 +1,19 @@
 {
   "version": "1.1.0",
   "title": "Hardware Compatibility Update",
-  "headline": "Broader NIC support, Extreme Labs slider fixes, and stability improvements across the board.",
+  "headline": "Broader NIC support, Extreme Labs slider fixes, display detection improvements, and stability fixes across the board.",
   "date": "2026-05-19",
   "type": "minor",
   "changes": [
+    "Fixed: App showed a black screen on launch — caused by a missing icon import in the AI Advisor page that crashed the renderer before it could display anything.",
     "Fixed: Receive Buffers and Transmit Buffers now apply correctly on Realtek and AMD network adapters — previously showed 'Property not supported on this NIC driver'. The app now automatically uses the Set-NetAdapterRingBuffer path when driver advanced properties aren't available.",
     "Fixed: Win32PrioritySeparation and System Responsiveness sliders in Extreme Labs failed with 'No recommended value available' — corrected mismatched executor IDs and wired in the correct gaming-tuned recommended values (26 and 10 respectively).",
     "Fixed: Extreme Labs apply result was silently reporting failure even when the write succeeded — corrected field name mismatch in the apply response.",
     "Fixed: AI Advisor and BIOS Advisor navigation buttons on the Home dashboard did not work in the packaged Electron app — replaced Link-based routing with direct navigation calls.",
-    "Fixed: GPU row in the AI Advisor System Profile used incorrect icon and styling — updated to match other hardware row styles.",
-    "Fixed: Four network tweak check scripts had broken PowerShell regex patterns (tcp-timestamps, tcp-window-heuristics, tcp-rss, tcp-winhttp) — escaped backslashes were being dropped in JS template literals."
+    "Fixed: Display Signal widget showed 'No display detected' on systems where the graphics info query times out — now falls back to a direct PowerShell query that reliably returns GPU, resolution, and refresh rate.",
+    "Fixed: Brief black flash when navigating between pages — entering pages now appear immediately instead of fading in from invisible.",
+    "Fixed: Four network tweak check scripts had broken PowerShell regex patterns (tcp-timestamps, tcp-window-heuristics, tcp-rss, tcp-winhttp) — escaped backslashes were being dropped in JS template literals.",
+    "Changed: System Pressure widget removed from the Activity Monitor header.",
+    "Changed: CPU card on the dashboard now shows your processor name instead of live load percentage."
   ]
 }
