@@ -1,4 +1,23 @@
 import si from "systeminformation";
+import { execFile } from "child_process";
+import { promisify } from "util";
+
+const execFileAsync = promisify(execFile);
+const isWindows = process.platform === "win32";
+
+async function runDiskPS(script: string): Promise<string | null> {
+  if (!isWindows) return null;
+  try {
+    const { stdout } = await execFileAsync(
+      "powershell.exe",
+      ["-NonInteractive", "-NoProfile", "-Command", script],
+      { timeout: 4_000, windowsHide: true }
+    );
+    return stdout.trim();
+  } catch {
+    return null;
+  }
+}
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -218,11 +237,14 @@ function computeDisk(diskIo: any): DiskTelemetry {
       }
     }
   }
+  // Only mark available with zeroed values if we have *some* field but are on
+  // the very first call before delta computation can run. Otherwise leave as
+  // unavailable so the UI shows "Unavailable" rather than false zeros.
   if (!computed && (rIO != null || rSec != null)) {
     disk.readKBps = 0;
     disk.writeKBps = 0;
     disk.activeTimePct = 0;
-    disk.available = true;
+    disk.available = diskAvailableConfirmed; // true only after a confirmed delta
   }
   if (rIO != null && wIO != null) {
     lastDiskSnapshot = { rIO, wIO, ms: msTotal ?? 0, ts: now };
@@ -353,7 +375,28 @@ async function tick(): Promise<void> {
 
     } else if (now - lastDiskIoTs > diskTtl && !lowEndMode) {
       // Task 2: Disk I/O
-      const raw = await runTimed("diskIO", () => si.disksIO().catch(() => null));
+      // PowerShell perf counters are more reliable on Windows than si.disksIO()
+      let raw: any = null;
+      if (isWindows) {
+        const psOut = await runTimed("diskIO:ps", async () => {
+          const out = await runDiskPS(`
+try {
+  $pd = Get-Counter '\PhysicalDisk(_Total)\Disk Read Bytes/sec','\PhysicalDisk(_Total)\Disk Write Bytes/sec' -ErrorAction Stop
+  $r = $pd.CounterSamples | Where-Object { $_.PathName -like '*read*' } | Select-Object -ExpandProperty CookedValue
+  $w = $pd.CounterSamples | Where-Object { $_.PathName -like '*write*' } | Select-Object -ExpandProperty CookedValue
+  Write-Output "{\"rIO_sec\":$r,\"wIO_sec\":$w}"
+} catch { Write-Output "{}" }
+`);
+          if (!out) return null;
+          try { return JSON.parse(out); } catch { return null; }
+        });
+        if (psOut && psOut.rIO_sec != null && psOut.wIO_sec != null) {
+          raw = psOut;
+        }
+      }
+      if (!raw) {
+        raw = await runTimed("diskIO", () => si.disksIO().catch(() => null));
+      }
       cachedDisk = computeDisk(raw);
       lastDiskIoTs = Date.now();
 

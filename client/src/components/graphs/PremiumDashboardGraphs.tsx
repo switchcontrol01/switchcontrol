@@ -241,11 +241,13 @@ export function StorageActivityGraph({ delay = 0 }: { delay?: number }) {
   const writeArea = writePts.length > 1 ? areaFromLine(writePts, H, PY) : "";
   const lineLen = (W - PX * 2) * 1.1;
 
-  const readKBps = telemetry?.disk.readKBps ?? 0;
-  const writeKBps = telemetry?.disk.writeKBps ?? 0;
-  const activeTime = telemetry?.disk.activeTimePct ?? 0;
+  const readKBps = telemetry?.disk.readKBps ?? null;
+  const writeKBps = telemetry?.disk.writeKBps ?? null;
+  const activeTime = telemetry?.disk.activeTimePct ?? null;
+  const diskAvailable = telemetry?.disk.available ?? false;
 
-  function fmtKB(v: number) {
+  function fmtKB(v: number | null) {
+    if (v == null) return "Unavailable";
     if (v >= 1024) return `${(v / 1024).toFixed(1)}M`;
     return `${v.toFixed(0)}K`;
   }
@@ -259,9 +261,9 @@ export function StorageActivityGraph({ delay = 0 }: { delay?: number }) {
       <GraphHeader Icon={HardDrive} title="Storage Activity" subtitle="Read / Write" />
 
       <div className="flex items-center gap-4 mb-2.5">
-        <StatBadge label="Read" value={fmtKB(readKBps)} color="text-amber-400" />
-        <StatBadge label="Write" value={fmtKB(writeKBps)} color="text-orange-400" />
-        <StatBadge label="Active" value={`${activeTime.toFixed(0)}%`} color="text-[#6B7380]" />
+        <StatBadge label="Read" value={diskAvailable ? fmtKB(readKBps) : "Unavailable"} color={diskAvailable ? "text-amber-400" : "text-[#6B7380]"} />
+        <StatBadge label="Write" value={diskAvailable ? fmtKB(writeKBps) : "Unavailable"} color={diskAvailable ? "text-orange-400" : "text-[#6B7380]"} />
+        <StatBadge label="Active" value={activeTime != null ? `${activeTime.toFixed(0)}%` : "Unavailable"} color={diskAvailable ? "text-[#6B7380]" : "text-[#6B7380]"} />
         <div className="flex items-center gap-2.5 ml-auto text-[9px] text-[#6B7380] uppercase tracking-widest">
           <span className="flex items-center gap-1"><span className="inline-block w-5 h-px bg-amber-400/70" />R</span>
           <span className="flex items-center gap-1"><span className="inline-block w-5 h-px bg-orange-400/50" />W</span>
