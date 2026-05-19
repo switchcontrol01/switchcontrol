@@ -100,6 +100,7 @@ function getScoreBg(score: number): string {
 }
 
 function AIAdvisorSummaryCard({ isPremium }: { isPremium: boolean }) {
+  const [, goTo] = useLocation();
   const { runState, report } = useAdvisorStore();
   const hasReport = report && (runState === "ready" || runState === "degraded");
   const insight = getAdvisorInsightText(runState, report ? { score: report.score, topFailed: report.topFailed } : null);
@@ -152,12 +153,10 @@ function AIAdvisorSummaryCard({ isPremium }: { isPremium: boolean }) {
             <p className="text-xs text-muted-foreground px-4" data-testid="text-advisor-no-scan">{insight.primary}</p>
           </div>
         )}
-        <Button size="sm" className="w-full bg-primary/20 hover:bg-primary/30 text-primary border border-primary/20" data-testid="button-open-ai-advisor" asChild>
-          <Link href="/ai-advisor">
-            <Brain className="size-3.5 mr-1.5" />
-            Open AI Advisor
-            <ArrowRight className="size-3 ml-auto" />
-          </Link>
+        <Button size="sm" className="w-full bg-primary/20 hover:bg-primary/30 text-primary border border-primary/20" data-testid="button-open-ai-advisor" onClick={() => goTo("/ai-advisor")}>
+          <Brain className="size-3.5 mr-1.5" />
+          Open AI Advisor
+          <ArrowRight className="size-3 ml-auto" />
         </Button>
       </div>
     </GlassCard>
@@ -171,6 +170,7 @@ function AIAdvisorSummaryCard({ isPremium }: { isPremium: boolean }) {
 }
 
 function BiosScoreSummaryCard({ isPremium }: { isPremium: boolean }) {
+  const [, goTo] = useLocation();
   const { hasScanned, scores, optimizationLevel, telemetrySource, lastScanTime } = useBiosAdvisorStore();
 
   const levelColors: Record<string, string> = {
@@ -252,12 +252,10 @@ function BiosScoreSummaryCard({ isPremium }: { isPremium: boolean }) {
             </div>
           </>
         )}
-        <Button size="sm" className="w-full bg-[#00D4FF]/15 hover:bg-[#00D4FF]/25 text-[#00D4FF] border border-[#00D4FF]/25 hover:border-[#00D4FF]/40" data-testid="button-open-bios-advisor" asChild>
-          <Link href="/bios-advisor">
-            <Target className="size-3.5 mr-1.5" />
-            {hasScanned && scores ? "View BIOS Analysis" : "Open BIOS Advisor"}
-            <ArrowRight className="size-3 ml-auto" />
-          </Link>
+        <Button size="sm" className="w-full bg-[#00D4FF]/15 hover:bg-[#00D4FF]/25 text-[#00D4FF] border border-[#00D4FF]/25 hover:border-[#00D4FF]/40" data-testid="button-open-bios-advisor" onClick={() => goTo("/bios-advisor")}>
+          <Target className="size-3.5 mr-1.5" />
+          {hasScanned && scores ? "View BIOS Analysis" : "Open BIOS Advisor"}
+          <ArrowRight className="size-3 ml-auto" />
         </Button>
       </div>
     </GlassCard>
