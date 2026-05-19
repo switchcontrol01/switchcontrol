@@ -182,43 +182,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   useNetworkStatus(); // boot network listeners + heartbeat once
 
 
-  // Reactive subscription to the tour navigation guard. The TourShell sets this
-  // to true immediately before calling navigate(), and we clear it here in
-  // onAnimationComplete — which fires exactly when Framer Motion confirms the
-  // new page's enter animation is done. This is deterministic and frame-perfect:
-  // no timeouts, no DOM class polling.
-  //
-  // isTourActive drives the page key: while the tour is running we keep a
-  // stable "tour-stable-page" key so AnimatePresence NEVER unmounts the page
-  // subtree during step navigation.  Without this, mode="wait" exits the old
-  // element and leaves a blank gap before the new element mounts — the tour
-  // backdrop is transparent at that moment and the user sees the blank.
-  const { isTourNavigating, isTourActive, setTourNavigating } = useTourStore();
-  const shouldAnimate = !prefersReducedMotion && !isTourNavigating;
-
-  // After the page-enter animation finishes:
-  // 1. Strip residual filter/transform inline styles — without this, fixed
-  //    modals are positioned relative to this div instead of the viewport.
-  // 2. Clear the tour navigation guard if it is still raised. This is the
-  //    authoritative cleanup point — deterministic, no timeouts.
-  const pageRef = useRef<HTMLDivElement | null>(null);
-  const clearContainingBlock = useCallback(() => {
-    const el = pageRef.current;
-    if (el) {
-      el.style.filter = '';
-      el.style.transform = '';
-      el.style.willChange = '';
-    }
-    // Always clear the guard on animation completion. The Zustand setter
-    // is a no-op if already false, so this is safe on every page transition.
-    setTourNavigating(false);
-  }, [setTourNavigating]);
-
   return (
     <div className="h-full w-full bg-background text-foreground font-sans selection:bg-primary/20 selection:text-primary-foreground relative overflow-hidden">
       <AppBackground />
 
-      {/* Top-left brand glow — milky white atmospheric haze anchored to the logo/sidebar region */}
+      {/* Top-left brand glow */}
       <div
         className="pointer-events-none fixed top-0 left-0 z-[1]"
         style={{
@@ -233,7 +201,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       <BackendStartingBanner />
       <AnimatePresence><FocusModeBanner /></AnimatePresence>
       <AnimatePresence><TrialCountdownBanner /></AnimatePresence>
-      
+
       <UpdateModal />
       <Sidebar />
       <div className="pl-64 pt-2 flex items-start justify-end pr-4">
@@ -248,23 +216,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           WebkitMaskImage: 'linear-gradient(to bottom, black calc(100% - 90px), transparent 100%)',
         }}
       >
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={isTourActive ? "tour-stable-page" : location}
-            ref={pageRef}
-            className="container max-w-7xl mx-auto p-8"
-            initial={shouldAnimate ? { opacity: 1, y: 8, scale: 0.996 } : { opacity: 1, y: 0, scale: 1 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={shouldAnimate ? { opacity: 0, y: -4, scale: 0.996, transition: { duration: 0.06, ease: "easeIn" } } : { opacity: 1, y: 0, scale: 1 }}
-            transition={{ 
-              duration: shouldAnimate ? 0.22 : 0,
-              ease: [0.22, 1, 0.36, 1] as const,
-            }}
-            onAnimationComplete={clearContainingBlock}
-          >
-            {children}
-          </motion.div>
-        </AnimatePresence>
+        <div className="container max-w-7xl mx-auto p-8">
+          {children}
+        </div>
       </main>
       <Toaster />
     </div>

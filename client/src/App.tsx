@@ -77,9 +77,7 @@ export type { AppAuthContextValue } from "@/lib/appAuthContext";
 export { useAppAuth } from "@/lib/appAuthContext";
 import { AppAuthContext } from "@/lib/appAuthContext";
 
-const DarkFallback = () => (
-  <div style={{ position: "fixed", inset: 0, background: "#07090D" }} />
-);
+const DarkFallback = () => null;
 
 function ElectronAppRoutes() {
   return (
