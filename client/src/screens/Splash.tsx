@@ -41,18 +41,21 @@ export default function Splash({ onComplete }: SplashProps) {
   const [progress, setProgress]   = useState(0);
   const tagline = useMemo(() => getHonestTagline(), []);
 
-  // ── Logo decode + triple-rAF handshake ───────────────────────────────────
-  // Three rAFs instead of two: the third rAF ensures the GPU compositor has
-  // had time to promote the blur-filter layers in Splash to their own tiles
-  // before we signal first-frame-ready.  On AMD cold launch (RX 7800 XT and
-  // similar), two rAFs are inside the GPU driver's shader-cache cold-start
-  // window; the third gives one extra compositor cycle so the first visible
-  // frame is fully rasterised before the DWM handshake begins.
+  // ── Logo decode + quad-rAF handshake ─────────────────────────────────────
+  // Four rAFs: AMD RX 7800 XT and similar GPUs have a shader-cache cold-start
+  // window that outlasts three rAFs on a fresh boot, causing a white/grey flash
+  // when the window is shown.  The fourth rAF gives one additional compositor
+  // cycle so the first visible frame is fully rasterised in the GPU texture
+  // cache before DWM presents it.  After all four rAFs we also wait one native
+  // frame (via setTimeout 16ms) as a belt-and-suspenders guard against AMD
+  // driver latency before signalling first-frame-ready.
   useEffect(() => {
     let cancelled = false;
     let raf1: number;
     let raf2: number;
     let raf3: number;
+    let raf4: number;
+    let frameTimer: ReturnType<typeof setTimeout>;
 
     async function prepareSplash() {
       console.log(`[LAUNCH:R2] Splash mounted | t=+${performance.now().toFixed(0)}ms`);
@@ -66,16 +69,18 @@ export default function Splash({ onComplete }: SplashProps) {
       raf1 = requestAnimationFrame(() => {
         raf2 = requestAnimationFrame(() => {
           raf3 = requestAnimationFrame(() => {
-            if (cancelled) return;
-            setReady(true);
-            // Remove the dark body::before cover NOW — this frame has the Splash
-            // fully rasterised on the GPU compositor layer (paintWhenInitiallyHidden).
-            // DWM will present this exact frame when show() fires, so the very first
-            // pixel the user sees is the Splash, never a white or blank frame.
-            document.body.classList.add('sc-electron-no-cover');
-            // Signal main process — window shows instantly here (paintWhenInitiallyHidden)
-            (window as any).electronAPI?.signalFirstFrameReady?.();
-            console.log(`[LAUNCH:R3] splash ready + cover removed + signalFirstFrameReady | t=+${performance.now().toFixed(0)}ms`);
+            raf4 = requestAnimationFrame(() => {
+              // One extra 16ms timeout after the 4th rAF — gives AMD GPU driver
+              // enough time to flush the shader cache so the first shown frame
+              // is always the Splash, never a white native window.
+              frameTimer = setTimeout(() => {
+                if (cancelled) return;
+                setReady(true);
+                document.body.classList.add('sc-electron-no-cover');
+                (window as any).electronAPI?.signalFirstFrameReady?.();
+                console.log(`[LAUNCH:R3] splash ready + cover removed + signalFirstFrameReady | t=+${performance.now().toFixed(0)}ms`);
+              }, 16);
+            });
           });
         });
       });
@@ -88,6 +93,8 @@ export default function Splash({ onComplete }: SplashProps) {
       cancelAnimationFrame(raf1);
       cancelAnimationFrame(raf2);
       cancelAnimationFrame(raf3);
+      cancelAnimationFrame(raf4);
+      clearTimeout(frameTimer);
     };
   }, []);
 
@@ -101,12 +108,12 @@ export default function Splash({ onComplete }: SplashProps) {
 
     setLogoVisible(true);
 
-    const t2   = setTimeout(() => setTextVisible(true),  120);
-    const t3   = setTimeout(() => setSweepVisible(true), 400);
+    const t2   = setTimeout(() => setTextVisible(true),  80);
+    const t3   = setTimeout(() => setSweepVisible(true), 260);
     const done = setTimeout(() => {
       console.log('[LAUNCH:R5] Splash onComplete — handing off to App');
       onComplete();
-    }, 950);
+    }, 520);
 
     return () => {
       clearTimeout(t2);

@@ -651,7 +651,7 @@ export default function Home() {
   // time the wrapper fades in the cards are already in their final clean state.
   const [contentReady, setContentReady] = useState(false);
   useEffect(() => {
-    const t = setTimeout(() => setContentReady(true), 380);
+    const t = setTimeout(() => setContentReady(true), 100);
     return () => clearTimeout(t);
   }, []);
 
@@ -671,9 +671,9 @@ export default function Home() {
 
               {/* Heading row with masked upward reveal */}
               <motion.div
-                initial={{ opacity: 0, y: 18, filter: 'blur(5px)' }}
-                animate={{ opacity: 1, y: 0,  filter: 'blur(0px)' }}
-                transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
                 className="flex items-center flex-wrap gap-x-2 gap-y-1"
               >
                 <h1 className="greeting-glow text-3xl font-bold tracking-tight text-[#E6EAF0] leading-tight">
