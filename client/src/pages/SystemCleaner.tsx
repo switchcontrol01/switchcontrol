@@ -749,7 +749,7 @@ export default function SystemCleaner() {
                   const Icon = meta.icon;
                   const itemCount = categories[cat].length;
                   return (
-                    <motion.div key={cat} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+                    <motion.div key={cat} initial={{ opacity: 1, y: 8 }} animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: i * 0.07, duration: 0.3 }}
                       className="rounded-xl border border-white/[0.07] bg-white/[0.02] px-4 py-3 flex items-center gap-3">
                       <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: meta.dim }}>
