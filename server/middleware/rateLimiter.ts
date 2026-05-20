@@ -65,10 +65,10 @@ export const meLimiter = rateLimit({
   handler: blockHandler("me"),
 });
 
-// ── AI routes — most expensive, tightest limits ────────────────────────────────
+// ── AI routes — per-user limits keyed by userId/deviceId/IP ──────────────────
 export const aiPerWindowLimiter = rateLimit({
   windowMs: 5 * 60 * 1000,
-  max: 6,
+  max: 20,
   standardHeaders: true,
   legacyHeaders: false,
   validate: { xForwardedForHeader: false, keyGeneratorIpFallback: false },
@@ -78,7 +78,7 @@ export const aiPerWindowLimiter = rateLimit({
 
 export const aiHourlyLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
-  max: 25,
+  max: 80,
   standardHeaders: true,
   legacyHeaders: false,
   validate: { xForwardedForHeader: false, keyGeneratorIpFallback: false },
