@@ -1635,159 +1635,143 @@ function siWithTimeout(fn, ms = 5_000, label = 'si call') {
   ]);
 }
 
-async function loadSystemSpecs() {
-  const now = Date.now();
-  if (cachedSpecs && (now - cachedSpecsTime) < SPECS_CACHE_TTL) {
-    return cachedSpecs;
-  }
+// ── Instant spec builder — synchronous OS APIs only, <1ms ────────────────────
+// Returns CPU model/cores/speed, RAM totals, OS info without any WMI/si call.
+// GPU and disk come in later via _enrichSpecsInBackground().
+function _buildInstantSpecs() {
+  const cpus    = os.cpus() || [];
+  const model   = cpus[0]?.model?.trim() || 'Unknown CPU';
+  const threads = cpus.length || 0;
+  const cores   = Math.max(1, Math.floor(threads / 2));
+  const speedGhz = cpus[0]?.speed ? (cpus[0].speed / 1000).toFixed(1) : null;
+  const total   = os.totalmem();
+  const free    = os.freemem();
+  const totalGB = parseFloat((total / 1073741824).toFixed(1));
+  const freeGB  = parseFloat((free  / 1073741824).toFixed(1));
+  const usedGB  = parseFloat(Math.max(0, totalGB - freeGB).toFixed(1));
+  return {
+    cpu: {
+      model,
+      cores,
+      threads,
+      speed: speedGhz ? `${speedGhz} GHz` : 'Unknown',
+    },
+    gpu: {
+      model:    'Detecting…',
+      vendor:   'Detecting…',
+      vramGB:   0,
+      isNvidia: false,
+    },
+    ram: { totalGB, usedGB, freeGB },
+    system: {
+      os:       process.platform === 'win32' ? 'Windows' : process.platform === 'darwin' ? 'macOS' : 'Linux',
+      osVersion: os.release()   || 'Unknown',
+      arch:      os.arch()      || 'Unknown',
+      hostname:  os.hostname()  || 'Unknown',
+      hasLibreHardwareMonitor: false,
+    },
+    disk:  { name: 'C:', usedGB: 0, totalGB: 0, usePercent: 0 },
+    disks: [],
+    _partial: true, // enrichment still in-flight
+  };
+}
 
+// ── Background enrichment — GPU, disk, full CPU via WMI ──────────────────────
+// Runs after the instant specs are returned.  Updates cachedSpecs in-place
+// so the next IPC call from Home.tsx gets complete data.
+let _enrichmentInFlight = false;
+
+async function _enrichSpecsInBackground() {
+  if (_enrichmentInFlight) return;
+  _enrichmentInFlight = true;
   try {
-    // Fetch all data in parallel with individual try/catch + timeout.
-    // si.cpu() can take 6-12 s on first WMI cold-start (especially AMD
-    // systems), so we give it a generous 15 s.  The others are fast.
-    let cpu = { brand: 'Unknown CPU', cores: 0, speed: 0 };
-    let mem = { total: 0, available: 0 };
-    let graphics = { controllers: [] };
-    let fsData = [];
-
-    // si.cpu() on AMD systems takes 6-12s on first WMI cold-start.
-    // Give it 20s so it never times out and falls back to "Unknown CPU".
-    const [cpuResult, memResult, graphicsResult, fsResult] = await Promise.all([
-      siWithTimeout(() => si.cpu(), 20_000, 'si.cpu()').catch(e => {
-        console.error('[SwitchControl] Failed to get CPU info:', e.message || e);
-        return cpu;
-      }),
-      siWithTimeout(() => si.mem(), 8_000, 'si.mem()').catch(e => {
-        console.error('[SwitchControl] Failed to get memory info:', e.message || e);
-        return mem;
-      }),
-      siWithTimeout(() => si.graphics(), 15_000, 'si.graphics()').catch(e => {
-        console.error('[SwitchControl] Failed to get graphics info:', e.message || e);
-        return graphics;
-      }),
-      siWithTimeout(() => si.fsSize(), 8_000, 'si.fsSize()').catch(e => {
-        console.error('[SwitchControl] Failed to get disk info:', e.message || e);
-        return fsData;
-      })
+    // si.graphics() and si.fsSize() are independent — run in parallel.
+    // si.cpu() is slow on AMD (6-15s WMI cold-start) — run concurrently too,
+    // but we don't wait for it to update the GPU/disk result first.
+    const [graphicsResult, fsResult, cpuResult] = await Promise.allSettled([
+      siWithTimeout(() => si.graphics(), 10_000, 'enrich.graphics'),
+      siWithTimeout(() => si.fsSize(),    8_000, 'enrich.fsSize'),
+      siWithTimeout(() => si.cpu(),      20_000, 'enrich.cpu'),
     ]);
 
-    cpu = cpuResult;
-    mem = memResult;
-    graphics = graphicsResult;
-    fsData = fsResult;
+    const graphics = graphicsResult.status === 'fulfilled' ? graphicsResult.value : null;
+    const fsData   = fsResult.status       === 'fulfilled' ? fsResult.value       : [];
+    const cpuSi    = cpuResult.status      === 'fulfilled' ? cpuResult.value      : null;
 
-    // ── Synchronous fallbacks ─────────────────────────────────────────────────
-    // os.cpus() / os.totalmem() / os.freemem() are synchronous Node built-ins
-    // that bypass WMI entirely.  Use them whenever the si.* calls timed out
-    // or returned empty values so the dashboard always shows real data.
-
-    // CPU — WMI cold-start on AMD can return "Unknown CPU" for up to 20 s.
-    // os.cpus()[0].model is always populated and resolves instantly.
-    if (!cpu.brand || cpu.brand === 'Unknown CPU') {
-      try {
-        const osCpus = os.cpus();
-        if (osCpus && osCpus.length > 0 && osCpus[0].model) {
-          const fallbackModel = osCpus[0].model.trim();
-          console.log('[SwitchControl] CPU WMI unavailable — os.cpus() fallback:', fallbackModel);
-          cpu = {
-            ...cpu,
-            brand:         fallbackModel,
-            cores:         cpu.cores  || osCpus.length,
-            physicalCores: cpu.physicalCores || Math.max(1, Math.floor(osCpus.length / 2)),
-            speed:         cpu.speed  || (osCpus[0].speed / 1000), // os gives MHz, si expects GHz
-          };
-        }
-      } catch (e) {
-        console.warn('[SwitchControl] os.cpus() fallback failed:', e.message);
-      }
-    }
-
-    // RAM — si.mem() can return total=0 on restricted environments.
-    // os.totalmem() / os.freemem() are always accurate.
-    if (!mem.total || mem.total === 0) {
-      try {
-        const osTotal = os.totalmem();
-        const osFree  = os.freemem();
-        if (osTotal > 0) {
-          console.log('[SwitchControl] RAM WMI unavailable — os.totalmem() fallback:', Math.round(osTotal / 1073741824) + ' GB');
-          mem = { total: osTotal, available: osFree };
-        }
-      } catch (e) {
-        console.warn('[SwitchControl] os.totalmem() fallback failed:', e.message);
-      }
-    }
-
-    const totalGB = (mem.total || 0) / 1024 / 1024 / 1024;
-    const freeGB = (mem.available || 0) / 1024 / 1024 / 1024;
-    const usedGB = totalGB - freeGB;
-
-    const gpu = graphics.controllers?.[0];
-
+    const gpu  = graphics?.controllers?.[0];
     const disks = (fsData || []).map(d => {
       const pct = safeNum(d.use || 0);
       return {
-        mount: d.mount || 'Unknown',
-        name: d.fs || d.mount || 'Unknown',
-        totalGB: safeNum((d.size || 0) / 1024 / 1024 / 1024),
-        usedGB: safeNum((d.used || 0) / 1024 / 1024 / 1024),
-        usePercent: pct,
-        usedPercent: pct // Alias for compatibility
+        mount:       d.mount || 'Unknown',
+        name:        d.fs   || d.mount || 'Unknown',
+        totalGB:     safeNum((d.size || 0) / 1073741824),
+        usedGB:      safeNum((d.used || 0) / 1073741824),
+        usePercent:  pct,
+        usedPercent: pct,
       };
     });
 
-    const result = {
-      cpu: {
-        model: cpu.brand || 'Unknown CPU',
-        cores: cpu.physicalCores || cpu.cores || 0,
-        threads: cpu.cores || 0,
-        speed: cpu.speed ? `${safeNum(cpu.speed)} GHz` : 'Unknown'
-      },
-      gpu: {
-        model: gpu?.model || 'Unavailable',
-        vendor: gpu?.vendor || 'Unavailable',
-        vramGB: gpu?.vram ? safeNum(gpu.vram / 1024) : 0,
-        isNvidia: isNvidiaGpu(graphics)
-      },
-      ram: {
-        totalGB: safeNum(totalGB),
-        usedGB: safeNum(usedGB),
-        freeGB: safeNum(freeGB)
-      },
-      system: {
-        os: process.platform === 'win32' ? 'Windows' : process.platform === 'darwin' ? 'macOS' : 'Linux',
-        osVersion: os.release() || 'Unknown',
-        arch: os.arch() || 'Unknown',
-        hostname: os.hostname() || 'Unknown',
-        hasLibreHardwareMonitor: false
-      },
-      disk: disks[0] || { name: 'C:', usedGB: 0, totalGB: 0, usePercent: 0 },
-      disks: disks
-    };
-
-    // Only cache when we got a real CPU model.  On some systems si.cpu()
-    // times out on the first WMI cold-start and returns the default
-    // "Unknown CPU".  If we cache that, the user is stuck for 5 minutes.
-    const hasRealCpu = cpu.brand && cpu.brand !== 'Unknown CPU';
-    if (hasRealCpu) {
-      cachedSpecs = result;
+    if (cachedSpecs) {
+      cachedSpecs = {
+        ...cachedSpecs,
+        cpu: cpuSi ? {
+          model:   cpuSi.brand || cachedSpecs.cpu.model,
+          cores:   cpuSi.physicalCores || cachedSpecs.cpu.cores,
+          threads: cpuSi.cores || cachedSpecs.cpu.threads,
+          speed:   cpuSi.speed ? `${safeNum(cpuSi.speed)} GHz` : cachedSpecs.cpu.speed,
+        } : cachedSpecs.cpu,
+        gpu: {
+          model:    gpu?.model  || 'Unavailable',
+          vendor:   gpu?.vendor || 'Unavailable',
+          vramGB:   gpu?.vram   ? safeNum(gpu.vram / 1024) : 0,
+          isNvidia: isNvidiaGpu(graphics || { controllers: [] }),
+        },
+        disk:  disks[0] || cachedSpecs.disk,
+        disks,
+        _partial: false,
+      };
       cachedSpecsTime = Date.now();
-      console.log('[SwitchControl] System specs loaded:', cachedSpecs.cpu.model, cachedSpecs.gpu.model);
-    } else {
-      console.warn('[SwitchControl] CPU info incomplete — returning but NOT caching so next call retries');
+      console.log('[SwitchControl] Specs enriched —', cachedSpecs.cpu.model, '|', cachedSpecs.gpu.model);
     }
-    return result;
-
   } catch (e) {
-    console.error('[SwitchControl] getSpecs error:', e);
-    return {
-      cpu: { model: 'Unknown CPU', cores: 0, threads: 0, speed: 'Unknown' },
-      gpu: { model: 'Unavailable', vendor: 'Unavailable', vramGB: 0, isNvidia: false },
-      ram: { totalGB: 0, usedGB: 0, freeGB: 0 },
-      system: { os: 'Unknown', osVersion: 'Unknown', arch: 'Unknown', hostname: 'Unknown', hasLibreHardwareMonitor: false },
-      disk: { name: 'Unknown', usedGB: 0, totalGB: 0, usePercent: 0 },
-      disks: []
-    };
+    console.warn('[SwitchControl] Background spec enrichment error:', e.message || e);
+  } finally {
+    _enrichmentInFlight = false;
   }
+}
+
+// ── loadSystemSpecs — instant first call, enriched on repeat ─────────────────
+// First call: returns in <1ms using synchronous OS APIs, fires background
+// enrichment for GPU/disk/full CPU.  Subsequent calls return the cached result.
+// Home.tsx calls this with an 8s timeout — by then enrichment is done.
+async function loadSystemSpecs() {
+  const now = Date.now();
+
+  // Return fully-enriched cache if still fresh
+  if (cachedSpecs && !cachedSpecs._partial && (now - cachedSpecsTime) < SPECS_CACHE_TTL) {
+    return cachedSpecs;
+  }
+
+  // First call — build and cache an instant result, then enrich in background
+  if (!cachedSpecs) {
+    cachedSpecs = _buildInstantSpecs();
+    cachedSpecsTime = now;
+    console.log('[SwitchControl] Instant specs (sync):', cachedSpecs.cpu.model, '| enrichment starting…');
+    void _enrichSpecsInBackground();
+    return cachedSpecs;
+  }
+
+  // Enrichment is in-flight — return the partial result now; caller will retry
+  if (cachedSpecs._partial) {
+    return cachedSpecs;
+  }
+
+  // Cache expired (>5min) — refresh in background, return stale for now
+  if ((now - cachedSpecsTime) >= SPECS_CACHE_TTL) {
+    void _enrichSpecsInBackground();
+  }
+
+  return cachedSpecs;
 }
 
 ipcMain.handle('system:loadSpecs', async () => {

@@ -760,18 +760,41 @@ async function collectFast(): Promise<SystemIntelligenceProfile> {
   const [bbRes, biosRes, cpuRes, graphicsRes, memRes] = await Promise.allSettled([
     siTimeout("A.baseboard", si.baseboard(), 3_000),
     siTimeout("A.bios",      si.bios(),      3_000),
-    siTimeout("A.cpu",       si.cpu(),       7_000), // AMD WMI cold-start
-    siTimeout("A.graphics",  si.graphics(),  3_000),
+    siTimeout("A.cpu",       si.cpu(),       7_000), // AMD WMI cold-start can reach 6-7s
+    siTimeout("A.graphics",  si.graphics(),  2_000), // reduced: 3s→2s, display list deferred
     siTimeout("A.mem",       si.mem(),       2_000),
   ]);
 
   const bb       = bbRes.status      === "fulfilled" ? (bbRes.value as any)       : null;
   const bios     = biosRes.status    === "fulfilled" ? (biosRes.value as any)     : null;
-  const cpu      = cpuRes.status     === "fulfilled" ? (cpuRes.value as any)      : null;
+  const cpuSi    = cpuRes.status     === "fulfilled" ? (cpuRes.value as any)      : null;
   const graphics = graphicsRes.status === "fulfilled" ? (graphicsRes.value as any) : null;
   const mem      = memRes.status     === "fulfilled" ? (memRes.value as any)      : null;
 
-  const memTotalMb = mem?.total > 0 ? Math.round(mem.total / 1024 / 1024) : null;
+  // If WMI cpu timed out (AMD cold-start), fall back to the synchronous os.cpus()
+  // which is always populated and resolves in <1ms. This prevents Phase A from
+  // returning a null brand on first launch.
+  let cpu: any = cpuSi;
+  if (!cpu || !cpu.brand) {
+    const osCpus = os.cpus();
+    if (osCpus && osCpus.length > 0) {
+      cpu = {
+        brand:         osCpus[0].model?.trim() || null,
+        manufacturer:  null,
+        physicalCores: Math.max(1, Math.floor(osCpus.length / 2)),
+        cores:         osCpus.length,
+        socket:        null,
+        speed:         osCpus[0].speed ? parseFloat((osCpus[0].speed / 1000).toFixed(2)) : null,
+        _fallback:     true,
+      };
+      console.log(`[SysIntelligence] phase=A cpu WMI timeout — os.cpus() fallback: ${cpu.brand}`);
+    }
+  }
+
+  // RAM: fall back to os.totalmem() if si.mem() timed out
+  const memTotalMb = mem?.total > 0
+    ? Math.round(mem.total / 1024 / 1024)
+    : os.totalmem() > 0 ? Math.round(os.totalmem() / 1024 / 1024) : null;
   const controllers: SipController[] = (graphics?.controllers ?? []).map((c: any) => ({
     name: safeStr(c.model), vendor: safeStr(c.vendor), subVendor: null, vendorId: null,
     deviceId: null, vramMb: safeNum(typeof c.vram === "number" ? c.vram : null),

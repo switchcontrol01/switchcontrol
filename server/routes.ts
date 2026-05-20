@@ -31,7 +31,7 @@ import { systemIntelligenceRouter } from "./routes/systemIntelligence";
 import issueDetectorRouter from "./routes/issueDetector";
 import advisorContextRouter from "./routes/advisorContext";
 import weatherRouter from "./routes/weather";
-import { getSystemIntelligence } from "./lib/systemIntelligence";
+import { getSystemIntelligence, triggerBackgroundCollection } from "./lib/systemIntelligence";
 import { getSnapshot, getSystemSpecs, getSchedulerStats, startTelemetryPolling } from "./lib/telemetry";
 import { broadcastNow, setupWebSocketServer } from "./lib/wsServer";
 import { signJwt } from "./lib/jwt";
@@ -142,9 +142,10 @@ export async function registerRoutes(
     res.json({ ok: true, message: "All tweaks reverted to baseline" });
   });
 
-  // Warm up system intelligence in the background — delayed 6s so it doesn't
-  // compete with the initial telemetry priming and window reveal.
-  setTimeout(() => getSystemIntelligence().catch(() => {}), 6000);
+  // Warm up system intelligence in the background — delayed 15s so it doesn't
+  // compete with telemetry priming, window reveal, or dashboard hydration.
+  // triggerBackgroundCollection() is idempotent (no-op if already running or fresh).
+  setTimeout(() => triggerBackgroundCollection(), 15_000);
 
   // Cloud connectivity probe — used by packaged Electron to verify JWT auth without an OpenAI call
   app.post("/api/ai/cloud-probe", requireJwt, requireCloudPremium, (req, res) => {
