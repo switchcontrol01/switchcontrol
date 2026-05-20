@@ -261,13 +261,33 @@ export const useStore = create<AppState>()(
     }),
     {
       name: 'switch-control-storage',
-      partialize: (state) => ({ 
-        tweaks: state.tweaks, 
+      partialize: (state) => ({
+        tweaks: state.tweaks,
         history: state.history,
         latestAIScan: state.latestAIScan,
         appBoosterEnabled: state.appBoosterEnabled,
         realtimeMetricsEnabled: state.realtimeMetricsEnabled,
         pauseWhenMinimized: state.pauseWhenMinimized,
+        // Persist stable hardware identity so the dashboard renders instantly
+        // on the next launch without waiting for IPC/WebSocket.
+        // Volatile fields (usedRamGb, freeRamGb, diskUsedGb) are intentionally
+        // excluded — they change constantly and would show stale data.
+        stats: {
+          cpuName:    state.stats.cpuName,
+          cpuCores:   state.stats.cpuCores,
+          cpuThreads: state.stats.cpuThreads,
+          cpuSpeed:   state.stats.cpuSpeed,
+          gpuName:    state.stats.gpuName,
+          gpuVendor:  state.stats.gpuVendor,
+          vramGb:     state.stats.vramGb,
+          totalRamGb: state.stats.totalRamGb,
+          diskName:   state.stats.diskName,
+          diskTotalGb: state.stats.diskTotalGb,
+          osName:     state.stats.osName,
+          osVersion:  state.stats.osVersion,
+          osArch:     state.stats.osArch,
+          hostname:   state.stats.hostname,
+        },
       }),
       onRehydrateStorage: () => (state, error) => {
         if (error) {
@@ -275,6 +295,15 @@ export const useStore = create<AppState>()(
           return;
         }
         if (!state) return;
+
+        // Merge persisted stats with MOCK_STATS defaults so volatile fields
+        // (usedRamGb, freeRamGb, diskUsedGb) are always valid numbers even
+        // though they were intentionally excluded from partialize.
+        if (state.stats && typeof state.stats === 'object') {
+          state.stats = { ...MOCK_STATS, ...state.stats };
+        } else {
+          state.stats = { ...MOCK_STATS };
+        }
 
         // Guard: tweaks must be a plain object (not array, null, or primitive).
         // A corrupted or version-mismatched localStorage entry must not crash the app.
