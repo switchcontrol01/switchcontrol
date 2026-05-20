@@ -126,14 +126,14 @@ ipcMain.handle('security:getStatus', async () => {
       # Fallback 2: registry reads for each field that is still null
       if ($out.RealTimeProtectionEnabled -eq $null) {
         try {
-          $v = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows Defender\Real-Time Protection' -Name DisableRealtimeMonitoring -EA Stop).DisableRealtimeMonitoring
+          $v = (Get-ItemProperty 'HKLM:\\SOFTWARE\\Microsoft\\Windows Defender\\Real-Time Protection' -Name DisableRealtimeMonitoring -EA Stop).DisableRealtimeMonitoring
           $out.RealTimeProtectionEnabled = ($v -eq 0)
           $out.DefenderAvailable = $true
         } catch {}
       }
       if ($out.AntispywareEnabled -eq $null) {
         try {
-          $v = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows Defender' -Name DisableAntiSpyware -EA Stop).DisableAntiSpyware
+          $v = (Get-ItemProperty 'HKLM:\\SOFTWARE\\Microsoft\\Windows Defender' -Name DisableAntiSpyware -EA Stop).DisableAntiSpyware
           $out.AntispywareEnabled = ($v -eq 0)
         } catch {
           # Key absent means Defender owns anti-spyware scanning = enabled
@@ -142,13 +142,13 @@ ipcMain.handle('security:getStatus', async () => {
       }
       if ($out.TamperProtectionEnabled -eq $null) {
         try {
-          $v = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows Defender\Features' -Name TamperProtection -EA Stop).TamperProtection
+          $v = (Get-ItemProperty 'HKLM:\\SOFTWARE\\Microsoft\\Windows Defender\\Features' -Name TamperProtection -EA Stop).TamperProtection
           $out.TamperProtectionEnabled = ($v -ne 0)
         } catch {}
       }
       if (-not $out.AntivirusSignatureVersion) {
         try {
-          $out.AntivirusSignatureVersion = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows Defender\Signature Updates' -Name 'AVSignatureVersion' -EA Stop).AVSignatureVersion
+          $out.AntivirusSignatureVersion = (Get-ItemProperty 'HKLM:\\SOFTWARE\\Microsoft\\Windows Defender\\Signature Updates' -Name 'AVSignatureVersion' -EA Stop).AVSignatureVersion
         } catch {}
       }
 
@@ -483,7 +483,7 @@ ipcMain.handle('security:getAdvancedProtection', async () => {
       }
       if ($signatureAge -eq $null) {
         try {
-          $rawTime = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows Defender\Signature Updates' -Name 'SignaturesLastUpdated' -EA Stop).SignaturesLastUpdated
+          $rawTime = (Get-ItemProperty 'HKLM:\\SOFTWARE\\Microsoft\\Windows Defender\\Signature Updates' -Name 'SignaturesLastUpdated' -EA Stop).SignaturesLastUpdated
           if ($rawTime) {
             $dtSig        = [DateTime]::FromFileTimeUtc([long]$rawTime)
             $signatureAge = [int]([DateTime]::UtcNow - $dtSig).TotalDays
@@ -503,11 +503,11 @@ ipcMain.handle('security:getAdvancedProtection', async () => {
       # SmartScreen — two registry locations depending on Windows build
       $smartScreen = $null
       try {
-        $ss          = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer' -Name SmartScreenEnabled -EA Stop).SmartScreenEnabled
+        $ss          = (Get-ItemProperty 'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer' -Name SmartScreenEnabled -EA Stop).SmartScreenEnabled
         $smartScreen = ($ss -ne 'Off')
       } catch {
         try {
-          $ssVal       = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppHost' -Name EnableWebContentEvaluation -EA Stop).EnableWebContentEvaluation
+          $ssVal       = (Get-ItemProperty 'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\AppHost' -Name EnableWebContentEvaluation -EA Stop).EnableWebContentEvaluation
           $smartScreen = ($ssVal -eq 1)
         } catch {}
       }
@@ -519,18 +519,18 @@ ipcMain.handle('security:getAdvancedProtection', async () => {
       $puaProtection         = if ($pref) { $pref.PUAProtection -ne 0 } else { $null }
 
       if ($cloudProtection -eq $null) {
-        try { $v = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows Defender\Spynet' -Name SpyNetReporting -EA Stop).SpyNetReporting; $cloudProtection = ($v -ne 0) } catch {}
+        try { $v = (Get-ItemProperty 'HKLM:\\SOFTWARE\\Microsoft\\Windows Defender\\Spynet' -Name SpyNetReporting -EA Stop).SpyNetReporting; $cloudProtection = ($v -ne 0) } catch {}
       }
       if ($controlledFolderAccess -eq $null) {
-        try { $v = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows Defender\Windows Defender Exploit Guard\Controlled Folder Access' -Name EnableControlledFolderAccess -EA Stop).EnableControlledFolderAccess; $controlledFolderAccess = ($v -ne 0) } catch {}
+        try { $v = (Get-ItemProperty 'HKLM:\\SOFTWARE\\Microsoft\\Windows Defender\\Windows Defender Exploit Guard\\Controlled Folder Access' -Name EnableControlledFolderAccess -EA Stop).EnableControlledFolderAccess; $controlledFolderAccess = ($v -ne 0) } catch {}
       }
       if ($puaProtection -eq $null) {
-        try { $v = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows Defender' -Name PUAProtection -EA Stop).PUAProtection; $puaProtection = ($v -ne 0) } catch {}
+        try { $v = (Get-ItemProperty 'HKLM:\\SOFTWARE\\Microsoft\\Windows Defender' -Name PUAProtection -EA Stop).PUAProtection; $puaProtection = ($v -ne 0) } catch {}
       }
 
       $sigVer = if ($mp) { $mp.AntivirusSignatureVersion } else { $null }
       if (-not $sigVer) {
-        try { $sigVer = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows Defender\Signature Updates' -Name 'AVSignatureVersion' -EA Stop).AVSignatureVersion } catch {}
+        try { $sigVer = (Get-ItemProperty 'HKLM:\\SOFTWARE\\Microsoft\\Windows Defender\\Signature Updates' -Name 'AVSignatureVersion' -EA Stop).AVSignatureVersion } catch {}
       }
 
       @{
@@ -990,9 +990,11 @@ ipcMain.handle('security:runDefenderAction', async (_event, action) => {
       return { ok: false, restricted: false, message: 'Unknown action.' };
   }
 
-  // Run the cmdlet with full error capture; do NOT append Write-Output afterwards.
-  // We stream the cmdlet output to a temp file and check its success state.
-  const tmpFile = path.join(os.tmpdir(), `sc_defender_${action}_${Date.now()}.json`);
+  // Run the cmdlet and capture the result as JSON written to stdout.
+  // NOTE: must NOT use a temp file here — runPowerShell rejects on empty stdout,
+  // and writing to a file produces no stdout output.
+  const RESTRICTION_RE = /restricted|disabled by your administrator|access is denied|not recognized|cannot be loaded|is not installed|does not exist|access denied|No operation can be performed|0x800704ec|0x800706ba|0x80070005|Tamper/i;
+
   const psCmd = `
     $result = @{ success = $false; restricted = $false; message = ''; error = '' }
     try {
@@ -1003,19 +1005,16 @@ ipcMain.handle('security:runDefenderAction', async (_event, action) => {
       $msg = $_.Exception.Message
       $result.error = $msg
       $result.message = $msg
-      # "The operation is restricted" or "administrator has disabled" → policy-managed
       if ($msg -match 'restricted|disabled by your administrator|access is denied|not recognized|cannot be loaded|is not installed|does not exist|access denied|No operation can be performed|0x800704ec|0x800706ba|0x80070005|Tamper') {
         $result.restricted = $true
         $result.message = 'Defender is restricted by policy or managed by your IT team. This action cannot be run.'
       }
     }
-    $result | ConvertTo-Json -Compress | Set-Content '${tmpFile.replace(/\\/g, '\\\\')}' -Encoding UTF8
+    $result | ConvertTo-Json -Compress
   `;
 
   try {
-    await runPowerShell(psCmd, 60000);
-    const raw = fs.readFileSync(tmpFile, 'utf8');
-    try { fs.unlinkSync(tmpFile); } catch (_) {}
+    const raw = await runPowerShell(psCmd, 60000);
     const out = JSON.parse(raw);
     console.log(`[Security] runDefenderAction action=${action} →`, out);
     return {
@@ -1024,10 +1023,9 @@ ipcMain.handle('security:runDefenderAction', async (_event, action) => {
       message: out.message || out.error || 'Unknown result',
     };
   } catch (err) {
-    try { fs.unlinkSync(tmpFile); } catch (_) {}
     const msg = err?.message || String(err);
     console.warn(`[Security] runDefenderAction ERROR action=${action}:`, msg);
-    const restricted = /restricted|disabled by your administrator|access is denied|not recognized|cannot be loaded|is not installed|does not exist|access denied|0x800704ec|0x800706ba|0x80070005|Tamper/i.test(msg);
+    const restricted = RESTRICTION_RE.test(msg);
     return {
       ok: false,
       restricted,
