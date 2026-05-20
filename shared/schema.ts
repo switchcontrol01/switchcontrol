@@ -1,5 +1,5 @@
 import { sql, relations } from "drizzle-orm";
-import { pgTable, text, varchar, integer, boolean, timestamp, real, jsonb, serial } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, boolean, timestamp, real, jsonb, serial, primaryKey } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -43,18 +43,17 @@ export const aiScans = pgTable("ai_scans", {
 });
 
 // ── Network tweak persistence ─────────────────────────────────────────────────
-// tweak_id is the sole PK (matching the production schema).
-// user_id is a plain column — added via ADD COLUMN migration (safe, no ordering issues).
-// A composite unique index on (user_id, tweak_id) will be added in a follow-up
-// deploy once user_id is confirmed present in production.
+// Composite PK (user_id, tweak_id) ensures each user's state is isolated.
+// A startup migration in networkTweaks.ts handles the in-place schema upgrade
+// for any existing single-column-PK tables in production.
 export const networkTweakState = pgTable("network_tweak_state", {
-  tweakId:   text("tweak_id").primaryKey(),
   userId:    text("user_id").notNull().default("__legacy__"),
+  tweakId:   text("tweak_id").notNull(),
   status:    text("status").notNull().default("idle"),
   lastResult: jsonb("last_result"),
   appliedAt: timestamp("applied_at", { withTimezone: true }),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (t) => [primaryKey({ columns: [t.userId, t.tweakId] })]);
 
 export const networkTweakLog = pgTable("network_tweak_log", {
   id:        serial("id").primaryKey(),

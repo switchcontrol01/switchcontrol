@@ -1,6 +1,7 @@
 /**
  * Network Tweaks backend — state persistence and execution log.
- * Uses Drizzle's sql template literals — does NOT modify shared/schema.ts.
+ * Uses Drizzle's sql template literals — does NOT modify shared/schema.ts
+ * for runtime mutations, but schema.ts defines the canonical table shape.
  */
 
 import { Router } from "express";
@@ -40,8 +41,56 @@ const VALID_TWEAK_IDS = new Set<string>([
   "dns-doh", "dns-optimize",
 ]);
 
-// Tables are managed by Drizzle schema (shared/schema.ts).
-// No startup DDL — schema changes go through the publish flow.
+// ── Startup migration: upgrade sole-PK table to composite (user_id, tweak_id) ─
+// Safe/idempotent: each step is guarded by IF NOT EXISTS / IF EXISTS checks.
+// Runs once on server start; errors are non-fatal warnings.
+
+async function migrateNetworkTweakState() {
+  if (isNoDbMode || !db) return;
+  try {
+    // 1. Ensure user_id column exists (may be missing on very old deployments)
+    await db.execute(sql`
+      ALTER TABLE network_tweak_state
+        ADD COLUMN IF NOT EXISTS user_id TEXT NOT NULL DEFAULT '__legacy__'
+    `);
+
+    // 2. Check whether the current primary key is still the old sole tweak_id PK.
+    //    pg_constraint stores the column positions; if the constraint only covers
+    //    tweak_id (one column) we need to upgrade it to the composite.
+    const { rows } = await db.execute(sql`
+      SELECT c.conname
+      FROM   pg_constraint c
+      JOIN   pg_class      t ON t.oid = c.conrelid
+      WHERE  t.relname = 'network_tweak_state'
+        AND  c.contype = 'p'
+        AND  array_length(c.conkey, 1) = 1
+    `);
+
+    if (rows.length > 0) {
+      const constraintName = rows[0].conname as string;
+      console.log(`[NetworkTweaks] upgrading sole-PK "${constraintName}" → composite (user_id, tweak_id)`);
+
+      // Drop the old single-column PK
+      await db.execute(
+        sql.raw(`ALTER TABLE network_tweak_state DROP CONSTRAINT IF EXISTS "${constraintName}"`)
+      );
+
+      // Add the composite PK
+      await db.execute(sql`
+        ALTER TABLE network_tweak_state
+          ADD PRIMARY KEY (user_id, tweak_id)
+      `);
+
+      console.log('[NetworkTweaks] migration complete — network_tweak_state now uses (user_id, tweak_id) PK');
+    } else {
+      console.log('[NetworkTweaks] network_tweak_state schema OK — composite PK already present');
+    }
+  } catch (e: any) {
+    console.warn('[NetworkTweaks] migrateNetworkTweakState non-fatal error:', e.message);
+  }
+}
+
+migrateNetworkTweakState();
 
 // ── GET /api/network-tweaks/state ─────────────────────────────────────────────
 
@@ -112,12 +161,13 @@ router.post("/:tweakId/report", requireJwt, networkTweakRateLimit, async (req: a
     const resultJson = JSON.stringify({ action, success, verified, message });
     const appliedAt = success && action === "apply" ? new Date() : null;
 
+    // ON CONFLICT targets the composite PK (user_id, tweak_id) so each user's
+    // state is independent — one user can never overwrite another's tweak state.
     await db.execute(sql`
       INSERT INTO network_tweak_state (user_id, tweak_id, status, last_result, applied_at, updated_at)
       VALUES (${userId}, ${tweakId}, ${status}, ${resultJson}::jsonb, ${appliedAt}, NOW())
-      ON CONFLICT (tweak_id) DO UPDATE
-        SET user_id     = EXCLUDED.user_id,
-            status      = EXCLUDED.status,
+      ON CONFLICT (user_id, tweak_id) DO UPDATE
+        SET status      = EXCLUDED.status,
             last_result = EXCLUDED.last_result,
             applied_at  = EXCLUDED.applied_at,
             updated_at  = NOW()
