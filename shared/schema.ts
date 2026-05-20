@@ -43,15 +43,16 @@ export const aiScans = pgTable("ai_scans", {
 });
 
 // ── Network tweak persistence ─────────────────────────────────────────────────
-// SCHEMA NOTE: These definitions intentionally match the PRE-MIGRATION production
-// state (tweak_id sole PK, no user_id column). The startup migration in
-// server/routes/networkTweaks.ts adds user_id and upgrades to a composite PK at
-// server start. Replit's publish-time diff engine generates wrong-order SQL when
-// both the column add and PK change appear in the same diff, so the migration is
-// handled at runtime instead. Once the startup migration has run in production,
-// update these definitions to reflect the post-migration state.
+// SCHEMA NOTE: user_id is defined here as a plain column (single tweakId PK).
+// Replit's publish-time diff engine generates wrong-order SQL when both a column
+// add and a PK change appear in the same diff (ADD CONSTRAINT before ADD COLUMN).
+// To avoid that, the composite PK upgrade is handled at server startup by the
+// migration in server/routes/networkTweaks.ts instead of changing the PK here.
+// Result: publish generates only `ADD COLUMN user_id` (safe). The runtime
+// migration then upgrades to composite PK (user_id, tweak_id) on first boot.
 export const networkTweakState = pgTable("network_tweak_state", {
   tweakId:    text("tweak_id").primaryKey(),
+  userId:     text("user_id").notNull().default("__legacy__"),
   status:     text("status").notNull().default("idle"),
   lastResult: jsonb("last_result"),
   appliedAt:  timestamp("applied_at", { withTimezone: true }),
@@ -60,6 +61,7 @@ export const networkTweakState = pgTable("network_tweak_state", {
 
 export const networkTweakLog = pgTable("network_tweak_log", {
   id:        serial("id").primaryKey(),
+  userId:    text("user_id").notNull().default("__legacy__"),
   tweakId:   text("tweak_id").notNull(),
   action:    text("action").notNull(),
   success:   boolean("success").notNull().default(false),
