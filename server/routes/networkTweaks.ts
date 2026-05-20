@@ -48,41 +48,49 @@ const VALID_TWEAK_IDS = new Set<string>([
 async function migrateNetworkTweakState() {
   if (isNoDbMode || !db) return;
   try {
-    // 1. Ensure user_id column exists (may be missing on very old deployments)
+    // 1. Ensure user_id column exists on both tables (idempotent: IF NOT EXISTS).
     await db.execute(sql`
       ALTER TABLE network_tweak_state
         ADD COLUMN IF NOT EXISTS user_id TEXT NOT NULL DEFAULT '__legacy__'
     `);
+    await db.execute(sql`
+      ALTER TABLE network_tweak_log
+        ADD COLUMN IF NOT EXISTS user_id TEXT NOT NULL DEFAULT '__legacy__'
+    `);
 
-    // 2. Check whether the current primary key is still the old sole tweak_id PK.
-    //    pg_constraint stores the column positions; if the constraint only covers
-    //    tweak_id (one column) we need to upgrade it to the composite.
+    // 2. Inspect the current primary key on network_tweak_state.
+    //    We handle three states:
+    //    a) sole PK on tweak_id only        → drop it, add composite (user_id, tweak_id)
+    //    b) composite PK already present    → nothing to do
+    //    c) no PK at all (publish flow may have dropped it but failed to add) → add composite directly
     const { rows } = await db.execute(sql`
-      SELECT c.conname
+      SELECT c.conname, array_length(c.conkey, 1) AS col_count
       FROM   pg_constraint c
       JOIN   pg_class      t ON t.oid = c.conrelid
       WHERE  t.relname = 'network_tweak_state'
         AND  c.contype = 'p'
-        AND  array_length(c.conkey, 1) = 1
     `);
 
-    if (rows.length > 0) {
+    if (rows.length === 0) {
+      // State (c): no PK — add composite directly
+      console.log('[NetworkTweaks] no PK found on network_tweak_state — adding composite (user_id, tweak_id)');
+      await db.execute(sql`
+        ALTER TABLE network_tweak_state ADD PRIMARY KEY (user_id, tweak_id)
+      `);
+      console.log('[NetworkTweaks] composite PK added');
+    } else if ((rows[0].col_count as number) === 1) {
+      // State (a): sole PK — upgrade to composite
       const constraintName = rows[0].conname as string;
       console.log(`[NetworkTweaks] upgrading sole-PK "${constraintName}" → composite (user_id, tweak_id)`);
-
-      // Drop the old single-column PK
       await db.execute(
         sql.raw(`ALTER TABLE network_tweak_state DROP CONSTRAINT IF EXISTS "${constraintName}"`)
       );
-
-      // Add the composite PK
       await db.execute(sql`
-        ALTER TABLE network_tweak_state
-          ADD PRIMARY KEY (user_id, tweak_id)
+        ALTER TABLE network_tweak_state ADD PRIMARY KEY (user_id, tweak_id)
       `);
-
-      console.log('[NetworkTweaks] migration complete — network_tweak_state now uses (user_id, tweak_id) PK');
+      console.log('[NetworkTweaks] migration complete — composite PK in place');
     } else {
+      // State (b): composite PK already present
       console.log('[NetworkTweaks] network_tweak_state schema OK — composite PK already present');
     }
   } catch (e: any) {
