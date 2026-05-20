@@ -659,11 +659,10 @@ function createWindow() {
     width: 1300,
     height: 800,
     // show:false + paintWhenInitiallyHidden:true is the correct zero-flash pattern.
-    // Chromium paints into a hidden surface with all four dark layers applied:
-    //   1. backgroundColor:'#07090D' — native DWM surface
-    //   2. webContents.setBackgroundColor (called before loadFile below) — compositor
-    //   3. preload.js style injection — renderer layer before first HTML paint
-    //   4. index.html inline styles — HTML/CSS layer
+    // Chromium paints into a hidden surface with three dark layers applied:
+    //   1. backgroundColor:'#07090D' — native DWM surface (BrowserWindow option)
+    //   2. preload.js style injection — renderer layer before first HTML paint
+    //   3. index.html inline styles — HTML/CSS layer
     // ready-to-show fires only after the first dark frame is committed.
     // We then call mainWindow.show() and the user sees a dark window instantly —
     // Chromium's white compositor init frame was never visible because the window
@@ -683,7 +682,7 @@ function createWindow() {
       paintWhenInitiallyHidden: true, // Ensure Chromium paints frames even while window is hidden
     }
   });
-  console.log('[LAUNCH:1] BrowserWindow constructed — show:true, paintWhenInitiallyHidden:true, isVisible:', mainWindow.isVisible());
+  console.log('[LAUNCH:1] BrowserWindow constructed — show:false, paintWhenInitiallyHidden:true, isVisible:', mainWindow.isVisible());
 
   // ── Block all DevTools keyboard shortcuts ─────────────────────────────────
   mainWindow.webContents.on('before-input-event', (event, input) => {
@@ -787,11 +786,6 @@ function createWindow() {
     }
     return { action: 'deny' };
   });
-
-  // Explicitly set Chromium's compositor background before any navigation.
-  // backgroundColor on BrowserWindow covers the native DWM surface; this call
-  // covers the Chromium renderer layer so its first compositor frame is dark.
-  mainWindow.webContents.setBackgroundColor('#07090D');
 
   if (isDev) {
     console.log('[LAUNCH:2] dev mode — loadURL http://localhost:5000');
@@ -950,8 +944,8 @@ function createWindow() {
   // ── Primary show trigger ──────────────────────────────────────────────────────
   // ready-to-show fires after Chromium has committed its first painted frame.
   // Because show:false + paintWhenInitiallyHidden:true, that first frame was
-  // rendered into a hidden surface — all four dark layers were already applied
-  // (backgroundColor, setBackgroundColor, preload injection, inline CSS).
+  // rendered into a hidden surface — all three dark layers were already applied
+  // (backgroundColor BrowserWindow option, preload injection, inline CSS).
   // Calling show() here gives the user a window that is dark from frame 0.
   // No white flash, no delay visible — the paint happened in the background.
   mainWindow.once('ready-to-show', () => {
