@@ -1337,14 +1337,6 @@ function WebsiteContent() {
     safeRefreshEntitlements: async () => ({ user: null }),
   };
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="size-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
-
   return (
     <AppAuthContext.Provider value={authContextValue}>
       <Router>
