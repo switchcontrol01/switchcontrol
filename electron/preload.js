@@ -1,5 +1,17 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
+// ─── Zero-flash dark background ───────────────────────────────────────────────
+// Preload runs synchronously before any page HTML is fetched or parsed.
+// Setting the background here ensures Chromium's very first compositor frame
+// is dark — backgroundColor on BrowserWindow covers the native surface, and
+// this covers the Chromium renderer layer. Together they eliminate the brief
+// white frame that appears between window creation and first HTML paint.
+try {
+  document.documentElement.style.setProperty('background', '#07090D', 'important');
+  document.documentElement.style.setProperty('background-color', '#07090D', 'important');
+  document.documentElement.style.setProperty('color-scheme', 'dark');
+} catch (_) {}
+
 // ─── Production detection ─────────────────────────────────────────────────────
 // Main process passes --switchcontrol-prod via additionalArguments in production.
 // This is reliable across dev/packaged builds without depending on NODE_ENV.
