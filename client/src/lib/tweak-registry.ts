@@ -841,7 +841,7 @@ const BASE: BaseTweak[] = [
       "Discord, Fortnite, and other voice chat will break if using a Bluetooth headset",
     ],
     expected: { cpu: "Low", network: "None", disk: "None", ram: "None", gpu: "None", latency: "Low", stabilityRisk: "High" },
-    category: "Network", level: "Advanced", risk: "Risky",
+    category: "Network", level: "Advanced", risk: "Moderate",
     supported: true, requiresAdmin: true,
     whoShouldAvoid: "Anyone using Bluetooth headsets, wireless controllers, Bluetooth mice/keyboard, or Bluetooth speakers. Discord and Fortnite voice chat users.",
     detailsConfig: {

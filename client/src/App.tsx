@@ -623,15 +623,18 @@ function ElectronAppContent() {
     if (patchNotesCheckedRef.current) return;
     patchNotesCheckedRef.current = true;
 
+    let mounted = true;
     fetch("/patch-notes.json")
       .then((r) => r.json())
       .then((notes: { version: string }) => {
+        if (!mounted) return;
         const lastSeen = localStorage.getItem(PATCH_NOTES_STORAGE_KEY);
         if (notes.version !== lastSeen) {
           setShowPatchNotes(true);
         }
       })
       .catch(() => {});
+    return () => { mounted = false; };
   }, [phase, activeFlow]);
 
   // ── Splash completion — Splash.tsx is the sole timing authority ─────────
@@ -693,6 +696,7 @@ function ElectronAppContent() {
           // cutting off valid (but slow) OAuth sessions before the server
           // responded, then treating a transient network delay as a failure.
           const exchangedUser = await exchangeToken(authCode);
+          if (!mounted) return; // P3-DL2: bail if effect cleaned up mid-await
 
           if (exchangedUser) {
             useAuthStore.getState().setToken(authCode);
@@ -723,6 +727,7 @@ function ElectronAppContent() {
                 delayMs: 500,
                 initialDelayMs: 300,
               });
+              if (!mounted) return; // P3-DL3: bail after second await
               if (premResult.ok && premResult.user?.isPremium) {
                 console.log('[PremiumFlow] Premium confirmed after login');
               } else {
