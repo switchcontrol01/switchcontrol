@@ -75,18 +75,24 @@ document.addEventListener('click', (e) => {
 // module side-effect has overwritten them before this script runs.
 // This MUST run synchronously before createRoot so the very first React paint
 // is already behind a dark, fully-opaque root layer.
-document.documentElement.style.opacity = '0';
-document.documentElement.style.background = '#07090D';
-document.documentElement.style.backgroundColor = '#07090D';
-document.body.style.background = '#07090D';
-document.body.style.backgroundColor = '#07090D';
-console.log(`[LAUNCH:R0] renderer bootstrap — opacity locked to 0 | t=+${performance.now().toFixed(0)}ms`);
+const _isElectron = !!(window as any).electronAPI;
+
+// In Electron mode, the inline <script> in index.html has already set opacity=1
+// and sc-electron-no-cover (removes body::before).  The Splash will be visible
+// immediately when show() fires.  We do NOT touch opacity here.
+// In website mode, we keep the dark lock until React mounts, then reveal.
+if (!_isElectron) {
+  document.documentElement.style.opacity = '0';
+  document.documentElement.style.background = '#07090D';
+  document.documentElement.style.backgroundColor = '#07090D';
+  document.body.style.background = '#07090D';
+  document.body.style.backgroundColor = '#07090D';
+}
+console.log(`[LAUNCH:R0] renderer bootstrap | electron=${_isElectron} | t=+${performance.now().toFixed(0)}ms`);
 
 console.log(`[LAUNCH:R1] createRoot dispatching | t=+${performance.now().toFixed(0)}ms`);
 createRoot(document.getElementById("root")!).render(<App />);
 
-// In non-Electron (website) mode there is no Splash handshake, so reveal immediately.
-// In Electron mode, Splash.tsx manages the reveal after app:window-shown.
-if (!(window as any).electronAPI) {
+if (!_isElectron) {
   document.documentElement.style.opacity = '1';
 }

@@ -932,79 +932,26 @@ function createWindow() {
   });
 
   ipcMain.once('app:first-frame-ready', () => {
-    _firstFrameReadyFired = true;
-    _bm.firstFrameReady = Date.now();
-    clearTimeout(showFallbackTimer);
-    console.log(`[LAUNCH:4] first-frame-ready received — 2-rAF dark frame confirmed | ${launchMs()}`);
-    if (!mainWindow || mainWindow.isVisible()) return;
+      _firstFrameReadyFired = true;
+      _bm.firstFrameReady = Date.now();
+      clearTimeout(showFallbackTimer);
+      if (!mainWindow || mainWindow.isVisible()) return;
 
-    // ── DWM flash prevention ──────────────────────────────────────────────────
-    // Even with backgroundColor:#07090D and 3-rAF handshake, Windows DWM can
-    // briefly show a grey/white native frame between show() and the moment
-    // Chromium delivers its first GPU texture to the OS compositor.
-    //
-    // Fix: set OS-level window opacity to 0 BEFORE show(), wait 34ms (≈2 VSync
-    // intervals at 60 Hz) for Chromium to push its pre-rendered dark frame
-    // through the GPU pipeline to the DWM swap chain, THEN restore opacity.
-    //
-    // Why 34ms instead of 16ms:
-    //   On cold launch with CPU/GPU pressure (AMD RX 7800 XT and similar),
-    //   the GPU driver's first-frame delivery to DWM can exceed one VSync
-    //   interval.  16ms was inside that window for some hardware; 34ms gives
-    //   two full VSync cycles which is sufficient even under load.
-    //   The renderer html is at opacity:0 throughout so no content is visible
-    //   to the user — only the backgroundColor fills the window surface.
-    mainWindow.setOpacity(0);
-    mainWindow.show();
-    console.log(`[LAUNCH:5] mainWindow.show() — opacity:0 (anti-DWM-flash) | ${launchMs()}`);
-
-    setTimeout(() => {
-      if (!mainWindow || mainWindow.isDestroyed()) return;
-
-      // ── Eliminate the black-frame gap ──────────────────────────────────────
-      // Root cause of the black flash (since 1.0.3):
-      //   Old order: setOpacity(1) → webContents.send('app:window-shown')
-      //   Problem:  window becomes visible to Windows DWM while html { opacity:0 }
-      //             is still in effect.  The IPC + compositor lag (~20ms) meant the
-      //             window showed only backgroundColor (#07090D) for one visible flash.
-      //
-      // Fix — reversed order:
-      //   1. Send app:window-shown IPC first → renderer immediately sets
-      //      html.style.transition + html.style.opacity='1'  AND
-      //      document.body.classList.add('sc-first-frame-ready') →
-      //      both GPU-compositor transitions start on the renderer thread.
-      //   2. Wait 20ms (~1.25 VSync) — compositor has committed the transitions
-      //      and is already interpolating opacity.
-      //   3. THEN restore OS opacity → window appears mid-transition.
-      //      body::before is ~17% faded (still covers most content) and
-      //      html is ~17% opaque — net result: user sees the dark cover
-      //      smoothly animating out, never a pure backgroundColor frame.
+      // paintWhenInitiallyHidden:true guarantees Chromium has already painted
+      // the Splash while the window was still hidden.  The renderer has already
+      // set opacity:1 and removed body::before (sc-electron-no-cover).  Just show.
+      mainWindow.show();
       _bm.windowShown = Date.now();
-      mainWindow.webContents.send('app:window-shown');
-      console.log(`[LAUNCH:5b] app:window-shown sent — renderer transitions starting | ${launchMs()}`);
+      mainWindow.focus();
+      console.log(`[LAUNCH:5] mainWindow.show() -- instant, no opacity games | ${launchMs()}`);
 
+      // Telemetry deferred so it doesn't compete with first paint.
       setTimeout(() => {
-        if (!mainWindow || mainWindow.isDestroyed()) return;
-        mainWindow.setOpacity(1);
-        console.log(`[LAUNCH:5c] opacity restored to 1 — window visible mid-transition | ${launchMs()}`);
-        mainWindow.focus();
-        console.log(`[LAUNCH:6] focus() — launch sequence complete | ${launchMs()}`);
-
-        // ── Deferred telemetry start ─────────────────────────────────────────
-        // Telemetry (including heavy GPU prewarm / PowerShell perf counter cold-start)
-        // is intentionally delayed until 2000ms AFTER the window is on screen and the
-        // logo/splash animation has had time to complete its first render pass.
-        // Starting telemetry immediately caused a visual race: GPU perf-counter cold-start
-        // (2-4s PowerShell startup) competed for CPU/GPU with the first-paint animation.
-        // State machine: hidden → mounted → visible (now) → telemetry starts (+2000ms)
-        setTimeout(() => {
-          _bm.telemetryStart = Date.now();
-          console.log(`[LAUNCH:7] starting telemetry — 2000ms post window-shown | ${launchMs()}`);
-          startTelemetryPolling().catch(e => console.error('[telemetry:poll] startTelemetryPolling error:', e.message));
-        }, 2000);
-      }, 20); // 20ms ≈ 1.25 VSync — gives compositor time to start transitions
-    }, 34); // 34ms = 2 VSync — DWM swap chain warmup (unchanged)
-  });
+        _bm.telemetryStart = Date.now();
+        console.log(`[LAUNCH:7] starting telemetry -- 2000ms post window-shown | ${launchMs()}`);
+        startTelemetryPolling().catch(e => console.error('[telemetry:poll] startTelemetryPolling error:', e.message));
+      }, 2000);
+    });
 
   // ready-to-show: DIAGNOSTIC ONLY — do NOT call show() here.
   // ready-to-show can fire before CSS paint (white frame risk).

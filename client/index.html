@@ -69,6 +69,11 @@
         opacity: 0;
         transition: opacity 120ms ease;
       }
+
+      /* Electron: remove the dark cover entirely — Splash is already visible */
+      body.sc-electron-no-cover::before {
+        display: none !important;
+      }
     </style>
 
     <!-- Belt-and-suspenders: set background on documentElement synchronously
@@ -112,8 +117,16 @@
   <body style="margin:0;padding:0;background:#14181D;overflow:hidden;height:100%;width:100%;">
 
     <script>
-      if(!(window.electronAPI||navigator.userAgent.indexOf('Electron')!==-1)){
-        document.documentElement.style.opacity='1';
+      if(window.electronAPI || navigator.userAgent.indexOf('Electron') !== -1){
+        // Electron: show instantly — no html-level opacity fade, no body::before cover.
+        // paintWhenInitiallyHidden has already rasterised the Splash while hidden.
+        // The window shows with the Splash fully visible the moment show() fires.
+        document.documentElement.style.opacity = '1';
+        document.documentElement.classList.add('sc-electron');
+        document.body.classList.add('sc-electron-no-cover');
+      } else {
+        // Web: normal fade-in
+        document.documentElement.style.opacity = '1';
         document.documentElement.classList.add('sc-web');
         document.body.classList.add('sc-first-frame-ready');
       }

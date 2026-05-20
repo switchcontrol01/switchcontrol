@@ -53,8 +53,6 @@ export default function Splash({ onComplete }: SplashProps) {
     let raf1: number;
     let raf2: number;
     let raf3: number;
-    let fallbackTimer: ReturnType<typeof setTimeout> | undefined;
-    let windowShownUnsub: (() => void) | undefined;
 
     async function prepareSplash() {
       console.log(`[LAUNCH:R2] Splash mounted | t=+${performance.now().toFixed(0)}ms`);
@@ -67,74 +65,10 @@ export default function Splash({ onComplete }: SplashProps) {
 
       raf1 = requestAnimationFrame(() => {
         raf2 = requestAnimationFrame(() => {
-          // Third rAF: gives GPU compositor one extra cycle to rasterise
-          // the blur-filter layers before we fire the DWM handshake.
           raf3 = requestAnimationFrame(() => {
             if (cancelled) return;
-
-            const readyTs = performance.now();
-            console.log(`[LAUNCH:R3] splash ready: logo decoded, 3-rAF compositor frame ready | t=+${readyTs.toFixed(0)}ms`);
-
             setReady(true);
-
-            const api = (window as any).electronAPI;
-
-            if (api?.signalFirstFrameReady) {
-              api.signalFirstFrameReady();
-              console.log(`[LAUNCH:R3] first-frame-ready IPC sent | t=+${performance.now().toFixed(0)}ms`);
-
-              let revealed = false;
-              const reveal = (source: string) => {
-                if (revealed) return;
-                revealed = true;
-                const revealTs = performance.now();
-                console.log(`[LAUNCH:R4] reveal triggered by ${source} | t=+${revealTs.toFixed(0)}ms`);
-
-                // ── Step 1: arm html fade-in (120ms ease-out) ────────────────
-                // IMPORTANT: set transition BEFORE opacity so Chromium snapshots
-                // the current computed opacity:0 as the animation "from" value.
-                // If transition were baked into the html inline style from the
-                // start, Chromium might snapshot opacity:1 (browser default) as
-                // the from value during renderer initialisation, briefly flashing
-                // content before the dark cover settles.
-                // 120ms matches body::before duration so both clear simultaneously —
-                // the React Splash beneath is revealed in one clean motion.
-                document.documentElement.style.transition = 'opacity 120ms ease-out';
-                document.documentElement.style.opacity = '1';
-                console.log(`[LAUNCH:R5] renderer reveal started — opacity 0→1 (120ms) | t=+${performance.now().toFixed(0)}ms`);
-
-                // ── Step 2: body::before dark cover fades (120ms) ─────────────
-                // The body::before overlay (z-index 2147483647, will-change:opacity,
-                // on its own GPU layer) provides solid dark coverage while the html
-                // opacity ramps up from 0 to 1.  Both transitions complete at 120ms
-                // so the React Splash is revealed cleanly with no intermediate cover.
-                document.body.classList.add('sc-first-frame-ready');
-                console.log('[LAUNCH:R4] sc-first-frame-ready set — body::before fading (120ms)');
-
-                setTimeout(() => {
-                  console.log(`[LAUNCH:R6] renderer reveal completed (120ms elapsed) | t=+${performance.now().toFixed(0)}ms`);
-                }, 120);
-              };
-
-              windowShownUnsub = api.onWindowShown?.(() => {
-                clearTimeout(fallbackTimer);
-                windowShownUnsub = undefined;
-                const shownTs = performance.now();
-                console.log(`[LAUNCH:R3b] app:window-shown received | t=+${shownTs.toFixed(0)}ms`);
-                reveal('app:window-shown');
-              });
-
-              fallbackTimer = setTimeout(() => {
-                console.warn('[LAUNCH:FALLBACK] app:window-shown never received — revealing after 700ms fallback');
-                reveal('fallback-timeout');
-              }, 700);
-
-            } else {
-              // Non-Electron (website) path — reveal immediately
-              document.documentElement.style.transition = 'opacity 120ms ease-out';
-              document.documentElement.style.opacity = '1';
-              document.body.classList.add('sc-first-frame-ready');
-            }
+            console.log(`[LAUNCH:R3] splash ready | t=+${performance.now().toFixed(0)}ms`);
           });
         });
       });
@@ -147,8 +81,6 @@ export default function Splash({ onComplete }: SplashProps) {
       cancelAnimationFrame(raf1);
       cancelAnimationFrame(raf2);
       cancelAnimationFrame(raf3);
-      clearTimeout(fallbackTimer);
-      windowShownUnsub?.();
     };
   }, []);
 
@@ -167,7 +99,7 @@ export default function Splash({ onComplete }: SplashProps) {
     const done = setTimeout(() => {
       console.log('[LAUNCH:R5] Splash onComplete — handing off to App');
       onComplete();
-    }, 1750);
+    }, 950);
 
     return () => {
       clearTimeout(t2);
