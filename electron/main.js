@@ -1960,15 +1960,66 @@ try {
     if ($nb) { $result.monitorName = ([System.Text.Encoding]::ASCII.GetString([byte[]]$nb)).Trim(); break }
   }
 } catch {}
+# HDR — source 1: Windows global toggle
 try {
-  $hv = (Get-ItemProperty 'HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\VideoSettings' -Name EnableHDRForVideo -ErrorAction Stop).EnableHDRForVideo
+  $hv = (Get-ItemProperty 'HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\VideoSettings' -Name EnableHDRForVideo -EA Stop).EnableHDRForVideo
   $result.hdrEnabled = ($hv -eq 1)
 } catch {}
-# VRR (Variable Refresh Rate / FreeSync / G-Sync) — Windows built-in VRR toggle
+# HDR — source 2: Windows 11 per-display sub-keys (AdvancedColorEnabled / EnableHDRForVideo per monitor GUID)
+if ($result.hdrEnabled -eq $null) {
+  try {
+    $subkeys = Get-ChildItem 'HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\VideoSettings' -EA Stop
+    foreach ($sk in $subkeys) {
+      $acv = (Get-ItemProperty $sk.PSPath -Name AdvancedColorEnabled -EA SilentlyContinue).AdvancedColorEnabled
+      if ($acv -ne $null) { $result.hdrEnabled = ($acv -eq 1); break }
+      $ehv = (Get-ItemProperty $sk.PSPath -Name EnableHDRForVideo -EA SilentlyContinue).EnableHDRForVideo
+      if ($ehv -ne $null) { $result.hdrEnabled = ($ehv -eq 1); break }
+    }
+  } catch {}
+}
+# HDR — source 3: GPU driver configuration (AMD/NVIDIA AdvancedColorEnabled under GraphicsDrivers\Configuration)
+if ($result.hdrEnabled -eq $null) {
+  try {
+    $cfgBase = 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\GraphicsDrivers\\Configuration'
+    $checked = 0
+    :hdrSearch foreach ($ck in (Get-ChildItem $cfgBase -EA Stop)) {
+      foreach ($sk in (Get-ChildItem $ck.PSPath -EA SilentlyContinue)) {
+        foreach ($sk2 in (Get-ChildItem $sk.PSPath -EA SilentlyContinue)) {
+          $adv = (Get-ItemProperty $sk2.PSPath -Name AdvancedColorEnabled -EA SilentlyContinue).AdvancedColorEnabled
+          if ($adv -ne $null) { $result.hdrEnabled = ($adv -eq 1); break hdrSearch }
+          $checked++; if ($checked -gt 8) { break hdrSearch }
+        }
+      }
+    }
+  } catch {}
+}
+# VRR — source 1: Windows OS-level VRR toggle (works for G-Sync and Windows VRR)
 try {
-  $vrr = (Get-ItemProperty 'HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\VideoSettings' -Name EnableVariableRefreshRate -ErrorAction Stop).EnableVariableRefreshRate
+  $vrr = (Get-ItemProperty 'HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\VideoSettings' -Name EnableVariableRefreshRate -EA Stop).EnableVariableRefreshRate
   $result.vrrEnabled = ($vrr -eq 1)
 } catch { $result.vrrEnabled = $null }
+# VRR — source 2: AMD FreeSync driver registry (KMD_FreeSync >= 1 means FreeSync on)
+if ($result.vrrEnabled -eq $null) {
+  try {
+    $gpuClass = 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Class\\{4d36e968-e325-11ce-bfc1-08002be10318}'
+    foreach ($dk in (Get-ChildItem $gpuClass -EA Stop | Where-Object { $_.PSChildName -match '^\d+$' } | Select-Object -First 4)) {
+      $fs = (Get-ItemProperty $dk.PSPath -Name 'KMD_FreeSync' -EA SilentlyContinue).'KMD_FreeSync'
+      if ($fs -ne $null) { $result.vrrEnabled = ([int]$fs -ge 1); break }
+      $fsdx = (Get-ItemProperty $dk.PSPath -Name 'KMD_EnableFreeSyncDX' -EA SilentlyContinue).'KMD_EnableFreeSyncDX'
+      if ($fsdx -ne $null) { $result.vrrEnabled = ($fsdx -eq 1); break }
+    }
+  } catch {}
+}
+# VRR — source 3: monitor EDID-declared continuous frequency support (indicates hardware VRR capability)
+if ($result.vrrEnabled -eq $null) {
+  try {
+    $mf = Get-CimInstance -Namespace root/wmi -ClassName WmiMonitorSupportedDisplayFeatures -EA Stop
+    $mfArr = if ($mf -is [array]) { $mf } else { @($mf) }
+    foreach ($f in $mfArr) {
+      if ($f.ContinuousFrequencySupported -ne $null) { $result.vrrEnabled = [bool]($f.ContinuousFrequencySupported); break }
+    }
+  } catch {}
+}
 # Connection type — WmiMonitorConnectionParams is the most reliable source (Win8+)
 $result.connectionType = $null
 try {
