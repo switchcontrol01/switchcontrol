@@ -231,9 +231,9 @@ function ItemRow({ item, finding, selected, onToggle, cleanResult, isCleaning, d
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 8 }}
+      initial={{ opacity: 1, y: 4 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay, duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+      transition={{ delay, duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
       className={cn(
         "rounded-xl border transition-all duration-200 overflow-hidden",
         selected ? "border-white/[0.12] bg-white/[0.04]" : "border-white/[0.06] bg-white/[0.02]",
@@ -343,9 +343,9 @@ function CategorySection({ category, items, findings, selected, onToggle, onTogg
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 12 }}
+      initial={{ opacity: 1, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+      transition={{ delay, duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
       className="rounded-2xl border border-white/[0.07] bg-white/[0.02] overflow-hidden"
     >
       {/* Category header */}
@@ -768,8 +768,8 @@ export default function SystemCleaner() {
 
           {/* ────────────────── SCANNING ─────────────────────────────────── */}
           {phase === "scanning" && (
-            <motion.div key="scanning" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              transition={{ duration: 0.35 }}
+            <motion.div key="scanning" initial={{ opacity: 1 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              transition={{ duration: 0.25 }}
               className="flex flex-col items-center justify-center py-16 gap-8">
 
               <div className="flex flex-col items-center gap-6">
@@ -804,8 +804,8 @@ export default function SystemCleaner() {
 
           {/* ────────────────── READY (scan done) ────────────────────────── */}
           {phase === "ready" && (
-            <motion.div key="ready" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }} className="space-y-4">
+            <motion.div key="ready" initial={{ opacity: 1, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }} className="space-y-4">
 
               {/* Summary hero */}
               <div className="relative rounded-2xl border border-white/[0.08] bg-gradient-to-br from-white/[0.03] to-white/[0.01] overflow-hidden px-6 py-5">
@@ -870,7 +870,7 @@ export default function SystemCleaner() {
 
           {/* ────────────────── CLEANING ─────────────────────────────────── */}
           {phase === "cleaning" && (
-            <motion.div key="cleaning" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            <motion.div key="cleaning" initial={{ opacity: 1 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               className="space-y-4">
 
               <div className="flex flex-col items-center gap-4 py-8">
@@ -927,8 +927,8 @@ export default function SystemCleaner() {
 
           {/* ────────────────── RESULT ───────────────────────────────────── */}
           {phase === "result" && session && (
-            <motion.div key="result" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}
-              transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }} className="space-y-4">
+            <motion.div key="result" initial={{ opacity: 1, scale: 0.99 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}
+              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }} className="space-y-4">
 
               {/* Result hero */}
               <div className="relative rounded-2xl border border-green-500/20 bg-gradient-to-br from-green-500/[0.06] to-emerald-900/[0.04] overflow-hidden px-8 py-8 text-center">

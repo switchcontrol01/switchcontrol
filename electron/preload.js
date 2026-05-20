@@ -168,10 +168,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // ── Low-risk read-only system data ──────────────────────────────────────────
   system: {
-    getInfo:     () => ipcRenderer.invoke('system:getInfo'),
-    getSpecs:    () => ipcRenderer.invoke('system:getSpecs'),
-    getRamUsage: () => ipcRenderer.invoke('system:getRamUsage'),
-    getAllDisks:  () => ipcRenderer.invoke('system:getAllDisks'),
+    getInfo:        () => ipcRenderer.invoke('system:getInfo'),
+    getSpecs:       () => ipcRenderer.invoke('system:getSpecs'),
+    getRamUsage:    () => ipcRenderer.invoke('system:getRamUsage'),
+    getAllDisks:     () => ipcRenderer.invoke('system:getAllDisks'),
+    getDisplayInfo: () => ipcRenderer.invoke('system:getDisplayInfo'),
   },
 
   // ── Security — system integrity data ────────────────────────────────────────

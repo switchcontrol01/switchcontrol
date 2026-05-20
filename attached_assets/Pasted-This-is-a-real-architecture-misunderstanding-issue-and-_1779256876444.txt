@@ -1,0 +1,271 @@
+This is a real architecture misunderstanding issue, and it explains a lot.
+
+Let’s break it cleanly.
+
+
+---
+
+What happens when you delete %appdata%/SwitchControl
+
+You are deleting:
+
+local persistent state store (Zustand / JSON / IndexedDB / cache / config)
+
+So yes:
+
+Everything locally resets to default OFF
+
+That includes:
+
+toggles
+
+tweak states
+
+cached system profile
+
+UI state
+
+last known system snapshot
+
+
+So from the app’s perspective:
+
+fresh install state = all tweaks OFF
+
+
+---
+
+BUT here is the important part
+
+That does NOT mean the backend changed
+
+Your backend (Electron main process / server) still has:
+
+installed tweak definitions
+
+system capability detection
+
+default enabled rules
+
+entitlement logic
+
+stored profiles (if server-side exists)
+
+
+So you now have:
+
+frontend reset ≠ backend reset
+
+
+---
+
+Why it looks like “tweaks are disabled”
+
+Because:
+
+1. Frontend store is wiped
+
+UI shows everything OFF
+
+no cached state
+
+
+2. Backend still THINKS features exist
+
+nothing was actually uninstalled
+
+nothing was removed from system
+
+no registry changes reversed
+
+
+So you get a mismatch:
+
+UI: OFF
+System: still potentially ON (or last applied state)
+
+
+---
+
+Critical concept (this is the real answer)
+
+Your app is:
+
+NOT fully stateless
+
+NOT fully server-authoritative
+
+It is hybrid:
+
+UI state (AppData) + System state (Windows tweaks)
+
+
+---
+
+So to your direct question:
+
+“Does the backend know it's still enabled?”
+
+👉 YES — unless your backend explicitly re-scans system state
+
+Deleting AppData does NOT:
+
+revert registry tweaks
+
+undo system optimizations
+
+disable services already changed
+
+reset Windows-level changes
+
+
+
+---
+
+Very important distinction
+
+There are 2 types of “tweaks”
+
+1. UI/soft toggles
+
+Stored in AppData:
+
+enabled = true/false
+
+presets
+
+profiles
+
+
+These reset when you delete folder.
+
+
+---
+
+2. system-level tweaks (real changes)
+
+Examples:
+
+registry edits
+
+power plan changes
+
+NIC tweaks
+
+service disable
+
+scheduler changes
+
+
+These:
+
+STAY even if AppData is deleted
+
+
+---
+
+So what you’re seeing is expected behavior
+
+When you delete %appdata%/SwitchControl:
+
+✔ UI resets
+✔ cached state resets
+✔ dashboard shows 0 / OFF
+
+BUT:
+
+❌ Windows is NOT reverted
+❌ backend state is NOT cleared
+❌ tweaks are NOT undone automatically
+
+
+---
+
+This is actually a design gap
+
+Right now you are missing a concept:
+
+“Source of truth reconciliation”
+
+You don’t currently have a full system resync like:
+
+scan system → compare to saved state → rebuild UI state
+
+
+---
+
+Why this matters
+
+Without reconciliation:
+
+deleting AppData = fake “reset”
+
+reinstall = inconsistent state view
+
+backend and UI drift apart
+
+debugging becomes confusing (what you just saw)
+
+
+
+---
+
+If you want this fixed properly (recommended)
+
+You need ONE of these:
+
+
+---
+
+Option A (best)
+
+On startup:
+
+scan registry + services + system settings
+rebuild toggle state from reality
+
+UI becomes truth-based, not file-based.
+
+
+---
+
+Option B
+
+Store everything server-side (Electron backend)
+
+Then AppData delete does nothing meaningful.
+
+
+---
+
+Option C (what you currently have)
+
+Local cache only
+
+→ simplest but causes exactly what you saw
+
+
+---
+
+Final answer (direct)
+
+✔ Deleting %appdata%/SwitchControl resets UI state
+❌ It does NOT revert system tweaks
+✔ Backend still considers system changes active
+✔ So state becomes desynced until rescan or reapply
+
+
+---
+
+If you want, I can map your entire tweak system and show you:
+
+what is actually persistent in Windows
+
+what is only UI state
+
+what should be reconciled on boot
+
+and what is currently broken in your state sync model
+
+
+That’s the real root issue underneath everything you’ve been debugging.

@@ -489,6 +489,49 @@ function SweepLine({ active }: { active: boolean }) {
   );
 }
 
+const isElectron = typeof window !== "undefined" && !!(window as any).electronAPI?.isElectron;
+
+/** Build a DisplaySignalProfile from raw IPC display data (Electron-only path). */
+function buildProfileFromIpc(raw: { controllers: any[]; displays: any[] }): DisplaySignalProfile {
+  const ctrl  = raw.controllers?.[0] ?? null;
+  const disp  = raw.displays?.[0]    ?? null;
+  const resX: number | null = disp?.currentResX  ?? null;
+  const resY: number | null = disp?.currentResY  ?? null;
+  const hz:   number | null = disp?.currentRefreshRate ?? null;
+  const resolution = (resX && resY) ? `${resX}×${resY}` : null;
+  const gpuName: string | null = ctrl?.model?.trim() || null;
+
+  // Basic quality score: weight refresh rate and resolution
+  let score: number | null = null;
+  let qualityReason = "No display data available";
+  if (hz != null && hz > 0) {
+    score = hz >= 240 ? 98 : hz >= 165 ? 92 : hz >= 144 ? 88 : hz >= 120 ? 80 : hz >= 75 ? 70 : 55;
+    if (resX && resY && resX * resY >= 3840 * 2160) score = Math.min(score + 5, 100);
+    qualityReason = `${hz}Hz display detected`;
+  } else if (resolution) {
+    score = 60;
+    qualityReason = "Refresh rate unavailable";
+  }
+
+  return {
+    monitorName:    null,
+    resolution,
+    refreshHz:      hz && hz > 0 ? hz : null,
+    bitDepth:       null,
+    hdrEnabled:     null,
+    vrrEnabled:     null,
+    connectionType: null,
+    gpuName,
+    isNativeMode:   null,
+    qualityScore:   score,
+    qualityReason,
+    qualityAction:  null,
+    notes:          [],
+    displayCount:   raw.displays?.length ?? 0,
+    ts:             Date.now(),
+  } as any;
+}
+
 export function DisplaySignalGraph({ delay = 0 }: { delay?: number }) {
   const { user } = useAuth();
   const [profile, setProfile] = useState<DisplaySignalProfile | null>(null);
@@ -497,6 +540,29 @@ export function DisplaySignalGraph({ delay = 0 }: { delay?: number }) {
 
   useEffect(() => {
     if (!user?.loggedIn) return;
+
+    // In Electron: call local IPC so we get the user's actual Windows display info
+    // instead of the cloud server's Linux environment (which has no display).
+    if (isElectron) {
+      const api = (window as any).electronAPI;
+      const load = async () => {
+        try {
+          const raw = await api.system.getDisplayInfo();
+          if (raw && (raw.controllers?.length > 0 || raw.displays?.length > 0)) {
+            const p = buildProfileFromIpc(raw);
+            setProfile(p);
+            setChanged(true);
+            setTimeout(() => setChanged(false), 2000);
+          }
+        } catch { /* silent — IPC unavailable in dev/web */ }
+      };
+      load();
+      // Display config rarely changes — re-check every 5 minutes
+      const timer = setInterval(load, 5 * 60_000);
+      return () => clearInterval(timer);
+    }
+
+    // Web / non-Electron: use cloud API (returns server-side si.graphics data)
     const load = () =>
       cloudApiGet<DisplaySignalProfile>("/dashboard-intelligence/display-signal")
         .then((d: DisplaySignalProfile) => {

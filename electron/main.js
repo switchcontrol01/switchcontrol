@@ -1100,23 +1100,46 @@ async function getGpuPerfCounterLoad() {
   }
 
   // PowerShell outputs JSON: { "max": <number>, "engines": { <type>: <sum>, ... } }
+  // Tries GPU Engine perf counters first; if that counter category is missing (common on
+  // some AMD/driver configs), falls back to CIM Win32_PerfFormattedData then enumerates
+  // whatever GPU counter sets ARE present so the wildcard path can be resolved dynamically.
   const ps = `
-try {
-  $s = (Get-Counter '\\GPU Engine(*)\\Utilization Percentage' -ErrorAction Stop).CounterSamples
-  $byType = $s | Group-Object { if ($_.InstanceName -match '_engtype_(.+)$') { $Matches[1] } else { 'other' } }
-  $engines = @{}
-  $maxLoad = 0.0
-  foreach ($g in $byType) {
-    # Sum across all process instances of this engine type to get total engine load
-    $engineSum = [Math]::Round(($g.Group | Measure-Object -Property CookedValue -Sum).Sum, 2)
-    $engines[$g.Name] = $engineSum
-    if ($engineSum -gt $maxLoad) { $maxLoad = $engineSum }
-  }
-  $enginesJson = ($engines.GetEnumerator() | ForEach-Object { '"' + $_.Key + '":' + $_.Value }) -join ','
-  '{"max":' + [Math]::Round($maxLoad, 2) + ',"engines":{' + $enginesJson + '}}'
-} catch {
-  '{"max":-1,"engines":{}}'
-}`.trim();
+function Get-GpuEngineMax {
+  # Attempt 1: direct GPU Engine counter (most systems)
+  try {
+    $s = (Get-Counter '\\GPU Engine(*)\\Utilization Percentage' -ErrorAction Stop).CounterSamples
+    $byType = $s | Group-Object { if ($_.InstanceName -match '_engtype_(.+)$') { $Matches[1] } else { 'other' } }
+    $engines = @{}
+    $maxLoad = 0.0
+    foreach ($g in $byType) {
+      $engineSum = [Math]::Round(($g.Group | Measure-Object -Property CookedValue -Sum).Sum, 2)
+      $engines[$g.Name] = $engineSum
+      if ($engineSum -gt $maxLoad) { $maxLoad = $engineSum }
+    }
+    $enginesJson = ($engines.GetEnumerator() | ForEach-Object { '"' + $_.Key + '":' + $_.Value }) -join ','
+    return '{"max":' + [Math]::Round($maxLoad, 2) + ',"engines":{' + $enginesJson + '}}'
+  } catch {}
+  # Attempt 2: enumerate all GPU* counter sets and find any Utilization path
+  try {
+    $sets = Get-Counter -ListSet 'GPU*' -ErrorAction SilentlyContinue
+    $utilPath = $sets | ForEach-Object { $_.Paths } | Where-Object { $_ -match 'Utilization' } | Select-Object -First 1
+    if ($utilPath) {
+      $s2 = (Get-Counter $utilPath -ErrorAction Stop).CounterSamples
+      $maxLoad = [Math]::Round(($s2 | Measure-Object -Property CookedValue -Maximum).Maximum, 2)
+      return '{"max":' + $maxLoad + ',"engines":{}}'
+    }
+  } catch {}
+  # Attempt 3: CIM-based GPU perf data (AMD/Intel fallback)
+  try {
+    $cim = Get-CimInstance -Namespace root/CIMV2 -ClassName Win32_PerfFormattedData_GPUPerformanceCounters_GPUEngine -ErrorAction Stop
+    if ($cim) {
+      $maxLoad = [Math]::Round(($cim | Measure-Object -Property UtilizationPercentage -Maximum).Maximum, 2)
+      return '{"max":' + $maxLoad + ',"engines":{}}'
+    }
+  } catch {}
+  return '{"max":-1,"engines":{}}'
+}
+Get-GpuEngineMax`.trim();
 
   try {
     return await new Promise((resolve) => {
@@ -1919,6 +1942,70 @@ ipcMain.handle('system:getSpecs', async () => {
   return await loadSystemSpecs();
 });
 
+// Display info — PowerShell WMI query for monitor resolution/refresh rate.
+// Same logic as server/routes/dashboardIntelligence.ts collectDisplayViaPowerShell()
+// but runs on the user's local Windows machine (not the cloud server).
+ipcMain.handle('system:getDisplayInfo', async () => {
+  if (process.platform !== 'win32') return { controllers: [], displays: [] };
+  const ps = `
+$result = @{ controllers = @(); displays = @() }
+try {
+  $vcs = Get-WmiObject Win32_VideoController -ErrorAction Stop |
+    Select-Object Name, CurrentHorizontalResolution, CurrentVerticalResolution, CurrentRefreshRate, VideoModeDescription
+  if ($null -ne $vcs) {
+    $vcArr = if ($vcs -is [array]) { $vcs } else { @($vcs) }
+    $result.controllers = @($vcArr | ForEach-Object { @{ Name = $_.Name } })
+    $dispList = @()
+    foreach ($vc in $vcArr) {
+      $resX = [int]($vc.CurrentHorizontalResolution)
+      $resY = [int]($vc.CurrentVerticalResolution)
+      $hz   = [int]($vc.CurrentRefreshRate)
+      if ($resX -le 0 -and $vc.VideoModeDescription -match '(\\d+) x (\\d+)') {
+        $resX = [int]$Matches[1]; $resY = [int]$Matches[2]
+      }
+      if ($resX -gt 0) {
+        $dispList += @{ currentResX=$resX; currentResY=$resY; currentRefreshRate=$hz }
+      }
+    }
+    if ($dispList.Count -gt 0) { $result.displays = $dispList }
+  }
+} catch {}
+if ($result.displays.Count -eq 0) {
+  try {
+    Add-Type -AssemblyName System.Windows.Forms -ErrorAction Stop
+    $screens = [System.Windows.Forms.Screen]::AllScreens
+    $hz = 0
+    try { $hz = [int](Get-WmiObject Win32_VideoController | Select-Object -First 1 -ExpandProperty CurrentRefreshRate) } catch {}
+    $result.displays = @($screens | ForEach-Object {
+      @{ currentResX=$_.Bounds.Width; currentResY=$_.Bounds.Height; currentRefreshRate=$hz }
+    })
+  } catch {}
+}
+$result | ConvertTo-Json -Depth 3 -Compress`.trim();
+  try {
+    const raw = await new Promise((resolve) => {
+      execFile('powershell', [
+        '-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden',
+        '-ExecutionPolicy', 'Bypass', '-Command', ps,
+      ], { windowsHide: true, timeout: 8000 }, (err, stdout) => {
+        resolve(err ? null : (stdout || '').trim());
+      });
+    });
+    if (!raw) return { controllers: [], displays: [] };
+    const parsed = JSON.parse(raw);
+    const controllers = (parsed.controllers ?? []).map(v => ({ model: v.Name ?? null }));
+    const displays = (parsed.displays ?? []).map(v => ({
+      currentResX: v.currentResX ?? null,
+      currentResY: v.currentResY ?? null,
+      currentRefreshRate: v.currentRefreshRate ?? null,
+    }));
+    return { controllers, displays };
+  } catch (e) {
+    console.warn('[system:getDisplayInfo] error:', e.message);
+    return { controllers: [], displays: [] };
+  }
+});
+
 ipcMain.handle('telemetry:getLive', async (event, selectedDiskMount) => {
   try {
     // Use the background-polled cache. If not yet populated (first call before
@@ -1992,10 +2079,9 @@ ipcMain.handle('telemetry:getLive', async (event, selectedDiskMount) => {
     // (2–4s cold start) returns its first reading — keeping the chart line present
     // from frame 1 instead of joining 4–6s late.
     const gpuAvailable = gpuLoad != null || gpuTemp != null || gpuExistsOnHardware;
-    // While GPU is confirmed present but perf counter hasn't returned yet (load==null),
-    // emit 0 so the series exists in the chart data. The line will show a flat 0%
-    // baseline for those first few seconds — honest, continuous, and never broken.
-    const gpuUsagePct = gpuLoad != null && gpuLoad >= 0 ? gpuLoad : (gpuExistsOnHardware ? 0 : null);
+    // When the GPU perf counter hasn't returned a reading yet (or is failing),
+    // emit null so the UI shows "—" instead of a misleading "0%".
+    const gpuUsagePct = gpuLoad != null && gpuLoad >= 0 ? gpuLoad : null;
     const vramUsedMb  = gpuMemUsed  != null ? gpuMemUsed  : null;
     const vramTotalMb = gpuMemTotal != null ? gpuMemTotal : null;
     const vramUsagePct = (vramUsedMb != null && vramTotalMb != null && vramTotalMb > 0)
