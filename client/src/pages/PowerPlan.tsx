@@ -228,10 +228,10 @@ function EnergyLines() {
       <path d="M -100 45 Q 200 25 500 45 Q 800 65 1100 45" stroke="url(#pp-eg1)" strokeWidth="1" fill="none" opacity="0.7">
         <animateTransform attributeName="transform" type="translate" values="-100 0;200 0;-100 0" dur="8s" repeatCount="indefinite" />
       </path>
-      <path d="M -200 70% Q 300 55% 600 70% Q 900 85% 1200 70%" stroke="url(#pp-eg2)" strokeWidth="1" fill="none" opacity="0.4">
+      <path d="M -200 70 Q 300 55 600 70 Q 900 85 1200 70" stroke="url(#pp-eg2)" strokeWidth="1" fill="none" opacity="0.4">
         <animateTransform attributeName="transform" type="translate" values="0 0;150 0;0 0" dur="11s" repeatCount="indefinite" />
       </path>
-      <path d="M 0 20% Q 400 35% 700 20% Q 1000 5% 1300 20%" stroke="url(#pp-eg1)" strokeWidth="0.5" fill="none" opacity="0.25">
+      <path d="M 0 20 Q 400 35 700 20 Q 1000 5 1300 20" stroke="url(#pp-eg1)" strokeWidth="0.5" fill="none" opacity="0.25">
         <animateTransform attributeName="transform" type="translate" values="100 0;-100 0;100 0" dur="14s" repeatCount="indefinite" />
       </path>
     </svg>

@@ -399,18 +399,19 @@ ipcMain.handle('security:getAdvancedProtection', async () => {
     const cmd = `
       $mp   = Get-MpComputerStatus -ErrorAction SilentlyContinue
       $pref = Get-MpPreference    -ErrorAction SilentlyContinue
-      $svc  = (Get-Service -Name WinDefend -ErrorAction SilentlyContinue)?.Status
+      $svcObj = Get-Service -Name WinDefend -ErrorAction SilentlyContinue
+      $svc  = if ($svcObj) { $svcObj.Status } else { $null }
 
       $signatureAge = $null
-      if ($mp?.AntivirusSignatureLastUpdated) {
+      if ($mp -and $mp.AntivirusSignatureLastUpdated) {
         $signatureAge = [int]([DateTime]::UtcNow - $mp.AntivirusSignatureLastUpdated.ToUniversalTime()).TotalDays
       }
       $quickScanAge = $null
-      if ($mp?.QuickScanEndTime -and $mp.QuickScanEndTime.Year -gt 2000) {
+      if ($mp -and $mp.QuickScanEndTime -and $mp.QuickScanEndTime.Year -gt 2000) {
         $quickScanAge = [int]([DateTime]::UtcNow - $mp.QuickScanEndTime.ToUniversalTime()).TotalDays
       }
       $fullScanAge = $null
-      if ($mp?.FullScanEndTime -and $mp.FullScanEndTime.Year -gt 2000) {
+      if ($mp -and $mp.FullScanEndTime -and $mp.FullScanEndTime.Year -gt 2000) {
         $fullScanAge = [int]([DateTime]::UtcNow - $mp.FullScanEndTime.ToUniversalTime()).TotalDays
       }
 
@@ -426,7 +427,7 @@ ipcMain.handle('security:getAdvancedProtection', async () => {
         controlledFolderAccess  = if ($pref) { $pref.EnableControlledFolderAccess -ne 0 } else { $null }
         puaProtection           = if ($pref) { $pref.PUAProtection -ne 0 } else { $null }
         smartScreen             = $smartScreen
-        signatureVersion        = $mp?.AntivirusSignatureVersion
+        signatureVersion        = if ($mp) { $mp.AntivirusSignatureVersion } else { $null }
         signatureAge            = $signatureAge
         quickScanAge            = $quickScanAge
         fullScanAge             = $fullScanAge

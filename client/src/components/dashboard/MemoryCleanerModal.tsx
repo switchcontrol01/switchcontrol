@@ -183,9 +183,16 @@ export function MemoryCleanerModal({ open, onOpenChange }: MemoryCleanerModalPro
 
         setResult(res);
 
-        // Force an immediate telemetry refresh so the dashboard RAM card
-        // updates right away instead of waiting for the next 2-second poll.
-        fetch("/api/telemetry/force-refresh", { method: "POST" }).catch(() => {});
+        // Force telemetry refreshes at 0 / 3 / 6 / 10s after the clean.
+        // The OS reclaims working set memory gradually, so a single
+        // immediate poll often captures the pre-reclaim value. Staggered
+        // polls ensure the RAM card reflects the settled value.
+        const scheduleRefresh = (ms: number) =>
+          setTimeout(() => fetch("/api/telemetry/force-refresh", { method: "POST" }).catch(() => {}), ms);
+        scheduleRefresh(0);
+        scheduleRefresh(3000);
+        scheduleRefresh(6000);
+        scheduleRefresh(10000);
       } else {
         await minDelay;
         clearRam();

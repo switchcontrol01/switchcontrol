@@ -1045,14 +1045,23 @@ function getNvidiaGpuLoad() {
 // Works on AMD, NVIDIA, and Intel GPUs without any extra software.
 // Only runs on win32 — returns null immediately on other platforms.
 let gpuPerfCounterFailCount = 0;
-const GPU_PERF_COUNTER_MAX_FAILS = 5; // stop trying after 5 consecutive failures
+const GPU_PERF_COUNTER_MAX_FAILS = 15; // stop trying after 15 consecutive failures
+let gpuPerfCounterPausedUntil = 0;    // timestamp: retry after cold-start backoff
 
 // Last per-engine breakdown — exposed for debug logging
 let lastGpuEngineBreakdown = {};
 
 async function getGpuPerfCounterLoad() {
   if (process.platform !== 'win32') return null;
-  if (gpuPerfCounterFailCount >= GPU_PERF_COUNTER_MAX_FAILS) return null;
+  // If we hit the hard limit, pause for 5 minutes before retrying.
+  // This recovers from cold-start driver init delays (common on AMD at boot).
+  if (gpuPerfCounterFailCount >= GPU_PERF_COUNTER_MAX_FAILS) {
+    if (Date.now() < gpuPerfCounterPausedUntil) return null;
+    // Backoff expired — reset and try again
+    console.log('[GPU:perf] fail-limit backoff expired — resetting counter, will retry');
+    gpuPerfCounterFailCount = 0;
+    gpuPerfCounterPausedUntil = 0;
+  }
   // TTL gate — prevent rapid PowerShell re-spawns within 15s
   if (Date.now() - _gpuCounterLastRefreshTs < GPU_POLL_TTL_MS) {
     verboseLog('[Telemetry] gpu_poll=ttl_blocked ttl=' + GPU_POLL_TTL_MS);
@@ -1091,6 +1100,10 @@ try {
       ], { windowsHide: true, timeout: 4000 }, (err, stdout, stderr) => {
         if (err) {
           gpuPerfCounterFailCount++;
+          if (gpuPerfCounterFailCount >= GPU_PERF_COUNTER_MAX_FAILS && !gpuPerfCounterPausedUntil) {
+            gpuPerfCounterPausedUntil = Date.now() + 5 * 60 * 1000; // retry in 5 min
+            console.warn(`[GPU:perf] hit fail limit (${GPU_PERF_COUNTER_MAX_FAILS}) — pausing for 5min`);
+          }
           console.warn(`[GPU:perf] PowerShell error (fail ${gpuPerfCounterFailCount}):`, err.message);
           return resolve(null);
         }
@@ -1099,14 +1112,23 @@ try {
           const max = parsed.max;
           if (!Number.isFinite(max) || max < 0) {
             gpuPerfCounterFailCount++;
+            if (gpuPerfCounterFailCount >= GPU_PERF_COUNTER_MAX_FAILS && !gpuPerfCounterPausedUntil) {
+              gpuPerfCounterPausedUntil = Date.now() + 5 * 60 * 1000;
+              console.warn(`[GPU:perf] hit fail limit (${GPU_PERF_COUNTER_MAX_FAILS}) — pausing for 5min`);
+            }
             console.warn(`[GPU:perf] unexpected max value (fail ${gpuPerfCounterFailCount}): ${max}`);
             return resolve(null);
           }
           gpuPerfCounterFailCount = 0; // reset on success
+          gpuPerfCounterPausedUntil = 0;
           lastGpuEngineBreakdown = parsed.engines || {};
           resolve(parseFloat(max.toFixed(1)));
         } catch (parseErr) {
           gpuPerfCounterFailCount++;
+          if (gpuPerfCounterFailCount >= GPU_PERF_COUNTER_MAX_FAILS && !gpuPerfCounterPausedUntil) {
+            gpuPerfCounterPausedUntil = Date.now() + 5 * 60 * 1000;
+            console.warn(`[GPU:perf] hit fail limit (${GPU_PERF_COUNTER_MAX_FAILS}) — pausing for 5min`);
+          }
           console.warn(`[GPU:perf] JSON parse error (fail ${gpuPerfCounterFailCount}): "${stdout.trim()}"`);
           resolve(null);
         }

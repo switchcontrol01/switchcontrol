@@ -1,0 +1,68 @@
+Here is everything confirmed by the logs, mapped to each bug you reported.
+
+---
+
+**GPU showing 0%**
+
+This is confirmed. The GPU counter query takes 3609ms on startup and the telemetry cache is returning zeros for several seconds after boot. More importantly, SysIntelligence reports `GPUs=0` even though your RX 7800 XT is detected by the prewarm system. The GPU load polling via `getGpuPerfCounterLoad` uses a PowerShell performance counter. On AMD cards, the counter path is different than Nvidia and often returns nothing or zero. Your app is almost certainly using a counter path designed for Nvidia. This needs a separate AMD counter path in `getGpuPerfCounterLoad`.
+
+---
+
+**Dashboard grey, no data loading**
+
+Confirmed by the SVG errors. Every time the dashboard mounts you see this:
+
+```
+Error: <circle> attribute r: Expected length, "undefined"
+Error: <path> attribute d: Expected path command, "M -200 70% Q 300 55% 600..."
+```
+
+The path command error is the wave/graph component using percentage values inside an SVG path `d` attribute which SVG does not support. Percentages work in CSS but not in SVG coordinate commands. The circle error is a radius value coming back undefined, meaning a data point is null or missing when the chart tries to render. Both errors are from the same chart component rendering before data has loaded. The component needs a null/loading guard before it renders the SVG shapes.
+
+---
+
+**RAM cleaner works but RAM display does not update**
+
+The cleaner itself ran correctly: `scanned=135 trimmed=20 freed=7269.1MB`. That part works. The display not updating is a separate issue. After the clean it calls `/api/telemetry/force-refresh` which is correct. The problem is the telemetry display is reading from a cache that does not immediately reflect the freed memory because the OS takes time to reclaim it. But more directly, the display only updates when you switch tabs because the component only re-reads telemetry on mount, not on a post-clean callback. The fix is to trigger a telemetry re-read in the UI after the clean completes, not just call the force-refresh endpoint.
+
+---
+
+**Network tweaks re-enabling themselves**
+
+This is clearly visible in the logs. You disabled `smb-pipe-data` and `smb-irp-stack`. The revert ran and completed successfully with `verified=true`. Then `tcp-sack` was reverted twice with `verified=false` both times. That `verified=false` is the problem. The PowerShell script applies the change but the verification check immediately reads back the old value, so the system reports it as inconsistent and the component marks it as still enabled. The check script for `tcp-sack` is reading from a different location than where the apply script writes. Send me `network-tweak-executor.js` and I will show you the exact mismatch.
+
+---
+
+**PowerShell compatibility error on Security page**
+
+Hard crash confirmed:
+
+```
+(Get-Service -Name WinDefend -ErrorAction SilentlyContinue)?.Status
+Unexpected token '?.Status'
+```
+
+The `?.` null-conditional operator requires PowerShell 7. This machine is running Windows PowerShell 5.1 which is the default. The fix is one line, replace it with:
+
+```powershell
+$svcObj = Get-Service -Name WinDefend -ErrorAction SilentlyContinue
+$svc = if ($svcObj) { $svcObj.Status } else { $null }
+```
+
+Same pattern likely exists elsewhere in the security scripts. Tell Replit to search for `?.` in all PowerShell strings across the electron folder and replace with PS5 compatible null checks.
+
+---
+
+**Updater 404**
+
+Expected, you already knew this. No action needed until you re-upload the installer.
+
+---
+
+**Priority order for Replit**
+
+1. PowerShell `?.Status` fix across all scripts, immediate crash
+2. SVG chart null guards before render
+3. GPU counter path for AMD
+4. Network tweak `tcp-sack` verify mismatch
+5. RAM display post-clean refresh trigger

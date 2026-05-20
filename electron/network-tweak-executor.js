@@ -392,7 +392,7 @@ const TWEAK_REGISTRY = {
     `,
     check: `
       $v = (Get-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters" -Name "SackOpts" -EA SilentlyContinue).SackOpts;
-      if ($v -eq 1 -or $v -eq $null) { "true" } else { "false" }
+      if ($v -eq 1) { "true" } else { "false" }
     `,
   },
 
