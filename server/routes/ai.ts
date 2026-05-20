@@ -707,6 +707,7 @@ const USER_APPLY_INTENT_RE = new RegExp(
   "please( apply| enable| do it)?|" +
   "can you (apply|enable|do it|do that)|" +
   "show me (it|that|the tweak|the first|number \\d+|\\d+)|" +
+  "guide me( to (it|that|the tweak|the first|number \\d+|\\d+))?|" +
   "direct me|flip (it|them)|flip it on" +
   ")\\b",
   "i",

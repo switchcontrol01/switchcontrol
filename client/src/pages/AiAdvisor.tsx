@@ -832,30 +832,54 @@ function NavigationCard({ items, onNavigate }: {
   items: Array<{ route: string; label: string }>;
   onNavigate?: (route: string) => void;
 }) {
+  const [visited, setVisited] = useState<Set<string>>(new Set());
+
   return (
     <div className="flex flex-col gap-2 w-full max-w-xs">
       {items.map((item, i) => {
         const meta = NAV_ROUTE_META[item.route] ?? { icon: ChevronRight, desc: "Open section", color: "text-cyan-300", border: "border-cyan-500/30", iconBg: "bg-cyan-500/15" };
         const Icon = meta.icon;
+        const wasVisited = visited.has(item.route);
         return (
           <button
             key={i}
-            onClick={() => onNavigate?.(item.route)}
+            onClick={() => {
+              setVisited(prev => new Set(prev).add(item.route));
+              onNavigate?.(item.route);
+            }}
             data-testid={`button-nav-${item.route.replace(/\//g, "-")}`}
             className={cn(
-              "group w-full text-left rounded-xl border bg-[#151A22] hover:bg-[#1A2030] transition-all duration-200 p-3",
-              meta.border
+              "group w-full text-left rounded-xl border transition-all duration-200 p-3",
+              wasVisited
+                ? "bg-emerald-500/5 border-emerald-500/25 hover:bg-emerald-500/10"
+                : cn("bg-[#151A22] hover:bg-[#1A2030]", meta.border)
             )}
           >
             <div className="flex items-center gap-3">
-              <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center shrink-0", meta.iconBg)}>
-                <Icon className={cn("w-4 h-4", meta.color)} />
+              <div className={cn(
+                "w-8 h-8 rounded-lg flex items-center justify-center shrink-0",
+                wasVisited ? "bg-emerald-500/15" : meta.iconBg
+              )}>
+                {wasVisited
+                  ? <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                  : <Icon className={cn("w-4 h-4", meta.color)} />
+                }
               </div>
               <div className="min-w-0 flex-1">
-                <p className={cn("text-[13px] font-semibold leading-tight", meta.color)}>{item.label}</p>
-                <p className="text-[11px] text-[#6B7380] mt-0.5 leading-snug">{meta.desc}</p>
+                <p className={cn(
+                  "text-[13px] font-semibold leading-tight",
+                  wasVisited ? "text-emerald-300" : meta.color
+                )}>
+                  {wasVisited ? `${item.label} — Done` : `Guide me to ${item.label}`}
+                </p>
+                <p className="text-[11px] text-[#6B7380] mt-0.5 leading-snug">
+                  {wasVisited ? "Visited — return here any time" : meta.desc}
+                </p>
               </div>
-              <ArrowRight className={cn("w-4 h-4 shrink-0 opacity-50 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all", meta.color)} />
+              {wasVisited
+                ? <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400/60" />
+                : <ArrowRight className={cn("w-4 h-4 shrink-0 opacity-50 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all", meta.color)} />
+              }
             </div>
           </button>
         );
@@ -864,7 +888,7 @@ function NavigationCard({ items, onNavigate }: {
   );
 }
 
-function ChatBubble({ msg, isSlow, reducedMotion, onApply, onApplyInline, isAdmin, isPremium, onOpenUpgrade, onViewTweaks, onViewNetwork, onNavigate }: {
+function ChatBubble({ msg, isSlow, reducedMotion, onApply, onApplyInline, isAdmin, isPremium, onOpenUpgrade, onViewTweaks, onViewNetwork, onNavigate, onGuideMe }: {
   msg: ChatMessage;
   isSlow: boolean;
   reducedMotion: boolean;
@@ -873,9 +897,10 @@ function ChatBubble({ msg, isSlow, reducedMotion, onApply, onApplyInline, isAdmi
   isAdmin?: boolean;
   isPremium?: boolean;
   onOpenUpgrade?: () => void;
-  onViewTweaks?: () => void;
+  onViewTweaks?: (tweakId: string) => void;
   onViewNetwork?: () => void;
   onNavigate?: (route: string) => void;
+  onGuideMe?: (tweakId: string) => void;
 }) {
   const anim = reducedMotion
     ? { initial: { opacity: 1 }, animate: { opacity: 1 }, transition: { duration: 0 } }
@@ -930,9 +955,10 @@ function ChatBubble({ msg, isSlow, reducedMotion, onApply, onApplyInline, isAdmi
                       isPremium={isPremium ?? false}
                       onApplyOne={rec => onApply?.([rec])}
                       onApplyAll={recs => onApply?.(recs)}
-                      onViewDetails={() => onViewTweaks?.()}
+                      onViewDetails={tweakId => onViewTweaks?.(tweakId)}
                       onViewNetwork={() => onViewNetwork?.()}
                       onOpenUpgrade={() => onOpenUpgrade?.()}
+                      onGuideMe={tweakId => (onGuideMe ?? onViewTweaks)?.(tweakId)}
                     />
                   : msg.structured.type === "navigation"
                     ? <NavigationCard items={msg.structured.items} onNavigate={onNavigate} />
@@ -1578,7 +1604,7 @@ export default function AiAdvisor() {
       // apply requests when the AI previously listed tweaks without <<APPLY:>>
       // markers (e.g. using the [id:X] context format by mistake).
       if (!imgData && contextRef.current) {
-        const TWEAK_APPLY_INTENT_RE = /\b(apply|enable|turn on|show me|show|activate|can you apply|can you enable|can you show)\b/i;
+        const TWEAK_APPLY_INTENT_RE = /\b(apply|enable|turn on|show me|show|activate|guide me|can you apply|can you enable|can you show|can you guide)\b/i;
         if (TWEAK_APPLY_INTENT_RE.test(messageContent)) {
           const allCtxTweaks = [
             ...(contextRef.current.disabledTweaks || []),
@@ -1621,7 +1647,7 @@ export default function AiAdvisor() {
           // No specific tweak name in message, but AI previously recommended tweaks.
           // Surface the last recommendation card instead of calling the server
           // (which would fail or produce an unhelpful generic response).
-          const VAGUE_SHOW_RE = /\b(show me (it|that|this|them)|show (it|that|this) to me|show them to me|show me)\s*[.!]?\s*$/i;
+          const VAGUE_SHOW_RE = /\b(show me (it|that|this|them)|show (it|that|this) to me|show them to me|show me|guide me( to (it|that|this|them))?)\s*[.!]?\s*$/i;
           if (VAGUE_SHOW_RE.test(messageContent)) {
             const lastRecs = getLastRecommendedTweaks(messagesRef.current);
             if (lastRecs.length > 0) {
@@ -2037,7 +2063,7 @@ export default function AiAdvisor() {
   }, []);
 
   const handleViewTweakDetails = useCallback((tweakId: string) => {
-    navigate("/tweaks");
+    navigate(`/tweaks?tweak=${tweakId}`);
   }, [navigate]);
 
   const handleViewNetworkTweaks = useCallback(() => {
@@ -2230,6 +2256,7 @@ export default function AiAdvisor() {
                     onViewTweaks={handleViewTweakDetails}
                     onViewNetwork={handleViewNetworkTweaks}
                     onNavigate={handleNavigateTo}
+                    onGuideMe={handleViewTweakDetails}
                   />
                 ))}
               </AnimatePresence>

@@ -5,10 +5,11 @@ import { Button } from "@/components/ui/button";
 import { getTweak, RegistryTweak } from "@/lib/tweak-registry";
 import { isAdminTweak, isUnsupportedTweak, isRealTweak } from "@/hooks/use-tweak-executor";
 import { NETWORK_TWEAKS, NetworkTweak } from "@/lib/network-tweaks-data";
+import { useStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import {
   Zap, ShieldAlert, AlertTriangle, Info, CheckCircle2,
-  ChevronRight, ChevronDown, Lock, ArrowRight, Wifi,
+  ChevronRight, ChevronDown, Lock, ArrowRight, Wifi, Navigation,
 } from "lucide-react";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -28,6 +29,7 @@ interface Props {
   onViewDetails: (tweakId: string) => void;
   onViewNetwork: () => void;
   onOpenUpgrade: () => void;
+  onGuideMe?: (tweakId: string) => void;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -47,6 +49,7 @@ function TweakMiniCard({
   isPremium,
   onApply,
   onViewDetails,
+  onGuideMe,
   onOpenUpgrade,
 }: {
   rec: AiTweakRecommendation;
@@ -55,9 +58,11 @@ function TweakMiniCard({
   isPremium: boolean;
   onApply: () => void;
   onViewDetails: () => void;
+  onGuideMe: () => void;
   onOpenUpgrade: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const enabled = useStore(s => !!s.tweaks[tweak.id]);
   const riskCfg = RISK_CONFIG[tweak.risk] ?? RISK_CONFIG.Safe;
   const RiskIcon = riskCfg.icon;
 
@@ -85,16 +90,22 @@ function TweakMiniCard({
             <p className="text-[11px] text-[#6B7380] mt-0.5 line-clamp-2">{rec.reason}</p>
           </div>
           <div className="flex flex-col items-end gap-1 shrink-0">
-            <Badge variant="outline" className={cn("text-[9px] h-4 px-1.5 border", riskCfg.cls)}>
-              <RiskIcon className="size-2.5 mr-1" />
-              {riskCfg.label}
-            </Badge>
+            {enabled ? (
+              <Badge variant="outline" className="text-[9px] h-4 px-1.5 border border-emerald-500/40 text-emerald-400 bg-emerald-500/10">
+                <CheckCircle2 className="size-2.5 mr-1" />Applied
+              </Badge>
+            ) : (
+              <Badge variant="outline" className={cn("text-[9px] h-4 px-1.5 border", riskCfg.cls)}>
+                <RiskIcon className="size-2.5 mr-1" />
+                {riskCfg.label}
+              </Badge>
+            )}
             {tweak.premium && (
               <Badge variant="outline" className="text-[9px] h-4 px-1.5 border border-[#00D4FF]/40 text-[#00D4FF] bg-[#00D4FF]/10">
                 <Lock className="size-2.5 mr-1" />Premium
               </Badge>
             )}
-            {isSlider && (
+            {isSlider && !enabled && (
               <Badge variant="outline" className="text-[9px] h-4 px-1.5 border border-purple-500/40 text-purple-400 bg-purple-500/10">
                 Slider
               </Badge>
@@ -126,24 +137,28 @@ function TweakMiniCard({
               {expanded ? "Less" : "Details"}
             </button>
 
+            {/* Guide me button — always show for non-locked tweaks */}
+            {!isLocked && (
+              <Button size="sm" variant="outline"
+                className="h-7 text-[11px] gap-1 border-purple-500/30 text-purple-300 hover:bg-purple-500/10 hover:border-purple-500/50"
+                onClick={onGuideMe}
+                data-testid={`button-ai-guide-${tweak.id}`}>
+                <Navigation className="size-3" />Guide me
+              </Button>
+            )}
+
             {isLocked ? (
               <Button size="sm" variant="outline" className="h-7 text-[11px] gap-1 border-[#00D4FF]/40 text-[#00D4FF] hover:bg-[#00D4FF]/15 hover:border-[#00D4FF]/60"
                 onClick={onOpenUpgrade}>
                 <Lock className="size-3" />Upgrade
               </Button>
-            ) : isSlider ? (
-              <Button size="sm" variant="outline"
-                className="h-7 text-[11px] gap-1 border-purple-500/40 text-purple-400 hover:bg-purple-500/10 hover:border-purple-500/60"
-                onClick={onViewDetails}
-                data-testid={`button-ai-view-tweaks-${tweak.id}`}>
-                <ArrowRight className="size-3" />View in Tweaks
-              </Button>
-            ) : canApply ? (
+            ) : isSlider ? null
+            : canApply && !enabled ? (
               <Button size="sm" className="h-7 text-[11px] gap-1 bg-primary hover:bg-primary/90"
                 onClick={onApply} data-testid={`button-ai-apply-${tweak.id}`}>
                 <Zap className="size-3" />Apply
               </Button>
-            ) : (
+            ) : enabled ? null : (
               <Button size="sm" variant="outline" disabled className="h-7 text-[11px] opacity-50 cursor-not-allowed">
                 {unsupported ? "Unsupported" : needsAdmin ? "Admin" : "N/A"}
               </Button>
@@ -176,7 +191,7 @@ function TweakMiniCard({
               )}
               {isSlider ? (
                 <p className="text-[10px] text-purple-400/70">
-                  This is a numeric slider — open Tweaks to choose a value and apply it.
+                  This is a numeric slider — use "Guide me" to open it directly in the Tweaks page.
                 </p>
               ) : (
                 <button
@@ -256,7 +271,7 @@ function NetworkTweakMiniCard({
               className="h-7 text-[11px] gap-1 border-cyan-500/40 text-cyan-400 hover:bg-cyan-500/10 hover:border-cyan-500/60"
               onClick={onViewNetwork}
               data-testid={`button-ai-view-network-${tweak.id}`}>
-              <Wifi className="size-3" />View in Network
+              <Navigation className="size-3" />Guide me
             </Button>
           </div>
         </div>
@@ -284,7 +299,7 @@ function NetworkTweakMiniCard({
                 </ul>
               )}
               <p className="text-[10px] text-cyan-400/70">
-                Network tweaks run through the Network page — open it to apply this setting.
+                Network tweaks run through the Network page — click "Guide me" to go there directly.
               </p>
             </div>
           </motion.div>
@@ -305,6 +320,7 @@ export function AiTweakRecommendationCards({
   onViewDetails,
   onViewNetwork,
   onOpenUpgrade,
+  onGuideMe,
 }: Props) {
   const applicable = recommendations.filter(r => {
     const t = getTweak(r.tweakId);
@@ -345,6 +361,7 @@ export function AiTweakRecommendationCards({
                 isPremium={isPremium}
                 onApply={() => onApplyOne(rec)}
                 onViewDetails={() => onViewDetails(rec.tweakId)}
+                onGuideMe={() => (onGuideMe ?? onViewDetails)(rec.tweakId)}
                 onOpenUpgrade={onOpenUpgrade}
               />
             );
