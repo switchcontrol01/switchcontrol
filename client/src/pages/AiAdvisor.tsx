@@ -1614,6 +1614,41 @@ export default function AiAdvisor() {
               return;
             }
           }
+
+          // ── VAGUE SHOW/APPLY — "show me it", "show me that", "show it to me" ──
+          // No specific tweak name in message, but AI previously recommended tweaks.
+          // Surface the last recommendation card instead of calling the server
+          // (which would fail or produce an unhelpful generic response).
+          const VAGUE_SHOW_RE = /\b(show me (it|that|this|them)|show (it|that|this) to me|show them to me|show me)\s*[.!]?\s*$/i;
+          if (VAGUE_SHOW_RE.test(messageContent)) {
+            const lastRecs = getLastRecommendedTweaks(messagesRef.current);
+            if (lastRecs.length > 0) {
+              clearTimeout(timeoutId);
+              if (slowTimerRef.current) clearTimeout(slowTimerRef.current);
+              setIsSlowRequest(false);
+              setLoading(false);
+              const label = lastRecs.length === 1
+                ? getTweak(lastRecs[0].tweakId)?.title ?? lastRecs[0].tweakId
+                : `${lastRecs.length} tweaks`;
+              setMessages(prev => {
+                const withoutThinking = prev.filter(m => m.id !== assistantId);
+                return [
+                  ...withoutThinking,
+                  { id: assistantId, role: "assistant" as const, content: `Here's **${label}** — ready to apply.`, timestamp: new Date() },
+                  {
+                    id: `recs-${assistantId}`,
+                    role: "assistant" as const,
+                    content: "",
+                    timestamp: new Date(),
+                    structured: { type: "recommendations" as const, items: lastRecs },
+                  },
+                ];
+              });
+              setTimeout(forceScrollBottom, 80);
+              inputRef.current?.focus();
+              return;
+            }
+          }
         }
       }
 
@@ -1860,6 +1895,11 @@ export default function AiAdvisor() {
   const handleReset = () => {
     abortRef.current?.abort();
     cancelReveal();
+    // cancelReveal sets revealCancelledRef.current = true to stop any in-flight
+    // typewriter. Reset it immediately so the NEXT sendMessage is not silently
+    // discarded by the post-fetch guard at line ~1680.
+    revealCancelledRef.current = false;
+    reqIdRef.current++;  // Invalidate any in-flight request so its result is ignored
     clearStore();
 
     const ctx = contextRef.current;

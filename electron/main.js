@@ -938,12 +938,17 @@ function createWindow() {
       if (!mainWindow || mainWindow.isVisible()) return;
 
       // paintWhenInitiallyHidden:true guarantees Chromium has already painted
-      // the Splash while the window was still hidden.  The renderer has already
-      // set opacity:1 and removed body::before (sc-electron-no-cover).  Just show.
+      // the Splash while the window was still hidden. We show first, THEN send
+      // app:window-shown so the renderer removes the dark body::before overlay
+      // AFTER Windows DWM has already composited our first GPU frame. This ensures
+      // the 0-1 white native frames DWM emits on show() are hidden by the overlay.
       mainWindow.show();
       _bm.windowShown = Date.now();
       mainWindow.focus();
-      console.log(`[LAUNCH:5] mainWindow.show() -- instant, no opacity games | ${launchMs()}`);
+      // Send window-shown AFTER show() so the renderer's onWindowShown removes
+      // the dark overlay only once the window is truly on-screen.
+      mainWindow.webContents.send('app:window-shown');
+      console.log(`[LAUNCH:5] mainWindow.show() + app:window-shown dispatched | ${launchMs()}`);
 
       // Telemetry deferred slightly so it doesn't compete with first paint.
       // 500ms is enough for the Splash to finish; well under the old 2s wait.

@@ -41,20 +41,32 @@ export default function Splash({ onComplete }: SplashProps) {
   const [progress, setProgress]   = useState(0);
   const tagline = useMemo(() => getHonestTagline(), []);
 
-  // ── Logo decode + quad-rAF handshake ─────────────────────────────────────
-  // Four rAFs: AMD RX 7800 XT and similar GPUs have a shader-cache cold-start
-  // window that outlasts three rAFs on a fresh boot, causing a white/grey flash
-  // when the window is shown.  The fourth rAF gives one additional compositor
-  // cycle so the first visible frame is fully rasterised in the GPU texture
-  // cache before DWM presents it.  After all four rAFs we also wait one native
-  // frame (via setTimeout 16ms) as a belt-and-suspenders guard against AMD
-  // driver latency before signalling first-frame-ready.
+  // ── Dark-overlay removal after window is shown ────────────────────────────
+  // body::before is a maximum-z-index dark cover that prevents the 0-1 white
+  // native frames Windows DWM emits between mainWindow.show() and Chromium's
+  // first GPU texture delivery. We remove it here — AFTER app:window-shown
+  // IPC arrives from main.js (which sends it immediately after mainWindow.show()).
+  // This guarantees the cover is only lifted once the window is truly on-screen
+  // and Chromium's dark frame has been composited by DWM.
+  useEffect(() => {
+    const cleanup = (window as any).electronAPI?.onWindowShown?.(() => {
+      document.body.classList.add('sc-electron-no-cover');
+      console.log(`[LAUNCH:R4] sc-electron-no-cover added — dark cover lifted | t=+${performance.now().toFixed(0)}ms`);
+    });
+    return () => cleanup?.();
+  }, []);
+
+  // ── Logo decode + double-rAF handshake ───────────────────────────────────
+  // Two rAFs ensure the Splash has been fully painted (layout + compositor
+  // promotion) before signalling first-frame-ready. The dark body::before
+  // overlay handles any remaining DWM flash — we no longer need four rAFs or
+  // an extra 16 ms timeout for that purpose (those were compensating for the
+  // overlay being removed too early). A single 8ms setTimeout after the second
+  // rAF acts as a belt-and-suspenders guard for slow CPU frame scheduling.
   useEffect(() => {
     let cancelled = false;
     let raf1: number;
     let raf2: number;
-    let raf3: number;
-    let raf4: number;
     let frameTimer: ReturnType<typeof setTimeout>;
 
     async function prepareSplash() {
@@ -68,20 +80,15 @@ export default function Splash({ onComplete }: SplashProps) {
 
       raf1 = requestAnimationFrame(() => {
         raf2 = requestAnimationFrame(() => {
-          raf3 = requestAnimationFrame(() => {
-            raf4 = requestAnimationFrame(() => {
-              // One extra 16ms timeout after the 4th rAF — gives AMD GPU driver
-              // enough time to flush the shader cache so the first shown frame
-              // is always the Splash, never a white native window.
-              frameTimer = setTimeout(() => {
-                if (cancelled) return;
-                setReady(true);
-                document.body.classList.add('sc-electron-no-cover');
-                (window as any).electronAPI?.signalFirstFrameReady?.();
-                console.log(`[LAUNCH:R3] splash ready + cover removed + signalFirstFrameReady | t=+${performance.now().toFixed(0)}ms`);
-              }, 16);
-            });
-          });
+          frameTimer = setTimeout(() => {
+            if (cancelled) return;
+            setReady(true);
+            // NOTE: sc-electron-no-cover is NOT added here — it is added in the
+            // onWindowShown listener above so the overlay stays up through
+            // mainWindow.show(), hiding the DWM white frame completely.
+            (window as any).electronAPI?.signalFirstFrameReady?.();
+            console.log(`[LAUNCH:R3] splash ready + signalFirstFrameReady | t=+${performance.now().toFixed(0)}ms`);
+          }, 8);
         });
       });
     }
@@ -92,28 +99,26 @@ export default function Splash({ onComplete }: SplashProps) {
       cancelled = true;
       cancelAnimationFrame(raf1);
       cancelAnimationFrame(raf2);
-      cancelAnimationFrame(raf3);
-      cancelAnimationFrame(raf4);
       clearTimeout(frameTimer);
     };
   }, []);
 
   // ── Staggered content reveal (fires after ready) ──────────────────────────
   // Logo appears immediately when the container reveals.
-  // Text follows +120ms later for a polished sequential entry.
-  // Sweep fires at +400ms for the diagonal light effect.
-  // onComplete at +1750ms hands off to App.tsx.
+  // Text follows +80ms later for a polished sequential entry.
+  // Sweep fires at +240ms for the diagonal light effect.
+  // onComplete at +350ms hands off to App.tsx (was 520ms).
   useEffect(() => {
     if (!ready) return;
 
     setLogoVisible(true);
 
     const t2   = setTimeout(() => setTextVisible(true),  80);
-    const t3   = setTimeout(() => setSweepVisible(true), 260);
+    const t3   = setTimeout(() => setSweepVisible(true), 240);
     const done = setTimeout(() => {
       console.log('[LAUNCH:R5] Splash onComplete — handing off to App');
       onComplete();
-    }, 520);
+    }, 350);
 
     return () => {
       clearTimeout(t2);
@@ -163,16 +168,15 @@ export default function Splash({ onComplete }: SplashProps) {
       className="fixed inset-0 overflow-hidden flex items-center justify-center"
       style={{
         background: "#07090D",
-        // Container starts invisible — reveals atomically once logo is decoded
-        // and two compositor frames have passed. opacity/transform only — no
-        // per-frame blur repaint on the full layer stack.
+        // Container snaps to visible instantly — the body::before dark overlay
+        // handles the reveal. Opacity is gated so React renders content before
+        // it's visible, but there's no CSS transition: the overlay lifts via
+        // onWindowShown which creates the smooth dark→Splash reveal instead.
+        // Only transform uses a subtle ease-in so the Splash "pops" into place.
         opacity:    ready ? 1 : 0,
         transform:  ready ? "scale(1)" : "scale(0.985)",
-        transition: ready
-          ? "opacity 0.22s ease-out, transform 0.28s cubic-bezier(0.22,1,0.36,1)"
-          : "none",
-        // Keep the dark base visible to the OS during decode so there's no white flash
-        willChange: "opacity, transform",
+        transition: ready ? "transform 0.25s cubic-bezier(0.22,1,0.36,1)" : "none",
+        willChange: "transform",
       }}
     >
       {/* ── Layer A: wide atmospheric hazes ── */}
@@ -337,9 +341,9 @@ export default function Splash({ onComplete }: SplashProps) {
         <AnimatePresence>
           {logoVisible && (
             <motion.div
-              initial={{ opacity: 0, y: 14, filter: "blur(16px)" }}
-              animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-              transition={{ duration: 0.75, ease: [0.22, 1, 0.36, 1] }}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
               className="relative"
             >
               <motion.div
@@ -395,9 +399,9 @@ export default function Splash({ onComplete }: SplashProps) {
         <AnimatePresence>
           {textVisible && (
             <motion.div
-              initial={{ opacity: 0, y: 14, filter: "blur(10px)" }}
-              animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-              transition={{ duration: 0.75, ease: [0.22, 1, 0.36, 1] }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
               className="flex flex-col items-center gap-4"
             >
               <h1 className="text-3xl font-bold tracking-tight select-none" style={{ letterSpacing: "-0.01em" }}>
