@@ -166,11 +166,12 @@ function StatPill({ color, label, value, spiking }: {
   );
 }
 
-function LiveStatsBand({ latest, hasDiskData, hasDiskRW, hasGpuLoad, hasNetRx, hasNetTx, spikes }: {
+function LiveStatsBand({ latest, hasDiskData, hasDiskRW, hasGpuLoad, hasNetRx, hasNetTx, spikes, gpuEverNonZero }: {
   latest: LatestState | null;
   hasDiskData: boolean; hasDiskRW: boolean;
   hasGpuLoad: boolean; hasNetRx: boolean; hasNetTx: boolean;
   spikes: { cpu: boolean; ram: boolean; gpu: boolean };
+  gpuEverNonZero: boolean;
 }) {
   if (!latest) return null;
   return (
@@ -946,6 +947,7 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
           hasNetRx={hasNetRx}
           hasNetTx={hasNetTx}
           spikes={spikes}
+          gpuEverNonZero={gpuEverNonZero}
         />
       )}
 
