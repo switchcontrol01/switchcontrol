@@ -30,6 +30,7 @@ import focusModeRouter from "./routes/focusMode";
 import { systemIntelligenceRouter } from "./routes/systemIntelligence";
 import issueDetectorRouter from "./routes/issueDetector";
 import advisorContextRouter from "./routes/advisorContext";
+import weatherRouter from "./routes/weather";
 import { getSystemIntelligence } from "./lib/systemIntelligence";
 import { getSnapshot, getSystemSpecs, getSchedulerStats, startTelemetryPolling } from "./lib/telemetry";
 import { broadcastNow, setupWebSocketServer } from "./lib/wsServer";
@@ -102,6 +103,7 @@ export async function registerRoutes(
   app.use("/api/system-intelligence", systemIntelligenceRouter);
   app.use("/api/issues", issueDetectorRouter);
   app.use("/api/ai-advisor", requireJwt, advisorContextRouter);
+  app.use("/api/weather", weatherRouter);
 
   // ── Extreme Labs — cloud fallback for web sessions (Electron uses IPC) ───────────────
   app.get("/api/extreme-labs/status", killSwitchMiddleware("extreme_labs"), requireJwt, requireCloudPremium, (req, res) => {

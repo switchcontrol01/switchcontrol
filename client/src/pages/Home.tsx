@@ -28,6 +28,7 @@ import { AnimatedCrown, PremiumBadge } from "@/components/ui/animated-crown";
 import { PremiumCardOverlay } from "@/components/ui/premium-page-overlay";
 import { useBiosAdvisorStore } from "@/stores/biosAdvisorStore";
 import { useSystemIntelligence } from "@/hooks/useSystemIntelligence";
+import { WeatherWidget } from "@/components/dashboard/WeatherWidget";
 
 const MemoryCleanerModal = lazy(() =>
   import("@/components/dashboard/MemoryCleanerModal").then((m) => ({ default: m.MemoryCleanerModal }))
@@ -738,6 +739,9 @@ export default function Home() {
                   {isOnline ? "System Active" : "No Connection"}
                 </span>
               </div>
+
+              {/* Weather — lazy, isolated, non-blocking */}
+              <WeatherWidget />
 
               <Button
                 variant="outline"
