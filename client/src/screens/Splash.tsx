@@ -41,11 +41,18 @@ export default function Splash({ onComplete }: SplashProps) {
   const [progress, setProgress]   = useState(0);
   const tagline = useMemo(() => getHonestTagline(), []);
 
-  // ── Logo decode + double-rAF handshake ───────────────────────────────────
+  // ── Logo decode + triple-rAF handshake ───────────────────────────────────
+  // Three rAFs instead of two: the third rAF ensures the GPU compositor has
+  // had time to promote the blur-filter layers in Splash to their own tiles
+  // before we signal first-frame-ready.  On AMD cold launch (RX 7800 XT and
+  // similar), two rAFs are inside the GPU driver's shader-cache cold-start
+  // window; the third gives one extra compositor cycle so the first visible
+  // frame is fully rasterised before the DWM handshake begins.
   useEffect(() => {
     let cancelled = false;
     let raf1: number;
     let raf2: number;
+    let raf3: number;
     let fallbackTimer: ReturnType<typeof setTimeout> | undefined;
     let windowShownUnsub: (() => void) | undefined;
 
@@ -60,70 +67,100 @@ export default function Splash({ onComplete }: SplashProps) {
 
       raf1 = requestAnimationFrame(() => {
         raf2 = requestAnimationFrame(() => {
-          if (cancelled) return;
+          // Third rAF: gives GPU compositor one extra cycle to rasterise
+          // the blur-filter layers before we fire the DWM handshake.
+          raf3 = requestAnimationFrame(() => {
+            if (cancelled) return;
 
-          const readyTs = performance.now();
-          console.log(`[LAUNCH:R3] splash ready: logo decoded, compositor frame ready | t=+${readyTs.toFixed(0)}ms`);
+            const readyTs = performance.now();
+            console.log(`[LAUNCH:R3] splash ready: logo decoded, 3-rAF compositor frame ready | t=+${readyTs.toFixed(0)}ms`);
 
-          setReady(true);
+            setReady(true);
 
-          const api = (window as any).electronAPI;
+            const api = (window as any).electronAPI;
 
-          if (api?.signalFirstFrameReady) {
-            api.signalFirstFrameReady();
-            console.log(`[LAUNCH:R3] first-frame-ready IPC sent | t=+${performance.now().toFixed(0)}ms`);
+            if (api?.signalFirstFrameReady) {
+              api.signalFirstFrameReady();
+              console.log(`[LAUNCH:R3] first-frame-ready IPC sent | t=+${performance.now().toFixed(0)}ms`);
 
-            let revealed = false;
-            const reveal = (source: string) => {
-              if (revealed) return;
-              revealed = true;
-              const revealTs = performance.now();
-              console.log(`[LAUNCH:R4] reveal triggered by ${source} | t=+${revealTs.toFixed(0)}ms`);
+              let revealed = false;
+              const reveal = (source: string) => {
+                if (revealed) return;
+                revealed = true;
+                const revealTs = performance.now();
+                console.log(`[LAUNCH:R4] reveal triggered by ${source} | t=+${revealTs.toFixed(0)}ms`);
 
+                // ── Step 1: arm html fade-in (200ms ease-out) ─────────────────
+                // IMPORTANT: set transition BEFORE opacity so Chromium snapshots
+                // the current computed opacity:0 as the animation "from" value.
+                // If transition were baked into the html inline style from the
+                // start, Chromium might snapshot opacity:1 (browser default) as
+                // the from value during renderer initialisation, briefly flashing
+                // content before the dark cover settles.
+                document.documentElement.style.transition = 'opacity 200ms ease-out';
+                document.documentElement.style.opacity = '1';
+                console.log(`[LAUNCH:R5] renderer reveal started — opacity 0→1 | t=+${performance.now().toFixed(0)}ms`);
+
+                // ── Step 2: body::before dark cover fades (120ms) ─────────────
+                // The body::before overlay (z-index 2147483647, will-change:opacity,
+                // on its own GPU layer) provides solid dark coverage while the html
+                // opacity ramps up from 0 to 1.
+                document.body.classList.add('sc-first-frame-ready');
+                console.log('[LAUNCH:R4] sc-first-frame-ready set — body::before fading (120ms)');
+
+                // ── Step 3: startup-shell fades AFTER body::before completes ──
+                // CRITICAL SEQUENCING: do NOT fade the startup-shell at the same
+                // time as body::before.  If both overlays are at partial opacity
+                // simultaneously, the Splash's first-frame GPU compositor stall
+                // (heavy blur layers on cold AMD start) leaks through as grey.
+                // body::before must fully clear (120ms) first; only then does the
+                // branded startup-shell hand off to the Splash animation.
+                const shell = document.getElementById('startup-shell');
+                if (shell) {
+                  setTimeout(() => {
+                    shell.style.transition = 'opacity 140ms ease-out';
+                    shell.style.opacity = '0';
+                    console.log('[LAUNCH:R4] startup-shell fade started (body::before complete)');
+                    setTimeout(() => {
+                      if (shell.parentNode) shell.parentNode.removeChild(shell);
+                      console.log('[LAUNCH:R4b] startup-shell removed from DOM');
+                    }, 150);
+                  }, 120); // wait for body::before 120ms transition to complete
+                }
+
+                setTimeout(() => {
+                  console.log(`[LAUNCH:R6] renderer reveal completed (200ms elapsed) | t=+${performance.now().toFixed(0)}ms`);
+                }, 200);
+              };
+
+              windowShownUnsub = api.onWindowShown?.(() => {
+                clearTimeout(fallbackTimer);
+                windowShownUnsub = undefined;
+                const shownTs = performance.now();
+                console.log(`[LAUNCH:R3b] app:window-shown received | t=+${shownTs.toFixed(0)}ms`);
+                reveal('app:window-shown');
+              });
+
+              fallbackTimer = setTimeout(() => {
+                console.warn('[LAUNCH:FALLBACK] app:window-shown never received — revealing after 700ms fallback');
+                reveal('fallback-timeout');
+              }, 700);
+
+            } else {
+              // Non-Electron (website) path — reveal immediately
+              document.documentElement.style.transition = 'opacity 200ms ease-out';
+              document.documentElement.style.opacity = '1';
               document.body.classList.add('sc-first-frame-ready');
-              console.log('[LAUNCH:R4] sc-first-frame-ready set — body::before fading (120ms)');
-
               const shell = document.getElementById('startup-shell');
               if (shell) {
-                shell.style.transition = 'opacity 180ms ease-out';
-                shell.style.opacity = '0';
                 setTimeout(() => {
-                  if (shell.parentNode) shell.parentNode.removeChild(shell);
-                  console.log('[LAUNCH:R4b] startup-shell removed from DOM');
-                }, 200);
+                  shell.style.transition = 'opacity 140ms ease-out';
+                  shell.style.opacity = '0';
+                  setTimeout(() => { if (shell.parentNode) shell.parentNode.removeChild(shell); }, 150);
+                }, 120);
               }
-
-              document.documentElement.style.opacity = '1';
-              console.log(`[LAUNCH:R5] renderer reveal started — opacity 0→1 | t=+${performance.now().toFixed(0)}ms`);
-              setTimeout(() => {
-                console.log(`[LAUNCH:R6] renderer reveal completed (200ms elapsed) | t=+${performance.now().toFixed(0)}ms`);
-              }, 200);
-            };
-
-            windowShownUnsub = api.onWindowShown?.(() => {
-              clearTimeout(fallbackTimer);
-              windowShownUnsub = undefined;
-              const shownTs = performance.now();
-              console.log(`[LAUNCH:R3b] app:window-shown received | t=+${shownTs.toFixed(0)}ms`);
-              reveal('app:window-shown');
-            });
-
-            fallbackTimer = setTimeout(() => {
-              console.warn('[LAUNCH:FALLBACK] app:window-shown never received — revealing after 700ms fallback');
-              reveal('fallback-timeout');
-            }, 700);
-
-          } else {
-            // Non-Electron (website) path — reveal immediately
-            document.body.classList.add('sc-first-frame-ready');
-            const shell = document.getElementById('startup-shell');
-            if (shell) {
-              shell.style.transition = 'opacity 180ms ease-out';
-              shell.style.opacity = '0';
-              setTimeout(() => { if (shell.parentNode) shell.parentNode.removeChild(shell); }, 200);
             }
-            document.documentElement.style.opacity = '1';
-          }
+          });
         });
       });
     }
@@ -134,6 +171,7 @@ export default function Splash({ onComplete }: SplashProps) {
       cancelled = true;
       cancelAnimationFrame(raf1);
       cancelAnimationFrame(raf2);
+      cancelAnimationFrame(raf3);
       clearTimeout(fallbackTimer);
       windowShownUnsub?.();
     };
@@ -217,6 +255,10 @@ export default function Splash({ onComplete }: SplashProps) {
       }}
     >
       {/* ── Layer A: wide atmospheric hazes ── */}
+      {/* willChange promotes each blur haze to its own GPU compositor layer so
+          their per-frame opacity/transform animations don't trigger a parent
+          layer flush.  Without this, every animation tick on any of these
+          large blur elements can stall the main compositor thread. */}
       <motion.div
         className="absolute pointer-events-none"
         style={{
@@ -224,6 +266,7 @@ export default function Splash({ onComplete }: SplashProps) {
           width: "78vw", height: "78vw",
           background: "radial-gradient(ellipse, rgba(139,92,246,0.28) 0%, rgba(80,40,180,0.10) 45%, transparent 70%)",
           filter: "blur(100px)",
+          willChange: "opacity, transform",
         }}
         animate={{ x: [0, 22, 0], y: [0, 14, 0], opacity: [0.55, 0.85, 0.55], scale: [1, 1.08, 1] }}
         transition={{ duration: 14, repeat: Infinity, ease: "easeInOut" }}
@@ -235,6 +278,7 @@ export default function Splash({ onComplete }: SplashProps) {
           width: "68vw", height: "68vw",
           background: "radial-gradient(ellipse, rgba(0,190,255,0.22) 0%, rgba(0,120,210,0.08) 48%, transparent 70%)",
           filter: "blur(110px)",
+          willChange: "opacity, transform",
         }}
         animate={{ x: [0, -18, 0], y: [0, -12, 0], opacity: [0.45, 0.80, 0.45], scale: [1, 1.10, 1] }}
         transition={{ duration: 17, repeat: Infinity, ease: "easeInOut", delay: 2.5 }}
@@ -246,6 +290,7 @@ export default function Splash({ onComplete }: SplashProps) {
           width: "50vw", height: "50vw",
           background: "radial-gradient(ellipse, rgba(236,72,153,0.15) 0%, transparent 68%)",
           filter: "blur(90px)",
+          willChange: "opacity, transform",
         }}
         animate={{ x: [0, 12, 0], opacity: [0.30, 0.60, 0.30], scale: [1, 1.12, 1] }}
         transition={{ duration: 20, repeat: Infinity, ease: "easeInOut", delay: 5 }}

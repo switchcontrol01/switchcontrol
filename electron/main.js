@@ -906,15 +906,21 @@ function createWindow() {
     if (!mainWindow || mainWindow.isVisible()) return;
 
     // ── DWM flash prevention ──────────────────────────────────────────────────
-    // Even with backgroundColor:#07090D and 2-rAF handshake, Windows DWM can
-    // briefly show a white native frame between show() and the moment Chromium
-    // delivers its first GPU texture to the OS compositor.
+    // Even with backgroundColor:#07090D and 3-rAF handshake, Windows DWM can
+    // briefly show a grey/white native frame between show() and the moment
+    // Chromium delivers its first GPU texture to the OS compositor.
     //
-    // Fix: set OS-level window opacity to 0 BEFORE show(), wait one rAF (16ms)
-    // for Chromium to push its already-rendered dark frame to the DWM pipeline,
-    // THEN restore opacity. The html element is at opacity:0 throughout so no
-    // content is visible — only the backgroundColor fills the window surface —
-    // but DWM never gets the chance to flash white.
+    // Fix: set OS-level window opacity to 0 BEFORE show(), wait 34ms (≈2 VSync
+    // intervals at 60 Hz) for Chromium to push its pre-rendered dark frame
+    // through the GPU pipeline to the DWM swap chain, THEN restore opacity.
+    //
+    // Why 34ms instead of 16ms:
+    //   On cold launch with CPU/GPU pressure (AMD RX 7800 XT and similar),
+    //   the GPU driver's first-frame delivery to DWM can exceed one VSync
+    //   interval.  16ms was inside that window for some hardware; 34ms gives
+    //   two full VSync cycles which is sufficient even under load.
+    //   The renderer html is at opacity:0 throughout so no content is visible
+    //   to the user — only the backgroundColor fills the window surface.
     mainWindow.setOpacity(0);
     mainWindow.show();
     console.log(`[LAUNCH:5] mainWindow.show() — opacity:0 (anti-DWM-flash) | ${launchMs()}`);
@@ -942,7 +948,7 @@ function createWindow() {
         console.log(`[LAUNCH:7] starting telemetry — 2000ms post window-shown | ${launchMs()}`);
         startTelemetryPolling().catch(e => console.error('[telemetry:poll] startTelemetryPolling error:', e.message));
       }, 2000);
-    }, 16);
+    }, 34); // 34ms = 2 VSync intervals — see DWM flash prevention comment above
   });
 
   // ready-to-show: DIAGNOSTIC ONLY — do NOT call show() here.
