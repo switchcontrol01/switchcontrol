@@ -410,11 +410,13 @@ export function TourShell({
       // navigation), not during tour navigation where the key stays stable.
       setTourNavigating(true);
       navigate(s.route);
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
+      const outer = requestAnimationFrame(() => {
+        const inner = requestAnimationFrame(() => {
           setTourNavigating(false);
         });
+        rafRefs.current.push(inner);
       });
+      rafRefs.current.push(outer);
     }
   }, [steps, setTourHighlight, navigate, setTourNavigating]);
 

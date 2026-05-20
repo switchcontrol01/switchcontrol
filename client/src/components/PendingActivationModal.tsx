@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Loader2, RefreshCw, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -14,11 +14,20 @@ export function PendingActivationModal({ show, onUpgradeDetected, onDismiss }: P
   const [status, setStatus] = useState<'syncing' | 'retrying' | 'failed'>('syncing');
   const [countdown, setCountdown] = useState(30);
   const [retryCount, setRetryCount] = useState(0);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   const checkPremium = useCallback(async () => {
     console.log('[PendingActivation] Checking premium status...');
     const result = await refreshEntitlements();
-    
+    if (!mountedRef.current) return false;
+
     if (result.user?.isPremium) {
       console.log('[PendingActivation] Premium detected!');
       setStatus('syncing');
@@ -38,12 +47,16 @@ export function PendingActivationModal({ show, onUpgradeDetected, onDismiss }: P
 
     let interval: NodeJS.Timeout;
     let checkInterval: NodeJS.Timeout;
+    let cancelled = false;
 
     const startChecking = async () => {
       const found = await checkPremium();
+      if (cancelled || !mountedRef.current) return;
       if (found) return;
 
       interval = setInterval(() => {
+        // Pause countdown while tab is hidden so the timer reflects active wait time
+        if (typeof document !== 'undefined' && document.hidden) return;
         setCountdown(prev => {
           if (prev <= 1) {
             clearInterval(interval);
@@ -56,9 +69,12 @@ export function PendingActivationModal({ show, onUpgradeDetected, onDismiss }: P
       }, 1000);
 
       checkInterval = setInterval(async () => {
+        if (typeof document !== 'undefined' && document.hidden) return;
+        if (!mountedRef.current) return;
         setRetryCount(prev => prev + 1);
-        const found = await checkPremium();
-        if (found) {
+        const wasFound = await checkPremium();
+        if (cancelled || !mountedRef.current) return;
+        if (wasFound) {
           clearInterval(interval);
           clearInterval(checkInterval);
         }
@@ -68,6 +84,7 @@ export function PendingActivationModal({ show, onUpgradeDetected, onDismiss }: P
     startChecking();
 
     return () => {
+      cancelled = true;
       clearInterval(interval);
       clearInterval(checkInterval);
     };
@@ -79,6 +96,7 @@ export function PendingActivationModal({ show, onUpgradeDetected, onDismiss }: P
     setRetryCount(0);
 
     const found = await checkPremium();
+    if (!mountedRef.current) return;
     if (!found) {
       setStatus('syncing');
     }

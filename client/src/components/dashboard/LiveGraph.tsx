@@ -377,8 +377,9 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
       }
       setIsReconnecting(true);
     }
-    // Trigger entry animation frame
-    requestAnimationFrame(() => setHasEntered(true));
+    // Trigger entry animation frame (tracked so we can cancel on unmount)
+    const entryRaf = requestAnimationFrame(() => setHasEntered(true));
+    return () => cancelAnimationFrame(entryRaf);
   }, []);
 
   // Track when a fresh point arrives so we can hide "Reconnecting…"
