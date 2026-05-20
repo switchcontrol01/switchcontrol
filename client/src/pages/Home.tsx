@@ -730,17 +730,6 @@ export default function Home() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.55, delay: 0.18, ease: [0.22, 1, 0.36, 1] }}
             >
-              {/* Live status chip — no box, just dot + label */}
-              <div
-                className="hidden md:flex items-center gap-2"
-                data-testid="chip-system-status"
-              >
-                <span className={`w-1.5 h-1.5 rounded-full ${isOnline ? "bg-emerald-500" : "bg-red-500"}`} />
-                <span className="text-xs text-[#6B7380] font-medium tracking-wide">
-                  {isOnline ? "System Active" : "No Connection"}
-                </span>
-              </div>
-
               {/* Weather — lazy, isolated, non-blocking */}
               <WeatherWidget />
 

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, memo } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { apiGet } from "@/lib/api";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -137,7 +137,7 @@ WeatherIcon.displayName = "WeatherIcon";
 
 // ── Stat row inside the hover panel ──────────────────────────────────────────
 
-const StatCell = memo(({ label, value }: { label: string; value: string }) => (
+const _StatCell = memo(({ label, value }: { label: string; value: string }) => (
   <div className="flex flex-col gap-0.5 px-2 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.05]">
     <span className="text-[9px] text-[#3D4552] uppercase tracking-wider font-medium">{label}</span>
     <span className="text-xs font-medium text-[#8A95A3]">{value}</span>
@@ -153,7 +153,6 @@ StatCell.displayName = "StatCell";
 const WeatherWidget = memo(() => {
   const [data, setData]       = useState<WeatherData | null>(null);
   const [failed, setFailed]   = useState(false);
-  const [expanded, setExpanded] = useState(false);
 
   const load = useCallback(async () => {
     // 1. Check localStorage first — no network request if cache is fresh
@@ -202,9 +201,7 @@ const WeatherWidget = memo(() => {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.55, ease: "easeOut", delay: 0.3 }}
-      className="hidden md:block relative"
-      onMouseEnter={() => setExpanded(true)}
-      onMouseLeave={() => setExpanded(false)}
+      className="hidden md:block"
     >
       {/* ── Compact chip ─────────────────────────────────────────────────── */}
       <div
@@ -216,55 +213,6 @@ const WeatherWidget = memo(() => {
         <WeatherIcon condition={condition} isDay={data.isDay} size={13} />
         <span className="text-xs font-medium text-[#6B7380]">{data.temp}°C</span>
       </div>
-
-      {/* ── Hover-expand detail panel ─────────────────────────────────────── */}
-      <AnimatePresence>
-        {expanded && (
-          <motion.div
-            initial={{ opacity: 0, y: -6, scale: 0.97 }}
-            animate={{ opacity: 1, y: 0,  scale: 1    }}
-            exit={{    opacity: 0, y: -6, scale: 0.97 }}
-            transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
-            className="absolute right-0 top-full mt-2 z-50 w-52 p-3 rounded-xl
-              bg-[#0a0a12]/95 backdrop-blur-2xl border border-white/[0.07]"
-            style={{
-              boxShadow: "0 12px 40px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.05)"
-            }}
-            data-testid="widget-weather-panel"
-          >
-            {/* Header row */}
-            <div className="flex items-center justify-between mb-2.5">
-              <div className="flex items-center gap-2">
-                <WeatherIcon condition={condition} isDay={data.isDay} size={18} />
-                <div>
-                  <div className="text-sm font-semibold text-[#D4D8E0] leading-tight">
-                    {data.temp}°C
-                  </div>
-                  {location && (
-                    <div className="text-[10px] text-[#3D4552] truncate max-w-[100px] mt-0.5">
-                      {location}
-                    </div>
-                  )}
-                </div>
-              </div>
-              <span className="text-[10px] text-[#4B5563] capitalize tracking-wide font-medium">
-                {condition}
-              </span>
-            </div>
-
-            {/* Divider */}
-            <div className="h-px bg-white/[0.05] mb-2.5" />
-
-            {/* Stats grid */}
-            <div className="grid grid-cols-2 gap-1.5">
-              <StatCell label="Feels like"  value={`${data.feelsLike}°C`} />
-              <StatCell label="Humidity"    value={`${data.humidity}%`} />
-              <StatCell label="Wind"        value={`${data.windKph} km/h`} />
-              <StatCell label="Rain chance" value={`${data.rainChancePct}%`} />
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </motion.div>
   );
 });

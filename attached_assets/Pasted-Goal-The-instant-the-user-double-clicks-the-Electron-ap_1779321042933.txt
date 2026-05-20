@@ -1,0 +1,280 @@
+Goal:
+The instant the user double-clicks the Electron app:
+
+- NO white flash
+- NO black frame
+- NO delayed mount
+- NO compositor flicker
+- NO heavy React startup before visible paint
+- Instant dark shell + startup animation
+
+This is the correct architecture for premium-feeling Electron startup.
+
+────────────────────────
+
+1. ELECTRON MAIN WINDOW
+   ────────────────────────
+
+Replace your BrowserWindow creation with this:
+
+const path = require("path");
+const { BrowserWindow } = require("electron");
+
+const mainWindow = new BrowserWindow({
+  width: 1600,
+  height: 1000,
+  minWidth: 1280,
+  minHeight: 800,
+  show: false,
+  backgroundColor: "#050816",
+  autoHideMenuBar: true,
+
+  paintWhenInitiallyHidden: true,
+
+  webPreferences: {
+    contextIsolation: true,
+    nodeIntegration: false,
+    sandbox: false,
+    preload: path.join(__dirname, "preload.js"),
+  },
+});
+
+IMPORTANT:
+"backgroundColor" is what prevents BOTH:
+
+- white flash
+- black compositor flash
+
+before Chromium paints.
+
+Without this, Windows briefly shows the native surface.
+
+────────────────────────
+2. INSTANT DARK HTML SHELL
+────────────────────────
+
+At the VERY TOP of index.html:
+
+<style>
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #050816;
+}
+
+body {
+  opacity: 1;
+  background:
+    radial-gradient(circle at top, rgba(0,255,180,0.08), transparent 45%),
+    #050816;
+}
+</style>
+
+This guarantees:
+
+- first paint is dark
+- compositor never flashes white
+- shell exists BEFORE React hydrates
+
+────────────────────────
+3. LOAD SHELL BEFORE REACT
+────────────────────────
+
+Inside body BEFORE your bundle script:
+
+<div id="boot-shell">
+  <div class="boot-logo"></div>
+</div>
+
+<style>
+#boot-shell {
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(circle at top, rgba(0,255,180,0.08), transparent 45%),
+    #050816;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  z-index: 999999;
+}
+
+.boot-logo {
+  width: 90px;
+  height: 90px;
+  border-radius: 24px;
+
+  background: rgba(255,255,255,0.04);
+
+  border: 1px solid rgba(255,255,255,0.08);
+
+  animation: bootPulse 1.2s ease-in-out infinite;
+}
+
+@keyframes bootPulse {
+  0% {
+    transform: scale(0.96);
+    opacity: 0.65;
+  }
+
+  50% {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  100% {
+    transform: scale(0.96);
+    opacity: 0.65;
+  }
+}
+</style>
+
+IMPORTANT:
+
+- NO blur
+- NO backdrop-filter
+- NO heavy box shadows
+- NO SVG filters
+- NO giant gradients
+
+Keep it GPU-cheap.
+
+────────────────────────
+4. SHOW WINDOW IMMEDIATELY
+────────────────────────
+
+DO NOT wait for:
+
+- telemetry
+- auth
+- AI
+- tweak scan
+- weather
+- route preload
+
+Only wait for FIRST PAINT.
+
+mainWindow.once("ready-to-show", () => {
+  mainWindow.show();
+});
+
+NOT:
+
+did-finish-load
+
+"did-finish-load" is too late.
+
+────────────────────────
+5. REMOVE STARTUP BLURS
+────────────────────────
+
+DO NOT use:
+
+backdrop-filter
+filter: blur()
+
+during startup.
+
+Chromium blur:
+
+- spikes GPU usage
+- delays first composite
+- increases input latency
+- causes white flicker on low-end GPUs
+
+Use ONLY:
+
+- opacity
+- transform
+- translateY
+- scale(0.98 -> 1)
+
+────────────────────────
+6. REMOVE BOOT SHELL AFTER APP READY
+────────────────────────
+
+In React:
+
+window.addEventListener("load", () => {
+  requestAnimationFrame(() => {
+    const shell = document.getElementById("boot-shell");
+
+    if (!shell) return;
+
+    shell.style.transition = "opacity 220ms ease";
+    shell.style.opacity = "0";
+
+    setTimeout(() => {
+      shell.remove();
+    }, 220);
+  });
+});
+
+IMPORTANT:
+
+- fade OUT only
+- never fade IN
+- never remount
+
+────────────────────────
+7. DO NOT BLOCK STARTUP
+────────────────────────
+
+DO NOT RUN THESE AT STARTUP:
+
+- AI initialization
+- telemetry history processing
+- hardware analysis
+- tweak indexing
+- BIOS scoring
+- OpenAI calls
+- weather fetch
+- giant localStorage parsing
+
+Delay all noncritical systems.
+
+Startup should only:
+
+1. create shell
+2. paint UI
+3. become interactive
+
+THEN hydrate systems.
+
+────────────────────────
+8. CRITICAL FINAL RULE
+────────────────────────
+
+The startup animation itself MUST NOT be expensive.
+
+Bad:
+
+- blur
+- particles
+- transparency stacks
+- nested shadows
+- video backgrounds
+
+Good:
+
+- opacity
+- transform
+- single glow
+- one composited layer
+
+Your startup goal is:
+
+double click
+→ instant dark shell
+→ subtle animation already moving
+→ app visible immediately
+→ systems hydrate silently behind it
+
+THAT is premium perceived performance.
