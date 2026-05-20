@@ -2660,6 +2660,12 @@ ipcMain.handle('nic:getCapabilities', async (event, adapterName) => {
   return await nicExecutor.getAdapterCapabilities(adapterName);
 });
 
+ipcMain.handle('nic:invalidateCache', async (event, adapterName) => {
+  // adapterName === null → flush all; string → flush specific adapter
+  nicExecutor.invalidateCapabilityCache(typeof adapterName === 'string' ? adapterName : null);
+  return { ok: true };
+});
+
 ipcMain.handle('nic:readProperty', async (event, adapterName, propertyKey) => {
   if (typeof adapterName !== 'string' || typeof propertyKey !== 'string') {
     return { value: null, supported: false, error: 'adapterName and propertyKey required' };

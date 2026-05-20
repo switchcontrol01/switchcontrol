@@ -119,6 +119,34 @@ const RING_BUFFER_PROPS = new Set(['ReceiveBuffers', 'TransmitBuffers']);
 // Tri-state: null = not checked yet, true/false = cached result
 let _ringBufferCmdletAvailable = null;
 
+// ── Capability cache ───────────────────────────────────────────────────────────
+// Key: adapter name (stable per physical NIC for the lifetime of a session).
+// TTL: session lifetime — invalidated by manual refresh or app restart.
+// Prevents repeated Get-NetAdapterAdvancedProperty calls when switching/toggling adapters.
+// On systems with 3+ adapters the PS query can take 800ms+; this makes it instant after
+// the first open.
+const _capabilityCache = new Map();
+
+/**
+ * Invalidate the capability cache for a specific adapter or for all adapters.
+ * Called on:
+ *   - manual "Refresh" by the user
+ *   - adapter enable/disable (detected externally)
+ *   - app startup (cache starts empty — implicit invalidation)
+ *
+ * @param {string|null} adapterName  null to flush all entries
+ */
+function invalidateCapabilityCache(adapterName) {
+  if (adapterName) {
+    const deleted = _capabilityCache.delete(adapterName);
+    if (deleted) console.log(`[NIC:Tuning] capabilityCache=invalidated adapter="${adapterName}"`);
+  } else {
+    const count = _capabilityCache.size;
+    _capabilityCache.clear();
+    if (count > 0) console.log(`[NIC:Tuning] capabilityCache=flushed count=${count}`);
+  }
+}
+
 async function checkRingBufferCmdlet() {
   if (_ringBufferCmdletAvailable !== null) return _ringBufferCmdletAvailable;
   const raw = await queryPS(
@@ -133,8 +161,18 @@ async function checkRingBufferCmdlet() {
 
 function mapNicErrorToOutcome(errStr) {
   if (!errStr) return 'write_failed';
-  if (/cancel|denied|elevat|access|uac/i.test(errStr))                    return 'elevation_denied';
+  // UAC / elevation — check before driver_locked so "access denied from UAC" stays as elevation_denied
+  if (/cancel|elevat|uac/i.test(errStr))                                  return 'elevation_denied';
+  // Cmdlet not found — NIC driver doesn't expose the ring-buffer interface
   if (/not recognized|is not.*cmdlet|command.*not found|cannot.*find.*command/i.test(errStr)) return 'unsupported_driver';
+  // Driver locked — driver exposes the property but rejects modification.
+  // Distinct from elevation_denied (UAC) and unsupported_driver (cmdlet absent).
+  // Typical HRESULT codes:
+  //   0x80070490 = element not found      0x80070057 = invalid parameter
+  //   0x80070032 = request not supported  0x80004005 = unspecified E_FAIL
+  if (/element not found|parameter.*incorrect|request.*not supported|0x80070490|0x80070057|0x80070032|0x80004005|read.?only|object reference/i.test(errStr)) return 'driver_locked';
+  // Plain access denied (not UAC) — driver or registry ACL blocked the write
+  if (/access.*denied|denied/i.test(errStr))                              return 'access_denied';
   if (/busy|conflict|in use/i.test(errStr))                               return 'adapter_busy';
   if (/restart|reboot/i.test(errStr))                                     return 'reboot_required';
   if (/reject|refused|driver.*fail/i.test(errStr))                        return 'driver_rejected';
@@ -463,8 +501,14 @@ async function getNetAdapters() {
 async function getAdapterCapabilities(adapterName) {
   if (!adapterName) return { capabilities: {}, error: 'adapterName required' };
 
+  // ── Cache check (session-lifetime TTL) ────────────────────────────────────
+  if (_capabilityCache.has(adapterName)) {
+    console.log(`[NIC:Tuning] capabilityCache=hit adapter="${adapterName}"`);
+    return _capabilityCache.get(adapterName);
+  }
+  console.log(`[NIC:Tuning] capabilityCache=miss adapter="${adapterName}" — querying capabilities`);
+
   const safeAdapter = adapterName.replace(/'/g, "''");
-  console.log(`[NIC:Tuning] adapter="${adapterName}" querying capabilities`);
 
   const raw = await queryPS(
     `$props = Get-NetAdapterAdvancedProperty -Name '${safeAdapter}' -EA SilentlyContinue; if ($props) { $props | Select-Object DisplayName, RegistryKeyword, DisplayValue, RegistryValue, ValidRegistryValues | ConvertTo-Json -Compress } else { '[]' }`
@@ -542,7 +586,10 @@ async function getAdapterCapabilities(adapterName) {
     `interruptMod=${capabilities['InterruptModeration']?.supported ?? false}`
   );
 
-  return { capabilities, error: null };
+  // ── Store in cache (session-lifetime) ─────────────────────────────────────
+  const result = { capabilities, error: null };
+  _capabilityCache.set(adapterName, result);
+  return result;
 }
 
 /**
@@ -846,7 +893,9 @@ const ownershipStore = require('./ownership-store');
 async function setNicPropertyWithOwnership(adapterName, propertyKey, value) {
   const scopeKey = ownershipStore.buildScopeKey('nic', propertyKey, adapterName);
 
-  // Step 1+2: capture baseline if first time touching this adapter+property pair
+  // Step 1+2: capture baseline if first time touching this adapter+property pair.
+  // Also tracks the "before" registry value so we can detect silent driver rejection.
+  let beforeRegistryValue = null;
   const existing = ownershipStore.getOwnershipRecord(scopeKey);
   if (!existing || !existing.baselineCaptured) {
     try {
@@ -855,6 +904,7 @@ async function setNicPropertyWithOwnership(adapterName, propertyKey, value) {
         // Unsupported on this adapter — do not record ownership
         console.log(`[NicExecutor] ${propertyKey} unsupported on "${adapterName}" — skipping ownership`);
       } else {
+        beforeRegistryValue = current.registryValue ?? current.displayValue ?? null;
         ownershipStore.captureBaseline(scopeKey, {
           itemType:        'nic',
           itemId:          propertyKey,
@@ -869,10 +919,28 @@ async function setNicPropertyWithOwnership(adapterName, propertyKey, value) {
     } catch (e) {
       console.warn('[NicExecutor] baseline capture failed for', adapterName, propertyKey, '—', e.message);
     }
+  } else {
+    // Already have a baseline — use it for silent-rejection detection
+    beforeRegistryValue = existing.previousValue?.registryValue ?? existing.previousValue?.displayValue ?? null;
   }
 
   // Step 3: execute
   const result = await setNicProperty(adapterName, propertyKey, value);
+
+  // ── Driver-locked detection (silent rejection) ──────────────────────────────
+  // Some OEM and Intel drivers acknowledge the Set call without error but silently
+  // ignore it — the registry value is unchanged. This appears as write_succeeded_verify_failed
+  // where actualValue === the value before the write.
+  // We surface this as 'driver_locked' rather than the ambiguous verify_failed state.
+  if (result.ok && result.outcome === 'write_succeeded_verify_failed' &&
+      beforeRegistryValue !== null && result.actualValue !== null &&
+      String(result.actualValue) === String(beforeRegistryValue)) {
+    console.log(`[NIC:Tuning] driver_locked detected adapter="${adapterName}" property=${propertyKey} — value unchanged after write (before=${beforeRegistryValue} after=${result.actualValue})`);
+    result.ok      = false;
+    result.outcome = 'driver_locked';
+    result.verified = false;
+    result.error   = 'Driver acknowledged the write but the value was not applied. This property may be read-only or locked by the vendor driver or a third-party utility.';
+  }
 
   // Step 4: record ownership only after confirmed success
   if (result.ok) {
@@ -891,6 +959,7 @@ async function setNicPropertyWithOwnership(adapterName, propertyKey, value) {
 module.exports = {
   getNetAdapters,
   getAdapterCapabilities,
+  invalidateCapabilityCache,
   readNicProperty,
   setNicProperty,
   setNicPropertyWithOwnership,

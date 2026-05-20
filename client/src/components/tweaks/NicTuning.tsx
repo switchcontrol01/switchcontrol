@@ -67,6 +67,7 @@ type NicOutcome =
   | 'invalid_value'
   | 'unsupported_on_adapter'
   | 'unsupported_driver'
+  | 'driver_locked'
   | 'access_denied'
   | 'adapter_busy'
   | 'driver_rejected'
@@ -98,6 +99,30 @@ function getNicAPI() {
  * WMI errors from Get/Set-NetAdapterAdvancedProperty can be 200+ chars of stack trace.
  */
 const RING_BUFFER_PROP_KEYS = new Set(['ReceiveBuffers', 'TransmitBuffers']);
+
+// Properties that make no sense on a WiFi adapter — hide entirely
+const ETHERNET_ONLY_PROP_KEYS = new Set(['EEE', 'FlowControl', 'GreenEthernet', 'ReceiveBuffers', 'TransmitBuffers']);
+
+// Properties that work on WiFi but behave differently — show with a driver note
+const WIFI_CAUTIONED_PROP_KEYS = new Set(['InterruptModeration']);
+
+/**
+ * Return true when an adapter is a wireless (802.11) NIC.
+ * Checks mediaType first (most reliable on Win10/11), then falls back to
+ * description/name substring matching for adapters that report a generic mediaType.
+ */
+function isWifiAdapter(adapter: NicAdapter): boolean {
+  return (
+    /802\.11|native 802\.11/i.test(adapter.mediaType) ||
+    /wifi|wi-fi|wireless|wlan/i.test(adapter.description) ||
+    /wifi|wi-fi|wireless|wlan/i.test(adapter.name)
+  );
+}
+
+/** Return the human-readable term for the adapter kind. */
+function adapterKind(isWifi: boolean): string {
+  return isWifi ? 'WiFi adapter' : 'NIC';
+}
 
 function sanitizeNicError(err: string | null | undefined): string {
   if (!err) return 'Unknown error.';
@@ -145,9 +170,10 @@ interface PropertyControlProps {
   propKey: string;
   meta: PropertyMeta;
   capability: PropertyCapability;
+  isWifi: boolean;
 }
 
-function PropertyControl({ adapterName, propKey, meta, capability }: PropertyControlProps) {
+function PropertyControl({ adapterName, propKey, meta, capability, isWifi }: PropertyControlProps) {
   const { toast } = useToast();
   const [state, setState] = useState<PropertyState>({
     pending:  capability.currentValue,
@@ -200,6 +226,7 @@ function PropertyControl({ adapterName, propKey, meta, capability }: PropertyCon
       const outcomeMsg: Record<string, string> = {
         unsupported_on_adapter: 'Property not supported on this NIC driver.',
         unsupported_driver:     'Your NIC driver does not expose this control. Common on Realtek laptops and older OEM drivers.',
+        driver_locked:          'Your driver exposes this setting but rejected modification requests. It may be read-only or locked by a vendor utility.',
         elevation_denied:       'Access denied — run as administrator.',
         access_denied:          'Access denied — run as administrator.',
         adapter_busy:           'Adapter is busy — please try again in a moment.',
@@ -236,6 +263,25 @@ function PropertyControl({ adapterName, propKey, meta, capability }: PropertyCon
     }
   }, [adapterName, propKey, meta.label, meta.defaultValue, isElectron, toast, scheduleResultDismiss]);
 
+  // ── WiFi: Ethernet-only — hide entirely, show a concise note ─────────────────
+  if (isWifi && ETHERNET_ONLY_PROP_KEYS.has(propKey)) {
+    return (
+      <div className="py-3 px-3 rounded-xl border bg-[#1A1F26] border-[#2A313A] opacity-45">
+        <div className="flex items-center gap-2 flex-wrap mb-1.5">
+          <span className="text-xs font-medium text-[#A0A8B3]">{meta.label}</span>
+          <RiskBadge risk={meta.risk} />
+          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[#21262D] text-[#6B7380] border border-[#2A313A] flex items-center gap-1">
+            <Wifi className="size-2.5" />
+            Ethernet only
+          </span>
+        </div>
+        <p className="text-[11px] text-[#4A5160] leading-relaxed">
+          Not applicable to WiFi adapters. Connect via Ethernet to configure this setting.
+        </p>
+      </div>
+    );
+  }
+
   // ── Unsupported: show a clean "not available" row — no controls, no Apply button ──
   if (!capability.supported) {
     const isBufferProp = RING_BUFFER_PROP_KEYS.has(propKey);
@@ -252,9 +298,9 @@ function PropertyControl({ adapterName, propKey, meta, capability }: PropertyCon
         <p className="text-[11px] text-[#4A5160] leading-relaxed">
           {isBufferProp
             ? 'Your network adapter driver does not expose configurable ring buffer controls.'
-            : 'Not available on this adapter\'s driver.'}
+            : `Not available on this ${adapterKind(isWifi)}'s driver.`}
         </p>
-        {isBufferProp && (
+        {isBufferProp && !isWifi && (
           <p className="text-[10px] text-[#3A4150] mt-1">
             Common on Realtek laptops and older OEM drivers.
           </p>
@@ -404,6 +450,7 @@ function PropertyControl({ adapterName, propKey, meta, capability }: PropertyCon
                 invalid_value:                 sanitizeNicError(r.error),
                 unsupported_on_adapter:        'Property not supported on this NIC driver.',
                 unsupported_driver:            'Your NIC driver does not expose this control. Common on Realtek laptops and older OEM drivers.',
+                driver_locked:                 'Your driver exposes this setting but rejected modification requests. It may be read-only or locked by a vendor utility.',
                 elevation_denied:              'Access denied — run as administrator.',
                 access_denied:                 'Access denied — run as administrator.',
                 adapter_busy:                  'Adapter busy — please try again in a moment.',
@@ -470,15 +517,15 @@ function AdapterPanel({ adapter, propertyMeta, isExpanded, onToggle }: AdapterPa
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const loaded = useRef(false);
+  const wifi = isWifiAdapter(adapter);
 
-  const loadCapabilities = useCallback(async () => {
+  const loadCapabilities = useCallback(async (forceRefresh = false) => {
     if (!isElectron || loading) return;
     setLoading(true);
     setLoadError(null);
     try {
       const api = getNicAPI();
       if (!api) {
-        // Browser mode — show all as unsupported
         setCapabilities(
           Object.keys(propertyMeta).reduce((acc, k) => {
             acc[k] = { supported: false, currentValue: null };
@@ -488,6 +535,8 @@ function AdapterPanel({ adapter, propertyMeta, isExpanded, onToggle }: AdapterPa
         setLoading(false);
         return;
       }
+      // Invalidate server-side cache before re-querying (user-triggered refresh)
+      if (forceRefresh) await api.invalidateCache(adapter.name);
       const result = await api.getCapabilities(adapter.name);
       if (result.error && !result.capabilities) {
         setLoadError(result.error);
@@ -525,7 +574,7 @@ function AdapterPanel({ adapter, propertyMeta, isExpanded, onToggle }: AdapterPa
           "size-8 rounded-xl flex items-center justify-center shrink-0",
           isOnline ? "bg-cyan-500/15 text-cyan-400" : "bg-[#21262D] text-[#6B7380]"
         )}>
-          <Network className="size-4" />
+          {wifi ? <Wifi className="size-4" /> : <Network className="size-4" />}
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
@@ -538,6 +587,11 @@ function AdapterPanel({ adapter, propertyMeta, isExpanded, onToggle }: AdapterPa
             )}>
               {adapter.status}
             </span>
+            {wifi && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                WiFi
+              </span>
+            )}
             {supportedCount !== null && (
               <span className="text-[10px] text-[#6B7380]">
                 {supportedCount}/{Object.keys(propertyMeta).length} properties supported
@@ -566,7 +620,7 @@ function AdapterPanel({ adapter, propertyMeta, isExpanded, onToggle }: AdapterPa
               {loading && (
                 <div className="flex items-center gap-2 py-4 text-sm text-muted-foreground">
                   <Loader2 className="size-4 animate-spin" />
-                  Querying adapter capabilities…
+                  Querying {wifi ? 'WiFi adapter' : 'adapter'} capabilities…
                 </div>
               )}
               {loadError && (
@@ -574,7 +628,7 @@ function AdapterPanel({ adapter, propertyMeta, isExpanded, onToggle }: AdapterPa
                   <XCircle className="size-3.5 shrink-0" />
                   {loadError}
                   <button
-                    onClick={loadCapabilities}
+                    onClick={() => loadCapabilities(true)}
                     className="ml-2 underline hover:no-underline"
                   >
                     Retry
@@ -584,7 +638,16 @@ function AdapterPanel({ adapter, propertyMeta, isExpanded, onToggle }: AdapterPa
               {!isElectron && (
                 <div className="flex items-center gap-2 py-3 px-3 rounded-xl bg-[#1A1F26] border border-[#2A313A] text-xs text-[#6B7380]">
                   <Info className="size-3.5 shrink-0 text-cyan-400/60" />
-                  NIC property control is only available in the Windows desktop app. Capability detection requires Electron + PowerShell.
+                  {wifi ? 'WiFi adapter' : 'NIC'} property control is only available in the Windows desktop app. Capability detection requires Electron + PowerShell.
+                </div>
+              )}
+              {/* WiFi info strip — shown when the expanded adapter is wireless */}
+              {wifi && capabilities && (
+                <div className="flex items-start gap-2 px-3 py-2 rounded-xl border border-indigo-500/15 bg-indigo-500/[0.05] text-[11px] text-indigo-300/70">
+                  <Info className="size-3 shrink-0 mt-0.5" />
+                  <span>
+                    WiFi adapter detected. Ethernet-only settings (EEE, Flow Control, Ring Buffers) are hidden. Interrupt Moderation results may vary across wireless drivers.
+                  </span>
                 </div>
               )}
               {capabilities && Object.entries(propertyMeta).map(([key, meta]) => (
@@ -594,8 +657,19 @@ function AdapterPanel({ adapter, propertyMeta, isExpanded, onToggle }: AdapterPa
                   propKey={key}
                   meta={meta}
                   capability={capabilities[key] ?? { supported: false, currentValue: null }}
+                  isWifi={wifi}
                 />
               ))}
+              {/* Per-adapter Refresh — invalidates cache and re-queries the driver */}
+              {isElectron && capabilities && !loading && (
+                <button
+                  onClick={() => { loaded.current = false; loadCapabilities(true); }}
+                  className="flex items-center gap-1.5 text-[10px] text-[#4A5160] hover:text-[#6B7380] transition-colors mt-1"
+                >
+                  <RefreshCw className="size-3" />
+                  Refresh {wifi ? 'WiFi adapter' : 'adapter'} capabilities
+                </button>
+              )}
             </div>
           </motion.div>
         )}

@@ -323,6 +323,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
       assertString(adapterName, 'adapterName');
       return ipcRenderer.invoke('nic:getCapabilities', adapterName);
     },
+    invalidateCache: (adapterName) => {
+      return ipcRenderer.invoke('nic:invalidateCache', adapterName ?? null);
+    },
     readProperty: (adapterName, propertyKey) => {
       assertString(adapterName, 'adapterName');
       assertString(propertyKey, 'propertyKey');
