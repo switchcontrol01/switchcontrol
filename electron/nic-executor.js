@@ -108,12 +108,45 @@ async function runElevated(command) {
 // Some NICs (Realtek, AMD) do not expose *ReceiveBuffers / *TransmitBuffers
 // through Get-NetAdapterAdvancedProperty. Windows has a dedicated cmdlet that
 // works on these adapters. We fall back to it automatically.
+//
+// CRITICAL: Set-NetAdapterRingBuffer does NOT exist on many systems (Realtek
+// laptops, older OEM NIC drivers, WiFi adapters). We check cmdlet availability
+// ONCE per session and cache the result so we never fire a UAC prompt or produce
+// raw PowerShell errors on unsupported hardware.
 
 const RING_BUFFER_PROPS = new Set(['ReceiveBuffers', 'TransmitBuffers']);
 
+// Tri-state: null = not checked yet, true/false = cached result
+let _ringBufferCmdletAvailable = null;
+
+async function checkRingBufferCmdlet() {
+  if (_ringBufferCmdletAvailable !== null) return _ringBufferCmdletAvailable;
+  const raw = await queryPS(
+    `if (Get-Command Set-NetAdapterRingBuffer -ErrorAction SilentlyContinue) { 'true' } else { 'false' }`
+  );
+  _ringBufferCmdletAvailable = (raw === 'true');
+  console.log(`[NIC:Tuning] ringBufferCmdlet=${_ringBufferCmdletAvailable}`);
+  return _ringBufferCmdletAvailable;
+}
+
+// ── Error → structured outcome mapping ────────────────────────────────────────
+
+function mapNicErrorToOutcome(errStr) {
+  if (!errStr) return 'write_failed';
+  if (/cancel|denied|elevat|access|uac/i.test(errStr))                    return 'elevation_denied';
+  if (/not recognized|is not.*cmdlet|command.*not found|cannot.*find.*command/i.test(errStr)) return 'unsupported_driver';
+  if (/busy|conflict|in use/i.test(errStr))                               return 'adapter_busy';
+  if (/restart|reboot/i.test(errStr))                                     return 'reboot_required';
+  if (/reject|refused|driver.*fail/i.test(errStr))                        return 'driver_rejected';
+  return 'write_failed';
+}
+
 async function _rbRead(safeAdapter, propertyKey) {
-  const field = propertyKey === 'ReceiveBuffers' ? 'RxCurrentBufferCount' : 'TxCurrentBufferCount';
-  const maxField = propertyKey === 'ReceiveBuffers' ? 'RxMaxBufferCount' : 'TxMaxBufferCount';
+  const cmdletAvail = await checkRingBufferCmdlet();
+  if (!cmdletAvail) return null; // cmdlet absent — treat as not supported
+
+  const field    = propertyKey === 'ReceiveBuffers' ? 'RxCurrentBufferCount' : 'TxCurrentBufferCount';
+  const maxField = propertyKey === 'ReceiveBuffers' ? 'RxMaxBufferCount'     : 'TxMaxBufferCount';
   const raw = await queryPS(
     `$rb = Get-NetAdapterRingBuffer -Name '${safeAdapter}' -EA SilentlyContinue; ` +
     `if ($rb) { [PSCustomObject]@{ current=$rb.${field}; max=$rb.${maxField} } | ConvertTo-Json -Compress } else { 'null' }`
@@ -126,10 +159,28 @@ async function _rbRead(safeAdapter, propertyKey) {
 }
 
 async function _rbSet(safeAdapter, propertyKey, value) {
+  // Pre-flight: never call Set-NetAdapterRingBuffer if the cmdlet doesn't exist.
+  // Without this check the system shows a UAC prompt then fails with a raw PS error.
+  const cmdletAvail = await checkRingBufferCmdlet();
+  if (!cmdletAvail) {
+    console.log(`[NIC:Tuning] ringBufferCmdlet=false → unsupported_driver for ${propertyKey}`);
+    return {
+      ok:      false,
+      outcome: 'unsupported_driver',
+      error:   'Set-NetAdapterRingBuffer is not available on this system. Your NIC driver does not expose ring buffer controls.',
+    };
+  }
+
   const param = propertyKey === 'ReceiveBuffers' ? 'RxBufferSize' : 'TxBufferSize';
-  const num = parseInt(value, 10);
-  if (isNaN(num)) return { ok: false, error: 'Value must be a number' };
-  return runElevated(`Set-NetAdapterRingBuffer -Name '${safeAdapter}' -${param} ${num} -EA Stop`);
+  const num   = parseInt(value, 10);
+  if (isNaN(num)) return { ok: false, outcome: 'write_failed', error: 'Value must be a number' };
+
+  const result = await runElevated(`Set-NetAdapterRingBuffer -Name '${safeAdapter}' -${param} ${num} -EA Stop`);
+  if (!result.ok) {
+    const outcome = mapNicErrorToOutcome(result.error || '');
+    return { ok: false, outcome, error: result.error };
+  }
+  return result;
 }
 
 // ── NIC property definitions ──────────────────────────────────────────────────
@@ -137,7 +188,9 @@ async function _rbSet(safeAdapter, propertyKey, value) {
 const NIC_PROPERTY_DEFS = {
   'ReceiveBuffers': {
     displayName:   '*ReceiveBuffers',
-    fallbackNames: ['ReceiveBuffers', 'Receive Buffers'],
+    fallbackNames: ['ReceiveBuffers', 'Receive Buffers', 'RX Buffers', 'Rx Buffers',
+                    'Receive Buffer Size', 'ReceiveBufferSize', '*ReceiveBuffers',
+                    'NumRxDesc', 'Rx Ring Size'],
     label:         'Receive Buffers',
     type:          'numeric',
     defaultValue:  256,
@@ -151,7 +204,9 @@ const NIC_PROPERTY_DEFS = {
   },
   'TransmitBuffers': {
     displayName:   '*TransmitBuffers',
-    fallbackNames: ['TransmitBuffers', 'Transmit Buffers'],
+    fallbackNames: ['TransmitBuffers', 'Transmit Buffers', 'TX Buffers', 'Tx Buffers',
+                    'Transmit Buffer Size', 'TransmitBufferSize', '*TransmitBuffers',
+                    'NumTxDesc', 'Tx Ring Size'],
     label:         'Transmit Buffers',
     type:          'numeric',
     defaultValue:  256,
@@ -409,6 +464,7 @@ async function getAdapterCapabilities(adapterName) {
   if (!adapterName) return { capabilities: {}, error: 'adapterName required' };
 
   const safeAdapter = adapterName.replace(/'/g, "''");
+  console.log(`[NIC:Tuning] adapter="${adapterName}" querying capabilities`);
 
   const raw = await queryPS(
     `$props = Get-NetAdapterAdvancedProperty -Name '${safeAdapter}' -EA SilentlyContinue; if ($props) { $props | Select-Object DisplayName, RegistryKeyword, DisplayValue, RegistryValue, ValidRegistryValues | ConvertTo-Json -Compress } else { '[]' }`
@@ -438,7 +494,6 @@ async function getAdapterCapabilities(adapterName) {
     );
 
     if (match) {
-      // ValidRegistryValues may be an array, a single value, or null depending on property type
       let validValues = null;
       if (match.ValidRegistryValues !== undefined && match.ValidRegistryValues !== null) {
         validValues = Array.isArray(match.ValidRegistryValues)
@@ -447,7 +502,6 @@ async function getAdapterCapabilities(adapterName) {
       }
       capabilities[key] = {
         supported:       true,
-        // Prefer RegistryValue for currentValue so controls initialise to stable raw values
         currentValue:    match.RegistryValue !== undefined && match.RegistryValue !== null
                            ? String(match.RegistryValue)
                            : (match.DisplayValue ?? null),
@@ -457,11 +511,12 @@ async function getAdapterCapabilities(adapterName) {
       };
     } else if (RING_BUFFER_PROPS.has(key)) {
       // Fallback: some NICs (Realtek, AMD) expose ring buffers via Get-NetAdapterRingBuffer
+      // _rbRead will return null if cmdlet is unavailable — no PS errors generated
       const rb = await _rbRead(safeAdapter, key);
       if (rb && rb.current !== null) {
         capabilities[key] = {
-          supported:    true,
-          currentValue: String(rb.current),
+          supported:       true,
+          currentValue:    String(rb.current),
           registryKeyword: null,
           displayName:     null,
           validValues:     null,
@@ -474,6 +529,18 @@ async function getAdapterCapabilities(adapterName) {
       capabilities[key] = { supported: false, currentValue: null, validValues: null };
     }
   }
+
+  // ── Structured capability log ─────────────────────────────────────────────
+  const rxCap = capabilities['ReceiveBuffers'];
+  const txCap = capabilities['TransmitBuffers'];
+  console.log(
+    `[NIC:Tuning] adapter="${adapterName}" ` +
+    `rxSupported=${rxCap?.supported ?? false} ` +
+    `txSupported=${txCap?.supported ?? false} ` +
+    `rss=${capabilities['RSS']?.supported ?? false} ` +
+    `eee=${capabilities['EEE']?.supported ?? false} ` +
+    `interruptMod=${capabilities['InterruptModeration']?.supported ?? false}`
+  );
 
   return { capabilities, error: null };
 }
@@ -568,18 +635,25 @@ async function setNicProperty(adapterName, propertyKey, value) {
   const safeAdapter = adapterName.replace(/'/g, "''");
   const safeValue   = String(value).replace(/'/g, "''");
 
+  console.log(`[NIC:Tuning] adapter="${adapterName}" property=${propertyKey} value=${value}`);
+
   // Discover the real RegistryKeyword and DisplayName from the driver
   const prop = await discoverProperty(safeAdapter, def);
   if (!prop) {
     // Fallback: use Set-NetAdapterRingBuffer for buffer properties on NICs that
     // don't expose them through Get-NetAdapterAdvancedProperty (Realtek, AMD, etc.)
+    // _rbSet checks cmdlet availability FIRST — will never produce raw PS errors.
     if (RING_BUFFER_PROPS.has(propertyKey)) {
+      console.log(`[NIC:Tuning] fallback=ring-buffer property=${propertyKey}`);
       const rbResult = await _rbSet(safeAdapter, propertyKey, value);
       if (!rbResult.ok) {
-        const isUac = /cancel|denied|elevat|access|uac/i.test(rbResult.error || '');
+        // Propagate the structured outcome from _rbSet (may be 'unsupported_driver',
+        // 'elevation_denied', etc.) — never fall through to a raw error string.
+        const outcome = rbResult.outcome || mapNicErrorToOutcome(rbResult.error || '');
+        console.log(`[NIC:Tuning] apply=failed outcome=${outcome}`);
         return {
           ok:          false,
-          outcome:     isUac ? 'elevation_denied' : 'write_failed',
+          outcome,
           verified:    false,
           actualValue: null,
           error:       rbResult.error,
@@ -589,14 +663,17 @@ async function setNicProperty(adapterName, propertyKey, value) {
       const rb = await _rbRead(safeAdapter, propertyKey);
       const readbackVal = rb ? String(rb.current) : null;
       const verified = readbackVal !== null && String(parseInt(value, 10)) === readbackVal;
+      const outcome = verified ? 'write_succeeded_verified' : 'write_succeeded_verify_failed';
+      console.log(`[NIC:Tuning] apply=${verified ? 'success' : 'unverified'} outcome=${outcome} fallback=ring-buffer`);
       return {
         ok:          true,
-        outcome:     verified ? 'write_succeeded_verified' : 'write_succeeded_verify_failed',
+        outcome,
         verified,
         actualValue: readbackVal,
         error:       verified ? null : 'Value written but readback did not confirm.',
       };
     }
+    console.log(`[NIC:Tuning] apply=failed outcome=unsupported_on_adapter property=${propertyKey}`);
     return {
       ok:          false,
       outcome:     'unsupported_on_adapter',
@@ -606,16 +683,19 @@ async function setNicProperty(adapterName, propertyKey, value) {
     };
   }
 
+  console.log(`[NIC:Tuning] fallback=advanced-property registryKeyword=${prop.registryKeyword}`);
+
   const command = `Set-NetAdapterAdvancedProperty -Name '${safeAdapter}' -RegistryKeyword '${prop.registryKeyword.replace(/'/g, "''")}' -RegistryValue '${safeValue}' -EA Stop`;
 
   const result = await runElevated(command);
   if (!result.ok) {
     const errStr = result.error || '';
-    const isUac          = /cancel|denied|elevat|access|uac/i.test(errStr);
     const isInvalidValue = /no matching keyword value/i.test(errStr);
+    const outcome = isInvalidValue ? 'invalid_value' : mapNicErrorToOutcome(errStr);
+    console.log(`[NIC:Tuning] apply=failed outcome=${outcome}`);
     return {
       ok:          false,
-      outcome:     isUac ? 'elevation_denied' : isInvalidValue ? 'invalid_value' : 'write_failed',
+      outcome,
       verified:    false,
       actualValue: null,
       error:       errStr,
@@ -625,10 +705,12 @@ async function setNicProperty(adapterName, propertyKey, value) {
   // Read back using the full readNicProperty (returns both RegistryValue and DisplayValue)
   const readback = await readNicProperty(adapterName, propertyKey);
   const verified = verifyNicValue(value, readback);
+  const outcome = verified ? 'write_succeeded_verified' : 'write_succeeded_verify_failed';
+  console.log(`[NIC:Tuning] apply=${verified ? 'success' : 'unverified'} outcome=${outcome}`);
 
   return {
     ok:          true,
-    outcome:     verified ? 'write_succeeded_verified' : 'write_succeeded_verify_failed',
+    outcome,
     verified,
     actualValue: readback.registryValue ?? readback.displayValue ?? null,
     error:       verified

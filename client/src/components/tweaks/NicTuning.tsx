@@ -66,6 +66,11 @@ type NicOutcome =
   | 'write_failed'
   | 'invalid_value'
   | 'unsupported_on_adapter'
+  | 'unsupported_driver'
+  | 'access_denied'
+  | 'adapter_busy'
+  | 'driver_rejected'
+  | 'reboot_required'
   | 'elevation_denied'
   | 'reset_verified'
   | 'reset_failed';
@@ -92,8 +97,14 @@ function getNicAPI() {
  * Converts raw PowerShell / WMI errors into a short, readable message.
  * WMI errors from Get/Set-NetAdapterAdvancedProperty can be 200+ chars of stack trace.
  */
+const RING_BUFFER_PROP_KEYS = new Set(['ReceiveBuffers', 'TransmitBuffers']);
+
 function sanitizeNicError(err: string | null | undefined): string {
   if (!err) return 'Unknown error.';
+  // Cmdlet not found — common on Realtek laptops and older OEM drivers
+  if (/not recognized|is not.*cmdlet|command.*not found|cannot.*find.*command/i.test(err)) {
+    return 'Your NIC driver does not expose ring buffer controls.';
+  }
   // WMI "No matching objects" error
   if (/no matching.*MSFT_NetAdapter/i.test(err) || /CIM.*server/i.test(err)) {
     return 'Property not found on this NIC — the driver may not support it.';
@@ -101,15 +112,18 @@ function sanitizeNicError(err: string | null | undefined): string {
   // Invalid keyword value — NIC driver only accepts a subset of stepped presets
   if (/no matching keyword value/i.test(err)) {
     const m = err.match(/valid keyword values?:\s*([\d,\s]+)/i);
-    if (m) {
-      return `Your NIC doesn't support this option. Supported values: ${m[1].trim()}.`;
-    }
+    if (m) return `Your NIC doesn't support this option. Supported values: ${m[1].trim()}.`;
     return "Your NIC doesn't support this specific value.";
   }
   // Access denied / UAC cancelled
   if (/access.?denied|uac|cancel/i.test(err)) return 'Access denied — run as administrator.';
-  // General PowerShell error — truncate at 120 chars
-  return err.length > 120 ? err.slice(0, 117) + '…' : err;
+  // Adapter busy
+  if (/busy|conflict|in use/i.test(err)) return 'Adapter busy — try again after a moment.';
+  // Reboot required
+  if (/restart|reboot/i.test(err)) return 'A system restart is required to apply this change.';
+  // General PowerShell error — truncate at 120 chars, never expose raw stacks
+  const clean = err.replace(/\s+/g, ' ').trim();
+  return clean.length > 120 ? clean.slice(0, 117) + '…' : clean;
 }
 
 function RiskBadge({ risk }: { risk: string }) {
@@ -185,7 +199,12 @@ function PropertyControl({ adapterName, propKey, meta, capability }: PropertyCon
     } else {
       const outcomeMsg: Record<string, string> = {
         unsupported_on_adapter: 'Property not supported on this NIC driver.',
+        unsupported_driver:     'Your NIC driver does not expose this control. Common on Realtek laptops and older OEM drivers.',
         elevation_denied:       'Access denied — run as administrator.',
+        access_denied:          'Access denied — run as administrator.',
+        adapter_busy:           'Adapter is busy — please try again in a moment.',
+        driver_rejected:        'The driver rejected this change. Try a different value.',
+        reboot_required:        'A system restart is required to apply this change.',
         invalid_value:          sanitizeNicError(res.error),
         write_failed:           sanitizeNicError(res.error),
       };
@@ -217,6 +236,33 @@ function PropertyControl({ adapterName, propKey, meta, capability }: PropertyCon
     }
   }, [adapterName, propKey, meta.label, meta.defaultValue, isElectron, toast, scheduleResultDismiss]);
 
+  // ── Unsupported: show a clean "not available" row — no controls, no Apply button ──
+  if (!capability.supported) {
+    const isBufferProp = RING_BUFFER_PROP_KEYS.has(propKey);
+    return (
+      <div className="py-3 px-3 rounded-xl border bg-[#1A1F26] border-[#2A313A] opacity-60">
+        <div className="flex items-center gap-2 flex-wrap mb-1.5">
+          <span className="text-xs font-medium text-[#A0A8B3]">{meta.label}</span>
+          <RiskBadge risk={meta.risk} />
+          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[#21262D] text-[#6B7380] border border-[#2A313A] flex items-center gap-1">
+            <Ban className="size-2.5" />
+            Not supported
+          </span>
+        </div>
+        <p className="text-[11px] text-[#4A5160] leading-relaxed">
+          {isBufferProp
+            ? 'Your network adapter driver does not expose configurable ring buffer controls.'
+            : 'Not available on this adapter\'s driver.'}
+        </p>
+        {isBufferProp && (
+          <p className="text-[10px] text-[#3A4150] mt-1">
+            Common on Realtek laptops and older OEM drivers.
+          </p>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className={cn(
       "py-3 px-3 rounded-xl border transition-all duration-300",
@@ -230,10 +276,7 @@ function PropertyControl({ adapterName, propKey, meta, capability }: PropertyCon
         {meta.requiresAdmin && (
           <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-orange-500/10 text-orange-400 border border-orange-500/20">Admin</span>
         )}
-        {capability.supported
-          ? <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">Supported</span>
-          : <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[#21262D] text-[#6B7380] border border-[#2A313A]">Unverified</span>
-        }
+        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">Supported</span>
       </div>
 
       <p className="text-[11px] text-[#6B7380] mb-3 leading-relaxed">{meta.description}</p>
@@ -355,14 +398,19 @@ function PropertyControl({ adapterName, propKey, meta, capability }: PropertyCon
                   ? <Ban className="size-3 shrink-0" />
                   : <XCircle className="size-3 shrink-0" />;
               const OUTCOME_LABELS: Record<string, string> = {
-                write_succeeded_verified:    `Verified — registry confirmed ${r.actualValue ?? ''}`,
+                write_succeeded_verified:      `Verified — registry confirmed ${r.actualValue ?? ''}`,
                 write_succeeded_verify_failed: `Written — readback pending driver confirmation (read: ${r.actualValue ?? '?'})`,
-                write_failed:                sanitizeNicError(r.error),
-                invalid_value:               sanitizeNicError(r.error),
-                unsupported_on_adapter:      'Property not supported on this NIC driver.',
-                elevation_denied:            'Access denied — run as administrator.',
-                reset_verified:              `Reset to default${r.actualValue ? ` — read back: ${r.actualValue}` : ''}`,
-                reset_failed:                sanitizeNicError(r.error),
+                write_failed:                  sanitizeNicError(r.error),
+                invalid_value:                 sanitizeNicError(r.error),
+                unsupported_on_adapter:        'Property not supported on this NIC driver.',
+                unsupported_driver:            'Your NIC driver does not expose this control. Common on Realtek laptops and older OEM drivers.',
+                elevation_denied:              'Access denied — run as administrator.',
+                access_denied:                 'Access denied — run as administrator.',
+                adapter_busy:                  'Adapter busy — please try again in a moment.',
+                driver_rejected:               'Driver rejected this change. Try a different value.',
+                reboot_required:               'Restart required to apply this change.',
+                reset_verified:                `Reset to default${r.actualValue ? ` — read back: ${r.actualValue}` : ''}`,
+                reset_failed:                  sanitizeNicError(r.error),
               };
               const msg = r.outcome ? OUTCOME_LABELS[r.outcome] : (r.ok ? `Done — ${r.actualValue ?? ''}` : sanitizeNicError(r.error));
               return (
