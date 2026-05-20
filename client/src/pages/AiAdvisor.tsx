@@ -870,7 +870,7 @@ function ChatBubble({ msg, isSlow, reducedMotion, onApply, onApplyInline, isAdmi
           </div>
         )}
         {msg.role === "assistant" ? (
-          msg.isThinking
+          (msg.isThinking || (!msg.structured && msg.content === ""))
             ? <ThinkingStatus slow={isSlow} />
             : msg.structured
               ? msg.structured.type === "diagnostic"
@@ -1417,7 +1417,11 @@ export default function AiAdvisor() {
       isThinking: true,
     };
 
-    setMessages(prev => [...prev, userMsg]);
+    // Add user message + thinking placeholder in the same synchronous batch
+    // so there is zero blank frame between "send" and "waiting for AI".
+    setMessages(prev => [...prev, userMsg, placeholderMsg]);
+    let thinkingAdded = true;
+    const thinkingTimer = -1 as unknown as ReturnType<typeof setTimeout>; // unused sentinel
     setInput("");
     setAttachedImage(null);
     setLoading(true);
@@ -1428,13 +1432,6 @@ export default function AiAdvisor() {
     slowTimerRef.current = setTimeout(() => {
       if (thisReqId === reqIdRef.current) setIsSlowRequest(true);
     }, 5000);
-
-    let thinkingAdded = false;
-    const thinkingTimer = setTimeout(() => {
-      thinkingAdded = true;
-      setMessages(prev => [...prev, placeholderMsg]);
-      setTimeout(forceScrollBottom, 30);
-    }, 130);
 
     abortRef.current?.abort();
     abortRef.current = new AbortController();

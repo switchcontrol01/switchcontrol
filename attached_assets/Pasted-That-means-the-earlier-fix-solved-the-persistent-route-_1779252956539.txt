@@ -1,0 +1,177 @@
+That means the earlier fix solved the persistent route-transition flash, but one cold-mount path still exists.
+
+Important detail:
+
+> “Only once” “Only after opening app” “Then never again”
+
+
+
+That narrows it down massively.
+
+This is NOT:
+
+routing
+
+Suspense fallback
+
+lazy chunk navigation
+
+repeated rerender issues
+
+
+This is almost certainly:
+
+first-time component mount
+
+first GPU layer composition
+
+first CSS paint
+
+first Framer Motion initialization
+
+first background asset decode
+
+first Reveal/pageTransition initial state
+
+
+And because it’s specifically Cleaner, that page likely still has:
+
+a root-level motion wrapper
+
+opacity initial state
+
+delayed background render
+
+or a dynamic import unique to Cleaner
+
+
+The key is: after first visit, browser cache + GPU layer cache are warm.
+
+So the flash disappears.
+
+
+---
+
+Most likely causes now
+
+1. Cleaner still uses initial opacity:0 somewhere
+
+Earlier fixes targeted some pages, but Cleaner may still contain:
+
+initial={{ opacity: 0 }}
+
+or:
+
+<Reveal>
+
+at root level.
+
+Even 50ms of opacity:0 exposes the dark background.
+
+
+---
+
+2. Background layer mounts after content
+
+Cleaner may render:
+
+<AppLayout>
+  <CleanerPage />
+</AppLayout>
+
+but the background/glass layer initializes one frame later.
+
+That exposes the body background briefly.
+
+
+---
+
+3. Heavy first-paint effect
+
+Cleaner might initialize:
+
+charts
+
+blur
+
+gradients
+
+particles
+
+glass
+
+telemetry hooks
+
+
+during first mount.
+
+GPU compiles shaders/layers first time only. Then cached afterward.
+
+Very common in Electron.
+
+
+---
+
+What I’d tell Replit
+
+Investigate remaining cold-open black flash on System Cleaner page.
+
+Current behavior:
+
+- Happens only once after app launch
+- Appears when opening Cleaner first time
+- ~0.05–0.1s black flash
+- After first visit, never happens again during tab switching
+
+This means:
+
+- NOT route-transition architecture
+- NOT repeated Suspense fallback
+- NOT navigation remount loop
+
+Likely causes:
+
+1. Root-level motion initial opacity state
+2. Remaining Reveal wrapper on Cleaner page
+3. First-time GPU layer composition
+4. Background/glass layer mounting after first paint
+5. Dynamic import resolving on first mount only
+6. CSS backdrop-filter / blur shader compilation
+7. AppLayout background not persistent during first Cleaner mount
+
+Audit specifically:
+
+- Cleaner root JSX structure
+- motion.div initial states
+- Reveal usage
+- AnimatePresence wrappers
+- backdrop-filter usage
+- heavy gradients/glass
+- dynamic imports
+- first-paint timing
+
+Goal:
+Cleaner should render immediately visible on first mount with no black/background exposure even before animations initialize.
+
+Do NOT remove animations globally.
+Need surgical fix only for cold-first-paint path.
+---
+
+My honest suspicion
+
+I think Cleaner still has one forgotten:
+
+initial={{ opacity: 0 }}
+
+or root <Reveal>.
+
+Because:
+
+happens once
+
+tiny duration
+
+then cached forever
+
+
+That pattern screams “first mount animation state.”
