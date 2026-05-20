@@ -88,31 +88,44 @@ const allowedOrigins = isProd && !isElectronBackend
 
 const replitDevDomain = process.env.REPLIT_DEV_DOMAIN;
 
-app.use(cors({
-  origin: function(origin, callback) {
-    if (!origin) return callback(null, true);
-    if (origin === 'null') {
-      return callback(null, true);
-    }
-    if (allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    }
-    if (!isProd && (
-      origin.endsWith(".replit.dev") ||
-      origin.endsWith(".replit.app") ||
-      origin.endsWith(".kirk.replit.dev") ||
-      (replitDevDomain && origin.includes(replitDevDomain))
-    )) {
-      return callback(null, true);
-    }
-    console.warn(`[CORS] Blocked origin: ${origin}`);
-    const err: any = new Error("CORS blocked");
-    err.status = 403;
-    return callback(err);
-  },
+const corsOriginValidator = function(origin: string | undefined, callback: (err: any, allow?: boolean) => void) {
+  if (!origin) return callback(null, true);
+  if (origin === 'null') {
+    return callback(null, true);
+  }
+  if (allowedOrigins.includes(origin)) {
+    return callback(null, true);
+  }
+  if (!isProd && (
+    origin.endsWith(".replit.dev") ||
+    origin.endsWith(".replit.app") ||
+    origin.endsWith(".kirk.replit.dev") ||
+    (replitDevDomain && origin.includes(replitDevDomain))
+  )) {
+    return callback(null, true);
+  }
+  console.warn(`[CORS] Blocked origin: ${origin}`);
+  const err: any = new Error("CORS blocked");
+  err.status = 403;
+  return callback(err);
+};
+
+// CORS with credentials only on API routes — static assets (favicon, images, etc.)
+// must NOT carry Access-Control-Allow-Credentials: true because shared-cache crawlers
+// (including Google's favicon fetcher) treat credential-bearing responses as private
+// and will not cache them, causing the globe fallback in Google Search results.
+app.use("/api", cors({
+  origin: corsOriginValidator,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'x-csrf-token', 'x-device-id'],
+  exposedHeaders: ['X-Auth-Mode'],
+}));
+app.use("/auth", cors({
+  origin: corsOriginValidator,
+  credentials: true,
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-csrf-token'],
   exposedHeaders: ['X-Auth-Mode'],
 }));
 const httpServer = createServer(app);
