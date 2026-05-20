@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePageTiming, runWhenIdle } from "@/lib/page-timing";
 import { safeGetJwt } from "@/lib/auth-store";
+import { useToast } from "@/hooks/use-toast";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { GlassCard } from "@/components/ui/glass-card";
 import { useLiveTelemetry } from "@/hooks/useLiveTelemetry";
@@ -923,6 +924,7 @@ export default function Security() {
   const { prefersReducedMotion } = useMotion();
   const hasSecurity = isElectronWithSecurity();
   const { telemetry: liveTel } = useLiveTelemetry();
+  const { toast } = useToast();
 
   const [activeTab, setActiveTab] = useState<Tab>("overview");
   const [securityStatus,    setSecurityStatus]    = useState<SecurityStatus | null>(null);
@@ -1045,7 +1047,8 @@ export default function Security() {
 
   const runDefenderAction = useCallback(async (type: "quickScan" | "updateSignatures") => {
     if (!hasSecurity || defenderAction?.status === "running") return;
-    console.log(`[Security] ${type === "quickScan" ? "Quick Scan" : "Update Sigs"} clicked`);
+    const label = type === "quickScan" ? "Quick Scan" : "Signature Update";
+    console.log(`[Security] ${label} clicked`);
     setDefenderAction({ type, status: "running" });
     try {
       const r = await (eAPI() as any).security.runDefenderAction(type);
@@ -1054,15 +1057,34 @@ export default function Security() {
       const restricted = r?.restricted === true;
       setDefenderAction({ type, status: ok ? "done" : "error" });
 
-      if (ok && type === "updateSignatures") {
-        setTimeout(() => refreshAdvanced(), 2000);
+      if (ok) {
+        toast({
+          title: type === "quickScan" ? "Quick scan started" : "Signatures updated",
+          description: type === "quickScan"
+            ? "Windows Defender is running a quick scan in the background."
+            : "Defender threat definitions have been refreshed.",
+        });
+        if (type === "updateSignatures") setTimeout(() => refreshAdvanced(), 2500);
+      } else {
+        toast({
+          title: restricted ? `${label} restricted` : `${label} failed`,
+          description: restricted
+            ? "Defender is managed by your IT policy — this action cannot be run here."
+            : (r?.message || "The action did not complete. Check that Windows Defender is running."),
+          variant: "destructive",
+        });
       }
     } catch (err: any) {
       console.error(`[Security] runDefenderAction error (${type}):`, err?.message ?? err);
       setDefenderAction({ type, status: "error" });
+      toast({
+        title: `${label} failed`,
+        description: err?.message || "An unexpected error occurred.",
+        variant: "destructive",
+      });
     }
-    setTimeout(() => setDefenderAction(null), 3000);
-  }, [hasSecurity, defenderAction, refreshAdvanced]);
+    setTimeout(() => setDefenderAction(null), 5000);
+  }, [hasSecurity, defenderAction, refreshAdvanced, toast]);
 
   const startScan = useCallback(async (type: "quick" | "smart") => {
     if (scanStatus === "scanning") return;

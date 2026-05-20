@@ -88,15 +88,77 @@ ipcMain.handle('security:getStatus', async () => {
   const result = { available: false, data: null, error: null };
 
   try {
-    // Get-MpComputerStatus (Windows Defender)
-    const mpCmd = `$mp = Get-MpComputerStatus -ErrorAction SilentlyContinue; if ($mp) { $mp | Select-Object AMRunningMode, AntivirusEnabled, AntispywareEnabled, RealTimeProtectionEnabled, NISEnabled, TamperProtectionSource, QuickScanEndTime, FullScanEndTime, AMEngineVersion, AntivirusSignatureVersion | ConvertTo-Json -Compress } else { 'null' }`;
-    const mpRaw = await runPowerShell(mpCmd);
-    let mpData = null;
-    if (mpRaw !== 'null') {
-      try { mpData = JSON.parse(mpRaw); } catch {}
-    }
+    // Get Defender status — tries Get-MpComputerStatus first, then CIM fallback,
+    // then registry reads for individual fields when WMI is restricted/unavailable.
+    const mpCmd = `
+      $out = @{
+        RealTimeProtectionEnabled = $null
+        AntispywareEnabled        = $null
+        TamperProtectionEnabled   = $null
+        AMEngineVersion           = $null
+        AntivirusSignatureVersion = $null
+        QuickScanEndTime          = $null
+        FullScanEndTime           = $null
+        DefenderAvailable         = $false
+      }
 
-    // Get-NetFirewallProfile (check if Domain or Private profile is enabled)
+      # Primary: Get-MpComputerStatus
+      $mp = $null
+      try { $mp = Get-MpComputerStatus -ErrorAction Stop } catch {}
+
+      # Fallback 1: CIM instance (works when WMI provider is available but cmdlet is restricted)
+      if (-not $mp) {
+        try { $mp = Get-CimInstance -Namespace 'root/Microsoft/Windows/Defender' -ClassName 'MSFT_MpComputerStatus' -ErrorAction Stop } catch {}
+      }
+
+      if ($mp) {
+        $out.DefenderAvailable         = $true
+        $out.RealTimeProtectionEnabled = $mp.RealTimeProtectionEnabled
+        $out.AntispywareEnabled        = $mp.AntispywareEnabled
+        $tamperSrc                     = $mp.TamperProtectionSource
+        $out.TamperProtectionEnabled   = if ($tamperSrc -ne $null) { [bool]($tamperSrc -ne 0) } else { $null }
+        $out.AMEngineVersion           = $mp.AMEngineVersion
+        $out.AntivirusSignatureVersion = $mp.AntivirusSignatureVersion
+        if ($mp.QuickScanEndTime -and $mp.QuickScanEndTime.Year -gt 2000) { $out.QuickScanEndTime = $mp.QuickScanEndTime.ToString('o') }
+        if ($mp.FullScanEndTime  -and $mp.FullScanEndTime.Year  -gt 2000) { $out.FullScanEndTime  = $mp.FullScanEndTime.ToString('o')  }
+      }
+
+      # Fallback 2: registry reads for each field that is still null
+      if ($out.RealTimeProtectionEnabled -eq $null) {
+        try {
+          $v = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows Defender\Real-Time Protection' -Name DisableRealtimeMonitoring -EA Stop).DisableRealtimeMonitoring
+          $out.RealTimeProtectionEnabled = ($v -eq 0)
+          $out.DefenderAvailable = $true
+        } catch {}
+      }
+      if ($out.AntispywareEnabled -eq $null) {
+        try {
+          $v = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows Defender' -Name DisableAntiSpyware -EA Stop).DisableAntiSpyware
+          $out.AntispywareEnabled = ($v -eq 0)
+        } catch {
+          # Key absent means Defender owns anti-spyware scanning = enabled
+          $out.AntispywareEnabled = $true
+        }
+      }
+      if ($out.TamperProtectionEnabled -eq $null) {
+        try {
+          $v = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows Defender\Features' -Name TamperProtection -EA Stop).TamperProtection
+          $out.TamperProtectionEnabled = ($v -ne 0)
+        } catch {}
+      }
+      if (-not $out.AntivirusSignatureVersion) {
+        try {
+          $out.AntivirusSignatureVersion = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows Defender\Signature Updates' -Name 'AVSignatureVersion' -EA Stop).AVSignatureVersion
+        } catch {}
+      }
+
+      $out | ConvertTo-Json -Compress
+    `;
+    const mpRaw = await runPowerShell(mpCmd, 15000);
+    let mpData = null;
+    try { mpData = JSON.parse(mpRaw); } catch {}
+
+    // Get-NetFirewallProfile (check if Private profile is enabled)
     let firewallEnabled = null;
     try {
       const fwCmd = `Get-NetFirewallProfile -Name 'Private' -ErrorAction SilentlyContinue | Select-Object Enabled | ConvertTo-Json -Compress`;
@@ -105,25 +167,25 @@ ipcMain.handle('security:getStatus', async () => {
       firewallEnabled = fwData?.Enabled === true;
     } catch {}
 
-    if (!mpData && firewallEnabled === null) {
+    if (!mpData?.DefenderAvailable && firewallEnabled === null) {
       return { available: false, reason: 'defender-unavailable' };
     }
 
     result.available = true;
     result.data = {
       realtimeProtection: mpData?.RealTimeProtectionEnabled ?? null,
-      tamperProtection: mpData?.TamperProtectionSource != null ? mpData.TamperProtectionSource !== 0 : null,
-      antispywareEnabled: mpData?.AntispywareEnabled ?? null,
-      defenderAvailable: mpData != null,
+      tamperProtection:   mpData?.TamperProtectionEnabled   ?? null,
+      antispywareEnabled: mpData?.AntispywareEnabled        ?? null,
+      defenderAvailable:  mpData?.DefenderAvailable         ?? false,
       firewallEnabled,
-      engineVersion: mpData?.AMEngineVersion ?? null,
+      engineVersion:    mpData?.AMEngineVersion           ?? null,
       signatureVersion: mpData?.AntivirusSignatureVersion ?? null,
-      lastQuickScan: mpData?.QuickScanEndTime ? new Date(mpData.QuickScanEndTime).toISOString() : null,
-      lastFullScan: mpData?.FullScanEndTime ? new Date(mpData.FullScanEndTime).toISOString() : null,
+      lastQuickScan:    mpData?.QuickScanEndTime          ?? null,
+      lastFullScan:     mpData?.FullScanEndTime           ?? null,
       source: 'electron',
     };
 
-    console.log(`[Security] getStatus OK | realtime=${result.data.realtimeProtection} firewall=${firewallEnabled}`);
+    console.log(`[Security] getStatus OK | realtime=${result.data.realtimeProtection} tamper=${result.data.tamperProtection} firewall=${firewallEnabled}`);
     return result;
   } catch (err) {
     console.warn(`[Security] getStatus ERROR: ${err?.message}`);
@@ -397,44 +459,94 @@ ipcMain.handle('security:getAdvancedProtection', async () => {
   if (process.platform !== 'win32') return { available: false, reason: 'not-windows' };
   try {
     const cmd = `
-      $mp   = Get-MpComputerStatus -ErrorAction SilentlyContinue
-      $pref = Get-MpPreference    -ErrorAction SilentlyContinue
-      $svcObj = Get-Service -Name WinDefend -ErrorAction SilentlyContinue
-      $svc  = if ($svcObj) { $svcObj.Status } else { $null }
+      # Primary: Get-MpComputerStatus; CIM fallback when cmdlet is restricted
+      $mp = $null
+      try { $mp = Get-MpComputerStatus -ErrorAction Stop } catch {}
+      if (-not $mp) {
+        try { $mp = Get-CimInstance -Namespace 'root/Microsoft/Windows/Defender' -ClassName 'MSFT_MpComputerStatus' -ErrorAction Stop } catch {}
+      }
 
+      # Preferences — try cmdlet then CIM
+      $pref = $null
+      try { $pref = Get-MpPreference -ErrorAction Stop } catch {}
+      if (-not $pref) {
+        try { $pref = Get-CimInstance -Namespace 'root/Microsoft/Windows/Defender' -ClassName 'MSFT_MpPreference' -ErrorAction Stop } catch {}
+      }
+
+      $svcObj = Get-Service -Name WinDefend -ErrorAction SilentlyContinue
+      $svc    = if ($svcObj) { $svcObj.Status } else { $null }
+
+      # Signature age — from $mp or registry fallback
       $signatureAge = $null
       if ($mp -and $mp.AntivirusSignatureLastUpdated) {
-        $signatureAge = [int]([DateTime]::UtcNow - $mp.AntivirusSignatureLastUpdated.ToUniversalTime()).TotalDays
+        try { $signatureAge = [int]([DateTime]::UtcNow - $mp.AntivirusSignatureLastUpdated.ToUniversalTime()).TotalDays } catch {}
       }
+      if ($signatureAge -eq $null) {
+        try {
+          $rawTime = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows Defender\Signature Updates' -Name 'SignaturesLastUpdated' -EA Stop).SignaturesLastUpdated
+          if ($rawTime) {
+            $dtSig        = [DateTime]::FromFileTimeUtc([long]$rawTime)
+            $signatureAge = [int]([DateTime]::UtcNow - $dtSig).TotalDays
+          }
+        } catch {}
+      }
+
       $quickScanAge = $null
       if ($mp -and $mp.QuickScanEndTime -and $mp.QuickScanEndTime.Year -gt 2000) {
-        $quickScanAge = [int]([DateTime]::UtcNow - $mp.QuickScanEndTime.ToUniversalTime()).TotalDays
+        try { $quickScanAge = [int]([DateTime]::UtcNow - $mp.QuickScanEndTime.ToUniversalTime()).TotalDays } catch {}
       }
       $fullScanAge = $null
       if ($mp -and $mp.FullScanEndTime -and $mp.FullScanEndTime.Year -gt 2000) {
-        $fullScanAge = [int]([DateTime]::UtcNow - $mp.FullScanEndTime.ToUniversalTime()).TotalDays
+        try { $fullScanAge = [int]([DateTime]::UtcNow - $mp.FullScanEndTime.ToUniversalTime()).TotalDays } catch {}
       }
 
+      # SmartScreen — two registry locations depending on Windows build
       $smartScreen = $null
       try {
-        $ss = (Get-ItemProperty 'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer' -Name SmartScreenEnabled -ErrorAction Stop).SmartScreenEnabled
+        $ss          = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer' -Name SmartScreenEnabled -EA Stop).SmartScreenEnabled
         $smartScreen = ($ss -ne 'Off')
-      } catch {}
+      } catch {
+        try {
+          $ssVal       = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppHost' -Name EnableWebContentEvaluation -EA Stop).EnableWebContentEvaluation
+          $smartScreen = ($ssVal -eq 1)
+        } catch {}
+      }
+
+      # Preference fields — cmdlet/CIM first, then registry fallbacks for each null field
+      $cloudProtection       = if ($pref) { $pref.MAPSReporting -ne 0 } else { $null }
+      $sampleSubmission      = if ($pref) { $pref.SubmitSamplesConsent -in @(1,3) } else { $null }
+      $controlledFolderAccess = if ($pref) { $pref.EnableControlledFolderAccess -ne 0 } else { $null }
+      $puaProtection         = if ($pref) { $pref.PUAProtection -ne 0 } else { $null }
+
+      if ($cloudProtection -eq $null) {
+        try { $v = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows Defender\Spynet' -Name SpyNetReporting -EA Stop).SpyNetReporting; $cloudProtection = ($v -ne 0) } catch {}
+      }
+      if ($controlledFolderAccess -eq $null) {
+        try { $v = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows Defender\Windows Defender Exploit Guard\Controlled Folder Access' -Name EnableControlledFolderAccess -EA Stop).EnableControlledFolderAccess; $controlledFolderAccess = ($v -ne 0) } catch {}
+      }
+      if ($puaProtection -eq $null) {
+        try { $v = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows Defender' -Name PUAProtection -EA Stop).PUAProtection; $puaProtection = ($v -ne 0) } catch {}
+      }
+
+      $sigVer = if ($mp) { $mp.AntivirusSignatureVersion } else { $null }
+      if (-not $sigVer) {
+        try { $sigVer = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows Defender\Signature Updates' -Name 'AVSignatureVersion' -EA Stop).AVSignatureVersion } catch {}
+      }
 
       @{
-        cloudProtection         = if ($pref) { $pref.MAPSReporting -ne 0 } else { $null }
-        sampleSubmission        = if ($pref) { $pref.SubmitSamplesConsent -in @(1,3) } else { $null }
-        controlledFolderAccess  = if ($pref) { $pref.EnableControlledFolderAccess -ne 0 } else { $null }
-        puaProtection           = if ($pref) { $pref.PUAProtection -ne 0 } else { $null }
-        smartScreen             = $smartScreen
-        signatureVersion        = if ($mp) { $mp.AntivirusSignatureVersion } else { $null }
-        signatureAge            = $signatureAge
-        quickScanAge            = $quickScanAge
-        fullScanAge             = $fullScanAge
-        defenderServiceRunning  = ($svc -eq 'Running')
+        cloudProtection        = $cloudProtection
+        sampleSubmission       = $sampleSubmission
+        controlledFolderAccess = $controlledFolderAccess
+        puaProtection          = $puaProtection
+        smartScreen            = $smartScreen
+        signatureVersion       = $sigVer
+        signatureAge           = $signatureAge
+        quickScanAge           = $quickScanAge
+        fullScanAge            = $fullScanAge
+        defenderServiceRunning = ($svc -eq 'Running')
       } | ConvertTo-Json -Compress
     `;
-    const raw = await runPowerShell(cmd, 18000);
+    const raw = await runPowerShell(cmd, 20000);
     const data = JSON.parse(raw);
     console.log(`[Security] getAdvancedProtection OK | sigAge=${data.signatureAge}d quickAge=${data.quickScanAge}d`);
     return { available: true, data };
@@ -867,7 +979,7 @@ ipcMain.handle('security:runDefenderAction', async (_event, action) => {
   let friendly = '';
   switch (action) {
     case 'quickScan':
-      cmdlet = 'Start-MpScan';
+      cmdlet = 'Start-MpScan -ScanType QuickScan';
       friendly = 'Quick Scan';
       break;
     case 'updateSignatures':
