@@ -1,13 +1,15 @@
 {
-  "version": "1.0.9",
-  "title": "Precision & Stability Update",
-  "headline": "Smarter diagnostics, a cleaner installer, and a faster AI workflow — plus several reliability fixes.",
-  "date": "2026-05-18",
+  "version": "1.1.1",
+  "title": "Stability & Safety Update",
+  "headline": "Under-the-hood hardening: smarter resource handling, safer registry writes, and several reliability fixes.",
+  "date": "2026-05-20",
   "type": "patch",
   "changes": [
-    "Fixed: Input Latency monitor was always showing 1.4ms regardless of system load — now uses continuous power-curve scaling against real CPU, RAM, and process data so values reflect actual system state.",
-    "Fixed: Admin stats panel failed to load on fresh installs due to a missing database table — resolved with automatic table creation on startup.",
-    "Fixed: Installer package included website-only assets (SEO files, blueprint images) — these are now excluded, reducing package overhead.",
-    "New: AI Advisor now surfaces inline tweak recommendation cards with a direct apply flow — act on suggestions without leaving the chat."
+    "Fixed: Slider tweaks (Win32 Priority, Mouse Queue, etc.) could trigger overlapping PowerShell registry writes when applied rapidly — each operation is now properly queued so only one runs at a time.",
+    "Fixed: System Cleaner scan and clean operations could run simultaneously if triggered in quick succession — both are now single-flight, preventing resource conflicts.",
+    "Fixed: Several components could attempt UI updates after navigating away from them, causing rare state warnings — all affected areas now safely cancel pending work on navigation.",
+    "Fixed: RAM usage card on the dashboard could show a stale value after running the Memory Cleaner — it now refreshes correctly after the OS settles.",
+    "Fixed: Premium purchase confirmation screen could update after being dismissed if the network response arrived late — the update is now cancelled on exit.",
+    "Improved: Boot authentication sequence is more resilient to slow network conditions — the startup flow no longer risks a state race on poor connections."
   ]
 }
