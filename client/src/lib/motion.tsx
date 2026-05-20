@@ -1,5 +1,5 @@
 import { motion, AnimatePresence, Variants, useInView } from "framer-motion";
-import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from "react";
+import React, { createContext, useContext, useState, useEffect, useLayoutEffect, useRef, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 const MotionContext = createContext({ prefersReducedMotion: false, hasLoaded: false });
@@ -115,7 +115,7 @@ export const sidebarSlide: Variants = {
 };
 
 export const pageTransition: Variants = {
-  initial: { opacity: 0, x: 10 },
+  initial: { opacity: 1, x: 10 },
   animate: { 
     opacity: 1, 
     x: 0,
@@ -263,21 +263,36 @@ export function Reveal({
   ...rest
 }: Omit<RevealProps, 'blur'>) {
   const ref = useRef<HTMLDivElement | null>(null);
+  // skipAnim = true when the element is already in the viewport on mount.
+  // useLayoutEffect fires synchronously before the first browser paint, so
+  // setting this here prevents the opacity-0 → opacity-1 transition from
+  // ever being painted — eliminating the black flash on tab/page navigation.
+  const [skipAnim, setSkipAnim] = useState(false);
+  useLayoutEffect(() => {
+    if (!ref.current) return;
+    const rect = ref.current.getBoundingClientRect();
+    if (rect.top < window.innerHeight * 1.1 && rect.bottom > 0) {
+      setSkipAnim(true);
+    }
+  }, []);
+
   const inView = useInView(ref, {
     once,
     margin: "0px 0px -5% 0px",
     amount: 0.08,
   });
 
+  const isVisible = skipAnim || inView;
+
   return (
     <motion.div
       ref={ref}
       className={cn(className)}
       initial={{ opacity: 0, y }}
-      animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y }}
+      animate={isVisible ? { opacity: 1, y: 0 } : { opacity: 0, y }}
       transition={{
-        duration: 0.50,
-        delay,
+        duration: skipAnim ? 0 : 0.50,
+        delay: skipAnim ? 0 : delay,
         ease: [0.22, 1, 0.36, 1],
       }}
       {...(rest as object)}

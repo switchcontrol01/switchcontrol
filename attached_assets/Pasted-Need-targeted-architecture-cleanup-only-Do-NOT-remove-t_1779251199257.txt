@@ -1,0 +1,206 @@
+Need targeted architecture cleanup only. Do NOT remove the development workflow, Vite dev server, Electron dev mode, or browser preview system. The audit confirmed those are legitimate development surfaces and not production runtime problems.
+
+Goal:
+Reduce dead weight, tighten packaging boundaries, and improve long-term maintainability without changing runtime behavior.
+
+Tasks:
+
+1. Remove unused Vite preview config
+   File: vite.config.ts
+
+Remove the unused "preview" section only if nothing in the repo references "vite preview".
+
+Do NOT touch:
+
+- dev server
+- HMR
+- setupVite
+- Electron dev workflow
+- localhost:5000 renderer path
+
+This is cleanup only.
+
+2. Strip website-only chunks from Electron installer
+   Problem:
+   Electron installer currently ships website-only lazy chunks that Electron never loads.
+
+Audit identified likely dead chunks:
+
+- Landing-*
+- Pricing-*
+- Features-*
+- FAQ-*
+- Download-*
+- Terms-*
+- Privacy-*
+- Success-*
+
+Task:
+Update electron-builder / extraResources filtering so these chunks are excluded from the packaged Electron app.
+
+Requirements:
+
+- Do NOT break actual public website builds
+- Do NOT break BrowserRouter website runtime
+- Do NOT break Electron renderer
+- Verify Electron still launches correctly after packaging
+- Verify WebsiteRoutes are still served normally from cloud build
+
+Need before/after installer size comparison if possible.
+
+3. Audit renderer startup payload
+   Need bundle audit for Electron renderer specifically.
+
+Identify:
+
+- largest JS chunks
+- largest CSS contributors
+- website-only CSS leaking into Electron renderer
+- duplicate libraries
+- duplicate animation libs
+- dead imports
+- oversized vendor chunks
+
+Need report:
+
+- chunk name
+- size
+- whether actually used in Electron runtime
+- whether lazy-loaded
+- whether removable
+
+Do NOT refactor yet unless trivial and zero-risk.
+
+4. CSS isolation audit
+   Current issue:
+   Shared index CSS contains both:
+
+- app UI styles
+- marketing website styles
+
+Need audit:
+
+- how much CSS is website-only
+- whether it loads in Electron unnecessarily
+- whether route-level CSS splitting is possible
+- whether Tailwind purge is functioning correctly
+- whether there are duplicate glow/gradient/background systems
+
+Do NOT do major CSS architecture changes yet.
+Need findings first.
+
+5. Renderer runtime audit
+   Need instrumentation audit for:
+
+- unnecessary rerenders
+- React mount storms
+- duplicate polling
+- interval overlap
+- event listener accumulation
+- resize observer leaks
+- animation frame loops
+- GPU-heavy blur layers
+- background CPU usage while idle
+- hidden tab behavior
+- detached DOM nodes
+- memory growth over 30 minutes idle
+
+Need logs:
+
+- renderer memory usage
+- CPU usage
+- active intervals/timeouts
+- active IPC listeners
+- active websocket connections
+- React commit frequency if measurable
+
+Goal:
+Find long-session degradation risks.
+
+6. Telemetry efficiency audit
+   Need audit of:
+
+- PowerShell spawn frequency
+- WMI query frequency
+- duplicate telemetry polling
+- telemetry overlap
+- GPU polling cost
+- unnecessary systeminformation calls
+- polling while app hidden/minimized
+- polling while inactive routes are mounted
+
+Need recommendation hierarchy:
+
+- critical fixes
+- medium fixes
+- optional optimizations
+
+7. Startup chain audit
+   Need full startup dependency graph:
+
+- BrowserWindow creation
+- preload execution
+- renderer mount
+- startup-shell
+- auth hydration
+- telemetry init
+- dashboard intelligence
+- AI initialization
+- graph mounting
+- IPC registration
+
+Need identification of:
+
+- what blocks first paint
+- what blocks interactive state
+- what can defer until idle
+- what should lazy initialize
+- what should never run during startup
+
+Goal:
+cold launch should feel instant and deterministic.
+
+8. IPC surface audit
+   Need audit of:
+
+- exposed preload APIs
+- duplicate IPC handlers
+- listener accumulation
+- unsafe renderer access
+- broad invoke channels
+- channels unused in production
+- Electron-only assumptions
+- browser safety boundaries
+
+Need list of:
+
+- safe
+- risky
+- dead
+- duplicate
+
+9. Final deliverable
+   Need:
+
+- findings report
+- risk ranking
+- performance ranking
+- quick wins
+- dangerous areas
+- recommended next fixes
+
+Important:
+Do NOT perform giant architecture rewrites.
+Do NOT split the app into separate projects.
+Do NOT remove the unified codebase.
+Do NOT remove Vite dev tooling.
+Do NOT introduce instability chasing purity.
+
+Focus on:
+
+- stability
+- runtime efficiency
+- packaging cleanliness
+- startup smoothness
+- long-session reliability
+- maintainability
