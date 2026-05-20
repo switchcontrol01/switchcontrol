@@ -9,6 +9,8 @@ const { ipcMain } = require('electron');
 const { execFile } = require('child_process');
 const os = require('os');
 const path = require('path');
+// P2-C1: use global limiter so cleaner never exceeds system-wide PS process cap
+const psLimiter = require('./powershell-limiter');
 
 // ── PowerShell runner ─────────────────────────────────────────────────────────
 function runPS(cmd, timeoutMs = 20000) {
@@ -437,22 +439,27 @@ ipcMain.handle('cleaner:scan', async (event, itemIds) => {
   if (process.platform !== 'win32') {
     return { ok: false, reason: 'not-windows', results: {} };
   }
+  // P2-C1: single-flight — prevent a second scan while one is running
+  const token = psLimiter.tryAcquire({ file: 'cleaner-helper.js', fn: 'cleaner:scan', reason: 'cleaner-scan' });
+  if (!token) return { ok: false, reason: 'busy', results: {} };
 
   const ids = Array.isArray(itemIds) ? itemIds : Object.keys(SCAN_DEFS);
   const results = {};
-
-  await Promise.all(ids.map(async id => {
-    const def = SCAN_DEFS[id];
-    if (!def) { results[id] = { sizeBytes: 0, fileCount: 0, found: false, error: 'unknown-item' }; return; }
-    try {
-      const out = await runPS(def.scanCmd(), 15000);
-      const { a: sizeBytes, b: fileCount } = parseOutput(out);
-      results[id] = { sizeBytes, fileCount, found: fileCount > 0 || sizeBytes > 0 };
-    } catch (err) {
-      results[id] = { sizeBytes: 0, fileCount: 0, found: false, error: err.message };
-    }
-  }));
-
+  try {
+    await Promise.all(ids.map(async id => {
+      const def = SCAN_DEFS[id];
+      if (!def) { results[id] = { sizeBytes: 0, fileCount: 0, found: false, error: 'unknown-item' }; return; }
+      try {
+        const out = await runPS(def.scanCmd(), 15000);
+        const { a: sizeBytes, b: fileCount } = parseOutput(out);
+        results[id] = { sizeBytes, fileCount, found: fileCount > 0 || sizeBytes > 0 };
+      } catch (err) {
+        results[id] = { sizeBytes: 0, fileCount: 0, found: false, error: err.message };
+      }
+    }));
+  } finally {
+    psLimiter.release(token);
+  }
   return { ok: true, results };
 });
 
@@ -463,21 +470,26 @@ ipcMain.handle('cleaner:clean', async (event, itemIds) => {
   if (process.platform !== 'win32') {
     return { ok: false, reason: 'not-windows', results: {} };
   }
+  // P2-C1: single-flight — prevent clean while scan (or another clean) is running
+  const token = psLimiter.tryAcquire({ file: 'cleaner-helper.js', fn: 'cleaner:clean', reason: 'cleaner-clean' });
+  if (!token) return { ok: false, reason: 'busy', results: {} };
 
   const results = {};
-
-  for (const id of itemIds) {
-    const def = SCAN_DEFS[id];
-    if (!def) { results[id] = { bytesRemoved: 0, filesRemoved: 0, failed: 0, error: 'unknown-item' }; continue; }
-    try {
-      const out = await runPS(def.cleanCmd(), 20000);
-      const { a: bytesRemoved, b: filesRemoved, c: failed } = parseOutput(out);
-      results[id] = { bytesRemoved, filesRemoved, failed };
-    } catch (err) {
-      results[id] = { bytesRemoved: 0, filesRemoved: 0, failed: 1, error: err.message };
+  try {
+    for (const id of itemIds) {
+      const def = SCAN_DEFS[id];
+      if (!def) { results[id] = { bytesRemoved: 0, filesRemoved: 0, failed: 0, error: 'unknown-item' }; continue; }
+      try {
+        const out = await runPS(def.cleanCmd(), 20000);
+        const { a: bytesRemoved, b: filesRemoved, c: failed } = parseOutput(out);
+        results[id] = { bytesRemoved, filesRemoved, failed };
+      } catch (err) {
+        results[id] = { bytesRemoved: 0, filesRemoved: 0, failed: 1, error: err.message };
+      }
     }
+  } finally {
+    psLimiter.release(token);
   }
-
   return { ok: true, results };
 });
 
@@ -488,20 +500,26 @@ ipcMain.handle('cleaner:verify', async (event, itemIds) => {
   if (process.platform !== 'win32') {
     return { ok: false, reason: 'not-windows', results: {} };
   }
+  // P2-C1: single-flight — verify is a scan operation, use the scan slot
+  const token = psLimiter.tryAcquire({ file: 'cleaner-helper.js', fn: 'cleaner:verify', reason: 'cleaner-verify' });
+  if (!token) return { ok: false, reason: 'busy', results: {} };
 
   const results = {};
-  await Promise.all(itemIds.map(async id => {
-    const def = SCAN_DEFS[id];
-    if (!def) { results[id] = { sizeBytes: 0, fileCount: 0, found: false }; return; }
-    try {
-      const out = await runPS(def.scanCmd(), 12000);
-      const { a: sizeBytes, b: fileCount } = parseOutput(out);
-      results[id] = { sizeBytes, fileCount, found: fileCount > 0 || sizeBytes > 0 };
-    } catch (err) {
-      results[id] = { sizeBytes: 0, fileCount: 0, found: false, error: err.message };
-    }
-  }));
-
+  try {
+    await Promise.all(itemIds.map(async id => {
+      const def = SCAN_DEFS[id];
+      if (!def) { results[id] = { sizeBytes: 0, fileCount: 0, found: false }; return; }
+      try {
+        const out = await runPS(def.scanCmd(), 12000);
+        const { a: sizeBytes, b: fileCount } = parseOutput(out);
+        results[id] = { sizeBytes, fileCount, found: fileCount > 0 || sizeBytes > 0 };
+      } catch (err) {
+        results[id] = { sizeBytes: 0, fileCount: 0, found: false, error: err.message };
+      }
+    }));
+  } finally {
+    psLimiter.release(token);
+  }
   return { ok: true, results };
 });
 

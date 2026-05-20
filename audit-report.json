@@ -1,40 +1,33 @@
 {
-  "scannedAt": "2026-05-20T03:26:18.969Z",
+  "scannedAt": "2026-05-20T03:37:06.135Z",
   "filesScanned": 389,
-  "durationMs": 418,
+  "durationMs": 433,
   "totals": {
     "critical": 0,
-    "high": 15,
+    "high": 10,
     "medium": 7,
     "low": 16
   },
   "findings": [
     {
-      "rule": "R1",
+      "rule": "R7",
       "severity": "high",
       "file": "client/src/App.tsx",
       "line": 619,
-      "msg": "setTimeout(...) inside useEffect with no clearTimeout and no cleanup return"
-    },
-    {
-      "rule": "R7",
-      "severity": "high",
-      "file": "client/src/App.tsx",
-      "line": 617,
       "msg": "setState called after await inside useEffect with no cancelled/abort/mounted guard"
     },
     {
       "rule": "R7",
       "severity": "high",
       "file": "client/src/App.tsx",
-      "line": 731,
+      "line": 735,
       "msg": "setState called after await inside useEffect with no cancelled/abort/mounted guard"
     },
     {
       "rule": "R7",
       "severity": "high",
       "file": "client/src/App.tsx",
-      "line": 1229,
+      "line": 1237,
       "msg": "setState called after await inside useEffect with no cancelled/abort/mounted guard"
     },
     {
@@ -118,7 +111,7 @@
       "rule": "R7",
       "severity": "high",
       "file": "client/src/components/dashboard/CpuCoresModal.tsx",
-      "line": 86,
+      "line": 88,
       "msg": "setState called after await inside useEffect with no cancelled/abort/mounted guard"
     },
     {
@@ -132,7 +125,7 @@
       "rule": "R7",
       "severity": "high",
       "file": "client/src/components/dashboard/MemoryIntelligenceModal.tsx",
-      "line": 73,
+      "line": 75,
       "msg": "setState called after await inside useEffect with no cancelled/abort/mounted guard"
     },
     {
@@ -199,20 +192,6 @@
       "msg": "setInterval(s) present but no document.hidden / useVisibilityInterval — consider visibility gating"
     },
     {
-      "rule": "R1",
-      "severity": "high",
-      "file": "client/src/pages/Home.tsx",
-      "line": 410,
-      "msg": "setTimeout(...) inside useEffect with no clearTimeout and no cleanup return"
-    },
-    {
-      "rule": "R1",
-      "severity": "high",
-      "file": "client/src/pages/Home.tsx",
-      "line": 485,
-      "msg": "setTimeout(...) inside useEffect with no clearTimeout and no cleanup return"
-    },
-    {
       "rule": "R6",
       "severity": "low",
       "file": "client/src/pages/Landing.tsx",
@@ -225,20 +204,6 @@
       "file": "client/src/pages/NetworkTweaks.tsx",
       "line": 742,
       "msg": "setState called after await inside useEffect with no cancelled/abort/mounted guard"
-    },
-    {
-      "rule": "R1",
-      "severity": "high",
-      "file": "client/src/pages/PremiumSuccess.tsx",
-      "line": 261,
-      "msg": "setTimeout(...) inside useEffect with no clearTimeout and no cleanup return"
-    },
-    {
-      "rule": "R1",
-      "severity": "high",
-      "file": "client/src/pages/PremiumSuccess.tsx",
-      "line": 280,
-      "msg": "setTimeout(...) inside useEffect with no clearTimeout and no cleanup return"
     },
     {
       "rule": "R5",

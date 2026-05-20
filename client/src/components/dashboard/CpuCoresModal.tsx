@@ -78,11 +78,13 @@ export function CpuCoresModal({ open, onOpenChange, cpuName, coreCount, threadCo
       return;
     }
 
+    let active = true; // P3-C1: guard setCores/setAvgLoad after await when modal closes mid-fetch
     const fetchCores = async () => {
       try {
         const api = (window as any).electronAPI;
         if (api?.telemetry?.getCpuCores) {
           const data: CpuCore[] = await api.telemetry.getCpuCores();
+          if (!active) return;
           setCores(data);
           if (data.length > 0) {
             const avg = data.reduce((sum, c) => sum + c.load, 0) / data.length;
@@ -116,6 +118,7 @@ export function CpuCoresModal({ open, onOpenChange, cpuName, coreCount, threadCo
     if (!document.hidden) startPoll();
 
     return () => {
+      active = false; // P3-C1: prevent in-flight fetch from calling setState after close
       stopPoll();
       document.removeEventListener('visibilitychange', handleVisibility);
     };

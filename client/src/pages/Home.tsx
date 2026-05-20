@@ -407,7 +407,8 @@ export default function Home() {
       // rather than the full getSpecs() which re-runs WMI/GPU queries.
       const api = (window as any).electronAPI;
       if (api?.system?.getSpecs) {
-        setTimeout(() => {
+        // P3-H1: store timeout id so we can cancel if component unmounts before it fires
+        const ramRefreshTimer = setTimeout(() => {
           withTimeout(api.system.getSpecs(), 8_000, null)
             .then((fresh: any) => {
               if (!fresh?.ram) return;
@@ -423,6 +424,7 @@ export default function Home() {
             })
             .catch(() => {/* non-fatal */});
         }, 1_500); // give the OS 1.5s to fully settle after EmptyWorkingSet
+        return () => clearTimeout(ramRefreshTimer);
       }
     }
     prevMemCleanerRef.current = memCleanerOpen;
@@ -465,6 +467,8 @@ export default function Home() {
     if (specsLoadedRef.current) return;
     specsLoadedRef.current = true;
 
+    let cpuRetryId: ReturnType<typeof setTimeout> | null = null; // P3-H2: track AMD cold-start retry timer for cleanup
+
     const SPEC_TIMEOUT_MS = 18_000;
 
     const api = (window as any).electronAPI;
@@ -482,7 +486,7 @@ export default function Home() {
           const cpuOk = specs.cpu?.model && specs.cpu.model !== 'Unknown CPU' && (specs.cpu?.cores ?? 0) > 0;
           if (!cpuOk) {
             console.warn('[SwitchControl] CPU data incomplete — will retry in 2s');
-            setTimeout(() => {
+            cpuRetryId = setTimeout(() => { // P3-H2: stored so cleanup can cancel it
               withTimeout(api.system.getSpecs(), 25_000, null).then((retrySpecs: SystemSpecs | null | undefined) => {
                 if (!retrySpecs) return;
                 const retryCpuOk = retrySpecs.cpu?.model && retrySpecs.cpu.model !== 'Unknown CPU' && (retrySpecs.cpu?.cores ?? 0) > 0;
@@ -582,6 +586,7 @@ export default function Home() {
         })
         .catch(() => { setSpecStatus("unavailable"); });
     }
+    return () => { if (cpuRetryId) clearTimeout(cpuRetryId); }; // P3-H2
   }, [withTimeout]);
 
   useEffect(() => {

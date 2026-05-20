@@ -588,6 +588,7 @@ function ElectronAppContent() {
     console.log('[App] Registering deep link auth callback (once)');
     const api = (window as any).electronAPI;
 
+    let mounted = true; // P3-DL1: guard setState in async IPC deep-link callback
     const unsubAuth = api.auth.onCallback(async (url: string) => {
       console.log('[DeepLink] ===== RENDERER CALLBACK RECEIVED =====');
       console.log('[DeepLink] URL:', url);
@@ -611,6 +612,7 @@ function ElectronAppContent() {
             initialDelayMs: 500,
           });
 
+          if (!mounted) return; // P3-DL1: bail if effect cleaned up mid-await
           if (result.ok && result.user?.isPremium) {
             console.log('[PremiumFlow] Premium confirmed — hasSeenUnlock:', result.user.hasSeenPremiumUnlock, 'hasSeenTour:', result.user.hasSeenPremiumTour);
             console.log('[Premium] Updated user:', result.user.plan);
@@ -698,7 +700,7 @@ function ElectronAppContent() {
       }
     });
 
-    return unsubAuth;
+    return () => { mounted = false; unsubAuth(); }; // P3-DL1
   }, []);
 
   useEffect(() => {
@@ -706,6 +708,7 @@ function ElectronAppContent() {
     // Fire CameraGlow exactly as splash completes — not during it
     setShowGlow(true);
 
+    let mounted = true; // P3-BA1: guard all setState after await in boot auth sequence
     const checkAuth = async () => {
       const hasCredential = !!(token || jwt);
       console.log('[AuthTruth] Boot: token present:', !!token, 'jwt present:', !!jwt, 'user present:', !!user, 'premium:', user?.isPremium);
@@ -726,6 +729,7 @@ function ElectronAppContent() {
       // ────────────────────────────────────────────────────────────────────────────────
 
       const authState = await resolveAuthState();
+      if (!mounted) return; // P3-BA1: bail if app unmounted during network call
       console.log(`[AuthTruth] Boot resolved verified=${authState.verified} reason=${authState.reason} user=${authState.user ? 'yes' : 'no'}`);
 
       setEntitlementsAttempted(true);
@@ -817,6 +821,7 @@ function ElectronAppContent() {
     };
 
     checkAuth();
+    return () => { mounted = false; }; // P3-BA1
   }, [splashDone]);
 
   const handleLogout = async () => {
@@ -1218,13 +1223,16 @@ function WebsiteContent() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    let mounted = true; // P3-W1: guard setState after await on unmount
     const checkSession = async () => {
       try {
         const response = await fetch('/api/me', {
           credentials: 'include',
         });
+        if (!mounted) return;
         if (response.ok) {
           const data = await response.json();
+          if (!mounted) return;
           if (data.loggedIn) {
             setUser({
               id: data.id,
@@ -1250,6 +1258,7 @@ function WebsiteContent() {
       }
     };
     checkSession();
+    return () => { mounted = false; };
   }, []);
 
   const handleLogout = async () => {

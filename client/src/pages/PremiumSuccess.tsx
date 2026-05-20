@@ -239,13 +239,14 @@ export default function PremiumSuccess() {
   const showButtons = phaseIndex >= 6;
 
   useEffect(() => {
+    let mounted = true; // P3-PS1: guard setTimeout setState callbacks on unmount
     const urlParams = new URLSearchParams(window.location.search);
     const sessionId = urlParams.get("session_id");
 
     if (!sessionId) {
       setStatus("error");
       setError("No session ID found");
-      return;
+      return () => { mounted = false; };
     }
 
     const startTime = Date.now();
@@ -259,6 +260,7 @@ export default function PremiumSuccess() {
         const elapsed = Date.now() - startTime;
         const remaining = Math.max(0, MIN_LOADING_MS - elapsed);
         setTimeout(() => {
+          if (!mounted) return; // P3-PS1
           if (data.payment_status === "paid") {
             // eslint-disable-next-line no-console
             console.log(`[PremiumSuccess] payment_verified session=${sessionId}`);
@@ -278,10 +280,12 @@ export default function PremiumSuccess() {
         const elapsed = Date.now() - startTime;
         const remaining = Math.max(0, MIN_LOADING_MS - elapsed);
         setTimeout(() => {
+          if (!mounted) return; // P3-PS1
           setStatus("error");
           setError("Failed to verify payment");
         }, remaining);
       });
+    return () => { mounted = false; };
   }, [navigate, queryClient]);
 
   const handleOpenApp = useCallback(() => {

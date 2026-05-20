@@ -64,11 +64,13 @@ export function MemoryIntelligenceModal({ open, onOpenChange }: MemoryIntelligen
       return;
     }
 
+    let active = true; // P3-M1: guard setData after await when modal closes mid-fetch
     const fetchData = async () => {
       try {
         const api = (window as any).electronAPI;
         if (api?.telemetry?.getMemoryDetails) {
           const raw = await api.telemetry.getMemoryDetails();
+          if (!active) return;
           if (raw) {
             setData({
               total: raw.total ?? 0,
@@ -117,6 +119,7 @@ export function MemoryIntelligenceModal({ open, onOpenChange }: MemoryIntelligen
     if (!document.hidden) startPoll();
 
     return () => {
+      active = false; // P3-M1: prevent in-flight fetch from calling setState after close
       stopPoll();
       document.removeEventListener('visibilitychange', handleVisibility);
     };

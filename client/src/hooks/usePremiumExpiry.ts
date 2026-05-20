@@ -280,6 +280,6 @@ export function useBaselineScan() {
       console.log(`[Baseline] Complete — ${scanned} tweaks scanned`);
     };
 
-    scan();
+    scan(); // setBaselineInitialized/recordTweakBaseline are Zustand actions — safe to call after unmount
   }, [baselineInitialized, recordTweakBaseline, recordNetworkTweakBaseline, setBaselineInitialized]);
 }

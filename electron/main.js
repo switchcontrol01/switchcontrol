@@ -2385,25 +2385,35 @@ ipcMain.handle('tweak:getInfo', () => {
 });
 
 // Slider tweak IPC handlers
+// P2-S1: each mutating slider call acquires a psLimiter slot so rapid UI
+// interactions can never spawn overlapping PowerShell registry writes.
 ipcMain.handle('tweak:readValue', async (event, tweakId) => {
   if (typeof tweakId !== 'string') return { value: null, error: 'Invalid tweakId' };
-  return await sliderTweakExecutor.readSliderValue(tweakId);
+  const token = psLimiter.tryAcquire({ file: 'main.js', fn: 'slider:readValue', reason: 'slider-read' });
+  if (!token) return { value: null, error: 'busy' };
+  try { return await sliderTweakExecutor.readSliderValue(tweakId); } finally { psLimiter.release(token); }
 });
 
 ipcMain.handle('tweak:applyValue', async (event, tweakId, value) => {
   if (typeof tweakId !== 'string') return { ok: false, error: 'Invalid tweakId' };
   if (value === undefined || value === null) return { ok: false, error: 'Value required' };
-  return await sliderTweakExecutor.applySliderValue(tweakId, value);
+  const token = psLimiter.tryAcquire({ file: 'main.js', fn: 'slider:applyValue', reason: 'slider-apply' });
+  if (!token) return { ok: false, error: 'Another tweak is being applied — please wait a moment.' };
+  try { return await sliderTweakExecutor.applySliderValue(tweakId, value); } finally { psLimiter.release(token); }
 });
 
 ipcMain.handle('tweak:verifyValue', async (event, tweakId, expectedValue) => {
   if (typeof tweakId !== 'string') return { ok: false, error: 'Invalid tweakId' };
-  return await sliderTweakExecutor.verifySliderValue(tweakId, expectedValue);
+  const token = psLimiter.tryAcquire({ file: 'main.js', fn: 'slider:verifyValue', reason: 'slider-verify' });
+  if (!token) return { ok: false, error: 'busy' };
+  try { return await sliderTweakExecutor.verifySliderValue(tweakId, expectedValue); } finally { psLimiter.release(token); }
 });
 
 ipcMain.handle('tweak:resetValue', async (event, tweakId) => {
   if (typeof tweakId !== 'string') return { ok: false, error: 'Invalid tweakId' };
-  return await sliderTweakExecutor.resetSliderValue(tweakId);
+  const token = psLimiter.tryAcquire({ file: 'main.js', fn: 'slider:resetValue', reason: 'slider-reset' });
+  if (!token) return { ok: false, error: 'busy' };
+  try { return await sliderTweakExecutor.resetSliderValue(tweakId); } finally { psLimiter.release(token); }
 });
 
 ipcMain.handle('tweak:getSliderMeta', (event, tweakId) => {
