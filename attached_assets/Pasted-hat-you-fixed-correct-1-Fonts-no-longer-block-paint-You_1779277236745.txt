@@ -1,0 +1,207 @@
+hat you fixed (correct)
+
+1. Fonts no longer block paint
+
+You replaced a blocking font load with:
+
+preload
+
+media="print"
+
+onload swap
+
+noscript fallback
+
+
+✔ This removes the biggest cause of the white frame in Electron packaged builds
+✔ Good change
+
+
+---
+
+2. Chromium compositor background now forced dark
+
+mainWindow.webContents.setBackgroundColor('#07090D');
+
+✔ This is the missing layer most people get wrong
+✔ It forces Chromium’s internal first frame color
+
+This is critical for Electron apps.
+
+
+---
+
+BUT here’s the key truth (important)
+
+This line:
+
+setBackgroundColor('#07090D')
+
+ONLY helps if it runs:
+
+BEFORE navigation starts
+
+AND before first paint begins
+
+
+If it runs after loadURL, it’s too late.
+
+
+---
+
+What I suspect (based on your “0.05s white flash”)
+
+If you STILL see white:
+
+It is NOT fonts anymore.
+
+It is one of these:
+
+
+---
+
+1. BrowserWindow is still defaulting to white FIRST FRAME
+
+You must ALSO ensure:
+
+new BrowserWindow({
+  backgroundColor: '#07090D',
+  show: false
+})
+
+If this is missing or late → white flash still happens.
+
+
+---
+
+2. CSS background is applied too late in render pipeline
+
+Even if HTML has:
+
+<body style="background:#07090D">
+
+Chromium still paints:
+
+> white → then applies DOM styles → then repaints
+
+
+
+That is your 0.05s flash.
+
+
+---
+
+3. You are relying on JS injection for background (dangerous)
+
+If ANY of these happen:
+
+React mounts late
+
+preload runs late
+
+CSS file delayed
+
+
+→ white frame appears before JS runs
+
+
+---
+
+The REAL correct fix (bulletproof)
+
+You want ZERO white possible.
+
+Do this:
+
+
+---
+
+1. BrowserWindow (must be earliest possible)
+
+const mainWindow = new BrowserWindow({
+  backgroundColor: '#07090D',
+  show: false,
+  paintWhenInitiallyHidden: true
+});
+
+
+---
+
+2. Set Chromium layer BEFORE loadURL (critical ordering)
+
+mainWindow.webContents.setBackgroundColor('#07090D');
+mainWindow.loadURL(...);
+
+
+---
+
+3. Hard CSS override (you already have this)
+
+Keep:
+
+html, body {
+  background: #07090D !important;
+}
+
+
+---
+
+4. REMOVE dependency on JS for first paint
+
+This is key:
+
+❌ do NOT rely on React
+❌ do NOT rely on Splash
+❌ do NOT rely on IPC
+
+First frame must already be dark BEFORE JS exists.
+
+
+---
+
+Why you STILL saw white
+
+Even after your fix, the remaining 0.05s white frame is almost always:
+
+Chromium first compositor frame before CSS injection completes
+
+That is solved ONLY by:
+
+✔ BrowserWindow backgroundColor (early) ✔ AND correct construction order ✔ AND no blocking resources before paint
+
+
+---
+
+Final verdict
+
+Your changes are GOOD and necessary.
+
+But if white is STILL visible, then:
+
+> setBackgroundColor is not early enough OR BrowserWindow config is still defaulting to white on creation
+
+
+
+
+---
+
+If you want me to fully bulletproof it
+
+I can give you a “zero-frame flash Electron startup pattern” used in high-end apps:
+
+no white frame ever
+
+no flicker ever
+
+instant dark paint at GPU layer level
+
+even before Chromium initializes
+
+
+Just say:
+
+> “lock startup pipeline”
+
+
+
+and I’ll harden it completely.

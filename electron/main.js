@@ -658,14 +658,17 @@ function createWindow() {
     title: isDev ? 'SwitchControl DEBUG BUILD' : 'SwitchControl',
     width: 1300,
     height: 800,
-    // show:true for instant appearance (0ms lag after double-click).
-    // The white flash is eliminated via two layers:
-    //   1. backgroundColor:'#07090D' fills the native DWM surface from frame 0.
-    //   2. preload.js sets document.documentElement.style.background before Chromium's
-    //      first compositor paint, so the renderer layer is also dark from frame 0.
-    // Together these prevent the brief white Chromium compositor frame that appears
-    // between window creation and first HTML paint.
-    show: true,
+    // show:false + paintWhenInitiallyHidden:true is the correct zero-flash pattern.
+    // Chromium paints into a hidden surface with all four dark layers applied:
+    //   1. backgroundColor:'#07090D' — native DWM surface
+    //   2. webContents.setBackgroundColor (called before loadFile below) — compositor
+    //   3. preload.js style injection — renderer layer before first HTML paint
+    //   4. index.html inline styles — HTML/CSS layer
+    // ready-to-show fires only after the first dark frame is committed.
+    // We then call mainWindow.show() and the user sees a dark window instantly —
+    // Chromium's white compositor init frame was never visible because the window
+    // was hidden the entire time it was initializing.
+    show: false,
     backgroundColor: '#07090D',
     frame: false,
     thickFrame: false,
@@ -944,22 +947,21 @@ function createWindow() {
     console.log('[BOOT] ──────────────────────────────────────────');
   });
 
-  // ── Chromium first-paint hook ─────────────────────────────────────────────────
-  // ready-to-show fires after Chromium's first frame paint. Window is already
-  // visible (show:true) so we only use this for timing + telemetry start.
+  // ── Primary show trigger ──────────────────────────────────────────────────────
+  // ready-to-show fires after Chromium has committed its first painted frame.
+  // Because show:false + paintWhenInitiallyHidden:true, that first frame was
+  // rendered into a hidden surface — all four dark layers were already applied
+  // (backgroundColor, setBackgroundColor, preload injection, inline CSS).
+  // Calling show() here gives the user a window that is dark from frame 0.
+  // No white flash, no delay visible — the paint happened in the background.
   mainWindow.once('ready-to-show', () => {
     clearTimeout(showFallbackTimer);
     if (!mainWindow) return;
     _bm.firstFrameReady = Date.now();
-    _bm.windowShown     = Date.now();
-    if (!mainWindow.isVisible()) {
-      // Shouldn't happen with show:true — handle as safety net
-      mainWindow.show();
-      mainWindow.focus();
-      console.log(`[LAUNCH:5] mainWindow.show() on ready-to-show (safety net) | ${launchMs()}`);
-    } else {
-      console.log(`[LAUNCH:5] ready-to-show (window already visible) | ${launchMs()}`);
-    }
+    mainWindow.show();
+    mainWindow.focus();
+    _bm.windowShown = Date.now();
+    console.log(`[LAUNCH:5] mainWindow.show() on ready-to-show (dark frame ready) | ${launchMs()}`);
     setTimeout(() => {
       _bm.telemetryStart = Date.now();
       startTelemetryPolling().catch(e => console.error('[telemetry:poll] error:', e.message));
