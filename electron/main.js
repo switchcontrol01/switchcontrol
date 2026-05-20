@@ -785,6 +785,11 @@ function createWindow() {
     return { action: 'deny' };
   });
 
+  // Explicitly set Chromium's compositor background before any navigation.
+  // backgroundColor on BrowserWindow covers the native DWM surface; this call
+  // covers the Chromium renderer layer so its first compositor frame is dark.
+  mainWindow.webContents.setBackgroundColor('#07090D');
+
   if (isDev) {
     console.log('[LAUNCH:2] dev mode — loadURL http://localhost:5000');
     mainWindow.loadURL('http://localhost:5000');
