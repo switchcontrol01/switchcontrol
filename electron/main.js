@@ -658,7 +658,11 @@ function createWindow() {
     title: isDev ? 'SwitchControl DEBUG BUILD' : 'SwitchControl',
     width: 1300,
     height: 800,
-    show: false,
+    // show:true immediately so DWM composites the window with backgroundColor:'#07090D'
+    // from the very first frame. With show:false, Windows launch animation uses the
+    // initial white DWM surface before Chromium paints — backgroundColor doesn't reach
+    // DWM early enough for frameless windows. With show:true the user sees dark instantly.
+    show: true,
     backgroundColor: '#07090D',
     frame: false,
     thickFrame: false,
@@ -673,7 +677,7 @@ function createWindow() {
       paintWhenInitiallyHidden: true, // Ensure Chromium paints frames even while window is hidden
     }
   });
-  console.log('[LAUNCH:1] BrowserWindow constructed — show:false, paintWhenInitiallyHidden:true, isVisible:', mainWindow.isVisible());
+  console.log('[LAUNCH:1] BrowserWindow constructed — show:true, paintWhenInitiallyHidden:true, isVisible:', mainWindow.isVisible());
 
   // ── Block all DevTools keyboard shortcuts ─────────────────────────────────
   mainWindow.webContents.on('before-input-event', (event, input) => {
@@ -888,12 +892,16 @@ function createWindow() {
   const _launchT0 = Date.now();
   const launchMs = () => `+${Date.now() - _launchT0}ms`;
 
-  // Hard fallback: if ready-to-show never fires, show after 4 s.
+  // Hard fallback: if ready-to-show never fires within 4s, start telemetry anyway.
+  // Window is already visible (show:true), so no need to show — just ensure telemetry starts.
   const showFallbackTimer = setTimeout(() => {
-    if (mainWindow && !mainWindow.isVisible()) {
-      console.warn(`[LAUNCH:FALLBACK] ready-to-show never received — force-showing after 4 s | ${launchMs()}`);
-      mainWindow.show();
-      mainWindow.focus();
+    if (mainWindow) {
+      if (!mainWindow.isVisible()) {
+        // Truly unexpected case — show as last resort
+        console.warn(`[LAUNCH:FALLBACK] ready-to-show never received and window not visible — force-showing after 4 s | ${launchMs()}`);
+        mainWindow.show();
+        mainWindow.focus();
+      }
       startTelemetryPolling().catch(e => console.error('[telemetry:poll] fallback error:', e.message));
     }
   }, 4000);
@@ -928,17 +936,22 @@ function createWindow() {
     console.log('[BOOT] ──────────────────────────────────────────');
   });
 
-  // ready-to-show fires after Chromium's first frame paint (with
-  // paintWhenInitiallyHidden:true this happens while still hidden).
-  // backgroundColor matches so DWM never shows white.
+  // ready-to-show fires after Chromium's first frame paint.
+  // Window is already visible (show:true at construction) so we skip show/focus.
+  // We still use this event to start telemetry at the right time.
   mainWindow.once('ready-to-show', () => {
     clearTimeout(showFallbackTimer);
-    if (!mainWindow || mainWindow.isVisible()) return;
+    if (!mainWindow) return;
     _bm.firstFrameReady = Date.now();
-    mainWindow.show();
+    if (!mainWindow.isVisible()) {
+      // Fallback: shouldn't happen with show:true, but handle gracefully
+      mainWindow.show();
+      mainWindow.focus();
+      console.log(`[LAUNCH:5] mainWindow.show() on ready-to-show (fallback) | ${launchMs()}`);
+    } else {
+      console.log(`[LAUNCH:5] ready-to-show (window already visible, show:true) | ${launchMs()}`);
+    }
     _bm.windowShown = Date.now();
-    mainWindow.focus();
-    console.log(`[LAUNCH:5] mainWindow.show() on ready-to-show | ${launchMs()}`);
     setTimeout(() => {
       _bm.telemetryStart = Date.now();
       startTelemetryPolling().catch(e => console.error('[telemetry:poll] error:', e.message));
