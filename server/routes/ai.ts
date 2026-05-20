@@ -647,6 +647,16 @@ function buildChatContext(context: any, serverCtx?: Awaited<ReturnType<typeof bu
   const isElectron = context?.isElectron === true;
   parts.push(`Client platform: ${isElectron ? "SwitchControl desktop app (can apply tweaks with one click)" : "Web browser (manual instructions only)"}`);
 
+  // ── Last recommended tweaks (client-extracted from conversation history) ───
+  // When the user affirms ("apply it", "yes", "go ahead"), these are the tweaks
+  // the AI should immediately emit <<APPLY:id>> markers for.
+  const lastRecommendedTweaks: string[] = Array.isArray(context?.lastRecommendedTweaks)
+    ? context.lastRecommendedTweaks.filter((id: unknown) => typeof id === "string")
+    : [];
+  if (lastRecommendedTweaks.length > 0) {
+    parts.push(`LAST RECOMMENDED TWEAKS from prior turn (these are what the user means by "it"/"them"/"that"): ${lastRecommendedTweaks.join(", ")}`);
+  }
+
   return parts.join("\n");
 }
 
@@ -666,7 +676,33 @@ function buildChatContext(context: any, serverCtx?: Awaited<ReturnType<typeof bu
 
 const EXEC_PHRASE_RE = /\b(I'?ll apply|I will apply|Let me apply|Let'?s apply|I'?ll enable|I will enable|Let me enable|Let'?s enable|I'?ll turn on|I will turn on|I'?ll activate|I'?ll optimize|Optimizing for you|I'?ll do it|Doing it now|I'?ll set|I'?ll configure)\b/gi;
 
-const USER_APPLY_INTENT_RE = /\b(apply (it|them|these|some|that|this|for me|for em)|do it (for me|now)?|turn (it|them) on|optimi[sz]e (my|the) pc|enable (it|them|that)|just apply|yes apply|go ahead|apply now)\b/i;
+const USER_APPLY_INTENT_RE = new RegExp(
+  "\\b(" +
+  "apply (it|them|these|some|that|this|for me|for em|please|now|all|'em|em)|" +
+  "do it( for me| now)?|" +
+  "turn (it|them) on|" +
+  "optimi[sz]e (my|the) pc|" +
+  "enable (it|them|that|all)|" +
+  "just (do it|apply|enable)|" +
+  "yes( apply| enable| do it| please)?|" +
+  "yeah( apply| enable| do it| please)?|" +
+  "yep|yup|" +
+  "go ahead|" +
+  "go for it|" +
+  "let'?s (do it|go|apply|enable)|" +
+  "let me (apply|enable)|" +
+  "proceed|execute|run it|run them|" +
+  "apply now|apply all|do that|do them|" +
+  "sounds good|perfect|great|definitely|absolutely|" +
+  "ok(ay)?( apply| enable| do it| please| sure)?|" +
+  "sure( apply| please| do it)?|" +
+  "please( apply| enable| do it)?|" +
+  "can you (apply|enable|do it|do that)|" +
+  "show me (it|that|the tweak|the first|number \\d+|\\d+)|" +
+  "direct me|flip (it|them)|flip it on" +
+  ")\\b",
+  "i",
+);
 
 type TweakCtx = { id: string; title: string };
 
@@ -732,15 +768,43 @@ function enforceApplyContract(
   context: any,
   lastUserMsg: string,
   userId: string | undefined,
+  resolvedTweakIds?: string[],
 ): { content: string; injected: string[]; rewritten: number; intentDetected: boolean } {
   const intentDetected = USER_APPLY_INTENT_RE.test(lastUserMsg || "");
   const known = collectKnownTweaks(context);
   const totalExec = (raw.match(EXEC_PHRASE_RE) || []).length;
+  const APPLY_ANYWHERE = /<<APPLY:[a-z0-9-]+>>/i;
+  const hasAnyMarker = APPLY_ANYWHERE.test(raw);
 
   console.log(
     `[AI:action] user=${userId ?? "none"} intentDetected=${intentDetected} ` +
-    `execPhrases=${totalExec} knownTweaks=${known.length}`,
+    `execPhrases=${totalExec} hasMarker=${hasAnyMarker} knownTweaks=${known.length}`,
   );
+
+  // ── New: intent detected but AI emitted no markers at all ─────────────────
+  // When the user said "apply it"/"yes"/"go ahead" but the AI returned a plain
+  // text response with no <<APPLY:>> markers AND no execution phrases to rewrite,
+  // inject markers using the resolved tweak list from conversation history.
+  if (intentDetected && !hasAnyMarker && totalExec === 0 && resolvedTweakIds && resolvedTweakIds.length > 0) {
+    const injected: string[] = [];
+    // Append markers to the end of the response so the frontend renders Apply cards
+    const markerStr = resolvedTweakIds
+      .filter(id => {
+        const inKnown = known.some(k => k.id === id);
+        return inKnown; // only emit valid known tweak IDs
+      })
+      .map(id => {
+        injected.push(id);
+        console.log(`[AI:action] tweakId=${id} valid=true source=intent-injected`);
+        return `<<APPLY:${id}>>`;
+      })
+      .join(" ");
+    if (injected.length > 0) {
+      const finalContent = `${raw.trimEnd()} ${markerStr}`;
+      console.log(`[AI:action] intent-injected markers=[${injected.join(",")}] at end of response`);
+      return { content: finalContent, injected, rewritten: 0, intentDetected };
+    }
+  }
 
   if (totalExec === 0) {
     return { content: raw, injected: [], rewritten: 0, intentDetected };
@@ -888,11 +952,47 @@ aiRouter.post("/chat", async (req: Request, res: Response) => {
       console.log(`[AI:chat:context] enabled_tweak_ids=${enabledTweakIds.join(", ")}`);
     }
 
+    // ── Dynamic intent injection ───────────────────────────────────────────
+    // When the user's message is a short affirmative / apply phrase, inject an
+    // explicit instruction at the top of the system context so the model knows
+    // EXACTLY what to do — no guessing about what "it" refers to.
+    const lastUserMsg = [...messages].reverse().find((m: any) => m?.role === "user")?.content || "";
+    const intentDetectedEarly = USER_APPLY_INTENT_RE.test(String(lastUserMsg));
+    const lastRecommendedTweakIds: string[] = Array.isArray(context?.lastRecommendedTweaks)
+      ? context.lastRecommendedTweaks.filter((id: unknown) => typeof id === "string")
+      : [];
+
+    // Also scan conversation history for APPLY markers in the last assistant message
+    const HISTORY_APPLY_RE = /<<APPLY:([a-z0-9-]+)>>/gi;
+    const historyTweakIds: string[] = [];
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const m = messages[i] as any;
+      if (m?.role === "assistant" && typeof m?.content === "string" && m.content.includes("<<APPLY:")) {
+        let hm: RegExpExecArray | null;
+        HISTORY_APPLY_RE.lastIndex = 0;
+        while ((hm = HISTORY_APPLY_RE.exec(m.content)) !== null) historyTweakIds.push(hm[1]);
+        break;
+      }
+    }
+
+    const resolvedTweakIds = lastRecommendedTweakIds.length > 0
+      ? lastRecommendedTweakIds
+      : historyTweakIds;
+
+    let intentNote = "";
+    if (intentDetectedEarly && resolvedTweakIds.length > 0) {
+      intentNote = `\n\nURGENT — APPLY INTENT DETECTED: The user said "${String(lastUserMsg).slice(0, 80)}" which is a direct confirmation/apply request. The tweaks they are referring to are: ${resolvedTweakIds.join(", ")}. You MUST emit <<APPLY:${resolvedTweakIds[0]}>> (and additional markers if multiple) as the first thing in your response. Do not explain — just confirm and emit the markers.`;
+      console.log(`[AI:chat] intentNote injected tweaks=[${resolvedTweakIds.join(",")}]`);
+    } else if (intentDetectedEarly) {
+      intentNote = `\n\nURGENT — APPLY INTENT DETECTED: The user said "${String(lastUserMsg).slice(0, 80)}" which is a direct apply/confirmation request. Check the conversation above for the tweaks last discussed and emit <<APPLY:id>> markers immediately for each one. Do not explain — confirm and apply.`;
+      console.log(`[AI:chat] intentNote injected (no resolved ids from history)`);
+    }
+
     // Images get a special instruction appended — still expect structured JSON
     const imageNote = hasImage
       ? "\n\nThe user has attached a screenshot or image. Analyze what you see in the image and return your findings in the standard JSON schema."
       : "";
-    const systemMessage = `${CHAT_SYSTEM_PROMPT}${imageNote}\n\nUSER'S CURRENT SYSTEM STATE:\n${contextInfo}`;
+    const systemMessage = `${CHAT_SYSTEM_PROMPT}${imageNote}${intentNote}\n\nUSER'S CURRENT SYSTEM STATE:\n${contextInfo}`;
 
     // For image requests, always use a vision-capable model
     const visionModel = hasImage ? "gpt-4o-mini" : model;
@@ -949,9 +1049,8 @@ aiRouter.post("/chat", async (req: Request, res: Response) => {
       return res.status(502).json({ error: "AI returned an empty response. Please try again." });
     }
 
-    // Find the most recent user message for intent classification
-    const lastUserMsg = [...messages].reverse().find((m: any) => m?.role === "user")?.content || "";
-    const enforced = enforceApplyContract(rawContent, context, String(lastUserMsg), cloudUser?.id);
+    // lastUserMsg and resolvedTweakIds are already computed above (before OpenAI call)
+    const enforced = enforceApplyContract(rawContent, context, String(lastUserMsg), cloudUser?.id, resolvedTweakIds);
     const finalContent = enforced.content;
 
     const previewOutput = finalContent.slice(0, 150).replace(/\n/g, " ");

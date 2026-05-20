@@ -1404,6 +1404,24 @@ export default function AiAdvisor() {
     reader.readAsDataURL(file);
   }, []);
 
+  // ── Intent detection helpers ───────────────────────────────────────────────
+
+  // Matches short affirmatives + "apply it/them" style messages that confirm
+  // the LAST AI recommendation. When matched + last tweaks are known → bypass AI.
+  const DIRECT_AFFIRMATIVE_RE =
+    /^\s*(yes|yeah|yep|yup|y|k|ok|okay|sure|please|alright|go|done|got it|sounds good|perfect|great|definitely|absolutely|correct|right|do it|do that|do them|do it now|do it for me|just do it|apply|apply it|apply them|apply that|apply these|apply all|apply all of them|apply number \d+|apply the (first|second|third|\w+) one|apply 'em|apply em|apply please|yes apply|yes please|yes do it|go ahead|go for it|let's do it|let's go|let's apply|let me apply|let's|let me|proceed|execute|run it|run them|enable (it|them|that)|turn (it|them) on|enable all|yes enable|flip it|flip them)\s*[.!]?\s*$/i;
+
+  // Scans message history for the most recent recommendation card.
+  const getLastRecommendedTweaks = (msgs: ChatMessage[]): AiTweakRecommendation[] => {
+    for (let i = msgs.length - 1; i >= 0; i--) {
+      const m = msgs[i];
+      if (m.role === "assistant" && m.structured?.type === "recommendations" && m.structured.items.length > 0) {
+        return m.structured.items;
+      }
+    }
+    return [];
+  };
+
   // ── Send message ──────────────────────────────────────────────────────────
 
   const sendMessage = useCallback(async (content: string, imgData?: AttachedImage | null) => {
@@ -1529,12 +1547,50 @@ export default function AiAdvisor() {
         }
       }
 
+      // ── DIRECT BYPASS: affirmative + known last tweaks ───────────────────
+      // If the user typed a short affirmative ("yes", "apply it", "go ahead",
+      // etc.) AND we have a recent recommendation card in the conversation,
+      // skip the AI call entirely — surface the tweaks instantly, no hangs.
+      if (!imgData && DIRECT_AFFIRMATIVE_RE.test(messageContent)) {
+        const lastRecs = getLastRecommendedTweaks(messagesRef.current);
+        if (lastRecs.length > 0) {
+          clearTimeout(timeoutId);
+          if (slowTimerRef.current) clearTimeout(slowTimerRef.current);
+          setIsSlowRequest(false);
+          setLoading(false);
+          const tweakTitle = getTweak(lastRecs[0].tweakId)?.title ?? lastRecs[0].tweakId;
+          const confirmText = lastRecs.length === 1
+            ? `Ready to apply **${tweakTitle}**.`
+            : `Ready to apply ${lastRecs.length} tweaks.`;
+          setMessages(prev => {
+            const withoutThinking = prev.filter(m => m.id !== assistantId);
+            return [
+              ...withoutThinking,
+              { id: assistantId, role: "assistant" as const, content: confirmText, timestamp: new Date() },
+              {
+                id: `recs-${assistantId}`,
+                role: "assistant" as const,
+                content: "",
+                timestamp: new Date(),
+                structured: { type: "recommendations" as const, items: lastRecs },
+              },
+            ];
+          });
+          setTimeout(forceScrollBottom, 80);
+          inputRef.current?.focus();
+          return;
+        }
+      }
+
       // Always inject isElectron at the top level of context so the server
       // knows the correct platform even if ctx is null or was built before
       // the page fully hydrated (e.g. first message after a chat reset).
+      const lastRecommendedTweaks = getLastRecommendedTweaks(messagesRef.current)
+        .map(r => r.tweakId);
+
       const contextWithPlatform = ctx
-        ? { ...ctx, isElectron: isElectronApp }
-        : { isElectron: isElectronApp };
+        ? { ...ctx, isElectron: isElectronApp, lastRecommendedTweaks }
+        : { isElectron: isElectronApp, lastRecommendedTweaks };
 
       const requestBody: Record<string, unknown> = {
         messages: chatHistory,
@@ -1627,6 +1683,33 @@ export default function AiAdvisor() {
             const el = scrollContainerRef.current;
             if (el) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
           }, 80);
+        } else {
+          // ── Post-response fallback: apply intent but AI emitted no markers ──
+          // If the user's message looked like an apply intent and we still have
+          // last recommended tweaks, surface them now so the user is never stuck.
+          const APPLY_INTENT_RE = /\b(apply|enable|turn on|do it|go|yes|sure|show me|direct|can you|show|ok|okay|proceed)\b/i;
+          if (APPLY_INTENT_RE.test(messageContent)) {
+            const fallbackRecs = getLastRecommendedTweaks(messagesRef.current);
+            const alreadyShown = messagesRef.current.some(
+              m => m.structured?.type === "recommendations" && m.id.startsWith("recs-") && m.id > `recs-${assistantId.slice(10)}`,
+            );
+            if (fallbackRecs.length > 0 && !alreadyShown) {
+              setMessages(prev => [
+                ...prev,
+                {
+                  id: `recs-fallback-${assistantId}`,
+                  role: "assistant" as const,
+                  content: "",
+                  timestamp: new Date(),
+                  structured: { type: "recommendations" as const, items: fallbackRecs },
+                },
+              ]);
+              setTimeout(() => {
+                const el = scrollContainerRef.current;
+                if (el) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+              }, 80);
+            }
+          }
         }
 
         // ── Parse <<NAV:/route:Label>> markers → navigation button card ──────

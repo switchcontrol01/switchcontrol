@@ -1,0 +1,232 @@
+’m going to be straight with you, because this is no longer “small bugs”. You’ve got 3 separate architecture issues colliding at once, and that’s why it feels like everything is getting worse instead of better.
+
+I’ll break it down clean.
+
+
+---
+
+1. Why Cleaner goes BLACK when you ENTER it (not scan/apply)
+
+This is the real root cause:
+
+👉 You are animating the page BEFORE the background is stable
+
+Cleaner does this on entry:
+
+AppLayout mounts
+→ Cleaner idle phase renders
+→ motion.div / category tiles start at opacity: 0 OR transition
+→ background not fully painted yet
+→ black flash appears for 0.1–0.5s
+
+
+---
+
+BUT here’s the important detail from your logs:
+
+You said:
+
+> “it happens when I ENTER cleaner, not scan or apply”
+
+
+
+That means:
+
+❌ NOT scan logic
+
+❌ NOT apply logic
+
+It is:
+
+ROUTE MOUNT + FIRST PAINT ANIMATION ISSUE
+
+
+---
+
+2. Why it got WORSE after fixes
+
+This is expected based on what was changed:
+
+You now have:
+
+Before:
+
+elements faded in slower
+
+
+Now:
+
+elements appear immediately BUT:
+
+some still use motion initial states
+
+
+So what changed is:
+
+you reduced delay → exposed raw first-frame paint
+
+That makes flashes MORE visible, not less.
+
+
+---
+
+3. GPU = 0% STILL
+
+This is NOT fixed because:
+
+You are still falling into fallback path:
+
+GPU counter fails → returns 0 instead of null → UI shows 0%
+
+So even though logic exists, UI still treats:
+
+0 = real value
+
+instead of “no data”
+
+
+That is wrong.
+
+
+---
+
+4. Display Signal still broken
+
+This is the real issue:
+
+You switched it to IPC, but:
+
+You still have mismatch:
+
+frontend expects cloud API format
+backend IPC returns different shape
+
+So UI renders nothing or invalid fallback.
+
+
+---
+
+5. WHY EVERYTHING FEELS “WORSE”
+
+Because all 3 systems are now inconsistent:
+
+Cleaner = animation timing issue
+GPU = fallback value bug (0 treated as real)
+Display = data shape mismatch (IPC vs API)
+
+So instead of improving:
+
+timing got exposed
+
+fallback got stricter
+
+data mismatch became visible
+
+
+
+---
+
+NOW THE IMPORTANT PART — FIX STRATEGY
+
+I’m not going to give you 20 patches. You need 3 surgical fixes.
+
+
+---
+
+FIX 1 — STOP CLEANER BLACK FLASH (REAL FIX)
+
+DO THIS:
+
+In AppLayout OR route wrapper:
+
+Add this rule:
+
+DO NOT animate opacity on page root mount
+ONLY animate inner elements AFTER mount
+
+Specifically:
+
+remove initial opacity transitions from route container
+
+keep animations inside content only
+
+
+
+---
+
+ALSO add:
+
+background layer must be static and always mounted
+(no conditional render)
+
+
+---
+
+FIX 2 — GPU 0% BUG (IMPORTANT)
+
+Fix logic:
+
+if (gpu value === 0 OR null OR undefined)
+→ show "—"
+NOT 0%
+
+Because 0% = valid usage but here it's actually "no data"
+
+
+---
+
+FIX 3 — DISPLAY SIGNAL IPC BUG
+
+You must unify data format.
+
+Right now:
+
+cloud API shape ≠ Electron IPC shape
+
+Fix:
+
+Create ONE shared schema:
+
+DisplaySignal {
+  width
+  height
+  refreshRate
+  gpuName
+}
+
+Both IPC + API must return identical structure.
+
+
+---
+
+WHY CLEANER FLASH GOT WORSE (simple explanation)
+
+Because you removed masking delays but didn’t fix:
+
+root paint timing still unprotected
+
+So now you see the raw frame instead of hidden transition.
+
+
+---
+
+WHAT YOU SHOULD DO NEXT (IMPORTANT ORDER)
+
+Do NOT keep randomly patching.
+
+Fix in this order:
+
+1. Fix Cleaner flash FIRST
+
+This is visual critical bug
+
+2. Fix GPU 0 vs null logic
+
+This is data correctness bug
+
+3. Fix Display Signal schema
+
+This is architecture bug
+
+
+---
