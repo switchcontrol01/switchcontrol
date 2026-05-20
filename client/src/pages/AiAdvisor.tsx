@@ -273,7 +273,11 @@ function ThinkingDots() {
 function ThinkingStatus({ slow }: { slow?: boolean }) {
   const [phase, setPhase] = useState(0);
   useEffect(() => {
-    const t = setInterval(() => setPhase(p => (p + 1) % THINKING_PHASES.length), 2500);
+    const t = setInterval(() => {
+      // P1-A2: pause phase rotation when tab is hidden
+      if (typeof document !== "undefined" && document.hidden) return;
+      setPhase(p => (p + 1) % THINKING_PHASES.length);
+    }, 2500);
     return () => clearInterval(t);
   }, []);
   return (

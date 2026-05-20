@@ -193,12 +193,30 @@ export function useDashboardIntelligence(enabled = true): DashboardIntelligenceS
     setLoading(false);
   }, []);
 
+  const analyzeCauseAbortRef = useRef<AbortController | null>(null);
+  // P1-A4: abort any in-flight analyzeCause on unmount so setState after await is safe.
+  useEffect(() => {
+    return () => {
+      analyzeCauseAbortRef.current?.abort();
+      analyzeCauseAbortRef.current = null;
+    };
+  }, []);
   const analyzeCause = useCallback(async () => {
+    // P1-A4: cancel any in-flight analyzeCause before starting a new one;
+    // guard setState after await so unmount/cancellation does not leak updates.
+    analyzeCauseAbortRef.current?.abort();
+    const ctrl = new AbortController();
+    analyzeCauseAbortRef.current = ctrl;
     setCauseLoading(true);
     try {
-      const data = await fetchJSON<CausationData>(`/api/dashboard-intelligence/what-caused-that?t=${Date.now()}`);
+      const data = await fetchJSON<CausationData>(
+        `/api/dashboard-intelligence/what-caused-that?t=${Date.now()}`,
+        ctrl.signal,
+      );
+      if (ctrl.signal.aborted) return;
       setCausation(data);
     } catch (_) {}
+    if (ctrl.signal.aborted) return;
     setCauseLoading(false);
   }, []);
 

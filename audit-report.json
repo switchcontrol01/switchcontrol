@@ -1,0 +1,279 @@
+{
+  "scannedAt": "2026-05-20T03:26:18.969Z",
+  "filesScanned": 389,
+  "durationMs": 418,
+  "totals": {
+    "critical": 0,
+    "high": 15,
+    "medium": 7,
+    "low": 16
+  },
+  "findings": [
+    {
+      "rule": "R1",
+      "severity": "high",
+      "file": "client/src/App.tsx",
+      "line": 619,
+      "msg": "setTimeout(...) inside useEffect with no clearTimeout and no cleanup return"
+    },
+    {
+      "rule": "R7",
+      "severity": "high",
+      "file": "client/src/App.tsx",
+      "line": 617,
+      "msg": "setState called after await inside useEffect with no cancelled/abort/mounted guard"
+    },
+    {
+      "rule": "R7",
+      "severity": "high",
+      "file": "client/src/App.tsx",
+      "line": 731,
+      "msg": "setState called after await inside useEffect with no cancelled/abort/mounted guard"
+    },
+    {
+      "rule": "R7",
+      "severity": "high",
+      "file": "client/src/App.tsx",
+      "line": 1229,
+      "msg": "setState called after await inside useEffect with no cancelled/abort/mounted guard"
+    },
+    {
+      "rule": "R4",
+      "severity": "medium",
+      "file": "client/src/components/LandingPerformanceCharts.tsx",
+      "line": 90,
+      "msg": "requestAnimationFrame used but cancelAnimationFrame never called in this file"
+    },
+    {
+      "rule": "R6",
+      "severity": "low",
+      "file": "client/src/components/LandingPerformanceCharts.tsx",
+      "line": 119,
+      "msg": "setInterval(s) present but no document.hidden / useVisibilityInterval — consider visibility gating"
+    },
+    {
+      "rule": "R7",
+      "severity": "high",
+      "file": "client/src/components/PendingActivationModal.tsx",
+      "line": 46,
+      "msg": "setState called after await inside useEffect with no cancelled/abort/mounted guard"
+    },
+    {
+      "rule": "R5",
+      "severity": "medium",
+      "file": "client/src/components/PendingActivationModal.tsx",
+      "line": 46,
+      "msg": "setInterval period 1000ms — CPU-hot polling, ensure visibility-gated"
+    },
+    {
+      "rule": "R6",
+      "severity": "low",
+      "file": "client/src/components/PendingActivationModal.tsx",
+      "line": 46,
+      "msg": "setInterval(s) present but no document.hidden / useVisibilityInterval — consider visibility gating"
+    },
+    {
+      "rule": "R6",
+      "severity": "low",
+      "file": "client/src/components/SocialProofCharts.tsx",
+      "line": 104,
+      "msg": "setInterval(s) present but no document.hidden / useVisibilityInterval — consider visibility gating"
+    },
+    {
+      "rule": "R4",
+      "severity": "medium",
+      "file": "client/src/components/TourShell.tsx",
+      "line": 413,
+      "msg": "requestAnimationFrame used but cancelAnimationFrame never called in this file"
+    },
+    {
+      "rule": "R5",
+      "severity": "medium",
+      "file": "client/src/components/TrialActivationAnimation.tsx",
+      "line": 55,
+      "msg": "setInterval period 1000ms — CPU-hot polling, ensure visibility-gated"
+    },
+    {
+      "rule": "R5",
+      "severity": "medium",
+      "file": "client/src/components/TrialTour.tsx",
+      "line": 35,
+      "msg": "setInterval period 1000ms — CPU-hot polling, ensure visibility-gated"
+    },
+    {
+      "rule": "R6",
+      "severity": "low",
+      "file": "client/src/components/WhatIsSwitchControl.tsx",
+      "line": 48,
+      "msg": "setInterval(s) present but no document.hidden / useVisibilityInterval — consider visibility gating"
+    },
+    {
+      "rule": "R6",
+      "severity": "low",
+      "file": "client/src/components/ai/ApplyTweaksFlowModal.tsx",
+      "line": 207,
+      "msg": "setInterval(s) present but no document.hidden / useVisibilityInterval — consider visibility gating"
+    },
+    {
+      "rule": "R7",
+      "severity": "high",
+      "file": "client/src/components/dashboard/CpuCoresModal.tsx",
+      "line": 86,
+      "msg": "setState called after await inside useEffect with no cancelled/abort/mounted guard"
+    },
+    {
+      "rule": "R4",
+      "severity": "medium",
+      "file": "client/src/components/dashboard/LiveGraph.tsx",
+      "line": 381,
+      "msg": "requestAnimationFrame used but cancelAnimationFrame never called in this file"
+    },
+    {
+      "rule": "R7",
+      "severity": "high",
+      "file": "client/src/components/dashboard/MemoryIntelligenceModal.tsx",
+      "line": 73,
+      "msg": "setState called after await inside useEffect with no cancelled/abort/mounted guard"
+    },
+    {
+      "rule": "R6",
+      "severity": "low",
+      "file": "client/src/components/debloater/ApplyProgressOverlay.tsx",
+      "line": 213,
+      "msg": "setInterval(s) present but no document.hidden / useVisibilityInterval — consider visibility gating"
+    },
+    {
+      "rule": "R6",
+      "severity": "low",
+      "file": "client/src/components/graphs/PremiumDashboardGraphs.tsx",
+      "line": 510,
+      "msg": "setInterval(s) present but no document.hidden / useVisibilityInterval — consider visibility gating"
+    },
+    {
+      "rule": "R6",
+      "severity": "low",
+      "file": "client/src/hooks/useEntitlementUiState.ts",
+      "line": 64,
+      "msg": "setInterval(s) present but no document.hidden / useVisibilityInterval — consider visibility gating"
+    },
+    {
+      "rule": "R6",
+      "severity": "low",
+      "file": "client/src/hooks/useNetworkDiagnostics.ts",
+      "line": 187,
+      "msg": "setInterval(s) present but no document.hidden / useVisibilityInterval — consider visibility gating"
+    },
+    {
+      "rule": "R7",
+      "severity": "high",
+      "file": "client/src/hooks/usePremiumExpiry.ts",
+      "line": 279,
+      "msg": "setState called after await inside useEffect with no cancelled/abort/mounted guard"
+    },
+    {
+      "rule": "R6",
+      "severity": "low",
+      "file": "client/src/pages/Admin.tsx",
+      "line": 103,
+      "msg": "setInterval(s) present but no document.hidden / useVisibilityInterval — consider visibility gating"
+    },
+    {
+      "rule": "R6",
+      "severity": "low",
+      "file": "client/src/pages/ExtremeLabs.tsx",
+      "line": 765,
+      "msg": "setInterval(s) present but no document.hidden / useVisibilityInterval — consider visibility gating"
+    },
+    {
+      "rule": "R5",
+      "severity": "medium",
+      "file": "client/src/pages/FocusMode.tsx",
+      "line": 479,
+      "msg": "setInterval period 1000ms — CPU-hot polling, ensure visibility-gated"
+    },
+    {
+      "rule": "R6",
+      "severity": "low",
+      "file": "client/src/pages/FocusMode.tsx",
+      "line": 479,
+      "msg": "setInterval(s) present but no document.hidden / useVisibilityInterval — consider visibility gating"
+    },
+    {
+      "rule": "R1",
+      "severity": "high",
+      "file": "client/src/pages/Home.tsx",
+      "line": 410,
+      "msg": "setTimeout(...) inside useEffect with no clearTimeout and no cleanup return"
+    },
+    {
+      "rule": "R1",
+      "severity": "high",
+      "file": "client/src/pages/Home.tsx",
+      "line": 485,
+      "msg": "setTimeout(...) inside useEffect with no clearTimeout and no cleanup return"
+    },
+    {
+      "rule": "R6",
+      "severity": "low",
+      "file": "client/src/pages/Landing.tsx",
+      "line": 307,
+      "msg": "setInterval(s) present but no document.hidden / useVisibilityInterval — consider visibility gating"
+    },
+    {
+      "rule": "R7",
+      "severity": "high",
+      "file": "client/src/pages/NetworkTweaks.tsx",
+      "line": 742,
+      "msg": "setState called after await inside useEffect with no cancelled/abort/mounted guard"
+    },
+    {
+      "rule": "R1",
+      "severity": "high",
+      "file": "client/src/pages/PremiumSuccess.tsx",
+      "line": 261,
+      "msg": "setTimeout(...) inside useEffect with no clearTimeout and no cleanup return"
+    },
+    {
+      "rule": "R1",
+      "severity": "high",
+      "file": "client/src/pages/PremiumSuccess.tsx",
+      "line": 280,
+      "msg": "setTimeout(...) inside useEffect with no clearTimeout and no cleanup return"
+    },
+    {
+      "rule": "R5",
+      "severity": "high",
+      "file": "client/src/pages/ProcessManager.tsx",
+      "line": 151,
+      "msg": "setInterval period 90ms — CPU-hot polling, ensure visibility-gated"
+    },
+    {
+      "rule": "R6",
+      "severity": "low",
+      "file": "client/src/pages/ProcessManager.tsx",
+      "line": 151,
+      "msg": "setInterval(s) present but no document.hidden / useVisibilityInterval — consider visibility gating"
+    },
+    {
+      "rule": "R5",
+      "severity": "high",
+      "file": "client/src/screens/Splash.tsx",
+      "line": 205,
+      "msg": "setInterval period 36ms — CPU-hot polling, ensure visibility-gated"
+    },
+    {
+      "rule": "R6",
+      "severity": "low",
+      "file": "client/src/screens/Splash.tsx",
+      "line": 205,
+      "msg": "setInterval(s) present but no document.hidden / useVisibilityInterval — consider visibility gating"
+    },
+    {
+      "rule": "R6",
+      "severity": "low",
+      "file": "client/src/stores/networkStore.ts",
+      "line": 104,
+      "msg": "setInterval(s) present but no document.hidden / useVisibilityInterval — consider visibility gating"
+    }
+  ]
+}

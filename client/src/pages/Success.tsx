@@ -216,8 +216,15 @@ export default function Success() {
 
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pollCountRef = useRef(0);
+  const mountedRef = useRef(true);
   const POLL_INTERVAL_MS = 1500;
   const POLL_MAX_ATTEMPTS = 20; // 30 seconds total
+
+  // P1-A5: track mount status so async polling can bail before setState after unmount
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -248,17 +255,23 @@ export default function Success() {
         pollCountRef.current += 1;
         try {
           const isPremium = await checkPremiumStatus();
+          // P1-A5: guard setState after await — pollRef is cleared on unmount,
+          // so treat a nulled ref as "unmounted/cancelled" and bail.
+          if (!pollRef.current) return;
           if (isPremium) {
             stopPolling();
             await refetch();
+            if (!mountedRef.current) return;
             setState("success");
             return;
           }
         } catch {
           // network blip — keep polling
         }
+        if (!pollRef.current) return;
         if (pollCountRef.current >= POLL_MAX_ATTEMPTS) {
           stopPolling();
+          if (!mountedRef.current) return;
           setState("error");
           setError("Your payment was received, but premium activation is taking longer than expected. Please refresh the page in a few minutes or contact support.");
         }

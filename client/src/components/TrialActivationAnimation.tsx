@@ -53,6 +53,8 @@ function CountdownDisplay({ trialEndsAt }: { trialEndsAt: string | null }) {
   useEffect(() => {
     if (!trialEndsAt) return;
     const id = setInterval(() => {
+      // P1-A1: skip ticks when tab/window is hidden to avoid background CPU + re-renders
+      if (typeof document !== "undefined" && document.hidden) return;
       setCountdown(formatTrialCountdown(trialEndsAt));
       setRemaining(getTrialTimeRemaining(trialEndsAt));
     }, 1000);

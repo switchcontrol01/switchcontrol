@@ -27,7 +27,12 @@ function FocusModeBanner() {
       if (ms === 0) setRemaining(null);
     };
     tick();
-    const id = setInterval(tick, 2000);
+    // P1-A3: visibility-gated ticker — no background work when tab is hidden
+    const guardedTick = () => {
+      if (typeof document !== "undefined" && document.hidden) return;
+      tick();
+    };
+    const id = setInterval(guardedTick, 2000);
     return () => clearInterval(id);
   }, [active, expiresAt]);
 
