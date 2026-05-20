@@ -794,7 +794,7 @@ export default function Home() {
                 actionLabel="Clear RAM"
                 onAction={() => setMemCleanerOpen(true)}
                 className="border-teal-500/20 shadow-[0_0_20px_-10px_hsl(170_100%_50%/0.1)]"
-                loading={specStatus === "loading" || (telStatus === "loading" && liveRamUsedGb === 0)}
+                loading={liveRamUsedGb === 0 && liveRamTotalGb === 0}
               />
             </div>
             
