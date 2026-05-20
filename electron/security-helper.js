@@ -476,7 +476,7 @@ ipcMain.handle('security:getAdvancedProtection', async () => {
       $svcObj = Get-Service -Name WinDefend -ErrorAction SilentlyContinue
       $svc    = if ($svcObj) { $svcObj.Status } else { $null }
 
-      # Signature age — from $mp or registry fallback
+      # Signature age — from $mp or registry fallback (handles both REG_QWORD int and REG_BINARY byte[])
       $signatureAge = $null
       if ($mp -and $mp.AntivirusSignatureLastUpdated) {
         try { $signatureAge = [int]([DateTime]::UtcNow - $mp.AntivirusSignatureLastUpdated.ToUniversalTime()).TotalDays } catch {}
@@ -484,7 +484,10 @@ ipcMain.handle('security:getAdvancedProtection', async () => {
       if ($signatureAge -eq $null) {
         try {
           $rawTime = (Get-ItemProperty 'HKLM:\\SOFTWARE\\Microsoft\\Windows Defender\\Signature Updates' -Name 'SignaturesLastUpdated' -EA Stop).SignaturesLastUpdated
-          if ($rawTime) {
+          if ($rawTime -is [byte[]] -and $rawTime.Length -ge 8) {
+            $rawTime = [BitConverter]::ToInt64($rawTime, 0)
+          }
+          if ($rawTime -and [long]$rawTime -gt 0) {
             $dtSig        = [DateTime]::FromFileTimeUtc([long]$rawTime)
             $signatureAge = [int]([DateTime]::UtcNow - $dtSig).TotalDays
           }
@@ -495,9 +498,36 @@ ipcMain.handle('security:getAdvancedProtection', async () => {
       if ($mp -and $mp.QuickScanEndTime -and $mp.QuickScanEndTime.Year -gt 2000) {
         try { $quickScanAge = [int]([DateTime]::UtcNow - $mp.QuickScanEndTime.ToUniversalTime()).TotalDays } catch {}
       }
+      # Fallback 1: Windows Defender Operational event log (EventID 1001=scan complete no threats, 1002=threats found)
+      if ($quickScanAge -eq $null) {
+        try {
+          $evt = Get-WinEvent -FilterHashtable @{ LogName = 'Microsoft-Windows-Windows Defender/Operational'; Id = @(1001, 1002) } -MaxEvents 10 -EA SilentlyContinue |
+                 Where-Object { $_.Message -match 'quick|QuickScan' } |
+                 Select-Object -First 1
+          if ($evt) { $quickScanAge = [int]([DateTime]::UtcNow - $evt.TimeCreated.ToUniversalTime()).TotalDays }
+        } catch {}
+      }
+      # Fallback 2: scan history folder mtime
+      if ($quickScanAge -eq $null) {
+        try {
+          $latest = Get-ChildItem "$env:ProgramData\\Microsoft\\Windows Defender\\Scans\\History\\Service" -EA Stop |
+                    Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if ($latest) { $quickScanAge = [int]([DateTime]::UtcNow - $latest.LastWriteTime.ToUniversalTime()).TotalDays }
+        } catch {}
+      }
+
       $fullScanAge = $null
       if ($mp -and $mp.FullScanEndTime -and $mp.FullScanEndTime.Year -gt 2000) {
         try { $fullScanAge = [int]([DateTime]::UtcNow - $mp.FullScanEndTime.ToUniversalTime()).TotalDays } catch {}
+      }
+      # Fallback: event log for full scan
+      if ($fullScanAge -eq $null) {
+        try {
+          $fevt = Get-WinEvent -FilterHashtable @{ LogName = 'Microsoft-Windows-Windows Defender/Operational'; Id = @(1001, 1002) } -MaxEvents 10 -EA SilentlyContinue |
+                  Where-Object { $_.Message -match 'full|FullScan' } |
+                  Select-Object -First 1
+          if ($fevt) { $fullScanAge = [int]([DateTime]::UtcNow - $fevt.TimeCreated.ToUniversalTime()).TotalDays }
+        } catch {}
       }
 
       # SmartScreen — two registry locations depending on Windows build
@@ -990,24 +1020,56 @@ ipcMain.handle('security:runDefenderAction', async (_event, action) => {
       return { ok: false, restricted: false, message: 'Unknown action.' };
   }
 
-  // Run the cmdlet and capture the result as JSON written to stdout.
-  // NOTE: must NOT use a temp file here — runPowerShell rejects on empty stdout,
-  // and writing to a file produces no stdout output.
-  const RESTRICTION_RE = /restricted|disabled by your administrator|access is denied|not recognized|cannot be loaded|is not installed|does not exist|access denied|No operation can be performed|0x800704ec|0x800706ba|0x80070005|Tamper/i;
+  // Matches policy/WMI errors that indicate Defender is managed or the provider is unavailable.
+  const RESTRICTION_RE = /restricted|disabled by your administrator|access is denied|not recognized|cannot be loaded|is not installed|does not exist|access denied|No operation can be performed|invalid class|invalid namespace|0x800704ec|0x800706ba|0x80070005|Tamper/i;
+  const RESTRICTION_MSG = 'Defender management is unavailable on this system — it may be controlled by policy, a third-party AV, or the WMI provider may not be registered.';
+
+  // MpCmdRun.exe — works even when the Defender WMI/CIM provider is absent.
+  // Primary: %ProgramFiles%\Windows Defender\MpCmdRun.exe
+  // Fallback: newest MpCmdRun.exe under %ProgramData%\Microsoft\Windows Defender\Platform\
+  const mpCmdRunLocator = `
+    $mpCmd = $null
+    $pfPaths = @("$env:ProgramFiles\\Windows Defender\\MpCmdRun.exe", "${process.env['ProgramW6432'] || 'C:\\Program Files'}\\Windows Defender\\MpCmdRun.exe")
+    foreach ($p in $pfPaths) { if (Test-Path $p) { $mpCmd = $p; break } }
+    if (-not $mpCmd) {
+      $platDir = "$env:ProgramData\\Microsoft\\Windows Defender\\Platform"
+      if (Test-Path $platDir) {
+        $mpCmd = Get-ChildItem $platDir -Filter 'MpCmdRun.exe' -Recurse -EA SilentlyContinue |
+                 Sort-Object LastWriteTime -Descending | Select-Object -First 1 -ExpandProperty FullName
+      }
+    }
+  `;
+
+  let mpCmdRunAction = '';
+  let psCmdletFallback = cmdlet;
+  if (action === 'quickScan') {
+    // Fire-and-forget — scan runs in background; Defender shows progress in system tray
+    mpCmdRunAction = `Start-Process -FilePath $mpCmd -ArgumentList '-Scan -ScanType 1' -NoNewWindow -EA Stop; $result.message = 'Quick Scan started in the background.'`;
+  } else {
+    // Signature update is quick — run synchronously so we can confirm completion
+    mpCmdRunAction = `& $mpCmd -SignatureUpdate; if ($LASTEXITCODE -eq 0) { $result.message = 'Signatures updated.' } else { throw "MpCmdRun exited $LASTEXITCODE" }`;
+  }
 
   const psCmd = `
+    ${mpCmdRunLocator}
     $result = @{ success = $false; restricted = $false; message = ''; error = '' }
     try {
-      ${cmdlet} -ErrorAction Stop
-      $result.success = $true
-      $result.message = '${friendly} completed.'
+      if ($mpCmd) {
+        ${mpCmdRunAction}
+        $result.success = $true
+      } else {
+        # Fallback: PowerShell cmdlet (requires Defender WMI provider)
+        ${psCmdletFallback} -ErrorAction Stop
+        $result.success = $true
+        $result.message = '${friendly} completed.'
+      }
     } catch {
       $msg = $_.Exception.Message
       $result.error = $msg
       $result.message = $msg
-      if ($msg -match 'restricted|disabled by your administrator|access is denied|not recognized|cannot be loaded|is not installed|does not exist|access denied|No operation can be performed|0x800704ec|0x800706ba|0x80070005|Tamper') {
+      if ($msg -match 'restricted|disabled by your administrator|access is denied|not recognized|cannot be loaded|is not installed|does not exist|access denied|No operation can be performed|invalid class|invalid namespace|0x800704ec|0x800706ba|0x80070005|Tamper') {
         $result.restricted = $true
-        $result.message = 'Defender is restricted by policy or managed by your IT team. This action cannot be run.'
+        $result.message = 'Defender management is unavailable on this system.'
       }
     }
     $result | ConvertTo-Json -Compress
@@ -1029,9 +1091,7 @@ ipcMain.handle('security:runDefenderAction', async (_event, action) => {
     return {
       ok: false,
       restricted,
-      message: restricted
-        ? 'Defender is restricted by policy or managed by your IT team. This action cannot be run.'
-        : msg,
+      message: restricted ? RESTRICTION_MSG : msg,
     };
   }
 });
