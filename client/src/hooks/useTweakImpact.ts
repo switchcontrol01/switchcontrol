@@ -66,17 +66,19 @@ function captureSnapshot(): ImpactSnapshot | null {
 export function useTweakImpact() {
   const [impacts, setImpacts] = useState<Record<string, TweakImpactResult>>({});
   const [measuring, setMeasuring] = useState<string | null>(null);
-  const settleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // F-10: Per-tweak settle timers. With a single shared ref, applying tweak B
+  // while tweak A was still in its 3.5s settle window would cancel A's commit,
+  // silently dropping A's impact measurement. A Map keyed by tweakId lets
+  // concurrent measurements coexist.
+  const settleTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   const mountedRef = useRef(true);
 
   useEffect(() => {
     mountedRef.current = true;
     return () => {
       mountedRef.current = false;
-      if (settleTimer.current) {
-        clearTimeout(settleTimer.current);
-        settleTimer.current = null;
-      }
+      settleTimers.current.forEach((t) => clearTimeout(t));
+      settleTimers.current.clear();
     };
   }, []);
 
@@ -93,10 +95,13 @@ export function useTweakImpact() {
       setMeasuring(tweakId);
 
       const commit = () => {
-        if (settleTimer.current) clearTimeout(settleTimer.current);
-        settleTimer.current = setTimeout(() => {
+        // F-10: Cancel only this tweak's prior settle, not all measurements
+        const prior = settleTimers.current.get(tweakId);
+        if (prior) clearTimeout(prior);
+        const t = setTimeout(() => {
+          settleTimers.current.delete(tweakId);
           if (!mountedRef.current) return;
-          setMeasuring(null);
+          setMeasuring((m) => (m === tweakId ? null : m));
           const after = captureSnapshot();
 
           // If either snapshot is unavailable, do not show any result
@@ -144,6 +149,7 @@ export function useTweakImpact() {
             [tweakId]: { tweakId, appliedAt, action, before, after, deltas, summary },
           }));
         }, SETTLE_MS);
+        settleTimers.current.set(tweakId, t);
       };
 
       return commit;

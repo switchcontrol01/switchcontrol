@@ -152,8 +152,8 @@ interface DashboardIntelligenceState {
   refreshRam:    () => Promise<void>;
 }
 
-async function fetchJSON<T>(url: string): Promise<T> {
-  const res = await fetch(url);
+async function fetchJSON<T>(url: string, signal?: AbortSignal): Promise<T> {
+  const res = await fetch(url, signal ? { signal } : undefined);
   if (!res.ok) throw new Error(`${url} → ${res.status}`);
   return res.json() as Promise<T>;
 }
@@ -168,22 +168,28 @@ export function useDashboardIntelligence(enabled = true): DashboardIntelligenceS
   const [causation,     setCausation]     = useState<CausationData | null>(null);
   const [causeLoading,  setCauseLoading]  = useState(false);
   const initRef = useRef(false);
+  // F-3: AbortController so an unmount mid-fetch cancels the network requests
+  // AND prevents the setState() calls from running on an unmounted hook.
+  const abortRef = useRef<AbortController | null>(null);
 
-  const fetchAll = useCallback(async () => {
+  const fetchAll = useCallback(async (signal?: AbortSignal) => {
     try {
       const [inst, d, probs, lat, r] = await Promise.allSettled([
-        fetchJSON<InstabilityData>("/api/dashboard-intelligence/instability"),
-        fetchJSON<SystemDNAData>("/api/dashboard-intelligence/system-dna"),
-        fetchJSON<ActiveProblemsData>("/api/dashboard-intelligence/active-problems"),
-        fetchJSON<LatencyData>("/api/dashboard-intelligence/latency-estimate"),
-        fetchJSON<SmartRamProfile>("/api/dashboard-intelligence/ram-analysis"),
+        fetchJSON<InstabilityData>("/api/dashboard-intelligence/instability", signal),
+        fetchJSON<SystemDNAData>("/api/dashboard-intelligence/system-dna", signal),
+        fetchJSON<ActiveProblemsData>("/api/dashboard-intelligence/active-problems", signal),
+        fetchJSON<LatencyData>("/api/dashboard-intelligence/latency-estimate", signal),
+        fetchJSON<SmartRamProfile>("/api/dashboard-intelligence/ram-analysis", signal),
       ]);
+      // F-3: Bail before any setState if the caller has aborted (unmount).
+      if (signal?.aborted) return;
       if (inst.status  === "fulfilled") setInstability(inst.value);
       if (d.status     === "fulfilled") setDna(d.value);
       if (probs.status === "fulfilled") setProblems(probs.value);
       if (lat.status   === "fulfilled") setLatency(lat.value);
       if (r.status     === "fulfilled") setRam(r.value);
     } catch (_) {}
+    if (signal?.aborted) return;
     setLoading(false);
   }, []);
 
@@ -223,6 +229,9 @@ export function useDashboardIntelligence(enabled = true): DashboardIntelligenceS
 
     let cancelled = false;
     runningRef.current = true;
+    // F-3/F-12: One controller for all fetches in this effect. Aborted on unmount.
+    const ac = new AbortController();
+    abortRef.current = ac;
 
     const TTL = {
       latency: 8000,
@@ -232,8 +241,15 @@ export function useDashboardIntelligence(enabled = true): DashboardIntelligenceS
       ram: 60000,
     };
 
+    // F-3: setState guards — every async write checks cancelled+aborted before
+    // committing. Wrapping the setters avoids forgetting on any single branch.
+    const guarded = <T,>(setter: (v: T) => void) => (v: T) => {
+      if (cancelled || ac.signal.aborted) return;
+      setter(v);
+    };
+
     async function schedulerTick() {
-      if (cancelled) return;
+      if (cancelled || ac.signal.aborted) return;
       if (!runningRef.current) return;
       if (document.hidden) return;
       if (inFlightRef.current) return;
@@ -247,8 +263,8 @@ export function useDashboardIntelligence(enabled = true): DashboardIntelligenceS
         if (now - lastRunRef.current.latency >= TTL.latency) {
           lastRunRef.current.latency = now;
           tasks.push(
-            fetchJSON<LatencyData>("/api/dashboard-intelligence/latency-estimate")
-              .then(setLatency)
+            fetchJSON<LatencyData>("/api/dashboard-intelligence/latency-estimate", ac.signal)
+              .then(guarded(setLatency))
               .catch(() => {})
           );
         }
@@ -256,8 +272,8 @@ export function useDashboardIntelligence(enabled = true): DashboardIntelligenceS
         if (now - lastRunRef.current.instability >= TTL.instability) {
           lastRunRef.current.instability = now;
           tasks.push(
-            fetchJSON<InstabilityData>("/api/dashboard-intelligence/instability")
-              .then(setInstability)
+            fetchJSON<InstabilityData>("/api/dashboard-intelligence/instability", ac.signal)
+              .then(guarded(setInstability))
               .catch(() => {})
           );
         }
@@ -265,8 +281,8 @@ export function useDashboardIntelligence(enabled = true): DashboardIntelligenceS
         if (now - lastRunRef.current.problems >= TTL.problems) {
           lastRunRef.current.problems = now;
           tasks.push(
-            fetchJSON<ActiveProblemsData>("/api/dashboard-intelligence/active-problems")
-              .then(setProblems)
+            fetchJSON<ActiveProblemsData>("/api/dashboard-intelligence/active-problems", ac.signal)
+              .then(guarded(setProblems))
               .catch(() => {})
           );
         }
@@ -274,8 +290,8 @@ export function useDashboardIntelligence(enabled = true): DashboardIntelligenceS
         if (now - lastRunRef.current.dna >= TTL.dna) {
           lastRunRef.current.dna = now;
           tasks.push(
-            fetchJSON<SystemDNAData>("/api/dashboard-intelligence/system-dna")
-              .then(setDna)
+            fetchJSON<SystemDNAData>("/api/dashboard-intelligence/system-dna", ac.signal)
+              .then(guarded(setDna))
               .catch(() => {})
           );
         }
@@ -283,8 +299,8 @@ export function useDashboardIntelligence(enabled = true): DashboardIntelligenceS
         if (now - lastRunRef.current.ram >= TTL.ram) {
           lastRunRef.current.ram = now;
           tasks.push(
-            fetchJSON<SmartRamProfile>("/api/dashboard-intelligence/ram-analysis")
-              .then(setRam)
+            fetchJSON<SmartRamProfile>("/api/dashboard-intelligence/ram-analysis", ac.signal)
+              .then(guarded(setRam))
               .catch(() => {})
           );
         }
@@ -293,6 +309,7 @@ export function useDashboardIntelligence(enabled = true): DashboardIntelligenceS
           await Promise.allSettled(tasks);
         }
 
+        if (cancelled || ac.signal.aborted) return;
         setLoading(false);
       } finally {
         inFlightRef.current = false;
@@ -302,7 +319,11 @@ export function useDashboardIntelligence(enabled = true): DashboardIntelligenceS
     async function loop() {
       if (!initRef.current) {
         initRef.current = true;
-        await fetchAll();
+        await fetchAll(ac.signal);
+        // F-12: After awaiting the initial fetch, the hook may have unmounted.
+        // Bail before touching refs/state — otherwise we leak a setLoading and
+        // initRef writes after teardown.
+        if (cancelled || ac.signal.aborted) return;
         const now = Date.now();
         lastRunRef.current = {
           instability: now,
@@ -314,7 +335,7 @@ export function useDashboardIntelligence(enabled = true): DashboardIntelligenceS
         setLoading(false);
       }
 
-      while (!cancelled && runningRef.current) {
+      while (!cancelled && !ac.signal.aborted && runningRef.current) {
         await schedulerTick();
         await new Promise((r) => setTimeout(r, 5000));
       }
@@ -333,6 +354,10 @@ export function useDashboardIntelligence(enabled = true): DashboardIntelligenceS
       cancelled = true;
       runningRef.current = false;
       inFlightRef.current = false;
+      // F-3: Abort any in-flight fetches so their .then(setX) cannot fire
+      // after unmount and so the underlying HTTP requests are actually cancelled.
+      try { ac.abort(); } catch {}
+      abortRef.current = null;
       document.removeEventListener("visibilitychange", handleVisibility);
       initRef.current = false;
     };

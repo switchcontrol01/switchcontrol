@@ -475,6 +475,11 @@ function ElectronAppContent() {
   // Track when window last lost focus — used to skip brief focus-loss from dialogs/file pickers
   const lastBlurTimeRef = React.useRef<number>(0);
   const lastEntitlementRefreshRef = React.useRef<number>(0);
+  // F-6: Guard against concurrent entitlement refreshes. Without it, a focus
+  // event firing while a visibilitychange-triggered refresh is still in flight
+  // (or vice versa) launches a second /api/me call that races with the first
+  // and can stomp the newer response with stale data.
+  const entitlementRefreshInFlightRef = React.useRef<boolean>(false);
   // Minimum ms the window must be out of focus before we treat it as a real app-switch
   const FOCUS_AWAY_THRESHOLD_MS = 3000;
   // Minimum ms between focus-triggered entitlement refreshes to avoid hammering the server.
@@ -489,14 +494,27 @@ function ElectronAppContent() {
       lastBlurTimeRef.current = Date.now();
     };
 
+    // F-6: Single guarded refresh path used by both visibilitychange and focus.
+    // Returns true if it actually fired so callers don't double-update timestamps.
+    const safeRefresh = async (label: string): Promise<void> => {
+      if (entitlementRefreshInFlightRef.current) return;
+      entitlementRefreshInFlightRef.current = true;
+      console.log(`[App] ${label}, refreshing entitlements...`);
+      try {
+        await refreshEntitlements();
+      } finally {
+        entitlementRefreshInFlightRef.current = false;
+      }
+    };
+
     const handleVisibilityChange = async () => {
       if (document.visibilityState === 'visible' && activeFlowRef.current === "none") {
         const now = Date.now();
         const sinceLastRefresh = now - lastEntitlementRefreshRef.current;
         if (sinceLastRefresh < ENTITLEMENT_REFRESH_COOLDOWN_MS) return;
-        console.log('[App] App visible, refreshing entitlements...');
+        if (entitlementRefreshInFlightRef.current) return;
         lastEntitlementRefreshRef.current = now;
-        await refreshEntitlements();
+        await safeRefresh('App visible');
       }
     };
 
@@ -511,9 +529,9 @@ function ElectronAppContent() {
       const now = Date.now();
       const sinceLastRefresh = now - lastEntitlementRefreshRef.current;
       if (sinceLastRefresh < ENTITLEMENT_REFRESH_COOLDOWN_MS) return;
-      console.log('[App] Window focused, refreshing entitlements...');
+      if (entitlementRefreshInFlightRef.current) return;
       lastEntitlementRefreshRef.current = now;
-      await refreshEntitlements();
+      await safeRefresh('Window focused');
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);

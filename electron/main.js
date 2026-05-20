@@ -886,7 +886,14 @@ function createWindow() {
     dashboardMounted:0,
   };
 
-  ipcMain.on('app:dashboard-mounted', () => {
+  // F-5: ipcMain.once instead of ipcMain.on — createMainWindow() can be called
+  // again if the window is recreated, which would stack a fresh listener on top
+  // of the previous one every time. `once` self-cleans after the first dispatch
+  // and the `_bm.dashboardMounted` guard already ensures only the first send
+  // matters per window lifetime. We also defensively remove any pre-existing
+  // listeners from a prior window before re-registering.
+  ipcMain.removeAllListeners('app:dashboard-mounted');
+  ipcMain.once('app:dashboard-mounted', () => {
     if (_bm.dashboardMounted) return; // already fired
     _bm.dashboardMounted = Date.now();
     const rel = (t) => t ? `${t - _bm.whenReady}ms` : 'pending';

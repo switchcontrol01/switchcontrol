@@ -1,0 +1,211 @@
+🧠 SWITCHCONTROL FULL SYSTEM AUDIT CHECKLIST (v1.0)
+
+Use this as a pass/fail inspection.
+
+
+---
+
+🔴 1. CPU + PERFORMANCE BASELINE AUDIT
+
+Test conditions:
+
+fresh boot
+
+idle for 5 minutes
+
+dashboard open
+
+NIC page open/close
+
+cleaner open/close
+
+
+Check:
+
+[ ] CPU returns to baseline after idle (no spikes > 3–5%)
+
+[ ] No continuous CPU drift over 5–10 min
+
+[ ] No background loop spikes every 30s / 60s
+
+[ ] No hidden polling running after page change
+
+[ ] GPU usage stable (no sustained render load idle)
+
+
+Red flags:
+
+CPU slowly rising over time → leak
+
+constant spikes every interval → duplicate timers
+
+fan ramp without user interaction
+
+
+
+---
+
+🧠 2. MEMORY LEAK AUDIT
+
+Check:
+
+[ ] Memory stabilizes after startup (no constant growth)
+
+[ ] Switching pages 20+ times does NOT increase memory
+
+[ ] No duplicated Zustand listeners
+
+[ ] No event emitter accumulation
+
+[ ] No orphan intervals / timeouts
+
+
+Electron-specific:
+
+[ ] Only 1 renderer process active per window
+
+[ ] No hidden BrowserWindows remaining in memory
+
+[ ] ipcMain listeners not increasing over time
+
+
+Red flags:
+
+memory never drops after navigation
+
+RAM climbs every tweak apply cycle
+
+“ghost state updates” after page closed
+
+
+
+---
+
+⚡ 3. NAVIGATION RACE CONDITION AUDIT
+
+Test:
+
+spam switch pages rapidly
+
+open same page repeatedly
+
+navigate during API calls
+
+
+Check:
+
+[ ] No stale UI flashes
+
+[ ] No outdated API responses overriding new state
+
+[ ] No duplicate fetchAll executions
+
+[ ] AbortController properly cancels old requests
+
+
+Red flags:
+
+wrong data briefly appears then corrects
+
+flicker between old/new states
+
+duplicate renders
+
+
+
+---
+
+🔁 4. TIMER + POLLING AUDIT
+
+Check:
+
+[ ] All setInterval calls tracked
+
+[ ] All timers cleared on unmount
+
+[ ] No duplicate polling loops
+
+[ ] No background execution after page close
+
+
+Specific systems:
+
+NIC polling
+
+dashboard telemetry
+
+cleaner background scans
+
+AI advisor polling (if any)
+
+
+Red flags:
+
+logs repeating when UI idle
+
+repeated backend calls without user input
+
+
+
+---
+
+⚙️ 5. NATIVE EXECUTION SAFETY AUDIT (CRITICAL)
+
+This is your highest-risk area.
+
+Check:
+
+[ ] Only ONE PowerShell/NIC execution runs at a time
+
+[ ] No overlapping tweak executions
+
+[ ] Queue or lock system exists
+
+[ ] Failed execution does NOT trigger retry storms
+
+
+Test:
+
+apply 3 tweaks rapidly
+
+open NIC tuning while cleaner running
+
+spam apply/revert buttons
+
+
+Red flags:
+
+system state desync
+
+duplicate registry writes
+
+“success UI but no system change”
+
+
+
+---
+
+🌐 6. NETWORK + BACKEND AUDIT
+
+Check:
+
+[ ] Cloud fallback works correctly
+
+[ ] No retry loops on failed requests
+
+[ ] WebSocket reconnects only once per failure
+
+[ ] No request storms during auth refresh
+
+
+Red flags:
+
+repeated failed API calls every few seconds
+
+WebSocket reconnect spam
+
+cloud/local mismatch
+
+
+
+---

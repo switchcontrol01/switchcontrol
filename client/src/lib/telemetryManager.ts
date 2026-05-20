@@ -27,7 +27,8 @@
 
 import { useTelemetryStore } from "@/stores/telemetryStore";
 import { usePerformanceStore } from "@/stores/performanceStore";
-import { useAuthStore } from "@/lib/authStore";
+import { useAuthStore, bumpMeGeneration } from "@/lib/authStore";
+import { getResolvedBackendPort } from "@/lib/api";
 import type { LiveTelemetry } from "@/hooks/useLiveTelemetry";
 
 const isDebug = import.meta.env.DEV;
@@ -53,6 +54,9 @@ let _lastReportedCpu = 0; // for LPM throttle threshold
 // ── Auth failure state ─────────────────────────────────────────────────────────
 // After a 1008 auth rejection we pause reconnects until the JWT is refreshed.
 let _authRejected = false;
+// F-2: Track the auth-watcher subscription so repeated 1008 events can't stack
+// multiple subscribers. Each new 1008 cancels any previous watcher first.
+let _authUnsub: (() => void) | null = null;
 
 // ── Reconnect diagnostics ──────────────────────────────────────────────────────
 // Tracks consecutive reconnect attempts since the last successful open.
@@ -99,15 +103,11 @@ async function buildWsUrl(): Promise<string> {
 
   if (electronAPI?.isElectron && window.location.protocol === "file:") {
     try {
-      let port: number | null = null;
-      const deadline = Date.now() + 30_000;
-      let delay = 200; // exponential backoff: 200→400→800→1600→3200→6400→max 10000
-      while (Date.now() < deadline) {
-        port = await electronAPI.getBackendPort?.();
-        if (typeof port === "number" && port > 0) break;
-        await new Promise((r) => setTimeout(r, delay));
-        delay = Math.min(delay * 2, 10_000);
-      }
+      // F-7: Reuse api.ts's shared port resolver instead of running a duplicate
+      // 30-second poll loop here. resolveApiBase() is already racing both
+      // pollForBackendPort() and the onBackendReady push, so we get the port
+      // as soon as either path resolves — no extra polling pressure on Electron IPC.
+      const port = await getResolvedBackendPort();
       if (port) return `ws://127.0.0.1:${port}/ws/telemetry${authSuffix}`;
     } catch {}
   }
@@ -237,19 +237,38 @@ function connect() {
             );
             _authRejected = true;
             _started = false;
-            // Clear the stored JWT so re-auth picks up a fresh token
+            // Clear the stored JWT so re-auth picks up a fresh token.
+            // F-8: Bump the /api/me generation counter so any /api/me response
+            // still in flight from BEFORE this JWT clear cannot overwrite the
+            // freshly cleared auth state when it resolves.
             useAuthStore.getState().setJwt(null);
+            bumpMeGeneration();
             useTelemetryStore.getState()._setStatus("unavailable");
 
+            // F-2: Cancel any prior auth-watcher subscriber before creating a new
+            // one. Without this, repeated 1008 closes (e.g. JWT briefly returns
+            // then gets rejected again) leak zombie subscribers that all race
+            // to re-fire when a new JWT arrives.
+            if (_authUnsub) {
+              try { _authUnsub(); } catch {}
+              _authUnsub = null;
+            }
+
             // Watch for a new JWT to arrive (e.g. after Electron auth completes)
-            // and automatically reconnect when it does. Unsubscribes after one hit.
-            const unsub = useAuthStore.subscribe((state) => {
+            // and automatically restart when it does. Unsubscribes after one hit.
+            _authUnsub = useAuthStore.subscribe((state) => {
               if (state.jwt && _authRejected && !_started) {
-                unsub();
-                console.log("[Telemetry:ws] JWT became available after 1008 — restarting WebSocket");
+                if (_authUnsub) {
+                  try { _authUnsub(); } catch {}
+                  _authUnsub = null;
+                }
+                console.log("[Telemetry:ws] JWT became available after 1008 — restarting telemetry");
                 _authRejected = false;
-                _started = true;
-                connect();
+                // F-1: Route through start() (not connect() directly) so we honor
+                // the IPC-vs-WebSocket mode selection. Calling connect() here
+                // would force WebSocket mode even in packaged Electron where IPC
+                // is the correct transport.
+                telemetryManager.start();
               }
             });
 

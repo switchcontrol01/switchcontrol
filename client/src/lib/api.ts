@@ -130,6 +130,22 @@ export function isBackendReady(): boolean {
   return _backendReady;
 }
 
+/**
+ * Returns the resolved backend port for packaged/dev Electron, or null in web mode.
+ * Awaits the shared `resolveApiBase()` so callers don't run their own port poll loop.
+ * (F-7: eliminates duplicate port polling between api.ts and telemetryManager.ts)
+ */
+export async function getResolvedBackendPort(): Promise<number | null> {
+  if (!isElectron) return null;
+  try {
+    const base = await resolveApiBase();
+    const m = base.match(/:(\d+)\/api/);
+    return m ? parseInt(m[1], 10) : null;
+  } catch {
+    return null;
+  }
+}
+
 export function onBackendReady(cb: () => void): () => void {
   if (_backendReady) { cb(); return () => {}; }
   _backendReadyListeners.push(cb);
@@ -259,7 +275,9 @@ if (typeof window !== 'undefined') {
         const base = `http://127.0.0.1:${data.port}/api`;
         console.log(`[API] Backend-ready push: base=${base} (was: ${_resolvedApiBase || 'unset'})`);
         _resolvedApiBase = base;
-        _resolvingPromise = null;
+        // F-11: Do NOT null out _resolvingPromise while resolveApiBaseInternal() may
+        // still be in-flight. The in-flight promise's .then() handler at L237 will
+        // null it itself once it resolves (idempotently writing the same _resolvedApiBase).
         // Immediately unblock any pollForBackendPort() that is currently racing.
         _backendPushPortResolve?.(data.port);
         markBackendReady();

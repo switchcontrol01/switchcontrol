@@ -118,10 +118,19 @@ export function useTweakIntelligence(pollIntervalMs = 10_000) {
   // Poll on mount and whenever applied IDs change
   useEffect(() => {
     mountedRef.current = true;
+    // F-4: Per-effect cancellation closure. Without this, when the effect
+    // re-runs (appliedParam change), any setTimeout already queued from the
+    // previous effect run can still fire fetchAll() + reschedule itself
+    // after the cleanup has run — racing against the new effect's schedule
+    // and double-polling forever.
+    let cancelled = false;
+
     fetchAll(appliedParam);
 
     const schedule = () => {
+      if (cancelled) return;
       timerRef.current = setTimeout(() => {
+        if (cancelled) return;
         fetchAll(appliedParam);
         schedule();
       }, pollIntervalMs);
@@ -129,9 +138,13 @@ export function useTweakIntelligence(pollIntervalMs = 10_000) {
     schedule();
 
     return () => {
+      cancelled = true;
       mountedRef.current = false;
       if (abortRef.current) abortRef.current.abort();
-      if (timerRef.current) clearTimeout(timerRef.current);
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [appliedParam, pollIntervalMs]);
