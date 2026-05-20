@@ -1019,10 +1019,15 @@ aiRouter.post("/chat", async (req: Request, res: Response) => {
         const isLast = i === sliced.length - 1;
         const isUser = m.role === "user";
 
-        // If the message has a structured field (from previous AI responses), serialize it
+        // If the message has a structured field (from previous AI responses), serialize it.
+        // Re-validate the client-supplied structured object before use — the TypeScript type
+        // guarantees do not hold for data round-tripped through the client.
         let textContent: string;
         if (!isUser && m.structured) {
-          textContent = structuredToHistoryText(m.structured).slice(0, 2000);
+          const validatedStructured = validateChatResponse(m.structured);
+          textContent = validatedStructured
+            ? structuredToHistoryText(validatedStructured).slice(0, 2000)
+            : String(m.content || "").slice(0, 2000);
         } else {
           textContent = String(m.content || "").slice(0, 2000);
         }
