@@ -960,28 +960,50 @@ function createWindow() {
 
     setTimeout(() => {
       if (!mainWindow || mainWindow.isDestroyed()) return;
-      mainWindow.setOpacity(1);
-      console.log(`[LAUNCH:5b] opacity restored to 1 — dark frame in DWM pipeline | ${launchMs()}`);
-      // Tell renderer window is on screen — Splash begins html 0→1 opacity reveal.
+
+      // ── Eliminate the black-frame gap ──────────────────────────────────────
+      // Root cause of the black flash (since 1.0.3):
+      //   Old order: setOpacity(1) → webContents.send('app:window-shown')
+      //   Problem:  window becomes visible to Windows DWM while html { opacity:0 }
+      //             is still in effect.  The IPC + compositor lag (~20ms) meant the
+      //             window showed only backgroundColor (#07090D) for one visible flash.
+      //
+      // Fix — reversed order:
+      //   1. Send app:window-shown IPC first → renderer immediately sets
+      //      html.style.transition + html.style.opacity='1'  AND
+      //      document.body.classList.add('sc-first-frame-ready') →
+      //      both GPU-compositor transitions start on the renderer thread.
+      //   2. Wait 20ms (~1.25 VSync) — compositor has committed the transitions
+      //      and is already interpolating opacity.
+      //   3. THEN restore OS opacity → window appears mid-transition.
+      //      body::before is ~17% faded (still covers most content) and
+      //      html is ~17% opaque — net result: user sees the dark cover
+      //      smoothly animating out, never a pure backgroundColor frame.
       _bm.windowShown = Date.now();
       mainWindow.webContents.send('app:window-shown');
-      console.log(`[LAUNCH:5c] app:window-shown sent to renderer | ${launchMs()}`);
-      mainWindow.focus();
-      console.log(`[LAUNCH:6] focus() — launch sequence complete | ${launchMs()}`);
+      console.log(`[LAUNCH:5b] app:window-shown sent — renderer transitions starting | ${launchMs()}`);
 
-      // ── Deferred telemetry start ───────────────────────────────────────────
-      // Telemetry (including heavy GPU prewarm / PowerShell perf counter cold-start)
-      // is intentionally delayed until 2000ms AFTER the window is on screen and the
-      // logo/splash animation has had time to complete its first render pass.
-      // Starting telemetry immediately caused a visual race: GPU perf-counter cold-start
-      // (2-4s PowerShell startup) competed for CPU/GPU with the first-paint animation.
-      // State machine: hidden → mounted → visible (now) → telemetry starts (+2000ms)
       setTimeout(() => {
-        _bm.telemetryStart = Date.now();
-        console.log(`[LAUNCH:7] starting telemetry — 2000ms post window-shown | ${launchMs()}`);
-        startTelemetryPolling().catch(e => console.error('[telemetry:poll] startTelemetryPolling error:', e.message));
-      }, 2000);
-    }, 34); // 34ms = 2 VSync intervals — see DWM flash prevention comment above
+        if (!mainWindow || mainWindow.isDestroyed()) return;
+        mainWindow.setOpacity(1);
+        console.log(`[LAUNCH:5c] opacity restored to 1 — window visible mid-transition | ${launchMs()}`);
+        mainWindow.focus();
+        console.log(`[LAUNCH:6] focus() — launch sequence complete | ${launchMs()}`);
+
+        // ── Deferred telemetry start ─────────────────────────────────────────
+        // Telemetry (including heavy GPU prewarm / PowerShell perf counter cold-start)
+        // is intentionally delayed until 2000ms AFTER the window is on screen and the
+        // logo/splash animation has had time to complete its first render pass.
+        // Starting telemetry immediately caused a visual race: GPU perf-counter cold-start
+        // (2-4s PowerShell startup) competed for CPU/GPU with the first-paint animation.
+        // State machine: hidden → mounted → visible (now) → telemetry starts (+2000ms)
+        setTimeout(() => {
+          _bm.telemetryStart = Date.now();
+          console.log(`[LAUNCH:7] starting telemetry — 2000ms post window-shown | ${launchMs()}`);
+          startTelemetryPolling().catch(e => console.error('[telemetry:poll] startTelemetryPolling error:', e.message));
+        }, 2000);
+      }, 20); // 20ms ≈ 1.25 VSync — gives compositor time to start transitions
+    }, 34); // 34ms = 2 VSync — DWM swap chain warmup (unchanged)
   });
 
   // ready-to-show: DIAGNOSTIC ONLY — do NOT call show() here.
