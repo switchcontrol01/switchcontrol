@@ -1600,7 +1600,7 @@ async function loadSystemSpecs() {
         console.error('[SwitchControl] Failed to get memory info:', e.message || e);
         return mem;
       }),
-      siWithTimeout(() => si.graphics(), 8_000, 'si.graphics()').catch(e => {
+      siWithTimeout(() => si.graphics(), 15_000, 'si.graphics()').catch(e => {
         console.error('[SwitchControl] Failed to get graphics info:', e.message || e);
         return graphics;
       }),
@@ -1614,6 +1614,47 @@ async function loadSystemSpecs() {
     mem = memResult;
     graphics = graphicsResult;
     fsData = fsResult;
+
+    // ── Synchronous fallbacks ─────────────────────────────────────────────────
+    // os.cpus() / os.totalmem() / os.freemem() are synchronous Node built-ins
+    // that bypass WMI entirely.  Use them whenever the si.* calls timed out
+    // or returned empty values so the dashboard always shows real data.
+
+    // CPU — WMI cold-start on AMD can return "Unknown CPU" for up to 20 s.
+    // os.cpus()[0].model is always populated and resolves instantly.
+    if (!cpu.brand || cpu.brand === 'Unknown CPU') {
+      try {
+        const osCpus = os.cpus();
+        if (osCpus && osCpus.length > 0 && osCpus[0].model) {
+          const fallbackModel = osCpus[0].model.trim();
+          console.log('[SwitchControl] CPU WMI unavailable — os.cpus() fallback:', fallbackModel);
+          cpu = {
+            ...cpu,
+            brand:         fallbackModel,
+            cores:         cpu.cores  || osCpus.length,
+            physicalCores: cpu.physicalCores || Math.max(1, Math.floor(osCpus.length / 2)),
+            speed:         cpu.speed  || (osCpus[0].speed / 1000), // os gives MHz, si expects GHz
+          };
+        }
+      } catch (e) {
+        console.warn('[SwitchControl] os.cpus() fallback failed:', e.message);
+      }
+    }
+
+    // RAM — si.mem() can return total=0 on restricted environments.
+    // os.totalmem() / os.freemem() are always accurate.
+    if (!mem.total || mem.total === 0) {
+      try {
+        const osTotal = os.totalmem();
+        const osFree  = os.freemem();
+        if (osTotal > 0) {
+          console.log('[SwitchControl] RAM WMI unavailable — os.totalmem() fallback:', Math.round(osTotal / 1073741824) + ' GB');
+          mem = { total: osTotal, available: osFree };
+        }
+      } catch (e) {
+        console.warn('[SwitchControl] os.totalmem() fallback failed:', e.message);
+      }
+    }
 
     const totalGB = (mem.total || 0) / 1024 / 1024 / 1024;
     const freeGB = (mem.available || 0) / 1024 / 1024 / 1024;

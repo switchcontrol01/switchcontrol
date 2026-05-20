@@ -1472,9 +1472,14 @@ export default function AiAdvisor() {
         // stick count ("2"), so parseFloat returns 2 — not total GB.
         // Skip the numeric comparison for any string matching NxMGB format.
         const isMultiStickStr = /^\d+x\d/i.test(ctxRamStr);
-        // "suspect" = context ram string is empty or < 8GB but live shows ≥ 8 GB
+        // "suspect" = context reports a concrete but WRONG RAM value (< 8 GB)
+        // while live telemetry shows ≥ 8 GB — this means stale/partial data
+        // reached the AI context and would cause hallucination.
+        //
+        // NOTE: an *empty* ctxRamStr just means specs haven't loaded yet — the
+        // AI handles "I don't know your RAM" gracefully, so we do NOT block on
+        // empty.  We only block when the context has a concrete wrong value.
         const ramSuspect =
-          (ctxRamStr === "" && liveRamGb >= 8) ||
           (!isMultiStickStr && !isNaN(ctxRamGb) && ctxRamGb < 8 && liveRamGb >= 8) ||
           (ctxTelRamGb > 0 && ctxTelRamGb < 8 && liveRamGb >= 8);
         if (ramSuspect) {

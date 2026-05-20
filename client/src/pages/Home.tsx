@@ -469,7 +469,11 @@ export default function Home() {
 
     let cpuRetryId: ReturnType<typeof setTimeout> | null = null; // P3-H2: track AMD cold-start retry timer for cleanup
 
-    const SPEC_TIMEOUT_MS = 18_000;
+    // loadSystemSpecs() allows up to 20 s for si.cpu() on AMD WMI cold-start
+    // plus os.cpus() / os.totalmem() fallbacks if WMI times out.  Use 26 s
+    // here so this gate never fires before the IPC handler has a chance to
+    // return real (or fallback) data.
+    const SPEC_TIMEOUT_MS = 26_000;
 
     const api = (window as any).electronAPI;
     if (api?.system?.getSpecs) {
