@@ -68,7 +68,9 @@ export default function Splash({ onComplete }: SplashProps) {
           raf3 = requestAnimationFrame(() => {
             if (cancelled) return;
             setReady(true);
-            console.log(`[LAUNCH:R3] splash ready | t=+${performance.now().toFixed(0)}ms`);
+            // Signal main process — window shows instantly here (paintWhenInitiallyHidden)
+            (window as any).electronAPI?.signalFirstFrameReady?.();
+            console.log(`[LAUNCH:R3] splash ready + signalFirstFrameReady | t=+${performance.now().toFixed(0)}ms`);
           });
         });
       });
