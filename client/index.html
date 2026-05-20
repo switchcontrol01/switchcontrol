@@ -1,86 +1,31 @@
 <!DOCTYPE html>
-<html lang="en" style="background:#14181D;color-scheme:dark;opacity:0;height:100%;width:100%;overflow:hidden;">
+<html lang="en" style="background:#07090D;color-scheme:dark;height:100%;width:100%;overflow:hidden;">
   <head>
     <meta name="google-site-verification" content="7Go-YIR3WALNYY6u19nKMEUG1nSTgugkNssIoYuwEL8" />
-    <!--
-      CRITICAL DARK-PAINT GUARANTEE
-      ─────────────────────────────
-      This <style> block runs before ANY JavaScript bundle, before index.css,
-      before React, before fonts.  It is the first DOM paint Chromium makes.
-
-      body::before is a maximum-z-index opaque dark overlay that:
-        • Sits above every DOM element (z-index:2147483647, position:fixed)
-        • Is pointer-events:none so it never blocks interaction
-        • Fades out only after Splash.tsx adds 'sc-first-frame-ready' to <body>
-        • will-change:opacity promotes it to its own GPU compositor layer so
-          its fade does not trigger a parent layer flush
-
-      This layer is the final line of defence against the grey/white native frame
-      that Windows DWM shows for 0–1 frames between show() and Chromium's first
-      GPU texture delivery.
-
-      Reveal sequence (see Splash.tsx reveal() and main.js):
-        BrowserWindow show() (opacity:0→1, 34 ms DWM guard)
-          → app:window-shown IPC
-            → reveal() in Splash.tsx
-              1. html.style.transition set explicitly, then html.style.opacity='1' (200 ms)
-                 NOTE: transition is NOT in the html inline style — it is set here in JS
-                 so Chromium snapshots opacity:0 as the correct "from" value.
-              2. document.body.classList.add('sc-first-frame-ready')  (body::before: 120 ms)
-              3. shell.style.opacity = '0'  (140 ms, delayed 120 ms — AFTER body::before
-                 completes, so the two overlays are never simultaneously partial-transparent)
-    -->
     <style>
       html, body, #root {
         margin: 0;
         padding: 0;
         width: 100%;
         height: 100%;
-        background: #14181D !important;
+        background: #07090D !important;
         overflow: hidden;
       }
 
-      /* Web path: sc-web class is added synchronously by the inline script below.
-         CSS selectors apply to elements parsed AFTER the class is set, so #root
-         (which appears after the script tag) correctly picks up these overrides. */
       html.sc-web,
       html.sc-web body,
       html.sc-web #root {
         overflow: auto !important;
         height: auto !important;
       }
-
-      /* Bulletproof dark cover — painted by the browser before ANY JS runs.
-         Sits above everything. Removed only once sc-first-frame-ready is set.
-         will-change promotes to its own GPU layer so the 120ms fade never
-         triggers a composite flush on sibling layers. */
-      body::before {
-        content: "";
-        position: fixed;
-        inset: 0;
-        background: #14181D;
-        z-index: 2147483647;
-        pointer-events: none;
-        will-change: opacity;
-      }
-
-      /* Splash signals first-frame-ready → cover fades in 120 ms */
-      body.sc-first-frame-ready::before {
-        opacity: 0;
-        transition: opacity 120ms ease;
-      }
-
-      /* Electron: remove the dark cover entirely — Splash is already visible */
-      body.sc-electron-no-cover::before {
-        display: none !important;
-      }
     </style>
 
-    <!-- Belt-and-suspenders: set background on documentElement synchronously
-         in case the <html> style attribute is somehow deferred. -->
     <script>
-      document.documentElement.style.background = '#14181D';
+      document.documentElement.style.background = '#07090D';
       document.documentElement.style.colorScheme = 'dark';
+      if (!(window.electronAPI || navigator.userAgent.indexOf('Electron') !== -1)) {
+        document.documentElement.classList.add('sc-web');
+      }
     </script>
 
     <meta charset="UTF-8" />
@@ -114,27 +59,9 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Playfair+Display:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   </head>
-  <body style="margin:0;padding:0;background:#14181D;overflow:hidden;height:100%;width:100%;">
+  <body style="margin:0;padding:0;background:#07090D;overflow:hidden;height:100%;width:100%;">
 
-    <script>
-      if(window.electronAPI || navigator.userAgent.indexOf('Electron') !== -1){
-        // Electron: set html visible so the body::before dark cover is composited.
-        // The cover stays until Splash.tsx removes it (sc-electron-no-cover) at
-        // the exact frame where the Splash is fully rasterised and ready to show.
-        // This guarantees DWM never presents a white frame — only dark → Splash.
-        document.documentElement.style.opacity = '1';
-        document.documentElement.classList.add('sc-electron');
-        // NOTE: sc-electron-no-cover is NOT added here. Splash.tsx adds it after
-        // the triple-rAF handshake, just before signalling first-frame-ready.
-      } else {
-        // Web: normal fade-in
-        document.documentElement.style.opacity = '1';
-        document.documentElement.classList.add('sc-web');
-        document.body.classList.add('sc-first-frame-ready');
-      }
-    </script>
-
-    <div id="root" style="background:#14181D;height:100%;width:100%;"></div>
+    <div id="root" style="background:#07090D;height:100%;width:100%;"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

@@ -28,91 +28,16 @@ const STREAKS = [
 ];
 
 export default function Splash({ onComplete }: SplashProps) {
-  // ── Splash-ready gate ─────────────────────────────────────────────────────
-  // Nothing is visible until `ready` flips true:
-  //   1. logo image is decoded (guaranteed in browser memory)
-  //   2. two rAF ticks have passed (layout + compositor promotion)
-  // The outer container transitions from opacity:0 → 1 atomically,
-  // so the background and logo/text appear together — no background-only frame.
-  const [ready, setReady]         = useState(false);
-  const [logoVisible, setLogoVisible] = useState(false);
+  const [logoVisible, setLogoVisible] = useState(true);
   const [textVisible, setTextVisible] = useState(false);
   const [sweepVisible, setSweepVisible] = useState(false);
   const [progress, setProgress]   = useState(0);
   const tagline = useMemo(() => getHonestTagline(), []);
 
-  // ── Dark-overlay removal after window is shown ────────────────────────────
-  // body::before is a maximum-z-index dark cover that prevents the 0-1 white
-  // native frames Windows DWM emits between mainWindow.show() and Chromium's
-  // first GPU texture delivery. We remove it here — AFTER app:window-shown
-  // IPC arrives from main.js (which sends it immediately after mainWindow.show()).
-  // This guarantees the cover is only lifted once the window is truly on-screen
-  // and Chromium's dark frame has been composited by DWM.
+  // ── Staggered content reveal ──────────────────────────────────────────────
+  // Fires immediately on mount — no overlay gate needed.
+  // backgroundColor:'#07090D' on BrowserWindow + ready-to-show handles DWM.
   useEffect(() => {
-    const cleanup = (window as any).electronAPI?.onWindowShown?.(() => {
-      document.body.classList.add('sc-electron-no-cover');
-      console.log(`[LAUNCH:R4] sc-electron-no-cover added — dark cover lifted | t=+${performance.now().toFixed(0)}ms`);
-    });
-    return () => cleanup?.();
-  }, []);
-
-  // ── Logo decode + double-rAF handshake ───────────────────────────────────
-  // Two rAFs ensure the Splash has been fully painted (layout + compositor
-  // promotion) before signalling first-frame-ready. The dark body::before
-  // overlay handles any remaining DWM flash — we no longer need four rAFs or
-  // an extra 16 ms timeout for that purpose (those were compensating for the
-  // overlay being removed too early). A single 8ms setTimeout after the second
-  // rAF acts as a belt-and-suspenders guard for slow CPU frame scheduling.
-  useEffect(() => {
-    let cancelled = false;
-    let raf1: number;
-    let raf2: number;
-    let frameTimer: ReturnType<typeof setTimeout>;
-
-    async function prepareSplash() {
-      console.log(`[LAUNCH:R2] Splash mounted | t=+${performance.now().toFixed(0)}ms`);
-
-      const img = new Image();
-      img.src = logoImg;
-      try {
-        if ("decode" in img) await img.decode();
-      } catch {}
-
-      raf1 = requestAnimationFrame(() => {
-        raf2 = requestAnimationFrame(() => {
-          frameTimer = setTimeout(() => {
-            if (cancelled) return;
-            setReady(true);
-            // NOTE: sc-electron-no-cover is NOT added here — it is added in the
-            // onWindowShown listener above so the overlay stays up through
-            // mainWindow.show(), hiding the DWM white frame completely.
-            (window as any).electronAPI?.signalFirstFrameReady?.();
-            console.log(`[LAUNCH:R3] splash ready + signalFirstFrameReady | t=+${performance.now().toFixed(0)}ms`);
-          }, 8);
-        });
-      });
-    }
-
-    prepareSplash();
-
-    return () => {
-      cancelled = true;
-      cancelAnimationFrame(raf1);
-      cancelAnimationFrame(raf2);
-      clearTimeout(frameTimer);
-    };
-  }, []);
-
-  // ── Staggered content reveal (fires after ready) ──────────────────────────
-  // Logo appears immediately when the container reveals.
-  // Text follows +80ms later for a polished sequential entry.
-  // Sweep fires at +240ms for the diagonal light effect.
-  // onComplete at +3200ms hands off to App.tsx — splash covers ~80% of startup.
-  useEffect(() => {
-    if (!ready) return;
-
-    setLogoVisible(true);
-
     const t2   = setTimeout(() => setTextVisible(true),  80);
     const t3   = setTimeout(() => setSweepVisible(true), 240);
     const done = setTimeout(() => {
@@ -125,7 +50,7 @@ export default function Splash({ onComplete }: SplashProps) {
       clearTimeout(t3);
       clearTimeout(done);
     };
-  }, [ready, onComplete]);
+  }, [onComplete]);
 
   // ── Progress bar — rAF-based to avoid IntervalGuard 2000ms clamp ──────────
   // The old setInterval(pi, 36) was clamped to 2000ms by IntervalGuard,
@@ -168,15 +93,6 @@ export default function Splash({ onComplete }: SplashProps) {
       className="fixed inset-0 overflow-hidden flex items-center justify-center"
       style={{
         background: "#07090D",
-        // Container snaps to visible instantly — the body::before dark overlay
-        // handles the reveal. Opacity is gated so React renders content before
-        // it's visible, but there's no CSS transition: the overlay lifts via
-        // onWindowShown which creates the smooth dark→Splash reveal instead.
-        // Only transform uses a subtle ease-in so the Splash "pops" into place.
-        opacity:    ready ? 1 : 0,
-        transform:  ready ? "scale(1)" : "scale(0.985)",
-        transition: ready ? "transform 0.25s cubic-bezier(0.22,1,0.36,1)" : "none",
-        willChange: "transform",
       }}
     >
       {/* ── Layer A: wide atmospheric hazes ── */}

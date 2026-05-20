@@ -659,7 +659,7 @@ function createWindow() {
     width: 1300,
     height: 800,
     show: false,
-    backgroundColor: '#14181D',
+    backgroundColor: '#07090D',
     frame: false,
     thickFrame: false,
     webPreferences: {
@@ -881,25 +881,22 @@ function createWindow() {
   });
 
   // ── Launch handshake ─────────────────────────────────────────────────────────
-  // Primary show trigger: renderer sends 'app:first-frame-ready' after Splash
-  // has painted TWO composited dark frames (double-rAF after React mount).
-  // This guarantees the window is never shown before the branded dark UI exists.
+  // Show on ready-to-show: Chromium fires this after the first frame is painted
+  // (paintWhenInitiallyHidden:true ensures painting happens while hidden).
+  // backgroundColor:'#07090D' matches the splash so DWM shows that color during
+  // the 0-1 native frames before the GPU texture lands — no white or black flash.
   const _launchT0 = Date.now();
   const launchMs = () => `+${Date.now() - _launchT0}ms`;
-  let _firstFrameReadyFired = false;
 
-  // Hard fallback: if the IPC signal never arrives (preload issue, crash), show
-  // after 5 s so the app is never permanently invisible.
+  // Hard fallback: if ready-to-show never fires, show after 4 s.
   const showFallbackTimer = setTimeout(() => {
     if (mainWindow && !mainWindow.isVisible()) {
-      console.warn(`[LAUNCH:FALLBACK] first-frame-ready never received — force-showing after 5 s | ${launchMs()}`);
+      console.warn(`[LAUNCH:FALLBACK] ready-to-show never received — force-showing after 4 s | ${launchMs()}`);
       mainWindow.show();
-      mainWindow.webContents.send('app:window-shown');
       mainWindow.focus();
-      // Start telemetry even from the fallback path (no animation to protect here)
-      startTelemetryPolling().catch(e => console.error('[telemetry:poll] fallback startTelemetryPolling error:', e.message));
+      startTelemetryPolling().catch(e => console.error('[telemetry:poll] fallback error:', e.message));
     }
-  }, 5000);
+  }, 4000);
 
   // ── Boot metrics — single source of truth for startup timing ─────────────────
   // Timestamps (ms since process start) are written at each lifecycle event and
@@ -931,39 +928,21 @@ function createWindow() {
     console.log('[BOOT] ──────────────────────────────────────────');
   });
 
-  ipcMain.once('app:first-frame-ready', () => {
-      _firstFrameReadyFired = true;
-      _bm.firstFrameReady = Date.now();
-      clearTimeout(showFallbackTimer);
-      if (!mainWindow || mainWindow.isVisible()) return;
-
-      // paintWhenInitiallyHidden:true guarantees Chromium has already painted
-      // the Splash while the window was still hidden. We show first, THEN send
-      // app:window-shown so the renderer removes the dark body::before overlay
-      // AFTER Windows DWM has already composited our first GPU frame. This ensures
-      // the 0-1 white native frames DWM emits on show() are hidden by the overlay.
-      mainWindow.show();
-      _bm.windowShown = Date.now();
-      mainWindow.focus();
-      // Send window-shown AFTER show() so the renderer's onWindowShown removes
-      // the dark overlay only once the window is truly on-screen.
-      mainWindow.webContents.send('app:window-shown');
-      console.log(`[LAUNCH:5] mainWindow.show() + app:window-shown dispatched | ${launchMs()}`);
-
-      // Telemetry deferred slightly so it doesn't compete with first paint.
-      // 500ms is enough for the Splash to finish; well under the old 2s wait.
-      setTimeout(() => {
-        _bm.telemetryStart = Date.now();
-        console.log(`[LAUNCH:7] starting telemetry -- 500ms post window-shown | ${launchMs()}`);
-        startTelemetryPolling().catch(e => console.error('[telemetry:poll] startTelemetryPolling error:', e.message));
-      }, 500);
-    });
-
-  // ready-to-show: DIAGNOSTIC ONLY — do NOT call show() here.
-  // ready-to-show can fire before CSS paint (white frame risk).
-  // The first-frame-ready IPC handshake above is the authoritative show trigger.
+  // ready-to-show fires after Chromium's first frame paint (with
+  // paintWhenInitiallyHidden:true this happens while still hidden).
+  // backgroundColor matches so DWM never shows white.
   mainWindow.once('ready-to-show', () => {
-    verboseLog(`[LAUNCH:ready-to-show] Chromium first paint available — awaiting first-frame-ready IPC | ${launchMs()}`);
+    clearTimeout(showFallbackTimer);
+    if (!mainWindow || mainWindow.isVisible()) return;
+    _bm.firstFrameReady = Date.now();
+    mainWindow.show();
+    _bm.windowShown = Date.now();
+    mainWindow.focus();
+    console.log(`[LAUNCH:5] mainWindow.show() on ready-to-show | ${launchMs()}`);
+    setTimeout(() => {
+      _bm.telemetryStart = Date.now();
+      startTelemetryPolling().catch(e => console.error('[telemetry:poll] error:', e.message));
+    }, 500);
   });
   mainWindow.on('closed', () => { 
     mainWindow = null; 
