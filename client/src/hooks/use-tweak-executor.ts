@@ -109,6 +109,25 @@ const FAILURE_TOAST: Record<FailureType, { title: string; description: string }>
   unknown:             { title: 'Tweak Could Not Be Applied',     description: 'An unexpected error occurred. Check logs for details.' },
 };
 
+/**
+ * Batch-reads ALL tweak states from real Windows registry/service state in a
+ * single PowerShell invocation. Used for startup reconciliation so the Zustand
+ * store reflects reality even after an AppData wipe (which resets the persisted
+ * UI state but leaves Windows registry changes intact).
+ *
+ * Returns null if not in Electron or if the PS limiter was busy (caller skips).
+ */
+export async function batchCheckAllTweaks(): Promise<Record<string, TweakStatus> | null> {
+  if (!isElectronWithTweaks()) return null;
+  try {
+    const results = await getTweaksAPI().batchCheckAll();
+    return results ?? null;
+  } catch (err) {
+    console.error('[TweakExecutor] batchCheckAll failed:', err);
+    return null;
+  }
+}
+
 /** Bulk apply: execute multiple tweaks with safety guards active.
  *  Passes `context: 'bulk'` so AudioGuard/NetworkGuard can block/rollback.
  */

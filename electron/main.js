@@ -2490,6 +2490,22 @@ ipcMain.handle('tweak:syncAll', async () => {
   }
 });
 
+// Batch check — reads ALL tweak states in a single PowerShell invocation.
+// Called once at app startup (non-blocking) to reconcile the Zustand store
+// against real Windows state after an AppData wipe or first launch.
+ipcMain.handle('tweak:batchCheckAll', async () => {
+  const _token = psLimiter.tryAcquire({ file: 'main.js', fn: 'tweak:batchCheckAll', reason: 'tweak-batch-check' });
+  if (!_token) {
+    console.log('[tweak:batchCheckAll] skipped — PS limiter full, will retry on TweaksList mount');
+    return null; // caller treats null as "skip reconciliation"
+  }
+  try {
+    return await tweakExecutor.batchCheckAllTweaks();
+  } finally {
+    psLimiter.release(_token);
+  }
+});
+
 ipcMain.handle('tweak:getLog', () => {
   return tweakExecutor.getExecutionLog();
 });

@@ -287,6 +287,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
       return ipcRenderer.invoke('tweak:checkStatus', tweakId);
     },
     syncAll:       () => ipcRenderer.invoke('tweak:syncAll'),
+    batchCheckAll: () => ipcRenderer.invoke('tweak:batchCheckAll'),
     getLocalState: () => ipcRenderer.invoke('tweak:getLocalState'),
     getInfo:       () => ipcRenderer.invoke('tweak:getInfo'),
     getLog:        () => ipcRenderer.invoke('tweak:getLog'),

@@ -1458,6 +1458,102 @@ async function checkTweakStatus(tweakId) {
   }
 }
 
+// ── Batch check — ONE PowerShell invocation for ALL batchable tweaks ──────────
+// Replaces 60+ sequential PS launches with a single script written to a temp
+// file (avoids the 32 KB command-line length limit) and run with -File.
+// Special tweaks (_special property) are resolved in Node, not PS.
+// Returns { tweakId: { isApplied, applied, unsupported?, error } }.
+async function batchCheckAllTweaks() {
+  const os_   = require('os');
+  const path_  = require('path');
+  const fs_    = require('fs');
+  const result = {};
+
+  // 1. Mark UNSUPPORTED_TWEAKS without any PS call.
+  for (const [id, reason] of Object.entries(UNSUPPORTED_TWEAKS)) {
+    result[id] = { isApplied: false, applied: false, unsupported: true, unsupportedReason: reason, error: null };
+  }
+
+  // 2. timer-res: resolved by checking if the persistent agent process is alive.
+  const timerResId = Object.keys(ALL_TWEAKS).find(id => ALL_TWEAKS[id]._special === 'timer-res');
+  if (timerResId) {
+    const isRunning = !!(_timerResProcess && !_timerResProcess.killed);
+    result[timerResId] = { isApplied: isRunning, applied: isRunning, error: null };
+  }
+
+  // 3. nvidia-telemetry: requires a GPU-detection pre-probe — too complex for the
+  //    batch; default to false. The per-tweak checkTweakStatus path (syncAll on
+  //    TweaksList mount) handles it correctly.
+  const nvId = Object.keys(ALL_TWEAKS).find(id => ALL_TWEAKS[id]._special === 'nvidia-telemetry');
+  if (nvId) {
+    result[nvId] = { isApplied: false, applied: false, error: null };
+  }
+
+  // 4. Build the batch PS script for all remaining tweaks.
+  const batchIds = [];
+  const lines    = ['$r = @{}'];
+  for (const [id, tweak] of Object.entries(ALL_TWEAKS)) {
+    if (tweak._special) continue; // handled above
+    if (!tweak.check)  continue;
+    batchIds.push(id);
+    // Each check is isolated in its own scriptblock scope so variables
+    // (e.g. $out, $s, $tasks) do not bleed across checks.
+    // [bool]() normalises any truthy output to $true/$false.
+    // try/catch ensures a single failing check does not abort the rest.
+    lines.push(`try { $r['${id}'] = [bool](& { ${tweak.check} }) } catch { $r['${id}'] = $false }`);
+  }
+
+  if (batchIds.length === 0) return result;
+
+  lines.push(`$r | ConvertTo-Json -Compress`);
+  const script  = lines.join('\n');
+  const tmpFile = path_.join(os_.tmpdir(), `sc_batchcheck_${Date.now()}_${Math.random().toString(36).slice(2)}.ps1`);
+  fs_.writeFileSync(tmpFile, script, 'utf8');
+
+  const psId = ++_tweak_psCount;
+  const t0   = Date.now();
+  console.log(`[PS:tweak-executor] #${psId} batchCheckAll SPAWN ts=${t0} tweaks=${batchIds.length}`);
+
+  try {
+    const raw = await new Promise((resolve, reject) => {
+      execFile(
+        'powershell',
+        ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-File', tmpFile],
+        { timeout: 45000, windowsHide: true },
+        (error, stdout, stderr) => {
+          const dur = Date.now() - t0;
+          if (error) {
+            console.error(`[PS:tweak-executor] #${psId} batchCheckAll FAIL ${dur}ms err="${(stderr || '').trim().slice(0, 200)}"`);
+            reject(new Error((stderr || stdout || error.message || '').trim()));
+          } else {
+            console.log(`[PS:tweak-executor] #${psId} batchCheckAll OK ${dur}ms`);
+            resolve(stdout.trim());
+          }
+        }
+      );
+    });
+
+    let parsed;
+    try {
+      parsed = JSON.parse(raw);
+    } catch (parseErr) {
+      console.error('[batchCheckAllTweaks] JSON parse failed. raw output:', raw.slice(0, 400));
+      return result; // return unsupported + timer-res that are already set
+    }
+
+    for (const [id, val] of Object.entries(parsed)) {
+      result[id] = { isApplied: !!val, applied: !!val, error: null };
+    }
+  } catch (err) {
+    console.error('[batchCheckAllTweaks] batch PS failed:', err.message);
+    // Return whatever is already in result (unsupported + timer-res).
+  } finally {
+    try { if (fs_.existsSync(tmpFile)) fs_.unlinkSync(tmpFile); } catch (_) {}
+  }
+
+  return result;
+}
+
 function getLocalState() {
   const state = loadState();
   return {
@@ -1552,6 +1648,7 @@ module.exports = {
   executeTweak,
   executeTweakWithOwnership,
   checkTweakStatus,
+  batchCheckAllTweaks,
   verifyTweak,
   getLocalState,
   getTweakInfo,

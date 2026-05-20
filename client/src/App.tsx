@@ -21,6 +21,7 @@ import { tryReissueJwt } from "@/lib/api";
 import { isTrialActive } from "@/lib/trialCountdown";
 import { telemetryManager } from "@/lib/telemetryManager";
 import { useStore } from "@/lib/store";
+import { batchCheckAllTweaks, isRealTweak } from "@/hooks/use-tweak-executor";
 import { PendingActivationModal } from "@/components/PendingActivationModal";
 import { UpgradeModalProvider } from "@/contexts/UpgradeModalContext";
 import { PatchNotesModal, PATCH_NOTES_STORAGE_KEY } from "@/components/PatchNotesModal";
@@ -216,7 +217,40 @@ function ElectronAppContent() {
   // First-run baseline scan — records pre-existing applied state before the app touches anything
   useBaselineScan();
 
-  const { realtimeMetricsEnabled, pauseWhenMinimized } = useStore();
+  const { realtimeMetricsEnabled, pauseWhenMinimized, setTweak } = useStore();
+
+  // Startup reconciliation — fires once, non-blocking.
+  // Reads real Windows tweak state via a single batched PowerShell call and
+  // updates the Zustand store so every page reflects reality, not stale cache.
+  // This is the fix for the AppData-delete scenario: deleting %AppData%/SwitchControl
+  // wipes the persisted UI store (showing all tweaks OFF) but leaves all registry
+  // and service changes intact in Windows. This call rebuilds truth from the OS.
+  // Runs at 1500ms so it doesn't contend with the splash/auth boot sequence.
+  useEffect(() => {
+    if (!isElectron) return;
+    const t = setTimeout(() => {
+      batchCheckAllTweaks()
+        .then((results) => {
+          if (!results || Object.keys(results).length === 0) return;
+          let reconciled = 0;
+          for (const [tweakId, status] of Object.entries(results)) {
+            const s = status as { isApplied?: boolean; applied?: boolean; unsupported?: boolean; error?: string | null };
+            if (s.unsupported || s.error) continue;
+            if (!isRealTweak(tweakId)) continue;
+            const finalState = s.isApplied ?? s.applied ?? false;
+            setTweak(tweakId, finalState);
+            reconciled++;
+          }
+          if (reconciled > 0) {
+            console.log(`[App:STARTUP-RECONCILE] reconciled=${reconciled} tweaks from real Windows state`);
+          }
+        })
+        .catch((err) => {
+          console.error('[App:STARTUP-RECONCILE] batch check failed:', err);
+        });
+    }, 1500);
+    return () => clearTimeout(t);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Start the telemetry WebSocket ~2s after the user is authenticated.
   // The short delay prevents the WebSocket connect + first data burst from
