@@ -1435,6 +1435,11 @@ export default function AiAdvisor() {
 
     abortRef.current?.abort();
     abortRef.current = new AbortController();
+    const myController = abortRef.current;
+    const CHAT_TIMEOUT_MS = 30_000;
+    const timeoutId = setTimeout(() => {
+      if (thisReqId === reqIdRef.current) myController.abort();
+    }, CHAT_TIMEOUT_MS);
 
     const chatHistory = messagesRef.current
       .filter(m => m.id !== "welcome" && m.role !== "system" && !m.isThinking)
@@ -1543,6 +1548,7 @@ export default function AiAdvisor() {
       setIsSlowRequest(false);
       setLoading(false);
       clearTimeout(thinkingTimer);
+      clearTimeout(timeoutId);
 
       if (!thinkingAdded) setMessages(prev => [...prev, placeholderMsg]);
 
@@ -1580,8 +1586,10 @@ export default function AiAdvisor() {
                 ? { ...m, content: m.content.replace(/<<APPLY:[a-z0-9-]+>>/gi, "").replace(/\s{2,}/g, " ").trim() }
                 : m
             );
+            // Drop the original text bubble if stripping markers left it empty
+            const filtered = stripped.filter(m => !(m.id === assistantId && m.content === "" && !m.structured));
             return [
-              ...stripped,
+              ...filtered,
               {
                 id: `recs-${assistantId}`,
                 role: "assistant" as const,
@@ -1611,8 +1619,10 @@ export default function AiAdvisor() {
                 ? { ...m, content: m.content.replace(/<<NAV:\/[^>]+>>/g, "").replace(/\s{2,}/g, " ").trim() }
                 : m
             );
+            // Drop the original text bubble if stripping markers left it empty
+            const filtered = stripped.filter(m => !(m.id === assistantId && m.content === "" && !m.structured));
             return [
-              ...stripped,
+              ...filtered,
               {
                 id: `nav-${assistantId}`,
                 role: "assistant" as const,
@@ -1631,11 +1641,22 @@ export default function AiAdvisor() {
 
     } catch (err: unknown) {
       clearTimeout(thinkingTimer);
+      clearTimeout(timeoutId);
       if (slowTimerRef.current) clearTimeout(slowTimerRef.current);
       setIsSlowRequest(false);
       if (err instanceof DOMException && err.name === "AbortError") {
         setLoading(false);
         if (thinkingAdded) setMessages(prev => prev.filter(m => m.id !== assistantId));
+        // If this was a timeout (not a user-triggered abort) show a helpful message
+        if (!abortRef.current?.signal.aborted || thisReqId === reqIdRef.current) {
+          const wasTimeout = thisReqId === reqIdRef.current;
+          if (wasTimeout) {
+            setMessages(prev => prev
+              .filter(m => m.id !== assistantId)
+              .concat({ id: `error-${Date.now()}`, role: "system", content: "The AI took too long to respond. Please try again.", timestamp: new Date() })
+            );
+          }
+        }
         return;
       }
       if (abortRef.current?.signal.aborted) {
