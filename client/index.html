@@ -118,12 +118,14 @@
 
     <script>
       if(window.electronAPI || navigator.userAgent.indexOf('Electron') !== -1){
-        // Electron: show instantly — no html-level opacity fade, no body::before cover.
-        // paintWhenInitiallyHidden has already rasterised the Splash while hidden.
-        // The window shows with the Splash fully visible the moment show() fires.
+        // Electron: set html visible so the body::before dark cover is composited.
+        // The cover stays until Splash.tsx removes it (sc-electron-no-cover) at
+        // the exact frame where the Splash is fully rasterised and ready to show.
+        // This guarantees DWM never presents a white frame — only dark → Splash.
         document.documentElement.style.opacity = '1';
         document.documentElement.classList.add('sc-electron');
-        document.body.classList.add('sc-electron-no-cover');
+        // NOTE: sc-electron-no-cover is NOT added here. Splash.tsx adds it after
+        // the triple-rAF handshake, just before signalling first-frame-ready.
       } else {
         // Web: normal fade-in
         document.documentElement.style.opacity = '1';

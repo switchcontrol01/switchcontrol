@@ -68,9 +68,14 @@ export default function Splash({ onComplete }: SplashProps) {
           raf3 = requestAnimationFrame(() => {
             if (cancelled) return;
             setReady(true);
+            // Remove the dark body::before cover NOW — this frame has the Splash
+            // fully rasterised on the GPU compositor layer (paintWhenInitiallyHidden).
+            // DWM will present this exact frame when show() fires, so the very first
+            // pixel the user sees is the Splash, never a white or blank frame.
+            document.body.classList.add('sc-electron-no-cover');
             // Signal main process — window shows instantly here (paintWhenInitiallyHidden)
             (window as any).electronAPI?.signalFirstFrameReady?.();
-            console.log(`[LAUNCH:R3] splash ready + signalFirstFrameReady | t=+${performance.now().toFixed(0)}ms`);
+            console.log(`[LAUNCH:R3] splash ready + cover removed + signalFirstFrameReady | t=+${performance.now().toFixed(0)}ms`);
           });
         });
       });

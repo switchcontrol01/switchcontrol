@@ -659,7 +659,7 @@ function createWindow() {
     width: 1300,
     height: 800,
     show: false,
-    backgroundColor: '#07090D',
+    backgroundColor: '#14181D',
     frame: false,
     thickFrame: false,
     webPreferences: {
