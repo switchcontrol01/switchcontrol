@@ -231,8 +231,8 @@ function ItemRow({ item, finding, selected, onToggle, cleanResult, isCleaning, d
 
   return (
     <motion.div
-      initial={{ opacity: 1, y: 4 }}
-      animate={{ opacity: 1, y: 0 }}
+      initial={{ opacity: 1 }}
+      animate={{ opacity: 1 }}
       transition={{ delay, duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
       className={cn(
         "rounded-xl border transition-all duration-200 overflow-hidden",
@@ -343,8 +343,8 @@ function CategorySection({ category, items, findings, selected, onToggle, onTogg
 
   return (
     <motion.div
-      initial={{ opacity: 1, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
+      initial={{ opacity: 1 }}
+      animate={{ opacity: 1 }}
       transition={{ delay, duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
       className="rounded-2xl border border-white/[0.07] bg-white/[0.02] overflow-hidden"
     >
@@ -749,7 +749,7 @@ export default function SystemCleaner() {
                   const Icon = meta.icon;
                   const itemCount = categories[cat].length;
                   return (
-                    <motion.div key={cat} initial={{ opacity: 1, y: 8 }} animate={{ opacity: 1, y: 0 }}
+                    <motion.div key={cat} initial={{ opacity: 1 }} animate={{ opacity: 1 }}
                       transition={{ delay: i * 0.07, duration: 0.3 }}
                       className="rounded-xl border border-white/[0.07] bg-white/[0.02] px-4 py-3 flex items-center gap-3">
                       <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: meta.dim }}>

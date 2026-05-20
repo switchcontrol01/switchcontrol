@@ -93,7 +93,7 @@ import { AppAuthContext } from "@/lib/appAuthContext";
 // Matches the hard-locked html/body background from index.html so the
 // brief Suspense flash (if it ever fires) is invisible against the page.
 const DarkFallback = () => (
-  <div style={{ position: "fixed", inset: 0, background: "#07090D" }} />
+  <div style={{ position: "fixed", inset: 0, background: "#14181D" }} />
 );
 
 function ElectronAppRoutes() {
@@ -973,7 +973,7 @@ function ElectronAppContent() {
 
       {/* ── Resetting overlay — covers the blank while factory reset runs ── */}
       {isResetting && (
-        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center" style={{ background: "#07090D" }}>
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center" style={{ background: "#14181D" }}>
           <motion.div
             className="absolute inset-0 pointer-events-none"
             style={{ background: "radial-gradient(ellipse 70% 55% at 50% 48%, rgba(139,92,246,0.18) 0%, rgba(99,102,241,0.06) 40%, transparent 65%)" }}
@@ -988,40 +988,41 @@ function ElectronAppContent() {
       )}
 
       {/* ── Persistent atmospheric background ─────────────────────────────
-          This layer lives OUTSIDE AnimatePresence. It never unmounts.
-          Login and Welcome are transparent overlays on top of it, so the
-          dark atmosphere continues breathing during the transition instead
-          of hard-cutting between two separate background layers.
-          Shown from booting onward so there is never a blank gap after splash. */}
-      {(phase === "booting" || phase === "unauthenticated" || phase === "login_success" || phase === "welcome") && (
-        <div className="fixed inset-0 pointer-events-none" style={{ zIndex: 0, background: "#080810" }}>
-          {/* Static centre glow — no JS interpolation */}
-          <div
-            className="absolute inset-0"
-            style={{ background: "radial-gradient(ellipse 90% 60% at 50% 48%, rgba(139,92,246,0.20) 0%, rgba(99,102,241,0.07) 35%, transparent 60%)" }}
-          />
-          {/* CSS-animated accents — compositor-only, zero JS frames */}
-          <div
-            className="absolute inset-0"
-            style={{
-              background: "radial-gradient(circle at 28% 18%, rgba(236,72,153,0.10) 0%, transparent 42%)",
-              animation: "sc-auth-pink 6s ease-in-out infinite",
-            }}
-          />
-          <div
-            className="absolute inset-0"
-            style={{
-              background: "radial-gradient(circle at 72% 78%, rgba(56,189,248,0.08) 0%, transparent 40%)",
-              animation: "sc-auth-cyan 7.5s ease-in-out 1.2s infinite",
-            }}
-          />
-        </div>
-      )}
-
-
-      {phase === "authenticated" && (
-        <div className="fixed inset-0 pointer-events-none" style={{ zIndex: 0, background: "#07090D" }} />
-      )}
+          Always mounted — never conditionally removed. This guarantees one
+          stable base layer for every phase transition. Opacity is 0 during
+          splash (content is fully covered), then cross-fades in during booting.
+          During authenticated the AppLayout AppBackground layers on top —
+          both are transparent so the glows breathe through. */}
+      <div
+        className="fixed inset-0 pointer-events-none"
+        style={{
+          zIndex: 0,
+          background: "#14181D",
+          opacity: phase === "splash" ? 0 : 1,
+          transition: "opacity 0.35s ease-out",
+        }}
+      >
+        {/* Static centre glow — no JS interpolation */}
+        <div
+          className="absolute inset-0"
+          style={{ background: "radial-gradient(ellipse 90% 60% at 50% 48%, rgba(139,92,246,0.20) 0%, rgba(99,102,241,0.07) 35%, transparent 60%)" }}
+        />
+        {/* CSS-animated accents — compositor-only, zero JS frames */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background: "radial-gradient(circle at 28% 18%, rgba(236,72,153,0.10) 0%, transparent 42%)",
+            animation: "sc-auth-pink 6s ease-in-out infinite",
+          }}
+        />
+        <div
+          className="absolute inset-0"
+          style={{
+            background: "radial-gradient(circle at 72% 78%, rgba(56,189,248,0.08) 0%, transparent 40%)",
+            animation: "sc-auth-cyan 7.5s ease-in-out 1.2s infinite",
+          }}
+        />
+      </div>
 
       <AnimatePresence mode="sync">
         {phase === "splash" && (

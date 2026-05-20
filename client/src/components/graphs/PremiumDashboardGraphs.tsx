@@ -503,7 +503,7 @@ function buildProfileFromIpc(raw: { controllers: any[]; displays: any[] }): Disp
 
   // Basic quality score: weight refresh rate and resolution
   let score: number | null = null;
-  let qualityReason = "No display data available";
+  let qualityReason: string | null = null;
   if (hz != null && hz > 0) {
     score = hz >= 240 ? 98 : hz >= 165 ? 92 : hz >= 144 ? 88 : hz >= 120 ? 80 : hz >= 75 ? 70 : 55;
     if (resX && resY && resX * resY >= 3840 * 2160) score = Math.min(score + 5, 100);

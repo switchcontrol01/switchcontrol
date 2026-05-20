@@ -2016,7 +2016,7 @@ ipcMain.handle('telemetry:getLive', async (event, selectedDiskMount) => {
         timestamp: Date.now(),
         cpu:     { usagePct: 0, tempC: null, coreCount: 0 },
         ram:     { usedGb: 0, totalGb: 0, usagePct: 0 },
-        gpu:     { available: gpuExistsOnHardware, model: null, usagePct: gpuExistsOnHardware ? 0 : null, tempC: null, vramUsedMb: null, vramTotalMb: null, vramUsagePct: null, powerW: null, clockMhz: null },
+        gpu:     { available: gpuExistsOnHardware, model: null, usagePct: null, tempC: null, vramUsedMb: null, vramTotalMb: null, vramUsagePct: null, powerW: null, clockMhz: null },
         disk:    { selectedMount: null, usagePct: 0, activeTimePct: null, readKBps: null, writeKBps: null, available: false, source: 'warming' },
         network: { rxKBps: 0, txKBps: 0 },
         ssds:    [],
