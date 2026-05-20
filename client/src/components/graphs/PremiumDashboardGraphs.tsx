@@ -492,7 +492,12 @@ function SweepLine({ active }: { active: boolean }) {
 const isElectron = typeof window !== "undefined" && !!(window as any).electronAPI?.isElectron;
 
 /** Build a DisplaySignalProfile from raw IPC display data (Electron-only path). */
-function buildProfileFromIpc(raw: { controllers: any[]; displays: any[]; monitorName?: string | null; hdrEnabled?: boolean | null }): DisplaySignalProfile {
+function buildProfileFromIpc(raw: {
+  controllers: any[]; displays: any[];
+  monitorName?: string | null; hdrEnabled?: boolean | null;
+  vrrEnabled?: boolean | null; connectionType?: string | null;
+  nativeResX?: number | null; nativeResY?: number | null;
+}): DisplaySignalProfile {
   const ctrl  = raw.controllers?.[0] ?? null;
   const disp  = raw.displays?.[0]    ?? null;
   const resX: number | null = disp?.currentResX  ?? null;
@@ -509,11 +514,21 @@ function buildProfileFromIpc(raw: { controllers: any[]; displays: any[]; monitor
   else if (bpp === 16) bitDepth = 6;
   else if (bpp != null && bpp > 0) bitDepth = 8;
 
-  // HDR from HKCU registry key collected by IPC
-  const hdrEnabled: boolean | null = raw.hdrEnabled ?? null;
+  // HDR, VRR, and connection type from IPC
+  const hdrEnabled:     boolean | null = raw.hdrEnabled     ?? null;
+  const vrrEnabled:     boolean | null = raw.vrrEnabled     ?? null;
+  const connectionType: string  | null = raw.connectionType ?? null;
 
   // Monitor name from EDID (WmiMonitorID)
   const monitorName: string | null = (raw.monitorName && raw.monitorName.length > 0) ? raw.monitorName : null;
+
+  // Native mode: compare current resolution against EDID preferred timing
+  let isNativeMode: boolean | null = null;
+  const nativeResX = raw.nativeResX ?? null;
+  const nativeResY = raw.nativeResY ?? null;
+  if (resX && resY && nativeResX && nativeResY) {
+    isNativeMode = (resX === nativeResX && resY === nativeResY);
+  }
 
   // Basic quality score: weight refresh rate and resolution
   let score: number | null = null;
@@ -533,10 +548,10 @@ function buildProfileFromIpc(raw: { controllers: any[]; displays: any[]; monitor
     refreshHz:      hz && hz > 0 ? hz : null,
     bitDepth,
     hdrEnabled,
-    vrrEnabled:     null,
-    connectionType: null,
+    vrrEnabled,
+    connectionType,
     gpuName,
-    isNativeMode:   null,
+    isNativeMode,
     qualityScore:   score,
     qualityReason,
     qualityAction:  null,

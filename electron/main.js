@@ -1964,6 +1964,48 @@ try {
   $hv = (Get-ItemProperty 'HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\VideoSettings' -Name EnableHDRForVideo -ErrorAction Stop).EnableHDRForVideo
   $result.hdrEnabled = ($hv -eq 1)
 } catch {}
+# VRR (Variable Refresh Rate / FreeSync / G-Sync) — Windows built-in VRR toggle
+try {
+  $vrr = (Get-ItemProperty 'HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\VideoSettings' -Name EnableVariableRefreshRate -ErrorAction Stop).EnableVariableRefreshRate
+  $result.vrrEnabled = ($vrr -eq 1)
+} catch { $result.vrrEnabled = $null }
+# Connection type — WmiMonitorConnectionParams is the most reliable source (Win8+)
+$result.connectionType = $null
+try {
+  $cp = Get-CimInstance -Namespace root/wmi -ClassName WmiMonitorConnectionParams -ErrorAction Stop
+  $cpArr = if ($cp -is [array]) { $cp } else { @($cp) }
+  foreach ($c in $cpArr) {
+    $t = [int]($c.VideoOutputTechnology)
+    if ($t -eq 10 -or $t -eq 11) { $result.connectionType = "DisplayPort"; break }
+    if ($t -eq 5)                 { $result.connectionType = "HDMI"; break }
+    if ($t -eq 4)                 { $result.connectionType = "DVI"; break }
+    if ($t -eq 15)                { $result.connectionType = "Miracast"; break }
+    if ($t -eq 16)                { $result.connectionType = "Indirect Wired"; break }
+    if ($t -eq 0 -and $null -eq $result.connectionType) { $result.connectionType = "Other" }
+  }
+} catch {}
+# Native resolution — parse EDID preferred timing descriptor (bytes 54-71) from registry
+$result.nativeResX = $null; $result.nativeResY = $null
+try {
+  $dispBase = "HKLM:\\SYSTEM\\CurrentControlSet\\Enum\\DISPLAY"
+  $models = Get-ChildItem $dispBase -ErrorAction SilentlyContinue
+  :edidSearch foreach ($model in $models) {
+    $instances = Get-ChildItem $model.PSPath -ErrorAction SilentlyContinue
+    foreach ($inst in $instances) {
+      $paramPath = Join-Path $inst.PSPath "Device Parameters"
+      $edid = (Get-ItemProperty $paramPath -Name EDID -ErrorAction SilentlyContinue).EDID
+      if ($edid -and $edid.Count -ge 72) {
+        # DTD block 1 at byte 54 (0x36). Bytes 56,58,59,61 hold H/V addressable pixels.
+        $hLow  = [int]$edid[56]; $hHigh = ([int]$edid[58] -band 0xF0) -shr 4
+        $vLow  = [int]$edid[59]; $vHigh = ([int]$edid[61] -band 0xF0) -shr 4
+        $nx = ($hHigh -shl 8) -bor $hLow; $ny = ($vHigh -shl 8) -bor $vLow
+        if ($nx -gt 320 -and $ny -gt 240) {
+          $result.nativeResX = $nx; $result.nativeResY = $ny; break edidSearch
+        }
+      }
+    }
+  }
+} catch {}
 $result | ConvertTo-Json -Depth 3 -Compress`.trim();
   try {
     const raw = await new Promise((resolve) => {
@@ -1983,7 +2025,16 @@ $result | ConvertTo-Json -Depth 3 -Compress`.trim();
       currentRefreshRate: v.currentRefreshRate ?? null,
       bitsPerPixel: v.bitsPerPixel ?? null,
     }));
-    return { controllers, displays, monitorName: parsed.monitorName ?? null, hdrEnabled: parsed.hdrEnabled ?? null };
+    return {
+      controllers,
+      displays,
+      monitorName:    parsed.monitorName    ?? null,
+      hdrEnabled:     parsed.hdrEnabled     ?? null,
+      vrrEnabled:     parsed.vrrEnabled     ?? null,
+      connectionType: parsed.connectionType ?? null,
+      nativeResX:     parsed.nativeResX     ?? null,
+      nativeResY:     parsed.nativeResY     ?? null,
+    };
   } catch (e) {
     console.warn('[system:getDisplayInfo] error:', e.message);
     return { controllers: [], displays: [] };
