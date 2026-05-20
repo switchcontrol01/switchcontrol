@@ -130,7 +130,7 @@ const FEATURES = [
     description: "Real-time system telemetry to track your optimization gains.",
     accent: "from-[#00D4FF]/20 to-[#00D4FF]/5",
     iconColor: "text-[#00D4FF]",
-    iconBg: "bg-[#00D4FF] group-hover:bg-[#00D4FF]",
+    iconBg: "bg-cyan-500/10 group-hover:bg-cyan-500/20",
   },
 ];
 
