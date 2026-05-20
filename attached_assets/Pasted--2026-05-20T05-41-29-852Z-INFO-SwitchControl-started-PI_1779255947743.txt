@@ -1,0 +1,971 @@
+
+[2026-05-20T05:41:29.852Z] [INFO] SwitchControl started — PID:16256 platform:win32/x64 node:20.18.3
+[2026-05-20T05:41:29.882Z] [LOG] [Security] IPC handlers registered
+[2026-05-20T05:41:29.884Z] [LOG] [Debloat] IPC handlers registered
+[2026-05-20T05:41:29.884Z] [LOG] [Cleaner] IPC handlers registered
+[2026-05-20T05:41:29.885Z] [LOG] [FocusHelper] IPC handlers registered
+[2026-05-20T05:41:29.906Z] [LOG] [STARTUP] whenReady — v1.1.1 | isDev:false | pid:16256
+[2026-05-20T05:41:29.908Z] [LOG] [ConfigStore] Initialized — file: C:\Users\SwitchTech\AppData\Roaming\SwitchControl\sc-config.json
+[2026-05-20T05:41:29.922Z] [LOG] [LAUNCH:1] BrowserWindow constructed — show:false, paintWhenInitiallyHidden:true, isVisible: false
+[2026-05-20T05:41:29.923Z] [LOG] [LAUNCH:2] packaged mode — indexPath: C:\Program Files\SwitchControl\resources\dist\index.html | exists: true
+[2026-05-20T05:41:29.928Z] [LOG] [Backend] ===== STARTUP DIAGNOSTICS =====
+[2026-05-20T05:41:29.928Z] [LOG] [Backend] process.execPath: C:\Program Files\SwitchControl\SwitchControl.exe
+[2026-05-20T05:41:29.928Z] [LOG] [Backend] process.resourcesPath: C:\Program Files\SwitchControl\resources
+[2026-05-20T05:41:29.928Z] [LOG] [Backend] app.isPackaged: true
+[2026-05-20T05:41:29.928Z] [LOG] [Backend] app.getAppPath(): C:\Program Files\SwitchControl\resources\app.asar
+[2026-05-20T05:41:29.928Z] [LOG] [Backend] Expected bundle path: C:\Program Files\SwitchControl\resources\dist\index.cjs
+[2026-05-20T05:41:29.928Z] [LOG] [Backend] Bundle size: 2.9 MB
+[2026-05-20T05:41:29.973Z] [LOG] [Updater] init — v1.1.1 | channel:stable | https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev
+[2026-05-20T05:41:29.973Z] [LOG] [STARTUP] app ready — 67ms from whenReady
+[2026-05-20T05:41:29.975Z] [LOG] [Backend] Free port found: 54787
+[2026-05-20T05:41:29.975Z] [LOG] [Backend] ELECTRON_USER_DATA: C:\Users\SwitchTech\AppData\Roaming\SwitchControl
+[2026-05-20T05:41:29.975Z] [LOG] [Backend] ===== ENV KEY DIAGNOSTICS =====
+[2026-05-20T05:41:29.975Z] [LOG] [Backend]   OPENAI_API_KEY: parent_env=false | config_file=false | will_use=false
+[2026-05-20T05:41:29.975Z] [LOG] [Backend]   STRIPE_SECRET_KEY: parent_env=false | config_file=false | will_use=false
+[2026-05-20T05:41:29.975Z] [LOG] [Backend]   GOOGLE_CLIENT_ID: parent_env=false | config_file=false | will_use=false
+[2026-05-20T05:41:29.975Z] [LOG] [Backend]   GOOGLE_CLIENT_SECRET: parent_env=false | config_file=false | will_use=false
+[2026-05-20T05:41:29.975Z] [LOG] [Backend]   JWT_SECRET: parent_env=false | config_file=false | will_use=false
+[2026-05-20T05:41:29.976Z] [LOG] [Backend]   SESSION_SECRET: parent_env=false | config_file=false | will_use=false
+[2026-05-20T05:41:29.976Z] [LOG] [Backend] =====================================
+[2026-05-20T05:41:29.976Z] [LOG] [Backend] ===== CHILD ENV KEY DIAGNOSTICS =====
+[2026-05-20T05:41:29.976Z] [LOG] [Backend]   child_env OPENAI_API_KEY: false
+[2026-05-20T05:41:29.976Z] [LOG] [Backend]   child_env STRIPE_SECRET_KEY: false
+[2026-05-20T05:41:29.976Z] [LOG] [Backend]   child_env GOOGLE_CLIENT_ID: false
+[2026-05-20T05:41:29.976Z] [LOG] [Backend]   child_env GOOGLE_CLIENT_SECRET: false
+[2026-05-20T05:41:29.976Z] [LOG] [Backend]   child_env JWT_SECRET: false
+[2026-05-20T05:41:29.976Z] [LOG] [Backend]   child_env SESSION_SECRET: false
+[2026-05-20T05:41:29.976Z] [LOG] [Backend] AI_MODEL in child env: (not set, will use gpt-4o-mini)
+[2026-05-20T05:41:29.976Z] [LOG] [Backend] DATABASE_URL in child env: NO — Electron offline mode (expected; cloud DB unreachable from user machine)
+[2026-05-20T05:41:29.976Z] [LOG] [Backend] ELECTRON_BACKEND in child env: 1
+[2026-05-20T05:41:29.976Z] [LOG] [Backend] ==========================================
+[2026-05-20T05:41:29.977Z] [LOG] [Backend] Spawning child process...
+[2026-05-20T05:41:29.977Z] [LOG] [Backend]   execPath: C:\Program Files\SwitchControl\SwitchControl.exe
+[2026-05-20T05:41:29.977Z] [LOG] [Backend]   script: C:\Program Files\SwitchControl\resources\dist\index.cjs
+[2026-05-20T05:41:29.977Z] [LOG] [Backend]   ELECTRON_RUN_AS_NODE: 1 (runs as plain Node.js)
+[2026-05-20T05:41:29.977Z] [LOG] [Backend]   PORT: 54787
+[2026-05-20T05:41:29.977Z] [LOG] [Backend]   cwd: C:\Program Files\SwitchControl\resources\dist
+[2026-05-20T05:41:29.982Z] [LOG] [Backend] Child process spawned, PID: 3044
+[2026-05-20T05:41:29.983Z] [LOG] [Backend] Polling health endpoint: http://127.0.0.1:54787/api/health
+[2026-05-20T05:41:30.064Z] [LOG] [Backend:stdout] [DesktopSecrets] ELECTRON_BACKEND mode — bootstrapping secrets
+[2026-05-20T05:41:30.065Z] [LOG] [Backend:stdout] [DesktopSecrets] Secrets file path: C:\Users\SwitchTech\AppData\Roaming\SwitchControl\desktop-secrets.json
+[2026-05-20T05:41:30.065Z] [LOG] [Backend:stdout] [DesktopSecrets] Loaded persisted secrets from: C:\Users\SwitchTech\AppData\Roaming\SwitchControl\desktop-secrets.json
+[2026-05-20T05:41:30.065Z] [LOG] [Backend:stdout] [DesktopSecrets] JWT_SECRET: loaded from persisted file
+[2026-05-20T05:41:30.065Z] [LOG] [Backend:stdout] [DesktopSecrets] SESSION_SECRET: loaded from persisted file
+[2026-05-20T05:41:30.065Z] [LOG] [Backend:stdout] [DesktopSecrets] Bootstrap complete — JWT_SECRET and SESSION_SECRET are set
+[2026-05-20T05:41:30.104Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:10) [RuntimeMode] electron=true | packaged=true | protocol=file: | preload=true | backendTarget=embedded-local | authTarget=cloud
+[2026-05-20T05:41:30.104Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:10) [API] Electron fetch interceptor installed | packaged=true (cloud-only-routes=blocked-from-local)
+[2026-05-20T05:41:30.107Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:28) [Store:REHYDRATE] total_stored=51 enabled=36 source=localStorage
+[2026-05-20T05:41:30.107Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:29) [CloudAPI] base=https://switchcontrol.org/api packaged=true electron=true
+[2026-05-20T05:41:30.112Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:142) [BiosStore] hydrated | scores from storage: {"latency":33,"frametime":32,"stability":27,"competitiveReadiness":32,"grade":"Stock / Unoptimized","profileBias":"Performance-focused"}
+[2026-05-20T05:41:30.112Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:142) [BiosStore] hydrated | sanitized scores: {"latency":33,"frametime":32,"stability":27,"competitiveReadiness":32,"grade":"Stock / Unoptimized","profileBias":"Performance-focused"}
+[2026-05-20T05:41:30.114Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:11) [IntervalGuard] installed — min interval enforced at 2000ms
+[2026-05-20T05:41:30.115Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:185) [LAUNCH:R0] renderer bootstrap — opacity locked to 0 | t=+191ms
+[2026-05-20T05:41:30.115Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:185) [LAUNCH:R1] createRoot dispatching | t=+191ms
+[2026-05-20T05:41:30.116Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:510) [SwitchControl Desktop] Preload initialized - unified API ready
+[2026-05-20T05:41:30.116Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:511) [SwitchControl Desktop] Platform: win32
+[2026-05-20T05:41:30.117Z] [LOG] [LAUNCH:3] did-finish-load — HTML/JS fully parsed by Chromium (first-frame-ready IPC pending)
+[2026-05-20T05:41:30.117Z] [LOG] [LAUNCH:2] loadFile() promise RESOLVED
+[2026-05-20T05:41:30.117Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:10) [API] Backend port not ready, retrying in 200ms… (elapsed 13ms, attempt 1)
+[2026-05-20T05:41:30.122Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:185) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: true
+[2026-05-20T05:41:30.122Z] [LOG] [Backend:stdout] [DB] Electron offline mode — no DATABASE_URL present, using in-memory mock storage.
+[2026-05-20T05:41:30.131Z] [LOG] [Backend:stdout] [Stripe] Billing not configured on local backend — expected in Electron mode.
+[2026-05-20T05:41:30.133Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:29) [LAUNCH:R2] Splash mounted | t=+210ms
+[2026-05-20T05:41:30.134Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:185) [App] Registering deep link auth callback (once)
+[2026-05-20T05:41:30.142Z] [ERROR] [Renderer:error] Uncaught (in promise) TypeError: Failed to fetch dynamically imported module: file:///C:/Program%20Files/SwitchControl/resources/dist/assets/Landing-CzbrVnmr.js
+[2026-05-20T05:41:30.142Z] [ERROR] [Renderer:error] Uncaught (in promise) TypeError: Failed to fetch dynamically imported module: file:///C:/Program%20Files/SwitchControl/resources/dist/assets/Features-CeiA6gmf.js
+[2026-05-20T05:41:30.142Z] [ERROR] [Renderer:error] Uncaught (in promise) TypeError: Failed to fetch dynamically imported module: file:///C:/Program%20Files/SwitchControl/resources/dist/assets/Pricing-CPD2Mp_q.js
+[2026-05-20T05:41:30.142Z] [ERROR] [Renderer:error] Uncaught (in promise) TypeError: Failed to fetch dynamically imported module: file:///C:/Program%20Files/SwitchControl/resources/dist/assets/Download-KI5akSck.js
+[2026-05-20T05:41:30.143Z] [ERROR] [Renderer:error] Uncaught (in promise) TypeError: Failed to fetch dynamically imported module: file:///C:/Program%20Files/SwitchControl/resources/dist/assets/Terms-D1Kr33Mu.js
+[2026-05-20T05:41:30.143Z] [ERROR] [Renderer:error] Uncaught (in promise) TypeError: Failed to fetch dynamically imported module: file:///C:/Program%20Files/SwitchControl/resources/dist/assets/Privacy-Dsi6-DYN.js
+[2026-05-20T05:41:30.143Z] [ERROR] [Renderer:error] Uncaught (in promise) TypeError: Failed to fetch dynamically imported module: file:///C:/Program%20Files/SwitchControl/resources/dist/assets/FAQ-BxV8n2Se.js
+[2026-05-20T05:41:30.143Z] [ERROR] [Renderer:error] Uncaught (in promise) TypeError: Failed to fetch dynamically imported module: file:///C:/Program%20Files/SwitchControl/resources/dist/assets/Success-B-D7Wnc5.js
+[2026-05-20T05:41:30.143Z] [ERROR] [Renderer:error] Uncaught (in promise) TypeError: Failed to fetch dynamically imported module: file:///C:/Program%20Files/SwitchControl/resources/dist/assets/PremiumSuccess-RJw2gnCG.js
+[2026-05-20T05:41:30.144Z] [ERROR] [Renderer:error] Uncaught (in promise) TypeError: Failed to fetch dynamically imported module: file:///C:/Program%20Files/SwitchControl/resources/dist/assets/Login-BTsfJKAv.js
+[2026-05-20T05:41:30.144Z] [ERROR] [Renderer:error] Uncaught (in promise) TypeError: Failed to fetch dynamically imported module: file:///C:/Program%20Files/SwitchControl/resources/dist/assets/Admin-C9wwNvNj.js
+[2026-05-20T05:41:30.150Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:29) [LAUNCH:R3] splash ready: logo decoded, 3-rAF compositor frame ready | t=+227ms
+[2026-05-20T05:41:30.150Z] [LOG] [LAUNCH:4] first-frame-ready received — 2-rAF dark frame confirmed | +223ms
+[2026-05-20T05:41:30.166Z] [LOG] [LAUNCH:5] mainWindow.show() — opacity:0 (anti-DWM-flash) | +239ms
+[2026-05-20T05:41:30.166Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:29) [LAUNCH:R3] first-frame-ready IPC sent | t=+227ms
+[2026-05-20T05:41:30.169Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:125) [Window] Focus event received
+[2026-05-20T05:41:30.169Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:185) [App] Electron window focus (passive)
+[2026-05-20T05:41:30.172Z] [LOG] [Backend:stdout] [FocusMode] Skipping DB init — running without database (Electron offline / dev no-DB mode).
+[2026-05-20T05:41:30.180Z] [LOG] [Backend:stdout] [JWT] ===== SELF-TEST START =====
+[2026-05-20T05:41:30.180Z] [LOG] [Backend:stdout] [JWT] config OK — JWT secret configured (secretFp=2ffe0258)
+[2026-05-20T05:41:30.181Z] [LOG] [Backend:stdout] [JWT] signed — userId=self-test-user-000 secretFp=2ffe0258 tokenFp=eyJhbGci.eyJzdWIi
+[2026-05-20T05:41:30.182Z] [LOG] [Backend:stdout] [JWT] PASS: valid token → sub=self-test-user-000 exp=1781847690
+[2026-05-20T05:41:30.182Z] [LOG] [Backend:stdout] [JWT] PASS: invalid token → null (rejected)
+[2026-05-20T05:41:30.182Z] [LOG] [Backend:stdout] [JWT] PASS: expired token → null (rejected)
+[2026-05-20T05:41:30.182Z] [LOG] [Backend:stdout] [JWT] PASS: empty token → null (fallback to cookie path)
+[2026-05-20T05:41:30.183Z] [LOG] [Backend:stdout] [JWT] PASS: alg=none token → null (rejected)
+[2026-05-20T05:41:30.183Z] [LOG] [Backend:stdout] [JWT] PASS: wrong issuer token → null (rejected)
+[2026-05-20T05:41:30.183Z] [LOG] [Backend:stdout] [JWT] ===== SELF-TEST END =====
+[2026-05-20T05:41:30.183Z] [LOG] [Backend:stdout] [AUTH] Google OAuth not configured on local backend — expected in Electron mode (auth handled by cloud server).
+[2026-05-20T05:41:30.183Z] [LOG] [Backend:stdout] [AUTH] Using memory session store (NO-DB / Electron desktop mode)
+[2026-05-20T05:41:30.184Z] [LOG] [Backend:stdout] [AUTH] ===== SESSION COOKIE CONFIG =====
+[2026-05-20T05:41:30.184Z] [LOG] [Backend:stdout] [AUTH] production: true
+[2026-05-20T05:41:30.184Z] [LOG] [Backend:stdout] [AUTH] electronBackend: true
+[2026-05-20T05:41:30.184Z] [LOG] [Backend:stdout] [AUTH] cookie: {"httpOnly":true,"secure":false,"sameSite":"lax","maxAge":604800000,"path":"/"}
+[2026-05-20T05:41:30.184Z] [LOG] [Backend:stdout] [AUTH] ================================
+[2026-05-20T05:41:30.184Z] [LOG] [Backend:stdout] [AUTH] Discord OAuth not configured on local backend — expected in Electron mode (auth handled by cloud server).
+[2026-05-20T05:41:30.185Z] [LOG] [Backend:stdout] [WS] Live telemetry WebSocket server ready at /ws/telemetry (auth required)
+[2026-05-20T05:41:30.196Z] [LOG] [Backend:stdout] 5:41:30 PM [express] serving on 127.0.0.1:54787
+[2026-05-20T05:41:30.200Z] [LOG] [LAUNCH:5b] opacity restored to 1 — dark frame in DWM pipeline | +273ms
+[2026-05-20T05:41:30.200Z] [LOG] [LAUNCH:5c] app:window-shown sent to renderer | +273ms
+[2026-05-20T05:41:30.200Z] [LOG] [LAUNCH:6] focus() — launch sequence complete | +273ms
+[2026-05-20T05:41:30.201Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:138) [LAUNCH] app:window-shown received — starting opacity reveal
+[2026-05-20T05:41:30.201Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:29) [LAUNCH:R3b] app:window-shown received | t=+278ms
+[2026-05-20T05:41:30.201Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:29) [LAUNCH:R4] reveal triggered by app:window-shown | t=+278ms
+[2026-05-20T05:41:30.201Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:29) [LAUNCH:R5] renderer reveal started — opacity 0→1 (120ms) | t=+278ms
+[2026-05-20T05:41:30.201Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:29) [LAUNCH:R4] sc-first-frame-ready set — body::before fading (120ms)
+[2026-05-20T05:41:30.202Z] [LOG] [Backend] Health check PASSED — attempt 5, 219ms elapsed, body={"status":"ok","version":"1.1.1","uptime":0,"dbReachable":false,"timestamp":1779255690200}
+[2026-05-20T05:41:30.203Z] [LOG] [Backend] ===== BACKEND READY =====
+[2026-05-20T05:41:30.203Z] [LOG] [Backend] PID: 3044
+[2026-05-20T05:41:30.203Z] [LOG] [Backend] Port: 54787
+[2026-05-20T05:41:30.203Z] [LOG] [Backend] Ready: true
+[2026-05-20T05:41:30.203Z] [LOG] [Backend] getBackendPort() will return: 54787
+[2026-05-20T05:41:30.203Z] [LOG] [Backend] isBackendReady() will return: true
+[2026-05-20T05:41:30.203Z] [LOG] [Backend] ========================
+[2026-05-20T05:41:30.203Z] [LOG] [STARTUP] backend ready — port 54787 (297ms)
+[2026-05-20T05:41:30.204Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:105) [Backend] backend-ready event received, port: 54787
+[2026-05-20T05:41:30.204Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:10) [API] Backend-ready push: base=http://127.0.0.1:54787/api (was: unset)
+[2026-05-20T05:41:30.204Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:10) [API] Backend port resolved: 54787 (99ms, push or poll)
+[2026-05-20T05:41:30.204Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:10) [API] Packaged Electron API base: http://127.0.0.1:54787/api
+[2026-05-20T05:41:30.204Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:10) [API] Resolved: http://127.0.0.1:54787/api | electron=true packaged=true
+[2026-05-20T05:41:30.322Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:29) [LAUNCH:R6] renderer reveal completed (120ms elapsed) | t=+399ms
+[2026-05-20T05:41:30.636Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:26) [TourTransition] unmounted
+[2026-05-20T05:41:30.636Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:26) [TourTransition] unmounted
+[2026-05-20T05:41:31.902Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:29) [LAUNCH:R5] Splash onComplete — handing off to App
+[2026-05-20T05:41:31.904Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:185) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: true
+[2026-05-20T05:41:31.911Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:185) [AuthTruth] Boot: token present: true jwt present: true user present: true premium: true
+[2026-05-20T05:41:31.911Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:185) [AuthTruth] startup restore begin — hasCredential: true cached isPremium: true plan: premium
+[2026-05-20T05:41:31.911Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:10) [HYDRATE:1] resolveAuthState start reqId=kgfncx
+[2026-05-20T05:41:31.912Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:10) [HYDRATE:1] persisted — user=64f0e669-6db6-42e7-a68a-681f9f5db567 jwt=present
+[2026-05-20T05:41:31.912Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:10) [HYDRATE:2] jwtCheck — malformed=false expired=false
+[2026-05-20T05:41:31.912Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:10) [HYDRATE:5] /api/me — jwt=present reqId=kgfncx
+[2026-05-20T05:41:31.912Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:185) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: true
+[2026-05-20T05:41:32.201Z] [LOG] [LAUNCH:7] starting telemetry — 2000ms post window-shown | +2274ms
+[2026-05-20T05:41:32.632Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:10) [HYDRATE:6] result=verified source=cloud userId=64f0e669-6db6-42e7-a68a-681f9f5db567 isPremium=true plan=premium isAdmin=true reqId=kgfncx
+[2026-05-20T05:41:32.632Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:185) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: true
+[2026-05-20T05:41:32.633Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:185) [AuthTruth] Boot resolved verified=true reason=cloud_confirmed user=yes
+[2026-05-20T05:41:32.633Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:29) [Premium] Grace snapshot updated — isPremium=true plan=premium userId=64f0e669-6db6-42e7-a68a-681f9f5db567
+[2026-05-20T05:41:32.633Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:185) [AuthTruth] Boot: cloud-confirmed — entitlementsVerified=true
+[2026-05-20T05:41:32.634Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:185) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-20T05:41:32.732Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:29) [Network] Heartbeat started (interval=30000ms)
+[2026-05-20T05:41:32.733Z] [WARN] [telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.
+[2026-05-20T05:41:32.734Z] [WARN] [telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.
+[2026-05-20T05:41:32.735Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:154) [Dashboard] mounted
+[2026-05-20T05:41:32.735Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:154) [ActivityMonitor] mounted — no cached history yet, status: loading
+[2026-05-20T05:41:32.736Z] [LOG] [BOOT] ──────────────────────────────────────────
+[2026-05-20T05:41:32.736Z] [LOG] [BOOT] firstFrameReady  = 223ms
+[2026-05-20T05:41:32.736Z] [LOG] [BOOT] windowShown      = 273ms
+[2026-05-20T05:41:32.737Z] [LOG] [BOOT] telemetryStart   = 2274ms
+[2026-05-20T05:41:32.737Z] [LOG] [BOOT] dashboardMounted = 2809ms
+[2026-05-20T05:41:32.737Z] [LOG] [BOOT] ──────────────────────────────────────────
+[2026-05-20T05:41:32.781Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:185) [Handoff] dashboard fade-in started
+[2026-05-20T05:41:32.781Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:29) [DeviceLock] target=cloud userId=present deviceIdPresent=true
+[2026-05-20T05:41:32.782Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:29) [PremiumExpiry] Initial state recorded — active=true plan=premium trialEndsAt=null
+[2026-05-20T05:41:32.782Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:185) [TourTransition] phase entered authenticated — waiting 500ms for dashboard to stabilize
+[2026-05-20T05:41:32.783Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:185) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-20T05:41:32.783Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:54787/api
+[2026-05-20T05:41:32.783Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:10) [AuthRoute] path=/api/dashboard-intelligence/system-dna target=local reason=system-route base=http://127.0.0.1:54787/api
+[2026-05-20T05:41:32.783Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:54787/api
+[2026-05-20T05:41:32.784Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:54787/api
+[2026-05-20T05:41:32.784Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:10) [AuthRoute] path=/api/dashboard-intelligence/ram-analysis target=local reason=system-route base=http://127.0.0.1:54787/api
+[2026-05-20T05:41:32.784Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:10) [AuthRoute] path=/api/system-intelligence/profile target=local reason=system-route base=http://127.0.0.1:54787/api
+[2026-05-20T05:41:32.796Z] [LOG] [Backend:stdout] [SysIntelligence] phase=full start — deep collection
+[2026-05-20T05:41:32.798Z] [ERROR] [Renderer:error] (index-D5Zh7b_w.js:11) Error: <circle> attribute r: Expected length, "undefined".
+[2026-05-20T05:41:32.798Z] [ERROR] [Renderer:error] (index-D5Zh7b_w.js:11) Error: <circle> attribute r: Expected length, "undefined".
+[2026-05-20T05:41:32.853Z] [ERROR] [Renderer:error] (index-D5Zh7b_w.js:11) Error: <circle> attribute r: Expected length, "undefined".
+[2026-05-20T05:41:32.853Z] [ERROR] [Renderer:error] (index-D5Zh7b_w.js:11) Error: <circle> attribute r: Expected length, "undefined".
+[2026-05-20T05:41:32.863Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:29) [CloudAPI] 2026-05-20T05:41:32.863Z | POST /device/premium-validate | auth=true | base=https://switchcontrol.org/api
+[2026-05-20T05:41:33.113Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:185) [Handoff] dashboard fade-in complete — layout stable
+[2026-05-20T05:41:33.237Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:185) [TourTransition] dashboard stable — tours unblocked
+[2026-05-20T05:41:33.237Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:185) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-20T05:41:33.250Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:185) [AppFlow] Flow eval — isPremium: true plan: premium trialEndsAt: null hasSeenTrialActivation: true hasSeenTrialTour: true hasSeenUnlock: true hasSeenTour: true isFirstTimeUser: false isFirstLogin: false entitlementsAttempted: true entitlementsOk: true unlockFired: false trialUnlockFired: false
+[2026-05-20T05:41:33.250Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:185) [AppFlow] No flow conditions met — staying idle
+[2026-05-20T05:41:33.496Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:29) [CloudAPI] OK | POST /device/premium-validate | status=200
+[2026-05-20T05:41:33.496Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:29) [DeviceLock] Valid device
+[2026-05-20T05:41:33.496Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:185) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-20T05:41:33.934Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:10) [AuthRoute] path=/api/startup/apps target=local reason=system-route base=http://127.0.0.1:54787/api
+[2026-05-20T05:41:34.797Z] [WARN] [telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.
+[2026-05-20T05:41:34.961Z] [LOG] [telemetry:poll] GPU presence confirmed via WMI fast-path: AMD Radeon RX 7800 XT
+[2026-05-20T05:41:35.202Z] [LOG] [SwitchControl] System specs loaded: Ryzen 7 9800X3D 8-Core Processor AMD Radeon RX 7800 XT
+[2026-05-20T05:41:35.202Z] [LOG] [PREWARM] specs ready — Ryzen 7 9800X3D 8-Core Processor | AMD Radeon RX 7800 XT
+[2026-05-20T05:41:35.797Z] [ERROR] [Backend:stderr] [SysIntelligence] phase=timeout source=baseboard limit=3000ms
+[2026-05-20T05:41:35.797Z] [ERROR] [Backend:stderr] [SysIntelligence] phase=timeout source=bios limit=3000ms
+[2026-05-20T05:41:35.799Z] [ERROR] [Backend:stderr] [SysIntelligence] phase=timeout source=osInfo limit=3000ms
+[2026-05-20T05:41:35.800Z] [ERROR] [Backend:stderr] [SysIntelligence] phase=timeout source=battery limit=3000ms
+[2026-05-20T05:41:35.800Z] [ERROR] [Backend:stderr] [SysIntelligence] phase=timeout source=users limit=3000ms
+[2026-05-20T05:41:35.907Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:185) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-20T05:41:36.798Z] [ERROR] [Backend:stderr] [SysIntelligence] phase=timeout source=graphics limit=4000ms
+[2026-05-20T05:41:36.798Z] [ERROR] [Backend:stderr] [SysIntelligence] phase=timeout source=memLayout limit=4000ms
+[2026-05-20T05:41:36.798Z] [ERROR] [Backend:stderr] [SysIntelligence] phase=timeout source=diskLayout limit=4000ms
+[2026-05-20T05:41:36.799Z] [ERROR] [Backend:stderr] [SysIntelligence] phase=timeout source=fsSize limit=4000ms
+[2026-05-20T05:41:36.799Z] [ERROR] [Backend:stderr] [SysIntelligence] phase=timeout source=netIf limit=4000ms
+[2026-05-20T05:41:36.853Z] [WARN] [telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.
+[2026-05-20T05:41:37.204Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=1 active=1
+[2026-05-20T05:41:37.738Z] [WARN] [telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.
+[2026-05-20T05:41:37.800Z] [ERROR] [Backend:stderr] [SysIntelligence] phase=timeout source=netConn limit=5000ms
+[2026-05-20T05:41:37.800Z] [ERROR] [Backend:stderr] [SysIntelligence] phase=timeout source=processes limit=5000ms
+[2026-05-20T05:41:37.803Z] [ERROR] [Backend:stderr] [SysIntelligence] phase=timeout source=platformPS limit=5000ms
+[2026-05-20T05:41:37.803Z] [ERROR] [Backend:stderr] [SysIntelligence] phase=timeout source=monitorEDID limit=5000ms
+[2026-05-20T05:41:37.974Z] [INFO] Checking for update
+[2026-05-20T05:41:37.974Z] [LOG] [Updater] Checking for update...
+[2026-05-20T05:41:38.549Z] [ERROR] Error: Error: Cannot find channel "latest.yml" update info: HttpError: 404 Not Found
+"method: GET url: https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev/latest.yml?noCache=1jp1ueoho\n\nPlease double check that your authentication token is correct. Due to security reasons, actual status maybe not reported, but 404.\n"
+Headers: {
+  "cf-ray": "9fe903c2de67d9bf-AKL",
+  "connection": "keep-alive",
+  "content-length": "27150",
+  "content-type": "text/html",
+  "date": "Wed, 20 May 2026 05:41:51 GMT",
+  "server": "cloudflare"
+}
+    at createHttpError (C:\Program Files\SwitchControl\resources\app.asar\node_modules\electron-updater\node_modules\builder-util-runtime\out\httpExecutor.js:21:12)
+    at ElectronHttpExecutor.handleResponse (C:\Program Files\SwitchControl\resources\app.asar\node_modules\electron-updater\node_modules\builder-util-runtime\out\httpExecutor.js:121:20)
+    at ClientRequest.<anonymous> (C:\Program Files\SwitchControl\resources\app.asar\node_modules\electron-updater\node_modules\builder-util-runtime\out\httpExecutor.js:87:26)
+    at ClientRequest.emit (node:events:518:28)
+    at SimpleURLLoaderWrapper.<anonymous> (node:electron/js2c/browser_init:2:118140)
+    at SimpleURLLoaderWrapper.emit (node:events:518:28)
+    at newError (C:\Program Files\SwitchControl\resources\app.asar\node_modules\electron-updater\node_modules\builder-util-runtime\out\error.js:5:19)
+    at GenericProvider.getLatestVersion (C:\Program Files\SwitchControl\resources\app.asar\node_modules\electron-updater\out\providers\GenericProvider.js:27:63)
+    at async NsisUpdater.getUpdateInfoAndProvider (C:\Program Files\SwitchControl\resources\app.asar\node_modules\electron-updater\out\AppUpdater.js:389:19)
+    at async NsisUpdater.doCheckForUpdates (C:\Program Files\SwitchControl\resources\app.asar\node_modules\electron-updater\out\AppUpdater.js:402:24)
+[2026-05-20T05:41:38.550Z] [ERROR] [Updater] Error (consecutive failures: 1): Cannot find channel "latest.yml" update info: HttpError: 404 Not Found
+"method: GET url: https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev/latest.yml?noCache=1jp1ueoho\n\nPlease double check that your authentication token is correct. Due to security reasons, actual status maybe not reported, but 404.\n"
+Headers: {
+  "cf-ray": "9fe903c2de67d9bf-AKL",
+  "connection": "keep-alive",
+  "content-length": "27150",
+  "content-type": "text/html",
+  "date": "Wed, 20 May 2026 05:41:51 GMT",
+  "server": "cloudflare"
+}
+    at createHttpError (C:\Program Files\SwitchControl\resources\app.asar\node_modules\electron-updater\node_modules\builder-util-runtime\out\httpExecutor.js:21:12)
+    at ElectronHttpExecutor.handleResponse (C:\Program Files\SwitchControl\resources\app.asar\node_modules\electron-updater\node_modules\builder-util-runtime\out\httpExecutor.js:121:20)
+    at ClientRequest.<anonymous> (C:\Program Files\SwitchControl\resources\app.asar\node_modules\electron-updater\node_modules\builder-util-runtime\out\httpExecutor.js:87:26)
+    at ClientRequest.emit (node:events:518:28)
+    at SimpleURLLoaderWrapper.<anonymous> (node:electron/js2c/browser_init:2:118140)
+    at SimpleURLLoaderWrapper.emit (node:events:518:28)
+[2026-05-20T05:41:38.550Z] [ERROR] [Updater] checkForUpdates promise rejected — code=ERR_UPDATER_CHANNEL_FILE_NOT_FOUND msg=Cannot find channel "latest.yml" update info: HttpError: 404 Not Found
+"method: GET url: https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev/latest.yml?noCache=1jp1ueoho\n\nPlease double check that your authentication token is correct. Due to security reasons, actual status maybe not reported, but 404.\n"
+Headers: {
+  "cf-ray": "9fe903c2de67d9bf-AKL",
+  "connection": "keep-alive",
+  "content-length": "27150",
+  "content-type": "text/html",
+  "date": "Wed, 20 May 2026 05:41:51 GMT",
+  "server": "cloudflare"
+}
+    at createHttpError (C:\Program Files\SwitchControl\resources\app.asar\node_modules\electron-updater\node_modules\builder-util-runtime\out\httpExecutor.js:21:12)
+    at ElectronHttpExecutor.handleResponse (C:\Program Files\SwitchControl\resources\app.asar\node_modules\electron-updater\node_modules\builder-util-runtime\out\httpExecutor.js:121:20)
+    at ClientRequest.<anonymous> (C:\Program Files\SwitchControl\resources\app.asar\node_modules\electron-updater\node_modules\builder-util-runtime\out\httpExecutor.js:87:26)
+    at ClientRequest.emit (node:events:518:28)
+    at SimpleURLLoaderWrapper.<anonymous> (node:electron/js2c/browser_init:2:118140)
+    at SimpleURLLoaderWrapper.emit (node:events:518:28)
+[2026-05-20T05:41:38.865Z] [WARN] [telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.
+[2026-05-20T05:41:39.165Z] [LOG] [SwitchControl] System specs loaded: Ryzen 7 9800X3D 8-Core Processor AMD Radeon RX 7800 XT
+[2026-05-20T05:41:39.196Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:185) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-20T05:41:39.488Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:10) [AuthRoute] path=/api/issues/detect target=local reason=system-route base=http://127.0.0.1:54787/api
+[2026-05-20T05:41:40.796Z] [ERROR] [Backend:stderr] [SysIntelligence] phase=timeout source=cpu limit=8000ms
+[2026-05-20T05:41:40.883Z] [WARN] [telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.
+[2026-05-20T05:41:41.365Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=1 duration=4161ms active=0 calls60s=1
+[2026-05-20T05:41:42.292Z] [LOG] [Backend:stdout] [SysIntelligence] phase=full complete in 9497ms | MB=null | BIOS=null | CPU=null | GPUs=0 | RAMsticks=0
+[2026-05-20T05:41:42.293Z] [LOG] [Backend:stdout] [SysIntelligence] Disk cache updated
+[2026-05-20T05:41:42.295Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:154) [SysIntelligence] Profile loaded | MB=null | BIOS=null | CPU=null
+[2026-05-20T05:41:42.735Z] [WARN] [telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.
+[2026-05-20T05:41:42.916Z] [WARN] [telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.
+[2026-05-20T05:41:46.948Z] [ERROR] [Renderer:error] (index-D5Zh7b_w.js:11) Error: <circle> attribute r: Expected length, "undefined".
+[2026-05-20T05:41:49.426Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:54787/api
+[2026-05-20T05:41:54.433Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:54787/api
+[2026-05-20T05:41:55.094Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:185) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-20T05:41:55.145Z] [LOG] [PS] start file=main.js fn=slider:readValue reason=slider-read id=2 active=1
+[2026-05-20T05:41:55.147Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-05-20T05:41:55.145Z
+[2026-05-20T05:41:55.148Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-05-20T05:41:55.145Z
+[2026-05-20T05:41:55.148Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-05-20T05:41:55.145Z
+[2026-05-20T05:41:55.148Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-05-20T05:41:55.145Z
+[2026-05-20T05:41:55.148Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-05-20T05:41:55.145Z
+[2026-05-20T05:41:55.149Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-05-20T05:41:55.145Z
+[2026-05-20T05:41:55.149Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-05-20T05:41:55.145Z
+[2026-05-20T05:41:55.149Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:168) [Tweaks:LOAD] source=zustand-persist enabled=36 total_known=51
+[2026-05-20T05:41:55.149Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:168) [Tweaks:LOAD] enabled_ids=gaming-mode, copilot, cortana, search-highlights, storage-sense, compact-explorer, recent-files, xbox-bar, bg-apps, disable-pointer-precision, disable-animations, show-file-extensions, disable-wallpaper-compression, hibernation, fast-startup, energy-logging, maintenance, vbs, large-system-cache, page-combining, prefetch, superfetch, mem-opt, telemetry, tune-priority, bluetooth, xbox-services, fax-printer, disable-mpo, usb-selective-suspend, pcie-link-state, disable-delivery-opt, win-search-index, disable-activity-history, power-throttling, disable-auto-restart-apps
+[2026-05-20T05:41:55.150Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:168) [Tweaks:SYNC] hydration start gen=1
+[2026-05-20T05:41:55.150Z] [LOG] [PS] start file=main.js fn=tweak:syncAll reason=tweak-sync-all id=3 active=2
+[2026-05-20T05:41:55.150Z] [LOG] [PS-Exec] start file=main.js fn=tweak:syncAll reason=tweak-sync-all — 62 checks
+[2026-05-20T05:41:55.150Z] [LOG] [PS:tweak-executor] #1 queryPowerShell SPAWN ts=1779255715150 active=1
+[2026-05-20T05:41:55.158Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:10) [AuthRoute] path=/api/tweak-intelligence/system-state target=local reason=system-route base=http://127.0.0.1:54787/api
+[2026-05-20T05:41:55.158Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:10) [AuthRoute] path=/api/tweak-intelligence/rankings?applied=gaming-mode%2Ccopilot%2Ccortana%2Csearch-highlights%2Cstorage-sense%2Ccompact-explorer%2Crecent-files%2Cxbox-bar%2Cbg-apps%2Cdisable-pointer-precision%2Cdisable-animations%2Cshow-file-extensions%2Cdisable-wallpaper-compression%2Chibernation%2Cfast-startup%2Cenergy-logging%2Cmaintenance%2Cvbs%2Clarge-system-cache%2Cpage-combining%2Cprefetch%2Csuperfetch%2Cmem-opt%2Ctelemetry%2Ctune-priority%2Cbluetooth%2Cxbox-services%2Cfax-printer%2Cdisable-mpo%2Cusb-selective-suspend%2Cpcie-link-state%2Cdisable-delivery-opt%2Cwin-search-index%2Cdisable-activity-history%2Cpower-throttling%2Cdisable-auto-restart-apps target=local reason=system-route base=http://127.0.0.1:54787/api
+[2026-05-20T05:41:55.159Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:10) [AuthRoute] path=/api/tweak-intelligence/posture?applied=gaming-mode%2Ccopilot%2Ccortana%2Csearch-highlights%2Cstorage-sense%2Ccompact-explorer%2Crecent-files%2Cxbox-bar%2Cbg-apps%2Cdisable-pointer-precision%2Cdisable-animations%2Cshow-file-extensions%2Cdisable-wallpaper-compression%2Chibernation%2Cfast-startup%2Cenergy-logging%2Cmaintenance%2Cvbs%2Clarge-system-cache%2Cpage-combining%2Cprefetch%2Csuperfetch%2Cmem-opt%2Ctelemetry%2Ctune-priority%2Cbluetooth%2Cxbox-services%2Cfax-printer%2Cdisable-mpo%2Cusb-selective-suspend%2Cpcie-link-state%2Cdisable-delivery-opt%2Cwin-search-index%2Cdisable-activity-history%2Cpower-throttling%2Cdisable-auto-restart-apps target=local reason=system-route base=http://127.0.0.1:54787/api
+[2026-05-20T05:41:55.180Z] [ERROR] [Renderer:warn] (index-D5Zh7b_w.js:168) [SliderHydration] win32-priority-sep: read failed — busy
+[2026-05-20T05:41:55.181Z] [ERROR] [Renderer:warn] (index-D5Zh7b_w.js:168) [SliderHydration] sys-responsiveness: read failed — busy
+[2026-05-20T05:41:55.181Z] [ERROR] [Renderer:warn] (index-D5Zh7b_w.js:168) [SliderHydration] net-throttle-index: read failed — busy
+[2026-05-20T05:41:55.181Z] [ERROR] [Renderer:warn] (index-D5Zh7b_w.js:168) [SliderHydration] menu-show-delay: read failed — busy
+[2026-05-20T05:41:55.181Z] [ERROR] [Renderer:warn] (index-D5Zh7b_w.js:168) [SliderHydration] hung-app-timeout: read failed — busy
+[2026-05-20T05:41:55.181Z] [ERROR] [Renderer:warn] (index-D5Zh7b_w.js:168) [SliderHydration] low-level-hooks-timeout: read failed — busy
+[2026-05-20T05:41:55.182Z] [ERROR] [Renderer:warn] (index-D5Zh7b_w.js:168) [SliderHydration] wait-to-kill-app: read failed — busy
+[2026-05-20T05:41:55.832Z] [LOG] [SliderExecutor] READ svchost-split-threshold: value=33554432 raw="33554432"
+[2026-05-20T05:41:55.832Z] [LOG] [PS] end file=main.js fn=slider:readValue id=2 duration=687ms active=1 calls60s=2
+[2026-05-20T05:41:55.833Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:168) [SliderHydration] svchost-split-threshold: value=33554432 missing=false
+[2026-05-20T05:41:55.839Z] [LOG] [PS:tweak-executor] #1 queryPowerShell OK 689ms
+[2026-05-20T05:41:55.839Z] [LOG] [PS:tweak-executor] #2 queryPowerShell SPAWN ts=1779255715839 active=1
+[2026-05-20T05:41:56.390Z] [LOG] [PS:tweak-executor] #2 queryPowerShell OK 551ms
+[2026-05-20T05:41:56.391Z] [LOG] [PS:tweak-executor] #3 queryPowerShell SPAWN ts=1779255716391 active=1
+[2026-05-20T05:41:56.603Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:185) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-20T05:41:56.630Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:154) [Dashboard] mounted
+[2026-05-20T05:41:56.631Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:154) [ActivityMonitor] reused cached state — history points: 12 status: ready
+[2026-05-20T05:41:56.645Z] [ERROR] [Renderer:error] (index-D5Zh7b_w.js:11) Error: <circle> attribute r: Expected length, "undefined".
+[2026-05-20T05:41:56.646Z] [ERROR] [Renderer:error] (index-D5Zh7b_w.js:11) Error: <circle> attribute r: Expected length, "undefined".
+[2026-05-20T05:41:56.646Z] [ERROR] [Renderer:error] (index-D5Zh7b_w.js:11) Error: <circle> attribute r: Expected length, "undefined".
+[2026-05-20T05:41:56.646Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:54787/api
+[2026-05-20T05:41:56.646Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:10) [AuthRoute] path=/api/dashboard-intelligence/system-dna target=local reason=system-route base=http://127.0.0.1:54787/api
+[2026-05-20T05:41:56.646Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:54787/api
+[2026-05-20T05:41:56.646Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:54787/api
+[2026-05-20T05:41:56.646Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:10) [AuthRoute] path=/api/dashboard-intelligence/ram-analysis target=local reason=system-route base=http://127.0.0.1:54787/api
+[2026-05-20T05:41:56.663Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:185) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-20T05:41:56.952Z] [LOG] [PS:tweak-executor] #3 queryPowerShell OK 561ms
+[2026-05-20T05:41:56.952Z] [LOG] [PS:tweak-executor] #4 queryPowerShell SPAWN ts=1779255716952 active=1
+[2026-05-20T05:41:57.534Z] [LOG] [PS:tweak-executor] #4 queryPowerShell OK 582ms
+[2026-05-20T05:41:57.534Z] [LOG] [PS:tweak-executor] #5 queryPowerShell SPAWN ts=1779255717534 active=1
+[2026-05-20T05:41:57.833Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:10) [AuthRoute] path=/api/startup/apps target=local reason=system-route base=http://127.0.0.1:54787/api
+[2026-05-20T05:41:57.975Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:10) [AuthRoute] path=/api/issues/detect target=local reason=system-route base=http://127.0.0.1:54787/api
+[2026-05-20T05:41:58.091Z] [LOG] [PS:tweak-executor] #5 queryPowerShell OK 557ms
+[2026-05-20T05:41:58.091Z] [LOG] [PS:tweak-executor] #6 queryPowerShell SPAWN ts=1779255718091 active=1
+[2026-05-20T05:41:58.617Z] [LOG] [PS:tweak-executor] #6 queryPowerShell OK 526ms
+[2026-05-20T05:41:58.617Z] [LOG] [PS:tweak-executor] #7 queryPowerShell SPAWN ts=1779255718617 active=1
+[2026-05-20T05:41:59.136Z] [LOG] [PS:tweak-executor] #7 queryPowerShell OK 519ms
+[2026-05-20T05:41:59.136Z] [LOG] [PS:tweak-executor] #8 queryPowerShell SPAWN ts=1779255719136 active=1
+[2026-05-20T05:41:59.654Z] [LOG] [PS:tweak-executor] #8 queryPowerShell OK 518ms
+[2026-05-20T05:41:59.655Z] [LOG] [PS:tweak-executor] #9 queryPowerShell SPAWN ts=1779255719655 active=1
+[2026-05-20T05:42:00.195Z] [LOG] [PS:tweak-executor] #9 queryPowerShell OK 540ms
+[2026-05-20T05:42:00.195Z] [LOG] [PS:tweak-executor] #10 queryPowerShell SPAWN ts=1779255720195 active=1
+[2026-05-20T05:42:00.787Z] [LOG] [PS:tweak-executor] #10 queryPowerShell OK 592ms
+[2026-05-20T05:42:00.787Z] [LOG] [PS:tweak-executor] #11 queryPowerShell SPAWN ts=1779255720787 active=1
+[2026-05-20T05:42:01.325Z] [LOG] [PS:tweak-executor] #11 queryPowerShell OK 538ms
+[2026-05-20T05:42:01.325Z] [LOG] [PS:tweak-executor] #12 queryPowerShell SPAWN ts=1779255721325 active=1
+[2026-05-20T05:42:01.852Z] [LOG] [PS:tweak-executor] #12 queryPowerShell OK 527ms
+[2026-05-20T05:42:01.852Z] [LOG] [PS:tweak-executor] #13 queryPowerShell SPAWN ts=1779255721852 active=1
+[2026-05-20T05:42:02.377Z] [LOG] [PS:tweak-executor] #13 queryPowerShell OK 525ms
+[2026-05-20T05:42:02.377Z] [LOG] [PS:tweak-executor] #14 queryPowerShell SPAWN ts=1779255722377 active=1
+[2026-05-20T05:42:02.902Z] [LOG] [PS:tweak-executor] #14 queryPowerShell OK 525ms
+[2026-05-20T05:42:02.902Z] [LOG] [PS:tweak-executor] #15 queryPowerShell SPAWN ts=1779255722902 active=1
+[2026-05-20T05:42:03.471Z] [LOG] [PS:tweak-executor] #15 queryPowerShell OK 569ms
+[2026-05-20T05:42:03.472Z] [LOG] [PS:tweak-executor] #16 queryPowerShell SPAWN ts=1779255723472 active=1
+[2026-05-20T05:42:04.024Z] [LOG] [PS:tweak-executor] #16 queryPowerShell OK 552ms
+[2026-05-20T05:42:04.024Z] [LOG] [PS:tweak-executor] #17 queryPowerShell SPAWN ts=1779255724024 active=1
+[2026-05-20T05:42:04.550Z] [LOG] [PS:tweak-executor] #17 queryPowerShell OK 526ms
+[2026-05-20T05:42:04.550Z] [LOG] [PS:tweak-executor] #18 queryPowerShell SPAWN ts=1779255724550 active=1
+[2026-05-20T05:42:05.084Z] [LOG] [PS:tweak-executor] #18 queryPowerShell OK 534ms
+[2026-05-20T05:42:05.084Z] [LOG] [PS:tweak-executor] #19 queryPowerShell SPAWN ts=1779255725084 active=1
+[2026-05-20T05:42:05.618Z] [LOG] [PS:tweak-executor] #19 queryPowerShell OK 534ms
+[2026-05-20T05:42:05.619Z] [LOG] [PS:tweak-executor] #20 queryPowerShell SPAWN ts=1779255725619 active=1
+[2026-05-20T05:42:06.902Z] [LOG] [PS:tweak-executor] #20 queryPowerShell OK 1283ms
+[2026-05-20T05:42:06.902Z] [LOG] [PS:tweak-executor] #21 queryPowerShell SPAWN ts=1779255726902 active=1
+[2026-05-20T05:42:07.496Z] [LOG] [PS:tweak-executor] #21 queryPowerShell OK 594ms
+[2026-05-20T05:42:07.496Z] [LOG] [PS:tweak-executor] #22 queryPowerShell SPAWN ts=1779255727496 active=1
+[2026-05-20T05:42:08.023Z] [LOG] [PS:tweak-executor] #22 queryPowerShell OK 527ms
+[2026-05-20T05:42:08.023Z] [LOG] [PS:tweak-executor] #23 queryPowerShell SPAWN ts=1779255728023 active=1
+[2026-05-20T05:42:08.366Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:54787/api
+[2026-05-20T05:42:08.547Z] [LOG] [PS:tweak-executor] #23 queryPowerShell OK 524ms
+[2026-05-20T05:42:08.548Z] [LOG] [PS:tweak-executor] #24 queryPowerShell SPAWN ts=1779255728548 active=1
+[2026-05-20T05:42:09.166Z] [LOG] [PS:tweak-executor] #24 queryPowerShell OK 618ms
+[2026-05-20T05:42:09.166Z] [LOG] [PS:tweak-executor] #25 queryPowerShell SPAWN ts=1779255729166 active=1
+[2026-05-20T05:42:09.742Z] [LOG] [PS:tweak-executor] #25 queryPowerShell OK 576ms
+[2026-05-20T05:42:09.743Z] [LOG] [PS:tweak-executor] #26 queryPowerShell SPAWN ts=1779255729743 active=1
+[2026-05-20T05:42:10.601Z] [LOG] [PS:tweak-executor] #26 queryPowerShell OK 858ms
+[2026-05-20T05:42:10.601Z] [LOG] [PS:tweak-executor] #27 queryPowerShell SPAWN ts=1779255730601 active=1
+[2026-05-20T05:42:11.258Z] [LOG] [PS:tweak-executor] #27 queryPowerShell OK 657ms
+[2026-05-20T05:42:11.258Z] [LOG] [PS:tweak-executor] #28 queryPowerShell SPAWN ts=1779255731258 active=1
+[2026-05-20T05:42:11.847Z] [LOG] [PS:tweak-executor] #28 queryPowerShell OK 589ms
+[2026-05-20T05:42:11.847Z] [LOG] [PS:tweak-executor] #29 queryPowerShell SPAWN ts=1779255731847 active=1
+[2026-05-20T05:42:12.401Z] [LOG] [PS:tweak-executor] #29 queryPowerShell OK 554ms
+[2026-05-20T05:42:12.401Z] [LOG] [PS:tweak-executor] #30 queryPowerShell SPAWN ts=1779255732401 active=1
+[2026-05-20T05:42:12.928Z] [LOG] [PS:tweak-executor] #30 queryPowerShell OK 527ms
+[2026-05-20T05:42:12.928Z] [LOG] [PS:tweak-executor] #31 queryPowerShell SPAWN ts=1779255732928 active=1
+[2026-05-20T05:42:13.375Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:54787/api
+[2026-05-20T05:42:13.661Z] [LOG] [PS:tweak-executor] #31 queryPowerShell OK 733ms
+[2026-05-20T05:42:13.661Z] [LOG] [TweakSupport] id=nvidia-telemetry, supported=false, reason="No NVIDIA GPU detected", os=10.0.26200, helperFound=false
+[2026-05-20T05:42:13.661Z] [LOG] [TweakSupport] id=timer-res, supported=true, reason="persistent PowerShell agent", os=10.0.26200, helperFound=false
+[2026-05-20T05:42:13.661Z] [LOG] [PS:tweak-executor] #32 queryPowerShell SPAWN ts=1779255733661 active=1
+[2026-05-20T05:42:14.251Z] [LOG] [PS:tweak-executor] #32 queryPowerShell OK 590ms
+[2026-05-20T05:42:14.251Z] [LOG] [PS:tweak-executor] #33 queryPowerShell SPAWN ts=1779255734251 active=1
+[2026-05-20T05:42:14.791Z] [LOG] [PS:tweak-executor] #33 queryPowerShell OK 540ms
+[2026-05-20T05:42:14.791Z] [LOG] [PS:tweak-executor] #34 queryPowerShell SPAWN ts=1779255734791 active=1
+[2026-05-20T05:42:15.322Z] [LOG] [PS:tweak-executor] #34 queryPowerShell OK 531ms
+[2026-05-20T05:42:15.322Z] [LOG] [PS:tweak-executor] #35 queryPowerShell SPAWN ts=1779255735322 active=1
+[2026-05-20T05:42:15.853Z] [LOG] [PS:tweak-executor] #35 queryPowerShell OK 531ms
+[2026-05-20T05:42:15.853Z] [LOG] [PS:tweak-executor] #36 queryPowerShell SPAWN ts=1779255735853 active=1
+[2026-05-20T05:42:16.276Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:185) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-20T05:42:16.301Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:42:16.302Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:42:16.302Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:42:16.302Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:42:16.421Z] [LOG] [PS:tweak-executor] #36 queryPowerShell OK 568ms
+[2026-05-20T05:42:16.422Z] [LOG] [PS:tweak-executor] #37 queryPowerShell SPAWN ts=1779255736422 active=1
+[2026-05-20T05:42:17.059Z] [LOG] [PS:tweak-executor] #37 queryPowerShell OK 637ms
+[2026-05-20T05:42:17.059Z] [LOG] [PS:tweak-executor] #38 queryPowerShell SPAWN ts=1779255737059 active=1
+[2026-05-20T05:42:17.160Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:42:17.160Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:42:17.160Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:42:17.160Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:42:17.384Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:185) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-20T05:42:17.405Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:154) [Dashboard] mounted
+[2026-05-20T05:42:17.405Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:154) [ActivityMonitor] reused cached state — history points: 23 status: ready
+[2026-05-20T05:42:17.423Z] [ERROR] [Renderer:error] (index-D5Zh7b_w.js:11) Error: <circle> attribute r: Expected length, "undefined".
+[2026-05-20T05:42:17.423Z] [ERROR] [Renderer:error] (index-D5Zh7b_w.js:11) Error: <circle> attribute r: Expected length, "undefined".
+[2026-05-20T05:42:17.423Z] [ERROR] [Renderer:error] (index-D5Zh7b_w.js:11) Error: <circle> attribute r: Expected length, "undefined".
+[2026-05-20T05:42:17.423Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:54787/api
+[2026-05-20T05:42:17.423Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:10) [AuthRoute] path=/api/dashboard-intelligence/system-dna target=local reason=system-route base=http://127.0.0.1:54787/api
+[2026-05-20T05:42:17.423Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:54787/api
+[2026-05-20T05:42:17.424Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:54787/api
+[2026-05-20T05:42:17.424Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:10) [AuthRoute] path=/api/dashboard-intelligence/ram-analysis target=local reason=system-route base=http://127.0.0.1:54787/api
+[2026-05-20T05:42:17.465Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:185) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-20T05:42:17.903Z] [LOG] [PS:tweak-executor] #38 queryPowerShell OK 844ms
+[2026-05-20T05:42:17.904Z] [LOG] [PS:tweak-executor] #39 queryPowerShell SPAWN ts=1779255737904 active=1
+[2026-05-20T05:42:18.606Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:10) [AuthRoute] path=/api/startup/apps target=local reason=system-route base=http://127.0.0.1:54787/api
+[2026-05-20T05:42:18.857Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:10) [AuthRoute] path=/api/issues/detect target=local reason=system-route base=http://127.0.0.1:54787/api
+[2026-05-20T05:42:19.061Z] [LOG] [PS:tweak-executor] #39 queryPowerShell OK 1157ms
+[2026-05-20T05:42:19.061Z] [LOG] [PS:tweak-executor] #40 queryPowerShell SPAWN ts=1779255739061 active=1
+[2026-05-20T05:42:19.735Z] [LOG] [PS:tweak-executor] #40 queryPowerShell OK 674ms
+[2026-05-20T05:42:19.735Z] [LOG] [TweakSupport] id=usb-selective-suspend, supported=true, reason="powercfg USB setting present", os=10.0.26200, helperFound=true
+[2026-05-20T05:42:19.735Z] [LOG] [PS:tweak-executor] #41 queryPowerShell SPAWN ts=1779255739735 active=1
+[2026-05-20T05:42:20.329Z] [LOG] [PS:tweak-executor] #41 queryPowerShell OK 594ms
+[2026-05-20T05:42:20.330Z] [LOG] [PS:tweak-executor] #42 queryPowerShell SPAWN ts=1779255740330 active=1
+[2026-05-20T05:42:20.918Z] [LOG] [PS:tweak-executor] #42 queryPowerShell OK 588ms
+[2026-05-20T05:42:20.919Z] [LOG] [PS:tweak-executor] #43 queryPowerShell SPAWN ts=1779255740919 active=1
+[2026-05-20T05:42:21.466Z] [LOG] [PS:tweak-executor] #43 queryPowerShell OK 547ms
+[2026-05-20T05:42:21.467Z] [LOG] [PS:tweak-executor] #44 queryPowerShell SPAWN ts=1779255741467 active=1
+[2026-05-20T05:42:21.990Z] [LOG] [PS:tweak-executor] #44 queryPowerShell OK 523ms
+[2026-05-20T05:42:21.990Z] [LOG] [PS:tweak-executor] #45 queryPowerShell SPAWN ts=1779255741990 active=1
+[2026-05-20T05:42:22.380Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:185) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-20T05:42:22.381Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:154) [Timing] FocusMode | mount | +0ms
+[2026-05-20T05:42:22.399Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:154) [Timing] FocusMode | fetch-state | +18ms
+[2026-05-20T05:42:22.401Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:10) [AuthRoute] path=/api/focus/state target=local reason=system-route base=http://127.0.0.1:54787/api
+[2026-05-20T05:42:22.413Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:154) [Timing] FocusMode | fetch-state-done | +32ms
+[2026-05-20T05:42:22.533Z] [LOG] [PS:tweak-executor] #45 queryPowerShell OK 543ms
+[2026-05-20T05:42:22.533Z] [LOG] [PS:tweak-executor] #46 queryPowerShell SPAWN ts=1779255742533 active=1
+[2026-05-20T05:42:22.766Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:10) [AuthRoute] path=/api/focus/history target=local reason=system-route base=http://127.0.0.1:54787/api
+[2026-05-20T05:42:22.769Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:154) [Timing] FocusMode | fetch-history-done | +388ms
+[2026-05-20T05:42:22.769Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:154) [Timing] FocusMode | mount | +0ms
+[2026-05-20T05:42:22.873Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:185) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-20T05:42:22.892Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:154) [Dashboard] mounted
+[2026-05-20T05:42:22.892Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:154) [ActivityMonitor] reused cached state — history points: 25 status: ready
+[2026-05-20T05:42:22.904Z] [ERROR] [Renderer:error] (index-D5Zh7b_w.js:11) Error: <circle> attribute r: Expected length, "undefined".
+[2026-05-20T05:42:22.904Z] [ERROR] [Renderer:error] (index-D5Zh7b_w.js:11) Error: <circle> attribute r: Expected length, "undefined".
+[2026-05-20T05:42:22.905Z] [ERROR] [Renderer:error] (index-D5Zh7b_w.js:11) Error: <circle> attribute r: Expected length, "undefined".
+[2026-05-20T05:42:22.905Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:54787/api
+[2026-05-20T05:42:22.905Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:10) [AuthRoute] path=/api/dashboard-intelligence/system-dna target=local reason=system-route base=http://127.0.0.1:54787/api
+[2026-05-20T05:42:22.905Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:54787/api
+[2026-05-20T05:42:22.905Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:54787/api
+[2026-05-20T05:42:22.905Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:10) [AuthRoute] path=/api/dashboard-intelligence/ram-analysis target=local reason=system-route base=http://127.0.0.1:54787/api
+[2026-05-20T05:42:22.920Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:185) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-20T05:42:23.111Z] [LOG] [PS:tweak-executor] #46 queryPowerShell OK 578ms
+[2026-05-20T05:42:23.111Z] [LOG] [PS:tweak-executor] #47 queryPowerShell SPAWN ts=1779255743111 active=1
+[2026-05-20T05:42:23.664Z] [LOG] [PS:tweak-executor] #47 queryPowerShell OK 553ms
+[2026-05-20T05:42:23.664Z] [LOG] [PS:tweak-executor] #48 queryPowerShell SPAWN ts=1779255743664 active=1
+[2026-05-20T05:42:24.093Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:10) [AuthRoute] path=/api/startup/apps target=local reason=system-route base=http://127.0.0.1:54787/api
+[2026-05-20T05:42:24.235Z] [LOG] [PS:tweak-executor] #48 queryPowerShell OK 571ms
+[2026-05-20T05:42:24.235Z] [LOG] [PS:tweak-executor] #49 queryPowerShell SPAWN ts=1779255744235 active=1
+[2026-05-20T05:42:24.239Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:185) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-20T05:42:24.261Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:10) [AuthRoute] path=/api/issues/detect target=local reason=system-route base=http://127.0.0.1:54787/api
+[2026-05-20T05:42:24.768Z] [LOG] [PS:tweak-executor] #49 queryPowerShell OK 533ms
+[2026-05-20T05:42:24.768Z] [LOG] [PS:tweak-executor] #50 queryPowerShell SPAWN ts=1779255744768 active=1
+[2026-05-20T05:42:24.794Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:185) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-20T05:42:24.800Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:154) [Timing] SystemCleaner | mount | +0ms
+[2026-05-20T05:42:25.105Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:154) [Timing] SystemCleaner | init | +305ms
+[2026-05-20T05:42:25.284Z] [LOG] [PS:tweak-executor] #50 queryPowerShell OK 516ms
+[2026-05-20T05:42:25.285Z] [LOG] [PS:tweak-executor] #51 queryPowerShell SPAWN ts=1779255745285 active=1
+[2026-05-20T05:42:25.593Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:154) [Timing] SystemCleaner | mount | +0ms
+[2026-05-20T05:42:25.631Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:154) [Timing] SystemCleaner | mount | +0ms
+[2026-05-20T05:42:25.800Z] [LOG] [PS:tweak-executor] #51 queryPowerShell OK 515ms
+[2026-05-20T05:42:25.800Z] [LOG] [PS:tweak-executor] #52 queryPowerShell SPAWN ts=1779255745800 active=1
+[2026-05-20T05:42:26.326Z] [LOG] [PS:tweak-executor] #52 queryPowerShell OK 526ms
+[2026-05-20T05:42:26.326Z] [LOG] [PS:tweak-executor] #53 queryPowerShell SPAWN ts=1779255746326 active=1
+[2026-05-20T05:42:26.841Z] [LOG] [PS:tweak-executor] #53 queryPowerShell OK 515ms
+[2026-05-20T05:42:26.841Z] [LOG] [PS:tweak-executor] #54 queryPowerShell SPAWN ts=1779255746841 active=1
+[2026-05-20T05:42:27.472Z] [LOG] [PS:tweak-executor] #54 queryPowerShell OK 631ms
+[2026-05-20T05:42:27.473Z] [LOG] [PS:tweak-executor] #55 queryPowerShell SPAWN ts=1779255747473 active=1
+[2026-05-20T05:42:28.075Z] [LOG] [PS:tweak-executor] #55 queryPowerShell OK 602ms
+[2026-05-20T05:42:28.076Z] [LOG] [PS:tweak-executor] #56 queryPowerShell SPAWN ts=1779255748076 active=1
+[2026-05-20T05:42:28.734Z] [LOG] [PS:tweak-executor] #56 queryPowerShell OK 658ms
+[2026-05-20T05:42:28.735Z] [LOG] [PS:tweak-executor] #57 queryPowerShell SPAWN ts=1779255748735 active=1
+[2026-05-20T05:42:29.313Z] [LOG] [PS:tweak-executor] #57 queryPowerShell OK 578ms
+[2026-05-20T05:42:29.314Z] [LOG] [PS:tweak-executor] #58 queryPowerShell SPAWN ts=1779255749314 active=1
+[2026-05-20T05:42:29.834Z] [LOG] [PS:tweak-executor] #58 queryPowerShell OK 520ms
+[2026-05-20T05:42:29.834Z] [LOG] [PS:tweak-executor] #59 queryPowerShell SPAWN ts=1779255749834 active=1
+[2026-05-20T05:42:30.402Z] [LOG] [PS:tweak-executor] #59 queryPowerShell OK 568ms
+[2026-05-20T05:42:30.402Z] [LOG] [PS:tweak-executor] #60 queryPowerShell SPAWN ts=1779255750402 active=1
+[2026-05-20T05:42:30.994Z] [LOG] [PS:tweak-executor] #60 queryPowerShell OK 592ms
+[2026-05-20T05:42:30.994Z] [LOG] [PS:tweak-executor] #61 queryPowerShell SPAWN ts=1779255750994 active=1
+[2026-05-20T05:42:31.553Z] [LOG] [PS:tweak-executor] #61 queryPowerShell OK 559ms
+[2026-05-20T05:42:31.554Z] [LOG] [PS-Exec] done file=main.js fn=tweak:syncAll ms=36404
+[2026-05-20T05:42:31.554Z] [LOG] [PS] end file=main.js fn=tweak:syncAll id=3 duration=36404ms active=0 calls60s=3
+[2026-05-20T05:42:31.555Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:28) [Tweaks:SET] id="gaming-mode" enabled=true (from system sync)
+[2026-05-20T05:42:31.555Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:28) [Tweaks:SET] id="notifications" enabled=false (from system sync)
+[2026-05-20T05:42:31.555Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:28) [Tweaks:SET] id="copilot" enabled=true (from system sync)
+[2026-05-20T05:42:31.555Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:28) [Tweaks:SET] id="cortana" enabled=true (from system sync)
+[2026-05-20T05:42:31.556Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:28) [Tweaks:SET] id="search-highlights" enabled=true (from system sync)
+[2026-05-20T05:42:31.556Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:28) [Tweaks:SET] id="storage-sense" enabled=true (from system sync)
+[2026-05-20T05:42:31.556Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:28) [Tweaks:SET] id="compact-explorer" enabled=true (from system sync)
+[2026-05-20T05:42:31.556Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:28) [Tweaks:SET] id="recent-files" enabled=true (from system sync)
+[2026-05-20T05:42:31.556Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:28) [Tweaks:SET] id="xbox-bar" enabled=true (from system sync)
+[2026-05-20T05:42:31.556Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:28) [Tweaks:SET] id="bg-apps" enabled=true (from system sync)
+[2026-05-20T05:42:31.556Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:28) [Tweaks:SET] id="disable-fso" enabled=false (from system sync)
+[2026-05-20T05:42:31.556Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:28) [Tweaks:SET] id="disable-pointer-precision" enabled=true (from system sync)
+[2026-05-20T05:42:31.557Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:28) [Tweaks:SET] id="disable-transparency" enabled=false (from system sync)
+[2026-05-20T05:42:31.557Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:28) [Tweaks:SET] id="disable-animations" enabled=true (from system sync)
+[2026-05-20T05:42:31.557Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:28) [Tweaks:SET] id="show-file-extensions" enabled=true (from system sync)
+[2026-05-20T05:42:31.557Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:28) [Tweaks:SET] id="explorer-separate-process" enabled=false (from system sync)
+[2026-05-20T05:42:31.557Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:28) [Tweaks:SET] id="disable-wallpaper-compression" enabled=true (from system sync)
+[2026-05-20T05:42:31.557Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:28) [Tweaks:SET] id="hibernation" enabled=true (from system sync)
+[2026-05-20T05:42:31.557Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:28) [Tweaks:SET] id="fast-startup" enabled=true (from system sync)
+[2026-05-20T05:42:31.557Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:28) [Tweaks:SET] id="energy-logging" enabled=true (from system sync)
+[2026-05-20T05:42:31.557Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:28) [Tweaks:SET] id="maintenance" enabled=true (from system sync)
+[2026-05-20T05:42:31.558Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:28) [Tweaks:SET] id="core-isolation" enabled=false (from system sync)
+[2026-05-20T05:42:31.558Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:28) [Tweaks:SET] id="vbs" enabled=true (from system sync)
+[2026-05-20T05:42:31.558Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:28) [Tweaks:SET] id="hyper-v" enabled=false (from system sync)
+[2026-05-20T05:42:31.558Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:28) [Tweaks:SET] id="large-system-cache" enabled=true (from system sync)
+[2026-05-20T05:42:31.558Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:28) [Tweaks:SET] id="page-combining" enabled=true (from system sync)
+[2026-05-20T05:42:31.558Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:28) [Tweaks:SET] id="prefetch" enabled=true (from system sync)
+[2026-05-20T05:42:31.558Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:28) [Tweaks:SET] id="superfetch" enabled=true (from system sync)
+[2026-05-20T05:42:31.558Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:28) [Tweaks:SET] id="mem-opt" enabled=true (from system sync)
+[2026-05-20T05:42:31.558Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:28) [Tweaks:SET] id="telemetry" enabled=true (from system sync)
+[2026-05-20T05:42:31.558Z] [ERROR] [Renderer:warn] (index-D5Zh7b_w.js:168) [TweakSupport] id=nvidia-telemetry, supported=false, reason="Backend confirmed this tweak is not available on this system." (runtime check)
+[2026-05-20T05:42:31.559Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:28) [Tweaks:SET] id="tune-priority" enabled=true (from system sync)
+[2026-05-20T05:42:31.559Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:28) [Tweaks:SET] id="bluetooth" enabled=true (from system sync)
+[2026-05-20T05:42:31.559Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:28) [Tweaks:SET] id="wifi" enabled=false (from system sync)
+[2026-05-20T05:42:31.559Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:28) [Tweaks:SET] id="xbox-services" enabled=true (from system sync)
+[2026-05-20T05:42:31.559Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:28) [Tweaks:SET] id="fax-printer" enabled=true (from system sync)
+[2026-05-20T05:42:31.559Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:28) [Tweaks:SET] id="synth-timers" enabled=false (from system sync)
+[2026-05-20T05:42:31.559Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:28) [Tweaks:SET] id="preemption" enabled=false (from system sync)
+[2026-05-20T05:42:31.559Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:28) [Tweaks:SET] id="disable-mpo" enabled=true (from system sync)
+[2026-05-20T05:42:31.559Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:28) [Tweaks:SET] id="usb-selective-suspend" enabled=true (from system sync)
+[2026-05-20T05:42:31.559Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:28) [Tweaks:SET] id="pcie-link-state" enabled=true (from system sync)
+[2026-05-20T05:42:31.560Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:28) [Tweaks:SET] id="mmcss-gaming" enabled=false (from system sync)
+[2026-05-20T05:42:31.560Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:28) [Tweaks:SET] id="disable-delivery-opt" enabled=true (from system sync)
+[2026-05-20T05:42:31.560Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:28) [Tweaks:SET] id="disable-wer" enabled=false (from system sync)
+[2026-05-20T05:42:31.560Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:28) [Tweaks:SET] id="win-search-index" enabled=true (from system sync)
+[2026-05-20T05:42:31.560Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:28) [Tweaks:SET] id="disable-activity-history" enabled=true (from system sync)
+[2026-05-20T05:42:31.560Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:28) [Tweaks:SET] id="power-throttling" enabled=true (from system sync)
+[2026-05-20T05:42:31.560Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:28) [Tweaks:SET] id="ntfs-last-access" enabled=false (from system sync)
+[2026-05-20T05:42:31.560Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:28) [Tweaks:SET] id="disable-auto-restart-apps" enabled=true (from system sync)
+[2026-05-20T05:42:31.560Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:28) [Tweaks:SET] id="mmcss-nolazymode" enabled=false (from system sync)
+[2026-05-20T05:42:31.561Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:28) [Tweaks:SET] id="disable-lock-screen" enabled=false (from system sync)
+[2026-05-20T05:42:31.561Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:28) [Tweaks:SET] id="disable-dcom" enabled=false (from system sync)
+[2026-05-20T05:42:31.561Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:168) [Tweaks:SYNC] hydration done gen=1 reconciled=51
+[2026-05-20T05:42:31.561Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:185) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-20T05:42:31.561Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:154) [Timing] SystemCleaner | mount | +0ms
+[2026-05-20T05:42:33.026Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:185) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-20T05:42:33.038Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:42:33.039Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:42:33.039Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:42:33.039Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:42:33.216Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:42:33.217Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:42:33.217Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:42:33.217Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:42:35.222Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:42:35.223Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:42:35.223Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:42:35.223Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:42:37.227Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:42:37.227Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:42:37.227Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:42:37.228Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:42:39.230Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:42:39.231Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:42:39.231Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:42:39.231Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:42:41.233Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:42:41.234Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:42:41.234Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:42:41.234Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:42:42.075Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:178) [AI:INPUT] sending_message="cAN YOU SHOW ME ATWEAKS I Can apply not timer re"
+[2026-05-20T05:42:42.076Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:178) [AI:INPUT] enabled_tweaks=36 disabled_tweaks=31
+[2026-05-20T05:42:42.076Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:178) [AI:INPUT] enabled_tweak_ids=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:42:42.076Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:178) [AI:INPUT] hardware cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB"
+[2026-05-20T05:42:42.085Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:29) [CloudAPI] 2026-05-20T05:42:42.085Z | POST /ai/chat | auth=true | base=https://switchcontrol.org/api
+[2026-05-20T05:42:43.237Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:42:43.238Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:42:43.238Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:42:43.238Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:42:44.209Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:29) [CloudAPI] OK | POST /ai/chat | status=200
+[2026-05-20T05:42:44.209Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:178) [AI:OUTPUT] chars=22 preview="<<NAV:/tweaks:Tweaks>>"
+[2026-05-20T05:42:45.241Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:42:45.242Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:42:45.242Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:42:45.242Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:42:47.245Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:42:47.246Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:42:47.246Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:42:47.246Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:42:49.249Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:42:49.249Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:42:49.249Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:42:49.250Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:42:51.252Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:42:51.253Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:42:51.253Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:42:51.253Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:42:52.026Z] [ERROR] [Renderer:error] (index-D5Zh7b_w.js:168) Uncaught (in promise) TypeError: Cannot read properties of undefined (reading 'map')
+[2026-05-20T05:42:53.256Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:42:53.256Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:42:53.256Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:42:53.257Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:42:55.260Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:42:55.260Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:42:55.261Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:42:55.261Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:42:57.264Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:42:57.264Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:42:57.264Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:42:57.264Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:42:59.268Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:42:59.268Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:42:59.269Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:42:59.269Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:43:01.272Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:43:01.273Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:43:01.273Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:43:01.273Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:43:03.276Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:43:03.276Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:43:03.276Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:43:03.277Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:43:05.280Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:43:05.280Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:43:05.280Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:43:05.281Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:43:07.284Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:43:07.284Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:43:07.284Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:43:07.284Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:43:09.288Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:43:09.288Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:43:09.288Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:43:09.288Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:43:11.291Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:43:11.292Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:43:11.292Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:43:11.292Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:43:13.295Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:43:13.296Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:43:13.296Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:43:13.296Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:43:15.300Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:43:15.300Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:43:15.300Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:43:15.300Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:43:17.304Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:43:17.304Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:43:17.304Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:43:17.304Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:43:19.308Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:43:19.308Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:43:19.308Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:43:19.308Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:43:21.312Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:43:21.312Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:43:21.312Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:43:21.312Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:43:23.317Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:43:23.317Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:43:23.317Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:43:23.317Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:43:25.321Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:43:25.321Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:43:25.321Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:43:25.321Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:43:27.325Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:43:27.325Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:43:27.326Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:43:27.326Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:43:29.329Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:43:29.330Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:43:29.330Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:43:29.330Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:43:31.333Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:43:31.333Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:43:31.333Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:43:31.334Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:43:33.337Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:43:33.338Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:43:33.338Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:43:33.338Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:43:35.342Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:43:35.342Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:43:35.342Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:43:35.342Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:43:37.346Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:43:37.346Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:43:37.346Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:43:37.346Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:43:39.028Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:185) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-20T05:43:39.409Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:185) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-20T05:43:39.422Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:43:39.422Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:43:39.422Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:43:39.423Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:43:41.391Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:43:41.392Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:43:41.392Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:43:41.392Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:43:43.395Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:43:43.396Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:43:43.396Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:43:43.396Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:43:44.557Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:178) [AI:INPUT] sending_message="hello"
+[2026-05-20T05:43:44.557Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:178) [AI:INPUT] enabled_tweaks=36 disabled_tweaks=31
+[2026-05-20T05:43:44.557Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:178) [AI:INPUT] enabled_tweak_ids=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:43:44.557Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:178) [AI:INPUT] hardware cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB"
+[2026-05-20T05:43:44.565Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:29) [CloudAPI] 2026-05-20T05:43:44.564Z | POST /ai/chat | auth=true | base=https://switchcontrol.org/api
+[2026-05-20T05:43:45.399Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:43:45.399Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:43:45.399Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:43:45.399Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:43:47.403Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:43:47.403Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:43:47.403Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:43:47.403Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:43:48.247Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:29) [CloudAPI] OK | POST /ai/chat | status=200
+[2026-05-20T05:43:48.247Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:178) [AI:OUTPUT] chars=593 preview="It looks like you're interested in optimizing your system further. Here are some tweaks that I recommend you consider en…"
+[2026-05-20T05:43:49.407Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:43:49.407Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:43:49.407Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:43:49.407Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:43:51.410Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:43:51.411Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:43:51.411Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:43:51.411Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:43:53.414Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:43:53.415Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:43:53.415Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:43:53.415Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:43:55.417Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:43:55.418Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:43:55.418Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:43:55.418Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:43:57.420Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:43:57.421Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:43:57.421Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:43:57.421Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:43:58.576Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:178) [AI:INPUT] sending_message="can you show me 1?"
+[2026-05-20T05:43:58.577Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:178) [AI:INPUT] enabled_tweaks=36 disabled_tweaks=31
+[2026-05-20T05:43:58.577Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:178) [AI:INPUT] enabled_tweak_ids=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:43:58.577Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:178) [AI:INPUT] hardware cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB"
+[2026-05-20T05:43:58.584Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:29) [CloudAPI] 2026-05-20T05:43:58.584Z | POST /ai/chat | auth=true | base=https://switchcontrol.org/api
+[2026-05-20T05:43:59.424Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:43:59.425Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:43:59.425Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:43:59.425Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:43:59.994Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:29) [CloudAPI] OK | POST /ai/chat | status=200
+[2026-05-20T05:43:59.995Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:178) [AI:OUTPUT] chars=163 preview="Let's navigate to the tweaks section where you can find the available tweaks. You can then enable **Disable Core Isolati…"
+[2026-05-20T05:44:01.428Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:44:01.428Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:44:01.428Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:44:01.428Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:44:03.433Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:44:03.433Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:44:03.433Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:44:03.433Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:44:05.436Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:44:05.436Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:44:05.437Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:44:05.437Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:44:07.440Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:44:07.440Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:44:07.440Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:44:07.440Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:44:09.003Z] [ERROR] [Renderer:error] (index-D5Zh7b_w.js:168) Uncaught (in promise) TypeError: Cannot read properties of undefined (reading 'map')
+[2026-05-20T05:44:09.444Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:44:09.444Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:44:09.444Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:44:09.444Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:44:11.448Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:44:11.448Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:44:11.448Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:44:11.448Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:44:13.452Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:44:13.452Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:44:13.452Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:44:13.452Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:44:15.456Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:44:15.456Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:44:15.456Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:44:15.456Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:44:17.460Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:44:17.460Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:44:17.461Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:44:17.461Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:44:19.465Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:44:19.465Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:44:19.465Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:44:19.465Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:44:21.469Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:44:21.469Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:44:21.469Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:44:21.470Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:44:23.473Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:44:23.473Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:44:23.473Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:44:23.474Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:44:25.477Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:44:25.477Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:44:25.477Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:44:25.477Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:44:27.481Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:44:27.482Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:44:27.482Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:44:27.482Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:44:29.084Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:125) [Window] Focus event received
+[2026-05-20T05:44:29.084Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:185) [App] Electron window focus (passive)
+[2026-05-20T05:44:29.486Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:44:29.487Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:44:29.487Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:44:29.487Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:44:31.491Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:44:31.492Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:44:31.492Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:44:31.492Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:44:33.495Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:44:33.496Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:44:33.496Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:44:33.496Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:44:35.500Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:44:35.500Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:44:35.500Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:44:35.500Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:44:36.952Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:185) [App] Window focused, refreshing entitlements...
+[2026-05-20T05:44:36.967Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:125) [Window] Focus event received
+[2026-05-20T05:44:36.967Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:185) [App] Electron window focus (passive)
+[2026-05-20T05:44:37.504Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:44:37.504Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:44:37.504Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:44:37.505Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:44:37.922Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:185) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-20T05:44:39.509Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:44:39.509Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:44:39.509Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:44:39.510Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:44:40.802Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:125) [Window] Focus event received
+[2026-05-20T05:44:40.809Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:185) [App] Electron window focus (passive)
+[2026-05-20T05:44:41.513Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:44:41.514Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:44:41.514Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:44:41.514Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:44:43.518Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:44:43.519Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:44:43.519Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:44:43.519Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:44:45.523Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:44:45.524Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:44:45.524Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:44:45.524Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:44:47.528Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:44:47.528Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:44:47.528Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:44:47.528Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:44:49.532Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:44:49.532Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:44:49.532Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:44:49.532Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:44:51.536Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:44:51.536Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:44:51.536Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:44:51.536Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:44:53.540Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:44:53.541Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:44:53.541Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:44:53.541Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:44:55.544Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:44:55.545Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:44:55.545Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:44:55.545Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:44:57.549Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:44:57.549Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:44:57.549Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:44:57.549Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:44:59.553Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:44:59.553Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:44:59.554Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:44:59.554Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:45:01.056Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:125) [Window] Focus event received
+[2026-05-20T05:45:01.056Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:185) [App] Electron window focus (passive)
+[2026-05-20T05:45:01.557Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:45:01.557Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:45:01.558Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:45:01.558Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:45:03.561Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:45:03.561Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:45:03.561Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:45:03.562Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:45:05.565Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:45:05.566Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:45:05.566Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:45:05.566Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:45:07.570Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:45:07.571Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:45:07.571Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:45:07.571Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:45:09.575Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:45:09.575Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:45:09.575Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:45:09.575Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:45:11.579Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:45:11.579Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:45:11.579Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:45:11.579Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:45:13.583Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:45:13.583Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:45:13.583Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:45:13.584Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:45:15.587Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:45:15.588Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:45:15.588Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:45:15.588Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:45:17.592Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:45:17.592Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:45:17.592Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:45:17.592Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:45:18.988Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:185) [App] Window focused, refreshing entitlements...
+[2026-05-20T05:45:18.989Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:125) [Window] Focus event received
+[2026-05-20T05:45:18.990Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:185) [App] Electron window focus (passive)
+[2026-05-20T05:45:19.596Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:45:19.596Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:45:19.596Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:45:19.596Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:45:19.814Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:185) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-05-20T05:45:21.600Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:45:21.600Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:45:21.600Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:45:21.600Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:45:23.604Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:45:23.604Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:45:23.604Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:45:23.604Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:45:25.608Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:45:25.608Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:45:25.608Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:45:25.608Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:45:27.612Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:45:27.612Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:45:27.612Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:45:27.612Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:45:29.616Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:45:29.616Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:45:29.616Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:45:29.616Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:45:31.621Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:45:31.621Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:45:31.621Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:45:31.621Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:45:32.413Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:125) [Window] Focus event received
+[2026-05-20T05:45:32.413Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:185) [App] Electron window focus (passive)
+[2026-05-20T05:45:33.625Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] source=zustand-store enabled=36 disabled=31
+[2026-05-20T05:45:33.625Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, bg-apps, vbs, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-05-20T05:45:33.625Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-05-20T05:45:33.626Z] [LOG] [Renderer:info] (index-D5Zh7b_w.js:170) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-05-20T05:45:34.027Z] [LOG] [Backend] Stopping backend process PID: 3044
+[2026-05-20T05:45:34.028Z] [LOG] [telemetry:poll] async loop stop requested on quit
+[2026-05-20T05:45:34.028Z] [LOG] [TimerRes] no agent running
+[2026-05-20T05:45:34.028Z] [LOG] [Backend] Stopping backend process PID: 3044
+[2026-05-20T05:45:34.034Z] [LOG] [Backend] Child process EXITED — code=null signal=SIGTERM

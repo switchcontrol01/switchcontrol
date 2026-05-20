@@ -9,6 +9,7 @@ import {
   AlertTriangle, Loader2, Zap, Send, SquarePen,
   Bot, User, MonitorCog, Activity, Layers, Monitor, Eye,
   Paperclip, X, CheckCircle2, TrendingUp, ChevronRight,
+  ShieldAlert, Info, ArrowRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence, useMotion } from "@/lib/motion";
@@ -792,26 +793,49 @@ function ImageAttachmentPill({ image, onRemove }: { image: AttachedImage; onRemo
 
 // ── Message Bubble ─────────────────────────────────────────────────────────────
 
+const NAV_ROUTE_META: Record<string, { icon: typeof ChevronRight; desc: string; color: string; border: string; iconBg: string }> = {
+  "/tweaks":          { icon: Zap,          desc: "Browse and apply Windows registry tweaks",        color: "text-purple-300", border: "border-purple-500/30", iconBg: "bg-purple-500/15" },
+  "/extreme-labs":    { icon: ShieldAlert,  desc: "High-impact experimental optimizations",          color: "text-rose-300",   border: "border-rose-500/30",   iconBg: "bg-rose-500/15"   },
+  "/network-tweaks":  { icon: Wifi,         desc: "Reduce latency and tune network stack",           color: "text-cyan-300",   border: "border-cyan-500/30",   iconBg: "bg-cyan-500/15"   },
+  "/power-plan":      { icon: Zap,          desc: "Switch power profiles for max performance",       color: "text-amber-300",  border: "border-amber-500/30",  iconBg: "bg-amber-500/15"  },
+  "/bios-advisor":    { icon: Info,         desc: "Analyze firmware settings and BIOS readiness",   color: "text-emerald-300",border: "border-emerald-500/30",iconBg: "bg-emerald-500/15"},
+  "/security":        { icon: ShieldAlert,  desc: "Review security flags and isolation settings",   color: "text-blue-300",   border: "border-blue-500/30",   iconBg: "bg-blue-500/15"   },
+  "/process-manager": { icon: ChevronRight, desc: "Inspect and manage running processes",            color: "text-indigo-300", border: "border-indigo-500/30", iconBg: "bg-indigo-500/15" },
+  "/":                { icon: ChevronRight, desc: "System overview and live telemetry",              color: "text-slate-300",  border: "border-slate-500/30",  iconBg: "bg-slate-500/15"  },
+};
+
 function NavigationCard({ items, onNavigate }: {
   items: Array<{ route: string; label: string }>;
   onNavigate?: (route: string) => void;
 }) {
   return (
-    <div className="flex flex-col gap-2">
-      <p className="text-[12px] text-[#6B7380] mb-0.5">Navigate to section:</p>
-      <div className="flex flex-wrap gap-2">
-        {items.map((item, i) => (
+    <div className="flex flex-col gap-2 w-full max-w-xs">
+      {items.map((item, i) => {
+        const meta = NAV_ROUTE_META[item.route] ?? { icon: ChevronRight, desc: "Open section", color: "text-cyan-300", border: "border-cyan-500/30", iconBg: "bg-cyan-500/15" };
+        const Icon = meta.icon;
+        return (
           <button
             key={i}
             onClick={() => onNavigate?.(item.route)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-500/10 border border-cyan-500/25 text-cyan-300 text-[12px] font-medium hover:bg-cyan-500/20 hover:border-cyan-400/40 transition-all"
             data-testid={`button-nav-${item.route.replace(/\//g, "-")}`}
+            className={cn(
+              "group w-full text-left rounded-xl border bg-[#151A22] hover:bg-[#1A2030] transition-all duration-200 p-3",
+              meta.border
+            )}
           >
-            <ChevronRight className="w-3 h-3" />
-            {item.label}
+            <div className="flex items-center gap-3">
+              <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center shrink-0", meta.iconBg)}>
+                <Icon className={cn("w-4 h-4", meta.color)} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className={cn("text-[13px] font-semibold leading-tight", meta.color)}>{item.label}</p>
+                <p className="text-[11px] text-[#6B7380] mt-0.5 leading-snug">{meta.desc}</p>
+              </div>
+              <ArrowRight className={cn("w-4 h-4 shrink-0 opacity-50 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all", meta.color)} />
+            </div>
           </button>
-        ))}
-      </div>
+        );
+      })}
     </div>
   );
 }
