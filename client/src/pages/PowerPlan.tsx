@@ -936,22 +936,39 @@ export default function PowerPlan() {
               </button>
             </div>
 
-            {/* Active plan name */}
-            {planLoading ? (
-              <div className="space-y-2 mb-4">
-                <div className="h-8 w-72 rounded-lg bg-[#21262D] animate-pulse" />
-                <div className="h-4 w-48 rounded bg-[#21262D] animate-pulse" />
-              </div>
-            ) : (
-              <div className="mb-4">
-                <h2 className="text-2xl md:text-3xl font-bold text-[#E6EAF0] tracking-tight leading-tight">
-                  {backendState?.activeScheme?.name ?? "No Plan Detected"}
-                </h2>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {backendState ? "Currently active in Windows Power Options" : "Waiting for Windows power state…"}
-                </p>
-              </div>
-            )}
+            {/* Active plan name — always occupies space; content fades in once loaded */}
+            <div className="mb-4" style={{ minHeight: "4rem" }}>
+              <AnimatePresence mode="wait" initial={false}>
+                {planLoading ? (
+                  <motion.div
+                    key="plan-skeleton"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.15 }}
+                    className="space-y-2 pt-1"
+                  >
+                    <div className="h-8 w-64 rounded-lg bg-[#21262D] animate-pulse" />
+                    <div className="h-4 w-44 rounded bg-[#21262D] animate-pulse" />
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="plan-name"
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+                  >
+                    <h2 className="text-2xl md:text-3xl font-bold text-[#E6EAF0] tracking-tight leading-tight">
+                      {backendState?.activeScheme?.name ?? "No Plan Detected"}
+                    </h2>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {backendState ? "Currently active in Windows Power Options" : "Waiting for Windows power state…"}
+                    </p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
 
             {/* Status pills */}
             <div className="flex flex-wrap items-center gap-2">
@@ -1017,17 +1034,11 @@ export default function PowerPlan() {
           ══════════════════════════════════════════════════════════════ */}
           <TabsContent value="profiles" className="space-y-6">
 
-            {/* Loading skeletons */}
-            {planLoading && isElectron && (
-              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                {[0,1,2,3].map(i => (
-                  <div key={i} className="h-[360px] rounded-2xl bg-[#21262D] border border-[#2A313A] animate-pulse" />
-                ))}
-              </div>
-            )}
-
             {/* ── Premium Profile Cards ─────────────────────────────────── */}
-            {(!planLoading || !isElectron) && (
+            {/* Cards use static POWER_PROFILES data — always render immediately.
+                The "Active" badge and verification badge update naturally once
+                planLoading resolves, with no skeleton flash or empty boxes. */}
+            {(
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 {/* Standard profiles */}
                 {POWER_PROFILES.map((profile) => {
