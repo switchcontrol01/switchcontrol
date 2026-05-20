@@ -204,12 +204,23 @@ export function useNetworkDiagnostics(): DiagnosticsState {
     startMonitoring();
   }, [startMonitoring]);
 
-  // Auto-start monitoring when this hook mounts
+  // Auto-start monitoring when this hook mounts, pause when tab is hidden
   useEffect(() => {
     mountedRef.current = true;
-    startMonitoring();
+    if (!document.hidden) startMonitoring();
+
+    const handleVisibility = () => {
+      if (document.hidden) {
+        stopMonitoring();
+      } else {
+        startMonitoring();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+
     return () => {
       mountedRef.current = false;
+      document.removeEventListener('visibilitychange', handleVisibility);
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps

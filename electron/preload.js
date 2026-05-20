@@ -497,7 +497,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // ── Process Control ─────────────────────────────────────────────────────
   processControl: {
     scan:   () => ipcRenderer.invoke('processControl:scan'),
-    getPlan: (profile) => ipcRenderer.invoke('processControl:getPlan', profile),
+    buildPlan: (scanResult, profile) => ipcRenderer.invoke('processControl:buildPlan', scanResult, profile),
     applyPlan: (profile) => ipcRenderer.invoke('processControl:applyPlan', profile),
     getLastResult: () => ipcRenderer.invoke('processControl:getLastResult'),
     restoreLast: () => ipcRenderer.invoke('processControl:restoreLast'),

@@ -87,7 +87,7 @@ const POLL_LOW_END_MS = 15000;  // low-end / budget-exceeded mode
 const CPU_TEMP_TTL_MS = 8000;   // si.cpuTemperature() — expensive WMI-style call
 const DISK_IO_TTL_MS  = 4000;   // si.disksIO()
 const GPU_TTL_MS      = 8000;   // si.graphics()
-const PROC_TTL_MS     = 30000;  // si.processes() — very expensive
+const PROC_TTL_MS     = 90000;  // si.processes() — very expensive; 90s is enough for a process count display
 const CPU_BUDGET_PCT  = 5;      // skip heavy tasks when app itself exceeds this %
 
 // ── Module-level state ────────────────────────────────────────────────────────
@@ -365,7 +365,7 @@ async function tick(): Promise<void> {
     const tempTtl  = lowEndMode ? CPU_TEMP_TTL_MS * 2 : CPU_TEMP_TTL_MS;
     const diskTtl  = lowEndMode ? Infinity            : DISK_IO_TTL_MS;
     const gpuTtl   = lowEndMode ? GPU_TTL_MS  * 2    : GPU_TTL_MS;
-    const procTtl  = PROC_TTL_MS;
+    const procTtl  = lowEndMode ? Infinity : PROC_TTL_MS;
 
     if (now - lastCpuTempTs > tempTtl) {
       // Task 1: CPU temperature
