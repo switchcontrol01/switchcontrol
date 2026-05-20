@@ -335,6 +335,14 @@ async function pollTelemetry() {
         // Task B: Disk I/O — kernel counter, only when not in low-end mode
         const _t0 = Date.now();
         rawDiskIO      = await si.disksIO().catch(e => { console.warn('[telemetry:poll] disksIO error:', e.message); return null; });
+        // If si.disksIO() failed or returned null, try PowerShell perf counter.
+        // getDiskIOViaPowerShell returns per-second rates (rIO_sec/wIO_sec/ms_sec),
+        // handled by the disksio-persec branch in the delta computation below.
+        if (rawDiskIO === null) {
+          verboseLog('[telemetry:poll] disksIO returned null — trying PowerShell fallback');
+          rawDiskIO = await getDiskIOViaPowerShell().catch(() => null);
+          if (rawDiskIO) verboseLog('[telemetry:poll] disksIO PowerShell fallback succeeded');
+        }
         _diskIoLastTs  = Date.now();
         _recordTiming('diskIO', _t0);
 
@@ -462,11 +470,29 @@ async function startTelemetryPolling() {
   // Seeding gpuPollCache now ensures getLive() returns a valid load reading
   // from the first renderer call rather than waiting for the user to trigger
   // a manual refresh. The loop itself does NOT call getGpuPerfCounterLoad().
-  si.graphics().then(gfx => {
+  //
+  // FAST PATH: Win32_VideoController via WMI completes in <1s and does not
+  // go through DXGI, so it works on AMD systems where si.graphics() hangs.
+  if (process.platform === 'win32') {
+    const _wmiGpuPs = `try{$r=Get-WmiObject Win32_VideoController -ErrorAction Stop|Where-Object{$_.Name -notmatch 'Microsoft Basic|Remote'};if($r){($r|Select-Object -First 1).Name}else{''}}catch{''}`;
+    execFile('powershell', ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-Command', _wmiGpuPs],
+      { windowsHide: true, timeout: 5000 },
+      (err, stdout) => {
+        const name = stdout ? stdout.trim() : '';
+        if (!err && name) {
+          gpuExistsOnHardware = true;
+          console.log('[telemetry:poll] GPU presence confirmed via WMI fast-path:', name);
+        }
+      });
+  }
+
+  // SECONDARY PATH: si.graphics() gives VRAM data — run with a generous timeout
+  // so it never hangs the loop. AMD DXGI can take 7-15s on cold boot.
+  siWithTimeout(() => si.graphics(), 20_000, 'startup-graphics').then(gfx => {
     const ctrl = gfx?.controllers?.find(c => c.model) ?? gfx?.controllers?.[0];
     if (ctrl) {
       gpuExistsOnHardware = true;
-      verboseLog('[telemetry:poll] GPU presence confirmed (fast path):', ctrl.model || 'unknown');
+      verboseLog('[telemetry:poll] GPU presence confirmed (si.graphics path):', ctrl.model || 'unknown');
       // Seed both caches so live telemetry has VRAM from frame 1
       const memUsed  = ctrl.memoryUsed != null && ctrl.memoryUsed > 0 ? safeNum(ctrl.memoryUsed) : null;
       const memTotal = ctrl.vram       != null && ctrl.vram       > 0 ? safeNum(ctrl.vram)        : null;
@@ -1097,7 +1123,7 @@ try {
       execFile('powershell', [
         '-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden',
         '-ExecutionPolicy', 'Bypass', '-Command', ps,
-      ], { windowsHide: true, timeout: 4000 }, (err, stdout, stderr) => {
+      ], { windowsHide: true, timeout: 9000 }, (err, stdout, stderr) => {
         if (err) {
           gpuPerfCounterFailCount++;
           if (gpuPerfCounterFailCount >= GPU_PERF_COUNTER_MAX_FAILS && !gpuPerfCounterPausedUntil) {
@@ -1137,6 +1163,35 @@ try {
   } finally {
     psLimiter.release(_token);
   }
+}
+
+// ─── Disk I/O via PowerShell performance counter ─────────────────────────────
+// Fallback when si.disksIO() returns null (common on some Windows + AMD configs).
+// Get-Counter gives per-second rates directly — maps to the 'disksio-persec' path.
+// rIO_sec / wIO_sec are in sectors/sec (512 bytes each), ms_sec is disk-active ms/100ms.
+async function getDiskIOViaPowerShell() {
+  if (process.platform !== 'win32') return null;
+  const ps = [
+    'try {',
+    "  $c = Get-Counter '\\PhysicalDisk(_Total)\\Disk Read Bytes/sec','\\PhysicalDisk(_Total)\\Disk Write Bytes/sec','\\PhysicalDisk(_Total)\\% Disk Time' -MaxSamples 1 -ErrorAction Stop",
+    '  $r = [Math]::Round($c.CounterSamples[0].CookedValue, 0)',
+    '  $w = [Math]::Round($c.CounterSamples[1].CookedValue, 0)',
+    '  $a = [Math]::Round($c.CounterSamples[2].CookedValue, 1)',
+    '  \'{"rIO_sec":\' + [Math]::Round($r/512,1) + \',"wIO_sec":\' + [Math]::Round($w/512,1) + \',"ms_sec":\' + ($a*10) + \'}\'',
+    "} catch { '{\"error\":\"failed\"}' }",
+  ].join('\n');
+  return new Promise((resolve) => {
+    execFile('powershell', ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-Command', ps],
+      { windowsHide: true, timeout: 7000 },
+      (err, stdout) => {
+        if (err) { resolve(null); return; }
+        try {
+          const parsed = JSON.parse(stdout.trim());
+          if (parsed.error) { resolve(null); return; }
+          resolve(parsed);
+        } catch { resolve(null); }
+      });
+  });
 }
 
 // ─── GPU static info (name, VRAM) — cached, refreshed every 60s ──────────────

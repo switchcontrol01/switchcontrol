@@ -31,20 +31,66 @@ interface PsVideoController {
 }
 
 async function collectDisplayViaPowerShell(): Promise<{ controllers: any[]; displays: any[] }> {
+  // Phase 1 — Win32_VideoController (works on AMD/Nvidia/Intel).
+  // CurrentHorizontalResolution is 0 on AMD discrete GPUs; fall back to parsing VideoModeDescription.
+  // Phase 2 — System.Windows.Forms.Screen as last resort for actual monitor bounds.
   const raw = await runDisplayPS(`
+$result = @{ controllers = @(); displays = @() }
 try {
-  $vcs = Get-CimInstance -ClassName Win32_VideoController -ErrorAction Stop |
+  $vcs = Get-WmiObject Win32_VideoController -ErrorAction Stop |
     Select-Object Name, CurrentHorizontalResolution, CurrentVerticalResolution,
                   CurrentRefreshRate, AdapterRAM, VideoModeDescription
-  $vcs | ConvertTo-Json -Depth 2 -Compress
-} catch { Write-Output '[]' }
+  if ($null -ne $vcs) {
+    $vcArr = if ($vcs -is [array]) { $vcs } else { @($vcs) }
+    $result.controllers = @($vcArr | ForEach-Object { @{ Name = $_.Name } })
+    $dispList = @()
+    foreach ($vc in $vcArr) {
+      $resX = [int]($vc.CurrentHorizontalResolution)
+      $resY = [int]($vc.CurrentVerticalResolution)
+      $hz   = [int]($vc.CurrentRefreshRate)
+      if ($resX -le 0 -and $vc.VideoModeDescription -match '(\\d+) x (\\d+)') {
+        $resX = [int]$Matches[1]; $resY = [int]$Matches[2]
+      }
+      if ($resX -gt 0) {
+        $dispList += @{ currentResX=$resX; currentResY=$resY; currentRefreshRate=$hz }
+      }
+    }
+    if ($dispList.Count -gt 0) { $result.displays = $dispList }
+  }
+} catch {}
+if ($result.displays.Count -eq 0) {
+  try {
+    Add-Type -AssemblyName System.Windows.Forms -ErrorAction Stop
+    $screens = [System.Windows.Forms.Screen]::AllScreens
+    $hz = 0
+    try { $hz = [int](Get-WmiObject Win32_VideoController | Select-Object -First 1 -ExpandProperty CurrentRefreshRate) } catch {}
+    $result.displays = @($screens | ForEach-Object {
+      @{ currentResX=$_.Bounds.Width; currentResY=$_.Bounds.Height; currentRefreshRate=$hz }
+    })
+  } catch {}
+}
+$result | ConvertTo-Json -Depth 3 -Compress
 `);
   if (!raw) return { controllers: [], displays: [] };
   try {
-    const parsed: PsVideoController[] = Array.isArray(JSON.parse(raw))
-      ? JSON.parse(raw) : [JSON.parse(raw)];
-    const controllers = parsed.map((v: PsVideoController) => ({ model: v.Name ?? null }));
-    const displays = parsed
+    const parsed = JSON.parse(raw);
+    // Handle both the new structured result and legacy flat array
+    if (parsed && !Array.isArray(parsed) && (parsed.controllers || parsed.displays)) {
+      const controllers = (parsed.controllers ?? []).map((v: any) => ({ model: v.Name ?? null }));
+      const displays = (parsed.displays ?? []).map((v: any) => ({
+        model:              null,
+        currentResX:        v.currentResX  ?? null,
+        currentResY:        v.currentResY  ?? null,
+        currentRefreshRate: v.currentRefreshRate ?? null,
+        pixelDepth:         null,
+        connection:         null,
+      }));
+      return { controllers, displays };
+    }
+    // Legacy: flat array of VideoController objects
+    const arr: PsVideoController[] = Array.isArray(parsed) ? parsed : [parsed];
+    const controllers = arr.map((v: PsVideoController) => ({ model: v.Name ?? null }));
+    const displays = arr
       .filter((v: PsVideoController) => (v.CurrentHorizontalResolution ?? 0) > 0)
       .map((v: PsVideoController) => ({
         model:               null,
