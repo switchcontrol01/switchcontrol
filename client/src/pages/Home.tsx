@@ -355,7 +355,13 @@ export default function Home() {
   const { addEvent, setLastAction, events: activityEvents } = useDashboardActivityStore();
   const { lastRunAt: advisorLastRunAt } = useAdvisorStore();
   const { lastScanTime: biosLastScanTime } = useBiosAdvisorStore();
-  const [specStatus, setSpecStatus] = useState<"loading" | "ready" | "unavailable">("loading");
+  const [specStatus, setSpecStatus] = useState<"loading" | "ready" | "unavailable">(() => {
+    try {
+      const s = (useStore as any).getState?.()?.stats;
+      if (s?.cpuName && s.cpuName !== 'Unavailable' && s.cpuName !== '') return "ready";
+    } catch {}
+    return "loading";
+  });
   const [ssdData, setSsdData] = useState<TelemetryData['ssds']>([]);
   const [allDisks, setAllDisks] = useState<DiskInfo[]>([]);
   const [selectedDiskIndex, setSelectedDiskIndex] = useState(0);

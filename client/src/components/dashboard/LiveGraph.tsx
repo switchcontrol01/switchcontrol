@@ -182,7 +182,7 @@ function LiveStatsBand({ latest, hasDiskData, hasDiskRW, hasGpuLoad, hasNetRx, h
       {latest.cpuTemp != null && (
         <StatPill color={C.cpuTemp} value={`${safeFixed(latest.cpuTemp, 0)}°C`} />
       )}
-      {hasGpuLoad && latest.gpuLoad != null && (
+      {hasGpuLoad && latest.gpuLoad != null && (latest.gpuLoad > 0 || gpuEverNonZero) && (
         <StatPill color={C.gpuLoad} label="GPU" value={`${safeFixed(latest.gpuLoad, 0)}%`} spiking={spikes.gpu} />
       )}
       {latest.gpuTemp != null && (
@@ -427,6 +427,9 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
   //   existing null-GPU data point with 0 so the line has no start gap.
   const gpuDetectedRef = useRef(false);
   const [gpuEverDetected, setGpuEverDetected] = useState(false);
+  // True once GPU load has been non-zero at least once — guards against AMD sensors
+  // that report the GPU name but permanently return 0% usage.
+  const [gpuEverNonZero, setGpuEverNonZero] = useState(false);
 
   const markGpuDetected = useCallback(() => {
     if (gpuDetectedRef.current) return;
@@ -609,6 +612,8 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
       // Use 0 instead of null when GPU is known to exist — keeps the chart
       // series continuous from the very first data point.
       const gpuLoad = gpuDetectedRef.current && gpuLoadRaw === null ? 0 : gpuLoadRaw;
+      // Track first non-zero reading — AMD sensors can be detected but stuck at 0
+      if (gpuLoad != null && gpuLoad > 0) setGpuEverNonZero(true);
 
       const ramUsedGb = safeNumber(live.ram?.usedGb, 0);
       const ramTotalGb = safeNumber(live.ram?.totalGb, 0);
@@ -813,8 +818,8 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
               {latest.cpuTemp != null && (
                 <MetricBadge color={C.cpuTemp} label="CPU" value={safeFixed(latest.cpuTemp, 0)} unit="°C" />
               )}
-              {/* GPU load shown in collapsed + expanded when available */}
-              {latest.showGpu && latest.gpuLoad != null && (
+              {/* GPU load shown in collapsed + expanded when available and sensor is live */}
+              {latest.showGpu && latest.gpuLoad != null && (latest.gpuLoad > 0 || gpuEverNonZero) && (
                 <MetricBadge
                   color={C.gpuLoad} label="GPU"
                   value={safeFixed(latest.gpuLoad, 0)} unit="%"

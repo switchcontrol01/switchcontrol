@@ -1946,12 +1946,12 @@ ipcMain.handle('system:getSpecs', async () => {
 // Same logic as server/routes/dashboardIntelligence.ts collectDisplayViaPowerShell()
 // but runs on the user's local Windows machine (not the cloud server).
 ipcMain.handle('system:getDisplayInfo', async () => {
-  if (process.platform !== 'win32') return { controllers: [], displays: [] };
+  if (process.platform !== 'win32') return { controllers: [], displays: [], monitorName: null, hdrEnabled: null };
   const ps = `
-$result = @{ controllers = @(); displays = @() }
+$result = @{ controllers = @(); displays = @(); monitorName = $null; hdrEnabled = $null }
 try {
   $vcs = Get-WmiObject Win32_VideoController -ErrorAction Stop |
-    Select-Object Name, CurrentHorizontalResolution, CurrentVerticalResolution, CurrentRefreshRate, VideoModeDescription
+    Select-Object Name, CurrentHorizontalResolution, CurrentVerticalResolution, CurrentRefreshRate, CurrentBitsPerPixel, VideoModeDescription
   if ($null -ne $vcs) {
     $vcArr = if ($vcs -is [array]) { $vcs } else { @($vcs) }
     $result.controllers = @($vcArr | ForEach-Object { @{ Name = $_.Name } })
@@ -1960,11 +1960,12 @@ try {
       $resX = [int]($vc.CurrentHorizontalResolution)
       $resY = [int]($vc.CurrentVerticalResolution)
       $hz   = [int]($vc.CurrentRefreshRate)
+      $bpp  = [int]($vc.CurrentBitsPerPixel)
       if ($resX -le 0 -and $vc.VideoModeDescription -match '(\\d+) x (\\d+)') {
         $resX = [int]$Matches[1]; $resY = [int]$Matches[2]
       }
       if ($resX -gt 0) {
-        $dispList += @{ currentResX=$resX; currentResY=$resY; currentRefreshRate=$hz }
+        $dispList += @{ currentResX=$resX; currentResY=$resY; currentRefreshRate=$hz; bitsPerPixel=$bpp }
       }
     }
     if ($dispList.Count -gt 0) { $result.displays = $dispList }
@@ -1977,10 +1978,22 @@ if ($result.displays.Count -eq 0) {
     $hz = 0
     try { $hz = [int](Get-WmiObject Win32_VideoController | Select-Object -First 1 -ExpandProperty CurrentRefreshRate) } catch {}
     $result.displays = @($screens | ForEach-Object {
-      @{ currentResX=$_.Bounds.Width; currentResY=$_.Bounds.Height; currentRefreshRate=$hz }
+      @{ currentResX=$_.Bounds.Width; currentResY=$_.Bounds.Height; currentRefreshRate=$hz; bitsPerPixel=32 }
     })
   } catch {}
 }
+try {
+  $monIds = Get-WmiObject -Namespace root\\wmi -Class WmiMonitorID -ErrorAction Stop
+  $arr = if ($monIds -is [array]) { $monIds } else { @($monIds) }
+  foreach ($m in $arr) {
+    $nb = $m.UserFriendlyName | Where-Object { $_ -ne 0 }
+    if ($nb) { $result.monitorName = ([System.Text.Encoding]::ASCII.GetString([byte[]]$nb)).Trim(); break }
+  }
+} catch {}
+try {
+  $hv = (Get-ItemProperty 'HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\VideoSettings' -Name EnableHDRForVideo -ErrorAction Stop).EnableHDRForVideo
+  $result.hdrEnabled = ($hv -eq 1)
+} catch {}
 $result | ConvertTo-Json -Depth 3 -Compress`.trim();
   try {
     const raw = await new Promise((resolve) => {
@@ -1991,15 +2004,16 @@ $result | ConvertTo-Json -Depth 3 -Compress`.trim();
         resolve(err ? null : (stdout || '').trim());
       });
     });
-    if (!raw) return { controllers: [], displays: [] };
+    if (!raw) return { controllers: [], displays: [], monitorName: null, hdrEnabled: null };
     const parsed = JSON.parse(raw);
     const controllers = (parsed.controllers ?? []).map(v => ({ model: v.Name ?? null }));
     const displays = (parsed.displays ?? []).map(v => ({
       currentResX: v.currentResX ?? null,
       currentResY: v.currentResY ?? null,
       currentRefreshRate: v.currentRefreshRate ?? null,
+      bitsPerPixel: v.bitsPerPixel ?? null,
     }));
-    return { controllers, displays };
+    return { controllers, displays, monitorName: parsed.monitorName ?? null, hdrEnabled: parsed.hdrEnabled ?? null };
   } catch (e) {
     console.warn('[system:getDisplayInfo] error:', e.message);
     return { controllers: [], displays: [] };

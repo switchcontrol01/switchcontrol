@@ -492,14 +492,28 @@ function SweepLine({ active }: { active: boolean }) {
 const isElectron = typeof window !== "undefined" && !!(window as any).electronAPI?.isElectron;
 
 /** Build a DisplaySignalProfile from raw IPC display data (Electron-only path). */
-function buildProfileFromIpc(raw: { controllers: any[]; displays: any[] }): DisplaySignalProfile {
+function buildProfileFromIpc(raw: { controllers: any[]; displays: any[]; monitorName?: string | null; hdrEnabled?: boolean | null }): DisplaySignalProfile {
   const ctrl  = raw.controllers?.[0] ?? null;
   const disp  = raw.displays?.[0]    ?? null;
   const resX: number | null = disp?.currentResX  ?? null;
   const resY: number | null = disp?.currentResY  ?? null;
   const hz:   number | null = disp?.currentRefreshRate ?? null;
+  const bpp:  number | null = disp?.bitsPerPixel ?? null;
   const resolution = (resX && resY) ? `${resX}×${resY}` : null;
   const gpuName: string | null = ctrl?.model?.trim() || null;
+
+  // Convert total bits-per-pixel to bits-per-channel
+  let bitDepth: number | null = null;
+  if (bpp === 30) bitDepth = 10;
+  else if (bpp === 32 || bpp === 24) bitDepth = 8;
+  else if (bpp === 16) bitDepth = 6;
+  else if (bpp != null && bpp > 0) bitDepth = 8;
+
+  // HDR from HKCU registry key collected by IPC
+  const hdrEnabled: boolean | null = raw.hdrEnabled ?? null;
+
+  // Monitor name from EDID (WmiMonitorID)
+  const monitorName: string | null = (raw.monitorName && raw.monitorName.length > 0) ? raw.monitorName : null;
 
   // Basic quality score: weight refresh rate and resolution
   let score: number | null = null;
@@ -514,11 +528,11 @@ function buildProfileFromIpc(raw: { controllers: any[]; displays: any[] }): Disp
   }
 
   return {
-    monitorName:    null,
+    monitorName,
     resolution,
     refreshHz:      hz && hz > 0 ? hz : null,
-    bitDepth:       null,
-    hdrEnabled:     null,
+    bitDepth,
+    hdrEnabled,
     vrrEnabled:     null,
     connectionType: null,
     gpuName,
