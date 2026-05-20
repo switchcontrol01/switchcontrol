@@ -534,6 +534,7 @@ function CoveragePanel({
   historyCount,
   powerPlan,
   context,
+  isElectron,
 }: {
   coverage: AdvisorCoverage | null;
   ctxData: AdvisorContextData | null;
@@ -541,6 +542,7 @@ function CoveragePanel({
   historyCount: number;
   powerPlan: string | null;
   context: SystemContext | null;
+  isElectron: boolean;
 }) {
   const allUnavailable = !coverage || (
     coverage.display === "unavailable" &&
@@ -619,9 +621,9 @@ function CoveragePanel({
                 : undefined
             }
           />
-          <CoverageRow label="Process Manager" status="partial" />
-          <CoverageRow label="Cleaner" status="partial" />
-          <CoverageRow label="Debloater" status="partial" />
+          <CoverageRow label="Process Manager" status={isElectron ? "available" : "partial"} />
+          <CoverageRow label="Cleaner" status={isElectron ? "available" : "partial"} />
+          <CoverageRow label="Debloater" status={isElectron ? "available" : "partial"} />
           <CoverageRow
             label="History"
             status={historyCount > 0 ? "available" : "partial"}
@@ -2182,6 +2184,7 @@ export default function AiAdvisor() {
               historyCount={history?.length ?? 0}
               powerPlan={context?.powerPlan ?? context?.powerPlanApplied ?? null}
               context={context}
+              isElectron={isElectronApp}
             />
             <QuickActionsPanel
               onAction={handleQuickAction}

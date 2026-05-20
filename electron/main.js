@@ -1998,21 +1998,62 @@ if ($result.hdrEnabled -eq $null) {
     }
   } catch {}
 }
+# HDR — source 4: AMD driver class keys (IsHDREnabled / AdvancedColorEnabled per GPU instance)
+if ($result.hdrEnabled -eq $null) {
+  try {
+    $gpuClass = 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Class\\{4d36e968-e325-11ce-bfc1-08002be10318}'
+    foreach ($dk in (Get-ChildItem $gpuClass -EA Stop | Where-Object { $_.PSChildName -match '^\d+$' } | Select-Object -First 4)) {
+      $hdr1 = (Get-ItemProperty $dk.PSPath -Name 'IsHDREnabled' -EA SilentlyContinue).'IsHDREnabled'
+      if ($hdr1 -ne $null) { $result.hdrEnabled = ($hdr1 -eq 1); break }
+      $hdr2 = (Get-ItemProperty $dk.PSPath -Name 'AdvancedColorEnabled' -EA SilentlyContinue).'AdvancedColorEnabled'
+      if ($hdr2 -ne $null) { $result.hdrEnabled = ($hdr2 -eq 1); break }
+    }
+  } catch {}
+}
+# HDR — source 5: Windows CIM display capability (AdvancedColor / HDR10 via WmiMonitorColorimetrySupport)
+if ($result.hdrEnabled -eq $null) {
+  try {
+    $mc = Get-CimInstance -Namespace root/wmi -ClassName WmiMonitorColorimetrySupport -EA Stop
+    $mcArr = if ($mc -is [array]) { $mc } else { @($mc) }
+    foreach ($m in $mcArr) {
+      if ($m.MetaData -ne $null) {
+        # Bit 2 set → BT.2020 (HDR10 capable display)
+        $result.hdrEnabled = ([int]$m.MetaData -band 4) -ne 0; break
+      }
+    }
+  } catch {}
+}
 # VRR — source 1: Windows OS-level VRR toggle (works for G-Sync and Windows VRR)
 try {
   $vrr = (Get-ItemProperty 'HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\VideoSettings' -Name EnableVariableRefreshRate -EA Stop).EnableVariableRefreshRate
   $result.vrrEnabled = ($vrr -eq 1)
 } catch { $result.vrrEnabled = $null }
-# VRR — source 2: AMD FreeSync driver registry (KMD_FreeSync >= 1 means FreeSync on)
+# VRR — source 2: AMD FreeSync driver registry (multiple key names across driver generations)
 if ($result.vrrEnabled -eq $null) {
   try {
     $gpuClass = 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Class\\{4d36e968-e325-11ce-bfc1-08002be10318}'
-    foreach ($dk in (Get-ChildItem $gpuClass -EA Stop | Where-Object { $_.PSChildName -match '^\d+$' } | Select-Object -First 4)) {
+    foreach ($dk in (Get-ChildItem $gpuClass -EA Stop | Where-Object { $_.PSChildName -match '^\d+$' } | Select-Object -First 8)) {
+      # RDNA1/2: KMD_FreeSync (0=off, 1=on, 2=enhanced)
       $fs = (Get-ItemProperty $dk.PSPath -Name 'KMD_FreeSync' -EA SilentlyContinue).'KMD_FreeSync'
       if ($fs -ne $null) { $result.vrrEnabled = ([int]$fs -ge 1); break }
+      # RDNA2/3: KMD_FreeSync2 — FreeSync Premium/Premium Pro
+      $fs2 = (Get-ItemProperty $dk.PSPath -Name 'KMD_FreeSync2' -EA SilentlyContinue).'KMD_FreeSync2'
+      if ($fs2 -ne $null) { $result.vrrEnabled = ([int]$fs2 -ge 1); break }
+      # Older AMD: KMD_EnableFreeSyncDX
       $fsdx = (Get-ItemProperty $dk.PSPath -Name 'KMD_EnableFreeSyncDX' -EA SilentlyContinue).'KMD_EnableFreeSyncDX'
       if ($fsdx -ne $null) { $result.vrrEnabled = ($fsdx -eq 1); break }
+      # Adrenalin 2022+: DAL2_AC1_...FreeSync keys
+      $dalfs = (Get-ItemProperty $dk.PSPath -Name 'DAL2FreeSync2' -EA SilentlyContinue).'DAL2FreeSync2'
+      if ($dalfs -ne $null) { $result.vrrEnabled = ($dalfs -eq 1); break }
     }
+  } catch {}
+}
+# VRR — source 2b: check AMD Software user settings (Adrenalin stores panel FreeSync state here)
+if ($result.vrrEnabled -eq $null) {
+  try {
+    $amdSettings = 'HKCU:\\Software\\AMD\\CN'
+    $fsVal = (Get-ItemProperty "$amdSettings\\OverlayAnchor" -Name 'FreeSyncEnabled' -EA Stop).FreeSyncEnabled
+    if ($fsVal -ne $null) { $result.vrrEnabled = ($fsVal -eq 1) }
   } catch {}
 }
 # VRR — source 3: monitor EDID-declared continuous frequency support (indicates hardware VRR capability)
