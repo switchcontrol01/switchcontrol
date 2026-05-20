@@ -111,30 +111,9 @@
   </head>
   <body style="margin:0;padding:0;background:#07090D;overflow:hidden;height:100%;width:100%;">
 
-    <!-- ── Static startup shell ─────────────────────────────────────────────
-         Rendered before any JavaScript executes. Guarantees the very first
-         Chromium paint is dark, so the OS window manager never gets a chance
-         to flash a white/gray default frame on show().
-         Splash.tsx fades this out on mount, then signals first-frame-ready.
-         NOTE: body::before (z-index 2147483647) sits above this shell and is
-         the primary flash guard; the shell is the secondary branded cover.
-    ──────────────────────────────────────────────────────────────────────── -->
-    <div id="startup-shell" style="position:fixed;inset:0;z-index:9999;background:#07090D;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:20px;pointer-events:none;">
-      <div style="position:absolute;left:50%;top:48%;width:420px;height:420px;margin-left:-210px;margin-top:-210px;background:radial-gradient(ellipse,rgba(139,92,246,0.20) 0%,rgba(0,200,255,0.08) 45%,transparent 70%);filter:blur(72px);"></div>
-      <div style="position:relative;font-family:Inter,system-ui,-apple-system,sans-serif;font-size:22px;font-weight:700;letter-spacing:-0.01em;color:white;user-select:none;">Switch<span style="background:linear-gradient(90deg,hsl(270,65%,72%),hsl(192,90%,65%),hsl(318,70%,73%));-webkit-background-clip:text;-webkit-text-fill-color:transparent;">Control</span></div>
-      <div style="position:relative;width:148px;height:1.5px;background:rgba(255,255,255,0.07);border-radius:999px;overflow:hidden;">
-        <div id="shell-progress" style="height:100%;width:0;background:linear-gradient(90deg,rgba(139,92,246,0.70),rgba(0,210,255,0.90));border-radius:999px;transition:width 1.6s ease-out;"></div>
-      </div>
-      <div style="font-family:Inter,system-ui,sans-serif;font-size:10px;color:rgba(255,255,255,0.22);letter-spacing:0.28em;text-transform:uppercase;user-select:none;">Initializing</div>
-    </div>
     <script>
-      if(window.electronAPI||navigator.userAgent.indexOf('Electron')!==-1){
-        requestAnimationFrame(function(){var b=document.getElementById('shell-progress');if(b)b.style.width='80%';});
-      }else{
-        var s=document.getElementById('startup-shell');if(s)s.style.display='none';
+      if(!(window.electronAPI||navigator.userAgent.indexOf('Electron')!==-1)){
         document.documentElement.style.opacity='1';
-        // sc-web class unlocks overflow/height on html, body, AND #root (parsed later)
-        // via the html.sc-web CSS rule in the <style> block above.
         document.documentElement.classList.add('sc-web');
         document.body.classList.add('sc-first-frame-ready');
       }

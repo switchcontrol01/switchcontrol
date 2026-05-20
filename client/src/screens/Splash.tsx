@@ -90,47 +90,30 @@ export default function Splash({ onComplete }: SplashProps) {
                 const revealTs = performance.now();
                 console.log(`[LAUNCH:R4] reveal triggered by ${source} | t=+${revealTs.toFixed(0)}ms`);
 
-                // ── Step 1: arm html fade-in (200ms ease-out) ─────────────────
+                // ── Step 1: arm html fade-in (120ms ease-out) ────────────────
                 // IMPORTANT: set transition BEFORE opacity so Chromium snapshots
                 // the current computed opacity:0 as the animation "from" value.
                 // If transition were baked into the html inline style from the
                 // start, Chromium might snapshot opacity:1 (browser default) as
                 // the from value during renderer initialisation, briefly flashing
                 // content before the dark cover settles.
-                document.documentElement.style.transition = 'opacity 200ms ease-out';
+                // 120ms matches body::before duration so both clear simultaneously —
+                // the React Splash beneath is revealed in one clean motion.
+                document.documentElement.style.transition = 'opacity 120ms ease-out';
                 document.documentElement.style.opacity = '1';
-                console.log(`[LAUNCH:R5] renderer reveal started — opacity 0→1 | t=+${performance.now().toFixed(0)}ms`);
+                console.log(`[LAUNCH:R5] renderer reveal started — opacity 0→1 (120ms) | t=+${performance.now().toFixed(0)}ms`);
 
                 // ── Step 2: body::before dark cover fades (120ms) ─────────────
                 // The body::before overlay (z-index 2147483647, will-change:opacity,
                 // on its own GPU layer) provides solid dark coverage while the html
-                // opacity ramps up from 0 to 1.
+                // opacity ramps up from 0 to 1.  Both transitions complete at 120ms
+                // so the React Splash is revealed cleanly with no intermediate cover.
                 document.body.classList.add('sc-first-frame-ready');
                 console.log('[LAUNCH:R4] sc-first-frame-ready set — body::before fading (120ms)');
 
-                // ── Step 3: startup-shell fades AFTER body::before completes ──
-                // CRITICAL SEQUENCING: do NOT fade the startup-shell at the same
-                // time as body::before.  If both overlays are at partial opacity
-                // simultaneously, the Splash's first-frame GPU compositor stall
-                // (heavy blur layers on cold AMD start) leaks through as grey.
-                // body::before must fully clear (120ms) first; only then does the
-                // branded startup-shell hand off to the Splash animation.
-                const shell = document.getElementById('startup-shell');
-                if (shell) {
-                  setTimeout(() => {
-                    shell.style.transition = 'opacity 140ms ease-out';
-                    shell.style.opacity = '0';
-                    console.log('[LAUNCH:R4] startup-shell fade started (body::before complete)');
-                    setTimeout(() => {
-                      if (shell.parentNode) shell.parentNode.removeChild(shell);
-                      console.log('[LAUNCH:R4b] startup-shell removed from DOM');
-                    }, 150);
-                  }, 120); // wait for body::before 120ms transition to complete
-                }
-
                 setTimeout(() => {
-                  console.log(`[LAUNCH:R6] renderer reveal completed (200ms elapsed) | t=+${performance.now().toFixed(0)}ms`);
-                }, 200);
+                  console.log(`[LAUNCH:R6] renderer reveal completed (120ms elapsed) | t=+${performance.now().toFixed(0)}ms`);
+                }, 120);
               };
 
               windowShownUnsub = api.onWindowShown?.(() => {
@@ -148,17 +131,9 @@ export default function Splash({ onComplete }: SplashProps) {
 
             } else {
               // Non-Electron (website) path — reveal immediately
-              document.documentElement.style.transition = 'opacity 200ms ease-out';
+              document.documentElement.style.transition = 'opacity 120ms ease-out';
               document.documentElement.style.opacity = '1';
               document.body.classList.add('sc-first-frame-ready');
-              const shell = document.getElementById('startup-shell');
-              if (shell) {
-                setTimeout(() => {
-                  shell.style.transition = 'opacity 140ms ease-out';
-                  shell.style.opacity = '0';
-                  setTimeout(() => { if (shell.parentNode) shell.parentNode.removeChild(shell); }, 150);
-                }, 120);
-              }
             }
           });
         });
