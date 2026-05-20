@@ -658,11 +658,11 @@ function createWindow() {
     title: isDev ? 'SwitchControl DEBUG BUILD' : 'SwitchControl',
     width: 1300,
     height: 800,
-    // show:true immediately so DWM composites the window with backgroundColor:'#07090D'
-    // from the very first frame. With show:false, Windows launch animation uses the
-    // initial white DWM surface before Chromium paints — backgroundColor doesn't reach
-    // DWM early enough for frameless windows. With show:true the user sees dark instantly.
-    show: true,
+    // show:false keeps the window hidden until React has committed dark content to the
+    // DOM and Chromium has painted it. The window is shown via the app:first-frame-ready
+    // IPC sent from the Splash useEffect. By that point the DWM surface is already dark
+    // so neither the launch animation nor the compositor init frame can show white.
+    show: false,
     backgroundColor: '#07090D',
     frame: false,
     thickFrame: false,
@@ -892,13 +892,12 @@ function createWindow() {
   const _launchT0 = Date.now();
   const launchMs = () => `+${Date.now() - _launchT0}ms`;
 
-  // Hard fallback: if ready-to-show never fires within 4s, start telemetry anyway.
-  // Window is already visible (show:true), so no need to show — just ensure telemetry starts.
+  // Hard fallback: if app:first-frame-ready IPC never arrives (e.g. auth redirect before
+  // Splash mounts) force-show after 4 s so the user is never stuck looking at nothing.
   const showFallbackTimer = setTimeout(() => {
     if (mainWindow) {
       if (!mainWindow.isVisible()) {
-        // Truly unexpected case — show as last resort
-        console.warn(`[LAUNCH:FALLBACK] ready-to-show never received and window not visible — force-showing after 4 s | ${launchMs()}`);
+        console.warn(`[LAUNCH:FALLBACK] first-frame-ready IPC never received — force-showing after 4 s | ${launchMs()}`);
         mainWindow.show();
         mainWindow.focus();
       }
@@ -936,21 +935,38 @@ function createWindow() {
     console.log('[BOOT] ──────────────────────────────────────────');
   });
 
-  // ready-to-show fires after Chromium's first frame paint.
-  // Window is already visible (show:true at construction) so we skip show/focus.
-  // We still use this event to start telemetry at the right time.
-  mainWindow.once('ready-to-show', () => {
+  // ── Primary show trigger: app:first-frame-ready IPC from Splash useEffect ───
+  // Splash.tsx calls window.electronAPI.signalFirstFrameReady() in its very first
+  // useEffect — which React fires after committing dark content to the DOM and
+  // Chromium has painted that frame. By the time this IPC arrives the DWM surface
+  // is already dark, so the window appears instantly with no white flash at all.
+  ipcMain.removeAllListeners('app:first-frame-ready');
+  ipcMain.once('app:first-frame-ready', () => {
     clearTimeout(showFallbackTimer);
     if (!mainWindow) return;
     _bm.firstFrameReady = Date.now();
     if (!mainWindow.isVisible()) {
-      // Fallback: shouldn't happen with show:true, but handle gracefully
       mainWindow.show();
       mainWindow.focus();
-      console.log(`[LAUNCH:5] mainWindow.show() on ready-to-show (fallback) | ${launchMs()}`);
-    } else {
-      console.log(`[LAUNCH:5] ready-to-show (window already visible, show:true) | ${launchMs()}`);
+      console.log(`[LAUNCH:5] mainWindow.show() on app:first-frame-ready (Splash painted) | ${launchMs()}`);
     }
+    _bm.windowShown = Date.now();
+    setTimeout(() => {
+      _bm.telemetryStart = Date.now();
+      startTelemetryPolling().catch(e => console.error('[telemetry:poll] error:', e.message));
+    }, 500);
+  });
+
+  // ── Fallback: ready-to-show fires if Splash IPC never arrives ────────────────
+  // E.g. the app loads to a non-Splash route (auth redirect, dev hot-reload).
+  // In that case we show at Chromium's first paint so the user isn't stuck.
+  mainWindow.once('ready-to-show', () => {
+    if (!mainWindow || mainWindow.isVisible()) return; // already shown by IPC
+    clearTimeout(showFallbackTimer);
+    _bm.firstFrameReady = Date.now();
+    mainWindow.show();
+    mainWindow.focus();
+    console.log(`[LAUNCH:5] mainWindow.show() on ready-to-show (Splash IPC fallback) | ${launchMs()}`);
     _bm.windowShown = Date.now();
     setTimeout(() => {
       _bm.telemetryStart = Date.now();

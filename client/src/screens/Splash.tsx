@@ -36,8 +36,11 @@ export default function Splash({ onComplete }: SplashProps) {
 
   // ── Staggered content reveal ──────────────────────────────────────────────
   // Fires immediately on mount — no overlay gate needed.
-  // backgroundColor:'#07090D' on BrowserWindow + ready-to-show handles DWM.
+  // signalFirstFrameReady tells the main process to show the BrowserWindow now.
+  // By the time useEffect runs, React has committed dark content to the DOM and
+  // Chromium has painted it, so DWM surfaces a dark window — zero white flash.
   useEffect(() => {
+    (window as any).electronAPI?.signalFirstFrameReady?.();
     const t2   = setTimeout(() => setTextVisible(true),  80);
     const t3   = setTimeout(() => setSweepVisible(true), 240);
     const done = setTimeout(() => {
