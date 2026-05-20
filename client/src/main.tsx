@@ -2,6 +2,15 @@ import { createRoot } from "react-dom/client";
 import "./lib/api"; // must be first — installs global fetch interceptor for Electron
 import { installIntervalGuard } from "./lib/intervalGuard";
 import App from "./App";
+// Local font bundles — served from the JS bundle, zero network dependency.
+// Inter and JetBrains Mono load instantly in Electron (no Google Fonts request).
+import "@fontsource/inter/400.css";
+import "@fontsource/inter/500.css";
+import "@fontsource/inter/600.css";
+import "@fontsource/inter/700.css";
+import "@fontsource/jetbrains-mono/400.css";
+import "@fontsource/jetbrains-mono/500.css";
+import "@fontsource/jetbrains-mono/700.css";
 import "./index.css";
 
 // Install the 2000ms minimum interval guard before any component code runs.

@@ -37,28 +37,26 @@ import CameraGlow from "@/screens/CameraGlow";
 import LoginScreen from "@/screens/Login";
 import { WelcomeAnimation } from "@/components/WelcomeAnimation";
 import { OnboardingTour } from "@/components/OnboardingTour";
+// Home stays eager — it's the first visible screen in Electron.
+// All other app routes are lazy so they don't ship in the initial JS bundle.
+// DarkFallback (defined below) keeps Suspense transitions invisible.
 import Home from "@/pages/Home";
-import NetworkTweaks from "@/pages/NetworkTweaks";
-// SystemCleaner is imported directly (not lazy) to eliminate the one-time
-// Suspense black-frame flash that occurred on first navigation to /cleaner.
-// The circular-import concern (use-auth → App → SystemCleaner → use-auth)
-// was resolved when useAppAuth moved to appAuthContext.ts, so a direct
-// import is now safe. All other app routes are already eager imports too.
-import SystemCleaner from "@/pages/SystemCleaner";
-import Settings from "@/pages/Settings";
-import PowerPlan from "@/pages/PowerPlan";
-import AppBooster from "@/pages/AppBooster";
-import FocusMode from "@/pages/FocusMode";
-import Debloater from "@/pages/Debloater";
-import StartupApps from "@/pages/StartupApps";
-import Tweaks from "@/pages/Tweaks";
-import NicTuningPage from "@/pages/NicTuning";
-import BiosAdvisor from "@/pages/BiosAdvisor";
-import AiAdvisor from "@/pages/AiAdvisor";
-import ExtremeLabs from "@/pages/ExtremeLabs";
-import Security from "@/pages/Security";
-import History from "@/pages/History";
-import ProcessManager from "@/pages/ProcessManager";
+const Tweaks         = lazy(() => import("@/pages/Tweaks"));
+const NetworkTweaks  = lazy(() => import("@/pages/NetworkTweaks"));
+const SystemCleaner  = lazy(() => import("@/pages/SystemCleaner"));
+const Settings       = lazy(() => import("@/pages/Settings"));
+const PowerPlan      = lazy(() => import("@/pages/PowerPlan"));
+const AppBooster     = lazy(() => import("@/pages/AppBooster"));
+const FocusMode      = lazy(() => import("@/pages/FocusMode"));
+const Debloater      = lazy(() => import("@/pages/Debloater"));
+const StartupApps    = lazy(() => import("@/pages/StartupApps"));
+const NicTuningPage  = lazy(() => import("@/pages/NicTuning"));
+const BiosAdvisor    = lazy(() => import("@/pages/BiosAdvisor"));
+const AiAdvisor      = lazy(() => import("@/pages/AiAdvisor"));
+const ExtremeLabs    = lazy(() => import("@/pages/ExtremeLabs"));
+const Security       = lazy(() => import("@/pages/Security"));
+const History        = lazy(() => import("@/pages/History"));
+const ProcessManager = lazy(() => import("@/pages/ProcessManager"));
 // Website-only chunks — only prefetch on web (not in Electron where file:// protocol
 // causes chunk fetch failures for pages that are never shown in the desktop app).
 const _isElectronRuntime = typeof window !== "undefined" && !!(window as any).electronAPI?.isElectron;
@@ -1076,9 +1074,9 @@ function ElectronAppContent() {
         {(phase === "unauthenticated" || phase === "login_success") && (
           <motion.div
             key="login"
-            initial={{ opacity: 0, filter: "blur(14px)", scale: 1.012 }}
-            animate={{ opacity: 1, filter: "blur(0px)", scale: 1, transition: { duration: 0.95, ease: [0.4, 0, 0.15, 1] } }}
-            exit={{ opacity: 0, filter: "blur(24px)", scale: 0.96, transition: { duration: 1.1, ease: [0.4, 0, 0.6, 1] } }}
+            initial={{ opacity: 0, scale: 1.008 }}
+            animate={{ opacity: 1, scale: 1, transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] } }}
+            exit={{ opacity: 0, scale: 0.99, transition: { duration: 0.28, ease: [0.4, 0, 0.6, 1] } }}
             className="h-full"
             style={{ zIndex: 1 }}
           >
@@ -1089,9 +1087,9 @@ function ElectronAppContent() {
         {phase === "welcome" && (
           <motion.div
             key="welcome"
-            initial={{ opacity: 0, filter: "blur(28px)", scale: 1.018 }}
-            animate={{ opacity: 1, filter: "blur(0px)", scale: 1, transition: { duration: 0.8, delay: 0.1, ease: [0.22, 1, 0.36, 1] } }}
-            exit={{ opacity: 0, filter: "blur(28px)", scale: 0.972, transition: { duration: 0.7, ease: [0.4, 0, 0.6, 1] } }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1, transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] } }}
+            exit={{ opacity: 0, transition: { duration: 0.25, ease: [0.4, 0, 0.6, 1] } }}
             className="h-full"
             style={{ zIndex: 1 }}
           >
@@ -1122,7 +1120,7 @@ function ElectronAppContent() {
             initial={{ opacity: 0 }}
             animate={
               isSigningOut
-                ? { opacity: 0, scale: 0.975, filter: "blur(28px)", transition: { duration: 1.2, ease: [0.4, 0, 0.6, 1] } }
+                ? { opacity: 0, transition: { duration: 0.5, ease: [0.4, 0, 0.6, 1] } }
                 : { opacity: 1, transition: { duration: 0.35, delay: 0, ease: [0.22, 1, 0.36, 1] } }
             }
             className="h-full"

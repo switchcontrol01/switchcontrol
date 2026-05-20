@@ -1,0 +1,194 @@
+MEMORY CLEANER DASHBOARD FIX
+
+PROBLEM:
+After running RAM cleaner, the dashboard waits for the next normal telemetry interval before updating RAM usage.
+
+To the user this feels:
+
+- delayed
+- fake
+- unresponsive
+
+The dashboard should reflect the RAM cleanup instantly.
+
+---
+
+GOAL
+
+When RAM cleaner finishes:
+
+1. Force an immediate telemetry refresh
+2. Instantly update RAM card
+3. Then resume normal polling interval
+
+---
+
+IMPLEMENTATION PLAN
+
+AFTER:
+memory cleaner success event
+
+DO:
+
+- immediate telemetry fetch
+- immediate RAM state update
+- optional brief pulse animation
+- continue normal polling afterward
+
+---
+
+1. FIND MEMORY CLEANER SUCCESS FLOW
+
+---
+
+Locate:
+
+- MemoryCleanerModal
+- cleaner IPC success
+- cleaner completion callback
+
+Find where:
+
+- success toast appears
+- RAM cleaner resolves
+- cleanup completes
+
+---
+
+2. FORCE IMMEDIATE TELEMETRY REFRESH
+
+---
+
+AFTER SUCCESS:
+
+trigger:
+
+- telemetryManager.refreshNow()
+  OR
+- fetchLiveTelemetry()
+
+DO NOT wait for polling timer.
+
+---
+
+3. UPDATE DASHBOARD STATE IMMEDIATELY
+
+---
+
+Immediately update:
+
+- RAM used
+- RAM free
+- RAM percentage
+
+WITHOUT:
+
+- waiting for next websocket tick
+- waiting for next interval
+
+The dashboard must visually react instantly.
+
+---
+
+4. KEEP NORMAL POLLING AFTERWARD
+
+---
+
+IMPORTANT:
+
+Do NOT create:
+
+- duplicate intervals
+- double polling
+- stacked websocket timers
+
+Flow should be:
+
+normal polling
+→ cleaner runs
+→ one forced refresh
+→ normal polling resumes
+
+---
+
+5. OPTIONAL UX IMPROVEMENT
+
+---
+
+After successful cleanup:
+
+Add:
+
+- quick green flash
+  OR
+- subtle pulse animation
+
+on RAM card only.
+
+Duration:
+150ms to 250ms max.
+
+This reinforces:
+"the action worked"
+
+---
+
+6. PERFORMANCE RULES
+
+---
+
+DO NOT:
+
+- rerender entire dashboard
+- invalidate all telemetry
+- restart websocket
+- remount cards
+
+ONLY refresh:
+RAM-related telemetry.
+
+---
+
+7. TARGET USER EXPERIENCE
+
+---
+
+USER CLICKS:
+"Clean RAM"
+
+WITHIN:
+100ms to 400ms
+
+RAM card visibly drops.
+
+No delay.
+No waiting.
+No feeling of fake telemetry.
+
+---
+
+8. IDEAL FLOW
+
+---
+
+click clean
+→ cleaning animation
+→ cleaner completes
+→ forced telemetry refresh
+→ RAM instantly updates
+→ normal polling continues silently
+
+---
+
+9. IMPORTANT
+
+---
+
+This is NOT a backend speed issue anymore.
+
+This is:
+perceived responsiveness.
+
+The app must react instantly after user actions.
+
+That matters more psychologically than actual cleaner speed.
