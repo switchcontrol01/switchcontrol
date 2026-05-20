@@ -46,16 +46,19 @@ async function initTables(): Promise<void> {
   if (isNoDbMode || !db) return;
   await db.execute(sql`
     CREATE TABLE IF NOT EXISTS network_tweak_state (
-      tweak_id    TEXT PRIMARY KEY,
+      user_id     TEXT NOT NULL DEFAULT '__legacy__',
+      tweak_id    TEXT NOT NULL,
       status      TEXT NOT NULL DEFAULT 'idle',
       last_result JSONB,
       applied_at  TIMESTAMPTZ,
-      updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      PRIMARY KEY (user_id, tweak_id)
     )
   `);
   await db.execute(sql`
     CREATE TABLE IF NOT EXISTS network_tweak_log (
       id         SERIAL PRIMARY KEY,
+      user_id    TEXT NOT NULL DEFAULT '__legacy__',
       tweak_id   TEXT NOT NULL,
       action     TEXT NOT NULL,
       success    BOOLEAN NOT NULL DEFAULT FALSE,
@@ -64,18 +67,41 @@ async function initTables(): Promise<void> {
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `);
+  // Migrate pre-existing tables that lack user_id
+  await db.execute(sql`ALTER TABLE network_tweak_state ADD COLUMN IF NOT EXISTS user_id TEXT NOT NULL DEFAULT '__legacy__'`);
+  await db.execute(sql`ALTER TABLE network_tweak_log    ADD COLUMN IF NOT EXISTS user_id TEXT NOT NULL DEFAULT '__legacy__'`);
+  // Migrate old single-column PK to composite (user_id, tweak_id)
+  // The old PK was just tweak_id; backfilled user_id='__legacy__' keeps rows unique.
+  await db.execute(sql`
+    DO $$ BEGIN
+      IF EXISTS (
+        SELECT 1 FROM information_schema.table_constraints
+        WHERE table_name = 'network_tweak_state'
+          AND constraint_name = 'network_tweak_state_pkey'
+          AND constraint_type = 'PRIMARY KEY'
+      ) THEN
+        BEGIN
+          ALTER TABLE network_tweak_state DROP CONSTRAINT network_tweak_state_pkey;
+          ALTER TABLE network_tweak_state ADD PRIMARY KEY (user_id, tweak_id);
+        EXCEPTION WHEN others THEN NULL;
+        END;
+      END IF;
+    END $$
+  `);
 }
 
 initTables().catch(err => console.error("[NetworkTweaks] table init error:", err));
 
 // ── GET /api/network-tweaks/state ─────────────────────────────────────────────
 
-router.get("/state", requireJwt, async (_req, res) => {
+router.get("/state", requireJwt, async (req: any, res) => {
   if (isNoDbMode || !db) return res.json({ ok: true, state: {} });
+  const userId: string = req.cloudUser?.id ?? '__legacy__';
   try {
     const result = await db.execute(sql`
       SELECT tweak_id, status, last_result, applied_at, updated_at
       FROM network_tweak_state
+      WHERE user_id = ${userId}
       ORDER BY tweak_id
     `);
     const stateMap: Record<string, { status: string; lastResult: unknown; appliedAt: string | null }> = {};
@@ -96,8 +122,9 @@ router.get("/state", requireJwt, async (_req, res) => {
 
 // ── POST /api/network-tweaks/:tweakId/report ──────────────────────────────────
 
-router.post("/:tweakId/report", requireJwt, networkTweakRateLimit, async (req, res) => {
+router.post("/:tweakId/report", requireJwt, networkTweakRateLimit, async (req: any, res) => {
   const { tweakId } = req.params;
+  const userId: string = req.cloudUser?.id ?? '__legacy__';
 
   if (!VALID_TWEAK_IDS.has(tweakId)) {
     return res.status(400).json({ ok: false, error: `Unknown tweak ID: ${tweakId}` });
@@ -135,9 +162,9 @@ router.post("/:tweakId/report", requireJwt, networkTweakRateLimit, async (req, r
     const appliedAt = success && action === "apply" ? new Date() : null;
 
     await db.execute(sql`
-      INSERT INTO network_tweak_state (tweak_id, status, last_result, applied_at, updated_at)
-      VALUES (${tweakId}, ${status}, ${resultJson}::jsonb, ${appliedAt}, NOW())
-      ON CONFLICT (tweak_id) DO UPDATE
+      INSERT INTO network_tweak_state (user_id, tweak_id, status, last_result, applied_at, updated_at)
+      VALUES (${userId}, ${tweakId}, ${status}, ${resultJson}::jsonb, ${appliedAt}, NOW())
+      ON CONFLICT (user_id, tweak_id) DO UPDATE
         SET status      = EXCLUDED.status,
             last_result = EXCLUDED.last_result,
             applied_at  = EXCLUDED.applied_at,
@@ -145,8 +172,8 @@ router.post("/:tweakId/report", requireJwt, networkTweakRateLimit, async (req, r
     `);
 
     await db.execute(sql`
-      INSERT INTO network_tweak_log (tweak_id, action, success, verified, message)
-      VALUES (${tweakId}, ${action}, ${success}, ${verified}, ${message ?? null})
+      INSERT INTO network_tweak_log (user_id, tweak_id, action, success, verified, message)
+      VALUES (${userId}, ${tweakId}, ${action}, ${success}, ${verified}, ${message ?? null})
     `);
 
     return res.json({ ok: true, tweakId, status });
@@ -159,12 +186,14 @@ router.post("/:tweakId/report", requireJwt, networkTweakRateLimit, async (req, r
 
 // ── GET /api/network-tweaks/log ───────────────────────────────────────────────
 
-router.get("/log", async (_req, res) => {
+router.get("/log", requireJwt, async (req: any, res) => {
   if (isNoDbMode || !db) return res.json({ ok: true, log: [] });
+  const userId: string = req.cloudUser?.id ?? '__legacy__';
   try {
     const result = await db.execute(sql`
       SELECT id, tweak_id, action, success, verified, message, created_at
       FROM network_tweak_log
+      WHERE user_id = ${userId}
       ORDER BY created_at DESC
       LIMIT 200
     `);

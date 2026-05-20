@@ -39,10 +39,12 @@ import { WelcomeAnimation } from "@/components/WelcomeAnimation";
 import { OnboardingTour } from "@/components/OnboardingTour";
 import Home from "@/pages/Home";
 import NetworkTweaks from "@/pages/NetworkTweaks";
-// Pre-start ALL lazy imports at module load time so Suspense resolves
-// synchronously on first navigation — eliminates the blank-frame flash.
-const _systemCleanerChunk = import("@/pages/SystemCleaner");
-const SystemCleaner = lazy(() => _systemCleanerChunk);
+// SystemCleaner is imported directly (not lazy) to eliminate the one-time
+// Suspense black-frame flash that occurred on first navigation to /cleaner.
+// The circular-import concern (use-auth → App → SystemCleaner → use-auth)
+// was resolved when useAppAuth moved to appAuthContext.ts, so a direct
+// import is now safe. All other app routes are already eager imports too.
+import SystemCleaner from "@/pages/SystemCleaner";
 import Settings from "@/pages/Settings";
 import PowerPlan from "@/pages/PowerPlan";
 import AppBooster from "@/pages/AppBooster";
