@@ -265,10 +265,10 @@ function ImpactBar({ label, value, color }: { label: string; value: number; colo
       <div className="h-1 rounded-full bg-[#21262D] overflow-hidden">
         <motion.div
           className="h-full rounded-full"
-          style={{ backgroundColor: color }}
-          initial={{ width: 0 }}
-          animate={{ width: `${value}%` }}
-          transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1], delay: 0.15 }}
+          style={{ backgroundColor: color, width: `${value}%`, transformOrigin: "left" }}
+          initial={{ scaleX: 0 }}
+          animate={{ scaleX: 1 }}
+          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1], delay: 0.05 }}
         />
       </div>
     </div>
@@ -422,10 +422,10 @@ function AnimatedMetricBar({
       <div className="h-1.5 rounded-full bg-[#21262D] overflow-hidden">
         <motion.div
           className="h-full rounded-full"
-          style={{ backgroundColor: color }}
-          initial={{ width: `${from}%` }}
-          animate={{ width: `${to}%` }}
-          transition={{ duration: 0.85, ease: [0.22, 1, 0.36, 1] }}
+          style={{ backgroundColor: color, width: `${to}%`, transformOrigin: "left" }}
+          initial={{ scaleX: from / Math.max(to, 1) }}
+          animate={{ scaleX: 1 }}
+          transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
         />
       </div>
     </div>
@@ -1336,10 +1336,10 @@ export default function PowerPlan() {
                               <div className="h-1.5 rounded-full bg-[#21262D] overflow-hidden">
                                 <motion.div
                                   className="h-full rounded-full"
-                                  style={{ backgroundColor: bar.color }}
-                                  initial={{ width: 0 }}
-                                  animate={{ width: `${bar.value}%` }}
-                                  transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
+                                  style={{ backgroundColor: bar.color, width: `${bar.value}%`, transformOrigin: "left" }}
+                                  initial={{ scaleX: 0 }}
+                                  animate={{ scaleX: 1 }}
+                                  transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1], delay: 0.05 }}
                                 />
                               </div>
                             </div>
