@@ -65,6 +65,38 @@
   </head>
   <body style="margin:0;padding:0;background:#07090D;overflow:hidden;height:100%;width:100%;">
 
+    <!-- Static boot shell — rendered by the HTML parser before any JS runs.
+         Eliminates the white-frame gap between native DWM surface and React paint.
+         Uses ONLY transform + opacity — no blur, no backdrop-filter, no shadows.
+         Removed by main.tsx (requestAnimationFrame → 200ms fade) after React mounts. -->
+    <div id="boot-shell">
+      <div class="boot-box"></div>
+    </div>
+    <style>
+      #boot-shell {
+        position: fixed;
+        inset: 0;
+        background: #07090D;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 999999;
+        pointer-events: none;
+      }
+      .boot-box {
+        width: 80px;
+        height: 80px;
+        border-radius: 22px;
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(255,255,255,0.08);
+        animation: bootPulse 1.1s ease-in-out infinite;
+      }
+      @keyframes bootPulse {
+        0%,100% { transform: scale(0.94); opacity: 0.50; }
+        50%      { transform: scale(1);    opacity: 1;    }
+      }
+    </style>
+
     <div id="root" style="background:#07090D;height:100%;width:100%;"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

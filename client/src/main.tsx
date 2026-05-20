@@ -99,6 +99,17 @@ if (!_isElectron) {
 }
 console.log(`[LAUNCH:R0] renderer bootstrap | electron=${_isElectron} | t=+${performance.now().toFixed(0)}ms`);
 
+// Remove the static #boot-shell (rendered by the HTML parser before any JS)
+// as soon as React has committed its first frame.  The 200ms fade lets the
+// dark splash content appear underneath so the transition is invisible.
+requestAnimationFrame(() => {
+  const shell = document.getElementById('boot-shell');
+  if (!shell) return;
+  shell.style.transition = 'opacity 200ms ease';
+  shell.style.opacity = '0';
+  setTimeout(() => { try { shell.remove(); } catch {} }, 210);
+});
+
 console.log(`[LAUNCH:R1] createRoot dispatching | t=+${performance.now().toFixed(0)}ms`);
 createRoot(document.getElementById("root")!).render(<App />);
 
