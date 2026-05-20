@@ -367,6 +367,7 @@ export default function Home() {
   const [allDisks, setAllDisks] = useState<DiskInfo[]>([]);
   const [selectedDiskIndex, setSelectedDiskIndex] = useState(0);
   const [memCleanerOpen, setMemCleanerOpen] = useState(false);
+  const [ramGlow, setRamGlow] = useState(false);
   const [cpuModalOpen, setCpuModalOpen] = useState(false);
   const [memIntelOpen, setMemIntelOpen] = useState(false);
   const [gpuModalOpen, setGpuModalOpen] = useState(false);
@@ -797,7 +798,13 @@ export default function Home() {
           </div>
 
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <div>
+            <div
+              style={{
+                borderRadius: 12,
+                transition: "box-shadow 0.15s ease-out",
+                boxShadow: ramGlow ? "0 0 22px 5px rgba(52,211,153,0.30)" : undefined,
+              }}
+            >
               <StatCard
                 title="Memory"
                 value={Number.isFinite(liveRamUsedGb) && liveRamUsedGb > 0 ? liveRamUsedGb.toFixed(1) : '--'}
@@ -1120,7 +1127,14 @@ export default function Home() {
       </div>
 
       <Suspense fallback={null}>
-        <MemoryCleanerModal open={memCleanerOpen} onOpenChange={setMemCleanerOpen} />
+        <MemoryCleanerModal
+          open={memCleanerOpen}
+          onOpenChange={setMemCleanerOpen}
+          onCleanComplete={() => {
+            setRamGlow(true);
+            setTimeout(() => setRamGlow(false), 550);
+          }}
+        />
       </Suspense>
       <CpuCoresModal
         open={cpuModalOpen}

@@ -494,6 +494,23 @@ export const telemetryManager = {
   },
 
   /**
+   * Fire an immediate telemetry read right now, bypassing the normal poll timer.
+   * In Electron IPC mode, calls _ipcPollTick() directly — the result lands in
+   * the store within one IPC round-trip (~10-30ms), so the RAM card updates
+   * almost instantly after the memory cleaner finishes.
+   * In WebSocket mode, asks the server to broadcast a fresh snapshot.
+   * The normal poll interval continues unchanged after this call.
+   */
+  refreshNow() {
+    const electronAPI = (window as any).electronAPI;
+    if (electronAPI?.telemetry?.getLive) {
+      _ipcPollTick().catch(() => {});
+    } else {
+      fetch("/api/telemetry/force-refresh", { method: "POST" }).catch(() => {});
+    }
+  },
+
+  /**
    * Force a hard reset (clears history + reconnects). Only call on explicit
    * user action — never on route change.
    */

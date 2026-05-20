@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { MemoryStick, Loader2, CheckCircle2, AlertTriangle, ChevronDown, ChevronUp, Zap, Shield, Rocket, Sparkles, RotateCcw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useStore } from "@/lib/store";
+import { telemetryManager } from "@/lib/telemetryManager";
 import { motion, AnimatePresence } from "framer-motion";
 
 type CleanMode = "safe" | "smart" | "advanced";
@@ -22,6 +23,8 @@ interface CleanResult {
 }
 
 interface MemoryCleanerModalProps {
+  /** Called immediately after a successful clean so callers can refresh UI */
+  onCleanComplete?: () => void;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
@@ -127,7 +130,7 @@ function AnimatedProgress({ cleaning }: { cleaning: boolean }) {
   );
 }
 
-export function MemoryCleanerModal({ open, onOpenChange }: MemoryCleanerModalProps) {
+export function MemoryCleanerModal({ open, onOpenChange, onCleanComplete }: MemoryCleanerModalProps) {
   const [selectedMode, setSelectedMode] = useState<CleanMode>("smart");
   const [cleaning, setCleaning] = useState(false);
   const [result, setResult] = useState<CleanResult | null>(null);
@@ -183,16 +186,13 @@ export function MemoryCleanerModal({ open, onOpenChange }: MemoryCleanerModalPro
 
         setResult(res);
 
-        // Force telemetry refreshes at 0 / 3 / 6 / 10s after the clean.
-        // The OS reclaims working set memory gradually, so a single
-        // immediate poll often captures the pre-reclaim value. Staggered
-        // polls ensure the RAM card reflects the settled value.
-        const scheduleRefresh = (ms: number) =>
-          setTimeout(() => fetch("/api/telemetry/force-refresh", { method: "POST" }).catch(() => {}), ms);
-        scheduleRefresh(0);
-        scheduleRefresh(3000);
-        scheduleRefresh(6000);
-        scheduleRefresh(10000);
+        // Immediate telemetry refresh — in Electron this fires an IPC poll
+        // directly, so the RAM card updates within one round-trip (~10-30ms).
+        // A second refresh at 3 s catches the fully settled OS value after
+        // working-set reclaim completes.
+        telemetryManager.refreshNow();
+        onCleanComplete?.();
+        setTimeout(() => telemetryManager.refreshNow(), 3000);
       } else {
         await minDelay;
         clearRam();
