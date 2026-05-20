@@ -533,12 +533,14 @@ function CoveragePanel({
   tweakCount,
   historyCount,
   powerPlan,
+  context,
 }: {
   coverage: AdvisorCoverage | null;
   ctxData: AdvisorContextData | null;
   tweakCount: number;
   historyCount: number;
   powerPlan: string | null;
+  context: SystemContext | null;
 }) {
   const allUnavailable = !coverage || (
     coverage.display === "unavailable" &&
@@ -596,10 +598,30 @@ function CoveragePanel({
             }
           />
           <CoverageRow
+            label="NIC Tuning"
+            status={coverage?.networkTweaks === "available" ? "available" : "partial"}
+          />
+          <CoverageRow
             label="Power Plan"
             status={powerPlan ? "available" : "partial"}
             detail={powerPlan ? powerPlan.slice(0, 14) : undefined}
           />
+          <CoverageRow
+            label="Extreme Labs"
+            status={
+              context?.extremeLabsApplied != null
+                ? context.extremeLabsApplied.length > 0 ? "available" : "partial"
+                : "partial"
+            }
+            detail={
+              context?.extremeLabsApplied && context.extremeLabsApplied.length > 0
+                ? `${context.extremeLabsApplied.length} active`
+                : undefined
+            }
+          />
+          <CoverageRow label="Process Manager" status="partial" />
+          <CoverageRow label="Cleaner" status="partial" />
+          <CoverageRow label="Debloater" status="partial" />
           <CoverageRow
             label="History"
             status={historyCount > 0 ? "available" : "partial"}
@@ -644,8 +666,8 @@ function SystemProfileCard({ context }: { context: SystemContext | null }) {
           {s?.motherboard && <SystemSpecRow icon={MonitorCog} label="Board" value={s.motherboard} color="bg-orange-500/10 text-orange-400/70" />}
           {s?.network && <SystemSpecRow icon={Wifi} label="Network" value={s.network} color="bg-blue-500/10 text-blue-400/70" />}
           {s?.display && <SystemSpecRow icon={Monitor} label="Display" value={s.display} color="bg-pink-500/10 text-pink-400/70" />}
-          {!hasExtended && (
-            <p className="text-[10px] text-[#6B7380] text-center pt-2">Loading extended system profile…</p>
+          {!hasExtended && s?.cpu && (
+            <p className="text-[10px] text-[#6B7380]/60 text-center pt-2">Hardware detail not available on this session</p>
           )}
           {import.meta.env.DEV && (
             <p className="text-[9px] text-amber-400/70 font-mono mt-2 px-0.5 truncate" title={[s?.cpu, s?.gpu, s?.ram].filter(Boolean).join(", ")}>
@@ -2070,7 +2092,8 @@ export default function AiAdvisor() {
               ctxData={advisorCtxData}
               tweakCount={enabledCount}
               historyCount={history?.length ?? 0}
-              powerPlan={context?.powerPlan ?? null}
+              powerPlan={context?.powerPlan ?? context?.powerPlanApplied ?? null}
+              context={context}
             />
             <QuickActionsPanel
               onAction={handleQuickAction}

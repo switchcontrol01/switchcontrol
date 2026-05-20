@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
 import { useStore } from "@/lib/store";
-import { motion, AnimatePresence, modalBackdrop, modalContent, useMotion, Reveal, staggerContainer, staggerItem, pageTransition } from "@/lib/motion";
+import { motion, AnimatePresence, modalBackdrop, modalContent, useMotion, Reveal, pageTransition } from "@/lib/motion";
 import {
   Zap, Leaf, Gauge, Cpu, Usb, Moon, Rocket, Monitor, Laptop,
   ChevronDown, ChevronUp, Info, X, RotateCcw, Check, AlertTriangle,
@@ -879,7 +879,7 @@ export default function PowerPlan() {
         className={cn("space-y-6 relative", !isPremium && "opacity-60 blur-[2px]")}
         variants={pageTransition}
         initial="initial"
-        animate={planLoading ? "initial" : "animate"}
+        animate="animate"
         exit="exit"
       >
 
@@ -1028,12 +1028,7 @@ export default function PowerPlan() {
 
             {/* ── Premium Profile Cards ─────────────────────────────────── */}
             {(!planLoading || !isElectron) && (
-              <motion.div
-                className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"
-                variants={staggerContainer}
-                initial="initial"
-                animate="animate"
-              >
+              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 {/* Standard profiles */}
                 {POWER_PROFILES.map((profile) => {
                   const isActive   = activeProfileId === profile.id;
@@ -1046,7 +1041,9 @@ export default function PowerPlan() {
                   return (
                     <motion.div
                       key={profile.id}
-                      variants={staggerItem}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
                       whileHover={{ y: -6, transition: { duration: 0.22, ease: [0.22, 1, 0.36, 1] } }}
                       className="h-full"
                     >
@@ -1146,7 +1143,9 @@ export default function PowerPlan() {
 
                 {/* ── Custom profile card ──────────────────────────── */}
                 <motion.div
-                  variants={staggerItem}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
                   whileHover={{ y: -6, transition: { duration: 0.22, ease: [0.22, 1, 0.36, 1] } }}
                   className="h-full"
                 >
@@ -1242,7 +1241,7 @@ export default function PowerPlan() {
                     </div>
                   </div>
                 </motion.div>
-              </motion.div>
+              </div>
             )}
 
             {/* ── Before / After Impact Comparison ─────────────────── */}
@@ -1280,20 +1279,14 @@ export default function PowerPlan() {
                     )}
                   </div>
 
-                  <motion.div
-                    className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4"
-                    variants={staggerContainer}
-                    initial="initial"
-                    animate="animate"
-                  >
+                  <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
                     {Object.entries(displayBreakdown).map(([key, value]) => {
                       const mismatch   = backendState?.profileMatch?.mismatches?.[key];
                       const isLive     = !!(backendState?.breakdown && activeProfileId === displayProfile.id);
                       const isVerified = isLive && !mismatch;
                       return (
-                        <motion.div
+                        <div
                           key={key}
-                          variants={staggerItem}
                           className={cn(
                             "p-3.5 rounded-xl border transition-colors",
                             isVerified  ? "bg-emerald-500/[0.06] border-emerald-500/20 hover:bg-emerald-500/10"
@@ -1314,10 +1307,10 @@ export default function PowerPlan() {
                               Expected {(mismatch as any).expected}, got {(mismatch as any).actual}
                             </p>
                           )}
-                        </motion.div>
+                        </div>
                       );
                     })}
-                  </motion.div>
+                  </div>
 
                   {/* Estimated Performance Impact */}
                   {activeProfileId && activeProfileId !== "custom" && (() => {
@@ -1487,7 +1480,7 @@ export default function PowerPlan() {
               <h3 className="text-sm font-semibold text-[#E6EAF0] flex items-center gap-2 mb-4">
                 <Cpu className="size-4 text-primary" /> CPU Behavior
               </h3>
-              <motion.div className="grid gap-2.5 sm:grid-cols-2" variants={staggerContainer} initial="initial" animate="animate">
+              <div className="grid gap-2.5 sm:grid-cols-2">
                 {([
                   { key: "disableThrottleStates" as const,      name: "Disable Throttle States",       desc: "Prevent CPU low-power states",       tag: "Advanced" as const },
                   { key: "enableHardwarePStates" as const,       name: "Enable Hardware P-States",      desc: "Hardware performance state control",  tag: "Safe" as const,    unwired: true },
@@ -1499,9 +1492,8 @@ export default function PowerPlan() {
                 ] as const).map(item => {
                   const isUnwired = "unwired" in item && item.unwired;
                   return (
-                    <motion.div
+                    <div
                       key={item.key}
-                      variants={staggerItem}
                       className={cn(
                         "flex items-center justify-between p-3.5 rounded-xl border transition-colors",
                         isUnwired
@@ -1525,10 +1517,10 @@ export default function PowerPlan() {
                         disabled={isUnwired}
                         className="data-[state=checked]:bg-primary ml-3 shrink-0"
                       />
-                    </motion.div>
+                    </div>
                   );
                 })}
-              </motion.div>
+              </div>
             </GlassCard>
 
             {/* ── Processor State Range ─────────────────────────────────── */}
@@ -1579,7 +1571,7 @@ export default function PowerPlan() {
               <h3 className="text-sm font-semibold text-[#E6EAF0] flex items-center gap-2 mb-4">
                 <Usb className="size-4 text-primary" /> USB & Sleep
               </h3>
-              <motion.div className="grid gap-2.5 sm:grid-cols-2" variants={staggerContainer} initial="initial" animate="animate">
+              <div className="grid gap-2.5 sm:grid-cols-2">
                 {([
                   { key: "disableUsbSelectiveSuspend" as const, name: "Disable USB Selective Suspend", desc: "USB devices stay powered", tag: "Safe" as const },
                   { key: "disableUsbPowerManagement" as const,  name: "Disable USB Power Management", desc: "Full USB power at all times", tag: "Safe" as const, unwired: true },
@@ -1589,9 +1581,8 @@ export default function PowerPlan() {
                 ] as const).map(item => {
                   const isUnwired = "unwired" in item && item.unwired;
                   return (
-                    <motion.div
+                    <div
                       key={item.key}
-                      variants={staggerItem}
                       className={cn(
                         "flex items-center justify-between p-3.5 rounded-xl border transition-colors",
                         isUnwired
@@ -1615,10 +1606,10 @@ export default function PowerPlan() {
                         disabled={isUnwired}
                         className="data-[state=checked]:bg-primary ml-3 shrink-0"
                       />
-                    </motion.div>
+                    </div>
                   );
                 })}
-              </motion.div>
+              </div>
             </GlassCard>
 
             {/* ── Apply button ─────────────────────────────────────────── */}
