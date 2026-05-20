@@ -473,6 +473,17 @@ export default function Home() {
     if (specsLoadedRef.current) return;
     specsLoadedRef.current = true;
 
+    // If specs were pre-loaded by Splash.tsx during the startup animation,
+    // the store already has real data — skip the expensive IPC call entirely.
+    try {
+      const s = (useStore as any).getState?.()?.stats;
+      if (s?.cpuName && s.cpuName !== 'Unavailable' && s.cpuName !== '' && (s.totalRamGb ?? 0) > 0) {
+        console.log('[Home] Specs pre-loaded from Splash — skipping getSpecs()');
+        setSpecStatus("ready");
+        return;
+      }
+    } catch {}
+
     let cpuRetryId: ReturnType<typeof setTimeout> | null = null; // P3-H2: track AMD cold-start retry timer for cleanup
 
     // loadSystemSpecs() allows up to 20 s for si.cpu() on AMD WMI cold-start

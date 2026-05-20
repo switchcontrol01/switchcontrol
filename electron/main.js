@@ -962,10 +962,12 @@ function createWindow() {
     mainWindow.focus();
     _bm.windowShown = Date.now();
     console.log(`[LAUNCH:5] mainWindow.show() on ready-to-show (dark frame ready) | ${launchMs()}`);
-    setTimeout(() => {
-      _bm.telemetryStart = Date.now();
-      startTelemetryPolling().catch(e => console.error('[telemetry:poll] error:', e.message));
-    }, 500);
+    // Start telemetry immediately — no delay. The backend is already running
+    // (started before createMainWindow), so the polling loop can begin right
+    // away. This means GPU/CPU pre-warm runs during the Splash animation and
+    // data is ready before Home.tsx ever mounts.
+    _bm.telemetryStart = Date.now();
+    startTelemetryPolling().catch(e => console.error('[telemetry:poll] error:', e.message));
   });
 
   // ── Splash painted IPC (telemetry / boot metrics only) ───────────────────────

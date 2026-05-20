@@ -2,6 +2,8 @@ import { useEffect, useState, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import logoImg from "@/assets/logo.webp";
 import { getHonestTagline } from "@/lib/taglines";
+import { telemetryManager } from "@/lib/telemetryManager";
+import { useStore } from "@/lib/store";
 
 interface SplashProps {
   onComplete: () => void;
@@ -41,6 +43,47 @@ export default function Splash({ onComplete }: SplashProps) {
   // Chromium has painted it, so DWM surfaces a dark window — zero white flash.
   useEffect(() => {
     (window as any).electronAPI?.signalFirstFrameReady?.();
+
+    // ── Pre-warm during the 3.2 s splash window ──────────────────────────────
+    // By the time Splash finishes, the dashboard gets instant data instead of
+    // waiting for WebSocket connect + specs fetch after Home.tsx mounts.
+
+    // 1. Connect WebSocket telemetry immediately — 3 s of data flows in before
+    //    Home.tsx even mounts. RAM/CPU readings are live the moment it appears.
+    telemetryManager.start();
+
+    // 2. Pre-fetch system specs and cache in the Zustand store. Home.tsx checks
+    //    the store on mount and skips the IPC call entirely if data is present.
+    const api = (window as any).electronAPI;
+    if (api?.system?.getSpecs) {
+      api.system.getSpecs()
+        .then((specs: any) => {
+          if (!specs) return;
+          useStore.getState().setStats({
+            cpuName:     specs.cpu?.model    || 'Unavailable',
+            cpuCores:    specs.cpu?.cores    || 0,
+            cpuThreads:  specs.cpu?.threads  || 0,
+            cpuSpeed:    specs.cpu?.speed    || 'Unavailable',
+            gpuName:     specs.gpu?.model    || 'Unavailable',
+            gpuVendor:   specs.gpu?.vendor   || 'Unavailable',
+            vramGb:      specs.gpu?.vramGB   || 0,
+            totalRamGb:  specs.ram?.totalGB  || 0,
+            usedRamGb:   specs.ram?.usedGB   || 0,
+            freeRamGb:   specs.ram?.freeGB   || 0,
+            diskName:    specs.disk?.name    || 'Unavailable',
+            diskUsedGb:  specs.disk?.usedGB  || 0,
+            diskTotalGb: specs.disk?.totalGB || 0,
+            osName:      specs.system?.os          || 'Unavailable',
+            osVersion:   specs.system?.osVersion   || 'Unavailable',
+            osArch:      specs.system?.arch        || 'Unavailable',
+            hostname:    specs.system?.hostname    || 'Unavailable',
+          });
+          console.log('[Splash] Specs pre-loaded:', specs.cpu?.model);
+        })
+        .catch(() => { /* non-fatal — Home.tsx will retry */ });
+    }
+    // ── End pre-warm ─────────────────────────────────────────────────────────
+
     const t2   = setTimeout(() => setTextVisible(true),  80);
     const t3   = setTimeout(() => setSweepVisible(true), 240);
     const done = setTimeout(() => {
