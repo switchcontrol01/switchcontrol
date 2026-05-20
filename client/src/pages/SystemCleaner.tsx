@@ -631,7 +631,12 @@ export default function SystemCleaner() {
 
   return (
     <AppLayout>
-      <div className="space-y-5 pb-8">
+      <motion.div
+        className="space-y-5 pb-8"
+        initial={{ opacity: 0, y: 14, filter: "blur(6px)" }}
+        animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+        transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
+      >
 
         {/* ── Page header ─────────────────────────────────────────────────── */}
         <div className="flex items-center justify-between">
@@ -1061,7 +1066,7 @@ export default function SystemCleaner() {
           )}
         </AnimatePresence>
 
-      </div>
+      </motion.div>
     </AppLayout>
   );
 }
