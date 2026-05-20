@@ -38,7 +38,8 @@ import { WelcomeAnimation } from "@/components/WelcomeAnimation";
 import { OnboardingTour } from "@/components/OnboardingTour";
 import Home from "@/pages/Home";
 import NetworkTweaks from "@/pages/NetworkTweaks";
-// Pre-start the import at module load time so Suspense resolves instantly on first navigation (no black flash).
+// Pre-start ALL lazy imports at module load time so Suspense resolves
+// synchronously on first navigation — eliminates the blank-frame flash.
 const _systemCleanerChunk = import("@/pages/SystemCleaner");
 const SystemCleaner = lazy(() => _systemCleanerChunk);
 import Settings from "@/pages/Settings";
@@ -55,17 +56,28 @@ import ExtremeLabs from "@/pages/ExtremeLabs";
 import Security from "@/pages/Security";
 import History from "@/pages/History";
 import ProcessManager from "@/pages/ProcessManager";
-const Landing = lazy(() => import("@/pages/Landing"));
-const Features = lazy(() => import("@/pages/Features"));
-const Pricing = lazy(() => import("@/pages/Pricing"));
-const Download = lazy(() => import("@/pages/Download"));
-const Terms = lazy(() => import("@/pages/Terms"));
-const Privacy = lazy(() => import("@/pages/Privacy"));
-const FAQPage = lazy(() => import("@/pages/FAQ"));
-const Success = lazy(() => import("@/pages/Success"));
-const PremiumSuccess = lazy(() => import("@/pages/PremiumSuccess"));
-const LoginPage = lazy(() => import("@/pages/Login"));
-const AdminPage = lazy(() => import("@/pages/Admin"));
+const _landingChunk       = import("@/pages/Landing");
+const _featuresChunk      = import("@/pages/Features");
+const _pricingChunk       = import("@/pages/Pricing");
+const _downloadChunk      = import("@/pages/Download");
+const _termsChunk         = import("@/pages/Terms");
+const _privacyChunk       = import("@/pages/Privacy");
+const _faqChunk           = import("@/pages/FAQ");
+const _successChunk       = import("@/pages/Success");
+const _premiumSuccessChunk = import("@/pages/PremiumSuccess");
+const _loginChunk         = import("@/pages/Login");
+const _adminChunk         = import("@/pages/Admin");
+const Landing        = lazy(() => _landingChunk);
+const Features       = lazy(() => _featuresChunk);
+const Pricing        = lazy(() => _pricingChunk);
+const Download       = lazy(() => _downloadChunk);
+const Terms          = lazy(() => _termsChunk);
+const Privacy        = lazy(() => _privacyChunk);
+const FAQPage        = lazy(() => _faqChunk);
+const Success        = lazy(() => _successChunk);
+const PremiumSuccess = lazy(() => _premiumSuccessChunk);
+const LoginPage      = lazy(() => _loginChunk);
+const AdminPage      = lazy(() => _adminChunk);
 
 const isElectron = typeof window !== 'undefined' && !!(window as any).electronAPI?.isElectron;
 
@@ -77,7 +89,11 @@ export type { AppAuthContextValue } from "@/lib/appAuthContext";
 export { useAppAuth } from "@/lib/appAuthContext";
 import { AppAuthContext } from "@/lib/appAuthContext";
 
-const DarkFallback = () => null;
+// Matches the hard-locked html/body background from index.html so the
+// brief Suspense flash (if it ever fires) is invisible against the page.
+const DarkFallback = () => (
+  <div style={{ position: "fixed", inset: 0, background: "#07090D" }} />
+);
 
 function ElectronAppRoutes() {
   return (
