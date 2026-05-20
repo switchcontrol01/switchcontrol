@@ -102,7 +102,6 @@ interface MetricToggles {
   cpu: boolean;
   ram: boolean;
   disk: boolean;
-  gpu: boolean;
   net: boolean;
 }
 
@@ -166,12 +165,11 @@ function StatPill({ color, label, value, spiking }: {
   );
 }
 
-function LiveStatsBand({ latest, hasDiskData, hasDiskRW, hasGpuLoad, hasNetRx, hasNetTx, spikes, gpuEverNonZero }: {
+function LiveStatsBand({ latest, hasDiskData, hasDiskRW, hasNetRx, hasNetTx, spikes }: {
   latest: LatestState | null;
   hasDiskData: boolean; hasDiskRW: boolean;
-  hasGpuLoad: boolean; hasNetRx: boolean; hasNetTx: boolean;
+  hasNetRx: boolean; hasNetTx: boolean;
   spikes: { cpu: boolean; ram: boolean; gpu: boolean };
-  gpuEverNonZero: boolean;
 }) {
   if (!latest) return null;
   return (
@@ -183,22 +181,13 @@ function LiveStatsBand({ latest, hasDiskData, hasDiskRW, hasGpuLoad, hasNetRx, h
       {latest.cpuTemp != null && (
         <StatPill color={C.cpuTemp} value={`${safeFixed(latest.cpuTemp, 0)}°C`} />
       )}
-      {hasGpuLoad && latest.gpuLoad != null && (latest.gpuLoad > 0 || gpuEverNonZero) && (
-        <StatPill color={C.gpuLoad} label="GPU" value={`${safeFixed(latest.gpuLoad, 0)}%`} spiking={spikes.gpu} />
-      )}
-      {latest.gpuTemp != null && (
-        <StatPill color={C.gpuTemp} value={`${safeFixed(latest.gpuTemp, 0)}°C`} />
-      )}
-      {latest.gpuMemPct != null && (
-        <StatPill color={C.gpuMemPct} label="VRAM" value={`${safeFixed(latest.gpuMemPct, 0)}%`} />
-      )}
       {latest.showRam && (
         <StatPill color={C.ram} label="RAM"
           value={`${safeFixed(latest.ramUsedGb, 1)}/${safeFixed(latest.ramTotalGb, 0)} GB`}
           spiking={spikes.ram}
         />
       )}
-      {hasDiskData && latest.diskActiveTime != null && (
+      {(hasDiskData || latest.diskActiveTime != null) && latest.diskActiveTime != null && (
         <StatPill color={C.disk} label="Disk" value={`${safeFixed(latest.diskActiveTime, 0)}%`} />
       )}
       {hasDiskRW && latest.diskReadKBps != null && (
@@ -330,7 +319,7 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
   const [latest, setLatest] = useState<LatestState | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
-  const [toggles, setToggles] = useState<MetricToggles>({ cpu: true, ram: true, disk: true, gpu: true, net: false });
+  const [toggles, setToggles] = useState<MetricToggles>({ cpu: true, ram: true, disk: true, net: false });
   // soloMetric: when set, other lines are dimmed — click pill to solo, click same to reset
   const [soloMetric, setSoloMetric] = useState<keyof MetricToggles | null>(null);
 
@@ -751,7 +740,7 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
   const hasGpuTemp = data.some(d => d.gpuTemp != null);
   const hasGpuMem = data.some(d => d.gpuMemPct != null);
   const hasRamData = data.some(d => d.ram != null);
-  const hasDiskData = data.some(d => d.diskActiveTime != null) || (latest?.diskAvailable ?? false);
+  const hasDiskData = data.some(d => d.diskActiveTime != null) || (latest?.diskAvailable ?? false) || latest?.diskActiveTime != null;
   const hasDiskRW = data.some(d => d.diskReadKBps != null || d.diskWriteKBps != null) || (latest?.diskAvailable ?? false);
   const hasNetRx = data.some(d => d.netRx != null);
   const hasNetTx = data.some(d => d.netTx != null);
@@ -763,10 +752,9 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
     true,
     hasRamData,
     hasDiskData && toggles.disk,
-    hasGpuLoad && toggles.gpu,
   ].filter(Boolean).length;
   const expandedCount = [
-    true, hasCpuTemp, hasRamData, hasDiskData, hasDiskRW, hasGpuLoad, hasGpuTemp, hasGpuMem, hasNetRx, hasNetTx,
+    true, hasCpuTemp, hasRamData, hasDiskData, hasDiskRW, hasNetRx, hasNetTx,
   ].filter(Boolean).length;
 
   const yTickStyle = { fill: "#6b7280", fontSize: 10 };
@@ -819,17 +807,6 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
               {latest.cpuTemp != null && (
                 <MetricBadge color={C.cpuTemp} label="CPU" value={safeFixed(latest.cpuTemp, 0)} unit="°C" />
               )}
-              {/* GPU load shown in collapsed + expanded when available and sensor is live */}
-              {latest.showGpu && latest.gpuLoad != null && (latest.gpuLoad > 0 || gpuEverNonZero) && (
-                <MetricBadge
-                  color={C.gpuLoad} label="GPU"
-                  value={safeFixed(latest.gpuLoad, 0)} unit="%"
-                  spiking={spikes.gpu}
-                />
-              )}
-              {latest.showGpu && latest.gpuTemp != null && (
-                <MetricBadge color={C.gpuTemp} label="GPU" value={safeFixed(latest.gpuTemp, 0)} unit="°C" />
-              )}
               <MetricBadge
                 color={C.ram}
                 label="RAM"
@@ -867,12 +844,6 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
               {expanded && hasDiskRW && latest.diskWriteKBps != null && (
                 <MetricBadge color="#d97706" label="W" value={safeFixed(latest.diskWriteKBps, 0)} unit=" KB/s" dimmed={!toggles.disk} />
               )}
-              {expanded && latest.gpuMemPct != null && (
-                <MetricBadge color={C.gpuMemPct} label="VRAM" value={safeFixed(latest.gpuMemPct, 0)} unit="%" dimmed={!toggles.gpu} />
-              )}
-              {expanded && latest.gpuPower != null && (
-                <span className="text-muted-foreground/70 whitespace-nowrap">⚡ {safeFixed(latest.gpuPower, 0)}W</span>
-              )}
             </>
           )}
           <Button
@@ -896,7 +867,6 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
               { key: "cpu" as const, label: "CPU", color: C.cpuLoad, show: true },
               { key: "ram" as const, label: "RAM", color: C.ram, show: hasRamData },
               { key: "disk" as const, label: "Disk", color: C.disk, show: hasDiskData || hasDiskRW },
-              { key: "gpu" as const, label: "GPU", color: C.gpuLoad, show: hasGpuLoad },
               { key: "net" as const, label: "Net", color: C.netRx, show: hasNetRx || hasNetTx },
             ] as const
           ).filter(m => m.show).map(m => {
@@ -943,11 +913,9 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
           latest={latest}
           hasDiskData={hasDiskData}
           hasDiskRW={hasDiskRW}
-          hasGpuLoad={hasGpuLoad}
           hasNetRx={hasNetRx}
           hasNetTx={hasNetTx}
           spikes={spikes}
-          gpuEverNonZero={gpuEverNonZero}
         />
       )}
 
@@ -971,18 +939,12 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
                   <stop offset="55%" stopColor={C.ram} stopOpacity={0.09} />
                   <stop offset="100%" stopColor={C.ram} stopOpacity={0.0} />
                 </linearGradient>
-                <linearGradient id="lsg-gpu" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={C.gpuLoad} stopOpacity={0.30} />
-                  <stop offset="55%" stopColor={C.gpuLoad} stopOpacity={0.09} />
-                  <stop offset="100%" stopColor={C.gpuLoad} stopOpacity={0.0} />
-                </linearGradient>
                 <linearGradient id="lsg-disk" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor={C.disk} stopOpacity={0.24} />
                   <stop offset="55%" stopColor={C.disk} stopOpacity={0.07} />
                   <stop offset="100%" stopColor={C.disk} stopOpacity={0.0} />
                 </linearGradient>
                 <filter id="lsg-glow-cpu"><feGaussianBlur stdDeviation="3" result="blur"/><feComposite in="SourceGraphic" in2="blur" operator="over"/></filter>
-                <filter id="lsg-glow-gpu"><feGaussianBlur stdDeviation="3" result="blur"/><feComposite in="SourceGraphic" in2="blur" operator="over"/></filter>
                 <filter id="lsg-glow-ram"><feGaussianBlur stdDeviation="3" result="blur"/><feComposite in="SourceGraphic" in2="blur" operator="over"/></filter>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
@@ -1027,24 +989,15 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
                   strokeDasharray="2 2"
                 />
               )}
-              {spikes.gpu && spikeRefIndex != null && (
-                <ReferenceLine
-                  yAxisId="pct"
-                  x={data[spikeRefIndex]?.time}
-                  stroke={C.gpuLoad}
-                  strokeOpacity={0.35}
-                  strokeDasharray="2 2"
-                />
-              )}
 
               {/* ── COLLAPSED + EXPANDED: Core lines ── */}
               {/* Area fills first (rendered behind lines), then glow pass, then solid line */}
 
-              {/* Disk — area + glow + line */}
+              {/* Disk — area + glow + solid line with end-dot */}
               {hasDiskData && toggles.disk && (
                 <Area yAxisId="pct" type="monotone" dataKey="diskActiveTime"
                   stroke="none" fill="url(#lsg-disk)"
-                  style={{ fillOpacity: lineOpacity("disk") * 0.7, transition: "fill-opacity 250ms ease" }}
+                  style={{ fillOpacity: lineOpacity("disk") * 0.85, transition: "fill-opacity 250ms ease" }}
                   dot={false} activeDot={false} connectNulls isAnimationActive={false} legendType="none"
                 />
               )}
@@ -1052,14 +1005,24 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
                 <Line yAxisId="pct" type="monotone" dataKey="diskActiveTime"
                   stroke={C.disk} strokeWidth={10}
                   style={{ strokeOpacity: 0.18 * lineOpacity("disk"), transition: "stroke-opacity 250ms ease" }}
-                  dot={false} activeDot={false} strokeDasharray="5 2" connectNulls legendType="none" isAnimationActive={false}
+                  dot={false} activeDot={false} connectNulls legendType="none" isAnimationActive={false}
                 />
               )}
               {hasDiskData && toggles.disk && (
                 <Line yAxisId="pct" type="monotone" dataKey="diskActiveTime"
-                  name="Disk %" stroke={C.disk} strokeWidth={expanded ? 2 : 1.5}
-                  style={{ strokeOpacity: lineOpacity("disk"), transition: "stroke-opacity 250ms ease" }}
-                  dot={false} activeDot={{ r: 4, strokeWidth: 0, fill: C.disk }} strokeDasharray="5 2" connectNulls isAnimationActive={false}
+                  name="Disk %" stroke={C.disk} strokeWidth={expanded ? 2.5 : 2}
+                  style={{ strokeOpacity: lineOpacity("disk"), transition: "stroke-opacity 250ms ease", filter: showGlowLines ? `drop-shadow(0 0 2px ${C.disk}88)` : undefined, animation: "sc-line-breathe 3.2s ease-in-out infinite 0.3s" }}
+                  dot={(props: any) => {
+                    if (props.index !== data.length - 1) return <g key={props.key} />;
+                    if (typeof props.cx !== 'number' || typeof props.cy !== 'number' || !Number.isFinite(props.cx) || !Number.isFinite(props.cy)) return <g key={props.key} />;
+                    return (
+                      <g key={props.key}>
+                        <circle cx={props.cx} cy={props.cy} r={4} fill={C.disk} style={{ filter: `drop-shadow(0 0 6px ${C.disk})`, opacity: 0.92 }} />
+                        <circle cx={props.cx} cy={props.cy} r={4} fill="none" stroke={C.disk} strokeWidth={1.5} style={{ animation: "sc-end-ring 2s ease-out infinite 0.2s" }} />
+                      </g>
+                    );
+                  }}
+                  activeDot={{ r: 5, strokeWidth: 0, fill: C.disk }} connectNulls isAnimationActive={false}
                 />
               )}
 
@@ -1129,61 +1092,13 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
                 />
               )}
 
-              {/* GPU — area + glow + dashed line */}
-              {hasGpuLoad && toggles.gpu && (
-                <Area yAxisId="pct" type="monotone" dataKey="gpuDisplay"
-                  stroke="none" fill="url(#lsg-gpu)"
-                  style={{ fillOpacity: lineOpacity("gpu") * 0.85, transition: "fill-opacity 250ms ease" }}
-                  dot={false} activeDot={false} connectNulls isAnimationActive={false} legendType="none"
-                />
-              )}
-              {hasGpuLoad && toggles.gpu && showGlowLines && (
-                <Line yAxisId="pct" type="monotone" dataKey="gpuDisplay"
-                  stroke={C.gpuLoad} strokeWidth={10}
-                  style={{ strokeOpacity: 0.20 * lineOpacity("gpu"), transition: "stroke-opacity 250ms ease" }}
-                  dot={false} activeDot={false} legendType="none" connectNulls isAnimationActive={false}
-                />
-              )}
-              {hasGpuLoad && toggles.gpu && (
-                <Line yAxisId="pct" type="monotone" dataKey="gpuDisplay"
-                  name="GPU (%)" stroke={C.gpuLoad} strokeWidth={2.5}
-                  strokeDasharray="7 3"
-                  style={{ strokeOpacity: lineOpacity("gpu"), transition: "stroke-opacity 250ms ease", filter: showGlowLines ? `drop-shadow(0 0 2px ${C.gpuLoad}88)` : undefined, animation: "sc-line-breathe 2.8s ease-in-out infinite 1.1s" }}
-                  dot={(props: any) => {
-                    if (props.index !== data.length - 1) return <g key={props.key} />;
-                    if (typeof props.cx !== 'number' || typeof props.cy !== 'number' || !Number.isFinite(props.cx) || !Number.isFinite(props.cy)) return <g key={props.key} />;
-                    return (
-                      <g key={props.key}>
-                        <circle cx={props.cx} cy={props.cy} r={4} fill={C.gpuLoad} style={{ filter: `drop-shadow(0 0 6px ${C.gpuLoad})`, opacity: 0.92 }} />
-                        <circle cx={props.cx} cy={props.cy} r={4} fill="none" stroke={C.gpuLoad} strokeWidth={1.5} style={{ animation: "sc-end-ring 2s ease-out infinite 0.8s" }} />
-                      </g>
-                    );
-                  }}
-                  activeDot={{ r: 5, strokeWidth: 0, fill: C.gpuLoad }} connectNulls isAnimationActive={false}
-                />
-              )}
 
-              {/* ── EXPANDED ONLY: Temperature lines ── */}
+              {/* ── EXPANDED ONLY: CPU Temperature line ── */}
               {expanded && hasCpuTemp && toggles.cpu && (
                 <Line yAxisId="pct" type="monotone" dataKey="cpuTemp"
                   name="CPU Temp (°C)" stroke={C.cpuTemp} strokeWidth={2}
                   style={{ strokeOpacity: lineOpacity("cpu"), transition: "stroke-opacity 250ms ease" }}
                   dot={false} activeDot={{ r: 4, strokeWidth: 0, fill: C.cpuTemp }} strokeDasharray="4 2" connectNulls isAnimationActive={false}
-                />
-              )}
-              {expanded && hasGpuTemp && toggles.gpu && (
-                <Line yAxisId="pct" type="monotone" dataKey="gpuTemp"
-                  name="GPU Temp (°C)" stroke={C.gpuTemp} strokeWidth={2}
-                  style={{ strokeOpacity: lineOpacity("gpu"), transition: "stroke-opacity 250ms ease" }}
-                  dot={false} activeDot={{ r: 4, strokeWidth: 0, fill: C.gpuTemp }} strokeDasharray="4 2" connectNulls isAnimationActive={false}
-                />
-              )}
-              {/* VRAM */}
-              {expanded && hasGpuMem && toggles.gpu && (
-                <Line yAxisId="pct" type="monotone" dataKey="gpuMemPct"
-                  name="VRAM (%)" stroke={C.gpuMemPct} strokeWidth={1.5}
-                  style={{ strokeOpacity: lineOpacity("gpu"), transition: "stroke-opacity 250ms ease" }}
-                  dot={false} activeDot={{ r: 3, strokeWidth: 0, fill: C.gpuMemPct }} strokeDasharray="6 3" connectNulls isAnimationActive={false}
                 />
               )}
               {/* Disk read/write separate lines in expanded mode */}
@@ -1263,11 +1178,10 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
           {isLoading
             ? "Waiting for telemetry data…"
             : expanded
-              ? `${expandedCount} metrics · right axis: KB/s${hasDiskRW ? " · disk R/W" : ""}${hasGpuLoad ? " · GPU" : ""}${!hasDiskData && !hasDiskRW ? " · disk unavailable" : ""}`
+              ? `${expandedCount} metrics · right axis: KB/s${hasDiskRW ? " · disk R/W" : ""}${!hasDiskData && !hasDiskRW ? " · disk unavailable" : ""}`
               : [
                   "CPU", "RAM",
                   hasDiskData ? "Disk %" : (hasDiskRW ? "Disk (expand for R/W)" : null),
-                  hasGpuLoad ? "GPU" : null,
                 ].filter(Boolean).join(", ")
           }
           {selectedDiskMount ? ` · ${selectedDiskMount}` : ""}
