@@ -365,6 +365,14 @@ ACTION MARKERS:
 - Navigate: <<NAV:/route:Label>> — frontend converts to a "Go to Section" button. Use whenever user asks where something is.
 - Both types of markers are stripped from display text and replaced with buttons — they will NOT appear as raw text.
 
+CRITICAL FORMAT RULE: NEVER write [id:X] or [id:tweakId] in your responses. The [id:X] notation appears only in the system state context — it is the input format, NOT the output format. In your responses, always and only use <<APPLY:X>> markers. Writing [id:X] in a response is a bug.
+
+PROACTIVE APPLY RULE: When you list or recommend tweaks, ALWAYS end with an offer to apply them. Examples:
+- "Want me to apply any of these?" 
+- "Say which ones you'd like and I'll apply them."
+- "I can apply all of these with one click — just say the word."
+Never just list tweaks and leave the user wondering what to do next.
+
 EXECUTION CONTRACT (HARDEST RULE — VIOLATION BREAKS THE APP):
 You are FORBIDDEN from writing any of these phrases unless they are followed within the same sentence by a valid <<APPLY:tweakId>> marker using an id from the lists above:
   "I'll apply", "I will apply", "Applying", "Let me apply", "Let's apply",
@@ -1050,17 +1058,26 @@ aiRouter.post("/chat", async (req: Request, res: Response) => {
     }
 
     // lastUserMsg and resolvedTweakIds are already computed above (before OpenAI call)
-    const enforced = enforceApplyContract(rawContent, context, String(lastUserMsg), cloudUser?.id, resolvedTweakIds);
-    const finalContent = enforced.content;
-
-    const previewOutput = finalContent.slice(0, 150).replace(/\n/g, " ");
-    console.log(`[AI:chat] OK | user=${cloudUser?.id} | chars=${finalContent.length} | injected=${enforced.injected.length} rewritten=${enforced.rewritten} | preview="${previewOutput}${finalContent.length > 150 ? "…" : ""}"`);
+    let finalContent = rawContent;
+    try {
+      const enforced = enforceApplyContract(rawContent, context, String(lastUserMsg), cloudUser?.id, resolvedTweakIds);
+      finalContent = enforced.content;
+      const previewOutput = finalContent.slice(0, 150).replace(/\n/g, " ");
+      console.log(`[AI:chat] OK | user=${cloudUser?.id} | chars=${finalContent.length} | injected=${enforced.injected.length} rewritten=${enforced.rewritten} | preview="${previewOutput}${finalContent.length > 150 ? "…" : ""}"`);
+    } catch (contractErr: any) {
+      console.error(`[AI:chat] enforceApplyContract threw — returning raw content | user=${cloudUser?.id} | ${contractErr?.message}`);
+    }
     return res.json({ role: "assistant", content: finalContent });
 
   } catch (error: any) {
     const status = error?.status;
-    console.error(`[AI:chat] ERROR | user=${cloudUser?.id} | status=${status} | ${error?.message || "unknown"}`);
+    const code = error?.code;
+    const errMsg = error?.message || "unknown";
+    console.error(`[AI:chat] ERROR | user=${cloudUser?.id} | status=${status} | code=${code} | msg="${errMsg}"`);
     if (status === 429) return res.status(429).json({ error: "Rate limit reached. Please wait a moment." });
+    if (status === 400 && errMsg.includes("context_length")) {
+      return res.status(400).json({ error: "Conversation is too long. Please start a new chat." });
+    }
     return res.status(500).json({ error: "Failed to get AI response. Please try again." });
   }
 });

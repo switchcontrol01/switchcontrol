@@ -958,8 +958,8 @@ function ChatBubble({ msg, isSlow, reducedMotion, onApply, onApplyInline, isAdmi
 // ── Suggested Prompt Chips ────────────────────────────────────────────────────
 
 const SUGGESTED_PROMPTS = [
+  "Apply the best tweaks for my setup",
   "What's the single biggest thing I can do right now?",
-  "Explain what each tweak category does",
   "Is my setup good for competitive FPS games?",
   "What tweaks are safe to enable without risk?",
 ];
@@ -1364,14 +1364,14 @@ export default function AiAdvisor() {
     if (hasSpecs) {
       const specLine = specParts.join(" · ");
       if (enabledTweaks.length === 0) {
-        welcomeText = `System detected: **${specLine}**\n\nNo tweaks are active yet — ${disabledTweaks.length} optimizations are available. Use a quick action on the left to start, or ask me anything about your setup.`;
+        welcomeText = `System detected: **${specLine}**\n\nNo tweaks are active yet — ${disabledTweaks.length} optimizations are available. I can apply the best ones for you with one click, or walk you through any of them. Just ask "apply the best tweaks for me" or name a specific one.`;
       } else if (disabledTweaks.length > 5) {
-        welcomeText = `System detected: **${specLine}**\n\n${enabledTweaks.length} tweaks active (${coveragePct}% coverage). Still ${disabledTweaks.length} improvements available. Ask me what to prioritize next.`;
+        welcomeText = `System detected: **${specLine}**\n\n${enabledTweaks.length} tweaks active (${coveragePct}% coverage) — ${disabledTweaks.length} improvements still available. I can apply tweaks directly or guide you through them. Ask "what should I apply next?" or name a specific tweak to apply it instantly.`;
       } else {
-        welcomeText = `System detected: **${specLine}**\n\n${enabledTweaks.length} tweaks active. Ask me for a system audit, latency analysis, or specific game recommendations.`;
+        welcomeText = `System detected: **${specLine}**\n\n${enabledTweaks.length} tweaks active. I can apply additional optimizations directly or walk you through any changes. Ask for a full audit, or name a tweak and I'll apply it.`;
       }
     } else {
-      welcomeText = `Ask me about your system state, performance metrics, or configuration.\n\nHardware specs appear automatically when running on Windows. You can also upload a screenshot for visual analysis.`;
+      welcomeText = `Ask me about your system, or say "apply the best tweaks for me" and I'll optimize your setup directly.\n\nHardware specs appear automatically when running on Windows. You can also upload a screenshot for visual analysis.`;
     }
 
     setMessages([{
@@ -1566,6 +1566,54 @@ export default function AiAdvisor() {
             timestamp: new Date(),
           }]);
           return;
+        }
+      }
+
+      // ── DIRECT BYPASS: tweak name apply intent ────────────────────────────
+      // If the user says "can you apply core iso?" or "show me timer resolution"
+      // match the tweak name directly from context and show the apply card —
+      // no server round-trip needed. This prevents "Server error" on explicit
+      // apply requests when the AI previously listed tweaks without <<APPLY:>>
+      // markers (e.g. using the [id:X] context format by mistake).
+      if (!imgData && contextRef.current) {
+        const TWEAK_APPLY_INTENT_RE = /\b(apply|enable|turn on|show me|show|activate|can you apply|can you enable|can you show)\b/i;
+        if (TWEAK_APPLY_INTENT_RE.test(messageContent)) {
+          const allCtxTweaks = [
+            ...(contextRef.current.disabledTweaks || []),
+            ...(contextRef.current.enabledTweaks || []),
+          ];
+          const lowerMsg = messageContent.toLowerCase();
+          const sortedCtx = [...allCtxTweaks].sort((a, b) => b.title.length - a.title.length);
+          const nameMatch = sortedCtx.find(t => t.title.length >= 4 && lowerMsg.includes(t.title.toLowerCase()));
+          if (nameMatch) {
+            const tweak = getTweak(nameMatch.id);
+            if (tweak?.supported) {
+              clearTimeout(timeoutId);
+              if (slowTimerRef.current) clearTimeout(slowTimerRef.current);
+              setIsSlowRequest(false);
+              setLoading(false);
+              setMessages(prev => {
+                const withoutThinking = prev.filter(m => m.id !== assistantId);
+                return [
+                  ...withoutThinking,
+                  { id: assistantId, role: "assistant" as const, content: `Here's **${nameMatch.title}** — ready to apply with one click.`, timestamp: new Date() },
+                  {
+                    id: `recs-${assistantId}`,
+                    role: "assistant" as const,
+                    content: "",
+                    timestamp: new Date(),
+                    structured: {
+                      type: "recommendations" as const,
+                      items: [{ tweakId: nameMatch.id, reason: tweak.description.slice(0, 120), expectedImpact: tweak.impact?.[0] ?? undefined }],
+                    },
+                  },
+                ];
+              });
+              setTimeout(forceScrollBottom, 80);
+              inputRef.current?.focus();
+              return;
+            }
+          }
         }
       }
 
