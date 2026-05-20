@@ -91,7 +91,20 @@
           "!opengraph.jpg",
           "!android-chrome-*.png",
           "!*.md",
-          "!*.txt"
+          "!*.txt",
+          "!assets/Landing-*.js",
+          "!assets/Features-*.js",
+          "!assets/Pricing-*.js",
+          "!assets/Download-*.js",
+          "!assets/Terms-*.js",
+          "!assets/Privacy-*.js",
+          "!assets/FAQ-*.js",
+          "!assets/Success-*.js",
+          "!assets/PremiumSuccess-*.js",
+          "!assets/Login-*.js",
+          "!assets/Admin-*.js",
+          "!assets/WebsiteShell-*.js",
+          "!assets/WebsiteBackground-*.js"
         ]
       },
       {
