@@ -107,7 +107,7 @@ export default function Splash({ onComplete }: SplashProps) {
   // Logo appears immediately when the container reveals.
   // Text follows +80ms later for a polished sequential entry.
   // Sweep fires at +240ms for the diagonal light effect.
-  // onComplete at +350ms hands off to App.tsx (was 520ms).
+  // onComplete at +3200ms hands off to App.tsx — splash covers ~80% of startup.
   useEffect(() => {
     if (!ready) return;
 
@@ -118,7 +118,7 @@ export default function Splash({ onComplete }: SplashProps) {
     const done = setTimeout(() => {
       console.log('[LAUNCH:R5] Splash onComplete — handing off to App');
       onComplete();
-    }, 350);
+    }, 3200);
 
     return () => {
       clearTimeout(t2);
