@@ -41,14 +41,14 @@ const VALID_TWEAK_IDS = new Set<string>([
   "dns-doh", "dns-optimize",
 ]);
 
-// ── Startup migration: upgrade sole-PK table to composite (user_id, tweak_id) ─
-// Safe/idempotent: each step is guarded by IF NOT EXISTS / IF EXISTS checks.
-// Runs once on server start; errors are non-fatal warnings.
+// ── Startup migration: ensure user_id columns exist ──────────────────────────
+// Idempotent: guarded by IF NOT EXISTS. Sole PK remains on tweak_id (matches
+// Drizzle schema) so Replit's publish-time diff only generates ADD COLUMN, not
+// a PK change. Reads are scoped with WHERE user_id = ... for per-user isolation.
 
 async function migrateNetworkTweakState() {
   if (isNoDbMode || !db) return;
   try {
-    // 1. Ensure user_id column exists on both tables (idempotent: IF NOT EXISTS).
     await db.execute(sql`
       ALTER TABLE network_tweak_state
         ADD COLUMN IF NOT EXISTS user_id TEXT NOT NULL DEFAULT '__legacy__'
@@ -57,42 +57,7 @@ async function migrateNetworkTweakState() {
       ALTER TABLE network_tweak_log
         ADD COLUMN IF NOT EXISTS user_id TEXT NOT NULL DEFAULT '__legacy__'
     `);
-
-    // 2. Inspect the current primary key on network_tweak_state.
-    //    We handle three states:
-    //    a) sole PK on tweak_id only        → drop it, add composite (user_id, tweak_id)
-    //    b) composite PK already present    → nothing to do
-    //    c) no PK at all (publish flow may have dropped it but failed to add) → add composite directly
-    const { rows } = await db.execute(sql`
-      SELECT c.conname, array_length(c.conkey, 1) AS col_count
-      FROM   pg_constraint c
-      JOIN   pg_class      t ON t.oid = c.conrelid
-      WHERE  t.relname = 'network_tweak_state'
-        AND  c.contype = 'p'
-    `);
-
-    if (rows.length === 0) {
-      // State (c): no PK — add composite directly
-      console.log('[NetworkTweaks] no PK found on network_tweak_state — adding composite (user_id, tweak_id)');
-      await db.execute(sql`
-        ALTER TABLE network_tweak_state ADD PRIMARY KEY (user_id, tweak_id)
-      `);
-      console.log('[NetworkTweaks] composite PK added');
-    } else if ((rows[0].col_count as number) === 1) {
-      // State (a): sole PK — upgrade to composite
-      const constraintName = rows[0].conname as string;
-      console.log(`[NetworkTweaks] upgrading sole-PK "${constraintName}" → composite (user_id, tweak_id)`);
-      await db.execute(
-        sql.raw(`ALTER TABLE network_tweak_state DROP CONSTRAINT IF EXISTS "${constraintName}"`)
-      );
-      await db.execute(sql`
-        ALTER TABLE network_tweak_state ADD PRIMARY KEY (user_id, tweak_id)
-      `);
-      console.log('[NetworkTweaks] migration complete — composite PK in place');
-    } else {
-      // State (b): composite PK already present
-      console.log('[NetworkTweaks] network_tweak_state schema OK — composite PK already present');
-    }
+    console.log('[NetworkTweaks] schema OK — user_id columns present');
   } catch (e: any) {
     console.warn('[NetworkTweaks] migrateNetworkTweakState non-fatal error:', e.message);
   }
@@ -169,13 +134,14 @@ router.post("/:tweakId/report", requireJwt, networkTweakRateLimit, async (req: a
     const resultJson = JSON.stringify({ action, success, verified, message });
     const appliedAt = success && action === "apply" ? new Date() : null;
 
-    // ON CONFLICT targets the composite PK (user_id, tweak_id) so each user's
-    // state is independent — one user can never overwrite another's tweak state.
+    // ON CONFLICT targets the sole PK (tweak_id). user_id is also written so
+    // reads scoped with WHERE user_id = ... see the correct user's state.
     await db.execute(sql`
       INSERT INTO network_tweak_state (user_id, tweak_id, status, last_result, applied_at, updated_at)
       VALUES (${userId}, ${tweakId}, ${status}, ${resultJson}::jsonb, ${appliedAt}, NOW())
-      ON CONFLICT (user_id, tweak_id) DO UPDATE
-        SET status      = EXCLUDED.status,
+      ON CONFLICT (tweak_id) DO UPDATE
+        SET user_id     = EXCLUDED.user_id,
+            status      = EXCLUDED.status,
             last_result = EXCLUDED.last_result,
             applied_at  = EXCLUDED.applied_at,
             updated_at  = NOW()
