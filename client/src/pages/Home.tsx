@@ -785,8 +785,8 @@ export default function Home() {
             <div>
               <StatCard
                 title="Memory"
-                value={Number.isFinite(liveRamUsedGb) ? liveRamUsedGb.toFixed(1) : '0.0'}
-                total={liveRamTotalGb}
+                value={Number.isFinite(liveRamUsedGb) && liveRamUsedGb > 0 ? liveRamUsedGb.toFixed(1) : '--'}
+                total={liveRamTotalGb > 0 ? liveRamTotalGb : undefined}
                 unit="GB"
                 icon={MemoryStick}
                 onIconClick={() => setMemIntelOpen(true)}
@@ -794,7 +794,7 @@ export default function Home() {
                 actionLabel="Clear RAM"
                 onAction={() => setMemCleanerOpen(true)}
                 className="border-teal-500/20 shadow-[0_0_20px_-10px_hsl(170_100%_50%/0.1)]"
-                loading={specStatus === "loading"}
+                loading={specStatus === "loading" || (telStatus === "loading" && liveRamUsedGb === 0)}
               />
             </div>
             

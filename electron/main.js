@@ -945,12 +945,13 @@ function createWindow() {
       mainWindow.focus();
       console.log(`[LAUNCH:5] mainWindow.show() -- instant, no opacity games | ${launchMs()}`);
 
-      // Telemetry deferred so it doesn't compete with first paint.
+      // Telemetry deferred slightly so it doesn't compete with first paint.
+      // 500ms is enough for the Splash to finish; well under the old 2s wait.
       setTimeout(() => {
         _bm.telemetryStart = Date.now();
-        console.log(`[LAUNCH:7] starting telemetry -- 2000ms post window-shown | ${launchMs()}`);
+        console.log(`[LAUNCH:7] starting telemetry -- 500ms post window-shown | ${launchMs()}`);
         startTelemetryPolling().catch(e => console.error('[telemetry:poll] startTelemetryPolling error:', e.message));
-      }, 2000);
+      }, 500);
     });
 
   // ready-to-show: DIAGNOSTIC ONLY — do NOT call show() here.
