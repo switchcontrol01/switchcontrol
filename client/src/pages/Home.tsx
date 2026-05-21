@@ -482,6 +482,22 @@ export default function Home() {
       if (s?.cpuName && s.cpuName !== 'Unavailable' && s.cpuName !== '' && (s.totalRamGb ?? 0) > 0) {
         console.log('[Home] Specs pre-loaded from Splash — skipping getSpecs()');
         setSpecStatus("ready");
+        // GPU may still be "Detecting…" if WMI enrichment hadn't finished when
+        // Splash captured specs. Subscribe to the push event (~1-2s after startup)
+        // so the GPU card updates without re-running the full getSpecs() IPC call.
+        const api = (window as any).electronAPI;
+        if (api?.system?.onSpecsEnriched) {
+          const unsub = api.system.onSpecsEnriched((payload: any) => {
+            const gpuModel: string | undefined = payload?.gpu?.model;
+            if (!gpuModel || gpuModel === 'Detecting\u2026' || gpuModel === 'Unavailable' || gpuModel === '') return;
+            const cur = (useStore as any).getState?.()?.stats;
+            const curGpu: string = cur?.gpuName ?? '';
+            if (curGpu && curGpu !== 'Detecting\u2026' && curGpu !== '' && curGpu !== 'Unavailable') return;
+            setStats({ gpuName: gpuModel, gpuVendor: payload.gpu?.vendor ?? '' });
+            console.log('[Home] GPU updated from specs:enriched —', gpuModel);
+          });
+          return unsub as () => void;
+        }
         return;
       }
     } catch {}

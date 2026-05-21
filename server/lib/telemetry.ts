@@ -599,11 +599,11 @@ function siWithTimeout<T>(fn: () => Promise<T>, ms = 5_000, label = 'si call'): 
 
 export async function getSystemSpecs() {
   const [cpu, mem, os, gpu, disk] = await Promise.allSettled([
-    siWithTimeout(() => si.cpu(), 5_000, 'si.cpu()').catch(() => { throw new Error('cpu timeout'); }),
-    siWithTimeout(() => si.mem(), 5_000, 'si.mem()').catch(() => { throw new Error('mem timeout'); }),
-    siWithTimeout(() => si.osInfo(), 5_000, 'si.osInfo()').catch(() => { throw new Error('osInfo timeout'); }),
-    siWithTimeout(() => si.graphics(), 5_000, 'si.graphics()').catch(() => { throw new Error('graphics timeout'); }),
-    siWithTimeout(() => si.diskLayout(), 5_000, 'si.diskLayout()').catch(() => { throw new Error('diskLayout timeout'); }),
+    siWithTimeout(() => si.cpu(), 30_000, 'si.cpu()').catch(() => { throw new Error('cpu timeout'); }),
+    siWithTimeout(() => si.mem(), 10_000, 'si.mem()').catch(() => { throw new Error('mem timeout'); }),
+    siWithTimeout(() => si.osInfo(), 15_000, 'si.osInfo()').catch(() => { throw new Error('osInfo timeout'); }),
+    siWithTimeout(() => si.graphics(), 20_000, 'si.graphics()').catch(() => { throw new Error('graphics timeout'); }),
+    siWithTimeout(() => si.diskLayout(), 15_000, 'si.diskLayout()').catch(() => { throw new Error('diskLayout timeout'); }),
   ]);
 
   return {

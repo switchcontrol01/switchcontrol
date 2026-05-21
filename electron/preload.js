@@ -172,6 +172,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getRamUsage:    () => ipcRenderer.invoke('system:getRamUsage'),
     getAllDisks:     () => ipcRenderer.invoke('system:getAllDisks'),
     getDisplayInfo: () => ipcRenderer.invoke('system:getDisplayInfo'),
+    onSpecsEnriched: (cb) => {
+      const handler = (_, payload) => cb(payload);
+      ipcRenderer.on('specs:enriched', handler);
+      return () => ipcRenderer.removeListener('specs:enriched', handler);
+    },
   },
 
   // ── Security — system integrity data ────────────────────────────────────────

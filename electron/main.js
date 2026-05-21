@@ -1754,6 +1754,13 @@ async function _enrichSpecsInBackground() {
       };
       cachedSpecsTime = Date.now();
       console.log('[SwitchControl] Specs enriched —', cachedSpecs.cpu.model, '|', cachedSpecs.gpu.model);
+      // Push updated GPU/CPU to renderer so the dashboard card refreshes immediately
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('specs:enriched', {
+          gpu: cachedSpecs.gpu,
+          cpu: cachedSpecs.cpu,
+        });
+      }
     }
   } catch (e) {
     console.warn('[SwitchControl] Background spec enrichment error:', e.message || e);

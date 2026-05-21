@@ -434,21 +434,21 @@ async function collect(): Promise<SystemIntelligenceProfile> {
     procsRes, osRes, batteryRes, usersRes,
     platformStates, monitorEdidRes,
   ] = await Promise.allSettled([
-    siTimeout("baseboard",    si.baseboard(),           1_500),
-    siTimeout("bios",         si.bios(),                1_500),
-    siTimeout("cpu",          si.cpu(),                 6_000), // AMD cold-start can be 5-6s
-    siTimeout("graphics",     si.graphics(),            3_000),
-    siTimeout("memLayout",    si.memLayout(),           2_500),
-    siTimeout("diskLayout",   si.diskLayout(),          2_500),
-    siTimeout("fsSize",       si.fsSize(),              2_500),
-    siTimeout("netIf",        si.networkInterfaces("*"),2_500),
-    siTimeout("netConn",      si.networkConnections(),  2_500),
-    siTimeout("processes",    si.processes(),           2_500),
-    siTimeout("osInfo",       si.osInfo(),              1_500),
-    siTimeout("battery",      si.battery(),             1_000),
-    siTimeout("users",        si.users(),               1_000),
-    siTimeout("platformPS",   collectWindowsPlatformStates(), 2_500),
-    siTimeout("monitorEDID",  collectMonitorEdidNames(),       2_500),
+    siTimeout("baseboard",    si.baseboard(),            8_000),
+    siTimeout("bios",         si.bios(),                 8_000),
+    siTimeout("cpu",          si.cpu(),                 30_000), // AMD WMI cold-start can be 6-7s+
+    siTimeout("graphics",     si.graphics(),            15_000),
+    siTimeout("memLayout",    si.memLayout(),           12_000),
+    siTimeout("diskLayout",   si.diskLayout(),          12_000),
+    siTimeout("fsSize",       si.fsSize(),              12_000),
+    siTimeout("netIf",        si.networkInterfaces("*"),12_000),
+    siTimeout("netConn",      si.networkConnections(),  12_000),
+    siTimeout("processes",    si.processes(),           12_000),
+    siTimeout("osInfo",       si.osInfo(),               8_000),
+    siTimeout("battery",      si.battery(),              5_000),
+    siTimeout("users",        si.users(),                5_000),
+    siTimeout("platformPS",   collectWindowsPlatformStates(), 12_000),
+    siTimeout("monitorEDID",  collectMonitorEdidNames(),       12_000),
   ]);
   const edidNames: Array<{ name: string; manufacturer: string }> =
     monitorEdidRes.status === "fulfilled" ? monitorEdidRes.value : [];
@@ -458,7 +458,7 @@ async function collect(): Promise<SystemIntelligenceProfile> {
   try {
     const chassis = await Promise.race([
       si.chassis(),
-      new Promise<null>(r => setTimeout(() => r(null), 1_500)),
+      new Promise<null>(r => setTimeout(() => r(null), 8_000)),
     ]);
     chassisType = chassis ? safeStr((chassis as any).type) : null;
   } catch {}
@@ -769,11 +769,11 @@ async function collectFast(): Promise<SystemIntelligenceProfile> {
   console.log("[SysIntelligence] phase=A start — identity collection");
 
   const [bbRes, biosRes, cpuRes, graphicsRes, memRes] = await Promise.allSettled([
-    siTimeout("A.baseboard", si.baseboard(), 3_000),
-    siTimeout("A.bios",      si.bios(),      3_000),
-    siTimeout("A.cpu",       si.cpu(),       7_000), // AMD WMI cold-start can reach 6-7s
-    siTimeout("A.graphics",  si.graphics(),  2_000), // reduced: 3s→2s, display list deferred
-    siTimeout("A.mem",       si.mem(),       2_000),
+    siTimeout("A.baseboard", si.baseboard(), 12_000),
+    siTimeout("A.bios",      si.bios(),      12_000),
+    siTimeout("A.cpu",       si.cpu(),       30_000), // AMD WMI cold-start can reach 6-7s+
+    siTimeout("A.graphics",  si.graphics(),  12_000),
+    siTimeout("A.mem",       si.mem(),        8_000),
   ]);
 
   const bb       = bbRes.status      === "fulfilled" ? (bbRes.value as any)       : null;
