@@ -80,6 +80,33 @@ let _resolvingPromise: Promise<string> | null = null;
 let _backendReady = !isPackagedElectron;
 let _backendReadyListeners: Array<() => void> = [];
 
+// ── Backend-error fast-fail ────────────────────────────────────────────────
+// When the packaged backend fails to start (missing bundle, crash, etc.) the
+// main process fires a backend-error IPC. Instead of waiting the full 50-second
+// poll timeout, we reject the port promise immediately so the UI can show a
+// clear error message rather than spinning forever.
+let _backendErrorMsg: string | null = null;
+let _backendErrorReject: ((e: Error) => void) | null = null;
+// Promise<never> — only ever rejects, never resolves.
+const _backendErrorPromise: Promise<never> = new Promise<never>((_, reject) => {
+  _backendErrorReject = reject;
+});
+
+if (typeof window !== 'undefined') {
+  const api = (window as any).electronAPI;
+  if (api?.onBackendError) {
+    api.onBackendError((data: any) => {
+      const msg: string = data?.error ?? 'Backend failed to start';
+      _backendErrorMsg = msg;
+      console.error('[API] backend-error IPC received — rejecting port poll immediately:', msg);
+      _backendErrorReject?.(new Error(msg));
+    });
+  }
+}
+
+/** Returns the backend-error message if the backend failed to start, or null. */
+export function getBackendErrorMsg(): string | null { return _backendErrorMsg; }
+
 // Tracks an in-flight JWT reissue so parallel expired requests share one round-trip.
 let _jwtReissuePromise: Promise<string | null> | null = null;
 
@@ -209,9 +236,8 @@ async function pollForBackendPort(): Promise<number> {
     })();
   });
 
-  // Race: poll loop vs. backend-ready push notification.
-  // Whichever wins first resolves us immediately.
-  const port = await Promise.race([loopPromise, _backendPushPortPromise]);
+  // Race: poll loop vs. backend-ready push vs. backend-error (rejects immediately).
+  const port = await Promise.race([loopPromise, _backendPushPortPromise, _backendErrorPromise]);
   console.log(`[API] Backend port resolved: ${port} (${Date.now() - start}ms, push or poll)`);
   return port;
 }

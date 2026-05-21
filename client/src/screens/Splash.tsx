@@ -9,10 +9,29 @@ interface SplashProps {
   onComplete: () => void;
 }
 
-// Total splash duration — kept short for instant feel.
-// Pre-warm (telemetry + specs) fires immediately on mount so systems are
-// hydrated DURING the splash, not after it.
 const SPLASH_MS = 1400;
+
+// Dust particles — opacity + transform only, no filter animations
+const PARTICLES = Array.from({ length: 28 }, (_, i) => ({
+  id: i,
+  x: (i * 37 + 11) % 100,
+  y: (i * 53 + 7)  % 100,
+  size: 1.2 + (i % 4) * 0.6,
+  opacity: 0.12 + (i % 5) * 0.06,
+  dur: 6 + (i % 7) * 2.2,
+  dx: ((i % 9) - 4) * 18,
+  dy: ((i % 6) - 3) * 12,
+  delay: (i * 0.28) % 4,
+}));
+
+// Diagonal sun-streak beams — opacity only, blur is static (not animated)
+const STREAKS = [
+  { left: "4%",  top: "-8%",  rot: "28deg", w: "170vw", h: "6px",  color: "rgba(168,85,247,0.55)",  blur: 4,   dur: 18, delay: 0   },
+  { left: "14%", top: "18%",  rot: "24deg", w: "155vw", h: "4px",  color: "rgba(0,200,255,0.48)",   blur: 3,   dur: 22, delay: 1.4 },
+  { left: "2%",  top: "44%",  rot: "20deg", w: "145vw", h: "8px",  color: "rgba(168,85,247,0.42)",  blur: 5,   dur: 26, delay: 0.7 },
+  { left: "28%", top: "-4%",  rot: "32deg", w: "125vw", h: "3px",  color: "rgba(0,230,255,0.45)",   blur: 2.5, dur: 20, delay: 2.8 },
+  { left: "0%",  top: "62%",  rot: "18deg", w: "135vw", h: "5px",  color: "rgba(200,120,255,0.40)", blur: 3.5, dur: 24, delay: 4.0 },
+];
 
 export default function Splash({ onComplete }: SplashProps) {
   const [contentVisible, setContentVisible] = useState(false);
@@ -20,11 +39,8 @@ export default function Splash({ onComplete }: SplashProps) {
   const tagline = useMemo(() => getHonestTagline(), []);
 
   useEffect(() => {
-    // Tell main process the renderer has painted dark content — window shows now.
     (window as any).electronAPI?.signalFirstFrameReady?.();
 
-    // Pre-warm: start WebSocket telemetry and pre-fetch specs while splash plays.
-    // By the time the splash finishes the dashboard gets instant data.
     telemetryManager.start();
 
     const api = (window as any).electronAPI;
@@ -55,7 +71,6 @@ export default function Splash({ onComplete }: SplashProps) {
         .catch(() => {});
     }
 
-    // Reveal content on the first frame
     const tContent = setTimeout(() => setContentVisible(true), 60);
     const tDone = setTimeout(() => {
       console.log('[LAUNCH:R5] Splash onComplete — handing off to App');
@@ -68,7 +83,7 @@ export default function Splash({ onComplete }: SplashProps) {
     };
   }, [onComplete]);
 
-  // rAF-based progress bar — avoids IntervalGuard 2000ms clamp
+  // rAF-based progress bar
   const progressRef = useRef(0);
   useEffect(() => {
     let rafId: number;
@@ -102,7 +117,7 @@ export default function Splash({ onComplete }: SplashProps) {
       className="fixed inset-0 overflow-hidden flex items-center justify-center"
       style={{ background: "#07090D" }}
     >
-      {/* ── Static ambient glow — NO animated blur, single composited layer ── */}
+      {/* ── Static ambient glow — single non-animated composited layer ── */}
       <div
         className="absolute pointer-events-none"
         style={{
@@ -114,7 +129,47 @@ export default function Splash({ onComplete }: SplashProps) {
         }}
       />
 
-      {/* ── Logo + text — only opacity + transform, zero blur on animated props ── */}
+      {/* ── Diagonal sun-streak beams — opacity-only animation, blur is static ── */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {STREAKS.map((s, i) => (
+          <motion.div
+            key={i}
+            className="absolute"
+            style={{
+              left: s.left, top: s.top,
+              width: s.w, height: s.h,
+              background: `linear-gradient(90deg, transparent 0%, ${s.color} 30%, ${s.color} 70%, transparent 100%)`,
+              transform: `rotate(${s.rot})`,
+              transformOrigin: "left center",
+              filter: `blur(${s.blur}px)`,
+            }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: [0, 1, 0.65, 1, 0] }}
+            transition={{ duration: s.dur, repeat: Infinity, ease: "easeInOut", delay: s.delay }}
+          />
+        ))}
+      </div>
+
+      {/* ── Floating dust particles — opacity + transform only ── */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 3 }}>
+        {PARTICLES.map(p => (
+          <motion.div
+            key={p.id}
+            className="absolute rounded-full"
+            style={{
+              left: `${p.x}%`, top: `${p.y}%`,
+              width: p.size, height: p.size,
+              background: p.id % 3 === 0 ? 'rgba(168,85,247,1)' : p.id % 3 === 1 ? 'rgba(0,210,255,1)' : 'rgba(210,160,255,1)',
+              boxShadow: `0 0 ${p.size * 2}px ${p.size}px ${p.id % 3 === 0 ? 'rgba(168,85,247,0.5)' : p.id % 3 === 1 ? 'rgba(0,210,255,0.5)' : 'rgba(210,160,255,0.5)'}`,
+            }}
+            initial={{ opacity: p.opacity * 0.2 }}
+            animate={{ x: [0, p.dx, 0], y: [0, p.dy, 0], opacity: [p.opacity * 0.2, p.opacity, p.opacity * 0.35, p.opacity, p.opacity * 0.2] }}
+            transition={{ duration: p.dur, repeat: Infinity, ease: 'easeInOut', delay: p.delay }}
+          />
+        ))}
+      </div>
+
+      {/* ── Logo + text — opacity + transform, no blur animation ── */}
       <div className="relative flex flex-col items-center gap-7" style={{ zIndex: 10 }}>
 
         <AnimatePresence>
@@ -125,7 +180,7 @@ export default function Splash({ onComplete }: SplashProps) {
               transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
               className="relative"
             >
-              {/* Outer glow ring — opacity-only animation, no blur change */}
+              {/* Outer glow ring — opacity animation only */}
               <motion.div
                 className="absolute rounded-[26%] pointer-events-none"
                 style={{
@@ -137,7 +192,7 @@ export default function Splash({ onComplete }: SplashProps) {
                 transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }}
               />
 
-              {/* Shimmer sweep inside logo — opacity + transform only */}
+              {/* Shimmer sweep inside logo — transform only */}
               <div className="absolute inset-0 rounded-[22%] overflow-hidden pointer-events-none">
                 <motion.div
                   className="absolute inset-0"
@@ -196,7 +251,6 @@ export default function Splash({ onComplete }: SplashProps) {
                   animate={{ width: `${progress}%` }}
                   transition={{ duration: 0.08, ease: "linear" }}
                 />
-                {/* Shimmer on the bar — transform only */}
                 <motion.div
                   className="absolute top-0 h-full w-12"
                   style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.50), transparent)" }}

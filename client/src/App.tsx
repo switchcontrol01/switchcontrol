@@ -158,6 +158,7 @@ function ElectronAppContent() {
   const [phase, setPhase] = useState<AppPhase>("splash");
   const [splashDone, setSplashDone] = useState(false);
   const [showGlow, setShowGlow] = useState(false);
+  const [backendError, setBackendError] = useState<string | null>(null);
   const [isFirstLogin, setIsFirstLogin] = useState(false);
   const [activeFlow, setActiveFlow] = useState<AppFlow>("none");
   const [isResetting, setIsResetting] = useState(false);
@@ -216,6 +217,19 @@ function ElectronAppContent() {
     console.log('[TrialExpiry] revert modal opened — redirecting to /dashboard');
     setLocation('/dashboard');
   }, [revertModalOpen, phase]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Backend-error listener — shows an error immediately instead of spinning for 50s.
+  // The api.ts module-level listener already rejects the port poll; this sets the
+  // UI state so the booting screen displays a human-readable message.
+  useEffect(() => {
+    if (!isElectron) return;
+    const api = (window as any).electronAPI;
+    if (!api?.onBackendError) return;
+    const remove = api.onBackendError((data: any) => {
+      setBackendError(data?.error ?? 'Backend failed to start. Please reinstall.');
+    });
+    return remove;
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // First-run baseline scan — records pre-existing applied state before the app touches anything
   useBaselineScan();
@@ -1058,16 +1072,37 @@ function ElectronAppContent() {
             style={{ position: "absolute", inset: 0, zIndex: 1 }}
             className="h-full flex items-center justify-center"
           >
-            <div className="flex flex-col items-center gap-5">
-              <div className="relative flex items-center justify-center w-8 h-8">
-                {/* CSS animate-ping is compositor-only — no JS frames */}
-                <span className="absolute w-8 h-8 rounded-full border border-text-[#00D4FF]/20 animate-ping" style={{ animationDuration: "2.2s" }} />
-                <span className="w-2 h-2 rounded-full bg-text-[#00D4FF]/60 animate-pulse" style={{ animationDuration: "1.6s" }} />
+            {backendError ? (
+              <div className="flex flex-col items-center gap-4 max-w-xs text-center px-8">
+                <div className="w-10 h-10 rounded-full flex items-center justify-center"
+                  style={{ background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.25)" }}>
+                  <span className="text-red-400 text-lg font-bold">!</span>
+                </div>
+                <p className="text-[11px] text-white/50 leading-relaxed">
+                  Backend failed to start
+                </p>
+                <p className="text-[10px] text-white/25 leading-relaxed">
+                  Please reinstall SwitchControl, then launch again.
+                </p>
+                <button
+                  onClick={() => (window as any).electronAPI?.quitApp?.()}
+                  className="mt-1 px-4 py-1.5 rounded-lg text-[10px] text-white/40 tracking-widest uppercase"
+                  style={{ border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.03)" }}
+                >
+                  Close
+                </button>
               </div>
-              <p className="text-[10px] text-white/20 tracking-[0.28em] uppercase animate-pulse" style={{ animationDuration: "2.4s", animationDelay: "0.3s" }}>
-                Starting
-              </p>
-            </div>
+            ) : (
+              <div className="flex flex-col items-center gap-5">
+                <div className="relative flex items-center justify-center w-8 h-8">
+                  <span className="absolute w-8 h-8 rounded-full border border-text-[#00D4FF]/20 animate-ping" style={{ animationDuration: "2.2s" }} />
+                  <span className="w-2 h-2 rounded-full bg-text-[#00D4FF]/60 animate-pulse" style={{ animationDuration: "1.6s" }} />
+                </div>
+                <p className="text-[10px] text-white/20 tracking-[0.28em] uppercase animate-pulse" style={{ animationDuration: "2.4s", animationDelay: "0.3s" }}>
+                  Starting
+                </p>
+              </div>
+            )}
           </motion.div>
         )}
 
