@@ -489,12 +489,14 @@ export default function Home() {
         if (api?.system?.onSpecsEnriched) {
           const unsub = api.system.onSpecsEnriched((payload: any) => {
             const gpuModel: string | undefined = payload?.gpu?.model;
-            if (!gpuModel || gpuModel === 'Detecting\u2026' || gpuModel === 'Unavailable' || gpuModel === '') return;
+            // Allow 'Unavailable' through — it replaces 'Detecting…' so the UI
+            // doesn't stay on the loading spinner permanently when GPU truly unavailable.
+            if (!gpuModel || gpuModel === 'Detecting\u2026' || gpuModel === '') return;
             const cur = (useStore as any).getState?.()?.stats;
             const curGpu: string = cur?.gpuName ?? '';
             if (curGpu && curGpu !== 'Detecting\u2026' && curGpu !== '' && curGpu !== 'Unavailable') return;
             setStats({ gpuName: gpuModel, gpuVendor: payload.gpu?.vendor ?? '' });
-            console.log('[Home] GPU updated from specs:enriched —', gpuModel);
+            console.log('[GPU] renderer: store updated from specs:enriched —', gpuModel);
           });
           return unsub as () => void;
         }
@@ -503,6 +505,7 @@ export default function Home() {
     } catch {}
 
     let cpuRetryId: ReturnType<typeof setTimeout> | null = null; // P3-H2: track AMD cold-start retry timer for cleanup
+    let gpuEnrichUnsub: (() => void) | null = null; // cleanup for the onSpecsEnriched subscriber (non-Splash path)
 
     // loadSystemSpecs() allows up to 20 s for si.cpu() on AMD WMI cold-start
     // plus os.cpus() / os.totalmem() fallbacks if WMI times out.  Use 26 s
@@ -555,12 +558,13 @@ export default function Home() {
           } else {
             setGpuDetailAvailable(false);
           }
+          const _gpuModelFromSpecs = specs.gpu?.model || 'Unavailable';
           setStats({
             cpuName: specs.cpu?.model || 'Unavailable',
             cpuCores: specs.cpu?.cores || 0,
             cpuThreads: specs.cpu?.threads || 0,
             cpuSpeed: specs.cpu?.speed || 'Unavailable',
-            gpuName: specs.gpu?.model || 'Unavailable',
+            gpuName: _gpuModelFromSpecs,
             gpuVendor: specs.gpu?.vendor || 'Unavailable',
             vramGb: specs.gpu?.vramGB || 0,
             totalRamGb: specs.ram?.totalGB || 0,
@@ -574,7 +578,22 @@ export default function Home() {
             osArch: specs.system?.arch || 'Unavailable',
             hostname: specs.system?.hostname || 'Unavailable',
           });
+          console.log('[GPU] renderer: specs received — gpuName:', _gpuModelFromSpecs);
           setSpecStatus("ready");
+          // If GPU is still partial (enrichment in-flight), subscribe to the push event
+          // so the GPU card updates when enrichment completes — same as the Splash path.
+          if ((_gpuModelFromSpecs === 'Detecting\u2026' || _gpuModelFromSpecs === 'Unavailable') && api?.system?.onSpecsEnriched) {
+            console.log('[GPU] renderer: GPU partial — subscribing to specs:enriched');
+            gpuEnrichUnsub = api.system.onSpecsEnriched((payload: any) => {
+              const enrichedGpu: string | undefined = payload?.gpu?.model;
+              if (!enrichedGpu || enrichedGpu === 'Detecting\u2026' || enrichedGpu === '') return;
+              const cur = (useStore as any).getState?.()?.stats;
+              const curGpu: string = cur?.gpuName ?? '';
+              if (curGpu && curGpu !== 'Detecting\u2026' && curGpu !== 'Unavailable' && curGpu !== '') return;
+              setStats({ gpuName: enrichedGpu, gpuVendor: payload.gpu?.vendor ?? '' });
+              console.log('[GPU] renderer: store patched from specs:enriched (non-Splash path) —', enrichedGpu);
+            });
+          }
         }).catch((err: unknown) => {
           console.error('[SwitchControl] Failed to get system specs:', err);
           setSpecStatus("unavailable");
@@ -625,7 +644,7 @@ export default function Home() {
         })
         .catch(() => { setSpecStatus("unavailable"); });
     }
-    return () => { if (cpuRetryId) clearTimeout(cpuRetryId); }; // P3-H2
+    return () => { if (cpuRetryId) clearTimeout(cpuRetryId); gpuEnrichUnsub?.(); }; // P3-H2
   }, [withTimeout]);
 
   useEffect(() => {
