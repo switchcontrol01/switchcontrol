@@ -102,11 +102,10 @@ export type { AppAuthContextValue } from "@/lib/appAuthContext";
 export { useAppAuth } from "@/lib/appAuthContext";
 import { AppAuthContext } from "@/lib/appAuthContext";
 
-// Matches the hard-locked html/body background from index.html so the
-// brief Suspense flash (first-ever load of a lazy chunk) is invisible against the page.
-const DarkFallback = () => (
-  <div style={{ position: "fixed", inset: 0, background: "#07090D" }} />
-);
+// No fullscreen fallback — keeping the fallback null means the shell
+// (Sidebar, AppBackground) stays visible while a lazy chunk loads on first open.
+// startTransition (via useTransitionLocation) keeps the previous page mounted
+// during the chunk fetch, so in the common case nothing flashes at all.
 
 // ElectronAppRoutes — uses Wouter component-prop form so React's reconciler
 // sees stable component types at each route position.  A single ErrorBoundary
@@ -118,7 +117,7 @@ function ElectronAppRoutes() {
   const [location] = useLocation();
   return (
     <ErrorBoundary route={location}>
-      <Suspense fallback={<DarkFallback />}>
+      <Suspense fallback={null}>
         <Switch>
           <Route path="/"               component={Home} />
           <Route path="/dashboard"      component={Home} />
@@ -147,7 +146,7 @@ function ElectronAppRoutes() {
 
 function WebsiteRoutes() {
   return (
-    <Suspense fallback={<DarkFallback />}>
+    <Suspense fallback={null}>
       <Switch>
         <Route path="/" component={Landing} />
         <Route path="/features" component={Features} />
@@ -292,6 +291,26 @@ function ElectronAppContent() {
   useEffect(() => {
     if (phase !== 'authenticated') return;
     telemetryManager.start();
+  }, [phase]);
+
+  // Preload common lazy routes ~1s after the dashboard is stable so that
+  // first-open navigations never hit a chunk-fetch delay.  The delay keeps
+  // this work off the critical startup path.
+  useEffect(() => {
+    if (phase !== 'authenticated') return;
+    const t = setTimeout(() => {
+      void import("@/pages/Tweaks");
+      void import("@/pages/SystemCleaner");
+      void import("@/pages/AiAdvisor");
+      void import("@/pages/Settings");
+      void import("@/pages/NetworkTweaks");
+      void import("@/pages/PowerPlan");
+      void import("@/pages/AppBooster");
+      void import("@/pages/FocusMode");
+      void import("@/pages/Security");
+      void import("@/pages/History");
+    }, 1000);
+    return () => clearTimeout(t);
   }, [phase]);
 
   // Recovery: if the WS was rejected (no_token) during startup because the
