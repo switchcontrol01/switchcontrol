@@ -1,8 +1,17 @@
-import React, { useEffect, useState, useCallback, lazy, Suspense } from "react";
+import React, { useEffect, useState, useCallback, lazy, Suspense, startTransition } from "react";
 import { PerformanceOverlay } from "@/components/debug/PerformanceOverlay";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { Router, Route, Switch } from "wouter";
+import { Router, Route, Switch, useLocation } from "wouter";
 import { useHashLocation } from "wouter/use-hash-location";
+
+function useTransitionLocation(): [string, (to: string, opts?: any) => void] {
+  const [location, rawNavigate] = useHashLocation();
+  const navigate = useCallback(
+    (to: string, opts?: any) => startTransition(() => rawNavigate(to, opts)),
+    [rawNavigate]
+  );
+  return [location, navigate];
+}
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -94,74 +103,45 @@ export { useAppAuth } from "@/lib/appAuthContext";
 import { AppAuthContext } from "@/lib/appAuthContext";
 
 // Matches the hard-locked html/body background from index.html so the
-// brief Suspense flash (if it ever fires) is invisible against the page.
+// brief Suspense flash (first-ever load of a lazy chunk) is invisible against the page.
 const DarkFallback = () => (
-  <div style={{ position: "fixed", inset: 0, background: "#14181D" }} />
+  <div style={{ position: "fixed", inset: 0, background: "#07090D" }} />
 );
 
+// ElectronAppRoutes — uses Wouter component-prop form so React's reconciler
+// sees stable component types at each route position.  A single ErrorBoundary
+// wraps the whole Switch; it auto-resets via getDerivedStateFromProps whenever
+// the location changes, so a crash on one page never persists to the next.
+// Navigation is wrapped in startTransition (via useTransitionLocation) so React
+// 18 keeps the current page visible instead of showing DarkFallback on every nav.
 function ElectronAppRoutes() {
+  const [location] = useLocation();
   return (
-    <Suspense fallback={<DarkFallback />}>
-      <Switch>
-        <Route path="/">
-          <ErrorBoundary route="home"><Home /></ErrorBoundary>
-        </Route>
-        <Route path="/dashboard">
-          <ErrorBoundary route="dashboard"><Home /></ErrorBoundary>
-        </Route>
-        <Route path="/tweaks">
-          <ErrorBoundary route="tweaks"><Tweaks /></ErrorBoundary>
-        </Route>
-        <Route path="/power-plan">
-          <ErrorBoundary route="power-plan"><PowerPlan /></ErrorBoundary>
-        </Route>
-        <Route path="/app-booster">
-          <ErrorBoundary route="app-booster"><AppBooster /></ErrorBoundary>
-        </Route>
-        <Route path="/focus">
-          <ErrorBoundary route="focus"><FocusMode /></ErrorBoundary>
-        </Route>
-        <Route path="/nic-tuning">
-          <ErrorBoundary route="nic-tuning"><NicTuningPage /></ErrorBoundary>
-        </Route>
-        <Route path="/network">
-          <ErrorBoundary route="network"><NetworkTweaks /></ErrorBoundary>
-        </Route>
-        <Route path="/cleaner">
-          <ErrorBoundary route="cleaner"><SystemCleaner /></ErrorBoundary>
-        </Route>
-        <Route path="/debloat">
-          <ErrorBoundary route="debloat"><Debloater /></ErrorBoundary>
-        </Route>
-        <Route path="/startup">
-          <ErrorBoundary route="startup"><StartupApps /></ErrorBoundary>
-        </Route>
-        <Route path="/bios-advisor">
-          <ErrorBoundary route="bios-advisor"><BiosAdvisor /></ErrorBoundary>
-        </Route>
-        <Route path="/ai-advisor">
-          <ErrorBoundary route="ai-advisor"><AiAdvisor /></ErrorBoundary>
-        </Route>
-        <Route path="/extreme-labs">
-          <ErrorBoundary route="extreme-labs"><ExtremeLabs /></ErrorBoundary>
-        </Route>
-        <Route path="/security">
-          <ErrorBoundary route="security"><Security /></ErrorBoundary>
-        </Route>
-        <Route path="/history">
-          <ErrorBoundary route="history"><History /></ErrorBoundary>
-        </Route>
-        <Route path="/process-manager">
-          <ErrorBoundary route="process-manager"><ProcessManager /></ErrorBoundary>
-        </Route>
-        <Route path="/settings">
-          <ErrorBoundary route="settings"><Settings /></ErrorBoundary>
-        </Route>
-        <Route>
-          <ErrorBoundary route="home-fallback"><Home /></ErrorBoundary>
-        </Route>
-      </Switch>
-    </Suspense>
+    <ErrorBoundary route={location}>
+      <Suspense fallback={<DarkFallback />}>
+        <Switch>
+          <Route path="/"               component={Home} />
+          <Route path="/dashboard"      component={Home} />
+          <Route path="/tweaks"         component={Tweaks} />
+          <Route path="/power-plan"     component={PowerPlan} />
+          <Route path="/app-booster"    component={AppBooster} />
+          <Route path="/focus"          component={FocusMode} />
+          <Route path="/nic-tuning"     component={NicTuningPage} />
+          <Route path="/network"        component={NetworkTweaks} />
+          <Route path="/cleaner"        component={SystemCleaner} />
+          <Route path="/debloat"        component={Debloater} />
+          <Route path="/startup"        component={StartupApps} />
+          <Route path="/bios-advisor"   component={BiosAdvisor} />
+          <Route path="/ai-advisor"     component={AiAdvisor} />
+          <Route path="/extreme-labs"   component={ExtremeLabs} />
+          <Route path="/security"       component={Security} />
+          <Route path="/history"        component={History} />
+          <Route path="/process-manager" component={ProcessManager} />
+          <Route path="/settings"       component={Settings} />
+          <Route                        component={Home} />
+        </Switch>
+      </Suspense>
+    </ErrorBoundary>
   );
 }
 
@@ -1199,7 +1179,7 @@ function ElectronAppContent() {
             onAnimationStart={() => console.log('[Handoff] dashboard fade-in started')}
             onAnimationComplete={() => console.log('[Handoff] dashboard fade-in complete — layout stable')}
           >
-            <Router hook={useHashLocation}>
+            <Router hook={useTransitionLocation}>
               <ElectronAppRoutes />
             </Router>
           </motion.div>

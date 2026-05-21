@@ -4076,7 +4076,9 @@ app.whenReady().then(async () => {
     });
   }
 
-  // app:openDevTools IPC removed — DevTools is disabled.
+  ipcMain.handle('app:openDevTools', () => {
+    mainWindow?.webContents.openDevTools({ mode: 'detach' });
+  });
 
   // ── Updater boot ─────────────────────────────────────────────────────────
   updaterService.initUpdater(isDev);

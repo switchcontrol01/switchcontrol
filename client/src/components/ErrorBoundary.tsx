@@ -1,11 +1,5 @@
 import React from "react";
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-/**
- * Safe send to main process via the preload narrow bridge.
- * Never throws — failure to log must not cause a secondary crash.
- */
 function reportCritical(event: {
   category: string;
   severity?: string;
@@ -22,11 +16,8 @@ function reportCritical(event: {
   } catch (e) {}
 }
 
-// ── Error Boundary ────────────────────────────────────────────────────────────
-
 interface Props {
   children: React.ReactNode;
-  /** Optional route/page label for diagnostics context */
   route?: string;
 }
 
@@ -34,21 +25,26 @@ interface State {
   hasError: boolean;
   errorMessage: string | null;
   errorStack: string | null;
+  lastRoute: string | null;
 }
 
-/**
- * React ErrorBoundary.
- *
- * - Catches render-phase errors in any child component tree.
- * - Reports them through the preload IPC bridge to critical.log in main.
- * - Shows a minimal recovery UI so the app doesn't silently go blank.
- * - CPU cost: zero in the happy path; this component is entirely passive
- *   until an actual error is thrown.
- */
 export class ErrorBoundary extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
-    this.state = { hasError: false, errorMessage: null, errorStack: null };
+    this.state = {
+      hasError: false,
+      errorMessage: null,
+      errorStack: null,
+      lastRoute: props.route ?? null,
+    };
+  }
+
+  static getDerivedStateFromProps(props: Props, state: State): Partial<State> | null {
+    const incoming = props.route ?? null;
+    if (incoming !== state.lastRoute) {
+      return { hasError: false, errorMessage: null, errorStack: null, lastRoute: incoming };
+    }
+    return null;
   }
 
   static getDerivedStateFromError(error: unknown): Partial<State> {

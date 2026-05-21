@@ -17,21 +17,7 @@ try {
 // This is reliable across dev/packaged builds without depending on NODE_ENV.
 const isProdBuild = process.argv.includes('--switchcontrol-prod');
 
-// ─── Secondary DevTools lockdown (production only) ───────────────────────────
-// Primary protection is in the main process (webPreferences.devTools:false +
-// lockDevTools() event listeners). This is belt-and-suspenders in the renderer.
-if (isProdBuild) {
-  window.addEventListener('keydown', (e) => {
-    if (
-      e.key === 'F12' ||
-      (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J')) ||
-      (e.ctrlKey && e.key === 'U')
-    ) {
-      e.preventDefault();
-      e.stopImmediatePropagation();
-    }
-  }, true);
-}
+// DevTools are enabled — F12 and Ctrl+Shift+I open the inspector.
 
 // ─── Input validation helpers ─────────────────────────────────────────────────
 // Lightweight guards that reject garbage before it crosses the privilege boundary.
@@ -95,6 +81,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getPerformanceInfo: () => ipcRenderer.invoke('debug:getPerformanceInfo'),
   },
   openLogs:        () => ipcRenderer.invoke('app:openLogs'),
+  openDevTools:    () => ipcRenderer.invoke('app:openDevTools'),
 
   // ── Controlled privileged actions ───────────────────────────────────────────
   quitApp:          () => ipcRenderer.invoke('app:quit'),
