@@ -13,64 +13,6 @@ import { useFocusStore } from "@/lib/focusStore";
 import { useTourStore } from "@/lib/tour-store";
 import { useEntitlementUiState } from "@/hooks/useEntitlementUiState";
 
-function PageCrashFallback({ onRetry }: { onRetry: () => void }) {
-  const [, navigate] = useLocation();
-  return (
-    <div
-      style={{
-        background: "#14181D",
-        minHeight: "100%",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: "1rem",
-        padding: "2rem",
-      }}
-    >
-      <p style={{ color: "rgba(255,255,255,0.45)", fontSize: "0.875rem", margin: 0 }}>
-        This page failed to load.
-      </p>
-      <button
-        onClick={() => { navigate("/"); onRetry(); }}
-        style={{
-          padding: "0.4rem 1rem",
-          background: "rgba(255,255,255,0.07)",
-          border: "1px solid rgba(255,255,255,0.12)",
-          borderRadius: "0.375rem",
-          color: "rgba(255,255,255,0.65)",
-          fontSize: "0.8125rem",
-          cursor: "pointer",
-        }}
-      >
-        Back to Dashboard
-      </button>
-    </div>
-  );
-}
-
-class PageErrorBoundary extends React.Component<
-  { children: React.ReactNode },
-  { hasError: boolean }
-> {
-  constructor(props: { children: React.ReactNode }) {
-    super(props);
-    this.state = { hasError: false };
-  }
-  static getDerivedStateFromError() {
-    return { hasError: true };
-  }
-  componentDidCatch(error: unknown) {
-    console.error("[PageErrorBoundary] page crash caught:", error);
-  }
-  reset = () => this.setState({ hasError: false });
-  render() {
-    if (this.state.hasError) {
-      return <PageCrashFallback onRetry={this.reset} />;
-    }
-    return this.props.children;
-  }
-}
 
 function FocusModeBanner() {
   const { active, profileName, expiresAt } = useFocusStore();
@@ -281,9 +223,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         }}
       >
         <div className="container max-w-7xl mx-auto p-8">
-          <PageErrorBoundary>
-            {children}
-          </PageErrorBoundary>
+          {children}
         </div>
       </main>
       <Toaster />

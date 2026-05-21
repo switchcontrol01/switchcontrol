@@ -173,6 +173,7 @@ let _gpuLoadPollLastTsDeprecated = 0;
 // well before the renderer's first getLive() call. Used to signal "GPU present,
 // load pending" so the chart series is always structurally present from frame 1.
 let gpuExistsOnHardware = false;
+let wmiGpuModelName = null; // GPU name from WMI fast-path — fallback when si.graphics() times out
 
 // ── Performance governor ──────────────────────────────────────────────────────
 // Base poll interval.  Stays at TELEMETRY_BASE_MS while CPU is normal.
@@ -481,6 +482,7 @@ async function startTelemetryPolling() {
         const name = stdout ? stdout.trim() : '';
         if (!err && name) {
           gpuExistsOnHardware = true;
+          wmiGpuModelName = name;
           console.log('[telemetry:poll] GPU presence confirmed via WMI fast-path:', name);
         }
       });
@@ -676,7 +678,7 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false, // Required for systeminformation
-      devTools: false, // Disabled — cannot be opened
+      devTools: true,
       backgroundThrottling: false, // Prevent timer throttling when window loses focus
       additionalArguments: isDev ? [] : ['--switchcontrol-prod'],
       paintWhenInitiallyHidden: true, // Ensure Chromium paints frames even while window is hidden
@@ -684,20 +686,7 @@ function createWindow() {
   });
   console.log('[LAUNCH:1] BrowserWindow constructed — show:false, paintWhenInitiallyHidden:true, isVisible:', mainWindow.isVisible());
 
-  // ── Block all DevTools keyboard shortcuts ─────────────────────────────────
-  mainWindow.webContents.on('before-input-event', (event, input) => {
-    const key = input.key.toLowerCase();
-    const isDevToolsShortcut =
-      key === 'f12' ||
-      (input.control && input.shift && key === 'i') ||
-      (input.control && input.shift && key === 'j') ||
-      (input.meta && input.alt && key === 'i');
-    if (!isDevToolsShortcut) return;
-    event.preventDefault(); // Block — do not open DevTools
-  });
-  lockDevTools(mainWindow);
-
-  // DevTools auto-open removed — disabled unconditionally.
+  // DevTools enabled — F12 / Ctrl+Shift+I opens the inspector.
 
   const { session: electronSession } = require('electron');
   electronSession.defaultSession.webRequest.onHeadersReceived(
@@ -2258,7 +2247,7 @@ ipcMain.handle('telemetry:getLive', async (event, selectedDiskMount) => {
       },
       gpu: {
         available:   gpuAvailable,
-        model:       cachedSpecs?.gpu?.model || null,
+        model:       cachedSpecs?.gpu?.model || wmiGpuModelName || null,
         usagePct:    gpuUsagePct,
         tempC:       gpuTemp  != null && gpuTemp  >  0 ? gpuTemp  : null,
         vramUsedMb,
