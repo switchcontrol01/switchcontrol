@@ -103,26 +103,62 @@ function ElectronAppRoutes() {
   return (
     <Suspense fallback={<DarkFallback />}>
       <Switch>
-        <Route path="/" component={Home} />
-        <Route path="/dashboard" component={Home} />
-        <Route path="/tweaks" component={Tweaks} />
-        <Route path="/power-plan" component={PowerPlan} />
-        <Route path="/app-booster" component={AppBooster} />
-        <Route path="/focus" component={FocusMode} />
-        <Route path="/nic-tuning" component={NicTuningPage} />
-        <Route path="/network" component={NetworkTweaks} />
-        <Route path="/cleaner" component={SystemCleaner} />
-        <Route path="/debloat" component={Debloater} />
-        <Route path="/startup" component={StartupApps} />
-        <Route path="/bios-advisor" component={BiosAdvisor} />
-        <Route path="/ai-advisor" component={AiAdvisor} />
-        <Route path="/extreme-labs" component={ExtremeLabs} />
-        <Route path="/security" component={Security} />
-        <Route path="/history" component={History} />
-        <Route path="/process-manager" component={ProcessManager} />
-        <Route path="/settings" component={Settings} />
+        <Route path="/">
+          <ErrorBoundary route="home"><Home /></ErrorBoundary>
+        </Route>
+        <Route path="/dashboard">
+          <ErrorBoundary route="dashboard"><Home /></ErrorBoundary>
+        </Route>
+        <Route path="/tweaks">
+          <ErrorBoundary route="tweaks"><Tweaks /></ErrorBoundary>
+        </Route>
+        <Route path="/power-plan">
+          <ErrorBoundary route="power-plan"><PowerPlan /></ErrorBoundary>
+        </Route>
+        <Route path="/app-booster">
+          <ErrorBoundary route="app-booster"><AppBooster /></ErrorBoundary>
+        </Route>
+        <Route path="/focus">
+          <ErrorBoundary route="focus"><FocusMode /></ErrorBoundary>
+        </Route>
+        <Route path="/nic-tuning">
+          <ErrorBoundary route="nic-tuning"><NicTuningPage /></ErrorBoundary>
+        </Route>
+        <Route path="/network">
+          <ErrorBoundary route="network"><NetworkTweaks /></ErrorBoundary>
+        </Route>
+        <Route path="/cleaner">
+          <ErrorBoundary route="cleaner"><SystemCleaner /></ErrorBoundary>
+        </Route>
+        <Route path="/debloat">
+          <ErrorBoundary route="debloat"><Debloater /></ErrorBoundary>
+        </Route>
+        <Route path="/startup">
+          <ErrorBoundary route="startup"><StartupApps /></ErrorBoundary>
+        </Route>
+        <Route path="/bios-advisor">
+          <ErrorBoundary route="bios-advisor"><BiosAdvisor /></ErrorBoundary>
+        </Route>
+        <Route path="/ai-advisor">
+          <ErrorBoundary route="ai-advisor"><AiAdvisor /></ErrorBoundary>
+        </Route>
+        <Route path="/extreme-labs">
+          <ErrorBoundary route="extreme-labs"><ExtremeLabs /></ErrorBoundary>
+        </Route>
+        <Route path="/security">
+          <ErrorBoundary route="security"><Security /></ErrorBoundary>
+        </Route>
+        <Route path="/history">
+          <ErrorBoundary route="history"><History /></ErrorBoundary>
+        </Route>
+        <Route path="/process-manager">
+          <ErrorBoundary route="process-manager"><ProcessManager /></ErrorBoundary>
+        </Route>
+        <Route path="/settings">
+          <ErrorBoundary route="settings"><Settings /></ErrorBoundary>
+        </Route>
         <Route>
-          <Home />
+          <ErrorBoundary route="home-fallback"><Home /></ErrorBoundary>
         </Route>
       </Switch>
     </Suspense>

@@ -716,7 +716,7 @@ ipcMain.handle('security:getProcessDetails', async () => {
           CpuSec    = [Math]::Round($p.CPU, 2)
           MemMb     = [Math]::Round($p.WorkingSet64/1MB, 1)
           Path      = $exePath
-          ParentPid = $cim?.ParentProcessId
+          ParentPid = if ($cim -ne $null) { $cim.ParentProcessId } else { $null }
         }
       }
       $result | ConvertTo-Json -Compress
@@ -810,8 +810,8 @@ ipcMain.handle('security:getScheduledTasks', async () => {
           Name      = $t.TaskName
           Path      = $t.TaskPath
           State     = $t.State.ToString()
-          Execute   = $action?.Execute
-          Arguments = $action?.Arguments
+          Execute   = if ($action -ne $null) { $action.Execute } else { $null }
+          Arguments = if ($action -ne $null) { $action.Arguments } else { $null }
         }
       }
       if ($result) { $result | ConvertTo-Json -Compress } else { '[]' }
