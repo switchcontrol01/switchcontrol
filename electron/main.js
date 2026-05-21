@@ -1685,20 +1685,53 @@ async function _enrichSpecsInBackground() {
   if (_enrichmentInFlight) return;
   _enrichmentInFlight = true;
   try {
-    // si.graphics() and si.fsSize() are independent — run in parallel.
-    // si.cpu() is slow on AMD (6-15s WMI cold-start) — run concurrently too,
-    // but we don't wait for it to update the GPU/disk result first.
-    const [graphicsResult, fsResult, cpuResult] = await Promise.allSettled([
+    // WMI direct path races si.graphics() — resolves in 1-3s on AMD where DXGI hangs.
+    // Single Get-CimInstance call returns Name and AdapterRAM without going through DXGI.
+    const _wmiEnrichGpuPs = process.platform === 'win32'
+      ? `try{$g=Get-CimInstance Win32_VideoController -EA Stop|Where-Object{$_.Name -notmatch 'Microsoft Basic|Remote'}|Select-Object -First 1;if($g){Write-Output "$($g.Name)|$($g.AdapterRAM)"}else{''}}catch{''}`
+      : '';
+
+    const [graphicsResult, fsResult, cpuResult, wmiGpuResult] = await Promise.allSettled([
       siWithTimeout(() => si.graphics(), 10_000, 'enrich.graphics'),
       siWithTimeout(() => si.fsSize(),    8_000, 'enrich.fsSize'),
       siWithTimeout(() => si.cpu(),      20_000, 'enrich.cpu'),
+      process.platform === 'win32'
+        ? new Promise(resolve => {
+            execFile('powershell', ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-Command', _wmiEnrichGpuPs],
+              { windowsHide: true, timeout: 5000 },
+              (err, stdout) => resolve(!err && stdout ? stdout.trim() : ''));
+          })
+        : Promise.resolve(''),
     ]);
 
-    const graphics = graphicsResult.status === 'fulfilled' ? graphicsResult.value : null;
-    const fsData   = fsResult.status       === 'fulfilled' ? fsResult.value       : [];
-    const cpuSi    = cpuResult.status      === 'fulfilled' ? cpuResult.value      : null;
+    const graphics  = graphicsResult.status === 'fulfilled' ? graphicsResult.value : null;
+    const fsData    = fsResult.status        === 'fulfilled' ? fsResult.value       : [];
+    const cpuSi     = cpuResult.status       === 'fulfilled' ? cpuResult.value      : null;
+    const wmiGpuRaw = wmiGpuResult.status    === 'fulfilled' ? String(wmiGpuResult.value || '') : '';
 
-    const gpu  = graphics?.controllers?.[0];
+    // Resolve GPU: prefer si.graphics() (has VRAM), fall back to WMI direct path
+    const siGpu = graphics?.controllers?.[0];
+    let gpuModel  = siGpu?.model  || null;
+    let gpuVendor = siGpu?.vendor || null;
+    let gpuVramGB = siGpu?.vram ? safeNum(siGpu.vram / 1024) : 0;
+    let gpuIsNvidia = isNvidiaGpu(graphics || { controllers: [] });
+
+    if (!gpuModel && wmiGpuRaw) {
+      const [wmiName, wmiRamStr] = wmiGpuRaw.split('|');
+      if (wmiName?.trim()) {
+        gpuModel    = wmiName.trim();
+        const wmiRamBytes = parseInt(wmiRamStr?.trim() || '0', 10);
+        if (wmiRamBytes > 0) gpuVramGB = parseFloat((wmiRamBytes / 1073741824).toFixed(1));
+        const ml = gpuModel.toLowerCase();
+        gpuVendor   = ml.includes('nvidia') ? 'NVIDIA'
+                    : (ml.includes('amd') || ml.includes('radeon')) ? 'AMD'
+                    : ml.includes('intel') ? 'Intel' : null;
+        gpuIsNvidia = ml.includes('nvidia');
+        console.log('[SwitchControl] GPU from WMI fast-path:', gpuModel, '|', gpuVramGB.toFixed(1), 'GB');
+      }
+    }
+
+    const gpu = siGpu; // keep for backward compat ref below
     const disks = (fsData || []).map(d => {
       const pct = safeNum(d.use || 0);
       return {
@@ -1721,10 +1754,10 @@ async function _enrichSpecsInBackground() {
           speed:   cpuSi.speed ? `${safeNum(cpuSi.speed)} GHz` : cachedSpecs.cpu.speed,
         } : cachedSpecs.cpu,
         gpu: {
-          model:    gpu?.model  || 'Unavailable',
-          vendor:   gpu?.vendor || 'Unavailable',
-          vramGB:   gpu?.vram   ? safeNum(gpu.vram / 1024) : 0,
-          isNvidia: isNvidiaGpu(graphics || { controllers: [] }),
+          model:    gpuModel    || 'Unavailable',
+          vendor:   gpuVendor   || 'Unavailable',
+          vramGB:   gpuVramGB,
+          isNvidia: gpuIsNvidia,
         },
         disk:  disks[0] || cachedSpecs.disk,
         disks,

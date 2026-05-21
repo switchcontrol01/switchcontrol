@@ -52,7 +52,7 @@ const GUARDED_TWEAK_IDS = new Set([
   'disable-dcom', 'hyper-v', 'vbs', 'core-isolation', 'fax-printer',
   'fast-startup', 'disable-fso', 'irq-priority', 'synth-timers',
   // Unsupported / helper-required
-  'hdcp', 'p-states', 'mouse-queue-size', 'kbd-queue-size', 'timer-resolution',
+  'hdcp', 'p-states', 'mouse-queue-size', 'kbd-queue-size',
   // Reboot-required (blocked from bulk apply)
   'preemption', 'disable-mpo',
   // Audio / mic risk

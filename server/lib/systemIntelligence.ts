@@ -16,7 +16,7 @@ const execFileAsync = promisify(execFile);
 
 const CACHE_TTL_MS     = 30 * 60 * 1000; // 30-minute in-memory refresh
 const DISK_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24-hour disk persistence
-const PS_TIMEOUT_MS    = 5_000; // reduced from 8s — any PS call that hangs logs a warning
+const PS_TIMEOUT_MS    = 3_000; // reduced — any PS call that hangs logs a warning
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -434,30 +434,33 @@ async function collect(): Promise<SystemIntelligenceProfile> {
     procsRes, osRes, batteryRes, usersRes,
     platformStates, monitorEdidRes,
   ] = await Promise.allSettled([
-    siTimeout("baseboard",    si.baseboard(),           3_000),
-    siTimeout("bios",         si.bios(),                3_000),
-    siTimeout("cpu",          si.cpu(),                 8_000), // AMD cold-start can be 5-6s
-    siTimeout("graphics",     si.graphics(),            4_000),
-    siTimeout("memLayout",    si.memLayout(),           4_000),
-    siTimeout("diskLayout",   si.diskLayout(),          4_000),
-    siTimeout("fsSize",       si.fsSize(),              4_000),
-    siTimeout("netIf",        si.networkInterfaces("*"),4_000),
-    siTimeout("netConn",      si.networkConnections(),  5_000), // can be slow on loaded systems
-    siTimeout("processes",    si.processes(),           5_000), // slow — enumerate all PIDs
-    siTimeout("osInfo",       si.osInfo(),              3_000),
-    siTimeout("battery",      si.battery(),             3_000),
-    siTimeout("users",        si.users(),               3_000),
-    siTimeout("platformPS",   collectWindowsPlatformStates(), 5_000),
-    siTimeout("monitorEDID",  collectMonitorEdidNames(),       5_000),
+    siTimeout("baseboard",    si.baseboard(),           1_500),
+    siTimeout("bios",         si.bios(),                1_500),
+    siTimeout("cpu",          si.cpu(),                 6_000), // AMD cold-start can be 5-6s
+    siTimeout("graphics",     si.graphics(),            3_000),
+    siTimeout("memLayout",    si.memLayout(),           2_500),
+    siTimeout("diskLayout",   si.diskLayout(),          2_500),
+    siTimeout("fsSize",       si.fsSize(),              2_500),
+    siTimeout("netIf",        si.networkInterfaces("*"),2_500),
+    siTimeout("netConn",      si.networkConnections(),  2_500),
+    siTimeout("processes",    si.processes(),           2_500),
+    siTimeout("osInfo",       si.osInfo(),              1_500),
+    siTimeout("battery",      si.battery(),             1_000),
+    siTimeout("users",        si.users(),               1_000),
+    siTimeout("platformPS",   collectWindowsPlatformStates(), 2_500),
+    siTimeout("monitorEDID",  collectMonitorEdidNames(),       2_500),
   ]);
   const edidNames: Array<{ name: string; manufacturer: string }> =
     monitorEdidRes.status === "fulfilled" ? monitorEdidRes.value : [];
 
-  // Chassis
+  // Chassis — quick WMI call, skip immediately if WMI is generally slow on this host
   let chassisType: string | null = null;
   try {
-    const chassis = await si.chassis();
-    chassisType = safeStr(chassis.type);
+    const chassis = await Promise.race([
+      si.chassis(),
+      new Promise<null>(r => setTimeout(() => r(null), 1_500)),
+    ]);
+    chassisType = chassis ? safeStr((chassis as any).type) : null;
   } catch {}
 
   // ── Baseboard ──
@@ -538,11 +541,14 @@ async function collect(): Promise<SystemIntelligenceProfile> {
     inferredDualChannel = allSame && sticks.length % 2 === 0;
   }
 
-  // Mem total from si.mem()
+  // Mem total from si.mem() — bounded so it never adds seconds on slow-WMI hosts
   let memTotalMb: number | null = null;
   try {
-    const mem = await si.mem();
-    memTotalMb = mem.total > 0 ? Math.round(mem.total / 1024 / 1024) : null;
+    const mem = await Promise.race([
+      si.mem(),
+      new Promise<null>(r => setTimeout(() => r(null), 1_500)),
+    ]);
+    memTotalMb = mem && (mem as any).total > 0 ? Math.round((mem as any).total / 1024 / 1024) : null;
   } catch {}
 
   // ── Storage ──
@@ -582,10 +588,12 @@ async function collect(): Promise<SystemIntelligenceProfile> {
   let defaultInterface: string | null = null;
   let defaultGateway: string | null = null;
   try {
-    const gateway = await si.networkGatewayDefault();
-    defaultGateway = safeStr(gateway);
-    const gw = await si.networkInterfaceDefault();
-    defaultInterface = safeStr(gw);
+    const [gwRes, ifRes] = await Promise.allSettled([
+      Promise.race([si.networkGatewayDefault(),    new Promise<string>(r => setTimeout(() => r(''), 1_500))]),
+      Promise.race([si.networkInterfaceDefault(), new Promise<string>(r => setTimeout(() => r(''), 1_500))]),
+    ]);
+    if (gwRes.status === 'fulfilled') defaultGateway   = safeStr(gwRes.value);
+    if (ifRes.status === 'fulfilled') defaultInterface = safeStr(ifRes.value);
   } catch {}
 
   const netConnRaw = netConnRes.status === "fulfilled" ? (netConnRes.value as any[]) : [];
@@ -643,11 +651,14 @@ async function collect(): Promise<SystemIntelligenceProfile> {
     uefiBoot: null, resizeBarEnabled: null,
   };
 
-  // ── Containers ──
+  // ── Containers — skip quickly on non-Docker hosts or slow-WMI machines ──
   let dockerDetected: boolean | null = null;
   let containers: SystemIntelligenceProfile["containers"]["containers"] = [];
   try {
-    const dockerInfo = await si.dockerInfo();
+    const dockerInfo = await Promise.race([
+      si.dockerInfo(),
+      new Promise<null>(r => setTimeout(() => r(null), 1_500)),
+    ]);
     dockerDetected = !!(dockerInfo && (dockerInfo as any).containers >= 0);
     if (dockerDetected) {
       const dockerContainers = await si.dockerContainers(true);

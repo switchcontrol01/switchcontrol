@@ -698,22 +698,6 @@ const BASE: BaseTweak[] = [
     requiresReboot: true, supported: true, requiresAdmin: true,
   },
   {
-    id: "timer-res",
-    title: "Timer Resolution",
-    description: "Requests a lower system timer resolution to improve timing precision.",
-    impact: [
-      "Can reduce input latency in some scenarios",
-      "May improve frametime consistency in some games",
-      "Risk: increases power usage and can raise CPU wakeups",
-    ],
-    expected: { latency: "High", cpu: "Low", gpu: "None", ram: "None", disk: "None", network: "None", stabilityRisk: "Medium" },
-    category: "Gaming and Latency", level: "Advanced", risk: "Safe",
-    requiresAgent: true,
-    supported: false,
-    unsupportedReason: "Helper not bundled — timer resolution requires a persistent agent calling timeBeginPeriod(). The effect resets when the process exits. No agent is shipped in this build.",
-    requiresAdmin: false,
-  },
-  {
     id: "disable-fso",
     title: "Disable Fullscreen Optimizations",
     description: "Forces games to use true exclusive fullscreen instead of DWM-managed borderless mode.",

@@ -1,0 +1,25 @@
+Bug 1: Security page has a runaway mount ticker
+Look at the Security section from 03:50:09 to the end of the log. The line [Timing] Security | mount | +0ms fires every 2 seconds for over 7 minutes straight. That is not normal. Something inside the Security page is re-mounting itself on a 2 second interval loop. This is your interval guard clamping a 250ms or faster timer to 2000ms and the component is remounting on every tick. This will drain CPU while the Security tab is open and explains why the Security page feels sluggish.
+
+Bug 2: Signature Update button silently fails every time
+runDefenderAction ERROR action=updateSignatures: Unexpected token 'U', "UpdateLogg"... is not valid JSON
+The PowerShell command for updating signatures returns plain text starting with "UpdateLogg..." and your code tries to parse it as JSON. It crashes on every click. The fix is to not parse that command's output as JSON since Windows Defender update output is plain text, not JSON.
+
+Bug 3: GPU still showing 0% / Detecting
+[SysIntelligence] phase=full complete | GPUs=0
+gpu="Detecting…"
+GPU counter query runs and completes in 2157ms but the SysIntelligence still reports GPUs=0. The GPU is detected fine for display purposes via WMI fast-path but the counter path used for live GPU load percentage does not work with AMD. GPU load will show 0 until that counter path is fixed for AMD cards.
+
+Bug 4: Shell.getFileIcon not a function
+getFileIcon failed for ... shell.getFileIcon is not a function
+This fires 30+ times when the Process Manager or Startup Apps page loads. Your code calls shell.getFileIcon() but this API does not exist in your Electron version or was never exposed correctly. Icons will fail silently. Not a crash but every tab visit to pages that scan installed apps generates this noise.
+
+Bug 5: SVG circle radius still undefined
+Error: <circle> attribute r: Expected length, "undefined"
+Still happening on dashboard mount. The null guard fix did not reach the chart component that renders the circle. This is the dashboard display not rendering correctly.
+
+What to tell Replit:
+"I have three bugs to fix from the logs:
+1. Security page remounts on a 2 second timer loop while the tab is open, burning CPU indefinitely. Find what is triggering a re-mount cycle every 2 seconds in the Security component and fix it.
+2. The Signature Update button fails because runDefenderAction with action=updateSignatures parses the PowerShell output as JSON but Windows Defender returns plain text. Change that action to handle plain text output instead of JSON parsing.
+3. The dashboard SVG circle chart still crashes with attribute r: Expected length undefined. The null guard fix did not cover this component. Find the circle chart on the dashboard and add a guard that skips rendering if the radius value is null or undefined."

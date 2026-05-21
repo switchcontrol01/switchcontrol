@@ -9,7 +9,7 @@ interface SplashProps {
   onComplete: () => void;
 }
 
-const SPLASH_MS = 1400;
+const SPLASH_MS = 2500;
 
 // Dust particles — opacity + transform only, no filter animations
 const PARTICLES = Array.from({ length: 28 }, (_, i) => ({
@@ -35,6 +35,7 @@ const STREAKS = [
 
 export default function Splash({ onComplete }: SplashProps) {
   const [contentVisible, setContentVisible] = useState(false);
+  const [initializingDone, setInitializingDone] = useState(false);
   const [progress, setProgress] = useState(0);
   const tagline = useMemo(() => getHonestTagline(), []);
 
@@ -78,13 +79,15 @@ export default function Splash({ onComplete }: SplashProps) {
     }
 
     const tContent = setTimeout(() => setContentVisible(true), 60);
-    const tDone = setTimeout(() => {
+    const tInit    = setTimeout(() => setInitializingDone(true), 1000);
+    const tDone    = setTimeout(() => {
       console.log('[LAUNCH:R5] Splash onComplete — handing off to App');
       onCompleteRef.current();
     }, SPLASH_MS);
 
     return () => {
       clearTimeout(tContent);
+      clearTimeout(tInit);
       clearTimeout(tDone);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -245,6 +248,22 @@ export default function Splash({ onComplete }: SplashProps) {
                 data-testid="text-splash-tagline">
                 {tagline}
               </p>
+
+              {/* Initializing status — fades after the first second */}
+              <AnimatePresence>
+                {!initializingDone && (
+                  <motion.p
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.4 }}
+                    className="text-[10px] tracking-widest uppercase select-none"
+                    style={{ color: "rgba(255,255,255,0.20)" }}
+                  >
+                    Initializing…
+                  </motion.p>
+                )}
+              </AnimatePresence>
 
               {/* Progress bar */}
               <div className="relative w-48 h-[1.5px] rounded-full overflow-hidden"
