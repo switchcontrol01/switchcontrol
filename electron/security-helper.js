@@ -1046,8 +1046,10 @@ ipcMain.handle('security:runDefenderAction', async (_event, action) => {
     // Fire-and-forget — scan runs in background; Defender shows progress in system tray
     mpCmdRunAction = `Start-Process -FilePath $mpCmd -ArgumentList '-Scan -ScanType 1' -NoNewWindow -EA Stop; $result.message = 'Quick Scan started in the background.'`;
   } else {
-    // Signature update is quick — run synchronously so we can confirm completion
-    mpCmdRunAction = `& $mpCmd -SignatureUpdate; if ($LASTEXITCODE -eq 0) { $result.message = 'Signatures updated.' } else { throw "MpCmdRun exited $LASTEXITCODE" }`;
+    // Signature update is quick — run synchronously so we can confirm completion.
+    // Redirect MpCmdRun output to $null so its verbose log lines don't pollute the
+    // JSON that ConvertTo-Json writes to stdout.  $LASTEXITCODE is still set correctly.
+    mpCmdRunAction = `$null = & $mpCmd -SignatureUpdate 2>&1; if ($LASTEXITCODE -eq 0) { $result.message = 'Signatures updated.' } else { throw "MpCmdRun exited $LASTEXITCODE" }`;
   }
 
   const psCmd = `
@@ -1077,7 +1079,9 @@ ipcMain.handle('security:runDefenderAction', async (_event, action) => {
 
   try {
     const raw = await runPowerShell(psCmd, 60000);
-    const out = JSON.parse(raw);
+    // MpCmdRun.exe can emit verbose lines before the JSON — find the last {...} line
+    const jsonLine = raw.split(/\r?\n/).map(l => l.trim()).filter(l => l.startsWith('{')).pop() || raw;
+    const out = JSON.parse(jsonLine);
     console.log(`[Security] runDefenderAction action=${action} →`, out);
     return {
       ok: !!out.success,
