@@ -896,7 +896,7 @@ aiRouter.post("/chat", async (req: Request, res: Response) => {
   if (!Array.isArray(messages) || messages.length === 0) {
     return res.status(400).json({ error: "Messages are required." });
   }
-  if (messages.length > 20) {
+  if (messages.length > 50) {
     return res.status(400).json({ error: "Conversation too long. Please start a new chat." });
   }
 
@@ -1006,7 +1006,7 @@ aiRouter.post("/chat", async (req: Request, res: Response) => {
     // For image requests, always use a vision-capable model
     const visionModel = hasImage ? "gpt-4o-mini" : model;
 
-    const sliced = messages.slice(-10);
+    const sliced = messages.slice(-20);
 
     // Build OpenAI messages — serialize any structured assistant messages back to text for context
     type OaiMsg =
