@@ -1,5 +1,17 @@
 @import "tailwindcss";
 
+/* ── Local font bundles ────────────────────────────────────────────────────
+   Imported here (CSS) rather than in main.tsx (JS) so Vite's CSS processor
+   handles resolution. Rollup (JS module resolver) fails to walk up from the
+   client/ root to the parent node_modules on Windows with Vite 7.          */
+@import "@fontsource/inter/400.css";
+@import "@fontsource/inter/500.css";
+@import "@fontsource/inter/600.css";
+@import "@fontsource/inter/700.css";
+@import "@fontsource/jetbrains-mono/400.css";
+@import "@fontsource/jetbrains-mono/500.css";
+@import "@fontsource/jetbrains-mono/700.css";
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {

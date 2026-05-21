@@ -2,15 +2,10 @@ import { createRoot } from "react-dom/client";
 import "./lib/api"; // must be first — installs global fetch interceptor for Electron
 import { installIntervalGuard } from "./lib/intervalGuard";
 import App from "./App";
-// Local font bundles — served from the JS bundle, zero network dependency.
-// Inter and JetBrains Mono load instantly in Electron (no Google Fonts request).
-import "@fontsource/inter/400.css";
-import "@fontsource/inter/500.css";
-import "@fontsource/inter/600.css";
-import "@fontsource/inter/700.css";
-import "@fontsource/jetbrains-mono/400.css";
-import "@fontsource/jetbrains-mono/500.css";
-import "@fontsource/jetbrains-mono/700.css";
+// Font CSS imports are in index.css — Vite's CSS pipeline resolves @import
+// from node_modules correctly on all platforms (Windows included).
+// Importing them here as JS caused Rollup to fail resolution on Windows
+// when the Vite root is set to the client/ subdirectory.
 import "./index.css";
 
 // Install the 2000ms minimum interval guard before any component code runs.
