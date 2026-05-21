@@ -1,6 +1,8 @@
 import { build as esbuild } from "esbuild";
 import { build as viteBuild } from "vite";
 import { rm } from "fs/promises";
+import { existsSync } from "fs";
+import { join } from "path";
 
 // Packages that MUST stay external — they cannot be bundled:
 //
@@ -27,7 +29,41 @@ const FORCE_EXTERNAL = [
   "systeminformation",
 ];
 
+// Packages that must be present in node_modules for esbuild to bundle them.
+// If any are missing the build fails immediately with a clear install command.
+const REQUIRED_BUNDLED = [
+  "helmet",
+  "jsonwebtoken",
+  "openai",
+  "express",
+  "drizzle-orm",
+  "zod",
+  "express-rate-limit",
+  "stripe",
+  "passport",
+];
+
+function checkRequiredPackages() {
+  const missing: string[] = [];
+  for (const pkg of REQUIRED_BUNDLED) {
+    const resolved = join(process.cwd(), "node_modules", pkg);
+    if (!existsSync(resolved)) missing.push(pkg);
+  }
+  if (missing.length > 0) {
+    console.error("");
+    console.error("BUILD FAILED — missing npm packages:");
+    for (const p of missing) console.error(`  - ${p}`);
+    console.error("");
+    console.error("Fix: run this command from the project root, then retry npm run build:");
+    console.error(`  npm install ${missing.join(" ")}`);
+    console.error("");
+    process.exit(1);
+  }
+}
+
 async function buildAll() {
+  checkRequiredPackages();
+
   await rm("dist", { recursive: true, force: true });
 
   console.log("building client...");
