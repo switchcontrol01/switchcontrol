@@ -18,6 +18,22 @@ if (!fs.existsSync(indexHtml)) {
   process.exit(1);
 }
 
+// Hard stop if the backend bundle is missing.
+// This prevents electron-builder from silently packaging an installer
+// without index.cjs (which causes the app to boot with no local backend).
+const backendBundle = path.join(rootDist, "index.cjs");
+if (!fs.existsSync(backendBundle)) {
+  console.error("");
+  console.error("[ensure-dist] FATAL: dist/index.cjs is missing.");
+  console.error("[ensure-dist] The esbuild step did not complete — the frontend was built but the server bundle was not.");
+  console.error("");
+  console.error("[ensure-dist] Fix: run  npm run build  from the project root and check for esbuild errors.");
+  console.error("[ensure-dist] Do NOT run electron:build until dist/index.cjs exists.");
+  console.error("");
+  process.exit(1);
+}
+console.log("[ensure-dist] Verified: dist/index.cjs present — backend bundle will be packaged");
+
 fs.rmSync(electronDist, { recursive: true, force: true });
 fs.mkdirSync(electronDist, { recursive: true });
 fs.cpSync(rootDist, electronDist, { recursive: true });
