@@ -41,14 +41,15 @@ const VALID_TWEAK_IDS = new Set<string>([
   "dns-doh", "dns-optimize",
 ]);
 
-// ── Startup migration: ensure user_id columns exist ──────────────────────────
-// Idempotent: guarded by IF NOT EXISTS. Sole PK remains on tweak_id (matches
-// Drizzle schema) so Replit's publish-time diff only generates ADD COLUMN, not
-// a PK change. Reads are scoped with WHERE user_id = ... for per-user isolation.
+// ── Startup migration: per-user schema upgrade ───────────────────────────────
+// Adds user_id columns if missing, then upgrades the network_tweak_state PK
+// from the old single-column (tweak_id) to composite (user_id, tweak_id) so
+// every user owns their own row and can never overwrite another user's state.
 
 async function migrateNetworkTweakState() {
   if (isNoDbMode || !db) return;
   try {
+    // Step 1: add user_id columns if missing (idempotent)
     await db.execute(sql`
       ALTER TABLE network_tweak_state
         ADD COLUMN IF NOT EXISTS user_id TEXT NOT NULL DEFAULT '__legacy__'
@@ -57,7 +58,38 @@ async function migrateNetworkTweakState() {
       ALTER TABLE network_tweak_log
         ADD COLUMN IF NOT EXISTS user_id TEXT NOT NULL DEFAULT '__legacy__'
     `);
-    console.log('[NetworkTweaks] schema OK — user_id columns present');
+
+    // Step 2: upgrade network_tweak_state PK from single-column tweak_id
+    // to composite (user_id, tweak_id) so each user owns their own row.
+    // Check whether the old single-column PK still exists by inspecting
+    // the number of columns in the current PK constraint.
+    const pkInfo = await db.execute(sql`
+      SELECT COUNT(*) AS col_count
+      FROM information_schema.key_column_usage
+      WHERE table_name = 'network_tweak_state'
+        AND constraint_name = (
+          SELECT constraint_name
+          FROM information_schema.table_constraints
+          WHERE table_name = 'network_tweak_state'
+            AND constraint_type = 'PRIMARY KEY'
+          LIMIT 1
+        )
+    `);
+    const colCount = Number((pkInfo.rows[0] as any)?.col_count ?? 0);
+    if (colCount === 1) {
+      // Old single-column PK: drop and replace with composite.
+      await db.execute(sql`
+        ALTER TABLE network_tweak_state
+          DROP CONSTRAINT IF EXISTS network_tweak_state_pkey
+      `);
+      await db.execute(sql`
+        ALTER TABLE network_tweak_state
+          ADD PRIMARY KEY (user_id, tweak_id)
+      `);
+      console.log('[NetworkTweaks] upgraded network_tweak_state PK to composite (user_id, tweak_id)');
+    }
+
+    console.log('[NetworkTweaks] schema OK — user_id columns and composite PK present');
   } catch (e: any) {
     console.warn('[NetworkTweaks] migrateNetworkTweakState non-fatal error:', e.message);
   }
@@ -134,14 +166,13 @@ router.post("/:tweakId/report", requireJwt, networkTweakRateLimit, async (req: a
     const resultJson = JSON.stringify({ action, success, verified, message });
     const appliedAt = success && action === "apply" ? new Date() : null;
 
-    // ON CONFLICT targets the sole PK (tweak_id). user_id is also written so
-    // reads scoped with WHERE user_id = ... see the correct user's state.
+    // ON CONFLICT targets the composite PK (user_id, tweak_id) so each user
+    // owns their own row and can never overwrite another user's state.
     await db.execute(sql`
       INSERT INTO network_tweak_state (user_id, tweak_id, status, last_result, applied_at, updated_at)
       VALUES (${userId}, ${tweakId}, ${status}, ${resultJson}::jsonb, ${appliedAt}, NOW())
-      ON CONFLICT (tweak_id) DO UPDATE
-        SET user_id     = EXCLUDED.user_id,
-            status      = EXCLUDED.status,
+      ON CONFLICT (user_id, tweak_id) DO UPDATE
+        SET status      = EXCLUDED.status,
             last_result = EXCLUDED.last_result,
             applied_at  = EXCLUDED.applied_at,
             updated_at  = NOW()

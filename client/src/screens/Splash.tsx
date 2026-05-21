@@ -38,6 +38,12 @@ export default function Splash({ onComplete }: SplashProps) {
   const [progress, setProgress] = useState(0);
   const tagline = useMemo(() => getHonestTagline(), []);
 
+  // Keep a stable ref to onComplete so the timer effect below can run with
+  // empty deps — the timer fires exactly once no matter how many times the
+  // parent re-renders and passes a new function reference.
+  const onCompleteRef = useRef(onComplete);
+  useEffect(() => { onCompleteRef.current = onComplete; });
+
   useEffect(() => {
     (window as any).electronAPI?.signalFirstFrameReady?.();
 
@@ -74,14 +80,15 @@ export default function Splash({ onComplete }: SplashProps) {
     const tContent = setTimeout(() => setContentVisible(true), 60);
     const tDone = setTimeout(() => {
       console.log('[LAUNCH:R5] Splash onComplete — handing off to App');
-      onComplete();
+      onCompleteRef.current();
     }, SPLASH_MS);
 
     return () => {
       clearTimeout(tContent);
       clearTimeout(tDone);
     };
-  }, [onComplete]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // intentionally empty — timer must fire exactly once
 
   // rAF-based progress bar
   const progressRef = useRef(0);
