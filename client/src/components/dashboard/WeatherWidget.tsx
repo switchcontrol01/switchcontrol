@@ -135,16 +135,6 @@ const WeatherIcon = memo(({ condition, isDay, size = 14 }: { condition: string; 
 });
 WeatherIcon.displayName = "WeatherIcon";
 
-// ── Stat row inside the hover panel ──────────────────────────────────────────
-
-const _StatCell = memo(({ label, value }: { label: string; value: string }) => (
-  <div className="flex flex-col gap-0.5 px-2 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.05]">
-    <span className="text-[9px] text-[#3D4552] uppercase tracking-wider font-medium">{label}</span>
-    <span className="text-xs font-medium text-[#8A95A3]">{value}</span>
-  </div>
-));
-StatCell.displayName = "StatCell";
-
 // ── Main widget ───────────────────────────────────────────────────────────────
 // Isolated component — React.memo prevents any parent rerender from
 // propagating here. localStorage cache means the API is hit at most

@@ -1,0 +1,44 @@
+
+[2026-05-21T00:19:07.448Z] [INFO] SwitchControl started — PID:3744 platform:win32/x64 node:20.18.3
+[2026-05-21T00:19:07.479Z] [LOG] [Security] IPC handlers registered
+[2026-05-21T00:19:07.481Z] [LOG] [Debloat] IPC handlers registered
+[2026-05-21T00:19:07.481Z] [LOG] [Cleaner] IPC handlers registered
+[2026-05-21T00:19:07.482Z] [LOG] [FocusHelper] IPC handlers registered
+[2026-05-21T00:19:07.503Z] [LOG] [STARTUP] whenReady — v1.1.1 | isDev:false | pid:3744
+[2026-05-21T00:19:07.505Z] [LOG] [ConfigStore] Initialized — file: C:\Users\SwitchTech\AppData\Roaming\SwitchControl\sc-config.json
+[2026-05-21T00:19:07.519Z] [LOG] [LAUNCH:1] BrowserWindow constructed — show:false, paintWhenInitiallyHidden:true, isVisible: false
+[2026-05-21T00:19:07.520Z] [LOG] [LAUNCH:2] packaged mode — indexPath: C:\Program Files\SwitchControl\resources\dist\index.html | exists: true
+[2026-05-21T00:19:07.525Z] [LOG] [Backend] ===== STARTUP DIAGNOSTICS =====
+[2026-05-21T00:19:07.525Z] [LOG] [Backend] process.execPath: C:\Program Files\SwitchControl\SwitchControl.exe
+[2026-05-21T00:19:07.525Z] [LOG] [Backend] process.resourcesPath: C:\Program Files\SwitchControl\resources
+[2026-05-21T00:19:07.526Z] [LOG] [Backend] app.isPackaged: true
+[2026-05-21T00:19:07.526Z] [LOG] [Backend] app.getAppPath(): C:\Program Files\SwitchControl\resources\app.asar
+[2026-05-21T00:19:07.526Z] [LOG] [Backend] Expected bundle path: C:\Program Files\SwitchControl\resources\dist\index.cjs
+[2026-05-21T00:19:07.526Z] [ERROR] [Backend] FATAL: Backend bundle not found at: C:\Program Files\SwitchControl\resources\dist\index.cjs
+[2026-05-21T00:19:07.526Z] [ERROR] [Backend] Contents of dist/: app-icon.ico, assets, favicon-16x16.png, favicon-32x32.png, favicon.ico, favicon.png, games, icon-256.png, icon-rounded.png, index.html, logo.png, logo.webp, node_modules, patch-notes.json, tour
+[2026-05-21T00:19:07.567Z] [LOG] [Updater] init — v1.1.1 | channel:stable | https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev
+[2026-05-21T00:19:07.567Z] [LOG] [STARTUP] app ready — 64ms from whenReady
+[2026-05-21T00:19:07.567Z] [ERROR] [STARTUP] backend failed: Backend bundle not found at: C:\Program Files\SwitchControl\resources\dist\index.cjs
+[2026-05-21T00:19:07.674Z] [LOG] [Renderer:info] (index-YU2OuR9w.js:10) [RuntimeMode] electron=true | packaged=true | protocol=file: | preload=true | backendTarget=embedded-local | authTarget=cloud
+[2026-05-21T00:19:07.675Z] [LOG] [Renderer:info] (index-YU2OuR9w.js:10) [API] Electron fetch interceptor installed | packaged=true (cloud-only-routes=blocked-from-local)
+[2026-05-21T00:19:07.678Z] [LOG] [Renderer:info] (index-YU2OuR9w.js:28) [Store:REHYDRATE] total_stored=52 enabled=38 source=localStorage
+[2026-05-21T00:19:07.678Z] [LOG] [Renderer:info] (index-YU2OuR9w.js:29) [CloudAPI] base=https://switchcontrol.org/api packaged=true electron=true
+[2026-05-21T00:19:07.683Z] [LOG] [Renderer:info] (index-YU2OuR9w.js:142) [BiosStore] hydrated | scores from storage: {"latency":33,"frametime":32,"stability":27,"competitiveReadiness":32,"grade":"Stock / Unoptimized","profileBias":"Performance-focused"}
+[2026-05-21T00:19:07.683Z] [LOG] [Renderer:info] (index-YU2OuR9w.js:142) [BiosStore] hydrated | sanitized scores: {"latency":33,"frametime":32,"stability":27,"competitiveReadiness":32,"grade":"Stock / Unoptimized","profileBias":"Performance-focused"}
+[2026-05-21T00:19:07.684Z] [ERROR] [Renderer:error] (index-YU2OuR9w.js:154) Uncaught ReferenceError: StatCell is not defined
+[2026-05-21T00:19:07.684Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:524) [SwitchControl Desktop] Preload initialized - unified API ready
+[2026-05-21T00:19:07.684Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:525) [SwitchControl Desktop] Platform: win32
+[2026-05-21T00:19:07.684Z] [LOG] [LAUNCH:3] did-finish-load — HTML/JS fully parsed by Chromium (first-frame-ready IPC pending)
+[2026-05-21T00:19:07.684Z] [ERROR] [Backend] Sending backend-error to renderer on did-finish-load: Backend bundle not found at: C:\Program Files\SwitchControl\resources\dist\index.cjs
+[2026-05-21T00:19:07.684Z] [LOG] [LAUNCH:2] loadFile() promise RESOLVED
+[2026-05-21T00:19:07.685Z] [LOG] [Renderer:info] (index-YU2OuR9w.js:10) [API] Backend port not ready, retrying in 200ms… (elapsed 10ms, attempt 1)
+[2026-05-21T00:19:07.885Z] [LOG] [Renderer:info] (index-YU2OuR9w.js:10) [API] Backend port not ready, retrying in 400ms… (elapsed 211ms, attempt 2)
+[2026-05-21T00:19:08.027Z] [LOG] [SwitchControl] Instant specs (sync): AMD Ryzen 7 9800X3D 8-Core Processor | enrichment starting…
+[2026-05-21T00:19:08.051Z] [LOG] [PREWARM] specs ready — AMD Ryzen 7 9800X3D 8-Core Processor | Detecting…
+[2026-05-21T00:19:08.286Z] [LOG] [Renderer:info] (index-YU2OuR9w.js:10) [API] Backend port not ready, retrying in 800ms… (elapsed 612ms, attempt 3)
+[2026-05-21T00:19:08.666Z] [LOG] [LAUNCH:5] mainWindow.show() on ready-to-show (dark frame ready) | +1141ms
+[2026-05-21T00:19:09.087Z] [LOG] [Renderer:info] (index-YU2OuR9w.js:10) [API] Backend port not ready, retrying in 1600ms… (elapsed 1413ms, attempt 4)
+[2026-05-21T00:19:10.102Z] [LOG] [telemetry:poll] GPU presence confirmed via WMI fast-path: AMD Radeon RX 7800 XT
+[2026-05-21T00:19:10.688Z] [LOG] [Renderer:info] (index-YU2OuR9w.js:10) [API] Backend port not ready, retrying in 3200ms… (elapsed 3014ms, attempt 5)
+[2026-05-21T00:19:10.888Z] [LOG] [SwitchControl] Specs enriched — Ryzen 7 9800X3D 8-Core Processor | AMD Radeon RX 7800 XT
+[2026-05-21T00:19:13.669Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=1 active=1
