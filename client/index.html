@@ -55,13 +55,16 @@
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
-    <!-- Non-blocking font load: Inter + JetBrains Mono are bundled locally
-         (via @fontsource in main.tsx) — no network request needed for those.
-         Playfair Display is website-only and loads non-blocking below.
-         Google Fonts swap in after. Prevents render-blocking in Electron
-         (packaged app) which was delaying first paint and causing white flash. -->
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800;900&display=swap" media="print" onload="this.media='all'">
-    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800;900&display=swap"></noscript>
+    <!-- Non-blocking font load via Google Fonts CDN.
+         Inter + JetBrains Mono were previously bundled via @fontsource npm packages
+         but those packages reliably failed to install on Windows (npm reports
+         "up to date" while the folder is absent). CDN is more reliable cross-platform
+         and Electron caches the response after the first run.
+         media="print" + onload trick prevents render-blocking in both Electron and web. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Playfair+Display:wght@400;500;600;700;800;900&display=swap" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Playfair+Display:wght@400;500;600;700;800;900&display=swap"></noscript>
   </head>
   <body style="margin:0;padding:0;background:#07090D;overflow:hidden;height:100%;width:100%;">
 

@@ -1,0 +1,231 @@
+Windows PowerShell
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+Install the latest PowerShell for new features and improvements! https://aka.ms/PSWindows
+
+PS C:\WINDOWS\system32> Set-Location "C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl"
+>>
+>> Remove-Item dist -Recurse -Force -ErrorAction SilentlyContinue
+>> Remove-Item release -Recurse -Force -ErrorAction SilentlyContinue
+>> Remove-Item electron\dist -Recurse -Force -ErrorAction SilentlyContinue
+>>
+>> npm install jsonwebtoken
+>> npm install helmet openai
+>>
+>> npm install
+>>
+>> npm run build
+>> npm run electron:build
+>>
+npm warn ERESOLVE overriding peer dependency
+npm warn While resolving: react-side-effect@2.1.2
+npm warn Found: react@19.2.4
+npm warn node_modules/react
+npm warn   peer react@">=16.8.0" from @floating-ui/react-dom@2.1.7
+npm warn   node_modules/@floating-ui/react-dom
+npm warn     @floating-ui/react-dom@"^2.0.0" from @radix-ui/react-popper@1.2.8
+npm warn     node_modules/@radix-ui/react-popper
+npm warn   83 more (@radix-ui/react-accordion, ...)
+npm warn
+npm warn Could not resolve dependency:
+npm warn peer react@"^16.3.0 || ^17.0.0 || ^18.0.0" from react-side-effect@2.1.2
+npm warn node_modules/react-helmet/node_modules/react-side-effect
+npm warn   react-side-effect@"^2.1.0" from react-helmet@6.1.0
+npm warn   node_modules/react-helmet
+npm warn
+npm warn Conflicting peer dependency: react@18.3.1
+npm warn node_modules/react
+npm warn   peer react@"^16.3.0 || ^17.0.0 || ^18.0.0" from react-side-effect@2.1.2
+npm warn   node_modules/react-helmet/node_modules/react-side-effect
+npm warn     react-side-effect@"^2.1.0" from react-helmet@6.1.0
+npm warn     node_modules/react-helmet
+
+added 13 packages, and audited 394 packages in 818ms
+
+53 packages are looking for funding
+  run `npm fund` for details
+
+7 moderate severity vulnerabilities
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+npm warn ERESOLVE overriding peer dependency
+npm warn While resolving: react-side-effect@2.1.2
+npm warn Found: react@19.2.4
+npm warn node_modules/react
+npm warn   peer react@">=16.8.0" from @floating-ui/react-dom@2.1.7
+npm warn   node_modules/@floating-ui/react-dom
+npm warn     @floating-ui/react-dom@"^2.0.0" from @radix-ui/react-popper@1.2.8
+npm warn     node_modules/@radix-ui/react-popper
+npm warn   83 more (@radix-ui/react-accordion, ...)
+npm warn
+npm warn Could not resolve dependency:
+npm warn peer react@"^16.3.0 || ^17.0.0 || ^18.0.0" from react-side-effect@2.1.2
+npm warn node_modules/react-helmet/node_modules/react-side-effect
+npm warn   react-side-effect@"^2.1.0" from react-helmet@6.1.0
+npm warn   node_modules/react-helmet
+npm warn
+npm warn Conflicting peer dependency: react@18.3.1
+npm warn node_modules/react
+npm warn   peer react@"^16.3.0 || ^17.0.0 || ^18.0.0" from react-side-effect@2.1.2
+npm warn   node_modules/react-helmet/node_modules/react-side-effect
+npm warn     react-side-effect@"^2.1.0" from react-helmet@6.1.0
+npm warn     node_modules/react-helmet
+
+added 2 packages, and audited 396 packages in 2s
+
+53 packages are looking for funding
+  run `npm fund` for details
+
+7 moderate severity vulnerabilities
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+npm warn ERESOLVE overriding peer dependency
+npm warn While resolving: react-side-effect@2.1.2
+npm warn Found: react@19.2.4
+npm warn node_modules/react
+npm warn   react@"^19.2.0" from the root project
+npm warn   83 more (@floating-ui/react-dom, @radix-ui/react-accordion, ...)
+npm warn
+npm warn Could not resolve dependency:
+npm warn peer react@"^16.3.0 || ^17.0.0 || ^18.0.0" from react-side-effect@2.1.2
+npm warn node_modules/react-helmet/node_modules/react-side-effect
+npm warn   react-side-effect@"^2.1.0" from react-helmet@6.1.0
+npm warn   node_modules/react-helmet
+npm warn
+npm warn Conflicting peer dependency: react@18.3.1
+npm warn node_modules/react
+npm warn   peer react@"^16.3.0 || ^17.0.0 || ^18.0.0" from react-side-effect@2.1.2
+npm warn   node_modules/react-helmet/node_modules/react-side-effect
+npm warn     react-side-effect@"^2.1.0" from react-helmet@6.1.0
+npm warn     node_modules/react-helmet
+
+> switchcontrol@1.0.5 postinstall
+> cd electron && npm install
+
+
+up to date, audited 416 packages in 652ms
+
+64 packages are looking for funding
+  run `npm fund` for details
+
+12 vulnerabilities (2 low, 10 high)
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+
+up to date, audited 396 packages in 1s
+
+53 packages are looking for funding
+  run `npm fund` for details
+
+7 moderate severity vulnerabilities
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+
+> switchcontrol@1.0.5 build
+> npx tsx script/build.ts
+
+building client...
+vite v7.3.2 building client environment for production...
+✓ 5 modules transformed.
+✗ Build failed in 85ms
+[@tailwindcss/vite:generate:build] Can't resolve '@fontsource/inter/400.css' in 'C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\client\src'
+file: C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/client/src/index.css
+    at finishWithoutResolve (C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\node_modules\enhanced-resolve\lib\Resolver.js:565:18)
+    at C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\node_modules\enhanced-resolve\lib\Resolver.js:657:14
+    at C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\node_modules\enhanced-resolve\lib\Resolver.js:718:5
+    at eval (eval at create (C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\node_modules\tapable\lib\HookCodeFactory.js:31:10), <anonymous>:15:1)
+    at C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\node_modules\enhanced-resolve\lib\Resolver.js:718:5
+    at eval (eval at create (C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\node_modules\tapable\lib\HookCodeFactory.js:31:10), <anonymous>:27:1)
+    at C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\node_modules\enhanced-resolve\lib\DescriptionFilePlugin.js:89:43
+    at C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\node_modules\enhanced-resolve\lib\Resolver.js:718:5
+    at eval (eval at create (C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\node_modules\tapable\lib\HookCodeFactory.js:31:10), <anonymous>:15:1)
+    at C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\node_modules\enhanced-resolve\lib\Resolver.js:718:5 {
+  details: "resolve '@fontsource/inter/400.css' in 'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src'\n" +
+    '  Parsed request is a module\n' +
+    '  using description file: C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\package.json (relative path: ./client/src)\n' +
+    '    resolve as module\n' +
+    "      C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\node_modules doesn't exist or is not a directory\n" +
+    "      C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\node_modules doesn't exist or is not a directory\n" +
+    '      looking for modules in C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\node_modules\n' +
+    "        C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\node_modules\\@fontsource\\inter doesn't exist\n" +
+    "      C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\node_modules doesn't exist or is not a directory\n" +
+    "      C:\\Users\\SwitchTech\\Downloads\\node_modules doesn't exist or is not a directory\n" +
+    '      looking for modules in C:\\Users\\SwitchTech\\node_modules\n' +
+    "        C:\\Users\\SwitchTech\\node_modules\\@fontsource\\inter doesn't exist\n" +
+    "      C:\\Users\\node_modules doesn't exist or is not a directory\n" +
+    "      C:\\node_modules doesn't exist or is not a directory",
+  code: 'PLUGIN_ERROR',
+  plugin: '@tailwindcss/vite:generate:build',
+  hook: 'transform',
+  id: 'C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/client/src/index.css',
+  watchFiles: [
+    'C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/client/index.html',
+    'C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/client/src/main.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\package.json',
+    'C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/node_modules/react/jsx-runtime.js',
+    'C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/node_modules/react-dom/client.js',
+    'C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/client/src/lib/intervalGuard.ts',
+    'C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/client/src/lib/api.ts',
+    'C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/client/src/App.tsx',
+    'C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/client/src/index.css',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\node_modules\\tailwindcss\\index.css'
+  ]
+}
+
+> switchcontrol@1.0.5 electron:build
+> cd electron && npm run dist:win
+
+
+> switchcontrol-electron@1.1.1 dist:win
+> npm run prebuild && npm run build:native && electron-builder --win
+
+
+> switchcontrol-electron@1.1.1 prebuild
+> node -e "const f=require('fs'),p=require('path'),base=process.cwd();const run=s=>{const sp=p.join(base,'scripts',s+'.js');if(f.existsSync(sp)){require(sp);}else{console.warn('[prebuild] '+s+'.js not found — using inline fallback');}};run('ensure-assets');const distSp=p.join(base,'scripts','ensure-dist.js');if(f.existsSync(distSp)){require(distSp);}else{const src=p.join(base,'..','dist');const dst=p.join(base,'dist-frontend');if(!f.existsSync(src)){console.error('[prebuild] dist/ not found — run npm run build first');process.exit(1);}f.rmSync(dst,{recursive:true,force:true});f.cpSync(src,dst,{recursive:true});const cjs=p.join(dst,'index.cjs');if(f.existsSync(cjs))f.rmSync(cjs);console.log('[prebuild] dist-frontend synced (inline fallback)');}"
+
+[ensure-assets] Checking build assets...
+[ensure-assets] icon.ico present (728 KB)
+[ensure-dist] Checking frontend build...
+[ensure-dist] ERROR: root dist/ does not exist.
+[ensure-dist] Run 'npm run build' in root directory first.
+PS C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
