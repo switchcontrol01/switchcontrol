@@ -1,3 +1,5 @@
+import { useRef } from "react";
+
 /**
  * Lightweight section-open timing utility.
  * Logs milestones relative to the moment usePageTiming() is first called.
@@ -10,14 +12,24 @@
  */
 
 export function usePageTiming(section: string) {
-  const t0 = performance.now();
+  const t0Ref = useRef<number | null>(null);
+  const mountedRef = useRef(false);
+
+  if (t0Ref.current === null) {
+    t0Ref.current = performance.now();
+  }
+  const t0 = t0Ref.current;
+
+  if (!mountedRef.current) {
+    mountedRef.current = true;
+    console.log(`[Timing] ${section} | mount | +0ms`);
+  }
 
   function mark(milestone: string) {
     const elapsed = Math.round(performance.now() - t0);
     console.log(`[Timing] ${section} | ${milestone} | +${elapsed}ms`);
   }
 
-  mark("mount");
   return { mark, t0 };
 }
 

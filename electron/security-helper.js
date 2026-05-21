@@ -1061,7 +1061,8 @@ ipcMain.handle('security:runDefenderAction', async (_event, action) => {
         $result.success = $true
       } else {
         # Fallback: PowerShell cmdlet (requires Defender WMI provider)
-        ${psCmdletFallback} -ErrorAction Stop
+        # Redirect output so cmdlet log lines don't pollute the JSON response
+        $null = ${psCmdletFallback} -ErrorAction Stop
         $result.success = $true
         $result.message = '${friendly} completed.'
       }

@@ -205,6 +205,7 @@ export function MemoryPressureGraph({ delay = 0 }: { delay?: number }) {
           {usedPts.length > 0 && (
             <motion.circle cx={usedPts[usedPts.length - 1]?.[0] ?? 0} cy={usedPts[usedPts.length - 1]?.[1] ?? 0} r={2.5}
               fill="#06b6d4" filter={`url(#mg-${id})`}
+              initial={{ r: 2.5 }}
               animate={{ opacity: [0.7, 1, 0.7], r: [2.2, 3, 2.2] }}
               transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
             />
@@ -314,6 +315,7 @@ export function StorageActivityGraph({ delay = 0 }: { delay?: number }) {
           {readPts.length > 0 && (
             <motion.circle cx={readPts[readPts.length - 1]?.[0] ?? 0} cy={readPts[readPts.length - 1]?.[1] ?? 0} r={2.5}
               fill="#f59e0b" filter={`url(#sg-${id})`}
+              initial={{ r: 2.5 }}
               animate={{ opacity: [0.7, 1, 0.7], r: [2.2, 3, 2.2] }}
               transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
             />
@@ -424,6 +426,7 @@ export function SystemRhythmGraph({ delay = 0 }: { delay?: number }) {
           {cpuPts.length > 0 && (
             <motion.circle cx={cpuPts[cpuPts.length - 1]?.[0] ?? 0} cy={cpuPts[cpuPts.length - 1]?.[1] ?? 0} r={2.5}
               fill="#06b6d4" filter={`url(#rg-${id})`}
+              initial={{ r: 2.5 }}
               animate={{ opacity: [0.7, 1, 0.7], r: [2, 3, 2] }}
               transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
             />
