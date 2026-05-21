@@ -56,6 +56,17 @@ function assertPlainObject(value, name) {
 const ALLOWED_TWEAK_ACTIONS = new Set(['apply', 'revert']);
 const ALLOWED_MEMORY_MODES  = new Set(['safe', 'smart', 'advanced']);
 
+// ─── specs:enriched replay cache ─────────────────────────────────────────────
+// Caches the most recent specs:enriched payload so that subscribers who
+// register AFTER the event fires (e.g. Home mounting 1-2s after enrichment
+// completes) receive the resolved GPU/CPU data immediately on subscribe.
+let _lastSpecsEnrichedPayload = null;
+ipcRenderer.on('specs:enriched', (_, payload) => {
+  if (payload?.gpu?.model && payload.gpu.model !== 'Detecting\u2026') {
+    _lastSpecsEnrichedPayload = payload;
+  }
+});
+
 // ─── Unified renderer API ─────────────────────────────────────────────────────
 // All frontend code must use window.electronAPI
 contextBridge.exposeInMainWorld('electronAPI', {
@@ -173,6 +184,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getAllDisks:     () => ipcRenderer.invoke('system:getAllDisks'),
     getDisplayInfo: () => ipcRenderer.invoke('system:getDisplayInfo'),
     onSpecsEnriched: (cb) => {
+      // If specs were already enriched before this subscriber registered, replay
+      // the last payload immediately so late subscribers (e.g. Home mounting after
+      // enrichment completes) never stay stuck on "Detecting…".
+      if (_lastSpecsEnrichedPayload) {
+        try { cb(_lastSpecsEnrichedPayload); } catch (e) {}
+      }
       const handler = (_, payload) => cb(payload);
       ipcRenderer.on('specs:enriched', handler);
       return () => ipcRenderer.removeListener('specs:enriched', handler);

@@ -331,6 +331,19 @@ function initUpdater(isDev = false) {
 
   autoUpdater.on('error', (err) => {
     const msg = err?.message || 'Unknown updater error';
+
+    // A 404 on latest.yml simply means no update has been published yet.
+    // Treat it as "not-available" — not a failure — so it doesn't pollute
+    // critical.log and doesn't increment the consecutive-failure counter.
+    const is404 = msg.includes('404') || msg.toLowerCase().includes('not found') || msg.includes('latest.yml');
+    if (is404) {
+      console.warn('[Updater] No update file found (404) — treating as not-available');
+      _consecutiveFailures = 0;
+      state = { ...state, ...resetTransientState(), status: 'not-available', checkedAt: new Date().toISOString() };
+      broadcast('update-not-available');
+      return;
+    }
+
     _consecutiveFailures += 1;
     console.error('[Updater] Error (consecutive failures: ' + _consecutiveFailures + '):', msg);
     state = {
@@ -382,6 +395,17 @@ function checkForUpdates() {
       checkPromise.catch((err) => {
         const msg = err?.message || 'checkForUpdates promise rejected';
         const code = err?.code || '';
+
+        // 404 = no update published yet — treat as not-available, not an error.
+        const is404 = msg.includes('404') || msg.toLowerCase().includes('not found') || msg.includes('latest.yml');
+        if (is404) {
+          console.warn('[Updater] No update file found (404) — treating as not-available');
+          _consecutiveFailures = 0;
+          state = { ...state, ...resetTransientState(), status: 'not-available', checkedAt: new Date().toISOString() };
+          broadcast('update-not-available');
+          return;
+        }
+
         const isTlsError = code.startsWith('ERR_CERT') ||
           code === 'ERR_SSL_PROTOCOL_ERROR' ||
           code === 'UNABLE_TO_VERIFY_LEAF_SIGNATURE' ||
