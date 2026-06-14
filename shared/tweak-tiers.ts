@@ -69,6 +69,10 @@ export const FREE_EXCEPTION_IDS: Set<string> = new Set([
   "compact-explorer",
   "recent-files",
   "energy-logging",
+  // GPU scheduling: broad benefit, Safe-rated — no paywall needed.
+  "preemption",
+  // Xbox background services: low-risk, non-network — no paywall needed.
+  "xbox-services",
 ]);
 
 /**
@@ -90,9 +94,7 @@ export const PREMIUM_EXCEPTION_IDS: Set<string> = new Set([
   "mmcss-gaming",
   "desktop-comp",
   "hdcp",
-  "preemption",
   "wifi",
-  "xbox-services",
   "fax-printer",
 ]);
 
