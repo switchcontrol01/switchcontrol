@@ -11,7 +11,7 @@
  * All state transitions use AnimatePresence mode="wait" — no hard cuts.
  */
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -79,7 +79,7 @@ const PALETTE = {
     badgeText:  "rgba(196,181,253,0.95)",
     icon:       <ArrowUpCircle className="size-5 text-[#00D4FF]" />,
     glow:       "shadow-[0_0_80px_rgba(109,40,217,0.20)]",
-    bar:        "from-#00D4FF via-text-[#00D4FF] to-cyan-400",
+    bar:        "from-[#00D4FF] via-[#00D4FF] to-cyan-400",
     accent:     "#33E0FF",
     accentCls:  "text-[#00D4FF]",
     orbitColor: "rgba(0,212,255,0.55)",
@@ -559,9 +559,19 @@ export function UpdateModal() {
     await download();
   }, [download]);
 
+  const installTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Clear any pending install timer on unmount to prevent calling install()
+  // on a torn-down component (e.g. user closes the app mid-countdown).
+  useEffect(() => {
+    return () => {
+      if (installTimerRef.current) clearTimeout(installTimerRef.current);
+    };
+  }, []);
+
   const handleInstall = useCallback(async () => {
     setPhase("restarting");
-    setTimeout(() => { install(); }, 1200);
+    installTimerRef.current = setTimeout(() => { install(); }, 1200);
   }, [install]);
 
   const handleDismiss = useCallback(() => {
@@ -570,10 +580,16 @@ export function UpdateModal() {
 
   const isDismissed = dismissed === availableVersion;
 
+  // Group all status conditions inside the isDismissed guard so that
+  // `phase === "restarting"` cannot escape the guard when dismissed is true.
   const visible =
     !isDismissed &&
-    (status === "available" || status === "downloading" || status === "downloaded") ||
-    phase === "restarting";
+    (
+      status === "available" ||
+      status === "downloading" ||
+      status === "downloaded" ||
+      phase === "restarting"
+    );
 
   const p = PALETTE[(urgency as keyof typeof PALETTE)] ?? PALETTE.normal;
 

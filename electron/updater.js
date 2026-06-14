@@ -118,9 +118,37 @@ let _autoUpdater = null;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
+// Cached reference to the main BrowserWindow.
+// We hold this so download-progress (which fires every ~100 ms during a download)
+// does not call BrowserWindow.getAllWindows() on every tick.
+let _mainWindow = null;
+
+/** Call once after the main window is created so broadcast can target it directly. */
+function setMainWindow(win) {
+  _mainWindow = win;
+}
+
+/**
+ * Returns true when an error message indicates that the update metadata file
+ * (latest.yml) simply hasn't been published yet — not a real failure.
+ */
+function isUpdateNotFound(msg) {
+  if (!msg) return false;
+  return (
+    msg.includes('404') ||
+    msg.toLowerCase().includes('not found') ||
+    msg.includes('latest.yml')
+  );
+}
+
 function broadcast(eventName, extra = {}) {
   const payload = { event: eventName, state: { ...state, ...extra } };
-  for (const win of BrowserWindow.getAllWindows()) {
+  // Prefer the cached main window to avoid enumerating all windows on every
+  // download-progress tick (fires every ~100 ms during a download).
+  const targets = _mainWindow && !_mainWindow.isDestroyed()
+    ? [_mainWindow]
+    : BrowserWindow.getAllWindows();
+  for (const win of targets) {
     if (win.webContents && !win.webContents.isDestroyed()) {
       win.webContents.send('updater:event', payload);
     }
@@ -335,8 +363,7 @@ function initUpdater(isDev = false) {
     // A 404 on latest.yml simply means no update has been published yet.
     // Treat it as "not-available" — not a failure — so it doesn't pollute
     // critical.log and doesn't increment the consecutive-failure counter.
-    const is404 = msg.includes('404') || msg.toLowerCase().includes('not found') || msg.includes('latest.yml');
-    if (is404) {
+    if (isUpdateNotFound(msg)) {
       console.warn('[Updater] No update file found (404) — treating as not-available');
       _consecutiveFailures = 0;
       state = { ...state, ...resetTransientState(), status: 'not-available', checkedAt: new Date().toISOString() };
@@ -397,8 +424,7 @@ function checkForUpdates() {
         const code = err?.code || '';
 
         // 404 = no update published yet — treat as not-available, not an error.
-        const is404 = msg.includes('404') || msg.toLowerCase().includes('not found') || msg.includes('latest.yml');
-        if (is404) {
+        if (isUpdateNotFound(msg)) {
           console.warn('[Updater] No update file found (404) — treating as not-available');
           _consecutiveFailures = 0;
           state = { ...state, ...resetTransientState(), status: 'not-available', checkedAt: new Date().toISOString() };
@@ -530,6 +556,7 @@ module.exports = {
   downloadUpdate,
   quitAndInstall,
   getState,
+  setMainWindow,
   // Exported for testing / diagnostics only:
   canCheck,
   canDownload,

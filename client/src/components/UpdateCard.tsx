@@ -11,17 +11,7 @@ import { GlassCard } from '@/components/ui/glass-card';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { RenderMarkdown } from '@/lib/render-markdown';
 
-function formatBytes(bytes: number): string {
-  if (!bytes) return '0 B';
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-function formatSpeed(bps: number): string {
-  if (!bps) return '0 KB/s';
-  if (bps < 1024 * 1024) return `${(bps / 1024).toFixed(0)} KB/s`;
-  return `${(bps / (1024 * 1024)).toFixed(1)} MB/s`;
-}
+import { formatBytes, formatSpeed } from '@/lib/update-helpers';
 
 function humanizeError(msg: string | null): string {
   if (!msg) return 'Something went wrong. Please try again.';

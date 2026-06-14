@@ -1,0 +1,177 @@
+TASK: Startup Performance + Dashboard Responsiveness Optimization Pass
+
+We have completed several architecture/security audits. We are now entering a focused startup/render/IPC optimization phase.
+
+This task is ONLY about:
+
+- reducing startup latency
+- reducing dashboard load delay
+- reducing renderer/GPU overhead
+- reducing IPC serialization cost
+- reducing unnecessary rerenders
+- improving telemetry efficiency
+
+DO NOT change UI visuals or business logic unless explicitly required below.
+
+========================================
+PRIORITY 1 — STARTUP IPC CONCURRENCY
+
+In collectSystemSignals(), replace sequential awaits with concurrent execution using Promise.allSettled().
+
+Current issue:
+5 sequential IPC/PowerShell calls block startup and can add 300ms–1500ms of delay during cold launch.
+
+Required:
+Convert all independent startup IPC calls to Promise.allSettled().
+
+Example target pattern:
+
+const [
+gameModeStatus,
+powerPlanStatus,
+specsStatus,
+memIntegStatus,
+hagsStatus
+] = await Promise.allSettled([
+api.tweaks.checkStatus("game-mode"),
+api.tweaks.checkStatus("power-plan"),
+api.system.getSpecs(),
+api.tweaks.checkStatus("memory-integrity"),
+api.tweaks.checkStatus("hags"),
+]);
+
+IMPORTANT:
+
+- preserve failure isolation
+- no single rejected IPC should fail the whole startup flow
+- preserve current fallback behavior
+
+========================================
+PRIORITY 2 — REMOVE PROCESS LIST FROM LIVE TELEMETRY BROADCAST
+
+Current issue:
+snap.processes is included in the 2-second WebSocket telemetry payload.
+
+This creates:
+
+- 40KB–80KB JSON payloads every tick
+- expensive JSON.stringify cost
+- renderer parse overhead
+- Zustand rerender pressure
+- unnecessary network usage
+
+Required:
+Remove processes from the default telemetry broadcast payload.
+
+Processes should instead be:
+
+- fetched on-demand
+- loaded only for views/widgets that actually need them
+- NOT streamed continuously
+
+Keep:
+
+- cpu
+- gpu
+- ram
+- temps
+- fps
+- ping
+- disk
+- essential telemetry only
+
+IMPORTANT:
+Do not break interference widgets or process viewers.
+Convert them to lazy/on-demand loading.
+
+========================================
+PRIORITY 3 — WEBSOCKET DEDUP OPTIMIZATION
+
+Current issue:
+The server performs JSON.stringify() BEFORE dedup comparison.
+
+Current:
+const msg = JSON.stringify(...)
+if (msg === lastPayload)
+
+This means full serialization cost occurs every tick even when nothing changed.
+
+Required:
+Use lightweight timestamp/hash comparison BEFORE stringify.
+
+Example direction:
+
+- compare snap.ts
+- compare lightweight telemetry hash
+- only stringify if changed
+
+Goal:
+Avoid unnecessary 60KB stringify operations every 2 seconds.
+
+========================================
+PRIORITY 4 — REMOVE PERMANENT will-change GPU PRESSURE
+
+Current issue:
+AppBackground orbs permanently use will-change.
+
+This allocates compositor memory continuously and may consume ~20MB VRAM for decorative layers.
+
+Required:
+
+- remove permanent will-change from CSS animated orbs
+- only apply will-change shortly before actual transitions if truly necessary
+
+IMPORTANT:
+Do not visually change animations.
+Goal is compositor optimization only.
+
+========================================
+PRIORITY 5 — REMOVE EXPENSIVE BACKDROP BLUR
+
+Current issue:
+backdrop-filter: blur() is heavily used across:
+
+- TourShell
+- GlassCard
+- UpdateModal
+- UpdateBanner
+
+This is extremely expensive on integrated graphics.
+
+Required:
+Replace heavy backdrop-filter blur panels with:
+
+- opaque/semi-opaque dark backgrounds
+- minimal/no blur
+
+Recommended fallback:
+rgba(14,10,28,0.96)
+
+Goal:
+Reduce GPU frametime spikes on low-end PCs.
+
+IMPORTANT:
+Maintain premium visual appearance as much as possible.
+
+========================================
+PRIORITY 6 — SPOTLIGHT EFFECT GPU FIX
+
+Current issue:
+SpotlightEffect animates background property every RAF tick.
+
+This forces repaint every mouse move.
+
+Required:
+Convert effect to:
+
+- fixed gradient layer
+- transform: translate()
+- compositor-only movement
+
+Remove:
+willChange: "background"
+
+Goal:
+Eliminate repaint-heavy mouse movement.
+
+========================================

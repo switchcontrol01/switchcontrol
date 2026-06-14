@@ -1,0 +1,140 @@
+. Tweak Correctness Fixes
+
+Critical:
+disable-game-dvr and disable-xbox-capture currently share registryTweakId.
+
+This causes undo collisions.
+
+Give disable-xbox-capture its own registry key.
+
+Also:
+Mark these tweaks unavailable: true
+
+- tcp-task-offload
+- tcp-weak-host
+
+Reason:
+Warnings explicitly state they are unsafe for gaming and can worsen latency/stability.
+
+Do NOT expose dangerous tweaks while claiming safety-first optimization philosophy.
+
+Also:
+Add Audio / Mic riskAreas to bluetooth-disable.
+
+==================================================
+8. Cloud Truth Route Fix
+
+Add:
+
+/api/device
+
+to CLOUD_TRUTH_ROUTE_PREFIXES.
+
+Reason:
+Device validation MUST NEVER silently fall back to mock local Electron storage.
+
+Prevent false “isFirstBind: true” responses locally.
+
+==================================================
+9. Security / Route Fixes
+
+Protect:
+/api/debug/scheduler
+
+Add:
+requireJwt
+
+Also:
+Gate snap.processes behind premium OR remove it from public telemetry responses.
+
+Do not expose full process enumeration to any authenticated user.
+
+==================================================
+10. Device Binding Migration Safety
+
+Wrap migration loop with try/catch.
+
+Current code can silently leave partial schema state.
+
+Implement:
+
+for (const sql of migrations) {
+try {
+await pool.query(sql);
+} catch (err) {
+console.error(
+"[DeviceBinding] Migration failed:",
+err.message
+);
+
+throw err;
+
+}
+}
+
+==================================================
+11. AI / Telemetry Correctness
+
+Do NOT penalize “unknown” telemetry signals.
+
+Current:
+unknown deducts 25% score.
+
+Problem:
+missing sensors make healthy systems appear unhealthy.
+
+Change:
+unknown contributes 0 deductions.
+
+Also:
+Add telemetry staleness guards before broadcasts and AI calculations.
+
+If telemetry age exceeds threshold:
+
+- mark stale
+- avoid fake low-load conclusions
+
+==================================================
+12. Shared Utility Cleanup
+
+Extract duplicated:
+
+- formatBytes
+- formatSpeed
+
+Into:
+update-helpers.ts
+
+Fix invalid Tailwind class:
+
+Replace:
+via-text-[#00D4FF]
+
+With:
+via-[#00D4FF]
+
+==================================================
+13. Performance Philosophy
+
+DO NOT:
+
+- add more polling
+- add more animations
+- add more AI loops
+- add more background scans
+- add more “FPS tweaks”
+
+Continue prioritizing:
+
+- stable frametimes
+- startup smoothness
+- renderer stability
+- minimal repainting
+- minimal IPC
+- minimal synchronous filesystem access
+- deterministic startup order
+- safe tweak behavior
+- accurate telemetry
+- low DPC / scheduler pressure
+
+This project should feel smoother, quieter, and more stable than “optimizer” apps that brute-force tweaks.

@@ -5,15 +5,7 @@ import { useUpdater } from '@/hooks/use-updater';
 import { Button } from '@/components/ui/button';
 import { RenderMarkdown } from '@/lib/render-markdown';
 
-function formatBytes(bytes: number): string {
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-function formatSpeed(bps: number): string {
-  if (bps < 1024 * 1024) return `${(bps / 1024).toFixed(0)} KB/s`;
-  return `${(bps / (1024 * 1024)).toFixed(1)} MB/s`;
-}
+import { formatBytes, formatSpeed } from '@/lib/update-helpers';
 
 const URGENCY_STYLES = {
   critical: {

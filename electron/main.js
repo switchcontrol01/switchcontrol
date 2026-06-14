@@ -4209,6 +4209,7 @@ app.whenReady().then(async () => {
   });
 
   // ── Updater boot ─────────────────────────────────────────────────────────
+  updaterService.setMainWindow(mainWindow);
   updaterService.initUpdater(isDev);
 
   if (!isDev) {
