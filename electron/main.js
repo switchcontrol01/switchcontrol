@@ -234,9 +234,11 @@ let _telemetryLoopCount  = 0; // incremented every time the loop actually starts
 
 // ── Game Sentinel ─────────────────────────────────────────────────────────────
 // Watches for a boosted game's process and pauses telemetry while it runs.
-let _sentinelGameExe    = null;  // bare .exe filename being watched (no path)
-let _sentinelLoopActive = false; // set false to stop the sentinel cleanly
-let _boosterProcessPlan = null;  // last auto-applied process-control plan (for cleanup on revert)
+let _sentinelGameExe            = null;  // bare .exe filename being watched (no path)
+let _sentinelLoopActive         = false; // set false to stop the sentinel cleanly
+let _boosterProcessPlan         = null;  // last auto-applied process-control plan (for cleanup on revert)
+let _sentinelSessionStartedAt   = null;  // Date.now() when game was first detected
+let _sentinelDeprioritisedCount = 0;     // # processes deprioritised by App Booster this session
 
 async function _telemetryLoop() {
   _telemetryLoopCount++;
@@ -485,6 +487,8 @@ async function _sentinelLoop() {
             const running = !err && stdout && stdout.toLowerCase().includes(exeName.toLowerCase());
             if (running && !_wasActive) {
               _wasActive = true;
+              _sentinelSessionStartedAt   = Date.now();
+              _sentinelDeprioritisedCount = 0;
               _telemetryLoopPaused = true;
               _telemetryCurrentIntervalMs = 30000;
               console.log('[Sentinel] game detected RUNNING — telemetry paused:', exeName);
@@ -506,11 +510,24 @@ async function _sentinelLoop() {
               if (mainWindow && !mainWindow.isDestroyed()) {
                 mainWindow.webContents.send('appBooster:sentinelStatus', { active: false });
               }
+              // Build session summary body
+              let summaryBody = 'Telemetry resumed — SwitchControl is back to full monitoring';
+              if (_sentinelSessionStartedAt) {
+                const elapsedMin = Math.round((Date.now() - _sentinelSessionStartedAt) / 60000);
+                summaryBody = elapsedMin > 0
+                  ? `Session: ${elapsedMin} min — telemetry resumed`
+                  : 'Telemetry resumed — SwitchControl is back to full monitoring';
+                if (_sentinelDeprioritisedCount > 0) {
+                  summaryBody += ` · ${_sentinelDeprioritisedCount} app${_sentinelDeprioritisedCount !== 1 ? 's' : ''} deprioritised`;
+                }
+              }
+              _sentinelSessionStartedAt   = null;
+              _sentinelDeprioritisedCount = 0;
               // System notification — shown unless user disabled game notifications
               if (configStore.get('sentinelGameNotifications') !== 'false' && Notification.isSupported()) {
                 new Notification({
                   title: 'Game closed',
-                  body: 'Telemetry resumed — SwitchControl is back to full monitoring',
+                  body: summaryBody,
                 }).show();
               }
             }
@@ -3849,6 +3866,8 @@ ipcMain.handle('appBooster:executeAction', async (event, { type, mode, executabl
             const plan    = processControl.buildPlan(scan, 'competitive');
             _boosterProcessPlan = plan;
             await processControl.applyPlan(plan);
+            // Accumulate into sentinel session summary
+            _sentinelDeprioritisedCount += (plan.toStop.length || 0) + (plan.toLowerPriority.length || 0);
             console.log('[AppBooster] Process control applied — toStop=' + plan.toStop.length + ' toLower=' + plan.toLowerPriority.length);
           } catch (e) {
             console.error('[AppBooster] process-control auto-apply error (non-fatal):', e.message);
