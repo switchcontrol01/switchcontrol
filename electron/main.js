@@ -30,7 +30,7 @@ if (isDebug) {
   console.log('========================================');
 }
 
-const { app, BrowserWindow, ipcMain, shell, globalShortcut, Menu } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, globalShortcut, Menu, Notification } = require('electron');
 const { exec, execFile } = require('child_process');
 const path = require('path');
 const os = require('os');
@@ -491,6 +491,13 @@ async function _sentinelLoop() {
               if (mainWindow && !mainWindow.isDestroyed()) {
                 mainWindow.webContents.send('appBooster:sentinelStatus', { active: true, exe: exeName });
               }
+              // System notification — shown unless user disabled game notifications
+              if (configStore.get('sentinelGameNotifications') !== 'false' && Notification.isSupported()) {
+                new Notification({
+                  title: 'Game detected',
+                  body: 'SwitchControl is throttled to maximise your FPS',
+                }).show();
+              }
             } else if (!running && _wasActive) {
               _wasActive = false;
               _telemetryLoopPaused = false;
@@ -498,6 +505,13 @@ async function _sentinelLoop() {
               console.log('[Sentinel] game exited — telemetry resumed:', exeName);
               if (mainWindow && !mainWindow.isDestroyed()) {
                 mainWindow.webContents.send('appBooster:sentinelStatus', { active: false });
+              }
+              // System notification — shown unless user disabled game notifications
+              if (configStore.get('sentinelGameNotifications') !== 'false' && Notification.isSupported()) {
+                new Notification({
+                  title: 'Game closed',
+                  body: 'Telemetry resumed — SwitchControl is back to full monitoring',
+                }).show();
               }
             }
             resolve();

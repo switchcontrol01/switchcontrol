@@ -331,6 +331,17 @@ export default function Settings() {
   const isAdmin = !!(user as any)?.isAdmin;
   const [licenseModalOpen, setLicenseModalOpen] = useState(false);
 
+  // Game session notification preference (Electron only, default enabled)
+  const [gameNotificationsEnabled, setGameNotificationsEnabled] = useState(true);
+  useEffect(() => {
+    if (!isElectron) return;
+    (window as any).electronAPI?.config?.get('sentinelGameNotifications')
+      .then((val: string | null) => {
+        setGameNotificationsEnabled(val !== 'false');
+      })
+      .catch(() => {});
+  }, [isElectron]);
+
   const handleSave = () => {
     toast({
       title: "Settings Saved",
@@ -412,6 +423,35 @@ export default function Settings() {
                   />
                 </div>
               </motion.div>
+
+              {/* Game session notifications — Electron only */}
+              {isElectron && (
+                <>
+                  <Separator className="bg-border/50" />
+                  <motion.div initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3, delay: 0.23, ease: [0.22, 1, 0.36, 1] }}>
+                    <div className="flex items-center justify-between py-1 px-2 -mx-2 rounded-lg hover:bg-[#1A1F26] transition-colors">
+                      <div className="space-y-0.5">
+                        <Label>Game session notifications</Label>
+                        <p className="text-xs text-muted-foreground">Show a system notification when a game starts or exits.</p>
+                      </div>
+                      <Switch
+                        checked={gameNotificationsEnabled}
+                        data-testid="toggle-game-notifications"
+                        onCheckedChange={async (checked) => {
+                          setGameNotificationsEnabled(checked);
+                          await (window as any).electronAPI?.config?.set('sentinelGameNotifications', checked ? 'true' : 'false');
+                          toast({
+                            title: checked ? "Game Notifications Enabled" : "Game Notifications Disabled",
+                            description: checked
+                              ? "You'll be notified when the Sentinel detects a game starting or stopping."
+                              : "No notifications will be shown during game sessions.",
+                          });
+                        }}
+                      />
+                    </div>
+                  </motion.div>
+                </>
+              )}
             </CardContent>
           </Card>
           </Reveal>
