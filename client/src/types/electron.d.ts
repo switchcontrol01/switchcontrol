@@ -184,6 +184,8 @@ declare global {
       appBooster: {
         scanGames: (games: Array<{ slug: string; executable: string; knownPaths: string[] }>) => Promise<Array<{ slug: string; detected: boolean; installPath: string | null }>>;
         executeAction: (params: { type: string; mode: 'apply' | 'revert' | 'check'; executable: string; installPath: string | null; gameName: string }) => Promise<{ success: boolean; verified: boolean; message?: string; error?: string }>;
+        setSentinelGame: (params: { exe: string | null }) => Promise<{ ok: boolean; exe?: string; error?: string }>;
+        onSentinelStatus: (callback: (payload: { active: boolean; exe?: string }) => void) => () => void;
       };
 
       extremeLabs: {

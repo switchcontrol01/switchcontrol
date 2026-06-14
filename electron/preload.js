@@ -453,6 +453,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
       assertPlainObject(params, 'params');
       return ipcRenderer.invoke('appBooster:browseExecutable', params);
     },
+    setSentinelGame: (params) => {
+      assertPlainObject(params, 'params');
+      return ipcRenderer.invoke('appBooster:setSentinelGame', params);
+    },
+    onSentinelStatus: (callback) => {
+      assertFunction(callback, 'onSentinelStatus callback');
+      const handler = (_event, payload) => callback(payload);
+      ipcRenderer.on('appBooster:sentinelStatus', handler);
+      return () => ipcRenderer.removeListener('appBooster:sentinelStatus', handler);
+    },
   },
 
   extremeLabs: {

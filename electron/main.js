@@ -232,6 +232,12 @@ let _telemetryLoopActive = false;
 let _telemetryLoopPaused = false;
 let _telemetryLoopCount  = 0; // incremented every time the loop actually starts; must stay ≤ 1
 
+// ── Game Sentinel ─────────────────────────────────────────────────────────────
+// Watches for a boosted game's process and pauses telemetry while it runs.
+let _sentinelGameExe    = null;  // bare .exe filename being watched (no path)
+let _sentinelLoopActive = false; // set false to stop the sentinel cleanly
+let _boosterProcessPlan = null;  // last auto-applied process-control plan (for cleanup on revert)
+
 async function _telemetryLoop() {
   _telemetryLoopCount++;
   verboseLog('[PERF:TASK] name=telemetryLoop source=main.js interval=' + TELEMETRY_BASE_MS + 'ms reason=startup loopInstance=' + _telemetryLoopCount);
@@ -453,6 +459,67 @@ async function pollTelemetry() {
   } catch (e) {
     console.error('[telemetry:poll] unexpected error:', e.message);
   }
+}
+
+// ── Game Sentinel loop ────────────────────────────────────────────────────────
+// Polls tasklist every 5s to detect whether the boosted game is running.
+// While the game is active: telemetry is paused and interval set to 30s.
+// When the game exits: telemetry resumes and interval resets to TELEMETRY_BASE_MS.
+// Uses execFile (never exec) to avoid shell injection — game exe comes from
+// user-supplied manual paths and must be treated as untrusted.
+async function _sentinelLoop() {
+  let _wasActive = false;
+  console.log('[Sentinel] loop started — watching exe:', _sentinelGameExe);
+  while (_sentinelLoopActive && _sentinelGameExe) {
+    const exeName = path.basename(_sentinelGameExe);
+    // Validate: must be a non-empty string ending in .exe with no path separators
+    if (!exeName || !/^[^/\\]+\.exe$/i.test(exeName)) {
+      console.warn('[Sentinel] invalid exe name, stopping:', exeName);
+      break;
+    }
+    try {
+      await new Promise((resolve) => {
+        execFile('tasklist', ['/FI', `IMAGENAME eq ${exeName}`, '/NH', '/FO', 'CSV'],
+          { timeout: 8000, windowsHide: true },
+          (err, stdout) => {
+            const running = !err && stdout && stdout.toLowerCase().includes(exeName.toLowerCase());
+            if (running && !_wasActive) {
+              _wasActive = true;
+              _telemetryLoopPaused = true;
+              _telemetryCurrentIntervalMs = 30000;
+              console.log('[Sentinel] game detected RUNNING — telemetry paused:', exeName);
+              if (mainWindow && !mainWindow.isDestroyed()) {
+                mainWindow.webContents.send('appBooster:sentinelStatus', { active: true, exe: exeName });
+              }
+            } else if (!running && _wasActive) {
+              _wasActive = false;
+              _telemetryLoopPaused = false;
+              _telemetryCurrentIntervalMs = TELEMETRY_BASE_MS;
+              console.log('[Sentinel] game exited — telemetry resumed:', exeName);
+              if (mainWindow && !mainWindow.isDestroyed()) {
+                mainWindow.webContents.send('appBooster:sentinelStatus', { active: false });
+              }
+            }
+            resolve();
+          }
+        );
+      });
+    } catch (e) {
+      console.warn('[Sentinel] tasklist error:', e.message);
+    }
+    if (_sentinelLoopActive && _sentinelGameExe) {
+      await new Promise(r => setTimeout(r, 5000));
+    }
+  }
+  // On exit: always restore telemetry if it was paused
+  if (_wasActive) {
+    _telemetryLoopPaused = false;
+    _telemetryCurrentIntervalMs = TELEMETRY_BASE_MS;
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('appBooster:sentinelStatus', { active: false });
+    }
+  }
+  console.log('[Sentinel] loop stopped');
 }
 
 async function startTelemetryPolling() {
@@ -3283,6 +3350,30 @@ ipcMain.handle('powerPlans:activateByGuid', async (event, guid) => {
 
 // ── App Booster: per-game system actions ──────────────────────────────────────
 
+// Register/unregister the game exe the sentinel should watch.
+// When exe is provided, starts the sentinel loop (or restarts it for a new game).
+// When exe is null/undefined, stops the sentinel loop.
+ipcMain.handle('appBooster:setSentinelGame', async (event, { exe } = {}) => {
+  if (!exe) {
+    console.log('[Sentinel] unregistered — stopping loop');
+    _sentinelGameExe    = null;
+    _sentinelLoopActive = false;
+    return { ok: true };
+  }
+  const exeName = path.basename(String(exe));
+  if (!exeName || !/^[^/\\]+\.exe$/i.test(exeName)) {
+    console.warn('[Sentinel] setSentinelGame: invalid exe rejected:', exe);
+    return { ok: false, error: 'Invalid exe name' };
+  }
+  console.log('[Sentinel] registered:', exeName);
+  _sentinelGameExe    = exeName;
+  _sentinelLoopActive = false; // stop any running loop first
+  await new Promise(r => setTimeout(r, 100)); // brief yield so old loop can exit
+  _sentinelLoopActive = true;
+  _sentinelLoop().catch(e => console.error('[Sentinel] loop error:', e.message));
+  return { ok: true, exe: exeName };
+});
+
 ipcMain.handle('appBooster:scanGames', async (event, games) => {
   verboseLog('[AppBooster] scanGames start —', games?.length, 'games');
   const fs   = require('fs').promises;
@@ -3576,6 +3667,9 @@ ipcMain.handle('appBooster:executeAction', async (event, { type, mode, executabl
   const VALID_BOOSTER_TYPES = [
     'cpu-priority', 'fso-disable', 'gpu-preference', 'network-qos',
     'manual-high-perf-plan', 'manual-game-mode', 'manual-nagle', 'manual-visual-fx',
+    // Competitive extras
+    'win32-priority', 'timer-resolution', 'hpet-disable',
+    'nvidia-max-perf', 'ecore-affinity', 'nagle-off',
   ];
   const VALID_BOOSTER_MODES = ['apply', 'revert', 'check'];
   if (!VALID_BOOSTER_TYPES.includes(type) || !VALID_BOOSTER_MODES.includes(mode)) {
@@ -3649,6 +3743,37 @@ ipcMain.handle('appBooster:executeAction', async (event, { type, mode, executabl
       revert: `Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects" -Name "VisualFXSetting" -Value 1 -Type DWord -Force -EA SilentlyContinue; Write-Output "ok"`,
       check:  `$v = (Get-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects" -EA SilentlyContinue).VisualFXSetting; if ($v -eq 2) { "true" } else { "false" }`,
     },
+    // ── Competitive extras ────────────────────────────────────────────────────
+    'win32-priority': {
+      apply:  `New-Item -Path "HKLM:\SYSTEM\CurrentControlSet\Control\PriorityControl" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\PriorityControl" -Name "Win32PrioritySeparation" -Value 38 -Type DWord -Force; Write-Output "ok"`,
+      revert: `Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\PriorityControl" -Name "Win32PrioritySeparation" -Value 2 -Type DWord -Force -EA SilentlyContinue; Write-Output "ok"`,
+      check:  `$v = (Get-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Control\PriorityControl" -EA SilentlyContinue).Win32PrioritySeparation; if ($v -eq 38) { "true" } else { "false" }`,
+    },
+    'timer-resolution': {
+      apply:  `bcdedit /set useplatformtick yes; Write-Output "ok"`,
+      revert: `bcdedit /deletevalue useplatformtick; Write-Output "ok"`,
+      check:  `if ((bcdedit /enum '{current}') -match 'useplatformtick') { "true" } else { "false" }`,
+    },
+    'hpet-disable': {
+      apply:  `bcdedit /deletevalue useplatformclock; Write-Output "ok"`,
+      revert: `bcdedit /set useplatformclock true; Write-Output "ok"`,
+      check:  `if (!((bcdedit /enum '{current}') -match 'useplatformclock')) { "true" } else { "false" }`,
+    },
+    'nvidia-max-perf': {
+      apply:  `$cls = "HKLM:\SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}"; $keys = Get-ChildItem $cls -EA SilentlyContinue | Where-Object { (Get-ItemProperty $_.PSPath -EA SilentlyContinue).ProviderName -like '*NVIDIA*' }; if ($keys) { $keys | ForEach-Object { Set-ItemProperty -Path $_.PSPath -Name "PreferedOpenGLImageUnits" -Value 0 -Type DWord -Force -EA SilentlyContinue; Set-ItemProperty -Path $_.PSPath -Name "PerfLevelSrc" -Value 0x2222 -Type DWord -Force -EA SilentlyContinue } }; Write-Output "ok"`,
+      revert: `$cls = "HKLM:\SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}"; $keys = Get-ChildItem $cls -EA SilentlyContinue | Where-Object { (Get-ItemProperty $_.PSPath -EA SilentlyContinue).ProviderName -like '*NVIDIA*' }; if ($keys) { $keys | ForEach-Object { Remove-ItemProperty -Path $_.PSPath -Name "PreferedOpenGLImageUnits" -Force -EA SilentlyContinue; Remove-ItemProperty -Path $_.PSPath -Name "PerfLevelSrc" -Force -EA SilentlyContinue } }; Write-Output "ok"`,
+      check:  `$cls = "HKLM:\SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}"; $k = Get-ChildItem $cls -EA SilentlyContinue | Where-Object { (Get-ItemProperty $_.PSPath -EA SilentlyContinue).ProviderName -like '*NVIDIA*' } | Select-Object -First 1; if ($k -and (Get-ItemProperty $k.PSPath -EA SilentlyContinue).PerfLevelSrc -eq 0x2222) { "true" } else { "false" }`,
+    },
+    'ecore-affinity': {
+      apply:  `$p = Get-WmiObject Win32_Processor -EA SilentlyContinue | Select-Object -First 1; $lp = $p.NumberOfLogicalProcessors; $c = $p.NumberOfCores; $isHybrid = ($p.Description -like '*Intel*') -and ($p.Name -match '1[234]th Gen') -and ($lp -gt $c * 2); if (-not $isHybrid) { Write-Output 'no-op'; exit 0 }; $mask = [uint32]((1 -shl $c) - 1); $key = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\${safeExe}\PerfOptions"; New-Item -Path $key -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path $key -Name "CpuAffinityMask" -Value $mask -Type DWord -Force; Write-Output "ok"`,
+      revert: `$key = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\${safeExe}\PerfOptions"; Remove-ItemProperty -Path $key -Name "CpuAffinityMask" -Force -EA SilentlyContinue; Write-Output "ok"`,
+      check:  `$key = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\${safeExe}\PerfOptions"; if ((Get-ItemProperty $key -EA SilentlyContinue).CpuAffinityMask -ne $null) { "true" } else { "false" }`,
+    },
+    'nagle-off': {
+      apply:  `$ifaces = "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces"; Get-ChildItem $ifaces | Where-Object { $p = Get-ItemProperty $_.PSPath -EA SilentlyContinue; $p.IPAddress -or $p.DhcpIPAddress } | ForEach-Object { Set-ItemProperty -Path $_.PSPath -Name "TcpAckFrequency" -Value 1 -Type DWord -Force -EA SilentlyContinue; Set-ItemProperty -Path $_.PSPath -Name "TCPNoDelay" -Value 1 -Type DWord -Force -EA SilentlyContinue }; Write-Output "ok"`,
+      revert: `$ifaces = "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces"; Get-ChildItem $ifaces | ForEach-Object { Remove-ItemProperty -Path $_.PSPath -Name "TcpAckFrequency" -Force -EA SilentlyContinue; Remove-ItemProperty -Path $_.PSPath -Name "TCPNoDelay" -Force -EA SilentlyContinue }; Write-Output "ok"`,
+      check:  `$ifaces = "HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interfaces"; $match = Get-ChildItem $ifaces | Where-Object { (Get-ItemProperty $_.PSPath -EA SilentlyContinue).TCPNoDelay -eq 1 } | Select-Object -First 1; if ($match) { "true" } else { "false" }`,
+    },
   };
 
   const scriptSet = scripts[type];
@@ -3695,7 +3820,43 @@ ipcMain.handle('appBooster:executeAction', async (event, { type, mode, executabl
       return { success: true, verified: String(output).toLowerCase().includes('true'), message: output };
     }
 
-    return { success: true, verified, message: String(output) };
+    const result = { success: true, verified, message: String(output) };
+
+    // ── Auto process control wiring ───────────────────────────────────────────
+    // After a successful apply: scan + apply competitive process plan in background.
+    // After a successful revert: restore last process-control plan.
+    // Errors here are non-fatal — they are logged but never fail the primary result.
+    if (result.success) {
+      if (mode === 'apply') {
+        setImmediate(async () => {
+          try {
+            console.log('[AppBooster] Auto-applying process control (competitive)...');
+            const scan    = await processControl.scan();
+            const plan    = processControl.buildPlan(scan, 'competitive');
+            _boosterProcessPlan = plan;
+            await processControl.applyPlan(plan);
+            console.log('[AppBooster] Process control applied — toStop=' + plan.toStop.length + ' toLower=' + plan.toLowerPriority.length);
+          } catch (e) {
+            console.error('[AppBooster] process-control auto-apply error (non-fatal):', e.message);
+          }
+        });
+      } else if (mode === 'revert') {
+        setImmediate(async () => {
+          try {
+            if (_boosterProcessPlan) {
+              console.log('[AppBooster] Restoring process control after revert...');
+              await processControl.restoreLast();
+              _boosterProcessPlan = null;
+              console.log('[AppBooster] Process control restored');
+            }
+          } catch (e) {
+            console.error('[AppBooster] process-control restore error (non-fatal):', e.message);
+          }
+        });
+      }
+    }
+
+    return result;
   } catch (e) {
     console.error(`[IPC] appBooster:executeAction error (${type}/${mode}):`, e.message);
     return { success: false, error: e.message, verified: false };

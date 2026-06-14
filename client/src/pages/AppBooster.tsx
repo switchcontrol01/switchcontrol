@@ -1108,6 +1108,20 @@ export default function AppBooster() {
   const [showCatalog,      setShowCatalog]     = useState(false);
   const [pendingRemove,    setPendingRemove]   = useState<PendingRemove | null>(null);
   const [showHidden,       setShowHidden]      = useState(false);
+  const [sentinelActive,   setSentinelActive]  = useState(false);
+  const [sentinelExe,      setSentinelExe]     = useState<string | null>(null);
+
+  // ── Game Sentinel subscription ─────────────────────────────────────────────
+  useEffect(() => {
+    if (!isElectron) return;
+    const eApi = (window as any).electronAPI;
+    if (!eApi?.appBooster?.onSentinelStatus) return;
+    const unsub = eApi.appBooster.onSentinelStatus((payload: { active: boolean; exe?: string }) => {
+      setSentinelActive(payload.active);
+      setSentinelExe(payload.active ? (payload.exe ?? null) : null);
+    });
+    return unsub;
+  }, [isElectron]);
 
   // ── data loading ───────────────────────────────────────────────────────────
 
@@ -1355,6 +1369,12 @@ export default function AppBooster() {
       });
       loadDetail(selectedSlug).catch(() => {});
       loadGames().catch(() => {});
+      // Register game exe with the Sentinel so telemetry pauses while the game is running
+      if (isElectron && gameDetail?.executable) {
+        try {
+          await (window as any).electronAPI?.appBooster?.setSentinelGame?.({ exe: gameDetail.executable });
+        } catch {}
+      }
     } catch (e: any) {
       toast({ title: "Apply failed", description: e.message, variant: "destructive" });
       await loadDetail(selectedSlug);
@@ -1439,6 +1459,12 @@ export default function AppBooster() {
       });
       loadDetail(selectedSlug).catch(() => {});
       loadGames().catch(() => {});
+      // Unregister sentinel — telemetry no longer needs to be paused for this game
+      if (isElectron) {
+        try {
+          await (window as any).electronAPI?.appBooster?.setSentinelGame?.({ exe: null });
+        } catch {}
+      }
     } catch (e: any) {
       toast({ title: "Revert failed", description: e.message, variant: "destructive" });
       await loadDetail(selectedSlug);
@@ -1514,6 +1540,25 @@ export default function AppBooster() {
                   style={{ background: "rgba(139,92,246,0.15)", border: "1px solid rgba(139,92,246,0.3)", color: "#a78bfa" }}>
                   Per-Game
                 </span>
+                <AnimatePresence>
+                  {sentinelActive && (
+                    <motion.span
+                      initial={{ opacity: 0, scale: 0.85 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.85 }}
+                      transition={{ duration: 0.2 }}
+                      className="flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider"
+                      style={{ background: "rgba(6,182,212,0.15)", border: "1px solid rgba(6,182,212,0.35)", color: "#22d3ee" }}
+                      data-testid="sentinel-active-badge"
+                    >
+                      <span className="relative flex h-1.5 w-1.5">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ background: "#22d3ee" }} />
+                        <span className="relative inline-flex rounded-full h-1.5 w-1.5" style={{ background: "#22d3ee" }} />
+                      </span>
+                      Game Active — SC throttled
+                    </motion.span>
+                  )}
+                </AnimatePresence>
               </div>
               <p className="text-sm text-[#6B7380] font-medium ml-12">Real system execution — no fake state</p>
             </div>
