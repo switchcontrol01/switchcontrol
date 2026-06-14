@@ -5,13 +5,15 @@ import { TWEAKS_DATA, TweakCategory, TweakLevel } from "@/lib/mock-data";
 import { useStore } from "@/lib/store";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, SlidersHorizontal, RotateCcw, CheckCircle2, AlertTriangle, ShieldCheck, FlaskConical, Cpu } from "lucide-react";
+import { Search, SlidersHorizontal, RotateCcw, Sparkles, AlertTriangle, ShieldCheck, FlaskConical, Cpu } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useTweakExecutor, isElectronWithTweaks, isRealTweak, isSliderTweak, SLIDER_TWEAKS } from "@/hooks/use-tweak-executor";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import { GlassModalSurface } from "@/components/ui/GlassModalLayout";
+import { useOptimizationStore } from "@/stores/optimizationStore";
+import { OptimizationFlow } from "@/components/optimization/OptimizationFlow";
 
 // Module-level sync generation counter — persists across component remounts.
 // Incremented when a new mount starts its sync; old in-flight syncs that
@@ -55,7 +57,8 @@ const LEVEL_WARN: Record<string, { title: string; body: string }> = {
 };
 
 export function TweaksList() {
-  const { tweaks, toggleTweak, resetData, enableRecommended, setTweak } = useStore();
+  const { tweaks, toggleTweak, resetData, setTweak } = useStore();
+  const startOptimizationFlow = useOptimizationStore(s => s.startFlow);
   const { syncAllTweaks, isElectron } = useTweakExecutor();
   const { toast } = useToast();
   const [search, setSearch]         = useState("");
@@ -248,13 +251,13 @@ export function TweaksList() {
 
         <div className="flex items-center gap-2">
           <Button
-            onClick={enableRecommended}
+            onClick={startOptimizationFlow}
             size="sm"
             data-testid="button-apply-safe"
-            className="h-9 px-4 gap-2 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20"
+            className="h-9 px-4 gap-2 bg-violet-500/10 text-violet-300 border border-violet-500/20 hover:bg-violet-500/20"
           >
-            <CheckCircle2 className="size-4" />
-            Apply Recommended
+            <Sparkles className="size-4" />
+            Optimize
           </Button>
           <Button
             variant="outline" size="sm"
@@ -449,6 +452,9 @@ export function TweaksList() {
           </motion.div>
         )}
       </div>
+
+      {/* Optimization flow modal — isolated store, never causes TweaksList re-renders */}
+      <OptimizationFlow />
     </div>
   );
 }

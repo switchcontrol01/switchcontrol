@@ -3,3 +3,4 @@
 - [Hardware intelligence module](hardware-intelligence-module.md) — shared/hardwareIntelligence.ts is the single source of truth for CPU/GPU classification, hardware profiles, and per-tweak verdicts (server + client).
 - [Ownership store batch writes](ownership-batch-writes.md) — N reverts → 1 disk write; use beginBatch/endBatch around Promise.all revert loops in premium-revert-pipeline.js.
 - [Recommendation filter canonical](recommendation-filter.md) — isRecommendedSafe in hooks.ts is the one source of truth; store.ts imports it. Never duplicate inline filter logic.
+- [Optimization Engine architecture](optimization-engine.md) — deterministic engine lives in shared/, isolated Zustand slice prevents TweaksList re-renders; hardware verdicts from hardwareIntelligence fold into score multiplier.

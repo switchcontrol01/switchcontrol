@@ -128,6 +128,34 @@ export async function batchCheckAllTweaks(): Promise<Record<string, TweakStatus>
   }
 }
 
+/** Bulk revert: execute multiple tweaks in revert direction.
+ *  Used for session rollback after an optimization plan is undone.
+ *  Returns empty map (success) on non-Electron (store handles state update).
+ */
+export async function bulkRevertTweaks(tweakIds: string[]): Promise<Record<string, TweakResult>> {
+  if (!isElectronWithTweaks()) {
+    const empty: Record<string, TweakResult> = {};
+    for (const id of tweakIds) {
+      empty[id] = { success: true, requiresReboot: false, requiresAdmin: false, commandsRun: [], message: null, error: null };
+    }
+    return empty;
+  }
+  const api = getTweaksAPI();
+  const results: Record<string, TweakResult> = {};
+  for (const id of tweakIds) {
+    try {
+      results[id] = await api.execute(id, 'revert', { context: 'bulk' });
+    } catch (err) {
+      results[id] = {
+        success: false, requiresReboot: false, requiresAdmin: false,
+        commandsRun: [], message: null, error: err instanceof Error ? err.message : String(err),
+        failureType: 'unknown',
+      };
+    }
+  }
+  return results;
+}
+
 /** Bulk apply: execute multiple tweaks with safety guards active.
  *  Passes `context: 'bulk'` so AudioGuard/NetworkGuard can block/rollback.
  */
