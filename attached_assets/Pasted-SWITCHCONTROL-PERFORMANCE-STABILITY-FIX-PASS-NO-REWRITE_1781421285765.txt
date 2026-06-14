@@ -1,0 +1,400 @@
+SWITCHCONTROL — PERFORMANCE + STABILITY FIX PASS (NO REWRITE)
+
+CONTEXT
+
+We are NOT rewriting the app.
+
+We are doing a controlled optimization pass on an existing Electron + React + Node system.
+
+The app already works.
+
+We are fixing:
+
+performance issues
+
+renderer stutter
+
+polling inefficiency
+
+IPC duplication
+
+disk I/O blocking
+
+AI Advisor instability
+
+UI layout thrash
+
+startup hydration timing issues
+
+
+DO NOT:
+
+redesign architecture
+
+rewrite major systems
+
+change auth/billing/tweaks backend logic
+
+introduce new systems
+
+add logging spam
+
+increase polling or intervals
+
+
+
+---
+
+PRIMARY GOAL
+
+Make SwitchControl feel:
+
+native
+
+instant
+
+stable
+
+low CPU
+
+low GPU usage
+
+smooth navigation
+
+no stutter
+
+no flash
+
+no delay spikes
+
+
+
+---
+
+CRITICAL FIX AREAS (FROM AUDIT)
+
+1. TELEMETRY POLLING DUPLICATION (HIGH PRIORITY)
+
+Problem:
+
+telemetryManager already polls IPC
+
+LiveGraph ALSO polls getLive()
+
+duplicate IPC traffic + rerenders
+
+
+Fix:
+
+REMOVE LiveGraph polling entirely in Electron mode
+
+LiveGraph must subscribe to telemetry store only
+
+telemetryManager is single source of truth
+
+
+
+---
+
+2. SYNC DISK I/O BLOCKING (HIGH PRIORITY)
+
+Problem: ownership-store.js:
+
+loadOwnership() runs fs.readFileSync every operation
+
+saveOwnership() runs fs.writeFileSync per tweak
+
+
+tweak-executor.js:
+
+saveState called after every tweak apply
+
+causes repeated disk writes
+
+
+Fix:
+
+batch ownership-store operations
+
+load ONCE per batch operation
+
+write ONCE at end
+
+same for tweak-executor syncAll operations
+
+
+DO NOT change logic, only batching
+
+
+---
+
+3. GLASSPANEL LAYOUT THRASH (HIGH PRIORITY)
+
+Problem: GlassPanel uses:
+
+getBoundingClientRect on mousemove
+
+
+Fix:
+
+cache bounding rect on mouseenter
+
+update via ResizeObserver
+
+remove per-mousemove layout reads
+
+
+
+---
+
+4. IPC RACE CONDITION (HIGH PRIORITY)
+
+Problem: telemetryManager:
+
+_ipcPollTick can run concurrently with refreshNow()
+
+
+Fix:
+
+add _ipcPollInFlight guard
+
+prevent overlapping getLive IPC calls
+
+
+
+---
+
+5. POWERPLAN / LOCALSTORAGE DIVERGENCE (MEDIUM)
+
+Problem:
+
+localStorage stores UI state
+
+electron store stores system state
+
+possible desync
+
+
+Fix:
+
+ensure GUID/state persistence is unified via electronAPI layer OR
+
+mirror state consistently via IPC
+
+
+NO redesign
+
+
+---
+
+6. SVG RADAR CHART COLLISION (MEDIUM)
+
+Problem:
+
+gradient IDs collide across instances
+
+
+Fix:
+
+append useId() to gradient id
+
+ensure uniqueness per instance
+
+
+
+---
+
+7. BACKGROUND ANIMATION GPU LOAD (HIGH PRIORITY)
+
+Problem: animated backgrounds use:
+
+background gradients animation
+
+
+Fix:
+
+remove background animation
+
+replace with:
+
+opacity animation OR
+
+transform animation only
+
+
+
+DO NOT animate:
+
+background
+
+blur
+
+gradients
+
+
+
+---
+
+8. STARTUP TELEMETRY / SPLASH LOAD (HIGH PRIORITY)
+
+Problem: telemetry starts during splash animation
+
+Fix:
+
+move telemetryManager.start()
+
+ensure it only starts AFTER authenticated phase
+
+remove Splash.tsx direct start calls
+
+
+
+---
+
+9. AI ADVISOR CONTEXT RELIABILITY (HIGH PRIORITY)
+
+Problem:
+
+stale context
+
+delayed apply cards
+
+weak route awareness
+
+
+Fix: Create:
+
+src/lib/ai-context-builder.ts
+
+Requirements:
+
+synchronous base snapshot
+
+deterministic structure
+
+includes:
+
+current route
+
+current tab
+
+enabled tweaks
+
+telemetry summary
+
+hardware summary
+
+recent tweak history
+
+
+
+NO partial undefined state
+
+
+---
+
+10. REACT RERENDER OPTIMIZATION (MEDIUM)
+
+Fix:
+
+memoize expensive filters (useMemo)
+
+remove inline objects in render
+
+remove repeated scans per render
+
+
+Examples:
+
+AiTweakRecommendationCards filter
+
+MemoryCleanerModal variants object
+
+
+
+---
+
+PERFORMANCE RULES (MUST FOLLOW)
+
+Every fix must be checked against:
+
+1. Does it add rerenders?
+
+
+2. Does it increase IPC?
+
+
+3. Does it increase polling?
+
+
+4. Does it block main thread?
+
+
+5. Does it add layout thrash?
+
+
+6. Does it increase GPU load?
+
+
+7. Does it create memory leaks?
+
+
+8. Does it affect startup timing?
+
+
+
+If YES → do NOT implement unless necessary.
+
+
+---
+
+EXPECTED RESULT
+
+After fixes:
+
+LiveGraph uses zero duplicate polling
+
+IPC traffic reduced significantly
+
+no layout thrashing on mouse move
+
+disk operations batched (not per tweak)
+
+no overlapping telemetry calls
+
+smoother navigation
+
+reduced CPU usage
+
+reduced GPU composition load
+
+stable long sessions
+
+AI Advisor context is reliable
+
+no UI stutter spikes
+
+
+
+---
+
+OUTPUT FORMAT REQUIRED FROM CLAUDE
+
+1. list of exact bugs found
+
+
+2. files modified
+
+
+3. minimal code patches
+
+
+4. explanation per fix
+
+
+5. NO redesign
+
+
+6. NO extra systems
+
+

@@ -1,0 +1,130 @@
+EXAMPLE
+
+BAD:
+"Disable core parking for everyone"
+
+GOOD:
+"Detected Ryzen X3D system.
+Windows scheduler already optimizes parking behavior.
+Aggressive parking overrides are not recommended."
+
+==================================================
+PERFORMANCE MODES
+
+Instead of generic wording, create intelligent goals:
+
+- Competitive FPS
+- Frametime Stability
+- Low Input Delay
+- Streaming & Gaming
+- Quiet / Efficient
+- Thermal Balanced
+- High Refresh Smoothness
+- Background Process Reduction
+
+==================================================
+NETWORK SYSTEM
+
+Network tweaks should:
+
+- detect NIC hardware
+- detect connection type
+- avoid harmful legacy tweaks
+- adapt recommendations to latency vs throughput goals
+
+==================================================
+LONG TERM DIRECTION
+
+SwitchControl should eventually become:
+
+- adaptive
+- telemetry-driven
+- intelligent
+- hardware-aware
+- benchmark-aware
+- reversible
+- safe
+- stable
+
+NOT:
+
+- a registry tweak dump
+- a “boost FPS by 500%” tool
+- a placebo optimizer
+
+==================================================
+FINAL EXPERIENCE TARGET
+
+The app should feel:
+
+- native
+- smooth
+- premium
+- intelligent
+- responsive
+- lightweight
+- trustworthy
+
+The user should feel:
+"this app actually understands my system."
+
+IMPORTANT OPTIMIZATION PHILOSOPHY
+
+Some optimizations can LOWER average FPS while significantly IMPROVING:
+
+- frametime consistency
+- input responsiveness
+- latency stability
+- smoothness
+- stutter reduction
+- 1% lows
+
+The app must understand that:
+
+HIGHER FPS does NOT always mean BETTER experience.
+
+Many generic “optimizer” apps incorrectly:
+
+- disable large numbers of services
+- force aggressive timer resolutions
+- break scheduler behavior
+- increase DPC latency
+- create thermal instability
+- increase CPU overhead
+- destabilize frametimes
+- apply outdated Windows tweaks blindly
+
+This can produce:
+
+- slightly higher average FPS
+  BUT:
+- worse frametimes
+- more stutter
+- inconsistent latency
+- unstable responsiveness
+- worse real-world feel
+
+SwitchControl should prioritize:
+
+- frametime stability
+- responsiveness
+- low latency
+- smoothness
+- scheduler safety
+- thermal stability
+- consistent system behavior
+
+The app should avoid:
+aggressive placebo tweaks or unsafe “FPS boosting” behavior.
+
+Optimization decisions should be:
+
+- telemetry-aware
+- hardware-aware
+- scheduler-aware
+- benchmark-aware
+- stability-aware
+
+The goal is:
+a system that FEELS smoother and more responsive,
+not simply a system showing artificially higher FPS numbers.

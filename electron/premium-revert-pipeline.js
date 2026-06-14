@@ -372,37 +372,66 @@ async function revertAllAppOwned() {
   let skippedCount  = 0;
   let failedCount   = 0;
 
-  for (const record of owned) {
-    const { scopeKey, itemType, baselineCaptured } = record;
+  // Split records into two groups:
+  //   1. Independent items (tweak / network_tweak / nic) — safe to run in parallel.
+  //   2. Power plan — must run last; has strict ordering requirements (see module header).
+  const powerPlanRecords = owned.filter(r => r.itemType === 'power_plan');
+  const otherRecords     = owned.filter(r => r.itemType !== 'power_plan');
 
-    // Power plan is exempt from the baseline-captured requirement —
-    // it has its own strict active-plan check and forced-Balanced fallback.
-    if (itemType !== 'power_plan' && !baselineCaptured) {
-      details[scopeKey] = { skipped: true, reason: 'No baseline captured — failing safe.' };
+  // ── Phase 1: parallel revert of independent items ─────────────────────────
+  const parallelResults = await Promise.all(
+    otherRecords.map(async (record) => {
+      const { scopeKey, itemType, baselineCaptured } = record;
+
+      if (!baselineCaptured) {
+        return { scopeKey, result: { skipped: true, reason: 'No baseline captured — failing safe.' } };
+      }
+
+      let itemResult;
+      try {
+        if (itemType === 'tweak') {
+          itemResult = await revertTweak(record);
+        } else if (itemType === 'network_tweak') {
+          itemResult = await revertNetworkTweak(record);
+        } else if (itemType === 'nic') {
+          itemResult = await revertNicProperty(record);
+        } else {
+          itemResult = { skipped: true, reason: `Unknown itemType: ${itemType}` };
+        }
+      } catch (e) {
+        itemResult = { success: false, error: `Unhandled error: ${e.message}` };
+      }
+      return { scopeKey, result: itemResult };
+    })
+  );
+
+  for (const { scopeKey, result: itemResult } of parallelResults) {
+    details[scopeKey] = itemResult;
+    if (itemResult.skipped) {
       skippedCount++;
-      console.warn(`[RevertPipeline] SKIP ${scopeKey} — no baseline captured`);
-      continue;
+      console.warn(`[RevertPipeline] SKIP ${scopeKey} — ${itemResult.reason}`);
+    } else if (itemResult.success) {
+      revertedCount++;
+      console.log(`[RevertPipeline] OK   ${scopeKey} (action=${itemResult.action})`);
+    } else {
+      failedCount++;
+      console.error(`[RevertPipeline] FAIL ${scopeKey} — ${itemResult.error}`);
     }
+  }
 
+  // ── Phase 2: power plan revert — sequential, always last ─────────────────
+  // Power plan revert must come after all other changes have settled; it reads
+  // the currently active scheme from Windows and has strict ordering rules.
+  for (const record of powerPlanRecords) {
+    const { scopeKey } = record;
     let itemResult;
     try {
-      if (itemType === 'tweak') {
-        itemResult = await revertTweak(record);
-      } else if (itemType === 'network_tweak') {
-        itemResult = await revertNetworkTweak(record);
-      } else if (itemType === 'nic') {
-        itemResult = await revertNicProperty(record);
-      } else if (itemType === 'power_plan') {
-        itemResult = await revertPowerPlan(record);
-      } else {
-        itemResult = { skipped: true, reason: `Unknown itemType: ${itemType}` };
-      }
+      itemResult = await revertPowerPlan(record);
     } catch (e) {
       itemResult = { success: false, error: `Unhandled error: ${e.message}` };
     }
 
     details[scopeKey] = itemResult;
-
     if (itemResult.skipped) {
       skippedCount++;
       console.warn(`[RevertPipeline] SKIP ${scopeKey} — ${itemResult.reason}`);

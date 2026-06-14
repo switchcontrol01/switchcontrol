@@ -288,29 +288,29 @@ export function DetectedIssues({ className }: DetectedIssuesProps) {
       // 1. Collect tweak states (Zustand — registry-verified on load)
       const tweakStates = tweaks;
 
-      // 2. Fetch startup app count from backend
-      let startupAppCount: number | undefined;
-      try {
-        const r = await fetch("/api/startup/apps");
-        if (r.ok) {
-          const d = await r.json();
-          if (Array.isArray(d.apps)) {
-            startupAppCount = d.apps.filter(
-              (a: { phase?: string }) => a.phase !== "disabled"
-            ).length;
-          }
-        }
-      } catch { /* startup count optional */ }
-
-      // 3. Fetch power plan name from Electron IPC (null in browser mode)
-      let powerPlanName: string | undefined;
-      try {
-        const api = (window as any).electronAPI;
-        if (typeof api?.powerPlans?.getState === "function") {
-          const ps = await api.powerPlans.getState();
-          powerPlanName = ps?.activeScheme?.name ?? undefined;
-        }
-      } catch { /* power plan optional */ }
+      // 2+3. Fetch startup app count and power plan name in parallel —
+      // these are independent async sources; running sequentially adds
+      // unnecessary latency before the issue-detection POST can fire.
+      const [startupData, resolvedPowerPlan] = await Promise.all([
+        fetch("/api/startup/apps")
+          .then(r => r.ok ? r.json() : null)
+          .catch(() => null),
+        (async () => {
+          try {
+            const api = (window as any).electronAPI;
+            if (typeof api?.powerPlans?.getState === "function") {
+              const ps = await api.powerPlans.getState();
+              return (ps?.activeScheme?.name as string | undefined) ?? undefined;
+            }
+          } catch { /* power plan optional */ }
+          return undefined;
+        })(),
+      ]);
+      const startupAppCount: number | undefined =
+        startupData && Array.isArray(startupData.apps)
+          ? startupData.apps.filter((a: { phase?: string }) => a.phase !== "disabled").length
+          : undefined;
+      const powerPlanName: string | undefined = resolvedPowerPlan;
 
       // 4. POST to issue detector
       const resp = await fetch("/api/issues/detect", {

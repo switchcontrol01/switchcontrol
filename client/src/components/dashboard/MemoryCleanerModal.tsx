@@ -138,6 +138,12 @@ export function MemoryCleanerModal({ open, onOpenChange, onCleanComplete }: Memo
   const { toast } = useToast();
   const { clearRam, setStats } = useStore();
 
+  // Ref tracking the delayed telemetry refresh so it can be cancelled on unmount.
+  const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+  }, []);
+
   const handleClean = async () => {
     if (cleaning) return;
     setCleaning(true);
@@ -192,7 +198,11 @@ export function MemoryCleanerModal({ open, onOpenChange, onCleanComplete }: Memo
         // working-set reclaim completes.
         telemetryManager.refreshNow();
         onCleanComplete?.();
-        setTimeout(() => telemetryManager.refreshNow(), 3000);
+        if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+        refreshTimerRef.current = setTimeout(() => {
+          telemetryManager.refreshNow();
+          refreshTimerRef.current = null;
+        }, 3000);
       } else {
         await minDelay;
         clearRam();

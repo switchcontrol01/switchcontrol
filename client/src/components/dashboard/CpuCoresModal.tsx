@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
+import { usePollingInterval } from "@/hooks/usePollingInterval";
 import { GlassModalLayout, HwBadge } from "@/components/ui/GlassModalLayout";
 import { Cpu } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -66,63 +67,44 @@ function CoreBar({ core, index }: { core: CpuCore; index: number }) {
 
 export function CpuCoresModal({ open, onOpenChange, cpuName, coreCount, threadCount }: CpuCoresModalProps) {
   const [cores, setCores] = useState<CpuCore[]>([]);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const [avgLoad, setAvgLoad] = useState(0);
 
+  // activeRef: stale-update guard — set false when modal closes so any
+  // in-flight async fetch won't call setCores/setAvgLoad after the modal unmounts.
+  const activeRef = useRef(true);
   useEffect(() => {
-    if (!open) {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-      return;
-    }
+    if (open) activeRef.current = true;
+    return () => { activeRef.current = false; };
+  }, [open]);
 
-    let active = true; // P3-C1: guard setCores/setAvgLoad after await when modal closes mid-fetch
-    const fetchCores = async () => {
-      try {
-        const api = (window as any).electronAPI;
-        if (api?.telemetry?.getCpuCores) {
-          const data: CpuCore[] = await api.telemetry.getCpuCores();
-          if (!active) return;
-          setCores(data);
-          if (data.length > 0) {
-            const avg = data.reduce((sum, c) => sum + c.load, 0) / data.length;
-            setAvgLoad(Math.round(avg));
-          }
-        } else {
-          const fakeCount = coreCount || 8;
-          const fakeCores: CpuCore[] = Array.from({ length: fakeCount }, (_, i) => ({
-            id: i,
-            load: parseFloat((Math.random() * 60 + Math.random() * 30).toFixed(1)),
-          }));
-          setCores(fakeCores);
-          const avg = fakeCores.reduce((sum, c) => sum + c.load, 0) / fakeCores.length;
+  const fetchCores = useCallback(async () => {
+    try {
+      const api = (window as any).electronAPI;
+      if (api?.telemetry?.getCpuCores) {
+        const data: CpuCore[] = await api.telemetry.getCpuCores();
+        if (!activeRef.current) return;
+        setCores(data);
+        if (data.length > 0) {
+          const avg = data.reduce((sum, c) => sum + c.load, 0) / data.length;
           setAvgLoad(Math.round(avg));
         }
-      } catch {
-        // silently fail
+      } else {
+        const fakeCount = coreCount || 8;
+        const fakeCores: CpuCore[] = Array.from({ length: fakeCount }, (_, i) => ({
+          id: i,
+          load: parseFloat((Math.random() * 60 + Math.random() * 30).toFixed(1)),
+        }));
+        if (!activeRef.current) return;
+        setCores(fakeCores);
+        const avg = fakeCores.reduce((sum, c) => sum + c.load, 0) / fakeCores.length;
+        setAvgLoad(Math.round(avg));
       }
-    };
+    } catch {
+      // silently fail
+    }
+  }, [coreCount]);
 
-    const stopPoll = () => {
-      if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
-    };
-    const startPoll = () => {
-      if (intervalRef.current) return;
-      fetchCores();
-      intervalRef.current = setInterval(fetchCores, 2000);
-    };
-    const handleVisibility = () => { document.hidden ? stopPoll() : startPoll(); };
-    document.addEventListener('visibilitychange', handleVisibility);
-    if (!document.hidden) startPoll();
-
-    return () => {
-      active = false; // P3-C1: prevent in-flight fetch from calling setState after close
-      stopPoll();
-      document.removeEventListener('visibilitychange', handleVisibility);
-    };
-  }, [open, coreCount]);
+  usePollingInterval(fetchCores, 2000, open);
 
   const isHighAvg = avgLoad > 70;
   const isCriticalAvg = avgLoad > 80;

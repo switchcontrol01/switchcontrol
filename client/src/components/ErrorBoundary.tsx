@@ -13,7 +13,9 @@ function reportCritical(event: {
     if (api?.reportCritical) {
       api.reportCritical(event).catch(() => {});
     }
-  } catch (e) {}
+  } catch (e) {
+    console.warn('[ErrorBoundary] Failed to forward critical report to Electron IPC:', e);
+  }
 }
 
 interface Props {

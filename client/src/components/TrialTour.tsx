@@ -1,9 +1,10 @@
-import { useState, useEffect, useCallback, type ReactNode } from "react";
+import { useState, useCallback, type ReactNode } from "react";
 import { motion, AnimatePresence } from "@/lib/motionTokens";
 import { Brain, Cpu, Wifi, Zap, Clock, ChevronRight, Crown, ArrowRight } from "lucide-react";
 import { TourShell, type TourStep } from "./TourShell";
 import { useAuthStore } from "@/lib/auth-store";
-import { formatTrialCountdown, formatTrialEndsAt, getTrialTimeRemaining } from "@/lib/trialCountdown";
+import { formatTrialEndsAt, getTrialTimeRemaining } from "@/lib/trialCountdown";
+import { useTrialCountdown } from "@/hooks/useTrialCountdown";
 
 function GlassPanel({ children, className = "", cyan = false }: { children: ReactNode; className?: string; cyan?: boolean }) {
   return (
@@ -23,23 +24,8 @@ function GlassPanel({ children, className = "", cyan = false }: { children: Reac
 }
 
 function LiveCountdown({ trialEndsAt }: { trialEndsAt: string | null }) {
-  const [text, setText] = useState(() => formatTrialCountdown(trialEndsAt));
-
-  useEffect(() => {
-    if (!trialEndsAt) return;
-    const initialRem = getTrialTimeRemaining(trialEndsAt);
-    if (initialRem.expired) {
-      setText(formatTrialCountdown(trialEndsAt));
-      return;
-    }
-    const id = setInterval(() => {
-      if (document.hidden) return;
-      const r = getTrialTimeRemaining(trialEndsAt);
-      setText(formatTrialCountdown(trialEndsAt));
-      if (r.expired) clearInterval(id);
-    }, 1000);
-    return () => clearInterval(id);
-  }, [trialEndsAt]);
+  // Shared hook — visibility guard, cleanup, and stop-on-expire all handled inside.
+  const text = useTrialCountdown(trialEndsAt);
 
   return (
     <GlassPanel cyan className="p-3">

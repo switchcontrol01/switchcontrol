@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
+import { usePollingInterval } from "@/hooks/usePollingInterval";
 import { GlassModalLayout } from "@/components/ui/GlassModalLayout";
 import { MemoryStick, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -53,77 +54,58 @@ function ProcessBar({ proc, maxMB, index }: { proc: { name: string; pid: number;
 
 export function MemoryIntelligenceModal({ open, onOpenChange }: MemoryIntelligenceModalProps) {
   const [data, setData] = useState<MemoryDetails | null>(null);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
+  // activeRef: stale-update guard — set false when modal closes so any
+  // in-flight async fetch won't call setData after the modal unmounts.
+  const activeRef = useRef(true);
   useEffect(() => {
-    if (!open) {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-      return;
-    }
+    if (open) activeRef.current = true;
+    return () => { activeRef.current = false; };
+  }, [open]);
 
-    let active = true; // P3-M1: guard setData after await when modal closes mid-fetch
-    const fetchData = async () => {
-      try {
-        const api = (window as any).electronAPI;
-        if (api?.telemetry?.getMemoryDetails) {
-          const raw = await api.telemetry.getMemoryDetails();
-          if (!active) return;
-          if (raw) {
-            setData({
-              total: raw.total ?? 0,
-              used: raw.used ?? (raw.total ? raw.total - (raw.available ?? raw.free ?? 0) : 0),
-              free: raw.free ?? 0,
-              available: raw.available ?? raw.free ?? 0,
-              active: raw.active ?? raw.used ?? (raw.total ? raw.total - (raw.available ?? raw.free ?? 0) : 0),
-              compressed: raw.compressed ?? 0,
-              processes: raw.processes ?? [],
-            });
-          }
-        } else {
-          const totalBytes = 16 * 1024 * 1024 * 1024;
-          const usedBytes = (6 + Math.random() * 4) * 1024 * 1024 * 1024;
+  const fetchData = useCallback(async () => {
+    try {
+      const api = (window as any).electronAPI;
+      if (api?.telemetry?.getMemoryDetails) {
+        const raw = await api.telemetry.getMemoryDetails();
+        if (!activeRef.current) return;
+        if (raw) {
           setData({
-            total: totalBytes,
-            used: usedBytes,
-            free: totalBytes - usedBytes,
-            available: totalBytes - usedBytes + 1024 * 1024 * 512,
-            active: usedBytes * 0.8,
-            compressed: usedBytes * 0.05,
-            processes: [
-              { name: "chrome.exe", pid: 1234, memoryMB: Math.floor(400 + Math.random() * 300) },
-              { name: "discord.exe", pid: 2345, memoryMB: Math.floor(200 + Math.random() * 150) },
-              { name: "explorer.exe", pid: 3456, memoryMB: Math.floor(100 + Math.random() * 80) },
-              { name: "vscode.exe", pid: 4567, memoryMB: Math.floor(300 + Math.random() * 200) },
-              { name: "steam.exe", pid: 5678, memoryMB: Math.floor(150 + Math.random() * 100) },
-            ],
+            total: raw.total ?? 0,
+            used: raw.used ?? (raw.total ? raw.total - (raw.available ?? raw.free ?? 0) : 0),
+            free: raw.free ?? 0,
+            available: raw.available ?? raw.free ?? 0,
+            active: raw.active ?? raw.used ?? (raw.total ? raw.total - (raw.available ?? raw.free ?? 0) : 0),
+            compressed: raw.compressed ?? 0,
+            processes: raw.processes ?? [],
           });
         }
-      } catch {
-        // silently fail
+      } else {
+        const totalBytes = 16 * 1024 * 1024 * 1024;
+        const usedBytes = (6 + Math.random() * 4) * 1024 * 1024 * 1024;
+        if (!activeRef.current) return;
+        setData({
+          total: totalBytes,
+          used: usedBytes,
+          free: totalBytes - usedBytes,
+          available: totalBytes - usedBytes + 1024 * 1024 * 512,
+          active: usedBytes * 0.8,
+          compressed: usedBytes * 0.05,
+          processes: [
+            { name: "chrome.exe", pid: 1234, memoryMB: Math.floor(400 + Math.random() * 300) },
+            { name: "discord.exe", pid: 2345, memoryMB: Math.floor(200 + Math.random() * 150) },
+            { name: "explorer.exe", pid: 3456, memoryMB: Math.floor(100 + Math.random() * 80) },
+            { name: "vscode.exe", pid: 4567, memoryMB: Math.floor(300 + Math.random() * 200) },
+            { name: "steam.exe", pid: 5678, memoryMB: Math.floor(150 + Math.random() * 100) },
+          ],
+        });
       }
-    };
+    } catch {
+      // silently fail
+    }
+  }, []);
 
-    const stopPoll = () => {
-      if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
-    };
-    const startPoll = () => {
-      if (intervalRef.current) return;
-      fetchData();
-      intervalRef.current = setInterval(fetchData, 2000);
-    };
-    const handleVisibility = () => { document.hidden ? stopPoll() : startPoll(); };
-    document.addEventListener('visibilitychange', handleVisibility);
-    if (!document.hidden) startPoll();
-
-    return () => {
-      active = false; // P3-M1: prevent in-flight fetch from calling setState after close
-      stopPoll();
-      document.removeEventListener('visibilitychange', handleVisibility);
-    };
-  }, [open]);
+  usePollingInterval(fetchData, 2000, open);
 
   const usedPercent = data ? (data.used / data.total) * 100 : 0;
   const isHighPressure = usedPercent > 80;

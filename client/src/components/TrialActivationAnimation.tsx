@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from '@/lib/motionTokens';
 import { Brain, Cpu, Wifi, Zap, Clock } from 'lucide-react';
 import { useAuthStore } from '@/lib/auth-store';
-import { formatTrialCountdown, formatTrialEndsAt, getTrialTimeRemaining } from '@/lib/trialCountdown';
+import { formatTrialEndsAt, getTrialTimeRemaining } from '@/lib/trialCountdown';
+import { useTrialCountdown } from '@/hooks/useTrialCountdown';
 import logoImg from '@/assets/logo.webp';
 
 interface Props {
@@ -47,19 +48,10 @@ const FEATURES = [
 ];
 
 function CountdownDisplay({ trialEndsAt }: { trialEndsAt: string | null }) {
-  const [countdown, setCountdown] = useState(() => formatTrialCountdown(trialEndsAt));
-  const [remaining, setRemaining] = useState(() => getTrialTimeRemaining(trialEndsAt));
-
-  useEffect(() => {
-    if (!trialEndsAt) return;
-    const id = setInterval(() => {
-      // P1-A1: skip ticks when tab/window is hidden to avoid background CPU + re-renders
-      if (typeof document !== "undefined" && document.hidden) return;
-      setCountdown(formatTrialCountdown(trialEndsAt));
-      setRemaining(getTrialTimeRemaining(trialEndsAt));
-    }, 1000);
-    return () => clearInterval(id);
-  }, [trialEndsAt]);
+  // Shared hook — visibility guard, cleanup, and stop-on-expire all handled inside.
+  const countdown = useTrialCountdown(trialEndsAt);
+  // Compute remaining inline: component re-renders every second from the hook tick.
+  const remaining = getTrialTimeRemaining(trialEndsAt);
 
   const totalMs  = trialEndsAt ? new Date(trialEndsAt).getTime() - Date.now() : 0;
   const maxMs    = 7 * 24 * 60 * 60 * 1000;

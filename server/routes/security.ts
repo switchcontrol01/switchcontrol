@@ -1,4 +1,4 @@
-import { Router, Request, Response } from "express";
+import { Router, Request, Response, RequestHandler } from "express";
 import { z } from "zod";
 import rateLimit from "express-rate-limit";
 import OpenAI from "openai";
@@ -116,18 +116,28 @@ securityRouter.get("/capabilities", (req: Request, res: Response) => {
 });
 
 // ---------------------------------------------------------------------------
+// Shared premium guard — applied after requireJwt populates req.cloudUser.
+// Both secured routes use [requireJwt, requirePremium] so the isPremium
+// check is defined once and can never be forgotten on a future route.
+// ---------------------------------------------------------------------------
+
+const requirePremium: RequestHandler = (req, res, next) => {
+  const cloudUser = (req as any).cloudUser as { id: string; isPremium: boolean } | undefined;
+  if (!cloudUser?.isPremium) {
+    console.warn(`[Security] FORBIDDEN | user=${cloudUser?.id ?? "none"}`);
+    return res.status(403).json({ error: "Premium required." });
+  }
+  next();
+};
+
+// ---------------------------------------------------------------------------
 // POST /analyze  (premium)
 // ---------------------------------------------------------------------------
 
-securityRouter.post("/analyze", requireJwt, async (req: Request, res: Response) => {
+securityRouter.post("/analyze", requireJwt, requirePremium, async (req: Request, res: Response) => {
   const cloudUser = (req as any).cloudUser as { id: string; isPremium: boolean } | undefined;
 
   console.log(`[Security:analyze] user=${cloudUser?.id ?? "none"} premium=${cloudUser?.isPremium ?? false}`);
-
-  if (!cloudUser?.isPremium) {
-    console.warn(`[Security:analyze] FORBIDDEN | user=${cloudUser?.id ?? "none"}`);
-    return res.status(403).json({ error: "Premium required." });
-  }
 
   const parsed = analyzeRequestSchema.safeParse(req.body);
   if (!parsed.success) {
@@ -168,18 +178,13 @@ const SECURITY_IMAGE_PROMPTS: Record<string, string> = {
   "generic": "The user has uploaded a Windows system screenshot. Look carefully at everything visible: application names, process names, status indicators, warning icons, resource usage numbers, firewall status, network connections, enabled/disabled toggles, version numbers, or any text shown. Describe every notable element you can see. Identify security risks, misconfigured settings, performance issues, suspicious processes, high resource usage, or anything that looks unusual. Be very specific about what is actually visible in the image.",
 };
 
-securityRouter.post("/image-analysis", requireJwt, async (req: Request, res: Response) => {
+securityRouter.post("/image-analysis", requireJwt, requirePremium, async (req: Request, res: Response) => {
   const cloudUser = (req as any).cloudUser as { id: string; isPremium: boolean } | undefined;
   // Always use a vision-capable model for image analysis
   const model = "gpt-4o-mini";
   const ts = new Date().toISOString();
 
   console.log(`[Security:image] ${ts} | user=${cloudUser?.id ?? "none"} premium=${cloudUser?.isPremium ?? false} | model=${model}`);
-
-  if (!cloudUser?.isPremium) {
-    console.warn(`[Security:image] FORBIDDEN | user=${cloudUser?.id ?? "none"}`);
-    return res.status(403).json({ error: "Premium required." });
-  }
 
   const parsed = imageAnalysisSchema.safeParse(req.body);
   if (!parsed.success) {
