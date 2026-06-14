@@ -29,7 +29,19 @@ export async function runDeviceBindingMigration(): Promise<void> {
   ];
 
   for (const sql of migrations) {
-    await pool.query(sql);
+    try {
+      await pool.query(sql);
+    } catch (err: any) {
+      console.error(
+        '[DeviceBinding] Migration failed:',
+        err.message,
+        '\nSQL:',
+        sql.slice(0, 120)
+      );
+      // Re-throw: partial migrations are worse than startup failure.
+      // The caller will catch this and surface it clearly.
+      throw err;
+    }
   }
 
   console.log('[DeviceBinding] Schema columns verified/created.');

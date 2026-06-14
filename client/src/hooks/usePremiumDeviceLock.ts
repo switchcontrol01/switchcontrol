@@ -68,6 +68,10 @@ export function usePremiumDeviceLock(
 
     setIsChecking(true);
     try {
+      // Device identity is sent automatically via the x-device-id request header —
+      // cloudApiPost() reads window.electronAPI.getDeviceId() and attaches it as a
+      // header on every request (see cloud-api.ts). The server reads req.headers['x-device-id']
+      // in requireCloudPremium / the premium-validate endpoint. No explicit body payload needed.
       console.log(`[DeviceLock] target=cloud userId=present deviceIdPresent=true`);
       const result = await cloudApiPost<ValidateResponse>("/device/premium-validate");
       setStatus(result.status);

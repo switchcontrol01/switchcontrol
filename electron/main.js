@@ -693,7 +693,7 @@ function createWindow() {
     // Chromium's white compositor init frame was never visible because the window
     // was hidden the entire time it was initializing.
     show: false,
-    backgroundColor: '#070b14',
+    backgroundColor: '#14181D',
     frame: false,
     thickFrame: false,
     webPreferences: {
@@ -3329,6 +3329,21 @@ ipcMain.handle('appBooster:scanGames', async (event, games) => {
       try {
         const raw = await fs.readFile(path.join(manifestDir, itemFile), 'utf8');
         const manifest = JSON.parse(raw);
+
+        // DLC filter: skip items that carry a MainGameCatalogItemId that differs
+        // from their own CatalogItemId (primary DLC signal).
+        if (
+          manifest.MainGameCatalogItemId &&
+          manifest.CatalogItemId !== manifest.MainGameCatalogItemId
+        ) continue;
+
+        // Secondary DLC filter: if AppCategories is present and contains no
+        // "games" entry, this is likely DLC/addon content — skip it.
+        const cats = manifest.AppCategories ?? [];
+        if (cats.length > 0 && !cats.some(c => c.toLowerCase().includes('games'))) {
+          continue;
+        }
+
         const installLoc  = manifest.InstallLocation;
         const launchExe   = manifest.LaunchExecutable;
         if (installLoc && launchExe) {
@@ -3337,7 +3352,9 @@ ipcMain.handle('appBooster:scanGames', async (event, games) => {
           epicInstalls[exeBasename] = exeDir;
           console.log(`[AppBooster] Epic manifest: ${exeBasename} → ${exeDir}`);
         }
-      } catch { /* skip malformed manifest */ }
+      } catch (parseErr) {
+        console.warn('[EpicDetector] Failed to parse manifest:', itemFile, parseErr?.message);
+      }
     }
   }
 
