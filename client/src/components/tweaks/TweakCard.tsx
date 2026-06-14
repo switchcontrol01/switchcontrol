@@ -28,6 +28,33 @@ import {
 } from "@/hooks/use-tweak-executor";
 import { useTweakImpact } from "@/hooks/useTweakImpact";
 import { TweakImpactResult } from "@/components/tweaks/TweakImpactResult";
+import { useTweakHardwareVerdict } from "@/hooks/useHardwareProfile";
+import type { TweakHardwareVerdict } from "@shared/hardwareIntelligence";
+
+// ── Hardware-aware verdict pill ───────────────────────────────────────────────
+// Shows adaptive guidance for the user's actual silicon (e.g. "Detected X3D —
+// don't override parking"). Only appears for hardware-sensitive tweaks.
+const VERDICT_STYLE: Record<TweakHardwareVerdict["level"], { icon: typeof ShieldCheck; cls: string; label: string }> = {
+  recommended: { icon: ShieldCheck,   cls: "text-emerald-300 bg-emerald-500/10 border-emerald-500/25", label: "Good for your hardware" },
+  caution:     { icon: AlertTriangle, cls: "text-amber-300 bg-amber-500/10 border-amber-500/25",       label: "Use with caution" },
+  avoid:       { icon: Ban,           cls: "text-red-300 bg-red-500/10 border-red-500/25",             label: "Not recommended" },
+};
+
+function HardwareVerdict({ verdict }: { verdict: TweakHardwareVerdict }) {
+  const style = VERDICT_STYLE[verdict.level];
+  const Icon = style.icon;
+  return (
+    <div
+      className={cn("mt-1.5 flex items-start gap-1.5 rounded-md border px-2 py-1.5", style.cls)}
+      data-testid="text-hardware-verdict"
+    >
+      <Icon className="size-3 mt-0.5 shrink-0" />
+      <span className="text-[11px] leading-snug">
+        <span className="font-semibold">{style.label}:</span> {verdict.reason}
+      </span>
+    </div>
+  );
+}
 
 interface TweakCardProps {
   tweak: Tweak;
@@ -194,6 +221,7 @@ export function TweakCard({ tweak, isEnabled, onToggle, isVerifying = false, isH
   const { openUpgradeModal }          = useUpgradeModal();
   const { executeTweak, executing }   = useTweakExecutor();
   const { impacts, measuring, startMeasure, clearImpact } = useTweakImpact();
+  const hardwareVerdict               = useTweakHardwareVerdict(tweak.id);
 
   const isPremiumTweak = isTweakPremium(tweak.id);
   const isLocked       = isPremiumTweak && !isPremium;
@@ -326,6 +354,7 @@ export function TweakCard({ tweak, isEnabled, onToggle, isVerifying = false, isH
                 <p className="text-xs text-muted-foreground line-clamp-1 group-hover:text-muted-foreground/80 transition-colors">
                   {isUnsupported ? unsupportedMsg : tweak.description}
                 </p>
+                {!isUnsupported && hardwareVerdict && <HardwareVerdict verdict={hardwareVerdict} />}
               </div>
             </div>
 

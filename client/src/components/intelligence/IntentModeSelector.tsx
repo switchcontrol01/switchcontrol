@@ -1,8 +1,19 @@
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { Zap, Gauge, Volume2, Trophy } from "lucide-react";
+import {
+  Activity, Volume2, Trophy, MousePointer2, Video, Thermometer,
+  Monitor, ListMinus,
+} from "lucide-react";
 
-export type IntentMode = "competitive" | "balanced" | "silent" | "max-fps";
+export type IntentMode =
+  | "competitive-fps"
+  | "frametime-stability"
+  | "low-input-delay"
+  | "streaming-gaming"
+  | "quiet-efficient"
+  | "thermal-balanced"
+  | "high-refresh"
+  | "background-reduction";
 
 interface ModeConfig {
   id: IntentMode;
@@ -16,43 +27,84 @@ interface ModeConfig {
 
 export const INTENT_MODES: ModeConfig[] = [
   {
-    id: "competitive",
-    label: "Competitive",
-    sublabel: "Low latency priority",
-    icon: Zap,
+    id: "competitive-fps",
+    label: "Competitive FPS",
+    sublabel: "Max responsiveness",
+    icon: Trophy,
     color: "text-primary",
     glow: "shadow-[0_0_20px_hsl(var(--primary)/0.25)]",
     description:
-      "Minimizes input latency, disables power saving, prioritizes game processes.",
+      "Lifts power limits and prioritizes the game for the highest frame rates in competitive matches.",
   },
   {
-    id: "balanced",
-    label: "Balanced",
-    sublabel: "Efficient & responsive",
-    icon: Gauge,
-    color: "text-blue-400",
-    glow: "shadow-[0_0_20px_hsl(210,80%,55%,0.2)]",
+    id: "frametime-stability",
+    label: "Frametime Stability",
+    sublabel: "Smooth, no stutters",
+    icon: Activity,
+    color: "text-cyan-400",
+    glow: "shadow-[0_0_20px_hsl(190,90%,55%,0.22)]",
     description:
-      "Maintains smooth frames while keeping system thermals in check.",
+      "Targets consistent frame pacing and stronger 1% lows over peak FPS — the stability-first default for smooth gameplay.",
   },
   {
-    id: "silent",
-    label: "Silent",
-    sublabel: "Quiet & cool",
+    id: "low-input-delay",
+    label: "Low Input Delay",
+    sublabel: "Fastest reaction",
+    icon: MousePointer2,
+    color: "text-fuchsia-400",
+    glow: "shadow-[0_0_20px_hsl(290,80%,60%,0.22)]",
+    description:
+      "Minimizes input latency end-to-end — keeps the CPU awake and trims buffering so the game reacts instantly.",
+  },
+  {
+    id: "streaming-gaming",
+    label: "Streaming & Gaming",
+    sublabel: "Play + broadcast",
+    icon: Video,
+    color: "text-rose-400",
+    glow: "shadow-[0_0_20px_hsl(350,80%,60%,0.2)]",
+    description:
+      "Balances game performance with headroom for encoding so your stream stays smooth while you play.",
+  },
+  {
+    id: "quiet-efficient",
+    label: "Quiet & Efficient",
+    sublabel: "Low noise & power",
     icon: Volume2,
     color: "text-emerald-400",
     glow: "shadow-[0_0_20px_hsl(150,70%,45%,0.2)]",
-    description: "Fan noise and power draw minimized. For desktop or browsing.",
+    description:
+      "Lowers fan noise and power draw. Best for desktop work, browsing, or laptops on battery.",
   },
   {
-    id: "max-fps",
-    label: "Max FPS",
-    sublabel: "Uncapped performance",
-    icon: Trophy,
-    color: "text-amber-400",
-    glow: "shadow-[0_0_20px_hsl(38,90%,55%,0.25)]",
+    id: "thermal-balanced",
+    label: "Thermal Balanced",
+    sublabel: "Cool & steady",
+    icon: Thermometer,
+    color: "text-blue-400",
+    glow: "shadow-[0_0_20px_hsl(210,80%,55%,0.2)]",
     description:
-      "Strips all limits. Best for benchmarking and competitive scenes.",
+      "Holds performance while keeping temperatures in check — ideal for long sessions and warm rooms.",
+  },
+  {
+    id: "high-refresh",
+    label: "High Refresh Smoothness",
+    sublabel: "Pace to your display",
+    icon: Monitor,
+    color: "text-violet-400",
+    glow: "shadow-[0_0_20px_hsl(260,80%,60%,0.22)]",
+    description:
+      "Tunes frame pacing to your monitor's refresh rate for fluid motion without chasing wasted frames.",
+  },
+  {
+    id: "background-reduction",
+    label: "Background Reduction",
+    sublabel: "Free up resources",
+    icon: ListMinus,
+    color: "text-amber-400",
+    glow: "shadow-[0_0_20px_hsl(38,90%,55%,0.22)]",
+    description:
+      "Eases background process and service activity so more CPU, RAM and disk go to your game.",
   },
 ];
 

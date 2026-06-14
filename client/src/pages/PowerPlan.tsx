@@ -594,7 +594,7 @@ export default function PowerPlan() {
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [debugOpen, setDebugOpen]       = useState(false);
   const [infoToggle, setInfoToggle]     = useState<OverrideToggle | null>(null);
-  const [intentMode, setIntentMode]     = useState<IntentMode>("balanced");
+  const [intentMode, setIntentMode]     = useState<IntentMode>("frametime-stability");
 
   const [customPlanName, setCustomPlanName] = useState("My Custom Plan");
   const [customNameError, setCustomNameError] = useState<string | null>(null);
@@ -806,10 +806,14 @@ export default function PowerPlan() {
   }, [customPlanName, customPlanMeta, isElectron, localState.customSettings, toast, fetchPowerState, backendState]);
 
   const INTENT_TO_PROFILE: Record<IntentMode, FrontendProfileId> = {
-    competitive: "performance",
-    balanced:    "balanced",
-    silent:      "efficiency",
-    "max-fps":   "performance",
+    "competitive-fps":     "performance",
+    "frametime-stability": "balanced",
+    "low-input-delay":     "performance",
+    "streaming-gaming":    "balanced",
+    "quiet-efficient":     "efficiency",
+    "thermal-balanced":    "balanced",
+    "high-refresh":        "performance",
+    "background-reduction": "balanced",
   };
 
   const handleIntentMode = useCallback((mode: IntentMode) => {

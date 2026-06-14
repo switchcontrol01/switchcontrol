@@ -1,1 +1,3 @@
 - [AI Advisor hardware context](ai-advisor-hardware-context.md) — advisor must read client CPU/specs strings, never serverCtx.systemIntel (that's the cloud VM); Intel hybrid needs tier+gen+K, not just gen.
+- [Electron embedded backend](electron-embedded-backend.md) — desktop /api hits a LOCAL backend (real hardware); web /api hits the cloud VM. Gate hardware-only UI to Electron; prefer client specs.
+- [Hardware intelligence module](hardware-intelligence-module.md) — shared/hardwareIntelligence.ts is the single source of truth for CPU/GPU classification, hardware profiles, and per-tweak verdicts (server + client).
