@@ -1,0 +1,208 @@
+TASK: HIGH PRIORITY PERFORMANCE + FLASH FIXES
+PROJECT: SwitchControl Electron App
+
+==================================================
+GOAL
+
+SwitchControl must feel:
+
+- instant
+- native
+- smooth
+- stable
+- lightweight
+- low latency
+
+Current issues:
+
+- fullscreen black/transparent flash on first tab open
+- occasional white flash at startup
+- renderer stutter
+- unnecessary IPC traffic
+- excessive GPU composition load
+- unnecessary rerenders
+- duplicate telemetry polling
+- expensive fullscreen compositor layers
+
+We are NOT redesigning the app.
+
+We are fixing the highest-impact renderer/compositor/performance problems ONLY.
+
+==================================================
+IMPORTANT RULES
+
+DO NOT TOUCH:
+
+- tweak execution backend
+- auth systems
+- OpenAI integrations
+- telemetry architecture
+- startup architecture
+- Electron security model
+- database
+- cloud systems
+
+DO NOT:
+
+- add new logging spam
+- increase polling
+- add more animations
+- redesign the UI
+- rewrite major systems
+
+ONLY optimize existing behavior.
+
+==================================================
+FILES TO MODIFY
+
+HIGH PRIORITY FILES:
+
+- client/src/App.tsx
+- client/src/components/AppLayout.tsx
+- client/src/components/Sidebar.tsx
+- client/src/components/LiveGraph.tsx
+- telemetryManager.ts
+- any route Suspense wrappers
+- any fullscreen motion wrappers
+
+==================================================
+ISSUE 1 — TAB FLASH / TRANSPARENT FLASH
+CRITICAL
+
+ROOT CAUSE:
+
+Suspense fallback={null}
+
+When lazy routes load:
+
+- previous content unmounts
+- React renders null
+- Electron compositor shows transparent frame/background
+
+RESULT:
+The app briefly disappears and wallpaper/background shows.
+
+==================================================
+FIX REQUIRED
+
+REPLACE ALL:
+
+fallback={null}
+
+WITH:
+
+fallback={<DarkFallback />}
+
+Create:
+
+const DarkFallback = () => (
+
+  <div
+    style={{
+      position: 'fixed',
+      inset: 0,
+      background: '#070b14',
+      pointerEvents: 'none'
+    }}
+  />
+)IMPORTANT:
+
+- fallback must NEVER render null
+- fallback must NEVER render transparent content
+- fallback must ALWAYS paint a solid dark frame instantly
+
+==================================================
+ISSUE 2 — FULLSCREEN REPAINTS
+HIGH PRIORITY
+
+Audit ALL fullscreen wrappers using:
+
+- AnimatePresence
+- motion.div
+- opacity animations
+- fullscreen transitions
+
+CURRENT ISSUE:
+
+AnimatePresence mode="sync"
+
+This mounts:
+
+- exiting screen
+- entering screen
+
+simultaneously.
+
+This doubles compositor load and can create:
+
+- fullscreen repaints
+- flashes
+- stutter
+
+==================================================
+FIX REQUIRED
+
+Change:
+
+mode="sync"
+
+TO:
+
+mode="wait"
+
+Also ensure:
+
+- app shell NEVER unmounts
+- sidebar NEVER remounts
+- nav NEVER remounts
+- only inner route content changes
+
+==================================================
+ISSUE 3 — GPU COMPOSITION LOAD
+HIGH PRIORITY
+
+Current app uses:
+
+- mask-image
+- animated gradients
+- opacity stacking
+- fullscreen compositor layers
+
+==================================================
+FIX REQUIRED
+
+REMOVE:
+
+maskImage
+WebkitMaskImage
+
+from large scrolling containers in AppLayout.
+
+Current mask gradients create compositor layers and force GPU composition every frame.
+
+Replace with:
+
+- static overlay
+  OR
+- pseudo-element solution
+  OR
+- remove entirely if unnecessary
+
+==================================================
+ISSUE 4 — DUPLICATE TELEMETRY POLLING
+HIGH PRIORITY
+
+Current problem:
+
+telemetryManager already polls IPC.
+
+LiveGraph independently polls telemetry again.
+
+This creates:
+
+- duplicate IPC traffic
+- duplicate serialization
+- duplicate rerenders
+- unnecessary renderer load
+
+==================================================

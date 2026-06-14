@@ -1,3 +1,8 @@
+// Module-level flag — survives navigation (component unmount/remount) for
+// the entire app session. Prevents the spec-load effect from re-running when
+// the user navigates back to Home after specs were already successfully loaded.
+let _homeSpecsEverLoaded = false;
+
 import { AppLayout } from "@/components/layout/AppLayout";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { LiveGraph } from "@/components/dashboard/LiveGraph";
@@ -475,12 +480,24 @@ export default function Home() {
     if (specsLoadedRef.current) return;
     specsLoadedRef.current = true;
 
+    // Module-level guard: if specs were loaded in a previous mount of this
+    // component (user navigated away and back), skip all re-fetching — the
+    // Zustand store already holds the last-known-good snapshot.
+    if (_homeSpecsEverLoaded) {
+      const s = (useStore as any).getState?.()?.stats;
+      if (s?.cpuName && s.cpuName !== 'Unavailable' && s.cpuName !== '' && (s.totalRamGb ?? 0) > 0) {
+        setSpecStatus("ready");
+      }
+      return;
+    }
+
     // If specs were pre-loaded by Splash.tsx during the startup animation,
     // the store already has real data — skip the expensive IPC call entirely.
     try {
       const s = (useStore as any).getState?.()?.stats;
       if (s?.cpuName && s.cpuName !== 'Unavailable' && s.cpuName !== '' && (s.totalRamGb ?? 0) > 0) {
         console.log('[Home] Specs pre-loaded from Splash — skipping getSpecs()');
+        _homeSpecsEverLoaded = true;
         setSpecStatus("ready");
         // GPU may still be "Detecting…" if WMI enrichment hadn't finished when
         // Splash captured specs. Subscribe to the push event (~1-2s after startup)
@@ -507,11 +524,9 @@ export default function Home() {
     let cpuRetryId: ReturnType<typeof setTimeout> | null = null; // P3-H2: track AMD cold-start retry timer for cleanup
     let gpuEnrichUnsub: (() => void) | null = null; // cleanup for the onSpecsEnriched subscriber (non-Splash path)
 
-    // loadSystemSpecs() allows up to 20 s for si.cpu() on AMD WMI cold-start
-    // plus os.cpus() / os.totalmem() fallbacks if WMI times out.  Use 26 s
-    // here so this gate never fires before the IPC handler has a chance to
-    // return real (or fallback) data.
-    const SPEC_TIMEOUT_MS = 26_000;
+    // loadSystemSpecs() returns an instant baseline (< 1ms) — no need for a long
+    // timeout. Keep 5 s as a generous safety net for the IPC round-trip.
+    const SPEC_TIMEOUT_MS = 5_000;
 
     const api = (window as any).electronAPI;
     if (api?.system?.getSpecs) {
@@ -579,6 +594,7 @@ export default function Home() {
             hostname: specs.system?.hostname || 'Unavailable',
           });
           console.log('[GPU] renderer: specs received — gpuName:', _gpuModelFromSpecs);
+          _homeSpecsEverLoaded = true;
           setSpecStatus("ready");
           // If GPU is still partial (enrichment in-flight), subscribe to the push event
           // so the GPU card updates when enrichment completes — same as the Splash path.

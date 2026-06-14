@@ -1861,8 +1861,21 @@ async function loadSystemSpecs() {
   // First call — build and cache an instant result, then enrich in background
   if (!cachedSpecs) {
     cachedSpecs = _buildInstantSpecs();
+    // If WMI fast-path already resolved before this first call (race window is
+    // ~0-2s), apply the GPU name immediately so callers never see "Detecting…".
+    if (wmiGpuModelName) {
+      const _ml = wmiGpuModelName.toLowerCase();
+      const _vendor = _ml.includes('nvidia') ? 'NVIDIA'
+                    : (_ml.includes('amd') || _ml.includes('radeon')) ? 'AMD'
+                    : _ml.includes('intel') ? 'Intel' : cachedSpecs.gpu.vendor;
+      cachedSpecs = {
+        ...cachedSpecs,
+        gpu: { ...cachedSpecs.gpu, model: wmiGpuModelName, vendor: _vendor, isNvidia: _ml.includes('nvidia') },
+      };
+      console.log('[GPU] loadSystemSpecs first call: wmiGpuModelName already ready, applied synchronously —', wmiGpuModelName);
+    }
     cachedSpecsTime = now;
-    console.log('[SwitchControl] Instant specs (sync):', cachedSpecs.cpu.model, '| enrichment starting…');
+    console.log('[SwitchControl] Instant specs (sync):', cachedSpecs.cpu.model, '| GPU:', cachedSpecs.gpu.model, '| enrichment starting…');
     void _enrichSpecsInBackground();
     return cachedSpecs;
   }
@@ -4110,21 +4123,20 @@ app.whenReady().then(async () => {
   }
 
   // ── C. Create main window ─────────────────────────────────────────────────────
+  // Pre-warm specs BEFORE the window opens so cachedSpecs is set by the time
+  // Splash.tsx fires its getSpecs() IPC call.  loadSystemSpecs() is synchronous
+  // on first call (_buildInstantSpecs uses os.cpus/totalmem only, < 1ms).
+  // This eliminates the race where Splash called getSpecs() while cachedSpecs
+  // was still null, causing a redundant _buildInstantSpecs inside the IPC handler.
+  loadSystemSpecs().then(specs => {
+    console.log('[PREWARM] cachedSpecs seeded before window open —', specs?.cpu?.model, '| GPU:', specs?.gpu?.model);
+  }).catch(e => {
+    console.warn('[PREWARM] specs pre-warm failed (non-fatal):', e?.message);
+  });
+
   // Telemetry starts AFTER window is shown + 2000ms (see ipcMain.once 'app:first-frame-ready').
   // This prevents GPU prewarm / PowerShell cold-start from racing with first-paint animations.
   createWindow();
-
-  // ── C-ter. Pre-warm system specs in the background immediately after window creation.
-  // si.cpu() on AMD systems takes 6-12s on first WMI cold-start. By firing this
-  // now (while splash/auth is showing), the result is cached before the user
-  // reaches the dashboard, so the Activity Monitor cards load instantly.
-  setTimeout(() => {
-    loadSystemSpecs().then(specs => {
-      console.log('[PREWARM] specs ready —', specs?.cpu?.model, '|', specs?.gpu?.model);
-    }).catch(e => {
-      console.warn('[PREWARM] specs pre-warm failed (non-fatal):', e?.message);
-    });
-  }, 500);
 
   // ── C-bis. Cold-start deep-link catch (Windows protocol launch when app was not running) ─
   // On Windows a protocol launch passes the URL as a command-line argument when the app
