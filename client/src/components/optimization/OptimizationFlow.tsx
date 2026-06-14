@@ -17,6 +17,8 @@ import { cn } from "@/lib/utils";
 import { useOptimizationStore } from "@/stores/optimizationStore";
 import { collectOptimizationSnapshot, type OptimizationSnapshot } from "@/lib/optimizationSnapshot";
 import { runOptimizationEngine, type OptimizationPlan, type PlanEntry, type AvoidedEntry } from "@shared/optimizationEngine";
+import { runNetworkOptimizationEngine } from "@shared/networkOptimizationEngine";
+import { collectNetworkOptimizationSnapshot } from "@/lib/networkOptimizationSnapshot";
 import type { OptimizationIntent } from "@shared/tweakOptimizationMeta";
 import { TWEAKS_DATA } from "@/lib/mock-data";
 import { isTweakPremium } from "@/lib/premium-config";
@@ -366,15 +368,20 @@ function ApplyingPhase({ total }: { total: number }) {
 
 function DonePhase({
   appliedCount,
+  failedCount,
   onRevert,
   onClose,
   reverting,
 }: {
   appliedCount: number;
+  failedCount: number;
   onRevert: () => void;
   onClose: () => void;
   reverting: boolean;
 }) {
+  const hasPartialFailure = failedCount > 0 && appliedCount > 0;
+  const allFailed = failedCount > 0 && appliedCount === 0;
+
   return (
     <div className="flex flex-col items-center justify-center h-full gap-6 py-10 text-center">
       <motion.div
@@ -383,24 +390,40 @@ function DonePhase({
         transition={{ type: "spring", stiffness: 400, damping: 20 }}
         className="relative"
       >
-        <div className="w-20 h-20 rounded-full bg-emerald-500/10 flex items-center justify-center">
-          <CheckCircle2 className="size-10 text-emerald-400" />
+        <div className={cn(
+          "w-20 h-20 rounded-full flex items-center justify-center",
+          allFailed ? "bg-red-500/10" : "bg-emerald-500/10"
+        )}>
+          {allFailed
+            ? <AlertTriangle className="size-10 text-red-400" />
+            : <CheckCircle2 className="size-10 text-emerald-400" />
+          }
         </div>
-        <motion.div
-          className="absolute inset-0 rounded-full border border-emerald-500/30"
-          initial={{ scale: 1, opacity: 1 }}
-          animate={{ scale: 1.6, opacity: 0 }}
-          transition={{ duration: 1, delay: 0.3 }}
-        />
+        {!allFailed && (
+          <motion.div
+            className="absolute inset-0 rounded-full border border-emerald-500/30"
+            initial={{ scale: 1, opacity: 1 }}
+            animate={{ scale: 1.6, opacity: 0 }}
+            transition={{ duration: 1, delay: 0.3 }}
+          />
+        )}
       </motion.div>
       <div>
         <h2 className="text-xl font-semibold text-white">
-          {appliedCount > 0 ? `${appliedCount} Tweaks Applied` : "Already Optimized"}
+          {allFailed
+            ? "Could Not Apply Tweaks"
+            : appliedCount > 0
+              ? `${appliedCount} Tweak${appliedCount !== 1 ? "s" : ""} Applied`
+              : "Already Optimized"}
         </h2>
         <p className="text-sm text-[#6B7380] mt-1.5 max-w-xs">
-          {appliedCount > 0
-            ? "Your system has been optimized. Changes take effect immediately (some need a reboot)."
-            : "All recommended tweaks were already applied. Your system is already optimized for this intent."}
+          {allFailed
+            ? "All tweaks failed to apply. This may require admin privileges or a different Windows version."
+            : hasPartialFailure
+              ? `${appliedCount} applied, ${failedCount} failed. Failed tweaks may need admin privileges.`
+              : appliedCount > 0
+                ? "Your system has been optimized. Changes take effect immediately (some need a reboot)."
+                : "All recommended tweaks were already applied. Your system is already optimized for this intent."}
         </p>
       </div>
       <div className="flex flex-col gap-2.5 w-full max-w-xs">
@@ -486,6 +509,11 @@ export function OptimizationFlow() {
     intent,
     plan,
     sessionAppliedIds,
+    sessionFailedIds,
+    getCachedSnapshot,
+    setCachedSnapshot,
+    getCachedPlan,
+    setCachedPlan,
     setSnapshotReady,
     setIntent,
     decidePlan,
@@ -499,40 +527,60 @@ export function OptimizationFlow() {
   const user = useAuthStore(s => s.user);
   const isPremiumUser = !!(user as any)?.plan && (user as any)?.plan !== "free";
 
-  // Local state: snapshot held in React state (not in optimization store)
+  // Local state: snapshot held in ref (not in optimization store)
   const snapshotRef = useRef<OptimizationSnapshot | null>(null);
   const [reverting, setReverting] = useState(false);
 
   const isOpen = phase !== "idle";
 
-  // ── Phase: snapshotting → intent ──────────────────────────────────────────
+  // ── Phase: snapshotting → intent (with 10-min cache) ─────────────────────
   useEffect(() => {
     if (phase !== "snapshotting") return;
     let cancelled = false;
+
+    // Check snapshot cache first — skip re-scan if still fresh
+    const cached = getCachedSnapshot();
+    if (cached) {
+      snapshotRef.current = cached;
+      setSnapshotReady(undefined);
+      return;
+    }
+
     collectOptimizationSnapshot().then(snapshot => {
       if (cancelled) return;
       snapshotRef.current = snapshot;
-      setSnapshotReady(null);
+      setCachedSnapshot(snapshot);
+      setSnapshotReady(undefined);
     }).catch(() => {
       if (cancelled) return;
       snapshotRef.current = null;
-      setSnapshotReady(null, "Could not read hardware profile — using defaults.");
+      setSnapshotReady("Could not read hardware profile — using defaults.");
     });
     return () => { cancelled = true; };
-  }, [phase, setSnapshotReady]);
+  }, [phase, getCachedSnapshot, setCachedSnapshot, setSnapshotReady]);
 
-  // ── Phase: deciding → plan (600ms UX flash, then sync engine) ─────────────
+  // ── Phase: deciding → plan (700ms UX flash, check plan cache, then engine) ─
   useEffect(() => {
     if (phase !== "deciding" || !intent) return;
+    let cancelled = false;
+
+    // Check plan cache first (per intent, 15-min TTL)
+    const cachedPlan = getCachedPlan(intent);
+    if (cachedPlan) {
+      const timer = setTimeout(() => {
+        if (!cancelled) decidePlan(cachedPlan);
+      }, 700);
+      return () => { cancelled = true; clearTimeout(timer); };
+    }
+
     const snapshot = snapshotRef.current;
 
-    const timer = setTimeout(() => {
+    const timer = setTimeout(async () => {
+      if (cancelled) return;
+
       // Build eligible tweak list (filtered by premium access)
       const eligibleTweaks = TWEAKS_DATA
-        .filter(t => {
-          if (isTweakPremium(t.id) && !isPremiumUser) return false;
-          return true;
-        })
+        .filter(t => !(isTweakPremium(t.id) && !isPremiumUser))
         .map(t => ({
           id: t.id,
           title: t.title,
@@ -542,22 +590,41 @@ export function OptimizationFlow() {
           alreadyApplied: !!tweaks[t.id],
         }));
 
-      const enginePlan = runOptimizationEngine({
-        intent,
-        tweaks: eligibleTweaks,
-        hardware: snapshot?.hardware ?? {},
-        windowsBuild: snapshot?.windowsBuild ?? null,
-        cpuLoadPct: snapshot?.cpuLoadPct ?? null,
-        ramUsedPct: snapshot?.ramUsedPct ?? null,
-      });
+      let enginePlan;
 
-      decidePlan(enginePlan);
+      if (intent === "network-responsiveness") {
+        // ── Dedicated network engine path — separate signals, scoring, safety ──
+        const netSignals = await collectNetworkOptimizationSnapshot().catch(() => ({
+          isWired: null,
+          hasWifiAdapter: null,
+          rxKBps: null,
+          txKBps: null,
+          windowsBuild: snapshot?.windowsBuild ?? null,
+          appliedTweakIds: Object.entries(tweaks).filter(([, v]) => v).map(([k]) => k),
+        }));
+        enginePlan = runNetworkOptimizationEngine(netSignals, eligibleTweaks);
+      } else {
+        // ── Main hardware-aware engine for all other intents ───────────────
+        enginePlan = runOptimizationEngine({
+          intent,
+          tweaks: eligibleTweaks,
+          hardware: snapshot?.hardware ?? {},
+          windowsBuild: snapshot?.windowsBuild ?? null,
+          cpuLoadPct: snapshot?.cpuLoadPct ?? null,
+          ramUsedPct: snapshot?.ramUsedPct ?? null,
+        });
+      }
+
+      if (!cancelled) {
+        setCachedPlan(intent, enginePlan);
+        decidePlan(enginePlan);
+      }
     }, 700);
 
-    return () => clearTimeout(timer);
-  }, [phase, intent, tweaks, isPremiumUser, decidePlan]);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [phase, intent, tweaks, isPremiumUser, decidePlan, getCachedPlan, setCachedPlan]);
 
-  // ── Handle: apply plan ─────────────────────────────────────────────────────
+  // ── Handle: apply plan (outcome-driven — only mark success on confirmed apply)
   const handleApply = useCallback(async () => {
     if (!plan) return;
     startApplying();
@@ -566,44 +633,71 @@ export function OptimizationFlow() {
       .filter(r => !r.alreadyApplied)
       .map(r => r.tweakId);
 
-    try {
-      // Electron: real system changes
-      if (isElectronWithTweaks()) {
-        await bulkApplyTweaks(toApply);
-      } else {
-        // Web: persist to server
-        try {
-          await apiRequest("POST", "/api/tweaks/apply-recommended", { tweakIds: toApply });
-        } catch { /* best effort */ }
-      }
+    const appliedIds: string[] = [];
+    const failedIds: string[] = [];
 
-      // Update local Zustand store state for immediate UI reflection
-      for (const id of toApply) {
-        setTweak(id, true);
+    if (isElectronWithTweaks()) {
+      // Electron: real system changes — inspect per-tweak result
+      try {
+        const results = await bulkApplyTweaks(toApply);
+        for (const id of toApply) {
+          const ok = results[id]?.success !== false; // treat missing as success (best-effort)
+          if (ok) {
+            appliedIds.push(id);
+            setTweak(id, true);
+          } else {
+            failedIds.push(id);
+          }
+        }
+      } catch {
+        // Total failure — all tweaks failed
+        failedIds.push(...toApply);
       }
-
-      finishApplying(toApply);
-    } catch {
-      // Even on error, update local state and finish
-      for (const id of toApply) {
-        setTweak(id, true);
+    } else {
+      // Web: call server API and only update local state if API succeeds
+      try {
+        const res = await apiRequest("POST", "/api/tweaks/apply-recommended", { tweakIds: toApply });
+        if (res.ok) {
+          for (const id of toApply) {
+            appliedIds.push(id);
+            setTweak(id, true);
+          }
+        } else {
+          // Non-2xx response — don't mark as applied
+          failedIds.push(...toApply);
+        }
+      } catch {
+        failedIds.push(...toApply);
       }
-      finishApplying(toApply);
     }
+
+    finishApplying(appliedIds, failedIds);
   }, [plan, startApplying, finishApplying, setTweak]);
 
-  // ── Handle: revert session ─────────────────────────────────────────────────
+  // ── Handle: revert session (outcome-driven — only clear state on confirmed revert)
   const handleRevert = useCallback(async () => {
     if (!sessionAppliedIds.length) return;
     setReverting(true);
     try {
       if (isElectronWithTweaks()) {
-        await bulkRevertTweaks(sessionAppliedIds);
+        const results = await bulkRevertTweaks(sessionAppliedIds);
+        for (const id of sessionAppliedIds) {
+          // Clear local state for confirmed reverts; also clear on missing result
+          // (treat undefined as best-effort success — don't leave stuck state)
+          if (results[id]?.success !== false) {
+            setTweak(id, false);
+          }
+        }
+      } else {
+        // Web: tweaks are simulated, revert local state directly
+        for (const id of sessionAppliedIds) {
+          setTweak(id, false);
+        }
       }
-      for (const id of sessionAppliedIds) {
-        setTweak(id, false);
-      }
-    } catch { /* best effort */ } finally {
+    } catch {
+      // On total failure, still clear local state to avoid permanent stuck state
+      for (const id of sessionAppliedIds) setTweak(id, false);
+    } finally {
       setReverting(false);
       reset();
     }
@@ -659,6 +753,7 @@ export function OptimizationFlow() {
               <motion.div key="done" className="flex-1" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}>
                 <DonePhase
                   appliedCount={sessionAppliedIds.length}
+                  failedCount={sessionFailedIds.length}
                   onRevert={handleRevert}
                   onClose={handleClose}
                   reverting={reverting}
