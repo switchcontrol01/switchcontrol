@@ -8,7 +8,7 @@ import { db, isNoDbMode } from "../db";
 import { users } from "@shared/models/auth";
 import { eq } from "drizzle-orm";
 import { storage } from "../storage";
-import { signJwt, verifyJwt } from "../lib/jwt";
+import { signJwt, verifyJwt, invalidateJwt } from "../lib/jwt";
 import { resolveEffectivePlan, isPlanActive } from "../lib/planUtils";
 
 declare global {
@@ -822,6 +822,11 @@ export function setupGoogleAuth(app: Express): void {
 
   app.post("/auth/logout", (req, res) => {
     console.log("[AUTH] Logout requested");
+    // Drop JWT from verification cache so it can't be reused during the 60s TTL window
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      invalidateJwt(authHeader.substring(7));
+    }
     req.logout((err) => {
       if (err) {
         console.error("[AUTH] Logout error:", err);

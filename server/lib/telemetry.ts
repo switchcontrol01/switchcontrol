@@ -166,7 +166,7 @@ function measureAppCpu(): number {
   const usage = process.cpuUsage(lastProcCpuUsage);
   const elapsedUs = (now - lastProcCpuTs) * 1000; // ms → µs
   if (elapsedUs > 0) {
-    appCpuPct = Math.min(100, ((usage.user + usage.sys) / elapsedUs) * 100);
+    appCpuPct = Math.min(100, ((usage.user + usage.system) / elapsedUs) * 100);
   }
   lastProcCpuUsage = process.cpuUsage();
   lastProcCpuTs = now;
