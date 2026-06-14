@@ -1,0 +1,232 @@
+SWITCHCONTROL — PERFORMANCE + STABILITY FIX PASS V3
+
+CONTEXT
+
+This is NOT a redesign pass.
+
+SwitchControl already works.
+
+We are improving:
+
+- performance
+- responsiveness
+- telemetry reliability
+- tweak intelligence
+- renderer smoothness
+- main-thread stability
+- IPC efficiency
+- long-session stability
+
+DO NOT:
+
+- rewrite architecture
+- redesign UI
+- touch billing/auth logic
+- add heavy systems
+- add polling
+- add unnecessary animations
+- add logging spam
+
+The goal is to make the app feel:
+
+- native
+- intelligent
+- lightweight
+- low latency
+- smooth
+- stable
+- trustworthy
+
+==================================================
+HIGH PRIORITY FIXES
+
+==================================================
+
+1. FIX TWEAK DATA SOURCE INCONSISTENCY
+
+FILES:
+
+- store.ts
+- use-tweak-executor.ts
+- queries.ts
+- tweak-registry.ts
+- mock-data.ts
+
+PROBLEM
+
+store.ts and use-tweak-executor.ts import:
+
+TWEAKS_DATA from ./mock-data
+
+BUT:
+
+queries.ts correctly uses:
+
+- tweak-registry.ts
+- isRecommendedSafe()
+
+This creates TWO different tweak recommendation paths.
+
+Risk:
+
+- stale tweak metadata
+- wrong supported flags
+- wrong recommended logic
+- inconsistent behavior
+
+FIX
+
+Remove the mock-data recommendation path entirely.
+
+ALL recommendation logic must use:
+
+- tweak-registry.ts
+- isRecommendedSafe()
+
+There must be ONE canonical recommendation source.
+
+==================================================
+2. BATCH OWNERSHIP STORE WRITES
+
+FILES:
+
+- ownership-store.js
+- premium-revert-pipeline.js
+- tweak-executor.js
+
+PROBLEM
+
+Current behavior:
+
+- synchronous read/write per tweak
+- repeated fs.writeFileSync
+- repeated fs.readFileSync
+
+This blocks Electron main thread.
+
+Large revert operations become:
+
+- disk heavy
+- stutter heavy
+- slow
+
+FIX
+
+Batch operations.
+
+Required behavior:
+
+- load ownership state ONCE
+- mutate in memory
+- save ONCE at end
+
+Specifically:
+
+- revertAllAppOwned()
+- recordRevert()
+- syncAll()
+
+must avoid repeated sync writes.
+
+==================================================
+3. REMOVE MAIN THREAD BLOCKING FILE READS
+
+FILES:
+
+- SteamDetector
+- EpicDetector
+
+PROBLEM
+
+Using:
+
+- fs.readFileSync
+- fs.readdirSync
+
+inside async functions.
+
+Steam libraries can contain:
+
+- hundreds of manifests
+
+This blocks Electron event loop.
+
+FIX
+
+Convert ALL sync filesystem calls to:
+
+- fs.promises.readFile
+- fs.promises.readdir
+
+Keep logic identical.
+
+==================================================
+4. TELEMETRY STALENESS GUARD
+
+FILES:
+
+- tweak-intelligence routes
+- getCachedSnapshot logic
+
+PROBLEM
+
+Routes:
+
+- /system-state
+- /rankings
+- /posture
+
+can compute recommendations from stale telemetry.
+
+Cold cache may incorrectly classify:
+
+- CPU usage
+- thermals
+- frametime state
+- memory pressure
+
+FIX
+
+Before computing intelligence:
+
+if snapshot.status !== "ready"
+return 503
+
+Do NOT generate intelligence from stale snapshots.
+
+==================================================
+5. REMOVE EXCESSIVE GPU LAYER PROMOTION
+
+FILES:
+
+- globals.css
+- animation classes
+
+PROBLEM
+
+Too many:
+will-change: transform
+
+on decorative animated blobs/waves/backgrounds.
+
+This creates:
+
+- too many compositor layers
+- GPU memory pressure
+- low-end stutter
+- unnecessary raster overhead
+
+FIX
+
+REMOVE will-change from:
+
+- decorative blobs
+- contour backgrounds
+- wave backgrounds
+- non-interactive decoration
+
+KEEP only where actually valuable:
+
+- interactive cards
+- graph canvases
+- true moving UI elements

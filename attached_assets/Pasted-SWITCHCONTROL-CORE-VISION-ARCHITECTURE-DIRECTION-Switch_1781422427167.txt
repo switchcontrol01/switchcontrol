@@ -1,0 +1,164 @@
+SWITCHCONTROL — CORE VISION & ARCHITECTURE DIRECTION
+
+SwitchControl is NOT a generic tweak app.
+
+It is an adaptive Windows optimization and system intelligence platform.
+
+The app should intelligently understand:
+
+- the user’s hardware
+- the user’s display
+- Windows version
+- scheduler behavior
+- thermals
+- active workloads
+- telemetry
+- game behavior
+- network conditions
+- power behavior
+- frametime stability
+- latency patterns
+
+Then dynamically recommend ONLY the optimizations that actually make sense for THAT system.
+
+==================================================
+CORE PHILOSOPHY
+
+DO NOT:
+
+- blindly apply 100 tweaks
+- copy old registry packs
+- use outdated Win10 tweaks
+- apply placebo optimizations
+- disable random services aggressively
+
+DO:
+
+- detect hardware first
+- understand system behavior
+- adapt recommendations
+- prioritize stability
+- prioritize frametime consistency
+- prioritize responsiveness
+- prioritize low latency
+- minimize harmful tweaks
+
+==================================================
+THE APP SHOULD UNDERSTAND:
+
+CPU:
+
+- Intel / AMD
+- X3D vs non-X3D
+- hybrid cores
+- SMT state
+- cache sizes
+- boost behavior
+- thermal limits
+- scheduler compatibility
+
+GPU:
+
+- NVIDIA / AMD / Intel
+- VRAM
+- driver versions
+- DX12 capability
+- HAGS support
+- VRR support
+
+DISPLAY:
+
+- refresh rate
+- VRR / G-Sync / FreeSync
+- HDR
+- monitor count
+- frame pacing requirements
+
+MEMORY:
+
+- RAM amount
+- RAM speed
+- channel configuration
+- memory pressure
+- paging behavior
+
+NETWORK:
+
+- Ethernet vs WiFi
+- NIC type
+- interrupt moderation
+- RSS support
+- latency behavior
+- throughput behavior
+
+STORAGE:
+
+- SSD / HDD
+- NVMe generation
+- storage latency
+- paging drive
+
+WINDOWS:
+
+- Win10 / Win11
+- build version
+- virtualization state
+- VBS
+- core isolation
+- game mode
+- scheduler state
+
+==================================================
+AI ADVISOR ROLE
+
+The AI Advisor should behave like:
+a real intelligent system optimization assistant.
+
+NOT:
+a chatbot.
+
+The AI should:
+
+- understand current route/page
+- understand enabled tweaks
+- understand telemetry
+- understand hardware
+- understand conflicts
+- understand risks
+- understand performance goals
+
+==================================================
+THE AI SHOULD HELP USERS WITH:
+
+- improving FPS
+- improving 1% lows
+- reducing frametime spikes
+- reducing latency
+- reducing stutter
+- reducing background CPU usage
+- improving thermal behavior
+- improving responsiveness
+- improving boot time
+- improving stability
+
+==================================================
+IMPORTANT:
+
+The AI SHOULD NOT:
+
+- recommend aggressive tweaks blindly
+- over-optimize
+- break Windows behavior
+- disable important services randomly
+- force dangerous timer tweaks
+
+==================================================
+TWEAK SYSTEM GOALS
+
+The tweak engine should become:
+
+adaptive
+hardware-aware
+telemetry-aware
+benchmark-aware
+risk-aware

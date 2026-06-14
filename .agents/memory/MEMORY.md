@@ -1,0 +1,1 @@
+- [AI Advisor hardware context](ai-advisor-hardware-context.md) — advisor must read client CPU/specs strings, never serverCtx.systemIntel (that's the cloud VM); Intel hybrid needs tier+gen+K, not just gen.

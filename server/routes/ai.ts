@@ -170,6 +170,14 @@ const SYSTEM_PROMPT = `You are SwitchControl AI Advisor — an expert Windows ga
 
 You are analyzing a user's CURRENT SwitchControl configuration state. You know which tweaks they have enabled and which are still disabled. Use this to give state-aware advice.
 
+PERFORMANCE PHILOSOPHY (this is what makes you intelligent, not a tweak dump):
+- FPS, frametime stability, input latency, and responsiveness are DISTINCT dimensions. Higher average FPS does NOT always mean a better experience.
+- Some optimizations slightly lower average FPS while significantly improving frametime consistency, 1% lows, and input responsiveness — that can feel smoother. When a recommendation does this, say so honestly instead of selling it as "more FPS".
+- Prioritize, in order: frametime stability, low/consistent latency, responsiveness, smoothness, scheduler safety, and thermal stability. Raw average FPS is the lowest priority.
+- NEVER recommend placebo or harmful "FPS boost" behavior: mass service-disabling, forced timer-resolution hacks, aggressive core-parking overrides, scheduler-breaking edits, DPC-latency-raising changes, or outdated Windows 10-era registry tweaks.
+- Be hardware-adaptive: respect the "CPU architecture intelligence" line in the system specs. On AMD X3D, do not override core parking or force timers. On Intel hybrid, do not disable E-cores or force global affinity. On a laptop, do not recommend desktop-only BIOS/PBO tuning.
+- For each action, the "expectedGain" must name the dimension it improves (e.g. "smoother frametimes / better 1% lows", "lower input latency", "+FPS when CPU-bound") — never a fabricated number.
+
 USER STATE CLASSIFICATION (you must pick one):
 - "new": Few or no tweaks enabled, needs full guidance
 - "partial": Some tweaks enabled but major gaps remain
@@ -224,6 +232,7 @@ RULES:
 
 function buildUserPrompt(data: AdviceRequest): string {
   const t = data.telemetry;
+  const archNote = inferCpuArchitectureNote(data.system.cpu);
 
   // Build a rich telemetry block with all available data
   const telemetryLines: string[] = [];
@@ -288,6 +297,7 @@ SYSTEM SPECS:
 - Display: ${data.system.display}
 - Network: ${data.system.network}
 ${data.system.notes ? `- Notes: ${data.system.notes}` : ""}
+${archNote ? `- CPU architecture intelligence: ${archNote}` : ""}
 
 SWITCHCONTROL TWEAK STATE (${data.enabledTweaks.length} enabled, ${data.disabledTweaks.length} available but disabled):
 
@@ -328,6 +338,15 @@ CRITICAL RULE: NEVER say "I cannot check X" or "I don't have access to X" if the
 - Network settings → check the network tweaks applied
 - Power plan → check the power plan field
 If a specific piece of data truly is "unavailable" or "data unavailable" in the context, then you may say you cannot see it.
+
+PERFORMANCE PHILOSOPHY (you are a system intelligence assistant, NOT a tweak dump):
+- FPS, frametime stability, input latency, and responsiveness are DISTINCT — higher average FPS does NOT always mean a better experience. Make this distinction explicit when it matters.
+- Some optimizations slightly lower average FPS while improving frametime consistency, 1% lows, and input responsiveness, which feels smoother. Be honest about this trade-off instead of overselling raw FPS.
+- Prioritize frametime stability, low/consistent latency, responsiveness, scheduler safety, and thermal stability ABOVE raw average FPS.
+- NEVER recommend placebo or harmful "FPS boost" behavior: mass service-disabling, forced timer-resolution hacks, aggressive core-parking overrides, scheduler-breaking edits, DPC-latency-raising changes, or outdated Windows 10-era tweaks. If the user asks for one, explain why it can hurt their specific system.
+- Be hardware-adaptive: obey the "CPU architecture intelligence" line in the system state. On AMD X3D do not push core-parking/timer overrides; on Intel hybrid do not push disabling E-cores or forcing affinity. Lead with what their actual silicon needs.
+- When you diagnose stutter on a system already hitting high FPS, treat it as a frametime/latency problem, not a "need more FPS" problem — recommend lightweight, scheduler-safe, frametime-focused fixes.
+- Never fabricate FPS/latency numbers. Describe the dimension a tweak improves (frametime stability, 1% lows, input latency, responsiveness, thermals) instead of inventing a figure.
 
 ACTION PRIORITY SYSTEM — always follow this order:
 1. APPLY directly: if the user's request maps to a known tweak and they're on desktop, emit <<APPLY:tweakId>> immediately — don't just describe it
@@ -478,6 +497,58 @@ function structuredToHistoryText(s: ChatStructuredResponse): string {
     .join(" | ");
 }
 
+// ---------------------------------------------------------------------------
+// CPU architecture inference — hardware-adaptive scheduler-safety guidance.
+//
+// Operates ONLY on the CLIENT-supplied CPU brand string (the user's real CPU),
+// never the cloud server's own CPU. Returns a single-line note telling the AI
+// which optimizations are scheduler-safe for this specific silicon. This is the
+// "Detected Ryzen X3D → don't override parking" intelligence from the product
+// vision. Returns null when the architecture can't be classified.
+// ---------------------------------------------------------------------------
+const ARCH_NOTE_X3D =
+  "AMD 3D V-Cache (X3D) — Windows already parks and prioritizes the cache-stacked CCD intelligently. Do NOT recommend aggressive core-parking overrides, forced timer-resolution hacks, or scheduler edits; on X3D these raise DPC latency and worsen frametimes. Favor scheduler-safe, frametime-focused tuning.";
+const ARCH_NOTE_INTEL_HYBRID =
+  "Intel hybrid architecture (P-cores + E-cores) — Intel Thread Director and the Windows scheduler assign threads automatically. Do NOT recommend disabling E-cores or forcing global CPU affinity; it breaks scheduling and hurts 1% lows. Favor scheduler-safe tuning.";
+const ARCH_NOTE_RYZEN =
+  "AMD Ryzen (non-X3D) — standard CCX/CCD scheduling. PBO / Curve Optimizer are valid on desktop only; avoid aggressive core-parking or timer overrides that destabilize frametimes.";
+const ARCH_NOTE_INTEL_CONVENTIONAL =
+  "Intel (conventional, no E-cores) — single core-type scheduling. Avoid forced timer-resolution and mass service-disabling; prioritize latency and frametime stability over raw FPS.";
+
+export function inferCpuArchitectureNote(cpuBrand: string | undefined | null): string | null {
+  if (!cpuBrand || typeof cpuBrand !== "string") return null;
+  const b = cpuBrand.toLowerCase();
+
+  // AMD 3D V-Cache (X3D) — e.g. Ryzen 7 7800X3D, 5800X3D, 9800X3D
+  if (/x3d|3d\s*v-?cache/.test(b)) return ARCH_NOTE_X3D;
+
+  // Intel Core Ultra (Meteor/Arrow Lake) — always hybrid
+  if (/core\s*ultra/.test(b)) return ARCH_NOTE_INTEL_HYBRID;
+
+  // Intel Core 12th gen onward — parse tier/generation/suffix to decide hybrid
+  // accurately. NOT every 12th+ SKU has E-cores: i3 (12100/13100) and 12th-gen
+  // non-K i5 (12400/12500) are conventional. Tolerates "i7-13700k" and "i7 13700".
+  const m = b.match(/\bi([3579])[\s-]?(1[2-9])(\d{3})([a-z]*)\b/);
+  if (m) {
+    const tier = parseInt(m[1], 10);        // 3,5,7,9
+    const gen = parseInt(m[2], 10);         // 12..19
+    const isK = /k/.test(m[4] || "");       // K/KF/KS unlocked SKUs
+    // i7/i9 (12th+) always ship with E-cores; i5 has E-cores on 13th-gen+ or on
+    // 12th-gen K SKUs; i3 (12th+) has no E-cores.
+    const hybrid = tier >= 7 || (tier === 5 && (gen >= 13 || isK));
+    if (hybrid) return ARCH_NOTE_INTEL_HYBRID;
+    return ARCH_NOTE_INTEL_CONVENTIONAL; // modern Intel without E-cores
+  }
+
+  // AMD Ryzen (non-X3D)
+  if (/ryzen|amd/.test(b)) return ARCH_NOTE_RYZEN;
+
+  // Intel conventional (pre-12th gen, Xeon, unparsed Core i)
+  if (/intel|core\s*i|xeon/.test(b)) return ARCH_NOTE_INTEL_CONVENTIONAL;
+
+  return null;
+}
+
 function buildChatContext(context: any, serverCtx?: Awaited<ReturnType<typeof buildAdvisorServerContext>>): string {
   const parts: string[] = [];
 
@@ -502,6 +573,9 @@ function buildChatContext(context: any, serverCtx?: Awaited<ReturnType<typeof bu
     if (s.network) parts.push(`Network: ${s.network}`);
     // Notes include BIOS inference (XMP/EXPO state, VBS, Secure Boot) built client-side
     if (s.notes) parts.push(`System notes: ${s.notes}`);
+    // Hardware-adaptive scheduler-safety guidance derived from the real CPU model
+    const archNote = inferCpuArchitectureNote(s.cpu);
+    if (archNote) parts.push(`CPU architecture intelligence: ${archNote}`);
   }
 
   // ── Display signal ─────────────────────────────────────────────────────────

@@ -1,0 +1,166 @@
+6. FIX ADMIN PAGE INTERVAL SPAM
+
+FILES:
+
+- AdminPage.tsx
+- TrialCountdown
+
+PROBLEM
+
+Each trial row creates its own interval.
+
+Background tabs continue ticking forever.
+
+This causes:
+
+- unnecessary rerenders
+- timer buildup
+- wasted CPU
+
+FIX
+
+Add:
+if (document.hidden) return
+
+OR preferably:
+single shared ticker source.
+
+Goal:
+avoid N intervals for N rows.
+
+==================================================
+7. ADD EXPLICIT BLUETOOTH FREE-TIER COMMENT
+
+FILES:
+
+- tweak-tiers.ts
+
+PROBLEM
+
+bluetooth exists in:
+
+- FREE_EXCEPTION_IDS
+
+but Network category is premium.
+
+This currently works correctly due to evaluation order.
+
+BUT:
+future maintainers may accidentally remove it.
+
+FIX
+
+Add explicit comment:
+
+// bluetooth is intentionally free despite Network premium category
+
+Prevent silent regression.
+
+==================================================
+8. GLASSPANEL LAYOUT THRASH FIX
+
+FILES:
+
+- GlassPanel.tsx
+
+PROBLEM
+
+getBoundingClientRect()
+runs on every mousemove.
+
+This creates:
+
+- forced layout reads
+- layout thrashing
+- UI stutter
+
+FIX
+
+Cache rect:
+
+- on mouseenter
+- update with ResizeObserver
+
+REMOVE layout reads from mousemove handler.
+
+==================================================
+9. TELEMETRY IPC OVERLAP FIX
+
+FILES:
+
+- telemetryManager.ts
+
+PROBLEM
+
+refreshNow()
+can overlap with:
+_ipcPollTick()
+
+creating:
+
+- concurrent IPC calls
+- duplicate telemetry requests
+- out-of-order store updates
+
+FIX
+
+Add:
+_ipcPollInFlight guard
+
+Prevent overlapping telemetry fetches.
+
+==================================================
+10. SPLASH TELEMETRY STARTUP FIX
+
+FILES:
+
+- Splash.tsx
+- App.tsx
+- telemetryManager.ts
+
+PROBLEM
+
+telemetryManager.start()
+fires during splash animation.
+
+This adds:
+
+- IPC pressure
+- renderer work
+- startup stutter
+
+FIX
+
+REMOVE telemetry start from Splash.tsx.
+
+Telemetry should start ONLY:
+after authenticated phase transition.
+
+==================================================
+11. AI CONTEXT RELIABILITY
+
+FILES:
+
+- ai-context-builder.ts
+- AiAdvisor.tsx
+- aiRouter.ts
+
+GOAL
+
+Create deterministic AI system snapshot.
+
+Must include:
+
+- route
+- telemetry summary
+- hardware summary
+- tweak state
+- network state
+- display state
+- active optimization goals
+
+NO partial undefined state.
+
+NO stale context.
+
+NO delayed hydration races.
