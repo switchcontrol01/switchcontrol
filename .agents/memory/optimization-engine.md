@@ -1,30 +1,26 @@
 ---
 name: Optimization Engine architecture
-description: Durable decisions for the Adaptive Optimization Engine — network separation, cache TTLs, outcome-driven apply/revert, and key field-name trap.
+description: Durable decisions for the Adaptive Optimization Engine — separation, field-name trap, outcome-driven apply/revert, impact levels, deterministic IDs.
 ---
 
-## Separate network engine (never merge back into main engine)
-`shared/networkOptimizationEngine.ts` is a completely distinct scoring path:
-- Uses network-specific signals collected by `client/src/lib/networkOptimizationSnapshot.ts` (wired detection via Electron interface list, WiFi adapter presence, live RX/TX traffic)
-- Different safety rules: WiFi-disable gated on `isWired === true`; Bluetooth gated on wired status
-- Only scores network-relevant tweaks — never general hardware tweaks
-- Returns the same `OptimizationPlan` shape so the plan UI is shared
+## Separate network engine (never merge into main engine)
+`shared/networkOptimizationEngine.ts` is a distinct scoring path from the main engine. Uses network-specific signals (wired detection, WiFi adapter presence, RX/TX traffic). Different safety rules: WiFi-disable gated on `isWired === true`; Bluetooth gated on wired status. Returns the same `OptimizationPlan` shape so the plan UI is shared. **Why:** Main engine hardware signals (CPU/GPU family, RAM) are irrelevant to network scoring; network tweaks carry catastrophic safety risks (WiFi-disable on wireless = disconnect) requiring dedicated guards.
 
-**Why:** The main engine's hardware signals (CPU/GPU family, RAM, laptop detection) are irrelevant to network scoring; mixing them caused incorrect recommendations. Network tweaks have different risk/safety semantics (WiFi disable on wireless = catastrophic) requiring dedicated guards.
+## cpuBrand vs cpuName — field-name trap
+`HardwareProfileInput` uses `cpuBrand` (not `cpuName`). When collecting Electron specs, map `cpu.model → hardware.cpuBrand`. Wrong field name silently bypasses X3D/Intel hybrid classification.
 
-## cpuBrand vs cpuName — critical field name trap
-`HardwareProfileInput` uses `cpuBrand` (not `cpuName`). When collecting hardware from Electron specs, map `cpu.model → hardware.cpuBrand`. Wrong field name silently bypasses X3D/Intel hybrid classification.
-
-## Apply/revert must require explicit success === true
-`bulkApplyTweaks` and `bulkRevertTweaks` return `Record<string, TweakResult>`. Treat missing results as failure (not assumed success). Only call `setTweak(id, true/false)` when `results[id]?.success === true`. Missing entries indicate executor anomaly, not success.
-
-**Why:** Optimistic fallback (`success !== false`) can desync UI from actual system state under partial executor failures, showing tweaks as applied/reverted when they aren't.
+## Apply/revert require explicit success === true
+`bulkApplyTweaks` / `bulkRevertTweaks` return `Record<string, TweakResult>`. Missing results must be treated as failure, not assumed success. Only call `setTweak(id, true/false)` when `results[id]?.success === true`. **Why:** Optimistic fallback desynchronizes UI from actual system state under partial executor anomalies.
 
 ## Revert failure handling
-On Electron revert: only clear local state for confirmed successes. On partial/total failure: surface stuck count in DonePhase with amber notice; preserve local state so user can retry or manually investigate. Never clear local state on total failure just to "avoid stuck state" — that masks real system state.
+On partial/total Electron revert failure: only clear local state for confirmed successes; surface stuck count in DonePhase amber notice. Never clear state on total failure. **Why:** Clearing state on failure masks real system state — user must know which tweaks may still be active.
 
-## Plan cache invalidation
-`finishApplying()` in the store busts `_planCache = {}`. This ensures re-opening the flow after an apply always recomputes plans reflecting the new `alreadyApplied` flags — prevents re-offering already-applied tweaks.
+## Plan cache busted after apply
+`finishApplying()` sets `_planCache: {}`. Re-opening the flow after an apply always recomputes plans with current `alreadyApplied` flags. **Why:** Stale plan cache would re-offer already-applied tweaks.
 
 ## Web apply uses applyRecommended() from api.ts
-Not `apiRequest()` from queryClient. `apiRequest` does not attach `x-csrf-token`; `applyRecommended` calls `apiPost` which uses `apiFetch` with `withCsrf: true`.
+Not `apiRequest()` from queryClient. `applyRecommended` calls `apiPost` with `withCsrf: true`, which attaches `x-csrf-token`.
+
+## PlanEntry fields
+- `expectedImpact: "high" | "medium" | "low"` — derived from final score (≥80/≥65/<65). Both engines populate this.
+- `sessionId` — deterministic hash of (intent + sorted tweak IDs) for main engine; (signal fingerprint + sorted tweaks) for network engine. Uses djb2 via `deterministicHash()` in `shared/optimizationEngine.ts`.

@@ -257,7 +257,7 @@ export function TweaksList() {
             className="h-9 px-4 gap-2 bg-violet-500/10 text-violet-300 border border-violet-500/20 hover:bg-violet-500/20"
           >
             <Sparkles className="size-4" />
-            Optimize
+            Apply Recommended
           </Button>
           <Button
             variant="outline" size="sm"

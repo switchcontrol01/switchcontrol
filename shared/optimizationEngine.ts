@@ -52,11 +52,14 @@ export interface OptimizationEngineInput {
 export type SafetyLevel = "safe" | "moderate" | "risky";
 export type Reversibility = "instant" | "reboot" | "partial";
 
+export type ImpactLevel = "high" | "medium" | "low";
+
 export interface PlanEntry {
   tweakId: string;
   tweakTitle: string;
   score: number;           // 0–100 final composite score
   confidence: number;      // 0–100 after hardware/build adjustments (shown in UI)
+  expectedImpact: ImpactLevel; // derived from score: high ≥80, medium ≥65, low <65
   reason: string;          // plain-English reason for recommending
   safetyLevel: SafetyLevel;
   reversibility: Reversibility;
@@ -89,6 +92,17 @@ export interface OptimizationPlan {
   avoided: AvoidedEntry[];    // notable exclusions shown in UI
   generatedAt: number;
   hardwareSummary: string;    // "Intel X3D + NVIDIA RTX"
+}
+
+// ── Utilities ─────────────────────────────────────────────────────────────────
+
+/** djb2-style deterministic hash → base-36 string. No runtime deps. */
+function deterministicHash(input: string): string {
+  let h = 5381;
+  for (let i = 0; i < input.length; i++) {
+    h = Math.imul(h << 5 + h, 1) ^ input.charCodeAt(i);
+  }
+  return Math.abs(h).toString(36);
 }
 
 // ── Internal scoring ──────────────────────────────────────────────────────────
@@ -443,6 +457,7 @@ export function runOptimizationEngine(input: OptimizationEngineInput): Optimizat
       tweakTitle: tweak.title,
       score,
       confidence: adjustedConfidence,
+      expectedImpact: score >= 80 ? "high" : score >= 65 ? "medium" : "low",
       reason: generateReason(tweak.id, meta, profile, intent, score),
       safetyLevel: safetyLevelFromRisk(tweak.risk),
       reversibility: reversibilityFromReboot(tweak.requiresReboot ?? false),
@@ -455,8 +470,10 @@ export function runOptimizationEngine(input: OptimizationEngineInput): Optimizat
   recommended.sort((a, b) => b.score - a.score);
   const capped = recommended.slice(0, 14);
 
-  // Generate a stable session ID
-  const sessionId = `opt_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  // Generate a deterministic session ID from intent + sorted tweak IDs
+  const sessionId = `opt_${intent}_${deterministicHash(
+    intent + "|" + capped.map(e => e.tweakId).sort().join(",")
+  )}`;
 
   return {
     sessionId,

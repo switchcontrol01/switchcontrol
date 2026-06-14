@@ -58,6 +58,12 @@ function SafetyBadge({ level }: { level: string }) {
   return                          <span className="text-[10px] font-semibold text-red-400 bg-red-400/10 border border-red-400/20 px-1.5 py-0.5 rounded-full">Risky</span>;
 }
 
+function ImpactBadge({ level }: { level: string }) {
+  if (level === "high")   return <span className="text-[10px] font-semibold text-violet-300 bg-violet-500/10 border border-violet-500/20 px-1.5 py-0.5 rounded-full">High impact</span>;
+  if (level === "medium") return <span className="text-[10px] font-semibold text-blue-300 bg-blue-500/10 border border-blue-500/20 px-1.5 py-0.5 rounded-full">Medium impact</span>;
+  return                         <span className="text-[10px] font-semibold text-[#4A5568] bg-white/[0.03] border border-white/[0.06] px-1.5 py-0.5 rounded-full">Low impact</span>;
+}
+
 function RevertBadge({ rev }: { rev: string }) {
   if (rev === "instant") return <span className="text-[10px] text-[#4A5568] flex items-center gap-0.5"><Zap className="size-2.5" />Instant</span>;
   return                        <span className="text-[10px] text-amber-500/70 flex items-center gap-0.5"><Clock className="size-2.5" />Reboot</span>;
@@ -267,6 +273,7 @@ function PlanPhase({
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-sm font-medium text-white">{entry.tweakTitle}</span>
+                    <ImpactBadge level={entry.expectedImpact} />
                     <SafetyBadge level={entry.safetyLevel} />
                     <RevertBadge rev={entry.reversibility} />
                   </div>

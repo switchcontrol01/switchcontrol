@@ -173,6 +173,7 @@ export function runNetworkOptimizationEngine(
       tweakTitle: tweak.title,
       score: decayedScore,
       confidence: decayedScore,
+      expectedImpact: decayedScore >= 80 ? "high" : decayedScore >= 65 ? "medium" : "low",
       reason: rule.reason,
       safetyLevel: rule.safetyLevel,
       reversibility: rule.reversibility,
@@ -183,7 +184,14 @@ export function runNetworkOptimizationEngine(
 
   recommended.sort((a, b) => b.score - a.score);
 
-  const sessionId = `net_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  // Deterministic session ID from signal fingerprint + recommended tweak IDs
+  const sigFingerprint = `net|${signals.isWired}|${signals.hasWifiAdapter}|${signals.windowsBuild ?? "?"}`;
+  const tweakSig = recommended.map(e => e.tweakId).sort().join(",");
+  let h = 5381;
+  for (const ch of (sigFingerprint + "|" + tweakSig)) {
+    h = Math.imul(h << 5 + h, 1) ^ ch.charCodeAt(0);
+  }
+  const sessionId = `net_${Math.abs(h).toString(36)}`;
   return {
     sessionId,
     intent: "network-responsiveness",
