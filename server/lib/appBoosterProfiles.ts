@@ -430,14 +430,19 @@ function buildSimulationExtras(): ProfileAction[] {
   ];
 }
 
-export function buildActionsForGame(game: GameMeta, installPath: string | null): ProfileAction[] {
+export function buildActionsForGame(
+  game: GameMeta,
+  installPath: string | null,
+  profileIdOverride?: string
+): ProfileAction[] {
   const exePath = installPath ? `${installPath}\\${game.executable}` : game.executable;
   const base = buildBaseActions(game, exePath);
+  const effectiveProfileId = profileIdOverride ?? game.profileId;
 
-  if (game.profileId === "competitive-high") {
+  if (effectiveProfileId === "competitive-high") {
     return [...base, ...buildCompetitiveExtras(game)];
   }
-  if (game.profileId === "simulation-ultra" || game.profileId === "open-world-performance") {
+  if (effectiveProfileId === "simulation-ultra" || effectiveProfileId === "open-world-performance") {
     return [...base, ...buildSimulationExtras()];
   }
   // single-player-quality and any unknown profiles get base set only

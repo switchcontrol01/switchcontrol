@@ -634,11 +634,18 @@ router.get("/games/:slug/status", async (req: Request, res: Response) => {
     if (!state) return res.status(404).json({ error: "Game not found" });
 
     const game = getGameBySlug(slug)!;
-    const profile = PROFILES[game.profileId] ?? null;
-    const actions = buildActionsForGame(game, state.installPath);
+
+    // Accept an optional profileId override from the query string (from the tier selector)
+    const profileIdOverride = typeof req.query.profileId === "string" && req.query.profileId
+      ? req.query.profileId
+      : undefined;
+    const effectiveProfileId = profileIdOverride ?? game.profileId;
+    const profile = PROFILES[effectiveProfileId] ?? PROFILES[game.profileId] ?? null;
+    const actions = buildActionsForGame(game, state.installPath, profileIdOverride);
 
     res.json({
       ...state,
+      profileId: effectiveProfileId,
       profile,
       actions,
       logoUrl:   game.logoUrl   ?? null,
@@ -661,12 +668,15 @@ router.post("/games/:slug/apply", async (req: Request, res: Response) => {
     if (!game) return res.status(404).json({ error: "Game not found" });
 
     const installPath: string | null = req.body?.installPath ?? null;
+    // Accept optional profileId override from the tier selector
+    const profileIdOverride: string | undefined = req.body?.profileIdOverride ?? undefined;
     await upsertGameRow(userId, game.slug, game.name, game.executable, !!installPath, installPath);
 
-    const actions = buildActionsForGame(game, installPath);
-    const profile = PROFILES[game.profileId];
+    const effectiveProfileId = profileIdOverride ?? game.profileId;
+    const actions = buildActionsForGame(game, installPath, profileIdOverride);
+    const profile = PROFILES[effectiveProfileId] ?? PROFILES[game.profileId];
 
-    res.json({ ok: true, slug, profileId: game.profileId, profile, actions, installPath });
+    res.json({ ok: true, slug, profileId: effectiveProfileId, profile, actions, installPath });
   } catch (e: any) {
     console.error("[AppBooster] POST /apply error:", e.message);
     res.status(500).json({ error: "Failed to prepare profile" });

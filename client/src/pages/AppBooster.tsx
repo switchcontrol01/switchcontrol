@@ -118,9 +118,10 @@ interface PendingRemove {
 
 // ── storage keys ──────────────────────────────────────────────────────────────
 
-const CACHE_KEY         = "sc_appbooster_cache_v2";
-const MANUAL_GAMES_KEY  = "sc_manual_games_v1";
-const HIDDEN_SLUGS_KEY  = "sc_hidden_catalog_v1";
+const CACHE_KEY           = "sc_appbooster_cache_v2";
+const MANUAL_GAMES_KEY    = "sc_manual_games_v1";
+const HIDDEN_SLUGS_KEY    = "sc_hidden_catalog_v1";
+const TIER_OVERRIDES_KEY  = "sc_game_tier_overrides_v1";
 
 function readCache(): GameSummary[] | null {
   try { const r = localStorage.getItem(CACHE_KEY); return r ? JSON.parse(r) : null; } catch { return null; }
@@ -140,6 +141,34 @@ function readHiddenSlugs(): Set<string> {
 function writeHiddenSlugs(s: Set<string>) {
   try { localStorage.setItem(HIDDEN_SLUGS_KEY, JSON.stringify(Array.from(s))); } catch {}
 }
+function readTierOverrides(): Record<string, string> {
+  try { const r = localStorage.getItem(TIER_OVERRIDES_KEY); return r ? JSON.parse(r) : {}; } catch { return {}; }
+}
+function writeTierOverrides(overrides: Record<string, string>) {
+  try { localStorage.setItem(TIER_OVERRIDES_KEY, JSON.stringify(overrides)); } catch {}
+}
+
+// ── Profile tier definitions ───────────────────────────────────────────────────
+
+const PROFILE_TIERS = [
+  {
+    id: "default",
+    label: "Standard",
+    description: "Game's recommended optimizations — base CPU, GPU, and network tweaks.",
+  },
+  {
+    id: "competitive-high",
+    label: "Competitive High",
+    description: "Maximum responsiveness for ranked play — adds scheduler, timer, Nagle, and GPU clock tweaks.",
+  },
+  {
+    id: "simulation-ultra",
+    label: "Simulation Ultra",
+    description: "Extra GPU headroom for high-fidelity titles — adds NVIDIA max-performance driver mode.",
+  },
+] as const;
+
+type TierId = (typeof PROFILE_TIERS)[number]["id"];
 
 // ── manual game generic profile ──────────────────────────────────────────────
 
@@ -1103,6 +1132,7 @@ export default function AppBooster() {
   const [showHistory,      setShowHistory]     = useState(false);
   const [historyAvailable, setHistAvail]       = useState(true);
   const [expandActions,    setExpandActions]   = useState(true);
+  const [selectedTier,     setSelectedTier]    = useState<TierId>("default");
   const [loadError,        setLoadError]       = useState<string | null>(null);
   const [showManualAdd,    setShowManualAdd]   = useState(false);
   const [showCatalog,      setShowCatalog]     = useState(false);
@@ -1185,9 +1215,12 @@ export default function AppBooster() {
     return () => { cancelled = true; };
   }, [user?.loggedIn]);
 
-  const loadDetail = useCallback(async (slug: string) => {
+  const loadDetail = useCallback(async (slug: string, profileIdOverride?: string) => {
     try {
-      const data = await apiGet<GameDetail>(`/app-booster/games/${slug}/status`);
+      const url = profileIdOverride
+        ? `/app-booster/games/${slug}/status?profileId=${encodeURIComponent(profileIdOverride)}`
+        : `/app-booster/games/${slug}/status`;
+      const data = await apiGet<GameDetail>(url);
       setGameDetail(data);
     } catch {
       toast({ title: "Failed to load game status", variant: "destructive" });
@@ -1199,8 +1232,11 @@ export default function AppBooster() {
     if (selectedSlug.startsWith("manual-")) {
       const mg = manualGames.find(g => g.id === selectedSlug);
       setGameDetail(mg ? buildManualDetail(mg) : null);
+      setSelectedTier("default");
     } else {
-      loadDetail(selectedSlug);
+      const savedTier = (readTierOverrides()[selectedSlug] ?? "default") as TierId;
+      setSelectedTier(savedTier);
+      loadDetail(selectedSlug, savedTier !== "default" ? savedTier : undefined);
     }
   }, [selectedSlug, loadDetail, manualGames]);
 
@@ -1213,6 +1249,21 @@ export default function AppBooster() {
   }, []);
 
   useEffect(() => { if (showHistory) loadHistory(); }, [showHistory, loadHistory]);
+
+  // ── tier selector ─────────────────────────────────────────────────────────
+
+  const handleTierChange = useCallback((tier: TierId) => {
+    if (!selectedSlug || selectedSlug.startsWith("manual-")) return;
+    setSelectedTier(tier);
+    const overrides = readTierOverrides();
+    if (tier === "default") {
+      delete overrides[selectedSlug];
+    } else {
+      overrides[selectedSlug] = tier;
+    }
+    writeTierOverrides(overrides);
+    loadDetail(selectedSlug, tier !== "default" ? tier : undefined);
+  }, [selectedSlug, loadDetail]);
 
   // ── scan ───────────────────────────────────────────────────────────────────
 
@@ -1338,8 +1389,10 @@ export default function AppBooster() {
     setGames(prev => prev.map(g => g.slug === selectedSlug ? { ...g, status: "applying" } : g));
     setGameDetail(prev => prev ? { ...prev, status: "applying" } : prev);
     try {
+      const profileIdOverride = selectedTier !== "default" ? selectedTier : undefined;
       const { actions, installPath } = await apiPost<{ actions: ProfileAction[]; installPath: string | null; profileId: string; profile: any }>(
-        `/app-booster/games/${selectedSlug}/apply`, { installPath: gameDetail.installPath }
+        `/app-booster/games/${selectedSlug}/apply`,
+        { installPath: gameDetail.installPath, profileIdOverride }
       );
       const actionResults: ActionResult[] = [];
       if (isElectron) {
@@ -2033,6 +2086,51 @@ export default function AppBooster() {
                           <p className="font-bold text-sm text-[#E6EAF0]">{gameDetail.profile.name} Profile</p>
                           <p className="text-xs text-[#6B7380] mt-1 leading-relaxed">{gameDetail.profile.description}</p>
                         </div>
+                      </div>
+                    )}
+
+                    {/* ── Profile tier selector ────────────────────────── */}
+                    {!isManualSelected && (
+                      <div
+                        className="rounded-2xl border border-[#2A313A] p-4"
+                        style={{ background: "linear-gradient(180deg,rgba(255,255,255,0.03) 0%,rgba(0,0,0,0.35) 100%)" }}
+                      >
+                        <div className="flex items-center gap-2 mb-3">
+                          <Gauge className="w-3.5 h-3.5 text-[#6B7380]" />
+                          <span className="text-[11px] font-black uppercase tracking-widest text-[#A0A8B3]">Optimization Level</span>
+                          {selectedTier !== "default" && (
+                            <span
+                              className="text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wide"
+                              style={{ background: "rgba(139,92,246,0.15)", border: "1px solid rgba(139,92,246,0.3)", color: "#a78bfa" }}
+                            >
+                              Override active
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex gap-2">
+                          {PROFILE_TIERS.map((tier) => {
+                            const isActive = selectedTier === tier.id;
+                            return (
+                              <button
+                                key={tier.id}
+                                onClick={() => handleTierChange(tier.id as TierId)}
+                                data-testid={`button-tier-${tier.id}`}
+                                className={cn(
+                                  "flex-1 flex flex-col items-center gap-1.5 px-2 py-2.5 rounded-xl border transition-all text-center",
+                                  isActive
+                                    ? "border-primary/40 text-primary"
+                                    : "border-[#2A313A] text-[#6B7380] hover:border-[#3A434E] hover:text-[#A0A8B3]"
+                                )}
+                                style={isActive ? { background: "rgba(139,92,246,0.10)", boxShadow: "0 0 16px -6px rgba(139,92,246,0.4)" } : { background: "transparent" }}
+                              >
+                                <span className={cn("text-[10px] font-bold leading-tight", isActive ? "text-primary" : "")}>{tier.label}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                        <p className="text-[11px] text-[#6B7380] mt-2.5 leading-relaxed">
+                          {PROFILE_TIERS.find((t) => t.id === selectedTier)?.description}
+                        </p>
                       </div>
                     )}
 
