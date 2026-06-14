@@ -153,6 +153,17 @@ const ACTION_DESCRIPTIONS: Record<keyof FocusSettings, {
 
 // ── Routes ─────────────────────────────────────────────────────────────────────
 
+// Purge expired sessions from the in-memory map. Called before enable so the
+// map never accumulates stale entries from timed-out sessions.
+function purgeExpiredSessions() {
+  const now = Date.now();
+  for (const [userId, state] of activeStates) {
+    if (state.expiresAt && state.expiresAt.getTime() <= now) {
+      activeStates.delete(userId);
+    }
+  }
+}
+
 // GET /api/focus/state
 router.get("/state", async (req: Request, res: Response) => {
   const userId = getUserId(req);
@@ -230,6 +241,10 @@ router.post("/enable", async (req: Request, res: Response) => {
     return res.status(400).json({ ok: false, error: "Invalid request body", issues: parse.error.issues });
   }
   const { profileId, settings, durationMinutes, electronResults, appliedState, verification, triggerSource } = parse.data;
+
+  // Purge stale expired sessions before checking current state so the map
+  // never retains indefinitely-growing entries from timed-out sessions.
+  purgeExpiredSessions();
 
   const currentState = activeStates.get(userId);
   if (currentState?.active) {

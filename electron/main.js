@@ -2031,8 +2031,18 @@ ipcMain.handle('system:getSpecs', async () => {
 // Display info — PowerShell WMI query for monitor resolution/refresh rate.
 // Same logic as server/routes/dashboardIntelligence.ts collectDisplayViaPowerShell()
 // but runs on the user's local Windows machine (not the cloud server).
+// In-memory cache with 60s TTL — WMI/EDID detection is expensive (PowerShell
+// spawn + registry reads). Monitors don't change during a session.
+let _displayInfoCache = null;
+let _displayInfoCachedAt = 0;
+const DISPLAY_INFO_TTL_MS = 60_000;
+
 ipcMain.handle('system:getDisplayInfo', async () => {
   if (process.platform !== 'win32') return { controllers: [], displays: [], monitorName: null, hdrEnabled: null };
+  const now = Date.now();
+  if (_displayInfoCache && (now - _displayInfoCachedAt) < DISPLAY_INFO_TTL_MS) {
+    return _displayInfoCache;
+  }
   const ps = `
 $result = @{ controllers = @(); displays = @(); monitorName = $null; hdrEnabled = $null }
 try {
@@ -2233,7 +2243,7 @@ $result | ConvertTo-Json -Depth 3 -Compress`.trim();
       currentRefreshRate: v.currentRefreshRate ?? null,
       bitsPerPixel: v.bitsPerPixel ?? null,
     }));
-    return {
+    const result = {
       controllers,
       displays,
       monitorName:    parsed.monitorName    ?? null,
@@ -2243,6 +2253,9 @@ $result | ConvertTo-Json -Depth 3 -Compress`.trim();
       nativeResX:     parsed.nativeResX     ?? null,
       nativeResY:     parsed.nativeResY     ?? null,
     };
+    _displayInfoCache = result;
+    _displayInfoCachedAt = Date.now();
+    return result;
   } catch (e) {
     console.warn('[system:getDisplayInfo] error:', e.message);
     return { controllers: [], displays: [] };

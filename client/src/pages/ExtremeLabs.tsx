@@ -713,6 +713,9 @@ export default function ExtremeLabs() {
   const { openUpgradeModal } = useUpgradeModal();
   const { toast } = useToast();
 
+  // Ref so the restore-point progress interval is always cleanable on unmount
+  const restoreIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   const [wizardStep, setWizardStep] = useState<WizardStep>("warning");
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
@@ -721,6 +724,17 @@ export default function ExtremeLabs() {
   const [isApplying, setIsApplying] = useState<string | null>(null);
   const [appliedTweaks, setAppliedTweaks] = useState<Set<string>>(new Set());
   const [activeFilter, setActiveFilter] = useState<"all" | RiskBadge | "nic">("all");
+
+  // Cleanup: clear the restore-point progress interval on unmount so it can
+  // never fire state-setter calls on an unmounted component.
+  useEffect(() => {
+    return () => {
+      if (restoreIntervalRef.current) {
+        clearInterval(restoreIntervalRef.current);
+        restoreIntervalRef.current = null;
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -762,11 +776,12 @@ export default function ExtremeLabs() {
       setAnalyzingProgress(0);
 
       let p = 0;
-      const interval = setInterval(() => {
+      restoreIntervalRef.current = setInterval(() => {
         p += 18;
         if (p >= 100) {
           p = 100;
-          clearInterval(interval);
+          clearInterval(restoreIntervalRef.current!);
+          restoreIntervalRef.current = null;
           setTimeout(() => {
             setIsUnlocked(true);
             localStorage.setItem("extreme-labs-unlocked", "true");

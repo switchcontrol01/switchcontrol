@@ -151,7 +151,7 @@ export function AppBackground() {
           width: "65vw", height: "65vw",
           background: "radial-gradient(ellipse, rgba(0,212,255,0.10) 0%, rgba(0,160,200,0.03) 45%, transparent 68%)",
           filter: "blur(40px)",
-          willChange: "transform, opacity",
+          willChange: "transform",
           animation: "sc-orb-a 18s ease-in-out infinite",
         }} />
         <div className="absolute" style={{
@@ -159,7 +159,7 @@ export function AppBackground() {
           width: "58vw", height: "58vw",
           background: "radial-gradient(ellipse, rgba(0,200,255,0.14) 0%, rgba(0,140,220,0.05) 45%, transparent 70%)",
           filter: "blur(44px)",
-          willChange: "transform, opacity",
+          willChange: "transform",
           animation: "sc-orb-b 20s ease-in-out 3s infinite",
         }} />
         <div className="absolute" style={{
@@ -167,7 +167,7 @@ export function AppBackground() {
           width: "42vw", height: "42vw",
           background: "radial-gradient(ellipse, rgba(245,158,11,0.06) 0%, transparent 65%)",
           filter: "blur(36px)",
-          willChange: "transform, opacity",
+          willChange: "transform",
           animation: "sc-orb-c 22s ease-in-out 7s infinite",
         }} />
         <div className="absolute" style={{
@@ -175,7 +175,7 @@ export function AppBackground() {
           width: "38vw", height: "38vw",
           background: "radial-gradient(ellipse, rgba(42,49,58,0.05) 0%, transparent 65%)",
           filter: "blur(32px)",
-          willChange: "transform, opacity",
+          willChange: "transform",
           animation: "sc-orb-d 25s ease-in-out 12s infinite",
         }} />
         <div className="absolute" style={{
@@ -184,7 +184,7 @@ export function AppBackground() {
           marginLeft: "-20vw", marginTop: "-20vw",
           background: "radial-gradient(ellipse, rgba(0,212,255,0.06) 0%, rgba(0,212,255,0.04) 50%, transparent 72%)",
           filter: "blur(30px)",
-          willChange: "transform, opacity",
+          willChange: "transform",
           animation: "sc-orb-e 12s ease-in-out infinite",
         }} />
 

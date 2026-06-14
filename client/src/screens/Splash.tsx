@@ -2,7 +2,6 @@ import { useEffect, useState, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import logoImg from "@/assets/logo.webp";
 import { getHonestTagline } from "@/lib/taglines";
-import { telemetryManager } from "@/lib/telemetryManager";
 import { useStore } from "@/lib/store";
 
 interface SplashProps {
@@ -48,8 +47,8 @@ export default function Splash({ onComplete }: SplashProps) {
   useEffect(() => {
     (window as any).electronAPI?.signalFirstFrameReady?.();
 
-    telemetryManager.start();
-
+    // Telemetry starts in App.tsx after the authenticated phase transition —
+    // not here, so IPC polling doesn't compete with splash animations.
     const api = (window as any).electronAPI;
     if (api?.system?.getSpecs) {
       api.system.getSpecs()

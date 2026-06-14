@@ -31,13 +31,19 @@ interface PatchNotes {
   type: string;
 }
 
+// Module-level cache — one fetch per app session regardless of how many times
+// the Settings page is mounted. In Electron file:// mode there is no browser
+// HTTP cache, so without this we'd re-fetch on every Settings visit.
+let _patchNotesCache: PatchNotes | null = null;
+
 function PatchNotesSection() {
-  const [notes, setNotes] = useState<PatchNotes | null>(null);
+  const [notes, setNotes] = useState<PatchNotes | null>(_patchNotesCache);
 
   useEffect(() => {
+    if (_patchNotesCache) return;
     fetch("/patch-notes.json")
       .then((r) => r.json())
-      .then(setNotes)
+      .then((data: PatchNotes) => { _patchNotesCache = data; setNotes(data); })
       .catch(() => {});
   }, []);
 

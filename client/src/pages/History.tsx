@@ -188,21 +188,31 @@ function downloadCSV(items: EnrichedItem[], filename: string) {
 
 // ── Animated counter ──────────────────────────────────────────────────────
 
-function useAnimatedCount(target: number, duration = 700) {
+function useAnimatedCount(target: number, duration = 700, startDelay = 0) {
   const [count, setCount] = useState(0);
   const raf = useRef<number>(0);
   useEffect(() => {
-    const start = Date.now();
     const from = 0;
-    const animate = () => {
-      const t = Math.min((Date.now() - start) / duration, 1);
-      const ease = 1 - Math.pow(1 - t, 3);
-      setCount(Math.round(from + ease * target));
-      if (t < 1) raf.current = requestAnimationFrame(animate);
+    const run = () => {
+      const start = Date.now();
+      const animate = () => {
+        const t = Math.min((Date.now() - start) / duration, 1);
+        const ease = 1 - Math.pow(1 - t, 3);
+        setCount(Math.round(from + ease * target));
+        if (t < 1) raf.current = requestAnimationFrame(animate);
+      };
+      raf.current = requestAnimationFrame(animate);
     };
-    raf.current = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(raf.current);
-  }, [target]);
+    // Stagger RAF start to match card entrance delay — prevents all counters
+    // from running their animation loops simultaneously at page entry.
+    let timer: ReturnType<typeof setTimeout>;
+    if (startDelay > 0) {
+      timer = setTimeout(run, startDelay * 1000);
+    } else {
+      run();
+    }
+    return () => { cancelAnimationFrame(raf.current); clearTimeout(timer); };
+  }, [target, duration, startDelay]);
   return count;
 }
 
@@ -215,7 +225,7 @@ function SummaryCard({
   valueColor?: string; Icon: any; delay?: number;
 }) {
   const numVal = typeof value === "number" ? value : NaN;
-  const animated = useAnimatedCount(isNaN(numVal) ? 0 : numVal);
+  const animated = useAnimatedCount(isNaN(numVal) ? 0 : numVal, 700, delay);
   const displayVal = isNaN(numVal) ? value : animated;
 
   return (

@@ -926,6 +926,11 @@ export default function BiosAdvisor() {
     const si = sysIntel.profile;
     console.log(`[BiosAdvisor] explain request | cpu=${cpu} gpu=${gpu} detections=${allDetections.length} | MB=${si?.baseboard.model ?? "?"} BIOS=${si?.bios.version ?? "?"}`);
 
+    // AbortController with 30s timeout — prevents the loading state from
+    // hanging indefinitely if the network or cloud endpoint stalls.
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30_000);
+
     try {
       const data = await cloudApiPost("/bios/explain", {
         cpuModel: cpu,
@@ -947,15 +952,20 @@ export default function BiosAdvisor() {
           secureBoot: si.platform.secureBootEnabled,
           vbsEnabled: si.platform.vbsEnabled,
         }),
-      });
+      }, { signal: controller.signal });
       console.log(`[BiosAdvisor] explain response OK | overview length=${data.overview?.length} recommendations=${data.recommendations?.length}`);
       storeSetAiExplanation(data, analysisHash ?? "");
       setAiExplainError(null);
     } catch (err: unknown) {
-      const displayMsg = getUserFriendlyError(err);
-      console.error(`[BiosAdvisor] explain error | displayed="${displayMsg}" | raw=`, err);
-      setAiExplainError(displayMsg);
+      if (err instanceof Error && err.name === "AbortError") {
+        setAiExplainError("Request timed out. Please check your connection and try again.");
+      } else {
+        const displayMsg = getUserFriendlyError(err);
+        console.error(`[BiosAdvisor] explain error | displayed="${displayMsg}" | raw=`, err);
+        setAiExplainError(displayMsg);
+      }
     } finally {
+      clearTimeout(timeoutId);
       setAiExplainLoading(false);
     }
   }, [allDetections, lastTelemetry, stats, scores, storeSetAiExplanation, analysisHash, isOnline]);
