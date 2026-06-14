@@ -14,7 +14,7 @@
  *   <motion.div {...bounceProps} onClick={trigger} />
  */
 
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { ATTENTION_BOUNCE_DURATION_MS, premiumGlow } from "@/lib/themeTokens";
 
 interface BounceProps {
@@ -49,25 +49,31 @@ export function useAttentionBounce(): UseAttentionBounceReturn {
     }, ATTENTION_BOUNCE_DURATION_MS);
   }, [isAnimating]);
 
-  const bounceProps: BounceProps = {
-    animate: isAnimating
-      ? {
-          opacity: 1,
-          y: 0,
-          scale: [1, 1.03, 1],
-          boxShadow: [premiumGlow.card, premiumGlow.cardPeak, premiumGlow.card],
-        }
-      : {
-          opacity: 1,
-          y: 0,
-          scale: 1,
-          boxShadow: premiumGlow.card,
-        },
-    transition: {
-      duration: ATTENTION_BOUNCE_DURATION_MS / 1000,
-      ease: "easeOut",
-    },
-  };
+  // Memoize the animation objects — recreating them every render causes
+  // downstream TweakCards and premium overlays to rerender unnecessarily.
+  const animateActive = useMemo(() => ({
+    opacity: 1,
+    y: 0,
+    scale: [1, 1.03, 1],
+    boxShadow: [premiumGlow.card, premiumGlow.cardPeak, premiumGlow.card],
+  }), []);
+
+  const animateIdle = useMemo(() => ({
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    boxShadow: premiumGlow.card,
+  }), []);
+
+  const transition = useMemo(() => ({
+    duration: ATTENTION_BOUNCE_DURATION_MS / 1000,
+    ease: "easeOut",
+  }), []);
+
+  const bounceProps = useMemo<BounceProps>(() => ({
+    animate: isAnimating ? animateActive : animateIdle,
+    transition,
+  }), [isAnimating, animateActive, animateIdle, transition]);
 
   return { isAnimating, trigger, bounceProps };
 }

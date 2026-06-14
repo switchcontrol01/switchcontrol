@@ -607,8 +607,8 @@ export function TourShell({
                   className="relative w-[460px] max-w-[calc(100vw-300px)] rounded-2xl overflow-hidden"
                   style={{
                     background: pal.cardBg,
-                    backdropFilter: 'blur(52px) saturate(180%)',
-                    WebkitBackdropFilter: 'blur(52px) saturate(180%)',
+                    backdropFilter: 'blur(8px)',
+                    WebkitBackdropFilter: 'blur(8px)',
                     border: `1px solid ${pal.border}`,
                     boxShadow: `0 32px 80px rgba(0,0,0,0.75), ${pal.cardGlow}, inset 0 1px 0 rgba(255,255,255,0.04)`,
                   }}

@@ -1,63 +1,90 @@
 import type { SignalValue } from "../types";
 
-export async function collectSystemSignals(): Promise<Record<string, SignalValue>> {
-  const signals: Record<string, SignalValue> = {};
-  const api = (window as any).electronAPI;
+// ── OS version cache ──────────────────────────────────────────────────────────
+// getSpecs() is a large IPC payload. We only need osVersion from it, and that
+// value never changes within a session, so cache it after the first call.
+let _cachedOsVersion: string | null | undefined = undefined; // undefined = not yet fetched
 
-  try {
-    if (api?.tweaks?.checkStatus) {
-      const status = await api.tweaks.checkStatus("game-mode");
-      signals.gameMode = { value: status?.enabled ? "on" : "off", source: "electron" };
-    } else {
-      signals.gameMode = { value: null, source: "electron", error: "Electron API unavailable" };
-    }
-  } catch {
+function browserOsVersion(): string | null {
+  const match = navigator.userAgent.match(/Windows NT (\d+\.\d+)/);
+  return match ? match[1] : null;
+}
+
+export async function collectSystemSignals(): Promise<Record<string, SignalValue>> {
+  const api = (window as any).electronAPI;
+  const hasTweakApi = !!api?.tweaks?.checkStatus;
+  const hasSpecsApi = !!api?.system?.getSpecs;
+
+  // ── Concurrent IPC ────────────────────────────────────────────────────────
+  // All 5 calls run in parallel — a single slow or failed call cannot stall
+  // the others. Promise.allSettled guarantees failure isolation.
+  const osVersionPromise: Promise<string | null> =
+    _cachedOsVersion !== undefined
+      ? Promise.resolve(_cachedOsVersion)               // cached — no IPC cost
+      : hasSpecsApi
+        ? api.system.getSpecs()
+            .then((s: any) => s?.system?.osVersion ?? null)
+            .catch(() => browserOsVersion())
+        : Promise.resolve(browserOsVersion());
+
+  const [
+    gameModeResult,
+    powerPlanResult,
+    osVersionResult,
+    memIntegResult,
+    hagsResult,
+  ] = await Promise.allSettled([
+    hasTweakApi ? api.tweaks.checkStatus("game-mode")        : Promise.resolve(null),
+    hasTweakApi ? api.tweaks.checkStatus("power-plan")       : Promise.resolve(null),
+    osVersionPromise,
+    hasTweakApi ? api.tweaks.checkStatus("memory-integrity") : Promise.resolve(null),
+    hasTweakApi ? api.tweaks.checkStatus("hags")             : Promise.resolve(null),
+  ]);
+
+  const signals: Record<string, SignalValue> = {};
+
+  // game-mode
+  if (!hasTweakApi) {
+    signals.gameMode = { value: null, source: "electron", error: "Electron API unavailable" };
+  } else if (gameModeResult.status === "fulfilled") {
+    signals.gameMode = { value: gameModeResult.value?.enabled ? "on" : "off", source: "electron" };
+  } else {
     signals.gameMode = { value: null, source: "electron", error: "Failed to read game mode" };
   }
 
-  try {
-    if (api?.tweaks?.checkStatus) {
-      const status = await api.tweaks.checkStatus("power-plan");
-      signals.powerPlanName = { value: status?.planName || null, source: "electron" };
-    } else {
-      signals.powerPlanName = { value: null, source: "electron", error: "Electron API unavailable" };
-    }
-  } catch {
+  // power-plan
+  if (!hasTweakApi) {
+    signals.powerPlanName = { value: null, source: "electron", error: "Electron API unavailable" };
+  } else if (powerPlanResult.status === "fulfilled") {
+    signals.powerPlanName = { value: powerPlanResult.value?.planName || null, source: "electron" };
+  } else {
     signals.powerPlanName = { value: null, source: "electron", error: "Failed to read power plan" };
   }
 
-  try {
-    if (api?.system?.getSpecs) {
-      const specs = await api.system.getSpecs();
-      signals.windowsBuild = { value: specs?.system?.osVersion || null, source: "electron" };
-    } else {
-      const ua = navigator.userAgent;
-      const match = ua.match(/Windows NT (\d+\.\d+)/);
-      signals.windowsBuild = { value: match ? match[1] : null, source: "browser" };
-    }
-  } catch {
-    signals.windowsBuild = { value: null, source: "browser", error: "Failed to detect OS version" };
+  // windowsBuild / osVersion
+  if (osVersionResult.status === "fulfilled") {
+    const v = osVersionResult.value;
+    if (hasSpecsApi) _cachedOsVersion = v; // persist so next call skips IPC
+    signals.windowsBuild = { value: v, source: hasSpecsApi ? "electron" : "browser" };
+  } else {
+    signals.windowsBuild = { value: browserOsVersion(), source: "browser", error: "Failed to detect OS version" };
   }
 
-  try {
-    if (api?.tweaks?.checkStatus) {
-      const status = await api.tweaks.checkStatus("memory-integrity");
-      signals.memoryIntegrity = { value: status?.enabled ? "on" : "off", source: "electron" };
-    } else {
-      signals.memoryIntegrity = { value: null, source: "electron", error: "Electron API unavailable" };
-    }
-  } catch {
+  // memory-integrity
+  if (!hasTweakApi) {
+    signals.memoryIntegrity = { value: null, source: "electron", error: "Electron API unavailable" };
+  } else if (memIntegResult.status === "fulfilled") {
+    signals.memoryIntegrity = { value: memIntegResult.value?.enabled ? "on" : "off", source: "electron" };
+  } else {
     signals.memoryIntegrity = { value: null, source: "electron", error: "Failed to read memory integrity" };
   }
 
-  try {
-    if (api?.tweaks?.checkStatus) {
-      const status = await api.tweaks.checkStatus("hags");
-      signals.hags = { value: status?.enabled ? "on" : "off", source: "electron" };
-    } else {
-      signals.hags = { value: null, source: "electron", error: "Electron API unavailable" };
-    }
-  } catch {
+  // hags
+  if (!hasTweakApi) {
+    signals.hags = { value: null, source: "electron", error: "Electron API unavailable" };
+  } else if (hagsResult.status === "fulfilled") {
+    signals.hags = { value: hagsResult.value?.enabled ? "on" : "off", source: "electron" };
+  } else {
     signals.hags = { value: null, source: "electron", error: "Failed to read HAGS status" };
   }
 

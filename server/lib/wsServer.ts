@@ -12,8 +12,21 @@ let broadcastInterval: NodeJS.Timeout | null = null;
 const MAX_CONNECTIONS_PER_USER = 3;
 const userConnectionCount = new Map<string, number>();
 
-// Payload dedup — skip broadcast when nothing has changed
-let lastBroadcastPayload: string | null = null;
+// Payload dedup — track the last broadcast snapshot timestamp.
+// Comparing snap.ts is O(1) and avoids a full JSON.stringify on every 2s tick
+// when telemetry hasn't updated (scheduler runs at 1.5s, so timestamps align).
+let lastBroadcastTs: number | null = null;
+
+/**
+ * Strip expensive fields from the broadcast payload.
+ * `processes` updates every 90 s, creates 40-80 KB payloads, and causes
+ * renderer parse + Zustand rerender overhead on every tick. Consumers that
+ * need process data should fetch it on-demand via the REST endpoint instead.
+ */
+function toBroadcastPayload(snap: any): any {
+  const { processes: _omit, ...rest } = snap;
+  return rest;
+}
 
 /**
  * Extract a JWT from an incoming WebSocket upgrade request.
@@ -159,31 +172,35 @@ export function setupWebSocketServer(httpServer: HttpServer) {
       }
     });
 
-    // Send cached snapshot immediately
+    // Send cached snapshot immediately (without processes to keep the initial payload small)
     const cached = getCachedSnapshot();
     if (ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ type: "telemetry", data: cached }));
+      ws.send(JSON.stringify({ type: "telemetry", data: toBroadcastPayload(cached) }));
     }
 
     // Send a fresh snapshot shortly after connect
     getSnapshot()
       .then((snap) => {
         if (ws.readyState === WebSocket.OPEN) {
-          ws.send(JSON.stringify({ type: "telemetry", data: snap }));
+          ws.send(JSON.stringify({ type: "telemetry", data: toBroadcastPayload(snap) }));
         }
       })
       .catch(() => {});
   });
 
-  // Broadcast every 2 seconds — skip if payload unchanged (dedup)
+  // Broadcast every 2 seconds — dedup by snapshot timestamp BEFORE stringify.
+  // Comparing snap.ts is O(1); JSON.stringify of a 40-80 KB payload is not.
   broadcastInterval = setInterval(() => {
     if (!wss || wss.clients.size === 0) return;
     if (isKilled("telemetry")) return;
     const snap = getCachedSnapshot();
     if (snap.status === "loading") return;
-    const msg = JSON.stringify({ type: "telemetry", data: snap });
-    if (msg === lastBroadcastPayload) return; // nothing changed, skip
-    lastBroadcastPayload = msg;
+
+    // Skip if the snapshot hasn't been refreshed since the last broadcast.
+    if (snap.ts === lastBroadcastTs) return;
+    lastBroadcastTs = snap.ts;
+
+    const msg = JSON.stringify({ type: "telemetry", data: toBroadcastPayload(snap) });
     wss.clients.forEach((client) => {
       if (client.readyState === WebSocket.OPEN) {
         client.send(msg);
@@ -201,8 +218,8 @@ export async function broadcastNow(): Promise<void> {
   if (!wss || wss.clients.size === 0) return;
   const snap = getCachedSnapshot();
   if (snap.status === "loading") return;
-  const msg = JSON.stringify({ type: "telemetry", data: snap });
-  lastBroadcastPayload = msg; // update dedup reference
+  lastBroadcastTs = snap.ts; // update dedup reference
+  const msg = JSON.stringify({ type: "telemetry", data: toBroadcastPayload(snap) });
   wss.clients.forEach((client) => {
     if (client.readyState === WebSocket.OPEN) client.send(msg);
   });

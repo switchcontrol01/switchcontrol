@@ -19,6 +19,24 @@ import { checkJwtExpiry, reissueJwtFromSession, jwtFingerprint } from './jwt';
 
 const isDebug = import.meta.env.DEV;
 
+// ── Shallow user compare ──────────────────────────────────────────────────────
+/**
+ * Returns true when every enumerable key on `a` is strictly equal to the
+ * same key on `b`. AuthUser is a flat object of primitives, so a one-level
+ * key walk is sufficient and avoids allocating a full JSON.stringify string
+ * on every /api/me refresh.
+ */
+function shallowEqualUser(a: AuthUser | null, b: AuthUser | null): boolean {
+  if (a === b) return true;
+  if (!a || !b) return false;
+  const aKeys = Object.keys(a) as (keyof AuthUser)[];
+  if (aKeys.length !== Object.keys(b).length) return false;
+  for (const k of aKeys) {
+    if (a[k] !== b[k]) return false;
+  }
+  return true;
+}
+
 // ── normalizeApiMeUser ────────────────────────────────────────────────────────
 /**
  * Map a raw /api/me (or /api/auth/exchange) JSON response to a typed AuthUser.
@@ -164,7 +182,10 @@ export async function resolveAuthState(): Promise<AuthStateResolution> {
 
     // Step 6: normalize
     const user = normalizeApiMeUser(data, storedUser);
-    store.setUser(user);
+    // Skip the store update (and its downstream rerenders) when nothing changed.
+    if (!shallowEqualUser(user, store.user)) {
+      store.setUser(user);
+    }
 
     // Always log final hydration result — critical for auth lifecycle tracing
     console.log(

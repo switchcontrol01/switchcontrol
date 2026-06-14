@@ -1,0 +1,164 @@
+We need a FULL BACKEND + REALTIME INFRASTRUCTURE AUDIT for SwitchControl.
+
+Main goal:
+LOWER INFRASTRUCTURE COSTS while preserving responsiveness and UX quality.
+
+Priorities:
+
+1. reduce server costs
+2. reduce unnecessary compute
+3. reduce unnecessary realtime load
+4. improve scalability
+5. preserve dashboard responsiveness
+6. preserve realtime feel
+7. preserve UX quality
+
+DO NOT focus on frontend animation smoothness here.
+This audit is specifically for:
+
+- backend efficiency
+- realtime architecture
+- websocket efficiency
+- polling efficiency
+- telemetry efficiency
+- scaling risks
+- server cost reduction
+
+==================================================
+ANALYZE EVERYTHING RELATED TO:
+
+- websocket frequency
+- websocket payload sizes
+- telemetry payload sizes
+- polling frequency
+- duplicate polling
+- realtime architecture
+- live dashboard architecture
+- serialization overhead
+- JSON.stringify hotspots
+- oversized payloads
+- unnecessary updates
+- backend CPU hotspots
+- expensive routes
+- high-frequency routes
+- auth validation frequency
+- session validation frequency
+- websocket connection lifetime
+- scale-to-zero blockers
+- API spam
+- redundant API calls
+- database query frequency
+- backend memory usage
+- concurrent user scaling risks
+- live dashboard concurrency
+- telemetry update architecture
+- websocket dedup logic
+- backend caching opportunities
+- backend throttling opportunities
+- compression opportunities
+- polling overlap
+- unnecessary interval loops
+- excessive update frequency
+- excessive telemetry granularity
+- backend bottlenecks
+- render-triggered API spam
+- oversized responses
+- routes likely to become expensive at scale
+- websocket fanout costs
+- backend scheduling inefficiencies
+
+==================================================
+IMPORTANT
+
+Focus on REAL WORLD COST + SCALING IMPACT.
+
+I want to understand:
+
+- what becomes expensive first
+- what scales badly
+- what creates unnecessary compute
+- what keeps Replit instances alive unnecessarily
+- what causes unnecessary CPU usage
+- what causes unnecessary outbound bandwidth
+- what causes unnecessary websocket traffic
+
+==================================================
+SPECIFICALLY IDENTIFY:
+
+- highest CPU routes
+- largest payloads
+- highest-frequency routes
+- websocket-heavy systems
+- realtime bottlenecks
+- telemetry bottlenecks
+- serialization hotspots
+- unnecessary polling
+- duplicate updates
+- inefficient broadcast patterns
+- unnecessary auth checks
+- expensive dashboard systems
+- scale-to-zero prevention causes
+- anything that would become expensive with:
+  - 100 users
+  - 1000 users
+  - 5000 users
+
+==================================================
+FOR EVERY FINDING:
+
+Explain:
+
+- WHY it matters
+- measurable vs theoretical
+- expected scaling impact
+- expected cost impact
+- CPU impact
+- bandwidth impact
+- websocket impact
+- memory impact
+- concurrency impact
+
+Then provide:
+
+- exact file(s)
+- exact route(s)
+- exact system(s)
+- exact fix
+- expected improvement
+
+==================================================
+MOST IMPORTANT GOAL
+
+We want:
+
+- lower Replit costs
+- lower backend CPU usage
+- lower websocket traffic
+- lower bandwidth usage
+- fewer unnecessary updates
+- fewer unnecessary polls
+- fewer unnecessary serializations
+
+WITHOUT hurting:
+
+- dashboard responsiveness
+- realtime feel
+- UX quality
+
+==================================================
+FINAL OUTPUT REQUIRED
+
+Provide:
+
+1. FULL BACKEND + REALTIME INFRASTRUCTURE AUDIT
+2. highest scaling risks
+3. highest cost risks
+4. highest CPU routes
+5. largest websocket payloads
+6. largest API payloads
+7. routes with highest future concurrency risk
+8. top 10 highest-impact cost reductions
+9. prioritized action order
+
+Focus on:
+REAL measurable scaling + cost improvements.

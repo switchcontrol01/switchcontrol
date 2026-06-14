@@ -41,7 +41,12 @@ export function installIntervalGuard(): void {
     let ms = typeof delay === 'number' ? delay : MIN_INTERVAL_MS;
 
     if (ms < MIN_INTERVAL_MS) {
-      const stack = new Error().stack?.split('\n').slice(2, 4).join(' | ') ?? '';
+      // Stack unwinding is expensive — only capture in dev/debug to avoid
+      // adding startup latency in production builds.
+      const isDev = import.meta.env.DEV;
+      const stack = isDev
+        ? (new Error().stack?.split('\n').slice(2, 4).join(' | ') ?? '')
+        : '(stack capture disabled in production)';
       console.warn(
         `[IntervalGuard] ⚠ setInterval(${ms}ms) clamped to ${MIN_INTERVAL_MS}ms. Caller: ${stack}`
       );

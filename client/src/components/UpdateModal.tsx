@@ -647,8 +647,8 @@ export function UpdateModal() {
               className="pointer-events-auto relative w-full max-w-[400px] rounded-2xl overflow-hidden"
               style={{
                 background: "linear-gradient(155deg, rgba(16,12,28,0.97) 0%, rgba(9,8,18,0.99) 60%, rgba(7,10,20,0.98) 100%)",
-                backdropFilter: "blur(40px) saturate(1.5)",
-                WebkitBackdropFilter: "blur(40px) saturate(1.5)",
+                backdropFilter: "blur(8px)",
+                WebkitBackdropFilter: "blur(8px)",
                 border: "1px solid rgba(255,255,255,0.08)",
                 boxShadow: `0 32px 80px rgba(0,0,0,0.70), 0 0 0 1px rgba(255,255,255,0.04), inset 0 1px 0 rgba(255,255,255,0.08), 0 0 60px ${p.orbitColor.replace("0.55","0.14").replace("0.50","0.12")}`,
               }}

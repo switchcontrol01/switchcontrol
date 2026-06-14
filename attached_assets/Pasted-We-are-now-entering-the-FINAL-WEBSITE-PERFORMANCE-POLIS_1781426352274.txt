@@ -1,0 +1,157 @@
+We are now entering the FINAL WEBSITE PERFORMANCE POLISH PASS for SwitchControl.
+
+I uploaded the FULL PERFORMANCE AUDIT HTML document.
+Use that audit as PRIMARY CONTEXT.
+
+The audit already identified major findings including:
+
+- sequential startup work
+- startup render blocking
+- oversized telemetry payloads
+- unnecessary JSON serialization
+- expensive backdrop-filter usage
+- excessive compositor layers
+- permanent will-change usage
+- Framer Motion rerender churn
+- expensive background paints
+- animation overlap
+- transition sequencing issues
+- hydration/render competition
+- unstable React objects/props
+- unnecessary rerenders
+- oversized WebSocket payloads
+- unnecessary render work
+- route transition inefficiencies
+- GPU-heavy effects
+- unnecessary startup contention
+- expensive blur compositing
+- paint-heavy gradients
+- render synchronization problems
+- animation frame pacing issues
+
+==================================================
+THIS AUDIT IS WEBSITE / WEB APP ONLY
+
+DO NOT focus on:
+
+- Electron main process
+- updater
+- PowerShell
+- native tweak execution
+- Windows backend
+- desktop telemetry services
+- backend process spawning
+- Electron-only optimizations
+
+ONLY focus on:
+
+- frontend rendering
+- browser smoothness
+- React rendering
+- Framer Motion
+- GPU compositing
+- hydration
+- transitions
+- route switching
+- startup responsiveness
+- perceived responsiveness
+- browser performance
+
+==================================================
+MAIN GOALS
+
+The website should feel:
+
+- instant
+- premium
+- fluid
+- polished
+- smooth
+- responsive
+
+WITHOUT removing the visual identity or effects unless absolutely necessary.
+
+Priority order:
+
+1. preserve visuals
+2. preserve UX quality
+3. smarter rendering/compositing
+4. reduce unnecessary work
+5. improve scheduling/timing
+
+==================================================
+I WANT A FULL WEBSITE PERFORMANCE + RENDERING AUDIT
+
+Using BOTH:
+
+1. the uploaded audit HTML
+2. the actual frontend codebase
+
+Analyze EVERYTHING related to:
+
+- startup rendering
+- hydration order
+- landing page smoothness
+- navbar switching
+- FAQ switching
+- route transitions
+- page transitions
+- Framer Motion overhead
+- animation sequencing
+- animation overlap
+- render waterfalls
+- React reconciliation hotspots
+- unnecessary rerenders
+- unstable props
+- unstable callbacks
+- unstable arrays/objects
+- Zustand subscriptions
+- memory churn
+- browser main-thread blocking
+- GPU compositing
+- backdrop-filter usage
+- expensive blur
+- expensive gradients
+- expensive paints
+- excessive compositor layers
+- bad will-change usage
+- RAF scheduling
+- layout thrashing
+- forced reflows
+- scroll smoothness
+- oversized component trees
+- unnecessary mounts/unmounts
+- Suspense/lazy loading opportunities
+- bundle parsing cost
+- code splitting opportunities
+- oversized dependencies
+- transition timing
+- render synchronization issues
+- interaction latency
+- animation frame pacing
+- paint-heavy effects
+- anything hurting smoothness perception
+
+==================================================
+VERY IMPORTANT
+
+I do NOT want theoretical micro-optimizations unless measurable.
+
+Focus on:
+
+- REAL WORLD USER IMPACT
+- measurable responsiveness improvements
+- smoother perceived performance
+- lower GPU frametime
+- lower browser CPU usage
+- smoother route transitions
+- smoother scrolling
+- smoother animations
+- instant-feeling navigation
+- render stability
+
+Avoid:
+
+- pointless over-memoization
+- complexity for no measurable gain
+- theoretical nano-optimizations

@@ -70,7 +70,7 @@ export function UpdateBanner() {
           exit={{ opacity: 0, y: -10, scaleY: 0.9 }}
           transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
           className={`relative flex items-start gap-3 px-4 py-2.5 border rounded-xl mx-4 mb-2
-            backdrop-blur-md ${style.border} ${style.bg} ${style.glow}`}
+            ${style.border} ${style.bg} ${style.glow}`}
           data-testid="update-banner"
         >
           {/* Icon */}
@@ -108,7 +108,7 @@ export function UpdateBanner() {
                           transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
                           className="overflow-hidden"
                         >
-                          <div className="mt-1.5 p-3 rounded-lg backdrop-blur-md bg-[#21262D] border border-[#2A313A] max-h-40 overflow-y-auto">
+                          <div className="mt-1.5 p-3 rounded-lg bg-[#21262D] border border-[#2A313A] max-h-40 overflow-y-auto">
                             <RenderMarkdown markdown={releaseNotes!} />
                           </div>
                         </motion.div>
@@ -168,7 +168,7 @@ export function UpdateBanner() {
                           transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
                           className="overflow-hidden"
                         >
-                          <div className="mt-1.5 p-3 rounded-lg backdrop-blur-md bg-[#21262D] border border-[#2A313A] max-h-40 overflow-y-auto">
+                          <div className="mt-1.5 p-3 rounded-lg bg-[#21262D] border border-[#2A313A] max-h-40 overflow-y-auto">
                             <RenderMarkdown markdown={releaseNotes!} />
                           </div>
                         </motion.div>
