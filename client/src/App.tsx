@@ -1,4 +1,11 @@
-import React, { useEffect, useState, useCallback, lazy, Suspense, startTransition } from "react";
+import React, {
+  useEffect,
+  useState,
+  useCallback,
+  lazy,
+  Suspense,
+  startTransition,
+} from "react";
 import { PerformanceOverlay } from "@/components/debug/PerformanceOverlay";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { Router, Route, Switch, useLocation } from "wouter";
@@ -8,7 +15,7 @@ function useTransitionLocation(): [string, (to: string, opts?: any) => void] {
   const [location, rawNavigate] = useHashLocation();
   const navigate = useCallback(
     (to: string, opts?: any) => startTransition(() => rawNavigate(to, opts)),
-    [rawNavigate]
+    [rawNavigate],
   );
   return [location, navigate];
 }
@@ -24,7 +31,22 @@ import { TrialTour } from "@/components/TrialTour";
 import { GuidedTour } from "@/components/GuidedTour";
 import { WindowControls } from "@/components/WindowControls";
 import { AnimatePresence, motion } from "framer-motion";
-import { useAuthStore, validateToken, exchangeToken, AuthUser, refreshEntitlements, retryRefreshEntitlements, triggerFlowReset, performFullLogout, postUnlockSeen, postTourSeen, postResetTourFlags, postTrialActivationSeen, postTrialTourSeen, resolveAuthState } from "@/lib/auth-store";
+import {
+  useAuthStore,
+  validateToken,
+  exchangeToken,
+  AuthUser,
+  refreshEntitlements,
+  retryRefreshEntitlements,
+  triggerFlowReset,
+  performFullLogout,
+  postUnlockSeen,
+  postTourSeen,
+  postResetTourFlags,
+  postTrialActivationSeen,
+  postTrialTourSeen,
+  resolveAuthState,
+} from "@/lib/auth-store";
 import { clearSwitchControlStorage } from "@/lib/storageUtils";
 import { tryReissueJwt } from "@/lib/api";
 import { isTrialActive } from "@/lib/trialCountdown";
@@ -33,7 +55,10 @@ import { useStore } from "@/lib/store";
 import { batchCheckAllTweaks, isRealTweak } from "@/hooks/use-tweak-executor";
 import { PendingActivationModal } from "@/components/PendingActivationModal";
 import { UpgradeModalProvider } from "@/contexts/UpgradeModalContext";
-import { PatchNotesModal, PATCH_NOTES_STORAGE_KEY } from "@/components/PatchNotesModal";
+import {
+  PatchNotesModal,
+  PATCH_NOTES_STORAGE_KEY,
+} from "@/components/PatchNotesModal";
 import { DeviceLockModal } from "@/components/DeviceLockModal";
 import { usePremiumDeviceLock } from "@/hooks/usePremiumDeviceLock";
 import { usePremiumExpiry, useBaselineScan } from "@/hooks/usePremiumExpiry";
@@ -50,51 +75,81 @@ import { OnboardingTour } from "@/components/OnboardingTour";
 // All other app routes are lazy so they don't ship in the initial JS bundle.
 // DarkFallback (defined below) keeps Suspense transitions invisible.
 import Home from "@/pages/Home";
-const Tweaks         = lazy(() => import("@/pages/Tweaks"));
-const NetworkTweaks  = lazy(() => import("@/pages/NetworkTweaks"));
-const SystemCleaner  = lazy(() => import("@/pages/SystemCleaner"));
-const Settings       = lazy(() => import("@/pages/Settings"));
-const PowerPlan      = lazy(() => import("@/pages/PowerPlan"));
-const AppBooster     = lazy(() => import("@/pages/AppBooster"));
-const FocusMode      = lazy(() => import("@/pages/FocusMode"));
-const Debloater      = lazy(() => import("@/pages/Debloater"));
-const StartupApps    = lazy(() => import("@/pages/StartupApps"));
-const NicTuningPage  = lazy(() => import("@/pages/NicTuning"));
-const BiosAdvisor    = lazy(() => import("@/pages/BiosAdvisor"));
-const AiAdvisor      = lazy(() => import("@/pages/AiAdvisor"));
-const ExtremeLabs    = lazy(() => import("@/pages/ExtremeLabs"));
-const Security       = lazy(() => import("@/pages/Security"));
-const History        = lazy(() => import("@/pages/History"));
+const Tweaks = lazy(() => import("@/pages/Tweaks"));
+const NetworkTweaks = lazy(() => import("@/pages/NetworkTweaks"));
+const SystemCleaner = lazy(() => import("@/pages/SystemCleaner"));
+const Settings = lazy(() => import("@/pages/Settings"));
+const PowerPlan = lazy(() => import("@/pages/PowerPlan"));
+const AppBooster = lazy(() => import("@/pages/AppBooster"));
+const FocusMode = lazy(() => import("@/pages/FocusMode"));
+const Debloater = lazy(() => import("@/pages/Debloater"));
+const StartupApps = lazy(() => import("@/pages/StartupApps"));
+const NicTuningPage = lazy(() => import("@/pages/NicTuning"));
+const BiosAdvisor = lazy(() => import("@/pages/BiosAdvisor"));
+const AiAdvisor = lazy(() => import("@/pages/AiAdvisor"));
+const ExtremeLabs = lazy(() => import("@/pages/ExtremeLabs"));
+const Security = lazy(() => import("@/pages/Security"));
+const History = lazy(() => import("@/pages/History"));
 const ProcessManager = lazy(() => import("@/pages/ProcessManager"));
 // Website-only chunks — only prefetch on web (not in Electron where file:// protocol
 // causes chunk fetch failures for pages that are never shown in the desktop app).
-const _isElectronRuntime = typeof window !== "undefined" && !!(window as any).electronAPI?.isElectron;
-const _landingChunk        = _isElectronRuntime ? Promise.resolve({ default: () => null }) : import("@/pages/Landing");
-const _featuresChunk       = _isElectronRuntime ? Promise.resolve({ default: () => null }) : import("@/pages/Features");
-const _pricingChunk        = _isElectronRuntime ? Promise.resolve({ default: () => null }) : import("@/pages/Pricing");
-const _downloadChunk       = _isElectronRuntime ? Promise.resolve({ default: () => null }) : import("@/pages/Download");
-const _termsChunk          = _isElectronRuntime ? Promise.resolve({ default: () => null }) : import("@/pages/Terms");
-const _privacyChunk        = _isElectronRuntime ? Promise.resolve({ default: () => null }) : import("@/pages/Privacy");
-const _faqChunk            = _isElectronRuntime ? Promise.resolve({ default: () => null }) : import("@/pages/FAQ");
-const _successChunk        = _isElectronRuntime ? Promise.resolve({ default: () => null }) : import("@/pages/Success");
-const _premiumSuccessChunk = _isElectronRuntime ? Promise.resolve({ default: () => null }) : import("@/pages/PremiumSuccess");
-const _loginChunk          = _isElectronRuntime ? Promise.resolve({ default: () => null }) : import("@/pages/Login");
-const _adminChunk          = _isElectronRuntime ? Promise.resolve({ default: () => null }) : import("@/pages/Admin");
-const Landing        = lazy(() => _landingChunk);
-const Features       = lazy(() => _featuresChunk);
-const Pricing        = lazy(() => _pricingChunk);
-const Download       = lazy(() => _downloadChunk);
-const Terms          = lazy(() => _termsChunk);
-const Privacy        = lazy(() => _privacyChunk);
-const FAQPage        = lazy(() => _faqChunk);
-const Success        = lazy(() => _successChunk);
+const _isElectronRuntime =
+  typeof window !== "undefined" && !!(window as any).electronAPI?.isElectron;
+const _landingChunk = _isElectronRuntime
+  ? Promise.resolve({ default: () => null })
+  : import("@/pages/Landing");
+const _featuresChunk = _isElectronRuntime
+  ? Promise.resolve({ default: () => null })
+  : import("@/pages/Features");
+const _pricingChunk = _isElectronRuntime
+  ? Promise.resolve({ default: () => null })
+  : import("@/pages/Pricing");
+const _downloadChunk = _isElectronRuntime
+  ? Promise.resolve({ default: () => null })
+  : import("@/pages/Download");
+const _termsChunk = _isElectronRuntime
+  ? Promise.resolve({ default: () => null })
+  : import("@/pages/Terms");
+const _privacyChunk = _isElectronRuntime
+  ? Promise.resolve({ default: () => null })
+  : import("@/pages/Privacy");
+const _faqChunk = _isElectronRuntime
+  ? Promise.resolve({ default: () => null })
+  : import("@/pages/FAQ");
+const _successChunk = _isElectronRuntime
+  ? Promise.resolve({ default: () => null })
+  : import("@/pages/Success");
+const _premiumSuccessChunk = _isElectronRuntime
+  ? Promise.resolve({ default: () => null })
+  : import("@/pages/PremiumSuccess");
+const _loginChunk = _isElectronRuntime
+  ? Promise.resolve({ default: () => null })
+  : import("@/pages/Login");
+const _adminChunk = _isElectronRuntime
+  ? Promise.resolve({ default: () => null })
+  : import("@/pages/Admin");
+const Landing = lazy(() => _landingChunk);
+const Features = lazy(() => _featuresChunk);
+const Pricing = lazy(() => _pricingChunk);
+const Download = lazy(() => _downloadChunk);
+const Terms = lazy(() => _termsChunk);
+const Privacy = lazy(() => _privacyChunk);
+const FAQPage = lazy(() => _faqChunk);
+const Success = lazy(() => _successChunk);
 const PremiumSuccess = lazy(() => _premiumSuccessChunk);
-const LoginPage      = lazy(() => _loginChunk);
-const AdminPage      = lazy(() => _adminChunk);
+const LoginPage = lazy(() => _loginChunk);
+const AdminPage = lazy(() => _adminChunk);
 
-const isElectron = typeof window !== 'undefined' && !!(window as any).electronAPI?.isElectron;
+const isElectron =
+  typeof window !== "undefined" && !!(window as any).electronAPI?.isElectron;
 
-type AppPhase = "splash" | "booting" | "unauthenticated" | "login_success" | "welcome" | "authenticated";
+type AppPhase =
+  | "splash"
+  | "booting"
+  | "unauthenticated"
+  | "login_success"
+  | "welcome"
+  | "authenticated";
 
 // AppAuthContext, AppAuthContextValue, and useAppAuth live in a dedicated
 // file to avoid a circular import: use-auth.ts → App.tsx → SystemCleaner (lazy) → use-auth.ts
@@ -119,25 +174,25 @@ function ElectronAppRoutes() {
     <ErrorBoundary route={location}>
       <Suspense fallback={null}>
         <Switch>
-          <Route path="/"               component={Home} />
-          <Route path="/dashboard"      component={Home} />
-          <Route path="/tweaks"         component={Tweaks} />
-          <Route path="/power-plan"     component={PowerPlan} />
-          <Route path="/app-booster"    component={AppBooster} />
-          <Route path="/focus"          component={FocusMode} />
-          <Route path="/nic-tuning"     component={NicTuningPage} />
-          <Route path="/network"        component={NetworkTweaks} />
-          <Route path="/cleaner"        component={SystemCleaner} />
-          <Route path="/debloat"        component={Debloater} />
-          <Route path="/startup"        component={StartupApps} />
-          <Route path="/bios-advisor"   component={BiosAdvisor} />
-          <Route path="/ai-advisor"     component={AiAdvisor} />
-          <Route path="/extreme-labs"   component={ExtremeLabs} />
-          <Route path="/security"       component={Security} />
-          <Route path="/history"        component={History} />
+          <Route path="/" component={Home} />
+          <Route path="/dashboard" component={Home} />
+          <Route path="/tweaks" component={Tweaks} />
+          <Route path="/power-plan" component={PowerPlan} />
+          <Route path="/app-booster" component={AppBooster} />
+          <Route path="/focus" component={FocusMode} />
+          <Route path="/nic-tuning" component={NicTuningPage} />
+          <Route path="/network" component={NetworkTweaks} />
+          <Route path="/cleaner" component={SystemCleaner} />
+          <Route path="/debloat" component={Debloater} />
+          <Route path="/startup" component={StartupApps} />
+          <Route path="/bios-advisor" component={BiosAdvisor} />
+          <Route path="/ai-advisor" component={AiAdvisor} />
+          <Route path="/extreme-labs" component={ExtremeLabs} />
+          <Route path="/security" component={Security} />
+          <Route path="/history" component={History} />
           <Route path="/process-manager" component={ProcessManager} />
-          <Route path="/settings"       component={Settings} />
-          <Route                        component={Home} />
+          <Route path="/settings" component={Settings} />
+          <Route component={Home} />
         </Switch>
       </Suspense>
     </ErrorBoundary>
@@ -167,7 +222,13 @@ function WebsiteRoutes() {
   );
 }
 
-type AppFlow = "none" | "firstTime" | "trialUnlock" | "trialTour" | "premiumUnlock" | "premiumTour";
+type AppFlow =
+  | "none"
+  | "firstTime"
+  | "trialUnlock"
+  | "trialTour"
+  | "premiumUnlock"
+  | "premiumTour";
 
 function ElectronAppContent() {
   const [phase, setPhase] = useState<AppPhase>("splash");
@@ -192,19 +253,32 @@ function ElectronAppContent() {
   const trialTourFiredThisSessionRef = React.useRef(false);
   const premiumTourFiredThisSessionRef = React.useRef(false);
   const suppressFlowsRef = React.useRef(false);
-  const { token, jwt, user, setToken, setUser, logout: storeLogout, setValidating } = useAuthStore();
-  const flowResetTs = useAuthStore(s => s.flowResetTs);
+  const {
+    token,
+    jwt,
+    user,
+    setToken,
+    setUser,
+    logout: storeLogout,
+    setValidating,
+  } = useAuthStore();
+  const flowResetTs = useAuthStore((s) => s.flowResetTs);
   const [, setLocation] = useHashLocation();
 
   // Premium device lock — Electron only, runs after entitlements confirmed from server.
   // Exclude trial users: trial access is user-scoped and must never trigger device locking,
   // even if the auth store still has a stale isPremium=true from a previous session.
-  const isPremiumVerified = entitlementsOk && (user?.isPremium ?? false) && user?.plan !== "trial";
+  const isPremiumVerified =
+    entitlementsOk && (user?.isPremium ?? false) && user?.plan !== "trial";
   const {
     status: deviceLockStatus,
     isChecking: isDeviceLockChecking,
     retry: retryDeviceLock,
-  } = usePremiumDeviceLock(isElectron, isPremiumVerified, user?.loggedIn ?? false);
+  } = usePremiumDeviceLock(
+    isElectron,
+    isPremiumVerified,
+    user?.loggedIn ?? false,
+  );
 
   // Premium expiry — detects trial/premium→free transition, triggers safe revert
   const {
@@ -214,10 +288,10 @@ function ElectronAppContent() {
     retryRevert,
     isActive: premiumIsActive,
   } = usePremiumExpiry({
-    isPremium:            user?.isPremium ?? false,
-    plan:                 user?.plan,
-    trialEndsAt:          user?.trialEndsAt,
-    isLoggedIn:           user?.loggedIn ?? false,
+    isPremium: user?.isPremium ?? false,
+    plan: user?.plan,
+    trialEndsAt: user?.trialEndsAt,
+    isLoggedIn: user?.loggedIn ?? false,
     entitlementsVerified,
   });
 
@@ -228,9 +302,11 @@ function ElectronAppContent() {
   // via trialExpiryStore, preventing the z-9999 overlay from blocking the modal.
   useEffect(() => {
     if (!revertModalOpen) return;
-    if (phase !== 'authenticated') return;
-    console.log('[TrialExpiry] revert modal opened — redirecting to /dashboard');
-    setLocation('/dashboard');
+    if (phase !== "authenticated") return;
+    console.log(
+      "[TrialExpiry] revert modal opened — redirecting to /dashboard",
+    );
+    setLocation("/dashboard");
   }, [revertModalOpen, phase]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Backend-error listener — shows an error immediately instead of spinning for 50s.
@@ -241,7 +317,9 @@ function ElectronAppContent() {
     const api = (window as any).electronAPI;
     if (!api?.onBackendError) return;
     const remove = api.onBackendError((data: any) => {
-      setBackendError(data?.error ?? 'Backend failed to start. Please reinstall.');
+      setBackendError(
+        data?.error ?? "Backend failed to start. Please reinstall.",
+      );
     });
     return remove;
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -266,7 +344,12 @@ function ElectronAppContent() {
           if (!results || Object.keys(results).length === 0) return;
           let reconciled = 0;
           for (const [tweakId, status] of Object.entries(results)) {
-            const s = status as { isApplied?: boolean; applied?: boolean; unsupported?: boolean; error?: string | null };
+            const s = status as {
+              isApplied?: boolean;
+              applied?: boolean;
+              unsupported?: boolean;
+              error?: string | null;
+            };
             if (s.unsupported || s.error) continue;
             if (!isRealTweak(tweakId)) continue;
             const finalState = s.isApplied ?? s.applied ?? false;
@@ -274,11 +357,13 @@ function ElectronAppContent() {
             reconciled++;
           }
           if (reconciled > 0) {
-            console.log(`[App:STARTUP-RECONCILE] reconciled=${reconciled} tweaks from real Windows state`);
+            console.log(
+              `[App:STARTUP-RECONCILE] reconciled=${reconciled} tweaks from real Windows state`,
+            );
           }
         })
         .catch((err) => {
-          console.error('[App:STARTUP-RECONCILE] batch check failed:', err);
+          console.error("[App:STARTUP-RECONCILE] batch check failed:", err);
         });
     }, 1500);
     return () => clearTimeout(t);
@@ -289,7 +374,7 @@ function ElectronAppContent() {
   // competing with startup animations and initial render, keeping the app
   // entry smooth on low-end CPUs.
   useEffect(() => {
-    if (phase !== 'authenticated') return;
+    if (phase !== "authenticated") return;
     telemetryManager.start();
   }, [phase]);
 
@@ -297,7 +382,7 @@ function ElectronAppContent() {
   // first-open navigations never hit a chunk-fetch delay.  The delay keeps
   // this work off the critical startup path.
   useEffect(() => {
-    if (phase !== 'authenticated') return;
+    if (phase !== "authenticated") return;
     const t = setTimeout(() => {
       void import("@/pages/Tweaks");
       void import("@/pages/SystemCleaner");
@@ -317,10 +402,12 @@ function ElectronAppContent() {
   // JWT wasn't ready yet, re-start the manager as soon as a fresh JWT lands.
   // The `start()` call is idempotent when already running, so this is safe.
   useEffect(() => {
-    if (phase !== 'authenticated') return;
+    if (phase !== "authenticated") return;
     if (!jwt) return;
     if (!telemetryManager.authRejected) return;
-    console.log('[Telemetry] JWT now available after prior auth rejection — restarting manager');
+    console.log(
+      "[Telemetry] JWT now available after prior auth rejection — restarting manager",
+    );
     telemetryManager.start();
   }, [jwt, phase]);
 
@@ -356,44 +443,82 @@ function ElectronAppContent() {
   }, [phase, isFirstLogin]);
 
   useEffect(() => {
-    if (phase !== 'authenticated') return;
+    if (phase !== "authenticated") return;
     if (!user?.loggedIn) return;
     if (entitlementsAttempted) return;
 
-    console.log('[Entitlements] post-auth hydration begin — cached isPremium:', user?.isPremium, 'plan:', user?.plan);
-    console.log('[PremiumTruth] entitlement fetch start — cached isPremium:', user?.isPremium);
+    console.log(
+      "[Entitlements] post-auth hydration begin — cached isPremium:",
+      user?.isPremium,
+      "plan:",
+      user?.plan,
+    );
+    console.log(
+      "[PremiumTruth] entitlement fetch start — cached isPremium:",
+      user?.isPremium,
+    );
     refreshEntitlements()
       .then((result) => {
-        console.log('[Entitlements] post-auth hydration result — isPremium:', result.user?.isPremium ?? 'null', 'plan:', result.user?.plan ?? 'null');
-        console.log('[PremiumTruth] entitlement fetch result — isPremium:', result.user?.isPremium ?? 'null (no user)');
+        console.log(
+          "[Entitlements] post-auth hydration result — isPremium:",
+          result.user?.isPremium ?? "null",
+          "plan:",
+          result.user?.plan ?? "null",
+        );
+        console.log(
+          "[PremiumTruth] entitlement fetch result — isPremium:",
+          result.user?.isPremium ?? "null (no user)",
+        );
         if (result.user) {
           setEntitlementsOk(true);
           setEntitlementsVerified(true);
-          usePremiumGraceStore.getState().setVerified(
+          usePremiumGraceStore
+            .getState()
+            .setVerified(
+              result.user.isPremium,
+              result.user.plan ?? null,
+              result.user.id ?? null,
+            );
+          console.log(
+            "[Entitlements] grace store updated — isPremium:",
             result.user.isPremium,
-            result.user.plan ?? null,
-            result.user.id ?? null,
+            "plan:",
+            result.user.plan,
           );
-          console.log('[Entitlements] grace store updated — isPremium:', result.user.isPremium, 'plan:', result.user.plan);
         } else {
-          console.warn('[Entitlements] server returned no user — checking grace store for fallback');
-          console.warn('[PremiumTruth] backend returned no user — checking grace store');
+          console.warn(
+            "[Entitlements] server returned no user — checking grace store for fallback",
+          );
+          console.warn(
+            "[PremiumTruth] backend returned no user — checking grace store",
+          );
           const graceStatus = usePremiumGraceStore.getState().getStatus(true);
-          console.log('[Entitlements] grace store status:', graceStatus);
-          if (graceStatus === 'active' || graceStatus === 'grace') {
-            console.log('[Entitlements] grace store active — entitlementsVerified set via grace fallback');
+          console.log("[Entitlements] grace store status:", graceStatus);
+          if (graceStatus === "active" || graceStatus === "grace") {
+            console.log(
+              "[Entitlements] grace store active — entitlementsVerified set via grace fallback",
+            );
             setEntitlementsVerified(true);
           } else {
-            console.warn('[Entitlements] grace store expired/unavailable — showing free state');
+            console.warn(
+              "[Entitlements] grace store expired/unavailable — showing free state",
+            );
           }
         }
       })
       .catch((err) => {
-        console.warn('[Entitlements] post-auth hydration error — checking grace store:', err);
-        console.warn('[PremiumTruth] entitlement fetch failed — checking grace store fallback');
+        console.warn(
+          "[Entitlements] post-auth hydration error — checking grace store:",
+          err,
+        );
+        console.warn(
+          "[PremiumTruth] entitlement fetch failed — checking grace store fallback",
+        );
         const graceStatus = usePremiumGraceStore.getState().getStatus(true);
-        if (graceStatus === 'active' || graceStatus === 'grace') {
-          console.log('[Entitlements] grace fallback on error — entitlementsVerified set');
+        if (graceStatus === "active" || graceStatus === "grace") {
+          console.log(
+            "[Entitlements] grace fallback on error — entitlementsVerified set",
+          );
           setEntitlementsVerified(true);
         }
       })
@@ -413,10 +538,12 @@ function ElectronAppContent() {
       return;
     }
     const delay = 500;
-    console.log(`[TourTransition] phase entered authenticated — waiting ${delay}ms for dashboard to stabilize`);
+    console.log(
+      `[TourTransition] phase entered authenticated — waiting ${delay}ms for dashboard to stabilize`,
+    );
     const t = setTimeout(() => {
       setIsPhaseStable(true);
-      console.log('[TourTransition] dashboard stable — tours unblocked');
+      console.log("[TourTransition] dashboard stable — tours unblocked");
     }, delay);
     return () => clearTimeout(t);
   }, [phase, isFirstLogin]);
@@ -425,17 +552,20 @@ function ElectronAppContent() {
   // and hasSeenTrialTour to false. Clear the matching session-level refs so the
   // flow eval can fire the trial sequence again within the same app session.
   useEffect(() => {
-    if (user?.hasSeenTrialActivation === false) trialUnlockFiredRef.current = false;
+    if (user?.hasSeenTrialActivation === false)
+      trialUnlockFiredRef.current = false;
   }, [user?.hasSeenTrialActivation]);
 
   useEffect(() => {
-    if (user?.hasSeenTrialTour === false) trialTourFiredThisSessionRef.current = false;
+    if (user?.hasSeenTrialTour === false)
+      trialTourFiredThisSessionRef.current = false;
   }, [user?.hasSeenTrialTour]);
 
   // When admin re-grants premium the server resets hasSeenPremiumUnlock to false.
   // Clear the session-level ref so the flow eval can fire the animation again.
   useEffect(() => {
-    if (user?.hasSeenPremiumUnlock === false) unlockFiredThisSessionRef.current = false;
+    if (user?.hasSeenPremiumUnlock === false)
+      unlockFiredThisSessionRef.current = false;
   }, [user?.hasSeenPremiumUnlock]);
 
   // Admin.tsx calls triggerFlowReset() after granting/revoking premium or trial.
@@ -443,7 +573,9 @@ function ElectronAppContent() {
   // even if the flag values haven't changed (e.g. hasSeenPremiumUnlock was already false).
   useEffect(() => {
     if (flowResetTs === 0) return;
-    console.log('[AppFlow] flowResetTs fired — clearing all session guards for re-eval');
+    console.log(
+      "[AppFlow] flowResetTs fired — clearing all session guards for re-eval",
+    );
     unlockFiredThisSessionRef.current = false;
     trialUnlockFiredRef.current = false;
     trialTourFiredThisSessionRef.current = false;
@@ -468,28 +600,45 @@ function ElectronAppContent() {
     const tourKey = `sc_tour_completed_${userId}`;
     const isFirstTimeUser = !localStorage.getItem(tourKey);
 
-    console.log('[AppFlow] Flow eval — isPremium:', user.isPremium,
-      'plan:', user.plan,
-      'trialEndsAt:', user.trialEndsAt,
-      'hasSeenTrialActivation:', user.hasSeenTrialActivation,
-      'hasSeenTrialTour:', user.hasSeenTrialTour,
-      'hasSeenUnlock:', user.hasSeenPremiumUnlock,
-      'hasSeenTour:', user.hasSeenPremiumTour,
-      'isFirstTimeUser:', isFirstTimeUser,
-      'isFirstLogin:', isFirstLogin,
-      'entitlementsAttempted:', entitlementsAttempted,
-      'entitlementsOk:', entitlementsOk,
-      'unlockFired:', unlockFiredThisSessionRef.current,
-      'trialUnlockFired:', trialUnlockFiredRef.current);
+    console.log(
+      "[AppFlow] Flow eval — isPremium:",
+      user.isPremium,
+      "plan:",
+      user.plan,
+      "trialEndsAt:",
+      user.trialEndsAt,
+      "hasSeenTrialActivation:",
+      user.hasSeenTrialActivation,
+      "hasSeenTrialTour:",
+      user.hasSeenTrialTour,
+      "hasSeenUnlock:",
+      user.hasSeenPremiumUnlock,
+      "hasSeenTour:",
+      user.hasSeenPremiumTour,
+      "isFirstTimeUser:",
+      isFirstTimeUser,
+      "isFirstLogin:",
+      isFirstLogin,
+      "entitlementsAttempted:",
+      entitlementsAttempted,
+      "entitlementsOk:",
+      entitlementsOk,
+      "unlockFired:",
+      unlockFiredThisSessionRef.current,
+      "trialUnlockFired:",
+      trialUnlockFiredRef.current,
+    );
 
     if (isFirstTimeUser && isFirstLogin && entitlementsAttempted) {
-      console.log('[AppFlow] PRIORITY 1: First-time onboarding tour');
+      console.log("[AppFlow] PRIORITY 1: First-time onboarding tour");
       setActiveFlow("firstTime");
       return;
     }
 
     if (!entitlementsOk) {
-      console.log('[AppFlow] Waiting for entitlementsOk — skipping premium flow checks');
+      console.log(
+        "[AppFlow] Waiting for entitlementsOk — skipping premium flow checks",
+      );
       return;
     }
 
@@ -503,12 +652,15 @@ function ElectronAppContent() {
       user.hasSeenTrialActivation === false &&
       !trialUnlockFiredRef.current
     ) {
-      console.log('[AppFlow] PRIORITY 2: Trial — skipping animation, going straight to tour',
-        { plan: user.plan, trialEndsAt: user.trialEndsAt });
+      console.log(
+        "[AppFlow] PRIORITY 2: Trial — skipping animation, going straight to tour",
+        { plan: user.plan, trialEndsAt: user.trialEndsAt },
+      );
       trialUnlockFiredRef.current = true;
       // Optimistically mark seen in store so the AppFlow won't re-fire this branch
       const store = useAuthStore.getState();
-      if (store.user) store.setUser({ ...store.user, hasSeenTrialActivation: true });
+      if (store.user)
+        store.setUser({ ...store.user, hasSeenTrialActivation: true });
       postTrialActivationSeen().catch(() => {});
       // Go straight to tour
       trialTourFiredThisSessionRef.current = true;
@@ -524,8 +676,11 @@ function ElectronAppContent() {
       user.hasSeenTrialTour === false &&
       !trialTourFiredThisSessionRef.current
     ) {
-      console.log('[AppFlow] PRIORITY 3: Trial tour — triggering',
-        { plan: user.plan, trialEndsAt: user.trialEndsAt, hasSeenTrialTour: user.hasSeenTrialTour });
+      console.log("[AppFlow] PRIORITY 3: Trial tour — triggering", {
+        plan: user.plan,
+        trialEndsAt: user.trialEndsAt,
+        hasSeenTrialTour: user.hasSeenTrialTour,
+      });
       trialTourFiredThisSessionRef.current = true;
       setActiveFlow("trialTour");
       return;
@@ -534,11 +689,12 @@ function ElectronAppContent() {
     // localStorage keys — act as a permanent local guard even if server save fails.
     // If the server has explicitly reset hasSeenPremiumUnlock to false (e.g. admin
     // re-grants premium), clear the local guard so the animation can replay.
-    const localUnlockKey  = `sc_unlock_seen_${userId}`;
-    const localTourKey    = `sc_tour_seen_${userId}`;
-    if (user.hasSeenPremiumUnlock === false) localStorage.removeItem(localUnlockKey);
-    const localUnlockSeen = localStorage.getItem(localUnlockKey) === '1';
-    const localTourSeen   = localStorage.getItem(localTourKey)   === '1';
+    const localUnlockKey = `sc_unlock_seen_${userId}`;
+    const localTourKey = `sc_tour_seen_${userId}`;
+    if (user.hasSeenPremiumUnlock === false)
+      localStorage.removeItem(localUnlockKey);
+    const localUnlockSeen = localStorage.getItem(localUnlockKey) === "1";
+    const localTourSeen = localStorage.getItem(localTourKey) === "1";
 
     if (
       user.isPremium === true &&
@@ -547,8 +703,10 @@ function ElectronAppContent() {
       !localUnlockSeen &&
       !unlockFiredThisSessionRef.current
     ) {
-      console.log('[AppFlow] PRIORITY 4: Premium unlock animation — triggering');
-      localStorage.setItem(localUnlockKey, '1');  // guard immediately so restart can't re-trigger
+      console.log(
+        "[AppFlow] PRIORITY 4: Premium unlock animation — triggering",
+      );
+      localStorage.setItem(localUnlockKey, "1"); // guard immediately so restart can't re-trigger
       unlockFiredThisSessionRef.current = true;
       setActiveFlow("premiumUnlock");
       return;
@@ -561,15 +719,32 @@ function ElectronAppContent() {
       !localTourSeen &&
       !premiumTourFiredThisSessionRef.current
     ) {
-      console.log('[AppFlow] PRIORITY 5: Premium guided tour');
-      localStorage.setItem(localTourKey, '1');    // guard immediately
+      console.log("[AppFlow] PRIORITY 5: Premium guided tour");
+      localStorage.setItem(localTourKey, "1"); // guard immediately
       premiumTourFiredThisSessionRef.current = true;
       setActiveFlow("premiumTour");
       return;
     }
 
-    console.log('[AppFlow] No flow conditions met — staying idle');
-  }, [user?.loggedIn, user?.isPremium, user?.plan, user?.trialEndsAt, user?.hasSeenPremiumUnlock, user?.hasSeenPremiumTour, user?.hasSeenTrialActivation, user?.hasSeenTrialTour, phase, activeFlow, isFirstLogin, entitlementsAttempted, entitlementsOk, isResetting, isPhaseStable, flowResetTs]);
+    console.log("[AppFlow] No flow conditions met — staying idle");
+  }, [
+    user?.loggedIn,
+    user?.isPremium,
+    user?.plan,
+    user?.trialEndsAt,
+    user?.hasSeenPremiumUnlock,
+    user?.hasSeenPremiumTour,
+    user?.hasSeenTrialActivation,
+    user?.hasSeenTrialTour,
+    phase,
+    activeFlow,
+    isFirstLogin,
+    entitlementsAttempted,
+    entitlementsOk,
+    isResetting,
+    isPhaseStable,
+    flowResetTs,
+  ]);
 
   const activeFlowRef = React.useRef<AppFlow>(activeFlow);
   activeFlowRef.current = activeFlow;
@@ -590,7 +765,7 @@ function ElectronAppContent() {
   const ENTITLEMENT_REFRESH_COOLDOWN_MS = 30_000;
 
   useEffect(() => {
-    if (!user?.loggedIn || phase !== 'authenticated') return;
+    if (!user?.loggedIn || phase !== "authenticated") return;
 
     const handleBlur = () => {
       lastBlurTimeRef.current = Date.now();
@@ -610,55 +785,59 @@ function ElectronAppContent() {
     };
 
     const handleVisibilityChange = async () => {
-      if (document.visibilityState === 'visible' && activeFlowRef.current === "none") {
+      if (
+        document.visibilityState === "visible" &&
+        activeFlowRef.current === "none"
+      ) {
         const now = Date.now();
         const sinceLastRefresh = now - lastEntitlementRefreshRef.current;
         if (sinceLastRefresh < ENTITLEMENT_REFRESH_COOLDOWN_MS) return;
         if (entitlementRefreshInFlightRef.current) return;
         lastEntitlementRefreshRef.current = now;
-        await safeRefresh('App visible');
+        await safeRefresh("App visible");
       }
     };
 
     const handleFocus = async () => {
       if (activeFlowRef.current !== "none") {
-        console.log('[App] Window focused but flow active, skipping refresh');
+        console.log("[App] Window focused but flow active, skipping refresh");
         return;
       }
       const awayMs = Date.now() - lastBlurTimeRef.current;
       // Skip if focus returned quickly — indicates a child dialog (file picker, etc.), not an app-switch
-      if (awayMs < FOCUS_AWAY_THRESHOLD_MS && lastBlurTimeRef.current > 0) return;
+      if (awayMs < FOCUS_AWAY_THRESHOLD_MS && lastBlurTimeRef.current > 0)
+        return;
       const now = Date.now();
       const sinceLastRefresh = now - lastEntitlementRefreshRef.current;
       if (sinceLastRefresh < ENTITLEMENT_REFRESH_COOLDOWN_MS) return;
       if (entitlementRefreshInFlightRef.current) return;
       lastEntitlementRefreshRef.current = now;
-      await safeRefresh('Window focused');
+      await safeRefresh("Window focused");
     };
 
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('blur', handleBlur);
-    window.addEventListener('focus', handleFocus);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("blur", handleBlur);
+    window.addEventListener("focus", handleFocus);
 
     return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('blur', handleBlur);
-      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("blur", handleBlur);
+      window.removeEventListener("focus", handleFocus);
     };
   }, [user?.loggedIn, phase]);
 
   useEffect(() => {
     if (!isElectron) return;
-    
+
     const api = (window as any).electronAPI;
-    
+
     if (api?.onWindowFocus) {
       // Passive handler only — must not reinitialize app state, clear auth,
       // reset routing, remount layout trees, or destroy active page state.
       // Overlay clearing (data-overlay DOM mutations) was causing blank-screen
       // regressions on Alt-Tab return; removed entirely.
       const unsub = api.onWindowFocus(() => {
-        console.log('[App] Electron window focus (passive)');
+        console.log("[App] Electron window focus (passive)");
       });
       return unsub;
     }
@@ -681,7 +860,9 @@ function ElectronAppContent() {
         }
       })
       .catch(() => {});
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, [phase, activeFlow]);
 
   // ── Splash completion — Splash.tsx is the sole timing authority ─────────
@@ -690,26 +871,39 @@ function ElectronAppContent() {
 
   useEffect(() => {
     if (!isElectron) return;
-    console.log('[App] Registering deep link auth callback (once)');
+    console.log("[App] Registering deep link auth callback (once)");
     const api = (window as any).electronAPI;
 
     let mounted = true; // P3-DL1: guard setState in async IPC deep-link callback
     const unsubAuth = api.auth.onCallback(async (url: string) => {
-      console.log('[DeepLink] ===== RENDERER CALLBACK RECEIVED =====');
-      console.log('[DeepLink] URL:', url);
-      useAuthStore.getState().setElectronAuthState('callback_received');
+      console.log("[DeepLink] ===== RENDERER CALLBACK RECEIVED =====");
+      console.log("[DeepLink] URL:", url);
+      useAuthStore.getState().setElectronAuthState("callback_received");
 
       try {
         const parsed = new URL(url);
-        const authCode = parsed.searchParams.get('code') || parsed.searchParams.get('token');
-        const provider = parsed.searchParams.get('provider');
-        const premiumActivated = parsed.searchParams.get('premium_activated') === 'true';
+        const authCode =
+          parsed.searchParams.get("code") || parsed.searchParams.get("token");
+        const provider = parsed.searchParams.get("provider");
+        const premiumActivated =
+          parsed.searchParams.get("premium_activated") === "true";
         const currentUser = useAuthStore.getState().user;
 
-        console.log('[DeepLink] parsed — code:', authCode ? 'present' : 'missing', 'provider:', provider, 'premiumActivated:', premiumActivated, 'currentUserLoggedIn:', currentUser?.loggedIn);
+        console.log(
+          "[DeepLink] parsed — code:",
+          authCode ? "present" : "missing",
+          "provider:",
+          provider,
+          "premiumActivated:",
+          premiumActivated,
+          "currentUserLoggedIn:",
+          currentUser?.loggedIn,
+        );
 
         if (premiumActivated && currentUser?.loggedIn) {
-          console.log('[PremiumFlow] Premium purchase return — user already logged in, refreshing entitlements...');
+          console.log(
+            "[PremiumFlow] Premium purchase return — user already logged in, refreshing entitlements...",
+          );
 
           const result = await retryRefreshEntitlements({
             attempts: 8,
@@ -719,23 +913,30 @@ function ElectronAppContent() {
 
           if (!mounted) return; // P3-DL1: bail if effect cleaned up mid-await
           if (result.ok && result.user?.isPremium) {
-            console.log('[PremiumFlow] Premium confirmed — hasSeenUnlock:', result.user.hasSeenPremiumUnlock, 'hasSeenTour:', result.user.hasSeenPremiumTour);
-            console.log('[Premium] Updated user:', result.user.plan);
+            console.log(
+              "[PremiumFlow] Premium confirmed — hasSeenUnlock:",
+              result.user.hasSeenPremiumUnlock,
+              "hasSeenTour:",
+              result.user.hasSeenPremiumTour,
+            );
+            console.log("[Premium] Updated user:", result.user.plan);
             setEntitlementsOk(true);
             setEntitlementsVerified(true);
             setTimeout(() => triggerFlowReset(), 0);
-            useAuthStore.getState().setElectronAuthState('authenticated');
+            useAuthStore.getState().setElectronAuthState("authenticated");
             return;
           }
 
-          console.warn('[PremiumFlow] Premium not confirmed after retries — showing pending modal');
+          console.warn(
+            "[PremiumFlow] Premium not confirmed after retries — showing pending modal",
+          );
           setShowPendingActivation(true);
-          useAuthStore.getState().setElectronAuthState('authenticated');
+          useAuthStore.getState().setElectronAuthState("authenticated");
           return;
         }
 
         if (authCode) {
-          useAuthStore.getState().setElectronAuthState('exchanging');
+          useAuthStore.getState().setElectronAuthState("exchanging");
           useAuthStore.getState().setValidating(true);
 
           // No hard timeout — let the exchange run to completion.
@@ -748,15 +949,17 @@ function ElectronAppContent() {
           if (exchangedUser) {
             useAuthStore.getState().setToken(authCode);
             useAuthStore.getState().setUser(exchangedUser);
-            useAuthStore.getState().setElectronAuthState('authenticated');
-            console.log(`[Auth] exchange success — user=${exchangedUser.id} provider=${provider}`);
+            useAuthStore.getState().setElectronAuthState("authenticated");
+            console.log(
+              `[Auth] exchange success — user=${exchangedUser.id} provider=${provider}`,
+            );
 
             const welcomeKey = `sc_welcomed_${exchangedUser.id}`;
             const hasBeenWelcomed = localStorage.getItem(welcomeKey);
 
             if (!hasBeenWelcomed) {
               setIsFirstLogin(true);
-              localStorage.setItem(welcomeKey, 'true');
+              localStorage.setItem(welcomeKey, "true");
               // First-time: login screen blur-exits, then welcome animation plays.
               setPhase("login_success");
             } else {
@@ -768,7 +971,9 @@ function ElectronAppContent() {
             }
 
             if (premiumActivated) {
-              console.log('[PremiumFlow] Exchange + premiumActivated — retrying entitlements...');
+              console.log(
+                "[PremiumFlow] Exchange + premiumActivated — retrying entitlements...",
+              );
               const premResult = await retryRefreshEntitlements({
                 attempts: 8,
                 delayMs: 500,
@@ -776,38 +981,51 @@ function ElectronAppContent() {
               });
               if (!mounted) return; // P3-DL3: bail after second await
               if (premResult.ok && premResult.user?.isPremium) {
-                console.log('[PremiumFlow] Premium confirmed after login');
+                console.log("[PremiumFlow] Premium confirmed after login");
               } else {
-                console.warn('[PremiumFlow] Premium not confirmed — showing pending');
+                console.warn(
+                  "[PremiumFlow] Premium not confirmed — showing pending",
+                );
                 setShowPendingActivation(true);
               }
             }
           } else {
-            console.error('[Auth] Exchange failed — setting unauthenticated');
+            console.error("[Auth] Exchange failed — setting unauthenticated");
             // clear() resets electronAuthState to 'idle' and oauthError to null,
             // so set them AFTER the clear to avoid overwriting.
             useAuthStore.getState().clear();
-            useAuthStore.getState().setElectronAuthState('failed');
-            useAuthStore.getState().setOauthError('Login failed. Please try again.');
+            useAuthStore.getState().setElectronAuthState("failed");
+            useAuthStore
+              .getState()
+              .setOauthError("Login failed. Please try again.");
             setPhase("unauthenticated");
           }
           useAuthStore.getState().setValidating(false);
         } else if (!premiumActivated) {
-          console.log('[DeepLink] No code and no premium flag — going to login');
-          useAuthStore.getState().setElectronAuthState('failed');
-          useAuthStore.getState().setOauthError('Login failed — no authentication code received.');
+          console.log(
+            "[DeepLink] No code and no premium flag — going to login",
+          );
+          useAuthStore.getState().setElectronAuthState("failed");
+          useAuthStore
+            .getState()
+            .setOauthError("Login failed — no authentication code received.");
           setPhase("unauthenticated");
         }
       } catch (err) {
-        console.error('[DeepLink] Error processing callback:', err);
-        useAuthStore.getState().setElectronAuthState('failed');
-        useAuthStore.getState().setOauthError('Login failed. Please try again.');
+        console.error("[DeepLink] Error processing callback:", err);
+        useAuthStore.getState().setElectronAuthState("failed");
+        useAuthStore
+          .getState()
+          .setOauthError("Login failed. Please try again.");
         useAuthStore.getState().setValidating(false);
         setPhase("unauthenticated");
       }
     });
 
-    return () => { mounted = false; unsubAuth(); }; // P3-DL1
+    return () => {
+      mounted = false;
+      unsubAuth();
+    }; // P3-DL1
   }, []);
 
   useEffect(() => {
@@ -818,8 +1036,24 @@ function ElectronAppContent() {
     let mounted = true; // P3-BA1: guard all setState after await in boot auth sequence
     const checkAuth = async () => {
       const hasCredential = !!(token || jwt);
-      console.log('[AuthTruth] Boot: token present:', !!token, 'jwt present:', !!jwt, 'user present:', !!user, 'premium:', user?.isPremium);
-      console.log('[AuthTruth] startup restore begin — hasCredential:', hasCredential, 'cached isPremium:', user?.isPremium ?? 'n/a', 'plan:', user?.plan ?? 'n/a');
+      console.log(
+        "[AuthTruth] Boot: token present:",
+        !!token,
+        "jwt present:",
+        !!jwt,
+        "user present:",
+        !!user,
+        "premium:",
+        user?.isPremium,
+      );
+      console.log(
+        "[AuthTruth] startup restore begin — hasCredential:",
+        hasCredential,
+        "cached isPremium:",
+        user?.isPremium ?? "n/a",
+        "plan:",
+        user?.plan ?? "n/a",
+      );
 
       // ── Hardened startup order ──────────────────────────────────────────────────────────────────────
       // 1. Load stored user/JWT
@@ -837,7 +1071,9 @@ function ElectronAppContent() {
 
       const authState = await resolveAuthState();
       if (!mounted) return; // P3-BA1: bail if app unmounted during network call
-      console.log(`[AuthTruth] Boot resolved verified=${authState.verified} reason=${authState.reason} user=${authState.user ? 'yes' : 'no'}`);
+      console.log(
+        `[AuthTruth] Boot resolved verified=${authState.verified} reason=${authState.reason} user=${authState.user ? "yes" : "no"}`,
+      );
 
       setEntitlementsAttempted(true);
 
@@ -845,22 +1081,30 @@ function ElectronAppContent() {
         // Cloud confirmed — use truth
         setEntitlementsOk(true);
         setEntitlementsVerified(true);
-        usePremiumGraceStore.getState().setVerified(
-          authState.user.isPremium,
-          authState.user.plan ?? null,
-          authState.user.id ?? null,
+        usePremiumGraceStore
+          .getState()
+          .setVerified(
+            authState.user.isPremium,
+            authState.user.plan ?? null,
+            authState.user.id ?? null,
+          );
+        console.log(
+          "[AuthTruth] Boot: cloud-confirmed — entitlementsVerified=true",
         );
-        console.log('[AuthTruth] Boot: cloud-confirmed — entitlementsVerified=true');
 
         // Proactive reissue if JWT within 1 day of expiry
         if (isElectron && authState.jwt) {
           try {
-            const parts = authState.jwt.split('.');
+            const parts = authState.jwt.split(".");
             if (parts.length === 3) {
-              const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+              const payload = JSON.parse(
+                atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")),
+              );
               const nowSec = Math.floor(Date.now() / 1000);
               if (payload.exp && nowSec >= payload.exp - 86400) {
-                console.log('[AuthTruth] Boot: JWT expiring within 24h — proactive reissue...');
+                console.log(
+                  "[AuthTruth] Boot: JWT expiring within 24h — proactive reissue...",
+                );
                 tryReissueJwt().catch(() => {});
               }
             }
@@ -875,7 +1119,7 @@ function ElectronAppContent() {
         const hasBeenWelcomed = localStorage.getItem(welcomeKey);
         if (!hasBeenWelcomed) {
           setIsFirstLogin(true);
-          localStorage.setItem(welcomeKey, 'true');
+          localStorage.setItem(welcomeKey, "true");
           setPhase("welcome");
         } else {
           setPhase("authenticated");
@@ -883,9 +1127,9 @@ function ElectronAppContent() {
         return;
       }
 
-      if (authState.reason === 'logged_out_by_cloud') {
+      if (authState.reason === "logged_out_by_cloud") {
         // Cloud explicitly rejected the session — clear and force login
-        console.warn('[AuthTruth] Boot: logged_out_by_cloud — forcing logout');
+        console.warn("[AuthTruth] Boot: logged_out_by_cloud — forcing logout");
         storeLogout();
         setPhase("unauthenticated");
         return;
@@ -893,13 +1137,18 @@ function ElectronAppContent() {
 
       // Unverified (network/server error) but we have cached user — preserve it
       if (authState.user) {
-        console.warn('[AuthTruth] Boot: cloud unreachable — preserving cached session. isPremium cached=', authState.user.isPremium);
+        console.warn(
+          "[AuthTruth] Boot: cloud unreachable — preserving cached session. isPremium cached=",
+          authState.user.isPremium,
+        );
         // Do NOT clear premium; mark unverified so device lock stays off
         setEntitlementsOk(true); // allow UI to proceed with cached data
         setEntitlementsVerified(false); // but mark as unverified (cloud not confirmed)
         const graceStatus = usePremiumGraceStore.getState().getStatus(false);
-        if (graceStatus === 'active' || graceStatus === 'grace') {
-          console.log('[AuthTruth] Boot: grace store active — entitlementsVerified via grace');
+        if (graceStatus === "active" || graceStatus === "grace") {
+          console.log(
+            "[AuthTruth] Boot: grace store active — entitlementsVerified via grace",
+          );
           setEntitlementsVerified(true);
         }
 
@@ -908,7 +1157,7 @@ function ElectronAppContent() {
         const hasBeenWelcomed = localStorage.getItem(welcomeKey);
         if (!hasBeenWelcomed) {
           setIsFirstLogin(true);
-          localStorage.setItem(welcomeKey, 'true');
+          localStorage.setItem(welcomeKey, "true");
           setPhase("welcome");
         } else {
           setPhase("authenticated");
@@ -919,7 +1168,9 @@ function ElectronAppContent() {
       // No user at all — show login
       if (hasCredential && !authState.user) {
         // Has credential but couldn't resolve — maybe just a network hiccup
-        console.log('[AuthTruth] Boot: has credential but no resolved user — showing login');
+        console.log(
+          "[AuthTruth] Boot: has credential but no resolved user — showing login",
+        );
         setPhase("unauthenticated");
         return;
       }
@@ -928,12 +1179,16 @@ function ElectronAppContent() {
     };
 
     checkAuth();
-    return () => { mounted = false; }; // P3-BA1
+    return () => {
+      mounted = false;
+    }; // P3-BA1
   }, [splashDone]);
 
   const handleLogout = async () => {
     if (isSigningOut) return; // prevent double-trigger
-    console.log('[Auth] logout called — starting cinematic sign-out transition');
+    console.log(
+      "[Auth] logout called — starting cinematic sign-out transition",
+    );
 
     // 0. Immediately dismiss any active flow (tour, unlock animation, etc.)
     //    so the overlay doesn't persist into the sign-out transition.
@@ -943,7 +1198,7 @@ function ElectronAppContent() {
     setIsSigningOut(true);
 
     // 2. Kick off backend logout concurrently so network time is "free"
-    const logoutPromise = performFullLogout('user_clicked_signout');
+    const logoutPromise = performFullLogout("user_clicked_signout");
 
     // 3. Let the app container's exit animation play (1.3s)
     await new Promise<void>((resolve) => setTimeout(resolve, 1300));
@@ -959,27 +1214,46 @@ function ElectronAppContent() {
 
   const handleSafeRefreshEntitlements = useCallback(async () => {
     suppressFlowsRef.current = true;
-    console.log('[Entitlements] manual refresh begin');
-    console.log('[PremiumTruth] modal-triggered entitlement fetch start');
+    console.log("[Entitlements] manual refresh begin");
+    console.log("[PremiumTruth] modal-triggered entitlement fetch start");
     try {
       const result = await refreshEntitlements();
-      console.log('[Entitlements] manual refresh result — isPremium:', result.user?.isPremium ?? 'null', 'plan:', result.user?.plan ?? 'null');
-      console.log('[PremiumTruth] modal-triggered entitlement fetch result — isPremium:', result.user?.isPremium ?? 'null (no user)');
+      console.log(
+        "[Entitlements] manual refresh result — isPremium:",
+        result.user?.isPremium ?? "null",
+        "plan:",
+        result.user?.plan ?? "null",
+      );
+      console.log(
+        "[PremiumTruth] modal-triggered entitlement fetch result — isPremium:",
+        result.user?.isPremium ?? "null (no user)",
+      );
       if (result.user) {
         setEntitlementsOk(true);
         setEntitlementsVerified(true);
-        usePremiumGraceStore.getState().setVerified(
-          result.user.isPremium,
-          result.user.plan ?? null,
-          result.user.id ?? null,
+        usePremiumGraceStore
+          .getState()
+          .setVerified(
+            result.user.isPremium,
+            result.user.plan ?? null,
+            result.user.id ?? null,
+          );
+        console.log(
+          "[Entitlements] manual refresh — grace store updated, UI unlocked",
         );
-        console.log('[Entitlements] manual refresh — grace store updated, UI unlocked');
       } else {
-        console.warn('[Entitlements] manual refresh — server returned no user, checking grace store');
+        console.warn(
+          "[Entitlements] manual refresh — server returned no user, checking grace store",
+        );
         const graceStatus = usePremiumGraceStore.getState().getStatus(true);
-        console.log('[Entitlements] manual refresh — grace store status:', graceStatus);
-        if (graceStatus === 'active' || graceStatus === 'grace') {
-          console.log('[Entitlements] manual refresh — grace fallback active, entitlementsVerified set');
+        console.log(
+          "[Entitlements] manual refresh — grace store status:",
+          graceStatus,
+        );
+        if (graceStatus === "active" || graceStatus === "grace") {
+          console.log(
+            "[Entitlements] manual refresh — grace fallback active, entitlementsVerified set",
+          );
           setEntitlementsVerified(true);
         } else {
           setEntitlementsVerified(false);
@@ -987,16 +1261,18 @@ function ElectronAppContent() {
       }
       return result;
     } finally {
-      setTimeout(() => { suppressFlowsRef.current = false; }, 500);
+      setTimeout(() => {
+        suppressFlowsRef.current = false;
+      }, 500);
     }
   }, []);
 
   const handleFactoryReset = async () => {
-    console.log('[AppFlow] Factory reset — kill switch activated');
+    console.log("[AppFlow] Factory reset — kill switch activated");
     setIsResetting(true);
     setActiveFlow("none");
     await postResetTourFlags();
-    await performFullLogout('factory_reset');
+    await performFullLogout("factory_reset");
     clearSwitchControlStorage();
     if (isElectron && (window as any).electronAPI?.resetAppData) {
       await (window as any).electronAPI.resetAppData();
@@ -1008,9 +1284,13 @@ function ElectronAppContent() {
   // Resolve effective premium status: server value is authoritative for paid plans,
   // but for trial users we also gate on the local trial-end timestamp so the UI
   // locks immediately when the timer fires — without waiting for a server round-trip.
-  const _isTrialUser      = user?.plan === 'trial';
-  const _trialStillValid  = isTrialActive(user?.plan ?? '', user?.trialEndsAt ?? null);
-  const _resolvedIsPremium = (user?.isPremium ?? false) && (!_isTrialUser || _trialStillValid);
+  const _isTrialUser = user?.plan === "trial";
+  const _trialStillValid = isTrialActive(
+    user?.plan ?? "",
+    user?.trialEndsAt ?? null,
+  );
+  const _resolvedIsPremium =
+    (user?.isPremium ?? false) && (!_isTrialUser || _trialStillValid);
 
   const authContextValue: AppAuthContextValue = {
     user: user,
@@ -1021,327 +1301,418 @@ function ElectronAppContent() {
     factoryReset: handleFactoryReset,
     safeRefreshEntitlements: handleSafeRefreshEntitlements,
   };
-  console.log('[PremiumTruth] authContextValue — entitlementsVerified:', entitlementsVerified, 'isPremium:', authContextValue.isPremium, 'storedIsPremium:', user?.isPremium);
+  console.log(
+    "[PremiumTruth] authContextValue — entitlementsVerified:",
+    entitlementsVerified,
+    "isPremium:",
+    authContextValue.isPremium,
+    "storedIsPremium:",
+    user?.isPremium,
+  );
 
   return (
     <AppAuthContext.Provider value={authContextValue}>
       <UpgradeModalProvider>
-      <CameraGlow active={showGlow} onComplete={() => setShowGlow(false)} />
+        <CameraGlow active={showGlow} onComplete={() => setShowGlow(false)} />
 
-      {/* ── Resetting overlay — covers the blank while factory reset runs ── */}
-      {isResetting && (
-        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center" style={{ background: "#14181D" }}>
-          <motion.div
-            className="absolute inset-0 pointer-events-none"
-            style={{ background: "radial-gradient(ellipse 70% 55% at 50% 48%, rgba(139,92,246,0.18) 0%, rgba(99,102,241,0.06) 40%, transparent 65%)" }}
-            animate={{ opacity: [0.6, 1, 0.6] }}
-            transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-          />
-          <div className="relative z-10 flex flex-col items-center gap-5">
-            <div className="w-10 h-10 rounded-full border-2 border-text-[#00D4FF]/30 border-t-text-[#00D4FF] animate-spin" />
-            <p className="text-sm text-white/40 tracking-widest uppercase" style={{ letterSpacing: "0.18em" }}>Resetting…</p>
+        {/* ── Resetting overlay — covers the blank while factory reset runs ── */}
+        {isResetting && (
+          <div
+            className="fixed inset-0 z-50 flex flex-col items-center justify-center"
+            style={{ background: "#14181D" }}
+          >
+            <motion.div
+              className="absolute inset-0 pointer-events-none"
+              style={{
+                background:
+                  "radial-gradient(ellipse 70% 55% at 50% 48%, rgba(139,92,246,0.18) 0%, rgba(99,102,241,0.06) 40%, transparent 65%)",
+              }}
+              animate={{ opacity: [0.6, 1, 0.6] }}
+              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+            />
+            <div className="relative z-10 flex flex-col items-center gap-5">
+              <div className="w-10 h-10 rounded-full border-2 border-text-[#00D4FF]/30 border-t-text-[#00D4FF] animate-spin" />
+              <p
+                className="text-sm text-white/40 tracking-widest uppercase"
+                style={{ letterSpacing: "0.18em" }}
+              >
+                Resetting…
+              </p>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* ── Persistent atmospheric background ─────────────────────────────
+        {/* ── Persistent atmospheric background ─────────────────────────────
           Always mounted — never conditionally removed. This guarantees one
           stable base layer for every phase transition. Opacity is 0 during
           splash (content is fully covered), then cross-fades in during booting.
           During authenticated the AppLayout AppBackground layers on top —
           both are transparent so the glows breathe through. */}
-      <div
-        className="fixed inset-0 pointer-events-none"
-        style={{
-          zIndex: 0,
-          background: "#14181D",
-          opacity: phase === "splash" ? 0 : 1,
-          transition: "opacity 0.35s ease-out",
-        }}
-      >
-        {/* Static centre glow — no JS interpolation */}
         <div
-          className="absolute inset-0"
-          style={{ background: "radial-gradient(ellipse 90% 60% at 50% 48%, rgba(139,92,246,0.20) 0%, rgba(99,102,241,0.07) 35%, transparent 60%)" }}
-        />
-        {/* CSS-animated accents — compositor-only, zero JS frames */}
-        <div
-          className="absolute inset-0"
+          className="fixed inset-0 pointer-events-none"
           style={{
-            background: "radial-gradient(circle at 28% 18%, rgba(236,72,153,0.10) 0%, transparent 42%)",
-            animation: "sc-auth-pink 6s ease-in-out infinite",
+            zIndex: 0,
+            background: "#14181D",
+            opacity: phase === "splash" ? 0 : 1,
+            transition: "opacity 0.35s ease-out",
           }}
-        />
-        <div
-          className="absolute inset-0"
-          style={{
-            background: "radial-gradient(circle at 72% 78%, rgba(56,189,248,0.08) 0%, transparent 40%)",
-            animation: "sc-auth-cyan 7.5s ease-in-out 1.2s infinite",
-          }}
-        />
-      </div>
+        >
+          {/* Static centre glow — no JS interpolation */}
+          <div
+            className="absolute inset-0"
+            style={{
+              background:
+                "radial-gradient(ellipse 90% 60% at 50% 48%, rgba(139,92,246,0.20) 0%, rgba(99,102,241,0.07) 35%, transparent 60%)",
+            }}
+          />
+          {/* CSS-animated accents — compositor-only, zero JS frames */}
+          <div
+            className="absolute inset-0"
+            style={{
+              background:
+                "radial-gradient(circle at 28% 18%, rgba(236,72,153,0.10) 0%, transparent 42%)",
+              animation: "sc-auth-pink 6s ease-in-out infinite",
+            }}
+          />
+          <div
+            className="absolute inset-0"
+            style={{
+              background:
+                "radial-gradient(circle at 72% 78%, rgba(56,189,248,0.08) 0%, transparent 40%)",
+              animation: "sc-auth-cyan 7.5s ease-in-out 1.2s infinite",
+            }}
+          />
+        </div>
 
-      <AnimatePresence mode="sync">
-        {phase === "splash" && (
-          <motion.div
-            key="splash"
-            initial={{ opacity: 1 }}
-            exit={{ opacity: 0, scale: 1.004 }}
-            transition={{ duration: 0.55, ease: [0.4, 0, 0.2, 1] }}
-            className="h-full"
-            style={{ position: "absolute", inset: 0, zIndex: 1 }}
-          >
-            <Splash onComplete={() => {
-              setPhase("booting");
-              setSplashDone(true);
-            }} />
-          </motion.div>
-        )}
+        <AnimatePresence mode="sync">
+          {phase === "splash" && (
+            <motion.div
+              key="splash"
+              initial={{ opacity: 1 }}
+              exit={{ opacity: 0, scale: 1.004 }}
+              transition={{ duration: 0.55, ease: [0.4, 0, 0.2, 1] }}
+              className="h-full"
+              style={{ position: "absolute", inset: 0, zIndex: 1 }}
+            >
+              <Splash
+                onComplete={() => {
+                  setPhase("booting");
+                  setSplashDone(true);
+                }}
+              />
+            </motion.div>
+          )}
 
-        {phase === "booting" && (
-          <motion.div
-            key="booting"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1, transition: { duration: 0.35, ease: "easeOut" } }}
-            exit={{ opacity: 0, transition: { duration: 0.45, ease: "easeIn" } }}
-            style={{ position: "absolute", inset: 0, zIndex: 1 }}
-            className="h-full flex items-center justify-center"
-          >
-            {backendError ? (
-              <div className="flex flex-col items-center gap-4 max-w-xs text-center px-8">
-                <div className="w-10 h-10 rounded-full flex items-center justify-center"
-                  style={{ background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.25)" }}>
-                  <span className="text-red-400 text-lg font-bold">!</span>
-                </div>
-                <p className="text-[11px] text-white/50 leading-relaxed">
-                  Backend failed to start
-                </p>
-                <p className="text-[10px] text-white/25 leading-relaxed">
-                  Please reinstall SwitchControl, then launch again.
-                </p>
-                <button
-                  onClick={() => (window as any).electronAPI?.quitApp?.()}
-                  className="mt-1 px-4 py-1.5 rounded-lg text-[10px] text-white/40 tracking-widest uppercase"
-                  style={{ border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.03)" }}
-                >
-                  Close
-                </button>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center gap-5">
-                <div className="relative flex items-center justify-center w-8 h-8">
-                  <span className="absolute w-8 h-8 rounded-full border border-text-[#00D4FF]/20 animate-ping" style={{ animationDuration: "2.2s" }} />
-                  <span className="w-2 h-2 rounded-full bg-text-[#00D4FF]/60 animate-pulse" style={{ animationDuration: "1.6s" }} />
-                </div>
-                <p className="text-[10px] text-white/20 tracking-[0.28em] uppercase animate-pulse" style={{ animationDuration: "2.4s", animationDelay: "0.3s" }}>
-                  Starting
-                </p>
-              </div>
-            )}
-          </motion.div>
-        )}
-
-        {(phase === "unauthenticated" || phase === "login_success") && (
-          <motion.div
-            key="login"
-            initial={{ opacity: 0, scale: 1.008 }}
-            animate={{ opacity: 1, scale: 1, transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] } }}
-            exit={{ opacity: 0, scale: 0.99, transition: { duration: 0.28, ease: [0.4, 0, 0.6, 1] } }}
-            className="h-full"
-            style={{ zIndex: 1 }}
-          >
-            <LoginScreen succeeded={phase === "login_success"} />
-          </motion.div>
-        )}
-
-        {phase === "welcome" && (
-          <motion.div
-            key="welcome"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1, transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] } }}
-            exit={{ opacity: 0, transition: { duration: 0.25, ease: [0.4, 0, 0.6, 1] } }}
-            className="h-full"
-            style={{ zIndex: 1 }}
-          >
-            <WelcomeAnimation 
-              userName={user?.username || null}
-              isPremium={user?.isPremium}
-              introDelay={0.4}
-              onComplete={() => {
-                console.log('[Handoff] intro exit complete — mounting dashboard');
-                setPhase("authenticated");
-                setLocation("/dashboard");
+          {phase === "booting" && (
+            <motion.div
+              key="booting"
+              initial={{ opacity: 0 }}
+              animate={{
+                opacity: 1,
+                transition: { duration: 0.35, ease: "easeOut" },
               }}
-            />
-          </motion.div>
+              exit={{
+                opacity: 0,
+                transition: { duration: 0.45, ease: "easeIn" },
+              }}
+              style={{ position: "absolute", inset: 0, zIndex: 1 }}
+              className="h-full flex items-center justify-center"
+            >
+              {backendError ? (
+                <div className="flex flex-col items-center gap-4 max-w-xs text-center px-8">
+                  <div
+                    className="w-10 h-10 rounded-full flex items-center justify-center"
+                    style={{
+                      background: "rgba(239,68,68,0.12)",
+                      border: "1px solid rgba(239,68,68,0.25)",
+                    }}
+                  >
+                    <span className="text-red-400 text-lg font-bold">!</span>
+                  </div>
+                  <p className="text-[11px] text-white/50 leading-relaxed">
+                    Backend failed to start
+                  </p>
+                  <p className="text-[10px] text-white/25 leading-relaxed">
+                    Please reinstall SwitchControl, then launch again.
+                  </p>
+                  <button
+                    onClick={() => (window as any).electronAPI?.quitApp?.()}
+                    className="mt-1 px-4 py-1.5 rounded-lg text-[10px] text-white/40 tracking-widest uppercase"
+                    style={{
+                      border: "1px solid rgba(255,255,255,0.08)",
+                      background: "rgba(255,255,255,0.03)",
+                    }}
+                  >
+                    Close
+                  </button>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-5">
+                  <div className="relative flex items-center justify-center w-8 h-8">
+                    <span
+                      className="absolute w-8 h-8 rounded-full border border-text-[#00D4FF]/20 animate-ping"
+                      style={{ animationDuration: "2.2s" }}
+                    />
+                    <span
+                      className="w-2 h-2 rounded-full bg-text-[#00D4FF]/60 animate-pulse"
+                      style={{ animationDuration: "1.6s" }}
+                    />
+                  </div>
+                  <p
+                    className="text-[10px] text-white/20 tracking-[0.28em] uppercase animate-pulse"
+                    style={{
+                      animationDuration: "2.4s",
+                      animationDelay: "0.3s",
+                    }}
+                  >
+                    Starting
+                  </p>
+                </div>
+              )}
+            </motion.div>
+          )}
+
+          {(phase === "unauthenticated" || phase === "login_success") && (
+            <motion.div
+              key="login"
+              initial={{ opacity: 0, scale: 1.008 }}
+              animate={{
+                opacity: 1,
+                scale: 1,
+                transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] },
+              }}
+              exit={{
+                opacity: 0,
+                scale: 0.99,
+                transition: { duration: 0.28, ease: [0.4, 0, 0.6, 1] },
+              }}
+              className="h-full"
+              style={{ zIndex: 1 }}
+            >
+              <LoginScreen succeeded={phase === "login_success"} />
+            </motion.div>
+          )}
+
+          {phase === "welcome" && (
+            <motion.div
+              key="welcome"
+              initial={{ opacity: 0 }}
+              animate={{
+                opacity: 1,
+                transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] },
+              }}
+              exit={{
+                opacity: 0,
+                transition: { duration: 0.25, ease: [0.4, 0, 0.6, 1] },
+              }}
+              className="h-full"
+              style={{ zIndex: 1 }}
+            >
+              <WelcomeAnimation
+                userName={user?.username || null}
+                isPremium={user?.isPremium}
+                introDelay={0.4}
+                onComplete={() => {
+                  console.log(
+                    "[Handoff] intro exit complete — mounting dashboard",
+                  );
+                  setPhase("authenticated");
+                  setLocation("/dashboard");
+                }}
+              />
+            </motion.div>
+          )}
+
+          {phase === "authenticated" && (
+            <motion.div
+              key="app"
+              // IMPORTANT: Do NOT use filter or scale/transform here.
+              // Any CSS filter or transform on this wrapper creates a new containing
+              // block for position:fixed descendants (the Sidebar, fixed modals).
+              // That traps them inside this compositing layer, causing visual
+              // misalignment until the filter clears. Opacity alone is safe — it
+              // does NOT create a containing block.
+              // The inner AppLayout page div (0.32s, blur 6px) provides the visual
+              // entrance drama; clearContainingBlock cleans that up after it completes.
+              initial={{ opacity: 0 }}
+              animate={
+                isSigningOut
+                  ? {
+                      opacity: 0,
+                      transition: { duration: 0.5, ease: [0.4, 0, 0.6, 1] },
+                    }
+                  : {
+                      opacity: 1,
+                      transition: {
+                        duration: 0.35,
+                        delay: 0,
+                        ease: [0.22, 1, 0.36, 1],
+                      },
+                    }
+              }
+              className="h-full"
+              style={{ pointerEvents: isSigningOut ? "none" : undefined }}
+              onAnimationStart={() =>
+                console.log("[Handoff] dashboard fade-in started")
+              }
+              onAnimationComplete={() =>
+                console.log(
+                  "[Handoff] dashboard fade-in complete — layout stable",
+                )
+              }
+            >
+              <Router hook={useTransitionLocation}>
+                <ElectronAppRoutes />
+              </Router>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {!isResetting && activeFlow === "firstTime" && (
+          <OnboardingTour
+            isFirstTime={isFirstLogin}
+            onComplete={() => {
+              if (user?.id) {
+                localStorage.setItem(`sc_tour_completed_${user.id}`, "true");
+              }
+              setActiveFlow("none");
+            }}
+            onSkip={() => {
+              if (user?.id) {
+                localStorage.setItem(`sc_tour_completed_${user.id}`, "true");
+              }
+              setActiveFlow("none");
+            }}
+          />
         )}
 
-        {phase === "authenticated" && (
-          <motion.div
-            key="app"
-            // IMPORTANT: Do NOT use filter or scale/transform here.
-            // Any CSS filter or transform on this wrapper creates a new containing
-            // block for position:fixed descendants (the Sidebar, fixed modals).
-            // That traps them inside this compositing layer, causing visual
-            // misalignment until the filter clears. Opacity alone is safe — it
-            // does NOT create a containing block.
-            // The inner AppLayout page div (0.32s, blur 6px) provides the visual
-            // entrance drama; clearContainingBlock cleans that up after it completes.
-            initial={{ opacity: 0 }}
-            animate={
-              isSigningOut
-                ? { opacity: 0, transition: { duration: 0.5, ease: [0.4, 0, 0.6, 1] } }
-                : { opacity: 1, transition: { duration: 0.35, delay: 0, ease: [0.22, 1, 0.36, 1] } }
-            }
-            className="h-full"
-            style={{ pointerEvents: isSigningOut ? "none" : undefined }}
-            onAnimationStart={() => console.log('[Handoff] dashboard fade-in started')}
-            onAnimationComplete={() => console.log('[Handoff] dashboard fade-in complete — layout stable')}
-          >
-            <Router hook={useTransitionLocation}>
-              <ElectronAppRoutes />
-            </Router>
-          </motion.div>
+        {!isResetting && (
+          <TrialActivationAnimation
+            show={activeFlow === "trialUnlock"}
+            onComplete={async () => {
+              console.log("[AppFlow] Trial activation complete — persisting");
+              const store = useAuthStore.getState();
+              if (store.user)
+                store.setUser({ ...store.user, hasSeenTrialActivation: true });
+              await postTrialActivationSeen();
+
+              // Arm the trialTour loop-guards before transitioning so the flow
+              // eval cannot re-fire the tour once it finishes.
+              const userId = useAuthStore.getState().user?.id;
+              if (userId)
+                localStorage.setItem(`sc_trial_tour_seen_${userId}`, "1");
+              trialTourFiredThisSessionRef.current = true;
+
+              setActiveFlow("trialTour");
+            }}
+          />
         )}
-      </AnimatePresence>
-      
-      {!isResetting && activeFlow === "firstTime" && (
-        <OnboardingTour
-          isFirstTime={isFirstLogin}
-          onComplete={() => {
-            if (user?.id) {
-              localStorage.setItem(`sc_tour_completed_${user.id}`, 'true');
-            }
-            setActiveFlow("none");
-          }}
-          onSkip={() => {
-            if (user?.id) {
-              localStorage.setItem(`sc_tour_completed_${user.id}`, 'true');
-            }
-            setActiveFlow("none");
-          }}
+
+        {!isResetting && (
+          <TrialTour
+            show={activeFlow === "trialTour"}
+            onComplete={async () => {
+              console.log("[AppFlow] Trial tour complete — persisting");
+              const store = useAuthStore.getState();
+              if (store.user)
+                store.setUser({ ...store.user, hasSeenTrialTour: true });
+              // Pre-arm premium flow guards so trial users can never bleed into premium flows
+              const userId = store.user?.id;
+              if (userId) {
+                localStorage.setItem(`sc_unlock_seen_${userId}`, "1");
+                localStorage.setItem(`sc_tour_seen_${userId}`, "1");
+              }
+              unlockFiredThisSessionRef.current = true;
+              premiumTourFiredThisSessionRef.current = true;
+              await postTrialTourSeen();
+              setActiveFlow("none");
+            }}
+          />
+        )}
+
+        {!isResetting && (
+          <PremiumUpgradeAnimation
+            show={activeFlow === "premiumUnlock"}
+            onComplete={() => {
+              console.log(
+                "[AppFlow] Unlock animation complete — transitioning to premiumTour",
+              );
+              const store = useAuthStore.getState();
+              if (store.user) {
+                store.setUser({ ...store.user, hasSeenPremiumUnlock: true });
+              }
+              // Fire-and-forget — do NOT await. setActiveFlow must fire immediately
+              // so the tour blur-in overlaps the animation blur-out (no black gap).
+              postUnlockSeen().catch(() => {});
+
+              // Arm loop-guards before tour mounts so the flow eval can never re-fire
+              const userId = useAuthStore.getState().user?.id;
+              if (userId) localStorage.setItem(`sc_tour_seen_${userId}`, "1");
+              premiumTourFiredThisSessionRef.current = true;
+
+              setActiveFlow("premiumTour");
+            }}
+          />
+        )}
+
+        {!isResetting && (
+          <GuidedTour
+            show={activeFlow === "premiumTour"}
+            onComplete={async () => {
+              console.log(
+                "[AppFlow] Premium tour complete — persisting before clearing flow",
+              );
+              const store = useAuthStore.getState();
+              // Optimistic: update store immediately so any concurrent entitlement
+              // refresh that fires before the server responds cannot overwrite us.
+              if (store.user)
+                store.setUser({ ...store.user, hasSeenPremiumTour: true });
+              // Persist to server FIRST — the flow eval must not re-run until the
+              // server flag is saved, otherwise a concurrent /api/me refresh can
+              // return hasSeenPremiumTour=false and re-trigger the tour.
+              await postTourSeen();
+              // Clear the flow only after the server acknowledged the save.
+              setActiveFlow("none");
+            }}
+          />
+        )}
+
+        {!isResetting && (
+          <PendingActivationModal
+            show={showPendingActivation}
+            onUpgradeDetected={() => {
+              setShowPendingActivation(false);
+            }}
+            onDismiss={() => setShowPendingActivation(false)}
+          />
+        )}
+
+        {!isResetting && (
+          <PatchNotesModal
+            show={showPatchNotes}
+            onDismiss={() => setShowPatchNotes(false)}
+          />
+        )}
+
+        {/* Premium expiry revert — shows after trial/premium lapses and revert runs */}
+        <PremiumRevertModal
+          open={revertModalOpen}
+          onClose={closeRevertModal}
+          report={revertReport}
+          onRetry={retryRevert}
+          reason={useTrialExpiryStore((s) => s.revertReason)}
         />
-      )}
-      
-      {!isResetting && (
-        <TrialActivationAnimation
-          show={activeFlow === "trialUnlock"}
-          onComplete={async () => {
-            console.log('[AppFlow] Trial activation complete — persisting');
-            const store = useAuthStore.getState();
-            if (store.user) store.setUser({ ...store.user, hasSeenTrialActivation: true });
-            await postTrialActivationSeen();
 
-            // Arm the trialTour loop-guards before transitioning so the flow
-            // eval cannot re-fire the tour once it finishes.
-            const userId = useAuthStore.getState().user?.id;
-            if (userId) localStorage.setItem(`sc_trial_tour_seen_${userId}`, '1');
-            trialTourFiredThisSessionRef.current = true;
-
-            setActiveFlow("trialTour");
-          }}
-        />
-      )}
-
-      {!isResetting && (
-        <TrialTour
-          show={activeFlow === "trialTour"}
-          onComplete={async () => {
-            console.log('[AppFlow] Trial tour complete — persisting');
-            const store = useAuthStore.getState();
-            if (store.user) store.setUser({ ...store.user, hasSeenTrialTour: true });
-            // Pre-arm premium flow guards so trial users can never bleed into premium flows
-            const userId = store.user?.id;
-            if (userId) {
-              localStorage.setItem(`sc_unlock_seen_${userId}`, '1');
-              localStorage.setItem(`sc_tour_seen_${userId}`, '1');
-            }
-            unlockFiredThisSessionRef.current = true;
-            premiumTourFiredThisSessionRef.current = true;
-            await postTrialTourSeen();
-            setActiveFlow("none");
-          }}
-        />
-      )}
-
-      {!isResetting && (
-        <PremiumUpgradeAnimation 
-          show={activeFlow === "premiumUnlock"} 
-          onComplete={() => {
-            console.log('[AppFlow] Unlock animation complete — transitioning to premiumTour');
-            const store = useAuthStore.getState();
-            if (store.user) {
-              store.setUser({ ...store.user, hasSeenPremiumUnlock: true });
-            }
-            // Fire-and-forget — do NOT await. setActiveFlow must fire immediately
-            // so the tour blur-in overlaps the animation blur-out (no black gap).
-            postUnlockSeen().catch(() => {});
-
-            // Arm loop-guards before tour mounts so the flow eval can never re-fire
-            const userId = useAuthStore.getState().user?.id;
-            if (userId) localStorage.setItem(`sc_tour_seen_${userId}`, '1');
-            premiumTourFiredThisSessionRef.current = true;
-
-            setActiveFlow("premiumTour");
-          }} 
-        />
-      )}
-      
-      {!isResetting && (
-        <GuidedTour 
-          show={activeFlow === "premiumTour"} 
-          onComplete={async () => {
-            console.log('[AppFlow] Premium tour complete — persisting before clearing flow');
-            const store = useAuthStore.getState();
-            // Optimistic: update store immediately so any concurrent entitlement
-            // refresh that fires before the server responds cannot overwrite us.
-            if (store.user) store.setUser({ ...store.user, hasSeenPremiumTour: true });
-            // Persist to server FIRST — the flow eval must not re-run until the
-            // server flag is saved, otherwise a concurrent /api/me refresh can
-            // return hasSeenPremiumTour=false and re-trigger the tour.
-            await postTourSeen();
-            // Clear the flow only after the server acknowledged the save.
-            setActiveFlow("none");
-          }} 
-        />
-      )}
-      
-      {!isResetting && (
-        <PendingActivationModal
-          show={showPendingActivation}
-          onUpgradeDetected={() => {
-            setShowPendingActivation(false);
-          }}
-          onDismiss={() => setShowPendingActivation(false)}
-        />
-      )}
-
-      {!isResetting && (
-        <PatchNotesModal
-          show={showPatchNotes}
-          onDismiss={() => setShowPatchNotes(false)}
-        />
-      )}
-
-      {/* Premium expiry revert — shows after trial/premium lapses and revert runs */}
-      <PremiumRevertModal
-        open={revertModalOpen}
-        onClose={closeRevertModal}
-        report={revertReport}
-        onRetry={retryRevert}
-        reason={useTrialExpiryStore(s => s.revertReason)}
-      />
-
-      {/* Premium device lock — must be last (highest z-order), not dismissible */}
-      {isElectron && deviceLockStatus === "locked" && (
-        <DeviceLockModal
-          userEmail={user?.email ?? null}
-          userId={user?.id ?? null}
-          onRetry={retryDeviceLock}
-          isRetrying={isDeviceLockChecking}
-          onLogout={handleLogout}
-        />
-      )}
+        {/* Premium device lock — must be last (highest z-order), not dismissible */}
+        {isElectron && deviceLockStatus === "locked" && (
+          <DeviceLockModal
+            userEmail={user?.email ?? null}
+            userId={user?.id ?? null}
+            onRetry={retryDeviceLock}
+            isRetrying={isDeviceLockChecking}
+            onLogout={handleLogout}
+          />
+        )}
       </UpgradeModalProvider>
     </AppAuthContext.Provider>
   );
@@ -1355,8 +1726,8 @@ function WebsiteContent() {
     let mounted = true; // P3-W1: guard setState after await on unmount
     const checkSession = async () => {
       try {
-        const response = await fetch('/api/me', {
-          credentials: 'include',
+        const response = await fetch("/api/me", {
+          credentials: "include",
         });
         if (!mounted) return;
         if (response.ok) {
@@ -1368,7 +1739,7 @@ function WebsiteContent() {
               email: data.email,
               username: data.name || data.firstName,
               avatarUrl: data.avatar,
-              plan: data.plan || (data.isPremium ? 'premium' : 'free'),
+              plan: data.plan || (data.isPremium ? "premium" : "free"),
               isPremium: data.isPremium,
               trialEndsAt: data.trialEndsAt || null,
               isAdmin: data.isAdmin || false,
@@ -1381,25 +1752,29 @@ function WebsiteContent() {
           }
         }
       } catch (err) {
-        console.error('[Website] Session check failed:', err);
+        console.error("[Website] Session check failed:", err);
       } finally {
         setIsLoading(false);
       }
     };
     checkSession();
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   const handleLogout = async () => {
-    console.log('[Auth] logout called because user_clicked_signout triggeredBy=WebsiteApp.handleLogout');
+    console.log(
+      "[Auth] logout called because user_clicked_signout triggeredBy=WebsiteApp.handleLogout",
+    );
     try {
-      await fetch('/auth/logout', { method: 'POST', credentials: 'include' });
-      console.log('[Auth] Backend session invalidated');
+      await fetch("/auth/logout", { method: "POST", credentials: "include" });
+      console.log("[Auth] Backend session invalidated");
     } catch (err) {
-      console.error('[Auth] Logout failed:', err);
+      console.error("[Auth] Logout failed:", err);
     }
     setUser(null);
-    window.location.href = '/';
+    window.location.href = "/";
   };
 
   const authContextValue: AppAuthContextValue = {

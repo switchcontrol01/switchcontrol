@@ -1,0 +1,146 @@
+TASK: FIX WHITE FLASH ON ELECTRON APP STARTUP
+
+Focus ONLY on startup rendering.
+
+DO NOT touch:
+
+- telemetry
+- backend
+- AI
+- systeminformation
+- tweak systems
+- GPU logic
+- route logic
+- auth
+- logs
+
+ONLY modify:
+
+- electron/main.js
+- client/index.html
+- client/src/main.tsx
+
+GOAL:
+When the user double-clicks the app:
+
+- instant dark frame
+- no white flash
+- no transparent compositor frame
+- intro animation starts immediately
+- no blank frame before React mounts
+
+==================================================
+FIX 1 — electron/main.js
+
+Inside BrowserWindow options:
+
+1. Ensure:
+   backgroundColor: "#070b14"
+
+2. Ensure:
+   transparent: false
+
+3. DO NOT use:
+   transparent: true
+
+4. Keep:
+   show: false
+   paintWhenInitiallyHidden: true
+
+5. DO NOT show the window until:
+   "ready-to-show"
+
+6. DO NOT run heavy startup work before:
+   mainWindow.show()
+
+==================================================
+FIX 2 — client/index.html
+
+Immediately paint a dark surface BEFORE React loads.
+
+Replace startup CSS with:
+
+<style>
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+
+  background: #070b14 !important;
+  background-color: #070b14 !important;
+}
+
+#boot-shell {
+  position: fixed;
+  inset: 0;
+  z-index: 999999;
+
+  background: #070b14;
+
+  pointer-events: none;
+}
+</style>Then directly inside body BEFORE root:
+
+<div id="boot-shell"></div>IMPORTANT:
+Remove ALL startup blur/glow/pulse boot animations.
+NO animated boot-box.
+NO opacity animation.
+NO blur filters.
+
+The boot shell must be a PURE solid dark frame.
+
+==================================================
+FIX 3 — client/src/main.tsx
+
+Remove the boot shell ONLY AFTER React fully paints.
+
+Use DOUBLE requestAnimationFrame.
+
+Code:
+
+requestAnimationFrame(() => {
+requestAnimationFrame(() => {
+const shell = document.getElementById("boot-shell");
+
+if (shell) {
+  shell.style.transition = "opacity 0.15s ease-out";
+  shell.style.opacity = "0";
+
+  setTimeout(() => {
+    shell.remove();
+  }, 160);
+}
+
+});
+});
+
+IMPORTANT:
+Do NOT remove the shell synchronously.
+Do NOT remove before first React paint.
+
+==================================================
+VALIDATION
+
+After build:
+
+Expected flow:
+
+double click app
+→ instant dark frame
+→ intro animation immediately
+→ no white flash
+→ no transparent frame
+→ no compositor flicker
+
+If ANY white frame still exists:
+find ANY remaining:
+
+- transparent backgrounds
+- opacity:0 fullscreen wrappers
+- filter: blur()
+- body background mismatches
+- transparent BrowserWindow usage
+
+and remove them.

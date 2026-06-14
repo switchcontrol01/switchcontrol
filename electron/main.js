@@ -511,9 +511,9 @@ async function startTelemetryPolling() {
       });
   }
 
-  // SECONDARY PATH: si.graphics() gives VRAM data — run with a generous timeout
-  // so it never hangs the loop. AMD DXGI can take 7-15s on cold boot.
-  siWithTimeout(() => si.graphics(), 20_000, 'startup-graphics').then(gfx => {
+  // SECONDARY PATH: si.graphics() gives VRAM data — 4s hard cap.
+  // WMI fast-path already resolved GPU name; this is only needed for VRAM.
+  siWithTimeout(() => si.graphics(), 4_000, 'startup-graphics').then(gfx => {
     const ctrl = gfx?.controllers?.find(c => c.model) ?? gfx?.controllers?.[0];
     if (ctrl) {
       gpuExistsOnHardware = true;
@@ -1069,6 +1069,15 @@ let gpuPerfCounterFailCount = 0;
 const GPU_PERF_COUNTER_MAX_FAILS = 15; // stop trying after 15 consecutive failures
 let gpuPerfCounterPausedUntil = 0;    // timestamp: retry after cold-start backoff
 
+// AMD zero-counter tracker:
+// AMD RX 7800 XT (and other AMD GPUs) can return 0 on all engine paths even when
+// the GPU is active. If we see 0 with an empty engine breakdown for N consecutive
+// successful reads, we assume the counter path is non-functional on this GPU and
+// enter a 10-minute cooldown before retrying.
+let gpuZeroStreakCount = 0;
+const GPU_ZERO_STREAK_MAX = 5;      // 5 consecutive zero-reads → assume unavailable
+let gpuZeroCooldownUntil = 0;       // don't retry counter until this timestamp
+
 // Last per-engine breakdown — exposed for debug logging
 let lastGpuEngineBreakdown = {};
 
@@ -1082,6 +1091,15 @@ async function getGpuPerfCounterLoad() {
     console.log('[GPU:perf] fail-limit backoff expired — resetting counter, will retry');
     gpuPerfCounterFailCount = 0;
     gpuPerfCounterPausedUntil = 0;
+  }
+  // AMD zero-counter cooldown: if all paths return 0 with no engine breakdown,
+  // the counter path is non-functional on this GPU (common on AMD RX series).
+  if (gpuZeroCooldownUntil > 0) {
+    if (Date.now() < gpuZeroCooldownUntil) return null;
+    // Cooldown expired — try again
+    console.log('[GPU:perf] zero-counter cooldown expired — resetting, will retry');
+    gpuZeroCooldownUntil = 0;
+    gpuZeroStreakCount = 0;
   }
   // TTL gate — prevent rapid PowerShell re-spawns within 15s
   if (Date.now() - _gpuCounterLastRefreshTs < GPU_POLL_TTL_MS) {
@@ -1166,6 +1184,24 @@ Get-GpuEngineMax`.trim();
           gpuPerfCounterFailCount = 0; // reset on success
           gpuPerfCounterPausedUntil = 0;
           lastGpuEngineBreakdown = parsed.engines || {};
+
+          // AMD zero-counter check: max=0 with no engine breakdown means the counter
+          // found a path but returned nothing useful. Track a streak — if it persists,
+          // the counter is non-functional on this GPU (AMD RX 7800 XT, etc.).
+          const hasEngines = Object.keys(lastGpuEngineBreakdown).length > 0;
+          if (max === 0 && !hasEngines) {
+            gpuZeroStreakCount++;
+            verboseLog(`[GPU:perf] zero-reading streak=${gpuZeroStreakCount}/${GPU_ZERO_STREAK_MAX}`);
+            if (gpuZeroStreakCount >= GPU_ZERO_STREAK_MAX) {
+              gpuZeroCooldownUntil = Date.now() + 10 * 60 * 1000; // 10-min cooldown
+              console.warn(`[GPU:perf] AMD zero-counter detected (${GPU_ZERO_STREAK_MAX} consecutive zeros, no engine breakdown) — counter unavailable, cooldown 10min`);
+              return resolve(null);
+            }
+            // Return null during uncertain warm-up phase so UI shows "–" not "0%"
+            return resolve(null);
+          }
+          if (max > 0) gpuZeroStreakCount = 0; // real reading — reset streak
+
           resolve(parseFloat(max.toFixed(1)));
         } catch (parseErr) {
           gpuPerfCounterFailCount++;
@@ -1705,11 +1741,11 @@ async function _enrichSpecsInBackground() {
       ? `try{$g=Get-CimInstance Win32_VideoController -EA Stop|Where-Object{$_.Name -notmatch 'Microsoft Basic|Remote'}|Select-Object -First 1;if($g){Write-Output "$($g.Name)|$($g.AdapterRAM)"}else{''}}catch{''}`
       : '';
 
-    console.log('[GPU] si.graphics begin (5s timeout)');
+    console.log('[GPU] si.graphics begin (3s timeout — WMI covers AMD DXGI hang)');
     const [graphicsResult, fsResult, cpuResult, wmiGpuResult] = await Promise.allSettled([
-      siWithTimeout(() => si.graphics(), 5_000, 'enrich.graphics'),  // 5s — AMD DXGI can hang 15-20s; WMI fast-path covers the gap
-      siWithTimeout(() => si.fsSize(),   8_000, 'enrich.fsSize'),
-      siWithTimeout(() => si.cpu(),     20_000, 'enrich.cpu'),
+      siWithTimeout(() => si.graphics(), 3_000, 'enrich.graphics'),  // WMI fast-path already resolved name; VRAM only
+      siWithTimeout(() => si.fsSize(),   5_000, 'enrich.fsSize'),
+      siWithTimeout(() => si.cpu(),      5_000, 'enrich.cpu'),        // os.cpus() is the fallback
       process.platform === 'win32'
         ? new Promise(resolve => {
             execFile('powershell', ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-Command', _wmiEnrichGpuPs],

@@ -14,9 +14,10 @@ import * as fsp from "fs/promises";
 
 const execFileAsync = promisify(execFile);
 
-const CACHE_TTL_MS     = 30 * 60 * 1000; // 30-minute in-memory refresh
-const DISK_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24-hour disk persistence
-const PS_TIMEOUT_MS    = 3_000; // reduced — any PS call that hangs logs a warning
+const CACHE_TTL_MS          = 30 * 60 * 1000; // 30-minute in-memory refresh
+const DISK_CACHE_TTL_MS     = 24 * 60 * 60 * 1000; // 24-hour disk persistence
+const PS_TIMEOUT_MS         = 3_000; // reduced — any PS call that hangs logs a warning
+const PROBE_COOLDOWN_MS     = 12 * 60 * 1000; // 12-minute per-source cooldown after 2+ timeouts
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -222,6 +223,55 @@ async function _saveDiskCache(profile: SystemIntelligenceProfile): Promise<void>
   }
 }
 
+// ── Probe degradation cache ────────────────────────────────────────────────────
+// Per-source health tracker. After 2+ consecutive timeouts, a source enters a
+// 12-minute cooldown where it is skipped entirely instead of blocking startup.
+// State persists across restarts via probe-health.json in the same cache dir.
+
+interface ProbeHealthEntry {
+  consecutiveTimeouts: number;
+  cooledUntil: number;      // skip probe until this epoch ms
+  lastSuccessAt: number;    // epoch ms of last successful response
+}
+
+let _probeHealth: Record<string, ProbeHealthEntry> = {};
+let _probeHealthDirty = false;
+
+function _probeHealthPath(): string {
+  const base = process.env.APPDATA ?? os.homedir();
+  return path.join(base, "SwitchControl", "cache", "probe-health.json");
+}
+
+async function _loadProbeHealth(): Promise<void> {
+  try {
+    const raw = await fsp.readFile(_probeHealthPath(), "utf-8");
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      _probeHealth = parsed as Record<string, ProbeHealthEntry>;
+      const degraded = Object.entries(_probeHealth)
+        .filter(([, v]) => v.cooledUntil > Date.now())
+        .map(([k, v]) => `${k}(${Math.ceil((v.cooledUntil - Date.now()) / 60000)}min)`);
+      if (degraded.length) {
+        console.log(`[SysIntelligence] Degraded probes loaded — skip list: ${degraded.join(", ")}`);
+      }
+    }
+  } catch {
+    _probeHealth = {};
+  }
+}
+
+async function _saveProbeHealth(): Promise<void> {
+  if (!_probeHealthDirty) return;
+  try {
+    const p = _probeHealthPath();
+    await fsp.mkdir(path.dirname(p), { recursive: true });
+    await fsp.writeFile(p, JSON.stringify(_probeHealth), "utf-8");
+    _probeHealthDirty = false;
+  } catch (e: any) {
+    console.warn("[SysIntelligence] Probe health save failed:", e.message);
+  }
+}
+
 // ── Per-call timeout wrapper ───────────────────────────────────────────────────
 // Any WMI/si call that exceeds the limit is aborted with a warning, returning
 // the rejected error so Promise.allSettled() marks it as failed (safe fallback).
@@ -236,6 +286,41 @@ function siTimeout<T>(label: string, p: Promise<T>, ms: number): Promise<T> {
       }, ms),
     ),
   ]);
+}
+
+// ── Tracked timeout — records failures and skips sources in cooldown ───────────
+function siTimeoutTracked<T>(label: string, p: Promise<T>, ms: number): Promise<T> {
+  const now = Date.now();
+  const health = _probeHealth[label];
+
+  // Skip source if it is in a degradation cooldown
+  if (health && health.cooledUntil > now) {
+    const remainMin = Math.ceil((health.cooledUntil - now) / 60000);
+    console.log(`[SysIntelligence] phase=skip source=${label} cooldown=${remainMin}min`);
+    return Promise.reject(new Error(`${label} skipped — degradation cooldown (${remainMin}min remaining)`));
+  }
+
+  return siTimeout(label, p, ms).then((result) => {
+    // Success — reset health for this source
+    if (_probeHealth[label]?.consecutiveTimeouts) {
+      _probeHealth[label] = { consecutiveTimeouts: 0, cooledUntil: 0, lastSuccessAt: now };
+      _probeHealthDirty = true;
+    }
+    return result;
+  }).catch((err: Error) => {
+    // Only count real timeouts (not skips)
+    if (!err.message.includes("skipped —")) {
+      const current = _probeHealth[label] ?? { consecutiveTimeouts: 0, cooledUntil: 0, lastSuccessAt: 0 };
+      const newCount = current.consecutiveTimeouts + 1;
+      const cooledUntil = newCount >= 2 ? now + PROBE_COOLDOWN_MS : 0;
+      _probeHealth[label] = { consecutiveTimeouts: newCount, cooledUntil, lastSuccessAt: current.lastSuccessAt };
+      _probeHealthDirty = true;
+      if (cooledUntil) {
+        console.warn(`[SysIntelligence] probe=${label} timeout #${newCount} — setting 12min cooldown`);
+      }
+    }
+    throw err;
+  });
 }
 
 // ── In-memory cache ───────────────────────────────────────────────────────────
@@ -257,6 +342,9 @@ void _loadDiskCache().then((cached) => {
     console.log("[SysIntelligence] In-memory cache pre-populated from disk");
   }
 });
+
+// Load per-source probe health so degraded sources are skipped from first launch.
+void _loadProbeHealth();
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -428,37 +516,39 @@ async function collect(): Promise<SystemIntelligenceProfile> {
   console.log("[SysIntelligence] phase=full start — deep collection");
   const startMs = Date.now();
 
+  // Tight timeouts: fail fast rather than block startup for 30s on AMD/WMI-slow hosts.
+  // siTimeoutTracked records each timeout and skips sources in a 12-min cooldown after 2+ failures.
   const [
     bbRes, biosRes, cpuRes, graphicsRes, memLayoutRes,
     diskLayoutRes, fsSizeRes, netIfRes, netConnRes,
     procsRes, osRes, batteryRes, usersRes,
     platformStates, monitorEdidRes,
   ] = await Promise.allSettled([
-    siTimeout("baseboard",    si.baseboard(),            8_000),
-    siTimeout("bios",         si.bios(),                 8_000),
-    siTimeout("cpu",          si.cpu(),                 30_000), // AMD WMI cold-start can be 6-7s+
-    siTimeout("graphics",     si.graphics(),            15_000),
-    siTimeout("memLayout",    si.memLayout(),           12_000),
-    siTimeout("diskLayout",   si.diskLayout(),          12_000),
-    siTimeout("fsSize",       si.fsSize(),              12_000),
-    siTimeout("netIf",        si.networkInterfaces("*"),12_000),
-    siTimeout("netConn",      si.networkConnections(),  12_000),
-    siTimeout("processes",    si.processes(),           12_000),
-    siTimeout("osInfo",       si.osInfo(),               8_000),
-    siTimeout("battery",      si.battery(),              5_000),
-    siTimeout("users",        si.users(),                5_000),
-    siTimeout("platformPS",   collectWindowsPlatformStates(), 12_000),
-    siTimeout("monitorEDID",  collectMonitorEdidNames(),       12_000),
+    siTimeoutTracked("baseboard",    si.baseboard(),             3_000),
+    siTimeoutTracked("bios",         si.bios(),                  3_000),
+    siTimeoutTracked("cpu",          si.cpu(),                   5_000), // os.cpus() fallback
+    siTimeoutTracked("graphics",     si.graphics(),              3_000), // WMI covers AMD
+    siTimeoutTracked("memLayout",    si.memLayout(),             4_000),
+    siTimeoutTracked("diskLayout",   si.diskLayout(),            4_000),
+    siTimeoutTracked("fsSize",       si.fsSize(),                4_000),
+    siTimeoutTracked("netIf",        si.networkInterfaces("*"),  4_000),
+    siTimeoutTracked("netConn",      si.networkConnections(),    4_000),
+    siTimeoutTracked("processes",    si.processes(),             4_000),
+    siTimeoutTracked("osInfo",       si.osInfo(),                3_000),
+    siTimeoutTracked("battery",      si.battery(),               2_000),
+    siTimeoutTracked("users",        si.users(),                 2_000),
+    siTimeoutTracked("platformPS",   collectWindowsPlatformStates(), 3_000),
+    siTimeoutTracked("monitorEDID",  collectMonitorEdidNames(),       3_000),
   ]);
   const edidNames: Array<{ name: string; manufacturer: string }> =
     monitorEdidRes.status === "fulfilled" ? monitorEdidRes.value : [];
 
-  // Chassis — quick WMI call, skip immediately if WMI is generally slow on this host
+  // Chassis — quick WMI call, 1.5s hard limit
   let chassisType: string | null = null;
   try {
     const chassis = await Promise.race([
       si.chassis(),
-      new Promise<null>(r => setTimeout(() => r(null), 8_000)),
+      new Promise<null>(r => setTimeout(() => r(null), 1_500)),
     ]);
     chassisType = chassis ? safeStr((chassis as any).type) : null;
   } catch {}
@@ -756,7 +846,8 @@ async function collect(): Promise<SystemIntelligenceProfile> {
   const dur = Date.now() - startMs;
   console.log(`[SysIntelligence] phase=full complete in ${dur}ms | MB=${profile.baseboard.model} | BIOS=${profile.bios.version} | CPU=${profile.cpu.brand} | GPUs=${profile.gpu.controllers.length} | RAMsticks=${profile.memory.sticks.length}`);
 
-  void _saveDiskCache(profile); // persist to disk (fire-and-forget, never blocks return)
+  void _saveDiskCache(profile);   // persist to disk (fire-and-forget)
+  void _saveProbeHealth();        // persist probe health (fire-and-forget)
   return profile;
 }
 
@@ -768,12 +859,14 @@ async function collectFast(): Promise<SystemIntelligenceProfile> {
   const t = Date.now();
   console.log("[SysIntelligence] phase=A start — identity collection");
 
+  // Tight limits — Phase A must never hang startup. os.cpus()/os.totalmem() are
+  // always-available fallbacks if WMI is slow on this host.
   const [bbRes, biosRes, cpuRes, graphicsRes, memRes] = await Promise.allSettled([
-    siTimeout("A.baseboard", si.baseboard(), 12_000),
-    siTimeout("A.bios",      si.bios(),      12_000),
-    siTimeout("A.cpu",       si.cpu(),       30_000), // AMD WMI cold-start can reach 6-7s+
-    siTimeout("A.graphics",  si.graphics(),  12_000),
-    siTimeout("A.mem",       si.mem(),        8_000),
+    siTimeoutTracked("baseboard", si.baseboard(), 3_000),
+    siTimeoutTracked("bios",      si.bios(),      3_000),
+    siTimeoutTracked("cpu",       si.cpu(),       5_000), // os.cpus() fallback below
+    siTimeoutTracked("graphics",  si.graphics(),  3_000),
+    siTimeout("A.mem",            si.mem(),       1_500), // untracked — no fallback needed
   ]);
 
   const bb       = bbRes.status      === "fulfilled" ? (bbRes.value as any)       : null;
