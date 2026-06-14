@@ -72,6 +72,8 @@ function structuredToText(s: ChatStructured): string {
 
 interface SystemContext {
   isPremium?: boolean;
+  currentRoute?: string;
+  optimizationScore?: number;
   system: {
     cpu: string;
     gpu: string;
@@ -1052,7 +1054,7 @@ export default function AiAdvisor() {
   // AI tweak-recommendation state
   const [showApplyModal, setShowApplyModal] = useState(false);
   const [applyModalRecs, setApplyModalRecs] = useState<AiTweakRecommendation[]>([]);
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
   const auth = useAuth();
   const isAdmin = !!auth.user?.isAdmin;
   const isElectronApp = isElectronWithTweaks();
@@ -1301,8 +1303,14 @@ export default function AiAdvisor() {
       si?.powerPlan?.guid ??
       null;
 
+    const totalKnownForScore = enabledTweaks.length + disabledTweaks.length;
+    const optimizationScore = totalKnownForScore > 0
+      ? Math.round(Math.min(100, 40 + (enabledTweaks.length / totalKnownForScore) * 60))
+      : 40;
     const ctx: SystemContext = {
       isPremium,
+      currentRoute: location,
+      optimizationScore,
       system: {
         cpu: stats.cpuName || si?.cpu.brand || "",
         gpu: gpuStr,
@@ -1374,7 +1382,7 @@ export default function AiAdvisor() {
       `ramTotalGB=${ramTotalForLog ?? "null"} ` +
       `disk="${ctx.system.storage || "none"}"`
     );
-  }, [stats, tweaks, liveTel, isPremium, sysIntel.profile, history]);
+  }, [stats, tweaks, liveTel, isPremium, sysIntel.profile, history, location]);
 
   // Auto-analysis welcome message
   useEffect(() => {
@@ -1765,119 +1773,112 @@ export default function AiAdvisor() {
 
       if (!thinkingAdded) setMessages(prev => [...prev, placeholderMsg]);
 
-      // Always typewriter-reveal the response (structured responses also converted to text)
+      // ── Parse action markers IMMEDIATELY from the raw response ────────────
+      // Recommendation and navigation cards are inserted before the typewriter
+      // starts so the user can interact with Apply buttons while text animates.
       const rawResponse = data.content || (data.structured ? structuredToText(data.structured) : "");
       console.log(`[AI:OUTPUT] chars=${rawResponse.length} preview="${rawResponse.slice(0, 120).replace(/\n/g, " ")}${rawResponse.length > 120 ? "…" : ""}"`);
-      const textToReveal: string = rawResponse;
 
-      revealContent(assistantId, textToReveal, () => {
-        inputRef.current?.focus();
+      // 1. Parse <<APPLY:tweakId>> markers
+      const APPLY_RE_IMM = /<<APPLY:([a-z0-9-]+)>>/gi;
+      const seenIds = new Set<string>();
+      const immediateRecs: AiTweakRecommendation[] = [];
+      let applyM: RegExpExecArray | null;
+      while ((applyM = APPLY_RE_IMM.exec(rawResponse)) !== null) {
+        const id = applyM[1].toLowerCase();
+        if (seenIds.has(id)) continue;
+        seenIds.add(id);
+        const tweak = getTweak(id);
+        if (!tweak || !tweak.supported) continue;
+        immediateRecs.push({
+          tweakId: id,
+          reason: tweak.description.slice(0, 120),
+          expectedImpact: tweak.impact?.[0] ?? undefined,
+        });
+      }
 
-        // Parse <<APPLY:tweakId>> markers from the revealed text and generate
-        // a dedicated recommendation-cards message so the user gets the full
-        // Apply / Apply All / Details UI below the AI's explanation.
-        const APPLY_RE = /<<APPLY:([a-z0-9-]+)>>/gi;
-        const seen = new Set<string>();
-        const recs: AiTweakRecommendation[] = [];
-        let m: RegExpExecArray | null;
-        while ((m = APPLY_RE.exec(textToReveal)) !== null) {
-          const id = m[1].toLowerCase();
-          if (seen.has(id)) continue;
-          seen.add(id);
-          const tweak = getTweak(id);
-          if (!tweak || !tweak.supported) continue;
-          recs.push({
-            tweakId: id,
-            reason: tweak.description.slice(0, 120),
-            expectedImpact: tweak.impact?.[0] ?? undefined,
-          });
-        }
-        if (recs.length > 0) {
-          setMessages(prev => {
-            const stripped = prev.map(m =>
-              m.id === assistantId
-                ? { ...m, content: m.content.replace(/<<APPLY:[a-z0-9-]+>>/gi, "").replace(/\s{2,}/g, " ").trim() }
-                : m
-            );
-            // Drop the original text bubble if stripping markers left it empty
-            const filtered = stripped.filter(m => !(m.id === assistantId && m.content === "" && !m.structured));
-            return [
-              ...filtered,
-              {
-                id: `recs-${assistantId}`,
-                role: "assistant" as const,
-                content: "",
-                timestamp: new Date(),
-                structured: { type: "recommendations" as const, items: recs },
-              },
-            ];
-          });
-          setTimeout(() => {
-            const el = scrollContainerRef.current;
-            if (el) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
-          }, 80);
-        } else {
-          // ── Post-response fallback: apply intent but AI emitted no markers ──
-          // If the user's message looked like an apply intent and we still have
-          // last recommended tweaks, surface them now so the user is never stuck.
-          const APPLY_INTENT_RE = /\b(apply|enable|turn on|do it|go|yes|sure|show me|direct|can you|show|ok|okay|proceed)\b/i;
-          if (APPLY_INTENT_RE.test(messageContent)) {
-            const fallbackRecs = getLastRecommendedTweaks(messagesRef.current);
-            const alreadyShown = messagesRef.current.some(
-              m => m.structured?.type === "recommendations" && m.id.startsWith("recs-") && m.id > `recs-${assistantId.slice(10)}`,
-            );
-            if (fallbackRecs.length > 0 && !alreadyShown) {
-              setMessages(prev => [
-                ...prev,
-                {
-                  id: `recs-fallback-${assistantId}`,
-                  role: "assistant" as const,
-                  content: "",
-                  timestamp: new Date(),
-                  structured: { type: "recommendations" as const, items: fallbackRecs },
-                },
-              ]);
-              setTimeout(() => {
-                const el = scrollContainerRef.current;
-                if (el) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
-              }, 80);
+      // 2. Parse <<NAV:/route:Label>> markers
+      const NAV_RE_IMM = /<<NAV:(\/[a-zA-Z0-9/-]+):([^>]+)>>/g;
+      const immediateNavItems: Array<{ route: string; label: string }> = [];
+      let navM: RegExpExecArray | null;
+      while ((navM = NAV_RE_IMM.exec(rawResponse)) !== null) {
+        immediateNavItems.push({ route: navM[1].trim(), label: navM[2].trim() });
+      }
+
+      // 3. Strip all markers from the text that gets typewritten
+      const cleanText = rawResponse
+        .replace(/<<APPLY:[a-z0-9-]+>>/gi, "")
+        .replace(/<<NAV:\/[^>]+>>/g, "")
+        .replace(/  +/g, " ")
+        .trim();
+
+      // 4. Insert card messages IMMEDIATELY (before typewriter starts)
+      if (immediateRecs.length > 0 || immediateNavItems.length > 0) {
+        setMessages(prev => {
+          const cards: ChatMessage[] = [];
+          if (immediateRecs.length > 0) {
+            cards.push({
+              id: `recs-${assistantId}`,
+              role: "assistant" as const,
+              content: "",
+              timestamp: new Date(),
+              structured: { type: "recommendations" as const, items: immediateRecs },
+            });
+          }
+          if (immediateNavItems.length > 0) {
+            cards.push({
+              id: `nav-${assistantId}`,
+              role: "assistant" as const,
+              content: "",
+              timestamp: new Date(),
+              structured: { type: "navigation" as const, items: immediateNavItems },
+            });
+          }
+          return [...prev, ...cards];
+        });
+        setTimeout(() => {
+          const el = scrollContainerRef.current;
+          if (el) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+        }, 40);
+      }
+
+      // 5. Typewrite the marker-stripped text (or clean up if response was markers-only)
+      if (cleanText) {
+        revealContent(assistantId, cleanText, () => {
+          inputRef.current?.focus();
+
+          // Post-typewriter fallback: apply intent but AI emitted no markers
+          if (immediateRecs.length === 0) {
+            const APPLY_INTENT_RE = /\b(apply|enable|turn on|do it|go|yes|sure|show me|direct|can you|show|ok|okay|proceed)\b/i;
+            if (APPLY_INTENT_RE.test(messageContent)) {
+              const fallbackRecs = getLastRecommendedTweaks(messagesRef.current);
+              const alreadyShown = messagesRef.current.some(
+                m => m.structured?.type === "recommendations" && m.id.startsWith("recs-") && m.id > `recs-${assistantId.slice(10)}`,
+              );
+              if (fallbackRecs.length > 0 && !alreadyShown) {
+                setMessages(prev => [
+                  ...prev,
+                  {
+                    id: `recs-fallback-${assistantId}`,
+                    role: "assistant" as const,
+                    content: "",
+                    timestamp: new Date(),
+                    structured: { type: "recommendations" as const, items: fallbackRecs },
+                  },
+                ]);
+                setTimeout(() => {
+                  const el = scrollContainerRef.current;
+                  if (el) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+                }, 80);
+              }
             }
           }
-        }
-
-        // ── Parse <<NAV:/route:Label>> markers → navigation button card ──────
-        const NAV_RE = /<<NAV:(\/[a-zA-Z0-9/-]+):([^>]+)>>/g;
-        const navItems: Array<{ route: string; label: string }> = [];
-        let nm: RegExpExecArray | null;
-        while ((nm = NAV_RE.exec(textToReveal)) !== null) {
-          navItems.push({ route: nm[1].trim(), label: nm[2].trim() });
-        }
-        if (navItems.length > 0) {
-          setMessages(prev => {
-            const stripped = prev.map(m =>
-              m.id === assistantId
-                ? { ...m, content: m.content.replace(/<<NAV:\/[^>]+>>/g, "").replace(/\s{2,}/g, " ").trim() }
-                : m
-            );
-            // Drop the original text bubble if stripping markers left it empty
-            const filtered = stripped.filter(m => !(m.id === assistantId && m.content === "" && !m.structured));
-            return [
-              ...filtered,
-              {
-                id: `nav-${assistantId}`,
-                role: "assistant" as const,
-                content: "",
-                timestamp: new Date(),
-                structured: { type: "navigation" as const, items: navItems },
-              },
-            ];
-          });
-          setTimeout(() => {
-            const el = scrollContainerRef.current;
-            if (el) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
-          }, 80);
-        }
-      });
+        });
+      } else {
+        // Response was markers-only — no text to typewrite; drop the placeholder
+        setMessages(prev => prev.filter(m => m.id !== assistantId));
+        inputRef.current?.focus();
+      }
 
     } catch (err: unknown) {
       clearTimeout(thinkingTimer);

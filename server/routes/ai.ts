@@ -665,6 +665,36 @@ function buildChatContext(context: any, serverCtx?: Awaited<ReturnType<typeof bu
     parts.push(`LAST RECOMMENDED TWEAKS from prior turn (these are what the user means by "it"/"them"/"that"): ${lastRecommendedTweaks.join(", ")}`);
   }
 
+  // ── Current route (page the user is viewing right now) ───────────────────
+  if (context?.currentRoute && typeof context.currentRoute === "string") {
+    const ROUTE_LABELS: Record<string, string> = {
+      "/":               "Dashboard",
+      "/tweaks":         "Tweaks",
+      "/network-tweaks": "Network Tweaks",
+      "/power-plan":     "Power Plan",
+      "/ai-advisor":     "AI Advisor",
+      "/bios-advisor":   "BIOS Advisor",
+      "/extreme-labs":   "Extreme Labs",
+      "/security":       "Security",
+      "/focus":          "Focus Mode",
+      "/process-manager":"Process Manager",
+      "/system-cleaner": "System Cleaner",
+      "/debloater":      "Debloater",
+      "/app-booster":    "App Booster",
+      "/history":        "History",
+      "/settings":       "Settings",
+    };
+    const label = ROUTE_LABELS[context.currentRoute] ?? context.currentRoute;
+    parts.push(`User's current page: ${label} (${context.currentRoute}) — use <<NAV:${context.currentRoute}:${label}>> if asked to stay here, or other routes to navigate away`);
+  }
+
+  // ── Optimization score ────────────────────────────────────────────────────
+  if (context?.optimizationScore != null && typeof context.optimizationScore === "number") {
+    const score = context.optimizationScore as number;
+    const level = score >= 80 ? "Well optimized" : score >= 55 ? "Partially optimized" : score >= 40 ? "Getting started" : "Needs attention";
+    parts.push(`Optimization score: ${score}/100 (${level})`);
+  }
+
   return parts.join("\n");
 }
 
