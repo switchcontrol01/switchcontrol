@@ -157,10 +157,19 @@ export type { AppAuthContextValue } from "@/lib/appAuthContext";
 export { useAppAuth } from "@/lib/appAuthContext";
 import { AppAuthContext } from "@/lib/appAuthContext";
 
-// No fullscreen fallback — keeping the fallback null means the shell
-// (Sidebar, AppBackground) stays visible while a lazy chunk loads on first open.
-// startTransition (via useTransitionLocation) keeps the previous page mounted
-// during the chunk fetch, so in the common case nothing flashes at all.
+// DarkFallback — solid dark cover shown while a lazy route chunk is loading.
+// Replaces fallback={null} so the compositor never sees a transparent frame
+// during the first navigation to a lazy page.
+const DarkFallback = () => (
+  <div
+    style={{
+      position: "fixed",
+      inset: 0,
+      background: "#070b14",
+      zIndex: 0,
+    }}
+  />
+);
 
 // ElectronAppRoutes — uses Wouter component-prop form so React's reconciler
 // sees stable component types at each route position.  A single ErrorBoundary
@@ -172,7 +181,7 @@ function ElectronAppRoutes() {
   const [location] = useLocation();
   return (
     <ErrorBoundary route={location}>
-      <Suspense fallback={null}>
+      <Suspense fallback={<DarkFallback />}>
         <Switch>
           <Route path="/" component={Home} />
           <Route path="/dashboard" component={Home} />
@@ -201,7 +210,7 @@ function ElectronAppRoutes() {
 
 function WebsiteRoutes() {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<DarkFallback />}>
       <Switch>
         <Route path="/" component={Landing} />
         <Route path="/features" component={Features} />
@@ -1406,7 +1415,7 @@ function ElectronAppContent() {
           {phase === "booting" && (
             <motion.div
               key="booting"
-              initial={{ opacity: 0 }}
+              initial={{ opacity: 1 }}
               animate={{
                 opacity: 1,
                 transition: { duration: 0.35, ease: "easeOut" },
@@ -1475,7 +1484,7 @@ function ElectronAppContent() {
           {(phase === "unauthenticated" || phase === "login_success") && (
             <motion.div
               key="login"
-              initial={{ opacity: 0, scale: 1.008 }}
+              initial={{ opacity: 1, scale: 1 }}
               animate={{
                 opacity: 1,
                 scale: 1,
@@ -1496,7 +1505,7 @@ function ElectronAppContent() {
           {phase === "welcome" && (
             <motion.div
               key="welcome"
-              initial={{ opacity: 0 }}
+              initial={{ opacity: 1 }}
               animate={{
                 opacity: 1,
                 transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] },
@@ -1534,7 +1543,7 @@ function ElectronAppContent() {
               // does NOT create a containing block.
               // The inner AppLayout page div (0.32s, blur 6px) provides the visual
               // entrance drama; clearContainingBlock cleans that up after it completes.
-              initial={{ opacity: 0 }}
+              initial={{ opacity: 1 }}
               animate={
                 isSigningOut
                   ? {
