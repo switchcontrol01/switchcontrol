@@ -301,14 +301,28 @@ function MockupCounter({ target, suffix = "", delay = 800 }: { target: number; s
   return <span>{val}{suffix}</span>;
 }
 
+// Interval hook that automatically pauses when the page is hidden (tab switch /
+// minimize) and resumes when visible again. Avoids all 9 mockup timers burning
+// CPU/causing React reconciliations while the user isn't looking at the page.
+function usePausableInterval(fn: () => void, delay: number) {
+  const fnRef = useRef(fn);
+  fnRef.current = fn;
+  useEffect(() => {
+    let id: ReturnType<typeof setInterval> | null = null;
+    const start = () => { if (id === null) id = setInterval(() => fnRef.current(), delay); };
+    const stop  = () => { if (id !== null) { clearInterval(id); id = null; } };
+    const onVis = () => { document.hidden ? stop() : start(); };
+    document.addEventListener("visibilitychange", onVis);
+    if (!document.hidden) start();
+    return () => { stop(); document.removeEventListener("visibilitychange", onVis); };
+  }, [delay]);
+}
+
 function LiveMockupValue({ base, range, suffix, interval = 2000 }: { base: number; range: number; suffix: string; interval?: number }) {
   const [val, setVal] = useState(base);
-  useEffect(() => {
-    const id = setInterval(() => {
-      setVal(base + Math.floor(Math.random() * range));
-    }, interval);
-    return () => clearInterval(id);
-  }, [base, range, interval]);
+  usePausableInterval(() => {
+    setVal(base + Math.floor(Math.random() * range));
+  }, interval);
   return <span>{val}{suffix}</span>;
 }
 
@@ -316,11 +330,11 @@ function LiveBar({ base, range, color, interval = 2500 }: { base: number; range:
   const [width, setWidth] = useState(0);
   useEffect(() => {
     const t1 = setTimeout(() => setWidth(base), 800);
-    const id = setInterval(() => {
-      setWidth(base + Math.floor(Math.random() * range));
-    }, interval);
-    return () => { clearTimeout(t1); clearInterval(id); };
-  }, [base, range, interval]);
+    return () => clearTimeout(t1);
+  }, [base]);
+  usePausableInterval(() => {
+    setWidth(base + Math.floor(Math.random() * range));
+  }, interval);
   return (
     <div className="mt-1.5 h-1 rounded-full bg-[#21262D] overflow-hidden">
       <div className={cn("h-full rounded-full transition-all duration-700 ease-out", color)} style={{ width: `${width}%` }} />
@@ -415,15 +429,12 @@ function MiniSparkline({ pts, stroke }: { pts: string; stroke: string }) {
 
 function HeroAppMockup() {
   const [tweakCount, setTweakCount] = useState(14);
-  useEffect(() => {
-    const id = setInterval(() => {
-      setTweakCount(prev => {
-        const next = prev + (Math.random() > 0.5 ? 1 : -1);
-        return Math.max(11, Math.min(17, next));
-      });
-    }, 2500);
-    return () => clearInterval(id);
-  }, []);
+  usePausableInterval(() => {
+    setTweakCount(prev => {
+      const next = prev + (Math.random() > 0.5 ? 1 : -1);
+      return Math.max(11, Math.min(17, next));
+    });
+  }, 2500);
 
   const RESOURCES = [
     {
