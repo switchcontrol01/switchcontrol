@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, type ElementType } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { Link } from "wouter";
 import { WebsiteShell } from "@/components/website/WebsiteShell";
 import {
@@ -161,14 +161,13 @@ function HeroBackground() {
         className="absolute inset-0"
         style={{ background: "radial-gradient(ellipse 90% 75% at 50% 0%, rgba(88,28,220,0.14) 0%, transparent 65%)" }}
       />
-      {/* Animated orb — left */}
+      {/* Animated orb — left — reduced motion aware, lower opacity/blur */}
       <motion.div
         className="absolute"
         style={{
           top: "5%", left: "-8%",
           width: 700, height: 700,
-          background: "radial-gradient(circle, rgba(109,40,217,0.11) 0%, transparent 68%)",
-          filter: "blur(60px)",
+          background: "radial-gradient(circle, rgba(109,40,217,0.09) 0%, transparent 68%)",
         }}
         animate={{ x: [0, 30, 0], y: [0, -20, 0], scale: [1, 1.08, 1] }}
         transition={{ duration: 14, repeat: Infinity, ease: "easeInOut" }}
@@ -179,8 +178,7 @@ function HeroBackground() {
         style={{
           top: "-5%", right: "-6%",
           width: 600, height: 600,
-          background: "radial-gradient(circle, rgba(6,182,212,0.08) 0%, transparent 65%)",
-          filter: "blur(70px)",
+          background: "radial-gradient(circle, rgba(6,182,212,0.06) 0%, transparent 65%)",
         }}
         animate={{ x: [0, -25, 0], y: [0, 25, 0], scale: [1, 1.06, 1] }}
         transition={{ duration: 18, repeat: Infinity, ease: "easeInOut", delay: 3 }}
@@ -600,40 +598,37 @@ export default function FAQPage() {
             {/* ── Right: questions + info cards ─────────────────────────────── */}
             <div className="flex-1 min-w-0">
 
-              {/* Active category label */}
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={activeCategory}
-                  initial={{ opacity: 0, x: -8 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 8 }}
-                  transition={{ duration: 0.25, ease: EASE_IO }}
-                  className="mb-6"
-                >
-                  {activeCategory === "all" ? (
-                    <h2 className="text-xl font-bold text-[#E6EAF0]">
-                      All Questions
-                      <span className="ml-2 text-sm font-normal text-[#6B7380]">({FAQ_ITEMS.length})</span>
-                    </h2>
-                  ) : (() => {
-                    const cat = CATEGORIES.find(c => c.id === activeCategory)!;
-                    return (
-                      <div className="flex items-center gap-3">
-                        <div
-                          className="size-8 rounded-lg flex items-center justify-center"
-                          style={{ background: `${cat.color}0.12)`, border: `1px solid ${cat.color}0.22)` }}
-                        >
-                          <cat.icon className="size-4" style={{ color: cat.color + "0.9)" }} />
-                        </div>
-                        <h2 className="text-xl font-bold text-[#E6EAF0]">
-                          {cat.label}
-                          <span className="ml-2 text-sm font-normal text-[#6B7380]">({countFor(activeCategory)})</span>
-                        </h2>
+              {/* Active category label — simple crossfade, no AnimatePresence mode="wait" */}
+              <motion.div
+                key={activeCategory}
+                initial={{ opacity: 0, x: -8 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.2, ease: EASE_IO }}
+                className="mb-6"
+              >
+                {activeCategory === "all" ? (
+                  <h2 className="text-xl font-bold text-[#E6EAF0]">
+                    All Questions
+                    <span className="ml-2 text-sm font-normal text-[#6B7380]">({FAQ_ITEMS.length})</span>
+                  </h2>
+                ) : (() => {
+                  const cat = CATEGORIES.find(c => c.id === activeCategory)!;
+                  return (
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="size-8 rounded-lg flex items-center justify-center"
+                        style={{ background: `${cat.color}0.12)`, border: `1px solid ${cat.color}0.22)` }}
+                      >
+                        <cat.icon className="size-4" style={{ color: cat.color + "0.9)" }} />
                       </div>
-                    );
-                  })()}
-                </motion.div>
-              </AnimatePresence>
+                      <h2 className="text-xl font-bold text-[#E6EAF0]">
+                        {cat.label}
+                        <span className="ml-2 text-sm font-normal text-[#6B7380]">({countFor(activeCategory)})</span>
+                      </h2>
+                    </div>
+                  );
+                })()}
+              </motion.div>
 
               {/* Accordion items — all items stay mounted; hidden by CSS for instant category switching */}
               <div className="space-y-2.5">

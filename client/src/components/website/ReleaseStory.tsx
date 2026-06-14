@@ -61,14 +61,17 @@ export default function ReleaseStory() {
     const stepEls = container.querySelectorAll("[data-release-step]");
     const observer = new IntersectionObserver(
       (entries) => {
+        let bestIdx = -1;
+        let bestRatio = 0;
         entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            const idx = Number(entry.target.getAttribute("data-index"));
-            setActiveStep(idx);
+          if (entry.isIntersecting && entry.intersectionRatio > bestRatio) {
+            bestRatio = entry.intersectionRatio;
+            bestIdx = Number(entry.target.getAttribute("data-index"));
           }
         });
+        if (bestIdx >= 0) setActiveStep(bestIdx);
       },
-      { threshold: 0.5 }
+      { threshold: [0.25, 0.5, 0.75] }
     );
 
     stepEls.forEach((el) => observer.observe(el));

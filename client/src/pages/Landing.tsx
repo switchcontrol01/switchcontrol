@@ -57,10 +57,8 @@ function HeroTiltContainer({ children }: { children: React.ReactNode }) {
       const fadeEnd = 520;
       const progress = Math.min(1, Math.max(0, (y - fadeStart) / (fadeEnd - fadeStart)));
       const opacity = 1 - progress * 0.72;
-      const blur = prefersReduced ? 0 : progress * 10;
       const translateY = prefersReduced ? 0 : progress * -24;
       el.style.opacity = String(opacity);
-      el.style.filter = blur > 0.5 ? `blur(${blur.toFixed(1)}px)` : "";
       el.style.transform = `translateY(${translateY.toFixed(1)}px)`;
       rafRef.current = null;
     };
@@ -84,7 +82,7 @@ function HeroTiltContainer({ children }: { children: React.ReactNode }) {
         transformStyle: "preserve-3d",
         perspective: "1200px",
         perspectiveOrigin: "50% 100%",
-        transition: "opacity 0.08s linear, filter 0.08s linear",
+        transition: "opacity 0.08s linear",
       }}
     >
       <div

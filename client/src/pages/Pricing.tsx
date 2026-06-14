@@ -1,4 +1,4 @@
-import { useState, useEffect, type ElementType } from "react";
+import { useState, useEffect, useRef, useCallback, type ElementType } from "react";
 import { useLocation } from "wouter";
 import { Helmet } from "react-helmet";
 import {
@@ -38,6 +38,30 @@ interface IconItem {
 // ── Shared constants ────────────────────────────────────────────────────────
 const EASE  = [0.22, 1, 0.36, 1] as const;
 const EASE_IO = [0.65, 0, 0.35, 1] as const;
+
+// ── Reduced-motion + IntersectionObserver gate ─────────────────────────────
+function ReducedMotionGate({ children }: { children: (active: boolean) => React.ReactNode }) {
+  const [active, setActive] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (prefersReduced) {
+      setActive(false);
+      return;
+    }
+    const obs = new IntersectionObserver(
+      ([e]) => { setActive(e.isIntersecting); },
+      { threshold: 0.1 }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+
+  return <div ref={ref}>{children(active)}</div>;
+}
 
 // ── Data ───────────────────────────────────────────────────────────────────
 const FREE_BENEFITS = [
@@ -188,24 +212,41 @@ const OBJECTIONS = [
 
 // ── SVG Telemetry Lines ─────────────────────────────────────────────────────
 function TelemetryLines() {
+  const [ringsActive, setRingsActive] = useState(false);
+  const ref = useRef<SVGSVGElement>(null);
+
+  useEffect(() => {
+    const svg = ref.current;
+    if (!svg) return;
+    const obs = new IntersectionObserver(
+      ([e]) => { if (e.isIntersecting) setRingsActive(true); },
+      { threshold: 0.1 }
+    );
+    obs.observe(svg);
+    return () => obs.disconnect();
+  }, []);
+
   return (
     <svg
+      ref={ref}
       className="absolute inset-0 w-full h-full pointer-events-none"
       viewBox="0 0 1200 600"
       preserveAspectRatio="xMidYMid slice"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
     >
-      {/* Horizontal trace lines */}
+      {/* Horizontal trace lines — CSS stroke-dashoffset for compositor-only paint */}
       {[60, 180, 300, 420, 540].map((y, i) => (
-        <motion.line
+        <line
           key={`h${i}`}
           x1="0" y1={y} x2="1200" y2={y}
           stroke={i % 2 === 0 ? "rgba(139,92,246,0.06)" : "rgba(6,182,212,0.04)"}
           strokeWidth="1"
-          initial={{ pathLength: 0, opacity: 0 }}
-          animate={{ pathLength: 1, opacity: 1 }}
-          transition={{ duration: 2.5 + i * 0.4, delay: i * 0.2, ease: "easeOut" }}
+          style={{
+            strokeDasharray: 1200,
+            strokeDashoffset: 1200,
+            animation: `tel-draw ${1.5 + i * 0.3}s ${i * 0.2}s ease-out forwards`,
+          }}
         />
       ))}
 
@@ -218,7 +259,7 @@ function TelemetryLines() {
         strokeDasharray="8 4"
         initial={{ pathLength: 0, opacity: 0 }}
         animate={{ pathLength: 1, opacity: 1 }}
-        transition={{ duration: 3.5, delay: 0.4, ease: EASE }}
+        transition={{ duration: 2.0, delay: 0.4, ease: EASE }}
       />
 
       {/* Animated data trace — secondary */}
@@ -229,7 +270,7 @@ function TelemetryLines() {
         fill="none"
         initial={{ pathLength: 0, opacity: 0 }}
         animate={{ pathLength: 1, opacity: 1 }}
-        transition={{ duration: 4, delay: 0.8, ease: EASE }}
+        transition={{ duration: 2.4, delay: 0.8, ease: EASE }}
       />
 
       {/* Glowing data nodes */}
@@ -249,7 +290,7 @@ function TelemetryLines() {
         />
       ))}
 
-      {/* Pulse ring on key nodes */}
+      {/* Pulse ring on key nodes — IntersectionObserver-gated, no infinite repeat */}
       {[
         { cx: 480, cy: 260, color: "rgba(139,92,246," },
         { cx: 840, cy: 140, color: "rgba(6,182,212," },
@@ -261,8 +302,8 @@ function TelemetryLines() {
           stroke={n.color + "0.5)"}
           strokeWidth="1"
           initial={{ r: 3, opacity: 0.6 }}
-          animate={{ r: 18, opacity: 0 }}
-          transition={{ duration: 2, delay: 2.5 + i * 0.5, repeat: Infinity, ease: "easeOut" }}
+          animate={ringsActive ? { r: 18, opacity: 0 } : { r: 3, opacity: 0.6 }}
+          transition={{ duration: 2, delay: 2.5 + i * 0.5, repeat: ringsActive ? Infinity : 0, ease: "easeOut" }}
         />
       ))}
 
@@ -276,7 +317,7 @@ function TelemetryLines() {
           strokeDasharray="4 6"
           initial={{ pathLength: 0, opacity: 0 }}
           animate={{ pathLength: 1, opacity: 1 }}
-          transition={{ duration: 1.5, delay: 2 + i * 0.3, ease: EASE }}
+          transition={{ duration: 1.0, delay: 2 + i * 0.3, ease: EASE }}
         />
       ))}
     </svg>
@@ -502,30 +543,36 @@ export default function Pricing() {
 
       {/* ════════════════ HERO ════════════════ */}
       <section className="relative min-h-[88vh] flex flex-col items-center justify-center pt-24 pb-20 overflow-hidden">
-        {/* Layered bg glows */}
+        {/* Layered bg glows — gated by IntersectionObserver, reduced-motion aware */}
         <div className="absolute inset-0 pointer-events-none">
-          <motion.div
-            className="absolute"
-            style={{
-              top: "-10%", left: "50%", transform: "translateX(-50%)",
-              width: 900, height: 900,
-              background: "radial-gradient(ellipse, rgba(88,28,220,0.18) 0%, rgba(109,40,217,0.10) 35%, transparent 68%)",
-              filter: "blur(60px)",
-            }}
-            animate={{ scale: [1, 1.06, 1], opacity: [0.8, 1, 0.8] }}
-            transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
-          />
-          <motion.div
-            className="absolute"
-            style={{
-              bottom: "5%", right: "-5%",
-              width: 500, height: 500,
-              background: "radial-gradient(ellipse, rgba(6,182,212,0.1) 0%, transparent 65%)",
-              filter: "blur(50px)",
-            }}
-            animate={{ x: [0, -20, 0], y: [0, 20, 0] }}
-            transition={{ duration: 14, repeat: Infinity, ease: "easeInOut", delay: 2 }}
-          />
+          <ReducedMotionGate>
+            {(active) => (
+              <>
+                <motion.div
+                  className="absolute"
+                  style={{
+                    top: "-10%", left: "50%", transform: "translateX(-50%)",
+                    width: 900, height: 900,
+                    background: "radial-gradient(ellipse, rgba(88,28,220,0.18) 0%, rgba(109,40,217,0.10) 35%, transparent 68%)",
+                    filter: "blur(60px)",
+                  }}
+                  animate={active ? { scale: [1, 1.06, 1], opacity: [0.8, 1, 0.8] } : { scale: 1, opacity: 0.8 }}
+                  transition={{ duration: 10, repeat: active ? Infinity : 0, ease: "easeInOut" }}
+                />
+                <motion.div
+                  className="absolute"
+                  style={{
+                    bottom: "5%", right: "-5%",
+                    width: 500, height: 500,
+                    background: "radial-gradient(ellipse, rgba(6,182,212,0.1) 0%, transparent 65%)",
+                    filter: "blur(50px)",
+                  }}
+                  animate={active ? { x: [0, -20, 0], y: [0, 20, 0] } : { x: 0, y: 0 }}
+                  transition={{ duration: 14, repeat: active ? Infinity : 0, ease: "easeInOut", delay: 2 }}
+                />
+              </>
+            )}
+          </ReducedMotionGate>
         </div>
 
         {/* SVG telemetry background */}
@@ -933,13 +980,17 @@ export default function Pricing() {
           className="absolute inset-0 pointer-events-none"
           style={{ background: "radial-gradient(ellipse 80% 60% at 50% 50%, rgba(139,92,246,0.06) 0%, transparent 70%)" }}
         />
-        {/* Animated scan line */}
-        <motion.div
-          className="absolute left-0 right-0 h-px pointer-events-none"
-          style={{ background: "linear-gradient(90deg, transparent, rgba(139,92,246,0.4), rgba(6,182,212,0.3), transparent)" }}
-          animate={{ top: ["0%", "100%"], opacity: [0, 1, 1, 0] }}
-          transition={{ duration: 6, repeat: Infinity, ease: "linear", times: [0, 0.05, 0.95, 1] }}
-        />
+        {/* Animated scan line — gated by IntersectionObserver */}
+        <ReducedMotionGate>
+          {(active) => (
+            <motion.div
+              className="absolute left-0 right-0 h-px pointer-events-none"
+              style={{ background: "linear-gradient(90deg, transparent, rgba(139,92,246,0.4), rgba(6,182,212,0.3), transparent)" }}
+              animate={active ? { top: ["0%", "100%"], opacity: [0, 1, 1, 0] } : { top: "0%", opacity: 0 }}
+              transition={{ duration: 6, repeat: active ? Infinity : 0, ease: "linear", times: [0, 0.05, 0.95, 1] }}
+            />
+          )}
+        </ReducedMotionGate>
 
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <ScrollFade>

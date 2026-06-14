@@ -445,7 +445,9 @@ function TelemetryDashboard() {
     if (!inView) return;
     /* GPU: throttle live metrics to ~6 fps — still feels alive, not CPU-heavy */
     let frameCount = 0;
+    let running = true;
     const tick = () => {
+      if (!running) return;
       frameCount++;
       if (frameCount % 5 === 0) {
         tRef.current += 0.36;
@@ -455,16 +457,18 @@ function TelemetryDashboard() {
         const gpu = Math.round(42 + Math.sin(t * 1.1) * 16 + Math.cos(t * 0.7) * 7);
         const temp = Math.round(58 + Math.sin(t * 0.6) * 8);
         setMetrics({ cpu, ram, gpu, temp });
-        sparkRef.current.cpu = [...sparkRef.current.cpu.slice(1), cpu];
-        sparkRef.current.ram = [...sparkRef.current.ram.slice(1), ram];
-        sparkRef.current.gpu = [...sparkRef.current.gpu.slice(1), gpu];
+        sparkRef.current.cpu.shift(); sparkRef.current.cpu.push(cpu);
+        sparkRef.current.ram.shift(); sparkRef.current.ram.push(ram);
+        sparkRef.current.gpu.shift(); sparkRef.current.gpu.push(gpu);
       }
       frameRef.current = requestAnimationFrame(tick);
     };
     const onVis = () => {
       if (document.hidden) {
+        running = false;
         cancelAnimationFrame(frameRef.current);
       } else {
+        running = true;
         frameRef.current = requestAnimationFrame(tick);
       }
     };
@@ -474,6 +478,7 @@ function TelemetryDashboard() {
       frameRef.current = requestAnimationFrame(tick);
     }
     return () => {
+      running = false;
       cancelAnimationFrame(frameRef.current);
       document.removeEventListener('visibilitychange', onVis);
     };

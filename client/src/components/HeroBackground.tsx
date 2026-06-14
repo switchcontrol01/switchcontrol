@@ -61,7 +61,6 @@ export function HeroBackground() {
         style={{
           background: 'hsl(270 55% 50% / 0.10)',
           animation: prefersReducedMotion ? 'none' : 'blobFloat1 25s ease-in-out infinite',
-          willChange: 'transform',
         }}
       />
       <div
@@ -69,7 +68,6 @@ export function HeroBackground() {
         style={{
           background: 'hsl(280 50% 45% / 0.06)',
           animation: prefersReducedMotion ? 'none' : 'blobFloat2 30s ease-in-out infinite',
-          willChange: 'transform',
         }}
       />
 

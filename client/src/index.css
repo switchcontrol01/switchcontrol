@@ -907,6 +907,12 @@ html {
   50% { transform: translate3d(15px, 15px, 0) scale(1.02); }
 }
 
+/* Telemetry line draw animation — compositor-only, no Framer Motion needed */
+@keyframes tel-draw {
+  from { stroke-dashoffset: 1200; }
+  to   { stroke-dashoffset: 0; }
+}
+
 @keyframes gradientShift {
   0%, 100% { background-position: 0% 50%; }
   50% { background-position: 100% 50%; }

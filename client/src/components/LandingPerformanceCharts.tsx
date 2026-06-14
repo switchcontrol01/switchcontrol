@@ -126,17 +126,23 @@ function useStreamData(
     if (!streaming) return;
     const id = setInterval(() => {
       const pt = nextFn(tRef.current++);
-      const updated = [...dataRef.current.slice(1), pt];
-      dataRef.current = updated;
-      setData([...updated]);
+      dataRef.current.shift();
+      dataRef.current.push(pt);
+      setData([...dataRef.current]);
     }, 440);
     // Kill streaming after 4 seconds to prevent idle GPU drain
     const killTimer = setTimeout(() => {
       setStreaming(false);
     }, 4000);
+    // Pause when tab hidden
+    const onVis = () => {
+      if (document.hidden) setStreaming(false);
+    };
+    document.addEventListener('visibilitychange', onVis);
     return () => {
       clearInterval(id);
       clearTimeout(killTimer);
+      document.removeEventListener('visibilitychange', onVis);
     };
   }, [streaming, nextFn]);
 

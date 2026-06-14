@@ -35,13 +35,21 @@ const NAV_LINKS = [
 
 function FullHeader() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
   const { prefersReducedMotion } = useMotion();
   const { user, isLoading, logout } = useAuth();
+  const headerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 20);
+    const handleScroll = () => {
+      const el = headerRef.current;
+      if (!el) return;
+      const scrolled = window.scrollY > 20;
+      el.style.boxShadow = scrolled
+        ? "0 8px 32px rgba(0,0,0,0.28), 0 1px 0 0 rgba(255,255,255,0.10), inset 0 -1px 0 0 rgba(255,255,255,0.06)"
+        : "0 4px 24px rgba(0,0,0,0.18), 0 1px 0 0 rgba(255,255,255,0.07)";
+    };
     window.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll();
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
@@ -52,15 +60,11 @@ function FullHeader() {
 
   return (
     <motion.header
+      ref={headerRef}
       className={cn(
         "fixed top-0 left-0 right-0 z-50 transition-all duration-500",
         "bg-[rgba(255,255,255,0.07)] backdrop-blur-md border-b border-white/[0.18]"
       )}
-      style={{
-        boxShadow: scrolled
-          ? "0 8px 32px rgba(0,0,0,0.28), 0 1px 0 0 rgba(255,255,255,0.10), inset 0 -1px 0 0 rgba(255,255,255,0.06)"
-          : "0 4px 24px rgba(0,0,0,0.18), 0 1px 0 0 rgba(255,255,255,0.07)",
-      }}
       initial={{ y: -80, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
