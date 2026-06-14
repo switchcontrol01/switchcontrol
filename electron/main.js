@@ -693,7 +693,7 @@ function createWindow() {
     // Chromium's white compositor init frame was never visible because the window
     // was hidden the entire time it was initializing.
     show: false,
-    backgroundColor: '#07090D',
+    backgroundColor: '#070b14',
     frame: false,
     thickFrame: false,
     webPreferences: {

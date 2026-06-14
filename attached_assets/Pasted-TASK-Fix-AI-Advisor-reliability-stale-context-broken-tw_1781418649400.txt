@@ -1,0 +1,158 @@
+TASK: Fix AI Advisor reliability, stale context, broken tweak apply behavior, and improve AI awareness WITHOUT rewriting the entire app.
+
+==================================================
+GOAL OF AI ADVISOR
+
+AI Advisor is NOT supposed to behave like a generic chatbot.
+
+The goal is for AI Advisor to become an intelligent operating layer for the ENTIRE SwitchControl application.
+
+It should function like:
+
+- a systems optimization assistant
+- a tweak recommendation engine
+- a diagnostics assistant
+- a navigation guide
+- a telemetry analyst
+- a hardware-aware optimization layer
+
+The AI must be deeply aware of:
+
+- Dashboard
+- Tweaks
+- Network Tweaks
+- Cleaner
+- App Booster
+- BIOS Advisor
+- Focus Mode
+- History
+- Settings
+- Telemetry
+- Active tweaks
+- Enabled tweaks
+- Hardware specs
+- Current route/page
+- Current optimization state
+- Current user goals
+- Previous recommendations
+- Pending recommendations
+- Tweak conflicts
+- Tweak dependencies
+
+The AI should be capable of:
+
+- guiding users through optimization
+- understanding current app state
+- recommending correct tweaks
+- applying tweaks reliably
+- navigating users to correct tabs
+- explaining optimization impact
+- understanding hardware bottlenecks
+- maintaining stable multi-turn conversations
+
+The AI should feel like a native intelligent core of the app.
+
+NOT:
+
+- a disconnected OpenAI wrapper
+- a generic chat assistant
+- a stateless message bot
+
+==================================================
+IMPORTANT
+
+Do NOT redesign the whole app.
+Do NOT rewrite the AI from scratch.
+Do NOT touch startup systems.
+Do NOT touch Electron boot.
+Do NOT touch telemetry polling.
+Do NOT touch backend auth.
+Do NOT touch tweak execution logic unless explicitly mentioned below.
+
+ONLY fix:
+
+- stale AI context
+- broken tweak apply cards
+- route awareness
+- AI state reliability
+- AI message/action parsing
+- delayed tweak card rendering
+- inefficient scans/renders
+- weak recommendation state handling
+- unreliable multi-turn coherence
+
+==================================================
+FILES TO INSPECT
+
+Inspect ONLY:
+
+- client/src/pages/AiAdvisor.tsx
+- server/routes/aiRouter.ts
+- AI-related lib/helpers
+- tweak recommendation parser
+- tweak recommendation UI
+- AI stores/state
+- route-awareness helpers
+- structured recommendation logic
+
+==================================================
+PRIMARY BUGS TO FIX
+
+1. STALE CONTEXT
+
+Current AI context becomes outdated due to async race conditions.
+
+Fix:
+
+- create centralized context snapshot builder
+- memoize context
+- snapshot state at send-time
+- avoid reactive scattered context assembly
+
+Create:
+
+src/lib/ai-context-builder.ts
+
+Requirements:
+
+- synchronous base snapshot
+- async enrichment optional
+- stable deterministic shape
+- no partial undefined context
+- include:
+  - current route
+  - enabled tweaks
+  - telemetry summary
+  - hardware summary
+  - active profile
+  - recent tweak history
+  - current page
+  - current optimization state
+
+==================================================
+
+2. BROKEN APPLY CONTRACTS
+
+Current tweak matching uses weak substring parsing.
+
+REMOVE:
+
+- substring matching
+- fuzzy tweak title scanning
+
+REPLACE WITH:
+stable tweak IDs only.
+
+AI responses must use:
+
+<"APPLY:tweak-id" (APPLY:tweak-id)>
+
+Then parse deterministically.
+
+No silent failures.
+
+==================================================
+
+3. TYPEWRITER DELAY BUG
+
+Currently tweak cards only appear after typewriter animation finishes.

@@ -73,40 +73,34 @@ document.addEventListener('click', (e) => {
   if (a?.href?.startsWith('file://')) e.preventDefault();
 }, true);
 
-// ── Dark-lock before React mounts ────────────────────────────────────────────
-// Belt-and-suspenders: index.html already sets opacity:0 and background:#07090D
-// on <html> as inline attributes, but we re-assert here in case HMR or any
-// module side-effect has overwritten them before this script runs.
-// This MUST run synchronously before createRoot so the very first React paint
-// is already behind a dark, fully-opaque root layer.
 const _isElectron = !!(window as any).electronAPI;
 
-// In Electron mode, the inline <script> in index.html has already set opacity=1
-// and sc-electron-no-cover (removes body::before).  The Splash will be visible
-// immediately when show() fires.  We do NOT touch opacity here.
-// In website mode, we keep the dark lock until React mounts, then reveal.
+// In website mode, hold the dark lock until React mounts, then reveal.
 if (!_isElectron) {
   document.documentElement.style.opacity = '0';
-  document.documentElement.style.background = '#07090D';
-  document.documentElement.style.backgroundColor = '#07090D';
-  document.body.style.background = '#07090D';
-  document.body.style.backgroundColor = '#07090D';
+  document.documentElement.style.background = '#070b14';
+  document.documentElement.style.backgroundColor = '#070b14';
+  document.body.style.background = '#070b14';
+  document.body.style.backgroundColor = '#070b14';
 }
 console.log(`[LAUNCH:R0] renderer bootstrap | electron=${_isElectron} | t=+${performance.now().toFixed(0)}ms`);
 
-// Remove the static #boot-shell (rendered by the HTML parser before any JS)
-// as soon as React has committed its first frame.  The 200ms fade lets the
-// dark splash content appear underneath so the transition is invisible.
-requestAnimationFrame(() => {
-  const shell = document.getElementById('boot-shell');
-  if (!shell) return;
-  shell.style.transition = 'opacity 200ms ease';
-  shell.style.opacity = '0';
-  setTimeout(() => { try { shell.remove(); } catch {} }, 210);
-});
-
 console.log(`[LAUNCH:R1] createRoot dispatching | t=+${performance.now().toFixed(0)}ms`);
 createRoot(document.getElementById("root")!).render(<App />);
+
+// Remove the static #boot-shell AFTER React has committed its first painted frame.
+// Double-rAF: first rAF = layout, second rAF = first paint committed.
+// Removing before first paint would expose a blank/white frame.
+requestAnimationFrame(() => {
+  requestAnimationFrame(() => {
+    const shell = document.getElementById('boot-shell');
+    if (shell) {
+      shell.style.transition = 'opacity 0.15s ease-out';
+      shell.style.opacity = '0';
+      setTimeout(() => { try { shell.remove(); } catch {} }, 160);
+    }
+  });
+});
 
 if (!_isElectron) {
   document.documentElement.style.opacity = '1';

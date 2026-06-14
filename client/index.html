@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" style="background:#07090D;color-scheme:dark;height:100%;width:100%;overflow:hidden;">
+<html lang="en" style="background:#070b14;color-scheme:dark;height:100%;width:100%;overflow:hidden;">
   <head>
     <meta name="google-site-verification" content="7Go-YIR3WALNYY6u19nKMEUG1nSTgugkNssIoYuwEL8" />
     <style>
@@ -8,8 +8,9 @@
         padding: 0;
         width: 100%;
         height: 100%;
-        background: #07090D !important;
         overflow: hidden;
+        background: #070b14 !important;
+        background-color: #070b14 !important;
       }
 
       html.sc-web,
@@ -18,10 +19,18 @@
         overflow: auto !important;
         height: auto !important;
       }
+
+      #boot-shell {
+        position: fixed;
+        inset: 0;
+        z-index: 999999;
+        background: #070b14;
+        pointer-events: none;
+      }
     </style>
 
     <script>
-      document.documentElement.style.background = '#07090D';
+      document.documentElement.style.background = '#070b14';
       document.documentElement.style.colorScheme = 'dark';
       if (!(window.electronAPI || navigator.userAgent.indexOf('Electron') !== -1)) {
         document.documentElement.classList.add('sc-web');
@@ -66,41 +75,14 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Playfair+Display:wght@400;500;600;700;800;900&display=swap" media="print" onload="this.media='all'">
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Playfair+Display:wght@400;500;600;700;800;900&display=swap"></noscript>
   </head>
-  <body style="margin:0;padding:0;background:#07090D;overflow:hidden;height:100%;width:100%;">
+  <body style="margin:0;padding:0;background:#070b14;overflow:hidden;height:100%;width:100%;">
 
-    <!-- Static boot shell — rendered by the HTML parser before any JS runs.
-         Eliminates the white-frame gap between native DWM surface and React paint.
-         Uses ONLY transform + opacity — no blur, no backdrop-filter, no shadows.
-         Removed by main.tsx (requestAnimationFrame → 200ms fade) after React mounts. -->
-    <div id="boot-shell">
-      <div class="boot-box"></div>
-    </div>
-    <style>
-      #boot-shell {
-        position: fixed;
-        inset: 0;
-        background: #07090D;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 999999;
-        pointer-events: none;
-      }
-      .boot-box {
-        width: 80px;
-        height: 80px;
-        border-radius: 22px;
-        background: rgba(255,255,255,0.04);
-        border: 1px solid rgba(255,255,255,0.08);
-        animation: bootPulse 1.1s ease-in-out infinite;
-      }
-      @keyframes bootPulse {
-        0%,100% { transform: scale(0.94); opacity: 0.50; }
-        50%      { transform: scale(1);    opacity: 1;    }
-      }
-    </style>
+    <!-- Pure dark boot shell — covers the window until React's first frame.
+         No animations, no blur, no opacity tricks. Solid #070b14 only.
+         Removed by main.tsx via double-rAF after React mounts. -->
+    <div id="boot-shell"></div>
 
-    <div id="root" style="background:#07090D;height:100%;width:100%;"></div>
+    <div id="root" style="background:#070b14;height:100%;width:100%;"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
