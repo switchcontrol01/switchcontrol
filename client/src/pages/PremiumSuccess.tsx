@@ -252,8 +252,15 @@ export default function PremiumSuccess() {
     const startTime = Date.now();
     const MIN_LOADING_MS = SUCCESS_TIMING.minLoadingMs;
 
-    fetch(`/api/stripe/session?session_id=${sessionId}`, {
+    // POST /api/stripe/confirm verifies payment via the Stripe API AND writes
+    // premium to the DB as an idempotent webhook fallback. Using the read-only
+    // /api/stripe/session here would show "Premium Activated" without ever
+    // granting premium if the webhook hadn't fired yet.
+    fetch(`/api/stripe/confirm`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       credentials: "include",
+      body: JSON.stringify({ session_id: sessionId }),
     })
       .then((res) => res.json())
       .then((data) => {
@@ -261,16 +268,16 @@ export default function PremiumSuccess() {
         const remaining = Math.max(0, MIN_LOADING_MS - elapsed);
         setTimeout(() => {
           if (!mounted) return; // P3-PS1
-          if (data.payment_status === "paid") {
+          if (data.ok && data.isPremium) {
             // eslint-disable-next-line no-console
-            console.log(`[PremiumSuccess] payment_verified session=${sessionId}`);
+            console.log(`[PremiumSuccess] premium_confirmed session=${sessionId}`);
             setStatus("success");
             queryClient.invalidateQueries({ queryKey: ["/api/me"] });
           } else {
             // eslint-disable-next-line no-console
-            console.warn(`[PremiumSuccess] payment_not_completed session=${sessionId} status=${data.payment_status}`);
+            console.warn(`[PremiumSuccess] confirm_failed session=${sessionId} reason=${data.error || "unknown"}`);
             setStatus("error");
-            setError("Payment not completed");
+            setError(data.error === "not_paid" ? "Payment not completed" : "Could not activate premium");
           }
         }, remaining);
       })

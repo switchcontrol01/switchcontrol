@@ -92,7 +92,7 @@ export async function registerRoutes(
     next();
   }, adminRouter);
   app.use("/api/app-booster", requireJwt, appBoosterRouter);
-  app.use("/api/network-tweaks", requireJwt, networkTweaksRouter);
+  app.use("/api/network-tweaks", requireJwt, requireCloudPremium, networkTweaksRouter);
   app.use("/api/tweak-intelligence", tweakIntelligenceRouter);
   app.use("/api/power-intelligence", powerIntelligenceRouter);
   app.use("/api/dashboard-intelligence", dashboardIntelligenceRouter);
@@ -605,8 +605,8 @@ export async function registerRoutes(
         return res.status(404).json({ error: "User not found" });
       }
 
-      if (dbUser.isPremium) {
-        console.log(`[Stripe] Checkout blocked — user ${dbUser.id} is already premium`);
+      if (resolveEffectivePlan(dbUser) !== 'free') {
+        console.log(`[Stripe] Checkout blocked — user ${dbUser.id} already has an active plan`);
         return res.status(400).json({ error: "already_premium" });
       }
 

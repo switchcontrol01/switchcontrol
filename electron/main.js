@@ -819,7 +819,7 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false, // Required for systeminformation
-      devTools: true,
+      devTools: isDev, // DevTools disabled in production builds
       backgroundThrottling: false, // Prevent timer throttling when window loses focus
       additionalArguments: isDev ? [] : ['--switchcontrol-prod'],
       paintWhenInitiallyHidden: true, // Ensure Chromium paints frames even while window is hidden
@@ -827,7 +827,7 @@ function createWindow() {
   });
   console.log('[LAUNCH:1] BrowserWindow constructed — show:false, paintWhenInitiallyHidden:true, isVisible:', mainWindow.isVisible());
 
-  // DevTools enabled — F12 / Ctrl+Shift+I opens the inspector.
+  // DevTools enabled in dev only (devTools: isDev). Disabled in production builds.
 
   const { session: electronSession } = require('electron');
   electronSession.defaultSession.webRequest.onHeadersReceived(
@@ -4419,6 +4419,7 @@ app.whenReady().then(async () => {
   }
 
   ipcMain.handle('app:openDevTools', () => {
+    if (!isDev) return; // DevTools are disabled in production builds
     mainWindow?.webContents.openDevTools({ mode: 'detach' });
   });
 

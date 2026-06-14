@@ -125,7 +125,16 @@ async function findOrCreateUser(profile: {
 import crypto from "crypto";
 
 const ELECTRON_CODE_TTL = 120_000; // 2 minutes
-const HMAC_SECRET = (process.env.JWT_SECRET || process.env.SESSION_SECRET || "").trim();
+/** Read the HMAC secret at call time, NOT at module load. In Electron desktop
+ *  mode, desktop-secrets.ts may populate JWT_SECRET/SESSION_SECRET after this
+ *  module is first imported. Reading lazily prevents a module-load race where
+ *  one-time auth codes would be signed/verified with the public default key. */
+function getHmacSecret(): string {
+  return (
+    (process.env.JWT_SECRET || process.env.SESSION_SECRET || "").trim() ||
+    "switchcontrol-default-hmac"
+  );
+}
 
 /** Build a self-verifying code: userId + timestamp + HMAC signature.
  *  No server state needed — the code survives server restarts because it
@@ -134,7 +143,7 @@ export function generateElectronCode(userId: string): string {
   const ts = Date.now().toString();
   const payload = `${userId}.${ts}`;
   const sig = crypto
-    .createHmac("sha256", HMAC_SECRET || "switchcontrol-default-hmac")
+    .createHmac("sha256", getHmacSecret())
     .update(payload)
     .digest("hex")
     .slice(0, 16);
@@ -153,7 +162,7 @@ function consumeElectronCode(code: string): string | null {
 
   const payload = `${userId}.${tsStr}`;
   const expected = crypto
-    .createHmac("sha256", HMAC_SECRET || "switchcontrol-default-hmac")
+    .createHmac("sha256", getHmacSecret())
     .update(payload)
     .digest("hex")
     .slice(0, 16);
@@ -980,7 +989,7 @@ export function setupGoogleAuth(app: Express): void {
         return res.status(404).json({ error: "User not found" });
       }
 
-      if (!dbUser.isPremium) {
+      if (resolveEffectivePlan(dbUser) === 'free') {
         return res.status(400).json({ error: "User is not premium" });
       }
 
@@ -1024,7 +1033,7 @@ export function setupGoogleAuth(app: Express): void {
         return res.status(404).json({ error: "User not found" });
       }
 
-      if (!dbUser.isPremium) {
+      if (resolveEffectivePlan(dbUser) === 'free') {
         return res.status(400).json({ error: "User is not premium" });
       }
 
@@ -1320,7 +1329,7 @@ export const requirePremium: RequestHandler = async (req, res, next) => {
   
   try {
     const dbUser = await storage.getUser(req.user.id);
-    if (!dbUser?.isPremium) {
+    if (!dbUser || resolveEffectivePlan(dbUser) === 'free') {
       return res.status(403).json({ 
         message: "Premium required", 
         error: "premium_required",
