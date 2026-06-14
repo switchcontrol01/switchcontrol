@@ -1,0 +1,159 @@
+FIX 4 — EXTREMELABS INTERVAL LEAK
+HIGH PRIORITY
+
+Current issue:
+
+handleCreateRestorePoint creates setInterval.
+
+If component unmounts during progress animation:
+
+- interval survives
+- state updates continue on unmounted component
+
+==================================================
+REQUIRED FIX
+
+Add:
+
+- interval refs
+- proper cleanup on unmount
+- guaranteed clearInterval paths
+
+==================================================
+FIX 5 — FOCUS MODE MEMORY CLEANUP
+MEDIUM PRIORITY
+
+Current issue:
+
+expired focus sessions remain in activeStates forever
+unless client polls again.
+
+This creates:
+
+- server memory retention
+- stale focus sessions
+
+==================================================
+REQUIRED FIX
+
+Add cleanup pass when enabling focus mode:
+
+- remove expired sessions
+- cleanup stale entries
+- keep existing architecture
+
+DO NOT redesign focus mode.
+
+==================================================
+FIX 6 — SETTINGS PATCH NOTES CACHE
+MEDIUM PRIORITY
+
+Current issue:
+
+PatchNotesSection fetches patch-notes.json on every mount.
+
+In Electron file:// mode there is no normal browser HTTP caching.
+
+==================================================
+REQUIRED FIX
+
+Add module-level cache for patch notes.
+
+Prevent repeated fetches during navigation.
+
+==================================================
+FIX 7 — HISTORY COUNTER RAF OVERLAP
+LOW PRIORITY
+
+Current issue:
+
+multiple animated counters start RAF loops simultaneously.
+
+This creates:
+
+- unnecessary animation overlap
+- extra renderer work during page entry
+
+==================================================
+REQUIRED FIX
+
+Stagger counter animation start timing
+to match existing visual delay timing.
+
+DO NOT redesign animations.
+
+==================================================
+FIX 8 — BIOS ADVISOR OPENAI REQUEST TIMEOUT
+MEDIUM PRIORITY
+
+Current issue:
+
+cloudApiPost("/bios/explain")
+can hang indefinitely.
+
+This leaves:
+
+- loading state stuck forever
+- no recovery path
+- no cancellation path
+
+==================================================
+REQUIRED FIX
+
+Add:
+
+- AbortController
+- timeout handling
+- cleanup handling
+- safe loading-state reset
+
+DO NOT redesign BIOS Advisor.
+
+==================================================
+FIX 9 — AppBackground MINOR GPU OPTIMIZATION
+LOW PRIORITY
+
+Current issue:
+
+willChange: "transform, opacity"
+is permanently applied to all orb layers.
+
+This forces permanent GPU layer promotion.
+
+==================================================
+REQUIRED FIX
+
+Audit whether willChange can be:
+
+- conditionally applied
+- reduced
+- limited
+
+ONLY optimize if safe.
+
+Do NOT break animations.
+
+==================================================
+EXPECTED RESULT
+
+After fixes:
+
+- smoother startup
+- lower CPU usage
+- lower renderer load
+- lower IPC traffic
+- fewer unnecessary rerenders
+- smoother long-session usage
+- lower WMI pressure
+- fewer memory leaks
+- smoother dashboard usage
+- more stable app behavior
+
+==================================================
+OUTPUT REQUIRED
+
+1. exact files modified
+2. exact fixes implemented
+3. concise explanation per fix
+4. no unrelated refactors
+5. maintain existing UI appearance

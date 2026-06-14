@@ -345,13 +345,9 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
   // One-shot animation: only on first data paint after mount
   const shouldAnimate = !hasAnimatedInRef.current && data.length > 2;
 
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const retryCountRef = useRef(0);
   const diskLogTickRef = useRef(0); // throttle per-tick disk logs
   const onTelemetryUpdateRef = useRef(onTelemetryUpdate);
   onTelemetryUpdateRef.current = onTelemetryUpdate;
-  const selectedDiskMountRef = useRef(selectedDiskMount);
-  selectedDiskMountRef.current = selectedDiskMount;
   const freshPointArrivedRef = useRef(false);
 
   // ── Hydrate from cross-mount cache on first render ─────────────────────────
@@ -407,7 +403,6 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
   );
   isLowEndRef.current = isLowEndClient;
   const showGlowLines = !isLowEndClient;
-  const graphPollMs = isLowEndClient ? 8000 : 5000;
 
   // ── GPU first-load tracking ───────────────────────────────────────────────
   // gpuDetectedRef: true once any tick confirms GPU is present on this machine.
@@ -431,16 +426,18 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
   }, []);
 
   // ── Web fallback: WebSocket-driven via hook ──────────────────────────────
-  const isElectron = !!(window as any).electronAPI?.telemetry?.getLive;
+  // telemetryManager (started in Splash.tsx) is the single IPC/WS source.
+  // In Electron it polls getLive() via IPC; on web it uses WebSocket.
+  // LiveGraph subscribes to the resulting store via useLiveTelemetry().
   const { telemetry: wsTelemetry, spikes: wsSpikes, status: wsStatus, history: wsHistory } = useLiveTelemetry();
 
   // ── Seed graph history from persistent store on (re)mount ──────────────────
   // This ensures the graph isn't blank when returning to Dashboard after
   // navigating to another route — the store's accumulated history is used
   // to replay the last N data points instantly.
+  // Works for both Electron (telemetryManager IPC→store) and web (WebSocket→store).
   const seedDoneRef = useRef(false);
   useEffect(() => {
-    if (isElectron) return;
     if (seedDoneRef.current) return;
     if (wsHistory.cpu.length === 0) return;
 
@@ -483,11 +480,12 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
     });
 
     setData(seeded);
-  }, [wsHistory, isElectron, markGpuDetected]);
+  }, [wsHistory, markGpuDetected]);
 
-  // Feed WebSocket data into graph when not running in Electron
+  // Feed telemetry data into graph — unified path for both Electron (via
+  // telemetryManager IPC polling → store) and web (WebSocket → store).
+  // telemetryManager is the single source; LiveGraph no longer polls IPC directly.
   useEffect(() => {
-    if (isElectron) return;
     if (!wsTelemetry || wsTelemetry.status === "loading") return;
 
     const snap = wsTelemetry;
@@ -572,145 +570,17 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
       const updated = [...prev, pt];
       return updated.length > maxPoints ? updated.slice(-maxPoints) : updated;
     });
-  }, [wsTelemetry, isElectron]);
-
-  // ── Electron path: IPC polling ──────────────────────────────────────────
-  const fetchTelemetry = useCallback(async () => {
-    const api = (window as any).electronAPI;
-    if (!api?.telemetry?.getLive) return; // handled by WS path above
-
-    try {
-      const live = await api.telemetry.getLive(selectedDiskMountRef.current ?? undefined);
-
-      const cpuLoad = safeNumber(live.cpu?.usagePct, 0);
-      const cpuTemp = live.cpu?.tempC != null && live.cpu.tempC > 0 ? safeNumber(live.cpu.tempC) : null;
-      const gpuTemp = live.gpu?.tempC != null && live.gpu.tempC > 0 ? safeNumber(live.gpu.tempC) : null;
-      const gpuLoadRaw = live.gpu?.usagePct != null && live.gpu.usagePct >= 0 ? safeNumber(live.gpu.usagePct) : null;
-      const gpuMemUsed = live.gpu?.vramUsedMb != null ? safeNumber(live.gpu.vramUsedMb) : null;
-      const gpuMemTotal = live.gpu?.vramTotalMb != null && live.gpu.vramTotalMb > 0 ? safeNumber(live.gpu.vramTotalMb) : null;
-      const gpuMemPct = live.gpu?.vramUsagePct != null ? live.gpu.vramUsagePct
-        : (gpuMemUsed != null && gpuMemTotal != null && gpuMemTotal > 0
-          ? Math.round((gpuMemUsed / gpuMemTotal) * 100) : null);
-      const gpuPower = live.gpu?.powerW != null && live.gpu.powerW > 0 ? safeNumber(live.gpu.powerW) : null;
-      const gpuClockMhz = live.gpu?.clockMhz != null && live.gpu.clockMhz > 0 ? safeNumber(live.gpu.clockMhz) : null;
-
-      // Mark GPU detected as soon as the backend confirms the GPU is available
-      // (live.gpu.available) or any GPU field is non-null — so zero-substitution
-      // kicks in for any subsequent null load readings during warm-up.
-      const gpuAvailableFlag = live.gpu?.available ?? (gpuLoadRaw != null || gpuTemp != null);
-      if (gpuAvailableFlag) markGpuDetected();
-      // Use 0 instead of null when GPU is known to exist — keeps the chart
-      // series continuous from the very first data point.
-      const gpuLoad = gpuDetectedRef.current && gpuLoadRaw === null ? 0 : gpuLoadRaw;
-      // Track first non-zero reading — AMD sensors can be detected but stuck at 0
-      if (gpuLoad != null && gpuLoad > 0) setGpuEverNonZero(true);
-
-      const ramUsedGb = safeNumber(live.ram?.usedGb, 0);
-      const ramTotalGb = safeNumber(live.ram?.totalGb, 0);
-      const hasRam = ramTotalGb > 0;
-      const ramPercent = hasRam
-        ? safeNumber(live.ram?.usagePct, Math.round((ramUsedGb / ramTotalGb) * 100))
-        : 0;
-
-      // Electron path: disk from IPC.
-      const netRxSec = typeof live.network?.rxKBps === "number" ? safeNumber(live.network.rxKBps) : null;
-      const netTxSec = typeof live.network?.txKBps === "number" ? safeNumber(live.network.txKBps) : null;
-      // Always read raw disk values — do NOT gate on the available flag.
-      // Matches the web (WS) path: "never suppress based on available flag alone."
-      // available=false only occurs during the first-tick warm-up window; the values
-      // (even 0.0) are still real and must reach the dataset so the chart line renders.
-      const diskElectronAvailable = live.disk?.available ?? false;
-      const diskActiveTime = live.disk?.activeTimePct != null ? safeNumber(live.disk.activeTimePct) : null;
-      const diskReadKBps   = live.disk?.readKBps   != null ? safeNumber(live.disk.readKBps)   : null;
-      const diskWriteKBps  = live.disk?.writeKBps  != null ? safeNumber(live.disk.writeKBps)  : null;
-
-      diskLogTickRef.current += 1;
-
-      const telemetryState: LatestState = {
-        cpuLoad, cpuTemp, gpuTemp, gpuLoad,
-        gpuMemUsed, gpuMemTotal, gpuMemPct, gpuPower, gpuClockMhz,
-        showGpu: gpuEverDetected || gpuAvailableFlag,
-        ramUsedGb, ramTotalGb, ramPercent,
-        showRam: hasRam,
-        diskActiveTime, diskReadKBps, diskWriteKBps,
-        diskAvailable: diskElectronAvailable,
-        netRxSec, netTxSec,
-        coreCount: safeNumber(live.cpu?.coreCount, 0),
-      };
-
-      setLatest(telemetryState);
-      setError(null);
-      retryCountRef.current = 0;
-
-      if (onTelemetryUpdateRef.current) {
-        onTelemetryUpdateRef.current({
-          temps: { cpu: live.cpu?.tempC ?? 0, gpu: live.gpu?.tempC ?? 0 },
-          ram: hasRam ? { totalGB: ramTotalGb, usedGB: ramUsedGb } : undefined,
-          ssds: Array.isArray(live.ssds) ? live.ssds : [],
-        });
-      }
-
-      const now = new Date();
-      const timeStr = `${now.getMinutes()}:${now.getSeconds().toString().padStart(2, "0")}`;
-      setData(prev => {
-        const { ramDisplay, gpuDisplay } = computeDisplayOffset(ramPercent, gpuLoad);
-        const pt: DataPoint = {
-          time: timeStr, cpuLoad, cpuTemp,
-          gpuLoad, gpuTemp, gpuMemPct,
-          ram: ramPercent, ramDisplay, gpuDisplay,
-          diskActiveTime, diskReadKBps, diskWriteKBps,
-          netRx: netRxSec, netTx: netTxSec,
-        };
-        // Render-skip: if all key metrics changed by less than 1%, don't push a new point
-        const last = prev[prev.length - 1];
-        if (
-          last &&
-          Math.abs(last.cpuLoad - cpuLoad) < 1 &&
-          Math.abs(last.ram - ramPercent) < 1 &&
-          Math.abs((last.gpuLoad ?? 0) - (gpuLoad ?? 0)) < 1 &&
-          Math.abs((last.diskActiveTime ?? 0) - (diskActiveTime ?? 0)) < 1
-        ) {
-          return prev;
-        }
-        const maxPoints = isLowEndRef.current ? 30 : 60;
-        const updated = [...prev, pt];
-        return updated.length > maxPoints ? updated.slice(-maxPoints) : updated;
-      });
-    } catch {
-      retryCountRef.current += 1;
-      if (retryCountRef.current === 4) setError("No telemetry available");
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!isElectron) return;
-
-    const stopPoll = () => {
-      if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
-    };
-    const startPoll = () => {
-      stopPoll(); // always clear old interval so graphPollMs changes take effect
-      fetchTelemetry();
-      intervalRef.current = setInterval(fetchTelemetry, graphPollMs);
-    };
-    const handleVisibility = () => { document.hidden ? stopPoll() : startPoll(); };
-    document.addEventListener('visibilitychange', handleVisibility);
-    if (!document.hidden) startPoll();
-
-    return () => { stopPoll(); document.removeEventListener('visibilitychange', handleVisibility); };
-  }, [fetchTelemetry, isElectron, graphPollMs]);
+  }, [wsTelemetry]);
 
   // ── Derived state ─────────────────────────────────────────────────────────
+  // telemetryManager is the single data source for both Electron (IPC) and
+  // web (WebSocket). LiveGraph no longer polls independently.
 
-  const isLoading = !isElectron
-    ? wsStatus === "loading" && data.length === 0
-    : data.length === 0;
+  const isLoading = data.length === 0;
 
-  const isUnavailable = !isElectron
-    ? wsStatus === "unavailable" && data.length === 0
-    : !!error && data.length === 0;
+  const isUnavailable = wsStatus === "unavailable" && data.length === 0;
 
-  const spikes = isElectron ? { cpu: false, ram: false, gpu: false } : wsSpikes;
+  const spikes = wsSpikes;
 
   if (isUnavailable || error) {
     return (
@@ -1139,9 +1009,7 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
 
       {/* Stability zone label */}
       {!isLoading && (() => {
-        const cpuHist = isElectron
-          ? data.map(d => d.cpuLoad)
-          : wsHistory.cpu;
+        const cpuHist = data.map(d => d.cpuLoad);
         if (cpuHist.length < 5) return null;
         const stability = computeGraphStability(cpuHist);
         return (

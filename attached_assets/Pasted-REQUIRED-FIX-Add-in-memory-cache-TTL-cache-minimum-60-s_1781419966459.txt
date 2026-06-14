@@ -1,0 +1,180 @@
+REQUIRED FIX
+
+Add:
+
+- in-memory cache
+- TTL cache (minimum 60 seconds)
+
+DO NOT rerun:
+
+heavy display detection repeatedly.
+
+Requirements:
+
+- cache successful responses
+- prevent repeated PowerShell spawns
+- avoid repeated WMI queries
+
+==================================================
+FIX 5 — AI ADVISOR CONTEXT RELIABILITY
+HIGH PRIORITY
+
+Current issues:
+
+- stale context
+- delayed tweak cards
+- weak route awareness
+- weak recommendation persistence
+- expensive rescans
+- repeated regex recreation
+- unstable context snapshots
+
+==================================================
+REQUIRED FIX
+
+Create:
+
+src/lib/ai-context-builder.ts
+
+Requirements:
+
+- deterministic snapshot
+- stable shape
+- synchronous base context
+- optional async enrichment
+- no undefined partial state
+- memoized snapshot
+- stable references
+
+Context MUST include:
+
+- current route
+- current tab
+- enabled tweaks
+- telemetry summary
+- hardware summary
+- active profile
+- recent tweak history
+- available tweak actions
+- dashboard state
+
+==================================================
+FIX 6 — FIX AI APPLY CONTRACTS
+HIGH PRIORITY
+
+Current issue:
+
+substring matching
+fuzzy tweak title matching
+weak parser reliability
+
+==================================================
+REQUIRED FIX
+
+REMOVE:
+
+- substring matching
+- fuzzy tweak scanning
+
+REPLACE WITH:
+
+stable tweak IDs only.
+
+AI responses must use:
+
+<"APPLY:tweak-id" (APPLY:tweak-id)>
+
+Parser must:
+
+- deterministically parse IDs
+- instantly render tweak cards
+- never wait for typewriter completion
+
+==================================================
+FIX 7 — REMOVE TYPEWRITER ACTION DELAY
+HIGH PRIORITY
+
+Current issue:
+
+tweak cards appear only after full typewriter reveal finishes.
+
+This delays:
+
+- apply buttons
+- recommendation UI
+- interaction responsiveness
+
+==================================================
+REQUIRED FIX
+
+Parse:
+
+- action markers
+- apply markers
+- recommendation markers
+
+IMMEDIATELY from raw response.
+
+Typewriter effect must affect ONLY visible text.
+
+Recommendation cards should render instantly.
+
+==================================================
+FIX 8 — REDUCE RERENDER PRESSURE
+HIGH PRIORITY
+
+Audit:
+
+- unnecessary useEffect triggers
+- recreated regex
+- recreated callbacks
+- repeated scans
+- repeated array filtering
+- repeated message parsing
+
+==================================================
+REQUIRED FIX
+
+Use:
+
+- useMemo
+- useCallback
+- stable refs
+- memoized selectors
+- cached recommendation lookups
+
+Reduce:
+
+- O(n) rescans
+- repeated history parsing
+- repeated recommendation extraction
+
+==================================================
+FIX 9 — SYSTEM INFORMATION STARTUP RELIABILITY
+HIGH PRIORITY
+
+Current issue:
+
+specs load late
+RAM loads several seconds after dashboard mount
+GPU detection stalls
+AI receives partial hardware state
+
+==================================================
+REQUIRED FIX
+
+Ensure:
+
+instant synchronous base specs always exist.
+
+Requirements:
+
+- use instant OS/node fallbacks first
+- async enrich later
+- never return null RAM/CPU
+- dashboard should hydrate immediately
+- AI context should always have baseline hardware info
+
+DO NOT:
+
+block startup waiting for WMI/systeminformation.

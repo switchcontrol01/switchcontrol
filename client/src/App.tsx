@@ -1393,7 +1393,7 @@ function ElectronAppContent() {
           />
         </div>
 
-        <AnimatePresence mode="sync">
+        <AnimatePresence mode="wait">
           {phase === "splash" && (
             <motion.div
               key="splash"
