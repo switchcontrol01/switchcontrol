@@ -25,7 +25,7 @@ import { isTweakPremium } from "@/lib/premium-config";
 import { useStore } from "@/lib/store";
 import { useAuthStore } from "@/lib/auth-store";
 import { bulkApplyTweaks, bulkRevertTweaks, isElectronWithTweaks } from "@/hooks/use-tweak-executor";
-import { apiRequest } from "@/lib/queryClient";
+import { applyRecommended } from "@/lib/api";
 
 // ── Intent config ─────────────────────────────────────────────────────────────
 
@@ -654,19 +654,15 @@ export function OptimizationFlow() {
         failedIds.push(...toApply);
       }
     } else {
-      // Web: call server API and only update local state if API succeeds
+      // Web: use the CSRF-safe applyRecommended helper (handles x-csrf-token automatically)
       try {
-        const res = await apiRequest("POST", "/api/tweaks/apply-recommended", { tweakIds: toApply });
-        if (res.ok) {
-          for (const id of toApply) {
-            appliedIds.push(id);
-            setTweak(id, true);
-          }
-        } else {
-          // Non-2xx response — don't mark as applied
-          failedIds.push(...toApply);
+        await applyRecommended(toApply);
+        for (const id of toApply) {
+          appliedIds.push(id);
+          setTweak(id, true);
         }
       } catch {
+        // API failed (auth/CSRF/premium/network) — don't mark tweaks as applied
         failedIds.push(...toApply);
       }
     }

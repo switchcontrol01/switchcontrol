@@ -91,8 +91,8 @@ export async function collectOptimizationSnapshot(): Promise<OptimizationSnapsho
   }
 
   const hardware: HardwareProfileInput = {
-    cpuName:   cpuName  ?? undefined,
-    gpuName:   gpuName  ?? undefined,
+    cpuBrand:   cpuName  ?? undefined,   // HardwareProfileInput uses cpuBrand
+    gpuName:    gpuName  ?? undefined,
     totalRamGb: totalRamGb ?? undefined,
   };
 
