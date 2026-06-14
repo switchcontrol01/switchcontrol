@@ -1897,7 +1897,7 @@ export default function AppBooster() {
                                 : !hasExePath
                                 ? <><AlertTriangle className="w-4 h-4 mr-2" />Missing .exe</>
                                 : currentStatus === "applied"
-                                ? <><RefreshCw className="w-4 h-4 mr-2" />Re-Apply</>
+                                ? <><RefreshCw className="w-4 h-4 mr-2" />Re-apply</>
                                 : <><Play className="w-4 h-4 mr-2" />Apply Profile</>
                               }
                             </Button>

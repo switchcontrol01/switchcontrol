@@ -238,7 +238,7 @@ export function TweaksList() {
         <div className="relative flex-1 w-full max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
           <Input
-            placeholder="Search tweaks..."
+            placeholder="Search tweaks…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             data-testid="input-search-tweaks"
@@ -254,7 +254,7 @@ export function TweaksList() {
             className="h-9 px-4 gap-2 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20"
           >
             <CheckCircle2 className="size-4" />
-            Apply Safe
+            Apply Recommended
           </Button>
           <Button
             variant="outline" size="sm"

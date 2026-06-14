@@ -1017,7 +1017,7 @@ function NetworkTweaksContent() {
             <div className="relative flex-1 max-w-md">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
               <Input
-                placeholder="Search network tweaks..."
+                placeholder="Search tweaks…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-10 bg-[#14181D]/80 border-[#2A313A]"

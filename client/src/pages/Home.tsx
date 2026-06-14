@@ -880,11 +880,11 @@ export default function Home() {
             <div>
               <StatCard
                 title="GPU"
-                value={stats.gpuName}
+                value={stats.gpuName === 'Detecting\u2026' ? undefined : stats.gpuName}
                 icon={Activity}
                 subtext={`${stats.vramGb} GB VRAM`}
                 className="border-cyan-500/20 shadow-[0_0_20px_-10px_hsl(190_100%_50%/0.1)]"
-                loading={specStatus === "loading"}
+                loading={specStatus === "loading" || stats.gpuName === 'Detecting\u2026'}
               />
             </div>
             
