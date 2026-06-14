@@ -694,13 +694,6 @@ export default function Landing() {
           <HeroTiltContainer>
           <div className="flex-1 flex flex-col justify-center max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-8 md:pt-24 md:pb-12 relative">
             <div className="text-center">
-              <AnimateIn delay={180}>
-                <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#21262D] border border-[#2A313A] text-[#A0A8B3] text-xs font-medium mb-10">
-                  <Activity className="size-3 text-primary/70" />
-                  Engineering your PC for a competitive advantage.
-                </span>
-              </AnimateIn>
-
               <AnimateIn delay={360}>
                 <div className="ws-hero-text-float">
                   <h1 className="mb-7 leading-[1.03] tracking-tight relative" style={{ transform: "translateZ(20px)" }}>
@@ -720,7 +713,7 @@ export default function Landing() {
               <AnimateIn delay={540}>
                 <p className="text-base md:text-lg font-medium text-[#A0A8B3] mb-10 max-w-xl mx-auto leading-relaxed">
                   Lower input delay, stable FPS, cleaner network.
-                  One app. <DrawUnderline trigger="scroll">Real results.</DrawUnderline>
+                  One app. Real results.
                 </p>
               </AnimateIn>
 
