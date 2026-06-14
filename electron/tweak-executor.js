@@ -965,6 +965,17 @@ const ADMIN_TWEAKS = {
     revert: `Remove-ItemProperty -Path "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\GameDVR" -Name "AllowGameDVR" -EA SilentlyContinue; $p = "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\GameDVR"; Remove-ItemProperty -Path $p -Name "AppCaptureEnabled" -EA SilentlyContinue`,
     check:  `$p = Get-ItemProperty -Path "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\GameDVR" -Name "AllowGameDVR" -EA SilentlyContinue; $p -and ($p.AllowGameDVR -eq 0)`,
   },
+  // Separate entry so apply/revert/ownership for xbox-capture are independent
+  // from disable-game-dvr. Targets GameConfigStore (the actual Game Bar capture
+  // feature flag) — a distinct registry path from the policy key above.
+  'disable-xbox-capture': {
+    name: 'Disable Xbox Capture',
+    requiresAdmin: false,
+    requiresReboot: false,
+    apply:  `New-Item -Path "HKCU:\\System\\GameConfigStore" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path "HKCU:\\System\\GameConfigStore" -Name "GameDVR_Enabled" -Value 0 -Type DWord -Force`,
+    revert: `Remove-ItemProperty -Path "HKCU:\\System\\GameConfigStore" -Name "GameDVR_Enabled" -EA SilentlyContinue`,
+    check:  `(Get-ItemProperty -Path "HKCU:\\System\\GameConfigStore" -Name "GameDVR_Enabled" -EA SilentlyContinue).GameDVR_Enabled -eq 0`,
+  },
   'edge-update': {
     name: 'Disable Edge Update Services',
     requiresAdmin: true,

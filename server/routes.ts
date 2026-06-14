@@ -503,7 +503,9 @@ export async function registerRoutes(
         network: snap.network,
         temps: snap.temps,
         gpu: snap.gpu,
-        processes: snap.processes,
+        // processes intentionally omitted — full process list is not required
+        // by any client view and would expose enumerated process names to any
+        // valid JWT holder. Strip here; gate behind premium if needed later.
         load_trend: snap.load_trend,
       });
     } catch (error) {
@@ -512,7 +514,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/debug/scheduler", (req, res) => {
+  app.get("/api/debug/scheduler", requireJwt, (req, res) => {
     res.json(getSchedulerStats());
   });
 

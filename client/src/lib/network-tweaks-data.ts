@@ -250,7 +250,9 @@ export const NETWORK_TWEAKS: NetworkTweak[] = [
     safety: "Risky",
     level: "Experimental",
     expected: { network: "Low", latency: "Low", stabilityRisk: "High" },
-    warning: "Forces CPU to handle network work. Can reduce throughput and increase latency on modern NICs. Not recommended for gaming."
+    warning: "Forces CPU to handle network work. Can reduce throughput and increase latency on modern NICs. Not recommended for gaming.",
+    unavailable: true,
+    unavailableReason: "Disabling task offload increases CPU load significantly and degrades throughput on modern NICs. Not recommended for gaming.",
   },
   {
     id: "tcp-timestamps",
@@ -383,7 +385,9 @@ export const NETWORK_TWEAKS: NetworkTweak[] = [
     safety: "Risky",
     level: "Experimental",
     expected: { network: "None", latency: "None", stabilityRisk: "High" },
-    warning: "May break VPNs (WireGuard) or cause routing issues."
+    warning: "May break VPNs (WireGuard) or cause routing issues.",
+    unavailable: true,
+    unavailableReason: "Weak-host transmission provides no gaming benefit and can break VPN/tunnel routing. Not recommended.",
   },
   {
     id: "tcp-winhttp",

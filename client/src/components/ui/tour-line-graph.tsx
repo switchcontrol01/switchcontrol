@@ -18,7 +18,7 @@
  * e.g. "rgba(168,85,247," — the component appends "0.85)" etc. internally.
  */
 
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, useId } from 'react';
 import { motion } from '@/lib/motionTokens';
 
 export interface TourLineGraphProps {
@@ -76,7 +76,11 @@ export function TourLineGraph({
   const lastPt = coords[coords.length - 1];
   const fillPath = linePath + ` L ${lastPt[0]} ${height} L ${pad} ${height} Z`;
 
-  const uid = `tlg-${color.slice(5, 12).replace(/[^a-z0-9]/gi, '')}-${Math.round(delay * 10)}`;
+  // useId() gives a guaranteed-unique ID per component instance, preventing SVG
+  // gradient/filter ID collisions when multiple TourLineGraph instances share the
+  // same color + delay combination (e.g. the guided tour step with 3 graphs).
+  const rawId = useId();
+  const uid = `tlg-${rawId.replace(/[^a-z0-9]/gi, '')}`;
 
   useEffect(() => {
     if (pathRef.current) setPathLen(pathRef.current.getTotalLength());

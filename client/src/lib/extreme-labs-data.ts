@@ -202,7 +202,10 @@ export const EXTREME_TWEAKS: ExtremeTweak[] = [
     whatMayBreak: "Xbox capture features unavailable.",
     currentState: "Capture enabled",
     afterState: "Capture disabled",
-    registryTweakId: "disable-game-dvr",
+    // Own distinct registryTweakId so apply/revert/ownership tracking are
+    // independent from disable-game-dvr. Previously both pointed to "disable-game-dvr"
+    // which caused reverting one to affect the other's ownership record.
+    registryTweakId: "disable-xbox-capture",
     riskAreas: [],
   },
   {
@@ -387,7 +390,7 @@ export const EXTREME_TWEAKS: ExtremeTweak[] = [
     currentState: "Services running",
     afterState: "Services disabled",
     registryTweakId: "bluetooth",
-    riskAreas: [],
+    riskAreas: ["Audio / Mic"],
   },
 
   // ── Startup / Vendor Weight ─────────────────────────────────────────────────
