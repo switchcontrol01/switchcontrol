@@ -1,0 +1,185 @@
+SWITCHCONTROL WEBSITE PERFORMANCE POLISH PASS
+
+IMPORTANT:
+
+Do NOT remove visual effects.
+
+Do NOT remove:
+
+- background effects
+- spotlight effects
+- glass effects
+- blueprint effects
+- glow effects
+- gradients
+- parallax effects
+- premium animations
+
+The goal is:
+
+KEEP the visuals.
+
+Optimize HOW they are rendered.
+
+We are improving performance without changing the visual identity.
+
+====================================================
+
+PRIMARY OBJECTIVE
+
+Make the website feel:
+
+- instant
+- premium
+- fluid
+- responsive
+- polished
+
+while preserving current design quality.
+
+====================================================
+
+PHASE 1 (HIGHEST PRIORITY)
+
+1. WebsiteShell
+
+Audit route transition implementation.
+
+Current audit suggests:
+
+filter: blur(14px)
+→ blur(0px)
+
+during page transitions.
+
+Do NOT remove page transitions.
+
+Instead:
+
+- preserve transition quality
+- preserve premium feel
+- replace expensive full-page blur with compositor-friendly alternatives
+
+Examples:
+
+- opacity
+- translateY
+- transform-based transitions
+
+Goal:
+
+same visual quality
+
+lower GPU cost
+
+faster perceived navigation
+
+====================================================
+
+2. WebsiteBackground
+
+Current audit indicates:
+
+setScrollY()
+
+causes React rerenders during scrolling.
+
+Do NOT remove:
+
+- parallax
+- depth
+- movement
+
+Instead:
+
+move scroll-driven values to:
+
+- refs
+- CSS variables
+- direct DOM updates
+
+Goal:
+
+same visual appearance
+
+zero React rerenders while scrolling
+
+====================================================
+
+3. MagneticTilt
+
+Keep effect.
+
+Do NOT remove.
+
+Current audit suggests RAF continues running when settled.
+
+Add:
+
+- idle detection
+- settled detection
+- automatic RAF shutdown
+
+Restart only when user interacts again.
+
+Goal:
+
+same effect
+
+less idle CPU usage
+
+====================================================
+
+4. HeroBackground
+
+Keep:
+
+- glow
+- cursor effects
+- parallax
+
+Do NOT remove visuals.
+
+Replace React state updates during mouse movement with:
+
+- refs
+- direct transforms
+
+Goal:
+
+same appearance
+
+no unnecessary rerenders
+
+====================================================
+
+5. useIsMobile
+
+Audit all implementations.
+
+Create ONE canonical implementation.
+
+Requirements:
+
+- matchMedia
+- no resize spam
+- no hydration flicker
+- shared singleton listener
+
+Replace all existing variants.
+
+====================================================
+
+PHASE 2
+
+6. MotionProvider
+
+Audit hasLoaded timer.
+
+If it creates unnecessary rerenders:
+
+remove it.
+
+Do NOT change user-facing behavior.
+
+====================================================

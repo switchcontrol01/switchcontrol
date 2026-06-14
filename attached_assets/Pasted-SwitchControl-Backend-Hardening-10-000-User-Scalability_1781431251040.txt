@@ -1,0 +1,191 @@
+SwitchControl Backend Hardening & 10,000 User Scalability Upgrade
+
+ROLE
+
+You are a senior staff engineer performing a production-hardening, scalability, reliability, and cost-optimization upgrade for SwitchControl.
+
+Target architecture must comfortably support:
+
+- 10,000 registered users
+- 1,000+ concurrent users
+- Replit deployment
+- Future migration to dedicated infrastructure
+- Zero feature regressions
+- Full backward compatibility
+
+Prefer incremental improvements over rewrites.
+
+Only redesign major systems if a measurable scalability, reliability, or cost benefit can be proven.
+
+Preserve all existing functionality.
+
+Do not remove features.
+
+Do not break API contracts unless absolutely necessary.
+
+====================================================
+PRIMARY PRIORITIES
+
+The following items are mandatory and must be reviewed and implemented if safe:
+
+1. Stop telemetry polling when nobody is connected
+
+- Telemetry should start automatically when first websocket client connects.
+- Telemetry should stop after configurable idle timeout when all clients disconnect.
+- Must support Replit scale-to-zero behavior.
+
+2. Telemetry snapshot caching
+
+- Generate telemetry once.
+- Reuse cached snapshot everywhere.
+- Eliminate duplicate snapshot generation.
+
+3. JWT verification caching
+
+- Cache verified JWT sessions.
+- Reduce database lookups.
+- Support logout invalidation.
+- Support entitlement changes.
+- Support bans and revocation.
+
+4. WebSocket compression
+
+- Enable permessage-deflate.
+- Optimize for low CPU overhead.
+
+5. Remove process lists from frequent telemetry payloads
+
+- Process data should not be sent every telemetry update.
+- Process data must be fetched separately when Process Manager is open.
+
+6. Shared WebSocket serialization
+
+- Serialize payload once.
+- Reuse serialized payload for all clients.
+
+7. Delta broadcasts
+
+- Skip broadcasts when data has not meaningfully changed.
+
+8. Telemetry interval optimization
+
+- Review polling interval.
+- Reduce unnecessary updates.
+
+9. Eliminate duplicate systeminformation calls
+
+- Use shared cache where possible.
+- Remove duplicate polling paths.
+
+10. Hardware/specification caching
+
+- Cache static system specs.
+- Cache memory layout.
+- Cache expensive WMI operations.
+
+====================================================
+PHASE 1: FULL AUDIT
+
+Analyze:
+
+- WebSocket infrastructure
+- Telemetry system
+- Database access
+- Authentication
+- JWT validation
+- Stripe integration
+- AI Advisor backend
+- BIOS Advisor backend
+- Storage layer
+- Process manager
+- PowerShell execution layer
+- IPC communication
+- API routes
+- Logging system
+- Settings system
+- History system
+- Background jobs
+- Startup tasks
+- Caching
+- Memory usage
+- Network usage
+- CPU usage
+- Database query frequency
+- Replit deployment limitations
+
+Generate:
+
+CURRENT BOTTLENECKS
+
+Rank every bottleneck:
+
+Critical
+High
+Medium
+Low
+
+Estimate impact at:
+
+100 users
+1000 users
+5000 users
+10000 users
+
+====================================================
+PHASE 2: TARGET ARCHITECTURE
+
+Design a production-ready architecture.
+
+WebSockets:
+
+- Delta updates only
+- Shared serialization
+- Compression
+- Connection limits
+- Heartbeat system
+- Automatic cleanup
+- Idle client detection
+- Connection-aware polling
+
+Telemetry:
+
+- Snapshot cache
+- Shared cache
+- Differential updates
+- Fast payloads
+- Slow payloads
+- No duplicate systeminformation calls
+
+Authentication:
+
+- JWT cache
+- User cache
+- Session cache
+- Revocation support
+
+Database:
+
+- Query batching
+- Read caching
+- Settings caching
+- Efficient query patterns
+
+Background tasks:
+
+- Stop when unused
+- Start when needed
+- Replit-friendly
+- Scale-to-zero friendly
+
+Logging:
+
+- Async only
+- Buffered writes
+- Rotation support
+
+API:
+
+- Response caching
+- Rate limiting
+- Compression
+- Payload optimization

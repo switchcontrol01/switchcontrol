@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { BlueprintImageOverlay } from "./BlueprintImageOverlay";
 
@@ -250,14 +250,14 @@ const PARTICLE_POSITIONS = [
 ];
 
 export function WebsiteBackground({ variant = "landing" }: WebsiteBackgroundProps) {
-  const [mousePos, setMousePos] = useState({ x: 0.5, y: 0.3 });
   const containerRef = useRef<HTMLDivElement>(null);
+  const spotlightRef = useRef<HTMLDivElement>(null);
   const rafRef = useRef<number | null>(null);
   const scrollRafRef = useRef<number | null>(null);
   const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
   const config = VARIANT_CONFIG[variant];
 
-  /* GPU: throttle mouse RAF to every other frame on low-end */
+  /* GPU: update spotlight position directly on DOM — zero React re-renders */
   const skipFrame = useRef(false);
   const handleMouseMove = useCallback((e: MouseEvent) => {
     if (isMobile) return;
@@ -268,10 +268,11 @@ export function WebsiteBackground({ variant = "landing" }: WebsiteBackgroundProp
         rafRef.current = null;
         return;
       }
-      setMousePos({
-        x: e.clientX / window.innerWidth,
-        y: e.clientY / window.innerHeight,
-      });
+      const el = spotlightRef.current;
+      if (el) {
+        el.style.left = `${(e.clientX / window.innerWidth) * 100}%`;
+        el.style.top  = `${(e.clientY / window.innerHeight) * 100}%`;
+      }
       rafRef.current = null;
     });
   }, [isMobile]);
@@ -511,13 +512,14 @@ export function WebsiteBackground({ variant = "landing" }: WebsiteBackgroundProp
         </div>
       )}
 
-      {/* GPU: reduced spotlight from 700px -> 350px, lower opacity */}
+      {/* GPU: spotlight updated via DOM ref — zero re-renders on mouse move */}
       {!isMobile && (
         <div
-          className="absolute w-[350px] h-[350px] rounded-full transition-all duration-[2000ms] ease-out"
+          ref={spotlightRef}
+          className="absolute w-[350px] h-[350px] rounded-full transition-[left,top] duration-[2000ms] ease-out"
           style={{
-            left: `${mousePos.x * 100}%`,
-            top: `${mousePos.y * 100}%`,
+            left: "50%",
+            top: "30%",
             transform: "translate(-50%, -50%)",
             background: "radial-gradient(circle, rgba(180,140,255,0.05) 0%, rgba(140,120,200,0.02) 40%, transparent 70%)",
           }}

@@ -1,13 +1,19 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { useMotion } from '@/lib/motion';
 
 export function HeroBackground() {
   const { prefersReducedMotion } = useMotion();
-  const [mousePosition, setMousePosition] = useState({ x: 0.5, y: 0.5 });
   const containerRef = useRef<HTMLDivElement>(null);
+  const glowRef = useRef<HTMLDivElement>(null);
   const rafRef = useRef<number | null>(null);
+  const parallaxRef = useRef(prefersReducedMotion ? 3 : 6);
   /* GPU: throttle to every other frame */
   const skipFrame = useRef(false);
+
+  // Keep parallaxRef in sync when reduced-motion preference changes
+  useEffect(() => {
+    parallaxRef.current = prefersReducedMotion ? 3 : 6;
+  }, [prefersReducedMotion]);
 
   const handleMouseMove = useCallback((e: MouseEvent) => {
     if (rafRef.current !== null) return;
@@ -17,14 +23,14 @@ export function HeroBackground() {
         rafRef.current = null;
         return;
       }
-      if (!containerRef.current) {
-        rafRef.current = null;
-        return;
-      }
-      const rect = containerRef.current.getBoundingClientRect();
+      const el = glowRef.current;
+      const container = containerRef.current;
+      if (!el || !container) { rafRef.current = null; return; }
+      const rect = container.getBoundingClientRect();
       const x = (e.clientX - rect.left) / rect.width;
       const y = (e.clientY - rect.top) / rect.height;
-      setMousePosition({ x, y });
+      const p = parallaxRef.current;
+      el.style.transform = `translate3d(${(x - 0.5) * p}px, ${(y - 0.5) * p}px, 0)`;
       rafRef.current = null;
     });
   }, []);
@@ -37,16 +43,14 @@ export function HeroBackground() {
     };
   }, [handleMouseMove]);
 
-  const parallaxAmount = prefersReducedMotion ? 3 : 6;
-
   return (
     <div ref={containerRef} className="absolute inset-0 overflow-hidden pointer-events-none">
-      {/* Main hero glow — no blur, just gradient */}
+      {/* Main hero glow — direct DOM transform, zero re-renders */}
       <div
+        ref={glowRef}
         className="absolute inset-0"
         style={{
           background: `radial-gradient(ellipse 80% 50% at 50% 20%, hsl(270 55% 45% / 0.2) 0%, transparent 60%)`,
-          transform: `translate3d(${(mousePosition.x - 0.5) * parallaxAmount}px, ${(mousePosition.y - 0.5) * parallaxAmount}px, 0)`,
           willChange: 'transform',
         }}
       />

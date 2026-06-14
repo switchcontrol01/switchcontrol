@@ -1,6 +1,6 @@
 import { forwardRef, useCallback, useEffect, useRef, type HTMLAttributes } from "react";
 import { cn } from "@/lib/utils";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useIsMobile } from "@/hooks/useIsMobile";
 
 interface GlassPanelProps extends HTMLAttributes<HTMLDivElement> {
   variant?: "default" | "elevated" | "matte";

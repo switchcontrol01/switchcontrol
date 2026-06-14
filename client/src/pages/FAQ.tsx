@@ -436,11 +436,6 @@ function InfoCard({
 export default function FAQPage() {
   const [activeCategory, setActiveCategory] = useState<CategoryId | "all">("general");
 
-  const filteredItems =
-    activeCategory === "all"
-      ? FAQ_ITEMS
-      : FAQ_ITEMS.filter(q => q.category === activeCategory);
-
   const countFor = (id: CategoryId) => FAQ_ITEMS.filter(q => q.category === id).length;
 
   return (
@@ -640,21 +635,17 @@ export default function FAQPage() {
                 </motion.div>
               </AnimatePresence>
 
-              {/* Accordion items */}
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={activeCategory}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                  className="space-y-2.5"
-                >
-                  {filteredItems.map((item, i) => (
-                    <AccordionItem key={item.question} item={item} index={i} />
-                  ))}
-                </motion.div>
-              </AnimatePresence>
+              {/* Accordion items — all items stay mounted; hidden by CSS for instant category switching */}
+              <div className="space-y-2.5">
+                {FAQ_ITEMS.map((item, i) => (
+                  <div
+                    key={item.question}
+                    style={{ display: (activeCategory !== "all" && item.category !== activeCategory) ? "none" : undefined }}
+                  >
+                    <AccordionItem item={item} index={i} />
+                  </div>
+                ))}
+              </div>
 
               {/* ── Info callout block ─────────────────────────────────── */}
               {(activeCategory === "all" || activeCategory === "safety") && (

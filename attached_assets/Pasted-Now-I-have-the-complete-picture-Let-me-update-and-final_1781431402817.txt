@@ -1,0 +1,161 @@
+Now I have the complete picture. Let me update and finalize the audit with the newly reviewed code.
+Updated Audit — Addendum & Revised Findings
+What the New Code Resolves
+
+C-2 (HMAC_SECRET race) — RESOLVED. desktop-secrets.ts is imported as the absolute first statement in server/index.ts before any route registration. server/auth/google.ts is imported transitively through registerRoutes(), which is called after desktop-secrets.ts has already written to process.env. The module-load order is safe. Downgrade C-2 from Critical to informational.
+
+Stripe webhook dedup — CONFIRMED CORRECT. stripeEventStore.ts uses a stripe_processed_events table with ON CONFLICT DO NOTHING. The webhook handler checks isEventAlreadyProcessed before processing and calls markEventProcessed after. This is properly idempotent.
+
+planUtils.ts / resolveEffectivePlan — CONFIRMED CORRECT. Priority order is: plan='premium' → plan='trial' (active/expired) → isPremium boolean fallback → free. This is threaded through all server middleware correctly.
+
+requireAdmin middleware — confirmed in admin.ts via requireAdmin import and the getAdminId(req) helper. Admin self-demotion is blocked. Admin self-deletion is blocked. Audit log is written before deletion. All correct.
+
+CSRF — confirmed: csrfProtection is a no-op when ELECTRON_BACKEND=1, correct for the cross-origin local backend. Web production uses double-submit cookie pattern correctly.
+
+PowerShell injection in tweak-executor.js — tweak IDs are used only as map keys (ALL_TWEAKS[tweakId]), never interpolated into shell commands. The actual PowerShell commands are hardcoded strings in the HKCU_TWEAKS/ADMIN_TWEAKS maps. No injection surface exists here. Confirmed safe.
+
+network-tweak-executor.js — same pattern. Tweak IDs are used as registry lookup keys, not interpolated into commands. The runElevated() function interpolates only hardcoded script strings. Safe.
+
+usePremiumDeviceLock — now fully reviewed. It correctly resets all state on loggedIn=false, preventing stale lock status from carrying over between user sessions on the same Electron instance. The checkedRef + lastCheckRef debounce prevents rapid re-checking. One gap: when status === 'error' (network failure), the hook stays on 'error' indefinitely with no offline grace period — the DeviceLockModal is not shown (correct, since deviceLockStatus === 'locked' is the gate), but the user gets no feedback that the check failed.
+
+premium-revert-pipeline.js — well-structured. Ownership baseline is captured before any apply, and revert only fires for appliedByApp === true records. Power plan revert correctly hard-targets Windows Balanced rather than attempting to restore an arbitrary previous plan. The startup sanity check (runStartupPowerPlanSanityCheck) is a solid defense-in-depth measure.
+
+storage.ts deleteUser — uses a transaction with SAVEPOINT per ad-hoc table, which handles missing tables gracefully. Admin logs are patched (not deleted) to preserve the audit trail. Sessions are scrubbed. Correct.
+
+authStore.ts — the persisted shape validator (isValidUserShape) prevents corrupted localStorage from hydrating. JWT structure is validated on rehydration (but not expiry — expiry is checked lazily, which is correct). The bumpMeGeneration counter prevents stale in-flight /api/me responses from overwriting a freshly-logged-out state. Well-implemented.
+
+entitlementService.ts — normalizeApiMeUser is the single place where server data maps to AuthUser. isPremium comes directly from server, never re-derived client-side. resolveAuthState has the correct startup order with JWT reissue. Premium is never downgraded on 5xx/network errors. Correct.
+New Issues Found in This Batch
+NEW CRITICAL
+
+C-4: Admin page makes unauthenticated requests in DeleteUserModal
+
+File: client/src/pages/Admin.tsx, DeleteUserModal.submit()
+
+const r = await fetch(`/api/admin/users/${user.id}`, {
+  method: "DELETE",
+  headers: buildHeaders() as any,
+  body: JSON.stringify({ confirm: true, reason: AUDIT_REASON }),
+});
+
+buildHeaders() reads useAuthStore.getState().jwt directly — but also falls through to the _csrf cookie. The hardcoded AUDIT_REASON = "Admin deletion via admin panel" means the reason field in the audit log is never actually supplied by the admin doing the deletion. Every deletion audit entry will show the same boilerplate reason regardless of what the admin typed. This is not a security issue but silently breaks the audit trail, which the schema documentation specifically states is required.
+
+Impact: Audit trail for user deletions is meaningless — all entries show "Admin deletion via admin panel" rather than the actual admin-supplied reason.
+
+Fix: Pass the actual reason from the modal state (it has a reason field in the ConfirmModal but DeleteUserModal bypasses it with a hardcoded constant).
+NEW HIGH
+
+H-5: storage.ts deleteUser raw SQL interpolation
+
+File: server/storage.ts, deleteUser method:
+
+await tx.execute(drizzleSql.raw(`DELETE FROM ${tbl} WHERE user_id = '${userId.replace(/'/g, "''")}'`));
+
+tbl is from a hardcoded array — safe. But userId is sanitized only by replacing single quotes, not by using a parameterized query. While userId originates from the server's auth middleware (not user input), if it ever contained a character like ; or -- from an unusual UUID generation path, this would be exploitable. More importantly, this pattern is architecturally wrong and sets a dangerous precedent.
+
+Fix: Use Drizzle's parameterized SQL: drizzleSql\DELETE FROM ${drizzleSql.raw(tbl)} WHERE user_id = ${userId}``
+
+H-6: Admin bootstrap endpoint has no CSRF protection
+
+File: server/routes/admin.ts
+
+router.post("/bootstrap", writeLimiter, async (req, res) => {
+
+The /api/admin/bootstrap endpoint has no requireAdmin middleware and no CSRF protection. While it correctly checks adminCount === 0 before granting, a CSRF attack on a freshly-deployed instance (before any admin exists) could grant admin to an attacker's account if they can trick a logged-in user into visiting a malicious page.
+
+Fix: Add csrfProtection to the bootstrap endpoint.
+
+H-7: WebsiteContent logout uses wrong endpoint
+
+File: client/src/App.tsx, WebsiteContent.handleLogout():
+
+await fetch("/auth/logout", { method: "POST", credentials: "include" });
+
+The actual logout endpoint registered in server/auth/google.ts is POST /auth/logout (not /api/auth/logout). Looking at the server code this is actually correct — the route is /auth/logout. However performFullLogout() in authClient.ts calls ${AUTH_DOMAIN}/api/auth/logout, which does not exist as a registered route. The registered route is /auth/logout (no /api prefix). This means the Electron/JWT auth path logout always hits a 404, and the session is never actually invalidated on the server — only the local store is cleared.
+
+Impact: Server-side session cookie persists after logout in Electron mode. The user appears logged out locally but the session cookie remains valid until natural expiration (7 days).
+
+Fix: Change performFullLogout in authClient.ts to call /auth/logout instead of /api/auth/logout.
+NEW MEDIUM
+
+M-5: stripeWebhookEvents table records events before idempotency check
+
+File: server/webhookHandlers.ts:
+
+// Persist every webhook event for admin visibility (async, non-blocking)
+try {
+  await storage.addStripeWebhookEvent({ ... });
+} catch (err) { ... }
+
+switch (event.type) {
+  case 'checkout.session.completed':
+    await handleCheckoutCompleted(event); // idempotency check inside here
+
+The event is stored in stripeWebhookEvents before the idempotency check in handleCheckoutCompleted. This means duplicate webhook deliveries will always add a record to stripeWebhookEvents even when correctly deduplicated. The admin Stripe events panel will show duplicates, which could mislead operators into thinking an event was processed twice.
+
+Fix: Move the addStripeWebhookEvent call into handleCheckoutCompleted after the idempotency check passes, or add a note in the admin panel that the events table records all deliveries, not all processings.
+
+M-6: deleteUser SQL transaction — sessions table query uses JSONB path that may miss records
+
+File: server/storage.ts:
+
+await tx.execute(drizzleSql`
+  DELETE FROM sessions
+  WHERE (sess->>'userId') = ${userId}
+     OR (sess->'passport'->>'user') = ${userId}
+`);
+
+Passport serializes the user as an ID string (passport.serializeUser returns user.id), so the session JSON structure is { passport: { user: "uuid-here" } }. The second path sess->'passport'->>'user' correctly handles this. But the first path sess->>'userId' would only match sessions where a top-level userId key exists, which Passport sessions don't have. This is dead code — the delete only works via the second path. Not a security issue (the correct path works) but worth cleaning up.
+
+M-7: retryRefreshEntitlements type signature mismatch
+
+File: client/src/App.tsx line:
+
+const result = await retryRefreshEntitlements({
+  attempts: 8,
+  delayMs: 500,       // ← this parameter does not exist
+  initialDelayMs: 500,
+});
+
+The retryRefreshEntitlements function signature in authClient.ts accepts { attempts?, initialDelayMs?, baseDelayMs? } — the field is baseDelayMs, not delayMs. The delayMs: 500 key is silently ignored. The effective base delay is the default 400ms. Not a security issue but the retry timing is not what the caller intends.
+
+M-8: Admin CSV export exposes all user data without rate limiting for large datasets
+
+File: server/routes/admin.ts:
+
+const { users: rows } = await storage.listUsers({ limit: 10000, offset: 0, ... });
+
+The export endpoint uses a 10,000 row limit, includes Stripe customer IDs, email addresses, device IDs, and all plan details. It's correctly admin-gated, but there's no audit log entry when an export is performed. An admin who exports the full user database leaves no trace in adminLogs.
+
+Fix: Add an audit log entry for CSV exports.
+NEW LOW
+
+L-5: AdminPage builds headers reading JWT via useAuthStore.getState() outside React context
+
+File: client/src/pages/Admin.tsx:
+
+function buildHeaders(): HeadersInit {
+  const jwt = useAuthStore.getState().jwt;
+
+getState() is a Zustand escape hatch that bypasses React's subscription mechanism. This works correctly but means the headers function always uses the JWT at call time. If the JWT is refreshed mid-session, the new token is used correctly (since getState() reads the current state). This is fine, but worth noting as a pattern to be aware of when the store is refactored.
+
+L-6: Admin.tsx AUTH_DOMAIN hardcoded to https://switchcontrol.org
+
+const AUTH_DOMAIN = "https://switchcontrol.org";
+
+This constant is defined locally in Admin.tsx instead of importing from electronAuth.ts. If the production domain ever changes, this would need to be updated separately. Use import { AUTH_DOMAIN } from '@/lib/electronAuth' instead.
+Revised Scores
+Category 	Previous 	Revised 	Notes
+Authentication 	7/10 	7/10 	H-7 logout 404 confirmed; C-2 cleared
+Premium System 	5/10 	6/10 	Flow logic well-structured; H-3 still open
+Stripe Integration 	6/10 	7/10 	Webhook dedup confirmed correct; C-1 still most critical
+Electron Security 	5/10 	6/10 	DevTools issue (C-3) still open; revert pipeline solid
+Device Lock System 	7/10 	8/10 	Hook correctly resets on logout; offline gap remains
+Production Readiness 	5/10 	5/10 	Net new issues offset the cleared ones
+Revised Verdict: NO — DO NOT LAUNCH
+
+The original three blockers remain, and two new ones are added:
+
+The C-1 success page gap, C-3 DevTools, and H-1 server-side enforcement gaps are unchanged. The newly confirmed H-7 logout 404 means Electron users' server sessions are never invalidated — they appear signed out locally but the session cookie remains live for 7 days. And C-4 means the admin audit trail for deletions is broken by design.
+
+Minimum fixes before launch, in order: C-1 → C-3 → H-1 → H-7 → H-3 → C-4. The remaining issues (H-5, H-6, M-series) should be addressed in the first patch sprint post-launch.

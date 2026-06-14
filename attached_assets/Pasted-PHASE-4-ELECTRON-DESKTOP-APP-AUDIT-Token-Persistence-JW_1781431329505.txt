@@ -1,0 +1,80 @@
+PHASE 4 — ELECTRON DESKTOP APP AUDIT
+
+Token Persistence
+
+JWTs are stored via configStore (a file in userData). desktop-secrets.ts generates JWT/session secrets with 96-char hex entropy and persists them at mode 0o600. This means tokens survive restarts correctly.
+
+Startup Authentication
+
+The backend health probe uses http://127.0.0.1:PORT/api/health with a strict {"status":"ok"} check. The port is dynamic and never hardcoded. Backend-ready IPC is push-notified to the renderer.
+
+Issues found:
+
+    getOrCreateDeviceId() generates a 16-character hex ID from crypto.randomUUID() (truncated). Truncating a UUID to 16 characters reduces uniqueness. With only 64 bits of entropy this is very unlikely to collide in practice, but the DEVICE_ID_REGEX /^[A-F0-9]{16}$/ restricts to uppercase hex — confirm the generator always produces uppercase output (it uses .toUpperCase(), so this is fine).
+
+    The x-device-id header is set by the renderer/preload and sent with API calls. There's no signing or proof that this device ID matches the one stored on disk — a malicious extension or XSS in the renderer could send a different device ID. Mitigated by contextIsolation and the device binding server logic, but worth noting.
+
+    DevTools are re-enabled in production in main.js (devTools: true in BrowserWindow options, and F12/Ctrl+Shift+I explicitly enabled). The comment says "DevTools enabled" but the system overview says "DevTools disabled in production." This is a contradiction. In production, DevTools should be locked.
+
+    The app.manifest requests requireAdministrator elevation. This means the entire Electron process runs as Administrator, which means any code injection (XSS in the renderer, compromised npm package) runs with full admin rights. The contextIsolation: true + nodeIntegration: false mitigates renderer injection, but the elevated privilege surface is significant.
+
+PHASE 5 — DEVICE LOCK AUDIT
+
+The device binding logic is well-structured:
+
+    First bind stores the device.
+    Match updates lastSeen.
+    Mismatch checks staleness (30-day window) before auto-rebinding.
+    Admin reset endpoint exists.
+
+Issues found:
+
+    The stale binding check uses premiumDeviceLastSeenAt ?? premiumBoundAt. If premiumBoundAt is null (shouldn't happen but defensive coding matters), lastSeen is null, isStale is true, and the device auto-rebinds. This would allow an attacker who has a valid JWT but different device to always rebind if premiumBoundAt is somehow null. The storage layer should enforce non-null on bind.
+
+    The DeviceLockModal has buttons for "Contact Support" (mailto) and "Retry" but also "Exit App." The Exit App button calls electronAPI.quitApp() which is an IPC call to app.quit(). This is fine, but if the user exits and relaunches on the same locked device, the lock check runs again immediately. There's no cooldown or graceful degradation path shown for repeated lock encounters.
+
+    Device ID is generated from a truncated UUID (16 hex chars). A determined attacker with access to the device-id.json file could read it and use it from another machine. The device ID is not a secret — it's a binding identifier. The security model depends on the server's JWT authentication being the actual gate, with device binding as an additional layer. This is acceptable.
+
+PHASE 6 — SECURITY AUDIT
+
+API Authorization
+
+All premium routes use requireJwt + requireCloudPremium. Admin routes use requireAdmin. The CLOUD_TRUTH_ROUTE_PREFIXES block in the local Electron backend is defense-in-depth.
+
+Issues found:
+
+    /api/network-tweaks uses requireJwt but not requireCloudPremium. Network tweaks appear to be accessible to any authenticated user regardless of premium status. Verify this is intentional.
+
+    /api/app-booster uses requireJwt but not requireCloudPremium. Same question.
+
+    /api/cleaner uses requireJwt but not requireCloudPremium. The system cleaner is marked as premium in the UI, but the API doesn't enforce it server-side.
+
+    /api/focus uses requireJwt but not requireCloudPremium.
+
+    The appBooster:executeAction IPC handler validates inputs with WIN_PATH_RE, EXEC_NAME_RE, and GAME_NAME_RE allowlists and escapePsString — this is well done. However, the NIC tuning IPC handlers call setNicPropertyWithOwnership which spawns elevated PowerShell. The propertyKey is validated by assertString in the preload but not against a known-good allowlist in main.js before being interpolated into PowerShell. Verify nicExecutor.setNicProperty sanitizes this parameter.
+
+    The HMAC signing in generateElectronCode uses || "switchcontrol-default-hmac" as a fallback. If JWT_SECRET and SESSION_SECRET are both empty at call time (possible in the module-load race described above), all generated codes are signed with the public default key. An attacker who knows this key could forge codes.
+
+    CSP in production excludes unsafe-eval, which is correct. However, unsafe-inline is allowed for both scriptSrc and styleSrc — this significantly weakens the XSS protections. For a production app handling payments, unsafe-inline in scriptSrc should be replaced with nonces or hashes.
+
+PHASE 7 — EDGE CASE TESTING
+
+Purchase during logout: If the user is logging out while the Stripe checkout completes, the webhook fires and sets isPremium=true. On next login, /api/me returns the correct premium state. No issue.
+
+Webhook arrives twice: The stripeWebhookEvents table stores event IDs. Verify the webhook handler checks for duplicate eventId before processing (the table exists but the dedup logic itself is in WebhookHandlers which isn't shown — assume it's implemented based on the table's existence).
+
+Token expiration during session: requireJwt falls through to session cookie if the JWT is invalid/expired, then calls reissueJwtFromSession on the client. This is handled. However, if both the JWT and session cookie are expired simultaneously, the user gets a 401 and must re-login — this is correct behavior.
+
+Desktop offline startup: The embedded backend starts on 127.0.0.1. If the machine has no network, local backend features work fine. Premium verification (/api/device/premium-validate) calls the cloud server. If offline, this call fails and the device lock state is indeterminate — the hook returns isChecking: true indefinitely. There is no offline grace period shown.
+
+Premium expiration: When a subscription is cancelled/expired, the webhook should update isPremium=false. The premium:revertAll IPC handler triggers the revert pipeline. However, there's no client-side polling to detect premium expiration between sessions — the user must close and reopen the app, or the app must re-verify entitlements periodically.
+PHASE 8 — PRODUCTION READINESS REPORT
+CRITICAL ISSUES
+
+C-1: PremiumSuccess page doesn't write premium
+
+    File: client/src/pages/PremiumSuccess.tsx
+    Lines: The useEffect fetches /api/stripe/session (read-only) and shows success UI if payment_status === "paid", but never calls /api/stripe/confirm (which actually writes premium to the DB).
+    Impact: User sees "Premium Activated" but may still be on free tier if the webhook hasn't fired.
+    Exploitability: Not exploitable for fraud (user still can't access premium APIs), but causes a bad UX where the user thinks they're premium but aren't.
+    Fix: Replace the /api/stripe/session call with /api/stripe/confirm (POST), which already has idempotency protection and writes premium as a webhook fallback.

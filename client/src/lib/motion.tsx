@@ -2,47 +2,23 @@ import { motion, AnimatePresence, Variants, useInView } from "framer-motion";
 import React, { createContext, useContext, useState, useEffect, useLayoutEffect, useRef, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
-const MotionContext = createContext({ prefersReducedMotion: false, hasLoaded: false });
+const MotionContext = createContext({ prefersReducedMotion: false });
 
 export function MotionProvider({ children }: { children: ReactNode }) {
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
-  const [hasLoaded, setHasLoaded] = useState(false);
 
   useEffect(() => {
-    // Only respect reduced motion if user has EXPLICITLY set it in their OS
-    // Check the media query directly and be less aggressive
     const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-    
-    // Only disable animations if the preference is explicitly set
-    // Many browsers/systems don't set this, so default to animations ON
     const handleChange = (e: MediaQueryListEvent | MediaQueryList) => {
-      // Be conservative: only disable if explicitly requested
       setPrefersReducedMotion(e.matches);
     };
-    
     handleChange(mediaQuery);
     mediaQuery.addEventListener('change', handleChange);
-    
-    const timer = setTimeout(() => setHasLoaded(true), 100);
-    
-    // Debug check for animation blocking - log to console in development
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[SwitchControl Animation Debug]', {
-        prefersReducedMotion: mediaQuery.matches,
-        viewport: { width: window.innerWidth, height: window.innerHeight },
-        isMobile: window.innerWidth < 768,
-        userAgent: navigator.userAgent
-      });
-    }
-    
-    return () => {
-      clearTimeout(timer);
-      mediaQuery.removeEventListener('change', handleChange);
-    };
+    return () => mediaQuery.removeEventListener('change', handleChange);
   }, []);
 
   return (
-    <MotionContext.Provider value={{ prefersReducedMotion, hasLoaded }}>
+    <MotionContext.Provider value={{ prefersReducedMotion }}>
       {children}
     </MotionContext.Provider>
   );

@@ -32,7 +32,7 @@
  *   AnimatePresence   — framer-motion AnimatePresence
  *   Reveal            — scroll-reveal wrapper component
  *   MotionProvider    — context provider (mount in root)
- *   useMotion         — hook: { prefersReducedMotion, hasLoaded }
+ *   useMotion         — hook: { prefersReducedMotion }
  */
 
 export {

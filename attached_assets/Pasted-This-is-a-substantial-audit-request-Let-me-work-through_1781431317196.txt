@@ -1,0 +1,59 @@
+This is a substantial audit request. Let me work through the provided codebase systematically across all nine phases.
+SwitchControl Security & Entitlement Audit
+PHASE 1 — AUTHENTICATION AUDIT
+
+Login/Signup Flow
+
+The Google and Discord OAuth flows look structurally sound. State parameter carries source and next as base64url JSON, with cookie fallback. The isSafeRedirectUrl function correctly blocks protocol-relative (//) redirects. The Electron deep-link exchange uses HMAC-signed one-time codes with a 2-minute TTL and constant-time comparison — this is well-implemented.
+
+JWT Storage & Validation
+
+JWTs are stored in Zustand (in-memory for web, config store for Electron). signJwt uses HS256 with issuer pinning. verifyJwt validates algorithm and issuer. The self-test suite at startup is a strong practice.
+
+Issues found:
+
+    server/auth/google.ts — HMAC_SECRET falls back to "switchcontrol-default-hmac" if both JWT_SECRET and SESSION_SECRET are absent. In Electron desktop mode, desktop-secrets.ts generates secrets on first run, but there's a race: HMAC_SECRET is read at module load time (const HMAC_SECRET = (process.env.JWT_SECRET || process.env.SESSION_SECRET || "").trim()), before desktop-secrets.ts necessarily populates the env. The comment says it's the "absolute first statement" in server/index.ts, but google.ts is imported transitively. If desktop-secrets.ts runs first this is fine, but the load order dependency is fragile.
+
+    requireJwt in Electron backend mode accepts x-electron-uid with only a regex check (/^[a-zA-Z0-9_-]{8,64}$/). This header is not cryptographically authenticated — any process on 127.0.0.1 can claim any user ID. This is partially mitigated by the loopback-only binding, but it means any local process can impersonate any user to the local backend. Given that the local backend blocks cloud-truth routes (auth, premium, stripe), the real-world impact is limited, but it's a trust boundary weakness.
+
+    Session cookie in web production uses sameSite: "none" + domain: ".switchcontrol.org". This is appropriate for cross-subdomain use, but verify all subdomains are trusted.
+
+    /api/debug/auth, /api/debug/user-flags, /api/debug/authMode are gated by process.env.NODE_ENV !== "production". Correct, but worth confirming NODE_ENV=production is set in all deployment paths.
+
+    The requirePremium middleware in server/auth/google.ts only checks req.user.isPremium (Passport session), not resolveEffectivePlan. This means trial users and admin-granted-plan users aren't recognized as premium by this middleware. It appears this legacy middleware is only used internally (not on public routes), but it should be unified with requireCloudPremium.
+
+PHASE 2 — PREMIUM ENTITLEMENT AUDIT
+
+Plan Resolution
+
+resolveEffectivePlan in server/lib/planUtils.ts is the single source of truth — Stripe premium overrides everything, then admin-set plan, then free. This is correctly threaded through /api/me, requireCloudPremium, and the device binding endpoint.
+
+Entitlement checks
+
+All premium routes use requireJwt + requireCloudPremium. The middleware fetches a live user from the DB (not trusting JWT claims alone for plan status), which is correct.
+
+Issues found:
+
+    client/src/lib/entitlementResolver.ts resolves trial state using client-side timestamp math (isTrialActive(user) compares trialEndsAt against Date.now()). There is no server gate on trial access — a user who manipulates their local clock or the in-memory store could extend trial access client-side. Since the trial entitlement gates UI only (not server-enforced API routes for premium features like AI/BIOS), this is a medium risk rather than critical.
+
+    /api/premium/unlock-seen and /api/premium/tour-seen check dbUser.isPremium (raw DB field) rather than resolveEffectivePlan. Trial users who have plan='trial' but isPremium=false get a 400 error when trying to mark these flags. This means trial users cannot dismiss the unlock animation correctly.
+
+    /api/premium/reset-tour-flags has no premium check at all — any authenticated user can reset tour flags. This is low severity but inconsistent.
+
+    The client/src/hooks/usePremiumDeviceLock.ts hook only fires when entitlementsOk && isPremium. If entitlements haven't been verified yet on startup, the device lock check is skipped for that session. This is partially mitigated by the server-side enforcement in requireCloudPremium.
+
+PHASE 3 — STRIPE AUDIT
+
+Webhook handling (in WebhookHandlers)
+
+The code is not shown in full, but the route is correctly set up with express.raw() before express.json(), and the signature is validated. The stripeWebhookEvents table provides event deduplication. The /api/stripe/confirm fallback correctly writes premium when the webhook hasn't fired yet, and is idempotent.
+
+Issues found:
+
+    CRITICAL: PremiumSuccess.tsx calls GET /api/stripe/session?session_id=... to verify payment. This endpoint returns payment_status from Stripe, but the frontend decides to call queryClient.invalidateQueries({ queryKey: ["/api/me"] }) and show the success UI based solely on data.payment_status === "paid". The frontend is trusting its own Stripe session lookup to grant the success state, but premium is only written to the DB by the webhook or the /api/stripe/confirm fallback. If the user reaches PremiumSuccess.tsx but neither the webhook nor /api/stripe/confirm has fired, the UI shows "Premium Activated" while the user is still free. This is a UX/consistency bug — the page should call /api/stripe/confirm (which actually writes premium) rather than just /api/stripe/session (which is read-only).
+
+    The /api/stripe/session endpoint verifies ownership (req.cloudUser!.id !== sessionUserId), but the success page fetches it without auth headers in the component code shown: fetch('/api/stripe/session?session_id=...', { credentials: 'include' }) — this relies on the session cookie being present, which may not be true if the user is on a different device or browser from where they paid.
+
+    Checkout session creation blocks if dbUser.isPremium is true, but doesn't check resolveEffectivePlan. A user on an admin-granted premium plan could still create a checkout session (they'd pay and get double-premium).
+
+    Rate limiter on checkout uses req.cloudUser?.id || req.user?.id || req.ip — the req.user fallback uses the Passport session user, which may have a different type shape. Verify this is always a string.

@@ -183,7 +183,7 @@ function BackendStartingBanner() {
 }
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
-  const { prefersReducedMotion, hasLoaded } = useMotion();
+  const { prefersReducedMotion } = useMotion();
   const [location] = useLocation();
   useNetworkStatus(); // boot network listeners + heartbeat once
 
