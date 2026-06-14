@@ -1,7 +1,7 @@
 import { Server as HttpServer } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { parse as parseUrl } from "url";
-import { getCachedSnapshot, getSnapshot, refreshRamNow } from "./telemetry";
+import { getCachedSnapshot, getSnapshot, refreshRamNow, telemetryClientConnected, telemetryClientDisconnected } from "./telemetry";
 import { verifyJwt, jwtFingerprint, peekJwtExpiry } from "./jwt";
 import { isKilled } from "./killSwitch";
 
@@ -166,7 +166,13 @@ export function setupWebSocketServer(httpServer: HttpServer) {
 
     (ws as any).__userId = userId;
 
+    // Connection-aware telemetry: a live consumer is now attached — ensure the
+    // scheduler is running. Balanced by telemetryClientDisconnected() on close.
+    telemetryClientConnected();
+
     ws.on("close", (code, reason) => {
+      telemetryClientDisconnected();
+
       const n = (userConnectionCount.get(userId) ?? 1) - 1;
       if (n <= 0) userConnectionCount.delete(userId);
       else userConnectionCount.set(userId, n);

@@ -510,9 +510,28 @@ export function getCachedSnapshot(): TelemetrySnapshot {
   };
 }
 
-// getSnapshot: return the current cached snapshot without forcing a tick.
-// The scheduler loop maintains the cache on its own cadence.
+// Dedupe concurrent on-demand refreshes so a burst of REST requests triggers
+// at most one tick() while the scheduler is idle.
+let oneShotRefresh: Promise<void> | null = null;
+const REST_STALE_MS = 5000;
+
+// getSnapshot: return the current cached snapshot. While the scheduler loop is
+// running (a WS client is connected) the cache is fresh, so we return it
+// directly. If the loop has idled out (no WS clients), REST consumers must not
+// receive indefinitely stale data — run a single deduped on-demand tick to
+// refresh the cache before returning.
 export async function getSnapshot(): Promise<TelemetrySnapshot> {
+  if (!loopActive) {
+    const stale = !cachedSnapshot || Date.now() - cachedSnapshot.ts > REST_STALE_MS;
+    if (stale) {
+      if (!oneShotRefresh) {
+        oneShotRefresh = tick()
+          .catch(() => {})
+          .finally(() => { oneShotRefresh = null; });
+      }
+      await oneShotRefresh;
+    }
+  }
   if (cachedSnapshot) return cachedSnapshot;
   return getCachedSnapshot();
 }
@@ -558,7 +577,18 @@ export function getSchedulerStats(): SchedulerStats {
 
 // ── Start / Stop ──────────────────────────────────────────────────────────────
 
-export function startTelemetryPolling(_intervalMs = 2000): void {
+// Connection-aware polling: the scheduler only runs while at least one consumer
+// (a live WebSocket telemetry client) is connected. When the last client leaves,
+// polling stops after an idle grace period so an idle server burns ~0 CPU on
+// systeminformation calls. Restarts automatically on the next connection.
+let activeClients = 0;
+let idleStopTimer: NodeJS.Timeout | null = null;
+const IDLE_TIMEOUT_MS = Math.max(
+  5000,
+  parseInt(process.env.TELEMETRY_IDLE_TIMEOUT_MS || "30000", 10) || 30000,
+);
+
+function ensureLoopRunning(): void {
   if (loopActive) return;
   loopActive = true;
 
@@ -574,7 +604,48 @@ export function startTelemetryPolling(_intervalMs = 2000): void {
     });
   });
 
-  console.log("[Telemetry] Scheduler started — base=2s, low-end=6s, budget=5%");
+  console.log("[Telemetry] Scheduler started — base=2s, low-end=15s, budget=5%");
+}
+
+function scheduleIdleStop(): void {
+  if (idleStopTimer) return;
+  idleStopTimer = setTimeout(() => {
+    idleStopTimer = null;
+    if (activeClients <= 0 && loopActive) {
+      stopTelemetryPolling();
+      console.log(`[Telemetry] Scheduler idled — no clients for ${IDLE_TIMEOUT_MS}ms, polling stopped`);
+    }
+  }, IDLE_TIMEOUT_MS);
+  // Never keep the event loop alive just for the idle timer.
+  if (typeof idleStopTimer.unref === "function") idleStopTimer.unref();
+}
+
+/** A live telemetry consumer (WebSocket client) connected — start polling if idle. */
+export function telemetryClientConnected(): void {
+  activeClients++;
+  if (idleStopTimer) {
+    clearTimeout(idleStopTimer);
+    idleStopTimer = null;
+  }
+  ensureLoopRunning();
+}
+
+/** A live telemetry consumer disconnected — stop polling after the idle grace period. */
+export function telemetryClientDisconnected(): void {
+  activeClients = Math.max(0, activeClients - 1);
+  if (activeClients === 0) scheduleIdleStop();
+}
+
+/** Number of live telemetry consumers currently connected. */
+export function getActiveTelemetryClients(): number {
+  return activeClients;
+}
+
+export function startTelemetryPolling(_intervalMs = 2000): void {
+  // Start once to prime the cache so the first REST/WS read returns real data,
+  // then idle out if nobody connects a live telemetry stream within the grace period.
+  ensureLoopRunning();
+  if (activeClients === 0) scheduleIdleStop();
 }
 
 export function stopTelemetryPolling(): void {
@@ -582,6 +653,10 @@ export function stopTelemetryPolling(): void {
   if (pollingLoop) {
     clearTimeout(pollingLoop);
     pollingLoop = null;
+  }
+  if (idleStopTimer) {
+    clearTimeout(idleStopTimer);
+    idleStopTimer = null;
   }
 }
 

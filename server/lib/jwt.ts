@@ -106,15 +106,70 @@ export function signJwt(userId: string): string {
   return token;
 }
 
+// ── Verified-token cache ──────────────────────────────────────────────────────
+// jwt.verify performs an HMAC-SHA256 on every call. At scale (1000+ concurrent
+// users hitting authed endpoints), re-verifying the same long-lived tokens is
+// wasted CPU. Cache successful verifications keyed by the token string.
+//
+// Safety notes:
+//  - Token expiry (exp) is always honored — an expired cache hit is discarded.
+//  - A short re-verify TTL bounds the window for secret rotation to take effect.
+//  - This does NOT cache entitlements/bans/premium: those are read live from the
+//    DB by the auth middleware using the userId, so revocation is unaffected.
+const JWT_CACHE_MAX = 5000;
+const JWT_CACHE_TTL_MS = 60_000; // re-run jwt.verify at most once/min per token
+const verifiedCache = new Map<string, { payload: JwtPayload; cachedAt: number }>();
+
+function jwtCacheGet(token: string): JwtPayload | null {
+  const hit = verifiedCache.get(token);
+  if (!hit) return null;
+  const now = Date.now();
+  // Respect token expiry (exp is seconds since epoch).
+  if (hit.payload.exp && now >= hit.payload.exp * 1000) {
+    verifiedCache.delete(token);
+    return null;
+  }
+  // Bounded freshness so secret rotation / re-issue takes effect promptly.
+  if (now - hit.cachedAt > JWT_CACHE_TTL_MS) {
+    verifiedCache.delete(token);
+    return null;
+  }
+  // LRU touch — move to most-recently-used position.
+  verifiedCache.delete(token);
+  verifiedCache.set(token, hit);
+  return hit.payload;
+}
+
+function jwtCacheSet(token: string, payload: JwtPayload): void {
+  if (verifiedCache.size >= JWT_CACHE_MAX) {
+    const oldest = verifiedCache.keys().next().value;
+    if (oldest !== undefined) verifiedCache.delete(oldest);
+  }
+  verifiedCache.set(token, { payload, cachedAt: Date.now() });
+}
+
+/** Drop a single token from the verified cache (e.g. on logout / forced revocation). */
+export function invalidateJwt(token: string): void {
+  verifiedCache.delete(token);
+}
+
+/** Clear the entire verified-token cache (e.g. on secret rotation). */
+export function clearJwtCache(): void {
+  verifiedCache.clear();
+}
+
 export function verifyJwt(token: string, silent = false): JwtPayload | null {
   if (!token || typeof token !== "string") {
     return null;
   }
+  const cached = jwtCacheGet(token);
+  if (cached) return cached;
   try {
     const decoded = jwt.verify(token, getSecret(), {
       algorithms: ["HS256"],
       issuer: "switchcontrol",
     }) as JwtPayload;
+    jwtCacheSet(token, decoded);
     return decoded;
   } catch (err: any) {
     if (!silent) {

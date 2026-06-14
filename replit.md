@@ -124,6 +124,10 @@ Real systeminformation-powered backend with no fake or randomized data:
 - **`client/src/hooks/useLiveTelemetry.ts`**: React hook consuming the WebSocket. Maintains 30-point rolling history for sparklines. Exposes `{ telemetry, history, connected }`.
 - **`client/src/hooks/useCauseEffect.ts`**: Before/after delta engine for tracking metric changes around actions.
 - **REST fallbacks**: `/api/telemetry` (snapshot), `/api/specs` (static system info), `/api/metrics/snapshot` (combined).
+- **Connection-aware polling (scalability)**: The scheduler only runs while ≥1 live WebSocket telemetry client is connected. `wsServer` calls `telemetryClientConnected()` on each accepted connection and `telemetryClientDisconnected()` on close; when the last client leaves, polling stops after an idle grace period (`TELEMETRY_IDLE_TIMEOUT_MS`, default 30s) and restarts on the next connect. `startTelemetryPolling()` primes the cache once at boot then idles out if nobody connects. `getSnapshot()` is liveness-aware: when the loop is idle and the cache is stale (>5s), it runs a single deduped on-demand `tick()` so REST consumers never get indefinitely stale data. An idle server burns ~0 CPU on `systeminformation` calls.
+
+### JWT Verification Cache (`server/lib/jwt.ts`)
+`verifyJwt()` checks a bounded LRU `Map` (max 5000, keyed by token string) before running `jwt.verify` (HMAC-SHA256), saving CPU at scale across all ~19 call sites. Cache hits honor token `exp` and a 60s re-verify TTL (bounds secret-rotation lag). `invalidateJwt(token)` and `clearJwtCache()` are exported for logout/rotation. The cache stores ONLY signature/`sub` validity — entitlements, bans, and premium state are read live from the DB by middleware using `userId`, so revocation is unaffected.
 
 ### Intelligence UI Components (`client/src/components/intelligence/`)
 - **`SystemAura`**: Ambient background gradient driven by live CPU load — calm blue at low load, warm amber/red at high load.
