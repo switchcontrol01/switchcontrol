@@ -3,6 +3,7 @@
 import "./lib/desktop-secrets";
 
 import express, { type Request, Response, NextFunction } from "express";
+import compression from "compression";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import helmet from "helmet";
@@ -24,6 +25,10 @@ import path from "path";
 const app = express();
 
 const isProd = process.env.NODE_ENV === "production";
+
+// HTTP response compression — gzip/brotli for all API + static responses.
+// Placed before helmet so the Content-Encoding header is set before CSP.
+app.use(compression());
 
 app.use(helmet({
   contentSecurityPolicy: isProd

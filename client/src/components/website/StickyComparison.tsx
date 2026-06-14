@@ -35,6 +35,8 @@ export default function StickyComparison() {
   const sectionRef = useRef<HTMLDivElement>(null);
   const [revealPct, setRevealPct] = useState(0);
   const isMobile = useIsMobile();
+  const rafRef = useRef<number | null>(null);
+  const prevPct = useRef(0);
 
   useEffect(() => {
     if (isMobile) return;
@@ -42,18 +44,30 @@ export default function StickyComparison() {
     if (!section) return;
 
     const onScroll = () => {
-      const rect = section.getBoundingClientRect();
-      const vh = window.innerHeight;
-      const start = rect.top - vh;
-      const end = rect.bottom - vh * 0.5;
-      const range = end - start;
-      const pct = range > 0 ? Math.max(0, Math.min(1, -start / range)) : 1;
-      setRevealPct(pct);
+      // One rAF per frame — prevents setState on every raw scroll event.
+      if (rafRef.current !== null) return;
+      rafRef.current = requestAnimationFrame(() => {
+        const rect = section.getBoundingClientRect();
+        const vh = window.innerHeight;
+        const start = rect.top - vh;
+        const end = rect.bottom - vh * 0.5;
+        const range = end - start;
+        const pct = range > 0 ? Math.max(0, Math.min(1, -start / range)) : 1;
+        // Skip imperceptible deltas — avoids reconciling when change < 0.5%.
+        if (Math.abs(pct - prevPct.current) > 0.005) {
+          prevPct.current = pct;
+          setRevealPct(pct);
+        }
+        rafRef.current = null;
+      });
     };
 
     window.addEventListener("scroll", onScroll, { passive: true });
     onScroll();
-    return () => window.removeEventListener("scroll", onScroll);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+    };
   }, [isMobile]);
 
   const leftOpacity = isMobile ? 1 : 1 - revealPct * 0.85;

@@ -1,0 +1,158 @@
+OPTIMIZATION PLAN UI
+
+Before applying:
+show:
+
+- what tweaks will apply
+- confidence score
+- why they were selected
+- expected impact
+- safety level
+- reversibility
+
+Example:
+
+"Game Mode recommended
+Confidence: 93%
+
+Reason:
+
+- Ryzen X3D detected
+- Competitive profile selected
+- Background scheduler contention detected
+- High confidence frametime improvement"
+
+---
+
+NETWORK ENGINE
+
+Create equivalent architecture for network tweaks.
+
+Focus on:
+
+- latency consistency
+- interrupt moderation
+- adapter power behavior
+- packet scheduling
+- offload conflicts
+- WiFi roaming behavior
+- NIC tuning
+
+DO NOT use fake internet speed tweaks.
+
+Avoid:
+
+- placebo TCP tweaks
+- dangerous registry spam
+- fake ping optimizations
+
+---
+
+CRITICAL PERFORMANCE REQUIREMENTS
+
+The optimization engine itself MUST remain lightweight.
+
+DO NOT:
+
+- create continuous polling
+- create heavy telemetry loops
+- create background AI usage
+- create render storms
+- spam systeminformation
+- spam IPC
+- block React rendering
+- create excessive Zustand updates
+- create unnecessary rerenders
+
+The popup and analysis flow must:
+
+- feel instant
+- feel smooth
+- avoid visible hitching
+- avoid animation stutter
+- avoid CPU spikes
+
+---
+
+IMPORTANT
+
+Optimize for:
+
+- frametime consistency
+- responsiveness
+- scheduler smoothness
+- interaction latency
+- reduced stutter
+
+NOT:
+
+- fake benchmark FPS gains
+
+Focus on:
+
+- 1% lows
+- stability
+- latency
+- smoothness
+- responsiveness perception
+
+AUDIT AND IMPLEMENTATION TASKS
+
+1. Analyze current Apply Recommended architecture
+2. Analyze current tweak metadata system
+3. Analyze network tweak architecture
+4. Design new recommendation engine
+5. Design weighted scoring system
+6. Design conflict detection system
+7. Design anti-recommendation system
+8. Design lightweight runtime analysis flow
+9. Identify unsafe/outdated tweaks
+10. Identify placebo tweaks
+11. Identify measurable vs non-measurable tweaks
+12. Build implementation roadmap
+13. Build optimized frontend flow
+14. Ensure no polling spam
+15. Ensure low CPU usage
+16. Ensure smooth UX
+17. Ensure scalable architectureThis version is strong now.
+
+This is no longer: "make my PC faster"
+
+This is: context-aware optimization orchestration.
+
+That is MUCH more serious software architecture.
+
+The only thing I'd still push before implementation:
+
+DO NOT let Replit/Claude overbuild fake "AI".
+
+You do NOT want:
+
+LLM inference
+
+chatgpt-style runtime reasoning
+
+huge prompt systems
+
+constant model calls
+
+cloud inference spam
+
+"thinking..." garbage
+
+
+Your system should mostly be: deterministic weighted heuristics.
+
+Meaning: 90% engine 10% presentation.
+
+That's the sweet spot.
+
+Because: real optimization logic is mostly: rules + weighting + compatibility.
+
+NOT generative AI.
+
+The smartest architecture now would be:
+
+1. Snapshot Engine Runs ONCE when Apply Recommended pressed.
+
+

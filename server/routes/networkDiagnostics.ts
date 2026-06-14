@@ -4,6 +4,25 @@ import { performance } from "perf_hooks";
 
 const router = Router();
 
+// Strict per-IP rate limit for ping-sample: 1 call / 30 s.
+// Each call issues 3 TCP probes (~600 ms–2 s each) — without this guard,
+// a tight polling loop exhausts ephemeral ports and saturates the event loop.
+const pingSampleLastCall = new Map<string, number>();
+const PING_SAMPLE_COOLDOWN_MS = 30_000;
+
+function pingRateLimit(req: any, res: any, next: any) {
+  const ip = (req.headers["x-forwarded-for"] as string | undefined)?.split(",")[0].trim() ?? req.ip ?? "unknown";
+  const now = Date.now();
+  const last = pingSampleLastCall.get(ip) ?? 0;
+  if (now - last < PING_SAMPLE_COOLDOWN_MS) {
+    const retryAfter = Math.ceil((PING_SAMPLE_COOLDOWN_MS - (now - last)) / 1000);
+    res.setHeader("Retry-After", String(retryAfter));
+    return res.status(429).json({ error: "Rate limit: 1 ping per 30 s.", retryAfter });
+  }
+  pingSampleLastCall.set(ip, now);
+  next();
+}
+
 interface PingTarget { host: string; port: number; label: string; }
 
 const TARGETS: PingTarget[] = [
@@ -70,7 +89,7 @@ let benchmarkBaseline: {
   avg: number; min: number; max: number; jitter: number; loss: number; ts: number;
 } | null = null;
 
-router.get("/ping-sample", async (_req, res) => {
+router.get("/ping-sample", pingRateLimit, async (_req, res) => {
   try {
     const result = await collectSamples(3);
     res.json({ ...result, ts: Date.now() });

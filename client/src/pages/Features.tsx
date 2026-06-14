@@ -91,13 +91,26 @@ function LiveLineChart({
       frameRef.current = requestAnimationFrame(tick);
     };
 
-    if (inView) {
+    // Pause animation when tab is hidden; resume when visible again.
+    const onVis = () => {
+      if (document.hidden) {
+        cancelAnimationFrame(frameRef.current);
+      } else if (inView) {
+        frameRef.current = requestAnimationFrame(tick);
+      }
+    };
+    document.addEventListener('visibilitychange', onVis);
+
+    if (inView && !document.hidden) {
       frameRef.current = requestAnimationFrame(tick);
     } else {
       cancelAnimationFrame(frameRef.current);
     }
 
-    return () => cancelAnimationFrame(frameRef.current);
+    return () => {
+      cancelAnimationFrame(frameRef.current);
+      document.removeEventListener('visibilitychange', onVis);
+    };
   }, [animated, height, inView]);
 
   const W = 400;
@@ -448,8 +461,22 @@ function TelemetryDashboard() {
       }
       frameRef.current = requestAnimationFrame(tick);
     };
-    frameRef.current = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(frameRef.current);
+    const onVis = () => {
+      if (document.hidden) {
+        cancelAnimationFrame(frameRef.current);
+      } else {
+        frameRef.current = requestAnimationFrame(tick);
+      }
+    };
+    document.addEventListener('visibilitychange', onVis);
+
+    if (!document.hidden) {
+      frameRef.current = requestAnimationFrame(tick);
+    }
+    return () => {
+      cancelAnimationFrame(frameRef.current);
+      document.removeEventListener('visibilitychange', onVis);
+    };
   }, [inView]);
 
   const sparklinePath = (vals: number[], color: string) => {

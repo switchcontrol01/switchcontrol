@@ -61,9 +61,8 @@ export function SpotlightCursor() {
       rafRef.current = requestAnimationFrame(tick);
     };
 
+    // Do NOT start the loop at mount — let the first mousemove trigger it.
     window.addEventListener('mousemove', handleMouseMove);
-    rafRef.current = requestAnimationFrame(tick);
-    running.current = true;
 
     return () => {
       running.current = false;

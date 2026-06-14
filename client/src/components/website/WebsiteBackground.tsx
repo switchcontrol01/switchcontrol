@@ -251,7 +251,7 @@ const PARTICLE_POSITIONS = [
 
 export function WebsiteBackground({ variant = "landing" }: WebsiteBackgroundProps) {
   const [mousePos, setMousePos] = useState({ x: 0.5, y: 0.3 });
-  const [scrollY, setScrollY] = useState(0);
+  const containerRef = useRef<HTMLDivElement>(null);
   const rafRef = useRef<number | null>(null);
   const scrollRafRef = useRef<number | null>(null);
   const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
@@ -279,7 +279,17 @@ export function WebsiteBackground({ variant = "landing" }: WebsiteBackgroundProp
   const handleScroll = useCallback(() => {
     if (scrollRafRef.current !== null) return;
     scrollRafRef.current = requestAnimationFrame(() => {
-      setScrollY(window.scrollY);
+      const y = window.scrollY;
+      const po = y * 0.08;
+      const bf = Math.max(0.2, 1 - y / 1200);
+      const c = containerRef.current;
+      if (c) {
+        // Update CSS custom properties directly — zero React re-renders on scroll.
+        c.style.setProperty('--po', String(po));
+        c.style.setProperty('--bf-07', String(bf * 0.7));
+        c.style.setProperty('--bf-035', String(bf * 0.35));
+        c.style.setProperty('--bf', String(bf));
+      }
       scrollRafRef.current = null;
     });
   }, []);
@@ -297,11 +307,8 @@ export function WebsiteBackground({ variant = "landing" }: WebsiteBackgroundProp
     };
   }, [handleMouseMove, handleScroll, isMobile]);
 
-  const parallaxOffset = scrollY * 0.08;
-  const beamFade = Math.max(0.2, 1 - scrollY / 1200);
-
   return (
-    <div className="fixed inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
+    <div ref={containerRef} className="fixed inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
       <div className="absolute inset-0" style={{ background: config.gradients }} />
 
       <div
@@ -320,7 +327,7 @@ export function WebsiteBackground({ variant = "landing" }: WebsiteBackgroundProp
             backgroundSize: "cover",
             backgroundPosition: "center",
             opacity: img.opacity,
-            transform: `rotate(-3deg) scale(1.08) translateY(${i % 2 === 0 ? -parallaxOffset * 0.4 : parallaxOffset * 0.3}px)`,
+            transform: `rotate(-3deg) scale(1.08) translateY(calc(var(--po,0) * ${i % 2 === 0 ? -0.4 : 0.3} * 1px))`,
           }}
         />
       ))}
@@ -335,8 +342,8 @@ export function WebsiteBackground({ variant = "landing" }: WebsiteBackgroundProp
           width: "120%",
           height: "80%",
           background: "linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(180,140,255,0.10) 15%, transparent 40%)",
-          opacity: beamFade * 0.7,
-          transform: `translateY(${-parallaxOffset * 0.2}px)`,
+          opacity: "var(--bf-07, 0.7)" as unknown as number,
+          transform: "translateY(calc(var(--po,0) * -0.2 * 1px))",
         }}
       />
       <div
@@ -347,8 +354,8 @@ export function WebsiteBackground({ variant = "landing" }: WebsiteBackgroundProp
           width: "50%",
           height: "90%",
           background: "linear-gradient(125deg, rgba(200,180,255,0.12) 0%, rgba(130,200,255,0.08) 25%, transparent 50%)",
-          opacity: beamFade * 0.35,
-          transform: `translateY(${-parallaxOffset * 0.1}px)`,
+          opacity: "var(--bf-035, 0.35)" as unknown as number,
+          transform: "translateY(calc(var(--po,0) * -0.1 * 1px))",
         }}
       />
       </>)}
@@ -361,7 +368,7 @@ export function WebsiteBackground({ variant = "landing" }: WebsiteBackgroundProp
           width: "60%",
           height: "50%",
           background: "radial-gradient(ellipse at 20% 20%, rgba(180,140,255,0.14) 0%, rgba(150,110,220,0.09) 20%, rgba(120,80,200,0.04) 40%, transparent 65%)",
-          opacity: beamFade,
+          opacity: "var(--bf, 1)" as unknown as number,
         }}
       />
 
@@ -412,7 +419,7 @@ export function WebsiteBackground({ variant = "landing" }: WebsiteBackgroundProp
           opacity: 0.012,
           backgroundImage: "repeating-linear-gradient(0deg, transparent, transparent 99px, rgba(140,120,255,0.12) 100px), repeating-linear-gradient(90deg, transparent, transparent 99px, rgba(140,120,255,0.08) 100px)",
           backgroundSize: "100px 100px",
-          transform: `translateY(${parallaxOffset * 0.1}px)`,
+          transform: "translateY(calc(var(--po,0) * 0.1 * 1px))",
         }}
       />
 
@@ -423,7 +430,7 @@ export function WebsiteBackground({ variant = "landing" }: WebsiteBackgroundProp
           style={{
             opacity: overlay.opacity,
             color: "hsl(270 40% 60%)",
-            transform: `translateY(${i % 2 === 0 ? -parallaxOffset : parallaxOffset * 0.5}px)`,
+            transform: `translateY(calc(var(--po,0) * ${i % 2 === 0 ? -1 : 0.5} * 1px))`,
           }}
         >
           <overlay.Component className="w-full h-full" />
@@ -465,7 +472,7 @@ export function WebsiteBackground({ variant = "landing" }: WebsiteBackgroundProp
                 linear-gradient(135deg, transparent 40%, hsl(270 40% 50%) 40%, hsl(270 40% 50%) 41%, transparent 41%),
                 linear-gradient(135deg, transparent 50%, hsl(270 40% 50%) 50%, hsl(270 40% 50%) 51%, transparent 51%)
               `,
-              transform: `translateY(${-parallaxOffset * 0.3}px)`,
+              transform: "translateY(calc(var(--po,0) * -0.3 * 1px))",
             }}
           />
           <div
@@ -479,7 +486,7 @@ export function WebsiteBackground({ variant = "landing" }: WebsiteBackgroundProp
               borderRadius: "4px",
               border: "1px solid hsl(270 40% 50% / 0.3)",
               background: "linear-gradient(180deg, hsl(270 40% 50% / 0.05) 0%, transparent 100%)",
-              transform: `translateY(${parallaxOffset * 0.2}px)`,
+              transform: "translateY(calc(var(--po,0) * 0.2 * 1px))",
             }}
           />
         </>

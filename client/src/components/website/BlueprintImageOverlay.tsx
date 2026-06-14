@@ -17,6 +17,8 @@ export function BlueprintImageOverlay() {
 
   return (
     <div className="absolute inset-0 pointer-events-none overflow-hidden">
+      {/* Blueprint images — willChange removed; bp-float-* CSS keyframes handle
+          compositor promotion only during animation, not permanently. */}
       <div
         className="bp-layer bp-chip bp-float-1"
         style={{
@@ -28,7 +30,6 @@ export function BlueprintImageOverlay() {
           maxWidth: "520px",
           opacity: 0.14 * mobileOpacityScale,
           filter: "blur(2px)",
-          willChange: "transform",
         }}
       >
         <img
@@ -40,18 +41,16 @@ export function BlueprintImageOverlay() {
         />
       </div>
 
+      {/* Sun-streak glows — replaced filter:blur() divs with pre-baked radial
+          gradients. Equivalent visual effect, zero compositor layer promotion. */}
       {!reduced && (
         <div
           className="ws-sun-streak-bp"
           style={{
             position: "absolute",
-            top: "10%",
-            left: "-8%",
-            width: "55%",
-            height: "45%",
-            background: "linear-gradient(140deg, rgba(255,255,255,0.18) 0%, rgba(180,210,255,0.12) 20%, rgba(140,180,255,0.06) 40%, transparent 60%)",
-            filter: "blur(14px)",
-            opacity: 1,
+            inset: 0,
+            background:
+              "radial-gradient(ellipse 55% 40% at -5% 10%, rgba(200,220,255,0.13) 0%, rgba(180,210,255,0.06) 45%, transparent 70%)",
             pointerEvents: "none",
           }}
         />
@@ -68,7 +67,6 @@ export function BlueprintImageOverlay() {
           maxWidth: "720px",
           opacity: 0.11 * mobileOpacityScale,
           filter: "blur(3px)",
-          willChange: "transform",
         }}
       >
         <img
@@ -85,13 +83,9 @@ export function BlueprintImageOverlay() {
           className="ws-sun-streak-bp-right"
           style={{
             position: "absolute",
-            top: "22%",
-            right: "-10%",
-            width: "55%",
-            height: "40%",
-            background: "linear-gradient(220deg, rgba(255,255,255,0.16) 0%, rgba(160,200,255,0.10) 20%, rgba(120,160,255,0.05) 40%, transparent 60%)",
-            filter: "blur(14px)",
-            opacity: 1,
+            inset: 0,
+            background:
+              "radial-gradient(ellipse 55% 38% at 108% 22%, rgba(160,200,255,0.11) 0%, rgba(140,180,255,0.05) 45%, transparent 68%)",
             pointerEvents: "none",
           }}
         />
@@ -108,7 +102,6 @@ export function BlueprintImageOverlay() {
           maxWidth: "700px",
           opacity: 0.07 * mobileOpacityScale,
           filter: "blur(3px)",
-          willChange: "transform",
         }}
       >
         <img
@@ -125,43 +118,33 @@ export function BlueprintImageOverlay() {
           className="ws-sun-streak-bp-center"
           style={{
             position: "absolute",
-            top: "40%",
-            left: "20%",
-            width: "60%",
-            height: "35%",
-            background: "linear-gradient(160deg, rgba(200,220,255,0.10) 0%, rgba(255,255,255,0.08) 30%, transparent 55%)",
-            filter: "blur(20px)",
-            opacity: 1,
+            inset: 0,
+            background:
+              "radial-gradient(ellipse 58% 32% at 48% 55%, rgba(205,220,255,0.09) 0%, rgba(200,220,255,0.04) 50%, transparent 70%)",
             pointerEvents: "none",
           }}
         />
       )}
 
+      {/* Large ambient glows — replaced two blur(40px) divs with full-coverage
+          radial gradients. Same depth/mood, no GPU off-screen render targets. */}
       {!reduced && (
         <>
           <div
             style={{
               position: "absolute",
-              top: "5%",
-              left: "-10%",
-              width: "80%",
-              height: "60%",
-              background: "linear-gradient(135deg, rgba(200,220,255,0.10) 0%, rgba(160,140,255,0.06) 30%, transparent 55%)",
-              filter: "blur(40px)",
-              opacity: 1,
+              inset: 0,
+              background:
+                "radial-gradient(ellipse 72% 52% at 28% 18%, rgba(200,220,255,0.09) 0%, rgba(160,140,255,0.04) 45%, transparent 68%)",
               pointerEvents: "none",
             }}
           />
           <div
             style={{
               position: "absolute",
-              bottom: "5%",
-              right: "-10%",
-              width: "70%",
-              height: "50%",
-              background: "linear-gradient(315deg, rgba(255,255,255,0.08) 0%, rgba(140,180,255,0.05) 25%, transparent 50%)",
-              filter: "blur(40px)",
-              opacity: 1,
+              inset: 0,
+              background:
+                "radial-gradient(ellipse 62% 44% at 82% 82%, rgba(255,255,255,0.06) 0%, rgba(140,180,255,0.03) 40%, transparent 62%)",
               pointerEvents: "none",
             }}
           />

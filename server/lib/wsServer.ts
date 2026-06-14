@@ -65,7 +65,17 @@ function peekIss(token: string): string {
 }
 
 export function setupWebSocketServer(httpServer: HttpServer) {
-  wss = new WebSocketServer({ server: httpServer, path: "/ws/telemetry" });
+  wss = new WebSocketServer({
+    server: httpServer,
+    path: "/ws/telemetry",
+    // Compress telemetry frames — saves ~40–60% bandwidth on repetitive JSON.
+    perMessageDeflate: {
+      zlibDeflateOptions: { level: 1 }, // fastest compression, low CPU cost
+      threshold: 256,                   // skip tiny frames
+      concurrencyLimit: 10,
+      serverNoContextTakeover: true,
+    },
+  });
 
   wss.on("connection", (ws: WebSocket, req: any) => {
     ws.on("error", () => {});

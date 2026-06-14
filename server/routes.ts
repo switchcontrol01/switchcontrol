@@ -800,11 +800,22 @@ export async function registerRoutes(
     }
   });
 
-  // Activity ping — called by Electron app periodically
+  // Activity ping — called by Electron app periodically.
+  // Batched: DB write fires at most once per 5 minutes per user to avoid
+  // high-frequency UPDATE churn when 1000s of users ping every 60 s.
+  const activityWriteLastAt = new Map<string, number>();
+  const ACTIVITY_WRITE_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+
   app.post("/api/activity/ping", requireJwt, async (req, res) => {
     try {
       const cloudUser = req.cloudUser!;
-      await storage.updateUserActivity(cloudUser.id, { lastAppActiveAt: new Date() });
+      const now = Date.now();
+      const last = activityWriteLastAt.get(cloudUser.id) ?? 0;
+      if (now - last >= ACTIVITY_WRITE_INTERVAL_MS) {
+        activityWriteLastAt.set(cloudUser.id, now);
+        // Fire-and-forget — don't await to keep latency low.
+        storage.updateUserActivity(cloudUser.id, { lastAppActiveAt: new Date() }).catch(() => {});
+      }
       res.json({ ok: true });
     } catch (err) {
       res.status(500).json({ error: "Activity update failed." });

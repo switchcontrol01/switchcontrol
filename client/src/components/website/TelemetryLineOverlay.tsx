@@ -1,41 +1,57 @@
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback } from "react";
 
 const isMobileInit = typeof window !== "undefined" && window.innerWidth < 768;
 
 export function TelemetryLineOverlay() {
-  const [scrollY, setScrollY] = useState(0);
   const rafRef = useRef<number | null>(null);
-  const [isMobile] = useState(isMobileInit);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const svgPrimaryRef = useRef<SVGSVGElement>(null);
+  const svgSecondaryRef = useRef<SVGSVGElement>(null);
 
+  // Drive all transforms imperatively — zero React re-renders on scroll.
   const handleScroll = useCallback(() => {
+    if (isMobileInit) return;
     if (rafRef.current !== null) return;
     rafRef.current = requestAnimationFrame(() => {
-      setScrollY(window.scrollY);
+      const y = window.scrollY;
+      const xShift = Math.sin(y * 0.003) * 20;
+      const yShift = Math.cos(y * 0.004) * 16;
+      const scale = 1 + Math.sin(y * 0.002) * 0.02;
+      const opacityMod = 0.7 + Math.sin(y * 0.005) * 0.3;
+
+      if (wrapperRef.current) {
+        wrapperRef.current.style.opacity = String(opacityMod);
+      }
+      if (svgPrimaryRef.current) {
+        svgPrimaryRef.current.style.transform =
+          `translate(${xShift}px, ${yShift}px) scale(${scale})`;
+      }
+      if (svgSecondaryRef.current) {
+        svgSecondaryRef.current.style.transform =
+          `translate(${xShift * 0.6}px, ${yShift * 0.4}px) scale(${1 + (scale - 1) * 0.5})`;
+      }
       rafRef.current = null;
     });
   }, []);
 
   useEffect(() => {
-    if (isMobile) return;
+    if (isMobileInit) return;
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => {
       window.removeEventListener("scroll", handleScroll);
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
-  }, [handleScroll, isMobile]);
-
-  const xShift = isMobile ? 0 : Math.sin(scrollY * 0.003) * 20;
-  const yShift = isMobile ? 0 : Math.cos(scrollY * 0.004) * 16;
-  const scale = isMobile ? 1 : 1 + Math.sin(scrollY * 0.002) * 0.02;
-  const opacityMod = isMobile ? 0.5 : 0.7 + Math.sin(scrollY * 0.005) * 0.3;
+  }, [handleScroll]);
 
   return (
     <div
+      ref={wrapperRef}
       className="absolute inset-0 pointer-events-none overflow-hidden"
       aria-hidden="true"
-      style={{ opacity: opacityMod }}
+      style={{ opacity: isMobileInit ? 0.5 : 0.7 }}
     >
       <svg
+        ref={svgPrimaryRef}
         className="ws-telemetry-line-primary"
         viewBox="0 0 1400 200"
         fill="none"
@@ -47,7 +63,6 @@ export function TelemetryLineOverlay() {
           left: "-5%",
           width: "110%",
           height: "120px",
-          transform: `translate(${xShift}px, ${yShift}px) scale(${scale})`,
           transition: "transform 0.3s ease-out",
         }}
       >
@@ -77,6 +92,7 @@ export function TelemetryLineOverlay() {
       </svg>
 
       <svg
+        ref={svgSecondaryRef}
         className="ws-telemetry-line-secondary"
         viewBox="0 0 1400 200"
         fill="none"
@@ -88,7 +104,6 @@ export function TelemetryLineOverlay() {
           left: "-3%",
           width: "106%",
           height: "100px",
-          transform: `translate(${xShift * 0.6}px, ${yShift * 0.4}px) scale(${1 + (scale - 1) * 0.5})`,
           transition: "transform 0.4s ease-out",
         }}
       >

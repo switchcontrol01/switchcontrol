@@ -29,6 +29,25 @@ export default function MagneticTilt({
     let currentX = 0;
     let currentY = 0;
 
+    const tick = () => {
+      currentX += (targetX - currentX) * 0.08;
+      currentY += (targetY - currentY) * 0.08;
+      el.style.transform = `perspective(1200px) rotateX(${currentX.toFixed(2)}deg) rotateY(${currentY.toFixed(2)}deg)`;
+
+      // Stop scheduling once all values have converged to near-zero.
+      // The loop self-restarts on the next mousemove.
+      const settled =
+        Math.abs(currentX) < 0.01 &&
+        Math.abs(currentY) < 0.01 &&
+        Math.abs(targetX) < 0.01 &&
+        Math.abs(targetY) < 0.01;
+      if (!settled) {
+        rafId = requestAnimationFrame(tick);
+      } else {
+        rafId = null;
+      }
+    };
+
     const onMove = (e: MouseEvent) => {
       const rect = el.getBoundingClientRect();
       const cx = rect.left + rect.width / 2;
@@ -37,23 +56,20 @@ export default function MagneticTilt({
       const dy = (e.clientY - cy) / (rect.height / 2);
       targetX = dy * maxTilt;
       targetY = -dx * maxTilt;
+      // Restart the loop only if it has already settled (rafId === null).
+      if (!rafId) rafId = requestAnimationFrame(tick);
     };
 
     const onLeave = () => {
       targetX = 0;
       targetY = 0;
-    };
-
-    const tick = () => {
-      currentX += (targetX - currentX) * 0.08;
-      currentY += (targetY - currentY) * 0.08;
-      el.style.transform = `perspective(1200px) rotateX(${currentX.toFixed(2)}deg) rotateY(${currentY.toFixed(2)}deg)`;
-      rafId = requestAnimationFrame(tick);
+      // Let the tick loop drain the spring to zero naturally; settle check stops it.
+      if (!rafId) rafId = requestAnimationFrame(tick);
     };
 
     el.addEventListener("mousemove", onMove);
     el.addEventListener("mouseleave", onLeave);
-    rafId = requestAnimationFrame(tick);
+    // Do NOT start the loop at mount — let mousemove trigger it.
 
     return () => {
       el.removeEventListener("mousemove", onMove);

@@ -1,0 +1,203 @@
+We are redesigning the "Apply Recommended" system into a true adaptive optimization intelligence engine.
+
+The current system is too static.
+
+Right now it behaves like:
+"gaming PC detected -> apply preselected tweak list"
+
+That is outdated.
+
+We want a modern hardware-aware recommendation engine that dynamically analyzes the user's actual system state before deciding what to apply.
+
+GOALS
+
+The new system must:
+
+- intelligently analyze the system at runtime
+- dynamically score tweaks
+- avoid outdated/placebo tweaks
+- optimize for frametime consistency and responsiveness
+- avoid unnecessary CPU usage
+- avoid polling spam
+- avoid background AI overhead
+- feel premium and intelligent
+- preserve smooth UI/animations
+- work for BOTH:
+  - system tweaks
+  - network tweaks
+
+IMPORTANT:
+This is NOT a continuously running AI system.
+
+The intelligence engine should:
+
+- run only when user clicks Apply Recommended
+- perform one analysis burst
+- generate a recommendation plan
+- cache results temporarily
+- stop once analysis is complete
+
+NO continuous scanning.
+NO constant AI polling.
+NO unnecessary telemetry loops.
+
+ARCHITECTURE TO BUILD
+
+Create an adaptive recommendation engine with these layers:
+
+---
+
+LAYER 1 — HARDWARE PROFILING
+
+Analyze and detect:
+
+- CPU architecture
+- X3D detection
+- cache-sensitive CPUs
+- SMT topology
+- core count
+- hybrid CPUs
+- RAM amount
+- RAM speed
+- GPU vendor
+- GPU model
+- laptop vs desktop
+- storage type
+- Windows version/build
+- network adapter type
+- WiFi vs Ethernet
+- existing tweak state
+- already-applied tweaks
+- current power plan
+- thermal constraints if available
+
+Use systeminformation where possible.
+
+---
+
+LAYER 2 — USER INTENT
+
+After analysis completes:
+show a premium animated popup.
+
+DO NOT use cheesy AI marketing wording.
+
+The popup should ask:
+
+"What are you optimizing for?"
+
+Options:
+
+- Lowest Latency
+- Highest FPS
+- Lowest Stutter
+- Smooth Frametimes
+- Balanced Gaming
+- Streaming + Gaming
+- Competitive FPS
+- Network Responsiveness
+- Automatic Best Optimization
+
+This popup appears AFTER analysis completes.
+
+The popup should:
+
+- feel premium
+- smooth animation
+- lightweight
+- no lag/stutter
+- no blocking render work
+
+---
+
+LAYER 3 — SAFETY + VALIDATION ENGINE
+
+Every tweak must contain metadata:
+
+- measurable benefit confidence
+- stability risk
+- reversibility
+- Windows compatibility
+- hardware compatibility
+- whether outdated
+- whether placebo/unsafe
+- whether benchmark-only
+
+Classify tweaks into:
+
+1. Proven measurable
+2. Conditional measurable
+3. Legacy tweaks
+4. Unsafe / placebo
+
+The recommendation engine should prioritize:
+
+- proven measurable
+- high-confidence conditional tweaks
+
+The engine should AVOID:
+
+- outdated tweaks
+- placebo tweaks
+- Windows 7 era tweaks
+- fake network optimizations
+- dangerous scheduler hacks
+
+---
+
+LAYER 4 — CONFLICT ENGINE
+
+Detect:
+
+- contradictory tweaks
+- duplicate tweaks
+- mutually harmful tweaks
+- scheduler conflicts
+- network conflicts
+- old tweaks incompatible with 24H2
+- tweaks already handled automatically by Windows
+
+Examples:
+
+- avoid old core parking tweaks on X3D
+- avoid HPET forcing
+- avoid dangerous BCD timer tweaks
+- avoid duplicate network offloads
+- avoid unnecessary security disabling
+
+The engine should support:
+ANTI-RECOMMENDATIONS
+
+Meaning:
+sometimes the engine explicitly says:
+"DO NOT apply this tweak on this system"
+
+---
+
+LAYER 5 — WEIGHTED SCORING ENGINE
+
+DO NOT use:
+recommended=true
+
+Instead:
+calculate weighted scores dynamically.
+
+Factors:
+
+- latency improvement
+- frametime improvement
+- scheduler benefit
+- background reduction
+- interrupt reduction
+- network responsiveness
+- stability risk
+- hardware compatibility
+- Windows build compatibility
+- confidence level
+
+The system should dynamically generate:
+Optimization Plan
+
+NOT instantly apply tweaks.
+
+---
