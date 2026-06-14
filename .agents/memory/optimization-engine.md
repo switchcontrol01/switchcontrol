@@ -1,35 +1,30 @@
 ---
 name: Optimization Engine architecture
-description: Key decisions for the Adaptive Optimization Engine — scoring model, isolation pattern, cache TTLs, network engine separation, and outcome-driven apply.
+description: Durable decisions for the Adaptive Optimization Engine — network separation, cache TTLs, outcome-driven apply/revert, and key field-name trap.
 ---
 
-## Rule
-Keep the main engine pure (no React/no side effects) in `shared/`. Score only, never apply. Isolated Zustand slice in `client/src/stores/optimizationStore.ts` means TweaksList never re-renders during analysis.
+## Separate network engine (never merge back into main engine)
+`shared/networkOptimizationEngine.ts` is a completely distinct scoring path:
+- Uses network-specific signals collected by `client/src/lib/networkOptimizationSnapshot.ts` (wired detection via Electron interface list, WiFi adapter presence, live RX/TX traffic)
+- Different safety rules: WiFi-disable gated on `isWired === true`; Bluetooth gated on wired status
+- Only scores network-relevant tweaks — never general hardware tweaks
+- Returns the same `OptimizationPlan` shape so the plan UI is shared
 
-**Why:** Phase transitions (snapshotting → intent → deciding → plan → applying → done) update only the optimization store. TweaksList only subscribes to `startFlow` (stable function ref), so the list is never disturbed by modal state changes.
+**Why:** The main engine's hardware signals (CPU/GPU family, RAM, laptop detection) are irrelevant to network scoring; mixing them caused incorrect recommendations. Network tweaks have different risk/safety semantics (WiFi disable on wireless = catastrophic) requiring dedicated guards.
 
-## Network optimization is a separate engine
-`shared/networkOptimizationEngine.ts` is a completely distinct scoring path from the main engine:
-- Uses network-specific signals: wired detection, WiFi adapter presence, live RX/TX traffic
-- Different safety rules: never recommend WiFi-disable unless `isWired === true`; bluetooth avoid unless wired
-- Only scores network-relevant tweaks (main engine excluded tweaks filter)
-- Returns the same `OptimizationPlan` shape so the plan UI is reused unchanged
-- Triggered ONLY when `intent === "network-responsiveness"` in the deciding phase
+## cpuBrand vs cpuName — critical field name trap
+`HardwareProfileInput` uses `cpuBrand` (not `cpuName`). When collecting hardware from Electron specs, map `cpu.model → hardware.cpuBrand`. Wrong field name silently bypasses X3D/Intel hybrid classification.
 
-## Apply/revert must be outcome-driven
-`handleApply` tracks per-tweak success from `bulkApplyTweaks(ids)` → `Record<string, TweakResult>`. Only calls `setTweak(id, true)` and adds to `appliedIds` if `result.success !== false`. Web path checks `res.ok` before marking applied. `finishApplying(appliedIds, failedIds)` takes both arrays — DonePhase shows partial failure state.
+## Apply/revert must require explicit success === true
+`bulkApplyTweaks` and `bulkRevertTweaks` return `Record<string, TweakResult>`. Treat missing results as failure (not assumed success). Only call `setTweak(id, true/false)` when `results[id]?.success === true`. Missing entries indicate executor anomaly, not success.
 
-`handleRevert` clears local state only for confirmed reverts (Electron: `result.success !== false`); on total failure still clears local state to avoid permanent stuck state.
+**Why:** Optimistic fallback (`success !== false`) can desync UI from actual system state under partial executor failures, showing tweaks as applied/reverted when they aren't.
 
-## Cache TTLs
-- Snapshot cache: 10 min (avoids re-running `collectOptimizationSnapshot`)
-- Plan cache: 15 min per intent (keyed by intent, avoids re-running engine)
-- Both caches survive `reset()` — only `startFlow()` checks them
+## Revert failure handling
+On Electron revert: only clear local state for confirmed successes. On partial/total failure: surface stuck count in DonePhase with amber notice; preserve local state so user can retry or manually investigate. Never clear local state on total failure just to "avoid stuck state" — that masks real system state.
 
-## How to apply
-- Engine input/output types: `OptimizationEngineInput` → `OptimizationPlan` in `shared/optimizationEngine.ts`
-- Per-tweak metadata in `shared/tweakOptimizationMeta.ts` (measurability class, intentWeights, conflictsWith, windowsBuildDecay)
-- Hardware compatibility multiplier comes from `evaluateTweakForHardware()` in `shared/hardwareIntelligence.ts` — 0.0 = avoid, 1.0 = neutral, 1.3 = recommended
-- Session rollback: `sessionAppliedIds` tracked in optimization store; `bulkRevertTweaks()` in `use-tweak-executor.ts` calls Electron IPC `execute(id, 'revert', { context: 'bulk' })`
-- Scoring formula: `baseConfidence × (intentWeight/10) × buildFactor × hwFactor × (1 − riskPenalty)`. Recommend ≥ 55, emit-avoided ≥ 35.
-- unsafe-placebo tweaks always excluded via `skipAlwaysForEngine: true` + `antiRecommendReason` in metadata
+## Plan cache invalidation
+`finishApplying()` in the store busts `_planCache = {}`. This ensures re-opening the flow after an apply always recomputes plans reflecting the new `alreadyApplied` flags — prevents re-offering already-applied tweaks.
+
+## Web apply uses applyRecommended() from api.ts
+Not `apiRequest()` from queryClient. `apiRequest` does not attach `x-csrf-token`; `applyRecommended` calls `apiPost` which uses `apiFetch` with `withCsrf: true`.

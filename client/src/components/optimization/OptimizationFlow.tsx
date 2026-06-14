@@ -372,12 +372,14 @@ function DonePhase({
   onRevert,
   onClose,
   reverting,
+  revertOutcome,
 }: {
   appliedCount: number;
   failedCount: number;
   onRevert: () => void;
   onClose: () => void;
   reverting: boolean;
+  revertOutcome: { reverted: number; stuck: number } | null;
 }) {
   const hasPartialFailure = failedCount > 0 && appliedCount > 0;
   const allFailed = failedCount > 0 && appliedCount === 0;
@@ -426,6 +428,21 @@ function DonePhase({
                 : "All recommended tweaks were already applied. Your system is already optimized for this intent."}
         </p>
       </div>
+      {/* Revert failure notice */}
+      {revertOutcome && (
+        <div className="w-full max-w-xs px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-left">
+          {revertOutcome.stuck === (revertOutcome.reverted + revertOutcome.stuck) ? (
+            <p className="text-xs text-amber-400">
+              Revert failed — tweaks may still be applied. Try again or check Windows admin permissions.
+            </p>
+          ) : (
+            <p className="text-xs text-amber-400">
+              {revertOutcome.reverted} reverted, {revertOutcome.stuck} could not be reverted. Those tweaks may still be active.
+            </p>
+          )}
+        </div>
+      )}
+
       <div className="flex flex-col gap-2.5 w-full max-w-xs">
         <button
           onClick={onClose}
@@ -440,7 +457,7 @@ function DonePhase({
             className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-white/[0.08] text-[#6B7380] hover:text-white hover:border-white/15 text-sm transition-colors disabled:opacity-40"
           >
             <RotateCcw className="size-3.5" />
-            {reverting ? "Reverting…" : "Undo This Session"}
+            {reverting ? "Reverting…" : revertOutcome ? "Retry Undo" : "Undo This Session"}
           </button>
         )}
       </div>
@@ -530,6 +547,7 @@ export function OptimizationFlow() {
   // Local state: snapshot held in ref (not in optimization store)
   const snapshotRef = useRef<OptimizationSnapshot | null>(null);
   const [reverting, setReverting] = useState(false);
+  const [revertOutcome, setRevertOutcome] = useState<{ reverted: number; stuck: number } | null>(null);
 
   const isOpen = phase !== "idle";
 
@@ -637,20 +655,20 @@ export function OptimizationFlow() {
     const failedIds: string[] = [];
 
     if (isElectronWithTweaks()) {
-      // Electron: real system changes — inspect per-tweak result
+      // Electron: real system changes — require explicit success === true per tweak
       try {
         const results = await bulkApplyTweaks(toApply);
         for (const id of toApply) {
-          const ok = results[id]?.success !== false; // treat missing as success (best-effort)
-          if (ok) {
+          if (results[id]?.success === true) {
             appliedIds.push(id);
             setTweak(id, true);
           } else {
+            // Missing result or success === false — treat as failure (don't mark applied)
             failedIds.push(id);
           }
         }
       } catch {
-        // Total failure — all tweaks failed
+        // Total executor failure — all tweaks failed; local state unchanged
         failedIds.push(...toApply);
       }
     } else {
@@ -670,32 +688,42 @@ export function OptimizationFlow() {
     finishApplying(appliedIds, failedIds);
   }, [plan, startApplying, finishApplying, setTweak]);
 
-  // ── Handle: revert session (outcome-driven — only clear state on confirmed revert)
+  // ── Handle: revert session (outcome-driven — only clear confirmed reverts)
   const handleRevert = useCallback(async () => {
     if (!sessionAppliedIds.length) return;
     setReverting(true);
+    setRevertOutcome(null);
     try {
       if (isElectronWithTweaks()) {
         const results = await bulkRevertTweaks(sessionAppliedIds);
+        let revertedCount = 0;
+        let stuckCount = 0;
         for (const id of sessionAppliedIds) {
-          // Clear local state for confirmed reverts; also clear on missing result
-          // (treat undefined as best-effort success — don't leave stuck state)
-          if (results[id]?.success !== false) {
+          if (results[id]?.success === true) {
+            // Confirmed revert — clear local state
             setTweak(id, false);
+            revertedCount++;
+          } else {
+            // Missing result or explicit failure — leave local state intact
+            stuckCount++;
           }
         }
-      } else {
-        // Web: tweaks are simulated, revert local state directly
-        for (const id of sessionAppliedIds) {
-          setTweak(id, false);
+        if (stuckCount > 0) {
+          // Surface partial/total failure — user knows which tweaks may still be applied
+          setRevertOutcome({ reverted: revertedCount, stuck: stuckCount });
+          // Don't auto-close — let user see the outcome and decide
+          return;
         }
+      } else {
+        // Web: tweaks are simulated — always safe to clear local state
+        for (const id of sessionAppliedIds) setTweak(id, false);
       }
+      reset();
     } catch {
-      // On total failure, still clear local state to avoid permanent stuck state
-      for (const id of sessionAppliedIds) setTweak(id, false);
+      // Total executor failure — do NOT clear any local state; surface error
+      setRevertOutcome({ reverted: 0, stuck: sessionAppliedIds.length });
     } finally {
       setReverting(false);
-      reset();
     }
   }, [sessionAppliedIds, setTweak, reset]);
 
@@ -753,6 +781,7 @@ export function OptimizationFlow() {
                   onRevert={handleRevert}
                   onClose={handleClose}
                   reverting={reverting}
+                  revertOutcome={revertOutcome}
                 />
               </motion.div>
             )}

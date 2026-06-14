@@ -127,7 +127,9 @@ export const useOptimizationStore = create<OptimizationState>((set, get) => ({
     set({ phase: "applying" }),
 
   finishApplying: (appliedIds, failedIds) =>
-    set({ sessionAppliedIds: appliedIds, sessionFailedIds: failedIds, phase: "done" }),
+    // Bust all plan caches — tweak state has changed; stale plans would re-offer
+    // already-applied tweaks as recommendations on re-open.
+    set({ sessionAppliedIds: appliedIds, sessionFailedIds: failedIds, phase: "done", _planCache: {} }),
 
   setError: (error) =>
     set({ error, phase: "idle" }),
