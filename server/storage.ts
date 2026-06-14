@@ -680,7 +680,8 @@ export class DatabaseStorage implements IStorage {
         await tx.execute(drizzleSql.raw(`SAVEPOINT ${sp}`));
         try {
           // Table name is a hardcoded string from the array above — safe to interpolate.
-          await tx.execute(drizzleSql.raw(`DELETE FROM ${tbl} WHERE user_id = '${userId.replace(/'/g, "''")}'`));
+          // userId is passed as a bound parameter (never string-interpolated).
+          await tx.execute(drizzleSql`DELETE FROM ${drizzleSql.raw(tbl)} WHERE user_id = ${userId}`);
           await tx.execute(drizzleSql.raw(`RELEASE SAVEPOINT ${sp}`));
         } catch (e: any) {
           await tx.execute(drizzleSql.raw(`ROLLBACK TO SAVEPOINT ${sp}`));
@@ -691,12 +692,11 @@ export class DatabaseStorage implements IStorage {
       }
 
       // 4. Clear active sessions for this user.
-      // The sessions table stores JSONB payloads — we scrub any session whose
-      // 'passport.user' or 'userId' field matches the deleted user.
+      // The sessions table stores JSONB payloads. Passport serializes the user
+      // as `sess.passport.user`, so that is the only path that matches.
       await tx.execute(drizzleSql`
         DELETE FROM sessions
-        WHERE (sess->>'userId')              = ${userId}
-           OR (sess->'passport'->>'user')    = ${userId}
+        WHERE (sess->'passport'->>'user') = ${userId}
       `);
 
       // 5. Finally delete the user row.
@@ -910,11 +910,28 @@ export class DatabaseStorage implements IStorage {
   // ─── Stripe webhook events ──────────────────────────────────────────────────
 
   async addStripeWebhookEvent(event: Omit<InsertStripeWebhookEvent, "id" | "processedAt">): Promise<StripeWebhookEvent> {
+    // Idempotent by Stripe event id: Stripe redelivers the same event.id on retries.
+    // The unique index on event_id makes this race-safe (a concurrent duplicate
+    // delivery hits the conflict instead of inserting a second row). On conflict the
+    // insert returns nothing, so we fetch and return the row already on record.
     const [created] = await db!
       .insert(stripeWebhookEvents)
       .values(event)
+      .onConflictDoNothing({ target: stripeWebhookEvents.eventId })
       .returning();
-    return created;
+    if (created) return created;
+
+    const [existing] = await db!
+      .select()
+      .from(stripeWebhookEvents)
+      .where(eq(stripeWebhookEvents.eventId, event.eventId))
+      .limit(1);
+    if (!existing) {
+      // Unreachable in practice: a conflict means the row exists. If we ever land
+      // here it signals a broken invariant (e.g. row deleted between insert+select).
+      throw new Error(`[Stripe] addStripeWebhookEvent: conflict on event ${event.eventId} but no existing row found`);
+    }
+    return existing;
   }
 
   async getStripeWebhookEvents(limit = 20, offset = 0): Promise<StripeWebhookEvent[]> {

@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { boolean, index, integer, jsonb, pgTable, real, text, timestamp, varchar } from "drizzle-orm/pg-core";
+import { boolean, index, integer, jsonb, pgTable, real, text, timestamp, uniqueIndex, varchar } from "drizzle-orm/pg-core";
 
 // Session storage table.
 // (IMPORTANT) This table is mandatory for Replit Auth, don't drop it.
@@ -86,7 +86,10 @@ export const stripeWebhookEvents = pgTable("stripe_webhook_events", {
   eventType: text("event_type").notNull(),
   payload: jsonb("payload").notNull(),
   processedAt: timestamp("processed_at").defaultNow(),
-});
+}, (table) => [
+  // Stripe redelivers the same event.id on retries — record each event once.
+  uniqueIndex("UQ_stripe_webhook_events_event_id").on(table.eventId),
+]);
 
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;

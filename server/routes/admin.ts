@@ -739,6 +739,15 @@ router.get("/users/export", requireAdmin, readLimiter, async (req, res) => {
       }),
     ];
 
+    // Audit the export — full user data (emails, Stripe IDs, device IDs) left
+    // the system, so it must leave a trace. No single target user, so the entry
+    // is self-referential (admin id as target), matching the non-targeted-action pattern.
+    const admin = getAdminId(req);
+    await auditLog(admin.id, admin.id, "users.export_csv", null, {
+      rowCount: rows.length,
+      filters: { search: search ?? null, plan: plan ?? null, stripeCustomerId: stripeCustomerId ?? null, deviceId: deviceId ?? null },
+    });
+
     res.setHeader("Content-Type", "text/csv; charset=utf-8");
     res.setHeader("Content-Disposition", `attachment; filename="switchcontrol-users-${new Date().toISOString().slice(0, 10)}.csv"`);
     res.send(csvRows.join("\n"));

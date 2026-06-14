@@ -18,6 +18,7 @@ import { WebhookHandlers } from "./webhookHandlers";
 import { csrfTokenMiddleware } from "./middleware/csrf";
 import { runJwtSelfTest } from "./lib/jwt";
 import { runDeviceBindingMigration } from "./lib/deviceBindingMigration";
+import { runStripeWebhookDedupMigration } from "./lib/stripeWebhookDedupMigration";
 import { cleanupOldStripeEvents } from "./lib/stripeEventStore";
 import fs from "fs";
 import path from "path";
@@ -171,6 +172,7 @@ async function ensureAdminUsers() {
 async function initStripe() {
   logStripeStartupConfig();
   runDeviceBindingMigration().catch((e) => console.error("[DeviceBinding] Migration error:", e));
+  runStripeWebhookDedupMigration().catch((e) => console.error("[StripeWebhookDedup] Migration error:", e));
   if (!isStripeConfigured) {
     return;
   }

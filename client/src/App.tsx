@@ -916,7 +916,7 @@ function ElectronAppContent() {
 
           const result = await retryRefreshEntitlements({
             attempts: 8,
-            delayMs: 500,
+            baseDelayMs: 500,
             initialDelayMs: 500,
           });
 
@@ -985,7 +985,7 @@ function ElectronAppContent() {
               );
               const premResult = await retryRefreshEntitlements({
                 attempts: 8,
-                delayMs: 500,
+                baseDelayMs: 500,
                 initialDelayMs: 300,
               });
               if (!mounted) return; // P3-DL3: bail after second await

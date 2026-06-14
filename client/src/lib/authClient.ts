@@ -4,7 +4,7 @@
  * Fetch logic is separated here so authStore.ts stays pure.
  *
  * Bug fixes applied here vs the old monolith:
- *  - performFullLogout uses correct endpoint /api/auth/logout
+ *  - performFullLogout uses correct endpoint /auth/logout
  *  - console.trace removed from production path
  *  - exchangeToken validates JWT before persisting
  *  - exchangeToken debug log redacts the raw JWT
@@ -280,7 +280,7 @@ export async function performFullLogout(reason: string): Promise<void> {
   _retryRefreshInFlight = null;
 
   try {
-    const resp = await fetch(`${AUTH_DOMAIN}/api/auth/logout`, {
+    const resp = await fetch(`${AUTH_DOMAIN}/auth/logout`, {
       method: 'POST',
       credentials: 'include',
     });

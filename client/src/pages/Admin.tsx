@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useAuthStore, refreshEntitlements, triggerFlowReset } from "@/lib/auth-store";
 
-const AUTH_DOMAIN = "https://switchcontrol.org";
-
 interface AdminUser {
   id: string;
   email: string | null;
@@ -191,8 +189,9 @@ function ConfirmModal({ title, description, confirmLabel = "Confirm", danger, re
 function DeleteUserModal({ user, onClose, onDeleted }: { user: AdminUser; onClose: () => void; onDeleted: () => void }) {
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState<string | null>(null);
+  const [reason, setReason]   = useState("");
 
-  const AUDIT_REASON = "Admin deletion via admin panel";
+  const canConfirm = reason.trim().length > 0;
 
   const planLabel: Record<string, string> = {
     premium: "Premium",
@@ -202,13 +201,17 @@ function DeleteUserModal({ user, onClose, onDeleted }: { user: AdminUser; onClos
 
   const submit = async () => {
     if (loading) return;
+    if (!canConfirm) {
+      setError("Please enter a reason for this deletion (recorded in the audit trail).");
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
       const r = await fetch(`/api/admin/users/${user.id}`, {
         method: "DELETE",
         headers: buildHeaders() as any,
-        body: JSON.stringify({ confirm: true, reason: AUDIT_REASON }),
+        body: JSON.stringify({ confirm: true, reason: reason.trim() }),
       });
       const data = await r.json().catch(() => ({}));
       if (!r.ok || data.success === false) {
@@ -267,6 +270,21 @@ function DeleteUserModal({ user, onClose, onDeleted }: { user: AdminUser; onClos
           </p>
         </div>
 
+        {/* Reason (recorded in audit trail) */}
+        <div className="mb-4">
+          <label className="block text-xs text-[#6B7380] mb-1.5">Reason for deletion <span className="text-red-400">*</span></label>
+          <textarea
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            disabled={loading}
+            rows={2}
+            maxLength={500}
+            placeholder="e.g. User requested account deletion (GDPR)"
+            data-testid="input-delete-reason"
+            className="w-full rounded-xl bg-[#0F1318] border border-[#1E252E] px-3.5 py-2.5 text-sm text-[#E6EAF0] placeholder:text-[#4A515C] focus:border-red-500/40 focus:outline-none transition-colors resize-none disabled:opacity-40"
+          />
+        </div>
+
         {/* Error banner */}
         {error && (
           <div className="flex gap-2 rounded-lg bg-red-500/10 border border-red-500/25 px-3 py-2.5 mb-4" data-testid="text-delete-error">
@@ -289,7 +307,7 @@ function DeleteUserModal({ user, onClose, onDeleted }: { user: AdminUser; onClos
           </button>
           <button
             onClick={submit}
-            disabled={loading}
+            disabled={loading || !canConfirm}
             data-testid="button-delete-confirm"
             className="flex-1 rounded-xl px-4 py-2.5 text-sm font-semibold border bg-red-600/30 border-red-500/40 text-red-300 hover:bg-red-600/50 hover:border-red-500/60 hover:text-red-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
