@@ -62,6 +62,12 @@ const STORE_VERSION = 1;
 // only hit by saveOwnership().
 let _cache = null;
 
+// ── batch-write mode ──────────────────────────────────────────────────────────
+// When _batchMode is true, saveOwnership updates the in-memory cache but skips
+// the disk write. Call beginBatch() before a parallel revert loop and
+// endBatch() once after it to collapse N writes into one atomic flush.
+let _batchMode = false;
+
 // ── disk I/O ──────────────────────────────────────────────────────────────────
 
 function ensureDir() {
@@ -105,6 +111,8 @@ function saveOwnership(data) {
   // Update cache first so subsequent reads within the same tick see the new
   // state without waiting for the disk flush.
   _cache = data;
+  // In batch mode, defer the disk write — endBatch() will flush once.
+  if (_batchMode) return;
   try {
     ensureDir();
     // Atomic write: write to a temp file then rename.
@@ -277,6 +285,31 @@ function getAllRecords() {
   return Object.values(data.items);
 }
 
+/**
+ * Begin a batch-write window.
+ *
+ * While active, saveOwnership() updates the in-memory cache but skips the disk
+ * write. This lets a parallel revert loop (e.g. Promise.all) call recordRevert
+ * for each item without triggering N separate atomic disk writes.
+ *
+ * Call endBatch() when the loop finishes to flush everything in one write.
+ */
+function beginBatch() {
+  _batchMode = true;
+}
+
+/**
+ * End a batch-write window and flush the current in-memory cache to disk once.
+ * After this call, subsequent saveOwnership() calls go back to immediate writes.
+ */
+function endBatch() {
+  _batchMode = false;
+  if (_cache !== null) {
+    // saveOwnership with _batchMode=false → performs the deferred disk write.
+    saveOwnership(_cache);
+  }
+}
+
 module.exports = {
   buildScopeKey,
   captureBaseline,
@@ -285,4 +318,6 @@ module.exports = {
   getOwnershipRecord,
   getAllAppOwned,
   getAllRecords,
+  beginBatch,
+  endBatch,
 };

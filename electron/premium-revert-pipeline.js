@@ -379,6 +379,9 @@ async function revertAllAppOwned() {
   const otherRecords     = owned.filter(r => r.itemType !== 'power_plan');
 
   // ── Phase 1: parallel revert of independent items ─────────────────────────
+  // Begin a batch-write window so that N successful reverts produce ONE disk
+  // write at the end of the phase instead of N separate atomic flushes.
+  ownershipStore.beginBatch();
   const parallelResults = await Promise.all(
     otherRecords.map(async (record) => {
       const { scopeKey, itemType, baselineCaptured } = record;
@@ -404,6 +407,9 @@ async function revertAllAppOwned() {
       return { scopeKey, result: itemResult };
     })
   );
+
+  // Flush Phase 1 reverts in a single atomic disk write.
+  ownershipStore.endBatch();
 
   for (const { scopeKey, result: itemResult } of parallelResults) {
     details[scopeKey] = itemResult;

@@ -1,0 +1,149 @@
+SWITCHCONTROL — TARGETED STABILITY + CORRECTNESS FIX PASS
+
+CONTEXT
+
+This is a controlled fix pass.
+
+DO NOT redesign systems.
+DO NOT rewrite architecture.
+DO NOT add new frameworks.
+DO NOT add unnecessary abstractions.
+
+Focus only on correctness, startup smoothness, stability, responsiveness, and intelligent behavior consistency.
+
+==================================================
+PART 1 — WHITE FLASH FIX
+
+STATUS
+
+The Electron startup flash fix is already mostly implemented correctly.
+
+Confirmed already present:
+
+- BrowserWindow uses:
+  
+  - show: false
+  - ready-to-show
+  - backgroundColor
+
+- index.html already sets dark background early
+
+- main.tsx boot shell already sets dark background before React mounts
+
+The remaining issue is NOT timing.
+
+The actual problem is:
+
+BACKGROUND COLOR MISMATCH
+
+Current:
+
+Electron BrowserWindow:
+#07090D
+
+Main CSS app background:
+#14181D
+
+This mismatch causes a visible flash during the handoff between:
+
+native DWM surface
+→ Chromium rendered content
+
+==================================================
+REQUIRED FIX
+
+File:
+electron/main.js
+
+Change:
+
+backgroundColor: '#07090D'
+
+TO:
+
+backgroundColor: '#14181D'
+
+IMPORTANT:
+Use the SAME exact background color as the main app surface.
+
+DO NOT use multiple near-black shades during startup.
+
+GOAL:
+Zero visible transition during Chromium surface handoff.
+
+==================================================
+PART 2 — EPIC DETECTOR FIXES
+
+FILE:
+EpicDetector
+
+==================================================
+ISSUE 1 — HARDCODED DRIVE ROOTS [HIGH]
+
+Current logic only checks:
+
+C:
+D:\
+
+This silently fails for users with:
+
+- E: drives
+- custom ProgramData locations
+- enterprise Windows layouts
+
+==================================================
+FIX
+
+Replace hardcoded roots with:
+
+const programData =
+process.env.ProgramData || "C:\ProgramData";
+
+const EPIC_MANIFEST_ROOTS = [
+path.join(
+programData,
+"Epic\EpicGamesLauncher\Data\Manifests"
+),
+];
+
+GOAL:
+
+- dynamic detection
+- correct Windows behavior
+- no drive assumptions
+
+==================================================
+ISSUE 2 — DLC FILTER FRAGILITY [LOW]
+
+Current logic:
+
+if (
+m.MainGameCatalogItemId &&
+m.CatalogItemId !== m.MainGameCatalogItemId
+) continue;
+
+This works for many manifests but is fragile.
+
+Some DLC manifests omit MainGameCatalogItemId.
+
+==================================================
+FIX
+
+Add AppCategories secondary validation:
+
+const cats = m.AppCategories ?? [];
+
+if (
+cats.length > 0 &&
+!cats.some(c =>
+c.toLowerCase().includes("games")
+)
+) {
+continue;
+}
+
+GOAL:
+
+- more reliable base-game filtering
+- fewer false positives
+- safer launcher detection

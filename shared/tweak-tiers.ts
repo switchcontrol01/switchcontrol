@@ -59,6 +59,11 @@ export const FREE_EXCEPTION_IDS: Set<string> = new Set([
   "disable-fso",
   "usb-selective-suspend",
   "disable-pointer-precision",
+  // bluetooth: kept free-tier so users can toggle it without a paywall.
+  // WARNING: do NOT move to PREMIUM_EXCEPTION_IDS — hooks.ts GUARDED_TWEAK_IDS
+  // explicitly excludes it from bulk-apply regardless of tier, so it is never
+  // auto-applied even though it is free. The free-tier placement only controls
+  // the paywall gate; the safety guard lives in hooks.ts isRecommendedSafe().
   "bluetooth",
   "xbox-bar",
   "compact-explorer",

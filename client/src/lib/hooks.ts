@@ -44,7 +44,7 @@ export function useResetTweaks() {
    Rejects: risky, network-risk, audio/mic-risk, reboot-required,
    unsupported, helper-required, unclear-revert.
 */
-const GUARDED_TWEAK_IDS = new Set([
+export const GUARDED_TWEAK_IDS = new Set([
   // Network / ping-risk
   'bluetooth', 'wifi', 'tcp-congestion', 'tcp-task-offload', 'tcp-nagle',
   'tcp-timestamps', 'tcp-window-heuristics', 'udp-offloads', 'nic-flow-control',
@@ -61,7 +61,7 @@ const GUARDED_TWEAK_IDS = new Set([
   'sys-responsiveness',
 ]);
 
-function isRecommendedSafe(t: (typeof TWEAKS_DATA)[number]): boolean {
+export function isRecommendedSafe(t: (typeof TWEAKS_DATA)[number]): boolean {
   // Must be explicitly marked Recommended AND Safe
   if (t.level !== 'Recommended') return false;
   if (t.risk !== 'Safe') return false;

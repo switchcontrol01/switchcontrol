@@ -674,7 +674,6 @@ body {
   border-radius: 50%;
   filter: blur(80px);
   opacity: 0.4;
-  will-change: transform;
 }
 
 .bg-blob-1 {
@@ -862,19 +861,16 @@ html {
 
 .animate-wave-1 {
   animation: waveMove1 14s ease-in-out infinite;
-  will-change: transform;
 }
 
 .animate-wave-2 {
   animation: waveMove2 18s ease-in-out infinite;
   animation-delay: 0.5s;
-  will-change: transform;
 }
 
 .animate-wave-3 {
   animation: waveMove3 22s ease-in-out infinite;
   animation-delay: 1s;
-  will-change: transform;
 }
 
 /* Slow pulse for center glow */
@@ -891,7 +887,6 @@ html {
 
 .animate-pulse-slow {
   animation: pulseSlow 6s ease-in-out infinite;
-  will-change: transform, opacity;
 }
 
 @keyframes blobFloat1 {
@@ -1103,25 +1098,21 @@ html {
 
 .animate-contour-1 {
   animation: contourDrift1 20s ease-in-out infinite;
-  will-change: transform;
 }
 
 .animate-contour-2 {
   animation: contourDrift2 25s ease-in-out infinite;
   animation-delay: 2s;
-  will-change: transform;
 }
 
 .animate-contour-3 {
   animation: contourDrift3 18s ease-in-out infinite;
   animation-delay: 4s;
-  will-change: transform;
 }
 
 .animate-contour-4 {
   animation: contourDrift4 22s ease-in-out infinite;
   animation-delay: 1s;
-  will-change: transform;
 }
 
 /* App background scan lines - vertical rain effect */
@@ -1134,7 +1125,6 @@ html {
 
 .app-scanline-fall {
   animation: scanlineFall 6s linear infinite;
-  will-change: transform;
 }
 
 /* Grid overlay subtle breathing */
@@ -1177,7 +1167,6 @@ html {
     radial-gradient(ellipse 70% 40% at 50% 50%, hsl(280 55% 50% / 0.06) 0%, transparent 50%);
   background-size: 200% 200%;
   animation: meshGradientShift 10s ease-in-out infinite;
-  will-change: background-position;
 }
 
 @media (max-width: 768px) {
@@ -1761,19 +1750,16 @@ textarea,
 
 .animate-contour-move-1 {
   animation: contourMove1 12s ease-in-out infinite;
-  will-change: transform;
 }
 
 .animate-contour-move-2 {
   animation: contourMove2 15s ease-in-out infinite;
   animation-delay: -3s;
-  will-change: transform;
 }
 
 .animate-contour-move-3 {
   animation: contourMove3 18s ease-in-out infinite;
   animation-delay: -6s;
-  will-change: transform;
 }
 
 /* Splash screen contour animations - slow drift */
@@ -1792,13 +1778,11 @@ textarea,
 
 .splash-contour-drift-1 {
   animation: splashContourDrift1 25s ease-in-out infinite;
-  will-change: transform;
 }
 
 .splash-contour-drift-2 {
   animation: splashContourDrift2 30s ease-in-out infinite;
   animation-delay: -8s;
-  will-change: transform;
 }
 
 /* Login screen contour animation */
@@ -1810,7 +1794,6 @@ textarea,
 
 .login-contour-drift {
   animation: loginContourDrift 20s ease-in-out infinite;
-  will-change: transform;
 }
 
 /* Website background — SVG overlay drift animations */
@@ -1828,9 +1811,9 @@ textarea,
   40% { transform: translate3d(6px, -4px, 0); }
   80% { transform: translate3d(-4px, 8px, 0); }
 }
-.ws-drift-1 { animation: wsDrift1 25s ease-in-out infinite; will-change: transform; }
-.ws-drift-2 { animation: wsDrift2 32s ease-in-out infinite; will-change: transform; }
-.ws-drift-3 { animation: wsDrift3 18s ease-in-out infinite; will-change: transform; }
+.ws-drift-1 { animation: wsDrift1 25s ease-in-out infinite; }
+.ws-drift-2 { animation: wsDrift2 32s ease-in-out infinite; }
+.ws-drift-3 { animation: wsDrift3 18s ease-in-out infinite; }
 
 /* Website background — glow hotspot drift */
 @keyframes wsGlowDrift1 {
@@ -1849,9 +1832,9 @@ textarea,
   40% { transform: translate3d(30px, -25px, 0) scale(1.04); }
   80% { transform: translate3d(-20px, 18px, 0) scale(0.97); }
 }
-.ws-glow-drift-1 { animation: wsGlowDrift1 22s ease-in-out infinite; will-change: transform; }
-.ws-glow-drift-2 { animation: wsGlowDrift2 28s ease-in-out infinite; will-change: transform; }
-.ws-glow-drift-3 { animation: wsGlowDrift3 20s ease-in-out infinite; will-change: transform; }
+.ws-glow-drift-1 { animation: wsGlowDrift1 22s ease-in-out infinite; }
+.ws-glow-drift-2 { animation: wsGlowDrift2 28s ease-in-out infinite; }
+.ws-glow-drift-3 { animation: wsGlowDrift3 20s ease-in-out infinite; }
 
 /* Sun streak beam animations */
 @keyframes sunStreakDrift1 {

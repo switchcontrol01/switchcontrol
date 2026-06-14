@@ -100,8 +100,17 @@ function PlanBadge({ plan }: { plan: string }) {
 function TrialCountdown({ endsAt }: { endsAt: string | null }) {
   const [, tick] = useState(0);
   useEffect(() => {
-    const id = setInterval(() => tick((n) => n + 1), 30_000);
-    return () => clearInterval(id);
+    // Skip tick when the admin tab is hidden — avoids N intervals firing
+    // simultaneously for N trial rows while the user is on another tab.
+    const cb = () => { if (!document.hidden) tick((n) => n + 1); };
+    const id = setInterval(cb, 30_000);
+    // Re-tick immediately when the tab becomes visible so the display is fresh.
+    const onVisible = () => { if (!document.hidden) tick((n) => n + 1); };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, []);
   if (!endsAt) return null;
   const ms = trialMsRemaining(endsAt);

@@ -314,6 +314,9 @@ const POSTURE_SETS: Array<{
 router.get("/system-state", (_req, res) => {
   try {
     const snap = getCachedSnapshot();
+    if (snap.status !== "ready") {
+      return res.status(503).json({ error: "Telemetry not ready", status: snap.status });
+    }
 
     const cpuLevel    = classify(snap.cpu.load, [20, 50, 75]);
     const memLevel    = classify(snap.ram.usedPercent, [50, 70, 85]);
@@ -400,6 +403,9 @@ router.get("/system-state", (_req, res) => {
 router.get("/rankings", (req, res) => {
   try {
     const snap     = getCachedSnapshot();
+    if (snap.status !== "ready") {
+      return res.status(503).json({ error: "Telemetry not ready", status: snap.status });
+    }
     const applied  = String(req.query.applied ?? "").split(",").filter(Boolean);
     const appliedSet = new Set(applied);
 

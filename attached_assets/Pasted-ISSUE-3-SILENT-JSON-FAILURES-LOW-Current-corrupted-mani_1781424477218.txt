@@ -1,0 +1,122 @@
+ISSUE 3 — SILENT JSON FAILURES [LOW]
+
+Current corrupted manifest behavior:
+
+catch {}
+
+This hides useful debugging information.
+
+==================================================
+FIX
+
+Add lightweight warning logging:
+
+console.warn(
+"[EpicDetector] Failed to parse manifest:",
+item
+);
+
+DO NOT spam logs.
+DO NOT crash.
+Continue processing.
+
+==================================================
+PART 3 — DEVICE BINDING MIGRATION SAFETY
+
+FILE:
+deviceBindingMigration.ts
+
+==================================================
+ISSUE [MEDIUM]
+
+Migration loop lacks per-query error handling.
+
+A failed ALTER TABLE can:
+
+- partially migrate schema
+- silently stop later migrations
+- leave inconsistent DB state
+
+==================================================
+FIX
+
+Wrap every migration query:
+
+for (const sql of migrations) {
+try {
+await pool.query(sql);
+} catch (err: any) {
+console.error(
+"[DeviceBinding] Migration failed:",
+err.message,
+"\nSQL:",
+sql.slice(0, 120)
+);
+
+throw err;
+
+}
+}
+
+==================================================
+IMPORTANT
+
+DO NOT silently continue after migration failure.
+
+Partial migrations are worse than startup failure.
+
+==================================================
+PART 4 — PREMIUM DEVICE VALIDATION CHECK
+
+FILE:
+usePremiumDeviceLock
+
+==================================================
+ISSUE [MEDIUM]
+
+Current call:
+
+cloudApiPost("/device/premium-validate")
+
+does NOT appear to send a device ID.
+
+==================================================
+TASK
+
+VERIFY:
+
+Does the backend derive device identity from:
+
+- JWT/session
+  OR
+- explicit request body
+
+==================================================
+IF DEVICE ID IS REQUIRED
+
+Send explicit payload:
+
+{
+deviceId
+}
+
+==================================================
+IF DEVICE ID COMES FROM SESSION
+
+Add inline documentation comment explaining this clearly.
+
+GOAL:
+Prevent future regressions and confusion.
+
+==================================================
+PART 5 — DRIZZLE CONFIG SAFETY
+
+ISSUE [LOW]
+
+drizzle-kit config throws immediately when DATABASE_URL is absent.
+
+This can break:
+
+- CI
+- Electron builds
+- tooling commands

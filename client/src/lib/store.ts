@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { MOCK_STATS, SystemStats, TWEAKS_DATA, AIScanResult } from './mock-data';
+import { isRecommendedSafe } from './hooks';
 import { isElectronWithTweaks, isRealTweak } from '@/hooks/use-tweak-executor';
 
 export type AccountTier = 'Free' | 'Premium';
@@ -166,33 +167,11 @@ export const useStore = create<AppState>()(
       },
       
       enableRecommended: () => {
-        // Defense-in-depth exclusion list: IDs that should never be auto-applied
-        // even if they happen to pass the general filter criteria.
-        // Hard deny-list: never auto-apply these even if metadata says Recommended.
-        // Includes: Network, Security, virtualization, service-disabling, hardware,
-        // reboot-required, and any known problematic tweaks.
-        const EXCLUDED_IDS = new Set([
-          // Virtualization / security (breaks WSL2, Docker, Sandbox, HVCI)
-          'fast-startup', 'core-isolation', 'vbs', 'hyper-v', 'p-states',
-          // Hardware / network (breaks WiFi, Bluetooth, printing)
-          'bluetooth', 'wifi', 'fax-printer', 'nic-flow-control',
-          'irq-priority', 'timer-res', 'desktop-comp', 'hdcp',
-          // Input queue tweaks (not universally safe)
-          'mouse-queue-size', 'kbd-queue-size',
-          // DCOM / RPC (can break apps)
-          'disable-dcom',
-        ]);
-
+        // Uses the canonical isRecommendedSafe filter imported from hooks.ts —
+        // the single source of truth for safe-to-bulk-apply tweaks.
+        // Any exclusion logic belongs in hooks.ts GUARDED_TWEAK_IDS, not here.
         const recommendedIds = TWEAKS_DATA
-          .filter(t =>
-            t.level === 'Recommended' &&
-            t.risk === 'Safe' &&
-            t.supported &&
-            !t.requiresReboot &&
-            !t.unavailable &&
-            t.category !== 'Gaming and Latency' &&
-            !EXCLUDED_IDS.has(t.id)
-          )
+          .filter(isRecommendedSafe)
           .map(t => t.id);
           
         set((state) => {

@@ -1,3 +1,5 @@
 - [AI Advisor hardware context](ai-advisor-hardware-context.md) — advisor must read client CPU/specs strings, never serverCtx.systemIntel (that's the cloud VM); Intel hybrid needs tier+gen+K, not just gen.
 - [Electron embedded backend](electron-embedded-backend.md) — desktop /api hits a LOCAL backend (real hardware); web /api hits the cloud VM. Gate hardware-only UI to Electron; prefer client specs.
 - [Hardware intelligence module](hardware-intelligence-module.md) — shared/hardwareIntelligence.ts is the single source of truth for CPU/GPU classification, hardware profiles, and per-tweak verdicts (server + client).
+- [Ownership store batch writes](ownership-batch-writes.md) — N reverts → 1 disk write; use beginBatch/endBatch around Promise.all revert loops in premium-revert-pipeline.js.
+- [Recommendation filter canonical](recommendation-filter.md) — isRecommendedSafe in hooks.ts is the one source of truth; store.ts imports it. Never duplicate inline filter logic.
