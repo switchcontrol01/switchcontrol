@@ -1,4 +1,4 @@
-import { forwardRef, useCallback, useRef, type HTMLAttributes } from "react";
+import { forwardRef, useCallback, useEffect, useRef, type HTMLAttributes } from "react";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -13,13 +13,37 @@ export const GlassPanel = forwardRef<HTMLDivElement, GlassPanelProps>(
     const isMobile = useIsMobile();
     const overlayRef = useRef<HTMLDivElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
+    // Cached bounding rect — updated on mount, resize, and mouseenter.
+    // Never read inside mousemove to avoid per-frame layout thrash.
+    const rectRef = useRef<DOMRect | null>(null);
 
+    // Populate rect on mount and keep it fresh via ResizeObserver.
+    // ResizeObserver callbacks run after layout, off the critical path.
+    useEffect(() => {
+      if (isMobile || !containerRef.current) return;
+      const el = containerRef.current;
+      rectRef.current = el.getBoundingClientRect();
+      const ro = new ResizeObserver(() => {
+        rectRef.current = el.getBoundingClientRect();
+      });
+      ro.observe(el);
+      return () => ro.disconnect();
+    }, [isMobile]);
+
+    // Re-read rect on mouseenter — handles page scroll shifting the element
+    // position without needing a scroll listener.
+    const handleMouseEnter = useCallback(() => {
+      if (!isMobile && containerRef.current) {
+        rectRef.current = containerRef.current.getBoundingClientRect();
+      }
+    }, [isMobile]);
+
+    // Hot path: zero layout reads — uses cached rect only.
     const handleMouseMove = useCallback(
       (e: React.MouseEvent<HTMLDivElement>) => {
-        if (!isMobile && overlayRef.current && containerRef.current) {
-          const rect = containerRef.current.getBoundingClientRect();
-          const x = e.clientX - rect.left;
-          const y = e.clientY - rect.top;
+        if (!isMobile && overlayRef.current && rectRef.current) {
+          const x = e.clientX - rectRef.current.left;
+          const y = e.clientY - rectRef.current.top;
           overlayRef.current.style.setProperty("--mouse-x", `${x}px`);
           overlayRef.current.style.setProperty("--mouse-y", `${y}px`);
           overlayRef.current.style.opacity = "1";
@@ -80,6 +104,7 @@ export const GlassPanel = forwardRef<HTMLDivElement, GlassPanelProps>(
           boxShadow: innerShadow,
           ...style,
         }}
+        onMouseEnter={handleMouseEnter}
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
         {...props}

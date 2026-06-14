@@ -306,14 +306,20 @@ function connect() {
 
 let _ipcPollActive = false;
 let _ipcPollTimer: ReturnType<typeof setTimeout> | null = null;
+// Guard against overlapping getLive() IPC calls (e.g. scheduled tick racing
+// with a manual refreshNow() call). A second entry simply skips rather than
+// queuing another round-trip — the next scheduled tick will pick it up.
+let _ipcPollInFlight = false;
 
 function _safeNum(v: unknown, fallback = 0): number {
   return typeof v === "number" && isFinite(v) ? v : fallback;
 }
 
 async function _ipcPollTick(): Promise<void> {
+  if (_ipcPollInFlight) return;
+  _ipcPollInFlight = true;
   const electronAPI = (window as any).electronAPI;
-  if (!electronAPI?.telemetry?.getLive) return;
+  if (!electronAPI?.telemetry?.getLive) { _ipcPollInFlight = false; return; }
 
   try {
     const live = await electronAPI.telemetry.getLive();
@@ -395,7 +401,10 @@ async function _ipcPollTick(): Promise<void> {
       rxKBps, txKBps,
       diskActiveTime, diskReadKBps, diskWriteKBps,
     );
-  } catch {}
+  } catch {
+  } finally {
+    _ipcPollInFlight = false;
+  }
 }
 
 function _startIpcPolling(): void {
@@ -504,7 +513,7 @@ export const telemetryManager = {
   refreshNow() {
     const electronAPI = (window as any).electronAPI;
     if (electronAPI?.telemetry?.getLive) {
-      _ipcPollTick().catch(() => {});
+      if (!_ipcPollInFlight) _ipcPollTick().catch(() => {});
     } else {
       fetch("/api/telemetry/force-refresh", { method: "POST" }).catch(() => {});
     }

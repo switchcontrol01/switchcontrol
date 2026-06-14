@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useId } from "react";
 import { motion } from "@/lib/motionTokens";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Activity, Info, Maximize2, Minimize2, Zap } from "lucide-react";
@@ -209,13 +209,15 @@ function LiveStatsBand({ latest, hasDiskData, hasDiskRW, hasNetRx, hasNetTx, spi
 // ── Loading placeholder ───────────────────────────────────────────────────────
 
 function GraphLoadingPlaceholder({ height }: { height: number }) {
+  const uid = useId().replace(/:/g, "");
+  const sweepId = `${uid}-sweep`;
   return (
     <div className="relative overflow-hidden rounded-lg" style={{ height }}>
       <div className="absolute inset-0 bg-[#1A1F26] rounded-lg" />
       {/* Animated baseline waves */}
       <svg width="100%" height="100%" className="absolute inset-0" preserveAspectRatio="none">
         <defs>
-          <linearGradient id="sweep-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+          <linearGradient id={sweepId} x1="0%" y1="0%" x2="100%" y2="0%">
             <stop offset="0%" stopColor="rgba(255,255,255,0)" />
             <stop offset="40%" stopColor="rgba(255,255,255,0.03)" />
             <stop offset="60%" stopColor="rgba(255,255,255,0.06)" />
@@ -227,7 +229,7 @@ function GraphLoadingPlaceholder({ height }: { height: number }) {
         <line x1="0" y1="60%" x2="100%" y2="60%" stroke="rgba(6,182,212,0.12)" strokeWidth="1.5" />
         <line x1="0" y1="85%" x2="100%" y2="85%" stroke="rgba(34,197,94,0.10)" strokeWidth="1.5" />
         {/* Sweep shimmer */}
-        <rect x="-100%" y="0" width="100%" height="100%" fill="url(#sweep-grad)">
+        <rect x="-100%" y="0" width="100%" height="100%" fill={`url(#${sweepId})`}>
           <animateTransform
             attributeName="transform"
             type="translate"
@@ -315,6 +317,16 @@ interface LiveGraphProps {
 // ── Main component ────────────────────────────────────────────────────────────
 
 export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphProps) {
+  // Unique ID suffix prevents SVG gradient/filter ID collisions if this
+  // component is ever rendered more than once on the same page.
+  const _uid = useId().replace(/:/g, "");
+  const G = {
+    cpu:     `${_uid}-lsg-cpu`,
+    ram:     `${_uid}-lsg-ram`,
+    disk:    `${_uid}-lsg-disk`,
+    glowCpu: `${_uid}-lsg-glow-cpu`,
+    glowRam: `${_uid}-lsg-glow-ram`,
+  };
   const [data, setData] = useState<DataPoint[]>([]);
   const [latest, setLatest] = useState<LatestState | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -799,23 +811,23 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
             <ComposedChart data={data} margin={{ top: 4, right: expanded ? 44 : 4, left: -20, bottom: 4 }}>
               {/* Gradient defs for area fills */}
               <defs>
-                <linearGradient id="lsg-cpu" x1="0" y1="0" x2="0" y2="1">
+                <linearGradient id={G.cpu} x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor={C.cpuLoad} stopOpacity={0.38} />
                   <stop offset="55%" stopColor={C.cpuLoad} stopOpacity={0.12} />
                   <stop offset="100%" stopColor={C.cpuLoad} stopOpacity={0.0} />
                 </linearGradient>
-                <linearGradient id="lsg-ram" x1="0" y1="0" x2="0" y2="1">
+                <linearGradient id={G.ram} x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor={C.ram} stopOpacity={0.30} />
                   <stop offset="55%" stopColor={C.ram} stopOpacity={0.09} />
                   <stop offset="100%" stopColor={C.ram} stopOpacity={0.0} />
                 </linearGradient>
-                <linearGradient id="lsg-disk" x1="0" y1="0" x2="0" y2="1">
+                <linearGradient id={G.disk} x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor={C.disk} stopOpacity={0.24} />
                   <stop offset="55%" stopColor={C.disk} stopOpacity={0.07} />
                   <stop offset="100%" stopColor={C.disk} stopOpacity={0.0} />
                 </linearGradient>
-                <filter id="lsg-glow-cpu"><feGaussianBlur stdDeviation="3" result="blur"/><feComposite in="SourceGraphic" in2="blur" operator="over"/></filter>
-                <filter id="lsg-glow-ram"><feGaussianBlur stdDeviation="3" result="blur"/><feComposite in="SourceGraphic" in2="blur" operator="over"/></filter>
+                <filter id={G.glowCpu}><feGaussianBlur stdDeviation="3" result="blur"/><feComposite in="SourceGraphic" in2="blur" operator="over"/></filter>
+                <filter id={G.glowRam}><feGaussianBlur stdDeviation="3" result="blur"/><feComposite in="SourceGraphic" in2="blur" operator="over"/></filter>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
 
@@ -866,7 +878,7 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
               {/* Disk — area + glow + solid line with end-dot */}
               {hasDiskData && toggles.disk && (
                 <Area yAxisId="pct" type="monotone" dataKey="diskActiveTime"
-                  stroke="none" fill="url(#lsg-disk)"
+                  stroke="none" fill={`url(#${G.disk})`}
                   style={{ fillOpacity: lineOpacity("disk") * 0.85, transition: "fill-opacity 250ms ease" }}
                   dot={false} activeDot={false} connectNulls isAnimationActive={false} legendType="none"
                 />
@@ -899,7 +911,7 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
               {/* RAM — area + glow + line */}
               {hasRamData && toggles.ram && (
                 <Area yAxisId="pct" type="monotone" dataKey="ramDisplay"
-                  stroke="none" fill="url(#lsg-ram)"
+                  stroke="none" fill={`url(#${G.ram})`}
                   style={{ fillOpacity: lineOpacity("ram") * 0.9, transition: "fill-opacity 250ms ease" }}
                   dot={false} activeDot={false} isAnimationActive={false} legendType="none"
                 />
@@ -932,7 +944,7 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
               {/* CPU — area + glow + line */}
               {toggles.cpu && (
                 <Area yAxisId="pct" type="monotone" dataKey="cpuLoad"
-                  stroke="none" fill="url(#lsg-cpu)"
+                  stroke="none" fill={`url(#${G.cpu})`}
                   style={{ fillOpacity: lineOpacity("cpu") * 0.9, transition: "fill-opacity 250ms ease" }}
                   dot={false} activeDot={false} isAnimationActive={false} legendType="none"
                 />

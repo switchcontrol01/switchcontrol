@@ -130,6 +130,18 @@ function AnimatedProgress({ cleaning }: { cleaning: boolean }) {
   );
 }
 
+// Defined at module level — pure data, no props or refs — so React never
+// creates a new object reference on each render, eliminating needless
+// re-memoization in the motion variants system.
+const STAGGER_VARIANTS = {
+  hidden: { opacity: 0, y: 12 },
+  visible: (i: number) => ({
+    opacity: 1,
+    y: 0,
+    transition: { delay: i * 0.1, type: "spring", stiffness: 300, damping: 24 },
+  }),
+};
+
 export function MemoryCleanerModal({ open, onOpenChange, onCleanComplete }: MemoryCleanerModalProps) {
   const [selectedMode, setSelectedMode] = useState<CleanMode>("smart");
   const [cleaning, setCleaning] = useState(false);
@@ -235,14 +247,7 @@ export function MemoryCleanerModal({ open, onOpenChange, onCleanComplete }: Memo
     }
   };
 
-  const stagger = {
-    hidden: { opacity: 0, y: 12 },
-    visible: (i: number) => ({
-      opacity: 1,
-      y: 0,
-      transition: { delay: i * 0.1, type: "spring", stiffness: 300, damping: 24 },
-    }),
-  };
+  // stagger is a module-level constant — see top of file
 
   return (
     <GlassModalLayout
@@ -387,7 +392,7 @@ export function MemoryCleanerModal({ open, onOpenChange, onCleanComplete }: Memo
             >
               <motion.div
                 custom={0}
-                variants={stagger}
+                variants={STAGGER_VARIANTS}
                 className="relative p-5 rounded-xl border border-emerald-500/20 bg-emerald-500/[0.04] text-center space-y-1.5 overflow-hidden"
               >
                 <motion.div
@@ -404,7 +409,7 @@ export function MemoryCleanerModal({ open, onOpenChange, onCleanComplete }: Memo
                 <p className="text-[10px] text-emerald-400/60 relative z-10">Memory reclaimed</p>
               </motion.div>
 
-              <motion.div custom={1} variants={stagger} className="grid grid-cols-3 gap-2">
+              <motion.div custom={1} variants={STAGGER_VARIANTS} className="grid grid-cols-3 gap-2">
                 <div className="p-2.5 rounded-xl bg-[#1A1F26] border border-[#2A313A] text-center">
                   <div className="text-sm font-bold text-[#E6EAF0] tabular-nums" data-testid="text-processes-trimmed">
                     <AnimatedCounter value={result.processes_trimmed} duration={600} />
@@ -426,7 +431,7 @@ export function MemoryCleanerModal({ open, onOpenChange, onCleanComplete }: Memo
               </motion.div>
 
               {result.top_trimmed.length > 0 && (
-                <motion.div custom={2} variants={stagger}>
+                <motion.div custom={2} variants={STAGGER_VARIANTS}>
                   <button
                     onClick={() => setShowDetails(!showDetails)}
                     className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-[#E6EAF0] transition-colors w-full"
@@ -464,7 +469,7 @@ export function MemoryCleanerModal({ open, onOpenChange, onCleanComplete }: Memo
                 </motion.div>
               )}
 
-              <motion.div custom={3} variants={stagger} className="flex gap-2 pt-1">
+              <motion.div custom={3} variants={STAGGER_VARIANTS} className="flex gap-2 pt-1">
                 <Button
                   variant="outline"
                   size="sm"

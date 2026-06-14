@@ -53,6 +53,15 @@ const { OWNERSHIP_FILE, APPDATA_DIR } = require('./user-data-paths');
 
 const STORE_VERSION = 1;
 
+// ── in-memory cache ───────────────────────────────────────────────────────────
+// The Electron main process is single-threaded for JS execution, so a simple
+// module-level cache is safe.  Reads after the first load never touch disk;
+// writes update the cache immediately then flush to disk atomically.
+// Set to null initially so the first call to loadOwnership() knows it must read
+// from disk.  After that, all callers get the same object reference and disk is
+// only hit by saveOwnership().
+let _cache = null;
+
 // ── disk I/O ──────────────────────────────────────────────────────────────────
 
 function ensureDir() {
@@ -60,32 +69,42 @@ function ensureDir() {
 }
 
 /**
- * Load ownership records from disk.
+ * Load ownership records from disk (or from in-memory cache after first load).
  * Returns { version, items: { [scopeKey]: record } }
  */
 function loadOwnership() {
+  if (_cache !== null) return _cache;
   try {
     ensureDir();
-    if (!fs.existsSync(OWNERSHIP_FILE)) return { version: STORE_VERSION, items: {} };
+    if (!fs.existsSync(OWNERSHIP_FILE)) {
+      _cache = { version: STORE_VERSION, items: {} };
+      return _cache;
+    }
     const raw = fs.readFileSync(OWNERSHIP_FILE, 'utf8').replace(/^\uFEFF/, '').trim();
     const data = JSON.parse(raw);
     if (!data || typeof data !== 'object' || Array.isArray(data)) {
       console.warn('[OwnershipStore] corrupt store — resetting');
-      return { version: STORE_VERSION, items: {} };
+      _cache = { version: STORE_VERSION, items: {} };
+      return _cache;
     }
-    return {
+    _cache = {
       version: data.version || STORE_VERSION,
       items:   (data.items && typeof data.items === 'object' && !Array.isArray(data.items))
                  ? data.items
                  : {},
     };
+    return _cache;
   } catch (e) {
     console.error('[OwnershipStore] loadOwnership failed:', e.message);
-    return { version: STORE_VERSION, items: {} };
+    _cache = { version: STORE_VERSION, items: {} };
+    return _cache;
   }
 }
 
 function saveOwnership(data) {
+  // Update cache first so subsequent reads within the same tick see the new
+  // state without waiting for the disk flush.
+  _cache = data;
   try {
     ensureDir();
     // Atomic write: write to a temp file then rename.

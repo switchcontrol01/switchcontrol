@@ -1,0 +1,194 @@
+SWITCHCONTROL — INTELLIGENT OPTIMIZATION UI & SYSTEM DIRECTION
+
+CONTEXT
+
+SwitchControl is evolving into an adaptive Windows optimization and system intelligence platform.
+
+The UI and tweak system must reflect intelligence, context-awareness, and trust.
+
+We are NOT building:
+
+- a registry dump
+- a giant tweak list
+- a placebo optimizer
+- an “FPS booster” app
+
+We ARE building:
+
+- a hardware-aware optimizer
+- a telemetry-aware assistant
+- a system intelligence layer
+- a benchmark-aware optimization platform
+
+==================================================
+IMPORTANT UI DIRECTION
+
+DO NOT use:
+
+- giant profile cards
+- bloated tweak dashboards
+- huge grids of random toggles
+- scary registry terminology
+- “boost FPS by 500%” wording
+
+Instead:
+
+Use:
+
+- intelligent summaries
+- contextual recommendations
+- adaptive sections
+- small focused recommendation blocks
+- telemetry-aware guidance
+
+==================================================
+TOP OF TWEAK PAGE
+
+The tweak page should begin with:
+
+SYSTEM ANALYSIS SUMMARY
+
+The app should intelligently explain:
+
+- detected hardware
+- Windows version
+- scheduler state
+- VRR state
+- thermal state
+- memory state
+- network condition
+- optimization opportunities
+
+Example direction:
+
+Detected:
+
+- Ryzen X3D CPU
+- High refresh VRR display
+- Windows 11 24H2
+- Stable thermals
+- Low background CPU load
+
+Assessment:
+
+- System already well optimized
+- Aggressive scheduler tweaks NOT recommended
+- Minor frametime improvements available
+- Latency optimizations available
+
+==================================================
+IMPORTANT
+
+The app must explain WHY.
+
+Every recommendation should include:
+
+- why it exists
+- what it changes
+- expected effect
+- risk level
+- compatibility reasoning
+- whether it affects:
+  - FPS
+  - latency
+  - frametime stability
+  - responsiveness
+  - thermals
+
+==================================================
+TWEAK UI DIRECTION
+
+DO NOT show:
+
+DisableDynamicTick = 1
+
+Instead show:
+
+Reduce Frametime Variance
+
+Description:
+Helps reduce inconsistent frame pacing during heavy CPU load.
+
+Expected Effect:
+
+- smoother gameplay
+- improved 1% lows
+- reduced frametime spikes
+
+Risk:
+Low
+
+Compatibility:
+Recommended for:
+
+- Ryzen X3D
+- Windows 11 24H2
+
+Reason:
+Your system already achieves high average FPS.
+This optimization targets consistency rather than raw FPS.
+
+==================================================
+VERY IMPORTANT
+
+The app must separate:
+
+- FPS
+- latency
+- frametime stability
+- responsiveness
+
+These are NOT the same thing.
+
+The UI should explain this clearly.
+
+Example:
+
+A tweak may:
+
+- reduce average FPS slightly
+- improve frametime consistency significantly
+- improve input responsiveness
+
+This can FEEL smoother even if FPS is lower.
+
+==================================================
+NETWORK PAGE DIRECTION
+
+The network page should become adaptive and hardware-aware.
+
+The app should detect:
+
+- Ethernet vs WiFi
+- NIC hardware
+- RSS capability
+- interrupt moderation
+- latency behavior
+- jitter behavior
+
+DO NOT blindly apply:
+
+- legacy TCP tweaks
+- old Windows 10 tweaks
+- random gaming “net tweaks”
+
+==================================================
+NETWORK UI EXAMPLE
+
+Detected:
+
+- Intel Ethernet Controller
+- Stable latency
+- Low packet loss
+- Fiber connection
+
+Recommended:
+
+- lightweight interrupt tuning
+- RSS optimization
+- packet consistency improvements
+
+NOT recommended:
+
+- aggressive autotuning disable
+- legacy TCP modifications
