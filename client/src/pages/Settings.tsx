@@ -331,13 +331,23 @@ export default function Settings() {
   const isAdmin = !!(user as any)?.isAdmin;
   const [licenseModalOpen, setLicenseModalOpen] = useState(false);
 
-  // Game session notification preference (Electron only, default enabled)
-  const [gameNotificationsEnabled, setGameNotificationsEnabled] = useState(true);
+  // Game session notification style (Electron only)
+  // Values: 'off' | 'banner' | 'sound' (default)
+  const [notifStyle, setNotifStyle] = useState<'off' | 'banner' | 'sound'>('sound');
   useEffect(() => {
     if (!isElectron) return;
-    (window as any).electronAPI?.config?.get('sentinelGameNotifications')
+    (window as any).electronAPI?.config?.get('sentinelNotificationStyle')
       .then((val: string | null) => {
-        setGameNotificationsEnabled(val !== 'false');
+        if (val === 'off' || val === 'banner' || val === 'sound') {
+          setNotifStyle(val);
+        } else {
+          // Migrate from old boolean key
+          (window as any).electronAPI?.config?.get('sentinelGameNotifications')
+            .then((old: string | null) => {
+              setNotifStyle(old === 'false' ? 'off' : 'sound');
+            })
+            .catch(() => {});
+        }
       })
       .catch(() => {});
   }, [isElectron]);
@@ -424,30 +434,41 @@ export default function Settings() {
                 </div>
               </motion.div>
 
-              {/* Game session notifications — Electron only */}
+              {/* Game session notification style — Electron only */}
               {isElectron && (
                 <>
                   <Separator className="bg-border/50" />
                   <motion.div initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3, delay: 0.23, ease: [0.22, 1, 0.36, 1] }}>
-                    <div className="flex items-center justify-between py-1 px-2 -mx-2 rounded-lg hover:bg-[#1A1F26] transition-colors">
+                    <div className="flex items-start justify-between gap-4 py-1 px-2 -mx-2 rounded-lg hover:bg-[#1A1F26] transition-colors">
                       <div className="space-y-0.5">
                         <Label>Game session notifications</Label>
-                        <p className="text-xs text-muted-foreground">Show a system notification when a game starts or exits.</p>
+                        <p className="text-xs text-muted-foreground">Choose how you're notified when a game starts or exits.</p>
                       </div>
-                      <Switch
-                        checked={gameNotificationsEnabled}
-                        data-testid="toggle-game-notifications"
-                        onCheckedChange={async (checked) => {
-                          setGameNotificationsEnabled(checked);
-                          await (window as any).electronAPI?.config?.set('sentinelGameNotifications', checked ? 'true' : 'false');
-                          toast({
-                            title: checked ? "Game Notifications Enabled" : "Game Notifications Disabled",
-                            description: checked
-                              ? "You'll be notified when the Sentinel detects a game starting or stopping."
-                              : "No notifications will be shown during game sessions.",
-                          });
-                        }}
-                      />
+                      <div className="flex items-center gap-1 shrink-0 bg-white/[0.04] border border-white/[0.08] rounded-lg p-0.5" data-testid="notif-style-selector">
+                        {([ ['off', 'Off'], ['banner', 'Silent'], ['sound', 'Sound'] ] as const).map(([val, label]) => (
+                          <button
+                            key={val}
+                            data-testid={`notif-style-${val}`}
+                            onClick={async () => {
+                              setNotifStyle(val);
+                              await (window as any).electronAPI?.config?.set('sentinelNotificationStyle', val);
+                              const descriptions: Record<string, string> = {
+                                off:    'No notifications will appear during game sessions.',
+                                banner: 'A silent banner will appear — no sound.',
+                                sound:  'A banner with sound will appear when a game starts or exits.',
+                              };
+                              toast({ title: `Notifications: ${label}`, description: descriptions[val] });
+                            }}
+                            className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
+                              notifStyle === val
+                                ? 'bg-purple-600/80 text-white shadow-sm'
+                                : 'text-muted-foreground hover:text-white hover:bg-white/[0.06]'
+                            }`}
+                          >
+                            {label}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   </motion.div>
                 </>

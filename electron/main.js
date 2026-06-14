@@ -240,6 +240,18 @@ let _boosterProcessPlan         = null;  // last auto-applied process-control pl
 let _sentinelSessionStartedAt   = null;  // Date.now() when game was first detected
 let _sentinelDeprioritisedCount = 0;     // # processes deprioritised by App Booster this session
 
+/**
+ * Returns the effective notification style: 'off' | 'banner' | 'sound'.
+ * Reads sentinelNotificationStyle first; falls back to the legacy
+ * sentinelGameNotifications boolean key so existing user prefs are honoured.
+ */
+function _sentinelNotificationStyle() {
+  const style = configStore.get('sentinelNotificationStyle');
+  if (style === 'off' || style === 'banner' || style === 'sound') return style;
+  // Legacy migration: old boolean key — 'false' means off, anything else means sound
+  return configStore.get('sentinelGameNotifications') === 'false' ? 'off' : 'sound';
+}
+
 async function _telemetryLoop() {
   _telemetryLoopCount++;
   verboseLog('[PERF:TASK] name=telemetryLoop source=main.js interval=' + TELEMETRY_BASE_MS + 'ms reason=startup loopInstance=' + _telemetryLoopCount);
@@ -495,12 +507,16 @@ async function _sentinelLoop() {
               if (mainWindow && !mainWindow.isDestroyed()) {
                 mainWindow.webContents.send('appBooster:sentinelStatus', { active: true, exe: exeName });
               }
-              // System notification — shown unless user disabled game notifications
-              if (configStore.get('sentinelGameNotifications') !== 'false' && Notification.isSupported()) {
-                new Notification({
-                  title: 'Game detected',
-                  body: 'SwitchControl is throttled to maximise your FPS',
-                }).show();
+              // System notification — style controlled by sentinelNotificationStyle
+              if (Notification.isSupported()) {
+                const _notifStyle = _sentinelNotificationStyle();
+                if (_notifStyle !== 'off') {
+                  new Notification({
+                    title: 'Game detected',
+                    body: 'SwitchControl is throttled to maximise your FPS',
+                    silent: _notifStyle === 'banner',
+                  }).show();
+                }
               }
             } else if (!running && _wasActive) {
               _wasActive = false;
@@ -523,12 +539,16 @@ async function _sentinelLoop() {
               }
               _sentinelSessionStartedAt   = null;
               _sentinelDeprioritisedCount = 0;
-              // System notification — shown unless user disabled game notifications
-              if (configStore.get('sentinelGameNotifications') !== 'false' && Notification.isSupported()) {
-                new Notification({
-                  title: 'Game closed',
-                  body: summaryBody,
-                }).show();
+              // System notification — style controlled by sentinelNotificationStyle
+              if (Notification.isSupported()) {
+                const _notifStyle = _sentinelNotificationStyle();
+                if (_notifStyle !== 'off') {
+                  new Notification({
+                    title: 'Game closed',
+                    body: summaryBody,
+                    silent: _notifStyle === 'banner',
+                  }).show();
+                }
               }
             }
             resolve();
