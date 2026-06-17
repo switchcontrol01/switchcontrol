@@ -445,6 +445,13 @@ export function OptimizeWorkflow({ isOpen, onClose, context, isPremium, isElectr
   const [aiError, setAiError] = useState<string | null>(null);
 
   const goalInputRef = useRef<HTMLInputElement>(null);
+  // Keep context in a ref so the scan effect can read the latest value at
+  // completion time WITHOUT listing context as a dependency. If context were a
+  // dep the effect would re-run (and cancel all timers) every 1.5 s when live
+  // telemetry updates — causing the scan to loop forever and never complete.
+  const contextRef = useRef(context);
+  useEffect(() => { contextRef.current = context; });
+
   const { executeTweak } = useTweakExecutor();
   const { setTweak } = useStore();
 
@@ -487,15 +494,19 @@ export function OptimizeWorkflow({ isOpen, onClose, context, isPremium, isElectr
 
     const totalDuration = SCAN_STAGES.length * (BASE + 100) + 800;
     timers.push(setTimeout(() => {
-      const detected = context
-        ? detectConflicts(context.enabledTweaks, context.disabledTweaks, context.telemetry, context.powerPlan)
+      // Read context from ref — always current without re-triggering this effect
+      const ctx = contextRef.current;
+      const detected = ctx
+        ? detectConflicts(ctx.enabledTweaks, ctx.disabledTweaks, ctx.telemetry, ctx.powerPlan)
         : [];
       setConflicts(detected);
       setPhase("conflicts");
     }, totalDuration));
 
     return () => timers.forEach(clearTimeout);
-  }, [isOpen, phase, context]);
+  // context intentionally omitted — see contextRef above
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, phase]);
 
   // ── Thinking phase cycling ─────────────────────────────────────────────────
   useEffect(() => {
