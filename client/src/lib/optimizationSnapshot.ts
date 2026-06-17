@@ -17,6 +17,15 @@ export interface OptimizationSnapshot {
   isWifi: boolean;
   appliedTweakIds: string[];
   collectedAt: number;
+  // Extended hardware detail (populated from Electron IPC; null on web)
+  cpuCores: number | null;
+  cpuThreads: number | null;
+  cpuSpeed: string | null;
+  gpuVramGb: number | null;
+  ramUsedGb: number | null;
+  diskLabel: string | null;   // e.g. "C: 476 GB"
+  hostname: string | null;
+  arch: string | null;
 }
 
 /** Parse Windows build number from an osVersion string like "10.0.22621" or "22621". */
@@ -54,6 +63,16 @@ export async function collectOptimizationSnapshot(): Promise<OptimizationSnapsho
   let isNvme = false;
   let isWifi = false;
 
+  // Extended detail fields
+  let cpuCores: number | null = null;
+  let cpuThreads: number | null = null;
+  let cpuSpeed: string | null = null;
+  let gpuVramGb: number | null = null;
+  let ramUsedGb: number | null = null;
+  let diskLabel: string | null = null;
+  let hostname: string | null = null;
+  let arch: string | null = null;
+
   // Try Electron IPC for richer data (uses 5min cache, so likely instant)
   const electronAPI = (window as any).electronAPI;
   if (electronAPI?.system?.getSpecs) {
@@ -64,12 +83,50 @@ export async function collectOptimizationSnapshot(): Promise<OptimizationSnapsho
       ]) as any;
 
       if (specs) {
+        // CPU
         if (specs.cpu?.model) cpuName = specs.cpu.model;
-        if (specs.gpu?.model) gpuName = specs.gpu.model;
+        if (specs.cpu?.cores)   cpuCores   = specs.cpu.cores;
+        if (specs.cpu?.threads) cpuThreads = specs.cpu.threads;
+        if (specs.cpu?.speed)   cpuSpeed   = typeof specs.cpu.speed === "number"
+          ? `${specs.cpu.speed} GHz`
+          : String(specs.cpu.speed);
+
+        // GPU
+        if (specs.gpu?.model)  gpuName  = specs.gpu.model;
+        if (specs.gpu?.vramGB && specs.gpu.vramGB > 0) gpuVramGb = specs.gpu.vramGB;
+
+        // RAM
         if (specs.ram?.totalGB) totalRamGb = specs.ram.totalGB;
-        if (specs.os?.build) windowsBuild = parseInt(specs.os.build, 10) || windowsBuild;
-        if (Array.isArray(specs.storage)) {
-          isNvme = specs.storage.some((d: any) => /nvme|ssd/i.test(d.type ?? ""));
+        if (specs.ram?.usedGB && specs.ram.usedGB > 0) ramUsedGb = specs.ram.usedGB;
+
+        // OS / system
+        // Fix: cachedSpecs uses `system` not `os`
+        const sysBlock = specs.system ?? specs.os ?? {};
+        const osVer = sysBlock.osVersion ?? sysBlock.release ?? sysBlock.build ?? null;
+        if (osVer) {
+          const parsed = typeof osVer === "number"
+            ? osVer
+            : parseBuildNumber(String(osVer)) ?? (parseInt(String(osVer), 10) || null);
+          if (parsed) windowsBuild = parsed;
+        }
+        if (sysBlock.arch)     arch     = sysBlock.arch;
+        if (sysBlock.hostname) hostname = sysBlock.hostname;
+
+        // Storage: check disk name/mount for NVMe, also build disk label
+        const primaryDisk = specs.disk ?? specs.disks?.[0];
+        if (primaryDisk) {
+          const diskName = primaryDisk.mount ?? primaryDisk.name ?? "";
+          const diskTotalGb: number = primaryDisk.totalGB ?? 0;
+          if (diskTotalGb > 0) {
+            diskLabel = diskName ? `${diskName}: ${Math.round(diskTotalGb)} GB` : `${Math.round(diskTotalGb)} GB`;
+          }
+          // NVMe detection: check if disk fs/name contains nvme
+          const dName = (primaryDisk.name ?? primaryDisk.fs ?? "").toLowerCase();
+          if (/nvme/i.test(dName)) isNvme = true;
+        }
+        // Also check storage array if present (legacy path)
+        if (!isNvme && Array.isArray(specs.storage)) {
+          isNvme = specs.storage.some((d: any) => /nvme/i.test(d.type ?? ""));
         }
       }
     } catch {
@@ -86,12 +143,11 @@ export async function collectOptimizationSnapshot(): Promise<OptimizationSnapsho
       ]) as any;
       if (live?.cpu?.usagePct != null) cpuLoadPct = live.cpu.usagePct;
       if (live?.ram?.usagePct != null) ramUsedPct = live.ram.usagePct;
-      if (live?.network?.rxKBps != null) isWifi = false; // can't reliably infer from this
     } catch { /* fine */ }
   }
 
   const hardware: HardwareProfileInput = {
-    cpuBrand:   cpuName  ?? undefined,   // HardwareProfileInput uses cpuBrand
+    cpuBrand:   cpuName  ?? undefined,
     gpuName:    gpuName  ?? undefined,
     totalRamGb: totalRamGb ?? undefined,
   };
@@ -105,5 +161,13 @@ export async function collectOptimizationSnapshot(): Promise<OptimizationSnapsho
     isWifi,
     appliedTweakIds,
     collectedAt: Date.now(),
+    cpuCores,
+    cpuThreads,
+    cpuSpeed,
+    gpuVramGb,
+    ramUsedGb,
+    diskLabel,
+    hostname,
+    arch,
   };
 }

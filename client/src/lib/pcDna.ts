@@ -44,10 +44,15 @@ export interface PcDna {
   archetype: PcDnaArchetype;
   tagline: string;
   cpuLabel: string;
+  cpuDetail: string | null;     // e.g. "8C · 16T · 3.4 GHz"
   gpuLabel: string;
+  gpuDetail: string | null;     // e.g. "16 GB VRAM"
   ramLabel: string;
-  osLabel: string;
+  ramDetail: string | null;     // e.g. "21.5 GB used"
   storageLabel: string;
+  storageDetail: string | null; // e.g. "C: 476 GB"
+  osLabel: string;
+  osDetail: string | null;      // e.g. "x64 · DESKTOP-PC"
   traits: PcDnaTrait[];
   /** 0–100 "optimization headroom" — how much potential is left on the table. */
   headroom: number;
@@ -132,14 +137,43 @@ export function derivePcDna(snapshot: OptimizationSnapshot | null): PcDna {
     { label: "Profile", value: favStability > favLatency ? "Stability-leaning" : "Latency-leaning" },
   ];
 
+  // ── Detail sub-lines ─────────────────────────────────────────────────────────
+  const cpuCoreParts: string[] = [];
+  if (snapshot?.cpuCores)   cpuCoreParts.push(`${snapshot.cpuCores}C`);
+  if (snapshot?.cpuThreads) cpuCoreParts.push(`${snapshot.cpuThreads}T`);
+  const cpuDetail = [
+    cpuCoreParts.length ? cpuCoreParts.join(" · ") : null,
+    snapshot?.cpuSpeed ?? null,
+  ].filter(Boolean).join(" · ") || null;
+
+  const gpuDetail = snapshot?.gpuVramGb && snapshot.gpuVramGb > 0
+    ? `${snapshot.gpuVramGb} GB VRAM`
+    : null;
+
+  const ramDetail = snapshot?.ramUsedGb && snapshot.ramUsedGb > 0 && ramGb != null
+    ? `${snapshot.ramUsedGb.toFixed(1)} / ${ramGb} GB used`
+    : null;
+
+  const storageDetail = snapshot?.diskLabel ?? null;
+
+  const osDetailParts: string[] = [];
+  if (snapshot?.arch)     osDetailParts.push(snapshot.arch);
+  if (snapshot?.hostname) osDetailParts.push(snapshot.hostname);
+  const osDetail = osDetailParts.join(" · ") || null;
+
   return {
     archetype,
     tagline: taglines[archetype],
     cpuLabel: cpuFamilyLabel(family, hw.cpuBrand ?? ""),
+    cpuDetail,
     gpuLabel,
+    gpuDetail,
     ramLabel,
+    ramDetail,
     osLabel,
-    storageLabel: snapshot?.isNvme ? "NVMe SSD" : "SATA / HDD",
+    osDetail,
+    storageLabel: snapshot?.isNvme ? "NVMe SSD" : "SSD / HDD",
+    storageDetail,
     traits,
     headroom,
   };

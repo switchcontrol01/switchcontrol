@@ -246,23 +246,26 @@ function DnaReveal({ dna, onProceed }: { dna: PcDna; onProceed: () => void }) {
         <p className="text-sm text-[#7c8597] mt-1.5 max-w-sm mx-auto">{dna.tagline}</p>
       </div>
 
-      {/* Spec chips */}
+      {/* Spec chips — 3-line: category / primary value / detail */}
       <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 w-full">
         {[
-          { k: "CPU", v: dna.cpuLabel },
-          { k: "GPU", v: dna.gpuLabel },
-          { k: "Memory", v: dna.ramLabel },
-          { k: "Storage", v: dna.storageLabel },
-          { k: "System", v: dna.osLabel },
+          { k: "CPU",     v: dna.cpuLabel,     d: dna.cpuDetail },
+          { k: "GPU",     v: dna.gpuLabel,     d: dna.gpuDetail },
+          { k: "Memory",  v: dna.ramLabel,     d: dna.ramDetail },
+          { k: "Storage", v: dna.storageLabel, d: dna.storageDetail },
+          { k: "System",  v: dna.osLabel,      d: dna.osDetail },
         ].map((c, i) => (
           <motion.div
             key={c.k}
             initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.28 + i * 0.06 }}
-            className="rounded-xl border border-white/[0.07] bg-white/[0.02] px-2 py-2.5 min-w-0 flex flex-col items-center text-center"
+            className="rounded-xl border border-white/[0.07] bg-white/[0.025] px-2 py-3 min-w-0 flex flex-col items-center text-center gap-0.5"
           >
-            <div className="text-[10px] uppercase tracking-wider text-[#5b6478]">{c.k}</div>
-            <div className="text-[11px] font-medium text-white leading-tight mt-0.5 break-words w-full" title={c.v}>{c.v}</div>
+            <div className="text-[9px] uppercase tracking-widest text-[#4a5568]">{c.k}</div>
+            <div className="text-[11px] font-semibold text-white leading-snug break-words w-full" title={c.v}>{c.v}</div>
+            {c.d && (
+              <div className="text-[9.5px] text-[#5b6a80] leading-tight break-words w-full">{c.d}</div>
+            )}
           </motion.div>
         ))}
       </div>
