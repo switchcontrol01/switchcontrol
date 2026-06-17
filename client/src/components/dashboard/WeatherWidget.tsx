@@ -19,7 +19,7 @@ interface WeatherData {
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const CACHE_KEY = "sw_weather_v1";
+const CACHE_KEY = "sw_weather_v2"; // v2: includes real coords, not London fallback
 const CACHE_TTL = 15 * 60 * 1000; // 15 minutes
 
 // ── WMO code → condition slug ─────────────────────────────────────────────────
@@ -157,9 +157,26 @@ const WeatherWidget = memo(() => {
       }
     } catch {}
 
-    // 2. Fetch from server (which has its own 15-min server-side cache)
+    // 2. Try to get real device coordinates via browser geolocation.
+    //    In Electron the request originates from 127.0.0.1, so the server's
+    //    IP-based geo lookup always falls back to London.  Passing lat/lon
+    //    directly bypasses that entirely.
+    const getCoords = (): Promise<{ lat: number; lon: number } | null> =>
+      new Promise(resolve => {
+        if (!navigator.geolocation) return resolve(null);
+        navigator.geolocation.getCurrentPosition(
+          pos => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
+          () => resolve(null),
+          { timeout: 5000 }
+        );
+      });
+
+    const coords = await getCoords();
+    const query = coords ? `?lat=${coords.lat}&lon=${coords.lon}` : "";
+
+    // 3. Fetch from server (which has its own 15-min server-side cache per lat/lon)
     try {
-      const res = await apiGet<{ ok: boolean; data: WeatherData }>("/weather");
+      const res = await apiGet<{ ok: boolean; data: WeatherData }>(`/weather${query}`);
       if (res.ok && res.data) {
         setData(res.data);
         try { localStorage.setItem(CACHE_KEY, JSON.stringify(res.data)); } catch {}
