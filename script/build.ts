@@ -41,6 +41,17 @@ const REQUIRED_BUNDLED = [
   "express-rate-limit",
   "stripe",
   "passport",
+  "compression",
+  "cookie-parser",
+  "cors",
+  "express-session",
+  "connect-pg-simple",
+  "passport-discord",
+  "passport-google-oauth20",
+  "path-to-regexp",
+  "pg",
+  "memorystore",
+  "date-fns",
 ];
 
 function checkRequiredPackages() {
