@@ -19,7 +19,8 @@ interface WeatherData {
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const CACHE_KEY = "sw_weather_v2"; // v2: includes real coords, not London fallback
+// v3: client-side IP geolocation fallback so Electron never defaults to London
+const CACHE_KEY = "sw_weather_v3";
 const CACHE_TTL = 15 * 60 * 1000; // 15 minutes
 
 // ── WMO code → condition slug ─────────────────────────────────────────────────
@@ -51,7 +52,6 @@ function conditionTint(condition: string): string {
 // ── Inline SVG icons — geometric, SwitchControl visual language ───────────────
 
 const WeatherIcon = memo(({ condition, isDay, size = 14 }: { condition: string; isDay: number; size?: number }) => {
-  const c = size / 2;
   const sunColor  = isDay ? "#FCD34D" : "#94A3B8";
   const rainColor = "#60A5FA";
   const snowColor = "#BAE6FD";
@@ -135,6 +135,56 @@ const WeatherIcon = memo(({ condition, isDay, size = 14 }: { condition: string; 
 });
 WeatherIcon.displayName = "WeatherIcon";
 
+// ── Geolocation helpers ────────────────────────────────────────────────────────
+
+interface Coords { lat: number; lon: number; city?: string; country?: string }
+
+/** Fetch ip-api.com directly from the renderer.
+ *  Works in Electron (outbound request uses real external IP, not 127.0.0.1).
+ *  Works in browsers that allow CORS to ip-api.com.
+ *  Returns null silently on any failure. */
+async function ipApiCoords(): Promise<Coords | null> {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 5000);
+  try {
+    const r = await fetch(
+      "https://ip-api.com/json/?fields=status,lat,lon,city,country",
+      { signal: ctrl.signal }
+    );
+    if (!r.ok) return null;
+    const geo = await r.json();
+    if (geo.status === "success" && isFinite(geo.lat)) {
+      return { lat: geo.lat, lon: geo.lon, city: geo.city || "", country: geo.country || "" };
+    }
+    return null;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+/** Resolve the best available coordinates.
+ *  Priority: GPS → client-side IP geo (fixes Electron loopback bug) → null (server decides). */
+async function resolveCoords(): Promise<Coords | null> {
+  // 1. Try browser/OS GPS
+  if (navigator.geolocation) {
+    const gps = await new Promise<Coords | null>(resolve => {
+      navigator.geolocation.getCurrentPosition(
+        pos => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
+        () => resolve(null),
+        { timeout: 6000, maximumAge: 5 * 60 * 1000 }
+      );
+    });
+    if (gps) return gps;
+  }
+
+  // 2. GPS unavailable/denied — fetch ip-api.com from the renderer so we get
+  //    the user's real external IP (crucial in Electron where the server only
+  //    sees 127.0.0.1 and always falls back to London).
+  return ipApiCoords();
+}
+
 // ── Main widget ───────────────────────────────────────────────────────────────
 // Isolated component — React.memo prevents any parent rerender from
 // propagating here. localStorage cache means the API is hit at most
@@ -157,22 +207,19 @@ const WeatherWidget = memo(() => {
       }
     } catch {}
 
-    // 2. Try to get real device coordinates via browser geolocation.
-    //    In Electron the request originates from 127.0.0.1, so the server's
-    //    IP-based geo lookup always falls back to London.  Passing lat/lon
-    //    directly bypasses that entirely.
-    const getCoords = (): Promise<{ lat: number; lon: number } | null> =>
-      new Promise(resolve => {
-        if (!navigator.geolocation) return resolve(null);
-        navigator.geolocation.getCurrentPosition(
-          pos => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
-          () => resolve(null),
-          { timeout: 5000 }
-        );
-      });
+    // 2. Resolve coordinates (GPS first, then client-side IP geo as fallback)
+    const coords = await resolveCoords();
 
-    const coords = await getCoords();
-    const query = coords ? `?lat=${coords.lat}&lon=${coords.lon}` : "";
+    // Build query — pass city/country if we got them from ip-api so the
+    // server can label the response without doing its own geo lookup.
+    const params = new URLSearchParams();
+    if (coords) {
+      params.set("lat", String(coords.lat));
+      params.set("lon", String(coords.lon));
+      if (coords.city)    params.set("city",    coords.city);
+      if (coords.country) params.set("country", coords.country);
+    }
+    const query = coords ? `?${params.toString()}` : "";
 
     // 3. Fetch from server (which has its own 15-min server-side cache per lat/lon)
     try {
@@ -201,7 +248,6 @@ const WeatherWidget = memo(() => {
 
   const condition = wmoCondition(data.conditionCode);
   const tint      = conditionTint(condition);
-  const location  = data.city || data.country || "";
 
   return (
     <motion.div

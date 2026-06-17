@@ -57,8 +57,10 @@ router.get("/", requireJwt, async (req, res) => {
   try {
     let lat = parseFloat(req.query.lat as string);
     let lon = parseFloat(req.query.lon as string);
-    let city = "";
-    let country = "";
+    // Client may supply city/country (resolved via client-side ip-api call in
+    // the renderer — avoids the Electron 127.0.0.1 loopback problem).
+    let city    = (req.query.city    as string | undefined)?.trim() || "";
+    let country = (req.query.country as string | undefined)?.trim() || "";
 
     // ── Geolocation ─────────────────────────────────────────────────────────
     if (!isFinite(lat) || !isFinite(lon)) {
