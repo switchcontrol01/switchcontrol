@@ -1,0 +1,62 @@
+Weaher on dashboard is incorrct for me. Ai said 18 at the timeis London. So location or cache is wrong. 
+
+
+Found it. The problem is on line 65:
+
+```ts
+const ip = clientIp(req);
+```
+
+In Electron, the request comes from `127.0.0.1` — the local backend. So `ip-api.com` gets `127.0.0.1` as the IP, which it can't geolocate, so it falls through to the hardcoded London fallback on line 91. London is currently 18°C, which matches exactly what you're seeing.
+
+**The fix:** The Electron app needs to pass `?lat=&lon=` query params using the browser's geolocation API, bypassing the broken IP lookup entirely.
+
+In `WeatherWidget.tsx`, replace the `load` function:
+
+```ts
+const load = useCallback(async () => {
+  // Check cache first
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    if (raw) {
+      const cached: WeatherData = JSON.parse(raw);
+      if (Date.now() - cached.fetchedAt < CACHE_TTL) {
+        setData(cached);
+        return;
+      }
+    }
+  } catch {}
+
+  // Get real coordinates from browser geolocation
+  const getCoords = (): Promise<{ lat: number; lon: number } | null> =>
+    new Promise(resolve => {
+      if (!navigator.geolocation) return resolve(null);
+      navigator.geolocation.getCurrentPosition(
+        pos => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
+        () => resolve(null),
+        { timeout: 5000 }
+      );
+    });
+
+  const coords = await getCoords();
+  const query = coords ? `?lat=${coords.lat}&lon=${coords.lon}` : "";
+
+  try {
+    const res = await apiGet<{ ok: boolean; data: WeatherData }>(`/weather${query}`);
+    if (res.ok && res.data) {
+      setData(res.data);
+      try { localStorage.setItem(CACHE_KEY, JSON.stringify(res.data)); } catch {}
+    } else {
+      setFailed(true);
+    }
+  } catch {
+    setFailed(true);
+  }
+}, []);
+```
+
+This uses the device's actual GPS/network location. First time it'll prompt the user for location permission. After that it's cached for 15 minutes so the prompt only appears once.
+
+If you don't want the permission prompt, the alternative is to clear the localStorage cache key `sw_weather_v1` so it refetches — but it'll still show London until the IP lookup is fixed server-side for Electron.
+
+The geolocation approach is the cleanest fix.

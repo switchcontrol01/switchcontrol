@@ -1239,10 +1239,23 @@ function ElectronAppContent() {
     // 4. Ensure the network call is done before switching phase
     await logoutPromise;
 
-    // 5. Switch phase — login screen will animate in
+    // 5. Reset all per-session entitlement state so the next login cycle
+    //    starts clean.  Without this, entitlementsAttempted stays true and
+    //    the refreshEntitlements() effect skips on re-login, leaving
+    //    entitlementsOk=false which collapses the app shell to a black screen.
+    setEntitlementsAttempted(false);
+    setEntitlementsOk(false);
+    setEntitlementsVerified(false);
+    setIsFirstLogin(false);
+    setShowPendingActivation(false);
+    setShowPatchNotes(false);
+
+    // 6. Switch phase — login screen will animate in.
+    //    Also clear isSigningOut so pointer-events are restored for the
+    //    login screen; leaving it true made login buttons unclickable.
     setPhase("unauthenticated");
+    setIsSigningOut(false);
     setLocation("/");
-    // (isSigningOut stays true; we're leaving the phase so it doesn't matter)
   };
 
   const handleSafeRefreshEntitlements = useCallback(async () => {
