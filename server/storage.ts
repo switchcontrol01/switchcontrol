@@ -20,6 +20,8 @@ import {
   type StripeWebhookEvent,
   type InsertStripeWebhookEvent,
 } from "@shared/schema";
+import * as fs from "fs";
+import * as path from "path";
 import { db, isNoDbMode } from "./db";
 import { eq, desc, and, ilike, or, count, sql as drizzleSql } from "drizzle-orm";
 
@@ -107,6 +109,52 @@ class MockStorage implements IStorage {
   private mockTweaksMap: Map<string, Map<string, AppliedTweak>> = new Map();
   private mockHistoryMap: Map<string, HistoryEntry[]> = new Map();
   private mockAiScansMap: Map<string, AIScan[]> = new Map();
+  private _tweaksPersistPath: string | null = null;
+
+  constructor() {
+    const userDataDir = process.env.ELECTRON_USER_DATA;
+    if (userDataDir) {
+      this._tweaksPersistPath = path.join(userDataDir, "tweaks-state.json");
+      this._loadTweaksFromDisk();
+    }
+  }
+
+  private _loadTweaksFromDisk(): void {
+    if (!this._tweaksPersistPath) return;
+    try {
+      if (!fs.existsSync(this._tweaksPersistPath)) return;
+      const raw = fs.readFileSync(this._tweaksPersistPath, "utf-8");
+      const data = JSON.parse(raw);
+      if (!data || typeof data !== "object" || Array.isArray(data)) return;
+      for (const [settingsId, tweaks] of Object.entries(data)) {
+        const tweakMap = new Map<string, AppliedTweak>();
+        if (tweaks && typeof tweaks === "object" && !Array.isArray(tweaks)) {
+          for (const [tweakId, tweak] of Object.entries(tweaks as Record<string, unknown>)) {
+            tweakMap.set(tweakId, tweak as AppliedTweak);
+          }
+        }
+        this.mockTweaksMap.set(settingsId, tweakMap);
+      }
+      let total = 0;
+      for (const m of this.mockTweaksMap.values()) total += m.size;
+      console.log(`[MockStorage] Loaded ${total} persisted tweak(s) from disk`);
+    } catch (e: any) {
+      console.warn("[MockStorage] Failed to load tweaks from disk:", e.message);
+    }
+  }
+
+  private _saveTweaksToDisk(): void {
+    if (!this._tweaksPersistPath) return;
+    try {
+      const data: Record<string, Record<string, AppliedTweak>> = {};
+      for (const [settingsId, tweakMap] of this.mockTweaksMap) {
+        data[settingsId] = Object.fromEntries(tweakMap);
+      }
+      fs.writeFileSync(this._tweaksPersistPath, JSON.stringify(data, null, 2), "utf-8");
+    } catch (e: any) {
+      console.warn("[MockStorage] Failed to save tweaks to disk:", e.message);
+    }
+  }
 
   private getOrInitSettings(userId: string): UserSettings {
     if (!this.mockSettingsMap.has(userId)) {
@@ -158,11 +206,13 @@ class MockStorage implements IStorage {
       enabled,
     };
     this.mockTweaksMap.get(settingsId)!.set(tweakId, tweak);
+    this._saveTweaksToDisk();
     return tweak;
   }
 
   async resetTweaks(settingsId: string): Promise<void> {
     this.mockTweaksMap.delete(settingsId);
+    this._saveTweaksToDisk();
   }
 
   async getHistory(settingsId: string, limit = 50): Promise<HistoryEntry[]> {
