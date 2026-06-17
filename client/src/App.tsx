@@ -1233,7 +1233,7 @@ function ElectronAppContent() {
     // 2. Kick off backend logout concurrently so network time is "free"
     const logoutPromise = performFullLogout("user_clicked_signout");
 
-    // 3. Let the app container's exit animation play (1.3s)
+    // 3. Let the dashboard fade-out complete (0.95s) + brief black hold (350ms)
     await new Promise<void>((resolve) => setTimeout(resolve, 1300));
 
     // 4. Ensure the network call is done before switching phase
@@ -1521,15 +1521,13 @@ function ElectronAppContent() {
           {(phase === "unauthenticated" || phase === "login_success") && (
             <motion.div
               key="login"
-              initial={{ opacity: 1, scale: 1 }}
+              initial={{ opacity: 0 }}
               animate={{
                 opacity: 1,
-                scale: 1,
-                transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] },
+                transition: { duration: 1.1, ease: [0.22, 1, 0.36, 1] },
               }}
               exit={{
                 opacity: 0,
-                scale: 0.99,
                 transition: { duration: 0.28, ease: [0.4, 0, 0.6, 1] },
               }}
               className="h-full"
@@ -1585,7 +1583,7 @@ function ElectronAppContent() {
                 isSigningOut
                   ? {
                       opacity: 0,
-                      transition: { duration: 0.5, ease: [0.4, 0, 0.6, 1] },
+                      transition: { duration: 0.95, ease: [0.4, 0, 0.2, 1] },
                     }
                   : {
                       opacity: 1,
