@@ -163,11 +163,20 @@ export interface SystemIntelligenceProfile {
 
 const CACHE_TTL_MS = 30 * 60 * 1000;
 
+// Session-level flag — survives component unmount/remount across all routes.
+// Once the initial inventory is loaded, no page remount will re-trigger deep polling.
+let _initSpecsFetched = false;
+
 interface SystemIntelligenceState {
   profile: SystemIntelligenceProfile | null;
   loading: boolean;
   error: string | null;
   fetchedAt: number;
+
+  // Session-bound init flag
+  initSpecsFetched: boolean;
+  // Lightweight cached hardware profile for instant UI
+  activeHardwareProfile: SystemIntelligenceProfile | null;
 
   fetch: (forceRefresh?: boolean) => Promise<void>;
   refresh: () => Promise<void>;
@@ -178,8 +187,16 @@ export const useSystemIntelligenceStore = create<SystemIntelligenceState>((set, 
   loading: false,
   error: null,
   fetchedAt: 0,
+  initSpecsFetched: false,
+  activeHardwareProfile: null,
 
   fetch: async (forceRefresh = false) => {
+    // Session guard: if initial fetch ever succeeded, skip on every mount
+    // unless an explicit force refresh is requested.
+    if (!forceRefresh && _initSpecsFetched && get().profile) {
+      return;
+    }
+
     const { loading, fetchedAt } = get();
     const stale = Date.now() - fetchedAt > CACHE_TTL_MS;
 
@@ -203,7 +220,8 @@ export const useSystemIntelligenceStore = create<SystemIntelligenceState>((set, 
 
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json() as SystemIntelligenceProfile;
-      set({ profile: data, loading: false, fetchedAt: Date.now() });
+      _initSpecsFetched = true;
+      set({ profile: data, activeHardwareProfile: data, initSpecsFetched: true, loading: false, fetchedAt: Date.now() });
       console.log(`[SysIntelligence] Profile loaded | MB=${data.baseboard.model} | BIOS=${data.bios.version} | CPU=${data.cpu.brand}`);
     } catch (err: any) {
       console.warn("[SysIntelligence] fetch failed:", err?.message);
@@ -217,7 +235,8 @@ export const useSystemIntelligenceStore = create<SystemIntelligenceState>((set, 
       const res = await fetch("/api/system-intelligence/refresh", { method: "POST" });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json() as SystemIntelligenceProfile;
-      set({ profile: data, loading: false, fetchedAt: Date.now() });
+      _initSpecsFetched = true;
+      set({ profile: data, activeHardwareProfile: data, initSpecsFetched: true, loading: false, fetchedAt: Date.now() });
       console.log("[SysIntelligence] Profile refreshed");
     } catch (err: any) {
       set({ loading: false, error: err?.message ?? "Refresh failed" });

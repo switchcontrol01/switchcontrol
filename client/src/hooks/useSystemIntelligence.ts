@@ -35,23 +35,30 @@ export interface UseSystemIntelligenceResult {
 }
 
 export function useSystemIntelligence(): UseSystemIntelligenceResult {
-  const { profile, loading, error, fetch, refresh } = useSystemIntelligenceStore();
+  const { profile, loading, error, fetch, refresh, initSpecsFetched, activeHardwareProfile } = useSystemIntelligenceStore();
 
+  // Only trigger the initial fetch on first mount of the app session.
+  // Once initSpecsFetched is true, no page remount will re-run deep polling.
   useEffect(() => {
-    fetch();
-  }, [fetch]);
+    if (!initSpecsFetched) {
+      fetch();
+    }
+  }, [fetch, initSpecsFetched]);
+
+  // Use the cached profile for instant UI; falls back to null if nothing loaded yet.
+  const displayProfile = profile ?? activeHardwareProfile;
 
   return {
-    profile,
+    profile: displayProfile,
     loading,
     error,
     refresh,
-    motherboard: formatMotherboard(profile),
-    bios: formatBios(profile),
-    cpu: formatCpu(profile),
-    gpu: formatGpu(profile),
-    ram: formatRam(profile),
-    storage: formatStorage(profile),
-    network: formatNetwork(profile),
+    motherboard: formatMotherboard(displayProfile),
+    bios: formatBios(displayProfile),
+    cpu: formatCpu(displayProfile),
+    gpu: formatGpu(displayProfile),
+    ram: formatRam(displayProfile),
+    storage: formatStorage(displayProfile),
+    network: formatNetwork(displayProfile),
   };
 }
