@@ -372,7 +372,7 @@ function IntentPhase({
               onChange={e => setText(e.target.value)}
               placeholder='e.g. "lowest latency for Valorant" or "fix my stutter"'
               data-testid="input-optimization-goal"
-              className="flex-1 bg-transparent text-[15px] text-white placeholder:text-[#4d566b] outline-none"
+              className="flex-1 bg-transparent text-[15px] text-white placeholder:text-[#4d566b] outline-none focus:outline-none focus-visible:outline-none"
             />
             <button
               type="submit"
@@ -877,7 +877,7 @@ function ImmersiveShell({
     <motion.div
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       transition={{ duration: 0.3 }}
-      className="fixed inset-0 z-[9000] overflow-hidden"
+      className="fixed top-0 bottom-0 left-64 right-0 z-[9000] overflow-hidden"
       style={{ background: "radial-gradient(circle at 50% 30%, #0a1018 0%, #05060a 70%)" }}
     >
       {/* Neural field background */}
