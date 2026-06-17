@@ -5,21 +5,38 @@ const { contextBridge, ipcRenderer } = require('electron');
 //
 // Three-layer flash prevention:
 //   1. backgroundColor '#07090D' on BrowserWindow → native DWM surface is dark
+//      (opaque window, no transparent:true, no DWM per-pixel alpha overhead)
 //   2. background styles below → Chromium renderer layer is dark
-//   3. opacity: 0 below → content is invisible until Splash.tsx's double-rAF
-//      calls document.documentElement.style.opacity = '' just before sending
-//      the app:first-frame-ready IPC to main. This is the most reliable guard
-//      because setOpacity() on Windows requires transparent:true to work; the
-//      CSS opacity lock is always Chromium-managed and cannot be a no-op.
+//   3. opacity: 0 below → content is invisible while the window is hidden.
+//      When main.js calls mainWindow.show() it immediately sends app:window-shown.
+//      The handler below sets a 280ms CSS transition then clears opacity so the
+//      content fades in smoothly — no pop, no DWM compositing lag.
 //
-// Net effect: mainWindow.show() is only called AFTER opacity has been restored
-// in the renderer, so the first frame the user sees is always the dark Splash.
+// Splash.tsx's double-rAF ONLY sends signalFirstFrameReady() — it does NOT
+// clear the opacity lock. The fade-in is driven entirely by app:window-shown.
 try {
   document.documentElement.style.setProperty('background', '#07090D', 'important');
   document.documentElement.style.setProperty('background-color', '#07090D', 'important');
   document.documentElement.style.setProperty('color-scheme', 'dark');
   document.documentElement.style.setProperty('opacity', '0', 'important');
 } catch (_) {}
+
+// ── CSS fade-in on first show ─────────────────────────────────────────────────
+// Runs directly in preload (not via contextBridge) so the renderer never needs
+// to call anything — the reveal is automatic and transparent to React.
+// Sequence: set transition → rAF → remove opacity (triggers 280ms ease-out).
+// transition is cleaned up via setTimeout after the animation completes so it
+// does not interfere with any later transitions on <html>.
+ipcRenderer.once('app:window-shown', () => {
+  try {
+    const h = document.documentElement;
+    h.style.setProperty('transition', 'opacity 280ms ease-out', 'important');
+    requestAnimationFrame(() => {
+      h.style.removeProperty('opacity');
+      setTimeout(() => { try { h.style.removeProperty('transition'); } catch (_) {} }, 320);
+    });
+  } catch (_) {}
+});
 
 // ─── Production detection ─────────────────────────────────────────────────────
 // Main process passes --switchcontrol-prod via additionalArguments in production.

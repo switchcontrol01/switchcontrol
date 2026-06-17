@@ -847,23 +847,18 @@ function createWindow() {
     width: 1300,
     height: 800,
     // Zero-flash show pattern:
-    //   transparent:true  — enables setOpacity() on Windows (without this flag,
-    //                        setOpacity() is a documented no-op on Windows).
-    //   backgroundColor:'#00000000' — required companion to transparent:true.
+    //   backgroundColor:'#07090D' — matches the app's CSS background so the
+    //     Win32 window brush is dark from the first DWM frame. No transparent:true
+    //     so DWM uses standard opaque compositing (no per-pixel alpha overhead).
     //   show:false        — Chromium paints into a hidden surface.
     //   paintWhenInitiallyHidden:true — forces frame painting while hidden.
     //
-    // _tryShowWindow() calls setOpacity(0) → show() → setOpacity(1) in sequence.
-    // All three are synchronous native calls in the same JS tick, so the DWM sees
-    // opacity:1 content (already-painted dark Splash) on the very first composited
-    // frame — no white DWM init frame can slip through.
-    //
-    // The CSS opacity lock in preload.js (opacity:0 on <html>, cleared by
-    // Splash.tsx double-rAF) remains as belt-and-suspenders: it guarantees
-    // the Splash is fully composited before signalFirstFrameReady fires.
+    // _tryShowWindow() calls mainWindow.show() only after both gates fire.
+    // preload.js sets html.style.opacity='0' immediately; the app:window-shown
+    // IPC triggers a 280ms CSS opacity transition so content fades in smoothly
+    // instead of popping. No setOpacity() calls needed.
     show: false,
-    transparent: true,
-    backgroundColor: '#00000000',
+    backgroundColor: '#07090D',
     frame: false,
     thickFrame: false,
     webPreferences: {
@@ -1100,17 +1095,13 @@ function createWindow() {
     _windowShown = true;
     clearTimeout(showFallbackTimer);
     _bm.windowShown = Date.now();
-    // setOpacity(0) → show() → setOpacity(1): three synchronous native calls in
-    // the same JS tick.  The DWM composites once — at opacity:1 — so the user's
-    // very first frame is the already-painted dark Splash.  No white DWM init
-    // frame can appear between show() and content being ready, because the window
-    // is invisible (opacity:0) until we explicitly reveal it.
-    // transparent:true (set in BrowserWindow options above) is required for
-    // setOpacity() to work on Windows; without it the call is a documented no-op.
-    mainWindow.setOpacity(0);
+    // show() is called only after both gates have fired (Chromium frame painted +
+    // React Splash composited). backgroundColor:'#07090D' means the Win32 brush
+    // is dark — no white DWM init frame. html.style.opacity='0' (set by preload)
+    // keeps content invisible; app:window-shown drives a 280ms CSS transition so
+    // the content fades in smoothly rather than popping.
     mainWindow.show();
     mainWindow.focus();
-    mainWindow.setOpacity(1);
     mainWindow.webContents.send('app:window-shown');
     if (isDev) {
       mainWindow.webContents.openDevTools({ mode: 'undocked' });
@@ -1125,15 +1116,13 @@ function createWindow() {
     if (!mainWindow || mainWindow.isDestroyed()) return;
     if (!mainWindow.isVisible()) {
       console.warn(`[LAUNCH:FALLBACK] show gates timed out — force-showing | ${launchMs()}`);
-      // Clear the CSS opacity lock (set by preload.js) in case Splash.tsx's
-      // double-rAF never fired (e.g. React crashed before mounting).
+      // Force the CSS opacity reveal in case preload's app:window-shown handler
+      // never ran (e.g. React crashed before mounting).
       mainWindow.webContents.executeJavaScript(
-        "try { document.documentElement.style.opacity = ''; } catch(e) {}"
+        "try { var h=document.documentElement; h.style.transition='opacity 280ms ease-out'; requestAnimationFrame(function(){ h.style.opacity=''; }); } catch(e) {}"
       ).catch(() => {});
-      mainWindow.setOpacity(0);
       mainWindow.show();
       mainWindow.focus();
-      mainWindow.setOpacity(1);
     }
     startTelemetryPolling().catch(e => console.error('[telemetry:poll] fallback error:', e.message));
   }, 5000);

@@ -5,7 +5,7 @@
 - [Recommendation filter canonical](recommendation-filter.md) — isRecommendedSafe in hooks.ts is the one source of truth; store.ts imports it. Never duplicate inline filter logic.
 - [Optimization Engine architecture](optimization-engine.md) — deterministic engine lives in shared/, isolated Zustand slice prevents TweaksList re-renders; hardware verdicts from hardwareIntelligence fold into score multiplier.
 - [Electron startup flash fix](electron-startup-flash.md) — two-gate show pattern: ready-to-show + app:first-frame-ready (double-rAF); never show on ready-to-show alone.
-- [Electron flash — transparent+setOpacity fix](electron-flash-gpu-prewarm.md) — Only transparent:true + setOpacity(0→1) fully kills DWM white init frames on Windows; backgroundColor alone is not enough.
+- [Electron startup flash and fade-in](electron-flash-gpu-prewarm.md) — backgroundColor:'#07090D' + CSS opacity transition (app:window-shown IPC) is the correct pattern; transparent:true causes DWM lag for window lifetime.
 - [Electron OAuth deep-link failure](electron-oauth-polling.md) — Chrome silently blocks custom-protocol redirects without user gesture; fixed via server-side poll map + 2s polling from Electron renderer.
 - [SysIntelligence WMI all-null guard](sysintelligence-wmi-null-guard.md) — when all 15 WMI sources timeout, skip _saveDiskCache() to preserve previous good data; restore disk fallback into memory if both are empty.
 - [Electron log noise patterns](electron-log-noise.md) — renderer console.warn → main [ERROR]; use console.info for expected races (e.g. slider "busy"). Module-level flags for page-visit guards (useRef resets on unmount).
