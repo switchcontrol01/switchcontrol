@@ -73,7 +73,7 @@ export default function StickyComparison() {
     };
   }, [isMobile]);
 
-  const leftOpacity = isMobile ? 1 : 1 - revealPct * 0.85;
+  const leftOpacity = isMobile ? 1 : 1 - revealPct * 0.55;
   const rightOpacity = isMobile ? 1 : revealPct;
   const leftScale = isMobile ? 1 : 1 - revealPct * 0.05;
   const leftX = isMobile ? 0 : -revealPct * 30;
@@ -102,7 +102,7 @@ export default function StickyComparison() {
         <div className={cn("grid gap-6", isMobile ? "grid-cols-1" : "grid-cols-2")}>
           {/* BAD SIDE — premium dark glass with readable text */}
           <motion.div
-            className="relative rounded-2xl border border-white/[0.08] bg-[#0a0a0f]/95 p-6 md:p-8 overflow-hidden"
+            className="relative rounded-2xl border border-white/[0.10] bg-[#141420]/90 p-6 md:p-8 overflow-hidden"
             style={{
               opacity: leftOpacity,
               transform: `scale(${leftScale}) translateX(${leftX}px)`,
@@ -143,10 +143,10 @@ export default function StickyComparison() {
                     <item.icon className="w-4 h-4" style={{ color: item.color }} />
                   </div>
                   <div>
-                    <div className="text-[13px] font-semibold text-white/85" style={{ textShadow: `0 0 8px ${item.color}20` }}>
+                    <div className="text-[13px] font-semibold text-white/95" style={{ textShadow: `0 0 8px ${item.color}20` }}>
                       {item.label}
                     </div>
-                    <div className="text-[11px] text-white/50 mt-0.5 leading-relaxed">
+                    <div className="text-[11px] text-white/65 mt-0.5 leading-relaxed">
                       {item.desc}
                     </div>
                   </div>
@@ -157,7 +157,7 @@ export default function StickyComparison() {
 
           {/* GOOD SIDE — premium cyan glass with depth */}
           <motion.div
-            className="relative rounded-2xl border border-white/[0.08] bg-[#0a0a0f]/95 p-6 md:p-8 overflow-hidden"
+            className="relative rounded-2xl border border-white/[0.10] bg-[#0d1825]/90 p-6 md:p-8 overflow-hidden"
             style={{
               opacity: rightOpacity,
               transform: `translateX(${rightX}px)`,
