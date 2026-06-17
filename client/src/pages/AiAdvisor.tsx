@@ -27,6 +27,7 @@ import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
 import { useLocation } from "wouter";
 import { AiTweakRecommendationCards, AiTweakRecommendation } from "@/components/ai/AiTweakRecommendationCard";
 import { ApplyTweaksFlowModal } from "@/components/ai/ApplyTweaksFlowModal";
+import { OptimizeWorkflow } from "@/components/ai/OptimizeWorkflow";
 import { isElectronWithTweaks, useTweakExecutor } from "@/hooks/use-tweak-executor";
 import { getTweak } from "@/lib/tweak-registry";
 import { useTweakOwnershipStore } from "@/stores/tweakOwnershipStore";
@@ -1054,6 +1055,7 @@ export default function AiAdvisor() {
   // AI tweak-recommendation state
   const [showApplyModal, setShowApplyModal] = useState(false);
   const [applyModalRecs, setApplyModalRecs] = useState<AiTweakRecommendation[]>([]);
+  const [showOptimizeWorkflow, setShowOptimizeWorkflow] = useState(false);
   const [location, navigate] = useLocation();
   const auth = useAuth();
   const isAdmin = !!auth.user?.isAdmin;
@@ -2130,6 +2132,25 @@ export default function AiAdvisor() {
               </h1>
               <p className="text-[11px] text-muted-foreground">Precision system diagnosis engine</p>
             </div>
+            {isPremium && (
+              <motion.button
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.4, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                onClick={() => setShowOptimizeWorkflow(true)}
+                className="flex items-center gap-1.5 h-8 px-3.5 rounded-full text-[11px] font-semibold transition-all duration-200 select-none ml-3"
+                style={{
+                  background: "linear-gradient(135deg, rgba(139,92,246,0.25), rgba(0,212,255,0.15))",
+                  border: "1px solid rgba(139,92,246,0.4)",
+                  color: "#C4B5FD",
+                  boxShadow: "0 0 12px rgba(139,92,246,0.15)",
+                }}
+                data-testid="button-optimize-my-pc"
+              >
+                <Zap className="w-3 h-3" />
+                Optimize My PC
+              </motion.button>
+            )}
           </div>
           {messages.length > 2 && (
             <div className="relative" data-testid="new-chat-wrapper">
@@ -2403,6 +2424,15 @@ export default function AiAdvisor() {
           // Don't close here — user stays on the results screen until they click Close
         }}
         onViewTweaks={handleViewTweakDetails}
+      />
+
+      {/* Premium AI Optimization Workflow */}
+      <OptimizeWorkflow
+        isOpen={showOptimizeWorkflow}
+        onClose={() => setShowOptimizeWorkflow(false)}
+        context={context}
+        isPremium={isPremium}
+        isElectron={isElectronApp}
       />
     </AppLayout>
   );
