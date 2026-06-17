@@ -135,6 +135,8 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
   const [isPasting, setIsPasting] = useState(false);
 
   const softTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pollTokenRef = useRef<string | null>(null);
   const { electronAuthState, oauthError } = useAuthStore();
 
   const clearSoftTimeout = useCallback(() => {
@@ -143,6 +145,36 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
       softTimeoutRef.current = null;
     }
   }, []);
+
+  const stopPolling = useCallback(() => {
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+      pollIntervalRef.current = null;
+    }
+    pollTokenRef.current = null;
+  }, []);
+
+  const handlePollSuccess = useCallback(async (code: string) => {
+    stopPolling();
+    clearSoftTimeout();
+    useAuthStore.getState().setElectronAuthState("exchanging");
+    try {
+      const user = await exchangeToken(code);
+      if (user) {
+        useAuthStore.getState().setToken(code);
+        useAuthStore.getState().setUser(user);
+        useAuthStore.getState().setElectronAuthState("authenticated");
+      } else {
+        setError("Sign-in failed. Please try again.");
+        setLoginState("failed");
+        useAuthStore.getState().setElectronAuthState("failed");
+      }
+    } catch {
+      setError("Sign-in failed. Please try again.");
+      setLoginState("failed");
+      useAuthStore.getState().setElectronAuthState("failed");
+    }
+  }, [stopPolling, clearSoftTimeout]);
 
   // Auth progressed successfully — clear UI back to idle / let App.tsx handle transition
   useEffect(() => {
@@ -167,17 +199,18 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
     }
   }, [oauthError, clearSoftTimeout]);
 
-  useEffect(() => () => clearSoftTimeout(), [clearSoftTimeout]);
+  useEffect(() => () => { clearSoftTimeout(); stopPolling(); }, [clearSoftTimeout, stopPolling]);
 
   const handleCancel = useCallback(() => {
     useAuthStore.getState().setElectronAuthState("cancelled");
     clearSoftTimeout();
+    stopPolling();
     setLoginState("idle");
     setLoginProvider(null);
     setError(null);
     setRecoveryExpanded(false);
     setPastedCode("");
-  }, [clearSoftTimeout]);
+  }, [clearSoftTimeout, stopPolling]);
 
   const handleLogin = useCallback(async (provider: "google" | "discord") => {
     setError(null);
@@ -197,12 +230,52 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
     setLoginState("authorizing");
     useAuthStore.getState().setElectronAuthState("opening_browser");
 
+    // Generate a random 32-char hex poll token.
+    // The token is encoded in the OAuth state so it survives the round-trip,
+    // and the server stores the auth code under it once the callback fires.
+    // Electron polls every 2 s — no browser deep-link required.
+    const pollToken = Array.from(crypto.getRandomValues(new Uint8Array(16)))
+      .map(b => b.toString(16).padStart(2, '0')).join('');
+
     try {
-      const authUrl = `${AUTH_DOMAIN}/auth/${provider}?source=electron`;
+      const authUrl = `${AUTH_DOMAIN}/auth/${provider}?source=electron&pollToken=${pollToken}`;
       await api.openExternal(authUrl);
       useAuthStore.getState().setElectronAuthState("waiting_for_callback");
 
-      // Soft timeout: only moves the UI to recovery — the auth exchange keeps running.
+      // Start server-side polling — fires every 2 s until the OAuth callback
+      // stores a code under the poll token (or the session times out).
+      stopPolling();
+      pollTokenRef.current = pollToken;
+      let pollCount = 0;
+      const MAX_POLLS = 150; // 5 min at 2 s intervals
+      pollIntervalRef.current = setInterval(async () => {
+        pollCount++;
+        // Stop if token was replaced (retry) or limit reached
+        if (pollCount > MAX_POLLS || pollTokenRef.current !== pollToken) {
+          clearInterval(pollIntervalRef.current!);
+          pollIntervalRef.current = null;
+          return;
+        }
+        // Stop if auth already completed via deep link
+        const state = useAuthStore.getState().electronAuthState;
+        if (state === 'authenticated' || state === 'exchanging' || state === 'callback_received') {
+          clearInterval(pollIntervalRef.current!);
+          pollIntervalRef.current = null;
+          return;
+        }
+        try {
+          const resp = await fetch(`${AUTH_DOMAIN}/api/auth/desktop-poll?token=${pollToken}`);
+          if (!resp.ok) return;
+          const data = await resp.json();
+          if (data.ready && data.code) {
+            handlePollSuccess(data.code);
+          }
+        } catch {
+          // Network hiccup — retry next interval
+        }
+      }, 2000);
+
+      // Soft timeout: only moves the UI to recovery — polling keeps running.
       clearSoftTimeout();
       softTimeoutRef.current = setTimeout(() => {
         const current = useAuthStore.getState().electronAuthState;
@@ -221,7 +294,7 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
       setLoginState("failed");
       setError("Failed to open browser. Please try again.");
     }
-  }, [clearSoftTimeout]);
+  }, [clearSoftTimeout, stopPolling, handlePollSuccess]);
 
   const handleRetry = useCallback(() => {
     if (loginProvider) {

@@ -4,7 +4,7 @@ import type { Express } from "express";
 import { db, isNoDbMode } from "../db";
 import { users } from "@shared/models/auth";
 import { eq, or } from "drizzle-orm";
-import { generateElectronCode } from "./google";
+import { generateElectronCode, storePollCode } from "./google";
 
 function isSafeRedirectUrl(url: string): boolean {
   if (!url) return false;
@@ -169,7 +169,9 @@ export function setupDiscordAuth(app: Express): void {
     // This is more reliable than cookies because some browsers with privacy/
     // tracking-protection block SameSite=None cookies on cross-domain redirects.
     // State is carried in the URL so it always arrives at the callback intact.
-    const statePayload = Buffer.from(JSON.stringify({ source, next: next_url })).toString('base64url');
+    const rawPollToken = req.query.pollToken as string | undefined;
+    const pollToken = (rawPollToken && /^[a-zA-Z0-9_-]{16,64}$/.test(rawPollToken)) ? rawPollToken : undefined;
+    const statePayload = Buffer.from(JSON.stringify({ source, next: next_url, pollToken })).toString('base64url');
 
     // Also set cookies as a belt-and-suspenders fallback for older installs.
     const isElectronBE = process.env.ELECTRON_BACKEND === '1';
@@ -203,6 +205,7 @@ export function setupDiscordAuth(app: Express): void {
           const parsed = JSON.parse(Buffer.from(rawState, 'base64url').toString('utf8'));
           (req as any)._stateSource = parsed.source || 'web';
           (req as any)._stateNext = isSafeRedirectUrl(parsed.next) ? parsed.next : '/';
+          (req as any)._statePollToken = (parsed.pollToken && /^[a-zA-Z0-9_-]{16,64}$/.test(parsed.pollToken)) ? parsed.pollToken : null;
           console.log("[AUTH] Discord state decoded — source:", (req as any)._stateSource);
         }
       } catch (e) {
@@ -230,6 +233,11 @@ export function setupDiscordAuth(app: Express): void {
       
       if (source === 'electron') {
         const code = generateElectronCode(user.id);
+        const pollToken = (req as any)._statePollToken;
+        if (pollToken) {
+          storePollCode(pollToken, code);
+          console.log("[AUTH] Stored code under poll token for user:", user.id);
+        }
         console.log("[AUTH] ===== DISCORD CALLBACK SUCCESS (ELECTRON) =====");
         console.log("[AUTH] Generated one-time code for user:", user.id);
         const redirectUrl = `/auth/desktop-success?code=${encodeURIComponent(code)}&provider=discord`;

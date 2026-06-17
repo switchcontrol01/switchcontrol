@@ -125,6 +125,21 @@ async function findOrCreateUser(profile: {
 import crypto from "crypto";
 
 const ELECTRON_CODE_TTL = 120_000; // 2 minutes
+
+// ── Desktop-poll map ─────────────────────────────────────────────────────────
+// Electron generates a random poll token before opening the browser, passes it
+// in the OAuth state, then polls GET /api/auth/desktop-poll?token=<pollToken>
+// every 2 s. This completely bypasses the unreliable browser → custom-protocol
+// deep-link path (Chrome blocks window.location.href without a user gesture).
+const _desktopPollMap = new Map<string, { code: string; issuedAt: number }>();
+const POLL_TOKEN_TTL = 300_000; // 5 min
+
+export function storePollCode(pollToken: string, code: string): void {
+  if (!pollToken || !/^[a-zA-Z0-9_-]{16,64}$/.test(pollToken)) return;
+  _desktopPollMap.set(pollToken, { code, issuedAt: Date.now() });
+  setTimeout(() => _desktopPollMap.delete(pollToken), POLL_TOKEN_TTL);
+}
+
 /** Read the HMAC secret at call time, NOT at module load. In Electron desktop
  *  mode, desktop-secrets.ts may populate JWT_SECRET/SESSION_SECRET after this
  *  module is first imported. Reading lazily prevents a module-load race where
@@ -676,13 +691,13 @@ export function setupGoogleAuth(app: Express): void {
     </div>
     <p class="opening-label">Launching</p>
 
-    <!-- Manual fallback — shown if protocol redirect is blocked by browser -->
-    <a id="manual-open-btn" href="${deepLink}" style="display:none;margin-top:1.6rem;padding:0.55rem 1.25rem;font-size:0.8125rem;color:#fff;background:rgba(139,92,246,0.20);border:1px solid rgba(168,85,247,0.40);border-radius:0.5rem;text-decoration:none;align-items:center;gap:0.4rem;backdrop-filter:blur(8px);">
+    <!-- Primary CTA — always visible; user clicks to open the app -->
+    <a id="manual-open-btn" href="${deepLink}" style="display:inline-flex;margin-top:1.6rem;padding:0.55rem 1.25rem;font-size:0.8125rem;color:#fff;background:rgba(139,92,246,0.20);border:1px solid rgba(168,85,247,0.40);border-radius:0.5rem;text-decoration:none;align-items:center;gap:0.4rem;backdrop-filter:blur(8px);">
       Open SwitchControl
     </a>
 
-    <!-- Copy-paste fallback — for browsers that completely block protocol links -->
-    <div id="copy-fallback" style="display:none;margin-top:1.2rem;text-align:center;max-width:320px;">
+    <!-- Copy-paste fallback — always visible for browsers that block protocol links -->
+    <div id="copy-fallback" style="display:block;margin-top:1.2rem;text-align:center;max-width:320px;">
       <p style="font-size:0.75rem;color:rgba(255,255,255,0.30);margin-bottom:0.5rem;">If the app didn't open, copy this code and paste it in the app</p>
       <div style="display:flex;align-items:center;gap:0.5rem;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:0.5rem;padding:0.4rem 0.75rem;overflow:hidden;">
         <code id="auth-code" style="font-family:monospace;font-size:0.75rem;color:rgba(255,255,255,0.65);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;">${code}</code>
@@ -695,15 +710,10 @@ export function setupGoogleAuth(app: Express): void {
     (function() {
       var deepLink = ${JSON.stringify(deepLink)};
       var code = ${JSON.stringify(code)};
+      // Attempt automatic deep-link launch — succeeds when Chrome allows it
+      // (e.g. user has previously approved this protocol, or OS fires it).
+      // The "Open SwitchControl" button is always visible as a one-click fallback.
       try { window.location.href = deepLink; } catch(e) {}
-      // If the protocol redirect doesn't fire (some browsers block it silently),
-      // reveal fallback UI after a short delay so the user isn't stuck.
-      setTimeout(function() {
-        var btn = document.getElementById('manual-open-btn');
-        if (btn) btn.style.display = 'inline-flex';
-        var fallback = document.getElementById('copy-fallback');
-        if (fallback) fallback.style.display = 'block';
-      }, 1800);
       // Copy button handler
       var copyBtn = document.getElementById('copy-btn');
       if (copyBtn) {
@@ -742,7 +752,9 @@ export function setupGoogleAuth(app: Express): void {
     // This is more reliable than cookies because some browsers with privacy/
     // tracking-protection block SameSite=None cookies on cross-domain redirects.
     // State is carried in the URL so it always arrives at the callback intact.
-    const statePayload = Buffer.from(JSON.stringify({ source, next: next_url })).toString('base64url');
+    const rawPollToken = req.query.pollToken as string | undefined;
+    const pollToken = (rawPollToken && /^[a-zA-Z0-9_-]{16,64}$/.test(rawPollToken)) ? rawPollToken : undefined;
+    const statePayload = Buffer.from(JSON.stringify({ source, next: next_url, pollToken })).toString('base64url');
 
     // Also set cookies as a belt-and-suspenders fallback for older installs.
     const isElectronBE = process.env.ELECTRON_BACKEND === '1';
@@ -776,6 +788,7 @@ export function setupGoogleAuth(app: Express): void {
           const parsed = JSON.parse(Buffer.from(rawState, 'base64url').toString('utf8'));
           (req as any)._stateSource = parsed.source || 'web';
           (req as any)._stateNext = isSafeRedirectUrl(parsed.next) ? parsed.next : '/';
+          (req as any)._statePollToken = (parsed.pollToken && /^[a-zA-Z0-9_-]{16,64}$/.test(parsed.pollToken)) ? parsed.pollToken : null;
           console.log("[AUTH] Google state decoded — source:", (req as any)._stateSource);
         }
       } catch (e) {
@@ -806,6 +819,11 @@ export function setupGoogleAuth(app: Express): void {
 
       if (source === 'electron') {
         const code = generateElectronCode(user.id);
+        const pollToken = (req as any)._statePollToken;
+        if (pollToken) {
+          storePollCode(pollToken, code);
+          console.log("[AUTH] Stored code under poll token for user:", user.id);
+        }
         console.log("[AUTH] ===== GOOGLE CALLBACK SUCCESS (ELECTRON) =====");
         console.log("[AUTH] Generated one-time code for user:", user.id);
         const redirectUrl = `/auth/desktop-success?code=${encodeURIComponent(code)}&provider=google`;
@@ -1317,6 +1335,36 @@ export function setupGoogleAuth(app: Express): void {
       console.error('[AUTH] Exchange error:', error);
       return res.status(500).json({ success: false, error: 'Internal server error' });
     }
+  });
+
+  // ── Desktop polling endpoint ──────────────────────────────────────────────
+  // Electron polls this every 2 s after opening the browser for OAuth.
+  // Returns { ready: true, code } when the OAuth callback has stored a code
+  // under the poll token, or { ready: false } while waiting.
+  // Rate-limited per IP: 30 req / min (2 s interval × 30 = 1 min of polling).
+  const _pollAttempts = new Map<string, { count: number; resetAt: number }>();
+  app.get("/api/auth/desktop-poll", (req, res) => {
+    const ip = req.ip || 'unknown';
+    const now = Date.now();
+    const rec = _pollAttempts.get(ip);
+    if (rec && now < rec.resetAt) {
+      if (rec.count >= 30) return res.status(429).json({ ready: false, error: 'rate_limited' });
+      rec.count++;
+    } else {
+      _pollAttempts.set(ip, { count: 1, resetAt: now + 60_000 });
+    }
+
+    const token = req.query.token as string;
+    if (!token || !/^[a-zA-Z0-9_-]{16,64}$/.test(token)) {
+      return res.json({ ready: false });
+    }
+    const entry = _desktopPollMap.get(token);
+    if (!entry) return res.json({ ready: false });
+    if (now - entry.issuedAt > POLL_TOKEN_TTL) {
+      _desktopPollMap.delete(token);
+      return res.json({ ready: false, expired: true });
+    }
+    return res.json({ ready: true, code: entry.code });
   });
 }
 
