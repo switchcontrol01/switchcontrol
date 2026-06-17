@@ -3533,12 +3533,9 @@ ipcMain.handle('powerPlans:applyOverride', async (event, id, enabled) => {
   if (!cmdSet) return { success: false, error: `Unknown override: ${id}` };
   const ps = enabled ? cmdSet.apply : cmdSet.revert;
   try {
-    await new Promise((resolve, reject) =>
-      execFile('powershell', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-WindowStyle', 'Hidden', '-Command', ps],
-        { timeout: 10000, windowsHide: true },
-        (err, stdout, stderr) => { if (err) reject(new Error(stderr || err.message)); else resolve(stdout); }
-      )
-    );
+    const result = await powerPlanManager.runElevatedCommands([ps]);
+    if (result.cancelled) return { success: false, cancelled: true, error: 'Admin permission cancelled.' };
+    if (!result.ok) return { success: false, error: result.error || 'Command failed.' };
     return { success: true };
   } catch (e) {
     console.error(`[IPC] powerPlans:applyOverride ${id} error:`, e.message);

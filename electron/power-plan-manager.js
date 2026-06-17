@@ -1464,4 +1464,5 @@ module.exports = {
   deleteAllScPlans,
   verifyRevertClean,
   restoreBuiltinPlanNames,
+  runElevatedCommands,
 };

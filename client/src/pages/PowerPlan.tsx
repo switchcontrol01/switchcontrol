@@ -829,14 +829,26 @@ export default function PowerPlan() {
     });
   }, []);
 
-  const toggleOverride = (id: string) => {
+  const toggleOverride = async (id: string) => {
     const newValue = !localState.overrides[id];
     updateLocalState({ overrides: { ...localState.overrides, [id]: newValue } });
     const eApi = (window as any).electronAPI;
-    if (eApi?.powerPlans?.applyOverride) {
-      eApi.powerPlans.applyOverride(id, newValue).catch((e: Error) => {
-        console.warn('[PowerPlan] applyOverride failed:', e);
-      });
+    if (!eApi?.powerPlans?.applyOverride) return;
+    try {
+      const result = await eApi.powerPlans.applyOverride(id, newValue);
+      if (result?.cancelled) {
+        updateLocalState({ overrides: { ...localState.overrides, [id]: !newValue } });
+        toast({ title: "Cancelled", description: "Accept the admin prompt to apply this override." });
+      } else if (!result?.success) {
+        updateLocalState({ overrides: { ...localState.overrides, [id]: !newValue } });
+        toast({ title: "Override Failed", description: result?.error ?? "Could not apply this override.", variant: "destructive" });
+      } else {
+        const toggle = OVERRIDE_TOGGLES.find(t => t.id === id);
+        toast({ title: newValue ? "Override Applied" : "Override Removed", description: toggle?.name ?? id });
+      }
+    } catch (e: any) {
+      updateLocalState({ overrides: { ...localState.overrides, [id]: !newValue } });
+      toast({ title: "Override Failed", description: e?.message ?? "Unexpected error.", variant: "destructive" });
     }
   };
 

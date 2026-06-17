@@ -19,8 +19,8 @@ interface WeatherData {
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-// v3: client-side IP geolocation fallback so Electron never defaults to London
-const CACHE_KEY = "sw_weather_v3";
+// v4: show city name in chip so users can verify location
+const CACHE_KEY = "sw_weather_v4";
 const CACHE_TTL = 15 * 60 * 1000; // 15 minutes
 
 // ── WMO code → condition slug ─────────────────────────────────────────────────
@@ -264,7 +264,7 @@ const WeatherWidget = memo(() => {
         data-testid="widget-weather-chip"
       >
         <WeatherIcon condition={condition} isDay={data.isDay} size={13} />
-        <span className="text-xs font-medium text-[#6B7380]">{data.temp}°C</span>
+        <span className="text-xs font-medium text-[#6B7380]">{data.temp}°C{data.city ? ` · ${data.city}` : ""}</span>
       </div>
     </motion.div>
   );
