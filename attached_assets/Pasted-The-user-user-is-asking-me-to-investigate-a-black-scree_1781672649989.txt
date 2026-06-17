@@ -1,0 +1,99 @@
+The user user is asking me to investigate a black screen issue that happens when opening a sidebar page for the first time after application startup. The symptom is:
+
+    Dashboard loads correctly
+    First visit to any sidebar page (Tweaks, History, Settings, Optimizer, etc.) causes black screen
+    Returning to Dashboard and then reopening the same page works fine
+    Only happens the first time each section is visited after startup
+
+The evidence shows:
+
+    Backend starts correctly
+    SysIntelligence has widespread timeouts
+    Hypothesis: A sidebar route is requesting SysIntelligence data on first mount, stalling inside a Suspense boundary, lazy loader, or route loader
+
+The user wants me to:
+
+    Identify every route that requests hardware, telemetry, BIOS, recommendation, optimizer, or system intelligence data during first mount
+    Ensure timeout failures return fallback values
+    Ensure loading boundaries always resolve
+    Ensure route rendering never depends on unresolved SysIntelligence requests
+
+Let me trace through the code more carefully. I've already found:
+
+    App.tsx uses Suspense with DarkFallback around the Switch component
+    DarkFallback is a solid dark cover (#070b14) shown while lazy chunks load
+    Navigation is wrapped in startTransition
+    The ErrorBoundary wraps everything
+
+The key insight is: The DarkFallback is shown while the lazy route chunk is loading. BUT the first-time black screen could be because:
+
+    The lazy chunk takes a long time to load (Vite chunk loading on file:// protocol)
+    OR the component inside the lazy chunk makes a blocking request that causes the component to hang
+    OR the ErrorBoundary catches something and shows a black-ish error screen
+
+Wait, the ErrorBoundary shows a centered error message with a "Try again" button - not just a black screen. So it's not the ErrorBoundary.
+
+Let me look at what the DarkFallback actually is - it's a solid #070b14 background. The user's screenshot shows the content area going black. This could be:
+
+    The DarkFallback being shown during lazy chunk loading
+    A component that renders nothing (returns null) while loading
+
+But the user says "Issue only occurs the first time each section is visited after startup." This suggests it's the lazy chunk loading - the first time you visit a route, the JS chunk needs to be downloaded. In Electron file:// mode, this might be slow or problematic.
+
+Actually, looking at the logs more carefully:
+
+[2026-06-16T11:38:21.870Z] [LOG] [GPU] enrichment start
+[2026-06-16T11:38:21.871Z] [LOG] [GPU] si.graphics begin (5s timeout)
+
+The SysIntelligence timeouts happen at startup. The backend is doing a deep collection. But the frontend's lazy chunks might also be loading during this time.
+
+Let me think about this differently. The user says "The UI remains in unresolved loading state resulting in black content area." This is the DarkFallback being shown during Suspense.
+
+The key question: WHY is the lazy chunk taking so long to load the first time? Or is there a component that causes a Suspense trigger?
+
+Actually, I think the issue might be simpler. In Electron file:// protocol:
+
+    Lazy loading chunks via import() uses file:// URLs
+    Vite's dynamic imports might not work correctly with file:// protocol
+    The chunk might fail to load entirely, causing the Suspense to hang forever
+
+Let me check if there are any preload hints or if the chunks are inlined for Electron.
+
+Actually, let me look at the build output. The dist directory has assets/ with chunks. In Electron, the app serves from file:// protocol. The lazy import would try to fetch file:///.../dist/assets/Tweaks-DEd1OMI83.js. This should work.
+
+But wait - the user says the black screen happens on first visit, then works on subsequent visits. This is the classic pattern of lazy loading:
+
+    First visit: Suspense triggers, DarkFallback shown, chunk loads
+    If chunk loads successfully, component renders
+    Subsequent visits: chunk is already loaded, no Suspense
+
+So if the black screen persists, maybe the chunk never loads. But the user says "Returning to Dashboard and then reopening that same page works normally." So the chunk DOES eventually load.
+
+This means the DarkFallback is showing for an extended period. Why would a lazy chunk take so long to load?
+
+Possible reasons:
+
+    The chunk is large and loading from disk takes time
+    The backend is doing heavy work and the main thread is blocked
+    The component itself has a useEffect that triggers a fetch that hangs
+
+Let me check if there's a pattern where the component makes a blocking request INSIDE the render path or in a useEffect that fires before the component is fully rendered.
+
+Actually, looking at the App.tsx code again:
+
+<ErrorBoundary route={location}>
+  <Suspense fallback={<DarkFallback />}>
+    <Switch>
+      <Route path="/" component={Home} />
+      <Route path="/dashboard" component={Home} />
+      <Route path="/tweaks" component={Tweaks} />
+      ...
+    </Switch>
+  </Suspense>
+</ErrorBoundary>
+
+The Suspense boundary wraps the entire Switch. When you navigate to a new route, the new component's lazy promise is pending. The Suspense fallback (DarkFallback) is shown. Once the chunk resolves, the component renders.
+
+The problem is: the Suspense fallback is shown for the ENTIRE Switch area, not just the new route content. So the sidebar and the content area both go black. The sidebar should remain visible though - it might be outside the Suspense.
+
+Wait, let me re-read the App.tsx structure more carefully.

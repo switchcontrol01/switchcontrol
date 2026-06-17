@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, type ElementType } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "wouter";
 import { WebsiteShell } from "@/components/website/WebsiteShell";
 import {

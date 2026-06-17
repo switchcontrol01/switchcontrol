@@ -701,7 +701,7 @@ export default function Landing() {
           <TelemetryLineOverlay />
 
           <HeroTiltContainer>
-          <div className="flex-1 flex flex-col justify-center max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-8 md:pt-24 md:pb-12 relative">
+          <div className="flex-1 flex flex-col max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 md:pt-32 lg:pt-40 pb-8 md:pb-12 relative">
             <div className="text-center">
               <AnimateIn delay={360}>
                 <div className="ws-hero-text-float">
