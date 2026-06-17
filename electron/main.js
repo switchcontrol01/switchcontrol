@@ -78,10 +78,38 @@ const isProd = !isDev;
 const allowDebug = process.env.DEBUG_MODE === 'true';
 verboseLog('[BOOT] app.isPackaged:', app.isPackaged, '| isDev:', isDev, '| DEBUG_MODE:', allowDebug);
 
-// DevTools lock — currently disabled so packaged builds can open DevTools for debugging.
+// DevTools lock — hard-disabled in production builds.
+// Three layers of defense:
+//   1. devTools:false in webPreferences stops Chromium from building the inspector at all.
+//   2. before-input-event blocks every keyboard shortcut that could open DevTools
+//      (F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+Shift+C) before it reaches the page.
+//   3. devtools-opened listener closes the inspector immediately if anything
+//      bypasses layers 1+2 (e.g. programmatic openDevTools calls from old code paths).
 function lockDevTools(win) {
-  // No-op: DevTools unlocked for debugging.
-  void win;
+  if (isDev) return; // Leave DevTools fully open in development.
+
+  win.webContents.on('before-input-event', (_event, input) => {
+    const ctrl  = input.control || input.meta; // meta = Cmd on macOS
+    const shift = input.shift;
+    const key   = input.key;
+
+    // F12 — universal DevTools toggle
+    if (key === 'F12') { _event.preventDefault(); return; }
+
+    // Ctrl+Shift+I — Elements / inspector
+    if (ctrl && shift && (key === 'i' || key === 'I')) { _event.preventDefault(); return; }
+
+    // Ctrl+Shift+J — Console
+    if (ctrl && shift && (key === 'j' || key === 'J')) { _event.preventDefault(); return; }
+
+    // Ctrl+Shift+C — Element picker
+    if (ctrl && shift && (key === 'c' || key === 'C')) { _event.preventDefault(); return; }
+  });
+
+  // Belt-and-suspenders: if DevTools somehow opens anyway, close it immediately.
+  win.webContents.on('devtools-opened', () => {
+    win.webContents.closeDevTools();
+  });
 }
 const PROTOCOL_NAME = 'switchcontrol';
 let mainWindow = null;
@@ -836,7 +864,7 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false, // Required for systeminformation
-      devTools: true, // DevTools enabled for debugging
+      devTools: isDev, // DevTools only in development — disabled in production builds
       backgroundThrottling: false, // Prevent timer throttling when window loses focus
       additionalArguments: isDev ? [] : ['--switchcontrol-prod'],
       paintWhenInitiallyHidden: true, // Ensure Chromium paints frames even while window is hidden
@@ -844,7 +872,8 @@ function createWindow() {
   });
   console.log('[LAUNCH:1] BrowserWindow constructed — show:false, paintWhenInitiallyHidden:true, isVisible:', mainWindow.isVisible());
 
-  // DevTools enabled in dev only (devTools: isDev). Disabled in production builds.
+  // Apply DevTools lock immediately after window creation.
+  lockDevTools(mainWindow);
 
   const { session: electronSession } = require('electron');
   electronSession.defaultSession.webRequest.onHeadersReceived(
@@ -1073,7 +1102,7 @@ function createWindow() {
     mainWindow.show();
     mainWindow.focus();
     mainWindow.webContents.send('app:window-shown');
-    if (!isProd) {
+    if (isDev) {
       mainWindow.webContents.openDevTools({ mode: 'undocked' });
     }
     console.log(`[LAUNCH:5] mainWindow.show() — both gates passed (chromium+react) | ${launchMs()}`);
@@ -4566,7 +4595,8 @@ app.whenReady().then(async () => {
   }
 
   ipcMain.handle('app:openDevTools', () => {
-    mainWindow?.webContents.openDevTools({ mode: 'detach' });
+    // DevTools locked in production — only open in development builds.
+    if (isDev) mainWindow?.webContents.openDevTools({ mode: 'detach' });
   });
 
   // ── Updater boot ─────────────────────────────────────────────────────────

@@ -26,7 +26,8 @@ try {
 // This is reliable across dev/packaged builds without depending on NODE_ENV.
 const isProdBuild = process.argv.includes('--switchcontrol-prod');
 
-// DevTools are enabled — F12 and Ctrl+Shift+I open the inspector.
+// DevTools are disabled in production builds. F12 and Ctrl+Shift+I are blocked
+// by the before-input-event handler in main.js.
 
 // ─── Input validation helpers ─────────────────────────────────────────────────
 // Lightweight guards that reject garbage before it crosses the privilege boundary.
@@ -109,7 +110,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getPerformanceInfo: () => ipcRenderer.invoke('debug:getPerformanceInfo'),
   },
   openLogs:        () => ipcRenderer.invoke('app:openLogs'),
-  openDevTools:    () => ipcRenderer.invoke('app:openDevTools'),
 
   // ── Controlled privileged actions ───────────────────────────────────────────
   quitApp:          () => ipcRenderer.invoke('app:quit'),
