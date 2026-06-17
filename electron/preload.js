@@ -82,6 +82,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getPlatform:     () => ipcRenderer.invoke('app:getPlatform'),
   isPackaged:      () => ipcRenderer.invoke('app:isPackaged'),
   getDeviceId:     () => ipcRenderer.invoke('app:getDeviceId'),
+  getDeviceSignature: () => ipcRenderer.invoke('app:getDeviceSignature'),
+  setDeviceSignature: (signature) => ipcRenderer.invoke('app:setDeviceSignature', signature),
   isAdmin:         () => ipcRenderer.invoke('app:isAdmin'),
   isIPCReady:      () => ipcRenderer.invoke('app:isIPCReady'),
   getBackendPort:  () => ipcRenderer.invoke('app:getBackendPort'),

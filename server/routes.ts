@@ -35,6 +35,7 @@ import { getSystemIntelligence, triggerBackgroundCollection } from "./lib/system
 import { getSnapshot, getSystemSpecs, getSchedulerStats, startTelemetryPolling } from "./lib/telemetry";
 import { broadcastNow, setupWebSocketServer } from "./lib/wsServer";
 import { signJwt } from "./lib/jwt";
+import { generateDeviceSignature, verifyDeviceSignature } from "./lib/deviceSignature";
 
 const isElectronBackend = process.env.ELECTRON_BACKEND === '1';
 
@@ -882,10 +883,11 @@ export async function registerRoutes(
       }
 
       if (!user.premiumBoundDeviceId) {
-        // First premium activation — bind the presenting device
-        await storage.bindPremiumDevice(cloudUser.id, deviceId);
-        console.log(`[DeviceBinding] Assigned | user=${cloudUser.id} | device=${deviceId}`);
-        return res.json({ status: "ok", isFirstBind: true });
+        // First premium activation — bind the presenting device and generate HMAC signature
+        const signature = generateDeviceSignature(cloudUser.id, deviceId);
+        await storage.bindPremiumDevice(cloudUser.id, deviceId, signature);
+        console.log(`[DeviceBinding] Assigned | user=${cloudUser.id} | device=${deviceId} | sig=${signature.substring(0, 8)}...`);
+        return res.json({ status: "ok", isFirstBind: true, deviceSignature: signature });
       }
 
       if (user.premiumBoundDeviceId === deviceId) {
@@ -903,9 +905,11 @@ export async function registerRoutes(
       const isStale = !lastSeen || Date.now() - new Date(lastSeen).getTime() > STALE_MS;
 
       if (isStale) {
-        await storage.bindPremiumDevice(cloudUser.id, deviceId);
-        console.log(`[DeviceBinding] Rebind-stale | user=${cloudUser.id} | old=${user.premiumBoundDeviceId} | new=${deviceId}`);
-        return res.json({ status: "ok", isFirstBind: false });
+        // Rebind with fresh signature
+        const signature = generateDeviceSignature(cloudUser.id, deviceId);
+        await storage.bindPremiumDevice(cloudUser.id, deviceId, signature);
+        console.log(`[DeviceBinding] Rebind-stale | user=${cloudUser.id} | old=${user.premiumBoundDeviceId} | new=${deviceId} | sig=${signature.substring(0, 8)}...`);
+        return res.json({ status: "ok", isFirstBind: false, deviceSignature: signature });
       }
 
       // Active mismatch — block

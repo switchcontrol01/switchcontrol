@@ -1453,6 +1453,50 @@ ipcMain.handle('app:getDeviceId', () => {
   return cachedDeviceId;
 });
 
+const DEVICE_SIGNATURE_FILE = path.join(DEVICE_ID_DIR, 'device-signature.json');
+
+function getOrCreateDeviceSignature() {
+  const fs = require('fs');
+  try {
+    if (fs.existsSync(DEVICE_SIGNATURE_FILE)) {
+      const data = JSON.parse(fs.readFileSync(DEVICE_SIGNATURE_FILE, 'utf-8'));
+      if (data.signature && typeof data.signature === 'string' && data.signature.length === 32) {
+        return data.signature;
+      }
+    }
+  } catch (e) {
+    console.warn('[DeviceSignature] Failed to read stored signature:', e.message);
+  }
+  return null;
+}
+
+function saveDeviceSignature(signature) {
+  const fs = require('fs');
+  try {
+    fs.writeFileSync(DEVICE_SIGNATURE_FILE, JSON.stringify({ signature, updatedAt: new Date().toISOString() }), 'utf-8');
+    console.log('[DeviceSignature] Saved signature');
+  } catch (e) {
+    console.error('[DeviceSignature] Failed to save signature:', e.message);
+  }
+}
+
+let cachedDeviceSignature = null;
+
+ipcMain.handle('app:getDeviceSignature', () => {
+  if (!cachedDeviceSignature) cachedDeviceSignature = getOrCreateDeviceSignature();
+  return cachedDeviceSignature;
+});
+
+ipcMain.handle('app:setDeviceSignature', (_event, signature) => {
+  if (typeof signature !== 'string' || signature.length !== 32) {
+    console.warn('[DeviceSignature] Invalid signature format');
+    return false;
+  }
+  cachedDeviceSignature = signature;
+  saveDeviceSignature(signature);
+  return true;
+});
+
 // Config store handlers — persisted secrets for packaged runtime
 ipcMain.handle('config:get', (event, key) => {
   if (typeof key !== 'string' || !key) return null;

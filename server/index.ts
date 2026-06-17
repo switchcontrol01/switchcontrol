@@ -37,8 +37,8 @@ app.use(helmet({
         useDefaults: true,
         directives: {
           defaultSrc: ["'self'"],
-          scriptSrc: ["'self'", "'unsafe-inline'", "https://js.stripe.com"],
-          styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+          scriptSrc: ["'self'", "'sha256-po3fq3oj6v/fM0HrtsQRYg7nnlgYKbJzaeKGulp1lSw='", "https://js.stripe.com"],
+          styleSrc: ["'self'", "'sha256-ELttVqSZIEVoLR/Eixzx/sFCZ9p2/JkAo1zNWX/ikc4='", "https://fonts.googleapis.com"],
           fontSrc: ["'self'", "https://fonts.gstatic.com"],
           imgSrc: ["'self'", "data:", "blob:", "https:"],
           connectSrc: ["'self'", "https://api.stripe.com", "https://api.openai.com"],
@@ -124,7 +124,7 @@ app.use("/api", cors({
   origin: corsOriginValidator,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-csrf-token', 'x-device-id'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-csrf-token', 'x-device-id', 'x-device-signature'],
   exposedHeaders: ['X-Auth-Mode'],
 }));
 app.use("/auth", cors({

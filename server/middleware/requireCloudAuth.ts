@@ -2,6 +2,7 @@ import { RequestHandler } from "express";
 import { verifyJwt } from "../lib/jwt";
 import { storage } from "../storage";
 import { resolveEffectivePlan, isPlanActive } from "../lib/planUtils";
+import { verifyDeviceSignature } from "../lib/deviceSignature";
 
 declare global {
   namespace Express {
@@ -14,6 +15,7 @@ declare global {
         email: string | null;
         isAdmin: boolean;
         premiumBoundDeviceId: string | null;
+        deviceSignature: string | null;
       };
     }
   }
@@ -68,6 +70,7 @@ export const requireJwt: RequestHandler = async (req, res, next) => {
         email: null,
         isAdmin: false,
         premiumBoundDeviceId: null,
+        deviceSignature: null,
       };
       return next();
     }
@@ -93,6 +96,7 @@ export const requireJwt: RequestHandler = async (req, res, next) => {
             email: null,
             isAdmin: false,
             premiumBoundDeviceId: null,
+            deviceSignature: null,
           };
           return next();
         }
@@ -143,6 +147,7 @@ export const requireJwt: RequestHandler = async (req, res, next) => {
             email: user.email ?? null,
             isAdmin: user.isAdmin ?? false,
             premiumBoundDeviceId: user.premiumBoundDeviceId ?? null,
+            deviceSignature: user.deviceSignature ?? null,
           };
           return next();
         }
@@ -167,6 +172,7 @@ export const requireJwt: RequestHandler = async (req, res, next) => {
           email: user.email ?? null,
           isAdmin: user.isAdmin ?? false,
           premiumBoundDeviceId: user.premiumBoundDeviceId ?? null,
+          deviceSignature: user.deviceSignature ?? null,
         };
         // Only log when a JWT was also present (shows the fallback path taken)
         if (authHeader?.startsWith('Bearer ')) {
@@ -196,15 +202,33 @@ export const requireCloudPremium: RequestHandler = (req, res, next) => {
   // Device lock enforcement — only applied when Electron sends x-device-id
   // Website/browser sessions never send this header, so they are unaffected
   const deviceId = req.headers["x-device-id"] as string | undefined;
+  const deviceSignature = req.headers["x-device-signature"] as string | undefined;
   const boundDeviceId = req.cloudUser.premiumBoundDeviceId;
-  if (deviceId && boundDeviceId && deviceId !== boundDeviceId) {
-    console.warn(
-      `[DeviceLock] Blocked premium API access | user=${req.cloudUser.id} | bound=${boundDeviceId} | presented=${deviceId}`
-    );
-    return res.status(403).json({
-      error: "Premium is locked to another device.",
-      code: "device_locked",
-    });
+  const boundSignature = req.cloudUser.deviceSignature; // from the stored user record
+
+  if (deviceId && boundDeviceId) {
+    if (deviceId !== boundDeviceId) {
+      console.warn(
+        `[DeviceLock] Blocked premium API access | user=${req.cloudUser.id} | bound=${boundDeviceId} | presented=${deviceId}`
+      );
+      return res.status(403).json({
+        error: "Premium is locked to another device.",
+        code: "device_locked",
+      });
+    }
+
+    // Device ID matches bound device — verify HMAC signature if one is present.
+    // If the server has a stored deviceSignature, the client MUST present the same
+    // signature on every subsequent call, or the request is treated as untrusted.
+    if (boundSignature && (!deviceSignature || !verifyDeviceSignature(req.cloudUser.id, deviceId, deviceSignature))) {
+      console.warn(
+        `[DeviceLock] Blocked premium API access | user=${req.cloudUser.id} | reason=invalid_device_signature`
+      );
+      return res.status(403).json({
+        error: "Premium device signature mismatch.",
+        code: "device_signature_invalid",
+      });
+    }
   }
 
   return next();

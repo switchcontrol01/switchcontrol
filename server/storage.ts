@@ -68,7 +68,7 @@ export interface IStorage {
   updateUserActivity(userId: string, data: { lastLoginAt?: Date; lastAppActiveAt?: Date; hasInstalledApp?: boolean }): Promise<void>;
 
   // Device binding
-  bindPremiumDevice(userId: string, deviceId: string): Promise<User>;
+  bindPremiumDevice(userId: string, deviceId: string, signature?: string): Promise<User>;
   clearPremiumDevice(userId: string): Promise<User>;
   findUserByBoundDeviceId(deviceId: string): Promise<User | undefined>;
   updateDeviceLastSeen(userId: string, deviceId: string): Promise<void>;
@@ -778,15 +778,19 @@ export class DatabaseStorage implements IStorage {
       .offset(offset);
   }
 
-  async bindPremiumDevice(userId: string, deviceId: string): Promise<User> {
+  async bindPremiumDevice(userId: string, deviceId: string, signature?: string): Promise<User> {
+    const updateData: Partial<typeof users.$inferInsert> = {
+      premiumBoundDeviceId: deviceId,
+      premiumBoundAt: new Date(),
+      premiumLastSeenDeviceId: deviceId,
+      updatedAt: new Date(),
+    };
+    if (signature) {
+      updateData.deviceSignature = signature;
+    }
     const [updated] = await db!
       .update(users)
-      .set({
-        premiumBoundDeviceId: deviceId,
-        premiumBoundAt: new Date(),
-        premiumLastSeenDeviceId: deviceId,
-        updatedAt: new Date(),
-      })
+      .set(updateData)
       .where(eq(users.id, userId))
       .returning();
     return updated;
@@ -799,6 +803,7 @@ export class DatabaseStorage implements IStorage {
         premiumBoundDeviceId: null,
         premiumBoundAt: null,
         premiumLastSeenDeviceId: null,
+        deviceSignature: null,
         updatedAt: new Date(),
       })
       .where(eq(users.id, userId))

@@ -22,6 +22,7 @@ interface ValidateResponse {
   status: "ok" | "not_premium" | "locked";
   isFirstBind?: boolean;
   message?: string;
+  deviceSignature?: string;
 }
 
 interface UsePremiumDeviceLockResult {
@@ -78,13 +79,32 @@ export function usePremiumDeviceLock(
       setIsFirstBind(result.isFirstBind ?? false);
 
       if (result.status === "ok") {
+        // On first bind or stale rebind, the server returns a fresh device signature.
+        // Persist it locally so every subsequent cloud request includes x-device-signature.
+        if (result.deviceSignature && (window as any).electronAPI?.setDeviceSignature) {
+          (window as any).electronAPI.setDeviceSignature(result.deviceSignature);
+        }
+        // Track last successful check for offline grace period
+        try {
+          localStorage.setItem('sc_device_lock_last_ok', Date.now().toString());
+        } catch {}
         console.log(`[DeviceLock] ${result.isFirstBind ? "First bind — device registered" : "Valid device"}`);
       } else if (result.status === "locked") {
         console.warn("[DeviceLock] Device mismatch — premium locked on this machine");
       }
     } catch (err) {
       console.error("[DeviceLock] Validation failed:", err);
-      setStatus("error");
+      // On network error, check if we have a recent successful check within the grace period.
+      // If so, keep status as 'ok' so the user isn't locked out during temporary connectivity issues.
+      const GRACE_MS = 24 * 60 * 60 * 1000; // 24 hours
+      let hasGrace = false;
+      try {
+        const lastOk = localStorage.getItem('sc_device_lock_last_ok');
+        if (lastOk && Date.now() - parseInt(lastOk, 10) < GRACE_MS) {
+          hasGrace = true;
+        }
+      } catch {}
+      setStatus(hasGrace ? "ok" : "error");
     } finally {
       setIsChecking(false);
     }

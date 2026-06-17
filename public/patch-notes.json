@@ -1,15 +1,15 @@
 {
-  "version": "1.1.1",
-  "title": "Stability & Safety Update",
-  "headline": "Under-the-hood hardening: smarter resource handling, safer registry writes, and several reliability fixes.",
-  "date": "2026-05-20",
+  "version": "1.1.2",
+  "title": "Performance & Security Update",
+  "headline": "Faster animations, tighter security, and a smoother experience from landing page to app.",
+  "date": "2026-06-14",
   "type": "patch",
   "changes": [
-    "Fixed: Slider tweaks (Win32 Priority, Mouse Queue, etc.) could trigger overlapping PowerShell registry writes when applied rapidly — each operation is now properly queued so only one runs at a time.",
-    "Fixed: System Cleaner scan and clean operations could run simultaneously if triggered in quick succession — both are now single-flight, preventing resource conflicts.",
-    "Fixed: Several components could attempt UI updates after navigating away from them, causing rare state warnings — all affected areas now safely cancel pending work on navigation.",
-    "Fixed: RAM usage card on the dashboard could show a stale value after running the Memory Cleaner — it now refreshes correctly after the OS settles.",
-    "Fixed: Premium purchase confirmation screen could update after being dismissed if the network response arrived late — the update is now cancelled on exit.",
-    "Improved: Boot authentication sequence is more resilient to slow network conditions — the startup flow no longer risks a state race on poor connections."
+    "Improved: Animations throughout the site are now smarter — they pause when off-screen and respect reduced-motion preferences, cutting GPU load and idle CPU drain.",
+    "Improved: The landing page and download page are now smoother and more responsive. Scrolling the page no longer re-renders the header.",
+    "Improved: Desktop installer updated to 1.1.2 with all the latest fixes and improvements.",
+    "Fixed: The server's own CPU usage throttle was not counting system time correctly — it now accounts for all CPU load when deciding whether to back off.",
+    "Security: Logging out now immediately invalidates your session token on the server, so a stolen token can't be reused during the brief cache window.",
+    "Security: JWT verification cache has tighter limits to prevent stale-token replay at scale."
   ]
 }
