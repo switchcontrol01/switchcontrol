@@ -846,17 +846,24 @@ function createWindow() {
     title: isDev ? 'SwitchControl DEBUG BUILD' : 'SwitchControl',
     width: 1300,
     height: 800,
-    // show:false + paintWhenInitiallyHidden:true is the correct zero-flash pattern.
-    // Chromium paints into a hidden surface with three dark layers applied:
-    //   1. backgroundColor:'#07090D' — native DWM surface (BrowserWindow option)
-    //   2. preload.js style injection — renderer layer before first HTML paint
-    //   3. index.html inline styles — HTML/CSS layer
-    // ready-to-show fires only after the first dark frame is committed.
-    // We then call mainWindow.show() and the user sees a dark window instantly —
-    // Chromium's white compositor init frame was never visible because the window
-    // was hidden the entire time it was initializing.
+    // Zero-flash show pattern:
+    //   transparent:true  — enables setOpacity() on Windows (without this flag,
+    //                        setOpacity() is a documented no-op on Windows).
+    //   backgroundColor:'#00000000' — required companion to transparent:true.
+    //   show:false        — Chromium paints into a hidden surface.
+    //   paintWhenInitiallyHidden:true — forces frame painting while hidden.
+    //
+    // _tryShowWindow() calls setOpacity(0) → show() → setOpacity(1) in sequence.
+    // All three are synchronous native calls in the same JS tick, so the DWM sees
+    // opacity:1 content (already-painted dark Splash) on the very first composited
+    // frame — no white DWM init frame can slip through.
+    //
+    // The CSS opacity lock in preload.js (opacity:0 on <html>, cleared by
+    // Splash.tsx double-rAF) remains as belt-and-suspenders: it guarantees
+    // the Splash is fully composited before signalFirstFrameReady fires.
     show: false,
-    backgroundColor: '#07090D',
+    transparent: true,
+    backgroundColor: '#00000000',
     frame: false,
     thickFrame: false,
     webPreferences: {
@@ -1093,14 +1100,17 @@ function createWindow() {
     _windowShown = true;
     clearTimeout(showFallbackTimer);
     _bm.windowShown = Date.now();
-    // The renderer-side opacity lock (set by preload.js, cleared by Splash.tsx
-    // double-rAF) guarantees the first visible frame is the dark Splash.
-    // We do NOT use setOpacity(0/1) here: on Windows, setOpacity() is a no-op
-    // unless transparent:true was set at window creation (which we don't use,
-    // since it conflicts with backgroundColor). The CSS opacity approach is
-    // always Chromium-managed and cannot silently fail.
+    // setOpacity(0) → show() → setOpacity(1): three synchronous native calls in
+    // the same JS tick.  The DWM composites once — at opacity:1 — so the user's
+    // very first frame is the already-painted dark Splash.  No white DWM init
+    // frame can appear between show() and content being ready, because the window
+    // is invisible (opacity:0) until we explicitly reveal it.
+    // transparent:true (set in BrowserWindow options above) is required for
+    // setOpacity() to work on Windows; without it the call is a documented no-op.
+    mainWindow.setOpacity(0);
     mainWindow.show();
     mainWindow.focus();
+    mainWindow.setOpacity(1);
     mainWindow.webContents.send('app:window-shown');
     if (isDev) {
       mainWindow.webContents.openDevTools({ mode: 'undocked' });
@@ -1115,14 +1125,15 @@ function createWindow() {
     if (!mainWindow || mainWindow.isDestroyed()) return;
     if (!mainWindow.isVisible()) {
       console.warn(`[LAUNCH:FALLBACK] show gates timed out — force-showing | ${launchMs()}`);
-      // Restore the CSS opacity lock in case Splash.tsx's double-rAF never fired
-      // (e.g. React crashed before mounting). Without this the window would appear
-      // but the content would be invisible (opacity:0 from preload.js still active).
+      // Clear the CSS opacity lock (set by preload.js) in case Splash.tsx's
+      // double-rAF never fired (e.g. React crashed before mounting).
       mainWindow.webContents.executeJavaScript(
         "try { document.documentElement.style.opacity = ''; } catch(e) {}"
       ).catch(() => {});
+      mainWindow.setOpacity(0);
       mainWindow.show();
       mainWindow.focus();
+      mainWindow.setOpacity(1);
     }
     startTelemetryPolling().catch(e => console.error('[telemetry:poll] fallback error:', e.message));
   }, 5000);
