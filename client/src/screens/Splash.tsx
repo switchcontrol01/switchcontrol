@@ -85,6 +85,31 @@ export default function Splash({ onComplete }: SplashProps) {
         .catch(() => {});
     }
 
+    // Subscribe to specs:enriched so GPU/disk data that arrives during the
+    // splash (WMI fast-path ~1s, full enrichment ~2-3s) updates the Zustand
+    // store before Home.tsx mounts — preventing null-on-first-render.
+    let enrichUnsub: (() => void) | null = null;
+    if (api?.system?.onSpecsEnriched) {
+      enrichUnsub = api.system.onSpecsEnriched((payload: any) => {
+        const updates: Record<string, any> = {};
+        const gpuModel: string | undefined = payload?.gpu?.model;
+        if (gpuModel && gpuModel !== 'Detecting\u2026' && gpuModel !== '') {
+          updates.gpuName   = gpuModel;
+          updates.gpuVendor = payload.gpu?.vendor ?? '';
+          if ((payload.gpu?.vramGB ?? 0) > 0) updates.vramGb = payload.gpu.vramGB;
+        }
+        const disk = payload?.disk;
+        if (disk?.name && (disk.totalGB ?? 0) > 0) {
+          updates.diskName    = disk.name;
+          updates.diskUsedGb  = disk.usedGB  ?? 0;
+          updates.diskTotalGb = disk.totalGB ?? 0;
+        }
+        if (Object.keys(updates).length > 0) {
+          useStore.getState().setStats(updates);
+        }
+      });
+    }
+
     const tContent = setTimeout(() => setContentVisible(true), 60);
     const tInit    = setTimeout(() => setInitializingDone(true), 1000);
     const tDone    = setTimeout(() => {
@@ -96,6 +121,7 @@ export default function Splash({ onComplete }: SplashProps) {
       clearTimeout(tContent);
       clearTimeout(tInit);
       clearTimeout(tDone);
+      enrichUnsub?.();
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // intentionally empty — timer must fire exactly once

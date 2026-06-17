@@ -546,15 +546,30 @@ export default function Home() {
         const api = (window as any).electronAPI;
         if (api?.system?.onSpecsEnriched) {
           const unsub = api.system.onSpecsEnriched((payload: any) => {
+            const updates: Record<string, any> = {};
             const gpuModel: string | undefined = payload?.gpu?.model;
             // Allow 'Unavailable' through — it replaces 'Detecting…' so the UI
             // doesn't stay on the loading spinner permanently when GPU truly unavailable.
-            if (!gpuModel || gpuModel === 'Detecting\u2026' || gpuModel === '') return;
-            const cur = (useStore as any).getState?.()?.stats;
-            const curGpu: string = cur?.gpuName ?? '';
-            if (curGpu && curGpu !== 'Detecting\u2026' && curGpu !== '' && curGpu !== 'Unavailable') return;
-            setStats({ gpuName: gpuModel, gpuVendor: payload.gpu?.vendor ?? '' });
-            console.log('[GPU] renderer: store updated from specs:enriched —', gpuModel);
+            if (gpuModel && gpuModel !== 'Detecting\u2026' && gpuModel !== '') {
+              const cur = (useStore as any).getState?.()?.stats;
+              const curGpu: string = cur?.gpuName ?? '';
+              if (!curGpu || curGpu === 'Detecting\u2026' || curGpu === '' || curGpu === 'Unavailable') {
+                updates.gpuName   = gpuModel;
+                updates.gpuVendor = payload.gpu?.vendor ?? '';
+                console.log('[GPU] renderer: store updated from specs:enriched —', gpuModel);
+              }
+            }
+            const disk = payload?.disk;
+            if (disk?.name && (disk.totalGB ?? 0) > 0) {
+              const cur = (useStore as any).getState?.()?.stats;
+              if (!cur?.diskTotalGb || cur.diskTotalGb === 0) {
+                updates.diskName    = disk.name;
+                updates.diskUsedGb  = disk.usedGB  ?? 0;
+                updates.diskTotalGb = disk.totalGB ?? 0;
+                console.log('[Disk] renderer: store updated from specs:enriched —', disk.name);
+              }
+            }
+            if (Object.keys(updates).length > 0) setStats(updates);
           });
           return unsub as () => void;
         }

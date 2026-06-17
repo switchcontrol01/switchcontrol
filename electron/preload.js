@@ -62,8 +62,14 @@ const ALLOWED_MEMORY_MODES  = new Set(['safe', 'smart', 'advanced']);
 // completes) receive the resolved GPU/CPU data immediately on subscribe.
 let _lastSpecsEnrichedPayload = null;
 ipcRenderer.on('specs:enriched', (_, payload) => {
-  if (payload?.gpu?.model && payload.gpu.model !== 'Detecting\u2026') {
-    _lastSpecsEnrichedPayload = payload;
+  const gpuOk  = payload?.gpu?.model  && payload.gpu.model  !== 'Detecting\u2026';
+  const diskOk = payload?.disk?.name  && (payload.disk?.totalGB ?? 0) > 0;
+  if (gpuOk || diskOk) {
+    // Merge so a GPU-only event (WMI fast-path) doesn't wipe a previously
+    // cached disk payload, and a GPU+disk event fills everything in.
+    _lastSpecsEnrichedPayload = _lastSpecsEnrichedPayload
+      ? { ..._lastSpecsEnrichedPayload, ...payload }
+      : payload;
   }
 });
 

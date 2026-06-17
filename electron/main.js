@@ -2039,11 +2039,13 @@ async function _enrichSpecsInBackground() {
       };
       cachedSpecsTime = Date.now();
       console.log(`[GPU] cachedSpecs updated — model=${cachedSpecs.gpu.model} +${Date.now() - _t0}ms`);
-      console.log('[GPU] IPC sent — specs:enriched');
+      console.log('[GPU] IPC sent — specs:enriched (gpu+cpu+disk)');
       if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.webContents.send('specs:enriched', {
-          gpu: cachedSpecs.gpu,
-          cpu: cachedSpecs.cpu,
+          gpu:   cachedSpecs.gpu,
+          cpu:   cachedSpecs.cpu,
+          disk:  cachedSpecs.disk,
+          disks: cachedSpecs.disks,
         });
       }
     }
