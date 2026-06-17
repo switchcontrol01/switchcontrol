@@ -832,6 +832,12 @@ export default function PowerPlan() {
   const toggleOverride = (id: string) => {
     const newValue = !localState.overrides[id];
     updateLocalState({ overrides: { ...localState.overrides, [id]: newValue } });
+    const eApi = (window as any).electronAPI;
+    if (eApi?.powerPlans?.applyOverride) {
+      eApi.powerPlans.applyOverride(id, newValue).catch((e: Error) => {
+        console.warn('[PowerPlan] applyOverride failed:', e);
+      });
+    }
   };
 
   const updateCustomSetting = <K extends keyof CustomSettings>(key: K, value: CustomSettings[K]) => {

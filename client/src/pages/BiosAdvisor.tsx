@@ -1093,6 +1093,18 @@ export default function BiosAdvisor() {
                   <span className="ml-auto text-[10px] text-[#6B7380] font-mono">Collected {new Date(si.collectedAt).toLocaleTimeString()}</span>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {sysIntel.cpu && sysIntel.cpu !== "Unknown" && (
+                    <div className="space-y-0.5">
+                      <p className="text-[10px] text-[#6B7380] uppercase tracking-wider">CPU</p>
+                      <p className="text-xs font-medium text-[#E6EAF0] leading-tight">{sysIntel.cpu}</p>
+                    </div>
+                  )}
+                  {sysIntel.gpu && sysIntel.gpu !== "Unknown" && (
+                    <div className="space-y-0.5">
+                      <p className="text-[10px] text-[#6B7380] uppercase tracking-wider">GPU</p>
+                      <p className="text-xs font-medium text-[#E6EAF0] leading-tight">{sysIntel.gpu}</p>
+                    </div>
+                  )}
                   {mbStr && (
                     <div className="space-y-0.5">
                       <p className="text-[10px] text-[#6B7380] uppercase tracking-wider">Motherboard</p>

@@ -1,0 +1,29 @@
+The temperature mismatch is almost certainly a **location/caching issue**, not a weather data issue. Let me walk through the likely cause.
+
+**The most likely culprit: stale localStorage cache**
+
+The widget caches weather data in `localStorage` under `sw_weather_v2` for 15 minutes (`CACHE_TTL`). If you traveled, or your location changed, or even just if the cache was written before geolocation resolved properly, you'd be looking at stale data for up to 15 minutes — but that alone wouldn't explain a sustained wrong reading unless something else is also wrong with how location resolves.
+
+**The bigger issue: location resolution can silently fall back to the wrong place**
+
+Looking at the flow in `WeatherWidget.tsx`:
+
+1. It tries `navigator.geolocation.getCurrentPosition()` first
+2. If that fails or times out (5 second timeout), it falls back to no coords at all
+3. With no coords, the server-side route in `weather.ts` falls back to **IP-based geolocation**
+4. If you're using the **Electron desktop app**, the comment in the code explicitly says: *"In Electron the request originates from 127.0.0.1, so the server's IP-based geo lookup always falls back to London."*
+5. If even that IP lookup fails, the server hardcodes **London (51.5, -0.13)** as the ultimate fallback
+
+So if geolocation permission was denied, blocked, or just didn't resolve in time, you could be silently getting weather for London or for whatever IP-based location ip-api.com resolves your connection to — which could be way off if you're on a VPN, corporate network, or the request is coming from a server-side proxy.
+
+**Server-side caching compounds this**
+
+Even if your geolocation now resolves correctly, the server caches weather data per lat/lon pair for 15 minutes (`WX_TTL`) and caches geo-IP lookups for a full hour (`GEO_TTL`). So a wrong location, once cached, persists for a while even after the underlying issue is fixed.
+
+**How to actually diagnose it:**
+
+Check your browser/app's location permission for SwitchControl — if it's denied, you're getting IP-based geo (or London) instead of GPS-accurate coordinates. You can also check `localStorage.getItem('sw_weather_v2')` in devtools to see exactly what `city`/`country`/coordinates were cached — that'll tell you immediately whether it thinks you're somewhere else.
+
+If you're on Electron specifically, this is a real bug worth fixing: Electron's `navigator.geolocation` often requires explicit OS-level location permission (Windows Settings → Privacy → Location) and can fail silently, dropping you straight into the "always London via 127.0.0.1" fallback path the code comments warn about.
+
+Want me to add a quick fix — e.g., showing the resolved city/country in the chip tooltip so this is debuggable at a glance, or making the IP-geolocation fallback smarter for Electron (it could read the OS location service directly via Electron's `systemPreferences` instead of relying on the request IP)?

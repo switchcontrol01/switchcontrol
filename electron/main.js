@@ -1073,7 +1073,7 @@ function createWindow() {
     mainWindow.show();
     mainWindow.focus();
     mainWindow.webContents.send('app:window-shown');
-    if (!isProdBuild) {
+    if (!isProd) {
       mainWindow.webContents.openDevTools({ mode: 'undocked' });
     }
     console.log(`[LAUNCH:5] mainWindow.show() — both gates passed (chromium+react) | ${launchMs()}`);
@@ -3452,6 +3452,67 @@ ipcMain.handle('powerPlans:applyCustom', async (event, name, settings) => {
     return await powerPlanManager.applyCustomPowerProfile(name, settings);
   } catch (e) {
     console.error('[IPC] powerPlans:applyCustom error:', e.message);
+    return { success: false, error: e.message };
+  }
+});
+
+ipcMain.handle('powerPlans:applyOverride', async (event, id, enabled) => {
+  verboseLog(`[IPC] powerPlans:applyOverride id="${id}" enabled=${enabled}`);
+  const OVERRIDE_PS = {
+    'disable-throttle': {
+      apply:  'powercfg /setacvalueindex scheme_current 54533251-82be-4824-96c1-47b60b740d00 3b04d4fd-1cc7-4f23-ab1c-d1337819c4bb 0; powercfg /setactive scheme_current',
+      revert: 'powercfg /setacvalueindex scheme_current 54533251-82be-4824-96c1-47b60b740d00 3b04d4fd-1cc7-4f23-ab1c-d1337819c4bb 3; powercfg /setactive scheme_current',
+    },
+    'hardware-pstates': {
+      apply:  'powercfg /setacvalueindex scheme_current 54533251-82be-4824-96c1-47b60b740d00 be337238-0d82-4146-a960-4f3749d470c7 1; powercfg /setactive scheme_current',
+      revert: 'powercfg /setacvalueindex scheme_current 54533251-82be-4824-96c1-47b60b740d00 be337238-0d82-4146-a960-4f3749d470c7 0; powercfg /setactive scheme_current',
+    },
+    'turbo-boost': {
+      apply:  'powercfg /setacvalueindex scheme_current 54533251-82be-4824-96c1-47b60b740d00 45bcc044-d885-43e2-8605-ee0ec6e96b59 2; powercfg /setactive scheme_current',
+      revert: 'powercfg /setacvalueindex scheme_current 54533251-82be-4824-96c1-47b60b740d00 45bcc044-d885-43e2-8605-ee0ec6e96b59 1; powercfg /setactive scheme_current',
+    },
+    'core-parking': {
+      apply:  'powercfg /setacvalueindex scheme_current 54533251-82be-4824-96c1-47b60b740d00 0cc5b647-c1df-4637-891a-dec35c318583 0; powercfg /setactive scheme_current',
+      revert: 'powercfg /setacvalueindex scheme_current 54533251-82be-4824-96c1-47b60b740d00 0cc5b647-c1df-4637-891a-dec35c318583 100; powercfg /setactive scheme_current',
+    },
+    'usb-suspend': {
+      apply:  'powercfg /setacvalueindex scheme_current 2a737441-1930-4402-8d77-b2bebba308a3 48e6b7a6-50f5-4782-a5d4-53bb8f07e226 0; powercfg /setactive scheme_current',
+      revert: 'powercfg /setacvalueindex scheme_current 2a737441-1930-4402-8d77-b2bebba308a3 48e6b7a6-50f5-4782-a5d4-53bb8f07e226 1; powercfg /setactive scheme_current',
+    },
+    'usb-power': {
+      apply:  'powercfg /setacvalueindex scheme_current 2a737441-1930-4402-8d77-b2bebba308a3 d4e98f31-5ffe-4ce1-be31-1b38b384c009 0; powercfg /setactive scheme_current',
+      revert: 'powercfg /setacvalueindex scheme_current 2a737441-1930-4402-8d77-b2bebba308a3 d4e98f31-5ffe-4ce1-be31-1b38b384c009 3; powercfg /setactive scheme_current',
+    },
+    'sleep': {
+      apply:  'powercfg /x -standby-timeout-ac 0',
+      revert: 'powercfg /x -standby-timeout-ac 30',
+    },
+    'hibernate': {
+      apply:  'powercfg /h off',
+      revert: 'powercfg /h on',
+    },
+    'freq-scaling': {
+      apply:  'powercfg /setacvalueindex scheme_current 54533251-82be-4824-96c1-47b60b740d00 893dee8e-2bef-41e0-89c6-b55d0929964c 100; powercfg /setacvalueindex scheme_current 54533251-82be-4824-96c1-47b60b740d00 bc5038f7-23e0-4960-96da-33abaf5935ec 100; powercfg /setactive scheme_current',
+      revert: 'powercfg /setacvalueindex scheme_current 54533251-82be-4824-96c1-47b60b740d00 893dee8e-2bef-41e0-89c6-b55d0929964c 5; powercfg /setacvalueindex scheme_current 54533251-82be-4824-96c1-47b60b740d00 bc5038f7-23e0-4960-96da-33abaf5935ec 100; powercfg /setactive scheme_current',
+    },
+    'perf-processes': {
+      apply:  "Set-ItemProperty -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\PriorityControl' -Name 'Win32PrioritySeparation' -Value 38 -Type DWord -Force",
+      revert: "Set-ItemProperty -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\PriorityControl' -Name 'Win32PrioritySeparation' -Value 2 -Type DWord -Force",
+    },
+  };
+  const cmdSet = OVERRIDE_PS[id];
+  if (!cmdSet) return { success: false, error: `Unknown override: ${id}` };
+  const ps = enabled ? cmdSet.apply : cmdSet.revert;
+  try {
+    await new Promise((resolve, reject) =>
+      execFile('powershell', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-WindowStyle', 'Hidden', '-Command', ps],
+        { timeout: 10000, windowsHide: true },
+        (err, stdout, stderr) => { if (err) reject(new Error(stderr || err.message)); else resolve(stdout); }
+      )
+    );
+    return { success: true };
+  } catch (e) {
+    console.error(`[IPC] powerPlans:applyOverride ${id} error:`, e.message);
     return { success: false, error: e.message };
   }
 });

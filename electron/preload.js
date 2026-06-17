@@ -412,6 +412,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     },
     getCustomMeta:     () => ipcRenderer.invoke('powerPlans:getCustomMeta'),
     getStoredSCGuids:  () => ipcRenderer.invoke('powerPlans:getStoredSCGuids'),
+    applyOverride: (id, enabled) => {
+      assertString(id, 'overrideId');
+      return ipcRenderer.invoke('powerPlans:applyOverride', id, !!enabled);
+    },
   },
 
   networkTweaks: {

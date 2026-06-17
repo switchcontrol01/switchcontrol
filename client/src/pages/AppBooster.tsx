@@ -326,7 +326,8 @@ function statusIcon(status: GameStatus) {
 }
 
 function actionResultIcon(r: ActionResult) {
-  if (r.status === "success")        return <CheckCircle className="w-4 h-4 text-green-400 shrink-0" />;
+  if (r.status === "success" && r.verified)  return <CheckCircle className="w-4 h-4 text-green-400 shrink-0" />;
+  if (r.status === "success" && !r.verified) return <CheckCircle className="w-4 h-4 text-zinc-500 shrink-0" />;
   if (r.status === "failed")         return <XCircle className="w-4 h-4 text-red-400 shrink-0" />;
   if (r.status === "admin-required") return <Shield className="w-4 h-4 text-amber-400 shrink-0" />;
   return <CircleDot className="w-4 h-4 text-zinc-500 shrink-0" />;
@@ -734,7 +735,7 @@ function CategorySectionHeader({ category, actionCount, appliedCount }: { catego
 // ── Premium action row ────────────────────────────────────────────────────────
 function ActionRow({ action, result }: { action: ProfileAction; result?: ActionResult }) {
   const accent     = CATEGORY_ACCENT[action.category] ?? { hex: "#6b7280", glow: "", border: "", bg: "" };
-  const isApplied  = result?.status === "success";
+  const isApplied  = result?.status === "success" && !!result?.verified;
   const isFailed   = result?.status === "failed";
   const isAdmin    = result?.status === "admin-required";
   const impactPct  = action.impact === "high" ? 85 : action.impact === "medium" ? 55 : 30;

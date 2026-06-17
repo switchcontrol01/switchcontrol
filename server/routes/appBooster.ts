@@ -40,6 +40,19 @@ interface MemStateRow {
 const memGames  = new Map<string, MemGameRow>();   // key: `${userId}:${slug}`
 const memStates = new Map<string, MemStateRow>();  // key: `${userId}:${slug}`
 
+interface MemHistoryEntry {
+  id: string;
+  userId: string;
+  gameSlug: string;
+  gameName: string;
+  operation: string;
+  status: string;
+  details: object;
+  createdAt: string;
+}
+const memHistory: MemHistoryEntry[] = [];
+const MEM_HISTORY_MAX = 50;
+
 function memKey(userId: string, slug: string) { return `${userId}:${slug}`; }
 
 function getUserId(req: Request): string | null {
@@ -329,6 +342,21 @@ async function upsertStateRow(
     updatedAt:   now.toISOString(),
   });
   console.log(`[AppBooster] memStates.set(${userId}:${slug}, status=${status}, op=${operation})`);
+
+  if (operation === "apply" || operation === "revert") {
+    const gameRow = memGames.get(memKey(userId, slug));
+    memHistory.unshift({
+      id: `local-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      userId,
+      gameSlug: slug,
+      gameName: gameRow?.name ?? slug,
+      operation,
+      status,
+      details: { actionResults: actionsResult },
+      createdAt: now.toISOString(),
+    });
+    if (memHistory.length > MEM_HISTORY_MAX) memHistory.length = MEM_HISTORY_MAX;
+  }
 
   if (isNoDbMode || !db) return;
   const json = JSON.stringify(actionsResult);
@@ -778,7 +806,13 @@ router.get("/history", async (req: Request, res: Response) => {
   try {
     const limit = Math.min(parseInt(String(req.query.limit ?? "20"), 10), 50);
 
-    if (isNoDbMode || !db) return res.json({ history: [], historyAvailable: false });
+    if (isNoDbMode || !db) {
+      const userHist = memHistory
+        .filter(h => h.userId === userId)
+        .slice(0, limit)
+        .map(h => ({ id: h.id, gameSlug: h.gameSlug, gameName: h.gameName, operation: h.operation, status: h.status, details: h.details, createdAt: h.createdAt }));
+      return res.json({ history: userHist, historyAvailable: true });
+    }
 
     const { rows } = await db.execute(
       sql`SELECT h.id, h.game_slug, h.operation, h.status, h.details, h.created_at,
