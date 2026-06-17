@@ -1017,11 +1017,9 @@ function ElectronAppContent() {
 
   useEffect(() => {
     if (!splashDone) return;
-    // Delay CameraGlow by 2 rAFs so its GPU layer promotions (7 inner divs
-    // each get will-change:transform from Framer Motion scale animations)
-    // never land in the same compositor frame as the Splash exit.
-    // 2 frames ≈ 33ms at 60fps — imperceptible to the user, eliminates the
-    // residual white composite-stall flash.
+    // Activate CameraGlow immediately when splash is done. The GPU layer
+    // consolidation (single filter:blur(12px) on outer wrapper instead of 7
+    // independent blur layers) means there is no compositor-stall risk.
     let raf1: number, raf2: number;
     raf1 = requestAnimationFrame(() => {
       raf2 = requestAnimationFrame(() => {
@@ -1364,8 +1362,6 @@ function ElectronAppContent() {
           style={{
             zIndex: 0,
             background: "#14181D",
-            opacity: phase === "splash" ? 0 : 1,
-            transition: "opacity 0.35s ease-out",
           }}
         >
           {/* Static centre glow — no JS interpolation */}

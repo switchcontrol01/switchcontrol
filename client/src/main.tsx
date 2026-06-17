@@ -95,9 +95,11 @@ requestAnimationFrame(() => {
   requestAnimationFrame(() => {
     const shell = document.getElementById('boot-shell');
     if (shell) {
-      shell.style.transition = 'opacity 0.15s ease-out';
-      shell.style.opacity = '0';
-      setTimeout(() => { try { shell.remove(); } catch {} }, 160);
+      // Remove instantly — no fade. The dark Splash is already covering this
+      // area when the double-rAF fires, so a fade serves no visual purpose
+      // and only creates a window where the boot-shell's opacity < 1 can
+      // expose a white flash underneath.
+      try { shell.remove(); } catch {}
     }
     // Restore web opacity INSIDE the double-rAF — after React's first frame is
     // composited — so the opacity:0 lock is released only when content is visible.
