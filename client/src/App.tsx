@@ -1017,15 +1017,10 @@ function ElectronAppContent() {
 
   useEffect(() => {
     if (!splashDone) return;
-    // Activate CameraGlow immediately when splash is done. The GPU layer
-    // consolidation (single filter:blur(12px) on outer wrapper instead of 7
-    // independent blur layers) means there is no compositor-stall risk.
-    let raf1: number, raf2: number;
-    raf1 = requestAnimationFrame(() => {
-      raf2 = requestAnimationFrame(() => {
-        setShowGlow(true);
-      });
-    });
+    // Activate CameraGlow immediately — no rAF delay needed. The GPU layer is
+    // consolidated into a single filter:blur(12px) wrapper so there is no
+    // compositor-stall risk from multiple simultaneous layer promotions.
+    setShowGlow(true);
 
     let mounted = true; // P3-BA1: guard all setState after await in boot auth sequence
     const checkAuth = async () => {
@@ -1175,8 +1170,6 @@ function ElectronAppContent() {
     checkAuth();
     return () => {
       mounted = false;
-      cancelAnimationFrame(raf1);
-      cancelAnimationFrame(raf2);
     }; // P3-BA1
   }, [splashDone]);
 
@@ -1352,11 +1345,12 @@ function ElectronAppContent() {
         )}
 
         {/* ── Persistent atmospheric background ─────────────────────────────
-          Always mounted — never conditionally removed. This guarantees one
-          stable base layer for every phase transition. Opacity is 0 during
-          splash (content is fully covered), then cross-fades in during booting.
-          During authenticated the AppLayout AppBackground layers on top —
-          both are transparent so the glows breathe through. */}
+          Always mounted, always opacity:1 — never conditionally hidden.
+          The Splash at zIndex:1 covers it during startup so there is no need
+          to hide it; keeping it opaque prevents any white-flash gap during
+          the Splash → Booting transition. During authenticated phase the
+          AppLayout AppBackground layers on top — both are transparent so
+          the glows breathe through. */}
         <div
           className="fixed inset-0 pointer-events-none"
           style={{
