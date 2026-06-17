@@ -45,6 +45,9 @@ module.exports = {
   /** Stable device identifier — generated once, never regenerated. */
   DEVICE_ID_FILE:    path.join(APPDATA_DIR, 'device-id.json'),
 
+  /** Per-device premium validation signature (generated on first premium bind). */
+  DEVICE_SIGNATURE_FILE: path.join(APPDATA_DIR, 'device-signature.json'),
+
   /**
    * Ownership / baseline store — tracks the exact pre-change system state for
    * every premium-controlled item SwitchControl has modified.  Used by the

@@ -1471,7 +1471,7 @@ ipcMain.handle('app:getDeviceId', () => {
   return cachedDeviceId;
 });
 
-const DEVICE_SIGNATURE_FILE = path.join(DEVICE_ID_DIR, 'device-signature.json');
+const DEVICE_SIGNATURE_FILE = path.join(APPDATA_DIR, 'device-signature.json');
 
 function getOrCreateDeviceSignature() {
   const fs = require('fs');

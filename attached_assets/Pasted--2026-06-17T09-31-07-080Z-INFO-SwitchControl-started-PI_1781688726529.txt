@@ -1,0 +1,258 @@
+
+[2026-06-17T09:31:07.080Z] [INFO] SwitchControl started — PID:5416 platform:win32/x64 node:20.18.3
+[2026-06-17T09:31:07.113Z] [LOG] [Security] IPC handlers registered
+[2026-06-17T09:31:07.115Z] [LOG] [Debloat] IPC handlers registered
+[2026-06-17T09:31:07.115Z] [LOG] [Cleaner] IPC handlers registered
+[2026-06-17T09:31:07.116Z] [LOG] [FocusHelper] IPC handlers registered
+[2026-06-17T09:31:07.118Z] [WARN] [DeepLink] mainWindow=null on second-instance — re-creating window
+[2026-06-17T09:31:07.134Z] [LOG] [LAUNCH:1] BrowserWindow constructed — show:false, paintWhenInitiallyHidden:true, isVisible: false
+[2026-06-17T09:31:07.135Z] [LOG] [LAUNCH:2] packaged mode — indexPath: C:\Program Files\SwitchControl\resources\dist\index.html | exists: true
+[2026-06-17T09:31:07.143Z] [FATAL] uncaughtException: ReferenceError: DEVICE_ID_DIR is not defined
+    at Object.<anonymous> (C:\Program Files\SwitchControl\resources\app.asar\main.js:1474:41)
+    at Module._compile (node:internal/modules/cjs/loader:1484:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1564:10)
+    at Module.load (node:internal/modules/cjs/loader:1295:32)
+    at Module._load (node:internal/modules/cjs/loader:1111:12)
+    at c._load (node:electron/js2c/node_init:2:16955)
+    at node:electron/js2c/browser_init:2:129756
+    at node:electron/js2c/browser_init:2:129965
+    at node:electron/js2c/browser_init:2:129969
+    at BuiltinModule.compileForInternalLoader (node:internal/bootstrap/realm:398:7)
+[2026-06-17T09:31:07.262Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:10) [RuntimeMode] electron=true | packaged=true | protocol=file: | preload=true | backendTarget=embedded-local | authTarget=cloud
+[2026-06-17T09:31:07.263Z] [ERROR] Error occurred in handler for 'app:getBackendPort': Error: No handler registered for 'app:getBackendPort'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-06-17T09:31:07.263Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:10) [API] Electron fetch interceptor installed | packaged=true (cloud-only-routes=blocked-from-local)
+[2026-06-17T09:31:07.265Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:27) [Store:REHYDRATE] total_stored=52 enabled=35 source=localStorage
+[2026-06-17T09:31:07.265Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:28) [CloudAPI] base=https://switchcontrol.org/api packaged=true electron=true
+[2026-06-17T09:31:07.270Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:141) [BiosStore] hydrated | scores from storage: null
+[2026-06-17T09:31:07.272Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:10) [IntervalGuard] installed — min interval enforced at 2000ms
+[2026-06-17T09:31:07.273Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:155) [LAUNCH:R0] renderer bootstrap | electron=true | t=+137ms
+[2026-06-17T09:31:07.273Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:155) [LAUNCH:R1] createRoot dispatching | t=+137ms
+[2026-06-17T09:31:07.273Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:545) [SwitchControl Desktop] Preload initialized - unified API ready
+[2026-06-17T09:31:07.273Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:546) [SwitchControl Desktop] Platform: win32
+[2026-06-17T09:31:07.274Z] [LOG] [LAUNCH:3] did-finish-load — HTML/JS fully parsed by Chromium (first-frame-ready IPC pending)
+[2026-06-17T09:31:07.274Z] [LOG] [LAUNCH:2] loadFile() promise RESOLVED
+[2026-06-17T09:31:07.274Z] [LOG] [LAUNCH:4] Gate A: ready-to-show (Chromium frame painted) | +132ms
+[2026-06-17T09:31:07.275Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:10) [API] Backend port not ready, retrying in 200ms… (elapsed 11ms, attempt 1)
+[2026-06-17T09:31:07.277Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:155) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: true
+[2026-06-17T09:31:07.288Z] [ERROR] Error occurred in handler for 'system:getSpecs': Error: No handler registered for 'system:getSpecs'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-06-17T09:31:07.289Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:155) [App] Registering deep link auth callback (once)
+[2026-06-17T09:31:07.296Z] [LOG] [LAUNCH:5] Gate B: app:first-frame-ready (React Splash composited) | +154ms
+[2026-06-17T09:31:07.311Z] [LOG] [LAUNCH:5] mainWindow.show() — both gates passed (chromium+react) | +169ms
+[2026-06-17T09:31:07.311Z] [LOG] [GPU] WMI fast-path start — t=1781688667311
+[2026-06-17T09:31:07.405Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:137) [Window] Focus event received
+[2026-06-17T09:31:07.405Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:155) [App] Electron window focus (passive)
+[2026-06-17T09:31:07.475Z] [ERROR] Error occurred in handler for 'app:getBackendPort': Error: No handler registered for 'app:getBackendPort'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-06-17T09:31:07.475Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:10) [API] Backend port not ready, retrying in 400ms… (elapsed 213ms, attempt 2)
+[2026-06-17T09:31:07.788Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:25) [TourTransition] unmounted
+[2026-06-17T09:31:07.789Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:25) [TourTransition] unmounted
+[2026-06-17T09:31:07.876Z] [ERROR] Error occurred in handler for 'app:getBackendPort': Error: No handler registered for 'app:getBackendPort'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-06-17T09:31:07.878Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:10) [API] Backend port not ready, retrying in 800ms… (elapsed 615ms, attempt 3)
+[2026-06-17T09:31:08.575Z] [LOG] [GPU] WMI fast-path resolved: AMD Radeon RX 7800 XT
+[2026-06-17T09:31:08.725Z] [ERROR] Error occurred in handler for 'app:getBackendPort': Error: No handler registered for 'app:getBackendPort'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-06-17T09:31:08.726Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:10) [API] Backend port not ready, retrying in 1600ms… (elapsed 1464ms, attempt 4)
+[2026-06-17T09:31:08.789Z] [ERROR] Error occurred in handler for 'tweak:batchCheckAll': Error: No handler registered for 'tweak:batchCheckAll'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-06-17T09:31:08.790Z] [ERROR] [Renderer:error] (index-DHy7_vhX.js:27) [TweakExecutor] batchCheckAll failed: Error: Error invoking remote method 'tweak:batchCheckAll': Error: No handler registered for 'tweak:batchCheckAll'
+[2026-06-17T09:31:09.788Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:28) [LAUNCH:R5] Splash onComplete — handing off to App
+[2026-06-17T09:31:09.788Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:155) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: true
+[2026-06-17T09:31:09.790Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:155) [AuthTruth] Boot: token present: true jwt present: true user present: true premium: true
+[2026-06-17T09:31:09.790Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:155) [AuthTruth] startup restore begin — hasCredential: true cached isPremium: true plan: premium
+[2026-06-17T09:31:09.791Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:10) [HYDRATE:1] resolveAuthState start reqId=k621dj
+[2026-06-17T09:31:09.791Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:10) [HYDRATE:1] persisted — user=64f0e669-6db6-42e7-a68a-681f9f5db567 jwt=present
+[2026-06-17T09:31:09.791Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:10) [HYDRATE:2] jwtCheck — malformed=false expired=false
+[2026-06-17T09:31:09.791Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:10) [HYDRATE:5] /api/me — jwt=present reqId=k621dj
+[2026-06-17T09:31:09.791Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:155) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: true
+[2026-06-17T09:31:10.326Z] [ERROR] Error occurred in handler for 'app:getBackendPort': Error: No handler registered for 'app:getBackendPort'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-06-17T09:31:10.327Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:10) [API] Backend port not ready, retrying in 3200ms… (elapsed 3065ms, attempt 5)
+[2026-06-17T09:31:10.419Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:10) [HYDRATE:6] result=verified source=cloud userId=64f0e669-6db6-42e7-a68a-681f9f5db567 isPremium=true plan=premium isAdmin=true reqId=k621dj
+[2026-06-17T09:31:10.420Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:155) [AuthTruth] Boot resolved verified=true reason=cloud_confirmed user=yes
+[2026-06-17T09:31:10.420Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:28) [Premium] Grace snapshot updated — isPremium=true plan=premium userId=64f0e669-6db6-42e7-a68a-681f9f5db567
+[2026-06-17T09:31:10.420Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:155) [AuthTruth] Boot: cloud-confirmed — entitlementsVerified=true
+[2026-06-17T09:31:10.420Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:155) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-17T09:31:10.420Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:28) [DeviceLock] target=cloud userId=present deviceIdPresent=true
+[2026-06-17T09:31:10.424Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:28) [PremiumExpiry] Initial state recorded — active=true plan=premium trialEndsAt=null
+[2026-06-17T09:31:10.425Z] [ERROR] Error occurred in handler for 'telemetry:getLive': Error: No handler registered for 'telemetry:getLive'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-06-17T09:31:10.425Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:155) [TourTransition] phase entered authenticated — waiting 500ms for dashboard to stabilize
+[2026-06-17T09:31:10.426Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:155) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-17T09:31:10.428Z] [ERROR] Error occurred in handler for 'app:getDeviceSignature': Error: No handler registered for 'app:getDeviceSignature'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-06-17T09:31:10.433Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:28) [CloudAPI] 2026-06-17T09:31:10.428Z | POST /device/premium-validate | auth=true | base=https://switchcontrol.org/api
+[2026-06-17T09:31:10.925Z] [ERROR] Error occurred in handler for 'updater:getState': Error: No handler registered for 'updater:getState'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-06-17T09:31:10.925Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:28) [Network] Heartbeat started (interval=30000ms)
+[2026-06-17T09:31:10.927Z] [ERROR] Error occurred in handler for 'system:getDisplayInfo': Error: No handler registered for 'system:getDisplayInfo'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-06-17T09:31:10.927Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:155) [Dashboard] mounted
+[2026-06-17T09:31:10.927Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:155) [ActivityMonitor] mounted — no cached history yet, status: loading
+[2026-06-17T09:31:10.927Z] [LOG] [BOOT] ──────────────────────────────────────────
+[2026-06-17T09:31:10.928Z] [LOG] [BOOT] firstFrameReady  = 132ms
+[2026-06-17T09:31:10.928Z] [LOG] [BOOT] windowShown      = 155ms
+[2026-06-17T09:31:10.928Z] [LOG] [BOOT] telemetryStart   = 169ms
+[2026-06-17T09:31:10.928Z] [LOG] [BOOT] dashboardMounted = 3785ms
+[2026-06-17T09:31:10.928Z] [LOG] [BOOT] ──────────────────────────────────────────
+[2026-06-17T09:31:10.928Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:155) [Home] Specs pre-loaded from Splash — skipping getSpecs()
+[2026-06-17T09:31:10.928Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:155) [Handoff] dashboard fade-in started
+[2026-06-17T09:31:10.953Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:155) [TourTransition] dashboard stable — tours unblocked
+[2026-06-17T09:31:10.954Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:28) [CloudAPI] OK | POST /device/premium-validate | status=200
+[2026-06-17T09:31:10.955Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:155) [Handoff] dashboard fade-in complete — layout stable
+[2026-06-17T09:31:10.959Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:155) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-17T09:31:10.963Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:155) [AppFlow] Flow eval — isPremium: true plan: premium trialEndsAt: null hasSeenTrialActivation: true hasSeenTrialTour: true hasSeenUnlock: true hasSeenTour: true isFirstTimeUser: false isFirstLogin: false entitlementsAttempted: true entitlementsOk: true unlockFired: false trialUnlockFired: false
+[2026-06-17T09:31:10.963Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:155) [AppFlow] No flow conditions met — staying idle
+[2026-06-17T09:31:10.966Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:28) [DeviceLock] Valid device
+[2026-06-17T09:31:10.967Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:155) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-17T09:31:11.096Z] [ERROR] Error occurred in handler for 'system:getAllDisks': Error: No handler registered for 'system:getAllDisks'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-06-17T09:31:11.099Z] [ERROR] [Renderer:error] (index-DHy7_vhX.js:155) [SwitchControl] Failed to get disks: Error: Error invoking remote method 'system:getAllDisks': Error: No handler registered for 'system:getAllDisks'
+[2026-06-17T09:31:12.126Z] [ERROR] Error occurred in handler for 'powerPlans:getState': Error: No handler registered for 'powerPlans:getState'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-06-17T09:31:12.315Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=1 active=1
+[2026-06-17T09:31:12.427Z] [ERROR] Error occurred in handler for 'telemetry:getLive': Error: No handler registered for 'telemetry:getLive'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-06-17T09:31:13.372Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:155) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-17T09:31:13.527Z] [ERROR] Error occurred in handler for 'app:getBackendPort': Error: No handler registered for 'app:getBackendPort'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-06-17T09:31:14.364Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=1 duration=2049ms active=0 calls60s=1
+[2026-06-17T09:31:14.428Z] [ERROR] Error occurred in handler for 'telemetry:getLive': Error: No handler registered for 'telemetry:getLive'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-06-17T09:31:16.267Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:155) [Auth] logout called — starting cinematic sign-out transition
+[2026-06-17T09:31:16.268Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:155) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-17T09:31:16.280Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:155) [Handoff] dashboard fade-in started
+[2026-06-17T09:31:16.429Z] [ERROR] Error occurred in handler for 'telemetry:getLive': Error: No handler registered for 'telemetry:getLive'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-06-17T09:31:16.782Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:155) [Handoff] dashboard fade-in complete — layout stable
+[2026-06-17T09:31:17.001Z] [ERROR] Error occurred in handler for 'auth:clearCookies': Error: No handler registered for 'auth:clearCookies'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-06-17T09:31:17.001Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:155) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: undefined
+[2026-06-17T09:31:17.007Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:28) [DeviceLock] loggedIn=false — state reset
+[2026-06-17T09:31:17.007Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:155) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: undefined
+[2026-06-17T09:31:17.569Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:155) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: undefined
+[2026-06-17T09:31:17.573Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:155) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: undefined
+[2026-06-17T09:31:18.431Z] [ERROR] Error occurred in handler for 'telemetry:getLive': Error: No handler registered for 'telemetry:getLive'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-06-17T09:31:18.528Z] [ERROR] Error occurred in handler for 'app:getBackendPort': Error: No handler registered for 'app:getBackendPort'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-06-17T09:31:20.432Z] [ERROR] Error occurred in handler for 'telemetry:getLive': Error: No handler registered for 'telemetry:getLive'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-06-17T09:31:22.434Z] [ERROR] Error occurred in handler for 'telemetry:getLive': Error: No handler registered for 'telemetry:getLive'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-06-17T09:31:23.530Z] [ERROR] Error occurred in handler for 'app:getBackendPort': Error: No handler registered for 'app:getBackendPort'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-06-17T09:31:24.435Z] [ERROR] Error occurred in handler for 'telemetry:getLive': Error: No handler registered for 'telemetry:getLive'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-06-17T09:31:25.285Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:10) [AuthState] transition idle → opening_browser
+[2026-06-17T09:31:25.285Z] [ERROR] Error occurred in handler for 'open-external': Error: No handler registered for 'open-external'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-06-17T09:31:25.285Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:155) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: undefined
+[2026-06-17T09:31:25.288Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:10) [AuthState] transition opening_browser → failed
+[2026-06-17T09:31:25.288Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:155) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: undefined
+[2026-06-17T09:31:26.436Z] [ERROR] Error occurred in handler for 'telemetry:getLive': Error: No handler registered for 'telemetry:getLive'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-06-17T09:31:28.437Z] [ERROR] Error occurred in handler for 'telemetry:getLive': Error: No handler registered for 'telemetry:getLive'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-06-17T09:31:28.531Z] [ERROR] Error occurred in handler for 'app:getBackendPort': Error: No handler registered for 'app:getBackendPort'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-06-17T09:31:29.264Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:10) [AuthState] transition failed → opening_browser
+[2026-06-17T09:31:29.264Z] [ERROR] Error occurred in handler for 'open-external': Error: No handler registered for 'open-external'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-06-17T09:31:29.264Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:155) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: undefined
+[2026-06-17T09:31:29.267Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:10) [AuthState] transition opening_browser → failed
+[2026-06-17T09:31:29.267Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:155) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: undefined
+[2026-06-17T09:31:30.438Z] [ERROR] Error occurred in handler for 'telemetry:getLive': Error: No handler registered for 'telemetry:getLive'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-06-17T09:31:32.440Z] [ERROR] Error occurred in handler for 'telemetry:getLive': Error: No handler registered for 'telemetry:getLive'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-06-17T09:31:33.533Z] [ERROR] Error occurred in handler for 'app:getBackendPort': Error: No handler registered for 'app:getBackendPort'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-06-17T09:31:33.533Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:10) [API] Backend port not ready, retrying in 5000ms… (elapsed 26271ms, attempt 10)
+[2026-06-17T09:31:34.441Z] [ERROR] Error occurred in handler for 'telemetry:getLive': Error: No handler registered for 'telemetry:getLive'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-06-17T09:31:36.442Z] [ERROR] Error occurred in handler for 'telemetry:getLive': Error: No handler registered for 'telemetry:getLive'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-06-17T09:31:38.444Z] [ERROR] Error occurred in handler for 'telemetry:getLive': Error: No handler registered for 'telemetry:getLive'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-06-17T09:31:38.534Z] [ERROR] Error occurred in handler for 'app:getBackendPort': Error: No handler registered for 'app:getBackendPort'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-06-17T09:31:40.445Z] [ERROR] Error occurred in handler for 'telemetry:getLive': Error: No handler registered for 'telemetry:getLive'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-06-17T09:31:41.327Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:137) [Window] Focus event received
+[2026-06-17T09:31:41.328Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:155) [App] Electron window focus (passive)
+[2026-06-17T09:31:42.446Z] [ERROR] Error occurred in handler for 'telemetry:getLive': Error: No handler registered for 'telemetry:getLive'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-06-17T09:31:43.240Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:137) [Window] Focus event received
+[2026-06-17T09:31:43.240Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:155) [App] Electron window focus (passive)
+[2026-06-17T09:31:43.535Z] [ERROR] Error occurred in handler for 'app:getBackendPort': Error: No handler registered for 'app:getBackendPort'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-06-17T09:31:44.447Z] [ERROR] Error occurred in handler for 'telemetry:getLive': Error: No handler registered for 'telemetry:getLive'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-06-17T09:31:45.292Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:10) [AuthState] transition failed → opening_browser
+[2026-06-17T09:31:45.293Z] [ERROR] Error occurred in handler for 'open-external': Error: No handler registered for 'open-external'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-06-17T09:31:45.293Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:155) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: undefined
+[2026-06-17T09:31:45.296Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:10) [AuthState] transition opening_browser → failed
+[2026-06-17T09:31:45.296Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:155) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: undefined
+[2026-06-17T09:31:46.448Z] [ERROR] Error occurred in handler for 'telemetry:getLive': Error: No handler registered for 'telemetry:getLive'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-06-17T09:31:47.523Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:137) [Window] Focus event received
+[2026-06-17T09:31:47.524Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:155) [App] Electron window focus (passive)
+[2026-06-17T09:31:47.850Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:10) [AuthState] transition failed → opening_browser
+[2026-06-17T09:31:47.850Z] [ERROR] Error occurred in handler for 'open-external': Error: No handler registered for 'open-external'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-06-17T09:31:47.850Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:155) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: undefined
+[2026-06-17T09:31:47.853Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:10) [AuthState] transition opening_browser → failed
+[2026-06-17T09:31:47.853Z] [LOG] [Renderer:info] (index-DHy7_vhX.js:155) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: undefined
+[2026-06-17T09:31:48.449Z] [ERROR] Error occurred in handler for 'telemetry:getLive': Error: No handler registered for 'telemetry:getLive'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-06-17T09:31:48.536Z] [ERROR] Error occurred in handler for 'app:getBackendPort': Error: No handler registered for 'app:getBackendPort'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
