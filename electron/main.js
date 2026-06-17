@@ -1072,7 +1072,10 @@ function createWindow() {
     // always Chromium-managed and cannot silently fail.
     mainWindow.show();
     mainWindow.focus();
-    mainWindow.webContents.openDevTools({ mode: 'undocked' });
+    mainWindow.webContents.send('app:window-shown');
+    if (!isProdBuild) {
+      mainWindow.webContents.openDevTools({ mode: 'undocked' });
+    }
     console.log(`[LAUNCH:5] mainWindow.show() — both gates passed (chromium+react) | ${launchMs()}`);
     _bm.telemetryStart = Date.now();
     startTelemetryPolling().catch(e => console.error('[telemetry:poll] error:', e.message));

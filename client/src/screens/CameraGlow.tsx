@@ -43,7 +43,6 @@ export default function CameraGlow({ active, onComplete }: CameraGlowProps) {
               background:
                 "radial-gradient(ellipse, rgba(139,92,246,0.16) 0%, rgba(0,180,255,0.08) 30%, transparent 60%)",
               filter: "blur(100px)",
-              willChange: "transform, opacity",
             }}
             initial={{ scale: 0.2, opacity: 0 }}
             animate={{ scale: [0.2, 1.4, 1.65], opacity: [0, 0.95, 0] }}
@@ -60,7 +59,6 @@ export default function CameraGlow({ active, onComplete }: CameraGlowProps) {
               background:
                 "radial-gradient(ellipse, rgba(255,255,255,0.12) 0%, rgba(210,185,255,0.24) 18%, rgba(139,92,246,0.18) 42%, transparent 66%)",
               filter: "blur(48px)",
-              willChange: "transform, opacity",
             }}
             initial={{ scale: 0.3, opacity: 0 }}
             animate={{ scale: [0.3, 1.18, 1.32], opacity: [0, 1, 0] }}
@@ -77,7 +75,6 @@ export default function CameraGlow({ active, onComplete }: CameraGlowProps) {
               background:
                 "radial-gradient(ellipse, transparent 30%, rgba(0,210,255,0.14) 55%, transparent 72%)",
               filter: "blur(35px)",
-              willChange: "transform, opacity",
             }}
             initial={{ scale: 0.4, opacity: 0 }}
             animate={{ scale: [0.4, 1.1, 1.22], opacity: [0, 0.85, 0] }}
@@ -94,7 +91,6 @@ export default function CameraGlow({ active, onComplete }: CameraGlowProps) {
               background:
                 "radial-gradient(ellipse, rgba(255,255,255,0.18) 0%, rgba(220,200,255,0.28) 25%, rgba(0,200,255,0.12) 50%, transparent 70%)",
               filter: "blur(24px)",
-              willChange: "transform, opacity",
             }}
             initial={{ scale: 0.4, opacity: 0 }}
             animate={{ scale: [0.4, 1.08, 1.18], opacity: [0, 1, 0] }}
@@ -111,7 +107,6 @@ export default function CameraGlow({ active, onComplete }: CameraGlowProps) {
               background:
                 "radial-gradient(ellipse, transparent 25%, rgba(236,72,153,0.12) 48%, transparent 68%)",
               filter: "blur(18px)",
-              willChange: "transform, opacity",
             }}
             initial={{ scale: 0.5, opacity: 0 }}
             animate={{ scale: [0.5, 1.05, 1.12], opacity: [0, 0.7, 0] }}
@@ -128,7 +123,6 @@ export default function CameraGlow({ active, onComplete }: CameraGlowProps) {
               background:
                 "radial-gradient(ellipse, rgba(255,255,255,0.28) 0%, rgba(230,215,255,0.22) 30%, rgba(0,220,255,0.10) 55%, transparent 68%)",
               filter: "blur(10px)",
-              willChange: "transform, opacity",
             }}
             initial={{ scale: 0.55, opacity: 0 }}
             animate={{ scale: [0.55, 1.02, 1.06], opacity: [0, 1, 0] }}
@@ -145,7 +139,6 @@ export default function CameraGlow({ active, onComplete }: CameraGlowProps) {
               background:
                 "radial-gradient(ellipse, rgba(255,255,255,0.45) 0%, rgba(200,240,255,0.25) 38%, transparent 70%)",
               filter: "blur(3px)",
-              willChange: "transform, opacity",
             }}
             initial={{ scale: 0.65, opacity: 0 }}
             animate={{ scale: [0.65, 1.0, 1.0], opacity: [0, 1, 0] }}

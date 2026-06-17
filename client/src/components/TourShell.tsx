@@ -440,7 +440,7 @@ export function TourShell({
       setRevealed(false);
       dismissTimerRef.current = setTimeout(() => {
         setMounted(false);
-        console.log('[TourTransition] unmounted');
+        if (wasShownRef.current) console.log('[TourTransition] unmounted');
       }, 500);
       return;
     }
