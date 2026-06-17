@@ -5,30 +5,33 @@ import { SectionHeader } from "./SectionHeader";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import {
   XCircle,
-  CheckCircle2,
   AlertTriangle,
-  RotateCcw,
-  FileSearch,
-  Gauge,
-  ShieldCheck,
   Copy,
   Sparkles,
+  Ban,
+  Lock,
+  Eye,
+  Crosshair,
+  Undo2,
+  Search,
+  Activity,
+  Fingerprint,
 } from "lucide-react";
 
 const BAD_SIDE = [
-  { icon: XCircle, label: "No verification", desc: "Settings applied blindly", color: "#ef4444" },
-  { icon: AlertTriangle, label: "No rollback", desc: "One-way changes, no undo", color: "#f97316" },
-  { icon: Gauge, label: "Fake FPS claims", desc: "Numbers without proof", color: "#eab308" },
-  { icon: Copy, label: "Copied scripts", desc: "Same tweaks for everyone", color: "#00D4FF" },
-  { icon: ShieldCheck, label: "Unsafe apply-all", desc: "Breaks what it touches", color: "#ec4899" },
+  { icon: Ban, label: "No verification", desc: "Settings applied blindly", color: "#ff6b6b" },
+  { icon: Lock, label: "No rollback", desc: "One-way changes, no undo", color: "#ff9f43" },
+  { icon: Eye, label: "Fake FPS claims", desc: "Numbers without proof", color: "#ffeaa7" },
+  { icon: Copy, label: "Copied scripts", desc: "Same tweaks for everyone", color: "#74b9ff" },
+  { icon: AlertTriangle, label: "Unsafe apply-all", desc: "Breaks what it touches", color: "#ff6b81" },
 ];
 
 const GOOD_SIDE = [
-  { icon: CheckCircle2, label: "Verifies state", desc: "Checks before changing", color: "#22c55e" },
-  { icon: RotateCcw, label: "Reverts safely", desc: "Full rollback built in", color: "#06b6d4" },
-  { icon: FileSearch, label: "Labels risk", desc: "Knows what each tweak does", color: "#00D4FF" },
-  { icon: Gauge, label: "Real telemetry", desc: "Measures actual impact", color: "#f59e0b" },
-  { icon: ShieldCheck, label: "Tracks ownership", desc: "Knows who changed what", color: "#10b981" },
+  { icon: Crosshair, label: "Verifies state", desc: "Checks before changing", color: "#00e676" },
+  { icon: Undo2, label: "Reverts safely", desc: "Full rollback built in", color: "#00d4ff" },
+  { icon: Search, label: "Labels risk", desc: "Knows what each tweak does", color: "#00d4ff" },
+  { icon: Activity, label: "Real telemetry", desc: "Measures actual impact", color: "#ffcc00" },
+  { icon: Fingerprint, label: "Tracks ownership", desc: "Knows who changed what", color: "#00e676" },
 ];
 
 export default function StickyComparison() {
@@ -78,12 +81,12 @@ export default function StickyComparison() {
 
   return (
     <section ref={sectionRef} className="relative py-24 md:py-40 overflow-hidden">
-      {/* Animated background glow */}
+      {/* Background glow */}
       <div className="absolute inset-0 pointer-events-none">
         <div
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] rounded-full opacity-40"
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[700px] rounded-full opacity-50"
           style={{
-            background: "radial-gradient(ellipse, rgba(139,92,246,0.06) 0%, transparent 65%)",
+            background: "radial-gradient(ellipse, rgba(139,92,246,0.08) 0%, transparent 65%)",
           }}
         />
       </div>
@@ -97,22 +100,29 @@ export default function StickyComparison() {
         />
 
         <div className={cn("grid gap-6", isMobile ? "grid-cols-1" : "grid-cols-2")}>
-          {/* Bad side */}
+          {/* BAD SIDE — premium dark glass with readable text */}
           <motion.div
-            className="relative rounded-2xl border border-red-500/10 bg-gradient-to-b from-red-950/20 to-transparent p-6 md:p-8 overflow-hidden"
+            className="relative rounded-2xl border border-white/[0.08] bg-[#0a0a0f]/95 p-6 md:p-8 overflow-hidden"
             style={{
               opacity: leftOpacity,
               transform: `scale(${leftScale}) translateX(${leftX}px)`,
             }}
           >
-            {/* Red tint glow */}
-            <div className="absolute -top-20 -right-20 w-40 h-40 rounded-full bg-red-500/5 blur-3xl" />
+            {/* Diagonal gradient bleed */}
+            <div className="absolute inset-0 pointer-events-none"
+              style={{ background: "linear-gradient(135deg, rgba(255,0,0,0.04) 0%, transparent 60%)" }}
+            />
+            {/* Ambient edge glow */}
+            <div className="absolute inset-0 rounded-2xl pointer-events-none"
+              style={{ boxShadow: "inset 0 1px 0 0 rgba(255,255,255,0.06), 0 0 60px -20px rgba(255,0,0,0.08)" }}
+            />
+            <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-red-500/30 via-red-500/10 to-transparent" />
 
             <div className="flex items-center gap-3 mb-6 relative">
-              <div className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center">
+              <div className="w-9 h-9 rounded-lg bg-red-500/15 border border-red-500/20 flex items-center justify-center shadow-[0_0_12px_rgba(255,0,0,0.12)]">
                 <XCircle className="w-4 h-4 text-red-400" />
               </div>
-              <span className="text-sm font-semibold text-red-300/70 uppercase tracking-wider">
+              <span className="text-sm font-semibold text-red-300/90 uppercase tracking-wider">
                 Normal Tweak Apps
               </span>
             </div>
@@ -120,46 +130,54 @@ export default function StickyComparison() {
               {BAD_SIDE.map((item, i) => (
                 <motion.li
                   key={item.label}
-                  className="flex items-start gap-3 p-2.5 rounded-xl bg-white/[0.02] border border-white/[0.04]"
+                  className="group flex items-start gap-3 p-3 rounded-xl border border-white/[0.06] bg-white/[0.025] hover:bg-white/[0.05] hover:border-white/[0.10] transition-all duration-300"
                   initial={{ opacity: 0, x: -20 }}
                   whileInView={{ opacity: 1, x: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: i * 0.08, duration: 0.4 }}
                 >
                   <div
-                    className="w-7 h-7 rounded-md flex items-center justify-center shrink-0 mt-0.5"
-                    style={{ background: `${item.color}15` }}
+                    className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5 border border-white/[0.08] transition-all duration-300 group-hover:border-white/[0.15]"
+                    style={{ background: `${item.color}18`, boxShadow: `0 0 10px ${item.color}10` }}
                   >
-                    <item.icon className="w-3.5 h-3.5" style={{ color: item.color }} />
+                    <item.icon className="w-4 h-4" style={{ color: item.color }} />
                   </div>
                   <div>
-                    <div className="text-sm font-medium" style={{ color: `${item.color}cc` }}>
+                    <div className="text-[13px] font-semibold text-white/85" style={{ textShadow: `0 0 8px ${item.color}20` }}>
                       {item.label}
                     </div>
-                    <div className="text-xs text-white/30">{item.desc}</div>
+                    <div className="text-[11px] text-white/50 mt-0.5 leading-relaxed">
+                      {item.desc}
+                    </div>
                   </div>
                 </motion.li>
               ))}
             </ul>
           </motion.div>
 
-          {/* Good side */}
+          {/* GOOD SIDE — premium cyan glass with depth */}
           <motion.div
-            className="relative rounded-2xl border border-cyan-500/15 bg-gradient-to-b from-cyan-950/15 to-white/[0.02] p-6 md:p-8 overflow-hidden"
+            className="relative rounded-2xl border border-white/[0.08] bg-[#0a0a0f]/95 p-6 md:p-8 overflow-hidden"
             style={{
               opacity: rightOpacity,
               transform: `translateX(${rightX}px)`,
             }}
           >
-            {/* Cyan tint glow */}
-            <div className="absolute -top-20 -left-20 w-40 h-40 rounded-full bg-cyan-500/8 blur-3xl" />
-            <div className="absolute -bottom-10 -right-10 w-32 h-32 rounded-full bg-emerald-500/5 blur-2xl" />
+            {/* Diagonal gradient bleed */}
+            <div className="absolute inset-0 pointer-events-none"
+              style={{ background: "linear-gradient(225deg, rgba(0,212,255,0.05) 0%, transparent 60%)" }}
+            />
+            {/* Ambient edge glow */}
+            <div className="absolute inset-0 rounded-2xl pointer-events-none"
+              style={{ boxShadow: "inset 0 1px 0 0 rgba(255,255,255,0.08), 0 0 60px -20px rgba(0,212,255,0.10)" }}
+            />
+            <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-cyan-500/30 to-transparent" />
 
             <div className="flex items-center gap-3 mb-6 relative">
-              <div className="w-8 h-8 rounded-lg bg-cyan-500/15 flex items-center justify-center">
+              <div className="w-9 h-9 rounded-lg bg-cyan-500/15 border border-cyan-500/20 flex items-center justify-center shadow-[0_0_12px_rgba(0,212,255,0.15)]">
                 <Sparkles className="w-4 h-4 text-cyan-400" />
               </div>
-              <span className="text-sm font-semibold text-cyan-300 uppercase tracking-wider">
+              <span className="text-sm font-semibold text-cyan-300/90 uppercase tracking-wider">
                 SwitchControl
               </span>
             </div>
@@ -167,23 +185,25 @@ export default function StickyComparison() {
               {GOOD_SIDE.map((item, i) => (
                 <motion.li
                   key={item.label}
-                  className="flex items-start gap-3 p-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.05] hover:border-white/[0.10] transition-all duration-300"
+                  className="group flex items-start gap-3 p-3 rounded-xl border border-white/[0.06] bg-white/[0.03] hover:bg-white/[0.06] hover:border-white/[0.12] transition-all duration-300"
                   initial={{ opacity: 0, x: 20 }}
                   whileInView={{ opacity: 1, x: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: i * 0.08, duration: 0.4 }}
                 >
                   <div
-                    className="w-7 h-7 rounded-md flex items-center justify-center shrink-0 mt-0.5"
-                    style={{ background: `${item.color}18` }}
+                    className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5 border border-white/[0.08] transition-all duration-300 group-hover:border-white/[0.15]"
+                    style={{ background: `${item.color}18`, boxShadow: `0 0 10px ${item.color}15` }}
                   >
-                    <item.icon className="w-3.5 h-3.5" style={{ color: item.color }} />
+                    <item.icon className="w-4 h-4" style={{ color: item.color }} />
                   </div>
                   <div>
-                    <div className="text-sm font-medium" style={{ color: `${item.color}dd` }}>
+                    <div className="text-[13px] font-semibold text-white/90" style={{ textShadow: `0 0 8px ${item.color}25` }}>
                       {item.label}
                     </div>
-                    <div className="text-xs text-white/35">{item.desc}</div>
+                    <div className="text-[11px] text-white/55 mt-0.5 leading-relaxed group-hover:text-white/70 transition-colors">
+                      {item.desc}
+                    </div>
                   </div>
                 </motion.li>
               ))}

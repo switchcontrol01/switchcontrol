@@ -803,7 +803,7 @@ export default function Landing() {
             <DepthFeatureCards
               features={FEATURES.map((f) => ({
                 ...f,
-                entrance: (["slideUp", "clipIn", "scaleReveal", "fadeIn"] as const)[
+                entrance: (["slideUp", "slideRight", "scaleReveal", "slideLeft"] as const)[
                   FEATURES.indexOf(f) % 4
                 ],
               }))}
