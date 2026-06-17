@@ -1017,8 +1017,17 @@ function ElectronAppContent() {
 
   useEffect(() => {
     if (!splashDone) return;
-    // Fire CameraGlow exactly as splash completes — not during it
-    setShowGlow(true);
+    // Delay CameraGlow by 2 rAFs so its GPU layer promotions (7 inner divs
+    // each get will-change:transform from Framer Motion scale animations)
+    // never land in the same compositor frame as the Splash exit.
+    // 2 frames ≈ 33ms at 60fps — imperceptible to the user, eliminates the
+    // residual white composite-stall flash.
+    let raf1: number, raf2: number;
+    raf1 = requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(() => {
+        setShowGlow(true);
+      });
+    });
 
     let mounted = true; // P3-BA1: guard all setState after await in boot auth sequence
     const checkAuth = async () => {
@@ -1168,6 +1177,8 @@ function ElectronAppContent() {
     checkAuth();
     return () => {
       mounted = false;
+      cancelAnimationFrame(raf1);
+      cancelAnimationFrame(raf2);
     }; // P3-BA1
   }, [splashDone]);
 
