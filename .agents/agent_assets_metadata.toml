@@ -5,4 +5,4 @@ generated = []
 id = "t0Pc8Yf00ksFdaU2ua5w3"
 uri = "file://release_asar/app.asar.tar.gz"
 type = "unspecified"
-title = "app.asar.tar.gz — extract and drop into resources/"
+title = "app.asar.tar.gz — no auto DevTools flash"
