@@ -839,10 +839,13 @@ export function setupGoogleAuth(app: Express): void {
         }
         console.log("[AUTH] ===== GOOGLE CALLBACK SUCCESS (ELECTRON) =====");
         console.log("[AUTH] Generated one-time code for user:", user.id);
-        const redirectUrl = `/auth/desktop-success?code=${encodeURIComponent(code)}&provider=google`;
-        console.log("[AUTH] Redirecting to desktop success page:", redirectUrl);
+        // 302 redirect directly to the custom protocol — browsers follow this
+        // and trigger the OS protocol handler without needing a JS user gesture.
+        // The desktop-success page remains reachable as a manual fallback.
+        const deepLink = `switchcontrol://auth/callback?code=${encodeURIComponent(code)}&provider=google`;
+        console.log("[AUTH] Redirecting directly to deep link (302) for user:", user.id);
         console.log("[AUTH] ================================================");
-        return res.redirect(redirectUrl);
+        return res.redirect(deepLink);
       } else {
         const safeNextUrl = isSafeRedirectUrl(nextUrl) ? nextUrl : '/';
         console.log("[AUTH] Web auth — redirecting to:", safeNextUrl);
