@@ -5,4 +5,5 @@
 - [Recommendation filter canonical](recommendation-filter.md) — isRecommendedSafe in hooks.ts is the one source of truth; store.ts imports it. Never duplicate inline filter logic.
 - [Optimization Engine architecture](optimization-engine.md) — deterministic engine lives in shared/, isolated Zustand slice prevents TweaksList re-renders; hardware verdicts from hardwareIntelligence fold into score multiplier.
 - [Electron startup flash fix](electron-startup-flash.md) — two-gate show pattern: ready-to-show + app:first-frame-ready (double-rAF); never show on ready-to-show alone.
+- [Electron flash — GPU layer pre-warm](electron-flash-gpu-prewarm.md) — CameraGlow outer filter div must always be rendered so the GPU layer is created while window is hidden.
 - [Electron OAuth deep-link failure](electron-oauth-polling.md) — Chrome silently blocks custom-protocol redirects without user gesture; fixed via server-side poll map + 2s polling from Electron renderer.
