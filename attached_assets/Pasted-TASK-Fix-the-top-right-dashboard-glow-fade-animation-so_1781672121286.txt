@@ -1,0 +1,99 @@
+TASK
+
+Fix the top-right dashboard glow/fade animation so it only plays once per application launch.
+
+PROBLEM
+
+Currently the dashboard component remounts when navigating between pages (for example Settings → Dashboard).
+
+Because of this, the top-right glow/fade animation replays every time the dashboard mounts.
+
+This creates an annoying and repetitive experience because users repeatedly see the same fade-out effect while navigating around the app.
+
+The animation should feel like a startup effect, not a page navigation effect.
+
+GOAL
+
+The glow animation should:
+
+- Play once when the application launches.
+- Never replay when navigating between pages.
+- Never replay when returning from Settings.
+- Never replay when switching routes.
+- Only replay after the entire application has been closed and launched again.
+
+ADDITIONAL IMPROVEMENT
+
+Instead of always using the same orange color:
+
+- Generate a random color on app startup.
+- Select from a curated set of premium colors.
+- Store the chosen color for the current session.
+- Keep the same color throughout the session.
+- Generate a new random color only on the next application launch.
+
+Example color pool:
+
+- Orange
+- Purple
+- Cyan
+- Blue
+- Emerald
+- Pink
+
+IMPLEMENTATION REQUIREMENTS
+
+- Use session-based persistence so the animation state survives route changes.
+- Do not use localStorage because the effect should reset after the application is closed.
+- Use sessionStorage or an equivalent session-level state mechanism.
+- Store:
+  - animationPlayed
+  - selectedGlowColor
+
+LOGIC
+
+On dashboard mount:
+
+IF animationPlayed exists:
+
+- Do not render the startup animation.
+- Render dashboard normally.
+
+IF animationPlayed does not exist:
+
+- Pick a random glow color.
+- Save selectedGlowColor.
+- Play animation.
+- Save animationPlayed=true after animation starts.
+
+VALIDATION
+
+Verify:
+
+1. Fresh app launch
+   
+   - Animation plays.
+   - Random color chosen.
+
+2. Dashboard → Settings → Dashboard
+   
+   - Animation does not replay.
+
+3. Dashboard → AI Advisor → Dashboard
+   
+   - Animation does not replay.
+
+4. Dashboard → Any page → Dashboard
+   
+   - Animation does not replay.
+
+5. Fully close app and relaunch
+   
+   - Animation plays again.
+   - New random color can be selected.
+
+SUCCESS CRITERIA
+
+The top-right glow becomes a launch experience rather than a navigation animation.
+
+Users should only see it once per application startup.
