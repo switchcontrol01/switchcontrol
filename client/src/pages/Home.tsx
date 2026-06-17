@@ -23,7 +23,8 @@ import { Button } from "@/components/ui/button";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Link, useLocation } from "wouter";
 import { Progress } from "@/components/ui/progress";
-import { useState, useCallback, useEffect, useRef, useMemo, lazy, Suspense } from "react";
+import { useState, useCallback, useEffect, useRef, useMemo, lazy, Suspense, memo } from "react";
+import { getSessionGlowColor, hasGlowPlayed, markGlowPlayed } from "@/lib/startupGlow";
 import { format } from "date-fns";
 import { TWEAKS_DATA } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
@@ -328,6 +329,46 @@ function useLiveStatus(): string {
 
   return status;
 }
+
+// ── DashboardStartupGlow ──────────────────────────────────────────────────────
+// Top-right ambient glow that plays once per application session (uses
+// sessionStorage so it resets on every cold app launch, but never replays on
+// route changes within the same session).
+//
+// _glowColor is module-level: getSessionGlowColor() picks + saves once per
+// session, so every call returns the same colour. hasGlowPlayed() is called
+// INSIDE the component so it re-reads sessionStorage on each remount — this
+// is what prevents the animation from replaying on navigation.
+const _glowColor = getSessionGlowColor();
+
+const DashboardStartupGlow = memo(function DashboardStartupGlow() {
+  const alreadyPlayed = hasGlowPlayed();
+
+  useEffect(() => {
+    if (!alreadyPlayed) markGlowPlayed();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return (
+    <motion.div
+      aria-hidden
+      initial={alreadyPlayed ? false : { opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={alreadyPlayed ? { duration: 0 } : { duration: 1.8, ease: [0.22, 1, 0.36, 1] }}
+      style={{
+        position: "fixed",
+        top: "-10%",
+        right: "-8%",
+        width: "55vw",
+        height: "55vw",
+        borderRadius: "50%",
+        background: `radial-gradient(ellipse, ${_glowColor}0.13) 0%, ${_glowColor}0.04) 50%, transparent 72%)`,
+        filter: "blur(60px)",
+        pointerEvents: "none",
+        zIndex: 0,
+      }}
+    />
+  );
+});
 
 export default function Home() {
   const [, navigate] = useLocation();
@@ -724,6 +765,9 @@ export default function Home() {
       <div className="space-y-8">
         {/* SystemAura — reactive ambient background */}
         <SystemAura telemetry={liveTel} className="fixed" />
+
+        {/* DashboardStartupGlow — plays once per session, random color */}
+        <DashboardStartupGlow />
 
         {/* ── Dashboard hero header ── */}
         <div className="relative py-2 pb-4 min-h-[88px]" data-tour="dashboard-hero">

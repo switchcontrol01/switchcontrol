@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useMotion } from "@/lib/motion";
+import { getSessionGlowColor } from "@/lib/startupGlow";
 
 /* ─────────────────────────────────────────────────────────────
    AppBackground
@@ -166,7 +167,7 @@ export function AppBackground() {
         <div className="absolute" style={{
           top: "-2%", right: "5%",
           width: "42vw", height: "42vw",
-          background: "radial-gradient(ellipse, rgba(245,158,11,0.06) 0%, transparent 65%)",
+          background: `radial-gradient(ellipse, ${getSessionGlowColor()}0.06) 0%, transparent 65%)`,
           filter: "blur(36px)",
           animation: "sc-orb-c 22s ease-in-out 7s infinite",
         }} />
