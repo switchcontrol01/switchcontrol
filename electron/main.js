@@ -811,7 +811,7 @@ function createWindow() {
     // Chromium's white compositor init frame was never visible because the window
     // was hidden the entire time it was initializing.
     show: false,
-    backgroundColor: '#14181D',
+    backgroundColor: '#07090D',
     frame: false,
     thickFrame: false,
     webPreferences: {
@@ -1020,26 +1020,50 @@ function createWindow() {
   });
 
   // ── Launch handshake ─────────────────────────────────────────────────────────
-  // Show on ready-to-show: Chromium fires this after the first frame is painted
-  // (paintWhenInitiallyHidden:true ensures painting happens while hidden).
-  // backgroundColor:'#07090D' matches the splash so DWM shows that color during
-  // the 0-1 native frames before the GPU texture lands — no white or black flash.
+  // Two-gate show pattern — eliminates the white flash on startup:
+  //
+  //   Gate A: ready-to-show  — Chromium has painted its first frame into the
+  //           hidden surface (paintWhenInitiallyHidden:true). backgroundColor
+  //           '#07090D' matches the HTML/preload color so the native DWM surface
+  //           and the renderer layer are the same shade during init.
+  //
+  //   Gate B: app:first-frame-ready — Splash.tsx fires this via double-rAF
+  //           AFTER the browser has composited its first dark frame to screen.
+  //           useEffect alone runs before paint; double-rAF guarantees the
+  //           Splash background is actually visible before we open the window.
+  //
+  // mainWindow.show() is called only when BOTH gates have passed, so the very
+  // first frame the user sees is the dark, branded Splash — never a white frame.
   const _launchT0 = Date.now();
   const launchMs = () => `+${Date.now() - _launchT0}ms`;
 
-  // Hard fallback: start telemetry if ready-to-show never fires within 4 s.
-  // Window is already visible (show:true), so no show() call needed here.
+  let _chromiumFrameReady = false;
+  let _reactSplashReady   = false;
+  let _windowShown        = false;
+
+  function _tryShowWindow() {
+    if (_windowShown || !_chromiumFrameReady || !_reactSplashReady) return;
+    if (!mainWindow || mainWindow.isDestroyed()) return;
+    _windowShown = true;
+    clearTimeout(showFallbackTimer);
+    _bm.windowShown = Date.now();
+    mainWindow.show();
+    mainWindow.focus();
+    console.log(`[LAUNCH:5] mainWindow.show() — both gates passed (chromium+react) | ${launchMs()}`);
+    _bm.telemetryStart = Date.now();
+    startTelemetryPolling().catch(e => console.error('[telemetry:poll] error:', e.message));
+  }
+
+  // Hard fallback: show after 5 s if either gate never fires (e.g. IPC lost).
   const showFallbackTimer = setTimeout(() => {
-    if (mainWindow) {
-      if (!mainWindow.isVisible()) {
-        // Unexpected — show as absolute last resort
-        console.warn(`[LAUNCH:FALLBACK] ready-to-show never fired and window not visible — force-showing | ${launchMs()}`);
-        mainWindow.show();
-        mainWindow.focus();
-      }
-      startTelemetryPolling().catch(e => console.error('[telemetry:poll] fallback error:', e.message));
+    if (!mainWindow || mainWindow.isDestroyed()) return;
+    if (!mainWindow.isVisible()) {
+      console.warn(`[LAUNCH:FALLBACK] show gates timed out — force-showing | ${launchMs()}`);
+      mainWindow.show();
+      mainWindow.focus();
     }
-  }, 4000);
+    startTelemetryPolling().catch(e => console.error('[telemetry:poll] fallback error:', e.message));
+  }, 5000);
 
   // ── Boot metrics — single source of truth for startup timing ─────────────────
   // Timestamps (ms since process start) are written at each lifecycle event and
@@ -1071,37 +1095,31 @@ function createWindow() {
     console.log('[BOOT] ──────────────────────────────────────────');
   });
 
-  // ── Primary show trigger ──────────────────────────────────────────────────────
-  // ready-to-show fires after Chromium has committed its first painted frame.
-  // Because show:false + paintWhenInitiallyHidden:true, that first frame was
-  // rendered into a hidden surface — all three dark layers were already applied
-  // (backgroundColor BrowserWindow option, preload injection, inline CSS).
-  // Calling show() here gives the user a window that is dark from frame 0.
-  // No white flash, no delay visible — the paint happened in the background.
+  // ── Gate A: Chromium first frame ─────────────────────────────────────────────
+  // ready-to-show fires after Chromium has rendered its first frame into the
+  // hidden surface (paintWhenInitiallyHidden:true). The native DWM layer is
+  // '#07090D' (backgroundColor option), preload.js set the renderer background
+  // to '#07090D', and index.html has a matching dark boot-shell — so all three
+  // compositor layers are dark before this event fires.
   mainWindow.once('ready-to-show', () => {
-    clearTimeout(showFallbackTimer);
     if (!mainWindow) return;
     _bm.firstFrameReady = Date.now();
-    mainWindow.show();
-    mainWindow.focus();
-    _bm.windowShown = Date.now();
-    console.log(`[LAUNCH:5] mainWindow.show() on ready-to-show (dark frame ready) | ${launchMs()}`);
-    // Start telemetry immediately — no delay. The backend is already running
-    // (started before createMainWindow), so the polling loop can begin right
-    // away. This means GPU/CPU pre-warm runs during the Splash animation and
-    // data is ready before Home.tsx ever mounts.
-    _bm.telemetryStart = Date.now();
-    startTelemetryPolling().catch(e => console.error('[telemetry:poll] error:', e.message));
+    _chromiumFrameReady = true;
+    console.log(`[LAUNCH:4] Gate A: ready-to-show (Chromium frame painted) | ${launchMs()}`);
+    _tryShowWindow();
   });
 
-  // ── Splash painted IPC (telemetry / boot metrics only) ───────────────────────
-  // Splash.tsx calls signalFirstFrameReady() in its first useEffect — after React
-  // has committed dark content. We record the timestamp but do NOT show the window
-  // here (it is already visible via show:true).
+  // ── Gate B: React Splash composited ──────────────────────────────────────────
+  // Splash.tsx fires app:first-frame-ready via double-rAF, which guarantees the
+  // Splash component's dark background (#07090D) has been composited to screen
+  // before this IPC arrives. Combined with Gate A, mainWindow.show() is called
+  // only after the first visible frame is guaranteed to be dark and branded.
   ipcMain.removeAllListeners('app:first-frame-ready');
   ipcMain.once('app:first-frame-ready', () => {
     if (!mainWindow) return;
-    console.log(`[LAUNCH:6] app:first-frame-ready IPC (Splash painted) | ${launchMs()}`);
+    _reactSplashReady = true;
+    console.log(`[LAUNCH:5] Gate B: app:first-frame-ready (React Splash composited) | ${launchMs()}`);
+    _tryShowWindow();
   });
   mainWindow.on('closed', () => { 
     mainWindow = null; 

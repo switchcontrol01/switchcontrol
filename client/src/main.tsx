@@ -99,9 +99,10 @@ requestAnimationFrame(() => {
       shell.style.opacity = '0';
       setTimeout(() => { try { shell.remove(); } catch {} }, 160);
     }
+    // Restore web opacity INSIDE the double-rAF — after React's first frame is
+    // composited — so the opacity:0 lock is released only when content is visible.
+    if (!_isElectron) {
+      document.documentElement.style.opacity = '1';
+    }
   });
 });
-
-if (!_isElectron) {
-  document.documentElement.style.opacity = '1';
-}

@@ -45,7 +45,15 @@ export default function Splash({ onComplete }: SplashProps) {
   useEffect(() => { onCompleteRef.current = onComplete; });
 
   useEffect(() => {
-    (window as any).electronAPI?.signalFirstFrameReady?.();
+    // double-rAF: fire AFTER the browser has committed and composited the first
+    // Splash frame to screen. useEffect alone runs before paint; we need two
+    // animation frames to guarantee the dark background is actually on-screen
+    // before main.js gates on this signal to call mainWindow.show().
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        (window as any).electronAPI?.signalFirstFrameReady?.();
+      });
+    });
 
     // Telemetry starts in App.tsx after the authenticated phase transition —
     // not here, so IPC polling doesn't compete with splash animations.
