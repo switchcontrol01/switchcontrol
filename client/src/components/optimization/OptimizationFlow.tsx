@@ -178,7 +178,7 @@ function SnapshottingPhase({
               <p className="text-sm text-[#7c8597] mt-1">Mapping your system at the silicon level…</p>
             </div>
 
-            <div className="w-full grid grid-cols-1 gap-1.5">
+            <div className="w-72 mx-auto grid grid-cols-1 gap-1.5">
               {SCAN_LAYERS.map((layer, i) => {
                 const Icon = layer.icon;
                 const done = scanStep > i;
@@ -247,21 +247,22 @@ function DnaReveal({ dna, onProceed }: { dna: PcDna; onProceed: () => void }) {
       </div>
 
       {/* Spec chips */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full">
+      <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 w-full">
         {[
           { k: "CPU", v: dna.cpuLabel },
           { k: "GPU", v: dna.gpuLabel },
           { k: "Memory", v: dna.ramLabel },
+          { k: "Storage", v: dna.storageLabel },
           { k: "System", v: dna.osLabel },
         ].map((c, i) => (
           <motion.div
             key={c.k}
             initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.28 + i * 0.06 }}
-            className="rounded-xl border border-white/[0.07] bg-white/[0.02] px-3 py-2.5 min-w-0"
+            className="rounded-xl border border-white/[0.07] bg-white/[0.02] px-2 py-2.5 min-w-0 flex flex-col items-center text-center"
           >
             <div className="text-[10px] uppercase tracking-wider text-[#5b6478]">{c.k}</div>
-            <div className="text-[12px] font-medium text-white truncate" title={c.v}>{c.v}</div>
+            <div className="text-[11px] font-medium text-white leading-tight mt-0.5 break-words w-full" title={c.v}>{c.v}</div>
           </motion.div>
         ))}
       </div>
@@ -358,7 +359,7 @@ function IntentPhase({
           onSubmit={e => { e.preventDefault(); submit(text); }}
         >
           <div
-            className="flex items-center gap-2 rounded-2xl border bg-white/[0.03] px-4 py-3 focus-within:border-[rgba(0,212,255,0.4)] transition-colors"
+            className="flex items-center gap-2 rounded-2xl border bg-white/[0.03] px-4 py-3 transition-colors"
             style={{ borderColor: "rgba(255,255,255,0.1)" }}
           >
             <Brain className="size-5 shrink-0" style={{ color: premiumColor.light }} />
@@ -566,9 +567,9 @@ function PlanPhase({
   const Icon = INTENT_ICON[plan.intent] ?? Sparkles;
 
   return (
-    <div className="flex flex-col gap-5 w-full max-w-3xl mx-auto py-2">
+    <div className="flex flex-col gap-4 w-full max-w-3xl mx-auto pt-10 pb-8">
       {/* Header */}
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex items-start justify-between gap-3 px-1">
         <div className="min-w-0">
           <div className="flex items-center gap-2 mb-1">
             <Icon className="size-4" style={{ color: premiumColor.light }} />
@@ -583,71 +584,76 @@ function PlanPhase({
         </div>
       </div>
 
-      {newTweaks.length === 0 ? (
-        <div className="flex flex-col items-center py-12 gap-3 text-center">
-          <CheckCircle2 className="size-12" style={{ color: successColor.main }} />
-          <div className="text-sm text-[#8a93a6] max-w-xs">Your system is already optimized for this goal. Nothing left to apply.</div>
-        </div>
-      ) : (
-        <>
-          {/* Impact simulation */}
-          {metrics.length > 0 && (
-            <div>
-              <div className="text-[11px] uppercase tracking-wider text-[#5b6478] mb-2">Projected Impact</div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
-                {metrics.map((m, i) => <ImpactMetricCard key={m.key} m={m} index={i} />)}
-              </div>
-            </div>
-          )}
-
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-            {/* Strategy list */}
-            <div className={cn(conflicts.length > 0 ? "lg:col-span-3" : "lg:col-span-5")}>
-              <div className="text-[11px] uppercase tracking-wider text-[#5b6478] mb-2">AI-Selected Optimizations</div>
-              <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/10">
-                {newTweaks.map((entry, i) => (
-                  <motion.div
-                    key={entry.tweakId}
-                    initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.28, delay: i * 0.04 }}
-                    className="flex items-center gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] p-3 hover:border-[rgba(0,212,255,0.25)] transition-colors"
-                  >
-                    <RadialConfidence score={entry.score} />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-sm font-medium text-white">{entry.tweakTitle}</span>
-                        {entry.expectedImpact === "high" && (
-                          <span className="text-[9px] uppercase tracking-wider rounded px-1 py-px" style={{ color: premiumColor.light, border: `1px solid ${premiumColor.main}40` }}>High impact</span>
-                        )}
-                        {entry.requiresReboot && (
-                          <span className="text-[9px] uppercase tracking-wider text-amber-400/80 border border-amber-500/20 rounded px-1 py-px">Reboot</span>
-                        )}
-                      </div>
-                      <p className="text-[11px] text-[#7c8597] mt-0.5 leading-snug line-clamp-2">{entry.reason}</p>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            </div>
-
-            {/* Conflict nodes */}
-            {conflicts.length > 0 && (
-              <div className="lg:col-span-2">
-                <div className="text-[11px] uppercase tracking-wider text-[#5b6478] mb-2 flex items-center gap-1.5">
-                  <AlertTriangle className="size-3 text-amber-500/70" />
-                  Conflicts Detected
-                </div>
-                <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/10">
-                  {conflicts.map((c, i) => <ConflictNodeChip key={c.tweakId} node={c} index={i} />)}
+      {/* Grouped body card */}
+      <div className="rounded-2xl border border-white/[0.07] bg-white/[0.025] p-5 flex flex-col gap-4">
+        {newTweaks.length === 0 ? (
+          <div className="flex flex-col items-center py-8 gap-3 text-center">
+            <CheckCircle2 className="size-12" style={{ color: successColor.main }} />
+            <div className="text-sm text-[#8a93a6] max-w-xs">Your system is already optimized for this goal. Nothing left to apply.</div>
+          </div>
+        ) : (
+          <>
+            {/* Impact simulation */}
+            {metrics.length > 0 && (
+              <div>
+                <div className="text-[11px] uppercase tracking-wider text-[#5b6478] mb-2">Projected Impact</div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+                  {metrics.map((m, i) => <ImpactMetricCard key={m.key} m={m} index={i} />)}
                 </div>
               </div>
             )}
-          </div>
-        </>
-      )}
+
+            <div className="h-px bg-white/[0.05]" />
+
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+              {/* Strategy list */}
+              <div className={cn(conflicts.length > 0 ? "lg:col-span-3" : "lg:col-span-5")}>
+                <div className="text-[11px] uppercase tracking-wider text-[#5b6478] mb-2">AI-Selected Optimizations</div>
+                <div className="space-y-2 max-h-[240px] overflow-y-auto pr-1 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/10">
+                  {newTweaks.map((entry, i) => (
+                    <motion.div
+                      key={entry.tweakId}
+                      initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.28, delay: i * 0.04 }}
+                      className="flex items-center gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] p-3 hover:border-[rgba(0,212,255,0.2)] transition-colors"
+                    >
+                      <RadialConfidence score={entry.score} />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-sm font-medium text-white">{entry.tweakTitle}</span>
+                          {entry.expectedImpact === "high" && (
+                            <span className="text-[9px] uppercase tracking-wider rounded px-1 py-px" style={{ color: premiumColor.light, border: `1px solid ${premiumColor.main}40` }}>High impact</span>
+                          )}
+                          {entry.requiresReboot && (
+                            <span className="text-[9px] uppercase tracking-wider text-amber-400/80 border border-amber-500/20 rounded px-1 py-px">Reboot</span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-[#7c8597] mt-0.5 leading-snug line-clamp-2">{entry.reason}</p>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Conflict nodes */}
+              {conflicts.length > 0 && (
+                <div className="lg:col-span-2">
+                  <div className="text-[11px] uppercase tracking-wider text-[#5b6478] mb-2 flex items-center gap-1.5">
+                    <AlertTriangle className="size-3 text-amber-500/70" />
+                    Conflicts Detected
+                  </div>
+                  <div className="space-y-2 max-h-[240px] overflow-y-auto pr-1 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/10">
+                    {conflicts.map((c, i) => <ConflictNodeChip key={c.tweakId} node={c} index={i} />)}
+                  </div>
+                </div>
+              )}
+            </div>
+          </>
+        )}
+      </div>
 
       {/* Footer */}
-      <div className="flex items-center gap-3 pt-3">
+      <div className="flex items-center gap-3 px-1">
         <div className="flex-1" />
         <button
           onClick={onCancel}

@@ -47,6 +47,7 @@ export interface PcDna {
   gpuLabel: string;
   ramLabel: string;
   osLabel: string;
+  storageLabel: string;
   traits: PcDnaTrait[];
   /** 0–100 "optimization headroom" — how much potential is left on the table. */
   headroom: number;
@@ -138,6 +139,7 @@ export function derivePcDna(snapshot: OptimizationSnapshot | null): PcDna {
     gpuLabel,
     ramLabel,
     osLabel,
+    storageLabel: snapshot?.isNvme ? "NVMe SSD" : "SATA / HDD",
     traits,
     headroom,
   };
