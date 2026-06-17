@@ -691,7 +691,7 @@ if (process.defaultApp) {
 } else {
   protocolRegistered = app.setAsDefaultProtocolClient(PROTOCOL_NAME);
 }
-verboseLog(`[Protocol] registered: ${protocolRegistered} | isDefault: ${app.isDefaultProtocolClient(PROTOCOL_NAME)} | isDev: ${isDev}`);
+console.log(`[Protocol] registered: ${protocolRegistered} | isDefault: ${app.isDefaultProtocolClient(PROTOCOL_NAME)} | isDev: ${isDev}`);
 
 // Whitelist of allowed deep-link paths. Anything else is silently dropped.
 //

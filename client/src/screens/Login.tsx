@@ -31,7 +31,7 @@ import logoImg from "@/assets/logo.webp";
 const AUTH_DOMAIN = "https://switchcontrol.org";
 
 // After this delay the UI moves to "recovery" but the auth exchange keeps running.
-const SOFT_TIMEOUT_MS = 45_000;
+const SOFT_TIMEOUT_MS = 12_000;
 
 // ── Login state machine ────────────────────────────────────────────────────────
 
@@ -629,23 +629,54 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.95 }}
                   transition={{ duration: 0.2 }}
-                  className="flex flex-col items-center gap-4 py-4"
+                  className="flex flex-col items-center gap-3 py-2"
                 >
                   <Spinner />
                   <span className="text-sm text-white/70 font-medium">
-                    Waiting for secure browser login...
+                    Complete sign-in in your browser
                   </span>
-                  <p className="text-[11px] text-white/35">
-                    Complete sign-in in your browser to continue
-                  </p>
+
+                  {/* Step-by-step instructions */}
+                  <div className="w-full rounded-xl bg-white/[0.03] border border-white/[0.07] px-4 py-3 space-y-1.5 text-left">
+                    <p className="text-[11px] text-white/50 font-medium mb-2">After signing in with Google or Discord:</p>
+                    <p className="text-[11px] text-white/60">① On the <span className="text-purple-300/80 font-medium">"You're signed in"</span> page in your browser</p>
+                    <p className="text-[11px] text-white/60">② Click the <span className="text-purple-300/80 font-medium">"Open SwitchControl"</span> button</p>
+                    <p className="text-[11px] text-white/40 mt-1">If your browser asks permission, click <span className="text-white/55">Allow</span> or <span className="text-white/55">Open</span></p>
+                  </div>
+
+                  {/* Paste code fallback — immediately available */}
+                  <div className="w-full border-t border-white/[0.06] pt-3 space-y-2">
+                    <p className="text-[11px] text-white/30 text-center">
+                      App didn't open? Paste the code shown on the sign-in page:
+                    </p>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={pastedCode}
+                        onChange={(e) => setPastedCode(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && handlePasteCode()}
+                        placeholder="Paste auth code..."
+                        className="flex-1 bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-2 text-sm text-white/70 placeholder:text-white/25 focus:outline-none focus:border-purple-400/30 focus:bg-white/[0.06] transition-all"
+                        data-testid="input-paste-code-authorizing"
+                      />
+                      <Button
+                        onClick={handlePasteCode}
+                        disabled={!pastedCode.trim() || isPasting}
+                        className="h-auto px-4 bg-purple-500/20 hover:bg-purple-500/30 text-purple-300/80 text-xs rounded-xl border border-purple-400/20 disabled:opacity-30 disabled:cursor-not-allowed"
+                        data-testid="button-paste-verify-authorizing"
+                      >
+                        {isPasting ? "Verifying..." : "Verify"}
+                      </Button>
+                    </div>
+                  </div>
+
                   <motion.button
                     onClick={handleCancel}
-                    className="text-sm font-medium text-white/90 hover:text-white transition-all duration-150 px-6 py-2.5 rounded-xl border border-white/20 hover:border-white/40 bg-white/5 hover:bg-white/10 shadow-sm mt-1"
-                    whileHover={{ scale: 1.04 }}
+                    className="text-xs text-white/30 hover:text-white/55 transition-colors"
                     whileTap={{ scale: 0.96 }}
                     data-testid="button-login-cancel"
                   >
-                    Cancel
+                    Cancel and go back
                   </motion.button>
                 </motion.div>
 
