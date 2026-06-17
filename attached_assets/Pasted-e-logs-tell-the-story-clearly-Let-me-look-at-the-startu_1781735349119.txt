@@ -1,0 +1,73 @@
+e logs tell the story clearly. Let me look at the startup and splash sequence before reading any more files:
+
+Key observations from logs:
+
+    mainWindow.show() fires at +360ms (Gate B: React Splash composited)
+    [TourTransition] unmounted fires TWICE right after show — something is killing a transition early
+    [SysIntelligence] phase=timeout — ALL 15 data sources time out (baseboard, BIOS, graphics, OS, memory, disk, network, processes, CPU) — taking 6629ms total
+    GET file:///C:/patch-notes.json ERR_FILE_NOT_FOUND — still hitting file:// (built with old interceptor, needs redeploy)
+
+Let me find the white flash and the TourTransition double-unmount simultaneously:
+
+The index.html background and backgroundColor are both correct (#07090D). The initial-show flash is handled by the two-gate pattern. The white flash must be happening INSIDE the app after the splash hands off — the [TourTransition] unmounted TWICE is the tell. Let me look at the splash and handoff logic:
+
+Let me read the rest of App.tsx to find the Handoff, TourTransition, and fade-in logic:
+
+Let me read the render section of App.tsx to find the phase transitions and TourTransition, plus check the preload opacity lock:
+
+Let me read the render section of App.tsx around the splash phase and find what logs [TourTransition] unmounted:
+
+Let me read the full outer render wrapper to find what's behind the dark background layer:
+
+Let me read the full App.tsx return wrapper and how ElectronAppContent is used, plus check main.tsx:
+
+Now I have a clear picture. Let me check the CSS for app-root/app-content and the index.html boot-shell — those are the most likely culprits behind the white flash:
+
+Let me read the key Electron files to find the white flash root cause:
+
+Let me read the preload.js opacity reveal section and more of main.js:
+
+Let me read the auth resolution after splashDone and check the CSS rules for app-root more carefully:
+
+Let me read CameraGlow.tsx and AppLayout.tsx which are key to the splash→app transition:
+
+Let me read the critical opacity reveal section in preload.js, and find AppLayout:
+
+Let me read the rest of AppLayout and check how onWindowShown is used:
+
+Let me check AppBackground and also look at main.js for the production guard on DevTools:
+
+Let me read AppBackground and the full _tryShowWindow context in main.js to make targeted fixes:
+
+Now I have a complete picture. Let me check one more thing before writing the fixes:
+
+Now I have a complete picture. The white flash has three contributing causes:
+
+    openDevTools({ mode: 'undocked' }) in production — creates a white DevTools window that briefly overlays the app
+    scale: 1.004 in Splash exit animation — forces Chromium to create a new GPU compositing layer exactly when the Splash exits, which flashes white on Windows
+    7x willChange: "transform, opacity" in CameraGlow — simultaneously promotes 7 GPU layers when CameraGlow mounts at the same moment as the Splash exit, multiplying the flash
+
+Let me read the exact lines I need to edit, then apply all fixes at once:
+
+All three root causes confirmed. Applying all fixes now in parallel:
+
+All four edits done. Now rebuilding the frontend:
+
+Build clean. Let me write the commit message and wrap up:
+
+Here's what was done and why each piece matters:
+
+3 root causes, all fixed:
+
+1. DevTools auto-opening in production (electron/main.js)
+The openDevTools({ mode: 'undocked' }) call had zero production guard. Every time the packaged app launched it spawned a second BrowserWindow — white by default — that briefly overlapped the main window. Now wrapped in if (!isProdBuild). Also wired up the existing app:window-shown IPC send that was missing.
+
+2. scale: 1.004 on Splash exit (App.tsx)
+The exit animation { opacity: 0, scale: 1.004 } forced Chromium to create a new GPU compositing layer at the exact moment the Splash began fading. On Windows, layer promotion = one white frame. The scale was invisible to the eye anyway (0.4% change). Removed — exit is opacity-only now.
+
+3. Seven simultaneous willChange promotions (CameraGlow.tsx)
+Every inner div had willChange: "transform, opacity". CameraGlow activates in the same React batch as the Splash exit, so 7 GPU layers were force-promoted at once — on top of the layer being created by the scale animation. That's a cascade of GPU layer creations in one frame, amplifying the flash. Removed all willChange hints; Framer Motion handles GPU compositing on its own.
+
+Bonus: Fixed the spurious [TourTransition] unmounted console log that fired on every cold boot even when the tour was never shown.
+
+Build is clean. Rebuild the Electron installer with npm run electron:build to get an asar with all three fixes.

@@ -592,6 +592,37 @@ function ensureLoopRunning(): void {
   if (loopActive) return;
   loopActive = true;
 
+  // Fast pre-seed: call si.mem() immediately so the very first WebSocket
+  // broadcast delivers real RAM data (status:"ready") rather than the
+  // synthetic loading placeholder. si.mem() is a single OS API call and
+  // resolves in <100ms, well before the priming phase below completes.
+  si.mem().then((memRes) => {
+    if (cachedSnapshot) return; // first full tick already ran — don't overwrite
+    if (!memRes) return;
+    const totalBytes = memRes.total;
+    const activeBytes = (memRes as any).active ?? memRes.used;
+    const usedBytes  = activeBytes > 0 ? activeBytes : memRes.used;
+    const totalGB    = totalBytes / 1073741824;
+    const usedGB     = usedBytes  / 1073741824;
+    const usedPct    = totalGB > 0 ? (usedGB / totalGB) * 100 : 0;
+    cachedSnapshot = {
+      ts:          Date.now(),
+      status:      "ready",
+      cpu:         { load: 0, speed: 0, cores: 0 },
+      ram:         {
+        totalGB:    parseFloat(totalGB.toFixed(2)),
+        usedGB:     parseFloat(usedGB.toFixed(2)),
+        usedPercent: parseFloat(usedPct.toFixed(1)),
+      },
+      network:     { rx_sec: 0, tx_sec: 0, latency_ms: 0 },
+      temps:       { cpu: null, gpu: null },
+      gpu:         cachedGpu,
+      disk:        cachedDisk,
+      processes:   cachedProcs,
+      load_trend:  "stable",
+    };
+  }).catch(() => {});
+
   // Prime the differential APIs (currentLoad, networkStats, disksIO return 0 on first call)
   Promise.allSettled([
     si.currentLoad(),

@@ -745,10 +745,16 @@ export default function Home() {
     setSsdData(data.ssds);
   }, []);
   
-  // Prefer live WebSocket telemetry for RAM (always up-to-date)
-  const liveRamUsedGb = liveTel?.ram.usedGB ?? stats.usedRamGb;
-  const liveRamTotalGb = liveTel?.ram.totalGB ?? stats.totalRamGb;
-  const ramPercent = liveRamTotalGb > 0 ? (liveRamUsedGb / liveRamTotalGb) * 100 : (stats.usedRamGb / stats.totalRamGb) * 100;
+  // Prefer live WebSocket telemetry for RAM, but only when the value is real
+  // (> 0). The first telemetry "ready" tick can arrive with ram.usedGB = 0
+  // when si.mem() fails on its first cold call — using `??` instead of the
+  // > 0 guard would lock the card to `-- GB` even though getSpecs() already
+  // placed a valid value in the store.
+  const _telRamUsed  = liveTel?.ram.usedGB  ?? 0;
+  const _telRamTotal = liveTel?.ram.totalGB ?? 0;
+  const liveRamUsedGb  = _telRamUsed  > 0 ? _telRamUsed  : stats.usedRamGb;
+  const liveRamTotalGb = _telRamTotal > 0 ? _telRamTotal : stats.totalRamGb;
+  const ramPercent = liveRamTotalGb > 0 ? (liveRamUsedGb / liveRamTotalGb) * 100 : 0;
   
   const selectedDisk = allDisks.length > 0 ? allDisks[selectedDiskIndex] : null;
   const currentDiskUsed = selectedDisk?.usedGB ?? stats.diskUsedGb;
