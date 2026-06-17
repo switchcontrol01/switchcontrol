@@ -336,6 +336,26 @@ if (typeof window !== 'undefined' && isElectron) {
              : input instanceof URL ? input.href
              : (input as Request).url;
 
+    // In packaged Electron (file:// origin), any root-relative URL that isn't
+    // an API path resolves to file:///C:/... which doesn't exist. Route these
+    // static file requests to the embedded local backend's HTTP server instead.
+    if (isPackagedElectron && url.startsWith('/') && !url.startsWith('/api/') && url !== '/api') {
+      try {
+        const base = await resolveApiBase();
+        // resolveApiBase returns "http://127.0.0.1:PORT/api" — trim the /api suffix
+        const staticBase = base.replace(/\/api$/, '');
+        const absUrl = staticBase + url;
+        if (typeof input === 'string' || input instanceof URL) {
+          input = absUrl;
+        } else {
+          input = new Request(absUrl, input as Request);
+        }
+      } catch {
+        // fall through — request fires as-is
+      }
+      return _originalFetch(input, init);
+    }
+
     if (url.startsWith('/api/') || url === '/api') {
       try {
         const cloudOnly = isCloudOnlyApiPath(url);

@@ -918,8 +918,8 @@ Include 4-6 specific steps. Be concrete and reference the user's actual hardware
                         onChange={e => setGoalInput(e.target.value)}
                         onKeyDown={e => { if (e.key === "Enter") handleGoalSubmit(); }}
                         placeholder="e.g. lower delay, best Fortnite latency, reduce stutter…"
-                        className="flex-1 bg-transparent text-[13px] text-[#E6EAF0] placeholder:text-[#6B7380]/60"
-                        style={{ outline: "none" }}
+                        className="flex-1 bg-transparent text-[13px] text-[#E6EAF0] placeholder:text-[#6B7380]/60 outline-none focus:outline-none focus-visible:outline-none"
+                        style={{ outline: "none", boxShadow: "none" }}
                         data-testid="input-optimization-goal"
                       />
                       <button

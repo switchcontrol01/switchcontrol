@@ -253,12 +253,9 @@ export function setupDiscordAuth(app: Express): void {
         }
         console.log("[AUTH] ===== DISCORD CALLBACK SUCCESS (ELECTRON) =====");
         console.log("[AUTH] Generated one-time code for user:", user.id);
-        // 302 redirect directly to the custom protocol — browsers follow this
-        // and trigger the OS protocol handler without needing a JS user gesture.
-        const deepLink = `switchcontrol://auth/callback?code=${encodeURIComponent(code)}&provider=discord`;
-        console.log("[AUTH] Redirecting directly to deep link (302) for user:", user.id);
+        console.log("[AUTH] Redirecting to desktop-success page (meta-refresh will open app)");
         console.log("[AUTH] ==================================================");
-        return res.redirect(deepLink);
+        return res.redirect(`/auth/desktop-success?code=${encodeURIComponent(code)}&provider=discord`);
       } else {
         const safeNextUrl = isSafeRedirectUrl(nextUrl) ? nextUrl : '/';
         console.log("[AUTH] Web auth — redirecting to:", safeNextUrl);
