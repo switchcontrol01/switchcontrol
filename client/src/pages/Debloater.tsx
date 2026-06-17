@@ -952,7 +952,7 @@ export default function Debloater() {
 
               {/* Category footprint bar */}
               {stats.count > 0 && (
-                <div className="mt-4 pt-4 border-t border-[#2A313A] space-y-2">
+                <div className="mt-4 pt-4  space-y-2">
                   <div className="text-[10px] text-muted-foreground mb-2">Selected by category</div>
                   <div className="flex gap-1 h-2 rounded-full overflow-hidden">
                     {categories.map(cat => {

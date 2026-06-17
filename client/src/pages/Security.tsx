@@ -194,7 +194,7 @@ function detectChanges(prev: ScanHistoryEntry | null, curr: ScanHistoryEntry): S
 export function StatusRow({ label, value, state }: { label: string; value: string; state: "ok"|"warn"|"off"|"unknown" }) {
   const cfg = { ok: { cls: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30", dot: "bg-emerald-400" }, warn: { cls: "bg-amber-500/20 text-amber-400 border-amber-500/30", dot: "bg-amber-400" }, off: { cls: "bg-red-500/20 text-red-400 border-red-500/30", dot: "bg-red-400" }, unknown: { cls: "bg-zinc-500/20 text-zinc-400 border-zinc-500/30", dot: "bg-zinc-500" } }[state];
   return (
-    <div className="flex items-center justify-between py-2 border-b border-[#2A313A] last:border-0">
+    <div className="flex items-center justify-between py-2  last:border-0">
       <span className="text-sm text-muted-foreground">{label}</span>
       <Badge variant="outline" className={cn("font-medium text-xs gap-1.5", cfg.cls)}>
         <span className={cn("size-1.5 rounded-full", cfg.dot)} />
@@ -467,7 +467,7 @@ function OverviewTab({
               {recommendations.map(rec => {
                 const cfg = SEVERITY_CONFIG[rec.severity as keyof typeof SEVERITY_CONFIG];
                 return (
-                  <div key={rec.id} className="flex items-start gap-2 py-1.5 border-b border-[#2A313A] last:border-0">
+                  <div key={rec.id} className="flex items-start gap-2 py-1.5  last:border-0">
                     <cfg.Icon className={cn("size-3.5 mt-0.5 shrink-0", cfg.color)} />
                     <div className="min-w-0">
                       <p className="text-xs font-medium truncate">{rec.title}</p>
@@ -533,7 +533,7 @@ function ProtectionTab({
               />
             ))}
             {securityStatus.engineVersion && (
-              <div className="pt-2 mt-1 border-t border-[#2A313A] text-xs text-muted-foreground flex justify-between">
+              <div className="pt-2 mt-1  text-xs text-muted-foreground flex justify-between">
                 <span>Engine</span><span className="font-mono text-[10px]">{securityStatus.engineVersion}</span>
               </div>
             )}
@@ -1301,7 +1301,7 @@ export default function Security() {
         </div>
 
         {/* Tab nav */}
-        <div className="flex gap-0 border-b border-[#2A313A]">
+        <div className="flex gap-0 ">
           {TABS.map(tab => (
             <button
               key={tab.id}

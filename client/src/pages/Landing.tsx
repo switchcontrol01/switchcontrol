@@ -479,7 +479,7 @@ function HeroAppMockup() {
         <div className="absolute inset-0 pointer-events-none mockup-edge-glow rounded-2xl" />
 
         {/* ── Title bar ── */}
-        <div className="relative flex items-center gap-2 px-4 py-3 border-b border-[#2A313A]"
+        <div className="relative flex items-center gap-2 px-4 py-3 "
           style={{ background: "linear-gradient(to bottom, rgba(255,255,255,0.18), rgba(255,255,255,0.05))" }}>
           {/* macOS dots with depth */}
           <div className="flex gap-1.5">
@@ -581,7 +581,7 @@ function HeroAppMockup() {
           </div>
 
           {/* ── Status bar ── */}
-          <div className="flex items-center gap-3 pt-1 border-t border-[#2A313A]">
+          <div className="flex items-center gap-3 pt-1 ">
             <div className="flex items-center gap-1.5">
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
               <span className="text-[8px] font-semibold" style={{ color: "rgba(255,255,255,0.28)" }}>Gaming Pro</span>

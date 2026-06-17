@@ -517,7 +517,7 @@ function TelemetryDashboard() {
       backdropFilter: "blur(24px)",
     }}>
       {/* Titlebar */}
-      <div className="flex items-center justify-between px-5 py-3 border-b border-[#2A313A]">
+      <div className="flex items-center justify-between px-5 py-3 ">
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-primary/80 animate-pulse" />
           <span className="text-xs text-[#A0A8B3] font-mono">Live System Monitor</span>
@@ -581,7 +581,7 @@ function HeroDashboardMockup() {
         backdropFilter: "blur(32px)",
       }}>
         {/* Fake titlebar */}
-        <div className="flex items-center gap-2 px-4 py-3 border-b border-[#2A313A] bg-[#1A1F26]">
+        <div className="flex items-center gap-2 px-4 py-3  bg-[#1A1F26]">
           <div className="flex gap-1.5">
             {["#ef4444","#f59e0b","#34d399"].map(c => <div key={c} className="w-2.5 h-2.5 rounded-full" style={{ background: c }} />)}
           </div>
@@ -714,7 +714,7 @@ export default function Features() {
 
               {/* Hero stats */}
               <motion.div
-                className="flex gap-8 mt-10 pt-8 border-t border-[#2A313A]"
+                className="flex gap-8 mt-10 pt-8 "
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.5, duration: 0.6 }}
@@ -837,7 +837,7 @@ export default function Features() {
                 backdropFilter: "blur(24px)",
               }}>
                 {/* Titlebar */}
-                <div className="flex items-center gap-2.5 px-5 py-3.5 border-b border-[#2A313A]">
+                <div className="flex items-center gap-2.5 px-5 py-3.5 ">
                   <div className="w-7 h-7 rounded-lg bg-primary/20 flex items-center justify-center">
                     <Bot className="w-3.5 h-3.5 text-primary/80" />
                   </div>
@@ -943,7 +943,7 @@ export default function Features() {
                 border: "1px solid rgba(56,189,248,0.18)",
                 boxShadow: "0 32px 80px rgba(0,0,0,0.7), 0 0 40px rgba(56,189,248,0.08)",
               }}>
-                <div className="flex items-center gap-2.5 px-5 py-3.5 border-b border-[#2A313A]">
+                <div className="flex items-center gap-2.5 px-5 py-3.5 ">
                   <CircuitBoard className="w-4 h-4 text-sky-400/70" />
                   <span className="text-xs font-semibold text-[#E6EAF0]">BIOS Advisor · Configuration Map</span>
                 </div>
@@ -1080,7 +1080,7 @@ export default function Features() {
               backdropFilter: "blur(24px)",
             }}>
               {/* Header row */}
-              <div className="grid grid-cols-3 bg-[#1A1F26] border-b border-[#2A313A]">
+              <div className="grid grid-cols-3 bg-[#1A1F26] ">
                 <div className="px-6 py-4 text-sm text-[#6B7380]">Feature</div>
                 <div className="px-4 py-4 text-sm text-center font-semibold text-[#A0A8B3]">Typical Optimizer</div>
                 <div className="px-4 py-4 text-sm text-center font-semibold text-primary/90">SwitchControl</div>
@@ -1094,7 +1094,7 @@ export default function Features() {
                   viewport={{ once: true, margin: "-20px" }}
                   transition={{ delay: i * 0.04, duration: 0.4 }}
                   className={cn(
-                    "grid grid-cols-3 border-b border-[#2A313A]",
+                    "grid grid-cols-3 ",
                     i % 2 === 0 ? "bg-[#1A1F26]" : ""
                   )}
                 >
@@ -1182,7 +1182,7 @@ export default function Features() {
                     </div>
                   ))}
                 </div>
-                <div className="flex gap-4 mt-4 pt-4 border-t border-[#2A313A] text-[11px] text-[#6B7380]">
+                <div className="flex gap-4 mt-4 pt-4  text-[11px] text-[#6B7380]">
                   <span className="flex items-center gap-1.5"><span className="w-3 h-1.5 rounded bg-[#2A313A] inline-block" />Baseline</span>
                   <span className="flex items-center gap-1.5"><span className="w-3 h-1.5 rounded bg-primary/60 inline-block" />After SwitchControl</span>
                 </div>
@@ -1257,7 +1257,7 @@ export default function Features() {
               </Link>
             </div>
 
-            <div className="mt-12 pt-10 border-t border-[#2A313A] grid grid-cols-3 gap-8">
+            <div className="mt-12 pt-10  grid grid-cols-3 gap-8">
               {[
                 { val: "46+",   label: "Optimizations"   },
                 { val: "Free",  label: "Core tier"       },

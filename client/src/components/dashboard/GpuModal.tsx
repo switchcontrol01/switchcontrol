@@ -118,7 +118,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 
 function InfoRow({ label, value, mono = false }: { label: string; value: React.ReactNode; mono?: boolean }) {
   return (
-    <div className="flex items-center justify-between py-1.5 border-b border-[#2A313A] last:border-0">
+    <div className="flex items-center justify-between py-1.5  last:border-0">
       <span className="text-[11px] text-[#6B7380] uppercase tracking-wider font-medium">{label}</span>
       <span className={cn("text-[12px] text-[#E6EAF0]", mono && "font-mono")}>{value}</span>
     </div>

@@ -647,7 +647,7 @@ function PlanPhase({
       )}
 
       {/* Footer */}
-      <div className="flex items-center gap-3 pt-3 border-t border-white/[0.06]">
+      <div className="flex items-center gap-3 pt-3">
         <div className="flex-1" />
         <button
           onClick={onCancel}

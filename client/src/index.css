@@ -465,12 +465,8 @@ body {
 /* ── Sidebar outer shell ── */
 .sidebar-shell {
   background: #14181D;
-  border-right: 1px solid #2A313A;
-  box-shadow:
-    /* Right-facing depth shadow */
-    4px 0 32px -8px rgba(0, 0, 0, 0.6),
-    /* Inner left edge highlight */
-    inset -1px 0 0 0 rgba(255, 255, 255, 0.025);
+  border-right: none;
+  box-shadow: none;
 }
 
 /* ── Grid texture overlay ── */
@@ -482,16 +478,9 @@ body {
   opacity: 0.6;
 }
 
-/* ── Right-edge seam glow ── */
+/* ── Right-edge seam glow (removed) ── */
 .sidebar-seam {
-  background: linear-gradient(
-    180deg,
-    transparent 0%,
-    rgba(0, 212, 255, 0.08) 40%,
-    rgba(0, 212, 255, 0.06) 70%,
-    transparent 100%
-  );
-  opacity: 0.6;
+  display: none;
 }
 
 /* ── Crown chip on nav items ── */
@@ -509,7 +498,7 @@ body {
 /* ── Footer dock ── */
 .sidebar-footer-dock {
   background: #14181D;
-  border-top: 1px solid #2A313A;
+  border-top: none;
 }
 
 .sidebar-footer-seam {

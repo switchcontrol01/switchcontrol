@@ -221,19 +221,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         <div className="container max-w-7xl mx-auto p-8">
           {children}
         </div>
-        {/* Static bottom-fade overlay — replaces the maskImage that created a
-            compositor layer and forced per-frame GPU rasterization of the scroll
-            container. A simple positioned div with a CSS gradient is painted once
-            and composited cheaply (no mask stencil per scroll tick). */}
-        <div
-          aria-hidden="true"
-          className="pointer-events-none sticky bottom-0 left-0 right-0 z-20"
-          style={{
-            height: '80px',
-            marginTop: '-80px',
-            background: 'linear-gradient(to bottom, transparent 0%, #070b14 100%)',
-          }}
-        />
       </main>
       <Toaster />
     </div>

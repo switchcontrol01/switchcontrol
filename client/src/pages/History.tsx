@@ -323,7 +323,7 @@ function EventRow({ item, index }: { item: EnrichedItem; index: number }) {
             transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
             className="overflow-hidden"
           >
-            <div className="border-t border-[#2A313A] px-3.5 sm:px-5 py-3.5 bg-[#1A1F26] grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-x-4 gap-y-2.5">
+            <div className=" px-3.5 sm:px-5 py-3.5 bg-[#1A1F26] grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-x-4 gap-y-2.5">
               <div>
                 <p className="text-[10px] uppercase tracking-wide text-muted-foreground/50 mb-0.5">Timestamp</p>
                 <p className="text-xs font-mono">{format(new Date(item.timestamp), "MMM d yyyy, HH:mm:ss")}</p>
@@ -713,7 +713,7 @@ export default function History() {
 
                 {/* Active filters summary + clear */}
                 {hasFilters && (
-                  <div className="flex items-center gap-2 mt-2.5 pt-2.5 border-t border-[#2A313A]">
+                  <div className="flex items-center gap-2 mt-2.5 pt-2.5 ">
                     <span className="text-[11px] text-muted-foreground">{filtered.length} of {enriched.length} events shown</span>
                     <button onClick={clearFilters} className="text-[11px] text-primary hover:underline ml-auto">Clear all</button>
                   </div>

@@ -221,7 +221,7 @@ function IssueCard({
               transition={{ duration: 0.22, ease: "easeOut" }}
               className="overflow-hidden"
             >
-              <div className="px-3.5 pb-3.5 space-y-2.5 border-t border-[#2A313A] pt-2.5">
+              <div className="px-3.5 pb-3.5 space-y-2.5  pt-2.5">
                 <div>
                   <p className="text-[10px] font-semibold uppercase tracking-wider text-[#6B7380] mb-0.5">Why it matters</p>
                   <p className="text-xs text-[#A0A8B3] leading-relaxed">{issue.reason}</p>

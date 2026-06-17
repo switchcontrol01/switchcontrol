@@ -442,7 +442,7 @@ export function LicenseManagementModal({ open, onOpenChange, isPremium, userId }
               <div className="pointer-events-none absolute -bottom-20 -left-20 w-60 h-60 rounded-full bg-[#00D4FF]/[0.06] blur-3xl" />
 
               {/* Header */}
-              <div className="relative flex items-center justify-between px-6 pt-5 pb-4 border-b border-[#2A313A]">
+              <div className="relative flex items-center justify-between px-6 pt-5 pb-4 ">
                 <div className="flex items-center gap-3">
                   <div className="flex items-center justify-center size-9 rounded-xl bg-emerald-500/10 border border-emerald-500/20 shadow-[0_0_16px_rgba(16,185,129,0.12)]">
                     <Shield className="size-4 text-emerald-400" />
@@ -477,7 +477,7 @@ export function LicenseManagementModal({ open, onOpenChange, isPremium, userId }
 
                 {/* Device info */}
                 <div className="relative rounded-xl border border-[#2A313A] bg-[#1A1F26]">
-                  <div className="px-4 pt-3.5 pb-1 flex items-center gap-2 border-b border-[#2A313A]">
+                  <div className="px-4 pt-3.5 pb-1 flex items-center gap-2 ">
                     <Cpu className="size-3.5 text-[#00D4FF]/80" />
                     <span className="text-[11px] font-semibold text-[#E6EAF0] uppercase tracking-wider">Device</span>
                   </div>

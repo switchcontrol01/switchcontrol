@@ -937,7 +937,7 @@ function UserDetailPanel({ user, logs, onClose, onPlanUpdated, onDeleted }: {
           style={{ background: "linear-gradient(180deg, rgba(20,12,45,0.98) 0%, rgba(7,9,13,0.99) 100%)" }}
         >
           {/* Header */}
-          <div className="flex items-center justify-between p-5 border-b border-[#2A313A] sticky top-0 z-10"
+          <div className="flex items-center justify-between p-5  sticky top-0 z-10"
             style={{ background: "rgba(10,7,28,0.95)", backdropFilter: "blur(12px)" }}>
             <h3 className="text-base font-semibold text-[#E6EAF0]">User Detail</h3>
             <button onClick={onClose} data-testid="button-close-detail"
@@ -1490,7 +1490,7 @@ export default function AdminPage() {
   return (
     <div className="min-h-screen text-[#E6EAF0]" style={{ background: "#14181D" }}>
       {/* Header */}
-      <div className="border-b border-[#2A313A] px-6 py-4 sticky top-0 z-20"
+      <div className=" px-6 py-4 sticky top-0 z-20"
         style={{ background: "rgba(7,9,13,0.95)", backdropFilter: "blur(12px)" }}>
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -1794,7 +1794,7 @@ export default function AdminPage() {
         {/* Table */}
         <div className="rounded-2xl border border-[#2A313A] overflow-hidden"
           style={{ background: "linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%)" }}>
-          <div className="grid grid-cols-[1fr_140px_150px_150px_100px_80px] gap-4 px-5 py-3 border-b border-[#2A313A]">
+          <div className="grid grid-cols-[1fr_140px_150px_150px_100px_80px] gap-4 px-5 py-3 ">
             {["User", "Plan", "Last Login", "Last App", "App?", ""].map((h) => (
               <span key={h} className="text-xs font-semibold text-[#6B7380] uppercase tracking-wider">{h}</span>
             ))}
@@ -1814,7 +1814,7 @@ export default function AdminPage() {
                 key={u.id}
                 data-testid={`row-user-${u.id}`}
                 className={`grid grid-cols-[1fr_140px_150px_150px_100px_80px] gap-4 px-5 py-3.5 items-center hover:bg-[#21262D] transition-colors cursor-pointer ${
-                  i !== users.length - 1 ? "border-b border-[#2A313A]" : ""
+                  i !== users.length - 1 ? "" : ""
                 }`}
                 onClick={() => openUserDetail(u)}
               >

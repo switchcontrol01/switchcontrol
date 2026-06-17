@@ -1047,7 +1047,7 @@ function SmartRAMCard({
         )}
 
         {/* Action row */}
-        <div className="flex items-center gap-3 pt-1 border-t border-[#2A313A]">
+        <div className="flex items-center gap-3 pt-1 ">
           <div className="flex-1 min-w-0 space-y-0.5">
             {data && phase === "idle" && (
               <p className="text-[10px] text-muted-foreground/55 leading-snug" data-testid="text-ram-recommendation">

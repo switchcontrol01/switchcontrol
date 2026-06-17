@@ -487,7 +487,7 @@ function AnswerCard({ summary, detail, onApply }: { summary: string; detail?: st
 function SystemSpecRow({ icon: Icon, label, value, color }: { icon: typeof Cpu; label: string; value: string; color: string }) {
   if (!value || value === "Unavailable") return null;
   return (
-    <div className="flex items-center gap-2.5 py-2 border-b border-[#2A313A] last:border-0">
+    <div className="flex items-center gap-2.5 py-2  last:border-0">
       <div className={cn("w-6 h-6 rounded-md flex items-center justify-center shrink-0", color)}>
         <Icon className="size-3" />
       </div>

@@ -102,7 +102,7 @@ export function StartupAppRow({ app, onToggle, loading }: Props) {
         <motion.div
           initial={{ height: 0, opacity: 0 }}
           animate={{ height: "auto", opacity: 1 }}
-          className="border-t border-[#2A313A] px-3.5 py-2.5 space-y-1.5"
+          className=" px-3.5 py-2.5 space-y-1.5"
         >
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             <DetailPill label="Est. Delay" value={`${Math.round(app.delayMs)}ms`} />

@@ -1332,7 +1332,7 @@ export default function PowerPlan() {
                     const t = PROFILE_THEME[activeProfileId];
                     const impact = PROFILE_IMPACT[activeProfileId];
                     return (
-                      <div className="mt-6 pt-5 border-t border-[#2A313A]">
+                      <div className="mt-6 pt-5 ">
                         <p className="text-[10px] uppercase tracking-widest text-[#6B7380] font-semibold mb-4">
                           Estimated Performance Impact
                           <span className="ml-1.5 normal-case text-[#6B7380]/50 font-normal">vs baseline Windows Balanced</span>
@@ -1561,7 +1561,7 @@ export default function PowerPlan() {
                     <span>0% (Power save)</span><span>100% (Max)</span>
                   </div>
                 </div>
-                <div className="border-t border-[#2A313A] pt-5 space-y-3">
+                <div className=" pt-5 space-y-3">
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-[#E6EAF0]">Maximum Processor State</span>
                     <span className="text-primary font-semibold tabular-nums">{localState.customSettings.maxProcessorState}%</span>
@@ -1705,7 +1705,7 @@ export default function PowerPlan() {
                       <span className="text-right">{customPlanMeta?.name ?? "—"}</span>
                     </div>
                     {backendState?.profileMatch?.mismatches && Object.keys(backendState.profileMatch.mismatches).length > 0 && (
-                      <div className="mt-2 pt-2 border-t border-[#2A313A]">
+                      <div className="mt-2 pt-2 ">
                         <p className="text-[10px] text-amber-400/60 mb-1.5">Setting Mismatches</p>
                         {Object.entries(backendState.profileMatch.mismatches).map(([k, v]) => (
                           <div key={k} className="flex justify-between gap-4 text-amber-400/50">

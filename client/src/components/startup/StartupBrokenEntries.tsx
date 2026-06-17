@@ -61,7 +61,7 @@ export function StartupBrokenEntries({ apps, onFixAll, visible }: Props) {
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-            <div className="mt-2.5 pt-2.5 border-t border-[#2A313A] space-y-1.5">
+            <div className="mt-2.5 pt-2.5  space-y-1.5">
               {broken.map(app => (
                 <div
                   key={app.entry.id}

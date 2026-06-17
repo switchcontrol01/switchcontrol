@@ -91,7 +91,7 @@ function ProcessRow({ process, hasSecurity }: { process: ProcessTrustItem; hasSe
             transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
             className="overflow-hidden"
           >
-            <div className="border-t border-[#2A313A] p-3.5 bg-[#1A1F26] space-y-3">
+            <div className=" p-3.5 bg-[#1A1F26] space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Trust State</p>
@@ -239,7 +239,7 @@ export function SecurityProcessesTab({
           </div>
         )}
 
-        <div className="mt-4 pt-3 border-t border-[#2A313A] text-[11px] text-muted-foreground/50 flex items-center gap-1.5">
+        <div className="mt-4 pt-3  text-[11px] text-muted-foreground/50 flex items-center gap-1.5">
           <Info className="size-3.5 shrink-0" />
           Trust state is based on executable path location. Signature verification requires Windows Admin privileges.
         </div>

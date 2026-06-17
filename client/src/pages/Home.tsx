@@ -1037,7 +1037,7 @@ export default function Home() {
                       </div>
                     ))}
                     {sysIntel.profile.network.defaultGateway && (
-                      <div className="pt-1 border-t border-[#2A313A]">
+                      <div className="pt-1 ">
                         <p className="text-[10px] text-[#6B7380]">
                           Gateway: <span className="font-mono text-[#A0A8B3]">{sysIntel.profile.network.defaultGateway}</span>
                         </p>
@@ -1181,7 +1181,7 @@ export default function Home() {
                 </div>
               </div>
               
-              <div className="pt-2 border-t border-border/50 flex items-center justify-between">
+              <div className="pt-2 flex items-center justify-between">
                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Last Scan</span>
                  <span className="text-[10px] font-mono text-emerald-400">
                    {account.stats.lastScan ? format(new Date(account.stats.lastScan), "MMM d, HH:mm") : "Never"}

@@ -466,7 +466,7 @@ function ScoreRing({ score, color }: { score: number; color: string }) {
 
 function SignalField({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
   return (
-    <div className="flex items-center justify-between gap-2 py-1.5 border-b border-[#2A313A] last:border-0">
+    <div className="flex items-center justify-between gap-2 py-1.5  last:border-0">
       <span className="text-[10px] text-[#6B7380] uppercase tracking-widest shrink-0">{label}</span>
       <span className={cn("text-[11px] font-medium text-right truncate max-w-[55%]", mono ? "font-mono text-[#E6EAF0]" : "text-[#A0A8B3]")}>
         {value}

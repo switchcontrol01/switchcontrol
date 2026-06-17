@@ -348,7 +348,7 @@ function BiosSettingCard({
               transition={{ duration: 0.3 }}
               className="overflow-hidden"
             >
-              <div className="px-4 pb-4 border-t border-[#2A313A]">
+              <div className="px-4 pb-4 ">
                 <div className="flex gap-1 mt-3 mb-3 p-0.5 rounded-lg bg-[#1A1F26] border border-[#2A313A] w-fit">
                   {tabItems.map(tab => (
                     <button
@@ -550,7 +550,7 @@ function OpportunityCard({ opportunity, index }: { opportunity: ReturnType<typeo
               transition={{ duration: 0.2 }}
               className="overflow-hidden"
             >
-              <div className="mt-3 pt-3 border-t border-[#2A313A] space-y-2">
+              <div className="mt-3 pt-3  space-y-2">
                 {setting.motherboardPaths.map((path) => (
                   <div key={path.brand} className="text-xs">
                     <span className="text-primary font-medium">{path.brand}:</span>
@@ -1161,7 +1161,7 @@ export default function BiosAdvisor() {
                     </div>
                   )}
                 </div>
-                <div className="flex items-center gap-2 mt-3 pt-3 border-t border-[#2A313A] flex-wrap">
+                <div className="flex items-center gap-2 mt-3 pt-3  flex-wrap">
                   <span className="text-[10px] text-[#6B7380] uppercase tracking-wider mr-1">EXPO/XMP</span>
                   <span className={`text-[10px] px-2 py-0.5 rounded-full border font-medium ${getInferBadge(si.inference.expoOrXmp.state)}`}>
                     {si.inference.expoOrXmp.state === "confirmed" ? "Confirmed Active" :

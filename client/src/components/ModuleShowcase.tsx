@@ -197,7 +197,7 @@ export function ModuleShowcase() {
                 </div>
                 
                 <motion.div
-                  className="mt-4 pt-4 border-t border-[#2A313A]"
+                  className="mt-4 pt-4 "
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: prefersReducedMotion ? 0.15 : 0.3 }}

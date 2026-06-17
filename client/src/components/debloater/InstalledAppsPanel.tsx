@@ -418,7 +418,7 @@ function AppRow({
             transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
             className="overflow-hidden"
           >
-            <div className="border-t border-[#2A313A] px-3.5 sm:px-4 py-3 bg-white/[0.015] grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2.5">
+            <div className=" px-3.5 sm:px-4 py-3 bg-white/[0.015] grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2.5">
               {app.version && (
                 <div>
                   <p className="text-[10px] uppercase tracking-wide text-muted-foreground/50 mb-0.5">Version</p>

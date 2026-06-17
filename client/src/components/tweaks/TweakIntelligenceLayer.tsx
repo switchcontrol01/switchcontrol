@@ -550,7 +550,7 @@ export function TweakIntelligenceLayer() {
                       </div>
 
                       {/* Dimension legend */}
-                      <div className="space-y-1 pt-1 border-t border-[#2A313A]">
+                      <div className="space-y-1 pt-1 ">
                         {intel.posture.map((d) => (
                           <div key={d.id} className="flex items-center justify-between">
                             <div className="flex items-center gap-1.5">
@@ -612,7 +612,7 @@ export function TweakIntelligenceLayer() {
                   )}
 
                   {/* CPU Sparkline */}
-                  <div className="pt-2 border-t border-[#2A313A] space-y-1">
+                  <div className="pt-2  space-y-1">
                     <div className="flex items-center justify-between">
                       <span className="text-[9px] text-[#6B7380] uppercase tracking-wider">CPU Load (last {cpuHistory.length}s)</span>
                       {cpuHistory.length > 0 && (
@@ -660,7 +660,7 @@ export function TweakIntelligenceLayer() {
 
                   {/* Applied count */}
                   {!intel.loading && intel.overallCoverage > 0 && (
-                    <div className="pt-3 border-t border-[#2A313A] flex items-center gap-1.5">
+                    <div className="pt-3  flex items-center gap-1.5">
                       <RefreshCw className="size-3 text-[#6B7380]/50" />
                       <span className="text-[9px] text-[#6B7380]">
                         {intel.rankings.filter((r) => r.alreadyApplied).length} tweaks already applied

@@ -302,7 +302,7 @@ function TweakCard({
             transition={{ duration: 0.25 }}
             className="overflow-hidden"
           >
-            <div className="pt-3 mt-3 border-t border-[#2A313A] space-y-2">
+            <div className="pt-3 mt-3  space-y-2">
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <div>
                   <span className="text-muted-foreground">What it changes:</span>

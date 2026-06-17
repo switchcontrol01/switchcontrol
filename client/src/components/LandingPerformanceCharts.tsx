@@ -264,7 +264,7 @@ function ChartCard({
       <div className="flex-1 px-1 pb-1" style={{ minHeight: 148 }}>{children}</div>
 
       {/* Footer */}
-      <div className="px-5 py-2.5 border-t border-[#2A313A]">
+      <div className="px-5 py-2.5 ">
         <p className="text-[9px] text-[#6B7380]/50 text-center tracking-wide">{note}</p>
       </div>
     </div>

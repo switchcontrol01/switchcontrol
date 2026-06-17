@@ -177,7 +177,7 @@ function TweakMiniCard({
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-            <div className="px-3 pb-3 pt-1 border-t border-[#2A313A] space-y-2">
+            <div className="px-3 pb-3 pt-1  space-y-2">
               <p className="text-[11px] text-[#A0A8B3] leading-relaxed">{tweak.description}</p>
               {tweak.impact.length > 0 && (
                 <ul className="space-y-0.5">
@@ -286,7 +286,7 @@ function NetworkTweakMiniCard({
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-            <div className="px-3 pb-3 pt-1 border-t border-[#2A313A] space-y-2">
+            <div className="px-3 pb-3 pt-1  space-y-2">
               <p className="text-[11px] text-[#A0A8B3] leading-relaxed">{tweak.description}</p>
               {tweak.impact.length > 0 && (
                 <ul className="space-y-0.5">

@@ -359,7 +359,7 @@ function DeltaRow({
   const delta = after - before;
   const sign = delta > 0 ? "+" : "";
   return (
-    <div className="flex items-center gap-3 py-2 border-b border-[#2A313A] last:border-0">
+    <div className="flex items-center gap-3 py-2  last:border-0">
       <span className="text-xs text-muted-foreground w-16 shrink-0">{label}</span>
       <span className="text-xs font-mono text-[#E6EAF0]">{before}{unit}</span>
       <span className="text-muted-foreground/40">→</span>

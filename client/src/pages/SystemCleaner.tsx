@@ -308,7 +308,7 @@ function ItemRow({ item, finding, selected, onToggle, cleanResult, isCleaning, d
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-            <div className="px-4 pb-3 pt-0 border-t border-white/[0.05]">
+            <div className="px-4 pb-3 pt-0">
               <p className="text-[11px] text-[#6B7380] leading-relaxed mt-2">{item.description}</p>
               <div className="flex flex-wrap gap-3 mt-2">
                 {item.requiresAdmin && <span className="text-[10px] text-amber-400/80">Requires admin</span>}

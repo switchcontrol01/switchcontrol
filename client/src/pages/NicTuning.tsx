@@ -531,7 +531,7 @@ function PropertyGroupSection({
             transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
             className="overflow-hidden"
           >
-            <div className="px-4 pb-4 space-y-2 border-t border-[#2A313A] pt-3">
+            <div className="px-4 pb-4 space-y-2  pt-3">
               {keys.map(k => (
                 <PropertyControl
                   key={k}
@@ -806,7 +806,7 @@ function AdapterDiagnostics({
 
         {/* Feature status pills */}
         {capabilities && (
-          <div className="space-y-1.5 pt-1 border-t border-[#2A313A]">
+          <div className="space-y-1.5 pt-1 ">
             <p className="text-[10px] text-[#6B7380] uppercase tracking-wider">Feature State</p>
             <div className="flex flex-wrap gap-1.5">
               <FeaturePill label="RSS" value={capabilities.RSS?.currentValue} onValue="1" offValue="0" />
@@ -860,14 +860,14 @@ function AdapterDiagnostics({
         </div>
 
         {/* Heatmap */}
-        <div className="space-y-2 border-t border-[#2A313A] pt-3">
+        <div className="space-y-2  pt-3">
           <p className="text-[10px] text-[#6B7380] uppercase tracking-wider">Property Coverage</p>
           <PropertyHeatmap propertyMeta={propertyMeta} capabilities={capabilities} />
         </div>
 
         {/* Buffer bars — only if both are supported + loaded */}
         {capabilities && rxCap?.supported && rxMeta?.min != null && rxMeta?.max != null && (
-          <div className="space-y-2 border-t border-[#2A313A] pt-3">
+          <div className="space-y-2  pt-3">
             <p className="text-[10px] text-[#6B7380] uppercase tracking-wider">Buffer Allocation</p>
             <div className="grid grid-cols-2 gap-3">
               {rxCap.supported && rxMeta && rxMeta.min != null && rxMeta.max != null && (

@@ -132,7 +132,7 @@ function AuditSection({ title, Icon, items }: { title: string; Icon: any; items:
             <motion.div key={item.label}
               initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.25, delay: i * 0.04, ease: [0.22, 1, 0.36, 1] }}
-              className="py-2 border-b border-[#2A313A] last:border-0"
+              className="py-2  last:border-0"
             >
               <div className="flex items-center justify-between gap-2">
                 <span className="text-sm text-muted-foreground">{item.label}</span>

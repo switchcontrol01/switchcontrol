@@ -142,7 +142,7 @@ function StartupRow({ item, hasSecurity }: { item: StartupItem; hasSecurity: boo
             transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
             className="overflow-hidden"
           >
-            <div className="border-t border-[#2A313A] p-3.5 space-y-3 bg-[#1A1F26]">
+            <div className=" p-3.5 space-y-3 bg-[#1A1F26]">
               {/* Command path */}
               <div>
                 <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Command</p>
@@ -287,7 +287,7 @@ export function SecurityStartupTab({
         )}
 
         {startupItems.length > 0 && (
-          <div className="mt-4 pt-3 border-t border-[#2A313A] text-[11px] text-muted-foreground/50">
+          <div className="mt-4 pt-3  text-[11px] text-muted-foreground/50">
             Actions use the Windows StartupApproved registry key — same mechanism as Task Manager. Delays use Task Scheduler.
           </div>
         )}

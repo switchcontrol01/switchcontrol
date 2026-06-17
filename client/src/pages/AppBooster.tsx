@@ -1008,7 +1008,7 @@ function ManualAddModal({
           <div className="absolute top-0 inset-x-0 h-[1px] rounded-t-2xl" style={{ background: "linear-gradient(90deg,transparent,rgba(139,92,246,0.6),transparent)" }} />
 
           {/* Header */}
-          <div className="flex items-center justify-between px-5 py-4 border-b border-[#2A313A]">
+          <div className="flex items-center justify-between px-5 py-4 ">
             <div className="flex items-center gap-2.5">
               <div className="w-7 h-7 rounded-lg bg-primary/15 border border-primary/25 flex items-center justify-center">
                 <Plus className="w-3.5 h-3.5 text-primary" />
@@ -1698,7 +1698,7 @@ export default function AppBooster() {
               style={{ background: "linear-gradient(180deg,rgba(255,255,255,0.04) 0%,rgba(0,0,0,0.35) 100%)", backdropFilter: "blur(20px)" }}
             >
               {/* Tab switcher */}
-              <div className="px-3 pt-3 pb-2.5 border-b border-[#2A313A]">
+              <div className="px-3 pt-3 pb-2.5 ">
                 <div className="flex items-center gap-0.5 p-0.5 rounded-xl" style={{ background: "rgba(255,255,255,0.04)" }}>
                   <button
                     onClick={() => setShowCatalog(false)}
@@ -1809,7 +1809,7 @@ export default function AppBooster() {
                       </motion.div>
                     ))}
                     {hiddenCount > 0 && (
-                      <div className="pt-2 border-t border-[#2A313A] mt-2">
+                      <div className="pt-2  mt-2">
                         <button
                           onClick={() => setShowHidden(v => !v)}
                           className="w-full flex items-center justify-between px-2 py-1.5 text-[11px] text-[#6B7380] hover:text-[#A0A8B3] transition-colors"
@@ -1836,7 +1836,7 @@ export default function AppBooster() {
               </div>
 
               {/* Add game footer */}
-              <div className="px-3 pb-3 pt-2 border-t border-[#2A313A]">
+              <div className="px-3 pb-3 pt-2 ">
                 <button
                   onClick={() => setShowManualAdd(true)}
                   className="w-full flex items-center justify-center gap-2 text-[11px] font-semibold text-[#6B7380] hover:text-[#A0A8B3] transition-all py-2 rounded-xl hover:bg-[#21262D] border border-transparent hover:border-[#2A313A]"
@@ -2175,7 +2175,7 @@ export default function AppBooster() {
                             transition={{ duration: 0.25, ease: "easeInOut" }}
                             className="overflow-hidden"
                           >
-                            <div className="px-4 pb-5 border-t border-[#2A313A] pt-4 space-y-6">
+                            <div className="px-4 pb-5  pt-4 space-y-6">
                               {Object.entries(groupedActions).map(([category, catActions]) => {
                                 const catApplied = catActions.filter(a => resultMap[a.id]?.status === "success").length;
                                 return (
@@ -2240,7 +2240,7 @@ export default function AppBooster() {
                 style={{ background: "linear-gradient(180deg,rgba(255,255,255,0.04) 0%,rgba(0,0,0,0.35) 100%)", borderColor: "rgba(255,255,255,0.07)" }}
               >
                 <div className="absolute top-0 inset-x-0 h-[1px]" style={{ background: "linear-gradient(90deg,transparent,rgba(139,92,246,0.4),transparent)" }} />
-                <div className="px-5 py-4 border-b border-[#2A313A] flex items-center justify-between">
+                <div className="px-5 py-4  flex items-center justify-between">
                   <p className="text-[11px] font-black uppercase tracking-widest text-[#6B7380] flex items-center gap-2">
                     <History className="w-3.5 h-3.5" />Operation History
                   </p>

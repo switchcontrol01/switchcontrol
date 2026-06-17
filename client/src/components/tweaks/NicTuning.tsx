@@ -616,7 +616,7 @@ function AdapterPanel({ adapter, propertyMeta, isExpanded, onToggle }: AdapterPa
             transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
             className="overflow-hidden"
           >
-            <div className="px-4 pb-4 space-y-2 border-t border-[#2A313A] pt-3">
+            <div className="px-4 pb-4 space-y-2  pt-3">
               {loading && (
                 <div className="flex items-center gap-2 py-4 text-sm text-muted-foreground">
                   <Loader2 className="size-4 animate-spin" />

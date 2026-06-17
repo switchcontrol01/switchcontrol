@@ -67,7 +67,7 @@ export default function Login() {
           <div className="login-card-glass rounded-2xl overflow-hidden">
 
             {/* ── Header ── */}
-            <div className="p-6 sm:p-8 text-center border-b border-[#2A313A]">
+            <div className="p-6 sm:p-8 text-center ">
 
               {/* Logo — bounces in with spring */}
               <motion.div
