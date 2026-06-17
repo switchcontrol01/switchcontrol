@@ -767,6 +767,7 @@ export function setupGoogleAuth(app: Express): void {
     };
     res.cookie('auth_source', source, authCookieOpts);
     res.cookie('auth_next', next_url, authCookieOpts);
+    if (pollToken) res.cookie('auth_poll_token', pollToken, authCookieOpts);
 
     passport.authenticate("google", {
       scope: ["profile", "email"],
@@ -814,15 +815,27 @@ export function setupGoogleAuth(app: Express): void {
       const clearOpts = { path: '/', secure: !isElectronBE, sameSite: (isElectronBE ? 'lax' : 'none') as 'lax' | 'none' };
       res.clearCookie('auth_source', clearOpts);
       res.clearCookie('auth_next', clearOpts);
+      res.clearCookie('auth_poll_token', clearOpts);
 
-      console.log("[AUTH] Google callback - source:", source, "user:", user.id, "sessionID:", req.sessionID);
+      // passport-oauth2's SessionStateStore replaces our custom state with its own
+      // uid(24) — so req.query.state in the callback is never our base64url JSON and
+      // _statePollToken is always null from state decoding.  Use the cookie as the
+      // authoritative fallback (set in /auth/google above).
+      const rawCookiePollToken = req.cookies?.auth_poll_token as string | undefined;
+      const cookiePollToken = (rawCookiePollToken && /^[a-zA-Z0-9_-]{16,64}$/.test(rawCookiePollToken))
+        ? rawCookiePollToken : null;
+      const resolvedPollToken = (req as any)._statePollToken || cookiePollToken;
+
+      console.log("[AUTH] Google callback - source:", source, "user:", user.id, "sessionID:", req.sessionID, "pollToken:", resolvedPollToken ? "present" : "missing");
 
       if (source === 'electron') {
         const code = generateElectronCode(user.id);
-        const pollToken = (req as any)._statePollToken;
+        const pollToken = resolvedPollToken;
         if (pollToken) {
           storePollCode(pollToken, code);
           console.log("[AUTH] Stored code under poll token for user:", user.id);
+        } else {
+          console.warn("[AUTH] No poll token available — desktop polling will not complete");
         }
         console.log("[AUTH] ===== GOOGLE CALLBACK SUCCESS (ELECTRON) =====");
         console.log("[AUTH] Generated one-time code for user:", user.id);
