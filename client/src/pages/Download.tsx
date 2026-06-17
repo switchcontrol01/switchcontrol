@@ -445,32 +445,6 @@ export default function DownloadPage() {
             gap: "clamp(10px,1.8vh,16px)",
           }}>
 
-            {/* Eyebrow pill */}
-            <motion.div {...stagger(0)}>
-              <div style={{
-                display: "inline-flex", alignItems: "center", gap: "7px",
-                padding: "5px 14px", borderRadius: "100px",
-                background: "rgba(139,92,246,0.10)",
-                border: "1px solid rgba(139,92,246,0.26)",
-              }}>
-                {launched ? (
-                  <Rocket size={11} style={{ color: "rgba(192,155,255,0.80)", animation: "rocketBob 2s ease-in-out infinite" }} />
-                ) : (
-                  <div style={{
-                    width: "6px", height: "6px", borderRadius: "50%",
-                    background: "rgba(139,92,246,0.90)",
-                    boxShadow: "0 0 8px 3px rgba(139,92,246,0.48)",
-                    animation: "livePulse 2s ease-in-out infinite",
-                  }} />
-                )}
-                <span style={{
-                  fontSize: "11px", fontWeight: 700, letterSpacing: "0.14em",
-                  textTransform: "uppercase", color: "rgba(192,155,255,0.75)",
-                }}>
-                  {launched ? "Now Available" : "Official Launch"}
-                </span>
-              </div>
-            </motion.div>
 
             {/* Headline */}
             <motion.div {...stagger(1)}>
@@ -655,7 +629,7 @@ export default function DownloadPage() {
                 {/* Spec rows */}
                 <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: "20px" }}>
                   {[
-                    { icon: CheckCircle, color: "#34d399", text: "Latest build · Digitally signed" },
+                    { icon: CheckCircle, color: "#34d399", text: "Latest build" },
                     { icon: Monitor, color: "#a78bfa", text: "Windows 10/11 64-bit · .exe installer" },
                     { icon: Clock, color: "#fbbf24", text: "~350 MB · Under 30 seconds" },
                   ].map(({ icon: Icon, color, text }, i) => (
