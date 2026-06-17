@@ -171,6 +171,23 @@ const DarkFallback = () => (
   />
 );
 
+// ContentFallback — same dark cover but offset by the sidebar width (256px = w-64).
+// Used inside ElectronAppRoutes so the sidebar column stays visible even if a
+// lazy chunk takes longer than expected to resolve on the very first navigation.
+const ContentFallback = () => (
+  <div
+    style={{
+      position: "fixed",
+      top: 0,
+      bottom: 0,
+      left: 256,
+      right: 0,
+      background: "#070b14",
+      zIndex: 0,
+    }}
+  />
+);
+
 // ElectronAppRoutes — uses Wouter component-prop form so React's reconciler
 // sees stable component types at each route position.  A single ErrorBoundary
 // wraps the whole Switch; it auto-resets via getDerivedStateFromProps whenever
@@ -181,7 +198,7 @@ function ElectronAppRoutes() {
   const [location] = useLocation();
   return (
     <ErrorBoundary route={location}>
-      <Suspense fallback={<DarkFallback />}>
+      <Suspense fallback={<ContentFallback />}>
         <Switch>
           <Route path="/" component={Home} />
           <Route path="/dashboard" component={Home} />
@@ -387,24 +404,31 @@ function ElectronAppContent() {
     telemetryManager.start();
   }, [phase]);
 
-  // Preload common lazy routes ~1s after the dashboard is stable so that
-  // first-open navigations never hit a chunk-fetch delay.  The delay keeps
-  // this work off the critical startup path.
+  // Preload ALL lazy route chunks as soon as the user is authenticated.
+  // No delay — the dashboard renders eagerly and gives these imports a head
+  // start before the user can click any sidebar link.  On Electron file://
+  // protocol chunk reads are synchronous disk ops, so all chunks are in
+  // memory well before the first navigation in normal usage.
+  // Previously: 1 000ms delay + 6 missing routes → first-visit black screen.
   useEffect(() => {
     if (phase !== "authenticated") return;
-    const t = setTimeout(() => {
-      void import("@/pages/Tweaks");
-      void import("@/pages/SystemCleaner");
-      void import("@/pages/AiAdvisor");
-      void import("@/pages/Settings");
-      void import("@/pages/NetworkTweaks");
-      void import("@/pages/PowerPlan");
-      void import("@/pages/AppBooster");
-      void import("@/pages/FocusMode");
-      void import("@/pages/Security");
-      void import("@/pages/History");
-    }, 1000);
-    return () => clearTimeout(t);
+    void import("@/pages/Tweaks");
+    void import("@/pages/SystemCleaner");
+    void import("@/pages/AiAdvisor");
+    void import("@/pages/Settings");
+    void import("@/pages/NetworkTweaks");
+    void import("@/pages/PowerPlan");
+    void import("@/pages/AppBooster");
+    void import("@/pages/FocusMode");
+    void import("@/pages/Security");
+    void import("@/pages/History");
+    // Previously missing — these routes also showed a black screen on first visit:
+    void import("@/pages/Debloater");
+    void import("@/pages/StartupApps");
+    void import("@/pages/NicTuning");
+    void import("@/pages/BiosAdvisor");
+    void import("@/pages/ExtremeLabs");
+    void import("@/pages/ProcessManager");
   }, [phase]);
 
   // Recovery: if the WS was rejected (no_token) during startup because the
