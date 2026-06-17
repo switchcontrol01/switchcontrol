@@ -722,8 +722,28 @@ export default function ExtremeLabs() {
   const [restoreError, setRestoreError] = useState<string | null>(null);
   const [analyzingProgress, setAnalyzingProgress] = useState(0);
   const [isApplying, setIsApplying] = useState<string | null>(null);
-  const [appliedTweaks, setAppliedTweaks] = useState<Set<string>>(new Set());
+  const [appliedTweaks, setAppliedTweaks] = useState<Set<string>>(() => {
+    // Hydrate from localStorage so applied state survives app restarts.
+    // The actual Windows registry / NIC changes are persistent; the UI just
+    // needs to remember which tweaks it applied.
+    try {
+      const stored = localStorage.getItem("extreme-labs-applied");
+      if (stored) return new Set<string>(JSON.parse(stored));
+    } catch (_) {}
+    return new Set<string>();
+  });
   const [activeFilter, setActiveFilter] = useState<"all" | RiskBadge | "nic">("all");
+
+  // Keep localStorage in sync whenever appliedTweaks changes.
+  useEffect(() => {
+    try {
+      if (appliedTweaks.size > 0) {
+        localStorage.setItem("extreme-labs-applied", JSON.stringify([...appliedTweaks]));
+      } else {
+        localStorage.removeItem("extreme-labs-applied");
+      }
+    } catch (_) {}
+  }, [appliedTweaks]);
 
   // Cleanup: clear the restore-point progress interval on unmount so it can
   // never fire state-setter calls on an unmounted component.
