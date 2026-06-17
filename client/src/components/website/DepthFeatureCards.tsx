@@ -76,7 +76,7 @@ export default function DepthFeatureCards({
           className="group relative h-full"
         >
           {/* Premium layered card with depth */}
-          <div className="relative h-full rounded-2xl border border-white/[0.08] bg-[#0c0c14]/90 overflow-hidden transition-all duration-500 hover:border-white/[0.15] hover:-translate-y-1 hover:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)]">
+          <div className="relative h-full rounded-2xl border border-white/[0.10] bg-[#16192A]/80 overflow-hidden transition-all duration-500 hover:border-white/[0.18] hover:-translate-y-1 hover:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.4)]">
             {/* Top accent glow line */}
             <div className="absolute top-0 left-0 right-0 h-[2px] opacity-60 group-hover:opacity-100 transition-opacity duration-500">
               <div className={cn("h-full w-full bg-gradient-to-r", feature.accent)} />

@@ -591,21 +591,6 @@ export default function Pricing() {
         </svg>
 
         <div className="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center z-10">
-          {/* Pill */}
-          <FadeUp delay={0}>
-            <div
-              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-7"
-              style={{
-                background: "linear-gradient(135deg, rgba(139,92,246,0.12), rgba(6,182,212,0.07))",
-                border: "1px solid rgba(139,92,246,0.25)",
-              }}
-            >
-              <Zap className="size-3.5 text-[#00D4FF]" />
-              <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#33E0FF]">
-                One-time purchase · Lifetime access
-              </span>
-            </div>
-          </FadeUp>
 
           {/* Headline */}
           <FadeUp delay={0.08}>
@@ -836,13 +821,6 @@ export default function Pricing() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <ScrollFade>
             <div className="text-center mb-14">
-              <div
-                className="inline-flex items-center gap-2 px-3 py-1 rounded-full mb-5"
-                style={{ background: "rgba(139,92,246,0.08)", border: "1px solid rgba(139,92,246,0.18)" }}
-              >
-                <BarChart2 className="size-3 text-[#00D4FF]" />
-                <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#00D4FF]">What Premium actually does</span>
-              </div>
               <h2 className="text-3xl md:text-5xl font-extrabold text-[#E6EAF0] tracking-tight leading-tight mb-4">
                 Real outcomes,{" "}
                 <span style={{ background: "linear-gradient(90deg, #c084fc, #22d3ee)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>

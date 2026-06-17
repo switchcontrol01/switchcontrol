@@ -664,15 +664,6 @@ export default function Features() {
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             {/* Left — copy */}
             <div>
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-              >
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium mb-6 bg-primary/10 border border-primary/20 text-primary/90">
-                  <Sparkles className="w-3 h-3" /> Performance Intelligence Platform
-                </span>
-              </motion.div>
 
               <motion.h1
                 className="text-5xl md:text-6xl font-extrabold leading-tight tracking-tight text-[#E6EAF0] mb-6"

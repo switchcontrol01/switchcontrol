@@ -443,23 +443,6 @@ export default function FAQPage() {
         <HeroBackground />
 
         <div className="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          {/* Eyebrow */}
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.55, ease: EASE_OUT }}
-            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full mb-6"
-            style={{
-              background: "linear-gradient(135deg, rgba(139,92,246,0.12), rgba(6,182,212,0.08))",
-              border: "1px solid rgba(139,92,246,0.22)",
-            }}
-          >
-            <HelpCircle className="size-3.5 text-[#00D4FF]" />
-            <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#33E0FF]">
-              Frequently Asked Questions
-            </span>
-          </motion.div>
-
           {/* Headline */}
           <motion.h1
             initial={{ opacity: 0, y: 18 }}
