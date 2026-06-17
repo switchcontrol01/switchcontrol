@@ -1,0 +1,240 @@
+TASK
+
+BUILD AI CONFLICT DETECTION ENGINE
+
+==================================================
+
+OBJECTIVE
+
+Before AI recommendations are generated, SwitchControl must analyze the user's machine and discover performance conflicts automatically.
+
+The purpose is to make the optimization process feel intelligent and personalized.
+
+Users should feel that SwitchControl has investigated their machine before making recommendations.
+
+==================================================
+
+NEW FLOW
+
+Apply Recommended
+
+↓
+
+Full System Scan
+
+↓
+
+Conflict Detection Engine
+
+↓
+
+Conflict Summary
+
+↓
+
+AI Conversation
+
+↓
+
+Optimization Strategy
+
+↓
+
+Apply Optimizations
+
+==================================================
+
+CONFLICT DETECTION ENGINE
+
+Create a dedicated analysis stage.
+
+The engine should inspect:
+
+- hardware
+- Windows configuration
+- power settings
+- network settings
+- services
+- startup programs
+- installed games
+- tweak database
+- active tweaks
+- telemetry
+
+==================================================
+
+CONFLICT TYPES
+
+Examples:
+
+NETWORK
+
+- Network Throttling Index enabled
+- TCP settings mismatch
+- conflicting network tweaks
+- duplicate network tweaks
+
+POWER
+
+- incorrect power plan
+- hidden power overrides
+- power profile conflicts
+
+WINDOWS
+
+- Game DVR enabled
+- Xbox background services
+- telemetry conflicts
+- startup bloat
+
+TWEAKS
+
+- duplicate tweaks
+- conflicting tweaks
+- outdated tweaks
+- redundant tweaks
+
+LATENCY
+
+- timer conflicts
+- scheduler conflicts
+- interrupt conflicts
+- DPC-related issues
+
+SERVICES
+
+- unnecessary services
+- gaming-impact services
+- duplicate service modifications
+
+==================================================
+
+AI SCAN STAGE
+
+Examples:
+
+Analyzing Hardware...
+
+Reviewing Windows Configuration...
+
+Scanning Active Tweaks...
+
+Checking Network Configuration...
+
+Detecting Performance Conflicts...
+
+Building Conflict Map...
+
+==================================================
+
+CONFLICT REPORT
+
+Generate:
+
+Performance Conflict Report
+
+Examples:
+
+Found 7 Performance Conflicts
+
+Found 12 Existing Optimizations
+
+Found 3 Inefficient Services
+
+Found 2 Network Issues
+
+Found 1 Scheduler Conflict
+
+==================================================
+
+VISUALS
+
+NO TABLES
+
+NO CHECKBOXES
+
+Each conflict should appear as an animated card/node.
+
+Example:
+
+Conflict #1
+
+Network Throttling Index
+
+Severity:
+High
+
+Potential Impact:
+Input Delay
+
+---
+
+Conflict #2
+
+Game DVR
+
+Severity:
+Moderate
+
+Potential Impact:
+Frame Consistency
+
+---
+
+Conflict #3
+
+Conflicting Timer Configuration
+
+Severity:
+High
+
+Potential Impact:
+System Latency
+
+==================================================
+
+SEVERITY SYSTEM
+
+Low
+
+Moderate
+
+High
+
+Critical
+
+Use colors and animations.
+
+==================================================
+
+AFTER CONFLICT ANALYSIS
+
+AI should say:
+
+"I found 7 performance conflicts that may be affecting your system."
+
+"What would you like me to optimize for today?"
+
+User types:
+
+- lower latency
+- Fortnite
+- better FPS
+- reduce stutter
+
+AI then uses:
+
+- hardware profile
+- detected conflicts
+- active tweaks
+- telemetry
+
+to build a personalized optimization strategy.
+
+==================================================
+
+GOAL
+
+The user should feel that SwitchControl investigated the machine first and discovered issues before making recommendations.
+
+The experience should feel like a performance engineer inspecting the PC rather than a simple tweak utility.

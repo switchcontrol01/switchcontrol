@@ -1,0 +1,206 @@
+TASK
+
+ELIMINATE WHITE FLASH DURING STARTUP
+
+==================================================
+
+PROBLEM
+
+A white flash is still visible during application startup.
+
+This issue has persisted across multiple versions.
+
+The flash appears BEFORE the startup splash animation.
+
+The flash is now sometimes visible longer than before.
+
+This is unacceptable.
+
+Users should NEVER see:
+
+- white window
+- blank window
+- browser background
+- renderer initialization
+- React mount process
+
+==================================================
+
+EXPECTED BEHAVIOR
+
+App Launch
+
+↓
+
+Startup Splash Immediately Appears
+
+↓
+
+Splash Animation Plays
+
+↓
+
+Backend Initialization
+
+↓
+
+React Hydration
+
+↓
+
+Main Window Reveal
+
+No white flash.
+
+No blank frame.
+
+No browser paint.
+
+==================================================
+
+ROOT CAUSE INVESTIGATION
+
+Audit:
+
+electron/main.js
+
+startup window creation
+
+BrowserWindow settings
+
+show:false behavior
+
+ready-to-show behavior
+
+paint events
+
+window reveal timing
+
+React mount timing
+
+preload timing
+
+renderer timing
+
+==================================================
+
+VERIFY ALL OF THE FOLLOWING
+
+1
+
+Main window must NEVER be shown before content is ready.
+
+Verify:
+
+show:false
+
+is respected.
+
+==================================================
+
+2
+
+Main window backgroundColor must NEVER be white.
+
+Verify:
+
+backgroundColor:"#000000"
+
+or splash color.
+
+==================================================
+
+3
+
+Main renderer must not paint white before React loads.
+
+Verify:
+
+body
+
+html
+
+root
+
+all use matching splash background.
+
+==================================================
+
+4
+
+Do not reveal main window on:
+
+ready-to-show
+
+if React has not finished initialization.
+
+==================================================
+
+5
+
+Splash window should be created first.
+
+User should immediately see:
+
+Splash
+
+NOT
+
+Main Window
+
+==================================================
+
+6
+
+Main window should remain hidden until:
+
+React mounted
+
+critical stores loaded
+
+route initialized
+
+first frame rendered
+
+==================================================
+
+7
+
+Use event logging.
+
+Add logs:
+
+[SPLASH]
+
+created
+
+shown
+
+animation started
+
+animation completed
+
+[MAIN]
+
+created
+
+renderer loaded
+
+React mounted
+
+revealed
+
+==================================================
+
+GOAL
+
+The first visible frame after launching SwitchControl must be the splash animation.
+
+The user should never see:
+
+- white flash
+- white frame
+- browser background
+- uninitialized renderer
+
+Startup should feel native and seamless.

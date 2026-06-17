@@ -2264,9 +2264,15 @@ export default function AppBooster() {
                           <motion.div
                             key={entry.id}
                             variants={staggerItem}
-                            className="flex items-center justify-between py-3 px-4 rounded-xl border transition-colors hover:bg-[#1A1F26]"
+                            className="flex items-center justify-between py-3 px-4 rounded-xl border transition-colors hover:bg-[#1A1F26] cursor-pointer"
                             style={{ borderColor: "rgba(255,255,255,0.06)", background: "rgba(255,255,255,0.02)" }}
                             data-testid={`history-entry-${entry.id}`}
+                            onClick={() => {
+                              setShowHistory(false);
+                              setShowCatalog(false);
+                              setSelectedSlug(entry.gameSlug);
+                            }}
+                            title="Click to open this game"
                           >
                             <div className="flex items-center gap-3">
                               <div

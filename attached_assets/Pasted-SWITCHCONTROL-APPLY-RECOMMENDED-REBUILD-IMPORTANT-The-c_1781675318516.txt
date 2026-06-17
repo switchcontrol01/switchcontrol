@@ -1,0 +1,222 @@
+SWITCHCONTROL - APPLY RECOMMENDED REBUILD
+
+IMPORTANT
+
+The current implementation is NOT what I want.
+
+This is NOT a recommendation card feature.
+
+This is NOT a button that instantly applies tweaks.
+
+This must behave like a premium AI optimization workflow.
+
+==================================================
+
+CURRENT PROBLEM
+
+Current flow:
+
+Apply Recommended
+
+↓
+
+Recommendations appear
+
+↓
+
+User clicks
+
+↓
+
+Tweaks apply
+
+This feels static.
+
+It feels rule-based.
+
+It does not feel intelligent.
+
+It does not feel premium.
+
+==================================================
+
+NEW FLOW
+
+STEP 1
+
+USER CLICKS
+
+"Apply Recommended"
+
+Immediately launch a full-screen optimization experience.
+
+No recommendation cards.
+
+No checkboxes.
+
+No tweak list yet.
+
+==================================================
+
+STEP 2
+
+FULL SYSTEM ANALYSIS
+
+SwitchControl must perform a real scan.
+
+Scan EVERYTHING possible.
+
+Collect data from:
+
+SYSTEMINFORMATION
+
+- cpu
+- cpu flags
+- cpu cache
+- motherboard
+- bios
+- memory
+- memory layout
+- memory timings
+- gpu
+- monitor information
+- display information
+- drives
+- storage
+- operating system
+- services
+- startup programs
+- processes
+- network adapters
+- installed software
+- installed games
+
+IPC SOURCES
+
+- current tweak states
+- tweak database
+- applied tweaks
+- reverted tweaks
+- tweak history
+- optimization history
+- telemetry cache
+
+LIVE TELEMETRY
+
+- cpu usage
+- gpu usage
+- ram usage
+- disk activity
+- network activity
+- temperatures
+
+EVERYTHING POSSIBLE
+
+Build a complete system profile.
+
+==================================================
+
+STEP 3
+
+SCAN ANIMATIONS
+
+This MUST feel premium.
+
+Examples:
+
+Analyzing Hardware...
+
+Scanning Operating System...
+
+Reading Current Tweaks...
+
+Checking Services...
+
+Detecting Performance Conflicts...
+
+Building System Profile...
+
+Analyzing Telemetry...
+
+Building Optimization Strategy...
+
+Each stage should animate.
+
+No boring spinner.
+
+No static progress bar.
+
+==================================================
+
+STEP 4
+
+AI ADVISOR APPEARS
+
+After the scan is complete.
+
+Show AI Advisor.
+
+AI says:
+
+"What are you trying to improve today?"
+
+Examples:
+
+- Lower latency
+- Higher FPS
+- Better 1% lows
+- Faster Windows responsiveness
+- Competitive Fortnite
+- Streaming performance
+- Reduce stuttering
+
+User types naturally.
+
+Example:
+
+"lower delay"
+
+or
+
+"best Fortnite latency"
+
+or
+
+"reduce stutter"
+
+==================================================
+
+STEP 5
+
+AI THINKING STAGE
+
+After user submits.
+
+Show:
+
+Understanding Request...
+
+Comparing Hardware Profile...
+
+Reviewing Current Tweaks...
+
+Building Optimization Strategy...
+
+Calculating Expected Impact...
+
+This should feel like a real AI workflow.
+
+==================================================
+
+STEP 6
+
+GENERATE PERSONALIZED STRATEGY
+
+AI uses:
+
+- hardware
+- telemetry
+- current tweaks
+- user goal
+
+to generate recommendations.

@@ -3660,7 +3660,8 @@ ipcMain.handle('appBooster:scanGames', async (event, games) => {
       }
     }
 
-    // Step D: Steam common dirs (one level + one deeper)
+    // Step D: Steam common dirs — recursive search up to 3 levels deep
+    // Many Steam games nest the exe one or two folders deep inside the common dir.
     if (!detected) {
       for (const commonDir of steamCommonPaths) {
         if (detected) break;
@@ -3668,21 +3669,8 @@ ipcMain.handle('appBooster:scanGames', async (event, games) => {
         try { gameDirs = await fs.readdir(commonDir); } catch { continue; }
         for (const dir of gameDirs) {
           if (detected) break;
-          const gameDir = path.join(commonDir, dir);
-          try {
-            await fs.access(path.join(gameDir, g.executable));
-            detected = true; installPath = gameDir; break;
-          } catch {
-            let subDirs;
-            try { subDirs = await fs.readdir(gameDir); } catch { continue; }
-            for (const sub of subDirs) {
-              const subDir = path.join(gameDir, sub);
-              try {
-                await fs.access(path.join(subDir, g.executable));
-                detected = true; installPath = subDir; break;
-              } catch { /* not found */ }
-            }
-          }
+          const found = await findExeIn(path.join(commonDir, dir), g.executable, 3);
+          if (found) { detected = true; installPath = found; }
         }
       }
     }
