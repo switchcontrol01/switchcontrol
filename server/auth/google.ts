@@ -361,6 +361,9 @@ export function setupGoogleAuth(app: Express): void {
 
   // OAuth success page for Electron - shows message and tries to close tab
   app.get("/auth/desktop-success", (req, res) => {
+    // Override Helmet's CSP for this page — it uses inline <style> and <script> tags
+    // that are not in the main app's SHA256 allowlist.
+    res.setHeader('Content-Security-Policy', "default-src 'self'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src 'self' data:; connect-src 'self';");
     const code = req.query.code as string;
     // Allowlist provider to prevent XSS injection into the inline script
     const rawProvider = req.query.provider as string || 'google';
