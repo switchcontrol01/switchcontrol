@@ -1,0 +1,232 @@
+SWITCHCONTROL AI OPTIMIZATION ENGINE V2
+PREMIUM REBUILD SPECIFICATION
+
+PROBLEM:
+
+the current apply reccomenddd is bland no rich animations and effects, not premum, and it too many boxes and no ai driven and it doesnt scan entirety of systeminformation. 
+
+
+OBJECTIVE
+
+Completely replace the current recommendation-card and checkbox-based system.
+
+The new experience must feel like a premium AI-powered operating system optimization platform rather than a tweak utility.
+
+Users should feel that SwitchControl is:
+
+- Understanding their hardware
+- Understanding their goals
+- Understanding their current system state
+- Building a personalized optimization strategy
+
+No checkboxes.
+No recommendation cards.
+No static lists.
+
+The entire experience should be guided, animated, intelligent, and immersive.
+
+==================================================
+
+PHASE 1
+
+PC DNA GENERATION
+
+When user clicks:
+
+"Optimize My PC"
+
+Launch a dedicated full-screen AI Optimization experience.
+
+Immediately begin:
+
+PC DNA Generation
+
+Scan all available data sources.
+
+COLLECT:
+
+SYSTEMINFORMATION
+
+- cpu
+- cpu flags
+- cpu cache
+- motherboard
+- bios
+- ram layout
+- memory timings
+- gpu
+- monitors
+- displays
+- drives
+- network adapters
+- processes
+- services
+- startup items
+- power plans
+- windows build
+- windows edition
+
+ELECTRON IPC
+
+- applied tweaks
+- active tweaks
+- tweak states
+- tweak categories
+- rollback points
+- optimization history
+- telemetry cache
+- live telemetry
+
+PERFORMANCE DATA
+
+- cpu load
+- gpu load
+- ram usage
+- disk activity
+- network activity
+- temperatures
+- latency metrics
+
+APPLICATIONS
+
+- installed games
+- detected launchers
+- Steam
+- Epic
+- Riot
+- Xbox
+- Battle.net
+
+==================================================
+
+VISUAL EXPERIENCE
+
+NO SPINNERS
+
+NO BASIC LOADERS
+
+Create a premium neural visualization.
+
+Background:
+
+- animated particle field
+- glowing network lines
+- flowing data streams
+- glassmorphism
+- depth layers
+- subtle parallax
+
+Scan stages appear as live nodes:
+
+Hardware Layer
+
+OS Layer
+
+Performance Layer
+
+Network Layer
+
+Gaming Layer
+
+Tweaks Layer
+
+Telemetry Layer
+
+Each node lights up as completed.
+
+==================================================
+
+PHASE 2
+
+AI PERFORMANCE PROFILE
+
+After scan:
+
+Generate a permanent profile called:
+
+PC DNA
+
+Examples:
+
+Competitive Gamer
+
+Creator Workstation
+
+Latency Focused
+
+High Refresh Gaming
+
+Balanced Power User
+
+Store profile locally.
+
+Profile updates whenever hardware changes.
+
+==================================================
+
+PHASE 3
+
+AI GOAL CONVERSATION
+
+DO NOT SHOW CARDS
+
+DO NOT SHOW BUTTON GRIDS
+
+Create conversational interface.
+
+AI asks:
+
+"What are you trying to improve today?"
+
+Examples:
+
+- lower latency
+- better FPS
+- better 1% lows
+- Fortnite optimization
+- streaming + gaming
+- Microsoft Flight Simulator
+- reduce stuttering
+- general responsiveness
+
+User types naturally.
+
+Examples:
+
+"I want the lowest latency possible."
+
+"Optimize Fortnite."
+
+"Improve my 1% lows."
+
+"Reduce stutter."
+
+==================================================
+
+PHASE 4
+
+AI REASONING ENGINE
+
+Display AI thought process.
+
+Examples:
+
+Analyzing Hardware...
+
+Reviewing Current Tweaks...
+
+Detecting Bottlenecks...
+
+Comparing Similar Systems...
+
+Calculating Risk Levels...
+
+Building Optimization Strategy...
+
+Generate realistic progress.
+
+No fake delays.
+
+Actual analysis should occur.
+
+==================================================

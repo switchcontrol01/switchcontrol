@@ -1,22 +1,34 @@
 /**
- * OptimizationFlow.tsx — Full-screen, phase-driven adaptive optimization UI.
+ * OptimizationFlow.tsx — Full-screen, cinematic, AI-driven optimization experience.
  *
- * Phases: idle → snapshotting → intent → deciding → plan → applying → done
- * All phase transitions are driven by the isolated optimizationStore.
+ * Phases (driven by the isolated optimizationStore):
+ *   idle → snapshotting → intent → deciding → plan → applying → done
+ *
+ * Phase experiences:
+ *   snapshotting → Neural PC-DNA scan (canvas particle field + layer probes) and
+ *                  an archetype reveal derived from the REAL hardware snapshot.
+ *   intent       → Conversational goal input (natural language → intent). No cards.
+ *   deciding     → AI reasoning engine (live thought process) while the REAL
+ *                  scoring/conflict engine runs.
+ *   plan         → Impact simulation (animated SVG), confidence rings, conflict
+ *                  nodes — all derived from the real engine plan. No checkboxes.
+ *   applying     → Cinematic staged apply sequence over the real apply call.
+ *   done         → Digital-twin before/after with adaptive memory + undo.
+ *
  * This component never imports from or causes re-renders of TweaksList.
  */
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Zap, TrendingUp, Activity, Waves, Gamepad2, Radio, Target, Wifi,
-  Sparkles, X, CheckCircle2, ChevronRight, AlertTriangle,
-  ChevronDown, RotateCcw, ArrowRight, Clock, Cpu,
+  Sparkles, X, CheckCircle2, AlertTriangle, RotateCcw, ArrowRight,
+  Cpu, Send, Brain, ShieldCheck, Layers, Gauge, CircuitBoard,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useOptimizationStore } from "@/stores/optimizationStore";
 import { collectOptimizationSnapshot, type OptimizationSnapshot } from "@/lib/optimizationSnapshot";
-import { runOptimizationEngine, type OptimizationPlan, type PlanEntry, type AvoidedEntry } from "@shared/optimizationEngine";
+import { runOptimizationEngine, type OptimizationPlan } from "@shared/optimizationEngine";
 import { runNetworkOptimizationEngine } from "@shared/networkOptimizationEngine";
 import { collectNetworkOptimizationSnapshot } from "@/lib/networkOptimizationSnapshot";
 import type { OptimizationIntent } from "@shared/tweakOptimizationMeta";
@@ -26,324 +38,633 @@ import { useStore } from "@/lib/store";
 import { useAuthStore } from "@/lib/auth-store";
 import { bulkApplyTweaks, bulkRevertTweaks, isElectronWithTweaks } from "@/hooks/use-tweak-executor";
 import { applyRecommended } from "@/lib/api";
+import { premiumColor, successColor } from "@/lib/themeTokens";
+import { NeuralScanField } from "@/components/optimization/NeuralScanField";
+import {
+  derivePcDna, resolveGoal, intentLabel as intentLabelOf, GOAL_SUGGESTIONS,
+  computeImpactProjection, extractConflicts, buildApplyStages,
+  loadOptMemory, recordOptSession, personalizedGreeting,
+  type PcDna, type ImpactMetric, type ConflictNode, type ApplyStage, type GoalResolution,
+} from "@/lib/pcDna";
 
-// ── Intent config ─────────────────────────────────────────────────────────────
+// ── Timing constants ──────────────────────────────────────────────────────────
 
-interface IntentOption {
-  id: OptimizationIntent;
-  label: string;
-  desc: string;
-  icon: React.FC<{ className?: string }>;
-  gradient: string;
-  ring: string;
+const REASONING_MS = 2600;
+const APPLY_CINEMATIC_MS = 5400;
+
+const INTENT_ICON: Record<OptimizationIntent, React.FC<{ className?: string; style?: React.CSSProperties }>> = {
+  "lowest-latency": Zap,
+  "highest-fps": TrendingUp,
+  "lowest-stutter": Activity,
+  "smooth-frametimes": Waves,
+  "balanced-gaming": Gamepad2,
+  "streaming-gaming": Radio,
+  "competitive-fps": Target,
+  "network-responsiveness": Wifi,
+  "auto": Sparkles,
+};
+
+// ── Small primitives ──────────────────────────────────────────────────────────
+
+/** Eased count-up for animated numbers. */
+function CountUp({ value, decimals = 0, duration = 900 }: { value: number; decimals?: number; duration?: number }) {
+  const [v, setV] = useState(0);
+  useEffect(() => {
+    let raf = 0;
+    const start = performance.now();
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - start) / duration);
+      const eased = 1 - Math.pow(1 - t, 3);
+      setV(value * eased);
+      if (t < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [value, duration]);
+  return <>{v.toFixed(decimals)}</>;
 }
 
-const INTENT_OPTIONS: IntentOption[] = [
-  { id: "competitive-fps",      label: "Competitive FPS",      icon: Target,     desc: "Tuned for shooters and fast-paced games",   gradient: "from-red-500/20 to-orange-500/10",    ring: "ring-red-500/40" },
-  { id: "lowest-latency",       label: "Lowest Latency",       icon: Zap,        desc: "Minimize input lag end-to-end",              gradient: "from-yellow-500/20 to-amber-500/10",  ring: "ring-yellow-500/40" },
-  { id: "highest-fps",          label: "Highest FPS",          icon: TrendingUp, desc: "Push frame rate as high as possible",        gradient: "from-emerald-500/20 to-green-500/10", ring: "ring-emerald-500/40" },
-  { id: "lowest-stutter",       label: "Lowest Stutter",       icon: Activity,   desc: "Eliminate frame drops and hitching",         gradient: "from-purple-500/20 to-violet-500/10", ring: "ring-purple-500/40" },
-  { id: "smooth-frametimes",    label: "Smooth Frametimes",    icon: Waves,      desc: "Consistent delivery over raw speed",         gradient: "from-cyan-500/20 to-sky-500/10",      ring: "ring-cyan-500/40" },
-  { id: "balanced-gaming",      label: "Balanced Gaming",      icon: Gamepad2,   desc: "Well-rounded improvements everywhere",       gradient: "from-blue-500/20 to-indigo-500/10",   ring: "ring-blue-500/40" },
-  { id: "streaming-gaming",     label: "Streaming + Gaming",   icon: Radio,      desc: "Game well while streaming or recording",     gradient: "from-pink-500/20 to-rose-500/10",     ring: "ring-pink-500/40" },
-  { id: "network-responsiveness",label: "Network Responsiveness",icon: Wifi,     desc: "Lower ping and reduce network inconsistency",gradient: "from-teal-500/20 to-cyan-500/10",     ring: "ring-teal-500/40" },
-  { id: "auto",                 label: "Auto (Best Overall)",  icon: Sparkles,   desc: "Engine chooses based on your hardware",      gradient: "from-violet-500/20 to-purple-500/10", ring: "ring-violet-500/40" },
+/** Radial confidence ring (SVG). */
+function RadialConfidence({ score, size = 46 }: { score: number; size?: number }) {
+  const r = (size - 6) / 2;
+  const c = 2 * Math.PI * r;
+  const off = c * (1 - Math.max(0, Math.min(100, score)) / 100);
+  const color = score >= 75 ? successColor.main : score >= 55 ? premiumColor.main : "#fbbf24";
+  return (
+    <svg width={size} height={size} className="shrink-0">
+      <g transform={`rotate(-90 ${size / 2} ${size / 2})`}>
+        <circle cx={size / 2} cy={size / 2} r={r} stroke="rgba(255,255,255,0.08)" strokeWidth="3" fill="none" />
+        <motion.circle
+          cx={size / 2} cy={size / 2} r={r}
+          stroke={color} strokeWidth="3" fill="none" strokeLinecap="round"
+          strokeDasharray={c}
+          initial={{ strokeDashoffset: c }}
+          animate={{ strokeDashoffset: off }}
+          transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
+        />
+      </g>
+      <text x={size / 2} y={size / 2} dominantBaseline="central" textAnchor="middle"
+        fill="#fff" fontSize="12" fontWeight={700}>{Math.round(score)}</text>
+    </svg>
+  );
+}
+
+// ── Phase: Snapshotting (Neural scan + PC DNA reveal) ─────────────────────────
+
+const SCAN_LAYERS = [
+  { label: "Hardware Topology", icon: Cpu },
+  { label: "Operating System", icon: CircuitBoard },
+  { label: "Performance State", icon: Gauge },
+  { label: "Network Stack", icon: Wifi },
+  { label: "Gaming Profile", icon: Gamepad2 },
+  { label: "Applied Tweaks", icon: Layers },
+  { label: "Telemetry Signals", icon: Activity },
 ];
 
-// ── Safety badge ──────────────────────────────────────────────────────────────
+function SnapshottingPhase({
+  dna, dataReady, onProceed,
+}: { dna: PcDna; dataReady: boolean; onProceed: () => void }) {
+  const [scanStep, setScanStep] = useState(0);
+  const [revealed, setRevealed] = useState(false);
 
-function SafetyBadge({ level }: { level: string }) {
-  if (level === "safe")     return <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-400/10 border border-emerald-400/20 px-1.5 py-0.5 rounded-full">Safe</span>;
-  if (level === "moderate") return <span className="text-[10px] font-semibold text-amber-400 bg-amber-400/10 border border-amber-400/20 px-1.5 py-0.5 rounded-full">Moderate</span>;
-  return                          <span className="text-[10px] font-semibold text-red-400 bg-red-400/10 border border-red-400/20 px-1.5 py-0.5 rounded-full">Risky</span>;
-}
+  useEffect(() => {
+    const id = setInterval(() => {
+      setScanStep(s => (s < SCAN_LAYERS.length ? s + 1 : s));
+    }, 300);
+    return () => clearInterval(id);
+  }, []);
 
-function ImpactBadge({ level }: { level: string }) {
-  if (level === "high")   return <span className="text-[10px] font-semibold text-violet-300 bg-violet-500/10 border border-violet-500/20 px-1.5 py-0.5 rounded-full">High impact</span>;
-  if (level === "medium") return <span className="text-[10px] font-semibold text-blue-300 bg-blue-500/10 border border-blue-500/20 px-1.5 py-0.5 rounded-full">Medium impact</span>;
-  return                         <span className="text-[10px] font-semibold text-[#4A5568] bg-white/[0.03] border border-white/[0.06] px-1.5 py-0.5 rounded-full">Low impact</span>;
-}
+  useEffect(() => {
+    if (scanStep >= SCAN_LAYERS.length && dataReady) {
+      const t = setTimeout(() => setRevealed(true), 350);
+      return () => clearTimeout(t);
+    }
+  }, [scanStep, dataReady]);
 
-function RevertBadge({ rev }: { rev: string }) {
-  if (rev === "instant") return <span className="text-[10px] text-[#4A5568] flex items-center gap-0.5"><Zap className="size-2.5" />Instant</span>;
-  return                        <span className="text-[10px] text-amber-500/70 flex items-center gap-0.5"><Clock className="size-2.5" />Reboot</span>;
-}
-
-// ── Confidence bar ────────────────────────────────────────────────────────────
-
-function ConfidenceBar({ score }: { score: number }) {
-  const color = score >= 75 ? "bg-emerald-500" : score >= 55 ? "bg-cyan-500" : "bg-amber-500";
   return (
-    <div className="flex items-center gap-2 mt-1">
-      <div className="flex-1 h-1 bg-white/5 rounded-full overflow-hidden">
-        <motion.div
-          className={cn("h-full rounded-full", color)}
-          initial={{ width: 0 }}
-          animate={{ width: `${score}%` }}
-          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
-        />
-      </div>
-      <span className="text-[10px] text-[#4A5568] tabular-nums w-7 text-right">{score}</span>
+    <div className="flex flex-col items-center justify-center min-h-full py-8">
+      <AnimatePresence mode="wait">
+        {!revealed ? (
+          <motion.div
+            key="scan"
+            className="flex flex-col items-center gap-8 w-full max-w-md"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, scale: 0.96 }}
+          >
+            {/* Central scan orb */}
+            <div className="relative w-32 h-32">
+              <motion.div
+                className="absolute inset-0 rounded-full border"
+                style={{ borderColor: "rgba(0,212,255,0.25)" }}
+                animate={{ rotate: 360 }}
+                transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+              />
+              <motion.div
+                className="absolute inset-3 rounded-full border-2 border-r-transparent border-b-transparent border-l-transparent"
+                style={{ borderTopColor: premiumColor.main }}
+                animate={{ rotate: -360 }}
+                transition={{ duration: 1.6, repeat: Infinity, ease: "linear" }}
+              />
+              <motion.div
+                className="absolute inset-8 rounded-full"
+                style={{ background: "radial-gradient(circle, rgba(0,212,255,0.35), transparent 70%)" }}
+                animate={{ scale: [1, 1.15, 1], opacity: [0.6, 1, 0.6] }}
+                transition={{ duration: 1.8, repeat: Infinity }}
+              />
+              <Brain className="absolute inset-0 m-auto size-8" style={{ color: premiumColor.light }} />
+            </div>
+
+            <div className="text-center">
+              <h2 className="text-xl font-semibold text-white tracking-tight">Generating PC DNA</h2>
+              <p className="text-sm text-[#7c8597] mt-1">Mapping your system at the silicon level…</p>
+            </div>
+
+            <div className="w-full grid grid-cols-1 gap-1.5">
+              {SCAN_LAYERS.map((layer, i) => {
+                const Icon = layer.icon;
+                const done = scanStep > i;
+                const active = scanStep === i;
+                return (
+                  <motion.div
+                    key={layer.label}
+                    initial={{ opacity: 0, x: -8 }}
+                    animate={{ opacity: done || active ? 1 : 0.3, x: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="flex items-center gap-3 px-3 py-2 rounded-lg"
+                    style={{ background: active ? "rgba(0,212,255,0.06)" : "transparent" }}
+                  >
+                    <Icon className="size-4 shrink-0" style={{ color: done ? successColor.main : active ? premiumColor.light : "#45506a" }} />
+                    <span className={cn("text-sm flex-1", done || active ? "text-[#c5cdda]" : "text-[#45506a]")}>
+                      {layer.label}
+                    </span>
+                    {done ? (
+                      <CheckCircle2 className="size-4" style={{ color: successColor.main }} />
+                    ) : active ? (
+                      <motion.div
+                        className="size-3.5 rounded-full border"
+                        style={{ borderColor: premiumColor.main }}
+                        animate={{ opacity: [1, 0.3, 1] }}
+                        transition={{ duration: 1, repeat: Infinity }}
+                      />
+                    ) : (
+                      <div className="size-3.5 rounded-full border border-white/10" />
+                    )}
+                  </motion.div>
+                );
+              })}
+            </div>
+          </motion.div>
+        ) : (
+          <DnaReveal key="dna" dna={dna} onProceed={onProceed} />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
 
-// ── Phase: Snapshotting ───────────────────────────────────────────────────────
-
-const SCAN_STEPS = ["Reading CPU & GPU profile…", "Checking Windows build…", "Loading tweak registry…"];
-
-function SnapshottingPhase() {
-  const [step, setStep] = useState(0);
-
-  useEffect(() => {
-    const t1 = setTimeout(() => setStep(1), 400);
-    const t2 = setTimeout(() => setStep(2), 900);
-    return () => { clearTimeout(t1); clearTimeout(t2); };
-  }, []);
-
+function DnaReveal({ dna, onProceed }: { dna: PcDna; onProceed: () => void }) {
   return (
-    <div className="flex flex-col items-center justify-center h-full gap-8 py-16">
-      <div className="relative">
-        <motion.div
-          className="w-20 h-20 rounded-full border-2 border-violet-500/30"
-          animate={{ rotate: 360 }}
-          transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-        />
-        <motion.div
-          className="absolute inset-2 rounded-full border-2 border-t-cyan-400 border-r-transparent border-b-transparent border-l-transparent"
-          animate={{ rotate: -360 }}
-          transition={{ duration: 1.2, repeat: Infinity, ease: "linear" }}
-        />
-        <Cpu className="absolute inset-0 m-auto size-7 text-violet-400" />
-      </div>
+    <motion.div
+      className="flex flex-col items-center gap-6 w-full max-w-lg"
+      initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+    >
       <div className="text-center">
-        <h2 className="text-lg font-semibold text-white mb-1">Analyzing Your System</h2>
-        <p className="text-sm text-[#6B7380]">Building your hardware profile…</p>
+        <motion.div
+          className="text-[11px] uppercase tracking-[0.3em] mb-2"
+          style={{ color: premiumColor.light }}
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}
+        >
+          PC DNA Identified
+        </motion.div>
+        <motion.h2
+          className="text-3xl font-bold text-white tracking-tight"
+          initial={{ opacity: 0, scale: 0.92 }} animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.18, type: "spring", stiffness: 320, damping: 22 }}
+        >
+          {dna.archetype}
+        </motion.h2>
+        <p className="text-sm text-[#7c8597] mt-1.5 max-w-sm mx-auto">{dna.tagline}</p>
       </div>
-      <div className="space-y-2 w-full max-w-xs">
-        {SCAN_STEPS.map((s, i) => (
+
+      {/* Spec chips */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full">
+        {[
+          { k: "CPU", v: dna.cpuLabel },
+          { k: "GPU", v: dna.gpuLabel },
+          { k: "Memory", v: dna.ramLabel },
+          { k: "System", v: dna.osLabel },
+        ].map((c, i) => (
           <motion.div
-            key={s}
-            initial={{ opacity: 0, x: -8 }}
-            animate={{ opacity: step >= i ? 1 : 0.3, x: 0 }}
-            transition={{ duration: 0.3, delay: i * 0.02 }}
-            className="flex items-center gap-2 text-sm"
+            key={c.k}
+            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.28 + i * 0.06 }}
+            className="rounded-xl border border-white/[0.07] bg-white/[0.02] px-3 py-2.5 min-w-0"
           >
-            {step > i ? (
-              <CheckCircle2 className="size-3.5 text-emerald-400 shrink-0" />
-            ) : step === i ? (
-              <motion.div
-                className="size-3.5 rounded-full border border-cyan-400 shrink-0"
-                animate={{ opacity: [1, 0.4, 1] }}
-                transition={{ duration: 1, repeat: Infinity }}
-              />
-            ) : (
-              <div className="size-3.5 rounded-full border border-white/10 shrink-0" />
-            )}
-            <span className={step >= i ? "text-[#C0C8D8]" : "text-[#4A5568]"}>{s}</span>
+            <div className="text-[10px] uppercase tracking-wider text-[#5b6478]">{c.k}</div>
+            <div className="text-[12px] font-medium text-white truncate" title={c.v}>{c.v}</div>
           </motion.div>
         ))}
       </div>
-    </div>
-  );
-}
 
-// ── Phase: Intent picker ──────────────────────────────────────────────────────
-
-function IntentPhase({ onSelect }: { onSelect: (intent: OptimizationIntent) => void }) {
-  return (
-    <div className="flex flex-col gap-5 h-full">
-      <div>
-        <h2 className="text-lg font-semibold text-white">What are you optimizing for?</h2>
-        <p className="text-sm text-[#6B7380] mt-0.5">The engine will score and rank tweaks around your goal.</p>
-      </div>
-      <div className="grid grid-cols-3 gap-2.5 flex-1">
-        {INTENT_OPTIONS.map((opt, i) => {
-          const Icon = opt.icon;
-          return (
-            <motion.button
-              key={opt.id}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.28, delay: i * 0.04, ease: [0.22, 1, 0.36, 1] }}
-              onClick={() => onSelect(opt.id)}
-              className={cn(
-                "relative group flex flex-col gap-2 p-3.5 rounded-xl border border-white/[0.06] text-left",
-                "bg-gradient-to-br", opt.gradient,
-                "hover:border-white/15 hover:ring-1", opt.ring,
-                "transition-all duration-200 cursor-pointer active:scale-[0.97]"
-              )}
-            >
-              <Icon className="size-5 text-white/70 group-hover:text-white transition-colors" />
-              <div>
-                <div className="text-[13px] font-semibold text-white/90 leading-tight">{opt.label}</div>
-                <div className="text-[11px] text-[#6B7380] mt-0.5 leading-snug">{opt.desc}</div>
-              </div>
-              <ChevronRight className="absolute right-2.5 top-1/2 -translate-y-1/2 size-3.5 text-white/20 group-hover:text-white/50 transition-colors" />
-            </motion.button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-// ── Phase: Deciding (brief flash) ─────────────────────────────────────────────
-
-function DecidingPhase({ intentLabel }: { intentLabel: string }) {
-  return (
-    <div className="flex flex-col items-center justify-center h-full gap-6">
+      {/* Trait pills + headroom */}
       <motion.div
-        className="flex gap-1.5"
-        initial="hidden"
-        animate="visible"
-        variants={{ visible: { transition: { staggerChildren: 0.15 } } }}
+        className="flex flex-wrap items-center justify-center gap-2"
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }}
       >
-        {[0, 1, 2].map(i => (
-          <motion.div
-            key={i}
-            className="size-2.5 rounded-full bg-violet-500"
-            variants={{
-              hidden: { opacity: 0, scale: 0.5 },
-              visible: { opacity: [0.4, 1, 0.4], scale: [0.8, 1, 0.8], transition: { duration: 1, repeat: Infinity, delay: i * 0.2 } },
-            }}
-          />
+        {dna.traits.map(t => (
+          <span key={t.label} className="text-[11px] px-2.5 py-1 rounded-full border border-white/[0.08] bg-white/[0.03] text-[#aeb7c7]">
+            <span className="text-[#5b6478]">{t.label}:</span> {t.value}
+          </span>
         ))}
       </motion.div>
-      <div className="text-center">
-        <div className="text-base font-semibold text-white">Building your plan</div>
-        <div className="text-sm text-[#6B7380] mt-0.5">Scoring tweaks for <span className="text-violet-300">{intentLabel}</span>…</div>
+
+      <motion.div
+        className="w-full max-w-sm"
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7 }}
+      >
+        <div className="flex items-center justify-between text-[11px] mb-1.5">
+          <span className="text-[#7c8597]">Optimization headroom</span>
+          <span className="font-semibold" style={{ color: premiumColor.light }}>{dna.headroom}%</span>
+        </div>
+        <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+          <motion.div
+            className="h-full rounded-full"
+            style={{ background: `linear-gradient(90deg, ${premiumColor.main}, ${premiumColor.light})` }}
+            initial={{ width: 0 }} animate={{ width: `${dna.headroom}%` }}
+            transition={{ duration: 1, delay: 0.8, ease: [0.22, 1, 0.36, 1] }}
+          />
+        </div>
+      </motion.div>
+
+      <motion.button
+        initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.95 }}
+        onClick={onProceed}
+        data-testid="button-dna-continue"
+        className="group flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold text-[#02131a] transition-transform active:scale-[0.97]"
+        style={{ background: `linear-gradient(90deg, ${premiumColor.main}, ${premiumColor.end})`, boxShadow: "0 0 30px rgba(0,212,255,0.35)" }}
+      >
+        Set Your Goal
+        <ArrowRight className="size-4 group-hover:translate-x-0.5 transition-transform" />
+      </motion.button>
+    </motion.div>
+  );
+}
+
+// ── Phase: Intent (conversational goal input) ─────────────────────────────────
+
+function IntentPhase({
+  dna, greeting, onSubmit,
+}: { dna: PcDna; greeting: string | null; onSubmit: (text: string) => void }) {
+  const [text, setText] = useState("");
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => { inputRef.current?.focus(); }, []);
+
+  const submit = (value: string) => {
+    const v = value.trim();
+    onSubmit(v); // empty → auto intent
+  };
+
+  return (
+    <div className="flex flex-col items-center justify-center min-h-full py-10 w-full">
+      <div className="w-full max-w-xl flex flex-col items-center gap-7">
+        <motion.div
+          className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/[0.08] bg-white/[0.03]"
+          initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}
+        >
+          <Sparkles className="size-3.5" style={{ color: premiumColor.light }} />
+          <span className="text-[12px] text-[#aeb7c7]">{dna.archetype}</span>
+        </motion.div>
+
+        <div className="text-center">
+          <motion.h2
+            className="text-2xl sm:text-3xl font-bold text-white tracking-tight"
+            initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }}
+          >
+            What do you want to improve?
+          </motion.h2>
+          <motion.p
+            className="text-sm text-[#7c8597] mt-2"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.16 }}
+          >
+            {greeting ?? "Tell me in your own words — I'll build the strategy."}
+          </motion.p>
+        </div>
+
+        {/* Conversational input */}
+        <motion.form
+          className="w-full"
+          initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.22 }}
+          onSubmit={e => { e.preventDefault(); submit(text); }}
+        >
+          <div
+            className="flex items-center gap-2 rounded-2xl border bg-white/[0.03] px-4 py-3 focus-within:border-[rgba(0,212,255,0.4)] transition-colors"
+            style={{ borderColor: "rgba(255,255,255,0.1)" }}
+          >
+            <Brain className="size-5 shrink-0" style={{ color: premiumColor.light }} />
+            <input
+              ref={inputRef}
+              value={text}
+              onChange={e => setText(e.target.value)}
+              placeholder='e.g. "lowest latency for Valorant" or "fix my stutter"'
+              data-testid="input-optimization-goal"
+              className="flex-1 bg-transparent text-[15px] text-white placeholder:text-[#4d566b] outline-none"
+            />
+            <button
+              type="submit"
+              data-testid="button-submit-goal"
+              className="shrink-0 size-9 rounded-xl flex items-center justify-center text-[#02131a] transition-transform active:scale-90"
+              style={{ background: `linear-gradient(135deg, ${premiumColor.main}, ${premiumColor.end})` }}
+              aria-label="Build strategy"
+            >
+              <Send className="size-4" />
+            </button>
+          </div>
+        </motion.form>
+
+        {/* Suggestion pills (no card grid) */}
+        <motion.div
+          className="flex flex-wrap items-center justify-center gap-2"
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}
+        >
+          {GOAL_SUGGESTIONS.map((s, i) => (
+            <motion.button
+              key={s}
+              initial={{ opacity: 0, scale: 0.92 }} animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.32 + i * 0.04 }}
+              onClick={() => submit(s)}
+              data-testid={`pill-goal-${i}`}
+              className="text-[12px] px-3 py-1.5 rounded-full border border-white/[0.08] bg-white/[0.02] text-[#aeb7c7] hover:text-white hover:border-[rgba(0,212,255,0.35)] hover:bg-[rgba(0,212,255,0.06)] transition-colors"
+            >
+              {s}
+            </motion.button>
+          ))}
+        </motion.div>
+
+        <motion.button
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}
+          onClick={() => submit("")}
+          data-testid="button-goal-auto"
+          className="text-[12px] text-[#5b6478] hover:text-[#aeb7c7] transition-colors"
+        >
+          Not sure? Let the AI decide →
+        </motion.button>
       </div>
     </div>
   );
 }
 
-// ── Phase: Plan ───────────────────────────────────────────────────────────────
+// ── Phase: Deciding (AI reasoning engine) ─────────────────────────────────────
 
-function PlanPhase({
-  plan,
-  onApply,
-  onCancel,
-}: {
-  plan: OptimizationPlan;
-  onApply: () => void;
-  onCancel: () => void;
-}) {
-  const [showAvoided, setShowAvoided] = useState(false);
-  const intentLabel = INTENT_OPTIONS.find(o => o.id === plan.intent)?.label ?? plan.intent;
-  const newTweaks = plan.recommended.filter(r => !r.alreadyApplied);
-  const hasReboot = newTweaks.some(r => r.requiresReboot);
+const REASONING_STEPS = [
+  { label: "Analyzing hardware profile", icon: Cpu },
+  { label: "Reviewing current tweak state", icon: Layers },
+  { label: "Detecting performance bottlenecks", icon: Gauge },
+  { label: "Comparing against similar systems", icon: Brain },
+  { label: "Calculating risk & reversibility", icon: ShieldCheck },
+  { label: "Building optimization strategy", icon: Sparkles },
+];
+
+function DecidingPhase({ goal }: { goal: GoalResolution | null }) {
+  const [step, setStep] = useState(0);
+  useEffect(() => {
+    const per = REASONING_MS / REASONING_STEPS.length;
+    const timers = REASONING_STEPS.map((_, i) => setTimeout(() => setStep(i + 1), per * (i + 1)));
+    return () => timers.forEach(clearTimeout);
+  }, []);
 
   return (
-    <div className="flex flex-col h-full gap-4">
+    <div className="flex flex-col items-center justify-center min-h-full py-10 w-full">
+      <div className="w-full max-w-md flex flex-col gap-7">
+        <div className="text-center">
+          <motion.div
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border mb-4"
+            style={{ borderColor: "rgba(0,212,255,0.25)", background: "rgba(0,212,255,0.05)" }}
+            animate={{ boxShadow: ["0 0 0px rgba(0,212,255,0)", "0 0 24px rgba(0,212,255,0.4)", "0 0 0px rgba(0,212,255,0)"] }}
+            transition={{ duration: 2, repeat: Infinity }}
+          >
+            <Brain className="size-4" style={{ color: premiumColor.light }} />
+            <span className="text-[12px] font-medium" style={{ color: premiumColor.light }}>AI Reasoning Engine</span>
+          </motion.div>
+          <h2 className="text-xl font-semibold text-white">{goal?.acknowledgement ?? "Building your strategy…"}</h2>
+        </div>
+
+        <div className="flex flex-col gap-2">
+          {REASONING_STEPS.map((s, i) => {
+            const Icon = s.icon;
+            const done = step > i;
+            const active = step === i;
+            return (
+              <motion.div
+                key={s.label}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: done || active ? 1 : 0.35, x: 0 }}
+                transition={{ duration: 0.3 }}
+                className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl border"
+                style={{
+                  borderColor: active ? "rgba(0,212,255,0.3)" : "rgba(255,255,255,0.05)",
+                  background: active ? "rgba(0,212,255,0.05)" : "transparent",
+                }}
+              >
+                <Icon className="size-4 shrink-0" style={{ color: done ? successColor.main : active ? premiumColor.light : "#45506a" }} />
+                <span className={cn("text-sm flex-1", done || active ? "text-[#c5cdda]" : "text-[#45506a]")}>{s.label}</span>
+                {done ? (
+                  <CheckCircle2 className="size-4" style={{ color: successColor.main }} />
+                ) : active ? (
+                  <motion.div className="flex gap-0.5">
+                    {[0, 1, 2].map(d => (
+                      <motion.span
+                        key={d}
+                        className="size-1.5 rounded-full"
+                        style={{ background: premiumColor.main }}
+                        animate={{ opacity: [0.3, 1, 0.3] }}
+                        transition={{ duration: 0.9, repeat: Infinity, delay: d * 0.15 }}
+                      />
+                    ))}
+                  </motion.div>
+                ) : null}
+              </motion.div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Phase: Plan (impact simulation + strategy + conflicts) ────────────────────
+
+function ImpactMetricCard({ m, index }: { m: ImpactMetric; index: number }) {
+  const decimals = m.unit === "ms" ? 1 : 0;
+  const accent = m.direction === "up" ? successColor.main : premiumColor.main;
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.1 + index * 0.07, ease: [0.22, 1, 0.36, 1] }}
+      className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-3 flex flex-col gap-2"
+    >
+      <div className="text-[11px] text-[#7c8597] leading-tight">{m.label}</div>
+      <div className="flex items-baseline gap-1.5">
+        <span className="text-lg font-bold tabular-nums" style={{ color: accent }}>{m.deltaLabel}</span>
+      </div>
+      <div className="text-[10px] text-[#5b6478] tabular-nums">
+        {m.unit === "ms"
+          ? <>{m.before}ms → <CountUp value={m.after} decimals={decimals} />ms</>
+          : <>baseline → <CountUp value={m.after} decimals={decimals} />{m.unit}</>}
+      </div>
+      <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden mt-0.5">
+        <motion.div
+          className="h-full rounded-full"
+          style={{ background: accent }}
+          initial={{ width: 0 }} animate={{ width: `${Math.round(m.strength * 100)}%` }}
+          transition={{ duration: 0.9, delay: 0.2 + index * 0.07, ease: [0.22, 1, 0.36, 1] }}
+        />
+      </div>
+    </motion.div>
+  );
+}
+
+const CONFLICT_LABEL: Record<ConflictNode["type"], string> = {
+  conflict: "Conflict",
+  duplicate: "Already set",
+  legacy: "Legacy",
+  unsafe: "Unsafe",
+  bottleneck: "Incompatible",
+};
+
+function ConflictNodeChip({ node, index }: { node: ConflictNode; index: number }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
+      transition={{ delay: 0.1 + index * 0.06 }}
+      className="relative flex items-start gap-2.5 p-2.5 rounded-xl border border-amber-500/20 bg-amber-500/[0.04]"
+    >
+      <motion.div
+        className="mt-0.5 shrink-0"
+        animate={{ opacity: [0.5, 1, 0.5] }}
+        transition={{ duration: 1.6, repeat: Infinity, delay: index * 0.2 }}
+      >
+        <AlertTriangle className="size-3.5 text-amber-400" />
+      </motion.div>
+      <div className="min-w-0">
+        <div className="flex items-center gap-1.5">
+          <span className="text-[12px] font-medium text-[#d6c08a] truncate">{node.title}</span>
+          <span className="text-[9px] uppercase tracking-wider text-amber-500/70 border border-amber-500/20 rounded px-1 py-px shrink-0">{CONFLICT_LABEL[node.type]}</span>
+        </div>
+        <p className="text-[10px] text-[#8a8268] mt-0.5 leading-snug">{node.reason}</p>
+      </div>
+    </motion.div>
+  );
+}
+
+function PlanPhase({
+  plan, dna, onApply, onCancel,
+}: { plan: OptimizationPlan; dna: PcDna; onApply: () => void; onCancel: () => void }) {
+  const metrics = useMemo(() => computeImpactProjection(plan), [plan]);
+  const conflicts = useMemo(() => extractConflicts(plan), [plan]);
+  const newTweaks = plan.recommended.filter(r => !r.alreadyApplied);
+  const Icon = INTENT_ICON[plan.intent] ?? Sparkles;
+
+  return (
+    <div className="flex flex-col gap-5 w-full max-w-3xl mx-auto py-2">
       {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h2 className="text-lg font-semibold text-white">Your Optimization Plan</h2>
-          <div className="text-xs text-[#6B7380] mt-0.5 flex items-center gap-1.5">
-            <Cpu className="size-3" />
-            {plan.hardwareSummary}
-            <span className="text-white/20">·</span>
-            Intent: <span className="text-violet-300">{intentLabel}</span>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <Icon className="size-4" style={{ color: premiumColor.light }} />
+            <span className="text-[12px] font-medium" style={{ color: premiumColor.light }}>{intentLabelOf(plan.intent)}</span>
           </div>
+          <h2 className="text-2xl font-bold text-white tracking-tight">Your Optimization Strategy</h2>
+          <p className="text-[12px] text-[#7c8597] mt-1">{dna.archetype} · {plan.hardwareSummary}</p>
         </div>
         <div className="text-right shrink-0">
-          <div className="text-2xl font-bold text-white">{newTweaks.length}</div>
-          <div className="text-[10px] text-[#6B7380]">tweaks to apply</div>
+          <div className="text-3xl font-bold text-white tabular-nums">{newTweaks.length}</div>
+          <div className="text-[10px] text-[#7c8597]">optimizations</div>
         </div>
       </div>
 
-      {/* Recommended list */}
-      <div className="flex-1 min-h-0 overflow-y-auto space-y-2 pr-1 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/10">
-        {newTweaks.length === 0 ? (
-          <div className="flex flex-col items-center py-10 gap-3 text-center">
-            <CheckCircle2 className="size-10 text-emerald-400" />
-            <div className="text-sm text-[#6B7380]">All recommended tweaks are already applied.<br />Your system is already optimized for this intent.</div>
-          </div>
-        ) : (
-          newTweaks.map((entry, i) => (
-            <motion.div
-              key={entry.tweakId}
-              initial={{ opacity: 0, x: -6 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.25, delay: i * 0.04 }}
-              className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-3 hover:border-white/10 transition-colors"
-            >
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-sm font-medium text-white">{entry.tweakTitle}</span>
-                    <ImpactBadge level={entry.expectedImpact} />
-                    <SafetyBadge level={entry.safetyLevel} />
-                    <RevertBadge rev={entry.reversibility} />
-                  </div>
-                  <p className="text-[11px] text-[#6B7380] mt-1 leading-relaxed">{entry.reason}</p>
-                  <ConfidenceBar score={entry.score} />
+      {newTweaks.length === 0 ? (
+        <div className="flex flex-col items-center py-12 gap-3 text-center">
+          <CheckCircle2 className="size-12" style={{ color: successColor.main }} />
+          <div className="text-sm text-[#8a93a6] max-w-xs">Your system is already optimized for this goal. Nothing left to apply.</div>
+        </div>
+      ) : (
+        <>
+          {/* Impact simulation */}
+          {metrics.length > 0 && (
+            <div>
+              <div className="text-[11px] uppercase tracking-wider text-[#5b6478] mb-2">Projected Impact</div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+                {metrics.map((m, i) => <ImpactMetricCard key={m.key} m={m} index={i} />)}
+              </div>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+            {/* Strategy list */}
+            <div className={cn(conflicts.length > 0 ? "lg:col-span-3" : "lg:col-span-5")}>
+              <div className="text-[11px] uppercase tracking-wider text-[#5b6478] mb-2">AI-Selected Optimizations</div>
+              <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/10">
+                {newTweaks.map((entry, i) => (
+                  <motion.div
+                    key={entry.tweakId}
+                    initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.28, delay: i * 0.04 }}
+                    className="flex items-center gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] p-3 hover:border-[rgba(0,212,255,0.25)] transition-colors"
+                  >
+                    <RadialConfidence score={entry.score} />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm font-medium text-white">{entry.tweakTitle}</span>
+                        {entry.expectedImpact === "high" && (
+                          <span className="text-[9px] uppercase tracking-wider rounded px-1 py-px" style={{ color: premiumColor.light, border: `1px solid ${premiumColor.main}40` }}>High impact</span>
+                        )}
+                        {entry.requiresReboot && (
+                          <span className="text-[9px] uppercase tracking-wider text-amber-400/80 border border-amber-500/20 rounded px-1 py-px">Reboot</span>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-[#7c8597] mt-0.5 leading-snug line-clamp-2">{entry.reason}</p>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+
+            {/* Conflict nodes */}
+            {conflicts.length > 0 && (
+              <div className="lg:col-span-2">
+                <div className="text-[11px] uppercase tracking-wider text-[#5b6478] mb-2 flex items-center gap-1.5">
+                  <AlertTriangle className="size-3 text-amber-500/70" />
+                  Conflicts Detected
+                </div>
+                <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/10">
+                  {conflicts.map((c, i) => <ConflictNodeChip key={c.tweakId} node={c} index={i} />)}
                 </div>
               </div>
-            </motion.div>
-          ))
-        )}
-
-        {/* Avoided section (collapsible) */}
-        {plan.avoided.length > 0 && (
-          <div className="pt-1">
-            <button
-              onClick={() => setShowAvoided(v => !v)}
-              className="flex items-center gap-1.5 text-xs text-[#4A5568] hover:text-[#8B95A6] transition-colors w-full py-1"
-            >
-              <ChevronDown className={cn("size-3 transition-transform", showAvoided && "rotate-180")} />
-              {plan.avoided.length} excluded · click to see why
-            </button>
-            <AnimatePresence>
-              {showAvoided && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.25 }}
-                  className="overflow-hidden"
-                >
-                  <div className="space-y-1.5 pt-2">
-                    {plan.avoided.slice(0, 10).map((entry) => (
-                      <div key={entry.tweakId} className="flex items-start gap-2 p-2.5 rounded-lg bg-white/[0.015] border border-white/[0.04]">
-                        <AlertTriangle className="size-3 text-amber-500/60 shrink-0 mt-0.5" />
-                        <div>
-                          <span className="text-[11px] font-medium text-[#8B95A6]">{entry.tweakTitle}</span>
-                          <p className="text-[10px] text-[#4A5568] mt-0.5 leading-relaxed">{entry.reason}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+            )}
           </div>
-        )}
-      </div>
+        </>
+      )}
 
       {/* Footer */}
-      <div className="flex items-center gap-3 pt-2 border-t border-white/[0.06]">
-        {hasReboot && (
-          <div className="flex items-center gap-1 text-xs text-amber-400/70">
-            <Clock className="size-3" />
-            Some tweaks need a reboot
-          </div>
-        )}
+      <div className="flex items-center gap-3 pt-3 border-t border-white/[0.06]">
         <div className="flex-1" />
         <button
           onClick={onCancel}
-          className="px-4 py-2 text-sm text-[#6B7380] hover:text-white transition-colors"
+          data-testid="button-cancel-plan"
+          className="px-4 py-2.5 text-sm text-[#7c8597] hover:text-white transition-colors"
         >
           Cancel
         </button>
         {newTweaks.length > 0 && (
           <button
             onClick={onApply}
-            className="flex items-center gap-2 px-5 py-2 rounded-lg bg-violet-600 hover:bg-violet-500 text-white text-sm font-medium transition-colors"
+            data-testid="button-apply-strategy"
+            className="group flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold text-[#02131a] transition-transform active:scale-[0.97]"
+            style={{ background: `linear-gradient(90deg, ${premiumColor.main}, ${premiumColor.end})`, boxShadow: "0 0 30px rgba(0,212,255,0.35)" }}
           >
-            Apply {newTweaks.length} Tweaks
-            <ArrowRight className="size-4" />
+            Apply Optimization Strategy
+            <ArrowRight className="size-4 group-hover:translate-x-0.5 transition-transform" />
           </button>
         )}
       </div>
@@ -351,36 +672,85 @@ function PlanPhase({
   );
 }
 
-// ── Phase: Applying ───────────────────────────────────────────────────────────
+// ── Phase: Applying (cinematic staged sequence) ───────────────────────────────
 
-function ApplyingPhase({ total }: { total: number }) {
+function ApplyingPhase({ stages }: { stages: ApplyStage[] }) {
+  const [active, setActive] = useState(0);
+  useEffect(() => {
+    const per = APPLY_CINEMATIC_MS / stages.length;
+    const timers = stages.map((_, i) => setTimeout(() => setActive(i), per * i));
+    return () => timers.forEach(clearTimeout);
+  }, [stages]);
+
+  const progress = Math.min(100, Math.round(((active + 0.5) / stages.length) * 100));
+
   return (
-    <div className="flex flex-col items-center justify-center h-full gap-6">
-      <motion.div
-        className="w-16 h-16 rounded-full border-2 border-violet-500/30 flex items-center justify-center"
-        animate={{ rotate: 360 }}
-        transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
-      >
-        <motion.div className="w-3 h-3 rounded-full bg-violet-500" animate={{ scale: [1, 1.3, 1] }} transition={{ duration: 1, repeat: Infinity }} />
-      </motion.div>
-      <div className="text-center">
-        <div className="text-base font-semibold text-white">Applying tweaks…</div>
-        <div className="text-sm text-[#6B7380] mt-0.5">{total} changes queued</div>
+    <div className="flex flex-col items-center justify-center min-h-full py-10 w-full">
+      <div className="w-full max-w-md flex flex-col gap-7">
+        <div className="flex flex-col items-center gap-4">
+          <div className="relative w-24 h-24">
+            <motion.div
+              className="absolute inset-0 rounded-full border-2 border-r-transparent border-b-transparent border-l-transparent"
+              style={{ borderTopColor: premiumColor.main }}
+              animate={{ rotate: 360 }}
+              transition={{ duration: 1.2, repeat: Infinity, ease: "linear" }}
+            />
+            <motion.div
+              className="absolute inset-3 rounded-full"
+              style={{ background: "radial-gradient(circle, rgba(0,212,255,0.35), transparent 70%)" }}
+              animate={{ scale: [1, 1.18, 1] }}
+              transition={{ duration: 1.4, repeat: Infinity }}
+            />
+            <span className="absolute inset-0 m-auto flex items-center justify-center text-lg font-bold text-white tabular-nums">{progress}%</span>
+          </div>
+          <div className="text-center">
+            <h2 className="text-xl font-semibold text-white">Applying Optimizations</h2>
+            <p className="text-sm text-[#7c8597] mt-1">Engineering your system in real time…</p>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          {stages.map((stage, i) => {
+            const done = i < active;
+            const current = i === active;
+            return (
+              <motion.div
+                key={stage.key}
+                animate={{ opacity: done || current ? 1 : 0.35 }}
+                className="flex items-center gap-3 px-3.5 py-2 rounded-lg"
+                style={{ background: current ? "rgba(0,212,255,0.05)" : "transparent" }}
+              >
+                {done ? (
+                  <CheckCircle2 className="size-4 shrink-0" style={{ color: successColor.main }} />
+                ) : current ? (
+                  <motion.div
+                    className="size-4 rounded-full border-2 border-r-transparent shrink-0"
+                    style={{ borderTopColor: premiumColor.main, borderLeftColor: premiumColor.main, borderBottomColor: premiumColor.main }}
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 0.9, repeat: Infinity, ease: "linear" }}
+                  />
+                ) : (
+                  <div className="size-4 rounded-full border border-white/10 shrink-0" />
+                )}
+                <span className={cn("text-sm flex-1", done || current ? "text-[#c5cdda]" : "text-[#45506a]")}>{stage.label}</span>
+                {stage.ids.length > 0 && (
+                  <span className="text-[10px] text-[#5b6478] tabular-nums">{stage.ids.length}</span>
+                )}
+              </motion.div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
 }
 
-// ── Phase: Done ───────────────────────────────────────────────────────────────
+// ── Phase: Done (digital twin + undo) ─────────────────────────────────────────
 
 function DonePhase({
-  appliedCount,
-  failedCount,
-  onRevert,
-  onClose,
-  reverting,
-  revertOutcome,
+  plan, appliedCount, failedCount, onRevert, onClose, reverting, revertOutcome,
 }: {
+  plan: OptimizationPlan | null;
   appliedCount: number;
   failedCount: number;
   onRevert: () => void;
@@ -388,139 +758,144 @@ function DonePhase({
   reverting: boolean;
   revertOutcome: { reverted: number; stuck: number } | null;
 }) {
+  const metrics = useMemo(() => (plan ? computeImpactProjection(plan) : []), [plan]);
   const hasPartialFailure = failedCount > 0 && appliedCount > 0;
   const allFailed = failedCount > 0 && appliedCount === 0;
 
   return (
-    <div className="flex flex-col items-center justify-center h-full gap-6 py-10 text-center">
-      <motion.div
-        initial={{ scale: 0.5, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ type: "spring", stiffness: 400, damping: 20 }}
-        className="relative"
-      >
-        <div className={cn(
-          "w-20 h-20 rounded-full flex items-center justify-center",
-          allFailed ? "bg-red-500/10" : "bg-emerald-500/10"
-        )}>
-          {allFailed
-            ? <AlertTriangle className="size-10 text-red-400" />
-            : <CheckCircle2 className="size-10 text-emerald-400" />
-          }
+    <div className="flex flex-col items-center justify-center min-h-full py-10 w-full">
+      <div className="w-full max-w-2xl flex flex-col items-center gap-6">
+        <motion.div
+          initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+          transition={{ type: "spring", stiffness: 380, damping: 20 }}
+          className="relative"
+        >
+          <div className={cn("w-20 h-20 rounded-full flex items-center justify-center", allFailed ? "bg-red-500/10" : "bg-emerald-500/10")}>
+            {allFailed ? <AlertTriangle className="size-10 text-red-400" /> : <CheckCircle2 className="size-10" style={{ color: successColor.main }} />}
+          </div>
+          {!allFailed && (
+            <motion.div
+              className="absolute inset-0 rounded-full border"
+              style={{ borderColor: "rgba(52,211,153,0.4)" }}
+              initial={{ scale: 1, opacity: 1 }} animate={{ scale: 1.7, opacity: 0 }}
+              transition={{ duration: 1.1, delay: 0.3 }}
+            />
+          )}
+        </motion.div>
+
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-white tracking-tight">
+            {allFailed ? "Could Not Apply" : appliedCount > 0 ? "System Optimized" : "Already Optimized"}
+          </h2>
+          <p className="text-sm text-[#7c8597] mt-1.5 max-w-md">
+            {allFailed
+              ? "All optimizations failed to apply. This may require admin privileges or a different Windows version."
+              : hasPartialFailure
+                ? `${appliedCount} applied · ${failedCount} failed. Failed items may need admin privileges.`
+                : appliedCount > 0
+                  ? `${appliedCount} optimization${appliedCount !== 1 ? "s" : ""} applied. Your digital twin reflects the new state.`
+                  : "Everything was already in place for this goal."}
+          </p>
         </div>
-        {!allFailed && (
+
+        {/* Digital twin: before → after */}
+        {appliedCount > 0 && metrics.length > 0 && (
           <motion.div
-            className="absolute inset-0 rounded-full border border-emerald-500/30"
-            initial={{ scale: 1, opacity: 1 }}
-            animate={{ scale: 1.6, opacity: 0 }}
-            transition={{ duration: 1, delay: 0.3 }}
-          />
+            className="w-full"
+            initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}
+          >
+            <div className="text-[11px] uppercase tracking-wider text-[#5b6478] mb-2 text-center">Digital Twin · Realized Impact</div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+              {metrics.map((m, i) => <ImpactMetricCard key={m.key} m={m} index={i} />)}
+            </div>
+          </motion.div>
         )}
-      </motion.div>
-      <div>
-        <h2 className="text-xl font-semibold text-white">
-          {allFailed
-            ? "Could Not Apply Tweaks"
-            : appliedCount > 0
-              ? `${appliedCount} Tweak${appliedCount !== 1 ? "s" : ""} Applied`
-              : "Already Optimized"}
-        </h2>
-        <p className="text-sm text-[#6B7380] mt-1.5 max-w-xs">
-          {allFailed
-            ? "All tweaks failed to apply. This may require admin privileges or a different Windows version."
-            : hasPartialFailure
-              ? `${appliedCount} applied, ${failedCount} failed. Failed tweaks may need admin privileges.`
-              : appliedCount > 0
-                ? "Your system has been optimized. Changes take effect immediately (some need a reboot)."
-                : "All recommended tweaks were already applied. Your system is already optimized for this intent."}
-        </p>
-      </div>
-      {/* Revert failure notice */}
-      {revertOutcome && (
-        <div className="w-full max-w-xs px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-left">
-          {revertOutcome.stuck === (revertOutcome.reverted + revertOutcome.stuck) ? (
+
+        {revertOutcome && (
+          <div className="w-full max-w-sm px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20">
             <p className="text-xs text-amber-400">
-              Revert failed — tweaks may still be applied. Try again or check Windows admin permissions.
+              {revertOutcome.stuck === (revertOutcome.reverted + revertOutcome.stuck)
+                ? "Revert failed — tweaks may still be applied. Try again or check admin permissions."
+                : `${revertOutcome.reverted} reverted, ${revertOutcome.stuck} could not be reverted.`}
             </p>
-          ) : (
-            <p className="text-xs text-amber-400">
-              {revertOutcome.reverted} reverted, {revertOutcome.stuck} could not be reverted. Those tweaks may still be active.
-            </p>
+          </div>
+        )}
+
+        <div className="flex flex-col sm:flex-row gap-2.5 w-full max-w-sm">
+          <button
+            onClick={onClose}
+            data-testid="button-done"
+            className="flex-1 px-4 py-2.5 rounded-xl text-sm font-semibold text-[#02131a] transition-transform active:scale-[0.97]"
+            style={{ background: `linear-gradient(90deg, ${premiumColor.main}, ${premiumColor.end})` }}
+          >
+            Done
+          </button>
+          {appliedCount > 0 && (
+            <button
+              onClick={onRevert}
+              disabled={reverting}
+              data-testid="button-undo-session"
+              className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-white/[0.08] text-[#7c8597] hover:text-white hover:border-white/15 text-sm transition-colors disabled:opacity-40"
+            >
+              <RotateCcw className="size-3.5" />
+              {reverting ? "Reverting…" : revertOutcome ? "Retry Undo" : "Undo Session"}
+            </button>
           )}
         </div>
-      )}
-
-      <div className="flex flex-col gap-2.5 w-full max-w-xs">
-        <button
-          onClick={onClose}
-          className="w-full px-4 py-2.5 rounded-lg bg-violet-600 hover:bg-violet-500 text-white text-sm font-medium transition-colors"
-        >
-          Done
-        </button>
-        {appliedCount > 0 && (
-          <button
-            onClick={onRevert}
-            disabled={reverting}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-white/[0.08] text-[#6B7380] hover:text-white hover:border-white/15 text-sm transition-colors disabled:opacity-40"
-          >
-            <RotateCcw className="size-3.5" />
-            {reverting ? "Reverting…" : revertOutcome ? "Retry Undo" : "Undo This Session"}
-          </button>
-        )}
       </div>
     </div>
   );
 }
 
-// ── Root modal shell ──────────────────────────────────────────────────────────
+// ── Full-screen immersive shell ───────────────────────────────────────────────
 
-function ModalShell({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
-  // Trap scroll
+function ImmersiveShell({
+  children, onClose, intensity, canClose,
+}: { children: React.ReactNode; onClose: () => void; intensity: number; canClose: boolean }) {
   useEffect(() => {
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => { document.body.style.overflow = prev; };
   }, []);
 
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape" && canClose) onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [canClose, onClose]);
+
   return (
     <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.2 }}
-      className="fixed inset-0 z-[9000] flex items-center justify-center p-4"
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      transition={{ duration: 0.3 }}
+      className="fixed inset-0 z-[9000] overflow-hidden"
+      style={{ background: "radial-gradient(circle at 50% 30%, #0a1018 0%, #05060a 70%)" }}
     >
-      {/* Backdrop */}
-      <motion.div
-        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-        onClick={onClose}
-      />
-      {/* Panel */}
-      <motion.div
-        initial={{ scale: 0.95, opacity: 0, y: 12 }}
-        animate={{ scale: 1, opacity: 1, y: 0 }}
-        exit={{ scale: 0.97, opacity: 0, y: 8 }}
-        transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-        className="relative z-10 w-full max-w-2xl bg-[#0c0c14]/90 border border-white/[0.08] rounded-2xl shadow-2xl overflow-hidden"
-        style={{ minHeight: 480, maxHeight: "min(640px, 88vh)" }}
-        onClick={e => e.stopPropagation()}
-      >
-        {/* Top glow */}
-        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-violet-500/50 to-transparent" />
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-40 h-16 bg-violet-600/10 blur-xl rounded-full pointer-events-none" />
+      {/* Neural field background */}
+      <div className="absolute inset-0 opacity-90">
+        <NeuralScanField intensity={intensity} />
+      </div>
+      {/* Vignette */}
+      <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(circle at 50% 40%, transparent 40%, rgba(5,6,10,0.85) 100%)" }} />
 
-        {/* Close button */}
+      {/* Close */}
+      {canClose && (
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 z-20 size-8 flex items-center justify-center rounded-lg text-[#4A5568] hover:text-white hover:bg-white/[0.06] transition-colors"
+          data-testid="button-close-optimization"
+          className="absolute top-5 right-5 z-20 size-9 flex items-center justify-center rounded-xl text-[#5b6478] hover:text-white hover:bg-white/[0.06] transition-colors"
+          aria-label="Close"
         >
-          <X className="size-4" />
+          <X className="size-5" />
         </button>
+      )}
 
-        <div className="p-6 h-full" style={{ minHeight: 480, maxHeight: "min(640px, 88vh)", display: "flex", flexDirection: "column" }}>
+      {/* Content */}
+      <div className="relative z-10 h-full w-full overflow-y-auto">
+        <div className="min-h-full flex items-center justify-center px-5 sm:px-8">
           {children}
         </div>
-      </motion.div>
+      </div>
     </motion.div>
   );
 }
@@ -529,173 +904,176 @@ function ModalShell({ children, onClose }: { children: React.ReactNode; onClose:
 
 export function OptimizationFlow() {
   const {
-    phase,
-    intent,
-    plan,
-    sessionAppliedIds,
-    sessionFailedIds,
-    getCachedSnapshot,
-    setCachedSnapshot,
-    getCachedPlan,
-    setCachedPlan,
-    setSnapshotReady,
-    setIntent,
-    decidePlan,
-    startApplying,
-    finishApplying,
-    setError,
-    reset,
+    phase, intent, plan,
+    sessionAppliedIds, sessionFailedIds,
+    getCachedSnapshot, setCachedSnapshot, getCachedPlan, setCachedPlan,
+    setSnapshotReady, setIntent, decidePlan, startApplying, finishApplying, setError, reset,
   } = useOptimizationStore();
 
   const { tweaks, setTweak } = useStore();
   const user = useAuthStore(s => s.user);
   const isPremiumUser = !!(user as any)?.plan && (user as any)?.plan !== "free";
 
-  // Local state: snapshot held in ref (not in optimization store)
   const snapshotRef = useRef<OptimizationSnapshot | null>(null);
+  const [snapshot, setSnapshot] = useState<OptimizationSnapshot | null>(null);
+  const [scanState, setScanState] = useState<"scanning" | "ready" | "error">("scanning");
+  const scanErrorRef = useRef<string | undefined>(undefined);
+
+  const goalRef = useRef<GoalResolution | null>(null);
+  const [goal, setGoal] = useState<GoalResolution | null>(null);
+
   const [reverting, setReverting] = useState(false);
   const [revertOutcome, setRevertOutcome] = useState<{ reverted: number; stuck: number } | null>(null);
 
   const isOpen = phase !== "idle";
 
-  // ── Phase: snapshotting → intent (with 10-min cache) ─────────────────────
+  const dna = useMemo<PcDna>(() => derivePcDna(snapshot), [snapshot]);
+  const greeting = useMemo(() => personalizedGreeting(loadOptMemory()), [phase]);
+
+  // ── snapshotting: collect (with 10-min cache); gate transition on DNA reveal ──
   useEffect(() => {
     if (phase !== "snapshotting") return;
     let cancelled = false;
+    setScanState("scanning");
+    scanErrorRef.current = undefined;
 
-    // Check snapshot cache first — skip re-scan if still fresh
     const cached = getCachedSnapshot();
     if (cached) {
       snapshotRef.current = cached;
-      setSnapshotReady(undefined);
+      setSnapshot(cached);
+      setScanState("ready");
       return;
     }
 
-    collectOptimizationSnapshot().then(snapshot => {
+    collectOptimizationSnapshot().then(s => {
       if (cancelled) return;
-      snapshotRef.current = snapshot;
-      setCachedSnapshot(snapshot);
-      setSnapshotReady(undefined);
+      snapshotRef.current = s;
+      setSnapshot(s);
+      setCachedSnapshot(s);
+      setScanState("ready");
     }).catch(() => {
       if (cancelled) return;
       snapshotRef.current = null;
-      setSnapshotReady("Could not read hardware profile — using defaults.");
+      setSnapshot(null);
+      scanErrorRef.current = "Could not read hardware profile — using defaults.";
+      setScanState("error");
     });
     return () => { cancelled = true; };
-  }, [phase, getCachedSnapshot, setCachedSnapshot, setSnapshotReady]);
+  }, [phase, getCachedSnapshot, setCachedSnapshot]);
 
-  // ── Phase: deciding → plan (700ms UX flash, check plan cache, then engine) ─
+  // ── deciding → plan (reasoning flash, plan cache, then real engine) ──────────
   useEffect(() => {
     if (phase !== "deciding" || !intent) return;
     let cancelled = false;
 
-    // Check plan cache first (per intent, 15-min TTL)
     const cachedPlan = getCachedPlan(intent);
     if (cachedPlan) {
-      const timer = setTimeout(() => {
-        if (!cancelled) decidePlan(cachedPlan);
-      }, 700);
+      const timer = setTimeout(() => { if (!cancelled) decidePlan(cachedPlan); }, REASONING_MS);
       return () => { cancelled = true; clearTimeout(timer); };
     }
 
-    const snapshot = snapshotRef.current;
-
+    const snap = snapshotRef.current;
     const timer = setTimeout(async () => {
       if (cancelled) return;
 
-      // Build eligible tweak list (filtered by premium access)
-      const eligibleTweaks = TWEAKS_DATA
-        .filter(t => !(isTweakPremium(t.id) && !isPremiumUser))
-        .map(t => ({
-          id: t.id,
-          title: t.title,
-          risk: t.risk,
-          level: t.level,
-          requiresReboot: t.requiresReboot,
-          alreadyApplied: !!tweaks[t.id],
-        }));
+      try {
+        const eligibleTweaks = TWEAKS_DATA
+          .filter(t => !(isTweakPremium(t.id) && !isPremiumUser))
+          .map(t => ({
+            id: t.id,
+            title: t.title,
+            risk: t.risk,
+            level: t.level,
+            requiresReboot: t.requiresReboot,
+            alreadyApplied: !!tweaks[t.id],
+          }));
 
-      let enginePlan;
+        let enginePlan;
+        if (intent === "network-responsiveness") {
+          const netSignals = await collectNetworkOptimizationSnapshot().catch(() => ({
+            isWired: null,
+            hasWifiAdapter: null,
+            rxKBps: null,
+            txKBps: null,
+            windowsBuild: snap?.windowsBuild ?? null,
+            appliedTweakIds: Object.entries(tweaks).filter(([, v]) => v).map(([k]) => k),
+          }));
+          enginePlan = runNetworkOptimizationEngine(netSignals, eligibleTweaks);
+        } else {
+          enginePlan = runOptimizationEngine({
+            intent,
+            tweaks: eligibleTweaks,
+            hardware: snap?.hardware ?? {},
+            windowsBuild: snap?.windowsBuild ?? null,
+            cpuLoadPct: snap?.cpuLoadPct ?? null,
+            ramUsedPct: snap?.ramUsedPct ?? null,
+          });
+        }
 
-      if (intent === "network-responsiveness") {
-        // ── Dedicated network engine path — separate signals, scoring, safety ──
-        const netSignals = await collectNetworkOptimizationSnapshot().catch(() => ({
-          isWired: null,
-          hasWifiAdapter: null,
-          rxKBps: null,
-          txKBps: null,
-          windowsBuild: snapshot?.windowsBuild ?? null,
-          appliedTweakIds: Object.entries(tweaks).filter(([, v]) => v).map(([k]) => k),
-        }));
-        enginePlan = runNetworkOptimizationEngine(netSignals, eligibleTweaks);
-      } else {
-        // ── Main hardware-aware engine for all other intents ───────────────
-        enginePlan = runOptimizationEngine({
-          intent,
-          tweaks: eligibleTweaks,
-          hardware: snapshot?.hardware ?? {},
-          windowsBuild: snapshot?.windowsBuild ?? null,
-          cpuLoadPct: snapshot?.cpuLoadPct ?? null,
-          ramUsedPct: snapshot?.ramUsedPct ?? null,
-        });
+        if (!cancelled) {
+          setCachedPlan(intent, enginePlan);
+          decidePlan(enginePlan);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Could not build an optimization plan.");
+        }
       }
-
-      if (!cancelled) {
-        setCachedPlan(intent, enginePlan);
-        decidePlan(enginePlan);
-      }
-    }, 700);
+    }, REASONING_MS);
 
     return () => { cancelled = true; clearTimeout(timer); };
-  }, [phase, intent, tweaks, isPremiumUser, decidePlan, getCachedPlan, setCachedPlan]);
+  }, [phase, intent, tweaks, isPremiumUser, decidePlan, getCachedPlan, setCachedPlan, setError]);
 
-  // ── Handle: apply plan (outcome-driven — only mark success on confirmed apply)
+  // ── goal submission (natural language → intent) ─────────────────────────────
+  const handleGoalSubmit = useCallback((text: string) => {
+    const resolved = resolveGoal(text);
+    goalRef.current = resolved;
+    setGoal(resolved);
+    setIntent(resolved.intent);
+  }, [setIntent]);
+
+  // ── apply (outcome-driven; min cinematic duration; adaptive memory) ─────────
   const handleApply = useCallback(async () => {
     if (!plan) return;
     startApplying();
+    const startedAt = Date.now();
 
-    const toApply = plan.recommended
-      .filter(r => !r.alreadyApplied)
-      .map(r => r.tweakId);
-
+    const toApply = plan.recommended.filter(r => !r.alreadyApplied).map(r => r.tweakId);
     const appliedIds: string[] = [];
     const failedIds: string[] = [];
 
     if (isElectronWithTweaks()) {
-      // Electron: real system changes — require explicit success === true per tweak
       try {
         const results = await bulkApplyTweaks(toApply);
         for (const id of toApply) {
-          if (results[id]?.success === true) {
-            appliedIds.push(id);
-            setTweak(id, true);
-          } else {
-            // Missing result or success === false — treat as failure (don't mark applied)
-            failedIds.push(id);
-          }
+          if (results[id]?.success === true) { appliedIds.push(id); setTweak(id, true); }
+          else failedIds.push(id);
         }
       } catch {
-        // Total executor failure — all tweaks failed; local state unchanged
         failedIds.push(...toApply);
       }
     } else {
-      // Web: use the CSRF-safe applyRecommended helper (handles x-csrf-token automatically)
       try {
         await applyRecommended(toApply);
-        for (const id of toApply) {
-          appliedIds.push(id);
-          setTweak(id, true);
-        }
+        for (const id of toApply) { appliedIds.push(id); setTweak(id, true); }
       } catch {
-        // API failed (auth/CSRF/premium/network) — don't mark tweaks as applied
         failedIds.push(...toApply);
       }
     }
 
+    // Adaptive memory: learn from this session.
+    const g = goalRef.current;
+    recordOptSession(g?.intent ?? plan.intent, g?.game ?? null, appliedIds.length);
+
+    // Let the cinematic sequence play out fully.
+    const elapsed = Date.now() - startedAt;
+    const wait = Math.max(0, APPLY_CINEMATIC_MS - elapsed);
+    await new Promise(r => setTimeout(r, wait));
+
     finishApplying(appliedIds, failedIds);
   }, [plan, startApplying, finishApplying, setTweak]);
 
-  // ── Handle: revert session (outcome-driven — only clear confirmed reverts)
+  // ── revert (outcome-driven) ─────────────────────────────────────────────────
   const handleRevert = useCallback(async () => {
     if (!sessionAppliedIds.length) return;
     setReverting(true);
@@ -706,28 +1084,18 @@ export function OptimizationFlow() {
         let revertedCount = 0;
         let stuckCount = 0;
         for (const id of sessionAppliedIds) {
-          if (results[id]?.success === true) {
-            // Confirmed revert — clear local state
-            setTweak(id, false);
-            revertedCount++;
-          } else {
-            // Missing result or explicit failure — leave local state intact
-            stuckCount++;
-          }
+          if (results[id]?.success === true) { setTweak(id, false); revertedCount++; }
+          else stuckCount++;
         }
         if (stuckCount > 0) {
-          // Surface partial/total failure — user knows which tweaks may still be applied
           setRevertOutcome({ reverted: revertedCount, stuck: stuckCount });
-          // Don't auto-close — let user see the outcome and decide
           return;
         }
       } else {
-        // Web: tweaks are simulated — always safe to clear local state
         for (const id of sessionAppliedIds) setTweak(id, false);
       }
       reset();
     } catch {
-      // Total executor failure — do NOT clear any local state; surface error
       setRevertOutcome({ reverted: 0, stuck: sessionAppliedIds.length });
     } finally {
       setReverting(false);
@@ -735,54 +1103,64 @@ export function OptimizationFlow() {
   }, [sessionAppliedIds, setTweak, reset]);
 
   const handleClose = useCallback(() => {
-    if (phase === "applying") return; // can't close mid-apply
+    if (phase === "applying") return;
     reset();
   }, [phase, reset]);
 
-  const intentLabel = INTENT_OPTIONS.find(o => o.id === intent)?.label ?? "";
+  // Background intensity per phase.
+  const intensity =
+    phase === "snapshotting" ? (scanState === "scanning" ? 0.55 : 0.85)
+      : phase === "deciding" ? 0.95
+        : phase === "applying" ? 1
+          : phase === "done" ? 0.4
+            : 0.6;
+
+  const applyStages = useMemo(() => (plan ? buildApplyStages(plan) : []), [plan]);
+  const canClose = phase !== "applying";
 
   return (
     <AnimatePresence>
       {isOpen && (
-        <ModalShell onClose={handleClose}>
+        <ImmersiveShell onClose={handleClose} intensity={intensity} canClose={canClose}>
           <AnimatePresence mode="wait">
             {phase === "snapshotting" && (
-              <motion.div key="snapshotting" className="flex-1" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
-                <SnapshottingPhase />
-              </motion.div>
-            )}
-
-            {phase === "intent" && (
-              <motion.div key="intent" className="flex-1 min-h-0" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.25 }}>
-                <IntentPhase onSelect={setIntent} />
-              </motion.div>
-            )}
-
-            {phase === "deciding" && (
-              <motion.div key="deciding" className="flex-1" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
-                <DecidingPhase intentLabel={intentLabel} />
-              </motion.div>
-            )}
-
-            {phase === "plan" && plan && (
-              <motion.div key="plan" className="flex-1 min-h-0 flex flex-col" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}>
-                <PlanPhase
-                  plan={plan}
-                  onApply={handleApply}
-                  onCancel={handleClose}
+              <motion.div key="snapshotting" className="w-full self-stretch" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}>
+                <SnapshottingPhase
+                  dna={dna}
+                  dataReady={scanState !== "scanning"}
+                  onProceed={() => setSnapshotReady(scanErrorRef.current)}
                 />
               </motion.div>
             )}
 
+            {phase === "intent" && (
+              <motion.div key="intent" className="w-full self-stretch" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.3 }}>
+                <IntentPhase dna={dna} greeting={greeting} onSubmit={handleGoalSubmit} />
+              </motion.div>
+            )}
+
+            {phase === "deciding" && (
+              <motion.div key="deciding" className="w-full self-stretch" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}>
+                <DecidingPhase goal={goal} />
+              </motion.div>
+            )}
+
+            {phase === "plan" && plan && (
+              <motion.div key="plan" className="w-full self-stretch" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }}>
+                <PlanPhase plan={plan} dna={dna} onApply={handleApply} onCancel={handleClose} />
+              </motion.div>
+            )}
+
             {phase === "applying" && (
-              <motion.div key="applying" className="flex-1" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
-                <ApplyingPhase total={plan?.recommended.filter(r => !r.alreadyApplied).length ?? 0} />
+              <motion.div key="applying" className="w-full self-stretch" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}>
+                <ApplyingPhase stages={applyStages} />
               </motion.div>
             )}
 
             {phase === "done" && (
-              <motion.div key="done" className="flex-1" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}>
+              <motion.div key="done" className="w-full self-stretch" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }}>
                 <DonePhase
+                  plan={plan}
                   appliedCount={sessionAppliedIds.length}
                   failedCount={sessionFailedIds.length}
                   onRevert={handleRevert}
@@ -793,7 +1171,7 @@ export function OptimizationFlow() {
               </motion.div>
             )}
           </AnimatePresence>
-        </ModalShell>
+        </ImmersiveShell>
       )}
     </AnimatePresence>
   );
