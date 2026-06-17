@@ -503,6 +503,7 @@ export default function Debloater() {
           restorePointCreated: false,
         } : p);
         fetchHistory();
+        fetch("/api/history", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: `Debloat: ${data.successCount} item${data.successCount !== 1 ? "s" : ""} removed`, page: "Debloat", result: data.failCount > 0 ? "Partial" : "Removed", notes: `${data.successCount} removed, ${skipped} skipped, ${data.failCount} failed` }) }).catch(() => {});
         // eslint-disable-next-line no-console
         console.log(`[DebloatApply] complete removed=${data.successCount} skipped=${skipped} failed=${data.failCount}`);
 
@@ -571,6 +572,8 @@ export default function Debloater() {
         });
         setActiveView("results");
         fetchHistory();
+        const restored = data.results.filter((r: ApplyResult) => r.status === "restored").length;
+        fetch("/api/history", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: `Debloat: ${restored} item${restored !== 1 ? "s" : ""} restored`, page: "Debloat", result: "Restored", notes: `${restored} item${restored !== 1 ? "s" : ""} restored to defaults` }) }).catch(() => {});
         toast({ title: "Restore processed" });
       }
     } catch {}

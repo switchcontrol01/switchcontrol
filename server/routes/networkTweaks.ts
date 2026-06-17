@@ -7,6 +7,7 @@
 import { Router } from "express";
 import { sql } from "drizzle-orm";
 import { db, isNoDbMode } from "../db";
+import { storage } from "../storage";
 import { requireJwt } from "../middleware/requireCloudAuth";
 import rateLimit from "express-rate-limit";
 
@@ -158,7 +159,17 @@ router.post("/:tweakId/report", requireJwt, networkTweakRateLimit, async (req: a
     status = "idle";
   }
 
+  const friendlyName = tweakId.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+  const historyNote = `${action === "apply" ? "Enabled" : "Disabled"} — ${verified ? "verified" : "unverified"}${message ? `: ${message}` : ""}`;
+
   if (isNoDbMode || !db) {
+    storage.getOrCreateSettings(userId).then(s => storage.addHistory({
+      settingsId: s.id,
+      action: `Network Tweak: ${friendlyName}`,
+      page: "Network Tweaks",
+      result: success ? (action === "apply" ? "Enabled" : "Disabled") : "Failed",
+      notes: historyNote,
+    })).catch(() => {});
     return res.json({ ok: true, tweakId, status });
   }
 
@@ -182,6 +193,14 @@ router.post("/:tweakId/report", requireJwt, networkTweakRateLimit, async (req: a
       INSERT INTO network_tweak_log (user_id, tweak_id, action, success, verified, message)
       VALUES (${userId}, ${tweakId}, ${action}, ${success}, ${verified}, ${message ?? null})
     `);
+
+    storage.getOrCreateSettings(userId).then(s => storage.addHistory({
+      settingsId: s.id,
+      action: `Network Tweak: ${friendlyName}`,
+      page: "Network Tweaks",
+      result: success ? (action === "apply" ? "Enabled" : "Disabled") : "Failed",
+      notes: historyNote,
+    })).catch(() => {});
 
     return res.json({ ok: true, tweakId, status });
   } catch (err: unknown) {

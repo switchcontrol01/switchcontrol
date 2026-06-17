@@ -7,6 +7,7 @@ import { Router, Request, Response } from "express";
 import { z } from "zod";
 import { db } from "../db";
 import { sql } from "drizzle-orm";
+import { storage } from "../storage";
 
 const router = Router();
 
@@ -302,6 +303,14 @@ router.post("/enable", async (req: Request, res: Response) => {
     triggerSource: triggerSource ?? 'manual',
   });
 
+  storage.getOrCreateSettings(userId).then(s => storage.addHistory({
+    settingsId: s.id,
+    action: `Focus Mode: Activated${profileId ? ` (${profileId})` : ""}`,
+    page: "Focus Mode",
+    result: status === "active" ? "Activated" : status === "partial" ? "Partial" : "Failed",
+    notes: durationMinutes > 0 ? `${durationMinutes} min session, ${successCount}/${totalActions} actions applied` : `Unlimited session, ${successCount}/${totalActions} actions applied`,
+  })).catch(() => {});
+
   res.json({
     ok: true,
     sessionId,
@@ -354,6 +363,14 @@ router.post("/disable", async (req: Request, res: Response) => {
 
   const previousSettings = activeState.settings;
   activeStates.delete(userId);
+
+  storage.getOrCreateSettings(userId).then(s => storage.addHistory({
+    settingsId: s.id,
+    action: "Focus Mode: Deactivated",
+    page: "Focus Mode",
+    result: revertStatus === "reverted" ? "Deactivated" : "Revert Failed",
+    notes: `Session ended — settings restored`,
+  })).catch(() => {});
 
   res.json({
     ok: true,

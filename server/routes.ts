@@ -111,11 +111,25 @@ export async function registerRoutes(
     res.json({ ok: true, hasRestorePoint: false, hasBaseline: false, sessionActive: false, lastRestoreTimestamp: null });
   });
 
-  app.post("/api/extreme-labs/restore-point", requireJwt, requireCloudPremium, (req, res) => {
+  app.post("/api/extreme-labs/restore-point", requireJwt, requireCloudPremium, async (req, res) => {
+    const userId = (req as any).cloudUser?.id as string | undefined;
+    if (userId) {
+      storage.getOrCreateSettings(userId).then(s => storage.addHistory({
+        settingsId: s.id, action: "Extreme Labs: Create Restore Point",
+        page: "Extreme Labs", result: "Created", notes: "System restore point snapshot taken",
+      })).catch(() => {});
+    }
     res.json({ ok: true, timestamp: Date.now() });
   });
 
-  app.post("/api/extreme-labs/baseline", requireJwt, requireCloudPremium, (req, res) => {
+  app.post("/api/extreme-labs/baseline", requireJwt, requireCloudPremium, async (req, res) => {
+    const userId = (req as any).cloudUser?.id as string | undefined;
+    if (userId) {
+      storage.getOrCreateSettings(userId).then(s => storage.addHistory({
+        settingsId: s.id, action: "Extreme Labs: Capture Baseline",
+        page: "Extreme Labs", result: "Captured", notes: "System baseline snapshot recorded",
+      })).catch(() => {});
+    }
     res.json({ ok: true, baseline: { timestamp: Date.now(), snapshot: "web-baseline" } });
   });
 
@@ -134,12 +148,27 @@ export async function registerRoutes(
     });
   });
 
-  app.post("/api/extreme-labs/apply", requireJwt, requireCloudPremium, (req, res) => {
-    const ids = req.body?.ids ?? [];
+  app.post("/api/extreme-labs/apply", requireJwt, requireCloudPremium, async (req, res) => {
+    const ids: string[] = req.body?.ids ?? [];
+    const userId = (req as any).cloudUser?.id as string | undefined;
+    if (userId && ids.length > 0) {
+      storage.getOrCreateSettings(userId).then(s => storage.addHistory({
+        settingsId: s.id, action: `Extreme Labs: Apply Tweaks (${ids.length})`,
+        page: "Extreme Labs", result: "Applied",
+        notes: ids.slice(0, 5).join(", ") + (ids.length > 5 ? ` +${ids.length - 5} more` : ""),
+      })).catch(() => {});
+    }
     res.json({ ok: true, results: ids.map((id: string) => ({ id, applied: false, reason: "Web sessions cannot apply registry tweaks. Use the desktop app." })) });
   });
 
-  app.post("/api/extreme-labs/revert", requireJwt, requireCloudPremium, (req, res) => {
+  app.post("/api/extreme-labs/revert", requireJwt, requireCloudPremium, async (req, res) => {
+    const userId = (req as any).cloudUser?.id as string | undefined;
+    if (userId) {
+      storage.getOrCreateSettings(userId).then(s => storage.addHistory({
+        settingsId: s.id, action: "Extreme Labs: Revert All Tweaks",
+        page: "Extreme Labs", result: "Reverted", notes: "All tweaks reverted to baseline",
+      })).catch(() => {});
+    }
     res.json({ ok: true, message: "All tweaks reverted to baseline" });
   });
 

@@ -359,6 +359,7 @@ function PropertyControl({ adapterName, propKey, meta, capability }: PropertyCon
     setState(s => ({ ...s, applying: false, result: { ok: res.ok, outcome: (res.outcome ?? null) as NicOutcome | null, verified: res.verified ?? false, error: res.error, actualValue: res.actualValue } }));
     if (res.ok) {
       const verified = res.outcome === "write_succeeded_verified";
+      fetch("/api/history", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: `NIC Tuning: ${meta.label}`, page: "NIC Tuning", result: verified ? "Applied & Verified" : "Applied", notes: `${propKey}=${state.pending} on ${adapterName}` }) }).catch(() => {});
       toast({ title: verified ? `${meta.label} Applied & Verified` : `${meta.label} Applied`, description: verified ? `Registry confirmed ${res.actualValue} on ${adapterName}.` : `Written to adapter. Readback pending driver confirmation.` });
       scheduleResultDismiss();
     } else {
@@ -378,6 +379,7 @@ function PropertyControl({ adapterName, propKey, meta, capability }: PropertyCon
     const res = await api.resetProperty(adapterName, propKey);
     if (res.ok) {
       setState(s => ({ ...s, applying: false, pending: res.actualValue ?? null, result: { ok: true, outcome: (res.outcome ?? "reset_verified") as NicOutcome, verified: true, error: null, actualValue: res.actualValue } }));
+      fetch("/api/history", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: `NIC Tuning: ${meta.label} Reset`, page: "NIC Tuning", result: "Reset to Default", notes: `${propKey} restored to driver default on ${adapterName}` }) }).catch(() => {});
       toast({ title: "Reset to Default", description: `${meta.label} restored to driver default.` });
       scheduleResultDismiss();
     } else {

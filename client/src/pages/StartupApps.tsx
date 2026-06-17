@@ -124,6 +124,7 @@ export default function StartupApps() {
         name: app.entry.name, source: app.entry.source, enabled,
       }).catch(() => {});
 
+      fetch("/api/history", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: `Startup: ${app.entry.name} ${enabled ? "Enabled" : "Disabled"}`, page: "Startup", result: enabled ? "Enabled" : "Disabled", notes: `Source: ${app.entry.source}` }) }).catch(() => {});
       toast({ title: `${app.entry.name} ${enabled ? "enabled" : "disabled"}` });
     } catch (e: any) {
       // Revert

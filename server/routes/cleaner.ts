@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { sql } from "drizzle-orm";
 import { db, isNoDbMode } from "../db";
+import { storage } from "../storage";
 
 const router = Router();
 
@@ -382,6 +383,14 @@ router.post("/clean", async (req: any, res) => {
 
   const successCount = Object.values(results).filter(r => r.status === "cleaned" || r.status === "partial").length;
   const nothingCount = Object.values(results).filter(r => r.status === "nothing").length;
+
+  storage.getOrCreateSettings(userId).then(s => storage.addHistory({
+    settingsId: s.id,
+    action: `Cleaner: ${successCount} item${successCount !== 1 ? "s" : ""} cleaned`,
+    page: "Cleaner",
+    result: errors > 0 ? "Partial" : successCount > 0 ? "Cleaned" : "Nothing Found",
+    notes: `${totalFilesRemoved} file${totalFilesRemoved !== 1 ? "s" : ""} removed, ${(totalBytesRemoved / 1024 / 1024).toFixed(1)} MB freed`,
+  })).catch(() => {});
 
   res.json({
     ok: true, results,
