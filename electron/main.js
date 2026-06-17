@@ -795,7 +795,25 @@ app.on('open-url', (event, url) => {
   deliverDeepLink(url);
 });
 
+let _windowCreated = false;
+
 function createWindow() {
+  // Guard: prevent double-window creation when second-instance fires before
+  // app.whenReady() runs (e.g. user double-clicks quickly while previous
+  // launch is still initialising).  Without this guard both the
+  // second-instance handler AND the whenReady block call createWindow(),
+  // producing two windows and orphaning the first.
+  if (_windowCreated) {
+    const existing = BrowserWindow.getAllWindows()[0];
+    if (existing) {
+      if (existing.isMinimized()) existing.restore();
+      if (!existing.isVisible()) existing.show();
+      existing.focus();
+    }
+    return;
+  }
+  _windowCreated = true;
+
   verboseLog('[STARTUP:5] createWindow() ENTRY — devTools:', isDev ? 'enabled (dev)' : 'disabled (prod)');
   mainWindow = new BrowserWindow({
     title: isDev ? 'SwitchControl DEBUG BUILD' : 'SwitchControl',
@@ -1047,7 +1065,16 @@ function createWindow() {
     _windowShown = true;
     clearTimeout(showFallbackTimer);
     _bm.windowShown = Date.now();
+    // Zero-opacity show: eliminates the DWM white compositor frame.
+    // Windows DWM sometimes composites a brief white surface the instant a
+    // window becomes visible — before our dark background fills the frame.
+    // setOpacity(0) makes the window fully transparent at the OS level, so
+    // that initial white surface is invisible.  We then restore opacity
+    // synchronously in the same JS turn; DWM batches both into one composite
+    // update, so the user's first visible frame is always the dark Splash.
+    mainWindow.setOpacity(0);
     mainWindow.show();
+    mainWindow.setOpacity(1);
     mainWindow.focus();
     console.log(`[LAUNCH:5] mainWindow.show() — both gates passed (chromium+react) | ${launchMs()}`);
     _bm.telemetryStart = Date.now();
@@ -1124,6 +1151,7 @@ function createWindow() {
   mainWindow.on('closed', () => { 
     mainWindow = null; 
     rendererReady = false;
+    _windowCreated = false; // allow createWindow() on next launch
   });
 }
 
