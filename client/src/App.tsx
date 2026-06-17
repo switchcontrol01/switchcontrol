@@ -71,26 +71,25 @@ import CameraGlow from "@/screens/CameraGlow";
 import LoginScreen from "@/screens/Login";
 import { WelcomeAnimation } from "@/components/WelcomeAnimation";
 import { OnboardingTour } from "@/components/OnboardingTour";
-// Home stays eager — it's the first visible screen in Electron.
-// All other app routes are lazy so they don't ship in the initial JS bundle.
-// DarkFallback (defined below) keeps Suspense transitions invisible.
+// All Electron app routes are eager (static imports) so every page is
+// available instantly with zero Suspense cycle or chunk-fetch delay.
 import Home from "@/pages/Home";
-const Tweaks = lazy(() => import("@/pages/Tweaks"));
-const NetworkTweaks = lazy(() => import("@/pages/NetworkTweaks"));
-const SystemCleaner = lazy(() => import("@/pages/SystemCleaner"));
-const Settings = lazy(() => import("@/pages/Settings"));
-const PowerPlan = lazy(() => import("@/pages/PowerPlan"));
-const AppBooster = lazy(() => import("@/pages/AppBooster"));
-const FocusMode = lazy(() => import("@/pages/FocusMode"));
-const Debloater = lazy(() => import("@/pages/Debloater"));
-const StartupApps = lazy(() => import("@/pages/StartupApps"));
-const NicTuningPage = lazy(() => import("@/pages/NicTuning"));
-const BiosAdvisor = lazy(() => import("@/pages/BiosAdvisor"));
-const AiAdvisor = lazy(() => import("@/pages/AiAdvisor"));
-const ExtremeLabs = lazy(() => import("@/pages/ExtremeLabs"));
-const Security = lazy(() => import("@/pages/Security"));
-const History = lazy(() => import("@/pages/History"));
-const ProcessManager = lazy(() => import("@/pages/ProcessManager"));
+import Tweaks from "@/pages/Tweaks";
+import NetworkTweaks from "@/pages/NetworkTweaks";
+import SystemCleaner from "@/pages/SystemCleaner";
+import Settings from "@/pages/Settings";
+import PowerPlan from "@/pages/PowerPlan";
+import AppBooster from "@/pages/AppBooster";
+import FocusMode from "@/pages/FocusMode";
+import Debloater from "@/pages/Debloater";
+import StartupApps from "@/pages/StartupApps";
+import NicTuningPage from "@/pages/NicTuning";
+import BiosAdvisor from "@/pages/BiosAdvisor";
+import AiAdvisor from "@/pages/AiAdvisor";
+import ExtremeLabs from "@/pages/ExtremeLabs";
+import Security from "@/pages/Security";
+import History from "@/pages/History";
+import ProcessManager from "@/pages/ProcessManager";
 // Website-only chunks — only prefetch on web (not in Electron where file:// protocol
 // causes chunk fetch failures for pages that are never shown in the desktop app).
 const _isElectronRuntime =
@@ -171,56 +170,33 @@ const DarkFallback = () => (
   />
 );
 
-// ContentFallback — same dark cover but offset by the sidebar width (256px = w-64).
-// Used inside ElectronAppRoutes so the sidebar column stays visible even if a
-// lazy chunk takes longer than expected to resolve on the very first navigation.
-const ContentFallback = () => (
-  <div
-    style={{
-      position: "fixed",
-      top: 0,
-      bottom: 0,
-      left: 256,
-      right: 0,
-      background: "#070b14",
-      zIndex: 0,
-    }}
-  />
-);
-
-// ElectronAppRoutes — uses Wouter component-prop form so React's reconciler
-// sees stable component types at each route position.  A single ErrorBoundary
-// wraps the whole Switch; it auto-resets via getDerivedStateFromProps whenever
-// the location changes, so a crash on one page never persists to the next.
-// Navigation is wrapped in startTransition (via useTransitionLocation) so React
-// 18 keeps the current page visible instead of showing DarkFallback on every nav.
+// ElectronAppRoutes — all pages are static imports so no Suspense needed.
+// A single ErrorBoundary wraps the Switch and auto-resets on location change.
 function ElectronAppRoutes() {
   const [location] = useLocation();
   return (
     <ErrorBoundary route={location}>
-      <Suspense fallback={<ContentFallback />}>
-        <Switch>
-          <Route path="/" component={Home} />
-          <Route path="/dashboard" component={Home} />
-          <Route path="/tweaks" component={Tweaks} />
-          <Route path="/power-plan" component={PowerPlan} />
-          <Route path="/app-booster" component={AppBooster} />
-          <Route path="/focus" component={FocusMode} />
-          <Route path="/nic-tuning" component={NicTuningPage} />
-          <Route path="/network" component={NetworkTweaks} />
-          <Route path="/cleaner" component={SystemCleaner} />
-          <Route path="/debloat" component={Debloater} />
-          <Route path="/startup" component={StartupApps} />
-          <Route path="/bios-advisor" component={BiosAdvisor} />
-          <Route path="/ai-advisor" component={AiAdvisor} />
-          <Route path="/extreme-labs" component={ExtremeLabs} />
-          <Route path="/security" component={Security} />
-          <Route path="/history" component={History} />
-          <Route path="/process-manager" component={ProcessManager} />
-          <Route path="/settings" component={Settings} />
-          <Route component={Home} />
-        </Switch>
-      </Suspense>
+      <Switch>
+        <Route path="/" component={Home} />
+        <Route path="/dashboard" component={Home} />
+        <Route path="/tweaks" component={Tweaks} />
+        <Route path="/power-plan" component={PowerPlan} />
+        <Route path="/app-booster" component={AppBooster} />
+        <Route path="/focus" component={FocusMode} />
+        <Route path="/nic-tuning" component={NicTuningPage} />
+        <Route path="/network" component={NetworkTweaks} />
+        <Route path="/cleaner" component={SystemCleaner} />
+        <Route path="/debloat" component={Debloater} />
+        <Route path="/startup" component={StartupApps} />
+        <Route path="/bios-advisor" component={BiosAdvisor} />
+        <Route path="/ai-advisor" component={AiAdvisor} />
+        <Route path="/extreme-labs" component={ExtremeLabs} />
+        <Route path="/security" component={Security} />
+        <Route path="/history" component={History} />
+        <Route path="/process-manager" component={ProcessManager} />
+        <Route path="/settings" component={Settings} />
+        <Route component={Home} />
+      </Switch>
     </ErrorBoundary>
   );
 }
@@ -404,32 +380,6 @@ function ElectronAppContent() {
     telemetryManager.start();
   }, [phase]);
 
-  // Preload ALL lazy route chunks as soon as the user is authenticated.
-  // No delay — the dashboard renders eagerly and gives these imports a head
-  // start before the user can click any sidebar link.  On Electron file://
-  // protocol chunk reads are synchronous disk ops, so all chunks are in
-  // memory well before the first navigation in normal usage.
-  // Previously: 1 000ms delay + 6 missing routes → first-visit black screen.
-  useEffect(() => {
-    if (phase !== "authenticated") return;
-    void import("@/pages/Tweaks");
-    void import("@/pages/SystemCleaner");
-    void import("@/pages/AiAdvisor");
-    void import("@/pages/Settings");
-    void import("@/pages/NetworkTweaks");
-    void import("@/pages/PowerPlan");
-    void import("@/pages/AppBooster");
-    void import("@/pages/FocusMode");
-    void import("@/pages/Security");
-    void import("@/pages/History");
-    // Previously missing — these routes also showed a black screen on first visit:
-    void import("@/pages/Debloater");
-    void import("@/pages/StartupApps");
-    void import("@/pages/NicTuning");
-    void import("@/pages/BiosAdvisor");
-    void import("@/pages/ExtremeLabs");
-    void import("@/pages/ProcessManager");
-  }, [phase]);
 
   // Recovery: if the WS was rejected (no_token) during startup because the
   // JWT wasn't ready yet, re-start the manager as soon as a fresh JWT lands.
