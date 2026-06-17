@@ -846,7 +846,31 @@ async function collect(): Promise<SystemIntelligenceProfile> {
   const dur = Date.now() - startMs;
   console.log(`[SysIntelligence] phase=full complete in ${dur}ms | MB=${profile.baseboard.model} | BIOS=${profile.bios.version} | CPU=${profile.cpu.brand} | GPUs=${profile.gpu.controllers.length} | RAMsticks=${profile.memory.sticks.length}`);
 
-  void _saveDiskCache(profile);   // persist to disk (fire-and-forget)
+  // Guard: if the profile is completely empty (all WMI calls timed out), do NOT overwrite
+  // the disk cache — it may contain good data from a previous session when WMI was healthy.
+  // Re-use whatever was already in the disk cache rather than poisoning it with all-nulls.
+  const _isProfileEmpty = (p: SystemIntelligenceProfile) =>
+    p.baseboard.model === null &&
+    p.bios.version === null &&
+    p.cpu.brand === null &&
+    p.gpu.controllers.length === 0 &&
+    p.memory.sticks.length === 0;
+
+  if (_isProfileEmpty(profile)) {
+    console.warn("[SysIntelligence] phase=full returned all-null — skipping disk cache write to preserve previous good data");
+    // If in-memory cache is also null, try to reload from disk so callers get something useful
+    if (!_cache || _isProfileEmpty(_cache)) {
+      const diskFallback = await _loadDiskCache();
+      if (diskFallback && !_isProfileEmpty(diskFallback)) {
+        console.log("[SysIntelligence] Restored disk cache as in-memory fallback after all-null collection");
+        _cache   = diskFallback;
+        _cacheAt = 0; // treat as stale — allow next timed refresh to try again
+      }
+    }
+  } else {
+    void _saveDiskCache(profile);   // persist to disk (fire-and-forget)
+  }
+
   void _saveProbeHealth();        // persist probe health (fire-and-forget)
   return profile;
 }

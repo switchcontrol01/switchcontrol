@@ -1107,6 +1107,11 @@ function ManualAddModal({
 // MAIN COMPONENT
 // ════════════════════════════════════════════════════════════════════════════
 
+// Module-level flag — survives component unmount/remount (page navigation).
+// Prevents the 5-second game scan from re-running every time the user visits
+// the AppBooster page within a single app session.
+let _sessionAutoScanDone = false;
+
 export default function AppBooster() {
   const { user }              = useAuth();
   const { toast }             = useToast();
@@ -1116,7 +1121,6 @@ export default function AppBooster() {
   const isElectron = useRef(getIsElectron()).current;
   const cachedGames = useRef(readCache()).current;
   const { mark: timingMark } = usePageTiming("AppBooster");
-  const hasAutoScanned = useRef(false);
 
   // ── state ──────────────────────────────────────────────────────────────────
   const [games,            setGames]          = useState<GameSummary[]>(cachedGames ?? []);
@@ -1176,19 +1180,19 @@ export default function AppBooster() {
   // auto-scan on mount
   useEffect(() => {
     if (!user?.loggedIn) return;
-    if (hasAutoScanned.current) return;
+    if (_sessionAutoScanDone) return;
     let cancelled = false;
     timingMark("mount");
 
     loadGames().then((loaded) => {
-      if (cancelled || hasAutoScanned.current) return;
+      if (cancelled || _sessionAutoScanDone) return;
       const hasUndetected = loaded.some((g) => !g.detected);
       const bridgeAvail   = isElectron && !!(window as any).electronAPI?.appBooster?.scanGames;
 
       if (hasUndetected && loaded.length > 0 && bridgeAvail && appBoosterEnabled) {
         runWhenIdle(() => {
-          if (cancelled || hasAutoScanned.current) return;
-          hasAutoScanned.current = true;
+          if (cancelled || _sessionAutoScanDone) return;
+          _sessionAutoScanDone = true;
           setIsScanning(true);
           timingMark("scan-start");
           (async () => {

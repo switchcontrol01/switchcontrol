@@ -7,3 +7,5 @@
 - [Electron startup flash fix](electron-startup-flash.md) — two-gate show pattern: ready-to-show + app:first-frame-ready (double-rAF); never show on ready-to-show alone.
 - [Electron flash — transparent+setOpacity fix](electron-flash-gpu-prewarm.md) — Only transparent:true + setOpacity(0→1) fully kills DWM white init frames on Windows; backgroundColor alone is not enough.
 - [Electron OAuth deep-link failure](electron-oauth-polling.md) — Chrome silently blocks custom-protocol redirects without user gesture; fixed via server-side poll map + 2s polling from Electron renderer.
+- [SysIntelligence WMI all-null guard](sysintelligence-wmi-null-guard.md) — when all 15 WMI sources timeout, skip _saveDiskCache() to preserve previous good data; restore disk fallback into memory if both are empty.
+- [Electron log noise patterns](electron-log-noise.md) — renderer console.warn → main [ERROR]; use console.info for expected races (e.g. slider "busy"). Module-level flags for page-visit guards (useRef resets on unmount).

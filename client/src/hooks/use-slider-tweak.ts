@@ -155,7 +155,14 @@ export function useSliderTweak(tweakId: string, config: SliderConfig) {
       // the default might not reflect what's actually in the registry (or what was
       // previously applied). Keep currentValue null so the UI shows "—" not a fake value.
       if (result.error && result.value === null) {
-        console.warn(`[SliderHydration] ${tweakId}: read failed — ${result.error}`);
+        // "busy" is an expected startup race (PS limiter occupied by syncAll) — demote to info
+        // so it doesn't surface as [ERROR] in the main-process log.
+        const isBusy = result.error === "busy";
+        if (isBusy) {
+          console.info(`[SliderHydration] ${tweakId}: read skipped — limiter busy (expected at startup)`);
+        } else {
+          console.warn(`[SliderHydration] ${tweakId}: read failed — ${result.error}`);
+        }
         setState(s => ({
           ...s,
           currentValue:   null,
