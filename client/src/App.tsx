@@ -830,6 +830,10 @@ function ElectronAppContent() {
     if (phase !== "authenticated") return;
     if (activeFlow !== "none") return;
     if (patchNotesCheckedRef.current) return;
+    // Never show patch notes to brand-new users — they haven't used a prior
+    // version so there's nothing "new" to highlight, and it would clash with
+    // the onboarding tour that fires on first login.
+    if (isFirstLogin) return;
     patchNotesCheckedRef.current = true;
 
     let mounted = true;
@@ -846,7 +850,7 @@ function ElectronAppContent() {
     return () => {
       mounted = false;
     };
-  }, [phase, activeFlow]);
+  }, [phase, activeFlow, isFirstLogin]);
 
   // ── Splash completion — Splash.tsx is the sole timing authority ─────────
   // Splash calls onComplete() when its exit animation finishes.

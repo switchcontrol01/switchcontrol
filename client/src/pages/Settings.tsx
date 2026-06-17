@@ -20,7 +20,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
 import { Reveal } from "@/lib/motion";
-import { PATCH_NOTES_STORAGE_KEY } from "@/components/PatchNotesModal";
+import { PATCH_NOTES_STORAGE_KEY, PatchNotesModal } from "@/components/PatchNotesModal";
 
 interface PatchNotes {
   version: string;
@@ -36,7 +36,7 @@ interface PatchNotes {
 // HTTP cache, so without this we'd re-fetch on every Settings visit.
 let _patchNotesCache: PatchNotes | null = null;
 
-function PatchNotesSection() {
+function PatchNotesSection({ onViewFull }: { onViewFull: () => void }) {
   const [notes, setNotes] = useState<PatchNotes | null>(_patchNotesCache);
 
   useEffect(() => {
@@ -57,7 +57,7 @@ function PatchNotesSection() {
 
   return (
     <motion.div
-      className="relative overflow-hidden rounded-xl flex"
+      className="relative overflow-hidden rounded-xl flex cursor-pointer group"
       style={{
         background: "linear-gradient(105deg, rgba(139,92,246,0.07) 0%, rgba(255,255,255,0.02) 60%)",
         border: "1px solid rgba(139,92,246,0.18)",
@@ -66,15 +66,17 @@ function PatchNotesSection() {
       initial={{ opacity: 0, y: -6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+      onClick={onViewFull}
+      whileHover={{ borderColor: "rgba(139,92,246,0.32)" }}
     >
       {/* Purple left accent stripe */}
       <div className="w-1 shrink-0 rounded-l-xl"
         style={{ background: "linear-gradient(180deg, rgba(139,92,246,0.9) 0%, rgba(109,40,217,0.5) 100%)" }} />
 
       <div className="flex items-start gap-6 px-5 py-4 flex-1 min-w-0">
-        {/* Left — icon + label + version */}
+        {/* Left — icon + label */}
         <div className="flex flex-col items-center gap-2 shrink-0 pt-0.5">
-          <div className="flex items-center justify-center size-8 rounded-lg"
+          <div className="flex items-center justify-center size-8 rounded-lg transition-colors"
             style={{ background: "rgba(139,92,246,0.14)", border: "1px solid rgba(139,92,246,0.28)" }}>
             <Sparkles className="size-4" style={{ color: "rgba(192,155,255,0.9)" }} />
           </div>
@@ -84,7 +86,7 @@ function PatchNotesSection() {
           </span>
         </div>
 
-        {/* Middle — title + headline */}
+        {/* Middle — title + headline + date */}
         <div className="min-w-0 shrink-0 w-48">
           <div className="flex items-center gap-2 mb-0.5">
             <h3 className="text-[13px] font-semibold text-[#E6EAF0] leading-snug truncate">{notes.title}</h3>
@@ -106,7 +108,7 @@ function PatchNotesSection() {
         {/* Divider */}
         <div className="w-px self-stretch shrink-0" style={{ background: "rgba(255,255,255,0.06)" }} />
 
-        {/* Right — change list */}
+        {/* Right — change list preview */}
         <div className="flex-1 min-w-0 space-y-1.5">
           {preview.map((change, i) => (
             <motion.div
@@ -121,13 +123,17 @@ function PatchNotesSection() {
             </motion.div>
           ))}
           {extra > 0 && (
-            <p className="text-[10.5px] pl-5" style={{ color: "rgba(255,255,255,0.22)" }}>
-              +{extra} more improvement{extra > 1 ? "s" : ""}
-            </p>
+            <button
+              onClick={(e) => { e.stopPropagation(); onViewFull(); }}
+              className="text-[10.5px] pl-5 transition-colors hover:text-[rgba(192,155,255,0.8)]"
+              style={{ color: "rgba(139,92,246,0.55)" }}
+            >
+              +{extra} more — view all →
+            </button>
           )}
         </div>
 
-        {/* Version badge — top-right */}
+        {/* Version badge */}
         <span className="text-[10.5px] font-medium px-2 py-1 rounded-md self-start shrink-0"
           style={{ background: "rgba(255,255,255,0.04)", color: "rgba(255,255,255,0.25)", border: "1px solid rgba(255,255,255,0.07)" }}>
           v{notes.version}
@@ -330,6 +336,7 @@ export default function Settings() {
   const isElectron = typeof window !== 'undefined' && !!(window as any).electronAPI?.isElectron;
   const isAdmin = !!(user as any)?.isAdmin;
   const [licenseModalOpen, setLicenseModalOpen] = useState(false);
+  const [showPatchNotesModal, setShowPatchNotesModal] = useState(false);
 
   // Game session notification style (Electron only)
   // Values: 'off' | 'banner' | 'sound' (default)
@@ -368,7 +375,11 @@ export default function Settings() {
           subtitle="Manage application preferences and account details."
         />
 
-        <PatchNotesSection />
+        <PatchNotesSection onViewFull={() => setShowPatchNotesModal(true)} />
+        <PatchNotesModal
+          show={showPatchNotesModal}
+          onDismiss={() => setShowPatchNotesModal(false)}
+        />
 
         <div className="space-y-6">
           <Reveal delay={0}>

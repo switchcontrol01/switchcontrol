@@ -1,0 +1,52 @@
+This is exactly what I needed. Here's the honest assessment based on what's actually in front of me.
+
+## The single biggest red flag: connection pool max = 10
+
+```javascript
+const POOL_CONFIG = {
+  connectionString: process.env.DATABASE_URL,
+  max: 10,           // max connections in pool
+  idleTimeoutMillis: 30_000,
+  connectionTimeoutMillis: 5_000,
+};
+```
+
+This is the number that will break first, long before anything else. With `max: 10`, only 10 concurrent database queries can run at once across your **entire** app. Every other request queues behind those 10 until one frees up, and `connectionTimeoutMillis: 5_000` means if a query can't get a connection within 5 seconds, it fails outright.
+
+At 10k users — even if only a fraction are concurrent at any moment — this pool will saturate almost immediately the moment you have real traffic. Looking back at the App Booster routes we discussed earlier, a single `GET /games` call does multiple sequential `db.execute()` calls (state lookup, game row lookup, JOIN query). If 15-20 users hit that endpoint in the same second, you're already past the pool limit and people start timing out.
+
+**This is fixable in one line, but the real number depends on your DB plan.** If you're on Replit's managed Postgres or a small Neon/Supabase tier, those often cap total connections around 20-100 depending on plan. You can't just bump `max` to 200 blindly — you need to know what your actual Postgres instance allows, then set the pool to a sane fraction of that (leaving room for other processes hitting the same DB).
+
+## Single Node process, no clustering
+
+There's no `cluster` module usage, no PM2, no worker threads visible anywhere in `server/index.ts`. This is one Node.js event loop handling every request. Node is fine for I/O-bound work at decent scale, but if any of your routes do CPU-heavy work synchronously (and the AI advisor's context-building logic we looked at earlier does a fair amount of object construction per request), you'll see the whole server stall for everyone during that computation.
+
+For 10k users, you'd typically want either Node's cluster module (one process per CPU core) or a process manager handling multiple instances behind your Replit/load balancer.
+
+## Rate limiters are applied — good — but check the actual numbers
+
+You have `authLimiter`, `meLimiter`, `telemetryRestLimiter`, etc. applied per-route, which is correct practice. But I don't have the actual limiter values (requests-per-window) — those numbers need to be sane for 10k users. A rate limit tuned for "a few hundred beta testers" will start rejecting legitimate traffic at 10k scale if it wasn't re-tuned.
+
+## In-memory fallback mode is a silent scaling trap
+
+```javascript
+export const isNoDbMode = !process.env.DATABASE_URL;
+```
+
+And from the App Booster route file earlier: `memGames` and `memStates` are plain `Map` objects living in process memory as a fallback. If `isNoDbMode` is ever true in any real deployment (misconfigured env var, DB connection dropped and code path falls back), every user's game/tweak state lives in a single process's RAM with **no persistence and no sharing across instances**. This is fine for dev, catastrophic if it ever activates in production with real users — state would vanish on every restart/deploy.
+
+## Things that look solid
+
+- `compression()` middleware is in place — good, reduces bandwidth.
+- Helmet CSP, CORS origin validation, rate limiting structure — all reasonable security hygiene that won't block scaling.
+- The pool has an `error` handler so a dropped connection won't crash the whole process — good defensive choice.
+- `withTimeout()` wrapping startup tasks so a slow Stripe/admin check can't block the server from listening — smart.
+
+## What I still need to give you a real verdict
+
+1. **Which Postgres are you actually on** — Replit's built-in DB, Neon, Supabase, RDS? This determines your real connection ceiling.
+2. **10k total registered users, or 10k concurrent?** This is the single most important number and changes the answer completely.
+3. **Your schema file** (`shared/schema.ts`) — I need to see if you have indexes on frequently-queried columns (e.g. `user_id` on those App Booster tables — I noticed the composite primary key migration earlier, which is good, but I'd want to confirm other hot tables have proper indexes too).
+4. **Are you running this Express server as a single Replit deployment, or is there autoscaling/multiple instances behind it?**
+
+If you answer those, especially #1 and #2, I can tell you definitively whether this needs a rewrite or just a few config tweaks (pool size, adding indexes, maybe introducing a connection pooler like PgBouncer).
