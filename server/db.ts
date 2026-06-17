@@ -20,13 +20,19 @@ if (isNoDbMode) {
   console.log(`[DB] ${label} — no DATABASE_URL present, using in-memory mock storage.`);
 }
 
-// Pool configuration: explicit limits to avoid unbounded connections.
-// In production with high traffic, consider pgBouncer for connection pooling.
+// Pool configuration tuned for ~10k registered users on Replit managed Postgres.
+// Replit's managed Postgres typically allows 25–100 connections depending on plan.
+// We claim 25, leaving headroom for migrations, admin tools, and future replicas.
+//
+// idleTimeoutMillis: release idle connections quickly so the pool doesn't hold
+//   slots that other parts of the system (or future clustering) could use.
+// connectionTimeoutMillis: generous 8s — under burst load a connection may queue
+//   briefly; failing at 5s was too aggressive and produced spurious 500s.
 const POOL_CONFIG = {
   connectionString: process.env.DATABASE_URL,
-  max: 10,           // max connections in pool
-  idleTimeoutMillis: 30_000,
-  connectionTimeoutMillis: 5_000,
+  max: 25,
+  idleTimeoutMillis: 20_000,
+  connectionTimeoutMillis: 8_000,
 };
 
 export const pool = isNoDbMode ? null : new Pool(POOL_CONFIG);

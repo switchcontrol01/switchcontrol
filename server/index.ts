@@ -19,6 +19,7 @@ import { csrfTokenMiddleware } from "./middleware/csrf";
 import { runJwtSelfTest } from "./lib/jwt";
 import { runDeviceBindingMigration } from "./lib/deviceBindingMigration";
 import { runStripeWebhookDedupMigration } from "./lib/stripeWebhookDedupMigration";
+import { runScalabilityMigration } from "./lib/scalabilityMigration";
 import { cleanupOldStripeEvents } from "./lib/stripeEventStore";
 import fs from "fs";
 import path from "path";
@@ -391,6 +392,7 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
     // Each is wrapped in a timeout so a hung network/DB call can never prevent
     // the health endpoint from responding or the Electron health-check from passing.
     Promise.all([
+      withTimeout(runScalabilityMigration(), 30_000, "scalabilityMigration"),
       withTimeout(initStripe(),        8_000, "initStripe"),
       withTimeout(ensureAdminUsers(),  8_000, "ensureAdminUsers"),
       withTimeout(cleanupOldStripeEvents(), 8_000, "cleanupStripeEvents"),

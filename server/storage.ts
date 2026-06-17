@@ -396,6 +396,19 @@ export class DatabaseStorage implements IStorage {
 
   async addHistory(entry: InsertHistoryEntry): Promise<HistoryEntry> {
     const [created] = await db!.insert(historyEntries).values(entry).returning();
+    // Hard cap: keep only the 500 most-recent history entries per user.
+    // Without this, history_entries grows unboundedly and degrades over time.
+    // The DELETE runs after the INSERT so the new row is always kept.
+    await db!.execute(
+      sql`DELETE FROM history_entries
+          WHERE settings_id = ${entry.settingsId}
+            AND id NOT IN (
+              SELECT id FROM history_entries
+              WHERE settings_id = ${entry.settingsId}
+              ORDER BY timestamp DESC
+              LIMIT 500
+            )`
+    );
     return created;
   }
 
@@ -415,6 +428,18 @@ export class DatabaseStorage implements IStorage {
 
   async addAIScan(scan: InsertAIScan): Promise<AIScan> {
     const [created] = await db!.insert(aiScans).values(scan).returning();
+    // Keep only the 20 most-recent AI scans per user — JSONB recommendations
+    // can be large and this table grows with every advisor session.
+    await db!.execute(
+      sql`DELETE FROM ai_scans
+          WHERE settings_id = ${scan.settingsId}
+            AND id NOT IN (
+              SELECT id FROM ai_scans
+              WHERE settings_id = ${scan.settingsId}
+              ORDER BY timestamp DESC
+              LIMIT 20
+            )`
+    );
     return created;
   }
 

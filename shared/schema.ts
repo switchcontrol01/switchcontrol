@@ -1,5 +1,5 @@
 import { sql, relations } from "drizzle-orm";
-import { pgTable, text, varchar, integer, boolean, timestamp, real, jsonb, serial, primaryKey } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, boolean, timestamp, real, jsonb, serial, primaryKey, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -7,14 +7,14 @@ export const userSettings = pgTable("user_settings", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().unique(),
   tier: text("tier").notNull().default("Premium"),
-  email: text("email").default("user@example.com"),
+  email: text("email"),
   licenseStatus: text("license_status").notNull().default("Active"),
   tweaksApplied: integer("tweaks_applied").notNull().default(0),
   servicesDisabled: integer("services_disabled").notNull().default(0),
   cleanersRun: integer("cleaners_run").notNull().default(0),
   startupAppsDisabled: integer("startup_apps_disabled").notNull().default(0),
   lastScan: timestamp("last_scan"),
-  usedRamGb: real("used_ram_gb").notNull().default(9.5),
+  usedRamGb: real("used_ram_gb"),
 });
 
 export const appliedTweaks = pgTable("applied_tweaks", {
@@ -22,7 +22,9 @@ export const appliedTweaks = pgTable("applied_tweaks", {
   settingsId: varchar("settings_id").notNull(),
   tweakId: text("tweak_id").notNull(),
   enabled: boolean("enabled").notNull().default(false),
-});
+}, (t) => ({
+  settingsIdIdx: index("applied_tweaks_settings_id_idx").on(t.settingsId),
+}));
 
 export const historyEntries = pgTable("history_entries", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -32,7 +34,10 @@ export const historyEntries = pgTable("history_entries", {
   page: text("page").notNull(),
   result: text("result").notNull(),
   notes: text("notes"),
-});
+}, (t) => ({
+  settingsIdIdx: index("history_entries_settings_id_idx").on(t.settingsId),
+  timestampIdx:  index("history_entries_timestamp_idx").on(t.timestamp),
+}));
 
 export const aiScans = pgTable("ai_scans", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -40,7 +45,9 @@ export const aiScans = pgTable("ai_scans", {
   timestamp: timestamp("timestamp").notNull().defaultNow(),
   summary: text("summary").notNull(),
   recommendations: jsonb("recommendations").notNull(),
-});
+}, (t) => ({
+  settingsIdIdx: index("ai_scans_settings_id_idx").on(t.settingsId),
+}));
 
 // ── Network tweak persistence ─────────────────────────────────────────────────
 // PK is composite (user_id, tweak_id) so each user owns their own state row.
@@ -67,7 +74,10 @@ export const networkTweakLog = pgTable("network_tweak_log", {
   verified:  boolean("verified").notNull().default(false),
   message:   text("message"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (t) => ({
+  userIdIdx:    index("network_tweak_log_user_id_idx").on(t.userId),
+  createdAtIdx: index("network_tweak_log_created_at_idx").on(t.createdAt),
+}));
 
 export const userSettingsRelations = relations(userSettings, ({ many }) => ({
   appliedTweaks: many(appliedTweaks),
