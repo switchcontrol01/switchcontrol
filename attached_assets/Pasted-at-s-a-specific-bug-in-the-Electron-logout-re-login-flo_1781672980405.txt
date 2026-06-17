@@ -1,0 +1,81 @@
+at's a specific bug in the Electron logout → re-login flow. Let me trace exactly what's happening.
+
+**What I can see from your screenshot:** the app shell renders (taskbar visible, window frame exists) but the main content area is completely black/blank. The sidebar/background is gone too.
+
+**The cause based on the code:**
+
+Looking at `App.tsx`, the logout flow does this:
+
+```
+handleLogout()
+  → setActiveFlow("none")
+  → setIsSigningOut(true)
+  → wait 1300ms (animation)
+  → performFullLogout()
+  → setPhase("unauthenticated") ← login screen shows
+  → setLocation("/")
+```
+
+Then when you log back in via deep link:
+
+```
+auth callback received
+  → exchangeToken(code)
+  → setPhase("login_success")
+  → 300ms delay
+  → setPhase("authenticated")
+  → setLocation("/dashboard")
+```
+
+The blank screen happens because **`entitlementsAttempted` is never reset on logout.** It's a `useState` that starts `false`, gets set to `true` after first login, but when you log out and log back in within the same Electron session, it's still `true`. So the `useEffect` that calls `refreshEntitlements()` after login has this guard:
+
+```javascript
+if (entitlementsAttempted) return; // ← skips on second login
+```
+
+This means `entitlementsOk` never becomes `true` on re-login. And the `AppAuthContext` provides:
+
+```javascript
+isPremium: entitlementsVerified && _resolvedIsPremium
+```
+
+More critically — looking at `ElectronAppRoutes`, it renders inside `AppAuthContext.Provider`. But several layout components (the Sidebar, `AppLayout`) gate their rendering on `entitlementsOk` or `user?.loggedIn`. If `entitlementsOk` is `false` after re-login, the layout shell never mounts — which is exactly the black screen you're seeing.
+
+**Secondary cause:** `isSigningOut` is also never reset. It's set to `true` during logout and the authenticated phase wrapper has:
+
+```javascript
+style={{ pointerEvents: isSigningOut ? "none" : undefined }}
+```
+
+If `isSigningOut` stays `true` into the next login cycle, the entire app is non-interactive even if it does render.
+
+**The fix is straightforward — reset all session-level state on logout:**
+
+```javascript
+const handleLogout = async () => {
+  if (isSigningOut) return;
+  setActiveFlow("none");
+  setIsSigningOut(true);
+  
+  // ADD THESE — reset for next login
+  setEntitlementsAttempted(false);
+  setEntitlementsOk(false);
+  setEntitlementsVerified(false);
+  setIsFirstLogin(false);
+  setEntitlementsAttempted(false); // critical
+  
+  const logoutPromise = performFullLogout("user_clicked_signout");
+  await new Promise(resolve => setTimeout(resolve, 1300));
+  await logoutPromise;
+  
+  setPhase("unauthenticated");
+  setIsSigningOut(false); // ADD THIS too
+  setLocation("/");
+};
+```
+
+And also reset `isSigningOut` when transitioning back to `unauthenticated`, otherwise the pointer-events:none persists into the login screen and the login buttons become unclickable on that second session.
+
+**Why you sometimes see a brief flash of the dashboard:** the `AnimatePresence` for `phase === "authenticated"` briefly mounts before the entitlements check fails and the layout collapses. That's the glimpse you're catching.
+
+**The SwitchControl-is-in-background FPS problem** — that's a separate issue, want me to address that properly next? Short answer is the telemetry polling loop (`pollTelemetry` every 2s with `si.currentLoad()`, `si.mem()`, etc.) keeps running while you're in-game, and on lower-end CPUs it competes for CPU time. There's a `pauseWhenMinimized` setting but it only pauses on minimize, not when another fullscreen app takes focus.
