@@ -4,39 +4,20 @@ const { contextBridge, ipcRenderer } = require('electron');
 // Preload runs synchronously before any page HTML is fetched or parsed.
 //
 // Three-layer flash prevention:
-//   1. backgroundColor '#07090D' on BrowserWindow → native DWM surface is dark
-//      (opaque window, no transparent:true, no DWM per-pixel alpha overhead)
-//   2. background styles below → Chromium renderer layer is dark
-//   3. opacity: 0 below → content is invisible while the window is hidden.
-//      When main.js calls mainWindow.show() it immediately sends app:window-shown.
-//      The handler below sets a 280ms CSS transition then clears opacity so the
-//      content fades in smoothly — no pop, no DWM compositing lag.
-//
-// Splash.tsx's double-rAF ONLY sends signalFirstFrameReady() — it does NOT
-// clear the opacity lock. The fade-in is driven entirely by app:window-shown.
+//   1. transparent:true on BrowserWindow → DWM surface is transparent, so no
+//      white DWM init frame can appear. Also enables setOpacity() on Windows.
+//   2. background styles below → Chromium renderer layer is dark.
+//   3. opacity: 0 below → content is invisible until Splash.tsx's double-rAF
+//      calls document.documentElement.style.opacity = '' just before sending
+//      app:first-frame-ready. By the time main.js calls show(), content is at
+//      full CSS opacity and the OS-level setOpacity fade (0→1, 280ms ease-out)
+//      cross-fades the entire window in smoothly — no flash, no instant pop.
 try {
   document.documentElement.style.setProperty('background', '#07090D', 'important');
   document.documentElement.style.setProperty('background-color', '#07090D', 'important');
   document.documentElement.style.setProperty('color-scheme', 'dark');
   document.documentElement.style.setProperty('opacity', '0', 'important');
 } catch (_) {}
-
-// ── CSS fade-in on first show ─────────────────────────────────────────────────
-// Runs directly in preload (not via contextBridge) so the renderer never needs
-// to call anything — the reveal is automatic and transparent to React.
-// Sequence: set transition → rAF → remove opacity (triggers 280ms ease-out).
-// transition is cleaned up via setTimeout after the animation completes so it
-// does not interfere with any later transitions on <html>.
-ipcRenderer.once('app:window-shown', () => {
-  try {
-    const h = document.documentElement;
-    h.style.setProperty('transition', 'opacity 280ms ease-out', 'important');
-    requestAnimationFrame(() => {
-      h.style.removeProperty('opacity');
-      setTimeout(() => { try { h.style.removeProperty('transition'); } catch (_) {} }, 320);
-    });
-  } catch (_) {}
-});
 
 // ─── Production detection ─────────────────────────────────────────────────────
 // Main process passes --switchcontrol-prod via additionalArguments in production.

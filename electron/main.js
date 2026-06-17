@@ -847,18 +847,21 @@ function createWindow() {
     width: 1300,
     height: 800,
     // Zero-flash show pattern:
-    //   backgroundColor:'#07090D' — matches the app's CSS background so the
-    //     Win32 window brush is dark from the first DWM frame. No transparent:true
-    //     so DWM uses standard opaque compositing (no per-pixel alpha overhead).
+    //   transparent:true  — enables setOpacity() on Windows AND makes the DWM
+    //                        surface transparent so no white init frame can slip
+    //                        through. Without this, setOpacity() is a no-op on Win.
+    //   backgroundColor:'#00000000' — required companion to transparent:true.
     //   show:false        — Chromium paints into a hidden surface.
     //   paintWhenInitiallyHidden:true — forces frame painting while hidden.
     //
-    // _tryShowWindow() calls mainWindow.show() only after both gates fire.
-    // preload.js sets html.style.opacity='0' immediately; the app:window-shown
-    // IPC triggers a 280ms CSS opacity transition so content fades in smoothly
-    // instead of popping. No setOpacity() calls needed.
+    // _tryShowWindow() does: setOpacity(0) → show() → animate setOpacity 0→1
+    // over 280ms with ease-out. Splash.tsx's double-rAF clears the CSS opacity
+    // lock before the signal fires, so content is fully CSS-visible by the time
+    // the OS-level opacity animation starts — giving a premium cross-fade from
+    // desktop background to the dark Splash without any white frame.
     show: false,
-    backgroundColor: '#07090D',
+    transparent: true,
+    backgroundColor: '#00000000',
     frame: false,
     thickFrame: false,
     webPreferences: {
@@ -1095,14 +1098,28 @@ function createWindow() {
     _windowShown = true;
     clearTimeout(showFallbackTimer);
     _bm.windowShown = Date.now();
-    // show() is called only after both gates have fired (Chromium frame painted +
-    // React Splash composited). backgroundColor:'#07090D' means the Win32 brush
-    // is dark — no white DWM init frame. html.style.opacity='0' (set by preload)
-    // keeps content invisible; app:window-shown drives a 280ms CSS transition so
-    // the content fades in smoothly rather than popping.
+    // setOpacity(0) → show(): window is OS-invisible when shown, so DWM never
+    // gets a chance to composite a white init frame. Then we animate setOpacity
+    // from 0 → 1 over 280ms with ease-out so the window cross-fades from the
+    // desktop background to the dark Splash — premium, no pop, no flash.
+    // Splash.tsx's double-rAF cleared the CSS opacity lock before this fires,
+    // so content is already at full CSS opacity during the OS-level fade.
+    mainWindow.setOpacity(0);
     mainWindow.show();
     mainWindow.focus();
     mainWindow.webContents.send('app:window-shown');
+    // Animate OS-level opacity 0 → 1 with ease-out over 280ms (~60fps)
+    const _FADE_MS = 280;
+    const _FADE_TICK = 16;
+    let _fadeElapsed = 0;
+    const _fadeTimer = setInterval(() => {
+      if (!mainWindow || mainWindow.isDestroyed()) { clearInterval(_fadeTimer); return; }
+      _fadeElapsed += _FADE_TICK;
+      const t = Math.min(1, _fadeElapsed / _FADE_MS);
+      const eased = 1 - (1 - t) * (1 - t); // ease-out quad
+      mainWindow.setOpacity(eased);
+      if (t >= 1) { clearInterval(_fadeTimer); mainWindow.setOpacity(1); }
+    }, _FADE_TICK);
     if (isDev) {
       mainWindow.webContents.openDevTools({ mode: 'undocked' });
     }
@@ -1116,13 +1133,23 @@ function createWindow() {
     if (!mainWindow || mainWindow.isDestroyed()) return;
     if (!mainWindow.isVisible()) {
       console.warn(`[LAUNCH:FALLBACK] show gates timed out — force-showing | ${launchMs()}`);
-      // Force the CSS opacity reveal in case preload's app:window-shown handler
-      // never ran (e.g. React crashed before mounting).
+      // Clear the CSS opacity lock in case Splash.tsx's double-rAF never fired.
       mainWindow.webContents.executeJavaScript(
-        "try { var h=document.documentElement; h.style.transition='opacity 280ms ease-out'; requestAnimationFrame(function(){ h.style.opacity=''; }); } catch(e) {}"
+        "try { document.documentElement.style.opacity = ''; } catch(e) {}"
       ).catch(() => {});
+      mainWindow.setOpacity(0);
       mainWindow.show();
       mainWindow.focus();
+      // Animate OS-level opacity 0→1 over 280ms (same as normal path)
+      const _FADE_MS_FB = 280, _FADE_TICK_FB = 16;
+      let _fbElapsed = 0;
+      const _fbTimer = setInterval(() => {
+        if (!mainWindow || mainWindow.isDestroyed()) { clearInterval(_fbTimer); return; }
+        _fbElapsed += _FADE_TICK_FB;
+        const t = Math.min(1, _fbElapsed / _FADE_MS_FB);
+        mainWindow.setOpacity(1 - (1 - t) * (1 - t));
+        if (t >= 1) { clearInterval(_fbTimer); mainWindow.setOpacity(1); }
+      }, _FADE_TICK_FB);
     }
     startTelemetryPolling().catch(e => console.error('[telemetry:poll] fallback error:', e.message));
   }, 5000);

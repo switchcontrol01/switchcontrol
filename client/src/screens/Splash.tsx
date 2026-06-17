@@ -50,13 +50,15 @@ export default function Splash({ onComplete }: SplashProps) {
     // animation frames to guarantee the dark background is actually on-screen
     // before main.js gates on this signal to call mainWindow.show().
     //
-    // NOTE: We do NOT clear the CSS opacity lock here. preload.js listens for
-    // app:window-shown (sent by main.js right after mainWindow.show()) and
-    // drives a 280ms CSS transition to fade content in smoothly. This avoids
-    // the DWM transparent:true overhead and the opacity snap that caused the
-    // "instant pop" appearance.
+    // double-rAF guarantees the dark Splash background is composited before the
+    // signal crosses the IPC boundary. We clear the CSS opacity lock HERE,
+    // synchronously, so by the time main.js receives the signal and calls
+    // setOpacity(0)→show(), content is already at full CSS opacity. The
+    // OS-level setOpacity fade (0→1 over 280ms) then cross-fades the entire
+    // window in — premium appearance, no white flash, no instant pop.
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
+        document.documentElement.style.opacity = '';
         (window as any).electronAPI?.signalFirstFrameReady?.();
       });
     });

@@ -1,66 +1,68 @@
 ---
-name: Electron startup flash and fade-in
-description: How to eliminate the DWM white flash AND get a smooth fade-in on Windows Electron startup — without transparent:true overhead.
+name: Electron startup flash and smooth fade-in
+description: How to eliminate the DWM white flash AND get a smooth animated fade-in on Windows Electron startup — the only confirmed-working approach.
 ---
 
 ## Rule
-Use `backgroundColor: '#07090D'` (matching app CSS background) + CSS opacity transition driven by `app:window-shown` IPC. **Do NOT use `transparent: true`** — it causes persistent DWM per-pixel alpha compositing lag for the window's entire lifetime.
+Use `transparent: true` + `setOpacity(0)→show()` to kill the flash, then animate `setOpacity` from 0→1 over ~280ms with ease-out for a smooth fade-in. **Do NOT** use `backgroundColor` alone (can't prevent DWM white init frame on some GPU/driver combos). **Do NOT** snap `setOpacity(1)` immediately (no fade = instant pop).
 
 ## Why
-- `transparent: true` was the old approach to prevent white flash. It works, but forces DWM into "layered window" mode (per-pixel alpha compositing on every frame forever) — causes animation jank and startup lag, especially visible during the Splash sequence.
-- `backgroundColor: '#07090D'`: Win32 window brush is dark from the first DWM frame. On modern Windows + Chromium, this is sufficient to prevent a white flash when combined with the CSS opacity lock.
-- `setOpacity(0→1)` is three synchronous native calls in one tick — a snap, not a fade. The app "instantly pops" visible with no animation.
-- CSS `opacity` transition (280ms ease-out) driven by `app:window-shown` is compositor-accelerated and gives a smooth appearance with zero DWM overhead.
+- `backgroundColor: '#07090D'` alone: tells DWM to use dark as the native surface. But on some Windows GPU/driver combos there is still a one-frame white compositor init frame when `show()` is called. Confirmed NOT sufficient.
+- `transparent: true`: DWM surface is transparent — no white to flash. Also required for `setOpacity()` to function on Windows (it's a documented no-op without this flag).
+- `setOpacity(0) → show()`: window is OS-invisible at the moment Windows composites it, so no white frame can appear.
+- `setOpacity` animated 0→1: fades the entire OS window (dark background + splash content) from invisible to fully visible — premium cross-fade from desktop background.
+- CSS opacity lock in preload + cleared by Splash.tsx double-rAF: ensures content is at CSS opacity=1 before the OS-level fade starts, so no partial render is visible during the animation.
 
 ## The confirmed working pattern
 
 **BrowserWindow options:**
 ```js
 show: false,
-backgroundColor: '#07090D',   // dark brush — no white flash, no transparent overhead
-// transparent: true  ← DO NOT use; causes per-pixel DWM alpha lag forever
+transparent: true,
+backgroundColor: '#00000000',  // required companion to transparent:true
 ```
 
-**`_tryShowWindow()` (both the normal path and 5s fallback):**
+**`_tryShowWindow()` (and 5s fallback):**
 ```js
+mainWindow.setOpacity(0);
 mainWindow.show();
 mainWindow.focus();
-mainWindow.webContents.send('app:window-shown');  // triggers CSS fade
-// setOpacity(0/1) ← DO NOT use; they snap, not animate, and need transparent:true
+mainWindow.webContents.send('app:window-shown');
+
+// Animate OS-level opacity 0 → 1 with ease-out over 280ms
+const _FADE_MS = 280, _FADE_TICK = 16;
+let _fadeElapsed = 0;
+const _fadeTimer = setInterval(() => {
+  if (!mainWindow || mainWindow.isDestroyed()) { clearInterval(_fadeTimer); return; }
+  _fadeElapsed += _FADE_TICK;
+  const t = Math.min(1, _fadeElapsed / _FADE_MS);
+  const eased = 1 - (1 - t) * (1 - t); // ease-out quad
+  mainWindow.setOpacity(eased);
+  if (t >= 1) { clearInterval(_fadeTimer); mainWindow.setOpacity(1); }
+}, _FADE_TICK);
 ```
 
-**`electron/preload.js`** (top-level, runs before contextBridge):
+**`electron/preload.js`** — CSS opacity lock only, no fade handler needed:
 ```js
-// CSS opacity lock — content invisible while window is hidden
 document.documentElement.style.setProperty('opacity', '0', 'important');
-
-// Fade-in: triggered by app:window-shown IPC from main
-ipcRenderer.once('app:window-shown', () => {
-  const h = document.documentElement;
-  h.style.setProperty('transition', 'opacity 280ms ease-out', 'important');
-  requestAnimationFrame(() => {
-    h.style.removeProperty('opacity');  // triggers 280ms ease-out from 0→1
-    setTimeout(() => { h.style.removeProperty('transition'); }, 320);
-  });
-});
+// Splash.tsx double-rAF clears this before signaling main.js
 ```
 
-**`Splash.tsx` double-rAF** — only signals main, does NOT clear opacity:
+**`Splash.tsx` double-rAF** — clears CSS opacity lock AND signals:
 ```js
 requestAnimationFrame(() => {
   requestAnimationFrame(() => {
-    // Do NOT do: document.documentElement.style.opacity = ''
-    // The preload's app:window-shown handler drives the fade-in.
+    document.documentElement.style.opacity = '';  // must clear BEFORE signal
     (window as any).electronAPI?.signalFirstFrameReady?.();
   });
 });
 ```
 
 ## What NOT to do
-- Do NOT use `transparent: true` — fixes flash but causes DWM compositing lag for the window's entire lifetime.
-- Do NOT clear `html.style.opacity` in Splash.tsx's double-rAF — let `app:window-shown` drive the fade.
-- Do NOT use `setOpacity(0→1)` — snaps, doesn't animate, and requires `transparent:true`.
-- Do NOT use always-rendered `filter:blur` divs in CameraGlow to pre-warm GPU layers — adds constant per-frame blur shader cost. CameraGlow must render conditionally (`visible=true` only).
+- Do NOT use `backgroundColor` alone without `transparent:true` — flash returns on some GPU/driver combos. Confirmed user-reported.
+- Do NOT snap `setOpacity(1)` synchronously after `show()` — instant pop, no animation.
+- Do NOT add a CSS opacity transition in preload driven by `app:window-shown` instead of the setOpacity animation — with transparent:true, CSS opacity:0 shows the desktop through the transparent Electron window (not the dark background), so the "fade" is from desktop → app, which looks wrong and is confusing.
+- Do NOT use always-rendered `filter:blur` divs in CameraGlow — adds constant per-frame blur shader cost every frame. CameraGlow must render conditionally (`visible=true` only).
 
 ## Build note
-After source changes, the packaged installer requires `npm run electron:build` (not `npm run dist:win`). Frontend changes need `npm run build` first.
+After source changes, packaged installer requires `npm run electron:build` (not `npm run dist:win`). Frontend changes need `npm run build` first.
