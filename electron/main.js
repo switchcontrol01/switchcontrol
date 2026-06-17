@@ -78,11 +78,10 @@ const isProd = !isDev;
 const allowDebug = process.env.DEBUG_MODE === 'true';
 verboseLog('[BOOT] app.isPackaged:', app.isPackaged, '| isDev:', isDev, '| DEBUG_MODE:', allowDebug);
 
-// DevTools is fully disabled in production.
+// DevTools lock — currently disabled so packaged builds can open DevTools for debugging.
 function lockDevTools(win) {
-  if (!win) return;
-  win.webContents.closeDevTools();
-  win.webContents.on('devtools-opened', () => win.webContents.closeDevTools());
+  // No-op: DevTools unlocked for debugging.
+  void win;
 }
 const PROTOCOL_NAME = 'switchcontrol';
 let mainWindow = null;
@@ -837,7 +836,7 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false, // Required for systeminformation
-      devTools: isDev, // DevTools disabled in production builds
+      devTools: true, // DevTools enabled for debugging
       backgroundThrottling: false, // Prevent timer throttling when window loses focus
       additionalArguments: isDev ? [] : ['--switchcontrol-prod'],
       paintWhenInitiallyHidden: true, // Ensure Chromium paints frames even while window is hidden
@@ -1073,6 +1072,7 @@ function createWindow() {
     // always Chromium-managed and cannot silently fail.
     mainWindow.show();
     mainWindow.focus();
+    mainWindow.webContents.openDevTools({ mode: 'detach' });
     console.log(`[LAUNCH:5] mainWindow.show() — both gates passed (chromium+react) | ${launchMs()}`);
     _bm.telemetryStart = Date.now();
     startTelemetryPolling().catch(e => console.error('[telemetry:poll] error:', e.message));
