@@ -2,14 +2,23 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 // ─── Zero-flash dark background ───────────────────────────────────────────────
 // Preload runs synchronously before any page HTML is fetched or parsed.
-// Setting the background here ensures Chromium's very first compositor frame
-// is dark — backgroundColor on BrowserWindow covers the native surface, and
-// this covers the Chromium renderer layer. Together they eliminate the brief
-// white frame that appears between window creation and first HTML paint.
+//
+// Three-layer flash prevention:
+//   1. backgroundColor '#07090D' on BrowserWindow → native DWM surface is dark
+//   2. background styles below → Chromium renderer layer is dark
+//   3. opacity: 0 below → content is invisible until Splash.tsx's double-rAF
+//      calls document.documentElement.style.opacity = '' just before sending
+//      the app:first-frame-ready IPC to main. This is the most reliable guard
+//      because setOpacity() on Windows requires transparent:true to work; the
+//      CSS opacity lock is always Chromium-managed and cannot be a no-op.
+//
+// Net effect: mainWindow.show() is only called AFTER opacity has been restored
+// in the renderer, so the first frame the user sees is always the dark Splash.
 try {
   document.documentElement.style.setProperty('background', '#07090D', 'important');
   document.documentElement.style.setProperty('background-color', '#07090D', 'important');
   document.documentElement.style.setProperty('color-scheme', 'dark');
+  document.documentElement.style.setProperty('opacity', '0', 'important');
 } catch (_) {}
 
 // ─── Production detection ─────────────────────────────────────────────────────

@@ -49,8 +49,16 @@ export default function Splash({ onComplete }: SplashProps) {
     // Splash frame to screen. useEffect alone runs before paint; we need two
     // animation frames to guarantee the dark background is actually on-screen
     // before main.js gates on this signal to call mainWindow.show().
+    //
+    // IMPORTANT: We restore the CSS opacity lock (set to 0 by preload.js) HERE,
+    // synchronously, before the IPC crosses the process boundary. IPC is async
+    // so by the time main.js receives the signal and calls mainWindow.show(),
+    // the Chromium compositor has already committed the dark Splash frame at
+    // full opacity. This eliminates the white flash on Windows regardless of
+    // whether setOpacity() works (it requires transparent:true on Windows).
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
+        document.documentElement.style.opacity = '';
         (window as any).electronAPI?.signalFirstFrameReady?.();
       });
     });

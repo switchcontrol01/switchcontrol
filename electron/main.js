@@ -1065,16 +1065,13 @@ function createWindow() {
     _windowShown = true;
     clearTimeout(showFallbackTimer);
     _bm.windowShown = Date.now();
-    // Zero-opacity show: eliminates the DWM white compositor frame.
-    // Windows DWM sometimes composites a brief white surface the instant a
-    // window becomes visible — before our dark background fills the frame.
-    // setOpacity(0) makes the window fully transparent at the OS level, so
-    // that initial white surface is invisible.  We then restore opacity
-    // synchronously in the same JS turn; DWM batches both into one composite
-    // update, so the user's first visible frame is always the dark Splash.
-    mainWindow.setOpacity(0);
+    // The renderer-side opacity lock (set by preload.js, cleared by Splash.tsx
+    // double-rAF) guarantees the first visible frame is the dark Splash.
+    // We do NOT use setOpacity(0/1) here: on Windows, setOpacity() is a no-op
+    // unless transparent:true was set at window creation (which we don't use,
+    // since it conflicts with backgroundColor). The CSS opacity approach is
+    // always Chromium-managed and cannot silently fail.
     mainWindow.show();
-    mainWindow.setOpacity(1);
     mainWindow.focus();
     console.log(`[LAUNCH:5] mainWindow.show() — both gates passed (chromium+react) | ${launchMs()}`);
     _bm.telemetryStart = Date.now();
@@ -1086,6 +1083,12 @@ function createWindow() {
     if (!mainWindow || mainWindow.isDestroyed()) return;
     if (!mainWindow.isVisible()) {
       console.warn(`[LAUNCH:FALLBACK] show gates timed out — force-showing | ${launchMs()}`);
+      // Restore the CSS opacity lock in case Splash.tsx's double-rAF never fired
+      // (e.g. React crashed before mounting). Without this the window would appear
+      // but the content would be invisible (opacity:0 from preload.js still active).
+      mainWindow.webContents.executeJavaScript(
+        "try { document.documentElement.style.opacity = ''; } catch(e) {}"
+      ).catch(() => {});
       mainWindow.show();
       mainWindow.focus();
     }
