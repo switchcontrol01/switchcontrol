@@ -187,6 +187,8 @@ export interface GoalResolution {
   game: string | null;
   /** Echoed back in the reasoning so the user feels heard. */
   acknowledgement: string;
+  /** Tweak IDs the user explicitly excluded via natural language. */
+  excludedTweakIds: string[];
 }
 
 const INTENT_LABELS: Record<OptimizationIntent, string> = {
@@ -231,6 +233,30 @@ const INTENT_PATTERNS: Array<{ re: RegExp; intent: OptimizationIntent }> = [
   { re: /\b(balanced|overall|everything|general|all[- ]?round|well[- ]?rounded)\b/i, intent: "balanced-gaming" },
 ];
 
+// ── Natural-language exclusion parsing ────────────────────────────────────────
+
+const EXCLUSION_PATTERNS: Array<{ re: RegExp; tweakIds: string[] }> = [
+  // GPU Hardware Scheduling (tweak id: preemption)
+  { re: /\b(don'?t want|no|skip|avoid|without|not)\b[^.!?]{0,50}\bgpu\b/i, tweakIds: ["preemption"] },
+  { re: /\bhwschmode\b/i, tweakIds: ["preemption"] },
+  { re: /\bgpu\s*(hardware\s*)?sched/i, tweakIds: ["preemption"] },
+  // Core Isolation / VBS
+  { re: /\b(don'?t want|no|skip|avoid|without|not)\b[^.!?]{0,50}core\s*isolation/i, tweakIds: ["disable-core-isolation"] },
+  { re: /\b(don'?t want|no|skip|avoid|without|not)\b[^.!?]{0,50}\bvbs\b/i, tweakIds: ["disable-vbs"] },
+  // Fast Startup
+  { re: /\b(don'?t want|no|skip|avoid|without|not)\b[^.!?]{0,50}fast\s*startup/i, tweakIds: ["disable-fast-startup"] },
+  // Hibernate
+  { re: /\b(don'?t want|no|skip|avoid|without|not)\b[^.!?]{0,50}hiber/i, tweakIds: ["disable-hibernate"] },
+];
+
+function parseExclusions(text: string): string[] {
+  const excluded = new Set<string>();
+  for (const { re, tweakIds } of EXCLUSION_PATTERNS) {
+    if (re.test(text)) tweakIds.forEach(id => excluded.add(id));
+  }
+  return [...excluded];
+}
+
 /** Map free-form user text to an OptimizationIntent + detected game. */
 export function resolveGoal(raw: string): GoalResolution {
   const text = (raw || "").trim();
@@ -250,14 +276,20 @@ export function resolveGoal(raw: string): GoalResolution {
   if (!intent) intent = gameIntent;
   if (!intent) intent = text.length === 0 ? "auto" : "auto";
 
-  const ackBase =
+  const excludedTweakIds = parseExclusions(text);
+
+  let ackBase =
     game && intent
       ? `Optimizing for ${game} — ${INTENT_LABELS[intent].toLowerCase()}.`
       : intent === "auto"
         ? "I'll analyze everything and choose the best overall strategy."
         : `Targeting ${INTENT_LABELS[intent].toLowerCase()}.`;
 
-  return { intent, intentLabel: INTENT_LABELS[intent], game, acknowledgement: ackBase };
+  if (excludedTweakIds.length > 0) {
+    ackBase += ` Got it — skipping ${excludedTweakIds.length === 1 ? "1 tweak" : `${excludedTweakIds.length} tweaks`} you don't want.`;
+  }
+
+  return { intent, intentLabel: INTENT_LABELS[intent], game, acknowledgement: ackBase, excludedTweakIds };
 }
 
 /** Conversational example prompts shown as pills (no card grids). */

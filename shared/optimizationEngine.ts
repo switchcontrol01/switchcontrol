@@ -45,6 +45,8 @@ export interface OptimizationEngineInput {
   windowsBuild: number | null;         // e.g. 26100; null = unknown
   cpuLoadPct?: number | null;
   ramUsedPct?: number | null;
+  /** Tweak IDs the user explicitly said they don't want — parsed from natural language. */
+  excludedTweakIds?: string[];
 }
 
 // ── Output shapes ─────────────────────────────────────────────────────────────
@@ -358,6 +360,17 @@ export function runOptimizationEngine(input: OptimizationEngineInput): Optimizat
           reason: meta.antiRecommendReason,
         });
       }
+      continue;
+    }
+
+    // ── User-specified exclusions (natural language "I don't want X") ──────────
+    if (input.excludedTweakIds?.includes(tweak.id)) {
+      avoided.push({
+        tweakId: tweak.id,
+        tweakTitle: tweak.title,
+        avoidType: "engine-excluded",
+        reason: "Excluded per your request.",
+      });
       continue;
     }
 

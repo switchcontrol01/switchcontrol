@@ -536,37 +536,73 @@ const CONFLICT_LABEL: Record<ConflictNode["type"], string> = {
   bottleneck: "Incompatible",
 };
 
-function ConflictNodeChip({ node, index }: { node: ConflictNode; index: number }) {
+function ConflictNodeChip({
+  node, index, isForced, onToggle,
+}: {
+  node: ConflictNode;
+  index: number;
+  isForced?: boolean;
+  onToggle?: () => void;
+}) {
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
       transition={{ delay: 0.1 + index * 0.06 }}
-      className="relative flex items-start gap-2.5 p-2.5 rounded-xl border border-amber-500/20 bg-amber-500/[0.04]"
+      className={cn(
+        "relative flex flex-col gap-2 p-2.5 rounded-xl border transition-colors",
+        isForced
+          ? "border-amber-500/40 bg-amber-500/[0.07]"
+          : "border-amber-500/20 bg-amber-500/[0.04]",
+      )}
     >
-      <motion.div
-        className="mt-0.5 shrink-0"
-        animate={{ opacity: [0.5, 1, 0.5] }}
-        transition={{ duration: 1.6, repeat: Infinity, delay: index * 0.2 }}
-      >
-        <AlertTriangle className="size-3.5 text-amber-400" />
-      </motion.div>
-      <div className="min-w-0">
-        <div className="flex items-center gap-1.5">
-          <span className="text-[12px] font-medium text-[#d6c08a] truncate">{node.title}</span>
-          <span className="text-[9px] uppercase tracking-wider text-amber-500/70 border border-amber-500/20 rounded px-1 py-px shrink-0">{CONFLICT_LABEL[node.type]}</span>
+      <div className="flex items-start gap-2.5">
+        <motion.div
+          className="mt-0.5 shrink-0"
+          animate={{ opacity: [0.5, 1, 0.5] }}
+          transition={{ duration: 1.6, repeat: Infinity, delay: index * 0.2 }}
+        >
+          <AlertTriangle className="size-3.5 text-amber-400" />
+        </motion.div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[12px] font-medium text-[#d6c08a] truncate">{node.title}</span>
+            <span className="text-[9px] uppercase tracking-wider text-amber-500/70 border border-amber-500/20 rounded px-1 py-px shrink-0">{CONFLICT_LABEL[node.type]}</span>
+          </div>
+          <p className="text-[10px] text-[#8a8268] mt-0.5 leading-snug">{node.reason}</p>
         </div>
-        <p className="text-[10px] text-[#8a8268] mt-0.5 leading-snug">{node.reason}</p>
       </div>
+      {onToggle && (
+        <button
+          onClick={onToggle}
+          className={cn(
+            "w-full text-[10px] px-2 py-1 rounded-lg border transition-colors text-left",
+            isForced
+              ? "border-amber-500/40 text-amber-400 bg-amber-500/10 hover:bg-amber-500/15"
+              : "border-white/[0.08] text-[#7c8597] hover:text-amber-400 hover:border-amber-500/30 bg-white/[0.02]",
+          )}
+          data-testid={`button-toggle-conflict-${node.tweakId}`}
+        >
+          {isForced ? "Remove from plan" : "Include anyway →"}
+        </button>
+      )}
     </motion.div>
   );
 }
 
 function PlanPhase({
-  plan, dna, onApply, onCancel,
-}: { plan: OptimizationPlan; dna: PcDna; onApply: () => void; onCancel: () => void }) {
+  plan, dna, onApply, onCancel, userForcedTweakIds, onToggleForced,
+}: {
+  plan: OptimizationPlan;
+  dna: PcDna;
+  onApply: () => void;
+  onCancel: () => void;
+  userForcedTweakIds?: string[];
+  onToggleForced?: (id: string) => void;
+}) {
   const metrics = useMemo(() => computeImpactProjection(plan), [plan]);
   const conflicts = useMemo(() => extractConflicts(plan), [plan]);
   const newTweaks = plan.recommended.filter(r => !r.alreadyApplied);
+  const forcedCount = userForcedTweakIds?.length ?? 0;
   const Icon = INTENT_ICON[plan.intent] ?? Sparkles;
 
   return (
@@ -646,7 +682,15 @@ function PlanPhase({
                     Conflicts Detected
                   </div>
                   <div className="space-y-2 max-h-[240px] overflow-y-auto pr-1 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/10">
-                    {conflicts.map((c, i) => <ConflictNodeChip key={c.tweakId} node={c} index={i} />)}
+                    {conflicts.map((c, i) => (
+                    <ConflictNodeChip
+                      key={c.tweakId}
+                      node={c}
+                      index={i}
+                      isForced={userForcedTweakIds?.includes(c.tweakId)}
+                      onToggle={onToggleForced ? () => onToggleForced(c.tweakId) : undefined}
+                    />
+                  ))}
                   </div>
                 </div>
               )}
@@ -665,7 +709,7 @@ function PlanPhase({
         >
           Cancel
         </button>
-        {newTweaks.length > 0 && (
+        {(newTweaks.length > 0 || forcedCount > 0) && (
           <button
             onClick={onApply}
             data-testid="button-apply-strategy"
@@ -673,6 +717,11 @@ function PlanPhase({
             style={{ background: `linear-gradient(90deg, ${premiumColor.main}, ${premiumColor.end})`, boxShadow: "0 0 30px rgba(0,212,255,0.35)" }}
           >
             Apply Optimization Strategy
+            {forcedCount > 0 && (
+              <span className="text-[10px] font-normal opacity-70">
+                (+{forcedCount} you added)
+              </span>
+            )}
             <ArrowRight className="size-4 group-hover:translate-x-0.5 transition-transform" />
           </button>
         )}
@@ -933,6 +982,11 @@ export function OptimizationFlow() {
 
   const [reverting, setReverting] = useState(false);
   const [revertOutcome, setRevertOutcome] = useState<{ reverted: number; stuck: number } | null>(null);
+  const [userForcedTweakIds, setUserForcedTweakIds] = useState<string[]>([]);
+
+  const handleToggleForced = useCallback((id: string) => {
+    setUserForcedTweakIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  }, []);
 
   const isOpen = phase !== "idle";
 
@@ -975,7 +1029,9 @@ export function OptimizationFlow() {
     if (phase !== "deciding" || !intent) return;
     let cancelled = false;
 
-    const cachedPlan = getCachedPlan(intent);
+    const excludedIds = goalRef.current?.excludedTweakIds ?? [];
+    // Skip cache when the user has explicit exclusions so the engine respects them
+    const cachedPlan = excludedIds.length === 0 ? getCachedPlan(intent) : null;
     if (cachedPlan) {
       const timer = setTimeout(() => { if (!cancelled) decidePlan(cachedPlan); }, REASONING_MS);
       return () => { cancelled = true; clearTimeout(timer); };
@@ -1016,6 +1072,7 @@ export function OptimizationFlow() {
             windowsBuild: snap?.windowsBuild ?? null,
             cpuLoadPct: snap?.cpuLoadPct ?? null,
             ramUsedPct: snap?.ramUsedPct ?? null,
+            excludedTweakIds: goalRef.current?.excludedTweakIds ?? [],
           });
         }
 
@@ -1038,6 +1095,7 @@ export function OptimizationFlow() {
     const resolved = resolveGoal(text);
     goalRef.current = resolved;
     setGoal(resolved);
+    setUserForcedTweakIds([]);
     setIntent(resolved.intent);
   }, [setIntent]);
 
@@ -1047,7 +1105,10 @@ export function OptimizationFlow() {
     startApplying();
     const startedAt = Date.now();
 
-    const toApply = plan.recommended.filter(r => !r.alreadyApplied).map(r => r.tweakId);
+    const toApply = [
+      ...plan.recommended.filter(r => !r.alreadyApplied).map(r => r.tweakId),
+      ...userForcedTweakIds.filter(id => !plan.recommended.some(r => r.tweakId === id)),
+    ];
     const appliedIds: string[] = [];
     const failedIds: string[] = [];
 
@@ -1080,7 +1141,7 @@ export function OptimizationFlow() {
     await new Promise(r => setTimeout(r, wait));
 
     finishApplying(appliedIds, failedIds);
-  }, [plan, startApplying, finishApplying, setTweak]);
+  }, [plan, userForcedTweakIds, startApplying, finishApplying, setTweak]);
 
   // ── revert (outcome-driven) ─────────────────────────────────────────────────
   const handleRevert = useCallback(async () => {
@@ -1156,7 +1217,14 @@ export function OptimizationFlow() {
 
             {phase === "plan" && plan && (
               <motion.div key="plan" className="w-full self-stretch" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }}>
-                <PlanPhase plan={plan} dna={dna} onApply={handleApply} onCancel={handleClose} />
+                <PlanPhase
+                  plan={plan}
+                  dna={dna}
+                  onApply={handleApply}
+                  onCancel={handleClose}
+                  userForcedTweakIds={userForcedTweakIds}
+                  onToggleForced={handleToggleForced}
+                />
               </motion.div>
             )}
 
