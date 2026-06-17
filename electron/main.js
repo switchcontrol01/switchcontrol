@@ -4502,7 +4502,6 @@ app.whenReady().then(async () => {
   }
 
   ipcMain.handle('app:openDevTools', () => {
-    if (!isDev) return; // DevTools are disabled in production builds
     mainWindow?.webContents.openDevTools({ mode: 'detach' });
   });
 
