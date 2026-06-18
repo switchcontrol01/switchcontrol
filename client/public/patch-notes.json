@@ -1,16 +1,14 @@
 {
-  "version": "1.1.2",
-  "title": "Precision & Intelligence Update",
-  "headline": "AI advisor improvements, weather location fix, performance tuning, and hardware detection across the board.",
-  "date": "2026-06-17",
+  "version": "1.1.3",
+  "title": "NIC Tuning & Refinement Update",
+  "headline": "App Booster replaced by NIC Tuning, Power Plan intent persistence fixed, and Settings cleaned up.",
+  "date": "2026-06-18",
   "type": "minor",
   "changes": [
-    "Fixed: Weather widget showed wrong city and temperature — now resolves your actual location even when GPS isn't available, instead of silently falling back to London.",
-    "Fixed: NVIDIA Max Performance power plan showed as active (green) on AMD systems — the card now correctly shows as unavailable with no GPU-specific plan active.",
-    "Fixed: AI Advisor ignored phrases like 'I don't want GPU hardware scheduling' — excluded tweaks are now detected from plain language and skipped from the plan.",
-    "Fixed: Conflicting tweaks in the AI optimization plan had no way to be enabled — each conflict card now has an 'Include anyway' toggle so you can override the AI's decision.",
-    "Fixed: Dashboard hardware data re-fetched on every page navigation — specs now load once per session and return instantly on subsequent visits.",
-    "Fixed: Power Plan Advanced Overrides (Core Parking, Processor Boost, etc.) had no real effect — each now applies via powercfg and PowerShell with the correct GUID.",
-    "Added: BIOS Advisor Hardware Profile now shows your detected CPU and GPU model alongside detected firmware settings."
+    "Added: NIC Tuning is now a first-class feature — replaces App Booster everywhere in the app, website, and marketing. Adapter-level interrupt moderation, RSS queue tuning, and driver power management in one place.",
+    "Fixed: Power Plan System Intent selection now persists across sessions — your chosen intent (Competitive, Efficiency, or Balanced) is remembered and restored correctly on next launch.",
+    "Removed: App Booster feature has been retired. All per-adapter network optimizations are now handled through NIC Tuning.",
+    "Removed: Game session notifications setting removed from Settings — the sentinel loop now handles telemetry pausing silently.",
+    "Improved: Settings page is cleaner with fewer redundant toggles."
   ]
 }

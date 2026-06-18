@@ -1,15 +1,14 @@
 {
-  "version": "1.1.2",
-  "title": "Performance & Security Update",
-  "headline": "Faster animations, tighter security, and a smoother experience from landing page to app.",
-  "date": "2026-06-14",
-  "type": "patch",
+  "version": "1.1.3",
+  "title": "NIC Tuning & Refinement Update",
+  "headline": "App Booster replaced by NIC Tuning, Power Plan intent persistence fixed, and Settings cleaned up.",
+  "date": "2026-06-18",
+  "type": "minor",
   "changes": [
-    "Improved: Animations throughout the site are now smarter — they pause when off-screen and respect reduced-motion preferences, cutting GPU load and idle CPU drain.",
-    "Improved: The landing page and download page are now smoother and more responsive. Scrolling the page no longer re-renders the header.",
-    "Improved: Desktop installer updated to 1.1.2 with all the latest fixes and improvements.",
-    "Fixed: The server's own CPU usage throttle was not counting system time correctly — it now accounts for all CPU load when deciding whether to back off.",
-    "Security: Logging out now immediately invalidates your session token on the server, so a stolen token can't be reused during the brief cache window.",
-    "Security: JWT verification cache has tighter limits to prevent stale-token replay at scale."
+    "Added: NIC Tuning is now a first-class feature — replaces App Booster everywhere in the app, website, and marketing. Adapter-level interrupt moderation, RSS queue tuning, and driver power management in one place.",
+    "Fixed: Power Plan System Intent selection now persists across sessions — your chosen intent (Competitive, Efficiency, or Balanced) is remembered and restored correctly on next launch.",
+    "Removed: App Booster feature has been retired. All per-adapter network optimizations are now handled through NIC Tuning.",
+    "Removed: Game session notifications setting removed from Settings — the sentinel loop now handles telemetry pausing silently.",
+    "Improved: Settings page is cleaner with fewer redundant toggles."
   ]
 }

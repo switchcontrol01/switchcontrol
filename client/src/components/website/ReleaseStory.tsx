@@ -17,34 +17,34 @@ import { Link } from "wouter";
 
 const STEPS = [
   {
-    icon: Gauge,
-    label: "Real Hardware Detection",
-    desc: "Display Signal now falls back to a direct PowerShell query when systeminformation times out — GPU name, resolution, and refresh rate populate reliably on every system.",
+    icon: Activity,
+    label: "NIC Tuning — Now First-Class",
+    desc: "App Booster is out. NIC Tuning is in — adapter-level interrupt moderation, RSS queue sizing, and driver power management are now front and centre throughout the app.",
   },
   {
-    icon: Activity,
-    label: "Extreme Labs Sliders Fixed",
-    desc: "Win32PrioritySeparation, System Responsiveness, and all 7 Extreme Labs sliders now apply correctly with proper executor IDs and gaming-tuned recommended values.",
+    icon: Gauge,
+    label: "Power Plan Intent Persistence",
+    desc: "Your chosen Power Plan intent (Competitive, Efficiency, or Balanced) now persists across sessions and restores instantly on next launch without re-selecting.",
   },
   {
     icon: Shield,
-    label: "NIC Ring Buffer Support",
-    desc: "Receive Buffers and Transmit Buffers now work on Realtek and AMD adapters using the Set-NetAdapterRingBuffer fallback path when driver advanced properties aren't available.",
-  },
-  {
-    icon: Package,
-    label: "Instant Page Transitions",
-    desc: "Navigating between pages no longer shows a black flash. New pages appear immediately and slide in smoothly.",
+    label: "Cleaner Settings",
+    desc: "Removed the App Booster toggle and Game session notifications setting — Settings is now focused on what actually matters day to day.",
   },
   {
     icon: Sparkles,
-    label: "App Launch Reliability",
-    desc: "Fixed a rare black-screen-on-launch caused by a missing icon import. The app now starts cleanly every time.",
+    label: "Faster Dashboard Load",
+    desc: "Hardware specs are now loaded once per session and cached — navigating back to the Dashboard is instant without re-polling your hardware.",
+  },
+  {
+    icon: Package,
+    label: "History & Overlays Updated",
+    desc: "NIC Tuning entries now appear correctly in History, premium overlays, and the module showcase across both the app and website.",
   },
   {
     icon: Crown,
-    label: "Cleaner Dashboard",
-    desc: "System Pressure widget removed and CPU card now shows your processor name instead of live load percentage.",
+    label: "Across the Board",
+    desc: "Version 1.1.3 updates every reference — patch notes, download page, pricing, FAQ, and in-app copy — to reflect the new feature set.",
   },
 ];
 
@@ -91,19 +91,19 @@ export default function ReleaseStory() {
           <Reveal>
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.08] text-xs font-mono text-white/30 mb-6">
               <Layers className="w-3 h-3" />
-              Version 1.1.2
+              Version 1.1.3
             </div>
           </Reveal>
           <Reveal delay={0.1}>
             <h2 className="text-3xl md:text-5xl font-extrabold text-white mb-4 leading-tight">
-              Hardware Compatibility{" "}
-              <span className="font-light italic text-white/50">sorted.</span>
+              NIC Tuning.{" "}
+              <span className="font-light italic text-white/50">properly done.</span>
             </h2>
           </Reveal>
           <Reveal delay={0.2}>
             <p className="text-white/30 max-w-lg mx-auto text-sm md:text-base leading-relaxed">
-              Broader NIC support, Extreme Labs slider fixes, and display
-              detection that works on every system — not just the ideal ones.
+              App Booster is retired. NIC Tuning takes its place — adapter-level
+              control, Power Plan persistence, and a cleaner Settings page.
             </p>
           </Reveal>
         </div>
