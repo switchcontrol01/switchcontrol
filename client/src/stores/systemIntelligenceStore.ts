@@ -166,6 +166,8 @@ const CACHE_TTL_MS = 30 * 60 * 1000;
 // Session-level flag — survives component unmount/remount across all routes.
 // Once the initial inventory is loaded, no page remount will re-trigger deep polling.
 let _initSpecsFetched = false;
+// Prevents the delayed full-profile upgrade from being scheduled more than once.
+let _fullCollectScheduled = false;
 
 interface SystemIntelligenceState {
   profile: SystemIntelligenceProfile | null;
@@ -191,38 +193,46 @@ export const useSystemIntelligenceStore = create<SystemIntelligenceState>((set, 
   activeHardwareProfile: null,
 
   fetch: async (forceRefresh = false) => {
-    // Session guard: if initial fetch ever succeeded, skip on every mount
+    // Session guard: once the initial fast fetch succeeds, skip on every mount
     // unless an explicit force refresh is requested.
-    if (!forceRefresh && _initSpecsFetched && get().profile) {
-      return;
-    }
+    if (!forceRefresh && _initSpecsFetched && get().profile) return;
 
     const { loading, fetchedAt } = get();
     const stale = Date.now() - fetchedAt > CACHE_TTL_MS;
-
     if (!forceRefresh && !stale && get().profile) return;
     if (loading) return;
 
     set({ loading: true, error: null });
     try {
-      const url = forceRefresh
-        ? "/api/system-intelligence/profile"
-        : "/api/system-intelligence/profile";
-
-      const method = forceRefresh ? "POST" : "GET";
+      // Initial load uses /fast — Phase A identity data (CPU, GPU, MB, BIOS, RAM).
+      // Returns instantly on warm launches (disk cache hit); <5s on first launch.
+      // Force-refresh uses /refresh to trigger a full WMI re-collect.
       const endpoint = forceRefresh
         ? "/api/system-intelligence/refresh"
-        : "/api/system-intelligence/profile";
+        : "/api/system-intelligence/fast";
 
-      const res = await fetch(forceRefresh ? endpoint : url, {
-        method: forceRefresh ? "POST" : "GET",
-      });
-
+      const res = await fetch(endpoint, { method: forceRefresh ? "POST" : "GET" });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json() as SystemIntelligenceProfile;
       _initSpecsFetched = true;
       set({ profile: data, activeHardwareProfile: data, initSpecsFetched: true, loading: false, fetchedAt: Date.now() });
-      console.log(`[SysIntelligence] Profile loaded | MB=${data.baseboard.model} | BIOS=${data.bios.version} | CPU=${data.cpu.brand}`);
+      console.log(`[SysIntelligence] Fast profile loaded | MB=${data.baseboard.model} | CPU=${data.cpu.brand}`);
+
+      // 25s after the fast fetch, silently upgrade to the full profile.
+      // By then the background full collection started by /fast is complete
+      // and /profile returns rich platform/storage/network data from cache.
+      if (!forceRefresh && !_fullCollectScheduled) {
+        _fullCollectScheduled = true;
+        setTimeout(async () => {
+          try {
+            const fullRes = await fetch("/api/system-intelligence/profile");
+            if (!fullRes.ok) return;
+            const fullData = await fullRes.json() as SystemIntelligenceProfile;
+            set({ profile: fullData, activeHardwareProfile: fullData, fetchedAt: Date.now() });
+            console.log(`[SysIntelligence] Full profile upgrade | MB=${fullData.baseboard.model} | platform.secureBoot=${fullData.platform.secureBootEnabled}`);
+          } catch {}
+        }, 25_000);
+      }
     } catch (err: any) {
       console.warn("[SysIntelligence] fetch failed:", err?.message);
       set({ loading: false, error: err?.message ?? "Failed to load system profile" });

@@ -520,25 +520,23 @@ async function collect(): Promise<SystemIntelligenceProfile> {
 
   // Tight timeouts: fail fast rather than block startup for 30s on AMD/WMI-slow hosts.
   // siTimeoutTracked records each timeout and skips sources in a 12-min cooldown after 2+ failures.
+  // battery, users, netConn removed — useless on desktop gaming rigs and very slow on AMD/WMI
   const [
     bbRes, biosRes, cpuRes, graphicsRes, memLayoutRes,
-    diskLayoutRes, fsSizeRes, netIfRes, netConnRes,
-    procsRes, osRes, batteryRes, usersRes,
+    diskLayoutRes, fsSizeRes, netIfRes,
+    procsRes, osRes,
     platformStates, monitorEdidRes,
   ] = await Promise.allSettled([
     siTimeoutTracked("baseboard",    si.baseboard(),             3_000),
     siTimeoutTracked("bios",         si.bios(),                  3_000),
-    siTimeoutTracked("cpu",          si.cpu(),                   5_000), // os.cpus() fallback
-    siTimeoutTracked("graphics",     si.graphics(),              3_000), // WMI covers AMD
+    siTimeoutTracked("cpu",          si.cpu(),                   5_000),
+    siTimeoutTracked("graphics",     si.graphics(),              3_000),
     siTimeoutTracked("memLayout",    si.memLayout(),             4_000),
     siTimeoutTracked("diskLayout",   si.diskLayout(),            4_000),
     siTimeoutTracked("fsSize",       si.fsSize(),                4_000),
     siTimeoutTracked("netIf",        si.networkInterfaces("*"),  4_000),
-    siTimeoutTracked("netConn",      si.networkConnections(),    4_000),
     siTimeoutTracked("processes",    si.processes(),             4_000),
     siTimeoutTracked("osInfo",       si.osInfo(),                3_000),
-    siTimeoutTracked("battery",      si.battery(),               2_000),
-    siTimeoutTracked("users",        si.users(),                 2_000),
     siTimeoutTracked("platformPS",   collectWindowsPlatformStates(), 3_000),
     siTimeoutTracked("monitorEDID",  collectMonitorEdidNames(),       3_000),
   ]);
@@ -559,8 +557,22 @@ async function collect(): Promise<SystemIntelligenceProfile> {
   const bb = bbRes.status === "fulfilled" ? bbRes.value : null;
   const bios = biosRes.status === "fulfilled" ? biosRes.value : null;
 
-  // ── CPU ──
-  const cpu = cpuRes.status === "fulfilled" ? cpuRes.value : null;
+  // ── CPU — os.cpus() fallback when WMI si.cpu() hangs (common on AMD cold-start) ──
+  let cpu: any = cpuRes.status === "fulfilled" ? cpuRes.value : null;
+  if (!cpu?.brand) {
+    const osCpus = os.cpus();
+    if (osCpus.length > 0) {
+      cpu = {
+        brand:         osCpus[0].model?.trim() || null,
+        manufacturer:  null,
+        physicalCores: Math.max(1, Math.floor(osCpus.length / 2)),
+        cores:         osCpus.length,
+        socket:        null,
+        speed:         osCpus[0].speed ? parseFloat((osCpus[0].speed / 1000).toFixed(2)) : null,
+      };
+      console.log(`[SysIntelligence] cpu WMI timeout — os.cpus() fallback: ${cpu.brand}`);
+    }
+  }
 
   // ── GPU ──
   const graphics = graphicsRes.status === "fulfilled" ? graphicsRes.value : null;
@@ -688,16 +700,8 @@ async function collect(): Promise<SystemIntelligenceProfile> {
     if (ifRes.status === 'fulfilled') defaultInterface = safeStr(ifRes.value);
   } catch {}
 
-  const netConnRaw = netConnRes.status === "fulfilled" ? (netConnRes.value as any[]) : [];
-  const activeConnections: SipActiveConnection[] = netConnRaw.slice(0, 50).map((c: any) => ({
-    protocol: safeStr(c.protocol),
-    localAddress: safeStr(c.localAddress),
-    localPort: typeof c.localPort === "number" ? c.localPort : null,
-    peerAddress: safeStr(c.peerAddress),
-    peerPort: typeof c.peerPort === "number" ? c.peerPort : null,
-    state: safeStr(c.state),
-    process: safeStr(c.process),
-  }));
+  // netConn removed — very expensive on Windows (enumerates all TCP/UDP sockets)
+  const activeConnections: SipActiveConnection[] = [];
 
   // ── Processes ──
   const procsData = procsRes.status === "fulfilled" ? (procsRes.value as any).list : [];
@@ -721,20 +725,7 @@ async function collect(): Promise<SystemIntelligenceProfile> {
   // ── OS ──
   const osData = osRes.status === "fulfilled" ? osRes.value : null;
 
-  // ── Battery + Chassis ──
-  const bat = batteryRes.status === "fulfilled" ? batteryRes.value : null;
-
-  // ── Users ──
-  const usersRaw = usersRes.status === "fulfilled" ? (usersRes.value as any[]) : [];
-  let currentUser: string | null = null;
-  try { currentUser = safeStr(usersRaw[0]?.user) ?? null; } catch {}
-
-  const sessions = usersRaw.map((u: any) => ({
-    user: safeStr(u.user),
-    tty: safeStr(u.tty),
-    date: safeStr(u.date),
-    ip: safeStr(u.ip),
-  }));
+  // battery + users removed — no value for desktop gaming; battery always null on desktop PCs
 
   // ── Platform states (Windows) ──
   const pStates = platformStates.status === "fulfilled" ? platformStates.value : {
@@ -835,11 +826,11 @@ async function collect(): Promise<SystemIntelligenceProfile> {
       ...pStates,
     },
     device: {
-      batteryPresent: bat ? (bat.hasBattery ?? null) : null,
-      batteryPercent: bat?.hasBattery ? safeNum(bat.percent) : null,
+      batteryPresent: null,
+      batteryPercent: null,
       chassisType,
     },
-    users: { currentUser, sessions },
+    users: { currentUser: null, sessions: [] },
     containers: { dockerDetected, containers },
     inference: { expoOrXmp, biosFreshness },
     collectedAt: new Date().toISOString(),
@@ -976,10 +967,17 @@ export async function getSystemIntelligence(forceRefresh = false): Promise<Syste
   if (_collectingPromise) return _collectingPromise;
 
   _collectingPromise = collect().then((p) => {
-    _cache = p;
-    _cacheAt = Date.now();
+    // Never downgrade a good in-memory cache with an all-null result (e.g. probes
+    // in 12-min cooldown after first-launch timeouts). Preserve the richer data.
+    const empty = p.baseboard.model === null && p.bios.version === null &&
+                  p.cpu.brand === null && p.gpu.controllers.length === 0 &&
+                  p.memory.sticks.length === 0;
+    if (!empty || !_cache) {
+      _cache = p;
+    }
+    _cacheAt = Date.now(); // always advance timestamp to stop re-collect spam
     _collectingPromise = null;
-    return p;
+    return _cache!;
   }).catch((err) => {
     console.error("[SysIntelligence] Collection failed:", err);
     _collectingPromise = null;
@@ -1010,12 +1008,9 @@ export async function getFastSystemIntelligence(): Promise<SystemIntelligencePro
       _cacheAt = 0; // keep marked stale so full collect() still runs
     }
     _phaseAPromise = null;
-
-    // Immediately schedule full background collection (non-blocking)
-    if (!_collectingPromise) {
-      void getSystemIntelligence();
-    }
-
+    // Full collection is NOT auto-started here — the client schedules it
+    // via POST /trigger-background ~25s after dashboard is stable,
+    // so expensive WMI calls don't race with app startup.
     return _cache!;
   }).catch((err) => {
     console.error("[SysIntelligence] Phase A failed:", err);

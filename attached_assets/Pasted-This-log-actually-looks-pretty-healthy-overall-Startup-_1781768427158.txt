@@ -1,0 +1,272 @@
+This log actually looks pretty healthy overall. Startup is good. Backend comes up in ~1.3s, first frame ~277 ms, dashboard ~3.9 s. Premium verification works. GPU detection works. Tweak batch takes ~2.1 s.
+
+The big problem screaming from these logs is SysIntelligence.
+
+### Major issue
+
+This:
+
+```
+[SysIntelligence] phase=full start — deep collection
+```
+
+Then:
+
+```
+battery timeout
+users timeout
+baseboard timeout
+bios timeout
+graphics timeout
+osInfo timeout
+platformPS timeout
+monitorEDID timeout
+diskLayout timeout
+netIf timeout
+cpu timeout
+```
+
+Almost everything timed out.
+
+Eventually:
+
+```
+phase=full complete in 6439ms
+
+MB=null
+BIOS=null
+CPU=null
+GPUs=0
+RAMsticks=2
+```
+
+So SysIntelligence is spending 6.4 seconds trying to collect stuff and getting almost nothing.
+
+---
+
+# What's probably happening
+
+Almost certainly this stuff is still being wrapped with:
+
+```js
+Promise.race([
+   systeminformation.xxx(),
+   timeout()
+])
+```
+
+with 2-5 second limits.
+
+But systeminformation is blocking because:
+
+* PowerShell is being spawned repeatedly
+* WMI calls are hanging
+* Certain hardware queries are slow on 9800X3D systems
+* monitor EDID and network connections are expensive
+
+---
+
+# Biggest waste
+
+These are not needed at startup:
+
+### monitorEDID
+
+Can run every 24h.
+
+### netConn
+
+Very expensive.
+
+Can run manually.
+
+### users
+
+Not useful.
+
+### battery
+
+Desktop PC.
+
+Skip entirely.
+
+### platformPS
+
+Should not exist at startup.
+
+### diskLayout
+
+Cache forever.
+
+### baseboard
+
+Run once every launch.
+
+### BIOS
+
+Run once every launch.
+
+### graphics
+
+Already have GPU fast path.
+
+---
+
+# CPU query timeout
+
+This is concerning:
+
+```
+probe=cpu timeout
+CPU=null
+```
+
+Yet startup already knew:
+
+```
+AMD Ryzen 7 9800X3D
+```
+
+Meaning SysIntelligence is redundantly querying CPU again.
+
+It should just consume:
+
+```js
+cachedSpecs.cpu
+```
+
+instead of running another SI query.
+
+---
+
+# Another thing I notice
+
+At:
+
+```
+10.840
+```
+
+SysIntelligence starts.
+
+Then immediately:
+
+```
+14.746
+```
+
+timeouts begin.
+
+Meaning you're starting full intelligence only 4 seconds after dashboard mount.
+
+That's still too early.
+
+I'd move:
+
+```js
+/api/system-intelligence/profile
+```
+
+to:
+
+### 15-20 seconds after dashboard stable
+
+or
+
+### lazy load when BIOS Advisor opens.
+
+This one change alone will remove almost all startup pressure.
+
+---
+
+# Good news
+
+These look fixed:
+
+### Backend startup
+
+1.2s
+
+Good.
+
+### Premium truth
+
+Works.
+
+### Device lock
+
+Works.
+
+### GPU detection
+
+Fast path works.
+
+### Splash handoff
+
+Looks smooth.
+
+### Batch tweak scan
+
+Only one PowerShell spawn.
+
+Excellent.
+
+### Telemetry
+
+No evidence of massive PowerShell spam.
+
+Huge improvement compared to older logs.
+
+---
+
+# If I were prioritizing next fixes:
+
+## #1
+
+Kill 80% of SysIntelligence startup.
+
+Move full profile to lazy load.
+
+---
+
+## #2
+
+Make CPU source:
+
+```js
+cachedSpecs.cpu
+```
+
+No SI query.
+
+---
+
+## #3
+
+Remove startup probes:
+
+* battery
+* users
+* netConn
+* monitorEDID
+* platformPS
+
+---
+
+## #4
+
+diskLayout
+
+Cache 24h.
+
+---
+
+## #5
+
+baseboard + BIOS
+
+Cache per session.
+
+---
+
+These logs actually suggest you're very close. SysIntelligence is now the biggest startup offender by far. Everything else looks dramatically cleaner than earlier builds.
