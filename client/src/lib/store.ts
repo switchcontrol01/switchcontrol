@@ -34,7 +34,6 @@ interface AppState {
   tweaks: Record<string, boolean>; // id -> enabled
   history: HistoryItem[];
   latestAIScan: AIScanResult | null;
-  appBoosterEnabled: boolean;
   realtimeMetricsEnabled: boolean;
   pauseWhenMinimized: boolean;
   
@@ -48,7 +47,6 @@ interface AppState {
   enableRecommended: () => void;
   runAIScan: () => Promise<void>;
   updateCounter: (key: keyof Omit<AccountStats, 'lastScan'>, increment?: number) => void;
-  setAppBoosterEnabled: (enabled: boolean) => void;
   setRealtimeMetricsEnabled: (enabled: boolean) => void;
   setPauseWhenMinimized: (enabled: boolean) => void;
 }
@@ -74,7 +72,6 @@ export const useStore = create<AppState>()(
       tweaks: {},
       history: [],
       latestAIScan: null,
-      appBoosterEnabled: true,
       realtimeMetricsEnabled: true,
       pauseWhenMinimized: true,
 
@@ -218,7 +215,6 @@ export const useStore = create<AppState>()(
 
       setStats: (newStats) => set((state) => ({ stats: { ...state.stats, ...newStats } })),
       
-      setAppBoosterEnabled: (enabled) => set({ appBoosterEnabled: enabled }),
       setRealtimeMetricsEnabled: (enabled) => set({ realtimeMetricsEnabled: enabled }),
       setPauseWhenMinimized: (enabled) => set({ pauseWhenMinimized: enabled }),
       
@@ -245,7 +241,6 @@ export const useStore = create<AppState>()(
         tweaks: state.tweaks,
         history: state.history,
         latestAIScan: state.latestAIScan,
-        appBoosterEnabled: state.appBoosterEnabled,
         realtimeMetricsEnabled: state.realtimeMetricsEnabled,
         pauseWhenMinimized: state.pauseWhenMinimized,
         // Persist stable hardware identity so the dashboard renders instantly

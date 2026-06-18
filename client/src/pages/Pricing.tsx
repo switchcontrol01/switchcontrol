@@ -80,7 +80,7 @@ const PREMIUM_BENEFITS = [
   { text: "BIOS Advisor",                 note: "Scoring + guided BIOS tuning" },
   { text: "Network Tweaks",               note: "Reduce jitter, tighten ping" },
   { text: "Power Plan control",           note: "Ryzen & Intel tuning profiles" },
-  { text: "App Booster",                  note: "Prioritize game processes" },
+  { text: "NIC Tuning",                   note: "Adapter-level latency tuning" },
   { text: "Full history & revert log",    note: "Undo any change, any time" },
 ];
 

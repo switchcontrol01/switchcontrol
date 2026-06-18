@@ -746,9 +746,6 @@ export class DatabaseStorage implements IStorage {
       //    the transaction continue, instead of aborting the entire deletion.
       const adHocTables = [
         "focus_sessions",
-        "app_booster_games",
-        "app_booster_state",
-        "app_booster_history",
       ] as const;
       for (const tbl of adHocTables) {
         const sp = `del_adhoc_${tbl}`;

@@ -727,7 +727,7 @@ function buildChatContext(context: any, serverCtx?: Awaited<ReturnType<typeof bu
       "/process-manager":"Process Manager",
       "/system-cleaner": "System Cleaner",
       "/debloater":      "Debloater",
-      "/app-booster":    "App Booster",
+      "/nic-tuning":     "NIC Tuning",
       "/history":        "History",
       "/settings":       "Settings",
     };

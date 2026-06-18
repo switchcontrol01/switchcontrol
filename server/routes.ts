@@ -18,7 +18,7 @@ import biosRouter from "./routes/bios";
 import securityRouter from "./routes/security";
 import networkDiagnosticsRouter from "./routes/networkDiagnostics";
 import adminRouter from "./routes/admin";
-import appBoosterRouter from "./routes/appBooster";
+
 import networkTweaksRouter from "./routes/networkTweaks";
 import tweakIntelligenceRouter from "./routes/tweakIntelligence";
 import powerIntelligenceRouter from "./routes/powerIntelligence";
@@ -92,7 +92,7 @@ export async function registerRoutes(
     }
     next();
   }, adminRouter);
-  app.use("/api/app-booster", requireJwt, appBoosterRouter);
+
   app.use("/api/network-tweaks", requireJwt, requireCloudPremium, networkTweaksRouter);
   app.use("/api/tweak-intelligence", tweakIntelligenceRouter);
   app.use("/api/power-intelligence", powerIntelligenceRouter);

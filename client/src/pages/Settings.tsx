@@ -327,7 +327,6 @@ const SUPPORT_EMAIL = 'switchcontrol67@gmail.com';
 export default function Settings() {
   const { 
     account, resetData, 
-    appBoosterEnabled, setAppBoosterEnabled,
     realtimeMetricsEnabled, setRealtimeMetricsEnabled,
     pauseWhenMinimized, setPauseWhenMinimized,
   } = useStore();
@@ -389,26 +388,6 @@ export default function Settings() {
               <CardDescription>Configure general app behavior.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Enable App Booster */}
-              <motion.div initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3, delay: 0.05, ease: [0.22, 1, 0.36, 1] }}>
-                <div className="flex items-center justify-between py-1 px-2 -mx-2 rounded-lg hover:bg-[#1A1F26] transition-colors">
-                  <div className="space-y-0.5">
-                    <Label>Enable App Booster</Label>
-                    <p className="text-xs text-muted-foreground">Automatically optimize priority for active games.</p>
-                  </div>
-                  <Switch
-                    checked={appBoosterEnabled}
-                    data-testid="toggle-app-booster-enabled"
-                    onCheckedChange={(checked) => {
-                      setAppBoosterEnabled(checked);
-                      toast({ title: checked ? "App Booster Enabled" : "App Booster Disabled", description: checked ? "Game priority optimization is active." : "App Booster will not run automatically." });
-                      fetch("/api/history", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: `Settings: App Booster ${checked ? "Enabled" : "Disabled"}`, page: "Settings", result: "Saved" }) }).catch(() => {});
-                    }}
-                  />
-                </div>
-                <Separator className="bg-border/50 mt-5" />
-              </motion.div>
-
               {/* Real-time Metrics */}
               <motion.div initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3, delay: 0.11, ease: [0.22, 1, 0.36, 1] }}>
                 <div className="flex items-center justify-between py-1 px-2 -mx-2 rounded-lg hover:bg-[#1A1F26] transition-colors">

@@ -11,7 +11,6 @@
     "Fixed: Conflicting tweaks in the AI optimization plan had no way to be enabled — each conflict card now has an 'Include anyway' toggle so you can override the AI's decision.",
     "Fixed: Dashboard hardware data re-fetched on every page navigation — specs now load once per session and return instantly on subsequent visits.",
     "Fixed: Power Plan Advanced Overrides (Core Parking, Processor Boost, etc.) had no real effect — each now applies via powercfg and PowerShell with the correct GUID.",
-    "Fixed: App Booster optimization history didn't persist in the desktop app — session history is now stored and returned correctly without requiring a database.",
     "Added: BIOS Advisor Hardware Profile now shows your detected CPU and GPU model alongside detected firmware settings."
   ]
 }

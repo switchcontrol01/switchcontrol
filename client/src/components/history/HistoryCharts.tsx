@@ -22,7 +22,7 @@ export const MODULE_COLORS: Record<string, string> = {
   "AI Advisor":  "#00D4FF",
   "BIOS Advisor":"#eab308",
   Dashboard:     "#0ea5e9",
-  "App Booster": "#84cc16",
+  "NIC Tuning":  "#6366f1",
   History:       "#6b7280",
 };
 

@@ -139,7 +139,7 @@ const FAQ_ITEMS: FAQItem[] = [
   {
     category: "billing",
     question: "What is included in the free plan vs Premium?",
-    answer: "The free plan includes core tweaks, the Activity Monitor, system cleaner, startup manager, and debloater. Premium unlocks the AI Advisor, BIOS Advisor, Network Tweaks, Power Plans, and App Booster — the performance-critical features where the real gains happen. You can try all Premium features free with a trial before paying anything.",
+    answer: "The free plan includes core tweaks, the Activity Monitor, system cleaner, startup manager, and debloater. Premium unlocks the AI Advisor, BIOS Advisor, Network Tweaks, Power Plans, and NIC Tuning — the performance-critical features where the real gains happen. You can try all Premium features free with a trial before paying anything.",
     badge: "Trial available",
   },
 ];

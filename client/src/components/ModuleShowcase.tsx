@@ -7,7 +7,7 @@ import {
   Zap, 
   Battery, 
   Wifi, 
-  Rocket, 
+  Network, 
   Moon, 
   Trash2, 
   ShieldCheck, 
@@ -46,13 +46,13 @@ const MODULES = [
     preview: ["Nagle Algorithm", "TCP ACK Frequency", "DNS Cache"]
   },
   {
-    id: "booster",
-    name: "App Booster",
-    icon: Rocket,
-    description: "Per-app performance profiles",
-    details: "Create custom optimization profiles for specific games and applications.",
-    color: "from-[#00D4FF]/20 to-[#00D4FF]/10",
-    preview: ["Fortnite Profile", "Valorant Profile", "Custom Profiles"]
+    id: "nic-tuning",
+    name: "NIC Tuning",
+    icon: Network,
+    description: "Adapter-level network optimization",
+    details: "Fine-tune your network adapter at the driver level — interrupt moderation, RSS queues, and power management for lower latency.",
+    color: "from-indigo-500/20 to-indigo-600/10",
+    preview: ["Interrupt Moderation", "RSS Queues", "Offload Settings"]
   },
   {
     id: "focus",

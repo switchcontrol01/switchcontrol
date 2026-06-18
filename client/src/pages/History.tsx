@@ -42,7 +42,7 @@ export const MODULE_CONFIG: Record<string, { label: string; cls: string }> = {
   "AI Advisor":  { label: "AI",           cls: "bg-#F59E0B/15 text-[#F59E0B] border-#F59E0B/25" },
   "BIOS Advisor":{ label: "BIOS",         cls: "bg-yellow-500/15 text-yellow-400 border-yellow-500/25" },
   Dashboard:     { label: "Dashboard",    cls: "bg-sky-500/15 text-sky-400 border-sky-500/25" },
-  "App Booster": { label: "App Booster",  cls: "bg-lime-500/15 text-lime-400 border-lime-500/25" },
+  "NIC Tuning":  { label: "NIC Tuning",   cls: "bg-indigo-500/15 text-indigo-400 border-indigo-500/25" },
   History:       { label: "History",      cls: "bg-zinc-500/15 text-zinc-400 border-zinc-500/25" },
 };
 
@@ -60,7 +60,7 @@ const IMPACT_CONFIG = {
   high:   { color: "text-red-400",     label: "High" },
 };
 
-const MODULES_ALL = ["All", "Tweaks", "Security", "Power", "Network", "Cleaner", "Debloat", "Startup", "AI Advisor", "BIOS Advisor", "Dashboard", "App Booster"];
+const MODULES_ALL = ["All", "Tweaks", "Security", "Power", "Network", "Cleaner", "Debloat", "Startup", "AI Advisor", "BIOS Advisor", "Dashboard", "NIC Tuning"];
 const STATUSES_ALL = ["All", "success", "failed", "warning", "reverted", "info"];
 
 // ── Enrichment ────────────────────────────────────────────────────────────
@@ -86,7 +86,7 @@ function deriveModule(page: string): string {
   if (lp.includes("startup")) return "Startup";
   if (lp.includes("ai") || (lp.includes("advisor") && !lp.includes("bios"))) return "AI Advisor";
   if (lp.includes("bios"))    return "BIOS Advisor";
-  if (lp.includes("booster") || lp.includes("boost")) return "App Booster";
+  if (lp.includes("nic") || lp.includes("adapter")) return "NIC Tuning";
   if (lp.includes("dashboard")) return "Dashboard";
   if (lp.includes("history")) return "History";
   return page || "Other";

@@ -52,10 +52,10 @@ const BENEFITS_MAP: Array<[string, Benefits]> = [
     "Optimised TCP/IP stack tuned for competitive play",
     "Automatic traffic prioritisation for your game",
   ]],
-  ["App Booster", [
-    "Per-game optimisation profiles applied in one click",
-    "CPU & GPU priority tuning for every title",
-    "Background process suppression while gaming",
+  ["NIC Tuning", [
+    "Adapter-level interrupt moderation for lower latency",
+    "RSS queue tuning matched to your CPU core count",
+    "Driver-level power management disabled for gaming",
   ]],
   ["Startup", [
     "One-click disable for the slowest boot offenders",
