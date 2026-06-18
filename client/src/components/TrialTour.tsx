@@ -1,4 +1,4 @@
-import { useState, useCallback, type ReactNode } from "react";
+import { useState, useEffect, useCallback, type ReactNode } from "react";
 import { motion, AnimatePresence } from "@/lib/motionTokens";
 import { Brain, Cpu, Wifi, Zap, Clock, ChevronRight, Crown, ArrowRight } from "lucide-react";
 import { TourShell, type TourStep } from "./TourShell";

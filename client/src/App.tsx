@@ -834,6 +834,11 @@ function ElectronAppContent() {
     // version so there's nothing "new" to highlight, and it would clash with
     // the onboarding tour that fires on first login.
     if (isFirstLogin) return;
+    // Wait for entitlements to be confirmed first — this ensures the flow eval
+    // has already run (and set activeFlow to "trialTour" etc. if needed) before
+    // we decide to show patch notes. Without this guard, patch notes can pop up
+    // over the top of the trial activation tour.
+    if (!entitlementsAttempted) return;
     patchNotesCheckedRef.current = true;
 
     let mounted = true;
@@ -850,7 +855,7 @@ function ElectronAppContent() {
     return () => {
       mounted = false;
     };
-  }, [phase, activeFlow, isFirstLogin]);
+  }, [phase, activeFlow, isFirstLogin, entitlementsAttempted]);
 
   // ── Splash completion — Splash.tsx is the sole timing authority ─────────
   // Splash calls onComplete() when its exit animation finishes.
