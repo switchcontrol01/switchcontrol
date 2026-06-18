@@ -165,7 +165,7 @@ export function TweaksList() {
             // Runtime unsupported — backend confirmed this tweak cannot run on this system.
             // Log prominently so it appears in logs even if the UI still shows the card.
             const reason = s.unsupportedReason ?? 'Backend confirmed this tweak is not available on this system.';
-            console.warn(`[TweakSupport] id=${tweakId}, supported=false, reason="${reason}" (runtime check)`);
+            console.info(`[TweakSupport] id=${tweakId}, supported=false, reason="${reason}" (runtime check)`);
             runtimeReasons[tweakId] = reason;
             return;
           }

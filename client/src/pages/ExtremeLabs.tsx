@@ -807,6 +807,7 @@ export default function ExtremeLabs() {
             localStorage.setItem("extreme-labs-unlocked", "true");
             setWizardStep("dashboard");
             toast({ title: "Restore point created", description: "Extreme Labs is now unlocked." });
+        fetch("/api/history", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "Extreme Labs: Restore Point Created", page: "Extreme Labs", result: "Created", notes: "System restore point saved before tuning" }) }).catch(() => {});
           }, 400);
         }
         setAnalyzingProgress(Math.min(100, p));
@@ -867,6 +868,7 @@ export default function ExtremeLabs() {
 
       setAppliedTweaks((prev) => { const next = new Set(prev); next.add(id); return next; });
       toast({ title: "Tweak applied", description: "Change is active. Monitor for issues." });
+      fetch("/api/history", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: `Extreme Labs: ${EXTREME_TWEAKS.find(t => t.id === id)?.label ?? id}`, page: "Extreme Labs", result: "Applied", notes: `Tweak ID: ${id}` }) }).catch(() => {});
       elLog("ExtremeLabsApply", { requested: [id], applied: 1, failed: 0, blocked: 0, adminRequired: 0 });
     } catch (e: any) {
       toast({ title: "Apply failed", description: e?.message, variant: "destructive" });
@@ -903,6 +905,7 @@ export default function ExtremeLabs() {
       }
       setAppliedTweaks((prev) => { const next = new Set(prev); next.delete(id); return next; });
       toast({ title: "Tweak reverted", description: "Change has been undone." });
+      fetch("/api/history", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: `Extreme Labs: ${EXTREME_TWEAKS.find(t => t.id === id)?.label ?? id} Reverted`, page: "Extreme Labs", result: "Reverted", notes: `Tweak ID: ${id}` }) }).catch(() => {});
     } catch (e: any) {
       toast({ title: "Revert failed", description: e?.message, variant: "destructive" });
     } finally {
@@ -932,6 +935,7 @@ export default function ExtremeLabs() {
       }
       setAppliedTweaks(new Set());
       toast({ title: "All tweaks reverted", description: "System restored to baseline." });
+      fetch("/api/history", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "Extreme Labs: Revert All", page: "Extreme Labs", result: "Reverted All", notes: "All lab tweaks restored to baseline" }) }).catch(() => {});
     } catch (e: any) {
       toast({ title: "Revert failed", description: e?.message, variant: "destructive" });
     }

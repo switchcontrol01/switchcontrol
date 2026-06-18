@@ -2063,6 +2063,9 @@ export default function AiAdvisor() {
     const successCount = results?.filter(r => r.outcome.success).length ?? 0;
     const failCount = results?.filter(r => !r.outcome.success).length ?? 0;
     console.log(`[AI:APPLY] batch complete — ${successCount} applied, ${failCount} failed`);
+    if (successCount > 0) {
+      fetch("/api/history", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: `AI Advisor: Applied ${successCount} Recommendation${successCount !== 1 ? "s" : ""}`, page: "AI Advisor", result: failCount > 0 ? "Partial" : "Applied", notes: `${successCount} applied, ${failCount} failed` }) }).catch(() => {});
+    }
   }, []);
 
   const handleViewTweakDetails = useCallback((tweakId: string) => {

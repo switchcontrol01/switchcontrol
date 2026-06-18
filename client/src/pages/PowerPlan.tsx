@@ -671,6 +671,7 @@ export default function PowerPlan() {
     if (!isElectron) {
       applyAction(`Activated ${profile.name} profile`, "Power Plan", "Simulated apply");
       toast({ title: "Profile Activated (Demo)", description: `${profile.name} — Windows only for real changes.` });
+      fetch("/api/history", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: `Power Plan: ${profile.name}`, page: "Power Plan", result: "Simulated", notes: "Web preview — no real system change" }) }).catch(() => {});
       return;
     }
 
@@ -733,6 +734,7 @@ export default function PowerPlan() {
       }
 
       applyAction(`Activated ${profile.name}`, "Power Plan", "Backend-verified");
+      fetch("/api/history", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: `Power Plan: ${profile.name}`, page: "Power Plan", result: "Applied", notes: `Match: ${match}` }) }).catch(() => {});
     } catch (e: any) {
       toast({ title: "Error", description: e?.message ?? "Unexpected error.", variant: "destructive" });
     } finally {
@@ -782,6 +784,7 @@ export default function PowerPlan() {
         setPrevProfileId(capturedPrev);
         setShowComparison(true);
         toast({ title: "Custom Plan Applied", description: `"${result.name}" is now active in Windows.` });
+        fetch("/api/history", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: `Power Plan: ${result.name} (Custom)`, page: "Power Plan", result: "Applied", notes: "Custom power profile created and activated" }) }).catch(() => {});
 
         // Record ownership so the revert engine can clean up on trial expiry.
         // Only record if the GUID actually changed (plan switched, not a re-apply).

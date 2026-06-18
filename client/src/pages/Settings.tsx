@@ -402,6 +402,7 @@ export default function Settings() {
                     onCheckedChange={(checked) => {
                       setAppBoosterEnabled(checked);
                       toast({ title: checked ? "App Booster Enabled" : "App Booster Disabled", description: checked ? "Game priority optimization is active." : "App Booster will not run automatically." });
+                      fetch("/api/history", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: `Settings: App Booster ${checked ? "Enabled" : "Disabled"}`, page: "Settings", result: "Saved" }) }).catch(() => {});
                     }}
                   />
                 </div>
@@ -421,6 +422,7 @@ export default function Settings() {
                     onCheckedChange={(checked) => {
                       setRealtimeMetricsEnabled(checked);
                       toast({ title: checked ? "Live Metrics Enabled" : "Live Metrics Paused", description: checked ? "Dashboard stats updating in real time." : "Stats display is frozen — no polling overhead." });
+                      fetch("/api/history", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: `Settings: Real-time Metrics ${checked ? "Enabled" : "Disabled"}`, page: "Settings", result: "Saved" }) }).catch(() => {});
                     }}
                   />
                 </div>
@@ -440,6 +442,7 @@ export default function Settings() {
                     onCheckedChange={(checked) => {
                       setPauseWhenMinimized(checked);
                       toast({ title: checked ? "Background Pause Enabled" : "Background Pause Disabled", description: checked ? "Stats polling pauses when app is hidden." : "Stats will update even when app is minimized." });
+                      fetch("/api/history", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: `Settings: Pause When Minimized ${checked ? "Enabled" : "Disabled"}`, page: "Settings", result: "Saved" }) }).catch(() => {});
                     }}
                   />
                 </div>

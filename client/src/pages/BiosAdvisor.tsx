@@ -760,6 +760,7 @@ export default function BiosAdvisor() {
       previousScore: newPreviousScore,
     });
 
+    fetch("/api/history", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "BIOS Advisor: System Scan", page: "BIOS Advisor", result: `Score: ${newScores.competitiveReadiness}/100`, notes: `Source: ${newTelemetrySource} | Level: ${newOptimizationLevel}` }) }).catch(() => {});
     setTimeout(() => setScanState("idle"), 800);
   }, [analysisHash, hasScanned, scores, stats, photoDetections, completeScan]);
 
@@ -880,6 +881,7 @@ export default function BiosAdvisor() {
         storeUpdateScores(mergedScores, mergedLevel);
         // Clear queue on success
         setPendingImages(prev => { prev.forEach(p => URL.revokeObjectURL(p.previewUrl)); return []; });
+        fetch("/api/history", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "BIOS Advisor: Photo Analysis", page: "BIOS Advisor", result: `${data.detections.length} setting${data.detections.length !== 1 ? "s" : ""} identified`, notes: `${count} image${count !== 1 ? "s" : ""} analyzed` }) }).catch(() => {});
       } else {
         setPhotoError(count > 1
           ? "No BIOS settings could be identified in any of the uploaded images. Try clearer photos."
