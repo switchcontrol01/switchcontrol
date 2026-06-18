@@ -1,0 +1,229 @@
+From these logs, startup itself is actually pretty good. First frame at ~338 ms and window shown at ~373 ms are excellent. The big problems are elsewhere.
+
+## Biggest issue #1: SysIntelligence is completely broken
+
+This is the worst thing in the log.
+
+Everything times out:
+
+* battery
+* users
+* baseboard
+* BIOS
+* graphics
+* OS
+* platformPS
+* memory layout
+* disk layout
+* network
+* CPU
+
+Eventually:
+
+```
+[SysIntelligence] phase=full complete in 6530ms | MB=null | BIOS=null | CPU=null | GPUs=0 | RAMsticks=0
+```
+
+and
+
+```
+returned all-null
+```
+
+So System Intelligence is spending 6.5 seconds doing work and getting nothing.
+
+### Why?
+
+Very likely:
+
+* Too many simultaneous `systeminformation` calls.
+* WMI spawning is hanging.
+* Promise timeout wrappers are too aggressive.
+* You're trying to collect everything in parallel.
+
+I would not run 15+ probes at startup.
+
+Move these into:
+
+* motherboard → lazy load
+* BIOS → lazy load
+* RAM layout → lazy load
+* processes → lazy load
+* network connections → lazy load
+
+Dashboard startup should not depend on any of these.
+
+---
+
+# Biggest issue #2: telemetry cache never initializes
+
+Repeated:
+
+```
+telemetry:getLive cache not ready yet — returning zeros
+```
+
+This keeps happening for several seconds.
+
+Meaning:
+
+* LiveGraph starts
+* cache is empty
+* polling isn't populating
+
+Probably:
+
+```js
+telemetry:getLive()
+```
+
+runs before
+
+```js
+refreshTelemetry()
+```
+
+has finished.
+
+I'd investigate:
+
+* telemetry loop startup order
+* cache initialization
+* race conditions
+
+---
+
+# Biggest issue #3: GPU counter PowerShell
+
+You still have:
+
+```
+getGpuPerfCounterLoad
+duration=2171ms
+```
+
+That single PowerShell call takes over 2 seconds.
+
+You already planned to remove this from background telemetry.
+
+I would.
+
+Use:
+
+* LibreHardwareMonitor
+  or
+* cached WMI value
+
+and never execute PowerShell every telemetry cycle.
+
+---
+
+# Biggest issue #4: batchCheckAll
+
+```
+batchCheckAll OK 5386ms
+```
+
+61 tweaks checked.
+
+5.3 seconds.
+
+That's a lot.
+
+Not horrible since it happens once, but:
+
+I'd cache results.
+
+Don't recheck 61 tweaks every launch.
+
+Only:
+
+* first install
+* manual refresh
+* after applying tweaks
+
+---
+
+# Biggest issue #5: dashboard mount
+
+```
+dashboardMounted = 6301ms
+```
+
+Window appears quickly but dashboard isn't actually ready for over 6 seconds.
+
+Most of that is:
+
+* System Intelligence
+* batchCheckAll
+* dashboard intelligence polling
+
+These should happen AFTER dashboard is visible.
+
+---
+
+# Good news
+
+These look healthy:
+
+### Backend
+
+Ready in:
+
+```
+1474ms
+```
+
+Very good.
+
+### GPU detection
+
+```
+3243ms
+```
+
+acceptable.
+
+### Auth
+
+Cloud confirmation works correctly.
+
+Premium truth works correctly.
+
+Device validation works.
+
+No downgrade bugs.
+
+---
+
+# I would attack these in order
+
+### 1
+
+Kill startup SysIntelligence.
+
+Move all heavy probes to lazy background tasks.
+
+### 2
+
+Fix telemetry cache initialization.
+
+No more "returning zeros".
+
+### 3
+
+Remove PowerShell GPU counters from telemetry.
+
+### 4
+
+Cache tweak states.
+
+Don't run 61 checks every launch.
+
+### 5
+
+Delay dashboard intelligence polling until after dashboard paint.
+
+---
+
+The biggest performance offender in this entire log is SysIntelligence. It's spending 6.5 seconds producing almost nothing. That subsystem would be my first target.

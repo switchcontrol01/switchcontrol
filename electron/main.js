@@ -675,18 +675,19 @@ async function startTelemetryPolling() {
     }
   }).catch(() => {});
 
-  // Seed GPU load 5 seconds after telemetry starts so the dashboard shows
-  // a real value from first load without waiting for a user action.
-  setTimeout(() => {
-    getGpuPerfCounterLoad().catch(() => {});
-  }, 5000);
+  // GPU load is available on-demand via telemetry:refreshGpuLoad (IPC) or when
+  // the user opens the GPU section / AI advisor. Removed the startup PS spawn
+  // that fired at 5s — it was a 2s PowerShell cold-start overlapping with
+  // batchCheckAll and adding a CPU spike during early dashboard interaction.
 
   // First call to differential APIs always returns 0 — prime them and seed lastDiskSnapshot
   // so that the first real pollTelemetry() can compute disk deltas immediately.
-  const [, , primeDisksIO] = await Promise.allSettled([
+  // Include si.mem() so we can pre-seed liveTelemetryCache immediately.
+  const [primeCpuLoad, , primeDisksIO, primeMem] = await Promise.allSettled([
     si.currentLoad(),
     si.networkStats(),
     si.disksIO(),
+    si.mem(),
   ]);
   if (primeDisksIO.status === 'fulfilled' && primeDisksIO.value) {
     const d = primeDisksIO.value;
@@ -698,10 +699,27 @@ async function startTelemetryPolling() {
       verboseLog('[telemetry:poll] disk baseline seeded from prime: rIO=' + rIO + ' wIO=' + wIO);
     }
   }
+  // Pre-seed liveTelemetryCache with CPU + RAM from the prime so that the
+  // first getLive() call returns real values instead of "cache not ready — returning zeros".
+  // Disk/network still show "warming" until the 1.5s window elapses and the
+  // first real pollTelemetry() tick runs.
+  if (primeCpuLoad.status === 'fulfilled' && primeCpuLoad.value &&
+      primeMem.status === 'fulfilled' && primeMem.value) {
+    liveTelemetryCache = {
+      load: primeCpuLoad.value,
+      mem: primeMem.value,
+      temps: { main: null, max: null },
+      fsData: [],
+      netStats: [],
+      diskIO: { available: false, source: 'warming' },
+      timestamp: Date.now(),
+    };
+    verboseLog('[telemetry:poll] cache pre-seeded with CPU+RAM — getLive will not return zeros');
+  }
   verboseLog('[telemetry:poll] prime done — waiting 1.5s for real readings...');
 
   // Wait 1.5s so differential APIs have a measurement window before the first
-  // real poll. This means the first getLive call gets non-zero values.
+  // real poll.
   await new Promise(r => setTimeout(r, 1500));
   await pollTelemetry();
 
@@ -855,7 +873,7 @@ function createWindow() {
     //   paintWhenInitiallyHidden:true — forces frame painting while hidden.
     //
     // _tryShowWindow() does: setOpacity(0) → show() → animate setOpacity 0→1
-    // over 280ms with ease-out. Splash.tsx's double-rAF clears the CSS opacity
+    // over 780ms with ease-out. Splash.tsx's double-rAF clears the CSS opacity
     // lock before the signal fires, so content is fully CSS-visible by the time
     // the OS-level opacity animation starts — giving a premium cross-fade from
     // desktop background to the dark Splash without any white frame.
@@ -1100,7 +1118,7 @@ function createWindow() {
     _bm.windowShown = Date.now();
     // setOpacity(0) → show(): window is OS-invisible when shown, so DWM never
     // gets a chance to composite a white init frame. Then we animate setOpacity
-    // from 0 → 1 over 280ms with ease-out so the window cross-fades from the
+    // from 0 → 1 over 780ms with ease-out so the window cross-fades from the
     // desktop background to the dark Splash — premium, no pop, no flash.
     // Splash.tsx's double-rAF cleared the CSS opacity lock before this fires,
     // so content is already at full CSS opacity during the OS-level fade.
@@ -1108,8 +1126,8 @@ function createWindow() {
     mainWindow.show();
     mainWindow.focus();
     mainWindow.webContents.send('app:window-shown');
-    // Animate OS-level opacity 0 → 1 with ease-out over 280ms (~60fps)
-    const _FADE_MS = 280;
+    // Animate OS-level opacity 0 → 1 with ease-out over 780ms (~60fps)
+    const _FADE_MS = 780;
     const _FADE_TICK = 16;
     let _fadeElapsed = 0;
     const _fadeTimer = setInterval(() => {
@@ -1140,8 +1158,8 @@ function createWindow() {
       mainWindow.setOpacity(0);
       mainWindow.show();
       mainWindow.focus();
-      // Animate OS-level opacity 0→1 over 280ms (same as normal path)
-      const _FADE_MS_FB = 280, _FADE_TICK_FB = 16;
+      // Animate OS-level opacity 0→1 over 780ms (same as normal path)
+      const _FADE_MS_FB = 780, _FADE_TICK_FB = 16;
       let _fbElapsed = 0;
       const _fbTimer = setInterval(() => {
         if (!mainWindow || mainWindow.isDestroyed()) { clearInterval(_fbTimer); return; }
