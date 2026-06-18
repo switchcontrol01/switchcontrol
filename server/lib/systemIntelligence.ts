@@ -312,7 +312,9 @@ function siTimeoutTracked<T>(label: string, p: Promise<T>, ms: number): Promise<
     if (!err.message.includes("skipped —")) {
       const current = _probeHealth[label] ?? { consecutiveTimeouts: 0, cooledUntil: 0, lastSuccessAt: 0 };
       const newCount = current.consecutiveTimeouts + 1;
-      const cooledUntil = newCount >= 2 ? now + PROBE_COOLDOWN_MS : 0;
+      // Cooldown after first timeout — on WMI-broken AMD systems every probe
+      // fails, so waiting for a second consecutive timeout wastes a full launch.
+      const cooledUntil = newCount >= 1 ? now + PROBE_COOLDOWN_MS : 0;
       _probeHealth[label] = { consecutiveTimeouts: newCount, cooledUntil, lastSuccessAt: current.lastSuccessAt };
       _probeHealthDirty = true;
       if (cooledUntil) {

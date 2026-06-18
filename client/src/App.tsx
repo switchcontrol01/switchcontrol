@@ -337,7 +337,10 @@ function ElectronAppContent() {
   // This is the fix for the AppData-delete scenario: deleting %AppData%/SwitchControl
   // wipes the persisted UI store (showing all tweaks OFF) but leaves all registry
   // and service changes intact in Windows. This call rebuilds truth from the OS.
-  // Runs at 1500ms so it doesn't contend with the splash/auth boot sequence.
+  // Delayed to 6000ms so the dashboard is fully settled (splash + auth + first
+  // render complete) before the 61-tweak PowerShell batch fires. At 1500ms it
+  // was contending with the very first dashboard render, causing the visible
+  // CPU spike and UI stutter immediately after the splash screen exits.
   useEffect(() => {
     if (!isElectron) return;
     const t = setTimeout(() => {
@@ -367,7 +370,7 @@ function ElectronAppContent() {
         .catch((err) => {
           console.error("[App:STARTUP-RECONCILE] batch check failed:", err);
         });
-    }, 1500);
+    }, 6000);
     return () => clearTimeout(t);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
