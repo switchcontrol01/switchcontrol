@@ -45,7 +45,7 @@ function FocusModeBanner() {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -6 }}
       transition={{ duration: 0.3 }}
-      className={`fixed top-0 ${SIDEBAR_WIDTH_CLASS} right-0 z-50 flex items-center justify-between px-4 py-1.5 bg-emerald-500/90 backdrop-blur text-[#E6EAF0] text-xs font-medium shadow-lg`}
+      className={`fixed ${isPackagedElectron ? "top-[38px]" : "top-0"} ${SIDEBAR_WIDTH_CLASS} right-0 z-50 flex items-center justify-between px-4 py-1.5 bg-emerald-500/90 backdrop-blur text-[#E6EAF0] text-xs font-medium shadow-lg`}
     >
       <div className="flex items-center gap-2">
         <div className="size-1.5 rounded-full bg-white animate-pulse" />
@@ -76,7 +76,7 @@ function TrialCountdownBanner() {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -6 }}
       transition={{ duration: 0.3 }}
-      className={`fixed top-0 ${SIDEBAR_WIDTH_CLASS} right-0 z-50 flex items-center justify-between px-4 py-1.5 backdrop-blur`}
+      className={`fixed ${isPackagedElectron ? "top-[38px]" : "top-0"} ${SIDEBAR_WIDTH_CLASS} right-0 z-50 flex items-center justify-between px-4 py-1.5 backdrop-blur`}
       style={{
         background: ent.isTrialUrgent
           ? "linear-gradient(90deg, rgba(220,38,38,0.18) 0%, rgba(0,212,255,0.14) 100%)"
