@@ -1,0 +1,289 @@
+GOAL
+
+Completely remove the App Booster feature from SwitchControl.
+
+Do NOT leave dead UI, dead IPC handlers, orphaned files, broken imports, or references.
+
+The app must build cleanly with zero TypeScript errors and zero missing module errors.
+
+---
+
+STEP 1
+
+Search the entire project for:
+
+AppBooster
+appBooster
+app-booster
+app_booster
+boostApps
+boost-app
+boosting
+boost mode
+boost profiles
+
+Also search for:
+
+ipcMain.handle(
+ipcRenderer.invoke(
+contextBridge.exposeInMainWorld
+
+to find App Booster IPC routes.
+
+---
+
+STEP 2
+
+Remove ALL backend functionality:
+
+Delete:
+
+* handlers
+* services
+* helper files
+* caches
+* PowerShell scripts
+* recommendation logic
+* scheduled tasks
+
+Remove all IPC handlers related to App Booster.
+
+Remove preload exposure.
+
+Remove invoke calls.
+
+Remove unused imports.
+
+---
+
+STEP 3
+
+Remove ALL frontend functionality:
+
+Delete:
+
+* pages
+* tabs
+* cards
+* buttons
+* icons
+* modals
+* settings
+
+Remove:
+
+routes.tsx entries
+
+sidebar items
+
+dashboard widgets
+
+navigation links
+
+tooltips
+
+status indicators
+
+badges
+
+---
+
+STEP 4
+
+Remove all AI references:
+
+Search for:
+
+App Booster
+
+inside:
+
+AI Advisor
+
+recommendation parser
+
+recommendation renderer
+
+card renderer
+
+system DNA
+
+templates
+
+feature descriptions
+
+Replace any App Booster recommendation with an existing feature.
+
+Preferred replacements:
+
+RAM Cleaner
+
+Performance Lab
+
+Intelligent Tweaks
+
+Latency Analyzer
+
+Security Scan
+
+System Health
+
+Choose whichever best fits the context.
+
+---
+
+STEP 5
+
+Website cleanup
+
+Search website for:
+
+App Booster
+
+Replace with:
+
+Performance Lab
+
+Update:
+
+home page
+
+features page
+
+pricing page
+
+comparison sections
+
+FAQ
+
+metadata
+
+SEO text
+
+structured data
+
+cards
+
+icons
+
+screenshots
+
+button links
+
+Ensure there are no dead anchors.
+
+---
+
+STEP 6
+
+Remove settings persistence
+
+Search for:
+
+localStorage
+
+electron-store
+
+config
+
+settings
+
+JSON
+
+registry
+
+cached profiles
+
+Delete App Booster keys.
+
+Add migration logic so old configs containing App Booster are ignored instead of crashing.
+
+---
+
+STEP 7
+
+Remove telemetry and events
+
+Delete:
+
+analytics events
+
+logs
+
+telemetry counters
+
+status events
+
+notifications
+
+feature usage metrics
+
+---
+
+STEP 8
+
+Search again for:
+
+AppBooster
+appBooster
+app-booster
+boostApps
+boost profile
+
+There should be ZERO results.
+
+---
+
+STEP 9
+
+Run:
+
+npm run build
+
+Fix:
+
+unused imports
+
+missing modules
+
+broken routes
+
+TypeScript errors
+
+undefined references
+
+---
+
+STEP 10
+
+Verify:
+
+✓ Dashboard loads
+
+✓ AI Advisor works
+
+✓ Performance Lab works
+
+✓ RAM Cleaner works
+
+✓ Security page works
+
+✓ Electron build launches
+
+✓ Website builds
+
+✓ No missing icons
+
+✓ No blank cards
+
+✓ No dead buttons
+
+✓ No console errors
+
+FINAL REQUIREMENT:
+
+App Booster should appear nowhere in the app, backend, website, IPC, AI system, telemetry, settings, or documentation.
+
+The feature should behave as though it never existed.
+
+Build must finish cleanly with nothing broken.

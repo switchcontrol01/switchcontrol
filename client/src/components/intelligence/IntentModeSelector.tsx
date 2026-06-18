@@ -23,6 +23,8 @@ interface ModeConfig {
   color: string;
   glow: string;
   description: string;
+  profileLabel: string;
+  profileColor: string;
 }
 
 export const INTENT_MODES: ModeConfig[] = [
@@ -35,6 +37,8 @@ export const INTENT_MODES: ModeConfig[] = [
     glow: "shadow-[0_0_20px_hsl(var(--primary)/0.25)]",
     description:
       "Lifts power limits and prioritizes the game for the highest frame rates in competitive matches.",
+    profileLabel: "Max Performance",
+    profileColor: "text-primary",
   },
   {
     id: "frametime-stability",
@@ -45,6 +49,8 @@ export const INTENT_MODES: ModeConfig[] = [
     glow: "shadow-[0_0_20px_hsl(190,90%,55%,0.22)]",
     description:
       "Targets consistent frame pacing and stronger 1% lows over peak FPS — the stability-first default for smooth gameplay.",
+    profileLabel: "Balanced Gaming",
+    profileColor: "text-cyan-400",
   },
   {
     id: "low-input-delay",
@@ -55,6 +61,8 @@ export const INTENT_MODES: ModeConfig[] = [
     glow: "shadow-[0_0_20px_hsl(290,80%,60%,0.22)]",
     description:
       "Minimizes input latency end-to-end — keeps the CPU awake and trims buffering so the game reacts instantly.",
+    profileLabel: "Max Performance",
+    profileColor: "text-primary",
   },
   {
     id: "streaming-gaming",
@@ -65,6 +73,8 @@ export const INTENT_MODES: ModeConfig[] = [
     glow: "shadow-[0_0_20px_hsl(350,80%,60%,0.2)]",
     description:
       "Balances game performance with headroom for encoding so your stream stays smooth while you play.",
+    profileLabel: "Balanced Gaming",
+    profileColor: "text-cyan-400",
   },
   {
     id: "quiet-efficient",
@@ -75,6 +85,8 @@ export const INTENT_MODES: ModeConfig[] = [
     glow: "shadow-[0_0_20px_hsl(150,70%,45%,0.2)]",
     description:
       "Lowers fan noise and power draw. Best for desktop work, browsing, or laptops on battery.",
+    profileLabel: "Efficiency / Laptop",
+    profileColor: "text-emerald-400",
   },
   {
     id: "thermal-balanced",
@@ -85,6 +97,8 @@ export const INTENT_MODES: ModeConfig[] = [
     glow: "shadow-[0_0_20px_hsl(210,80%,55%,0.2)]",
     description:
       "Holds performance while keeping temperatures in check — ideal for long sessions and warm rooms.",
+    profileLabel: "Balanced Gaming",
+    profileColor: "text-cyan-400",
   },
   {
     id: "high-refresh",
@@ -95,6 +109,8 @@ export const INTENT_MODES: ModeConfig[] = [
     glow: "shadow-[0_0_20px_hsl(260,80%,60%,0.22)]",
     description:
       "Tunes frame pacing to your monitor's refresh rate for fluid motion without chasing wasted frames.",
+    profileLabel: "Max Performance",
+    profileColor: "text-primary",
   },
   {
     id: "background-reduction",
@@ -105,6 +121,8 @@ export const INTENT_MODES: ModeConfig[] = [
     glow: "shadow-[0_0_20px_hsl(38,90%,55%,0.22)]",
     description:
       "Eases background process and service activity so more CPU, RAM and disk go to your game.",
+    profileLabel: "Balanced Gaming",
+    profileColor: "text-cyan-400",
   },
 ];
 
@@ -147,12 +165,24 @@ export function IntentModeSelector({
                 transition={{ type: "spring", stiffness: 380, damping: 30 }}
               />
             )}
-            <Icon
-              className={cn(
-                "size-4 transition-colors duration-200",
-                active ? mode.color : "text-muted-foreground"
-              )}
-            />
+            <div className="flex w-full items-start justify-between gap-1">
+              <Icon
+                className={cn(
+                  "size-4 shrink-0 transition-colors duration-200",
+                  active ? mode.color : "text-muted-foreground"
+                )}
+              />
+              <span
+                className={cn(
+                  "text-[9px] font-medium leading-none px-1.5 py-0.5 rounded-md border transition-colors duration-200",
+                  active
+                    ? cn("border-white/10 bg-white/6", mode.profileColor)
+                    : "border-white/5 bg-white/3 text-muted-foreground/50"
+                )}
+              >
+                {mode.profileLabel}
+              </span>
+            </div>
             <div>
               <p
                 className={cn(
@@ -182,14 +212,19 @@ export function IntentModeDescription({
 }) {
   const cfg = INTENT_MODES.find((m) => m.id === mode)!;
   return (
-    <motion.p
+    <motion.div
       key={mode}
       initial={{ opacity: 0, y: 4 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2 }}
-      className={cn("text-xs text-muted-foreground leading-relaxed", className)}
+      className={cn("flex items-start gap-2", className)}
     >
-      {cfg.description}
-    </motion.p>
+      <p className="text-xs text-muted-foreground leading-relaxed flex-1">
+        {cfg.description}
+      </p>
+      <span className={cn("text-[10px] font-medium shrink-0 mt-0.5 opacity-70", cfg.profileColor)}>
+        → {cfg.profileLabel}
+      </span>
+    </motion.div>
   );
 }

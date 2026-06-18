@@ -186,10 +186,10 @@ function loadLocalState() {
     const saved = localStorage.getItem("switchcontrol-powerplan");
     if (saved) return JSON.parse(saved);
   } catch {}
-  return { overrides: {} as Record<string, boolean>, customSettings: DEFAULT_CUSTOM_SETTINGS };
+  return { overrides: {} as Record<string, boolean>, customSettings: DEFAULT_CUSTOM_SETTINGS, intentMode: "frametime-stability" as IntentMode };
 }
 
-function saveLocalState(state: { overrides: Record<string, boolean>; customSettings: CustomSettings }) {
+function saveLocalState(state: { overrides: Record<string, boolean>; customSettings: CustomSettings; intentMode?: IntentMode }) {
   localStorage.setItem("switchcontrol-powerplan", JSON.stringify(state));
 }
 
@@ -594,7 +594,7 @@ export default function PowerPlan() {
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [debugOpen, setDebugOpen]       = useState(false);
   const [infoToggle, setInfoToggle]     = useState<OverrideToggle | null>(null);
-  const [intentMode, setIntentMode]     = useState<IntentMode>("frametime-stability");
+  const [intentMode, setIntentMode]     = useState<IntentMode>(() => localState.intentMode ?? "frametime-stability");
 
   const [customPlanName, setCustomPlanName] = useState("My Custom Plan");
   const [customNameError, setCustomNameError] = useState<string | null>(null);
@@ -821,6 +821,11 @@ export default function PowerPlan() {
 
   const handleIntentMode = useCallback((mode: IntentMode) => {
     setIntentMode(mode);
+    setLocalState((prev: any) => {
+      const next = { ...prev, intentMode: mode };
+      saveLocalState(next);
+      return next;
+    });
     activateProfile(INTENT_TO_PROFILE[mode]);
   }, [activateProfile]);
 
