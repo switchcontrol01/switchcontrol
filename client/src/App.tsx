@@ -247,6 +247,11 @@ function ElectronAppContent() {
   // Becomes true 850ms after entering "authenticated" phase so tour flows don't
   // fire while the dashboard's own 750ms fade-in animation is still running.
   const [isPhaseStable, setIsPhaseStable] = useState(false);
+  // Tracks the live phase value inside the deep-link handler, which registers
+  // once ([] deps) and therefore can't read updated `phase` state via closure.
+  const phaseRef = React.useRef<AppPhase>(phase);
+  phaseRef.current = phase;
+
   const patchNotesCheckedRef = React.useRef(false);
   const unlockFiredThisSessionRef = React.useRef(false);
   const trialUnlockFiredRef = React.useRef(false);
@@ -949,18 +954,44 @@ function ElectronAppContent() {
 
             const welcomeKey = `sc_welcomed_${exchangedUser.id}`;
             const hasBeenWelcomed = localStorage.getItem(welcomeKey);
+            // Read the live phase — phaseRef is updated every render so this
+            // is always the current value even though this callback was
+            // registered once with [] deps.
+            const livePhase = phaseRef.current;
 
             if (!hasBeenWelcomed) {
               setIsFirstLogin(true);
               localStorage.setItem(welcomeKey, "true");
-              // First-time: login screen blur-exits, then welcome animation plays.
-              setPhase("login_success");
+              if (livePhase === "authenticated") {
+                // Already in the app (e.g. user re-authenticated from settings,
+                // or the boot auth check beat the deep-link arrival).
+                // Skip login_success entirely — jumping from "authenticated" →
+                // "login_success" → "welcome" queues THREE AnimatePresence key
+                // changes at once, which can cause the login screen to flash
+                // over the welcome animation.  Go directly to "welcome" instead.
+                console.log(
+                  "[Auth] first-time user but phase=authenticated — jumping directly to welcome",
+                );
+                setPhase("welcome");
+              } else {
+                // Normal path: phase is "unauthenticated" — login screen is
+                // already visible, login_success → welcome is a clean 2-step
+                // transition that AnimatePresence mode="wait" handles correctly.
+                setPhase("login_success");
+              }
             } else {
-              // Returning user: login screen still blur-exits cleanly via
-              // login_success → (600ms) → authenticated.  No welcome animation,
-              // but the user gets the same polished transition out of the login
-              // screen instead of an abrupt swap.
-              setPhase("login_success");
+              // Returning user.
+              if (livePhase === "authenticated") {
+                // Already showing the app — just navigate to dashboard.
+                // No need to flash the login screen at all.
+                console.log(
+                  "[Auth] returning user, phase=authenticated — navigating to dashboard",
+                );
+                setLocation("/dashboard");
+              } else {
+                // Login screen is visible — do the polished blur-exit.
+                setPhase("login_success");
+              }
             }
 
             if (premiumActivated) {
@@ -1511,7 +1542,7 @@ function ElectronAppContent() {
                 transition: { duration: 0.25, ease: [0.4, 0, 0.6, 1] },
               }}
               className="h-full"
-              style={{ zIndex: 1 }}
+              style={{ zIndex: 2 }}
             >
               <WelcomeAnimation
                 userName={user?.username || null}
