@@ -1029,22 +1029,7 @@ export default function PowerPlan() {
         </div>
 
         {/* ══════════════════════════════════════════════════════════════════
-            SECTION 2 — SYSTEM INTENT MODE
-        ══════════════════════════════════════════════════════════════════ */}
-        <Reveal delay={0.04}>
-          <GlassCard className="p-5">
-            <div className="flex items-center gap-2 mb-3">
-              <Rocket className="size-4 text-primary" />
-              <span className="text-sm font-semibold text-[#E6EAF0]">System Intent</span>
-              <span className="text-[10px] text-muted-foreground">Quick-select your use case</span>
-            </div>
-            <IntentModeSelector value={intentMode} onChange={handleIntentMode} />
-            <IntentModeDescription mode={intentMode} />
-          </GlassCard>
-        </Reveal>
-
-        {/* ══════════════════════════════════════════════════════════════════
-            SECTION 3 — TABS
+            SECTION 2 — TABS
         ══════════════════════════════════════════════════════════════════ */}
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "profiles" | "custom")} className="space-y-6">
           <TabsList className="bg-[#14181D]/80 border border-[#2A313A]">
