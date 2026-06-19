@@ -43,6 +43,14 @@ function TikTokIcon({ className }: { className?: string }) {
   );
 }
 
+function YouTubeIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
+      <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+    </svg>
+  );
+}
+
 interface NavItem {
   label: string;
   icon: React.ElementType;
@@ -538,6 +546,7 @@ export function Sidebar() {
                   transition: { duration: 0.15 },
                 }}
                 whileTap={{ scale: 0.9 }}
+                title="Discord"
                 data-testid="sidebar-link-discord"
               >
                 <DiscordIcon className="size-3.5" />
@@ -547,9 +556,32 @@ export function Sidebar() {
                 onClick={() => {
                   const api = (window as any).electronAPI;
                   if (api?.openExternal) {
-                    api.openExternal(SOCIAL_LINKS.tiktok);
+                    api.openExternal(SOCIAL_LINKS.youtube);
                   } else {
-                    window.open(SOCIAL_LINKS.tiktok, "_blank");
+                    window.open(SOCIAL_LINKS.youtube, "_blank");
+                  }
+                }}
+                className="size-6 rounded flex items-center justify-center text-muted-foreground/40"
+                whileHover={{
+                  color: "#ef4444",
+                  backgroundColor: "rgba(239,68,68,0.12)",
+                  scale: 1.1,
+                  transition: { duration: 0.15 },
+                }}
+                whileTap={{ scale: 0.9 }}
+                title="YouTube"
+                data-testid="sidebar-link-youtube"
+              >
+                <YouTubeIcon className="size-3.5" />
+              </motion.button>
+
+              <motion.button
+                onClick={() => {
+                  const api = (window as any).electronAPI;
+                  if (api?.openExternal) {
+                    api.openExternal(SOCIAL_LINKS.tiktokSwitchTech);
+                  } else {
+                    window.open(SOCIAL_LINKS.tiktokSwitchTech, "_blank");
                   }
                 }}
                 className="size-6 rounded flex items-center justify-center text-muted-foreground/40"
@@ -560,7 +592,31 @@ export function Sidebar() {
                   transition: { duration: 0.15 },
                 }}
                 whileTap={{ scale: 0.9 }}
-                data-testid="sidebar-link-tiktok"
+                title="TikTok · SwitchTech"
+                data-testid="sidebar-link-tiktok-switchtech"
+              >
+                <TikTokIcon className="size-3.5" />
+              </motion.button>
+
+              <motion.button
+                onClick={() => {
+                  const api = (window as any).electronAPI;
+                  if (api?.openExternal) {
+                    api.openExternal(SOCIAL_LINKS.tiktokSwitchControl);
+                  } else {
+                    window.open(SOCIAL_LINKS.tiktokSwitchControl, "_blank");
+                  }
+                }}
+                className="size-6 rounded flex items-center justify-center text-muted-foreground/40"
+                whileHover={{
+                  color: "#ec4899",
+                  backgroundColor: "rgba(236,72,153,0.12)",
+                  scale: 1.1,
+                  transition: { duration: 0.15 },
+                }}
+                whileTap={{ scale: 0.9 }}
+                title="TikTok · SwitchControl"
+                data-testid="sidebar-link-tiktok-switchcontrol"
               >
                 <TikTokIcon className="size-3.5" />
               </motion.button>

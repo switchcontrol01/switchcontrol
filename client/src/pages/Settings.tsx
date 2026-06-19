@@ -159,6 +159,14 @@ function TikTokIcon({ className }: { className?: string }) {
   );
 }
 
+function YouTubeIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
+      <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+    </svg>
+  );
+}
+
 // ── DiagnosticsCard ───────────────────────────────────────────────────────────
 
 interface CriticalEvent {
@@ -645,6 +653,7 @@ export default function Settings() {
             </CardHeader>
             <CardContent>
               <div className="grid gap-3 sm:grid-cols-2">
+                {/* Discord */}
                 <motion.button
                   onClick={(e) => {
                     e.preventDefault();
@@ -675,16 +684,50 @@ export default function Settings() {
                     </div>
                   </GlassCard>
                 </motion.button>
+
+                {/* YouTube */}
                 <motion.button
                   onClick={(e) => {
                     e.preventDefault();
                     if (isElectron && window.electronAPI?.openExternal) {
-                      window.electronAPI.openExternal(SOCIAL_LINKS.tiktok);
+                      window.electronAPI.openExternal(SOCIAL_LINKS.youtube);
                     } else {
-                      window.open(SOCIAL_LINKS.tiktok, '_blank');
+                      window.open(SOCIAL_LINKS.youtube, '_blank');
                     }
                   }}
-                  data-testid="link-tiktok"
+                  data-testid="link-youtube"
+                  className="text-left"
+                  whileHover={{ scale: 1.02, y: -2 }}
+                  whileTap={{ scale: 0.98 }}
+                  transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                >
+                  <GlassCard className="p-4 group cursor-pointer hover:border-red-500/30 hover:shadow-[0_0_20px_-5px_rgba(239,68,68,0.3)]">
+                    <div className="flex items-center gap-3">
+                      <div className="size-10 rounded-lg bg-red-500/20 flex items-center justify-center group-hover:bg-red-500/30 transition-colors">
+                        <YouTubeIcon className="size-5 text-red-500" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-[#E6EAF0] group-hover:text-red-500 transition-colors">YouTube</span>
+                          <ExternalLink className="size-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </div>
+                        <p className="text-xs text-muted-foreground">Videos, guides, and updates</p>
+                      </div>
+                    </div>
+                  </GlassCard>
+                </motion.button>
+
+                {/* TikTok — SwitchTech */}
+                <motion.button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (isElectron && window.electronAPI?.openExternal) {
+                      window.electronAPI.openExternal(SOCIAL_LINKS.tiktokSwitchTech);
+                    } else {
+                      window.open(SOCIAL_LINKS.tiktokSwitchTech, '_blank');
+                    }
+                  }}
+                  data-testid="link-tiktok-switchtech"
                   className="text-left"
                   whileHover={{ scale: 1.02, y: -2 }}
                   whileTap={{ scale: 0.98 }}
@@ -697,10 +740,42 @@ export default function Settings() {
                       </div>
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
-                          <span className="font-medium text-[#E6EAF0] group-hover:text-pink-500 transition-colors">TikTok</span>
+                          <span className="font-medium text-[#E6EAF0] group-hover:text-pink-500 transition-colors">SwitchTech</span>
                           <ExternalLink className="size-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                         </div>
-                        <p className="text-xs text-muted-foreground">Tips, tricks, and tutorials</p>
+                        <p className="text-xs text-muted-foreground">TikTok · Tips, tricks, and tutorials</p>
+                      </div>
+                    </div>
+                  </GlassCard>
+                </motion.button>
+
+                {/* TikTok — SwitchControl */}
+                <motion.button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (isElectron && window.electronAPI?.openExternal) {
+                      window.electronAPI.openExternal(SOCIAL_LINKS.tiktokSwitchControl);
+                    } else {
+                      window.open(SOCIAL_LINKS.tiktokSwitchControl, '_blank');
+                    }
+                  }}
+                  data-testid="link-tiktok-switchcontrol"
+                  className="text-left"
+                  whileHover={{ scale: 1.02, y: -2 }}
+                  whileTap={{ scale: 0.98 }}
+                  transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                >
+                  <GlassCard className="p-4 group cursor-pointer hover:border-pink-500/30 hover:shadow-[0_0_20px_-5px_rgba(236,72,153,0.3)]">
+                    <div className="flex items-center gap-3">
+                      <div className="size-10 rounded-lg bg-pink-500/20 flex items-center justify-center group-hover:bg-pink-500/30 transition-colors">
+                        <TikTokIcon className="size-5 text-pink-500" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-[#E6EAF0] group-hover:text-pink-500 transition-colors">SwitchControl</span>
+                          <ExternalLink className="size-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </div>
+                        <p className="text-xs text-muted-foreground">TikTok · Join the community</p>
                       </div>
                     </div>
                   </GlassCard>

@@ -327,6 +327,36 @@ function WebsiteFooter() {
                   Discord
                 </a>
               </li>
+              <li>
+                <a
+                  href={SOCIAL_LINKS.youtube}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-white/30 hover:text-white/60 transition-colors"
+                >
+                  YouTube
+                </a>
+              </li>
+              <li>
+                <a
+                  href={SOCIAL_LINKS.tiktokSwitchTech}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-white/30 hover:text-white/60 transition-colors"
+                >
+                  TikTok · SwitchTech
+                </a>
+              </li>
+              <li>
+                <a
+                  href={SOCIAL_LINKS.tiktokSwitchControl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-white/30 hover:text-white/60 transition-colors"
+                >
+                  TikTok · SwitchControl
+                </a>
+              </li>
             </ul>
           </div>
         </div>
