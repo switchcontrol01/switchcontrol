@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { usePageTiming } from "@/lib/page-timing";
 import { cloudApiGet, cloudApiPost } from "@/lib/cloud-api";
+import { logHistory } from "@/lib/logHistory";
 import {
   Trash2, Shield, Zap, RefreshCw, CheckCircle2, History,
   AlertCircle, ChevronDown, HardDrive, Lock, Wifi, Cpu,
@@ -542,6 +543,8 @@ export default function SystemCleaner() {
         setCategoryTotals(data.categoryTotals ?? null);
         setPhase("ready");
         loadHistory();
+        const total = data.summary?.totalBytes ?? 0;
+        logHistory(`Cleaner: Scan complete — ${fmtBytes(total)} found`, "Cleaner", "Scanned", `Mode: ${mode} — ${data.summary?.foundCount ?? 0} items found`);
       } else {
         setPhase("idle");
         toast({ title: "Scan failed", description: data.error, variant: "destructive" });
@@ -584,6 +587,9 @@ export default function SystemCleaner() {
         setSession({ results: data.results, summary: data.summary, ranAt: new Date().toISOString() });
         setPhase("result");
         loadHistory();
+        const cleaned = fmtBytes(data.summary?.totalBytesRemoved ?? 0);
+        const fileCount = data.summary?.totalFilesRemoved ?? 0;
+        logHistory(`Cleaner: ${cleaned} cleaned`, "Cleaner", data.summary?.errors > 0 ? "Partial" : "Cleaned", `${data.summary?.successCount ?? 0} items cleaned, ${fileCount} files removed`);
       }
     } catch { toast({ title: "Clean failed", variant: "destructive" }); }
     finally { setIsCleaning(false); }

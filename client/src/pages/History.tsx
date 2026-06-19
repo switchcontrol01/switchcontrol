@@ -4,6 +4,7 @@ import { useStore } from "@/lib/store";
 import type { HistoryItem } from "@/lib/store";
 import { useToast } from "@/hooks/use-toast";
 import { logHistory } from "@/lib/logHistory";
+import { EXTREME_TWEAKS } from "@/lib/extreme-labs-data";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -267,10 +268,51 @@ function EventRow({ item, index }: { item: EnrichedItem; index: number }) {
 
   const canRevert = item.status !== "reverted" && !item.action.toLowerCase().startsWith("reverted:");
 
-  const handleRevert = () => {
+  const handleRevert = async () => {
     setReverting(true);
+
+    if (item.page === "Extreme Labs" && item.notes?.startsWith("Tweak ID: ") && item.result !== "Reverted") {
+      const tweakId = item.notes.replace("Tweak ID: ", "").trim();
+
+      try {
+        const stored = localStorage.getItem("extreme-labs-applied");
+        if (stored) {
+          const applied: string[] = JSON.parse(stored);
+          const updated = applied.filter((id: string) => id !== tweakId);
+          if (updated.length > 0) {
+            localStorage.setItem("extreme-labs-applied", JSON.stringify(updated));
+          } else {
+            localStorage.removeItem("extreme-labs-applied");
+          }
+        }
+      } catch (_) {}
+
+      const eApi = (window as any).electronAPI;
+      if (eApi) {
+        try {
+          const tweak = EXTREME_TWEAKS.find((t: any) => t.id === tweakId);
+          if (tweak) {
+            if ((tweak as any).registryTweakId && eApi.tweaks?.execute) {
+              await eApi.tweaks.execute((tweak as any).registryTweakId, "revert");
+            } else if ((tweak as any).sliderTweakId && eApi.tweaks?.resetValue) {
+              await eApi.tweaks.resetValue((tweak as any).sliderTweakId);
+            } else if ((tweak as any).nicPropertyKey && eApi.nic?.resetProperty) {
+              const adapters = await eApi.nic.getAdapters();
+              const physical = adapters?.find((a: any) => a.status === "Up");
+              if (physical) await eApi.nic.resetProperty(physical.name, (tweak as any).nicPropertyKey);
+            }
+          }
+        } catch (e) {
+          console.warn("[History] Extreme Labs revert IPC error:", e);
+        }
+      }
+
+      toast({ title: "Tweak reverted", description: `${item.action} has been undone` });
+    } else {
+      toast({ title: "Action reverted", description: `Logged reversal of: ${item.action}` });
+    }
+
     logHistory(`Reverted: ${item.action}`, item.page, "Reverted");
-    toast({ title: "Action reverted", description: `Logged reversal of: ${item.action}` });
     setTimeout(() => setReverting(false), 800);
   };
 

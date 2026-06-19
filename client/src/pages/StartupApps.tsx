@@ -84,8 +84,10 @@ export default function StartupApps() {
       }
 
       const raw: RawEntry[] = result.entries ?? [];
-      setApps(enrichEntries(raw));
+      const enriched = enrichEntries(raw);
+      setApps(enriched);
       setScanStatus("done");
+      logHistory(`Startup: Scan complete — ${enriched.length} app${enriched.length !== 1 ? "s" : ""} found`, "Startup", "Scanned", `${enriched.filter(a => !a.entry.enabled).length} disabled, ${enriched.filter(a => a.entry.broken).length} broken`);
     } catch (e: any) {
       setScanError(e.message ?? "Unexpected error");
       setApps([]);
@@ -145,6 +147,7 @@ export default function StartupApps() {
     for (const app of recs) {
       if (app.entry.enabled) await toggleEntry(app.entry.id, false);
     }
+    logHistory(`Startup: Optimized — ${recs.length} app${recs.length > 1 ? "s" : ""} disabled`, "Startup", "Optimized", recs.map(a => a.entry.name).join(", "));
     toast({ title: `Optimized — ${recs.length} app${recs.length > 1 ? "s" : ""} disabled` });
   }, [apps, toggleEntry, toast]);
 

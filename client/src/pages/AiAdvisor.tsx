@@ -1523,6 +1523,7 @@ export default function AiAdvisor() {
     // Add user message + thinking placeholder in the same synchronous batch
     // so there is zero blank frame between "send" and "waiting for AI".
     setMessages(prev => [...prev, userMsg, placeholderMsg]);
+    logHistory(`AI Advisor: ${messageContent.slice(0, 80)}${messageContent.length > 80 ? "…" : ""}`, "AI Advisor", "Sent");
     let thinkingAdded = true;
     const thinkingTimer = -1 as unknown as ReturnType<typeof setTimeout>; // unused sentinel
     setInput("");

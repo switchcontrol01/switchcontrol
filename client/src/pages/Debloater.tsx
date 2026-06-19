@@ -297,6 +297,8 @@ export default function Debloater() {
       const result = await window.electronAPI!.debloat!.scan(scanPayload);
       if (result.ok) {
         setItemState(result.results);
+        const presentCount = Object.values(result.results).filter((s: any) => s === "present").length;
+        logHistory(`Debloat: Scan complete — ${presentCount} item${presentCount !== 1 ? "s" : ""} present`, "Debloat", "Scanned", `${presentCount} removable items detected`);
       }
     } catch (e) {
       console.warn("[Debloater] scan failed", e);
