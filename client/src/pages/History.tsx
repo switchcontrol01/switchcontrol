@@ -308,6 +308,69 @@ function EventRow({ item, index }: { item: EnrichedItem; index: number }) {
       }
 
       toast({ title: "Tweak reverted", description: `${item.action} has been undone` });
+
+    } else if (item.page === "Power Plan" && item.result !== "Reverted") {
+      const prevGuidMatch = item.notes?.match(/prevGuid: ([^\s|]+)/);
+      const prevGuid = prevGuidMatch?.[1];
+      const prevNameMatch = item.notes?.match(/prev: ([^|]+)/);
+      const prevName = prevNameMatch?.[1]?.trim() ?? "previous plan";
+      if (prevGuid) {
+        const eApi = (window as any).electronAPI;
+        if (eApi?.powerPlans?.applyProfile) {
+          try {
+            const result = await eApi.powerPlans.applyProfile(prevGuid);
+            if (result?.success) {
+              toast({ title: "Power Plan reverted", description: `Switched back to ${prevName}` });
+            } else {
+              toast({ title: "Revert failed", description: result?.error ?? "Could not restore previous power plan", variant: "destructive" });
+            }
+          } catch (e) {
+            console.warn("[History] Power Plan revert IPC error:", e);
+            toast({ title: "Revert failed", description: "Could not restore previous power plan", variant: "destructive" });
+          }
+        } else {
+          toast({ title: "Action logged", description: `Run on Windows to apply — would switch back to ${prevName}` });
+        }
+      } else {
+        toast({ title: "Cannot revert", description: "Entry was recorded before revert support. Apply a plan again to enable future revert." });
+      }
+
+    } else if (item.page === "Network" && item.notes?.startsWith("Tweak ID: ")) {
+      const tweakId = item.notes.replace("Tweak ID: ", "").trim();
+      const ipcAction = item.result === "Applied" ? "revert" : "apply";
+      const eApi = (window as any).electronAPI;
+      if (eApi?.networkTweaks?.execute) {
+        try {
+          const result = await eApi.networkTweaks.execute(tweakId, ipcAction);
+          if (result?.success) {
+            toast({ title: "Network tweak reverted", description: `${item.action} has been undone` });
+          } else {
+            toast({ title: "Revert failed", description: result?.message ?? "Could not revert network tweak", variant: "destructive" });
+          }
+        } catch (e) {
+          console.warn("[History] Network tweak revert IPC error:", e);
+          toast({ title: "Revert failed", description: "Could not revert network tweak", variant: "destructive" });
+        }
+      } else {
+        toast({ title: "Action logged", description: "Run on Windows to apply the revert" });
+      }
+
+    } else if (item.page === "Tweaks" && item.notes?.startsWith("Tweak ID: ")) {
+      const tweakId = item.notes.replace("Tweak ID: ", "").trim();
+      const ipcAction = item.result === "Applied" ? "revert" : "apply";
+      const eApi = (window as any).electronAPI;
+      if (eApi?.tweaks?.execute) {
+        try {
+          await eApi.tweaks.execute(tweakId, ipcAction);
+          toast({ title: "Tweak reverted", description: `${item.action} has been undone` });
+        } catch (e) {
+          console.warn("[History] Tweak revert IPC error:", e);
+          toast({ title: "Revert failed", description: "Could not revert tweak", variant: "destructive" });
+        }
+      } else {
+        toast({ title: "Action logged", description: "Run on Windows to apply the revert" });
+      }
+
     } else {
       toast({ title: "Action reverted", description: `Logged reversal of: ${item.action}` });
     }

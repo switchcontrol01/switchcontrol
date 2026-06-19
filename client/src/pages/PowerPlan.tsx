@@ -731,7 +731,7 @@ export default function PowerPlan() {
         );
       }
 
-      logHistory(`Power Plan: ${profile.name}`, "Power Plan", "Applied", `Match: ${match}`);
+      logHistory(`Power Plan: ${profile.name}`, "Power Plan", "Applied", `Match: ${match} | prev: ${prevName} | prevGuid: ${prevGuid}`);
     } catch (e: any) {
       toast({ title: "Error", description: e?.message ?? "Unexpected error.", variant: "destructive" });
     } finally {

@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from "react";
+import { logHistory } from "@/lib/logHistory";
 import { createPortal } from "react-dom";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
@@ -270,6 +271,7 @@ export function TweakCard({ tweak, isEnabled, onToggle, isVerifying = false, isH
       const outcome = await executeTweak(tweak.id, isEnabled);
       if (outcome.success) {
         console.log(`[Tweaks:RESULT] id="${tweak.id}" success=true action=${action}`);
+        logHistory(`Tweaks: ${tweak.title}`, "Tweaks", action === "apply" ? "Applied" : "Reverted", `Tweak ID: ${tweak.id}`);
         onToggle();
         commit(); // start the 3.5s settle window
       } else if (outcome.failureType) {

@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import { logHistory } from "@/lib/logHistory";
 import { usePageTiming } from "@/lib/page-timing";
 import { createPortal } from "react-dom";
 import { GlassModalSurface } from "@/components/ui/GlassModalLayout";
@@ -839,6 +840,9 @@ function NetworkTweaksContent() {
         }
 
         addToast(tweak.id, result.success, result.message);
+        if (result.success) {
+          logHistory(`Network: ${tweak.name}`, "Network", action === "enable" ? "Applied" : "Reverted", `Tweak ID: ${tweak.id}`);
+        }
 
         // ── Re-verify this tweak's real Windows state after apply/revert ──────────
         // The execute result's .verified field is the executor's internal claim.
@@ -881,6 +885,7 @@ function NetworkTweaksContent() {
         }));
 
         addToast(tweak.id, true, msg);
+        logHistory(`Network: ${tweak.name}`, "Network", action === "enable" ? "Applied" : "Reverted", `Tweak ID: ${tweak.id}`);
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Execution error";
