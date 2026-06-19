@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { motion, AnimatePresence } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 import { format, parseISO } from "date-fns";
-import { useStore } from "@/lib/store";
+import { logHistory } from "@/lib/logHistory";
 import {
   RefreshCw, Search, X, Package, Shield, ShieldOff, AlertTriangle,
   CheckCircle2, XCircle, Trash2, ChevronDown, ChevronUp, Monitor,
@@ -483,8 +483,6 @@ function buildFailureLabel(res: UninstallResult): string {
 // ── InstalledAppsPanel ────────────────────────────────────────────────────────
 
 export function InstalledAppsPanel() {
-  const applyAction = useStore(s => s.applyAction);
-
   const [apps,          setApps]          = useState<InstalledApp[]>([]);
   const [scanning,      setScanning]      = useState(false);
   const [scannedAt,     setScannedAt]     = useState<string | null>(null);
@@ -561,7 +559,7 @@ export function InstalledAppsPanel() {
       } else if (res.ok) {
         setResults(prev => ({ ...prev, [app.id]: { kind: "removed" } }));
         setApps(prev => prev.filter(a => a.id !== app.id));
-        applyAction(
+        logHistory(
           `Uninstalled ${app.name}`,
           "Debloat",
           "Removed from Installed Apps",
@@ -586,7 +584,7 @@ export function InstalledAppsPanel() {
     } finally {
       setUninstallingId(null);
     }
-  }, [applyAction]);
+  }, []);
 
   // ── Computed ────────────────────────────────────────────────────────────────
   const filtered = useMemo(() => {

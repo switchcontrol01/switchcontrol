@@ -873,7 +873,7 @@ function createWindow() {
     //   paintWhenInitiallyHidden:true — forces frame painting while hidden.
     //
     // _tryShowWindow() does: setOpacity(0) → show() → animate setOpacity 0→1
-    // over 780ms with ease-out. Splash.tsx's double-rAF clears the CSS opacity
+    // over 600ms with ease-out. Splash.tsx's double-rAF clears the CSS opacity
     // lock before the signal fires, so content is fully CSS-visible by the time
     // the OS-level opacity animation starts — giving a premium cross-fade from
     // desktop background to the dark Splash without any white frame.
@@ -1118,7 +1118,7 @@ function createWindow() {
     _bm.windowShown = Date.now();
     // setOpacity(0) → show(): window is OS-invisible when shown, so DWM never
     // gets a chance to composite a white init frame. Then we animate setOpacity
-    // from 0 → 1 over 780ms with ease-out so the window cross-fades from the
+    // from 0 → 1 over 600ms with ease-out so the window cross-fades from the
     // desktop background to the dark Splash — premium, no pop, no flash.
     // Splash.tsx's double-rAF cleared the CSS opacity lock before this fires,
     // so content is already at full CSS opacity during the OS-level fade.
@@ -1126,8 +1126,8 @@ function createWindow() {
     mainWindow.show();
     mainWindow.focus();
     mainWindow.webContents.send('app:window-shown');
-    // Animate OS-level opacity 0 → 1 with ease-out over 780ms (~60fps)
-    const _FADE_MS = 780;
+    // Animate OS-level opacity 0 → 1 with ease-out over 600ms (~60fps)
+    const _FADE_MS = 600;
     const _FADE_TICK = 16;
     let _fadeElapsed = 0;
     const _fadeTimer = setInterval(() => {
@@ -1158,8 +1158,8 @@ function createWindow() {
       mainWindow.setOpacity(0);
       mainWindow.show();
       mainWindow.focus();
-      // Animate OS-level opacity 0→1 over 780ms (same as normal path)
-      const _FADE_MS_FB = 780, _FADE_TICK_FB = 16;
+      // Animate OS-level opacity 0→1 over 600ms (same as normal path)
+      const _FADE_MS_FB = 600, _FADE_TICK_FB = 16;
       let _fbElapsed = 0;
       const _fbTimer = setInterval(() => {
         if (!mainWindow || mainWindow.isDestroyed()) { clearInterval(_fbTimer); return; }
