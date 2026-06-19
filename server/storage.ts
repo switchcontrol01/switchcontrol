@@ -727,71 +727,36 @@ export class DatabaseStorage implements IStorage {
 
   async deleteUser(userId: string): Promise<void> {
     if (!db) throw new Error("Database not available");
-    await db.transaction(async (tx) => {
-      // 1. Cascade child tables by settingsId.
-      //    The user_settings table may not exist in some environments (e.g. legacy
-      //    prod databases that haven't run all migrations). Wrap the entire block
-      //    in SAVEPOINT so a 42P01 error skips it without aborting the transaction.
-      const spSettings = `del_settings_${userId}`;
-      await tx.execute(drizzleSql.raw(`SAVEPOINT ${spSettings}`));
-      try {
-        const [settings] = await tx.select({ id: userSettings.id }).from(userSettings).where(eq(userSettings.userId, userId));
-        if (settings) {
-          await tx.delete(appliedTweaks).where(eq(appliedTweaks.settingsId, settings.id));
-          await tx.delete(historyEntries).where(eq(historyEntries.settingsId, settings.id));
-          await tx.delete(aiScans).where(eq(aiScans.settingsId, settings.id));
-          await tx.delete(userSettings).where(eq(userSettings.id, settings.id));
-        }
-        await tx.execute(drizzleSql.raw(`RELEASE SAVEPOINT ${spSettings}`));
-      } catch (e: any) {
-        await tx.execute(drizzleSql.raw(`ROLLBACK TO SAVEPOINT ${spSettings}`));
-        if (e?.code !== "42P01") throw e;
-        console.log(`[deleteUser] user_settings table does not exist — skipping (non-fatal)`);
-      }
 
-      // 2. Drop ad-hoc tables that use user_id directly (not part of shared schema).
-      const adHocTables = [
-        "focus_sessions",
-      ] as const;
-      for (const tbl of adHocTables) {
-        const sp = `del_adhoc_${tbl}`;
-        await tx.execute(drizzleSql.raw(`SAVEPOINT ${sp}`));
-        try {
-          await tx.execute(drizzleSql`DELETE FROM ${drizzleSql.raw(tbl)} WHERE user_id = ${userId}`);
-          await tx.execute(drizzleSql.raw(`RELEASE SAVEPOINT ${sp}`));
-        } catch (e: any) {
-          await tx.execute(drizzleSql.raw(`ROLLBACK TO SAVEPOINT ${sp}`));
-          if (e?.code !== "42P01") throw e;
-          console.log(`[deleteUser] table "${tbl}" does not exist — skipping (non-fatal)`);
-        }
-      }
+    // Best-effort cleanup: every table is deleted independently.
+    // If any table does not exist (42P01) or any FK row is missing, we log and continue.
+    // The user row MUST be deleted at the end regardless.
+    const cleanup = async (label: string, fn: () => Promise<any>) => {
+      try { await fn(); } catch (e: any) { console.log(`[deleteUser] ${label} skipped: ${e?.message || e}`); }
+    };
 
-      // 3. Clear active sessions so the user is immediately logged out everywhere.
-      await tx.execute(drizzleSql`
-        DELETE FROM sessions
-        WHERE (sess->'passport'->>'user') = ${userId}
-      `);
-
-      // 4. Finally delete the user row.
-      await tx.delete(users).where(eq(users.id, userId));
-
-      // 5. Mark admin_logs entries as target-deleted.
-      //    admin_logs may also not exist in some environments — wrap in SAVEPOINT.
-      const spAdmin = `del_adminlogs_${userId}`;
-      await tx.execute(drizzleSql.raw(`SAVEPOINT ${spAdmin}`));
-      try {
-        await tx.execute(drizzleSql`
-          UPDATE admin_logs
-             SET metadata = COALESCE(metadata, '{}'::jsonb) || '{"targetDeleted":true}'::jsonb
-           WHERE target_user_id = ${userId}
-        `);
-        await tx.execute(drizzleSql.raw(`RELEASE SAVEPOINT ${spAdmin}`));
-      } catch (e: any) {
-        await tx.execute(drizzleSql.raw(`ROLLBACK TO SAVEPOINT ${spAdmin}`));
-        if (e?.code !== "42P01") throw e;
-        console.log(`[deleteUser] admin_logs table does not exist — skipping (non-fatal)`);
-      }
+    let settingsId: string | null = null;
+    await cleanup("user_settings lookup", async () => {
+      const [settings] = await db.select({ id: userSettings.id }).from(userSettings).where(eq(userSettings.userId, userId));
+      if (settings) settingsId = settings.id;
     });
+
+    if (settingsId) {
+      await cleanup("appliedTweaks", () => db.delete(appliedTweaks).where(eq(appliedTweaks.settingsId, settingsId)));
+      await cleanup("historyEntries", () => db.delete(historyEntries).where(eq(historyEntries.settingsId, settingsId)));
+      await cleanup("aiScans", () => db.delete(aiScans).where(eq(aiScans.settingsId, settingsId)));
+      await cleanup("userSettings", () => db.delete(userSettings).where(eq(userSettings.id, settingsId)));
+    }
+
+    await cleanup("focus_sessions", () => db.execute(drizzleSql`DELETE FROM "focus_sessions" WHERE user_id = ${userId}`));
+    await cleanup("sessions", () => db.execute(drizzleSql`DELETE FROM sessions WHERE (sess->'passport'->>'user') = ${userId}`));
+    await cleanup("admin_logs", () => db.execute(drizzleSql`
+      UPDATE admin_logs
+         SET metadata = COALESCE(metadata, '{}'::jsonb) || '{"targetDeleted":true}'::jsonb
+       WHERE target_user_id = ${userId}
+    `));
+
+    await db.delete(users).where(eq(users.id, userId));
   }
 
   async countAdmins(): Promise<number> {

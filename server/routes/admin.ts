@@ -473,15 +473,56 @@ router.delete("/users/:id", requireAdmin, writeLimiter, async (req, res) => {
       (err?.stack ?? ""),
     );
 
-    // Return a structured error so the frontend can show the real reason
     const userMessage =
-      err?.code === "23503" ? "Deletion blocked by a database foreign-key constraint. Contact the developer." :
-      err?.code === "23502" ? "Deletion failed: a required column became null unexpectedly." :
       err?.message?.includes("not found") ? "User not found." :
       "Deletion failed — see server logs for details.";
 
     res.status(500).json({ success: false, error: userMessage });
   }
+});
+
+// ─── Batch Delete Users ──────────────────────────────────────────────────────
+
+const batchDeleteSchema = z.object({
+  userIds: z.array(z.string()).min(1, "At least one user ID required."),
+});
+
+// POST /api/admin/users/batch-delete
+router.post("/users/batch-delete", requireAdmin, writeLimiter, async (req, res) => {
+  const admin = getAdminId(req);
+  const parsed = batchDeleteSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ success: false, error: parsed.error.errors[0]?.message || "Invalid request." });
+  }
+
+  const ids = parsed.data.userIds;
+  const results: { id: string; status: "deleted" | "skipped" | "error"; error?: string }[] = [];
+  let deleted = 0;
+  let skipped = 0;
+  let failed = 0;
+
+  for (const userId of ids) {
+    if (userId === admin.id) {
+      results.push({ id: userId, status: "skipped", error: "Cannot delete your own account." });
+      skipped++; continue;
+    }
+    try {
+      const existing = await storage.getUser(userId);
+      if (!existing) {
+        results.push({ id: userId, status: "skipped", error: "User not found." });
+        skipped++; continue;
+      }
+      await storage.deleteUser(userId);
+      results.push({ id: userId, status: "deleted" });
+      deleted++;
+    } catch (err: any) {
+      console.error(`[admin:batch-delete] FAILED for ${userId}: ${err?.message}`);
+      results.push({ id: userId, status: "error", error: err?.message || "Unknown error" });
+      failed++;
+    }
+  }
+
+  res.json({ success: true, deleted, skipped, failed, results });
 });
 
 // ─── Device Lock Lookup ───────────────────────────────────────────────────────
