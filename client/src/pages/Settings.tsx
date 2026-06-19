@@ -1,6 +1,7 @@
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useStore } from "@/lib/store";
+import { logHistory } from "@/lib/logHistory";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -388,7 +389,7 @@ export default function Settings() {
                     onCheckedChange={(checked) => {
                       setRealtimeMetricsEnabled(checked);
                       toast({ title: checked ? "Live Metrics Enabled" : "Live Metrics Paused", description: checked ? "Dashboard stats updating in real time." : "Stats display is frozen — no polling overhead." });
-                      fetch("/api/history", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: `Settings: Real-time Metrics ${checked ? "Enabled" : "Disabled"}`, page: "Settings", result: "Saved" }) }).catch(() => {});
+                      logHistory(`Settings: Real-time Metrics ${checked ? "Enabled" : "Disabled"}`, "Settings", "Saved");
                     }}
                   />
                 </div>
@@ -408,7 +409,7 @@ export default function Settings() {
                     onCheckedChange={(checked) => {
                       setPauseWhenMinimized(checked);
                       toast({ title: checked ? "Background Pause Enabled" : "Background Pause Disabled", description: checked ? "Stats polling pauses when app is hidden." : "Stats will update even when app is minimized." });
-                      fetch("/api/history", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: `Settings: Pause When Minimized ${checked ? "Enabled" : "Disabled"}`, page: "Settings", result: "Saved" }) }).catch(() => {});
+                      logHistory(`Settings: Pause When Minimized ${checked ? "Enabled" : "Disabled"}`, "Settings", "Saved");
                     }}
                   />
                 </div>

@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
+import { logHistory } from "@/lib/logHistory";
 import { usePageTiming } from "@/lib/page-timing";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -124,7 +125,7 @@ export default function StartupApps() {
         name: app.entry.name, source: app.entry.source, enabled,
       }).catch(() => {});
 
-      fetch("/api/history", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: `Startup: ${app.entry.name} ${enabled ? "Enabled" : "Disabled"}`, page: "Startup", result: enabled ? "Enabled" : "Disabled", notes: `Source: ${app.entry.source}` }) }).catch(() => {});
+      logHistory(`Startup: ${app.entry.name} ${enabled ? "Enabled" : "Disabled"}`, "Startup", enabled ? "Enabled" : "Disabled", `Source: ${app.entry.source}`);
       toast({ title: `${app.entry.name} ${enabled ? "enabled" : "disabled"}` });
     } catch (e: any) {
       // Revert

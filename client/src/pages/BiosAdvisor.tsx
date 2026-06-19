@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef, type ReactNode } from "react";
+import { logHistory } from "@/lib/logHistory";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -760,7 +761,7 @@ export default function BiosAdvisor() {
       previousScore: newPreviousScore,
     });
 
-    fetch("/api/history", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "BIOS Advisor: System Scan", page: "BIOS Advisor", result: `Score: ${newScores.competitiveReadiness}/100`, notes: `Source: ${newTelemetrySource} | Level: ${newOptimizationLevel}` }) }).catch(() => {});
+    logHistory("BIOS Advisor: System Scan", "BIOS Advisor", `Score: ${newScores.competitiveReadiness}/100`, `Source: ${newTelemetrySource} | Level: ${newOptimizationLevel}`);
     setTimeout(() => setScanState("idle"), 800);
   }, [analysisHash, hasScanned, scores, stats, photoDetections, completeScan]);
 
@@ -881,7 +882,7 @@ export default function BiosAdvisor() {
         storeUpdateScores(mergedScores, mergedLevel);
         // Clear queue on success
         setPendingImages(prev => { prev.forEach(p => URL.revokeObjectURL(p.previewUrl)); return []; });
-        fetch("/api/history", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "BIOS Advisor: Photo Analysis", page: "BIOS Advisor", result: `${data.detections.length} setting${data.detections.length !== 1 ? "s" : ""} identified`, notes: `${count} image${count !== 1 ? "s" : ""} analyzed` }) }).catch(() => {});
+        logHistory("BIOS Advisor: Photo Analysis", "BIOS Advisor", `${data.detections.length} setting${data.detections.length !== 1 ? "s" : ""} identified`, `${count} image${count !== 1 ? "s" : ""} analyzed`);
       } else {
         setPhotoError(count > 1
           ? "No BIOS settings could be identified in any of the uploaded images. Try clearer photos."

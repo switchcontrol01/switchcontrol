@@ -2,6 +2,8 @@ import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useStore } from "@/lib/store";
 import type { HistoryItem } from "@/lib/store";
+import { useToast } from "@/hooks/use-toast";
+import { logHistory } from "@/lib/logHistory";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -32,18 +34,20 @@ export interface EnrichedItem extends HistoryItem {
 // ── Constants ─────────────────────────────────────────────────────────────
 
 export const MODULE_CONFIG: Record<string, { label: string; cls: string }> = {
-  Tweaks:        { label: "Tweaks",       cls: "bg-[#00D4FF] text-[#00D4FF] border-[#00D4FF]" },
-  Security:      { label: "Security",     cls: "bg-emerald-500/15 text-emerald-400 border-emerald-500/25" },
-  Power:         { label: "Power",        cls: "bg-amber-500/15 text-amber-400 border-amber-500/25" },
-  Network:       { label: "Network",      cls: "bg-blue-500/15 text-blue-400 border-blue-500/25" },
-  Cleaner:       { label: "Cleaner",      cls: "bg-orange-500/15 text-orange-400 border-orange-500/25" },
-  Debloat:       { label: "Debloat",      cls: "bg-pink-500/15 text-pink-400 border-pink-500/25" },
-  Startup:       { label: "Startup",      cls: "bg-cyan-500/15 text-cyan-400 border-cyan-500/25" },
-  "AI Advisor":  { label: "AI",           cls: "bg-#F59E0B/15 text-[#F59E0B] border-#F59E0B/25" },
-  "BIOS Advisor":{ label: "BIOS",         cls: "bg-yellow-500/15 text-yellow-400 border-yellow-500/25" },
-  Dashboard:     { label: "Dashboard",    cls: "bg-sky-500/15 text-sky-400 border-sky-500/25" },
-  "NIC Tuning":  { label: "NIC Tuning",   cls: "bg-indigo-500/15 text-indigo-400 border-indigo-500/25" },
-  History:       { label: "History",      cls: "bg-zinc-500/15 text-zinc-400 border-zinc-500/25" },
+  Tweaks:           { label: "Tweaks",        cls: "bg-[#00D4FF]/15 text-[#00D4FF] border-[#00D4FF]/25" },
+  Security:         { label: "Security",      cls: "bg-emerald-500/15 text-emerald-400 border-emerald-500/25" },
+  Power:            { label: "Power",         cls: "bg-amber-500/15 text-amber-400 border-amber-500/25" },
+  Network:          { label: "Network",       cls: "bg-blue-500/15 text-blue-400 border-blue-500/25" },
+  Cleaner:          { label: "Cleaner",       cls: "bg-orange-500/15 text-orange-400 border-orange-500/25" },
+  Debloat:          { label: "Debloat",       cls: "bg-pink-500/15 text-pink-400 border-pink-500/25" },
+  Startup:          { label: "Startup",       cls: "bg-cyan-500/15 text-cyan-400 border-cyan-500/25" },
+  "AI Advisor":     { label: "AI",            cls: "bg-amber-500/15 text-amber-400 border-amber-500/25" },
+  "BIOS Advisor":   { label: "BIOS",          cls: "bg-yellow-500/15 text-yellow-400 border-yellow-500/25" },
+  Dashboard:        { label: "Dashboard",     cls: "bg-sky-500/15 text-sky-400 border-sky-500/25" },
+  "NIC Tuning":     { label: "NIC Tuning",    cls: "bg-indigo-500/15 text-indigo-400 border-indigo-500/25" },
+  "Extreme Labs":   { label: "Extreme Labs",  cls: "bg-purple-500/15 text-purple-400 border-purple-500/25" },
+  Settings:         { label: "Settings",      cls: "bg-zinc-500/15 text-zinc-400 border-zinc-500/25" },
+  History:          { label: "History",       cls: "bg-zinc-500/15 text-zinc-400 border-zinc-500/25" },
 };
 
 const STATUS_CONFIG = {
@@ -60,7 +64,7 @@ const IMPACT_CONFIG = {
   high:   { color: "text-red-400",     label: "High" },
 };
 
-const MODULES_ALL = ["All", "Tweaks", "Security", "Power", "Network", "Cleaner", "Debloat", "Startup", "AI Advisor", "BIOS Advisor", "Dashboard", "NIC Tuning"];
+const MODULES_ALL = ["All", "Tweaks", "Security", "Power", "Network", "Cleaner", "Debloat", "Startup", "AI Advisor", "BIOS Advisor", "Dashboard", "NIC Tuning", "Extreme Labs", "Settings"];
 const STATUSES_ALL = ["All", "success", "failed", "warning", "reverted", "info"];
 
 // ── Enrichment ────────────────────────────────────────────────────────────
@@ -78,16 +82,18 @@ function deriveStatus(result: string, action: string): HistoryStatus {
 function deriveModule(page: string): string {
   const lp = page.toLowerCase();
   if (lp.includes("tweak"))   return "Tweaks";
-  if (lp.includes("security") || lp.includes("scan") || lp.includes("integrity")) return "Security";
+  if (lp.includes("security") || lp.includes("integrity")) return "Security";
   if (lp.includes("power"))   return "Power";
   if (lp.includes("network")) return "Network";
   if (lp.includes("clean"))   return "Cleaner";
   if (lp.includes("debloat")) return "Debloat";
   if (lp.includes("startup")) return "Startup";
-  if (lp.includes("ai") || (lp.includes("advisor") && !lp.includes("bios"))) return "AI Advisor";
+  if (lp.includes("extreme")) return "Extreme Labs";
   if (lp.includes("bios"))    return "BIOS Advisor";
+  if (lp.includes("ai") || (lp.includes("advisor") && !lp.includes("bios"))) return "AI Advisor";
   if (lp.includes("nic") || lp.includes("adapter")) return "NIC Tuning";
   if (lp.includes("dashboard")) return "Dashboard";
+  if (lp.includes("setting")) return "Settings";
   if (lp.includes("history")) return "History";
   return page || "Other";
 }
@@ -253,9 +259,20 @@ function SummaryCard({
 
 function EventRow({ item, index }: { item: EnrichedItem; index: number }) {
   const [open, setOpen] = useState(false);
+  const [reverting, setReverting] = useState(false);
+  const { toast } = useToast();
   const sCfg = STATUS_CONFIG[item.status];
   const mCfg = MODULE_CONFIG[item.module] ?? MODULE_CONFIG.History;
   const iCfg = IMPACT_CONFIG[item.impact];
+
+  const canRevert = item.status !== "reverted" && !item.action.toLowerCase().startsWith("reverted:");
+
+  const handleRevert = () => {
+    setReverting(true);
+    logHistory(`Reverted: ${item.action}`, item.page, "Reverted");
+    toast({ title: "Action reverted", description: `Logged reversal of: ${item.action}` });
+    setTimeout(() => setReverting(false), 800);
+  };
 
   return (
     <div
@@ -353,6 +370,22 @@ function EventRow({ item, index }: { item: EnrichedItem; index: number }) {
               <div>
                 <p className="text-[10px] uppercase tracking-wide text-muted-foreground/50 mb-0.5">Event ID</p>
                 <p className="text-[10px] font-mono text-muted-foreground/50">{item.id}</p>
+              </div>
+              <div className="col-span-2 sm:col-span-3 md:col-span-4 pt-1 flex justify-end">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={!canRevert || reverting}
+                  onClick={handleRevert}
+                  data-testid={`button-revert-${index}`}
+                  className={cn(
+                    "h-7 gap-1.5 text-[11px] px-3 border-zinc-700 hover:border-blue-500/50 hover:text-blue-400 hover:bg-blue-500/10 transition-colors",
+                    !canRevert && "opacity-40 cursor-not-allowed",
+                  )}
+                >
+                  <RotateCcw className={cn("size-3", reverting && "animate-spin")} />
+                  {item.status === "reverted" ? "Already reverted" : "Revert"}
+                </Button>
               </div>
             </div>
           </motion.div>

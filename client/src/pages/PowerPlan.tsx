@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { logHistory } from "@/lib/logHistory";
 import { createPortal } from "react-dom";
 import { GlassModalSurface } from "@/components/ui/GlassModalLayout";
 import { useTweakOwnershipStore } from "@/stores/tweakOwnershipStore";
@@ -11,7 +12,6 @@ import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
-import { useStore } from "@/lib/store";
 import { motion, AnimatePresence, modalBackdrop, modalContent, useMotion, Reveal, pageTransition } from "@/lib/motion";
 import {
   Zap, Leaf, Gauge, Cpu, Usb, Moon, Rocket, Monitor, Laptop,
@@ -585,7 +585,6 @@ function OverrideToggleCard({ toggle, enabled, onToggle, onInfo }: { toggle: Ove
 
 export default function PowerPlan() {
   const { isPremium } = useAuth();
-  const { applyAction } = useStore();
   const { toast } = useToast();
   const { prefersReducedMotion } = useMotion();
 
@@ -669,9 +668,8 @@ export default function PowerPlan() {
     if (!profile) return;
 
     if (!isElectron) {
-      applyAction(`Activated ${profile.name} profile`, "Power Plan", "Simulated apply");
+      logHistory(`Power Plan: ${profile.name}`, "Power Plan", "Simulated", "Web preview — no real system change");
       toast({ title: "Profile Activated (Demo)", description: `${profile.name} — Windows only for real changes.` });
-      fetch("/api/history", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: `Power Plan: ${profile.name}`, page: "Power Plan", result: "Simulated", notes: "Web preview — no real system change" }) }).catch(() => {});
       return;
     }
 
@@ -733,14 +731,13 @@ export default function PowerPlan() {
         );
       }
 
-      applyAction(`Activated ${profile.name}`, "Power Plan", "Backend-verified");
-      fetch("/api/history", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: `Power Plan: ${profile.name}`, page: "Power Plan", result: "Applied", notes: `Match: ${match}` }) }).catch(() => {});
+      logHistory(`Power Plan: ${profile.name}`, "Power Plan", "Applied", `Match: ${match}`);
     } catch (e: any) {
       toast({ title: "Error", description: e?.message ?? "Unexpected error.", variant: "destructive" });
     } finally {
       setApplying(null);
     }
-  }, [isElectron, applyAction, toast, backendState]);
+  }, [isElectron, toast, backendState]);
 
   const applyCustomProfile = useCallback(async () => {
     const nameErr = validateCustomName(customPlanName);
@@ -784,7 +781,7 @@ export default function PowerPlan() {
         setPrevProfileId(capturedPrev);
         setShowComparison(true);
         toast({ title: "Custom Plan Applied", description: `"${result.name}" is now active in Windows.` });
-        fetch("/api/history", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: `Power Plan: ${result.name} (Custom)`, page: "Power Plan", result: "Applied", notes: "Custom power profile created and activated" }) }).catch(() => {});
+        logHistory(`Power Plan: ${result.name} (Custom)`, "Power Plan", "Applied", "Custom power profile created and activated");
 
         // Record ownership so the revert engine can clean up on trial expiry.
         // Only record if the GUID actually changed (plan switched, not a re-apply).

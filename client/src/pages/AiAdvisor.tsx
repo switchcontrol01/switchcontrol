@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { flushSync } from "react-dom";
+import { logHistory } from "@/lib/logHistory";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -2064,7 +2065,7 @@ export default function AiAdvisor() {
     const failCount = results?.filter(r => !r.outcome.success).length ?? 0;
     console.log(`[AI:APPLY] batch complete — ${successCount} applied, ${failCount} failed`);
     if (successCount > 0) {
-      fetch("/api/history", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: `AI Advisor: Applied ${successCount} Recommendation${successCount !== 1 ? "s" : ""}`, page: "AI Advisor", result: failCount > 0 ? "Partial" : "Applied", notes: `${successCount} applied, ${failCount} failed` }) }).catch(() => {});
+      logHistory(`AI Advisor: Applied ${successCount} Recommendation${successCount !== 1 ? "s" : ""}`, "AI Advisor", failCount > 0 ? "Partial" : "Applied", `${successCount} applied, ${failCount} failed`);
     }
   }, []);
 

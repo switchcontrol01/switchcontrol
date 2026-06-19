@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { logHistory } from "@/lib/logHistory";
 import { usePageTiming, runWhenIdle } from "@/lib/page-timing";
 import { safeGetJwt } from "@/lib/auth-store";
 import { useToast } from "@/hooks/use-toast";
@@ -1182,6 +1183,13 @@ export default function Security() {
         saveHistory(next);
         return next;
       });
+
+      logHistory(
+        `Security Scan (${type === "smart" ? "Smart" : "Quick"})`,
+        "Security",
+        result.summary?.systemState === "attention" ? "Needs Attention" : result.summary?.systemState === "secure" ? "Secure" : "Completed",
+        newEntry.healthScore !== undefined ? `Health score: ${newEntry.healthScore}/100` : undefined
+      );
 
       setLastScan(new Date());
       setScanStatus("complete");

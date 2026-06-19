@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { logHistory } from "@/lib/logHistory";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useLiveTelemetry } from "@/hooks/useLiveTelemetry";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -503,7 +504,7 @@ export default function Debloater() {
           restorePointCreated: false,
         } : p);
         fetchHistory();
-        fetch("/api/history", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: `Debloat: ${data.successCount} item${data.successCount !== 1 ? "s" : ""} removed`, page: "Debloat", result: data.failCount > 0 ? "Partial" : "Removed", notes: `${data.successCount} removed, ${skipped} skipped, ${data.failCount} failed` }) }).catch(() => {});
+        logHistory(`Debloat: ${data.successCount} item${data.successCount !== 1 ? "s" : ""} removed`, "Debloat", data.failCount > 0 ? "Partial" : "Removed", `${data.successCount} removed, ${skipped} skipped, ${data.failCount} failed`);
         // eslint-disable-next-line no-console
         console.log(`[DebloatApply] complete removed=${data.successCount} skipped=${skipped} failed=${data.failCount}`);
 
@@ -573,7 +574,7 @@ export default function Debloater() {
         setActiveView("results");
         fetchHistory();
         const restored = data.results.filter((r: ApplyResult) => r.status === "restored").length;
-        fetch("/api/history", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: `Debloat: ${restored} item${restored !== 1 ? "s" : ""} restored`, page: "Debloat", result: "Restored", notes: `${restored} item${restored !== 1 ? "s" : ""} restored to defaults` }) }).catch(() => {});
+        logHistory(`Debloat: ${restored} item${restored !== 1 ? "s" : ""} restored`, "Debloat", "Restored", `${restored} item${restored !== 1 ? "s" : ""} restored to defaults`);
         toast({ title: "Restore processed" });
       }
     } catch {}
