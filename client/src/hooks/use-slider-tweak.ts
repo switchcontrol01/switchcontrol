@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { isElectronWithTweaks } from '@/hooks/use-tweak-executor';
 import { SliderConfig, SliderPreset } from '@/lib/mock-data';
+import { useStore } from '@/lib/store';
 
 function getSliderAPI() {
   return (window as any).electronAPI?.tweaks;
@@ -93,12 +94,17 @@ export function getPreset(value: number, config: SliderConfig): SliderPreset | u
 export function useSliderTweak(tweakId: string, config: SliderConfig) {
   const { toast } = useToast();
   const isElectron = isElectronWithTweaks();
+  const setSliderValue = useStore((s) => s.setSliderValue);
+  // Read the cached value once at mount — use it as the initial pendingValue so
+  // the UI shows the last-applied setting immediately, even before the registry
+  // read completes (or if it fails due to a busy PowerShell limiter at startup).
+  const cachedValue = useStore.getState().sliderValues[tweakId] ?? null;
 
   const [state, setState] = useState<SliderTweakState>({
     currentValue:   null,
-    pendingValue:   null,
+    pendingValue:   cachedValue,   // restored from localStorage — shown instantly
     previousValue:  null,
-    isUsingDefault: false,
+    isUsingDefault: cachedValue === null,
     status:         'loading',
     verifyResult:   null,
     lastError:      null,
@@ -163,11 +169,14 @@ export function useSliderTweak(tweakId: string, config: SliderConfig) {
         } else {
           console.warn(`[SliderHydration] ${tweakId}: read failed — ${result.error}`);
         }
+        // Fall back to cached value from localStorage (set by a previous successful apply/read).
+        // Never use config.defaultValue here — the user may have applied a non-default value.
+        const cached = useStore.getState().sliderValues[tweakId] ?? null;
         setState(s => ({
           ...s,
           currentValue:   null,
-          pendingValue:   s.pendingValue ?? config.defaultValue,
-          isUsingDefault: false,
+          pendingValue:   s.pendingValue ?? cached ?? config.defaultValue,
+          isUsingDefault: cached === null,
           status:         'idle',
           lastError:      result.error,
         }));
@@ -185,6 +194,8 @@ export function useSliderTweak(tweakId: string, config: SliderConfig) {
         // Successful read: value is the live registry value.
         // missing=true means the key didn't exist and the executor returned the built-in default.
         console.log(`[SliderHydration] ${tweakId}: value=${result.value} missing=${result.missing ?? false}`);
+        // Persist the live registry value so future startups can use it as a fallback.
+        setSliderValue(tweakId, result.value!);
         setState(s => ({
           ...s,
           currentValue:   result.value!,
@@ -241,10 +252,13 @@ export function useSliderTweak(tweakId: string, config: SliderConfig) {
         await api.applyValue(tweakId, valueToApply);
 
       if (result.ok && result.verified) {
+        const confirmedValue = result.actualValue ?? valueToApply;
+        // Persist confirmed value — survives app restarts and busy-limiter fallback.
+        setSliderValue(tweakId, confirmedValue);
         setState(s => ({
           ...s,
           previousValue: s.currentValue,
-          currentValue:  result.actualValue ?? valueToApply,
+          currentValue:  confirmedValue,
           status:        'verified',
           verifyResult:  { ok: true, actualValue: result.actualValue, error: null },
           lastError:     null,
@@ -292,11 +306,14 @@ export function useSliderTweak(tweakId: string, config: SliderConfig) {
         await api.resetValue(tweakId);
 
       if (result.ok) {
+        const resetValue = result.actualValue ?? config.defaultValue;
+        // Persist the reset-to-default value so next startup shows default, not old applied value.
+        setSliderValue(tweakId, resetValue);
         setState(s => ({
           ...s,
           previousValue: s.currentValue,
-          currentValue:  result.actualValue ?? config.defaultValue,
-          pendingValue:  result.actualValue ?? config.defaultValue,
+          currentValue:  resetValue,
+          pendingValue:  resetValue,
           status:        'verified',
           verifyResult:  { ok: true, actualValue: result.actualValue, error: null },
           lastError:     null,

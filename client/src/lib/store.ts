@@ -32,6 +32,7 @@ interface AppState {
     stats: AccountStats;
   };
   tweaks: Record<string, boolean>; // id -> enabled
+  sliderValues: Record<string, number>; // id -> last-known applied/read value
   history: HistoryItem[];
   latestAIScan: AIScanResult | null;
   realtimeMetricsEnabled: boolean;
@@ -40,6 +41,7 @@ interface AppState {
   // Actions
   toggleTweak: (id: string) => void;
   setTweak: (id: string, enabled: boolean) => void;
+  setSliderValue: (id: string, value: number) => void;
   applyAction: (actionName: string, page: string, result?: string, notes?: string) => void;
   clearRam: () => void;
   resetData: () => void;
@@ -70,10 +72,17 @@ export const useStore = create<AppState>()(
         stats: DEFAULT_ACCOUNT_STATS
       },
       tweaks: {},
+      sliderValues: {},
       history: [],
       latestAIScan: null,
       realtimeMetricsEnabled: true,
       pauseWhenMinimized: true,
+
+      setSliderValue: (id, value) => {
+        set((state) => ({
+          sliderValues: { ...state.sliderValues, [id]: value },
+        }));
+      },
 
       toggleTweak: (id) => {
         const { tweaks } = get();
@@ -239,6 +248,7 @@ export const useStore = create<AppState>()(
       name: 'switch-control-storage',
       partialize: (state) => ({
         tweaks: state.tweaks,
+        sliderValues: state.sliderValues,
         history: state.history,
         latestAIScan: state.latestAIScan,
         realtimeMetricsEnabled: state.realtimeMetricsEnabled,
@@ -278,6 +288,17 @@ export const useStore = create<AppState>()(
           state.stats = { ...MOCK_STATS, ...state.stats };
         } else {
           state.stats = { ...MOCK_STATS };
+        }
+
+        // Guard: sliderValues must be a plain object mapping id -> number.
+        if (!state.sliderValues || typeof state.sliderValues !== 'object' || Array.isArray(state.sliderValues)) {
+          state.sliderValues = {};
+        } else {
+          const sanitizedSliders: Record<string, number> = {};
+          for (const [k, v] of Object.entries(state.sliderValues)) {
+            if (typeof v === 'number' && isFinite(v)) sanitizedSliders[k] = v;
+          }
+          state.sliderValues = sanitizedSliders;
         }
 
         // Guard: tweaks must be a plain object (not array, null, or primitive).
