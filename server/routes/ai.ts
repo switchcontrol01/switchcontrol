@@ -723,7 +723,6 @@ function buildChatContext(context: any, serverCtx?: Awaited<ReturnType<typeof bu
       "/bios-advisor":   "BIOS Advisor",
       "/extreme-labs":   "Extreme Labs",
       "/security":       "Security",
-      "/focus":          "Focus Mode",
       "/process-manager":"Process Manager",
       "/system-cleaner": "System Cleaner",
       "/debloater":      "Debloater",

@@ -26,7 +26,6 @@ import dashboardIntelligenceRouter from "./routes/dashboardIntelligence";
 import startupAppsRouter from "./routes/startupApps";
 import debloaterRouter from "./routes/debloater";
 import cleanerRouter from "./routes/cleaner";
-import focusModeRouter from "./routes/focusMode";
 import { systemIntelligenceRouter } from "./routes/systemIntelligence";
 import issueDetectorRouter from "./routes/issueDetector";
 import advisorContextRouter from "./routes/advisorContext";
@@ -100,7 +99,6 @@ export async function registerRoutes(
   app.use("/api/startup", startupAppsRouter);
   app.use("/api/debloat", debloaterRouter);
   app.use("/api/cleaner", killSwitchMiddleware("cleaner"), requireJwt, cleanerRouter);
-  app.use("/api/focus", requireJwt, focusModeRouter);
   app.use("/api/system-intelligence", systemIntelligenceRouter);
   app.use("/api/issues", issueDetectorRouter);
   app.use("/api/ai-advisor", requireJwt, advisorContextRouter);

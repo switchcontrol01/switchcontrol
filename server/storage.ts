@@ -748,7 +748,6 @@ export class DatabaseStorage implements IStorage {
       await cleanup("userSettings", () => db.delete(userSettings).where(eq(userSettings.id, settingsId)));
     }
 
-    await cleanup("focus_sessions", () => db.execute(drizzleSql`DELETE FROM "focus_sessions" WHERE user_id = ${userId}`));
     await cleanup("sessions", () => db.execute(drizzleSql`DELETE FROM sessions WHERE (sess->'passport'->>'user') = ${userId}`));
     await cleanup("admin_logs", () => db.execute(drizzleSql`
       UPDATE admin_logs

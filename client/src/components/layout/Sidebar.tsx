@@ -7,7 +7,6 @@ import {
   Shield,
   Trash2,
 
-  Moon,
   List,
   Wifi,
   Cpu,
@@ -58,7 +57,6 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Tweaks", icon: Settings, href: "/tweaks", tourId: "tweaks" },
   { label: "Power Plan", icon: Zap, href: "/power-plan", isPremium: true, tourId: "power-plan" },
 
-  { label: "Focus Mode", icon: Moon, href: "/focus" },
   { label: "NIC Tuning", icon: Network, href: "/nic-tuning" },
   { label: "Network Tweaks", icon: Wifi, href: "/network", isPremium: true, tourId: "network" },
   { label: "Cleaner", icon: Trash2, href: "/cleaner" },

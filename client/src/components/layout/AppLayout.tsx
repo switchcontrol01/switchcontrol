@@ -5,64 +5,13 @@ import { motion, AnimatePresence, useMotion } from "@/lib/motion";
 import { AppBackground } from "@/components/AppBackground";
 import { UpdateModal } from "@/components/UpdateModal";
 import { NetworkStatusChip } from "@/components/NetworkStatusChip";
-import { useLocation, Link } from "wouter";
+import { useLocation } from "wouter";
 import { isBackendReady, onBackendReady } from "@/lib/api";
-import { Loader2, Moon, Timer } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useNetworkStatus } from "@/hooks/use-network-status";
-import { useFocusStore } from "@/lib/focusStore";
 import { useTourStore } from "@/lib/tour-store";
 import { useEntitlementUiState } from "@/hooks/useEntitlementUiState";
 
-
-function FocusModeBanner() {
-  const { active, profileName, expiresAt } = useFocusStore();
-  const [remaining, setRemaining] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!active || !expiresAt) { setRemaining(null); return; }
-    const tick = () => {
-      const ms = Math.max(0, expiresAt - Date.now());
-      const mins = Math.floor(ms / 60000);
-      const secs = Math.floor((ms % 60000) / 1000);
-      setRemaining(`${mins}:${secs.toString().padStart(2, '0')}`);
-      if (ms === 0) setRemaining(null);
-    };
-    tick();
-    // P1-A3: visibility-gated ticker — no background work when tab is hidden
-    const guardedTick = () => {
-      if (typeof document !== "undefined" && document.hidden) return;
-      tick();
-    };
-    const id = setInterval(guardedTick, 2000);
-    return () => clearInterval(id);
-  }, [active, expiresAt]);
-
-  if (!active) return null;
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: -6 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -6 }}
-      transition={{ duration: 0.3 }}
-      className={`fixed ${isPackagedElectron ? "top-[38px]" : "top-0"} ${SIDEBAR_WIDTH_CLASS} right-0 z-50 flex items-center justify-between px-4 py-1.5 bg-emerald-500/90 backdrop-blur text-[#E6EAF0] text-xs font-medium shadow-lg`}
-    >
-      <div className="flex items-center gap-2">
-        <div className="size-1.5 rounded-full bg-white animate-pulse" />
-        <Moon className="size-3" />
-        <span>Focus Mode Active{profileName ? ` · ${profileName}` : ''}</span>
-      </div>
-      <div className="flex items-center gap-3">
-        {remaining && (
-          <div className="flex items-center gap-1 font-mono">
-            <Timer className="size-3" />{remaining}
-          </div>
-        )}
-        <Link href="/focus" className="underline opacity-75 hover:opacity-100">Manage</Link>
-      </div>
-    </motion.div>
-  );
-}
 
 function TrialCountdownBanner() {
   const ent = useEntitlementUiState();
@@ -205,7 +154,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       />
 
       <BackendStartingBanner />
-      <AnimatePresence><FocusModeBanner /></AnimatePresence>
       <AnimatePresence><TrialCountdownBanner /></AnimatePresence>
 
       <UpdateModal />

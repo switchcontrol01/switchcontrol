@@ -8,7 +8,6 @@ import {
   Battery, 
   Wifi, 
   Network, 
-  Moon, 
   Trash2, 
   ShieldCheck, 
   List, 
@@ -53,15 +52,6 @@ const MODULES = [
     details: "Fine-tune your network adapter at the driver level — interrupt moderation, RSS queues, and power management for lower latency.",
     color: "from-indigo-500/20 to-indigo-600/10",
     preview: ["Interrupt Moderation", "RSS Queues", "Offload Settings"]
-  },
-  {
-    id: "focus",
-    name: "Focus Mode",
-    icon: Moon,
-    description: "Zero distractions gaming",
-    details: "Block notifications, overlays, and background apps while gaming for maximum focus.",
-    color: "from-indigo-500/20 to-indigo-600/10",
-    preview: ["Block Notifications", "Disable Overlays", "Pause Updates"]
   },
   {
     id: "cleaner",
