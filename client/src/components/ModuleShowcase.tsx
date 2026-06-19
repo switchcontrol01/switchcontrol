@@ -10,6 +10,7 @@ import {
   Network, 
   Trash2, 
   ShieldCheck, 
+  Shield,
   List, 
   Settings,
   X,
@@ -79,6 +80,15 @@ const MODULES = [
     details: "Control startup apps with smart delays. Faster boot without disabling apps you need.",
     color: "from-yellow-500/20 to-yellow-600/10",
     preview: ["Boot Timeline", "Delay Apps", "Quick Presets"]
+  },
+  {
+    id: "security",
+    name: "Security",
+    icon: Shield,
+    description: "Harden your system",
+    details: "Audit and harden Windows security settings — disable vulnerable services, manage firewall rules, and review startup processes for threats.",
+    color: "from-rose-500/20 to-rose-600/10",
+    preview: ["Service Audit", "Firewall Rules", "Startup Scan"]
   },
   {
     id: "settings",
