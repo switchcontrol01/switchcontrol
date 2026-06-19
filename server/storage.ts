@@ -728,22 +728,28 @@ export class DatabaseStorage implements IStorage {
   async deleteUser(userId: string): Promise<void> {
     if (!db) throw new Error("Database not available");
     await db.transaction(async (tx) => {
-      // 1. Resolve user_settings row for this user
-      const [settings] = await tx.select({ id: userSettings.id }).from(userSettings).where(eq(userSettings.userId, userId));
-
-      // 2. Cascade child tables by settingsId
-      if (settings) {
-        await tx.delete(appliedTweaks).where(eq(appliedTweaks.settingsId, settings.id));
-        await tx.delete(historyEntries).where(eq(historyEntries.settingsId, settings.id));
-        await tx.delete(aiScans).where(eq(aiScans.settingsId, settings.id));
-        await tx.delete(userSettings).where(eq(userSettings.id, settings.id));
+      // 1. Cascade child tables by settingsId.
+      //    The user_settings table may not exist in some environments (e.g. legacy
+      //    prod databases that haven't run all migrations). Wrap the entire block
+      //    in SAVEPOINT so a 42P01 error skips it without aborting the transaction.
+      const spSettings = `del_settings_${userId}`;
+      await tx.execute(drizzleSql.raw(`SAVEPOINT ${spSettings}`));
+      try {
+        const [settings] = await tx.select({ id: userSettings.id }).from(userSettings).where(eq(userSettings.userId, userId));
+        if (settings) {
+          await tx.delete(appliedTweaks).where(eq(appliedTweaks.settingsId, settings.id));
+          await tx.delete(historyEntries).where(eq(historyEntries.settingsId, settings.id));
+          await tx.delete(aiScans).where(eq(aiScans.settingsId, settings.id));
+          await tx.delete(userSettings).where(eq(userSettings.id, settings.id));
+        }
+        await tx.execute(drizzleSql.raw(`RELEASE SAVEPOINT ${spSettings}`));
+      } catch (e: any) {
+        await tx.execute(drizzleSql.raw(`ROLLBACK TO SAVEPOINT ${spSettings}`));
+        if (e?.code !== "42P01") throw e;
+        console.log(`[deleteUser] user_settings table does not exist — skipping (non-fatal)`);
       }
 
-      // 3. Drop ad-hoc tables that use user_id directly (not part of shared schema).
-      //    These tables are created lazily by feature modules and may not exist in
-      //    all environments (e.g. fresh deploys). Wrap each in a SAVEPOINT so a
-      //    missing-relation error (42P01) rolls back only that statement and lets
-      //    the transaction continue, instead of aborting the entire deletion.
+      // 2. Drop ad-hoc tables that use user_id directly (not part of shared schema).
       const adHocTables = [
         "focus_sessions",
       ] as const;
@@ -751,38 +757,40 @@ export class DatabaseStorage implements IStorage {
         const sp = `del_adhoc_${tbl}`;
         await tx.execute(drizzleSql.raw(`SAVEPOINT ${sp}`));
         try {
-          // Table name is a hardcoded string from the array above — safe to interpolate.
-          // userId is passed as a bound parameter (never string-interpolated).
           await tx.execute(drizzleSql`DELETE FROM ${drizzleSql.raw(tbl)} WHERE user_id = ${userId}`);
           await tx.execute(drizzleSql.raw(`RELEASE SAVEPOINT ${sp}`));
         } catch (e: any) {
           await tx.execute(drizzleSql.raw(`ROLLBACK TO SAVEPOINT ${sp}`));
-          // Only suppress "relation does not exist" — any other error should bubble up.
           if (e?.code !== "42P01") throw e;
           console.log(`[deleteUser] table "${tbl}" does not exist — skipping (non-fatal)`);
         }
       }
 
-      // 4. Clear active sessions for this user.
-      // The sessions table stores JSONB payloads. Passport serializes the user
-      // as `sess.passport.user`, so that is the only path that matches.
+      // 3. Clear active sessions so the user is immediately logged out everywhere.
       await tx.execute(drizzleSql`
         DELETE FROM sessions
         WHERE (sess->'passport'->>'user') = ${userId}
       `);
 
-      // 5. Finally delete the user row.
+      // 4. Finally delete the user row.
       await tx.delete(users).where(eq(users.id, userId));
 
-      // 6. Mark adminLogs entries that targeted this user as deleted.
-      //    We CANNOT set target_user_id = NULL (the column is NOT NULL).
-      //    Instead we patch the metadata jsonb to record the deletion without
-      //    touching the non-nullable FK-equivalent column.
-      await tx.execute(drizzleSql`
-        UPDATE admin_logs
-           SET metadata = COALESCE(metadata, '{}'::jsonb) || '{"targetDeleted":true}'::jsonb
-         WHERE target_user_id = ${userId}
-      `);
+      // 5. Mark admin_logs entries as target-deleted.
+      //    admin_logs may also not exist in some environments — wrap in SAVEPOINT.
+      const spAdmin = `del_adminlogs_${userId}`;
+      await tx.execute(drizzleSql.raw(`SAVEPOINT ${spAdmin}`));
+      try {
+        await tx.execute(drizzleSql`
+          UPDATE admin_logs
+             SET metadata = COALESCE(metadata, '{}'::jsonb) || '{"targetDeleted":true}'::jsonb
+           WHERE target_user_id = ${userId}
+        `);
+        await tx.execute(drizzleSql.raw(`RELEASE SAVEPOINT ${spAdmin}`));
+      } catch (e: any) {
+        await tx.execute(drizzleSql.raw(`ROLLBACK TO SAVEPOINT ${spAdmin}`));
+        if (e?.code !== "42P01") throw e;
+        console.log(`[deleteUser] admin_logs table does not exist — skipping (non-fatal)`);
+      }
     });
   }
 

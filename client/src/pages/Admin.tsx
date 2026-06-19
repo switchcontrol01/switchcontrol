@@ -189,9 +189,8 @@ function ConfirmModal({ title, description, confirmLabel = "Confirm", danger, re
 function DeleteUserModal({ user, onClose, onDeleted }: { user: AdminUser; onClose: () => void; onDeleted: () => void }) {
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState<string | null>(null);
-  const [reason, setReason]   = useState("");
 
-  const canConfirm = reason.trim().length > 0;
+  const canConfirm = true;
 
   const planLabel: Record<string, string> = {
     premium: "Premium",
@@ -201,17 +200,13 @@ function DeleteUserModal({ user, onClose, onDeleted }: { user: AdminUser; onClos
 
   const submit = async () => {
     if (loading) return;
-    if (!canConfirm) {
-      setError("Please enter a reason for this deletion (recorded in the audit trail).");
-      return;
-    }
     setLoading(true);
     setError(null);
     try {
       const r = await fetch(`/api/admin/users/${user.id}`, {
         method: "DELETE",
         headers: buildHeaders() as any,
-        body: JSON.stringify({ confirm: true, reason: reason.trim() }),
+        body: JSON.stringify({ confirm: true }),
       });
       const data = await r.json().catch(() => ({}));
       if (!r.ok || data.success === false) {
@@ -270,20 +265,6 @@ function DeleteUserModal({ user, onClose, onDeleted }: { user: AdminUser; onClos
           </p>
         </div>
 
-        {/* Reason (recorded in audit trail) */}
-        <div className="mb-4">
-          <label className="block text-xs text-[#6B7380] mb-1.5">Reason for deletion <span className="text-red-400">*</span></label>
-          <textarea
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            disabled={loading}
-            rows={2}
-            maxLength={500}
-            placeholder="e.g. User requested account deletion (GDPR)"
-            data-testid="input-delete-reason"
-            className="w-full rounded-xl bg-[#0F1318] border border-[#1E252E] px-3.5 py-2.5 text-sm text-[#E6EAF0] placeholder:text-[#4A515C] focus:border-red-500/40 focus:outline-none transition-colors resize-none disabled:opacity-40"
-          />
-        </div>
 
         {/* Error banner */}
         {error && (

@@ -393,7 +393,7 @@ router.patch("/users/:id/admin-status", requireAdmin, writeLimiter, async (req, 
 
 const deleteUserSchema = z.object({
   confirm: z.literal(true),
-  reason: z.string().min(1, "Reason is required for data-deletion audit trail.").max(500),
+  reason: z.string().max(500).optional(),
 });
 
 // DELETE /api/admin/users/:id
@@ -454,7 +454,7 @@ router.delete("/users/:id", requireAdmin, writeLimiter, async (req, res) => {
     }
 
     // Audit BEFORE deletion — the log entry must exist before the user row is gone
-    await auditLog(admin.id, targetId, "delete_user", snapshot, null, { reason: parsed.data.reason });
+    await auditLog(admin.id, targetId, "delete_user", snapshot, null, { reason: parsed.data.reason || "(no reason provided)" });
 
     // Delete the user and all associated rows (sessions, settings, tweaks, history, etc.)
     await storage.deleteUser(targetId);
