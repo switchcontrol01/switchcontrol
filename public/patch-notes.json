@@ -1,14 +1,14 @@
 {
-  "version": "1.1.3",
-  "title": "NIC Tuning & Refinement Update",
-  "headline": "App Booster replaced by NIC Tuning, Power Plan intent persistence fixed, and Settings cleaned up.",
-  "date": "2026-06-18",
-  "type": "minor",
+  "version": "1.1.4",
+  "title": "Polish & Stability Update",
+  "headline": "Login flow fixed for new users, dashboard loads faster on every return visit, and History now tracks every action.",
+  "date": "2026-06-19",
+  "type": "patch",
   "changes": [
-    "Added: NIC Tuning is now a first-class feature — replaces App Booster everywhere in the app, website, and marketing. Adapter-level interrupt moderation, RSS queue tuning, and driver power management in one place.",
-    "Fixed: Power Plan System Intent selection now persists across sessions — your chosen intent (Competitive, Efficiency, or Balanced) is remembered and restored correctly on next launch.",
-    "Removed: App Booster feature has been retired. All per-adapter network optimizations are now handled through NIC Tuning.",
-    "Removed: Game session notifications setting removed from Settings — the sentinel loop now handles telemetry pausing silently.",
-    "Improved: Settings page is cleaner with fewer redundant toggles."
+    "Fixed: Login screen no longer flashes over the welcome animation when signing in for the first time via Google or Discord.",
+    "Fixed: Dashboard no longer re-polls hardware on every visit — specs are cached for the session so returning to Dashboard is instant.",
+    "Fixed: All optimization actions (NIC Tuning, Startup Apps, Debloater, Security, and more) now appear correctly in History.",
+    "Improved: App window fades in slightly faster on launch (600ms).",
+    "Improved: Power Plan page is cleaner — System Intent section removed."
   ]
 }

@@ -7,44 +7,40 @@ import {
   Gauge,
   Sparkles,
   Activity,
-  Package,
-  Crown,
+  History,
   Layers,
-  ArrowRight,
 } from "lucide-react";
-import { GlowButton } from "./GlowButton";
-import { Link } from "wouter";
 
 const STEPS = [
   {
-    icon: Activity,
-    label: "NIC Tuning — Now First-Class",
-    desc: "App Booster is out. NIC Tuning is in — adapter-level interrupt moderation, RSS queue sizing, and driver power management are now front and centre throughout the app.",
+    icon: Sparkles,
+    label: "Smooth First-Login Experience",
+    desc: "The login screen no longer flashes or overlaps with the welcome animation when signing in for the first time via Google or Discord. The transition is now seamless every time.",
   },
   {
     icon: Gauge,
-    label: "Power Plan Intent Persistence",
-    desc: "Your chosen Power Plan intent (Competitive, Efficiency, or Balanced) now persists across sessions and restores instantly on next launch without re-selecting.",
+    label: "Instant Dashboard on Every Return",
+    desc: "Hardware specs are now cached for the entire session. Navigating away from Dashboard and coming back is instant — no stutter, no re-polling your CPU, GPU, or RAM.",
+  },
+  {
+    icon: History,
+    label: "History Tracks Everything",
+    desc: "All optimization actions — NIC Tuning, Startup Apps, Debloater, Security tweaks, and more — now appear correctly in the History page with full revert support.",
+  },
+  {
+    icon: Activity,
+    label: "Faster App Startup",
+    desc: "The OS-level window fade-in on launch is now 600ms instead of 780ms. The app feels snappier from the moment you open it.",
   },
   {
     icon: Shield,
-    label: "Cleaner Settings",
-    desc: "Removed the App Booster toggle and Game session notifications setting — Settings is now focused on what actually matters day to day.",
+    label: "Cleaner Power Plan Page",
+    desc: "The System Intent section has been removed from the Power Plan page, leaving a more focused and streamlined layout.",
   },
   {
-    icon: Sparkles,
-    label: "Faster Dashboard Load",
-    desc: "Hardware specs are now loaded once per session and cached — navigating back to the Dashboard is instant without re-polling your hardware.",
-  },
-  {
-    icon: Package,
-    label: "History & Overlays Updated",
-    desc: "NIC Tuning entries now appear correctly in History, premium overlays, and the module showcase across both the app and website.",
-  },
-  {
-    icon: Crown,
+    icon: Layers,
     label: "Across the Board",
-    desc: "Version 1.1.3 updates every reference — patch notes, download page, pricing, FAQ, and in-app copy — to reflect the new feature set.",
+    desc: "Version 1.1.4 updates every reference — patch notes, download page, and in-app copy — to reflect the latest improvements.",
   },
 ];
 
@@ -91,19 +87,19 @@ export default function ReleaseStory() {
           <Reveal>
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.08] text-xs font-mono text-white/30 mb-6">
               <Layers className="w-3 h-3" />
-              Version 1.1.3
+              Version 1.1.4
             </div>
           </Reveal>
           <Reveal delay={0.1}>
             <h2 className="text-3xl md:text-5xl font-extrabold text-white mb-4 leading-tight">
-              NIC Tuning.{" "}
-              <span className="font-light italic text-white/50">properly done.</span>
+              Polish &amp; Stability.{" "}
+              <span className="font-light italic text-white/50">everywhere it matters.</span>
             </h2>
           </Reveal>
           <Reveal delay={0.2}>
             <p className="text-white/30 max-w-lg mx-auto text-sm md:text-base leading-relaxed">
-              App Booster is retired. NIC Tuning takes its place — adapter-level
-              control, Power Plan persistence, and a cleaner Settings page.
+              First-login flow fixed, dashboard loads instantly on return, and
+              History now captures every action you take.
             </p>
           </Reveal>
         </div>
