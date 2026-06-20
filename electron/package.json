@@ -50,6 +50,7 @@
       "security-helper.js",
       "debloat-helper.js",
       "cleaner-helper.js",
+      "storage-helper.js",
       "focus-helper.js",
       "process-control.js",
       "powershell-limiter.js",
