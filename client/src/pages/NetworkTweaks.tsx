@@ -150,6 +150,30 @@ let _networkTweakStateCache: StateMap | null = null;
 let _networkTweakStateCacheTime = 0;
 const CACHE_TTL_MS = 60_000; // 60 s — stale after this, background-refresh silently
 
+// ── Module-level revert listener ──────────────────────────────────────────────
+// The premium revert engine dispatches "sc:net-reverted" AFTER the component
+// may have been unmounted (e.g. trial-expiry modal redirects to /dashboard first,
+// then the async revert finishes). Patch _networkTweakStateCache here so the
+// NEXT mount of NetworkTweaksContent sees "idle" immediately instead of reading
+// stale "enabled" from the in-memory cache (which takes priority over localStorage
+// when the cache is fresh — < 60 s).
+if (typeof window !== 'undefined') {
+  window.addEventListener('sc:net-reverted', (e: Event) => {
+    const ids: string[] = (e as CustomEvent<{ ids: string[] }>).detail?.ids ?? [];
+    if (ids.length === 0) return;
+    if (_networkTweakStateCache) {
+      const next: StateMap = { ..._networkTweakStateCache };
+      for (const id of ids) {
+        if (next[id]) next[id] = { ...next[id], status: 'idle' as TweakStatus };
+      }
+      _networkTweakStateCache = next;
+      // Keep the timestamp intact — we updated the values, no need to re-fetch.
+    }
+    // If the cache is null the component will read from localStorage (already
+    // patched by patchNetworkTweakLocalStorage in premiumRevertEngine.ts).
+  });
+}
+
 function buildInitialStateMap(): StateMap {
   const cacheAge = _networkTweakStateCache ? Date.now() - _networkTweakStateCacheTime : Infinity;
   if (_networkTweakStateCache && cacheAge < CACHE_TTL_MS) {
