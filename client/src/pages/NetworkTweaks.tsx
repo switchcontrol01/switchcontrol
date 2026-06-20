@@ -147,10 +147,17 @@ function savePersistedState(map: StateMap): void {
 // Reset to null only on full app reload — intentional, because a cold start
 // loads from localStorage instead.
 let _networkTweakStateCache: StateMap | null = null;
+let _networkTweakStateCacheTime = 0;
+const CACHE_TTL_MS = 60_000; // 60 s — stale after this, background-refresh silently
 
 function buildInitialStateMap(): StateMap {
-  if (_networkTweakStateCache) {
+  const cacheAge = _networkTweakStateCache ? Date.now() - _networkTweakStateCacheTime : Infinity;
+  if (_networkTweakStateCache && cacheAge < CACHE_TTL_MS) {
     console.log('[NetworkTweaks:CACHE] cache hit — rehydrating from session cache');
+    return { ..._networkTweakStateCache };
+  }
+  if (_networkTweakStateCache) {
+    console.log('[NetworkTweaks:CACHE] cache stale — showing cached values, background refresh queued');
     return { ..._networkTweakStateCache };
   }
 
@@ -173,6 +180,70 @@ function buildInitialStateMap(): StateMap {
     console.log('[NetworkTweaks:CACHE] cache miss — initialising to idle (no persisted state)');
   }
   return initial;
+}
+
+// ── Sync phase tracking ───────────────────────────────────────────────────────
+type SyncPhase = 'idle' | 'loading' | 'db_done' | 'windows_done' | 'error';
+
+function SectionSyncBadge({ phase }: { phase: SyncPhase }) {
+  const [show, setShow] = useState(true);
+  useEffect(() => {
+    if (phase === 'windows_done') {
+      setShow(true);
+      const t = setTimeout(() => setShow(false), 2200);
+      return () => clearTimeout(t);
+    }
+    setShow(true);
+  }, [phase]);
+
+  if (phase === 'idle' || (phase === 'windows_done' && !show)) return null;
+
+  if (phase === 'loading') {
+    return (
+      <motion.span
+        className="flex items-center gap-1 text-[10px] text-cyan-400/70 font-medium ml-2"
+        initial={{ opacity: 0, x: -4 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.2 }}
+      >
+        <span className="size-1.5 rounded-full bg-cyan-400 animate-pulse inline-block" />
+        Syncing…
+      </motion.span>
+    );
+  }
+  if (phase === 'db_done') {
+    return (
+      <motion.span
+        className="flex items-center gap-1 text-[10px] text-sky-400/60 font-medium ml-2"
+        initial={{ opacity: 0, x: -4 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.2 }}
+      >
+        <span className="size-1.5 rounded-full bg-sky-400 animate-pulse inline-block" />
+        Verifying…
+      </motion.span>
+    );
+  }
+  if (phase === 'windows_done' && show) {
+    return (
+      <AnimatePresence>
+        <motion.span
+          key="synced"
+          className="flex items-center gap-1 text-[10px] text-emerald-400/70 font-medium ml-2"
+          initial={{ opacity: 0, x: -4 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}
+          transition={{ duration: 0.25 }}
+        >
+          <CheckCircle2 className="size-3" />
+          Synced
+        </motion.span>
+      </AnimatePresence>
+    );
+  }
+  if (phase === 'error') {
+    return (
+      <span className="flex items-center gap-1 text-[10px] text-orange-400/60 font-medium ml-2">
+        <AlertTriangle className="size-3" />
+        Could not verify
+      </span>
+    );
+  }
+  return null;
 }
 
 // ── fetch from backend (DB state — stale, NOT verified Windows state) ─────────
@@ -688,13 +759,16 @@ function NetworkTweaksContent() {
   // While fetching, idle-status cards show a verifying shimmer instead of
   // the grey off-state so the user never sees a false "not applied" flash.
   const [fetching, setFetching] = useState(() => _networkTweakStateCache === null);
+  // Tracks the current sync phase for section-level status indicators.
+  const [syncPhase, setSyncPhase] = useState<SyncPhase>('idle');
 
   // Keep the module-level session cache in sync with every stateMap update so
   // that the next mount can skip the idle-flash window entirely.
   const stateMapRef = useRef<StateMap>(stateMap);
   useEffect(() => {
-    stateMapRef.current     = stateMap;
-    _networkTweakStateCache = { ...stateMap };
+    stateMapRef.current      = stateMap;
+    _networkTweakStateCache  = { ...stateMap };
+    _networkTweakStateCacheTime = Date.now();
   }, [stateMap]);
 
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -711,35 +785,40 @@ function NetworkTweaksContent() {
   }
 
   // On mount: verify real Windows state (Electron) or load DB state (web).
-  // Verified Windows state is the SOURCE OF TRUTH and overwrites everything.
-  // DB state is only used as fallback for tweaks whose check script returned
-  // inconclusive (applied === null) and for web mode where IPC is unavailable.
+  // DB and Windows fetches run CONCURRENTLY. DB state is applied first (fast,
+  // ~200 ms) so cards update immediately; Windows verified state overwrites it
+  // when ready (source of truth). This prevents the full sequential wait.
+  //
+  // Cache TTL: if session cache is fresh (< 60 s) we skip the fetch entirely.
+  // If stale or missing we fetch silently (no shimmer) on remounts; only a true
+  // cold-start (no cache at all) shows the isVerifying shimmer on cards.
   useEffect(() => {
     if (!user?.loggedIn) return;
+
+    // Skip fetch entirely when session cache is fresh — fast tab switches are instant
+    const cacheAge = _networkTweakStateCache ? Date.now() - _networkTweakStateCacheTime : Infinity;
+    if (_networkTweakStateCache && cacheAge < CACHE_TTL_MS) {
+      console.log('[NetworkTweaks] cache fresh — skipping fetch');
+      return;
+    }
+
     let mounted = true;
     timingMark("fetch-state");
-    console.log('[NetworkTweaks] mount — hydrating verified status');
-    setFetching(true);
 
-    (async () => {
-      // Step 1: Fetch DB state (stale, but better than nothing as fallback)
-      const dbState = await fetchBackendState();
+    // Only show card shimmer on true cold-start (no session cache at all)
+    if (!_networkTweakStateCache) setFetching(true);
+    setSyncPhase('loading');
 
-      // Step 2: In Electron, fetch REAL Windows state via IPC (source of truth)
-      let verifiedState: StateMap = {};
-      if (isElectron) {
-        try {
-          verifiedState = await fetchVerifiedWindowsState();
-        } catch {
-          // IPC failed — we still have dbState as fallback below
-        }
-      }
+    // ── Launch both fetches CONCURRENTLY ──────────────────────────────────────
+    const dbPromise      = fetchBackendState();
+    const windowsPromise = isElectron
+      ? fetchVerifiedWindowsState()
+      : Promise.resolve({} as StateMap);
 
-      if (!mounted) {
-        console.log('[NetworkTweaks] stale fetch response discarded (component remounted)');
-        return;
-      }
-
+    // Phase 1 — DB state arrives first (~200 ms): apply immediately so cards
+    // stop showing shimmer / update to last-known state without waiting for PS.
+    dbPromise.then(dbState => {
+      if (!mounted) return;
       setStateMap(prev => {
         const next = { ...prev };
         for (const [id, s] of Object.entries(dbState)) {
@@ -747,23 +826,33 @@ function NetworkTweaksContent() {
             next[id] = { ...next[id], ...s };
           }
         }
-        // Verified Windows state OVERWRITES DB state for every tweak we could
-        // confirm. This prevents the "restart shows disabled" bug.
+        return next;
+      });
+      if (mounted) setSyncPhase('db_done');
+    }).catch(() => {});
+
+    // Phase 2 — Windows verified state arrives (~5–30 s in Electron): overwrite
+    // DB state with authoritative values, persist to localStorage, clear shimmer.
+    windowsPromise.then(verifiedState => {
+      if (!mounted) return;
+      setStateMap(prev => {
+        const next = { ...prev };
         for (const [id, s] of Object.entries(verifiedState)) {
           next[id] = { ...s };
         }
-        // Persist to localStorage so the next cold start shows the correct
-        // applied/idle badges immediately — before checkAll runs again.
-        if (Object.keys(verifiedState).length > 0) {
-          savePersistedState(next);
-        }
+        if (Object.keys(verifiedState).length > 0) savePersistedState(next);
         return next;
       });
-
       setFetching(false);
+      setSyncPhase('windows_done');
       timingMark("fetch-state-done");
       console.log('[NetworkTweaks] mount — hydration complete');
-    })();
+    }).catch((err) => {
+      if (!mounted) return;
+      console.log('[NetworkTweaks] windows state fetch failed:', err instanceof Error ? err.message : err);
+      setFetching(false);
+      setSyncPhase('error');
+    });
 
     return () => { mounted = false; };
   }, [user?.loggedIn]); // eslint-disable-line
@@ -1102,6 +1191,7 @@ function NetworkTweaksContent() {
                         ({availableCount} active
                         {unavailableCount > 0 && `, ${unavailableCount} unavailable`})
                       </span>
+                      <SectionSyncBadge phase={syncPhase} />
                     </button>
                   </CollapsibleTrigger>
                   <CollapsibleContent>

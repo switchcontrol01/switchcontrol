@@ -387,16 +387,39 @@ export function TweaksList() {
 
       {/* Sync status indicator */}
       <AnimatePresence>
-        {isElectron && syncing && (
+        {isElectron && (syncing || syncFailed) && (
           <motion.div
-            className="text-xs text-muted-foreground flex items-center gap-2"
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.25 }}
+            initial={{ opacity: 0, y: -6, height: 0 }}
+            animate={{ opacity: 1, y: 0, height: 'auto' }}
+            exit={{ opacity: 0, y: -4, height: 0 }}
+            transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+            className="overflow-hidden"
           >
-            <span className="size-1.5 rounded-full bg-cyan-400 animate-pulse inline-block" />
-            Verifying tweak states from system…
+            {syncFailed ? (
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-orange-500/8 border border-orange-500/15 text-xs text-orange-400/80">
+                <AlertTriangle className="size-3.5 shrink-0" />
+                <span>Could not read system state — using cached values.</span>
+              </div>
+            ) : (
+              <div className="relative rounded-lg border border-[#1E2530] bg-[#0D1117]/40 px-3 py-2 overflow-hidden">
+                <motion.div
+                  className="absolute inset-y-0 w-[40%] bg-gradient-to-r from-transparent via-cyan-400/[0.05] to-transparent pointer-events-none"
+                  animate={{ x: ['-100%', '300%'] }}
+                  transition={{ duration: 2.2, repeat: Infinity, ease: 'linear' }}
+                />
+                <div className="relative flex items-center gap-2.5 text-xs">
+                  <span className="size-1.5 rounded-full bg-cyan-400/80 animate-pulse shrink-0" />
+                  <span className="text-[#6B7380]">Verifying tweak states from system…</span>
+                  <div className="ml-auto overflow-hidden rounded-full h-0.5 w-16 bg-[#1E2530]">
+                    <motion.div
+                      className="h-full rounded-full bg-cyan-400/50"
+                      animate={{ x: ['-100%', '200%'] }}
+                      transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>

@@ -313,7 +313,15 @@ export function TweakCard({ tweak, isEnabled, onToggle, isVerifying = false, isH
 
   return (
     <>
-      <div className={cn("relative", isLocked && "relative")}>
+      <div className={cn("relative overflow-hidden rounded-2xl", isLocked && "relative")}>
+        {/* Shimmer sweep while verifying real system state */}
+        {isVerifying && !isUnsupported && !failureInfo && (
+          <motion.div
+            className="absolute inset-y-0 w-[45%] bg-gradient-to-r from-transparent via-white/[0.025] to-transparent pointer-events-none z-10"
+            animate={{ x: ['-100%', '280%'] }}
+            transition={{ duration: 2.4, repeat: Infinity, ease: 'linear' }}
+          />
+        )}
         {/* Deep-link highlight ring */}
         {isHighlighted && (
           <motion.div
@@ -332,7 +340,7 @@ export function TweakCard({ tweak, isEnabled, onToggle, isVerifying = false, isH
             isEnabled && !isUnsupported
               ? "border-primary/30 bg-primary/5 shadow-[0_0_20px_-5px_hsl(var(--primary)/0.15)]"
               : isVerifying && !isUnsupported && !failureInfo
-              ? "border-[#2A313A]"
+              ? "border-[#2A313A]/80"
               : "hover:border-[#2A313A] hover:bg-[#21262D]",
             isUnsupported && "opacity-60 cursor-not-allowed",
             failureInfo && "border-red-500/20"
