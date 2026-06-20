@@ -10,6 +10,12 @@ import {
   UNSUPPORTED_MAP,
 } from '@/lib/tweak-registry';
 
+// ── syncAll cooldown — prevents repeated full scans on rapid remounts / focus ─
+// Module-level so it persists across component remounts for the app session.
+// First call always runs (0 is far enough in the past).
+let _lastSyncAllMs = 0;
+const SYNC_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
+
 // ── Failure types ────────────────────────────────────────────────────────────
 export type FailureType =
   | 'requires_admin'
@@ -334,11 +340,19 @@ export function useTweakExecutor() {
 
   const syncAllTweaks = useCallback(async (): Promise<Record<string, TweakStatus>> => {
     if (!isElectronWithTweaks()) return {};
+    const now = Date.now();
+    const elapsed = now - _lastSyncAllMs;
+    if (elapsed < SYNC_COOLDOWN_MS) {
+      console.log(`[TweakExecutor] syncAll cooldown — skipping (last ran ${Math.round(elapsed / 1000)}s ago, cooldown ${SYNC_COOLDOWN_MS / 1000}s)`);
+      return {};
+    }
+    _lastSyncAllMs = now;
     try {
       const results = await getTweaksAPI().syncAll();
       // skipped result means a sync was already in-flight — use cached state, don't update
       if (!results || (results as any).skipped === true) {
         console.log('[TweakExecutor] syncAll skipped by main process — using cached state');
+        _lastSyncAllMs = 0; // reset so next attempt isn't penalised by this skipped call
         return {};
       }
       const state = await getTweaksAPI().getLocalState();
@@ -346,6 +360,7 @@ export function useTweakExecutor() {
       return results;
     } catch (err) {
       console.error('[TweakExecutor] syncAll failed:', err);
+      _lastSyncAllMs = 0; // reset on error so a retry isn't blocked for 5 minutes
       return {};
     }
   }, []);

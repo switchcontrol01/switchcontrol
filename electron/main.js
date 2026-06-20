@@ -3023,14 +3023,10 @@ ipcMain.handle('tweak:syncAll', async () => {
     return skipped; // caller checks result.skipped === true and uses cached state
   }
   const t0 = Date.now();
-  console.log(`[PS-Exec] start file=main.js fn=tweak:syncAll reason=tweak-sync-all — ${Object.keys(tweakExecutor.ALL_TWEAKS).length} checks`);
+  console.log(`[PS-Exec] start file=main.js fn=tweak:syncAll reason=tweak-sync-all — batch mode, ${Object.keys(tweakExecutor.ALL_TWEAKS).length} tweaks`);
   try {
-    const allTweakIds = Object.keys(tweakExecutor.ALL_TWEAKS);
-    const results = {};
-    for (const tweakId of allTweakIds) {
-      results[tweakId] = await tweakExecutor.checkTweakStatus(tweakId);
-    }
-    console.log(`[PS-Exec] done file=main.js fn=tweak:syncAll ms=${Date.now() - t0}`);
+    const results = await tweakExecutor.batchCheckAllTweaks();
+    console.log(`[PS-Exec] done file=main.js fn=tweak:syncAll ms=${Date.now() - t0} tweaks=${Object.keys(results).length}`);
     return results;
   } finally {
     psLimiter.release(_token);
