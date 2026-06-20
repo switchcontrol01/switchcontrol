@@ -65,6 +65,7 @@ const psLimiter = require('./powershell-limiter');
 require('./security-helper');
 require('./debloat-helper');
 require('./cleaner-helper');
+require('./storage-helper');
 const configStore    = require('./config-store');
 const updaterService = require('./updater');
 const criticalLogger = require('./critical-logger');

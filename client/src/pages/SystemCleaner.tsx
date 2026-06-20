@@ -12,6 +12,7 @@ import {
   AlertCircle, ChevronDown, HardDrive, Lock, Wifi, Cpu,
   ArrowLeft, Sparkles, X, Play, Clock,
 } from "lucide-react";
+import StorageHealthSection from "@/components/StorageHealthSection";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -752,6 +753,9 @@ export default function SystemCleaner() {
                   </div>
                 </div>
               </div>
+
+              {/* ── Storage Health & Drive Optimization ── */}
+              <StorageHealthSection />
 
               {/* Category preview tiles */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">

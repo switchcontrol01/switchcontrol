@@ -19,8 +19,7 @@ import { InstalledAppsPanel } from "@/components/debloater/InstalledAppsPanel";
 import { ApplyProgressOverlay, ApplyProgressState, ApplyProgressItem } from "@/components/debloater/ApplyProgressOverlay";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-import { motion, AnimatePresence } from "framer-motion";
-import { useMotion, Reveal } from "@/lib/motion";
+import { motion, AnimatePresence, useMotion, Reveal } from "@/lib/motion";
 import { PieChart, Pie, Cell } from "recharts";
 
 // ── Types ─────────────────────────────────────────────────────────────────────

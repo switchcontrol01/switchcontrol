@@ -534,6 +534,19 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getProtectedList: () => ipcRenderer.invoke('processControl:getProtectedList'),
     terminate: (pid) => ipcRenderer.invoke('processControl:terminate', pid),
   },
+
+  // ── Drive health & optimization ──────────────────────────────────────────────
+  storage: {
+    getVolumes: () => ipcRenderer.invoke('storage:getVolumes'),
+    optimize: (driveLetter, type) => {
+      assertString(driveLetter, 'driveLetter');
+      const ALLOWED_OPT_TYPES = new Set(['trim', 'defrag']);
+      if (!ALLOWED_OPT_TYPES.has(type)) {
+        throw new TypeError('storage.optimize: type must be "trim" or "defrag"');
+      }
+      return ipcRenderer.invoke('storage:optimize', driveLetter, type);
+    },
+  },
 });
 
 window.addEventListener('DOMContentLoaded', () => {

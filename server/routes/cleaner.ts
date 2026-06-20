@@ -220,6 +220,24 @@ async function initTable() {
 
 initTable().catch(e => console.error("[Cleaner] table init failed:", e.message));
 
+async function initStorageTable() {
+  if (isNoDbMode || !db) return;
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS drive_optimization_history (
+      id            SERIAL PRIMARY KEY,
+      user_id       TEXT NOT NULL DEFAULT '__legacy__',
+      drive_letter  TEXT NOT NULL,
+      drive_model   TEXT NOT NULL DEFAULT '',
+      media_type    TEXT NOT NULL DEFAULT 'Unknown',
+      optimize_type TEXT NOT NULL DEFAULT 'trim',
+      duration_ms   INT NOT NULL DEFAULT 0,
+      status        TEXT NOT NULL DEFAULT 'success',
+      ran_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+}
+initStorageTable().catch(e => console.error("[Storage] table init failed:", e.message));
+
 // ── Routes ────────────────────────────────────────────────────────────────────
 
 // GET /api/cleaner/categories?mode=safe|advanced
@@ -422,6 +440,49 @@ router.get("/history", async (req: any, res) => {
       files_removed: number; status: string; errors: number; ran_at: string; clean_results: any;
     }>(sql`SELECT id, scan_mode, item_ids, bytes_removed, files_removed, status, errors, ran_at, clean_results
            FROM cleaner_history WHERE user_id = ${userId} ORDER BY ran_at DESC LIMIT 50`);
+    res.json({ ok: true, history: rows.rows });
+  } catch (e: any) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+// POST /api/cleaner/storage-optimize  — log a drive optimization event
+router.post("/storage-optimize", async (req: any, res) => {
+  const userId: string = req.cloudUser?.id ?? '__legacy__';
+  const { driveLetter = '', driveModel = '', mediaType = 'Unknown', optimizeType = 'trim', durationMs = 0, status = 'success' } = req.body ?? {};
+
+  if (!isNoDbMode && db) {
+    await db.execute(sql`
+      INSERT INTO drive_optimization_history
+        (user_id, drive_letter, drive_model, media_type, optimize_type, duration_ms, status)
+      VALUES
+        (${userId}, ${String(driveLetter).substring(0,2)}, ${String(driveModel).substring(0,128)},
+         ${String(mediaType).substring(0,32)}, ${String(optimizeType).substring(0,16)},
+         ${parseInt(String(durationMs), 10) || 0}, ${String(status).substring(0,16)})
+    `).catch(e => console.warn("[Storage] history insert failed:", e.message));
+  }
+
+  storage.getOrCreateSettings(userId).then(s => storage.addHistory({
+    settingsId: s.id,
+    action: `Drive ${driveLetter}: ${optimizeType === 'trim' ? 'TRIM' : 'Defrag'} optimization`,
+    page: "Cleaner",
+    result: status === 'success' ? "Optimized" : "Failed",
+    notes: `${driveModel || driveLetter + ':'} · ${durationMs > 60000 ? Math.round(durationMs / 60000) + ' min' : Math.round(durationMs / 1000) + 's'}`,
+  })).catch(() => {});
+
+  res.json({ ok: true });
+});
+
+// GET /api/cleaner/storage-history  — last 25 drive optimization events
+router.get("/storage-history", async (req: any, res) => {
+  if (isNoDbMode || !db) return res.json({ ok: true, history: [] });
+  const userId: string = req.cloudUser?.id ?? '__legacy__';
+  try {
+    const rows = await db.execute<{
+      id: number; drive_letter: string; drive_model: string; media_type: string;
+      optimize_type: string; duration_ms: number; status: string; ran_at: string;
+    }>(sql`SELECT id, drive_letter, drive_model, media_type, optimize_type, duration_ms, status, ran_at
+           FROM drive_optimization_history WHERE user_id = ${userId} ORDER BY ran_at DESC LIMIT 25`);
     res.json({ ok: true, history: rows.rows });
   } catch (e: any) {
     res.status(500).json({ ok: false, error: e.message });
