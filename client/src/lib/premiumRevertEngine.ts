@@ -166,6 +166,22 @@ async function revertSingleTweak(
 // We also dispatch custom DOM events so any *mounted* component can update its
 // in-memory React state immediately without waiting for a remount.
 
+// Returns all network tweak IDs that localStorage shows as "enabled".
+// Used as a fallback when the ownership store has been cleared (e.g. after a
+// premium upgrade) so we still catch tweaks applied in a previous session.
+function readEnabledNetworkTweakIdsFromLocalStorage(): string[] {
+  try {
+    const raw = localStorage.getItem('sc-net-tweak-state-v1');
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    return Object.entries(parsed)
+      .filter(([, v]) => v === 'enabled')
+      .map(([id]) => id);
+  } catch (_) {
+    return [];
+  }
+}
+
 function patchNetworkTweakLocalStorage(revertedIds: string[]): void {
   if (revertedIds.length === 0) return;
   try {
@@ -498,10 +514,24 @@ export async function runPremiumRevert(
   const networkEntries = Object.entries(store.networkTweaks)
     .filter(([, rec]) => rec.appliedByApp);
 
+  // Also pick up any tweaks that are "enabled" in localStorage but are NOT
+  // already in the ownership store. This covers the case where the user applied
+  // a network tweak in a previous session and the ownership store was cleared
+  // (e.g. by clearPremiumOwnership on a premium upgrade).
+  const ownershipIds = new Set(networkEntries.map(([id]) => id));
+  const lsEnabledIds = readEnabledNetworkTweakIdsFromLocalStorage()
+    .filter(id => !ownershipIds.has(id));
+
   for (const [tweakId, rec] of networkEntries) {
     console.log(`[Revert] processing network tweak "${tweakId}" label="${rec.label}"`);
     const status = await revertSingleNetworkTweak(tweakId, rec.label);
     networkResults.push({ tweakId, label: rec.label, status });
+  }
+
+  for (const tweakId of lsEnabledIds) {
+    console.log(`[Revert] processing network tweak (ls-fallback) "${tweakId}"`);
+    const status = await revertSingleNetworkTweak(tweakId, tweakId);
+    networkResults.push({ tweakId, label: tweakId, status });
   }
 
   // Signal any mounted NetworkTweaks component to update its in-memory cache
