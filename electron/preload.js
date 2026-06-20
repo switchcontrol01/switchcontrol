@@ -470,7 +470,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
       if (!Array.isArray(ids)) throw new TypeError('extremeLabs.applySelected: ids must be an array');
       return ipcRenderer.invoke('extremeLabs:applySelected', ids);
     },
-    restoreBaseline:    () => ipcRenderer.invoke('extremeLabs:restoreBaseline'),
+    restoreBaseline:    (ids) => ipcRenderer.invoke('extremeLabs:restoreBaseline', ids),
     getStatus:          () => ipcRenderer.invoke('extremeLabs:getStatus'),
   },
 

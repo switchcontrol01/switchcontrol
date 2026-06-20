@@ -3384,9 +3384,8 @@ ipcMain.handle('extremeLabs:applySelected', async (event, ids) => {
   return { ok: true, results, summary: { applied: appliedCount, failed: failedCount, adminBlocked: adminBlockedCount, notSupported: notSupportedCount } };
 });
 
-ipcMain.handle('extremeLabs:restoreBaseline', async () => {
+ipcMain.handle('extremeLabs:restoreBaseline', async (_event, ids) => {
   try {
-    const results = [];
     const allIds = [
       'global-timer-resolution', 'dynamic-tick', 'hpet-disable',
       'win32-priority-separation', 'system-responsiveness', 'mmcss-no-lazy', 'power-throttling-extreme',
@@ -3397,27 +3396,49 @@ ipcMain.handle('extremeLabs:restoreBaseline', async () => {
       'xbox-services-disable', 'bluetooth-disable',
       'edge-update-disable', 'adobe-updater-disable', 'teams-startup-disable', 'vendor-updaters-disable',
     ];
-    for (const id of allIds) {
+
+    // If the caller passes a specific list of IDs (from the ownership store), only
+    // revert those — avoids spawning PowerShell for tweaks that were never applied.
+    // Falls back to the full list when ids is absent or empty (safety sweep).
+    const targetIds = Array.isArray(ids) && ids.length > 0
+      ? ids.filter(id => allIds.includes(id))
+      : allIds;
+
+    // Fetch NIC adapter once up-front so parallel NIC reverts share the result.
+    let physicalAdapter = null;
+    if (targetIds.some(id => _extremeLabsMapToRegistryTweak(id)?.type === 'nic')) {
       try {
-        const mapped = _extremeLabsMapToRegistryTweak(id);
-        if (!mapped) { results.push({ id, reverted: false, reason: 'No mapping' }); continue; }
-        if (mapped.type === 'slider') {
-          const resetResult = await sliderTweakExecutor.resetSliderValue(mapped.tweakId);
-          results.push({ id, reverted: resetResult.success, error: resetResult.error });
-        } else if (mapped.type === 'nic') {
-          const { adapters = [] } = await nicExecutor.getNetAdapters();
-          const physical = adapters.find(a => a.status === 'Up' && !/loopback|bluetooth|hyper|virtual|tunnel|vpn/i.test(a.name));
-          if (!physical) { results.push({ id, reverted: false, reason: 'No adapter' }); continue; }
-          const resetResult = await nicExecutor.resetNicProperty(physical.name, mapped.propertyKey);
-          results.push({ id, reverted: resetResult.ok, error: resetResult.error });
-        } else {
-          const execResult = await tweakExecutor.executeTweak(mapped.tweakId, 'revert');
-          results.push({ id, reverted: execResult.success, error: execResult.error });
-        }
-      } catch (e) {
-        results.push({ id, reverted: false, error: e.message });
-      }
+        const { adapters = [] } = await nicExecutor.getNetAdapters();
+        physicalAdapter = adapters.find(
+          a => a.status === 'Up' && !/loopback|bluetooth|hyper|virtual|tunnel|vpn/i.test(a.name)
+        ) ?? null;
+      } catch { /* non-fatal — nic reverts will report no-adapter */ }
     }
+
+    // Run all per-ID reverts in parallel — each touches independent registry keys/
+    // netsh settings, so there is no ordering dependency between them.
+    const results = await Promise.all(
+      targetIds.map(async (id) => {
+        try {
+          const mapped = _extremeLabsMapToRegistryTweak(id);
+          if (!mapped) return { id, reverted: false, reason: 'No mapping' };
+          if (mapped.type === 'slider') {
+            const r = await sliderTweakExecutor.resetSliderValue(mapped.tweakId);
+            return { id, reverted: r.success, error: r.error };
+          } else if (mapped.type === 'nic') {
+            if (!physicalAdapter) return { id, reverted: false, reason: 'No adapter' };
+            const r = await nicExecutor.resetNicProperty(physicalAdapter.name, mapped.propertyKey);
+            return { id, reverted: r.ok, error: r.error };
+          } else {
+            const r = await tweakExecutor.executeTweak(mapped.tweakId, 'revert');
+            return { id, reverted: r.success, error: r.error };
+          }
+        } catch (e) {
+          return { id, reverted: false, error: e.message };
+        }
+      })
+    );
+
     extremeLabsStore.currentSession = null;
     return { ok: true, results };
   } catch (e) {

@@ -64,7 +64,7 @@ async function runElevated(command) {
 
   fs.writeFileSync(scriptPath, scriptContent, 'utf8');
 
-  const launchCmd = `Start-Process powershell -ArgumentList @('-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-WindowStyle','Hidden','-File','${safeScript}') -Verb RunAs -Wait`;
+  const launchCmd = `Start-Process powershell -WindowStyle Hidden -ArgumentList @('-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-WindowStyle','Hidden','-File','${safeScript}') -Verb RunAs -Wait`;
 
   try {
     await new Promise((resolve, reject) => {

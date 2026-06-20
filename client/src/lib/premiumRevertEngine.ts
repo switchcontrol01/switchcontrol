@@ -226,10 +226,10 @@ async function revertExtremeLabsTweaks(): Promise<RevertItemResult[]> {
   const store = useTweakOwnershipStore.getState();
   const entries = Object.entries(store.extremeLabs).filter(([, rec]) => rec.appliedByApp);
 
-  if (entries.length === 0) return [];
-
   const api = getExtremeLabsAPI();
   if (!api?.restoreBaseline) {
+    // No API — only report failure for tracked items; if store is empty just skip silently.
+    if (entries.length === 0) return [];
     console.warn('[Revert:EL] electronAPI.extremeLabs.restoreBaseline not available');
     return entries.map(([tweakId, rec]) => ({
       tweakId,
@@ -239,15 +239,23 @@ async function revertExtremeLabsTweaks(): Promise<RevertItemResult[]> {
     }));
   }
 
+  // Pass the specific IDs we tracked so the handler only reverts those tweaks —
+  // avoids spawning PowerShell for tweaks that were never applied.
+  // When the store is empty (cleared between sessions) we pass undefined so the
+  // handler does a full safety sweep of all known IDs — this closes the loophole
+  // where a user applied tweaks, the store was lost, and trial expiry ran: the
+  // actual registry/system changes get rolled back even without store records.
+  const trackedIds = entries.map(([id]) => id);
+
   let lastResult: any = null;
   let success = false;
 
   for (let attempt = 1; attempt <= MAX_RETRY_ATTEMPTS; attempt++) {
     try {
-      lastResult = await api.restoreBaseline();
+      lastResult = await api.restoreBaseline(trackedIds.length > 0 ? trackedIds : undefined);
       if (lastResult?.ok) {
         success = true;
-        console.log(`[Revert:EL] restoreBaseline succeeded attempt=${attempt}`);
+        console.log(`[Revert:EL] restoreBaseline succeeded attempt=${attempt} ids=${trackedIds.length || 'all'}`);
         break;
       }
       console.warn(`[Revert:EL] restoreBaseline failed attempt=${attempt}`, lastResult?.error);
@@ -256,6 +264,9 @@ async function revertExtremeLabsTweaks(): Promise<RevertItemResult[]> {
     }
     if (attempt < MAX_RETRY_ATTEMPTS) await delay(RETRY_BASE_DELAY_MS * attempt);
   }
+
+  // Nothing tracked in the store — safety sweep completed but nothing to report to UI.
+  if (entries.length === 0) return [];
 
   return entries.map(([tweakId, rec]) => {
     const itemResult = lastResult?.results?.find((r: any) => r.id === tweakId);
