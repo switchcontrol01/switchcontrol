@@ -295,9 +295,6 @@ function TelemetryLines() {
         { cx: 480, cy: 260, color: "rgba(139,92,246," },
         { cx: 840, cy: 140, color: "rgba(6,182,212," },
       ].map((n, i) => (
-        {/* Scale-based pulse instead of animating SVG r — avoids the same
-            `attribute r: Expected length, "undefined"` bug that occurs when
-            Framer Motion re-enters SVG r animations on re-render. */}
         <motion.circle
           key={`pulse${i}`}
           cx={n.cx} cy={n.cy} r={3}

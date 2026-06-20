@@ -29,10 +29,15 @@ function categoryOf(tweakId: string): string {
 // ── PC DNA archetype ──────────────────────────────────────────────────────────
 
 export type PcDnaArchetype =
+  | "Stock Configuration"
+  | "Getting Started"
+  | "Latency Focused"
+  | "Frame Rate Hunter"
   | "Competitive Gamer"
   | "High Refresh Gaming"
+  | "Streamer Setup"
+  | "Privacy Focused"
   | "Creator Workstation"
-  | "Latency Focused"
   | "Balanced Power User";
 
 export interface PcDnaTrait {
@@ -92,29 +97,86 @@ export function derivePcDna(snapshot: OptimizationSnapshot | null): PcDna {
   const favStability =
     (memory.intentCounts["lowest-stutter"] ?? 0) +
     (memory.intentCounts["smooth-frametimes"] ?? 0);
+  void favStability; // retained for future use in trait logic
+
+  // ── Live tweak-mix analysis ──────────────────────────────────────────────────
+  // Count applied tweaks per category group so the archetype reflects what's
+  // actually enabled right now — not just static hardware.
+  const appliedIds = snapshot?.appliedTweakIds ?? [];
+  const applied = appliedIds.length;
+
+  const catCount = (cats: string[]) =>
+    appliedIds.filter(id => cats.includes(categoryOf(id))).length;
+
+  const latencyCount   = catCount(["Gaming and Latency", "Input"]);
+  const gpuCount       = catCount(["GPU and Graphics"]);
+  const networkCount   = catCount(["Network"]);
+  const privacyCount   = catCount(["Privacy and Telemetry", "Debloat and Apps", "Windows UX"]);
+  const systemCount    = catCount(["System and Power", "Memory and Storage"]);
+  const gamingTotal    = latencyCount + gpuCount;
+
+  // Total tweaks in the app — used for headroom calculation.
+  const TOTAL_TWEAKS = TWEAKS_DATA.length || 30;
 
   let archetype: PcDnaArchetype;
-  if (favLatency >= 2 && discreteGpu) {
-    archetype = "Latency Focused";
-  } else if (ramGb != null && ramGb >= 32 && !strongGamingCpu) {
-    archetype = "Creator Workstation";
-  } else if (family === "x3d" && discreteGpu) {
-    archetype = "Competitive Gamer";
-  } else if (discreteGpu && strongGamingCpu) {
-    archetype = "High Refresh Gaming";
-  } else if (discreteGpu) {
-    archetype = "Competitive Gamer";
+
+  if (applied === 0) {
+    // Nothing applied — system is stock, no matter the hardware.
+    archetype = "Stock Configuration";
+  } else if (applied <= 3) {
+    // Light touch — label it accordingly rather than over-claiming a specialty.
+    archetype = "Getting Started";
   } else {
-    archetype = "Balanced Power User";
+    // 4+ tweaks — figure out the dominant flavour from the actual mix.
+    const dominant = Math.max(latencyCount, gpuCount, networkCount, privacyCount, systemCount);
+
+    if (privacyCount === dominant && privacyCount >= 3 && privacyCount > gamingTotal) {
+      archetype = "Privacy Focused";
+    } else if (networkCount === dominant && networkCount >= 2 && networkCount > gamingTotal) {
+      archetype = "Streamer Setup";
+    } else if (latencyCount === dominant && latencyCount >= 3) {
+      // Latency tweaks are the bulk — honour user's intent history too.
+      if ((family === "x3d" || favLatency >= 2) && discreteGpu) {
+        archetype = "Competitive Gamer";
+      } else {
+        archetype = "Latency Focused";
+      }
+    } else if (gpuCount === dominant && gpuCount >= 2 && latencyCount < gpuCount) {
+      archetype = discreteGpu ? "Frame Rate Hunter" : "Balanced Power User";
+    } else if (gamingTotal >= 4) {
+      // Strong gaming mix — use hardware to distinguish.
+      if (family === "x3d" && discreteGpu) {
+        archetype = "Competitive Gamer";
+      } else if (discreteGpu && strongGamingCpu) {
+        archetype = "High Refresh Gaming";
+      } else {
+        archetype = "Frame Rate Hunter";
+      }
+    } else if (ramGb != null && ramGb >= 32 && !strongGamingCpu && systemCount >= 2) {
+      archetype = "Creator Workstation";
+    } else {
+      archetype = "Balanced Power User";
+    }
   }
 
   const taglines: Record<PcDnaArchetype, string> = {
-    "Competitive Gamer": "Tuned for fast-twitch precision and clean inputs.",
-    "High Refresh Gaming": "Built to feed high-refresh panels with steady frames.",
-    "Creator Workstation": "Heavy memory, parallel workloads, sustained throughput.",
-    "Latency Focused": "Every millisecond of input lag is on the table.",
-    "Balanced Power User": "A versatile system optimized across the board.",
+    "Stock Configuration":  "No tweaks applied yet — full optimization potential available.",
+    "Getting Started":      "First tweaks in. Building momentum toward a tuned system.",
+    "Latency Focused":      "Every millisecond of input lag is on the table.",
+    "Frame Rate Hunter":    "GPU and rendering pipeline dialled in for raw frame output.",
+    "Competitive Gamer":    "Tuned for fast-twitch precision and clean inputs.",
+    "High Refresh Gaming":  "Built to feed high-refresh panels with steady frames.",
+    "Streamer Setup":       "Network and background load tamed for clean capture.",
+    "Privacy Focused":      "Telemetry stripped back. Your data stays yours.",
+    "Creator Workstation":  "Heavy memory, parallel workloads, sustained throughput.",
+    "Balanced Power User":  "A versatile system optimized across the board.",
   };
+
+  // ── Headroom ─────────────────────────────────────────────────────────────────
+  // Scales from ~90% (stock) down to ~10% (fully loaded).
+  const headroom = applied === 0
+    ? 90
+    : Math.max(10, Math.min(88, Math.round(88 - (applied / TOTAL_TWEAKS) * 78)));
 
   const gpuLabel =
     hw.gpuName && hw.gpuName !== "Unavailable"
@@ -126,15 +188,25 @@ export function derivePcDna(snapshot: OptimizationSnapshot | null): PcDna {
   const ramLabel = ramGb != null ? `${ramGb} GB` : "Memory";
   const osLabel = snapshot?.windowsBuild ? `Windows · Build ${snapshot.windowsBuild}` : "Windows";
 
-  // Headroom: more applied tweaks = less headroom remaining.
-  const applied = snapshot?.appliedTweakIds?.length ?? 0;
-  const headroom = Math.max(12, Math.min(96, 88 - applied * 4));
+  // ── Traits (live — reflect actual applied mix) ────────────────────────────────
+  const tweakCountLabel =
+    applied === 0 ? "None active" :
+    applied === 1 ? "1 active" :
+    `${applied} active`;
+
+  const dominantFocus =
+    applied === 0              ? "Unoptimized" :
+    gamingTotal > privacyCount && gamingTotal > networkCount ? "Gaming-focused" :
+    privacyCount > networkCount ? "Privacy-focused" :
+    networkCount > 0            ? "Network-focused" :
+                                  "System-focused";
 
   const traits: PcDnaTrait[] = [
     { label: "Architecture", value: family === "x3d" ? "3D V-Cache" : family === "intel-hybrid" ? "Hybrid cores" : "Conventional" },
-    { label: "Graphics", value: discreteGpu ? "Discrete" : "Integrated" },
-    { label: "Storage", value: snapshot?.isNvme ? "NVMe SSD" : "SATA / HDD" },
-    { label: "Profile", value: favStability > favLatency ? "Stability-leaning" : "Latency-leaning" },
+    { label: "Graphics",     value: discreteGpu ? "Discrete" : "Integrated" },
+    { label: "Storage",      value: snapshot?.isNvme ? "NVMe SSD" : "SATA / HDD" },
+    { label: "Tweaks",       value: tweakCountLabel },
+    { label: "Focus",        value: dominantFocus },
   ];
 
   // ── Detail sub-lines ─────────────────────────────────────────────────────────
