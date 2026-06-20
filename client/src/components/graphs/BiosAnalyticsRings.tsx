@@ -33,7 +33,9 @@ function AnimatedRing({
   const cx = size / 2;
   const cy = size / 2;
   const circ = 2 * Math.PI * r;
-  const pct = Math.max(0, Math.min(1, value / max));
+  const safeValue = Number.isFinite(value) ? value : 0;
+  const safeMax = Number.isFinite(max) && max > 0 ? max : 100;
+  const pct = Math.max(0, Math.min(1, safeValue / safeMax));
   const dash = circ * pct;
 
   return (
@@ -130,7 +132,10 @@ function RadarGraph({ axes, size = 140, delay = 0 }: { axes: RadarAxis[]; size?:
 
   const gridRings = [0.3, 0.6, 1.0];
 
-  const dataPoints = axes.map((ax, i) => polar(i, maxR * Math.max(0, Math.min(1, ax.value / 100))));
+  const dataPoints = axes.map((ax, i) => {
+    const safeVal = Number.isFinite(ax.value) ? ax.value : 0;
+    return polar(i, maxR * Math.max(0, Math.min(1, safeVal / 100)));
+  });
   const dataPath = dataPoints.map((p, i) => `${i === 0 ? "M" : "L"} ${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(" ") + " Z";
 
   // Approximate perimeter for dashoffset animation
