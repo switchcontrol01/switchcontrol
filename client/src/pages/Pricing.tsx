@@ -295,14 +295,18 @@ function TelemetryLines() {
         { cx: 480, cy: 260, color: "rgba(139,92,246," },
         { cx: 840, cy: 140, color: "rgba(6,182,212," },
       ].map((n, i) => (
+        {/* Scale-based pulse instead of animating SVG r — avoids the same
+            `attribute r: Expected length, "undefined"` bug that occurs when
+            Framer Motion re-enters SVG r animations on re-render. */}
         <motion.circle
           key={`pulse${i}`}
           cx={n.cx} cy={n.cy} r={3}
           fill="none"
           stroke={n.color + "0.5)"}
           strokeWidth="1"
-          initial={{ r: 3, opacity: 0.6 }}
-          animate={ringsActive ? { r: 18, opacity: 0 } : { r: 3, opacity: 0.6 }}
+          style={{ transformOrigin: `${n.cx}px ${n.cy}px` }}
+          initial={{ scale: 1, opacity: 0.6 }}
+          animate={ringsActive ? { scale: 6, opacity: 0 } : { scale: 1, opacity: 0.6 }}
           transition={{ duration: 2, delay: 2.5 + i * 0.5, repeat: ringsActive ? Infinity : 0, ease: "easeOut" }}
         />
       ))}

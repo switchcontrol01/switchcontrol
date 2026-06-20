@@ -88,7 +88,7 @@ function AnimatedRing({
             animate={{ opacity: 1 }}
             transition={{ delay: delay + 0.6, duration: 0.4 }}
           >
-            {Math.round(value)}
+            {Math.round(safeValue)}
           </motion.span>
         </div>
 
