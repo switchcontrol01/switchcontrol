@@ -905,11 +905,80 @@ function DonePhase({
   );
 }
 
+// ── Matrix rain edge strips (snapshotting phase only) ─────────────────────────
+// Pure CSS @keyframes — no requestAnimationFrame, no setInterval, no canvas.
+// Characters pre-computed at module scope so they never change on re-render.
+
+const _MC = "アイウエオカキクケコサシスセソタチツ01234567ABCDEF";
+function _mkRainCol(seed: number, len = 22) {
+  let s = seed;
+  const r = () => { s = ((s * 1664525 + 1013904223) >>> 0); return s / 4294967295; };
+  return {
+    chars: Array.from({ length: len }, () => _MC[Math.floor(r() * _MC.length)]),
+    dur: `${(1.4 + r() * 1.3).toFixed(2)}s`,
+    delay: `${-(r() * 3.2).toFixed(2)}s`,
+  };
+}
+const _L_COLS = [13, 27, 41, 55, 69, 83].map(s => _mkRainCol(s));
+const _R_COLS = [97, 111, 125, 139, 153, 167].map(s => _mkRainCol(s));
+
+function MatrixRainStrip({
+  cols, side,
+}: { cols: ReturnType<typeof _mkRainCol>[]; side: "left" | "right" }) {
+  const COL_W = 14;
+  const COL_H = 22 * 15; // chars × px — matches from: -COL_H below
+  const mask = side === "left"
+    ? "linear-gradient(to right, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.55) 65%, transparent 100%)"
+    : "linear-gradient(to left,  rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.55) 65%, transparent 100%)";
+  return (
+    <>
+      <style>{`@keyframes _mrf{from{top:-${COL_H}px}to{top:100%}}`}</style>
+      <div
+        aria-hidden
+        style={{
+          position: "absolute", top: 0, bottom: 0, [side]: 0,
+          width: cols.length * COL_W,
+          overflow: "hidden",
+          pointerEvents: "none",
+          maskImage: mask,
+          WebkitMaskImage: mask,
+          zIndex: 7,
+        }}
+      >
+        {cols.map((col, ci) => (
+          <div
+            key={ci}
+            style={{ position: "absolute", top: 0, bottom: 0, left: ci * COL_W, width: COL_W, overflow: "hidden" }}
+          >
+            <div style={{ position: "absolute", animation: `_mrf ${col.dur} linear ${col.delay} infinite` }}>
+              {col.chars.map((ch, i) => (
+                <div
+                  key={i}
+                  style={{
+                    height: 15, lineHeight: "15px", fontSize: 11,
+                    textAlign: "center", fontFamily: "monospace",
+                    color: i === 0
+                      ? "#c8fff2"
+                      : `rgba(0,212,255,${Math.max(0, 0.68 - i * 0.029).toFixed(2)})`,
+                    textShadow: i < 2 ? "0 0 6px rgba(0,212,255,0.65)" : "none",
+                  }}
+                >
+                  {ch}
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+
 // ── Full-screen immersive shell ───────────────────────────────────────────────
 
 function ImmersiveShell({
-  children, onClose, intensity, canClose,
-}: { children: React.ReactNode; onClose: () => void; intensity: number; canClose: boolean }) {
+  children, onClose, intensity, canClose, showMatrixEdges = false,
+}: { children: React.ReactNode; onClose: () => void; intensity: number; canClose: boolean; showMatrixEdges?: boolean }) {
   useEffect(() => {
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -935,6 +1004,14 @@ function ImmersiveShell({
       </div>
       {/* Vignette */}
       <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(circle at 50% 40%, transparent 40%, rgba(5,6,10,0.85) 100%)" }} />
+
+      {/* Matrix rain — left and right edges, DNA scan phase only */}
+      {showMatrixEdges && (
+        <>
+          <MatrixRainStrip cols={_L_COLS} side="left" />
+          <MatrixRainStrip cols={_R_COLS} side="right" />
+        </>
+      )}
 
       {/* Close */}
       {canClose && (
@@ -1191,7 +1268,7 @@ export function OptimizationFlow() {
   return (
     <AnimatePresence>
       {isOpen && (
-        <ImmersiveShell onClose={handleClose} intensity={intensity} canClose={canClose}>
+        <ImmersiveShell onClose={handleClose} intensity={intensity} canClose={canClose} showMatrixEdges={phase === "snapshotting"}>
           <AnimatePresence mode="wait">
             {phase === "snapshotting" && (
               <motion.div key="snapshotting" className="w-full self-stretch" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}>
