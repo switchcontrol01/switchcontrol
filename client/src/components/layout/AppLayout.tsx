@@ -7,7 +7,7 @@ import { UpdateModal } from "@/components/UpdateModal";
 import { NetworkStatusChip } from "@/components/NetworkStatusChip";
 import { useLocation } from "wouter";
 import { isBackendReady, onBackendReady } from "@/lib/api";
-import { Loader2 } from "lucide-react";
+import { Loader2, Timer } from "lucide-react";
 import { useNetworkStatus } from "@/hooks/use-network-status";
 import { useTourStore } from "@/lib/tour-store";
 import { useEntitlementUiState } from "@/hooks/useEntitlementUiState";
