@@ -1,0 +1,1084 @@
+[2026-06-20T07:08:37.950Z] [INFO] SwitchControl started — PID:5860 platform:win32/x64 node:20.18.3
+[2026-06-20T07:08:38.209Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:211) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: false
+[2026-06-20T07:08:38.212Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:211) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: false
+[2026-06-20T07:08:38.425Z] [LOG] [Security] IPC handlers registered
+[2026-06-20T07:08:38.428Z] [LOG] [Debloat] IPC handlers registered
+[2026-06-20T07:08:38.429Z] [LOG] [Cleaner] IPC handlers registered
+[2026-06-20T07:08:38.430Z] [LOG] [Protocol] registered: true | isDefault: true | isDev: false
+[2026-06-20T07:08:38.438Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:175) [PremiumFlow] deep-link received: switchcontrol://auth/callback?code=283e20d1-599a-4a61-9ba6-a76e4b2b7f60.1781939343808.1b90e6250e27af8c&provider=google
+[2026-06-20T07:08:38.438Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:211) [DeepLink] ===== RENDERER CALLBACK RECEIVED =====
+[2026-06-20T07:08:38.439Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:211) [DeepLink] URL: switchcontrol://auth/callback?code=283e20d1-599a-4a61-9ba6-a76e4b2b7f60.1781939343808.1b90e6250e27af8c&provider=google
+[2026-06-20T07:08:38.439Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthState] transition authenticated → callback_received
+[2026-06-20T07:08:38.439Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:211) [DeepLink] parsed — code: present provider: google premiumActivated: false currentUserLoggedIn: true
+[2026-06-20T07:08:38.439Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthState] transition callback_received → exchanging
+[2026-06-20T07:08:38.439Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:211) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: false
+[2026-06-20T07:08:38.461Z] [LOG] [STARTUP] whenReady — v1.1.4 | isDev:false | pid:5860
+[2026-06-20T07:08:38.464Z] [LOG] [ConfigStore] Initialized — file: C:\Users\SwitchTech\AppData\Roaming\SwitchControl\sc-config.json
+[2026-06-20T07:08:38.466Z] [LOG] [SwitchControl] Instant specs (sync): AMD Ryzen 7 9800X3D 8-Core Processor | GPU: Detecting… | enrichment starting…
+[2026-06-20T07:08:38.467Z] [LOG] [GPU] enrichment start
+[2026-06-20T07:08:38.467Z] [LOG] [GPU] si.graphics begin (3s timeout — WMI covers AMD DXGI hang)
+[2026-06-20T07:08:38.483Z] [LOG] [LAUNCH:1] BrowserWindow constructed — show:false, paintWhenInitiallyHidden:true, isVisible: false
+[2026-06-20T07:08:38.484Z] [LOG] [LAUNCH:2] packaged mode — indexPath: C:\Program Files\SwitchControl\resources\dist\index.html | exists: true
+[2026-06-20T07:08:38.524Z] [LOG] [Backend] ===== STARTUP DIAGNOSTICS =====
+[2026-06-20T07:08:38.524Z] [LOG] [Backend] process.execPath: C:\Program Files\SwitchControl\SwitchControl.exe
+[2026-06-20T07:08:38.524Z] [LOG] [Backend] process.resourcesPath: C:\Program Files\SwitchControl\resources
+[2026-06-20T07:08:38.524Z] [LOG] [Backend] app.isPackaged: true
+[2026-06-20T07:08:38.525Z] [LOG] [Backend] app.getAppPath(): C:\Program Files\SwitchControl\resources\app.asar
+[2026-06-20T07:08:38.525Z] [LOG] [Backend] Expected bundle path: C:\Program Files\SwitchControl\resources\dist\index.cjs
+[2026-06-20T07:08:38.525Z] [LOG] [Backend] Bundle size: 2.5 MB
+[2026-06-20T07:08:38.594Z] [LOG] [Updater] init — v1.1.4 | channel:stable | https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev
+[2026-06-20T07:08:38.594Z] [LOG] [STARTUP] app ready — 134ms from whenReady
+[2026-06-20T07:08:38.595Z] [LOG] [PREWARM] cachedSpecs seeded before window open — AMD Ryzen 7 9800X3D 8-Core Processor | GPU: Detecting…
+[2026-06-20T07:08:38.633Z] [LOG] [Backend] Free port found: 63724
+[2026-06-20T07:08:38.634Z] [LOG] [Backend] ELECTRON_USER_DATA: C:\Users\SwitchTech\AppData\Roaming\SwitchControl
+[2026-06-20T07:08:38.634Z] [LOG] [Backend] ===== ENV KEY DIAGNOSTICS =====
+[2026-06-20T07:08:38.634Z] [LOG] [Backend]   OPENAI_API_KEY: parent_env=false | config_file=false | will_use=false
+[2026-06-20T07:08:38.634Z] [LOG] [Backend]   STRIPE_SECRET_KEY: parent_env=false | config_file=false | will_use=false
+[2026-06-20T07:08:38.634Z] [LOG] [Backend]   GOOGLE_CLIENT_ID: parent_env=false | config_file=false | will_use=false
+[2026-06-20T07:08:38.635Z] [LOG] [Backend]   GOOGLE_CLIENT_SECRET: parent_env=false | config_file=false | will_use=false
+[2026-06-20T07:08:38.635Z] [LOG] [Backend]   JWT_SECRET: parent_env=false | config_file=false | will_use=false
+[2026-06-20T07:08:38.635Z] [LOG] [Backend]   SESSION_SECRET: parent_env=false | config_file=false | will_use=false
+[2026-06-20T07:08:38.635Z] [LOG] [Backend] =====================================
+[2026-06-20T07:08:38.635Z] [LOG] [Backend] ===== CHILD ENV KEY DIAGNOSTICS =====
+[2026-06-20T07:08:38.635Z] [LOG] [Backend]   child_env OPENAI_API_KEY: false
+[2026-06-20T07:08:38.636Z] [LOG] [Backend]   child_env STRIPE_SECRET_KEY: false
+[2026-06-20T07:08:38.636Z] [LOG] [Backend]   child_env GOOGLE_CLIENT_ID: false
+[2026-06-20T07:08:38.636Z] [LOG] [Backend]   child_env GOOGLE_CLIENT_SECRET: false
+[2026-06-20T07:08:38.636Z] [LOG] [Backend]   child_env JWT_SECRET: false
+[2026-06-20T07:08:38.636Z] [LOG] [Backend]   child_env SESSION_SECRET: false
+[2026-06-20T07:08:38.636Z] [LOG] [Backend] AI_MODEL in child env: (not set, will use gpt-4o-mini)
+[2026-06-20T07:08:38.636Z] [LOG] [Backend] DATABASE_URL in child env: NO — Electron offline mode (expected; cloud DB unreachable from user machine)
+[2026-06-20T07:08:38.637Z] [LOG] [Backend] ELECTRON_BACKEND in child env: 1
+[2026-06-20T07:08:38.637Z] [LOG] [Backend] ==========================================
+[2026-06-20T07:08:38.637Z] [LOG] [Backend] Spawning child process...
+[2026-06-20T07:08:38.637Z] [LOG] [Backend]   execPath: C:\Program Files\SwitchControl\SwitchControl.exe
+[2026-06-20T07:08:38.637Z] [LOG] [Backend]   script: C:\Program Files\SwitchControl\resources\dist\index.cjs
+[2026-06-20T07:08:38.637Z] [LOG] [Backend]   ELECTRON_RUN_AS_NODE: 1 (runs as plain Node.js)
+[2026-06-20T07:08:38.637Z] [LOG] [Backend]   PORT: 63724
+[2026-06-20T07:08:38.638Z] [LOG] [Backend]   cwd: C:\Program Files\SwitchControl\resources\dist
+[2026-06-20T07:08:38.644Z] [LOG] [Backend] Child process spawned, PID: 16124
+[2026-06-20T07:08:38.645Z] [LOG] [Backend] Polling health endpoint: http://127.0.0.1:63724/api/health
+[2026-06-20T07:08:38.671Z] [ERROR] [LAUNCH:2] loadFile() promise REJECTED: ERR_FAILED (-2) loading 'file:///C:\Program Files\SwitchControl\resources\dist\index.html'
+[2026-06-20T07:08:38.899Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:211) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: false
+[2026-06-20T07:08:38.900Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthState] transition exchanging → authenticated
+[2026-06-20T07:08:38.901Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:211) [Auth] exchange success — user=283e20d1-599a-4a61-9ba6-a76e4b2b7f60 provider=google
+[2026-06-20T07:08:38.901Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:211) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: false
+[2026-06-20T07:08:38.902Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:211) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: false
+[2026-06-20T07:08:39.406Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:211) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: false
+[2026-06-20T07:08:39.408Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:211) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: false
+[2026-06-20T07:08:42.947Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:150) [Window] Focus event received
+[2026-06-20T07:08:42.947Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:211) [App] Electron window focus (passive)
+[2026-06-20T07:08:45.494Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:211) [Handoff] intro exit complete — mounting dashboard
+[2026-06-20T07:08:45.494Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:211) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: false
+[2026-06-20T07:08:45.495Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:211) [Entitlements] post-auth hydration begin — cached isPremium: false plan: free
+[2026-06-20T07:08:45.495Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:211) [PremiumTruth] entitlement fetch start — cached isPremium: false
+[2026-06-20T07:08:45.495Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:211) [TourTransition] phase entered authenticated — waiting 500ms for dashboard to stabilize
+[2026-06-20T07:08:45.781Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:155) [Dashboard] mounted
+[2026-06-20T07:08:45.781Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:155) [ActivityMonitor] reused cached state — history points: 59 status: ready
+[2026-06-20T07:08:45.782Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:211) [Handoff] dashboard fade-in started
+[2026-06-20T07:08:45.801Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:08:45.801Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/system-dna target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:08:45.801Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:08:45.801Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:08:45.801Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/ram-analysis target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:08:45.825Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:211) [Handoff] dashboard fade-in complete — layout stable
+[2026-06-20T07:08:45.899Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:211) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: false
+[2026-06-20T07:08:45.909Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:211) [Entitlements] post-auth hydration result — isPremium: false plan: free
+[2026-06-20T07:08:45.909Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:211) [PremiumTruth] entitlement fetch result — isPremium: false
+[2026-06-20T07:08:45.909Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:28) [Premium] Grace snapshot updated — isPremium=false plan=free userId=283e20d1-599a-4a61-9ba6-a76e4b2b7f60
+[2026-06-20T07:08:45.910Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:211) [Entitlements] grace store updated — isPremium: false plan: free
+[2026-06-20T07:08:45.910Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: false
+[2026-06-20T07:08:45.917Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:28) [PremiumExpiry] Initial state recorded — active=false plan=free trialEndsAt=null
+[2026-06-20T07:08:45.917Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:28) [PremiumExpiry] Running startup power plan sanity check...
+[2026-06-20T07:08:45.918Z] [LOG] [IPC] premium:powerPlanSanityCheck — checking active power plan
+[2026-06-20T07:08:45.924Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: false
+[2026-06-20T07:08:45.929Z] [LOG] [Sanity] Power plan check clean — active plan is not SC-managed (guid=381b4222-f694-41f0-9685-ff5bb260df2e name="Balanced")
+[2026-06-20T07:08:45.931Z] [LOG] [IPC] premium:powerPlanSanityCheck done — action=clean
+[2026-06-20T07:08:45.943Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:28) [PremiumExpiry] Sanity check result: [object Object]
+[2026-06-20T07:08:45.954Z] [LOG] [PowerPlan] deleteAllScPlans: no SC plans found to delete
+[2026-06-20T07:08:46.001Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:211) [TourTransition] dashboard stable — tours unblocked
+[2026-06-20T07:08:46.001Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: false
+[2026-06-20T07:08:46.012Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:211) [AppFlow] Flow eval — isPremium: false plan: free trialEndsAt: null hasSeenTrialActivation: true hasSeenTrialTour: true hasSeenUnlock: false hasSeenTour: false isFirstTimeUser: true isFirstLogin: true entitlementsAttempted: true entitlementsOk: true unlockFired: false trialUnlockFired: false
+[2026-06-20T07:08:46.012Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:211) [AppFlow] PRIORITY 1: First-time onboarding tour
+[2026-06-20T07:08:46.012Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: false
+[2026-06-20T07:08:46.020Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:25) [TourTransition] mounted (invisible)
+[2026-06-20T07:08:46.044Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:25) [TourTransition] revealed — first visible frame
+[2026-06-20T07:08:46.375Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:25) [TourTransition] card fully visible
+[2026-06-20T07:08:46.982Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/startup/apps target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:08:47.104Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/issues/detect target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:08:57.273Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:09:02.278Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:09:05.763Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: false
+[2026-06-20T07:09:05.773Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:211) [AppFlow] Flow eval — isPremium: false plan: free trialEndsAt: null hasSeenTrialActivation: true hasSeenTrialTour: true hasSeenUnlock: false hasSeenTour: false isFirstTimeUser: false isFirstLogin: true entitlementsAttempted: true entitlementsOk: true unlockFired: false trialUnlockFired: false
+[2026-06-20T07:09:05.773Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:211) [AppFlow] No flow conditions met — staying idle
+[2026-06-20T07:09:07.286Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:09:17.291Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:09:17.291Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:09:17.291Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:09:27.296Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:09:32.301Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:09:37.303Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:09:47.316Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:09:47.317Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:09:47.317Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:09:47.317Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/system-dna target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:09:47.317Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/ram-analysis target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:09:58.782Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:10:03.786Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:10:08.791Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:10:18.800Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:10:18.800Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:10:18.801Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:10:28.807Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:10:33.815Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:10:38.820Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:10:48.825Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:10:48.826Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:10:48.826Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:10:48.826Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/system-dna target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:10:48.826Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/ram-analysis target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:11:00.224Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:11:05.232Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:11:10.235Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:11:20.238Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:11:20.239Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:11:20.239Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:11:30.244Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:11:35.254Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:11:40.257Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:11:50.275Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:11:50.275Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:11:50.275Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:11:50.276Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/system-dna target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:11:50.276Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/ram-analysis target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:12:01.614Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:12:06.619Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:12:11.621Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:12:21.624Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:12:21.625Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:12:21.625Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:12:31.632Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:12:36.640Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:12:41.645Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:12:51.655Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:12:51.655Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:12:51.655Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:12:51.656Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/system-dna target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:12:51.656Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/ram-analysis target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:13:03.191Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:13:08.196Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:13:13.201Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:13:23.206Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:13:23.206Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:13:23.206Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:13:33.211Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:13:38.215Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:13:43.218Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:13:53.215Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:13:53.216Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:13:53.216Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:13:53.216Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/system-dna target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:13:53.216Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/ram-analysis target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:14:04.613Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:14:09.617Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:14:14.621Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:14:24.627Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:14:24.627Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:14:24.627Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:14:34.634Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:14:39.640Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:14:44.643Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:14:54.651Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:14:54.651Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:14:54.651Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:14:54.651Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/system-dna target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:14:54.652Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/ram-analysis target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:15:06.006Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:15:11.011Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:15:16.013Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:15:26.026Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:15:26.027Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:15:26.027Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:15:36.033Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:15:41.038Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:15:46.043Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:15:56.045Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:15:56.045Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:15:56.045Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:15:56.045Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/system-dna target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:15:56.045Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/ram-analysis target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:16:07.511Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:16:12.515Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:16:17.527Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:16:27.532Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:16:27.533Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:16:27.533Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:16:37.539Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:16:42.544Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:16:47.546Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:16:57.560Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:16:57.561Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:16:57.561Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:16:57.561Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/system-dna target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:16:57.561Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/ram-analysis target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:17:08.941Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:17:13.946Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:17:18.951Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:17:28.956Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:17:28.956Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:17:28.956Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:17:38.963Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:17:43.967Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:17:48.970Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:17:58.972Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:17:58.973Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:17:58.973Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:17:58.973Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/system-dna target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:17:58.973Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/ram-analysis target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:18:10.457Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:18:15.462Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:18:20.466Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:18:30.474Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:18:30.474Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:18:30.474Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:18:40.481Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:18:45.485Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:18:50.493Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:19:00.498Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:19:00.498Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:19:00.498Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:19:00.499Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/system-dna target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:19:00.499Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/ram-analysis target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:19:11.837Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:19:16.847Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:19:21.850Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:19:31.853Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:19:31.854Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:19:31.854Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:19:41.858Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:19:46.863Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:19:51.865Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:20:01.868Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:20:01.868Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:20:01.868Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:20:01.869Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/system-dna target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:20:01.869Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/ram-analysis target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:20:13.205Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:20:18.210Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:20:23.212Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:20:33.215Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:20:33.216Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:20:33.216Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:20:43.221Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:20:48.225Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:20:53.226Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:21:03.231Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:21:03.232Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:21:03.232Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:21:03.232Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/system-dna target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:21:03.232Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/ram-analysis target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:21:14.731Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:21:19.735Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:21:24.744Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:21:34.749Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:21:34.749Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:21:34.749Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:21:44.758Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:21:49.764Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:21:54.769Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:22:04.774Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:22:04.774Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:22:04.774Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:22:04.775Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/system-dna target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:22:04.775Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/ram-analysis target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:22:16.105Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:22:21.123Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:22:26.134Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:22:36.138Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:22:36.138Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:22:36.138Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:22:46.147Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:22:51.151Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:22:56.163Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:23:06.177Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:23:06.177Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:23:06.177Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:23:06.178Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/system-dna target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:23:06.178Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/ram-analysis target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:23:17.540Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:23:22.545Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:23:27.549Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:23:37.553Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:23:37.553Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:23:37.553Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:23:47.560Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:23:52.562Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:23:57.567Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:24:07.574Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:24:07.574Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:24:07.575Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:24:07.575Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/system-dna target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:24:07.575Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/ram-analysis target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:24:19.087Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:24:24.092Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:24:29.096Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:24:39.101Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:24:39.102Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:24:39.102Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:24:49.107Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:24:53.622Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:211) [App] Window focused, refreshing entitlements...
+[2026-06-20T07:24:53.623Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:150) [Window] Focus event received
+[2026-06-20T07:24:53.623Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:211) [App] Electron window focus (passive)
+[2026-06-20T07:24:54.118Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:24:54.240Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: false
+[2026-06-20T07:24:59.125Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:25:09.130Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:25:09.130Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:25:09.131Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:25:09.131Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/system-dna target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:25:09.131Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/ram-analysis target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:25:20.487Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:25:25.492Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:25:30.499Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:25:40.504Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:25:40.504Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:25:40.504Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:25:50.516Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:25:55.532Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:26:00.541Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:26:10.546Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:26:10.546Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:26:10.546Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:26:10.546Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/system-dna target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:26:10.547Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/ram-analysis target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:26:22.013Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:26:27.019Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:26:32.022Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:26:42.029Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:26:42.029Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:26:42.029Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:26:52.036Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:26:57.042Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:27:02.045Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:27:12.048Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:27:12.048Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:27:12.048Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:27:12.048Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/system-dna target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:27:12.049Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/ram-analysis target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:27:23.501Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:27:28.504Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:27:33.508Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:27:43.513Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:27:43.513Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:27:43.514Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:27:53.518Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:27:58.519Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:28:03.524Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:28:13.527Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:28:13.527Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:28:13.527Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:28:13.528Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/system-dna target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:28:13.528Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/ram-analysis target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:28:24.868Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:28:29.873Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:28:34.875Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:28:44.878Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:28:44.878Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:28:44.879Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:28:54.883Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:28:59.888Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:29:04.896Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:29:14.904Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:29:14.904Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:29:14.904Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:29:14.904Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/system-dna target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:29:14.904Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/ram-analysis target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:29:26.363Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:29:31.368Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:29:36.372Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:29:46.377Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:29:46.378Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:29:46.378Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:29:56.382Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:30:01.386Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:30:06.389Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:30:16.392Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:30:16.392Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:30:16.392Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:30:16.393Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/system-dna target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:30:16.393Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/ram-analysis target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:30:27.733Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:30:32.739Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:30:37.742Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:30:47.747Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:30:47.748Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:30:47.748Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:30:57.758Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:31:02.778Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:31:07.783Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:31:17.788Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:31:17.789Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:31:17.789Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:31:17.789Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/system-dna target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:31:17.789Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/ram-analysis target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:31:29.210Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:31:34.214Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:31:39.218Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:31:49.223Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:31:49.224Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:31:49.224Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:31:59.232Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:32:04.236Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:32:09.241Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:32:19.246Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:32:19.246Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:32:19.246Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:32:19.246Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/system-dna target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:32:19.246Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/ram-analysis target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:32:30.709Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:32:35.713Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:32:40.716Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:32:50.721Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:32:50.722Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:32:50.722Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:33:00.730Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:33:05.734Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:33:10.739Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:33:20.744Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:33:20.744Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:33:20.745Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:33:20.745Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/system-dna target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:33:20.745Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/ram-analysis target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:33:32.071Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:33:37.076Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:33:42.080Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:33:52.083Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:33:52.084Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:33:52.084Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:34:02.088Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:34:07.099Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:34:12.103Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:34:22.114Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:34:22.114Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:34:22.114Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:34:22.114Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/system-dna target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:34:22.114Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/ram-analysis target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:34:33.477Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:34:38.481Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:34:43.486Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:34:53.491Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:34:53.492Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:34:53.492Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:35:03.500Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:35:08.504Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:35:13.507Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:35:23.514Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:35:23.514Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:35:23.514Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:35:23.514Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/system-dna target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:35:23.514Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/ram-analysis target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:35:34.969Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:35:39.974Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:35:44.976Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:35:54.981Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:35:54.982Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:35:54.982Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:36:04.985Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:36:09.990Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:36:14.992Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:36:24.998Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:36:24.998Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:36:24.998Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:36:24.999Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/system-dna target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:36:24.999Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/ram-analysis target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:36:36.359Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:36:41.363Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:36:46.366Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:36:56.374Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:36:56.375Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:36:56.375Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:37:06.382Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:37:11.386Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:37:16.389Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:37:26.394Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:37:26.394Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:37:26.394Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:37:26.394Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/system-dna target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:37:26.395Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/ram-analysis target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:37:37.729Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:37:42.734Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:37:47.736Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:37:57.741Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:37:57.742Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:37:57.742Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:38:07.745Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:38:12.750Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:38:17.752Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:38:27.755Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:38:27.756Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:38:27.756Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:38:27.756Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/system-dna target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:38:27.756Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/ram-analysis target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:38:39.109Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:38:44.113Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:38:49.118Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:38:59.123Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:38:59.124Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:38:59.124Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:39:09.129Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:39:14.133Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:39:19.136Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:39:29.141Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:39:29.141Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:39:29.141Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:39:29.142Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/system-dna target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:39:29.142Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/ram-analysis target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:39:40.504Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:39:45.509Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:39:50.513Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:40:00.521Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:40:00.521Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:40:00.522Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:40:10.537Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:40:15.541Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:40:20.544Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:40:30.547Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:40:30.548Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:40:30.548Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:40:30.548Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/system-dna target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:40:30.548Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/ram-analysis target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:40:41.878Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:40:46.883Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:40:51.887Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:41:01.890Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:41:01.891Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:41:01.891Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:41:11.896Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:41:16.900Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:41:21.903Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:41:31.906Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:41:31.906Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:41:31.906Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:41:31.906Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/system-dna target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:41:31.907Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/ram-analysis target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:41:43.247Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:41:48.252Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:41:53.259Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:42:03.265Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:42:03.266Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:42:03.266Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:42:13.270Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:42:18.273Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:42:23.278Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:42:33.283Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:42:33.283Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:42:33.283Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:42:33.283Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/system-dna target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:42:33.283Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/ram-analysis target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:42:44.690Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:42:49.694Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:42:54.697Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:43:04.702Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:43:04.702Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:43:04.702Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:43:14.709Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:43:19.713Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:43:24.716Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:43:34.721Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:43:34.722Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:43:34.722Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:43:34.722Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/system-dna target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:43:34.722Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/ram-analysis target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:43:46.107Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:43:51.111Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:43:56.113Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:44:06.115Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:44:06.115Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:44:06.115Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:44:16.120Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:44:21.124Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:44:26.127Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:44:36.130Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:44:36.131Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:44:36.131Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:44:36.131Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/system-dna target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:44:36.131Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/ram-analysis target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:44:47.527Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:44:52.532Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:44:57.538Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:45:07.543Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:45:07.543Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:45:07.543Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:45:17.588Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:45:22.592Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:45:27.595Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:45:37.598Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:45:37.598Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:45:37.598Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:45:37.599Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/system-dna target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:45:37.599Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/ram-analysis target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:45:49.055Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:45:54.060Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:45:59.062Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:46:09.064Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:46:09.065Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:46:09.065Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:46:19.069Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:46:24.074Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:46:29.078Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:46:39.082Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:46:39.082Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:46:39.082Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:46:39.082Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/system-dna target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:46:39.083Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/ram-analysis target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:46:50.457Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:46:55.463Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:47:00.468Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:47:10.486Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:47:10.487Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:47:10.487Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:47:20.494Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:47:25.500Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:47:30.505Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:47:40.510Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:47:40.510Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:47:40.510Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:47:40.510Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/system-dna target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:47:40.510Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/ram-analysis target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:47:51.851Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:47:56.855Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:48:01.858Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:48:11.863Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:48:11.863Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:48:11.863Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:48:21.870Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:48:26.877Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:48:31.881Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:48:41.893Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:48:41.893Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:48:41.894Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:48:41.894Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/system-dna target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:48:41.894Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/ram-analysis target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:48:53.362Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:48:58.366Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:49:03.370Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:49:13.371Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:49:13.372Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:49:13.372Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:49:23.376Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:49:28.381Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:49:33.385Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:49:43.388Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:49:43.389Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:49:43.389Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:49:43.389Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/system-dna target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:49:43.389Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/ram-analysis target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:49:54.726Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:49:59.730Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:50:04.737Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:50:14.744Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:50:14.744Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:50:14.745Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:50:24.751Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:50:29.756Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:50:34.760Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:50:44.763Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:50:44.763Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:50:44.763Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:50:44.764Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/system-dna target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:50:44.764Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/ram-analysis target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:50:56.109Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:51:01.113Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:51:06.116Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:51:16.120Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:51:16.121Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:51:16.121Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:51:26.128Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:51:31.132Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:51:36.135Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:51:41.944Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:211) [App] Window focused, refreshing entitlements...
+[2026-06-20T07:51:41.945Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:150) [Window] Focus event received
+[2026-06-20T07:51:41.945Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:211) [App] Electron window focus (passive)
+[2026-06-20T07:51:42.989Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: false
+[2026-06-20T07:51:44.026Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: false
+[2026-06-20T07:51:44.063Z] [LOG] [PS] start file=main.js fn=slider:readValue reason=slider-read id=8 active=1
+[2026-06-20T07:51:44.065Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-20T07:51:44.063Z
+[2026-06-20T07:51:44.065Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-20T07:51:44.063Z
+[2026-06-20T07:51:44.065Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-20T07:51:44.063Z
+[2026-06-20T07:51:44.065Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-20T07:51:44.063Z
+[2026-06-20T07:51:44.065Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-20T07:51:44.063Z
+[2026-06-20T07:51:44.065Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-20T07:51:44.063Z
+[2026-06-20T07:51:44.065Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-20T07:51:44.063Z
+[2026-06-20T07:51:44.066Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:155) [Tweaks:LOAD] source=zustand-persist enabled=15 total_known=52
+[2026-06-20T07:51:44.066Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:155) [Tweaks:LOAD] enabled_ids=gaming-mode, maintenance, page-combining, xbox-bar, core-isolation, copilot, fax-printer, hyper-v, vbs, fast-startup, pcie-link-state, superfetch, disable-pointer-precision, notifications, disable-dcom
+[2026-06-20T07:51:44.066Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:155) [Tweaks:SYNC] hydration start gen=3
+[2026-06-20T07:51:44.066Z] [LOG] [PS] start file=main.js fn=tweak:syncAll reason=tweak-sync-all id=9 active=2
+[2026-06-20T07:51:44.066Z] [LOG] [PS-Exec] start file=main.js fn=tweak:syncAll reason=tweak-sync-all — 63 checks
+[2026-06-20T07:51:44.066Z] [LOG] [PS:tweak-executor] #64 queryPowerShell SPAWN ts=1781941904066 active=1
+[2026-06-20T07:51:44.071Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/tweak-intelligence/system-state target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:51:44.071Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/tweak-intelligence/rankings?applied=gaming-mode%2Cmaintenance%2Cpage-combining%2Cxbox-bar%2Ccore-isolation%2Ccopilot%2Cfax-printer%2Chyper-v%2Cvbs%2Cfast-startup%2Cpcie-link-state%2Csuperfetch%2Cdisable-pointer-precision%2Cnotifications%2Cdisable-dcom target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:51:44.071Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/tweak-intelligence/posture?applied=gaming-mode%2Cmaintenance%2Cpage-combining%2Cxbox-bar%2Ccore-isolation%2Ccopilot%2Cfax-printer%2Chyper-v%2Cvbs%2Cfast-startup%2Cpcie-link-state%2Csuperfetch%2Cdisable-pointer-precision%2Cnotifications%2Cdisable-dcom target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:51:44.090Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:155) [SliderHydration] win32-priority-sep: read skipped — limiter busy (expected at startup)
+[2026-06-20T07:51:44.091Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:155) [SliderHydration] sys-responsiveness: read skipped — limiter busy (expected at startup)
+[2026-06-20T07:51:44.091Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:155) [SliderHydration] net-throttle-index: read skipped — limiter busy (expected at startup)
+[2026-06-20T07:51:44.091Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:155) [SliderHydration] menu-show-delay: read skipped — limiter busy (expected at startup)
+[2026-06-20T07:51:44.091Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:155) [SliderHydration] hung-app-timeout: read skipped — limiter busy (expected at startup)
+[2026-06-20T07:51:44.091Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:155) [SliderHydration] low-level-hooks-timeout: read skipped — limiter busy (expected at startup)
+[2026-06-20T07:51:44.091Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:155) [SliderHydration] wait-to-kill-app: read skipped — limiter busy (expected at startup)
+[2026-06-20T07:51:44.650Z] [LOG] [SliderExecutor] READ svchost-split-threshold: value=33554432 raw="33554432"
+[2026-06-20T07:51:44.651Z] [LOG] [PS] end file=main.js fn=slider:readValue id=8 duration=588ms active=1 calls60s=1
+[2026-06-20T07:51:44.653Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:155) [SliderHydration] svchost-split-threshold: value=33554432 missing=false
+[2026-06-20T07:51:44.653Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: false
+[2026-06-20T07:51:44.661Z] [LOG] [PS:tweak-executor] #64 queryPowerShell OK 595ms
+[2026-06-20T07:51:44.661Z] [LOG] [PS:tweak-executor] #65 queryPowerShell SPAWN ts=1781941904661 active=1
+[2026-06-20T07:51:45.198Z] [LOG] [PS:tweak-executor] #65 queryPowerShell OK 537ms
+[2026-06-20T07:51:45.199Z] [LOG] [PS:tweak-executor] #66 queryPowerShell SPAWN ts=1781941905199 active=1
+[2026-06-20T07:51:45.778Z] [LOG] [PS:tweak-executor] #66 queryPowerShell OK 579ms
+[2026-06-20T07:51:45.779Z] [LOG] [PS:tweak-executor] #67 queryPowerShell SPAWN ts=1781941905779 active=1
+[2026-06-20T07:51:46.234Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: false
+[2026-06-20T07:51:46.264Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:155) [Dashboard] mounted
+[2026-06-20T07:51:46.264Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:155) [ActivityMonitor] reused cached state — history points: 60 status: ready
+[2026-06-20T07:51:46.280Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:51:46.281Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/system-dna target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:51:46.281Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:51:46.281Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:51:46.281Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/ram-analysis target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:51:46.302Z] [LOG] [PS:tweak-executor] #67 queryPowerShell OK 523ms
+[2026-06-20T07:51:46.303Z] [LOG] [PS:tweak-executor] #68 queryPowerShell SPAWN ts=1781941906303 active=1
+[2026-06-20T07:51:46.910Z] [LOG] [PS:tweak-executor] #68 queryPowerShell OK 607ms
+[2026-06-20T07:51:46.910Z] [LOG] [PS:tweak-executor] #69 queryPowerShell SPAWN ts=1781941906910 active=1
+[2026-06-20T07:51:47.457Z] [LOG] [PS:tweak-executor] #69 queryPowerShell OK 547ms
+[2026-06-20T07:51:47.457Z] [LOG] [PS:tweak-executor] #70 queryPowerShell SPAWN ts=1781941907457 active=1
+[2026-06-20T07:51:47.465Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/startup/apps target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:51:47.588Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/issues/detect target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:51:48.017Z] [LOG] [PS:tweak-executor] #70 queryPowerShell OK 560ms
+[2026-06-20T07:51:48.017Z] [LOG] [PS:tweak-executor] #71 queryPowerShell SPAWN ts=1781941908017 active=1
+[2026-06-20T07:51:48.642Z] [LOG] [PS:tweak-executor] #71 queryPowerShell OK 625ms
+[2026-06-20T07:51:48.642Z] [LOG] [PS:tweak-executor] #72 queryPowerShell SPAWN ts=1781941908642 active=1
+[2026-06-20T07:51:49.186Z] [LOG] [PS:tweak-executor] #72 queryPowerShell OK 544ms
+[2026-06-20T07:51:49.186Z] [LOG] [PS:tweak-executor] #73 queryPowerShell SPAWN ts=1781941909186 active=1
+[2026-06-20T07:51:49.719Z] [LOG] [PS:tweak-executor] #73 queryPowerShell OK 533ms
+[2026-06-20T07:51:49.719Z] [LOG] [PS:tweak-executor] #74 queryPowerShell SPAWN ts=1781941909719 active=1
+[2026-06-20T07:51:50.238Z] [LOG] [PS:tweak-executor] #74 queryPowerShell OK 519ms
+[2026-06-20T07:51:50.238Z] [LOG] [PS:tweak-executor] #75 queryPowerShell SPAWN ts=1781941910238 active=1
+[2026-06-20T07:51:50.767Z] [LOG] [PS:tweak-executor] #75 queryPowerShell OK 529ms
+[2026-06-20T07:51:50.767Z] [LOG] [PS:tweak-executor] #76 queryPowerShell SPAWN ts=1781941910767 active=1
+[2026-06-20T07:51:51.285Z] [LOG] [PS:tweak-executor] #76 queryPowerShell OK 518ms
+[2026-06-20T07:51:51.285Z] [LOG] [PS:tweak-executor] #77 queryPowerShell SPAWN ts=1781941911285 active=1
+[2026-06-20T07:51:51.828Z] [LOG] [PS:tweak-executor] #77 queryPowerShell OK 543ms
+[2026-06-20T07:51:51.828Z] [LOG] [PS:tweak-executor] #78 queryPowerShell SPAWN ts=1781941911828 active=1
+[2026-06-20T07:51:52.347Z] [LOG] [PS:tweak-executor] #78 queryPowerShell OK 519ms
+[2026-06-20T07:51:52.348Z] [LOG] [PS:tweak-executor] #79 queryPowerShell SPAWN ts=1781941912348 active=1
+[2026-06-20T07:51:52.878Z] [LOG] [PS:tweak-executor] #79 queryPowerShell OK 530ms
+[2026-06-20T07:51:52.878Z] [LOG] [PS:tweak-executor] #80 queryPowerShell SPAWN ts=1781941912878 active=1
+[2026-06-20T07:51:53.397Z] [LOG] [PS:tweak-executor] #80 queryPowerShell OK 519ms
+[2026-06-20T07:51:53.397Z] [LOG] [PS:tweak-executor] #81 queryPowerShell SPAWN ts=1781941913397 active=1
+[2026-06-20T07:51:53.931Z] [LOG] [PS:tweak-executor] #81 queryPowerShell OK 534ms
+[2026-06-20T07:51:53.931Z] [LOG] [PS:tweak-executor] #82 queryPowerShell SPAWN ts=1781941913931 active=1
+[2026-06-20T07:51:54.449Z] [LOG] [PS:tweak-executor] #82 queryPowerShell OK 518ms
+[2026-06-20T07:51:54.449Z] [LOG] [PS:tweak-executor] #83 queryPowerShell SPAWN ts=1781941914449 active=1
+[2026-06-20T07:51:55.034Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:150) [Window] Focus event received
+[2026-06-20T07:51:55.034Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:211) [App] Electron window focus (passive)
+[2026-06-20T07:51:55.665Z] [LOG] [PS:tweak-executor] #83 queryPowerShell OK 1216ms
+[2026-06-20T07:51:55.665Z] [LOG] [PS:tweak-executor] #84 queryPowerShell SPAWN ts=1781941915665 active=1
+[2026-06-20T07:51:56.240Z] [LOG] [PS:tweak-executor] #84 queryPowerShell OK 575ms
+[2026-06-20T07:51:56.241Z] [LOG] [PS:tweak-executor] #85 queryPowerShell SPAWN ts=1781941916241 active=1
+[2026-06-20T07:51:56.525Z] [LOG] [Renderer:info] (MemoryCleanerModal-B7plY2vX.js:1) [MemoryCleaner] mode selected: advanced
+[2026-06-20T07:51:56.527Z] [LOG] [Memory] mode=advanced expected helper: C:\Program Files\SwitchControl\resources\bin\sc_memory.exe | exists: true | isPackaged: true
+[2026-06-20T07:51:56.764Z] [LOG] [PS:tweak-executor] #85 queryPowerShell OK 523ms
+[2026-06-20T07:51:56.764Z] [LOG] [PS:tweak-executor] #86 queryPowerShell SPAWN ts=1781941916764 active=1
+[2026-06-20T07:51:57.135Z] [LOG] [Memory] stdout raw: {"mode":"advanced","processes_scanned":164,"processes_trimmed":98,"estimated_mb_freed":9343.5,"top_trimmed":[{"name":"firefox.exe","pid":5324,"mb_freed":751.6},{"name":"firefox.exe","pid":9632,"mb_freed":516.9},{"name":"firefox.exe","pid":16192,"mb_freed":479.2},{"name":"SwitchControl.exe","pid":11316,"mb_freed":462.2},{"name":"firefox.exe","pid":8208,"mb_freed":418.7}],"execution_ms":593,"errors_count":14}
+[2026-06-20T07:51:57.135Z] [LOG] [Memory] advanced mode: scanned=164 trimmed=98 freed=9343.5MB
+[2026-06-20T07:51:57.350Z] [LOG] [PS:tweak-executor] #86 queryPowerShell OK 586ms
+[2026-06-20T07:51:57.350Z] [LOG] [PS:tweak-executor] #87 queryPowerShell SPAWN ts=1781941917350 active=1
+[2026-06-20T07:51:57.727Z] [LOG] [Renderer:info] (MemoryCleanerModal-B7plY2vX.js:1) [MemoryCleaner] raw result from electronAPI.memory.clean: {"mode":"advanced","processes_scanned":164,"processes_trimmed":98,"estimated_mb_freed":9343.5,"top_trimmed":[{"name":"firefox.exe","pid":5324,"mb_freed":751.6},{"name":"firefox.exe","pid":9632,"mb_freed":516.9},{"name":"firefox.exe","pid":16192,"mb_freed":479.2},{"name":"SwitchControl.exe","pid":11316,"mb_freed":462.2},{"name":"firefox.exe","pid":8208,"mb_freed":418.7}],"execution_ms":593,"errors_count":14}
+[2026-06-20T07:51:58.037Z] [LOG] [PS:tweak-executor] #87 queryPowerShell OK 687ms
+[2026-06-20T07:51:58.037Z] [LOG] [PS:tweak-executor] #88 queryPowerShell SPAWN ts=1781941918037 active=1
+[2026-06-20T07:51:58.353Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:51:58.666Z] [LOG] [PS:tweak-executor] #88 queryPowerShell OK 628ms
+[2026-06-20T07:51:58.666Z] [LOG] [PS:tweak-executor] #89 queryPowerShell SPAWN ts=1781941918666 active=1
+[2026-06-20T07:51:59.552Z] [LOG] [PS:tweak-executor] #89 queryPowerShell OK 886ms
+[2026-06-20T07:51:59.552Z] [LOG] [PS:tweak-executor] #90 queryPowerShell SPAWN ts=1781941919552 active=1
+[2026-06-20T07:52:00.136Z] [LOG] [PS:tweak-executor] #90 queryPowerShell OK 584ms
+[2026-06-20T07:52:00.136Z] [LOG] [PS:tweak-executor] #91 queryPowerShell SPAWN ts=1781941920136 active=1
+[2026-06-20T07:52:00.663Z] [LOG] [PS:tweak-executor] #91 queryPowerShell OK 527ms
+[2026-06-20T07:52:00.663Z] [LOG] [PS:tweak-executor] #92 queryPowerShell SPAWN ts=1781941920663 active=1
+[2026-06-20T07:52:00.866Z] [LOG] [GPU] enrichment start
+[2026-06-20T07:52:00.867Z] [LOG] [GPU] si.graphics begin (3s timeout — WMI covers AMD DXGI hang)
+[2026-06-20T07:52:00.900Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: false
+[2026-06-20T07:52:01.609Z] [LOG] [PS:tweak-executor] #92 queryPowerShell OK 946ms
+[2026-06-20T07:52:01.609Z] [LOG] [PS:tweak-executor] #93 queryPowerShell SPAWN ts=1781941921609 active=1
+[2026-06-20T07:52:02.937Z] [LOG] [PS:tweak-executor] #93 queryPowerShell OK 1328ms
+[2026-06-20T07:52:02.937Z] [LOG] [PS:tweak-executor] #94 queryPowerShell SPAWN ts=1781941922937 active=1
+[2026-06-20T07:52:03.363Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:52:03.585Z] [LOG] [PS:tweak-executor] #94 queryPowerShell OK 648ms
+[2026-06-20T07:52:03.585Z] [LOG] [TweakSupport] id=nvidia-telemetry, supported=false, reason="No NVIDIA GPU detected", os=10.0.26200, helperFound=false
+[2026-06-20T07:52:03.585Z] [LOG] [TweakSupport] id=timer-res, supported=true, reason="persistent PowerShell agent", os=10.0.26200, helperFound=false
+[2026-06-20T07:52:03.585Z] [LOG] [PS:tweak-executor] #95 queryPowerShell SPAWN ts=1781941923585 active=1
+[2026-06-20T07:52:03.843Z] [LOG] [GPU] si.graphics resolved — +2977ms
+[2026-06-20T07:52:03.843Z] [LOG] [GPU] enrichment resolved — model=AMD Radeon RX 7800 XT +2977ms
+[2026-06-20T07:52:03.843Z] [LOG] [GPU] cachedSpecs updated — model=AMD Radeon RX 7800 XT +2977ms
+[2026-06-20T07:52:03.843Z] [LOG] [GPU] IPC sent — specs:enriched (gpu+cpu+disk)
+[2026-06-20T07:52:04.155Z] [LOG] [PS:tweak-executor] #95 queryPowerShell OK 570ms
+[2026-06-20T07:52:04.155Z] [LOG] [PS:tweak-executor] #96 queryPowerShell SPAWN ts=1781941924155 active=1
+[2026-06-20T07:52:04.734Z] [LOG] [PS:tweak-executor] #96 queryPowerShell OK 579ms
+[2026-06-20T07:52:04.734Z] [LOG] [PS:tweak-executor] #97 queryPowerShell SPAWN ts=1781941924734 active=1
+[2026-06-20T07:52:04.816Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:150) [Window] Focus event received
+[2026-06-20T07:52:04.816Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:211) [App] Electron window focus (passive)
+[2026-06-20T07:52:05.256Z] [LOG] [PS:tweak-executor] #97 queryPowerShell OK 522ms
+[2026-06-20T07:52:05.256Z] [LOG] [PS:tweak-executor] #98 queryPowerShell SPAWN ts=1781941925256 active=1
+[2026-06-20T07:52:05.786Z] [LOG] [PS:tweak-executor] #98 queryPowerShell OK 530ms
+[2026-06-20T07:52:05.786Z] [LOG] [PS:tweak-executor] #99 queryPowerShell SPAWN ts=1781941925786 active=1
+[2026-06-20T07:52:06.325Z] [LOG] [PS:tweak-executor] #99 queryPowerShell OK 539ms
+[2026-06-20T07:52:06.325Z] [LOG] [PS:tweak-executor] #100 queryPowerShell SPAWN ts=1781941926325 active=1
+[2026-06-20T07:52:06.993Z] [LOG] [PS:tweak-executor] #100 queryPowerShell OK 668ms
+[2026-06-20T07:52:06.993Z] [LOG] [PS:tweak-executor] #101 queryPowerShell SPAWN ts=1781941926993 active=1
+[2026-06-20T07:52:07.436Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:150) [Window] Focus event received
+[2026-06-20T07:52:07.436Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:211) [App] Electron window focus (passive)
+[2026-06-20T07:52:07.577Z] [LOG] [PS:tweak-executor] #101 queryPowerShell OK 584ms
+[2026-06-20T07:52:07.578Z] [LOG] [PS:tweak-executor] #102 queryPowerShell SPAWN ts=1781941927578 active=1
+[2026-06-20T07:52:08.107Z] [LOG] [PS:tweak-executor] #102 queryPowerShell OK 529ms
+[2026-06-20T07:52:08.108Z] [LOG] [PS:tweak-executor] #103 queryPowerShell SPAWN ts=1781941928108 active=1
+[2026-06-20T07:52:08.364Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:52:08.765Z] [LOG] [PS:tweak-executor] #103 queryPowerShell OK 657ms
+[2026-06-20T07:52:08.766Z] [LOG] [TweakSupport] id=usb-selective-suspend, supported=true, reason="powercfg USB setting present", os=10.0.26200, helperFound=true
+[2026-06-20T07:52:08.766Z] [LOG] [PS:tweak-executor] #104 queryPowerShell SPAWN ts=1781941928766 active=1
+[2026-06-20T07:52:09.333Z] [LOG] [PS:tweak-executor] #104 queryPowerShell OK 567ms
+[2026-06-20T07:52:09.333Z] [LOG] [PS:tweak-executor] #105 queryPowerShell SPAWN ts=1781941929333 active=1
+[2026-06-20T07:52:09.890Z] [LOG] [PS:tweak-executor] #105 queryPowerShell OK 557ms
+[2026-06-20T07:52:09.890Z] [LOG] [PS:tweak-executor] #106 queryPowerShell SPAWN ts=1781941929890 active=1
+[2026-06-20T07:52:10.419Z] [LOG] [PS:tweak-executor] #106 queryPowerShell OK 529ms
+[2026-06-20T07:52:10.420Z] [LOG] [PS:tweak-executor] #107 queryPowerShell SPAWN ts=1781941930420 active=1
+[2026-06-20T07:52:10.936Z] [LOG] [PS:tweak-executor] #107 queryPowerShell OK 516ms
+[2026-06-20T07:52:10.936Z] [LOG] [PS:tweak-executor] #108 queryPowerShell SPAWN ts=1781941930936 active=1
+[2026-06-20T07:52:11.464Z] [LOG] [PS:tweak-executor] #108 queryPowerShell OK 528ms
+[2026-06-20T07:52:11.465Z] [LOG] [PS:tweak-executor] #109 queryPowerShell SPAWN ts=1781941931465 active=1
+[2026-06-20T07:52:12.021Z] [LOG] [PS:tweak-executor] #109 queryPowerShell OK 556ms
+[2026-06-20T07:52:12.021Z] [LOG] [PS:tweak-executor] #110 queryPowerShell SPAWN ts=1781941932021 active=1
+[2026-06-20T07:52:12.539Z] [LOG] [PS:tweak-executor] #110 queryPowerShell OK 518ms
+[2026-06-20T07:52:12.539Z] [LOG] [PS:tweak-executor] #111 queryPowerShell SPAWN ts=1781941932539 active=1
+[2026-06-20T07:52:12.939Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: false
+[2026-06-20T07:52:12.950Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:210) [ExtremeLabs] {"userTier":"free","trial":false,"premium":false,"desktopMode":true,"canApply":false,"canAnalyze":true}
+[2026-06-20T07:52:13.061Z] [LOG] [PS:tweak-executor] #111 queryPowerShell OK 522ms
+[2026-06-20T07:52:13.061Z] [LOG] [PS:tweak-executor] #112 queryPowerShell SPAWN ts=1781941933061 active=1
+[2026-06-20T07:52:13.355Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: false
+[2026-06-20T07:52:13.356Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:135) [calculateBiosScores] settings=36 | latencyTotal=33.01 frametime=32.33999999999999 stability=27.18 | clamped: latency=33.01 frametime=32.33999999999999 stability=27.18 cr=32
+[2026-06-20T07:52:13.387Z] [ERROR] [Renderer:error] (index-Duq8VQfa.js:10) Error: <circle> attribute r: Expected length, "undefined".
+[2026-06-20T07:52:13.579Z] [LOG] [PS:tweak-executor] #112 queryPowerShell OK 518ms
+[2026-06-20T07:52:13.579Z] [LOG] [PS:tweak-executor] #113 queryPowerShell SPAWN ts=1781941933579 active=1
+[2026-06-20T07:52:13.834Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: false
+[2026-06-20T07:52:13.846Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:210) [ExtremeLabs] {"userTier":"free","trial":false,"premium":false,"desktopMode":true,"canApply":false,"canAnalyze":true}
+[2026-06-20T07:52:14.105Z] [LOG] [PS:tweak-executor] #113 queryPowerShell OK 526ms
+[2026-06-20T07:52:14.105Z] [LOG] [PS:tweak-executor] #114 queryPowerShell SPAWN ts=1781941934105 active=1
+[2026-06-20T07:52:14.620Z] [LOG] [PS:tweak-executor] #114 queryPowerShell OK 515ms
+[2026-06-20T07:52:14.620Z] [LOG] [PS:tweak-executor] #115 queryPowerShell SPAWN ts=1781941934620 active=1
+[2026-06-20T07:52:15.126Z] [LOG] [PS:tweak-executor] #115 queryPowerShell OK 506ms
+[2026-06-20T07:52:15.126Z] [LOG] [PS:tweak-executor] #116 queryPowerShell SPAWN ts=1781941935126 active=1
+[2026-06-20T07:52:15.573Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: false
+[2026-06-20T07:52:15.573Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:155) [Timing] StartupApps | mount | +0ms
+[2026-06-20T07:52:15.582Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:155) [Timing] StartupApps | startup-scan | +9ms
+[2026-06-20T07:52:15.582Z] [LOG] [PS] start file=main.js fn=startup:scan reason=startup-scan id=10 active=2
+[2026-06-20T07:52:15.689Z] [LOG] [PS:tweak-executor] #116 queryPowerShell OK 563ms
+[2026-06-20T07:52:15.689Z] [LOG] [PS:tweak-executor] #117 queryPowerShell SPAWN ts=1781941935689 active=1
+[2026-06-20T07:52:15.947Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: false
+[2026-06-20T07:52:16.260Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: false
+[2026-06-20T07:52:16.279Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:196) [AI:CONTEXT] source=zustand-store enabled=15 disabled=51
+[2026-06-20T07:52:16.279Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:196) [AI:CONTEXT] enabled_tweaks=fast-startup, maintenance, core-isolation, vbs, hyper-v, notifications, pcie-link-state, disable-dcom, page-combining, superfetch, copilot, gaming-mode, disable-pointer-precision, xbox-bar, fax-printer
+[2026-06-20T07:52:16.279Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:196) [AI:CONTEXT] system-intelligence enriched | MB=X870E AORUS PRO ICE | BIOS=F12a | net=Wi-Fi 1201Mbps (Wi-Fi)
+[2026-06-20T07:52:16.279Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:196) [AI Specs Input] cpu="AMD Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz" ramTotalGB=32 disk="SKHynix_HFS512GEJ9X115N 512.1GB SSD"
+[2026-06-20T07:52:16.362Z] [LOG] [PS:tweak-executor] #117 queryPowerShell OK 673ms
+[2026-06-20T07:52:16.363Z] [LOG] [PS:tweak-executor] #118 queryPowerShell SPAWN ts=1781941936363 active=1
+[2026-06-20T07:52:16.829Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:196) [AI:CONTEXT] source=zustand-store enabled=15 disabled=51
+[2026-06-20T07:52:16.829Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:196) [AI:CONTEXT] enabled_tweaks=fast-startup, maintenance, core-isolation, vbs, hyper-v, notifications, pcie-link-state, disable-dcom, page-combining, superfetch, copilot, gaming-mode, disable-pointer-precision, xbox-bar, fax-printer
+[2026-06-20T07:52:16.829Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:196) [AI:CONTEXT] system-intelligence enriched | MB=X870E AORUS PRO ICE | BIOS=F12a | net=Wi-Fi 1201Mbps (Wi-Fi)
+[2026-06-20T07:52:16.830Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:196) [AI Specs Input] cpu="AMD Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz" ramTotalGB=32 disk="SKHynix_HFS512GEJ9X115N 512.1GB SSD"
+[2026-06-20T07:52:16.959Z] [LOG] [PS] end file=main.js fn=startup:scan id=10 duration=1377ms active=1 calls60s=2
+[2026-06-20T07:52:16.960Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:155) [Timing] StartupApps | startup-scan-done | +1387ms
+[2026-06-20T07:52:16.960Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: false
+[2026-06-20T07:52:16.962Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:196) [AI:CONTEXT] source=zustand-store enabled=15 disabled=51
+[2026-06-20T07:52:16.963Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:196) [AI:CONTEXT] enabled_tweaks=fast-startup, maintenance, core-isolation, vbs, hyper-v, notifications, pcie-link-state, disable-dcom, page-combining, superfetch, copilot, gaming-mode, disable-pointer-precision, xbox-bar, fax-printer
+[2026-06-20T07:52:16.963Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:196) [AI:CONTEXT] system-intelligence enriched | MB=X870E AORUS PRO ICE | BIOS=F12a | net=Wi-Fi 1201Mbps (Wi-Fi)
+[2026-06-20T07:52:16.963Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:196) [AI Specs Input] cpu="AMD Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz" ramTotalGB=32 disk="SKHynix_HFS512GEJ9X115N 512.1GB SSD"
+[2026-06-20T07:52:16.964Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/history target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:52:17.030Z] [LOG] [PS:tweak-executor] #118 queryPowerShell OK 667ms
+[2026-06-20T07:52:17.030Z] [LOG] [PS:tweak-executor] #119 queryPowerShell SPAWN ts=1781941937030 active=1
+[2026-06-20T07:52:17.695Z] [LOG] [PS:tweak-executor] #119 queryPowerShell OK 665ms
+[2026-06-20T07:52:17.696Z] [LOG] [PS:tweak-executor] #120 queryPowerShell SPAWN ts=1781941937696 active=1
+[2026-06-20T07:52:18.272Z] [LOG] [PS:tweak-executor] #120 queryPowerShell OK 576ms
+[2026-06-20T07:52:18.272Z] [LOG] [PS:tweak-executor] #121 queryPowerShell SPAWN ts=1781941938272 active=1
+[2026-06-20T07:52:18.788Z] [LOG] [PS:tweak-executor] #121 queryPowerShell OK 516ms
+[2026-06-20T07:52:18.788Z] [LOG] [PS:tweak-executor] #122 queryPowerShell SPAWN ts=1781941938788 active=1
+[2026-06-20T07:52:18.834Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:196) [AI:CONTEXT] source=zustand-store enabled=15 disabled=51
+[2026-06-20T07:52:18.835Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:196) [AI:CONTEXT] enabled_tweaks=fast-startup, maintenance, core-isolation, vbs, hyper-v, notifications, pcie-link-state, disable-dcom, page-combining, superfetch, copilot, gaming-mode, disable-pointer-precision, xbox-bar, fax-printer
+[2026-06-20T07:52:18.835Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:196) [AI:CONTEXT] system-intelligence enriched | MB=X870E AORUS PRO ICE | BIOS=F12a | net=Wi-Fi 1201Mbps (Wi-Fi)
+[2026-06-20T07:52:18.835Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:196) [AI Specs Input] cpu="AMD Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz" ramTotalGB=32 disk="SKHynix_HFS512GEJ9X115N 512.1GB SSD"
+[2026-06-20T07:52:19.339Z] [LOG] [PS:tweak-executor] #122 queryPowerShell OK 551ms
+[2026-06-20T07:52:19.339Z] [LOG] [PS:tweak-executor] #123 queryPowerShell SPAWN ts=1781941939339 active=1
+[2026-06-20T07:52:19.611Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: false
+[2026-06-20T07:52:19.888Z] [LOG] [PS:tweak-executor] #123 queryPowerShell OK 549ms
+[2026-06-20T07:52:19.888Z] [LOG] [PS:tweak-executor] #124 queryPowerShell SPAWN ts=1781941939888 active=1
+[2026-06-20T07:52:19.979Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: false
+[2026-06-20T07:52:19.980Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:155) [Timing] SystemCleaner | mount | +0ms
+[2026-06-20T07:52:19.991Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:155) [Timing] SystemCleaner | init | +12ms
+[2026-06-20T07:52:20.209Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: false
+[2026-06-20T07:52:20.427Z] [LOG] [PS:tweak-executor] #124 queryPowerShell OK 539ms
+[2026-06-20T07:52:20.427Z] [LOG] [PS:tweak-executor] #125 queryPowerShell SPAWN ts=1781941940427 active=1
+[2026-06-20T07:52:20.950Z] [LOG] [PS:tweak-executor] #125 queryPowerShell OK 523ms
+[2026-06-20T07:52:20.950Z] [LOG] [PS-Exec] done file=main.js fn=tweak:syncAll ms=36884
+[2026-06-20T07:52:20.950Z] [LOG] [PS] end file=main.js fn=tweak:syncAll id=9 duration=36884ms active=0 calls60s=3
+[2026-06-20T07:52:20.951Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:27) [Tweaks:SET] id="gaming-mode" enabled=true (from system sync)
+[2026-06-20T07:52:20.952Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:27) [Tweaks:SET] id="notifications" enabled=true (from system sync)
+[2026-06-20T07:52:20.952Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:27) [Tweaks:SET] id="copilot" enabled=true (from system sync)
+[2026-06-20T07:52:20.952Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:27) [Tweaks:SET] id="cortana" enabled=false (from system sync)
+[2026-06-20T07:52:20.952Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:27) [Tweaks:SET] id="search-highlights" enabled=false (from system sync)
+[2026-06-20T07:52:20.952Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:27) [Tweaks:SET] id="storage-sense" enabled=false (from system sync)
+[2026-06-20T07:52:20.952Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:27) [Tweaks:SET] id="compact-explorer" enabled=false (from system sync)
+[2026-06-20T07:52:20.952Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:27) [Tweaks:SET] id="recent-files" enabled=false (from system sync)
+[2026-06-20T07:52:20.952Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:27) [Tweaks:SET] id="xbox-bar" enabled=true (from system sync)
+[2026-06-20T07:52:20.952Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:27) [Tweaks:SET] id="bg-apps" enabled=false (from system sync)
+[2026-06-20T07:52:20.952Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:27) [Tweaks:SET] id="disable-fso" enabled=false (from system sync)
+[2026-06-20T07:52:20.952Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:27) [Tweaks:SET] id="disable-pointer-precision" enabled=true (from system sync)
+[2026-06-20T07:52:20.953Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:27) [Tweaks:SET] id="disable-transparency" enabled=false (from system sync)
+[2026-06-20T07:52:20.953Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:27) [Tweaks:SET] id="disable-animations" enabled=false (from system sync)
+[2026-06-20T07:52:20.953Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:27) [Tweaks:SET] id="show-file-extensions" enabled=false (from system sync)
+[2026-06-20T07:52:20.953Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:27) [Tweaks:SET] id="explorer-separate-process" enabled=false (from system sync)
+[2026-06-20T07:52:20.953Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:27) [Tweaks:SET] id="disable-wallpaper-compression" enabled=false (from system sync)
+[2026-06-20T07:52:20.953Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:27) [Tweaks:SET] id="hibernation" enabled=false (from system sync)
+[2026-06-20T07:52:20.953Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:27) [Tweaks:SET] id="fast-startup" enabled=true (from system sync)
+[2026-06-20T07:52:20.953Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:27) [Tweaks:SET] id="energy-logging" enabled=false (from system sync)
+[2026-06-20T07:52:20.953Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:27) [Tweaks:SET] id="maintenance" enabled=true (from system sync)
+[2026-06-20T07:52:20.953Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:27) [Tweaks:SET] id="core-isolation" enabled=true (from system sync)
+[2026-06-20T07:52:20.953Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:27) [Tweaks:SET] id="vbs" enabled=true (from system sync)
+[2026-06-20T07:52:20.953Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:27) [Tweaks:SET] id="hyper-v" enabled=true (from system sync)
+[2026-06-20T07:52:20.953Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:27) [Tweaks:SET] id="large-system-cache" enabled=false (from system sync)
+[2026-06-20T07:52:20.954Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:27) [Tweaks:SET] id="page-combining" enabled=true (from system sync)
+[2026-06-20T07:52:20.954Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:27) [Tweaks:SET] id="prefetch" enabled=false (from system sync)
+[2026-06-20T07:52:20.954Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:27) [Tweaks:SET] id="superfetch" enabled=true (from system sync)
+[2026-06-20T07:52:20.954Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:27) [Tweaks:SET] id="mem-opt" enabled=false (from system sync)
+[2026-06-20T07:52:20.954Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:27) [Tweaks:SET] id="telemetry" enabled=false (from system sync)
+[2026-06-20T07:52:20.954Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:155) [TweakSupport] id=nvidia-telemetry, supported=false, reason="Backend confirmed this tweak is not available on this system." (runtime check)
+[2026-06-20T07:52:20.954Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:27) [Tweaks:SET] id="tune-priority" enabled=false (from system sync)
+[2026-06-20T07:52:20.954Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:27) [Tweaks:SET] id="bluetooth" enabled=false (from system sync)
+[2026-06-20T07:52:20.954Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:27) [Tweaks:SET] id="wifi" enabled=false (from system sync)
+[2026-06-20T07:52:20.954Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:27) [Tweaks:SET] id="xbox-services" enabled=false (from system sync)
+[2026-06-20T07:52:20.954Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:27) [Tweaks:SET] id="fax-printer" enabled=true (from system sync)
+[2026-06-20T07:52:20.954Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:27) [Tweaks:SET] id="synth-timers" enabled=false (from system sync)
+[2026-06-20T07:52:20.955Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:27) [Tweaks:SET] id="preemption" enabled=false (from system sync)
+[2026-06-20T07:52:20.955Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:27) [Tweaks:SET] id="disable-mpo" enabled=false (from system sync)
+[2026-06-20T07:52:20.955Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:27) [Tweaks:SET] id="usb-selective-suspend" enabled=false (from system sync)
+[2026-06-20T07:52:20.955Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:27) [Tweaks:SET] id="pcie-link-state" enabled=true (from system sync)
+[2026-06-20T07:52:20.955Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:27) [Tweaks:SET] id="mmcss-gaming" enabled=false (from system sync)
+[2026-06-20T07:52:20.955Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:27) [Tweaks:SET] id="disable-delivery-opt" enabled=false (from system sync)
+[2026-06-20T07:52:20.955Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:27) [Tweaks:SET] id="disable-wer" enabled=false (from system sync)
+[2026-06-20T07:52:20.955Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:27) [Tweaks:SET] id="win-search-index" enabled=false (from system sync)
+[2026-06-20T07:52:20.955Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:27) [Tweaks:SET] id="disable-activity-history" enabled=false (from system sync)
+[2026-06-20T07:52:20.955Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:27) [Tweaks:SET] id="power-throttling" enabled=false (from system sync)
+[2026-06-20T07:52:20.955Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:27) [Tweaks:SET] id="ntfs-last-access" enabled=false (from system sync)
+[2026-06-20T07:52:20.956Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:27) [Tweaks:SET] id="disable-auto-restart-apps" enabled=false (from system sync)
+[2026-06-20T07:52:20.956Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:27) [Tweaks:SET] id="mmcss-nolazymode" enabled=false (from system sync)
+[2026-06-20T07:52:20.956Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:27) [Tweaks:SET] id="disable-lock-screen" enabled=false (from system sync)
+[2026-06-20T07:52:20.956Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:27) [Tweaks:SET] id="disable-dcom" enabled=true (from system sync)
+[2026-06-20T07:52:20.956Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:155) [Tweaks:SYNC] hydration done gen=3 reconciled=51
+[2026-06-20T07:52:20.956Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: false
+[2026-06-20T07:52:21.556Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: false
+[2026-06-20T07:52:21.562Z] [LOG] [PS:nic-executor] #4 queryPS SPAWN ts=1781941941562
+[2026-06-20T07:52:21.797Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: false
+[2026-06-20T07:52:22.847Z] [LOG] [PS:nic-executor] #4 queryPS OK 1285ms
+[2026-06-20T07:52:23.312Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: false
+[2026-06-20T07:52:23.321Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:210) [ExtremeLabs] {"userTier":"free","trial":false,"premium":false,"desktopMode":true,"canApply":false,"canAnalyze":true}
+[2026-06-20T07:52:25.042Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: false
+[2026-06-20T07:52:25.042Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:135) [calculateBiosScores] settings=36 | latencyTotal=33.01 frametime=32.33999999999999 stability=27.18 | clamped: latency=33.01 frametime=32.33999999999999 stability=27.18 cr=32
+[2026-06-20T07:52:25.068Z] [ERROR] [Renderer:error] (index-Duq8VQfa.js:10) Error: <circle> attribute r: Expected length, "undefined".
+[2026-06-20T07:52:25.608Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: false
+[2026-06-20T07:52:25.623Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:196) [AI:CONTEXT] source=zustand-store enabled=15 disabled=51
+[2026-06-20T07:52:25.623Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:196) [AI:CONTEXT] enabled_tweaks=fast-startup, maintenance, core-isolation, vbs, hyper-v, notifications, pcie-link-state, disable-dcom, page-combining, superfetch, copilot, gaming-mode, disable-pointer-precision, xbox-bar, fax-printer
+[2026-06-20T07:52:25.624Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:196) [AI:CONTEXT] system-intelligence enriched | MB=X870E AORUS PRO ICE | BIOS=F12a | net=Wi-Fi 1201Mbps (Wi-Fi)
+[2026-06-20T07:52:25.624Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:196) [AI Specs Input] cpu="AMD Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz" ramTotalGB=32 disk="SKHynix_HFS512GEJ9X115N 512.1GB SSD"
+[2026-06-20T07:52:26.843Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:196) [AI:CONTEXT] source=zustand-store enabled=15 disabled=51
+[2026-06-20T07:52:26.843Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:196) [AI:CONTEXT] enabled_tweaks=fast-startup, maintenance, core-isolation, vbs, hyper-v, notifications, pcie-link-state, disable-dcom, page-combining, superfetch, copilot, gaming-mode, disable-pointer-precision, xbox-bar, fax-printer
+[2026-06-20T07:52:26.843Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:196) [AI:CONTEXT] system-intelligence enriched | MB=X870E AORUS PRO ICE | BIOS=F12a | net=Wi-Fi 1201Mbps (Wi-Fi)
+[2026-06-20T07:52:26.843Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:196) [AI Specs Input] cpu="AMD Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz" ramTotalGB=32 disk="SKHynix_HFS512GEJ9X115N 512.1GB SSD"
+[2026-06-20T07:52:27.322Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: false
+[2026-06-20T07:52:27.334Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/debloat/items?role=gaming&level=safe target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:52:27.334Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/debloat/history target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:52:27.898Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: false
+[2026-06-20T07:52:27.898Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:155) [Timing] SystemCleaner | mount | +0ms
+[2026-06-20T07:52:27.907Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:155) [Timing] SystemCleaner | init | +9ms
+[2026-06-20T07:52:29.698Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:155) [Timing] SystemCleaner | init | +1800ms
+[2026-06-20T07:52:30.541Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:155) [Timing] SystemCleaner | init | +2643ms
+[2026-06-20T07:52:31.146Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:155) [Timing] SystemCleaner | init | +3249ms
+[2026-06-20T07:52:33.698Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: false
+[2026-06-20T07:52:37.024Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: false
+[2026-06-20T07:52:38.463Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: false
+[2026-06-20T07:52:38.489Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:155) [Dashboard] mounted
+[2026-06-20T07:52:38.489Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:155) [ActivityMonitor] reused cached state — history points: 60 status: ready
+[2026-06-20T07:52:38.506Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:52:38.506Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/system-dna target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:52:38.506Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:52:38.506Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:52:38.506Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/ram-analysis target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:52:39.694Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/startup/apps target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:52:39.810Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/issues/detect target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:52:41.066Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: false
+[2026-06-20T07:52:41.110Z] [LOG] [PS] start file=main.js fn=slider:readValue reason=slider-read id=11 active=1
+[2026-06-20T07:52:41.111Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-20T07:52:41.110Z
+[2026-06-20T07:52:41.112Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-20T07:52:41.110Z
+[2026-06-20T07:52:41.112Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-20T07:52:41.110Z
+[2026-06-20T07:52:41.112Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-20T07:52:41.110Z
+[2026-06-20T07:52:41.112Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-20T07:52:41.110Z
+[2026-06-20T07:52:41.112Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-20T07:52:41.110Z
+[2026-06-20T07:52:41.112Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-20T07:52:41.110Z
+[2026-06-20T07:52:41.113Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:155) [Tweaks:LOAD] source=zustand-persist enabled=15 total_known=52
+[2026-06-20T07:52:41.113Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:155) [Tweaks:LOAD] enabled_ids=gaming-mode, maintenance, page-combining, xbox-bar, core-isolation, copilot, fax-printer, hyper-v, vbs, fast-startup, pcie-link-state, superfetch, disable-pointer-precision, notifications, disable-dcom
+[2026-06-20T07:52:41.113Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:155) [Tweaks:SYNC] hydration start gen=4
+[2026-06-20T07:52:41.113Z] [LOG] [PS] start file=main.js fn=tweak:syncAll reason=tweak-sync-all id=12 active=2
+[2026-06-20T07:52:41.113Z] [LOG] [PS-Exec] start file=main.js fn=tweak:syncAll reason=tweak-sync-all — 63 checks
+[2026-06-20T07:52:41.113Z] [LOG] [PS:tweak-executor] #126 queryPowerShell SPAWN ts=1781941961113 active=1
+[2026-06-20T07:52:41.120Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/tweak-intelligence/system-state target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:52:41.120Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/tweak-intelligence/rankings?applied=gaming-mode%2Cmaintenance%2Cpage-combining%2Cxbox-bar%2Ccore-isolation%2Ccopilot%2Cfax-printer%2Chyper-v%2Cvbs%2Cfast-startup%2Cpcie-link-state%2Csuperfetch%2Cdisable-pointer-precision%2Cnotifications%2Cdisable-dcom target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:52:41.120Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/tweak-intelligence/posture?applied=gaming-mode%2Cmaintenance%2Cpage-combining%2Cxbox-bar%2Ccore-isolation%2Ccopilot%2Cfax-printer%2Chyper-v%2Cvbs%2Cfast-startup%2Cpcie-link-state%2Csuperfetch%2Cdisable-pointer-precision%2Cnotifications%2Cdisable-dcom target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:52:41.142Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:155) [SliderHydration] win32-priority-sep: read skipped — limiter busy (expected at startup)
+[2026-06-20T07:52:41.142Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:155) [SliderHydration] sys-responsiveness: read skipped — limiter busy (expected at startup)
+[2026-06-20T07:52:41.143Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:155) [SliderHydration] net-throttle-index: read skipped — limiter busy (expected at startup)
+[2026-06-20T07:52:41.143Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:155) [SliderHydration] menu-show-delay: read skipped — limiter busy (expected at startup)
+[2026-06-20T07:52:41.143Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:155) [SliderHydration] hung-app-timeout: read skipped — limiter busy (expected at startup)
+[2026-06-20T07:52:41.143Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:155) [SliderHydration] low-level-hooks-timeout: read skipped — limiter busy (expected at startup)
+[2026-06-20T07:52:41.143Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:155) [SliderHydration] wait-to-kill-app: read skipped — limiter busy (expected at startup)
+[2026-06-20T07:52:41.734Z] [LOG] [SliderExecutor] READ svchost-split-threshold: value=33554432 raw="33554432"
+[2026-06-20T07:52:41.734Z] [LOG] [PS] end file=main.js fn=slider:readValue id=11 duration=624ms active=1 calls60s=4
+[2026-06-20T07:52:41.735Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:155) [SliderHydration] svchost-split-threshold: value=33554432 missing=false
+[2026-06-20T07:52:41.736Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: false
+[2026-06-20T07:52:41.758Z] [LOG] [PS:tweak-executor] #126 queryPowerShell OK 645ms
+[2026-06-20T07:52:41.759Z] [LOG] [PS:tweak-executor] #127 queryPowerShell SPAWN ts=1781941961759 active=1
+[2026-06-20T07:52:42.218Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: false
+[2026-06-20T07:52:42.247Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:155) [Dashboard] mounted
+[2026-06-20T07:52:42.247Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:155) [ActivityMonitor] reused cached state — history points: 60 status: ready
+[2026-06-20T07:52:42.263Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:52:42.263Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/system-dna target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:52:42.264Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:52:42.264Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:52:42.264Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:10) [AuthRoute] path=/api/dashboard-intelligence/ram-analysis target=local reason=system-route base=http://127.0.0.1:60192/api
+[2026-06-20T07:52:42.275Z] [LOG] [PS:tweak-executor] #127 queryPowerShell OK 516ms
+[2026-06-20T07:52:42.276Z] [LOG] [PS:tweak-executor] #128 queryPowerShell SPAWN ts=1781941962276 active=1
+[2026-06-20T07:52:42.799Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: false
+[2026-06-20T07:52:42.816Z] [LOG] [PS:tweak-executor] #128 queryPowerShell OK 540ms
+[2026-06-20T07:52:42.816Z] [LOG] [PS:tweak-executor] #129 queryPowerShell SPAWN ts=1781941962816 active=1
+[2026-06-20T07:52:43.337Z] [LOG] [PS:tweak-executor] #129 queryPowerShell OK 521ms
+[2026-06-20T07:52:43.338Z] [LOG] [PS:tweak-executor] #130 queryPowerShell SPAWN ts=1781941963338 active=1
+[2026-06-20T07:52:43.852Z] [LOG] [PS:tweak-executor] #130 queryPowerShell OK 514ms
+[2026-06-20T07:52:43.852Z] [LOG] [PS:tweak-executor] #131 queryPowerShell SPAWN ts=1781941963852 active=1
+[2026-06-20T07:52:44.373Z] [LOG] [PS:tweak-executor] #131 queryPowerShell OK 521ms
+[2026-06-20T07:52:44.373Z] [LOG] [PS:tweak-executor] #132 queryPowerShell SPAWN ts=1781941964373 active=1
+[2026-06-20T07:52:44.915Z] [LOG] [PS:tweak-executor] #132 queryPowerShell OK 542ms
+[2026-06-20T07:52:44.915Z] [LOG] [PS:tweak-executor] #133 queryPowerShell SPAWN ts=1781941964915 active=1
+[2026-06-20T07:52:45.157Z] [LOG] [Renderer:info] (index-Duq8VQfa.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: false
+[2026-06-20T07:52:45.464Z] [LOG] [PS:tweak-executor] #133 queryPowerShell OK 549ms
+[2026-06-20T07:52:45.464Z] [LOG] [PS:tweak-executor] #134 queryPowerShell SPAWN ts=1781941965464 active=1
+[2026-06-20T07:52:46.038Z] [LOG] [PS:tweak-executor] #134 queryPowerShell OK 574ms
+[2026-06-20T07:52:46.038Z] [LOG] [PS:tweak-executor] #135 queryPowerShell SPAWN ts=1781941966038 active=1
+[2026-06-20T07:52:46.558Z] [LOG] [PS:tweak-executor] #135 queryPowerShell OK 520ms
+[2026-06-20T07:52:46.558Z] [LOG] [PS:tweak-executor] #136 queryPowerShell SPAWN ts=1781941966558 active=1
+[2026-06-20T07:52:47.067Z] [LOG] [PS:tweak-executor] #136 queryPowerShell OK 509ms
+[2026-06-20T07:52:47.068Z] [LOG] [PS:tweak-executor] #137 queryPowerShell SPAWN ts=1781941967068 active=1
+[2026-06-20T07:52:47.588Z] [LOG] [PS:tweak-executor] #137 queryPowerShell OK 520ms
+[2026-06-20T07:52:47.588Z] [LOG] [PS:tweak-executor] #138 queryPowerShell SPAWN ts=1781941967588 active=1
