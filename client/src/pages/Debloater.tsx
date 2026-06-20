@@ -8,11 +8,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import {
-  ShieldCheck, Gamepad2, Monitor, Laptop, Cpu, Zap,
+  ShieldCheck, Gamepad2, Monitor, Zap,
   RefreshCw, CheckCircle, AlertTriangle, Info, ChevronDown, ChevronUp,
   RotateCcw, Play, Trash2, History, Clock, X, AlertCircle,
   MemoryStick, HardDrive, Eye, TrendingDown, BarChart3, Layers,
-  Minus, PcCase, Radio, Settings2, Package,
+  Minus, Settings2, Package,
   Shield, Sparkles, Flame, Rocket, ScanLine, Activity, Boxes,
 } from "lucide-react";
 import { InstalledAppsPanel } from "@/components/debloater/InstalledAppsPanel";
@@ -89,14 +89,6 @@ interface HistoryEntry {
 
 // ── Static config ─────────────────────────────────────────────────────────────
 
-const SYSTEM_ROLES: { id: SystemRole; name: string; icon: React.ComponentType<{ className?: string }>; description: string }[] = [
-  { id: "gaming",      name: "Gaming PC",          icon: Gamepad2, description: "Remove consumer noise, keep gaming tools" },
-  { id: "streaming",   name: "Streaming / Rec",    icon: Radio,    description: "OBS-focused, keep overlays & audio" },
-  { id: "workstation", name: "Workstation",         icon: Monitor,  description: "Stability first, minimal removals" },
-  { id: "laptop",      name: "Laptop / Battery",    icon: Laptop,   description: "Reduce background drain" },
-  { id: "minimal",     name: "Minimal OS",          icon: PcCase,   description: "Bare Windows, power users only" },
-];
-
 const DEBLOAT_LEVELS: {
   id: DebloatLevel; name: string; description: string;
   accent: string; bg: string; border: string;
@@ -156,32 +148,6 @@ declare global {
 }
 
 const isElectron = () => typeof window !== "undefined" && !!window.electronAPI?.debloat;
-
-// ── Impact graph component ────────────────────────────────────────────────────
-
-function ImpactBar({ label, value, max, color, unit }: {
-  label: string; value: number; max: number; color: string; unit: string;
-}) {
-  const pct = max > 0 ? Math.min(100, (value / max) * 100) : 0;
-  return (
-    <div className="space-y-1.5">
-      <div className="flex items-center justify-between text-xs">
-        <span className="text-muted-foreground">{label}</span>
-        <span className={cn("font-mono font-semibold", color)}>
-          {value > 0 ? <><AnimatedCounter value={value} /> {unit}</> : "—"}
-        </span>
-      </div>
-      <div className="h-1.5 rounded-full bg-[#21262D] overflow-hidden">
-        <motion.div
-          className={cn("h-full rounded-full", color.replace("text-", "bg-"))}
-          initial={{ width: 0 }}
-          animate={{ width: `${pct}%` }}
-          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-        />
-      </div>
-    </div>
-  );
-}
 
 function SafetyRing({ safe, medium, high }: { safe: number; medium: number; high: number }) {
   const total = safe + medium + high;
@@ -820,7 +786,6 @@ export default function Debloater() {
   );
   const [session, setSession] = useState<ApplySession | null>(null);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
-  const [showHistory, setShowHistory] = useState(false);
   const [activeView, setActiveView] = useState<"items" | "results" | "history">("items");
   const [applyProgress, setApplyProgress] = useState<ApplyProgressState | null>(null);
   const [showApplyOverlay, setShowApplyOverlay] = useState(false);
