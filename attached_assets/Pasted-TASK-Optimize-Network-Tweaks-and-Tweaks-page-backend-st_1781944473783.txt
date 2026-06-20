@@ -1,0 +1,211 @@
+TASK
+
+Optimize Network Tweaks and Tweaks page backend state loading.
+
+Current problem:
+
+Before applying tweaks, the page waits too long because backend state checks are executed synchronously.
+
+Users experience delays before anything becomes interactive.
+
+GOAL
+
+Page should feel instant.
+
+The UI should render immediately.
+
+State checks should happen progressively in the background.
+
+PROBLEM
+
+Current flow:
+
+Open page
+
+↓
+
+Wait for state checks
+
+↓
+
+Wait for PowerShell
+
+↓
+
+Wait for service queries
+
+↓
+
+Wait for registry reads
+
+↓
+
+UI finally usable
+
+This makes the page feel slow.
+
+NEW FLOW
+
+Open page
+
+↓
+
+Render UI immediately
+
+↓
+
+Show loading skeletons on cards
+
+↓
+
+Background state sync starts
+
+↓
+
+Cards update progressively
+
+↓
+
+Apply buttons become available as their state finishes
+
+No full-page blocking.
+
+STATE ENGINE
+
+Do NOT execute every check sequentially.
+
+Run checks concurrently.
+
+Group checks by category:
+
+Registry
+
+Services
+
+PowerShell
+
+Network adapter
+
+TCP settings
+
+Windows features
+
+Use Promise.all with controlled concurrency.
+
+CACHE
+
+Cache state results.
+
+Reuse previous values.
+
+TTL:
+
+30-60 seconds.
+
+Do NOT rerun every check when reopening the page.
+
+Only refresh changed sections.
+
+BACKGROUND REFRESH
+
+User enters page
+
+↓
+
+Instant UI
+
+↓
+
+Cached values displayed
+
+↓
+
+Background refresh updates values silently
+
+↓
+
+Animations show changes
+
+No waiting.
+
+NETWORK TWEAKS
+
+Network Tweaks page should never wait for all state checks before allowing interaction.
+
+Sections:
+
+DNS
+
+TCP
+
+Gaming
+
+NIC
+
+Advanced
+
+should load independently.
+
+Skeletons while loading.
+
+SECTION STATUS
+
+Each section gets:
+
+Loading
+
+Synced
+
+Error
+
+Updating
+
+Animated indicators.
+
+APPLY PROCESS
+
+When applying:
+
+Do NOT rerun every state check.
+
+Only validate affected tweaks.
+
+After apply:
+
+Update only modified cards.
+
+Avoid full-page refresh.
+
+POWERHELL OPTIMIZATION
+
+Find duplicate PowerShell calls.
+
+Batch registry reads.
+
+Batch service checks.
+
+Reuse processes where possible.
+
+Avoid spawning dozens of isolated shells.
+
+UI
+
+Premium loading:
+
+Shimmer cards
+
+Animated progress line
+
+Pulse indicators
+
+Smooth transitions
+
+Page should always feel alive.
+
+RESULT
+
+Opening Network Tweaks or Tweaks should feel instant.
+
+Backend checks happen invisibly.
+
+Users should never sit waiting before interacting with the page.

@@ -1,0 +1,267 @@
+TASK
+
+Redesign the Premium Revert System.
+
+Current system is unreliable.
+
+Observed success rates:
+
+Power Plans:
+100%
+
+Normal Tweaks:
+~50%
+
+Network Tweaks:
+~20%
+
+Extreme Labs:
+0%
+
+This is unacceptable.
+
+When a premium trial expires, every premium change must revert automatically with near 100% reliability.
+
+GOAL
+
+Premium trial expiration must leave the machine exactly as it was before the trial.
+
+No premium tweak should survive expiration.
+
+CURRENT PROBLEM
+
+The system attempts to infer what was changed.
+
+Inference is unreliable.
+
+Network tweaks and Extreme Labs often remain active.
+
+NEW ARCHITECTURE
+
+CREATE A PREMIUM CHANGE JOURNAL
+
+Every time a premium tweak is applied:
+
+Record:
+
+userId
+
+timestamp
+
+category
+
+tweakId
+
+old state
+
+new state
+
+registry values
+
+service states
+
+adapter values
+
+power plan values
+
+before snapshot
+
+after snapshot
+
+Never rely on guessing.
+
+Store exact values.
+
+PREMIUM STATE DATABASE
+
+Maintain:
+
+premiumAppliedTweaks[]
+
+premiumNetworkTweaks[]
+
+premiumExtremeLabs[]
+
+premiumPowerPlans[]
+
+premiumRegistryChanges[]
+
+premiumServices[]
+
+Every applied premium item gets tracked.
+
+TRIAL EXPIRATION
+
+When trial ends:
+
+Start Premium Revert Engine.
+
+STEP 1
+
+Lock premium features.
+
+STEP 2
+
+Load journal.
+
+STEP 3
+
+Reverse changes in exact reverse order.
+
+STEP 4
+
+Verify each revert.
+
+STEP 5
+
+Retry failures.
+
+STEP 6
+
+Generate final report.
+
+VERIFICATION
+
+After reverting:
+
+Perform state checks.
+
+If values do not match baseline:
+
+Retry.
+
+Retry up to 3 times.
+
+Mark failed items.
+
+Show user.
+
+NETWORK TWEAKS
+
+Network tweaks require special handling.
+
+Record:
+
+DNS
+
+TCP values
+
+Autotuning
+
+ECN
+
+RSS
+
+RSC
+
+Interrupt moderation
+
+NIC properties
+
+Registry values
+
+Adapter advanced properties
+
+Restore exact previous values.
+
+Never assume defaults.
+
+EXTREME LABS
+
+Extreme Labs currently fails.
+
+Introduce:
+
+Extreme Labs Snapshot.
+
+Before any Extreme Labs tweak:
+
+Save:
+
+registry
+
+services
+
+scheduler values
+
+BCDEdit values
+
+power settings
+
+interrupt policies
+
+device states
+
+kernel values
+
+Use snapshot to restore.
+
+POWER PLANS
+
+Already reliable.
+
+Keep existing system.
+
+SELF HEAL
+
+Every startup:
+
+Check:
+
+isPremiumActive
+
+trialExpired
+
+premiumJournalExists
+
+If trial expired and journal exists:
+
+Automatically run revert engine again.
+
+Never leave machine partially premium.
+
+FAILSAFE
+
+Even if app crashes during expiration:
+
+Next launch resumes revert process.
+
+Nothing is skipped.
+
+UI
+
+Add:
+
+Premium Revert Progress
+
+Reverting Network Tweaks
+
+Restoring Registry
+
+Restoring Services
+
+Verifying State
+
+Final Cleanup
+
+Animated progress.
+
+Success report.
+
+RESULT
+
+Trial expiration should guarantee:
+
+100% power plan revert
+
+100% tweak revert
+
+100% network revert
+
+100% Extreme Labs revert
+
+No premium changes may survive expiration.
+
+Never guess.
+
+Always restore exact recorded values.

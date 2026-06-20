@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { logHistory } from "@/lib/logHistory";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useLiveTelemetry } from "@/hooks/useLiveTelemetry";
@@ -13,6 +13,7 @@ import {
   RotateCcw, Play, Trash2, History, Clock, X, AlertCircle,
   MemoryStick, HardDrive, Eye, TrendingDown, BarChart3, Layers,
   Minus, PcCase, Radio, Settings2, Package,
+  Shield, Sparkles, Flame, Rocket, ScanLine, Activity, Boxes,
 } from "lucide-react";
 import { InstalledAppsPanel } from "@/components/debloater/InstalledAppsPanel";
 import { ApplyProgressOverlay, ApplyProgressState, ApplyProgressItem } from "@/components/debloater/ApplyProgressOverlay";
@@ -20,6 +21,7 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import { useMotion, Reveal } from "@/lib/motion";
+import { PieChart, Pie, Cell } from "recharts";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -167,7 +169,7 @@ function ImpactBar({ label, value, max, color, unit }: {
       <div className="flex items-center justify-between text-xs">
         <span className="text-muted-foreground">{label}</span>
         <span className={cn("font-mono font-semibold", color)}>
-          {value > 0 ? `${value} ${unit}` : "—"}
+          {value > 0 ? <><AnimatedCounter value={value} /> {unit}</> : "—"}
         </span>
       </div>
       <div className="h-1.5 rounded-full bg-[#21262D] overflow-hidden">
@@ -215,6 +217,315 @@ function StatusChip({ status }: { status: ResultStatus }) {
       <Icon className="size-3" />
       {cfg.label}
     </span>
+  );
+}
+
+// ── Rolling number counter ────────────────────────────────────────────────────
+
+function AnimatedCounter({ value, decimals = 0, className }: {
+  value: number; decimals?: number; className?: string;
+}) {
+  const { prefersReducedMotion } = useMotion();
+  const [display, setDisplay] = useState(value);
+  const fromRef = useRef(value);
+
+  useEffect(() => {
+    if (prefersReducedMotion) { setDisplay(value); fromRef.current = value; return; }
+    const from = fromRef.current;
+    const to = value;
+    if (from === to) return;
+    const start = performance.now();
+    const dur = 700;
+    let raf = 0;
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - start) / dur);
+      const eased = 1 - Math.pow(1 - t, 3);
+      setDisplay(from + (to - from) * eased);
+      if (t < 1) raf = requestAnimationFrame(tick);
+      else fromRef.current = to;
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [value, prefersReducedMotion]);
+
+  return <span className={className}>{display.toFixed(decimals)}</span>;
+}
+
+// ── Batch / intensity action panels config ────────────────────────────────────
+
+const BATCH_PANELS: {
+  id: DebloatLevel;
+  title: string;
+  tagline: string;
+  description: string;
+  gain: string;
+  risk: string;
+  icon: React.ComponentType<{ className?: string }>;
+  impact: number; // 1-4 filled bars
+  accent: string;       // text color
+  glow: string;         // box-shadow rgba
+  ring: string;         // active border
+  gradient: string;     // background gradient (active)
+  iconGlow: string;
+}[] = [
+  {
+    id: "safe", title: "Safe Debloat", tagline: "Fully reversible",
+    description: "Registry & policy tweaks only. Nothing is uninstalled.",
+    gain: "Light cleanup", risk: "Low risk", icon: Shield, impact: 1,
+    accent: "text-emerald-300", glow: "rgba(16,185,129,0.35)", ring: "border-emerald-400/60",
+    gradient: "linear-gradient(135deg, rgba(16,185,129,0.22) 0%, rgba(16,185,129,0.06) 60%, rgba(13,17,23,0.4) 100%)",
+    iconGlow: "0 0 26px rgba(16,185,129,0.55)",
+  },
+  {
+    id: "balanced", title: "Recommended", tagline: "Best for most",
+    description: "Removes consumer apps and telemetry. Balanced & safe.",
+    gain: "Balanced boost", risk: "Low–med risk", icon: Sparkles, impact: 2,
+    accent: "text-cyan-300", glow: "rgba(0,212,255,0.35)", ring: "border-cyan-400/60",
+    gradient: "linear-gradient(135deg, rgba(0,212,255,0.22) 0%, rgba(0,212,255,0.06) 60%, rgba(13,17,23,0.4) 100%)",
+    iconGlow: "0 0 26px rgba(0,212,255,0.55)",
+  },
+  {
+    id: "aggressive", title: "Aggressive", tagline: "Deep clean",
+    description: "Strips Cortana, Copilot, Widgets and the Xbox overlay.",
+    gain: "Big reduction", risk: "Medium risk", icon: Flame, impact: 3,
+    accent: "text-orange-300", glow: "rgba(249,115,22,0.35)", ring: "border-orange-400/60",
+    gradient: "linear-gradient(135deg, rgba(249,115,22,0.22) 0%, rgba(249,115,22,0.06) 60%, rgba(13,17,23,0.4) 100%)",
+    iconGlow: "0 0 26px rgba(249,115,22,0.55)",
+  },
+  {
+    id: "extreme", title: "Maximum Performance", tagline: "Power users",
+    description: "Service-level changes for the leanest possible system.",
+    gain: "Maximum gains", risk: "High risk", icon: Rocket, impact: 4,
+    accent: "text-rose-300", glow: "rgba(244,63,94,0.35)", ring: "border-rose-400/60",
+    gradient: "linear-gradient(135deg, rgba(244,63,94,0.22) 0%, rgba(244,63,94,0.06) 60%, rgba(13,17,23,0.4) 100%)",
+    iconGlow: "0 0 26px rgba(244,63,94,0.55)",
+  },
+];
+
+// ── Subtle confetti burst ─────────────────────────────────────────────────────
+
+function Confetti({ active }: { active: boolean }) {
+  const { prefersReducedMotion } = useMotion();
+  const pieces = useMemo(() =>
+    Array.from({ length: 34 }, (_, i) => ({
+      id: i,
+      x: (Math.random() - 0.5) * 320,
+      y: -(120 + Math.random() * 220),
+      rot: Math.random() * 540 - 270,
+      delay: Math.random() * 0.18,
+      color: ["#00D4FF", "#34d399", "#f59e0b", "#f43f5e", "#a855f7"][i % 5],
+      size: 5 + Math.random() * 6,
+    })), []);
+  if (prefersReducedMotion || !active) return null;
+  return (
+    <div className="pointer-events-none absolute inset-x-0 top-0 flex justify-center overflow-visible" aria-hidden>
+      <div className="relative">
+        {pieces.map(p => (
+          <motion.span
+            key={p.id}
+            className="absolute block rounded-[2px]"
+            style={{ width: p.size, height: p.size * 1.6, backgroundColor: p.color }}
+            initial={{ opacity: 1, x: 0, y: 0, rotate: 0 }}
+            animate={{ opacity: [1, 1, 0], x: p.x, y: p.y, rotate: p.rot }}
+            transition={{ duration: 1.5, delay: p.delay, ease: [0.22, 1, 0.36, 1] }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Results donut chart ───────────────────────────────────────────────────────
+
+function ResultsDonut({ success, failed, skipped }: {
+  success: number; failed: number; skipped: number;
+}) {
+  const data = [
+    { name: "Succeeded", value: success, color: "#34d399" },
+    { name: "Failed", value: failed, color: "#f43f5e" },
+    { name: "Skipped", value: skipped, color: "#6b7280" },
+  ].filter(d => d.value > 0);
+  const total = success + failed + skipped;
+  if (total === 0) return null;
+
+  return (
+    <div className="relative flex items-center justify-center" style={{ width: 132, height: 132 }}>
+      <PieChart width={132} height={132}>
+        <Pie
+          data={data} dataKey="value" nameKey="name"
+          cx="50%" cy="50%" innerRadius={44} outerRadius={62}
+          paddingAngle={3} startAngle={90} endAngle={-270}
+          stroke="none" isAnimationActive
+          animationDuration={900} animationBegin={120}
+        >
+          {data.map((d, i) => <Cell key={i} fill={d.color} />)}
+        </Pie>
+      </PieChart>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span className="text-2xl font-bold text-[#E6EAF0] leading-none">
+          <AnimatedCounter value={success} />
+        </span>
+        <span className="text-[9px] uppercase tracking-wider text-muted-foreground mt-1">done</span>
+      </div>
+    </div>
+  );
+}
+
+// ── Performance gauge (semicircle) ────────────────────────────────────────────
+
+function ScoreGauge({ value, label, color }: { value: number; label: string; color: string }) {
+  const pct = Math.max(0, Math.min(100, value));
+  const r = 40;
+  const circ = Math.PI * r; // semicircle length
+  const dash = (pct / 100) * circ;
+  return (
+    <div className="flex flex-col items-center">
+      <svg width="100" height="58" viewBox="0 0 100 58" className="overflow-visible">
+        <path d="M 8 52 A 42 42 0 0 1 92 52" fill="none" stroke="#21262D" strokeWidth="8" strokeLinecap="round" />
+        <motion.path
+          d="M 8 52 A 42 42 0 0 1 92 52" fill="none" stroke={color} strokeWidth="8" strokeLinecap="round"
+          strokeDasharray={circ}
+          initial={{ strokeDashoffset: circ }}
+          animate={{ strokeDashoffset: circ - dash }}
+          transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
+          style={{ filter: `drop-shadow(0 0 6px ${color}99)` }}
+        />
+      </svg>
+      <span className="text-lg font-bold text-[#E6EAF0] -mt-3" style={{ color }}>
+        <AnimatedCounter value={pct} />%
+      </span>
+      <span className="text-[10px] text-muted-foreground">{label}</span>
+    </div>
+  );
+}
+
+// ── Premium scan overlay ──────────────────────────────────────────────────────
+
+const SCAN_STEPS = [
+  "Analyzing system",
+  "Enumerating installed apps",
+  "Inspecting Windows features",
+  "Checking services",
+  "Calculating removable components",
+  "Preparing recommendations",
+];
+
+function ScanOverlay({ open }: { open: boolean }) {
+  const { prefersReducedMotion } = useMotion();
+  const [step, setStep] = useState(0);
+
+  useEffect(() => {
+    if (!open) { setStep(0); return; }
+    const t = setInterval(() => setStep(s => Math.min(s + 1, SCAN_STEPS.length - 1)), 520);
+    return () => clearInterval(t);
+  }, [open]);
+
+  if (!open) return null;
+  const progress = ((step + 1) / SCAN_STEPS.length) * 100;
+
+  return (
+    <motion.div
+      className="fixed inset-0 z-[70] flex items-center justify-center bg-[#0D1117]/80 backdrop-blur-md"
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      data-testid="overlay-scan"
+    >
+      <motion.div
+        className="relative w-[420px] max-w-[90vw] rounded-2xl border border-cyan-400/20 p-7 overflow-hidden"
+        style={{
+          background: "linear-gradient(145deg, rgba(20,26,33,0.95) 0%, rgba(13,17,23,0.95) 100%)",
+          boxShadow: "0 24px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(0,212,255,0.08) inset",
+        }}
+        initial={{ scale: 0.92, y: 16, opacity: 0 }}
+        animate={{ scale: 1, y: 0, opacity: 1 }}
+        transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+      >
+        {/* rotating particle ring */}
+        <div className="flex justify-center mb-6">
+          <div className="relative size-24 flex items-center justify-center">
+            {!prefersReducedMotion && (
+              <>
+                <motion.div
+                  className="absolute inset-0 rounded-full border-2 border-cyan-400/30 border-t-cyan-400"
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1.4, repeat: Infinity, ease: "linear" }}
+                />
+                <motion.div
+                  className="absolute inset-2 rounded-full border-2 border-transparent border-b-cyan-300/60"
+                  animate={{ rotate: -360 }}
+                  transition={{ duration: 2.2, repeat: Infinity, ease: "linear" }}
+                />
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <motion.span
+                    key={i}
+                    className="absolute size-1.5 rounded-full bg-cyan-300"
+                    style={{ top: "50%", left: "50%" }}
+                    animate={{
+                      x: Math.cos((i / 6) * Math.PI * 2) * 46,
+                      y: Math.sin((i / 6) * Math.PI * 2) * 46,
+                      opacity: [0.2, 1, 0.2],
+                    }}
+                    transition={{ duration: 1.8, repeat: Infinity, delay: i * 0.12, ease: "easeInOut" }}
+                  />
+                ))}
+              </>
+            )}
+            <motion.div
+              animate={prefersReducedMotion ? {} : { scale: [1, 1.12, 1] }}
+              transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
+            >
+              <ScanLine className="size-8 text-cyan-300" style={{ filter: "drop-shadow(0 0 10px rgba(0,212,255,0.7))" }} />
+            </motion.div>
+          </div>
+        </div>
+
+        <div className="text-center mb-1">
+          <h3 className="text-base font-bold text-[#E6EAF0]">Scanning your system</h3>
+          <p className="text-[11px] text-muted-foreground">Detecting removable components in real time</p>
+        </div>
+
+        {/* animated progress line */}
+        <div className="mt-5 h-1.5 rounded-full bg-[#21262D] overflow-hidden">
+          <motion.div
+            className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-[#00D4FF]"
+            animate={{ width: `${progress}%` }}
+            transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+            style={{ boxShadow: "0 0 12px rgba(0,212,255,0.6)" }}
+          />
+        </div>
+
+        {/* steps */}
+        <div className="mt-5 space-y-2">
+          {SCAN_STEPS.map((s, i) => {
+            const done = i < step;
+            const active = i === step;
+            return (
+              <div key={s} className="flex items-center gap-2.5 text-xs">
+                <span className={cn(
+                  "size-4 rounded-full flex items-center justify-center shrink-0 transition-colors",
+                  done ? "bg-emerald-500/20" : active ? "bg-cyan-500/20" : "bg-[#21262D]"
+                )}>
+                  {done ? (
+                    <CheckCircle className="size-3 text-emerald-400" />
+                  ) : active && !prefersReducedMotion ? (
+                    <motion.span
+                      className="size-1.5 rounded-full bg-cyan-300"
+                      animate={{ scale: [1, 1.5, 1], opacity: [0.5, 1, 0.5] }}
+                      transition={{ duration: 1, repeat: Infinity }}
+                    />
+                  ) : (
+                    <span className="size-1.5 rounded-full bg-muted-foreground/30" />
+                  )}
+                </span>
+                <span className={cn(
+                  "transition-colors",
+                  done ? "text-muted-foreground line-through/0" : active ? "text-[#E6EAF0] font-medium" : "text-muted-foreground/50"
+                )}>{s}</span>
+              </div>
+            );
+          })}
+        </div>
+      </motion.div>
+    </motion.div>
   );
 }
 
@@ -814,30 +1125,179 @@ export default function Debloater() {
           })}
         </div>
 
-        {/* Mode + action bar */}
+        {/* ── Overview stat cards ────────────────────────────────────────────── */}
+        <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
+          {[
+            { key: "apps", label: "Removable items", value: visibleItems.length, unit: "", icon: Boxes, color: "#00D4FF", spark: "M0 18 L14 14 L28 16 L42 8 L56 10 L70 3", decimals: 0 },
+            { key: "ram", label: "RAM recoverable", value: visibleItems.reduce((a, i) => a + i.estimatedRamMb, 0), unit: "MB", icon: MemoryStick, color: "#22d3ee", spark: "M0 16 L14 17 L28 11 L42 13 L56 6 L70 7", decimals: 0 },
+            { key: "proc", label: "Live processes", value: liveTel?.processes.total ?? 0, unit: "", icon: Activity, color: "#a855f7", spark: "M0 12 L14 8 L28 14 L42 9 L56 13 L70 7", decimals: 0 },
+            { key: "disk", label: "Disk recoverable", value: visibleItems.reduce((a, i) => a + i.estimatedDiskMb, 0), unit: "MB", icon: HardDrive, color: "#34d399", spark: "M0 17 L14 12 L28 15 L42 6 L56 9 L70 4", decimals: 0 },
+          ].map((s, i) => {
+            const SIcon = s.icon;
+            return (
+              <motion.div
+                key={s.key}
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.05 * i, ease: [0.22, 1, 0.36, 1] }}
+                whileHover={prefersReducedMotion ? {} : { y: -3 }}
+                className="group relative overflow-hidden rounded-2xl border border-[#2A313A] p-4"
+                style={{ background: "linear-gradient(135deg, rgba(26,31,38,0.9) 0%, rgba(13,17,23,0.85) 100%)" }}
+                data-testid={`stat-${s.key}`}
+              >
+                <span
+                  className="pointer-events-none absolute -top-10 -right-10 size-28 rounded-full blur-2xl opacity-0 group-hover:opacity-25 transition-opacity duration-300"
+                  style={{ background: s.color }}
+                />
+                <div className="relative flex items-start justify-between">
+                  <div>
+                    <p className="text-[11px] text-muted-foreground mb-1.5">{s.label}</p>
+                    <p className="text-2xl font-bold text-[#E6EAF0] leading-none tabular-nums">
+                      <AnimatedCounter value={s.value} decimals={s.decimals} />
+                      {s.unit && <span className="text-sm font-semibold text-muted-foreground ml-1">{s.unit}</span>}
+                    </p>
+                  </div>
+                  <div
+                    className="size-9 rounded-xl flex items-center justify-center shrink-0"
+                    style={{ background: `${s.color}1a`, boxShadow: `0 0 18px ${s.color}33` }}
+                  >
+                    <SIcon className="size-4.5" style={{ color: s.color }} />
+                  </div>
+                </div>
+                {/* mini sparkline */}
+                <svg viewBox="0 0 70 22" className="mt-3 w-full h-6 overflow-visible" preserveAspectRatio="none">
+                  <motion.path
+                    d={s.spark} fill="none" stroke={s.color} strokeWidth="2"
+                    strokeLinecap="round" strokeLinejoin="round"
+                    initial={{ pathLength: 0, opacity: 0.4 }}
+                    animate={{ pathLength: 1, opacity: 0.85 }}
+                    transition={{ duration: 1.1, delay: 0.2 + 0.05 * i, ease: "easeOut" }}
+                    style={{ filter: `drop-shadow(0 0 4px ${s.color}66)` }}
+                  />
+                </svg>
+              </motion.div>
+            );
+          })}
+        </div>
+
+        {/* ── Batch section — large intensity action panels ──────────────────── */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Zap className="size-4 text-[#00D4FF]" />
+            <span className="text-sm font-semibold text-[#E6EAF0]">Choose your intensity</span>
+            <span className="text-xs text-muted-foreground">Pick how deep the cleanup goes</span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+            {BATCH_PANELS.map((panel, i) => {
+              const PIcon = panel.icon;
+              const active = level === panel.id;
+              return (
+                <motion.button
+                  key={panel.id}
+                  type="button"
+                  onClick={() => setLevel(panel.id)}
+                  data-testid={`level-${panel.id}`}
+                  initial={{ opacity: 0, y: 18 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.45, delay: 0.05 * i, ease: [0.22, 1, 0.36, 1] }}
+                  whileHover={prefersReducedMotion ? {} : { y: -5, scale: 1.015 }}
+                  whileTap={prefersReducedMotion ? {} : { scale: 0.985 }}
+                  className={cn(
+                    "group relative overflow-hidden rounded-2xl border p-4 text-left transition-colors duration-300",
+                    active ? panel.ring : "border-[#2A313A] hover:border-white/15"
+                  )}
+                  style={{
+                    background: active ? panel.gradient : "linear-gradient(135deg, rgba(26,31,38,0.9) 0%, rgba(13,17,23,0.85) 100%)",
+                    boxShadow: active
+                      ? `0 12px 40px ${panel.glow}, 0 0 0 1px ${panel.glow} inset`
+                      : "0 4px 16px rgba(0,0,0,0.25)",
+                  }}
+                >
+                  {/* shimmer sweep on hover */}
+                  <span className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/8 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
+
+                  {/* glow blob */}
+                  <span
+                    className={cn(
+                      "pointer-events-none absolute -top-8 -right-8 size-24 rounded-full blur-2xl transition-opacity duration-300",
+                      active ? "opacity-60" : "opacity-0 group-hover:opacity-30"
+                    )}
+                    style={{ background: panel.glow }}
+                  />
+
+                  <div className="relative">
+                    <div className="flex items-center justify-between mb-3">
+                      <motion.div
+                        className="size-11 rounded-xl flex items-center justify-center"
+                        style={{
+                          background: active ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.04)",
+                          boxShadow: active ? panel.iconGlow : "none",
+                        }}
+                        animate={active && !prefersReducedMotion ? { scale: [1, 1.08, 1] } : {}}
+                        transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
+                      >
+                        <PIcon className={cn("size-5.5 transition-colors", active ? panel.accent : "text-muted-foreground group-hover:text-[#E6EAF0]")} />
+                      </motion.div>
+                      {active && (
+                        <motion.span
+                          initial={{ scale: 0 }} animate={{ scale: 1 }}
+                          className={cn("flex items-center gap-1 text-[10px] font-semibold", panel.accent)}
+                        >
+                          <CheckCircle className="size-3" />Active
+                        </motion.span>
+                      )}
+                    </div>
+
+                    <p className={cn("text-[10px] uppercase tracking-wider font-medium mb-0.5", active ? panel.accent : "text-muted-foreground/70")}>
+                      {panel.tagline}
+                    </p>
+                    <h3 className={cn("text-sm font-bold leading-tight", active ? "text-[#E6EAF0]" : "text-foreground/90")}>
+                      {panel.title}
+                    </h3>
+                    <p className="text-[11px] text-muted-foreground mt-1.5 leading-relaxed min-h-[44px]">
+                      {panel.description}
+                    </p>
+
+                    {/* impact bars */}
+                    <div className="flex items-center gap-1 mt-2">
+                      {[0, 1, 2, 3].map(b => (
+                        <span
+                          key={b}
+                          className={cn(
+                            "h-1 flex-1 rounded-full transition-colors",
+                            b < panel.impact
+                              ? (active ? cn(panel.accent, "bg-current") : "bg-foreground/30")
+                              : "bg-[#21262D]"
+                          )}
+                        />
+                      ))}
+                    </div>
+
+                    <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/5">
+                      <span className={cn("flex items-center gap-1 text-[10px] font-medium", active ? panel.accent : "text-muted-foreground")}>
+                        <TrendingDown className="size-3" />{panel.gain}
+                      </span>
+                      <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                        <AlertTriangle className="size-2.5" />{panel.risk}
+                      </span>
+                    </div>
+                  </div>
+                </motion.button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Action bar */}
         <motion.div
-          className="flex items-center justify-between gap-4"
+          className="flex flex-wrap items-center justify-between gap-3"
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.3 }}
         >
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground mr-1">Intensity:</span>
-            {DEBLOAT_LEVELS.map(l => (
-              <button
-                key={l.id}
-                onClick={() => setLevel(l.id)}
-                data-testid={`level-${l.id}`}
-                className={cn(
-                  "px-3 py-1.5 rounded-lg text-xs font-medium border transition-all duration-200",
-                  level === l.id
-                    ? `${l.bg} ${l.accent} ${l.border}`
-                    : "bg-[#1A1F26] border-[#2A313A] text-muted-foreground hover:text-[#E6EAF0] hover:bg-[#1A1F26]"
-                )}
-              >
-                {l.name}
-              </button>
-            ))}
+          <div className="text-xs text-muted-foreground">
+            <span className="font-semibold text-[#E6EAF0]">{stats.count}</span> of {visibleItems.length} items selected at <span className={cn("font-semibold", currentLevel.accent)}>{currentLevel.name}</span> level
           </div>
 
           <div className="flex items-center gap-2">
@@ -851,25 +1311,31 @@ export default function Debloater() {
             {session && (
               <button
                 onClick={() => setActiveView(activeView === "results" ? "items" : "results")}
-                className="text-xs text-[#00D4FF] hover:text-[#33E0FF] flex items-center gap-1.5 px-2 py-1.5 rounded hover:bg-[#00D4FF] transition-colors"
+                className="text-xs text-[#00D4FF] hover:text-[#33E0FF] flex items-center gap-1.5 px-2 py-1.5 rounded hover:bg-[#00D4FF]/10 transition-colors"
               >
                 <BarChart3 className="size-3.5" />
                 {activeView === "results" ? "Back to items" : "View results"}
               </button>
             )}
-            <Button
-              onClick={applyDebloat}
-              disabled={applying || loading || stats.count === 0}
-              size="sm"
-              className="bg-primary hover:bg-primary/90 gap-2"
-              data-testid="button-apply-debloat"
-            >
-              {applying ? (
-                <><RefreshCw className="size-3.5 animate-spin" />Processing…</>
-              ) : (
-                <><Play className="size-3.5" />Apply ({stats.count})</>
-              )}
-            </Button>
+            <motion.div whileHover={prefersReducedMotion ? {} : { scale: 1.03 }} whileTap={prefersReducedMotion ? {} : { scale: 0.97 }}>
+              <Button
+                onClick={applyDebloat}
+                disabled={applying || loading || stats.count === 0}
+                size="sm"
+                className="gap-2 text-white border-0 shadow-lg"
+                style={{
+                  background: "linear-gradient(135deg, #00D4FF 0%, #00C8F5 100%)",
+                  boxShadow: stats.count > 0 ? "0 6px 22px rgba(0,212,255,0.35)" : undefined,
+                }}
+                data-testid="button-apply-debloat"
+              >
+                {applying ? (
+                  <><RefreshCw className="size-3.5 animate-spin" />Processing…</>
+                ) : (
+                  <><Play className="size-3.5" />Apply ({stats.count})</>
+                )}
+              </Button>
+            </motion.div>
           </div>
         </motion.div>
 
@@ -1222,7 +1688,9 @@ export default function Debloater() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.25 }}
+              className="relative"
             >
+              <Confetti active={session.action === "apply" && session.successCount > 0} />
               <Card className={cn(
                 "border overflow-hidden",
                 session.action === "apply" ? "border-primary/30" : "border-blue-500/30"
@@ -1269,6 +1737,60 @@ export default function Debloater() {
                   </div>
                 </CardHeader>
                 <CardContent className="pt-0 space-y-1.5">
+                  {/* ── Results dashboard ── */}
+                  {(() => {
+                    const total = session.results.length;
+                    const skipped = session.results.filter(r => r.status === "already-absent").length;
+                    const removedResults = session.results.filter(r => r.status === "removed" || r.status === "restored");
+                    const ramFreed = removedResults.reduce((a, r) => a + (items.find(i => i.id === r.id)?.estimatedRamMb ?? 0), 0);
+                    const diskFreed = removedResults.reduce((a, r) => a + (items.find(i => i.id === r.id)?.estimatedDiskMb ?? 0), 0);
+                    const successRate = total > 0 ? Math.round((session.successCount / total) * 100) : 0;
+                    return (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                        className="mb-4 rounded-2xl border border-white/8 p-4"
+                        style={{ background: "linear-gradient(135deg, rgba(0,212,255,0.06) 0%, rgba(13,17,23,0.4) 100%)" }}
+                      >
+                        <div className="grid grid-cols-1 md:grid-cols-[auto_1fr] gap-5 items-center">
+                          {/* donut */}
+                          <div className="flex flex-col items-center">
+                            <ResultsDonut success={session.successCount} failed={session.failCount} skipped={skipped} />
+                            <div className="flex items-center gap-3 mt-2 text-[10px]">
+                              <span className="flex items-center gap-1 text-emerald-400"><span className="size-2 rounded-full bg-emerald-400" />{session.successCount}</span>
+                              {session.failCount > 0 && <span className="flex items-center gap-1 text-rose-400"><span className="size-2 rounded-full bg-rose-400" />{session.failCount}</span>}
+                              {skipped > 0 && <span className="flex items-center gap-1 text-muted-foreground"><span className="size-2 rounded-full bg-gray-500" />{skipped}</span>}
+                            </div>
+                          </div>
+
+                          {/* gauges + metrics */}
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 items-center">
+                            <ScoreGauge value={successRate} label="Success rate" color="#34d399" />
+                            <div className="text-center">
+                              <p className="text-xl font-bold text-cyan-300 tabular-nums leading-none">
+                                <AnimatedCounter value={ramFreed} /><span className="text-xs ml-0.5">MB</span>
+                              </p>
+                              <p className="text-[10px] text-muted-foreground mt-1">RAM freed</p>
+                            </div>
+                            <div className="text-center">
+                              <p className="text-xl font-bold text-[#00D4FF] tabular-nums leading-none">
+                                <AnimatedCounter value={diskFreed} /><span className="text-xs ml-0.5">MB</span>
+                              </p>
+                              <p className="text-[10px] text-muted-foreground mt-1">Disk freed</p>
+                            </div>
+                            <div className="text-center">
+                              <p className="text-xl font-bold text-emerald-300 tabular-nums leading-none">
+                                <AnimatedCounter value={removedResults.length} />
+                              </p>
+                              <p className="text-[10px] text-muted-foreground mt-1">Items handled</p>
+                            </div>
+                          </div>
+                        </div>
+                      </motion.div>
+                    );
+                  })()}
+
                   {session.results.map(result => {
                     const cfg = STATUS_CONFIG[result.status] ?? STATUS_CONFIG.pending;
                     const Icon = cfg.icon;
@@ -1430,6 +1952,11 @@ export default function Debloater() {
         </>)}
 
       </Reveal>
+
+      {/* Premium scan overlay */}
+      <AnimatePresence>
+        {scanning && <ScanOverlay open={scanning} />}
+      </AnimatePresence>
 
       {/* Apply progress overlay */}
       <AnimatePresence>
