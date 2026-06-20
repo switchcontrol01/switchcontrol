@@ -7,40 +7,47 @@ import {
   Gauge,
   Sparkles,
   Activity,
-  History,
+  HardDrive,
   Layers,
+  ScanLine,
+  BarChart3,
 } from "lucide-react";
 
 const STEPS = [
   {
-    icon: Sparkles,
-    label: "Smooth First-Login Experience",
-    desc: "The login screen no longer flashes or overlaps with the welcome animation when signing in for the first time via Google or Discord. The transition is now seamless every time.",
-  },
-  {
-    icon: Gauge,
-    label: "Instant Dashboard on Every Return",
-    desc: "Hardware specs are now cached for the entire session. Navigating away from Dashboard and coming back is instant — no stutter, no re-polling your CPU, GPU, or RAM.",
-  },
-  {
-    icon: History,
-    label: "History Tracks Everything",
-    desc: "All optimization actions — NIC Tuning, Startup Apps, Debloater, Security tweaks, and more — now appear correctly in the History page with full revert support.",
+    icon: HardDrive,
+    label: "Storage Health Built Into Cleaner",
+    desc: "A new Storage Health section lives inside the Cleaner page. Pick any drive, see animated free-space gauges, get TRIM or defrag recommendations based on drive type, and run optimization in one click.",
   },
   {
     icon: Activity,
-    label: "Faster App Startup",
-    desc: "The OS-level window fade-in on launch is now 600ms instead of 780ms. The app feels snappier from the moment you open it.",
+    label: "Drive Optimization History",
+    desc: "Every TRIM and defragmentation run is logged with a timestamp and drive details. The full history is visible right in the Cleaner so you always know when each drive was last optimized.",
+  },
+  {
+    icon: Sparkles,
+    label: "AI Advisor in Storage Health",
+    desc: "Contextual AI insights appear inline next to your drive data — no need to navigate away. A direct link to the AI Advisor lets you dig deeper with a single tap.",
+  },
+  {
+    icon: ScanLine,
+    label: "Debloater Premium Scan Overlay",
+    desc: "The plain loading spinner is gone. Scanning now triggers a multi-step animated overlay that shows what the engine is doing in real time, making the wait feel fast and purposeful.",
+  },
+  {
+    icon: Gauge,
+    label: "Debloater Batch Panels",
+    desc: "Four large action cards — Safe, Recommended, Aggressive, and Maximum Performance — replace the old intensity buttons. Each shows a gradient background, glow border, estimated gains, and risk level so you pick the right level at a glance.",
+  },
+  {
+    icon: BarChart3,
+    label: "Debloater Results Dashboard",
+    desc: "After a scan completes you get an animated donut chart, a score gauge, and subtle confetti. Every removable app is still listed with its restore button — the data is the same, the presentation is dramatically better.",
   },
   {
     icon: Shield,
-    label: "Cleaner Power Plan Page",
-    desc: "The System Intent section has been removed from the Power Plan page, leaving a more focused and streamlined layout.",
-  },
-  {
-    icon: Layers,
-    label: "Across the Board",
-    desc: "Version 1.1.4 updates every reference — patch notes, download page, and in-app copy — to reflect the latest improvements.",
+    label: "Web Demo for Storage Health",
+    desc: "Version 1.1.5 ships demo drive data (Samsung 990 Pro + Seagate BarraCuda) so the Storage Health section is fully visible and interactive on the web app — no desktop install required to see the feature.",
   },
 ];
 
@@ -87,19 +94,20 @@ export default function ReleaseStory() {
           <Reveal>
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.08] text-xs font-mono text-white/30 mb-6">
               <Layers className="w-3 h-3" />
-              Version 1.1.4
+              Version 1.1.5
             </div>
           </Reveal>
           <Reveal delay={0.1}>
             <h2 className="text-3xl md:text-5xl font-extrabold text-white mb-4 leading-tight">
-              Polish &amp; Stability.{" "}
-              <span className="font-light italic text-white/50">everywhere it matters.</span>
+              Storage Health &amp; Debloater.{" "}
+              <span className="font-light italic text-white/50">rebuilt from the ground up.</span>
             </h2>
           </Reveal>
           <Reveal delay={0.2}>
             <p className="text-white/30 max-w-lg mx-auto text-sm md:text-base leading-relaxed">
-              First-login flow fixed, dashboard loads instantly on return, and
-              History now captures every action you take.
+              Drive optimization lives in the Cleaner now, and the Debloater
+              gets a full premium visual overhaul — scan overlay, batch panels,
+              results dashboard, and more.
             </p>
           </Reveal>
         </div>

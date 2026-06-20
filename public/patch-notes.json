@@ -1,14 +1,17 @@
 {
-  "version": "1.1.4",
-  "title": "Polish & Stability Update",
-  "headline": "Login flow fixed for new users, dashboard loads faster on every return visit, and History now tracks every action.",
-  "date": "2026-06-19",
-  "type": "patch",
+  "version": "1.1.5",
+  "title": "Storage Health & Debloater Overhaul",
+  "headline": "Drive optimization is now built into the Cleaner, and the Debloater gets a full premium visual redesign with animated scan overlay, batch panels, and a results dashboard.",
+  "date": "2026-06-20",
+  "type": "minor",
   "changes": [
-    "Fixed: Login screen no longer flashes over the welcome animation when signing in for the first time via Google or Discord.",
-    "Fixed: Dashboard no longer re-polls hardware on every visit — specs are cached for the session so returning to Dashboard is instant.",
-    "Fixed: All optimization actions (NIC Tuning, Startup Apps, Debloater, Security, and more) now appear correctly in History.",
-    "Improved: App window fades in slightly faster on launch (600ms).",
-    "Improved: Power Plan page is cleaner — System Intent section removed."
+    "New: Storage Health section in Cleaner — monitor NVMe, SSD, and HDD drives with animated free-space gauges, TRIM/defrag recommendations, and one-click optimization.",
+    "New: Drive optimization history — every TRIM and defrag run is logged with timestamp and drive info, visible directly in the Cleaner.",
+    "New: AI Advisor integration in Storage Health — contextual drive insights shown inline, with a quick link to ask the AI Advisor for deeper analysis.",
+    "New: Debloater premium scan overlay — a multi-step animated scan experience replaces the plain loading state.",
+    "New: Debloater batch panels — four large action cards (Safe, Recommended, Aggressive, Maximum Performance) replace the old intensity buttons with gradient backgrounds, glow borders, and detailed descriptions.",
+    "New: Debloater results dashboard — animated donut chart, score gauge, and subtle confetti on scan complete.",
+    "Improved: Debloater stat cards now animate counters on load (apps removable, estimated RAM freed, live processes, estimated disk freed).",
+    "Improved: Storage Health shows a live demo on the web app (Samsung 990 Pro + Seagate BarraCuda) so the feature is always visible without the desktop app."
   ]
 }
