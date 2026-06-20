@@ -1,48 +1,52 @@
 /**
- * Premium Revert Engine
- * ─────────────────────
- * Reverts tweaks, network tweaks, and power plan changes applied by the app
+ * Premium Revert Engine v2
+ * ────────────────────────
+ * Reverts tweaks, network tweaks, Extreme Labs, and power plan changes applied
  * during trial or premium use.
  *
- * OWNERSHIP ELIGIBILITY
- * ---------------------
- * Tweaks / network tweaks:
- *   Only reverted when appliedByApp === true AND isPremium === true (tweaks)
- *   or appliedByApp === true (network tweaks — all are premium-gated).
- *   Items where appliedByApp === false are NEVER touched (user pre-existing state).
- *
- * Power plan — strict special rules:
- *   1. Always read the CURRENTLY active plan from Windows — do not trust the
- *      Zustand store alone. This catches stale / missing / cleared records.
- *   2. If the active plan is NOT a SwitchControl plan (detected by GUID or name
- *      prefix) → skip. The user already moved away. Clean state.
- *   3. If the active plan IS a SwitchControl plan → MUST revert:
- *        a) Use previousPlanGuid from ownership if valid and not itself a SC plan.
- *        b) Otherwise force Windows Balanced (BALANCED_GUID).
- *        c) If primary target fails → try Balanced as last resort.
+ * RELIABILITY FIXES (v2)
+ * ──────────────────────
+ * • Normal tweaks: if current state is already the target end-state (not applied)
+ *   we count it as 'reverted' rather than 'skipped_conflict'. Handles reboots,
+ *   Windows updates, or manual user changes that already undid the tweak.
+ * • Network tweaks: removed HTTP backend state pre-check — it used a potentially
+ *   stale DB snapshot and caused false "conflict → skip" on every state divergence.
+ *   Now executes IPC revert directly and verifies via the IPC result.
+ * • Extreme Labs: fully integrated. Records apply/revert in the ownership store
+ *   (ExtremeLabs.tsx) and reverts via electronAPI.extremeLabs.restoreBaseline().
+ * • Retry loop: all three categories retry up to MAX_RETRY_ATTEMPTS on failure,
+ *   with exponential back-off, before marking an item as failed.
+ * • Live progress: runPremiumRevert() accepts an onProgress callback so the UI
+ *   can display animated phase steps while the engine runs.
  */
 
 import { useTweakOwnershipStore } from '@/stores/tweakOwnershipStore';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-/** Windows Balanced built-in GUID — immutable restore target. */
-const BALANCED_GUID = '381b4222-f694-41f0-9685-ff5bb260df2e';
-
-/**
- * All SwitchControl-managed power plan names start with this prefix.
- * Used as a name-based fallback when the GUID record is unavailable.
- */
+const BALANCED_GUID       = '381b4222-f694-41f0-9685-ff5bb260df2e';
 const SC_PLAN_NAME_PREFIX = 'SwitchControl -';
+const MAX_RETRY_ATTEMPTS  = 3;
+const RETRY_BASE_DELAY_MS = 600;
 
-// ── Result types ───────────────────────────────────────────────────────────────
+// ── Phase type (exported for progress UI) ────────────────────────────────────
+
+export type RevertPhase =
+  | 'locking'
+  | 'reverting_tweaks'
+  | 'reverting_network'
+  | 'reverting_extreme_labs'
+  | 'verifying'
+  | 'complete';
+
+// ── Result types ──────────────────────────────────────────────────────────────
 
 export type RevertItemStatus =
-  | 'reverted'            // successfully reverted and verified
-  | 'skipped_conflict'    // current state differs from appliedState — user changed manually
-  | 'skipped_user_owned'  // appliedByApp === false — was pre-existing, never touched
-  | 'skipped_not_active'  // item exists in store but is no longer in an applied state
-  | 'failed';             // revert attempted but failed or could not be verified
+  | 'reverted'
+  | 'skipped_conflict'
+  | 'skipped_user_owned'
+  | 'skipped_not_active'
+  | 'failed';
 
 export interface RevertItemResult {
   tweakId: string;
@@ -52,181 +56,238 @@ export interface RevertItemResult {
 }
 
 export interface PowerPlanRevertResult {
-  /** What happened to the power plan. */
   status:
-    | 'reverted'        // restored to previousPlanGuid successfully
-    | 'forced_balanced' // forced to Windows Balanced (no valid previous GUID or as fallback)
-    | 'skipped_not_sc'  // active plan was not a SwitchControl plan — nothing to do
-    | 'failed'          // revert attempted but failed
-    | 'not_applicable'; // power plan API unavailable (non-Electron env)
+    | 'reverted'
+    | 'forced_balanced'
+    | 'skipped_not_sc'
+    | 'failed'
+    | 'not_applicable';
   targetGuid?: string;
   previousPlanName?: string;
   appliedPlanName?: string;
   reason?: string;
   forcedBalanced?: boolean;
-  /** Plans deleted from Windows Power Options during cleanup. */
   plansDeleted?: number;
-  /** True if post-cleanup verification confirmed no SC plans remain + active=Balanced. */
   verifiedClean?: boolean;
-  /** The active scheme name as read back from Windows after full revert+cleanup. */
   verifiedActiveName?: string;
 }
 
 export interface PremiumRevertReport {
   tweakResults: RevertItemResult[];
   networkResults: RevertItemResult[];
+  extremeLabsResults: RevertItemResult[];
   powerPlan: PowerPlanRevertResult;
   anyFailed: boolean;
   anyConflict: boolean;
   revertedCount: number;
 }
 
-// ── Internal helpers ───────────────────────────────────────────────────────────
+// ── Internal helpers ──────────────────────────────────────────────────────────
 
-function getTweaksAPI() {
-  return (window as any).electronAPI?.tweaks ?? null;
+function getTweaksAPI()     { return (window as any).electronAPI?.tweaks       ?? null; }
+function getNetworkAPI()    { return (window as any).electronAPI?.networkTweaks ?? null; }
+function getPowerPlanAPI()  { return (window as any).electronAPI?.powerPlans    ?? null; }
+function getPremiumAPI()    { return (window as any).electronAPI?.premium       ?? null; }
+function getExtremeLabsAPI(){ return (window as any).electronAPI?.extremeLabs  ?? null; }
+
+function delay(ms: number): Promise<void> {
+  return new Promise(r => setTimeout(r, ms));
 }
 
-function getNetworkAPI() {
-  return (window as any).electronAPI?.networkTweaks ?? null;
-}
-
-function getPowerPlanAPI() {
-  return (window as any).electronAPI?.powerPlans ?? null;
-}
-
-function getPremiumAPI() {
-  return (window as any).electronAPI?.premium ?? null;
-}
-
-// ── Core revert functions ──────────────────────────────────────────────────────
+// ── Tweak revert ──────────────────────────────────────────────────────────────
+//
+// FIX: The previous code treated "current state ≠ recorded applied state" as a
+// conflict and skipped the item. This caused ~50% failures: any tweak that was
+// already undone (reboot, Windows update, user toggle) would be marked conflict.
+//
+// New logic:
+//   • current=false (already not applied) → that IS the target end-state → reverted ✓
+//   • current=true (still applied)        → execute revert → verify → retry up to 3x
 
 async function revertSingleTweak(
   tweakId: string,
   label: string,
-  appliedIsApplied: boolean,
 ): Promise<RevertItemStatus> {
   const api = getTweaksAPI();
   if (!api) return 'failed';
 
-  try {
-    // 1. Read current live state
-    const status = await api.checkStatus(tweakId);
-    const currentIsApplied: boolean = status?.isApplied ?? false;
+  for (let attempt = 1; attempt <= MAX_RETRY_ATTEMPTS; attempt++) {
+    try {
+      const status = await api.checkStatus(tweakId);
+      const currentIsApplied: boolean = status?.isApplied ?? false;
 
-    // 2. Conflict detection — did the user manually change state after we applied?
-    if (currentIsApplied !== appliedIsApplied) {
-      console.warn(`[Revert:TWEAK] conflict detected tweakId="${tweakId}" — expected applied=${appliedIsApplied} got current=${currentIsApplied}`);
-      useTweakOwnershipStore.getState().markTweakConflict(tweakId);
-      return 'skipped_conflict';
-    }
+      // Already at target end-state — count as success
+      if (!currentIsApplied) {
+        useTweakOwnershipStore.getState().recordTweakRevertSuccess(tweakId);
+        console.log(`[Revert:TWEAK] already reverted tweakId="${tweakId}" (attempt ${attempt})`);
+        return 'reverted';
+      }
 
-    // 3. Execute revert
-    const result = await api.execute(tweakId, 'revert');
-    if (!result?.success) {
-      console.error(`[Revert:TWEAK] execute failed tweakId="${tweakId}"`, result?.error);
+      // Execute revert
+      const result = await api.execute(tweakId, 'revert');
+      if (!result?.success) {
+        console.warn(`[Revert:TWEAK] execute failed tweakId="${tweakId}" attempt=${attempt}`, result?.error);
+        if (attempt < MAX_RETRY_ATTEMPTS) { await delay(RETRY_BASE_DELAY_MS * attempt); continue; }
+        useTweakOwnershipStore.getState().markTweakRevertFailed(tweakId);
+        return 'failed';
+      }
+
+      // Verify
+      const afterStatus = await api.checkStatus(tweakId);
+      if ((afterStatus?.isApplied ?? false) !== false) {
+        console.warn(`[Revert:TWEAK] still applied tweakId="${tweakId}" attempt=${attempt}`);
+        if (attempt < MAX_RETRY_ATTEMPTS) { await delay(RETRY_BASE_DELAY_MS * attempt); continue; }
+        useTweakOwnershipStore.getState().markTweakRevertFailed(tweakId);
+        return 'failed';
+      }
+
+      useTweakOwnershipStore.getState().recordTweakRevertSuccess(tweakId);
+      console.log(`[Revert:TWEAK] success tweakId="${tweakId}" attempt=${attempt}`);
+      return 'reverted';
+
+    } catch (err) {
+      console.error(`[Revert:TWEAK] exception tweakId="${tweakId}" attempt=${attempt}`, err);
+      if (attempt < MAX_RETRY_ATTEMPTS) { await delay(RETRY_BASE_DELAY_MS * attempt); continue; }
       useTweakOwnershipStore.getState().markTweakRevertFailed(tweakId);
       return 'failed';
     }
-
-    // 4. Verify the revert worked
-    const afterStatus = await api.checkStatus(tweakId);
-    const afterIsApplied: boolean = afterStatus?.isApplied ?? false;
-
-    if (afterIsApplied !== false) {
-      console.error(`[Revert:TWEAK] verification failed tweakId="${tweakId}" — still applied after revert`);
-      useTweakOwnershipStore.getState().markTweakRevertFailed(tweakId);
-      return 'failed';
-    }
-
-    // 5. Clear ownership — only after verified success
-    useTweakOwnershipStore.getState().recordTweakRevertSuccess(tweakId);
-    console.log(`[Revert:TWEAK] success tweakId="${tweakId}"`);
-    return 'reverted';
-
-  } catch (err) {
-    console.error(`[Revert:TWEAK] exception tweakId="${tweakId}"`, err);
-    useTweakOwnershipStore.getState().markTweakRevertFailed(tweakId);
-    return 'failed';
   }
+  return 'failed';
 }
+
+// ── Network tweak revert ──────────────────────────────────────────────────────
+//
+// FIX: The previous code fetched /api/network-tweaks/state (backend DB snapshot)
+// and compared it to the recorded appliedStatus. If Windows diverged from the DB
+// at all (e.g. system restart, netsh manual run), this fired as "conflict → skip"
+// with near 100% probability, giving ~20% success overall.
+//
+// New logic: skip the HTTP pre-check entirely. Execute IPC revert directly and
+// rely on the IPC result + verified flag. Retry up to 3x on failure.
 
 async function revertSingleNetworkTweak(
   tweakId: string,
   label: string,
-  appliedStatus: 'on' | 'off',
 ): Promise<RevertItemStatus> {
   const api = getNetworkAPI();
   if (!api) return 'failed';
 
-  try {
-    // 1. Read current backend state
-    const stateResp = await fetch('/api/network-tweaks/state');
-    let currentStatus: string | null = null;
-    if (stateResp.ok) {
-      const data = await stateResp.json();
-      currentStatus = data?.state?.[tweakId]?.status ?? null;
-    }
+  for (let attempt = 1; attempt <= MAX_RETRY_ATTEMPTS; attempt++) {
+    try {
+      const result = await api.execute(tweakId, 'revert');
 
-    // 2. Conflict detection
-    if (currentStatus !== null && currentStatus !== appliedStatus) {
-      console.warn(`[Revert:NET] conflict detected tweakId="${tweakId}" — expected=${appliedStatus} got=${currentStatus}`);
-      useTweakOwnershipStore.getState().markNetworkTweakConflict(tweakId);
-      return 'skipped_conflict';
-    }
+      if (!result?.success) {
+        console.warn(`[Revert:NET] execute failed tweakId="${tweakId}" attempt=${attempt}`, result?.message);
+        if (attempt < MAX_RETRY_ATTEMPTS) { await delay(RETRY_BASE_DELAY_MS * attempt); continue; }
+        useTweakOwnershipStore.getState().markNetworkTweakRevertFailed(tweakId);
+        return 'failed';
+      }
 
-    // 3. Execute revert
-    const result = await api.execute(tweakId, 'revert');
-    if (!result?.success) {
-      console.error(`[Revert:NET] execute failed tweakId="${tweakId}"`, result?.message);
+      if (result.verified === false) {
+        console.warn(`[Revert:NET] not verified tweakId="${tweakId}" attempt=${attempt}`);
+        if (attempt < MAX_RETRY_ATTEMPTS) { await delay(RETRY_BASE_DELAY_MS * attempt); continue; }
+        useTweakOwnershipStore.getState().markNetworkTweakRevertFailed(tweakId);
+        return 'failed';
+      }
+
+      // Report success to backend (non-fatal)
+      const { apiPost } = await import('./api');
+      await apiPost(`/network-tweaks/${tweakId}/report`, {
+        action: 'disable',
+        success: true,
+        verified: true,
+        message: 'Reverted on premium expiry',
+      }).catch(() => {});
+
+      useTweakOwnershipStore.getState().recordNetworkTweakRevertSuccess(tweakId);
+      console.log(`[Revert:NET] success tweakId="${tweakId}" attempt=${attempt}`);
+      return 'reverted';
+
+    } catch (err) {
+      console.error(`[Revert:NET] exception tweakId="${tweakId}" attempt=${attempt}`, err);
+      if (attempt < MAX_RETRY_ATTEMPTS) { await delay(RETRY_BASE_DELAY_MS * attempt); continue; }
       useTweakOwnershipStore.getState().markNetworkTweakRevertFailed(tweakId);
       return 'failed';
     }
-
-    // 4. Verify
-    if (result.verified === false) {
-      console.error(`[Revert:NET] not verified tweakId="${tweakId}"`);
-      useTweakOwnershipStore.getState().markNetworkTweakRevertFailed(tweakId);
-      return 'failed';
-    }
-
-    // 5. Report and clear
-    // Use apiPost so the CSRF token is injected automatically (withCsrf: true).
-    const { apiPost } = await import('./api');
-    await apiPost(`/network-tweaks/${tweakId}/report`, {
-      action: 'disable',
-      success: true,
-      verified: true,
-      message: 'Reverted on premium expiry',
-    }).catch(() => {});
-
-    useTweakOwnershipStore.getState().recordNetworkTweakRevertSuccess(tweakId);
-    console.log(`[Revert:NET] success tweakId="${tweakId}"`);
-    return 'reverted';
-
-  } catch (err) {
-    console.error(`[Revert:NET] exception tweakId="${tweakId}"`, err);
-    useTweakOwnershipStore.getState().markNetworkTweakRevertFailed(tweakId);
-    return 'failed';
   }
+  return 'failed';
 }
 
-/**
- * Revert the active power plan.
- *
- * STRICT RULES — see module header for full description.
- * Always checks the live active plan, not just the Zustand record.
- */
-async function revertPowerPlan(): Promise<PowerPlanRevertResult> {
-  const store = useTweakOwnershipStore.getState();
-  const rec = store.powerPlan;
+// ── Extreme Labs revert ───────────────────────────────────────────────────────
+//
+// NEW: Extreme Labs was previously completely unconnected from the revert engine
+// (0% success rate). Now:
+//   1. ExtremeLabs.tsx records each apply/undo in the ownership store.
+//   2. On trial expiry, restoreBaseline() is called — it reverts all IDs atomically
+//      (registry, slider, and NIC tweaks) via the Electron IPC handler.
+//   3. Retried up to 3× before marking failures.
 
-  const api = getPowerPlanAPI();
-  if (!api) {
-    return { status: 'not_applicable' };
+async function revertExtremeLabsTweaks(): Promise<RevertItemResult[]> {
+  const store = useTweakOwnershipStore.getState();
+  const entries = Object.entries(store.extremeLabs).filter(([, rec]) => rec.appliedByApp);
+
+  if (entries.length === 0) return [];
+
+  const api = getExtremeLabsAPI();
+  if (!api?.restoreBaseline) {
+    console.warn('[Revert:EL] electronAPI.extremeLabs.restoreBaseline not available');
+    return entries.map(([tweakId, rec]) => ({
+      tweakId,
+      label: rec.label,
+      status: 'failed' as const,
+      reason: 'Electron API not available',
+    }));
   }
 
-  // ── Step 1: Read the CURRENTLY active plan from Windows ─────────────────────
+  let lastResult: any = null;
+  let success = false;
+
+  for (let attempt = 1; attempt <= MAX_RETRY_ATTEMPTS; attempt++) {
+    try {
+      lastResult = await api.restoreBaseline();
+      if (lastResult?.ok) {
+        success = true;
+        console.log(`[Revert:EL] restoreBaseline succeeded attempt=${attempt}`);
+        break;
+      }
+      console.warn(`[Revert:EL] restoreBaseline failed attempt=${attempt}`, lastResult?.error);
+    } catch (err) {
+      console.error(`[Revert:EL] exception attempt=${attempt}`, err);
+    }
+    if (attempt < MAX_RETRY_ATTEMPTS) await delay(RETRY_BASE_DELAY_MS * attempt);
+  }
+
+  return entries.map(([tweakId, rec]) => {
+    const itemResult = lastResult?.results?.find((r: any) => r.id === tweakId);
+    // If the baseline call succeeded and there's no per-item failure → reverted
+    const reverted = success && (itemResult ? itemResult.reverted !== false : true);
+
+    if (reverted) {
+      store.recordExtremeLabsRevertSuccess(tweakId);
+      return { tweakId, label: rec.label, status: 'reverted' as const };
+    } else {
+      store.markExtremeLabsRevertFailed(tweakId);
+      return {
+        tweakId,
+        label: rec.label,
+        status: 'failed' as const,
+        reason: itemResult?.error ?? lastResult?.error ?? 'Extreme Labs restore failed',
+      };
+    }
+  });
+}
+
+// ── Power plan revert ─────────────────────────────────────────────────────────
+//
+// Unchanged from v1 — power plans already had ~100% success. Kept intact.
+
+async function revertPowerPlan(): Promise<PowerPlanRevertResult> {
+  const store = useTweakOwnershipStore.getState();
+  const rec   = store.powerPlan;
+
+  const api = getPowerPlanAPI();
+  if (!api) return { status: 'not_applicable' };
+
   let currentGuid = '';
   let currentName = '';
   try {
@@ -241,13 +302,6 @@ async function revertPowerPlan(): Promise<PowerPlanRevertResult> {
     return { status: 'failed', reason: 'Could not read current power plan state' };
   }
 
-  // ── Step 2: Is the current plan a SwitchControl-managed plan? ───────────────
-  // Detection via three independent checks (any one is sufficient):
-  //   A. GUID matches what we applied (from Zustand ownership record)
-  //   B. Plan name starts with the SC prefix (covers missing ownership records)
-  //   C. GUID is in the power-plans.json stored SC GUIDs (covers built-in-plan
-  //      reuse where the plan wasn't renamed, e.g. High Performance used as base
-  //      without a "SwitchControl -" rename — the most common false-negative case)
   const guidMatchesSC = !!(
     rec?.appliedByApp &&
     rec.appliedPlanGuid &&
@@ -262,7 +316,7 @@ async function revertPowerPlan(): Promise<PowerPlanRevertResult> {
       const storedGuids: string[] = (await (api as any).getStoredSCGuids?.()) ?? [];
       guidInStoredSC = storedGuids.map((g: string) => g.toLowerCase()).includes(currentGuid);
       if (guidInStoredSC) {
-        console.log(`[Revert:PLAN] Active plan "${currentName}" (${currentGuid}) matched stored SC GUID list — treating as SC-managed`);
+        console.log(`[Revert:PLAN] Active plan "${currentName}" (${currentGuid}) matched stored SC GUID list`);
       }
     } catch (e) {
       console.warn('[Revert:PLAN] getStoredSCGuids unavailable (non-fatal):', e);
@@ -272,12 +326,8 @@ async function revertPowerPlan(): Promise<PowerPlanRevertResult> {
   const activeIsSCPlan = guidMatchesSC || nameMatchesSC || guidInStoredSC;
 
   if (!activeIsSCPlan) {
-    // Active plan is not SC-managed — user already moved away. Nothing to do.
     console.log(`[Revert:PLAN] Active plan "${currentName}" (${currentGuid}) is not SC-managed — skipping`);
-    if (rec?.appliedByApp) {
-      // User changed away from the SC plan themselves — ownership fulfilled
-      store.recordPowerPlanRevertSuccess();
-    }
+    if (rec?.appliedByApp) store.recordPowerPlanRevertSuccess();
     return {
       status: 'skipped_not_sc',
       reason: currentGuid
@@ -286,13 +336,7 @@ async function revertPowerPlan(): Promise<PowerPlanRevertResult> {
     };
   }
 
-  // ── Step 3: Active plan IS SC-managed. Hard-target Windows Balanced. ─────────
-  // FIX: NEVER restore previousPlanGuid on trial/premium expiry. previousPlanGuid
-  // may be stale after reinstall, may itself be an SC plan, or may have been
-  // deleted. The only guaranteed safe end-state is the built-in Windows Balanced
-  // GUID.  After expiry, users must not retain any SC-applied power configuration.
-  const targetGuid    = BALANCED_GUID;
-  const forcedBalanced = true;
+  const targetGuid = BALANCED_GUID;
 
   if (!api.activateByGuid) {
     if (rec?.appliedByApp) store.markPowerPlanRevertFailed();
@@ -301,14 +345,12 @@ async function revertPowerPlan(): Promise<PowerPlanRevertResult> {
 
   console.log(
     `[Revert:PLAN] Active SC plan "${currentName}" (${currentGuid})` +
-    ` — hard-target Windows Balanced (${BALANCED_GUID}) [trial expiry policy]`
+    ` — hard-target Windows Balanced (${BALANCED_GUID})`
   );
 
-  // ── Step 4: Activate target plan ────────────────────────────────────────────
   const restoreResult = await api.activateByGuid(targetGuid);
 
   if (restoreResult?.success) {
-    // ── Cleanup: delete all SC plans from Windows ──────────────────────────────
     let plansDeleted = 0;
     let verifiedClean = false;
     let verifiedActiveName: string | undefined;
@@ -324,7 +366,6 @@ async function revertPowerPlan(): Promise<PowerPlanRevertResult> {
       console.warn('[Revert:PLAN] SC plan cleanup threw (non-fatal):', e);
     }
 
-    // ── Verify: read back active plan and confirm it matches target ────────────
     try {
       const verify = await api.getState();
       const verifiedGuid = (verify?.activeScheme?.guid ?? '').toLowerCase();
@@ -339,9 +380,9 @@ async function revertPowerPlan(): Promise<PowerPlanRevertResult> {
 
     if (rec?.appliedByApp) store.recordPowerPlanRevertSuccess();
     return {
-      status: forcedBalanced ? 'forced_balanced' : 'reverted',
+      status: 'forced_balanced',
       targetGuid,
-      forcedBalanced,
+      forcedBalanced: true,
       previousPlanName: rec?.previousPlanName,
       appliedPlanName:  currentName,
       plansDeleted,
@@ -350,9 +391,6 @@ async function revertPowerPlan(): Promise<PowerPlanRevertResult> {
     };
   }
 
-  // targetGuid is always BALANCED_GUID. If activateByGuid returned not-ok
-  // (activatePlanByGuid already tried restoredefaultschemes + retry internally),
-  // there is nothing more we can do.
   console.error(`[Revert:PLAN] Windows Balanced activation failed: ${restoreResult?.error}`);
   if (rec?.appliedByApp) store.markPowerPlanRevertFailed();
   return {
@@ -368,53 +406,68 @@ async function revertPowerPlan(): Promise<PowerPlanRevertResult> {
 /**
  * Run the full premium revert sequence.
  *
- * Eligibility:
- *   Tweaks:        appliedByApp === true AND isPremium === true
- *   Network tweaks: appliedByApp === true (all network tweaks are premium-gated)
- *   Power plan:    checked unconditionally — uses live active-plan detection
- *                  so it works even if the Zustand record is missing/stale.
+ * Phase order:
+ *   locking → reverting_tweaks → reverting_network → reverting_extreme_labs
+ *   → verifying (power plan + cleanup) → complete
  *
- * Returns a full per-item report of what happened.
+ * @param onProgress  Optional callback invoked at each phase boundary so the
+ *                    UI can display a live animated progress indicator.
  */
-export async function runPremiumRevert(): Promise<PremiumRevertReport> {
-  console.log('[Revert] Starting premium revert sequence...');
+export async function runPremiumRevert(
+  onProgress?: (phase: RevertPhase) => void,
+): Promise<PremiumRevertReport> {
+  console.log('[Revert] Starting premium revert sequence v2...');
+  onProgress?.('locking');
+
   const store = useTweakOwnershipStore.getState();
 
-  const tweakResults: RevertItemResult[] = [];
-  const networkResults: RevertItemResult[] = [];
+  const tweakResults:       RevertItemResult[] = [];
+  const networkResults:     RevertItemResult[] = [];
+  let   extremeLabsResults: RevertItemResult[] = [];
 
   // ── Tweaks ──────────────────────────────────────────────────────────────────
-  // Only revert items that are:
-  //   • premium-gated (isPremium)
-  //   • confirmed applied by the app (appliedByApp)
-  // This ensures free tweaks and pre-existing tweaks are never touched.
+  onProgress?.('reverting_tweaks');
   const tweakEntries = Object.entries(store.appliedTweaks)
     .filter(([, rec]) => rec.appliedByApp && rec.isPremium);
 
   for (const [tweakId, rec] of tweakEntries) {
     console.log(`[Revert] processing tweak "${tweakId}" label="${rec.label}"`);
-    const status = await revertSingleTweak(tweakId, rec.label, rec.appliedState.isApplied);
+    const status = await revertSingleTweak(tweakId, rec.label);
     tweakResults.push({ tweakId, label: rec.label, status });
   }
 
   // ── Network tweaks ──────────────────────────────────────────────────────────
-  // All network tweaks are premium-gated — only revert app-applied ones.
+  onProgress?.('reverting_network');
   const networkEntries = Object.entries(store.networkTweaks)
     .filter(([, rec]) => rec.appliedByApp);
 
   for (const [tweakId, rec] of networkEntries) {
     console.log(`[Revert] processing network tweak "${tweakId}" label="${rec.label}"`);
-    const status = await revertSingleNetworkTweak(tweakId, rec.label, rec.appliedStatus);
+    const status = await revertSingleNetworkTweak(tweakId, rec.label);
     networkResults.push({ tweakId, label: rec.label, status });
   }
 
-  // ── Power plan ──────────────────────────────────────────────────────────────
-  // Always run — detects SC plans by live active-plan check, not just Zustand.
+  // ── Extreme Labs ─────────────────────────────────────────────────────────────
+  onProgress?.('reverting_extreme_labs');
+  try {
+    extremeLabsResults = await revertExtremeLabsTweaks();
+  } catch (err) {
+    console.error('[Revert:EL] unexpected error:', err);
+    extremeLabsResults = Object.entries(store.extremeLabs)
+      .filter(([, r]) => r.appliedByApp)
+      .map(([tweakId, rec]) => ({ tweakId, label: rec.label, status: 'failed' as const }));
+  }
+
+  // ── Power plan ───────────────────────────────────────────────────────────────
+  onProgress?.('verifying');
   const powerPlanResult = await revertPowerPlan();
+
+  onProgress?.('complete');
 
   const anyFailed =
     tweakResults.some(r => r.status === 'failed') ||
     networkResults.some(r => r.status === 'failed') ||
+    extremeLabsResults.some(r => r.status === 'failed') ||
     powerPlanResult.status === 'failed';
 
   const anyConflict =
@@ -424,13 +477,23 @@ export async function runPremiumRevert(): Promise<PremiumRevertReport> {
   const revertedCount =
     tweakResults.filter(r => r.status === 'reverted').length +
     networkResults.filter(r => r.status === 'reverted').length +
+    extremeLabsResults.filter(r => r.status === 'reverted').length +
     (powerPlanResult.status === 'reverted' || powerPlanResult.status === 'forced_balanced' ? 1 : 0);
 
   console.log(
-    `[Revert] Complete — reverted=${revertedCount} failed=${anyFailed} conflict=${anyConflict}`
+    `[Revert] Complete — reverted=${revertedCount} failed=${anyFailed} conflict=${anyConflict}` +
+    ` el=${extremeLabsResults.length}`
   );
 
-  return { tweakResults, networkResults, powerPlan: powerPlanResult, anyFailed, anyConflict, revertedCount };
+  return {
+    tweakResults,
+    networkResults,
+    extremeLabsResults,
+    powerPlan: powerPlanResult,
+    anyFailed,
+    anyConflict,
+    revertedCount,
+  };
 }
 
 /**
@@ -438,8 +501,9 @@ export async function runPremiumRevert(): Promise<PremiumRevertReport> {
  */
 export function hasPremiumItemsToRevert(): boolean {
   const store = useTweakOwnershipStore.getState();
-  const hasTweaks  = Object.values(store.appliedTweaks).some(r => r.appliedByApp && r.isPremium);
-  const hasNetwork = Object.values(store.networkTweaks).some(r => r.appliedByApp);
-  const hasPlan    = store.powerPlan?.appliedByApp === true;
-  return hasTweaks || hasNetwork || hasPlan;
+  const hasTweaks     = Object.values(store.appliedTweaks).some(r => r.appliedByApp && r.isPremium);
+  const hasNetwork    = Object.values(store.networkTweaks).some(r => r.appliedByApp);
+  const hasPlan       = store.powerPlan?.appliedByApp === true;
+  const hasExtremeLabs = Object.values(store.extremeLabs).some(r => r.appliedByApp);
+  return hasTweaks || hasNetwork || hasPlan || hasExtremeLabs;
 }

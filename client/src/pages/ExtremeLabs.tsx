@@ -13,6 +13,7 @@
 
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { logHistory } from "@/lib/logHistory";
+import { useTweakOwnershipStore } from "@/stores/tweakOwnershipStore";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { GlassCard, UtilityCard } from "@/components/ui/glass-card";
@@ -868,6 +869,7 @@ export default function ExtremeLabs() {
       }
 
       setAppliedTweaks((prev) => { const next = new Set(prev); next.add(id); return next; });
+      useTweakOwnershipStore.getState().recordExtremeLabsApply(id, EXTREME_TWEAKS.find(t => t.id === id)?.label ?? id);
       toast({ title: "Tweak applied", description: "Change is active. Monitor for issues." });
       logHistory(`Extreme Labs: ${EXTREME_TWEAKS.find(t => t.id === id)?.label ?? id}`, "Extreme Labs", "Applied", `Tweak ID: ${id}`);
       elLog("ExtremeLabsApply", { requested: [id], applied: 1, failed: 0, blocked: 0, adminRequired: 0 });
@@ -905,6 +907,7 @@ export default function ExtremeLabs() {
         }
       }
       setAppliedTweaks((prev) => { const next = new Set(prev); next.delete(id); return next; });
+      useTweakOwnershipStore.getState().recordExtremeLabsRevertSuccess(id);
       toast({ title: "Tweak reverted", description: "Change has been undone." });
       logHistory(`Extreme Labs: ${EXTREME_TWEAKS.find(t => t.id === id)?.label ?? id} Reverted`, "Extreme Labs", "Reverted", `Tweak ID: ${id}`);
     } catch (e: any) {
@@ -934,6 +937,8 @@ export default function ExtremeLabs() {
         };
         elLog("ExtremeLabsApply", { action: "revertAll", ...batchResult });
       }
+      const store = useTweakOwnershipStore.getState();
+      for (const id of appliedTweaks) store.recordExtremeLabsRevertSuccess(id);
       setAppliedTweaks(new Set());
       toast({ title: "All tweaks reverted", description: "System restored to baseline." });
       logHistory("Extreme Labs: Revert All", "Extreme Labs", "Reverted All", "All lab tweaks restored to baseline");

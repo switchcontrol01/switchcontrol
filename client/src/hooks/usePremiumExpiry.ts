@@ -10,7 +10,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { isElectronWithTweaks } from '@/hooks/use-tweak-executor';
-import { runPremiumRevert, hasPremiumItemsToRevert, PremiumRevertReport } from '@/lib/premiumRevertEngine';
+import { runPremiumRevert, hasPremiumItemsToRevert, PremiumRevertReport, RevertPhase } from '@/lib/premiumRevertEngine';
 import { isTrialActive } from '@/lib/trialCountdown';
 import { useTrialExpiryStore } from '@/stores/trialExpiryStore';
 import { useTweakOwnershipStore } from '@/stores/tweakOwnershipStore';
@@ -26,9 +26,10 @@ interface UsePremiumExpiryOptions {
 interface UsePremiumExpiryReturn {
   revertModalOpen: boolean;
   revertReport: PremiumRevertReport | null;
+  /** Current phase of the revert sequence — non-null while the engine is running. */
+  revertPhase: RevertPhase | null;
   closeRevertModal: () => void;
   retryRevert: () => void;
-  /** True when the user currently has active premium/trial access (client-side truth). */
   isActive: boolean;
 }
 
@@ -46,11 +47,10 @@ export function usePremiumExpiry({
 
   const [modalOpen,    setModalOpen]    = useState(false);
   const [revertReport, setRevertReport] = useState<PremiumRevertReport | null>(null);
+  const [revertPhase,  setRevertPhase]  = useState<RevertPhase | null>(null);
 
-  // True when the user currently has active premium access
   const isCurrentlyActive = isPremium || isTrialActive(plan ?? '', trialEndsAt);
 
-  /** Determine why premium access was lost, given previous and current state. */
   function determineRevertReason(
     prevP: string | null,
     prevTrialEnd: string | null,
@@ -65,52 +65,56 @@ export function usePremiumExpiry({
     if (revertRunning.current) return;
 
     // Immediately suppress all premium gates and signal App.tsx to redirect.
-    // This fires synchronously before any async work so there is zero window
-    // where a z-9999 premium overlay can block the revert modal.
     useTrialExpiryStore.getState().setTrialEndingFlowActive(true);
     useTrialExpiryStore.getState().setRevertReason(reason);
 
     if (!isElectronWithTweaks()) {
-      // Non-Electron: nothing real to revert — show the modal with the
-      // correct reason so the user is informed their access changed.
       setRevertReport({
         tweakResults: [],
         networkResults: [],
+        extremeLabsResults: [],
         powerPlan: { status: 'not_applicable' },
         anyFailed: false,
         anyConflict: false,
         revertedCount: 0,
       });
+      setRevertPhase('complete');
       setModalOpen(true);
       return;
     }
 
     revertRunning.current = true;
+
+    // Open the modal immediately with the first phase so the user sees live
+    // progress rather than staring at a blank screen for 5-30 seconds.
+    setRevertReport(null);
+    setRevertPhase('locking');
+    setModalOpen(true);
+
     console.log(`[PremiumExpiry] Detected premium→inactive transition — reason=${reason} — running revert sequence`);
     try {
-      const report = await runPremiumRevert();
+      const report = await runPremiumRevert((phase) => setRevertPhase(phase));
       setRevertReport(report);
-      setModalOpen(true);
+      setRevertPhase('complete');
     } catch (err) {
       console.error('[PremiumExpiry] Revert sequence threw', err);
       setRevertReport({
         tweakResults: [],
         networkResults: [],
+        extremeLabsResults: [],
         powerPlan: { status: 'not_applicable' },
         anyFailed: true,
         anyConflict: false,
         revertedCount: 0,
       });
-      setModalOpen(true);
+      setRevertPhase('complete');
     } finally {
       revertRunning.current = false;
     }
   }, []);
 
   // ── State-change watcher ───────────────────────────────────────────────────
-  // Detects when isPremium flips from true→false (e.g. server-side cancellation).
   useEffect(() => {
-    // Wait until we have verified entitlements and the user is logged in
     if (!isLoggedIn || !entitlementsVerified) {
       prevWasActive.current = null;
       return;
@@ -119,14 +123,12 @@ export function usePremiumExpiry({
     const wasActive = prevWasActive.current;
 
     if (wasActive === null) {
-      // First verified read — record state and handle "opened after expiry" case.
       prevWasActive.current = isCurrentlyActive;
       prevPlan.current = plan ?? null;
       prevTrialEndsAt.current = trialEndsAt ?? null;
       console.log(`[PremiumExpiry] Initial state recorded — active=${isCurrentlyActive} plan=${plan} trialEndsAt=${trialEndsAt}`);
 
       if (!isCurrentlyActive) {
-        // Section 6 — Startup sanity check (belt-and-suspenders).
         if (isElectronWithTweaks()) {
           const premiumAPI = (window as any).electronAPI?.premium;
           if (premiumAPI?.powerPlanSanityCheck) {
@@ -148,7 +150,6 @@ export function usePremiumExpiry({
       return;
     }
 
-    // Detect transition: was active → is now inactive
     if (wasActive && !isCurrentlyActive) {
       const reason = determineRevertReason(prevPlan.current, prevTrialEndsAt.current);
       console.log(`[PremiumExpiry] Transition detected: active → inactive — reason=${reason}`);
@@ -161,33 +162,28 @@ export function usePremiumExpiry({
   }, [isCurrentlyActive, isLoggedIn, entitlementsVerified, triggerRevert]);
 
   // ── Countdown timer watcher ────────────────────────────────────────────────
-  // The state-change watcher above only fires when React props change.
-  // For trial expiry by time (trialEndsAt passes), we need an explicit timer.
   useEffect(() => {
     if (!isLoggedIn || !entitlementsVerified) return;
     if (plan !== 'trial' || !trialEndsAt) return;
 
     const msUntilExpiry = new Date(trialEndsAt).getTime() - Date.now();
-
-    // Already expired before we even mounted — prevWasActive handles this
     if (msUntilExpiry <= 0) return;
 
     console.log(`[PremiumExpiry] Trial timer armed — fires in ${Math.round(msUntilExpiry / 1000)}s`);
 
     const timerId = setTimeout(() => {
       console.log('[PremiumExpiry] Trial timer fired — triggering revert');
-      // Only fire if prevWasActive still says we were active (avoid double-trigger)
       if (prevWasActive.current !== false) {
         prevWasActive.current = false;
         triggerRevert('trial_expired');
       }
-    }, msUntilExpiry + 500); // +500ms buffer so the clock is definitely past end
+    }, msUntilExpiry + 500);
 
     return () => clearTimeout(timerId);
   }, [isLoggedIn, entitlementsVerified, plan, trialEndsAt, triggerRevert]);
 
   const retryRevert = useCallback(async () => {
-    revertRunning.current = false; // allow retry
+    revertRunning.current = false;
     const reason = determineRevertReason(prevPlan.current, prevTrialEndsAt.current);
     await triggerRevert(reason);
   }, [triggerRevert]);
@@ -195,14 +191,11 @@ export function usePremiumExpiry({
   return {
     revertModalOpen: modalOpen,
     revertReport,
+    revertPhase,
     closeRevertModal: () => {
       setModalOpen(false);
-      // Clear all app-applied premium ownership records so the "items to revert"
-      // check never fires again on future launches (all items were already
-      // processed — reverted or skipped due to user changes).
+      setRevertPhase(null);
       useTweakOwnershipStore.getState().clearPremiumOwnership();
-      // Release the gate suppression — premium overlays return to normal after user
-      // has seen the revert summary and dismissed the modal.
       useTrialExpiryStore.getState().setTrialEndingFlowActive(false);
       useTrialExpiryStore.getState().setRevertReason(null);
     },
@@ -218,12 +211,6 @@ import { REAL_TWEAKS } from '@/hooks/use-tweak-executor';
 import { isTweakPremium } from '@/lib/premium-config';
 import { TWEAKS_DATA } from '@/lib/mock-data';
 
-/**
- * Runs the first-launch baseline scan to record all tweaks that are already
- * applied on the system before the app touched them.
- * Only runs once per device (guarded by baselineInitialized flag).
- * Must only run in Electron mode.
- */
 export function useBaselineScan() {
   const baselineInitialized = useTweakOwnershipStore(s => s.baselineInitialized);
   const {
@@ -261,7 +248,6 @@ export function useBaselineScan() {
         }
       }
 
-      // Network tweaks baseline — read from backend API
       try {
         const r = await fetch('/api/network-tweaks/state');
         if (r.ok) {
@@ -280,6 +266,6 @@ export function useBaselineScan() {
       console.log(`[Baseline] Complete — ${scanned} tweaks scanned`);
     };
 
-    scan(); // setBaselineInitialized/recordTweakBaseline are Zustand actions — safe to call after unmount
+    scan();
   }, [baselineInitialized, recordTweakBaseline, recordNetworkTweakBaseline, setBaselineInitialized]);
 }

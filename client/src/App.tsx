@@ -289,6 +289,7 @@ function ElectronAppContent() {
   const {
     revertModalOpen,
     revertReport,
+    revertPhase,
     closeRevertModal,
     retryRevert,
     isActive: premiumIsActive,
@@ -1735,6 +1736,7 @@ function ElectronAppContent() {
           open={revertModalOpen}
           onClose={closeRevertModal}
           report={revertReport}
+          phase={revertPhase}
           onRetry={retryRevert}
           reason={useTrialExpiryStore((s) => s.revertReason)}
         />
