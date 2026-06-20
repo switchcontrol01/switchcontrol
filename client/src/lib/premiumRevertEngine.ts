@@ -155,6 +155,33 @@ async function revertSingleTweak(
   return 'failed';
 }
 
+// ── localStorage helpers ──────────────────────────────────────────────────────
+//
+// After a successful revert the engine must clear the two UI-owned localStorage
+// keys so the pages don't re-display stale "Applied" state on the next mount:
+//
+//   "extreme-labs-applied"  — Set<string> written by ExtremeLabs.tsx
+//   "sc-net-tweak-state-v1" — Record<id,TweakStatus> written by NetworkTweaks.tsx
+//
+// We also dispatch custom DOM events so any *mounted* component can update its
+// in-memory React state immediately without waiting for a remount.
+
+function patchNetworkTweakLocalStorage(revertedIds: string[]): void {
+  if (revertedIds.length === 0) return;
+  try {
+    const raw = localStorage.getItem('sc-net-tweak-state-v1');
+    const state: Record<string, string> = raw ? JSON.parse(raw) : {};
+    for (const id of revertedIds) state[id] = 'idle';
+    localStorage.setItem('sc-net-tweak-state-v1', JSON.stringify(state));
+  } catch (_) {}
+}
+
+function dispatchRevertEvent(name: string, detail?: unknown): void {
+  try {
+    window.dispatchEvent(new CustomEvent(name, { detail }));
+  } catch (_) {}
+}
+
 // ── Network tweak revert ──────────────────────────────────────────────────────
 //
 // FIX: The previous code fetched /api/network-tweaks/state (backend DB snapshot)
@@ -198,6 +225,9 @@ async function revertSingleNetworkTweak(
         verified: true,
         message: 'Reverted on premium expiry',
       }).catch(() => {});
+
+      // Patch localStorage so the UI shows "idle" on next mount
+      patchNetworkTweakLocalStorage([tweakId]);
 
       useTweakOwnershipStore.getState().recordNetworkTweakRevertSuccess(tweakId);
       console.log(`[Revert:NET] success tweakId="${tweakId}" attempt=${attempt}`);
@@ -266,9 +296,16 @@ async function revertExtremeLabsTweaks(): Promise<RevertItemResult[]> {
   }
 
   // Nothing tracked in the store — safety sweep completed but nothing to report to UI.
-  if (entries.length === 0) return [];
+  if (entries.length === 0) {
+    // Still clear localStorage so the component doesn't show stale Applied state.
+    if (success) {
+      try { localStorage.removeItem('extreme-labs-applied'); } catch (_) {}
+      dispatchRevertEvent('sc:el-reverted');
+    }
+    return [];
+  }
 
-  return entries.map(([tweakId, rec]) => {
+  const results = entries.map(([tweakId, rec]) => {
     const itemResult = lastResult?.results?.find((r: any) => r.id === tweakId);
     // If the baseline call succeeded and there's no per-item failure → reverted
     const reverted = success && (itemResult ? itemResult.reverted !== false : true);
@@ -286,6 +323,15 @@ async function revertExtremeLabsTweaks(): Promise<RevertItemResult[]> {
       };
     }
   });
+
+  // Clear UI state for reverted items
+  const anyReverted = results.some(r => r.status === 'reverted');
+  if (anyReverted) {
+    try { localStorage.removeItem('extreme-labs-applied'); } catch (_) {}
+    dispatchRevertEvent('sc:el-reverted');
+  }
+
+  return results;
 }
 
 // ── Power plan revert ─────────────────────────────────────────────────────────
@@ -456,6 +502,12 @@ export async function runPremiumRevert(
     console.log(`[Revert] processing network tweak "${tweakId}" label="${rec.label}"`);
     const status = await revertSingleNetworkTweak(tweakId, rec.label);
     networkResults.push({ tweakId, label: rec.label, status });
+  }
+
+  // Signal any mounted NetworkTweaks component to update its in-memory cache
+  const revertedNetIds = networkResults.filter(r => r.status === 'reverted').map(r => r.tweakId);
+  if (revertedNetIds.length > 0) {
+    dispatchRevertEvent('sc:net-reverted', { ids: revertedNetIds });
   }
 
   // ── Extreme Labs ─────────────────────────────────────────────────────────────

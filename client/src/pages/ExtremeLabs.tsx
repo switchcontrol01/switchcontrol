@@ -758,6 +758,16 @@ export default function ExtremeLabs() {
     };
   }, []);
 
+  // When the premium revert engine reverts Extreme Labs tweaks (trial expiry /
+  // downgrade), it dispatches "sc:el-reverted" and clears localStorage.
+  // Sync our in-memory appliedTweaks state so the UI immediately reflects the
+  // revert without requiring a page refresh.
+  useEffect(() => {
+    const handler = () => setAppliedTweaks(new Set());
+    window.addEventListener('sc:el-reverted', handler);
+    return () => window.removeEventListener('sc:el-reverted', handler);
+  }, []);
+
   useEffect(() => {
     if (typeof window === "undefined") return;
     const unlocked = localStorage.getItem("extreme-labs-unlocked") === "true";

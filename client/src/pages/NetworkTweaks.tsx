@@ -771,6 +771,26 @@ function NetworkTweaksContent() {
     _networkTweakStateCacheTime = Date.now();
   }, [stateMap]);
 
+  // When the premium revert engine reverts network tweaks it dispatches
+  // "sc:net-reverted" with the list of tweakIds it just reverted.
+  // Update the in-memory state immediately so the UI reflects "idle" without
+  // requiring a page refresh (the localStorage patch is done on the engine side).
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const ids: string[] = (e as CustomEvent<{ ids: string[] }>).detail?.ids ?? [];
+      if (ids.length === 0) return;
+      setStateMap(prev => {
+        const next = { ...prev };
+        for (const id of ids) {
+          if (next[id]) next[id] = { ...next[id], status: 'idle' as const };
+        }
+        return next;
+      });
+    };
+    window.addEventListener('sc:net-reverted', handler);
+    return () => window.removeEventListener('sc:net-reverted', handler);
+  }, []);
+
   const [toasts, setToasts] = useState<Toast[]>([]);
   const toastCounter = useRef(0);
 

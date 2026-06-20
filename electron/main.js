@@ -3415,29 +3415,36 @@ ipcMain.handle('extremeLabs:restoreBaseline', async (_event, ids) => {
       } catch { /* non-fatal — nic reverts will report no-adapter */ }
     }
 
-    // Run all per-ID reverts in parallel — each touches independent registry keys/
-    // netsh settings, so there is no ordering dependency between them.
-    const results = await Promise.all(
-      targetIds.map(async (id) => {
-        try {
-          const mapped = _extremeLabsMapToRegistryTweak(id);
-          if (!mapped) return { id, reverted: false, reason: 'No mapping' };
-          if (mapped.type === 'slider') {
-            const r = await sliderTweakExecutor.resetSliderValue(mapped.tweakId);
-            return { id, reverted: r.success, error: r.error };
-          } else if (mapped.type === 'nic') {
-            if (!physicalAdapter) return { id, reverted: false, reason: 'No adapter' };
-            const r = await nicExecutor.resetNicProperty(physicalAdapter.name, mapped.propertyKey);
-            return { id, reverted: r.ok, error: r.error };
-          } else {
-            const r = await tweakExecutor.executeTweak(mapped.tweakId, 'revert');
-            return { id, reverted: r.success, error: r.error };
+    // Run reverts in batches of 4 — independent registry/netsh operations but
+    // batched to avoid spawning 24 PowerShell processes simultaneously which
+    // causes a visible CPU spike on the user's machine.
+    const BATCH_SIZE = 4;
+    const results = [];
+    for (let i = 0; i < targetIds.length; i += BATCH_SIZE) {
+      const batch = targetIds.slice(i, i + BATCH_SIZE);
+      const batchResults = await Promise.all(
+        batch.map(async (id) => {
+          try {
+            const mapped = _extremeLabsMapToRegistryTweak(id);
+            if (!mapped) return { id, reverted: false, reason: 'No mapping' };
+            if (mapped.type === 'slider') {
+              const r = await sliderTweakExecutor.resetSliderValue(mapped.tweakId);
+              return { id, reverted: r.success, error: r.error };
+            } else if (mapped.type === 'nic') {
+              if (!physicalAdapter) return { id, reverted: false, reason: 'No adapter' };
+              const r = await nicExecutor.resetNicProperty(physicalAdapter.name, mapped.propertyKey);
+              return { id, reverted: r.ok, error: r.error };
+            } else {
+              const r = await tweakExecutor.executeTweak(mapped.tweakId, 'revert');
+              return { id, reverted: r.success, error: r.error };
+            }
+          } catch (e) {
+            return { id, reverted: false, error: e.message };
           }
-        } catch (e) {
-          return { id, reverted: false, error: e.message };
-        }
-      })
-    );
+        })
+      );
+      results.push(...batchResults);
+    }
 
     extremeLabsStore.currentSession = null;
     return { ok: true, results };
