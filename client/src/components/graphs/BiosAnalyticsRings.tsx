@@ -218,10 +218,16 @@ function RadarGraph({ axes, size = 140, delay = 0 }: { axes: RadarAxis[]; size?:
         );
       })}
 
-      {/* Breathing center glow */}
+      {/* Breathing center glow — use scale transform, not r animation.
+          Animating the SVG `r` attribute directly via Framer Motion causes
+          `attribute r: Expected length, "undefined"` on re-renders because
+          Framer Motion resolves SVG presentation attributes through the CSS
+          path and gets undefined when the component updates. */}
       <motion.circle cx={cx} cy={cy} r={maxR * 0.15}
-        fill="#00A3CC" fillOpacity="0"
-        animate={{ r: [maxR * 0.12, maxR * 0.18, maxR * 0.12], fillOpacity: [0.08, 0.14, 0.08] }}
+        fill="#00A3CC"
+        style={{ transformOrigin: `${cx}px ${cy}px` }}
+        initial={{ fillOpacity: 0, scale: 0.8 }}
+        animate={{ scale: [0.8, 1.2, 0.8], fillOpacity: [0.08, 0.14, 0.08] }}
         transition={{ delay: delay + 1.2, duration: 3.5, repeat: Infinity, ease: "easeInOut" }}
       />
     </svg>

@@ -194,7 +194,8 @@ function useCountUp(target: number, duration: number, delay: number) {
 
 function ScoreGauge({ label, value, color, delay = 0 }: { label: string; value: number; color: string; delay?: number }) {
   const { prefersReducedMotion } = useMotion();
-  const displayed = useCountUp(prefersReducedMotion ? value : value, prefersReducedMotion ? 0 : 1, prefersReducedMotion ? 0 : delay + 0.3);
+  const safeValue = Number.isFinite(value) ? Math.max(0, Math.min(100, value)) : 0;
+  const displayed = useCountUp(safeValue, prefersReducedMotion ? 0 : 1, prefersReducedMotion ? 0 : delay + 0.3);
   
   return (
     <motion.div 
@@ -209,9 +210,9 @@ function ScoreGauge({ label, value, color, delay = 0 }: { label: string; value: 
           <motion.circle
             cx="40" cy="40" r="35" fill="none" stroke="currentColor" strokeWidth="6" strokeLinecap="round"
             className={color}
-            strokeDasharray={`${220 * value / 100} 220`}
+            strokeDasharray={`${220 * safeValue / 100} 220`}
             initial={prefersReducedMotion ? {} : { strokeDasharray: "0 220" }}
-            animate={{ strokeDasharray: `${220 * value / 100} 220` }}
+            animate={{ strokeDasharray: `${220 * safeValue / 100} 220` }}
             transition={{ delay: delay + 0.3, duration: 1, ease: "easeOut" }}
           />
         </svg>
