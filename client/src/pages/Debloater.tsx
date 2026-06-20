@@ -398,6 +398,275 @@ function ScoreGauge({ value, label, color }: { value: number; label: string; col
   );
 }
 
+// ── Arc metric ring ───────────────────────────────────────────────────────────
+
+function ArcMetric({ value, max, label, unit, color, glow }: {
+  value: number; max: number; label: string; unit: string; color: string; glow: string;
+}) {
+  const { prefersReducedMotion } = useMotion();
+  const r = 42;
+  const circ = 2 * Math.PI * r;
+  const pct = max > 0 ? Math.min(100, (value / max) * 100) : 0;
+  const filled = (pct / 100) * circ;
+  const ticks = 12;
+
+  return (
+    <div className="flex flex-col items-center gap-2">
+      <div className="relative" style={{ width: 108, height: 108 }}>
+        {!prefersReducedMotion && (
+          <motion.div
+            className="absolute inset-0 rounded-full pointer-events-none"
+            animate={{ opacity: [0.18, 0.42, 0.18], scale: [1, 1.1, 1] }}
+            transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+            style={{ background: `radial-gradient(circle, ${glow} 0%, transparent 70%)`, filter: "blur(14px)" }}
+          />
+        )}
+        <svg width="108" height="108" viewBox="0 0 108 108" className="overflow-visible">
+          {/* track */}
+          <circle cx="54" cy="54" r={r} fill="none" stroke="#21262D" strokeWidth="7" strokeLinecap="round"
+            transform="rotate(-90 54 54)" strokeDasharray={`${circ} ${circ}`} strokeDashoffset="0"
+          />
+          {/* fill arc */}
+          <motion.circle
+            cx="54" cy="54" r={r} fill="none" stroke={color} strokeWidth="7" strokeLinecap="round"
+            transform="rotate(-90 54 54)"
+            strokeDasharray={circ}
+            initial={{ strokeDashoffset: circ }}
+            animate={{ strokeDashoffset: circ - filled }}
+            transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
+            style={{ filter: `drop-shadow(0 0 7px ${glow})` }}
+          />
+          {/* tick marks */}
+          {Array.from({ length: ticks }).map((_, i) => {
+            const angle = (i / ticks) * Math.PI * 2 - Math.PI / 2;
+            const inner = r + 7;
+            const outer = r + 12;
+            const x1 = 54 + inner * Math.cos(angle);
+            const y1 = 54 + inner * Math.sin(angle);
+            const x2 = 54 + outer * Math.cos(angle);
+            const y2 = 54 + outer * Math.sin(angle);
+            const lit = i < Math.round((pct / 100) * ticks);
+            return (
+              <motion.line key={i} x1={x1} y1={y1} x2={x2} y2={y2}
+                stroke={lit ? color : "#21262D"} strokeWidth="2" strokeLinecap="round"
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                transition={{ delay: 0.04 * i + 0.5, duration: 0.2 }}
+              />
+            );
+          })}
+        </svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+          <span className="text-[22px] font-bold leading-none tabular-nums" style={{ color }}>
+            <AnimatedCounter value={value} />
+          </span>
+          <span className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground mt-0.5">{unit}</span>
+        </div>
+      </div>
+      <span className="text-[11px] text-muted-foreground/80 text-center leading-snug">{label}</span>
+    </div>
+  );
+}
+
+// ── Impact visualization (replaces flat bar panel) ────────────────────────────
+
+const LEVEL_COLORS: Record<string, { main: string; glow: string }> = {
+  safe:       { main: "#34d399", glow: "rgba(52,211,153,0.7)" },
+  balanced:   { main: "#00D4FF", glow: "rgba(0,212,255,0.7)" },
+  aggressive: { main: "#fb923c", glow: "rgba(251,146,60,0.7)" },
+  extreme:    { main: "#f43f5e", glow: "rgba(244,63,94,0.7)" },
+};
+
+const CAT_COLORS: Record<string, string> = {
+  "consumer-apps":   "#00D4FF",
+  "telemetry":       "#22d3ee",
+  "gaming":          "#60a5fa",
+  "cloud":           "#38bdf8",
+  "system-services": "#fb923c",
+  "shell-features":  "#f472b6",
+};
+
+function ImpactVisualization({
+  currentLevel,
+  stats,
+  visibleItems,
+  selectedItems,
+  categories,
+}: {
+  currentLevel: { id: DebloatLevel; name: string; accent: string; border: string };
+  stats: {
+    count: number; totalRam: number; totalDisk: number; allRam: number; allDisk: number;
+    safeCnt: number; medCnt: number; highCnt: number; restorableCnt: number;
+    adminReq: boolean; restartReq: boolean;
+  };
+  visibleItems: DebloatItem[];
+  selectedItems: DebloatItem[];
+  categories: DebloatCategory[];
+}) {
+  const { prefersReducedMotion } = useMotion();
+  const lc = LEVEL_COLORS[currentLevel.id] ?? LEVEL_COLORS.balanced;
+  const totalRisk = stats.safeCnt + stats.medCnt + stats.highCnt;
+  const pSafe   = totalRisk > 0 ? (stats.safeCnt / totalRisk) * 100 : 0;
+  const pMed    = totalRisk > 0 ? (stats.medCnt  / totalRisk) * 100 : 0;
+  const pHigh   = totalRisk > 0 ? (stats.highCnt / totalRisk) * 100 : 0;
+  const maxCat  = Math.max(1, ...categories.map(c => selectedItems.filter(i => i.category === c).length));
+
+  return (
+    <div
+      className="relative rounded-2xl overflow-hidden"
+      style={{
+        background: "linear-gradient(145deg, rgba(18,22,30,0.97) 0%, rgba(11,14,20,0.98) 100%)",
+        border: `1px solid ${lc.glow}35`,
+        boxShadow: `0 0 0 1px ${lc.glow}12 inset, 0 24px 64px rgba(0,0,0,0.45)`,
+      }}
+    >
+      {/* animated top edge shimmer */}
+      <div className="absolute top-0 left-0 right-0 h-px overflow-hidden">
+        {!prefersReducedMotion && (
+          <motion.div
+            className="absolute inset-0"
+            style={{ background: `linear-gradient(90deg, transparent 0%, ${lc.main} 50%, transparent 100%)` }}
+            animate={{ x: ["-100%", "200%"] }}
+            transition={{ duration: 3.5, repeat: Infinity, repeatDelay: 2.5, ease: "easeInOut" }}
+          />
+        )}
+        <div className="absolute inset-0 opacity-25" style={{ background: `linear-gradient(90deg, transparent 20%, ${lc.main} 50%, transparent 80%)` }} />
+      </div>
+
+      <div className="p-5">
+        {/* header */}
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-2">
+            <TrendingDown className={cn("size-4", currentLevel.accent)} />
+            <span className={cn("text-[11px] font-bold uppercase tracking-widest", currentLevel.accent)}>
+              {currentLevel.name} — Estimated Impact
+            </span>
+          </div>
+          <div className="text-[11px] text-muted-foreground">
+            <span className="font-mono font-bold text-[#E6EAF0]">{stats.count}</span>
+            <span className="mx-1">/</span>
+            <span className="font-mono">{visibleItems.length}</span>
+            <span className="ml-1">selected</span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-12 gap-4">
+          {/* ── Arc rings ── */}
+          <div className="col-span-5 flex items-center justify-around py-1">
+            <ArcMetric
+              value={stats.totalRam} max={stats.allRam || 1}
+              label="RAM freed (est.)" unit="MB"
+              color={lc.main} glow={lc.glow}
+            />
+            <ArcMetric
+              value={stats.totalDisk} max={stats.allDisk || 1}
+              label="Disk freed (est.)" unit="MB"
+              color="#a855f7" glow="rgba(168,85,247,0.7)"
+            />
+          </div>
+
+          {/* ── Divider ── */}
+          <div className="col-span-1 flex justify-center items-stretch">
+            <div className="w-px" style={{ background: "linear-gradient(to bottom, transparent, rgba(255,255,255,0.07), transparent)" }} />
+          </div>
+
+          {/* ── Right panel ── */}
+          <div className="col-span-6 space-y-4">
+            {/* Risk distribution */}
+            <div className="space-y-1.5">
+              <span className="text-[9px] uppercase tracking-widest text-muted-foreground/50">Risk distribution</span>
+              <div className="relative h-2 rounded-full overflow-hidden bg-[#21262D]">
+                <div className="absolute inset-0 flex h-full">
+                  {pSafe > 0 && (
+                    <motion.div className="h-full bg-emerald-400" style={{ boxShadow: "0 0 8px rgba(52,211,153,0.6)" }}
+                      initial={{ width: 0 }} animate={{ width: `${pSafe}%` }}
+                      transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+                    />
+                  )}
+                  {pMed > 0 && (
+                    <motion.div className="h-full bg-amber-400" style={{ boxShadow: "0 0 8px rgba(251,191,36,0.5)" }}
+                      initial={{ width: 0 }} animate={{ width: `${pMed}%` }}
+                      transition={{ duration: 0.7, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
+                    />
+                  )}
+                  {pHigh > 0 && (
+                    <motion.div className="h-full bg-red-400" style={{ boxShadow: "0 0 8px rgba(248,113,113,0.5)" }}
+                      initial={{ width: 0 }} animate={{ width: `${pHigh}%` }}
+                      transition={{ duration: 0.7, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                    />
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center gap-3 text-[10px]">
+                {stats.safeCnt > 0 && <span className="text-emerald-400">{stats.safeCnt} safe</span>}
+                {stats.medCnt  > 0 && <span className="text-amber-400">{stats.medCnt} med</span>}
+                {stats.highCnt > 0 && <span className="text-red-400">{stats.highCnt} high</span>}
+              </div>
+            </div>
+
+            {/* Flags */}
+            <div className="flex flex-wrap gap-2">
+              <div className={cn(
+                "flex items-center gap-1.5 text-[10px] px-2.5 py-1.5 rounded-lg border",
+                stats.count > 0 && stats.restorableCnt === stats.count
+                  ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                  : stats.restorableCnt > 0
+                  ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
+                  : "bg-[#1A1F26] text-muted-foreground border-[#2A313A]"
+              )}>
+                <RotateCcw className="size-3 shrink-0" />
+                {stats.count === 0 ? "—" : `${stats.restorableCnt}/${stats.count} restorable`}
+              </div>
+              {stats.adminReq && (
+                <div className="flex items-center gap-1.5 text-[10px] px-2.5 py-1.5 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                  <ShieldCheck className="size-3 shrink-0" />Admin required
+                </div>
+              )}
+              {stats.restartReq && (
+                <div className="flex items-center gap-1.5 text-[10px] px-2.5 py-1.5 rounded-lg bg-orange-500/10 text-orange-400 border border-orange-500/20">
+                  <RefreshCw className="size-3 shrink-0" />Restart needed
+                </div>
+              )}
+            </div>
+
+            {/* Category spectrum — animated vertical bars */}
+            {stats.count > 0 && (
+              <div className="space-y-1.5">
+                <span className="text-[9px] uppercase tracking-widest text-muted-foreground/50">Category breakdown</span>
+                <div className="flex items-end gap-1.5 h-10">
+                  {categories.map((cat, ci) => {
+                    const cnt = selectedItems.filter(i => i.category === cat).length;
+                    if (cnt === 0) return null;
+                    const barH = Math.max(4, (cnt / maxCat) * 36);
+                    const color = CAT_COLORS[cat] ?? "#6b7280";
+                    const meta = CATEGORY_META[cat];
+                    const CIcon = meta.icon;
+                    return (
+                      <div key={cat} className="flex flex-col items-center gap-0.5 flex-1" title={`${meta.label}: ${cnt}`}>
+                        <motion.div
+                          className="w-full rounded-t-sm"
+                          style={{
+                            background: `linear-gradient(to top, ${color}, ${color}55)`,
+                            boxShadow: `0 0 10px ${color}55`,
+                          }}
+                          initial={{ height: 0 }}
+                          animate={{ height: barH }}
+                          transition={{ duration: 0.65, delay: 0.08 * ci, ease: [0.22, 1, 0.36, 1] }}
+                        />
+                        <CIcon className="size-2.5 shrink-0" style={{ color }} />
+                        <span className="text-[8px] font-mono leading-none" style={{ color }}>{cnt}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Premium scan overlay ──────────────────────────────────────────────────────
 
 const SCAN_STEPS = [
@@ -1087,43 +1356,6 @@ export default function Debloater() {
           </motion.div>
         )}
 
-        {/* Role selector */}
-        <div className="grid grid-cols-5 gap-3">
-          {SYSTEM_ROLES.map((r, i) => {
-            const Icon = r.icon;
-            const active = role === r.id;
-            return (
-              <motion.div key={r.id}
-                initial={{ opacity: 0, y: 16, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                transition={{ duration: 0.4, delay: 0.06 * i, ease: [0.22, 1, 0.36, 1] }}
-              >
-                <Card
-                  className={cn(
-                    "cursor-pointer transition-all duration-200 h-full group",
-                    active
-                      ? "bg-primary/12 border-primary shadow-[0_0_0_1px_hsl(var(--primary)/0.4)]"
-                      : "bg-card/40 border-border/40 hover:border-[#2A313A] hover:bg-[#21262D]"
-                  )}
-                  onClick={() => setRole(r.id)}
-                  data-testid={`role-${r.id}`}
-                >
-                  <CardContent className="p-4 text-center">
-                    <div className={cn(
-                      "size-9 rounded-xl mx-auto mb-2.5 flex items-center justify-center transition-colors",
-                      active ? "bg-primary/20" : "bg-[#21262D] group-hover:bg-[#1A1F26]"
-                    )}>
-                      <Icon className={cn("size-4.5", active ? "text-primary" : "text-muted-foreground")} />
-                    </div>
-                    <p className={cn("font-semibold text-xs leading-tight", active ? "text-[#E6EAF0]" : "text-muted-foreground")}>{r.name}</p>
-                    <p className="text-[10px] text-muted-foreground/70 mt-0.5 leading-snug">{r.description}</p>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            );
-          })}
-        </div>
-
         {/* ── Overview stat cards ────────────────────────────────────────────── */}
         <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
           {[
@@ -1338,134 +1570,15 @@ export default function Debloater() {
           </div>
         </motion.div>
 
-        {/* Impact summary panel */}
+        {/* Impact visualization */}
         <Reveal delay={0}>
-          <Card
-            className={cn("border overflow-hidden", currentLevel.border)}
-            style={{
-              background: "linear-gradient(135deg, rgba(255,255,255,0.10) 0%, rgba(220,220,255,0.06) 50%, rgba(255,255,255,0.09) 100%)",
-              backdropFilter: "blur(24px)",
-              WebkitBackdropFilter: "blur(24px)",
-              boxShadow: "0 4px 32px rgba(0,0,0,0.25), 0 0 0 1px rgba(255,255,255,0.07) inset",
-            }}
-          >
-            <CardContent className="p-4">
-              <div className="grid grid-cols-12 gap-6">
-                {/* Left: impact numbers */}
-                <div className="col-span-5 space-y-3">
-                  <div className="flex items-center gap-2 mb-3">
-                    <TrendingDown className={cn("size-4", currentLevel.accent)} />
-                    <span className={cn("text-xs font-semibold uppercase tracking-wider", currentLevel.accent)}>
-                      {currentLevel.name} — Estimated impact
-                    </span>
-                  </div>
-
-                  <ImpactBar
-                    label="RAM freed (est.)"
-                    value={stats.totalRam}
-                    max={stats.allRam || 1}
-                    color="text-cyan-400"
-                    unit="MB"
-                  />
-                  <ImpactBar
-                    label="Disk freed (est.)"
-                    value={stats.totalDisk}
-                    max={stats.allDisk || 1}
-                    color="text-[#00D4FF]"
-                    unit="MB"
-                  />
-                </div>
-
-                {/* Center: selection composition */}
-                <div className="col-span-4 space-y-3">
-                  <div className="text-xs text-muted-foreground font-medium mb-3">Selection</div>
-
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-muted-foreground">Selected</span>
-                      <span className="font-mono font-semibold text-[#E6EAF0]">{stats.count} / {visibleItems.length}</span>
-                    </div>
-                    <div className="text-xs text-muted-foreground">Risk distribution</div>
-                    <SafetyRing safe={stats.safeCnt} medium={stats.medCnt} high={stats.highCnt} />
-                  </div>
-                </div>
-
-                {/* Right: flags */}
-                <div className="col-span-3 space-y-2">
-                  <div className="text-xs text-muted-foreground font-medium mb-3">Flags</div>
-                  <div className="space-y-2">
-                    <div className={cn(
-                      "flex items-center gap-2 text-xs rounded-md px-2 py-1.5",
-                      stats.count > 0 && stats.restorableCnt === stats.count
-                        ? "bg-emerald-500/10 text-emerald-400"
-                        : stats.restorableCnt > 0
-                        ? "bg-amber-500/10 text-amber-400"
-                        : "bg-[#21262D] text-muted-foreground"
-                    )}>
-                      <RotateCcw className="size-3 shrink-0" />
-                      {stats.count === 0
-                        ? "—"
-                        : `${stats.restorableCnt}/${stats.count} restorable`}
-                    </div>
-                    {stats.adminReq && (
-                      <div className="flex items-center gap-2 text-xs bg-amber-500/10 text-amber-400 rounded-md px-2 py-1.5">
-                        <ShieldCheck className="size-3 shrink-0" />Admin required
-                      </div>
-                    )}
-                    {stats.restartReq && (
-                      <div className="flex items-center gap-2 text-xs bg-orange-500/10 text-orange-400 rounded-md px-2 py-1.5">
-                        <RefreshCw className="size-3 shrink-0" />Restart needed
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Category footprint bar */}
-              {stats.count > 0 && (
-                <div className="mt-4 pt-4  space-y-2">
-                  <div className="text-[10px] text-muted-foreground mb-2">Selected by category</div>
-                  <div className="flex gap-1 h-2 rounded-full overflow-hidden">
-                    {categories.map(cat => {
-                      const catItems = selectedItems.filter(i => i.category === cat);
-                      const pct = stats.count > 0 ? (catItems.length / stats.count) * 100 : 0;
-                      if (pct === 0) return null;
-                      const meta = CATEGORY_META[cat];
-                      const colorMap: Record<string, string> = {
-                        "text-[#00D4FF]": "bg-[#00D4FF]",
-                        "text-cyan-400":   "bg-cyan-400",
-                        "text-blue-400":   "bg-blue-400",
-                        "text-sky-400":    "bg-sky-400",
-                        "text-orange-400": "bg-orange-400",
-                        "text-pink-400":   "bg-pink-400",
-                      };
-                      return (
-                        <div
-                          key={cat}
-                          className={cn("h-full transition-all duration-500", colorMap[meta.color] ?? "bg-[#1A1F26]0")}
-                          style={{ width: `${pct}%` }}
-                          title={`${meta.label}: ${catItems.length} item${catItems.length !== 1 ? "s" : ""}`}
-                        />
-                      );
-                    })}
-                  </div>
-                  <div className="flex flex-wrap gap-3">
-                    {categories.map(cat => {
-                      const cnt = selectedItems.filter(i => i.category === cat).length;
-                      if (cnt === 0) return null;
-                      const meta = CATEGORY_META[cat];
-                      const Icon = meta.icon;
-                      return (
-                        <div key={cat} className={cn("flex items-center gap-1 text-[10px]", meta.color)}>
-                          <Icon className="size-2.5" />{meta.label} ({cnt})
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <ImpactVisualization
+            currentLevel={currentLevel}
+            stats={stats}
+            visibleItems={visibleItems}
+            selectedItems={selectedItems}
+            categories={categories}
+          />
         </Reveal>
 
         {/* View: items */}
