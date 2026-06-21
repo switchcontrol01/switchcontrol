@@ -15,6 +15,7 @@ import { killSwitchMiddleware } from "./lib/killSwitch";
 import { resolveEffectivePlan } from "./lib/planUtils";
 import aiRouter from "./routes/ai";
 import biosRouter from "./routes/bios";
+import driverIntelRouter from "./routes/driverIntel";
 import securityRouter from "./routes/security";
 import networkDiagnosticsRouter from "./routes/networkDiagnostics";
 import adminRouter from "./routes/admin";
@@ -83,6 +84,7 @@ export async function registerRoutes(
 
   app.use("/api/ai", requireJwt, requireCloudPremium, aiRouter);
   app.use("/api/bios", killSwitchMiddleware("bios"), requireJwt, requireCloudPremium, biosRouter);
+  app.use("/api/driver-intel", driverIntelRouter);
   app.use("/api/security", securityRouter);
   app.use("/api/network", killSwitchMiddleware("network_diag"), networkDiagnosticsRouter);
   app.use("/api/admin", (req, res, next) => {
