@@ -173,7 +173,9 @@ export async function registerRoutes(
   // Warm up system intelligence in the background — delayed 15s so it doesn't
   // compete with telemetry priming, window reveal, or dashboard hydration.
   // triggerBackgroundCollection() is idempotent (no-op if already running or fresh).
-  setTimeout(() => triggerBackgroundCollection(), 15_000);
+  // 20s gives Phase A (3.5s) + batchCheckAll (8s) time to finish before the
+  // full 12-probe WMI deep collection fires — prevents a process-burst pile-up.
+  setTimeout(() => triggerBackgroundCollection(), 20_000);
 
   // Cloud connectivity probe — used by packaged Electron to verify JWT auth without an OpenAI call
   app.post("/api/ai/cloud-probe", requireJwt, requireCloudPremium, (req, res) => {

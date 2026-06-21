@@ -341,10 +341,9 @@ function ElectronAppContent() {
   // This is the fix for the AppData-delete scenario: deleting %AppData%/SwitchControl
   // wipes the persisted UI store (showing all tweaks OFF) but leaves all registry
   // and service changes intact in Windows. This call rebuilds truth from the OS.
-  // Delayed to 6000ms so the dashboard is fully settled (splash + auth + first
-  // render complete) before the 61-tweak PowerShell batch fires. At 1500ms it
-  // was contending with the very first dashboard render, causing the visible
-  // CPU spike and UI stutter immediately after the splash screen exits.
+  // Delayed to 8000ms to ensure it runs AFTER SysIntelligence Phase A finishes
+  // (~3.5s of WMI probes). Overlapping batchCheckAll + Phase A was causing the
+  // audio glitch (process-spawn burst starving the Windows audio scheduler thread).
   useEffect(() => {
     if (!isElectron) return;
     const t = setTimeout(() => {
@@ -374,7 +373,7 @@ function ElectronAppContent() {
         .catch((err) => {
           console.error("[App:STARTUP-RECONCILE] batch check failed:", err);
         });
-    }, 6000);
+    }, 8000);
     return () => clearTimeout(t);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -1084,28 +1083,52 @@ function ElectronAppContent() {
 
       // ── Hardened startup order ──────────────────────────────────────────────────────────────────────
       // 1. Load stored user/JWT
-      // 2. Check JWT expiry without deleting it
-      // 3. Try JWT reissue if expired
-      // 4. Call cloud /api/me
-      // 5. Resolve premium/trial from cloud response
-      // 6. Set entitlementsVerified (device validation happens AFTER this, in the
-      //    dedicated usePremiumDeviceLock hook which only fires when
-      //    entitlementsOk && isPremium && !trial)
+      // 2. FAST PATH: if cached session exists, mount dashboard immediately with cached state
+      //    (eliminates the 2-3s cloud round-trip from blocking first useful content)
+      // 3. resolveAuthState() always runs — but is now non-blocking to UI when fast path fires
+      // 4. Cloud result reconciles: confirms entitlementsVerified, or forces logout on 401
       //
       // Premium is NEVER downgraded on network/server failure.
       // Only downgrade when cloud explicitly says loggedIn=false or plan=free.
       // ────────────────────────────────────────────────────────────────────────────────
 
+      // ── Fast path: cached session → show dashboard immediately ──────────────
+      // If we have a stored logged-in user + JWT, render the dashboard right now
+      // using cached premium state. resolveAuthState() runs below as a background
+      // reconciliation — it updates entitlementsVerified and user data when the
+      // cloud responds, without blocking first paint.
+      // setEntitlementsAttempted(true) prevents the post-auth refreshEntitlements
+      // effect from firing a redundant second /api/me call.
+      const hasCachedSession = !!(user?.loggedIn && jwt);
+      if (hasCachedSession) {
+        console.log(
+          "[AuthTruth] Boot: fast path — cached session, mounting dashboard immediately",
+          "isPremium:", user?.isPremium, "plan:", user?.plan,
+        );
+        setEntitlementsOk(true);
+        setEntitlementsAttempted(true); // suppress redundant post-auth /api/me call
+        const welcomeKeyFast = `sc_welcomed_${user!.id}`;
+        const hasBeenWelcomedFast = localStorage.getItem(welcomeKeyFast);
+        if (!hasBeenWelcomedFast) {
+          setIsFirstLogin(true);
+          localStorage.setItem(welcomeKeyFast, "true");
+          setPhase("welcome");
+        } else {
+          setPhase("authenticated");
+        }
+      }
+
+      // ── Cloud reconciliation — always runs, non-blocking when fast path fired ──
       const authState = await resolveAuthState();
       if (!mounted) return; // P3-BA1: bail if app unmounted during network call
       console.log(
         `[AuthTruth] Boot resolved verified=${authState.verified} reason=${authState.reason} user=${authState.user ? "yes" : "no"}`,
       );
 
-      setEntitlementsAttempted(true);
+      if (!hasCachedSession) setEntitlementsAttempted(true);
 
       if (authState.verified && authState.user) {
-        // Cloud confirmed — use truth
+        // Cloud confirmed — update entitlements and grace store
         setEntitlementsOk(true);
         setEntitlementsVerified(true);
         usePremiumGraceStore
@@ -1140,22 +1163,26 @@ function ElectronAppContent() {
           }
         }
 
-        // Transition to dashboard/welcome
-        const targetUser = authState.user;
-        const welcomeKey = `sc_welcomed_${targetUser.id}`;
-        const hasBeenWelcomed = localStorage.getItem(welcomeKey);
-        if (!hasBeenWelcomed) {
-          setIsFirstLogin(true);
-          localStorage.setItem(welcomeKey, "true");
-          setPhase("welcome");
-        } else {
-          setPhase("authenticated");
+        // If fast path already navigated to dashboard, no phase change needed.
+        // If slow path (no cached session), transition now.
+        if (!hasCachedSession) {
+          const targetUser = authState.user;
+          const welcomeKey = `sc_welcomed_${targetUser.id}`;
+          const hasBeenWelcomed = localStorage.getItem(welcomeKey);
+          if (!hasBeenWelcomed) {
+            setIsFirstLogin(true);
+            localStorage.setItem(welcomeKey, "true");
+            setPhase("welcome");
+          } else {
+            setPhase("authenticated");
+          }
         }
         return;
       }
 
       if (authState.reason === "logged_out_by_cloud") {
-        // Cloud explicitly rejected the session — clear and force login
+        // Cloud explicitly rejected the session — clear and force login.
+        // This handles the case where a cached session is no longer valid.
         console.warn("[AuthTruth] Boot: logged_out_by_cloud — forcing logout");
         storeLogout();
         setPhase("unauthenticated");
@@ -1179,30 +1206,30 @@ function ElectronAppContent() {
           setEntitlementsVerified(true);
         }
 
-        const targetUser = authState.user;
-        const welcomeKey = `sc_welcomed_${targetUser.id}`;
-        const hasBeenWelcomed = localStorage.getItem(welcomeKey);
-        if (!hasBeenWelcomed) {
-          setIsFirstLogin(true);
-          localStorage.setItem(welcomeKey, "true");
-          setPhase("welcome");
-        } else {
-          setPhase("authenticated");
+        if (!hasCachedSession) {
+          const targetUser = authState.user;
+          const welcomeKey = `sc_welcomed_${targetUser.id}`;
+          const hasBeenWelcomed = localStorage.getItem(welcomeKey);
+          if (!hasBeenWelcomed) {
+            setIsFirstLogin(true);
+            localStorage.setItem(welcomeKey, "true");
+            setPhase("welcome");
+          } else {
+            setPhase("authenticated");
+          }
         }
         return;
       }
 
       // No user at all — show login
-      if (hasCredential && !authState.user) {
-        // Has credential but couldn't resolve — maybe just a network hiccup
-        console.log(
-          "[AuthTruth] Boot: has credential but no resolved user — showing login",
-        );
+      if (!hasCachedSession) {
         setPhase("unauthenticated");
-        return;
+      } else {
+        // Had a cached session but cloud returned no user — force logout
+        console.warn("[AuthTruth] Boot: cached session invalidated by cloud — forcing logout");
+        storeLogout();
+        setPhase("unauthenticated");
       }
-
-      setPhase("unauthenticated");
     };
 
     checkAuth();

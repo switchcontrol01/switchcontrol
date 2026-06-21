@@ -1,0 +1,42 @@
+Let me check `latest.log` too, since that has the actual renderer/main-process timeline — `backend.log` alone only shows the Express server's side, not what's happening in the UI process during the lag.Good news first: both Replit fixes are confirmed working in this log — `batchCheckAll` now takes 1.8-3.3 seconds instead of 37, and the cooldown guard is firing correctly (`syncAll cooldown — skipping (last ran 46s ago...)`). Those fixes are real and shipped clean.
+
+But this log actually pinpoints your lag spike precisely, and it's **not** PowerShell or the backend starting — both of those are fast here:
+
+```
+[STARTUP] backend ready — port 52196 (1391ms)
+[BOOT] firstFrameReady  = 312ms
+[BOOT] windowShown      = 349ms
+[BOOT] telemetryStart   = 372ms
+[BOOT] dashboardMounted = 5423ms
+```
+
+**The window appears at 349ms. The dashboard doesn't actually mount until 5423ms.** That's a 5-second gap where the window is visible but nothing useful is happening yet — and the reason is a slow, serial **auth chain to your cloud server**:
+
+```
+00:48:54.331  [HYDRATE:1] resolveAuthState start
+00:48:54.332  [HYDRATE:5] /api/me — jwt=present
+00:48:56.394  [HYDRATE:6] result=verified source=cloud      ← 2.06 seconds just for this call
+00:48:56.396  [DeviceLock] target=cloud
+00:48:56.398  POST /device/premium-validate
+00:48:56.917  [Dashboard] mounted                            ← finally
+```
+
+The `/api/me` round trip to `https://switchcontrol.org/api` alone took just over 2 seconds. Then the device-lock validation runs as a second sequential cloud call after that. The dashboard is gated behind both finishing — it can't mount until auth + device-lock both resolve, and they're chained one after another rather than happening in parallel with anything visually useful.
+
+This is consistent with what we found in the white-flash investigation a few days ago — same architecture, same chain. That bug was about the *visual gap* during this window; what you're feeling now as "lag" is almost certainly this same 5-second dead zone, just experienced as sluggishness rather than a flash, because the window is sitting there with a frozen-looking splash/transition state while two sequential network calls to your production server complete.
+
+**What's actually causing the spike-then-settle feeling**, more specifically:
+
+1. **0-350ms**: window paints, feels instant.
+2. **350ms-5.4s**: window is visible but inert — waiting on `/api/me` (2s) then `/device/premium-validate` (another ~500ms-1s), serially, both round trips to `switchcontrol.org` over the internet, not localhost. This is the "lag spike."
+3. **After 5.4s**: dashboard mounts, then `batchCheckAll` (1.8s) and various local PowerShell-backed scans run **in the background**, non-blocking — these don't freeze the UI, they're just CPU activity you might be perceiving as part of the same lag, but they're not what's making the window feel stuck.
+
+**The real fix isn't about PowerShell at all — it's about the auth gate blocking the dashboard.** A few concrete options, roughly in order of effort:
+
+1. **Run `/api/me` and `/device/premium-validate` in parallel, not sequentially.** Right now device-lock validation only starts *after* `/api/me` resolves. If the device-lock check doesn't actually need the result of `/api/me` (just the JWT/userId, which you already have from the persisted credential), fire both simultaneously and only block on whichever finishes last.
+
+2. **Mount the dashboard optimistically using cached/stored auth state, then reconcile silently.** You already have `storedIsPremium: true` from local storage before the cloud call even starts (`[PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: true`). The dashboard could mount immediately using that cached premium state, then silently downgrade/upgrade UI if the cloud check disagrees — rather than blocking all UI for 5 seconds on every launch waiting for network round trips to a server that almost always just confirms what you already knew.
+
+3. **Check why `/api/me` itself took 2 seconds.** That's slow for a JWT-validated lookup. Could be cold-start latency on your cloud server, DB query time, or just network RTT — worth checking your server-side logs for that specific request's server-side processing time versus pure network latency.
+
+The PowerShell/backend stuff you suspected is actually performing well now thanks to the recent fixes — the bottleneck moved to the cloud auth round trip, which is the next thing worth tackling if you want startup to feel instant.
