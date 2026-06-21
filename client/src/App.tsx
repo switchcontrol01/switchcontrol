@@ -71,6 +71,7 @@ import CameraGlow from "@/screens/CameraGlow";
 import LoginScreen from "@/screens/Login";
 import { WelcomeAnimation } from "@/components/WelcomeAnimation";
 import { OnboardingTour } from "@/components/OnboardingTour";
+import { FirstRunDisclaimer } from "@/components/FirstRunDisclaimer";
 // All Electron app routes are eager (static imports) so every page is
 // available instantly with zero Suspense cycle or chunk-fetch delay.
 import Home from "@/pages/Home";
@@ -246,6 +247,7 @@ function ElectronAppContent() {
   const [entitlementsVerified, setEntitlementsVerified] = useState(false);
   const [showPendingActivation, setShowPendingActivation] = useState(false);
   const [showPatchNotes, setShowPatchNotes] = useState(false);
+  const [showDisclaimer, setShowDisclaimer] = useState(false);
   // Becomes true 850ms after entering "authenticated" phase so tour flows don't
   // fire while the dashboard's own 750ms fade-in animation is still running.
   const [isPhaseStable, setIsPhaseStable] = useState(false);
@@ -1582,6 +1584,14 @@ function ElectronAppContent() {
                   console.log(
                     "[Handoff] intro exit complete — mounting dashboard",
                   );
+                  // Show the first-run disclaimer for brand-new users (once only).
+                  const uid = user?.id;
+                  const disclaimerKey = uid ? `sc_disclaimer_seen_${uid}` : null;
+                  if (isFirstLogin && disclaimerKey && !localStorage.getItem(disclaimerKey)) {
+                    console.log("[FirstRunDisclaimer] showing for first-time user");
+                    setShowDisclaimer(true);
+                    return; // hold off on setPhase("authenticated") until disclaimer is dismissed
+                  }
                   setPhase("authenticated");
                   setLocation("/dashboard");
                 }}
@@ -1633,6 +1643,21 @@ function ElectronAppContent() {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* First-run disclaimer — overlays the welcome screen for brand-new users.
+            Shows between welcome animation end and dashboard mount. z-9998 so it
+            sits above the welcome animation (z-2) but below any potential z-9999 overlays. */}
+        <FirstRunDisclaimer
+          show={showDisclaimer}
+          onComplete={() => {
+            const uid = user?.id;
+            if (uid) localStorage.setItem(`sc_disclaimer_seen_${uid}`, "true");
+            console.log("[FirstRunDisclaimer] dismissed — transitioning to dashboard");
+            setShowDisclaimer(false);
+            setPhase("authenticated");
+            setLocation("/dashboard");
+          }}
+        />
 
         {!isResetting && activeFlow === "firstTime" && (
           <OnboardingTour
