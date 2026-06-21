@@ -114,7 +114,14 @@ async function acquireHardware(): Promise<RawHardware> {
   const sip = useSystemIntelligenceStore.getState();
   if (!sip.profile) {
     try {
-      await sip.fetch();
+      // Cap at 6s — phase=A (CPU/GPU/RAM) lands in ~5s on most machines.
+      // phase=full (baseboard/bios) can take 7-13s on AMD WMI systems;
+      // waiting for it here blocks the entire Driver Intel page. Partial
+      // data shows now; the user hits Rescan once hardware finishes.
+      await Promise.race([
+        sip.fetch(),
+        new Promise<void>((r) => setTimeout(r, 6_000)),
+      ]);
     } catch {
       /* per-field fallback handles nulls */
     }

@@ -198,10 +198,10 @@ export function MotherboardMap({
           <button
             key={c.kind}
             onClick={() => onSelect(c.kind)}
-            className="absolute group"
+            className="absolute group cursor-pointer"
             style={{ left: `${p.x}%`, top: `${p.y}%`, transform: "translate(-50%,-50%)" }}
             data-testid={`node-${c.kind}`}
-            title={`${c.title}: ${meta.label}`}
+            title={`${c.title}: ${meta.label} — click for details`}
           >
             <motion.div
               className="relative flex items-center justify-center rounded-xl"

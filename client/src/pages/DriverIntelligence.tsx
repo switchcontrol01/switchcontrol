@@ -127,8 +127,8 @@ export default function DriverIntelligence() {
   };
 
   return (
-    <div className="relative min-h-[calc(100vh-64px)] p-5 md:p-7">
-      {/* Ambient orbs */}
+    <div className="relative min-h-[calc(100vh-64px)] p-5 md:p-7 overflow-x-hidden">
+      {/* Ambient orbs — clipped to avoid bleeding into the sidebar */}
       <div
         aria-hidden
         className="pointer-events-none absolute top-[-80px] right-[-60px] w-[420px] h-[420px] rounded-full opacity-60"
@@ -136,7 +136,7 @@ export default function DriverIntelligence() {
       />
       <div
         aria-hidden
-        className="pointer-events-none absolute bottom-[5%] left-[-80px] w-[320px] h-[320px] rounded-full"
+        className="pointer-events-none absolute bottom-[5%] left-[-40px] w-[320px] h-[320px] rounded-full"
         style={{ background: "radial-gradient(circle, rgba(59,130,246,0.05) 0%, transparent 65%)" }}
       />
 
@@ -421,30 +421,36 @@ function ComponentCard({
   return (
     <motion.button
       onClick={onClick}
-      className="group text-left rounded-xl border bg-white/[0.02] p-4 transition-colors hover:bg-white/[0.05]"
-      style={{ borderColor: `${meta.color}33` }}
+      className="group text-left rounded-xl border bg-white/[0.02] p-4 cursor-pointer transition-all hover:bg-white/[0.07]"
+      style={{ borderColor: `${meta.color}44` }}
       initial={reduced ? false : { opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, delay: reduced ? 0 : index * 0.04, ease: [0.22, 1, 0.36, 1] }}
-      whileHover={reduced ? undefined : { y: -3 }}
+      whileHover={reduced ? undefined : { y: -2, boxShadow: `0 4px 20px ${meta.glow}` }}
+      whileTap={{ scale: 0.98 }}
       data-testid={`card-component-${c.kind}`}
     >
       <div className="flex items-center justify-between mb-2">
         <span className="text-xs uppercase tracking-wider text-muted-foreground">{c.title}</span>
         <span
-          className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full"
-          style={{ background: `${meta.color}1a`, color: meta.color }}
+          className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full border"
+          style={{ background: `${meta.color}22`, color: meta.color, borderColor: `${meta.color}44` }}
         >
           <span className="size-1.5 rounded-full" style={{ background: meta.color }} />
           {meta.label}
         </span>
       </div>
-      <div className="text-sm font-medium text-[#E6EAF0] truncate" title={c.device}>
+      <div className="text-sm font-medium text-[#E6EAF0] truncate mb-1" title={c.device}>
         {c.device}
       </div>
-      <div className="text-[11px] text-muted-foreground mt-1">
-        {c.latest ? `Latest: ${c.latest}` : c.current ? `Detected` : "No data"}
-        <span className="float-right inline-flex items-center text-[#33E0FF] opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+        <span>
+          {c.latest ? `Latest: ${c.latest}` : c.current ? `Detected` : "No data"}
+        </span>
+        <span
+          className="inline-flex items-center gap-0.5 font-medium opacity-40 group-hover:opacity-100 transition-opacity"
+          style={{ color: meta.color }}
+        >
           Details <ChevronRight className="size-3" />
         </span>
       </div>
