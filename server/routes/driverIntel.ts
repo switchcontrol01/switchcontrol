@@ -1,4 +1,15 @@
 import { Router, Request, Response } from "express";
+import { db } from "../db";
+import {
+  driverHistory,
+  insertDriverHistorySchema,
+  driverDbOverrides,
+  insertDriverDbOverrideSchema,
+  type DriverDbOverride,
+} from "@shared/schema";
+import { eq, and, desc } from "drizzle-orm";
+import { requireJwt } from "../middleware/requireCloudAuth";
+import { requireAdmin } from "../middleware/requireAdmin";
 
 /**
  * Driver Intelligence — cloud driver / firmware reference database.
@@ -29,6 +40,10 @@ export interface DriverDbEntry {
   knownIssues?: string[];
   /** Update safety guidance. */
   safety: SafetyLevel;
+  /** Emergency-disabled by an admin — clients should warn, not recommend. */
+  disabled?: boolean;
+  /** True when this entry is an out-of-band hotfix override. */
+  hotfix?: boolean;
 }
 
 export interface DriverNewsItem {
@@ -268,10 +283,83 @@ const NEWS: DriverNewsItem[] = [
   },
 ];
 
-// GET /api/driver-intel/database — full reference DB
-driverIntelRouter.get("/database", (_req: Request, res: Response) => {
-  res.set("Cache-Control", "public, max-age=3600");
-  res.json(DATABASE);
+// Categories an override row can target — keys present on DATABASE.
+const OVERRIDE_CATEGORIES = [
+  "gpu",
+  "chipset",
+  "bios",
+  "ssd",
+  "network",
+  "audio",
+  "bluetooth",
+] as const;
+type OverrideCategory = (typeof OVERRIDE_CATEGORIES)[number];
+
+/**
+ * Deep-clone the static DATABASE and fold admin overrides on top. Overrides can
+ * correct metadata, push a hotfix version, or emergency-disable a known-bad
+ * driver. A disabled entry is surfaced as critical with an advisory note so the
+ * client warns the user instead of recommending it.
+ */
+function applyOverrides(rows: DriverDbOverride[]) {
+  const merged: any = JSON.parse(JSON.stringify(DATABASE));
+  let newestOverride: string | null = null;
+
+  for (const row of rows) {
+    const cat = row.category as OverrideCategory;
+    if (!OVERRIDE_CATEGORIES.includes(cat)) continue;
+    const bucket = merged[cat] ?? (merged[cat] = {});
+    const existing: DriverDbEntry | undefined = bucket[row.vendorKey];
+
+    const entry: DriverDbEntry = existing
+      ? { ...existing }
+      : { latest: row.latest ?? "unknown", safety: "safe" };
+
+    if (row.latest) entry.latest = row.latest;
+    if (row.releaseDate) entry.releaseDate = row.releaseDate;
+    if (row.releaseNotes) entry.releaseNotes = row.releaseNotes;
+    if (row.safety === "safe" || row.safety === "caution" || row.safety === "critical") {
+      entry.safety = row.safety;
+    }
+    if (row.isHotfix) entry.hotfix = true;
+
+    if (row.disabled) {
+      entry.disabled = true;
+      entry.safety = "critical";
+      const advisory = `⚠ Admin advisory: ${row.note?.trim() || "This driver has been flagged as problematic. Do not update to it."}`;
+      entry.knownIssues = [advisory, ...(entry.knownIssues ?? [])];
+    } else if (row.note?.trim()) {
+      entry.knownIssues = [row.note.trim(), ...(entry.knownIssues ?? [])];
+    }
+
+    bucket[row.vendorKey] = entry;
+
+    const stamp = row.updatedAt instanceof Date ? row.updatedAt.toISOString() : null;
+    if (stamp && (!newestOverride || stamp > newestOverride)) newestOverride = stamp;
+  }
+
+  // If an override is newer than the static stamp, advertise that as updatedAt
+  // so the client's staleness check reflects real curation activity.
+  if (newestOverride && newestOverride.slice(0, 10) > merged.updatedAt) {
+    merged.updatedAt = newestOverride.slice(0, 10);
+  }
+  return merged;
+}
+
+async function loadOverrides(): Promise<DriverDbOverride[]> {
+  try {
+    return await db.select().from(driverDbOverrides);
+  } catch {
+    return [];
+  }
+}
+
+// GET /api/driver-intel/database — full reference DB (with admin overrides folded in)
+driverIntelRouter.get("/database", async (_req: Request, res: Response) => {
+  const rows = await loadOverrides();
+  // Short cache: overrides can change at any time via the admin panel.
+  res.set("Cache-Control", "public, max-age=300");
+  res.json(rows.length ? applyOverrides(rows) : DATABASE);
 });
 
 // GET /api/driver-intel/news — driver news feed
@@ -279,5 +367,226 @@ driverIntelRouter.get("/news", (_req: Request, res: Response) => {
   res.set("Cache-Control", "public, max-age=3600");
   res.json({ items: NEWS, updatedAt: DATABASE.updatedAt });
 });
+
+// ── Driver history / restore points (user-scoped, authenticated) ──────────────
+
+const MAX_HISTORY = 200;
+
+// GET /api/driver-intel/history — current user's driver change timeline
+driverIntelRouter.get(
+  "/history",
+  requireJwt,
+  async (req: Request, res: Response) => {
+    const userId = req.cloudUser?.id;
+    if (!userId) return res.status(401).json({ error: "Unauthorized" });
+    try {
+      const rows = await db
+        .select()
+        .from(driverHistory)
+        .where(eq(driverHistory.userId, userId))
+        .orderBy(desc(driverHistory.createdAt))
+        .limit(MAX_HISTORY);
+      res.json({ items: rows });
+    } catch (err: any) {
+      res.status(500).json({ error: "Failed to load history" });
+    }
+  },
+);
+
+// POST /api/driver-intel/history — record a driver change / restore point
+driverIntelRouter.post(
+  "/history",
+  requireJwt,
+  async (req: Request, res: Response) => {
+    const userId = req.cloudUser?.id;
+    if (!userId) return res.status(401).json({ error: "Unauthorized" });
+    // Server owns userId — never trust a client-provided one.
+    const parsed = insertDriverHistorySchema
+      .omit({ userId: true })
+      .safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: "Invalid history entry" });
+    }
+    try {
+      const [row] = await db
+        .insert(driverHistory)
+        .values({ ...parsed.data, userId })
+        .returning();
+      res.status(201).json(row);
+    } catch (err: any) {
+      res.status(500).json({ error: "Failed to save history" });
+    }
+  },
+);
+
+// DELETE /api/driver-intel/history/:id — remove one of the user's own entries
+driverIntelRouter.delete(
+  "/history/:id",
+  requireJwt,
+  async (req: Request, res: Response) => {
+    const userId = req.cloudUser?.id;
+    if (!userId) return res.status(401).json({ error: "Unauthorized" });
+    try {
+      const deleted = await db
+        .delete(driverHistory)
+        .where(
+          and(
+            eq(driverHistory.id, req.params.id),
+            eq(driverHistory.userId, userId),
+          ),
+        )
+        .returning({ id: driverHistory.id });
+      if (deleted.length === 0) {
+        return res.status(404).json({ error: "Not found" });
+      }
+      res.json({ ok: true });
+    } catch (err: any) {
+      res.status(500).json({ error: "Failed to delete history" });
+    }
+  },
+);
+
+// ── Admin: driver database control plane (admin-only) ─────────────────────────
+
+// GET /api/driver-intel/admin/overview — DB freshness, vendor statuses, stats
+driverIntelRouter.get(
+  "/admin/overview",
+  requireAdmin,
+  async (_req: Request, res: Response) => {
+    try {
+      const overrides = await loadOverrides();
+      const merged = applyOverrides(overrides);
+
+      const ageDays = Math.floor(
+        (Date.now() - new Date(merged.updatedAt).getTime()) / 86_400_000,
+      );
+
+      // Per-vendor status across every category in the merged DB.
+      const vendors: Array<{
+        category: string;
+        vendorKey: string;
+        latest: string;
+        safety: SafetyLevel;
+        disabled: boolean;
+        hotfix: boolean;
+        overridden: boolean;
+      }> = [];
+      for (const cat of OVERRIDE_CATEGORIES) {
+        const bucket = merged[cat] ?? {};
+        for (const [vendorKey, entry] of Object.entries(bucket) as [
+          string,
+          DriverDbEntry,
+        ][]) {
+          vendors.push({
+            category: cat,
+            vendorKey,
+            latest: entry.latest,
+            safety: entry.safety,
+            disabled: !!entry.disabled,
+            hotfix: !!entry.hotfix,
+            overridden: overrides.some(
+              (o) => o.category === cat && o.vendorKey === vendorKey,
+            ),
+          });
+        }
+      }
+
+      res.json({
+        dbVersion: merged.dbVersion,
+        updatedAt: merged.updatedAt,
+        baseUpdatedAt: DATABASE.updatedAt,
+        ageDays,
+        stale: ageDays > 30,
+        stats: {
+          vendorCount: vendors.length,
+          overrideCount: overrides.length,
+          hotfixCount: overrides.filter((o) => o.isHotfix).length,
+          disabledCount: overrides.filter((o) => o.disabled).length,
+        },
+        vendors,
+      });
+    } catch (err) {
+      console.error("[driverIntel] admin overview error:", err);
+      res.status(500).json({ error: "Failed to load overview" });
+    }
+  },
+);
+
+// GET /api/driver-intel/admin/overrides — list raw override rows
+driverIntelRouter.get(
+  "/admin/overrides",
+  requireAdmin,
+  async (_req: Request, res: Response) => {
+    try {
+      const rows = await db
+        .select()
+        .from(driverDbOverrides)
+        .orderBy(desc(driverDbOverrides.updatedAt));
+      res.json({ items: rows });
+    } catch (err) {
+      res.status(500).json({ error: "Failed to load overrides" });
+    }
+  },
+);
+
+// POST /api/driver-intel/admin/overrides — upsert an override / hotfix / disable
+driverIntelRouter.post(
+  "/admin/overrides",
+  requireAdmin,
+  async (req: Request, res: Response) => {
+    const admin = (req as any).adminUser as { id: string } | undefined;
+    const parsed = insertDriverDbOverrideSchema
+      .omit({ updatedBy: true })
+      .safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ error: "Invalid override" });
+    }
+    if (!OVERRIDE_CATEGORIES.includes(parsed.data.category as OverrideCategory)) {
+      return res.status(400).json({ error: "Unknown category" });
+    }
+    try {
+      // Normalise the merge key server-side so it always lines up with the
+      // database keys the scanner/UI use, regardless of admin input casing.
+      const category = parsed.data.category.trim().toLowerCase();
+      const vendorKey = parsed.data.vendorKey.trim().toLowerCase();
+      const values = { ...parsed.data, category, vendorKey, updatedBy: admin?.id ?? null };
+      // Atomic upsert — one override per (category, vendorKey). The unique index
+      // backs ON CONFLICT, so concurrent writes can't create duplicate rows.
+      const { id: _omit, ...updateSet } = { ...values, updatedAt: new Date() } as any;
+      const [row] = await db
+        .insert(driverDbOverrides)
+        .values(values)
+        .onConflictDoUpdate({
+          target: [driverDbOverrides.category, driverDbOverrides.vendorKey],
+          set: updateSet,
+        })
+        .returning();
+      res.status(201).json(row);
+    } catch (err) {
+      console.error("[driverIntel] upsert override error:", err);
+      res.status(500).json({ error: "Failed to save override" });
+    }
+  },
+);
+
+// DELETE /api/driver-intel/admin/overrides/:id — remove an override
+driverIntelRouter.delete(
+  "/admin/overrides/:id",
+  requireAdmin,
+  async (req: Request, res: Response) => {
+    try {
+      const deleted = await db
+        .delete(driverDbOverrides)
+        .where(eq(driverDbOverrides.id, req.params.id))
+        .returning({ id: driverDbOverrides.id });
+      if (deleted.length === 0) {
+        return res.status(404).json({ error: "Not found" });
+      }
+      res.json({ ok: true });
+    } catch (err) {
+      res.status(500).json({ error: "Failed to delete override" });
+    }
+  },
+);
 
 export default driverIntelRouter;

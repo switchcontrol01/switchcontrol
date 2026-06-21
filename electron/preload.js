@@ -455,6 +455,20 @@ contextBridge.exposeInMainWorld('electronAPI', {
     },
   },
 
+  // ── Driver Intelligence: detect + launch official vendor tools ──────────────
+  // appKey is from a fixed allowlist (nvidia, amd, intel, samsung-magician,
+  // crucial-storage-executive, wd-dashboard). Renderer never passes a path.
+  driverApps: {
+    detect: (appKey) => {
+      assertString(appKey, 'appKey');
+      return ipcRenderer.invoke('driverApps:detect', appKey);
+    },
+    launch: (appKey) => {
+      assertString(appKey, 'appKey');
+      return ipcRenderer.invoke('driverApps:launch', appKey);
+    },
+  },
+
   startup: {
     scan:        ()       => ipcRenderer.invoke('startup:scan'),
     setEnabled:  (params) => ipcRenderer.invoke('startup:setEnabled', params),

@@ -1204,6 +1204,337 @@ function UserDetailPanel({ user, logs, onClose, onPlanUpdated, onDeleted }: {
   );
 }
 
+// ─── Driver Database Control Plane ────────────────────────────────────────────
+
+const DRIVER_CATEGORIES = [
+  "gpu",
+  "chipset",
+  "bios",
+  "ssd",
+  "network",
+  "audio",
+  "bluetooth",
+] as const;
+
+interface DriverOverview {
+  dbVersion: string;
+  updatedAt: string;
+  baseUpdatedAt: string;
+  ageDays: number;
+  stale: boolean;
+  stats: {
+    vendorCount: number;
+    overrideCount: number;
+    hotfixCount: number;
+    disabledCount: number;
+  };
+  vendors: Array<{
+    category: string;
+    vendorKey: string;
+    latest: string;
+    safety: "safe" | "caution" | "critical";
+    disabled: boolean;
+    hotfix: boolean;
+    overridden: boolean;
+  }>;
+}
+
+interface DriverOverrideRow {
+  id: string;
+  category: string;
+  vendorKey: string;
+  latest: string | null;
+  releaseDate: string | null;
+  releaseNotes: string | null;
+  safety: string | null;
+  disabled: boolean;
+  isHotfix: boolean;
+  note: string | null;
+  updatedAt: string;
+}
+
+function DriverDbAdmin() {
+  const [overview, setOverview] = useState<DriverOverview | null>(null);
+  const [overrides, setOverrides] = useState<DriverOverrideRow[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  // Form state for upserting an override.
+  const [fCategory, setFCategory] = useState<string>("gpu");
+  const [fVendor, setFVendor] = useState("");
+  const [fLatest, setFLatest] = useState("");
+  const [fSafety, setFSafety] = useState("");
+  const [fNote, setFNote] = useState("");
+  const [fDisabled, setFDisabled] = useState(false);
+  const [fHotfix, setFHotfix] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [ovR, orR] = await Promise.all([
+        fetch("/api/driver-intel/admin/overview", { headers: buildHeaders() as any }),
+        fetch("/api/driver-intel/admin/overrides", { headers: buildHeaders() as any }),
+      ]);
+      if (!ovR.ok) throw new Error("Failed to load overview");
+      if (!orR.ok) throw new Error("Failed to load overrides");
+      setOverview(await ovR.json());
+      setOverrides((await orR.json()).items);
+    } catch (e: any) {
+      setError(e.message || "Network error");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const saveOverride = async () => {
+    if (!fVendor.trim()) { setError("Vendor key is required."); return; }
+    setSaving(true);
+    setError(null);
+    try {
+      const body: Record<string, any> = {
+        category: fCategory,
+        vendorKey: fVendor.trim().toLowerCase(),
+        disabled: fDisabled,
+        isHotfix: fHotfix,
+      };
+      if (fLatest.trim()) body.latest = fLatest.trim();
+      if (fSafety) body.safety = fSafety;
+      if (fNote.trim()) body.note = fNote.trim();
+      const r = await fetch("/api/driver-intel/admin/overrides", {
+        method: "POST",
+        headers: buildHeaders(),
+        body: JSON.stringify(body),
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error || "Failed to save");
+      setFVendor(""); setFLatest(""); setFSafety(""); setFNote("");
+      setFDisabled(false); setFHotfix(false);
+      await load();
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const deleteOverride = async (id: string) => {
+    try {
+      const r = await fetch(`/api/driver-intel/admin/overrides/${id}`, {
+        method: "DELETE",
+        headers: buildHeaders() as any,
+      });
+      if (!r.ok) throw new Error("Failed to delete");
+      await load();
+    } catch (e: any) {
+      setError(e.message);
+    }
+  };
+
+  const safetyColor = (s: string) =>
+    s === "critical"
+      ? "text-red-400"
+      : s === "caution"
+        ? "text-amber-400"
+        : "text-green-400";
+
+  return (
+    <div
+      className="mb-6 rounded-xl border border-purple-500/15 p-4"
+      style={{ background: "rgba(168,85,247,0.04)" }}
+      data-testid="panel-driver-db"
+    >
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-xs font-semibold text-purple-400/70 uppercase tracking-wider">
+          Driver Database
+        </p>
+        <button
+          onClick={load}
+          className="text-xs text-purple-300/70 hover:text-purple-300 underline"
+          data-testid="button-driver-db-refresh"
+        >
+          Refresh
+        </button>
+      </div>
+
+      {error && (
+        <div className="mb-3 rounded-lg bg-red-500/10 border border-red-500/20 px-3 py-2 text-xs text-red-400" data-testid="text-driver-db-error">
+          {error}
+        </div>
+      )}
+
+      {loading && !overview ? (
+        <div className="py-4 flex items-center justify-center">
+          <div className="w-5 h-5 rounded-full border-2 border-purple-500 border-t-transparent animate-spin" />
+        </div>
+      ) : overview ? (
+        <>
+          {/* Freshness + stats */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3">
+            {[
+              { label: "DB Version", value: overview.dbVersion },
+              {
+                label: "Updated",
+                value: `${overview.updatedAt} (${overview.ageDays}d)`,
+                warn: overview.stale,
+              },
+              { label: "Overrides", value: String(overview.stats.overrideCount) },
+              {
+                label: "Disabled",
+                value: String(overview.stats.disabledCount),
+                warn: overview.stats.disabledCount > 0,
+              },
+            ].map((s) => (
+              <div
+                key={s.label}
+                className={`rounded-lg border px-3 py-2 ${s.warn ? "border-amber-500/30 bg-amber-500/5" : "border-[#2A313A] bg-[#21262D]/50"}`}
+              >
+                <p className="text-[10px] uppercase tracking-wider text-[#6B7380]">{s.label}</p>
+                <p className={`text-sm font-medium ${s.warn ? "text-amber-400" : "text-[#E6EAF0]"}`} data-testid={`stat-driver-${s.label}`}>
+                  {s.value}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          {overview.stale && (
+            <div className="mb-3 rounded-lg border border-amber-500/25 bg-amber-500/5 px-3 py-2 text-xs text-amber-300/90">
+              Driver database is over 30 days old — consider refreshing reference data.
+            </div>
+          )}
+
+          {/* Vendor status grid */}
+          <div className="mb-4 max-h-44 overflow-y-auto scrollbar-none rounded-lg border border-[#2A313A]">
+            {overview.vendors.map((v) => (
+              <div
+                key={`${v.category}-${v.vendorKey}`}
+                className="grid grid-cols-[80px_1fr_120px_auto] gap-2 items-center px-3 py-1.5 text-xs border-b border-[#2A313A]/50 last:border-0"
+                data-testid={`row-vendor-${v.category}-${v.vendorKey}`}
+              >
+                <span className="text-[#6B7380] uppercase">{v.category}</span>
+                <span className="text-[#E6EAF0] font-medium">{v.vendorKey}</span>
+                <span className="text-[#A0A8B3] font-mono">{v.latest}</span>
+                <span className="flex items-center gap-1.5 justify-end">
+                  {v.overridden && <span className="text-purple-400" title="Has override">●</span>}
+                  {v.hotfix && <span className="text-[#00D4FF]" title="Hotfix">hotfix</span>}
+                  {v.disabled && <span className="text-red-400" title="Disabled">disabled</span>}
+                  <span className={safetyColor(v.safety)}>{v.safety}</span>
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {/* Override form */}
+          <div className="rounded-lg border border-[#2A313A] bg-[#1A1F27]/60 p-3">
+            <p className="text-[11px] font-semibold text-[#A0A8B3] uppercase tracking-wider mb-2">
+              Add / Update Override
+            </p>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mb-2">
+              <select
+                value={fCategory}
+                onChange={(e) => setFCategory(e.target.value)}
+                className="text-xs rounded-lg bg-[#21262D] border border-[#2A313A] px-2 py-1.5 text-[#E6EAF0]"
+                data-testid="select-override-category"
+              >
+                {DRIVER_CATEGORIES.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+              <input
+                value={fVendor}
+                onChange={(e) => setFVendor(e.target.value)}
+                placeholder="vendor key (e.g. nvidia)"
+                className="text-xs rounded-lg bg-[#21262D] border border-[#2A313A] px-2 py-1.5 text-[#E6EAF0]"
+                data-testid="input-override-vendor"
+              />
+              <input
+                value={fLatest}
+                onChange={(e) => setFLatest(e.target.value)}
+                placeholder="latest version (optional)"
+                className="text-xs rounded-lg bg-[#21262D] border border-[#2A313A] px-2 py-1.5 text-[#E6EAF0]"
+                data-testid="input-override-latest"
+              />
+              <select
+                value={fSafety}
+                onChange={(e) => setFSafety(e.target.value)}
+                className="text-xs rounded-lg bg-[#21262D] border border-[#2A313A] px-2 py-1.5 text-[#E6EAF0]"
+                data-testid="select-override-safety"
+              >
+                <option value="">safety (keep)</option>
+                <option value="safe">safe</option>
+                <option value="caution">caution</option>
+                <option value="critical">critical</option>
+              </select>
+              <input
+                value={fNote}
+                onChange={(e) => setFNote(e.target.value)}
+                placeholder="admin note (shown to users)"
+                className="text-xs rounded-lg bg-[#21262D] border border-[#2A313A] px-2 py-1.5 text-[#E6EAF0] col-span-2 md:col-span-1"
+                data-testid="input-override-note"
+              />
+            </div>
+            <div className="flex items-center gap-4 mb-2">
+              <label className="flex items-center gap-1.5 text-xs text-[#A0A8B3] cursor-pointer">
+                <input type="checkbox" checked={fDisabled} onChange={(e) => setFDisabled(e.target.checked)} className="accent-red-500" data-testid="checkbox-override-disabled" />
+                Emergency disable (warn, don't recommend)
+              </label>
+              <label className="flex items-center gap-1.5 text-xs text-[#A0A8B3] cursor-pointer">
+                <input type="checkbox" checked={fHotfix} onChange={(e) => setFHotfix(e.target.checked)} className="accent-[#00D4FF]" data-testid="checkbox-override-hotfix" />
+                Hotfix
+              </label>
+            </div>
+            <button
+              onClick={saveOverride}
+              disabled={saving}
+              className="text-xs font-medium rounded-lg px-4 py-1.5 border border-purple-500/40 bg-purple-500/15 text-purple-300 hover:bg-purple-500/25 transition-all disabled:opacity-50"
+              data-testid="button-save-override"
+            >
+              {saving ? "Saving…" : "Save override"}
+            </button>
+          </div>
+
+          {/* Existing overrides */}
+          {overrides.length > 0 && (
+            <div className="mt-3 space-y-1.5">
+              <p className="text-[11px] font-semibold text-[#A0A8B3] uppercase tracking-wider">
+                Active Overrides ({overrides.length})
+              </p>
+              {overrides.map((o) => (
+                <div
+                  key={o.id}
+                  className="flex items-center justify-between rounded-lg bg-[#21262D]/50 border border-[#2A313A] px-3 py-2"
+                  data-testid={`row-override-${o.id}`}
+                >
+                  <div className="text-xs min-w-0">
+                    <span className="text-[#6B7380] uppercase mr-2">{o.category}</span>
+                    <span className="text-[#E6EAF0] font-medium">{o.vendorKey}</span>
+                    {o.latest && <span className="text-[#A0A8B3] font-mono ml-2">{o.latest}</span>}
+                    {o.disabled && <span className="text-red-400 ml-2">disabled</span>}
+                    {o.isHotfix && <span className="text-[#00D4FF] ml-2">hotfix</span>}
+                    {o.note && <p className="text-[#6B7380] mt-0.5 truncate">{o.note}</p>}
+                  </div>
+                  <button
+                    onClick={() => deleteOverride(o.id)}
+                    className="text-xs text-red-400 hover:text-red-300 ml-3 shrink-0"
+                    data-testid={`button-delete-override-${o.id}`}
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      ) : (
+        <p className="text-xs text-[#6B7380] italic">Driver database data unavailable.</p>
+      )}
+    </div>
+  );
+}
+
 // ─── Main Admin Page ──────────────────────────────────────────────────────────
 
 export default function AdminPage() {
@@ -1245,6 +1576,9 @@ export default function AdminPage() {
   const [health, setHealth] = useState<any>(null);
   const [healthLoading, setHealthLoading] = useState(false);
   const [showHealth, setShowHealth] = useState(false);
+
+  // Driver database control plane
+  const [showDriverDb, setShowDriverDb] = useState(false);
 
   // Device lock lookup
   const [deviceLookupId, setDeviceLookupId] = useState("");
@@ -1772,7 +2106,16 @@ export default function AdminPage() {
           >
             System Health
           </button>
+          <button
+            onClick={() => setShowDriverDb(!showDriverDb)}
+            data-testid="button-toggle-driver-db"
+            className={`text-xs rounded-lg px-3 py-1.5 border transition-all ${showDriverDb ? "border-purple-500/50 bg-purple-500/15 text-purple-400" : "border-[#2A313A] bg-[#21262D] text-[#A0A8B3] hover:text-[#E6EAF0]"}`}
+          >
+            Driver Database
+          </button>
         </div>
+
+        {showDriverDb && <DriverDbAdmin />}
 
         {showHealth && (
           <div className="mb-6 rounded-xl border border-green-500/15 p-4" style={{ background: "rgba(74,222,128,0.04)" }}>

@@ -19,10 +19,13 @@ import {
   Sparkles,
   Lock,
   Info,
+  Rocket,
+  ClipboardCheck,
 } from "lucide-react";
 import {
   type DriverComponent,
   type SafetyLevel,
+  type UpdateAction,
   HEALTH_META,
 } from "@/lib/driver-intel-data";
 
@@ -54,16 +57,22 @@ interface ComponentPanelProps {
   component: DriverComponent | null;
   readOnly: boolean; // trial users
   onClose: () => void;
-  onOpenUrl: (url: string) => void;
+  onAction: (action: UpdateAction) => void;
+  /** appKey -> installed? (desktop only) to pick the right button label. */
+  detectedApps?: Record<string, boolean>;
   onAskAi: (component: DriverComponent) => void;
+  /** Log "I updated this" as a restore point (current -> latest). */
+  onRecordUpdate?: (component: DriverComponent) => void;
 }
 
 export function ComponentPanel({
   component,
   readOnly,
   onClose,
-  onOpenUrl,
+  onAction,
+  detectedApps,
   onAskAi,
+  onRecordUpdate,
 }: ComponentPanelProps) {
   // Lock body scroll and handle Escape when panel is open.
   useEffect(() => {
@@ -110,8 +119,10 @@ export function ComponentPanel({
               component={component}
               readOnly={readOnly}
               onClose={onClose}
-              onOpenUrl={onOpenUrl}
+              onAction={onAction}
+              detectedApps={detectedApps}
               onAskAi={onAskAi}
+              onRecordUpdate={onRecordUpdate}
             />
           </motion.aside>
         </>
@@ -124,18 +135,29 @@ function PanelBody({
   component: c,
   readOnly,
   onClose,
-  onOpenUrl,
+  onAction,
+  detectedApps,
   onAskAi,
+  onRecordUpdate,
 }: {
   component: DriverComponent;
   readOnly: boolean;
   onClose: () => void;
-  onOpenUrl: (url: string) => void;
+  onAction: (action: UpdateAction) => void;
+  detectedApps?: Record<string, boolean>;
   onAskAi: (component: DriverComponent) => void;
+  onRecordUpdate?: (component: DriverComponent) => void;
 }) {
   const health = HEALTH_META[c.health];
   const safety = SAFETY_META[c.safety];
   const SafetyIcon = safety.Icon;
+
+  // Pick the button label: if the vendor's app is detected as installed, show
+  // "Open <app>"; otherwise show the download/page label.
+  const appInstalled =
+    !!c.action?.appKey && !!detectedApps?.[c.action.appKey];
+  const actionLabel =
+    appInstalled && c.action?.appLabel ? c.action.appLabel : c.action?.label;
 
   return (
     <div className="p-6 space-y-6">
@@ -246,10 +268,10 @@ function PanelBody({
           <ActionButton
             disabled={readOnly}
             primary
-            onClick={() => onOpenUrl(c.action!.url)}
+            onClick={() => onAction(c.action!)}
             testId="button-open-vendor"
-            icon={readOnly ? Lock : ExternalLink}
-            label={readOnly ? "Updates are Premium" : c.action.label}
+            icon={readOnly ? Lock : appInstalled ? Rocket : ExternalLink}
+            label={readOnly ? "Updates are Premium" : actionLabel ?? "Open"}
             note={readOnly ? "Upgrade to act on recommendations." : c.action.note}
           />
         )}
@@ -265,6 +287,22 @@ function PanelBody({
               : "Get a plain-language explanation tailored to your system."
           }
         />
+        {onRecordUpdate && c.latest && (
+          <ActionButton
+            disabled={readOnly}
+            onClick={() => onRecordUpdate(c)}
+            testId="button-log-update"
+            icon={readOnly ? Lock : ClipboardCheck}
+            label={
+              readOnly ? "History is Premium" : `Mark as updated to ${c.latest}`
+            }
+            note={
+              readOnly
+                ? undefined
+                : "Saves a restore point so you can roll back later."
+            }
+          />
+        )}
       </div>
 
       <p className="text-[11px] text-muted-foreground/70 text-center pt-2">

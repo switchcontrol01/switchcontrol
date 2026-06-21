@@ -1951,6 +1951,35 @@ ipcMain.handle('open-external', (event, url) => {
   }
 });
 
+// ── Driver Intelligence: smart vendor-app detection + launch ─────────────────
+// Detect-and-redirect only. Renderer passes an appKey from a fixed allowlist
+// (never a path); main resolves and launches the official vendor tool itself.
+const driverApps = require('./driver-apps-helper');
+
+ipcMain.handle('driverApps:detect', async (_event, appKey) => {
+  try {
+    if (typeof appKey !== 'string' || !driverApps.isKnownAppKey(appKey)) {
+      return { installed: false, appKey: null, display: null };
+    }
+    return await driverApps.detect(appKey);
+  } catch (e) {
+    console.warn('[driver-apps] detect failed:', e?.message);
+    return { installed: false, appKey: null, display: null };
+  }
+});
+
+ipcMain.handle('driverApps:launch', async (_event, appKey) => {
+  try {
+    if (typeof appKey !== 'string' || !driverApps.isKnownAppKey(appKey)) {
+      return { launched: false, reason: 'invalid-key' };
+    }
+    return await driverApps.launch(appKey);
+  } catch (e) {
+    console.warn('[driver-apps] launch failed:', e?.message);
+    return { launched: false, reason: 'launch-failed' };
+  }
+});
+
 // System info (basic)
 ipcMain.handle('system:getInfo', () => ({
   platform: process.platform,

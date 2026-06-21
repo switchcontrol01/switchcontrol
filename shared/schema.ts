@@ -1,5 +1,5 @@
 import { sql, relations } from "drizzle-orm";
-import { pgTable, text, varchar, integer, boolean, timestamp, real, jsonb, serial, primaryKey, index } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, boolean, timestamp, real, jsonb, serial, primaryKey, index, uniqueIndex } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -79,6 +79,63 @@ export const networkTweakLog = pgTable("network_tweak_log", {
   createdAtIdx: index("network_tweak_log_created_at_idx").on(t.createdAt),
 }));
 
+// ── Driver Intelligence history / restore points ─────────────────────────────
+// User-scoped log of driver/firmware version changes the user recorded. A
+// "restore point" is simply an entry whose rollbackMeta captures enough detail
+// (version/date/package) to find and reinstall a previous driver from the
+// vendor. We NEVER store driver binaries — only metadata pointing at them.
+export const driverHistory = pgTable("driver_history", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: text("user_id").notNull(),
+  /** Component kind: gpu | chipset | ssd | network | audio | bios | bluetooth. */
+  component: text("component").notNull(),
+  /** Human label e.g. "NVIDIA GeForce RTX 4070". */
+  componentLabel: text("component_label"),
+  vendor: text("vendor"),
+  fromVersion: text("from_version"),
+  toVersion: text("to_version").notNull(),
+  /** update | restore | note */
+  action: text("action").notNull().default("update"),
+  /** Vendor package / installer name this change came from, if known. */
+  packageName: text("package_name"),
+  /** True when enough metadata exists to guide a rollback. */
+  rollbackAvailable: boolean("rollback_available").notNull().default(false),
+  /** Free-form metadata: prior version, release date, download hints, notes. */
+  rollbackMeta: jsonb("rollback_meta"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  userIdIdx: index("driver_history_user_id_idx").on(t.userId),
+  createdAtIdx: index("driver_history_created_at_idx").on(t.createdAt),
+}));
+
+// ── Driver DB admin overrides / hotfixes / emergency disables ─────────────────
+// Admin-curated layer on top of the static reference DB in routes/driverIntel.ts.
+// One row per (category, vendorKey). Lets admins push a hotfix version, correct
+// metadata, or emergency-disable a known-bad driver without a redeploy.
+export const driverDbOverrides = pgTable("driver_db_overrides", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  /** gpu | chipset | bios | ssd | network | audio | bluetooth */
+  category: text("category").notNull(),
+  /** Normalised vendor key, e.g. "nvidia", "gigabyte". */
+  vendorKey: text("vendor_key").notNull(),
+  /** Override the latest known version (optional). */
+  latest: text("latest"),
+  releaseDate: text("release_date"),
+  releaseNotes: text("release_notes"),
+  /** safe | caution | critical */
+  safety: text("safety"),
+  /** Emergency-disable: tells clients NOT to recommend this driver. */
+  disabled: boolean("disabled").notNull().default(false),
+  /** Flags an out-of-band hotfix entry. */
+  isHotfix: boolean("is_hotfix").notNull().default(false),
+  /** Admin note shown to users (e.g. why a driver is disabled). */
+  note: text("note"),
+  updatedBy: text("updated_by"),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  vendorKeyIdx: uniqueIndex("driver_db_overrides_vendor_idx").on(t.category, t.vendorKey),
+}));
+
 export const userSettingsRelations = relations(userSettings, ({ many }) => ({
   appliedTweaks: many(appliedTweaks),
   historyEntries: many(historyEntries),
@@ -110,6 +167,8 @@ export const insertUserSettingsSchema = createInsertSchema(userSettings).omit({ 
 export const insertAppliedTweakSchema = createInsertSchema(appliedTweaks).omit({ id: true });
 export const insertHistoryEntrySchema = createInsertSchema(historyEntries).omit({ id: true, timestamp: true });
 export const insertAIScanSchema = createInsertSchema(aiScans).omit({ id: true, timestamp: true });
+export const insertDriverHistorySchema = createInsertSchema(driverHistory).omit({ id: true, createdAt: true });
+export const insertDriverDbOverrideSchema = createInsertSchema(driverDbOverrides).omit({ id: true, updatedAt: true });
 
 export type UserSettings = typeof userSettings.$inferSelect;
 export type InsertUserSettings = z.infer<typeof insertUserSettingsSchema>;
@@ -119,5 +178,9 @@ export type HistoryEntry = typeof historyEntries.$inferSelect;
 export type InsertHistoryEntry = z.infer<typeof insertHistoryEntrySchema>;
 export type AIScan = typeof aiScans.$inferSelect;
 export type InsertAIScan = z.infer<typeof insertAIScanSchema>;
+export type DriverHistory = typeof driverHistory.$inferSelect;
+export type InsertDriverHistory = z.infer<typeof insertDriverHistorySchema>;
+export type DriverDbOverride = typeof driverDbOverrides.$inferSelect;
+export type InsertDriverDbOverride = z.infer<typeof insertDriverDbOverrideSchema>;
 
 export * from "./models/auth";

@@ -34,3 +34,18 @@ driver/firmware versions against a server-maintained cloud DB.
 ## Entitlement
 - Free → full-page premium overlay. Trial (`status === "trial_active"`) → READ-ONLY:
   can scan, but action/AI buttons are disabled and route to the upgrade modal.
+
+## Admin override layer (Phase 2)
+- `driver_db_overrides` (one row per `(category, vendorKey)`, unique index) is an
+  admin-curated layer folded on top of the static `DATABASE` in `routes/driverIntel.ts`
+  via `applyOverrides()`. Lets admins correct metadata, push a hotfix version, or
+  emergency-disable a known-bad driver WITHOUT a redeploy.
+- Emergency-disable = `disabled:true` → merged entry forced to `safety:"critical"` +
+  an "⚠ Admin advisory" knownIssue prepended; the client surfaces this automatically
+  because `DriverDbEntry` already carries `safety` + `knownIssues`. Still detect-and-redirect.
+- Upsert MUST be atomic (`onConflictDoUpdate` on the unique index), not read-then-write.
+  **Why:** concurrent admin writes / casing variants would otherwise create duplicate
+  rows and `applyOverrides()` folds rows in unspecified select order → nondeterministic.
+  Normalise `category`/`vendorKey` to lowercase server-side so merge keys line up.
+- `/database` cache dropped to `max-age=300` (overrides change anytime); `updatedAt`
+  advances to the newest override date so the 30-day staleness banner reflects curation.

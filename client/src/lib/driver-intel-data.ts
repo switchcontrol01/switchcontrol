@@ -37,14 +37,45 @@ export type ComponentKind =
 
 export type SafetyLevel = "safe" | "caution" | "critical";
 
+/** Fixed allowlist of detectable/launchable official vendor tools (Electron). */
+export type VendorAppKey =
+  | "nvidia"
+  | "amd"
+  | "intel"
+  | "samsung-magician"
+  | "crucial-storage-executive"
+  | "wd-dashboard";
+
 /** How a component's update is delivered (detect-and-redirect only). */
 export interface UpdateAction {
-  /** Primary CTA label. */
+  /** Primary CTA label when the vendor app is NOT installed (opens the page). */
   label: string;
   /** Official vendor URL to open. */
   url: string;
   /** Optional note shown under the button (e.g. "Opens NVIDIA App if installed"). */
   note?: string;
+  /**
+   * If set, the desktop app will try to detect + launch this installed vendor
+   * tool first, falling back to `url` when it isn't installed.
+   */
+  appKey?: VendorAppKey;
+  /** CTA label to show when the vendor app IS detected as installed. */
+  appLabel?: string;
+}
+
+/** A recorded driver/firmware change (server-persisted, user-scoped). */
+export interface DriverHistoryItem {
+  id: string;
+  component: string;
+  componentLabel?: string | null;
+  vendor?: string | null;
+  fromVersion?: string | null;
+  toVersion: string;
+  action: string;
+  packageName?: string | null;
+  rollbackAvailable: boolean;
+  rollbackMeta?: Record<string, unknown> | null;
+  createdAt: string;
 }
 
 export interface DriverComponent {
@@ -320,21 +351,27 @@ export function gpuAction(vendor: string | null): UpdateAction | null {
   switch (vendor) {
     case "nvidia":
       return {
-        label: "Open NVIDIA App",
+        label: "Download from NVIDIA",
+        appKey: "nvidia",
+        appLabel: "Open NVIDIA App",
         url: OFFICIAL_URLS.nvidiaApp,
         note: "Launches the NVIDIA App if installed, otherwise opens the official download.",
       };
     case "amd":
       return {
-        label: "Open AMD Software",
+        label: "Download from AMD",
+        appKey: "amd",
+        appLabel: "Open AMD Software",
         url: OFFICIAL_URLS.amdDrivers,
         note: "Launches AMD Adrenalin if installed, otherwise opens the official support page.",
       };
     case "intel":
       return {
         label: "Open Intel Driver Assistant",
+        appKey: "intel",
+        appLabel: "Open Intel Driver Assistant",
         url: OFFICIAL_URLS.intelDsa,
-        note: "Opens Intel's official Driver & Support Assistant.",
+        note: "Launches Intel's Driver & Support Assistant if installed, otherwise opens it online.",
       };
     default:
       return null;
@@ -345,7 +382,13 @@ export function chipsetAction(vendor: string | null): UpdateAction | null {
   if (vendor === "amd")
     return { label: "Open AMD Chipset page", url: OFFICIAL_URLS.amdChipset, note: "Official AMD chipset drivers." };
   if (vendor === "intel")
-    return { label: "Open Intel Chipset page", url: OFFICIAL_URLS.intelChipset, note: "Official Intel chipset utility." };
+    return {
+      label: "Open Intel Chipset page",
+      appKey: "intel",
+      appLabel: "Open Intel Driver Assistant",
+      url: OFFICIAL_URLS.intelChipset,
+      note: "Launches Intel's Driver & Support Assistant if installed, otherwise opens the chipset utility.",
+    };
   return null;
 }
 
@@ -362,12 +405,33 @@ export function biosAction(vendor: string | null): UpdateAction | null {
 export function ssdAction(vendor: string | null): UpdateAction | null {
   const url = vendor && (OFFICIAL_URLS.ssd as Record<string, string>)[vendor];
   if (!url) return null;
-  return { label: "Open SSD utility page", url, note: "Official manufacturer firmware utility." };
+  const SSD_APP: Record<string, { appKey: VendorAppKey; appLabel: string }> = {
+    samsung: { appKey: "samsung-magician", appLabel: "Open Samsung Magician" },
+    crucial: { appKey: "crucial-storage-executive", appLabel: "Open Storage Executive" },
+    wd: { appKey: "wd-dashboard", appLabel: "Open WD Dashboard" },
+  };
+  const app = vendor ? SSD_APP[vendor] : undefined;
+  return {
+    label: "Open SSD utility page",
+    url,
+    note: app
+      ? "Launches the manufacturer's SSD tool if installed, otherwise opens the firmware page."
+      : "Official manufacturer firmware utility.",
+    ...(app ?? {}),
+  };
 }
 
 export function networkAction(vendor: string | null): UpdateAction | null {
   const url = vendor && (OFFICIAL_URLS.network as Record<string, string>)[vendor];
   if (!url) return null;
+  if (vendor === "intel" || vendor === "killer")
+    return {
+      label: "Open driver page",
+      appKey: "intel",
+      appLabel: "Open Intel Driver Assistant",
+      url,
+      note: "Launches Intel's Driver & Support Assistant if installed, otherwise opens the driver page.",
+    };
   return { label: "Open driver page", url, note: "Official network driver download." };
 }
 

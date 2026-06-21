@@ -15,7 +15,7 @@
  *    calm so it doesn't compete with the user's game for GPU.
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence, useMotion } from "@/lib/motion";
 import {
@@ -41,6 +41,7 @@ import {
 import {
   type ComponentKind,
   type DriverComponent,
+  type UpdateAction,
   HEALTH_META,
   SCAN_STEPS,
   countActionable,
@@ -48,6 +49,8 @@ import {
 import { MotherboardMap } from "@/components/driver-intel/MotherboardMap";
 import { HealthRadial } from "@/components/driver-intel/HealthRadial";
 import { ComponentPanel } from "@/components/driver-intel/ComponentPanel";
+import { HistoryTimeline } from "@/components/driver-intel/HistoryTimeline";
+import type { DriverHistoryItem } from "@/lib/driver-intel-data";
 
 const isElectron =
   typeof window !== "undefined" && !!(window as any).electronAPI?.isElectron;
@@ -60,6 +63,24 @@ function openExternal(url: string) {
   }
 }
 
+/**
+ * Smart action: in the desktop app, try to launch the vendor's installed tool
+ * (NVIDIA App, Adrenalin, Samsung Magician, …). If it isn't installed — or we're
+ * on the web — fall back to opening the official page. Never installs anything.
+ */
+async function runAction(action: UpdateAction) {
+  const api = (window as any).electronAPI;
+  if (isElectron && action.appKey && api?.driverApps?.launch) {
+    try {
+      const res = await api.driverApps.launch(action.appKey);
+      if (res?.launched) return;
+    } catch {
+      /* fall through to the official page */
+    }
+  }
+  openExternal(action.url);
+}
+
 function timeAgo(ts: number | null): string {
   if (!ts) return "never";
   const s = Math.floor((Date.now() - ts) / 1000);
@@ -68,6 +89,21 @@ function timeAgo(ts: number | null): string {
   if (m < 60) return `${m} min ago`;
   const h = Math.floor(m / 60);
   return `${h}h ago`;
+}
+
+const STALE_AFTER_DAYS = 30;
+
+/**
+ * Decide whether the cloud reference DB is stale (older than 30 days). Returns
+ * the age in days when stale, else null. Non-date values ("bundled", missing)
+ * are treated as not-stale here — the offline case is shown separately.
+ */
+function dbAgeDays(updatedAt: string | null): number | null {
+  if (!updatedAt) return null;
+  const t = Date.parse(updatedAt);
+  if (Number.isNaN(t)) return null;
+  const days = Math.floor((Date.now() - t) / 86_400_000);
+  return days >= STALE_AFTER_DAYS ? days : null;
 }
 
 export default function DriverIntelligence() {
@@ -90,17 +126,98 @@ export default function DriverIntelligence() {
     scannedAt,
     usedLocalDb,
     dbVersion,
+    dbUpdatedAt,
     scan,
     rescan,
   } = useDriverIntelStore();
 
+  const staleDays = useMemo(() => dbAgeDays(dbUpdatedAt), [dbUpdatedAt]);
+  // Bumped to force the timeline to reload after a new entry is recorded.
+  const [historyRefresh, setHistoryRefresh] = useState(0);
+
+  // Record a driver change as a restore point. Honest: we only log what the
+  // user confirms they updated (current -> latest), never a faked version.
+  const recordUpdate = useCallback(
+    async (c: DriverComponent) => {
+      if (readOnly || !c.latest) return;
+      try {
+        const { cloudApiPost } = await import("@/lib/cloud-api");
+        await cloudApiPost("/driver-intel/history", {
+          component: c.kind,
+          componentLabel: c.device,
+          vendor: c.vendorKey,
+          fromVersion: c.current ?? null,
+          toVersion: c.latest,
+          action: "update",
+          packageName: c.action?.appLabel ?? null,
+          rollbackAvailable: !!c.current,
+          rollbackMeta: c.current
+            ? { previousVersion: c.current, url: c.action?.url ?? null }
+            : null,
+        });
+        setHistoryRefresh((n) => n + 1);
+      } catch {
+        /* non-fatal — surfaced via the timeline's own error state on reload */
+      }
+    },
+    [readOnly],
+  );
+
+  // Restore = open the vendor page/tool so the user can reinstall the prior
+  // version themselves. We never download or flash anything automatically.
+  const handleRestore = useCallback(
+    (item: DriverHistoryItem) => {
+      if (readOnly) {
+        openUpgradeModal("Driver Intelligence");
+        return;
+      }
+      const url =
+        (item.rollbackMeta && (item.rollbackMeta as any).url) || null;
+      if (url) openExternal(url);
+    },
+    [readOnly, openUpgradeModal],
+  );
+
   const [selected, setSelected] = useState<ComponentKind | null>(null);
+  // appKey -> installed? (desktop only). Lets buttons say "Open NVIDIA App"
+  // when the tool is present, vs "Download from NVIDIA" when it isn't.
+  const [detectedApps, setDetectedApps] = useState<Record<string, boolean>>({});
 
   // Lazy scan: kick off only when the page is actually viewable (not locked).
   useEffect(() => {
     if (locked) return;
     scan(); // cached internally — won't re-run if fresh
   }, [locked, scan]);
+
+  // Detect installed vendor tools once the component list is ready (desktop only).
+  useEffect(() => {
+    const api = (window as any).electronAPI;
+    if (!isElectron || !api?.driverApps?.detect || components.length === 0) return;
+    const keys = Array.from(
+      new Set(
+        components
+          .map((c) => c.action?.appKey)
+          .filter((k): k is NonNullable<typeof k> => !!k),
+      ),
+    );
+    if (keys.length === 0) return;
+    let cancelled = false;
+    Promise.all(
+      keys.map(async (k) => {
+        try {
+          const res = await api.driverApps.detect(k);
+          return [k, !!res?.installed] as const;
+        } catch {
+          return [k, false] as const;
+        }
+      }),
+    ).then((pairs) => {
+      if (!cancelled) setDetectedApps(Object.fromEntries(pairs));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [components]);
 
   const scanning = phase === "scanning";
   const dataReady = hasData(phase);
@@ -215,6 +332,21 @@ export default function DriverIntelligence() {
           </div>
         )}
 
+        {/* Staleness banner — cloud reference DB is older than 30 days */}
+        {dataReady && staleDays !== null && !usedLocalDb && (
+          <div
+            className="mb-5 flex items-center gap-2 rounded-xl border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-200"
+            data-testid="banner-db-stale"
+          >
+            <AlertTriangle className="size-4 shrink-0" />
+            <span>
+              Driver database may be outdated — last updated {staleDays} days ago.
+              Version checks should still be accurate, but always confirm the
+              latest release on the vendor's official page.
+            </span>
+          </div>
+        )}
+
         {/* Main grid */}
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-5">
           {/* Left: motherboard centerpiece */}
@@ -320,10 +452,16 @@ export default function DriverIntelligence() {
               )}
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {news.map((n) => {
+              {news.map((n, i) => {
                 const meta = HEALTH_META[n.safety === "critical" ? "critical" : n.safety === "caution" ? "outdated" : "healthy"];
                 return (
-                  <GlassCard key={n.id} className="p-4" data-testid={`news-${n.id}`}>
+                  <motion.div
+                    key={n.id}
+                    initial={prefersReducedMotion ? false : { opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.35, delay: prefersReducedMotion ? 0 : i * 0.06, ease: [0.22, 1, 0.36, 1] }}
+                  >
+                  <GlassCard className="p-4 h-full" data-testid={`news-${n.id}`}>
                     <div className="flex items-center gap-2 mb-1.5">
                       <span
                         className="text-[10px] font-medium px-2 py-0.5 rounded-full"
@@ -337,6 +475,7 @@ export default function DriverIntelligence() {
                     <h3 className="text-sm font-medium text-[#E6EAF0]">{n.title}</h3>
                     <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{n.summary}</p>
                   </GlassCard>
+                  </motion.div>
                 );
               })}
             </div>
@@ -374,6 +513,15 @@ export default function DriverIntelligence() {
             </button>
           </GlassCard>
         )}
+
+        {/* Update history / restore points */}
+        {dataReady && (
+          <HistoryTimeline
+            refreshKey={historyRefresh}
+            readOnly={readOnly}
+            onRestore={handleRestore}
+          />
+        )}
       </div>
 
       {/* Sliding detail panel */}
@@ -381,8 +529,10 @@ export default function DriverIntelligence() {
         component={selectedComponent}
         readOnly={readOnly}
         onClose={() => setSelected(null)}
-        onOpenUrl={openExternal}
+        onAction={runAction}
+        detectedApps={detectedApps}
         onAskAi={handleAskAi}
+        onRecordUpdate={recordUpdate}
       />
 
       {/* Premium gate */}

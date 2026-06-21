@@ -57,6 +57,8 @@ interface DriverIntelState {
   score: HealthScore | null;
   news: DriverNewsItem[];
   dbVersion: string | null;
+  /** Cloud DB publish date (ISO/display). Used for the staleness banner. */
+  dbUpdatedAt: string | null;
   scannedAt: number | null;
   /** True when the cloud DB couldn't be reached and we used the bundled copy. */
   usedLocalDb: boolean;
@@ -371,6 +373,7 @@ export const useDriverIntelStore = create<DriverIntelState>((set, get) => ({
   score: null,
   news: [],
   dbVersion: null,
+  dbUpdatedAt: null,
   scannedAt: null,
   usedLocalDb: false,
   hadPartial: false,
@@ -413,6 +416,7 @@ export const useDriverIntelStore = create<DriverIntelState>((set, get) => ({
         score,
         news,
         dbVersion: db.dbVersion,
+        dbUpdatedAt: db.updatedAt,
         usedLocalDb: local,
         hadPartial,
         scannedAt: Date.now(),

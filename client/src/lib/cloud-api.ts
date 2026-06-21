@@ -160,6 +160,30 @@ export async function cloudApiPost<T = any>(
   return attempt(1);
 }
 
+export async function cloudApiDelete<T = any>(
+  path: string,
+  options?: CloudRequestOptions
+): Promise<T> {
+  if (typeof navigator !== "undefined" && !navigator.onLine) {
+    throw new ApiError(0, "You are offline. Please check your connection.");
+  }
+  const url = `${CLOUD_BASE}${path.startsWith("/") ? path : `/${path}`}`;
+  const headers = await buildHeaders();
+  const delHeaders: Record<string, string> = { ...headers };
+  delete delHeaders["Content-Type"];
+  const res = await fetch(url, {
+    method: "DELETE",
+    headers: delHeaders,
+    credentials: isPackagedElectron ? "omit" : "include",
+    signal: options?.signal,
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new ApiError(res.status, body?.error ?? `Request failed: ${res.status}`);
+  }
+  return res.json();
+}
+
 export async function cloudApiGet<T = any>(
   path: string,
   options?: CloudRequestOptions
