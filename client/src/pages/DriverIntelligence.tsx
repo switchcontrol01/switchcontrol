@@ -16,6 +16,7 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
+import { useLocation } from "wouter";
 import { motion, AnimatePresence, useMotion } from "@/lib/motion";
 import {
   ShieldCheck,
@@ -70,6 +71,7 @@ function timeAgo(ts: number | null): string {
 }
 
 export default function DriverIntelligence() {
+  const [, navigate] = useLocation();
   const { isPremium } = useAuth();
   const ent = useEntitlementUiState();
   const { openUpgradeModal } = useUpgradeModal();
@@ -114,7 +116,9 @@ export default function DriverIntelligence() {
       openUpgradeModal("Driver Intelligence");
       return;
     }
-    // Persist a focused prompt for the AI Advisor and navigate there.
+    // Pre-fill the AI Advisor input with component-specific context, then
+    // use SPA navigation (wouter) so React state is preserved and the
+    // prefill effect in AiAdvisor can read it without a full page reload.
     try {
       sessionStorage.setItem(
         "ai-advisor-prefill",
@@ -123,7 +127,7 @@ export default function DriverIntelligence() {
     } catch {
       /* ignore storage failures */
     }
-    window.location.assign("/ai-advisor");
+    navigate("/ai-advisor");
   };
 
   return (
@@ -361,7 +365,7 @@ export default function DriverIntelligence() {
                   openUpgradeModal("Driver Intelligence");
                   return;
                 }
-                window.location.assign("/ai-advisor");
+                navigate("/ai-advisor");
               }}
               className="inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium bg-gradient-to-r from-[#00D4FF] to-[#3b82f6] text-[#04070d] hover:opacity-90 transition-opacity"
               data-testid="button-ai-plan"

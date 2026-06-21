@@ -1126,6 +1126,23 @@ export default function AiAdvisor() {
 
   useEffect(() => { messagesRef.current = messages; }, [messages]);
 
+  // Read a prefill injected by other pages (e.g. Driver Intelligence "Ask AI").
+  // Uses sessionStorage so it survives SPA navigation but not a tab refresh.
+  useEffect(() => {
+    try {
+      const prefill = sessionStorage.getItem("ai-advisor-prefill");
+      if (prefill) {
+        sessionStorage.removeItem("ai-advisor-prefill");
+        setInput(prefill);
+        // Focus the input so the user can immediately hit Enter.
+        setTimeout(() => inputRef.current?.focus(), 80);
+      }
+    } catch {
+      /* ignore storage failures */
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     const toStore = messages
       .filter(m => !m.isThinking && m.content.length > 0)
