@@ -1,17 +1,17 @@
 {
-  "version": "1.1.5",
-  "title": "Storage Health & Debloater Overhaul",
-  "headline": "Drive optimization is now built into the Cleaner, and the Debloater gets a full premium visual redesign with animated scan overlay, batch panels, and a results dashboard.",
-  "date": "2026-06-20",
+  "version": "1.1.6",
+  "title": "Driver Intelligence & AMD Compatibility",
+  "headline": "A new premium Driver Intelligence hub brings animated hardware scanning and health scoring. AMD users also get dramatically improved hardware data — BIOS, GPU, and motherboard info now load correctly.",
+  "date": "2026-06-21",
   "type": "minor",
   "changes": [
-    "New: Storage Health section in Cleaner — monitor NVMe, SSD, and HDD drives with animated free-space gauges, TRIM/defrag recommendations, and one-click optimization.",
-    "New: Drive optimization history — every TRIM and defrag run is logged with timestamp and drive info, visible directly in the Cleaner.",
-    "New: AI Advisor integration in Storage Health — contextual drive insights shown inline, with a quick link to ask the AI Advisor for deeper analysis.",
-    "New: Debloater premium scan overlay — a multi-step animated scan experience replaces the plain loading state.",
-    "New: Debloater batch panels — four large action cards (Safe, Recommended, Aggressive, Maximum Performance) replace the old intensity buttons with gradient backgrounds, glow borders, and detailed descriptions.",
-    "New: Debloater results dashboard — animated donut chart, score gauge, and subtle confetti on scan complete.",
-    "Improved: Debloater stat cards now animate counters on load (apps removable, estimated RAM freed, live processes, estimated disk freed).",
-    "Improved: Storage Health shows a live demo on the web app (Samsung 990 Pro + Seagate BarraCuda) so the feature is always visible without the desktop app."
+    "New: Driver Intelligence page (premium) — animated SVG motherboard centerpiece, multi-step scan flow, health score radial with subscores, and per-component cards with a sliding detail panel.",
+    "New: Driver Intelligence integrates the AI Advisor — hardware-aware insights appear in scan results with a direct link for deeper analysis.",
+    "New: Custom slider tweaks — three system-level tweaks now use stepped sliders with precise configurable value ranges instead of simple toggles.",
+    "New: First-run disclaimer — a two-phase confirmation modal introduces SwitchControl to new users before any tweaks are applied.",
+    "New: Apply Recommended premium gate — free users see an animated amber lock badge on the Apply Recommended button that opens the upgrade flow on click.",
+    "Fixed: AMD/WMI hardware probes now use 3–4× longer timeouts — baseboard, BIOS, graphics, CPU, memory layout, and disk probes all have extended limits so AMD Ryzen systems correctly report hardware data.",
+    "Fixed: Probe cooldown reduced from 12 minutes to 2 minutes — hardware data recovers within a single restart instead of being blocked for an entire session.",
+    "Improved: A single WMI timeout no longer triggers a probe cooldown — two consecutive failures are now required, preventing a transient slowdown from blocking all hardware reads."
   ]
 }

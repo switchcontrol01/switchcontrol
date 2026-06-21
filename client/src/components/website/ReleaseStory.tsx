@@ -7,47 +7,47 @@ import {
   Gauge,
   Sparkles,
   Activity,
-  HardDrive,
+  Cpu,
   Layers,
   ScanLine,
-  BarChart3,
+  Zap,
 } from "lucide-react";
 
 const STEPS = [
   {
-    icon: HardDrive,
-    label: "Storage Health Built Into Cleaner",
-    desc: "A new Storage Health section lives inside the Cleaner page. Pick any drive, see animated free-space gauges, get TRIM or defrag recommendations based on drive type, and run optimization in one click.",
-  },
-  {
-    icon: Activity,
-    label: "Drive Optimization History",
-    desc: "Every TRIM and defragmentation run is logged with a timestamp and drive details. The full history is visible right in the Cleaner so you always know when each drive was last optimized.",
-  },
-  {
-    icon: Sparkles,
-    label: "AI Advisor in Storage Health",
-    desc: "Contextual AI insights appear inline next to your drive data — no need to navigate away. A direct link to the AI Advisor lets you dig deeper with a single tap.",
-  },
-  {
     icon: ScanLine,
-    label: "Debloater Premium Scan Overlay",
-    desc: "The plain loading spinner is gone. Scanning now triggers a multi-step animated overlay that shows what the engine is doing in real time, making the wait feel fast and purposeful.",
+    label: "Driver Intelligence Hub",
+    desc: "A new premium page gives you a full picture of your system's driver health. An animated SVG motherboard lights up each component as it scans, then settles into a clean dashboard showing every driver's status at a glance.",
   },
   {
     icon: Gauge,
-    label: "Debloater Batch Panels",
-    desc: "Four large action cards — Safe, Recommended, Aggressive, and Maximum Performance — replace the old intensity buttons. Each shows a gradient background, glow border, estimated gains, and risk level so you pick the right level at a glance.",
+    label: "Health Score Radial & Component Cards",
+    desc: "A radial gauge summarises your overall driver health score with animated subscores per category. Each component card shows version, release date, and safety level — hover to expand and see what changed in the latest release.",
   },
   {
-    icon: BarChart3,
-    label: "Debloater Results Dashboard",
-    desc: "After a scan completes you get an animated donut chart, a score gauge, and subtle confetti. Every removable app is still listed with its restore button — the data is the same, the presentation is dramatically better.",
+    icon: Activity,
+    label: "Sliding Component Detail Panel",
+    desc: "Click any component to open a smooth sliding panel with full release notes, known issues, estimated performance benefit, and a direct link to the manufacturer's official download page. Safe-update links only — nothing is ever auto-installed.",
+  },
+  {
+    icon: Sparkles,
+    label: "AI Advisor Integration",
+    desc: "Driver Intelligence feeds your hardware profile directly to the AI Advisor. Hardware-aware insights appear inline in the scan results, and a one-click link lets you open a full conversation for deeper analysis.",
+  },
+  {
+    icon: Cpu,
+    label: "AMD/WMI Compatibility Fixes",
+    desc: "All hardware probes (baseboard, BIOS, GPU, CPU, memory layout, disk layout) now use 3–4× longer timeouts. AMD Ryzen systems — which can take 8–15 s for a WMI response — now correctly populate BIOS Advisor and AI Advisor hardware context.",
   },
   {
     icon: Shield,
-    label: "Web Demo for Storage Health",
-    desc: "Version 1.1.5 ships demo drive data (Samsung 990 Pro + Seagate BarraCuda) so the Storage Health section is fully visible and interactive on the web app — no desktop install required to see the feature.",
+    label: "Smarter Probe Cooldown",
+    desc: "A single WMI timeout no longer locks out a probe for 12 minutes. Two consecutive failures are now required before a cooldown applies, and that cooldown is just 2 minutes — so a slow startup never permanently breaks hardware data collection.",
+  },
+  {
+    icon: Zap,
+    label: "Custom Sliders, First-Run Disclaimer & Premium Gate",
+    desc: "Three tweaks now use stepped sliders with precise value ranges. New users see a two-phase first-run disclaimer before any tweaks are applied. Free users get an animated amber lock badge on Apply Recommended that opens the upgrade flow.",
   },
 ];
 
@@ -94,20 +94,21 @@ export default function ReleaseStory() {
           <Reveal>
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.08] text-xs font-mono text-white/30 mb-6">
               <Layers className="w-3 h-3" />
-              Version 1.1.5
+              Version 1.1.6
             </div>
           </Reveal>
           <Reveal delay={0.1}>
             <h2 className="text-3xl md:text-5xl font-extrabold text-white mb-4 leading-tight">
-              Storage Health &amp; Debloater.{" "}
-              <span className="font-light italic text-white/50">rebuilt from the ground up.</span>
+              Driver Intelligence.{" "}
+              <span className="font-light italic text-white/50">your hardware, finally understood.</span>
             </h2>
           </Reveal>
           <Reveal delay={0.2}>
             <p className="text-white/30 max-w-lg mx-auto text-sm md:text-base leading-relaxed">
-              Drive optimization lives in the Cleaner now, and the Debloater
-              gets a full premium visual overhaul — scan overlay, batch panels,
-              results dashboard, and more.
+              A new premium hub scans every driver and firmware component with
+              an animated motherboard, health scoring, and AI-powered insights —
+              plus a major AMD compatibility overhaul that fixes hardware data
+              for Ryzen systems.
             </p>
           </Reveal>
         </div>
