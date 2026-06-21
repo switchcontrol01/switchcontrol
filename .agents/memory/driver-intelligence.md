@@ -35,6 +35,17 @@ driver/firmware versions against a server-maintained cloud DB.
 - Free → full-page premium overlay. Trial (`status === "trial_active"`) → READ-ONLY:
   can scan, but action/AI buttons are disabled and route to the upgrade modal.
 
+## Auto-fetch scheduler
+- `server/lib/driverFetcher.ts` — daily background job; fires 60s after startup then every 24h.
+- Upserts into `driver_fetch_cache` (one row per category+vendorKey, unique index).
+- On error: preserves previous successful version, logs error string in `error` column.
+- Merge order in `/database`: static DATABASE < driverFetchCache (auto) < driverDbOverrides (admin).
+  Admin overrides always win — they can correct or emergency-disable auto-fetched versions.
+- Covered: nvidia/amd/intel gpu, intel/amd chipset, intel network. BIOS/SSD/audio stay static.
+- Admin "Fetch now" button + per-vendor status badges (green/red/grey) in Driver Database panel.
+- HTML regex fetchers (AMD, Intel) are fragile — if they start returning errors, admin override is
+  the backup. NVIDIA gfwsl JSON API is the most reliable.
+
 ## Admin override layer (Phase 2)
 - `driver_db_overrides` (one row per `(category, vendorKey)`, unique index) is an
   admin-curated layer folded on top of the static `DATABASE` in `routes/driverIntel.ts`

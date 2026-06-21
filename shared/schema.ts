@@ -108,6 +108,26 @@ export const driverHistory = pgTable("driver_history", {
   createdAtIdx: index("driver_history_created_at_idx").on(t.createdAt),
 }));
 
+// ── Driver version auto-fetch cache ───────────────────────────────────────────
+// Written by server/lib/driverFetcher.ts on a daily schedule.
+// One row per (category, vendorKey) — upserted on each successful / failed fetch.
+export const driverFetchCache = pgTable("driver_fetch_cache", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  category: text("category").notNull(),
+  vendorKey: text("vendor_key").notNull(),
+  latest: text("latest"),
+  releaseDate: text("release_date"),
+  releaseNotes: text("release_notes"),
+  source: text("source"),
+  fetchedAt: timestamp("fetched_at", { withTimezone: true }).notNull().defaultNow(),
+  /** Non-null when the last fetch attempt errored — latest is stale. */
+  error: text("error"),
+}, (t) => ({
+  uniq: uniqueIndex("driver_fetch_cache_vendor_idx").on(t.category, t.vendorKey),
+}));
+
+export type DriverFetchCache = typeof driverFetchCache.$inferSelect;
+
 // ── Driver DB admin overrides / hotfixes / emergency disables ─────────────────
 // Admin-curated layer on top of the static reference DB in routes/driverIntel.ts.
 // One row per (category, vendorKey). Lets admins push a hotfix version, correct

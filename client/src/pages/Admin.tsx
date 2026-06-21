@@ -1253,12 +1253,33 @@ interface DriverOverrideRow {
   updatedAt: string;
 }
 
+interface FetchStatusRow {
+  category: string;
+  vendorKey: string;
+  latest: string | null;
+  releaseDate: string | null;
+  fetchedAt: string;
+  source: string | null;
+  error: string | null;
+}
+
+interface FetchStatus {
+  lastRunAt: string | null;
+  lastRunResults: Record<string, "ok" | "error">;
+  vendorCount: number;
+  vendors: string[];
+  cache: FetchStatusRow[];
+}
+
 function DriverDbAdmin() {
   const [overview, setOverview] = useState<DriverOverview | null>(null);
   const [overrides, setOverrides] = useState<DriverOverrideRow[]>([]);
+  const [fetchStatus, setFetchStatus] = useState<FetchStatus | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [fetching, setFetching] = useState(false);
+  const [fetchMsg, setFetchMsg] = useState<string | null>(null);
 
   // Form state for upserting an override.
   const [fCategory, setFCategory] = useState<string>("gpu");
@@ -1273,20 +1294,43 @@ function DriverDbAdmin() {
     setLoading(true);
     setError(null);
     try {
-      const [ovR, orR] = await Promise.all([
+      const [ovR, orR, fsR] = await Promise.all([
         fetch("/api/driver-intel/admin/overview", { headers: buildHeaders() as any }),
         fetch("/api/driver-intel/admin/overrides", { headers: buildHeaders() as any }),
+        fetch("/api/driver-intel/admin/fetch-status", { headers: buildHeaders() as any }),
       ]);
       if (!ovR.ok) throw new Error("Failed to load overview");
       if (!orR.ok) throw new Error("Failed to load overrides");
       setOverview(await ovR.json());
       setOverrides((await orR.json()).items);
+      if (fsR.ok) setFetchStatus(await fsR.json());
     } catch (e: any) {
       setError(e.message || "Network error");
     } finally {
       setLoading(false);
     }
   }, []);
+
+  const triggerFetchNow = async () => {
+    setFetching(true);
+    setFetchMsg(null);
+    setError(null);
+    try {
+      const r = await fetch("/api/driver-intel/admin/fetch-now", {
+        method: "POST",
+        headers: buildHeaders(),
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error || "Failed to trigger fetch");
+      setFetchMsg(data.message ?? "Fetch triggered — reload in ~30s to see results.");
+      // Reload status after a delay so admin sees the new results
+      setTimeout(() => load(), 35_000);
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setFetching(false);
+    }
+  };
 
   useEffect(() => { load(); }, [load]);
 
@@ -1351,14 +1395,30 @@ function DriverDbAdmin() {
         <p className="text-xs font-semibold text-purple-400/70 uppercase tracking-wider">
           Driver Database
         </p>
-        <button
-          onClick={load}
-          className="text-xs text-purple-300/70 hover:text-purple-300 underline"
-          data-testid="button-driver-db-refresh"
-        >
-          Refresh
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={triggerFetchNow}
+            disabled={fetching}
+            data-testid="button-fetch-now"
+            className="text-xs rounded-lg px-3 py-1 border border-[#00D4FF]/30 bg-[#00D4FF]/10 text-[#00D4FF] hover:bg-[#00D4FF]/20 transition-all disabled:opacity-50"
+          >
+            {fetching ? "Fetching…" : "Fetch now"}
+          </button>
+          <button
+            onClick={load}
+            className="text-xs text-purple-300/70 hover:text-purple-300 underline"
+            data-testid="button-driver-db-refresh"
+          >
+            Refresh
+          </button>
+        </div>
       </div>
+
+      {fetchMsg && (
+        <div className="mb-3 rounded-lg bg-[#00D4FF]/10 border border-[#00D4FF]/20 px-3 py-2 text-xs text-[#00D4FF]">
+          {fetchMsg}
+        </div>
+      )}
 
       {error && (
         <div className="mb-3 rounded-lg bg-red-500/10 border border-red-500/20 px-3 py-2 text-xs text-red-400" data-testid="text-driver-db-error">
@@ -1403,6 +1463,53 @@ function DriverDbAdmin() {
           {overview.stale && (
             <div className="mb-3 rounded-lg border border-amber-500/25 bg-amber-500/5 px-3 py-2 text-xs text-amber-300/90">
               Driver database is over 30 days old — consider refreshing reference data.
+            </div>
+          )}
+
+          {/* Auto-fetch status */}
+          {fetchStatus && (
+            <div className="mb-3 rounded-lg border border-[#2A313A] bg-[#1A1F27]/60 p-3">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-[11px] font-semibold text-[#A0A8B3] uppercase tracking-wider">
+                  Auto-Fetch Status
+                </p>
+                <span className="text-[10px] text-[#6B7380]">
+                  {fetchStatus.lastRunAt
+                    ? `Last run: ${new Date(fetchStatus.lastRunAt).toLocaleString()}`
+                    : "Not yet run (fires 60s after restart)"}
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {fetchStatus.vendors.map((key) => {
+                  const cacheRow = fetchStatus.cache.find(
+                    (c) => `${c.category}:${c.vendorKey}` === key,
+                  );
+                  const runResult = fetchStatus.lastRunResults?.[key];
+                  const hasData = !!cacheRow?.latest;
+                  const hasError = !!cacheRow?.error;
+                  return (
+                    <div
+                      key={key}
+                      title={cacheRow?.error ?? cacheRow?.latest ?? "pending"}
+                      className={`rounded px-2 py-1 text-[10px] font-medium border ${
+                        hasError
+                          ? "border-red-500/25 bg-red-500/5 text-red-400"
+                          : hasData
+                            ? "border-green-500/25 bg-green-500/5 text-green-400"
+                            : "border-[#2A313A] bg-[#21262D]/50 text-[#6B7380]"
+                      }`}
+                      data-testid={`fetch-status-${key}`}
+                    >
+                      {key}
+                      {hasData && !hasError && (
+                        <span className="ml-1 text-[#6B7380] font-mono">{cacheRow!.latest}</span>
+                      )}
+                      {hasError && <span className="ml-1">✗</span>}
+                      {!hasData && !hasError && !runResult && <span className="ml-1 opacity-50">…</span>}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
 

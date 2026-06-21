@@ -20,6 +20,7 @@ import { runJwtSelfTest } from "./lib/jwt";
 import { runDeviceBindingMigration } from "./lib/deviceBindingMigration";
 import { runStripeWebhookDedupMigration } from "./lib/stripeWebhookDedupMigration";
 import { runScalabilityMigration } from "./lib/scalabilityMigration";
+import { initDriverFetchScheduler } from "./lib/driverFetcher";
 import { cleanupOldStripeEvents } from "./lib/stripeEventStore";
 import fs from "fs";
 import path from "path";
@@ -397,5 +398,9 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
       withTimeout(ensureAdminUsers(),  8_000, "ensureAdminUsers"),
       withTimeout(cleanupOldStripeEvents(), 8_000, "cleanupStripeEvents"),
     ]).catch(e => console.error("[Startup] Background init error:", e));
+
+    // Driver version auto-fetch: fires 60s after startup, then every 24h.
+    // Not wrapped in withTimeout — the scheduler manages its own timing.
+    initDriverFetchScheduler();
   });
 })();

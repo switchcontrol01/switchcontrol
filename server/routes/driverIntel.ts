@@ -10,6 +10,11 @@ import {
 import { eq, and, desc } from "drizzle-orm";
 import { requireJwt } from "../middleware/requireCloudAuth";
 import { requireAdmin } from "../middleware/requireAdmin";
+import {
+  loadFetchCache,
+  getFetchSchedulerStatus,
+  runDriverFetch,
+} from "../lib/driverFetcher";
 
 /**
  * Driver Intelligence — cloud driver / firmware reference database.
@@ -296,21 +301,48 @@ const OVERRIDE_CATEGORIES = [
 type OverrideCategory = (typeof OVERRIDE_CATEGORIES)[number];
 
 /**
- * Deep-clone the static DATABASE and fold admin overrides on top. Overrides can
- * correct metadata, push a hotfix version, or emergency-disable a known-bad
- * driver. A disabled entry is surfaced as critical with an advisory note so the
- * client warns the user instead of recommending it.
+ * Build the merged driver database.
+ *
+ * Layer order (later layers win):
+ *   1. Static DATABASE  — hardcoded baseline, always present
+ *   2. driverFetchCache — auto-fetched daily from vendor APIs/pages
+ *   3. driverDbOverrides — admin corrections / hotfixes / emergency-disables
+ *
+ * This means:
+ *  - Auto-fetched versions automatically surface to users.
+ *  - Admins can still push a correction or emergency-disable on top.
  */
-function applyOverrides(rows: DriverDbOverride[]) {
+function buildMergedDb(
+  fetchRows: import("@shared/schema").DriverFetchCache[],
+  overrideRows: DriverDbOverride[],
+) {
   const merged: any = JSON.parse(JSON.stringify(DATABASE));
-  let newestOverride: string | null = null;
+  let newestStamp: string | null = null;
 
-  for (const row of rows) {
+  // ── Layer 2: auto-fetched cache ──────────────────────────────────────────
+  for (const row of fetchRows) {
+    const cat = row.category as OverrideCategory;
+    if (!OVERRIDE_CATEGORIES.includes(cat)) continue;
+    // Only apply if the fetch succeeded (no error + has a version).
+    if (row.error || !row.latest) continue;
+    const bucket = merged[cat] ?? (merged[cat] = {});
+    const existing: DriverDbEntry | undefined = bucket[row.vendorKey];
+    const entry: DriverDbEntry = existing ? { ...existing } : { latest: row.latest, safety: "safe" };
+    entry.latest = row.latest;
+    if (row.releaseDate) entry.releaseDate = row.releaseDate;
+    if (row.releaseNotes) entry.releaseNotes = row.releaseNotes;
+    bucket[row.vendorKey] = entry;
+
+    const stamp = row.fetchedAt instanceof Date ? row.fetchedAt.toISOString() : null;
+    if (stamp && (!newestStamp || stamp > newestStamp)) newestStamp = stamp;
+  }
+
+  // ── Layer 3: admin overrides ──────────────────────────────────────────────
+  for (const row of overrideRows) {
     const cat = row.category as OverrideCategory;
     if (!OVERRIDE_CATEGORIES.includes(cat)) continue;
     const bucket = merged[cat] ?? (merged[cat] = {});
     const existing: DriverDbEntry | undefined = bucket[row.vendorKey];
-
     const entry: DriverDbEntry = existing
       ? { ...existing }
       : { latest: row.latest ?? "unknown", safety: "safe" };
@@ -335,13 +367,13 @@ function applyOverrides(rows: DriverDbOverride[]) {
     bucket[row.vendorKey] = entry;
 
     const stamp = row.updatedAt instanceof Date ? row.updatedAt.toISOString() : null;
-    if (stamp && (!newestOverride || stamp > newestOverride)) newestOverride = stamp;
+    if (stamp && (!newestStamp || stamp > newestStamp)) newestStamp = stamp;
   }
 
-  // If an override is newer than the static stamp, advertise that as updatedAt
-  // so the client's staleness check reflects real curation activity.
-  if (newestOverride && newestOverride.slice(0, 10) > merged.updatedAt) {
-    merged.updatedAt = newestOverride.slice(0, 10);
+  // Advance the advertised updatedAt so the 30-day staleness banner reflects
+  // the most recent data (whether from auto-fetch or admin curation).
+  if (newestStamp && newestStamp.slice(0, 10) > merged.updatedAt) {
+    merged.updatedAt = newestStamp.slice(0, 10);
   }
   return merged;
 }
@@ -354,12 +386,15 @@ async function loadOverrides(): Promise<DriverDbOverride[]> {
   }
 }
 
-// GET /api/driver-intel/database — full reference DB (with admin overrides folded in)
+// GET /api/driver-intel/database — full reference DB (fetch cache + admin overrides)
 driverIntelRouter.get("/database", async (_req: Request, res: Response) => {
-  const rows = await loadOverrides();
-  // Short cache: overrides can change at any time via the admin panel.
+  const [fetchRows, overrideRows] = await Promise.all([
+    loadFetchCache(),
+    loadOverrides(),
+  ]);
+  // Short cache: auto-fetched data refreshes daily; overrides can change any time.
   res.set("Cache-Control", "public, max-age=300");
-  res.json(rows.length ? applyOverrides(rows) : DATABASE);
+  res.json(buildMergedDb(fetchRows, overrideRows));
 });
 
 // GET /api/driver-intel/news — driver news feed
@@ -448,14 +483,42 @@ driverIntelRouter.delete(
 
 // ── Admin: driver database control plane (admin-only) ─────────────────────────
 
+// GET /api/driver-intel/admin/fetch-status — auto-fetch scheduler status + cache rows
+driverIntelRouter.get(
+  "/admin/fetch-status",
+  requireAdmin,
+  async (_req: Request, res: Response) => {
+    try {
+      const schedulerStatus = getFetchSchedulerStatus();
+      const cacheRows = await loadFetchCache();
+      res.json({ ...schedulerStatus, cache: cacheRows });
+    } catch (err) {
+      res.status(500).json({ error: "Failed to load fetch status" });
+    }
+  },
+);
+
+// POST /api/driver-intel/admin/fetch-now — trigger an immediate fetch run
+driverIntelRouter.post(
+  "/admin/fetch-now",
+  requireAdmin,
+  async (_req: Request, res: Response) => {
+    // Fire-and-forget — the fetch can take up to 20s per vendor.
+    runDriverFetch().catch((e) =>
+      console.error("[driverIntel] manual fetch-now error:", e),
+    );
+    res.json({ ok: true, message: "Fetch triggered — results will appear in fetch-status within ~30s." });
+  },
+);
+
 // GET /api/driver-intel/admin/overview — DB freshness, vendor statuses, stats
 driverIntelRouter.get(
   "/admin/overview",
   requireAdmin,
   async (_req: Request, res: Response) => {
     try {
-      const overrides = await loadOverrides();
-      const merged = applyOverrides(overrides);
+      const [fetchRows, overrides] = await Promise.all([loadFetchCache(), loadOverrides()]);
+      const merged = buildMergedDb(fetchRows, overrides);
 
       const ageDays = Math.floor(
         (Date.now() - new Date(merged.updatedAt).getTime()) / 86_400_000,
