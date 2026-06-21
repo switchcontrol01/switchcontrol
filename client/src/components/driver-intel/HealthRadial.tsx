@@ -42,14 +42,22 @@ interface HealthRadialProps {
   score: HealthScore;
 }
 
+// Clamp a raw score value to a valid [0,100] integer. Guards against NaN,
+// undefined, null, Infinity, and out-of-range values coming from any scan path.
+function clamp(v: number | null | undefined): number {
+  if (v == null || !Number.isFinite(v)) return 0;
+  return Math.round(Math.min(100, Math.max(0, v)));
+}
+
 export function HealthRadial({ score }: HealthRadialProps) {
   const { prefersReducedMotion } = useMotion();
-  const display = useCountUp(score.overall, !prefersReducedMotion);
-  const color = scoreColor(score.overall);
+  const overall = clamp(score.overall);
+  const display = useCountUp(overall, !prefersReducedMotion);
+  const color = scoreColor(overall);
 
   const R = 52;
   const C = 2 * Math.PI * R;
-  const offset = C * (1 - score.overall / 100);
+  const offset = C * (1 - overall / 100);
 
   return (
     <div className="flex flex-col items-center gap-5">
@@ -84,7 +92,8 @@ export function HealthRadial({ score }: HealthRadialProps) {
       {/* Subsystem bars */}
       <div className="w-full space-y-2">
         {score.subscores.map((s, i) => {
-          const c = scoreColor(s.score);
+          const safe = clamp(s.score);
+          const c = scoreColor(safe);
           return (
             <div key={s.kind} className="flex items-center gap-2" data-testid={`subscore-${s.kind}`}>
               <span className="text-[11px] text-muted-foreground w-20 shrink-0 truncate">
@@ -95,7 +104,7 @@ export function HealthRadial({ score }: HealthRadialProps) {
                   className="h-full rounded-full"
                   style={{ background: c }}
                   initial={{ width: 0 }}
-                  animate={{ width: `${s.score}%` }}
+                  animate={{ width: `${safe}%` }}
                   transition={{
                     duration: prefersReducedMotion ? 0 : 0.7,
                     delay: prefersReducedMotion ? 0 : 0.1 * i,
@@ -104,7 +113,7 @@ export function HealthRadial({ score }: HealthRadialProps) {
                 />
               </div>
               <span className="text-[11px] tabular-nums w-7 text-right" style={{ color: c }}>
-                {s.score}
+                {safe}
               </span>
             </div>
           );

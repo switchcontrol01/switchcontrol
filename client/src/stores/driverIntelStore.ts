@@ -266,7 +266,7 @@ function buildComponents(hw: RawHardware, db: DriverDatabase): DriverComponent[]
     current: null,
     latest: ssdEntry?.latest ?? null,
     releaseNotes: ssdEntry?.releaseNotes ?? null,
-    health: ssdVendor ? "outdated" : hw.ssdName ? "healthy" : "unknown",
+    health: ssdVendor ? "outdated" : "unknown",
     safety: ssdEntry?.safety ?? "caution",
     action: ssdAction(ssdVendor),
     rationale: ssdVendor
@@ -288,7 +288,7 @@ function buildComponents(hw: RawHardware, db: DriverDatabase): DriverComponent[]
     latest: netEntry?.latest ?? null,
     releaseNotes: netEntry?.releaseNotes ?? null,
     knownIssues: netEntry?.knownIssues,
-    health: netVendor ? "outdated" : hw.netName ? "healthy" : "unknown",
+    health: netVendor ? "outdated" : "unknown",
     safety: netEntry?.safety ?? "safe",
     action: networkAction(netVendor),
     rationale: netVendor
@@ -298,26 +298,26 @@ function buildComponents(hw: RawHardware, db: DriverDatabase): DriverComponent[]
         : "No active network adapter detected.",
   });
 
-  // Audio
-  const audioVendor = detectAudioVendor(hw.profile?.gpu.displays[0]?.model ?? null) ?? null;
-  // systeminformation doesn't reliably expose audio device names; default to Realtek
-  // when nothing better is known (most desktop boards) but mark health unknown.
-  const resolvedAudioVendor = audioVendor;
-  const audioEntry = resolvedAudioVendor ? db.audio[resolvedAudioVendor] ?? null : null;
+  // Audio — systeminformation does not expose audio device names reliably.
+  // We do NOT pass any unrelated data (e.g. GPU display model) into detectAudioVendor
+  // because that will never match and would always produce "unknown" silently.
+  // Instead we are honest: audio detection is not wired to a real data source yet.
+  // A future iteration can add a Win32_SoundDevice PowerShell probe here.
+  const audioVendor: string | null = null;
+  const audioEntry = null;
   out.push({
     kind: "audio",
     title: "Audio",
-    device: resolvedAudioVendor ? `${resolvedAudioVendor} audio` : "Onboard audio",
-    vendorKey: resolvedAudioVendor,
+    device: "Audio device",
+    vendorKey: audioVendor,
     current: null,
-    latest: audioEntry?.latest ?? null,
-    releaseNotes: audioEntry?.releaseNotes ?? null,
-    health: resolvedAudioVendor ? "outdated" : "unknown",
-    safety: audioEntry?.safety ?? "safe",
-    action: audioAction(resolvedAudioVendor),
-    rationale: resolvedAudioVendor
-      ? `Updating audio drivers can reduce DPC latency and fix crackle.`
-      : "Audio device vendor not detected. Realtek UAD is most common on desktops — check your board's support page.",
+    latest: audioEntry,
+    releaseNotes: null,
+    health: "unknown" as const,
+    safety: "safe" as const,
+    action: null,
+    rationale:
+      "Audio hardware detection is not yet available. Most AM4/AM5 and Intel desktop boards ship Realtek UAD — visit your motherboard manufacturer's support page to check for the latest audio driver.",
   });
 
   // Bluetooth — vendor tracks the Wi-Fi/combo card.
