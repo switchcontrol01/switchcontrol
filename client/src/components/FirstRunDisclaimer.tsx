@@ -92,7 +92,9 @@ export function FirstRunDisclaimer({ show, onComplete }: Props) {
 
   useEffect(() => {
     if (phase !== "entering") return;
-    const t = setTimeout(() => setPhase("warning"), prefersReduced ? 0 : 80);
+    // 620ms head-start so the welcome animation's blur-out (~0.95s) has cleared the
+    // viewport before the disclaimer backdrop becomes visible.
+    const t = setTimeout(() => setPhase("warning"), prefersReduced ? 0 : 620);
     timersRef.current.push(t);
     return () => clearTimeout(t);
   }, [phase, prefersReduced]);
@@ -225,6 +227,40 @@ export function FirstRunDisclaimer({ show, onComplete }: Props) {
               maskImage: "radial-gradient(ellipse 80% 80% at 50% 50%, black 30%, transparent 100%)",
               WebkitMaskImage: "radial-gradient(ellipse 80% 80% at 50% 50%, black 30%, transparent 100%)",
             }}
+          />
+
+          {/* ── Halation glow — light from behind hitting the card ────────── */}
+          <motion.div
+            className="absolute pointer-events-none"
+            style={{
+              left: "50%", top: "50%",
+              width: "56vw", height: "56vw",
+              maxWidth: 680, maxHeight: 680,
+              transform: "translate(-50%, -50%)",
+              background: [
+                "radial-gradient(ellipse 65% 55% at 50% 52%, rgba(0,212,255,0.22) 0%, transparent 55%)",
+                "radial-gradient(ellipse 50% 40% at 48% 50%, rgba(168,85,247,0.16) 0%, transparent 60%)",
+              ].join(", "),
+              filter: "blur(38px)",
+            }}
+            initial={{ opacity: 0, scale: 0.7 }}
+            animate={{ opacity: isEntered ? 1 : 0, scale: isEntered ? 1 : 0.7 }}
+            transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1] }}
+          />
+          {/* Softer outer halo ring — wider spread */}
+          <motion.div
+            className="absolute pointer-events-none"
+            style={{
+              left: "50%", top: "50%",
+              width: "80vw", height: "80vw",
+              maxWidth: 920, maxHeight: 920,
+              transform: "translate(-50%, -50%)",
+              background: "radial-gradient(ellipse 55% 45% at 50% 52%, rgba(99,102,241,0.11) 0%, rgba(0,212,255,0.06) 40%, transparent 65%)",
+              filter: "blur(70px)",
+            }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: isEntered ? 1 : 0 }}
+            transition={{ duration: 1.4, ease: [0.22, 1, 0.36, 1], delay: 0.15 }}
           />
 
           {/* ── Card layer ────────────────────────────────────────────────── */}

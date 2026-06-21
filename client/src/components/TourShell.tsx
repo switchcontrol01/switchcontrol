@@ -540,9 +540,12 @@ export function TourShell({
         <motion.div
           key="tour-backdrop"
           className="fixed inset-0 z-[200] pointer-events-none"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: revealed ? 1 : 0 }}
-          transition={{ duration: revealed ? 0.28 : 0.45, ease: revealed ? [0.22, 1, 0.36, 1] : [0.4, 0, 0.8, 1] }}
+          initial={{ opacity: 0, filter: "blur(18px)" }}
+          animate={{
+            opacity: revealed ? 1 : 0,
+            filter: revealed ? "blur(0px)" : "blur(18px)",
+          }}
+          transition={{ duration: revealed ? 0.75 : 0.55, ease: revealed ? [0.22, 1, 0.36, 1] : [0.4, 0, 0.8, 1] }}
         >
           {/* Dark overlay — only over the CONTENT area (right of sidebar) */}
           <div
@@ -579,9 +582,12 @@ export function TourShell({
           key="tour-card-layer"
           className="fixed inset-0 z-[201] pointer-events-none"
           data-testid={testId}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: revealed ? 1 : 0 }}
-          transition={{ duration: revealed ? 0.32 : 0.42, ease: revealed ? [0.22, 1, 0.36, 1] : [0.4, 0, 0.8, 1] }}
+          initial={{ opacity: 0, filter: "blur(18px)" }}
+          animate={{
+            opacity: revealed ? 1 : 0,
+            filter: revealed ? "blur(0px)" : "blur(18px)",
+          }}
+          transition={{ duration: revealed ? 0.82 : 0.48, ease: revealed ? [0.22, 1, 0.36, 1] : [0.4, 0, 0.8, 1] }}
           onAnimationComplete={() => {
             if (revealed) console.log('[TourTransition] card fully visible');
           }}

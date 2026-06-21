@@ -149,6 +149,7 @@ type AppPhase =
   | "unauthenticated"
   | "login_success"
   | "welcome"
+  | "disclaiming"
   | "authenticated";
 
 // AppAuthContext, AppAuthContextValue, and useAppAuth live in a dedicated
@@ -1564,14 +1565,18 @@ function ElectronAppContent() {
           {phase === "welcome" && (
             <motion.div
               key="welcome"
-              initial={{ opacity: 1 }}
+              initial={{ opacity: 1, filter: "blur(0px)", scale: 1 }}
               animate={{
                 opacity: 1,
+                filter: "blur(0px)",
+                scale: 1,
                 transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] },
               }}
               exit={{
                 opacity: 0,
-                transition: { duration: 0.25, ease: [0.4, 0, 0.6, 1] },
+                filter: "blur(24px)",
+                scale: 0.97,
+                transition: { duration: 0.95, ease: [0.4, 0, 0.2, 1] },
               }}
               className="h-full"
               style={{ zIndex: 2 }}
@@ -1588,7 +1593,8 @@ function ElectronAppContent() {
                   const uid = user?.id;
                   const disclaimerKey = uid ? `sc_disclaimer_seen_${uid}` : null;
                   if (isFirstLogin && disclaimerKey && !localStorage.getItem(disclaimerKey)) {
-                    console.log("[FirstRunDisclaimer] showing for first-time user");
+                    console.log("[FirstRunDisclaimer] showing for first-time user — fading welcome out");
+                    setPhase("disclaiming"); // triggers AnimatePresence exit on welcome div
                     setShowDisclaimer(true);
                     return; // hold off on setPhase("authenticated") until disclaimer is dismissed
                   }
