@@ -19,60 +19,55 @@ export const FREE_TWEAK_LEVELS: TweakLevel[] = ["Recommended"];
  * Common / basic / safe tweaks that every user should have access to.
  */
 export const FREE_EXCEPTION_IDS: Set<string> = new Set([
-  "win32-priority-sep",
-  "mouse-queue-size",
-  "kbd-queue-size",
-  "sys-responsiveness",
-  "net-throttle-index",
-  "menu-show-delay",
-  "hung-app-timeout",
-  "power-throttling",
-  "disable-transparency",
-  "disable-animations",
-  "ntfs-last-access",
-  "low-level-hooks-timeout",
-  "wait-to-kill-app",
-  "show-file-extensions",
-  "explorer-separate-process",
-  "disable-auto-restart-apps",
-  "disable-mpo",
-  // Expanded common tweaks
+  // ── System and Power ───────────────────────────────────────────────────────
   "hibernation",
+  "fast-startup",
+  "energy-logging",
   "maintenance",
-  "bg-apps",
+  "power-throttling",
   "notifications",
-  "mem-opt",
+  "disable-auto-restart-apps",
+  // ── Memory and Storage ────────────────────────────────────────────────────
   "prefetch",
   "superfetch",
   "storage-sense",
   "win-search-index",
+  // ── Privacy and Telemetry ─────────────────────────────────────────────────
   "telemetry",
-  "nvidia-telemetry",
   "copilot",
   "cortana",
   "search-highlights",
   "disable-delivery-opt",
   "disable-wer",
   "disable-activity-history",
+  // ── Gaming and Latency ────────────────────────────────────────────────────
   "gaming-mode",
-  "tune-priority",
   "disable-fso",
   "usb-selective-suspend",
-  "disable-pointer-precision",
+  // ── GPU and Graphics ──────────────────────────────────────────────────────
+  "disable-mpo",
+  // ── Network ───────────────────────────────────────────────────────────────
   // bluetooth: kept free-tier so users can toggle it without a paywall.
   // WARNING: do NOT move to PREMIUM_EXCEPTION_IDS — hooks.ts GUARDED_TWEAK_IDS
   // explicitly excludes it from bulk-apply regardless of tier, so it is never
   // auto-applied even though it is free. The free-tier placement only controls
   // the paywall gate; the safety guard lives in hooks.ts isRecommendedSafe().
   "bluetooth",
+  "wifi",
+  // ── Debloat and Apps ──────────────────────────────────────────────────────
   "xbox-bar",
+  "xbox-services",
+  "fax-printer",
+  // ── Windows UX ────────────────────────────────────────────────────────────
   "compact-explorer",
   "recent-files",
-  "energy-logging",
-  // GPU scheduling: broad benefit, Safe-rated — no paywall needed.
-  "preemption",
-  // Xbox background services: low-risk, non-network — no paywall needed.
-  "xbox-services",
+  "disable-transparency",
+  "disable-animations",
+  "show-file-extensions",
+  "explorer-separate-process",
+  "disable-pointer-precision",
+  "disable-lock-screen",
+  "bg-apps",
 ]);
 
 /**
@@ -80,22 +75,42 @@ export const FREE_EXCEPTION_IDS: Set<string> = new Set([
  * network-breaking, security-sensitive, or helper-requiring.
  */
 export const PREMIUM_EXCEPTION_IDS: Set<string> = new Set([
-  "fast-startup",
+  // ── System and Power ───────────────────────────────────────────────────────
   "core-isolation",
   "vbs",
   "hyper-v",
   "p-states",
   "pcie-link-state",
+  "mmcss-nolazymode",
+  "svchost-split-threshold",
+  // ── Memory and Storage ────────────────────────────────────────────────────
+  "mem-opt",
   "large-system-cache",
   "page-combining",
+  "ntfs-last-access",
+  // ── Privacy and Telemetry ─────────────────────────────────────────────────
+  "nvidia-telemetry",
+  // ── Gaming and Latency ────────────────────────────────────────────────────
   "irq-priority",
   "synth-timers",
-  "timer-res",
+  "tune-priority",
+  "win32-priority-sep",
+  "sys-responsiveness",
+  "net-throttle-index",
+  // ── Input ─────────────────────────────────────────────────────────────────
+  "mouse-queue-size",
+  "kbd-queue-size",
+  "low-level-hooks-timeout",
+  // ── GPU and Graphics ──────────────────────────────────────────────────────
   "mmcss-gaming",
   "desktop-comp",
   "hdcp",
-  "wifi",
-  "fax-printer",
+  "preemption",
+  // ── Windows UX ────────────────────────────────────────────────────────────
+  "menu-show-delay",
+  "hung-app-timeout",
+  "wait-to-kill-app",
+  "disable-wallpaper-compression",
 ]);
 
 interface TweakTierInfo {
@@ -118,6 +133,9 @@ export const TWEAK_TIER_MAP: Record<string, TweakTierInfo> = {
   "power-throttling":         { level: "Advanced",     category: "System and Power" },
   "pcie-link-state":          { level: "Advanced",     category: "System and Power" },
   "disable-auto-restart-apps":{ level: "Advanced",     category: "System and Power" },
+  "mmcss-nolazymode":         { level: "Advanced",     category: "System and Power" },
+  "svchost-split-threshold":  { level: "Advanced",     category: "System and Power" },
+  "disable-dcom":             { level: "Experimental", category: "System and Power" },
 
   // Memory and Storage
   "mem-opt":                  { level: "Recommended",  category: "Memory and Storage" },
@@ -147,7 +165,6 @@ export const TWEAK_TIER_MAP: Record<string, TweakTierInfo> = {
   "net-throttle-index":       { level: "Advanced",     category: "Gaming and Latency" },
   "irq-priority":             { level: "Experimental", category: "Gaming and Latency" },
   "synth-timers":             { level: "Experimental", category: "Gaming and Latency" },
-  "timer-res":                { level: "Advanced",     category: "Gaming and Latency" },
   "disable-fso":              { level: "Recommended",  category: "Gaming and Latency" },
   "usb-selective-suspend":    { level: "Recommended",  category: "Gaming and Latency" },
   "mmcss-gaming":             { level: "Advanced",     category: "Gaming and Latency" },
@@ -181,8 +198,10 @@ export const TWEAK_TIER_MAP: Record<string, TweakTierInfo> = {
   "disable-transparency":     { level: "Recommended",  category: "Windows UX" },
   "disable-animations":       { level: "Recommended",  category: "Windows UX" },
   "wait-to-kill-app":         { level: "Advanced",     category: "Windows UX" },
-  "show-file-extensions":     { level: "Recommended",  category: "Windows UX" },
+  "show-file-extensions":     { level: "Advanced",     category: "Windows UX" },
   "explorer-separate-process":{ level: "Advanced",     category: "Windows UX" },
+  "disable-lock-screen":      { level: "Advanced",     category: "Windows UX" },
+  "disable-wallpaper-compression": { level: "Advanced", category: "Windows UX" },
 };
 
 export function isPremiumTweakById(tweakId: string): boolean {
