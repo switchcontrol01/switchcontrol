@@ -16,8 +16,12 @@ const execFileAsync = promisify(execFile);
 
 const CACHE_TTL_MS          = 30 * 60 * 1000; // 30-minute in-memory refresh
 const DISK_CACHE_TTL_MS     = 24 * 60 * 60 * 1000; // 24-hour disk persistence
-const PS_TIMEOUT_MS         = 3_000; // reduced — any PS call that hangs logs a warning
-const PROBE_COOLDOWN_MS     = 12 * 60 * 1000; // 12-minute per-source cooldown after 2+ timeouts
+// AMD/WMI systems (e.g. Ryzen 9800X3D) can take 8-15s for a WMI call.
+// The timeout here is only for the PowerShell-based platform-states script.
+const PS_TIMEOUT_MS         = 10_000; // was 3s — many AMD WMI calls need 8-12s
+// After 2 consecutive timeouts, skip the source for PROBE_COOLDOWN_MS.
+// Short enough that a restart 2+ minutes later retries. Persistent across launches.
+const PROBE_COOLDOWN_MS     = 2 * 60 * 1000;  // was 12min — 2-minute recovery window
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -248,9 +252,22 @@ async function _loadProbeHealth(): Promise<void> {
     const parsed = JSON.parse(raw);
     if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
       _probeHealth = parsed as Record<string, ProbeHealthEntry>;
+
+      // Migration: clamp any stale cooldown that exceeds the current PROBE_COOLDOWN_MS.
+      // Prevents probe-health.json files written by older builds (12-min cooldown)
+      // from blocking probes for far longer than the current policy allows.
+      const now = Date.now();
+      const maxCooledUntil = now + PROBE_COOLDOWN_MS;
+      for (const entry of Object.values(_probeHealth)) {
+        if (entry.cooledUntil > maxCooledUntil) {
+          entry.cooledUntil = maxCooledUntil;
+          _probeHealthDirty = true;
+        }
+      }
+
       const degraded = Object.entries(_probeHealth)
-        .filter(([, v]) => v.cooledUntil > Date.now())
-        .map(([k, v]) => `${k}(${Math.ceil((v.cooledUntil - Date.now()) / 60000)}min)`);
+        .filter(([, v]) => v.cooledUntil > now)
+        .map(([k, v]) => `${k}(${Math.ceil((v.cooledUntil - now) / 60000)}min)`);
       if (degraded.length) {
         console.log(`[SysIntelligence] Degraded probes loaded — skip list: ${degraded.join(", ")}`);
       }
@@ -312,13 +329,17 @@ function siTimeoutTracked<T>(label: string, p: Promise<T>, ms: number): Promise<
     if (!err.message.includes("skipped —")) {
       const current = _probeHealth[label] ?? { consecutiveTimeouts: 0, cooledUntil: 0, lastSuccessAt: 0 };
       const newCount = current.consecutiveTimeouts + 1;
-      // Cooldown after first timeout — on WMI-broken AMD systems every probe
-      // fails, so waiting for a second consecutive timeout wastes a full launch.
-      const cooledUntil = newCount >= 1 ? now + PROBE_COOLDOWN_MS : 0;
+      // Cooldown after 2nd consecutive timeout. First timeout is just a warning —
+      // the probe may succeed next launch. Second+ means WMI is reliably broken on
+      // this machine so we skip for PROBE_COOLDOWN_MS to avoid blocking startup.
+      const cooledUntil = newCount >= 2 ? now + PROBE_COOLDOWN_MS : 0;
       _probeHealth[label] = { consecutiveTimeouts: newCount, cooledUntil, lastSuccessAt: current.lastSuccessAt };
       _probeHealthDirty = true;
       if (cooledUntil) {
-        console.warn(`[SysIntelligence] probe=${label} timeout #${newCount} — setting 12min cooldown`);
+        const coolMin = Math.round(PROBE_COOLDOWN_MS / 60000);
+        console.warn(`[SysIntelligence] probe=${label} timeout #${newCount} — setting ${coolMin}min cooldown`);
+      } else {
+        console.warn(`[SysIntelligence] probe=${label} timeout #${newCount} — will retry next collection`);
       }
     }
     throw err;
@@ -518,37 +539,38 @@ async function collect(): Promise<SystemIntelligenceProfile> {
   console.log("[SysIntelligence] phase=full start — deep collection");
   const startMs = Date.now();
 
-  // Tight timeouts: fail fast rather than block startup for 30s on AMD/WMI-slow hosts.
-  // siTimeoutTracked records each timeout and skips sources in a 12-min cooldown after 2+ failures.
+  // AMD/WMI systems (Ryzen 9800X3D, etc.) respond slowly — 5-15s for baseboard/bios.
   // battery, users, netConn removed — useless on desktop gaming rigs and very slow on AMD/WMI
+  // These limits are intentionally generous so real data arrives on first launch
+  // instead of immediately falling into a cooldown that blocks all future attempts.
   const [
     bbRes, biosRes, cpuRes, graphicsRes, memLayoutRes,
     diskLayoutRes, fsSizeRes, netIfRes,
     procsRes, osRes,
     platformStates, monitorEdidRes,
   ] = await Promise.allSettled([
-    siTimeoutTracked("baseboard",    si.baseboard(),             3_000),
-    siTimeoutTracked("bios",         si.bios(),                  3_000),
-    siTimeoutTracked("cpu",          si.cpu(),                   5_000),
-    siTimeoutTracked("graphics",     si.graphics(),              3_000),
-    siTimeoutTracked("memLayout",    si.memLayout(),             4_000),
-    siTimeoutTracked("diskLayout",   si.diskLayout(),            4_000),
-    siTimeoutTracked("fsSize",       si.fsSize(),                4_000),
-    siTimeoutTracked("netIf",        si.networkInterfaces("*"),  4_000),
-    siTimeoutTracked("processes",    si.processes(),             4_000),
-    siTimeoutTracked("osInfo",       si.osInfo(),                3_000),
-    siTimeoutTracked("platformPS",   collectWindowsPlatformStates(), 3_000),
-    siTimeoutTracked("monitorEDID",  collectMonitorEdidNames(),       3_000),
+    siTimeoutTracked("baseboard",    si.baseboard(),                  12_000), // was 3s
+    siTimeoutTracked("bios",         si.bios(),                       12_000), // was 3s
+    siTimeoutTracked("cpu",          si.cpu(),                        10_000), // was 5s
+    siTimeoutTracked("graphics",     si.graphics(),                    8_000), // was 3s
+    siTimeoutTracked("memLayout",    si.memLayout(),                  10_000), // was 4s
+    siTimeoutTracked("diskLayout",   si.diskLayout(),                 10_000), // was 4s
+    siTimeoutTracked("fsSize",       si.fsSize(),                      8_000), // was 4s
+    siTimeoutTracked("netIf",        si.networkInterfaces("*"),        8_000), // was 4s
+    siTimeoutTracked("processes",    si.processes(),                   6_000), // was 4s
+    siTimeoutTracked("osInfo",       si.osInfo(),                      8_000), // was 3s
+    siTimeoutTracked("platformPS",   collectWindowsPlatformStates(),  10_000), // was 3s (also uses PS_TIMEOUT_MS)
+    siTimeoutTracked("monitorEDID",  collectMonitorEdidNames(),        8_000), // was 3s
   ]);
   const edidNames: Array<{ name: string; manufacturer: string }> =
     monitorEdidRes.status === "fulfilled" ? monitorEdidRes.value : [];
 
-  // Chassis — quick WMI call, 1.5s hard limit
+  // Chassis — WMI call; 4s on AMD systems
   let chassisType: string | null = null;
   try {
     const chassis = await Promise.race([
       si.chassis(),
-      new Promise<null>(r => setTimeout(() => r(null), 1_500)),
+      new Promise<null>(r => setTimeout(() => r(null), 4_000)), // was 1500ms
     ]);
     chassisType = chassis ? safeStr((chassis as any).type) : null;
   } catch {}
@@ -885,7 +907,7 @@ async function collectFast(): Promise<SystemIntelligenceProfile> {
   // Probe order: fastest/most-important first. If a probe is in a cooldown
   // (from a previous launch), it is skipped instantly — no process spawn.
 
-  const memRes = await siTimeout("A.mem", si.mem(), 1_500).catch(() => null);
+  const memRes = await siTimeout("A.mem", si.mem(), 3_000).catch(() => null); // was 1500ms — AMD WMI needs more time
   const memTotalMb = memRes?.total > 0
     ? Math.round(memRes.total / 1024 / 1024)
     : os.totalmem() > 0 ? Math.round(os.totalmem() / 1024 / 1024) : null;
@@ -893,7 +915,7 @@ async function collectFast(): Promise<SystemIntelligenceProfile> {
   // 600ms breathing room for the WMI service to recover
   await new Promise(r => setTimeout(r, 600));
 
-  const cpuSi = await siTimeoutTracked("cpu", si.cpu(), 5_000).catch(() => null);
+  const cpuSi = await siTimeoutTracked("cpu", si.cpu(), 9_000).catch(() => null); // was 5s
   let cpu: any = cpuSi;
   if (!cpu || !cpu.brand) {
     const osCpus = os.cpus();
@@ -914,7 +936,7 @@ async function collectFast(): Promise<SystemIntelligenceProfile> {
   await new Promise(r => setTimeout(r, 600));
 
   // GPU is needed for the dashboard specs strip. Skip if in cooldown.
-  const graphics = await siTimeoutTracked("graphics", si.graphics(), 3_000).catch(() => null);
+  const graphics = await siTimeoutTracked("graphics", si.graphics(), 6_000).catch(() => null); // was 3s
   const controllers: SipController[] = (graphics?.controllers ?? []).map((c: any) => ({
     name: safeStr(c.model), vendor: safeStr(c.vendor), subVendor: null, vendorId: null,
     deviceId: null, vramMb: safeNum(typeof c.vram === "number" ? c.vram : null),

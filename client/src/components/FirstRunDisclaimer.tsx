@@ -446,7 +446,7 @@ export function FirstRunDisclaimer({ show, onComplete }: Props) {
                       >
                         Privacy Policy
                       </a>
-                      . SwitchControl is a system configuration tool — no warranty is implied.
+                      . SwitchControl is a hardware optimization suite — no warranty is implied.
                     </motion.p>
                   </div>
                 </motion.div>
