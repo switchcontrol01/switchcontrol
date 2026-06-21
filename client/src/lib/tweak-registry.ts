@@ -55,6 +55,18 @@ export interface SliderConfig {
   extremeMin?: number;
   extremeMax?: number;
   extremeLabel?: string;
+  /**
+   * When present, a "Custom" preset unlocks a draggable slider over this range.
+   * The slider writes real registry values (not preset indices), so the min/max
+   * should match the actual registry range.
+   */
+  customRange?: {
+    min: number;
+    max: number;
+    step: number;
+    defaultValue?: number;
+    unit?: string;
+  };
 }
 
 export interface TweakDetailsConfig {
@@ -350,7 +362,15 @@ const BASE: BaseTweak[] = [
           { label: "16GB", value: 16777216 },
           { label: "32GB", value: 33554432 },
           { label: "64GB", value: 67108864 },
+          { label: "Custom", value: 67108865, description: "Drag the slider to set any RAM threshold." },
         ],
+        customRange: {
+          min: 8388608,
+          max: 67108864,
+          step: 8388608,
+          defaultValue: 16777216,
+          unit: "KB",
+        },
       },
       supported: true, requiresAdmin: true,
     },
@@ -1111,12 +1131,19 @@ const BASE: BaseTweak[] = [
         { value: 1, label: "Gaming Focus (10)",    description: "10% reservation — more CPU for games and audio. Safer gaming preset.", isRecommended: true },
         { value: 0, label: "Aggressive Gaming (0)", description: "0% reservation — maximum foreground CPU. May break background audio/capture.", isRecommended: false },
         { value: 3, label: "Production (40)",      description: "40% reservation — preserves background tasks. Better for content creation.", isRecommended: false },
-        { value: 4, label: "Custom",               description: "Advanced: enter exact registry value. Only use if you know the exact number.", isRecommended: false },
+        { value: 4, label: "Custom",               description: "Drag the slider to pick any exact registry value.", isRecommended: false },
       ],
       safeMin: 0, safeMax: 3,
       cautionLabel: "0 = aggressive. Background audio, streaming, or recording may stutter.",
       extremeMin: 0, extremeMax: 0,
       extremeLabel: "0 requires confirmation — can break background multimedia",
+      customRange: {
+        min: 0,
+        max: 100,
+        step: 1,
+        defaultValue: 20,
+        unit: "%",
+      },
     },
     detailsConfig: {
       registryPath: "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile",
@@ -1148,7 +1175,15 @@ const BASE: BaseTweak[] = [
         { value: 10,         label: "Standard (Default)", description: "Windows default — limits multimedia process network throughput to ~10 packets/ms.", isDefault: true },
         { value: 50,         label: "Moderate",           description: "Moderate throttling — suitable for multimedia production environments." },
         { value: 100,        label: "Heavy",              description: "Heavy throttling — limits multimedia process bandwidth significantly." },
+        { value: 101,        label: "Custom",             description: "Drag the slider to set any exact throttle value." },
       ],
+      customRange: {
+        min: 10,
+        max: 100,
+        step: 1,
+        defaultValue: 10,
+        unit: "ppms",
+      },
     },
     detailsConfig: {
       registryPath: "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile",

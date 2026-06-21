@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import {
   ChevronDown, ChevronUp, Loader2, CheckCircle2, XCircle,
   RefreshCw, ShieldCheck, AlertTriangle, Info, RotateCcw,
@@ -88,19 +88,24 @@ function SteppedSelector({
   pendingValue,
   disabled,
   onSelect,
+  customActive,
+  customValue,
 }: {
   config: SliderConfig;
   currentValue: number | null;
   pendingValue: number | null;
   disabled: boolean;
   onSelect: (value: number) => void;
+  customActive?: boolean;
+  customValue?: number | null;
 }) {
   const presets = config.presets ?? [];
+  const isCustomPreset = (idx: number) => customActive && idx === presets.length - 1;
   return (
     <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${presets.length}, 1fr)` }}>
-      {presets.map((preset) => {
-        const isSelected = pendingValue === preset.value;
-        const isCurrent = currentValue === preset.value;
+      {presets.map((preset, idx) => {
+        const isSelected = pendingValue === preset.value || isCustomPreset(idx);
+        const isCurrent = currentValue === preset.value || isCustomPreset(idx);
         return (
           <button
             key={preset.value}
@@ -208,6 +213,69 @@ function ContinuousSlider({
       <div className="flex justify-between text-[10px] text-[#6B7380] select-none -mt-1">
         <span>{config.min}{config.unit ? ` ${config.unit}` : ""}</span>
         <span>{config.max}{config.unit ? ` ${config.unit}` : ""}</span>
+      </div>
+    </div>
+  );
+}
+
+// ── Custom slider (appears when Custom preset is selected on stepped tweaks) ──
+
+function CustomSlider({
+  range,
+  value,
+  disabled,
+  onChange,
+}: {
+  range: { min: number; max: number; step: number; unit?: string };
+  value: number;
+  disabled: boolean;
+  onChange: (v: number) => void;
+}) {
+  const zone = getRangeZone(value, {
+    min: range.min, max: range.max, step: range.step, defaultValue: range.min,
+    safeMin: 0, safeMax: 100, extremeMin: 0, extremeMax: 0,
+  });
+
+  const thumbColor =
+    zone === "extreme"
+      ? "data-[state=active]:shadow-[0_0_12px_rgba(248,113,113,0.6)]"
+      : zone === "caution"
+      ? "data-[state=active]:shadow-[0_0_12px_rgba(251,191,36,0.6)]"
+      : "data-[state=active]:shadow-[0_0_12px_rgba(34,211,238,0.5)]";
+
+  const rangeColor =
+    zone === "extreme"
+      ? "[&_.range]:bg-red-500"
+      : zone === "caution"
+      ? "[&_.range]:bg-yellow-500"
+      : "[&_.range]:bg-cyan-500";
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between text-[11px] text-[#A0A8B3]">
+        <span className="font-medium text-[#E6EAF0]" data-testid="text-custom-value">
+          {value}
+          {range.unit ? ` ${range.unit}` : ""}
+        </span>
+        <span className="text-[#6B7380] text-[10px]">
+          Drag to set any value from {range.min} to {range.max}
+          {range.unit ? ` ${range.unit}` : ""}
+        </span>
+      </div>
+      <div className={cn("relative pt-1 pb-4", disabled && "opacity-60 pointer-events-none")}>
+        <Slider
+          min={range.min}
+          max={range.max}
+          step={range.step}
+          value={[value]}
+          onValueChange={([v]) => onChange(v)}
+          disabled={disabled}
+          className={cn("w-full cursor-pointer", rangeColor)}
+        />
+        <div className="flex justify-between text-[10px] text-[#6B7380] select-none mt-1">
+          <span>{range.min}{range.unit ? ` ${range.unit}` : ""}</span>
+          <span>{range.max}{range.unit ? ` ${range.unit}` : ""}</span>
+        </div>
       </div>
     </div>
   );
@@ -330,6 +398,35 @@ export function TweakSliderCard({ tweak }: TweakSliderCardProps) {
 
   const pendingZone = getRangeZone(state.pendingValue, config);
 
+  // ── Custom mode for stepped sliders with customRange ───────────────────────
+  const customRange = config.customRange;
+  const customPresetValue = config.stepped && config.presets
+    ? config.presets[config.presets.length - 1].value
+    : null;
+  const hasCustomPreset = customPresetValue !== null && customRange !== undefined;
+
+  const [customActive, setCustomActive] = useState(false);
+  const [customValue, setCustomValue] = useState<number | null>(null);
+
+  // Intercept stepped selections to handle Custom preset clicks
+  const handleSteppedSelect = useCallback((value: number) => {
+    if (hasCustomPreset && value === customPresetValue) {
+      setCustomActive(true);
+      const initial = state.currentValue ?? customRange?.defaultValue ?? customRange?.min ?? 0;
+      setCustomValue(initial);
+      setPending(initial);
+    } else {
+      setCustomActive(false);
+      setPending(value);
+    }
+  }, [hasCustomPreset, customPresetValue, customRange, state.currentValue, setPending]);
+
+  // Custom slider change (when custom mode is active)
+  const handleCustomSliderChange = useCallback((value: number) => {
+    setCustomValue(value);
+    setPending(value);
+  }, [setPending]);
+
   // Compute display pending value (for stepped, pendingValue IS the registry value)
   const handleSliderChange = useCallback((value: number) => {
     if (config.stepped && config.presets) {
@@ -350,7 +447,9 @@ export function TweakSliderCard({ tweak }: TweakSliderCardProps) {
     : undefined;
 
   const pendingLabel = state.pendingValue !== null
-    ? (config.stepped ? getPresetLabel(state.pendingValue, config) : formatValue(state.pendingValue, config.unit))
+    ? customActive
+      ? formatValue(state.pendingValue, customRange?.unit)
+      : (config.stepped ? getPresetLabel(state.pendingValue, config) : formatValue(state.pendingValue, config.unit))
     : "—";
 
   return (
@@ -463,13 +562,39 @@ export function TweakSliderCard({ tweak }: TweakSliderCardProps) {
 
           {/* Stepped selector OR continuous slider */}
           {config.stepped ? (
-            <SteppedSelector
-              config={config}
-              currentValue={state.currentValue}
-              pendingValue={state.pendingValue}
-              disabled={disabled}
-              onSelect={setPending}
-            />
+            <div className="space-y-3">
+              <SteppedSelector
+                config={config}
+                currentValue={state.currentValue}
+                pendingValue={state.pendingValue}
+                disabled={disabled}
+                onSelect={handleSteppedSelect}
+                customActive={customActive}
+                customValue={customValue}
+              />
+              {/* Custom draggable slider appears when Custom is selected */}
+              {customActive && customRange && (
+                <AnimatePresence>
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+                    className="overflow-hidden"
+                  >
+                    <CustomSlider
+                      range={customRange}
+                      value={customValue ?? customRange.defaultValue ?? customRange.min}
+                      onChange={(v) => {
+                        setCustomValue(v);
+                        setPending(v);
+                      }}
+                      disabled={disabled}
+                    />
+                  </motion.div>
+                </AnimatePresence>
+              )}
+            </div>
           ) : (
             <ContinuousSlider
               config={config}
