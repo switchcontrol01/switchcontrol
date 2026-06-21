@@ -967,31 +967,40 @@ function ElectronAppContent() {
             if (!hasBeenWelcomed) {
               setIsFirstLogin(true);
               localStorage.setItem(welcomeKey, "true");
-              if (livePhase === "authenticated") {
-                // Already in the app (e.g. user re-authenticated from settings,
-                // or the boot auth check beat the deep-link arrival).
-                // Skip login_success entirely — jumping from "authenticated" →
-                // "login_success" → "welcome" queues THREE AnimatePresence key
-                // changes at once, which can cause the login screen to flash
-                // over the welcome animation.  Go directly to "welcome" instead.
+              if (
+                livePhase === "authenticated" ||
+                livePhase === "welcome" ||
+                livePhase === "disclaiming"
+              ) {
+                // Boot fast-path already moved us to "welcome" (or beyond) before
+                // the deep-link arrived — any login_success transition here would
+                // flash the login screen over the welcome animation.  Only jump to
+                // "welcome" if we're not already there or past it.
                 console.log(
-                  "[Auth] first-time user but phase=authenticated — jumping directly to welcome",
+                  `[Auth] first-time user but phase=${livePhase} — deep-link arrived late, no login flash`,
                 );
-                setPhase("welcome");
+                if (livePhase === "authenticated") {
+                  setPhase("welcome");
+                }
+                // "welcome" / "disclaiming" — already in the right animation; leave it alone.
               } else {
-                // Normal path: phase is "unauthenticated" — login screen is
-                // already visible, login_success → welcome is a clean 2-step
-                // transition that AnimatePresence mode="wait" handles correctly.
+                // Normal path: login screen is visible — do the clean two-step
+                // login_success → welcome transition.
                 setPhase("login_success");
               }
             } else {
               // Returning user.
-              if (livePhase === "authenticated") {
-                // Already showing the app — just navigate to dashboard.
-                // No need to flash the login screen at all.
+              if (
+                livePhase === "authenticated" ||
+                livePhase === "welcome" ||
+                livePhase === "disclaiming"
+              ) {
+                // Already showing the app (fast-path boot beat the deep-link).
+                // Navigate to dashboard without flashing the login screen.
                 console.log(
-                  "[Auth] returning user, phase=authenticated — navigating to dashboard",
+                  `[Auth] returning user, phase=${livePhase} — navigating to dashboard`,
                 );
+                if (livePhase !== "authenticated") setPhase("authenticated");
                 setLocation("/dashboard");
               } else {
                 // Login screen is visible — do the polished blur-exit.
