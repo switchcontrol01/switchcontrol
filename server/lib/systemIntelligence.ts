@@ -874,27 +874,26 @@ async function collect(): Promise<SystemIntelligenceProfile> {
 
 async function collectFast(): Promise<SystemIntelligenceProfile> {
   const t = Date.now();
-  console.log("[SysIntelligence] phase=A start — identity collection");
+  console.log("[SysIntelligence] phase=A start — identity collection (sequential, WMI-safe)");
 
-  // Tight limits — Phase A must never hang startup. os.cpus()/os.totalmem() are
-  // always-available fallbacks if WMI is slow on this host.
-  const [bbRes, biosRes, cpuRes, graphicsRes, memRes] = await Promise.allSettled([
-    siTimeoutTracked("baseboard", si.baseboard(), 3_000),
-    siTimeoutTracked("bios",      si.bios(),      3_000),
-    siTimeoutTracked("cpu",       si.cpu(),       5_000), // os.cpus() fallback below
-    siTimeoutTracked("graphics",  si.graphics(),  3_000),
-    siTimeout("A.mem",            si.mem(),       1_500), // untracked — no fallback needed
-  ]);
+  // Phase A is now fully sequential with 600ms gaps between probes.
+  // On AMD/WMI-broken systems, Promise.allSettled() spawns 5 PowerShell
+  // processes simultaneously — that parallel burst starves the Windows audio
+  // scheduler thread, causing the crackling/glitching. Serializing probes
+  // with gaps prevents the burst entirely.
+  //
+  // Probe order: fastest/most-important first. If a probe is in a cooldown
+  // (from a previous launch), it is skipped instantly — no process spawn.
 
-  const bb       = bbRes.status      === "fulfilled" ? (bbRes.value as any)       : null;
-  const bios     = biosRes.status    === "fulfilled" ? (biosRes.value as any)     : null;
-  const cpuSi    = cpuRes.status     === "fulfilled" ? (cpuRes.value as any)      : null;
-  const graphics = graphicsRes.status === "fulfilled" ? (graphicsRes.value as any) : null;
-  const mem      = memRes.status     === "fulfilled" ? (memRes.value as any)      : null;
+  const memRes = await siTimeout("A.mem", si.mem(), 1_500).catch(() => null);
+  const memTotalMb = memRes?.total > 0
+    ? Math.round(memRes.total / 1024 / 1024)
+    : os.totalmem() > 0 ? Math.round(os.totalmem() / 1024 / 1024) : null;
 
-  // If WMI cpu timed out (AMD cold-start), fall back to the synchronous os.cpus()
-  // which is always populated and resolves in <1ms. This prevents Phase A from
-  // returning a null brand on first launch.
+  // 600ms breathing room for the WMI service to recover
+  await new Promise(r => setTimeout(r, 600));
+
+  const cpuSi = await siTimeoutTracked("cpu", si.cpu(), 5_000).catch(() => null);
   let cpu: any = cpuSi;
   if (!cpu || !cpu.brand) {
     const osCpus = os.cpus();
@@ -912,20 +911,24 @@ async function collectFast(): Promise<SystemIntelligenceProfile> {
     }
   }
 
-  // RAM: fall back to os.totalmem() if si.mem() timed out
-  const memTotalMb = mem?.total > 0
-    ? Math.round(mem.total / 1024 / 1024)
-    : os.totalmem() > 0 ? Math.round(os.totalmem() / 1024 / 1024) : null;
+  await new Promise(r => setTimeout(r, 600));
+
+  // GPU is needed for the dashboard specs strip. Skip if in cooldown.
+  const graphics = await siTimeoutTracked("graphics", si.graphics(), 3_000).catch(() => null);
   const controllers: SipController[] = (graphics?.controllers ?? []).map((c: any) => ({
     name: safeStr(c.model), vendor: safeStr(c.vendor), subVendor: null, vendorId: null,
     deviceId: null, vramMb: safeNum(typeof c.vram === "number" ? c.vram : null),
     vramDynamic: null, bus: safeStr(c.bus), external: null,
   })).filter((c: SipController) => c.name !== null);
 
+  // Baseboard and BIOS are NEVER needed for first paint — skip in Phase A entirely.
+  // They are collected in the full background pass instead. This removes two
+  // process spawns from the startup path.
+
   const nullInf: SipInference = { state: "unknown", reason: "Pending deep scan." };
   const profile: SystemIntelligenceProfile = {
-    baseboard:  { manufacturer: safeStr(bb?.manufacturer), model: safeStr(bb?.model), version: safeStr(bb?.version) },
-    bios:       { vendor: safeStr(bios?.vendor), version: safeStr(bios?.version), releaseDate: safeStr(bios?.releaseDate) },
+    baseboard:  { manufacturer: null, model: null, version: null },
+    bios:       { vendor: null, version: null, releaseDate: null },
     cpu: {
       manufacturer: safeStr(cpu?.manufacturer), brand: safeStr(cpu?.brand),
       physicalCores: safeNum(cpu?.physicalCores ?? null), logicalCores: safeNum(cpu?.cores ?? null),
@@ -949,7 +952,10 @@ async function collectFast(): Promise<SystemIntelligenceProfile> {
     collectedAt: new Date().toISOString(),
   };
 
-  console.log(`[SysIntelligence] phase=A complete in ${Date.now() - t}ms | CPU=${profile.cpu.brand} | GPU=${controllers[0]?.name ?? "n/a"} | RAM=${memTotalMb}MB`);
+  // Persist probe health so cooldowns survive app restarts
+  void _saveProbeHealth();
+
+  console.log(`[SysIntelligence] phase=A complete in ${Date.now() - t}ms | CPU=${profile.cpu.brand} | GPU=${controllers[0]?.name ?? "n/a"} | RAM=${memTotalMb}MB | probes: mem+cpu+graphics (baseboard/bios skipped)`);
   return profile;
 }
 
