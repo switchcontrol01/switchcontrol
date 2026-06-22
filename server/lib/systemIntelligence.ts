@@ -542,30 +542,54 @@ async function collect(): Promise<SystemIntelligenceProfile> {
   console.log("[SysIntelligence] phase=full start — deep collection");
   const startMs = Date.now();
 
-  // AMD/WMI systems (Ryzen 9800X3D, etc.) respond slowly — 5-15s for baseboard/bios.
-  // battery, users, netConn removed — useless on desktop gaming rigs and very slow on AMD/WMI
-  // These limits are intentionally generous so real data arrives on first launch
-  // instead of immediately falling into a cooldown that blocks all future attempts.
-  const [
-    bbRes, biosRes, cpuRes, graphicsRes, memLayoutRes,
-    diskLayoutRes, fsSizeRes, netIfRes,
-    procsRes, osRes,
-    platformStates, monitorEdidRes, audioRes,
-  ] = await Promise.allSettled([
-    siTimeoutTracked("baseboard",    si.baseboard(),                  12_000), // was 3s
-    siTimeoutTracked("bios",         si.bios(),                       12_000), // was 3s
-    siTimeoutTracked("cpu",          si.cpu(),                        10_000), // was 5s
-    siTimeoutTracked("graphics",     si.graphics(),                    8_000), // was 3s
-    siTimeoutTracked("memLayout",    si.memLayout(),                  10_000), // was 4s
-    siTimeoutTracked("diskLayout",   si.diskLayout(),                 10_000), // was 4s
-    siTimeoutTracked("fsSize",       si.fsSize(),                      8_000), // was 4s
-    siTimeoutTracked("netIf",        si.networkInterfaces("*"),        8_000), // was 4s
-    siTimeoutTracked("processes",    si.processes(),                   6_000), // was 4s
-    siTimeoutTracked("osInfo",       si.osInfo(),                      8_000), // was 3s
-    siTimeoutTracked("platformPS",   collectWindowsPlatformStates(),  10_000), // was 3s (also uses PS_TIMEOUT_MS)
-    siTimeoutTracked("monitorEDID",  collectMonitorEdidNames(),        8_000), // was 3s
-    siTimeoutTracked("audio",        si.audio(),                       8_000),
+  // Serialized batches — prevents 12+ simultaneous PowerShell/WMI spawns that
+  // compete for the WMI service lock and starve the Windows audio driver.
+  // 400ms gaps between batches let the WMI service release its internal locks.
+  // Order: most-important data first, known AMD/Radeon hangers last.
+
+  // Batch 1: baseboard + BIOS — the only things phase=full uniquely adds over phase=A.
+  // Collect first so these always land even if later batches timeout.
+  const [bbRes, biosRes] = await Promise.allSettled([
+    siTimeoutTracked("baseboard", si.baseboard(), 12_000),
+    siTimeoutTracked("bios",      si.bios(),      12_000),
   ]);
+  await new Promise(r => setTimeout(r, 400));
+
+  // Batch 2: memory layout + disk layout — registry reads, relatively fast, safe to pair.
+  const [memLayoutRes, diskLayoutRes] = await Promise.allSettled([
+    siTimeoutTracked("memLayout",  si.memLayout(),  10_000),
+    siTimeoutTracked("diskLayout", si.diskLayout(), 10_000),
+  ]);
+  await new Promise(r => setTimeout(r, 400));
+
+  // Batch 3: lightweight OS reads + audio (Win32_SoundDevice) — rarely hang.
+  const [fsSizeRes, netIfRes, osRes, audioRes] = await Promise.allSettled([
+    siTimeoutTracked("fsSize",  si.fsSize(),               8_000),
+    siTimeoutTracked("netIf",   si.networkInterfaces("*"),  8_000),
+    siTimeoutTracked("osInfo",  si.osInfo(),               8_000),
+    siTimeoutTracked("audio",   si.audio(),                8_000),
+  ]);
+  await new Promise(r => setTimeout(r, 400));
+
+  // Batch 4: processes (CPU-heavy) + platform states (most expensive PS script).
+  // Isolated so neither competes with WMI calls from other batches.
+  const [procsRes, platformStates] = await Promise.allSettled([
+    siTimeoutTracked("processes",  si.processes(),                  6_000),
+    siTimeoutTracked("platformPS", collectWindowsPlatformStates(), 10_000),
+  ]);
+  await new Promise(r => setTimeout(r, 400));
+
+  // Batch 5: graphics + monitor EDID — known AMD/Radeon hangers.
+  // By the time these run, all critical data is already collected.
+  const [graphicsRes, monitorEdidRes] = await Promise.allSettled([
+    siTimeoutTracked("graphics",    si.graphics(),             8_000),
+    siTimeoutTracked("monitorEDID", collectMonitorEdidNames(), 8_000),
+  ]);
+
+  // CPU: si.cpu() spawns PowerShell and frequently hangs on AMD cold-start.
+  // os.cpus() gives brand + core count instantly with no process spawn.
+  // The existing os.cpus() fallback below handles this transparently.
+  const cpuRes: PromiseSettledResult<null> = { status: "fulfilled", value: null };
   const edidNames: Array<{ name: string; manufacturer: string }> =
     monitorEdidRes.status === "fulfilled" ? monitorEdidRes.value : [];
 
