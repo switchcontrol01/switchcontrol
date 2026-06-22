@@ -18,6 +18,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence, useMotion } from "@/lib/motion";
+import { AppLayout } from "@/components/layout/AppLayout";
 import {
   ShieldCheck,
   RefreshCw,
@@ -257,6 +258,7 @@ export default function DriverIntelligence() {
   // All hooks above have already been called (React rules satisfied).
   if (locked) {
     return (
+      <AppLayout>
       <motion.div
         className="flex items-center justify-center min-h-[calc(100vh-64px)] p-8"
         initial={{ opacity: 0, y: 10 }}
@@ -302,13 +304,18 @@ export default function DriverIntelligence() {
           </button>
         </div>
       </motion.div>
+      </AppLayout>
     );
   }
 
   return (
-    <div
+    <AppLayout>
+    <motion.div
       ref={pageRef}
       className="relative p-5 md:p-7 pb-12"
+      initial={{ opacity: 0, y: 20, filter: "blur(10px)" }}
+      animate={{ opacity: 1, y: 0, filter: "blur(0px)", transition: { duration: 1.5, ease: [0.22, 1, 0.36, 1] } }}
+      exit={{ opacity: 0, y: -14, filter: "blur(10px)", transition: { duration: 1.5, ease: [0.4, 0, 0.2, 1] } }}
     >
       {/* Ambient orbs — clipped to avoid bleeding into the sidebar */}
       <div
@@ -613,7 +620,8 @@ export default function DriverIntelligence() {
           description="Scan your full system, compare drivers and firmware against our cloud database, and get safe, guided update recommendations — available with SwitchControl Premium."
         />
       )}
-    </div>
+    </motion.div>
+    </AppLayout>
   );
 }
 
