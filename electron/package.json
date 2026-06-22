@@ -148,6 +148,7 @@
       "createStartMenuShortcut": true,
       "runAfterFinish": true,
       "shortcutName": "SwitchControl",
+      "uninstallDisplayName": "SwitchControl",
       "warningsAsErrors": true
     }
   }
