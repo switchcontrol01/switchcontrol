@@ -253,6 +253,58 @@ export default function DriverIntelligence() {
   // CSS containing block once the animation has settled.
   const pageRef = useRef<HTMLDivElement>(null);
 
+  // ── Free users: render a lightweight gate — no scan, no animation, no trap ──
+  // All hooks above have already been called (React rules satisfied).
+  if (locked) {
+    return (
+      <motion.div
+        className="flex items-center justify-center min-h-[calc(100vh-64px)] p-8"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+      >
+        <div className="w-full max-w-sm space-y-4 text-center">
+          <GlassCard className="p-8 space-y-5">
+            <div className="flex justify-center">
+              <motion.div
+                className="p-3 rounded-xl border border-[#00D4FF]/25 bg-gradient-to-br from-[#00D4FF]/15 to-[#3b82f6]/08"
+                initial={{ rotate: -12, scale: 0.7, opacity: 0 }}
+                animate={{ rotate: 0, scale: 1, opacity: 1 }}
+                transition={{ duration: 0.45, ease: [0.34, 1.56, 0.64, 1] }}
+              >
+                <ShieldCheck className="w-7 h-7 text-[#33E0FF]" />
+              </motion.div>
+            </div>
+            <div className="space-y-1.5">
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-[#00D4FF]/60">
+                Premium Feature
+              </p>
+              <h2 className="text-lg font-bold text-[#E6EAF0]">Driver Intel</h2>
+              <p className="text-sm text-[#6B7380] leading-relaxed">
+                Scan your full system, compare drivers and firmware against our cloud database, and get safe guided update recommendations.
+              </p>
+            </div>
+            <button
+              onClick={() => openUpgradeModal("Driver Intelligence")}
+              className="w-full h-11 rounded-xl font-semibold text-sm text-[#04070d] transition-opacity hover:opacity-90"
+              style={{ background: "linear-gradient(135deg, #00D4FF 0%, #3b82f6 100%)" }}
+              data-testid="button-driver-intel-unlock"
+            >
+              Unlock Premium
+            </button>
+          </GlassCard>
+          <button
+            onClick={() => navigate("/dashboard")}
+            className="text-sm text-[#6B7380] hover:text-[#A0A8B3] transition-colors"
+            data-testid="button-driver-intel-go-back"
+          >
+            ← Go back
+          </button>
+        </div>
+      </motion.div>
+    );
+  }
+
   return (
     <motion.div
       ref={pageRef}

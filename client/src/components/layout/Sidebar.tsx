@@ -343,7 +343,7 @@ function NavItemRow({
 
 export function Sidebar() {
   const [location, setLocation] = useLocation();
-  const { user, logout, isSigningOut } = useAuth();
+  const { user, logout, isSigningOut, isPremium } = useAuth();
   const ent = useEntitlementUiState();
   const activeItemRef = useRef<HTMLDivElement>(null);
   const { activeTourHighlight, isTourActive } = useTourStore();
@@ -369,7 +369,10 @@ export function Sidebar() {
   }, []);
 
   const currentPath = location === "/" ? "/dashboard" : location;
-  const isDriverIntel = location === "/driver-intel";
+  const isTrial = ent.status === "trial_active";
+  // Only slide the sidebar away when the user actually has access (premium or trial).
+  // Free users see the gate page with the sidebar still present so they can navigate away.
+  const isDriverIntel = location === "/driver-intel" && (isPremium || isTrial);
   const userName = user?.name || user?.firstName || user?.email?.split("@")[0] || "User";
   const userInitials = userName.slice(0, 2).toUpperCase();
   const avatarUrl = user?.avatar;

@@ -11,6 +11,7 @@ import { Loader2, Timer } from "lucide-react";
 import { useNetworkStatus } from "@/hooks/use-network-status";
 import { useTourStore } from "@/lib/tour-store";
 import { useEntitlementUiState } from "@/hooks/useEntitlementUiState";
+import { useAuth } from "@/hooks/use-auth";
 
 
 function TrialCountdownBanner() {
@@ -136,7 +137,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   useNetworkStatus(); // boot network listeners + heartbeat once
 
-  const isDriverIntel = location === "/driver-intel";
+  const { isPremium } = useAuth();
+  const isTrial = ent.status === "trial_active";
+  // Only expand the content area when the user has access — free users keep the
+  // sidebar and normal layout so they can navigate to the upgrade flow.
+  const isDriverIntel = location === "/driver-intel" && (isPremium || isTrial);
   const SIDEBAR_SPRING = { type: "spring", stiffness: 340, damping: 38, mass: 1 } as const;
 
 
