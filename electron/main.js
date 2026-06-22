@@ -3497,6 +3497,101 @@ ipcMain.handle('extremeLabs:getStatus', async () => {
   };
 });
 
+// Live system-state check for all Extreme Labs tweaks.
+// Reads the actual registry / NIC / service state — NOT the ownership JSON.
+// Called on page mount so the UI correctly reflects applied tweaks even when
+// %appdata%\SwitchControl is deleted and localStorage is wiped.
+ipcMain.handle('extremeLabs:checkAllStatus', async () => {
+  const _token = psLimiter.tryAcquire({ file: 'main.js', fn: 'extremeLabs:checkAllStatus', reason: 'el-check-all-status' });
+  if (!_token) {
+    console.log('[extremeLabs:checkAllStatus] SKIPPED — PS limiter full');
+    return { ok: true, status: {}, skipped: true };
+  }
+  try {
+    const allIds = [
+      'global-timer-resolution', 'dynamic-tick', 'hpet-disable',
+      'win32-priority-separation', 'system-responsiveness', 'mmcss-no-lazy', 'power-throttling-extreme',
+      'disable-game-dvr', 'disable-xbox-capture', 'windowed-games-opt',
+      'network-throttling-index', 'tcp-no-delay', 'rss-enable',
+      'interrupt-moderation', 'eee-disable', 'flow-control',
+      'windows-search-disable', 'sysmain-disable', 'print-spooler-disable',
+      'xbox-services-disable', 'bluetooth-disable',
+      'edge-update-disable', 'adobe-updater-disable', 'teams-startup-disable', 'vendor-updaters-disable',
+    ];
+
+    // ── Step 1: batch-check all toggle/tweak-type entries in one PS call ────
+    const batchResults = await tweakExecutor.batchCheckAllTweaks();
+
+    // ── Step 2: slider tweaks (3 individual registry reads) ─────────────────
+    const sliderIds = allIds.filter(id => {
+      const m = _extremeLabsMapToRegistryTweak(id);
+      return m && m.type === 'slider';
+    });
+    const sliderStatus = {};
+    await Promise.all(sliderIds.map(async id => {
+      const mapped = _extremeLabsMapToRegistryTweak(id);
+      try {
+        const r = await sliderTweakExecutor.readSliderValue(mapped.tweakId);
+        // Applied = registry holds the recommended value (not absent/default, no error)
+        sliderStatus[id] = !r.missing && r.value === mapped.recommendedValue && r.error == null;
+      } catch {
+        sliderStatus[id] = false;
+      }
+    }));
+
+    // ── Step 3: NIC-type tweaks ──────────────────────────────────────────────
+    const nicIds = allIds.filter(id => {
+      const m = _extremeLabsMapToRegistryTweak(id);
+      return m && m.type === 'nic';
+    });
+    const nicStatus = {};
+    if (nicIds.length > 0) {
+      let physicalAdapter = null;
+      try {
+        const { adapters = [] } = await nicExecutor.getNetAdapters();
+        physicalAdapter = adapters.find(a => a.status === 'Up' && !/loopback|bluetooth|hyper|virtual|tunnel|vpn/i.test(a.name)) ?? null;
+      } catch { /* non-fatal */ }
+
+      await Promise.all(nicIds.map(async id => {
+        if (!physicalAdapter) { nicStatus[id] = false; return; }
+        const mapped = _extremeLabsMapToRegistryTweak(id);
+        try {
+          const r = await nicExecutor.readNicProperty(physicalAdapter.name, mapped.propertyKey);
+          nicStatus[id] = r.supported && r.registryValue === String(mapped.enabledValue);
+        } catch {
+          nicStatus[id] = false;
+        }
+      }));
+    }
+
+    // ── Step 4: assemble final status map ───────────────────────────────────
+    const status = {};
+    for (const id of allIds) {
+      const mapped = _extremeLabsMapToRegistryTweak(id);
+      if (!mapped) { status[id] = false; continue; }
+      if (mapped.type === 'tweak') {
+        const entry = batchResults[mapped.tweakId];
+        status[id] = !!(entry && (entry.isApplied || entry.applied));
+      } else if (mapped.type === 'slider') {
+        status[id] = !!sliderStatus[id];
+      } else if (mapped.type === 'nic') {
+        status[id] = !!nicStatus[id];
+      } else {
+        status[id] = false;
+      }
+    }
+
+    const appliedCount = Object.values(status).filter(Boolean).length;
+    console.log(`[extremeLabs:checkAllStatus] done applied=${appliedCount}/${allIds.length}`);
+    return { ok: true, status };
+  } catch (e) {
+    console.error('[extremeLabs:checkAllStatus] error:', e.message);
+    return { ok: false, status: {}, error: e.message };
+  } finally {
+    psLimiter.release(_token);
+  }
+});
+
 // NIC tuning IPC handlers
 ipcMain.handle('nic:getAdapters', async () => {
   return await nicExecutor.getNetAdapters();

@@ -768,6 +768,32 @@ export default function ExtremeLabs() {
     return () => window.removeEventListener('sc:el-reverted', handler);
   }, []);
 
+  // Live registry/system check on mount (Electron only).
+  // Reads each tweak's ACTUAL state from the registry so that deleting
+  // %appdata%\SwitchControl doesn't cause applied tweaks to show as "off".
+  // This overwrites the localStorage-hydrated state with the ground truth.
+  const liveCheckDoneRef = useRef(false);
+  useEffect(() => {
+    if (!isElectron || !electronApi?.extremeLabs?.checkAllStatus) return;
+    if (liveCheckDoneRef.current) return;
+    liveCheckDoneRef.current = true;
+
+    (async () => {
+      try {
+        const result = await electronApi.extremeLabs.checkAllStatus();
+        if (!result?.ok || !result.status) return;
+        const live = new Set<string>();
+        for (const [id, isApplied] of Object.entries(result.status as Record<string, boolean>)) {
+          if (isApplied) live.add(id);
+        }
+        // Always replace with live registry truth — even if localStorage had data
+        setAppliedTweaks(live);
+      } catch {
+        // non-fatal: localStorage state already shown as fallback
+      }
+    })();
+  }, [isElectron, electronApi]);
+
   useEffect(() => {
     if (typeof window === "undefined") return;
     const unlocked = localStorage.getItem("extreme-labs-unlocked") === "true";

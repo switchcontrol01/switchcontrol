@@ -486,6 +486,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     },
     restoreBaseline:    (ids) => ipcRenderer.invoke('extremeLabs:restoreBaseline', ids),
     getStatus:          () => ipcRenderer.invoke('extremeLabs:getStatus'),
+    checkAllStatus:     () => ipcRenderer.invoke('extremeLabs:checkAllStatus'),
   },
 
   focus: {
