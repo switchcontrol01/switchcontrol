@@ -69,7 +69,7 @@ require('./storage-helper');
 const configStore    = require('./config-store');
 const updaterService = require('./updater');
 const criticalLogger = require('./critical-logger');
-const { APPDATA_DIR, TWEAK_STATE_FILE, CONFIG_FILE, DEVICE_ID_FILE } = require('./user-data-paths');
+const { APPDATA_DIR, TWEAK_STATE_FILE, CONFIG_FILE, DEVICE_ID_FILE, SPECS_CACHE_FILE } = require('./user-data-paths');
 const processControl = require('./process-control');
 
 app.setName('SwitchControl');
@@ -144,7 +144,9 @@ let rendererReady = false;
 // Cache for system specs (5 minute TTL)
 let cachedSpecs = null;
 let cachedSpecsTime = 0;
-const SPECS_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+const SPECS_CACHE_TTL          = 5 * 60 * 1000;      // 5 min  — in-memory freshness
+const SPECS_DISK_SERVE_AGE_MS  = 4 * 60 * 60 * 1000; // 4 h    — serve disk cache instantly
+const SPECS_DISK_IGNORE_AGE_MS = 24 * 60 * 60 * 1000;// 24 h   — discard stale disk cache
 let lastCpuLoad = 0;
 
 // ─── Live telemetry cache ────────────────────────────────────────────────────
@@ -617,63 +619,85 @@ async function startTelemetryPolling() {
   // from the first renderer call rather than waiting for the user to trigger
   // a manual refresh. The loop itself does NOT call getGpuPerfCounterLoad().
   //
-  // FAST PATH: Win32_VideoController via WMI completes in <1s and does not
-  // go through DXGI, so it works on AMD systems where si.graphics() hangs.
+  // FAST PATH: Win32_VideoController via WMI — completes in <1s, no DXGI.
+  // Routed through psLimiter so it doesn't race with batchCheckAll / syncAll.
+  // After the name resolves we know the vendor, so we gate si.graphics() below.
   if (process.platform === 'win32') {
     const _wmiGpuPs = `try{$r=Get-WmiObject Win32_VideoController -ErrorAction Stop|Where-Object{$_.Name -notmatch 'Microsoft Basic|Remote'};if($r){($r|Select-Object -First 1).Name}else{''}}catch{''}`;
-    console.log('[GPU] WMI fast-path start — t=' + Date.now());
-    execFile('powershell', ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-Command', _wmiGpuPs],
-      { windowsHide: true, timeout: 5000 },
-      (err, stdout) => {
-        const name = stdout ? stdout.trim() : '';
-        if (!err && name) {
-          gpuExistsOnHardware = true;
-          wmiGpuModelName = name;
-          console.log('[GPU] WMI fast-path resolved:', name);
-          // FIX: Immediately patch cachedSpecs and push specs:enriched so the
-          // renderer GPU card updates within ~1s without waiting for si.graphics().
-          // This is the earliest and most reliable GPU data path on Windows.
-          if (cachedSpecs) {
-            const _rawModel = cachedSpecs.gpu?.model;
-            const _gpuStillDetecting = !_rawModel || _rawModel === 'Detecting\u2026' || _rawModel === 'Unavailable';
-            if (_gpuStillDetecting) {
-              const ml = name.toLowerCase();
-              const vendor = ml.includes('nvidia') ? 'NVIDIA'
-                           : (ml.includes('amd') || ml.includes('radeon')) ? 'AMD'
-                           : ml.includes('intel') ? 'Intel'
-                           : (cachedSpecs.gpu?.vendor || '');
-              cachedSpecs = { ...cachedSpecs, gpu: { ...cachedSpecs.gpu, model: name, vendor } };
-              console.log('[GPU] cachedSpecs patched from WMI fast-path — model:', name);
-              if (mainWindow && !mainWindow.isDestroyed()) {
-                mainWindow.webContents.send('specs:enriched', { gpu: cachedSpecs.gpu, cpu: cachedSpecs.cpu });
-                console.log('[GPU] specs:enriched IPC pushed from WMI fast-path');
+    const _fpToken = psLimiter.tryAcquire({ file: 'main.js', fn: 'startTelemetryPolling:wmiGpu', reason: 'startup-wmi-gpu' });
+    if (!_fpToken) {
+      console.log('[GPU] WMI fast-path skipped — psLimiter full at startup (enrichment will cover GPU)');
+    } else {
+      console.log('[GPU] WMI fast-path start — t=' + Date.now());
+      execFile('powershell', ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-Command', _wmiGpuPs],
+        { windowsHide: true, timeout: 5000 },
+        (err, stdout) => {
+          psLimiter.release(_fpToken);
+          const name = stdout ? stdout.trim() : '';
+          if (!err && name) {
+            gpuExistsOnHardware = true;
+            wmiGpuModelName = name;
+            console.log('[GPU] WMI fast-path resolved:', name);
+            if (cachedSpecs) {
+              const _rawModel = cachedSpecs.gpu?.model;
+              const _gpuStillDetecting = !_rawModel || _rawModel === 'Detecting\u2026' || _rawModel === 'Unavailable';
+              if (_gpuStillDetecting) {
+                const ml = name.toLowerCase();
+                const vendor = ml.includes('nvidia') ? 'NVIDIA'
+                             : (ml.includes('amd') || ml.includes('radeon')) ? 'AMD'
+                             : ml.includes('intel') ? 'Intel'
+                             : (cachedSpecs.gpu?.vendor || '');
+                cachedSpecs = { ...cachedSpecs, gpu: { ...cachedSpecs.gpu, model: name, vendor } };
+                console.log('[GPU] cachedSpecs patched from WMI fast-path — model:', name);
+                if (mainWindow && !mainWindow.isDestroyed()) {
+                  mainWindow.webContents.send('specs:enriched', { gpu: cachedSpecs.gpu, cpu: cachedSpecs.cpu });
+                  console.log('[GPU] specs:enriched IPC pushed from WMI fast-path');
+                }
               }
             }
+            // SECONDARY PATH: si.graphics() for VRAM — skip on AMD (DXGI hangs 4s).
+            // Vendor is now known from WMI; only run for NVIDIA / Intel.
+            const _isAmdGpu = name.toLowerCase().includes('amd') || name.toLowerCase().includes('radeon');
+            if (!_isAmdGpu) {
+              siWithTimeout(() => si.graphics(), 4_000, 'startup-graphics').then(gfx => {
+                const ctrl = gfx?.controllers?.find(c => c.model) ?? gfx?.controllers?.[0];
+                if (ctrl) {
+                  gpuExistsOnHardware = true;
+                  const memUsed  = ctrl.memoryUsed != null && ctrl.memoryUsed > 0 ? safeNum(ctrl.memoryUsed) : null;
+                  const memTotal = ctrl.vram       != null && ctrl.vram       > 0 ? safeNum(ctrl.vram)       : null;
+                  if (!gpuStaticCache) {
+                    gpuStaticCache = { memUsedMb: memUsed, memTotalMb: memTotal };
+                    gpuStaticTs = Date.now();
+                  }
+                  gpuPollCache.memUsedMb  = gpuPollCache.memUsedMb  ?? memUsed;
+                  gpuPollCache.memTotalMb = gpuPollCache.memTotalMb ?? memTotal;
+                  verboseLog('[GPU] si.graphics VRAM seeded (NVIDIA/Intel path):', memTotal, 'MB');
+                }
+              }).catch(() => {});
+            } else {
+              verboseLog('[GPU] si.graphics skipped for AMD — VRAM will come from WMI enrichment');
+            }
+          } else {
+            console.warn('[GPU] WMI fast-path returned empty — err:', err?.message || 'none');
+            // AMD/unknown: still try si.graphics() as last resort (will timeout on AMD but won't block)
+            siWithTimeout(() => si.graphics(), 4_000, 'startup-graphics-fallback').then(gfx => {
+              const ctrl = gfx?.controllers?.find(c => c.model) ?? gfx?.controllers?.[0];
+              if (ctrl) {
+                gpuExistsOnHardware = true;
+                const memUsed  = ctrl.memoryUsed != null && ctrl.memoryUsed > 0 ? safeNum(ctrl.memoryUsed) : null;
+                const memTotal = ctrl.vram       != null && ctrl.vram       > 0 ? safeNum(ctrl.vram)       : null;
+                if (!gpuStaticCache) {
+                  gpuStaticCache = { memUsedMb: memUsed, memTotalMb: memTotal };
+                  gpuStaticTs = Date.now();
+                }
+                gpuPollCache.memUsedMb  = gpuPollCache.memUsedMb  ?? memUsed;
+                gpuPollCache.memTotalMb = gpuPollCache.memTotalMb ?? memTotal;
+              }
+            }).catch(() => {});
           }
-        } else {
-          console.warn('[GPU] WMI fast-path returned empty — err:', err?.message || 'none');
-        }
-      });
-  }
-
-  // SECONDARY PATH: si.graphics() gives VRAM data — 4s hard cap.
-  // WMI fast-path already resolved GPU name; this is only needed for VRAM.
-  siWithTimeout(() => si.graphics(), 4_000, 'startup-graphics').then(gfx => {
-    const ctrl = gfx?.controllers?.find(c => c.model) ?? gfx?.controllers?.[0];
-    if (ctrl) {
-      gpuExistsOnHardware = true;
-      verboseLog('[telemetry:poll] GPU presence confirmed (si.graphics path):', ctrl.model || 'unknown');
-      // Seed both caches so live telemetry has VRAM from frame 1
-      const memUsed  = ctrl.memoryUsed != null && ctrl.memoryUsed > 0 ? safeNum(ctrl.memoryUsed) : null;
-      const memTotal = ctrl.vram       != null && ctrl.vram       > 0 ? safeNum(ctrl.vram)        : null;
-      if (!gpuStaticCache) {
-        gpuStaticCache = { memUsedMb: memUsed, memTotalMb: memTotal };
-        gpuStaticTs = Date.now();
-      }
-      gpuPollCache.memUsedMb  = gpuPollCache.memUsedMb  ?? memUsed;
-      gpuPollCache.memTotalMb = gpuPollCache.memTotalMb ?? memTotal;
+        });
     }
-  }).catch(() => {});
+  }
 
   // GPU load is available on-demand via telemetry:refreshGpuLoad (IPC) or when
   // the user opens the GPU section / AI advisor. Removed the startup PS spawn
@@ -2005,6 +2029,64 @@ function siWithTimeout(fn, ms = 5_000, label = 'si call') {
   ]);
 }
 
+// ── Specs disk cache ──────────────────────────────────────────────────────────
+// Saves enriched hardware specs to disk after the first successful enrichment.
+// On subsequent launches the cache is loaded instantly — zero WMI/si calls.
+// Cache is served as-is when < 4h old; refreshed in background when 4-24h old;
+// ignored and re-probed when > 24h old (e.g. hardware change after Windows Update).
+
+function _loadSpecsFromDisk() {
+  try {
+    if (!fs.existsSync(SPECS_CACHE_FILE)) return null;
+    const raw = JSON.parse(fs.readFileSync(SPECS_CACHE_FILE, 'utf8'));
+    if (!raw || typeof raw._savedAt !== 'number' || !raw.cpu || !raw.gpu) return null;
+    const age = Date.now() - raw._savedAt;
+    if (age > SPECS_DISK_IGNORE_AGE_MS) {
+      verboseLog('[Enrich] disk cache too old (' + Math.round(age / 3600000) + 'h) — ignored');
+      return null;
+    }
+    // Refresh RAM from OS — usage changes every boot, totalmem can change with hardware swaps
+    const total = os.totalmem();
+    const free  = os.freemem();
+    const specs = {
+      ...raw,
+      ram: {
+        totalGB: parseFloat((total / 1073741824).toFixed(1)),
+        usedGB:  parseFloat(Math.max(0, (total - free) / 1073741824).toFixed(1)),
+        freeGB:  parseFloat((free  / 1073741824).toFixed(1)),
+      },
+      _partial:        false,
+      _fromDiskCache:  true,
+      _diskCacheAgeMs: age,
+    };
+    console.log('[Enrich] disk cache hit — age ' + Math.round(age / 60000) + 'min | GPU: ' + (specs.gpu?.model || '?'));
+    return specs;
+  } catch (e) {
+    verboseLog('[Enrich] disk cache read error:', e.message);
+    return null;
+  }
+}
+
+function _saveSpecsToDisk(specs) {
+  try {
+    if (!specs || specs._partial) return;
+    if (!fs.existsSync(APPDATA_DIR)) fs.mkdirSync(APPDATA_DIR, { recursive: true });
+    const toSave = {
+      cpu:    specs.cpu,
+      gpu:    specs.gpu,
+      ram:    specs.ram,
+      system: specs.system,
+      disk:   specs.disk,
+      disks:  specs.disks,
+      _savedAt: Date.now(),
+    };
+    fs.writeFileSync(SPECS_CACHE_FILE, JSON.stringify(toSave), 'utf8');
+    verboseLog('[Enrich] specs saved to disk cache');
+  } catch (e) {
+    console.warn('[Enrich] disk cache write failed:', e.message);
+  }
+}
+
 // ── Instant spec builder — synchronous OS APIs only, <1ms ────────────────────
 // Returns CPU model/cores/speed, RAM totals, OS info without any WMI/si call.
 // GPU and disk come in later via _enrichSpecsInBackground().
@@ -2046,85 +2128,110 @@ function _buildInstantSpecs() {
   };
 }
 
-// ── Background enrichment — GPU, disk, full CPU via WMI ──────────────────────
-// Runs after the instant specs are returned.  Updates cachedSpecs in-place
-// so the next IPC call from Home.tsx gets complete data.
+// ── Background enrichment — GPU (WMI), then CPU+disk deferred ────────────────
+// Two-stage to avoid PS saturation at startup:
+//   Stage 1 (immediate): WMI GPU via psLimiter — resolves in <2s, no DXGI hang.
+//                        si.graphics() removed — it hangs 3-4s on AMD systems.
+//   Stage 2 (deferred 3s): si.cpu() + si.fsSize() — run after batchCheckAll/
+//                           syncAll PS calls have finished, then save to disk.
 let _enrichmentInFlight = false;
 
 async function _enrichSpecsInBackground() {
   if (_enrichmentInFlight) return;
   _enrichmentInFlight = true;
   const _t0 = Date.now();
-  console.log('[GPU] enrichment start');
+  console.log('[Enrich] background enrichment start');
   try {
-    // WMI direct path races si.graphics() — resolves in 1-3s on AMD where DXGI hangs.
-    // Single Get-CimInstance call returns Name and AdapterRAM without going through DXGI.
-    const _wmiEnrichGpuPs = process.platform === 'win32'
+    // ── Stage 1: GPU via WMI only (fast, psLimiter-gated, no DXGI) ───────────
+    const _wmiGpuPs = process.platform === 'win32'
       ? `try{$g=Get-CimInstance Win32_VideoController -EA Stop|Where-Object{$_.Name -notmatch 'Microsoft Basic|Remote'}|Select-Object -First 1;if($g){Write-Output "$($g.Name)|$($g.AdapterRAM)"}else{''}}catch{''}`
       : '';
 
-    console.log('[GPU] si.graphics begin (3s timeout — WMI covers AMD DXGI hang)');
-    const [graphicsResult, fsResult, cpuResult, wmiGpuResult] = await Promise.allSettled([
-      siWithTimeout(() => si.graphics(), 3_000, 'enrich.graphics'),  // WMI fast-path already resolved name; VRAM only
-      siWithTimeout(() => si.fsSize(),   5_000, 'enrich.fsSize'),
-      siWithTimeout(() => si.cpu(),      5_000, 'enrich.cpu'),        // os.cpus() is the fallback
-      process.platform === 'win32'
-        ? new Promise(resolve => {
-            execFile('powershell', ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-Command', _wmiEnrichGpuPs],
-              { windowsHide: true, timeout: 5000 },
-              (err, stdout) => resolve(!err && stdout ? stdout.trim() : ''));
-          })
-        : Promise.resolve(''),
-    ]);
-    const _siGfxOk = graphicsResult.status === 'fulfilled';
-    console.log(`[GPU] si.graphics ${_siGfxOk ? 'resolved' : 'timed-out/rejected'} — +${Date.now() - _t0}ms`);
+    let gpuModel = null, gpuVendor = null, gpuVramGB = 0, gpuIsNvidia = false;
 
-    const graphics  = graphicsResult.status === 'fulfilled' ? graphicsResult.value : null;
-    const fsData    = fsResult.status        === 'fulfilled' ? fsResult.value       : [];
-    const cpuSi     = cpuResult.status       === 'fulfilled' ? cpuResult.value      : null;
-    const wmiGpuRaw = wmiGpuResult.status    === 'fulfilled' ? String(wmiGpuResult.value || '') : '';
+    if (process.platform === 'win32') {
+      const _psToken = psLimiter.tryAcquire({ file: 'main.js', fn: '_enrichSpecsInBackground:gpu', reason: 'enrich-gpu-wmi' });
+      const wmiGpuRaw = await new Promise(resolve => {
+        if (!_psToken) {
+          // Limiter full at this moment — use startup WMI fast-path name if available
+          console.log('[Enrich] psLimiter full — GPU WMI deferred to fast-path fallback');
+          return resolve(wmiGpuModelName ? `${wmiGpuModelName}|0` : '');
+        }
+        execFile('powershell',
+          ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-Command', _wmiGpuPs],
+          { windowsHide: true, timeout: 5000 },
+          (err, stdout) => {
+            psLimiter.release(_psToken);
+            resolve(!err && stdout ? stdout.trim() : (wmiGpuModelName ? `${wmiGpuModelName}|0` : ''));
+          });
+      });
 
-    // Resolve GPU: prefer si.graphics() (has VRAM), fall back to WMI direct path
-    const siGpu = graphics?.controllers?.[0];
-    let gpuModel  = siGpu?.model  || null;
-    let gpuVendor = siGpu?.vendor || null;
-    let gpuVramGB = siGpu?.vram ? safeNum(siGpu.vram / 1024) : 0;
-    let gpuIsNvidia = isNvidiaGpu(graphics || { controllers: [] });
-
-    if (!gpuModel && wmiGpuRaw) {
-      const [wmiName, wmiRamStr] = wmiGpuRaw.split('|');
-      if (wmiName?.trim()) {
-        gpuModel    = wmiName.trim();
-        const wmiRamBytes = parseInt(wmiRamStr?.trim() || '0', 10);
-        if (wmiRamBytes > 0) gpuVramGB = parseFloat((wmiRamBytes / 1073741824).toFixed(1));
-        const ml = gpuModel.toLowerCase();
-        gpuVendor   = ml.includes('nvidia') ? 'NVIDIA'
-                    : (ml.includes('amd') || ml.includes('radeon')) ? 'AMD'
-                    : ml.includes('intel') ? 'Intel' : null;
-        gpuIsNvidia = ml.includes('nvidia');
-        console.log('[GPU] enrichment WMI direct-path resolved:', gpuModel, '|', gpuVramGB.toFixed(1), 'GB');
+      if (wmiGpuRaw) {
+        const parts = wmiGpuRaw.split('|');
+        const rawName = parts[0]?.trim();
+        if (rawName) {
+          gpuModel = rawName;
+          const wmiRamBytes = parseInt(parts[1]?.trim() || '0', 10);
+          if (wmiRamBytes > 0) gpuVramGB = parseFloat((wmiRamBytes / 1073741824).toFixed(1));
+          const ml = gpuModel.toLowerCase();
+          gpuVendor   = ml.includes('nvidia') ? 'NVIDIA'
+                      : (ml.includes('amd') || ml.includes('radeon')) ? 'AMD'
+                      : ml.includes('intel') ? 'Intel' : null;
+          gpuIsNvidia = ml.includes('nvidia');
+          console.log(`[Enrich] Stage 1 GPU — model:${gpuModel} | VRAM:${gpuVramGB.toFixed(1)}GB | +${Date.now() - _t0}ms`);
+        }
       }
     }
 
-    // Final fallback: use the startup WMI fast-path name if both si.graphics()
-    // and the enrichment WMI failed (e.g. concurrent PowerShell saturation on cold boot).
+    // Final fallback: startup WMI fast-path name (set by startTelemetryPolling)
     if (!gpuModel && wmiGpuModelName) {
       gpuModel = wmiGpuModelName;
       const ml = gpuModel.toLowerCase();
-      gpuVendor = gpuVendor || (ml.includes('nvidia') ? 'NVIDIA'
-                              : (ml.includes('amd') || ml.includes('radeon')) ? 'AMD'
-                              : ml.includes('intel') ? 'Intel' : null);
-      gpuIsNvidia = gpuIsNvidia || ml.includes('nvidia');
-      console.log('[GPU] enrichment: using startup WMI fallback name:', gpuModel);
+      gpuVendor   = ml.includes('nvidia') ? 'NVIDIA'
+                  : (ml.includes('amd') || ml.includes('radeon')) ? 'AMD'
+                  : ml.includes('intel') ? 'Intel' : null;
+      gpuIsNvidia = ml.includes('nvidia');
+      console.log('[Enrich] Stage 1 GPU: startup fast-path fallback —', gpuModel);
     }
-    console.log(`[GPU] enrichment resolved — model=${gpuModel || 'null'} +${Date.now() - _t0}ms`);
 
-    const gpu = siGpu; // keep for backward compat ref below
+    if (cachedSpecs) {
+      cachedSpecs = {
+        ...cachedSpecs,
+        gpu: {
+          model:    gpuModel    || cachedSpecs.gpu?.model || 'Unavailable',
+          vendor:   gpuVendor   || cachedSpecs.gpu?.vendor || 'Unavailable',
+          vramGB:   gpuVramGB   || cachedSpecs.gpu?.vramGB || 0,
+          isNvidia: gpuIsNvidia,
+        },
+        _partial: false,
+      };
+      cachedSpecsTime = Date.now();
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('specs:enriched', { gpu: cachedSpecs.gpu, cpu: cachedSpecs.cpu });
+        console.log(`[Enrich] Stage 1 pushed to renderer — GPU:${cachedSpecs.gpu.model} +${Date.now() - _t0}ms`);
+      }
+    }
+
+    // ── Stage 2: CPU details + disk (deferred 3s) ─────────────────────────────
+    // si.cpu() gives physicalCores/exact-speed; si.fsSize() gives disk sizes.
+    // Neither is needed for the main Dashboard display — they serve Driver Intel
+    // and the disk widget.  Waiting 3s lets batchCheckAll/syncAll PS calls finish.
+    await new Promise(r => setTimeout(r, 3000));
+    if (!cachedSpecs) return; // window closed while waiting
+
+    const [cpuResult, fsResult] = await Promise.allSettled([
+      siWithTimeout(() => si.cpu(),    5_000, 'enrich.cpu'),
+      siWithTimeout(() => si.fsSize(), 8_000, 'enrich.fsSize'),
+    ]);
+
+    const cpuSi  = cpuResult.status === 'fulfilled' ? cpuResult.value : null;
+    const fsData = fsResult.status  === 'fulfilled' ? fsResult.value  : [];
+
     const disks = (fsData || []).map(d => {
       const pct = safeNum(d.use || 0);
       return {
         mount:       d.mount || 'Unknown',
-        name:        d.fs   || d.mount || 'Unknown',
+        name:        d.fs    || d.mount || 'Unknown',
         totalGB:     safeNum((d.size || 0) / 1073741824),
         usedGB:      safeNum((d.used || 0) / 1073741824),
         usePercent:  pct,
@@ -2136,24 +2243,17 @@ async function _enrichSpecsInBackground() {
       cachedSpecs = {
         ...cachedSpecs,
         cpu: cpuSi ? {
-          model:   cpuSi.brand || cachedSpecs.cpu.model,
+          model:   cpuSi.brand        || cachedSpecs.cpu.model,
           cores:   cpuSi.physicalCores || cachedSpecs.cpu.cores,
-          threads: cpuSi.cores || cachedSpecs.cpu.threads,
-          speed:   cpuSi.speed ? `${safeNum(cpuSi.speed)} GHz` : cachedSpecs.cpu.speed,
+          threads: cpuSi.cores        || cachedSpecs.cpu.threads,
+          speed:   cpuSi.speed        ? `${safeNum(cpuSi.speed)} GHz` : cachedSpecs.cpu.speed,
         } : cachedSpecs.cpu,
-        gpu: {
-          model:    gpuModel    || 'Unavailable',
-          vendor:   gpuVendor   || 'Unavailable',
-          vramGB:   gpuVramGB,
-          isNvidia: gpuIsNvidia,
-        },
         disk:  disks[0] || cachedSpecs.disk,
         disks,
         _partial: false,
       };
       cachedSpecsTime = Date.now();
-      console.log(`[GPU] cachedSpecs updated — model=${cachedSpecs.gpu.model} +${Date.now() - _t0}ms`);
-      console.log('[GPU] IPC sent — specs:enriched (gpu+cpu+disk)');
+      console.log(`[Enrich] Stage 2 done — CPU+disk ready +${Date.now() - _t0}ms`);
       if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.webContents.send('specs:enriched', {
           gpu:   cachedSpecs.gpu,
@@ -2162,31 +2262,50 @@ async function _enrichSpecsInBackground() {
           disks: cachedSpecs.disks,
         });
       }
+      // Persist to disk — next launch reads instantly, zero WMI/si calls
+      _saveSpecsToDisk(cachedSpecs);
     }
   } catch (e) {
-    console.warn('[GPU] enrichment error:', e.message || e);
+    console.warn('[Enrich] error:', e.message || e);
   } finally {
     _enrichmentInFlight = false;
   }
 }
 
-// ── loadSystemSpecs — instant first call, enriched on repeat ─────────────────
-// First call: returns in <1ms using synchronous OS APIs, fires background
-// enrichment for GPU/disk/full CPU.  Subsequent calls return the cached result.
-// Home.tsx calls this with an 8s timeout — by then enrichment is done.
+// ── loadSystemSpecs — disk cache first, then instant OS build, then enrich ───
+// Boot path (priority order):
+//   1. Disk cache < 4h  → serve instantly, no WMI/si calls at all.
+//   2. Disk cache 4-24h → serve instantly, fire background enrichment.
+//   3. No/stale cache   → _buildInstantSpecs() (sync <1ms), fire enrichment.
+// Home.tsx calls this with an 8s timeout — by then enrichment is always done.
 async function loadSystemSpecs() {
   const now = Date.now();
 
-  // Return fully-enriched cache if still fresh
+  // Return fully-enriched in-memory cache if still fresh (normal hot-path)
   if (cachedSpecs && !cachedSpecs._partial && (now - cachedSpecsTime) < SPECS_CACHE_TTL) {
     return cachedSpecs;
   }
 
-  // First call — build and cache an instant result, then enrich in background
+  // First call — try disk cache before running any WMI/si probes
   if (!cachedSpecs) {
+    const diskCache = _loadSpecsFromDisk();
+    if (diskCache) {
+      cachedSpecs     = diskCache;
+      cachedSpecsTime = now;
+      // Background refresh only when cache is getting old (>4h) so hardware
+      // changes (new GPU, Windows Update) are eventually reflected.
+      if (diskCache._diskCacheAgeMs > SPECS_DISK_SERVE_AGE_MS) {
+        console.log('[SwitchControl] Disk cache stale (>' + Math.round(SPECS_DISK_SERVE_AGE_MS / 3600000) + 'h) — background refresh');
+        void _enrichSpecsInBackground();
+      }
+      return cachedSpecs;
+    }
+
+    // No disk cache — build instant result (sync OS APIs only, <1ms), then
+    // fire background enrichment for GPU/disk/full-CPU.
     cachedSpecs = _buildInstantSpecs();
-    // If WMI fast-path already resolved before this first call (race window is
-    // ~0-2s), apply the GPU name immediately so callers never see "Detecting…".
+    // If the startup WMI fast-path already resolved (race window ~0-2s),
+    // apply GPU name immediately so callers never see "Detecting…".
     if (wmiGpuModelName) {
       const _ml = wmiGpuModelName.toLowerCase();
       const _vendor = _ml.includes('nvidia') ? 'NVIDIA'
@@ -2196,7 +2315,7 @@ async function loadSystemSpecs() {
         ...cachedSpecs,
         gpu: { ...cachedSpecs.gpu, model: wmiGpuModelName, vendor: _vendor, isNvidia: _ml.includes('nvidia') },
       };
-      console.log('[GPU] loadSystemSpecs first call: wmiGpuModelName already ready, applied synchronously —', wmiGpuModelName);
+      console.log('[SwitchControl] Instant specs: WMI fast-path GPU already ready —', wmiGpuModelName);
     }
     cachedSpecsTime = now;
     console.log('[SwitchControl] Instant specs (sync):', cachedSpecs.cpu.model, '| GPU:', cachedSpecs.gpu.model, '| enrichment starting…');
@@ -2204,12 +2323,12 @@ async function loadSystemSpecs() {
     return cachedSpecs;
   }
 
-  // Enrichment is in-flight — return the partial result now; caller will retry
+  // Enrichment in-flight — return partial result, caller will retry on specs:enriched
   if (cachedSpecs._partial) {
     return cachedSpecs;
   }
 
-  // Cache expired (>5min) — refresh in background, return stale for now
+  // In-memory TTL expired (>5min) — background refresh, return stale for now
   if ((now - cachedSpecsTime) >= SPECS_CACHE_TTL) {
     void _enrichSpecsInBackground();
   }

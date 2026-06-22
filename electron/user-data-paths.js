@@ -77,4 +77,11 @@ module.exports = {
    * previous write may have caused a crash and the auto-revert flow runs.
    */
   SLIDER_CRASH_SENTINEL_FILE: path.join(APPDATA_DIR, 'slider-crash-sentinel.json'),
+
+  /**
+   * Hardware spec cache — written after the first successful background enrichment.
+   * On next launch, cachedSpecs is hydrated from here instantly (zero WMI calls)
+   * and enrichment only runs in the background if the cache is > 4 hours old.
+   */
+  SPECS_CACHE_FILE: path.join(APPDATA_DIR, 'specs-cache.json'),
 };
