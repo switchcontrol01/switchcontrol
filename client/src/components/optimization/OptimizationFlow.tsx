@@ -19,6 +19,7 @@
  */
 
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Zap, TrendingUp, Activity, Waves, Gamepad2, Radio, Target, Wifi,
@@ -991,7 +992,7 @@ function ImmersiveShell({
     return () => window.removeEventListener("keydown", onKey);
   }, [canClose, onClose]);
 
-  return (
+  return createPortal(
     <motion.div
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       transition={{ duration: 0.3 }}
@@ -1031,7 +1032,8 @@ function ImmersiveShell({
           {children}
         </div>
       </div>
-    </motion.div>
+    </motion.div>,
+    document.body,
   );
 }
 
