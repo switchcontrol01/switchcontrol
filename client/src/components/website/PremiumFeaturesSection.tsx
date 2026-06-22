@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect, useCallback } from "react";
+import { useState } from "react";
 import { motion, Reveal } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
@@ -84,41 +84,6 @@ const FEATURES: FeatureMeta[] = [
     ],
   },
 ];
-
-/* ─────────────────────────────────────────────────────
-   PARTICLES
-───────────────────────────────────────────────────── */
-const PARTICLE_COUNT = 28;
-const PARTICLES = Array.from({ length: PARTICLE_COUNT }, (_, i) => ({
-  id: i,
-  x: Math.random() * 100,
-  y: Math.random() * 100,
-  size: 1 + Math.random() * 2,
-  dur: 6 + Math.random() * 14,
-  delay: Math.random() * 8,
-  opacity: 0.12 + Math.random() * 0.22,
-}));
-
-function ParticleField() {
-  return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden>
-      {PARTICLES.map((p) => (
-        <div
-          key={p.id}
-          className="absolute rounded-full bg-white"
-          style={{
-            left: `${p.x}%`,
-            top: `${p.y}%`,
-            width: p.size,
-            height: p.size,
-            opacity: p.opacity,
-            animation: `pfs-float ${p.dur}s ease-in-out ${p.delay}s infinite`,
-          }}
-        />
-      ))}
-    </div>
-  );
-}
 
 /* ─────────────────────────────────────────────────────
    SYSTEM CORE (SVG node map)
@@ -502,84 +467,18 @@ function FeaturePanel({
 }
 
 /* ─────────────────────────────────────────────────────
-   CURSOR GLOW TRACKER
-───────────────────────────────────────────────────── */
-function CursorGlow() {
-  const ref = useRef<HTMLDivElement>(null);
-  const glowRef = useRef<HTMLDivElement>(null);
-
-  const onMove = useCallback((e: MouseEvent) => {
-    const el = ref.current;
-    const glow = glowRef.current;
-    if (!el || !glow) return;
-    const rect = el.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    glow.style.left = `${x}px`;
-    glow.style.top = `${y}px`;
-    glow.style.opacity = "1";
-  }, []);
-
-  const onLeave = useCallback(() => {
-    if (glowRef.current) glowRef.current.style.opacity = "0";
-  }, []);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    el.addEventListener("mousemove", onMove as any);
-    el.addEventListener("mouseleave", onLeave);
-    return () => {
-      el.removeEventListener("mousemove", onMove as any);
-      el.removeEventListener("mouseleave", onLeave);
-    };
-  }, [onMove, onLeave]);
-
-  return { ref, glowRef };
-}
-
-/* ─────────────────────────────────────────────────────
    MAIN EXPORT
 ───────────────────────────────────────────────────── */
 export default function PremiumFeaturesSection() {
   const [activeId, setActiveId] = useState<string | null>(null);
-  const { ref, glowRef } = CursorGlow();
 
   return (
     <section
       id="features"
-      ref={ref}
       className="relative py-24 md:py-32 overflow-hidden"
-      style={{ background: "linear-gradient(180deg, #050816 0%, #07090D 40%, #050816 100%)" }}
     >
       {/* Animated keyframes injected once */}
       <PfsStyles />
-
-      {/* Particle field */}
-      <ParticleField />
-
-      {/* Ambient glows */}
-      <div className="absolute inset-0 pointer-events-none" aria-hidden>
-        <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] rounded-full bg-violet-600/[0.04] blur-[80px]" />
-        <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] rounded-full bg-cyan-500/[0.04] blur-[80px]" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-pink-500/[0.03] blur-[100px]" />
-      </div>
-
-      {/* Cursor glow */}
-      <div
-        ref={glowRef}
-        className="absolute pointer-events-none rounded-full"
-        style={{
-          width: 280,
-          height: 280,
-          marginLeft: -140,
-          marginTop: -140,
-          background: "radial-gradient(circle, rgba(139,92,246,0.08) 0%, transparent 70%)",
-          opacity: 0,
-          transition: "opacity 0.4s ease",
-        }}
-        aria-hidden
-      />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
         {/* Section header */}
@@ -640,11 +539,6 @@ export default function PremiumFeaturesSection() {
 function PfsStyles() {
   return (
     <style>{`
-      @keyframes pfs-float {
-        0%, 100% { transform: translateY(0px) translateX(0px); opacity: var(--op, 0.18); }
-        33%       { transform: translateY(-18px) translateX(6px); opacity: calc(var(--op, 0.18) * 1.5); }
-        66%       { transform: translateY(10px) translateX(-8px); opacity: calc(var(--op, 0.18) * 0.7); }
-      }
       @keyframes pfs-breathe {
         0%, 100% { stroke-width: 1; stroke-opacity: 0.12; r: 36; }
         50%       { stroke-width: 2; stroke-opacity: 0.28; r: 40; }
