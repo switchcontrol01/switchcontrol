@@ -28,6 +28,7 @@ import {
   Crown,
   ChevronRight,
   AlertTriangle,
+  ArrowLeft,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useEntitlementUiState } from "@/hooks/useEntitlementUiState";
@@ -287,7 +288,7 @@ export default function DriverIntelligence() {
             </div>
           </div>
 
-          {/* Scan status / rescan */}
+          {/* Scan status / rescan + back */}
           <div className="flex items-center gap-3">
             {dataReady && (
               <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
@@ -307,6 +308,15 @@ export default function DriverIntelligence() {
             >
               <RefreshCw className={`size-3.5 ${scanning ? "animate-spin" : ""}`} />
               {scanning ? "Scanning…" : "Rescan"}
+            </button>
+            <button
+              onClick={() => navigate("/")}
+              data-testid="button-back-dashboard"
+              title="Back to Dashboard"
+              className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium border border-white/12 bg-white/5 hover:bg-white/10 transition-colors"
+            >
+              <ArrowLeft className="size-3.5" />
+              Dashboard
             </button>
           </div>
         </div>
