@@ -930,9 +930,6 @@ export default function Landing() {
           </div>
         </section>
 
-        {/* ──── Release Story ──── */}
-        <ReleaseStory />
-
         <SectionDivider />
 
         {/* ──── Pricing Preview ──── */}

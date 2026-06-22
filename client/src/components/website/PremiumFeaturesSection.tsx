@@ -185,21 +185,25 @@ function SystemCore({ activeId }: { activeId: string | null }) {
           CONTROL
         </text>
 
-        {/* Feature nodes */}
-        {NODE_POSITIONS.map((n) => {
+        {/* Feature nodes + inline labels */}
+        {NODE_POSITIONS.map((n, idx) => {
           const active = activeId === n.id;
+          const labelAnchor: Record<string, { x: number; y: number; anchor: string }> = {
+            ai:      { x: 200, y: 46,  anchor: "middle" },
+            bios:    { x: 358, y: 204, anchor: "start"  },
+            driver:  { x: 200, y: 358, anchor: "middle" },
+            history: { x: 42,  y: 204, anchor: "end"    },
+          };
+          const la = labelAnchor[n.id];
           return (
             <g key={n.id}>
               {/* Glow halo */}
-              <circle cx={n.cx} cy={n.cy} r={active ? 20 : 14} fill={`url(#ng-${n.id})`}
-                style={{ transition: "r 0.3s ease" }}
-              />
+              <circle cx={n.cx} cy={n.cy} r={active ? 20 : 14} fill={`url(#ng-${n.id})`} />
               {/* Node circle */}
               <circle
                 cx={n.cx} cy={n.cy} r={active ? 10 : 7}
                 fill={n.color}
                 fillOpacity={active ? 0.9 : 0.6}
-                style={{ transition: "r 0.3s ease, fill-opacity 0.3s ease" }}
               />
               <circle
                 cx={n.cx} cy={n.cy} r={active ? 10 : 7}
@@ -207,32 +211,25 @@ function SystemCore({ activeId }: { activeId: string | null }) {
                 stroke={n.color}
                 strokeWidth={1}
                 strokeOpacity={0.5}
-                style={{ animation: `pfs-ring-pulse 2s ease-in-out ${NODE_POSITIONS.indexOf(n) * 0.5}s infinite` }}
+                style={{ animation: `pfs-ring-pulse 2s ease-in-out ${idx * 0.5}s infinite` }}
               />
+              {/* Label inside SVG — no DOM overlap possible */}
+              <text
+                x={la.x} y={la.y}
+                textAnchor={la.anchor}
+                fill={n.color}
+                fillOpacity={active ? 1 : 0.5}
+                fontSize={8}
+                fontWeight={700}
+                letterSpacing={2}
+                style={{ transition: "fill-opacity 0.3s" }}
+              >
+                {n.label.toUpperCase()}
+              </text>
             </g>
           );
         })}
       </svg>
-
-      {/* Labels positioned around the SVG */}
-      {NODE_POSITIONS.map((n) => {
-        const offsets: Record<string, { top?: string; bottom?: string; left?: string; right?: string; transform?: string }> = {
-          ai:      { top: "0%",  left: "50%", transform: "translateX(-50%)" },
-          bios:    { top: "50%", right: "-8px", transform: "translateY(-50%)" },
-          driver:  { bottom: "0%", left: "50%", transform: "translateX(-50%)" },
-          history: { top: "50%", left: "-8px",  transform: "translateY(-50%) translateX(-100%)" },
-        };
-        const pos = offsets[n.id];
-        return (
-          <div
-            key={n.id}
-            className="absolute text-[10px] font-semibold tracking-wider whitespace-nowrap pointer-events-none"
-            style={{ ...pos, color: n.color, opacity: activeId === n.id ? 1 : 0.5, transition: "opacity 0.3s" }}
-          >
-            {n.label.toUpperCase()}
-          </div>
-        );
-      })}
     </div>
   );
 }
