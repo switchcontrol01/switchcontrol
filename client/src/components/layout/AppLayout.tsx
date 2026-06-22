@@ -138,7 +138,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
 
   return (
-    <div className="h-screen overflow-y-auto overflow-x-hidden w-full text-foreground font-sans selection:bg-primary/20 selection:text-primary-foreground relative">
+    <div className="h-screen overflow-hidden flex flex-col w-full text-foreground font-sans selection:bg-primary/20 selection:text-primary-foreground relative">
       <AppBackground />
 
       {/* Top-left brand glow */}
@@ -158,13 +158,17 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
       <UpdateModal />
       <Sidebar />
-      <div className="pl-64 pt-2 flex items-start justify-end pr-4">
+      <div className="pl-64 pt-2 flex items-start justify-end pr-4 shrink-0">
         <div className="pt-1 shrink-0">
           <NetworkStatusChip />
         </div>
       </div>
+      {/* Scroll container lives on <main> so wheel events land directly on the
+          scrollable element. min-h-0 is required for flex children to shrink
+          below their content size and actually scroll. */}
       <main
-        className="pl-64 relative z-10"
+        id="app-scroll-root"
+        className="pl-64 relative z-10 flex-1 min-h-0 overflow-y-auto overflow-x-hidden"
       >
         <div className="container max-w-7xl mx-auto p-8">
           {children}

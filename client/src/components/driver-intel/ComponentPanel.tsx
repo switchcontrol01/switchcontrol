@@ -74,17 +74,20 @@ export function ComponentPanel({
   onAskAi,
   onRecordUpdate,
 }: ComponentPanelProps) {
-  // Lock body scroll and handle Escape when panel is open.
+  // Lock the app scroll container and handle Escape when panel is open.
+  // We target #app-scroll-root (the <main> element) rather than document.body
+  // because the real scroll container is that element, not the body.
   useEffect(() => {
     if (!component) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    const scroller = document.getElementById("app-scroll-root") ?? document.body;
+    const prev = scroller.style.overflowY;
+    scroller.style.overflowY = "hidden";
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
     document.addEventListener("keydown", handleKey);
     return () => {
-      document.body.style.overflow = prev;
+      scroller.style.overflowY = prev;
       document.removeEventListener("keydown", handleKey);
     };
   }, [component, onClose]);
