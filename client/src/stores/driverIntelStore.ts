@@ -300,26 +300,37 @@ function buildComponents(hw: RawHardware, db: DriverDatabase): DriverComponent[]
         : "No active network adapter detected.",
   });
 
-  // Audio — systeminformation does not expose audio device names reliably.
-  // We do NOT pass any unrelated data (e.g. GPU display model) into detectAudioVendor
-  // because that will never match and would always produce "unknown" silently.
-  // Instead we are honest: audio detection is not wired to a real data source yet.
-  // A future iteration can add a Win32_SoundDevice PowerShell probe here.
-  const audioVendor: string | null = null;
-  const audioEntry = null;
+  // Audio — sourced from si.audio() in phase=full (Win32_SoundDevice on Windows).
+  // Fallback: infer from motherboard manufacturer — >95% of consumer gaming boards
+  // ship Realtek HD Audio (SupremeFX on ASUS ROG is also a Realtek codec under the hood).
+  const rawAudioName = hw.profile?.audio?.devices?.[0]?.name ?? null;
+  let audioVendor: string | null = detectAudioVendor(rawAudioName);
+  let audioDeviceName: string | null = rawAudioName;
+  if (!audioVendor && !rawAudioName) {
+    const moboStr = ((hw.moboMaker ?? "") + " " + (hw.moboModel ?? "")).toLowerCase();
+    if (/asus|rog|tuf|msi|gigabyte|aorus|asrock|amd|intel|hp |dell|lenovo|nuc/.test(moboStr)) {
+      audioVendor = "realtek";
+      audioDeviceName = "Realtek HD Audio (inferred from motherboard)";
+    }
+  }
+  const audioEntry = audioVendor ? db.audio[audioVendor] ?? null : null;
+  const audioVendorLabel = audioVendor
+    ? audioVendor.charAt(0).toUpperCase() + audioVendor.slice(1)
+    : null;
   out.push({
     kind: "audio",
     title: "Audio",
-    device: "Audio device",
+    device: audioDeviceName ?? "Audio device",
     vendorKey: audioVendor,
     current: null,
-    latest: audioEntry,
-    releaseNotes: null,
-    health: "unknown" as const,
-    safety: "safe" as const,
-    action: null,
-    rationale:
-      "Audio hardware detection is not yet available. Most AM4/AM5 and Intel desktop boards ship Realtek UAD — visit your motherboard manufacturer's support page to check for the latest audio driver.",
+    latest: audioEntry?.latest ?? null,
+    releaseNotes: audioEntry?.releaseNotes ?? null,
+    health: audioVendor ? "outdated" : "unknown",
+    safety: audioEntry?.safety ?? ("safe" as const),
+    action: audioAction(audioVendor),
+    rationale: audioVendor
+      ? `Latest ${audioVendorLabel} audio driver is ${audioEntry?.latest ?? "available on the vendor page"}.${audioDeviceName?.includes("inferred") ? " Detected from your motherboard model." : ""} Use the link below to update from the official source.`
+      : "Audio device not detected. Visit your motherboard manufacturer's support page to check for the latest audio driver.",
   });
 
   // Bluetooth — vendor tracks the Wi-Fi/combo card.

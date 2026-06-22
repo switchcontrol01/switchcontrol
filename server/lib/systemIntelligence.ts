@@ -190,6 +190,9 @@ export interface SystemIntelligenceProfile {
     expoOrXmp: SipInference;
     biosFreshness: SipInference;
   };
+  audio: {
+    devices: Array<{ name: string | null; manufacturer: string | null }>;
+  };
   collectedAt: string;
 }
 
@@ -547,7 +550,7 @@ async function collect(): Promise<SystemIntelligenceProfile> {
     bbRes, biosRes, cpuRes, graphicsRes, memLayoutRes,
     diskLayoutRes, fsSizeRes, netIfRes,
     procsRes, osRes,
-    platformStates, monitorEdidRes,
+    platformStates, monitorEdidRes, audioRes,
   ] = await Promise.allSettled([
     siTimeoutTracked("baseboard",    si.baseboard(),                  12_000), // was 3s
     siTimeoutTracked("bios",         si.bios(),                       12_000), // was 3s
@@ -561,9 +564,18 @@ async function collect(): Promise<SystemIntelligenceProfile> {
     siTimeoutTracked("osInfo",       si.osInfo(),                      8_000), // was 3s
     siTimeoutTracked("platformPS",   collectWindowsPlatformStates(),  10_000), // was 3s (also uses PS_TIMEOUT_MS)
     siTimeoutTracked("monitorEDID",  collectMonitorEdidNames(),        8_000), // was 3s
+    siTimeoutTracked("audio",        si.audio(),                       8_000),
   ]);
   const edidNames: Array<{ name: string; manufacturer: string }> =
     monitorEdidRes.status === "fulfilled" ? monitorEdidRes.value : [];
+
+  const audioDevices: Array<{ name: string | null; manufacturer: string | null }> =
+    audioRes.status === "fulfilled"
+      ? (audioRes.value as any[]).map((a: any) => ({
+          name: safeStr(a.name),
+          manufacturer: safeStr(a.manufacturer ?? a.driver ?? null),
+        })).filter((a: { name: string | null }) => a.name !== null)
+      : [];
 
   // Chassis — WMI call; 4s on AMD systems
   let chassisType: string | null = null;
@@ -855,6 +867,7 @@ async function collect(): Promise<SystemIntelligenceProfile> {
     users: { currentUser: null, sessions: [] },
     containers: { dockerDetected, containers },
     inference: { expoOrXmp, biosFreshness },
+    audio: { devices: audioDevices },
     collectedAt: new Date().toISOString(),
   };
 
@@ -937,6 +950,24 @@ async function collectFast(): Promise<SystemIntelligenceProfile> {
 
   // GPU is needed for the dashboard specs strip. Skip if in cooldown.
   const graphics = await siTimeoutTracked("graphics", si.graphics(), 6_000).catch(() => null); // was 3s
+
+  // Network interfaces — fast OS call (no PowerShell/WMI on Windows), safe to add to phase=A.
+  // Without this, phase=A returns empty interfaces and Driver Intel shows "No adapter detected"
+  // on AMD systems where phase=full times out before the 6s client cap.
+  await new Promise(r => setTimeout(r, 300));
+  const netIfFast = await siTimeout("A.netIf", si.networkInterfaces("*"), 3_000).catch(() => null);
+  const fastIfaces: SipNetworkInterface[] = (Array.isArray(netIfFast) ? netIfFast : []).map((n: any) => ({
+    name: safeStr(n.iface),
+    type: safeStr(n.type),
+    operstate: safeStr(n.operstate),
+    internal: safeBool(n.internal),
+    speedMbps: safeNum(n.speed),
+    dhcp: safeBool(n.dhcp),
+    ip4: safeStr(n.ip4),
+    mac: safeStr(n.mac),
+    wifi: !!(n.type?.toLowerCase().includes("wireless") || n.iface?.toLowerCase().includes("wi-fi") || n.iface?.toLowerCase().includes("wlan")),
+  })).filter((n: SipNetworkInterface) => !n.internal && n.operstate === "up");
+
   const controllers: SipController[] = (graphics?.controllers ?? []).map((c: any) => ({
     name: safeStr(c.model), vendor: safeStr(c.vendor), subVendor: null, vendorId: null,
     deviceId: null, vramMb: safeNum(typeof c.vram === "number" ? c.vram : null),
@@ -959,7 +990,7 @@ async function collectFast(): Promise<SystemIntelligenceProfile> {
     gpu:        { controllers, displays: [] },
     memory:     { totalMb: memTotalMb, sticks: [], inferredDualChannel: null },
     storage:    { layout: [], filesystems: [] },
-    network:    { defaultInterface: null, defaultGateway: null, interfaces: [], activeConnections: [] },
+    network:    { defaultInterface: null, defaultGateway: null, interfaces: fastIfaces, activeConnections: [] },
     processes:  { topCpu: [], topMemory: [] },
     platform:   {
       os: null, build: null, hostname: null, uptimeSec: null,
@@ -971,6 +1002,7 @@ async function collectFast(): Promise<SystemIntelligenceProfile> {
     users:      { currentUser: null, sessions: [] },
     containers: { dockerDetected: null, containers: [] },
     inference:  { expoOrXmp: nullInf, biosFreshness: nullInf },
+    audio:      { devices: [] },
     collectedAt: new Date().toISOString(),
   };
 

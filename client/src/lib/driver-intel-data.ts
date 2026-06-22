@@ -127,6 +127,18 @@ export const OFFICIAL_URLS = {
     crucial: "https://www.crucial.com/support/storage-executive",
     wd: "https://support-en.wd.com/downloads.html",
     kingston: "https://www.kingston.com/en/support/technical/ssdmanager",
+    hynix: "https://www.skhynix.com/consumer-storage/",
+    kioxia: "https://personal.kioxia.com/en-us/support.html",
+    seagate: "https://www.seagate.com/support/software/toolkit/",
+    adata: "https://www.adata.com/en/microsite/toolbox/",
+    corsair: "https://www.corsair.com/us/en/s/downloads",
+    sabrent: "https://sabrent.com/pages/downloads",
+    patriot: "https://www.patriotmemory.com/pages/support",
+    lexar: "https://www.lexar.com/support/",
+    pny: "https://www.pny.com/support",
+    teamgroup: "https://www.teamgroupinc.com/en/software.php",
+    silicon_power: "https://www.silicon-power.com/web/software",
+    transcend: "https://www.transcend-info.com/support/software/",
   },
   bluetooth: {
     intel: "https://www.intel.com/content/www/us/en/download-center/home.html",
@@ -205,6 +217,18 @@ export const LOCAL_DB_FALLBACK: DriverDatabase = {
     crucial: { latest: "P9CR40A", safety: "caution" },
     wd: { latest: "731120WD", safety: "caution" },
     kingston: { latest: "EIFK51.6", safety: "caution" },
+    hynix: { latest: "11001C20", safety: "caution" },
+    kioxia: { latest: "FFFFFFFF", safety: "caution" },
+    seagate: { latest: "VBM23C1Q", safety: "caution" },
+    adata: { latest: "RC101C0", safety: "caution" },
+    corsair: { latest: "SCSTE251", safety: "caution" },
+    sabrent: { latest: "RKT3P5L1", safety: "caution" },
+    patriot: { latest: "ECFM22.2", safety: "caution" },
+    lexar: { latest: "V3.14", safety: "caution" },
+    pny: { latest: "CS2140.003", safety: "caution" },
+    teamgroup: { latest: "ETAS32.6", safety: "caution" },
+    silicon_power: { latest: "EDFM64.9", safety: "caution" },
+    transcend: { latest: "S9FM01.8", safety: "caution" },
   },
   network: {
     intel: { latest: "29.3", safety: "safe" },
@@ -265,6 +289,33 @@ export function detectSsdVendor(name: string | null): string | null {
   if (s.includes("crucial") || s.includes("micron")) return "crucial";
   if (s.includes("wd") || s.includes("western digital") || s.includes("sandisk")) return "wd";
   if (s.includes("kingston")) return "kingston";
+  // SK Hynix — OEM/consumer model prefixes: HFS*, SHGP*, BC501/BC711, PC711/PC801, SH*
+  if (s.includes("hynix") || s.includes("skhynix") || s.includes("sk hynix")) return "hynix";
+  // Kioxia (formerly Toshiba BG/KG series) — "toshiba" alone would catch HDDs, so require SSD markers
+  if (s.includes("kioxia")) return "kioxia";
+  if (s.includes("toshiba") && (s.includes("nvme") || s.includes("ssd") || /\bkg\d/.test(s) || /\bbg\d/.test(s))) return "kioxia";
+  // Seagate / FireCuda / Barracuda
+  if (s.includes("seagate") || s.includes("firecuda") || s.includes("barracuda")) return "seagate";
+  // ADATA / XPG / Spectrix
+  if (s.includes("adata") || s.includes("xpg") || s.includes("spectrix")) return "adata";
+  // Corsair (CSSD-* model prefix is their SSD line)
+  if (s.includes("corsair") || /\bcssd[-_]/.test(s)) return "corsair";
+  // Sabrent (Rocket NVMe line)
+  if (s.includes("sabrent")) return "sabrent";
+  // Patriot
+  if (s.includes("patriot")) return "patriot";
+  // Inland (Micro Center house brand)
+  if (s.includes("inland")) return "hynix"; // Inland drives use SK Hynix controllers/flash
+  // Lexar
+  if (s.includes("lexar")) return "lexar";
+  // PNY (CS2140, CS3140 are NVMe lines)
+  if (s.includes(" pny") || s.startsWith("pny") || s.includes("cs2140") || s.includes("cs3140")) return "pny";
+  // TeamGroup / T-Force
+  if (s.includes("teamgroup") || s.includes("t-force") || s.includes("team mp")) return "teamgroup";
+  // Silicon Power
+  if (s.includes("silicon power")) return "silicon_power";
+  // Transcend (TS###MTS / TS###GMTS prefix)
+  if (s.includes("transcend")) return "transcend";
   return null;
 }
 

@@ -156,6 +156,9 @@ export interface SystemIntelligenceProfile {
     expoOrXmp: SipInference;
     biosFreshness: SipInference;
   };
+  audio: {
+    devices: Array<{ name: string | null; manufacturer: string | null }>;
+  };
   collectedAt: string;
 }
 
