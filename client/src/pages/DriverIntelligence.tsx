@@ -308,16 +308,15 @@ export default function DriverIntelligence() {
   return (
     <motion.div
       ref={pageRef}
-      className="relative min-h-[calc(100vh-64px)] p-5 md:p-7 overflow-x-hidden"
-      initial={prefersReducedMotion ? false : { opacity: 0, y: 14, filter: "blur(10px)" }}
-      animate={prefersReducedMotion ? {} : { opacity: 1, y: 0, filter: "blur(0px)" }}
-      transition={{ duration: 0.52, ease: [0.22, 1, 0.36, 1] }}
+      className="relative p-5 md:p-7 pb-12"
+      initial={prefersReducedMotion ? false : { opacity: 0, filter: "blur(10px)" }}
+      animate={prefersReducedMotion ? {} : { opacity: 1, filter: "blur(0px)" }}
+      transition={{ duration: 0.5 }}
       onAnimationComplete={() => {
         if (pageRef.current) {
-          // Clear inline styles so filter/transform never create a containing
-          // block that would trap position:fixed children after animation ends.
+          // Clear filter so ComponentPanel (position:fixed) is never trapped
+          // inside a CSS containing block after the blur settles.
           pageRef.current.style.filter = "";
-          pageRef.current.style.transform = "";
         }
       }}
     >
@@ -463,9 +462,9 @@ export default function DriverIntelligence() {
               {scanning && (
                 <motion.div
                   className="absolute inset-x-0 bottom-0 p-5"
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 12 }}
+                  initial={{ opacity: 0, filter: "blur(6px)" }}
+                  animate={{ opacity: 1, filter: "blur(0px)" }}
+                  exit={{ opacity: 0, filter: "blur(6px)" }}
                 >
                   <div className="rounded-xl border border-[#00D4FF]/20 bg-black/40 backdrop-blur-sm p-3">
                     <div className="flex items-center justify-between text-xs mb-2">
@@ -538,9 +537,9 @@ export default function DriverIntelligence() {
                 return (
                   <motion.div
                     key={n.id}
-                    initial={prefersReducedMotion ? false : { opacity: 0, y: 12 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.35, delay: prefersReducedMotion ? 0 : i * 0.06, ease: [0.22, 1, 0.36, 1] }}
+                    initial={prefersReducedMotion ? false : { opacity: 0, filter: "blur(6px)" }}
+                    animate={{ opacity: 1, filter: "blur(0px)" }}
+                    transition={{ duration: 0.5 }}
                   >
                   <GlassCard className="p-4 h-full" data-testid={`news-${n.id}`}>
                     <div className="flex items-center gap-2 mb-1.5">
@@ -658,10 +657,10 @@ function ComponentCard({
       onClick={onClick}
       className="group text-left rounded-xl border bg-white/[0.02] p-4 cursor-pointer transition-all hover:bg-white/[0.07]"
       style={{ borderColor: `${meta.color}44` }}
-      initial={reduced ? false : { opacity: 0, y: 14 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35, delay: reduced ? 0 : index * 0.04, ease: [0.22, 1, 0.36, 1] }}
-      whileHover={reduced ? undefined : { y: -2, boxShadow: `0 4px 20px ${meta.glow}` }}
+      initial={reduced ? false : { opacity: 0, filter: "blur(6px)" }}
+      animate={{ opacity: 1, filter: "blur(0px)" }}
+      transition={{ duration: 0.5 }}
+      whileHover={reduced ? undefined : { boxShadow: `0 4px 20px ${meta.glow}` }}
       whileTap={{ scale: 0.98 }}
       data-testid={`card-component-${c.kind}`}
     >
