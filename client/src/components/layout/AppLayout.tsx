@@ -176,7 +176,7 @@ export function AppLayout({
       <motion.div
         className="pt-2 flex items-start justify-end pr-4 shrink-0"
         animate={{ paddingLeft: isDriverIntel ? 0 : 256 }}
-        transition={SIDEBAR_SPRING}
+        transition={isDriverIntel ? SIDEBAR_SPRING : { duration: 0 }}
       >
         <div className="pt-1 shrink-0">
           <NetworkStatusChip />
@@ -189,7 +189,7 @@ export function AppLayout({
         id="app-scroll-root"
         className="relative z-10 flex-1 min-h-0 overflow-y-auto overflow-x-hidden"
         animate={{ paddingLeft: isDriverIntel ? 0 : 256 }}
-        transition={SIDEBAR_SPRING}
+        transition={isDriverIntel ? SIDEBAR_SPRING : { duration: 0 }}
       >
         <div className="container max-w-7xl mx-auto p-8">{children}</div>
       </motion.main>
