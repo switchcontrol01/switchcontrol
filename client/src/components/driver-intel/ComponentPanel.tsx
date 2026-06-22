@@ -93,19 +93,7 @@ export function ComponentPanel({
     <AnimatePresence>
       {component && (
         <>
-          {/* Backdrop — starts after the sidebar (left-64 = 256px) so the
-              sidebar navigation stays accessible even when the panel is open. */}
-          <motion.div
-            className="fixed inset-0 left-64 z-40 bg-black/50 backdrop-blur-sm"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-            data-testid="panel-backdrop"
-          />
-
-          {/* Panel — z-[55] sits above the sidebar (z-50) so it renders cleanly
-              on top of the content area when it slides in from the right. */}
+          {/* Panel */}
           <motion.aside
             className="fixed right-0 top-0 z-[55] h-full w-full max-w-md overflow-y-auto border-l border-white/10"
             style={{ background: "rgba(8,11,18,0.97)" }}
