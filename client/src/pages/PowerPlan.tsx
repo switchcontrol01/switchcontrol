@@ -626,7 +626,16 @@ export default function PowerPlan() {
     setPlanError(null);
     try {
       const api = (window as any).electronAPI?.powerPlans;
-      const result: BackendState = await api.getState();
+      // Wrap in an 8-second timeout so a hung powercfg call (e.g. when the PS
+      // limiter is saturated at startup) never leaves the page stuck in an
+      // invisible loading state — we surface an error + retry button instead.
+      const withTimeout = <T,>(p: Promise<T>, ms: number): Promise<T> => {
+        const timer = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("Power state read timed out — try again in a moment.")), ms),
+        );
+        return Promise.race([p, timer]);
+      };
+      const result: BackendState = await withTimeout(api.getState(), 8_000);
       if (result.success) {
         setBackendState(result);
       } else {
@@ -634,7 +643,7 @@ export default function PowerPlan() {
       }
       if (api?.getCustomMeta) {
         try {
-          const meta = await api.getCustomMeta();
+          const meta = await withTimeout(api.getCustomMeta(), 4_000);
           if (meta?.guid && meta?.name) {
             setCustomPlanMeta(meta);
             setCustomPlanName(meta.name);
@@ -651,8 +660,9 @@ export default function PowerPlan() {
   useEffect(() => {
     if (hasFetched.current) return;
     hasFetched.current = true;
+    console.info("[PowerPlan] mounted — isElectron=%s isPremium=%s", isElectron, isPremium);
     fetchPowerState();
-  }, [fetchPowerState]);
+  }, [fetchPowerState, isElectron, isPremium]);
 
   // Only treat a profile as "active" on exact_match — close_match / custom_modified /
   // unknown all mean a non-app or modified plan is active; no preset card should glow.
