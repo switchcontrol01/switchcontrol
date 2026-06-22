@@ -659,9 +659,16 @@ export default function PowerPlan() {
 
   useEffect(() => {
     if (hasFetched.current) return;
-    hasFetched.current = true;
     console.info("[PowerPlan] mounted — isElectron=%s isPremium=%s", isElectron, isPremium);
-    fetchPowerState();
+    // 350ms grace period: if the user navigates away before the timer fires
+    // (rapid sidebar spam), clearTimeout cancels cleanly and hasFetched stays
+    // false so the NEXT mount can retry — prevents powercfg.exe from being
+    // spawned on every rapid page visit.
+    const t = setTimeout(() => {
+      hasFetched.current = true;
+      fetchPowerState();
+    }, 350);
+    return () => clearTimeout(t);
   }, [fetchPowerState, isElectron, isPremium]);
 
   // Only treat a profile as "active" on exact_match — close_match / custom_modified /

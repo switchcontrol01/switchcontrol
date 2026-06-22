@@ -258,7 +258,7 @@ export default function DriverIntelligence() {
   // All hooks above have already been called (React rules satisfied).
   if (locked) {
     return (
-      <AppLayout>
+      <AppLayout noPageAnimation>
       <motion.div
         className="flex items-center justify-center min-h-[calc(100vh-64px)] p-8"
         initial={{ opacity: 0, y: 10 }}
@@ -309,7 +309,7 @@ export default function DriverIntelligence() {
   }
 
   return (
-    <AppLayout>
+    <AppLayout noPageAnimation>
     <motion.div
       ref={pageRef}
       className="relative p-5 md:p-7 pb-12"
