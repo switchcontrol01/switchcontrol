@@ -245,6 +245,9 @@ export function TweaksList() {
     });
   }, [search, activeChip, showRisky, activeLevel]);
 
+  const toggleTweaks = useMemo(() => filteredTweaks.filter(t => t.controlType !== "slider"), [filteredTweaks]);
+  const sliderTweaks = useMemo(() => filteredTweaks.filter(t => t.controlType === "slider"), [filteredTweaks]);
+
   return (
     <div className="space-y-6 h-full flex flex-col">
       {/* Top Bar */}
@@ -472,49 +475,87 @@ export function TweaksList() {
         )}
       </AnimatePresence>
 
-      {/* Tweaks Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 pb-12 items-start">
-        <AnimatePresence mode="popLayout">
-          {filteredTweaks.map((tweak, index) => (
-            <motion.div
-              key={tweak.id}
-              id={`tweak-card-${tweak.id}`}
-              className="self-start"
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, transition: { duration: 0.1 } }}
-              transition={{
-                duration: 0.25,
-                delay: Math.min(index, 8) * 0.03,
-                ease: [0.22, 1, 0.36, 1],
-              }}
-              style={{ willChange: "opacity, transform" }}
-            >
-              {tweak.controlType === "slider" ? (
-                <TweakSliderCard tweak={tweak} />
-              ) : (
-                <TweakCard
-                  tweak={tweak}
-                  isEnabled={getTweakEnabled(tweak.id)}
-                  onToggle={() => toggleTweak(tweak.id)}
-                  isVerifying={
-                    syncing &&
-                    isElectron &&
-                    isRealTweak(tweak.id) &&
-                    !getTweakEnabled(tweak.id) &&
-                    tweak.id !== highlightId
-                  }
-                  isHighlighted={tweak.id === highlightId}
-                  runtimeUnsupportedReason={runtimeUnsupportedReasons[tweak.id]}
-                />
-              )}
-            </motion.div>
-          ))}
-        </AnimatePresence>
+      {/* Tweaks Grid — toggles first, then a divider, then sliders below */}
+      <div className="space-y-4 pb-12">
+        {/* Toggle tweaks */}
+        {toggleTweaks.length > 0 && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+            <AnimatePresence mode="popLayout">
+              {toggleTweaks.map((tweak, index) => (
+                <motion.div
+                  key={tweak.id}
+                  id={`tweak-card-${tweak.id}`}
+                  className="self-start"
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, transition: { duration: 0.1 } }}
+                  transition={{
+                    duration: 0.25,
+                    delay: Math.min(index, 8) * 0.03,
+                    ease: [0.22, 1, 0.36, 1],
+                  }}
+                  style={{ willChange: "opacity, transform" }}
+                >
+                  <TweakCard
+                    tweak={tweak}
+                    isEnabled={getTweakEnabled(tweak.id)}
+                    onToggle={() => toggleTweak(tweak.id)}
+                    isVerifying={
+                      syncing &&
+                      isElectron &&
+                      isRealTweak(tweak.id) &&
+                      !getTweakEnabled(tweak.id) &&
+                      tweak.id !== highlightId
+                    }
+                    isHighlighted={tweak.id === highlightId}
+                    runtimeUnsupportedReason={runtimeUnsupportedReasons[tweak.id]}
+                  />
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </div>
+        )}
+
+        {/* Divider between toggles and sliders */}
+        {toggleTweaks.length > 0 && sliderTweaks.length > 0 && (
+          <div className="flex items-center gap-3 py-2">
+            <div className="flex-1 h-px bg-white/[0.06]" />
+            <span className="text-[10px] font-semibold tracking-wider text-[#6B7380] uppercase">
+              Slider Tweaks
+            </span>
+            <div className="flex-1 h-px bg-white/[0.06]" />
+          </div>
+        )}
+
+        {/* Slider tweaks */}
+        {sliderTweaks.length > 0 && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+            <AnimatePresence mode="popLayout">
+              {sliderTweaks.map((tweak, index) => (
+                <motion.div
+                  key={tweak.id}
+                  id={`tweak-card-${tweak.id}`}
+                  className="self-start"
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, transition: { duration: 0.1 } }}
+                  transition={{
+                    duration: 0.25,
+                    delay: Math.min(index, 8) * 0.03,
+                    ease: [0.22, 1, 0.36, 1],
+                  }}
+                  style={{ willChange: "opacity, transform" }}
+                >
+                  <TweakSliderCard tweak={tweak} />
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </div>
+        )}
 
         {filteredTweaks.length === 0 && (
           <motion.div
-            className="col-span-full text-center py-20 text-muted-foreground"
+            className="text-center py-20 text-muted-foreground"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.3 }}
