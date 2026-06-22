@@ -196,9 +196,8 @@ export const TWEAK_OPT_META: Record<string, TweakOptimizationMeta> = {
     measurabilityClass: "proven",
     baseConfidence: 80,
     intentWeights: { [STUTTER]: 9, [FRAMES]: 9, [FPS]: 6, [BALANCED]: 7, [COMPFPS]: 7, [AUTO]: 7 },
-    windowsBuildDecay: [
-      { buildMin: BUILD_WIN11_24H2, multiplier: 0.8, reason: "Win11 24H2 fixed many MPO issues; the fix is less universally needed." },
-    ],
+    // Win11 24H2 decay removed: black-screen/stutter MPO bugs persist on AMD and
+    // many NVIDIA setups regardless of build. The "fixed" claim was premature.
   },
 
   "desktop-comp": {
@@ -227,7 +226,7 @@ export const TWEAK_OPT_META: Record<string, TweakOptimizationMeta> = {
   "power-throttling": {
     measurabilityClass: "proven",
     baseConfidence: 75,
-    intentWeights: { [FPS]: 7, [FRAMES]: 7, [STUTTER]: 6, [STREAMING]: 8, [BALANCED]: 7, [AUTO]: 6 },
+    intentWeights: { [FPS]: 7, [FRAMES]: 7, [STUTTER]: 6, [STREAMING]: 8, [BALANCED]: 7, [AUTO]: 8 },
     skipIfLaptop: true,
   },
 
@@ -241,7 +240,7 @@ export const TWEAK_OPT_META: Record<string, TweakOptimizationMeta> = {
   "maintenance": {
     measurabilityClass: "proven",
     baseConfidence: 77,
-    intentWeights: { [STUTTER]: 7, [BALANCED]: 8, [STREAMING]: 7, [AUTO]: 7 },
+    intentWeights: { [STUTTER]: 7, [BALANCED]: 8, [STREAMING]: 7, [AUTO]: 8 },
   },
 
   "bg-apps": {
@@ -253,7 +252,7 @@ export const TWEAK_OPT_META: Record<string, TweakOptimizationMeta> = {
   "notifications": {
     measurabilityClass: "proven",
     baseConfidence: 76,
-    intentWeights: { [LATENCY]: 5, [BALANCED]: 8, [COMPFPS]: 7, [STREAMING]: 6, [AUTO]: 6 },
+    intentWeights: { [LATENCY]: 5, [BALANCED]: 8, [COMPFPS]: 7, [STREAMING]: 6, [AUTO]: 8 },
   },
 
   "energy-logging": {
@@ -426,7 +425,7 @@ export const TWEAK_OPT_META: Record<string, TweakOptimizationMeta> = {
   "xbox-bar": {
     measurabilityClass: "proven",
     baseConfidence: 78,
-    intentWeights: { [FPS]: 6, [LATENCY]: 5, [BALANCED]: 7, [COMPFPS]: 6, [AUTO]: 6 },
+    intentWeights: { [FPS]: 6, [LATENCY]: 5, [BALANCED]: 7, [COMPFPS]: 6, [AUTO]: 8 },
   },
 
   "xbox-services": {

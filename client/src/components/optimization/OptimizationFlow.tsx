@@ -36,7 +36,7 @@ import { TWEAKS_DATA } from "@/lib/mock-data";
 import { isTweakPremium } from "@/lib/premium-config";
 import { useStore } from "@/lib/store";
 import { useAuthStore } from "@/lib/auth-store";
-import { bulkApplyTweaks, bulkRevertTweaks, isElectronWithTweaks } from "@/hooks/use-tweak-executor";
+import { bulkApplyTweaks, bulkRevertTweaks, isElectronWithTweaks, isSliderTweak } from "@/hooks/use-tweak-executor";
 import { applyRecommended } from "@/lib/api";
 import { premiumColor, successColor } from "@/lib/themeTokens";
 import { NeuralScanField } from "@/components/optimization/NeuralScanField";
@@ -1121,6 +1121,10 @@ export function OptimizationFlow() {
       try {
         const eligibleTweaks = TWEAKS_DATA
           .filter(t => !(isTweakPremium(t.id) && !isPremiumUser))
+          // Slider tweaks require a specific value to apply — they cannot be
+          // auto-applied by the optimizer (which only calls bulkApplyTweaks).
+          // Exclude them so they never appear in the plan and never fail silently.
+          .filter(t => !isSliderTweak(t.id))
           .map(t => ({
             id: t.id,
             title: t.title,
