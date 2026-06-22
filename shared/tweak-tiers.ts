@@ -46,7 +46,8 @@ export const FREE_EXCEPTION_IDS: Set<string> = new Set([
   "usb-selective-suspend",
   // ── GPU and Graphics ──────────────────────────────────────────────────────
   "disable-mpo",
-  // ── Network ───────────────────────────────────────────────────────────────
+  "preemption",
+  // ── Network ────────────────────────────────────────────────────────────────
   // bluetooth: kept free-tier so users can toggle it without a paywall.
   // WARNING: do NOT move to PREMIUM_EXCEPTION_IDS — hooks.ts GUARDED_TWEAK_IDS
   // explicitly excludes it from bulk-apply regardless of tier, so it is never
@@ -105,7 +106,6 @@ export const PREMIUM_EXCEPTION_IDS: Set<string> = new Set([
   "mmcss-gaming",
   "desktop-comp",
   "hdcp",
-  "preemption",
   // ── Windows UX ────────────────────────────────────────────────────────────
   "menu-show-delay",
   "hung-app-timeout",
