@@ -79,9 +79,8 @@ export const TWEAK_OPT_META: Record<string, TweakOptimizationMeta> = {
     measurabilityClass: "proven",
     baseConfidence: 82,
     intentWeights: { [LATENCY]: 9, [FPS]: 6, [STUTTER]: 7, [FRAMES]: 8, [BALANCED]: 7, [COMPFPS]: 9, [NETWORK]: 5, [AUTO]: 7 },
-    windowsBuildDecay: [
-      { buildMin: BUILD_WIN11_24H2, multiplier: 0.85, reason: "Win11 24H2 tunes MMCSS automatically; gains are smaller." },
-    ],
+    // Win11 24H2 decay removed: MMCSS SystemResponsiveness still meaningfully
+    // improves game-thread priority on 24H2. The auto-tuning claim was overstated.
   },
 
   "net-throttle-index": {
@@ -220,7 +219,7 @@ export const TWEAK_OPT_META: Record<string, TweakOptimizationMeta> = {
   "hibernation": {
     measurabilityClass: "proven",
     baseConfidence: 78,
-    intentWeights: { [BALANCED]: 7, [AUTO]: 6, [BALANCED]: 6 },
+    intentWeights: { [BALANCED]: 7, [AUTO]: 8 },
   },
 
   "power-throttling": {
@@ -405,7 +404,7 @@ export const TWEAK_OPT_META: Record<string, TweakOptimizationMeta> = {
   "disable-delivery-opt": {
     measurabilityClass: "proven",
     baseConfidence: 70,
-    intentWeights: { [NETWORK]: 7, [BALANCED]: 6, [STREAMING]: 6, [AUTO]: 5 },
+    intentWeights: { [NETWORK]: 7, [BALANCED]: 6, [STREAMING]: 6, [AUTO]: 8 },
   },
 
   "disable-wer": {

@@ -1,0 +1,8 @@
+SwitchControl Diagnostic Export
+Exported: 2026-06-22T08:20:13.692Z
+App Version: 1.1.6
+OS: win32 10.0.26200 x64
+Platform: win32
+Packaged Build: true
+
+No critical events recorded this session.

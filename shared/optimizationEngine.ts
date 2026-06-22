@@ -109,7 +109,7 @@ function deterministicHash(input: string): string {
 
 // ── Internal scoring ──────────────────────────────────────────────────────────
 
-const RECOMMEND_THRESHOLD = 55;
+const RECOMMEND_THRESHOLD = 50;
 const AVOID_EMIT_THRESHOLD = 35;
 
 function riskPenalty(risk: string | undefined): number {
