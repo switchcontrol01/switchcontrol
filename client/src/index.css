@@ -1638,7 +1638,7 @@ textarea,
   display: flex;
   align-items: center;
   position: relative;
-  background: #14181D;
+  background: transparent;
 }
 
 .titlebar-drag-region {
