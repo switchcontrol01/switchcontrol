@@ -15,7 +15,7 @@
  *    calm so it doesn't compete with the user's game for GPU.
  */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence, useMotion } from "@/lib/motion";
 import {
@@ -248,8 +248,27 @@ export default function DriverIntelligence() {
     navigate("/ai-advisor");
   };
 
+  // Ref used to clear filter + transform after entrance animation so that
+  // position:fixed children (ComponentPanel) are never trapped in a
+  // CSS containing block once the animation has settled.
+  const pageRef = useRef<HTMLDivElement>(null);
+
   return (
-    <div className="relative min-h-[calc(100vh-64px)] p-5 md:p-7 overflow-x-hidden">
+    <motion.div
+      ref={pageRef}
+      className="relative min-h-[calc(100vh-64px)] p-5 md:p-7 overflow-x-hidden"
+      initial={prefersReducedMotion ? false : { opacity: 0, y: 14, filter: "blur(10px)" }}
+      animate={prefersReducedMotion ? {} : { opacity: 1, y: 0, filter: "blur(0px)" }}
+      transition={{ duration: 0.52, ease: [0.22, 1, 0.36, 1] }}
+      onAnimationComplete={() => {
+        if (pageRef.current) {
+          // Clear inline styles so filter/transform never create a containing
+          // block that would trap position:fixed children after animation ends.
+          pageRef.current.style.filter = "";
+          pageRef.current.style.transform = "";
+        }
+      }}
+    >
       {/* Ambient orbs — clipped to avoid bleeding into the sidebar */}
       <div
         aria-hidden
@@ -553,7 +572,7 @@ export default function DriverIntelligence() {
           description="Scan your full system, compare drivers and firmware against our cloud database, and get safe, guided update recommendations — available with SwitchControl Premium."
         />
       )}
-    </div>
+    </motion.div>
   );
 }
 

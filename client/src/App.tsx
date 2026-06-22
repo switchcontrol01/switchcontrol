@@ -174,31 +174,48 @@ const DarkFallback = () => (
 
 // ElectronAppRoutes — all pages are static imports so no Suspense needed.
 // A single ErrorBoundary wraps the Switch and auto-resets on location change.
+// Transition key: only distinguish driver-intel vs everything else.
+// This means navigating TO/FROM driver-intel triggers enter/exit animations;
+// navigating between other pages shares the same key → no transition.
+const DI_ENTER_TRANSITION = { duration: 0.2, ease: [0.4, 0, 0.2, 1] } as const;
+const DI_EXIT_TRANSITION  = { duration: 0.16, ease: [0.4, 0, 1, 1] } as const;
+
 function ElectronAppRoutes() {
   const [location] = useLocation();
+  const routeKey = location === "/driver-intel" ? "driver-intel" : "other";
   return (
     <ErrorBoundary route={location}>
-      <Switch>
-        <Route path="/" component={Home} />
-        <Route path="/dashboard" component={Home} />
-        <Route path="/tweaks" component={Tweaks} />
-        <Route path="/power-plan" component={PowerPlan} />
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.div
+          key={routeKey}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1, transition: DI_ENTER_TRANSITION }}
+          exit={{ opacity: 0, transition: DI_EXIT_TRANSITION }}
+          style={{ minHeight: "100%" }}
+        >
+          <Switch>
+            <Route path="/" component={Home} />
+            <Route path="/dashboard" component={Home} />
+            <Route path="/tweaks" component={Tweaks} />
+            <Route path="/power-plan" component={PowerPlan} />
 
-        <Route path="/nic-tuning" component={NicTuningPage} />
-        <Route path="/network" component={NetworkTweaks} />
-        <Route path="/cleaner" component={SystemCleaner} />
-        <Route path="/debloat" component={Debloater} />
-        <Route path="/startup" component={StartupApps} />
-        <Route path="/bios-advisor" component={BiosAdvisor} />
-        <Route path="/ai-advisor" component={AiAdvisor} />
-        <Route path="/extreme-labs" component={ExtremeLabs} />
-        <Route path="/security" component={Security} />
-        <Route path="/history" component={History} />
-        <Route path="/driver-intel" component={DriverIntelligence} />
-        <Route path="/process-manager" component={ProcessManager} />
-        <Route path="/settings" component={Settings} />
-        <Route component={Home} />
-      </Switch>
+            <Route path="/nic-tuning" component={NicTuningPage} />
+            <Route path="/network" component={NetworkTweaks} />
+            <Route path="/cleaner" component={SystemCleaner} />
+            <Route path="/debloat" component={Debloater} />
+            <Route path="/startup" component={StartupApps} />
+            <Route path="/bios-advisor" component={BiosAdvisor} />
+            <Route path="/ai-advisor" component={AiAdvisor} />
+            <Route path="/extreme-labs" component={ExtremeLabs} />
+            <Route path="/security" component={Security} />
+            <Route path="/history" component={History} />
+            <Route path="/driver-intel" component={DriverIntelligence} />
+            <Route path="/process-manager" component={ProcessManager} />
+            <Route path="/settings" component={Settings} />
+            <Route component={Home} />
+          </Switch>
+        </motion.div>
+      </AnimatePresence>
     </ErrorBoundary>
   );
 }

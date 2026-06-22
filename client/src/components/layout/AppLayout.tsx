@@ -136,6 +136,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   useNetworkStatus(); // boot network listeners + heartbeat once
 
+  const isDriverIntel = location === "/driver-intel";
+  const SIDEBAR_SPRING = { type: "spring", stiffness: 340, damping: 38, mass: 1 } as const;
+
 
   return (
     <div className="h-screen overflow-hidden flex flex-col w-full text-foreground font-sans selection:bg-primary/20 selection:text-primary-foreground relative">
@@ -158,22 +161,28 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
       <UpdateModal />
       <Sidebar />
-      <div className="pl-64 pt-2 flex items-start justify-end pr-4 shrink-0">
+      <motion.div
+        className="pt-2 flex items-start justify-end pr-4 shrink-0"
+        animate={{ paddingLeft: isDriverIntel ? 0 : 256 }}
+        transition={SIDEBAR_SPRING}
+      >
         <div className="pt-1 shrink-0">
           <NetworkStatusChip />
         </div>
-      </div>
+      </motion.div>
       {/* Scroll container lives on <main> so wheel events land directly on the
           scrollable element. min-h-0 is required for flex children to shrink
           below their content size and actually scroll. */}
-      <main
+      <motion.main
         id="app-scroll-root"
-        className="pl-64 relative z-10 flex-1 min-h-0 overflow-y-auto overflow-x-hidden"
+        className="relative z-10 flex-1 min-h-0 overflow-y-auto overflow-x-hidden"
+        animate={{ paddingLeft: isDriverIntel ? 0 : 256 }}
+        transition={SIDEBAR_SPRING}
       >
         <div className="container max-w-7xl mx-auto p-8">
           {children}
         </div>
-      </main>
+      </motion.main>
       <Toaster />
     </div>
   );

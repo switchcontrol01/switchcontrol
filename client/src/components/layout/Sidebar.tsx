@@ -77,7 +77,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Extreme Labs", icon: Zap, href: "/extreme-labs", isPremium: true, tourId: "extreme-labs" },
   { label: "Security", icon: Shield, href: "/security", tourId: "security" },
   { label: "History", icon: Activity, href: "/history" },
-  { label: "Driver Intelligence", icon: ScanSearch, href: "/driver-intel", isPremium: true, tourId: "driver-intel" },
+  { label: "Driver Intel", icon: ScanSearch, href: "/driver-intel", isPremium: true, tourId: "driver-intel" },
   { label: "Settings", icon: Settings, href: "/settings", tourId: "settings" },
 ];
 
@@ -369,6 +369,7 @@ export function Sidebar() {
   }, []);
 
   const currentPath = location === "/" ? "/dashboard" : location;
+  const isDriverIntel = location === "/driver-intel";
   const userName = user?.name || user?.firstName || user?.email?.split("@")[0] || "User";
   const userInitials = userName.slice(0, 2).toUpperCase();
   const avatarUrl = user?.avatar;
@@ -376,7 +377,15 @@ export function Sidebar() {
   const navigate = (href: string) => setLocation(href);
 
   return (
-    <aside className="sidebar-shell fixed left-0 top-0 h-full w-64 flex flex-col z-50">
+    <motion.aside
+      className="sidebar-shell fixed left-0 top-0 h-full w-64 flex flex-col z-50"
+      animate={{
+        x: isDriverIntel ? -264 : 0,
+        opacity: isDriverIntel ? 0 : 1,
+      }}
+      transition={{ type: "spring", stiffness: 340, damping: 38, mass: 1 }}
+      style={{ willChange: "transform, opacity" }}
+    >
       {/* ── Layer 1: Base surface (rendered by CSS class) ── */}
 
       {/* ── Layer 2: Ambient drifting glows ── */}
@@ -626,6 +635,6 @@ export function Sidebar() {
           </div>
         </motion.div>
       </div>
-    </aside>
+    </motion.aside>
   );
 }
