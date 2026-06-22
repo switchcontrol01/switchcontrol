@@ -16,6 +16,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence, useMotion } from "@/lib/motion";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -136,6 +137,15 @@ export default function DriverIntelligence() {
   const staleDays = useMemo(() => dbAgeDays(dbUpdatedAt), [dbUpdatedAt]);
   // Bumped to force the timeline to reload after a new entry is recorded.
   const [historyRefresh, setHistoryRefresh] = useState(0);
+  // Drives the exit blur animation before navigating away.
+  const [isExiting, setIsExiting] = useState(false);
+  const handleNavAway = useCallback(
+    (path: string) => {
+      setIsExiting(true);
+      setTimeout(() => navigate(path), 600);
+    },
+    [navigate],
+  );
 
   // Record a driver change as a restore point. Honest: we only log what the
   // user confirms they updated (current -> latest), never a faked version.
@@ -314,8 +324,18 @@ export default function DriverIntelligence() {
       ref={pageRef}
       className="relative p-5 md:p-7 pb-12"
       initial={{ opacity: 0, y: 20, filter: "blur(10px)" }}
-      animate={{ opacity: 1, y: 0, filter: "blur(0px)", transition: { duration: 3.75, ease: [0.22, 1, 0.36, 1] } }}
-      exit={{ opacity: 0, y: -14, filter: "blur(10px)", transition: { duration: 3.75, ease: [0.4, 0, 0.2, 1] } }}
+      animate={
+        isExiting
+          ? { opacity: 0, y: -14, filter: "blur(10px)", transition: { duration: 0.55, ease: [0.4, 0, 0.2, 1] } }
+          : { opacity: 1, y: 0, filter: "blur(0px)", transition: { duration: 3.75, ease: [0.22, 1, 0.36, 1] } }
+      }
+      onAnimationComplete={() => {
+        if (pageRef.current && !isExiting) {
+          pageRef.current.style.filter = "";
+          pageRef.current.style.transform = "";
+          pageRef.current.style.willChange = "auto";
+        }
+      }}
     >
       {/* Ambient orbs — clipped to avoid bleeding into the sidebar */}
       <div
@@ -377,7 +397,7 @@ export default function DriverIntelligence() {
               {scanning ? "Scanning…" : "Rescan"}
             </button>
             <button
-              onClick={() => navigate("/")}
+              onClick={() => handleNavAway("/")}
               data-testid="button-back-dashboard"
               title="Back to Dashboard"
               className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium border border-white/12 bg-white/5 hover:bg-white/10 transition-colors"
@@ -601,16 +621,20 @@ export default function DriverIntelligence() {
         )}
       </div>
 
-      {/* Sliding detail panel */}
-      <ComponentPanel
-        component={selectedComponent}
-        readOnly={readOnly}
-        onClose={() => setSelected(null)}
-        onAction={runAction}
-        detectedApps={detectedApps}
-        onAskAi={handleAskAi}
-        onRecordUpdate={recordUpdate}
-      />
+      {/* Sliding detail panel — portalled to body so the page's blur/transform
+          animation never traps it in a CSS containing block */}
+      {typeof document !== "undefined" && createPortal(
+        <ComponentPanel
+          component={selectedComponent}
+          readOnly={readOnly}
+          onClose={() => setSelected(null)}
+          onAction={runAction}
+          detectedApps={detectedApps}
+          onAskAi={handleAskAi}
+          onRecordUpdate={recordUpdate}
+        />,
+        document.body,
+      )}
 
       {/* Premium gate */}
       {locked && (

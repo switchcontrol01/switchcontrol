@@ -783,7 +783,12 @@ export default function Home() {
 
   return (
     <AppLayout>
-      <div className="space-y-8">
+      <motion.div
+        className="space-y-8"
+        initial={{ opacity: 0, filter: "blur(8px)" }}
+        animate={{ opacity: 1, filter: "blur(0px)" }}
+        transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
+      >
         {/* SystemAura — reactive ambient background */}
         <SystemAura telemetry={liveTel} className="fixed" />
 
@@ -1229,7 +1234,7 @@ export default function Home() {
         </Reveal>
 
         </motion.div>{/* end staged content reveal */}
-      </div>
+      </motion.div>
 
       <Suspense fallback={null}>
         <MemoryCleanerModal

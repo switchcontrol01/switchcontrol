@@ -301,7 +301,7 @@ function siTimeout<T>(label: string, p: Promise<T>, ms: number): Promise<T> {
     p,
     new Promise<never>((_, reject) =>
       setTimeout(() => {
-        console.warn(`[SysIntelligence] phase=timeout source=${label} limit=${ms}ms`);
+        console.log(`[SysIntelligence] phase=timeout source=${label} limit=${ms}ms`);
         reject(new Error(`${label} timed out after ${ms}ms`));
       }, ms),
     ),
@@ -340,9 +340,9 @@ function siTimeoutTracked<T>(label: string, p: Promise<T>, ms: number): Promise<
       _probeHealthDirty = true;
       if (cooledUntil) {
         const coolMin = Math.round(PROBE_COOLDOWN_MS / 60000);
-        console.warn(`[SysIntelligence] probe=${label} timeout #${newCount} — setting ${coolMin}min cooldown`);
+        console.log(`[SysIntelligence] probe=${label} timeout #${newCount} — setting ${coolMin}min cooldown`);
       } else {
-        console.warn(`[SysIntelligence] probe=${label} timeout #${newCount} — will retry next collection`);
+        console.log(`[SysIntelligence] probe=${label} timeout #${newCount} — will retry next collection`);
       }
     }
     throw err;
