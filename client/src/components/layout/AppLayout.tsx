@@ -191,19 +191,7 @@ export function AppLayout({
         animate={{ paddingLeft: isDriverIntel ? 0 : 256 }}
         transition={SIDEBAR_SPRING}
       >
-        {noPageAnimation ? (
-          <div className="container max-w-7xl mx-auto p-8">{children}</div>
-        ) : (
-          <motion.div
-            key={location}
-            className="container max-w-7xl mx-auto p-8"
-            initial={prefersReducedMotion ? false : { opacity: 0, filter: "blur(8px)" }}
-            animate={{ opacity: 1, filter: "blur(0px)" }}
-            transition={{ duration: prefersReducedMotion ? 0 : 1, ease: [0.22, 1, 0.36, 1] }}
-          >
-            {children}
-          </motion.div>
-        )}
+        <div className="container max-w-7xl mx-auto p-8">{children}</div>
       </motion.main>
       <Toaster />
     </div>
