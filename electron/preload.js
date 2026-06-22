@@ -199,6 +199,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getAllDisks:        () => ipcRenderer.invoke('system:getAllDisks'),
     getDisplayInfo:    () => ipcRenderer.invoke('system:getDisplayInfo'),
     getAudioDevice:    () => ipcRenderer.invoke('system:getAudioDevice'),
+    getMotherboard:    () => ipcRenderer.invoke('system:getMotherboard'),
     onSpecsEnriched: (cb) => {
       // If specs were already enriched before this subscriber registered, replay
       // the last payload immediately so late subscribers (e.g. Home mounting after

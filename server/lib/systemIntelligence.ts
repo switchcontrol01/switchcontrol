@@ -975,22 +975,13 @@ async function collectFast(): Promise<SystemIntelligenceProfile> {
   // GPU is needed for the dashboard specs strip. Skip if in cooldown.
   const graphics = await siTimeoutTracked("graphics", si.graphics(), 6_000).catch(() => null); // was 3s
 
-  // Network interfaces — fast OS call (no PowerShell/WMI on Windows), safe to add to phase=A.
-  // Without this, phase=A returns empty interfaces and Driver Intel shows "No adapter detected"
-  // on AMD systems where phase=full times out before the 6s client cap.
-  await new Promise(r => setTimeout(r, 300));
-  const netIfFast = await siTimeout("A.netIf", si.networkInterfaces("*"), 3_000).catch(() => null);
-  const fastIfaces: SipNetworkInterface[] = (Array.isArray(netIfFast) ? netIfFast : []).map((n: any) => ({
-    name: safeStr(n.iface),
-    type: safeStr(n.type),
-    operstate: safeStr(n.operstate),
-    internal: safeBool(n.internal),
-    speedMbps: safeNum(n.speed),
-    dhcp: safeBool(n.dhcp),
-    ip4: safeStr(n.ip4),
-    mac: safeStr(n.mac),
-    wifi: !!(n.type?.toLowerCase().includes("wireless") || n.iface?.toLowerCase().includes("wi-fi") || n.iface?.toLowerCase().includes("wlan")),
-  })).filter((n: SipNetworkInterface) => !n.internal && n.operstate === "up");
+  // Network interfaces: si.networkInterfaces("*") uses WMI on Windows and hangs
+  // indefinitely on some AMD/X670/X870 systems (confirmed by 3s + 8s timeouts in
+  // production logs). Removed from Phase A — the Driver Intel store has an IPC
+  // fallback (nic:getAdapters → Get-NetAdapter, no WMI) that populates adapter
+  // chip descriptions correctly. Leaving this call in Phase A only added 3+ seconds
+  // to Phase A on affected systems, pushing it past the 6s client cap.
+  const fastIfaces: SipNetworkInterface[] = [];
 
   const controllers: SipController[] = (graphics?.controllers ?? []).map((c: any) => ({
     name: safeStr(c.model), vendor: safeStr(c.vendor), subVendor: null, vendorId: null,

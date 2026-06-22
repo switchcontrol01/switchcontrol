@@ -2020,19 +2020,60 @@ ipcMain.handle('system:getInfo', () => ({
 }));
 
 // Fast audio device name probe — used as a fallback when si.audio() times out on
-// AMD systems. Runs a narrow Win32_SoundDevice query with a hard 3s kill timeout.
+// AMD systems. Uses Get-PnpDevice (PnP Manager, not WMI) which is fast even on
+// systems where Win32_SoundDevice WMI queries hang indefinitely.
 // Returns { name: string | null }.
 ipcMain.handle('system:getAudioDevice', () => {
   if (process.platform !== 'win32') return { name: null };
   return new Promise((resolve) => {
-    const cmd = '(Get-WmiObject Win32_SoundDevice | Where-Object { $_.StatusInfo -eq 3 } | Select-Object -First 1).Name';
+    // Try MEDIA class first (sound cards/codecs), then AudioEndpoint (rendered devices).
+    // Get-PnpDevice does NOT use WMI — it calls the PnP Manager directly.
+    const cmd = [
+      '$d = Get-PnpDevice -Class MEDIA -Status OK -ErrorAction SilentlyContinue | Select-Object -First 1;',
+      'if ($d) { $d.FriendlyName }',
+      'else {',
+      '  $d2 = Get-PnpDevice -Class AudioEndpoint -Status OK -ErrorAction SilentlyContinue | Select-Object -First 1;',
+      '  if ($d2) { $d2.FriendlyName }',
+      '}',
+    ].join(' ');
     execFile(
       'powershell',
       ['-NoProfile', '-NonInteractive', '-Command', cmd],
-      { timeout: 3_000, windowsHide: true },
+      { timeout: 4_000, windowsHide: true },
       (_err, stdout) => {
         const name = stdout?.trim() || null;
         resolve({ name });
+      }
+    );
+  });
+});
+
+// Motherboard info via registry — instant, no WMI/PowerShell process spawn.
+// HKLM:\HARDWARE\DESCRIPTION\System\BIOS is populated by the firmware on boot
+// and is always available without any driver query. Used as a fast fallback
+// when si.baseboard() WMI calls time out (common on AMD X670/X870 platforms).
+// Returns { manufacturer: string | null, model: string | null }.
+ipcMain.handle('system:getMotherboard', () => {
+  if (process.platform !== 'win32') return { manufacturer: null, model: null };
+  return new Promise((resolve) => {
+    const cmd = [
+      '$p = "HKLM:\\HARDWARE\\DESCRIPTION\\System\\BIOS";',
+      '$r = Get-ItemProperty $p -ErrorAction SilentlyContinue;',
+      'if ($r) {',
+      '  [PSCustomObject]@{ manufacturer = $r.BaseBoardManufacturer; model = $r.BaseBoardProduct } | ConvertTo-Json -Compress',
+      '} else { \'{"manufacturer":null,"model":null}\' }',
+    ].join(' ');
+    execFile(
+      'powershell',
+      ['-NoProfile', '-NonInteractive', '-Command', cmd],
+      { timeout: 2_000, windowsHide: true },
+      (_err, stdout) => {
+        try {
+          const parsed = JSON.parse(stdout?.trim() || '{}');
+          resolve({ manufacturer: parsed.manufacturer ?? null, model: parsed.model ?? null });
+        } catch {
+          resolve({ manufacturer: null, model: null });
+        }
       }
     );
   });

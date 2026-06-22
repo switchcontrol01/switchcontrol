@@ -156,6 +156,12 @@ async function acquireHardware(): Promise<RawHardware> {
   // Audio — from phase=full si.audio() (Win32_SoundDevice).
   let audioName: string | null = p?.audio?.devices?.[0]?.name ?? null;
 
+  // Motherboard — from profile baseboard (set only when si.baseboard() succeeds).
+  // On AMD/WMI-broken systems si.baseboard() times out → null. Extract as mutable
+  // so the IPC fallback below can update it before the return value is built.
+  let moboMaker: string | null = p?.baseboard.manufacturer ?? null;
+  let moboModel: string | null = p?.baseboard.model ?? null;
+
   // ── Electron IPC fallbacks ─────────────────────────────────────────────────
   // On AMD systems WMI calls frequently time out even with generous limits.
   // These fallbacks talk directly to Windows APIs through existing IPC channels,
@@ -203,11 +209,21 @@ async function acquireHardware(): Promise<RawHardware> {
     } catch { /* ignore */ }
   }
 
-  // Audio: system:getAudioDevice → Win32_SoundDevice (narrow 3s PowerShell probe)
+  // Audio: system:getAudioDevice → Get-PnpDevice MEDIA (PnP, not WMI — fast on AMD)
   if (eApi?.system?.getAudioDevice && !audioName) {
     try {
       const res = await eApi.system.getAudioDevice();
       if (res?.name) audioName = res.name;
+    } catch { /* ignore */ }
+  }
+
+  // Motherboard: system:getMotherboard → registry HKLM:\HARDWARE\DESCRIPTION\System\BIOS
+  // Instant read, no WMI. Needed so Realtek audio inference works when si.baseboard() times out.
+  if (eApi?.system?.getMotherboard && !moboMaker && !moboModel) {
+    try {
+      const res = await eApi.system.getMotherboard();
+      if (res?.manufacturer) moboMaker = res.manufacturer;
+      if (res?.model) moboModel = res.model;
     } catch { /* ignore */ }
   }
 
@@ -219,8 +235,8 @@ async function acquireHardware(): Promise<RawHardware> {
     profile: p ?? null,
     gpuName,
     cpuBrand: p?.cpu.brand ?? null,
-    moboMaker: p?.baseboard.manufacturer ?? null,
-    moboModel: p?.baseboard.model ?? null,
+    moboMaker,
+    moboModel,
     biosVendor: p?.bios.vendor ?? null,
     biosVersion: p?.bios.version ?? null,
     biosDate: p?.bios.releaseDate ?? null,
