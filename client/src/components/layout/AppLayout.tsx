@@ -137,6 +137,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   useNetworkStatus(); // boot network listeners + heartbeat once
 
+  const ent = useEntitlementUiState();
   const { isPremium } = useAuth();
   const isTrial = ent.status === "trial_active";
   // Only expand the content area when the user has access — free users keep the
