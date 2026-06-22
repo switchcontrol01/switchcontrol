@@ -12,7 +12,7 @@ import { csrfProtection, generateCsrfToken } from "./middleware/csrf";
 import { requireJwt, requireCloudPremium } from "./middleware/requireCloudAuth";
 import rateLimit from "express-rate-limit";
 import { killSwitchMiddleware } from "./lib/killSwitch";
-import { resolveEffectivePlan } from "./lib/planUtils";
+import { resolveEffectivePlan, isPlanActive, buildEntitlementFeatures } from "./lib/planUtils";
 import aiRouter from "./routes/ai";
 import biosRouter from "./routes/bios";
 import driverIntelRouter from "./routes/driverIntel";
@@ -211,6 +211,29 @@ export async function registerRoutes(
       dbReachable,
       timestamp: Date.now(),
     });
+  });
+
+  // Entitlements — structured per-feature breakdown derived from the user's plan.
+  // Server is the authoritative source; the client caches this for offline use.
+  // Deleting %AppData% and logging in will always restore premium via this endpoint.
+  app.get("/api/account/entitlements", requireJwt, async (req, res) => {
+    try {
+      const userId = req.cloudUser!.id;
+      const user = await storage.getUser(userId);
+      if (!user) return res.status(404).json({ error: "User not found" });
+      const plan = resolveEffectivePlan(user);
+      const features = buildEntitlementFeatures(plan);
+      return res.json({
+        premium:  isPlanActive(plan),
+        tier:     plan,
+        trial:    plan === "trial",
+        expires:  user.trialEndsAt ? user.trialEndsAt.toISOString() : null,
+        features,
+      });
+    } catch (e) {
+      console.error("[Entitlements] Failed to fetch:", (e as Error).message);
+      return res.status(500).json({ error: "Failed to fetch entitlements" });
+    }
   });
 
   // JWT reissue — Electron clients call this against the cloud server when their

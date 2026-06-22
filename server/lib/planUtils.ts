@@ -1,5 +1,25 @@
 export type EffectivePlan = "free" | "trial" | "trial_expired" | "premium";
 
+export interface EntitlementFeatures {
+  driverIntel: boolean;
+  biosAdvisor: boolean;
+  aiAdvisor: boolean;
+  historyRollback: boolean;
+  extremeLabs: boolean;
+}
+
+/** Builds the per-feature flags for the entitlements response. */
+export function buildEntitlementFeatures(plan: EffectivePlan): EntitlementFeatures {
+  const active = isPlanActive(plan);
+  return {
+    driverIntel:    active,
+    biosAdvisor:    active,
+    aiAdvisor:      active,
+    historyRollback: active,
+    extremeLabs:    active,
+  };
+}
+
 interface PlanResolvable {
   isPremium: boolean;
   plan?: string | null;

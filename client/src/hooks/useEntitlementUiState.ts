@@ -65,10 +65,13 @@ export function useEntitlementUiState(): EntitlementUiState {
     return () => clearInterval(id);
   }, [trialCurrentlyActive]);
 
+  const cachedFeatures = grace.features;
+
   const result = resolveEntitlementUiState({
     user,
     entitlementsVerified,
     graceStatus,
+    features: cachedFeatures,
   });
 
   if (DEV) {

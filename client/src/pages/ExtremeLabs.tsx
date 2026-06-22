@@ -797,7 +797,15 @@ export default function ExtremeLabs() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     const unlocked = localStorage.getItem("extreme-labs-unlocked") === "true";
-    if (unlocked) setIsUnlocked(true);
+    if (unlocked) {
+      setIsUnlocked(true);
+    } else if (canApply) {
+      // Auto-restore after AppData/localStorage deletion: premium users have
+      // already accepted the warning modal on a previous session. The server
+      // confirms their entitlement, so skip the modal and restore access.
+      setIsUnlocked(true);
+      localStorage.setItem("extreme-labs-unlocked", "true");
+    }
 
     elLog("ExtremeLabs", {
       userTier: entitlementStatus,

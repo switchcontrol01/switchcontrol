@@ -1,6 +1,6 @@
 import { useEffect, useCallback, useRef } from 'react';
-import { useAuthStore, refreshEntitlements } from '@/lib/auth-store';
-import { usePremiumGraceStore } from '@/stores/premiumGraceStore';
+import { useAuthStore, refreshEntitlements, safeGetJwt, AUTH_DOMAIN } from '@/lib/auth-store';
+import { usePremiumGraceStore, type EntitlementFeatures } from '@/stores/premiumGraceStore';
 
 interface UseEntitlementRefreshOptions {
   refreshOnFocus?: boolean;
@@ -22,7 +22,7 @@ export function useEntitlementRefresh(options: UseEntitlementRefreshOptions = {}
   const doRefresh = useCallback(async () => {
     if (!user?.loggedIn) return;
     if (isRefreshing.current) return;
-    
+
     const now = Date.now();
     if (now - lastRefreshTime.current < MIN_REFRESH_INTERVAL) return;
 
@@ -30,10 +30,14 @@ export function useEntitlementRefresh(options: UseEntitlementRefreshOptions = {}
     lastRefreshTime.current = now;
 
     try {
-      const result = await refreshEntitlements();
+      // Fetch user plan and features in parallel — server is the source of truth.
+      const [result, features] = await Promise.all([
+        refreshEntitlements(),
+        _fetchEntitlementFeatures(),
+      ]);
       if (result?.user) {
-        setVerified(result.user.isPremium, result.user.plan ?? null, result.user.id ?? null);
-        console.log(`[Premium] Grace snapshot saved — isPremium=${result.user.isPremium}`);
+        setVerified(result.user.isPremium, result.user.plan ?? null, result.user.id ?? null, features);
+        console.log(`[Premium] Grace snapshot saved — isPremium=${result.user.isPremium} features=${!!features}`);
       }
     } catch (err) {
       console.error('[Entitlement] Refresh failed:', err);
@@ -83,4 +87,27 @@ export function useEntitlementRefresh(options: UseEntitlementRefreshOptions = {}
   }, [refreshOnFocus, user?.loggedIn, doRefresh]);
 
   return { refresh: doRefresh };
+}
+
+// ── Internal helper — fetch per-feature flags from the server ─────────────────
+// Returns null on any error (network failure, 401, etc.) so the caller can
+// fall back to previously cached features in the grace store.
+async function _fetchEntitlementFeatures(): Promise<EntitlementFeatures | null> {
+  try {
+    const jwt = safeGetJwt();
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (jwt) headers['Authorization'] = `Bearer ${jwt}`;
+    const resp = await fetch(`${AUTH_DOMAIN}/api/account/entitlements`, {
+      headers,
+      credentials: 'include',
+    });
+    if (!resp.ok) return null;
+    const data = await resp.json();
+    if (data && typeof data.features === 'object' && data.features !== null) {
+      return data.features as EntitlementFeatures;
+    }
+    return null;
+  } catch {
+    return null;
+  }
 }

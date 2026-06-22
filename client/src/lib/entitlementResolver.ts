@@ -22,9 +22,11 @@
  * change via Stripe webhooks or admin actions at any time.
  */
 
-import type { PremiumVerificationStatus } from "@/stores/premiumGraceStore";
+import type { PremiumVerificationStatus, EntitlementFeatures } from "@/stores/premiumGraceStore";
 
 // ── Public types ───────────────────────────────────────────────────────────────
+
+export type { EntitlementFeatures };
 
 export type EntitlementUiStatus =
   | "unverified"
@@ -57,6 +59,18 @@ export interface EntitlementUiState {
 
   /** Full days remaining (trial_active only; 0 otherwise). */
   trialDaysRemaining: number;
+
+  /**
+   * Per-feature flags cached from /api/account/entitlements.
+   * null until the first successful server response.
+   */
+  features: EntitlementFeatures | null;
+
+  /**
+   * True when entitlements are being served from the 30-day grace cache
+   * (server unreachable). Use to show an offline/cached indicator in UI.
+   */
+  isOfflineCached: boolean;
 }
 
 interface ResolveInput {
@@ -68,6 +82,7 @@ interface ResolveInput {
   } | null;
   entitlementsVerified: boolean;
   graceStatus?: PremiumVerificationStatus;
+  features?: EntitlementFeatures | null;
   /** Override for testability. Defaults to Date.now(). */
   now?: number;
 }
@@ -78,8 +93,11 @@ export function resolveEntitlementUiState({
   user,
   entitlementsVerified,
   graceStatus = "unknown",
+  features = null,
   now = Date.now(),
 }: ResolveInput): EntitlementUiState {
+  const isOfflineCached = graceStatus === "grace";
+
   const UNVERIFIED: EntitlementUiState = {
     status: "unverified",
     countdownLabel: "",
@@ -89,6 +107,8 @@ export function resolveEntitlementUiState({
     showTrialBadge: false,
     isTrialUrgent: false,
     trialDaysRemaining: 0,
+    features,
+    isOfflineCached,
   };
 
   if (!user || user.loggedIn === false) return UNVERIFIED;
@@ -111,6 +131,8 @@ export function resolveEntitlementUiState({
       showTrialBadge: true,
       isTrialUrgent: days < 2,
       trialDaysRemaining: days,
+      features,
+      isOfflineCached,
     };
   }
 
@@ -125,10 +147,12 @@ export function resolveEntitlementUiState({
       showTrialBadge: false,
       isTrialUrgent: false,
       trialDaysRemaining: 0,
+      features,
+      isOfflineCached,
     };
   }
 
-  // ── 3. Premium grace (offline or degraded, within 7-day grace window) ───────
+  // ── 3. Premium grace (offline or degraded, within 30-day grace window) ──────
   if (entitlementsVerified && user.isPremium && graceStatus === "grace") {
     return {
       status: "premium_grace",
@@ -139,6 +163,8 @@ export function resolveEntitlementUiState({
       showTrialBadge: false,
       isTrialUrgent: false,
       trialDaysRemaining: 0,
+      features,
+      isOfflineCached: true,
     };
   }
 
@@ -153,6 +179,8 @@ export function resolveEntitlementUiState({
       showTrialBadge: false,
       isTrialUrgent: false,
       trialDaysRemaining: 0,
+      features,
+      isOfflineCached,
     };
   }
 
@@ -166,6 +194,8 @@ export function resolveEntitlementUiState({
     showTrialBadge: false,
     isTrialUrgent: false,
     trialDaysRemaining: 0,
+    features,
+    isOfflineCached,
   };
 }
 

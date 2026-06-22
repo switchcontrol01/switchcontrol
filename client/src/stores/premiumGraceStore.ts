@@ -1,20 +1,31 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-export const GRACE_WINDOW_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+export const GRACE_WINDOW_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
 export type PremiumVerificationStatus =
   | 'active'         // verified online, within grace
-  | 'grace'          // offline/degraded but within 7-day window
+  | 'grace'          // offline/degraded but within 30-day window
   | 'expired'        // grace window elapsed — cannot trust
   | 'free'           // no premium, never was or explicitly false
   | 'unknown';       // no data yet
+
+/** Per-feature entitlement flags cached from the server for offline use. */
+export interface EntitlementFeatures {
+  driverIntel:     boolean;
+  biosAdvisor:     boolean;
+  aiAdvisor:       boolean;
+  historyRollback: boolean;
+  extremeLabs:     boolean;
+}
 
 export interface PremiumGraceSnapshot {
   isPremium: boolean;
   plan: string | null;
   userId: string | null;
   lastVerifiedAt: number | null; // epoch ms
+  /** Cached feature flags from /api/account/entitlements — null until first fetch. */
+  features: EntitlementFeatures | null;
 }
 
 interface PremiumGraceStore extends PremiumGraceSnapshot {
@@ -24,7 +35,12 @@ interface PremiumGraceStore extends PremiumGraceSnapshot {
    * live snapshot unconditionally rather than falling back to grace cache.
    */
   sessionVerified: boolean;
-  setVerified: (isPremium: boolean, plan: string | null, userId: string | null) => void;
+  setVerified: (
+    isPremium: boolean,
+    plan: string | null,
+    userId: string | null,
+    features?: EntitlementFeatures | null,
+  ) => void;
   clear: () => void;
   getStatus: (isBackendReachable: boolean) => PremiumVerificationStatus;
   graceRemainingMs: () => number;
@@ -37,9 +53,10 @@ export const usePremiumGraceStore = create<PremiumGraceStore>()(
       plan: null,
       userId: null,
       lastVerifiedAt: null,
+      features: null,
       sessionVerified: false,
 
-      setVerified(isPremium, plan, userId) {
+      setVerified(isPremium, plan, userId, features) {
         const prev = get();
         const now = Date.now();
         console.log(`[Premium] Grace snapshot updated — isPremium=${isPremium} plan=${plan} userId=${userId}`);
@@ -47,13 +64,15 @@ export const usePremiumGraceStore = create<PremiumGraceStore>()(
           isPremium,
           plan,
           userId,
+          // Prefer newly supplied features; fall back to prev cached features
+          features: features !== undefined ? features : prev.features,
           lastVerifiedAt: isPremium ? now : prev.lastVerifiedAt,
           sessionVerified: true,
         });
       },
 
       clear() {
-        set({ isPremium: false, plan: null, userId: null, lastVerifiedAt: null, sessionVerified: false });
+        set({ isPremium: false, plan: null, userId: null, lastVerifiedAt: null, features: null, sessionVerified: false });
       },
 
       getStatus(isBackendReachable) {
@@ -90,10 +109,11 @@ export const usePremiumGraceStore = create<PremiumGraceStore>()(
     {
       name: 'sc_premium_grace_v1',
       partialize: (s) => ({
-        isPremium: s.isPremium,
-        plan: s.plan,
-        userId: s.userId,
+        isPremium:      s.isPremium,
+        plan:           s.plan,
+        userId:         s.userId,
         lastVerifiedAt: s.lastVerifiedAt,
+        features:       s.features,
         // sessionVerified intentionally excluded — reset on every page load
       }),
     }
