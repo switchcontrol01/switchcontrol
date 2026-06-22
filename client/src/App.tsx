@@ -175,23 +175,30 @@ const DarkFallback = () => (
 // ElectronAppRoutes — all pages are static imports so no Suspense needed.
 // A single ErrorBoundary wraps the Switch and auto-resets on location change.
 // Transition key: only distinguish driver-intel vs everything else.
-// This means navigating TO/FROM driver-intel triggers enter/exit animations;
-// navigating between other pages shares the same key → no transition.
-const DI_ENTER_TRANSITION = { duration: 0.2, ease: [0.4, 0, 0.2, 1] } as const;
-const DI_EXIT_TRANSITION  = { duration: 0.16, ease: [0.4, 0, 1, 1] } as const;
+// Navigating TO/FROM driver-intel triggers a 0.5s blur+fade; navigating
+// between other pages shares the same key → no transition.
+const PAGE_TRANSITION = { duration: 0.5, ease: [0.22, 1, 0.36, 1] } as const;
 
 function ElectronAppRoutes() {
   const [location] = useLocation();
   const routeKey = location === "/driver-intel" ? "driver-intel" : "other";
+  const wrapperRef = React.useRef<HTMLDivElement>(null);
   return (
     <ErrorBoundary route={location}>
       <AnimatePresence mode="wait" initial={false}>
         <motion.div
+          ref={wrapperRef}
           key={routeKey}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1, transition: DI_ENTER_TRANSITION }}
-          exit={{ opacity: 0, transition: DI_EXIT_TRANSITION }}
+          initial={{ opacity: 0, filter: "blur(12px)" }}
+          animate={{ opacity: 1, filter: "blur(0px)" }}
+          exit={{ opacity: 0, filter: "blur(12px)" }}
+          transition={PAGE_TRANSITION}
           style={{ minHeight: "100%" }}
+          onAnimationComplete={() => {
+            // Clear filter after enter so position:fixed children (e.g. ComponentPanel)
+            // are not trapped inside the CSS containing block created by the blur filter.
+            if (wrapperRef.current) wrapperRef.current.style.filter = "";
+          }}
         >
           <Switch>
             <Route path="/" component={Home} />

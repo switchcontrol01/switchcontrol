@@ -251,7 +251,7 @@ export default function DriverIntelligence() {
   // Ref used to clear filter + transform after entrance animation so that
   // position:fixed children (ComponentPanel) are never trapped in a
   // CSS containing block once the animation has settled.
-  const pageRef = useRef<HTMLDivElement>(null);
+  const pageRef = useRef<HTMLDivElement>(null); // retained for future imperative use
 
   // ── Free users: render a lightweight gate — no scan, no animation, no trap ──
   // All hooks above have already been called (React rules satisfied).
@@ -306,19 +306,9 @@ export default function DriverIntelligence() {
   }
 
   return (
-    <motion.div
+    <div
       ref={pageRef}
       className="relative p-5 md:p-7 pb-12"
-      initial={prefersReducedMotion ? false : { opacity: 0, filter: "blur(10px)" }}
-      animate={prefersReducedMotion ? {} : { opacity: 1, filter: "blur(0px)" }}
-      transition={{ duration: 0.5 }}
-      onAnimationComplete={() => {
-        if (pageRef.current) {
-          // Clear filter so ComponentPanel (position:fixed) is never trapped
-          // inside a CSS containing block after the blur settles.
-          pageRef.current.style.filter = "";
-        }
-      }}
     >
       {/* Ambient orbs — clipped to avoid bleeding into the sidebar */}
       <div
@@ -623,7 +613,7 @@ export default function DriverIntelligence() {
           description="Scan your full system, compare drivers and firmware against our cloud database, and get safe, guided update recommendations — available with SwitchControl Premium."
         />
       )}
-    </motion.div>
+    </div>
   );
 }
 
