@@ -108,6 +108,7 @@ interface RawHardware {
   ssdName: string | null;
   netName: string | null;
   btName: string | null;
+  audioName: string | null;
   monitor: string | null;
 }
 
@@ -139,16 +140,76 @@ async function acquireHardware(): Promise<RawHardware> {
     gpuName = (discrete ?? p.gpu.controllers[0]).name ?? null;
   }
 
-  const ssdName = p?.storage.layout.find((d) => d.type === "NVMe" || /ssd/i.test(d.type ?? ""))?.name
+  // SSD — prefer NVMe, then any SSD entry from the profile.
+  let ssdName: string | null =
+    p?.storage.layout.find((d) => d.type === "NVMe" || /ssd/i.test(d.type ?? ""))?.name
     ?? p?.storage.layout[0]?.name
     ?? null;
 
+  // Network / Bluetooth — from profile interfaces.
   const net = p?.network.interfaces.find((n) => n.operstate === "up" && !n.internal)
     ?? p?.network.interfaces[0];
-
-  // Bluetooth vendor almost always tracks the Wi-Fi/combo card vendor.
   const wifi = p?.network.interfaces.find((n) => n.wifi);
-  const btName = wifi?.name ?? net?.name ?? null;
+  let netName: string | null = net?.name ?? null;
+  let btName: string | null = wifi?.name ?? net?.name ?? null;
+
+  // Audio — from phase=full si.audio() (Win32_SoundDevice).
+  let audioName: string | null = p?.audio?.devices?.[0]?.name ?? null;
+
+  // ── Electron IPC fallbacks ─────────────────────────────────────────────────
+  // On AMD systems WMI calls frequently time out even with generous limits.
+  // These fallbacks talk directly to Windows APIs through existing IPC channels,
+  // bypassing systeminformation entirely, and run only when the profile data is
+  // missing (empty array / null). Web mode: window.electronAPI is undefined,
+  // so the condition is false and the fallbacks are never attempted.
+  const eApi = typeof window !== "undefined" ? (window as any).electronAPI : null;
+
+  // Network + Bluetooth: nic:getAdapters → Get-NetAdapter (fast, no WMI)
+  if (eApi?.nic?.getAdapters && !netName) {
+    try {
+      const res = await eApi.nic.getAdapters();
+      if (res?.adapters?.length) {
+        // description is the chip name (e.g. "Intel(R) Wi-Fi 6 AX200 160MHz");
+        // name is the Windows interface label (e.g. "Wi-Fi 2"). Use description
+        // for vendor detection since it carries the actual chip model.
+        const active = res.adapters.find(
+          (a: any) => a.status === "Up" && !/loopback|virtual|vpn|tap|wfp|pseudo/i.test(a.description)
+        ) ?? res.adapters[0];
+        if (active) {
+          netName = active.description || active.name;
+          // Bluetooth combo card — look for a wireless/WiFi adapter description
+          // (Intel AX200, Killer, Realtek RTL8852 etc. carry Wi-Fi + BT on one chip)
+          const wirelessAdapter = res.adapters.find((a: any) =>
+            /wireless|wi-fi|wifi|802\.11|ax\d{3}|killer/i.test(a.description)
+          );
+          btName = wirelessAdapter?.description ?? netName;
+        }
+      }
+    } catch { /* ignore — web or IPC unavailable */ }
+  }
+
+  // Storage: storage:getVolumes → Get-Volume with disk model (fast PowerShell)
+  if (eApi?.storage?.getVolumes && !ssdName) {
+    try {
+      const res = await eApi.storage.getVolumes();
+      if (res?.ok && res.volumes?.length) {
+        // Prefer NVMe by busType, then SSD by mediaType, then first with a model.
+        const best =
+          res.volumes.find((v: any) => v.busType === "NVMe" || /nvme/i.test(v.model ?? ""))
+          ?? res.volumes.find((v: any) => /ssd|solid.state/i.test(v.mediaType ?? ""))
+          ?? res.volumes.find((v: any) => v.model);
+        if (best?.model) ssdName = best.model;
+      }
+    } catch { /* ignore */ }
+  }
+
+  // Audio: system:getAudioDevice → Win32_SoundDevice (narrow 3s PowerShell probe)
+  if (eApi?.system?.getAudioDevice && !audioName) {
+    try {
+      const res = await eApi.system.getAudioDevice();
+      if (res?.name) audioName = res.name;
+    } catch { /* ignore */ }
+  }
 
   const monitor = p?.gpu.displays.find((d) => d.main)?.model
     ?? p?.gpu.displays[0]?.model
@@ -164,8 +225,9 @@ async function acquireHardware(): Promise<RawHardware> {
     biosVersion: p?.bios.version ?? null,
     biosDate: p?.bios.releaseDate ?? null,
     ssdName,
-    netName: net?.name ?? null,
+    netName,
     btName,
+    audioName,
     monitor,
   };
 }
@@ -303,7 +365,7 @@ function buildComponents(hw: RawHardware, db: DriverDatabase): DriverComponent[]
   // Audio — sourced from si.audio() in phase=full (Win32_SoundDevice on Windows).
   // Fallback: infer from motherboard manufacturer — >95% of consumer gaming boards
   // ship Realtek HD Audio (SupremeFX on ASUS ROG is also a Realtek codec under the hood).
-  const rawAudioName = hw.profile?.audio?.devices?.[0]?.name ?? null;
+  const rawAudioName = hw.audioName;
   let audioVendor: string | null = detectAudioVendor(rawAudioName);
   let audioDeviceName: string | null = rawAudioName;
   if (!audioVendor && !rawAudioName) {

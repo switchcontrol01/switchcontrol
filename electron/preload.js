@@ -193,11 +193,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // ── Low-risk read-only system data ──────────────────────────────────────────
   system: {
-    getInfo:        () => ipcRenderer.invoke('system:getInfo'),
-    getSpecs:       () => ipcRenderer.invoke('system:getSpecs'),
-    getRamUsage:    () => ipcRenderer.invoke('system:getRamUsage'),
-    getAllDisks:     () => ipcRenderer.invoke('system:getAllDisks'),
-    getDisplayInfo: () => ipcRenderer.invoke('system:getDisplayInfo'),
+    getInfo:           () => ipcRenderer.invoke('system:getInfo'),
+    getSpecs:          () => ipcRenderer.invoke('system:getSpecs'),
+    getRamUsage:       () => ipcRenderer.invoke('system:getRamUsage'),
+    getAllDisks:        () => ipcRenderer.invoke('system:getAllDisks'),
+    getDisplayInfo:    () => ipcRenderer.invoke('system:getDisplayInfo'),
+    getAudioDevice:    () => ipcRenderer.invoke('system:getAudioDevice'),
     onSpecsEnriched: (cb) => {
       // If specs were already enriched before this subscriber registered, replay
       // the last payload immediately so late subscribers (e.g. Home mounting after

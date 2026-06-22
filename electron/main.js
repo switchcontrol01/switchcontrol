@@ -2019,6 +2019,25 @@ ipcMain.handle('system:getInfo', () => ({
   freeMemory: os.freemem()
 }));
 
+// Fast audio device name probe — used as a fallback when si.audio() times out on
+// AMD systems. Runs a narrow Win32_SoundDevice query with a hard 3s kill timeout.
+// Returns { name: string | null }.
+ipcMain.handle('system:getAudioDevice', () => {
+  if (process.platform !== 'win32') return { name: null };
+  return new Promise((resolve) => {
+    const cmd = '(Get-WmiObject Win32_SoundDevice | Where-Object { $_.StatusInfo -eq 3 } | Select-Object -First 1).Name';
+    execFile(
+      'powershell',
+      ['-NoProfile', '-NonInteractive', '-Command', cmd],
+      { timeout: 3_000, windowsHide: true },
+      (_err, stdout) => {
+        const name = stdout?.trim() || null;
+        resolve({ name });
+      }
+    );
+  });
+});
+
 /** Race a systeminformation call against a timeout so the renderer never hangs. */
 function siWithTimeout(fn, ms = 5_000, label = 'si call') {
   return Promise.race([
