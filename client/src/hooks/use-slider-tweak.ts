@@ -111,6 +111,8 @@ export function useSliderTweak(tweakId: string, config: SliderConfig) {
   });
 
   const resultTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const retryTimerRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const retryCountRef  = useRef(0);
 
   const clearResultTimer = useCallback(() => {
     if (resultTimerRef.current) {
@@ -166,6 +168,18 @@ export function useSliderTweak(tweakId: string, config: SliderConfig) {
         const isBusy = result.error === "busy";
         if (isBusy) {
           console.info(`[SliderHydration] ${tweakId}: read skipped — limiter busy (expected at startup)`);
+          // Schedule a single retry after 3.5s — by then syncAll has freed the limiter.
+          // This ensures the live registry value surfaces even after AppData deletion
+          // (when localStorage cache is empty and we'd otherwise show the default).
+          // Cap at 2 retries to avoid repeated PS spawns on persistent failures.
+          if (retryCountRef.current < 2) {
+            retryCountRef.current += 1;
+            if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+            retryTimerRef.current = setTimeout(() => {
+              retryTimerRef.current = null;
+              refresh();
+            }, 3500);
+          }
         } else {
           console.warn(`[SliderHydration] ${tweakId}: read failed — ${result.error}`);
         }
@@ -194,12 +208,20 @@ export function useSliderTweak(tweakId: string, config: SliderConfig) {
         // Successful read: value is the live registry value.
         // missing=true means the key didn't exist and the executor returned the built-in default.
         console.log(`[SliderHydration] ${tweakId}: value=${result.value} missing=${result.missing ?? false}`);
+        // Reset retry counter — live read succeeded.
+        retryCountRef.current = 0;
         // Persist the live registry value so future startups can use it as a fallback.
         setSliderValue(tweakId, result.value!);
+        // Live read wins: if the current pendingValue came from a stale localStorage cache
+        // (i.e. it matches the cached value exactly), replace it with the live registry value
+        // so the UI always reflects actual Windows state after AppData deletion.
+        const staleCache = useStore.getState().sliderValues[tweakId] ?? null;
+        const pendingIsStale = (s: SliderTweakState) =>
+          s.pendingValue !== null && s.pendingValue === staleCache && s.pendingValue !== result.value!;
         setState(s => ({
           ...s,
           currentValue:   result.value!,
-          pendingValue:   s.pendingValue ?? result.value!,
+          pendingValue:   pendingIsStale(s) ? result.value! : (s.pendingValue ?? result.value!),
           isUsingDefault: result.missing ?? false,
           status:         'idle',
           lastError:      null,
@@ -219,7 +241,13 @@ export function useSliderTweak(tweakId: string, config: SliderConfig) {
 
   useEffect(() => {
     refresh();
-    return () => clearResultTimer();
+    return () => {
+      clearResultTimer();
+      if (retryTimerRef.current) {
+        clearTimeout(retryTimerRef.current);
+        retryTimerRef.current = null;
+      }
+    };
   }, [refresh, clearResultTimer]);
 
   const setPending = useCallback((value: number) => {
