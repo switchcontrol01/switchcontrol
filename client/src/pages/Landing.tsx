@@ -39,7 +39,7 @@ import ScrollProgressRail from "@/components/website/ScrollProgressRail";
 import StickyComparison from "@/components/website/StickyComparison";
 import ReleaseStory from "@/components/website/ReleaseStory";
 import MagneticTilt from "@/components/website/MagneticTilt";
-import DepthFeatureCards from "@/components/website/DepthFeatureCards";
+import PremiumFeaturesSection from "@/components/website/PremiumFeaturesSection";
 import DrawUnderline from "@/components/website/DrawUnderline";
 
 function HeroTiltContainer({ children }: { children: React.ReactNode }) {
@@ -97,40 +97,6 @@ function HeroTiltContainer({ children }: { children: React.ReactNode }) {
   );
 }
 
-const FEATURES = [
-  {
-    icon: Zap,
-    title: "System Tweaks",
-    description: "38+ registry and system optimizations to reduce latency and improve responsiveness.",
-    accent: "from-amber-500/20 to-amber-600/5",
-    iconColor: "text-amber-400",
-    iconBg: "bg-amber-500/10 group-hover:bg-amber-500/20",
-  },
-  {
-    icon: Clock,
-    title: "Network Optimization",
-    description: "TCP/IP, UDP, and DNS tweaks to minimize ping and maximize throughput.",
-    accent: "from-sky-500/20 to-sky-600/5",
-    iconColor: "text-sky-400",
-    iconBg: "bg-sky-500/10 group-hover:bg-sky-500/20",
-  },
-  {
-    icon: Shield,
-    title: "Safe & Reversible",
-    description: "Every tweak can be reverted. We never touch critical system files.",
-    accent: "from-emerald-500/20 to-emerald-600/5",
-    iconColor: "text-emerald-400",
-    iconBg: "bg-emerald-500/10 group-hover:bg-emerald-500/20",
-  },
-  {
-    icon: Gauge,
-    title: "Performance Monitoring",
-    description: "Real-time system telemetry to track your optimization gains.",
-    accent: "from-[#00D4FF]/20 to-[#00D4FF]/5",
-    iconColor: "text-[#00D4FF]",
-    iconBg: "bg-cyan-500/10 group-hover:bg-cyan-500/20",
-  },
-];
 
 const STATS = [
   { label: "Network Consistency", value: "Improved", change: "ping" },
@@ -792,37 +758,7 @@ export default function Landing() {
         <SectionDivider glow />
 
         {/* ──── Features ──── */}
-        <section id="features" className="py-24 md:py-32 relative ws-section-glow">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <SectionHeader
-              title="Everything You Need"
-              titleAccent="to Dominate"
-              subtitle="Comprehensive optimization tools designed for competitive gamers who demand the best performance."
-            />
-
-            <DepthFeatureCards
-              features={FEATURES.map((f) => ({
-                ...f,
-                entrance: (["slideUp", "slideRight", "scaleReveal", "slideLeft"] as const)[
-                  FEATURES.indexOf(f) % 4
-                ],
-              }))}
-              className="mb-20"
-            />
-
-            <Reveal className="text-center mb-8">
-              <div className="inline-flex items-center gap-2 mb-4">
-                <Layers className="size-5 text-primary/60" />
-                <h3 className="text-2xl md:text-3xl font-extrabold text-[#E6EAF0]">Explore All Modules</h3>
-              </div>
-              <p className="text-[#6B7380] max-w-xl mx-auto text-sm">
-                Click on any module to see what it does.
-              </p>
-            </Reveal>
-
-            <ModuleShowcase />
-          </div>
-        </section>
+        <PremiumFeaturesSection />
 
         <SectionDivider />
 
