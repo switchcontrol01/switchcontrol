@@ -556,7 +556,7 @@ export default function DriverIntelligence() {
                     key={n.id}
                     initial={prefersReducedMotion ? false : { opacity: 0, filter: "blur(6px)" }}
                     animate={{ opacity: 1, filter: "blur(0px)" }}
-                    transition={{ duration: 0.5 }}
+                    transition={{ duration: 0.45, delay: prefersReducedMotion ? 0 : i * 0.07 }}
                   >
                   <GlassCard className="p-4 h-full" data-testid={`news-${n.id}`}>
                     <div className="flex items-center gap-2 mb-1.5">
@@ -600,6 +600,25 @@ export default function DriverIntelligence() {
                 if (readOnly) {
                   openUpgradeModal("Driver Intelligence");
                   return;
+                }
+                // Pre-fill the AI Advisor with a summary of all actionable
+                // components so the conversation starts with real context.
+                try {
+                  const outdated = components.filter(
+                    (c) => c.health === "outdated" || c.health === "critical",
+                  );
+                  if (outdated.length > 0) {
+                    const lines = outdated.map(
+                      (c) =>
+                        `- ${c.title} (${c.device}): installed ${c.current ?? "unknown"}, latest ${c.latest ?? "unknown"}`,
+                    );
+                    sessionStorage.setItem(
+                      "ai-advisor-prefill",
+                      `My Driver Intelligence scan found ${outdated.length} component${outdated.length > 1 ? "s" : ""} that may need updating:\n${lines.join("\n")}\n\nWhat should I prioritise and how do I safely update each one?`,
+                    );
+                  }
+                } catch {
+                  /* ignore storage failures */
                 }
                 navigate("/ai-advisor");
               }}

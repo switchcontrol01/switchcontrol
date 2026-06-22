@@ -1258,6 +1258,9 @@ function ElectronAppContent() {
       "[Auth] logout called — starting cinematic sign-out transition",
     );
 
+    // Capture userId now — the store is wiped by performFullLogout below.
+    const logoutUserId = user?.id ?? null;
+
     // 0. Immediately dismiss any active flow (tour, unlock animation, etc.)
     //    so the overlay doesn't persist into the sign-out transition.
     setActiveFlow("none");
@@ -1273,6 +1276,14 @@ function ElectronAppContent() {
 
     // 4. Ensure the network call is done before switching phase
     await logoutPromise;
+
+    // 4b. Clear the welcome key so the next login on this device re-shows
+    //     the welcome animation (fresh-start feel after sign-out).
+    //     We intentionally keep sc_tour_completed_* so the intro tour
+    //     doesn't replay — only the welcome animation resets.
+    if (logoutUserId) {
+      localStorage.removeItem(`sc_welcomed_${logoutUserId}`);
+    }
 
     // 5. Reset all per-session entitlement state so the next login cycle
     //    starts clean.  Without this, entitlementsAttempted stays true and
