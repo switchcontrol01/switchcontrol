@@ -51,7 +51,7 @@
       "debloat-helper.js",
       "cleaner-helper.js",
       "storage-helper.js",
-      "focus-helper.js",
+      "driver-apps-helper.js",
       "process-control.js",
       "powershell-limiter.js",
       "node_modules/electron-updater/**/*",
