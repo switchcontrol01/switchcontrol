@@ -195,6 +195,27 @@ const DATABASE = {
       knownIssues: ["Killer Control Center can increase idle CPU; optional install."],
       safety: "caution",
     } as DriverDbEntry,
+    qualcomm: {
+      latest: "3.3.0.814",
+      releaseDate: "2026-05-10",
+      releaseNotes:
+        "Qualcomm FastConnect driver. Improved Wi-Fi 7 throughput, reduced latency, connection stability fixes.",
+      safety: "safe",
+    } as DriverDbEntry,
+    mediatek: {
+      latest: "3.3.0.314",
+      releaseDate: "2026-04-20",
+      releaseNotes:
+        "MediaTek Wi-Fi driver. Connection stability and throughput improvements.",
+      safety: "safe",
+    } as DriverDbEntry,
+    marvell: {
+      latest: "3.1.17.172",
+      releaseDate: "2026-03-15",
+      releaseNotes:
+        "Marvell/Aquantia network driver. Multi-gigabit stability and wake-on-LAN fixes.",
+      safety: "safe",
+    } as DriverDbEntry,
   },
 
   audio: {
@@ -232,6 +253,19 @@ const DATABASE = {
     realtek: {
       latest: "1.8.1061",
       releaseNotes: "Realtek Bluetooth driver update.",
+      safety: "safe",
+    } as DriverDbEntry,
+    qualcomm: {
+      latest: "12.0.0.900",
+      releaseDate: "2026-05-08",
+      releaseNotes:
+        "Qualcomm Bluetooth driver. Fixes pairing drops, audio stutter on BT headsets, and LE Audio stability.",
+      safety: "safe",
+    } as DriverDbEntry,
+    mediatek: {
+      latest: "3.3.0.501",
+      releaseDate: "2026-04-12",
+      releaseNotes: "MediaTek Bluetooth driver. Connection and audio streaming improvements.",
       safety: "safe",
     } as DriverDbEntry,
   },

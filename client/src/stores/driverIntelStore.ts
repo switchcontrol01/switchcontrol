@@ -75,8 +75,15 @@ interface DriverIntelState {
 async function fetchDatabase(): Promise<{ db: DriverDatabase; local: boolean }> {
   try {
     const { cloudApiGet } = await import("@/lib/cloud-api");
-    const db = await cloudApiGet<DriverDatabase>("/driver-intel/database");
-    if (db && db.gpu) return { db, local: false };
+    const cloudDb = await cloudApiGet<DriverDatabase>("/driver-intel/database");
+    if (cloudDb && cloudDb.gpu) {
+      const cats = ["gpu", "chipset", "bios", "ssd", "network", "audio", "bluetooth"] as const;
+      const merged: DriverDatabase = { ...cloudDb };
+      for (const cat of cats) {
+        merged[cat] = { ...(LOCAL_DB_FALLBACK[cat] as Record<string, unknown>), ...(cloudDb[cat] ?? {}) } as typeof cloudDb[typeof cat];
+      }
+      return { db: merged, local: false };
+    }
   } catch {
     /* fall through to local */
   }
@@ -412,11 +419,11 @@ function buildComponents(hw: RawHardware, db: DriverDatabase): DriverComponent[]
   const rawAudioName = hw.audioName;
   let audioVendor: string | null = detectAudioVendor(rawAudioName);
   let audioDeviceName: string | null = rawAudioName;
-  if (!audioVendor && !rawAudioName) {
+  if (!audioVendor) {
     const moboStr = ((hw.moboMaker ?? "") + " " + (hw.moboModel ?? "")).toLowerCase();
     if (/asus|rog|tuf|msi|gigabyte|aorus|asrock|amd|intel|hp |dell|lenovo|nuc/.test(moboStr)) {
       audioVendor = "realtek";
-      audioDeviceName = "Realtek HD Audio (inferred from motherboard)";
+      audioDeviceName = rawAudioName ?? "Realtek HD Audio (inferred from motherboard)";
     }
   }
   const audioEntry = audioVendor ? db.audio[audioVendor] ?? null : null;
@@ -445,7 +452,7 @@ function buildComponents(hw: RawHardware, db: DriverDatabase): DriverComponent[]
   out.push({
     kind: "bluetooth",
     title: "Bluetooth",
-    device: btVendor ? `${btVendor} Bluetooth` : "Bluetooth adapter",
+    device: btVendor ? `${btVendor.charAt(0).toUpperCase()}${btVendor.slice(1)} Bluetooth` : "Bluetooth adapter",
     vendorKey: btVendor,
     current: null,
     latest: btEntry?.latest ?? null,

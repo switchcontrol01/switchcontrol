@@ -150,6 +150,9 @@ export const OFFICIAL_URLS = {
     intel: "https://www.intel.com/content/www/us/en/download-center/home.html",
     realtek: "https://www.realtek.com/en/component/zoo/category/network-interface-controllers-10-100-1000m-gigabit-ethernet-pci-express-software",
     killer: "https://www.intel.com/content/www/us/en/support/products/199328/wireless/killer-networking.html",
+    qualcomm: "https://www.qualcomm.com/support/software-center",
+    mediatek: "https://www.mediatek.com/blog/wi-fi-bluetooth-drivers",
+    marvell: "https://www.marvell.com/support/",
   },
   audio: {
     realtek: "https://www.realtek.com/en/component/zoo/category/pc-audio-codecs-high-definition-audio-codecs-software",
@@ -235,6 +238,9 @@ export const LOCAL_DB_FALLBACK: DriverDatabase = {
     intel: { latest: "29.3", safety: "safe" },
     realtek: { latest: "11.20.0610", safety: "safe" },
     killer: { latest: "3.1.1456", safety: "caution" },
+    qualcomm: { latest: "3.3.0.814", safety: "safe" },
+    mediatek: { latest: "3.3.0.314", safety: "safe" },
+    marvell: { latest: "3.1.17.172", safety: "safe" },
   },
   audio: {
     realtek: { latest: "6.0.9670.1", safety: "safe" },
@@ -328,6 +334,9 @@ export function detectNetworkVendor(name: string | null): string | null {
   if (s.includes("killer")) return "killer";
   if (s.includes("intel")) return "intel";
   if (s.includes("realtek")) return "realtek";
+  if (s.includes("qualcomm") || s.includes("fastconnect") || s.includes("qca") || s.includes("atheros")) return "qualcomm";
+  if (s.includes("mediatek") || s.includes("mt79") || s.includes("mt76")) return "mediatek";
+  if (s.includes("marvell") || s.includes("aquantia") || s.includes("aqtion")) return "marvell";
   return null;
 }
 
