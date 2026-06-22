@@ -558,7 +558,7 @@ export default function DriverIntelligence() {
 }
 
 // Skeleton placeholders before first scan completes.
-const SKELETON_KINDS = Array.from({ length: 6 }).map((_, i) => ({ skeleton: true, i }));
+const SKELETON_KINDS = Array.from({ length: 9 }).map((_, i) => ({ skeleton: true, i }));
 
 function SkeletonCard() {
   return (

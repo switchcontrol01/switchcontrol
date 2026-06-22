@@ -1,0 +1,357 @@
+PREMIUM ENTITLEMENT HARDENING
+
+PRIORITY
+
+HIGH
+
+Premium ownership must NEVER depend on AppData.
+
+Deleting:
+
+%AppData%\SwitchControl
+
+must NOT remove:
+
+- Premium
+- Trials
+- Extreme Labs access
+- Driver Intel access
+- BIOS Advisor access
+- AI Advisor access
+- Feature unlocks
+- Subscription state
+
+AppData should be CACHE ONLY.
+
+Server should always be TRUTH.
+
+---
+
+FIND EVERY LOCAL PREMIUM CHECK
+
+Search project for:
+
+premium
+isPremium
+premiumEnabled
+license
+subscription
+trial
+extremeLabsUnlocked
+driverIntelUnlocked
+biosAdvisorUnlocked
+aiAdvisorUnlocked
+historyUnlocked
+
+Find:
+
+- localStorage
+- electron-store
+- AppData json files
+- cache files
+- Zustand persistence
+- settings files
+
+Remove them as authoritative sources.
+
+---
+
+NEW ENTITLEMENT FLOW
+
+User logs in
+
+↓
+
+App calls:
+
+GET /api/account/entitlements
+
+Return:
+
+{
+  "premium": true,
+  "tier": "premium",
+  "trial": false,
+  "expires": null,
+  "features": {
+    "driverIntel": true,
+    "biosAdvisor": true,
+    "aiAdvisor": true,
+    "historyRollback": true,
+    "extremeLabs": true
+  }
+}
+
+Server becomes source of truth.
+
+---
+
+LOCAL CACHE
+
+AppData may cache:
+
+licenseCache.json
+
+Example:
+
+{
+  "premium": true,
+  "lastVerified": 1752873848,
+  "expires": null
+}
+
+CACHE ONLY.
+
+Never trust cache over server.
+
+---
+
+APP STARTUP
+
+Launch
+
+↓
+
+Load cache immediately
+
+↓
+
+Render UI
+
+↓
+
+Background verify:
+
+/api/account/entitlements
+
+↓
+
+Update state.
+
+No flicker.
+
+No logout.
+
+No reload.
+
+---
+
+APPDATA DELETION TEST
+
+Delete:
+
+%AppData%\SwitchControl
+
+Launch app
+
+Login
+
+↓
+
+Fetch entitlements
+
+↓
+
+Premium restored automatically.
+
+User should never lose Premium.
+
+---
+
+OFFLINE MODE
+
+If server unavailable:
+
+Use cache.
+
+Allow grace period:
+
+30 days
+
+Example:
+
+{
+ "premium":true,
+ "lastVerified":"2026-07-18"
+}
+
+If:
+
+now - lastVerified < 30 days
+
+Keep Premium active.
+
+Show:
+
+"Offline mode active."
+
+After 30 days:
+
+Require verification.
+
+---
+
+FEATURE GATES
+
+ALL OF THESE MUST COME FROM SERVER
+
+Driver Intel
+
+BIOS Advisor
+
+AI Advisor
+
+History & Rollback
+
+Extreme Labs
+
+Premium tweaks
+
+Future features
+
+Never:
+
+premium=true
+
+inside AppData.
+
+---
+
+TRIAL USERS
+
+Server controls:
+
+{
+ "trial":true,
+ "expires":"2026-07-30"
+}
+
+Deleting AppData must NOT reset trial.
+
+---
+
+SUBSCRIPTIONS
+
+Server owns:
+
+- active
+- expired
+- cancelled
+- grace period
+
+Never store these locally.
+
+---
+
+HISTORY SYSTEM
+
+Machine-specific history may stay local:
+
+Restore points
+
+Applied tweaks
+
+Rollback snapshots
+
+Telemetry
+
+Hardware cache
+
+These are fine.
+
+Premium status is NOT.
+
+---
+
+AUDIT ENTIRE CODEBASE
+
+Search:
+
+premium === true
+
+Replace with:
+
+entitlements.features.xxx
+
+fed from server.
+
+---
+
+TESTS
+
+1. 
+
+Premium user
+
+Delete AppData
+
+Login
+
+Premium restored
+
+PASS
+
+---
+
+2. 
+
+Offline
+
+Premium cache valid
+
+Launch
+
+Premium works
+
+PASS
+
+---
+
+3. 
+
+Server reconnect
+
+Entitlements sync
+
+PASS
+
+---
+
+4. 
+
+Expired trial
+
+Reconnect
+
+Locks features
+
+PASS
+
+---
+
+5. 
+
+Fresh Windows install
+
+Login
+
+Everything restored
+
+PASS
+
+---
+
+GOAL
+
+Premium ownership should survive:
+
+- AppData deletion
+- Cache corruption
+- Reinstall
+- Windows reinstall
+- New PC
+- User cleanup tools
+
+AppData stores cache.
+
+Server stores truth.

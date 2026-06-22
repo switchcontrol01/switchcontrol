@@ -138,7 +138,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
 
   return (
-    <div className="h-full w-full text-foreground font-sans selection:bg-primary/20 selection:text-primary-foreground relative overflow-x-hidden">
+    <div className="min-h-screen w-full text-foreground font-sans selection:bg-primary/20 selection:text-primary-foreground relative overflow-x-hidden">
       <AppBackground />
 
       {/* Top-left brand glow */}
@@ -164,7 +164,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
       </div>
       <main
-        className="pl-64 h-full overflow-y-auto overflow-x-hidden relative z-10"
+        className="pl-64 relative z-10"
       >
         <div className="container max-w-7xl mx-auto p-8">
           {children}
