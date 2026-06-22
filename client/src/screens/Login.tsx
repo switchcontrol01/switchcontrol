@@ -133,6 +133,10 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
   const [recoveryExpanded, setRecoveryExpanded] = useState(false);
   const [pastedCode, setPastedCode] = useState("");
   const [isPasting, setIsPasting] = useState(false);
+  // Delayed fallback — only reveal the code-paste section after the user
+  // has had enough time to complete the normal browser OAuth flow.
+  const [showCodeFallback, setShowCodeFallback] = useState(false);
+  const codeFallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const softTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -200,6 +204,26 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
   }, [oauthError, clearSoftTimeout]);
 
   useEffect(() => () => { clearSoftTimeout(); stopPolling(); }, [clearSoftTimeout, stopPolling]);
+
+  // Start/reset the delayed code-fallback reveal whenever we enter "authorizing".
+  // 18s gives plenty of time for normal browser OAuth to complete before surfacing
+  // the manual paste option — it should feel like a last resort, not a first option.
+  useEffect(() => {
+    if (codeFallbackTimerRef.current) {
+      clearTimeout(codeFallbackTimerRef.current);
+      codeFallbackTimerRef.current = null;
+    }
+    setShowCodeFallback(false);
+    if (loginState === "authorizing") {
+      codeFallbackTimerRef.current = setTimeout(() => setShowCodeFallback(true), 18_000);
+    }
+    return () => {
+      if (codeFallbackTimerRef.current) {
+        clearTimeout(codeFallbackTimerRef.current);
+        codeFallbackTimerRef.current = null;
+      }
+    };
+  }, [loginState]);
 
   const handleCancel = useCallback(() => {
     useAuthStore.getState().setElectronAuthState("cancelled");
@@ -644,31 +668,41 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
                     <p className="text-[11px] text-white/40 mt-1">If your browser asks permission, click <span className="text-white/55">Allow</span> or <span className="text-white/55">Open</span></p>
                   </div>
 
-                  {/* Paste code fallback — immediately available */}
-                  <div className="w-full border-t border-white/[0.06] pt-3 space-y-2">
-                    <p className="text-[11px] text-white/30 text-center">
-                      App didn't open? Paste the code shown on the sign-in page:
-                    </p>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={pastedCode}
-                        onChange={(e) => setPastedCode(e.target.value)}
-                        onKeyDown={(e) => e.key === "Enter" && handlePasteCode()}
-                        placeholder="Paste auth code..."
-                        className="flex-1 bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-2 text-sm text-white/70 placeholder:text-white/25 focus:outline-none focus:border-purple-400/30 focus:bg-white/[0.06] transition-all"
-                        data-testid="input-paste-code-authorizing"
-                      />
-                      <Button
-                        onClick={handlePasteCode}
-                        disabled={!pastedCode.trim() || isPasting}
-                        className="h-auto px-4 bg-purple-500/20 hover:bg-purple-500/30 text-purple-300/80 text-xs rounded-xl border border-purple-400/20 disabled:opacity-30 disabled:cursor-not-allowed"
-                        data-testid="button-paste-verify-authorizing"
+                  {/* Paste code fallback — revealed after delay so it feels like a last resort */}
+                  <AnimatePresence>
+                    {showCodeFallback && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 6 }}
+                        transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                        className="w-full border-t border-white/[0.06] pt-3 space-y-2"
                       >
-                        {isPasting ? "Verifying..." : "Verify"}
-                      </Button>
-                    </div>
-                  </div>
+                        <p className="text-[11px] text-white/30 text-center">
+                          App didn't open? Paste the code shown on the sign-in page:
+                        </p>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={pastedCode}
+                            onChange={(e) => setPastedCode(e.target.value)}
+                            onKeyDown={(e) => e.key === "Enter" && handlePasteCode()}
+                            placeholder="Paste auth code..."
+                            className="flex-1 bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-2 text-sm text-white/70 placeholder:text-white/25 focus:outline-none focus:border-purple-400/30 focus:bg-white/[0.06] transition-all"
+                            data-testid="input-paste-code-authorizing"
+                          />
+                          <Button
+                            onClick={handlePasteCode}
+                            disabled={!pastedCode.trim() || isPasting}
+                            className="h-auto px-4 bg-purple-500/20 hover:bg-purple-500/30 text-purple-300/80 text-xs rounded-xl border border-purple-400/20 disabled:opacity-30 disabled:cursor-not-allowed"
+                            data-testid="button-paste-verify-authorizing"
+                          >
+                            {isPasting ? "Verifying..." : "Verify"}
+                          </Button>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
 
                   <motion.button
                     onClick={handleCancel}
