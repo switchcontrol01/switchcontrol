@@ -314,8 +314,8 @@ export default function DriverIntelligence() {
       ref={pageRef}
       className="relative p-5 md:p-7 pb-12"
       initial={{ opacity: 0, y: 20, filter: "blur(10px)" }}
-      animate={{ opacity: 1, y: 0, filter: "blur(0px)", transition: { duration: 1.5, ease: [0.22, 1, 0.36, 1] } }}
-      exit={{ opacity: 0, y: -14, filter: "blur(10px)", transition: { duration: 1.5, ease: [0.4, 0, 0.2, 1] } }}
+      animate={{ opacity: 1, y: 0, filter: "blur(0px)", transition: { duration: 3.75, ease: [0.22, 1, 0.36, 1] } }}
+      exit={{ opacity: 0, y: -14, filter: "blur(10px)", transition: { duration: 3.75, ease: [0.4, 0, 0.2, 1] } }}
     >
       {/* Ambient orbs — clipped to avoid bleeding into the sidebar */}
       <div
