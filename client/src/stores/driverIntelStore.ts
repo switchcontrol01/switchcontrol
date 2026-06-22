@@ -146,12 +146,14 @@ async function acquireHardware(): Promise<RawHardware> {
     ?? p?.storage.layout[0]?.name
     ?? null;
 
-  // Network / Bluetooth — from profile interfaces.
-  const net = p?.network.interfaces.find((n) => n.operstate === "up" && !n.internal)
-    ?? p?.network.interfaces[0];
-  const wifi = p?.network.interfaces.find((n) => n.wifi);
-  let netName: string | null = net?.name ?? null;
-  let btName: string | null = wifi?.name ?? net?.name ?? null;
+  // Network / Bluetooth — si.networkInterfaces() returns Windows interface LABELS
+  // ("Ethernet", "Wi-Fi") not chip descriptions. Those labels are useless for
+  // vendor detection (detectNetworkVendor("Ethernet") = null). We always prefer
+  // the Electron IPC path which calls Get-NetAdapter → InterfaceDescription and
+  // returns the actual chip model (e.g. "Realtek Gaming 2.5GbE Family Controller").
+  // si data is kept only as a last-resort hint for the non-Electron web path.
+  let netName: string | null = null;
+  let btName: string | null = null;
 
   // Audio — from phase=full si.audio() (Win32_SoundDevice).
   let audioName: string | null = p?.audio?.devices?.[0]?.name ?? null;
@@ -164,34 +166,60 @@ async function acquireHardware(): Promise<RawHardware> {
 
   // ── Electron IPC fallbacks ─────────────────────────────────────────────────
   // On AMD systems WMI calls frequently time out even with generous limits.
-  // These fallbacks talk directly to Windows APIs through existing IPC channels,
-  // bypassing systeminformation entirely, and run only when the profile data is
-  // missing (empty array / null). Web mode: window.electronAPI is undefined,
-  // so the condition is false and the fallbacks are never attempted.
+  // These fallbacks talk directly to Windows APIs through existing IPC channels.
+  // Web mode: window.electronAPI is undefined, conditions are false, no-op.
   const eApi = typeof window !== "undefined" ? (window as any).electronAPI : null;
 
-  // Network + Bluetooth: nic:getAdapters → Get-NetAdapter (fast, no WMI)
-  if (eApi?.nic?.getAdapters && !netName) {
+  // Network: ALWAYS query nic.getAdapters in Electron — si networkInterfaces()
+  // gives interface labels ("Ethernet"/"Wi-Fi"), not chip models. nic.getAdapters
+  // calls Get-NetAdapter which returns InterfaceDescription (the actual chip name
+  // needed for vendor detection). Runs unconditionally; no-op on web.
+  if (eApi?.nic?.getAdapters) {
     try {
       const res = await eApi.nic.getAdapters();
       if (res?.adapters?.length) {
-        // description is the chip name (e.g. "Intel(R) Wi-Fi 6 AX200 160MHz");
-        // name is the Windows interface label (e.g. "Wi-Fi 2"). Use description
-        // for vendor detection since it carries the actual chip model.
-        const active = res.adapters.find(
-          (a: any) => a.status === "Up" && !/loopback|virtual|vpn|tap|wfp|pseudo/i.test(a.description)
-        ) ?? res.adapters[0];
-        if (active) {
-          netName = active.description || active.name;
-          // Bluetooth combo card — look for a wireless/WiFi adapter description
-          // (Intel AX200, Killer, Realtek RTL8852 etc. carry Wi-Fi + BT on one chip)
-          const wirelessAdapter = res.adapters.find((a: any) =>
-            /wireless|wi-fi|wifi|802\.11|ax\d{3}|killer/i.test(a.description)
+        // Prefer an Up non-virtual non-BT physical adapter for the network chip name
+        const active =
+          res.adapters.find(
+            (a: any) =>
+              a.status === "Up" &&
+              !/loopback|virtual|vpn|tap|wfp|pseudo|bluetooth/i.test(a.description),
+          ) ??
+          res.adapters.find(
+            (a: any) => !/loopback|virtual|vpn|tap|wfp|pseudo/i.test(a.description),
           );
-          btName = wirelessAdapter?.description ?? netName;
-        }
+        if (active) netName = active.description || active.name;
+        // Wireless adapter hints at BT combo card (Intel AX200/210, Killer,
+        // Realtek RTL8852 etc. share the chip for Wi-Fi + BT)
+        const wirelessAdapter = res.adapters.find((a: any) =>
+          /wireless|wi-fi|wifi|802\.11|ax\d{3}|killer/i.test(a.description),
+        );
+        if (wirelessAdapter) btName = wirelessAdapter.description;
       }
-    } catch { /* ignore — web or IPC unavailable */ }
+    } catch { /* ignore — IPC unavailable */ }
+  }
+
+  // Bluetooth: dedicated PnP radio query is more accurate than guessing from
+  // the wireless NIC list. Get-PnpDevice -Class Bluetooth returns the actual
+  // Bluetooth radio name (e.g. "Intel(R) Wireless Bluetooth(R)") which
+  // directly carries the vendor string needed by detectBluetoothVendor().
+  // Overwrites the NIC-based btName when the radio name is available.
+  if (eApi?.system?.getBluetoothDevice) {
+    try {
+      const res = await eApi.system.getBluetoothDevice();
+      if (res?.name) btName = res.name;
+    } catch { /* ignore */ }
+  }
+
+  // Web fallback (no eApi): use si interface names as best-effort hints.
+  // Vendor detection will likely return null but at least shows an adapter name.
+  if (!netName && !eApi) {
+    const net =
+      p?.network.interfaces.find((n) => n.operstate === "up" && !n.internal) ??
+      p?.network.interfaces[0];
+    const wifi = p?.network.interfaces.find((n) => n.wifi);
+    netName = net?.name ?? null;
+    btName = wifi?.name ?? net?.name ?? null;
   }
 
   // Storage: storage:getVolumes → Get-Volume with disk model (fast PowerShell)

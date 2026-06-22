@@ -142,8 +142,9 @@ export const OFFICIAL_URLS = {
   },
   bluetooth: {
     intel: "https://www.intel.com/content/www/us/en/download-center/home.html",
-    realtek:
-      "https://www.realtek.com/en/component/zoo/category/bluetooth-software",
+    realtek: "https://www.realtek.com/en/component/zoo/category/bluetooth-software",
+    qualcomm: "https://www.qualcomm.com/support/software-center",
+    mediatek: "https://www.mediatek.com/blog/wi-fi-bluetooth-drivers",
   },
   network: {
     intel: "https://www.intel.com/content/www/us/en/download-center/home.html",
@@ -244,6 +245,8 @@ export const LOCAL_DB_FALLBACK: DriverDatabase = {
   bluetooth: {
     intel: { latest: "23.60.0", safety: "safe" },
     realtek: { latest: "1.8.1061", safety: "safe" },
+    qualcomm: { latest: "12.0.0.900", safety: "safe" },
+    mediatek: { latest: "3.3.0.501", safety: "safe" },
   },
 };
 
@@ -343,6 +346,8 @@ export function detectBluetoothVendor(name: string | null): string | null {
   if (!s) return null;
   if (s.includes("intel")) return "intel";
   if (s.includes("realtek")) return "realtek";
+  if (s.includes("qualcomm") || s.includes("qca") || s.includes("atheros")) return "qualcomm";
+  if (s.includes("mediatek") || s.includes("mt79") || s.includes("mt76")) return "mediatek";
   return null;
 }
 

@@ -198,8 +198,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getRamUsage:       () => ipcRenderer.invoke('system:getRamUsage'),
     getAllDisks:        () => ipcRenderer.invoke('system:getAllDisks'),
     getDisplayInfo:    () => ipcRenderer.invoke('system:getDisplayInfo'),
-    getAudioDevice:    () => ipcRenderer.invoke('system:getAudioDevice'),
-    getMotherboard:    () => ipcRenderer.invoke('system:getMotherboard'),
+    getAudioDevice:      () => ipcRenderer.invoke('system:getAudioDevice'),
+    getBluetoothDevice: () => ipcRenderer.invoke('system:getBluetoothDevice'),
+    getMotherboard:      () => ipcRenderer.invoke('system:getMotherboard'),
     onSpecsEnriched: (cb) => {
       // If specs were already enriched before this subscriber registered, replay
       // the last payload immediately so late subscribers (e.g. Home mounting after

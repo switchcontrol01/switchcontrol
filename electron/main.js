@@ -2048,6 +2048,33 @@ ipcMain.handle('system:getAudioDevice', () => {
   });
 });
 
+// Bluetooth radio name via PnP — used as a reliable fallback when WMI audio/NIC
+// queries time out. Get-PnpDevice -Class Bluetooth queries the PnP Manager directly
+// (not WMI) and returns the actual Bluetooth radio installed in the system,
+// e.g. "Intel(R) Wireless Bluetooth(R)" or "Realtek Bluetooth Adapter".
+// This is far more accurate than guessing from the wireless NIC adapter name.
+// Returns { name: string | null }.
+ipcMain.handle('system:getBluetoothDevice', () => {
+  if (process.platform !== 'win32') return { name: null };
+  return new Promise((resolve) => {
+    const cmd = [
+      '$d = Get-PnpDevice -Class Bluetooth -Status OK -ErrorAction SilentlyContinue |',
+      '  Where-Object { $_.Description -notmatch "enumerator|hub|root|port|hid|avrcp" } |',
+      '  Select-Object -First 1;',
+      'if ($d) { $d.FriendlyName ?? $d.Description } else { "" }',
+    ].join(' ');
+    execFile(
+      'powershell',
+      ['-NoProfile', '-NonInteractive', '-Command', cmd],
+      { timeout: 4_000, windowsHide: true },
+      (_err, stdout) => {
+        const name = stdout?.trim() || null;
+        resolve({ name });
+      }
+    );
+  });
+});
+
 // Motherboard info via registry — instant, no WMI/PowerShell process spawn.
 // HKLM:\HARDWARE\DESCRIPTION\System\BIOS is populated by the firmware on boot
 // and is always available without any driver query. Used as a fast fallback
