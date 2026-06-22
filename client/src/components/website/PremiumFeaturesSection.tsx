@@ -88,109 +88,158 @@ const FEATURES: FeatureMeta[] = [
 /* ─────────────────────────────────────────────────────
    SYSTEM CORE (SVG node map)
 ───────────────────────────────────────────────────── */
+// ViewBox 500×500, center at (250,250), orbit radius 150
+const CX = 250, CY = 250, ORBIT_R = 150;
 const NODE_POSITIONS = [
-  { id: "ai",      cx: 200, cy: 68,  label: "AI Advisor",       color: "#8B5CF6" },
-  { id: "bios",    cx: 332, cy: 200, label: "BIOS Advisor",     color: "#EC4899" },
-  { id: "driver",  cx: 200, cy: 332, label: "Driver Intel",     color: "#00D4FF" },
-  { id: "history", cx: 68,  cy: 200, label: "History",          color: "#10B981" },
+  { id: "ai",      cx: CX,           cy: CY - ORBIT_R, label: "AI Advisor",   color: "#8B5CF6", l1: "AI",      l2: "ADVISOR" },
+  { id: "bios",    cx: CX + ORBIT_R, cy: CY,           label: "BIOS Advisor", color: "#EC4899", l1: "BIOS",    l2: "ADVISOR" },
+  { id: "driver",  cx: CX,           cy: CY + ORBIT_R, label: "Driver Intel", color: "#00D4FF", l1: "DRIVER",  l2: "INTEL"   },
+  { id: "history", cx: CX - ORBIT_R, cy: CY,           label: "History",      color: "#10B981", l1: "HISTORY", l2: ""        },
 ];
+
+// Label anchor positions: 38px outside the orbit
+const LABEL_CFG: Record<string, { x: number; y: number; anchor: string }> = {
+  ai:      { x: CX,              y: CY - ORBIT_R - 38,     anchor: "middle" },
+  bios:    { x: CX + ORBIT_R + 32, y: CY - 9,             anchor: "start"  },
+  driver:  { x: CX,              y: CY + ORBIT_R + 38 + 4, anchor: "middle" },
+  history: { x: CX - ORBIT_R - 32, y: CY - 9,             anchor: "end"    },
+};
 
 function SystemCore({ activeId }: { activeId: string | null }) {
   return (
     <div className="relative flex items-center justify-center">
       <svg
-        viewBox="0 0 400 400"
-        className="w-[260px] h-[260px] md:w-[320px] md:h-[320px]"
+        viewBox="0 0 500 500"
+        className="w-[340px] h-[340px] sm:w-[400px] sm:h-[400px] md:w-[460px] md:h-[460px]"
         aria-hidden
       >
         <defs>
           {NODE_POSITIONS.map((n) => (
             <radialGradient key={n.id} id={`ng-${n.id}`} cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor={n.color} stopOpacity="0.7" />
+              <stop offset="0%" stopColor={n.color} stopOpacity="0.85" />
               <stop offset="100%" stopColor={n.color} stopOpacity="0" />
             </radialGradient>
           ))}
           <radialGradient id="core-grad" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="#fff" stopOpacity="0.15" />
-            <stop offset="100%" stopColor="#fff" stopOpacity="0" />
+            <stop offset="0%"   stopColor="#a78bfa" stopOpacity="0.22" />
+            <stop offset="55%"  stopColor="#6366f1" stopOpacity="0.08" />
+            <stop offset="100%" stopColor="#fff"    stopOpacity="0"    />
           </radialGradient>
+          <filter id="pfs-glow" x="-60%" y="-60%" width="220%" height="220%">
+            <feGaussianBlur stdDeviation="7" result="blur" />
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+          <filter id="pfs-core-glow" x="-60%" y="-60%" width="220%" height="220%">
+            <feGaussianBlur stdDeviation="12" />
+          </filter>
         </defs>
 
+        {/* Orbit ring */}
+        <circle cx={CX} cy={CY} r={ORBIT_R} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={1} strokeDasharray="3 11" />
+        {/* Inner decorative ring */}
+        <circle cx={CX} cy={CY} r={86} fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth={0.75} strokeDasharray="2 8" />
+
         {/* Lines from center to each node */}
-        {NODE_POSITIONS.map((n) => (
-          <line
-            key={n.id}
-            x1={200} y1={200} x2={n.cx} y2={n.cy}
-            stroke={n.color}
-            strokeWidth={activeId === n.id ? 1.5 : 0.7}
-            strokeOpacity={activeId === n.id ? 0.7 : 0.25}
-            strokeDasharray="4 6"
-            style={{ animation: `pfs-dash 2.4s linear infinite` }}
-          />
-        ))}
+        {NODE_POSITIONS.map((n) => {
+          const active = activeId === n.id;
+          return (
+            <line
+              key={n.id}
+              x1={CX} y1={CY} x2={n.cx} y2={n.cy}
+              stroke={n.color}
+              strokeWidth={active ? 2 : 1}
+              strokeOpacity={active ? 0.8 : 0.28}
+              strokeDasharray="5 9"
+              style={{ animation: `pfs-dash 2.4s linear infinite` }}
+            />
+          );
+        })}
+
+        {/* Center ambient glow (blurred blob) */}
+        <circle cx={CX} cy={CY} r={90} fill="url(#core-grad)" filter="url(#pfs-core-glow)" />
 
         {/* Center core */}
-        <circle cx={200} cy={200} r={52} fill="url(#core-grad)" />
-        <circle cx={200} cy={200} r={36}
-          fill="rgba(10,12,22,0.9)"
-          stroke="rgba(255,255,255,0.08)"
+        <circle cx={CX} cy={CY} r={50}
+          fill="rgba(7,9,18,0.96)"
+          stroke="rgba(255,255,255,0.1)"
           strokeWidth={1}
         />
-        <circle cx={200} cy={200} r={36}
+        {/* Breathing ring */}
+        <circle cx={CX} cy={CY} r={50}
           fill="none"
-          stroke="rgba(255,255,255,0.12)"
-          strokeWidth={1}
+          stroke="rgba(255,255,255,0.2)"
+          strokeWidth={1.5}
           style={{ animation: "pfs-breathe 3.5s ease-in-out infinite" }}
         />
-        {/* SC logo text */}
-        <text x={200} y={196} textAnchor="middle" fill="rgba(255,255,255,0.7)" fontSize={10} letterSpacing={2} fontWeight={600}>
+        {/* SC text */}
+        <text x={CX} y={CY - 5} textAnchor="middle"
+          fill="rgba(255,255,255,0.85)" fontSize={14} letterSpacing={3}
+          fontWeight={700} fontFamily="ui-monospace,monospace"
+        >
           SWITCH
         </text>
-        <text x={200} y={210} textAnchor="middle" fill="rgba(255,255,255,0.4)" fontSize={8} letterSpacing={3}>
+        <text x={CX} y={CY + 13} textAnchor="middle"
+          fill="rgba(255,255,255,0.38)" fontSize={9} letterSpacing={4}
+          fontFamily="ui-monospace,monospace"
+        >
           CONTROL
         </text>
 
-        {/* Feature nodes + inline labels */}
+        {/* Feature nodes + labels */}
         {NODE_POSITIONS.map((n, idx) => {
           const active = activeId === n.id;
-          const labelAnchor: Record<string, { x: number; y: number; anchor: string }> = {
-            ai:      { x: 200, y: 46,  anchor: "middle" },
-            bios:    { x: 358, y: 204, anchor: "start"  },
-            driver:  { x: 200, y: 358, anchor: "middle" },
-            history: { x: 42,  y: 204, anchor: "end"    },
-          };
-          const la = labelAnchor[n.id];
+          const la = LABEL_CFG[n.id];
+          const nr = active ? 16 : 12;
           return (
             <g key={n.id}>
-              {/* Glow halo */}
-              <circle cx={n.cx} cy={n.cy} r={active ? 20 : 14} fill={`url(#ng-${n.id})`} />
-              {/* Node circle */}
+              {/* Ambient glow halo */}
+              <circle cx={n.cx} cy={n.cy} r={active ? 44 : 30} fill={`url(#ng-${n.id})`} opacity={active ? 0.9 : 0.7} />
+              {/* Node dot */}
               <circle
-                cx={n.cx} cy={n.cy} r={active ? 10 : 7}
+                cx={n.cx} cy={n.cy} r={nr}
                 fill={n.color}
-                fillOpacity={active ? 0.9 : 0.6}
+                fillOpacity={active ? 1 : 0.62}
+                filter={active ? "url(#pfs-glow)" : undefined}
               />
+              {/* Pulse ring */}
               <circle
-                cx={n.cx} cy={n.cy} r={active ? 10 : 7}
+                cx={n.cx} cy={n.cy} r={nr}
                 fill="none"
                 stroke={n.color}
-                strokeWidth={1}
-                strokeOpacity={0.5}
-                style={{ animation: `pfs-ring-pulse 2s ease-in-out ${idx * 0.5}s infinite` }}
+                strokeWidth={1.5}
+                strokeOpacity={0.7}
+                style={{ animation: `pfs-ring-pulse 2.4s ease-in-out ${idx * 0.55}s infinite` }}
               />
-              {/* Label inside SVG */}
+              {/* Label line 1 (primary word) */}
               <text
                 x={la.x} y={la.y}
                 textAnchor={la.anchor}
                 fill={n.color}
-                fillOpacity={active ? 1 : 0.5}
-                fontSize={8}
-                fontWeight={700}
-                letterSpacing={2}
+                fillOpacity={active ? 1 : 0.7}
+                fontSize={12}
+                fontWeight={800}
+                letterSpacing={2.5}
+                fontFamily="ui-monospace,monospace"
                 style={{ transition: "fill-opacity 0.3s" }}
               >
-                {n.label.toUpperCase()}
+                {n.l1}
               </text>
+              {/* Label line 2 (secondary word) */}
+              {n.l2 && (
+                <text
+                  x={la.x} y={la.y + 15}
+                  textAnchor={la.anchor}
+                  fill={n.color}
+                  fillOpacity={active ? 0.75 : 0.45}
+                  fontSize={9}
+                  fontWeight={600}
+                  letterSpacing={3}
+                  fontFamily="ui-monospace,monospace"
+                  style={{ transition: "fill-opacity 0.3s" }}
+                >
+                  {n.l2}
+                </text>
+              )}
             </g>
           );
         })}
@@ -528,16 +577,16 @@ function PfsStyles() {
   return (
     <style>{`
       @keyframes pfs-breathe {
-        0%, 100% { stroke-width: 1; stroke-opacity: 0.12; r: 36; }
-        50%       { stroke-width: 2; stroke-opacity: 0.28; r: 40; }
+        0%, 100% { stroke-width: 1.5; stroke-opacity: 0.2;  r: 50; }
+        50%       { stroke-width: 2.5; stroke-opacity: 0.42; r: 57; }
       }
       @keyframes pfs-dash {
         0%   { stroke-dashoffset: 0; }
-        100% { stroke-dashoffset: -20; }
+        100% { stroke-dashoffset: -28; }
       }
       @keyframes pfs-ring-pulse {
-        0%, 100% { r: 7; stroke-opacity: 0.5; }
-        50%       { r: 14; stroke-opacity: 0; }
+        0%, 100% { r: 12; stroke-opacity: 0.7; }
+        50%       { r: 28; stroke-opacity: 0;   }
       }
       @keyframes pfs-ring-fill {
         from { stroke-dasharray: 0 999; }
