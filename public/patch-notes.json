@@ -1,17 +1,15 @@
 {
-  "version": "1.1.6",
-  "title": "Driver Intelligence & AMD Compatibility",
-  "headline": "A new premium Driver Intelligence hub brings animated hardware scanning and health scoring. AMD users also get dramatically improved hardware data — BIOS, GPU, and motherboard info now load correctly.",
-  "date": "2026-06-21",
-  "type": "minor",
+  "version": "1.1.7",
+  "title": "Cleanup & Reliability Update",
+  "headline": "This release streamlines the tweak library and improves the accuracy of hardware recommendations, backed by a round of interface polish and stability fixes.",
+  "date": "2026-07-06",
+  "type": "patch",
   "changes": [
-    "New: Driver Intelligence page (premium) — animated SVG motherboard centerpiece, multi-step scan flow, health score radial with subscores, and per-component cards with a sliding detail panel.",
-    "New: Driver Intelligence integrates the AI Advisor — hardware-aware insights appear in scan results with a direct link for deeper analysis.",
-    "New: Custom slider tweaks — three system-level tweaks now use stepped sliders with precise configurable value ranges instead of simple toggles.",
-    "New: First-run disclaimer — a two-phase confirmation modal introduces SwitchControl to new users before any tweaks are applied.",
-    "New: Apply Recommended premium gate — free users see an animated amber lock badge on the Apply Recommended button that opens the upgrade flow on click.",
-    "Fixed: AMD/WMI hardware probes now use 3–4× longer timeouts — baseboard, BIOS, graphics, CPU, memory layout, and disk probes all have extended limits so AMD Ryzen systems correctly report hardware data.",
-    "Fixed: Probe cooldown reduced from 12 minutes to 2 minutes — hardware data recovers within a single restart instead of being blocked for an entire session.",
-    "Improved: A single WMI timeout no longer triggers a probe cooldown — two consecutive failures are now required, preventing a transient slowdown from blocking all hardware reads."
+    "Removed: \"Optimize MMCSS for Gaming\" tweak — retired after testing showed it provided no measurable benefit and could introduce risk on some systems.",
+    "Improved: Hardware recommendations now disclose latency risks up front, so you know exactly what a tweak trades off before applying it.",
+    "Improved: Window controls and titlebar now float transparently over the app content for a cleaner, more modern look.",
+    "Improved: Page transitions are faster and more consistent across the app, with several stray animations removed for a snappier feel.",
+    "Fixed: Console warnings cleaned up across page navigation for smoother performance.",
+    "Fixed: Various minor visual inconsistencies in the app's top bar and page backgrounds."
   ]
 }

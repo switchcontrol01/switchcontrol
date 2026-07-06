@@ -13,5 +13,6 @@
 - [electronAPI global typing](electron-api-typing.md) — per-page `declare global` clashes with electron.d.ts; pre-existing tsc errors, build ignores them, do not fix inline.
 - [Premium revert engine reliability](premium-revert-engine.md) — three root causes of 0–50% success rates fixed in v2; network tweak HTTP pre-check was the primary culprit; EL was completely disconnected.
 - [Driver Intelligence design constraints](driver-intelligence.md) — detect-and-redirect only (never flash/auto-install); cloud DB never scraped; "partial" is a cached state (gate on hasData, not "ready"); lazy scan, trial=read-only.
+- [Version release process](version-release-process.md) — version strings live in 6+ files (no single constant); actual installer build/upload happens via GitHub Actions tag push, not in Replit.
 - [Electron startup spec enrichment](electron-startup-enrichment.md) — disk cache (specs-cache.json, 4h/24h TTL) eliminates WMI on repeat boots; si.graphics() removed from enrichment (AMD hangs); psLimiter gates all startup PS calls; two-stage: GPU immediately, CPU+disk deferred 3s.
 - [Preset-card tweak pattern](preset-tweak-pattern.md) — multi-option preset tweaks mirror the slider-tweak trio exactly (executor/IPC/hook/store/UI); isAdvancedTuning flag pulls sliders+presets into one dedicated section.
