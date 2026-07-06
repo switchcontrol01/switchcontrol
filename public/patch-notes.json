@@ -7,6 +7,7 @@
   "changes": [
     "Removed: \"Optimize MMCSS for Gaming\" tweak — retired after testing showed it provided no measurable benefit and could introduce risk on some systems.",
     "Improved: Hardware recommendations now disclose latency risks up front, so you know exactly what a tweak trades off before applying it.",
+    "Premium: Advanced Tuning tweaks (preset profiles and advanced sliders) are now premium-only — visible to all users for review, but require an active premium plan or free trial to apply. This includes IRQ Priority Profile, NTFS I/O Optimization Profile, GPU Driver Timeout Profile, DPC Queue Depth, Timer Resolution, and MMCSS Background Reservation.",
     "Improved: Window controls and titlebar now float transparently over the app content for a cleaner, more modern look.",
     "Improved: Page transitions are faster and more consistent across the app, with several stray animations removed for a snappier feel.",
     "Fixed: Console warnings cleaned up across page navigation for smoother performance.",

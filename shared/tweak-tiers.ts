@@ -88,14 +88,18 @@ export const PREMIUM_EXCEPTION_IDS: Set<string> = new Set([
   "large-system-cache",
   "page-combining",
   "ntfs-last-access",
+  "io-optimization-profile",
   // ── Privacy and Telemetry ─────────────────────────────────────────────────
   "nvidia-telemetry",
   // ── Gaming and Latency ────────────────────────────────────────────────────
   "irq-priority",
+  "irq-optimization-profile",
   "synth-timers",
   "tune-priority",
   "win32-priority-sep",
   "sys-responsiveness",
+  "max-pending-interrupts",
+  "timer-resolution-slider",
   "net-throttle-index",
   // ── Input ─────────────────────────────────────────────────────────────────
   "mouse-queue-size",
@@ -104,6 +108,7 @@ export const PREMIUM_EXCEPTION_IDS: Set<string> = new Set([
   // ── GPU and Graphics ──────────────────────────────────────────────────────
   "desktop-comp",
   "hdcp",
+  "directx-optimization-profile",
   // ── Windows UX ────────────────────────────────────────────────────────────
   "menu-show-delay",
   "hung-app-timeout",
@@ -142,6 +147,7 @@ export const TWEAK_TIER_MAP: Record<string, TweakTierInfo> = {
   "superfetch":               { level: "Advanced",     category: "Memory and Storage" },
   "storage-sense":            { level: "Recommended",  category: "Memory and Storage" },
   "ntfs-last-access":         { level: "Advanced",     category: "Memory and Storage" },
+  "io-optimization-profile":  { level: "Advanced",     category: "Memory and Storage" },
   "win-search-index":         { level: "Advanced",     category: "Memory and Storage" },
 
   // Privacy and Telemetry
@@ -159,8 +165,11 @@ export const TWEAK_TIER_MAP: Record<string, TweakTierInfo> = {
   "tune-priority":            { level: "Advanced",     category: "Gaming and Latency" },
   "win32-priority-sep":       { level: "Advanced",     category: "Gaming and Latency" },
   "sys-responsiveness":       { level: "Advanced",     category: "Gaming and Latency" },
+  "max-pending-interrupts":   { level: "Advanced",     category: "Gaming and Latency" },
+  "timer-resolution-slider":  { level: "Advanced",     category: "Gaming and Latency" },
   "net-throttle-index":       { level: "Advanced",     category: "Gaming and Latency" },
   "irq-priority":             { level: "Experimental", category: "Gaming and Latency" },
+  "irq-optimization-profile": { level: "Advanced",     category: "Gaming and Latency" },
   "synth-timers":             { level: "Experimental", category: "Gaming and Latency" },
   "disable-fso":              { level: "Recommended",  category: "Gaming and Latency" },
   "usb-selective-suspend":    { level: "Recommended",  category: "Gaming and Latency" },
@@ -176,6 +185,7 @@ export const TWEAK_TIER_MAP: Record<string, TweakTierInfo> = {
   "hdcp":                     { level: "Experimental", category: "GPU and Graphics" },
   "preemption":               { level: "Advanced",     category: "GPU and Graphics" },
   "disable-mpo":              { level: "Advanced",     category: "GPU and Graphics" },
+  "directx-optimization-profile": { level: "Advanced",     category: "GPU and Graphics" },
 
   // Network
   "bluetooth":                { level: "Recommended",  category: "Network" },
