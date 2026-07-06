@@ -355,6 +355,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     },
     checkCrashSentinel: () => ipcRenderer.invoke('tweak:checkCrashSentinel'),
     getDisabledSliders: () => ipcRenderer.invoke('tweak:getDisabledSliders'),
+    revertAllSliders: () => ipcRenderer.invoke('tweak:revertAllSliders'),
   },
 
   // ── Preset-profile tweak APIs ─────────────────────────────────────────────────
@@ -377,6 +378,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
       return ipcRenderer.invoke('presetTweaks:getMeta', tweakId);
     },
     checkCrashSentinel: () => ipcRenderer.invoke('presetTweaks:checkCrashSentinel'),
+    revertAll: () => ipcRenderer.invoke('presetTweaks:revertAll'),
   },
 
   nic: {

@@ -3434,6 +3434,21 @@ ipcMain.handle('tweak:getDisabledSliders', () => {
   return sliderTweakExecutor.DISABLED_SLIDER_TWEAKS;
 });
 
+/**
+ * Batch revert all premium slider tweaks that have an original-value backup.
+ * Called by the client-side premium revert engine on trial expiry.
+ */
+ipcMain.handle('tweak:revertAllSliders', async () => {
+  try {
+    const result = await sliderTweakExecutor.revertAllPremiumSliders();
+    console.log(`[IPC] tweak:revertAllSliders — reverted=${result.reverted.length} failed=${result.failed.length}`);
+    return { success: true, ...result };
+  } catch (e) {
+    console.error('[IPC] tweak:revertAllSliders error:', e.message);
+    return { success: false, error: e.message, reverted: [], failed: [] };
+  }
+});
+
 // Preset-profile tweak IPC handlers — same psLimiter guard as slider tweaks
 // so a rapid double-click can never spawn overlapping PowerShell writes.
 ipcMain.handle('presetTweaks:getState', async (event, tweakId) => {
@@ -3465,6 +3480,21 @@ ipcMain.handle('presetTweaks:getMeta', (event, tweakId) => {
 
 ipcMain.handle('presetTweaks:checkCrashSentinel', () => {
   return presetTweakExecutor.checkCrashSentinel();
+});
+
+/**
+ * Batch revert all premium preset tweaks that have an original-value backup.
+ * Called by the client-side premium revert engine on trial expiry.
+ */
+ipcMain.handle('presetTweaks:revertAll', async () => {
+  try {
+    const result = await presetTweakExecutor.revertAllPremiumPresets();
+    console.log(`[IPC] presetTweaks:revertAll — reverted=${result.reverted.length} failed=${result.failed.length}`);
+    return { success: true, ...result };
+  } catch (e) {
+    console.error('[IPC] presetTweaks:revertAll error:', e.message);
+    return { success: false, error: e.message, reverted: [], failed: [] };
+  }
 });
 
 // ── Extreme Labs IPC handlers ─────────────────────────────────────────────────────

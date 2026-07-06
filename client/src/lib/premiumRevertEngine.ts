@@ -34,6 +34,8 @@ const RETRY_BASE_DELAY_MS = 600;
 export type RevertPhase =
   | 'locking'
   | 'reverting_tweaks'
+  | 'reverting_sliders'
+  | 'reverting_presets'
   | 'reverting_network'
   | 'reverting_extreme_labs'
   | 'verifying'
@@ -74,6 +76,8 @@ export interface PowerPlanRevertResult {
 
 export interface PremiumRevertReport {
   tweakResults: RevertItemResult[];
+  sliderResults: RevertItemResult[];
+  presetResults: RevertItemResult[];
   networkResults: RevertItemResult[];
   extremeLabsResults: RevertItemResult[];
   powerPlan: PowerPlanRevertResult;
@@ -89,9 +93,113 @@ function getNetworkAPI()    { return (window as any).electronAPI?.networkTweaks 
 function getPowerPlanAPI()  { return (window as any).electronAPI?.powerPlans    ?? null; }
 function getPremiumAPI()    { return (window as any).electronAPI?.premium       ?? null; }
 function getExtremeLabsAPI(){ return (window as any).electronAPI?.extremeLabs  ?? null; }
+function getSliderAPI()     { return (window as any).electronAPI?.tweaks       ?? null; }
+function getPresetAPI()     { return (window as any).electronAPI?.presetTweaks ?? null; }
 
 function delay(ms: number): Promise<void> {
   return new Promise(r => setTimeout(r, ms));
+}
+
+// ── Slider revert ───────────────────────────────────────────────────────────
+//
+// NEW: Slider tweaks were completely skipped by the revert engine (0% success).
+// They store their original values in slider-state.json on the backend, so we
+// delegate to the Electron backend's revertAllPremiumSliders() sweep.
+
+async function revertSliderTweaks(): Promise<RevertItemResult[]> {
+  const api = getSliderAPI();
+  if (!api?.revertAllSliders) {
+    console.warn('[Revert:SLIDER] electronAPI.tweaks.revertAllSliders not available');
+    return [];
+  }
+
+  let lastResult: any = null;
+  let success = false;
+
+  for (let attempt = 1; attempt <= MAX_RETRY_ATTEMPTS; attempt++) {
+    try {
+      lastResult = await api.revertAllSliders();
+      if (lastResult?.success) {
+        success = true;
+        console.log(`[Revert:SLIDER] revertAllSliders succeeded attempt=${attempt}`);
+        break;
+      }
+      console.warn(`[Revert:SLIDER] revertAllSliders failed attempt=${attempt}`, lastResult?.error);
+    } catch (err) {
+      console.error(`[Revert:SLIDER] revertAllSliders exception attempt=${attempt}`, err);
+    }
+    if (attempt < MAX_RETRY_ATTEMPTS) await delay(RETRY_BASE_DELAY_MS * attempt);
+  }
+
+  if (!lastResult) {
+    return [];
+  }
+
+  const revertedIds: string[] = lastResult.reverted ?? [];
+  const failedList: Array<{ tweakId: string; error: string }> = lastResult.failed ?? [];
+
+  const results: RevertItemResult[] = [];
+
+  for (const tweakId of revertedIds) {
+    results.push({ tweakId, label: tweakId, status: 'reverted' });
+  }
+  for (const { tweakId, error } of failedList) {
+    results.push({ tweakId, label: tweakId, status: 'failed', reason: error });
+  }
+
+  console.log(`[Revert:SLIDER] total=${results.length} reverted=${revertedIds.length} failed=${failedList.length}`);
+  return results;
+}
+
+// ── Preset revert ─────────────────────────────────────────────────────────────
+//
+// NEW: Preset tweaks were completely skipped by the revert engine (0% success).
+// They store their original options in preset-state.json on the backend, so we
+// delegate to the Electron backend's revertAllPremiumPresets() sweep.
+
+async function revertPresetTweaks(): Promise<RevertItemResult[]> {
+  const api = getPresetAPI();
+  if (!api?.revertAll) {
+    console.warn('[Revert:PRESET] electronAPI.presetTweaks.revertAll not available');
+    return [];
+  }
+
+  let lastResult: any = null;
+  let success = false;
+
+  for (let attempt = 1; attempt <= MAX_RETRY_ATTEMPTS; attempt++) {
+    try {
+      lastResult = await api.revertAll();
+      if (lastResult?.success) {
+        success = true;
+        console.log(`[Revert:PRESET] revertAll succeeded attempt=${attempt}`);
+        break;
+      }
+      console.warn(`[Revert:PRESET] revertAll failed attempt=${attempt}`, lastResult?.error);
+    } catch (err) {
+      console.error(`[Revert:PRESET] revertAll exception attempt=${attempt}`, err);
+    }
+    if (attempt < MAX_RETRY_ATTEMPTS) await delay(RETRY_BASE_DELAY_MS * attempt);
+  }
+
+  if (!lastResult) {
+    return [];
+  }
+
+  const revertedIds: string[] = lastResult.reverted ?? [];
+  const failedList: Array<{ tweakId: string; error: string }> = lastResult.failed ?? [];
+
+  const results: RevertItemResult[] = [];
+
+  for (const tweakId of revertedIds) {
+    results.push({ tweakId, label: tweakId, status: 'reverted' });
+  }
+  for (const { tweakId, error } of failedList) {
+    results.push({ tweakId, label: tweakId, status: 'failed', reason: error });
+  }
+
+  console.log(`[Revert:PRESET] total=${results.length} reverted=${revertedIds.length} failed=${failedList.length}`);
+  return results;
 }
 
 // ── Tweak revert ──────────────────────────────────────────────────────────────
@@ -495,6 +603,8 @@ export async function runPremiumRevert(
   const store = useTweakOwnershipStore.getState();
 
   const tweakResults:       RevertItemResult[] = [];
+  let   sliderResults:      RevertItemResult[] = [];
+  let   presetResults:      RevertItemResult[] = [];
   const networkResults:     RevertItemResult[] = [];
   let   extremeLabsResults: RevertItemResult[] = [];
 
@@ -507,6 +617,22 @@ export async function runPremiumRevert(
     console.log(`[Revert] processing tweak "${tweakId}" label="${rec.label}"`);
     const status = await revertSingleTweak(tweakId, rec.label);
     tweakResults.push({ tweakId, label: rec.label, status });
+  }
+
+  // ── Slider tweaks ─────────────────────────────────────────────────────────
+  onProgress?.('reverting_sliders');
+  try {
+    sliderResults = await revertSliderTweaks();
+  } catch (err) {
+    console.error('[Revert:SLIDER] unexpected error:', err);
+  }
+
+  // ── Preset tweaks ─────────────────────────────────────────────────────────
+  onProgress?.('reverting_presets');
+  try {
+    presetResults = await revertPresetTweaks();
+  } catch (err) {
+    console.error('[Revert:PRESET] unexpected error:', err);
   }
 
   // ── Network tweaks ──────────────────────────────────────────────────────────
@@ -559,6 +685,8 @@ export async function runPremiumRevert(
 
   const anyFailed =
     tweakResults.some(r => r.status === 'failed') ||
+    sliderResults.some(r => r.status === 'failed') ||
+    presetResults.some(r => r.status === 'failed') ||
     networkResults.some(r => r.status === 'failed') ||
     extremeLabsResults.some(r => r.status === 'failed') ||
     powerPlanResult.status === 'failed';
@@ -569,17 +697,21 @@ export async function runPremiumRevert(
 
   const revertedCount =
     tweakResults.filter(r => r.status === 'reverted').length +
+    sliderResults.filter(r => r.status === 'reverted').length +
+    presetResults.filter(r => r.status === 'reverted').length +
     networkResults.filter(r => r.status === 'reverted').length +
     extremeLabsResults.filter(r => r.status === 'reverted').length +
     (powerPlanResult.status === 'reverted' || powerPlanResult.status === 'forced_balanced' ? 1 : 0);
 
   console.log(
     `[Revert] Complete — reverted=${revertedCount} failed=${anyFailed} conflict=${anyConflict}` +
-    ` el=${extremeLabsResults.length}`
+    ` sliders=${sliderResults.length} presets=${presetResults.length} el=${extremeLabsResults.length}`
   );
 
   return {
     tweakResults,
+    sliderResults,
+    presetResults,
     networkResults,
     extremeLabsResults,
     powerPlan: powerPlanResult,

@@ -71,6 +71,8 @@ export function usePremiumExpiry({
     if (!isElectronWithTweaks()) {
       setRevertReport({
         tweakResults: [],
+        sliderResults: [],
+        presetResults: [],
         networkResults: [],
         extremeLabsResults: [],
         powerPlan: { status: 'not_applicable' },
@@ -100,6 +102,8 @@ export function usePremiumExpiry({
       console.error('[PremiumExpiry] Revert sequence threw', err);
       setRevertReport({
         tweakResults: [],
+        sliderResults: [],
+        presetResults: [],
         networkResults: [],
         extremeLabsResults: [],
         powerPlan: { status: 'not_applicable' },

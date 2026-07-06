@@ -59,18 +59,22 @@ const REVERT_COPY: Record<NonNullable<RevertReason>, { title: string; subtitle: 
 const REVERT_STEPS: Array<{ phase: RevertPhase; label: string; detail: string }> = [
   { phase: 'locking',               label: 'Locking premium access',     detail: 'Suppressing premium gates' },
   { phase: 'reverting_tweaks',      label: 'Reverting tweaks',           detail: 'Restoring registry & services' },
+  { phase: 'reverting_sliders',     label: 'Restoring slider settings',  detail: 'Registry values & system timers' },
+  { phase: 'reverting_presets',     label: 'Restoring preset profiles',  detail: 'IRQ, I/O & GPU driver profiles' },
   { phase: 'reverting_network',     label: 'Restoring network settings', detail: 'TCP/IP, DNS, NIC properties' },
   { phase: 'reverting_extreme_labs',label: 'Restoring Extreme Labs',     detail: 'Scheduler, latency & NIC tuning' },
   { phase: 'verifying',             label: 'Verifying & cleanup',        detail: 'Power plan + final checks' },
 ];
 
 const PHASE_INDEX: Record<RevertPhase, number> = {
-  locking:               0,
-  reverting_tweaks:      1,
-  reverting_network:     2,
-  reverting_extreme_labs:3,
-  verifying:             4,
-  complete:              5,
+  locking:                0,
+  reverting_tweaks:       1,
+  reverting_sliders:      2,
+  reverting_presets:      3,
+  reverting_network:      4,
+  reverting_extreme_labs: 5,
+  verifying:              6,
+  complete:               7,
 };
 
 // ── Animated counter ──────────────────────────────────────────────────────────
@@ -397,12 +401,20 @@ export function PremiumRevertModal({ open, onClose, report, onRetry, reason, pha
   const isRunning = open && report === null && phase !== null && phase !== 'complete';
 
   const tweakResults       = report?.tweakResults       ?? [];
+  const sliderResults      = report?.sliderResults      ?? [];
+  const presetResults      = report?.presetResults      ?? [];
   const networkResults     = report?.networkResults     ?? [];
   const extremeLabsResults = report?.extremeLabsResults ?? [];
 
   const revertedTweaks  = tweakResults.filter(r => r.status === 'reverted');
   const failedTweaks    = tweakResults.filter(r => r.status === 'failed');
   const conflictTweaks  = tweakResults.filter(r => r.status === 'skipped_conflict');
+
+  const revertedSliders = sliderResults.filter(r => r.status === 'reverted');
+  const failedSliders   = sliderResults.filter(r => r.status === 'failed');
+
+  const revertedPresets = presetResults.filter(r => r.status === 'reverted');
+  const failedPresets   = presetResults.filter(r => r.status === 'failed');
 
   const revertedNet = networkResults.filter(r => r.status === 'reverted');
   const failedNet   = networkResults.filter(r => r.status === 'failed');
@@ -417,20 +429,26 @@ export function PremiumRevertModal({ open, onClose, report, onRetry, reason, pha
 
   const totalItemCount =
     tweakResults.length +
+    sliderResults.length +
+    presetResults.length +
     networkResults.length +
     extremeLabsResults.length +
     (powerPlanHandled ? 1 : 0);
 
   const revertedItemCount =
     revertedTweaks.length +
+    revertedSliders.length +
+    revertedPresets.length +
     revertedNet.length +
     revertedEL.length +
     (powerPlanReverted ? 1 : 0);
 
   const conflictCount = conflictTweaks.length + conflictNet.length;
-  const failedCount   = failedTweaks.length + failedNet.length + failedEL.length + (powerPlan?.status === 'failed' ? 1 : 0);
+  const failedCount   = failedTweaks.length + failedSliders.length + failedPresets.length + failedNet.length + failedEL.length + (powerPlan?.status === 'failed' ? 1 : 0);
 
   const hasTweakItems      = tweakResults.length > 0;
+  const hasSliderItems     = sliderResults.length > 0;
+  const hasPresetItems     = presetResults.length > 0;
   const hasNetworkItems    = networkResults.length > 0;
   const hasExtremeLabItems = extremeLabsResults.length > 0;
 
@@ -621,7 +639,7 @@ export function PremiumRevertModal({ open, onClose, report, onRetry, reason, pha
                   )}
 
                   {/* Item list — grouped by category */}
-                  {(tweakResults.length > 0 || networkResults.length > 0 || extremeLabsResults.length > 0 || powerPlanHandled) && (
+                  {(tweakResults.length > 0 || sliderResults.length > 0 || presetResults.length > 0 || networkResults.length > 0 || extremeLabsResults.length > 0 || powerPlanHandled) && (
                     <div className="space-y-1 max-h-[220px] overflow-y-auto pr-0.5" style={{ scrollbarWidth: "thin" }}>
 
                       {hasTweakItems && (
@@ -631,10 +649,24 @@ export function PremiumRevertModal({ open, onClose, report, onRetry, reason, pha
                         </>
                       )}
 
+                      {hasSliderItems && (
+                        <>
+                          <SectionHeader label="Slider Settings" count={sliderResults.length} />
+                          {sliderResults.slice(0, 4).map((r, i) => <StatusRow key={r.tweakId} result={r} index={i} />)}
+                        </>
+                      )}
+
+                      {hasPresetItems && (
+                        <>
+                          <SectionHeader label="Preset Profiles" count={presetResults.length} />
+                          {presetResults.slice(0, 4).map((r, i) => <StatusRow key={r.tweakId} result={r} index={i} />)}
+                        </>
+                      )}
+
                       {hasNetworkItems && (
                         <>
                           <SectionHeader label="Network Tweaks" count={networkResults.length} />
-                          {networkResults.slice(0, 4).map((r, i) => <StatusRow key={r.tweakId} result={r} index={hasTweakItems ? 4 + i : i} />)}
+                          {networkResults.slice(0, 4).map((r, i) => <StatusRow key={r.tweakId} result={r} index={i} />)}
                         </>
                       )}
 
@@ -669,14 +701,14 @@ export function PremiumRevertModal({ open, onClose, report, onRetry, reason, pha
                           <SectionHeader label="Power Plan" count={1} />
                           <PowerPlanRow
                             result={powerPlan!}
-                            delay={0.4 + (tweakResults.length + networkResults.length + extremeLabsResults.length) * 0.06}
+                            delay={0.4 + (tweakResults.length + sliderResults.length + presetResults.length + networkResults.length + extremeLabsResults.length) * 0.06}
                           />
                         </>
                       )}
 
-                      {(tweakResults.length + networkResults.length + extremeLabsResults.length) > 12 && (
+                      {(tweakResults.length + sliderResults.length + presetResults.length + networkResults.length + extremeLabsResults.length) > 12 && (
                         <p className="text-[10px] text-[#6B7380] text-center pt-1">
-                          + {tweakResults.length + networkResults.length + extremeLabsResults.length - 12} more
+                          + {tweakResults.length + sliderResults.length + presetResults.length + networkResults.length + extremeLabsResults.length - 12} more
                         </p>
                       )}
                     </div>
