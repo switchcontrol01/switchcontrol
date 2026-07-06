@@ -989,13 +989,32 @@ function NetworkTweaksContent() {
             }).electronAPI.networkTweaks;
             const verify = await api.checkStatus(tweak.id);
             if (!verify.error && !verify.disabled && verify.applied !== null) {
-              const verifiedStatus: TweakStatus = verify.applied ? "enabled" : "idle";
-              setStateMap(prev => {
-                const next = { ...prev, [tweak.id]: { status: verifiedStatus, message: result.message } };
-                savePersistedState(next);
-                return next;
-              });
-              console.log(`[NetworkTweaks] apply verified tweakId=${tweak.id} applied=${verify.applied}`);
+              if (verify.applied) {
+                // Confirmed applied — upgrade to fully verified
+                setStateMap(prev => {
+                  const next = { ...prev, [tweak.id]: { status: "enabled" as TweakStatus, message: result.message } };
+                  savePersistedState(next);
+                  return next;
+                });
+                console.log(`[NetworkTweaks] apply verified tweakId=${tweak.id} applied=true`);
+              } else if (action === "disable") {
+                // Confirmed reverted — safe to mark idle
+                setStateMap(prev => {
+                  const next = { ...prev, [tweak.id]: { status: "idle" as TweakStatus, message: result.message } };
+                  savePersistedState(next);
+                  return next;
+                });
+                console.log(`[NetworkTweaks] revert verified tweakId=${tweak.id} applied=false`);
+              } else {
+                // Check returned false but user just ENABLED it. Do NOT auto-disable.
+                // The apply succeeded; keep the enabled state and note inconclusive.
+                setStateMap(prev => {
+                  const next = { ...prev, [tweak.id]: { status: "enabled_unverified" as TweakStatus, message: `${result.message} — verification inconclusive` } };
+                  savePersistedState(next);
+                  return next;
+                });
+                console.log(`[NetworkTweaks] apply re-check returned false — keeping enabled tweakId=${tweak.id}`);
+              }
             } else {
               console.log(`[NetworkTweaks] apply re-check inconclusive tweakId=${tweak.id} applied=${verify.applied} error=${verify.error}`);
             }
