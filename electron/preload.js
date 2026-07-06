@@ -357,6 +357,28 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getDisabledSliders: () => ipcRenderer.invoke('tweak:getDisabledSliders'),
   },
 
+  // ── Preset-profile tweak APIs ─────────────────────────────────────────────────
+  presetTweaks: {
+    getState: (tweakId) => {
+      assertString(tweakId, 'tweakId');
+      return ipcRenderer.invoke('presetTweaks:getState', tweakId);
+    },
+    apply: (tweakId, optionId) => {
+      assertString(tweakId, 'tweakId');
+      assertString(optionId, 'optionId');
+      return ipcRenderer.invoke('presetTweaks:apply', tweakId, optionId);
+    },
+    revert: (tweakId) => {
+      assertString(tweakId, 'tweakId');
+      return ipcRenderer.invoke('presetTweaks:revert', tweakId);
+    },
+    getMeta: (tweakId) => {
+      assertString(tweakId, 'tweakId');
+      return ipcRenderer.invoke('presetTweaks:getMeta', tweakId);
+    },
+    checkCrashSentinel: () => ipcRenderer.invoke('presetTweaks:checkCrashSentinel'),
+  },
+
   nic: {
     getAdapters:      () => ipcRenderer.invoke('nic:getAdapters'),
     getPropertyMeta:  () => ipcRenderer.invoke('nic:getPropertyMeta'),

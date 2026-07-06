@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { TweakCard } from "./TweakCard";
 import { TweakSliderCard } from "./TweakSliderCard";
+import { TweakPresetCard } from "./TweakPresetCard";
 import { TWEAKS_DATA, TweakCategory, TweakLevel } from "@/lib/mock-data";
 import { useStore } from "@/lib/store";
 import { Input } from "@/components/ui/input";
@@ -223,6 +224,7 @@ export function TweaksList() {
 
   const filteredTweaks = useMemo(() => {
     const items = TWEAKS_DATA.filter((t) => {
+      if (t.isAdvancedTuning) return false; // rendered in its own "Advanced Tuning" section below
       const matchesSearch = t.title.toLowerCase().includes(search.toLowerCase()) ||
                             t.description.toLowerCase().includes(search.toLowerCase());
       let matchesChip: boolean;
@@ -247,6 +249,38 @@ export function TweaksList() {
 
   const toggleTweaks = useMemo(() => filteredTweaks.filter(t => t.controlType !== "slider"), [filteredTweaks]);
   const sliderTweaks = useMemo(() => filteredTweaks.filter(t => t.controlType === "slider"), [filteredTweaks]);
+
+  // ── Advanced Tuning section — always rendered regardless of category chip,
+  // but still respects search / level / risk filters so it doesn't clutter
+  // an unrelated search or a "Recommended"-only view.
+  const advancedTuningTweaks = useMemo(() => {
+    return TWEAKS_DATA.filter((t) => {
+      if (!t.isAdvancedTuning) return false;
+      const matchesSearch = t.title.toLowerCase().includes(search.toLowerCase()) ||
+                            t.description.toLowerCase().includes(search.toLowerCase());
+      const matchesRisk  = showRisky ? true : t.risk !== "Risky";
+      const matchesLevel = activeLevel === "All" || t.level === activeLevel;
+      return matchesSearch && matchesRisk && matchesLevel;
+    });
+  }, [search, showRisky, activeLevel]);
+
+  const advancedSliderTweaks = useMemo(() => advancedTuningTweaks.filter(t => t.controlType === "slider"), [advancedTuningTweaks]);
+  const advancedPresetTweaks = useMemo(() => advancedTuningTweaks.filter(t => t.controlType === "preset"), [advancedTuningTweaks]);
+
+  // Conflict detection: ids of toggle tweaks currently enabled, plus preset tweaks
+  // currently applied at a non-default option. Passed to preset cards so they can
+  // warn when a preset option conflicts with another currently-active tweak.
+  const presetOptions = useStore((s) => s.presetOptions);
+  const activeConflictIds = useMemo(() => {
+    const enabledToggleIds = Object.entries(tweaks).filter(([, v]) => v).map(([k]) => k);
+    const nonDefaultPresetIds = Object.entries(presetOptions)
+      .filter(([id, optionId]) => {
+        const t = TWEAKS_DATA.find(x => x.id === id);
+        return t?.presetConfig && optionId !== t.presetConfig.defaultOptionId;
+      })
+      .map(([id]) => id);
+    return [...enabledToggleIds, ...nonDefaultPresetIds];
+  }, [tweaks, presetOptions]);
 
   return (
     <div className="space-y-6 h-full flex flex-col">
@@ -553,7 +587,63 @@ export function TweaksList() {
           </div>
         )}
 
-        {filteredTweaks.length === 0 && (
+        {/* Advanced Tuning section — always visible regardless of category chip.
+            Combines the 3 isAdvancedTuning-flagged sliders with the 3 preset-card
+            profiles into one dedicated bottom section. */}
+        {advancedTuningTweaks.length > 0 && (
+          <>
+            <div className="flex items-center gap-3 py-2">
+              <div className="flex-1 h-px bg-white/[0.06]" />
+              <span className="text-[10px] font-semibold tracking-wider text-[#6B7380] uppercase">
+                Advanced Tuning
+              </span>
+              <div className="flex-1 h-px bg-white/[0.06]" />
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+              <AnimatePresence mode="popLayout">
+                {advancedSliderTweaks.map((tweak, index) => (
+                  <motion.div
+                    key={tweak.id}
+                    id={`tweak-card-${tweak.id}`}
+                    className="self-start"
+                    initial={{ opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, transition: { duration: 0.1 } }}
+                    transition={{
+                      duration: 0.25,
+                      delay: Math.min(index, 8) * 0.03,
+                      ease: [0.22, 1, 0.36, 1],
+                    }}
+                    style={{ willChange: "opacity, transform" }}
+                  >
+                    <TweakSliderCard tweak={tweak} />
+                  </motion.div>
+                ))}
+                {advancedPresetTweaks.map((tweak, index) => (
+                  <motion.div
+                    key={tweak.id}
+                    id={`tweak-card-${tweak.id}`}
+                    className="self-start"
+                    initial={{ opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, transition: { duration: 0.1 } }}
+                    transition={{
+                      duration: 0.25,
+                      delay: Math.min(advancedSliderTweaks.length + index, 8) * 0.03,
+                      ease: [0.22, 1, 0.36, 1],
+                    }}
+                    style={{ willChange: "opacity, transform" }}
+                  >
+                    <TweakPresetCard tweak={tweak} activeConflictIds={activeConflictIds} />
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </div>
+          </>
+        )}
+
+        {filteredTweaks.length === 0 && advancedTuningTweaks.length === 0 && (
           <motion.div
             className="text-center py-20 text-muted-foreground"
             initial={{ opacity: 0 }}

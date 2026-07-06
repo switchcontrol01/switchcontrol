@@ -7,6 +7,7 @@ import {
   HKCU_TOGGLE_IDS,
   ADMIN_TOGGLE_IDS,
   SLIDER_IDS,
+  PRESET_IDS,
   UNSUPPORTED_MAP,
 } from '@/lib/tweak-registry';
 
@@ -81,6 +82,13 @@ const ADMIN_TWEAKS: string[] = ADMIN_TOGGLE_IDS;
 export const SLIDER_TWEAKS = SLIDER_IDS as readonly string[];
 export type SliderTweakId = (typeof SLIDER_TWEAKS)[number];
 
+/**
+ * Preset-profile tweaks use a separate IPC path (presetTweaks:getState / apply /
+ * revert). They are NOT in REAL_TWEAKS (toggle path) — TweakPresetCard handles them.
+ */
+export const PRESET_TWEAKS = PRESET_IDS as readonly string[];
+export type PresetTweakId = (typeof PRESET_TWEAKS)[number];
+
 /** Map of unsupported tweak ID → human-readable reason. */
 export const UNSUPPORTED_TWEAKS: Record<string, string> = UNSUPPORTED_MAP;
 
@@ -92,6 +100,7 @@ export function isTierATweak(tweakId: string): boolean { return HKCU_TWEAKS.incl
 export function isTierBTweak(tweakId: string): boolean { return ADMIN_TWEAKS.includes(tweakId); }
 export function isAdminTweak(tweakId: string): boolean { return ADMIN_TWEAKS.includes(tweakId); }
 export function isSliderTweak(tweakId: string): boolean { return (SLIDER_TWEAKS as readonly string[]).includes(tweakId); }
+export function isPresetTweak(tweakId: string): boolean { return (PRESET_TWEAKS as readonly string[]).includes(tweakId); }
 
 export function isElectronWithTweaks(): boolean {
   return typeof window !== 'undefined' && !!(window as any).electronAPI?.tweaks;

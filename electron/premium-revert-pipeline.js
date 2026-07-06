@@ -47,6 +47,8 @@ function getTweakExecutor()          { return require('./tweak-executor'); }
 function getNetworkTweakExecutor()   { return require('./network-tweak-executor'); }
 function getNicExecutor()            { return require('./nic-executor'); }
 function getPowerPlanManager()       { return require('./power-plan-manager'); }
+function getSliderTweakExecutor()    { return require('./slider-tweak-executor'); }
+function getPresetTweakExecutor()    { return require('./preset-tweak-executor'); }
 
 // ── SC plan detection ─────────────────────────────────────────────────────────
 
@@ -423,6 +425,42 @@ async function revertAllAppOwned() {
       failedCount++;
       console.error(`[RevertPipeline] FAIL ${scopeKey} — ${itemResult.error}`);
     }
+  }
+
+  // ── Phase 1b: advanced slider / preset tweaks ─────────────────────────────
+  // These live in their own state files (slider-state.json / preset-state.json)
+  // rather than the ownership store, so they're reverted via their own
+  // "revert every premium item with a backup" sweep instead of per-record loop.
+  try {
+    const { reverted: slidersReverted, failed: slidersFailed } = await getSliderTweakExecutor().revertAllPremiumSliders();
+    for (const tweakId of slidersReverted) {
+      details[`slider:${tweakId}`] = { success: true, action: 'reverted' };
+      revertedCount++;
+      console.log(`[RevertPipeline] OK   slider:${tweakId}`);
+    }
+    for (const { tweakId, error } of slidersFailed) {
+      details[`slider:${tweakId}`] = { success: false, error };
+      failedCount++;
+      console.error(`[RevertPipeline] FAIL slider:${tweakId} — ${error}`);
+    }
+  } catch (e) {
+    console.error(`[RevertPipeline] Slider revert sweep threw: ${e.message}`);
+  }
+
+  try {
+    const { reverted: presetsReverted, failed: presetsFailed } = await getPresetTweakExecutor().revertAllPremiumPresets();
+    for (const tweakId of presetsReverted) {
+      details[`preset:${tweakId}`] = { success: true, action: 'reverted' };
+      revertedCount++;
+      console.log(`[RevertPipeline] OK   preset:${tweakId}`);
+    }
+    for (const { tweakId, error } of presetsFailed) {
+      details[`preset:${tweakId}`] = { success: false, error };
+      failedCount++;
+      console.error(`[RevertPipeline] FAIL preset:${tweakId} — ${error}`);
+    }
+  } catch (e) {
+    console.error(`[RevertPipeline] Preset revert sweep threw: ${e.message}`);
   }
 
   // ── Phase 2: power plan revert — sequential, always last ─────────────────

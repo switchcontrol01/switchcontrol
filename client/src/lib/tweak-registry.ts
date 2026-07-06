@@ -18,7 +18,7 @@ export type { TweakLevel, TweakCategory } from "@shared/tweak-tiers";
 
 export type RiskLevel = "Safe" | "Moderate" | "Risky";
 export type ImpactLevel = "None" | "Low" | "Medium" | "High";
-export type TweakControlType = "toggle" | "slider";
+export type TweakControlType = "toggle" | "slider" | "preset";
 
 // ── Compound types ────────────────────────────────────────────────────────────
 
@@ -69,6 +69,24 @@ export interface SliderConfig {
   };
 }
 
+export interface PresetOption {
+  id: string;
+  label: string;
+  description?: string;
+  isDefault?: boolean;
+  isRecommended?: boolean;
+  /** Human-readable summary of what this option actually writes to the system. */
+  technicalSummary?: string;
+}
+
+export interface PresetConfig {
+  options: PresetOption[];
+  defaultOptionId: string;
+  recommendedOptionId?: string;
+  /** Option ids that conflict with other applied tweaks/presets and require a warning before apply. */
+  conflictsWith?: string[];
+}
+
 export interface TweakDetailsConfig {
   registryPath?: string;
   registryName?: string;
@@ -93,10 +111,14 @@ export interface RegistryTweak {
   risk: RiskLevel;
   controlType?: TweakControlType;
   sliderConfig?: SliderConfig;
+  presetConfig?: PresetConfig;
   detailsConfig?: TweakDetailsConfig;
   whoShouldAvoid?: string;
   requiresReboot?: boolean;
   requiresAgent?: boolean;
+  /** true = rendered in the "Advanced Tuning" section at the bottom of the Tweaks page,
+   *  excluded from the normal category grid/chip filters. */
+  isAdvancedTuning?: boolean;
 
   // ── Registry metadata fields ──────────────────────────────────────────────
   /** true = fully supported. false = cannot be applied on modern Windows. */
@@ -1099,46 +1121,107 @@ const BASE: BaseTweak[] = [
   {
     id: "sys-responsiveness",
     title: "MMCSS Background Reservation",
-    description: "Controls how much CPU the Multimedia Class Scheduler Service (MMCSS) reserves for background tasks. Lower values give more CPU to foreground multimedia/gaming. 0 is the most aggressive gaming setting. This is not a generic performance slider — it is a real system registry value with tradeoffs.",
+    description: "Controls how much CPU the Multimedia Class Scheduler Service (MMCSS) reserves for background tasks. Lower values give more CPU to foreground multimedia/gaming. This is not a generic performance slider — it is a real system registry value with tradeoffs. 0 is intentionally excluded: it fully starves background audio/capture and is not a safe preset.",
     impact: [
       "Lower values reserve less CPU for background tasks — foreground games/audio get more scheduler time",
-      "0 = aggressive: background audio, recording, streaming, and multitasking may stutter or lag",
+      "10 = aggressive gaming preset: background audio, recording, streaming, and multitasking may stutter",
       "20 = Windows default: balanced between foreground responsiveness and background service quality",
       "Takes effect when the next MMCSS-registered app starts — no restart needed",
     ],
     expected: { latency: "Medium", cpu: "Medium", gpu: "None", ram: "None", disk: "None", network: "None", stabilityRisk: "Medium" },
     category: "Gaming and Latency", level: "Advanced", risk: "Moderate",
     controlType: "slider",
-    whoShouldAvoid: "Streamers, video editors, and anyone who relies on background audio, recording, or capture while gaming. 0 will starve those tasks.",
+    isAdvancedTuning: true,
+    whoShouldAvoid: "Streamers, video editors, and anyone who relies on background audio, recording, or capture while gaming. Low values will starve those tasks.",
     sliderConfig: {
-      min: 0, max: 4, step: 1, defaultValue: 2, recommendedValue: 1, stepped: true, unit: "preset",
+      min: 10, max: 30, step: 1, defaultValue: 20, recommendedValue: 15, stepped: true, unit: "%",
       presets: [
-        { value: 2, label: "Windows Default (20)",  description: "Windows default — 20% background reservation. Balanced for general use.", isDefault: true },
-        { value: 1, label: "Gaming Focus (10)",    description: "10% reservation — more CPU for games and audio. Safer gaming preset.", isRecommended: true },
-        { value: 0, label: "Aggressive Gaming (0)", description: "0% reservation — maximum foreground CPU. May break background audio/capture.", isRecommended: false },
-        { value: 3, label: "Production (40)",      description: "40% reservation — preserves background tasks. Better for content creation.", isRecommended: false },
-        { value: 4, label: "Custom",               description: "Drag the slider to pick any exact registry value.", isRecommended: false },
+        { value: 20, label: "Windows Default (20)", description: "Windows default — 20% background reservation. Balanced for general use.", isDefault: true },
+        { value: 15, label: "Gaming Focus (15)",     description: "15% reservation — more CPU headroom for games and audio without starving capture.", isRecommended: true },
+        { value: 10, label: "Aggressive Gaming (10)", description: "10% reservation — maximum safe foreground priority. Background audio/capture may stutter under load." },
+        { value: 30, label: "Production (30)",       description: "30% reservation — preserves background tasks. Better for content creation and streaming." },
       ],
-      safeMin: 0, safeMax: 3,
-      cautionLabel: "0 = aggressive. Background audio, streaming, or recording may stutter.",
-      extremeMin: 0, extremeMax: 0,
-      extremeLabel: "0 requires confirmation — can break background multimedia",
-      customRange: {
-        min: 0,
-        max: 100,
-        step: 1,
-        defaultValue: 20,
-        unit: "%",
-      },
+      safeMin: 10, safeMax: 30,
+      cautionLabel: "Values below 10 are blocked — they can fully starve background audio/capture threads.",
     },
     detailsConfig: {
       registryPath: "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile",
       registryName: "SystemResponsiveness",
       registryType: "DWORD",
-      whoShouldAvoid: "Anyone running OBS, Discord, Spotify, or background capture while gaming. 0 will cause audio dropouts and stutter.",
-      technicalNote: "MMCSS (Multimedia Class Scheduler) uses this value to determine how much CPU bandwidth to yield to non-multimedia threads. Presets map to: Windows Default=20, Gaming Focus=10, Aggressive=0, Production=40. Values are real registry DWORDs, not percentages in a fake range.",
+      whoShouldAvoid: "Anyone running OBS, Discord, Spotify, or background capture while gaming. 10 can cause occasional audio dropouts under heavy load.",
+      technicalNote: "MMCSS (Multimedia Class Scheduler) uses this value to determine how much CPU bandwidth to yield to non-multimedia threads. Presets write the real registry DWORD directly: 10/15/20/30. 0 (uncapped foreground) is deliberately not offered as a preset.",
     },
     supported: true, requiresAdmin: true,
+  },
+  {
+    id: "max-pending-interrupts",
+    title: "Max Pending DPC Queue Depth",
+    description: "Controls the maximum number of Deferred Procedure Calls (DPCs) the kernel allows to queue per processor before forcing them to drain. Windows' default is a conservative queue depth. Raising it lets bursts of hardware interrupts (GPU, network, storage, audio) queue more DPCs before the kernel throttles them — useful when interrupt-heavy peripherals compete for CPU time during gaming.",
+    impact: [
+      "Higher values allow more DPCs to queue per CPU before forcing a drain — smooths bursty interrupt load from GPU/NIC/storage",
+      "4 = Windows default: conservative, favors low DPC latency over throughput",
+      "32 = Extreme: maximum queue depth, only useful on systems with many interrupt-heavy devices",
+      "Requires a reboot — this is a kernel parameter read once at boot",
+    ],
+    expected: { latency: "Medium", cpu: "Low", gpu: "None", ram: "None", disk: "None", network: "Medium", stabilityRisk: "Medium" },
+    category: "Gaming and Latency", level: "Advanced", risk: "Moderate",
+    controlType: "slider",
+    isAdvancedTuning: true,
+    whoShouldAvoid: "Systems already experiencing DPC latency issues (audio crackling, stutter) — raising queue depth can mask a driver problem rather than fix it. Requires a reboot to test.",
+    sliderConfig: {
+      min: 4, max: 32, step: 1, defaultValue: 4, recommendedValue: 8, stepped: true, unit: "DPCs/CPU",
+      presets: [
+        { value: 4,  label: "Windows Default (4)",  description: "Windows default DPC queue depth per processor.", isDefault: true },
+        { value: 8,  label: "Gaming (8)",            description: "Moderate increase — smooths interrupt bursts from GPU/NIC without excessive queuing.", isRecommended: true },
+        { value: 16, label: "High Interrupt Load (16)", description: "For systems with many interrupt-heavy devices (multiple NICs, capture cards)." },
+        { value: 32, label: "Extreme (32)",          description: "Maximum queue depth. Only beneficial on very interrupt-heavy configurations." },
+      ],
+      safeMin: 4, safeMax: 16,
+      cautionLabel: "Values above 16 are rarely beneficial and can slightly increase worst-case DPC latency.",
+      extremeMin: 32, extremeLabel: "32 is the maximum supported value — confirm before applying.",
+    },
+    detailsConfig: {
+      registryPath: "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\kernel",
+      registryName: "MaximumDpcQueueDepth",
+      registryType: "DWORD",
+      technicalNote: "MaximumDpcQueueDepth is read once at boot by the kernel's DPC dispatcher. Requires a restart to take effect. Interacts with IdealDpcRate and DpcWatchdog settings but is independently safe to adjust.",
+    },
+    supported: true, requiresAdmin: true, requiresReboot: true,
+  },
+  {
+    id: "timer-resolution-slider",
+    title: "System Timer Resolution",
+    description: "Requests a higher-resolution system timer via NtSetTimerResolution, the same mechanism used by dedicated timer-resolution utilities. A finer timer resolution reduces Sleep()/scheduler granularity, which can reduce frame-time jitter in games that rely on fine-grained timing. Windows' natural default is ~15.6ms; this control can request down to 0.5ms.",
+    impact: [
+      "Lower values (0.5–2.0ms) give the scheduler finer-grained timing — can reduce frame-time jitter in timer-sensitive games",
+      "15.6ms is the Windows natural default — no active request is made, lowest power draw",
+      "A small background helper process holds the requested resolution while active — closing SwitchControl or reverting releases it",
+      "Higher timer resolution increases timer interrupt frequency, which can very slightly increase power draw on laptops",
+    ],
+    expected: { latency: "High", cpu: "Low", gpu: "None", ram: "None", disk: "None", network: "None", stabilityRisk: "Low" },
+    category: "Gaming and Latency", level: "Advanced", risk: "Moderate",
+    controlType: "slider",
+    isAdvancedTuning: true,
+    whoShouldAvoid: "Laptop users on battery who prioritize battery life over frame-time smoothness — finer timer resolution modestly increases power draw.",
+    sliderConfig: {
+      min: 5, max: 156, step: 1, defaultValue: 156, recommendedValue: 10, stepped: true, unit: "×0.1ms",
+      presets: [
+        { value: 156, label: "Windows Default (15.6ms)", description: "No active timer resolution request — Windows' natural default granularity.", isDefault: true },
+        { value: 50,  label: "Balanced (5.0ms)",          description: "Moderate improvement in scheduling granularity with negligible power impact." },
+        { value: 20,  label: "Gaming (2.0ms)",             description: "Noticeable reduction in frame-time jitter for timer-sensitive games." },
+        { value: 10,  label: "Aggressive Gaming (1.0ms)",  description: "High-resolution timing for competitive/latency-sensitive titles.", isRecommended: true },
+        { value: 5,   label: "Maximum (0.5ms)",            description: "Finest supported resolution. Diminishing returns beyond 1.0ms on most systems." },
+      ],
+      safeMin: 5, safeMax: 156,
+      cautionLabel: "Values below 1.0ms rarely provide additional benefit and slightly increase timer interrupt overhead.",
+    },
+    detailsConfig: {
+      registryPath: "N/A — process-level request, not a persistent registry value",
+      registryName: "NtSetTimerResolution",
+      registryType: "N/A",
+      technicalNote: "Values are stored internally in tenths of a millisecond (156 = 15.6ms, 5 = 0.5ms) so they map to exact integer NtSetTimerResolution units. A hidden background helper process requests and holds the resolution; it is torn down and a new one started on every apply, and removed entirely on revert to the 15.6ms default. Does not require administrator privileges.",
+    },
+    supported: true, requiresAdmin: false,
   },
   {
     id: "net-throttle-index",
@@ -1280,6 +1363,104 @@ const BASE: BaseTweak[] = [
     },
     supported: true, requiresAdmin: false,
   },
+  {
+    id: "irq-optimization-profile",
+    title: "IRQ Priority Profile",
+    description: "Applies a preset IRQ priority policy that raises the relative priority of PCI interrupts (GPU, storage, NIC) versus legacy/PS2 devices. Each profile writes a coordinated set of PriorityControl registry values rather than a single number — this is a real Windows kernel priority policy, not a synthetic slider.",
+    impact: [
+      "Gaming profile raises IRQ priority for interrupt-heavy PCI devices (GPU, NVMe, network)",
+      "Balanced (default) leaves Windows' standard IRQ priority scheme untouched",
+      "Streaming profile favors audio/capture device interrupts alongside GPU",
+      "Requires a reboot for the new IRQ priority policy to take effect",
+    ],
+    expected: { latency: "Medium", cpu: "Low", gpu: "Low", ram: "None", disk: "Low", network: "Low", stabilityRisk: "Low" },
+    category: "Gaming and Latency", level: "Advanced", risk: "Moderate",
+    controlType: "preset",
+    isAdvancedTuning: true,
+    whoShouldAvoid: "Systems with unusual PCI topology (some server/workstation boards) where forcing IRQ8 priority can interact with firmware-level interrupt routing.",
+    presetConfig: {
+      defaultOptionId: "balanced",
+      recommendedOptionId: "gaming",
+      options: [
+        { id: "balanced", label: "Balanced (Windows Default)", description: "Standard Windows IRQ priority scheme — no override applied.", isDefault: true, technicalSummary: "Removes the IRQ8Priority override (restores default)." },
+        { id: "gaming", label: "Gaming", description: "Raises priority for GPU, NVMe, and network interrupts to reduce input-to-photon latency.", isRecommended: true, technicalSummary: "Sets IRQ8Priority = 1 (elevated real-time clock / PCI priority class)." },
+        { id: "streaming", label: "Streaming", description: "Balances GPU priority with audio/capture device interrupts for smoother recording while gaming.", technicalSummary: "Sets IRQ8Priority = 2 (moderate elevated priority, shared with audio class)." },
+      ],
+    },
+    detailsConfig: {
+      registryPath: "HKLM\\SYSTEM\\CurrentControlSet\\Control\\PriorityControl",
+      registryName: "IRQ8Priority",
+      registryType: "DWORD",
+      technicalNote: "IRQ8Priority raises the interrupt priority class for high-priority PCI devices relative to the real-time clock line. Windows only reads PriorityControl values at boot, so a restart is required after applying any profile.",
+    },
+    supported: true, requiresAdmin: true, requiresReboot: true,
+  },
+  {
+    id: "io-optimization-profile",
+    title: "NTFS I/O Optimization Profile",
+    description: "Applies a preset NTFS memory-usage and metadata-caching policy. Windows' default NtfsMemoryUsage setting is conservative to favor low memory footprint; raising it lets NTFS cache more file-system metadata in memory, which can reduce load-stutter in games that stream many small assets from disk.",
+    impact: [
+      "Gaming profile increases NTFS metadata cache size — smoother asset streaming, fewer load-time stutters",
+      "Standard (default) keeps Windows' conservative NTFS memory usage",
+      "Higher NTFS cache usage trades a modest amount of system RAM for faster metadata lookups",
+      "Takes effect after the next reboot (NTFS reads this once at driver initialization)",
+    ],
+    expected: { disk: "Medium", latency: "Low", cpu: "None", gpu: "None", ram: "Low", network: "None", stabilityRisk: "Low" },
+    category: "Memory and Storage", level: "Advanced", risk: "Safe",
+    controlType: "preset",
+    isAdvancedTuning: true,
+    whoShouldAvoid: "Systems with very limited RAM (4GB or less), where a larger NTFS metadata cache competes with application memory.",
+    presetConfig: {
+      defaultOptionId: "standard",
+      recommendedOptionId: "gaming",
+      options: [
+        { id: "standard", label: "Standard (Windows Default)", description: "Windows' default conservative NTFS metadata cache size.", isDefault: true, technicalSummary: "Sets NtfsMemoryUsage = 0 (default/conservative)." },
+        { id: "gaming", label: "Gaming", description: "Larger NTFS metadata cache — reduces stutter when streaming many small assets from disk.", isRecommended: true, technicalSummary: "Sets NtfsMemoryUsage = 1 (moderate increase)." },
+        { id: "extreme", label: "Extreme", description: "Maximum NTFS metadata cache. Only beneficial on systems with 16GB+ RAM and large game libraries on the same drive.", technicalSummary: "Sets NtfsMemoryUsage = 2 (maximum)." },
+      ],
+    },
+    detailsConfig: {
+      registryPath: "HKLM\\SYSTEM\\CurrentControlSet\\Control\\FileSystem",
+      registryName: "NtfsMemoryUsage",
+      registryType: "DWORD",
+      technicalNote: "NtfsMemoryUsage controls how aggressively the NTFS driver caches file-system metadata (MFT records, directory indexes) in the system cache. Read once at NTFS driver initialization — requires a restart to change.",
+    },
+    supported: true, requiresAdmin: true, requiresReboot: true,
+  },
+  {
+    id: "directx-optimization-profile",
+    title: "GPU Driver Timeout Profile",
+    description: "Applies a preset Timeout Detection and Recovery (TDR) policy for the GPU driver. Windows' default TDR watchdog resets the GPU driver after 2 seconds of an unresponsive frame — appropriate for desktop use, but can cause false-positive driver resets during heavy shader compilation or long compute frames. This profile adjusts the real TdrLevel/TdrDelay registry values used by the graphics driver watchdog.",
+    impact: [
+      "Extended-timeout profile raises the TDR grace period — fewer false-positive 'driver crashed' resets during heavy shader compiles",
+      "Standard (default) keeps Windows' 2-second TDR watchdog",
+      "Does not disable crash recovery — a genuinely hung driver still resets, just with a longer grace period",
+      "Requires a reboot for the graphics driver watchdog to pick up the new values",
+    ],
+    expected: { gpu: "Medium", latency: "None", cpu: "None", ram: "None", disk: "None", network: "None", stabilityRisk: "Moderate" },
+    category: "GPU and Graphics", level: "Advanced", risk: "Moderate",
+    controlType: "preset",
+    isAdvancedTuning: true,
+    whoShouldAvoid: "Users troubleshooting an actually-unstable GPU driver — a longer TDR delay will make a genuinely hung driver take longer to recover, masking the underlying issue.",
+    presetConfig: {
+      defaultOptionId: "standard",
+      recommendedOptionId: "extended",
+      conflictsWith: ["hags-toggle"],
+      options: [
+        { id: "standard", label: "Standard (Windows Default)", description: "Windows' default 2-second TDR watchdog timeout.", isDefault: true, technicalSummary: "Removes TdrLevel/TdrDelay overrides (restores driver defaults)." },
+        { id: "extended", label: "Extended Timeout", description: "Raises the TDR grace period to 8 seconds — reduces false-positive driver resets during heavy shader compilation.", isRecommended: true, technicalSummary: "Sets TdrLevel = 3, TdrDelay = 8." },
+        { id: "compute", label: "Compute-Heavy", description: "Longest grace period for GPU compute or ray-tracing workloads with long single-frame times.", technicalSummary: "Sets TdrLevel = 3, TdrDelay = 15." },
+      ],
+    },
+    detailsConfig: {
+      registryPath: "HKLM\\SYSTEM\\CurrentControlSet\\Control\\GraphicsDrivers",
+      registryName: "TdrLevel / TdrDelay",
+      registryType: "DWORD",
+      technicalNote: "TdrLevel controls whether TDR recovery is active (3 = full recovery, default) and TdrDelay is the number of seconds a single GPU operation may run before the watchdog considers the driver hung. Read by the driver at initialization — requires a restart.",
+      warningText: "Raising TdrDelay too high can make a genuinely hung GPU driver take longer to recover. Only use Extended/Compute-Heavy if you are seeing false-positive driver resets during normal gaming or shader compilation.",
+    },
+    supported: true, requiresAdmin: true, requiresReboot: true,
+  },
 ];
 
 // ── Build final registry with computed premium field ──────────────────────────
@@ -1291,8 +1472,9 @@ export const REGISTRY: RegistryTweak[] = BASE.map(t => ({
 
 // ── Derived classification arrays ─────────────────────────────────────────────
 
-const supportedToggles = REGISTRY.filter(t => t.supported && t.controlType !== "slider");
+const supportedToggles = REGISTRY.filter(t => t.supported && t.controlType !== "slider" && t.controlType !== "preset");
 const supportedSliders = REGISTRY.filter(t => t.supported && t.controlType === "slider");
+const supportedPresets = REGISTRY.filter(t => t.supported && t.controlType === "preset");
 
 /** IDs of supported HKCU (non-admin) toggle tweaks. */
 export const HKCU_TOGGLE_IDS: string[] = supportedToggles
@@ -1306,6 +1488,9 @@ export const ADMIN_TOGGLE_IDS: string[] = supportedToggles
 
 /** IDs of all supported slider tweaks (admin + HKCU mixed). */
 export const SLIDER_IDS: readonly string[] = supportedSliders.map(t => t.id);
+
+/** IDs of all supported preset-profile tweaks. */
+export const PRESET_IDS: readonly string[] = supportedPresets.map(t => t.id);
 
 /** Map of unsupported tweak IDs → human-readable reason string. */
 export const UNSUPPORTED_MAP: Record<string, string> = Object.fromEntries(

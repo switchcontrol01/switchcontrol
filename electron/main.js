@@ -38,6 +38,7 @@ const fs = require('fs'); // top-level — never undefined, never lost inside a 
 const si = require('systeminformation');
 const tweakExecutor = require('./tweak-executor');
 const sliderTweakExecutor = require('./slider-tweak-executor');
+const presetTweakExecutor = require('./preset-tweak-executor');
 const nicExecutor = require('./nic-executor');
 let networkTweakExecutor;
 try {
@@ -3431,6 +3432,39 @@ ipcMain.handle('tweak:checkCrashSentinel', () => {
 
 ipcMain.handle('tweak:getDisabledSliders', () => {
   return sliderTweakExecutor.DISABLED_SLIDER_TWEAKS;
+});
+
+// Preset-profile tweak IPC handlers — same psLimiter guard as slider tweaks
+// so a rapid double-click can never spawn overlapping PowerShell writes.
+ipcMain.handle('presetTweaks:getState', async (event, tweakId) => {
+  if (typeof tweakId !== 'string') return { optionId: null, error: 'Invalid tweakId' };
+  const token = psLimiter.tryAcquire({ file: 'main.js', fn: 'preset:getState', reason: 'preset-read' });
+  if (!token) return { optionId: null, error: 'busy' };
+  try { return await presetTweakExecutor.readPresetValue(tweakId); } finally { psLimiter.release(token); }
+});
+
+ipcMain.handle('presetTweaks:apply', async (event, tweakId, optionId) => {
+  if (typeof tweakId !== 'string') return { ok: false, error: 'Invalid tweakId' };
+  if (typeof optionId !== 'string') return { ok: false, error: 'Option id required' };
+  const token = psLimiter.tryAcquire({ file: 'main.js', fn: 'preset:apply', reason: 'preset-apply' });
+  if (!token) return { ok: false, error: 'Another tweak is being applied — please wait a moment.' };
+  try { return await presetTweakExecutor.applyPresetValue(tweakId, optionId); } finally { psLimiter.release(token); }
+});
+
+ipcMain.handle('presetTweaks:revert', async (event, tweakId) => {
+  if (typeof tweakId !== 'string') return { ok: false, error: 'Invalid tweakId' };
+  const token = psLimiter.tryAcquire({ file: 'main.js', fn: 'preset:revert', reason: 'preset-revert' });
+  if (!token) return { ok: false, error: 'busy' };
+  try { return await presetTweakExecutor.resetPresetValue(tweakId); } finally { psLimiter.release(token); }
+});
+
+ipcMain.handle('presetTweaks:getMeta', (event, tweakId) => {
+  if (typeof tweakId !== 'string') return null;
+  return presetTweakExecutor.getPresetTweakMeta(tweakId);
+});
+
+ipcMain.handle('presetTweaks:checkCrashSentinel', () => {
+  return presetTweakExecutor.checkCrashSentinel();
 });
 
 // ── Extreme Labs IPC handlers ─────────────────────────────────────────────────────

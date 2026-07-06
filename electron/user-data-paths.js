@@ -84,4 +84,23 @@ module.exports = {
    * and enrichment only runs in the background if the cache is > 4 hours old.
    */
   SPECS_CACHE_FILE: path.join(APPDATA_DIR, 'specs-cache.json'),
+
+  /**
+   * Preset-tweak original-value backup.
+   * Stores the registry values captured BEFORE the first preset-profile write
+   * per tweak, so revert always restores the user's actual previous values.
+   * Written by preset-tweak-executor.js.
+   */
+  PRESET_STATE_FILE: path.join(APPDATA_DIR, 'preset-state.json'),
+
+  /**
+   * Preset-tweak audit log — one entry per apply / revert / blocked action.
+   */
+  PRESET_LOG_FILE: path.join(APPDATA_DIR, 'preset-log.json'),
+
+  /**
+   * Crash-sentinel file for preset tweaks that require reboot.
+   * Same purpose as SLIDER_CRASH_SENTINEL_FILE, scoped to preset profiles.
+   */
+  PRESET_CRASH_SENTINEL_FILE: path.join(APPDATA_DIR, 'preset-crash-sentinel.json'),
 };

@@ -181,6 +181,14 @@ declare global {
         getInfo: () => Promise<TweakInfo[]>;
       };
 
+      presetTweaks: {
+        getState: (tweakId: string) => Promise<{ optionId: string | null; error: string | null }>;
+        apply: (tweakId: string, optionId: string) => Promise<{ ok: boolean; error: string | null }>;
+        revert: (tweakId: string) => Promise<{ ok: boolean; optionId?: string; error: string | null }>;
+        getMeta: (tweakId: string) => Promise<{ requiresAdmin: boolean; requiresReboot: boolean } | null>;
+        checkCrashSentinel: () => Promise<{ ok: boolean; hadCrash: boolean; error?: string }>;
+      };
+
       extremeLabs: {
         createRestorePoint: () => Promise<{ ok: boolean; timestamp?: number; error?: string }>;
         createBaseline: () => Promise<{ ok: boolean; baseline?: { timestamp: number; snapshot: string }; error?: string }>;

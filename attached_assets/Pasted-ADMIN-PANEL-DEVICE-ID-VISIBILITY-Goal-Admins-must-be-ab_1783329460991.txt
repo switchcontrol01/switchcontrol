@@ -1,0 +1,199 @@
+ADMIN PANEL DEVICE ID VISIBILITY
+
+Goal:
+
+Admins must be able to see a user's Device ID inside the admin panel.
+
+Right now only the user can see their Device ID in app settings. This makes manual trial approval and device-based trial enforcement harder.
+
+Device ID must be visible on the user's admin profile.
+
+━━━━━━━━━━━━━━━━━━
+
+REQUIREMENTS
+
+Add Device ID to the admin panel user detail view.
+
+Show:
+
+• User ID
+• Email
+• Plan
+• Premium status
+• Trial status
+• Trial used
+• Device ID
+• Device linked date
+• Last seen device date
+• App version
+• Platform
+• Device lock status if available
+
+━━━━━━━━━━━━━━━━━━
+
+BACKEND
+
+Find the admin user lookup endpoint.
+
+Likely routes:
+
+/api/admin/users
+/api/admin/users/:id
+/api/admin/user/:id
+/api/admin/customers
+
+Add device fields to the response.
+
+Return:
+
+{
+userId: string,
+email: string,
+plan: string,
+isPremium: boolean,
+trialActive: boolean,
+trialUsed: boolean,
+deviceId: string | null,
+deviceLinkedAt: string | null,
+deviceLastSeenAt: string | null,
+appVersion: string | null,
+platform: string | null,
+deviceLocked: boolean
+}
+
+If a user has multiple devices, return:
+
+devices: [
+{
+deviceId,
+deviceName,
+platform,
+appVersion,
+linkedAt,
+lastSeenAt,
+trialUsed,
+premiumAllowed,
+isCurrentDevice,
+locked
+}
+]
+
+━━━━━━━━━━━━━━━━━━
+
+DATABASE
+
+Find where device IDs are stored.
+
+Search:
+
+deviceId
+device_id
+deviceFingerprint
+x-electron-uid
+electronUid
+hardwareId
+deviceLock
+device
+
+Ensure device ID is saved server-side when the app authenticates or calls /api/me.
+
+Do not rely only on AppData or localStorage.
+
+Device ID must be tied to:
+
+• userId
+• email/account
+• trial status
+• premium/device lock status
+
+━━━━━━━━━━━━━━━━━━
+
+ADMIN UI
+
+In user detail modal/page, add section:
+
+DEVICE INFORMATION
+
+Fields:
+
+Device ID:
+[copy button]
+
+Linked:
+date
+
+Last Seen:
+date
+
+App Version:
+version
+
+Platform:
+win32 / x64
+
+Trial Used:
+yes/no
+
+Device Lock:
+active / inactive
+
+Add a copy button beside Device ID.
+
+If no device ID exists, show:
+
+"No device linked yet. Device ID will appear after the user logs in from the desktop app."
+
+━━━━━━━━━━━━━━━━━━
+
+TRIAL APPROVAL FLOW
+
+When approving free trials manually, admin must be able to verify:
+
+• Has this device used a trial before?
+• Is this device linked to another account?
+• Is this a fresh/new device ID?
+• Is trial active or expired?
+
+Add device info to any trial approval screen if one exists.
+
+━━━━━━━━━━━━━━━━━━
+
+SECURITY
+
+Only admins can view Device IDs.
+
+Do not expose device IDs publicly.
+
+Do not expose other users' device IDs to normal users.
+
+Normal users only see their own Device ID in Settings.
+
+━━━━━━━━━━━━━━━━━━
+
+LOGGING
+
+Add logs:
+
+[AdminDevice] loaded device info for user=<id>
+[AdminDevice] no linked device for user=<id>
+[AdminDevice] copied/viewed device ID by admin=<id>
+
+━━━━━━━━━━━━━━━━━━
+
+TESTS
+
+1. User logs in from desktop app.
+2. Device ID is sent to server.
+3. Admin opens user profile.
+4. Device ID is visible.
+5. Copy button works.
+6. User deletes AppData and logs in again.
+7. Device ID re-links correctly.
+8. Trial approval can see trialUsed by device.
+9. Non-admin cannot access device info.
+10. Existing users without devices do not crash admin panel.
+
+Goal:
+
+Admin panel must make device-based Premium trials manageable.
+Device ID must be visible and copyable from the user's admin profile.

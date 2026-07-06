@@ -33,6 +33,7 @@ interface AppState {
   };
   tweaks: Record<string, boolean>; // id -> enabled
   sliderValues: Record<string, number>; // id -> last-known applied/read value
+  presetOptions: Record<string, string>; // id -> last-known applied/read option id
   history: HistoryItem[];
   latestAIScan: AIScanResult | null;
   realtimeMetricsEnabled: boolean;
@@ -42,6 +43,7 @@ interface AppState {
   toggleTweak: (id: string) => void;
   setTweak: (id: string, enabled: boolean) => void;
   setSliderValue: (id: string, value: number) => void;
+  setPresetOption: (id: string, optionId: string) => void;
   applyAction: (actionName: string, page: string, result?: string, notes?: string) => void;
   clearRam: () => void;
   resetData: () => void;
@@ -73,6 +75,7 @@ export const useStore = create<AppState>()(
       },
       tweaks: {},
       sliderValues: {},
+      presetOptions: {},
       history: [],
       latestAIScan: null,
       realtimeMetricsEnabled: true,
@@ -81,6 +84,12 @@ export const useStore = create<AppState>()(
       setSliderValue: (id, value) => {
         set((state) => ({
           sliderValues: { ...state.sliderValues, [id]: value },
+        }));
+      },
+
+      setPresetOption: (id, optionId) => {
+        set((state) => ({
+          presetOptions: { ...state.presetOptions, [id]: optionId },
         }));
       },
 
@@ -249,6 +258,7 @@ export const useStore = create<AppState>()(
       partialize: (state) => ({
         tweaks: state.tweaks,
         sliderValues: state.sliderValues,
+        presetOptions: state.presetOptions,
         history: state.history,
         latestAIScan: state.latestAIScan,
         realtimeMetricsEnabled: state.realtimeMetricsEnabled,
@@ -299,6 +309,17 @@ export const useStore = create<AppState>()(
             if (typeof v === 'number' && isFinite(v)) sanitizedSliders[k] = v;
           }
           state.sliderValues = sanitizedSliders;
+        }
+
+        // Guard: presetOptions must be a plain object mapping id -> string.
+        if (!state.presetOptions || typeof state.presetOptions !== 'object' || Array.isArray(state.presetOptions)) {
+          state.presetOptions = {};
+        } else {
+          const sanitizedPresets: Record<string, string> = {};
+          for (const [k, v] of Object.entries(state.presetOptions)) {
+            if (typeof v === 'string') sanitizedPresets[k] = v;
+          }
+          state.presetOptions = sanitizedPresets;
         }
 
         // Guard: tweaks must be a plain object (not array, null, or primitive).

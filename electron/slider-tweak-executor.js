@@ -222,6 +222,7 @@ const SLIDER_TWEAKS = {
    */
   'win32-priority-sep': {
     name:          'Foreground / Background Priority Balance',
+    premium:       true,
     requiresAdmin: true,
     requiresReboot: false,
     regPath:       'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\PriorityControl',
@@ -246,6 +247,7 @@ const SLIDER_TWEAKS = {
    */
   'mouse-queue-size': {
     name:          'Mouse Input Queue Depth',
+    premium:       true,
     disabled:      true,
     disabledReason: 'Disabled for safety: modifying the mouclass kernel driver queue (MouseDataQueueSize) can leave the system with no mouse input, requiring Safe Mode recovery. The latency benefit is negligible and does not justify the risk.',
     requiresAdmin: true,
@@ -269,6 +271,7 @@ const SLIDER_TWEAKS = {
    */
   'kbd-queue-size': {
     name:          'Keyboard Input Queue Depth',
+    premium:       true,
     disabled:      true,
     disabledReason: 'Disabled for safety: modifying the kbdclass kernel driver queue (KeyboardDataQueueSize) can leave the system with no keyboard input, requiring Safe Mode recovery. This is not reversible through the UI if input stops working.',
     requiresAdmin: true,
@@ -286,22 +289,115 @@ const SLIDER_TWEAKS = {
 
   /**
    * SystemResponsiveness — MMCSS percentage of CPU time reserved for background tasks.
-   * 0 = all CPU for foreground audio/gaming. 20 = Windows default.
+   * Safe range is 10–30; 0 is intentionally excluded (fully starves background
+   * audio/capture threads). 20 = Windows default.
    * Does NOT require restart; takes effect on next MMCSS client connection.
    */
   'sys-responsiveness': {
     name:          'MMCSS System Responsiveness',
+    premium:       true,
     requiresAdmin: true,
     requiresReboot: false,
     regPath:       'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile',
     regName:       'SystemResponsiveness',
     regType:       'DWord',
     defaultValue:  20,
-    safeMin:       0,
-    safeMax:       100,
+    safeMin:       10,
+    safeMax:       30,
     readCommand:   () => `(Get-ItemProperty -Path 'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile' -Name 'SystemResponsiveness' -EA SilentlyContinue).SystemResponsiveness`,
     writeCommand:  (v) => `New-Item -Path 'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile' -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path 'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile' -Name 'SystemResponsiveness' -Value ${v} -Type DWord -Force`,
     verifyCommand: (v) => `(Get-ItemProperty -Path 'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile' -Name 'SystemResponsiveness' -EA SilentlyContinue).SystemResponsiveness -eq ${v}`,
+  },
+
+  /**
+   * MaximumDpcQueueDepth — kernel DPC (Deferred Procedure Call) queue depth per
+   * processor. Higher values let interrupt-heavy peripherals (GPU/NIC/storage)
+   * queue more DPCs before the kernel forces a drain. Kernel parameter — read
+   * once at boot, so a reboot is required for changes to take effect.
+   */
+  'max-pending-interrupts': {
+    name:          'Max Pending DPC Queue Depth',
+    premium:       true,
+    requiresAdmin: true,
+    requiresReboot: true,
+    regPath:       'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\kernel',
+    regName:       'MaximumDpcQueueDepth',
+    regType:       'DWord',
+    defaultValue:  4,
+    safeMin:       4,
+    safeMax:       32,
+    readCommand:   () => `(Get-ItemProperty -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\kernel' -Name 'MaximumDpcQueueDepth' -EA SilentlyContinue).MaximumDpcQueueDepth`,
+    writeCommand:  (v) => `New-Item -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\kernel' -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\kernel' -Name 'MaximumDpcQueueDepth' -Value ${v} -Type DWord -Force`,
+    verifyCommand: (v) => `(Get-ItemProperty -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\kernel' -Name 'MaximumDpcQueueDepth' -EA SilentlyContinue).MaximumDpcQueueDepth -eq ${v}`,
+  },
+
+  /**
+   * Timer Resolution — NOT a registry value. Requests a higher-resolution system
+   * timer via NtSetTimerResolution (ntdll.dll), the mechanism used by dedicated
+   * timer-resolution utilities. Values are stored in tenths-of-a-millisecond
+   * ("ms10") so they stay integers: 156 = 15.6ms (Windows default, no active
+   * request), 50 = 5.0ms, 20 = 2.0ms, 10 = 1.0ms, 5 = 0.5ms.
+   *
+   * A hidden background helper process holds the requested resolution for as
+   * long as it's running. writeCommand kills any previously tracked helper,
+   * then (unless requesting the 15.6ms default) starts a new one and records
+   * its PID + ms10 in a state file. readCommand reports the tracked ms10 value
+   * only while that PID is still alive — a dead/missing process reads back as
+   * '' (missing), which the generic executor treats as "using default".
+   * No admin privileges are required for either winmm or NtSetTimerResolution.
+   */
+  'timer-resolution-slider': {
+    name:          'System Timer Resolution',
+    premium:       true,
+    requiresAdmin: false,
+    requiresReboot: false,
+    regPath:       'N/A (process-level NtSetTimerResolution request)',
+    regName:       'NtSetTimerResolution',
+    regType:       'N/A',
+    defaultValue:  156,
+    safeMin:       5,
+    safeMax:       156,
+    readCommand: () => [
+      `$stateFile = Join-Path $env:APPDATA 'SwitchControl\\timer-resolution-state.json'`,
+      `if (-not (Test-Path $stateFile)) { Write-Output 156; exit }`,
+      `try {`,
+      `  $s = Get-Content $stateFile -Raw | ConvertFrom-Json`,
+      `  $p = Get-Process -Id $s.pid -EA SilentlyContinue`,
+      `  if ($null -eq $p) { Write-Output 156 } else { Write-Output $s.ms10 }`,
+      `} catch { Write-Output 156 }`,
+    ].join("\n"),
+    writeCommand: (v) => {
+      const ms10 = parseInt(v, 10);
+      const units100ns = ms10 * 1000;
+      return [
+        `$stateDir = Join-Path $env:APPDATA 'SwitchControl'`,
+        `New-Item -Path $stateDir -ItemType Directory -Force -EA SilentlyContinue | Out-Null`,
+        `$stateFile = Join-Path $stateDir 'timer-resolution-state.json'`,
+        `if (Test-Path $stateFile) { try { $old = Get-Content $stateFile -Raw | ConvertFrom-Json; if ($old.pid) { Stop-Process -Id $old.pid -Force -EA SilentlyContinue } } catch {} }`,
+        `if (${ms10} -eq 156) {`,
+        `  Remove-Item -Path $stateFile -Force -EA SilentlyContinue`,
+        `  Write-Output 156`,
+        `} else {`,
+        `  $keeperScript = Join-Path $stateDir 'timer-resolution-keeper.ps1'`,
+        `  @'`,
+        `Add-Type -Namespace SC -Name TimerRes -MemberDefinition '[DllImport("ntdll.dll")] public static extern int NtSetTimerResolution(uint DesiredResolution, bool SetResolution, ref uint CurrentResolution);'`,
+        `[uint32]$cur = 0`,
+        `[SC.TimerRes]::NtSetTimerResolution(${units100ns}, $true, [ref]$cur) | Out-Null`,
+        `while ($true) { Start-Sleep -Seconds 3600 }`,
+        `'@ | Set-Content -Path $keeperScript -Force -Encoding ASCII`,
+        `  $proc = Start-Process -FilePath 'powershell.exe' -ArgumentList @('-WindowStyle','Hidden','-ExecutionPolicy','Bypass','-NoProfile','-File', $keeperScript) -WindowStyle Hidden -PassThru`,
+        `  Start-Sleep -Milliseconds 300`,
+        `  $state = @{ pid = $proc.Id; ms10 = ${ms10} } | ConvertTo-Json -Compress`,
+        `  Set-Content -Path $stateFile -Value $state -Force`,
+        `  Write-Output ${ms10}`,
+        `}`,
+      ].join("\n");
+    },
+    verifyCommand: (v) => [
+      `$stateFile = Join-Path $env:APPDATA 'SwitchControl\\timer-resolution-state.json'`,
+      `if (${parseInt(v, 10)} -eq 156) { -not (Test-Path $stateFile) -or -not (Get-Content $stateFile -Raw | ConvertFrom-Json).pid }`,
+      `else { try { $s = Get-Content $stateFile -Raw | ConvertFrom-Json; ($null -ne (Get-Process -Id $s.pid -EA SilentlyContinue)) -and ($s.ms10 -eq ${parseInt(v, 10)}) } catch { $false } }`,
+    ].join("\n"),
   },
 
   /**
@@ -310,6 +406,7 @@ const SLIDER_TWEAKS = {
    */
   'net-throttle-index': {
     name:          'Network Throttling Index',
+    premium:       true,
     requiresAdmin: true,
     requiresReboot: false,
     regPath:       'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile',
@@ -330,6 +427,7 @@ const SLIDER_TWEAKS = {
    */
   'menu-show-delay': {
     name:          'Menu Show Delay',
+    premium:       true,
     requiresAdmin: false,
     requiresReboot: false,
     regPath:       'HKCU:\\Control Panel\\Desktop',
@@ -350,6 +448,7 @@ const SLIDER_TWEAKS = {
    */
   'hung-app-timeout': {
     name:          'Hung App Timeout',
+    premium:       true,
     requiresAdmin: false,
     requiresReboot: false,
     regPath:       'HKCU:\\Control Panel\\Desktop',
@@ -371,6 +470,7 @@ const SLIDER_TWEAKS = {
    */
   'low-level-hooks-timeout': {
     name:          'Low-Level Hook Timeout',
+    premium:       true,
     requiresAdmin: false,
     requiresReboot: false,
     regPath:       'HKCU:\\Control Panel\\Desktop',
@@ -391,6 +491,7 @@ const SLIDER_TWEAKS = {
    */
   'wait-to-kill-app': {
     name:          'Wait to Kill App on Shutdown',
+    premium:       true,
     requiresAdmin: false,
     requiresReboot: false,
     regPath:       'HKCU:\\Control Panel\\Desktop',
@@ -416,6 +517,7 @@ const SLIDER_TWEAKS = {
    */
   'svchost-split-threshold': {
     name:          'Service Host Split Threshold',
+    premium:       true,
     requiresAdmin: true,
     requiresReboot: false,
     regPath:       'HKLM:\\SYSTEM\\CurrentControlSet\\Control',
@@ -753,11 +855,47 @@ const DISABLED_SLIDER_TWEAKS = Object.fromEntries(
     .map(([id, def]) => [id, def.disabledReason])
 );
 
+/**
+ * Revert every premium slider tweak that currently has an applied backup
+ * (i.e. an entry in originalValues), regardless of which UI surface applied
+ * it. Used by the premium-revert pipeline on trial expiry / downgrade so a
+ * user can never keep a premium slider tweak active without an active plan.
+ *
+ * Non-premium sliders are left untouched — they're allowed on the free tier.
+ *
+ * Returns { reverted: string[], failed: { tweakId, error }[] }
+ */
+async function revertAllPremiumSliders() {
+  const state = loadSliderState();
+  const appliedIds = Object.keys(state.originalValues || {});
+  const reverted = [];
+  const failed = [];
+
+  for (const tweakId of appliedIds) {
+    const def = SLIDER_TWEAKS[tweakId];
+    if (!def || !def.premium) continue;
+    try {
+      const result = await resetSliderValue(tweakId);
+      if (result.ok) {
+        reverted.push(tweakId);
+      } else {
+        failed.push({ tweakId, error: result.error || 'Unknown revert failure' });
+      }
+    } catch (err) {
+      failed.push({ tweakId, error: err.message });
+    }
+  }
+
+  console.log(`[SliderExecutor] revertAllPremiumSliders: reverted=${reverted.length} failed=${failed.length}`);
+  return { reverted, failed };
+}
+
 module.exports = {
   readSliderValue,
   applySliderValue,
   verifySliderValue,
   resetSliderValue,
+  revertAllPremiumSliders,
   checkCrashSentinel,
   getSliderTweakMeta,
   SLIDER_TWEAKS,
