@@ -1037,19 +1037,17 @@ function UserDetailPanel({ user, logs, onClose, onPlanUpdated, onDeleted }: {
               </div>
             )}
 
-            {/* Device Information — visible for all users who have (or had) a bound/seen
-                device, regardless of current plan. Trial users can inherit a stale binding
-                from a previous premium period; admins need to see and clear it in those cases.
-                Also supports manual trial approval / device-based trial enforcement lookups. */}
-            {(localUser.isPremium || localUser.premiumBoundDeviceId || localUser.premiumLastSeenDeviceId) && (
-              <div className={`rounded-xl border p-4 ${localUser.deviceLocked ? "border-amber-500/20" : "border-[#2A313A]"}`}
-                style={{ background: localUser.deviceLocked ? "rgba(245,158,11,0.04)" : "rgba(255,255,255,0.03)" }}>
-                <div className="flex items-center justify-between mb-3">
-                  <p className="text-xs font-semibold text-[#6B7380] uppercase tracking-wider">Device Information</p>
-                  {localUser.deviceLocked && (
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/25 text-amber-300/80 font-medium">Locked</span>
-                  )}
-                </div>
+            {/* Device Information — always visible so admins can see (and clear) bindings
+                even for free users who inherited a stale device from a previous premium period,
+                or spot users who have never connected from the desktop app at all. */}
+            <div className={`rounded-xl border p-4 ${localUser.deviceLocked ? "border-amber-500/20" : "border-[#2A313A]"}`}
+              style={{ background: localUser.deviceLocked ? "rgba(245,158,11,0.04)" : "rgba(255,255,255,0.03)" }}>
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-xs font-semibold text-[#6B7380] uppercase tracking-wider">Device Information</p>
+                {localUser.deviceLocked && (
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/25 text-amber-300/80 font-medium">Locked</span>
+                )}
+              </div>
                 <div className="space-y-2.5 text-sm">
                   <Row
                     label="Device ID"
@@ -1091,7 +1089,6 @@ function UserDetailPanel({ user, logs, onClose, onPlanUpdated, onDeleted }: {
                   </div>
                 )}
               </div>
-            )}
 
             {/* Activity */}
             <div className="rounded-xl border border-[#2A313A] p-4" style={{ background: "rgba(255,255,255,0.03)" }}>
