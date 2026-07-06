@@ -1484,12 +1484,25 @@ async function batchCheckAllTweaks() {
     result[timerResId] = { isApplied: isRunning, applied: isRunning, error: null };
   }
 
-  // 3. nvidia-telemetry: requires a GPU-detection pre-probe — too complex for the
-  //    batch; default to false. The per-tweak checkTweakStatus path (syncAll on
-  //    TweaksList mount) handles it correctly.
+  // 3. nvidia-telemetry: requires a GPU-detection pre-probe, so it can't be folded
+  //    into the single batch PS script above. Resolve it with a real per-tweak
+  //    check (verifyTweak) so syncAll's batch mode still reflects true state —
+  //    this used to rely on a follow-up per-tweak checkTweakStatus call that no
+  //    longer runs now that syncAll is fully batch-based.
   const nvId = Object.keys(ALL_TWEAKS).find(id => ALL_TWEAKS[id]._special === 'nvidia-telemetry');
   if (nvId) {
-    result[nvId] = { isApplied: false, applied: false, error: null };
+    try {
+      const nvResult = await verifyTweak(nvId);
+      result[nvId] = {
+        isApplied: !!nvResult.isApplied,
+        applied:   !!nvResult.isApplied,
+        unsupported: nvResult.unsupported || false,
+        unsupportedReason: nvResult.unsupportedReason || null,
+        error: nvResult.error || null,
+      };
+    } catch (err) {
+      result[nvId] = { isApplied: false, applied: false, error: err.message };
+    }
   }
 
   // 4. Build the batch PS script for all remaining tweaks.
