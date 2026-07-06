@@ -100,7 +100,6 @@ const ISSUE_FIX_MAP: Record<string, { tweakId: string; chip: string }> = {
   "timer-res-off":              { tweakId: "timer-res",            chip: "Latency"     },
   "synth-timers-on":            { tweakId: "synth-timers",         chip: "Latency"     },
   "irq-priority-default":       { tweakId: "irq-priority",         chip: "Latency"     },
-  "mmcss-not-configured":       { tweakId: "mmcss-gaming",         chip: "Latency"     },
   "p-states-on":                { tweakId: "p-states",             chip: "Performance" },
   "power-throttling-on":        { tweakId: "power-throttling",     chip: "Performance" },
   "win32-priority-sep-default": { tweakId: "win32-priority-sep",   chip: "Latency"     },

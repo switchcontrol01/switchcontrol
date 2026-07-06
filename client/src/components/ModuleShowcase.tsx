@@ -25,7 +25,7 @@ const MODULES = [
     description: "38+ system optimizations",
     details: "Registry and system tweaks to reduce latency and improve responsiveness. Each tweak is categorized by impact and risk level.",
     color: "from-[rgba(0,212,255,0.2)] to-[rgba(0,212,255,0.1)]",
-    preview: ["Disable Game DVR", "Optimize MMCSS", "Reduce USB Polling"]
+    preview: ["Disable Game DVR", "Reduce USB Polling", "Tune Game Priority"]
   },
   {
     id: "power",

@@ -417,21 +417,6 @@ router.post("/detect", (req, res) => {
       });
     }
 
-    if (off(tweakStates, "mmcss-gaming")) {
-      issues.push({
-        id: "mmcss-not-configured",
-        category: "cpu",
-        severity: "medium",
-        confidence: "confirmed",
-        title: "MMCSS Gaming Thread Profile Not Configured",
-        reason: "The Multimedia Class Scheduler Gaming profile controls thread priority and CPU quantum allocation for foreground tasks. Default Windows values leave headroom reserved for background services.",
-        impact: "Foreground game threads may not receive maximum scheduler priority — causing irregular frame timing and potential audio glitches.",
-        recommendedAction: "Apply the MMCSS Gaming profile via Tweaks → CPU.",
-        linkedTweakIds: ["mmcss-gaming"],
-        autoFixAvailable: true,
-      });
-    }
-
     if (off(tweakStates, "p-states")) {
       issues.push({
         id: "p-states-on",

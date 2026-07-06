@@ -743,20 +743,6 @@ const BASE: BaseTweak[] = [
     category: "Gaming and Latency", level: "Recommended", risk: "Safe",
     supported: true, requiresAdmin: true,
   },
-  {
-    id: "mmcss-gaming",
-    title: "Optimize MMCSS for Gaming",
-    description: "Sets Multimedia Class Scheduler SystemResponsiveness to 0 and tunes the Games task profile for maximum CPU allocation.",
-    impact: [
-      "Removes background CPU reservation — game gets more of every scheduler quantum",
-      "Raises GPU priority hint for the Games MMCSS task to 8",
-      "Risk: background workloads (streams, encodes) may be starved under load",
-    ],
-    expected: { latency: "Medium", cpu: "Medium", gpu: "Low", ram: "None", disk: "None", network: "None", stabilityRisk: "Medium" },
-    category: "Gaming and Latency", level: "Advanced", risk: "Moderate",
-    supported: true, requiresAdmin: true,
-  },
-
   // ── Input ─────────────────────────────────────────────────────────────────
 
   {

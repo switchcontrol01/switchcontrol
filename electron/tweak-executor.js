@@ -833,14 +833,6 @@ const ADMIN_TWEAKS = {
     revert: `& powercfg /setacvalueindex SCHEME_CURRENT 501a4d13-42af-4429-9fd1-a8218c268e20 ee12f906-d277-404b-b6da-e5fa1a576df5 2 2>&1 | Out-Null; & powercfg /setdcvalueindex SCHEME_CURRENT 501a4d13-42af-4429-9fd1-a8218c268e20 ee12f906-d277-404b-b6da-e5fa1a576df5 2 2>&1 | Out-Null; & powercfg /setactive SCHEME_CURRENT 2>&1 | Out-Null; exit 0`,
     check:  `$out = (& powercfg /query SCHEME_CURRENT 501a4d13-42af-4429-9fd1-a8218c268e20 ee12f906-d277-404b-b6da-e5fa1a576df5 2>&1 | Out-String); [bool]($out -match "Current AC Power Setting Index: 0x00000000")`,
   },
-  'mmcss-gaming': {
-    name: 'Optimize MMCSS for Gaming',
-    requiresAdmin:  true,
-    requiresReboot: false,
-    apply:  `$p = "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile"; Set-ItemProperty -Path $p -Name "SystemResponsiveness" -Value 0 -Type DWord -Force; $g = "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile\\Tasks\\Games"; New-Item -Path $g -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path $g -Name "Scheduling Category" -Value "High" -Force; Set-ItemProperty -Path $g -Name "SFIO Rate" -Value "High" -Force; Set-ItemProperty -Path $g -Name "Background Only" -Value "False" -Force; Set-ItemProperty -Path $g -Name "Priority" -Value 6 -Type DWord -Force; Set-ItemProperty -Path $g -Name "GPU Priority" -Value 8 -Type DWord -Force; Set-ItemProperty -Path $g -Name "Clock Rate" -Value 10000 -Type DWord -Force`,
-    revert: `$p = "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile"; Set-ItemProperty -Path $p -Name "SystemResponsiveness" -Value 20 -Type DWord -Force; $g = "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile\\Tasks\\Games"; Set-ItemProperty -Path $g -Name "Scheduling Category" -Value "Medium" -EA SilentlyContinue; Set-ItemProperty -Path $g -Name "SFIO Rate" -Value "Medium" -EA SilentlyContinue; Set-ItemProperty -Path $g -Name "Priority" -Value 2 -Type DWord -EA SilentlyContinue; Set-ItemProperty -Path $g -Name "GPU Priority" -Value 8 -Type DWord -EA SilentlyContinue`,
-    check:  `(Get-ItemProperty -Path "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile" -Name "SystemResponsiveness" -EA SilentlyContinue).SystemResponsiveness -eq 0`,
-  },
   'disable-delivery-opt': {
     name: 'Disable Delivery Optimization',
     requiresAdmin:  true,

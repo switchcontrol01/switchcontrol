@@ -135,12 +135,6 @@ export const TWEAK_OPT_META: Record<string, TweakOptimizationMeta> = {
     antiRecommendReason: "Windows 11 manages timer resolution per-process. A system-wide override provides minimal benefit and can raise idle CPU usage.",
   },
 
-  "mmcss-gaming": {
-    measurabilityClass: "conditional",
-    baseConfidence: 68,
-    intentWeights: { [LATENCY]: 6, [FPS]: 6, [COMPFPS]: 7, [FRAMES]: 6, [BALANCED]: 5, [AUTO]: 5 },
-  },
-
   "disable-fso": {
     measurabilityClass: "conditional",
     baseConfidence: 58,

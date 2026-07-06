@@ -281,7 +281,7 @@ const POSTURE_SETS: Array<{
     id: "performance",
     label: "Performance",
     color: "hsl(338,85%,60%)",
-    tweakIds: ["gaming-mode", "tune-priority", "synth-timers", "preemption", "mmcss-gaming"],
+    tweakIds: ["gaming-mode", "tune-priority", "synth-timers", "preemption"],
   },
   {
     id: "cleanliness",

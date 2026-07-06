@@ -82,7 +82,6 @@ export const PREMIUM_EXCEPTION_IDS: Set<string> = new Set([
   "hyper-v",
   "p-states",
   "pcie-link-state",
-  "mmcss-nolazymode",
   "svchost-split-threshold",
   // ── Memory and Storage ────────────────────────────────────────────────────
   "mem-opt",
@@ -103,7 +102,6 @@ export const PREMIUM_EXCEPTION_IDS: Set<string> = new Set([
   "kbd-queue-size",
   "low-level-hooks-timeout",
   // ── GPU and Graphics ──────────────────────────────────────────────────────
-  "mmcss-gaming",
   "desktop-comp",
   "hdcp",
   // ── Windows UX ────────────────────────────────────────────────────────────
@@ -133,7 +131,6 @@ export const TWEAK_TIER_MAP: Record<string, TweakTierInfo> = {
   "power-throttling":         { level: "Advanced",     category: "System and Power" },
   "pcie-link-state":          { level: "Advanced",     category: "System and Power" },
   "disable-auto-restart-apps":{ level: "Advanced",     category: "System and Power" },
-  "mmcss-nolazymode":         { level: "Advanced",     category: "System and Power" },
   "svchost-split-threshold":  { level: "Advanced",     category: "System and Power" },
   "disable-dcom":             { level: "Experimental", category: "System and Power" },
 
@@ -167,7 +164,6 @@ export const TWEAK_TIER_MAP: Record<string, TweakTierInfo> = {
   "synth-timers":             { level: "Experimental", category: "Gaming and Latency" },
   "disable-fso":              { level: "Recommended",  category: "Gaming and Latency" },
   "usb-selective-suspend":    { level: "Recommended",  category: "Gaming and Latency" },
-  "mmcss-gaming":             { level: "Advanced",     category: "Gaming and Latency" },
 
   // Input
   "disable-pointer-precision":{ level: "Recommended",  category: "Input" },
