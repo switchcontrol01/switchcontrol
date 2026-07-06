@@ -931,11 +931,15 @@ export async function registerRoutes(
 
       const effectivePlan = resolveEffectivePlan(user);
 
+      // Always record the last-seen device + meta so admins can see device info for
+      // every user (free, trial, premium). The actual binding/locking logic is premium-only.
+      await storage.updateDeviceLastSeen(cloudUser.id, deviceId, deviceMeta);
+
       // Device locking is a PREMIUM-only feature. Trial access is user-scoped, not
       // device-scoped. Returning not_premium here lets the client proceed without
       // showing the DeviceLockModal regardless of any previously-bound device ID.
       if (effectivePlan !== "premium") {
-        console.log(`[DeviceBinding] Skip | user=${cloudUser.id} | plan=${effectivePlan} | device=${deviceId}`);
+        console.log(`[DeviceBinding] Skip-lock | user=${cloudUser.id} | plan=${effectivePlan} | device=${deviceId} | recorded=lastSeen`);
         return res.json({ status: "not_premium" });
       }
 
@@ -948,8 +952,7 @@ export async function registerRoutes(
       }
 
       if (user.premiumBoundDeviceId === deviceId) {
-        // Correct device — refresh lastSeen timestamp
-        await storage.updateDeviceLastSeen(cloudUser.id, deviceId, deviceMeta);
+        // Correct device — already updated above
         console.log(`[DeviceBinding] Valid | user=${cloudUser.id} | device=${deviceId}`);
         return res.json({ status: "ok", isFirstBind: false });
       }

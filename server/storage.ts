@@ -854,6 +854,7 @@ export class DatabaseStorage implements IStorage {
         premiumBoundDeviceId: null,
         premiumBoundAt: null,
         premiumLastSeenDeviceId: null,
+        premiumDeviceLastSeenAt: null,
         deviceSignature: null,
         appVersion: null,
         platform: null,
