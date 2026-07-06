@@ -231,18 +231,19 @@ export function evaluateTweakForHardware(
 
     // Hardware GPU Scheduling (HAGS): real benefit on modern discrete NVIDIA/AMD;
     // negligible / not applicable on Intel integrated graphics.
+    // Always warn about latency tradeoffs — do not enable for latency-sensitive users.
     case "preemption":
       if (profile.gpu.vendor === "nvidia" || profile.gpu.vendor === "amd") {
         return {
           level: "recommended",
-          reason: `Supported on your ${profile.gpu.vendor.toUpperCase()} GPU — Hardware GPU Scheduling can reduce CPU overhead from GPU scheduling on current drivers.`,
+          reason: `Supported on your ${profile.gpu.vendor.toUpperCase()} GPU — Hardware GPU Scheduling can reduce CPU overhead, but may increase latency and frame-time variance in some titles. Not recommended for latency-sensitive competitive setups.`,
         };
       }
       if (profile.gpu.vendor === "intel") {
         return {
           level: "caution",
           reason:
-            "Intel integrated graphics — Hardware GPU Scheduling brings little benefit here and behavior varies by driver. Safe to leave off.",
+            "Intel integrated graphics — Hardware GPU Scheduling brings little benefit here and behavior varies by driver. May increase latency and frame-time variance. Not recommended for latency-sensitive competitive setups.",
         };
       }
       return null;
