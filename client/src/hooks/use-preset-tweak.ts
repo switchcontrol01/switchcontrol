@@ -78,11 +78,15 @@ export function usePresetTweak(tweakId: string, config: PresetConfig) {
   }, [clearResultTimer]);
 
   const refresh = useCallback(async () => {
+    // Always restore the user's last-applied option first — this survives app restarts
+    // and any registry-read failure. The live read only updates currentOptionId for display.
+    const cached = useStore.getState().presetOptions?.[tweakId] ?? null;
+
     if (!isElectron) {
       setState(s => ({
         ...s,
-        currentOptionId: config.defaultOptionId,
-        pendingOptionId: s.pendingOptionId ?? config.defaultOptionId,
+        currentOptionId: cached ?? config.defaultOptionId,
+        pendingOptionId: s.pendingOptionId ?? cached ?? config.defaultOptionId,
         status:          'idle',
       }));
       return;
@@ -92,10 +96,11 @@ export function usePresetTweak(tweakId: string, config: PresetConfig) {
     try {
       const api = getPresetAPI();
       if (!api?.getState) {
+        // API missing — keep cached option, never fall back to default
         setState(s => ({
           ...s,
-          currentOptionId: config.defaultOptionId,
-          pendingOptionId: s.pendingOptionId ?? config.defaultOptionId,
+          currentOptionId: cached ?? config.defaultOptionId,
+          pendingOptionId: s.pendingOptionId ?? cached ?? config.defaultOptionId,
           status:          'idle',
         }));
         return;
@@ -117,10 +122,10 @@ export function usePresetTweak(tweakId: string, config: PresetConfig) {
         } else {
           console.warn(`[PresetHydration] ${tweakId}: read failed — ${result.error}`);
         }
-        const cached = useStore.getState().presetOptions?.[tweakId] ?? null;
+        // Keep cached option — the user's choice never gets overwritten by a default
         setState(s => ({
           ...s,
-          currentOptionId: null,
+          currentOptionId: cached ?? config.defaultOptionId,
           pendingOptionId: s.pendingOptionId ?? cached ?? config.defaultOptionId,
           status:          'idle',
           lastError:       result.error,
@@ -129,22 +134,23 @@ export function usePresetTweak(tweakId: string, config: PresetConfig) {
         const resolvedId = result.optionId ?? config.defaultOptionId;
         retryCountRef.current = 0;
         setPresetOption(tweakId, resolvedId);
-        const staleCache = useStore.getState().presetOptions?.[tweakId] ?? null;
-        const pendingIsStale = (s: PresetTweakState) =>
-          s.pendingOptionId !== null && s.pendingOptionId === staleCache && s.pendingOptionId !== resolvedId;
+        // currentOptionId shows the live registry state; pendingOptionId stays
+        // locked to the user's cached choice so the UI never "jumps" on them.
         setState(s => ({
           ...s,
           currentOptionId: resolvedId,
-          pendingOptionId: pendingIsStale(s) ? resolvedId : (s.pendingOptionId ?? resolvedId),
+          pendingOptionId: s.pendingOptionId ?? cached ?? resolvedId,
           status:          'idle',
           lastError:       null,
         }));
       }
     } catch (err) {
+      // Any unexpected crash — keep cached option, never fall back to default
+      const cached = useStore.getState().presetOptions?.[tweakId] ?? null;
       setState(s => ({
         ...s,
-        currentOptionId: config.defaultOptionId,
-        pendingOptionId: s.pendingOptionId ?? config.defaultOptionId,
+        currentOptionId: cached ?? config.defaultOptionId,
+        pendingOptionId: s.pendingOptionId ?? cached ?? config.defaultOptionId,
         status:          'idle',
         lastError:       err instanceof Error ? err.message : 'Read failed',
       }));

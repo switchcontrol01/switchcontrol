@@ -131,12 +131,17 @@ export function useSliderTweak(tweakId: string, config: SliderConfig) {
 
   // Read current value from system on mount (Electron only)
   const refresh = useCallback(async () => {
+    // Always restore the user's last-applied value first — this survives app restarts,
+    // PowerShell failures, and any other read problems. The registry read only updates
+    // currentValue for display; pendingValue (the user's choice) never gets overwritten.
+    const cached = useStore.getState().sliderValues[tweakId] ?? null;
+
     if (!isElectron) {
       setState(s => ({
         ...s,
         currentValue:   config.defaultValue,
-        pendingValue:   s.pendingValue ?? config.defaultValue,
-        isUsingDefault: true,
+        pendingValue:   s.pendingValue ?? cached ?? config.defaultValue,
+        isUsingDefault: cached === null,
         status:         'idle',
       }));
       return;
@@ -146,11 +151,12 @@ export function useSliderTweak(tweakId: string, config: SliderConfig) {
     try {
       const api = getSliderAPI();
       if (!api?.readValue) {
+        // API missing (e.g. web mode) — keep cached value, never fall back to default
         setState(s => ({
           ...s,
-          currentValue:   config.defaultValue,
-          pendingValue:   s.pendingValue ?? config.defaultValue,
-          isUsingDefault: true,
+          currentValue:   cached ?? null,
+          pendingValue:   s.pendingValue ?? cached ?? config.defaultValue,
+          isUsingDefault: cached === null,
           status:         'idle',
         }));
         return;
@@ -158,20 +164,10 @@ export function useSliderTweak(tweakId: string, config: SliderConfig) {
       const result: { value: number | null; missing?: boolean; error: string | null } =
         await api.readValue(tweakId);
 
-      // Real read error: PowerShell timed out, access denied, or other failure.
-      // value is null AND error is set. Do NOT silently substitute the default —
-      // the default might not reflect what's actually in the registry (or what was
-      // previously applied). Keep currentValue null so the UI shows "—" not a fake value.
       if (result.error && result.value === null) {
-        // "busy" is an expected startup race (PS limiter occupied by syncAll) — demote to info
-        // so it doesn't surface as [ERROR] in the main-process log.
         const isBusy = result.error === "busy";
         if (isBusy) {
           console.info(`[SliderHydration] ${tweakId}: read skipped — limiter busy (expected at startup)`);
-          // Schedule a single retry after 3.5s — by then syncAll has freed the limiter.
-          // This ensures the live registry value surfaces even after AppData deletion
-          // (when localStorage cache is empty and we'd otherwise show the default).
-          // Cap at 2 retries to avoid repeated PS spawns on persistent failures.
           if (retryCountRef.current < 2) {
             retryCountRef.current += 1;
             if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
@@ -183,56 +179,48 @@ export function useSliderTweak(tweakId: string, config: SliderConfig) {
         } else {
           console.warn(`[SliderHydration] ${tweakId}: read failed — ${result.error}`);
         }
-        // Fall back to cached value from localStorage (set by a previous successful apply/read).
-        // Never use config.defaultValue here — the user may have applied a non-default value.
-        const cached = useStore.getState().sliderValues[tweakId] ?? null;
+        // Keep cached value — never fall back to default. The user chose this value.
         setState(s => ({
           ...s,
-          currentValue:   null,
+          currentValue:   cached ?? null,
           pendingValue:   s.pendingValue ?? cached ?? config.defaultValue,
           isUsingDefault: cached === null,
           status:         'idle',
           lastError:      result.error,
         }));
       } else if (result.value === null) {
-        // value is null but no error — shouldn't occur after executor fix, but handle gracefully
+        // value null but no error — shouldn't occur, but keep cached value
         setState(s => ({
           ...s,
-          currentValue:   config.defaultValue,
-          pendingValue:   s.pendingValue ?? config.defaultValue,
-          isUsingDefault: true,
+          currentValue:   cached ?? null,
+          pendingValue:   s.pendingValue ?? cached ?? config.defaultValue,
+          isUsingDefault: cached === null,
           status:         'idle',
           lastError:      null,
         }));
       } else {
-        // Successful read: value is the live registry value.
-        // missing=true means the key didn't exist and the executor returned the built-in default.
+        // Successful read — update currentValue for display, but pendingValue stays
+        // locked to the user's cached choice so it never "jumps" to a different value.
         console.log(`[SliderHydration] ${tweakId}: value=${result.value} missing=${result.missing ?? false}`);
-        // Reset retry counter — live read succeeded.
         retryCountRef.current = 0;
-        // Persist the live registry value so future startups can use it as a fallback.
         setSliderValue(tweakId, result.value!);
-        // Live read wins: if the current pendingValue came from a stale localStorage cache
-        // (i.e. it matches the cached value exactly), replace it with the live registry value
-        // so the UI always reflects actual Windows state after AppData deletion.
-        const staleCache = useStore.getState().sliderValues[tweakId] ?? null;
-        const pendingIsStale = (s: SliderTweakState) =>
-          s.pendingValue !== null && s.pendingValue === staleCache && s.pendingValue !== result.value!;
         setState(s => ({
           ...s,
           currentValue:   result.value!,
-          pendingValue:   pendingIsStale(s) ? result.value! : (s.pendingValue ?? result.value!),
+          pendingValue:   s.pendingValue ?? cached ?? result.value!,
           isUsingDefault: result.missing ?? false,
           status:         'idle',
           lastError:      null,
         }));
       }
     } catch (err) {
+      // Any unexpected crash — keep cached value, never fall back to default
+      const cached = useStore.getState().sliderValues[tweakId] ?? null;
       setState(s => ({
         ...s,
-        currentValue:   config.defaultValue,
-        pendingValue:   s.pendingValue ?? config.defaultValue,
-        isUsingDefault: true,
+        currentValue:   cached ?? null,
+        pendingValue:   s.pendingValue ?? cached ?? config.defaultValue,
+        isUsingDefault: cached === null,
         status:         'idle',
         lastError:      err instanceof Error ? err.message : 'Read failed',
       }));
