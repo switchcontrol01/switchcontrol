@@ -57,6 +57,11 @@ function serializeUser(u: User) {
     updatedAt: u.updatedAt,
     premiumBoundDeviceId: u.premiumBoundDeviceId ?? null,
     premiumBoundAt: u.premiumBoundAt ?? null,
+    premiumLastSeenDeviceId: u.premiumLastSeenDeviceId ?? null,
+    premiumDeviceLastSeenAt: u.premiumDeviceLastSeenAt ?? null,
+    deviceLocked: !!u.premiumBoundDeviceId,
+    appVersion: u.appVersion ?? null,
+    platform: u.platform ?? null,
   };
 }
 
@@ -115,10 +120,14 @@ router.get("/users", requireAdmin, readLimiter, async (req, res) => {
 // GET /api/admin/users/:id
 router.get("/users/:id", requireAdmin, readLimiter, async (req, res) => {
   try {
+    const admin = getAdminId(req);
     const user = await storage.getUser(req.params.id);
     if (!user) return res.status(404).json({ error: "User not found." });
 
     const logs = await storage.getAdminLogs({ targetUserId: user.id, limit: 30 });
+    console.log(
+      `[AdminDevice] Viewed | admin=${admin.email} | user=${user.id} | deviceId=${user.premiumBoundDeviceId ?? "none"} | lastSeenDeviceId=${user.premiumLastSeenDeviceId ?? "none"}`
+    );
     res.json({ user: serializeUser(user), logs });
   } catch (err) {
     console.error("[admin] getUser error:", err);
@@ -531,9 +540,14 @@ router.post("/users/batch-delete", requireAdmin, writeLimiter, async (req, res) 
 // Find whichever user has this device ID bound (either bound or last-seen)
 router.get("/devices/by-device-id/:deviceId", requireAdmin, readLimiter, async (req, res) => {
   const { deviceId } = req.params;
+  const admin = getAdminId(req);
   try {
     const user = await storage.findUserByBoundDeviceId(deviceId);
-    if (!user) return res.status(404).json({ error: "No user found with that device ID bound." });
+    if (!user) {
+      console.log(`[AdminDevice] Lookup miss | admin=${admin.email} | deviceId=${deviceId}`);
+      return res.status(404).json({ error: "No user found with that device ID bound." });
+    }
+    console.log(`[AdminDevice] Lookup hit | admin=${admin.email} | deviceId=${deviceId} | user=${user.id}`);
     res.json({ user: serializeUser(user) });
   } catch (err) {
     console.error("[admin] findUserByBoundDeviceId error:", err);

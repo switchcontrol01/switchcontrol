@@ -55,6 +55,10 @@ async function buildHeaders(): Promise<Record<string, string>> {
       if (deviceId) headers["x-device-id"] = deviceId;
       const signature = await (window as any).electronAPI.getDeviceSignature().catch(() => null);
       if (signature) headers["x-device-signature"] = signature;
+      const appVersion = await (window as any).electronAPI.getVersion?.().catch(() => null);
+      if (appVersion) headers["x-app-version"] = appVersion;
+      const platform = await (window as any).electronAPI.getPlatform?.().catch(() => null);
+      if (platform) headers["x-platform"] = platform;
     }
   } catch {}
 

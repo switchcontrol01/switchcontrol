@@ -70,10 +70,10 @@ export interface IStorage {
   updateUserActivity(userId: string, data: { lastLoginAt?: Date; lastAppActiveAt?: Date; hasInstalledApp?: boolean }): Promise<void>;
 
   // Device binding
-  bindPremiumDevice(userId: string, deviceId: string, signature?: string): Promise<User>;
+  bindPremiumDevice(userId: string, deviceId: string, signature?: string, meta?: { appVersion?: string; platform?: string }): Promise<User>;
   clearPremiumDevice(userId: string): Promise<User>;
   findUserByBoundDeviceId(deviceId: string): Promise<User | undefined>;
-  updateDeviceLastSeen(userId: string, deviceId: string): Promise<void>;
+  updateDeviceLastSeen(userId: string, deviceId: string, meta?: { appVersion?: string; platform?: string }): Promise<void>;
 
   // Admin
   listUsers(opts: ListUsersOpts): Promise<{ users: User[]; total: number }>;
@@ -299,7 +299,7 @@ class MockStorage implements IStorage {
     // no-op in mock mode
   }
 
-  async bindPremiumDevice(_userId: string, _deviceId: string): Promise<User> {
+  async bindPremiumDevice(_userId: string, _deviceId: string, _signature?: string, _meta?: { appVersion?: string; platform?: string }): Promise<User> {
     throw new Error("Database not available in NO-DB mode");
   }
 
@@ -311,7 +311,7 @@ class MockStorage implements IStorage {
     return undefined;
   }
 
-  async updateDeviceLastSeen(_userId: string, _deviceId: string): Promise<void> {
+  async updateDeviceLastSeen(_userId: string, _deviceId: string, _meta?: { appVersion?: string; platform?: string }): Promise<void> {
     // no-op in mock mode
   }
 
@@ -822,15 +822,22 @@ export class DatabaseStorage implements IStorage {
       .offset(offset);
   }
 
-  async bindPremiumDevice(userId: string, deviceId: string, signature?: string): Promise<User> {
+  async bindPremiumDevice(userId: string, deviceId: string, signature?: string, meta?: { appVersion?: string; platform?: string }): Promise<User> {
     const updateData: Partial<typeof users.$inferInsert> = {
       premiumBoundDeviceId: deviceId,
       premiumBoundAt: new Date(),
       premiumLastSeenDeviceId: deviceId,
+      premiumDeviceLastSeenAt: new Date(),
       updatedAt: new Date(),
     };
     if (signature) {
       updateData.deviceSignature = signature;
+    }
+    if (meta?.appVersion) {
+      updateData.appVersion = meta.appVersion;
+    }
+    if (meta?.platform) {
+      updateData.platform = meta.platform;
     }
     const [updated] = await db!
       .update(users)
@@ -848,6 +855,8 @@ export class DatabaseStorage implements IStorage {
         premiumBoundAt: null,
         premiumLastSeenDeviceId: null,
         deviceSignature: null,
+        appVersion: null,
+        platform: null,
         updatedAt: new Date(),
       })
       .where(eq(users.id, userId))
@@ -864,14 +873,21 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async updateDeviceLastSeen(userId: string, deviceId: string): Promise<void> {
+  async updateDeviceLastSeen(userId: string, deviceId: string, meta?: { appVersion?: string; platform?: string }): Promise<void> {
+    const updateData: Partial<typeof users.$inferInsert> = {
+      premiumLastSeenDeviceId: deviceId,
+      premiumDeviceLastSeenAt: new Date(),
+      updatedAt: new Date(),
+    };
+    if (meta?.appVersion) {
+      updateData.appVersion = meta.appVersion;
+    }
+    if (meta?.platform) {
+      updateData.platform = meta.platform;
+    }
     await db!
       .update(users)
-      .set({
-        premiumLastSeenDeviceId: deviceId,
-        premiumDeviceLastSeenAt: new Date(),
-        updatedAt: new Date(),
-      })
+      .set(updateData)
       .where(eq(users.id, userId));
   }
 

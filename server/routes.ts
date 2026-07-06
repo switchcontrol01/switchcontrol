@@ -914,6 +914,9 @@ export async function registerRoutes(
     try {
       const cloudUser = req.cloudUser!;
       const deviceId = req.headers["x-device-id"] as string | undefined;
+      const appVersion = (req.headers["x-app-version"] as string | undefined)?.slice(0, 64);
+      const platform = (req.headers["x-platform"] as string | undefined)?.slice(0, 32);
+      const deviceMeta = { appVersion, platform };
 
       if (!deviceId) {
         return res.status(400).json({ error: "Missing x-device-id header.", code: "missing_device_id" });
@@ -939,14 +942,14 @@ export async function registerRoutes(
       if (!user.premiumBoundDeviceId) {
         // First premium activation — bind the presenting device and generate HMAC signature
         const signature = generateDeviceSignature(cloudUser.id, deviceId);
-        await storage.bindPremiumDevice(cloudUser.id, deviceId, signature);
-        console.log(`[DeviceBinding] Assigned | user=${cloudUser.id} | device=${deviceId} | sig=${signature.substring(0, 8)}...`);
+        await storage.bindPremiumDevice(cloudUser.id, deviceId, signature, deviceMeta);
+        console.log(`[DeviceBinding] Assigned | user=${cloudUser.id} | device=${deviceId} | sig=${signature.substring(0, 8)}... | appVersion=${appVersion ?? "?"} | platform=${platform ?? "?"}`);
         return res.json({ status: "ok", isFirstBind: true, deviceSignature: signature });
       }
 
       if (user.premiumBoundDeviceId === deviceId) {
         // Correct device — refresh lastSeen timestamp
-        await storage.updateDeviceLastSeen(cloudUser.id, deviceId);
+        await storage.updateDeviceLastSeen(cloudUser.id, deviceId, deviceMeta);
         console.log(`[DeviceBinding] Valid | user=${cloudUser.id} | device=${deviceId}`);
         return res.json({ status: "ok", isFirstBind: false });
       }
@@ -961,7 +964,7 @@ export async function registerRoutes(
       if (isStale) {
         // Rebind with fresh signature
         const signature = generateDeviceSignature(cloudUser.id, deviceId);
-        await storage.bindPremiumDevice(cloudUser.id, deviceId, signature);
+        await storage.bindPremiumDevice(cloudUser.id, deviceId, signature, deviceMeta);
         console.log(`[DeviceBinding] Rebind-stale | user=${cloudUser.id} | old=${user.premiumBoundDeviceId} | new=${deviceId} | sig=${signature.substring(0, 8)}...`);
         return res.json({ status: "ok", isFirstBind: false, deviceSignature: signature });
       }

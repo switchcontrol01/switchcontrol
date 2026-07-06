@@ -29,6 +29,11 @@ interface AdminUser {
   createdAt: string | null;
   premiumBoundDeviceId: string | null;
   premiumBoundAt: string | null;
+  premiumLastSeenDeviceId: string | null;
+  premiumDeviceLastSeenAt: string | null;
+  deviceLocked: boolean;
+  appVersion: string | null;
+  platform: string | null;
 }
 
 interface AdminLog {
@@ -731,6 +736,32 @@ function Row({ label, value, mono }: { label: string; value: React.ReactNode; mo
   );
 }
 
+// ─── CopyButton ────────────────────────────────────────────────────────────────
+
+function CopyButton({ value }: { value: string }) {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(true);
+      console.log(`[AdminDevice] Copied device ID to clipboard`);
+      setTimeout(() => setCopied(false), 1500);
+    } catch (err) {
+      console.error("[AdminDevice] Copy failed:", err);
+    }
+  };
+  return (
+    <button
+      onClick={handleCopy}
+      data-testid="button-copy-device-id"
+      title="Copy to clipboard"
+      className="flex-shrink-0 text-xs rounded-md px-1.5 py-0.5 border border-[#2A313A] bg-[#21262D] text-[#6B7380] hover:text-[#E6EAF0] hover:bg-[#2A313A] transition-colors"
+    >
+      {copied ? "Copied" : "Copy"}
+    </button>
+  );
+}
+
 // ─── User Detail Panel ────────────────────────────────────────────────────────
 
 function UserDetailPanel({ user, logs, onClose, onPlanUpdated, onDeleted }: {
@@ -882,7 +913,16 @@ function UserDetailPanel({ user, logs, onClose, onPlanUpdated, onDeleted }: {
       });
       const data = await r.json();
       if (!r.ok) throw new Error(data.error || "Failed");
-      update({ ...localUser, premiumBoundDeviceId: null, premiumBoundAt: null });
+      update({
+        ...localUser,
+        premiumBoundDeviceId: null,
+        premiumBoundAt: null,
+        premiumLastSeenDeviceId: null,
+        premiumDeviceLastSeenAt: null,
+        deviceLocked: false,
+        appVersion: null,
+        platform: null,
+      });
     },
   });
 
@@ -997,21 +1037,50 @@ function UserDetailPanel({ user, logs, onClose, onPlanUpdated, onDeleted }: {
               </div>
             )}
 
-            {/* Device Binding — visible for all users who have (or had) a bound device,
-                regardless of current plan. Trial users can inherit a stale binding from
-                a previous premium period; admins need to see and clear it in those cases. */}
-            {(localUser.isPremium || localUser.premiumBoundDeviceId) && (
-              <div className={`rounded-xl border p-4 ${localUser.premiumBoundDeviceId ? "border-amber-500/20" : "border-[#2A313A]"}`}
-                style={{ background: localUser.premiumBoundDeviceId ? "rgba(245,158,11,0.04)" : "rgba(255,255,255,0.03)" }}>
+            {/* Device Information — visible for all users who have (or had) a bound/seen
+                device, regardless of current plan. Trial users can inherit a stale binding
+                from a previous premium period; admins need to see and clear it in those cases.
+                Also supports manual trial approval / device-based trial enforcement lookups. */}
+            {(localUser.isPremium || localUser.premiumBoundDeviceId || localUser.premiumLastSeenDeviceId) && (
+              <div className={`rounded-xl border p-4 ${localUser.deviceLocked ? "border-amber-500/20" : "border-[#2A313A]"}`}
+                style={{ background: localUser.deviceLocked ? "rgba(245,158,11,0.04)" : "rgba(255,255,255,0.03)" }}>
                 <div className="flex items-center justify-between mb-3">
-                  <p className="text-xs font-semibold text-[#6B7380] uppercase tracking-wider">Device Lock</p>
-                  {localUser.premiumBoundDeviceId && (
+                  <p className="text-xs font-semibold text-[#6B7380] uppercase tracking-wider">Device Information</p>
+                  {localUser.deviceLocked && (
                     <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/25 text-amber-300/80 font-medium">Locked</span>
                   )}
                 </div>
                 <div className="space-y-2.5 text-sm">
-                  <Row label="Bound Device ID" value={localUser.premiumBoundDeviceId ? <span className="font-mono text-amber-300/80">{localUser.premiumBoundDeviceId}</span> : <span className="text-[#6B7380]">None</span>} />
-                  <Row label="Bound At" value={localUser.premiumBoundAt ? fmtFull(localUser.premiumBoundAt) : "—"} />
+                  <Row
+                    label="Device ID"
+                    value={
+                      localUser.premiumBoundDeviceId ? (
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="font-mono text-amber-300/80 truncate">{localUser.premiumBoundDeviceId}</span>
+                          <CopyButton value={localUser.premiumBoundDeviceId} />
+                        </div>
+                      ) : (
+                        <span className="text-[#6B7380]">None</span>
+                      )
+                    }
+                  />
+                  <Row label="Linked At" value={localUser.premiumBoundAt ? fmtFull(localUser.premiumBoundAt) : "—"} />
+                  <Row
+                    label="Last Seen Device ID"
+                    value={
+                      localUser.premiumLastSeenDeviceId ? (
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="font-mono text-[#A0A8B3] truncate">{localUser.premiumLastSeenDeviceId}</span>
+                          <CopyButton value={localUser.premiumLastSeenDeviceId} />
+                        </div>
+                      ) : (
+                        <span className="text-[#6B7380]">—</span>
+                      )
+                    }
+                  />
+                  <Row label="Last Seen At" value={localUser.premiumDeviceLastSeenAt ? fmtFull(localUser.premiumDeviceLastSeenAt) : "—"} />
+                  <Row label="App Version" value={localUser.appVersion || "—"} />
+                  <Row label="Platform" value={localUser.platform || "—"} />
                 </div>
                 {localUser.premiumBoundDeviceId && (
                   <div className="mt-3">

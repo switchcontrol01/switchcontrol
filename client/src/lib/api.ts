@@ -411,13 +411,18 @@ if (typeof window !== 'undefined' && isElectron) {
                 init = { ...(init ?? {}), headers: { ...normalized, 'authorization': `Bearer ${jwt}` } };
               }
             }
-            // Always inject x-device-id for device-lock validation on cloud routes
+            // Always inject x-device-id (+ app version / platform) for device-lock validation on cloud routes
             try {
               if (isElectron && (window as any).electronAPI?.getDeviceId) {
                 const deviceId = await (window as any).electronAPI.getDeviceId();
                 if (deviceId) {
                   const h = (init as any)?.headers ?? normalized;
-                  init = { ...(init ?? {}), headers: { ...h, 'x-device-id': deviceId } };
+                  const extra: Record<string, string> = { 'x-device-id': deviceId };
+                  const appVersion = await (window as any).electronAPI.getVersion?.().catch(() => null);
+                  if (appVersion) extra['x-app-version'] = appVersion;
+                  const platform = await (window as any).electronAPI.getPlatform?.().catch(() => null);
+                  if (platform) extra['x-platform'] = platform;
+                  init = { ...(init ?? {}), headers: { ...h, ...extra } };
                 }
               }
             } catch {}
@@ -622,6 +627,12 @@ export async function apiFetch(
     const deviceId = await getDeviceId();
     if (deviceId) {
       headers['x-device-id'] = deviceId;
+      try {
+        const appVersion = await (window as any).electronAPI?.getVersion?.().catch(() => null);
+        if (appVersion) headers['x-app-version'] = appVersion;
+        const platform = await (window as any).electronAPI?.getPlatform?.().catch(() => null);
+        if (platform) headers['x-platform'] = platform;
+      } catch {}
     }
   } else {
     // Local routes: embedded backend auth

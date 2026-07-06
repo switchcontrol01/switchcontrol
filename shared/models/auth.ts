@@ -51,6 +51,9 @@ export const users = pgTable("users", {
   premiumDeviceLastSeenAt: timestamp("premium_device_last_seen_at"),
   // HMAC signature for device-id header verification (cryptographic device binding)
   deviceSignature: varchar("device_signature"),
+  // Last-reported desktop app version / OS platform for the bound/last-seen device
+  appVersion: varchar("app_version"),
+  platform: varchar("platform"),
 
   // Onboarding
   hasSeenPremiumUnlock: boolean("has_seen_premium_unlock").notNull().default(false),
