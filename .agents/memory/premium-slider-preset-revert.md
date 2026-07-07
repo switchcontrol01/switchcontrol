@@ -19,3 +19,16 @@ description: Slider and preset tweaks were skipped during trial expiry revert; f
 - Updated `usePremiumExpiry.ts` default report shapes.
 
 **Why:** This closes the loophole where trial expiry left premium slider/preset registry changes permanently applied.
+
+---
+
+**Follow-up fix (v1.1.9):** The backup-capture mechanism was itself broken. When the state file was created after tweaks were already applied (e.g., state file lost, migrated from an older version, or first capture ran on an already-tweaked system), the "original backup" stored the tweaked value, not the true Windows default. On revert, the engine restored the tweaked value back to the registry, making it appear like nothing changed.
+
+**Fix (v1.1.9):**
+- Created `forceRevertSliderToDefault()` and `forceRevertPresetToDefault()` that bypass the user-data backup and always write the static `defaultValue` / `defaultOptionId` from the tweak definition.
+- `revertAllPremiumSliders()` and `revertAllPremiumPresets()` now call the force-default functions.
+- After successful revert, stale backup entries are cleared from the state file so the next manual apply captures a fresh true original.
+
+**Also fixed in v1.1.9:** `teams-startup` toggle tweak revert failed because the PowerShell command had `"Teams.exe"` inside a JavaScript template literal. The `"` became a raw `"` in PowerShell, prematurely closing the `-Value` string argument. Fixed by using a `$val` variable with single-quoted `'Teams.exe'` inside the double-quoted path.
+
+**Why:** The user-data backup can never be trusted as the sole source of truth for revert. The static defaults in the tweak definitions are the canonical Windows defaults and must be used for trial expiry reverts.

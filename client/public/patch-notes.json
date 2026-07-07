@@ -1,14 +1,12 @@
 {
-  "version": "1.1.8",
-  "title": "Reliability & Persistence Update",
-  "headline": "This release fixes several stability issues and ensures your tweak settings stay exactly where you left them across app restarts.",
-  "date": "2026-07-06",
+  "version": "1.1.9",
+  "title": "Revert Engine Fix",
+  "headline": "This release fixes the trial expiry revert so slider and preset tweaks actually reset to true Windows defaults.",
+  "date": "2026-07-07",
   "type": "patch",
   "changes": [
-    "Fixed: Slider and preset tweaks now persist their exact values across app restarts. Previously, settings could reset to default if the registry read failed at startup.",
-    "Fixed: Disable NetBIOS and other network tweaks no longer auto-disable themselves after you enable them. The re-check script could falsely report the tweak as off due to adapter-level registry timing.",
-    "Fixed: Premium trial expiry now properly reverts slider tweaks and preset profiles, not just toggle tweaks. All premium settings are fully restored on trial end.",
-    "Improved: Slider and preset hydration now reads the saved value before querying Windows, so the UI shows your setting instantly even if PowerShell is busy at startup.",
-    "Improved: Network tweak verification is smarter — it never overrules a successful apply with a flaky read-back. Your explicit choice always wins."
+    "Fixed: Slider tweaks now revert to their real Windows default values on trial expiry, not the corrupted backup that matched the tweaked value. Same fix applied to preset tweaks (IRQ, I/O, GPU profiles).",
+    "Fixed: The 'teams-startup' toggle tweak no longer fails to revert. The PowerShell command had broken quoting that caused a 'positional parameter' error.",
+    "Improved: After a trial expiry revert, the stale state file entries are cleared. The next time you apply a premium tweak, it will capture a fresh true original value."
   ]
 }

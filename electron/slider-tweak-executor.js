@@ -856,9 +856,85 @@ const DISABLED_SLIDER_TWEAKS = Object.fromEntries(
 );
 
 /**
- * Revert every premium slider tweak that currently has an applied backup
- * (i.e. an entry in originalValues), regardless of which UI surface applied
- * it. Used by the premium-revert pipeline on trial expiry / downgrade so a
+ * Force-revert a single slider tweak to its **static defaultValue** from the
+ * tweak definition, bypassing the user-data backup. This is the safe path for
+ * premium-revert pipelines (trial expiry / downgrade) because the backup in
+ * slider-state.json may have been captured after the tweak was already applied
+ * (e.g. state file lost, migrated from an older version, or first capture ran
+ * on an already-tweaked system).
+ *
+ * Returns { ok, verified, actualValue, restoredTo, error }
+ */
+async function forceRevertSliderToDefault(tweakId) {
+  const def = SLIDER_TWEAKS[tweakId];
+  if (!def) return { ok: false, error: `Unknown slider tweak: ${tweakId}` };
+
+  const restoredTo = def.defaultValue;
+  console.log(`[SliderExecutor] Force-reverting ${tweakId} to DEFAULT ${restoredTo}`);
+
+  let writeOk = true;
+  let writeErr = null;
+
+  if (def.requiresReboot && def.requiresAdmin) {
+    writeCrashSentinel(tweakId, restoredTo);
+  }
+
+  try {
+    if (def.requiresAdmin) {
+      const alreadyAdmin = await checkIsAdmin();
+      if (alreadyAdmin) {
+        console.log(`[SliderExecutor] force-revert ${tweakId}: already admin — using runPS`);
+        await runPS(def.writeCommand(restoredTo));
+      } else {
+        const result = await runElevated(def.writeCommand(restoredTo));
+        if (!result.ok) { writeOk = false; writeErr = result.error || 'Elevation failed.'; }
+      }
+    } else {
+      await runPS(def.writeCommand(restoredTo));
+    }
+  } catch (err) {
+    writeOk = false;
+    writeErr = err.message;
+  }
+
+  clearCrashSentinel();
+
+  if (!writeOk) {
+    logSliderEntry({ tweakId, action: 'revert', restoredTo, success: false, error: writeErr });
+    return { ok: false, verified: false, actualValue: null, restoredTo, error: writeErr };
+  }
+
+  const verification = await verifySliderValue(tweakId, restoredTo);
+
+  // Also clear any stale backup so the next manual apply captures a fresh original
+  const state = loadSliderState();
+  if (state.originalValues[tweakId]) {
+    delete state.originalValues[tweakId];
+    saveSliderState(state);
+  }
+
+  logSliderEntry({
+    tweakId,
+    action: 'revert',
+    restoredTo,
+    usedBackup: false,
+    success: verification.ok,
+    actualValue: verification.actualValue,
+    error: verification.ok ? null : (verification.error || 'Verification failed after revert'),
+  });
+
+  return {
+    ok:          verification.ok,
+    verified:    verification.ok,
+    actualValue: verification.actualValue,
+    restoredTo,
+    error:       verification.ok ? null : (verification.error || 'Revert verification failed.'),
+  };
+}
+
+/**
+ * Revert every premium slider tweak to its static defaultValue.
+ * Used by the premium-revert pipeline on trial expiry / downgrade so a
  * user can never keep a premium slider tweak active without an active plan.
  *
  * Non-premium sliders are left untouched — they're allowed on the free tier.
@@ -875,7 +951,7 @@ async function revertAllPremiumSliders() {
     const def = SLIDER_TWEAKS[tweakId];
     if (!def || !def.premium) continue;
     try {
-      const result = await resetSliderValue(tweakId);
+      const result = await forceRevertSliderToDefault(tweakId);
       if (result.ok) {
         reverted.push(tweakId);
       } else {

@@ -524,9 +524,79 @@ function getPresetTweakMeta(tweakId) {
 const PRESET_TWEAK_IDS = Object.keys(PRESET_TWEAKS);
 
 /**
- * Revert every premium preset tweak that currently has an applied backup.
- * Mirrors revertAllPremiumSliders() — invoked by the premium-revert pipeline
- * on trial expiry / downgrade.
+ * Force-revert a single preset tweak to its **static defaultOptionId** from the
+ * tweak definition, bypassing the user-data backup. Same rationale as
+ * forceRevertSliderToDefault — the preset-state.json backup may be corrupted.
+ *
+ * Returns { ok, verified, actualOptionId, restoredTo, error }
+ */
+async function forceRevertPresetToDefault(tweakId) {
+  const def = PRESET_TWEAKS[tweakId];
+  if (!def) return { ok: false, error: `Unknown preset tweak: ${tweakId}` };
+
+  const restoredTo = def.defaultOptionId;
+  const option = def.options[restoredTo];
+  if (!option) return { ok: false, error: `Default option "${restoredTo}" missing for ${tweakId}` };
+
+  console.log(`[PresetExecutor] Force-reverting ${tweakId} to DEFAULT "${restoredTo}"`);
+
+  let writeOk = true;
+  let writeError = null;
+  try {
+    if (def.requiresAdmin) {
+      const alreadyAdmin = await checkIsAdmin();
+      if (alreadyAdmin) {
+        console.log(`[PresetExecutor] force-revert ${tweakId}: already admin — using runPS`);
+        await runPS(option.writeCommand());
+      } else {
+        const result = await runElevated(option.writeCommand());
+        writeOk = result.ok;
+        writeError = result.error;
+      }
+    } else {
+      await runPS(option.writeCommand());
+    }
+  } catch (err) {
+    writeOk = false;
+    writeError = err.message;
+  }
+
+  if (!writeOk) {
+    logPresetEntry({ tweakId, action: 'revert', restoredTo, success: false, error: writeError });
+    return { ok: false, verified: false, actualOptionId: null, restoredTo, error: writeError || 'Revert write failed.' };
+  }
+
+  const verification = await readPresetValue(tweakId);
+  const verified = verification.optionId === restoredTo;
+
+  // Clear stale backup so next manual apply captures fresh original
+  const state = loadPresetState();
+  if (state.originalValues[tweakId]) {
+    delete state.originalValues[tweakId];
+    savePresetState(state);
+  }
+
+  logPresetEntry({
+    tweakId,
+    action: 'revert',
+    restoredTo,
+    success: verified,
+    actualOptionId: verification.optionId,
+    error: verified ? null : (verification.error || 'Verification mismatch after revert.'),
+  });
+
+  return {
+    ok: verified,
+    verified,
+    actualOptionId: verification.optionId,
+    restoredTo,
+    error: verified ? null : (verification.error || `Revert verification failed — expected "${restoredTo}", read back "${verification.optionId}".`),
+  };
+}
+
+/**
+ * Revert every premium preset tweak to its static defaultOptionId.
+ * Invoked by the premium-revert pipeline on trial expiry / downgrade.
  *
  * Returns { reverted: string[], failed: { tweakId, error }[] }
  */
@@ -540,7 +610,7 @@ async function revertAllPremiumPresets() {
     const def = PRESET_TWEAKS[tweakId];
     if (!def || !def.premium) continue;
     try {
-      const result = await resetPresetValue(tweakId);
+      const result = await forceRevertPresetToDefault(tweakId);
       if (result.ok) {
         reverted.push(tweakId);
       } else {

@@ -989,7 +989,7 @@ const ADMIN_TWEAKS = {
     requiresAdmin: true,
     requiresReboot: false,
     apply:  `$p = "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Run"; Remove-ItemProperty -Path $p -Name "com.squirrel.Teams.Teams" -EA SilentlyContinue; Remove-ItemProperty -Path $p -Name "Teams" -EA SilentlyContinue; Get-Process -Name "Teams" -EA SilentlyContinue | Stop-Process -Force -EA SilentlyContinue`,
-    revert: `$p = "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Run"; Set-ItemProperty -Path $p -Name "com.squirrel.Teams.Teams" -Value "$env:LOCALAPPDATA\\Microsoft\\Teams\\Update.exe --processStart \"Teams.exe\"" -Type String -Force -EA SilentlyContinue`,
+    revert: `$p = "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Run"; $val = "$env:LOCALAPPDATA\\Microsoft\\Teams\\Update.exe --processStart 'Teams.exe'"; Set-ItemProperty -Path $p -Name "com.squirrel.Teams.Teams" -Value $val -Type String -Force -EA SilentlyContinue`,
     check:  `$p = "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Run"; $v = Get-ItemProperty -Path $p -Name "com.squirrel.Teams.Teams" -EA SilentlyContinue; -not $v`,
   },
   'vendor-updaters': {
