@@ -6,6 +6,23 @@
  * engine and surfaces the result modal.
  *
  * Only runs in Electron mode — web mode has no real system state to revert.
+ *
+ * Post-update grace
+ * -----------------
+ * On the first launch after an app update the user's JWT or session may not
+ * have been re-validated yet.  Triggering a revert at that moment would
+ * incorrectly reset Windows tweaks for users who are still premium.
+ *
+ * Two guards prevent this false revert:
+ *  1. postUpdateGrace flag — set by the main process when it detects a version
+ *     change (sc-config.json installedVersion ≠ current version).  Cleared by
+ *     useEntitlementRefresh after the first successful server round-trip.
+ *  2. premiumGraceStore.sessionVerified — becomes true the moment
+ *     setVerified() is called after any successful entitlement fetch.
+ *
+ * While either guard is active the startup revert is deferred.  When
+ * sessionVerified becomes true (auth completed) the effect re-runs with fresh
+ * state and either fires the revert or confirms the user is still premium.
  */
 
 import { useEffect, useRef, useState, useCallback } from 'react';
@@ -14,6 +31,7 @@ import { runPremiumRevert, hasPremiumItemsToRevert, PremiumRevertReport, RevertP
 import { isTrialActive } from '@/lib/trialCountdown';
 import { useTrialExpiryStore } from '@/stores/trialExpiryStore';
 import { useTweakOwnershipStore } from '@/stores/tweakOwnershipStore';
+import { usePremiumGraceStore } from '@/stores/premiumGraceStore';
 
 interface UsePremiumExpiryOptions {
   isPremium: boolean;
@@ -45,11 +63,38 @@ export function usePremiumExpiry({
   const prevTrialEndsAt = useRef<string | null>(null);
   const revertRunning   = useRef(false);
 
+  // Post-update grace — loaded from main process IPC once on mount.
+  // True when the app version changed since the last launch (update detected).
+  const postUpdateGrace = useRef<boolean>(false);
+
   const [modalOpen,    setModalOpen]    = useState(false);
   const [revertReport, setRevertReport] = useState<PremiumRevertReport | null>(null);
   const [revertPhase,  setRevertPhase]  = useState<RevertPhase | null>(null);
 
+  // Reactive: becomes true once setVerified() fires in premiumGraceStore.
+  // This is the signal that auth has completed its first server round-trip for
+  // this session, and it is safe to act on the current isPremium value.
+  const graceSessionVerified = usePremiumGraceStore((s) => s.sessionVerified);
+
   const isCurrentlyActive = isPremium || isTrialActive(plan ?? '', trialEndsAt);
+
+  // ── Load post-update grace flag from main process ─────────────────────────
+  useEffect(() => {
+    if (!isElectronWithTweaks()) return;
+    const appAPI = (window as any).electronAPI;
+    if (!appAPI?.getPostUpdateGrace) return;
+
+    appAPI.getPostUpdateGrace().then((result: any) => {
+      if (result?.isPostUpdate === true) {
+        postUpdateGrace.current = true;
+        console.log(
+          `[PremiumExpiry] Post-update grace active — updated from v${result.fromVersion ?? '?'} to v${result.toVersion ?? '?'}. Startup revert deferred until auth verifies.`
+        );
+      }
+    }).catch(() => {
+      // Non-fatal — if IPC fails, grace stays false and normal flow runs
+    });
+  }, []);
 
   function determineRevertReason(
     prevP: string | null,
@@ -127,6 +172,41 @@ export function usePremiumExpiry({
     const wasActive = prevWasActive.current;
 
     if (wasActive === null) {
+      // ── Startup: first time both isLoggedIn and entitlementsVerified are true ─
+      //
+      // Grace guard: if the app just updated OR if the premium grace store has
+      // not yet been verified this session, we cannot trust the current isPremium
+      // value — the auth system may still be resolving.  Defer the revert until
+      // graceSessionVerified becomes true (triggered by useEntitlementRefresh
+      // calling setVerified() after its first successful server fetch).
+      //
+      // We deliberately leave prevWasActive.current as null so that when
+      // graceSessionVerified changes (included in the effect deps), this block
+      // re-runs with fresh state and either fires the revert or confirms the
+      // user is still premium.
+      if (!isCurrentlyActive) {
+        const graceGuardActive =
+          (postUpdateGrace.current === true && !graceSessionVerified) ||
+          (!graceSessionVerified && usePremiumGraceStore.getState().getStatus(true) === 'grace');
+
+        if (graceGuardActive) {
+          console.log(
+            `[PremiumExpiry] Startup revert deferred — grace guard active ` +
+            `(postUpdate=${postUpdateGrace.current}, sessionVerified=${graceSessionVerified}). ` +
+            `Will re-evaluate when session auth completes.`
+          );
+          // Power plan sanity check is safe (read-only — just checks active plan GUID)
+          if (isElectronWithTweaks()) {
+            const premiumAPI = (window as any).electronAPI?.premium;
+            premiumAPI?.powerPlanSanityCheck?.()
+              .then((r: any) => console.log('[PremiumExpiry] Sanity check result (grace defer):', r))
+              .catch((e: any) => console.error('[PremiumExpiry] Sanity check error:', e));
+          }
+          return; // Leave prevWasActive as null — re-runs when graceSessionVerified changes
+        }
+      }
+
+      // Grace guard not active — record initial state and handle normally.
       prevWasActive.current = isCurrentlyActive;
       prevPlan.current = plan ?? null;
       prevTrialEndsAt.current = trialEndsAt ?? null;
@@ -163,7 +243,7 @@ export function usePremiumExpiry({
     prevWasActive.current = isCurrentlyActive;
     prevPlan.current = plan ?? null;
     prevTrialEndsAt.current = trialEndsAt ?? null;
-  }, [isCurrentlyActive, isLoggedIn, entitlementsVerified, triggerRevert]);
+  }, [isCurrentlyActive, isLoggedIn, entitlementsVerified, triggerRevert, graceSessionVerified]);
 
   // ── Countdown timer watcher ────────────────────────────────────────────────
   useEffect(() => {
@@ -210,7 +290,6 @@ export function usePremiumExpiry({
 
 // ── First-run baseline scan ───────────────────────────────────────────────────
 
-import { useTweakOwnershipStore } from '@/stores/tweakOwnershipStore';
 import { REAL_TWEAKS } from '@/hooks/use-tweak-executor';
 import { isTweakPremium } from '@/lib/premium-config';
 import { TWEAKS_DATA } from '@/lib/mock-data';

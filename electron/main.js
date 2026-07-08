@@ -1666,6 +1666,38 @@ ipcMain.handle('app:getVersion', () => app.getVersion());
 ipcMain.handle('app:getPlatform', () => process.platform);
 ipcMain.handle('app:isPackaged', () => app.isPackaged);
 
+// ── Post-update grace guard ───────────────────────────────────────────────────
+// The renderer reads this flag on startup to decide whether to defer the
+// premium-expiry revert check.  After an update, the user's JWT or session may
+// not have been re-validated yet, so triggering a revert on first launch would
+// incorrectly reset Windows tweaks for still-premium users.
+// The flag is set here when a version change is detected (main process knows
+// the previous and current version via configStore).  It is cleared by the
+// renderer after the first successful entitlement verification this session.
+ipcMain.handle('app:getPostUpdateGrace', () => {
+  try {
+    return {
+      isPostUpdate: configStore.get('postUpdateGrace') === true,
+      fromVersion:  configStore.get('previousVersion') ?? null,
+      toVersion:    app.getVersion(),
+    };
+  } catch (e) {
+    return { isPostUpdate: false, fromVersion: null, toVersion: app.getVersion() };
+  }
+});
+
+ipcMain.handle('app:clearPostUpdateGrace', () => {
+  try {
+    configStore.del('postUpdateGrace');
+    configStore.del('previousVersion');
+    console.log('[UPDATE] Post-update grace cleared — first successful auth verification complete');
+    return { ok: true };
+  } catch (e) {
+    console.warn('[UPDATE] Failed to clear post-update grace:', e?.message);
+    return { ok: false };
+  }
+});
+
 ipcMain.handle('app:getDeviceId', () => {
   if (!cachedDeviceId) cachedDeviceId = getOrCreateDeviceId();
   return cachedDeviceId;
@@ -4565,6 +4597,26 @@ app.whenReady().then(async () => {
   const userDataPath = app.getPath('userData');
   configStore.init(userDataPath);
   verboseLog('[BOOT] Config store initialized:', userDataPath);
+
+  // ── Post-update grace tracking ─────────────────────────────────────────────
+  // Compare the version stored from the last launch to the current version.
+  // A mismatch means the user just installed an update.  We set a grace flag
+  // so the renderer skips the startup premium-revert check on first launch —
+  // preventing false reverts before the new version has had a chance to verify
+  // the user's entitlements against the server.
+  try {
+    const storedVersion   = configStore.get('installedVersion');
+    const currentVersion  = app.getVersion();
+    if (storedVersion && storedVersion !== currentVersion) {
+      console.log(`[UPDATE] Version change: ${storedVersion} → ${currentVersion} — setting post-update grace flag`);
+      configStore.set('postUpdateGrace', true);
+      configStore.set('previousVersion', storedVersion);
+    }
+    // Always update the stored version so the next launch can detect changes.
+    configStore.set('installedVersion', currentVersion);
+  } catch (e) {
+    console.warn('[UPDATE] Version tracking failed (non-fatal):', e?.message);
+  }
 
   app.setAsDefaultProtocolClient(PROTOCOL_NAME);
   verboseLog('[DeepLink] protocol registered:', app.isDefaultProtocolClient('switchcontrol'));

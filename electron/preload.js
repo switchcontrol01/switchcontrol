@@ -100,6 +100,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   setDeviceSignature: (signature) => ipcRenderer.invoke('app:setDeviceSignature', signature),
   isAdmin:         () => ipcRenderer.invoke('app:isAdmin'),
   isIPCReady:      () => ipcRenderer.invoke('app:isIPCReady'),
+  getPostUpdateGrace:   () => ipcRenderer.invoke('app:getPostUpdateGrace'),
+  clearPostUpdateGrace: () => ipcRenderer.invoke('app:clearPostUpdateGrace'),
   getBackendPort:  () => ipcRenderer.invoke('app:getBackendPort'),
   isBackendReady:  () => ipcRenderer.invoke('app:isBackendReady'),
   getBackendError: () => ipcRenderer.invoke('app:getBackendError'),

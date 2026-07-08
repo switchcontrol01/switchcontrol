@@ -38,6 +38,19 @@ export function useEntitlementRefresh(options: UseEntitlementRefreshOptions = {}
       if (result?.user) {
         setVerified(result.user.isPremium, result.user.plan ?? null, result.user.id ?? null, features);
         console.log(`[Premium] Grace snapshot saved — isPremium=${result.user.isPremium} features=${!!features}`);
+
+        // Clear the post-update grace flag now that auth has successfully verified
+        // entitlements for this session.  This unblocks the startup premium-revert
+        // check (usePremiumExpiry) and prevents the flag from persisting across
+        // multiple launches.
+        try {
+          const appAPI = (window as any).electronAPI;
+          if (appAPI?.clearPostUpdateGrace) {
+            appAPI.clearPostUpdateGrace().catch(() => {});
+          }
+        } catch {
+          // Non-fatal — worst case the flag stays until the next successful auth
+        }
       }
     } catch (err) {
       console.error('[Entitlement] Refresh failed:', err);
