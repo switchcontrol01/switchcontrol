@@ -1,34 +1,37 @@
 ---
 name: Premium Slider/Preset Revert Fix
-description: Slider and preset tweaks were skipped during trial expiry revert; fixed by wiring backend batch reverts into the client-side engine.
+description: Slider and preset tweaks were skipped during trial expiry revert; fixed in v2 by wiring backend batch reverts; fixed again in v3 for three deeper root causes.
 ---
 
-**Problem:** Slider and preset tweaks never got reverted when trial expired. The client-side `runPremiumRevert()` engine in `premiumRevertEngine.ts` had NO code to handle them, so the modal always reported 0 reverted for these categories.
+**Problem:** Slider and preset tweaks never got reverted when trial expired. The client-side `runPremiumRevert()` engine in `premiumRevertEngine.ts` had NO code to handle them.
 
-**Why:** Slider/preset original values are stored in `slider-state.json` and `preset-state.json` by the backend executors (`slider-tweak-executor.js`, `preset-tweak-executor.js`). The backend already had `revertAllPremiumSliders()` and `revertAllPremiumPresets()` sweeps that read these files and restore originals. But:
-1. There were no IPC handlers exposing these sweeps.
-2. The client-side revert engine didn't call them.
-3. The modal didn't display their results.
-
-**Fix:**
+**Fix (v2 — IPC wiring):**
 - Added `ipcMain.handle('tweak:revertAllSliders', ...)` and `ipcMain.handle('presetTweaks:revertAll', ...)` in `electron/main.js`.
 - Exposed them in `electron/preload.js`.
-- Added `revertSliderTweaks()` and `revertPresetTweaks()` to `client/src/lib/premiumRevertEngine.ts`, with retry logic matching the rest of the engine.
+- Added `revertSliderTweaks()` and `revertPresetTweaks()` to `premiumRevertEngine.ts`.
 - Added `sliderResults` and `presetResults` to `PremiumRevertReport`.
-- Updated `PremiumRevertModal` phases and results display.
-- Updated `usePremiumExpiry.ts` default report shapes.
-
-**Why:** This closes the loophole where trial expiry left premium slider/preset registry changes permanently applied.
 
 ---
 
-**Follow-up fix (v1.1.9):** The backup-capture mechanism was itself broken. When the state file was created after tweaks were already applied (e.g., state file lost, migrated from an older version, or first capture ran on an already-tweaked system), the "original backup" stored the tweaked value, not the true Windows default. On revert, the engine restored the tweaked value back to the registry, making it appear like nothing changed.
+**Follow-up fix (v2.1 — backup corruption):** The backup-capture mechanism was broken. If the state file was created after tweaks were already applied, the "original backup" stored the tweaked value. Fix: `forceRevertSliderToDefault()` / `forceRevertPresetToDefault()` bypass the user-data backup and always write the static `defaultValue` from the tweak definition.
 
-**Fix (v1.1.9):**
-- Created `forceRevertSliderToDefault()` and `forceRevertPresetToDefault()` that bypass the user-data backup and always write the static `defaultValue` / `defaultOptionId` from the tweak definition.
-- `revertAllPremiumSliders()` and `revertAllPremiumPresets()` now call the force-default functions.
-- After successful revert, stale backup entries are cleared from the state file so the next manual apply captures a fresh true original.
+---
 
-**Also fixed in v1.1.9:** `teams-startup` toggle tweak revert failed because the PowerShell command had `"Teams.exe"` inside a JavaScript template literal. The `"` became a raw `"` in PowerShell, prematurely closing the `-Value` string argument. Fixed by using a `$val` variable with single-quoted `'Teams.exe'` inside the double-quoted path.
+**Fix (v3 — three root causes at the engine level):**
 
-**Why:** The user-data backup can never be trusted as the sole source of truth for revert. The static defaults in the tweak definitions are the canonical Windows defaults and must be used for trial expiry reverts.
+**Root cause 1 — Electron `revertAllPremiumSliders` misses sliders without backups:**
+Previous code: `Object.keys(state.originalValues)` — if `slider-state.json` is missing/empty, ZERO sliders revert.
+Fix: iterate `Object.entries(SLIDER_TWEAKS).filter(([, def]) => def.premium && !def.disabled)` — covers all sliders regardless of backup. Writing the Windows default to an already-default key is idempotent and safe. Added `success: true` to return object.
+
+**Root cause 2 — Frontend success check was always falsy (3× retry, wrong results read):**
+Previous code: `if (lastResult?.success)` — the IPC returns `{ reverted, failed }` with NO 'success' key. Always undefined → loop runs 3×. Attempt 1 clears originalValues from state.json; attempts 2–3 find nothing and return `reverted=[]`. Reading from the LAST attempt → engine reports 0 reverts even when all succeeded.
+Fix: `if (lastResult?.success === true || Array.isArray(lastResult?.reverted))`.
+Same fix applied to `revertPresetTweaks()` (identical bug).
+
+**Root cause 3 — Zustand sliderValues never cleared after revert:**
+After Windows was reverted, `useStore.sliderValues` still held premium values → slider UI showed stale premium state. `hasPremiumItemsToRevert()` also never checked slider state, so the revert was never triggered if only sliders were applied.
+Fix: Added `PREMIUM_SLIDER_DEFAULTS` map (all 10 premium slider defaults). Added `clearPremiumSliderStoreValues()` that calls `setSliderValue(id, default)` for each reverted ID. Called after successful revert + dispatches `sc:sliders-reverted` DOM event. Fixed `hasPremiumItemsToRevert()` to also check `useStore.sliderValues` against the defaults map.
+
+**Key invariant:** `PREMIUM_SLIDER_DEFAULTS` in `premiumRevertEngine.ts` must stay in sync with `defaultValue` fields in `electron/slider-tweak-executor.js`. If a new premium slider is added to the executor, add its default here too.
+
+**Why:** The ownership store (tweakOwnershipStore) never tracked sliders — it only tracks toggle tweaks, network tweaks, EL, and power plan. Sliders must be checked against the Zustand sliderValues store + PREMIUM_SLIDER_DEFAULTS for detection, and the backend must iterate SLIDER_TWEAKS directly (not a potentially-empty backup) for reliable revert coverage.

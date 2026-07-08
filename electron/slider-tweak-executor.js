@@ -937,33 +937,51 @@ async function forceRevertSliderToDefault(tweakId) {
  * Used by the premium-revert pipeline on trial expiry / downgrade so a
  * user can never keep a premium slider tweak active without an active plan.
  *
- * Non-premium sliders are left untouched — they're allowed on the free tier.
+ * Non-premium and permanently-disabled sliders are skipped.
  *
- * Returns { reverted: string[], failed: { tweakId, error }[] }
+ * RELIABILITY FIX: The previous implementation only processed sliders that had
+ * entries in slider-state.json (the original-value backup). If that file was
+ * missing, empty, or lost (app reinstalled, state migrated, first run on an
+ * already-tweaked system), ZERO sliders were reverted. This version iterates
+ * ALL premium non-disabled sliders from SLIDER_TWEAKS directly and calls
+ * forceRevertSliderToDefault on each — writing the Windows default to a key
+ * that is already at default is safe and idempotent.
+ *
+ * Returns { success: true, reverted: string[], failed: { tweakId, error }[] }
  */
 async function revertAllPremiumSliders() {
-  const state = loadSliderState();
-  const appliedIds = Object.keys(state.originalValues || {});
+  // Collect every active (non-disabled) premium slider — not just those with
+  // backup entries. This guarantees coverage even when slider-state.json is
+  // absent or stale.
+  const premiumIds = Object.entries(SLIDER_TWEAKS)
+    .filter(([, def]) => def.premium && !def.disabled)
+    .map(([id]) => id);
+
   const reverted = [];
   const failed = [];
 
-  for (const tweakId of appliedIds) {
-    const def = SLIDER_TWEAKS[tweakId];
-    if (!def || !def.premium) continue;
+  console.log(`[SliderExecutor] revertAllPremiumSliders starting — ${premiumIds.length} premium sliders to process`);
+
+  for (const tweakId of premiumIds) {
     try {
       const result = await forceRevertSliderToDefault(tweakId);
       if (result.ok) {
         reverted.push(tweakId);
+        console.log(`[SliderExecutor] ✓ reverted ${tweakId} → ${result.restoredTo}`);
       } else {
         failed.push({ tweakId, error: result.error || 'Unknown revert failure' });
+        console.warn(`[SliderExecutor] ✗ failed ${tweakId}: ${result.error}`);
       }
     } catch (err) {
       failed.push({ tweakId, error: err.message });
+      console.error(`[SliderExecutor] ✗ exception ${tweakId}:`, err.message);
     }
   }
 
-  console.log(`[SliderExecutor] revertAllPremiumSliders: reverted=${reverted.length} failed=${failed.length}`);
-  return { reverted, failed };
+  console.log(`[SliderExecutor] revertAllPremiumSliders complete — total=${premiumIds.length} reverted=${reverted.length} failed=${failed.length}`);
+  // 'success: true' signals the frontend that the batch ran — distinguish from
+  // a total IPC failure where the call itself never completed.
+  return { success: true, reverted, failed };
 }
 
 module.exports = {

@@ -21,6 +21,7 @@
  */
 
 import { useTweakOwnershipStore } from '@/stores/tweakOwnershipStore';
+import { useStore } from './store';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -28,6 +29,53 @@ const BALANCED_GUID       = '381b4222-f694-41f0-9685-ff5bb260df2e';
 const SC_PLAN_NAME_PREFIX = 'SwitchControl -';
 const MAX_RETRY_ATTEMPTS  = 3;
 const RETRY_BASE_DELAY_MS = 600;
+
+// ── Premium slider defaults ───────────────────────────────────────────────────
+//
+// Mirrors the defaultValue fields in electron/slider-tweak-executor.js.
+// Used to (a) reset the Zustand store after revert so the UI immediately
+// shows Windows defaults, and (b) detect non-default premium slider values
+// in hasPremiumItemsToRevert().
+//
+// Disabled sliders (mouse-queue-size, kbd-queue-size) are intentionally
+// excluded — they can never be applied, so there is nothing to revert.
+
+const PREMIUM_SLIDER_DEFAULTS: Record<string, number> = {
+  'win32-priority-sep':       2,
+  'sys-responsiveness':       20,
+  'max-pending-interrupts':   4,
+  'timer-resolution-slider':  156,
+  'net-throttle-index':       10,
+  'menu-show-delay':          400,
+  'hung-app-timeout':         5000,
+  'low-level-hooks-timeout':  5000,
+  'wait-to-kill-app':         20000,
+  'svchost-split-threshold':  380000,
+};
+
+/**
+ * Reset the Zustand main store's sliderValues for every reverted ID to its
+ * Windows default so the slider UI immediately reflects the reverted state.
+ * Falls back to resetting ALL known premium sliders when no specific list is
+ * provided (e.g. when the IPC call succeeded but reverted[] was empty).
+ */
+function clearPremiumSliderStoreValues(revertedIds?: string[]): void {
+  try {
+    const store = useStore.getState();
+    const ids = (revertedIds && revertedIds.length > 0)
+      ? revertedIds
+      : Object.keys(PREMIUM_SLIDER_DEFAULTS);
+    for (const id of ids) {
+      const defaultVal = PREMIUM_SLIDER_DEFAULTS[id];
+      if (defaultVal !== undefined) {
+        store.setSliderValue(id, defaultVal);
+      }
+    }
+    console.log(`[Revert:SLIDER] store cleared for ${ids.length} slider(s)`);
+  } catch (e) {
+    console.warn('[Revert:SLIDER] clearPremiumSliderStoreValues failed:', e);
+  }
+}
 
 // ── Phase type (exported for progress UI) ────────────────────────────────────
 
@@ -102,9 +150,20 @@ function delay(ms: number): Promise<void> {
 
 // ── Slider revert ───────────────────────────────────────────────────────────
 //
-// NEW: Slider tweaks were completely skipped by the revert engine (0% success).
+// Slider tweaks were completely skipped by the old revert engine (0% success).
 // They store their original values in slider-state.json on the backend, so we
 // delegate to the Electron backend's revertAllPremiumSliders() sweep.
+//
+// RELIABILITY FIXES (v3):
+//   • Bug fix — success check was `lastResult?.success` but the IPC returned
+//     { reverted, failed } with NO 'success' field, so it was always undefined
+//     (falsy). The retry loop ran 3× needlessly. On attempt 1 the originalValues
+//     backup was cleared; attempts 2 and 3 found nothing and returned reverted=[].
+//     Reading results from the LAST attempt therefore always showed 0 reverts.
+//     Fix: treat any call that returns an Array-shaped 'reverted' field as success.
+//   • After revert, clear the Zustand sliderValues store for every reverted ID so
+//     the slider UI immediately shows Windows defaults instead of stale premium vals.
+//   • Dispatch sc:sliders-reverted so any mounted slider component can react.
 
 async function revertSliderTweaks(): Promise<RevertItemResult[]> {
   const api = getSliderAPI();
@@ -119,12 +178,14 @@ async function revertSliderTweaks(): Promise<RevertItemResult[]> {
   for (let attempt = 1; attempt <= MAX_RETRY_ATTEMPTS; attempt++) {
     try {
       lastResult = await api.revertAllSliders();
-      if (lastResult?.success) {
+      // The executor returns { success?, reverted, failed }.  Older builds did
+      // not include 'success', so fall back to checking for the reverted array.
+      if (lastResult?.success === true || Array.isArray(lastResult?.reverted)) {
         success = true;
         console.log(`[Revert:SLIDER] revertAllSliders succeeded attempt=${attempt}`);
         break;
       }
-      console.warn(`[Revert:SLIDER] revertAllSliders failed attempt=${attempt}`, lastResult?.error);
+      console.warn(`[Revert:SLIDER] revertAllSliders unexpected response attempt=${attempt}`, lastResult);
     } catch (err) {
       console.error(`[Revert:SLIDER] revertAllSliders exception attempt=${attempt}`, err);
     }
@@ -138,6 +199,12 @@ async function revertSliderTweaks(): Promise<RevertItemResult[]> {
   const revertedIds: string[] = lastResult.reverted ?? [];
   const failedList: Array<{ tweakId: string; error: string }> = lastResult.failed ?? [];
 
+  // Reset the Zustand store so slider UI immediately reflects Windows defaults.
+  // We always clear, even when revertedIds is empty, because the executor may
+  // have reverted to default without adding to the list (idempotent writes).
+  clearPremiumSliderStoreValues(revertedIds.length > 0 ? revertedIds : undefined);
+  dispatchRevertEvent('sc:sliders-reverted', { ids: revertedIds });
+
   const results: RevertItemResult[] = [];
 
   for (const tweakId of revertedIds) {
@@ -147,7 +214,7 @@ async function revertSliderTweaks(): Promise<RevertItemResult[]> {
     results.push({ tweakId, label: tweakId, status: 'failed', reason: error });
   }
 
-  console.log(`[Revert:SLIDER] total=${results.length} reverted=${revertedIds.length} failed=${failedList.length}`);
+  console.log(`[Revert:SLIDER] total=${results.length} reverted=${revertedIds.length} failed=${failedList.length} success=${success}`);
   return results;
 }
 
@@ -170,12 +237,13 @@ async function revertPresetTweaks(): Promise<RevertItemResult[]> {
   for (let attempt = 1; attempt <= MAX_RETRY_ATTEMPTS; attempt++) {
     try {
       lastResult = await api.revertAll();
-      if (lastResult?.success) {
+      // Same fix as slider: the executor returns { reverted, failed }, no 'success' field.
+      if (lastResult?.success === true || Array.isArray(lastResult?.reverted)) {
         success = true;
         console.log(`[Revert:PRESET] revertAll succeeded attempt=${attempt}`);
         break;
       }
-      console.warn(`[Revert:PRESET] revertAll failed attempt=${attempt}`, lastResult?.error);
+      console.warn(`[Revert:PRESET] revertAll unexpected response attempt=${attempt}`, lastResult);
     } catch (err) {
       console.error(`[Revert:PRESET] revertAll exception attempt=${attempt}`, err);
     }
@@ -723,12 +791,31 @@ export async function runPremiumRevert(
 
 /**
  * Returns true if there are any app-applied premium items that would need reverting.
+ *
+ * SLIDER FIX: also checks the main Zustand store's sliderValues for any premium
+ * slider that is set to a non-default value.  The ownership store (tweakOwnershipStore)
+ * does not track slider state, so without this check the function always returns
+ * false when only slider tweaks have been applied — preventing the revert flow
+ * from starting at all.
  */
 export function hasPremiumItemsToRevert(): boolean {
   const store = useTweakOwnershipStore.getState();
-  const hasTweaks     = Object.values(store.appliedTweaks).some(r => r.appliedByApp && r.isPremium);
-  const hasNetwork    = Object.values(store.networkTweaks).some(r => r.appliedByApp);
-  const hasPlan       = store.powerPlan?.appliedByApp === true;
+  const hasTweaks      = Object.values(store.appliedTweaks).some(r => r.appliedByApp && r.isPremium);
+  const hasNetwork     = Object.values(store.networkTweaks).some(r => r.appliedByApp);
+  const hasPlan        = store.powerPlan?.appliedByApp === true;
   const hasExtremeLabs = Object.values(store.extremeLabs).some(r => r.appliedByApp);
-  return hasTweaks || hasNetwork || hasPlan || hasExtremeLabs;
+
+  // Check premium sliders: any stored value that differs from the Windows default
+  // means the slider was applied (even across app restarts, since sliderValues is
+  // persisted in localStorage via Zustand-persist).
+  let hasSliders = false;
+  try {
+    const sliderValues = useStore.getState().sliderValues;
+    hasSliders = Object.entries(PREMIUM_SLIDER_DEFAULTS).some(([id, defaultVal]) => {
+      const stored = sliderValues[id];
+      return stored !== undefined && stored !== defaultVal;
+    });
+  } catch { /* non-Electron / store not ready */ }
+
+  return hasTweaks || hasNetwork || hasPlan || hasExtremeLabs || hasSliders;
 }
