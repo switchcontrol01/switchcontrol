@@ -436,9 +436,9 @@ const SLIDER_TWEAKS = {
     defaultValue:  10,
     safeMin:       1,
     safeMax:       4294967295,
-    readCommand:   () => `(Get-ItemProperty -Path 'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile' -Name 'NetworkThrottlingIndex' -EA SilentlyContinue).NetworkThrottlingIndex`,
+    readCommand:   () => `[uint32](Get-ItemProperty -Path 'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile' -Name 'NetworkThrottlingIndex' -EA SilentlyContinue).NetworkThrottlingIndex`,
     writeCommand:  (v) => `New-Item -Path 'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile' -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path 'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile' -Name 'NetworkThrottlingIndex' -Value ${psInt(v)} -Type DWord -Force`,
-    verifyCommand: (v) => `(Get-ItemProperty -Path 'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile' -Name 'NetworkThrottlingIndex' -EA SilentlyContinue).NetworkThrottlingIndex -eq ${psInt(v)}`,
+    verifyCommand: (v) => `[uint32](Get-ItemProperty -Path 'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile' -Name 'NetworkThrottlingIndex' -EA SilentlyContinue).NetworkThrottlingIndex -eq ${psInt(v)}`,
   },
 
   /**
