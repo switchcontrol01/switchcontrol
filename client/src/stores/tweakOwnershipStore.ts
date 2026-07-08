@@ -3,8 +3,14 @@ import { persist } from 'zustand/middleware';
 
 // ── Ownership record shapes ────────────────────────────────────────────────────
 
+/** Metadata for a tweak the app knows about.
+ *
+ * Record existence does NOT imply the tweak is currently applied.
+ * The canonical on/off boolean lives in `useStore.getState().tweaks[id]`.
+ * This store only tracks provenance (did WE apply it or was it already on at
+ * baseline?), revert eligibility, and diagnostic state. */
 export interface TweakOwnership {
-  appliedByApp: boolean;
+  provenance: 'app' | 'baseline';
   timestamp: number;
   revertFailed: boolean;
   conflictDetected: boolean;
@@ -13,7 +19,7 @@ export interface TweakOwnership {
 }
 
 export interface NetworkTweakOwnership {
-  appliedByApp: boolean;
+  provenance: 'app' | 'baseline';
   timestamp: number;
   previousStatus: 'on' | 'off' | 'unknown';
   appliedStatus: 'on' | 'off';
@@ -23,7 +29,7 @@ export interface NetworkTweakOwnership {
 }
 
 export interface PowerPlanOwnership {
-  appliedByApp: boolean;
+  provenance: 'app' | 'baseline';
   timestamp: number;
   previousPlanGuid: string;
   previousPlanName: string;
@@ -34,7 +40,7 @@ export interface PowerPlanOwnership {
 }
 
 export interface ExtremeTweakOwnership {
-  appliedByApp: boolean;
+  provenance: 'app' | 'baseline';
   timestamp: number;
   label: string;
   revertFailed: boolean;
@@ -98,12 +104,12 @@ export const useTweakOwnershipStore = create<TweakOwnershipState>()(
         if (!isApplied) return;
         set(s => {
           const existing = s.appliedTweaks[tweakId];
-          if (existing?.appliedByApp) return s;
+          if (existing?.provenance === 'app') return s; // app override wins
           return {
             appliedTweaks: {
               ...s.appliedTweaks,
               [tweakId]: {
-                appliedByApp:   false,
+                provenance:       'baseline',
                 timestamp:        Date.now(),
                 revertFailed:     false,
                 conflictDetected: false,
@@ -120,7 +126,7 @@ export const useTweakOwnershipStore = create<TweakOwnershipState>()(
           appliedTweaks: {
             ...s.appliedTweaks,
             [tweakId]: {
-              appliedByApp:     true,
+              provenance:       'app',
               timestamp:        Date.now(),
               revertFailed:     false,
               conflictDetected: false,
@@ -161,12 +167,12 @@ export const useTweakOwnershipStore = create<TweakOwnershipState>()(
         if (status !== 'on') return;
         set(s => {
           const existing = s.networkTweaks[tweakId];
-          if (existing?.appliedByApp) return s;
+          if (existing?.provenance === 'app') return s;
           return {
             networkTweaks: {
               ...s.networkTweaks,
               [tweakId]: {
-                appliedByApp: false,
+                provenance: 'baseline',
                 timestamp: Date.now(),
                 previousStatus: 'off',
                 appliedStatus: 'on',
@@ -184,7 +190,7 @@ export const useTweakOwnershipStore = create<TweakOwnershipState>()(
           networkTweaks: {
             ...s.networkTweaks,
             [tweakId]: {
-              appliedByApp: true,
+              provenance: 'app',
               timestamp: Date.now(),
               previousStatus,
               appliedStatus: 'on',
@@ -225,7 +231,7 @@ export const useTweakOwnershipStore = create<TweakOwnershipState>()(
       recordPowerPlanApply(previousGuid, previousName, appliedGuid, appliedName) {
         set({
           powerPlan: {
-            appliedByApp: true,
+            provenance: 'app',
             timestamp: Date.now(),
             previousPlanGuid: previousGuid,
             previousPlanName: previousName,
@@ -257,7 +263,7 @@ export const useTweakOwnershipStore = create<TweakOwnershipState>()(
           extremeLabs: {
             ...s.extremeLabs,
             [tweakId]: {
-              appliedByApp: true,
+              provenance: 'app',
               timestamp: Date.now(),
               label,
               revertFailed: false,
@@ -297,7 +303,7 @@ export const useTweakOwnershipStore = create<TweakOwnershipState>()(
         set(s => {
           const remaining: Record<string, TweakOwnership> = {};
           for (const [id, rec] of Object.entries(s.appliedTweaks)) {
-            if (!rec.appliedByApp) remaining[id] = rec;
+            if (rec.provenance === 'baseline') remaining[id] = rec;
           }
           return { appliedTweaks: remaining, networkTweaks: {}, powerPlan: null, extremeLabs: {} };
         });

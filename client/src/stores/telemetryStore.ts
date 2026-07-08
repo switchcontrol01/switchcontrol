@@ -3,6 +3,11 @@ import type { LiveTelemetry, TelemetryHistory, SpikeState, TelemetryStatus } fro
 import { getAppMode, subscribeToAppMode } from "@/lib/appModeStore";
 import { usePerformanceStore } from "@/stores/performanceStore";
 
+// Stable CPU value last forwarded to the LPM auto-governor. Updated only when
+// the delta crosses the 5 % jitter threshold so gradual load ramps still
+// progress the high/normal streak timers correctly.
+let _lastCpuReportedToLpm = 0;
+
 // History buffer length obeys ApplicationMode — Light Mode keeps a much
 // shorter buffer (releases RAM / reduces per-tick array-copy work) since
 // graphs are paused by default in Light Mode anyway.
@@ -105,9 +110,11 @@ export const useTelemetryStore = create<TelemetryStoreState>((set) => ({
   // Also drives the LPM auto-governor via performanceStore._onCpuTick so the
   // performance store never holds its own CPU copy; it derives from us.
   _onTick: (t, newSpikes, cpu, ram, gpu, vram, rxKbps, txKbps, diskActiveTime, diskReadKBps, diskWriteKBps) => {
-    // Throttle LPM updates: skip if CPU change < 5% to avoid jitter
-    const prevCpu = useTelemetryStore.getState().telemetry?.cpu.load ?? null;
-    if (prevCpu == null || Math.abs(cpu - prevCpu) >= 5) {
+    // Throttle LPM updates: skip if CPU change < 5% to avoid jitter, but
+    // diff against the *stable* last-reported value so gradual ramps still
+    // eventually trigger the high/normal streak timers.
+    if (Math.abs(cpu - _lastCpuReportedToLpm) >= 5) {
+      _lastCpuReportedToLpm = cpu;
       usePerformanceStore.getState()._onCpuTick(cpu);
     }
     set((state) => ({

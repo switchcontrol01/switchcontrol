@@ -1017,7 +1017,7 @@ function NetworkTweaksContent() {
             ownership.recordNetworkTweakApply(tweak.id, previousStatus, tweak.name);
           } else {
             const rec = ownership.networkTweaks[tweak.id];
-            if (rec?.appliedByApp) {
+            if (rec?.provenance === 'app') {
               ownership.recordNetworkTweakRevertSuccess(tweak.id);
             }
           }

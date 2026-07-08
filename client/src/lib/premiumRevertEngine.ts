@@ -560,7 +560,7 @@ async function revertSingleNetworkTweak(
 
 async function revertExtremeLabsTweaks(): Promise<RevertItemResult[]> {
   const store = useTweakOwnershipStore.getState();
-  const entries = Object.entries(store.extremeLabs).filter(([, rec]) => rec.appliedByApp);
+  const entries = Object.entries(store.extremeLabs).filter(([, rec]) => rec.provenance === 'app');
 
   const api = getExtremeLabsAPI();
   if (!api?.restoreBaseline) {
@@ -664,12 +664,12 @@ async function revertPowerPlan(): Promise<PowerPlanRevertResult> {
     }
   } catch (e) {
     console.error('[Revert:PLAN] Failed to read active power scheme:', e);
-    if (rec?.appliedByApp) store.markPowerPlanRevertFailed();
+    if (rec?.provenance === 'app') store.markPowerPlanRevertFailed();
     return { status: 'failed', reason: 'Could not read current power plan state' };
   }
 
   const guidMatchesSC = !!(
-    rec?.appliedByApp &&
+    rec?.provenance === 'app' &&
     rec.appliedPlanGuid &&
     currentGuid &&
     currentGuid === rec.appliedPlanGuid.toLowerCase()
@@ -693,7 +693,7 @@ async function revertPowerPlan(): Promise<PowerPlanRevertResult> {
 
   if (!activeIsSCPlan) {
     console.log(`[Revert:PLAN] Active plan "${currentName}" (${currentGuid}) is not SC-managed — skipping`);
-    if (rec?.appliedByApp) store.recordPowerPlanRevertSuccess();
+    if (rec?.provenance === 'app') store.recordPowerPlanRevertSuccess();
     return {
       status: 'skipped_not_sc',
       reason: currentGuid
@@ -705,7 +705,7 @@ async function revertPowerPlan(): Promise<PowerPlanRevertResult> {
   const targetGuid = BALANCED_GUID;
 
   if (!api.activateByGuid) {
-    if (rec?.appliedByApp) store.markPowerPlanRevertFailed();
+    if (rec?.provenance === 'app') store.markPowerPlanRevertFailed();
     return { status: 'failed', reason: 'Power plan restore requires an app update (activateByGuid not exposed)' };
   }
 
@@ -738,13 +738,13 @@ async function revertPowerPlan(): Promise<PowerPlanRevertResult> {
       verifiedActiveName = verify?.activeScheme?.name;
       if (verifiedGuid !== targetGuid) {
         console.error(`[Revert:PLAN] Verification failed — expected ${targetGuid} got ${verifiedGuid}`);
-        if (rec?.appliedByApp) store.markPowerPlanRevertFailed();
+        if (rec?.provenance === 'app') store.markPowerPlanRevertFailed();
         return { status: 'failed', reason: 'Power plan set but verification failed', targetGuid };
       }
       console.log(`[Revert:PLAN] Verification passed — active: "${verifiedActiveName}" (${verifiedGuid})`);
     } catch { /* non-fatal */ }
 
-    if (rec?.appliedByApp) store.recordPowerPlanRevertSuccess();
+    if (rec?.provenance === 'app') store.recordPowerPlanRevertSuccess();
     return {
       status: 'forced_balanced',
       targetGuid,
@@ -758,7 +758,7 @@ async function revertPowerPlan(): Promise<PowerPlanRevertResult> {
   }
 
   console.error(`[Revert:PLAN] Windows Balanced activation failed: ${restoreResult?.error}`);
-  if (rec?.appliedByApp) store.markPowerPlanRevertFailed();
+  if (rec?.provenance === 'app') store.markPowerPlanRevertFailed();
   return {
     status: 'failed',
     reason: restoreResult?.error ?? 'Power plan restore failed',
@@ -796,7 +796,7 @@ export async function runPremiumRevert(
   // ── Tweaks ──────────────────────────────────────────────────────────────────
   onProgress?.('reverting_tweaks');
   const tweakEntries = Object.entries(store.appliedTweaks)
-    .filter(([, rec]) => rec.appliedByApp && rec.isPremium);
+    .filter(([, rec]) => rec.provenance === 'app' && rec.isPremium);
 
   for (const [tweakId, rec] of tweakEntries) {
     console.log(`[Revert] processing tweak "${tweakId}" label="${rec.label}"`);
@@ -832,7 +832,7 @@ export async function runPremiumRevert(
   // ── Network tweaks ──────────────────────────────────────────────────────────
   onProgress?.('reverting_network');
   const networkEntries = Object.entries(store.networkTweaks)
-    .filter(([, rec]) => rec.appliedByApp);
+    .filter(([, rec]) => rec.provenance === 'app');
 
   // Also pick up any tweaks that are "enabled" in localStorage but are NOT
   // already in the ownership store. This covers the case where the user applied
@@ -867,7 +867,7 @@ export async function runPremiumRevert(
   } catch (err) {
     console.error('[Revert:EL] unexpected error:', err);
     extremeLabsResults = Object.entries(store.extremeLabs)
-      .filter(([, r]) => r.appliedByApp)
+      .filter(([, r]) => r.provenance === 'app')
       .map(([tweakId, rec]) => ({ tweakId, label: rec.label, status: 'failed' as const }));
   }
 
@@ -949,10 +949,10 @@ export async function runPremiumRevert(
  */
 export function hasPremiumItemsToRevert(): boolean {
   const store = useTweakOwnershipStore.getState();
-  const hasTweaks      = Object.values(store.appliedTweaks).some(r => r.appliedByApp && r.isPremium);
-  const hasNetwork     = Object.values(store.networkTweaks).some(r => r.appliedByApp);
-  const hasPlan        = store.powerPlan?.appliedByApp === true;
-  const hasExtremeLabs = Object.values(store.extremeLabs).some(r => r.appliedByApp);
+  const hasTweaks      = Object.values(store.appliedTweaks).some(r => r.provenance === 'app' && r.isPremium);
+  const hasNetwork     = Object.values(store.networkTweaks).some(r => r.provenance === 'app');
+  const hasPlan        = store.powerPlan?.provenance === 'app';
+  const hasExtremeLabs = Object.values(store.extremeLabs).some(r => r.provenance === 'app');
 
   // Check premium sliders: any stored value that differs from the Windows default
   // means the slider was applied (even across app restarts, since sliderValues is

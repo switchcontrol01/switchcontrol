@@ -317,7 +317,7 @@ export function useTweakExecutor() {
         );
       } else if (action === 'revert') {
         const rec = ownership.appliedTweaks[tweakId];
-        if (rec?.appliedByApp) {
+        if (rec?.provenance === 'app') {
           ownership.recordTweakRevertSuccess(tweakId);
         }
       }

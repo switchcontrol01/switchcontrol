@@ -8,7 +8,6 @@
  * and non-critical dashboard intelligence checks are paused.
  */
 import { create } from 'zustand';
-import { useTelemetryStore } from "@/stores/telemetryStore";
 
 const LPM_AUTO_THRESHOLD_PCT = 70;
 const LPM_AUTO_SUSTAIN_MS    = 15_000; // CPU must stay high for 15 s to auto-enable

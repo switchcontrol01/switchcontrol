@@ -1369,7 +1369,7 @@ export default function AiAdvisor() {
       // ── Extended cross-section tweak coverage ────────────────────────────────
       networkTweaksApplied: [
         ...Object.entries(ownership.networkTweaks)
-          .filter(([, rec]) => rec.appliedByApp)
+          .filter(([, rec]) => rec.provenance === 'app')
           .map(([id, rec]) => ({ id, label: rec.label })),
         // Also include network tweaks and NIC adapter tweaks that are stored in
         // the canonical useStore (persisted across sessions via localStorage).
@@ -1379,12 +1379,12 @@ export default function AiAdvisor() {
           .filter(([id, enabled]) => {
             if (!enabled) return false;
             if (TWEAKS_DATA.some(t => t.id === id)) return false;
-            if (ownership.networkTweaks[id]?.appliedByApp) return false;
+            if (ownership.networkTweaks[id]?.provenance === 'app') return false;
             return true;
           })
           .map(([id]) => ({ id, label: id })),
       ],
-      powerPlanApplied: ownership.powerPlan?.appliedByApp
+      powerPlanApplied: ownership.powerPlan?.provenance === 'app'
         ? ownership.powerPlan.appliedPlanName
         : null,
       extremeLabsApplied: EXTREME_TWEAKS
