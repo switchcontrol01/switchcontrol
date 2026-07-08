@@ -804,6 +804,28 @@ export async function runPremiumRevert(
     tweakResults.push({ tweakId, label: rec.label, status });
   }
 
+  // ── Tweak store-fallback sweep ───────────────────────────────────────────
+  // Catches premium tweaks that are enabled in the main Zustand store but have
+  // NO ownership record (applied in an older session before ownership tracking,
+  // or after ownership was cleared by a prior upgrade). Without this, those
+  // tweaks stay system-applied even though the ownership-based phase above
+  // ran cleanly — they just never appeared in tweakEntries.
+  //
+  // Mirrors the network-tweak lsEnabledIds fallback (lines ~841-855).
+  const ownershipTrackedIds = new Set(tweakEntries.map(([id]) => id));
+  try {
+    const mainStoreTweaks = useStore.getState().tweaks;
+    const fallbackEntries = TWEAKS_DATA
+      .filter(t => t.supported && isTweakPremium(t.id) && mainStoreTweaks[t.id] && !ownershipTrackedIds.has(t.id));
+    for (const t of fallbackEntries) {
+      console.log(`[Revert] processing tweak (store-fallback) "${t.id}" label="${t.label}"`);
+      const status = await revertSingleTweak(t.id, t.label);
+      tweakResults.push({ tweakId: t.id, label: t.label, status });
+    }
+  } catch (e) {
+    console.warn('[Revert:TWEAK-FALLBACK] store-fallback sweep failed:', e);
+  }
+
   // Immediately clear the main Zustand store for every reverted tweak so the
   // Tweaks page UI turns off / blue highlight disappears.
   const revertedTweakIds = tweakResults

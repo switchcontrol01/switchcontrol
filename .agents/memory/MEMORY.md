@@ -11,7 +11,7 @@
 - [SysIntelligence WMI all-null guard](sysintelligence-wmi-null-guard.md) — when all 15 WMI sources timeout, skip _saveDiskCache() to preserve previous good data; restore disk fallback into memory if both are empty.
 - [Electron log noise patterns](electron-log-noise.md) — renderer console.warn → main [ERROR]; use console.info for expected races (e.g. slider "busy"). Module-level flags for page-visit guards (useRef resets on unmount).
 - [electronAPI global typing](electron-api-typing.md) — per-page `declare global` clashes with electron.d.ts; pre-existing tsc errors, build ignores them, do not fix inline.
-- [Premium revert engine reliability](premium-revert-engine.md) — three root causes of 0–50% success rates fixed in v2; network tweak HTTP pre-check was the primary culprit; EL was completely disconnected.
+- [Premium revert engine reliability](premium-revert-engine.md) — ownership-store gap: tweaks applied before ownership tracking have no store record → skipped; fixed via store-fallback sweep in runPremiumRevert().
 - [Driver Intelligence design constraints](driver-intelligence.md) — detect-and-redirect only (never flash/auto-install); cloud DB never scraped; "partial" is a cached state (gate on hasData, not "ready"); lazy scan, trial=read-only.
 - [Premium slider/preset revert](premium-slider-preset-revert.md) — slider/preset tweaks were completely skipped by trial-expiry revert engine (0% success); backend sweeps existed but had no IPC exposure and no client-side caller.
 - [Version release process](version-release-process.md) — version strings live in 6+ files (no single constant); actual installer build/upload happens via GitHub Actions tag push, not in Replit.
