@@ -1,6 +1,60 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
+// ── Persist migration v0 → v1 ──────────────────────────────────────────────────
+// Old records stored `appliedByApp: boolean`. New records use `provenance: 'app' | 'baseline'`.
+// We map `appliedByApp: true` → `provenance: 'app'`, `false` → `provenance: 'baseline'`.
+// Any other fields pass through unchanged. Unknown record shapes are returned as-is
+// so the store's normal rehydration doesn't crash on unexpected data.
+
+type LegacyRecord = Record<string, unknown> & { appliedByApp?: boolean };
+
+function migrateRecord(rec: LegacyRecord): Record<string, unknown> {
+  if (typeof rec.appliedByApp !== 'boolean') return rec;
+  const { appliedByApp, ...rest } = rec;
+  return { ...rest, provenance: appliedByApp ? 'app' : 'baseline' };
+}
+
+function migrateAppliedTweaks(
+  appliedTweaks: Record<string, LegacyRecord> | undefined
+): Record<string, TweakOwnership> {
+  if (!appliedTweaks) return {};
+  const out: Record<string, TweakOwnership> = {};
+  for (const [k, rec] of Object.entries(appliedTweaks)) {
+    out[k] = migrateRecord(rec) as unknown as TweakOwnership;
+  }
+  return out;
+}
+
+function migrateNetworkTweaks(
+  networkTweaks: Record<string, LegacyRecord> | undefined
+): Record<string, NetworkTweakOwnership> {
+  if (!networkTweaks) return {};
+  const out: Record<string, NetworkTweakOwnership> = {};
+  for (const [k, rec] of Object.entries(networkTweaks)) {
+    out[k] = migrateRecord(rec) as unknown as NetworkTweakOwnership;
+  }
+  return out;
+}
+
+function migratePowerPlan(
+  powerPlan: LegacyRecord | null | undefined
+): PowerPlanOwnership | null {
+  if (!powerPlan) return null;
+  return migrateRecord(powerPlan) as unknown as PowerPlanOwnership;
+}
+
+function migrateExtremeLabs(
+  extremeLabs: Record<string, LegacyRecord> | undefined
+): Record<string, ExtremeTweakOwnership> {
+  if (!extremeLabs) return {};
+  const out: Record<string, ExtremeTweakOwnership> = {};
+  for (const [k, rec] of Object.entries(extremeLabs)) {
+    out[k] = migrateRecord(rec) as unknown as ExtremeTweakOwnership;
+  }
+  return out;
+}
+
 // ── Ownership record shapes ────────────────────────────────────────────────────
 
 /** Metadata for a tweak the app knows about.
@@ -312,6 +366,17 @@ export const useTweakOwnershipStore = create<TweakOwnershipState>()(
     }),
     {
       name: 'sc_tweak_ownership_v1',
+      version: 1,
+      migrate: (persistedState: any) => {
+        const s = persistedState as any;
+        return {
+          ...s,
+          appliedTweaks: migrateAppliedTweaks(s?.appliedTweaks),
+          networkTweaks: migrateNetworkTweaks(s?.networkTweaks),
+          powerPlan: migratePowerPlan(s?.powerPlan),
+          extremeLabs: migrateExtremeLabs(s?.extremeLabs),
+        };
+      },
       partialize: (s) => ({
         appliedTweaks:       s.appliedTweaks,
         networkTweaks:       s.networkTweaks,
