@@ -132,6 +132,9 @@ const _loginChunk = _isElectronRuntime
 const _adminChunk = _isElectronRuntime
   ? Promise.resolve({ default: () => null })
   : import("@/pages/Admin");
+const _adminPerfChunk = _isElectronRuntime
+  ? Promise.resolve({ default: () => null })
+  : import("@/pages/AdminPerformance");
 const Landing = lazy(() => _landingChunk);
 const Features = lazy(() => _featuresChunk);
 const Pricing = lazy(() => _pricingChunk);
@@ -143,6 +146,7 @@ const Success = lazy(() => _successChunk);
 const PremiumSuccess = lazy(() => _premiumSuccessChunk);
 const LoginPage = lazy(() => _loginChunk);
 const AdminPage = lazy(() => _adminChunk);
+const AdminPerformancePage = lazy(() => _adminPerfChunk);
 
 const isElectron =
   typeof window !== "undefined" && !!(window as any).electronAPI?.isElectron;
@@ -222,6 +226,7 @@ function WebsiteRoutes() {
         <Route path="/success" component={Success} />
         <Route path="/premium-success" component={PremiumSuccess} />
         <Route path="/admin" component={AdminPage} />
+        <Route path="/admin/performance" component={AdminPerformancePage} />
         <Route>
           <Landing />
         </Route>

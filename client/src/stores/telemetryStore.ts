@@ -117,6 +117,9 @@ export const useTelemetryStore = create<TelemetryStoreState>((set) => ({
       _lastCpuReportedToLpm = cpu;
       usePerformanceStore.getState()._onCpuTick(cpu);
     }
+    // Count each telemetry tick as one render pass (single batched set() below).
+    // This is the primary render driver for all telemetry consumers.
+    import("@/lib/pollingRegistry").then(({ pollingRegistry }) => pollingRegistry.incrementRenderCount());
     set((state) => ({
       telemetry: t,
       lastUpdateTs: Date.now(),

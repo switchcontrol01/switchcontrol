@@ -26,6 +26,27 @@ export interface PollEntry {
 
 const _registry = new Map<number, PollEntry>();
 
+// ── WebSocket connection tracking ────────────────────────────────────────────────
+interface WsEntry {
+  url: string;
+  status: 'connecting' | 'open' | 'closed';
+  connectedAt: number | null;
+  messagesReceived: number;
+  lastMessageAt: number | null;
+}
+let _wsEntry: WsEntry | null = null;
+
+// ── IPC listener tracking ──────────────────────────────────────────────────────
+interface IpcEntry {
+  channel: string;
+  registeredAt: number;
+}
+const _ipcEntries = new Map<string, IpcEntry>();
+
+// ── React render counter ───────────────────────────────────────────────────────
+// Incremented by telemetryStore._onTick (the main per-frame render driver).
+let _renderCount = 0;
+
 export const pollingRegistry = {
   register(id: number, name: string, file: string, intervalMs: number): void {
     _registry.set(id, {
@@ -71,6 +92,55 @@ export const pollingRegistry = {
         lastTickAgo: e.lastTickAt ? `${Math.round((Date.now() - e.lastTickAt) / 1000)}s ago` : 'never',
       })),
     };
+  },
+
+  // ── WebSocket ────────────────────────────────────────────────────────────────
+  registerWs(url: string) {
+    _wsEntry = { url, status: 'connecting', connectedAt: null, messagesReceived: 0, lastMessageAt: null };
+  },
+  markWsOpen() {
+    if (_wsEntry) {
+      _wsEntry.status = 'open';
+      _wsEntry.connectedAt = Date.now();
+    }
+  },
+  markWsClosed() {
+    if (_wsEntry) {
+      _wsEntry.status = 'closed';
+      _wsEntry.connectedAt = null;
+    }
+  },
+  recordWsMessage() {
+    if (_wsEntry) {
+      _wsEntry.messagesReceived += 1;
+      _wsEntry.lastMessageAt = Date.now();
+    }
+  },
+  getWsState(): WsEntry | null {
+    return _wsEntry;
+  },
+
+  // ── IPC ──────────────────────────────────────────────────────────────────────
+  registerIpc(channel: string) {
+    _ipcEntries.set(channel, { channel, registeredAt: Date.now() });
+  },
+  unregisterIpc(channel: string) {
+    _ipcEntries.delete(channel);
+  },
+  getIpcState(): { channels: string[]; count: number } {
+    const channels = [..._ipcEntries.keys()];
+    return { channels, count: channels.length };
+  },
+
+  // ── Render counter ───────────────────────────────────────────────────────────
+  incrementRenderCount() {
+    _renderCount += 1;
+  },
+  getRenderCount(): number {
+    return _renderCount;
+  },
+  resetRenderCount() {
+    _renderCount = 0;
   },
 };
 

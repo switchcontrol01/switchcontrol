@@ -29,6 +29,7 @@ import { useTelemetryStore } from "@/stores/telemetryStore";
 import { getPollingProfile, subscribeToAppMode } from "@/lib/appModeStore";
 import { useAuthStore, bumpMeGeneration } from "@/lib/authStore";
 import { getResolvedBackendPort } from "@/lib/api";
+import { pollingRegistry } from "@/lib/pollingRegistry";
 import type { LiveTelemetry } from "@/hooks/useLiveTelemetry";
 
 const isDebug = import.meta.env.DEV;
@@ -179,8 +180,10 @@ function connect() {
       try {
         const socket = new WebSocket(wsUrl);
         _ws = socket;
+        pollingRegistry.registerWs(wsUrl);
 
         socket.onopen = () => {
+          pollingRegistry.markWsOpen();
           const wasReconnect = _reconnectCount > 0;
           console.log(
             `[Telemetry:ws] event=connected attempt=${_reconnectCount + 1} wasReconnect=${wasReconnect}`,
@@ -193,6 +196,7 @@ function connect() {
         };
 
         socket.onmessage = (e) => {
+          pollingRegistry.recordWsMessage();
           if (_paused) return;
           try {
             const msg = JSON.parse(e.data);
@@ -259,6 +263,7 @@ function connect() {
 
         socket.onclose = (event: CloseEvent) => {
           _ws = null;
+          pollingRegistry.markWsClosed();
           useTelemetryStore.getState()._setConnected(false);
 
           const closeReason = event.reason || "(none)";
@@ -461,6 +466,7 @@ function _rescheduleIpcPoll(delayMs: number): void {
 function _startIpcPolling(): void {
   if (_ipcPollActive) return;
   _ipcPollActive = true;
+  pollingRegistry.registerIpc("telemetry.getLive");
 
   async function loop(): Promise<void> {
     await _ipcPollTick();
