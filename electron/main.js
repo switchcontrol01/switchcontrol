@@ -3681,7 +3681,7 @@ function _extremeLabsMapToRegistryTweak(id) {
     'hpet-disable': { type: 'tweak', tweakId: 'hpet-disable' },
     'power-throttling-extreme': { type: 'tweak', tweakId: 'power-throttling' },
     'disable-game-dvr': { type: 'tweak', tweakId: 'disable-game-dvr' },
-    'disable-xbox-capture': { type: 'tweak', tweakId: 'disable-game-dvr' }, // same underlying
+    'disable-xbox-capture': { type: 'tweak', tweakId: 'disable-xbox-capture' },
     'windowed-games-opt': { type: 'tweak', tweakId: 'optimize-windowed-games' },
     'win32-priority-separation': { type: 'slider', tweakId: 'win32-priority-sep', recommendedValue: 26 },
     'system-responsiveness': { type: 'slider', tweakId: 'sys-responsiveness', recommendedValue: 10 },
