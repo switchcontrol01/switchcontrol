@@ -28,6 +28,17 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useTourStore } from "@/lib/tour-store";
 import { useEntitlementUiState } from "@/hooks/useEntitlementUiState";
 
+// Module-level cache for the app version. `Sidebar` is remounted on every
+// route change (each page wraps itself in <AppLayout>), so without this the
+// version text briefly resets to its "SwitchControl" fallback on every
+// navigation while the async `getVersion()` IPC call resolves. During fast
+// back-to-back navigations, the old page's Sidebar (still fading out) and the
+// new page's Sidebar (freshly mounted, showing the fallback) can be visually
+// stacked for a frame, producing a glimpse of "SwitchControl" overlapping the
+// version/social row. Caching the resolved version here means every mount
+// after the first renders the real version immediately, eliminating the flash.
+let cachedAppVersion: string | null = null;
+
 function DiscordIcon({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
@@ -347,11 +358,15 @@ export function Sidebar() {
   const ent = useEntitlementUiState();
   const activeItemRef = useRef<HTMLDivElement>(null);
   const { activeTourHighlight, isTourActive } = useTourStore();
-  const [appVersion, setAppVersion] = useState<string | null>(null);
+  const [appVersion, setAppVersion] = useState<string | null>(cachedAppVersion);
   useEffect(() => {
+    if (cachedAppVersion) return;
     const api = (window as any).electronAPI;
     if (api?.getVersion) {
-      api.getVersion().then((v: string) => setAppVersion(v)).catch(() => {});
+      api.getVersion().then((v: string) => {
+        cachedAppVersion = v;
+        setAppVersion(v);
+      }).catch(() => {});
     }
   }, []);
   useEffect(() => {
