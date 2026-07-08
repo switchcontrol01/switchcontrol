@@ -1,0 +1,292 @@
+Windows PowerShell 5.1
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+Install the latest PowerShell for new features and improvements! https://aka.ms/PSWindows
+
+PS C:\WINDOWS\system32>  Set-Location "C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl"
+>>
+>> Remove-Item dist -Recurse -Force -ErrorAction SilentlyContinue
+>> Remove-Item release -Recurse -Force -ErrorAction SilentlyContinue
+>> Remove-Item electron\dist -Recurse -Force -ErrorAction SilentlyContinue
+>>
+>> npm install helmet jsonwebtoken openai
+>> npm install compression
+>> npm install
+>> npm run build
+>> npm run electron:build
+npm warn ERESOLVE overriding peer dependency
+npm warn While resolving: react-side-effect@2.1.2
+npm warn Found: react@19.2.4
+npm warn node_modules/react
+npm warn   peer react@">=16.8.0" from @floating-ui/react-dom@2.1.7
+npm warn   node_modules/@floating-ui/react-dom
+npm warn     @floating-ui/react-dom@"^2.0.0" from @radix-ui/react-popper@1.2.8
+npm warn     node_modules/@radix-ui/react-popper
+npm warn   83 more (@radix-ui/react-accordion, ...)
+npm warn
+npm warn Could not resolve dependency:
+npm warn peer react@"^16.3.0 || ^17.0.0 || ^18.0.0" from react-side-effect@2.1.2
+npm warn node_modules/react-helmet/node_modules/react-side-effect
+npm warn   react-side-effect@"^2.1.0" from react-helmet@6.1.0
+npm warn   node_modules/react-helmet
+npm warn
+npm warn Conflicting peer dependency: react@18.3.1
+npm warn node_modules/react
+npm warn   peer react@"^16.3.0 || ^17.0.0 || ^18.0.0" from react-side-effect@2.1.2
+npm warn   node_modules/react-helmet/node_modules/react-side-effect
+npm warn     react-side-effect@"^2.1.0" from react-helmet@6.1.0
+npm warn     node_modules/react-helmet
+
+added 15 packages, and audited 393 packages in 3s
+
+54 packages are looking for funding
+  run `npm fund` for details
+
+10 vulnerabilities (1 low, 8 moderate, 1 high)
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+npm warn ERESOLVE overriding peer dependency
+npm warn While resolving: react-side-effect@2.1.2
+npm warn Found: react@19.2.4
+npm warn node_modules/react
+npm warn   peer react@">=16.8.0" from @floating-ui/react-dom@2.1.7
+npm warn   node_modules/@floating-ui/react-dom
+npm warn     @floating-ui/react-dom@"^2.0.0" from @radix-ui/react-popper@1.2.8
+npm warn     node_modules/@radix-ui/react-popper
+npm warn   83 more (@radix-ui/react-accordion, ...)
+npm warn
+npm warn Could not resolve dependency:
+npm warn peer react@"^16.3.0 || ^17.0.0 || ^18.0.0" from react-side-effect@2.1.2
+npm warn node_modules/react-helmet/node_modules/react-side-effect
+npm warn   react-side-effect@"^2.1.0" from react-helmet@6.1.0
+npm warn   node_modules/react-helmet
+npm warn
+npm warn Conflicting peer dependency: react@18.3.1
+npm warn node_modules/react
+npm warn   peer react@"^16.3.0 || ^17.0.0 || ^18.0.0" from react-side-effect@2.1.2
+npm warn   node_modules/react-helmet/node_modules/react-side-effect
+npm warn     react-side-effect@"^2.1.0" from react-helmet@6.1.0
+npm warn     node_modules/react-helmet
+
+added 5 packages, and audited 398 packages in 971ms
+
+54 packages are looking for funding
+  run `npm fund` for details
+
+10 vulnerabilities (1 low, 8 moderate, 1 high)
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+npm warn ERESOLVE overriding peer dependency
+npm warn While resolving: react-side-effect@2.1.2
+npm warn Found: react@19.2.4
+npm warn node_modules/react
+npm warn   react@"^19.2.0" from the root project
+npm warn   83 more (@floating-ui/react-dom, @radix-ui/react-accordion, ...)
+npm warn
+npm warn Could not resolve dependency:
+npm warn peer react@"^16.3.0 || ^17.0.0 || ^18.0.0" from react-side-effect@2.1.2
+npm warn node_modules/react-helmet/node_modules/react-side-effect
+npm warn   react-side-effect@"^2.1.0" from react-helmet@6.1.0
+npm warn   node_modules/react-helmet
+npm warn
+npm warn Conflicting peer dependency: react@18.3.1
+npm warn node_modules/react
+npm warn   peer react@"^16.3.0 || ^17.0.0 || ^18.0.0" from react-side-effect@2.1.2
+npm warn   node_modules/react-helmet/node_modules/react-side-effect
+npm warn     react-side-effect@"^2.1.0" from react-helmet@6.1.0
+npm warn     node_modules/react-helmet
+
+> switchcontrol@1.0.5 postinstall
+> cd electron && npm install
+
+
+up to date, audited 416 packages in 625ms
+
+65 packages are looking for funding
+  run `npm fund` for details
+
+10 high severity vulnerabilities
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+
+up to date, audited 398 packages in 1s
+
+54 packages are looking for funding
+  run `npm fund` for details
+
+10 vulnerabilities (1 low, 8 moderate, 1 high)
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+
+> switchcontrol@1.0.5 build
+> npx tsx script/build.ts
+
+building client...
+vite v7.3.2 building client environment for production...
+✓ 180 modules transformed.
+✗ Build failed in 630ms
+[vite]: Rollup failed to resolve import "@tanstack/react-virtual" from "C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/client/src/pages/History.tsx".
+This is most likely unintended because it can break your application at runtime.
+If you do want to externalize this module explicitly add it to
+`build.rollupOptions.external`
+    at viteLog (C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\node_modules\vite\dist\node\chunks\config.js:33639:57)
+    at <anonymous> (C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\node_modules\vite\dist\node\chunks\config.js:33673:73)
+    at onwarn (C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\node_modules\@vitejs\plugin-react\dist\index.js:76:7)
+    at <anonymous> (C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\node_modules\vite\dist\node\chunks\config.js:33673:28)
+    at onRollupLog (C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\node_modules\vite\dist\node\chunks\config.js:33668:63)
+    at onLog (C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\node_modules\vite\dist\node\chunks\config.js:33471:4)
+    at <anonymous> (C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\node_modules\rollup\dist\es\shared\node-entry.js:20981:32)
+    at Object.logger (C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\node_modules\rollup\dist\es\shared\node-entry.js:22968:9)
+    at ModuleLoader.handleInvalidResolvedId (C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\node_modules\rollup\dist\es\shared\node-entry.js:21712:26)
+    at <anonymous> (C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\node_modules\rollup\dist\es\shared\node-entry.js:21670:26) {
+  watchFiles: [
+    'C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/client/index.html',
+    'C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/client/src/main.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\package.json',
+    'C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/node_modules/react/jsx-runtime.js',
+    'C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/node_modules/react-dom/client.js',
+    'C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/client/src/lib/api.ts',
+    'C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/client/src/lib/intervalGuard.ts',
+    'C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/client/src/index.css',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\node_modules\\tailwindcss\\index.css',
+    'C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/client/src/App.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\index.html',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\public\\google7Go-YIR3WALNYY6u19nKMEUG1nSTgugkNssIoYuwEL8.html',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\public\\patch-notes.json',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\public\\robots.txt',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\public\\site.webmanifest',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\public\\sitemap.xml',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\advisor\\collectors\\appCollector.ts',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\advisor\\collectors\\networkCollector.ts',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\advisor\\collectors\\systemCollector.ts',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\advisor\\engine.ts',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\advisor\\ruleset\\bundled.ruleset.json',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\advisor\\types.ts',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\App.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\components\\ai\\AiTweakRecommendationCard.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\components\\ai\\ApplyTweaksFlowModal.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\components\\ai\\OptimizeWorkflow.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\components\\AnimateIn.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\components\\AppBackground.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\components\\BrandLogo.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\components\\ComparisonSlider.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\components\\dashboard\\CpuCoresModal.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\components\\dashboard\\DashboardInsights.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\components\\dashboard\\DetectedIssues.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\components\\dashboard\\DiskTelemetryModal.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\components\\dashboard\\GpuModal.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\components\\dashboard\\LiveGraph.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\components\\dashboard\\LiveGraphsGate.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\components\\dashboard\\MemoryCleanerModal.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\components\\dashboard\\MemoryIntelligenceModal.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\components\\dashboard\\PerformanceLab.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\components\\dashboard\\StatCard.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\components\\dashboard\\StorageCards.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\components\\dashboard\\SystemPressureMeter.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\components\\dashboard\\SystemStateBar.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\components\\DashboardHeaderParticles.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\components\\debloater\\ApplyProgressOverlay.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\components\\debloater\\InstalledAppsPanel.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\components\\debug\\PerformanceOverlay.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\components\\DeviceLockModal.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\components\\driver-intel\\ComponentPanel.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\components\\driver-intel\\HealthRadial.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\components\\driver-intel\\HistoryTimeline.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\components\\driver-intel\\MotherboardMap.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\components\\ErrorBoundary.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\components\\FirstRunDisclaimer.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\components\\graphs\\BiosAnalyticsRings.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\components\\graphs\\PremiumDashboardGraphs.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\components\\graphs\\TelemetrySparkline.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\components\\GuidedTour.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\components\\HeroBackground.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\components\\history\\HistoryCharts.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\components\\icons\\LockIcon.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\components\\intelligence\\IntentModeSelector.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\components\\intelligence\\LatencyMap.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\components\\intelligence\\PredictiveWarnings.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\components\\intelligence\\SystemAura.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\components\\intelligence\\TrustLayer.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\components\\LandingPerformanceCharts.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\components\\LandingStatsCharts.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\components\\layout\\AppLayout.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\components\\layout\\PageHeader.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\components\\layout\\Sidebar.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\components\\LicenseManagementModal.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\components\\LightModeAdvisor.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\components\\LightModeRecommendationModal.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\components\\LoginParticles.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\components\\ModeTransitionOverlay.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\components\\ModuleShowcase.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\components\\motion\\Reveal.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\components\\MotionCard.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\components\\network\\NetworkDiagnosticsPanel.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\components\\NetworkStatusChip.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\components\\OnboardingTour.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\components\\optimization\\NeuralScanField.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\components\\optimization\\OptimizationFlow.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\components\\PageBackground.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\components\\PatchNotesModal.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\components\\PendingActivationModal.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\components\\PremiumBackground.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\components\\PremiumModal.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\components\\PremiumRevertModal.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\components\\PremiumUnlockAnimation.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\components\\PremiumUpgradeAnimation.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\components\\ProtectedRoute.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\components\\security\\SecurityAuditTab.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\components\\security\\SecurityProcessesTab.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\components\\security\\SecurityStartupTab.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\components\\SocialProofCharts.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\components\\SparklineChart.tsx',
+    'C:\\Users\\SwitchTech\\Downloads\\SwitchControl\\SwitchControl\\client\\src\\components\\SpotlightCursor.tsx',
+    ... 435 more items
+  ]
+}
+
+> switchcontrol@1.0.5 electron:build
+> cd electron && npm run dist:win
+
+
+> switchcontrol-electron@1.2.1 dist:win
+> npm run prebuild && npm run build:native && electron-builder --win
+
+
+> switchcontrol-electron@1.2.1 prebuild
+> node -e "const f=require('fs'),p=require('path'),base=process.cwd();const run=s=>{const sp=p.join(base,'scripts',s+'.js');if(f.existsSync(sp)){require(sp);}else{console.warn('[prebuild] '+s+'.js not found — using inline fallback');}};run('ensure-assets');const distSp=p.join(base,'scripts','ensure-dist.js');if(f.existsSync(distSp)){require(distSp);}else{const src=p.join(base,'..','dist');const dst=p.join(base,'dist-frontend');if(!f.existsSync(src)){console.error('[prebuild] dist/ not found — run npm run build first');process.exit(1);}f.rmSync(dst,{recursive:true,force:true});f.cpSync(src,dst,{recursive:true});const cjs=p.join(dst,'index.cjs');if(f.existsSync(cjs))f.rmSync(cjs);console.log('[prebuild] dist-frontend synced (inline fallback)');}"
+
+[ensure-assets] Checking build assets...
+[ensure-assets] icon.ico present (728 KB)
+[ensure-dist] Checking frontend build...
+[ensure-dist] ERROR: root dist/ does not exist.
+[ensure-dist] Run 'npm run build' in root directory first.
+PS C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl>
+
+
+
+
+
