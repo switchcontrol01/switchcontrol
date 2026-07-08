@@ -503,6 +503,23 @@ function isELSliderApplied(sliderTweakId: string | undefined, mainSliderValues: 
   return val !== undefined && val !== check.defaultValue;
 }
 
+// ── Cross-page preset sync helpers ─────────────────────────────────────────────────────────────────
+// Maps EL presetTweakId → the paired main-store preset id + default option id
+// used for apply (recommended value) and revert (Windows default).
+const EL_PRESET_APPLY: Record<string, { mainId: string; applyOptionId: string }> = {
+  'fortnite-high-priority': { mainId: "fortnite-high-priority", applyOptionId: "high" },
+};
+const EL_PRESET_REVERT: Record<string, { mainId: string; defaultOptionId: string }> = {
+  'fortnite-high-priority': { mainId: "fortnite-high-priority", defaultOptionId: "normal" },
+};
+function isELPresetApplied(presetTweakId: string | undefined, mainPresetOptions: Record<string, string>): boolean {
+  if (!presetTweakId) return false;
+  const check = EL_PRESET_REVERT[presetTweakId];
+  if (!check) return false;
+  const val = mainPresetOptions[check.mainId];
+  return val !== undefined && val !== check.defaultOptionId;
+}
+
 // ── Dashboard ────────────────────────────────────────────────────────────────
 
 function ExtremeDashboard({
@@ -521,6 +538,7 @@ function ExtremeDashboard({
   appliedTweaks: Set<string>;
   mainTweaks: Record<string, boolean>;
   mainSliderValues: Record<string, number>;
+  mainPresetOptions: Record<string, string>;
   onApplyTweak: (id: string) => void;
   onUndoTweak: (id: string) => void;
   onRevertAll: () => void;
@@ -702,7 +720,7 @@ function ExtremeDashboard({
                 <TweakCard
                   key={tweak.id}
                   tweak={tweak}
-                  isApplied={appliedTweaks.has(tweak.id) || (!!tweak.registryTweakId && !!mainTweaks[tweak.registryTweakId]) || isELSliderApplied(tweak.sliderTweakId, mainSliderValues)}
+                  isApplied={appliedTweaks.has(tweak.id) || (!!tweak.registryTweakId && !!mainTweaks[tweak.registryTweakId]) || isELSliderApplied(tweak.sliderTweakId, mainSliderValues) || isELPresetApplied(tweak.presetTweakId, mainPresetOptions)}
                   isPending={isApplyingId === tweak.id}
                   onApply={() => onApplyTweak(tweak.id)}
                   onUndo={() => onUndoTweak(tweak.id)}
@@ -743,6 +761,7 @@ export default function ExtremeLabs() {
   // Subscribe to the main Tweaks store so we can reflect state cross-page
   const mainTweaks = useStore(s => s.tweaks);
   const mainSliderValues = useStore(s => s.sliderValues);
+  const mainPresetOptions = useStore(s => s.presetOptions);
 
   // Ref so the restore-point progress interval is always cleanable on unmount
   const restoreIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -949,6 +968,10 @@ export default function ExtremeLabs() {
         const sv = EL_SLIDER_APPLY[tweak.sliderTweakId];
         if (sv) useStore.getState().setSliderValue(sv.mainId, sv.applyValue);
       }
+      if (tweak?.presetTweakId) {
+        const pv = EL_PRESET_APPLY[tweak.presetTweakId];
+        if (pv) useStore.getState().setPresetOption(pv.mainId, pv.applyOptionId);
+      }
       useTweakOwnershipStore.getState().recordExtremeLabsApply(id, EXTREME_TWEAKS.find(t => t.id === id)?.label ?? id);
       toast({ title: "Tweak applied", description: "Change is active. Monitor for issues." });
       logHistory(`Extreme Labs: ${EXTREME_TWEAKS.find(t => t.id === id)?.label ?? id}`, "Extreme Labs", "Applied", `Tweak ID: ${id}`);
@@ -974,10 +997,13 @@ export default function ExtremeLabs() {
         if (!tweak) throw new Error("Tweak not found");
         const mappedRegistry = tweak.registryTweakId;
         const mappedSlider = tweak.sliderTweakId;
+        const mappedPreset = tweak.presetTweakId;
         if (mappedRegistry && (window as any).electronAPI?.tweaks?.execute) {
           await (window as any).electronAPI.tweaks.execute(mappedRegistry, "revert");
         } else if (mappedSlider && (window as any).electronAPI?.tweaks?.resetValue) {
           await (window as any).electronAPI.tweaks.resetValue(mappedSlider);
+        } else if (mappedPreset && (window as any).electronAPI?.presetTweaks?.revert) {
+          await (window as any).electronAPI.presetTweaks.revert(mappedPreset);
         } else if (tweak.nicPropertyKey && (window as any).electronAPI?.nic?.resetProperty) {
           const adapters = await (window as any).electronAPI.nic.getAdapters();
           const physical = adapters.find((a: any) => a.status === 'Up');
@@ -993,6 +1019,10 @@ export default function ExtremeLabs() {
       if (undoTweak?.sliderTweakId) {
         const sv = EL_SLIDER_REVERT[undoTweak.sliderTweakId];
         if (sv) useStore.getState().setSliderValue(sv.mainId, sv.defaultValue);
+      }
+      if (undoTweak?.presetTweakId) {
+        const pv = EL_PRESET_REVERT[undoTweak.presetTweakId];
+        if (pv) useStore.getState().setPresetOption(pv.mainId, pv.defaultOptionId);
       }
       useTweakOwnershipStore.getState().recordExtremeLabsRevertSuccess(id);
       toast({ title: "Tweak reverted", description: "Change has been undone." });
@@ -1034,6 +1064,10 @@ export default function ExtremeLabs() {
         if (t?.sliderTweakId) {
           const sv = EL_SLIDER_REVERT[t.sliderTweakId];
           if (sv) mainStore.setSliderValue(sv.mainId, sv.defaultValue);
+        }
+        if (t?.presetTweakId) {
+          const pv = EL_PRESET_REVERT[t.presetTweakId];
+          if (pv) mainStore.setPresetOption(pv.mainId, pv.defaultOptionId);
         }
       }
       setAppliedTweaks(new Set());
@@ -1104,6 +1138,7 @@ export default function ExtremeLabs() {
               appliedTweaks={appliedTweaks}
               mainTweaks={mainTweaks}
               mainSliderValues={mainSliderValues}
+              mainPresetOptions={mainPresetOptions}
               onApplyTweak={handleApplyTweak}
               onUndoTweak={handleUndoTweak}
               onRevertAll={handleRevertAll}

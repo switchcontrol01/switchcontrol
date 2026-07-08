@@ -3658,7 +3658,7 @@ function _extremeLabsValidateTweakIds(ids) {
   const validIds = new Set([
     'global-timer-resolution', 'dynamic-tick', 'hpet-disable',
     'win32-priority-separation', 'system-responsiveness', 'mmcss-no-lazy', 'power-throttling-extreme',
-    'disable-game-dvr', 'disable-xbox-capture', 'windowed-games-opt',
+    'disable-game-dvr', 'disable-xbox-capture', 'windowed-games-opt', 'fortnite-priority-booster',
     'network-throttling-index', 'tcp-no-delay', 'rss-enable',
     'interrupt-moderation', 'eee-disable', 'flow-control',
     'windows-search-disable', 'sysmain-disable', 'print-spooler-disable',
@@ -3701,6 +3701,7 @@ function _extremeLabsMapToRegistryTweak(id) {
     'adobe-updater-disable': { type: 'tweak', tweakId: 'adobe-updater' },
     'teams-startup-disable': { type: 'tweak', tweakId: 'teams-startup' },
     'vendor-updaters-disable': { type: 'tweak', tweakId: 'vendor-updaters' },
+    'fortnite-priority-booster': { type: 'preset', tweakId: 'fortnite-high-priority', recommendedOptionId: 'high' },
   };
   return map[id] || null;
 }
@@ -3785,6 +3786,20 @@ ipcMain.handle('extremeLabs:applySelected', async (event, ids) => {
           results.push({ id, applied: false, reason: 'No recommended value available' });
           failedCount++;
         }
+      } else if (mapped.type === 'preset') {
+        const meta = presetTweakExecutor.getPresetTweakMeta(mapped.tweakId);
+        const recommendedOptionId = mapped.recommendedOptionId != null ? mapped.recommendedOptionId : (meta && meta.defaultOptionId);
+        if (recommendedOptionId != null) {
+          const applyResult = await presetTweakExecutor.applyPresetValue(mapped.tweakId, recommendedOptionId);
+          const ok = applyResult.ok;
+          if (ok) appliedCount++; else failedCount++;
+          console.log('[ExtremeLabsApply]', JSON.stringify({ id, applied: ok, tweakId: mapped.tweakId, type: 'preset', error: applyResult.error }));
+          results.push({ id, applied: ok, verify: applyResult.verifyResult, error: applyResult.error });
+        } else {
+          console.log('[ExtremeLabsApply]', JSON.stringify({ id, applied: false, tweakId: mapped.tweakId, reason: 'noRecommendedOptionId' }));
+          results.push({ id, applied: false, reason: 'No recommended option available' });
+          failedCount++;
+        }
       } else if (mapped.type === 'nic') {
         const { adapters = [] } = await nicExecutor.getNetAdapters();
         const physical = adapters.find(a => a.status === 'Up' && !/loopback|bluetooth|hyper|virtual|tunnel|vpn/i.test(a.name));
@@ -3840,7 +3855,7 @@ ipcMain.handle('extremeLabs:restoreBaseline', async (_event, ids) => {
     const allIds = [
       'global-timer-resolution', 'dynamic-tick', 'hpet-disable',
       'win32-priority-separation', 'system-responsiveness', 'mmcss-no-lazy', 'power-throttling-extreme',
-      'disable-game-dvr', 'disable-xbox-capture', 'windowed-games-opt',
+      'disable-game-dvr', 'disable-xbox-capture', 'windowed-games-opt', 'fortnite-priority-booster',
       'network-throttling-index', 'tcp-no-delay', 'rss-enable',
       'interrupt-moderation', 'eee-disable', 'flow-control',
       'windows-search-disable', 'sysmain-disable', 'print-spooler-disable',
@@ -3881,6 +3896,9 @@ ipcMain.handle('extremeLabs:restoreBaseline', async (_event, ids) => {
             if (mapped.type === 'slider') {
               const r = await sliderTweakExecutor.resetSliderValue(mapped.tweakId);
               return { id, reverted: r.success, error: r.error };
+            } else if (mapped.type === 'preset') {
+              const r = await presetTweakExecutor.resetPresetValue(mapped.tweakId);
+              return { id, reverted: r.ok, error: r.error };
             } else if (mapped.type === 'nic') {
               if (!physicalAdapter) return { id, reverted: false, reason: 'No adapter' };
               const r = await nicExecutor.resetNicProperty(physicalAdapter.name, mapped.propertyKey);
@@ -3928,7 +3946,7 @@ ipcMain.handle('extremeLabs:checkAllStatus', async () => {
     const allIds = [
       'global-timer-resolution', 'dynamic-tick', 'hpet-disable',
       'win32-priority-separation', 'system-responsiveness', 'mmcss-no-lazy', 'power-throttling-extreme',
-      'disable-game-dvr', 'disable-xbox-capture', 'windowed-games-opt',
+      'disable-game-dvr', 'disable-xbox-capture', 'windowed-games-opt', 'fortnite-priority-booster',
       'network-throttling-index', 'tcp-no-delay', 'rss-enable',
       'interrupt-moderation', 'eee-disable', 'flow-control',
       'windows-search-disable', 'sysmain-disable', 'print-spooler-disable',
@@ -3956,7 +3974,24 @@ ipcMain.handle('extremeLabs:checkAllStatus', async () => {
       }
     }));
 
-    // ── Step 3: NIC-type tweaks ──────────────────────────────────────────────
+    // ── Step 3: Preset-type tweaks ──────────────────────────────────────────
+    const presetIds = allIds.filter(id => {
+      const m = _extremeLabsMapToRegistryTweak(id);
+      return m && m.type === 'preset';
+    });
+    const presetStatus = {};
+    await Promise.all(presetIds.map(async id => {
+      const mapped = _extremeLabsMapToRegistryTweak(id);
+      try {
+        const meta = presetTweakExecutor.getPresetTweakMeta(mapped.tweakId);
+        const r = await presetTweakExecutor.readPresetValue(mapped.tweakId);
+        presetStatus[id] = !r.missing && r.optionId !== (meta && meta.defaultOptionId) && r.error == null;
+      } catch {
+        presetStatus[id] = false;
+      }
+    }));
+
+    // ── Step 4: NIC-type tweaks ──────────────────────────────────────────────
     const nicIds = allIds.filter(id => {
       const m = _extremeLabsMapToRegistryTweak(id);
       return m && m.type === 'nic';
@@ -3981,7 +4016,7 @@ ipcMain.handle('extremeLabs:checkAllStatus', async () => {
       }));
     }
 
-    // ── Step 4: assemble final status map ───────────────────────────────────
+    // ── Step 5: assemble final status map ───────────────────────────────────
     const status = {};
     for (const id of allIds) {
       const mapped = _extremeLabsMapToRegistryTweak(id);
@@ -3991,6 +4026,8 @@ ipcMain.handle('extremeLabs:checkAllStatus', async () => {
         status[id] = !!(entry && (entry.isApplied || entry.applied));
       } else if (mapped.type === 'slider') {
         status[id] = !!sliderStatus[id];
+      } else if (mapped.type === 'preset') {
+        status[id] = !!presetStatus[id];
       } else if (mapped.type === 'nic') {
         status[id] = !!nicStatus[id];
       } else {

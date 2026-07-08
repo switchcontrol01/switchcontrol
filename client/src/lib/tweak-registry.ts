@@ -756,14 +756,26 @@ const BASE: BaseTweak[] = [
     ],
     expected: { latency: "Low", cpu: "None", ram: "None", disk: "None", gpu: "None", network: "None", stabilityRisk: "Low" },
     category: "Gaming and Latency", level: "Advanced", risk: "Moderate",
-    supported: true, requiresAdmin: true,
+    controlType: "preset",
+    isAdvancedTuning: true,
+    whoShouldAvoid: "Users who run multiple CPU-intensive applications alongside Fortnite — High priority can slightly starve background tasks.",
+    presetConfig: {
+      defaultOptionId: "normal",
+      recommendedOptionId: "high",
+      options: [
+        { id: "normal", label: "Normal", description: "Windows default priority for all processes. No IFEO override applied.", isDefault: true, technicalSummary: "Removes the IFEO PerfOptions key (no priority override)." },
+        { id: "above-normal", label: "Above Normal", description: "Slightly elevated priority. A balanced step up from default.", technicalSummary: "Sets CpuPriorityClass = 6 (ABOVE_NORMAL_PRIORITY_CLASS)." },
+        { id: "high", label: "High", description: "Recommended for gaming. Significantly reduces scheduling delay from background tasks.", isRecommended: true, technicalSummary: "Sets CpuPriorityClass = 3 (HIGH_PRIORITY_CLASS)." },
+      ],
+    },
     detailsConfig: {
       registryPath: "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\FortniteClient-Win64-Shipping.exe\\PerfOptions",
       registryName: "CpuPriorityClass",
       registryType: "DWORD",
-      technicalNote: "CpuPriorityClass = 3 maps to HIGH_PRIORITY_CLASS in the Windows scheduler. The IFEO key is evaluated by the OS when FortniteClient-Win64-Shipping.exe is created. Safe to remove at any time — the game simply reverts to normal priority on its next launch.",
-      warningText: "This tweak modifies the Windows IFEO registry. Reverting removes the key entirely. It only affects Fortnite and has no impact on other applications or system stability.",
+      technicalNote: "CpuPriorityClass values: 2 = Normal, 6 = Above Normal, 3 = High. The IFEO key is evaluated by the OS when FortniteClient-Win64-Shipping.exe is created. Safe to change at any time — the game picks up the new priority on its next launch.",
+      warningText: "This tweak only affects Fortnite. It has no impact on other applications or system stability.",
     },
+    supported: true, requiresAdmin: true,
   },
   // ── Input ─────────────────────────────────────────────────────────────────
 

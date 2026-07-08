@@ -216,6 +216,36 @@ async function runElevated(command) {
 
 const PRESET_TWEAKS = {
   /**
+   * Fortnite Priority Booster — IFEO-based CPU priority for Fortnite client.
+   * normal = 2 (NORMAL_PRIORITY_CLASS), above-normal = 6 (ABOVE_NORMAL_PRIORITY_CLASS),
+   * high = 3 (HIGH_PRIORITY_CLASS — recommended for gaming).
+   */
+  'fortnite-high-priority': {
+    name: 'Fortnite Priority Booster',
+    premium: true,
+    requiresAdmin: true,
+    requiresReboot: false,
+    regPath: 'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\FortniteClient-Win64-Shipping.exe\\PerfOptions',
+    regName: 'CpuPriorityClass',
+    defaultOptionId: 'normal',
+    options: {
+      normal: {
+        value: 2,
+        writeCommand: () => `Remove-Item -Path 'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\FortniteClient-Win64-Shipping.exe\\PerfOptions' -Recurse -Force -EA SilentlyContinue`,
+      },
+      'above-normal': {
+        value: 6,
+        writeCommand: () => `New-Item -Path 'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\FortniteClient-Win64-Shipping.exe' -Force -EA SilentlyContinue | Out-Null; New-Item -Path 'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\FortniteClient-Win64-Shipping.exe\\PerfOptions' -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path 'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\FortniteClient-Win64-Shipping.exe\\PerfOptions' -Name 'CpuPriorityClass' -Value 6 -Type DWord -Force`,
+      },
+      high: {
+        value: 3,
+        writeCommand: () => `New-Item -Path 'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\FortniteClient-Win64-Shipping.exe' -Force -EA SilentlyContinue | Out-Null; New-Item -Path 'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\FortniteClient-Win64-Shipping.exe\\PerfOptions' -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path 'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\FortniteClient-Win64-Shipping.exe\\PerfOptions' -Name 'CpuPriorityClass' -Value 3 -Type DWord -Force`,
+      },
+    },
+    readCommand: () => `(Get-ItemProperty -Path 'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\FortniteClient-Win64-Shipping.exe\\PerfOptions' -Name 'CpuPriorityClass' -EA SilentlyContinue).CpuPriorityClass`,
+  },
+
+  /**
    * IRQ8Priority — elevated PCI interrupt priority class.
    * balanced = key removed (Windows default scheme).
    * gaming = 1 (elevated), streaming = 2 (moderate elevated, shared w/ audio).

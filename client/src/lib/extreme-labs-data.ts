@@ -20,10 +20,12 @@ export interface ExtremeTweak {
   whatMayBreak: string;
   currentState: string;
   afterState?: string;
-  // Maps to existing tweak-registry id for actual execution
+  // Maps to existing tweak-registry id for toggle execution
   registryTweakId?: string;
   // Maps to slider tweak if applicable
   sliderTweakId?: string;
+  // Maps to preset tweak if applicable
+  presetTweakId?: string;
   // Maps to NIC property key for adapter-level tuning
   nicPropertyKey?: string;
   // Risk areas this tweak may affect
@@ -220,7 +222,7 @@ export const EXTREME_TWEAKS: ExtremeTweak[] = [
     whatMayBreak: "Only affects Fortnite. Other apps and system stability are unaffected. Removing the key reverts to normal priority on next launch.",
     currentState: "Normal priority",
     afterState: "High priority",
-    registryTweakId: "fortnite-high-priority",
+    presetTweakId: "fortnite-high-priority",
     riskAreas: [],
   },
 

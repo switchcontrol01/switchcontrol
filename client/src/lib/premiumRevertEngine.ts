@@ -61,6 +61,7 @@ const PREMIUM_SLIDER_DEFAULTS: Record<string, number> = {
 // premium option (e.g. "Gaming" → "standard", "extended" → "standard").
 
 const PREMIUM_PRESET_DEFAULTS: Record<string, string> = {
+  'fortnite-high-priority':    'normal',
   'irq-optimization-profile':  'balanced',
   'io-optimization-profile':   'standard',
   'directx-optimization-profile': 'standard',
