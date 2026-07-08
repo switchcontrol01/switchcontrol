@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { logHistory } from "@/lib/logHistory";
+import { useStore } from "@/lib/store";
 import { usePageTiming } from "@/lib/page-timing";
 import { createPortal } from "react-dom";
 import { GlassModalSurface } from "@/components/ui/GlassModalLayout";
@@ -975,6 +976,15 @@ function NetworkTweaksContent() {
         addToast(tweak.id, result.success, result.message);
         if (result.success) {
           logHistory(`Network: ${tweak.name}`, "Network", action === "enable" ? "Applied" : "Reverted", `Tweak ID: ${tweak.id}`);
+          // ── Cross-page state sync ────────────────────────────────────────────
+          // Keep the main Tweaks store and Extreme Labs in sync so any of the
+          // three surfaces that control the same Windows setting all agree.
+          const mainStore = useStore.getState();
+          if (tweak.id === "tcp-nagle") {
+            mainStore.setTweak("tcp-no-delay", action === "enable");
+          } else if (tweak.id === "tcp-throttling-index") {
+            mainStore.setSliderValue("net-throttle-index", action === "enable" ? 4294967295 : 10);
+          }
         }
 
         // ── Re-verify this tweak's real Windows state after apply/revert ──────────
@@ -1038,6 +1048,13 @@ function NetworkTweaksContent() {
 
         addToast(tweak.id, true, msg);
         logHistory(`Network: ${tweak.name}`, "Network", action === "enable" ? "Applied" : "Reverted", `Tweak ID: ${tweak.id}`);
+        // ── Cross-page state sync (web/staged path) ──────────────────────────
+        const mainStore = useStore.getState();
+        if (tweak.id === "tcp-nagle") {
+          mainStore.setTweak("tcp-no-delay", action === "enable");
+        } else if (tweak.id === "tcp-throttling-index") {
+          mainStore.setSliderValue("net-throttle-index", action === "enable" ? 4294967295 : 10);
+        }
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Execution error";
