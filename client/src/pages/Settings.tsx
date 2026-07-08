@@ -522,24 +522,6 @@ export default function Settings() {
           </Card>
           </Reveal>
 
-          {/* Application Mode */}
-          <Reveal delay={0.03}>
-          <Card className="bg-card/50 border-border/50">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Zap className="size-4 text-[#C09BFF]" />
-                Application Mode
-              </CardTitle>
-              <CardDescription>
-                Choose how much system power SwitchControl uses. All features stay available in both modes.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <ApplicationModeSection />
-            </CardContent>
-          </Card>
-          </Reveal>
-
           {/* Account Settings */}
           <Reveal delay={0.06}>
           <Card className="bg-card/50 border-border/50">
@@ -906,6 +888,25 @@ export default function Settings() {
             </CardContent>
           </Card>
           </Reveal>
+
+          {/* Application Mode */}
+          <Reveal delay={0.27}>
+          <Card className="bg-card/50 border-border/50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Zap className="size-4 text-[#C09BFF]" />
+                Application Mode
+              </CardTitle>
+              <CardDescription>
+                Choose how much system power SwitchControl uses. All features stay available in both modes.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <ApplicationModeSection />
+            </CardContent>
+          </Card>
+          </Reveal>
+
         </div>
       </Reveal>
 
