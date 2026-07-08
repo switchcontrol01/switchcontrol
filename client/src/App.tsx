@@ -62,6 +62,8 @@ import {
 import { DeviceLockModal } from "@/components/DeviceLockModal";
 import { usePremiumDeviceLock } from "@/hooks/usePremiumDeviceLock";
 import { usePremiumExpiry, useBaselineScan } from "@/hooks/usePremiumExpiry";
+import { useEntitlementRefresh } from "@/hooks/useEntitlementRefresh";
+import { useVisibilityInterval } from "@/hooks/useVisibilityInterval";
 import { PremiumRevertModal } from "@/components/PremiumRevertModal";
 import { usePremiumGraceStore, GRACE_WINDOW_MS } from "@/stores/premiumGraceStore";
 import { useTrialExpiryStore } from "@/stores/trialExpiryStore";
@@ -305,6 +307,29 @@ function ElectronAppContent() {
     isLoggedIn: user?.loggedIn ?? false,
     entitlementsVerified,
   });
+
+  // ── Live entitlement refresh ────────────────────────────────────────────
+  // Without this, admin-side plan changes (premium/trial/free) are only ever
+  // picked up at app boot (resolveAuthState in the checkAuth effect below),
+  // requiring the user to fully quit and relaunch SwitchControl to see the
+  // change take effect. This hook re-fetches /api/me on mount and whenever
+  // the window regains focus/visibility, so plan changes propagate live.
+  const { refresh: refreshEntitlementsNow } = useEntitlementRefresh({
+    refreshOnMount: false, // boot flow (checkAuth) already handles the initial fetch
+    refreshOnFocus: true,
+  });
+
+  // Safety-net poll: SwitchControl is often left focused/visible for long
+  // stretches (e.g. pinned overlay during a game), so focus/visibility
+  // events alone may never fire. Poll periodically while visible so admin
+  // plan changes still land without requiring a focus change or restart.
+  useVisibilityInterval(
+    refreshEntitlementsNow,
+    45_000,
+    "App:entitlementRefresh",
+    "App.tsx",
+    (user?.loggedIn ?? false) && entitlementsVerified,
+  );
 
   // ── Trial-expiry redirect ──────────────────────────────────────────────────
   // When the revert modal opens (trial just ended or app reopened post-expiry),

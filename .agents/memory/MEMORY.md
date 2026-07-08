@@ -17,3 +17,5 @@
 - [Version release process](version-release-process.md) — version strings live in 6+ files (no single constant); actual installer build/upload happens via GitHub Actions tag push, not in Replit.
 - [Electron startup spec enrichment](electron-startup-enrichment.md) — disk cache (specs-cache.json, 4h/24h TTL) eliminates WMI on repeat boots; si.graphics() removed from enrichment (AMD hangs); psLimiter gates all startup PS calls; two-stage: GPU immediately, CPU+disk deferred 3s.
 - [Preset-card tweak pattern](preset-tweak-pattern.md) — multi-option preset tweaks mirror the slider-tweak trio exactly (executor/IPC/hook/store/UI); isAdvancedTuning flag pulls sliders+presets into one dedicated section.
+- [PowerShell ForEach-Object scoping](powershell-foreach-scoping.md) — `ForEach-Object { $x = true }` never leaks to caller scope; use `$script:x`. Silent false-negative "check" scripts are the symptom.
+- [Entitlement live refresh](entitlement-live-refresh.md) — a hook can be fully implemented, exported, and never imported; grep call sites before trusting a mechanism exists. Admin plan changes need live client polling, not just DB writes.

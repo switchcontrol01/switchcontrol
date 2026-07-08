@@ -939,7 +939,7 @@ const ADMIN_TWEAKS = {
     requiresReboot: true,
     apply:  `New-Item -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters\\Interfaces" -Force -EA SilentlyContinue | Out-Null; Get-ChildItem "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters\\Interfaces" -EA SilentlyContinue | ForEach-Object { Set-ItemProperty -Path $_.PSPath -Name "TcpNoDelay" -Value 1 -Type DWord -Force -EA SilentlyContinue; Set-ItemProperty -Path $_.PSPath -Name "TcpAckFrequency" -Value 1 -Type DWord -Force -EA SilentlyContinue }`,
     revert: `Get-ChildItem "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters\\Interfaces" -EA SilentlyContinue | ForEach-Object { Remove-ItemProperty -Path $_.PSPath -Name "TcpNoDelay" -EA SilentlyContinue; Remove-ItemProperty -Path $_.PSPath -Name "TcpAckFrequency" -EA SilentlyContinue }`,
-    check:  `$found = $false; Get-ChildItem "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters\\Interfaces" -EA SilentlyContinue | ForEach-Object { $d = Get-ItemProperty -Path $_.PSPath -Name "TcpNoDelay" -EA SilentlyContinue; if ($d -and $d.TcpNoDelay -eq 1) { $found = $true } }; $found`,
+    check:  `$script:found = $false; Get-ChildItem "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters\\Interfaces" -EA SilentlyContinue | ForEach-Object { $d = Get-ItemProperty -Path $_.PSPath -Name "TcpNoDelay" -EA SilentlyContinue; if ($d -and $d.TcpNoDelay -eq 1) { $script:found = $true } }; $script:found`,
   },
   'optimize-windowed-games': {
     name: 'Optimizations for Windowed Games',
