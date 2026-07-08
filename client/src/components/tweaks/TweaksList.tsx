@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { TweakCard } from "./TweakCard";
 import { TweakSliderCard } from "./TweakSliderCard";
 import { TweakPresetCard } from "./TweakPresetCard";
@@ -422,53 +423,59 @@ export function TweaksList() {
         </div>
       </ScrollArea>
 
-      {/* Level warning dialog */}
-      <AnimatePresence>
-        {warnLevel && LEVEL_WARN[warnLevel] && (
-          <>
-            <motion.div
-              className="fixed inset-0 z-40 bg-[#1A1F26]"
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={() => setWarnLevel(null)}
-            />
-            <motion.div
-              className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-sm pointer-events-auto"
-              initial={{ opacity: 0, scale: 0.92, y: 12 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.94, y: 8 }}
-              transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-            >
-              <GlassModalSurface className="p-6">
-                <div className="flex items-start gap-3 mb-4">
-                  <div className="w-9 h-9 rounded-full bg-amber-500/15 border border-amber-500/25 flex items-center justify-center shrink-0">
-                    <AlertTriangle className="size-4 text-amber-400" />
+      {/* Level warning dialog — rendered via portal so fixed positioning
+          covers the full Electron window regardless of ancestor transforms */}
+      {createPortal(
+        <AnimatePresence>
+          {warnLevel && LEVEL_WARN[warnLevel] && (
+            <>
+              <motion.div
+                className="fixed inset-0 bg-black/70 backdrop-blur-sm"
+                style={{ zIndex: 9998 }}
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                onClick={() => setWarnLevel(null)}
+              />
+              <motion.div
+                className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-sm pointer-events-auto px-4"
+                style={{ zIndex: 9999 }}
+                initial={{ opacity: 0, scale: 0.92, y: 12 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.94, y: 8 }}
+                transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+              >
+                <GlassModalSurface className="p-6">
+                  <div className="flex items-start gap-3 mb-4">
+                    <div className="w-9 h-9 rounded-full bg-amber-500/15 border border-amber-500/25 flex items-center justify-center shrink-0">
+                      <AlertTriangle className="size-4 text-amber-400" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-[#E6EAF0] text-base">{LEVEL_WARN[warnLevel].title}</h3>
+                      <p className="text-sm text-[#A0A8B3] mt-1 leading-relaxed">{LEVEL_WARN[warnLevel].body}</p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-semibold text-[#E6EAF0] text-base">{LEVEL_WARN[warnLevel].title}</h3>
-                    <p className="text-sm text-[#A0A8B3] mt-1 leading-relaxed">{LEVEL_WARN[warnLevel].body}</p>
+                  <div className="flex gap-2 justify-end">
+                    <button
+                      onClick={() => setWarnLevel(null)}
+                      data-testid="button-level-warn-cancel"
+                      className="px-4 py-2 rounded-lg text-sm text-[#6B7380] hover:text-[#E6EAF0] hover:bg-[#2A313A] transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={confirmLevelWarn}
+                      data-testid="button-level-warn-confirm"
+                      className="px-4 py-2 rounded-lg text-sm font-medium bg-amber-500/15 text-amber-300 border border-amber-500/25 hover:bg-amber-500/25 transition-colors"
+                    >
+                      I understand
+                    </button>
                   </div>
-                </div>
-                <div className="flex gap-2 justify-end">
-                  <button
-                    onClick={() => setWarnLevel(null)}
-                    data-testid="button-level-warn-cancel"
-                    className="px-4 py-2 rounded-lg text-sm text-[#6B7380] hover:text-[#E6EAF0] hover:bg-[#2A313A] transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={confirmLevelWarn}
-                    data-testid="button-level-warn-confirm"
-                    className="px-4 py-2 rounded-lg text-sm font-medium bg-amber-500/15 text-amber-300 border border-amber-500/25 hover:bg-amber-500/25 transition-colors"
-                  >
-                    I understand
-                  </button>
-                </div>
-              </GlassModalSurface>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+                </GlassModalSurface>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
 
       {/* Sync status indicator */}
       <AnimatePresence>
