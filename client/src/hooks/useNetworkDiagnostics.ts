@@ -33,9 +33,39 @@ export interface PcVsInternetResult {
   confidence: "low" | "medium" | "high";
 }
 
-export type BenchmarkState  = "idle" | "baseline" | "waiting" | "comparing" | "done";
-export type PcVsInternetState = "idle" | "running" | "done";
-export type MonitorPhase = "off" | "starting" | "live" | "error";
+export interface DnsProviderResult {
+  id: string;
+  label: string;
+  ip: string;
+  avg: number;
+  median: number;
+  min: number;
+  max: number;
+  jitter: number;
+  loss: number;
+  stabilityScore: number;
+  rank: number;
+}
+
+export interface DnsBenchmarkResult {
+  providers: DnsProviderResult[];
+  recommended: string;
+  recommendedReasons: string[];
+  confidence: "very_high" | "high" | "medium" | "low";
+  categoryWinners: {
+    bestOverall: string;
+    lowestLatency: string;
+    lowestJitter: string;
+    mostStable: string;
+    bestGaming: string;
+  };
+  ts: number;
+}
+
+export type BenchmarkState     = "idle" | "baseline" | "waiting" | "comparing" | "done";
+export type PcVsInternetState  = "idle" | "running" | "done";
+export type DnsBenchmarkState  = "idle" | "running" | "done" | "error";
+export type MonitorPhase       = "off" | "starting" | "live" | "error";
 
 export interface DiagnosticsState {
   isMonitoring: boolean;
@@ -58,6 +88,11 @@ export interface DiagnosticsState {
   pcVsInternetResult: PcVsInternetResult | null;
   runPcVsInternet: () => Promise<void>;
   resetPcVsInternet: () => void;
+  dnsBenchmarkState: DnsBenchmarkState;
+  dnsBenchmarkResult: DnsBenchmarkResult | null;
+  dnsBenchmarkError: string | null;
+  runDnsBenchmark: () => Promise<void>;
+  resetDnsBenchmark: () => void;
 }
 
 const HISTORY_MAX = 60;
@@ -92,6 +127,9 @@ export function useNetworkDiagnostics(): DiagnosticsState {
   const [benchmarkResult, setBenchmarkResult] = useState<BenchmarkResult | null>(null);
   const [pcVsInternetState, setPcVsInternetState] = useState<PcVsInternetState>("idle");
   const [pcVsInternetResult, setPcVsInternetResult] = useState<PcVsInternetResult | null>(null);
+  const [dnsBenchmarkState, setDnsBenchmarkState]   = useState<DnsBenchmarkState>("idle");
+  const [dnsBenchmarkResult, setDnsBenchmarkResult] = useState<DnsBenchmarkResult | null>(null);
+  const [dnsBenchmarkError, setDnsBenchmarkError]   = useState<string | null>(null);
 
   const intervalRef        = useRef<ReturnType<typeof setInterval> | null>(null);
   const spikeTimestampsRef = useRef<number[]>([]);
@@ -108,23 +146,16 @@ export function useNetworkDiagnostics(): DiagnosticsState {
 
       if (!mountedRef.current) return;
 
-      if (!resp.ok) {
-        throw new Error(`Server returned ${resp.status}`);
-      }
+      if (!resp.ok) throw new Error(`Server returned ${resp.status}`);
 
       const sample: PingSample = await resp.json();
-      if (
-        typeof sample?.avg !== "number" ||
-        typeof sample?.ts !== "number"
-      ) {
+      if (typeof sample?.avg !== "number" || typeof sample?.ts !== "number") {
         throw new Error("Malformed sample from server");
       }
 
       consecutiveFailRef.current = 0;
-
       historyRef.current = [...historyRef.current, sample].slice(-HISTORY_MAX);
 
-      // Spike detection
       if (historyRef.current.length >= 5) {
         const window = historyRef.current.slice(-11, -1);
         const windowAvg = window.reduce((s, p) => s + p.avg, 0) / window.length;
@@ -155,13 +186,9 @@ export function useNetworkDiagnostics(): DiagnosticsState {
       const isAbort = err instanceof DOMException && err.name === "AbortError";
       const msg = isAbort
         ? "Probe timed out — check your connection"
-        : err instanceof Error
-        ? err.message
-        : "Unknown error";
+        : err instanceof Error ? err.message : "Unknown error";
 
       consecutiveFailRef.current++;
-
-      // Only surface error after 2 consecutive failures (avoids single-blip false alarms)
       if (consecutiveFailRef.current >= 2) {
         setMonitorError(msg);
         setMonitorPhase("error");
@@ -182,7 +209,6 @@ export function useNetworkDiagnostics(): DiagnosticsState {
     setSpikesPerMin(0);
     setHealth(null);
     spikeTimestampsRef.current = [];
-    // First sample immediately, then poll
     fetchSample();
     intervalRef.current = setInterval(fetchSample, POLL_INTERVAL_MS);
   }, [fetchSample]);
@@ -197,30 +223,23 @@ export function useNetworkDiagnostics(): DiagnosticsState {
   }, []);
 
   const retryMonitoring = useCallback(() => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
+    if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
     startMonitoring();
   }, [startMonitoring]);
 
-  // Auto-start monitoring when this hook mounts, pause when tab is hidden
   useEffect(() => {
     mountedRef.current = true;
     if (!document.hidden) startMonitoring();
 
     const handleVisibility = () => {
-      if (document.hidden) {
-        stopMonitoring();
-      } else {
-        startMonitoring();
-      }
+      if (document.hidden) stopMonitoring();
+      else startMonitoring();
     };
-    document.addEventListener('visibilitychange', handleVisibility);
+    document.addEventListener("visibilitychange", handleVisibility);
 
     return () => {
       mountedRef.current = false;
-      document.removeEventListener('visibilitychange', handleVisibility);
+      document.removeEventListener("visibilitychange", handleVisibility);
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -276,11 +295,43 @@ export function useNetworkDiagnostics(): DiagnosticsState {
     setPcVsInternetResult(null);
   }, []);
 
+  // ── DNS Benchmark ─────────────────────────────────────────────────────────────
+
+  const runDnsBenchmark = useCallback(async () => {
+    setDnsBenchmarkState("running");
+    setDnsBenchmarkResult(null);
+    setDnsBenchmarkError(null);
+    try {
+      const controller = new AbortController();
+      const tid = setTimeout(() => controller.abort(), 20_000);
+      const resp = await fetch("/api/network/dns-benchmark", { signal: controller.signal });
+      clearTimeout(tid);
+      if (!resp.ok) throw new Error(`Server returned ${resp.status}`);
+      const result: DnsBenchmarkResult = await resp.json();
+      if (mountedRef.current) {
+        setDnsBenchmarkResult(result);
+        setDnsBenchmarkState("done");
+      }
+    } catch (err: unknown) {
+      if (!mountedRef.current) return;
+      const msg = err instanceof Error ? err.message : "Benchmark failed";
+      setDnsBenchmarkError(msg);
+      setDnsBenchmarkState("error");
+    }
+  }, []);
+
+  const resetDnsBenchmark = useCallback(() => {
+    setDnsBenchmarkState("idle");
+    setDnsBenchmarkResult(null);
+    setDnsBenchmarkError(null);
+  }, []);
+
   return {
     isMonitoring, monitorPhase, monitorError,
     history, current, spikes, spikesPerMin, health,
     startMonitoring, stopMonitoring, retryMonitoring,
     benchmarkState, benchmarkResult, startBenchmark, runBenchmarkCompare, resetBenchmark,
     pcVsInternetState, pcVsInternetResult, runPcVsInternet, resetPcVsInternet,
+    dnsBenchmarkState, dnsBenchmarkResult, dnsBenchmarkError, runDnsBenchmark, resetDnsBenchmark,
   };
 }

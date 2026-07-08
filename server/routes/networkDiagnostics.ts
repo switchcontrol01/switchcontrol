@@ -5,8 +5,6 @@ import { performance } from "perf_hooks";
 const router = Router();
 
 // Strict per-IP rate limit for ping-sample: 1 call / 30 s.
-// Each call issues 3 TCP probes (~600 ms–2 s each) — without this guard,
-// a tight polling loop exhausts ephemeral ports and saturates the event loop.
 const pingSampleLastCall = new Map<string, number>();
 const PING_SAMPLE_COOLDOWN_MS = 30_000;
 
@@ -23,6 +21,23 @@ function pingRateLimit(req: any, res: any, next: any) {
   next();
 }
 
+// Rate limit for DNS benchmark: 1 call / 10 s per IP
+const dnsBenchmarkLastCall = new Map<string, number>();
+const DNS_BENCHMARK_COOLDOWN_MS = 10_000;
+
+function dnsBenchmarkRateLimit(req: any, res: any, next: any) {
+  const ip = (req.headers["x-forwarded-for"] as string | undefined)?.split(",")[0].trim() ?? req.ip ?? "unknown";
+  const now = Date.now();
+  const last = dnsBenchmarkLastCall.get(ip) ?? 0;
+  if (now - last < DNS_BENCHMARK_COOLDOWN_MS) {
+    const retryAfter = Math.ceil((DNS_BENCHMARK_COOLDOWN_MS - (now - last)) / 1000);
+    res.setHeader("Retry-After", String(retryAfter));
+    return res.status(429).json({ error: "Rate limit: 1 DNS benchmark per 10 s.", retryAfter });
+  }
+  dnsBenchmarkLastCall.set(ip, now);
+  next();
+}
+
 interface PingTarget { host: string; port: number; label: string; }
 
 const TARGETS: PingTarget[] = [
@@ -30,6 +45,18 @@ const TARGETS: PingTarget[] = [
   { host: "8.8.8.8", port: 53, label: "Google" },
   { host: "208.67.222.222", port: 53, label: "OpenDNS" },
 ];
+
+const DNS_PROVIDERS = [
+  { id: "cloudflare", label: "Cloudflare", ip: "1.1.1.1", port: 53 },
+  { id: "google",     label: "Google",     ip: "8.8.8.8",        port: 53 },
+  { id: "quad9",      label: "Quad9",      ip: "9.9.9.9",        port: 53 },
+  { id: "opendns",    label: "OpenDNS",    ip: "208.67.222.222", port: 53 },
+  { id: "adguard",    label: "AdGuard",    ip: "94.140.14.14",   port: 53 },
+] as const;
+
+const DNS_PROBE_COUNT = 5;
+const DNS_PROBE_TIMEOUT_MS = 1500;
+const DNS_PROBE_STAGGER_MS = 90;
 
 function tcpPing(host: string, port: number, timeoutMs = 2000): Promise<number | null> {
   return new Promise((resolve) => {
@@ -44,7 +71,6 @@ function tcpPing(host: string, port: number, timeoutMs = 2000): Promise<number |
       resolve(ms);
     };
 
-    // Wall-clock deadline — fires even if TCP SYN is dropped and never ACK'd
     const wall = setTimeout(() => finish(null), timeoutMs);
 
     socket.connect(port, host, () => {
@@ -82,6 +108,56 @@ async function collectSamples(count: number): Promise<{
     jitter: parseFloat(jitter.toFixed(1)),
     loss: parseFloat(loss.toFixed(0)),
     samples: valid.map(v => parseFloat(v.toFixed(1))),
+  };
+}
+
+// Benchmark a single DNS provider with DNS_PROBE_COUNT sequential TCP probes
+async function benchmarkProvider(provider: typeof DNS_PROVIDERS[number]) {
+  const raw: Array<number | null> = [];
+  for (let i = 0; i < DNS_PROBE_COUNT; i++) {
+    raw.push(await tcpPing(provider.ip, provider.port, DNS_PROBE_TIMEOUT_MS));
+    if (i < DNS_PROBE_COUNT - 1) await new Promise(r => setTimeout(r, DNS_PROBE_STAGGER_MS));
+  }
+
+  const valid = raw.filter((v): v is number => v !== null);
+  const loss = Math.round(((raw.length - valid.length) / raw.length) * 100);
+
+  if (valid.length === 0) {
+    return {
+      id: provider.id, label: provider.label, ip: provider.ip,
+      avg: 9999, median: 9999, min: 9999, max: 9999,
+      jitter: 9999, loss: 100, stabilityScore: 0,
+    };
+  }
+
+  // Trim outliers when ≥4 samples
+  const sorted = [...valid].sort((a, b) => a - b);
+  const trimmed = valid.length >= 4 ? sorted.slice(1, -1) : sorted;
+
+  const avg = trimmed.reduce((a, b) => a + b, 0) / trimmed.length;
+  const mid = Math.floor(trimmed.length / 2);
+  const median = trimmed.length % 2 === 0
+    ? (trimmed[mid - 1] + trimmed[mid]) / 2
+    : trimmed[mid];
+  const min = sorted[0];
+  const max = sorted[sorted.length - 1];
+  const jitter = trimmed.length > 1
+    ? trimmed.reduce((s, v) => s + Math.abs(v - avg), 0) / trimmed.length
+    : 0;
+
+  // Stability score: jitter ratio and packet loss both penalise
+  const jitterRatio = avg > 0 ? jitter / avg : 0;
+  const stabilityScore = Math.max(0, Math.min(100, Math.round(100 - jitterRatio * 60 - loss * 1.5)));
+
+  return {
+    id: provider.id, label: provider.label, ip: provider.ip,
+    avg:    parseFloat(avg.toFixed(1)),
+    median: parseFloat(median.toFixed(1)),
+    min:    parseFloat(min.toFixed(1)),
+    max:    parseFloat(max.toFixed(1)),
+    jitter: parseFloat(jitter.toFixed(1)),
+    loss,
+    stabilityScore,
   };
 }
 
@@ -165,35 +241,105 @@ router.get("/pc-vs-internet", async (_req, res) => {
 
     if (cfAvg && googAvg) {
       if (cfAvg < 40 && googAvg < 40 && providerVariance < 15 && avgJitter < 10) {
-        verdict = "stable";
+        verdict = "stable"; confidence = "high";
         explanation = "Both independent providers respond quickly and consistently. Your network path appears healthy from this measurement.";
-        confidence = "high";
       } else if (providerVariance > 35) {
-        verdict = "internet_issue";
+        verdict = "internet_issue"; confidence = "medium";
         explanation = "Large variance between Cloudflare and Google points to external routing inconsistency — likely ISP-side or upstream congestion between you and these providers.";
-        confidence = "medium";
       } else if (avgJitter > 20 && providerVariance < 20) {
-        verdict = "local_issue";
+        verdict = "local_issue"; confidence = "medium";
         explanation = "High intra-provider jitter with low cross-provider variance suggests local instability — possibly WiFi interference, NIC driver issues, or OS scheduling delays affecting the network stack.";
-        confidence = "medium";
       } else if ((cfAvg + googAvg) / 2 > 100) {
-        verdict = "mixed";
+        verdict = "mixed"; confidence = "low";
         explanation = "Both providers show elevated latency. Physical distance to servers, ISP congestion, or high system load could each be a contributing factor. No single clear cause from this data.";
-        confidence = "low";
       } else {
-        verdict = "stable";
+        verdict = "stable"; confidence = "medium";
         explanation = "Latency and consistency are within normal range. No obvious instability detected from this measurement vantage.";
-        confidence = "medium";
       }
     } else {
-      verdict = "mixed";
+      verdict = "mixed"; confidence = "low";
       explanation = "Partial connectivity — one provider was unreachable. Not enough data to draw a reliable conclusion.";
-      confidence = "low";
     }
 
     res.json({ cloudflare: cfAvg, google: googAvg, providerVariance, verdict, explanation, confidence, ts: Date.now() });
   } catch {
     res.status(500).json({ error: "Diagnostic failed" });
+  }
+});
+
+// ─── DNS Optimizer: 5-provider intelligent benchmark ─────────────────────────
+
+router.get("/dns-benchmark", dnsBenchmarkRateLimit, async (_req, res) => {
+  try {
+    // All 5 providers run in parallel; probes within each provider are sequential
+    const results = await Promise.all(
+      DNS_PROVIDERS.map(p => benchmarkProvider(p))
+    );
+
+    const alive = results.filter(p => p.loss < 100);
+
+    // Rank by average latency (ascending)
+    const ranked = [...results].sort((a, b) => a.avg - b.avg);
+
+    // Composite score for recommendation
+    const scored = alive.map(p => {
+      const latencyScore  = Math.max(0, 100 - p.avg * 0.8);
+      const jitterScore   = Math.max(0, 100 - p.jitter * 6);
+      const lossScore     = Math.max(0, 100 - p.loss * 8);
+      const stabilityBonus = p.stabilityScore;
+      const composite = latencyScore * 0.40 + jitterScore * 0.30 + lossScore * 0.20 + stabilityBonus * 0.10;
+      return { ...p, composite };
+    }).sort((a, b) => b.composite - a.composite);
+
+    const recommended = scored[0]?.id ?? ranked[0]?.id ?? "cloudflare";
+    const rec = results.find(p => p.id === recommended);
+
+    // Build reasons for recommendation
+    const recommendedReasons: string[] = [];
+    if (rec && alive.length > 0) {
+      const byAvg    = [...alive].sort((a, b) => a.avg - b.avg);
+      const byJitter = [...alive].sort((a, b) => a.jitter - b.jitter);
+      const byStab   = [...alive].sort((a, b) => b.stabilityScore - a.stabilityScore);
+      if (byAvg[0]?.id === recommended)    recommendedReasons.push("Lowest average latency");
+      if (byJitter[0]?.id === recommended) recommendedReasons.push("Lowest jitter");
+      if (byStab[0]?.id === recommended)   recommendedReasons.push("Highest stability score");
+      if (rec.loss === 0)                  recommendedReasons.push("Zero packet loss");
+      if (rec.median < byAvg[0].avg * 0.95) recommendedReasons.push("Best median response time");
+    }
+    if (recommendedReasons.length === 0) recommendedReasons.push("Best overall composite score");
+
+    // Category winners
+    const byAvg    = alive.length ? [...alive].sort((a, b) => a.avg    - b.avg)   : results;
+    const byJitter = alive.length ? [...alive].sort((a, b) => a.jitter - b.jitter) : results;
+    const byStab   = alive.length ? [...alive].sort((a, b) => b.stabilityScore - a.stabilityScore) : results;
+    const byGaming = alive.length
+      ? [...alive].sort((a, b) => (a.avg * 0.55 + a.jitter * 0.45) - (b.avg * 0.55 + b.jitter * 0.45))
+      : results;
+
+    const categoryWinners = {
+      bestOverall:    scored[0]?.id ?? "",
+      lowestLatency:  byAvg[0]?.id ?? "",
+      lowestJitter:   byJitter[0]?.id ?? "",
+      mostStable:     byStab[0]?.id ?? "",
+      bestGaming:     byGaming[0]?.id ?? "",
+    };
+
+    // Confidence derived from probe consistency
+    const avgLoss = alive.length > 0 ? alive.reduce((s, p) => s + p.loss, 0) / alive.length : 100;
+    const allAlive = alive.length === DNS_PROVIDERS.length;
+    const topJitter = scored[0]?.jitter ?? 999;
+
+    let confidence: "very_high" | "high" | "medium" | "low";
+    if (allAlive && avgLoss === 0 && topJitter < 5)       confidence = "very_high";
+    else if (alive.length >= 4 && avgLoss < 20)           confidence = "high";
+    else if (alive.length >= 3)                            confidence = "medium";
+    else                                                   confidence = "low";
+
+    const providers = ranked.map((p, i) => ({ ...p, rank: i + 1 }));
+
+    res.json({ providers, recommended, recommendedReasons, confidence, categoryWinners, ts: Date.now() });
+  } catch (err) {
+    res.status(500).json({ error: "DNS benchmark failed" });
   }
 });
 
