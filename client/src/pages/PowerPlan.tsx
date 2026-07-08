@@ -181,6 +181,41 @@ const DEFAULT_CUSTOM_SETTINGS: CustomSettings = {
   keepDisplayOn: false, disableSleep: false, disableHibernation: false,
 };
 
+// Derive live estimated impact scores from the user's custom settings.
+// All scores clamped to [2, 98] so the bars never look empty or full-locked.
+function computeCustomImpact(s: CustomSettings): { latency: number; speed: number; battery: number } {
+  // Baselines tuned so default settings ≈ the old static values (65, 72, 30)
+  let latency = 28;
+  let speed   = 25;
+  let battery = 72;
+
+  // Max processor state (5–100) — dominant factor
+  const maxR = s.maxProcessorState / 100;
+  const minR = s.minProcessorState / 100;
+  latency += Math.round(maxR * 26 + minR * 14);
+  speed   += Math.round(maxR * 22 + minR * 10);
+  battery -= Math.round(maxR * 28 + minR * 22);
+
+  // Individual toggle contributions
+  if (s.disableFrequencyScaling)      { latency += 10; speed +=  8; battery -= 14; }
+  if (s.disableThrottleStates)        { latency +=  8; speed +=  6; battery -= 10; }
+  if (s.enableTurboBoost)             { latency +=  5; speed +=  4; battery -=  6; }
+  if (s.disableCoreParking)           { latency +=  4; speed +=  8; battery -=  4; }
+  if (s.preferPerformanceProcesses)   {                speed +=  5;                }
+  if (s.enableHardwarePStates)        { latency +=  2; speed +=  3;                }
+  if (s.optimizePerformanceInterval)  { latency +=  1; speed +=  2;                }
+  if (s.disableUsbSelectiveSuspend || s.disableUsbPowerManagement) { battery -= 4; }
+  if (s.disableSleep)      { battery -= 5; }
+  if (s.disableHibernation){ battery -= 3; }
+  if (s.keepDisplayOn)     { battery -= 3; }
+
+  return {
+    latency: Math.max(2, Math.min(98, latency)),
+    speed:   Math.max(2, Math.min(98, speed)),
+    battery: Math.max(2, Math.min(98, battery)),
+  };
+}
+
 function loadLocalState() {
   try {
     const saved = localStorage.getItem("switchcontrol-powerplan");
@@ -1241,9 +1276,9 @@ export default function PowerPlan() {
                           <TrendingDown className="size-2.5" />
                           Estimated Impact
                         </p>
-                        <ImpactBar label="Latency Reduction" value={PROFILE_IMPACT.custom.latency} color="#a78bfa" />
-                        <ImpactBar label="Responsiveness"    value={PROFILE_IMPACT.custom.speed}   color="#a78bfa" />
-                        <ImpactBar label="Battery Efficiency" value={PROFILE_IMPACT.custom.battery} color="#4b5563" />
+                        <ImpactBar label="Latency Reduction" value={computeCustomImpact(localState.customSettings).latency} color="#a78bfa" />
+                        <ImpactBar label="Responsiveness"    value={computeCustomImpact(localState.customSettings).speed}   color="#a78bfa" />
+                        <ImpactBar label="Battery Efficiency" value={computeCustomImpact(localState.customSettings).battery} color="#4b5563" />
                       </div>
 
                       <div className="flex-1" />
@@ -1352,7 +1387,44 @@ export default function PowerPlan() {
                     })}
                   </div>
 
-                  {/* Estimated Performance Impact */}
+                  {/* Estimated Performance Impact — custom (live) */}
+                  {effectiveCustomApplied && (() => {
+                    const impact = computeCustomImpact(localState.customSettings);
+                    const t = PROFILE_THEME.custom;
+                    return (
+                      <div className="mt-6 pt-5">
+                        <p className="text-[10px] uppercase tracking-widest text-[#6B7380] font-semibold mb-4">
+                          Estimated Performance Impact
+                          <span className="ml-1.5 normal-case text-[#6B7380]/50 font-normal">vs baseline Windows Balanced</span>
+                        </p>
+                        <div className="grid gap-4 sm:grid-cols-3">
+                          {[
+                            { label: "Input Latency Reduction", value: impact.latency, color: t.accent },
+                            { label: "CPU Responsiveness",      value: impact.speed,   color: "#06b6d4" },
+                            { label: "Battery Efficiency",      value: impact.battery, color: "#6b7280" },
+                          ].map(bar => (
+                            <div key={bar.label} className="space-y-1.5">
+                              <div className="flex items-center justify-between text-[11px]">
+                                <span className="text-[#A0A8B3]">{bar.label}</span>
+                                <span className="font-semibold" style={{ color: bar.color }}>{bar.value}%</span>
+                              </div>
+                              <div className="h-1.5 rounded-full bg-[#21262D] overflow-hidden">
+                                <motion.div
+                                  className="h-full rounded-full"
+                                  style={{ backgroundColor: bar.color, width: `${bar.value}%`, transformOrigin: "left" }}
+                                  initial={{ scaleX: 0 }}
+                                  animate={{ scaleX: 1 }}
+                                  transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1], delay: 0.05 }}
+                                />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Estimated Performance Impact — preset profiles */}
                   {activeProfileId && activeProfileId !== "custom" && (() => {
                     const t = PROFILE_THEME[activeProfileId];
                     const impact = PROFILE_IMPACT[activeProfileId];
