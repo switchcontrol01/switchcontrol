@@ -132,6 +132,7 @@ export default function DriverIntelligence() {
     dbUpdatedAt,
     scan,
     rescan,
+    cancelScan,
   } = useDriverIntelStore();
 
   const staleDays = useMemo(() => dbAgeDays(dbUpdatedAt), [dbUpdatedAt]);
@@ -200,6 +201,13 @@ export default function DriverIntelligence() {
     if (locked) return;
     scan(); // cached internally — won't re-run if fresh
   }, [locked, scan]);
+
+  // Leaving the page mid-scan must stop the step-cadence loop immediately —
+  // otherwise it keeps ticking (and calling set()) for up to ~2.4s after the
+  // user has already navigated away.
+  useEffect(() => {
+    return () => cancelScan();
+  }, [cancelScan]);
 
   // Detect installed vendor tools once the component list is ready (desktop only).
   useEffect(() => {

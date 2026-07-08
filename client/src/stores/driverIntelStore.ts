@@ -68,6 +68,15 @@ interface DriverIntelState {
 
   scan: (force?: boolean) => Promise<void>;
   rescan: () => Promise<void>;
+  /**
+   * Invalidates any in-flight scan (bumps the internal token so its
+   * step-cadence loop and pending `set()` calls stop on their next check)
+   * and, if a scan was still running, resets phase back to "idle" so a
+   * later re-open of the page starts a clean scan rather than getting stuck
+   * on "scanning" forever. Called from the Driver Intelligence page's
+   * unmount cleanup.
+   */
+  cancelScan: () => void;
 }
 
 // ── Cloud DB fetch (resilient) ────────────────────────────────────────────────
@@ -582,6 +591,13 @@ export const useDriverIntelStore = create<DriverIntelState>((set, get) => ({
 
   rescan: async () => {
     await get().scan(true);
+  },
+
+  cancelScan: () => {
+    _scanToken++;
+    if (get().phase === "scanning") {
+      set({ phase: "idle", stepIndex: 0 });
+    }
   },
 }));
 
