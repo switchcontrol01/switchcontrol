@@ -152,6 +152,12 @@ export const useDashboardActivityStore = create<DashboardActivityState>()(
     {
       name: "sc-dashboard-activity",
       version: 1,
+      migrate: (persistedState: any, version: number) => {
+        if (!persistedState || typeof persistedState !== "object") {
+          return { events: [], lastAction: null, prevSnapshot: null, currentSnapshot: null };
+        }
+        return persistedState;
+      },
       partialize: (s) => ({
         events: s.events,
         lastAction: s.lastAction,

@@ -4,8 +4,6 @@ import { MOCK_STATS, SystemStats, TWEAKS_DATA, AIScanResult } from './mock-data'
 import { isRecommendedSafe } from './hooks';
 import { isElectronWithTweaks, isRealTweak } from '@/hooks/use-tweak-executor';
 
-export type AccountTier = 'Free' | 'Premium';
-
 export interface HistoryItem {
   id: string;
   timestamp: string; // ISO string
@@ -26,7 +24,6 @@ export interface AccountStats {
 interface AppState {
   stats: SystemStats;
   account: {
-    tier: AccountTier;
     email: string;
     licenseStatus: 'Active' | 'Inactive';
     stats: AccountStats;
@@ -68,7 +65,6 @@ export const useStore = create<AppState>()(
     (set, get) => ({
       stats: MOCK_STATS,
       account: {
-        tier: 'Free',
         email: '',
         licenseStatus: 'Inactive',
         stats: DEFAULT_ACCOUNT_STATS

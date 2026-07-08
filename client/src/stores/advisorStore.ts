@@ -151,6 +151,12 @@ export const useAdvisorStore = create<AdvisorState>()(
             ? state.runState
             : "idle",
       }),
+      migrate: (persistedState: any, version: number) => {
+        if (!persistedState || typeof persistedState !== "object") {
+          return { report: null, lastRunAt: null, runState: "idle" };
+        }
+        return persistedState;
+      },
       version: 1,
     }
   )
