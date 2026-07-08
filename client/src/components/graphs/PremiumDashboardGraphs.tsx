@@ -6,9 +6,9 @@
  *   SystemRhythmGraph      — layered CPU + GPU area graph (system pulse)
  */
 
-import { useState, useEffect, useRef, useId, useMemo } from "react";
+import { useState, useEffect, useRef, useId, useMemo, useCallback } from "react";
 import { motion } from "framer-motion";
-import { MemoryStick, HardDrive, Activity, Cpu, Monitor } from "lucide-react";
+import { MemoryStick, HardDrive, Activity, Cpu, Monitor, RefreshCw } from "lucide-react";
 import { GlassCard } from "@/components/ui/glass-card";
 import { TelemetrySparkline, type SparklinePoint } from "./TelemetrySparkline";
 import { useLiveTelemetry } from "@/hooks/useLiveTelemetry";
@@ -494,136 +494,143 @@ function SweepLine({ active }: { active: boolean }) {
 
 const isElectron = typeof window !== "undefined" && !!(window as any).electronAPI?.isElectron;
 
-/** Build a DisplaySignalProfile from raw IPC display data (Electron-only path). */
-function buildProfileFromIpc(raw: {
-  controllers: any[]; displays: any[];
-  monitorName?: string | null; hdrEnabled?: boolean | null;
-  vrrEnabled?: boolean | null; connectionType?: string | null;
-  nativeResX?: number | null; nativeResY?: number | null;
-}): DisplaySignalProfile {
-  const ctrl  = raw.controllers?.[0] ?? null;
-  const disp  = raw.displays?.[0]    ?? null;
-  const resX: number | null = disp?.currentResX  ?? null;
-  const resY: number | null = disp?.currentResY  ?? null;
-  const hz:   number | null = disp?.currentRefreshRate ?? null;
-  const bpp:  number | null = disp?.bitsPerPixel ?? null;
-  const resolution = (resX && resY) ? `${resX}×${resY}` : null;
-  const gpuName: string | null = ctrl?.model?.trim() || null;
+// ── Per-monitor data shape returned by the new IPC handler ────────────────────
+interface MonitorInfo {
+  id:              string;
+  name:            string | null;
+  manufacturer:    string | null;
+  serial:          string | null;
+  connectionType:  string | null;
+  currentResX:     number | null;
+  currentResY:     number | null;
+  refreshHz:       number | null;
+  bitsPerPixel:    number | null;
+  nativeResX:      number | null;
+  nativeResY:      number | null;
+  edidVersion:     string | null;
+  hdrEnabled:      boolean | null;
+  vrrEnabled:      boolean | null;
+  vrrCapable:      boolean | null;
+  freeSyncEnabled: boolean | null;
+  vrrMin:          number | null;
+  vrrMax:          number | null;
+  gpuName:         string | null;
+  isPrimary:       boolean;
+}
 
-  // Convert total bits-per-pixel to bits-per-channel
-  let bitDepth: number | null = null;
-  if (bpp === 30) bitDepth = 10;
-  else if (bpp === 32 || bpp === 24) bitDepth = 8;
-  else if (bpp === 16) bitDepth = 6;
-  else if (bpp != null && bpp > 0) bitDepth = 8;
-
-  // HDR, VRR, and connection type from IPC
-  const hdrEnabled:     boolean | null = raw.hdrEnabled     ?? null;
-  const vrrEnabled:     boolean | null = raw.vrrEnabled     ?? null;
-  const connectionType: string  | null = raw.connectionType ?? null;
-
-  // Monitor name from EDID (WmiMonitorID)
-  const monitorName: string | null = (raw.monitorName && raw.monitorName.length > 0) ? raw.monitorName : null;
-
-  // Native mode: compare current resolution against EDID preferred timing
-  let isNativeMode: boolean | null = null;
-  const nativeResX = raw.nativeResX ?? null;
-  const nativeResY = raw.nativeResY ?? null;
-  if (resX && resY && nativeResX && nativeResY) {
-    isNativeMode = (resX === nativeResX && resY === nativeResY);
+function monitorScore(mon: MonitorInfo): { score: number | null; reason: string } {
+  const hz = mon.refreshHz;
+  if (!hz || hz <= 0) {
+    const res = mon.currentResX && mon.currentResY ? `${mon.currentResX}×${mon.currentResY}` : null;
+    return { score: res ? 60 : null, reason: res ? "Refresh rate unavailable" : "Display detected" };
   }
+  let s = hz >= 240 ? 98 : hz >= 165 ? 92 : hz >= 144 ? 88 : hz >= 120 ? 80 : hz >= 75 ? 70 : 55;
+  const rx = mon.currentResX ?? 0, ry = mon.currentResY ?? 0;
+  if (rx * ry >= 3840 * 2160) s = Math.min(s + 5, 100);
+  return { score: s, reason: `${hz}Hz display detected` };
+}
 
-  // Basic quality score: weight refresh rate and resolution
-  let score: number | null = null;
-  let qualityReason: string | null = null;
-  if (hz != null && hz > 0) {
-    score = hz >= 240 ? 98 : hz >= 165 ? 92 : hz >= 144 ? 88 : hz >= 120 ? 80 : hz >= 75 ? 70 : 55;
-    if (resX && resY && resX * resY >= 3840 * 2160) score = Math.min(score + 5, 100);
-    qualityReason = `${hz}Hz display detected`;
-  } else if (resolution) {
-    score = 60;
-    qualityReason = "Refresh rate unavailable";
-  }
+function bppToBitDepth(bpp: number | null): number | null {
+  if (bpp === null || bpp <= 0) return null;
+  if (bpp === 30) return 10;
+  if (bpp === 16) return 6;
+  return 8; // 24 / 32 → 8-bit per channel
+}
 
+/** Lift a DisplaySignalProfile (web/cloud path) into a MonitorInfo so both paths share one renderer. */
+function profileToMonitor(p: DisplaySignalProfile): MonitorInfo {
+  const [rx, ry] = (p.resolution ?? "").split("×").map(Number);
   return {
-    monitorName,
-    resolution,
-    refreshHz:      hz && hz > 0 ? hz : null,
-    bitDepth,
-    hdrEnabled,
-    vrrEnabled,
-    connectionType,
-    gpuName,
-    isNativeMode,
-    qualityScore:   score,
-    qualityReason,
-    qualityAction:  null,
-    notes:          [],
-    displayCount:   raw.displays?.length ?? 0,
-    ts:             Date.now(),
-  } as any;
+    id: "web-0", name: p.monitorName, manufacturer: null, serial: null,
+    connectionType: p.connectionType,
+    currentResX: rx || null, currentResY: ry || null,
+    refreshHz: p.refreshHz,
+    bitsPerPixel: p.bitDepth === 10 ? 30 : p.bitDepth === 6 ? 16 : p.bitDepth ? 32 : null,
+    nativeResX: null, nativeResY: null, edidVersion: null,
+    hdrEnabled: p.hdrEnabled, vrrEnabled: p.vrrEnabled,
+    vrrCapable: null, freeSyncEnabled: null, vrrMin: null, vrrMax: null,
+    gpuName: p.gpuName, isPrimary: true,
+  };
+}
+
+// Conditional field row — renders nothing when value is absent
+function Field({ label, value, mono }: { label: string; value: string | null | undefined; mono?: boolean }) {
+  if (!value) return null;
+  return <SignalField label={label} value={value} mono={mono} />;
 }
 
 export function DisplaySignalGraph({ delay = 0 }: { delay?: number }) {
   const { user } = useAuth();
-  const [profile, setProfile] = useState<DisplaySignalProfile | null>(null);
-  const [prevTs, setPrevTs]   = useState<number>(0);
-  const [changed, setChanged] = useState(false);
+  const [monitors, setMonitors]     = useState<MonitorInfo[]>([]);
+  const [selectedIdx, setSelectedIdx] = useState(0);
+  const [scannedAt, setScannedAt]   = useState<number | null>(null);
+  const [scanning, setScanning]     = useState(false);
+  const [changed, setChanged]       = useState(false);
 
-  useEffect(() => {
+  const flash = () => { setChanged(true); setTimeout(() => setChanged(false), 2000); };
+
+  const load = useCallback(async (invalidate = false) => {
     if (!user?.loggedIn) return;
-
-    // In Electron: call local IPC so we get the user's actual Windows display info
-    // instead of the cloud server's Linux environment (which has no display).
-    if (isElectron) {
-      const api = (window as any).electronAPI;
-      const load = async () => {
-        try {
-          const raw = await api.system.getDisplayInfo();
-          if (raw && (raw.controllers?.length > 0 || raw.displays?.length > 0)) {
-            const p = buildProfileFromIpc(raw);
-            setProfile(p);
-            setChanged(true);
-            setTimeout(() => setChanged(false), 2000);
-          }
-        } catch { /* silent — IPC unavailable in dev/web */ }
-      };
-      load();
-      // Display config rarely changes — re-check every 5 minutes
-      const timer = setInterval(load, 5 * 60_000);
-      return () => clearInterval(timer);
-    }
-
-    // Web / non-Electron: use cloud API (returns server-side si.graphics data)
-    const load = () =>
-      cloudApiGet<DisplaySignalProfile>("/dashboard-intelligence/display-signal")
-        .then((d: DisplaySignalProfile) => {
-          setProfile(d);
-          if (d.ts !== prevTs) { setChanged(true); setPrevTs(d.ts); }
-          setTimeout(() => setChanged(false), 2000);
-        })
-        .catch(() => {});
-    load();
-    // Server caches this for 60s (si.graphics is expensive) — poll at same cadence
-    const timer = setInterval(load, 60_000);
-    return () => clearInterval(timer);
+    setScanning(true);
+    try {
+      if (isElectron) {
+        const api = (window as any).electronAPI;
+        if (invalidate) {
+          try { await api.system.invalidateDisplayCache(); } catch {}
+        }
+        const raw = await api.system.getDisplayInfo();
+        if (raw?.monitors?.length > 0) {
+          setMonitors(raw.monitors as MonitorInfo[]);
+          setScannedAt(raw.scannedAt ?? Date.now());
+          setSelectedIdx(prev => Math.min(prev, raw.monitors.length - 1));
+          flash();
+        }
+      } else {
+        const d = await cloudApiGet<DisplaySignalProfile>("/dashboard-intelligence/display-signal");
+        setMonitors([profileToMonitor(d)]);
+        setScannedAt(d.ts);
+        flash();
+      }
+    } catch { /* silent */ }
+    setScanning(false);
   }, [user?.loggedIn]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const score = profile?.qualityScore ?? null;
+  useEffect(() => {
+    load();
+    // Poll every 30 s so hot-plug events are caught within half a minute
+    const t = setInterval(() => load(), 30_000);
+    return () => clearInterval(t);
+  }, [load]);
+
+  const mon = monitors[selectedIdx] ?? null;
+  const { score, reason } = mon ? monitorScore(mon) : { score: null, reason: "" };
+  const bitDepth   = bppToBitDepth(mon?.bitsPerPixel ?? null);
+  const resolution = mon?.currentResX && mon?.currentResY ? `${mon.currentResX}×${mon.currentResY}` : null;
+
+  const isNativeMode =
+    mon?.nativeResX && mon?.nativeResY && mon?.currentResX && mon?.currentResY
+      ? mon.currentResX === mon.nativeResX && mon.currentResY === mon.nativeResY
+      : null;
+  const nativeLabel =
+    isNativeMode === true  ? "Yes"
+    : isNativeMode === false ? `${mon?.nativeResX}×${mon?.nativeResY}`
+    : null;
+
   const scoreColor =
-    score === null     ? "#6b7280"
-    : score >= 80      ? "#34d399"
-    : score >= 55      ? "#fbbf24"
-    :                    "#f87171";
+    score === null ? "#6b7280" : score >= 80 ? "#34d399" : score >= 55 ? "#fbbf24" : "#f87171";
 
-  const connectionColor =
-    profile?.connectionType?.toUpperCase().includes("DP")          ? "#06b6d4"
-    : profile?.connectionType?.toUpperCase().includes("HDMI 2.1")  ? "#a78bfa"
-    : profile?.connectionType?.toUpperCase().includes("HDMI")      ? "#00D4FF"
-    : profile?.connectionType?.toUpperCase().includes("VNC")       ? "#6b7280"
-    :                                                                  "#00D4FF";
+  const connColor =
+    mon?.connectionType?.toUpperCase().includes("DP")       ? "#06b6d4"
+    : mon?.connectionType?.toUpperCase().includes("HDMI 2.1") ? "#a78bfa"
+    : mon?.connectionType?.toUpperCase().includes("HDMI")    ? "#00D4FF"
+    : "#00D4FF";
 
-  const unknown = "Unknown";
+  const timeAgo = scannedAt
+    ? (() => {
+        const s = Math.floor((Date.now() - scannedAt) / 1000);
+        return s < 5 ? "just now" : s < 60 ? `${s}s ago` : `${Math.floor(s / 60)}m ago`;
+      })()
+    : null;
 
   return (
     <motion.div
@@ -632,30 +639,56 @@ export function DisplaySignalGraph({ delay = 0 }: { delay?: number }) {
       transition={{ duration: 0.55, delay, ease: [0.22, 1, 0.36, 1] }}
     >
       <GlassCard className="relative overflow-hidden border-[#00D4FF] bg-[#00D4FF]/[0.015]">
-        <SweepLine active={changed || !profile} />
+        <SweepLine active={changed || (monitors.length === 0 && scanning)} />
 
         <div className="absolute inset-0 pointer-events-none"
           style={{ background: "radial-gradient(ellipse 45% 50% at 90% 30%, rgba(139,92,246,0.07), transparent)" }} />
 
         <div className="p-4">
-          {/* Header */}
+          {/* ── Header ── */}
           <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <Monitor className="size-4 text-[#00D4FF]" />
-              <span className="text-[11px] font-semibold text-[#E6EAF0] uppercase tracking-widest">Display Signal</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className={cn(
-                "size-1.5 rounded-full",
-                profile ? "bg-emerald-400 animate-pulse" : "bg-[#1A1F26]0"
-              )} />
-              <span className="text-[9px] text-[#6B7380] uppercase tracking-widest">
-                {profile ? "Live" : "Loading"}
+            <div className="flex items-center gap-2 min-w-0">
+              <Monitor className="size-4 text-[#00D4FF] shrink-0" />
+              <span className="text-[11px] font-semibold text-[#E6EAF0] uppercase tracking-widest shrink-0">
+                Display Signal
               </span>
+              {/* Monitor selector — only visible when multiple displays detected */}
+              {monitors.length > 1 && (
+                <select
+                  value={selectedIdx}
+                  onChange={e => setSelectedIdx(Number(e.target.value))}
+                  className="ml-1 text-[9px] bg-[#1A1F26] border border-[#2A313A] text-[#A0A8B3] rounded px-1.5 py-0.5 cursor-pointer max-w-[120px] truncate focus:outline-none"
+                >
+                  {monitors.map((m, i) => (
+                    <option key={m.id} value={i}>
+                      {m.name ?? `Display ${i + 1}`}{m.isPrimary ? " ★" : ""}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={() => load(true)}
+                disabled={scanning}
+                title="Re-scan displays"
+                className="text-[#6B7380] hover:text-[#A0A8B3] transition-colors disabled:opacity-40"
+              >
+                <RefreshCw className={cn("size-3", scanning && "animate-spin")} />
+              </button>
+              <div className="flex items-center gap-1.5">
+                <span className={cn(
+                  "size-1.5 rounded-full",
+                  monitors.length > 0 ? "bg-emerald-400 animate-pulse" : "bg-[#2A313A]"
+                )} />
+                <span className="text-[9px] text-[#6B7380] uppercase tracking-widest">
+                  {monitors.length > 0 ? "Live" : "Loading"}
+                </span>
+              </div>
             </div>
           </div>
 
-          {/* Score + primary metrics row */}
+          {/* ── Score + primary metrics ── */}
           <div className="flex items-center gap-3 mb-3">
             {score !== null ? (
               <ScoreRing score={score} color={scoreColor} />
@@ -664,45 +697,68 @@ export function DisplaySignalGraph({ delay = 0 }: { delay?: number }) {
                 <span className="text-[9px] text-[#6B7380]">—</span>
               </div>
             )}
-
             <div className="flex-1 min-w-0">
-              <div className="flex items-baseline gap-1 mb-0.5">
-                <span className="text-xl font-bold tabular-nums font-mono" style={{ color: connectionColor }}>
-                  {profile?.refreshHz !== null && profile?.refreshHz !== undefined ? `${profile.refreshHz}Hz` : "—Hz"}
+              <div className="flex items-baseline gap-1 mb-0.5 flex-wrap">
+                <span className="text-xl font-bold tabular-nums font-mono" style={{ color: connColor }}>
+                  {mon?.refreshHz ? `${mon.refreshHz}Hz` : "—Hz"}
                 </span>
-                <span className="text-xs text-[#6B7380]">@</span>
-                <span className="text-xs font-mono text-[#A0A8B3]">
-                  {profile?.resolution ?? "—"}
-                </span>
+                {resolution && (
+                  <>
+                    <span className="text-xs text-[#6B7380]">@</span>
+                    <span className="text-xs font-mono text-[#A0A8B3]">{resolution}</span>
+                  </>
+                )}
               </div>
               <p className="text-[10px] text-[#6B7380] leading-snug line-clamp-2">
-                {profile?.qualityReason ?? "Collecting display data…"}
+                {mon ? (reason || "Display detected") : "Collecting display data…"}
               </p>
-              {profile?.qualityAction && (
-                <p className="text-[10px] text-amber-400/80 mt-0.5 leading-snug line-clamp-1">
-                  → {profile.qualityAction}
-                </p>
-              )}
             </div>
           </div>
 
-          {/* Signal attribute grid */}
-          <div className="rounded-lg bg-white/[0.025] border border-[#2A313A] px-3 py-0.5">
-            <SignalField label="Monitor"     value={profile?.monitorName    ?? unknown} />
-            <SignalField label="Connection"  value={profile?.connectionType ?? unknown} />
-            <SignalField label="GPU"         value={profile?.gpuName        ?? unknown} />
-            <SignalField label="Bit Depth"   value={profile?.bitDepth !== null && profile?.bitDepth !== undefined ? `${profile.bitDepth}-bit` : unknown} mono />
-            <SignalField label="HDR"         value={profile?.hdrEnabled === true ? "Enabled" : profile?.hdrEnabled === false ? "Disabled" : unknown} />
-            <SignalField label="VRR / G-Sync" value={profile?.vrrEnabled === true ? "Active" : profile?.vrrEnabled === false ? "Off" : unknown} />
-            <SignalField label="Native Mode" value={profile?.isNativeMode === true ? "Yes" : profile?.isNativeMode === false ? "No" : unknown} />
-          </div>
-
-          {/* Display count */}
-          {profile && profile.displayCount > 1 && (
-            <p className="text-[9px] text-[#6B7380] mt-2 text-right">
-              {profile.displayCount} displays detected · showing primary
-            </p>
+          {/* ── Signal attribute grid — each row is skipped if data is absent ── */}
+          {mon && (
+            <div className="rounded-lg bg-white/[0.025] border border-[#2A313A] px-3 py-0.5">
+              <Field label="Monitor"      value={mon.name} />
+              <Field label="Manufacturer" value={mon.manufacturer} />
+              <Field label="Connection"   value={mon.connectionType} />
+              <Field label="GPU"          value={mon.gpuName} />
+              {bitDepth !== null && (
+                <SignalField label="Bit Depth" value={`${bitDepth}-bit`} mono />
+              )}
+              {mon.hdrEnabled !== null && (
+                <SignalField label="HDR" value={mon.hdrEnabled ? "Enabled" : "Disabled"} />
+              )}
+              {mon.vrrEnabled !== null && (
+                <SignalField label="VRR" value={mon.vrrEnabled ? "Active" : "Off"} />
+              )}
+              {mon.freeSyncEnabled !== null && (
+                <SignalField label="FreeSync" value={mon.freeSyncEnabled ? "Active" : "Off"} />
+              )}
+              {mon.vrrCapable !== null && (
+                <SignalField label="VRR Capable" value={mon.vrrCapable ? "Yes" : "No"} />
+              )}
+              {mon.vrrMin !== null && mon.vrrMax !== null && (
+                <SignalField label="VRR Range" value={`${mon.vrrMin}–${mon.vrrMax} Hz`} mono />
+              )}
+              {nativeLabel !== null && (
+                <SignalField label="Native Mode" value={nativeLabel} />
+              )}
+              <Field label="EDID Version" value={mon.edidVersion} mono />
+              <Field label="Serial"       value={mon.serial} mono />
+            </div>
           )}
+
+          {/* ── Footer: scan timestamp + multi-monitor hint ── */}
+          <div className="flex items-center justify-between mt-2 min-h-[14px]">
+            {timeAgo && (
+              <span className="text-[9px] text-[#6B7380]">Scanned {timeAgo}</span>
+            )}
+            {monitors.length > 1 && (
+              <span className="text-[9px] text-[#6B7380] ml-auto">
+                {monitors.length} displays detected
+              </span>
+            )}
+          </div>
         </div>
       </GlassCard>
     </motion.div>

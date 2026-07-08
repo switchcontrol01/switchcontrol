@@ -2674,238 +2674,270 @@ ipcMain.handle('system:getSpecs', async () => {
   return await loadSystemSpecs();
 });
 
-// Display info — PowerShell WMI query for monitor resolution/refresh rate.
-// Same logic as server/routes/dashboardIntelligence.ts collectDisplayViaPowerShell()
-// but runs on the user's local Windows machine (not the cloud server).
-// In-memory cache with 60s TTL — WMI/EDID detection is expensive (PowerShell
-// spawn + registry reads). Monitors don't change during a session.
+// Display info — comprehensive per-monitor detection engine.
+// Sources: WmiMonitorID, WmiMonitorConnectionParams, WmiMonitorSupportedDisplayFeatures,
+// Win32_VideoController, System.Windows.Forms.Screen, registry (EDID, HDR, VRR).
+// 45s TTL cache — WMI + registry reads are expensive. display:invalidateCache clears it.
 let _displayInfoCache = null;
 let _displayInfoCachedAt = 0;
-const DISPLAY_INFO_TTL_MS = 60_000;
+const DISPLAY_INFO_TTL_MS = 45_000;
 
 ipcMain.handle('system:getDisplayInfo', async () => {
-  if (process.platform !== 'win32') return { controllers: [], displays: [], monitorName: null, hdrEnabled: null };
+  if (process.platform !== 'win32') return { monitors: [] };
   const now = Date.now();
   if (_displayInfoCache && (now - _displayInfoCachedAt) < DISPLAY_INFO_TTL_MS) {
     return _displayInfoCache;
   }
+
+  // ── Comprehensive multi-monitor detection script ─────────────────────────
+  // Sources combined per monitor:
+  //   WmiMonitorID          → name, manufacturer, serial
+  //   WmiMonitorConnectionParams → connection type (DP/HDMI/DVI/eDP)
+  //   WmiMonitorSupportedDisplayFeatures → VRR capable, VRR range
+  //   Win32_VideoController → GPU name, current resolution, refresh, bit depth
+  //   System.Windows.Forms.Screen → screen geometry + primary flag
+  //   Registry EDID         → native resolution, EDID version
+  //   Registry (HKCU VideoSettings, GPU class) → HDR enabled, VRR/FreeSync enabled
   const ps = `
-$result = @{ controllers = @(); displays = @(); monitorName = $null; hdrEnabled = $null }
+Set-StrictMode -Off
+$out = @{ monitors = @(); scannedAt = [int64](([datetime]::UtcNow - [datetime]'1970-01-01').TotalMilliseconds) }
+
+function Dec($bytes) {
+  try { $b = $bytes | Where-Object { $_ -ne 0 }; if (-not $b) { return $null }
+    return ([System.Text.Encoding]::ASCII.GetString([byte[]]@($b))).Trim() } catch { return $null }
+}
+function ConnStr($n) {
+  switch ([int]$n) { 10{"DisplayPort"} 11{"DisplayPort (Embedded)"} 5{"HDMI"} 4{"DVI"} 8{"Internal (eDP)"} 0{"VGA"} 15{"Miracast"} default{$null} }
+}
+
+$screens = @()
 try {
-  $vcs = Get-WmiObject Win32_VideoController -ErrorAction Stop |
-    Select-Object Name, CurrentHorizontalResolution, CurrentVerticalResolution, CurrentRefreshRate, CurrentBitsPerPixel, VideoModeDescription
-  if ($null -ne $vcs) {
-    $vcArr = if ($vcs -is [array]) { $vcs } else { @($vcs) }
-    $result.controllers = @($vcArr | ForEach-Object { @{ Name = $_.Name } })
-    $dispList = @()
-    foreach ($vc in $vcArr) {
-      $resX = [int]($vc.CurrentHorizontalResolution)
-      $resY = [int]($vc.CurrentVerticalResolution)
-      $hz   = [int]($vc.CurrentRefreshRate)
-      $bpp  = [int]($vc.CurrentBitsPerPixel)
-      if ($resX -le 0 -and $vc.VideoModeDescription -match '(\\d+) x (\\d+)') {
-        $resX = [int]$Matches[1]; $resY = [int]$Matches[2]
-      }
-      if ($resX -gt 0) {
-        $dispList += @{ currentResX=$resX; currentResY=$resY; currentRefreshRate=$hz; bitsPerPixel=$bpp }
-      }
-    }
-    if ($dispList.Count -gt 0) { $result.displays = $dispList }
-  }
+  Add-Type -AssemblyName System.Windows.Forms -EA Stop
+  $screens = @([System.Windows.Forms.Screen]::AllScreens | ForEach-Object {
+    @{ w=$_.Bounds.Width; h=$_.Bounds.Height; primary=$_.Primary }
+  })
 } catch {}
-if ($result.displays.Count -eq 0) {
-  try {
-    Add-Type -AssemblyName System.Windows.Forms -ErrorAction Stop
-    $screens = [System.Windows.Forms.Screen]::AllScreens
-    $hz = 0
-    try { $hz = [int](Get-WmiObject Win32_VideoController | Select-Object -First 1 -ExpandProperty CurrentRefreshRate) } catch {}
-    $result.displays = @($screens | ForEach-Object {
-      @{ currentResX=$_.Bounds.Width; currentResY=$_.Bounds.Height; currentRefreshRate=$hz; bitsPerPixel=32 }
-    })
-  } catch {}
-}
+
+$vcs = @()
+try { $vcs = @(Get-WmiObject Win32_VideoController -EA Stop |
+  Select-Object Name,CurrentHorizontalResolution,CurrentVerticalResolution,CurrentRefreshRate,CurrentBitsPerPixel,VideoModeDescription) } catch {}
+
+$monIds  = @(); try { $monIds  = @(Get-CimInstance -Namespace root/wmi -ClassName WmiMonitorID                       -EA Stop) } catch {}
+$connPs  = @(); try { $connPs  = @(Get-CimInstance -Namespace root/wmi -ClassName WmiMonitorConnectionParams         -EA Stop) } catch {}
+$dispFt  = @(); try { $dispFt  = @(Get-CimInstance -Namespace root/wmi -ClassName WmiMonitorSupportedDisplayFeatures -EA Stop) } catch {}
+
+$edids = @()
 try {
-  $monIds = Get-WmiObject -Namespace root\\wmi -Class WmiMonitorID -ErrorAction Stop
-  $arr = if ($monIds -is [array]) { $monIds } else { @($monIds) }
-  foreach ($m in $arr) {
-    $nb = $m.UserFriendlyName | Where-Object { $_ -ne 0 }
-    if ($nb) { $result.monitorName = ([System.Text.Encoding]::ASCII.GetString([byte[]]$nb)).Trim(); break }
-  }
-} catch {}
-# HDR — source 1: Windows global toggle
-try {
-  $hv = (Get-ItemProperty 'HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\VideoSettings' -Name EnableHDRForVideo -EA Stop).EnableHDRForVideo
-  $result.hdrEnabled = ($hv -eq 1)
-} catch {}
-# HDR — source 2: Windows 11 per-display sub-keys (AdvancedColorEnabled / EnableHDRForVideo per monitor GUID)
-if ($result.hdrEnabled -eq $null) {
-  try {
-    $subkeys = Get-ChildItem 'HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\VideoSettings' -EA Stop
-    foreach ($sk in $subkeys) {
-      $acv = (Get-ItemProperty $sk.PSPath -Name AdvancedColorEnabled -EA SilentlyContinue).AdvancedColorEnabled
-      if ($acv -ne $null) { $result.hdrEnabled = ($acv -eq 1); break }
-      $ehv = (Get-ItemProperty $sk.PSPath -Name EnableHDRForVideo -EA SilentlyContinue).EnableHDRForVideo
-      if ($ehv -ne $null) { $result.hdrEnabled = ($ehv -eq 1); break }
-    }
-  } catch {}
-}
-# HDR — source 3: GPU driver configuration (AMD/NVIDIA AdvancedColorEnabled under GraphicsDrivers\Configuration)
-if ($result.hdrEnabled -eq $null) {
-  try {
-    $cfgBase = 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\GraphicsDrivers\\Configuration'
-    $checked = 0
-    :hdrSearch foreach ($ck in (Get-ChildItem $cfgBase -EA Stop)) {
-      foreach ($sk in (Get-ChildItem $ck.PSPath -EA SilentlyContinue)) {
-        foreach ($sk2 in (Get-ChildItem $sk.PSPath -EA SilentlyContinue)) {
-          $adv = (Get-ItemProperty $sk2.PSPath -Name AdvancedColorEnabled -EA SilentlyContinue).AdvancedColorEnabled
-          if ($adv -ne $null) { $result.hdrEnabled = ($adv -eq 1); break hdrSearch }
-          $checked++; if ($checked -gt 8) { break hdrSearch }
-        }
-      }
-    }
-  } catch {}
-}
-# HDR — source 4: AMD driver class keys (IsHDREnabled / AdvancedColorEnabled per GPU instance)
-if ($result.hdrEnabled -eq $null) {
-  try {
-    $gpuClass = 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Class\\{4d36e968-e325-11ce-bfc1-08002be10318}'
-    foreach ($dk in (Get-ChildItem $gpuClass -EA Stop | Where-Object { $_.PSChildName -match '^\d+$' } | Select-Object -First 4)) {
-      $hdr1 = (Get-ItemProperty $dk.PSPath -Name 'IsHDREnabled' -EA SilentlyContinue).'IsHDREnabled'
-      if ($hdr1 -ne $null) { $result.hdrEnabled = ($hdr1 -eq 1); break }
-      $hdr2 = (Get-ItemProperty $dk.PSPath -Name 'AdvancedColorEnabled' -EA SilentlyContinue).'AdvancedColorEnabled'
-      if ($hdr2 -ne $null) { $result.hdrEnabled = ($hdr2 -eq 1); break }
-    }
-  } catch {}
-}
-# HDR — source 5: Windows CIM display capability (AdvancedColor / HDR10 via WmiMonitorColorimetrySupport)
-if ($result.hdrEnabled -eq $null) {
-  try {
-    $mc = Get-CimInstance -Namespace root/wmi -ClassName WmiMonitorColorimetrySupport -EA Stop
-    $mcArr = if ($mc -is [array]) { $mc } else { @($mc) }
-    foreach ($m in $mcArr) {
-      if ($m.MetaData -ne $null) {
-        # Bit 2 set → BT.2020 (HDR10 capable display)
-        $result.hdrEnabled = ([int]$m.MetaData -band 4) -ne 0; break
-      }
-    }
-  } catch {}
-}
-# VRR — source 1: Windows OS-level VRR toggle (works for G-Sync and Windows VRR)
-try {
-  $vrr = (Get-ItemProperty 'HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\VideoSettings' -Name EnableVariableRefreshRate -EA Stop).EnableVariableRefreshRate
-  $result.vrrEnabled = ($vrr -eq 1)
-} catch { $result.vrrEnabled = $null }
-# VRR — source 2: AMD FreeSync driver registry (multiple key names across driver generations)
-if ($result.vrrEnabled -eq $null) {
-  try {
-    $gpuClass = 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Class\\{4d36e968-e325-11ce-bfc1-08002be10318}'
-    foreach ($dk in (Get-ChildItem $gpuClass -EA Stop | Where-Object { $_.PSChildName -match '^\d+$' } | Select-Object -First 8)) {
-      # RDNA1/2: KMD_FreeSync (0=off, 1=on, 2=enhanced)
-      $fs = (Get-ItemProperty $dk.PSPath -Name 'KMD_FreeSync' -EA SilentlyContinue).'KMD_FreeSync'
-      if ($fs -ne $null) { $result.vrrEnabled = ([int]$fs -ge 1); break }
-      # RDNA2/3: KMD_FreeSync2 — FreeSync Premium/Premium Pro
-      $fs2 = (Get-ItemProperty $dk.PSPath -Name 'KMD_FreeSync2' -EA SilentlyContinue).'KMD_FreeSync2'
-      if ($fs2 -ne $null) { $result.vrrEnabled = ([int]$fs2 -ge 1); break }
-      # Older AMD: KMD_EnableFreeSyncDX
-      $fsdx = (Get-ItemProperty $dk.PSPath -Name 'KMD_EnableFreeSyncDX' -EA SilentlyContinue).'KMD_EnableFreeSyncDX'
-      if ($fsdx -ne $null) { $result.vrrEnabled = ($fsdx -eq 1); break }
-      # Adrenalin 2022+: DAL2_AC1_...FreeSync keys
-      $dalfs = (Get-ItemProperty $dk.PSPath -Name 'DAL2FreeSync2' -EA SilentlyContinue).'DAL2FreeSync2'
-      if ($dalfs -ne $null) { $result.vrrEnabled = ($dalfs -eq 1); break }
-    }
-  } catch {}
-}
-# VRR — source 2b: check AMD Software user settings (Adrenalin stores panel FreeSync state here)
-if ($result.vrrEnabled -eq $null) {
-  try {
-    $amdSettings = 'HKCU:\\Software\\AMD\\CN'
-    $fsVal = (Get-ItemProperty "$amdSettings\\OverlayAnchor" -Name 'FreeSyncEnabled' -EA Stop).FreeSyncEnabled
-    if ($fsVal -ne $null) { $result.vrrEnabled = ($fsVal -eq 1) }
-  } catch {}
-}
-# VRR — source 3: monitor EDID-declared continuous frequency support (indicates hardware VRR capability)
-if ($result.vrrEnabled -eq $null) {
-  try {
-    $mf = Get-CimInstance -Namespace root/wmi -ClassName WmiMonitorSupportedDisplayFeatures -EA Stop
-    $mfArr = if ($mf -is [array]) { $mf } else { @($mf) }
-    foreach ($f in $mfArr) {
-      if ($f.ContinuousFrequencySupported -ne $null) { $result.vrrEnabled = [bool]($f.ContinuousFrequencySupported); break }
-    }
-  } catch {}
-}
-# Connection type — WmiMonitorConnectionParams is the most reliable source (Win8+)
-$result.connectionType = $null
-try {
-  $cp = Get-CimInstance -Namespace root/wmi -ClassName WmiMonitorConnectionParams -ErrorAction Stop
-  $cpArr = if ($cp -is [array]) { $cp } else { @($cp) }
-  foreach ($c in $cpArr) {
-    $t = [int]($c.VideoOutputTechnology)
-    if ($t -eq 10 -or $t -eq 11) { $result.connectionType = "DisplayPort"; break }
-    if ($t -eq 5)                 { $result.connectionType = "HDMI"; break }
-    if ($t -eq 4)                 { $result.connectionType = "DVI"; break }
-    if ($t -eq 15)                { $result.connectionType = "Miracast"; break }
-    if ($t -eq 16)                { $result.connectionType = "Indirect Wired"; break }
-    if ($t -eq 0 -and $null -eq $result.connectionType) { $result.connectionType = "Other" }
-  }
-} catch {}
-# Native resolution — parse EDID preferred timing descriptor (bytes 54-71) from registry
-$result.nativeResX = $null; $result.nativeResY = $null
-try {
-  $dispBase = "HKLM:\\SYSTEM\\CurrentControlSet\\Enum\\DISPLAY"
-  $models = Get-ChildItem $dispBase -ErrorAction SilentlyContinue
-  :edidSearch foreach ($model in $models) {
-    $instances = Get-ChildItem $model.PSPath -ErrorAction SilentlyContinue
-    foreach ($inst in $instances) {
-      $paramPath = Join-Path $inst.PSPath "Device Parameters"
-      $edid = (Get-ItemProperty $paramPath -Name EDID -ErrorAction SilentlyContinue).EDID
-      if ($edid -and $edid.Count -ge 72) {
-        # DTD block 1 at byte 54 (0x36). Bytes 56,58,59,61 hold H/V addressable pixels.
-        $hLow  = [int]$edid[56]; $hHigh = ([int]$edid[58] -band 0xF0) -shr 4
-        $vLow  = [int]$edid[59]; $vHigh = ([int]$edid[61] -band 0xF0) -shr 4
-        $nx = ($hHigh -shl 8) -bor $hLow; $ny = ($vHigh -shl 8) -bor $vLow
+  $base = "HKLM:\\SYSTEM\\CurrentControlSet\\Enum\\DISPLAY"
+  foreach ($mod in (Get-ChildItem $base -EA SilentlyContinue | Select-Object -First 8)) {
+    foreach ($inst in (Get-ChildItem $mod.PSPath -EA SilentlyContinue | Select-Object -First 4)) {
+      $e = (Get-ItemProperty (Join-Path $inst.PSPath "Device Parameters") -Name EDID -EA SilentlyContinue).EDID
+      if ($e -and $e.Count -ge 72) {
+        $hHi = ([int]$e[58] -band 0xF0) -shr 4; $hLo = [int]$e[56]
+        $vHi = ([int]$e[61] -band 0xF0) -shr 4; $vLo = [int]$e[59]
+        $nx = ($hHi -shl 8) -bor $hLo; $ny = ($vHi -shl 8) -bor $vLo
         if ($nx -gt 320 -and $ny -gt 240) {
-          $result.nativeResX = $nx; $result.nativeResY = $ny; break edidSearch
+          $edids += @{ nx=$nx; ny=$ny; ver="$([int]$e[18]).$([int]$e[19])" }
         }
       }
     }
   }
 } catch {}
-$result | ConvertTo-Json -Depth 3 -Compress`.trim();
+
+$hdrOn = $null
+try { $v=(Get-ItemProperty 'HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\VideoSettings' -Name EnableHDRForVideo -EA Stop).EnableHDRForVideo; $hdrOn=($v -eq 1) } catch {}
+if ($null -eq $hdrOn) {
+  try {
+    foreach ($sk in (Get-ChildItem 'HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\VideoSettings' -EA Stop)) {
+      $a=(Get-ItemProperty $sk.PSPath -Name AdvancedColorEnabled -EA SilentlyContinue).AdvancedColorEnabled
+      if ($null -ne $a) { $hdrOn=($a -eq 1); break }
+      $b=(Get-ItemProperty $sk.PSPath -Name EnableHDRForVideo -EA SilentlyContinue).EnableHDRForVideo
+      if ($null -ne $b) { $hdrOn=($b -eq 1); break }
+    }
+  } catch {}
+}
+if ($null -eq $hdrOn) {
+  try {
+    $cb='HKLM:\\SYSTEM\\CurrentControlSet\\Control\\GraphicsDrivers\\Configuration'; $n=0
+    :hdr foreach ($ck in (Get-ChildItem $cb -EA Stop)) {
+      foreach ($sk in (Get-ChildItem $ck.PSPath -EA SilentlyContinue)) {
+        foreach ($s2 in (Get-ChildItem $sk.PSPath -EA SilentlyContinue)) {
+          $a=(Get-ItemProperty $s2.PSPath -Name AdvancedColorEnabled -EA SilentlyContinue).AdvancedColorEnabled
+          if ($null -ne $a) { $hdrOn=($a -eq 1); break hdr }
+          if (++$n -gt 8) { break hdr }
+        }
+      }
+    }
+  } catch {}
+}
+if ($null -eq $hdrOn) {
+  try {
+    $gc='HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Class\\{4d36e968-e325-11ce-bfc1-08002be10318}'
+    foreach ($dk in (Get-ChildItem $gc -EA Stop | Where-Object { $_.PSChildName -match '^\\d+$' } | Select-Object -First 4)) {
+      $a=(Get-ItemProperty $dk.PSPath -Name IsHDREnabled -EA SilentlyContinue).IsHDREnabled
+      if ($null -ne $a) { $hdrOn=($a -eq 1); break }
+      $b=(Get-ItemProperty $dk.PSPath -Name AdvancedColorEnabled -EA SilentlyContinue).AdvancedColorEnabled
+      if ($null -ne $b) { $hdrOn=($b -eq 1); break }
+    }
+  } catch {}
+}
+
+$vrrOn = $null; $fsOn = $null
+try { $v=(Get-ItemProperty 'HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\VideoSettings' -Name EnableVariableRefreshRate -EA Stop).EnableVariableRefreshRate; $vrrOn=($v -eq 1) } catch {}
+try {
+  $gc='HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Class\\{4d36e968-e325-11ce-bfc1-08002be10318}'
+  foreach ($dk in (Get-ChildItem $gc -EA Stop | Where-Object { $_.PSChildName -match '^\\d+$' } | Select-Object -First 8)) {
+    foreach ($kn in @('KMD_FreeSync','KMD_FreeSync2','KMD_EnableFreeSyncDX','DAL2FreeSync2')) {
+      $v=(Get-ItemProperty $dk.PSPath -Name $kn -EA SilentlyContinue).$kn
+      if ($null -ne $v) { $fsOn=([int]$v -ge 1); if ($null -eq $vrrOn){$vrrOn=$fsOn}; break }
+    }
+    if ($null -ne $fsOn) { break }
+  }
+} catch {}
+
+$gpuName = $null
+if ($vcs.Count -gt 0) {
+  $g = $vcs | Where-Object { $_.Name -notmatch 'Microsoft|Basic|Virtual|Remote' } | Select-Object -First 1
+  $gpuName = if ($g) { $g.Name } else { $vcs[0].Name }
+}
+
+$i = 0
+foreach ($mi in $monIds) {
+  $name = Dec $mi.UserFriendlyName
+  $mfr  = Dec $mi.ManufacturerName
+  $ser  = Dec $mi.SerialNumberID
+  if ($ser -ne $null -and ($ser -match '^0+$' -or $ser.Length -lt 2)) { $ser = $null }
+  if ($mfr -ne $null -and ($mfr -match '^[\\?\\*]+$'  -or $mfr.Length -lt 2)) { $mfr = $null }
+
+  $ipfx = if ($mi.InstanceName) { $mi.InstanceName -replace '_\\d+$','' } else { $null }
+  $cp   = if ($ipfx) { $connPs | Where-Object { ($_.InstanceName -replace '_\\d+$','') -eq $ipfx } | Select-Object -First 1 } else { $null }
+  if ($null -eq $cp -and $i -lt $connPs.Count) { $cp = $connPs[$i] }
+  $conn = if ($cp) { ConnStr $cp.VideoOutputTechnology } else { $null }
+
+  $df     = if ($ipfx) { $dispFt | Where-Object { ($_.InstanceName -replace '_\\d+$','') -eq $ipfx } | Select-Object -First 1 } else { $null }
+  if ($null -eq $df -and $i -lt $dispFt.Count) { $df = $dispFt[$i] }
+  $vrrCap = if ($df -and $null -ne $df.ContinuousFrequencySupported) { [bool]$df.ContinuousFrequencySupported } else { $null }
+  $vrrMin = $null; $vrrMax = $null
+  try {
+    if ($df) {
+      if ($df.MinVerticalRefreshRate -and [int]$df.MinVerticalRefreshRate -gt 0) { $vrrMin=[int]$df.MinVerticalRefreshRate }
+      if ($df.MaxVerticalRefreshRate -and [int]$df.MaxVerticalRefreshRate -gt 0) { $vrrMax=[int]$df.MaxVerticalRefreshRate }
+    }
+  } catch {}
+
+  $scr = if ($i -lt $screens.Count) { $screens[$i] } else { $null }
+  $vc  = if ($i -lt $vcs.Count) { $vcs[$i] } else { if ($vcs.Count -gt 0) { $vcs[0] } else { $null } }
+  $ed  = if ($i -lt $edids.Count) { $edids[$i] } else { $null }
+
+  $hz=$null; $bpp=$null; $rx=$null; $ry=$null
+  if ($vc) {
+    if ([int]$vc.CurrentRefreshRate -gt 0)          { $hz  = [int]$vc.CurrentRefreshRate }
+    if ([int]$vc.CurrentBitsPerPixel -gt 0)         { $bpp = [int]$vc.CurrentBitsPerPixel }
+    if ([int]$vc.CurrentHorizontalResolution -gt 0) { $rx  = [int]$vc.CurrentHorizontalResolution }
+    if ([int]$vc.CurrentVerticalResolution -gt 0)   { $ry  = [int]$vc.CurrentVerticalResolution }
+    if ($rx -le 0 -and $vc.VideoModeDescription -match '(\\d+) x (\\d+)') {
+      $rx=[int]$Matches[1]; $ry=[int]$Matches[2]
+    }
+  }
+  if ($scr) { $rx=$scr.w; $ry=$scr.h }
+
+  $monGpu = if ($i -lt $vcs.Count) { $vcs[$i].Name } else { $gpuName }
+
+  $out.monitors += @{
+    id=$("mon_$i"); name=$name; manufacturer=$mfr; serial=$ser; connectionType=$conn
+    currentResX=$rx; currentResY=$ry; refreshHz=$hz; bitsPerPixel=$bpp
+    nativeResX=if($ed){$ed.nx}else{$null}; nativeResY=if($ed){$ed.ny}else{$null}
+    edidVersion=if($ed){$ed.ver}else{$null}
+    hdrEnabled=$hdrOn; vrrEnabled=$vrrOn; vrrCapable=$vrrCap; freeSyncEnabled=$fsOn
+    vrrMin=$vrrMin; vrrMax=$vrrMax; gpuName=$monGpu
+    isPrimary=if($scr){$scr.primary}else{($i -eq 0)}
+  }
+  $i++
+}
+
+if ($out.monitors.Count -eq 0) {
+  $srcs = if ($screens.Count -gt 0) { $screens } else {
+    @($vcs | Where-Object { [int]$_.CurrentHorizontalResolution -gt 0 } | ForEach-Object {
+      @{ w=[int]$_.CurrentHorizontalResolution; h=[int]$_.CurrentVerticalResolution; primary=$false }
+    })
+  }
+  $fi = 0
+  foreach ($src in $srcs) {
+    $vc  = if ($fi -lt $vcs.Count) { $vcs[$fi] } else { if ($vcs.Count -gt 0) { $vcs[0] } else { $null } }
+    $ed  = if ($fi -lt $edids.Count) { $edids[$fi] } else { $null }
+    $hz  = if ($vc -and [int]$vc.CurrentRefreshRate -gt 0) { [int]$vc.CurrentRefreshRate } else { $null }
+    $bpp = if ($vc -and [int]$vc.CurrentBitsPerPixel -gt 0) { [int]$vc.CurrentBitsPerPixel } else { $null }
+    $gn  = if ($vc) { $vc.Name } else { $gpuName }
+    $out.monitors += @{
+      id="mon_$fi"; name=$null; manufacturer=$null; serial=$null; connectionType=$null
+      currentResX=$src.w; currentResY=$src.h; refreshHz=$hz; bitsPerPixel=$bpp
+      nativeResX=if($ed){$ed.nx}else{$null}; nativeResY=if($ed){$ed.ny}else{$null}
+      edidVersion=if($ed){$ed.ver}else{$null}
+      hdrEnabled=$hdrOn; vrrEnabled=$vrrOn; vrrCapable=$null; freeSyncEnabled=$fsOn
+      vrrMin=$null; vrrMax=$null; gpuName=$gn; isPrimary=$src.primary
+    }
+    $fi++
+  }
+}
+
+$out | ConvertTo-Json -Depth 5 -Compress`.trim();
+
   try {
     const raw = await new Promise((resolve) => {
       execFile('powershell', [
         '-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden',
         '-ExecutionPolicy', 'Bypass', '-Command', ps,
-      ], { windowsHide: true, timeout: 8000 }, (err, stdout) => {
+      ], { windowsHide: true, timeout: 15_000 }, (err, stdout) => {
         resolve(err ? null : (stdout || '').trim());
       });
     });
-    if (!raw) return { controllers: [], displays: [], monitorName: null, hdrEnabled: null };
+    if (!raw) return { monitors: [] };
+
     const parsed = JSON.parse(raw);
-    const controllers = (parsed.controllers ?? []).map(v => ({ model: v.Name ?? null }));
-    const displays = (parsed.displays ?? []).map(v => ({
-      currentResX: v.currentResX ?? null,
-      currentResY: v.currentResY ?? null,
-      currentRefreshRate: v.currentRefreshRate ?? null,
-      bitsPerPixel: v.bitsPerPixel ?? null,
+    // Normalise: PS may return a single object (not array) for single-monitor systems
+    const rawMonitors = Array.isArray(parsed.monitors)
+      ? parsed.monitors
+      : parsed.monitors ? [parsed.monitors] : [];
+
+    const monitors = rawMonitors.map((m) => ({
+      id:             m.id             ?? null,
+      name:           m.name           ?? null,
+      manufacturer:   m.manufacturer   ?? null,
+      serial:         m.serial         ?? null,
+      connectionType: m.connectionType ?? null,
+      currentResX:    m.currentResX    ?? null,
+      currentResY:    m.currentResY    ?? null,
+      refreshHz:      m.refreshHz      ?? null,
+      bitsPerPixel:   m.bitsPerPixel   ?? null,
+      nativeResX:     m.nativeResX     ?? null,
+      nativeResY:     m.nativeResY     ?? null,
+      edidVersion:    m.edidVersion    ?? null,
+      hdrEnabled:     m.hdrEnabled     ?? null,
+      vrrEnabled:     m.vrrEnabled     ?? null,
+      vrrCapable:     m.vrrCapable     ?? null,
+      freeSyncEnabled:m.freeSyncEnabled ?? null,
+      vrrMin:         m.vrrMin         ?? null,
+      vrrMax:         m.vrrMax         ?? null,
+      gpuName:        m.gpuName        ?? null,
+      isPrimary:      m.isPrimary      ?? false,
     }));
-    const result = {
-      controllers,
-      displays,
-      monitorName:    parsed.monitorName    ?? null,
-      hdrEnabled:     parsed.hdrEnabled     ?? null,
-      vrrEnabled:     parsed.vrrEnabled     ?? null,
-      connectionType: parsed.connectionType ?? null,
-      nativeResX:     parsed.nativeResX     ?? null,
-      nativeResY:     parsed.nativeResY     ?? null,
-    };
+
+    const result = { monitors, scannedAt: parsed.scannedAt ?? Date.now() };
     _displayInfoCache = result;
     _displayInfoCachedAt = Date.now();
     return result;
   } catch (e) {
     console.warn('[system:getDisplayInfo] error:', e.message);
-    return { controllers: [], displays: [] };
+    return { monitors: [] };
   }
+});
+
+// Clear the display info cache so the next call re-runs the PowerShell scan.
+// Called by the UI refresh button and monitor hot-plug events.
+ipcMain.handle('display:invalidateCache', () => {
+  _displayInfoCache = null;
+  _displayInfoCachedAt = 0;
+  return { ok: true };
 });
 
 ipcMain.handle('telemetry:getLive', async (event, selectedDiskMount) => {

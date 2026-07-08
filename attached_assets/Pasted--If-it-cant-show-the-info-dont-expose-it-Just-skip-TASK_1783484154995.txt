@@ -1,0 +1,283 @@
+
+If it cant show the info dont expose it. Just skip 
+
+
+
+TASK: Complete Display Signal Detection Overhaul & Enterprise Multi-Monitor Support
+
+PROBLEM
+
+The current Display Signal card relies on limited Windows information and reports multiple fields as "Unknown."
+
+Examples include:
+
+• HDR
+• VRR
+• FreeSync
+• G-SYNC
+• Adaptive Sync
+
+This reduces confidence in the diagnostics and leaves valuable monitor information unavailable.
+
+Additionally, users with multiple monitors cannot inspect individual displays because SwitchControl always shows a single monitor with no selector.
+
+This entire system should become a professional monitor diagnostics engine.
+
+------------------------------------------------------------
+
+GOAL
+
+Completely redesign the backend detection engine so Display Signal becomes one of the most comprehensive display diagnostics available in a Windows optimization application.
+
+Do NOT rely on SystemInfo alone.
+
+Instead combine multiple native Windows APIs and hardware interfaces to build one unified display capability model.
+
+------------------------------------------------------------
+
+IMPLEMENTATION
+
+Replace the current detection logic with a dedicated Display Detection Service.
+
+Bundle native support directly into SwitchControl using Node native modules (N-API).
+
+Use every appropriate Windows API available.
+
+Sources should include:
+
+• DisplayConfig API
+• DXGI
+• DXCore
+• Win32 Display APIs
+• EDID parser
+• WMI
+• SetupAPI
+• Monitor Configuration API
+• DXDiag information where beneficial
+• NVIDIA NVAPI (when available)
+• AMD ADL SDK (when available)
+
+Do not rely on only one source.
+
+Each API should contribute the fields it exposes best.
+
+------------------------------------------------------------
+
+PER MONITOR DETECT
+
+For every connected monitor detect:
+
+GENERAL
+
+• Display Name
+• Manufacturer
+• Model
+• Product ID
+• Serial Number (if available)
+• EDID Version
+• Windows Display Number
+• Stable Internal Display ID
+• Primary Display
+• Connected / Disconnected
+• Active Display
+• Internal Laptop Display
+• External Display
+
+DISPLAY
+
+• Current Resolution
+• Native Resolution
+• Desktop Resolution
+• Maximum Resolution
+• Current Refresh Rate
+• Maximum Supported Refresh Rate
+• Variable Refresh Range
+• Scan Mode
+• Scaling Mode
+• Rotation
+• Aspect Ratio
+
+SIGNAL
+
+• Connection Type
+(DisplayPort, HDMI, HDMI 2.1, USB-C DisplayPort Alt Mode, DVI, VGA, Internal eDP, LVDS)
+
+• Link Speed (when available)
+
+• Color Encoding
+
+• RGB
+• YCbCr 4:4:4
+• YCbCr 4:2:2
+• YCbCr 4:2:0
+
+DISPLAY QUALITY
+
+• Bit Depth
+• Color Space
+• Color Format
+• SDR
+• HDR Supported
+• HDR Enabled
+• HDR Certification
+• Peak Brightness (if available)
+• SDR Brightness
+• Wide Color Gamut
+• BT.2020 Support
+
+VARIABLE REFRESH
+
+• VRR Supported
+• VRR Enabled
+• Adaptive Sync Supported
+• Adaptive Sync Enabled
+• FreeSync Supported
+• FreeSync Active
+• G-SYNC Compatible
+• Native G-SYNC
+• G-SYNC Active
+
+GPU
+
+• GPU Driving Display
+• GPU Name
+• Adapter ID
+• Dedicated GPU
+• Integrated GPU
+
+DISPLAY CAPABILITIES
+
+• HDCP Version
+• Display Stream Compression (DSC)
+• Display Compression
+• Multi Stream Transport (MST)
+• Daisy Chaining Support
+
+TIMING
+
+• Current Pixel Clock
+• Horizontal Frequency
+• Vertical Frequency
+
+------------------------------------------------------------
+
+FALLBACK BEHAVIOUR
+
+Never display:
+
+Unknown
+
+Instead display:
+
+Unavailable
+
+only if Windows genuinely exposes no method of determining the value.
+
+------------------------------------------------------------
+
+MULTI MONITOR SUPPORT
+
+Enumerate every connected monitor.
+
+Create a monitor selector.
+
+Example:
+
+▼ Samsung Odyssey G6
+
+▼ LG UltraGear
+
+▼ ASUS VG279
+
+Changing the monitor instantly refreshes every field.
+
+No restart required.
+
+------------------------------------------------------------
+
+PRIMARY DISPLAY
+
+Automatically detect the Windows Primary Display.
+
+Open this monitor by default.
+
+Remember the user's last selected monitor.
+
+------------------------------------------------------------
+
+LIVE DETECTION
+
+Hot-plug support.
+
+When monitors are:
+
+Connected
+
+Disconnected
+
+Disabled
+
+Enabled
+
+Changed
+
+SwitchControl should update automatically without restarting.
+
+------------------------------------------------------------
+
+BACKEND
+
+Create a dedicated Display Detection Service.
+
+Responsibilities:
+
+• Enumerate all displays
+• Build a capability model
+• Merge information from every API
+• Assign stable monitor IDs
+• Cache results
+• Refresh automatically
+• Detect topology changes
+• Expose one unified interface to the frontend
+
+------------------------------------------------------------
+
+UI
+
+Keep the current Display Signal card.
+
+Do not redesign it.
+
+Add:
+
+• Monitor selector dropdown
+• Refresh button
+• Last scan timestamp
+
+Expand the details section to display all newly available monitor information.
+
+------------------------------------------------------------
+
+VALIDATION
+
+Verify against:
+
+• Single monitor systems
+• Dual monitors
+• Triple monitors
+• HDR monitors
+• SDR monitors
+• FreeSync monitors
+• G-SYNC monitors
+• Mixed refresh rate setups
+• Mixed GPU setups
+• Laptop + external monitor
+• DisplayPort
+• HDMI
+• USB-C
+
+------------------------------------------------------------
+
+FINAL OUTPUT
+
+Display Signal should become a complete hardware-level monitor diagnostics engine capable of accurately detecting every connected monitor, identifying its capabilities, exposing HDR, VRR, Adaptive Sync, FreeSync, G-SYNC, GPU routing, EDID information, connection type, color information, display timing, and allowing the user to instantly switch between monitors from within the card.
