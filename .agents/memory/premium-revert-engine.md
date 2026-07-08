@@ -37,3 +37,12 @@ When touching the revert engine or ownership store, ensure:
 - Network tweak conflict detection never uses HTTP state — IPC only.
 - `extremeLabs` namespace is included in any new `clearPremiumOwnership`/`resetOwnership` calls.
 - Any new tweak category added must be wired into `hasPremiumItemsToRevert()` or it silently skips startup self-heal.
+
+### 4. NIC-backed EL tweaks reported "reverted" while still applied
+**Bug:** `nicExecutor.resetNicProperty()` returned `ok:true, outcome:'reset_verified'` as soon as the elevated `Reset-NetAdapterAdvancedProperty`/ring-buffer command exited without a PowerShell error — it never read back the property to confirm the value actually changed. Its sibling `setNicProperty()` (apply path) DID verify via readback; only the reset/revert path was unconditionally trusting. `restoreBaseline` in `main.js` propagated `r.ok` straight to `reverted:true`, so the whole chain (executor → IPC → engine → UI) showed success on drivers that silently no-op a reset.
+
+**Fix:** `resetNicProperty()` now reads back the property after the elevated command and compares against `def.enabledValue` (toggle props) or `def.defaultValue` (numeric/ring-buffer props) before reporting `ok`/`reset_verified`.
+
+**Why:** Any IPC boundary that reports `ok:true` without an independent readback of real system state will eventually go stale relative to driver/OS behavior it doesn't control. Apply and revert paths for the same property must use symmetric verification — if one verifies and the other doesn't, that asymmetry is the bug.
+
+**How to apply:** When adding/auditing any tweak revert/reset path (registry, service, NIC, slider), confirm it performs a readback verification symmetric with its apply counterpart, not just "did the command exit 0".

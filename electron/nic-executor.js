@@ -802,11 +802,13 @@ async function resetNicProperty(adapterName, propertyKey) {
         };
       }
       const rb = await _rbRead(safeAdapter, propertyKey);
+      const actualValue = rb ? String(rb.current) : null;
+      const verified = actualValue !== null && actualValue === String(defaultVal);
       return {
-        ok:          true,
-        outcome:     'reset_verified',
-        actualValue: rb ? String(rb.current) : String(defaultVal),
-        error:       null,
+        ok:          verified,
+        outcome:     verified ? 'reset_verified' : 'reset_verify_failed',
+        actualValue: actualValue ?? String(defaultVal),
+        error:       verified ? null : `Reset command ran but readback still shows ${actualValue}. Driver may require a network adapter restart.`,
       };
     }
     return {
@@ -836,12 +838,35 @@ async function resetNicProperty(adapterName, propertyKey) {
     };
   }
 
+  // FIX: previously this returned outcome:'reset_verified' unconditionally as
+  // soon as the elevated Reset-NetAdapterAdvancedProperty command exited without
+  // error — it never actually checked whether the property's value changed.
+  // Some drivers accept the reset call but silently no-op (unsupported reset,
+  // stale driver cache, etc.), leaving the SwitchControl-applied value in place.
+  // That produced the "premium revert shows success but tweak is still applied"
+  // bug for NIC-backed Extreme Labs tweaks (RSS, Interrupt Moderation, EEE,
+  // Flow Control). Now we read back the value and confirm it no longer matches
+  // the toggle's "enabled" (applied) value before reporting success.
   const readback = await readNicProperty(adapterName, propertyKey);
+  const actualValue = readback.registryValue ?? readback.displayValue ?? null;
+
+  let verified = true;
+  if (def.type === 'toggle' && def.enabledValue !== undefined) {
+    verified = !readback.supported || actualValue !== String(def.enabledValue);
+  } else if (def.defaultValue !== undefined && readback.supported) {
+    verified = String(actualValue) === String(def.defaultValue);
+  }
+
+  const outcome = verified ? 'reset_verified' : 'reset_verify_failed';
+  console.log(`[NIC:Tuning] reset=${verified ? 'success' : 'unverified'} outcome=${outcome} property=${propertyKey} actualValue=${actualValue}`);
+
   return {
-    ok:          true,
-    outcome:     'reset_verified',
-    actualValue: readback.registryValue ?? readback.displayValue ?? null,
-    error:       null,
+    ok:          verified,
+    outcome,
+    actualValue,
+    error:       verified
+      ? null
+      : `Reset command ran but readback still shows the applied value (${actualValue}). Driver may require a network adapter restart.`,
   };
 }
 
