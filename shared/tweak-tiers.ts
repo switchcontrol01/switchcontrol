@@ -101,6 +101,7 @@ export const PREMIUM_EXCEPTION_IDS: Set<string> = new Set([
   "max-pending-interrupts",
   "timer-resolution-slider",
   "net-throttle-index",
+  "fortnite-high-priority",
   // ── Input ─────────────────────────────────────────────────────────────────
   "mouse-queue-size",
   "kbd-queue-size",

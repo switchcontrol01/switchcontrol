@@ -745,6 +745,26 @@ const BASE: BaseTweak[] = [
     category: "Gaming and Latency", level: "Recommended", risk: "Safe",
     supported: true, requiresAdmin: true,
   },
+  {
+    id: "fortnite-high-priority",
+    title: "Fortnite Priority Booster",
+    description: "Sets FortniteClient-Win64-Shipping.exe to High CPU priority via the Windows Image File Execution Options (IFEO) engine, so the OS scheduler favors the game process over background tasks.",
+    impact: [
+      "Can reduce frame-time spikes caused by background processes interrupting the game thread",
+      "Takes effect on the next Fortnite launch — no restart required",
+      "Only affects Fortnite; other applications keep normal priority",
+    ],
+    expected: { latency: "Low", cpu: "None", ram: "None", disk: "None", gpu: "None", network: "None", stabilityRisk: "Low" },
+    category: "Gaming and Latency", level: "Advanced", risk: "Moderate",
+    supported: true, requiresAdmin: true,
+    detailsConfig: {
+      registryPath: "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\FortniteClient-Win64-Shipping.exe\\PerfOptions",
+      registryName: "CpuPriorityClass",
+      registryType: "DWORD",
+      technicalNote: "CpuPriorityClass = 3 maps to HIGH_PRIORITY_CLASS in the Windows scheduler. The IFEO key is evaluated by the OS when FortniteClient-Win64-Shipping.exe is created. Safe to remove at any time — the game simply reverts to normal priority on its next launch.",
+      warningText: "This tweak modifies the Windows IFEO registry. Reverting removes the key entirely. It only affects Fortnite and has no impact on other applications or system stability.",
+    },
+  },
   // ── Input ─────────────────────────────────────────────────────────────────
 
   {

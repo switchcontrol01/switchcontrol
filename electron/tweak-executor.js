@@ -949,6 +949,14 @@ const ADMIN_TWEAKS = {
     revert: `$p = "HKCU:\\Software\\Microsoft\\DirectX\\UserGpuPreferences"; Remove-ItemProperty -Path $p -Name "DirectXUserGlobalSettings" -EA SilentlyContinue`,
     check:  `$p = "HKCU:\\Software\\Microsoft\\DirectX\\UserGpuPreferences"; $v = Get-ItemProperty -Path $p -Name "DirectXUserGlobalSettings" -EA SilentlyContinue; $v -and ($v.DirectXUserGlobalSettings -like "*FlipOnVSync=1*")`,
   },
+  'fortnite-high-priority': {
+    name: 'Fortnite Priority Booster',
+    requiresAdmin: true,
+    requiresReboot: false,
+    apply:  `New-Item -Path "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\FortniteClient-Win64-Shipping.exe" -Force -EA SilentlyContinue | Out-Null; New-Item -Path "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\FortniteClient-Win64-Shipping.exe\\PerfOptions" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\FortniteClient-Win64-Shipping.exe\\PerfOptions" -Name "CpuPriorityClass" -Value 3 -Type DWord -Force`,
+    revert: `Remove-Item -Path "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\FortniteClient-Win64-Shipping.exe\\PerfOptions" -Recurse -Force -EA SilentlyContinue`,
+    check:  `$p = "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\FortniteClient-Win64-Shipping.exe\\PerfOptions"; $v = Get-ItemProperty -Path $p -Name "CpuPriorityClass" -EA SilentlyContinue; $v -and ($v.CpuPriorityClass -eq 3)`,
+  },
   'disable-game-dvr': {
     name: 'Disable Game DVR',
     requiresAdmin: true,

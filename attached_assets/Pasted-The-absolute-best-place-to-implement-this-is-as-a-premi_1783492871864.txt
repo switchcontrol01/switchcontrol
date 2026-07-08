@@ -1,0 +1,77 @@
+The absolute best place to implement this is as a premium card inside Extreme Labs, paired with a lightweight sync indicator on the Gaming tab under Network/Main Tweaks.
+Because this requires administrative privileges to bypass the Windows anti-cheat block, grouping it under Extreme Labs keeps your app architecture consistent and easy to maintain.
+Here is the exact step-by-step layout for implementation:
+## 1. Define the Global Tweak Object (shared/types/tweaks.ts)
+Register the tweak identity globally so the Premium Revert Engine and the UI stores can track it effortlessly.
+
+export const GAME_PRIORITY_TWEAK = {
+  id: "fortnite-high-priority",
+  category: "extremelabs",
+  name: "Fortnite Priority Booster",
+  description: "Forces Windows to grant high CPU priority to Fortnite, bypassing anti-cheat access-denied restrictions.",
+  registryPath: "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\FortniteClient-Win64-Shipping.exe\\PerfOptions",
+  valueName: "CpuPriorityClass",
+  optimizedValue: 3, // 3 = High Priority Class
+  defaultValue: null  // Key shouldn't exist natively
+};
+
+## 2. Add the Interactive Switch Node (client/src/pages/ExtremeLabs.tsx)
+Render this as a premium dashboard card. To match your new v1.1.6 guidelines, wrap it with the angled yellow asset lock icon so it is gated exclusively for premium tier users.
+
+<div className="relative border border-white/[0.06] bg-slate-900/20 backdrop-blur-md rounded-xl p-5 overflow-hidden group">
+  {/* Angled Yellow Lock for Free Users */}
+  {!isPremiumUser && (
+    <div className="absolute top-0 right-0 w-12 h-12 overflow-hidden pointer-events-none z-20">
+      <div className="bg-amber-400 absolute top-2 right-[-24px] rotate-45 w-16 text-center py-0.5 shadow-md">
+        <Lock className="w-2.5 h-2.5 transform -rotate-45 text-black mx-auto font-bold" />
+      </div>
+    </div>
+  )}
+
+  <div className="flex flex-col justify-between h-full space-y-4">
+    <div>
+      <h4 className="text-sm font-semibold tracking-wide text-white flex items-center gap-1.5">
+        Fortnite CPU Optimization
+        <span className="text-[10px] bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 px-1.5 py-0.5 rounded font-mono uppercase">IFEO Engine</span>
+      </h4>
+      <p className="text-xs text-white/40 leading-normal mt-1">
+        Bypasses Task Manager 'Access Denied' blocks to permanently force the game into High Priority execution.
+      </p>
+    </div>
+
+    <button
+      onClick={() => handleTweakToggle("fortnite-high-priority")}
+      className={`w-full py-2.5 rounded-lg text-xs font-bold tracking-wide transition-all ${
+        isApplied 
+          ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+          : "bg-white/[0.02] hover:bg-white/[0.05] border border-white/[0.08] text-white/80"
+      }`}
+    >
+      {isApplied ? "Active (High Priority)" : "Apply Priority Booster"}
+    </button>
+  </div></div>
+
+## 3. Wire the 64-Bit Executor Wrapper (electron/tweak-executor.js)
+Tie the switch directly into the Strict DWORD 64-bit Registry Writer you built earlier to prevent Windows from routing it into the virtual Wow6432Node sandbox loop.
+
+// Inside your main execution router mapif (tweakId === "fortnite-high-priority") {
+  const path = "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\FortniteClient-Win64-Shipping.exe\\PerfOptions";
+  
+  // Force 64-bit registry assignment
+  const script = `
+    $rk = [Microsoft.Win32.RegistryKey]::OpenBaseKey([Microsoft.Win32.RegistryHive]::LocalMachine, [Microsoft.Win32.RegistryView]::Registry64);
+    $sk = $rk.CreateSubKey('${path}');
+    $sk.SetValue('CpuPriorityClass', 3, [Microsoft.Win32.ValueKind]::DWord);
+    $sk.Close();
+  `;
+  await execAsync(`powershell -NoProfile -Command "${script.replace(/\n/g, ' ')}"`);
+}
+
+## Why this setup is elite
+
+* Zero UI Collisions: It isolates the heavy registry command execution cleanly inside Extreme Labs, keeping your main page weights thin.
+* Instant Verification: When a user opens Fortnite, your script will show "Active" because it evaluates the key directly using our fixed Array.isArray verification logic.
+* Bulletproof Revert Ready: The moment the trial expires, the LIFO Revert Engine deletes the entire PerfOptions folder out of the Windows Registry, instantly returning the system to factory stock settings without crashing the game engine loop.
+
+Are you ready to append this new configuration module into your main codebase tree for the final v1.1.6 release package?
+

@@ -208,6 +208,21 @@ export const EXTREME_TWEAKS: ExtremeTweak[] = [
     registryTweakId: "optimize-windowed-games",
     riskAreas: ["GPU driver tools"],
   },
+  {
+    id: "fortnite-priority-booster",
+    name: "Fortnite Priority Booster",
+    category: "Gaming / Capture",
+    risk: "Moderate",
+    impact: "Medium",
+    requiresRestart: false,
+    description: "Sets FortniteClient-Win64-Shipping.exe to High CPU priority via Windows IFEO engine. Effect is immediate on next game launch.",
+    whatItChanges: "Adds an IFEO PerfOptions key with CpuPriorityClass = 3 (High) for the Fortnite client executable.",
+    whatMayBreak: "Only affects Fortnite. Other apps and system stability are unaffected. Removing the key reverts to normal priority on next launch.",
+    currentState: "Normal priority",
+    afterState: "High priority",
+    registryTweakId: "fortnite-high-priority",
+    riskAreas: [],
+  },
 
   // ── Network Latency ───────────────────────────────────────────────────────────
   {
