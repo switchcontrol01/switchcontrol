@@ -1,13 +1,15 @@
 {
-  "version": "1.1.10",
-  "title": "VRAM Detection Fix",
-  "headline": "This release fixes GPU VRAM reporting so the Dashboard and PC DNA show your real memory, not a 4 GB cap.",
-  "date": "2026-07-07",
-  "type": "patch",
+  "version": "1.2.0",
+  "title": "Startup & Reliability Update",
+  "headline": "Premium status shows instantly on every launch — no more split-second 'Free' flash. Plus smoother hardware detection and under-the-hood stability fixes.",
+  "date": "2026-07-08",
+  "type": "minor",
   "changes": [
-    "Fixed: GPU VRAM now shows the correct amount for modern GPUs (e.g. RX 7800 XT shows 16 GB instead of 4 GB).",
-    "Fixed: The root cause was WMI's AdapterRAM field — a 32-bit value that caps at ~4 GB. SwitchControl now uses a ground-truth lookup table for 50+ known cards.",
-    "Fixed: Stale disk cache with wrong VRAM values is also corrected on app startup.",
-    "Improved: Covers AMD RX 5000-9000, NVIDIA RTX 20-50, GTX 10/16, and Intel Arc series."
+    "Fixed: Premium badge now appears instantly on startup — the brief 'Free' flash before cloud verification is completely eliminated.",
+    "Fixed: Grace cache now bridges the cloud round-trip so your premium status is accurate from the very first frame, not after a 1-2 second delay.",
+    "Fixed: Startup revert guard correctly defers on fast-path boot, preventing false tweak-reverts for premium users after an update.",
+    "Fixed: GPU VRAM now shows the correct amount for modern GPUs — RX 7800 XT shows 16 GB, not 4 GB.",
+    "Improved: Entitlement resolver has a dedicated startup priority branch that shows Premium from the local cache while cloud confirmation is in flight.",
+    "Improved: AMD/WMI hardware probes are more reliable with longer timeouts and smarter cooldown logic."
   ]
 }

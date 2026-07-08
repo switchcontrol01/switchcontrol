@@ -15,9 +15,19 @@ import {
 
 const STEPS = [
   {
+    icon: Zap,
+    label: "Instant Premium Status on Launch",
+    desc: "Premium badge now appears the moment the app opens — no more split-second 'Free' flash before cloud verification. A local grace cache bridges the round-trip so your status is always correct from frame one.",
+  },
+  {
+    icon: Shield,
+    label: "Startup Revert Guard",
+    desc: "A fast-path boot guard prevents false tweak-reverts for premium users on first launch after an update. Entitlement state is resolved immediately from the local cache, then confirmed silently in the background.",
+  },
+  {
     icon: ScanLine,
     label: "Driver Intelligence Hub",
-    desc: "A new premium page gives you a full picture of your system's driver health. An animated SVG motherboard lights up each component as it scans, then settles into a clean dashboard showing every driver's status at a glance.",
+    desc: "A premium page gives you a full picture of your system's driver health. An animated SVG motherboard lights up each component as it scans, then settles into a clean dashboard showing every driver's status at a glance.",
   },
   {
     icon: Gauge,
@@ -36,18 +46,8 @@ const STEPS = [
   },
   {
     icon: Cpu,
-    label: "AMD/WMI Compatibility Fixes",
-    desc: "All hardware probes (baseboard, BIOS, GPU, CPU, memory layout, disk layout) now use 3–4× longer timeouts. AMD Ryzen systems — which can take 8–15 s for a WMI response — now correctly populate BIOS Advisor and AI Advisor hardware context.",
-  },
-  {
-    icon: Shield,
-    label: "Smarter Probe Cooldown",
-    desc: "A single WMI timeout no longer locks out a probe for 12 minutes. Two consecutive failures are now required before a cooldown applies, and that cooldown is just 2 minutes — so a slow startup never permanently breaks hardware data collection.",
-  },
-  {
-    icon: Zap,
-    label: "Custom Sliders, First-Run Disclaimer & Premium Gate",
-    desc: "Three tweaks now use stepped sliders with precise value ranges. New users see a two-phase first-run disclaimer before any tweaks are applied. Free users get an animated amber lock badge on Apply Recommended that opens the upgrade flow.",
+    label: "AMD/WMI Compatibility & GPU VRAM Fix",
+    desc: "All hardware probes now use longer timeouts so AMD Ryzen systems correctly populate hardware data. GPU VRAM reporting is also fixed — modern cards like the RX 7800 XT now show their real 16 GB instead of a 4 GB cap.",
   },
 ];
 
@@ -94,21 +94,20 @@ export default function ReleaseStory() {
           <Reveal>
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.08] text-xs font-mono text-white/30 mb-6">
               <Layers className="w-3 h-3" />
-              Version 1.1.10
+              Version 1.2.0
             </div>
           </Reveal>
           <Reveal delay={0.1}>
             <h2 className="text-3xl md:text-5xl font-extrabold text-white mb-4 leading-tight">
-              Driver Intelligence.{" "}
-              <span className="font-light italic text-white/50">your hardware, finally understood.</span>
+              Faster. More Reliable.{" "}
+              <span className="font-light italic text-white/50">from the very first frame.</span>
             </h2>
           </Reveal>
           <Reveal delay={0.2}>
             <p className="text-white/30 max-w-lg mx-auto text-sm md:text-base leading-relaxed">
-              A new premium hub scans every driver and firmware component with
-              an animated motherboard, health scoring, and AI-powered insights —
-              plus a major AMD compatibility overhaul that fixes hardware data
-              for Ryzen systems.
+              Premium status is now instant on every launch, startup reliability
+              is overhauled, GPU VRAM detection is fixed for modern cards, and
+              Driver Intelligence is fully polished with AI-powered insights.
             </p>
           </Reveal>
         </div>
