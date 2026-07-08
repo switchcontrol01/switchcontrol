@@ -1,9 +1,10 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { TweakCard } from "./TweakCard";
 import { TweakSliderCard } from "./TweakSliderCard";
 import { TweakPresetCard } from "./TweakPresetCard";
-import { TWEAKS_DATA, TweakCategory, TweakLevel } from "@/lib/mock-data";
+import { TWEAKS_DATA, TweakCategory, TweakLevel, Tweak } from "@/lib/mock-data";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { useStore } from "@/lib/store";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -37,6 +38,72 @@ const CATEGORY_MAP: Record<string, TweakCategory[]> = {
   "Aesthetics":  ["Windows UX"],
   "Sliders":     [], // special — handled by controlType filter below
 };
+
+// Below this item count, keep the original per-card AnimatePresence grid —
+// virtualization only kicks in once a section is actually large (e.g. "All").
+const VIRTUALIZE_THRESHOLD = 30;
+const ESTIMATED_ROW_HEIGHT = 150;
+
+// ── Virtualized tweak grid (large sections only) ────────────────────────
+// Chunks items into 2-per-row (matching the lg:grid-cols-2 layout) and lets
+// react-virtual render only the rows near the viewport. Row height is
+// measured dynamically so variable-height cards and the 1-col mobile
+// layout both size correctly.
+function VirtualizedTweakGrid({
+  items, renderItem,
+}: {
+  items: Tweak[];
+  renderItem: (tweak: Tweak, index: number) => ReactNode;
+}) {
+  const parentRef = useRef<HTMLDivElement>(null);
+  const rows = useMemo(() => {
+    const out: Tweak[][] = [];
+    for (let i = 0; i < items.length; i += 2) out.push(items.slice(i, i + 2));
+    return out;
+  }, [items]);
+
+  const virtualizer = useVirtualizer({
+    count: rows.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => ESTIMATED_ROW_HEIGHT,
+    overscan: 4,
+    getItemKey: (index) => rows[index].map(t => t.id).join("|"),
+    measureElement: (el) => el.getBoundingClientRect().height,
+  });
+
+  return (
+    <div ref={parentRef} className="max-h-[70vh] overflow-y-auto pr-1" data-testid="grid-tweaks-virtualized">
+      <div style={{ height: virtualizer.getTotalSize(), position: "relative", width: "100%" }}>
+        {virtualizer.getVirtualItems().map((virtualRow) => {
+          const row = rows[virtualRow.index];
+          return (
+            <div
+              key={virtualRow.key}
+              ref={virtualizer.measureElement}
+              data-index={virtualRow.index}
+              className="pb-4"
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: "100%",
+                transform: `translateY(${virtualRow.start}px)`,
+              }}
+            >
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+                {row.map((tweak, i) => (
+                  <div key={tweak.id} id={`tweak-card-${tweak.id}`} className="self-start">
+                    {renderItem(tweak, virtualRow.index * 2 + i)}
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 // ── Level tab config ─────────────────────────────────────────────────────────
 
@@ -520,6 +587,27 @@ export function TweaksList() {
       <div className="space-y-4 pb-12">
         {/* Toggle tweaks */}
         {toggleTweaks.length > 0 && (
+          toggleTweaks.length > VIRTUALIZE_THRESHOLD ? (
+            <VirtualizedTweakGrid
+              items={toggleTweaks}
+              renderItem={(tweak) => (
+                <TweakCard
+                  tweak={tweak}
+                  isEnabled={getTweakEnabled(tweak.id)}
+                  onToggle={() => toggleTweak(tweak.id)}
+                  isVerifying={
+                    syncing &&
+                    isElectron &&
+                    isRealTweak(tweak.id) &&
+                    !getTweakEnabled(tweak.id) &&
+                    tweak.id !== highlightId
+                  }
+                  isHighlighted={tweak.id === highlightId}
+                  runtimeUnsupportedReason={runtimeUnsupportedReasons[tweak.id]}
+                />
+              )}
+            />
+          ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
             <AnimatePresence mode="popLayout">
               {toggleTweaks.map((tweak, index) => (
@@ -555,6 +643,7 @@ export function TweaksList() {
               ))}
             </AnimatePresence>
           </div>
+          )
         )}
 
         {/* Divider between toggles and sliders */}

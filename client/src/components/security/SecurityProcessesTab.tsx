@@ -1,15 +1,23 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import {
   Cpu, RefreshCw, ChevronDown, ChevronUp,
   FolderOpen, Copy, AlertTriangle, CheckCircle2,
   Shield, ShieldAlert, Info, ShieldOff,
 } from "lucide-react";
 import type { ProcessTrustItem } from "@/pages/Security";
+
+// Rows can expand to show detail, so height is measured dynamically rather
+// than assumed fixed. This estimate only affects the very first paint.
+const ESTIMATED_ROW_HEIGHT = 64;
+// Below this count, virtualization overhead isn't worth it — render normally
+// so short lists keep their existing enter/exit animations untouched.
+const VIRTUALIZE_THRESHOLD = 30;
 
 const eAPI = () => (window as any).electronAPI;
 
@@ -153,6 +161,46 @@ function ProcessRow({ process, hasSecurity }: { process: ProcessTrustItem; hasSe
   );
 }
 
+function VirtualizedProcessList({ processes, hasSecurity }: { processes: ProcessTrustItem[]; hasSecurity: boolean }) {
+  const parentRef = useRef<HTMLDivElement>(null);
+
+  const virtualizer = useVirtualizer({
+    count: processes.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => ESTIMATED_ROW_HEIGHT,
+    overscan: 8,
+    getItemKey: (index) => processes[index].pid,
+    measureElement: (el) => el.getBoundingClientRect().height,
+  });
+
+  return (
+    <div ref={parentRef} className="max-h-[70vh] overflow-y-auto pr-1" data-testid="list-processes-virtualized">
+      <div style={{ height: virtualizer.getTotalSize(), position: "relative", width: "100%" }}>
+        {virtualizer.getVirtualItems().map((virtualRow) => {
+          const process = processes[virtualRow.index];
+          return (
+            <div
+              key={virtualRow.key}
+              ref={virtualizer.measureElement}
+              data-index={virtualRow.index}
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: "100%",
+                transform: `translateY(${virtualRow.start}px)`,
+                paddingBottom: 8,
+              }}
+            >
+              <ProcessRow process={process} hasSecurity={hasSecurity} />
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export function SecurityProcessesTab({
   processTrust, hasSecurity, scanning, onRefresh,
 }: {
@@ -231,6 +279,8 @@ export function SecurityProcessesTab({
             <Shield className="size-10 mx-auto opacity-20 mb-3" />
             <p className="text-sm">{processTrust.length === 0 ? (hasSecurity ? "Run a Smart Scan to analyze processes" : "Available on Windows desktop") : "No items match filter"}</p>
           </div>
+        ) : sorted.length > VIRTUALIZE_THRESHOLD ? (
+          <VirtualizedProcessList processes={sorted} hasSecurity={hasSecurity} />
         ) : (
           <div className="space-y-2">
             {sorted.map(p => (

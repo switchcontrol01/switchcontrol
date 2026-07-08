@@ -25,3 +25,4 @@
 - [WS push-cadence throttling](ws-push-cadence-throttling.md) — server pushes telemetry on a fixed cadence with no per-client mode concept; client must self-throttle by dropping frames, not assume server respects its mode.
 - [Central multiplier hook wiring](central-multiplier-hook-wiring.md) — a shared polling hook (useVisibilityInterval/usePollingInterval) reading a mode multiplier retrofits every caller at once; audit raw setInterval call sites separately, they don't inherit it.
 - [Dashboard startup reveal gate](dashboard-startup-reveal-gate.md) — Home.tsx card-grid fade must gate on specStatus readiness, not a fixed timer, or cards flash skeleton then pop into final values.
+- [List virtualization pattern](list-virtualization-pattern.md) — @tanstack/react-virtual with dynamic measureElement, gated behind a per-list item-count threshold so short/animated lists keep their original AnimatePresence behavior unchanged.

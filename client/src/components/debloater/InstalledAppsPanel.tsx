@@ -8,12 +8,19 @@ import { motion, AnimatePresence } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 import { format, parseISO } from "date-fns";
 import { logHistory } from "@/lib/logHistory";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import {
   RefreshCw, Search, X, Package, Shield, ShieldOff, AlertTriangle,
   CheckCircle2, XCircle, Trash2, ChevronDown, ChevronUp, Monitor,
   ArrowUpDown, Lock, Zap, HardDrive, Info, Loader2,
   Gamepad2, Cpu, ShieldCheck, Music, Code2,
 } from "lucide-react";
+
+// Rows can expand to show detail, so height is measured dynamically.
+const ESTIMATED_ROW_HEIGHT = 68;
+// Below this count, render the plain animated list — virtualization overhead
+// isn't worth it for short scans and this keeps existing enter/exit polish.
+const VIRTUALIZE_THRESHOLD = 30;
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -469,6 +476,66 @@ function AppRow({
   );
 }
 
+// ── Virtualized row list (large scans only) ─────────────────────────────────
+
+function VirtualizedAppList({
+  apps,
+  results,
+  uninstallingId,
+  iconLoadingIds,
+  onUninstall,
+}: {
+  apps: InstalledApp[];
+  results: Record<string, AppResult>;
+  uninstallingId: string | null;
+  iconLoadingIds: Set<string>;
+  onUninstall: (app: InstalledApp) => void;
+}) {
+  const parentRef = useRef<HTMLDivElement>(null);
+
+  const virtualizer = useVirtualizer({
+    count: apps.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => ESTIMATED_ROW_HEIGHT,
+    overscan: 8,
+    getItemKey: (index) => apps[index].id,
+    measureElement: (el) => el.getBoundingClientRect().height,
+  });
+
+  return (
+    <div ref={parentRef} className="max-h-[70vh] overflow-y-auto pr-1" data-testid="list-apps-virtualized">
+      <div style={{ height: virtualizer.getTotalSize(), position: "relative", width: "100%" }}>
+        {virtualizer.getVirtualItems().map((virtualRow) => {
+          const app = apps[virtualRow.index];
+          return (
+            <div
+              key={virtualRow.key}
+              ref={virtualizer.measureElement}
+              data-index={virtualRow.index}
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: "100%",
+                transform: `translateY(${virtualRow.start}px)`,
+                paddingBottom: 8,
+              }}
+            >
+              <AppRow
+                app={app}
+                result={results[app.id]}
+                uninstallingId={uninstallingId}
+                isIconLoading={iconLoadingIds.has(app.id)}
+                onUninstall={onUninstall}
+              />
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // ── Failure label helper ──────────────────────────────────────────────────────
 
 function buildFailureLabel(res: UninstallResult): string {
@@ -795,6 +862,25 @@ export function InstalledAppsPanel() {
               <button onClick={() => { setSearch(""); setFilter("all"); }}
                 className="text-xs text-primary hover:underline">Clear filters</button>
             </GlassCard>
+          ) : filtered.length > VIRTUALIZE_THRESHOLD ? (
+            <div className="space-y-2">
+              <VirtualizedAppList
+                apps={filtered}
+                results={results}
+                uninstallingId={uninstallingId}
+                iconLoadingIds={iconLoadingIds}
+                onUninstall={(app) => {
+                  // eslint-disable-next-line no-console
+                  console.log(`[Debloat] uninstall confirm opened appName=${app.name} source=installed_apps_list`);
+                  setConfirmApp(app);
+                }}
+              />
+
+              <p className="text-center text-[11px] text-muted-foreground/40 pt-2">
+                {filtered.length} app{filtered.length !== 1 ? "s" : ""} shown
+                {stats.totalSizeMb > 0 && ` · ${stats.totalSizeMb > 1000 ? `${(stats.totalSizeMb / 1024).toFixed(1)} GB` : `${stats.totalSizeMb} MB`} total`}
+              </p>
+            </div>
           ) : (
             <div className="space-y-2">
               <AnimatePresence initial={false}>

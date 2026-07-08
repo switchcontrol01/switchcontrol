@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { motion, AnimatePresence, useMotion } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 import { format, isToday, isYesterday, isThisWeek, differenceInMinutes } from "date-fns";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { HistoryCharts, MODULE_COLORS } from "@/components/history/HistoryCharts";
 import {
   History as HistoryIcon, FileJson, Trash2, Search, SlidersHorizontal,
@@ -146,6 +147,12 @@ function detectSessions(items: EnrichedItem[], gapMinutes = 15): Session[] {
 // ── Date grouping ─────────────────────────────────────────────────────────
 
 interface DateGroup { label: string; items: EnrichedItem[] }
+
+// Below this event count, render the plain grouped/animated list — the
+// virtualized flat-row list only kicks in once it actually helps.
+const VIRTUALIZE_THRESHOLD = 40;
+const ESTIMATED_HEADER_HEIGHT = 33;
+const ESTIMATED_ITEM_HEIGHT = 76;
 
 function groupByDate(items: EnrichedItem[]): DateGroup[] {
   const today: EnrichedItem[] = [], yesterday: EnrichedItem[] = [],
@@ -496,6 +503,78 @@ function EventRow({ item, index }: { item: EnrichedItem; index: number }) {
           </motion.div>
         )}
       </AnimatePresence>
+    </div>
+  );
+}
+
+// ── Virtualized timeline (large history only) ────────────────────────────
+// Flattens date-group headers + event rows into one row list so a single
+// virtualizer can render only what's on screen while keeping the grouped
+// "Today / Yesterday / …" visual structure intact.
+
+type TimelineRow =
+  | { type: "header"; label: string; count: number; key: string }
+  | { type: "item"; item: EnrichedItem; indexInGroup: number; key: string };
+
+function flattenGroups(groups: DateGroup[]): TimelineRow[] {
+  const rows: TimelineRow[] = [];
+  groups.forEach(group => {
+    rows.push({ type: "header", label: group.label, count: group.items.length, key: `h-${group.label}` });
+    group.items.forEach((item, i) => {
+      rows.push({ type: "item", item, indexInGroup: i, key: item.id });
+    });
+  });
+  return rows;
+}
+
+function VirtualizedTimeline({ groups }: { groups: DateGroup[] }) {
+  const parentRef = useRef<HTMLDivElement>(null);
+  const rows = useMemo(() => flattenGroups(groups), [groups]);
+
+  const virtualizer = useVirtualizer({
+    count: rows.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: (index) => (rows[index].type === "header" ? ESTIMATED_HEADER_HEIGHT : ESTIMATED_ITEM_HEIGHT),
+    overscan: 10,
+    getItemKey: (index) => rows[index].key,
+    measureElement: (el) => el.getBoundingClientRect().height,
+  });
+
+  return (
+    <div ref={parentRef} className="max-h-[70vh] overflow-y-auto pr-1" data-testid="list-history-virtualized">
+      <div style={{ height: virtualizer.getTotalSize(), position: "relative", width: "100%" }}>
+        {virtualizer.getVirtualItems().map((virtualRow) => {
+          const row = rows[virtualRow.index];
+          return (
+            <div
+              key={virtualRow.key}
+              ref={virtualizer.measureElement}
+              data-index={virtualRow.index}
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: "100%",
+                transform: `translateY(${virtualRow.start}px)`,
+              }}
+            >
+              {row.type === "header" ? (
+                <div className={cn("flex items-center gap-3 pb-3", virtualRow.index === 0 ? "" : "pt-4")}>
+                  <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/50 shrink-0">
+                    {row.label}
+                  </p>
+                  <div className="h-px flex-1 bg-[#21262D]" />
+                  <span className="text-[10px] text-muted-foreground/40 shrink-0">{row.count}</span>
+                </div>
+              ) : (
+                <div className="pb-2">
+                  <EventRow item={row.item} index={row.indexInGroup} />
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -871,6 +950,15 @@ export default function History() {
             <GlassCard className="overflow-hidden">
               <FilteredEmpty onClear={clearFilters} />
             </GlassCard>
+          ) : filtered.length > VIRTUALIZE_THRESHOLD ? (
+            <div className="space-y-3">
+              <VirtualizedTimeline groups={dateGroups} />
+              <div className="text-center text-[11px] text-muted-foreground/40 pt-2">
+                {sortDesc ? "Newest first" : "Oldest first"} ·{" "}
+                {filtered.length} event{filtered.length !== 1 ? "s" : ""}
+                {hasFilters && ` (filtered from ${enriched.length})`}
+              </div>
+            </div>
           ) : (
             <div className="space-y-6">
               <AnimatePresence mode="popLayout">
