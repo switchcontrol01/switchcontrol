@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { flushSync } from "react-dom";
+import { getPollingMultiplier } from "@/lib/appModeStore";
 import { logHistory } from "@/lib/logHistory";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
@@ -278,11 +279,13 @@ function ThinkingDots() {
 function ThinkingStatus({ slow }: { slow?: boolean }) {
   const [phase, setPhase] = useState(0);
   useEffect(() => {
+    // Phase rotation cadence obeys the global ApplicationMode (cosmetic —
+    // slower in Light Mode, still readable).
     const t = setInterval(() => {
       // P1-A2: pause phase rotation when tab is hidden
       if (typeof document !== "undefined" && document.hidden) return;
       setPhase(p => (p + 1) % THINKING_PHASES.length);
-    }, 2500);
+    }, Math.round(2500 * getPollingMultiplier()));
     return () => clearInterval(t);
   }, []);
   return (

@@ -41,7 +41,10 @@ export const POLLING_PROFILES: Record<ApplicationMode, PollingProfile> = {
     hiddenMultiplier: 2,
     graphMs: 1000,
     backgroundRefreshMs: 60_000,
-    cacheLifetimeMs: 30_000,
+    // React Query gcTime — how long an unused/inactive query result stays in
+    // memory before eviction. Normal keeps the library default (5min) so
+    // navigating back to a page doesn't force a refetch.
+    cacheLifetimeMs: 300_000,
     graphsPausedByDefault: false,
   },
   light: {
@@ -49,10 +52,28 @@ export const POLLING_PROFILES: Record<ApplicationMode, PollingProfile> = {
     hiddenMultiplier: 4, // 32s while minimized/tray
     graphMs: 4000,
     backgroundRefreshMs: 300_000,
-    cacheLifetimeMs: 300_000,
+    // Light Mode prioritizes RAM release over avoiding refetches — inactive
+    // query cache is evicted after 30s instead of 5min. See queryClient.ts.
+    cacheLifetimeMs: 30_000,
     graphsPausedByDefault: true,
   },
 };
+
+/** Generic multiplier (relative to Normal) any raw setInterval/useEffect timer
+ * can multiply its own base interval by. 1 in Normal, >1 in Light. */
+export function getPollingMultiplier(): number {
+  const profile = getPollingProfile();
+  return profile.telemetryMs / POLLING_PROFILES.normal.telemetryMs;
+}
+
+/** Same as getPollingMultiplier() but also applies the extra hidden-window
+ * multiplier when the document is currently hidden/minimized. */
+export function getEffectiveIntervalMs(baseMs: number): number {
+  const profile = getPollingProfile();
+  const mult = getPollingMultiplier();
+  const hiddenExtra = typeof document !== "undefined" && document.hidden ? profile.hiddenMultiplier : 1;
+  return Math.round(baseMs * mult * hiddenExtra);
+}
 
 // ── Recommendation result (computed by lightModeDetection.ts) ─────────────────
 export interface ModeRecommendation {

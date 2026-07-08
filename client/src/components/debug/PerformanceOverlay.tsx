@@ -20,9 +20,10 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { pollingRegistry } from "@/lib/pollingRegistry";
 import { useTelemetryStore } from "@/stores/telemetryStore";
 import { usePerformanceStore } from "@/stores/performanceStore";
+import { useAppModeStore, getPollingMultiplier } from "@/lib/appModeStore";
 
 const isElectron = typeof window !== "undefined" && !!(window as any).electronAPI?.isElectron;
-const POLL_MS = 2000;
+const BASE_POLL_MS = 2000;
 
 interface BackendInfo {
   telemetryLoop?: {
@@ -104,6 +105,10 @@ export function PerformanceOverlay() {
 
   const telemetry = useTelemetryStore(s => s.telemetry);
   const { lpmActive, lpmManual } = usePerformanceStore();
+  // Debug overlay's own poll rate obeys ApplicationMode too — nothing in the
+  // app is exempt from Light Mode.
+  const appMode = useAppModeStore(s => s.mode);
+  const POLL_MS = Math.round(BASE_POLL_MS * getPollingMultiplier());
 
   const systemCpuPct = telemetry?.cpu?.load ?? null;
 
@@ -136,7 +141,7 @@ export function PerformanceOverlay() {
     return () => {
       if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
     };
-  }, [visible, poll]);
+  }, [visible, poll, appMode]);
 
   // Keyboard toggle: Ctrl + Shift + P
   useEffect(() => {

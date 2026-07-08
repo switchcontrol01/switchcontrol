@@ -16,6 +16,7 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { pollingRegistry } from '@/lib/pollingRegistry';
 import { usePerformanceStore } from '@/stores/performanceStore';
+import { useAppModeStore, getPollingMultiplier } from '@/lib/appModeStore';
 
 let _nextId = 1;
 
@@ -27,6 +28,11 @@ export function useVisibilityInterval(
   enabled = true,
 ): void {
   const { effectiveInterval, lpmActive } = usePerformanceStore();
+  // Every useVisibilityInterval caller automatically obeys the global
+  // ApplicationMode — no per-call-site wiring needed. Reading `mode` here
+  // (not just calling getPollingMultiplier() inside the effect) ensures the
+  // effect re-runs and reschedules the instant the user switches modes.
+  const appMode = useAppModeStore((s) => s.mode);
   const cbRef = useRef(callback);
   cbRef.current = callback;
 
@@ -36,7 +42,7 @@ export function useVisibilityInterval(
   useEffect(() => {
     if (!enabled) return;
 
-    const intervalMs = effectiveInterval(baseMs);
+    const intervalMs = Math.round(effectiveInterval(baseMs) * getPollingMultiplier());
     const registryId = _nextId++;
 
     pollingRegistry.register(registryId, name, file, intervalMs);
@@ -78,7 +84,7 @@ export function useVisibilityInterval(
       document.removeEventListener('visibilitychange', handleVisibility);
       pollingRegistry.unregister(registryId);
     };
-  // Re-create when LPM toggles (interval ms changes) or enabled changes
+  // Re-create when LPM toggles, ApplicationMode changes, or enabled changes
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enabled, baseMs, lpmActive, name, file]);
+  }, [enabled, baseMs, lpmActive, appMode, name, file]);
 }

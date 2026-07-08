@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useAuthStore, refreshEntitlements, triggerFlowReset } from "@/lib/auth-store";
 import { useToast } from "@/hooks/use-toast";
+import { useAppModeStore, getPollingMultiplier } from "@/lib/appModeStore";
 
 interface AdminUser {
   id: string;
@@ -103,11 +104,14 @@ function PlanBadge({ plan }: { plan: string }) {
 
 function TrialCountdown({ endsAt }: { endsAt: string | null }) {
   const [, tick] = useState(0);
+  // Countdown re-render cadence obeys the global ApplicationMode (30s Normal
+  // / 120s Light) instead of a hardcoded interval.
+  const appMode = useAppModeStore((s) => s.mode);
   useEffect(() => {
     // Skip tick when the admin tab is hidden — avoids N intervals firing
     // simultaneously for N trial rows while the user is on another tab.
     const cb = () => { if (!document.hidden) tick((n) => n + 1); };
-    const id = setInterval(cb, 30_000);
+    const id = setInterval(cb, Math.round(30_000 * getPollingMultiplier()));
     // Re-tick immediately when the tab becomes visible so the display is fresh.
     const onVisible = () => { if (!document.hidden) tick((n) => n + 1); };
     document.addEventListener("visibilitychange", onVisible);
@@ -115,7 +119,7 @@ function TrialCountdown({ endsAt }: { endsAt: string | null }) {
       clearInterval(id);
       document.removeEventListener("visibilitychange", onVisible);
     };
-  }, []);
+  }, [appMode]);
   if (!endsAt) return null;
   const ms = trialMsRemaining(endsAt);
   if (ms <= 0) return <span className="text-orange-400 text-xs font-medium">Expired</span>;

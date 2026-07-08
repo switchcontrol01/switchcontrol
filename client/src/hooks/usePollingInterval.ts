@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { useAppModeStore, getPollingMultiplier } from "@/lib/appModeStore";
 
 /**
  * Shared polling hook used by MemoryIntelligenceModal and CpuCoresModal.
@@ -21,6 +22,9 @@ export function usePollingInterval(
 
   const mountedRef = useRef(true);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Read the global ApplicationMode so every usePollingInterval caller
+  // automatically slows down in Light Mode without touching call sites.
+  const appMode = useAppModeStore((s) => s.mode);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -33,6 +37,8 @@ export function usePollingInterval(
       return;
     }
 
+    const effectiveMs = Math.round(intervalMs * getPollingMultiplier());
+
     const stopPoll = () => {
       if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
     };
@@ -43,7 +49,7 @@ export function usePollingInterval(
     const startPoll = () => {
       if (intervalRef.current) return;
       safeFetch();
-      intervalRef.current = setInterval(safeFetch, intervalMs);
+      intervalRef.current = setInterval(safeFetch, effectiveMs);
     };
     const handleVisibility = () => { document.hidden ? stopPoll() : startPoll(); };
     document.addEventListener("visibilitychange", handleVisibility);
@@ -54,7 +60,7 @@ export function usePollingInterval(
       stopPoll();
       document.removeEventListener("visibilitychange", handleVisibility);
     };
-  }, [enabled, intervalMs]);
+  }, [enabled, intervalMs, appMode]);
 
   return mountedRef;
 }

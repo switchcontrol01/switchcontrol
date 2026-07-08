@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useAppModeStore, getPollingMultiplier } from "@/lib/appModeStore";
 
 export interface PingSample {
   avg: number; min: number; max: number; jitter: number; loss: number; ts: number;
@@ -96,7 +97,7 @@ export interface DiagnosticsState {
 }
 
 const HISTORY_MAX = 60;
-const POLL_INTERVAL_MS = 8000;
+const BASE_POLL_INTERVAL_MS = 8000;
 const SPIKE_MULTIPLIER = 1.5;
 const SPIKE_MIN_DELTA_MS = 20;
 
@@ -134,6 +135,9 @@ export function useNetworkDiagnostics(): DiagnosticsState {
   const intervalRef        = useRef<ReturnType<typeof setInterval> | null>(null);
   const spikeTimestampsRef = useRef<number[]>([]);
   const mountedRef         = useRef(true);
+  // Network ping-sample polling obeys the global ApplicationMode — 8s Normal,
+  // 32s Light — instead of a hardcoded interval.
+  const appMode = useAppModeStore((s) => s.mode);
   const historyRef         = useRef<PingSample[]>([]);
   const consecutiveFailRef = useRef(0);
 
@@ -210,7 +214,7 @@ export function useNetworkDiagnostics(): DiagnosticsState {
     setHealth(null);
     spikeTimestampsRef.current = [];
     fetchSample();
-    intervalRef.current = setInterval(fetchSample, POLL_INTERVAL_MS);
+    intervalRef.current = setInterval(fetchSample, Math.round(BASE_POLL_INTERVAL_MS * getPollingMultiplier()));
   }, [fetchSample]);
 
   const stopMonitoring = useCallback(() => {
@@ -226,6 +230,15 @@ export function useNetworkDiagnostics(): DiagnosticsState {
     if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
     startMonitoring();
   }, [startMonitoring]);
+
+  // Reschedule the live interval immediately when ApplicationMode changes
+  // while monitoring is already active, instead of waiting for the old tick.
+  useEffect(() => {
+    if (!intervalRef.current) return;
+    clearInterval(intervalRef.current);
+    intervalRef.current = setInterval(fetchSample, Math.round(BASE_POLL_INTERVAL_MS * getPollingMultiplier()));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [appMode]);
 
   useEffect(() => {
     mountedRef.current = true;

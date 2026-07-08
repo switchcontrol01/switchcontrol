@@ -2549,6 +2549,34 @@ html.app-light-mode .animate-bounce {
   animation: none !important;
 }
 
+/* Global GPU-compositing kill: any inline/utility `filter`, `box-shadow`, or
+   `text-shadow` (glow rings, drop-shadow(), premium crown glow, etc.) forces
+   the browser to keep a paint layer alive even when nothing on screen is
+   moving. Strip them everywhere except the mode-switch transition itself,
+   which must keep animating so the user gets visual feedback that a switch
+   is in progress. */
+html.app-light-mode *:not(.mode-transition-overlay):not(.mode-transition-spinner) {
+  filter: none !important;
+  -webkit-filter: none !important;
+  text-shadow: none !important;
+}
+/* box-shadow is stripped separately and excludes focus rings / Tailwind
+   `ring-*` utilities (also implemented via box-shadow) so keyboard focus
+   indicators and ring-style borders keep working in Light Mode. */
+html.app-light-mode *:not(.mode-transition-overlay):not(.mode-transition-spinner):not([class*="ring-"]):not(:focus-visible):not(:focus) {
+  box-shadow: none !important;
+}
+
+/* Decorative blur orbs (ambient background glow divs) used across Login,
+   Home, Landing, Debloater, SystemCleaner, and various modals. These are
+   pure GPU-compositing decoration with no informational content, so they are
+   hidden outright rather than merely de-blurred. */
+html.app-light-mode [class*="blur-3xl"],
+html.app-light-mode [class*="blur-2xl"],
+html.app-light-mode [class*="blur-xl"] {
+  display: none !important;
+}
+
 /* ── Mode switch transition overlay ─────────────────────────────────────── */
 .mode-transition-overlay {
   position: fixed;

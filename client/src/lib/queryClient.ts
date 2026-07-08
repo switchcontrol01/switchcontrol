@@ -1,4 +1,5 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
+import { getPollingProfile, subscribeToAppMode } from "@/lib/appModeStore";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
@@ -48,10 +49,40 @@ export const queryClient = new QueryClient({
       refetchInterval: false,
       refetchOnWindowFocus: false,
       staleTime: Infinity,
+      // gcTime (how long an inactive query stays cached in RAM) obeys
+      // ApplicationMode — Normal keeps the library default (5min), Light
+      // evicts inactive query results after 30s to release memory.
+      gcTime: getPollingProfile().cacheLifetimeMs,
       retry: false,
     },
     mutations: {
       retry: false,
     },
   },
+});
+
+// Apply the new gcTime immediately on mode switch (new default only affects
+// queries created afterward otherwise) and proactively evict any query with
+// zero active observers so Light Mode's RAM-release intent isn't stuck
+// waiting on the old gcTime timer of already-cached queries.
+subscribeToAppMode((mode) => {
+  const gcTime = getPollingProfile().cacheLifetimeMs;
+  queryClient.setDefaultOptions({
+    queries: {
+      queryFn: getQueryFn({ on401: "throw" }),
+      refetchInterval: false,
+      refetchOnWindowFocus: false,
+      staleTime: Infinity,
+      gcTime,
+      retry: false,
+    },
+    mutations: { retry: false },
+  });
+  if (mode === "light") {
+    queryClient.getQueryCache().getAll().forEach((q) => {
+      if (q.getObserversCount() === 0) {
+        queryClient.getQueryCache().remove(q);
+      }
+    });
+  }
 });

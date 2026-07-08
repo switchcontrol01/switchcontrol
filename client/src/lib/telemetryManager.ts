@@ -59,6 +59,25 @@ let _reconnectDelay = RECONNECT_BASE_MS;
 let _lastReportedCpu = 0; // for LPM throttle threshold
 let _warmupTimer: ReturnType<typeof setTimeout> | null = null;
 
+// ── WebSocket message throttling (ApplicationMode) ─────────────────────────────
+// The server pushes telemetry frames on a fixed ~2s cadence regardless of any
+// client's mode (see "[Telemetry] Scheduler started — base=2s" server log) — it
+// has no concept of per-client ApplicationMode. Since we can't change the
+// server's push rate per browser tab, Light Mode is honored on the CLIENT by
+// dropping (N-1)/N incoming frames, where N = profile.telemetryMs / SERVER_BASE_MS,
+// doubled again while the window is hidden. This keeps WS mode (browser/web)
+// consistent with IPC mode (Electron) instead of silently ignoring the mode.
+const SERVER_BASE_TELEMETRY_MS = 2000;
+let _wsFrameCounter = 0;
+
+function _shouldProcessWsFrame(): boolean {
+  const profile = getPollingProfile();
+  let n = Math.max(1, Math.round(profile.telemetryMs / SERVER_BASE_TELEMETRY_MS));
+  if (document.hidden) n *= profile.hiddenMultiplier;
+  _wsFrameCounter = (_wsFrameCounter + 1) % n;
+  return _wsFrameCounter === 0;
+}
+
 function _beginWarmup() {
   if (_warmupTimer) clearTimeout(_warmupTimer);
   useTelemetryStore.getState()._setWarmingUp(true);
@@ -171,6 +190,7 @@ function connect() {
           _reconnectCount = 0; // reset on successful open
           _authRejected = false;
           _reconnectDelay = RECONNECT_BASE_MS;
+          _wsFrameCounter = 0; // fresh cadence alignment on (re)connect
           useTelemetryStore.getState()._setConnected(true);
         };
 
@@ -186,6 +206,11 @@ function connect() {
               clearTimeout(_unavailableTimer);
               _unavailableTimer = null;
             }
+
+            // Light Mode throttle: the server pushes at a fixed cadence, so we
+            // drop frames here to honor the ApplicationMode polling profile.
+            // Connection-liveness bookkeeping above still runs on every frame.
+            if (!_shouldProcessWsFrame()) return;
 
             const st = useTelemetryStore.getState();
             const h = st.history;

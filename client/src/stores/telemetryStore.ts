@@ -1,7 +1,16 @@
 import { create } from "zustand";
 import type { LiveTelemetry, TelemetryHistory, SpikeState, TelemetryStatus } from "@/hooks/useLiveTelemetry";
+import { getAppMode, subscribeToAppMode } from "@/lib/appModeStore";
 
-const HISTORY_LEN = 60;
+// History buffer length obeys ApplicationMode — Light Mode keeps a much
+// shorter buffer (releases RAM / reduces per-tick array-copy work) since
+// graphs are paused by default in Light Mode anyway.
+const HISTORY_LEN_NORMAL = 60;
+const HISTORY_LEN_LIGHT = 20;
+
+function currentHistoryLen(): number {
+  return getAppMode() === "light" ? HISTORY_LEN_LIGHT : HISTORY_LEN_NORMAL;
+}
 
 interface TelemetryStoreState {
   telemetry: LiveTelemetry | null;
@@ -56,15 +65,26 @@ interface TelemetryStoreState {
 }
 
 // slice(1) + push() is the fastest way to maintain a capped array of small
-// fixed size (60 elements). It creates only 1 new array object per tick,
-// which is negligible overhead compared to chart rendering.
+// fixed size. Cap length is mode-aware (60 Normal / 20 Light). It creates only
+// 1 new array object per tick, which is negligible overhead compared to chart
+// rendering.
 function appendCapped<T>(arr: T[], val: T): T[] {
-  if (arr.length < HISTORY_LEN) {
+  const cap = currentHistoryLen();
+  if (arr.length < cap) {
     return arr.concat([val]);
   }
-  const next = arr.slice(1);
+  const next = arr.length > cap ? arr.slice(arr.length - cap + 1) : arr.slice(1);
   next.push(val);
   return next;
+}
+
+function trimAllHistory(h: TelemetryHistory, cap: number): TelemetryHistory {
+  const trim = <T,>(arr: T[]) => (arr.length > cap ? arr.slice(arr.length - cap) : arr);
+  return {
+    cpu: trim(h.cpu), ram: trim(h.ram), gpu: trim(h.gpu), vram: trim(h.vram),
+    rxKbps: trim(h.rxKbps), txKbps: trim(h.txKbps),
+    diskActiveTime: trim(h.diskActiveTime), diskReadKBps: trim(h.diskReadKBps), diskWriteKBps: trim(h.diskWriteKBps),
+  };
 }
 
 export const useTelemetryStore = create<TelemetryStoreState>((set) => ({
@@ -120,3 +140,13 @@ export const useTelemetryStore = create<TelemetryStoreState>((set) => ({
       },
     })),
 }));
+
+// Trim history buffers immediately on switch to Light Mode (RAM release)
+// instead of waiting for the natural cap to catch up over the next N ticks.
+subscribeToAppMode((mode) => {
+  if (mode === "light") {
+    useTelemetryStore.setState((state) => ({
+      history: trimAllHistory(state.history, HISTORY_LEN_LIGHT),
+    }));
+  }
+});
