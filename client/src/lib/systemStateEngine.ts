@@ -50,13 +50,27 @@ function variance(arr: number[]): number {
 export function computeSystemState(
   telemetry: LiveTelemetry | null,
   spikes: SpikeState,
-  advisorScore?: number | null
+  advisorScore?: number | null,
+  warmingUp?: boolean
 ): SystemStateSummary {
   if (!telemetry) {
     return {
       state: "stable",
       label: "System active",
       sublabel: "Real-time metrics connecting…",
+      colorClass: "text-white/40",
+      dotColor: "bg-white/30",
+    };
+  }
+
+  // Backend/PowerShell probes are still spinning up right after launch — that
+  // briefly consumes real CPU. Show a neutral "settling" state instead of a
+  // red/amber alert until the warm-up grace period ends.
+  if (warmingUp) {
+    return {
+      state: "stable",
+      label: "Starting up",
+      sublabel: "Letting system and services settle…",
       colorClass: "text-white/40",
       dotColor: "bg-white/30",
     };

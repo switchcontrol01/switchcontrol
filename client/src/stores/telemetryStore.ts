@@ -10,6 +10,11 @@ interface TelemetryStoreState {
   status: TelemetryStatus;
   connected: boolean;
   lastUpdateTs: number | null;
+  // True for a short grace period right after the telemetry manager (re)starts.
+  // During this window the backend/PowerShell probes are still spinning up and
+  // briefly consume real CPU — that is expected noise, not a genuine system
+  // problem, so consumers must not surface spikes/critical alerts while true.
+  warmingUp: boolean;
 
   // ── Batched hot-path updater ─────────────────────────────────────────────────
   // Single set() call per telemetry tick — replaces the previous 3 separate calls
@@ -33,6 +38,7 @@ interface TelemetryStoreState {
   _setStatus: (s: TelemetryStatus) => void;
   _setConnected: (c: boolean) => void;
   _setSpikes: (updater: (prev: SpikeState) => SpikeState) => void;
+  _setWarmingUp: (w: boolean) => void;
 
   // kept for hard-reset only
   _setTelemetry: (t: LiveTelemetry) => void;
@@ -72,6 +78,7 @@ export const useTelemetryStore = create<TelemetryStoreState>((set) => ({
   status: "loading",
   connected: false,
   lastUpdateTs: null,
+  warmingUp: true,
 
   // Single batched update — one React render pass per tick
   _onTick: (t, newSpikes, cpu, ram, gpu, vram, rxKbps, txKbps, diskActiveTime, diskReadKBps, diskWriteKBps) =>
@@ -96,6 +103,7 @@ export const useTelemetryStore = create<TelemetryStoreState>((set) => ({
   _setStatus: (s) => set({ status: s }),
   _setConnected: (c) => set({ connected: c }),
   _setSpikes: (updater) => set((state) => ({ spikes: updater(state.spikes) })),
+  _setWarmingUp: (w) => set({ warmingUp: w }),
   _setTelemetry: (t) => set({ telemetry: t, lastUpdateTs: Date.now() }),
   _appendHistory: (cpu, ram, gpu, vram, rxKbps, txKbps, diskActiveTime, diskReadKBps, diskWriteKBps) =>
     set((state) => ({

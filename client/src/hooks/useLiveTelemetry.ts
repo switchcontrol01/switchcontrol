@@ -78,6 +78,7 @@ export function useLiveTelemetry() {
       spikes: s.spikes,
       status: s.status,
       connected: s.connected,
+      warmingUp: s.warmingUp,
     }))
   );
 }

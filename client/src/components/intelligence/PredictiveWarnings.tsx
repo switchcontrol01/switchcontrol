@@ -87,14 +87,19 @@ interface PredictiveWarningsProps {
   telemetry: LiveTelemetry | null;
   className?: string;
   maxVisible?: number;
+  // Suppresses all warnings during the post-launch grace period, while the
+  // backend/PowerShell probes are still spinning up and briefly show inflated
+  // readings that aren't a real problem.
+  warmingUp?: boolean;
 }
 
 export function PredictiveWarnings({
   telemetry,
   className,
   maxVisible = 3,
+  warmingUp,
 }: PredictiveWarningsProps) {
-  if (!telemetry) return null;
+  if (!telemetry || warmingUp) return null;
   const warnings = buildWarnings(telemetry).slice(0, maxVisible);
   if (warnings.length === 0) return null;
 

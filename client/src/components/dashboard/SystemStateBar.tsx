@@ -23,11 +23,11 @@ const INTERFERENCE_CHIP: Record<string, string> = {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export function SystemStateBar() {
-  const { telemetry, spikes } = useLiveTelemetry();
+  const { telemetry, spikes, warmingUp } = useLiveTelemetry();
   const { report } = useAdvisorStore();
   const { prefersReducedMotion } = useMotion();
 
-  const state = computeSystemState(telemetry, spikes, report?.score ?? null);
+  const state = computeSystemState(telemetry, spikes, report?.score ?? null, warmingUp);
   const interference = computeInterference(telemetry);
 
   return (

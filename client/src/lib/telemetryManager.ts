@@ -35,6 +35,12 @@ const isDebug = import.meta.env.DEV;
 
 const SPIKE_THRESHOLD = 15;
 const UNAVAILABLE_TIMEOUT_MS = 8000;
+// Grace period after the app/backend starts (or hard-resets) during which the
+// backend process, PowerShell probes, and WMI queries are themselves still
+// spinning up and briefly consume real CPU. That is expected start-up noise,
+// not a genuine system problem — spikes and critical alerts are suppressed
+// until the system has had a chance to settle.
+const WARMUP_MS = 15_000;
 
 // ── Module-level singleton state ───────────────────────────────────────────────
 
@@ -50,6 +56,16 @@ const RECONNECT_BASE_MS = 3_000;
 const RECONNECT_MAX_MS  = 30_000;
 let _reconnectDelay = RECONNECT_BASE_MS;
 let _lastReportedCpu = 0; // for LPM throttle threshold
+let _warmupTimer: ReturnType<typeof setTimeout> | null = null;
+
+function _beginWarmup() {
+  if (_warmupTimer) clearTimeout(_warmupTimer);
+  useTelemetryStore.getState()._setWarmingUp(true);
+  _warmupTimer = setTimeout(() => {
+    _warmupTimer = null;
+    useTelemetryStore.getState()._setWarmingUp(false);
+  }, WARMUP_MS);
+}
 
 // ── Auth failure state ─────────────────────────────────────────────────────────
 // After a 1008 auth rejection we pause reconnects until the JWT is refreshed.
@@ -181,9 +197,10 @@ function connect() {
             const diskReadKBps = data.disk?.readKBps ?? null;
             const diskWriteKBps = data.disk?.writeKBps ?? null;
 
-            const cpuSpike = detectSpike(h.cpu, cpuVal);
-            const ramSpike = detectSpike(h.ram, ramVal);
-            const gpuSpike = detectSpike(h.gpu, gpuVal);
+            const warmingUp = st.warmingUp;
+            const cpuSpike = !warmingUp && detectSpike(h.cpu, cpuVal);
+            const ramSpike = !warmingUp && detectSpike(h.ram, ramVal);
+            const gpuSpike = !warmingUp && detectSpike(h.gpu, gpuVal);
 
             let newSpikes = null;
             if (cpuSpike || ramSpike || gpuSpike) {
@@ -375,9 +392,10 @@ async function _ipcPollTick(): Promise<void> {
     const st = useTelemetryStore.getState();
     const h  = st.history;
 
-    const cpuSpike = detectSpike(h.cpu, cpuLoad);
-    const ramSpike = detectSpike(h.ram, ramUsedPct);
-    const gpuSpike = detectSpike(h.gpu, gpuLoadRaw);
+    const warmingUp = st.warmingUp;
+    const cpuSpike = !warmingUp && detectSpike(h.cpu, cpuLoad);
+    const ramSpike = !warmingUp && detectSpike(h.ram, ramUsedPct);
+    const gpuSpike = !warmingUp && detectSpike(h.gpu, gpuLoadRaw);
     let newSpikes = null;
     if (cpuSpike || ramSpike || gpuSpike) {
       newSpikes = {
@@ -451,6 +469,7 @@ export const telemetryManager = {
     }
     _authRejected = false;
     _started = true;
+    _beginWarmup();
 
     // In packaged Electron, use IPC polling instead of WebSocket.
     // IPC has no JWT-timing requirement and directly reads from main-process
@@ -548,6 +567,6 @@ export const telemetryManager = {
     });
 
     _started = false;
-    this.start();
+    this.start(); // re-arms the warm-up grace period via start() → _beginWarmup()
   },
 };

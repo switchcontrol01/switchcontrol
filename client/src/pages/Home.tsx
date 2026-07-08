@@ -372,7 +372,7 @@ const DashboardStartupGlow = memo(function DashboardStartupGlow() {
 export default function Home() {
   const [, navigate] = useLocation();
   const { stats, account, setStats } = useStore();
-  const { telemetry: liveTel, status: telStatus, history: telHistory } = useLiveTelemetry();
+  const { telemetry: liveTel, status: telStatus, history: telHistory, warmingUp } = useLiveTelemetry();
 
   // ── Mount/remount lifecycle logging ─────────────────────────────────────────
   const mountCountRef = useRef(0);
@@ -877,7 +877,7 @@ export default function Home() {
         >
 
         {/* Predictive warnings strip — only renders when there are real warnings */}
-        <PredictiveWarnings telemetry={liveTel} />
+        <PredictiveWarnings telemetry={liveTel} warmingUp={warmingUp} />
 
         {/* System State Bar — real-time derived anchor */}
         <Reveal>
