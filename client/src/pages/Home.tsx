@@ -34,7 +34,6 @@ import { AnimatedCrown, PremiumBadge } from "@/components/ui/animated-crown";
 import { PremiumCardOverlay } from "@/components/ui/premium-page-overlay";
 import { useBiosAdvisorStore } from "@/stores/biosAdvisorStore";
 import { useSystemIntelligence } from "@/hooks/useSystemIntelligence";
-import { WeatherWidget } from "@/components/dashboard/WeatherWidget";
 
 const MemoryCleanerModal = lazy(() =>
   import("@/components/dashboard/MemoryCleanerModal").then((m) => ({ default: m.MemoryCleanerModal }))
@@ -846,9 +845,6 @@ export default function Home() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.55, delay: 0.18, ease: [0.22, 1, 0.36, 1] }}
             >
-              {/* Weather — lazy, isolated, non-blocking */}
-              <WeatherWidget />
-
               <Button
                 variant="outline"
                 className="gap-2 hidden sm:flex"
