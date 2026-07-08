@@ -1460,6 +1460,20 @@ export default function AiAdvisor() {
     };
   }, [cancelReveal]);
 
+  // Dead-man's switch: if isRevealingRef has been false for >3s but isStreaming
+  // state is still true, something went wrong in React state reconciliation
+  // (e.g. a race between two consecutive messages). Force-reset it.
+  useEffect(() => {
+    if (!isStreaming) return;
+    const id = setInterval(() => {
+      if (!isRevealingRef.current && isStreaming) {
+        console.warn('[AI:STREAM] dead-man\'s switch triggered — isStreaming reset');
+        setIsStreaming(false);
+      }
+    }, 3000);
+    return () => clearInterval(id);
+  }, [isStreaming]);
+
   // ── Image upload handling ──────────────────────────────────────────────────
 
   const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1922,6 +1936,7 @@ export default function AiAdvisor() {
       setIsSlowRequest(false);
       if (err instanceof DOMException && err.name === "AbortError") {
         setLoading(false);
+        setIsStreaming(false);
         if (thinkingAdded) setMessages(prev => prev.filter(m => m.id !== assistantId));
         // If this was a timeout (not a user-triggered abort) show a helpful message
         if (!abortRef.current?.signal.aborted || thisReqId === reqIdRef.current) {
@@ -1937,6 +1952,7 @@ export default function AiAdvisor() {
       }
       if (abortRef.current?.signal.aborted) {
         setLoading(false);
+        setIsStreaming(false);
         if (thinkingAdded) setMessages(prev => prev.filter(m => m.id !== assistantId));
         return;
       }
@@ -1947,6 +1963,7 @@ export default function AiAdvisor() {
         .concat({ id: `error-${Date.now()}`, role: "system", content: displayMsg, timestamp: new Date() })
       );
       setLoading(false);
+      setIsStreaming(false);
       inputRef.current?.focus();
     }
   }, [loading, isStreaming, isPremium, isOnline, openUpgradeModal, forceScrollBottom, revealContent]);

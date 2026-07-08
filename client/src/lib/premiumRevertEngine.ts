@@ -22,6 +22,8 @@
 
 import { useTweakOwnershipStore } from '@/stores/tweakOwnershipStore';
 import { useStore } from './store';
+import { isTweakPremium } from './premium-config';
+import { TWEAKS_DATA } from './tweak-registry';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -164,6 +166,23 @@ function clearMainStoreForELTweaks(): void {
     console.log('[Revert:EL] main store cleared for bridged EL tweaks');
   } catch (e) {
     console.warn('[Revert:EL] clearMainStoreForELTweaks failed:', e);
+  }
+}
+
+/**
+ * Reset the main Zustand tweak store for the given IDs.
+ * This is the missing link that makes the Tweaks page UI immediately reflect
+ * the reverted state (registry tweaks turn off / blue highlight disappears).
+ */
+function clearMainStoreForTweaks(tweakIds: string[]): void {
+  try {
+    const mainStore = useStore.getState();
+    for (const id of tweakIds) {
+      mainStore.setTweak(id, false);
+    }
+    console.log(`[Revert:TWEAK] main store cleared for ${tweakIds.length} tweak(s)`);
+  } catch (e) {
+    console.warn('[Revert:TWEAK] clearMainStoreForTweaks failed:', e);
   }
 }
 
@@ -785,6 +804,15 @@ export async function runPremiumRevert(
     tweakResults.push({ tweakId, label: rec.label, status });
   }
 
+  // Immediately clear the main Zustand store for every reverted tweak so the
+  // Tweaks page UI turns off / blue highlight disappears.
+  const revertedTweakIds = tweakResults
+    .filter(r => r.status === 'reverted')
+    .map(r => r.tweakId);
+  if (revertedTweakIds.length > 0) {
+    clearMainStoreForTweaks(revertedTweakIds);
+  }
+
   // ── Slider tweaks ─────────────────────────────────────────────────────────
   onProgress?.('reverting_sliders');
   try {
@@ -868,6 +896,29 @@ export async function runPremiumRevert(
     networkResults.filter(r => r.status === 'reverted').length +
     extremeLabsResults.filter(r => r.status === 'reverted').length +
     (powerPlanResult.status === 'reverted' || powerPlanResult.status === 'forced_balanced' ? 1 : 0);
+
+  // ── Final safety sweep: turn off every premium tweak in the main Zustand store
+  // regardless of ownership-store state. This catches edge cases like tweaks applied
+  // outside the app, ownership store cleared by prior upgrade, or IPC failures where
+  // the registry revert succeeded but the store was never updated.
+  try {
+    const mainStore = useStore.getState();
+    const allPremiumIds = TWEAKS_DATA
+      .filter(t => t.supported && isTweakPremium(t.id))
+      .map(t => t.id);
+    let swept = 0;
+    for (const id of allPremiumIds) {
+      if (mainStore.tweaks[id]) {
+        mainStore.setTweak(id, false);
+        swept++;
+      }
+    }
+    if (swept > 0) {
+      console.log(`[Revert:SAFETY] turned off ${swept} premium tweak(s) in main store`);
+    }
+  } catch (e) {
+    console.warn('[Revert:SAFETY] final sweep failed:', e);
+  }
 
   console.log(
     `[Revert] Complete — reverted=${revertedCount} failed=${anyFailed} conflict=${anyConflict}` +
