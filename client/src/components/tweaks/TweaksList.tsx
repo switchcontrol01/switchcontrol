@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef, type ReactNode } from "react";
+import { useState, useMemo, useEffect, useLayoutEffect, useRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { TweakCard } from "./TweakCard";
 import { TweakSliderCard } from "./TweakSliderCard";
@@ -49,13 +49,33 @@ const ESTIMATED_ROW_HEIGHT = 150;
 // react-virtual render only the rows near the viewport. Row height is
 // measured dynamically so variable-height cards and the 1-col mobile
 // layout both size correctly.
+//
+// IMPORTANT: the virtualizer scrolls the page's existing scroll root
+// (#app-scroll-root) — NOT a nested div. This avoids the scroll-within-scroll
+// trap where the user has to scroll inside a fixed-height inner box.
 function VirtualizedTweakGrid({
   items, renderItem,
 }: {
   items: Tweak[];
   renderItem: (tweak: Tweak, index: number) => ReactNode;
 }) {
-  const parentRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  // scrollMargin = distance from the scroll root's top edge to this container.
+  // Measured after mount so the virtualizer's windowing math is correct.
+  const [scrollMargin, setScrollMargin] = useState(0);
+
+  useLayoutEffect(() => {
+    if (!containerRef.current) return;
+    const scrollRoot = document.getElementById("app-scroll-root");
+    if (!scrollRoot) return;
+    // getBoundingClientRect gives positions relative to the viewport;
+    // subtracting the scroll root's rect and adding its scrollTop gives the
+    // container's offset from the scroll root's content top.
+    const rootRect = scrollRoot.getBoundingClientRect();
+    const containerRect = containerRef.current.getBoundingClientRect();
+    setScrollMargin(containerRect.top - rootRect.top + scrollRoot.scrollTop);
+  }, [items]); // re-measure when items change (filter change can shift layout)
+
   const rows = useMemo(() => {
     const out: Tweak[][] = [];
     for (let i = 0; i < items.length; i += 2) out.push(items.slice(i, i + 2));
@@ -64,43 +84,45 @@ function VirtualizedTweakGrid({
 
   const virtualizer = useVirtualizer({
     count: rows.length,
-    getScrollElement: () => parentRef.current,
+    // Use the app's top-level scroll container so the page scrolls naturally.
+    getScrollElement: () => document.getElementById("app-scroll-root"),
     estimateSize: () => ESTIMATED_ROW_HEIGHT,
-    overscan: 4,
+    overscan: 5,
     getItemKey: (index) => rows[index].map(t => t.id).join("|"),
     measureElement: (el) => el.getBoundingClientRect().height,
+    scrollMargin,
   });
 
   return (
-    <div ref={parentRef} className="max-h-[70vh] overflow-y-auto pr-1" data-testid="grid-tweaks-virtualized">
-      <div style={{ height: virtualizer.getTotalSize(), position: "relative", width: "100%" }}>
-        {virtualizer.getVirtualItems().map((virtualRow) => {
-          const row = rows[virtualRow.index];
-          return (
-            <div
-              key={virtualRow.key}
-              ref={virtualizer.measureElement}
-              data-index={virtualRow.index}
-              className="pb-4"
-              style={{
-                position: "absolute",
-                top: 0,
-                left: 0,
-                width: "100%",
-                transform: `translateY(${virtualRow.start}px)`,
-              }}
-            >
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
-                {row.map((tweak, i) => (
-                  <div key={tweak.id} id={`tweak-card-${tweak.id}`} className="self-start">
-                    {renderItem(tweak, virtualRow.index * 2 + i)}
-                  </div>
-                ))}
-              </div>
+    <div ref={containerRef} data-testid="grid-tweaks-virtualized"
+      style={{ height: virtualizer.getTotalSize(), position: "relative", width: "100%" }}
+    >
+      {virtualizer.getVirtualItems().map((virtualRow) => {
+        const row = rows[virtualRow.index];
+        return (
+          <div
+            key={virtualRow.key}
+            ref={virtualizer.measureElement}
+            data-index={virtualRow.index}
+            className="pb-4"
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: "100%",
+              transform: `translateY(${virtualRow.start - scrollMargin}px)`,
+            }}
+          >
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
+              {row.map((tweak, i) => (
+                <div key={tweak.id} id={`tweak-card-${tweak.id}`} className="self-start">
+                  {renderItem(tweak, virtualRow.index * 2 + i)}
+                </div>
+              ))}
             </div>
-          );
-        })}
-      </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
