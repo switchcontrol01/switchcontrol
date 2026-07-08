@@ -943,11 +943,11 @@ const ADMIN_TWEAKS = {
   },
   'optimize-windowed-games': {
     name: 'Optimizations for Windowed Games',
-    requiresAdmin: true,
+    requiresAdmin: false,
     requiresReboot: false,
-    apply:  `$u = (New-Object System.Security.Principal.SecurityIdentifier 'S-1-5-32-545').Translate([System.Security.Principal.NTAccount]).Value; $p = "Registry::HKEY_USERS\\$($u.Value)\\Software\\Microsoft\\DirectX\\UserGpuPreferences"; New-Item -Path $p -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path $p -Name "DirectXUserGlobalSettings" -Value "FlipOnVSync=1;FSE=0;HDR=1" -Type String -Force -EA SilentlyContinue`,
-    revert: `$u = (New-Object System.Security.Principal.SecurityIdentifier 'S-1-5-32-545').Translate([System.Security.Principal.NTAccount]).Value; $p = "Registry::HKEY_USERS\\$($u.Value)\\Software\\Microsoft\\DirectX\\UserGpuPreferences"; Remove-ItemProperty -Path $p -Name "DirectXUserGlobalSettings" -EA SilentlyContinue`,
-    check:  `$u = (New-Object System.Security.Principal.SecurityIdentifier 'S-1-5-32-545').Translate([System.Security.Principal.NTAccount]).Value; $p = "Registry::HKEY_USERS\\$($u.Value)\\Software\\Microsoft\\DirectX\\UserGpuPreferences"; $v = Get-ItemProperty -Path $p -Name "DirectXUserGlobalSettings" -EA SilentlyContinue; $v -and ($v.DirectXUserGlobalSettings -like "*FlipOnVSync=1*")`,
+    apply:  `$p = "HKCU:\\Software\\Microsoft\\DirectX\\UserGpuPreferences"; New-Item -Path $p -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path $p -Name "DirectXUserGlobalSettings" -Value "FlipOnVSync=1;FSE=0;HDR=1" -Type String -Force`,
+    revert: `$p = "HKCU:\\Software\\Microsoft\\DirectX\\UserGpuPreferences"; Remove-ItemProperty -Path $p -Name "DirectXUserGlobalSettings" -EA SilentlyContinue`,
+    check:  `$p = "HKCU:\\Software\\Microsoft\\DirectX\\UserGpuPreferences"; $v = Get-ItemProperty -Path $p -Name "DirectXUserGlobalSettings" -EA SilentlyContinue; $v -and ($v.DirectXUserGlobalSettings -like "*FlipOnVSync=1*")`,
   },
   'disable-game-dvr': {
     name: 'Disable Game DVR',
