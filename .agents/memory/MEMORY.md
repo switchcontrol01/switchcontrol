@@ -20,3 +20,4 @@
 - [Telemetry startup warm-up](telemetry-startup-warmup.md) — CPU/RAM/GPU readings right after (re)start are real but caused by startup overhead, not user load; gate centrally in telemetryManager, not per-component.
 - [PowerShell ForEach-Object scoping](powershell-foreach-scoping.md) — `ForEach-Object { $x = true }` never leaks to caller scope; use `$script:x`. Silent false-negative "check" scripts are the symptom.
 - [Entitlement live refresh](entitlement-live-refresh.md) — a hook can be fully implemented, exported, and never imported; grep call sites before trusting a mechanism exists. Admin plan changes need live client polling, not just DB writes.
+- [isNoDbMode feature gaps](isnodbmode-feature-gaps.md) — any `if (!isNoDbMode && db)`-guarded write with no local-file fallback silently no-ops in the packaged Electron app; grep every feature's routes for this pattern, not just the one reported broken.

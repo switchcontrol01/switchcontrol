@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { sql } from "drizzle-orm";
 import { db, isNoDbMode } from "../db";
+import { appendLocalHistoryEntry, getLocalHistory } from "../lib/localDebloatHistory";
 
 const router = Router();
 
@@ -708,7 +709,8 @@ router.post("/apply", async (req, res) => {
       }
     }
 
-    // Persist to DB
+    // Persist to DB, or a local JSON file when there is no reachable
+    // database (packaged Electron desktop app).
     if (!isNoDbMode && db) {
       await db.execute(sql`
         INSERT INTO debloat_applied_items
@@ -717,6 +719,18 @@ router.post("/apply", async (req, res) => {
           (${itemId}, ${def.name}, 'remove', ${status}, ${role ?? null}, ${level ?? null},
            ${verification}, ${def.removal.requiresRestart}, ${def.removal.requiresSignOut})
       `).catch(e => console.error("[Debloater] log insert failed:", e.message));
+    } else {
+      appendLocalHistoryEntry({
+        item_id: itemId,
+        item_name: def.name,
+        action: "remove",
+        status,
+        role: role ?? null,
+        level: level ?? null,
+        verification,
+        restart_req: def.removal.requiresRestart,
+        signout_req: def.removal.requiresSignOut,
+      });
     }
 
     results.push({
@@ -779,6 +793,18 @@ router.post("/restore", async (req, res) => {
         INSERT INTO debloat_applied_items (item_id, item_name, action, status, verification)
         VALUES (${itemId}, ${def.name}, 'restore', ${status}, ${eResult ? 'verified' : 'pending'})
       `).catch(() => {});
+    } else {
+      appendLocalHistoryEntry({
+        item_id: itemId,
+        item_name: def.name,
+        action: "restore",
+        status,
+        role: null,
+        level: null,
+        verification: eResult ? "verified" : "pending",
+        restart_req: false,
+        signout_req: false,
+      });
     }
 
     results.push({ id: itemId, name: def.name, status, error });
@@ -829,6 +855,18 @@ router.post("/apps/log", async (req, res) => {
         (${itemId}, ${appName}, 'uninstall-installed', ${finalStatus},
          null, null, 'electron', false, false)
     `).catch(e => console.warn("[Debloater/AppsLog] insert failed:", e.message));
+  } else {
+    appendLocalHistoryEntry({
+      item_id: itemId,
+      item_name: appName,
+      action: "uninstall-installed",
+      status: finalStatus,
+      role: null,
+      level: null,
+      verification: "electron",
+      restart_req: false,
+      signout_req: false,
+    });
   }
 
   res.json({ ok: true, notes });
@@ -836,7 +874,7 @@ router.post("/apps/log", async (req, res) => {
 
 // GET /api/debloat/history
 router.get("/history", async (req, res) => {
-  if (isNoDbMode || !db) return res.json({ ok: true, history: [] });
+  if (isNoDbMode || !db) return res.json({ ok: true, history: getLocalHistory(100) });
   try {
     const rows = await db.execute<{
       id: number; item_id: string; item_name: string; action: string;

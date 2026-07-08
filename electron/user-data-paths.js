@@ -103,4 +103,13 @@ module.exports = {
    * Same purpose as SLIDER_CRASH_SENTINEL_FILE, scoped to preset profiles.
    */
   PRESET_CRASH_SENTINEL_FILE: path.join(APPDATA_DIR, 'preset-crash-sentinel.json'),
+
+  /**
+   * Debloat apply/restore history — written by the embedded backend
+   * (server/lib/localDebloatHistory.ts) whenever there is no reachable
+   * Postgres database (i.e. the packaged desktop app). Mirrors the shape
+   * of the `debloat_applied_items` Postgres table so the client's history
+   * UI works identically in both DB-backed and local-file-backed modes.
+   */
+  DEBLOAT_HISTORY_FILE: path.join(APPDATA_DIR, 'debloat-history.json'),
 };
