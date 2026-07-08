@@ -26,6 +26,7 @@
  */
 
 import { useTelemetryStore } from "@/stores/telemetryStore";
+import { getPollingProfile, subscribeToAppMode } from "@/lib/appModeStore";
 import { usePerformanceStore } from "@/stores/performanceStore";
 import { useAuthStore, bumpMeGeneration } from "@/lib/authStore";
 import { getResolvedBackendPort } from "@/lib/api";
@@ -425,6 +426,26 @@ async function _ipcPollTick(): Promise<void> {
   }
 }
 
+// Central polling profile — interval comes from the global ApplicationMode
+// (Normal: 2s / Light: 8s). While the window is hidden/minimized the interval
+// is multiplied further (Light: 8s × 4 = 32s) to cut tray-idle CPU to near zero.
+function _currentIpcIntervalMs(): number {
+  const profile = getPollingProfile();
+  const base = profile.telemetryMs;
+  return document.hidden ? base * profile.hiddenMultiplier : base;
+}
+
+let _modeUnsub: (() => void) | null = null;
+let _ipcVisListenerAttached = false;
+let _ipcLoopRef: (() => Promise<void>) | null = null;
+
+function _rescheduleIpcPoll(delayMs: number): void {
+  if (_ipcPollActive && _ipcPollTimer && _ipcLoopRef) {
+    clearTimeout(_ipcPollTimer);
+    _ipcPollTimer = setTimeout(_ipcLoopRef, delayMs);
+  }
+}
+
 function _startIpcPolling(): void {
   if (_ipcPollActive) return;
   _ipcPollActive = true;
@@ -432,10 +453,27 @@ function _startIpcPolling(): void {
   async function loop(): Promise<void> {
     await _ipcPollTick();
     if (_ipcPollActive) {
-      _ipcPollTimer = setTimeout(loop, 2000);
+      _ipcPollTimer = setTimeout(loop, _currentIpcIntervalMs());
     }
   }
+  _ipcLoopRef = loop;
   loop();
+
+  // Re-schedule immediately when the application mode changes so the new
+  // interval applies without waiting out a long pending timer.
+  if (!_modeUnsub) {
+    _modeUnsub = subscribeToAppMode(() => {
+      _rescheduleIpcPoll(_currentIpcIntervalMs());
+    });
+  }
+  // Window hidden/restored → apply the hidden multiplier promptly.
+  // Attached once for the app lifetime (hardReset must not stack listeners).
+  if (!_ipcVisListenerAttached) {
+    _ipcVisListenerAttached = true;
+    document.addEventListener("visibilitychange", () => {
+      _rescheduleIpcPoll(document.hidden ? _currentIpcIntervalMs() : 50);
+    });
+  }
 }
 
 function _stopIpcPolling(): void {

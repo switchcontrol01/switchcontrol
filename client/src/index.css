@@ -2501,3 +2501,93 @@ button, a, nav, header, footer, label {
   0%, 100% { opacity: 0.4; }
   50%       { opacity: 0.75; }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   LIGHT MODE (low-resource application profile)
+   Applied globally via `app-light-mode` class on <html> — synced from
+   useAppModeStore in App.tsx. All effect-stripping lives here so components
+   never need per-component `if (lightMode)` checks.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Kill all animations & transitions (biggest GPU/CPU saver) */
+html.app-light-mode *,
+html.app-light-mode *::before,
+html.app-light-mode *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  transition-delay: 0ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* Remove glass blur — backdrop-filter forces continuous GPU compositing */
+html.app-light-mode * {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Hide decorative background blobs / particles / glow layers entirely */
+html.app-light-mode .bg-blob,
+html.app-light-mode .bg-blob-1,
+html.app-light-mode .bg-blob-2,
+html.app-light-mode .bg-blob-3,
+html.app-light-mode .login-focal-glow,
+html.app-light-mode .login-sun-streak,
+html.app-light-mode [data-decorative="true"] {
+  display: none !important;
+}
+
+/* Flatten heavy shadows & glows */
+html.app-light-mode .shadow-2xl,
+html.app-light-mode .shadow-xl,
+html.app-light-mode .shadow-lg {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+}
+html.app-light-mode .animate-pulse,
+html.app-light-mode .animate-spin-slow,
+html.app-light-mode .animate-bounce {
+  animation: none !important;
+}
+
+/* ── Mode switch transition overlay ─────────────────────────────────────── */
+.mode-transition-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 14px;
+  background: #07090d;
+  opacity: 0;
+  pointer-events: all;
+  animation: modeTransitionFade 3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+/* The overlay itself must animate even in light mode */
+html.app-light-mode .mode-transition-overlay {
+  animation: modeTransitionFade 3s cubic-bezier(0.4, 0, 0.2, 1) forwards !important;
+  animation-duration: 3s !important;
+  animation-iteration-count: 1 !important;
+}
+@keyframes modeTransitionFade {
+  0%   { opacity: 0; }
+  25%  { opacity: 1; }
+  75%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+.mode-transition-spinner {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 2px solid rgba(139, 92, 246, 0.2);
+  border-top-color: rgba(139, 92, 246, 0.9);
+  animation: modeTransitionSpin 0.9s linear infinite;
+}
+html.app-light-mode .mode-transition-spinner {
+  animation: modeTransitionSpin 0.9s linear infinite !important;
+  animation-iteration-count: infinite !important;
+}
+@keyframes modeTransitionSpin {
+  to { transform: rotate(360deg); }
+}

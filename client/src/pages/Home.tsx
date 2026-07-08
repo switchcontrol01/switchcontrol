@@ -6,6 +6,7 @@ let _homeSpecsEverLoaded = false;
 import { AppLayout } from "@/components/layout/AppLayout";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { LiveGraph } from "@/components/dashboard/LiveGraph";
+import { LiveGraphsGate } from "@/components/dashboard/LiveGraphsGate";
 import { StorageCards } from "@/components/dashboard/StorageCards";
 import { SystemStateBar } from "@/components/dashboard/SystemStateBar";
 import { DashboardInsights } from "@/components/dashboard/DashboardInsights";
@@ -987,10 +988,12 @@ export default function Home() {
 
         {/* Live Graph */}
         <Reveal delay={0.06}>
-          <LiveGraph
-            onTelemetryUpdate={handleTelemetryUpdate}
-            selectedDiskMount={selectedDisk?.mount ?? null}
-          />
+          <LiveGraphsGate title="Live performance graph paused">
+            <LiveGraph
+              onTelemetryUpdate={handleTelemetryUpdate}
+              selectedDiskMount={selectedDisk?.mount ?? null}
+            />
+          </LiveGraphsGate>
         </Reveal>
 
         {/* Performance Lab — intelligence hub */}
@@ -1144,14 +1147,16 @@ export default function Home() {
           </div>
 
           {/* Three live graph cards */}
-          <div className="grid gap-4 md:grid-cols-3">
-            <div><MemoryPressureGraph delay={0} /></div>
-            <div><StorageActivityGraph delay={0.05} /></div>
-            <div><SystemRhythmGraph delay={0.1} /></div>
-          </div>
+          <LiveGraphsGate title="Telemetry analytics paused">
+            <div className="grid gap-4 md:grid-cols-3">
+              <div><MemoryPressureGraph delay={0} /></div>
+              <div><StorageActivityGraph delay={0.05} /></div>
+              <div><SystemRhythmGraph delay={0.1} /></div>
+            </div>
 
-          {/* Display Signal — live intelligence panel, always shown */}
-          <DisplaySignalGraph delay={0.1} />
+            {/* Display Signal — live intelligence panel, always shown */}
+            <DisplaySignalGraph delay={0.1} />
+          </LiveGraphsGate>
         </Reveal>
 
         {/* Bottom Section */}

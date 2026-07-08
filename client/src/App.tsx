@@ -65,6 +65,8 @@ import { usePremiumExpiry, useBaselineScan } from "@/hooks/usePremiumExpiry";
 import { useEntitlementRefresh } from "@/hooks/useEntitlementRefresh";
 import { useVisibilityInterval } from "@/hooks/useVisibilityInterval";
 import { PremiumRevertModal } from "@/components/PremiumRevertModal";
+import { LightModeAdvisor, AppModeClassSync } from "@/components/LightModeAdvisor";
+import { ModeTransitionOverlay } from "@/components/ModeTransitionOverlay";
 import { usePremiumGraceStore, GRACE_WINDOW_MS } from "@/stores/premiumGraceStore";
 import { useTrialExpiryStore } from "@/stores/trialExpiryStore";
 
@@ -1863,6 +1865,27 @@ function ElectronAppContent() {
             onDismiss={() => setShowPatchNotes(false)}
           />
         )}
+
+        {/* Light Mode — global CSS class sync + one-time post-onboarding advisor.
+            `ready` is strictly gated on onboarding being fully finished so the
+            recommendation can never overlap welcome/tour UI. */}
+        <AppModeClassSync />
+        <LightModeAdvisor
+          ready={
+            !isResetting &&
+            phase === "authenticated" &&
+            isPhaseStable &&
+            activeFlow === "none" &&
+            !!user?.loggedIn &&
+            !!user?.id &&
+            !!localStorage.getItem(`sc_tour_completed_${user.id}`) &&
+            (!isTrialActive(user.plan, user.trialEndsAt) ||
+              user.hasSeenTrialTour === true)
+          }
+        />
+
+        {/* ~3s polished fade shown while switching Normal ↔ Light Mode */}
+        <ModeTransitionOverlay />
 
         {/* Premium expiry revert — shows after trial/premium lapses and revert runs */}
         <PremiumRevertModal

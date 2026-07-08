@@ -16,6 +16,7 @@
 - [Premium slider/preset revert](premium-slider-preset-revert.md) — slider/preset tweaks were completely skipped by trial-expiry revert engine (0% success); backend sweeps existed but had no IPC exposure and no client-side caller.
 - [Version release process](version-release-process.md) — version strings live in 6+ files (no single constant); actual installer build/upload happens via GitHub Actions tag push, not in Replit.
 - [Electron startup spec enrichment](electron-startup-enrichment.md) — disk cache (specs-cache.json, 4h/24h TTL) eliminates WMI on repeat boots; si.graphics() removed from enrichment (AMD hangs); psLimiter gates all startup PS calls; two-stage: GPU immediately, CPU+disk deferred 3s.
+- [Light Mode architecture](light-mode-architecture.md) — one appModeStore drives CSS class + polling profiles + graph gating; never add per-component lightMode if-checks.
 - [Preset-card tweak pattern](preset-tweak-pattern.md) — multi-option preset tweaks mirror the slider-tweak trio exactly (executor/IPC/hook/store/UI); isAdvancedTuning flag pulls sliders+presets into one dedicated section.
 - [Telemetry startup warm-up](telemetry-startup-warmup.md) — CPU/RAM/GPU readings right after (re)start are real but caused by startup overhead, not user load; gate centrally in telemetryManager, not per-component.
 - [PowerShell ForEach-Object scoping](powershell-foreach-scoping.md) — `ForEach-Object { $x = true }` never leaks to caller scope; use `$script:x`. Silent false-negative "check" scripts are the symptom.

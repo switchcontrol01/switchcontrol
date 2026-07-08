@@ -18,7 +18,8 @@ import { useAuthStore } from "@/lib/auth-store";
 import { LicenseManagementModal } from "@/components/LicenseManagementModal";
 import { useState, useEffect, useCallback } from "react";
 import { Textarea } from "@/components/ui/textarea";
-import { Sparkles } from "lucide-react";
+import { Sparkles, Zap, Gauge } from "lucide-react";
+import { useAppModeStore, type ApplicationMode } from "@/lib/appModeStore";
 import { motion } from "framer-motion";
 import { Reveal } from "@/lib/motion";
 import { PATCH_NOTES_STORAGE_KEY, PatchNotesModal } from "@/components/PatchNotesModal";
@@ -333,6 +334,108 @@ function DiagnosticsCard() {
 
 const SUPPORT_EMAIL = 'switchcontrol67@gmail.com';
 
+// ── ApplicationModeSection ────────────────────────────────────────────────────
+
+function ApplicationModeSection() {
+  const { toast } = useToast();
+  const mode = useAppModeStore((s) => s.mode);
+  const transitioning = useAppModeStore((s) => s.transitioning);
+  const dontAskAgain = useAppModeStore((s) => s.dontAskAgain);
+  const recommendationShown = useAppModeStore((s) => s.recommendationShown);
+  const lastRecommendation = useAppModeStore((s) => s.lastRecommendation);
+  const switchModeWithTransition = useAppModeStore((s) => s.switchModeWithTransition);
+  const resetRecommendations = useAppModeStore((s) => s.resetRecommendations);
+
+  const selectMode = (target: ApplicationMode) => {
+    if (target === mode || transitioning) return;
+    switchModeWithTransition(target);
+    logHistory(`Settings: Application Mode → ${target === "light" ? "Light" : "Normal"}`, "Settings", "Saved");
+    toast({
+      title: target === "light" ? "Light Mode enabled" : "Normal Mode restored",
+      description:
+        target === "light"
+          ? "Visual effects reduced and background activity slowed."
+          : "Full visual experience and live monitoring restored.",
+    });
+  };
+
+  const options: { value: ApplicationMode; label: string; desc: string; Icon: typeof Zap }[] = [
+    { value: "normal", label: "Normal Mode", desc: "Full visuals, animations and live monitoring.", Icon: Gauge },
+    { value: "light", label: "Light Mode", desc: "Minimal effects, slower polling — lowest resource usage.", Icon: Zap },
+  ];
+
+  return (
+    <>
+      <div className="grid gap-3 sm:grid-cols-2">
+        {options.map(({ value, label, desc, Icon }) => {
+          const selected = mode === value;
+          return (
+            <button
+              key={value}
+              onClick={() => selectMode(value)}
+              disabled={transitioning}
+              data-testid={`button-mode-${value}`}
+              className={`text-left rounded-lg border p-4 transition-colors disabled:opacity-60 ${
+                selected
+                  ? "border-[#8B5CF6]/60 bg-[#8B5CF6]/10"
+                  : "border-[#2A313A] bg-[#12151B] hover:bg-[#1A1F26]"
+              }`}
+            >
+              <div className="flex items-center gap-2 mb-1">
+                <Icon className={`size-4 ${selected ? "text-[#C09BFF]" : "text-[#6B7380]"}`} />
+                <span className={`text-sm font-medium ${selected ? "text-[#E6EAF0]" : "text-[#A0A8B3]"}`}>
+                  {label}
+                </span>
+                {selected && (
+                  <span className="ml-auto text-[9px] font-bold tracking-widest uppercase px-1.5 py-0.5 rounded-full"
+                    style={{ background: "rgba(139,92,246,0.22)", color: "rgba(192,155,255,0.95)" }}>
+                    Active
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">{desc}</p>
+            </button>
+          );
+        })}
+      </div>
+
+      {lastRecommendation && (
+        <p className="text-xs text-muted-foreground" data-testid="text-last-recommendation">
+          Last system analysis recommended{" "}
+          <span className="text-[#C09BFF]">
+            {lastRecommendation.recommendedMode === "light" ? "Light Mode" : "Normal Mode"}
+          </span>{" "}
+          ({lastRecommendation.confidence}% confidence).
+        </p>
+      )}
+
+      {(recommendationShown || dontAskAgain) && (
+        <div className="flex items-center justify-between pt-1">
+          <p className="text-xs text-muted-foreground">
+            Run the system analysis again on next launch.
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            className="border-border/50"
+            data-testid="button-reset-mode-recommendations"
+            onClick={() => {
+              resetRecommendations();
+              toast({
+                title: "Recommendations reset",
+                description: "SwitchControl will analyse your system again on the next launch.",
+              });
+            }}
+          >
+            <RotateCcw className="size-3.5 mr-1.5" />
+            Reset Recommendations
+          </Button>
+        </div>
+      )}
+    </>
+  );
+}
+
 export default function Settings() {
   const { 
     account, resetData, 
@@ -415,6 +518,24 @@ export default function Settings() {
                 </div>
               </motion.div>
 
+            </CardContent>
+          </Card>
+          </Reveal>
+
+          {/* Application Mode */}
+          <Reveal delay={0.03}>
+          <Card className="bg-card/50 border-border/50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Zap className="size-4 text-[#C09BFF]" />
+                Application Mode
+              </CardTitle>
+              <CardDescription>
+                Choose how much system power SwitchControl uses. All features stay available in both modes.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <ApplicationModeSection />
             </CardContent>
           </Card>
           </Reveal>
