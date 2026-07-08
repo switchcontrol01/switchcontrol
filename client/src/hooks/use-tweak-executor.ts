@@ -226,17 +226,6 @@ export function useTweakExecutor() {
     setExecuting(tweakId);
     const action = currentlyEnabled ? 'revert' : 'apply';
 
-    // ── Ownership: capture previous state before apply ─────────────────────────
-    let previousIsApplied: boolean | null = null;
-    if (action === 'apply') {
-      try {
-        const preStatus: TweakStatus = await getTweaksAPI().checkStatus(tweakId);
-        previousIsApplied = preStatus?.isApplied ?? false;
-      } catch {
-        previousIsApplied = false;
-      }
-    }
-
     try {
       const result: TweakResult = await getTweaksAPI().execute(tweakId, action);
 
@@ -319,12 +308,10 @@ export function useTweakExecutor() {
 
       // ── Ownership recording ───────────────────────────────────────────────────
       const ownership = useTweakOwnershipStore.getState();
-      if (action === 'apply' && previousIsApplied !== null) {
+      if (action === 'apply') {
         const tweakMeta = TWEAKS_DATA.find(t => t.id === tweakId);
         ownership.recordTweakApply(
           tweakId,
-          previousIsApplied,
-          actualState,
           tweakMeta?.title ?? tweakId,
           isTweakPremium(tweakId),
         );

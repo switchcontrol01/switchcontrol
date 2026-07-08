@@ -27,7 +27,6 @@
 
 import { useTelemetryStore } from "@/stores/telemetryStore";
 import { getPollingProfile, subscribeToAppMode } from "@/lib/appModeStore";
-import { usePerformanceStore } from "@/stores/performanceStore";
 import { useAuthStore, bumpMeGeneration } from "@/lib/authStore";
 import { getResolvedBackendPort } from "@/lib/api";
 import type { LiveTelemetry } from "@/hooks/useLiveTelemetry";
@@ -56,7 +55,6 @@ const _spikeTimers: Record<string, ReturnType<typeof setTimeout>> = {};
 const RECONNECT_BASE_MS = 3_000;
 const RECONNECT_MAX_MS  = 30_000;
 let _reconnectDelay = RECONNECT_BASE_MS;
-let _lastReportedCpu = 0; // for LPM throttle threshold
 let _warmupTimer: ReturnType<typeof setTimeout> | null = null;
 
 // ── WebSocket message throttling (ApplicationMode) ─────────────────────────────
@@ -238,12 +236,6 @@ function connect() {
               if (cpuSpike) scheduleResetSpike("cpu");
               if (ramSpike) scheduleResetSpike("ram");
               if (gpuSpike) scheduleResetSpike("gpu");
-            }
-
-            // Report CPU to LPM auto-governor (throttled — skip if change <5%)
-            if (Math.abs((cpuVal ?? 0) - _lastReportedCpu) >= 5) {
-              _lastReportedCpu = cpuVal ?? 0;
-              usePerformanceStore.getState().reportCpu(cpuVal ?? 0);
             }
 
             // Single batched set() — one React render pass instead of 3
@@ -432,11 +424,6 @@ async function _ipcPollTick(): Promise<void> {
       if (cpuSpike) scheduleResetSpike("cpu");
       if (ramSpike) scheduleResetSpike("ram");
       if (gpuSpike) scheduleResetSpike("gpu");
-    }
-
-    if (Math.abs(cpuLoad - _lastReportedCpu) >= 5) {
-      _lastReportedCpu = cpuLoad;
-      usePerformanceStore.getState().reportCpu(cpuLoad);
     }
 
     st._onTick(

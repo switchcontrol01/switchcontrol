@@ -6,12 +6,6 @@ import { persist } from 'zustand/middleware';
 export interface TweakOwnership {
   appliedByApp: boolean;
   timestamp: number;
-  previousState: {
-    isApplied: boolean;
-  };
-  appliedState: {
-    isApplied: boolean;
-  };
   revertFailed: boolean;
   conflictDetected: boolean;
   isPremium: boolean;
@@ -58,7 +52,7 @@ interface TweakOwnershipState {
 
   // ── Tweak actions ────────────────────────────────────────────────────────────
   recordTweakBaseline: (tweakId: string, isApplied: boolean, label: string, isPremium: boolean) => void;
-  recordTweakApply: (tweakId: string, previousIsApplied: boolean, appliedIsApplied: boolean, label: string, isPremium: boolean) => void;
+  recordTweakApply: (tweakId: string, label: string, isPremium: boolean) => void;
   recordTweakRevertSuccess: (tweakId: string) => void;
   markTweakConflict: (tweakId: string) => void;
   markTweakRevertFailed: (tweakId: string) => void;
@@ -109,11 +103,9 @@ export const useTweakOwnershipStore = create<TweakOwnershipState>()(
             appliedTweaks: {
               ...s.appliedTweaks,
               [tweakId]: {
-                appliedByApp: false,
-                timestamp: Date.now(),
-                previousState:  { isApplied: false },
-                appliedState:   { isApplied: true },
-                revertFailed:   false,
+                appliedByApp:   false,
+                timestamp:        Date.now(),
+                revertFailed:     false,
                 conflictDetected: false,
                 isPremium,
                 label,
@@ -123,23 +115,21 @@ export const useTweakOwnershipStore = create<TweakOwnershipState>()(
         });
       },
 
-      recordTweakApply(tweakId, previousIsApplied, appliedIsApplied, label, isPremium) {
+      recordTweakApply(tweakId, label, isPremium) {
         set(s => ({
           appliedTweaks: {
             ...s.appliedTweaks,
             [tweakId]: {
-              appliedByApp:    true,
-              timestamp:       Date.now(),
-              previousState:   { isApplied: previousIsApplied },
-              appliedState:    { isApplied: appliedIsApplied },
-              revertFailed:    false,
+              appliedByApp:     true,
+              timestamp:        Date.now(),
+              revertFailed:     false,
               conflictDetected: false,
               isPremium,
               label,
             },
           },
         }));
-        console.log(`[Ownership:TWEAK] recorded apply tweakId="${tweakId}" prev=${previousIsApplied} applied=${appliedIsApplied} premium=${isPremium}`);
+        console.log(`[Ownership:TWEAK] recorded apply tweakId="${tweakId}" premium=${isPremium}`);
       },
 
       recordTweakRevertSuccess(tweakId) {

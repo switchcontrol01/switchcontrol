@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import type { LiveTelemetry, TelemetryHistory, SpikeState, TelemetryStatus } from "@/hooks/useLiveTelemetry";
 import { getAppMode, subscribeToAppMode } from "@/lib/appModeStore";
+import { usePerformanceStore } from "@/stores/performanceStore";
 
 // History buffer length obeys ApplicationMode — Light Mode keeps a much
 // shorter buffer (releases RAM / reduces per-tick array-copy work) since
@@ -100,8 +101,15 @@ export const useTelemetryStore = create<TelemetryStoreState>((set) => ({
   lastUpdateTs: null,
   warmingUp: true,
 
-  // Single batched update — one React render pass per tick
-  _onTick: (t, newSpikes, cpu, ram, gpu, vram, rxKbps, txKbps, diskActiveTime, diskReadKBps, diskWriteKBps) =>
+  // Single batched update — one React render pass per tick.
+  // Also drives the LPM auto-governor via performanceStore._onCpuTick so the
+  // performance store never holds its own CPU copy; it derives from us.
+  _onTick: (t, newSpikes, cpu, ram, gpu, vram, rxKbps, txKbps, diskActiveTime, diskReadKBps, diskWriteKBps) => {
+    // Throttle LPM updates: skip if CPU change < 5% to avoid jitter
+    const prevCpu = useTelemetryStore.getState().telemetry?.cpu.load ?? null;
+    if (prevCpu == null || Math.abs(cpu - prevCpu) >= 5) {
+      usePerformanceStore.getState()._onCpuTick(cpu);
+    }
     set((state) => ({
       telemetry: t,
       lastUpdateTs: Date.now(),
@@ -118,7 +126,8 @@ export const useTelemetryStore = create<TelemetryStoreState>((set) => ({
         diskReadKBps: appendCapped(state.history.diskReadKBps, diskReadKBps),
         diskWriteKBps: appendCapped(state.history.diskWriteKBps, diskWriteKBps),
       },
-    })),
+    }));
+  },
 
   _setStatus: (s) => set({ status: s }),
   _setConnected: (c) => set({ connected: c }),

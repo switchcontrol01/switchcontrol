@@ -8,6 +8,7 @@
  * and non-critical dashboard intelligence checks are paused.
  */
 import { create } from 'zustand';
+import { useTelemetryStore } from "@/stores/telemetryStore";
 
 const LPM_AUTO_THRESHOLD_PCT = 70;
 const LPM_AUTO_SUSTAIN_MS    = 15_000; // CPU must stay high for 15 s to auto-enable
@@ -28,8 +29,8 @@ interface PerformanceStore {
   disableLpm(manual?: boolean): void;
   toggleManualLpm(): void;
 
-  /** Call this with the latest CPU % on each telemetry tick. */
-  reportCpu(pct: number): void;
+  /** Internal — called by telemetryStore._onTick per tick to drive LPM logic. */
+  _onCpuTick(pct: number): void;
 
   /** Returns the effective poll interval given a base ms. */
   effectiveInterval(baseMs: number): number;
@@ -64,7 +65,7 @@ export const usePerformanceStore = create<PerformanceStore>((set, get) => ({
     }
   },
 
-  reportCpu(pct: number) {
+  _onCpuTick(pct: number) {
     const { lpmActive, lpmManual, _highCpuSince, _normalCpuSince } = get();
     if (lpmManual) return; // manual mode: never auto-change
 
