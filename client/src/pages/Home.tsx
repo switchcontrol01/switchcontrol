@@ -769,17 +769,22 @@ export default function Home() {
   const startupCount = account.stats.startupAppsDisabled;
 
   // ── Dashboard content staging ────────────────────────────────────────────────
-  // Wait until the App-level entry blur has partially cleared before revealing
-  // card animations. This prevents dozens of simultaneous per-card blur filters
-  // from compounding with the parent container blur during the handoff, which
-  // is the root cause of the startup roughness. Reveal items run their blur
-  // animations in the background while the wrapper is transparent, so by the
-  // time the wrapper fades in the cards are already in their final clean state.
+  // Wait until (a) the App-level entry blur has partially cleared AND (b) the
+  // baseline spec load has settled (ready/unavailable) before revealing the
+  // card grid. Gating on specStatus — instead of a fixed 100ms timer — means
+  // the Memory/CPU/Disk cards mount already populated with real values rather
+  // than flashing a skeleton and then popping into their final state a beat
+  // later. A capped fallback timeout guarantees the dashboard never hangs on
+  // a slow/failed detection.
   const [contentReady, setContentReady] = useState(false);
   useEffect(() => {
-    const t = setTimeout(() => setContentReady(true), 100);
-    return () => clearTimeout(t);
-  }, []);
+    if (specStatus !== "loading") {
+      const t = setTimeout(() => setContentReady(true), 60);
+      return () => clearTimeout(t);
+    }
+    const fallback = setTimeout(() => setContentReady(true), 900);
+    return () => clearTimeout(fallback);
+  }, [specStatus]);
 
   return (
     <AppLayout>
