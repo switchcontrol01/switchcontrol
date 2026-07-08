@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useAuthStore, refreshEntitlements, triggerFlowReset } from "@/lib/auth-store";
+import { useToast } from "@/hooks/use-toast";
 
 interface AdminUser {
   id: string;
@@ -779,6 +780,7 @@ function UserDetailPanel({ user, logs, onClose, onPlanUpdated, onDeleted }: {
   const [showDelete, setShowDelete] = useState(false);
   const [settingAdmin, setSettingAdmin] = useState(false);
   const [adminError, setAdminError] = useState<string | null>(null);
+  const { toast } = useToast();
 
   // Confirm-modal state
   const [confirm, setConfirm] = useState<null | {
@@ -793,7 +795,7 @@ function UserDetailPanel({ user, logs, onClose, onPlanUpdated, onDeleted }: {
 
   useEffect(() => { setLocalUser(user); setLocalLogs(logs); }, [user, logs]);
 
-  const update = (u: AdminUser) => { setLocalUser(u); onPlanUpdated(u); };
+  const update = useCallback((u: AdminUser) => { setLocalUser(u); onPlanUpdated(u); }, [onPlanUpdated]);
 
   const runConfirmed = async (reason?: string) => {
     if (!confirm) return;
@@ -836,6 +838,7 @@ function UserDetailPanel({ user, logs, onClose, onPlanUpdated, onDeleted }: {
     const data = await r.json();
     if (!r.ok) throw new Error(data.error || "Failed");
     if (data.user) update(data.user);
+    toast({ title: "Updated", description: "User plan changed successfully." });
   };
 
   const revokeTrial = () => setConfirm({
@@ -871,6 +874,7 @@ function UserDetailPanel({ user, logs, onClose, onPlanUpdated, onDeleted }: {
       const data = await r.json();
       if (!r.ok) throw new Error(data.error || "Failed");
       if (data.user) update(data.user);
+      toast({ title: "Reverted to Free", description: "Premium / trial access revoked immediately." });
     },
   });
 
@@ -888,6 +892,7 @@ function UserDetailPanel({ user, logs, onClose, onPlanUpdated, onDeleted }: {
       const data = await r.json();
       if (!r.ok) throw new Error(data.error || "Failed");
       if (data.user) update(data.user);
+      toast({ title: "Premium granted", description: "User upgraded to Premium immediately." });
     },
   });
 
@@ -1902,7 +1907,7 @@ export default function AdminPage() {
     } catch {}
   };
 
-  const handlePlanUpdated = (updated: AdminUser) => {
+  const handlePlanUpdated = useCallback((updated: AdminUser) => {
     setUsers((prev) => prev.map((u) => u.id === updated.id ? updated : u));
     if (selectedUser?.id === updated.id) setSelectedUser(updated);
     const currentUser = useAuthStore.getState().user;
@@ -1944,15 +1949,15 @@ export default function AdminPage() {
       // defensively via plan+trialEndsAt even if isPremium is briefly stale.
       setTimeout(() => refreshEntitlements(), newPlan === "premium" ? 3000 : 500);
     }
-  };
+  }, [selectedUser]);
 
-  const handleDeleted = (id: string) => {
+  const handleDeleted = useCallback((id: string) => {
     setUsers((prev) => prev.filter((u) => u.id !== id));
     setSelectedUser(null);
     setSelectedLogs([]);
     setTotal((t) => t - 1);
     setSelectedIds((prev) => { const n = new Set(prev); n.delete(id); return n; });
-  };
+  }, []);
 
   const toggleSelect = (id: string) => {
     setSelectedIds((prev) => {
