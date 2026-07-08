@@ -63,7 +63,7 @@ import { DeviceLockModal } from "@/components/DeviceLockModal";
 import { usePremiumDeviceLock } from "@/hooks/usePremiumDeviceLock";
 import { usePremiumExpiry, useBaselineScan } from "@/hooks/usePremiumExpiry";
 import { PremiumRevertModal } from "@/components/PremiumRevertModal";
-import { usePremiumGraceStore } from "@/stores/premiumGraceStore";
+import { usePremiumGraceStore, GRACE_WINDOW_MS } from "@/stores/premiumGraceStore";
 import { useTrialExpiryStore } from "@/stores/trialExpiryStore";
 
 import Splash from "@/screens/Splash";
@@ -1121,6 +1121,34 @@ function ElectronAppContent() {
         );
         setEntitlementsOk(true);
         setEntitlementsAttempted(true); // suppress redundant post-auth /api/me call
+
+        // ── Grace fast-path: avoid "Free" flash while cloud responds ─────────
+        // resolveAuthState() runs below as a background reconciliation and will
+        // set entitlementsVerified=true once the cloud responds.  Without this
+        // check, the 1-2 s window before that response causes the UI to show
+        // "Free" for premium users because resolveEntitlementUiState() requires
+        // entitlementsVerified===true to display the Premium badge.
+        //
+        // If the grace store has a recent premium snapshot we set
+        // entitlementsVerified=true immediately.  resolveAuthState() will
+        // overwrite user.isPremium (and the grace store) if the server reports a
+        // different status, so this is safe — it only affects the brief startup
+        // window before cloud truth arrives.
+        if (user?.isPremium) {
+          const graceSnap = usePremiumGraceStore.getState();
+          const graceAgeMs =
+            graceSnap.lastVerifiedAt !== null
+              ? Date.now() - graceSnap.lastVerifiedAt
+              : Infinity;
+          if (graceSnap.isPremium && graceAgeMs <= GRACE_WINDOW_MS) {
+            setEntitlementsVerified(true);
+            console.log(
+              "[AuthTruth] Boot: grace store confirms recent premium — " +
+              "entitlementsVerified=true immediately (cloud confirmation pending)",
+            );
+          }
+        }
+
         const welcomeKeyFast = `sc_welcomed_${user!.id}`;
         const hasBeenWelcomedFast = localStorage.getItem(welcomeKeyFast);
         if (!hasBeenWelcomedFast) {

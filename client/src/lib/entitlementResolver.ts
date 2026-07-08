@@ -6,12 +6,14 @@
  * must call resolveEntitlementUiState() and use nothing else.
  *
  * Priority order (strict — trial evaluated before generic isPremium):
- *  1. user is null / not logged in                      → "unverified"
- *  2. plan === "trial" && trialEndsAt > now             → "trial_active"
- *  3. plan === "trial" && (no date or date <= now)      → "trial_expired"
- *  4. entitlementsVerified && isPremium && grace active → "premium_grace"
- *  5. entitlementsVerified && isPremium                 → "premium"
- *  6. (everything else)                                 → "free"
+ *  1. user is null / not logged in                                  → "unverified"
+ *  2. plan === "trial" && trialEndsAt > now                         → "trial_active"
+ *  3. plan === "trial" && (no date or date <= now)                  → "trial_expired"
+ *  4. !entitlementsVerified && isPremium && graceStatus=active      → "premium"
+ *     (startup fast-path: grace cache bridges the cloud round-trip)
+ *  5. entitlementsVerified && isPremium && grace active             → "premium_grace"
+ *  6. entitlementsVerified && isPremium                             → "premium"
+ *  7. (everything else)                                             → "free"
  *
  * Trial state is deliberately checked before generic isPremium because the
  * backend sets isPremium=true for active trial users (so the generic premium
@@ -152,7 +154,31 @@ export function resolveEntitlementUiState({
     };
   }
 
-  // ── 3. Premium grace (offline or degraded, within 30-day grace window) ──────
+  // ── 3. Pre-verification premium (grace cache confirms during startup) ────────
+  // When entitlementsVerified is not yet true (cloud round-trip still in flight
+  // or backend not yet reachable), show premium immediately from the grace cache.
+  // Fires only when graceStatus === 'active' — meaning the backend IS reachable
+  // and the grace store has a recent isPremium=true snapshot.  This prevents the
+  // 1-2 s "Free" flash that happens on every fast-path boot (and is especially
+  // noticeable after an app update) before resolveAuthState() sets
+  // entitlementsVerified=true.  resolveAuthState() will correct user.isPremium if
+  // the server reports a different value.
+  if (!entitlementsVerified && user.isPremium && graceStatus === "active") {
+    return {
+      status: "premium",
+      countdownLabel: "",
+      badgeText: "Premium",
+      showTrialBanner: false,
+      showPremiumBadge: true,
+      showTrialBadge: false,
+      isTrialUrgent: false,
+      trialDaysRemaining: 0,
+      features,
+      isOfflineCached: false,
+    };
+  }
+
+  // ── 4. Premium grace (offline or degraded, within 30-day grace window) ──────
   if (entitlementsVerified && user.isPremium && graceStatus === "grace") {
     return {
       status: "premium_grace",
