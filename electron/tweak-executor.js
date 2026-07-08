@@ -1096,15 +1096,20 @@ async function executeNvidiaTelemetry(action) {
 
   await runPowerShell(psCmd);
 
-  // Verify: check if NvTelemetryContainer is disabled OR tasks are all disabled
+  // Verify: check if NvTelemetryContainer is disabled OR tasks are all disabled.
+  // Use the same task-name patterns the apply script targets, and treat "no
+  // tasks + no service" as already-disabled (success) — newer driver installs
+  // simply don't ship the old telemetry mechanisms.
   const verified = await checkPowerShell(
-    `$tasks = Get-ScheduledTask -EA SilentlyContinue | Where-Object { $_.TaskName -like "NvTm*" -or $_.TaskName -like "NvNode*" }; if ($tasks.Count -eq 0) { $svc = Get-Service -Name NvTelemetryContainer -EA SilentlyContinue; $svc -and ($svc.StartType -eq "Disabled") } else { ($tasks | Where-Object { $_.State -ne "Disabled" }).Count -eq 0 }`
+    `$tasks = Get-ScheduledTask -EA SilentlyContinue | Where-Object { $_.TaskName -like "NvTm*" -or $_.TaskName -like "NvNode*" -or $_.TaskName -like "NvProfile*" }; if ($tasks.Count -eq 0) { $svc = Get-Service -Name NvTelemetryContainer -EA SilentlyContinue; if ($svc) { $svc.StartType -eq "Disabled" } else { $true } } else { ($tasks | Where-Object { $_.State -ne "Disabled" }).Count -eq 0 }`
   );
 
   return {
     ok: action === 'apply' ? verified : !verified,
     commandsRun: [psCmd],
-    message: `NVIDIA telemetry ${action === 'apply' ? 'disabled' : 'restored'} (detected NVIDIA GPU).`,
+    message: verified
+      ? `NVIDIA telemetry ${action === 'apply' ? 'disabled' : 'restored'} (detected NVIDIA GPU).`
+      : 'NVIDIA telemetry could not be fully disabled — verify permissions or driver version.',
     rebootRequired: false,
   };
 }
@@ -1135,7 +1140,7 @@ async function verifyTweak(tweakId) {
     }
     logTweakSupport(tweakId, true, 'NVIDIA GPU present', { osRelease: osVer, helperFound: true });
     const applied = await checkPowerShell(
-      `$tasks = Get-ScheduledTask -EA SilentlyContinue | Where-Object { $_.TaskName -like "NvTm*" -or $_.TaskName -like "NvNode*" }; if ($tasks.Count -eq 0) { $svc = Get-Service -Name NvTelemetryContainer -EA SilentlyContinue; $svc -and ($svc.StartType -eq "Disabled") } else { ($tasks | Where-Object { $_.State -ne "Disabled" }).Count -eq 0 }`
+      `$tasks = Get-ScheduledTask -EA SilentlyContinue | Where-Object { $_.TaskName -like "NvTm*" -or $_.TaskName -like "NvNode*" -or $_.TaskName -like "NvProfile*" }; if ($tasks.Count -eq 0) { $svc = Get-Service -Name NvTelemetryContainer -EA SilentlyContinue; if ($svc) { $svc.StartType -eq "Disabled" } else { $true } } else { ($tasks | Where-Object { $_.State -ne "Disabled" }).Count -eq 0 }`
     );
     return { isApplied: applied, verified: true };
   }
