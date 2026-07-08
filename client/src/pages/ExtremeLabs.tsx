@@ -365,7 +365,7 @@ function EntryModal({
 }) {
   const warnings = [
     { icon: AlertTriangle, title: "System-level registry changes", text: "These tweaks modify Windows scheduling, network, and service settings. Some require a restart to take effect." },
-    { icon: Flame, title: "Anti-cheat compatibility risk", text: "Some tweaks (e.g., MMCSS NoLazyMode, timer resolution changes) may trigger anti-cheat flags in competitive games." },
+    { icon: Flame, title: "Anti-cheat compatibility risk", text: "Some tweaks (e.g., timer resolution changes) may trigger anti-cheat flags in competitive games." },
     { icon: Wifi, title: "Network stability trade-offs", text: "TCP NoDelay and interrupt moderation changes can increase packet overhead. May worsen latency on some connections." },
     { icon: Activity, title: "Hardware-dependent results", text: "The same tweak can improve latency on one system and worsen it on another. Always measure with built-in diagnostics." },
     { icon: Shield, title: "Automatic restore point", text: "A restore point is required before any changes. You can revert everything at any time from this page." },

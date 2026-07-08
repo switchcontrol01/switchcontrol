@@ -336,26 +336,6 @@ const BASE: BaseTweak[] = [
       supported: true, requiresAdmin: true,
     },
     {
-      id: "mmcss-nolazymode",
-      title: "Disable MMCSS Lazy Mode",
-      description: "Sets NoLazyMode = 1 in the Multimedia Class Scheduler Service profile. May improve responsiveness in some game and audio workloads by reducing background scheduling delays.",
-      impact: [
-        "May improve responsiveness in game and audio workloads",
-        "Can increase background scheduling pressure",
-        "Not recommended for systems running heavy background tasks",
-      ],
-      expected: { cpu: "Low", latency: "Low", ram: "None", gpu: "None", disk: "None", network: "None", stabilityRisk: "Low" },
-      category: "System and Power", level: "Advanced", risk: "Moderate",
-      whoShouldAvoid: "Systems with heavy background workloads (video encoding, large compiles) that rely on balanced scheduling.",
-      detailsConfig: {
-        registryPath: "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile",
-        registryName: "NoLazyMode",
-        registryType: "DWORD",
-        technicalNote: "NoLazyMode=1 tells MMCSS to use eager scheduling rather than lazy mode. Effect depends on workload. Takes effect when next MMCSS app starts.",
-      },
-      supported: true, requiresAdmin: true,
-    },
-    {
       id: "svchost-split-threshold",
       title: "Service Host Split Threshold",
       description: "Controls how Windows groups services into shared svchost processes based on installed RAM. Higher thresholds create more isolated svchost instances (better crash isolation, more RAM). Lower thresholds create fewer (less RAM, but less isolation).",
