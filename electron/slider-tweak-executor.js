@@ -121,6 +121,27 @@ function queryPS(command) {
   });
 }
 
+/**
+ * Returns a PowerShell expression that forces strict integer DWORD casting.
+ *
+ * Why this matters: without an explicit cast, PowerShell's Set-ItemProperty may
+ * silently interpret a bare numeric literal differently depending on the PS host
+ * version or the calling context (e.g., writing 10 as 0x10 = 16 decimal when
+ * the value happens to end up in a context that is hex-aware).  Wrapping with
+ * ([int]N) or ([uint32]N) pins the representation to a plain 32-bit integer and
+ * ensures the registry always receives the exact decimal value the user chose.
+ *
+ * Values above 2 147 483 647 (int32 max) use [uint32] to avoid overflow — the
+ * only current case is NetworkThrottlingIndex's "disabled" sentinel 0xFFFFFFFF.
+ *
+ * @param {number} v — already-validated JS integer (from parseInt)
+ * @returns {string} — PowerShell expression e.g. "([int]10)" or "([uint32]4294967295)"
+ */
+function psInt(v) {
+  const n = Math.trunc(Number(v));
+  return n > 2147483647 ? `([uint32]${n})` : `([int]${n})`;
+}
+
 // One-shot admin check — result cached for the process lifetime.
 let _isAdminCache = null;
 async function checkIsAdmin() {
@@ -232,8 +253,8 @@ const SLIDER_TWEAKS = {
     safeMin:       0,
     safeMax:       38,
     readCommand:   () => `(Get-ItemProperty -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\PriorityControl' -Name 'Win32PrioritySeparation' -EA SilentlyContinue).Win32PrioritySeparation`,
-    writeCommand:  (v) => `New-Item -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\PriorityControl' -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\PriorityControl' -Name 'Win32PrioritySeparation' -Value ${v} -Type DWord -Force`,
-    verifyCommand: (v) => `(Get-ItemProperty -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\PriorityControl' -Name 'Win32PrioritySeparation' -EA SilentlyContinue).Win32PrioritySeparation -eq ${v}`,
+    writeCommand:  (v) => `New-Item -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\PriorityControl' -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\PriorityControl' -Name 'Win32PrioritySeparation' -Value ${psInt(v)} -Type DWord -Force`,
+    verifyCommand: (v) => `(Get-ItemProperty -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\PriorityControl' -Name 'Win32PrioritySeparation' -EA SilentlyContinue).Win32PrioritySeparation -eq ${psInt(v)}`,
   },
 
   /**
@@ -305,8 +326,8 @@ const SLIDER_TWEAKS = {
     safeMin:       10,
     safeMax:       30,
     readCommand:   () => `(Get-ItemProperty -Path 'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile' -Name 'SystemResponsiveness' -EA SilentlyContinue).SystemResponsiveness`,
-    writeCommand:  (v) => `New-Item -Path 'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile' -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path 'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile' -Name 'SystemResponsiveness' -Value ${v} -Type DWord -Force`,
-    verifyCommand: (v) => `(Get-ItemProperty -Path 'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile' -Name 'SystemResponsiveness' -EA SilentlyContinue).SystemResponsiveness -eq ${v}`,
+    writeCommand:  (v) => `New-Item -Path 'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile' -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path 'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile' -Name 'SystemResponsiveness' -Value ${psInt(v)} -Type DWord -Force`,
+    verifyCommand: (v) => `(Get-ItemProperty -Path 'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile' -Name 'SystemResponsiveness' -EA SilentlyContinue).SystemResponsiveness -eq ${psInt(v)}`,
   },
 
   /**
@@ -327,8 +348,8 @@ const SLIDER_TWEAKS = {
     safeMin:       4,
     safeMax:       32,
     readCommand:   () => `(Get-ItemProperty -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\kernel' -Name 'MaximumDpcQueueDepth' -EA SilentlyContinue).MaximumDpcQueueDepth`,
-    writeCommand:  (v) => `New-Item -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\kernel' -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\kernel' -Name 'MaximumDpcQueueDepth' -Value ${v} -Type DWord -Force`,
-    verifyCommand: (v) => `(Get-ItemProperty -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\kernel' -Name 'MaximumDpcQueueDepth' -EA SilentlyContinue).MaximumDpcQueueDepth -eq ${v}`,
+    writeCommand:  (v) => `New-Item -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\kernel' -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\kernel' -Name 'MaximumDpcQueueDepth' -Value ${psInt(v)} -Type DWord -Force`,
+    verifyCommand: (v) => `(Get-ItemProperty -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\kernel' -Name 'MaximumDpcQueueDepth' -EA SilentlyContinue).MaximumDpcQueueDepth -eq ${psInt(v)}`,
   },
 
   /**
@@ -416,8 +437,8 @@ const SLIDER_TWEAKS = {
     safeMin:       1,
     safeMax:       4294967295,
     readCommand:   () => `(Get-ItemProperty -Path 'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile' -Name 'NetworkThrottlingIndex' -EA SilentlyContinue).NetworkThrottlingIndex`,
-    writeCommand:  (v) => `New-Item -Path 'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile' -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path 'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile' -Name 'NetworkThrottlingIndex' -Value ${v} -Type DWord -Force`,
-    verifyCommand: (v) => `(Get-ItemProperty -Path 'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile' -Name 'NetworkThrottlingIndex' -EA SilentlyContinue).NetworkThrottlingIndex -eq ${v}`,
+    writeCommand:  (v) => `New-Item -Path 'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile' -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path 'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile' -Name 'NetworkThrottlingIndex' -Value ${psInt(v)} -Type DWord -Force`,
+    verifyCommand: (v) => `(Get-ItemProperty -Path 'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile' -Name 'NetworkThrottlingIndex' -EA SilentlyContinue).NetworkThrottlingIndex -eq ${psInt(v)}`,
   },
 
   /**
@@ -527,8 +548,8 @@ const SLIDER_TWEAKS = {
     safeMin:       8388608,
     safeMax:       67108864,
     readCommand:   () => `(Get-ItemProperty -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Control' -Name 'SvcHostSplitThresholdInKB' -EA SilentlyContinue).SvcHostSplitThresholdInKB`,
-    writeCommand:  (v) => `New-Item -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Control' -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Control' -Name 'SvcHostSplitThresholdInKB' -Value ${v} -Type DWord -Force`,
-    verifyCommand: (v) => `(Get-ItemProperty -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Control' -Name 'SvcHostSplitThresholdInKB' -EA SilentlyContinue).SvcHostSplitThresholdInKB -eq ${v}`,
+    writeCommand:  (v) => `New-Item -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Control' -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Control' -Name 'SvcHostSplitThresholdInKB' -Value ${psInt(v)} -Type DWord -Force`,
+    verifyCommand: (v) => `(Get-ItemProperty -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Control' -Name 'SvcHostSplitThresholdInKB' -EA SilentlyContinue).SvcHostSplitThresholdInKB -eq ${psInt(v)}`,
   },
 };
 
