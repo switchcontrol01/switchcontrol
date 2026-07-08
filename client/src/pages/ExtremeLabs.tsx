@@ -13,6 +13,7 @@
 
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { logHistory } from "@/lib/logHistory";
+import { useStore } from "@/lib/store";
 import { useTweakOwnershipStore } from "@/stores/tweakOwnershipStore";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -485,6 +486,7 @@ function EntryModal({
 
 function ExtremeDashboard({
   appliedTweaks,
+  mainTweaks,
   onApplyTweak,
   onUndoTweak,
   onRevertAll,
@@ -495,6 +497,7 @@ function ExtremeDashboard({
   onUpgrade,
 }: {
   appliedTweaks: Set<string>;
+  mainTweaks: Record<string, boolean>;
   onApplyTweak: (id: string) => void;
   onUndoTweak: (id: string) => void;
   onRevertAll: () => void;
@@ -676,7 +679,7 @@ function ExtremeDashboard({
                 <TweakCard
                   key={tweak.id}
                   tweak={tweak}
-                  isApplied={appliedTweaks.has(tweak.id)}
+                  isApplied={appliedTweaks.has(tweak.id) || (!!tweak.registryTweakId && !!mainTweaks[tweak.registryTweakId])}
                   isPending={isApplyingId === tweak.id}
                   onApply={() => onApplyTweak(tweak.id)}
                   onUndo={() => onUndoTweak(tweak.id)}
@@ -714,6 +717,8 @@ export default function ExtremeLabs() {
   const canAnalyze = canRunExtremeAnalysis(entitlementStatus);
   const { openUpgradeModal } = useUpgradeModal();
   const { toast } = useToast();
+  // Subscribe to the main Tweaks store so we can reflect state cross-page
+  const mainTweaks = useStore(s => s.tweaks);
 
   // Ref so the restore-point progress interval is always cleanable on unmount
   const restoreIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -913,6 +918,9 @@ export default function ExtremeLabs() {
       }
 
       setAppliedTweaks((prev) => { const next = new Set(prev); next.add(id); return next; });
+      // Bridge to main Tweaks store so the Tweaks page reflects this change too
+      const tweak = EXTREME_TWEAKS.find(t => t.id === id);
+      if (tweak?.registryTweakId) useStore.getState().setTweak(tweak.registryTweakId, true);
       useTweakOwnershipStore.getState().recordExtremeLabsApply(id, EXTREME_TWEAKS.find(t => t.id === id)?.label ?? id);
       toast({ title: "Tweak applied", description: "Change is active. Monitor for issues." });
       logHistory(`Extreme Labs: ${EXTREME_TWEAKS.find(t => t.id === id)?.label ?? id}`, "Extreme Labs", "Applied", `Tweak ID: ${id}`);
@@ -951,6 +959,8 @@ export default function ExtremeLabs() {
         }
       }
       setAppliedTweaks((prev) => { const next = new Set(prev); next.delete(id); return next; });
+      // Bridge to main Tweaks store
+      if (tweak?.registryTweakId) useStore.getState().setTweak(tweak.registryTweakId, false);
       useTweakOwnershipStore.getState().recordExtremeLabsRevertSuccess(id);
       toast({ title: "Tweak reverted", description: "Change has been undone." });
       logHistory(`Extreme Labs: ${EXTREME_TWEAKS.find(t => t.id === id)?.label ?? id} Reverted`, "Extreme Labs", "Reverted", `Tweak ID: ${id}`);
@@ -983,6 +993,12 @@ export default function ExtremeLabs() {
       }
       const store = useTweakOwnershipStore.getState();
       for (const id of appliedTweaks) store.recordExtremeLabsRevertSuccess(id);
+      // Bridge: clear all EL-applied registry tweaks from the main Tweaks store
+      const mainStore = useStore.getState();
+      for (const id of appliedTweaks) {
+        const t = EXTREME_TWEAKS.find(x => x.id === id);
+        if (t?.registryTweakId) mainStore.setTweak(t.registryTweakId, false);
+      }
       setAppliedTweaks(new Set());
       toast({ title: "All tweaks reverted", description: "System restored to baseline." });
       logHistory("Extreme Labs: Revert All", "Extreme Labs", "Reverted All", "All lab tweaks restored to baseline");
@@ -1049,6 +1065,7 @@ export default function ExtremeLabs() {
           {isUnlocked ? (
             <ExtremeDashboard
               appliedTweaks={appliedTweaks}
+              mainTweaks={mainTweaks}
               onApplyTweak={handleApplyTweak}
               onUndoTweak={handleUndoTweak}
               onRevertAll={handleRevertAll}
