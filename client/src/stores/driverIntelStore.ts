@@ -490,6 +490,14 @@ function delay(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
+// Monotonic token guarding the step-cadence loop below. Navigating away from
+// the Driver Intelligence page mid-scan doesn't abort the in-flight network
+// fetches (cheap, and their result is still useful to cache), but it does stop
+// the animated stepIndex ticker from continuing to `set()` on a page nobody is
+// looking at. Bumped by every scan() call so a superseded/abandoned run's loop
+// exits on its next iteration instead of running to completion.
+let _scanToken = 0;
+
 export const useDriverIntelStore = create<DriverIntelState>((set, get) => ({
   phase: "idle",
   stepIndex: 0,
@@ -513,6 +521,7 @@ export const useDriverIntelStore = create<DriverIntelState>((set, get) => ({
     }
     if (st.phase === "scanning") return;
 
+    const token = ++_scanToken;
     set({ phase: "scanning", stepIndex: 0, error: null });
 
     try {
@@ -522,13 +531,17 @@ export const useDriverIntelStore = create<DriverIntelState>((set, get) => ({
       const hwPromise = acquireHardware();
 
       // Drive the step labels (≈ 2.4s minimum so the flow reads as deliberate,
-      // never longer than needed once data is back).
+      // never longer than needed once data is back). Bails out early if a
+      // newer scan() call has superseded this one.
       for (let i = 0; i < SCAN_STEPS.length; i++) {
+        if (token !== _scanToken) return;
         set({ stepIndex: i });
         await delay(380);
       }
+      if (token !== _scanToken) return;
 
       const [{ db, local }, news, hw] = await Promise.all([dbPromise, newsPromise, hwPromise]);
+      if (token !== _scanToken) return;
 
       const components = buildComponents(hw, db);
       const score = computeHealthScore(components);
@@ -547,9 +560,11 @@ export const useDriverIntelStore = create<DriverIntelState>((set, get) => ({
         stepIndex: SCAN_STEPS.length - 1,
       });
     } catch (err: any) {
+      if (token !== _scanToken) return;
       // Even a hard failure keeps a usable page: build from whatever we have.
       try {
         const components = buildComponents(await acquireHardware(), LOCAL_DB_FALLBACK);
+        if (token !== _scanToken) return;
         set({
           phase: "partial",
           components,
@@ -559,6 +574,7 @@ export const useDriverIntelStore = create<DriverIntelState>((set, get) => ({
           scannedAt: Date.now(),
         });
       } catch {
+        if (token !== _scanToken) return;
         set({ phase: "error", error: err?.message ?? "Scan failed" });
       }
     }
