@@ -79,7 +79,7 @@ async function buildAll() {
 
   console.log("building client...");
   await viteBuild({
-    base: "./",
+    base: "/",
   });
 
   console.log("building server (fully bundled — no external npm deps)...");
