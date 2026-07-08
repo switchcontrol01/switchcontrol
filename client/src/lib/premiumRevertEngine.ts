@@ -67,6 +67,31 @@ const PREMIUM_PRESET_DEFAULTS: Record<string, string> = {
   'directx-optimization-profile': 'standard',
 };
 
+// ── Extreme Labs → main Zustand store bridge mappings ───────────────────────
+//
+// When Extreme Labs tweaks are reverted (trial expiry), the local appliedTweaks
+// Set and localStorage get cleared. But the main store also holds state for
+// registry/slider/preset tweaks that EL bridges to. These mappings let us
+// clear the main store so the Tweaks page doesn't still show them as applied.
+
+const EL_REGISTRY_TWEAK_IDS: string[] = [
+  'timer-res', 'synth-timers', 'hpet-disable', 'power-throttling',
+  'disable-game-dvr', 'disable-xbox-capture', 'optimize-windowed-games',
+  'mmcss-nolazymode', 'tcp-no-delay',
+  'win-search-index', 'superfetch', 'fax-printer', 'xbox-services',
+  'bluetooth', 'edge-update', 'adobe-updater', 'teams-startup', 'vendor-updaters',
+];
+
+const EL_SLIDER_DEFAULTS: Record<string, number> = {
+  'net-throttle-index': 10,
+  'win32-priority-sep': 2,
+  'sys-responsiveness': 20,
+};
+
+const EL_PRESET_DEFAULTS: Record<string, string> = {
+  'fortnite-high-priority': 'normal',
+};
+
 /**
  * Reset the Zustand main store's sliderValues for every reverted ID to its
  * Windows default so the slider UI immediately reflects the reverted state.
@@ -115,6 +140,30 @@ function clearPremiumPresetStoreValues(revertedIds?: string[]): void {
     console.log(`[Revert:PRESET] store cleared for ${cleared} preset(s)`);
   } catch (e) {
     console.warn('[Revert:PRESET] clearPremiumPresetStoreValues failed:', e);
+  }
+}
+
+/**
+ * Reset the main Zustand store for all Extreme Labs-bridged tweaks.
+ * Registry tweaks are set to false, sliders to Windows defaults, presets to
+ * their defaultOptionId. Called after a successful EL restoreBaseline() so
+ * the Tweaks page and Extreme Labs page both reflect the reverted state.
+ */
+function clearMainStoreForELTweaks(): void {
+  try {
+    const mainStore = useStore.getState();
+    for (const id of EL_REGISTRY_TWEAK_IDS) {
+      mainStore.setTweak(id, false);
+    }
+    for (const [id, defaultVal] of Object.entries(EL_SLIDER_DEFAULTS)) {
+      mainStore.setSliderValue(id, defaultVal);
+    }
+    for (const [id, defaultOptionId] of Object.entries(EL_PRESET_DEFAULTS)) {
+      mainStore.setPresetOption(id, defaultOptionId);
+    }
+    console.log('[Revert:EL] main store cleared for bridged EL tweaks');
+  } catch (e) {
+    console.warn('[Revert:EL] clearMainStoreForELTweaks failed:', e);
   }
 }
 
@@ -535,9 +584,11 @@ async function revertExtremeLabsTweaks(): Promise<RevertItemResult[]> {
 
   // Nothing tracked in the store — safety sweep completed but nothing to report to UI.
   if (entries.length === 0) {
-    // Still clear localStorage so the component doesn't show stale Applied state.
+    // Still clear localStorage + main store so the component doesn't show stale
+    // Applied state on any page (Extreme Labs or Tweaks).
     if (success) {
       try { localStorage.removeItem('extreme-labs-applied'); } catch (_) {}
+      clearMainStoreForELTweaks();
       dispatchRevertEvent('sc:el-reverted');
     }
     return [];
@@ -562,10 +613,11 @@ async function revertExtremeLabsTweaks(): Promise<RevertItemResult[]> {
     }
   });
 
-  // Clear UI state for reverted items
+  // Clear UI state for reverted items (localStorage, main store, and event dispatch)
   const anyReverted = results.some(r => r.status === 'reverted');
   if (anyReverted) {
     try { localStorage.removeItem('extreme-labs-applied'); } catch (_) {}
+    clearMainStoreForELTweaks();
     dispatchRevertEvent('sc:el-reverted');
   }
 

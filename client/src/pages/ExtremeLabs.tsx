@@ -809,10 +809,27 @@ export default function ExtremeLabs() {
 
   // When the premium revert engine reverts Extreme Labs tweaks (trial expiry /
   // downgrade), it dispatches "sc:el-reverted" and clears localStorage.
-  // Sync our in-memory appliedTweaks state so the UI immediately reflects the
-  // revert without requiring a page refresh.
+  // Sync our in-memory appliedTweaks state AND the main Zustand store so the
+  // UI immediately reflects the revert without requiring a page refresh.
+  // The main store must be cleared because ExtremeDashboard's isApplied check
+  // looks at both appliedTweaks AND mainTweaks/mainSliderValues/mainPresetOptions.
   useEffect(() => {
-    const handler = () => setAppliedTweaks(new Set());
+    const handler = () => {
+      setAppliedTweaks(new Set());
+      // Also clear the bridged main-store entries so cards don't stay "applied"
+      const mainStore = useStore.getState();
+      for (const t of EXTREME_TWEAKS) {
+        if (t.registryTweakId) mainStore.setTweak(t.registryTweakId, false);
+        if (t.sliderTweakId) {
+          const sv = EL_SLIDER_REVERT[t.sliderTweakId];
+          if (sv) mainStore.setSliderValue(sv.mainId, sv.defaultValue);
+        }
+        if (t.presetTweakId) {
+          const pv = EL_PRESET_REVERT[t.presetTweakId];
+          if (pv) mainStore.setPresetOption(pv.mainId, pv.defaultOptionId);
+        }
+      }
+    };
     window.addEventListener('sc:el-reverted', handler);
     return () => window.removeEventListener('sc:el-reverted', handler);
   }, []);
