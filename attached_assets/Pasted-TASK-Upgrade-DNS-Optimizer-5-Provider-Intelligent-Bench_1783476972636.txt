@@ -1,0 +1,193 @@
+TASK: Upgrade DNS Optimizer (5 Provider Intelligent Benchmark)
+
+PROBLEM
+
+The current DNS Optimizer only compares Cloudflare and Google DNS.
+
+This is useful, but not ideal because a provider may temporarily have poor routing or congestion.
+
+A comparison between only two providers does not provide enough data to confidently recommend the best DNS server for gaming.
+
+
+---
+
+GOAL
+
+Completely redesign DNS Optimizer into an intelligent benchmarking system.
+
+Instead of comparing two providers, benchmark the five most popular public DNS providers, rank them, analyse them, and automatically recommend the best provider for the user's connection.
+
+This should become one of SwitchControl Premium's flagship networking features.
+
+
+---
+
+DNS PROVIDERS
+
+Benchmark all providers simultaneously.
+
+• Cloudflare (1.1.1.1)
+
+• Google (8.8.8.8)
+
+• Quad9 (9.9.9.9)
+
+• OpenDNS (208.67.222.222)
+
+• AdGuard DNS (94.140.14.14)
+
+
+---
+
+BENCHMARKING
+
+Each provider should be tested multiple times.
+
+Collect:
+
+• Average latency
+
+• Median latency
+
+• Minimum latency
+
+• Maximum latency
+
+• Jitter
+
+• Packet loss
+
+• Response consistency
+
+• Stability score
+
+Ignore obvious outliers.
+
+
+---
+
+LEADERBOARD
+
+Display all providers ranked from fastest to slowest.
+
+Example
+
+🥇 Cloudflare 46.2 ms
+
+🥈 Quad9 47.0 ms
+
+🥉 Google 48.8 ms
+
+4️⃣ OpenDNS 52.1 ms
+
+5️⃣ AdGuard 60.4 ms
+
+
+---
+
+RECOMMENDATION ENGINE
+
+Automatically recommend the best provider.
+
+Display
+
+Recommended DNS
+
+Cloudflare
+
+Reason
+
+✓ Lowest average latency
+
+✓ Lowest jitter
+
+✓ Highest consistency
+
+✓ Best gaming performance
+
+
+---
+
+CONFIDENCE
+
+Replace the current confidence system.
+
+Possible ratings:
+
+• Very High
+
+• High
+
+• Medium
+
+• Low
+
+Confidence should be calculated from probe consistency rather than being static.
+
+
+---
+
+ADDITIONAL INSIGHTS
+
+Also display:
+
+• Best Overall
+
+• Lowest Latency
+
+• Lowest Jitter
+
+• Most Stable
+
+• Best Competitive Gaming
+
+Different providers may win different categories.
+
+
+---
+
+UI IMPROVEMENTS
+
+Redesign the results screen.
+
+Show:
+
+• DNS leaderboard
+
+• Recommended provider
+
+• Why it was selected
+
+• Confidence rating
+
+• Stability summary
+
+The recommended provider should stand out visually.
+
+
+---
+
+PERFORMANCE
+
+Requirements:
+
+• Run all provider tests asynchronously.
+
+• Complete in approximately 3 seconds.
+
+• Timeout failed providers.
+
+• Never freeze the UI.
+
+• Continue benchmarking even if one provider fails.
+
+
+---
+
+FINAL OUTPUT
+
+DNS Optimizer should evolve from a basic Cloudflare vs Google comparison into a complete intelligent DNS benchmarking system.
+
+Instead of recommending a fixed provider, it should benchmark the user's actual network and automatically recommend the DNS server that provides the best real-world gaming performance based on latency, stability, jitter, and consistency.
+
+This should feel polished, professional, and become one of the standout Premium networking features in SwitchControl.

@@ -1,12 +1,13 @@
 {
-  "version": "1.1.9",
-  "title": "Revert Engine Fix",
-  "headline": "This release fixes the trial expiry revert so slider and preset tweaks actually reset to true Windows defaults.",
+  "version": "1.1.10",
+  "title": "VRAM Detection Fix",
+  "headline": "This release fixes GPU VRAM reporting so the Dashboard and PC DNA show your real memory, not a 4 GB cap.",
   "date": "2026-07-07",
   "type": "patch",
   "changes": [
-    "Fixed: Slider tweaks now revert to their real Windows default values on trial expiry, not the corrupted backup that matched the tweaked value. Same fix applied to preset tweaks (IRQ, I/O, GPU profiles).",
-    "Fixed: The 'teams-startup' toggle tweak no longer fails to revert. The PowerShell command had broken quoting that caused a 'positional parameter' error.",
-    "Improved: After a trial expiry revert, the stale state file entries are cleared. The next time you apply a premium tweak, it will capture a fresh true original value."
+    "Fixed: GPU VRAM now shows the correct amount for modern GPUs (e.g. RX 7800 XT shows 16 GB instead of 4 GB).",
+    "Fixed: The root cause was WMI's AdapterRAM field — a 32-bit value that caps at ~4 GB. SwitchControl now uses a ground-truth lookup table for 50+ known cards.",
+    "Fixed: Stale disk cache with wrong VRAM values is also corrected on app startup.",
+    "Improved: Covers AMD RX 5000-9000, NVIDIA RTX 20-50, GTX 10/16, and Intel Arc series."
   ]
 }

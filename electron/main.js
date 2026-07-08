@@ -171,6 +171,73 @@ const GPU_POLL_TTL_MS = 15_000;
 
 // Network stats TTL — prevents slow NIC drivers from blocking the loop
 const NET_STATS_TTL_MS = 5_000;
+
+// ─── GPU VRAM lookup table ─────────────────────────────────────────────────
+// WMI Win32_VideoController.AdapterRAM is a 32-bit signed integer that caps at
+// ~4 GB. Modern GPUs (AMD RX 7000+, NVIDIA RTX 30+, Intel Arc) report 4 GB or
+// less regardless of their real VRAM.  si.graphics() is skipped for AMD cards
+// because DXGI hangs 3-4 s.  This table provides the ground-truth VRAM for known
+// cards so the Dashboard / PC DNA / Advisor all show the correct number.
+//
+// Key format: lower-case model substring → VRAM in GB.
+// Matching is done with includes() so "RX 7800 XT" hits "rx 7800".
+const GPU_VRAM_TABLE = {
+  // AMD RX 9000 series
+  'rx 9070 xt': 16, 'rx 9070': 16,
+  // AMD RX 7000 series
+  'rx 7900 xtx': 24, 'rx 7900 xt': 20, 'rx 7900': 20,
+  'rx 7800 xt': 16, 'rx 7800': 16,
+  'rx 7700 xt': 12, 'rx 7700': 12,
+  'rx 7600 xt': 16, 'rx 7600': 8,
+  'rx 7500': 8,
+  // AMD RX 6000 series
+  'rx 6950 xt': 16, 'rx 6900 xt': 16, 'rx 6900': 16,
+  'rx 6800 xt': 16, 'rx 6800': 16,
+  'rx 6750 xt': 12, 'rx 6700 xt': 12, 'rx 6700': 10,
+  'rx 6650 xt': 8, 'rx 6600 xt': 8, 'rx 6600': 8,
+  'rx 6500 xt': 4, 'rx 6500': 4,
+  'rx 6400': 4,
+  // AMD RX 5000 series
+  'rx 5700 xt': 8, 'rx 5700': 8,
+  'rx 5600 xt': 6, 'rx 5600': 6,
+  'rx 5500 xt': 4, 'rx 5500': 4,
+  // NVIDIA RTX 50 series
+  'rtx 5090': 32, 'rtx 5080': 16, 'rtx 5070 ti': 16, 'rtx 5070': 12,
+  'rtx 5060 ti': 16, 'rtx 5060': 8, 'rtx 5050': 8,
+  // NVIDIA RTX 40 series
+  'rtx 4090': 24, 'rtx 4080 super': 16, 'rtx 4080': 16, 'rtx 4070 ti super': 16,
+  'rtx 4070 ti': 12, 'rtx 4070 super': 12, 'rtx 4070': 12,
+  'rtx 4060 ti': 8, 'rtx 4060': 8, 'rtx 4050': 6,
+  // NVIDIA RTX 30 series
+  'rtx 3090 ti': 24, 'rtx 3090': 24, 'rtx 3080 ti': 12, 'rtx 3080': 10,
+  'rtx 3070 ti': 8, 'rtx 3070': 8, 'rtx 3060 ti': 8, 'rtx 3060': 12,
+  'rtx 3050': 8,
+  // NVIDIA RTX 20 series
+  'rtx 2080 ti': 11, 'rtx 2080 super': 8, 'rtx 2080': 8,
+  'rtx 2070 super': 8, 'rtx 2070': 8, 'rtx 2060 super': 8, 'rtx 2060': 6,
+  // NVIDIA GTX 16 series
+  'gtx 1660 ti': 6, 'gtx 1660 super': 6, 'gtx 1660': 6,
+  'gtx 1650 super': 4, 'gtx 1650': 4,
+  // NVIDIA GTX 10 series
+  'gtx 1080 ti': 11, 'gtx 1080': 8, 'gtx 1070 ti': 8, 'gtx 1070': 8,
+  'gtx 1060': 6, 'gtx 1050 ti': 4, 'gtx 1050': 2,
+  // Intel Arc
+  'arc a770': 16, 'arc a750': 8, 'arc a580': 8, 'arc a380': 6, 'arc a310': 4,
+};
+
+/**
+ * Return the known VRAM (GB) for a GPU model name, or null if unknown.
+ * Handles "AMD Radeon RX 7800 XT" → "rx 7800" lookup.
+ */
+function lookupGpuVram(model) {
+  if (!model) return null;
+  const ml = model.toLowerCase();
+  // Direct substring match (e.g. "rx 7800 xt" contains "rx 7800")
+  for (const [key, vram] of Object.entries(GPU_VRAM_TABLE)) {
+    if (ml.includes(key)) return vram;
+  }
+  return null;
+}
 let _netStatsLastTs = 0;
 let _netStatsCache = null;
 
@@ -2136,8 +2203,18 @@ function _loadSpecsFromDisk() {
     // Refresh RAM from OS — usage changes every boot, totalmem can change with hardware swaps
     const total = os.totalmem();
     const free  = os.freemem();
+    // Fix stale disk-cached VRAM that may have been saved with WMI's 32-bit cap
+    let cachedGpu = raw.gpu;
+    if (cachedGpu?.model) {
+      const lookupVram = lookupGpuVram(cachedGpu.model);
+      if (lookupVram != null && lookupVram !== cachedGpu.vramGB) {
+        console.log(`[Enrich] disk-cache VRAM override — was ${cachedGpu.vramGB}GB, corrected to ${lookupVram}GB for "${cachedGpu.model}"`);
+        cachedGpu = { ...cachedGpu, vramGB: lookupVram };
+      }
+    }
     const specs = {
       ...raw,
+      gpu: cachedGpu,
       ram: {
         totalGB: parseFloat((total / 1073741824).toFixed(1)),
         usedGB:  parseFloat(Math.max(0, (total - free) / 1073741824).toFixed(1)),
@@ -2266,6 +2343,12 @@ async function _enrichSpecsInBackground() {
                       : (ml.includes('amd') || ml.includes('radeon')) ? 'AMD'
                       : ml.includes('intel') ? 'Intel' : null;
           gpuIsNvidia = ml.includes('nvidia');
+          // Override WMI's 32-bit-capped AdapterRAM with known ground-truth VRAM
+          const lookupVram = lookupGpuVram(gpuModel);
+          if (lookupVram != null && lookupVram !== gpuVramGB) {
+            console.log(`[Enrich] VRAM override — WMI reported ${gpuVramGB}GB, lookup corrected to ${lookupVram}GB for "${gpuModel}"`);
+            gpuVramGB = lookupVram;
+          }
           console.log(`[Enrich] Stage 1 GPU — model:${gpuModel} | VRAM:${gpuVramGB.toFixed(1)}GB | +${Date.now() - _t0}ms`);
         }
       }
