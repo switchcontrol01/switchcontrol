@@ -526,6 +526,7 @@ function ExtremeDashboard({
   appliedTweaks,
   mainTweaks,
   mainSliderValues,
+  mainPresetOptions,
   onApplyTweak,
   onUndoTweak,
   onRevertAll,
