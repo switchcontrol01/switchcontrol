@@ -53,6 +53,19 @@ const PREMIUM_SLIDER_DEFAULTS: Record<string, number> = {
   'svchost-split-threshold':  380000,
 };
 
+// ── Premium preset defaults ───────────────────────────────────────────────────
+//
+// Mirrors the defaultOptionId fields in electron/preset-tweak-executor.js.
+// Used to reset the Zustand presetOptions store after revert so the UI
+// immediately shows the Windows-default option rather than the stale
+// premium option (e.g. "Gaming" → "standard", "extended" → "standard").
+
+const PREMIUM_PRESET_DEFAULTS: Record<string, string> = {
+  'irq-optimization-profile':  'balanced',
+  'io-optimization-profile':   'standard',
+  'directx-optimization-profile': 'standard',
+};
+
 /**
  * Reset the Zustand main store's sliderValues for every reverted ID to its
  * Windows default so the slider UI immediately reflects the reverted state.
@@ -74,6 +87,33 @@ function clearPremiumSliderStoreValues(revertedIds?: string[]): void {
     console.log(`[Revert:SLIDER] store cleared for ${ids.length} slider(s)`);
   } catch (e) {
     console.warn('[Revert:SLIDER] clearPremiumSliderStoreValues failed:', e);
+  }
+}
+
+/**
+ * Reset the Zustand presetOptions for every reverted preset ID to its
+ * Windows-default option so the preset card immediately shows the default
+ * option (not the stale premium selection) after trial expiry revert.
+ * Falls back to resetting ALL known premium presets when no specific list is
+ * provided.
+ */
+function clearPremiumPresetStoreValues(revertedIds?: string[]): void {
+  try {
+    const store = useStore.getState();
+    const ids = (revertedIds && revertedIds.length > 0)
+      ? revertedIds
+      : Object.keys(PREMIUM_PRESET_DEFAULTS);
+    let cleared = 0;
+    for (const id of ids) {
+      const defaultOptionId = PREMIUM_PRESET_DEFAULTS[id];
+      if (defaultOptionId !== undefined) {
+        store.setPresetOption(id, defaultOptionId);
+        cleared++;
+      }
+    }
+    console.log(`[Revert:PRESET] store cleared for ${cleared} preset(s)`);
+  } catch (e) {
+    console.warn('[Revert:PRESET] clearPremiumPresetStoreValues failed:', e);
   }
 }
 
@@ -256,6 +296,11 @@ async function revertPresetTweaks(): Promise<RevertItemResult[]> {
 
   const revertedIds: string[] = lastResult.reverted ?? [];
   const failedList: Array<{ tweakId: string; error: string }> = lastResult.failed ?? [];
+
+  // Reset the Zustand preset store so the card UI immediately shows the
+  // Windows-default option instead of the stale premium selection.
+  clearPremiumPresetStoreValues(revertedIds.length > 0 ? revertedIds : undefined);
+  dispatchRevertEvent('sc:presets-reverted', { ids: revertedIds });
 
   const results: RevertItemResult[] = [];
 
@@ -817,5 +862,16 @@ export function hasPremiumItemsToRevert(): boolean {
     });
   } catch { /* non-Electron / store not ready */ }
 
-  return hasTweaks || hasNetwork || hasPlan || hasExtremeLabs || hasSliders;
+  // Check premium presets: any stored option that differs from the Windows default
+  // means the preset was applied.
+  let hasPresets = false;
+  try {
+    const presetOptions = useStore.getState().presetOptions;
+    hasPresets = Object.entries(PREMIUM_PRESET_DEFAULTS).some(([id, defaultOptionId]) => {
+      const stored = presetOptions?.[id];
+      return stored !== undefined && stored !== defaultOptionId;
+    });
+  } catch { /* non-Electron / store not ready */ }
+
+  return hasTweaks || hasNetwork || hasPlan || hasExtremeLabs || hasSliders || hasPresets;
 }

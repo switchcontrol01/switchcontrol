@@ -1,6 +1,6 @@
 ---
 name: Premium Slider/Preset Revert Fix
-description: Slider and preset tweaks were skipped during trial expiry revert; fixed in v2 by wiring backend batch reverts; fixed again in v3 for three deeper root causes.
+description: Slider and preset tweaks were skipped during trial expiry revert; fixed in v2 by wiring backend batch reverts; fixed again in v3 for three deeper root causes; v4 fixes preset Zustand store clear + tcp-throttling-index check.
 ---
 
 **Problem:** Slider and preset tweaks never got reverted when trial expired. The client-side `runPremiumRevert()` engine in `premiumRevertEngine.ts` had NO code to handle them.
@@ -34,4 +34,19 @@ Fix: Added `PREMIUM_SLIDER_DEFAULTS` map (all 10 premium slider defaults). Added
 
 **Key invariant:** `PREMIUM_SLIDER_DEFAULTS` in `premiumRevertEngine.ts` must stay in sync with `defaultValue` fields in `electron/slider-tweak-executor.js`. If a new premium slider is added to the executor, add its default here too.
 
-**Why:** The ownership store (tweakOwnershipStore) never tracked sliders — it only tracks toggle tweaks, network tweaks, EL, and power plan. Sliders must be checked against the Zustand sliderValues store + PREMIUM_SLIDER_DEFAULTS for detection, and the backend must iterate SLIDER_TWEAKS directly (not a potentially-empty backup) for reliable revert coverage.
+---
+
+**Fix (v4 — preset Zustand store + tcp-throttling-index check bug):**
+
+**Root cause 4 — Preset Zustand store never cleared after revert:**
+Backend (PresetExecutor) correctly wrote Windows defaults to all 3 preset registries (reverted=3 failed=0). But `revertPresetTweaks()` had NO equivalent of `clearPremiumSliderStoreValues()`. The `pendingOptionId` in TweakPresetCard reads directly from `useStore.presetOptions`, which was never reset. Result: NTFS I/O Optimization Profile showed "Pending: Gaming" and GPU Driver Timeout Profile showed "Pending: Extended Timeout" in the UI even though the registry was already at defaults.
+Fix: Added `PREMIUM_PRESET_DEFAULTS` map (`irq-optimization-profile` → `balanced`, `io-optimization-profile` → `standard`, `directx-optimization-profile` → `standard`). Added `clearPremiumPresetStoreValues()` that calls `store.setPresetOption(id, defaultOptionId)` for each. Called after successful backend revert + dispatches `sc:presets-reverted`. Also added preset check to `hasPremiumItemsToRevert()`.
+
+**Key invariant:** `PREMIUM_PRESET_DEFAULTS` must stay in sync with `defaultOptionId` fields in `electron/preset-tweak-executor.js`. Add new entries whenever a new premium preset tweak is added.
+
+**Root cause 5 — tcp-throttling-index check always returns "true" after revert:**
+The check script: `if ($v -ge 0xFFFFFFF0) { "true" } else { "false" }`.
+In PowerShell 5.1, `0xFFFFFFF0` is a hex literal parsed as Int32 = **-16**. So the condition becomes `$v -ge -16`. After reverting to value 10: `10 -ge -16` = `$true` → check reports "applied". Verification can never pass after a revert.
+Fix: Changed to `if ($null -ne $v -and $v -lt 0) { "true" } else { "false" }`. The applied value (0xFFFFFFFF) is read by PS as Int32 -1 (< 0 ✓). The reverted value (10) correctly returns false.
+
+**Why this PowerShell gotcha matters:** Registry DWORD values larger than Int32.MaxValue (2147483647) are read back by PowerShell 5.1 as negative Int32 values. Any hex literal `0xXXXXXXXX` > 0x7FFFFFFF is also parsed as negative Int32. Never use `$v -ge 0xFFFFF...` range checks for these; use `$v -lt 0` or `$v -eq -1`.

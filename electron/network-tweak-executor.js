@@ -335,7 +335,7 @@ const TWEAK_REGISTRY = {
     `,
     check: `
       $v = (Get-ItemProperty -Path "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile" -Name "NetworkThrottlingIndex" -EA SilentlyContinue).NetworkThrottlingIndex;
-      if ($v -ge 0xFFFFFFF0) { "true" } else { "false" }
+      if ($null -ne $v -and $v -lt 0) { "true" } else { "false" }
     `,
   },
 
