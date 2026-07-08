@@ -7,6 +7,18 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { logHistory } from "@/lib/logHistory";
+import { useStore } from "@/lib/store";
+
+// Maps NIC driver property keys to canonical IDs in useStore.tweaks.
+// true = property is at its enabled/on value; false = disabled/off.
+const NIC_CANONICAL_IDS: Record<string, string> = {
+  RSS:                 "nic-rss",
+  InterruptModeration: "nic-interrupt-mod",
+  EEE:                 "nic-eee",
+  GreenEthernet:       "nic-eee",
+  FlowControl:         "nic-flow-control",
+  JumboPacket:         "nic-jumbo-frames",
+};
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Network, Loader2, CheckCircle2, XCircle, AlertTriangle,
@@ -363,11 +375,20 @@ function PropertyControl({ adapterName, propKey, meta, capability }: PropertyCon
       logHistory(`NIC Tuning: ${meta.label}`, "NIC Tuning", verified ? "Applied & Verified" : "Applied", `${propKey}=${state.pending} on ${adapterName}`);
       toast({ title: verified ? `${meta.label} Applied & Verified` : `${meta.label} Applied`, description: verified ? `Registry confirmed ${res.actualValue} on ${adapterName}.` : `Written to adapter. Readback pending driver confirmation.` });
       scheduleResultDismiss();
+      // Sync to canonical store so AI Advisor, NetworkTweaks, and Dashboard
+      // all reflect this NIC adapter state without a page reload.
+      const cid = NIC_CANONICAL_IDS[propKey];
+      if (cid) {
+        const isEnabled = meta.enabledValue !== undefined
+          ? state.pending === meta.enabledValue
+          : true;
+        useStore.getState().setTweak(cid, isEnabled);
+      }
     } else {
       const msgs: Record<string, string> = { unsupported_on_adapter: "Property not supported on this NIC driver.", elevation_denied: "Access denied — run as administrator.", invalid_value: sanitizeNicError(res.error), write_failed: sanitizeNicError(res.error) };
       toast({ title: "Apply Failed", description: msgs[res.outcome] ?? sanitizeNicError(res.error), variant: "destructive" });
     }
-  }, [adapterName, propKey, meta.label, state.pending, isElectron, toast, scheduleResultDismiss]);
+  }, [adapterName, propKey, meta.label, meta.enabledValue, state.pending, isElectron, toast, scheduleResultDismiss]);
 
   const reset = useCallback(async () => {
     setState(s => ({ ...s, applying: true, result: null }));
@@ -383,6 +404,9 @@ function PropertyControl({ adapterName, propKey, meta, capability }: PropertyCon
       logHistory(`NIC Tuning: ${meta.label} Reset`, "NIC Tuning", "Reset to Default", `${propKey} restored to driver default on ${adapterName}`);
       toast({ title: "Reset to Default", description: `${meta.label} restored to driver default.` });
       scheduleResultDismiss();
+      // Clear canonical entry — property is back at driver default.
+      const cid = NIC_CANONICAL_IDS[propKey];
+      if (cid) useStore.getState().setTweak(cid, false);
     } else {
       const msgs: Record<string, string> = { unsupported_on_adapter: "Not supported on this NIC driver.", elevation_denied: "Access denied — run as administrator.", reset_failed: sanitizeNicError(res.error) };
       setState(s => ({ ...s, applying: false, result: { ok: false, outcome: (res.outcome ?? "reset_failed") as NicOutcome, verified: false, error: res.error, actualValue: null } }));

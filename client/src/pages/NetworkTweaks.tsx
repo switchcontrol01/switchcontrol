@@ -816,6 +816,56 @@ function NetworkTweaksContent() {
     return () => window.removeEventListener('sc:net-reverted', handler);
   }, []);
 
+  // ── NicTuning → NetworkTweaks live sync ───────────────────────────────────
+  // When the user configures a NIC adapter property in NicTuning that maps to
+  // a network tweak (e.g. adapter RSS → tcp-rss), update our stateMap so both
+  // pages agree on the displayed state without a page reload.
+  // The sentinel message 'Adapter configured via NIC Tuning' distinguishes
+  // NIC-sourced state from user-applied state, preventing override loops.
+  useEffect(() => {
+    const NIC_TO_NETWORK: Array<[string, string]> = [
+      ["nic-rss", "tcp-rss"],
+    ];
+    const unsub = useStore.subscribe((state, prev) => {
+      for (const [nicKey, netId] of NIC_TO_NETWORK) {
+        if (state.tweaks[nicKey] === prev.tweaks[nicKey]) continue;
+        const nicEnabled = !!state.tweaks[nicKey];
+        setStateMap(cur => {
+          const entry = cur[netId];
+          if (nicEnabled && (!entry || entry.status === "idle")) {
+            return { ...cur, [netId]: { status: "enabled" as const, message: "Adapter configured via NIC Tuning" } };
+          }
+          if (!nicEnabled && entry?.message === "Adapter configured via NIC Tuning") {
+            return { ...cur, [netId]: { status: "idle" as const, message: "" } };
+          }
+          return cur;
+        });
+      }
+    });
+    return unsub;
+  }, []);
+
+  // Seed NicTuning adapter state into stateMap once on mount so an already-
+  // configured adapter is reflected immediately (not just after a change).
+  useEffect(() => {
+    const nicTweaks = useStore.getState().tweaks;
+    const NIC_TO_NETWORK: Array<[string, string]> = [
+      ["nic-rss", "tcp-rss"],
+    ];
+    setStateMap(prev => {
+      const updates: Partial<StateMap> = {};
+      for (const [nicKey, netId] of NIC_TO_NETWORK) {
+        if (nicTweaks[nicKey] === true) {
+          const cur = prev[netId];
+          if (!cur || cur.status === "idle") {
+            updates[netId] = { status: "enabled" as const, message: "Adapter configured via NIC Tuning" };
+          }
+        }
+      }
+      return Object.keys(updates).length > 0 ? { ...prev, ...updates } : prev;
+    });
+  }, []); // intentionally empty — seed once on mount
+
   const [toasts, setToasts] = useState<Toast[]>([]);
   const toastCounter = useRef(0);
 
@@ -985,6 +1035,9 @@ function NetworkTweaksContent() {
           } else if (tweak.id === "tcp-throttling-index") {
             mainStore.setSliderValue("net-throttle-index", action === "enable" ? 4294967295 : 10);
           }
+          // Bridge ALL network tweaks to the canonical store so AI Advisor,
+          // Apply Recommended, and Dashboard see the full applied state.
+          mainStore.setTweak(tweak.id, action === "enable");
         }
 
         // ── Re-verify this tweak's real Windows state after apply/revert ──────────
@@ -1055,6 +1108,7 @@ function NetworkTweaksContent() {
         } else if (tweak.id === "tcp-throttling-index") {
           mainStore.setSliderValue("net-throttle-index", action === "enable" ? 4294967295 : 10);
         }
+        mainStore.setTweak(tweak.id, action === "enable");
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Execution error";

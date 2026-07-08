@@ -1364,9 +1364,23 @@ export default function AiAdvisor() {
       recentHistory,
       isElectron: isElectronApp,
       // ── Extended cross-section tweak coverage ────────────────────────────────
-      networkTweaksApplied: Object.entries(ownership.networkTweaks)
-        .filter(([, rec]) => rec.appliedByApp)
-        .map(([id, rec]) => ({ id, label: rec.label })),
+      networkTweaksApplied: [
+        ...Object.entries(ownership.networkTweaks)
+          .filter(([, rec]) => rec.appliedByApp)
+          .map(([id, rec]) => ({ id, label: rec.label })),
+        // Also include network tweaks and NIC adapter tweaks that are stored in
+        // the canonical useStore (persisted across sessions via localStorage).
+        // These are entries from NetworkTweaks and NicTuning pages that aren't
+        // already captured by the ownership store or TWEAKS_DATA registry tweaks.
+        ...Object.entries(tweaks)
+          .filter(([id, enabled]) => {
+            if (!enabled) return false;
+            if (TWEAKS_DATA.some(t => t.id === id)) return false;
+            if (ownership.networkTweaks[id]?.appliedByApp) return false;
+            return true;
+          })
+          .map(([id]) => ({ id, label: id })),
+      ],
       powerPlanApplied: ownership.powerPlan?.appliedByApp
         ? ownership.powerPlan.appliedPlanName
         : null,
