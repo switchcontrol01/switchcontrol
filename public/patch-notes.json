@@ -1,15 +1,14 @@
 {
-  "version": "1.2.0",
-  "title": "Startup & Reliability Update",
-  "headline": "Premium status shows instantly on every launch — no more split-second 'Free' flash. Plus smoother hardware detection and under-the-hood stability fixes.",
+  "version": "1.2.1",
+  "title": "Intelligent Light Mode Update",
+  "headline": "Light Mode now scales back every background process across the app — not just the dashboard graphs — for a noticeably lighter footprint on lower-end machines.",
   "date": "2026-07-08",
   "type": "minor",
   "changes": [
-    "Fixed: Premium badge now appears instantly on startup — the brief 'Free' flash before cloud verification is completely eliminated.",
-    "Fixed: Grace cache now bridges the cloud round-trip so your premium status is accurate from the very first frame, not after a 1-2 second delay.",
-    "Fixed: Startup revert guard correctly defers on fast-path boot, preventing false tweak-reverts for premium users after an update.",
-    "Fixed: GPU VRAM now shows the correct amount for modern GPUs — RX 7800 XT shows 16 GB, not 4 GB.",
-    "Improved: Entitlement resolver has a dedicated startup priority branch that shows Premium from the local cache while cloud confirmation is in flight.",
-    "Improved: AMD/WMI hardware probes are more reliable with longer timeouts and smarter cooldown logic."
+    "Improved: Light Mode now slows down live telemetry, network diagnostics, and background refresh timers everywhere in the app, not just the main dashboard.",
+    "Improved: Live performance graphs release more memory while in Light Mode instead of holding a full history buffer in the background.",
+    "Improved: Cached data is now cleared more aggressively in Light Mode to free up memory sooner.",
+    "Improved: Glow effects, blur, and shadow visuals are further reduced in Light Mode for smoother performance on lower-end hardware.",
+    "Fixed: A few background timers (network monitor, trial countdown) were previously unaffected by Light Mode — they now scale down correctly."
   ]
 }

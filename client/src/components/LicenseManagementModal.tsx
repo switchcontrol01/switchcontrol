@@ -87,7 +87,7 @@ export function LicenseManagementModal({ open, onOpenChange, isPremium, userId }
   const [verifiedLicense, setVerifiedLicense] = useState<VerifiedLicense | null>(null);
 
   const [isRestoring, setIsRestoring] = useState(false);
-  const [appVersion, setAppVersion] = useState("1.2.0");
+  const [appVersion, setAppVersion] = useState("1.2.1");
   const [platform, setPlatform] = useState("Web");
   const [deviceId, setDeviceId] = useState(() => generateDeviceHash(userId));
 
