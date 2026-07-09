@@ -21,7 +21,9 @@ if (!fs.existsSync(indexHtml)) {
 // Hard stop if the backend bundle is missing.
 // This prevents electron-builder from silently packaging an installer
 // without index.cjs (which causes the app to boot with no local backend).
-const backendBundle = path.join(rootDist, "index.cjs");
+// The backend bundle is always written to dist/index.cjs (project root),
+// regardless of whether the frontend was built for web or electron.
+const backendBundle = path.join(__dirname, "..", "..", "dist", "index.cjs");
 if (!fs.existsSync(backendBundle)) {
   console.error("");
   console.error("[ensure-dist] FATAL: dist/index.cjs is missing.");
