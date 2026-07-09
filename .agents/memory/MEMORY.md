@@ -27,3 +27,4 @@
 - [Dashboard startup reveal gate](dashboard-startup-reveal-gate.md) — Home.tsx card-grid fade must gate on specStatus readiness, not a fixed timer, or cards flash skeleton then pop into final values.
 - [PowerShell DWORD overflow guard](powershell-dword-overflow.md) — registry reads of unsigned 32-bit values (e.g. 0xFFFFFFFF = 4294967295) overflow to -1 in PowerShell's default signed int32; always cast `[uint32]` on read/verify when safeMax exceeds 2147483647.
 - [List virtualization pattern](list-virtualization-pattern.md) — @tanstack/react-virtual with dynamic measureElement, gated behind a per-list item-count threshold so short/animated lists keep their original AnimatePresence behavior unchanged.
+- [NVIDIA telemetry revert](nvidia-telemetry-revert.md) — modern drivers have no NvTm*/NvTelemetryContainer; verification returns $true → revert ok=!true=false always fails; fix: pre-check hasComponents, return ok:true if nothing to restore.

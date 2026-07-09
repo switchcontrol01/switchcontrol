@@ -1086,6 +1086,28 @@ async function executeNvidiaTelemetry(action) {
     };
   }
 
+  // ── Revert short-circuit ───────────────────────────────────────────────────
+  // Modern NVIDIA driver installs no longer ship the old NvTm*/NvNode*/NvProfile*
+  // scheduled tasks or the NvTelemetryContainer service. The verification check
+  // treats "no tasks + no service" as $true (already disabled). For the APPLY
+  // direction that is fine (ok = verified = true), but for REVERT it flips to
+  // ok = !verified = false — so revert always fails on modern drivers even though
+  // there is nothing to restore. Pre-check: if no components exist, the system is
+  // already in its default state and the revert is a no-op success.
+  if (action === 'revert') {
+    const hasComponents = await checkPowerShell(
+      `$tasks = Get-ScheduledTask -EA SilentlyContinue | Where-Object { $_.TaskName -like "NvTm*" -or $_.TaskName -like "NvNode*" -or $_.TaskName -like "NvProfile*" }; $svc = Get-Service -Name NvTelemetryContainer -EA SilentlyContinue; ($tasks.Count -gt 0) -or ($null -ne $svc)`
+    );
+    if (!hasComponents) {
+      return {
+        ok: true,
+        commandsRun: [],
+        message: 'NVIDIA telemetry restored (no legacy telemetry components present — already in default state).',
+        rebootRequired: false,
+      };
+    }
+  }
+
   const enableOrDisable = action === 'apply' ? 'Disable' : 'Enable';
   const psCmd = `
     $tasks = Get-ScheduledTask -EA SilentlyContinue | Where-Object { $_.TaskName -like "NvTm*" -or $_.TaskName -like "NvNode*" -or $_.TaskName -like "NvProfile*" };
@@ -1096,10 +1118,11 @@ async function executeNvidiaTelemetry(action) {
 
   await runPowerShell(psCmd);
 
-  // Verify: check if NvTelemetryContainer is disabled OR tasks are all disabled.
-  // Use the same task-name patterns the apply script targets, and treat "no
-  // tasks + no service" as already-disabled (success) — newer driver installs
-  // simply don't ship the old telemetry mechanisms.
+  // Verify current state: true = all telemetry components are disabled (or absent).
+  // For APPLY: ok when verified = true (we disabled them).
+  // For REVERT: ok when verified = false (components exist and are now re-enabled).
+  //   The "no components" early-return above already handles the modern-driver case,
+  //   so reaching here means components were found and the enable command ran.
   const verified = await checkPowerShell(
     `$tasks = Get-ScheduledTask -EA SilentlyContinue | Where-Object { $_.TaskName -like "NvTm*" -or $_.TaskName -like "NvNode*" -or $_.TaskName -like "NvProfile*" }; if ($tasks.Count -eq 0) { $svc = Get-Service -Name NvTelemetryContainer -EA SilentlyContinue; if ($svc) { $svc.StartType -eq "Disabled" } else { $true } } else { ($tasks | Where-Object { $_.State -ne "Disabled" }).Count -eq 0 }`
   );
@@ -1107,9 +1130,9 @@ async function executeNvidiaTelemetry(action) {
   return {
     ok: action === 'apply' ? verified : !verified,
     commandsRun: [psCmd],
-    message: verified
-      ? `NVIDIA telemetry ${action === 'apply' ? 'disabled' : 'restored'} (detected NVIDIA GPU).`
-      : 'NVIDIA telemetry could not be fully disabled — verify permissions or driver version.',
+    message: action === 'apply'
+      ? (verified ? 'NVIDIA telemetry disabled (detected NVIDIA GPU).' : 'NVIDIA telemetry could not be fully disabled — verify permissions or driver version.')
+      : (!verified ? 'NVIDIA telemetry restored (detected NVIDIA GPU).' : 'NVIDIA telemetry could not be fully restored — tasks or service may still be disabled.'),
     rebootRequired: false,
   };
 }
