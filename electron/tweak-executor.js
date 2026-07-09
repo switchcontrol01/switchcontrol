@@ -1086,19 +1086,23 @@ async function executeNvidiaTelemetry(action) {
     };
   }
 
-  // ── Revert short-circuit ───────────────────────────────────────────────────
-  // Modern NVIDIA driver installs no longer ship the old NvTm*/NvNode*/NvProfile*
-  // scheduled tasks or the NvTelemetryContainer service. The verification check
-  // treats "no tasks + no service" as $true (already disabled). For the APPLY
-  // direction that is fine (ok = verified = true), but for REVERT it flips to
-  // ok = !verified = false — so revert always fails on modern drivers even though
-  // there is nothing to restore. Pre-check: if no components exist, the system is
-  // already in its default state and the revert is a no-op success.
-  if (action === 'revert') {
-    const hasComponents = await checkPowerShell(
-      `$tasks = Get-ScheduledTask -EA SilentlyContinue | Where-Object { $_.TaskName -like "NvTm*" -or $_.TaskName -like "NvNode*" -or $_.TaskName -like "NvProfile*" }; $svc = Get-Service -Name NvTelemetryContainer -EA SilentlyContinue; ($tasks.Count -gt 0) -or ($null -ne $svc)`
-    );
-    if (!hasComponents) {
+  // ── Modern-driver short-circuit ────────────────────────────────────────────
+  // Modern NVIDIA driver installs (post-500 series) no longer ship the legacy
+  // NvTm*/NvNode*/NvProfile* scheduled tasks or the NvTelemetryContainer service.
+  // The verification check treats "no tasks + no service" as $true (already
+  // disabled). For REVERT: the system is already in its default state → no-op.
+  // For APPLY: there is nothing to disable → the tweak is unsupported on this
+  // system. Without this guard, apply returns ok=true (verified=$true), but
+  // checkStatus then returns isApplied=false (nothing disabled), causing a
+  // verification-failed mismatch on the client.
+  const hasComponents = await checkPowerShell(
+    `$tasks = Get-ScheduledTask -EA SilentlyContinue | Where-Object { $_.TaskName -like "NvTm*" -or $_.TaskName -like "NvNode*" -or $_.TaskName -like "NvProfile*" }; $svc = Get-Service -Name NvTelemetryContainer -EA SilentlyContinue; ($tasks.Count -gt 0) -or ($null -ne $svc)`
+  );
+  if (!hasComponents) {
+    if (action === 'revert') {
+      // Nothing to restore — already in default state. Return success so the
+      // client verification phase (checkStatus) sees isApplied=false which
+      // matches the expected revert state.
       return {
         ok: true,
         commandsRun: [],
@@ -1106,6 +1110,16 @@ async function executeNvidiaTelemetry(action) {
         rebootRequired: false,
       };
     }
+    // Modern driver — nothing to disable. Mark unsupported so the client
+    // shows a clear "Not Supported" message instead of a confusing
+    // verification-failed error.
+    return {
+      ok: false,
+      unsupported: true,
+      commandsRun: [],
+      message: 'Legacy NVIDIA telemetry components are not present on this system (modern driver). Nothing to disable.',
+      rebootRequired: false,
+    };
   }
 
   const enableOrDisable = action === 'apply' ? 'Disable' : 'Enable';
@@ -1161,13 +1175,19 @@ async function verifyTweak(tweakId) {
       logTweakSupport(tweakId, false, 'No NVIDIA GPU detected', { osRelease: osVer, helperFound: false });
       return { isApplied: false, unsupported: true, message: 'No NVIDIA GPU detected.' };
     }
+
+    // Modern NVIDIA drivers (post-500 series) removed legacy telemetry components.
+    // If no tasks AND no service exist, the tweak is unsupported on this system.
+    const hasComponents = await checkPowerShell(
+      `$tasks = Get-ScheduledTask -EA SilentlyContinue | Where-Object { $_.TaskName -like "NvTm*" -or $_.TaskName -like "NvNode*" -or $_.TaskName -like "NvProfile*" }; $svc = Get-Service -Name NvTelemetryContainer -EA SilentlyContinue; ($tasks.Count -gt 0) -or ($null -ne $svc)`
+    );
+    if (!hasComponents) {
+      logTweakSupport(tweakId, false, 'Legacy NVIDIA telemetry components not present (modern driver)', { osRelease: osVer, helperFound: true });
+      return { isApplied: false, unsupported: true, message: 'Legacy NVIDIA telemetry components are not present on this system (modern driver).' };
+    }
+
     logTweakSupport(tweakId, true, 'NVIDIA GPU present', { osRelease: osVer, helperFound: true });
     // "Applied" means: legacy telemetry components exist AND are disabled.
-    // If no tasks AND no service exist (modern NVIDIA drivers removed them),
-    // there is nothing to disable — the tweak is NOT applied ($false).
-    // The old query returned $true for "no components" which caused the toggle to
-    // show as ON and made the revert engine think the tweak was still active after
-    // a successful revert, causing infinite retry → failure.
     const applied = await checkPowerShell(
       `$tasks = Get-ScheduledTask -EA SilentlyContinue | Where-Object { $_.TaskName -like "NvTm*" -or $_.TaskName -like "NvNode*" -or $_.TaskName -like "NvProfile*" }; $svc = Get-Service -Name NvTelemetryContainer -EA SilentlyContinue; if ($tasks.Count -eq 0 -and $null -eq $svc) { $false } elseif ($tasks.Count -gt 0) { ($tasks | Where-Object { $_.State -ne "Disabled" }).Count -eq 0 } else { $svc.StartType -eq "Disabled" }`
     );

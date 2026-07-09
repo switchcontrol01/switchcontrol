@@ -1,0 +1,59 @@
+[2026-07-09T08:13:08.844Z] HEALTH attempt=1 elapsed=0ms ERR ECONNREFUSED connect ECONNREFUSED 127.0.0.1:51232
+[2026-07-09T08:13:08.899Z] HEALTH attempt=2 elapsed=60ms ERR ECONNREFUSED connect ECONNREFUSED 127.0.0.1:51232
+[2026-07-09T08:13:08.960Z] HEALTH attempt=3 elapsed=122ms ERR ECONNREFUSED connect ECONNREFUSED 127.0.0.1:51232
+[2026-07-09T08:13:09.023Z] HEALTH attempt=4 elapsed=184ms ERR ECONNREFUSED connect ECONNREFUSED 127.0.0.1:51232
+[2026-07-09T08:13:09.034Z] STDOUT [DesktopSecrets] ELECTRON_BACKEND mode — bootstrapping secrets
+[2026-07-09T08:13:09.035Z] STDOUT [DesktopSecrets] Secrets file path: C:\Users\coope\AppData\Roaming\SwitchControl\desktop-secrets.json
+[2026-07-09T08:13:09.036Z] STDOUT [DesktopSecrets] Loaded persisted secrets from: C:\Users\coope\AppData\Roaming\SwitchControl\desktop-secrets.json
+[2026-07-09T08:13:09.036Z] STDOUT [DesktopSecrets] JWT_SECRET: loaded from persisted file
+[2026-07-09T08:13:09.037Z] STDOUT [DesktopSecrets] SESSION_SECRET: loaded from persisted file
+[2026-07-09T08:13:09.037Z] STDOUT [DesktopSecrets] Bootstrap complete — JWT_SECRET and SESSION_SECRET are set
+[2026-07-09T08:13:09.086Z] HEALTH attempt=5 elapsed=248ms ERR ECONNREFUSED connect ECONNREFUSED 127.0.0.1:51232
+[2026-07-09T08:13:09.149Z] HEALTH attempt=6 elapsed=311ms ERR ECONNREFUSED connect ECONNREFUSED 127.0.0.1:51232
+[2026-07-09T08:13:09.171Z] STDOUT [DB] Electron offline mode — no DATABASE_URL present, using in-memory mock storage.
+[2026-07-09T08:13:09.195Z] STDOUT [Stripe] Billing not configured on local backend — expected in Electron mode.
+[2026-07-09T08:13:09.305Z] HEALTH attempt=7 elapsed=467ms ERR ECONNREFUSED connect ECONNREFUSED 127.0.0.1:51232
+[2026-07-09T08:13:09.653Z] STDOUT [JWT] ===== SELF-TEST START =====
+[2026-07-09T08:13:09.654Z] STDOUT [JWT] config OK — JWT secret configured (secretFp=e57dd63a)
+[2026-07-09T08:13:09.654Z] STDOUT [JWT] signed — userId=self-test-user-000 secretFp=e57dd63a tokenFp=eyJhbGci.eyJzdWIi
+[2026-07-09T08:13:09.655Z] STDOUT [JWT] PASS: valid token → sub=self-test-user-000 exp=1786176789
+[2026-07-09T08:13:09.655Z] STDOUT [JWT] PASS: invalid token → null (rejected)
+[2026-07-09T08:13:09.656Z] STDOUT [JWT] PASS: expired token → null (rejected)
+[2026-07-09T08:13:09.657Z] STDOUT [JWT] PASS: empty token → null (fallback to cookie path)
+[2026-07-09T08:13:09.657Z] STDOUT [JWT] PASS: alg=none token → null (rejected)
+[2026-07-09T08:13:09.658Z] STDOUT [JWT] PASS: wrong issuer token → null (rejected)
+[2026-07-09T08:13:09.658Z] STDOUT [JWT] ===== SELF-TEST END =====
+[2026-07-09T08:13:09.659Z] STDOUT [AUTH] Google OAuth not configured on local backend — expected in Electron mode (auth handled by cloud server).
+[2026-07-09T08:13:09.659Z] STDOUT [AUTH] Using memory session store (NO-DB / Electron desktop mode)
+[2026-07-09T08:13:09.660Z] STDOUT [AUTH] ===== SESSION COOKIE CONFIG =====
+[2026-07-09T08:13:09.660Z] STDOUT [AUTH] production: true
+[2026-07-09T08:13:09.661Z] STDOUT [AUTH] electronBackend: true
+[2026-07-09T08:13:09.661Z] STDOUT [AUTH] cookie: {"httpOnly":true,"secure":false,"sameSite":"lax","maxAge":604800000,"path":"/"}
+[2026-07-09T08:13:09.662Z] STDOUT [AUTH] ================================
+[2026-07-09T08:13:09.662Z] STDOUT [AUTH] Discord OAuth not configured on local backend — expected in Electron mode (auth handled by cloud server).
+[2026-07-09T08:13:09.663Z] STDOUT [WS] Live telemetry WebSocket server ready at /ws/telemetry (auth required)
+[2026-07-09T08:13:09.663Z] STDOUT 4:13:09 PM [express] serving on 127.0.0.1:51232
+[2026-07-09T08:13:09.687Z] Health check PASSED — attempt 8, 850ms elapsed, body={"status":"ok","version":"1.2.2","uptime":0,"dbReachable":false,"timestamp":1783584789682}
+[2026-07-09T08:13:12.787Z] STDOUT [SysIntelligence] phase=A start — identity collection (sequential, WMI-safe)
+[2026-07-09T08:13:15.825Z] STDOUT [SysIntelligence] phase=timeout source=A.mem limit=3000ms
+[2026-07-09T08:13:25.542Z] STDOUT [SysIntelligence] phase=timeout source=cpu limit=9000ms
+[2026-07-09T08:13:29.417Z] STDOUT [SysIntelligence] Background deep collection triggered
+[2026-07-09T08:13:29.422Z] STDOUT [SysIntelligence] phase=full start — deep collection
+[2026-07-09T08:13:32.113Z] STDOUT [SysIntelligence] phase=timeout source=graphics limit=6000ms
+[2026-07-09T08:13:32.114Z] STDOUT [SysIntelligence] probe=graphics timeout #1 — will retry next collection
+[2026-07-09T08:13:32.115Z] STDOUT [SysIntelligence] phase=A complete in 19328ms | CPU=Ryzen 7 5700X 8-Core Processor | GPU=n/a | RAM=32682MB | probes: mem+cpu+graphics (baseboard/bios skipped)
+[2026-07-09T08:13:41.432Z] STDOUT [SysIntelligence] phase=timeout source=baseboard limit=12000ms
+[2026-07-09T08:13:41.433Z] STDOUT [SysIntelligence] phase=timeout source=bios limit=12000ms
+[2026-07-09T08:13:45.902Z] STDOUT [SysIntelligence] phase=timeout source=memLayout limit=10000ms
+[2026-07-09T08:13:45.903Z] STDOUT [SysIntelligence] phase=timeout source=diskLayout limit=10000ms
+[2026-07-09T08:13:51.954Z] STDOUT [SysIntelligence] phase=timeout source=fsSize limit=8000ms
+[2026-07-09T08:13:51.954Z] STDOUT [SysIntelligence] phase=timeout source=netIf limit=8000ms
+[2026-07-09T08:13:51.955Z] STDOUT [SysIntelligence] phase=timeout source=osInfo limit=8000ms
+[2026-07-09T08:13:51.955Z] STDOUT [SysIntelligence] phase=timeout source=audio limit=8000ms
+[2026-07-09T08:13:56.570Z] STDOUT [SysIntelligence] phase=timeout source=processes limit=6000ms
+[2026-07-09T08:14:00.603Z] STDOUT [SysIntelligence] phase=timeout source=platformPS limit=10000ms
+[2026-07-09T08:14:05.043Z] STDOUT [SysIntelligence] cpu WMI timeout — os.cpus() fallback: AMD Ryzen 7 5700X 8-Core Processor
+[2026-07-09T08:14:05.917Z] STDOUT [SysIntelligence] phase=timeout source=graphics limit=8000ms
+[2026-07-09T08:14:05.934Z] STDOUT [SysIntelligence] phase=timeout source=monitorEDID limit=8000ms
+[2026-07-09T08:14:06.756Z] STDOUT [SysIntelligence] phase=full complete in 37334ms | MB=PRIME B550M-K | BIOS=4001 | CPU=AMD Ryzen 7 5700X 8-Core Processor | GPUs=1 | RAMsticks=2
+[2026-07-09T08:14:06.759Z] STDOUT [SysIntelligence] Disk cache updated
