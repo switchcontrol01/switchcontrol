@@ -968,6 +968,15 @@ export async function runPremiumRevert(
  * does not track slider state, so without this check the function always returns
  * false when only slider tweaks have been applied — preventing the revert flow
  * from starting at all.
+ *
+ * STORE-FALLBACK FIX: also checks the main Zustand store for any premium toggle
+ * tweak that is enabled but has no OwnershipStore record.  This catches tweaks
+ * applied in older sessions (before ownership tracking), or detected as already
+ * applied at boot via system-sync (which sets the main store but never writes an
+ * OwnershipStore record).  Without this, nvidia-telemetry and similar tweaks that
+ * are only visible in the main store would pass the gate check as "nothing to revert"
+ * — so the revert modal never opens and runPremiumRevert()'s store-fallback sweep
+ * never runs.
  */
 export function hasPremiumItemsToRevert(): boolean {
   const store = useTweakOwnershipStore.getState();
@@ -999,5 +1008,19 @@ export function hasPremiumItemsToRevert(): boolean {
     });
   } catch { /* non-Electron / store not ready */ }
 
-  return hasTweaks || hasNetwork || hasPlan || hasExtremeLabs || hasSliders || hasPresets;
+  // Store-fallback check: premium toggle tweaks enabled in the main Zustand store
+  // but absent from the OwnershipStore.  These are tweaks that were either applied
+  // in an old session (before ownership tracking) or detected as applied at boot via
+  // system-sync.  runPremiumRevert() has a matching sweep — this gate check must
+  // be consistent with it so the revert flow starts when needed.
+  let hasStoreFallbackTweaks = false;
+  try {
+    const mainStoreTweaks = useStore.getState().tweaks;
+    const ownershipIds = new Set(Object.keys(store.appliedTweaks));
+    hasStoreFallbackTweaks = TWEAKS_DATA.some(
+      t => t.supported && isTweakPremium(t.id) && mainStoreTweaks[t.id] && !ownershipIds.has(t.id),
+    );
+  } catch { /* non-Electron / store not ready */ }
+
+  return hasTweaks || hasNetwork || hasPlan || hasExtremeLabs || hasSliders || hasPresets || hasStoreFallbackTweaks;
 }
