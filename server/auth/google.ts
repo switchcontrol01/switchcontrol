@@ -910,6 +910,13 @@ export function setupGoogleAuth(app: Express): void {
             const activePremium = isPlanActive(effectivePlan);
             console.log(`[AUTH] /api/me authMode=jwt loggedIn=true user=${dbUser.id} effectivePlan=${effectivePlan} isPremium=${activePremium}`);
             storage.updateUserActivity(dbUser.id, { lastLoginAt: new Date() }).catch(() => {});
+            // Permanently record device ID on every /api/me hit (Electron sends x-device-id on all requests)
+            const _rawDid = req.headers["x-device-id"] as string | undefined;
+            if (_rawDid && /^[a-zA-Z0-9_-]{8,128}$/.test(_rawDid)) {
+              const _appVer = (req.headers["x-app-version"] as string | undefined)?.slice(0, 64);
+              const _plat   = (req.headers["x-platform"]   as string | undefined)?.slice(0, 32);
+              storage.upsertDeviceRecord(dbUser.id, _rawDid, { appVersion: _appVer, platform: _plat }).catch(() => {});
+            }
             res.setHeader('X-Auth-Mode', 'jwt');
             return res.json({
               loggedIn: true,
@@ -949,6 +956,13 @@ export function setupGoogleAuth(app: Express): void {
       console.log(`[AUTH] using cookie — user=${req.user!.id} effectivePlan=${effectivePlan} isPremium=${activePremium}`);
       if (dbUser) {
         storage.updateUserActivity(dbUser.id, { lastLoginAt: new Date() }).catch(() => {});
+        // Also capture device ID for web sessions that include the header
+        const _rawDid2 = req.headers["x-device-id"] as string | undefined;
+        if (_rawDid2 && /^[a-zA-Z0-9_-]{8,128}$/.test(_rawDid2)) {
+          const _appVer2 = (req.headers["x-app-version"] as string | undefined)?.slice(0, 64);
+          const _plat2   = (req.headers["x-platform"]   as string | undefined)?.slice(0, 32);
+          storage.upsertDeviceRecord(dbUser.id, _rawDid2, { appVersion: _appVer2, platform: _plat2 }).catch(() => {});
+        }
       }
       res.setHeader('X-Auth-Mode', 'cookie');
       return res.json({
