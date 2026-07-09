@@ -1948,6 +1948,12 @@ function WebsiteContent() {
               hasSeenTrialTour: !!data.hasSeenTrialTour,
               loggedIn: true,
             });
+            // Acquire a JWT so the telemetry WebSocket can authenticate, then
+            // start telemetry.  tryReissueJwt() is idempotent (deduped) and
+            // stores the fresh token in useAuthStore automatically.
+            tryReissueJwt()
+              .then(() => telemetryManager.start())
+              .catch(() => telemetryManager.start()); // start even if JWT fails
           }
         }
       } catch (err) {

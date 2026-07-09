@@ -4,6 +4,7 @@ import { pollingRegistry } from "@/lib/pollingRegistry";
 import { useTelemetryStore } from "@/stores/telemetryStore";
 import { usePerformanceStore } from "@/stores/performanceStore";
 import { useAppModeStore } from "@/lib/appModeStore";
+import { telemetryManager } from "@/lib/telemetryManager";
 
 interface BudgetRow {
   metric: string;
@@ -65,6 +66,10 @@ export default function AdminPerformancePage() {
   }, []);
 
   useEffect(() => { checkAdmin(); }, [checkAdmin]);
+
+  // Ensure telemetry is running when the page loads — in the web version,
+  // WebsiteContent starts it after auth, but this is a safe idempotent fallback.
+  useEffect(() => { telemetryManager.start(); }, []);
 
   const poll = useCallback(() => {
     setRegistryEntries(pollingRegistry.dump());
@@ -131,9 +136,15 @@ export default function AdminPerformancePage() {
     {
       metric: "WebSocket Connections",
       target: "1",
-      actual: wsState ? (wsState.status === "open" ? "1" : "0") : isElectron ? "N/A (IPC)" : "0",
-      ok: wsState ? wsState.status === "open" : isElectron,
-      description: wsState ? `${wsState.url} — ${wsState.status} (${wsState.messagesReceived} msgs)` : isElectron ? "Electron uses IPC, not WebSocket" : "No WebSocket active",
+      actual: wsState
+        ? wsState.status === "open" ? "1" : wsState.status === "connecting" ? "⟳" : "0"
+        : isElectron ? "N/A (IPC)" : "⟳",
+      ok: wsState
+        ? wsState.status === "open" ? true : wsState.status === "connecting" ? null : false
+        : isElectron ? true : null,
+      description: wsState
+        ? `${wsState.url} — ${wsState.status} (${wsState.messagesReceived} msgs)`
+        : isElectron ? "Electron uses IPC, not WebSocket" : "Starting WebSocket connection…",
     },
     {
       metric: "IPC Listeners",
@@ -221,8 +232,26 @@ export default function AdminPerformancePage() {
             </span>
           </div>
           <div className="flex items-center gap-3 text-sm text-[#6B7380]">
-            <span className="w-2 h-2 rounded-full" style={{ background: connected ? "#22c55e" : "#ef4444", boxShadow: connected ? "0 0 6px rgba(34,197,94,0.6)" : "0 0 6px rgba(239,68,68,0.6)" }} />
-            {connected ? "Telemetry Live" : "Telemetry Offline"}
+            {(() => {
+              if (connected) return (
+                <>
+                  <span className="w-2 h-2 rounded-full" style={{ background: "#22c55e", boxShadow: "0 0 6px rgba(34,197,94,0.6)" }} />
+                  Telemetry Live
+                </>
+              );
+              if (!isElectron && wsState?.status === "connecting") return (
+                <>
+                  <span className="w-2 h-2 rounded-full animate-pulse" style={{ background: "#f59e0b", boxShadow: "0 0 6px rgba(245,158,11,0.6)" }} />
+                  Connecting…
+                </>
+              );
+              return (
+                <>
+                  <span className="w-2 h-2 rounded-full" style={{ background: "#ef4444", boxShadow: "0 0 6px rgba(239,68,68,0.6)" }} />
+                  {isElectron ? "Telemetry Offline" : "Telemetry Unavailable (Web)"}
+                </>
+              );
+            })()}
           </div>
         </div>
       </div>
