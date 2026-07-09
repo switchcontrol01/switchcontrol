@@ -29,6 +29,30 @@ export function buildAuthHeaders(): Record<string, string> {
   return headers;
 }
 
+// ── Device header injector ────────────────────────────────────────────────────
+// authClient calls fetch() with ABSOLUTE URLs (https://switchcontrol.org/api/me)
+// which bypass the global fetch interceptor in api.ts. This helper adds
+// x-device-id / x-app-version / x-platform so the cloud server can permanently
+// record the device ID on every /api/me call.
+
+async function getDeviceHeaders(): Promise<Record<string, string>> {
+  const extra: Record<string, string> = {};
+  try {
+    const eApi = typeof window !== 'undefined' ? (window as any).electronAPI : undefined;
+    if (eApi?.getDeviceId) {
+      const deviceId = await eApi.getDeviceId();
+      if (deviceId) {
+        extra['x-device-id'] = deviceId;
+        const ver  = await eApi.getVersion?.().catch(() => null);
+        if (ver)  extra['x-app-version'] = String(ver);
+        const plat = await eApi.getPlatform?.().catch(() => null);
+        if (plat) extra['x-platform'] = String(plat);
+      }
+    }
+  } catch { /* non-Electron or unavailable — safe to ignore */ }
+  return extra;
+}
+
 // ── refreshEntitlements ───────────────────────────────────────────────────────
 // Deduplicates concurrent calls — only one /api/me can be in flight at a time.
 
@@ -46,9 +70,9 @@ export async function refreshEntitlements(): Promise<{ user: AuthUser | null }> 
 
   _refreshInFlight = (async () => {
     try {
-      const headers = buildAuthHeaders();
+      const headers = { ...buildAuthHeaders(), ...await getDeviceHeaders() };
       if (isDebug) {
-        console.log(`[AuthClient] refreshEntitlements → /api/me jwt=${jwt ? 'present' : 'missing'}`);
+        console.log(`[AuthClient] refreshEntitlements → /api/me jwt=${jwt ? 'present' : 'missing'} deviceId=${headers['x-device-id'] ?? 'none'}`);
       }
 
       const resp = await fetch(`${AUTH_DOMAIN}/api/me`, { headers, credentials: 'include' });
@@ -151,6 +175,8 @@ export async function retryRefreshEntitlements(opts?: {
       const jwt = safeGetJwt();
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       if (jwt) headers['Authorization'] = `Bearer ${jwt}`;
+      const deviceHeaders = await getDeviceHeaders();
+      Object.assign(headers, deviceHeaders);
 
       try {
         const resp = await fetch(`${AUTH_DOMAIN}/api/me`, { headers, credentials: 'include' });

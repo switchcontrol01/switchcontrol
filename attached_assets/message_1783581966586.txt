@@ -1,0 +1,60 @@
+[2026-07-09T06:48:52.166Z] HEALTH attempt=1 elapsed=0ms ERR ECONNREFUSED connect ECONNREFUSED 127.0.0.1:51810
+[2026-07-09T06:48:52.223Z] HEALTH attempt=2 elapsed=64ms ERR ECONNREFUSED connect ECONNREFUSED 127.0.0.1:51810
+[2026-07-09T06:48:52.280Z] HEALTH attempt=3 elapsed=122ms ERR ECONNREFUSED connect ECONNREFUSED 127.0.0.1:51810
+[2026-07-09T06:48:52.338Z] HEALTH attempt=4 elapsed=180ms ERR ECONNREFUSED connect ECONNREFUSED 127.0.0.1:51810
+[2026-07-09T06:48:52.392Z] HEALTH attempt=5 elapsed=234ms ERR ECONNREFUSED connect ECONNREFUSED 127.0.0.1:51810
+[2026-07-09T06:48:52.451Z] HEALTH attempt=6 elapsed=293ms ERR ECONNREFUSED connect ECONNREFUSED 127.0.0.1:51810
+[2026-07-09T06:48:52.594Z] STDOUT [DesktopSecrets] ELECTRON_BACKEND mode — bootstrapping secrets
+[2026-07-09T06:48:52.600Z] STDOUT [DesktopSecrets] Secrets file path: C:\Users\Avigilon\AppData\Roaming\SwitchControl\desktop-secrets.json
+[2026-07-09T06:48:52.601Z] STDOUT [DesktopSecrets] Loaded persisted secrets from: C:\Users\Avigilon\AppData\Roaming\SwitchControl\desktop-secrets.json
+[2026-07-09T06:48:52.602Z] STDOUT [DesktopSecrets] JWT_SECRET: loaded from persisted file
+[2026-07-09T06:48:52.602Z] STDOUT [DesktopSecrets] SESSION_SECRET: loaded from persisted file
+[2026-07-09T06:48:52.603Z] STDOUT [DesktopSecrets] Bootstrap complete — JWT_SECRET and SESSION_SECRET are set
+[2026-07-09T06:48:52.605Z] HEALTH attempt=7 elapsed=446ms ERR ECONNREFUSED connect ECONNREFUSED 127.0.0.1:51810
+[2026-07-09T06:48:52.762Z] HEALTH attempt=8 elapsed=604ms ERR ECONNREFUSED connect ECONNREFUSED 127.0.0.1:51810
+[2026-07-09T06:48:53.505Z] STDOUT [DB] Electron offline mode — no DATABASE_URL present, using in-memory mock storage.
+[2026-07-09T06:48:53.505Z] STDOUT [Stripe] Billing not configured on local backend — expected in Electron mode.
+[2026-07-09T06:48:53.506Z] STDOUT [JWT] ===== SELF-TEST START =====
+[2026-07-09T06:48:53.506Z] STDOUT [JWT] config OK — JWT secret configured (secretFp=eaf9081c)
+[2026-07-09T06:48:53.507Z] STDOUT [JWT] signed — userId=self-test-user-000 secretFp=eaf9081c tokenFp=eyJhbGci.eyJzdWIi
+[2026-07-09T06:48:53.507Z] STDOUT [JWT] PASS: valid token → sub=self-test-user-000 exp=1786171733
+[2026-07-09T06:48:53.508Z] STDOUT [JWT] PASS: invalid token → null (rejected)
+[2026-07-09T06:48:53.509Z] STDOUT [JWT] PASS: expired token → null (rejected)
+[2026-07-09T06:48:53.509Z] STDOUT [JWT] PASS: empty token → null (fallback to cookie path)
+[2026-07-09T06:48:53.510Z] STDOUT [JWT] PASS: alg=none token → null (rejected)
+[2026-07-09T06:48:53.510Z] STDOUT [JWT] PASS: wrong issuer token → null (rejected)
+[2026-07-09T06:48:53.511Z] STDOUT [JWT] ===== SELF-TEST END =====
+[2026-07-09T06:48:53.511Z] STDOUT [AUTH] Google OAuth not configured on local backend — expected in Electron mode (auth handled by cloud server).
+[2026-07-09T06:48:53.512Z] STDOUT [AUTH] Using memory session store (NO-DB / Electron desktop mode)
+[2026-07-09T06:48:53.512Z] STDOUT [AUTH] ===== SESSION COOKIE CONFIG =====
+[2026-07-09T06:48:53.513Z] STDOUT [AUTH] production: true
+[2026-07-09T06:48:53.514Z] STDOUT [AUTH] electronBackend: true
+[2026-07-09T06:48:53.515Z] STDOUT [AUTH] cookie: {"httpOnly":true,"secure":false,"sameSite":"lax","maxAge":604800000,"path":"/"}
+[2026-07-09T06:48:53.515Z] STDOUT [AUTH] ================================
+[2026-07-09T06:48:53.516Z] STDOUT [AUTH] Discord OAuth not configured on local backend — expected in Electron mode (auth handled by cloud server).
+[2026-07-09T06:48:53.516Z] STDOUT [WS] Live telemetry WebSocket server ready at /ws/telemetry (auth required)
+[2026-07-09T06:48:53.517Z] STDOUT 6:48:53 PM [express] serving on 127.0.0.1:51810
+[2026-07-09T06:48:53.554Z] Health check PASSED — attempt 9, 1397ms elapsed, body={"status":"ok","version":"1.2.1","uptime":1,"dbReachable":false,"timestamp":1783579733546}
+[2026-07-09T06:48:56.165Z] STDOUT [SysIntelligence] phase=A start — identity collection (sequential, WMI-safe)
+[2026-07-09T06:48:59.168Z] STDOUT [SysIntelligence] phase=timeout source=A.mem limit=3000ms
+[2026-07-09T06:49:07.936Z] STDOUT [SysIntelligence] phase=timeout source=cpu limit=9000ms
+[2026-07-09T06:49:07.989Z] STDOUT [SysIntelligence] phase=A complete in 11824ms | CPU=Xeon® E3-1220 V2 | GPU=NVIDIA GeForce GTX 1650 SUPER | RAM=8146MB | probes: mem+cpu+graphics (baseboard/bios skipped)
+[2026-07-09T06:49:08.499Z] STDOUT [Telemetry:sched] Low-end mode ENABLED — 4 logical cores detected
+[2026-07-09T06:49:08.585Z] STDOUT [SysIntelligence] phase=timeout source=graphics limit=6000ms
+[2026-07-09T06:49:13.456Z] STDOUT [SysIntelligence] Background deep collection triggered
+[2026-07-09T06:49:13.457Z] STDOUT [SysIntelligence] phase=full start — deep collection
+[2026-07-09T06:49:24.673Z] STDOUT [SysIntelligence] phase=timeout source=memLayout limit=10000ms
+[2026-07-09T06:49:24.674Z] STDOUT [SysIntelligence] phase=timeout source=diskLayout limit=10000ms
+[2026-07-09T06:49:25.476Z] STDOUT [SysIntelligence] phase=timeout source=baseboard limit=12000ms
+[2026-07-09T06:49:25.476Z] STDOUT [SysIntelligence] phase=timeout source=bios limit=12000ms
+[2026-07-09T06:49:25.574Z] STDOUT [SysIntelligence] phase=timeout source=fsSize limit=8000ms
+[2026-07-09T06:49:25.580Z] STDOUT [SysIntelligence] phase=timeout source=netIf limit=8000ms
+[2026-07-09T06:49:25.581Z] STDOUT [SysIntelligence] phase=timeout source=osInfo limit=8000ms
+[2026-07-09T06:49:25.583Z] STDOUT [SysIntelligence] phase=timeout source=audio limit=8000ms
+[2026-07-09T06:49:25.772Z] STDOUT [SysIntelligence] phase=timeout source=processes limit=6000ms
+[2026-07-09T06:49:27.087Z] STDOUT [SysIntelligence] cpu WMI timeout — os.cpus() fallback: Intel(R) Xeon(R) CPU E3-1220 V2 @ 3.10GHz
+[2026-07-09T06:49:28.039Z] STDOUT [SysIntelligence] phase=full complete in 14582ms | MB=0X9M3X | BIOS=A28.00 | CPU=Intel(R) Xeon(R) CPU E3-1220 V2 @ 3.10GHz | GPUs=1 | RAMsticks=4
+[2026-07-09T06:49:28.041Z] STDOUT [SysIntelligence] Disk cache updated
+[2026-07-09T06:49:29.785Z] STDOUT [SysIntelligence] phase=timeout source=platformPS limit=10000ms
+[2026-07-09T06:49:32.274Z] STDOUT [SysIntelligence] phase=timeout source=graphics limit=8000ms
+[2026-07-09T06:49:32.290Z] STDOUT [SysIntelligence] phase=timeout source=monitorEDID limit=8000ms

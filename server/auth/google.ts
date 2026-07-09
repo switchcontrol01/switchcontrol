@@ -915,7 +915,12 @@ export function setupGoogleAuth(app: Express): void {
             if (_rawDid && /^[a-zA-Z0-9_-]{8,128}$/.test(_rawDid)) {
               const _appVer = (req.headers["x-app-version"] as string | undefined)?.slice(0, 64);
               const _plat   = (req.headers["x-platform"]   as string | undefined)?.slice(0, 32);
-              storage.upsertDeviceRecord(dbUser.id, _rawDid, { appVersion: _appVer, platform: _plat }).catch(() => {});
+              console.log(`[DeviceCapture] /api/me | user=${dbUser.id} | device=${_rawDid} | ver=${_appVer ?? 'n/a'} | plat=${_plat ?? 'n/a'}`);
+              storage.upsertDeviceRecord(dbUser.id, _rawDid, { appVersion: _appVer, platform: _plat }).catch((e) => {
+                console.warn(`[DeviceCapture] upsert failed | device=${_rawDid} | err=${(e as Error).message}`);
+              });
+            } else {
+              console.log(`[DeviceCapture] /api/me | user=${dbUser.id} | no device header (web or old client)`);
             }
             res.setHeader('X-Auth-Mode', 'jwt');
             return res.json({
