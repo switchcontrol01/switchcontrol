@@ -747,9 +747,24 @@ function CopyButton({ value }: { value: string }) {
   const [copied, setCopied] = useState(false);
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(value);
+      // Modern API (requires secure context + focus)
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(value);
+      } else {
+        // Fallback for non-secure / modal contexts
+        const ta = document.createElement("textarea");
+        ta.value = value;
+        ta.style.position = "fixed";
+        ta.style.left = "-9999px";
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        const ok = document.execCommand("copy");
+        document.body.removeChild(ta);
+        if (!ok) throw new Error("execCommand copy returned false");
+      }
       setCopied(true);
-      console.log(`[AdminDevice] Copied device ID to clipboard`);
+      console.log(`[AdminDevice] Copied to clipboard`);
       setTimeout(() => setCopied(false), 1500);
     } catch (err) {
       console.error("[AdminDevice] Copy failed:", err);
@@ -1093,7 +1108,7 @@ function UserDetailPanel({ user, logs, onClose, onPlanUpdated, onDeleted }: {
                   <button
                     data-testid="button-view-device-inspector"
                     onClick={() => {
-                      const q = encodeURIComponent(localUser.email || localUser.id);
+                      const q = encodeURIComponent(localUser.premiumBoundDeviceId || localUser.premiumLastSeenDeviceId || localUser.email || localUser.id);
                       window.location.href = `/admin/device-inspector?q=${q}`;
                     }}
                     className="text-xs rounded-lg px-3 py-1.5 border border-[#3A4150] bg-white/[0.03] text-[#A0A8B3] hover:bg-white/[0.06] hover:text-white transition-all"
