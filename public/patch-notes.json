@@ -1,14 +1,14 @@
 {
-  "version": "1.2.1",
-  "title": "Intelligent Light Mode Update",
-  "headline": "Light Mode now scales back every background process across the app — not just the dashboard graphs — for a noticeably lighter footprint on lower-end machines.",
-  "date": "2026-07-08",
-  "type": "minor",
+  "version": "1.2.2",
+  "title": "Device Tracking & Stability Patch",
+  "headline": "Device IDs are now permanently recorded the moment the app opens — admins get accurate device history for every user, and the Device Inspector works reliably for all account types.",
+  "date": "2026-07-09",
+  "type": "patch",
   "changes": [
-    "Improved: Light Mode now slows down live telemetry, network diagnostics, and background refresh timers everywhere in the app, not just the main dashboard.",
-    "Improved: Live performance graphs release more memory while in Light Mode instead of holding a full history buffer in the background.",
-    "Improved: Cached data is now cleared more aggressively in Light Mode to free up memory sooner.",
-    "Improved: Glow effects, blur, and shadow visuals are further reduced in Light Mode for smoother performance on lower-end hardware.",
-    "Fixed: A few background timers (network monitor, trial countdown) were previously unaffected by Light Mode — they now scale down correctly."
+    "Fixed: Device ID is now captured and permanently stored on every app launch — no longer lost when plans change or devices are rebound.",
+    "Fixed: Device ID header was silently dropped from authentication calls due to an internal URL routing issue — now correctly included on all cloud requests.",
+    "New: Admin Device Inspector — search any device ID or email to see full device history, linked accounts, risk flags, and live status.",
+    "Improved: Device records survive plan changes, resets, and rebinds — giving admins a complete permanent audit trail.",
+    "Fixed: Free and trial users now have their device IDs tracked from first launch, not just premium users."
   ]
 }

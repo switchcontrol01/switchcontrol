@@ -8,12 +8,12 @@ export type DownloadReleaseConfig = {
 };
 
 export const INSTALLER_CONFIG: DownloadReleaseConfig = {
-  version: "1.2.1",
-  fileName: "SwitchControl Setup 1.2.1.exe",
-  publicPath: "https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev/SwitchControl%20Setup%201.2.1.exe",
+  version: "1.2.2",
+  fileName: "SwitchControl Setup 1.2.2.exe",
+  publicPath: "https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev/SwitchControl%20Setup%201.2.2.exe",
   platform: "windows",
   fileSizeMb: 110,
-  releasedAt: "2026-07-08",
+  releasedAt: "2026-07-09",
 };
 
 export function installerUrl(source: string): string {
