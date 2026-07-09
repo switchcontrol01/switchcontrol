@@ -2049,6 +2049,9 @@ export default function AdminPage() {
             <a href="/admin/performance" className="text-xs text-[#6B7380] hover:text-[#A0A8B3] transition-colors ml-2 underline underline-offset-2">
               Performance
             </a>
+            <a href="/admin/device-inspector" className="text-xs text-[#6B7380] hover:text-[#A0A8B3] transition-colors ml-2 underline underline-offset-2">
+              Device Inspector
+            </a>
           </div>
           <div className="flex items-center gap-2 text-sm text-[#6B7380]">
             <span className="w-2 h-2 rounded-full bg-green-400" style={{ boxShadow: "0 0 6px rgba(74,222,128,0.6)" }} />

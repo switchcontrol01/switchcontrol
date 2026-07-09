@@ -555,6 +555,133 @@ router.get("/devices/by-device-id/:deviceId", requireAdmin, readLimiter, async (
   }
 });
 
+// ─── Device Inspector ─────────────────────────────────────────────────────────
+
+// GET /api/admin/devices/inspect/:query
+// Full device intelligence report — used by the Admin Device Inspector page.
+// Accepts a Device ID (16-char hex) or future fingerprint hash.
+// Returns all linked accounts, trial history, and risk analysis.
+router.get("/devices/inspect/:query", requireAdmin, readLimiter, async (req, res) => {
+  const query = (req.params.query ?? "").trim();
+  const admin = getAdminId(req);
+
+  if (!query) return res.status(400).json({ error: "Query is required." });
+
+  try {
+    const matchedUsers = await storage.findUsersByDeviceId(query);
+
+    if (matchedUsers.length === 0) {
+      console.log(`[DeviceInspect] miss | admin=${admin.email} | query=${query}`);
+      return res.json({
+        query,
+        found: false,
+        accountsLinked: 0,
+        primaryUser: null,
+        allUsers: [],
+        firstSeen: null,
+        lastSeen: null,
+        trialUsed: false,
+        trialActive: false,
+        manualGrant: false,
+        premiumStatus: false,
+        appVersion: null,
+        platform: null,
+        risk: { level: "unknown", score: 0, reasons: ["Device ID not found in database."] },
+      });
+    }
+
+    // Primary user: prefer the one with the device bound (not just last-seen)
+    const primaryUser =
+      matchedUsers.find((u) => u.premiumBoundDeviceId === query) ?? matchedUsers[0];
+
+    const now = new Date();
+
+    // Aggregate fields across all linked accounts
+    const trialUsed = matchedUsers.some((u) => u.hasUsedTrial);
+    const trialActive = matchedUsers.some(
+      (u) => u.trialEndsAt && new Date(u.trialEndsAt) > now && u.plan === "trial"
+    );
+    const manualGrant = matchedUsers.some((u) => !!u.trialGrantedByAdminId);
+    const premiumStatus = matchedUsers.some(
+      (u) => u.isPremium || u.plan === "premium" || resolveEffectivePlan(u) === "premium"
+    );
+
+    // First/last seen across all linked accounts
+    const seenDates = matchedUsers
+      .flatMap((u) => [u.premiumBoundAt, u.premiumDeviceLastSeenAt])
+      .filter(Boolean) as Date[];
+    const firstSeen = seenDates.length
+      ? new Date(Math.min(...seenDates.map((d) => d.getTime())))
+      : null;
+    const lastSeen = seenDates.length
+      ? new Date(Math.max(...seenDates.map((d) => d.getTime())))
+      : null;
+
+    // Pick appVersion / platform from the most recently active account
+    const sorted = [...matchedUsers].sort((a, b) => {
+      const ta = a.premiumDeviceLastSeenAt?.getTime() ?? 0;
+      const tb = b.premiumDeviceLastSeenAt?.getTime() ?? 0;
+      return tb - ta;
+    });
+    const appVersion = sorted.find((u) => u.appVersion)?.appVersion ?? null;
+    const platform = sorted.find((u) => u.platform)?.platform ?? null;
+
+    // ── Risk analysis ─────────────────────────────────────────────────────────
+    const reasons: string[] = [];
+    let score = 0;
+
+    if (trialUsed) {
+      score++;
+      reasons.push("Device ID has been used to request a trial.");
+    }
+    if (manualGrant) {
+      reasons.push("Trial was manually granted by support (not organic).");
+    }
+    if (matchedUsers.length > 1) {
+      score++;
+      reasons.push(`Linked to ${matchedUsers.length} separate accounts.`);
+    }
+    if (matchedUsers.length > 2) {
+      score++;
+      reasons.push("High account churn — more than 2 accounts linked to one device.");
+    }
+    if (trialUsed && matchedUsers.length > 1) {
+      score++;
+      reasons.push("Trial used across multiple accounts — possible trial bypass attempt.");
+    }
+
+    let riskLevel: "green" | "yellow" | "orange" | "red";
+    if (score === 0) riskLevel = "green";
+    else if (score === 1) riskLevel = "yellow";
+    else if (score === 2) riskLevel = "orange";
+    else riskLevel = "red";
+
+    console.log(
+      `[DeviceInspect] hit | admin=${admin.email} | query=${query} | accounts=${matchedUsers.length} | risk=${riskLevel}`
+    );
+
+    res.json({
+      query,
+      found: true,
+      accountsLinked: matchedUsers.length,
+      primaryUser: serializeUser(primaryUser),
+      allUsers: matchedUsers.map(serializeUser),
+      firstSeen: firstSeen?.toISOString() ?? null,
+      lastSeen: lastSeen?.toISOString() ?? null,
+      trialUsed,
+      trialActive,
+      manualGrant,
+      premiumStatus,
+      appVersion,
+      platform,
+      risk: { level: riskLevel, score, reasons },
+    });
+  } catch (err) {
+    console.error("[admin] device inspect error:", err);
+    res.status(500).json({ error: "Inspection failed." });
+  }
+});
+
 // ─── Premium Device Reset ─────────────────────────────────────────────────────
 
 // POST /api/admin/users/:id/reset-premium-device
