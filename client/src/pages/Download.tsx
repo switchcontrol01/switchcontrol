@@ -631,7 +631,7 @@ export default function DownloadPage() {
                   {[
                     { icon: CheckCircle, color: "#34d399", text: "Latest build" },
                     { icon: Monitor, color: "#a78bfa", text: "Windows 10/11 64-bit · .exe installer" },
-                    { icon: Clock, color: "#fbbf24", text: "~350 MB · Under 30 seconds" },
+                    { icon: Clock, color: "#fbbf24", text: "~110 MB · Under 30 seconds" },
                   ].map(({ icon: Icon, color, text }, i) => (
                     <div key={i} style={{ display: "flex", alignItems: "center", gap: "9px" }}>
                       <Icon size={13} style={{ color, flexShrink: 0 }} />
