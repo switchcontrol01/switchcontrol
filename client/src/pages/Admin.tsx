@@ -1089,14 +1089,24 @@ function UserDetailPanel({ user, logs, onClose, onPlanUpdated, onDeleted }: {
                   <Row label="App Version" value={localUser.appVersion || "—"} />
                   <Row label="Platform" value={localUser.platform || "—"} />
                 </div>
-                {localUser.premiumBoundDeviceId && (
-                  <div className="mt-3">
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    data-testid="button-view-device-inspector"
+                    onClick={() => {
+                      const q = encodeURIComponent(localUser.email || localUser.id);
+                      window.location.href = `/admin/device-inspector?q=${q}`;
+                    }}
+                    className="text-xs rounded-lg px-3 py-1.5 border border-[#3A4150] bg-white/[0.03] text-[#A0A8B3] hover:bg-white/[0.06] hover:text-white transition-all"
+                  >
+                    View in Inspector →
+                  </button>
+                  {localUser.premiumBoundDeviceId && (
                     <button onClick={resetDeviceLock} data-testid="button-reset-device-lock"
                       className="text-xs rounded-lg px-3 py-1.5 border border-amber-500/25 bg-amber-500/10 text-amber-300/80 hover:bg-amber-500/20 transition-all">
                       Clear Device Lock
                     </button>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
 
             {/* Activity */}

@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import { useAuthStore } from "@/lib/authStore";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -142,7 +142,11 @@ function PlanBadge({ plan, effectivePlan }: { plan: string | null; effectivePlan
 
 export default function AdminDeviceInspectorPage() {
   const { user } = useAuthStore();
-  const [query, setQuery] = useState("");
+  // Pre-fill from ?q= URL param (e.g. linked from admin user card)
+  const _initialQ = useRef(
+    typeof window !== "undefined" ? (new URLSearchParams(window.location.search).get("q") ?? "") : ""
+  );
+  const [query, setQuery] = useState(_initialQ.current);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<InspectResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -177,6 +181,10 @@ export default function AdminDeviceInspectorPage() {
       setLoading(false);
     }
   }, [query]);
+
+  // Auto-search when the page loads with a pre-filled ?q= param
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { if (_initialQ.current.trim()) handleInspect(); }, []);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") handleInspect();
