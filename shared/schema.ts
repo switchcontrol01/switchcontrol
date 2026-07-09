@@ -156,6 +156,34 @@ export const driverDbOverrides = pgTable("driver_db_overrides", {
   vendorKeyIdx: uniqueIndex("driver_db_overrides_vendor_idx").on(t.category, t.vendorKey),
 }));
 
+// ── Permanent device history ──────────────────────────────────────────────────
+// One row per (userId, deviceId) pair — upserted on every device contact.
+// Survives clearPremiumDevice, rebinds, plan changes, and backend restarts.
+// Source of truth for Admin Device Inspector.
+export const deviceRecords = pgTable("device_records", {
+  id:               serial("id").primaryKey(),
+  userId:           text("user_id").notNull(),
+  deviceId:         text("device_id").notNull(),
+  email:            text("email"),
+  firstSeenAt:      timestamp("first_seen_at",  { withTimezone: true }).notNull().defaultNow(),
+  lastSeenAt:       timestamp("last_seen_at",   { withTimezone: true }).notNull().defaultNow(),
+  lastAppVersion:   text("last_app_version"),
+  lastPlatform:     text("last_platform"),
+  lastIpHash:       text("last_ip_hash"),
+  trialUsed:        boolean("trial_used").notNull().default(false),
+  trialStartedAt:   timestamp("trial_started_at",  { withTimezone: true }),
+  trialEndedAt:     timestamp("trial_ended_at",    { withTimezone: true }),
+  premiumSeen:      boolean("premium_seen").notNull().default(false),
+  adminGrantSeen:   boolean("admin_grant_seen").notNull().default(false),
+  createdAt:        timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt:        timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  deviceIdIdx:    index("device_records_device_id_idx").on(t.deviceId),
+  userDeviceUniq: uniqueIndex("device_records_user_device_idx").on(t.userId, t.deviceId),
+}));
+
+export type DeviceRecord = typeof deviceRecords.$inferSelect;
+
 export const userSettingsRelations = relations(userSettings, ({ many }) => ({
   appliedTweaks: many(appliedTweaks),
   historyEntries: many(historyEntries),

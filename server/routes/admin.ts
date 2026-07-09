@@ -559,8 +559,8 @@ router.get("/devices/by-device-id/:deviceId", requireAdmin, readLimiter, async (
 
 // GET /api/admin/devices/inspect/:query
 // Full device intelligence report — used by the Admin Device Inspector page.
-// Accepts a Device ID (16-char hex) or future fingerprint hash.
-// Returns all linked accounts, trial history, and risk analysis.
+// Queries device_records (permanent history) + users table (live state).
+// device_records survives clearPremiumDevice, rebinds, and plan changes.
 router.get("/devices/inspect/:query", requireAdmin, readLimiter, async (req, res) => {
   const query = (req.params.query ?? "").trim();
   const admin = getAdminId(req);
@@ -568,13 +568,26 @@ router.get("/devices/inspect/:query", requireAdmin, readLimiter, async (req, res
   if (!query) return res.status(400).json({ error: "Query is required." });
 
   try {
-    const matchedUsers = await storage.findUsersByDeviceId(query);
+    // ── Source 1: permanent device_records (primary) ───────────────────────
+    const historyRecords = await storage.findDeviceRecords(query);
 
-    if (matchedUsers.length === 0) {
+    // ── Source 2: live users table (fallback / supplement) ─────────────────
+    const usersFromTable = await storage.findUsersByDeviceId(query);
+
+    // Merge distinct userIds from both sources
+    const userIdSet = new Set<string>([
+      ...historyRecords.map((r) => r.userId),
+      ...usersFromTable.map((u) => u.id),
+    ]);
+
+    const found = userIdSet.size > 0;
+
+    if (!found) {
       console.log(`[DeviceInspect] miss | admin=${admin.email} | query=${query}`);
       return res.json({
         query,
         found: false,
+        hasDeviceHistory: false,
         accountsLinked: 0,
         primaryUser: null,
         allUsers: [],
@@ -590,64 +603,89 @@ router.get("/devices/inspect/:query", requireAdmin, readLimiter, async (req, res
       });
     }
 
-    // Primary user: prefer the one with the device bound (not just last-seen)
+    // Fetch current user records for live plan status
+    const currentUsers: ReturnType<typeof serializeUser>[] = [];
+    for (const uid of userIdSet) {
+      const u = await storage.getUser(uid);
+      if (u) currentUsers.push(serializeUser(u));
+    }
+
+    // Primary user: prefer currently-bound > any current match > first historical
     const primaryUser =
-      matchedUsers.find((u) => u.premiumBoundDeviceId === query) ?? matchedUsers[0];
+      currentUsers.find((u) => u.premiumBoundDeviceId === query) ??
+      currentUsers[0] ??
+      null;
 
     const now = new Date();
 
-    // Aggregate fields across all linked accounts
-    const trialUsed = matchedUsers.some((u) => u.hasUsedTrial);
-    const trialActive = matchedUsers.some(
+    // ── Aggregate from device_records (authoritative for history) ──────────
+    const trialUsedHistory    = historyRecords.some((r) => r.trialUsed);
+    const premiumSeenHistory   = historyRecords.some((r) => r.premiumSeen);
+    const adminGrantHistory    = historyRecords.some((r) => r.adminGrantSeen);
+
+    // Supplement with live user state (catches changes since last heartbeat)
+    const trialUsed    = trialUsedHistory  || currentUsers.some((u) => u.hasUsedTrial);
+    const premiumStatus = premiumSeenHistory || currentUsers.some(
+      (u) => u.isPremium || u.plan === "premium" || resolveEffectivePlan(u as any) === "premium"
+    );
+    const manualGrant  = adminGrantHistory || currentUsers.some((u) => !!u.trialGrantedByAdminId);
+
+    const trialActive = currentUsers.some(
       (u) => u.trialEndsAt && new Date(u.trialEndsAt) > now && u.plan === "trial"
     );
-    const manualGrant = matchedUsers.some((u) => !!u.trialGrantedByAdminId);
-    const premiumStatus = matchedUsers.some(
-      (u) => u.isPremium || u.plan === "premium" || resolveEffectivePlan(u) === "premium"
-    );
 
-    // First/last seen across all linked accounts
-    const seenDates = matchedUsers
-      .flatMap((u) => [u.premiumBoundAt, u.premiumDeviceLastSeenAt])
-      .filter(Boolean) as Date[];
-    const firstSeen = seenDates.length
-      ? new Date(Math.min(...seenDates.map((d) => d.getTime())))
+    // ── Date ranges ────────────────────────────────────────────────────────
+    // device_records is the authoritative source; fall back to users table dates
+    const histFirstSeen = historyRecords.length
+      ? new Date(Math.min(...historyRecords.map((r) => new Date(r.firstSeenAt).getTime())))
       : null;
-    const lastSeen = seenDates.length
-      ? new Date(Math.max(...seenDates.map((d) => d.getTime())))
+    const histLastSeen = historyRecords.length
+      ? new Date(Math.max(...historyRecords.map((r) => new Date(r.lastSeenAt).getTime())))
       : null;
+    const userDates = currentUsers.flatMap((u) => [
+      u.premiumBoundAt ? new Date(u.premiumBoundAt) : null,
+      u.premiumDeviceLastSeenAt ? new Date(u.premiumDeviceLastSeenAt) : null,
+    ]).filter(Boolean) as Date[];
+    const firstSeen = histFirstSeen ?? (userDates.length ? new Date(Math.min(...userDates.map((d) => d.getTime()))) : null);
+    const lastSeen  = histLastSeen  ?? (userDates.length ? new Date(Math.max(...userDates.map((d) => d.getTime()))) : null);
 
-    // Pick appVersion / platform from the most recently active account
-    const sorted = [...matchedUsers].sort((a, b) => {
-      const ta = a.premiumDeviceLastSeenAt?.getTime() ?? 0;
-      const tb = b.premiumDeviceLastSeenAt?.getTime() ?? 0;
-      return tb - ta;
-    });
-    const appVersion = sorted.find((u) => u.appVersion)?.appVersion ?? null;
-    const platform = sorted.find((u) => u.platform)?.platform ?? null;
+    // ── App version / platform from most-recent record ─────────────────────
+    const mostRecentRecord = historyRecords[0]; // already ordered desc lastSeenAt
+    const appVersion = mostRecentRecord?.lastAppVersion
+      ?? currentUsers.find((u) => u.appVersion)?.appVersion
+      ?? null;
+    const platform = mostRecentRecord?.lastPlatform
+      ?? currentUsers.find((u) => u.platform)?.platform
+      ?? null;
 
-    // ── Risk analysis ─────────────────────────────────────────────────────────
+    // ── Emails linked ──────────────────────────────────────────────────────
+    const emailSet = new Set<string>([
+      ...historyRecords.map((r) => r.email).filter(Boolean) as string[],
+      ...currentUsers.map((u) => u.email).filter(Boolean) as string[],
+    ]);
+
+    // ── Risk analysis ──────────────────────────────────────────────────────
     const reasons: string[] = [];
     let score = 0;
 
     if (trialUsed) {
       score++;
-      reasons.push("Device ID has been used to request a trial.");
+      reasons.push("Device has been used to request a trial.");
     }
     if (manualGrant) {
-      reasons.push("Trial was manually granted by support (not organic).");
+      reasons.push("Trial was manually granted by support (not organic activation).");
     }
-    if (matchedUsers.length > 1) {
+    if (userIdSet.size > 1) {
       score++;
-      reasons.push(`Linked to ${matchedUsers.length} separate accounts.`);
+      reasons.push(`Linked to ${userIdSet.size} separate accounts.`);
     }
-    if (matchedUsers.length > 2) {
+    if (userIdSet.size > 2) {
       score++;
-      reasons.push("High account churn — more than 2 accounts linked to one device.");
+      reasons.push("High account churn — more than 2 accounts on one device.");
     }
-    if (trialUsed && matchedUsers.length > 1) {
+    if (trialUsed && userIdSet.size > 1) {
       score++;
-      reasons.push("Trial used across multiple accounts — possible trial bypass attempt.");
+      reasons.push("Trial used across multiple accounts — possible trial bypass.");
     }
 
     let riskLevel: "green" | "yellow" | "orange" | "red";
@@ -657,17 +695,19 @@ router.get("/devices/inspect/:query", requireAdmin, readLimiter, async (req, res
     else riskLevel = "red";
 
     console.log(
-      `[DeviceInspect] hit | admin=${admin.email} | query=${query} | accounts=${matchedUsers.length} | risk=${riskLevel}`
+      `[DeviceInspect] hit | admin=${admin.email} | query=${query} | accounts=${userIdSet.size} | history=${historyRecords.length} | risk=${riskLevel}`
     );
 
     res.json({
       query,
       found: true,
-      accountsLinked: matchedUsers.length,
-      primaryUser: serializeUser(primaryUser),
-      allUsers: matchedUsers.map(serializeUser),
+      hasDeviceHistory: historyRecords.length > 0,
+      accountsLinked: userIdSet.size,
+      emailsLinked: [...emailSet],
+      primaryUser,
+      allUsers: currentUsers,
       firstSeen: firstSeen?.toISOString() ?? null,
-      lastSeen: lastSeen?.toISOString() ?? null,
+      lastSeen:  lastSeen?.toISOString()  ?? null,
       trialUsed,
       trialActive,
       manualGrant,

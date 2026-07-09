@@ -6,6 +6,7 @@ import {
   users,
   adminLogs,
   stripeWebhookEvents,
+  deviceRecords,
   type UserSettings,
   type InsertUserSettings,
   type AppliedTweak,
@@ -19,6 +20,7 @@ import {
   type InsertAdminLog,
   type StripeWebhookEvent,
   type InsertStripeWebhookEvent,
+  type DeviceRecord,
 } from "@shared/schema";
 import * as fs from "fs";
 import * as path from "path";
@@ -74,6 +76,8 @@ export interface IStorage {
   clearPremiumDevice(userId: string): Promise<User>;
   findUserByBoundDeviceId(deviceId: string): Promise<User | undefined>;
   findUsersByDeviceId(deviceId: string): Promise<User[]>;
+  upsertDeviceRecord(userId: string, deviceId: string, meta?: { appVersion?: string | null; platform?: string | null }): Promise<void>;
+  findDeviceRecords(deviceId: string): Promise<DeviceRecord[]>;
   updateDeviceLastSeen(userId: string, deviceId: string, meta?: { appVersion?: string; platform?: string }): Promise<void>;
 
   // Admin
@@ -313,6 +317,14 @@ class MockStorage implements IStorage {
   }
 
   async findUsersByDeviceId(_deviceId: string): Promise<User[]> {
+    return [];
+  }
+
+  async upsertDeviceRecord(_userId: string, _deviceId: string, _meta?: { appVersion?: string | null; platform?: string | null }): Promise<void> {
+    // no-op in mock mode
+  }
+
+  async findDeviceRecords(_deviceId: string): Promise<DeviceRecord[]> {
     return [];
   }
 
@@ -849,6 +861,8 @@ export class DatabaseStorage implements IStorage {
       .set(updateData)
       .where(eq(users.id, userId))
       .returning();
+    // Permanently record this device binding in device_records
+    this.upsertDeviceRecord(userId, deviceId, meta).catch(() => {});
     return updated;
   }
 
@@ -893,6 +907,76 @@ export class DatabaseStorage implements IStorage {
       .limit(25);
   }
 
+  async upsertDeviceRecord(userId: string, deviceId: string, meta?: { appVersion?: string | null; platform?: string | null }): Promise<void> {
+    if (!db) return;
+    try {
+      // Fetch fresh user snapshot for trial/premium/email fields
+      const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+      if (!user) return;
+
+      const now = new Date();
+      const trialUsed      = user.hasUsedTrial ?? false;
+      const premiumSeen    = user.isPremium === true || user.plan === "premium";
+      const adminGrantSeen = !!user.trialGrantedByAdminId;
+      const appVer         = meta?.appVersion ?? user.appVersion ?? null;
+      const platform       = meta?.platform  ?? user.platform   ?? null;
+
+      await db
+        .insert(deviceRecords)
+        .values({
+          userId,
+          deviceId,
+          email:          user.email ?? null,
+          firstSeenAt:    now,
+          lastSeenAt:     now,
+          lastAppVersion: appVer,
+          lastPlatform:   platform,
+          trialUsed,
+          trialStartedAt: user.trialStartedAt ?? null,
+          trialEndedAt:   user.trialEndsAt    ?? null,
+          premiumSeen,
+          adminGrantSeen,
+          createdAt: now,
+          updatedAt: now,
+        })
+        .onConflictDoUpdate({
+          target: [deviceRecords.userId, deviceRecords.deviceId],
+          set: {
+            lastSeenAt: now,
+            updatedAt:  now,
+            email:      user.email ?? null,
+            // Only overwrite version/platform when we have fresh values
+            lastAppVersion: drizzleSql`COALESCE(${appVer}, ${deviceRecords.lastAppVersion})`,
+            lastPlatform:   drizzleSql`COALESCE(${platform}, ${deviceRecords.lastPlatform})`,
+            // Boolean flags only go false → true, never back
+            trialUsed:      drizzleSql`${deviceRecords.trialUsed} OR ${trialUsed}`,
+            premiumSeen:    drizzleSql`${deviceRecords.premiumSeen} OR ${premiumSeen}`,
+            adminGrantSeen: drizzleSql`${deviceRecords.adminGrantSeen} OR ${adminGrantSeen}`,
+            // Update trial timestamps when we have them; keep existing if not
+            trialStartedAt: drizzleSql`COALESCE(${user.trialStartedAt ?? null}::timestamptz, ${deviceRecords.trialStartedAt})`,
+            trialEndedAt:   drizzleSql`COALESCE(${user.trialEndsAt    ?? null}::timestamptz, ${deviceRecords.trialEndedAt})`,
+          },
+        });
+    } catch (err: any) {
+      // Table may not exist during the first server start before migration runs
+      console.warn(`[DeviceRecord] upsert skipped for ${deviceId}: ${err.message?.slice(0, 120)}`);
+    }
+  }
+
+  async findDeviceRecords(deviceId: string): Promise<DeviceRecord[]> {
+    if (!db) return [];
+    try {
+      return db
+        .select()
+        .from(deviceRecords)
+        .where(eq(deviceRecords.deviceId, deviceId))
+        .orderBy(desc(deviceRecords.lastSeenAt))
+        .limit(50);
+    } catch {
+      return [];
+    }
+  }
+
   async updateDeviceLastSeen(userId: string, deviceId: string, meta?: { appVersion?: string; platform?: string }): Promise<void> {
     const updateData: Partial<typeof users.$inferInsert> = {
       premiumLastSeenDeviceId: deviceId,
@@ -909,6 +993,9 @@ export class DatabaseStorage implements IStorage {
       .update(users)
       .set(updateData)
       .where(eq(users.id, userId));
+    // Permanently record this device contact — fire-and-forget so it never
+    // blocks the device-validate response even if the table doesn't exist yet.
+    this.upsertDeviceRecord(userId, deviceId, meta).catch(() => {});
   }
 
   // ─── Admin stats & operations ─────────────────────────────────────────────
