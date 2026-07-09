@@ -1,7 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 
-const rootDist = path.join(__dirname, "..", "..", "dist");
+const rootDist = path.join(__dirname, "..", "..", "dist-electron");
 const electronDist = path.join(__dirname, "..", "dist-frontend");
 
 console.log("[ensure-dist] Checking frontend build...");

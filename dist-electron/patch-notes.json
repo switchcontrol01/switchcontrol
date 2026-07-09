@@ -1,0 +1,14 @@
+{
+  "version": "1.2.1",
+  "title": "Intelligent Light Mode Update",
+  "headline": "Light Mode now scales back every background process across the app — not just the dashboard graphs — for a noticeably lighter footprint on lower-end machines.",
+  "date": "2026-07-08",
+  "type": "minor",
+  "changes": [
+    "Improved: Light Mode now slows down live telemetry, network diagnostics, and background refresh timers everywhere in the app, not just the main dashboard.",
+    "Improved: Live performance graphs release more memory while in Light Mode instead of holding a full history buffer in the background.",
+    "Improved: Cached data is now cleared more aggressively in Light Mode to free up memory sooner.",
+    "Improved: Glow effects, blur, and shadow visuals are further reduced in Light Mode for smoother performance on lower-end hardware.",
+    "Fixed: A few background timers (network monitor, trial countdown) were previously unaffected by Light Mode — they now scale down correctly."
+  ]
+}

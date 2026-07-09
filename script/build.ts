@@ -76,10 +76,23 @@ async function buildAll() {
   checkRequiredPackages();
 
   await rm("dist", { recursive: true, force: true });
+  await rm("dist-electron", { recursive: true, force: true });
 
-  console.log("building client...");
+  // Web deployment build: absolute asset paths so nested routes (e.g.
+  // /admin/performance) resolve correctly when served from the domain root.
+  console.log("building client (web — base=/, outDir=dist)...");
   await viteBuild({
     base: "/",
+    build: { outDir: "../dist" },
+  });
+
+  // Electron desktop build: relative asset paths so the packaged app
+  // (loaded via file://) finds assets next to index.html instead of at the
+  // filesystem root. This is a separate output; the web build stays intact.
+  console.log("building client (electron — base=./, outDir=dist-electron)...");
+  await viteBuild({
+    base: "./",
+    build: { outDir: "../dist-electron" },
   });
 
   console.log("building server (fully bundled — no external npm deps)...");
