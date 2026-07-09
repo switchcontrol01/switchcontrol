@@ -1162,8 +1162,14 @@ async function verifyTweak(tweakId) {
       return { isApplied: false, unsupported: true, message: 'No NVIDIA GPU detected.' };
     }
     logTweakSupport(tweakId, true, 'NVIDIA GPU present', { osRelease: osVer, helperFound: true });
+    // "Applied" means: legacy telemetry components exist AND are disabled.
+    // If no tasks AND no service exist (modern NVIDIA drivers removed them),
+    // there is nothing to disable — the tweak is NOT applied ($false).
+    // The old query returned $true for "no components" which caused the toggle to
+    // show as ON and made the revert engine think the tweak was still active after
+    // a successful revert, causing infinite retry → failure.
     const applied = await checkPowerShell(
-      `$tasks = Get-ScheduledTask -EA SilentlyContinue | Where-Object { $_.TaskName -like "NvTm*" -or $_.TaskName -like "NvNode*" -or $_.TaskName -like "NvProfile*" }; if ($tasks.Count -eq 0) { $svc = Get-Service -Name NvTelemetryContainer -EA SilentlyContinue; if ($svc) { $svc.StartType -eq "Disabled" } else { $true } } else { ($tasks | Where-Object { $_.State -ne "Disabled" }).Count -eq 0 }`
+      `$tasks = Get-ScheduledTask -EA SilentlyContinue | Where-Object { $_.TaskName -like "NvTm*" -or $_.TaskName -like "NvNode*" -or $_.TaskName -like "NvProfile*" }; $svc = Get-Service -Name NvTelemetryContainer -EA SilentlyContinue; if ($tasks.Count -eq 0 -and $null -eq $svc) { $false } elseif ($tasks.Count -gt 0) { ($tasks | Where-Object { $_.State -ne "Disabled" }).Count -eq 0 } else { $svc.StartType -eq "Disabled" }`
     );
     return { isApplied: applied, verified: true };
   }
