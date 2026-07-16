@@ -1,0 +1,10 @@
+Fix two admin UI bugs: Copy button and Inspector link
+
+1. CopyButton: navigator.clipboard.writeText() silently fails in many
+   contexts (non-secure origin, inside modals, after navigation). Added
+   textarea+execCommand fallback so copy works everywhere.
+
+2. View in Inspector: was incorrectly passing the user's email instead
+   of their device ID. Now correctly passes:
+   premiumBoundDeviceId → premiumLastSeenDeviceId → email → userId.
+   This opens the Device Inspector pre-filled with the actual device ID.

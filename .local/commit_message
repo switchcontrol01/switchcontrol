@@ -1,0 +1,20 @@
+fix: splash timer resets on each re-render causing infinite stuck splash
+
+Root cause: App.tsx passed an inline arrow function as the `onComplete`
+prop to <Splash>. The parent's PremiumTruth context re-renders many
+times per second, producing a new function reference on every render.
+Splash.tsx's useEffect had [onComplete] as a dependency, so each new
+reference restarted the 1400ms countdown — it never completed.
+
+Fix: Splash.tsx now holds `onComplete` in a `useRef` (updated on every
+render via a sync effect) and the timer effect uses empty deps `[]` so
+the countdown fires exactly once from mount, regardless of parent
+re-renders. The error screen in the booting phase now reliably appears
+after 1400ms when the backend fails to start.
+
+Also included: security fixes from previous session
+- network_tweak_state PK upgraded from single-column (tweak_id) to
+  composite (user_id, tweak_id) in shared/schema.ts
+- startup migration in networkTweaks.ts drops old PK and adds composite
+- ON CONFLICT clause updated to (user_id, tweak_id)
+- All stale comments removed

@@ -1,0 +1,1110 @@
+
+[2026-06-22T09:54:26.226Z] [INFO] SwitchControl started — PID:10660 platform:win32/x64 node:20.18.3
+[2026-06-22T09:54:26.258Z] [LOG] [Security] IPC handlers registered
+[2026-06-22T09:54:26.260Z] [LOG] [Debloat] IPC handlers registered
+[2026-06-22T09:54:26.260Z] [LOG] [Cleaner] IPC handlers registered
+[2026-06-22T09:54:26.261Z] [LOG] [Storage] IPC handlers registered
+[2026-06-22T09:54:26.261Z] [LOG] [Protocol] registered: true | isDefault: true | isDev: false
+[2026-06-22T09:54:26.281Z] [LOG] [STARTUP] whenReady — v1.1.6 | isDev:false | pid:10660
+[2026-06-22T09:54:26.284Z] [LOG] [ConfigStore] Initialized — file: C:\Users\SwitchTech\AppData\Roaming\SwitchControl\sc-config.json
+[2026-06-22T09:54:26.284Z] [LOG] [Enrich] disk cache hit — age 185min | GPU: AMD Radeon RX 7800 XT
+[2026-06-22T09:54:26.299Z] [LOG] [LAUNCH:1] BrowserWindow constructed — show:false, paintWhenInitiallyHidden:true, isVisible: false
+[2026-06-22T09:54:26.299Z] [LOG] [LAUNCH:2] packaged mode — indexPath: C:\Program Files\SwitchControl\resources\dist\index.html | exists: true
+[2026-06-22T09:54:26.303Z] [LOG] [Backend] ===== STARTUP DIAGNOSTICS =====
+[2026-06-22T09:54:26.304Z] [LOG] [Backend] process.execPath: C:\Program Files\SwitchControl\SwitchControl.exe
+[2026-06-22T09:54:26.304Z] [LOG] [Backend] process.resourcesPath: C:\Program Files\SwitchControl\resources
+[2026-06-22T09:54:26.304Z] [LOG] [Backend] app.isPackaged: true
+[2026-06-22T09:54:26.304Z] [LOG] [Backend] app.getAppPath(): C:\Program Files\SwitchControl\resources\app.asar
+[2026-06-22T09:54:26.304Z] [LOG] [Backend] Expected bundle path: C:\Program Files\SwitchControl\resources\dist\index.cjs
+[2026-06-22T09:54:26.304Z] [LOG] [Backend] Bundle size: 2.5 MB
+[2026-06-22T09:54:26.347Z] [LOG] [Updater] init — v1.1.6 | channel:stable | https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev
+[2026-06-22T09:54:26.347Z] [LOG] [STARTUP] app ready — 66ms from whenReady
+[2026-06-22T09:54:26.347Z] [LOG] [PREWARM] cachedSpecs seeded before window open — Ryzen 7 9800X3D 8-Core Processor | GPU: AMD Radeon RX 7800 XT
+[2026-06-22T09:54:26.348Z] [LOG] [Backend] Free port found: 53447
+[2026-06-22T09:54:26.349Z] [LOG] [Backend] ELECTRON_USER_DATA: C:\Users\SwitchTech\AppData\Roaming\SwitchControl
+[2026-06-22T09:54:26.349Z] [LOG] [Backend] ===== ENV KEY DIAGNOSTICS =====
+[2026-06-22T09:54:26.349Z] [LOG] [Backend]   OPENAI_API_KEY: parent_env=false | config_file=false | will_use=false
+[2026-06-22T09:54:26.349Z] [LOG] [Backend]   STRIPE_SECRET_KEY: parent_env=false | config_file=false | will_use=false
+[2026-06-22T09:54:26.349Z] [LOG] [Backend]   GOOGLE_CLIENT_ID: parent_env=false | config_file=false | will_use=false
+[2026-06-22T09:54:26.349Z] [LOG] [Backend]   GOOGLE_CLIENT_SECRET: parent_env=false | config_file=false | will_use=false
+[2026-06-22T09:54:26.349Z] [LOG] [Backend]   JWT_SECRET: parent_env=false | config_file=false | will_use=false
+[2026-06-22T09:54:26.349Z] [LOG] [Backend]   SESSION_SECRET: parent_env=false | config_file=false | will_use=false
+[2026-06-22T09:54:26.349Z] [LOG] [Backend] =====================================
+[2026-06-22T09:54:26.349Z] [LOG] [Backend] ===== CHILD ENV KEY DIAGNOSTICS =====
+[2026-06-22T09:54:26.350Z] [LOG] [Backend]   child_env OPENAI_API_KEY: false
+[2026-06-22T09:54:26.350Z] [LOG] [Backend]   child_env STRIPE_SECRET_KEY: false
+[2026-06-22T09:54:26.350Z] [LOG] [Backend]   child_env GOOGLE_CLIENT_ID: false
+[2026-06-22T09:54:26.350Z] [LOG] [Backend]   child_env GOOGLE_CLIENT_SECRET: false
+[2026-06-22T09:54:26.350Z] [LOG] [Backend]   child_env JWT_SECRET: false
+[2026-06-22T09:54:26.350Z] [LOG] [Backend]   child_env SESSION_SECRET: false
+[2026-06-22T09:54:26.350Z] [LOG] [Backend] AI_MODEL in child env: (not set, will use gpt-4o-mini)
+[2026-06-22T09:54:26.350Z] [LOG] [Backend] DATABASE_URL in child env: NO — Electron offline mode (expected; cloud DB unreachable from user machine)
+[2026-06-22T09:54:26.350Z] [LOG] [Backend] ELECTRON_BACKEND in child env: 1
+[2026-06-22T09:54:26.350Z] [LOG] [Backend] ==========================================
+[2026-06-22T09:54:26.350Z] [LOG] [Backend] Spawning child process...
+[2026-06-22T09:54:26.350Z] [LOG] [Backend]   execPath: C:\Program Files\SwitchControl\SwitchControl.exe
+[2026-06-22T09:54:26.350Z] [LOG] [Backend]   script: C:\Program Files\SwitchControl\resources\dist\index.cjs
+[2026-06-22T09:54:26.350Z] [LOG] [Backend]   ELECTRON_RUN_AS_NODE: 1 (runs as plain Node.js)
+[2026-06-22T09:54:26.351Z] [LOG] [Backend]   PORT: 53447
+[2026-06-22T09:54:26.351Z] [LOG] [Backend]   cwd: C:\Program Files\SwitchControl\resources\dist
+[2026-06-22T09:54:26.356Z] [LOG] [Backend] Child process spawned, PID: 18652
+[2026-06-22T09:54:26.356Z] [LOG] [Backend] Polling health endpoint: http://127.0.0.1:53447/api/health
+[2026-06-22T09:54:26.433Z] [LOG] [Backend:stdout] [DesktopSecrets] ELECTRON_BACKEND mode — bootstrapping secrets
+[2026-06-22T09:54:26.434Z] [LOG] [Backend:stdout] [DesktopSecrets] Secrets file path: C:\Users\SwitchTech\AppData\Roaming\SwitchControl\desktop-secrets.json
+[2026-06-22T09:54:26.434Z] [LOG] [Backend:stdout] [DesktopSecrets] Loaded persisted secrets from: C:\Users\SwitchTech\AppData\Roaming\SwitchControl\desktop-secrets.json
+[2026-06-22T09:54:26.434Z] [LOG] [Backend:stdout] [DesktopSecrets] JWT_SECRET: loaded from persisted file
+[2026-06-22T09:54:26.434Z] [LOG] [Backend:stdout] [DesktopSecrets] SESSION_SECRET: loaded from persisted file
+[2026-06-22T09:54:26.434Z] [LOG] [Backend:stdout] [DesktopSecrets] Bootstrap complete — JWT_SECRET and SESSION_SECRET are set
+[2026-06-22T09:54:26.483Z] [LOG] [Backend:stdout] [DB] Electron offline mode — no DATABASE_URL present, using in-memory mock storage.
+[2026-06-22T09:54:26.492Z] [LOG] [Backend:stdout] [Stripe] Billing not configured on local backend — expected in Electron mode.
+[2026-06-22T09:54:26.502Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [RuntimeMode] electron=true | packaged=true | protocol=file: | preload=true | backendTarget=embedded-local | authTarget=cloud
+[2026-06-22T09:54:26.502Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [API] Electron fetch interceptor installed | packaged=true (cloud-only-routes=blocked-from-local)
+[2026-06-22T09:54:26.505Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Store:REHYDRATE] total_stored=52 enabled=18 source=localStorage
+[2026-06-22T09:54:26.505Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:28) [CloudAPI] base=https://switchcontrol.org/api packaged=true electron=true
+[2026-06-22T09:54:26.509Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:145) [BiosStore] hydrated | scores from storage: null
+[2026-06-22T09:54:26.512Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [IntervalGuard] installed — min interval enforced at 2000ms
+[2026-06-22T09:54:26.512Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [LAUNCH:R0] renderer bootstrap | electron=true | t=+213ms
+[2026-06-22T09:54:26.512Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [LAUNCH:R1] createRoot dispatching | t=+213ms
+[2026-06-22T09:54:26.513Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:571) [SwitchControl Desktop] Preload initialized - unified API ready
+[2026-06-22T09:54:26.513Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:572) [SwitchControl Desktop] Platform: win32
+[2026-06-22T09:54:26.513Z] [LOG] [LAUNCH:3] did-finish-load — HTML/JS fully parsed by Chromium (first-frame-ready IPC pending)
+[2026-06-22T09:54:26.514Z] [LOG] [LAUNCH:2] loadFile() promise RESOLVED
+[2026-06-22T09:54:26.514Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [API] Backend port not ready, retrying in 200ms… (elapsed 11ms, attempt 1)
+[2026-06-22T09:54:26.514Z] [LOG] [LAUNCH:4] Gate A: ready-to-show (Chromium frame painted) | +211ms
+[2026-06-22T09:54:26.516Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: true
+[2026-06-22T09:54:26.528Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [App] Registering deep link auth callback (once)
+[2026-06-22T09:54:26.532Z] [LOG] [Backend:stdout] [JWT] ===== SELF-TEST START =====
+[2026-06-22T09:54:26.532Z] [LOG] [Backend:stdout] [JWT] config OK — JWT secret configured (secretFp=f577a787)
+[2026-06-22T09:54:26.533Z] [LOG] [Backend:stdout] [JWT] signed — userId=self-test-user-000 secretFp=f577a787 tokenFp=eyJhbGci.eyJzdWIi
+[2026-06-22T09:54:26.533Z] [LOG] [Backend:stdout] [JWT] PASS: valid token → sub=self-test-user-000 exp=1784714066
+[2026-06-22T09:54:26.534Z] [LOG] [Backend:stdout] [JWT] PASS: invalid token → null (rejected)
+[2026-06-22T09:54:26.534Z] [LOG] [Backend:stdout] [JWT] PASS: expired token → null (rejected)
+[2026-06-22T09:54:26.534Z] [LOG] [Backend:stdout] [JWT] PASS: empty token → null (fallback to cookie path)
+[2026-06-22T09:54:26.534Z] [LOG] [Backend:stdout] [JWT] PASS: alg=none token → null (rejected)
+[2026-06-22T09:54:26.534Z] [LOG] [Backend:stdout] [JWT] PASS: wrong issuer token → null (rejected)
+[2026-06-22T09:54:26.534Z] [LOG] [Backend:stdout] [JWT] ===== SELF-TEST END =====
+[2026-06-22T09:54:26.535Z] [LOG] [Backend:stdout] [AUTH] Google OAuth not configured on local backend — expected in Electron mode (auth handled by cloud server).
+[2026-06-22T09:54:26.535Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: true
+[2026-06-22T09:54:26.535Z] [LOG] [Backend:stdout] [AUTH] Using memory session store (NO-DB / Electron desktop mode)
+[2026-06-22T09:54:26.535Z] [LOG] [Backend:stdout] [AUTH] ===== SESSION COOKIE CONFIG =====
+[2026-06-22T09:54:26.535Z] [LOG] [Backend:stdout] [AUTH] production: true
+[2026-06-22T09:54:26.535Z] [LOG] [Backend:stdout] [AUTH] electronBackend: true
+[2026-06-22T09:54:26.536Z] [LOG] [Backend:stdout] [AUTH] cookie: {"httpOnly":true,"secure":false,"sameSite":"lax","maxAge":604800000,"path":"/"}
+[2026-06-22T09:54:26.536Z] [LOG] [Backend:stdout] [AUTH] ================================
+[2026-06-22T09:54:26.536Z] [LOG] [Backend:stdout] [AUTH] Discord OAuth not configured on local backend — expected in Electron mode (auth handled by cloud server).
+[2026-06-22T09:54:26.536Z] [LOG] [Backend:stdout] [WS] Live telemetry WebSocket server ready at /ws/telemetry (auth required)
+[2026-06-22T09:54:26.536Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: true
+[2026-06-22T09:54:26.537Z] [LOG] [LAUNCH:5] Gate B: app:first-frame-ready (React Splash composited) | +234ms
+[2026-06-22T09:54:26.551Z] [LOG] [LAUNCH:5] mainWindow.show() — both gates passed (chromium+react) | +248ms
+[2026-06-22T09:54:26.551Z] [LOG] [PS] start file=main.js fn=startTelemetryPolling:wmiGpu reason=startup-wmi-gpu id=1 active=1
+[2026-06-22T09:54:26.551Z] [LOG] [GPU] WMI fast-path start — t=1782122066551
+[2026-06-22T09:54:26.615Z] [LOG] [Backend:stdout] 9:54:26 PM [express] serving on 127.0.0.1:53447
+[2026-06-22T09:54:26.618Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:150) [Window] Focus event received
+[2026-06-22T09:54:26.619Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [App] Electron window focus (passive)
+[2026-06-22T09:54:26.624Z] [LOG] [Backend] Health check PASSED — attempt 5, 268ms elapsed, body={"status":"ok","version":"1.1.6","uptime":0,"dbReachable":false,"timestamp":1782122066626}
+[2026-06-22T09:54:26.624Z] [LOG] [Backend] ===== BACKEND READY =====
+[2026-06-22T09:54:26.625Z] [LOG] [Backend] PID: 18652
+[2026-06-22T09:54:26.625Z] [LOG] [Backend] Port: 53447
+[2026-06-22T09:54:26.625Z] [LOG] [Backend] Ready: true
+[2026-06-22T09:54:26.625Z] [LOG] [Backend] getBackendPort() will return: 53447
+[2026-06-22T09:54:26.625Z] [LOG] [Backend] isBackendReady() will return: true
+[2026-06-22T09:54:26.625Z] [LOG] [Backend] ========================
+[2026-06-22T09:54:26.625Z] [LOG] [STARTUP] backend ready — port 53447 (344ms)
+[2026-06-22T09:54:26.630Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:130) [Backend] backend-ready event received, port: 53447
+[2026-06-22T09:54:26.631Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [API] Backend-ready push: base=http://127.0.0.1:53447/api (was: unset)
+[2026-06-22T09:54:26.631Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [API] Backend port resolved: 53447 (128ms, push or poll)
+[2026-06-22T09:54:26.631Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [API] Packaged Electron API base: http://127.0.0.1:53447/api
+[2026-06-22T09:54:26.631Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [API] Resolved: http://127.0.0.1:53447/api | electron=true packaged=true
+[2026-06-22T09:54:27.298Z] [LOG] [PS] end file=main.js fn=startTelemetryPolling:wmiGpu id=1 duration=747ms active=0 calls60s=1
+[2026-06-22T09:54:27.298Z] [LOG] [GPU] WMI fast-path resolved: AMD Radeon RX 7800 XT
+[2026-06-22T09:54:29.029Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:28) [LAUNCH:R5] Splash onComplete — handing off to App
+[2026-06-22T09:54:29.029Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: true
+[2026-06-22T09:54:29.030Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [AuthTruth] Boot: token present: true jwt present: true user present: true premium: true
+[2026-06-22T09:54:29.030Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [AuthTruth] startup restore begin — hasCredential: true cached isPremium: true plan: premium
+[2026-06-22T09:54:29.031Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [AuthTruth] Boot: fast path — cached session, mounting dashboard immediately isPremium: true plan: premium
+[2026-06-22T09:54:29.031Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [HYDRATE:1] resolveAuthState start reqId=atn282
+[2026-06-22T09:54:29.031Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [HYDRATE:1] persisted — user=64f0e669-6db6-42e7-a68a-681f9f5db567 jwt=present
+[2026-06-22T09:54:29.031Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [HYDRATE:2] jwtCheck — malformed=false expired=false
+[2026-06-22T09:54:29.031Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [HYDRATE:5] /api/me — jwt=present reqId=atn282
+[2026-06-22T09:54:29.031Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: true
+[2026-06-22T09:54:29.031Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:28) [DeviceLock] target=cloud userId=present deviceIdPresent=true
+[2026-06-22T09:54:29.032Z] [WARN] [telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.
+[2026-06-22T09:54:29.032Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [TourTransition] phase entered authenticated — waiting 500ms for dashboard to stabilize
+[2026-06-22T09:54:29.032Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: true
+[2026-06-22T09:54:29.035Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:28) [CloudAPI] 2026-06-22T09:54:29.039Z | POST /device/premium-validate | auth=true | base=https://switchcontrol.org/api
+[2026-06-22T09:54:29.532Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [TourTransition] dashboard stable — tours unblocked
+[2026-06-22T09:54:29.533Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: true
+[2026-06-22T09:54:29.534Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [AppFlow] Flow eval — isPremium: true plan: premium trialEndsAt: null hasSeenTrialActivation: true hasSeenTrialTour: true hasSeenUnlock: true hasSeenTour: true isFirstTimeUser: false isFirstLogin: false entitlementsAttempted: true entitlementsOk: true unlockFired: false trialUnlockFired: false
+[2026-06-22T09:54:29.534Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [AppFlow] No flow conditions met — staying idle
+[2026-06-22T09:54:29.641Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:28) [Network] Heartbeat started (interval=30000ms)
+[2026-06-22T09:54:29.644Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [Dashboard] mounted
+[2026-06-22T09:54:29.645Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [ActivityMonitor] reused cached state — history points: 1 status: ready
+[2026-06-22T09:54:29.645Z] [LOG] [BOOT] ──────────────────────────────────────────
+[2026-06-22T09:54:29.645Z] [LOG] [BOOT] firstFrameReady  = 211ms
+[2026-06-22T09:54:29.645Z] [LOG] [BOOT] windowShown      = 234ms
+[2026-06-22T09:54:29.645Z] [LOG] [BOOT] telemetryStart   = 248ms
+[2026-06-22T09:54:29.645Z] [LOG] [BOOT] dashboardMounted = 3342ms
+[2026-06-22T09:54:29.645Z] [LOG] [BOOT] ──────────────────────────────────────────
+[2026-06-22T09:54:29.645Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [Home] Specs pre-loaded from Splash — skipping getSpecs()
+[2026-06-22T09:54:29.645Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [Handoff] dashboard fade-in started
+[2026-06-22T09:54:29.669Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:54:29.669Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/dashboard-intelligence/system-dna target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:54:29.669Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:54:29.669Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:54:29.669Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/dashboard-intelligence/ram-analysis target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:54:29.669Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/system-intelligence/fast target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:54:29.676Z] [LOG] [Backend:stdout] [SysIntelligence] phase=A start — identity collection (sequential, WMI-safe)
+[2026-06-22T09:54:29.698Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [Handoff] dashboard fade-in complete — layout stable
+[2026-06-22T09:54:29.829Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:28) [CloudAPI] OK | POST /device/premium-validate | status=200
+[2026-06-22T09:54:29.830Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:28) [DeviceLock] Valid device
+[2026-06-22T09:54:29.830Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: true
+[2026-06-22T09:54:30.026Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [HYDRATE:6] result=verified source=cloud userId=64f0e669-6db6-42e7-a68a-681f9f5db567 isPremium=true plan=premium isAdmin=true reqId=atn282
+[2026-06-22T09:54:30.026Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [AuthTruth] Boot resolved verified=true reason=cloud_confirmed user=yes
+[2026-06-22T09:54:30.027Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:28) [Premium] Grace snapshot updated — isPremium=true plan=premium userId=64f0e669-6db6-42e7-a68a-681f9f5db567
+[2026-06-22T09:54:30.027Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [AuthTruth] Boot: cloud-confirmed — entitlementsVerified=true
+[2026-06-22T09:54:30.027Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T09:54:30.035Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:28) [PremiumExpiry] Initial state recorded — active=true plan=premium trialEndsAt=null
+[2026-06-22T09:54:30.844Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/startup/apps target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:54:30.967Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/issues/detect target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:54:31.036Z] [WARN] [telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.
+[2026-06-22T09:54:32.437Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T09:54:32.680Z] [ERROR] [Backend:stderr] [SysIntelligence] phase=timeout source=A.mem limit=3000ms
+[2026-06-22T09:54:34.404Z] [INFO] Checking for update
+[2026-06-22T09:54:34.405Z] [LOG] [Updater] Checking for update...
+[2026-06-22T09:54:34.532Z] [LOG] [PS] start file=main.js fn=tweak:batchCheckAll reason=tweak-batch-check id=2 active=1
+[2026-06-22T09:54:34.533Z] [LOG] [PS:tweak-executor] #1 batchCheckAll SPAWN ts=1782122074533 tweaks=61
+[2026-06-22T09:54:34.555Z] [ERROR] Error: Error: Cannot find channel "latest.yml" update info: HttpError: 404 Not Found
+"method: GET url: https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev/latest.yml?noCache=1jrnc1k96\n\nPlease double check that your authentication token is correct. Due to security reasons, actual status maybe not reported, but 404.\n"
+Headers: {
+  "cf-ray": "a0fa600d2e4fd9ab-AKL",
+  "connection": "keep-alive",
+  "content-length": "27150",
+  "content-type": "text/html",
+  "date": "Mon, 22 Jun 2026 09:55:03 GMT",
+  "server": "cloudflare"
+}
+    at createHttpError (C:\Program Files\SwitchControl\resources\app.asar\node_modules\electron-updater\node_modules\builder-util-runtime\out\httpExecutor.js:53:12)
+    at ElectronHttpExecutor.handleResponse (C:\Program Files\SwitchControl\resources\app.asar\node_modules\electron-updater\node_modules\builder-util-runtime\out\httpExecutor.js:157:20)
+    at ClientRequest.<anonymous> (C:\Program Files\SwitchControl\resources\app.asar\node_modules\electron-updater\node_modules\builder-util-runtime\out\httpExecutor.js:122:26)
+    at ClientRequest.emit (node:events:518:28)
+    at SimpleURLLoaderWrapper.<anonymous> (node:electron/js2c/browser_init:2:118140)
+    at SimpleURLLoaderWrapper.emit (node:events:518:28)
+    at newError (C:\Program Files\SwitchControl\resources\app.asar\node_modules\electron-updater\node_modules\builder-util-runtime\out\error.js:5:19)
+    at GenericProvider.getLatestVersion (C:\Program Files\SwitchControl\resources\app.asar\node_modules\electron-updater\out\providers\GenericProvider.js:27:63)
+    at async NsisUpdater.getUpdateInfoAndProvider (C:\Program Files\SwitchControl\resources\app.asar\node_modules\electron-updater\out\AppUpdater.js:389:19)
+    at async NsisUpdater.doCheckForUpdates (C:\Program Files\SwitchControl\resources\app.asar\node_modules\electron-updater\out\AppUpdater.js:402:24)
+[2026-06-22T09:54:34.555Z] [WARN] [Updater] No update file found (404) — treating as not-available
+[2026-06-22T09:54:34.556Z] [WARN] [Updater] No update file found (404) — treating as not-available
+[2026-06-22T09:54:34.791Z] [LOG] [Backend:stdout] [SysIntelligence] phase=A complete in 5114ms | CPU=Ryzen 7 9800X3D 8-Core Processor | GPU=AMD Radeon RX 7800 XT | RAM=32372MB | probes: mem+cpu+graphics (baseboard/bios skipped)
+[2026-06-22T09:54:34.796Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:157) [SysIntelligence] Fast profile loaded | MB=null | CPU=Ryzen 7 9800X3D 8-Core Processor
+[2026-06-22T09:54:36.229Z] [LOG] [PS:tweak-executor] #1 batchCheckAll OK 1696ms
+[2026-06-22T09:54:36.230Z] [LOG] [PS] end file=main.js fn=tweak:batchCheckAll id=2 duration=1698ms active=0 calls60s=2
+[2026-06-22T09:54:36.231Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="nvidia-telemetry" enabled=false (from system sync)
+[2026-06-22T09:54:36.231Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="mem-opt" enabled=true (from system sync)
+[2026-06-22T09:54:36.232Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="gaming-mode" enabled=true (from system sync)
+[2026-06-22T09:54:36.232Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="cortana" enabled=false (from system sync)
+[2026-06-22T09:54:36.232Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="disable-wallpaper-compression" enabled=false (from system sync)
+[2026-06-22T09:54:36.232Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="maintenance" enabled=true (from system sync)
+[2026-06-22T09:54:36.232Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="page-combining" enabled=true (from system sync)
+[2026-06-22T09:54:36.232Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="hibernation" enabled=false (from system sync)
+[2026-06-22T09:54:36.232Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="xbox-bar" enabled=false (from system sync)
+[2026-06-22T09:54:36.232Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="mmcss-nolazymode" enabled=false (from system sync)
+[2026-06-22T09:54:36.233Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="wifi" enabled=false (from system sync)
+[2026-06-22T09:54:36.233Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="win-search-index" enabled=false (from system sync)
+[2026-06-22T09:54:36.233Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="core-isolation" enabled=true (from system sync)
+[2026-06-22T09:54:36.233Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="copilot" enabled=true (from system sync)
+[2026-06-22T09:54:36.233Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="xbox-services" enabled=false (from system sync)
+[2026-06-22T09:54:36.233Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="disable-auto-restart-apps" enabled=false (from system sync)
+[2026-06-22T09:54:36.234Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="recent-files" enabled=false (from system sync)
+[2026-06-22T09:54:36.234Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="disable-mpo" enabled=true (from system sync)
+[2026-06-22T09:54:36.234Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="prefetch" enabled=true (from system sync)
+[2026-06-22T09:54:36.234Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="ntfs-last-access" enabled=false (from system sync)
+[2026-06-22T09:54:36.234Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="compact-explorer" enabled=false (from system sync)
+[2026-06-22T09:54:36.234Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="large-system-cache" enabled=true (from system sync)
+[2026-06-22T09:54:36.234Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="disable-delivery-opt" enabled=false (from system sync)
+[2026-06-22T09:54:36.235Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="disable-transparency" enabled=false (from system sync)
+[2026-06-22T09:54:36.235Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="usb-selective-suspend" enabled=false (from system sync)
+[2026-06-22T09:54:36.235Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="tune-priority" enabled=false (from system sync)
+[2026-06-22T09:54:36.235Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="bluetooth" enabled=false (from system sync)
+[2026-06-22T09:54:36.235Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="explorer-separate-process" enabled=false (from system sync)
+[2026-06-22T09:54:36.235Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="fax-printer" enabled=false (from system sync)
+[2026-06-22T09:54:36.236Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="disable-animations" enabled=true (from system sync)
+[2026-06-22T09:54:36.236Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="search-highlights" enabled=false (from system sync)
+[2026-06-22T09:54:36.236Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="hyper-v" enabled=true (from system sync)
+[2026-06-22T09:54:36.236Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="disable-wer" enabled=false (from system sync)
+[2026-06-22T09:54:36.236Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="bg-apps" enabled=false (from system sync)
+[2026-06-22T09:54:36.237Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="power-throttling" enabled=false (from system sync)
+[2026-06-22T09:54:36.237Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="vbs" enabled=true (from system sync)
+[2026-06-22T09:54:36.237Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="energy-logging" enabled=false (from system sync)
+[2026-06-22T09:54:36.237Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="show-file-extensions" enabled=false (from system sync)
+[2026-06-22T09:54:36.237Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="preemption" enabled=false (from system sync)
+[2026-06-22T09:54:36.237Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="synth-timers" enabled=false (from system sync)
+[2026-06-22T09:54:36.238Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="disable-lock-screen" enabled=false (from system sync)
+[2026-06-22T09:54:36.238Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="fast-startup" enabled=true (from system sync)
+[2026-06-22T09:54:36.238Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="disable-fso" enabled=false (from system sync)
+[2026-06-22T09:54:36.238Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="storage-sense" enabled=false (from system sync)
+[2026-06-22T09:54:36.238Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="telemetry" enabled=false (from system sync)
+[2026-06-22T09:54:36.238Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="mmcss-gaming" enabled=false (from system sync)
+[2026-06-22T09:54:36.239Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="pcie-link-state" enabled=true (from system sync)
+[2026-06-22T09:54:36.239Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="superfetch" enabled=true (from system sync)
+[2026-06-22T09:54:36.239Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="disable-pointer-precision" enabled=true (from system sync)
+[2026-06-22T09:54:36.239Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="notifications" enabled=true (from system sync)
+[2026-06-22T09:54:36.239Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="disable-activity-history" enabled=false (from system sync)
+[2026-06-22T09:54:36.239Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="disable-dcom" enabled=true (from system sync)
+[2026-06-22T09:54:36.239Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [App:STARTUP-RECONCILE] reconciled=52 tweaks from real Windows state
+[2026-06-22T09:54:36.239Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T09:54:36.278Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/dashboard-intelligence/what-caused-that?t=1782122076281 target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:54:39.699Z] [ERROR] [Backend:stderr] [SysIntelligence] phase=timeout source=graphics limit=6000ms
+[2026-06-22T09:54:40.034Z] [ERROR] [Backend:stderr] [SysIntelligence] phase=timeout source=cpu limit=9000ms
+[2026-06-22T09:54:41.178Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:54:46.182Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:54:46.541Z] [LOG] [Backend:stdout] [SysIntelligence] Background deep collection triggered
+[2026-06-22T09:54:46.541Z] [LOG] [Backend:stdout] [SysIntelligence] phase=full start — deep collection
+[2026-06-22T09:54:51.187Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:54:53.779Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:150) [Window] Focus event received
+[2026-06-22T09:54:53.779Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [App] Electron window focus (passive)
+[2026-06-22T09:54:55.558Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:150) [Window] Focus event received
+[2026-06-22T09:54:55.558Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [App] Electron window focus (passive)
+[2026-06-22T09:54:57.457Z] [ERROR] [Backend:stderr] [SysIntelligence] phase=timeout source=processes limit=6000ms
+[2026-06-22T09:54:57.643Z] [LOG] [Backend:stdout] [SysIntelligence] cpu WMI timeout — os.cpus() fallback: AMD Ryzen 7 9800X3D 8-Core Processor
+[2026-06-22T09:54:57.733Z] [ERROR] [Backend:stderr] [SysIntelligence] phase=timeout source=fsSize limit=8000ms
+[2026-06-22T09:54:57.734Z] [ERROR] [Backend:stderr] [SysIntelligence] phase=timeout source=netIf limit=8000ms
+[2026-06-22T09:54:57.734Z] [ERROR] [Backend:stderr] [SysIntelligence] phase=timeout source=osInfo limit=8000ms
+[2026-06-22T09:54:57.734Z] [ERROR] [Backend:stderr] [SysIntelligence] phase=timeout source=audio limit=8000ms
+[2026-06-22T09:54:57.841Z] [ERROR] [Backend:stderr] [SysIntelligence] phase=timeout source=memLayout limit=10000ms
+[2026-06-22T09:54:57.841Z] [ERROR] [Backend:stderr] [SysIntelligence] phase=timeout source=diskLayout limit=10000ms
+[2026-06-22T09:54:58.445Z] [LOG] [Backend:stdout] [SysIntelligence] phase=full complete in 11904ms | MB=X870E AORUS PRO ICE | BIOS=F12a | CPU=AMD Ryzen 7 9800X3D 8-Core Processor | GPUs=1 | RAMsticks=2
+[2026-06-22T09:54:58.446Z] [LOG] [Backend:stdout] [SysIntelligence] Disk cache updated
+[2026-06-22T09:54:58.548Z] [ERROR] [Backend:stderr] [SysIntelligence] phase=timeout source=baseboard limit=12000ms
+[2026-06-22T09:54:58.548Z] [ERROR] [Backend:stderr] [SysIntelligence] phase=timeout source=bios limit=12000ms
+[2026-06-22T09:54:58.841Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T09:54:58.853Z] [LOG] [PS:nic-executor] #1 queryPS SPAWN ts=1782122098853
+[2026-06-22T09:54:59.043Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T09:54:59.108Z] [LOG] [PS] start file=main.js fn=slider:readValue reason=slider-read id=3 active=1
+[2026-06-22T09:54:59.110Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-22T09:54:59.108Z
+[2026-06-22T09:54:59.110Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-22T09:54:59.108Z
+[2026-06-22T09:54:59.111Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-22T09:54:59.108Z
+[2026-06-22T09:54:59.111Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-22T09:54:59.108Z
+[2026-06-22T09:54:59.111Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-22T09:54:59.108Z
+[2026-06-22T09:54:59.112Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-22T09:54:59.108Z
+[2026-06-22T09:54:59.112Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-22T09:54:59.108Z
+[2026-06-22T09:54:59.113Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [Tweaks:LOAD] source=zustand-persist enabled=18 total_known=52
+[2026-06-22T09:54:59.113Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [Tweaks:LOAD] enabled_ids=mem-opt, gaming-mode, maintenance, page-combining, core-isolation, copilot, disable-mpo, prefetch, large-system-cache, disable-animations, hyper-v, vbs, fast-startup, pcie-link-state, superfetch, disable-pointer-precision, notifications, disable-dcom
+[2026-06-22T09:54:59.113Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [Tweaks:SYNC] hydration start gen=1
+[2026-06-22T09:54:59.113Z] [LOG] [PS] start file=main.js fn=tweak:syncAll reason=tweak-sync-all id=4 active=2
+[2026-06-22T09:54:59.114Z] [LOG] [PS-Exec] start file=main.js fn=tweak:syncAll reason=tweak-sync-all — batch mode, 63 tweaks
+[2026-06-22T09:54:59.114Z] [LOG] [PS:tweak-executor] #2 batchCheckAll SPAWN ts=1782122099114 tweaks=61
+[2026-06-22T09:54:59.124Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/tweak-intelligence/system-state target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:54:59.125Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/tweak-intelligence/rankings?applied=mem-opt%2Cgaming-mode%2Cmaintenance%2Cpage-combining%2Ccore-isolation%2Ccopilot%2Cdisable-mpo%2Cprefetch%2Clarge-system-cache%2Cdisable-animations%2Chyper-v%2Cvbs%2Cfast-startup%2Cpcie-link-state%2Csuperfetch%2Cdisable-pointer-precision%2Cnotifications%2Cdisable-dcom target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:54:59.125Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/tweak-intelligence/posture?applied=mem-opt%2Cgaming-mode%2Cmaintenance%2Cpage-combining%2Ccore-isolation%2Ccopilot%2Cdisable-mpo%2Cprefetch%2Clarge-system-cache%2Cdisable-animations%2Chyper-v%2Cvbs%2Cfast-startup%2Cpcie-link-state%2Csuperfetch%2Cdisable-pointer-precision%2Cnotifications%2Cdisable-dcom target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:54:59.148Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] win32-priority-sep: read skipped — limiter busy (expected at startup)
+[2026-06-22T09:54:59.149Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] sys-responsiveness: read skipped — limiter busy (expected at startup)
+[2026-06-22T09:54:59.149Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] net-throttle-index: read skipped — limiter busy (expected at startup)
+[2026-06-22T09:54:59.149Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] menu-show-delay: read skipped — limiter busy (expected at startup)
+[2026-06-22T09:54:59.149Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] hung-app-timeout: read skipped — limiter busy (expected at startup)
+[2026-06-22T09:54:59.150Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] low-level-hooks-timeout: read skipped — limiter busy (expected at startup)
+[2026-06-22T09:54:59.150Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] wait-to-kill-app: read skipped — limiter busy (expected at startup)
+[2026-06-22T09:54:59.274Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T09:54:59.312Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [Dashboard] mounted
+[2026-06-22T09:54:59.313Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [ActivityMonitor] reused cached state — history points: 15 status: ready
+[2026-06-22T09:54:59.335Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:54:59.335Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/dashboard-intelligence/system-dna target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:54:59.335Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:54:59.335Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:54:59.336Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/dashboard-intelligence/ram-analysis target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:54:59.803Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/system-intelligence/profile target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:54:59.814Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:157) [SysIntelligence] Full profile upgrade | MB=X870E AORUS PRO ICE | platform.secureBoot=true
+[2026-06-22T09:54:59.835Z] [LOG] [SliderExecutor] READ svchost-split-threshold: value=33554432 raw="33554432"
+[2026-06-22T09:54:59.836Z] [LOG] [PS] end file=main.js fn=slider:readValue id=3 duration=728ms active=1 calls60s=3
+[2026-06-22T09:54:59.838Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] svchost-split-threshold: value=33554432 missing=false
+[2026-06-22T09:54:59.838Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T09:55:00.502Z] [LOG] [PS:nic-executor] #1 queryPS OK 1649ms
+[2026-06-22T09:55:00.517Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/startup/apps target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:55:00.691Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/issues/detect target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:55:01.279Z] [LOG] [PS:tweak-executor] #2 batchCheckAll OK 2165ms
+[2026-06-22T09:55:01.279Z] [LOG] [PS-Exec] done file=main.js fn=tweak:syncAll ms=2165 tweaks=70
+[2026-06-22T09:55:01.280Z] [LOG] [PS] end file=main.js fn=tweak:syncAll id=4 duration=2167ms active=0 calls60s=4
+[2026-06-22T09:55:01.285Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [TweakSupport] id=p-states, supported=false, reason="Requires driver/service not installed — CPU P-state control needs a kernel-mode agent calling ACPI driver interfaces. Cannot be applied persistently via registry." (runtime check)
+[2026-06-22T09:55:01.285Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [TweakSupport] id=irq-priority, supported=false, reason="Requires driver/service not installed — interrupt affinity control is not accessible from user-mode. Needs a signed kernel driver or MSR write access." (runtime check)
+[2026-06-22T09:55:01.286Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [TweakSupport] id=desktop-comp, supported=false, reason="Unsupported on Windows 10/11 — Desktop Window Manager (DWM) is an integral system compositor and cannot be disabled. Disabling DWM was only possible on Windows XP/Vista." (runtime check)
+[2026-06-22T09:55:01.286Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [TweakSupport] id=hdcp, supported=false, reason="Requires driver/service not installed — HDCP enforcement is controlled at the GPU hardware/display-driver level and cannot be reliably toggled via software or registry." (runtime check)
+[2026-06-22T09:55:01.286Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [TweakSupport] id=mouse-queue-size, supported=false, reason="Requires driver/service not installed — MouseDataQueueSize (mouclass kernel driver) modification can cause complete mouse failure requiring Safe Mode recovery. Disabled for safety." (runtime check)
+[2026-06-22T09:55:01.286Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [TweakSupport] id=kbd-queue-size, supported=false, reason="Requires driver/service not installed — KeyboardDataQueueSize (kbdclass kernel driver) modification can cause complete keyboard failure requiring Safe Mode recovery. Disabled for safety." (runtime check)
+[2026-06-22T09:55:01.287Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [TweakSupport] id=tcp-winhttp, supported=false, reason="Helper not bundled — WinHTTP autotuning is applied via netsh and resets when the network adapter restarts. No persistent agent is shipped in this build." (runtime check)
+[2026-06-22T09:55:01.287Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="nvidia-telemetry" enabled=false (from system sync)
+[2026-06-22T09:55:01.287Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="mem-opt" enabled=true (from system sync)
+[2026-06-22T09:55:01.287Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="gaming-mode" enabled=true (from system sync)
+[2026-06-22T09:55:01.288Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="cortana" enabled=false (from system sync)
+[2026-06-22T09:55:01.288Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="disable-wallpaper-compression" enabled=false (from system sync)
+[2026-06-22T09:55:01.288Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="maintenance" enabled=true (from system sync)
+[2026-06-22T09:55:01.289Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="page-combining" enabled=true (from system sync)
+[2026-06-22T09:55:01.289Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="hibernation" enabled=false (from system sync)
+[2026-06-22T09:55:01.289Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="xbox-bar" enabled=false (from system sync)
+[2026-06-22T09:55:01.289Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="mmcss-nolazymode" enabled=false (from system sync)
+[2026-06-22T09:55:01.289Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="wifi" enabled=false (from system sync)
+[2026-06-22T09:55:01.289Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="win-search-index" enabled=false (from system sync)
+[2026-06-22T09:55:01.290Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="core-isolation" enabled=true (from system sync)
+[2026-06-22T09:55:01.290Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="copilot" enabled=true (from system sync)
+[2026-06-22T09:55:01.290Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="xbox-services" enabled=false (from system sync)
+[2026-06-22T09:55:01.290Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="disable-auto-restart-apps" enabled=false (from system sync)
+[2026-06-22T09:55:01.291Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="recent-files" enabled=false (from system sync)
+[2026-06-22T09:55:01.291Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="disable-mpo" enabled=true (from system sync)
+[2026-06-22T09:55:01.291Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="prefetch" enabled=true (from system sync)
+[2026-06-22T09:55:01.291Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="ntfs-last-access" enabled=false (from system sync)
+[2026-06-22T09:55:01.291Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="compact-explorer" enabled=false (from system sync)
+[2026-06-22T09:55:01.292Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="large-system-cache" enabled=true (from system sync)
+[2026-06-22T09:55:01.292Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="disable-delivery-opt" enabled=false (from system sync)
+[2026-06-22T09:55:01.292Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="disable-transparency" enabled=false (from system sync)
+[2026-06-22T09:55:01.292Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="usb-selective-suspend" enabled=false (from system sync)
+[2026-06-22T09:55:01.293Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="tune-priority" enabled=false (from system sync)
+[2026-06-22T09:55:01.293Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="bluetooth" enabled=false (from system sync)
+[2026-06-22T09:55:01.293Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="explorer-separate-process" enabled=false (from system sync)
+[2026-06-22T09:55:01.293Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="fax-printer" enabled=false (from system sync)
+[2026-06-22T09:55:01.294Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="disable-animations" enabled=true (from system sync)
+[2026-06-22T09:55:01.294Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="search-highlights" enabled=false (from system sync)
+[2026-06-22T09:55:01.294Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="hyper-v" enabled=true (from system sync)
+[2026-06-22T09:55:01.294Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="disable-wer" enabled=false (from system sync)
+[2026-06-22T09:55:01.295Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="bg-apps" enabled=false (from system sync)
+[2026-06-22T09:55:01.295Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="power-throttling" enabled=false (from system sync)
+[2026-06-22T09:55:01.295Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="vbs" enabled=true (from system sync)
+[2026-06-22T09:55:01.295Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="energy-logging" enabled=false (from system sync)
+[2026-06-22T09:55:01.295Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="show-file-extensions" enabled=false (from system sync)
+[2026-06-22T09:55:01.295Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="preemption" enabled=false (from system sync)
+[2026-06-22T09:55:01.296Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="synth-timers" enabled=false (from system sync)
+[2026-06-22T09:55:01.296Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="disable-lock-screen" enabled=false (from system sync)
+[2026-06-22T09:55:01.296Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="fast-startup" enabled=true (from system sync)
+[2026-06-22T09:55:01.296Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="disable-fso" enabled=false (from system sync)
+[2026-06-22T09:55:01.297Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="storage-sense" enabled=false (from system sync)
+[2026-06-22T09:55:01.297Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="telemetry" enabled=false (from system sync)
+[2026-06-22T09:55:01.297Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="mmcss-gaming" enabled=false (from system sync)
+[2026-06-22T09:55:01.297Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="pcie-link-state" enabled=true (from system sync)
+[2026-06-22T09:55:01.298Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="superfetch" enabled=true (from system sync)
+[2026-06-22T09:55:01.298Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="disable-pointer-precision" enabled=true (from system sync)
+[2026-06-22T09:55:01.298Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="notifications" enabled=true (from system sync)
+[2026-06-22T09:55:01.298Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="disable-activity-history" enabled=false (from system sync)
+[2026-06-22T09:55:01.298Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="disable-dcom" enabled=true (from system sync)
+[2026-06-22T09:55:01.299Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [Tweaks:SYNC] hydration done gen=1 reconciled=52
+[2026-06-22T09:55:01.299Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T09:55:01.461Z] [ERROR] [Backend:stderr] [SysIntelligence] phase=timeout source=platformPS limit=10000ms
+[2026-06-22T09:55:03.727Z] [ERROR] [Backend:stderr] [SysIntelligence] phase=timeout source=graphics limit=8000ms
+[2026-06-22T09:55:03.727Z] [ERROR] [Backend:stderr] [SysIntelligence] phase=timeout source=monitorEDID limit=8000ms
+[2026-06-22T09:55:11.131Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:55:16.136Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:55:21.140Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:55:28.718Z] [LOG] [Memory] mode=smart expected helper: C:\Program Files\SwitchControl\resources\bin\sc_memory.exe | exists: true | isPackaged: true
+[2026-06-22T09:55:29.241Z] [LOG] [Memory] stdout raw: {"mode":"smart","processes_scanned":171,"processes_trimmed":24,"estimated_mb_freed":7722.9,"top_trimmed":[{"name":"firefox.exe","pid":8208,"mb_freed":790.8},{"name":"firefox.exe","pid":5484,"mb_freed":710.4},{"name":"explorer.exe","pid":5216,"mb_freed":573.2},{"name":"firefox.exe","pid":17772,"mb_freed":569.0},{"name":"firefox.exe","pid":17268,"mb_freed":560.7}],"execution_ms":511,"errors_count":17}
+[2026-06-22T09:55:29.241Z] [LOG] [Memory] smart mode: scanned=171 trimmed=24 freed=7722.9MB
+[2026-06-22T09:55:31.144Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:55:31.145Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:55:31.145Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:55:33.709Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:150) [Window] Focus event received
+[2026-06-22T09:55:33.709Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [App] Electron window focus (passive)
+[2026-06-22T09:55:37.721Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/dashboard-intelligence/ram-analysis?bust=1 target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:55:41.153Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:55:46.158Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:55:51.161Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:55:57.262Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [App] Window focused, refreshing entitlements...
+[2026-06-22T09:55:57.262Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:150) [Window] Focus event received
+[2026-06-22T09:55:57.263Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [App] Electron window focus (passive)
+[2026-06-22T09:55:58.119Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T09:55:59.415Z] [LOG] [Memory] mode=smart expected helper: C:\Program Files\SwitchControl\resources\bin\sc_memory.exe | exists: true | isPackaged: true
+[2026-06-22T09:55:59.590Z] [LOG] [Memory] stdout raw: {"mode":"smart","processes_scanned":174,"processes_trimmed":11,"estimated_mb_freed":2293.0,"top_trimmed":[{"name":"firefox.exe","pid":16728,"mb_freed":589.5},{"name":"firefox.exe","pid":5484,"mb_freed":322.2},{"name":"firefox.exe","pid":17268,"mb_freed":260.9},{"name":"SwitchControl.exe","pid":14244,"mb_freed":184.0},{"name":"firefox.exe","pid":13836,"mb_freed":171.9}],"execution_ms":164,"errors_count":17}
+[2026-06-22T09:55:59.590Z] [LOG] [Memory] smart mode: scanned=174 trimmed=11 freed=2293MB
+[2026-06-22T09:56:01.168Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:56:01.168Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:56:01.168Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:56:01.168Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/dashboard-intelligence/system-dna target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:56:01.168Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/dashboard-intelligence/ram-analysis target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:56:06.813Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:150) [Window] Focus event received
+[2026-06-22T09:56:06.813Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [App] Electron window focus (passive)
+[2026-06-22T09:56:08.416Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/dashboard-intelligence/ram-analysis?bust=1 target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:56:12.518Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:56:17.521Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:56:22.528Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:56:31.683Z] [LOG] [Renderer:info] (MemoryCleanerModal-CLPDMdlE.js:1) [MemoryCleaner] mode selected: advanced
+[2026-06-22T09:56:31.683Z] [LOG] [Memory] mode=advanced expected helper: C:\Program Files\SwitchControl\resources\bin\sc_memory.exe | exists: true | isPackaged: true
+[2026-06-22T09:56:31.939Z] [LOG] [Memory] stdout raw: {"mode":"advanced","processes_scanned":171,"processes_trimmed":100,"estimated_mb_freed":4196.9,"top_trimmed":[{"name":"firefox.exe","pid":16728,"mb_freed":487.5},{"name":"SwitchControl.exe","pid":14244,"mb_freed":194.4},{"name":"firefox.exe","pid":5484,"mb_freed":185.7},{"name":"firefox.exe","pid":17268,"mb_freed":141.1},{"name":"firefox.exe","pid":13836,"mb_freed":131.0}],"execution_ms":245,"errors_count":16}
+[2026-06-22T09:56:31.940Z] [LOG] [Memory] advanced mode: scanned=171 trimmed=100 freed=4196.9MB
+[2026-06-22T09:56:32.543Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:56:32.543Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:56:32.543Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:56:32.887Z] [LOG] [Renderer:info] (MemoryCleanerModal-CLPDMdlE.js:1) [MemoryCleaner] raw result from electronAPI.memory.clean: {"mode":"advanced","processes_scanned":171,"processes_trimmed":100,"estimated_mb_freed":4196.9,"top_trimmed":[{"name":"firefox.exe","pid":16728,"mb_freed":487.5},{"name":"SwitchControl.exe","pid":14244,"mb_freed":194.4},{"name":"firefox.exe","pid":5484,"mb_freed":185.7},{"name":"firefox.exe","pid":17268,"mb_freed":141.1},{"name":"firefox.exe","pid":13836,"mb_freed":131}],"execution_ms":245,"errors_count":16}
+[2026-06-22T09:56:39.268Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [App] Window focused, refreshing entitlements...
+[2026-06-22T09:56:39.269Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:150) [Window] Focus event received
+[2026-06-22T09:56:39.269Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [App] Electron window focus (passive)
+[2026-06-22T09:56:39.817Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T09:56:41.376Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T09:56:42.553Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:56:43.665Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:150) [Window] Focus event received
+[2026-06-22T09:56:43.666Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [App] Electron window focus (passive)
+[2026-06-22T09:56:44.475Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T09:56:44.512Z] [LOG] [PS] start file=main.js fn=slider:readValue reason=slider-read id=5 active=1
+[2026-06-22T09:56:44.514Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-22T09:56:44.512Z
+[2026-06-22T09:56:44.514Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-22T09:56:44.512Z
+[2026-06-22T09:56:44.514Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-22T09:56:44.512Z
+[2026-06-22T09:56:44.514Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-22T09:56:44.512Z
+[2026-06-22T09:56:44.514Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-22T09:56:44.512Z
+[2026-06-22T09:56:44.514Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-22T09:56:44.512Z
+[2026-06-22T09:56:44.514Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-22T09:56:44.512Z
+[2026-06-22T09:56:44.515Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [Tweaks:LOAD] source=zustand-persist enabled=18 total_known=52
+[2026-06-22T09:56:44.515Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [Tweaks:LOAD] enabled_ids=mem-opt, gaming-mode, maintenance, page-combining, core-isolation, copilot, disable-mpo, prefetch, large-system-cache, disable-animations, hyper-v, vbs, fast-startup, pcie-link-state, superfetch, disable-pointer-precision, notifications, disable-dcom
+[2026-06-22T09:56:44.515Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [Tweaks:SYNC] hydration start gen=2
+[2026-06-22T09:56:44.515Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [TweakExecutor] syncAll cooldown — skipping (last ran 105s ago, cooldown 300s)
+[2026-06-22T09:56:44.523Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/tweak-intelligence/system-state target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:56:44.523Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/tweak-intelligence/rankings?applied=mem-opt%2Cgaming-mode%2Cmaintenance%2Cpage-combining%2Ccore-isolation%2Ccopilot%2Cdisable-mpo%2Cprefetch%2Clarge-system-cache%2Cdisable-animations%2Chyper-v%2Cvbs%2Cfast-startup%2Cpcie-link-state%2Csuperfetch%2Cdisable-pointer-precision%2Cnotifications%2Cdisable-dcom target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:56:44.523Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/tweak-intelligence/posture?applied=mem-opt%2Cgaming-mode%2Cmaintenance%2Cpage-combining%2Ccore-isolation%2Ccopilot%2Cdisable-mpo%2Cprefetch%2Clarge-system-cache%2Cdisable-animations%2Chyper-v%2Cvbs%2Cfast-startup%2Cpcie-link-state%2Csuperfetch%2Cdisable-pointer-precision%2Cnotifications%2Cdisable-dcom target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:56:44.523Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [Tweaks:SYNC] skipped (no results from syncAll)
+[2026-06-22T09:56:44.551Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] win32-priority-sep: read skipped — limiter busy (expected at startup)
+[2026-06-22T09:56:44.551Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] sys-responsiveness: read skipped — limiter busy (expected at startup)
+[2026-06-22T09:56:44.551Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] net-throttle-index: read skipped — limiter busy (expected at startup)
+[2026-06-22T09:56:44.551Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] menu-show-delay: read skipped — limiter busy (expected at startup)
+[2026-06-22T09:56:44.551Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] hung-app-timeout: read skipped — limiter busy (expected at startup)
+[2026-06-22T09:56:44.551Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] low-level-hooks-timeout: read skipped — limiter busy (expected at startup)
+[2026-06-22T09:56:44.552Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] wait-to-kill-app: read skipped — limiter busy (expected at startup)
+[2026-06-22T09:56:45.088Z] [LOG] [SliderExecutor] READ svchost-split-threshold: value=33554432 raw="33554432"
+[2026-06-22T09:56:45.088Z] [LOG] [PS] end file=main.js fn=slider:readValue id=5 duration=576ms active=0 calls60s=1
+[2026-06-22T09:56:45.091Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] svchost-split-threshold: value=33554432 missing=false
+[2026-06-22T09:56:45.092Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T09:56:45.574Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T09:56:45.586Z] [LOG] [PS:nic-executor] #2 queryPS SPAWN ts=1782122205586
+[2026-06-22T09:56:45.937Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T09:56:45.938Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [Timing] SystemCleaner | mount | +0ms
+[2026-06-22T09:56:45.951Z] [LOG] [PS] start file=storage-helper.js fn=storage:getVolumes reason=storage-volumes id=6 active=1
+[2026-06-22T09:56:45.953Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [Timing] SystemCleaner | init | +13ms
+[2026-06-22T09:56:46.813Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T09:56:46.848Z] [LOG] [PS] start file=main.js fn=slider:readValue reason=slider-read id=7 active=2
+[2026-06-22T09:56:46.850Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-22T09:56:46.848Z
+[2026-06-22T09:56:46.851Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-22T09:56:46.848Z
+[2026-06-22T09:56:46.851Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-22T09:56:46.848Z
+[2026-06-22T09:56:46.851Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-22T09:56:46.848Z
+[2026-06-22T09:56:46.851Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-22T09:56:46.848Z
+[2026-06-22T09:56:46.851Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-22T09:56:46.848Z
+[2026-06-22T09:56:46.851Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-22T09:56:46.848Z
+[2026-06-22T09:56:46.851Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [Tweaks:LOAD] source=zustand-persist enabled=18 total_known=52
+[2026-06-22T09:56:46.852Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [Tweaks:LOAD] enabled_ids=mem-opt, gaming-mode, maintenance, page-combining, core-isolation, copilot, disable-mpo, prefetch, large-system-cache, disable-animations, hyper-v, vbs, fast-startup, pcie-link-state, superfetch, disable-pointer-precision, notifications, disable-dcom
+[2026-06-22T09:56:46.852Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [Tweaks:SYNC] hydration start gen=3
+[2026-06-22T09:56:46.852Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [TweakExecutor] syncAll cooldown — skipping (last ran 108s ago, cooldown 300s)
+[2026-06-22T09:56:46.859Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/tweak-intelligence/system-state target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:56:46.859Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/tweak-intelligence/rankings?applied=mem-opt%2Cgaming-mode%2Cmaintenance%2Cpage-combining%2Ccore-isolation%2Ccopilot%2Cdisable-mpo%2Cprefetch%2Clarge-system-cache%2Cdisable-animations%2Chyper-v%2Cvbs%2Cfast-startup%2Cpcie-link-state%2Csuperfetch%2Cdisable-pointer-precision%2Cnotifications%2Cdisable-dcom target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:56:46.859Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/tweak-intelligence/posture?applied=mem-opt%2Cgaming-mode%2Cmaintenance%2Cpage-combining%2Ccore-isolation%2Ccopilot%2Cdisable-mpo%2Cprefetch%2Clarge-system-cache%2Cdisable-animations%2Chyper-v%2Cvbs%2Cfast-startup%2Cpcie-link-state%2Csuperfetch%2Cdisable-pointer-precision%2Cnotifications%2Cdisable-dcom target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:56:46.859Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [Tweaks:SYNC] skipped (no results from syncAll)
+[2026-06-22T09:56:46.889Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] win32-priority-sep: read skipped — limiter busy (expected at startup)
+[2026-06-22T09:56:46.890Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] sys-responsiveness: read skipped — limiter busy (expected at startup)
+[2026-06-22T09:56:46.890Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] net-throttle-index: read skipped — limiter busy (expected at startup)
+[2026-06-22T09:56:46.890Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] menu-show-delay: read skipped — limiter busy (expected at startup)
+[2026-06-22T09:56:46.890Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] hung-app-timeout: read skipped — limiter busy (expected at startup)
+[2026-06-22T09:56:46.891Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] low-level-hooks-timeout: read skipped — limiter busy (expected at startup)
+[2026-06-22T09:56:46.891Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] wait-to-kill-app: read skipped — limiter busy (expected at startup)
+[2026-06-22T09:56:46.891Z] [LOG] [PS:nic-executor] #2 queryPS OK 1305ms
+[2026-06-22T09:56:47.418Z] [LOG] [SliderExecutor] READ svchost-split-threshold: value=33554432 raw="33554432"
+[2026-06-22T09:56:47.419Z] [LOG] [PS] end file=main.js fn=slider:readValue id=7 duration=571ms active=1 calls60s=2
+[2026-06-22T09:56:47.419Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] svchost-split-threshold: value=33554432 missing=false
+[2026-06-22T09:56:47.420Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T09:56:47.607Z] [LOG] [PS] end file=storage-helper.js fn=storage:getVolumes id=6 duration=1656ms active=0 calls60s=3
+[2026-06-22T09:56:48.109Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T09:56:48.109Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [Timing] SystemCleaner | mount | +0ms
+[2026-06-22T09:56:48.121Z] [LOG] [PS] start file=storage-helper.js fn=storage:getVolumes reason=storage-volumes id=8 active=1
+[2026-06-22T09:56:48.123Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [Timing] SystemCleaner | init | +13ms
+[2026-06-22T09:56:48.530Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T09:56:48.531Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [Timing] StartupApps | mount | +0ms
+[2026-06-22T09:56:48.538Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [Timing] StartupApps | startup-scan | +8ms
+[2026-06-22T09:56:48.539Z] [LOG] [PS] start file=main.js fn=startup:scan reason=startup-scan id=9 active=2
+[2026-06-22T09:56:49.068Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T09:56:49.086Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:200) [AI:CONTEXT] source=zustand-store enabled=18 disabled=48
+[2026-06-22T09:56:49.086Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:200) [AI:CONTEXT] enabled_tweaks=fast-startup, maintenance, core-isolation, vbs, hyper-v, notifications, pcie-link-state, disable-dcom, mem-opt, large-system-cache, page-combining, prefetch, superfetch, copilot, gaming-mode, disable-pointer-precision, disable-mpo, disable-animations
+[2026-06-22T09:56:49.086Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:200) [AI:CONTEXT] system-intelligence enriched | MB=X870E AORUS PRO ICE | BIOS=F12a | net=Wi-Fi 1201Mbps (Wi-Fi)
+[2026-06-22T09:56:49.086Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:200) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz" ramTotalGB=32 disk="SKHynix_HFS512GEJ9X115N 512.1GB SSD"
+[2026-06-22T09:56:49.470Z] [LOG] [PS] end file=storage-helper.js fn=storage:getVolumes id=8 duration=1349ms active=1 calls60s=4
+[2026-06-22T09:56:49.819Z] [LOG] [PS] end file=main.js fn=startup:scan id=9 duration=1280ms active=0 calls60s=5
+[2026-06-22T09:56:49.820Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [Timing] StartupApps | startup-scan-done | +1289ms
+[2026-06-22T09:56:49.820Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T09:56:49.822Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:200) [AI:CONTEXT] source=zustand-store enabled=18 disabled=48
+[2026-06-22T09:56:49.823Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:200) [AI:CONTEXT] enabled_tweaks=fast-startup, maintenance, core-isolation, vbs, hyper-v, notifications, pcie-link-state, disable-dcom, mem-opt, large-system-cache, page-combining, prefetch, superfetch, copilot, gaming-mode, disable-pointer-precision, disable-mpo, disable-animations
+[2026-06-22T09:56:49.823Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:200) [AI:CONTEXT] system-intelligence enriched | MB=X870E AORUS PRO ICE | BIOS=F12a | net=Wi-Fi 1201Mbps (Wi-Fi)
+[2026-06-22T09:56:49.823Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:200) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz" ramTotalGB=32 disk="SKHynix_HFS512GEJ9X115N 512.1GB SSD"
+[2026-06-22T09:56:49.824Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/history target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:56:49.956Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T09:56:49.957Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:139) [calculateBiosScores] settings=36 | latencyTotal=30.120000000000008 frametime=26.699999999999996 stability=19.60000000000001 | clamped: latency=30.120000000000008 frametime=26.699999999999996 stability=19.60000000000001 cr=28
+[2026-06-22T09:56:51.122Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T09:56:51.123Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [Timing] SystemCleaner | mount | +0ms
+[2026-06-22T09:56:51.134Z] [LOG] [PS] start file=storage-helper.js fn=storage:getVolumes reason=storage-volumes id=10 active=1
+[2026-06-22T09:56:51.136Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [Timing] SystemCleaner | init | +12ms
+[2026-06-22T09:56:52.362Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T09:56:52.380Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/debloat/items?role=gaming&level=safe target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:56:52.380Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/debloat/history target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:56:52.743Z] [LOG] [PS] end file=storage-helper.js fn=storage:getVolumes id=10 duration=1609ms active=0 calls60s=6
+[2026-06-22T09:56:53.379Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T09:56:53.379Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [Timing] SystemCleaner | mount | +0ms
+[2026-06-22T09:56:53.387Z] [LOG] [PS] start file=storage-helper.js fn=storage:getVolumes reason=storage-volumes id=11 active=1
+[2026-06-22T09:56:53.389Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [Timing] SystemCleaner | init | +8ms
+[2026-06-22T09:56:54.244Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T09:56:54.244Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [Timing] NetworkTweaks | mount | +0ms
+[2026-06-22T09:56:54.244Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [NetworkTweaks:CACHE] cold start — seeded from localStorage persisted state
+[2026-06-22T09:56:54.274Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [NetworkTweaks] cache fresh — skipping fetch
+[2026-06-22T09:56:54.284Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/network/ping-sample target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:56:54.699Z] [LOG] [PS] end file=storage-helper.js fn=storage:getVolumes id=11 duration=1312ms active=0 calls60s=7
+[2026-06-22T09:56:55.005Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T09:56:55.018Z] [LOG] [PS:nic-executor] #3 queryPS SPAWN ts=1782122215018
+[2026-06-22T09:56:56.258Z] [LOG] [PS:nic-executor] #3 queryPS OK 1240ms
+[2026-06-22T09:56:56.262Z] [LOG] [NIC:Tuning] capabilityCache=miss adapter="Wi-Fi 2" — querying capabilities
+[2026-06-22T09:56:56.262Z] [LOG] [PS:nic-executor] #4 queryPS SPAWN ts=1782122216262
+[2026-06-22T09:56:56.545Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T09:56:56.579Z] [LOG] [PS] start file=main.js fn=slider:readValue reason=slider-read id=12 active=1
+[2026-06-22T09:56:56.580Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-22T09:56:56.579Z
+[2026-06-22T09:56:56.580Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-22T09:56:56.579Z
+[2026-06-22T09:56:56.581Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-22T09:56:56.579Z
+[2026-06-22T09:56:56.581Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-22T09:56:56.579Z
+[2026-06-22T09:56:56.581Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-22T09:56:56.579Z
+[2026-06-22T09:56:56.581Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-22T09:56:56.579Z
+[2026-06-22T09:56:56.581Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-22T09:56:56.579Z
+[2026-06-22T09:56:56.581Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [Tweaks:LOAD] source=zustand-persist enabled=18 total_known=52
+[2026-06-22T09:56:56.581Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [Tweaks:LOAD] enabled_ids=mem-opt, gaming-mode, maintenance, page-combining, core-isolation, copilot, disable-mpo, prefetch, large-system-cache, disable-animations, hyper-v, vbs, fast-startup, pcie-link-state, superfetch, disable-pointer-precision, notifications, disable-dcom
+[2026-06-22T09:56:56.582Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [Tweaks:SYNC] hydration start gen=4
+[2026-06-22T09:56:56.582Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [TweakExecutor] syncAll cooldown — skipping (last ran 117s ago, cooldown 300s)
+[2026-06-22T09:56:56.593Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/tweak-intelligence/system-state target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:56:56.593Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/tweak-intelligence/rankings?applied=mem-opt%2Cgaming-mode%2Cmaintenance%2Cpage-combining%2Ccore-isolation%2Ccopilot%2Cdisable-mpo%2Cprefetch%2Clarge-system-cache%2Cdisable-animations%2Chyper-v%2Cvbs%2Cfast-startup%2Cpcie-link-state%2Csuperfetch%2Cdisable-pointer-precision%2Cnotifications%2Cdisable-dcom target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:56:56.593Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/tweak-intelligence/posture?applied=mem-opt%2Cgaming-mode%2Cmaintenance%2Cpage-combining%2Ccore-isolation%2Ccopilot%2Cdisable-mpo%2Cprefetch%2Clarge-system-cache%2Cdisable-animations%2Chyper-v%2Cvbs%2Cfast-startup%2Cpcie-link-state%2Csuperfetch%2Cdisable-pointer-precision%2Cnotifications%2Cdisable-dcom target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:56:56.593Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [Tweaks:SYNC] skipped (no results from syncAll)
+[2026-06-22T09:56:56.622Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] win32-priority-sep: read skipped — limiter busy (expected at startup)
+[2026-06-22T09:56:56.622Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] sys-responsiveness: read skipped — limiter busy (expected at startup)
+[2026-06-22T09:56:56.622Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] net-throttle-index: read skipped — limiter busy (expected at startup)
+[2026-06-22T09:56:56.622Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] menu-show-delay: read skipped — limiter busy (expected at startup)
+[2026-06-22T09:56:56.623Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] hung-app-timeout: read skipped — limiter busy (expected at startup)
+[2026-06-22T09:56:56.623Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] low-level-hooks-timeout: read skipped — limiter busy (expected at startup)
+[2026-06-22T09:56:56.623Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] wait-to-kill-app: read skipped — limiter busy (expected at startup)
+[2026-06-22T09:56:57.150Z] [LOG] [SliderExecutor] READ svchost-split-threshold: value=33554432 raw="33554432"
+[2026-06-22T09:56:57.150Z] [LOG] [PS] end file=main.js fn=slider:readValue id=12 duration=571ms active=0 calls60s=8
+[2026-06-22T09:56:57.152Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] svchost-split-threshold: value=33554432 missing=false
+[2026-06-22T09:56:57.152Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T09:56:57.317Z] [LOG] [PS:nic-executor] #4 queryPS OK 1055ms
+[2026-06-22T09:56:57.318Z] [LOG] [PS:nic-executor] #5 queryPS SPAWN ts=1782122217318
+[2026-06-22T09:56:57.804Z] [LOG] [PS:nic-executor] #5 queryPS OK 486ms
+[2026-06-22T09:56:57.804Z] [LOG] [NIC:Tuning] ringBufferCmdlet=false
+[2026-06-22T09:56:57.805Z] [LOG] [NIC:Tuning] adapter="Wi-Fi 2" rxSupported=false txSupported=false rss=true eee=false interruptMod=false
+[2026-06-22T09:57:00.122Z] [LOG] [PS] start file=main.js fn=slider:readValue reason=slider-read id=13 active=1
+[2026-06-22T09:57:00.124Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-22T09:57:00.122Z
+[2026-06-22T09:57:00.124Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-22T09:57:00.122Z
+[2026-06-22T09:57:00.124Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-22T09:57:00.122Z
+[2026-06-22T09:57:00.125Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-22T09:57:00.122Z
+[2026-06-22T09:57:00.125Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-22T09:57:00.122Z
+[2026-06-22T09:57:00.125Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-22T09:57:00.122Z
+[2026-06-22T09:57:00.126Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] sys-responsiveness: read skipped — limiter busy (expected at startup)
+[2026-06-22T09:57:00.126Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] net-throttle-index: read skipped — limiter busy (expected at startup)
+[2026-06-22T09:57:00.126Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] menu-show-delay: read skipped — limiter busy (expected at startup)
+[2026-06-22T09:57:00.126Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] hung-app-timeout: read skipped — limiter busy (expected at startup)
+[2026-06-22T09:57:00.126Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] low-level-hooks-timeout: read skipped — limiter busy (expected at startup)
+[2026-06-22T09:57:00.126Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] wait-to-kill-app: read skipped — limiter busy (expected at startup)
+[2026-06-22T09:57:00.675Z] [LOG] [SliderExecutor] READ win32-priority-sep: value=2 raw="2"
+[2026-06-22T09:57:00.676Z] [LOG] [PS] end file=main.js fn=slider:readValue id=13 duration=554ms active=0 calls60s=9
+[2026-06-22T09:57:00.676Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] win32-priority-sep: value=2 missing=false
+[2026-06-22T09:57:00.676Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T09:57:02.639Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T09:57:02.650Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/tweak-intelligence/system-state target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:57:02.650Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/tweak-intelligence/rankings?applied= target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:57:02.651Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/tweak-intelligence/posture?applied= target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:57:03.627Z] [LOG] [PS] start file=main.js fn=slider:readValue reason=slider-read id=14 active=1
+[2026-06-22T09:57:03.629Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-22T09:57:03.627Z
+[2026-06-22T09:57:03.629Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-22T09:57:03.627Z
+[2026-06-22T09:57:03.632Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-22T09:57:03.627Z
+[2026-06-22T09:57:03.632Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-22T09:57:03.627Z
+[2026-06-22T09:57:03.632Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-22T09:57:03.627Z
+[2026-06-22T09:57:03.632Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] net-throttle-index: read skipped — limiter busy (expected at startup)
+[2026-06-22T09:57:03.633Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] menu-show-delay: read skipped — limiter busy (expected at startup)
+[2026-06-22T09:57:03.633Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] hung-app-timeout: read skipped — limiter busy (expected at startup)
+[2026-06-22T09:57:03.633Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] low-level-hooks-timeout: read skipped — limiter busy (expected at startup)
+[2026-06-22T09:57:03.633Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] wait-to-kill-app: read skipped — limiter busy (expected at startup)
+[2026-06-22T09:57:04.170Z] [LOG] [SliderExecutor] READ sys-responsiveness: key absent — returning built-in default 20
+[2026-06-22T09:57:04.170Z] [LOG] [PS] end file=main.js fn=slider:readValue id=14 duration=543ms active=0 calls60s=10
+[2026-06-22T09:57:04.170Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] sys-responsiveness: value=20 missing=true
+[2026-06-22T09:57:04.171Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T09:57:05.582Z] [ERROR] [Renderer:warn] (index-DLN5Jy91.js:10) [IntervalGuard] ⚠ setInterval(300ms) clamped to 2000ms. Caller: (stack capture disabled in production)
+[2026-06-22T09:57:12.646Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/tweak-intelligence/system-state target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:57:12.647Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/tweak-intelligence/rankings?applied= target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:57:12.647Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/tweak-intelligence/posture?applied= target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:57:15.395Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:150) [Window] Focus event received
+[2026-06-22T09:57:15.395Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [App] Electron window focus (passive)
+[2026-06-22T09:57:17.517Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:150) [Window] Focus event received
+[2026-06-22T09:57:17.517Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [App] Electron window focus (passive)
+[2026-06-22T09:57:22.513Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [App] Window focused, refreshing entitlements...
+[2026-06-22T09:57:22.514Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:150) [Window] Focus event received
+[2026-06-22T09:57:22.514Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [App] Electron window focus (passive)
+[2026-06-22T09:57:22.647Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/tweak-intelligence/system-state target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:57:22.648Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/tweak-intelligence/rankings?applied= target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:57:22.648Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/tweak-intelligence/posture?applied= target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:57:23.626Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T09:57:23.812Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:150) [Window] Focus event received
+[2026-06-22T09:57:23.813Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [App] Electron window focus (passive)
+[2026-06-22T09:57:32.649Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/tweak-intelligence/system-state target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:57:32.649Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/tweak-intelligence/rankings?applied= target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:57:32.650Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/tweak-intelligence/posture?applied= target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:57:42.650Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/tweak-intelligence/system-state target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:57:42.650Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/tweak-intelligence/rankings?applied= target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:57:42.650Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/tweak-intelligence/posture?applied= target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:57:44.303Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T09:57:44.324Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:166) [PowerPlan] mounted — isElectron=%s isPremium=%s true true
+[2026-06-22T09:57:46.853Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T09:57:46.861Z] [LOG] [PS:nic-executor] #6 queryPS SPAWN ts=1782122266861
+[2026-06-22T09:57:47.865Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T09:57:47.865Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [Timing] NetworkTweaks | mount | +0ms
+[2026-06-22T09:57:47.866Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [NetworkTweaks:CACHE] cache hit — rehydrating from session cache
+[2026-06-22T09:57:47.886Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [NetworkTweaks] cache fresh — skipping fetch
+[2026-06-22T09:57:47.895Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/network/ping-sample target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:57:48.070Z] [LOG] [PS:nic-executor] #6 queryPS OK 1209ms
+[2026-06-22T09:57:48.458Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T09:57:48.458Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [Timing] SystemCleaner | mount | +0ms
+[2026-06-22T09:57:48.469Z] [LOG] [PS] start file=storage-helper.js fn=storage:getVolumes reason=storage-volumes id=15 active=1
+[2026-06-22T09:57:48.471Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [Timing] SystemCleaner | init | +11ms
+[2026-06-22T09:57:50.047Z] [LOG] [PS] end file=storage-helper.js fn=storage:getVolumes id=15 duration=1578ms active=0 calls60s=6
+[2026-06-22T09:57:59.002Z] [LOG] [PS] start file=cleaner-helper.js fn=cleaner:scan reason=cleaner-scan id=16 active=1
+[2026-06-22T09:58:00.927Z] [LOG] [PS] end file=cleaner-helper.js fn=cleaner:scan id=16 duration=1925ms active=0 calls60s=3
+[2026-06-22T09:58:00.928Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:28) [CloudAPI] 2026-06-22T09:58:00.930Z | POST /cleaner/scan | auth=true | base=https://switchcontrol.org/api
+[2026-06-22T09:58:01.212Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:28) [CloudAPI] OK | POST /cleaner/scan | status=200
+[2026-06-22T09:58:01.213Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T09:58:01.216Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/history target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:58:10.585Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T09:58:10.602Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/debloat/items?role=gaming&level=safe target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:58:10.602Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/debloat/history target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:58:12.455Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/debloat/items?role=gaming&level=extreme target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:58:13.807Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/debloat/items?role=gaming&level=aggressive target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:58:14.183Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/debloat/items?role=gaming&level=extreme target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:58:14.720Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/debloat/items?role=gaming&level=balanced target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:58:15.377Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/debloat/items?role=gaming&level=safe target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:58:16.149Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/debloat/items?role=gaming&level=balanced target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:58:16.896Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/debloat/items?role=gaming&level=aggressive target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:58:17.758Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/debloat/items?role=gaming&level=extreme target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:58:25.111Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T09:58:25.111Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [Timing] StartupApps | mount | +0ms
+[2026-06-22T09:58:25.119Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [Timing] StartupApps | startup-scan | +8ms
+[2026-06-22T09:58:25.119Z] [LOG] [PS] start file=main.js fn=startup:scan reason=startup-scan id=17 active=1
+[2026-06-22T09:58:26.383Z] [LOG] [PS] end file=main.js fn=startup:scan id=17 duration=1264ms active=0 calls60s=3
+[2026-06-22T09:58:26.384Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [Timing] StartupApps | startup-scan-done | +1273ms
+[2026-06-22T09:58:26.385Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T09:58:26.394Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/history target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:58:30.890Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:150) [Window] Focus event received
+[2026-06-22T09:58:30.890Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [App] Electron window focus (passive)
+[2026-06-22T09:58:31.493Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T09:58:32.734Z] [ERROR] [Renderer:warn] (index-DLN5Jy91.js:10) [IntervalGuard] ⚠ setInterval(250ms) clamped to 2000ms. Caller: (stack capture disabled in production)
+[2026-06-22T09:58:33.539Z] [LOG] [ProcessControl:Scan] complete — total=175 protected=118 safe=5 duration=805ms
+[2026-06-22T09:58:38.486Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T09:58:38.507Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:200) [AI:CONTEXT] source=zustand-store enabled=0 disabled=66
+[2026-06-22T09:58:38.507Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:200) [AI:CONTEXT] system-intelligence enriched | MB=X870E AORUS PRO ICE | BIOS=F12a | net=Wi-Fi 1201Mbps (Wi-Fi)
+[2026-06-22T09:58:38.507Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:200) [AI Specs Input] cpu="Unavailable" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz" ramTotalGB=32 disk="SKHynix_HFS512GEJ9X115N 512.1GB SSD"
+[2026-06-22T09:58:38.518Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:200) [AI:SPECS] self-loaded via Electron IPC | cpu="Ryzen 7 9800X3D 8-Core Processor" ram=31.6GB gpu="AMD Radeon RX 7800 XT"
+[2026-06-22T09:58:38.518Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T09:58:38.520Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:200) [AI:CONTEXT] source=zustand-store enabled=0 disabled=66
+[2026-06-22T09:58:38.520Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:200) [AI:CONTEXT] system-intelligence enriched | MB=X870E AORUS PRO ICE | BIOS=F12a | net=Wi-Fi 1201Mbps (Wi-Fi)
+[2026-06-22T09:58:38.520Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:200) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz" ramTotalGB=32 disk="SKHynix_HFS512GEJ9X115N 512.1GB SSD"
+[2026-06-22T09:58:40.430Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:200) [AI:CONTEXT] source=zustand-store enabled=0 disabled=66
+[2026-06-22T09:58:40.431Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:200) [AI:CONTEXT] system-intelligence enriched | MB=X870E AORUS PRO ICE | BIOS=F12a | net=Wi-Fi 1201Mbps (Wi-Fi)
+[2026-06-22T09:58:40.431Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:200) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz" ramTotalGB=32 disk="SKHynix_HFS512GEJ9X115N 512.1GB SSD"
+[2026-06-22T09:58:42.434Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:200) [AI:CONTEXT] source=zustand-store enabled=0 disabled=66
+[2026-06-22T09:58:42.435Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:200) [AI:CONTEXT] system-intelligence enriched | MB=X870E AORUS PRO ICE | BIOS=F12a | net=Wi-Fi 1201Mbps (Wi-Fi)
+[2026-06-22T09:58:42.435Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:200) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz" ramTotalGB=32 disk="SKHynix_HFS512GEJ9X115N 512.1GB SSD"
+[2026-06-22T09:58:44.281Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T09:58:44.283Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:139) [calculateBiosScores] settings=36 | latencyTotal=30.120000000000008 frametime=26.699999999999996 stability=19.60000000000001 | clamped: latency=30.120000000000008 frametime=26.699999999999996 stability=19.60000000000001 cr=28
+[2026-06-22T09:58:47.657Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T09:58:47.666Z] [LOG] [PS] start file=main.js fn=extremeLabs:checkAllStatus reason=el-check-all-status id=18 active=1
+[2026-06-22T09:58:47.667Z] [LOG] [PS:tweak-executor] #3 batchCheckAll SPAWN ts=1782122327667 tweaks=61
+[2026-06-22T09:58:47.668Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:214) [ExtremeLabs] {"userTier":"premium","trial":false,"premium":true,"desktopMode":true,"canApply":true,"canAnalyze":true}
+[2026-06-22T09:58:49.196Z] [LOG] [PS:tweak-executor] #3 batchCheckAll OK 1529ms
+[2026-06-22T09:58:49.685Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T09:58:49.685Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [Timing] Security | mount | +0ms
+[2026-06-22T09:58:49.695Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [Timing] Security | shell | +10ms
+[2026-06-22T09:58:49.781Z] [LOG] [SliderExecutor] READ sys-responsiveness: key absent — returning built-in default 20
+[2026-06-22T09:58:49.784Z] [LOG] [SliderExecutor] READ win32-priority-sep: value=2 raw="2"
+[2026-06-22T09:58:49.791Z] [LOG] [SliderExecutor] READ net-throttle-index: value=10 raw="10"
+[2026-06-22T09:58:49.791Z] [LOG] [PS:nic-executor] #7 queryPS SPAWN ts=1782122329791
+[2026-06-22T09:58:50.212Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [Timing] Security | getStatus-start | +527ms
+[2026-06-22T09:58:50.215Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:214) [AdvancedProtection] page mounted — starting fetch
+[2026-06-22T09:58:50.215Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [Timing] Security | getAdvancedProtection-start | +527ms
+[2026-06-22T09:58:51.241Z] [LOG] [PS:nic-executor] #7 queryPS OK 1450ms
+[2026-06-22T09:58:51.241Z] [LOG] [PS:nic-executor] #8 queryPS SPAWN ts=1782122331241
+[2026-06-22T09:58:51.243Z] [LOG] [PS:nic-executor] #9 queryPS SPAWN ts=1782122331243
+[2026-06-22T09:58:51.245Z] [LOG] [PS:nic-executor] #10 queryPS SPAWN ts=1782122331245
+[2026-06-22T09:58:51.246Z] [LOG] [PS:nic-executor] #11 queryPS SPAWN ts=1782122331246
+[2026-06-22T09:58:51.661Z] [LOG] [Security] getAdvancedProtection OK | sigAge=153d quickAge=153d
+[2026-06-22T09:58:51.662Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:214) [AdvancedProtection] IPC response received: [object Object]
+[2026-06-22T09:58:51.662Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [Timing] Security | getAdvancedProtection-done | +1977ms
+[2026-06-22T09:58:51.662Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:214) [AdvancedProtection] parsed result — hasAnyValue: true data: [object Object]
+[2026-06-22T09:58:52.511Z] [LOG] [PS:nic-executor] #11 queryPS OK 1265ms
+[2026-06-22T09:58:52.513Z] [LOG] [PS:nic-executor] #9 queryPS OK 1270ms
+[2026-06-22T09:58:52.513Z] [LOG] [PS:nic-executor] #10 queryPS OK 1268ms
+[2026-06-22T09:58:52.584Z] [LOG] [PS:nic-executor] #8 queryPS OK 1343ms
+[2026-06-22T09:58:52.584Z] [LOG] [extremeLabs:checkAllStatus] done applied=2/25
+[2026-06-22T09:58:52.584Z] [LOG] [PS] end file=main.js fn=extremeLabs:checkAllStatus id=18 duration=4918ms active=0 calls60s=3
+[2026-06-22T09:58:52.853Z] [LOG] [Security] getStatus OK | realtime=false tamper=true firewall=false
+[2026-06-22T09:58:52.854Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [Timing] Security | getStatus-done | +3168ms
+[2026-06-22T09:58:53.601Z] [LOG] [Security] getStatus OK | realtime=false tamper=true firewall=false
+[2026-06-22T09:58:55.194Z] [LOG] [Security] getAdvancedProtection OK | sigAge=153d quickAge=153d
+[2026-06-22T09:58:55.195Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:214) [AdvancedProtection] Smart Scan IPC response: [object Object]
+[2026-06-22T09:58:56.192Z] [LOG] [Security] getStartupApps OK | count=11
+[2026-06-22T09:58:57.358Z] [LOG] [Security] getProcessDetails OK | count=30 suspicious=1
+[2026-06-22T09:58:57.660Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T09:58:57.665Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/history target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T09:59:06.745Z] [LOG] [Security] getServices OK | total=86 suspicious=0
+[2026-06-22T09:59:07.066Z] [LOG] [Security] getScheduledTasks OK | total=10 suspicious=0
+[2026-06-22T09:59:07.528Z] [LOG] [Security] getAdvancedAudit OK | secureBoot=true rdp=false hvci=false
+[2026-06-22T09:59:10.850Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T09:59:10.860Z] [LOG] [PS:nic-executor] #12 queryPS SPAWN ts=1782122350860
+[2026-06-22T09:59:12.092Z] [LOG] [PS:nic-executor] #12 queryPS OK 1232ms
+[2026-06-22T09:59:44.135Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:150) [Window] Focus event received
+[2026-06-22T09:59:44.135Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [App] Electron window focus (passive)
+[2026-06-22T09:59:49.680Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [App] Window focused, refreshing entitlements...
+[2026-06-22T09:59:49.681Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:150) [Window] Focus event received
+[2026-06-22T09:59:49.681Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [App] Electron window focus (passive)
+[2026-06-22T09:59:50.741Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T09:59:51.489Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:150) [Window] Focus event received
+[2026-06-22T09:59:51.490Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [App] Electron window focus (passive)
+[2026-06-22T09:59:52.568Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:150) [Window] Focus event received
+[2026-06-22T09:59:52.569Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [App] Electron window focus (passive)
+[2026-06-22T09:59:53.984Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:150) [Window] Focus event received
+[2026-06-22T09:59:53.984Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [App] Electron window focus (passive)
+[2026-06-22T10:00:21.600Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [App] Window focused, refreshing entitlements...
+[2026-06-22T10:00:21.602Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:150) [Window] Focus event received
+[2026-06-22T10:00:21.603Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [App] Electron window focus (passive)
+[2026-06-22T10:00:22.354Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T10:00:24.802Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T10:00:24.830Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [Dashboard] mounted
+[2026-06-22T10:00:24.830Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [ActivityMonitor] reused cached state — history points: 60 status: ready
+[2026-06-22T10:00:24.849Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:00:24.850Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/dashboard-intelligence/system-dna target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:00:24.850Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:00:24.850Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:00:24.850Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/dashboard-intelligence/ram-analysis target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:00:26.033Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/startup/apps target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:00:26.152Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/issues/detect target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:00:26.690Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T10:00:29.455Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T10:00:29.477Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [Dashboard] mounted
+[2026-06-22T10:00:29.477Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [ActivityMonitor] reused cached state — history points: 60 status: ready
+[2026-06-22T10:00:29.492Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:00:29.492Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/dashboard-intelligence/system-dna target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:00:29.492Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:00:29.492Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:00:29.492Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/dashboard-intelligence/ram-analysis target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:00:30.679Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/startup/apps target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:00:30.790Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/issues/detect target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:00:39.539Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:00:44.543Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:00:49.548Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:00:59.559Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:00:59.560Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:00:59.560Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:01:01.305Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [App] Window focused, refreshing entitlements...
+[2026-06-22T10:01:01.308Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:150) [Window] Focus event received
+[2026-06-22T10:01:01.308Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [App] Electron window focus (passive)
+[2026-06-22T10:01:02.016Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T10:01:02.580Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T10:01:04.773Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:150) [Window] Focus event received
+[2026-06-22T10:01:04.774Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [App] Electron window focus (passive)
+[2026-06-22T10:01:38.803Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [App] Window focused, refreshing entitlements...
+[2026-06-22T10:01:38.804Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:150) [Window] Focus event received
+[2026-06-22T10:01:38.804Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [App] Electron window focus (passive)
+[2026-06-22T10:01:39.391Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T10:01:40.117Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T10:01:40.143Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [Dashboard] mounted
+[2026-06-22T10:01:40.144Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [ActivityMonitor] reused cached state — history points: 60 status: ready
+[2026-06-22T10:01:40.170Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:01:40.170Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/dashboard-intelligence/system-dna target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:01:40.170Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:01:40.170Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:01:40.170Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/dashboard-intelligence/ram-analysis target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:01:41.234Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T10:01:41.235Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [Timing] SystemCleaner | mount | +0ms
+[2026-06-22T10:01:41.250Z] [LOG] [PS] start file=storage-helper.js fn=storage:getVolumes reason=storage-volumes id=19 active=1
+[2026-06-22T10:01:41.252Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [Timing] SystemCleaner | init | +15ms
+[2026-06-22T10:01:41.709Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T10:01:41.730Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/debloat/items?role=gaming&level=safe target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:01:41.730Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/debloat/history target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:01:42.418Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T10:01:42.418Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [Timing] NetworkTweaks | mount | +0ms
+[2026-06-22T10:01:42.418Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [NetworkTweaks:CACHE] cache stale — showing cached values, background refresh queued
+[2026-06-22T10:01:42.443Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [NetworkTweaks] cache fresh — skipping fetch
+[2026-06-22T10:01:42.451Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/network/ping-sample target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:01:42.713Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T10:01:42.732Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:166) [PowerPlan] mounted — isElectron=%s isPremium=%s true true
+[2026-06-22T10:01:42.968Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T10:01:43.003Z] [LOG] [PS] start file=main.js fn=slider:readValue reason=slider-read id=20 active=2
+[2026-06-22T10:01:43.005Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-22T10:01:43.003Z
+[2026-06-22T10:01:43.005Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-22T10:01:43.003Z
+[2026-06-22T10:01:43.005Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-22T10:01:43.003Z
+[2026-06-22T10:01:43.005Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-22T10:01:43.003Z
+[2026-06-22T10:01:43.005Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-22T10:01:43.003Z
+[2026-06-22T10:01:43.005Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-22T10:01:43.003Z
+[2026-06-22T10:01:43.006Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-22T10:01:43.003Z
+[2026-06-22T10:01:43.006Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [Tweaks:LOAD] source=zustand-persist enabled=0 total_known=0
+[2026-06-22T10:01:43.006Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [Tweaks:SYNC] hydration start gen=5
+[2026-06-22T10:01:43.006Z] [LOG] [PS] start file=main.js fn=tweak:syncAll reason=tweak-sync-all id=21 active=3
+[2026-06-22T10:01:43.006Z] [LOG] [PS-Exec] start file=main.js fn=tweak:syncAll reason=tweak-sync-all — batch mode, 63 tweaks
+[2026-06-22T10:01:43.007Z] [LOG] [PS:tweak-executor] #4 batchCheckAll SPAWN ts=1782122503007 tweaks=61
+[2026-06-22T10:01:43.019Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/tweak-intelligence/system-state target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:01:43.020Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/tweak-intelligence/rankings?applied= target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:01:43.020Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/tweak-intelligence/posture?applied= target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:01:43.038Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] win32-priority-sep: read skipped — limiter busy (expected at startup)
+[2026-06-22T10:01:43.039Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] sys-responsiveness: read skipped — limiter busy (expected at startup)
+[2026-06-22T10:01:43.039Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] net-throttle-index: read skipped — limiter busy (expected at startup)
+[2026-06-22T10:01:43.039Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] menu-show-delay: read skipped — limiter busy (expected at startup)
+[2026-06-22T10:01:43.039Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] hung-app-timeout: read skipped — limiter busy (expected at startup)
+[2026-06-22T10:01:43.039Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] low-level-hooks-timeout: read skipped — limiter busy (expected at startup)
+[2026-06-22T10:01:43.039Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] wait-to-kill-app: read skipped — limiter busy (expected at startup)
+[2026-06-22T10:01:43.191Z] [LOG] [PS] end file=storage-helper.js fn=storage:getVolumes id=19 duration=1941ms active=2 calls60s=1
+[2026-06-22T10:01:43.561Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T10:01:43.585Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/debloat/items?role=gaming&level=safe target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:01:43.586Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/debloat/history target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:01:43.687Z] [LOG] [SliderExecutor] READ svchost-split-threshold: value=33554432 raw="33554432"
+[2026-06-22T10:01:43.687Z] [LOG] [PS] end file=main.js fn=slider:readValue id=20 duration=684ms active=1 calls60s=2
+[2026-06-22T10:01:43.687Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] svchost-split-threshold: value=33554432 missing=false
+[2026-06-22T10:01:43.688Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T10:01:43.888Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T10:01:44.519Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T10:01:44.519Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [Timing] Security | mount | +0ms
+[2026-06-22T10:01:44.529Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [Timing] Security | shell | +10ms
+[2026-06-22T10:01:44.810Z] [LOG] [PS:tweak-executor] #4 batchCheckAll OK 1803ms
+[2026-06-22T10:01:44.811Z] [LOG] [PS-Exec] done file=main.js fn=tweak:syncAll ms=1805 tweaks=70
+[2026-06-22T10:01:44.811Z] [LOG] [PS] end file=main.js fn=tweak:syncAll id=21 duration=1805ms active=0 calls60s=3
+[2026-06-22T10:01:44.812Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [TweakSupport] id=p-states, supported=false, reason="Requires driver/service not installed — CPU P-state control needs a kernel-mode agent calling ACPI driver interfaces. Cannot be applied persistently via registry." (runtime check)
+[2026-06-22T10:01:44.813Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [TweakSupport] id=irq-priority, supported=false, reason="Requires driver/service not installed — interrupt affinity control is not accessible from user-mode. Needs a signed kernel driver or MSR write access." (runtime check)
+[2026-06-22T10:01:44.813Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [TweakSupport] id=desktop-comp, supported=false, reason="Unsupported on Windows 10/11 — Desktop Window Manager (DWM) is an integral system compositor and cannot be disabled. Disabling DWM was only possible on Windows XP/Vista." (runtime check)
+[2026-06-22T10:01:44.813Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [TweakSupport] id=hdcp, supported=false, reason="Requires driver/service not installed — HDCP enforcement is controlled at the GPU hardware/display-driver level and cannot be reliably toggled via software or registry." (runtime check)
+[2026-06-22T10:01:44.813Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [TweakSupport] id=mouse-queue-size, supported=false, reason="Requires driver/service not installed — MouseDataQueueSize (mouclass kernel driver) modification can cause complete mouse failure requiring Safe Mode recovery. Disabled for safety." (runtime check)
+[2026-06-22T10:01:44.813Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [TweakSupport] id=kbd-queue-size, supported=false, reason="Requires driver/service not installed — KeyboardDataQueueSize (kbdclass kernel driver) modification can cause complete keyboard failure requiring Safe Mode recovery. Disabled for safety." (runtime check)
+[2026-06-22T10:01:44.813Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [TweakSupport] id=tcp-winhttp, supported=false, reason="Helper not bundled — WinHTTP autotuning is applied via netsh and resets when the network adapter restarts. No persistent agent is shipped in this build." (runtime check)
+[2026-06-22T10:01:44.813Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="nvidia-telemetry" enabled=false (from system sync)
+[2026-06-22T10:01:44.813Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="mem-opt" enabled=true (from system sync)
+[2026-06-22T10:01:44.814Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="gaming-mode" enabled=true (from system sync)
+[2026-06-22T10:01:44.814Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="cortana" enabled=false (from system sync)
+[2026-06-22T10:01:44.814Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="disable-wallpaper-compression" enabled=false (from system sync)
+[2026-06-22T10:01:44.814Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="maintenance" enabled=true (from system sync)
+[2026-06-22T10:01:44.814Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="page-combining" enabled=true (from system sync)
+[2026-06-22T10:01:44.814Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="hibernation" enabled=false (from system sync)
+[2026-06-22T10:01:44.814Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="xbox-bar" enabled=false (from system sync)
+[2026-06-22T10:01:44.814Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="mmcss-nolazymode" enabled=false (from system sync)
+[2026-06-22T10:01:44.814Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="wifi" enabled=false (from system sync)
+[2026-06-22T10:01:44.814Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="win-search-index" enabled=false (from system sync)
+[2026-06-22T10:01:44.814Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="core-isolation" enabled=true (from system sync)
+[2026-06-22T10:01:44.814Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="copilot" enabled=true (from system sync)
+[2026-06-22T10:01:44.815Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="xbox-services" enabled=false (from system sync)
+[2026-06-22T10:01:44.815Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="disable-auto-restart-apps" enabled=false (from system sync)
+[2026-06-22T10:01:44.815Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="recent-files" enabled=false (from system sync)
+[2026-06-22T10:01:44.815Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="disable-mpo" enabled=true (from system sync)
+[2026-06-22T10:01:44.815Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="prefetch" enabled=true (from system sync)
+[2026-06-22T10:01:44.815Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="ntfs-last-access" enabled=false (from system sync)
+[2026-06-22T10:01:44.815Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="compact-explorer" enabled=false (from system sync)
+[2026-06-22T10:01:44.815Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="large-system-cache" enabled=true (from system sync)
+[2026-06-22T10:01:44.815Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="disable-delivery-opt" enabled=false (from system sync)
+[2026-06-22T10:01:44.815Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="disable-transparency" enabled=false (from system sync)
+[2026-06-22T10:01:44.816Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="usb-selective-suspend" enabled=false (from system sync)
+[2026-06-22T10:01:44.816Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="tune-priority" enabled=false (from system sync)
+[2026-06-22T10:01:44.816Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="bluetooth" enabled=false (from system sync)
+[2026-06-22T10:01:44.816Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="explorer-separate-process" enabled=false (from system sync)
+[2026-06-22T10:01:44.816Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="fax-printer" enabled=false (from system sync)
+[2026-06-22T10:01:44.816Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="disable-animations" enabled=true (from system sync)
+[2026-06-22T10:01:44.816Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="search-highlights" enabled=false (from system sync)
+[2026-06-22T10:01:44.816Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="hyper-v" enabled=true (from system sync)
+[2026-06-22T10:01:44.816Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="disable-wer" enabled=false (from system sync)
+[2026-06-22T10:01:44.816Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="bg-apps" enabled=false (from system sync)
+[2026-06-22T10:01:44.816Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="power-throttling" enabled=false (from system sync)
+[2026-06-22T10:01:44.816Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="vbs" enabled=true (from system sync)
+[2026-06-22T10:01:44.817Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="energy-logging" enabled=false (from system sync)
+[2026-06-22T10:01:44.817Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="show-file-extensions" enabled=false (from system sync)
+[2026-06-22T10:01:44.817Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="preemption" enabled=false (from system sync)
+[2026-06-22T10:01:44.817Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="synth-timers" enabled=false (from system sync)
+[2026-06-22T10:01:44.817Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="disable-lock-screen" enabled=false (from system sync)
+[2026-06-22T10:01:44.817Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="fast-startup" enabled=true (from system sync)
+[2026-06-22T10:01:44.817Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="disable-fso" enabled=false (from system sync)
+[2026-06-22T10:01:44.817Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="storage-sense" enabled=false (from system sync)
+[2026-06-22T10:01:44.817Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="telemetry" enabled=false (from system sync)
+[2026-06-22T10:01:44.817Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="mmcss-gaming" enabled=false (from system sync)
+[2026-06-22T10:01:44.817Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="pcie-link-state" enabled=true (from system sync)
+[2026-06-22T10:01:44.817Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="superfetch" enabled=true (from system sync)
+[2026-06-22T10:01:44.817Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="disable-pointer-precision" enabled=true (from system sync)
+[2026-06-22T10:01:44.818Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="notifications" enabled=true (from system sync)
+[2026-06-22T10:01:44.818Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="disable-activity-history" enabled=false (from system sync)
+[2026-06-22T10:01:44.818Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [Tweaks:SET] id="disable-dcom" enabled=true (from system sync)
+[2026-06-22T10:01:44.818Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [Tweaks:SYNC] hydration done gen=5 reconciled=52
+[2026-06-22T10:01:44.818Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T10:01:44.968Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [Timing] Security | getStatus-start | +449ms
+[2026-06-22T10:01:44.970Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:214) [AdvancedProtection] page mounted — starting fetch
+[2026-06-22T10:01:44.970Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [Timing] Security | getAdvancedProtection-start | +449ms
+[2026-06-22T10:01:45.201Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T10:01:46.266Z] [LOG] [Security] getAdvancedProtection OK | sigAge=153d quickAge=153d
+[2026-06-22T10:01:46.267Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:214) [AdvancedProtection] IPC response received: [object Object]
+[2026-06-22T10:01:46.267Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [Timing] Security | getAdvancedProtection-done | +1748ms
+[2026-06-22T10:01:46.267Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:214) [AdvancedProtection] parsed result — hasAnyValue: true data: [object Object]
+[2026-06-22T10:01:46.900Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T10:01:46.922Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [Dashboard] mounted
+[2026-06-22T10:01:46.922Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [ActivityMonitor] reused cached state — history points: 60 status: ready
+[2026-06-22T10:01:46.938Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:01:46.938Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/dashboard-intelligence/system-dna target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:01:46.938Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:01:46.939Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:01:46.939Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/dashboard-intelligence/ram-analysis target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:01:47.380Z] [LOG] [Security] getStatus OK | realtime=false tamper=true firewall=false
+[2026-06-22T10:01:47.381Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [Timing] Security | getStatus-done | +2862ms
+[2026-06-22T10:01:47.800Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T10:01:49.649Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T10:01:49.669Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [Dashboard] mounted
+[2026-06-22T10:01:49.669Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [ActivityMonitor] reused cached state — history points: 60 status: ready
+[2026-06-22T10:01:49.682Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:01:49.682Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/dashboard-intelligence/system-dna target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:01:49.682Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:01:49.683Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:01:49.683Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/dashboard-intelligence/ram-analysis target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:01:50.547Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T10:01:54.422Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T10:01:54.422Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [Timing] NetworkTweaks | mount | +0ms
+[2026-06-22T10:01:54.422Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [NetworkTweaks:CACHE] cache hit — rehydrating from session cache
+[2026-06-22T10:01:54.446Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [NetworkTweaks] cache fresh — skipping fetch
+[2026-06-22T10:01:54.456Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/network/ping-sample target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:01:55.076Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T10:01:55.113Z] [LOG] [PS] start file=main.js fn=slider:readValue reason=slider-read id=22 active=1
+[2026-06-22T10:01:55.115Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-22T10:01:55.113Z
+[2026-06-22T10:01:55.115Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-22T10:01:55.113Z
+[2026-06-22T10:01:55.116Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-22T10:01:55.113Z
+[2026-06-22T10:01:55.116Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-22T10:01:55.113Z
+[2026-06-22T10:01:55.116Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-22T10:01:55.113Z
+[2026-06-22T10:01:55.116Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-22T10:01:55.113Z
+[2026-06-22T10:01:55.116Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-22T10:01:55.113Z
+[2026-06-22T10:01:55.116Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [Tweaks:LOAD] source=zustand-persist enabled=18 total_known=52
+[2026-06-22T10:01:55.116Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [Tweaks:LOAD] enabled_ids=mem-opt, gaming-mode, maintenance, page-combining, core-isolation, copilot, disable-mpo, prefetch, large-system-cache, disable-animations, hyper-v, vbs, fast-startup, pcie-link-state, superfetch, disable-pointer-precision, notifications, disable-dcom
+[2026-06-22T10:01:55.116Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [Tweaks:SYNC] hydration start gen=6
+[2026-06-22T10:01:55.117Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [TweakExecutor] syncAll cooldown — skipping (last ran 12s ago, cooldown 300s)
+[2026-06-22T10:01:55.130Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/tweak-intelligence/system-state target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:01:55.130Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/tweak-intelligence/rankings?applied=mem-opt%2Cgaming-mode%2Cmaintenance%2Cpage-combining%2Ccore-isolation%2Ccopilot%2Cdisable-mpo%2Cprefetch%2Clarge-system-cache%2Cdisable-animations%2Chyper-v%2Cvbs%2Cfast-startup%2Cpcie-link-state%2Csuperfetch%2Cdisable-pointer-precision%2Cnotifications%2Cdisable-dcom target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:01:55.130Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/tweak-intelligence/posture?applied=mem-opt%2Cgaming-mode%2Cmaintenance%2Cpage-combining%2Ccore-isolation%2Ccopilot%2Cdisable-mpo%2Cprefetch%2Clarge-system-cache%2Cdisable-animations%2Chyper-v%2Cvbs%2Cfast-startup%2Cpcie-link-state%2Csuperfetch%2Cdisable-pointer-precision%2Cnotifications%2Cdisable-dcom target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:01:55.130Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [Tweaks:SYNC] skipped (no results from syncAll)
+[2026-06-22T10:01:55.165Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] win32-priority-sep: read skipped — limiter busy (expected at startup)
+[2026-06-22T10:01:55.165Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] sys-responsiveness: read skipped — limiter busy (expected at startup)
+[2026-06-22T10:01:55.165Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] net-throttle-index: read skipped — limiter busy (expected at startup)
+[2026-06-22T10:01:55.165Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] menu-show-delay: read skipped — limiter busy (expected at startup)
+[2026-06-22T10:01:55.165Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] hung-app-timeout: read skipped — limiter busy (expected at startup)
+[2026-06-22T10:01:55.166Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] low-level-hooks-timeout: read skipped — limiter busy (expected at startup)
+[2026-06-22T10:01:55.166Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] wait-to-kill-app: read skipped — limiter busy (expected at startup)
+[2026-06-22T10:01:55.747Z] [LOG] [SliderExecutor] READ svchost-split-threshold: value=33554432 raw="33554432"
+[2026-06-22T10:01:55.747Z] [LOG] [PS] end file=main.js fn=slider:readValue id=22 duration=634ms active=0 calls60s=4
+[2026-06-22T10:01:55.750Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] svchost-split-threshold: value=33554432 missing=false
+[2026-06-22T10:01:55.750Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T10:01:56.050Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T10:01:56.074Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [Dashboard] mounted
+[2026-06-22T10:01:56.074Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [ActivityMonitor] reused cached state — history points: 60 status: ready
+[2026-06-22T10:01:56.089Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:01:56.089Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/dashboard-intelligence/system-dna target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:01:56.089Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:01:56.090Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:01:56.090Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/dashboard-intelligence/ram-analysis target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:01:57.269Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T10:01:57.305Z] [LOG] [PS] start file=main.js fn=slider:readValue reason=slider-read id=23 active=1
+[2026-06-22T10:01:57.306Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-22T10:01:57.305Z
+[2026-06-22T10:01:57.307Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-22T10:01:57.305Z
+[2026-06-22T10:01:57.307Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-22T10:01:57.305Z
+[2026-06-22T10:01:57.307Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-22T10:01:57.305Z
+[2026-06-22T10:01:57.307Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-22T10:01:57.305Z
+[2026-06-22T10:01:57.307Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-22T10:01:57.305Z
+[2026-06-22T10:01:57.307Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-22T10:01:57.305Z
+[2026-06-22T10:01:57.308Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [Tweaks:LOAD] source=zustand-persist enabled=18 total_known=52
+[2026-06-22T10:01:57.308Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [Tweaks:LOAD] enabled_ids=mem-opt, gaming-mode, maintenance, page-combining, core-isolation, copilot, disable-mpo, prefetch, large-system-cache, disable-animations, hyper-v, vbs, fast-startup, pcie-link-state, superfetch, disable-pointer-precision, notifications, disable-dcom
+[2026-06-22T10:01:57.308Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [Tweaks:SYNC] hydration start gen=7
+[2026-06-22T10:01:57.308Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:27) [TweakExecutor] syncAll cooldown — skipping (last ran 14s ago, cooldown 300s)
+[2026-06-22T10:01:57.316Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/tweak-intelligence/system-state target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:01:57.316Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/tweak-intelligence/rankings?applied=mem-opt%2Cgaming-mode%2Cmaintenance%2Cpage-combining%2Ccore-isolation%2Ccopilot%2Cdisable-mpo%2Cprefetch%2Clarge-system-cache%2Cdisable-animations%2Chyper-v%2Cvbs%2Cfast-startup%2Cpcie-link-state%2Csuperfetch%2Cdisable-pointer-precision%2Cnotifications%2Cdisable-dcom target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:01:57.316Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/tweak-intelligence/posture?applied=mem-opt%2Cgaming-mode%2Cmaintenance%2Cpage-combining%2Ccore-isolation%2Ccopilot%2Cdisable-mpo%2Cprefetch%2Clarge-system-cache%2Cdisable-animations%2Chyper-v%2Cvbs%2Cfast-startup%2Cpcie-link-state%2Csuperfetch%2Cdisable-pointer-precision%2Cnotifications%2Cdisable-dcom target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:01:57.316Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [Tweaks:SYNC] skipped (no results from syncAll)
+[2026-06-22T10:01:57.352Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] win32-priority-sep: read skipped — limiter busy (expected at startup)
+[2026-06-22T10:01:57.353Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] sys-responsiveness: read skipped — limiter busy (expected at startup)
+[2026-06-22T10:01:57.353Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] net-throttle-index: read skipped — limiter busy (expected at startup)
+[2026-06-22T10:01:57.353Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] menu-show-delay: read skipped — limiter busy (expected at startup)
+[2026-06-22T10:01:57.353Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] hung-app-timeout: read skipped — limiter busy (expected at startup)
+[2026-06-22T10:01:57.353Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] low-level-hooks-timeout: read skipped — limiter busy (expected at startup)
+[2026-06-22T10:01:57.353Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] wait-to-kill-app: read skipped — limiter busy (expected at startup)
+[2026-06-22T10:01:57.928Z] [LOG] [SliderExecutor] READ svchost-split-threshold: value=33554432 raw="33554432"
+[2026-06-22T10:01:57.929Z] [LOG] [PS] end file=main.js fn=slider:readValue id=23 duration=624ms active=0 calls60s=5
+[2026-06-22T10:01:57.930Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] svchost-split-threshold: value=33554432 missing=false
+[2026-06-22T10:01:57.930Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T10:01:58.808Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:150) [Window] Focus event received
+[2026-06-22T10:01:58.809Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [App] Electron window focus (passive)
+[2026-06-22T10:02:00.853Z] [LOG] [PS] start file=main.js fn=slider:readValue reason=slider-read id=24 active=1
+[2026-06-22T10:02:00.855Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-22T10:02:00.853Z
+[2026-06-22T10:02:00.855Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-22T10:02:00.853Z
+[2026-06-22T10:02:00.855Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-22T10:02:00.853Z
+[2026-06-22T10:02:00.855Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-22T10:02:00.853Z
+[2026-06-22T10:02:00.855Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-22T10:02:00.853Z
+[2026-06-22T10:02:00.855Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-22T10:02:00.853Z
+[2026-06-22T10:02:00.858Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] sys-responsiveness: read skipped — limiter busy (expected at startup)
+[2026-06-22T10:02:00.859Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] net-throttle-index: read skipped — limiter busy (expected at startup)
+[2026-06-22T10:02:00.859Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] menu-show-delay: read skipped — limiter busy (expected at startup)
+[2026-06-22T10:02:00.859Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] hung-app-timeout: read skipped — limiter busy (expected at startup)
+[2026-06-22T10:02:00.859Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] low-level-hooks-timeout: read skipped — limiter busy (expected at startup)
+[2026-06-22T10:02:00.859Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] wait-to-kill-app: read skipped — limiter busy (expected at startup)
+[2026-06-22T10:02:01.431Z] [LOG] [SliderExecutor] READ win32-priority-sep: value=2 raw="2"
+[2026-06-22T10:02:01.431Z] [LOG] [PS] end file=main.js fn=slider:readValue id=24 duration=578ms active=0 calls60s=6
+[2026-06-22T10:02:01.431Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] win32-priority-sep: value=2 missing=false
+[2026-06-22T10:02:01.431Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T10:02:04.359Z] [LOG] [PS] start file=main.js fn=slider:readValue reason=slider-read id=25 active=1
+[2026-06-22T10:02:04.361Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-22T10:02:04.359Z
+[2026-06-22T10:02:04.361Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-22T10:02:04.359Z
+[2026-06-22T10:02:04.361Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-22T10:02:04.359Z
+[2026-06-22T10:02:04.361Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-22T10:02:04.359Z
+[2026-06-22T10:02:04.362Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-22T10:02:04.359Z
+[2026-06-22T10:02:04.364Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] net-throttle-index: read skipped — limiter busy (expected at startup)
+[2026-06-22T10:02:04.364Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] menu-show-delay: read skipped — limiter busy (expected at startup)
+[2026-06-22T10:02:04.364Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] hung-app-timeout: read skipped — limiter busy (expected at startup)
+[2026-06-22T10:02:04.364Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] low-level-hooks-timeout: read skipped — limiter busy (expected at startup)
+[2026-06-22T10:02:04.365Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] wait-to-kill-app: read skipped — limiter busy (expected at startup)
+[2026-06-22T10:02:04.873Z] [LOG] [SliderExecutor] READ sys-responsiveness: key absent — returning built-in default 20
+[2026-06-22T10:02:04.873Z] [LOG] [PS] end file=main.js fn=slider:readValue id=25 duration=514ms active=0 calls60s=7
+[2026-06-22T10:02:04.874Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [SliderHydration] sys-responsiveness: value=20 missing=true
+[2026-06-22T10:02:04.875Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T10:02:07.301Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/tweak-intelligence/system-state target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:02:07.302Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/tweak-intelligence/rankings?applied=mem-opt%2Cgaming-mode%2Cmaintenance%2Cpage-combining%2Ccore-isolation%2Ccopilot%2Cdisable-mpo%2Cprefetch%2Clarge-system-cache%2Cdisable-animations%2Chyper-v%2Cvbs%2Cfast-startup%2Cpcie-link-state%2Csuperfetch%2Cdisable-pointer-precision%2Cnotifications%2Cdisable-dcom target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:02:07.302Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/tweak-intelligence/posture?applied=mem-opt%2Cgaming-mode%2Cmaintenance%2Cpage-combining%2Ccore-isolation%2Ccopilot%2Cdisable-mpo%2Cprefetch%2Clarge-system-cache%2Cdisable-animations%2Chyper-v%2Cvbs%2Cfast-startup%2Cpcie-link-state%2Csuperfetch%2Cdisable-pointer-precision%2Cnotifications%2Cdisable-dcom target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:02:17.302Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/tweak-intelligence/system-state target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:02:17.302Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/tweak-intelligence/rankings?applied=mem-opt%2Cgaming-mode%2Cmaintenance%2Cpage-combining%2Ccore-isolation%2Ccopilot%2Cdisable-mpo%2Cprefetch%2Clarge-system-cache%2Cdisable-animations%2Chyper-v%2Cvbs%2Cfast-startup%2Cpcie-link-state%2Csuperfetch%2Cdisable-pointer-precision%2Cnotifications%2Cdisable-dcom target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:02:17.302Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/tweak-intelligence/posture?applied=mem-opt%2Cgaming-mode%2Cmaintenance%2Cpage-combining%2Ccore-isolation%2Ccopilot%2Cdisable-mpo%2Cprefetch%2Clarge-system-cache%2Cdisable-animations%2Chyper-v%2Cvbs%2Cfast-startup%2Cpcie-link-state%2Csuperfetch%2Cdisable-pointer-precision%2Cnotifications%2Cdisable-dcom target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:02:27.303Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/tweak-intelligence/system-state target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:02:27.303Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/tweak-intelligence/rankings?applied=mem-opt%2Cgaming-mode%2Cmaintenance%2Cpage-combining%2Ccore-isolation%2Ccopilot%2Cdisable-mpo%2Cprefetch%2Clarge-system-cache%2Cdisable-animations%2Chyper-v%2Cvbs%2Cfast-startup%2Cpcie-link-state%2Csuperfetch%2Cdisable-pointer-precision%2Cnotifications%2Cdisable-dcom target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:02:27.303Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/tweak-intelligence/posture?applied=mem-opt%2Cgaming-mode%2Cmaintenance%2Cpage-combining%2Ccore-isolation%2Ccopilot%2Cdisable-mpo%2Cprefetch%2Clarge-system-cache%2Cdisable-animations%2Chyper-v%2Cvbs%2Cfast-startup%2Cpcie-link-state%2Csuperfetch%2Cdisable-pointer-precision%2Cnotifications%2Cdisable-dcom target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:02:37.302Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/tweak-intelligence/system-state target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:02:37.303Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/tweak-intelligence/rankings?applied=mem-opt%2Cgaming-mode%2Cmaintenance%2Cpage-combining%2Ccore-isolation%2Ccopilot%2Cdisable-mpo%2Cprefetch%2Clarge-system-cache%2Cdisable-animations%2Chyper-v%2Cvbs%2Cfast-startup%2Cpcie-link-state%2Csuperfetch%2Cdisable-pointer-precision%2Cnotifications%2Cdisable-dcom target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:02:37.303Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/tweak-intelligence/posture?applied=mem-opt%2Cgaming-mode%2Cmaintenance%2Cpage-combining%2Ccore-isolation%2Ccopilot%2Cdisable-mpo%2Cprefetch%2Clarge-system-cache%2Cdisable-animations%2Chyper-v%2Cvbs%2Cfast-startup%2Cpcie-link-state%2Csuperfetch%2Cdisable-pointer-precision%2Cnotifications%2Cdisable-dcom target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:02:47.303Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/tweak-intelligence/system-state target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:02:47.304Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/tweak-intelligence/rankings?applied=mem-opt%2Cgaming-mode%2Cmaintenance%2Cpage-combining%2Ccore-isolation%2Ccopilot%2Cdisable-mpo%2Cprefetch%2Clarge-system-cache%2Cdisable-animations%2Chyper-v%2Cvbs%2Cfast-startup%2Cpcie-link-state%2Csuperfetch%2Cdisable-pointer-precision%2Cnotifications%2Cdisable-dcom target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:02:47.304Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/tweak-intelligence/posture?applied=mem-opt%2Cgaming-mode%2Cmaintenance%2Cpage-combining%2Ccore-isolation%2Ccopilot%2Cdisable-mpo%2Cprefetch%2Clarge-system-cache%2Cdisable-animations%2Chyper-v%2Cvbs%2Cfast-startup%2Cpcie-link-state%2Csuperfetch%2Cdisable-pointer-precision%2Cnotifications%2Cdisable-dcom target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:02:57.304Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/tweak-intelligence/system-state target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:02:57.305Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/tweak-intelligence/rankings?applied=mem-opt%2Cgaming-mode%2Cmaintenance%2Cpage-combining%2Ccore-isolation%2Ccopilot%2Cdisable-mpo%2Cprefetch%2Clarge-system-cache%2Cdisable-animations%2Chyper-v%2Cvbs%2Cfast-startup%2Cpcie-link-state%2Csuperfetch%2Cdisable-pointer-precision%2Cnotifications%2Cdisable-dcom target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:02:57.305Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/tweak-intelligence/posture?applied=mem-opt%2Cgaming-mode%2Cmaintenance%2Cpage-combining%2Ccore-isolation%2Ccopilot%2Cdisable-mpo%2Cprefetch%2Clarge-system-cache%2Cdisable-animations%2Chyper-v%2Cvbs%2Cfast-startup%2Cpcie-link-state%2Csuperfetch%2Cdisable-pointer-precision%2Cnotifications%2Cdisable-dcom target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:03:07.305Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/tweak-intelligence/system-state target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:03:07.305Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/tweak-intelligence/rankings?applied=mem-opt%2Cgaming-mode%2Cmaintenance%2Cpage-combining%2Ccore-isolation%2Ccopilot%2Cdisable-mpo%2Cprefetch%2Clarge-system-cache%2Cdisable-animations%2Chyper-v%2Cvbs%2Cfast-startup%2Cpcie-link-state%2Csuperfetch%2Cdisable-pointer-precision%2Cnotifications%2Cdisable-dcom target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:03:07.306Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/tweak-intelligence/posture?applied=mem-opt%2Cgaming-mode%2Cmaintenance%2Cpage-combining%2Ccore-isolation%2Ccopilot%2Cdisable-mpo%2Cprefetch%2Clarge-system-cache%2Cdisable-animations%2Chyper-v%2Cvbs%2Cfast-startup%2Cpcie-link-state%2Csuperfetch%2Cdisable-pointer-precision%2Cnotifications%2Cdisable-dcom target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:03:16.511Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [App] Window focused, refreshing entitlements...
+[2026-06-22T10:03:16.512Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:150) [Window] Focus event received
+[2026-06-22T10:03:16.512Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [App] Electron window focus (passive)
+[2026-06-22T10:03:17.061Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T10:03:17.305Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/tweak-intelligence/system-state target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:03:17.306Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/tweak-intelligence/rankings?applied=mem-opt%2Cgaming-mode%2Cmaintenance%2Cpage-combining%2Ccore-isolation%2Ccopilot%2Cdisable-mpo%2Cprefetch%2Clarge-system-cache%2Cdisable-animations%2Chyper-v%2Cvbs%2Cfast-startup%2Cpcie-link-state%2Csuperfetch%2Cdisable-pointer-precision%2Cnotifications%2Cdisable-dcom target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:03:17.306Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/tweak-intelligence/posture?applied=mem-opt%2Cgaming-mode%2Cmaintenance%2Cpage-combining%2Ccore-isolation%2Ccopilot%2Cdisable-mpo%2Cprefetch%2Clarge-system-cache%2Cdisable-animations%2Chyper-v%2Cvbs%2Cfast-startup%2Cpcie-link-state%2Csuperfetch%2Cdisable-pointer-precision%2Cnotifications%2Cdisable-dcom target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:03:19.844Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T10:03:19.862Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:200) [AI:CONTEXT] source=zustand-store enabled=18 disabled=48
+[2026-06-22T10:03:19.862Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:200) [AI:CONTEXT] enabled_tweaks=fast-startup, maintenance, core-isolation, vbs, hyper-v, notifications, pcie-link-state, disable-dcom, mem-opt, large-system-cache, page-combining, prefetch, superfetch, copilot, gaming-mode, disable-pointer-precision, disable-mpo, disable-animations
+[2026-06-22T10:03:19.862Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:200) [AI:CONTEXT] system-intelligence enriched | MB=X870E AORUS PRO ICE | BIOS=F12a | net=Wi-Fi 1201Mbps (Wi-Fi)
+[2026-06-22T10:03:19.862Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:200) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz" ramTotalGB=32 disk="SKHynix_HFS512GEJ9X115N 512.1GB SSD"
+[2026-06-22T10:03:20.334Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T10:03:20.993Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T10:03:20.993Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [Timing] StartupApps | mount | +0ms
+[2026-06-22T10:03:21.000Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [Timing] StartupApps | startup-scan | +7ms
+[2026-06-22T10:03:21.001Z] [LOG] [PS] start file=main.js fn=startup:scan reason=startup-scan id=26 active=1
+[2026-06-22T10:03:21.835Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T10:03:22.350Z] [LOG] [PS] end file=main.js fn=startup:scan id=26 duration=1349ms active=0 calls60s=1
+[2026-06-22T10:03:22.351Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [Timing] StartupApps | startup-scan-done | +1358ms
+[2026-06-22T10:03:22.352Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T10:03:22.358Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/history target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:03:22.716Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T10:03:33.549Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T10:03:33.571Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [Dashboard] mounted
+[2026-06-22T10:03:33.571Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:159) [ActivityMonitor] reused cached state — history points: 60 status: ready
+[2026-06-22T10:03:33.589Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:03:33.589Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/dashboard-intelligence/system-dna target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:03:33.589Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:03:33.590Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:03:33.590Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:10) [AuthRoute] path=/api/dashboard-intelligence/ram-analysis target=local reason=system-route base=http://127.0.0.1:53447/api
+[2026-06-22T10:03:34.729Z] [LOG] [Renderer:info] (index-DLN5Jy91.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-22T10:03:36.109Z] [LOG] [Logs] Opening log directory: C:\Users\SwitchTech\AppData\Roaming\SwitchControl\logs

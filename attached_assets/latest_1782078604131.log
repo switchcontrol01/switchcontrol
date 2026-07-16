@@ -1,0 +1,278 @@
+
+[2026-06-21T21:49:26.410Z] [INFO] SwitchControl started — PID:10332 platform:win32/x64 node:20.18.3
+[2026-06-21T21:49:26.640Z] [LOG] [Renderer:info] (index-BhkHA3px.js:215) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: true
+[2026-06-21T21:49:26.644Z] [LOG] [Renderer:info] (index-BhkHA3px.js:215) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: true
+[2026-06-21T21:49:26.915Z] [LOG] [Security] IPC handlers registered
+[2026-06-21T21:49:26.918Z] [LOG] [Debloat] IPC handlers registered
+[2026-06-21T21:49:26.919Z] [LOG] [Cleaner] IPC handlers registered
+[2026-06-21T21:49:26.919Z] [LOG] [Storage] IPC handlers registered
+[2026-06-21T21:49:26.921Z] [LOG] [Protocol] registered: true | isDefault: true | isDev: false
+[2026-06-21T21:49:26.937Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:175) [PremiumFlow] deep-link received: switchcontrol://auth/callback?code=64f0e669-6db6-42e7-a68a-681f9f5db567.1782078593694.295082995428cbb1&provider=google
+[2026-06-21T21:49:26.937Z] [LOG] [Renderer:info] (index-BhkHA3px.js:215) [DeepLink] ===== RENDERER CALLBACK RECEIVED =====
+[2026-06-21T21:49:26.937Z] [LOG] [Renderer:info] (index-BhkHA3px.js:215) [DeepLink] URL: switchcontrol://auth/callback?code=64f0e669-6db6-42e7-a68a-681f9f5db567.1782078593694.295082995428cbb1&provider=google
+[2026-06-21T21:49:26.937Z] [LOG] [Renderer:info] (index-BhkHA3px.js:10) [AuthState] transition authenticated → callback_received
+[2026-06-21T21:49:26.938Z] [LOG] [Renderer:info] (index-BhkHA3px.js:215) [DeepLink] parsed — code: present provider: google premiumActivated: false currentUserLoggedIn: true
+[2026-06-21T21:49:26.938Z] [LOG] [Renderer:info] (index-BhkHA3px.js:10) [AuthState] transition callback_received → exchanging
+[2026-06-21T21:49:26.939Z] [LOG] [Renderer:info] (index-BhkHA3px.js:215) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: true
+[2026-06-21T21:49:26.957Z] [LOG] [STARTUP] whenReady — v1.1.6 | isDev:false | pid:10332
+[2026-06-21T21:49:26.961Z] [LOG] [ConfigStore] Initialized — file: C:\Users\SwitchTech\AppData\Roaming\SwitchControl\sc-config.json
+[2026-06-21T21:49:26.963Z] [LOG] [SwitchControl] Instant specs (sync): AMD Ryzen 7 9800X3D 8-Core Processor | GPU: Detecting… | enrichment starting…
+[2026-06-21T21:49:26.963Z] [LOG] [GPU] enrichment start
+[2026-06-21T21:49:26.964Z] [LOG] [GPU] si.graphics begin (3s timeout — WMI covers AMD DXGI hang)
+[2026-06-21T21:49:26.980Z] [LOG] [LAUNCH:1] BrowserWindow constructed — show:false, paintWhenInitiallyHidden:true, isVisible: false
+[2026-06-21T21:49:26.980Z] [LOG] [LAUNCH:2] packaged mode — indexPath: C:\Program Files\SwitchControl\resources\dist\index.html | exists: true
+[2026-06-21T21:49:26.998Z] [LOG] [Backend] ===== STARTUP DIAGNOSTICS =====
+[2026-06-21T21:49:26.998Z] [LOG] [Backend] process.execPath: C:\Program Files\SwitchControl\SwitchControl.exe
+[2026-06-21T21:49:26.998Z] [LOG] [Backend] process.resourcesPath: C:\Program Files\SwitchControl\resources
+[2026-06-21T21:49:26.998Z] [LOG] [Backend] app.isPackaged: true
+[2026-06-21T21:49:26.998Z] [LOG] [Backend] app.getAppPath(): C:\Program Files\SwitchControl\resources\app.asar
+[2026-06-21T21:49:26.998Z] [LOG] [Backend] Expected bundle path: C:\Program Files\SwitchControl\resources\dist\index.cjs
+[2026-06-21T21:49:26.999Z] [LOG] [Backend] Bundle size: 2.5 MB
+[2026-06-21T21:49:27.068Z] [LOG] [Updater] init — v1.1.6 | channel:stable | https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev
+[2026-06-21T21:49:27.068Z] [LOG] [STARTUP] app ready — 111ms from whenReady
+[2026-06-21T21:49:27.069Z] [LOG] [PREWARM] cachedSpecs seeded before window open — AMD Ryzen 7 9800X3D 8-Core Processor | GPU: Detecting…
+[2026-06-21T21:49:27.113Z] [LOG] [Backend] Free port found: 64571
+[2026-06-21T21:49:27.113Z] [LOG] [Backend] ELECTRON_USER_DATA: C:\Users\SwitchTech\AppData\Roaming\SwitchControl
+[2026-06-21T21:49:27.114Z] [LOG] [Backend] ===== ENV KEY DIAGNOSTICS =====
+[2026-06-21T21:49:27.114Z] [LOG] [Backend]   OPENAI_API_KEY: parent_env=false | config_file=false | will_use=false
+[2026-06-21T21:49:27.114Z] [LOG] [Backend]   STRIPE_SECRET_KEY: parent_env=false | config_file=false | will_use=false
+[2026-06-21T21:49:27.114Z] [LOG] [Backend]   GOOGLE_CLIENT_ID: parent_env=false | config_file=false | will_use=false
+[2026-06-21T21:49:27.114Z] [LOG] [Backend]   GOOGLE_CLIENT_SECRET: parent_env=false | config_file=false | will_use=false
+[2026-06-21T21:49:27.114Z] [LOG] [Backend]   JWT_SECRET: parent_env=false | config_file=false | will_use=false
+[2026-06-21T21:49:27.114Z] [LOG] [Backend]   SESSION_SECRET: parent_env=false | config_file=false | will_use=false
+[2026-06-21T21:49:27.114Z] [LOG] [Backend] =====================================
+[2026-06-21T21:49:27.115Z] [LOG] [Backend] ===== CHILD ENV KEY DIAGNOSTICS =====
+[2026-06-21T21:49:27.115Z] [LOG] [Backend]   child_env OPENAI_API_KEY: false
+[2026-06-21T21:49:27.115Z] [LOG] [Backend]   child_env STRIPE_SECRET_KEY: false
+[2026-06-21T21:49:27.115Z] [LOG] [Backend]   child_env GOOGLE_CLIENT_ID: false
+[2026-06-21T21:49:27.115Z] [LOG] [Backend]   child_env GOOGLE_CLIENT_SECRET: false
+[2026-06-21T21:49:27.115Z] [LOG] [Backend]   child_env JWT_SECRET: false
+[2026-06-21T21:49:27.116Z] [LOG] [Backend]   child_env SESSION_SECRET: false
+[2026-06-21T21:49:27.116Z] [LOG] [Backend] AI_MODEL in child env: (not set, will use gpt-4o-mini)
+[2026-06-21T21:49:27.116Z] [LOG] [Backend] DATABASE_URL in child env: NO — Electron offline mode (expected; cloud DB unreachable from user machine)
+[2026-06-21T21:49:27.116Z] [LOG] [Backend] ELECTRON_BACKEND in child env: 1
+[2026-06-21T21:49:27.116Z] [LOG] [Backend] ==========================================
+[2026-06-21T21:49:27.116Z] [LOG] [Backend] Spawning child process...
+[2026-06-21T21:49:27.116Z] [LOG] [Backend]   execPath: C:\Program Files\SwitchControl\SwitchControl.exe
+[2026-06-21T21:49:27.116Z] [LOG] [Backend]   script: C:\Program Files\SwitchControl\resources\dist\index.cjs
+[2026-06-21T21:49:27.116Z] [LOG] [Backend]   ELECTRON_RUN_AS_NODE: 1 (runs as plain Node.js)
+[2026-06-21T21:49:27.117Z] [LOG] [Backend]   PORT: 64571
+[2026-06-21T21:49:27.117Z] [LOG] [Backend]   cwd: C:\Program Files\SwitchControl\resources\dist
+[2026-06-21T21:49:27.127Z] [LOG] [Backend] Child process spawned, PID: 11852
+[2026-06-21T21:49:27.127Z] [LOG] [Backend] Polling health endpoint: http://127.0.0.1:64571/api/health
+[2026-06-21T21:49:27.149Z] [ERROR] [LAUNCH:2] loadFile() promise REJECTED: ERR_FAILED (-2) loading 'file:///C:\Program Files\SwitchControl\resources\dist\index.html'
+[2026-06-21T21:49:27.200Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:150) [Window] Focus event received
+[2026-06-21T21:49:27.200Z] [LOG] [Renderer:info] (index-BhkHA3px.js:215) [App] Electron window focus (passive)
+[2026-06-21T21:49:27.374Z] [LOG] [PS:tweak-executor] #19 queryPowerShell OK 1450ms
+[2026-06-21T21:49:27.374Z] [LOG] [PS] end file=main.js fn=tweak:checkStatus:hibernation id=19 duration=1450ms active=0 calls60s=19
+[2026-06-21T21:49:27.375Z] [LOG] [PS] start file=main.js fn=tweak:checkStatus:fast-startup reason=tweak-check-status id=20 active=1
+[2026-06-21T21:49:27.375Z] [LOG] [PS:tweak-executor] #20 queryPowerShell SPAWN ts=1782078567375 active=1
+[2026-06-21T21:49:27.406Z] [LOG] [Renderer:info] (index-BhkHA3px.js:215) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: true
+[2026-06-21T21:49:27.408Z] [LOG] [Renderer:info] (index-BhkHA3px.js:10) [AuthState] transition exchanging → authenticated
+[2026-06-21T21:49:27.409Z] [LOG] [Renderer:info] (index-BhkHA3px.js:215) [Auth] exchange success — user=64f0e669-6db6-42e7-a68a-681f9f5db567 provider=google
+[2026-06-21T21:49:27.409Z] [LOG] [Renderer:info] (index-BhkHA3px.js:215) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: true
+[2026-06-21T21:49:27.410Z] [LOG] [Renderer:info] (index-BhkHA3px.js:215) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: true
+[2026-06-21T21:49:27.915Z] [LOG] [Renderer:info] (index-BhkHA3px.js:215) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: true
+[2026-06-21T21:49:27.916Z] [LOG] [Renderer:info] (index-BhkHA3px.js:215) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: true
+[2026-06-21T21:49:28.808Z] [LOG] [PS:tweak-executor] #20 queryPowerShell OK 1433ms
+[2026-06-21T21:49:28.808Z] [LOG] [PS] end file=main.js fn=tweak:checkStatus:fast-startup id=20 duration=1433ms active=0 calls60s=20
+[2026-06-21T21:49:28.808Z] [LOG] [PS] start file=main.js fn=tweak:checkStatus:energy-logging reason=tweak-check-status id=21 active=1
+[2026-06-21T21:49:28.808Z] [LOG] [PS:tweak-executor] #21 queryPowerShell SPAWN ts=1782078568808 active=1
+[2026-06-21T21:49:29.975Z] [LOG] [PS:tweak-executor] #21 queryPowerShell OK 1167ms
+[2026-06-21T21:49:29.976Z] [LOG] [PS] end file=main.js fn=tweak:checkStatus:energy-logging id=21 duration=1168ms active=0 calls60s=21
+[2026-06-21T21:49:29.976Z] [LOG] [PS] start file=main.js fn=tweak:checkStatus:maintenance reason=tweak-check-status id=22 active=1
+[2026-06-21T21:49:29.976Z] [LOG] [PS:tweak-executor] #22 queryPowerShell SPAWN ts=1782078569976 active=1
+[2026-06-21T21:49:30.546Z] [LOG] [PS:tweak-executor] #22 queryPowerShell OK 570ms
+[2026-06-21T21:49:30.546Z] [LOG] [PS] end file=main.js fn=tweak:checkStatus:maintenance id=22 duration=570ms active=0 calls60s=22
+[2026-06-21T21:49:30.547Z] [LOG] [PS] start file=main.js fn=tweak:checkStatus:core-isolation reason=tweak-check-status id=23 active=1
+[2026-06-21T21:49:30.547Z] [LOG] [PS:tweak-executor] #23 queryPowerShell SPAWN ts=1782078570547 active=1
+[2026-06-21T21:49:31.051Z] [LOG] [PS:tweak-executor] #23 queryPowerShell OK 504ms
+[2026-06-21T21:49:31.051Z] [LOG] [PS] end file=main.js fn=tweak:checkStatus:core-isolation id=23 duration=504ms active=0 calls60s=23
+[2026-06-21T21:49:31.051Z] [LOG] [PS] start file=main.js fn=tweak:checkStatus:vbs reason=tweak-check-status id=24 active=1
+[2026-06-21T21:49:31.052Z] [LOG] [PS:tweak-executor] #24 queryPowerShell SPAWN ts=1782078571052 active=1
+[2026-06-21T21:49:31.563Z] [LOG] [PS:tweak-executor] #24 queryPowerShell OK 511ms
+[2026-06-21T21:49:31.563Z] [LOG] [PS] end file=main.js fn=tweak:checkStatus:vbs id=24 duration=512ms active=0 calls60s=24
+[2026-06-21T21:49:31.563Z] [LOG] [PS] start file=main.js fn=tweak:checkStatus:hyper-v reason=tweak-check-status id=25 active=1
+[2026-06-21T21:49:31.564Z] [LOG] [PS:tweak-executor] #25 queryPowerShell SPAWN ts=1782078571564 active=1
+[2026-06-21T21:49:32.201Z] [LOG] [PS:tweak-executor] #25 queryPowerShell OK 637ms
+[2026-06-21T21:49:32.201Z] [LOG] [PS] end file=main.js fn=tweak:checkStatus:hyper-v id=25 duration=638ms active=0 calls60s=25
+[2026-06-21T21:49:32.201Z] [LOG] [PS] start file=main.js fn=tweak:checkStatus:power-throttling reason=tweak-check-status id=26 active=1
+[2026-06-21T21:49:32.201Z] [LOG] [PS:tweak-executor] #26 queryPowerShell SPAWN ts=1782078572201 active=1
+[2026-06-21T21:49:32.788Z] [LOG] [PS:tweak-executor] #26 queryPowerShell OK 587ms
+[2026-06-21T21:49:32.788Z] [LOG] [PS] end file=main.js fn=tweak:checkStatus:power-throttling id=26 duration=587ms active=0 calls60s=26
+[2026-06-21T21:49:32.789Z] [LOG] [PS] start file=main.js fn=tweak:checkStatus:pcie-link-state reason=tweak-check-status id=27 active=1
+[2026-06-21T21:49:32.789Z] [LOG] [PS:tweak-executor] #27 queryPowerShell SPAWN ts=1782078572789 active=1
+[2026-06-21T21:49:33.409Z] [LOG] [PS:tweak-executor] #27 queryPowerShell OK 620ms
+[2026-06-21T21:49:33.409Z] [LOG] [PS] end file=main.js fn=tweak:checkStatus:pcie-link-state id=27 duration=620ms active=0 calls60s=27
+[2026-06-21T21:49:33.409Z] [LOG] [PS] start file=main.js fn=tweak:checkStatus:disable-auto-restart-apps reason=tweak-check-status id=28 active=1
+[2026-06-21T21:49:33.410Z] [LOG] [PS:tweak-executor] #28 queryPowerShell SPAWN ts=1782078573410 active=1
+[2026-06-21T21:49:33.959Z] [LOG] [PS:tweak-executor] #28 queryPowerShell OK 549ms
+[2026-06-21T21:49:33.959Z] [LOG] [PS] end file=main.js fn=tweak:checkStatus:disable-auto-restart-apps id=28 duration=550ms active=0 calls60s=28
+[2026-06-21T21:49:33.960Z] [LOG] [PS] start file=main.js fn=tweak:checkStatus:mmcss-nolazymode reason=tweak-check-status id=29 active=1
+[2026-06-21T21:49:33.960Z] [LOG] [PS:tweak-executor] #29 queryPowerShell SPAWN ts=1782078573960 active=1
+[2026-06-21T21:49:34.011Z] [LOG] [Renderer:info] (index-BhkHA3px.js:215) [Handoff] intro exit complete — mounting dashboard
+[2026-06-21T21:49:34.011Z] [LOG] [Renderer:info] (index-BhkHA3px.js:215) [FirstRunDisclaimer] showing for first-time user
+[2026-06-21T21:49:34.011Z] [LOG] [Renderer:info] (index-BhkHA3px.js:215) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: true
+[2026-06-21T21:49:34.477Z] [LOG] [PS:tweak-executor] #29 queryPowerShell OK 517ms
+[2026-06-21T21:49:34.477Z] [LOG] [PS] end file=main.js fn=tweak:checkStatus:mmcss-nolazymode id=29 duration=517ms active=0 calls60s=29
+[2026-06-21T21:49:34.478Z] [LOG] [PS] start file=main.js fn=tweak:checkStatus:disable-lock-screen reason=tweak-check-status id=30 active=1
+[2026-06-21T21:49:34.478Z] [LOG] [PS:tweak-executor] #30 queryPowerShell SPAWN ts=1782078574478 active=1
+[2026-06-21T21:49:34.980Z] [LOG] [PS:tweak-executor] #30 queryPowerShell OK 502ms
+[2026-06-21T21:49:34.981Z] [LOG] [PS] end file=main.js fn=tweak:checkStatus:disable-lock-screen id=30 duration=503ms active=0 calls60s=30
+[2026-06-21T21:49:34.982Z] [LOG] [PS] start file=main.js fn=tweak:checkStatus:disable-dcom reason=tweak-check-status id=31 active=1
+[2026-06-21T21:49:34.982Z] [LOG] [PS:tweak-executor] #31 queryPowerShell SPAWN ts=1782078574982 active=1
+[2026-06-21T21:49:35.270Z] [LOG] [Backend:stdout] [SysIntelligence] Background deep collection triggered
+[2026-06-21T21:49:35.270Z] [LOG] [Backend:stdout] [SysIntelligence] phase=full start — deep collection
+[2026-06-21T21:49:35.636Z] [LOG] [PS:tweak-executor] #31 queryPowerShell OK 654ms
+[2026-06-21T21:49:35.636Z] [LOG] [PS] end file=main.js fn=tweak:checkStatus:disable-dcom id=31 duration=654ms active=0 calls60s=31
+[2026-06-21T21:49:35.637Z] [LOG] [PS] start file=main.js fn=tweak:checkStatus:mem-opt reason=tweak-check-status id=32 active=1
+[2026-06-21T21:49:35.637Z] [LOG] [PS:tweak-executor] #32 queryPowerShell SPAWN ts=1782078575637 active=1
+[2026-06-21T21:49:38.058Z] [LOG] [PS:tweak-executor] #32 queryPowerShell OK 2421ms
+[2026-06-21T21:49:38.058Z] [LOG] [PS] end file=main.js fn=tweak:checkStatus:mem-opt id=32 duration=2421ms active=0 calls60s=32
+[2026-06-21T21:49:38.059Z] [LOG] [PS] start file=main.js fn=tweak:checkStatus:large-system-cache reason=tweak-check-status id=33 active=1
+[2026-06-21T21:49:38.059Z] [LOG] [PS:tweak-executor] #33 queryPowerShell SPAWN ts=1782078578059 active=1
+[2026-06-21T21:49:38.843Z] [LOG] [PS:tweak-executor] #33 queryPowerShell OK 784ms
+[2026-06-21T21:49:38.843Z] [LOG] [PS] end file=main.js fn=tweak:checkStatus:large-system-cache id=33 duration=784ms active=0 calls60s=33
+[2026-06-21T21:49:38.844Z] [LOG] [PS] start file=main.js fn=tweak:checkStatus:page-combining reason=tweak-check-status id=34 active=1
+[2026-06-21T21:49:38.844Z] [LOG] [PS:tweak-executor] #34 queryPowerShell SPAWN ts=1782078578844 active=1
+[2026-06-21T21:49:39.334Z] [LOG] [Renderer:info] (index-BhkHA3px.js:215) [FirstRunDisclaimer] dismissed — transitioning to dashboard
+[2026-06-21T21:49:39.335Z] [LOG] [Renderer:info] (index-BhkHA3px.js:215) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: true
+[2026-06-21T21:49:39.336Z] [LOG] [Renderer:info] (index-BhkHA3px.js:215) [TourTransition] phase entered authenticated — waiting 500ms for dashboard to stabilize
+[2026-06-21T21:49:39.638Z] [LOG] [Renderer:info] (index-BhkHA3px.js:28) [Network] Heartbeat started (interval=30000ms)
+[2026-06-21T21:49:39.641Z] [LOG] [Renderer:info] (index-BhkHA3px.js:159) [Dashboard] mounted
+[2026-06-21T21:49:39.641Z] [LOG] [Renderer:info] (index-BhkHA3px.js:159) [ActivityMonitor] reused cached state — history points: 1 status: ready
+[2026-06-21T21:49:39.641Z] [LOG] [BOOT] ──────────────────────────────────────────
+[2026-06-21T21:49:39.642Z] [LOG] [BOOT] firstFrameReady  = 334ms
+[2026-06-21T21:49:39.642Z] [LOG] [BOOT] windowShown      = 368ms
+[2026-06-21T21:49:39.642Z] [LOG] [BOOT] telemetryStart   = 376ms
+[2026-06-21T21:49:39.642Z] [LOG] [BOOT] dashboardMounted = 25472ms
+[2026-06-21T21:49:39.642Z] [LOG] [BOOT] ──────────────────────────────────────────
+[2026-06-21T21:49:39.642Z] [LOG] [Renderer:info] (index-BhkHA3px.js:159) [Home] Specs pre-loaded from Splash — skipping getSpecs()
+[2026-06-21T21:49:39.643Z] [LOG] [Renderer:info] (index-BhkHA3px.js:215) [Handoff] dashboard fade-in started
+[2026-06-21T21:49:39.664Z] [LOG] [PS:tweak-executor] #34 queryPowerShell OK 820ms
+[2026-06-21T21:49:39.665Z] [LOG] [PS] end file=main.js fn=tweak:checkStatus:page-combining id=34 duration=821ms active=0 calls60s=34
+[2026-06-21T21:49:39.669Z] [LOG] [Renderer:info] (index-BhkHA3px.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:64543/api
+[2026-06-21T21:49:39.669Z] [LOG] [Renderer:info] (index-BhkHA3px.js:10) [AuthRoute] path=/api/dashboard-intelligence/system-dna target=local reason=system-route base=http://127.0.0.1:64543/api
+[2026-06-21T21:49:39.669Z] [LOG] [Renderer:info] (index-BhkHA3px.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:64543/api
+[2026-06-21T21:49:39.670Z] [LOG] [Renderer:info] (index-BhkHA3px.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:64543/api
+[2026-06-21T21:49:39.670Z] [LOG] [Renderer:info] (index-BhkHA3px.js:10) [AuthRoute] path=/api/dashboard-intelligence/ram-analysis target=local reason=system-route base=http://127.0.0.1:64543/api
+[2026-06-21T21:49:39.670Z] [LOG] [Renderer:info] (index-BhkHA3px.js:10) [AuthRoute] path=/api/system-intelligence/fast target=local reason=system-route base=http://127.0.0.1:64543/api
+[2026-06-21T21:49:39.677Z] [LOG] [Backend:stdout] [SysIntelligence] phase=A start — identity collection (sequential, WMI-safe)
+[2026-06-21T21:49:39.683Z] [LOG] [PS] start file=main.js fn=tweak:checkStatus:prefetch reason=tweak-check-status id=35 active=1
+[2026-06-21T21:49:39.683Z] [LOG] [PS:tweak-executor] #35 queryPowerShell SPAWN ts=1782078579683 active=1
+[2026-06-21T21:49:39.697Z] [LOG] [Renderer:info] (index-BhkHA3px.js:215) [Handoff] dashboard fade-in complete — layout stable
+[2026-06-21T21:49:39.838Z] [LOG] [Renderer:info] (index-BhkHA3px.js:215) [TourTransition] dashboard stable — tours unblocked
+[2026-06-21T21:49:39.838Z] [LOG] [Renderer:info] (index-BhkHA3px.js:215) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: true
+[2026-06-21T21:49:39.851Z] [LOG] [Renderer:info] (index-BhkHA3px.js:215) [AppFlow] Flow eval — isPremium: true plan: premium trialEndsAt: null hasSeenTrialActivation: true hasSeenTrialTour: true hasSeenUnlock: true hasSeenTour: true isFirstTimeUser: true isFirstLogin: true entitlementsAttempted: true entitlementsOk: false unlockFired: false trialUnlockFired: false
+[2026-06-21T21:49:39.851Z] [LOG] [Renderer:info] (index-BhkHA3px.js:215) [AppFlow] PRIORITY 1: First-time onboarding tour
+[2026-06-21T21:49:39.852Z] [LOG] [Renderer:info] (index-BhkHA3px.js:215) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: true
+[2026-06-21T21:49:39.862Z] [LOG] [Renderer:info] (index-BhkHA3px.js:25) [TourTransition] mounted (invisible)
+[2026-06-21T21:49:39.929Z] [LOG] [Renderer:info] (index-BhkHA3px.js:25) [TourTransition] revealed — first visible frame
+[2026-06-21T21:49:40.278Z] [LOG] [Renderer:info] (index-BhkHA3px.js:25) [TourTransition] card fully visible
+[2026-06-21T21:49:40.393Z] [LOG] [PS:tweak-executor] #35 queryPowerShell OK 710ms
+[2026-06-21T21:49:40.394Z] [LOG] [PS] end file=main.js fn=tweak:checkStatus:prefetch id=35 duration=710ms active=0 calls60s=35
+[2026-06-21T21:49:40.396Z] [LOG] [PS] start file=main.js fn=tweak:checkStatus:superfetch reason=tweak-check-status id=36 active=1
+[2026-06-21T21:49:40.396Z] [LOG] [PS:tweak-executor] #36 queryPowerShell SPAWN ts=1782078580396 active=1
+[2026-06-21T21:49:40.841Z] [LOG] [Renderer:info] (index-BhkHA3px.js:10) [AuthRoute] path=/api/startup/apps target=local reason=system-route base=http://127.0.0.1:64543/api
+[2026-06-21T21:49:40.967Z] [LOG] [Renderer:info] (index-BhkHA3px.js:10) [AuthRoute] path=/api/issues/detect target=local reason=system-route base=http://127.0.0.1:64543/api
+[2026-06-21T21:49:40.975Z] [LOG] [PS:tweak-executor] #36 queryPowerShell OK 579ms
+[2026-06-21T21:49:40.975Z] [LOG] [PS] end file=main.js fn=tweak:checkStatus:superfetch id=36 duration=579ms active=0 calls60s=36
+[2026-06-21T21:49:40.976Z] [LOG] [PS] start file=main.js fn=tweak:checkStatus:ntfs-last-access reason=tweak-check-status id=37 active=1
+[2026-06-21T21:49:40.976Z] [LOG] [PS:tweak-executor] #37 queryPowerShell SPAWN ts=1782078580976 active=1
+[2026-06-21T21:49:41.273Z] [ERROR] [Backend:stderr] [SysIntelligence] phase=timeout source=processes limit=6000ms
+[2026-06-21T21:49:41.697Z] [LOG] [PS:tweak-executor] #37 queryPowerShell OK 721ms
+[2026-06-21T21:49:41.697Z] [LOG] [PS] end file=main.js fn=tweak:checkStatus:ntfs-last-access id=37 duration=721ms active=0 calls60s=37
+[2026-06-21T21:49:41.703Z] [LOG] [PS] start file=main.js fn=tweak:checkStatus:win-search-index reason=tweak-check-status id=38 active=1
+[2026-06-21T21:49:41.703Z] [LOG] [PS:tweak-executor] #38 queryPowerShell SPAWN ts=1782078581703 active=1
+[2026-06-21T21:49:42.411Z] [LOG] [PS:tweak-executor] #38 queryPowerShell OK 708ms
+[2026-06-21T21:49:42.411Z] [LOG] [PS] end file=main.js fn=tweak:checkStatus:win-search-index id=38 duration=708ms active=0 calls60s=38
+[2026-06-21T21:49:42.412Z] [LOG] [PS] start file=main.js fn=tweak:checkStatus:telemetry reason=tweak-check-status id=39 active=1
+[2026-06-21T21:49:42.412Z] [LOG] [PS:tweak-executor] #39 queryPowerShell SPAWN ts=1782078582412 active=1
+[2026-06-21T21:49:42.683Z] [ERROR] [Backend:stderr] [SysIntelligence] phase=timeout source=A.mem limit=3000ms
+[2026-06-21T21:49:43.058Z] [LOG] [PS:tweak-executor] #39 queryPowerShell OK 646ms
+[2026-06-21T21:49:43.058Z] [LOG] [PS] end file=main.js fn=tweak:checkStatus:telemetry id=39 duration=646ms active=0 calls60s=39
+[2026-06-21T21:49:43.059Z] [LOG] [PS] start file=main.js fn=tweak:checkStatus:nvidia-telemetry reason=tweak-check-status id=40 active=1
+[2026-06-21T21:49:43.059Z] [LOG] [PS:tweak-executor] #40 queryPowerShell SPAWN ts=1782078583059 active=1
+[2026-06-21T21:49:43.272Z] [ERROR] [Backend:stderr] [SysIntelligence] phase=timeout source=graphics limit=8000ms
+[2026-06-21T21:49:43.272Z] [ERROR] [Backend:stderr] [SysIntelligence] phase=timeout source=fsSize limit=8000ms
+[2026-06-21T21:49:43.273Z] [ERROR] [Backend:stderr] [SysIntelligence] phase=timeout source=netIf limit=8000ms
+[2026-06-21T21:49:43.279Z] [ERROR] [Backend:stderr] [SysIntelligence] phase=timeout source=osInfo limit=8000ms
+[2026-06-21T21:49:43.279Z] [ERROR] [Backend:stderr] [SysIntelligence] phase=timeout source=monitorEDID limit=8000ms
+[2026-06-21T21:49:43.461Z] [LOG] [Backend:stdout] [SysIntelligence] phase=full complete in 8191ms | MB=X870E AORUS PRO ICE | BIOS=F12a | CPU=Ryzen 7 9800X3D 8-Core Processor | GPUs=1 | RAMsticks=2
+[2026-06-21T21:49:43.462Z] [LOG] [Backend:stdout] [SysIntelligence] Disk cache updated
+[2026-06-21T21:49:43.805Z] [LOG] [PS:tweak-executor] #40 queryPowerShell OK 746ms
+[2026-06-21T21:49:43.806Z] [LOG] [TweakSupport] id=nvidia-telemetry, supported=false, reason="No NVIDIA GPU detected", os=10.0.26200, helperFound=false
+[2026-06-21T21:49:43.806Z] [LOG] [PS] end file=main.js fn=tweak:checkStatus:nvidia-telemetry id=40 duration=747ms active=0 calls60s=40
+[2026-06-21T21:49:43.807Z] [LOG] [PS] start file=main.js fn=tweak:checkStatus:disable-delivery-opt reason=tweak-check-status id=41 active=1
+[2026-06-21T21:49:43.807Z] [LOG] [PS:tweak-executor] #41 queryPowerShell SPAWN ts=1782078583807 active=1
+[2026-06-21T21:49:44.761Z] [LOG] [PS:tweak-executor] #41 queryPowerShell OK 954ms
+[2026-06-21T21:49:44.761Z] [LOG] [PS] end file=main.js fn=tweak:checkStatus:disable-delivery-opt id=41 duration=954ms active=0 calls60s=41
+[2026-06-21T21:49:44.761Z] [LOG] [PS] start file=main.js fn=tweak:checkStatus:disable-wer reason=tweak-check-status id=42 active=1
+[2026-06-21T21:49:44.762Z] [LOG] [PS:tweak-executor] #42 queryPowerShell SPAWN ts=1782078584762 active=1
+[2026-06-21T21:49:44.952Z] [LOG] [Backend:stdout] [SysIntelligence] phase=A complete in 5275ms | CPU=Ryzen 7 9800X3D 8-Core Processor | GPU=AMD Radeon RX 7800 XT | RAM=32372MB | probes: mem+cpu+graphics (baseboard/bios skipped)
+[2026-06-21T21:49:44.955Z] [LOG] [Renderer:info] (index-BhkHA3px.js:157) [SysIntelligence] Fast profile loaded | MB=X870E AORUS PRO ICE | CPU=Ryzen 7 9800X3D 8-Core Processor
+[2026-06-21T21:49:45.274Z] [ERROR] [Backend:stderr] [SysIntelligence] phase=timeout source=cpu limit=10000ms
+[2026-06-21T21:49:45.275Z] [ERROR] [Backend:stderr] [SysIntelligence] phase=timeout source=memLayout limit=10000ms
+[2026-06-21T21:49:45.275Z] [ERROR] [Backend:stderr] [SysIntelligence] phase=timeout source=diskLayout limit=10000ms
+[2026-06-21T21:49:45.281Z] [ERROR] [Backend:stderr] [SysIntelligence] phase=timeout source=platformPS limit=10000ms
+[2026-06-21T21:49:45.368Z] [LOG] [PS:tweak-executor] #42 queryPowerShell OK 606ms
+[2026-06-21T21:49:45.368Z] [LOG] [PS] end file=main.js fn=tweak:checkStatus:disable-wer id=42 duration=607ms active=0 calls60s=42
+[2026-06-21T21:49:45.369Z] [LOG] [PS] start file=main.js fn=tweak:checkStatus:disable-activity-history reason=tweak-check-status id=43 active=1
+[2026-06-21T21:49:45.369Z] [LOG] [PS:tweak-executor] #43 queryPowerShell SPAWN ts=1782078585369 active=1
+[2026-06-21T21:49:45.871Z] [LOG] [PS:tweak-executor] #43 queryPowerShell OK 502ms
+[2026-06-21T21:49:45.871Z] [LOG] [PS] end file=main.js fn=tweak:checkStatus:disable-activity-history id=43 duration=502ms active=0 calls60s=43
+[2026-06-21T21:49:45.873Z] [LOG] [PS] start file=main.js fn=tweak:checkStatus:tune-priority reason=tweak-check-status id=44 active=1
+[2026-06-21T21:49:45.873Z] [LOG] [PS:tweak-executor] #44 queryPowerShell SPAWN ts=1782078585873 active=1
+[2026-06-21T21:49:46.380Z] [LOG] [PS:tweak-executor] #44 queryPowerShell OK 507ms
+[2026-06-21T21:49:46.381Z] [LOG] [PS] end file=main.js fn=tweak:checkStatus:tune-priority id=44 duration=508ms active=0 calls60s=44
+[2026-06-21T21:49:46.383Z] [LOG] [PS] start file=main.js fn=tweak:checkStatus:synth-timers reason=tweak-check-status id=45 active=1
+[2026-06-21T21:49:46.383Z] [LOG] [PS:tweak-executor] #45 queryPowerShell SPAWN ts=1782078586383 active=1
+[2026-06-21T21:49:47.000Z] [LOG] [PS:tweak-executor] #45 queryPowerShell OK 617ms
+[2026-06-21T21:49:47.001Z] [LOG] [PS] end file=main.js fn=tweak:checkStatus:synth-timers id=45 duration=618ms active=0 calls60s=45
+[2026-06-21T21:49:47.003Z] [LOG] [PS] start file=main.js fn=tweak:checkStatus:usb-selective-suspend reason=tweak-check-status id=46 active=1
+[2026-06-21T21:49:47.003Z] [LOG] [PS:tweak-executor] #46 queryPowerShell SPAWN ts=1782078587003 active=1
+[2026-06-21T21:49:47.273Z] [ERROR] [Backend:stderr] [SysIntelligence] phase=timeout source=baseboard limit=12000ms
+[2026-06-21T21:49:47.273Z] [ERROR] [Backend:stderr] [SysIntelligence] phase=timeout source=bios limit=12000ms
+[2026-06-21T21:49:47.614Z] [LOG] [PS:tweak-executor] #46 queryPowerShell OK 611ms
+[2026-06-21T21:49:47.614Z] [LOG] [TweakSupport] id=usb-selective-suspend, supported=true, reason="powercfg USB setting present", os=10.0.26200, helperFound=true
+[2026-06-21T21:49:47.614Z] [LOG] [PS] end file=main.js fn=tweak:checkStatus:usb-selective-suspend id=46 duration=611ms active=0 calls60s=46
+[2026-06-21T21:49:47.617Z] [LOG] [PS] start file=main.js fn=tweak:checkStatus:mmcss-gaming reason=tweak-check-status id=47 active=1
+[2026-06-21T21:49:47.617Z] [LOG] [PS:tweak-executor] #47 queryPowerShell SPAWN ts=1782078587617 active=1
+[2026-06-21T21:49:48.197Z] [LOG] [PS:tweak-executor] #47 queryPowerShell OK 580ms
+[2026-06-21T21:49:48.197Z] [LOG] [PS] end file=main.js fn=tweak:checkStatus:mmcss-gaming id=47 duration=580ms active=0 calls60s=47
+[2026-06-21T21:49:48.199Z] [LOG] [PS] start file=main.js fn=tweak:checkStatus:preemption reason=tweak-check-status id=48 active=1
+[2026-06-21T21:49:48.199Z] [LOG] [PS:tweak-executor] #48 queryPowerShell SPAWN ts=1782078588199 active=1
+[2026-06-21T21:49:48.721Z] [LOG] [PS:tweak-executor] #48 queryPowerShell OK 522ms
+[2026-06-21T21:49:48.721Z] [LOG] [PS] end file=main.js fn=tweak:checkStatus:preemption id=48 duration=523ms active=0 calls60s=48
+[2026-06-21T21:49:48.723Z] [LOG] [PS] start file=main.js fn=tweak:checkStatus:disable-mpo reason=tweak-check-status id=49 active=1
+[2026-06-21T21:49:48.723Z] [LOG] [PS:tweak-executor] #49 queryPowerShell SPAWN ts=1782078588723 active=1
+[2026-06-21T21:49:49.249Z] [LOG] [PS:tweak-executor] #49 queryPowerShell OK 526ms
+[2026-06-21T21:49:49.249Z] [LOG] [PS] end file=main.js fn=tweak:checkStatus:disable-mpo id=49 duration=526ms active=0 calls60s=49
+[2026-06-21T21:49:49.251Z] [LOG] [PS] start file=main.js fn=tweak:checkStatus:bluetooth reason=tweak-check-status id=50 active=1
+[2026-06-21T21:49:49.251Z] [LOG] [PS:tweak-executor] #50 queryPowerShell SPAWN ts=1782078589251 active=1
+[2026-06-21T21:49:49.791Z] [LOG] [PS:tweak-executor] #50 queryPowerShell OK 540ms
+[2026-06-21T21:49:49.791Z] [LOG] [PS] end file=main.js fn=tweak:checkStatus:bluetooth id=50 duration=540ms active=0 calls60s=50
+[2026-06-21T21:49:49.793Z] [LOG] [PS] start file=main.js fn=tweak:checkStatus:wifi reason=tweak-check-status id=51 active=1
+[2026-06-21T21:49:49.793Z] [LOG] [PS:tweak-executor] #51 queryPowerShell SPAWN ts=1782078589793 active=1
+[2026-06-21T21:49:49.822Z] [ERROR] [Backend:stderr] [SysIntelligence] phase=timeout source=graphics limit=6000ms
+[2026-06-21T21:49:50.212Z] [ERROR] [Backend:stderr] [SysIntelligence] phase=timeout source=cpu limit=9000ms
+[2026-06-21T21:49:50.310Z] [LOG] [PS:tweak-executor] #51 queryPowerShell OK 517ms
+[2026-06-21T21:49:50.311Z] [LOG] [PS] end file=main.js fn=tweak:checkStatus:wifi id=51 duration=518ms active=0 calls60s=51
+[2026-06-21T21:49:50.313Z] [LOG] [PS] start file=main.js fn=tweak:checkStatus:xbox-services reason=tweak-check-status id=52 active=1
+[2026-06-21T21:49:50.313Z] [LOG] [PS:tweak-executor] #52 queryPowerShell SPAWN ts=1782078590313 active=1
+[2026-06-21T21:49:50.855Z] [LOG] [PS:tweak-executor] #52 queryPowerShell OK 542ms
+[2026-06-21T21:49:50.855Z] [LOG] [PS] end file=main.js fn=tweak:checkStatus:xbox-services id=52 duration=542ms active=0 calls60s=52
+[2026-06-21T21:49:50.857Z] [LOG] [PS] start file=main.js fn=tweak:checkStatus:fax-printer reason=tweak-check-status id=53 active=1
+[2026-06-21T21:49:50.857Z] [LOG] [PS:tweak-executor] #53 queryPowerShell SPAWN ts=1782078590857 active=1
+[2026-06-21T21:49:51.363Z] [LOG] [PS:tweak-executor] #53 queryPowerShell OK 506ms
+[2026-06-21T21:49:51.363Z] [LOG] [PS] end file=main.js fn=tweak:checkStatus:fax-printer id=53 duration=506ms active=0 calls60s=53
+[2026-06-21T21:49:51.365Z] [LOG] [Renderer:info] (index-BhkHA3px.js:10) [AuthRoute] path=/api/network-tweaks/state target=cloud reason=cloud-only
+[2026-06-21T21:49:51.365Z] [LOG] [DeviceID] Generated and saved new device ID: 70B7BF11AF3947BF
+[2026-06-21T21:49:51.603Z] [LOG] [Renderer:info] (index-BhkHA3px.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:64543/api
+[2026-06-21T21:49:52.135Z] [LOG] [Renderer:info] (index-BhkHA3px.js:27) [Ownership:BASELINE] initialized
+[2026-06-21T21:49:52.136Z] [LOG] [Renderer:info] (index-BhkHA3px.js:28) [Baseline] Complete — 52 tweaks scanned
+[2026-06-21T21:49:52.136Z] [LOG] [Renderer:info] (index-BhkHA3px.js:215) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: true
+[2026-06-21T21:49:56.607Z] [LOG] [Renderer:info] (index-BhkHA3px.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:64543/api
+[2026-06-21T21:49:57.835Z] [LOG] [Renderer:info] (index-BhkHA3px.js:215) [App] Window focused but flow active, skipping refresh
+[2026-06-21T21:49:57.835Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:150) [Window] Focus event received
+[2026-06-21T21:49:57.835Z] [LOG] [Renderer:info] (index-BhkHA3px.js:215) [App] Electron window focus (passive)

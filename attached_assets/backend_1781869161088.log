@@ -1,0 +1,29 @@
+[2026-06-19T11:38:41.253Z] HEALTH attempt=1 elapsed=0ms ERR ECONNREFUSED connect ECONNREFUSED 127.0.0.1:53895
+[2026-06-19T11:38:41.776Z] STDOUT [SysIntelligence] Background deep collection triggered
+[2026-06-19T11:38:41.778Z] STDOUT [SysIntelligence] phase=full start — deep collection
+[2026-06-19T11:38:46.172Z] STDERR [SysIntelligence] phase=timeout source=baseboard limit=3000ms
+[2026-06-19T11:38:46.172Z] STDERR [SysIntelligence] probe=baseboard timeout #1 — setting 12min cooldown
+[2026-06-19T11:38:46.173Z] STDERR [SysIntelligence] phase=timeout source=bios limit=3000ms
+[2026-06-19T11:38:46.173Z] STDERR [SysIntelligence] probe=bios timeout #1 — setting 12min cooldown
+[2026-06-19T11:38:46.173Z] STDERR [SysIntelligence] phase=timeout source=graphics limit=3000ms
+[2026-06-19T11:38:46.174Z] STDERR [SysIntelligence] probe=graphics timeout #1 — setting 12min cooldown
+[2026-06-19T11:38:46.174Z] STDERR [SysIntelligence] phase=timeout source=osInfo limit=3000ms
+[2026-06-19T11:38:46.174Z] STDERR [SysIntelligence] probe=osInfo timeout #1 — setting 12min cooldown
+[2026-06-19T11:38:46.174Z] STDERR [SysIntelligence] phase=timeout source=platformPS limit=3000ms
+[2026-06-19T11:38:46.175Z] STDERR [SysIntelligence] probe=platformPS timeout #1 — setting 12min cooldown
+[2026-06-19T11:38:46.175Z] STDERR [SysIntelligence] phase=timeout source=monitorEDID limit=3000ms
+[2026-06-19T11:38:46.175Z] STDERR [SysIntelligence] probe=monitorEDID timeout #1 — setting 12min cooldown
+[2026-06-19T11:38:46.176Z] STDERR [SysIntelligence] phase=timeout source=memLayout limit=4000ms
+[2026-06-19T11:38:46.176Z] STDERR [SysIntelligence] probe=memLayout timeout #1 — setting 12min cooldown
+[2026-06-19T11:38:46.176Z] STDERR [SysIntelligence] phase=timeout source=diskLayout limit=4000ms
+[2026-06-19T11:38:46.176Z] STDERR [SysIntelligence] probe=diskLayout timeout #1 — setting 12min cooldown
+[2026-06-19T11:38:46.177Z] STDERR [SysIntelligence] phase=timeout source=fsSize limit=4000ms
+[2026-06-19T11:38:46.177Z] STDERR [SysIntelligence] phase=timeout source=netIf limit=4000ms
+[2026-06-19T11:38:46.177Z] STDERR [SysIntelligence] probe=netIf timeout #1 — setting 12min cooldown
+[2026-06-19T11:38:46.178Z] STDERR [SysIntelligence] phase=timeout source=processes limit=4000ms
+[2026-06-19T11:38:46.178Z] STDERR [SysIntelligence] probe=processes timeout #1 — setting 12min cooldown
+[2026-06-19T11:38:46.784Z] STDERR [SysIntelligence] phase=timeout source=cpu limit=5000ms
+[2026-06-19T11:38:46.785Z] STDERR [SysIntelligence] probe=cpu timeout #1 — setting 12min cooldown
+[2026-06-19T11:38:47.588Z] STDOUT [SysIntelligence] cpu WMI timeout — os.cpus() fallback: AMD Ryzen 7 9800X3D 8-Core Processor
+[2026-06-19T11:38:48.430Z] STDOUT [SysIntelligence] phase=full complete in 6653ms | MB=null | BIOS=null | CPU=AMD Ryzen 7 9800X3D 8-Core Processor | GPUs=0 | RAMsticks=0
+[2026-06-19T11:38:48.431Z] STDOUT [SysIntelligence] Disk cache updated

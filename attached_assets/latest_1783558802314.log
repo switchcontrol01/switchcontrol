@@ -1,0 +1,127 @@
+
+[2026-07-09T00:59:31.504Z] [INFO] SwitchControl started — PID:13420 platform:win32/x64 node:20.18.3
+[2026-07-09T00:59:31.537Z] [LOG] [Security] IPC handlers registered
+[2026-07-09T00:59:31.539Z] [LOG] [Debloat] IPC handlers registered
+[2026-07-09T00:59:31.539Z] [LOG] [Cleaner] IPC handlers registered
+[2026-07-09T00:59:31.540Z] [LOG] [Storage] IPC handlers registered
+[2026-07-09T00:59:31.541Z] [LOG] [Protocol] registered: true | isDefault: true | isDev: false
+[2026-07-09T00:59:31.562Z] [LOG] [STARTUP] whenReady — v1.2.1 | isDev:false | pid:13420
+[2026-07-09T00:59:31.565Z] [LOG] [ConfigStore] Initialized — file: C:\Users\SwitchTech\AppData\Roaming\SwitchControl\sc-config.json
+[2026-07-09T00:59:31.566Z] [LOG] [Enrich] disk cache hit — age 0min | GPU: AMD Radeon RX 7800 XT
+[2026-07-09T00:59:31.581Z] [LOG] [LAUNCH:1] BrowserWindow constructed — show:false, paintWhenInitiallyHidden:true, isVisible: false
+[2026-07-09T00:59:31.581Z] [LOG] [LAUNCH:2] packaged mode — indexPath: C:\Program Files\SwitchControl\resources\dist\index.html | exists: true
+[2026-07-09T00:59:31.586Z] [LOG] [Backend] ===== STARTUP DIAGNOSTICS =====
+[2026-07-09T00:59:31.587Z] [LOG] [Backend] process.execPath: C:\Program Files\SwitchControl\SwitchControl.exe
+[2026-07-09T00:59:31.587Z] [LOG] [Backend] process.resourcesPath: C:\Program Files\SwitchControl\resources
+[2026-07-09T00:59:31.587Z] [LOG] [Backend] app.isPackaged: true
+[2026-07-09T00:59:31.587Z] [LOG] [Backend] app.getAppPath(): C:\Program Files\SwitchControl\resources\app.asar
+[2026-07-09T00:59:31.587Z] [LOG] [Backend] Expected bundle path: C:\Program Files\SwitchControl\resources\dist\index.cjs
+[2026-07-09T00:59:31.587Z] [LOG] [Backend] Bundle size: 2.5 MB
+[2026-07-09T00:59:31.633Z] [LOG] [Updater] init — v1.2.1 | channel:stable | https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev
+[2026-07-09T00:59:31.633Z] [LOG] [STARTUP] app ready — 71ms from whenReady
+[2026-07-09T00:59:31.633Z] [LOG] [PREWARM] cachedSpecs seeded before window open — Ryzen 7 9800X3D 8-Core Processor | GPU: AMD Radeon RX 7800 XT
+[2026-07-09T00:59:31.634Z] [LOG] [Backend] Free port found: 58838
+[2026-07-09T00:59:31.635Z] [LOG] [Backend] ELECTRON_USER_DATA: C:\Users\SwitchTech\AppData\Roaming\SwitchControl
+[2026-07-09T00:59:31.635Z] [LOG] [Backend] ===== ENV KEY DIAGNOSTICS =====
+[2026-07-09T00:59:31.635Z] [LOG] [Backend]   OPENAI_API_KEY: parent_env=false | config_file=false | will_use=false
+[2026-07-09T00:59:31.635Z] [LOG] [Backend]   STRIPE_SECRET_KEY: parent_env=false | config_file=false | will_use=false
+[2026-07-09T00:59:31.635Z] [LOG] [Backend]   GOOGLE_CLIENT_ID: parent_env=false | config_file=false | will_use=false
+[2026-07-09T00:59:31.635Z] [LOG] [Backend]   GOOGLE_CLIENT_SECRET: parent_env=false | config_file=false | will_use=false
+[2026-07-09T00:59:31.635Z] [LOG] [Backend]   JWT_SECRET: parent_env=false | config_file=false | will_use=false
+[2026-07-09T00:59:31.635Z] [LOG] [Backend]   SESSION_SECRET: parent_env=false | config_file=false | will_use=false
+[2026-07-09T00:59:31.635Z] [LOG] [Backend] =====================================
+[2026-07-09T00:59:31.636Z] [LOG] [Backend] ===== CHILD ENV KEY DIAGNOSTICS =====
+[2026-07-09T00:59:31.636Z] [LOG] [Backend]   child_env OPENAI_API_KEY: false
+[2026-07-09T00:59:31.636Z] [LOG] [Backend]   child_env STRIPE_SECRET_KEY: false
+[2026-07-09T00:59:31.636Z] [LOG] [Backend]   child_env GOOGLE_CLIENT_ID: false
+[2026-07-09T00:59:31.636Z] [LOG] [Backend]   child_env GOOGLE_CLIENT_SECRET: false
+[2026-07-09T00:59:31.636Z] [LOG] [Backend]   child_env JWT_SECRET: false
+[2026-07-09T00:59:31.636Z] [LOG] [Backend]   child_env SESSION_SECRET: false
+[2026-07-09T00:59:31.636Z] [LOG] [Backend] AI_MODEL in child env: (not set, will use gpt-4o-mini)
+[2026-07-09T00:59:31.636Z] [LOG] [Backend] DATABASE_URL in child env: NO — Electron offline mode (expected; cloud DB unreachable from user machine)
+[2026-07-09T00:59:31.636Z] [LOG] [Backend] ELECTRON_BACKEND in child env: 1
+[2026-07-09T00:59:31.636Z] [LOG] [Backend] ==========================================
+[2026-07-09T00:59:31.636Z] [LOG] [Backend] Spawning child process...
+[2026-07-09T00:59:31.636Z] [LOG] [Backend]   execPath: C:\Program Files\SwitchControl\SwitchControl.exe
+[2026-07-09T00:59:31.636Z] [LOG] [Backend]   script: C:\Program Files\SwitchControl\resources\dist\index.cjs
+[2026-07-09T00:59:31.637Z] [LOG] [Backend]   ELECTRON_RUN_AS_NODE: 1 (runs as plain Node.js)
+[2026-07-09T00:59:31.637Z] [LOG] [Backend]   PORT: 58838
+[2026-07-09T00:59:31.637Z] [LOG] [Backend]   cwd: C:\Program Files\SwitchControl\resources\dist
+[2026-07-09T00:59:31.641Z] [LOG] [Backend] Child process spawned, PID: 15756
+[2026-07-09T00:59:31.641Z] [LOG] [Backend] Polling health endpoint: http://127.0.0.1:58838/api/health
+[2026-07-09T00:59:31.720Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:598) [SwitchControl Desktop] Preload initialized - unified API ready
+[2026-07-09T00:59:31.721Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:599) [SwitchControl Desktop] Platform: win32
+[2026-07-09T00:59:31.721Z] [LOG] [LAUNCH:4] Gate A: ready-to-show (Chromium frame painted) | +135ms
+[2026-07-09T00:59:31.723Z] [LOG] [Backend:stdout] [DesktopSecrets] ELECTRON_BACKEND mode — bootstrapping secrets
+[2026-07-09T00:59:31.723Z] [LOG] [Backend:stdout] [DesktopSecrets] Secrets file path: C:\Users\SwitchTech\AppData\Roaming\SwitchControl\desktop-secrets.json
+[2026-07-09T00:59:31.724Z] [LOG] [Backend:stdout] [DesktopSecrets] Loaded persisted secrets from: C:\Users\SwitchTech\AppData\Roaming\SwitchControl\desktop-secrets.json
+[2026-07-09T00:59:31.724Z] [LOG] [Backend:stdout] [DesktopSecrets] JWT_SECRET: loaded from persisted file
+[2026-07-09T00:59:31.724Z] [LOG] [Backend:stdout] [DesktopSecrets] SESSION_SECRET: loaded from persisted file
+[2026-07-09T00:59:31.724Z] [LOG] [Backend:stdout] [DesktopSecrets] Bootstrap complete — JWT_SECRET and SESSION_SECRET are set
+[2026-07-09T00:59:31.724Z] [LOG] [LAUNCH:3] did-finish-load — HTML/JS fully parsed by Chromium (first-frame-ready IPC pending)
+[2026-07-09T00:59:31.725Z] [LOG] [LAUNCH:2] loadFile() promise RESOLVED
+[2026-07-09T00:59:31.775Z] [LOG] [Backend:stdout] [DB] Electron offline mode — no DATABASE_URL present, using in-memory mock storage.
+[2026-07-09T00:59:31.784Z] [LOG] [Backend:stdout] [Stripe] Billing not configured on local backend — expected in Electron mode.
+[2026-07-09T00:59:31.826Z] [LOG] [Backend:stdout] [JWT] ===== SELF-TEST START =====
+[2026-07-09T00:59:31.826Z] [LOG] [Backend:stdout] [JWT] config OK — JWT secret configured (secretFp=4b4adc0e)
+[2026-07-09T00:59:31.827Z] [LOG] [Backend:stdout] [JWT] signed — userId=self-test-user-000 secretFp=4b4adc0e tokenFp=eyJhbGci.eyJzdWIi
+[2026-07-09T00:59:31.828Z] [LOG] [Backend:stdout] [JWT] PASS: valid token → sub=self-test-user-000 exp=1786150771
+[2026-07-09T00:59:31.828Z] [LOG] [Backend:stdout] [JWT] PASS: invalid token → null (rejected)
+[2026-07-09T00:59:31.828Z] [LOG] [Backend:stdout] [JWT] PASS: expired token → null (rejected)
+[2026-07-09T00:59:31.828Z] [LOG] [Backend:stdout] [JWT] PASS: empty token → null (fallback to cookie path)
+[2026-07-09T00:59:31.828Z] [LOG] [Backend:stdout] [JWT] PASS: alg=none token → null (rejected)
+[2026-07-09T00:59:31.829Z] [LOG] [Backend:stdout] [JWT] PASS: wrong issuer token → null (rejected)
+[2026-07-09T00:59:31.829Z] [LOG] [Backend:stdout] [JWT] ===== SELF-TEST END =====
+[2026-07-09T00:59:31.829Z] [LOG] [Backend:stdout] [AUTH] Google OAuth not configured on local backend — expected in Electron mode (auth handled by cloud server).
+[2026-07-09T00:59:31.829Z] [LOG] [Backend:stdout] [AUTH] Using memory session store (NO-DB / Electron desktop mode)
+[2026-07-09T00:59:31.829Z] [LOG] [Backend:stdout] [AUTH] ===== SESSION COOKIE CONFIG =====
+[2026-07-09T00:59:31.830Z] [LOG] [Backend:stdout] [AUTH] production: true
+[2026-07-09T00:59:31.830Z] [LOG] [Backend:stdout] [AUTH] electronBackend: true
+[2026-07-09T00:59:31.830Z] [LOG] [Backend:stdout] [AUTH] cookie: {"httpOnly":true,"secure":false,"sameSite":"lax","maxAge":604800000,"path":"/"}
+[2026-07-09T00:59:31.830Z] [LOG] [Backend:stdout] [AUTH] ================================
+[2026-07-09T00:59:31.830Z] [LOG] [Backend:stdout] [AUTH] Discord OAuth not configured on local backend — expected in Electron mode (auth handled by cloud server).
+[2026-07-09T00:59:31.831Z] [LOG] [Backend:stdout] [WS] Live telemetry WebSocket server ready at /ws/telemetry (auth required)
+[2026-07-09T00:59:31.841Z] [LOG] [Backend:stdout] 12:59:31 PM [express] serving on 127.0.0.1:58838
+[2026-07-09T00:59:31.855Z] [LOG] [Backend] Health check PASSED — attempt 5, 214ms elapsed, body={"status":"ok","version":"1.2.1","uptime":0,"dbReachable":false,"timestamp":1783558771853}
+[2026-07-09T00:59:31.856Z] [LOG] [Backend] ===== BACKEND READY =====
+[2026-07-09T00:59:31.856Z] [LOG] [Backend] PID: 15756
+[2026-07-09T00:59:31.856Z] [LOG] [Backend] Port: 58838
+[2026-07-09T00:59:31.856Z] [LOG] [Backend] Ready: true
+[2026-07-09T00:59:31.856Z] [LOG] [Backend] getBackendPort() will return: 58838
+[2026-07-09T00:59:31.856Z] [LOG] [Backend] isBackendReady() will return: true
+[2026-07-09T00:59:31.856Z] [LOG] [Backend] ========================
+[2026-07-09T00:59:31.856Z] [LOG] [STARTUP] backend ready — port 58838 (294ms)
+[2026-07-09T00:59:36.587Z] [WARN] [LAUNCH:FALLBACK] show gates timed out — force-showing | +5001ms
+[2026-07-09T00:59:36.606Z] [LOG] [PS] start file=main.js fn=startTelemetryPolling:wmiGpu reason=startup-wmi-gpu id=1 active=1
+[2026-07-09T00:59:36.606Z] [LOG] [GPU] WMI fast-path start — t=1783558776606
+[2026-07-09T00:59:36.780Z] [LOG] [PS] end file=main.js fn=startTelemetryPolling:wmiGpu id=1 duration=174ms active=0 calls60s=1
+[2026-07-09T00:59:36.780Z] [LOG] [GPU] WMI fast-path resolved: AMD Radeon RX 7800 XT
+[2026-07-09T00:59:39.634Z] [INFO] Checking for update
+[2026-07-09T00:59:39.634Z] [LOG] [Updater] Checking for update...
+[2026-07-09T00:59:39.757Z] [ERROR] Error: Error: Cannot find channel "latest.yml" update info: HttpError: 404 Not Found
+"method: GET url: https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev/latest.yml?noCache=1jt266cnj\n\nPlease double check that your authentication token is correct. Due to security reasons, actual status maybe not reported, but 404.\n"
+Headers: {
+  "cf-ray": "a1836334de04d992-AKL",
+  "connection": "keep-alive",
+  "content-length": "27150",
+  "content-type": "text/html",
+  "date": "Thu, 09 Jul 2026 00:59:42 GMT",
+  "server": "cloudflare"
+}
+    at createHttpError (C:\Program Files\SwitchControl\resources\app.asar\node_modules\electron-updater\node_modules\builder-util-runtime\out\httpExecutor.js:53:12)
+    at ElectronHttpExecutor.handleResponse (C:\Program Files\SwitchControl\resources\app.asar\node_modules\electron-updater\node_modules\builder-util-runtime\out\httpExecutor.js:157:20)
+    at ClientRequest.<anonymous> (C:\Program Files\SwitchControl\resources\app.asar\node_modules\electron-updater\node_modules\builder-util-runtime\out\httpExecutor.js:122:26)
+    at ClientRequest.emit (node:events:518:28)
+    at SimpleURLLoaderWrapper.<anonymous> (node:electron/js2c/browser_init:2:118140)
+    at SimpleURLLoaderWrapper.emit (node:events:518:28)
+    at newError (C:\Program Files\SwitchControl\resources\app.asar\node_modules\electron-updater\node_modules\builder-util-runtime\out\error.js:5:19)
+    at GenericProvider.getLatestVersion (C:\Program Files\SwitchControl\resources\app.asar\node_modules\electron-updater\out\providers\GenericProvider.js:27:63)
+    at async NsisUpdater.getUpdateInfoAndProvider (C:\Program Files\SwitchControl\resources\app.asar\node_modules\electron-updater\out\AppUpdater.js:389:19)
+    at async NsisUpdater.doCheckForUpdates (C:\Program Files\SwitchControl\resources\app.asar\node_modules\electron-updater\out\AppUpdater.js:402:24)
+[2026-07-09T00:59:39.758Z] [WARN] [Updater] No update file found (404) — treating as not-available
+[2026-07-09T00:59:39.758Z] [WARN] [Updater] No update file found (404) — treating as not-available
+[2026-07-09T00:59:48.433Z] [LOG] [Backend] Stopping backend process PID: 15756
+[2026-07-09T00:59:48.434Z] [LOG] [telemetry:poll] async loop stop requested on quit
+[2026-07-09T00:59:48.434Z] [LOG] [TimerRes] no agent running
+[2026-07-09T00:59:48.434Z] [LOG] [Backend] Stopping backend process PID: 15756
+[2026-07-09T00:59:48.445Z] [LOG] [Backend] Child process EXITED — code=null signal=SIGTERM

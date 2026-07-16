@@ -1,0 +1,22 @@
+[2026-06-21T21:49:27.131Z] HEALTH attempt=1 elapsed=0ms ERR ECONNREFUSED connect ECONNREFUSED 127.0.0.1:64571
+[2026-06-21T21:49:35.270Z] STDOUT [SysIntelligence] Background deep collection triggered
+[2026-06-21T21:49:35.270Z] STDOUT [SysIntelligence] phase=full start — deep collection
+[2026-06-21T21:49:39.677Z] STDOUT [SysIntelligence] phase=A start — identity collection (sequential, WMI-safe)
+[2026-06-21T21:49:41.273Z] STDERR [SysIntelligence] phase=timeout source=processes limit=6000ms
+[2026-06-21T21:49:42.683Z] STDERR [SysIntelligence] phase=timeout source=A.mem limit=3000ms
+[2026-06-21T21:49:43.272Z] STDERR [SysIntelligence] phase=timeout source=graphics limit=8000ms
+[2026-06-21T21:49:43.273Z] STDERR [SysIntelligence] phase=timeout source=fsSize limit=8000ms
+[2026-06-21T21:49:43.273Z] STDERR [SysIntelligence] phase=timeout source=netIf limit=8000ms
+[2026-06-21T21:49:43.279Z] STDERR [SysIntelligence] phase=timeout source=osInfo limit=8000ms
+[2026-06-21T21:49:43.279Z] STDERR [SysIntelligence] phase=timeout source=monitorEDID limit=8000ms
+[2026-06-21T21:49:43.461Z] STDOUT [SysIntelligence] phase=full complete in 8191ms | MB=X870E AORUS PRO ICE | BIOS=F12a | CPU=Ryzen 7 9800X3D 8-Core Processor | GPUs=1 | RAMsticks=2
+[2026-06-21T21:49:43.462Z] STDOUT [SysIntelligence] Disk cache updated
+[2026-06-21T21:49:44.952Z] STDOUT [SysIntelligence] phase=A complete in 5275ms | CPU=Ryzen 7 9800X3D 8-Core Processor | GPU=AMD Radeon RX 7800 XT | RAM=32372MB | probes: mem+cpu+graphics (baseboard/bios skipped)
+[2026-06-21T21:49:45.274Z] STDERR [SysIntelligence] phase=timeout source=cpu limit=10000ms
+[2026-06-21T21:49:45.275Z] STDERR [SysIntelligence] phase=timeout source=memLayout limit=10000ms
+[2026-06-21T21:49:45.275Z] STDERR [SysIntelligence] phase=timeout source=diskLayout limit=10000ms
+[2026-06-21T21:49:45.281Z] STDERR [SysIntelligence] phase=timeout source=platformPS limit=10000ms
+[2026-06-21T21:49:47.273Z] STDERR [SysIntelligence] phase=timeout source=baseboard limit=12000ms
+[2026-06-21T21:49:47.273Z] STDERR [SysIntelligence] phase=timeout source=bios limit=12000ms
+[2026-06-21T21:49:49.822Z] STDERR [SysIntelligence] phase=timeout source=graphics limit=6000ms
+[2026-06-21T21:49:50.212Z] STDERR [SysIntelligence] phase=timeout source=cpu limit=9000ms

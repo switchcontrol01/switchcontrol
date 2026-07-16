@@ -1,0 +1,53 @@
+[2026-06-17T13:02:35.999Z] HEALTH attempt=1 elapsed=0ms ERR ECONNREFUSED connect ECONNREFUSED 127.0.0.1:54585
+[2026-06-17T13:02:36.054Z] HEALTH attempt=2 elapsed=59ms ERR ECONNREFUSED connect ECONNREFUSED 127.0.0.1:54585
+[2026-06-17T13:02:36.106Z] HEALTH attempt=3 elapsed=111ms ERR ECONNREFUSED connect ECONNREFUSED 127.0.0.1:54585
+[2026-06-17T13:02:36.158Z] HEALTH attempt=4 elapsed=164ms ERR ECONNREFUSED connect ECONNREFUSED 127.0.0.1:54585
+[2026-06-17T13:02:36.188Z] STDOUT [DesktopSecrets] ELECTRON_BACKEND mode — bootstrapping secrets
+[2026-06-17T13:02:36.188Z] STDOUT [DesktopSecrets] Secrets file path: C:\Users\SwitchTech\AppData\Roaming\SwitchControl\desktop-secrets.json
+[2026-06-17T13:02:36.189Z] STDOUT [DesktopSecrets] Loaded persisted secrets from: C:\Users\SwitchTech\AppData\Roaming\SwitchControl\desktop-secrets.json
+[2026-06-17T13:02:36.189Z] STDOUT [DesktopSecrets] JWT_SECRET: loaded from persisted file
+[2026-06-17T13:02:36.189Z] STDOUT [DesktopSecrets] SESSION_SECRET: loaded from persisted file
+[2026-06-17T13:02:36.189Z] STDOUT [DesktopSecrets] Bootstrap complete — JWT_SECRET and SESSION_SECRET are set
+[2026-06-17T13:02:36.210Z] HEALTH attempt=5 elapsed=215ms ERR ECONNREFUSED connect ECONNREFUSED 127.0.0.1:54585
+[2026-06-17T13:02:37.333Z] STDOUT [DB] Electron offline mode — no DATABASE_URL present, using in-memory mock storage.
+[2026-06-17T13:02:37.333Z] STDOUT [Stripe] Billing not configured on local backend — expected in Electron mode.
+[2026-06-17T13:02:37.334Z] STDOUT [FocusMode] Skipping DB init — running without database (Electron offline / dev no-DB mode).
+[2026-06-17T13:02:37.334Z] STDOUT [JWT] ===== SELF-TEST START =====
+[2026-06-17T13:02:37.334Z] STDOUT [JWT] config OK — JWT secret configured (secretFp=2aefc11e)
+[2026-06-17T13:02:37.334Z] STDOUT [JWT] signed — userId=self-test-user-000 secretFp=2aefc11e tokenFp=eyJhbGci.eyJzdWIi
+[2026-06-17T13:02:37.335Z] STDOUT [JWT] PASS: valid token → sub=self-test-user-000 exp=1784293356
+[2026-06-17T13:02:37.335Z] STDOUT [JWT] PASS: invalid token → null (rejected)
+[2026-06-17T13:02:37.335Z] STDOUT [JWT] PASS: expired token → null (rejected)
+[2026-06-17T13:02:37.336Z] STDOUT [JWT] PASS: empty token → null (fallback to cookie path)
+[2026-06-17T13:02:37.336Z] STDOUT [JWT] PASS: alg=none token → null (rejected)
+[2026-06-17T13:02:37.336Z] STDOUT [JWT] PASS: wrong issuer token → null (rejected)
+[2026-06-17T13:02:37.336Z] STDOUT [JWT] ===== SELF-TEST END =====
+[2026-06-17T13:02:37.337Z] STDOUT [AUTH] Google OAuth not configured on local backend — expected in Electron mode (auth handled by cloud server).
+[2026-06-17T13:02:37.337Z] STDOUT [AUTH] Using memory session store (NO-DB / Electron desktop mode)
+[2026-06-17T13:02:37.337Z] STDOUT [AUTH] ===== SESSION COOKIE CONFIG =====
+[2026-06-17T13:02:37.337Z] STDOUT [AUTH] production: true
+[2026-06-17T13:02:37.338Z] STDOUT [AUTH] electronBackend: true
+[2026-06-17T13:02:37.338Z] STDOUT [AUTH] cookie: {"httpOnly":true,"secure":false,"sameSite":"lax","maxAge":604800000,"path":"/"}
+[2026-06-17T13:02:37.338Z] STDOUT [AUTH] ================================
+[2026-06-17T13:02:37.338Z] STDOUT [AUTH] Discord OAuth not configured on local backend — expected in Electron mode (auth handled by cloud server).
+[2026-06-17T13:02:37.339Z] STDOUT [WS] Live telemetry WebSocket server ready at /ws/telemetry (auth required)
+[2026-06-17T13:02:37.339Z] STDOUT 1:02:36 AM [express] serving on 127.0.0.1:54585
+[2026-06-17T13:02:37.370Z] Health check PASSED — attempt 6, 1375ms elapsed, body={"status":"ok","version":"1.1.2","uptime":1,"dbReachable":false,"timestamp":1781701357364}
+[2026-06-17T13:02:40.085Z] STDOUT [SysIntelligence] phase=full start — deep collection
+[2026-06-17T13:02:42.264Z] STDERR [SysIntelligence] phase=timeout source=battery limit=2000ms
+[2026-06-17T13:02:42.265Z] STDERR [SysIntelligence] phase=timeout source=users limit=2000ms
+[2026-06-17T13:02:45.111Z] STDERR [SysIntelligence] phase=timeout source=baseboard limit=3000ms
+[2026-06-17T13:02:45.112Z] STDERR [SysIntelligence] phase=timeout source=bios limit=3000ms
+[2026-06-17T13:02:45.112Z] STDERR [SysIntelligence] phase=timeout source=graphics limit=3000ms
+[2026-06-17T13:02:45.112Z] STDERR [SysIntelligence] phase=timeout source=osInfo limit=3000ms
+[2026-06-17T13:02:45.112Z] STDERR [SysIntelligence] phase=timeout source=platformPS limit=3000ms
+[2026-06-17T13:02:45.113Z] STDERR [SysIntelligence] phase=timeout source=monitorEDID limit=3000ms
+[2026-06-17T13:02:45.113Z] STDERR [SysIntelligence] phase=timeout source=memLayout limit=4000ms
+[2026-06-17T13:02:45.113Z] STDERR [SysIntelligence] phase=timeout source=diskLayout limit=4000ms
+[2026-06-17T13:02:45.113Z] STDERR [SysIntelligence] phase=timeout source=fsSize limit=4000ms
+[2026-06-17T13:02:45.114Z] STDERR [SysIntelligence] phase=timeout source=netIf limit=4000ms
+[2026-06-17T13:02:45.114Z] STDERR [SysIntelligence] phase=timeout source=netConn limit=4000ms
+[2026-06-17T13:02:45.114Z] STDERR [SysIntelligence] phase=timeout source=processes limit=4000ms
+[2026-06-17T13:02:45.114Z] STDERR [SysIntelligence] phase=timeout source=cpu limit=5000ms
+[2026-06-17T13:02:47.057Z] STDOUT [SysIntelligence] phase=full complete in 6972ms | MB=null | BIOS=null | CPU=null | GPUs=0 | RAMsticks=2
+[2026-06-17T13:02:47.060Z] STDOUT [SysIntelligence] Disk cache updated

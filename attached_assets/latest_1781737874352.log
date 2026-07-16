@@ -1,0 +1,1248 @@
+
+[2026-06-17T23:06:52.618Z] [INFO] SwitchControl started — PID:5788 platform:win32/x64 node:20.18.3
+[2026-06-17T23:06:52.650Z] [LOG] [Security] IPC handlers registered
+[2026-06-17T23:06:52.652Z] [LOG] [Debloat] IPC handlers registered
+[2026-06-17T23:06:52.652Z] [LOG] [Cleaner] IPC handlers registered
+[2026-06-17T23:06:52.653Z] [LOG] [FocusHelper] IPC handlers registered
+[2026-06-17T23:06:52.654Z] [LOG] [Protocol] registered: true | isDefault: true | isDev: false
+[2026-06-17T23:06:52.673Z] [LOG] [STARTUP] whenReady — v1.1.2 | isDev:false | pid:5788
+[2026-06-17T23:06:52.675Z] [LOG] [ConfigStore] Initialized — file: C:\Users\SwitchTech\AppData\Roaming\SwitchControl\sc-config.json
+[2026-06-17T23:06:52.676Z] [LOG] [SwitchControl] Instant specs (sync): AMD Ryzen 7 9800X3D 8-Core Processor | GPU: Detecting… | enrichment starting…
+[2026-06-17T23:06:52.677Z] [LOG] [GPU] enrichment start
+[2026-06-17T23:06:52.677Z] [LOG] [GPU] si.graphics begin (3s timeout — WMI covers AMD DXGI hang)
+[2026-06-17T23:06:52.693Z] [LOG] [LAUNCH:1] BrowserWindow constructed — show:false, paintWhenInitiallyHidden:true, isVisible: false
+[2026-06-17T23:06:52.693Z] [LOG] [LAUNCH:2] packaged mode — indexPath: C:\Program Files\SwitchControl\resources\dist\index.html | exists: true
+[2026-06-17T23:06:52.698Z] [LOG] [Backend] ===== STARTUP DIAGNOSTICS =====
+[2026-06-17T23:06:52.698Z] [LOG] [Backend] process.execPath: C:\Program Files\SwitchControl\SwitchControl.exe
+[2026-06-17T23:06:52.698Z] [LOG] [Backend] process.resourcesPath: C:\Program Files\SwitchControl\resources
+[2026-06-17T23:06:52.698Z] [LOG] [Backend] app.isPackaged: true
+[2026-06-17T23:06:52.698Z] [LOG] [Backend] app.getAppPath(): C:\Program Files\SwitchControl\resources\app.asar
+[2026-06-17T23:06:52.698Z] [LOG] [Backend] Expected bundle path: C:\Program Files\SwitchControl\resources\dist\index.cjs
+[2026-06-17T23:06:52.699Z] [LOG] [Backend] Bundle size: 2.5 MB
+[2026-06-17T23:06:52.746Z] [LOG] [Updater] init — v1.1.2 | channel:stable | https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev
+[2026-06-17T23:06:52.746Z] [LOG] [STARTUP] app ready — 73ms from whenReady
+[2026-06-17T23:06:52.746Z] [LOG] [PREWARM] cachedSpecs seeded before window open — AMD Ryzen 7 9800X3D 8-Core Processor | GPU: Detecting…
+[2026-06-17T23:06:52.771Z] [LOG] [Backend] Free port found: 55976
+[2026-06-17T23:06:52.772Z] [LOG] [Backend] ELECTRON_USER_DATA: C:\Users\SwitchTech\AppData\Roaming\SwitchControl
+[2026-06-17T23:06:52.772Z] [LOG] [Backend] ===== ENV KEY DIAGNOSTICS =====
+[2026-06-17T23:06:52.772Z] [LOG] [Backend]   OPENAI_API_KEY: parent_env=false | config_file=false | will_use=false
+[2026-06-17T23:06:52.772Z] [LOG] [Backend]   STRIPE_SECRET_KEY: parent_env=false | config_file=false | will_use=false
+[2026-06-17T23:06:52.772Z] [LOG] [Backend]   GOOGLE_CLIENT_ID: parent_env=false | config_file=false | will_use=false
+[2026-06-17T23:06:52.773Z] [LOG] [Backend]   GOOGLE_CLIENT_SECRET: parent_env=false | config_file=false | will_use=false
+[2026-06-17T23:06:52.773Z] [LOG] [Backend]   JWT_SECRET: parent_env=false | config_file=false | will_use=false
+[2026-06-17T23:06:52.773Z] [LOG] [Backend]   SESSION_SECRET: parent_env=false | config_file=false | will_use=false
+[2026-06-17T23:06:52.773Z] [LOG] [Backend] =====================================
+[2026-06-17T23:06:52.773Z] [LOG] [Backend] ===== CHILD ENV KEY DIAGNOSTICS =====
+[2026-06-17T23:06:52.773Z] [LOG] [Backend]   child_env OPENAI_API_KEY: false
+[2026-06-17T23:06:52.773Z] [LOG] [Backend]   child_env STRIPE_SECRET_KEY: false
+[2026-06-17T23:06:52.774Z] [LOG] [Backend]   child_env GOOGLE_CLIENT_ID: false
+[2026-06-17T23:06:52.774Z] [LOG] [Backend]   child_env GOOGLE_CLIENT_SECRET: false
+[2026-06-17T23:06:52.774Z] [LOG] [Backend]   child_env JWT_SECRET: false
+[2026-06-17T23:06:52.774Z] [LOG] [Backend]   child_env SESSION_SECRET: false
+[2026-06-17T23:06:52.774Z] [LOG] [Backend] AI_MODEL in child env: (not set, will use gpt-4o-mini)
+[2026-06-17T23:06:52.774Z] [LOG] [Backend] DATABASE_URL in child env: NO — Electron offline mode (expected; cloud DB unreachable from user machine)
+[2026-06-17T23:06:52.774Z] [LOG] [Backend] ELECTRON_BACKEND in child env: 1
+[2026-06-17T23:06:52.774Z] [LOG] [Backend] ==========================================
+[2026-06-17T23:06:52.774Z] [LOG] [Backend] Spawning child process...
+[2026-06-17T23:06:52.774Z] [LOG] [Backend]   execPath: C:\Program Files\SwitchControl\SwitchControl.exe
+[2026-06-17T23:06:52.775Z] [LOG] [Backend]   script: C:\Program Files\SwitchControl\resources\dist\index.cjs
+[2026-06-17T23:06:52.775Z] [LOG] [Backend]   ELECTRON_RUN_AS_NODE: 1 (runs as plain Node.js)
+[2026-06-17T23:06:52.775Z] [LOG] [Backend]   PORT: 55976
+[2026-06-17T23:06:52.775Z] [LOG] [Backend]   cwd: C:\Program Files\SwitchControl\resources\dist
+[2026-06-17T23:06:52.780Z] [LOG] [Backend] Child process spawned, PID: 8928
+[2026-06-17T23:06:52.781Z] [LOG] [Backend] Polling health endpoint: http://127.0.0.1:55976/api/health
+[2026-06-17T23:06:52.926Z] [LOG] [Backend:stdout] [DesktopSecrets] ELECTRON_BACKEND mode — bootstrapping secrets
+[2026-06-17T23:06:52.927Z] [LOG] [Backend:stdout] [DesktopSecrets] Secrets file path: C:\Users\SwitchTech\AppData\Roaming\SwitchControl\desktop-secrets.json
+[2026-06-17T23:06:52.927Z] [LOG] [Backend:stdout] [DesktopSecrets] Loaded persisted secrets from: C:\Users\SwitchTech\AppData\Roaming\SwitchControl\desktop-secrets.json
+[2026-06-17T23:06:52.927Z] [LOG] [Backend:stdout] [DesktopSecrets] JWT_SECRET: loaded from persisted file
+[2026-06-17T23:06:52.927Z] [LOG] [Backend:stdout] [DesktopSecrets] SESSION_SECRET: loaded from persisted file
+[2026-06-17T23:06:52.928Z] [LOG] [Backend:stdout] [DesktopSecrets] Bootstrap complete — JWT_SECRET and SESSION_SECRET are set
+[2026-06-17T23:06:52.951Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:10) [RuntimeMode] electron=true | packaged=true | protocol=file: | preload=true | backendTarget=embedded-local | authTarget=cloud
+[2026-06-17T23:06:52.951Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:10) [API] Electron fetch interceptor installed | packaged=true (cloud-only-routes=blocked-from-local)
+[2026-06-17T23:06:52.955Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:27) [Store:REHYDRATE] total_stored=52 enabled=35 source=localStorage
+[2026-06-17T23:06:52.955Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:28) [CloudAPI] base=https://switchcontrol.org/api packaged=true electron=true
+[2026-06-17T23:06:52.963Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:141) [BiosStore] hydrated | scores from storage: {"latency":33,"frametime":32,"stability":27,"competitiveReadiness":32,"grade":"Stock / Unoptimized","profileBias":"Performance-focused"}
+[2026-06-17T23:06:52.964Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:141) [BiosStore] hydrated | sanitized scores: {"latency":33,"frametime":32,"stability":27,"competitiveReadiness":32,"grade":"Stock / Unoptimized","profileBias":"Performance-focused"}
+[2026-06-17T23:06:52.968Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:10) [IntervalGuard] installed — min interval enforced at 2000ms
+[2026-06-17T23:06:52.968Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [LAUNCH:R0] renderer bootstrap | electron=true | t=+274ms
+[2026-06-17T23:06:52.968Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [LAUNCH:R1] createRoot dispatching | t=+274ms
+[2026-06-17T23:06:52.969Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:564) [SwitchControl Desktop] Preload initialized - unified API ready
+[2026-06-17T23:06:52.970Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:565) [SwitchControl Desktop] Platform: win32
+[2026-06-17T23:06:52.971Z] [LOG] [LAUNCH:3] did-finish-load — HTML/JS fully parsed by Chromium (first-frame-ready IPC pending)
+[2026-06-17T23:06:52.971Z] [LOG] [LAUNCH:2] loadFile() promise RESOLVED
+[2026-06-17T23:06:52.972Z] [LOG] [LAUNCH:4] Gate A: ready-to-show (Chromium frame painted) | +274ms
+[2026-06-17T23:06:52.972Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:10) [API] Backend port not ready, retrying in 200ms… (elapsed 21ms, attempt 1)
+[2026-06-17T23:06:52.977Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: true
+[2026-06-17T23:06:52.996Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [App] Registering deep link auth callback (once)
+[2026-06-17T23:06:53.004Z] [LOG] [Backend:stdout] [DB] Electron offline mode — no DATABASE_URL present, using in-memory mock storage.
+[2026-06-17T23:06:53.007Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: true
+[2026-06-17T23:06:53.009Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: true
+[2026-06-17T23:06:53.010Z] [LOG] [LAUNCH:5] Gate B: app:first-frame-ready (React Splash composited) | +312ms
+[2026-06-17T23:06:53.028Z] [LOG] [LAUNCH:5] mainWindow.show() — both gates passed (chromium+react) | +330ms
+[2026-06-17T23:06:53.028Z] [LOG] [GPU] WMI fast-path start — t=1781737613028
+[2026-06-17T23:06:54.051Z] [LOG] [Backend:stdout] [Stripe] Billing not configured on local backend — expected in Electron mode.
+[2026-06-17T23:06:54.051Z] [LOG] [Backend:stdout] [FocusMode] Skipping DB init — running without database (Electron offline / dev no-DB mode).
+[2026-06-17T23:06:54.051Z] [LOG] [Backend:stdout] [JWT] ===== SELF-TEST START =====
+[2026-06-17T23:06:54.052Z] [LOG] [Backend:stdout] [JWT] config OK — JWT secret configured (secretFp=b2f9f0e3)
+[2026-06-17T23:06:54.052Z] [LOG] [Backend:stdout] [JWT] signed — userId=self-test-user-000 secretFp=b2f9f0e3 tokenFp=eyJhbGci.eyJzdWIi
+[2026-06-17T23:06:54.052Z] [LOG] [Backend:stdout] [JWT] PASS: valid token → sub=self-test-user-000 exp=1784329613
+[2026-06-17T23:06:54.053Z] [LOG] [Backend:stdout] [JWT] PASS: invalid token → null (rejected)
+[2026-06-17T23:06:54.053Z] [LOG] [Backend:stdout] [JWT] PASS: expired token → null (rejected)
+[2026-06-17T23:06:54.053Z] [LOG] [Backend:stdout] [JWT] PASS: empty token → null (fallback to cookie path)
+[2026-06-17T23:06:54.054Z] [LOG] [Backend:stdout] [JWT] PASS: alg=none token → null (rejected)
+[2026-06-17T23:06:54.054Z] [LOG] [Backend:stdout] [JWT] PASS: wrong issuer token → null (rejected)
+[2026-06-17T23:06:54.054Z] [LOG] [Backend:stdout] [JWT] ===== SELF-TEST END =====
+[2026-06-17T23:06:54.055Z] [LOG] [Backend:stdout] [AUTH] Google OAuth not configured on local backend — expected in Electron mode (auth handled by cloud server).
+[2026-06-17T23:06:54.055Z] [LOG] [Backend:stdout] [AUTH] Using memory session store (NO-DB / Electron desktop mode)
+[2026-06-17T23:06:54.055Z] [LOG] [Backend:stdout] [AUTH] ===== SESSION COOKIE CONFIG =====
+[2026-06-17T23:06:54.055Z] [LOG] [Backend:stdout] [AUTH] production: true
+[2026-06-17T23:06:54.056Z] [LOG] [Backend:stdout] [AUTH] electronBackend: true
+[2026-06-17T23:06:54.056Z] [LOG] [Backend:stdout] [AUTH] cookie: {"httpOnly":true,"secure":false,"sameSite":"lax","maxAge":604800000,"path":"/"}
+[2026-06-17T23:06:54.056Z] [LOG] [Backend:stdout] [AUTH] ================================
+[2026-06-17T23:06:54.056Z] [LOG] [Backend:stdout] [AUTH] Discord OAuth not configured on local backend — expected in Electron mode (auth handled by cloud server).
+[2026-06-17T23:06:54.057Z] [LOG] [Backend:stdout] [WS] Live telemetry WebSocket server ready at /ws/telemetry (auth required)
+[2026-06-17T23:06:54.057Z] [LOG] [Backend:stdout] 11:06:53 AM [express] serving on 127.0.0.1:55976
+[2026-06-17T23:06:54.063Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:152) [Window] Focus event received
+[2026-06-17T23:06:54.063Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [App] Electron window focus (passive)
+[2026-06-17T23:06:54.063Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:10) [API] Backend port not ready, retrying in 400ms… (elapsed 1111ms, attempt 2)
+[2026-06-17T23:06:54.070Z] [LOG] [Backend] Health check PASSED — attempt 6, 1289ms elapsed, body={"status":"ok","version":"1.1.2","uptime":1,"dbReachable":false,"timestamp":1781737614067}
+[2026-06-17T23:06:54.070Z] [LOG] [Backend] ===== BACKEND READY =====
+[2026-06-17T23:06:54.071Z] [LOG] [Backend] PID: 8928
+[2026-06-17T23:06:54.071Z] [LOG] [Backend] Port: 55976
+[2026-06-17T23:06:54.071Z] [LOG] [Backend] Ready: true
+[2026-06-17T23:06:54.071Z] [LOG] [Backend] getBackendPort() will return: 55976
+[2026-06-17T23:06:54.071Z] [LOG] [Backend] isBackendReady() will return: true
+[2026-06-17T23:06:54.072Z] [LOG] [Backend] ========================
+[2026-06-17T23:06:54.072Z] [LOG] [STARTUP] backend ready — port 55976 (1399ms)
+[2026-06-17T23:06:54.072Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:132) [Backend] backend-ready event received, port: 55976
+[2026-06-17T23:06:54.072Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:10) [API] Backend-ready push: base=http://127.0.0.1:55976/api (was: unset)
+[2026-06-17T23:06:54.073Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:10) [API] Backend port resolved: 55976 (1121ms, push or poll)
+[2026-06-17T23:06:54.073Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:10) [API] Packaged Electron API base: http://127.0.0.1:55976/api
+[2026-06-17T23:06:54.073Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:10) [API] Resolved: http://127.0.0.1:55976/api | electron=true packaged=true
+[2026-06-17T23:06:54.496Z] [LOG] [PS] start file=main.js fn=tweak:batchCheckAll reason=tweak-batch-check id=1 active=1
+[2026-06-17T23:06:54.497Z] [LOG] [PS:tweak-executor] #1 batchCheckAll SPAWN ts=1781737614497 tweaks=61
+[2026-06-17T23:06:55.415Z] [LOG] [GPU] WMI fast-path resolved: AMD Radeon RX 7800 XT
+[2026-06-17T23:06:55.415Z] [LOG] [GPU] cachedSpecs patched from WMI fast-path — model: AMD Radeon RX 7800 XT
+[2026-06-17T23:06:55.415Z] [LOG] [GPU] specs:enriched IPC pushed from WMI fast-path
+[2026-06-17T23:06:55.416Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: true
+[2026-06-17T23:06:55.495Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:28) [LAUNCH:R5] Splash onComplete — handing off to App
+[2026-06-17T23:06:55.496Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: true
+[2026-06-17T23:06:55.499Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [AuthTruth] Boot: token present: true jwt present: true user present: true premium: true
+[2026-06-17T23:06:55.499Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [AuthTruth] startup restore begin — hasCredential: true cached isPremium: true plan: premium
+[2026-06-17T23:06:55.499Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:10) [HYDRATE:1] resolveAuthState start reqId=ay83uc
+[2026-06-17T23:06:55.500Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:10) [HYDRATE:1] persisted — user=64f0e669-6db6-42e7-a68a-681f9f5db567 jwt=present
+[2026-06-17T23:06:55.500Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:10) [HYDRATE:2] jwtCheck — malformed=false expired=false
+[2026-06-17T23:06:55.500Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:10) [HYDRATE:5] /api/me — jwt=present reqId=ay83uc
+[2026-06-17T23:06:55.501Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: true
+[2026-06-17T23:06:56.189Z] [LOG] [GPU] si.graphics resolved — +3512ms
+[2026-06-17T23:06:56.190Z] [LOG] [GPU] enrichment resolved — model=AMD Radeon RX 7800 XT +3513ms
+[2026-06-17T23:06:56.190Z] [LOG] [GPU] cachedSpecs updated — model=AMD Radeon RX 7800 XT +3513ms
+[2026-06-17T23:06:56.190Z] [LOG] [GPU] IPC sent — specs:enriched (gpu+cpu+disk)
+[2026-06-17T23:06:56.442Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:10) [HYDRATE:6] result=verified source=cloud userId=64f0e669-6db6-42e7-a68a-681f9f5db567 isPremium=true plan=premium isAdmin=true reqId=ay83uc
+[2026-06-17T23:06:56.442Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [AuthTruth] Boot resolved verified=true reason=cloud_confirmed user=yes
+[2026-06-17T23:06:56.443Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:28) [Premium] Grace snapshot updated — isPremium=true plan=premium userId=64f0e669-6db6-42e7-a68a-681f9f5db567
+[2026-06-17T23:06:56.443Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [AuthTruth] Boot: cloud-confirmed — entitlementsVerified=true
+[2026-06-17T23:06:56.443Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-17T23:06:56.444Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:28) [DeviceLock] target=cloud userId=present deviceIdPresent=true
+[2026-06-17T23:06:56.445Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:28) [PremiumExpiry] Initial state recorded — active=true plan=premium trialEndsAt=null
+[2026-06-17T23:06:56.445Z] [WARN] [telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.
+[2026-06-17T23:06:56.445Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [TourTransition] phase entered authenticated — waiting 500ms for dashboard to stabilize
+[2026-06-17T23:06:56.446Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-17T23:06:56.446Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:28) [CloudAPI] 2026-06-17T23:06:56.447Z | POST /device/premium-validate | auth=true | base=https://switchcontrol.org/api
+[2026-06-17T23:06:56.894Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:28) [CloudAPI] OK | POST /device/premium-validate | status=200
+[2026-06-17T23:06:56.894Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:28) [DeviceLock] Valid device
+[2026-06-17T23:06:56.894Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-17T23:06:56.915Z] [LOG] [PS:tweak-executor] #1 batchCheckAll OK 2418ms
+[2026-06-17T23:06:56.916Z] [LOG] [PS] end file=main.js fn=tweak:batchCheckAll id=1 duration=2420ms active=0 calls60s=1
+[2026-06-17T23:06:56.960Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:28) [Network] Heartbeat started (interval=30000ms)
+[2026-06-17T23:06:56.963Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [Dashboard] mounted
+[2026-06-17T23:06:56.963Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [ActivityMonitor] reused cached state — history points: 1 status: ready
+[2026-06-17T23:06:56.964Z] [LOG] [BOOT] ──────────────────────────────────────────
+[2026-06-17T23:06:56.964Z] [LOG] [BOOT] firstFrameReady  = 274ms
+[2026-06-17T23:06:56.964Z] [LOG] [BOOT] windowShown      = 312ms
+[2026-06-17T23:06:56.964Z] [LOG] [BOOT] telemetryStart   = 330ms
+[2026-06-17T23:06:56.964Z] [LOG] [BOOT] dashboardMounted = 4266ms
+[2026-06-17T23:06:56.964Z] [LOG] [BOOT] ──────────────────────────────────────────
+[2026-06-17T23:06:56.964Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [Home] Specs pre-loaded from Splash — skipping getSpecs()
+[2026-06-17T23:06:56.964Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [Disk] renderer: store updated from specs:enriched — C:
+[2026-06-17T23:06:56.964Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [Handoff] dashboard fade-in started
+[2026-06-17T23:06:56.964Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-17T23:06:57.001Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:55976/api
+[2026-06-17T23:06:57.001Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:10) [AuthRoute] path=/api/dashboard-intelligence/system-dna target=local reason=system-route base=http://127.0.0.1:55976/api
+[2026-06-17T23:06:57.001Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:55976/api
+[2026-06-17T23:06:57.002Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:55976/api
+[2026-06-17T23:06:57.003Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:10) [AuthRoute] path=/api/dashboard-intelligence/ram-analysis target=local reason=system-route base=http://127.0.0.1:55976/api
+[2026-06-17T23:06:57.003Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:10) [AuthRoute] path=/api/system-intelligence/profile target=local reason=system-route base=http://127.0.0.1:55976/api
+[2026-06-17T23:06:57.011Z] [LOG] [Backend:stdout] [SysIntelligence] phase=full start — deep collection
+[2026-06-17T23:06:57.022Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:27) [Tweaks:SET] id="nvidia-telemetry" enabled=false (from system sync)
+[2026-06-17T23:06:57.022Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:27) [Tweaks:SET] id="mem-opt" enabled=true (from system sync)
+[2026-06-17T23:06:57.022Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:27) [Tweaks:SET] id="gaming-mode" enabled=true (from system sync)
+[2026-06-17T23:06:57.023Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:27) [Tweaks:SET] id="cortana" enabled=true (from system sync)
+[2026-06-17T23:06:57.023Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:27) [Tweaks:SET] id="disable-wallpaper-compression" enabled=true (from system sync)
+[2026-06-17T23:06:57.023Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:27) [Tweaks:SET] id="maintenance" enabled=true (from system sync)
+[2026-06-17T23:06:57.024Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:27) [Tweaks:SET] id="page-combining" enabled=true (from system sync)
+[2026-06-17T23:06:57.024Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:27) [Tweaks:SET] id="hibernation" enabled=true (from system sync)
+[2026-06-17T23:06:57.024Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:27) [Tweaks:SET] id="xbox-bar" enabled=true (from system sync)
+[2026-06-17T23:06:57.025Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:27) [Tweaks:SET] id="mmcss-nolazymode" enabled=false (from system sync)
+[2026-06-17T23:06:57.025Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:27) [Tweaks:SET] id="wifi" enabled=false (from system sync)
+[2026-06-17T23:06:57.025Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:27) [Tweaks:SET] id="win-search-index" enabled=false (from system sync)
+[2026-06-17T23:06:57.025Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:27) [Tweaks:SET] id="core-isolation" enabled=true (from system sync)
+[2026-06-17T23:06:57.026Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:27) [Tweaks:SET] id="copilot" enabled=true (from system sync)
+[2026-06-17T23:06:57.026Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:27) [Tweaks:SET] id="xbox-services" enabled=true (from system sync)
+[2026-06-17T23:06:57.026Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:27) [Tweaks:SET] id="disable-auto-restart-apps" enabled=true (from system sync)
+[2026-06-17T23:06:57.026Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:27) [Tweaks:SET] id="recent-files" enabled=true (from system sync)
+[2026-06-17T23:06:57.026Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:27) [Tweaks:SET] id="disable-mpo" enabled=true (from system sync)
+[2026-06-17T23:06:57.027Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:27) [Tweaks:SET] id="prefetch" enabled=true (from system sync)
+[2026-06-17T23:06:57.027Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:27) [Tweaks:SET] id="ntfs-last-access" enabled=false (from system sync)
+[2026-06-17T23:06:57.027Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:27) [Tweaks:SET] id="compact-explorer" enabled=true (from system sync)
+[2026-06-17T23:06:57.027Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:27) [Tweaks:SET] id="large-system-cache" enabled=true (from system sync)
+[2026-06-17T23:06:57.027Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:27) [Tweaks:SET] id="disable-delivery-opt" enabled=true (from system sync)
+[2026-06-17T23:06:57.028Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:27) [Tweaks:SET] id="disable-transparency" enabled=false (from system sync)
+[2026-06-17T23:06:57.028Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:27) [Tweaks:SET] id="usb-selective-suspend" enabled=false (from system sync)
+[2026-06-17T23:06:57.028Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:27) [Tweaks:SET] id="tune-priority" enabled=false (from system sync)
+[2026-06-17T23:06:57.028Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:27) [Tweaks:SET] id="bluetooth" enabled=true (from system sync)
+[2026-06-17T23:06:57.028Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:27) [Tweaks:SET] id="explorer-separate-process" enabled=false (from system sync)
+[2026-06-17T23:06:57.028Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:27) [Tweaks:SET] id="fax-printer" enabled=true (from system sync)
+[2026-06-17T23:06:57.029Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:27) [Tweaks:SET] id="disable-animations" enabled=true (from system sync)
+[2026-06-17T23:06:57.029Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:27) [Tweaks:SET] id="search-highlights" enabled=true (from system sync)
+[2026-06-17T23:06:57.029Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:27) [Tweaks:SET] id="hyper-v" enabled=false (from system sync)
+[2026-06-17T23:06:57.029Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:27) [Tweaks:SET] id="disable-wer" enabled=false (from system sync)
+[2026-06-17T23:06:57.029Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:27) [Tweaks:SET] id="bg-apps" enabled=false (from system sync)
+[2026-06-17T23:06:57.029Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:27) [Tweaks:SET] id="power-throttling" enabled=true (from system sync)
+[2026-06-17T23:06:57.029Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:27) [Tweaks:SET] id="vbs" enabled=true (from system sync)
+[2026-06-17T23:06:57.030Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:27) [Tweaks:SET] id="energy-logging" enabled=true (from system sync)
+[2026-06-17T23:06:57.030Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:27) [Tweaks:SET] id="show-file-extensions" enabled=true (from system sync)
+[2026-06-17T23:06:57.030Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:27) [Tweaks:SET] id="preemption" enabled=false (from system sync)
+[2026-06-17T23:06:57.030Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:27) [Tweaks:SET] id="synth-timers" enabled=true (from system sync)
+[2026-06-17T23:06:57.030Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:27) [Tweaks:SET] id="disable-lock-screen" enabled=false (from system sync)
+[2026-06-17T23:06:57.030Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:27) [Tweaks:SET] id="fast-startup" enabled=true (from system sync)
+[2026-06-17T23:06:57.031Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:27) [Tweaks:SET] id="disable-fso" enabled=false (from system sync)
+[2026-06-17T23:06:57.031Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:27) [Tweaks:SET] id="storage-sense" enabled=true (from system sync)
+[2026-06-17T23:06:57.031Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:27) [Tweaks:SET] id="telemetry" enabled=true (from system sync)
+[2026-06-17T23:06:57.031Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:27) [Tweaks:SET] id="mmcss-gaming" enabled=false (from system sync)
+[2026-06-17T23:06:57.031Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:27) [Tweaks:SET] id="pcie-link-state" enabled=true (from system sync)
+[2026-06-17T23:06:57.032Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:27) [Tweaks:SET] id="superfetch" enabled=true (from system sync)
+[2026-06-17T23:06:57.032Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:27) [Tweaks:SET] id="disable-pointer-precision" enabled=true (from system sync)
+[2026-06-17T23:06:57.032Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:27) [Tweaks:SET] id="notifications" enabled=true (from system sync)
+[2026-06-17T23:06:57.032Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:27) [Tweaks:SET] id="disable-activity-history" enabled=true (from system sync)
+[2026-06-17T23:06:57.032Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:27) [Tweaks:SET] id="disable-dcom" enabled=false (from system sync)
+[2026-06-17T23:06:57.032Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [App:STARTUP-RECONCILE] reconciled=52 tweaks from real Windows state
+[2026-06-17T23:06:57.033Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-17T23:06:57.046Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [TourTransition] dashboard stable — tours unblocked
+[2026-06-17T23:06:57.048Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [Handoff] dashboard fade-in complete — layout stable
+[2026-06-17T23:06:57.056Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-17T23:06:57.069Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [AppFlow] Flow eval — isPremium: true plan: premium trialEndsAt: null hasSeenTrialActivation: true hasSeenTrialTour: true hasSeenUnlock: true hasSeenTour: true isFirstTimeUser: false isFirstLogin: false entitlementsAttempted: true entitlementsOk: true unlockFired: false trialUnlockFired: false
+[2026-06-17T23:06:57.069Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [AppFlow] No flow conditions met — staying idle
+[2026-06-17T23:06:58.031Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=2 active=1
+[2026-06-17T23:07:01.340Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:10) [AuthRoute] path=/api/startup/apps target=local reason=system-route base=http://127.0.0.1:55976/api
+[2026-06-17T23:07:01.341Z] [WARN] [telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.
+[2026-06-17T23:07:01.341Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-17T23:07:01.341Z] [ERROR] [Backend:stderr] [SysIntelligence] phase=timeout source=battery limit=2000ms
+[2026-06-17T23:07:01.342Z] [ERROR] [Backend:stderr] [SysIntelligence] phase=timeout source=users limit=2000ms
+[2026-06-17T23:07:01.342Z] [ERROR] [Backend:stderr] [SysIntelligence] phase=timeout source=baseboard limit=3000ms
+[2026-06-17T23:07:01.342Z] [ERROR] [Backend:stderr] [SysIntelligence] phase=timeout source=bios limit=3000ms
+[2026-06-17T23:07:01.342Z] [ERROR] [Backend:stderr] [SysIntelligence] phase=timeout source=graphics limit=3000ms
+[2026-06-17T23:07:01.342Z] [ERROR] [Backend:stderr] [SysIntelligence] phase=timeout source=osInfo limit=3000ms
+[2026-06-17T23:07:01.343Z] [ERROR] [Backend:stderr] [SysIntelligence] phase=timeout source=platformPS limit=3000ms
+[2026-06-17T23:07:01.343Z] [ERROR] [Backend:stderr] [SysIntelligence] phase=timeout source=monitorEDID limit=3000ms
+[2026-06-17T23:07:01.343Z] [ERROR] [Backend:stderr] [SysIntelligence] phase=timeout source=memLayout limit=4000ms
+[2026-06-17T23:07:01.343Z] [ERROR] [Backend:stderr] [SysIntelligence] phase=timeout source=diskLayout limit=4000ms
+[2026-06-17T23:07:01.344Z] [ERROR] [Backend:stderr] [SysIntelligence] phase=timeout source=fsSize limit=4000ms
+[2026-06-17T23:07:01.344Z] [ERROR] [Backend:stderr] [SysIntelligence] phase=timeout source=netIf limit=4000ms
+[2026-06-17T23:07:01.344Z] [ERROR] [Backend:stderr] [SysIntelligence] phase=timeout source=netConn limit=4000ms
+[2026-06-17T23:07:01.344Z] [ERROR] [Backend:stderr] [SysIntelligence] phase=timeout source=processes limit=4000ms
+[2026-06-17T23:07:01.346Z] [INFO] Checking for update
+[2026-06-17T23:07:01.346Z] [LOG] [Updater] Checking for update...
+[2026-06-17T23:07:01.510Z] [INFO] Update for version 1.1.2 is not available (latest version: 1.1.2, downgrade is allowed).
+[2026-06-17T23:07:01.510Z] [LOG] [Updater] No update available — current version is latest.
+[2026-06-17T23:07:01.876Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:10) [AuthRoute] path=/api/issues/detect target=local reason=system-route base=http://127.0.0.1:55976/api
+[2026-06-17T23:07:02.012Z] [ERROR] [Backend:stderr] [SysIntelligence] phase=timeout source=cpu limit=5000ms
+[2026-06-17T23:07:02.980Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=2 duration=4949ms active=0 calls60s=2
+[2026-06-17T23:07:03.806Z] [LOG] [Backend:stdout] [SysIntelligence] phase=full complete in 6795ms | MB=null | BIOS=null | CPU=null | GPUs=0 | RAMsticks=0
+[2026-06-17T23:07:03.808Z] [LOG] [Backend:stdout] [SysIntelligence] Disk cache updated
+[2026-06-17T23:07:03.808Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:153) [SysIntelligence] Profile loaded | MB=null | BIOS=null | CPU=null
+[2026-06-17T23:07:11.564Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-17T23:07:11.898Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-17T23:07:11.909Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:210) [ExtremeLabs] {"userTier":"premium","trial":false,"premium":true,"desktopMode":true,"canApply":true,"canAnalyze":true}
+[2026-06-17T23:07:12.810Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-17T23:07:13.742Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-17T23:07:13.742Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [Timing] StartupApps | mount | +0ms
+[2026-06-17T23:07:13.749Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [Timing] StartupApps | startup-scan | +7ms
+[2026-06-17T23:07:13.749Z] [LOG] [PS] start file=main.js fn=startup:scan reason=startup-scan id=3 active=1
+[2026-06-17T23:07:15.184Z] [LOG] [PS] end file=main.js fn=startup:scan id=3 duration=1435ms active=0 calls60s=3
+[2026-06-17T23:07:15.186Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [Timing] StartupApps | startup-scan-done | +1444ms
+[2026-06-17T23:07:15.646Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-17T23:07:15.646Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [Timing] SystemCleaner | mount | +0ms
+[2026-06-17T23:07:15.660Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [Timing] SystemCleaner | init | +14ms
+[2026-06-17T23:07:16.165Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-17T23:07:16.165Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [Timing] NetworkTweaks | mount | +0ms
+[2026-06-17T23:07:16.165Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks:CACHE] cold start — seeded from localStorage persisted state
+[2026-06-17T23:07:16.193Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [Timing] NetworkTweaks | fetch-state | +29ms
+[2026-06-17T23:07:16.193Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] mount — hydrating verified status
+[2026-06-17T23:07:16.194Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:10) [AuthRoute] path=/api/network-tweaks/state target=cloud reason=cloud-only
+[2026-06-17T23:07:16.203Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:10) [AuthRoute] path=/api/network/ping-sample target=local reason=system-route base=http://127.0.0.1:55976/api
+[2026-06-17T23:07:16.797Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] mount — hydrating verified status
+[2026-06-17T23:07:16.797Z] [LOG] [PS] start file=main.js fn=networkTweaks:checkAll reason=net-tweak-check-all id=4 active=1
+[2026-06-17T23:07:16.797Z] [LOG] [NetworkTweaks] checkAllStatus start
+[2026-06-17T23:07:16.797Z] [LOG] [PS:network-tweak] #1 execPowerShell SPAWN ts=1781737636797
+[2026-06-17T23:07:17.320Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-17T23:07:17.332Z] [LOG] [PS:nic-executor] #1 queryPS SPAWN ts=1781737637332
+[2026-06-17T23:07:17.389Z] [LOG] [PS:network-tweak] #1 execPowerShell OK 592ms
+[2026-06-17T23:07:17.389Z] [LOG] [PS:network-tweak] #2 execPowerShell SPAWN ts=1781737637389
+[2026-06-17T23:07:17.816Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-17T23:07:17.816Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [Timing] FocusMode | mount | +0ms
+[2026-06-17T23:07:17.833Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [Timing] FocusMode | fetch-state | +17ms
+[2026-06-17T23:07:17.835Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:10) [AuthRoute] path=/api/focus/state target=local reason=system-route base=http://127.0.0.1:55976/api
+[2026-06-17T23:07:17.849Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [Timing] FocusMode | fetch-state-done | +33ms
+[2026-06-17T23:07:17.929Z] [LOG] [PS:network-tweak] #2 execPowerShell OK 540ms
+[2026-06-17T23:07:17.930Z] [LOG] [PS:network-tweak] #3 execPowerShell SPAWN ts=1781737637930
+[2026-06-17T23:07:18.222Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:10) [AuthRoute] path=/api/focus/history target=local reason=system-route base=http://127.0.0.1:55976/api
+[2026-06-17T23:07:18.225Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [Timing] FocusMode | fetch-history-done | +409ms
+[2026-06-17T23:07:18.400Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-17T23:07:18.401Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [Timing] AppBooster | mount | +0ms
+[2026-06-17T23:07:18.404Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:162) [GameIcon] slug="fortnite" → canon="fortnite" source=vite-bundle url="file:///C:/Program%20Files/SwitchControl/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-06-17T23:07:18.415Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [Timing] AppBooster | mount | +14ms
+[2026-06-17T23:07:18.419Z] [LOG] [Backend:stdout] [AppBooster] GET /games userId=64f0e669-6db6-42e7-a68a-681f9f5db567 — catalog: 16, installed: 0
+[2026-06-17T23:07:18.425Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:162) [GameIcon] LOAD OK — slug="fortnite" src="file:///C:/Program%20Files/SwitchControl/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-06-17T23:07:18.474Z] [LOG] [PS:network-tweak] #3 execPowerShell OK 544ms
+[2026-06-17T23:07:18.475Z] [LOG] [PS:network-tweak] #4 execPowerShell SPAWN ts=1781737638475
+[2026-06-17T23:07:18.494Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [Timing] AppBooster | scan-start | +94ms
+[2026-06-17T23:07:18.498Z] [LOG] [AppBooster] Epic manifest: fortnitelauncher.exe → C:\Program Files\Epic Games\Fortnite\FortniteGame\Binaries\Win64
+[2026-06-17T23:07:18.498Z] [LOG] [AppBooster] Epic manifest: fortnitebootstrapper.exe → C:\Program Files\Epic Games\Fortnite\FortniteGame\Binaries\Win64
+[2026-06-17T23:07:18.725Z] [LOG] [PS:nic-executor] #1 queryPS OK 1393ms
+[2026-06-17T23:07:19.077Z] [LOG] [PS:network-tweak] #4 execPowerShell OK 602ms
+[2026-06-17T23:07:19.077Z] [LOG] [PS:network-tweak] #5 execPowerShell SPAWN ts=1781737639077
+[2026-06-17T23:07:19.294Z] [LOG] [AppBooster]   fortnite: detected=true path=C:\Program Files\Epic Games\Fortnite\FortniteGame\Binaries\Win64
+[2026-06-17T23:07:19.510Z] [LOG] [AppBooster]   apex-legends: detected=false
+[2026-06-17T23:07:19.682Z] [LOG] [PS:network-tweak] #5 execPowerShell OK 605ms
+[2026-06-17T23:07:19.682Z] [LOG] [PS:network-tweak] #6 execPowerShell SPAWN ts=1781737639682
+[2026-06-17T23:07:19.717Z] [LOG] [AppBooster]   warzone: detected=false
+[2026-06-17T23:07:19.919Z] [LOG] [AppBooster]   valorant: detected=false
+[2026-06-17T23:07:20.107Z] [LOG] [AppBooster]   cs2: detected=false
+[2026-06-17T23:07:20.254Z] [LOG] [PS:network-tweak] #6 execPowerShell OK 572ms
+[2026-06-17T23:07:20.255Z] [LOG] [PS:network-tweak] #7 execPowerShell SPAWN ts=1781737640255
+[2026-06-17T23:07:20.299Z] [LOG] [AppBooster]   overwatch2: detected=false
+[2026-06-17T23:07:20.483Z] [LOG] [AppBooster]   rainbow-six-siege: detected=false
+[2026-06-17T23:07:20.661Z] [LOG] [AppBooster]   msfs-2024: detected=false
+[2026-06-17T23:07:20.794Z] [LOG] [PS:network-tweak] #7 execPowerShell OK 539ms
+[2026-06-17T23:07:20.794Z] [LOG] [PS:network-tweak] #8 execPowerShell SPAWN ts=1781737640794
+[2026-06-17T23:07:20.840Z] [LOG] [AppBooster]   msfs-2020: detected=false
+[2026-06-17T23:07:21.026Z] [LOG] [AppBooster]   gta5: detected=false
+[2026-06-17T23:07:21.208Z] [LOG] [AppBooster]   cyberpunk: detected=false
+[2026-06-17T23:07:21.345Z] [LOG] [PS:network-tweak] #8 execPowerShell OK 551ms
+[2026-06-17T23:07:21.345Z] [LOG] [PS:network-tweak] #9 execPowerShell SPAWN ts=1781737641345
+[2026-06-17T23:07:21.389Z] [LOG] [AppBooster]   elden-ring: detected=false
+[2026-06-17T23:07:21.575Z] [LOG] [AppBooster]   league-of-legends: detected=false
+[2026-06-17T23:07:21.753Z] [LOG] [AppBooster]   world-of-warcraft: detected=false
+[2026-06-17T23:07:21.891Z] [LOG] [PS:network-tweak] #9 execPowerShell OK 546ms
+[2026-06-17T23:07:21.891Z] [LOG] [PS:network-tweak] #10 execPowerShell SPAWN ts=1781737641891
+[2026-06-17T23:07:21.956Z] [LOG] [AppBooster]   rocket-league: detected=false
+[2026-06-17T23:07:22.225Z] [LOG] [AppBooster]   minecraft: detected=false
+[2026-06-17T23:07:22.226Z] [LOG] [AppBooster] scanGames done — 1/16 detected
+[2026-06-17T23:07:22.228Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:10) [API] Fetching CSRF token from http://127.0.0.1:55976/api/csrf-token
+[2026-06-17T23:07:22.231Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:10) [API] CSRF token cached in memory (TTL 10 min)
+[2026-06-17T23:07:22.234Z] [LOG] [Backend:stdout] [AppBooster] POST /games/scan userId=64f0e669-6db6-42e7-a68a-681f9f5db567 — 16 result(s), 1 detected
+[2026-06-17T23:07:22.237Z] [LOG] [Backend:stdout] [AppBooster] GET /games userId=64f0e669-6db6-42e7-a68a-681f9f5db567 — catalog: 16, installed: 1
+[2026-06-17T23:07:22.240Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [Timing] AppBooster | scan-done | +3839ms
+[2026-06-17T23:07:22.242Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:162) [GameIcon] slug="fortnite" → canon="fortnite" source=vite-bundle url="file:///C:/Program%20Files/SwitchControl/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-06-17T23:07:22.251Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:162) [GameIcon] LOAD OK — slug="fortnite" src="file:///C:/Program%20Files/SwitchControl/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-06-17T23:07:22.253Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:162) [GameIcon] slug="fortnite" → canon="fortnite" source=vite-bundle url="file:///C:/Program%20Files/SwitchControl/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-06-17T23:07:22.380Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-17T23:07:22.473Z] [LOG] [PS:network-tweak] #10 execPowerShell OK 582ms
+[2026-06-17T23:07:22.473Z] [LOG] [PS:network-tweak] #11 execPowerShell SPAWN ts=1781737642473
+[2026-06-17T23:07:23.168Z] [LOG] [PS:network-tweak] #11 execPowerShell OK 695ms
+[2026-06-17T23:07:23.169Z] [LOG] [PS:network-tweak] #12 execPowerShell SPAWN ts=1781737643169
+[2026-06-17T23:07:23.348Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-17T23:07:23.401Z] [LOG] [PS] start file=main.js fn=slider:readValue reason=slider-read id=5 active=2
+[2026-06-17T23:07:23.403Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-17T23:07:23.401Z
+[2026-06-17T23:07:23.403Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-17T23:07:23.401Z
+[2026-06-17T23:07:23.403Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-17T23:07:23.401Z
+[2026-06-17T23:07:23.404Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-17T23:07:23.401Z
+[2026-06-17T23:07:23.404Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-17T23:07:23.401Z
+[2026-06-17T23:07:23.404Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-17T23:07:23.401Z
+[2026-06-17T23:07:23.404Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-17T23:07:23.401Z
+[2026-06-17T23:07:23.404Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [Tweaks:LOAD] source=zustand-persist enabled=35 total_known=52
+[2026-06-17T23:07:23.405Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [Tweaks:LOAD] enabled_ids=mem-opt, gaming-mode, cortana, disable-wallpaper-compression, maintenance, page-combining, hibernation, xbox-bar, core-isolation, copilot, xbox-services, disable-auto-restart-apps, recent-files, disable-mpo, prefetch, compact-explorer, large-system-cache, disable-delivery-opt, bluetooth, fax-printer, disable-animations, search-highlights, power-throttling, vbs, energy-logging, show-file-extensions, synth-timers, fast-startup, storage-sense, telemetry, pcie-link-state, superfetch, disable-pointer-precision, notifications, disable-activity-history
+[2026-06-17T23:07:23.405Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [Tweaks:SYNC] hydration start gen=1
+[2026-06-17T23:07:23.405Z] [LOG] [PS] start file=main.js fn=tweak:syncAll reason=tweak-sync-all id=6 active=3
+[2026-06-17T23:07:23.405Z] [LOG] [PS-Exec] start file=main.js fn=tweak:syncAll reason=tweak-sync-all — 63 checks
+[2026-06-17T23:07:23.405Z] [LOG] [PS:tweak-executor] #2 queryPowerShell SPAWN ts=1781737643405 active=1
+[2026-06-17T23:07:23.417Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:10) [AuthRoute] path=/api/tweak-intelligence/system-state target=local reason=system-route base=http://127.0.0.1:55976/api
+[2026-06-17T23:07:23.417Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:10) [AuthRoute] path=/api/tweak-intelligence/rankings?applied=mem-opt%2Cgaming-mode%2Ccortana%2Cdisable-wallpaper-compression%2Cmaintenance%2Cpage-combining%2Chibernation%2Cxbox-bar%2Ccore-isolation%2Ccopilot%2Cxbox-services%2Cdisable-auto-restart-apps%2Crecent-files%2Cdisable-mpo%2Cprefetch%2Ccompact-explorer%2Clarge-system-cache%2Cdisable-delivery-opt%2Cbluetooth%2Cfax-printer%2Cdisable-animations%2Csearch-highlights%2Cpower-throttling%2Cvbs%2Cenergy-logging%2Cshow-file-extensions%2Csynth-timers%2Cfast-startup%2Cstorage-sense%2Ctelemetry%2Cpcie-link-state%2Csuperfetch%2Cdisable-pointer-precision%2Cnotifications%2Cdisable-activity-history target=local reason=system-route base=http://127.0.0.1:55976/api
+[2026-06-17T23:07:23.417Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:10) [AuthRoute] path=/api/tweak-intelligence/posture?applied=mem-opt%2Cgaming-mode%2Ccortana%2Cdisable-wallpaper-compression%2Cmaintenance%2Cpage-combining%2Chibernation%2Cxbox-bar%2Ccore-isolation%2Ccopilot%2Cxbox-services%2Cdisable-auto-restart-apps%2Crecent-files%2Cdisable-mpo%2Cprefetch%2Ccompact-explorer%2Clarge-system-cache%2Cdisable-delivery-opt%2Cbluetooth%2Cfax-printer%2Cdisable-animations%2Csearch-highlights%2Cpower-throttling%2Cvbs%2Cenergy-logging%2Cshow-file-extensions%2Csynth-timers%2Cfast-startup%2Cstorage-sense%2Ctelemetry%2Cpcie-link-state%2Csuperfetch%2Cdisable-pointer-precision%2Cnotifications%2Cdisable-activity-history target=local reason=system-route base=http://127.0.0.1:55976/api
+[2026-06-17T23:07:23.435Z] [ERROR] [Renderer:warn] (index-ChQY5yQ1.js:155) [SliderHydration] win32-priority-sep: read failed — busy
+[2026-06-17T23:07:23.436Z] [ERROR] [Renderer:warn] (index-ChQY5yQ1.js:155) [SliderHydration] sys-responsiveness: read failed — busy
+[2026-06-17T23:07:23.436Z] [ERROR] [Renderer:warn] (index-ChQY5yQ1.js:155) [SliderHydration] net-throttle-index: read failed — busy
+[2026-06-17T23:07:23.436Z] [ERROR] [Renderer:warn] (index-ChQY5yQ1.js:155) [SliderHydration] menu-show-delay: read failed — busy
+[2026-06-17T23:07:23.436Z] [ERROR] [Renderer:warn] (index-ChQY5yQ1.js:155) [SliderHydration] hung-app-timeout: read failed — busy
+[2026-06-17T23:07:23.436Z] [ERROR] [Renderer:warn] (index-ChQY5yQ1.js:155) [SliderHydration] low-level-hooks-timeout: read failed — busy
+[2026-06-17T23:07:23.437Z] [ERROR] [Renderer:warn] (index-ChQY5yQ1.js:155) [SliderHydration] wait-to-kill-app: read failed — busy
+[2026-06-17T23:07:23.879Z] [LOG] [PS:network-tweak] #12 execPowerShell OK 710ms
+[2026-06-17T23:07:23.880Z] [LOG] [PS:network-tweak] #13 execPowerShell SPAWN ts=1781737643880
+[2026-06-17T23:07:24.111Z] [LOG] [SliderExecutor] READ svchost-split-threshold: value=33554432 raw="33554432"
+[2026-06-17T23:07:24.112Z] [LOG] [PS] end file=main.js fn=slider:readValue id=5 duration=710ms active=2 calls60s=4
+[2026-06-17T23:07:24.112Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [SliderHydration] svchost-split-threshold: value=33554432 missing=false
+[2026-06-17T23:07:24.134Z] [LOG] [PS:tweak-executor] #2 queryPowerShell OK 729ms
+[2026-06-17T23:07:24.134Z] [LOG] [PS:tweak-executor] #3 queryPowerShell SPAWN ts=1781737644134 active=1
+[2026-06-17T23:07:24.537Z] [LOG] [PS:network-tweak] #13 execPowerShell OK 657ms
+[2026-06-17T23:07:24.537Z] [LOG] [PS:network-tweak] #14 execPowerShell SPAWN ts=1781737644537
+[2026-06-17T23:07:24.698Z] [LOG] [PS:tweak-executor] #3 queryPowerShell OK 564ms
+[2026-06-17T23:07:24.699Z] [LOG] [PS:tweak-executor] #4 queryPowerShell SPAWN ts=1781737644699 active=1
+[2026-06-17T23:07:25.129Z] [LOG] [PS:network-tweak] #14 execPowerShell OK 592ms
+[2026-06-17T23:07:25.129Z] [LOG] [PS:network-tweak] #15 execPowerShell SPAWN ts=1781737645129
+[2026-06-17T23:07:25.290Z] [LOG] [PS:tweak-executor] #4 queryPowerShell OK 591ms
+[2026-06-17T23:07:25.291Z] [LOG] [PS:tweak-executor] #5 queryPowerShell SPAWN ts=1781737645291 active=1
+[2026-06-17T23:07:25.449Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-17T23:07:25.487Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [Dashboard] mounted
+[2026-06-17T23:07:25.488Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [ActivityMonitor] reused cached state — history points: 13 status: ready
+[2026-06-17T23:07:25.509Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:55976/api
+[2026-06-17T23:07:25.509Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:10) [AuthRoute] path=/api/dashboard-intelligence/system-dna target=local reason=system-route base=http://127.0.0.1:55976/api
+[2026-06-17T23:07:25.509Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:55976/api
+[2026-06-17T23:07:25.510Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:55976/api
+[2026-06-17T23:07:25.510Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:10) [AuthRoute] path=/api/dashboard-intelligence/ram-analysis target=local reason=system-route base=http://127.0.0.1:55976/api
+[2026-06-17T23:07:25.880Z] [LOG] [PS:network-tweak] #15 execPowerShell OK 751ms
+[2026-06-17T23:07:25.880Z] [LOG] [PS:network-tweak] #16 execPowerShell SPAWN ts=1781737645880
+[2026-06-17T23:07:25.940Z] [LOG] [PS:tweak-executor] #5 queryPowerShell OK 649ms
+[2026-06-17T23:07:25.940Z] [LOG] [PS:tweak-executor] #6 queryPowerShell SPAWN ts=1781737645940 active=1
+[2026-06-17T23:07:26.577Z] [LOG] [PS:network-tweak] #16 execPowerShell OK 697ms
+[2026-06-17T23:07:26.578Z] [LOG] [PS:network-tweak] #17 execPowerShell SPAWN ts=1781737646578
+[2026-06-17T23:07:26.614Z] [LOG] [PS:tweak-executor] #6 queryPowerShell OK 674ms
+[2026-06-17T23:07:26.614Z] [LOG] [PS:tweak-executor] #7 queryPowerShell SPAWN ts=1781737646614 active=1
+[2026-06-17T23:07:26.689Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:10) [AuthRoute] path=/api/startup/apps target=local reason=system-route base=http://127.0.0.1:55976/api
+[2026-06-17T23:07:26.886Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:10) [AuthRoute] path=/api/issues/detect target=local reason=system-route base=http://127.0.0.1:55976/api
+[2026-06-17T23:07:27.339Z] [LOG] [PS:tweak-executor] #7 queryPowerShell OK 725ms
+[2026-06-17T23:07:27.339Z] [LOG] [PS:tweak-executor] #8 queryPowerShell SPAWN ts=1781737647339 active=1
+[2026-06-17T23:07:27.966Z] [LOG] [PS:tweak-executor] #8 queryPowerShell OK 627ms
+[2026-06-17T23:07:27.966Z] [LOG] [PS:tweak-executor] #9 queryPowerShell SPAWN ts=1781737647966 active=1
+[2026-06-17T23:07:28.024Z] [LOG] [PS:network-tweak] #17 execPowerShell OK 1446ms
+[2026-06-17T23:07:28.025Z] [LOG] [PS:network-tweak] #18 execPowerShell SPAWN ts=1781737648025
+[2026-06-17T23:07:28.689Z] [LOG] [PS:tweak-executor] #9 queryPowerShell OK 723ms
+[2026-06-17T23:07:28.689Z] [LOG] [PS:tweak-executor] #10 queryPowerShell SPAWN ts=1781737648689 active=1
+[2026-06-17T23:07:28.832Z] [LOG] [PS:network-tweak] #18 execPowerShell OK 807ms
+[2026-06-17T23:07:28.832Z] [LOG] [PS:network-tweak] #19 execPowerShell SPAWN ts=1781737648832
+[2026-06-17T23:07:29.377Z] [LOG] [PS:tweak-executor] #10 queryPowerShell OK 688ms
+[2026-06-17T23:07:29.378Z] [LOG] [PS:tweak-executor] #11 queryPowerShell SPAWN ts=1781737649378 active=1
+[2026-06-17T23:07:29.513Z] [LOG] [PS:network-tweak] #19 execPowerShell OK 681ms
+[2026-06-17T23:07:29.513Z] [LOG] [PS:network-tweak] #20 execPowerShell SPAWN ts=1781737649513
+[2026-06-17T23:07:30.013Z] [LOG] [PS:tweak-executor] #11 queryPowerShell OK 635ms
+[2026-06-17T23:07:30.013Z] [LOG] [PS:tweak-executor] #12 queryPowerShell SPAWN ts=1781737650013 active=1
+[2026-06-17T23:07:30.597Z] [LOG] [PS:tweak-executor] #12 queryPowerShell OK 584ms
+[2026-06-17T23:07:30.597Z] [LOG] [PS:tweak-executor] #13 queryPowerShell SPAWN ts=1781737650597 active=1
+[2026-06-17T23:07:30.828Z] [LOG] [PS:network-tweak] #20 execPowerShell OK 1315ms
+[2026-06-17T23:07:30.828Z] [LOG] [PS:network-tweak] #21 execPowerShell SPAWN ts=1781737650828
+[2026-06-17T23:07:31.207Z] [LOG] [PS:tweak-executor] #13 queryPowerShell OK 610ms
+[2026-06-17T23:07:31.208Z] [LOG] [PS:tweak-executor] #14 queryPowerShell SPAWN ts=1781737651208 active=1
+[2026-06-17T23:07:31.575Z] [LOG] [PS:network-tweak] #21 execPowerShell OK 747ms
+[2026-06-17T23:07:31.576Z] [LOG] [PS:network-tweak] #22 execPowerShell SPAWN ts=1781737651576
+[2026-06-17T23:07:31.790Z] [LOG] [PS:tweak-executor] #14 queryPowerShell OK 582ms
+[2026-06-17T23:07:31.791Z] [LOG] [PS:tweak-executor] #15 queryPowerShell SPAWN ts=1781737651791 active=1
+[2026-06-17T23:07:32.388Z] [LOG] [PS:tweak-executor] #15 queryPowerShell OK 597ms
+[2026-06-17T23:07:32.388Z] [LOG] [PS:tweak-executor] #16 queryPowerShell SPAWN ts=1781737652388 active=1
+[2026-06-17T23:07:32.837Z] [LOG] [PS:network-tweak] #22 execPowerShell OK 1261ms
+[2026-06-17T23:07:32.837Z] [LOG] [PS:network-tweak] #23 execPowerShell SPAWN ts=1781737652837
+[2026-06-17T23:07:32.971Z] [LOG] [PS:tweak-executor] #16 queryPowerShell OK 583ms
+[2026-06-17T23:07:32.971Z] [LOG] [PS:tweak-executor] #17 queryPowerShell SPAWN ts=1781737652971 active=1
+[2026-06-17T23:07:33.455Z] [LOG] [PS:network-tweak] #23 execPowerShell OK 618ms
+[2026-06-17T23:07:33.455Z] [LOG] [PS:network-tweak] #24 execPowerShell SPAWN ts=1781737653455
+[2026-06-17T23:07:33.556Z] [LOG] [PS:tweak-executor] #17 queryPowerShell OK 585ms
+[2026-06-17T23:07:33.556Z] [LOG] [PS:tweak-executor] #18 queryPowerShell SPAWN ts=1781737653556 active=1
+[2026-06-17T23:07:34.066Z] [LOG] [PS:network-tweak] #24 execPowerShell OK 611ms
+[2026-06-17T23:07:34.066Z] [LOG] [PS:network-tweak] #25 execPowerShell SPAWN ts=1781737654066
+[2026-06-17T23:07:34.151Z] [LOG] [PS:tweak-executor] #18 queryPowerShell OK 595ms
+[2026-06-17T23:07:34.152Z] [LOG] [PS:tweak-executor] #19 queryPowerShell SPAWN ts=1781737654152 active=1
+[2026-06-17T23:07:34.696Z] [LOG] [PS:network-tweak] #25 execPowerShell OK 630ms
+[2026-06-17T23:07:34.696Z] [LOG] [NetworkTweaks] checkStatus tweakId=smb-non-best-effort enabled=false source=registry/netsh/adapter
+[2026-06-17T23:07:34.696Z] [LOG] [NetworkTweaks] checkStatus tweakId=smb-v2v3 enabled=false source=registry/netsh/adapter
+[2026-06-17T23:07:34.696Z] [LOG] [NetworkTweaks] checkStatus tweakId=smb-live-migration enabled=null source=disabled
+[2026-06-17T23:07:34.696Z] [LOG] [NetworkTweaks] checkStatus tweakId=smb-congruent-ops enabled=null source=disabled
+[2026-06-17T23:07:34.696Z] [LOG] [NetworkTweaks] checkStatus tweakId=smb-max-requests enabled=false source=registry/netsh/adapter
+[2026-06-17T23:07:34.696Z] [LOG] [NetworkTweaks] checkStatus tweakId=smb-irp-stack enabled=false source=registry/netsh/adapter
+[2026-06-17T23:07:34.697Z] [LOG] [NetworkTweaks] checkStatus tweakId=smb-incoming-requests enabled=false source=registry/netsh/adapter
+[2026-06-17T23:07:34.697Z] [LOG] [NetworkTweaks] checkStatus tweakId=smb-pipe-data enabled=false source=registry/netsh/adapter
+[2026-06-17T23:07:34.697Z] [LOG] [NetworkTweaks] checkStatus tweakId=smb-request-buffer enabled=false source=registry/netsh/adapter
+[2026-06-17T23:07:34.697Z] [LOG] [NetworkTweaks] checkStatus tweakId=smb-preallocate enabled=null source=disabled
+[2026-06-17T23:07:34.697Z] [LOG] [NetworkTweaks] checkStatus tweakId=tcp-wait-time enabled=true source=registry/netsh/adapter
+[2026-06-17T23:07:34.697Z] [LOG] [NetworkTweaks] checkStatus tweakId=tcp-bufferlist enabled=null source=disabled
+[2026-06-17T23:07:34.697Z] [LOG] [NetworkTweaks] checkStatus tweakId=tcp-nagle enabled=true source=registry/netsh/adapter
+[2026-06-17T23:07:34.697Z] [LOG] [NetworkTweaks] checkStatus tweakId=tcp-non-sack-rto enabled=null source=disabled
+[2026-06-17T23:07:34.697Z] [LOG] [NetworkTweaks] checkStatus tweakId=tcp-task-offload enabled=false source=registry/netsh/adapter
+[2026-06-17T23:07:34.697Z] [LOG] [NetworkTweaks] checkStatus tweakId=tcp-timestamps enabled=false source=registry/netsh/adapter
+[2026-06-17T23:07:34.697Z] [LOG] [NetworkTweaks] checkStatus tweakId=tcp-window-heuristics enabled=false source=registry/netsh/adapter
+[2026-06-17T23:07:34.698Z] [LOG] [NetworkTweaks] checkStatus tweakId=tcp-dca enabled=null source=disabled
+[2026-06-17T23:07:34.698Z] [LOG] [NetworkTweaks] checkStatus tweakId=tcp-throttling-index enabled=true source=registry/netsh/adapter
+[2026-06-17T23:07:34.698Z] [LOG] [NetworkTweaks] checkStatus tweakId=tcp-pmtu enabled=false source=registry/netsh/adapter
+[2026-06-17T23:07:34.698Z] [LOG] [NetworkTweaks] checkStatus tweakId=tcp-rss enabled=true source=registry/netsh/adapter
+[2026-06-17T23:07:34.698Z] [LOG] [NetworkTweaks] checkStatus tweakId=tcp-chimney enabled=null source=disabled
+[2026-06-17T23:07:34.698Z] [LOG] [NetworkTweaks] checkStatus tweakId=tcp-sack enabled=false source=registry/netsh/adapter
+[2026-06-17T23:07:34.698Z] [LOG] [NetworkTweaks] checkStatus tweakId=tcp-weak-host enabled=false source=registry/netsh/adapter
+[2026-06-17T23:07:34.698Z] [LOG] [NetworkTweaks] checkStatus tweakId=tcp-winhttp enabled=true source=registry/netsh/adapter
+[2026-06-17T23:07:34.698Z] [LOG] [NetworkTweaks] checkStatus tweakId=tcp-rto-increase enabled=null source=disabled
+[2026-06-17T23:07:34.698Z] [LOG] [NetworkTweaks] checkStatus tweakId=tcp-connection-timeout enabled=false source=registry/netsh/adapter
+[2026-06-17T23:07:34.698Z] [LOG] [NetworkTweaks] checkStatus tweakId=tcp-congestion enabled=false source=registry/netsh/adapter
+[2026-06-17T23:07:34.698Z] [LOG] [NetworkTweaks] checkStatus tweakId=tcp-ttl enabled=null source=disabled
+[2026-06-17T23:07:34.699Z] [LOG] [NetworkTweaks] checkStatus tweakId=tcp-connection-limit enabled=null source=disabled
+[2026-06-17T23:07:34.699Z] [LOG] [NetworkTweaks] checkStatus tweakId=tcp-port-range enabled=false source=registry/netsh/adapter
+[2026-06-17T23:07:34.699Z] [LOG] [NetworkTweaks] checkStatus tweakId=udp-offloads enabled=false source=registry/netsh/adapter
+[2026-06-17T23:07:34.699Z] [LOG] [NetworkTweaks] checkStatus tweakId=udp-fast-send enabled=null source=disabled
+[2026-06-17T23:07:34.699Z] [LOG] [NetworkTweaks] checkStatus tweakId=sec-llmnr enabled=true source=registry/netsh/adapter
+[2026-06-17T23:07:34.699Z] [LOG] [NetworkTweaks] checkStatus tweakId=sec-mpp enabled=null source=disabled
+[2026-06-17T23:07:34.699Z] [LOG] [NetworkTweaks] checkStatus tweakId=sec-netbios enabled=false source=registry/netsh/adapter
+[2026-06-17T23:07:34.699Z] [LOG] [NetworkTweaks] checkStatus tweakId=dns-doh enabled=null source=disabled
+[2026-06-17T23:07:34.699Z] [LOG] [NetworkTweaks] checkStatus tweakId=dns-optimize enabled=false source=registry/netsh/adapter
+[2026-06-17T23:07:34.699Z] [LOG] [NetworkTweaks] checkAllStatus done count=38 enabled=6 disabled=32 inconclusive=0 durationMs=17902
+[2026-06-17T23:07:34.699Z] [LOG] [PS] end file=main.js fn=networkTweaks:checkAll id=4 duration=17902ms active=1 calls60s=5
+[2026-06-17T23:07:34.701Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=smb-non-best-effort enabled=false verified=true source=windows
+[2026-06-17T23:07:34.701Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=smb-v2v3 enabled=false verified=true source=windows
+[2026-06-17T23:07:34.701Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=smb-live-migration enabled=null verified=true source=disabled
+[2026-06-17T23:07:34.701Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=smb-congruent-ops enabled=null verified=true source=disabled
+[2026-06-17T23:07:34.702Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=smb-max-requests enabled=false verified=true source=windows
+[2026-06-17T23:07:34.702Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=smb-irp-stack enabled=false verified=true source=windows
+[2026-06-17T23:07:34.702Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=smb-incoming-requests enabled=false verified=true source=windows
+[2026-06-17T23:07:34.702Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=smb-pipe-data enabled=false verified=true source=windows
+[2026-06-17T23:07:34.702Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=smb-request-buffer enabled=false verified=true source=windows
+[2026-06-17T23:07:34.702Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=smb-preallocate enabled=null verified=true source=disabled
+[2026-06-17T23:07:34.702Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=tcp-wait-time enabled=true verified=true source=windows
+[2026-06-17T23:07:34.702Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=tcp-bufferlist enabled=null verified=true source=disabled
+[2026-06-17T23:07:34.702Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=tcp-nagle enabled=true verified=true source=windows
+[2026-06-17T23:07:34.703Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=tcp-non-sack-rto enabled=null verified=true source=disabled
+[2026-06-17T23:07:34.703Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=tcp-task-offload enabled=false verified=true source=windows
+[2026-06-17T23:07:34.703Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=tcp-timestamps enabled=false verified=true source=windows
+[2026-06-17T23:07:34.703Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=tcp-window-heuristics enabled=false verified=true source=windows
+[2026-06-17T23:07:34.703Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=tcp-dca enabled=null verified=true source=disabled
+[2026-06-17T23:07:34.703Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=tcp-throttling-index enabled=true verified=true source=windows
+[2026-06-17T23:07:34.703Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=tcp-pmtu enabled=false verified=true source=windows
+[2026-06-17T23:07:34.703Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=tcp-rss enabled=true verified=true source=windows
+[2026-06-17T23:07:34.704Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=tcp-chimney enabled=null verified=true source=disabled
+[2026-06-17T23:07:34.704Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=tcp-sack enabled=false verified=true source=windows
+[2026-06-17T23:07:34.704Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=tcp-weak-host enabled=false verified=true source=windows
+[2026-06-17T23:07:34.704Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=tcp-winhttp enabled=true verified=true source=windows
+[2026-06-17T23:07:34.704Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=tcp-rto-increase enabled=null verified=true source=disabled
+[2026-06-17T23:07:34.704Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=tcp-connection-timeout enabled=false verified=true source=windows
+[2026-06-17T23:07:34.704Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=tcp-congestion enabled=false verified=true source=windows
+[2026-06-17T23:07:34.704Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=tcp-ttl enabled=null verified=true source=disabled
+[2026-06-17T23:07:34.705Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=tcp-connection-limit enabled=null verified=true source=disabled
+[2026-06-17T23:07:34.705Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=tcp-port-range enabled=false verified=true source=windows
+[2026-06-17T23:07:34.705Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=udp-offloads enabled=false verified=true source=windows
+[2026-06-17T23:07:34.705Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=udp-fast-send enabled=null verified=true source=disabled
+[2026-06-17T23:07:34.705Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=sec-llmnr enabled=true verified=true source=windows
+[2026-06-17T23:07:34.705Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=sec-mpp enabled=null verified=true source=disabled
+[2026-06-17T23:07:34.706Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=sec-netbios enabled=false verified=true source=windows
+[2026-06-17T23:07:34.706Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=dns-doh enabled=null verified=true source=disabled
+[2026-06-17T23:07:34.706Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=dns-optimize enabled=false verified=true source=windows
+[2026-06-17T23:07:34.706Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded total=38 confirmed=25 inconclusive=0
+[2026-06-17T23:07:34.706Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] stale fetch response discarded (component remounted)
+[2026-06-17T23:07:34.755Z] [LOG] [PS:tweak-executor] #19 queryPowerShell OK 603ms
+[2026-06-17T23:07:34.756Z] [LOG] [PS:tweak-executor] #20 queryPowerShell SPAWN ts=1781737654756 active=1
+[2026-06-17T23:07:35.314Z] [LOG] [PS:tweak-executor] #20 queryPowerShell OK 558ms
+[2026-06-17T23:07:35.315Z] [LOG] [PS:tweak-executor] #21 queryPowerShell SPAWN ts=1781737655315 active=1
+[2026-06-17T23:07:36.635Z] [LOG] [PS:tweak-executor] #21 queryPowerShell OK 1320ms
+[2026-06-17T23:07:36.635Z] [LOG] [PS:tweak-executor] #22 queryPowerShell SPAWN ts=1781737656635 active=1
+[2026-06-17T23:07:36.867Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [App] Window focused, refreshing entitlements...
+[2026-06-17T23:07:36.868Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:152) [Window] Focus event received
+[2026-06-17T23:07:36.868Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [App] Electron window focus (passive)
+[2026-06-17T23:07:37.351Z] [LOG] [PS:tweak-executor] #22 queryPowerShell OK 716ms
+[2026-06-17T23:07:37.352Z] [LOG] [PS:tweak-executor] #23 queryPowerShell SPAWN ts=1781737657352 active=1
+[2026-06-17T23:07:37.448Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-17T23:07:37.609Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:55976/api
+[2026-06-17T23:07:37.940Z] [LOG] [PS:tweak-executor] #23 queryPowerShell OK 588ms
+[2026-06-17T23:07:37.941Z] [LOG] [PS:tweak-executor] #24 queryPowerShell SPAWN ts=1781737657941 active=1
+[2026-06-17T23:07:38.329Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-17T23:07:38.508Z] [LOG] [PS:tweak-executor] #24 queryPowerShell OK 567ms
+[2026-06-17T23:07:38.509Z] [LOG] [PS:tweak-executor] #25 queryPowerShell SPAWN ts=1781737658509 active=1
+[2026-06-17T23:07:39.144Z] [LOG] [PS:tweak-executor] #25 queryPowerShell OK 635ms
+[2026-06-17T23:07:39.144Z] [LOG] [PS:tweak-executor] #26 queryPowerShell SPAWN ts=1781737659144 active=1
+[2026-06-17T23:07:39.742Z] [LOG] [PS:tweak-executor] #26 queryPowerShell OK 598ms
+[2026-06-17T23:07:39.743Z] [LOG] [PS:tweak-executor] #27 queryPowerShell SPAWN ts=1781737659743 active=1
+[2026-06-17T23:07:40.056Z] [LOG] [ConfigStore] Set sentinelNotificationStyle: present=true
+[2026-06-17T23:07:40.601Z] [LOG] [PS:tweak-executor] #27 queryPowerShell OK 858ms
+[2026-06-17T23:07:40.601Z] [LOG] [PS:tweak-executor] #28 queryPowerShell SPAWN ts=1781737660601 active=1
+[2026-06-17T23:07:41.177Z] [LOG] [PS:tweak-executor] #28 queryPowerShell OK 576ms
+[2026-06-17T23:07:41.177Z] [LOG] [PS:tweak-executor] #29 queryPowerShell SPAWN ts=1781737661177 active=1
+[2026-06-17T23:07:41.712Z] [LOG] [PS:tweak-executor] #29 queryPowerShell OK 535ms
+[2026-06-17T23:07:41.712Z] [LOG] [PS:tweak-executor] #30 queryPowerShell SPAWN ts=1781737661712 active=1
+[2026-06-17T23:07:42.273Z] [LOG] [PS:tweak-executor] #30 queryPowerShell OK 561ms
+[2026-06-17T23:07:42.274Z] [LOG] [PS:tweak-executor] #31 queryPowerShell SPAWN ts=1781737662274 active=1
+[2026-06-17T23:07:42.279Z] [LOG] [ConfigStore] Set sentinelNotificationStyle: present=true
+[2026-06-17T23:07:42.808Z] [LOG] [PS:tweak-executor] #31 queryPowerShell OK 534ms
+[2026-06-17T23:07:42.808Z] [LOG] [PS:tweak-executor] #32 queryPowerShell SPAWN ts=1781737662808 active=1
+[2026-06-17T23:07:43.550Z] [LOG] [PS:tweak-executor] #32 queryPowerShell OK 742ms
+[2026-06-17T23:07:43.551Z] [LOG] [TweakSupport] id=nvidia-telemetry, supported=false, reason="No NVIDIA GPU detected", os=10.0.26200, helperFound=false
+[2026-06-17T23:07:43.551Z] [LOG] [TweakSupport] id=timer-res, supported=true, reason="persistent PowerShell agent", os=10.0.26200, helperFound=false
+[2026-06-17T23:07:43.551Z] [LOG] [PS:tweak-executor] #33 queryPowerShell SPAWN ts=1781737663551 active=1
+[2026-06-17T23:07:44.175Z] [LOG] [PS:tweak-executor] #33 queryPowerShell OK 624ms
+[2026-06-17T23:07:44.175Z] [LOG] [PS:tweak-executor] #34 queryPowerShell SPAWN ts=1781737664175 active=1
+[2026-06-17T23:07:44.731Z] [LOG] [PS:tweak-executor] #34 queryPowerShell OK 556ms
+[2026-06-17T23:07:44.731Z] [LOG] [PS:tweak-executor] #35 queryPowerShell SPAWN ts=1781737664731 active=1
+[2026-06-17T23:07:45.286Z] [LOG] [PS:tweak-executor] #35 queryPowerShell OK 555ms
+[2026-06-17T23:07:45.286Z] [LOG] [PS:tweak-executor] #36 queryPowerShell SPAWN ts=1781737665286 active=1
+[2026-06-17T23:07:45.464Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:156) [PremiumTruth] modal opened online — starting strict load, ignoring stale grace store
+[2026-06-17T23:07:45.464Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [Entitlements] manual refresh begin
+[2026-06-17T23:07:45.464Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [PremiumTruth] modal-triggered entitlement fetch start
+[2026-06-17T23:07:45.791Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-17T23:07:45.795Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [Entitlements] manual refresh result — isPremium: true plan: premium
+[2026-06-17T23:07:45.796Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [PremiumTruth] modal-triggered entitlement fetch result — isPremium: true
+[2026-06-17T23:07:45.796Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:28) [Premium] Grace snapshot updated — isPremium=true plan=premium userId=64f0e669-6db6-42e7-a68a-681f9f5db567
+[2026-06-17T23:07:45.796Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [Entitlements] manual refresh — grace store updated, UI unlocked
+[2026-06-17T23:07:45.797Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:28) [Premium] Grace snapshot updated — isPremium=true plan=premium userId=64f0e669-6db6-42e7-a68a-681f9f5db567
+[2026-06-17T23:07:45.797Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:156) [PremiumTruth] modal auto-refresh done — isPremium: true status: active
+[2026-06-17T23:07:45.815Z] [LOG] [PS:tweak-executor] #36 queryPowerShell OK 529ms
+[2026-06-17T23:07:45.815Z] [LOG] [PS:tweak-executor] #37 queryPowerShell SPAWN ts=1781737665815 active=1
+[2026-06-17T23:07:46.340Z] [LOG] [PS:tweak-executor] #37 queryPowerShell OK 525ms
+[2026-06-17T23:07:46.340Z] [LOG] [PS:tweak-executor] #38 queryPowerShell SPAWN ts=1781737666340 active=1
+[2026-06-17T23:07:47.024Z] [LOG] [PS:tweak-executor] #38 queryPowerShell OK 684ms
+[2026-06-17T23:07:47.024Z] [LOG] [PS:tweak-executor] #39 queryPowerShell SPAWN ts=1781737667024 active=1
+[2026-06-17T23:07:47.630Z] [LOG] [PS:tweak-executor] #39 queryPowerShell OK 606ms
+[2026-06-17T23:07:47.630Z] [LOG] [PS:tweak-executor] #40 queryPowerShell SPAWN ts=1781737667630 active=1
+[2026-06-17T23:07:48.164Z] [LOG] [PS:tweak-executor] #40 queryPowerShell OK 534ms
+[2026-06-17T23:07:48.164Z] [LOG] [PS:tweak-executor] #41 queryPowerShell SPAWN ts=1781737668164 active=1
+[2026-06-17T23:07:48.267Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:156) [PremiumTruth] modal opened online — starting strict load, ignoring stale grace store
+[2026-06-17T23:07:48.268Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [Entitlements] manual refresh begin
+[2026-06-17T23:07:48.268Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [PremiumTruth] modal-triggered entitlement fetch start
+[2026-06-17T23:07:48.593Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-17T23:07:48.596Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-17T23:07:48.597Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [Entitlements] manual refresh result — isPremium: true plan: premium
+[2026-06-17T23:07:48.598Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [PremiumTruth] modal-triggered entitlement fetch result — isPremium: true
+[2026-06-17T23:07:48.598Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:28) [Premium] Grace snapshot updated — isPremium=true plan=premium userId=64f0e669-6db6-42e7-a68a-681f9f5db567
+[2026-06-17T23:07:48.598Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [Entitlements] manual refresh — grace store updated, UI unlocked
+[2026-06-17T23:07:48.598Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:28) [Premium] Grace snapshot updated — isPremium=true plan=premium userId=64f0e669-6db6-42e7-a68a-681f9f5db567
+[2026-06-17T23:07:48.599Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:156) [PremiumTruth] modal auto-refresh done — isPremium: true status: active
+[2026-06-17T23:07:48.820Z] [LOG] [PS:tweak-executor] #41 queryPowerShell OK 656ms
+[2026-06-17T23:07:48.820Z] [LOG] [TweakSupport] id=usb-selective-suspend, supported=true, reason="powercfg USB setting present", os=10.0.26200, helperFound=true
+[2026-06-17T23:07:48.820Z] [LOG] [PS:tweak-executor] #42 queryPowerShell SPAWN ts=1781737668820 active=1
+[2026-06-17T23:07:49.384Z] [LOG] [PS:tweak-executor] #42 queryPowerShell OK 564ms
+[2026-06-17T23:07:49.384Z] [LOG] [PS:tweak-executor] #43 queryPowerShell SPAWN ts=1781737669384 active=1
+[2026-06-17T23:07:49.986Z] [LOG] [PS:tweak-executor] #43 queryPowerShell OK 602ms
+[2026-06-17T23:07:49.986Z] [LOG] [PS:tweak-executor] #44 queryPowerShell SPAWN ts=1781737669986 active=1
+[2026-06-17T23:07:50.528Z] [LOG] [PS:tweak-executor] #44 queryPowerShell OK 542ms
+[2026-06-17T23:07:50.529Z] [LOG] [PS:tweak-executor] #45 queryPowerShell SPAWN ts=1781737670529 active=1
+[2026-06-17T23:07:51.056Z] [LOG] [PS:tweak-executor] #45 queryPowerShell OK 527ms
+[2026-06-17T23:07:51.056Z] [LOG] [PS:tweak-executor] #46 queryPowerShell SPAWN ts=1781737671056 active=1
+[2026-06-17T23:07:51.631Z] [LOG] [PS:tweak-executor] #46 queryPowerShell OK 575ms
+[2026-06-17T23:07:51.632Z] [LOG] [PS:tweak-executor] #47 queryPowerShell SPAWN ts=1781737671632 active=1
+[2026-06-17T23:07:52.201Z] [LOG] [PS:tweak-executor] #47 queryPowerShell OK 569ms
+[2026-06-17T23:07:52.201Z] [LOG] [PS:tweak-executor] #48 queryPowerShell SPAWN ts=1781737672201 active=1
+[2026-06-17T23:07:52.735Z] [LOG] [PS:tweak-executor] #48 queryPowerShell OK 534ms
+[2026-06-17T23:07:52.735Z] [LOG] [PS:tweak-executor] #49 queryPowerShell SPAWN ts=1781737672735 active=1
+[2026-06-17T23:07:53.270Z] [LOG] [PS:tweak-executor] #49 queryPowerShell OK 535ms
+[2026-06-17T23:07:53.270Z] [LOG] [PS:tweak-executor] #50 queryPowerShell SPAWN ts=1781737673270 active=1
+[2026-06-17T23:07:53.360Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-17T23:07:53.360Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [Timing] StartupApps | mount | +0ms
+[2026-06-17T23:07:53.368Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [Timing] StartupApps | startup-scan | +8ms
+[2026-06-17T23:07:53.368Z] [LOG] [PS] start file=main.js fn=startup:scan reason=startup-scan id=7 active=2
+[2026-06-17T23:07:53.370Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-17T23:07:53.809Z] [LOG] [PS:tweak-executor] #50 queryPowerShell OK 539ms
+[2026-06-17T23:07:53.809Z] [LOG] [PS:tweak-executor] #51 queryPowerShell SPAWN ts=1781737673809 active=1
+[2026-06-17T23:07:53.992Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-17T23:07:53.992Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [Timing] NetworkTweaks | mount | +0ms
+[2026-06-17T23:07:53.992Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks:CACHE] cache hit — rehydrating from session cache
+[2026-06-17T23:07:54.022Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [Timing] NetworkTweaks | fetch-state | +31ms
+[2026-06-17T23:07:54.023Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] mount — hydrating verified status
+[2026-06-17T23:07:54.023Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:10) [AuthRoute] path=/api/network-tweaks/state target=cloud reason=cloud-only
+[2026-06-17T23:07:54.038Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:10) [AuthRoute] path=/api/network/ping-sample target=local reason=system-route base=http://127.0.0.1:55976/api
+[2026-06-17T23:07:54.381Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] mount — hydrating verified status
+[2026-06-17T23:07:54.382Z] [LOG] [PS] start file=main.js fn=networkTweaks:checkAll reason=net-tweak-check-all id=8 active=3
+[2026-06-17T23:07:54.382Z] [LOG] [NetworkTweaks] checkAllStatus start
+[2026-06-17T23:07:54.382Z] [LOG] [PS:network-tweak] #26 execPowerShell SPAWN ts=1781737674382
+[2026-06-17T23:07:54.431Z] [LOG] [PS:tweak-executor] #51 queryPowerShell OK 622ms
+[2026-06-17T23:07:54.431Z] [LOG] [PS:tweak-executor] #52 queryPowerShell SPAWN ts=1781737674431 active=1
+[2026-06-17T23:07:54.723Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-17T23:07:54.734Z] [LOG] [PS:nic-executor] #2 queryPS SPAWN ts=1781737674734
+[2026-06-17T23:07:54.852Z] [LOG] [PS] end file=main.js fn=startup:scan id=7 duration=1484ms active=2 calls60s=6
+[2026-06-17T23:07:54.853Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [Timing] StartupApps | startup-scan-done | +1493ms
+[2026-06-17T23:07:55.048Z] [LOG] [PS:network-tweak] #26 execPowerShell OK 666ms
+[2026-06-17T23:07:55.048Z] [LOG] [PS:network-tweak] #27 execPowerShell SPAWN ts=1781737675048
+[2026-06-17T23:07:55.090Z] [LOG] [PS:tweak-executor] #52 queryPowerShell OK 659ms
+[2026-06-17T23:07:55.090Z] [LOG] [PS:tweak-executor] #53 queryPowerShell SPAWN ts=1781737675090 active=1
+[2026-06-17T23:07:55.603Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-17T23:07:55.604Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [Timing] FocusMode | mount | +0ms
+[2026-06-17T23:07:55.620Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [Timing] FocusMode | fetch-state | +17ms
+[2026-06-17T23:07:55.623Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:10) [AuthRoute] path=/api/focus/state target=local reason=system-route base=http://127.0.0.1:55976/api
+[2026-06-17T23:07:55.637Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [Timing] FocusMode | fetch-state-done | +34ms
+[2026-06-17T23:07:55.676Z] [LOG] [PS:network-tweak] #27 execPowerShell OK 628ms
+[2026-06-17T23:07:55.677Z] [LOG] [PS:network-tweak] #28 execPowerShell SPAWN ts=1781737675677
+[2026-06-17T23:07:55.714Z] [LOG] [PS:tweak-executor] #53 queryPowerShell OK 624ms
+[2026-06-17T23:07:55.714Z] [LOG] [PS:tweak-executor] #54 queryPowerShell SPAWN ts=1781737675714 active=1
+[2026-06-17T23:07:56.024Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:10) [AuthRoute] path=/api/focus/history target=local reason=system-route base=http://127.0.0.1:55976/api
+[2026-06-17T23:07:56.028Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [Timing] FocusMode | fetch-history-done | +425ms
+[2026-06-17T23:07:56.143Z] [LOG] [PS:nic-executor] #2 queryPS OK 1409ms
+[2026-06-17T23:07:56.160Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-17T23:07:56.160Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [Timing] AppBooster | mount | +0ms
+[2026-06-17T23:07:56.162Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:162) [GameIcon] slug="fortnite" → canon="fortnite" source=vite-bundle url="file:///C:/Program%20Files/SwitchControl/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-06-17T23:07:56.173Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [Timing] AppBooster | mount | +14ms
+[2026-06-17T23:07:56.176Z] [LOG] [Backend:stdout] [AppBooster] GET /games userId=64f0e669-6db6-42e7-a68a-681f9f5db567 — catalog: 16, installed: 1
+[2026-06-17T23:07:56.184Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:162) [GameIcon] LOAD OK — slug="fortnite" src="file:///C:/Program%20Files/SwitchControl/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-06-17T23:07:56.189Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:162) [GameIcon] slug="fortnite" → canon="fortnite" source=vite-bundle url="file:///C:/Program%20Files/SwitchControl/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-06-17T23:07:56.204Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [Timing] AppBooster | scan-start | +45ms
+[2026-06-17T23:07:56.206Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:162) [GameIcon] slug="fortnite" → canon="fortnite" source=vite-bundle url="file:///C:/Program%20Files/SwitchControl/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-06-17T23:07:56.207Z] [LOG] [AppBooster] Epic manifest: fortnitelauncher.exe → C:\Program Files\Epic Games\Fortnite\FortniteGame\Binaries\Win64
+[2026-06-17T23:07:56.208Z] [LOG] [AppBooster] Epic manifest: fortnitebootstrapper.exe → C:\Program Files\Epic Games\Fortnite\FortniteGame\Binaries\Win64
+[2026-06-17T23:07:56.289Z] [LOG] [PS:network-tweak] #28 execPowerShell OK 612ms
+[2026-06-17T23:07:56.289Z] [LOG] [PS:network-tweak] #29 execPowerShell SPAWN ts=1781737676289
+[2026-06-17T23:07:56.293Z] [LOG] [PS:tweak-executor] #54 queryPowerShell OK 579ms
+[2026-06-17T23:07:56.293Z] [LOG] [PS:tweak-executor] #55 queryPowerShell SPAWN ts=1781737676293 active=1
+[2026-06-17T23:07:56.897Z] [LOG] [PS:network-tweak] #29 execPowerShell OK 608ms
+[2026-06-17T23:07:56.897Z] [LOG] [PS:network-tweak] #30 execPowerShell SPAWN ts=1781737676897
+[2026-06-17T23:07:56.982Z] [LOG] [PS:tweak-executor] #55 queryPowerShell OK 689ms
+[2026-06-17T23:07:56.982Z] [LOG] [PS:tweak-executor] #56 queryPowerShell SPAWN ts=1781737676982 active=1
+[2026-06-17T23:07:57.040Z] [LOG] [AppBooster]   fortnite: detected=true path=C:\Program Files\Epic Games\Fortnite\FortniteGame\Binaries\Win64
+[2026-06-17T23:07:57.284Z] [LOG] [AppBooster]   apex-legends: detected=false
+[2026-06-17T23:07:57.496Z] [LOG] [AppBooster]   warzone: detected=false
+[2026-06-17T23:07:57.499Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-17T23:07:57.522Z] [LOG] [PS:network-tweak] #30 execPowerShell OK 625ms
+[2026-06-17T23:07:57.522Z] [LOG] [PS:network-tweak] #31 execPowerShell SPAWN ts=1781737677522
+[2026-06-17T23:07:57.618Z] [LOG] [PS:tweak-executor] #56 queryPowerShell OK 636ms
+[2026-06-17T23:07:57.618Z] [LOG] [PS:tweak-executor] #57 queryPowerShell SPAWN ts=1781737677618 active=1
+[2026-06-17T23:07:57.721Z] [LOG] [AppBooster]   valorant: detected=false
+[2026-06-17T23:07:57.956Z] [LOG] [AppBooster]   cs2: detected=false
+[2026-06-17T23:07:58.151Z] [LOG] [PS:network-tweak] #31 execPowerShell OK 629ms
+[2026-06-17T23:07:58.152Z] [LOG] [PS:network-tweak] #32 execPowerShell SPAWN ts=1781737678152
+[2026-06-17T23:07:58.173Z] [LOG] [AppBooster]   overwatch2: detected=false
+[2026-06-17T23:07:58.184Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-17T23:07:58.231Z] [LOG] [PS] start file=main.js fn=slider:readValue reason=slider-read id=9 active=3
+[2026-06-17T23:07:58.233Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-17T23:07:58.231Z
+[2026-06-17T23:07:58.233Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-17T23:07:58.231Z
+[2026-06-17T23:07:58.233Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-17T23:07:58.231Z
+[2026-06-17T23:07:58.233Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-17T23:07:58.231Z
+[2026-06-17T23:07:58.233Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-17T23:07:58.231Z
+[2026-06-17T23:07:58.233Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-17T23:07:58.231Z
+[2026-06-17T23:07:58.234Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-17T23:07:58.231Z
+[2026-06-17T23:07:58.234Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [Tweaks:LOAD] source=zustand-persist enabled=35 total_known=52
+[2026-06-17T23:07:58.234Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [Tweaks:LOAD] enabled_ids=mem-opt, gaming-mode, cortana, disable-wallpaper-compression, maintenance, page-combining, hibernation, xbox-bar, core-isolation, copilot, xbox-services, disable-auto-restart-apps, recent-files, disable-mpo, prefetch, compact-explorer, large-system-cache, disable-delivery-opt, bluetooth, fax-printer, disable-animations, search-highlights, power-throttling, vbs, energy-logging, show-file-extensions, synth-timers, fast-startup, storage-sense, telemetry, pcie-link-state, superfetch, disable-pointer-precision, notifications, disable-activity-history
+[2026-06-17T23:07:58.234Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [Tweaks:SYNC] hydration start gen=2
+[2026-06-17T23:07:58.234Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=tweak:syncAll reason=tweak-sync-all activeOwner=main.js::tweak:syncAll activeSince=2026-06-17T23:07:23.405Z
+[2026-06-17T23:07:58.234Z] [LOG] [tweak:syncAll] returning explicit skipped result — sync already in progress
+[2026-06-17T23:07:58.245Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:10) [AuthRoute] path=/api/tweak-intelligence/system-state target=local reason=system-route base=http://127.0.0.1:55976/api
+[2026-06-17T23:07:58.245Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:10) [AuthRoute] path=/api/tweak-intelligence/rankings?applied=mem-opt%2Cgaming-mode%2Ccortana%2Cdisable-wallpaper-compression%2Cmaintenance%2Cpage-combining%2Chibernation%2Cxbox-bar%2Ccore-isolation%2Ccopilot%2Cxbox-services%2Cdisable-auto-restart-apps%2Crecent-files%2Cdisable-mpo%2Cprefetch%2Ccompact-explorer%2Clarge-system-cache%2Cdisable-delivery-opt%2Cbluetooth%2Cfax-printer%2Cdisable-animations%2Csearch-highlights%2Cpower-throttling%2Cvbs%2Cenergy-logging%2Cshow-file-extensions%2Csynth-timers%2Cfast-startup%2Cstorage-sense%2Ctelemetry%2Cpcie-link-state%2Csuperfetch%2Cdisable-pointer-precision%2Cnotifications%2Cdisable-activity-history target=local reason=system-route base=http://127.0.0.1:55976/api
+[2026-06-17T23:07:58.246Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:10) [AuthRoute] path=/api/tweak-intelligence/posture?applied=mem-opt%2Cgaming-mode%2Ccortana%2Cdisable-wallpaper-compression%2Cmaintenance%2Cpage-combining%2Chibernation%2Cxbox-bar%2Ccore-isolation%2Ccopilot%2Cxbox-services%2Cdisable-auto-restart-apps%2Crecent-files%2Cdisable-mpo%2Cprefetch%2Ccompact-explorer%2Clarge-system-cache%2Cdisable-delivery-opt%2Cbluetooth%2Cfax-printer%2Cdisable-animations%2Csearch-highlights%2Cpower-throttling%2Cvbs%2Cenergy-logging%2Cshow-file-extensions%2Csynth-timers%2Cfast-startup%2Cstorage-sense%2Ctelemetry%2Cpcie-link-state%2Csuperfetch%2Cdisable-pointer-precision%2Cnotifications%2Cdisable-activity-history target=local reason=system-route base=http://127.0.0.1:55976/api
+[2026-06-17T23:07:58.264Z] [ERROR] [Renderer:warn] (index-ChQY5yQ1.js:155) [SliderHydration] win32-priority-sep: read failed — busy
+[2026-06-17T23:07:58.265Z] [ERROR] [Renderer:warn] (index-ChQY5yQ1.js:155) [SliderHydration] sys-responsiveness: read failed — busy
+[2026-06-17T23:07:58.265Z] [ERROR] [Renderer:warn] (index-ChQY5yQ1.js:155) [SliderHydration] net-throttle-index: read failed — busy
+[2026-06-17T23:07:58.265Z] [ERROR] [Renderer:warn] (index-ChQY5yQ1.js:155) [SliderHydration] menu-show-delay: read failed — busy
+[2026-06-17T23:07:58.265Z] [ERROR] [Renderer:warn] (index-ChQY5yQ1.js:155) [SliderHydration] hung-app-timeout: read failed — busy
+[2026-06-17T23:07:58.266Z] [ERROR] [Renderer:warn] (index-ChQY5yQ1.js:155) [SliderHydration] low-level-hooks-timeout: read failed — busy
+[2026-06-17T23:07:58.266Z] [ERROR] [Renderer:warn] (index-ChQY5yQ1.js:155) [SliderHydration] wait-to-kill-app: read failed — busy
+[2026-06-17T23:07:58.266Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:27) [TweakExecutor] syncAll skipped by main process — using cached state
+[2026-06-17T23:07:58.266Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [Tweaks:SYNC] skipped (no results from syncAll)
+[2026-06-17T23:07:58.406Z] [LOG] [AppBooster]   rainbow-six-siege: detected=false
+[2026-06-17T23:07:58.407Z] [LOG] [PS:tweak-executor] #57 queryPowerShell OK 789ms
+[2026-06-17T23:07:58.407Z] [LOG] [PS:tweak-executor] #58 queryPowerShell SPAWN ts=1781737678407 active=1
+[2026-06-17T23:07:58.668Z] [LOG] [AppBooster]   msfs-2024: detected=false
+[2026-06-17T23:07:58.814Z] [LOG] [PS:network-tweak] #32 execPowerShell OK 662ms
+[2026-06-17T23:07:58.814Z] [LOG] [PS:network-tweak] #33 execPowerShell SPAWN ts=1781737678814
+[2026-06-17T23:07:58.898Z] [LOG] [SliderExecutor] READ svchost-split-threshold: value=33554432 raw="33554432"
+[2026-06-17T23:07:58.898Z] [LOG] [PS] end file=main.js fn=slider:readValue id=9 duration=667ms active=2 calls60s=6
+[2026-06-17T23:07:58.901Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [SliderHydration] svchost-split-threshold: value=33554432 missing=false
+[2026-06-17T23:07:58.906Z] [LOG] [AppBooster]   msfs-2020: detected=false
+[2026-06-17T23:07:59.122Z] [LOG] [AppBooster]   gta5: detected=false
+[2026-06-17T23:07:59.152Z] [LOG] [PS:tweak-executor] #58 queryPowerShell OK 745ms
+[2026-06-17T23:07:59.153Z] [LOG] [PS:tweak-executor] #59 queryPowerShell SPAWN ts=1781737679153 active=1
+[2026-06-17T23:07:59.285Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-17T23:07:59.322Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [Dashboard] mounted
+[2026-06-17T23:07:59.323Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [ActivityMonitor] reused cached state — history points: 30 status: ready
+[2026-06-17T23:07:59.346Z] [LOG] [AppBooster]   cyberpunk: detected=false
+[2026-06-17T23:07:59.350Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:55976/api
+[2026-06-17T23:07:59.350Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:10) [AuthRoute] path=/api/dashboard-intelligence/system-dna target=local reason=system-route base=http://127.0.0.1:55976/api
+[2026-06-17T23:07:59.351Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:55976/api
+[2026-06-17T23:07:59.351Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:55976/api
+[2026-06-17T23:07:59.351Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:10) [AuthRoute] path=/api/dashboard-intelligence/ram-analysis target=local reason=system-route base=http://127.0.0.1:55976/api
+[2026-06-17T23:07:59.463Z] [LOG] [PS:network-tweak] #33 execPowerShell OK 649ms
+[2026-06-17T23:07:59.464Z] [LOG] [PS:network-tweak] #34 execPowerShell SPAWN ts=1781737679464
+[2026-06-17T23:07:59.643Z] [LOG] [AppBooster]   elden-ring: detected=false
+[2026-06-17T23:07:59.861Z] [LOG] [PS:tweak-executor] #59 queryPowerShell OK 708ms
+[2026-06-17T23:07:59.862Z] [LOG] [PS:tweak-executor] #60 queryPowerShell SPAWN ts=1781737679862 active=1
+[2026-06-17T23:08:00.080Z] [LOG] [AppBooster]   league-of-legends: detected=false
+[2026-06-17T23:08:00.219Z] [LOG] [PS:network-tweak] #34 execPowerShell OK 755ms
+[2026-06-17T23:08:00.219Z] [LOG] [PS:network-tweak] #35 execPowerShell SPAWN ts=1781737680219
+[2026-06-17T23:08:00.525Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:10) [AuthRoute] path=/api/startup/apps target=local reason=system-route base=http://127.0.0.1:55976/api
+[2026-06-17T23:08:00.530Z] [LOG] [AppBooster]   world-of-warcraft: detected=false
+[2026-06-17T23:08:00.628Z] [LOG] [PS:tweak-executor] #60 queryPowerShell OK 766ms
+[2026-06-17T23:08:00.629Z] [LOG] [PS:tweak-executor] #61 queryPowerShell SPAWN ts=1781737680629 active=1
+[2026-06-17T23:08:00.729Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:10) [AuthRoute] path=/api/issues/detect target=local reason=system-route base=http://127.0.0.1:55976/api
+[2026-06-17T23:08:00.898Z] [LOG] [AppBooster]   rocket-league: detected=false
+[2026-06-17T23:08:01.034Z] [LOG] [PS:network-tweak] #35 execPowerShell OK 815ms
+[2026-06-17T23:08:01.034Z] [LOG] [PS:network-tweak] #36 execPowerShell SPAWN ts=1781737681034
+[2026-06-17T23:08:01.255Z] [LOG] [AppBooster]   minecraft: detected=false
+[2026-06-17T23:08:01.255Z] [LOG] [AppBooster] scanGames done — 1/16 detected
+[2026-06-17T23:08:01.259Z] [LOG] [Backend:stdout] [AppBooster] POST /games/scan userId=64f0e669-6db6-42e7-a68a-681f9f5db567 — 16 result(s), 1 detected
+[2026-06-17T23:08:01.265Z] [LOG] [Backend:stdout] [AppBooster] GET /games userId=64f0e669-6db6-42e7-a68a-681f9f5db567 — catalog: 16, installed: 1
+[2026-06-17T23:08:01.270Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [Timing] AppBooster | scan-done | +5111ms
+[2026-06-17T23:08:01.430Z] [LOG] [PS:tweak-executor] #61 queryPowerShell OK 801ms
+[2026-06-17T23:08:01.431Z] [LOG] [PS:tweak-executor] #62 queryPowerShell SPAWN ts=1781737681431 active=1
+[2026-06-17T23:08:01.958Z] [LOG] [PS:network-tweak] #36 execPowerShell OK 924ms
+[2026-06-17T23:08:01.958Z] [LOG] [PS:network-tweak] #37 execPowerShell SPAWN ts=1781737681958
+[2026-06-17T23:08:02.206Z] [LOG] [PS:tweak-executor] #62 queryPowerShell OK 775ms
+[2026-06-17T23:08:02.207Z] [LOG] [PS:tweak-executor] #63 queryPowerShell SPAWN ts=1781737682207 active=1
+[2026-06-17T23:08:02.678Z] [LOG] [PS:network-tweak] #37 execPowerShell OK 720ms
+[2026-06-17T23:08:02.678Z] [LOG] [PS:network-tweak] #38 execPowerShell SPAWN ts=1781737682678
+[2026-06-17T23:08:02.858Z] [LOG] [PS:tweak-executor] #63 queryPowerShell OK 651ms
+[2026-06-17T23:08:02.859Z] [LOG] [PS-Exec] done file=main.js fn=tweak:syncAll ms=39454
+[2026-06-17T23:08:02.859Z] [LOG] [PS] end file=main.js fn=tweak:syncAll id=6 duration=39454ms active=1 calls60s=7
+[2026-06-17T23:08:02.860Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [Tweaks:SYNC] stale result discarded gen=1 current=2
+[2026-06-17T23:08:03.346Z] [LOG] [PS:network-tweak] #38 execPowerShell OK 668ms
+[2026-06-17T23:08:03.346Z] [LOG] [PS:network-tweak] #39 execPowerShell SPAWN ts=1781737683346
+[2026-06-17T23:08:03.952Z] [LOG] [PS:network-tweak] #39 execPowerShell OK 606ms
+[2026-06-17T23:08:03.952Z] [LOG] [PS:network-tweak] #40 execPowerShell SPAWN ts=1781737683952
+[2026-06-17T23:08:04.645Z] [LOG] [PS:network-tweak] #40 execPowerShell OK 693ms
+[2026-06-17T23:08:04.645Z] [LOG] [PS:network-tweak] #41 execPowerShell SPAWN ts=1781737684645
+[2026-06-17T23:08:05.282Z] [LOG] [PS:network-tweak] #41 execPowerShell OK 637ms
+[2026-06-17T23:08:05.282Z] [LOG] [PS:network-tweak] #42 execPowerShell SPAWN ts=1781737685282
+[2026-06-17T23:08:06.431Z] [LOG] [PS:network-tweak] #42 execPowerShell OK 1149ms
+[2026-06-17T23:08:06.431Z] [LOG] [PS:network-tweak] #43 execPowerShell SPAWN ts=1781737686431
+[2026-06-17T23:08:07.128Z] [LOG] [PS:network-tweak] #43 execPowerShell OK 697ms
+[2026-06-17T23:08:07.129Z] [LOG] [PS:network-tweak] #44 execPowerShell SPAWN ts=1781737687129
+[2026-06-17T23:08:07.726Z] [LOG] [PS:network-tweak] #44 execPowerShell OK 597ms
+[2026-06-17T23:08:07.726Z] [LOG] [PS:network-tweak] #45 execPowerShell SPAWN ts=1781737687726
+[2026-06-17T23:08:08.891Z] [LOG] [PS:network-tweak] #45 execPowerShell OK 1165ms
+[2026-06-17T23:08:08.891Z] [LOG] [PS:network-tweak] #46 execPowerShell SPAWN ts=1781737688891
+[2026-06-17T23:08:09.609Z] [LOG] [PS:network-tweak] #46 execPowerShell OK 718ms
+[2026-06-17T23:08:09.609Z] [LOG] [PS:network-tweak] #47 execPowerShell SPAWN ts=1781737689609
+[2026-06-17T23:08:10.763Z] [LOG] [PS:network-tweak] #47 execPowerShell OK 1154ms
+[2026-06-17T23:08:10.764Z] [LOG] [PS:network-tweak] #48 execPowerShell SPAWN ts=1781737690764
+[2026-06-17T23:08:11.391Z] [LOG] [PS:network-tweak] #48 execPowerShell OK 627ms
+[2026-06-17T23:08:11.392Z] [LOG] [PS:network-tweak] #49 execPowerShell SPAWN ts=1781737691392
+[2026-06-17T23:08:11.463Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:55976/api
+[2026-06-17T23:08:11.943Z] [LOG] [PS:network-tweak] #49 execPowerShell OK 551ms
+[2026-06-17T23:08:11.944Z] [LOG] [PS:network-tweak] #50 execPowerShell SPAWN ts=1781737691944
+[2026-06-17T23:08:12.497Z] [LOG] [PS:network-tweak] #50 execPowerShell OK 553ms
+[2026-06-17T23:08:12.497Z] [LOG] [NetworkTweaks] checkStatus tweakId=smb-non-best-effort enabled=false source=registry/netsh/adapter
+[2026-06-17T23:08:12.497Z] [LOG] [NetworkTweaks] checkStatus tweakId=smb-v2v3 enabled=false source=registry/netsh/adapter
+[2026-06-17T23:08:12.497Z] [LOG] [NetworkTweaks] checkStatus tweakId=smb-live-migration enabled=null source=disabled
+[2026-06-17T23:08:12.498Z] [LOG] [NetworkTweaks] checkStatus tweakId=smb-congruent-ops enabled=null source=disabled
+[2026-06-17T23:08:12.498Z] [LOG] [NetworkTweaks] checkStatus tweakId=smb-max-requests enabled=false source=registry/netsh/adapter
+[2026-06-17T23:08:12.498Z] [LOG] [NetworkTweaks] checkStatus tweakId=smb-irp-stack enabled=false source=registry/netsh/adapter
+[2026-06-17T23:08:12.498Z] [LOG] [NetworkTweaks] checkStatus tweakId=smb-incoming-requests enabled=false source=registry/netsh/adapter
+[2026-06-17T23:08:12.498Z] [LOG] [NetworkTweaks] checkStatus tweakId=smb-pipe-data enabled=false source=registry/netsh/adapter
+[2026-06-17T23:08:12.498Z] [LOG] [NetworkTweaks] checkStatus tweakId=smb-request-buffer enabled=false source=registry/netsh/adapter
+[2026-06-17T23:08:12.498Z] [LOG] [NetworkTweaks] checkStatus tweakId=smb-preallocate enabled=null source=disabled
+[2026-06-17T23:08:12.498Z] [LOG] [NetworkTweaks] checkStatus tweakId=tcp-wait-time enabled=true source=registry/netsh/adapter
+[2026-06-17T23:08:12.498Z] [LOG] [NetworkTweaks] checkStatus tweakId=tcp-bufferlist enabled=null source=disabled
+[2026-06-17T23:08:12.498Z] [LOG] [NetworkTweaks] checkStatus tweakId=tcp-nagle enabled=true source=registry/netsh/adapter
+[2026-06-17T23:08:12.498Z] [LOG] [NetworkTweaks] checkStatus tweakId=tcp-non-sack-rto enabled=null source=disabled
+[2026-06-17T23:08:12.499Z] [LOG] [NetworkTweaks] checkStatus tweakId=tcp-task-offload enabled=false source=registry/netsh/adapter
+[2026-06-17T23:08:12.499Z] [LOG] [NetworkTweaks] checkStatus tweakId=tcp-timestamps enabled=false source=registry/netsh/adapter
+[2026-06-17T23:08:12.499Z] [LOG] [NetworkTweaks] checkStatus tweakId=tcp-window-heuristics enabled=false source=registry/netsh/adapter
+[2026-06-17T23:08:12.499Z] [LOG] [NetworkTweaks] checkStatus tweakId=tcp-dca enabled=null source=disabled
+[2026-06-17T23:08:12.499Z] [LOG] [NetworkTweaks] checkStatus tweakId=tcp-throttling-index enabled=true source=registry/netsh/adapter
+[2026-06-17T23:08:12.499Z] [LOG] [NetworkTweaks] checkStatus tweakId=tcp-pmtu enabled=false source=registry/netsh/adapter
+[2026-06-17T23:08:12.499Z] [LOG] [NetworkTweaks] checkStatus tweakId=tcp-rss enabled=true source=registry/netsh/adapter
+[2026-06-17T23:08:12.499Z] [LOG] [NetworkTweaks] checkStatus tweakId=tcp-chimney enabled=null source=disabled
+[2026-06-17T23:08:12.499Z] [LOG] [NetworkTweaks] checkStatus tweakId=tcp-sack enabled=false source=registry/netsh/adapter
+[2026-06-17T23:08:12.499Z] [LOG] [NetworkTweaks] checkStatus tweakId=tcp-weak-host enabled=false source=registry/netsh/adapter
+[2026-06-17T23:08:12.499Z] [LOG] [NetworkTweaks] checkStatus tweakId=tcp-winhttp enabled=true source=registry/netsh/adapter
+[2026-06-17T23:08:12.499Z] [LOG] [NetworkTweaks] checkStatus tweakId=tcp-rto-increase enabled=null source=disabled
+[2026-06-17T23:08:12.500Z] [LOG] [NetworkTweaks] checkStatus tweakId=tcp-connection-timeout enabled=false source=registry/netsh/adapter
+[2026-06-17T23:08:12.500Z] [LOG] [NetworkTweaks] checkStatus tweakId=tcp-congestion enabled=false source=registry/netsh/adapter
+[2026-06-17T23:08:12.500Z] [LOG] [NetworkTweaks] checkStatus tweakId=tcp-ttl enabled=null source=disabled
+[2026-06-17T23:08:12.500Z] [LOG] [NetworkTweaks] checkStatus tweakId=tcp-connection-limit enabled=null source=disabled
+[2026-06-17T23:08:12.500Z] [LOG] [NetworkTweaks] checkStatus tweakId=tcp-port-range enabled=false source=registry/netsh/adapter
+[2026-06-17T23:08:12.500Z] [LOG] [NetworkTweaks] checkStatus tweakId=udp-offloads enabled=false source=registry/netsh/adapter
+[2026-06-17T23:08:12.500Z] [LOG] [NetworkTweaks] checkStatus tweakId=udp-fast-send enabled=null source=disabled
+[2026-06-17T23:08:12.500Z] [LOG] [NetworkTweaks] checkStatus tweakId=sec-llmnr enabled=true source=registry/netsh/adapter
+[2026-06-17T23:08:12.500Z] [LOG] [NetworkTweaks] checkStatus tweakId=sec-mpp enabled=null source=disabled
+[2026-06-17T23:08:12.500Z] [LOG] [NetworkTweaks] checkStatus tweakId=sec-netbios enabled=false source=registry/netsh/adapter
+[2026-06-17T23:08:12.500Z] [LOG] [NetworkTweaks] checkStatus tweakId=dns-doh enabled=null source=disabled
+[2026-06-17T23:08:12.500Z] [LOG] [NetworkTweaks] checkStatus tweakId=dns-optimize enabled=false source=registry/netsh/adapter
+[2026-06-17T23:08:12.500Z] [LOG] [NetworkTweaks] checkAllStatus done count=38 enabled=6 disabled=32 inconclusive=0 durationMs=18118
+[2026-06-17T23:08:12.500Z] [LOG] [PS] end file=main.js fn=networkTweaks:checkAll id=8 duration=18118ms active=0 calls60s=7
+[2026-06-17T23:08:12.501Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=smb-non-best-effort enabled=false verified=true source=windows
+[2026-06-17T23:08:12.501Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=smb-v2v3 enabled=false verified=true source=windows
+[2026-06-17T23:08:12.501Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=smb-live-migration enabled=null verified=true source=disabled
+[2026-06-17T23:08:12.501Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=smb-congruent-ops enabled=null verified=true source=disabled
+[2026-06-17T23:08:12.502Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=smb-max-requests enabled=false verified=true source=windows
+[2026-06-17T23:08:12.502Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=smb-irp-stack enabled=false verified=true source=windows
+[2026-06-17T23:08:12.502Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=smb-incoming-requests enabled=false verified=true source=windows
+[2026-06-17T23:08:12.502Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=smb-pipe-data enabled=false verified=true source=windows
+[2026-06-17T23:08:12.502Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=smb-request-buffer enabled=false verified=true source=windows
+[2026-06-17T23:08:12.502Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=smb-preallocate enabled=null verified=true source=disabled
+[2026-06-17T23:08:12.502Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=tcp-wait-time enabled=true verified=true source=windows
+[2026-06-17T23:08:12.502Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=tcp-bufferlist enabled=null verified=true source=disabled
+[2026-06-17T23:08:12.502Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=tcp-nagle enabled=true verified=true source=windows
+[2026-06-17T23:08:12.502Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=tcp-non-sack-rto enabled=null verified=true source=disabled
+[2026-06-17T23:08:12.502Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=tcp-task-offload enabled=false verified=true source=windows
+[2026-06-17T23:08:12.503Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=tcp-timestamps enabled=false verified=true source=windows
+[2026-06-17T23:08:12.503Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=tcp-window-heuristics enabled=false verified=true source=windows
+[2026-06-17T23:08:12.503Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=tcp-dca enabled=null verified=true source=disabled
+[2026-06-17T23:08:12.503Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=tcp-throttling-index enabled=true verified=true source=windows
+[2026-06-17T23:08:12.503Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=tcp-pmtu enabled=false verified=true source=windows
+[2026-06-17T23:08:12.503Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=tcp-rss enabled=true verified=true source=windows
+[2026-06-17T23:08:12.503Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=tcp-chimney enabled=null verified=true source=disabled
+[2026-06-17T23:08:12.503Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=tcp-sack enabled=false verified=true source=windows
+[2026-06-17T23:08:12.503Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=tcp-weak-host enabled=false verified=true source=windows
+[2026-06-17T23:08:12.503Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=tcp-winhttp enabled=true verified=true source=windows
+[2026-06-17T23:08:12.504Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=tcp-rto-increase enabled=null verified=true source=disabled
+[2026-06-17T23:08:12.504Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=tcp-connection-timeout enabled=false verified=true source=windows
+[2026-06-17T23:08:12.504Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=tcp-congestion enabled=false verified=true source=windows
+[2026-06-17T23:08:12.504Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=tcp-ttl enabled=null verified=true source=disabled
+[2026-06-17T23:08:12.504Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=tcp-connection-limit enabled=null verified=true source=disabled
+[2026-06-17T23:08:12.504Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=tcp-port-range enabled=false verified=true source=windows
+[2026-06-17T23:08:12.504Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=udp-offloads enabled=false verified=true source=windows
+[2026-06-17T23:08:12.504Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=udp-fast-send enabled=null verified=true source=disabled
+[2026-06-17T23:08:12.505Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=sec-llmnr enabled=true verified=true source=windows
+[2026-06-17T23:08:12.505Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=sec-mpp enabled=null verified=true source=disabled
+[2026-06-17T23:08:12.505Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=sec-netbios enabled=false verified=true source=windows
+[2026-06-17T23:08:12.505Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=dns-doh enabled=null verified=true source=disabled
+[2026-06-17T23:08:12.505Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=dns-optimize enabled=false verified=true source=windows
+[2026-06-17T23:08:12.505Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded total=38 confirmed=25 inconclusive=0
+[2026-06-17T23:08:12.505Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] stale fetch response discarded (component remounted)
+[2026-06-17T23:08:16.469Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:55976/api
+[2026-06-17T23:08:21.474Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:55976/api
+[2026-06-17T23:08:31.483Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:55976/api
+[2026-06-17T23:08:31.483Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:55976/api
+[2026-06-17T23:08:31.484Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:55976/api
+[2026-06-17T23:08:34.846Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [App] Window focused, refreshing entitlements...
+[2026-06-17T23:08:34.848Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:152) [Window] Focus event received
+[2026-06-17T23:08:34.849Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [App] Electron window focus (passive)
+[2026-06-17T23:08:35.586Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-17T23:08:36.779Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-17T23:08:36.789Z] [LOG] [PS:nic-executor] #3 queryPS SPAWN ts=1781737716789
+[2026-06-17T23:08:37.813Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-17T23:08:37.814Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [Timing] FocusMode | mount | +0ms
+[2026-06-17T23:08:37.826Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [Timing] FocusMode | fetch-state | +12ms
+[2026-06-17T23:08:37.829Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:10) [AuthRoute] path=/api/focus/state target=local reason=system-route base=http://127.0.0.1:55976/api
+[2026-06-17T23:08:37.841Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [Timing] FocusMode | fetch-state-done | +27ms
+[2026-06-17T23:08:38.069Z] [LOG] [PS:nic-executor] #3 queryPS OK 1280ms
+[2026-06-17T23:08:38.195Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:10) [AuthRoute] path=/api/focus/history target=local reason=system-route base=http://127.0.0.1:55976/api
+[2026-06-17T23:08:38.197Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [Timing] FocusMode | fetch-history-done | +384ms
+[2026-06-17T23:08:42.826Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:162) [FocusMode] Hydration complete — auto-triggers now armed
+[2026-06-17T23:08:46.118Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-17T23:08:46.891Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-17T23:08:46.908Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] source=zustand-store enabled=35 disabled=31
+[2026-06-17T23:08:46.909Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, core-isolation, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, synth-timers, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-06-17T23:08:46.909Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-06-17T23:08:46.909Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI Specs Input] cpu="AMD Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-06-17T23:08:48.134Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] source=zustand-store enabled=35 disabled=31
+[2026-06-17T23:08:48.134Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, core-isolation, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, synth-timers, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-06-17T23:08:48.135Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-06-17T23:08:48.135Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI Specs Input] cpu="AMD Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-06-17T23:08:50.139Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] source=zustand-store enabled=35 disabled=31
+[2026-06-17T23:08:50.140Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, core-isolation, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, synth-timers, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-06-17T23:08:50.140Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-06-17T23:08:50.140Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI Specs Input] cpu="AMD Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-06-17T23:08:52.144Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] source=zustand-store enabled=35 disabled=31
+[2026-06-17T23:08:52.145Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, core-isolation, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, synth-timers, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-06-17T23:08:52.145Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-06-17T23:08:52.145Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI Specs Input] cpu="AMD Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-06-17T23:08:54.149Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] source=zustand-store enabled=35 disabled=31
+[2026-06-17T23:08:54.149Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, core-isolation, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, synth-timers, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-06-17T23:08:54.149Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-06-17T23:08:54.149Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI Specs Input] cpu="AMD Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-06-17T23:08:56.154Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] source=zustand-store enabled=35 disabled=31
+[2026-06-17T23:08:56.155Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, core-isolation, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, synth-timers, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-06-17T23:08:56.155Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-06-17T23:08:56.155Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI Specs Input] cpu="AMD Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-06-17T23:08:58.159Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] source=zustand-store enabled=35 disabled=31
+[2026-06-17T23:08:58.159Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, core-isolation, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, synth-timers, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-06-17T23:08:58.159Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-06-17T23:08:58.159Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI Specs Input] cpu="AMD Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-06-17T23:09:00.164Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] source=zustand-store enabled=35 disabled=31
+[2026-06-17T23:09:00.164Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, core-isolation, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, synth-timers, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-06-17T23:09:00.164Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-06-17T23:09:00.164Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI Specs Input] cpu="AMD Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-06-17T23:09:02.168Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] source=zustand-store enabled=35 disabled=31
+[2026-06-17T23:09:02.168Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, core-isolation, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, synth-timers, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-06-17T23:09:02.169Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-06-17T23:09:02.169Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI Specs Input] cpu="AMD Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-06-17T23:09:02.393Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-17T23:09:04.341Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-17T23:09:04.354Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] source=zustand-store enabled=35 disabled=31
+[2026-06-17T23:09:04.354Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, core-isolation, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, synth-timers, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-06-17T23:09:04.355Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-06-17T23:09:04.355Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI Specs Input] cpu="AMD Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-06-17T23:09:06.174Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] source=zustand-store enabled=35 disabled=31
+[2026-06-17T23:09:06.174Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, core-isolation, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, synth-timers, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-06-17T23:09:06.174Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-06-17T23:09:06.174Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI Specs Input] cpu="AMD Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-06-17T23:09:08.178Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] source=zustand-store enabled=35 disabled=31
+[2026-06-17T23:09:08.179Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, core-isolation, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, synth-timers, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-06-17T23:09:08.179Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-06-17T23:09:08.179Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI Specs Input] cpu="AMD Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-06-17T23:09:10.183Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] source=zustand-store enabled=35 disabled=31
+[2026-06-17T23:09:10.183Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, core-isolation, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, synth-timers, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-06-17T23:09:10.183Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-06-17T23:09:10.183Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI Specs Input] cpu="AMD Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-06-17T23:09:12.188Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] source=zustand-store enabled=35 disabled=31
+[2026-06-17T23:09:12.188Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, core-isolation, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, synth-timers, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-06-17T23:09:12.189Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-06-17T23:09:12.189Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI Specs Input] cpu="AMD Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-06-17T23:09:13.727Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:204) [AI:INPUT] sending_message="what powerplan do i have active"
+[2026-06-17T23:09:13.728Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:204) [AI:INPUT] enabled_tweaks=35 disabled_tweaks=31
+[2026-06-17T23:09:13.728Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:204) [AI:INPUT] enabled_tweak_ids=hibernation, fast-startup, energy-logging, maintenance, core-isolation, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, synth-timers, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-06-17T23:09:13.728Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:204) [AI:INPUT] hardware cpu="AMD Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB"
+[2026-06-17T23:09:13.738Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:28) [CloudAPI] 2026-06-17T23:09:13.737Z | POST /ai/chat | auth=true | base=https://switchcontrol.org/api
+[2026-06-17T23:09:14.193Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] source=zustand-store enabled=35 disabled=31
+[2026-06-17T23:09:14.193Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, core-isolation, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, synth-timers, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-06-17T23:09:14.193Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-06-17T23:09:14.193Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI Specs Input] cpu="AMD Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-06-17T23:09:16.197Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] source=zustand-store enabled=35 disabled=31
+[2026-06-17T23:09:16.198Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, core-isolation, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, synth-timers, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-06-17T23:09:16.198Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-06-17T23:09:16.198Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI Specs Input] cpu="AMD Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-06-17T23:09:17.267Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:28) [CloudAPI] OK | POST /ai/chat | status=200
+[2026-06-17T23:09:17.267Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:204) [AI:OUTPUT] chars=211 preview="Your active power plan is set to **Efficiency / Laptop**. If you want to switch to a more performance-oriented plan, I c…"
+[2026-06-17T23:09:18.202Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] source=zustand-store enabled=35 disabled=31
+[2026-06-17T23:09:18.203Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, core-isolation, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, synth-timers, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-06-17T23:09:18.203Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-06-17T23:09:18.203Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI Specs Input] cpu="AMD Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-06-17T23:09:20.208Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] source=zustand-store enabled=35 disabled=31
+[2026-06-17T23:09:20.208Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, core-isolation, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, synth-timers, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-06-17T23:09:20.209Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-06-17T23:09:20.209Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI Specs Input] cpu="AMD Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-06-17T23:09:22.214Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] source=zustand-store enabled=35 disabled=31
+[2026-06-17T23:09:22.214Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, core-isolation, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, synth-timers, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-06-17T23:09:22.214Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-06-17T23:09:22.215Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI Specs Input] cpu="AMD Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-06-17T23:09:23.608Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [App] Window focused, refreshing entitlements...
+[2026-06-17T23:09:23.609Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:152) [Window] Focus event received
+[2026-06-17T23:09:23.609Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [App] Electron window focus (passive)
+[2026-06-17T23:09:24.136Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-17T23:09:24.218Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] source=zustand-store enabled=35 disabled=31
+[2026-06-17T23:09:24.219Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, core-isolation, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, synth-timers, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-06-17T23:09:24.219Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-06-17T23:09:24.219Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI Specs Input] cpu="AMD Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-06-17T23:09:26.223Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] source=zustand-store enabled=35 disabled=31
+[2026-06-17T23:09:26.223Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, core-isolation, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, synth-timers, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-06-17T23:09:26.223Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-06-17T23:09:26.223Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI Specs Input] cpu="AMD Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-06-17T23:09:28.227Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] source=zustand-store enabled=35 disabled=31
+[2026-06-17T23:09:28.228Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, core-isolation, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, synth-timers, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-06-17T23:09:28.228Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-06-17T23:09:28.228Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI Specs Input] cpu="AMD Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-06-17T23:09:30.231Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] source=zustand-store enabled=35 disabled=31
+[2026-06-17T23:09:30.231Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, core-isolation, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, synth-timers, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-06-17T23:09:30.231Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-06-17T23:09:30.231Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI Specs Input] cpu="AMD Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-06-17T23:09:32.235Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] source=zustand-store enabled=35 disabled=31
+[2026-06-17T23:09:32.235Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, core-isolation, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, synth-timers, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-06-17T23:09:32.236Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-06-17T23:09:32.236Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI Specs Input] cpu="AMD Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-06-17T23:09:33.903Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:204) [AI:INPUT] sending_message="what tweaks have i done in  history"
+[2026-06-17T23:09:33.903Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:204) [AI:INPUT] enabled_tweaks=35 disabled_tweaks=31
+[2026-06-17T23:09:33.903Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:204) [AI:INPUT] enabled_tweak_ids=hibernation, fast-startup, energy-logging, maintenance, core-isolation, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, synth-timers, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-06-17T23:09:33.903Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:204) [AI:INPUT] hardware cpu="AMD Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB"
+[2026-06-17T23:09:33.914Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:28) [CloudAPI] 2026-06-17T23:09:33.914Z | POST /ai/chat | auth=true | base=https://switchcontrol.org/api
+[2026-06-17T23:09:34.240Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] source=zustand-store enabled=35 disabled=31
+[2026-06-17T23:09:34.241Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, core-isolation, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, synth-timers, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-06-17T23:09:34.241Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-06-17T23:09:34.241Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI Specs Input] cpu="AMD Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-06-17T23:09:36.245Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] source=zustand-store enabled=35 disabled=31
+[2026-06-17T23:09:36.246Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, core-isolation, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, synth-timers, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-06-17T23:09:36.246Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-06-17T23:09:36.246Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI Specs Input] cpu="AMD Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-06-17T23:09:38.250Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] source=zustand-store enabled=35 disabled=31
+[2026-06-17T23:09:38.250Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, core-isolation, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, synth-timers, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-06-17T23:09:38.250Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-06-17T23:09:38.250Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI Specs Input] cpu="AMD Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-06-17T23:09:38.355Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:28) [CloudAPI] OK | POST /ai/chat | status=200
+[2026-06-17T23:09:38.355Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:204) [AI:OUTPUT] chars=710 preview="Here's your recent SwitchControl activity history:  1. Enabled **Remove Xbox Game Bar** (Tweaks) — Applied to system at …"
+[2026-06-17T23:09:40.255Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] source=zustand-store enabled=35 disabled=31
+[2026-06-17T23:09:40.255Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, core-isolation, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, synth-timers, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-06-17T23:09:40.256Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-06-17T23:09:40.256Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI Specs Input] cpu="AMD Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-06-17T23:09:42.261Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] source=zustand-store enabled=35 disabled=31
+[2026-06-17T23:09:42.261Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, core-isolation, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, synth-timers, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-06-17T23:09:42.261Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-06-17T23:09:42.261Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI Specs Input] cpu="AMD Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-06-17T23:09:44.267Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] source=zustand-store enabled=35 disabled=31
+[2026-06-17T23:09:44.267Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, core-isolation, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, synth-timers, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-06-17T23:09:44.267Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-06-17T23:09:44.267Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI Specs Input] cpu="AMD Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-06-17T23:09:46.272Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] source=zustand-store enabled=35 disabled=31
+[2026-06-17T23:09:46.272Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, core-isolation, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, synth-timers, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-06-17T23:09:46.272Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-06-17T23:09:46.272Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI Specs Input] cpu="AMD Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-06-17T23:09:48.277Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] source=zustand-store enabled=35 disabled=31
+[2026-06-17T23:09:48.277Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, core-isolation, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, synth-timers, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-06-17T23:09:48.277Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-06-17T23:09:48.277Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI Specs Input] cpu="AMD Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-06-17T23:09:50.281Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] source=zustand-store enabled=35 disabled=31
+[2026-06-17T23:09:50.282Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, core-isolation, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, synth-timers, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-06-17T23:09:50.282Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-06-17T23:09:50.282Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI Specs Input] cpu="AMD Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-06-17T23:09:52.287Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] source=zustand-store enabled=35 disabled=31
+[2026-06-17T23:09:52.288Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, core-isolation, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, synth-timers, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-06-17T23:09:52.288Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-06-17T23:09:52.288Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI Specs Input] cpu="AMD Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-06-17T23:09:53.773Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [App] Window focused, refreshing entitlements...
+[2026-06-17T23:09:53.776Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:152) [Window] Focus event received
+[2026-06-17T23:09:53.776Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [App] Electron window focus (passive)
+[2026-06-17T23:09:54.293Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] source=zustand-store enabled=35 disabled=31
+[2026-06-17T23:09:54.293Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, core-isolation, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, disable-wallpaper-compression, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, synth-timers, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-06-17T23:09:54.294Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=
+[2026-06-17T23:09:54.294Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:196) [AI Specs Input] cpu="AMD Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=32 disk="C:"
+[2026-06-17T23:09:55.158Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-17T23:09:55.187Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-17T23:09:55.213Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [Dashboard] mounted
+[2026-06-17T23:09:55.213Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [ActivityMonitor] reused cached state — history points: 60 status: ready
+[2026-06-17T23:09:55.233Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:55976/api
+[2026-06-17T23:09:55.233Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:10) [AuthRoute] path=/api/dashboard-intelligence/system-dna target=local reason=system-route base=http://127.0.0.1:55976/api
+[2026-06-17T23:09:55.233Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:55976/api
+[2026-06-17T23:09:55.233Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:55976/api
+[2026-06-17T23:09:55.233Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:10) [AuthRoute] path=/api/dashboard-intelligence/ram-analysis target=local reason=system-route base=http://127.0.0.1:55976/api
+[2026-06-17T23:09:56.415Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:10) [AuthRoute] path=/api/startup/apps target=local reason=system-route base=http://127.0.0.1:55976/api
+[2026-06-17T23:09:56.549Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:10) [AuthRoute] path=/api/issues/detect target=local reason=system-route base=http://127.0.0.1:55976/api
+[2026-06-17T23:09:57.713Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-17T23:09:59.169Z] [LOG] [Logs] Opening log directory: C:\Users\SwitchTech\AppData\Roaming\SwitchControl\logs
+[2026-06-17T23:10:10.492Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:152) [Window] Focus event received
+[2026-06-17T23:10:10.493Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [App] Electron window focus (passive)
+[2026-06-17T23:10:11.097Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-17T23:10:11.097Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [Timing] NetworkTweaks | mount | +0ms
+[2026-06-17T23:10:11.097Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks:CACHE] cache hit — rehydrating from session cache
+[2026-06-17T23:10:11.129Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [Timing] NetworkTweaks | fetch-state | +32ms
+[2026-06-17T23:10:11.129Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] mount — hydrating verified status
+[2026-06-17T23:10:11.129Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:10) [AuthRoute] path=/api/network-tweaks/state target=cloud reason=cloud-only
+[2026-06-17T23:10:11.143Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:10) [AuthRoute] path=/api/network/ping-sample target=local reason=system-route base=http://127.0.0.1:55976/api
+[2026-06-17T23:10:11.768Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] mount — hydrating verified status
+[2026-06-17T23:10:11.769Z] [LOG] [PS] start file=main.js fn=networkTweaks:checkAll reason=net-tweak-check-all id=10 active=1
+[2026-06-17T23:10:11.769Z] [LOG] [NetworkTweaks] checkAllStatus start
+[2026-06-17T23:10:11.769Z] [LOG] [PS:network-tweak] #51 execPowerShell SPAWN ts=1781737811769
+[2026-06-17T23:10:11.795Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-17T23:10:12.431Z] [LOG] [PS:network-tweak] #51 execPowerShell OK 662ms
+[2026-06-17T23:10:12.431Z] [LOG] [PS:network-tweak] #52 execPowerShell SPAWN ts=1781737812431
+[2026-06-17T23:10:13.104Z] [LOG] [PS:network-tweak] #52 execPowerShell OK 673ms
+[2026-06-17T23:10:13.104Z] [LOG] [PS:network-tweak] #53 execPowerShell SPAWN ts=1781737813104
+[2026-06-17T23:10:13.673Z] [LOG] [PS:network-tweak] #53 execPowerShell OK 569ms
+[2026-06-17T23:10:13.674Z] [LOG] [PS:network-tweak] #54 execPowerShell SPAWN ts=1781737813674
+[2026-06-17T23:10:14.246Z] [LOG] [PS:network-tweak] #54 execPowerShell OK 572ms
+[2026-06-17T23:10:14.246Z] [LOG] [PS:network-tweak] #55 execPowerShell SPAWN ts=1781737814246
+[2026-06-17T23:10:14.811Z] [LOG] [PS:network-tweak] #55 execPowerShell OK 565ms
+[2026-06-17T23:10:14.811Z] [LOG] [PS:network-tweak] #56 execPowerShell SPAWN ts=1781737814811
+[2026-06-17T23:10:15.377Z] [LOG] [PS:network-tweak] #56 execPowerShell OK 566ms
+[2026-06-17T23:10:15.378Z] [LOG] [PS:network-tweak] #57 execPowerShell SPAWN ts=1781737815378
+[2026-06-17T23:10:15.575Z] [LOG] [PowerPlan] ── applyPowerProfile START: profileId="maximum_performance" ──
+[2026-06-17T23:10:15.575Z] [LOG] [PowerPlan]   basePlan="high_performance" scName="SwitchControl - Max Performance"
+[2026-06-17T23:10:15.591Z] [LOG] [PowerPlan]   GUID before: 381b4222-f694-41f0-9685-ff5bb260df2e ("Balanced")
+[2026-06-17T23:10:15.622Z] [LOG] [PowerPlan] High Performance plan not found in scheme list — falling back to Balanced
+[2026-06-17T23:10:16.027Z] [LOG] [PS:network-tweak] #57 execPowerShell OK 649ms
+[2026-06-17T23:10:16.027Z] [LOG] [PS:network-tweak] #58 execPowerShell SPAWN ts=1781737816027
+[2026-06-17T23:10:16.255Z] [LOG] [PowerPlan] Admin: duplicated scheme "2891466a-c337-408b-a4da-61369f24c9e6" for maximum_performance
+[2026-06-17T23:10:16.256Z] [LOG] [PowerPlan] Saved SC scheme "2891466a-c337-408b-a4da-61369f24c9e6" for maximum_performance
+[2026-06-17T23:10:16.256Z] [LOG] [PowerPlan]   target schemeGuid: 2891466a-c337-408b-a4da-61369f24c9e6
+[2026-06-17T23:10:16.256Z] [LOG] [PowerPlan]   isAdmin=true — running 19 powercfg commands
+[2026-06-17T23:10:16.596Z] [LOG] [PowerPlan]   GUID after:  2891466a-c337-408b-a4da-61369f24c9e6 ("SwitchControl - Max Performance")
+[2026-06-17T23:10:16.596Z] [LOG] [PowerPlan]   target GUID: 2891466a-c337-408b-a4da-61369f24c9e6
+[2026-06-17T23:10:16.596Z] [LOG] [PowerPlan] ── applyPowerProfile END ── success=true guidMatch=true settingsMatch=exact_match failedCmds=0 settingsErrors=0
+[2026-06-17T23:10:16.597Z] [LOG] [OwnershipStore] apply recorded: power_plan:active-scheme appliedValue={"profileId":"maximum_performance","guid":"2891466a-c337-408b-a4da-61369f24c9e6"}
+[2026-06-17T23:10:16.597Z] [LOG] [PowerPlan] premium plan applied: profileId=maximum_performance guid=2891466a-c337-408b-a4da-61369f24c9e6 — appliedByApp=true recorded
+[2026-06-17T23:10:16.598Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:27) [Ownership:PLAN] recorded apply — prev="Balanced" (381b4222-f694-41f0-9685-ff5bb260df2e) → applied="Maximum Performance" (2891466a-c337-408b-a4da-61369f24c9e6)
+[2026-06-17T23:10:16.598Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-17T23:10:16.624Z] [LOG] [PS:network-tweak] #58 execPowerShell OK 597ms
+[2026-06-17T23:10:16.624Z] [LOG] [PS:network-tweak] #59 execPowerShell SPAWN ts=1781737816624
+[2026-06-17T23:10:17.179Z] [LOG] [PS:network-tweak] #59 execPowerShell OK 555ms
+[2026-06-17T23:10:17.180Z] [LOG] [PS:network-tweak] #60 execPowerShell SPAWN ts=1781737817180
+[2026-06-17T23:10:17.746Z] [LOG] [PS:network-tweak] #60 execPowerShell OK 566ms
+[2026-06-17T23:10:17.746Z] [LOG] [PS:network-tweak] #61 execPowerShell SPAWN ts=1781737817746
+[2026-06-17T23:10:18.420Z] [LOG] [PS:network-tweak] #61 execPowerShell OK 674ms
+[2026-06-17T23:10:18.420Z] [LOG] [PS:network-tweak] #62 execPowerShell SPAWN ts=1781737818420
+[2026-06-17T23:10:19.010Z] [LOG] [PS:network-tweak] #62 execPowerShell OK 590ms
+[2026-06-17T23:10:19.010Z] [LOG] [PS:network-tweak] #63 execPowerShell SPAWN ts=1781737819010
+[2026-06-17T23:10:19.595Z] [LOG] [PS:network-tweak] #63 execPowerShell OK 585ms
+[2026-06-17T23:10:19.596Z] [LOG] [PS:network-tweak] #64 execPowerShell SPAWN ts=1781737819596
+[2026-06-17T23:10:20.131Z] [LOG] [PS:network-tweak] #64 execPowerShell OK 535ms
+[2026-06-17T23:10:20.131Z] [LOG] [PS:network-tweak] #65 execPowerShell SPAWN ts=1781737820131
+[2026-06-17T23:10:20.794Z] [LOG] [PS:network-tweak] #65 execPowerShell OK 663ms
+[2026-06-17T23:10:20.794Z] [LOG] [PS:network-tweak] #66 execPowerShell SPAWN ts=1781737820794
+[2026-06-17T23:10:21.374Z] [LOG] [PS:network-tweak] #66 execPowerShell OK 580ms
+[2026-06-17T23:10:21.374Z] [LOG] [PS:network-tweak] #67 execPowerShell SPAWN ts=1781737821374
+[2026-06-17T23:10:22.500Z] [LOG] [PS:network-tweak] #67 execPowerShell OK 1126ms
+[2026-06-17T23:10:22.500Z] [LOG] [PS:network-tweak] #68 execPowerShell SPAWN ts=1781737822500
+[2026-06-17T23:10:23.173Z] [LOG] [PS:network-tweak] #68 execPowerShell OK 673ms
+[2026-06-17T23:10:23.173Z] [LOG] [PS:network-tweak] #69 execPowerShell SPAWN ts=1781737823173
+[2026-06-17T23:10:23.755Z] [LOG] [PS:network-tweak] #69 execPowerShell OK 582ms
+[2026-06-17T23:10:23.755Z] [LOG] [PS:network-tweak] #70 execPowerShell SPAWN ts=1781737823755
+[2026-06-17T23:10:24.935Z] [LOG] [PS:network-tweak] #70 execPowerShell OK 1180ms
+[2026-06-17T23:10:24.936Z] [LOG] [PS:network-tweak] #71 execPowerShell SPAWN ts=1781737824936
+[2026-06-17T23:10:25.630Z] [LOG] [PS:network-tweak] #71 execPowerShell OK 694ms
+[2026-06-17T23:10:25.631Z] [LOG] [PS:network-tweak] #72 execPowerShell SPAWN ts=1781737825631
+[2026-06-17T23:10:26.832Z] [LOG] [PS:network-tweak] #72 execPowerShell OK 1201ms
+[2026-06-17T23:10:26.832Z] [LOG] [PS:network-tweak] #73 execPowerShell SPAWN ts=1781737826832
+[2026-06-17T23:10:27.449Z] [LOG] [PS:network-tweak] #73 execPowerShell OK 617ms
+[2026-06-17T23:10:27.449Z] [LOG] [PS:network-tweak] #74 execPowerShell SPAWN ts=1781737827449
+[2026-06-17T23:10:28.008Z] [LOG] [PS:network-tweak] #74 execPowerShell OK 559ms
+[2026-06-17T23:10:28.009Z] [LOG] [PS:network-tweak] #75 execPowerShell SPAWN ts=1781737828009
+[2026-06-17T23:10:28.570Z] [LOG] [PS:network-tweak] #75 execPowerShell OK 561ms
+[2026-06-17T23:10:28.570Z] [LOG] [NetworkTweaks] checkStatus tweakId=smb-non-best-effort enabled=false source=registry/netsh/adapter
+[2026-06-17T23:10:28.570Z] [LOG] [NetworkTweaks] checkStatus tweakId=smb-v2v3 enabled=false source=registry/netsh/adapter
+[2026-06-17T23:10:28.571Z] [LOG] [NetworkTweaks] checkStatus tweakId=smb-live-migration enabled=null source=disabled
+[2026-06-17T23:10:28.571Z] [LOG] [NetworkTweaks] checkStatus tweakId=smb-congruent-ops enabled=null source=disabled
+[2026-06-17T23:10:28.571Z] [LOG] [NetworkTweaks] checkStatus tweakId=smb-max-requests enabled=false source=registry/netsh/adapter
+[2026-06-17T23:10:28.571Z] [LOG] [NetworkTweaks] checkStatus tweakId=smb-irp-stack enabled=false source=registry/netsh/adapter
+[2026-06-17T23:10:28.571Z] [LOG] [NetworkTweaks] checkStatus tweakId=smb-incoming-requests enabled=false source=registry/netsh/adapter
+[2026-06-17T23:10:28.571Z] [LOG] [NetworkTweaks] checkStatus tweakId=smb-pipe-data enabled=false source=registry/netsh/adapter
+[2026-06-17T23:10:28.571Z] [LOG] [NetworkTweaks] checkStatus tweakId=smb-request-buffer enabled=false source=registry/netsh/adapter
+[2026-06-17T23:10:28.571Z] [LOG] [NetworkTweaks] checkStatus tweakId=smb-preallocate enabled=null source=disabled
+[2026-06-17T23:10:28.571Z] [LOG] [NetworkTweaks] checkStatus tweakId=tcp-wait-time enabled=true source=registry/netsh/adapter
+[2026-06-17T23:10:28.571Z] [LOG] [NetworkTweaks] checkStatus tweakId=tcp-bufferlist enabled=null source=disabled
+[2026-06-17T23:10:28.571Z] [LOG] [NetworkTweaks] checkStatus tweakId=tcp-nagle enabled=true source=registry/netsh/adapter
+[2026-06-17T23:10:28.571Z] [LOG] [NetworkTweaks] checkStatus tweakId=tcp-non-sack-rto enabled=null source=disabled
+[2026-06-17T23:10:28.571Z] [LOG] [NetworkTweaks] checkStatus tweakId=tcp-task-offload enabled=false source=registry/netsh/adapter
+[2026-06-17T23:10:28.571Z] [LOG] [NetworkTweaks] checkStatus tweakId=tcp-timestamps enabled=false source=registry/netsh/adapter
+[2026-06-17T23:10:28.571Z] [LOG] [NetworkTweaks] checkStatus tweakId=tcp-window-heuristics enabled=false source=registry/netsh/adapter
+[2026-06-17T23:10:28.572Z] [LOG] [NetworkTweaks] checkStatus tweakId=tcp-dca enabled=null source=disabled
+[2026-06-17T23:10:28.572Z] [LOG] [NetworkTweaks] checkStatus tweakId=tcp-throttling-index enabled=true source=registry/netsh/adapter
+[2026-06-17T23:10:28.572Z] [LOG] [NetworkTweaks] checkStatus tweakId=tcp-pmtu enabled=false source=registry/netsh/adapter
+[2026-06-17T23:10:28.572Z] [LOG] [NetworkTweaks] checkStatus tweakId=tcp-rss enabled=true source=registry/netsh/adapter
+[2026-06-17T23:10:28.572Z] [LOG] [NetworkTweaks] checkStatus tweakId=tcp-chimney enabled=null source=disabled
+[2026-06-17T23:10:28.572Z] [LOG] [NetworkTweaks] checkStatus tweakId=tcp-sack enabled=false source=registry/netsh/adapter
+[2026-06-17T23:10:28.572Z] [LOG] [NetworkTweaks] checkStatus tweakId=tcp-weak-host enabled=false source=registry/netsh/adapter
+[2026-06-17T23:10:28.572Z] [LOG] [NetworkTweaks] checkStatus tweakId=tcp-winhttp enabled=true source=registry/netsh/adapter
+[2026-06-17T23:10:28.572Z] [LOG] [NetworkTweaks] checkStatus tweakId=tcp-rto-increase enabled=null source=disabled
+[2026-06-17T23:10:28.572Z] [LOG] [NetworkTweaks] checkStatus tweakId=tcp-connection-timeout enabled=false source=registry/netsh/adapter
+[2026-06-17T23:10:28.572Z] [LOG] [NetworkTweaks] checkStatus tweakId=tcp-congestion enabled=false source=registry/netsh/adapter
+[2026-06-17T23:10:28.572Z] [LOG] [NetworkTweaks] checkStatus tweakId=tcp-ttl enabled=null source=disabled
+[2026-06-17T23:10:28.572Z] [LOG] [NetworkTweaks] checkStatus tweakId=tcp-connection-limit enabled=null source=disabled
+[2026-06-17T23:10:28.572Z] [LOG] [NetworkTweaks] checkStatus tweakId=tcp-port-range enabled=false source=registry/netsh/adapter
+[2026-06-17T23:10:28.572Z] [LOG] [NetworkTweaks] checkStatus tweakId=udp-offloads enabled=false source=registry/netsh/adapter
+[2026-06-17T23:10:28.572Z] [LOG] [NetworkTweaks] checkStatus tweakId=udp-fast-send enabled=null source=disabled
+[2026-06-17T23:10:28.573Z] [LOG] [NetworkTweaks] checkStatus tweakId=sec-llmnr enabled=true source=registry/netsh/adapter
+[2026-06-17T23:10:28.573Z] [LOG] [NetworkTweaks] checkStatus tweakId=sec-mpp enabled=null source=disabled
+[2026-06-17T23:10:28.573Z] [LOG] [NetworkTweaks] checkStatus tweakId=sec-netbios enabled=false source=registry/netsh/adapter
+[2026-06-17T23:10:28.573Z] [LOG] [NetworkTweaks] checkStatus tweakId=dns-doh enabled=null source=disabled
+[2026-06-17T23:10:28.573Z] [LOG] [NetworkTweaks] checkStatus tweakId=dns-optimize enabled=false source=registry/netsh/adapter
+[2026-06-17T23:10:28.573Z] [LOG] [NetworkTweaks] checkAllStatus done count=38 enabled=6 disabled=32 inconclusive=0 durationMs=16804
+[2026-06-17T23:10:28.573Z] [LOG] [PS] end file=main.js fn=networkTweaks:checkAll id=10 duration=16804ms active=0 calls60s=1
+[2026-06-17T23:10:28.573Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=smb-non-best-effort enabled=false verified=true source=windows
+[2026-06-17T23:10:28.574Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=smb-v2v3 enabled=false verified=true source=windows
+[2026-06-17T23:10:28.574Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=smb-live-migration enabled=null verified=true source=disabled
+[2026-06-17T23:10:28.574Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=smb-congruent-ops enabled=null verified=true source=disabled
+[2026-06-17T23:10:28.574Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=smb-max-requests enabled=false verified=true source=windows
+[2026-06-17T23:10:28.574Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=smb-irp-stack enabled=false verified=true source=windows
+[2026-06-17T23:10:28.574Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=smb-incoming-requests enabled=false verified=true source=windows
+[2026-06-17T23:10:28.574Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=smb-pipe-data enabled=false verified=true source=windows
+[2026-06-17T23:10:28.574Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=smb-request-buffer enabled=false verified=true source=windows
+[2026-06-17T23:10:28.575Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=smb-preallocate enabled=null verified=true source=disabled
+[2026-06-17T23:10:28.575Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=tcp-wait-time enabled=true verified=true source=windows
+[2026-06-17T23:10:28.575Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=tcp-bufferlist enabled=null verified=true source=disabled
+[2026-06-17T23:10:28.575Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=tcp-nagle enabled=true verified=true source=windows
+[2026-06-17T23:10:28.575Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=tcp-non-sack-rto enabled=null verified=true source=disabled
+[2026-06-17T23:10:28.575Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=tcp-task-offload enabled=false verified=true source=windows
+[2026-06-17T23:10:28.575Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=tcp-timestamps enabled=false verified=true source=windows
+[2026-06-17T23:10:28.575Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=tcp-window-heuristics enabled=false verified=true source=windows
+[2026-06-17T23:10:28.575Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=tcp-dca enabled=null verified=true source=disabled
+[2026-06-17T23:10:28.575Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=tcp-throttling-index enabled=true verified=true source=windows
+[2026-06-17T23:10:28.576Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=tcp-pmtu enabled=false verified=true source=windows
+[2026-06-17T23:10:28.576Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=tcp-rss enabled=true verified=true source=windows
+[2026-06-17T23:10:28.576Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=tcp-chimney enabled=null verified=true source=disabled
+[2026-06-17T23:10:28.576Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=tcp-sack enabled=false verified=true source=windows
+[2026-06-17T23:10:28.576Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=tcp-weak-host enabled=false verified=true source=windows
+[2026-06-17T23:10:28.576Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=tcp-winhttp enabled=true verified=true source=windows
+[2026-06-17T23:10:28.576Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=tcp-rto-increase enabled=null verified=true source=disabled
+[2026-06-17T23:10:28.576Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=tcp-connection-timeout enabled=false verified=true source=windows
+[2026-06-17T23:10:28.576Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=tcp-congestion enabled=false verified=true source=windows
+[2026-06-17T23:10:28.577Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=tcp-ttl enabled=null verified=true source=disabled
+[2026-06-17T23:10:28.577Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=tcp-connection-limit enabled=null verified=true source=disabled
+[2026-06-17T23:10:28.577Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=tcp-port-range enabled=false verified=true source=windows
+[2026-06-17T23:10:28.577Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=udp-offloads enabled=false verified=true source=windows
+[2026-06-17T23:10:28.577Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=udp-fast-send enabled=null verified=true source=disabled
+[2026-06-17T23:10:28.577Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=sec-llmnr enabled=true verified=true source=windows
+[2026-06-17T23:10:28.577Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=sec-mpp enabled=null verified=true source=disabled
+[2026-06-17T23:10:28.577Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=sec-netbios enabled=false verified=true source=windows
+[2026-06-17T23:10:28.577Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=dns-doh enabled=null verified=true source=disabled
+[2026-06-17T23:10:28.578Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded tweakId=dns-optimize enabled=false verified=true source=windows
+[2026-06-17T23:10:28.578Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] status loaded total=38 confirmed=25 inconclusive=0
+[2026-06-17T23:10:28.578Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:155) [NetworkTweaks] stale fetch response discarded (component remounted)
+[2026-06-17T23:11:09.391Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [App] Window focused, refreshing entitlements...
+[2026-06-17T23:11:09.393Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:152) [Window] Focus event received
+[2026-06-17T23:11:09.394Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [App] Electron window focus (passive)
+[2026-06-17T23:11:09.854Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-17T23:11:10.554Z] [LOG] [Renderer:info] (index-ChQY5yQ1.js:211) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-17T23:11:12.525Z] [LOG] [Logs] Opening log directory: C:\Users\SwitchTech\AppData\Roaming\SwitchControl\logs

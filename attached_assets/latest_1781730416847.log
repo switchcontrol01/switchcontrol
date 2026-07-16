@@ -1,0 +1,268 @@
+
+[2026-06-17T21:05:10.541Z] [INFO] SwitchControl started — PID:10852 platform:win32/x64 node:20.18.3
+[2026-06-17T21:05:10.576Z] [LOG] [PS:tweak-executor] #33 queryPowerShell OK 1107ms
+[2026-06-17T21:05:10.576Z] [LOG] [PS] end file=main.js fn=tweak:checkStatus:large-system-cache id=33 duration=1107ms active=0 calls60s=33
+[2026-06-17T21:05:10.577Z] [LOG] [PS] start file=main.js fn=tweak:checkStatus:page-combining reason=tweak-check-status id=34 active=1
+[2026-06-17T21:05:10.577Z] [LOG] [PS:tweak-executor] #34 queryPowerShell SPAWN ts=1781730310577 active=1
+[2026-06-17T21:05:10.834Z] [LOG] [Security] IPC handlers registered
+[2026-06-17T21:05:10.837Z] [LOG] [Debloat] IPC handlers registered
+[2026-06-17T21:05:10.837Z] [LOG] [Cleaner] IPC handlers registered
+[2026-06-17T21:05:10.838Z] [LOG] [FocusHelper] IPC handlers registered
+[2026-06-17T21:05:10.839Z] [LOG] [Protocol] registered: true | isDefault: true | isDev: false
+[2026-06-17T21:05:10.847Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:177) [PremiumFlow] deep-link received: switchcontrol://auth/callback?code=64f0e669-6db6-42e7-a68a-681f9f5db567.1781730335531.88c576cf23774238&provider=google
+[2026-06-17T21:05:10.848Z] [LOG] [Renderer:info] (index-Bd4jLiaZ.js:211) [DeepLink] ===== RENDERER CALLBACK RECEIVED =====
+[2026-06-17T21:05:10.848Z] [LOG] [Renderer:info] (index-Bd4jLiaZ.js:211) [DeepLink] URL: switchcontrol://auth/callback?code=64f0e669-6db6-42e7-a68a-681f9f5db567.1781730335531.88c576cf23774238&provider=google
+[2026-06-17T21:05:10.849Z] [LOG] [Renderer:info] (index-Bd4jLiaZ.js:10) [AuthState] transition authenticated → callback_received
+[2026-06-17T21:05:10.849Z] [LOG] [Renderer:info] (index-Bd4jLiaZ.js:211) [DeepLink] parsed — code: present provider: google premiumActivated: false currentUserLoggedIn: true
+[2026-06-17T21:05:10.849Z] [LOG] [Renderer:info] (index-Bd4jLiaZ.js:10) [AuthState] transition callback_received → exchanging
+[2026-06-17T21:05:10.849Z] [LOG] [Renderer:info] (index-Bd4jLiaZ.js:211) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: false
+[2026-06-17T21:05:10.851Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:152) [Window] Focus event received
+[2026-06-17T21:05:10.851Z] [LOG] [Renderer:info] (index-Bd4jLiaZ.js:211) [App] Electron window focus (passive)
+[2026-06-17T21:05:10.879Z] [LOG] [STARTUP] whenReady — v1.1.2 | isDev:false | pid:10852
+[2026-06-17T21:05:10.884Z] [LOG] [ConfigStore] Initialized — file: C:\Users\SwitchTech\AppData\Roaming\SwitchControl\sc-config.json
+[2026-06-17T21:05:10.886Z] [LOG] [SwitchControl] Instant specs (sync): AMD Ryzen 7 9800X3D 8-Core Processor | GPU: Detecting… | enrichment starting…
+[2026-06-17T21:05:10.887Z] [LOG] [GPU] enrichment start
+[2026-06-17T21:05:10.887Z] [LOG] [GPU] si.graphics begin (3s timeout — WMI covers AMD DXGI hang)
+[2026-06-17T21:05:10.908Z] [LOG] [LAUNCH:1] BrowserWindow constructed — show:false, paintWhenInitiallyHidden:true, isVisible: false
+[2026-06-17T21:05:10.909Z] [LOG] [LAUNCH:2] packaged mode — indexPath: C:\Program Files\SwitchControl\resources\dist\index.html | exists: true
+[2026-06-17T21:05:10.937Z] [LOG] [Backend] ===== STARTUP DIAGNOSTICS =====
+[2026-06-17T21:05:10.937Z] [LOG] [Backend] process.execPath: C:\Program Files\SwitchControl\SwitchControl.exe
+[2026-06-17T21:05:10.937Z] [LOG] [Backend] process.resourcesPath: C:\Program Files\SwitchControl\resources
+[2026-06-17T21:05:10.937Z] [LOG] [Backend] app.isPackaged: true
+[2026-06-17T21:05:10.937Z] [LOG] [Backend] app.getAppPath(): C:\Program Files\SwitchControl\resources\app.asar
+[2026-06-17T21:05:10.937Z] [LOG] [Backend] Expected bundle path: C:\Program Files\SwitchControl\resources\dist\index.cjs
+[2026-06-17T21:05:10.938Z] [LOG] [Backend] Bundle size: 2.5 MB
+[2026-06-17T21:05:11.024Z] [LOG] [Updater] init — v1.1.2 | channel:stable | https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev
+[2026-06-17T21:05:11.024Z] [LOG] [STARTUP] app ready — 145ms from whenReady
+[2026-06-17T21:05:11.024Z] [LOG] [PREWARM] cachedSpecs seeded before window open — AMD Ryzen 7 9800X3D 8-Core Processor | GPU: Detecting…
+[2026-06-17T21:05:11.063Z] [LOG] [Backend] Free port found: 62330
+[2026-06-17T21:05:11.063Z] [LOG] [Backend] ELECTRON_USER_DATA: C:\Users\SwitchTech\AppData\Roaming\SwitchControl
+[2026-06-17T21:05:11.064Z] [LOG] [Backend] ===== ENV KEY DIAGNOSTICS =====
+[2026-06-17T21:05:11.064Z] [LOG] [Backend]   OPENAI_API_KEY: parent_env=false | config_file=false | will_use=false
+[2026-06-17T21:05:11.064Z] [LOG] [Backend]   STRIPE_SECRET_KEY: parent_env=false | config_file=false | will_use=false
+[2026-06-17T21:05:11.064Z] [LOG] [Backend]   GOOGLE_CLIENT_ID: parent_env=false | config_file=false | will_use=false
+[2026-06-17T21:05:11.064Z] [LOG] [Backend]   GOOGLE_CLIENT_SECRET: parent_env=false | config_file=false | will_use=false
+[2026-06-17T21:05:11.065Z] [LOG] [Backend]   JWT_SECRET: parent_env=false | config_file=false | will_use=false
+[2026-06-17T21:05:11.065Z] [LOG] [Backend]   SESSION_SECRET: parent_env=false | config_file=false | will_use=false
+[2026-06-17T21:05:11.065Z] [LOG] [Backend] =====================================
+[2026-06-17T21:05:11.065Z] [LOG] [Backend] ===== CHILD ENV KEY DIAGNOSTICS =====
+[2026-06-17T21:05:11.066Z] [LOG] [Backend]   child_env OPENAI_API_KEY: false
+[2026-06-17T21:05:11.066Z] [LOG] [Backend]   child_env STRIPE_SECRET_KEY: false
+[2026-06-17T21:05:11.066Z] [LOG] [Backend]   child_env GOOGLE_CLIENT_ID: false
+[2026-06-17T21:05:11.066Z] [LOG] [Backend]   child_env GOOGLE_CLIENT_SECRET: false
+[2026-06-17T21:05:11.066Z] [LOG] [Backend]   child_env JWT_SECRET: false
+[2026-06-17T21:05:11.066Z] [LOG] [Backend]   child_env SESSION_SECRET: false
+[2026-06-17T21:05:11.066Z] [LOG] [Backend] AI_MODEL in child env: (not set, will use gpt-4o-mini)
+[2026-06-17T21:05:11.067Z] [LOG] [Backend] DATABASE_URL in child env: NO — Electron offline mode (expected; cloud DB unreachable from user machine)
+[2026-06-17T21:05:11.067Z] [LOG] [Backend] ELECTRON_BACKEND in child env: 1
+[2026-06-17T21:05:11.067Z] [LOG] [Backend] ==========================================
+[2026-06-17T21:05:11.067Z] [LOG] [Backend] Spawning child process...
+[2026-06-17T21:05:11.067Z] [LOG] [Backend]   execPath: C:\Program Files\SwitchControl\SwitchControl.exe
+[2026-06-17T21:05:11.068Z] [LOG] [Backend]   script: C:\Program Files\SwitchControl\resources\dist\index.cjs
+[2026-06-17T21:05:11.068Z] [LOG] [Backend]   ELECTRON_RUN_AS_NODE: 1 (runs as plain Node.js)
+[2026-06-17T21:05:11.068Z] [LOG] [Backend]   PORT: 62330
+[2026-06-17T21:05:11.068Z] [LOG] [Backend]   cwd: C:\Program Files\SwitchControl\resources\dist
+[2026-06-17T21:05:11.076Z] [LOG] [Backend] Child process spawned, PID: 6184
+[2026-06-17T21:05:11.076Z] [LOG] [Backend] Polling health endpoint: http://127.0.0.1:62330/api/health
+[2026-06-17T21:05:11.144Z] [ERROR] [LAUNCH:2] loadFile() promise REJECTED: ERR_FAILED (-2) loading 'file:///C:\Program Files\SwitchControl\resources\dist\index.html'
+[2026-06-17T21:05:11.320Z] [LOG] [Renderer:info] (index-Bd4jLiaZ.js:211) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: false
+[2026-06-17T21:05:11.323Z] [LOG] [Renderer:info] (index-Bd4jLiaZ.js:10) [AuthState] transition exchanging → authenticated
+[2026-06-17T21:05:11.323Z] [LOG] [Renderer:info] (index-Bd4jLiaZ.js:211) [Auth] exchange success — user=64f0e669-6db6-42e7-a68a-681f9f5db567 provider=google
+[2026-06-17T21:05:11.323Z] [LOG] [Renderer:info] (index-Bd4jLiaZ.js:211) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: false
+[2026-06-17T21:05:11.324Z] [LOG] [Renderer:info] (index-Bd4jLiaZ.js:211) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: false
+[2026-06-17T21:05:11.825Z] [LOG] [Renderer:info] (index-Bd4jLiaZ.js:211) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: false
+[2026-06-17T21:05:11.826Z] [LOG] [Renderer:info] (index-Bd4jLiaZ.js:211) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: false
+[2026-06-17T21:05:12.768Z] [LOG] [PS:tweak-executor] #34 queryPowerShell OK 2191ms
+[2026-06-17T21:05:12.768Z] [LOG] [PS] end file=main.js fn=tweak:checkStatus:page-combining id=34 duration=2191ms active=0 calls60s=34
+[2026-06-17T21:05:12.785Z] [LOG] [PS] start file=main.js fn=tweak:checkStatus:prefetch reason=tweak-check-status id=35 active=1
+[2026-06-17T21:05:12.785Z] [LOG] [PS:tweak-executor] #35 queryPowerShell SPAWN ts=1781730312785 active=1
+[2026-06-17T21:05:13.431Z] [LOG] [PS:tweak-executor] #35 queryPowerShell OK 646ms
+[2026-06-17T21:05:13.431Z] [LOG] [PS] end file=main.js fn=tweak:checkStatus:prefetch id=35 duration=646ms active=0 calls60s=35
+[2026-06-17T21:05:13.432Z] [LOG] [PS] start file=main.js fn=tweak:checkStatus:superfetch reason=tweak-check-status id=36 active=1
+[2026-06-17T21:05:13.432Z] [LOG] [PS:tweak-executor] #36 queryPowerShell SPAWN ts=1781730313432 active=1
+[2026-06-17T21:05:13.996Z] [LOG] [PS:tweak-executor] #36 queryPowerShell OK 564ms
+[2026-06-17T21:05:13.996Z] [LOG] [PS] end file=main.js fn=tweak:checkStatus:superfetch id=36 duration=564ms active=0 calls60s=36
+[2026-06-17T21:05:13.996Z] [LOG] [PS] start file=main.js fn=tweak:checkStatus:ntfs-last-access reason=tweak-check-status id=37 active=1
+[2026-06-17T21:05:13.997Z] [LOG] [PS:tweak-executor] #37 queryPowerShell SPAWN ts=1781730313997 active=1
+[2026-06-17T21:05:14.599Z] [LOG] [PS:tweak-executor] #37 queryPowerShell OK 602ms
+[2026-06-17T21:05:14.599Z] [LOG] [PS] end file=main.js fn=tweak:checkStatus:ntfs-last-access id=37 duration=603ms active=0 calls60s=37
+[2026-06-17T21:05:14.600Z] [LOG] [PS] start file=main.js fn=tweak:checkStatus:win-search-index reason=tweak-check-status id=38 active=1
+[2026-06-17T21:05:14.601Z] [LOG] [PS:tweak-executor] #38 queryPowerShell SPAWN ts=1781730314601 active=1
+[2026-06-17T21:05:15.177Z] [LOG] [PS:tweak-executor] #38 queryPowerShell OK 576ms
+[2026-06-17T21:05:15.177Z] [LOG] [PS] end file=main.js fn=tweak:checkStatus:win-search-index id=38 duration=577ms active=0 calls60s=38
+[2026-06-17T21:05:15.177Z] [LOG] [PS] start file=main.js fn=tweak:checkStatus:telemetry reason=tweak-check-status id=39 active=1
+[2026-06-17T21:05:15.177Z] [LOG] [PS:tweak-executor] #39 queryPowerShell SPAWN ts=1781730315177 active=1
+[2026-06-17T21:05:15.755Z] [LOG] [PS:tweak-executor] #39 queryPowerShell OK 578ms
+[2026-06-17T21:05:15.755Z] [LOG] [PS] end file=main.js fn=tweak:checkStatus:telemetry id=39 duration=578ms active=0 calls60s=39
+[2026-06-17T21:05:15.756Z] [LOG] [PS] start file=main.js fn=tweak:checkStatus:nvidia-telemetry reason=tweak-check-status id=40 active=1
+[2026-06-17T21:05:15.756Z] [LOG] [PS:tweak-executor] #40 queryPowerShell SPAWN ts=1781730315756 active=1
+[2026-06-17T21:05:16.496Z] [LOG] [PS:tweak-executor] #40 queryPowerShell OK 740ms
+[2026-06-17T21:05:16.497Z] [LOG] [TweakSupport] id=nvidia-telemetry, supported=false, reason="No NVIDIA GPU detected", os=10.0.26200, helperFound=false
+[2026-06-17T21:05:16.497Z] [LOG] [PS] end file=main.js fn=tweak:checkStatus:nvidia-telemetry id=40 duration=741ms active=0 calls60s=40
+[2026-06-17T21:05:16.497Z] [LOG] [PS] start file=main.js fn=tweak:checkStatus:disable-delivery-opt reason=tweak-check-status id=41 active=1
+[2026-06-17T21:05:16.497Z] [LOG] [PS:tweak-executor] #41 queryPowerShell SPAWN ts=1781730316497 active=1
+[2026-06-17T21:05:17.093Z] [LOG] [PS:tweak-executor] #41 queryPowerShell OK 596ms
+[2026-06-17T21:05:17.093Z] [LOG] [PS] end file=main.js fn=tweak:checkStatus:disable-delivery-opt id=41 duration=596ms active=0 calls60s=41
+[2026-06-17T21:05:17.094Z] [LOG] [PS] start file=main.js fn=tweak:checkStatus:disable-wer reason=tweak-check-status id=42 active=1
+[2026-06-17T21:05:17.094Z] [LOG] [PS:tweak-executor] #42 queryPowerShell SPAWN ts=1781730317094 active=1
+[2026-06-17T21:05:17.633Z] [LOG] [PS:tweak-executor] #42 queryPowerShell OK 539ms
+[2026-06-17T21:05:17.634Z] [LOG] [PS] end file=main.js fn=tweak:checkStatus:disable-wer id=42 duration=540ms active=0 calls60s=42
+[2026-06-17T21:05:17.634Z] [LOG] [PS] start file=main.js fn=tweak:checkStatus:disable-activity-history reason=tweak-check-status id=43 active=1
+[2026-06-17T21:05:17.634Z] [LOG] [PS:tweak-executor] #43 queryPowerShell SPAWN ts=1781730317634 active=1
+[2026-06-17T21:05:17.917Z] [LOG] [Renderer:info] (index-Bd4jLiaZ.js:211) [Handoff] intro exit complete — mounting dashboard
+[2026-06-17T21:05:17.918Z] [LOG] [Renderer:info] (index-Bd4jLiaZ.js:211) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: false
+[2026-06-17T21:05:17.919Z] [WARN] [telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.
+[2026-06-17T21:05:17.919Z] [LOG] [Renderer:info] (index-Bd4jLiaZ.js:211) [TourTransition] phase entered authenticated — waiting 500ms for dashboard to stabilize
+[2026-06-17T21:05:17.926Z] [LOG] [Renderer:info] (index-Bd4jLiaZ.js:211) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: false
+[2026-06-17T21:05:18.184Z] [LOG] [PS:tweak-executor] #43 queryPowerShell OK 550ms
+[2026-06-17T21:05:18.184Z] [LOG] [PS] end file=main.js fn=tweak:checkStatus:disable-activity-history id=43 duration=550ms active=0 calls60s=43
+[2026-06-17T21:05:18.185Z] [LOG] [PS] start file=main.js fn=tweak:checkStatus:tune-priority reason=tweak-check-status id=44 active=1
+[2026-06-17T21:05:18.185Z] [LOG] [PS:tweak-executor] #44 queryPowerShell SPAWN ts=1781730318185 active=1
+[2026-06-17T21:05:18.250Z] [LOG] [Renderer:info] (index-Bd4jLiaZ.js:28) [Network] Heartbeat started (interval=30000ms)
+[2026-06-17T21:05:18.253Z] [LOG] [Renderer:info] (index-Bd4jLiaZ.js:155) [Dashboard] mounted
+[2026-06-17T21:05:18.254Z] [LOG] [Renderer:info] (index-Bd4jLiaZ.js:155) [ActivityMonitor] reused cached state — history points: 1 status: ready
+[2026-06-17T21:05:18.254Z] [LOG] [BOOT] ──────────────────────────────────────────
+[2026-06-17T21:05:18.254Z] [LOG] [BOOT] firstFrameReady  = 285ms
+[2026-06-17T21:05:18.254Z] [LOG] [BOOT] windowShown      = 321ms
+[2026-06-17T21:05:18.254Z] [LOG] [BOOT] telemetryStart   = pending
+[2026-06-17T21:05:18.254Z] [LOG] [BOOT] dashboardMounted = 32073ms
+[2026-06-17T21:05:18.254Z] [LOG] [BOOT] ──────────────────────────────────────────
+[2026-06-17T21:05:18.254Z] [LOG] [Renderer:info] (index-Bd4jLiaZ.js:155) [Home] Specs pre-loaded from Splash — skipping getSpecs()
+[2026-06-17T21:05:18.255Z] [LOG] [Renderer:info] (index-Bd4jLiaZ.js:211) [Handoff] dashboard fade-in started
+[2026-06-17T21:05:18.281Z] [LOG] [Renderer:info] (index-Bd4jLiaZ.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:62304/api
+[2026-06-17T21:05:18.281Z] [LOG] [Renderer:info] (index-Bd4jLiaZ.js:10) [AuthRoute] path=/api/dashboard-intelligence/system-dna target=local reason=system-route base=http://127.0.0.1:62304/api
+[2026-06-17T21:05:18.282Z] [LOG] [Renderer:info] (index-Bd4jLiaZ.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:62304/api
+[2026-06-17T21:05:18.282Z] [LOG] [Renderer:info] (index-Bd4jLiaZ.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:62304/api
+[2026-06-17T21:05:18.282Z] [LOG] [Renderer:info] (index-Bd4jLiaZ.js:10) [AuthRoute] path=/api/dashboard-intelligence/ram-analysis target=local reason=system-route base=http://127.0.0.1:62304/api
+[2026-06-17T21:05:18.282Z] [LOG] [Renderer:info] (index-Bd4jLiaZ.js:10) [AuthRoute] path=/api/system-intelligence/profile target=local reason=system-route base=http://127.0.0.1:62304/api
+[2026-06-17T21:05:18.307Z] [LOG] [Renderer:info] (index-Bd4jLiaZ.js:211) [Handoff] dashboard fade-in complete — layout stable
+[2026-06-17T21:05:18.314Z] [LOG] [Renderer:info] (index-Bd4jLiaZ.js:153) [SysIntelligence] Profile loaded | MB=null | BIOS=null | CPU=null
+[2026-06-17T21:05:18.419Z] [LOG] [Renderer:info] (index-Bd4jLiaZ.js:211) [TourTransition] dashboard stable — tours unblocked
+[2026-06-17T21:05:18.420Z] [LOG] [Renderer:info] (index-Bd4jLiaZ.js:211) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: false
+[2026-06-17T21:05:18.431Z] [LOG] [Renderer:info] (index-Bd4jLiaZ.js:211) [AppFlow] Flow eval — isPremium: false plan: free trialEndsAt: null hasSeenTrialActivation: true hasSeenTrialTour: true hasSeenUnlock: true hasSeenTour: true isFirstTimeUser: true isFirstLogin: true entitlementsAttempted: true entitlementsOk: false unlockFired: false trialUnlockFired: false
+[2026-06-17T21:05:18.432Z] [LOG] [Renderer:info] (index-Bd4jLiaZ.js:211) [AppFlow] PRIORITY 1: First-time onboarding tour
+[2026-06-17T21:05:18.432Z] [LOG] [Renderer:info] (index-Bd4jLiaZ.js:211) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: false
+[2026-06-17T21:05:18.441Z] [LOG] [Renderer:info] (index-Bd4jLiaZ.js:25) [TourTransition] mounted (invisible)
+[2026-06-17T21:05:18.588Z] [LOG] [Renderer:info] (index-Bd4jLiaZ.js:25) [TourTransition] revealed — first visible frame
+[2026-06-17T21:05:18.825Z] [LOG] [PS:tweak-executor] #44 queryPowerShell OK 640ms
+[2026-06-17T21:05:18.826Z] [LOG] [PS] end file=main.js fn=tweak:checkStatus:tune-priority id=44 duration=641ms active=0 calls60s=44
+[2026-06-17T21:05:18.826Z] [LOG] [PS] start file=main.js fn=tweak:checkStatus:synth-timers reason=tweak-check-status id=45 active=1
+[2026-06-17T21:05:18.826Z] [LOG] [PS:tweak-executor] #45 queryPowerShell SPAWN ts=1781730318826 active=1
+[2026-06-17T21:05:18.917Z] [LOG] [Renderer:info] (index-Bd4jLiaZ.js:25) [TourTransition] card fully visible
+[2026-06-17T21:05:19.454Z] [LOG] [Renderer:info] (index-Bd4jLiaZ.js:10) [AuthRoute] path=/api/startup/apps target=local reason=system-route base=http://127.0.0.1:62304/api
+[2026-06-17T21:05:19.539Z] [LOG] [PS:tweak-executor] #45 queryPowerShell OK 713ms
+[2026-06-17T21:05:19.539Z] [LOG] [PS] end file=main.js fn=tweak:checkStatus:synth-timers id=45 duration=713ms active=0 calls60s=45
+[2026-06-17T21:05:19.540Z] [LOG] [PS] start file=main.js fn=tweak:checkStatus:usb-selective-suspend reason=tweak-check-status id=46 active=1
+[2026-06-17T21:05:19.540Z] [LOG] [PS:tweak-executor] #46 queryPowerShell SPAWN ts=1781730319540 active=1
+[2026-06-17T21:05:19.609Z] [LOG] [Renderer:info] (index-Bd4jLiaZ.js:10) [AuthRoute] path=/api/issues/detect target=local reason=system-route base=http://127.0.0.1:62304/api
+[2026-06-17T21:05:19.924Z] [WARN] [telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.
+[2026-06-17T21:05:20.266Z] [LOG] [PS:tweak-executor] #46 queryPowerShell OK 726ms
+[2026-06-17T21:05:20.267Z] [LOG] [TweakSupport] id=usb-selective-suspend, supported=true, reason="powercfg USB setting present", os=10.0.26200, helperFound=true
+[2026-06-17T21:05:20.267Z] [LOG] [PS] end file=main.js fn=tweak:checkStatus:usb-selective-suspend id=46 duration=727ms active=0 calls60s=46
+[2026-06-17T21:05:20.267Z] [LOG] [PS] start file=main.js fn=tweak:checkStatus:mmcss-gaming reason=tweak-check-status id=47 active=1
+[2026-06-17T21:05:20.267Z] [LOG] [PS:tweak-executor] #47 queryPowerShell SPAWN ts=1781730320267 active=1
+[2026-06-17T21:05:20.927Z] [LOG] [PS:tweak-executor] #47 queryPowerShell OK 660ms
+[2026-06-17T21:05:20.927Z] [LOG] [PS] end file=main.js fn=tweak:checkStatus:mmcss-gaming id=47 duration=660ms active=0 calls60s=47
+[2026-06-17T21:05:20.927Z] [LOG] [PS] start file=main.js fn=tweak:checkStatus:preemption reason=tweak-check-status id=48 active=1
+[2026-06-17T21:05:20.927Z] [LOG] [PS:tweak-executor] #48 queryPowerShell SPAWN ts=1781730320927 active=1
+[2026-06-17T21:05:21.508Z] [LOG] [PS:tweak-executor] #48 queryPowerShell OK 581ms
+[2026-06-17T21:05:21.509Z] [LOG] [PS] end file=main.js fn=tweak:checkStatus:preemption id=48 duration=582ms active=0 calls60s=48
+[2026-06-17T21:05:21.510Z] [LOG] [PS] start file=main.js fn=tweak:checkStatus:disable-mpo reason=tweak-check-status id=49 active=1
+[2026-06-17T21:05:21.510Z] [LOG] [PS:tweak-executor] #49 queryPowerShell SPAWN ts=1781730321510 active=1
+[2026-06-17T21:05:21.945Z] [WARN] [telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.
+[2026-06-17T21:05:22.068Z] [LOG] [PS:tweak-executor] #49 queryPowerShell OK 558ms
+[2026-06-17T21:05:22.068Z] [LOG] [PS] end file=main.js fn=tweak:checkStatus:disable-mpo id=49 duration=558ms active=0 calls60s=49
+[2026-06-17T21:05:22.070Z] [LOG] [PS] start file=main.js fn=tweak:checkStatus:bluetooth reason=tweak-check-status id=50 active=1
+[2026-06-17T21:05:22.070Z] [LOG] [PS:tweak-executor] #50 queryPowerShell SPAWN ts=1781730322070 active=1
+[2026-06-17T21:05:22.652Z] [LOG] [PS:tweak-executor] #50 queryPowerShell OK 582ms
+[2026-06-17T21:05:22.652Z] [LOG] [PS] end file=main.js fn=tweak:checkStatus:bluetooth id=50 duration=582ms active=0 calls60s=50
+[2026-06-17T21:05:22.653Z] [LOG] [PS] start file=main.js fn=tweak:checkStatus:wifi reason=tweak-check-status id=51 active=1
+[2026-06-17T21:05:22.654Z] [LOG] [PS:tweak-executor] #51 queryPowerShell SPAWN ts=1781730322654 active=1
+[2026-06-17T21:05:23.205Z] [LOG] [PS:tweak-executor] #51 queryPowerShell OK 551ms
+[2026-06-17T21:05:23.206Z] [LOG] [PS] end file=main.js fn=tweak:checkStatus:wifi id=51 duration=553ms active=0 calls60s=51
+[2026-06-17T21:05:23.209Z] [LOG] [PS] start file=main.js fn=tweak:checkStatus:xbox-services reason=tweak-check-status id=52 active=1
+[2026-06-17T21:05:23.209Z] [LOG] [PS:tweak-executor] #52 queryPowerShell SPAWN ts=1781730323209 active=1
+[2026-06-17T21:05:23.490Z] [LOG] [Renderer:info] (index-Bd4jLiaZ.js:211) [App] Window focused but flow active, skipping refresh
+[2026-06-17T21:05:23.495Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:152) [Window] Focus event received
+[2026-06-17T21:05:23.495Z] [LOG] [Renderer:info] (index-Bd4jLiaZ.js:211) [App] Electron window focus (passive)
+[2026-06-17T21:05:23.787Z] [LOG] [PS:tweak-executor] #52 queryPowerShell OK 578ms
+[2026-06-17T21:05:23.787Z] [LOG] [PS] end file=main.js fn=tweak:checkStatus:xbox-services id=52 duration=578ms active=0 calls60s=52
+[2026-06-17T21:05:23.790Z] [LOG] [PS] start file=main.js fn=tweak:checkStatus:fax-printer reason=tweak-check-status id=53 active=1
+[2026-06-17T21:05:23.790Z] [LOG] [PS:tweak-executor] #53 queryPowerShell SPAWN ts=1781730323790 active=1
+[2026-06-17T21:05:23.962Z] [WARN] [telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.
+[2026-06-17T21:05:24.345Z] [LOG] [PS:tweak-executor] #53 queryPowerShell OK 555ms
+[2026-06-17T21:05:24.345Z] [LOG] [PS] end file=main.js fn=tweak:checkStatus:fax-printer id=53 duration=555ms active=0 calls60s=53
+[2026-06-17T21:05:24.346Z] [LOG] [Renderer:info] (index-Bd4jLiaZ.js:10) [AuthRoute] path=/api/network-tweaks/state target=cloud reason=cloud-only
+[2026-06-17T21:05:24.347Z] [LOG] [DeviceID] Generated and saved new device ID: C1E3FA34441D435F
+[2026-06-17T21:05:24.928Z] [LOG] [Renderer:info] (index-Bd4jLiaZ.js:27) [Ownership:BASELINE] initialized
+[2026-06-17T21:05:24.928Z] [LOG] [Renderer:info] (index-Bd4jLiaZ.js:28) [Baseline] Complete — 52 tweaks scanned
+[2026-06-17T21:05:24.929Z] [LOG] [Renderer:info] (index-Bd4jLiaZ.js:211) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: false
+[2026-06-17T21:05:25.978Z] [WARN] [telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.
+[2026-06-17T21:05:27.992Z] [WARN] [telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.
+[2026-06-17T21:05:30.007Z] [WARN] [telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.
+[2026-06-17T21:05:30.032Z] [LOG] [Renderer:info] (index-Bd4jLiaZ.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:62304/api
+[2026-06-17T21:05:32.026Z] [WARN] [telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.
+[2026-06-17T21:05:34.041Z] [WARN] [telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.
+[2026-06-17T21:05:35.043Z] [LOG] [Renderer:info] (index-Bd4jLiaZ.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:62304/api
+[2026-06-17T21:05:36.055Z] [WARN] [telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.
+[2026-06-17T21:05:38.069Z] [WARN] [telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.
+[2026-06-17T21:05:40.048Z] [LOG] [Renderer:info] (index-Bd4jLiaZ.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:62304/api
+[2026-06-17T21:05:40.083Z] [WARN] [telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.
+[2026-06-17T21:05:42.097Z] [WARN] [telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.
+[2026-06-17T21:05:44.115Z] [WARN] [telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.
+[2026-06-17T21:05:46.131Z] [WARN] [telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.
+[2026-06-17T21:05:48.146Z] [WARN] [telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.
+[2026-06-17T21:05:50.054Z] [LOG] [Renderer:info] (index-Bd4jLiaZ.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:62304/api
+[2026-06-17T21:05:50.055Z] [LOG] [Renderer:info] (index-Bd4jLiaZ.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:62304/api
+[2026-06-17T21:05:50.055Z] [LOG] [Renderer:info] (index-Bd4jLiaZ.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:62304/api
+[2026-06-17T21:05:50.158Z] [WARN] [telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.
+[2026-06-17T21:05:52.172Z] [WARN] [telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.
+[2026-06-17T21:05:54.185Z] [WARN] [telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.
+[2026-06-17T21:05:56.198Z] [WARN] [telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.
+[2026-06-17T21:05:58.211Z] [WARN] [telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.
+[2026-06-17T21:06:00.061Z] [LOG] [Renderer:info] (index-Bd4jLiaZ.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:62304/api
+[2026-06-17T21:06:00.225Z] [WARN] [telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.
+[2026-06-17T21:06:02.236Z] [WARN] [telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.
+[2026-06-17T21:06:04.247Z] [WARN] [telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.
+[2026-06-17T21:06:05.067Z] [LOG] [Renderer:info] (index-Bd4jLiaZ.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:62304/api
+[2026-06-17T21:06:06.262Z] [WARN] [telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.
+[2026-06-17T21:06:08.276Z] [WARN] [telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.
+[2026-06-17T21:06:10.070Z] [LOG] [Renderer:info] (index-Bd4jLiaZ.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:62304/api
+[2026-06-17T21:06:10.287Z] [WARN] [telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.
+[2026-06-17T21:06:12.300Z] [WARN] [telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.
+[2026-06-17T21:06:14.312Z] [WARN] [telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.
+[2026-06-17T21:06:16.331Z] [WARN] [telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.
+[2026-06-17T21:06:18.343Z] [WARN] [telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.
+[2026-06-17T21:06:20.075Z] [LOG] [Renderer:info] (index-Bd4jLiaZ.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:62304/api
+[2026-06-17T21:06:20.076Z] [LOG] [Renderer:info] (index-Bd4jLiaZ.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:62304/api
+[2026-06-17T21:06:20.076Z] [LOG] [Renderer:info] (index-Bd4jLiaZ.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:62304/api
+[2026-06-17T21:06:20.076Z] [LOG] [Renderer:info] (index-Bd4jLiaZ.js:10) [AuthRoute] path=/api/dashboard-intelligence/system-dna target=local reason=system-route base=http://127.0.0.1:62304/api
+[2026-06-17T21:06:20.076Z] [LOG] [Renderer:info] (index-Bd4jLiaZ.js:10) [AuthRoute] path=/api/dashboard-intelligence/ram-analysis target=local reason=system-route base=http://127.0.0.1:62304/api
+[2026-06-17T21:06:20.356Z] [WARN] [telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.
+[2026-06-17T21:06:22.368Z] [WARN] [telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.
+[2026-06-17T21:06:24.383Z] [WARN] [telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.
+[2026-06-17T21:06:26.396Z] [WARN] [telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.
+[2026-06-17T21:06:28.408Z] [WARN] [telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.
+[2026-06-17T21:06:30.423Z] [WARN] [telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.
+[2026-06-17T21:06:31.700Z] [LOG] [Renderer:info] (index-Bd4jLiaZ.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:62304/api
+[2026-06-17T21:06:32.435Z] [WARN] [telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.
+[2026-06-17T21:06:34.447Z] [WARN] [telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.
+[2026-06-17T21:06:36.461Z] [WARN] [telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.
+[2026-06-17T21:06:36.704Z] [LOG] [Renderer:info] (index-Bd4jLiaZ.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:62304/api
+[2026-06-17T21:06:38.473Z] [WARN] [telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.
+[2026-06-17T21:06:40.484Z] [WARN] [telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.
+[2026-06-17T21:06:41.708Z] [LOG] [Renderer:info] (index-Bd4jLiaZ.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:62304/api
+[2026-06-17T21:06:42.500Z] [WARN] [telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.
+[2026-06-17T21:06:44.512Z] [WARN] [telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.
+[2026-06-17T21:06:45.020Z] [LOG] [Renderer:info] (index-Bd4jLiaZ.js:211) [App] Window focused but flow active, skipping refresh
+[2026-06-17T21:06:45.023Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:152) [Window] Focus event received
+[2026-06-17T21:06:45.023Z] [LOG] [Renderer:info] (index-Bd4jLiaZ.js:211) [App] Electron window focus (passive)
+[2026-06-17T21:06:46.524Z] [WARN] [telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.
+[2026-06-17T21:06:48.536Z] [WARN] [telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.
+[2026-06-17T21:06:50.549Z] [WARN] [telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.
+[2026-06-17T21:06:51.713Z] [LOG] [Renderer:info] (index-Bd4jLiaZ.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:62304/api
+[2026-06-17T21:06:51.713Z] [LOG] [Renderer:info] (index-Bd4jLiaZ.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:62304/api
+[2026-06-17T21:06:51.713Z] [LOG] [Renderer:info] (index-Bd4jLiaZ.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:62304/api
+[2026-06-17T21:06:52.563Z] [WARN] [telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.
+[2026-06-17T21:06:54.576Z] [WARN] [telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.
+[2026-06-17T21:06:56.588Z] [WARN] [telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.

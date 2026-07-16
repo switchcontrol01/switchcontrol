@@ -1,0 +1,54 @@
+[2026-06-22T08:16:40.920Z] HEALTH attempt=1 elapsed=0ms ERR ECONNREFUSED connect ECONNREFUSED 127.0.0.1:58533
+[2026-06-22T08:16:40.978Z] HEALTH attempt=2 elapsed=59ms ERR ECONNREFUSED connect ECONNREFUSED 127.0.0.1:58533
+[2026-06-22T08:16:40.995Z] STDOUT [DesktopSecrets] ELECTRON_BACKEND mode — bootstrapping secrets
+[2026-06-22T08:16:40.996Z] STDOUT [DesktopSecrets] Secrets file path: C:\Users\SwitchTech\AppData\Roaming\SwitchControl\desktop-secrets.json
+[2026-06-22T08:16:40.996Z] STDOUT [DesktopSecrets] Loaded persisted secrets from: C:\Users\SwitchTech\AppData\Roaming\SwitchControl\desktop-secrets.json
+[2026-06-22T08:16:40.996Z] STDOUT [DesktopSecrets] JWT_SECRET: loaded from persisted file
+[2026-06-22T08:16:40.996Z] STDOUT [DesktopSecrets] SESSION_SECRET: loaded from persisted file
+[2026-06-22T08:16:40.996Z] STDOUT [DesktopSecrets] Bootstrap complete — JWT_SECRET and SESSION_SECRET are set
+[2026-06-22T08:16:41.032Z] HEALTH attempt=3 elapsed=113ms ERR ECONNREFUSED connect ECONNREFUSED 127.0.0.1:58533
+[2026-06-22T08:16:41.046Z] STDOUT [DB] Electron offline mode — no DATABASE_URL present, using in-memory mock storage.
+[2026-06-22T08:16:41.054Z] STDOUT [Stripe] Billing not configured on local backend — expected in Electron mode.
+[2026-06-22T08:16:41.156Z] STDOUT [JWT] ===== SELF-TEST START =====
+[2026-06-22T08:16:41.156Z] STDOUT [JWT] config OK — JWT secret configured (secretFp=f577a787)
+[2026-06-22T08:16:41.156Z] STDOUT [JWT] signed — userId=self-test-user-000 secretFp=f577a787 tokenFp=eyJhbGci.eyJzdWIi
+[2026-06-22T08:16:41.157Z] STDOUT [JWT] PASS: valid token → sub=self-test-user-000 exp=1784708201
+[2026-06-22T08:16:41.157Z] STDOUT [JWT] PASS: invalid token → null (rejected)
+[2026-06-22T08:16:41.157Z] STDOUT [JWT] PASS: expired token → null (rejected)
+[2026-06-22T08:16:41.157Z] STDOUT [JWT] PASS: empty token → null (fallback to cookie path)
+[2026-06-22T08:16:41.157Z] STDOUT [JWT] PASS: alg=none token → null (rejected)
+[2026-06-22T08:16:41.157Z] STDOUT [JWT] PASS: wrong issuer token → null (rejected)
+[2026-06-22T08:16:41.158Z] STDOUT [JWT] ===== SELF-TEST END =====
+[2026-06-22T08:16:41.158Z] STDOUT [AUTH] Google OAuth not configured on local backend — expected in Electron mode (auth handled by cloud server).
+[2026-06-22T08:16:41.158Z] STDOUT [AUTH] Using memory session store (NO-DB / Electron desktop mode)
+[2026-06-22T08:16:41.158Z] STDOUT [AUTH] ===== SESSION COOKIE CONFIG =====
+[2026-06-22T08:16:41.158Z] STDOUT [AUTH] production: true
+[2026-06-22T08:16:41.158Z] STDOUT [AUTH] electronBackend: true
+[2026-06-22T08:16:41.158Z] STDOUT [AUTH] cookie: {"httpOnly":true,"secure":false,"sameSite":"lax","maxAge":604800000,"path":"/"}
+[2026-06-22T08:16:41.159Z] STDOUT [AUTH] ================================
+[2026-06-22T08:16:41.159Z] STDOUT [AUTH] Discord OAuth not configured on local backend — expected in Electron mode (auth handled by cloud server).
+[2026-06-22T08:16:41.159Z] STDOUT [WS] Live telemetry WebSocket server ready at /ws/telemetry (auth required)
+[2026-06-22T08:16:41.159Z] STDOUT 8:16:41 PM [express] serving on 127.0.0.1:58533
+[2026-06-22T08:16:41.168Z] Health check PASSED — attempt 4, 250ms elapsed, body={"status":"ok","version":"1.1.6","uptime":0,"dbReachable":false,"timestamp":1782116201166}
+[2026-06-22T08:16:44.215Z] STDOUT [SysIntelligence] phase=A start — identity collection (sequential, WMI-safe)
+[2026-06-22T08:16:47.222Z] STDERR [SysIntelligence] phase=timeout source=A.mem limit=3000ms
+[2026-06-22T08:16:49.299Z] STDOUT [SysIntelligence] phase=A complete in 5083ms | CPU=Ryzen 7 9800X3D 8-Core Processor | GPU=AMD Radeon RX 7800 XT | RAM=32372MB | probes: mem+cpu+graphics (baseboard/bios skipped)
+[2026-06-22T08:16:54.221Z] STDERR [SysIntelligence] phase=timeout source=graphics limit=6000ms
+[2026-06-22T08:16:54.575Z] STDERR [SysIntelligence] phase=timeout source=cpu limit=9000ms
+[2026-06-22T08:17:01.107Z] STDOUT [SysIntelligence] Background deep collection triggered
+[2026-06-22T08:17:01.107Z] STDOUT [SysIntelligence] phase=full start — deep collection
+[2026-06-22T08:17:12.154Z] STDERR [SysIntelligence] phase=timeout source=processes limit=6000ms
+[2026-06-22T08:17:12.379Z] STDERR [SysIntelligence] phase=timeout source=fsSize limit=8000ms
+[2026-06-22T08:17:12.379Z] STDERR [SysIntelligence] phase=timeout source=netIf limit=8000ms
+[2026-06-22T08:17:12.380Z] STDERR [SysIntelligence] phase=timeout source=osInfo limit=8000ms
+[2026-06-22T08:17:12.380Z] STDERR [SysIntelligence] phase=timeout source=audio limit=8000ms
+[2026-06-22T08:17:12.396Z] STDOUT [SysIntelligence] cpu WMI timeout — os.cpus() fallback: AMD Ryzen 7 9800X3D 8-Core Processor
+[2026-06-22T08:17:12.491Z] STDERR [SysIntelligence] phase=timeout source=memLayout limit=10000ms
+[2026-06-22T08:17:12.491Z] STDERR [SysIntelligence] phase=timeout source=diskLayout limit=10000ms
+[2026-06-22T08:17:13.098Z] STDOUT [SysIntelligence] phase=full complete in 11990ms | MB=X870E AORUS PRO ICE | BIOS=F12a | CPU=AMD Ryzen 7 9800X3D 8-Core Processor | GPUs=1 | RAMsticks=2
+[2026-06-22T08:17:13.099Z] STDOUT [SysIntelligence] Disk cache updated
+[2026-06-22T08:17:13.109Z] STDERR [SysIntelligence] phase=timeout source=baseboard limit=12000ms
+[2026-06-22T08:17:13.109Z] STDERR [SysIntelligence] phase=timeout source=bios limit=12000ms
+[2026-06-22T08:17:16.154Z] STDERR [SysIntelligence] phase=timeout source=platformPS limit=10000ms
+[2026-06-22T08:17:18.442Z] STDERR [SysIntelligence] phase=timeout source=graphics limit=8000ms
+[2026-06-22T08:17:18.442Z] STDERR [SysIntelligence] phase=timeout source=monitorEDID limit=8000ms

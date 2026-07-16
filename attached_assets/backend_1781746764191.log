@@ -1,0 +1,59 @@
+[2026-06-18T01:35:31.367Z] HEALTH attempt=1 elapsed=0ms ERR ECONNREFUSED connect ECONNREFUSED 127.0.0.1:59854
+[2026-06-18T01:35:31.418Z] HEALTH attempt=2 elapsed=54ms ERR ECONNREFUSED connect ECONNREFUSED 127.0.0.1:59854
+[2026-06-18T01:35:31.470Z] HEALTH attempt=3 elapsed=106ms ERR ECONNREFUSED connect ECONNREFUSED 127.0.0.1:59854
+[2026-06-18T01:35:31.522Z] HEALTH attempt=4 elapsed=158ms ERR ECONNREFUSED connect ECONNREFUSED 127.0.0.1:59854
+[2026-06-18T01:35:31.560Z] STDOUT [DesktopSecrets] ELECTRON_BACKEND mode — bootstrapping secrets
+[2026-06-18T01:35:31.560Z] STDOUT [DesktopSecrets] Secrets file path: C:\Users\SwitchTech\AppData\Roaming\SwitchControl\desktop-secrets.json
+[2026-06-18T01:35:31.561Z] STDOUT [DesktopSecrets] Loaded persisted secrets from: C:\Users\SwitchTech\AppData\Roaming\SwitchControl\desktop-secrets.json
+[2026-06-18T01:35:31.561Z] STDOUT [DesktopSecrets] JWT_SECRET: loaded from persisted file
+[2026-06-18T01:35:31.561Z] STDOUT [DesktopSecrets] SESSION_SECRET: loaded from persisted file
+[2026-06-18T01:35:31.561Z] STDOUT [DesktopSecrets] Bootstrap complete — JWT_SECRET and SESSION_SECRET are set
+[2026-06-18T01:35:31.572Z] HEALTH attempt=5 elapsed=209ms ERR ECONNREFUSED connect ECONNREFUSED 127.0.0.1:59854
+[2026-06-18T01:35:32.793Z] STDOUT [DB] Electron offline mode — no DATABASE_URL present, using in-memory mock storage.
+[2026-06-18T01:35:32.793Z] STDOUT [Stripe] Billing not configured on local backend — expected in Electron mode.
+[2026-06-18T01:35:32.793Z] STDOUT [FocusMode] Skipping DB init — running without database (Electron offline / dev no-DB mode).
+[2026-06-18T01:35:32.794Z] STDOUT [JWT] ===== SELF-TEST START =====
+[2026-06-18T01:35:32.794Z] STDOUT [JWT] config OK — JWT secret configured (secretFp=4a3eaa61)
+[2026-06-18T01:35:32.794Z] STDOUT [JWT] signed — userId=self-test-user-000 secretFp=4a3eaa61 tokenFp=eyJhbGci.eyJzdWIi
+[2026-06-18T01:35:32.794Z] STDOUT [JWT] PASS: valid token → sub=self-test-user-000 exp=1784338532
+[2026-06-18T01:35:32.794Z] STDOUT [JWT] PASS: invalid token → null (rejected)
+[2026-06-18T01:35:32.795Z] STDOUT [JWT] PASS: expired token → null (rejected)
+[2026-06-18T01:35:32.795Z] STDOUT [JWT] PASS: empty token → null (fallback to cookie path)
+[2026-06-18T01:35:32.795Z] STDOUT [JWT] PASS: alg=none token → null (rejected)
+[2026-06-18T01:35:32.795Z] STDOUT [JWT] PASS: wrong issuer token → null (rejected)
+[2026-06-18T01:35:32.796Z] STDOUT [JWT] ===== SELF-TEST END =====
+[2026-06-18T01:35:32.796Z] STDOUT [AUTH] Google OAuth not configured on local backend — expected in Electron mode (auth handled by cloud server).
+[2026-06-18T01:35:32.796Z] STDOUT [AUTH] Using memory session store (NO-DB / Electron desktop mode)
+[2026-06-18T01:35:32.796Z] STDOUT [AUTH] ===== SESSION COOKIE CONFIG =====
+[2026-06-18T01:35:32.796Z] STDOUT [AUTH] production: true
+[2026-06-18T01:35:32.797Z] STDOUT [AUTH] electronBackend: true
+[2026-06-18T01:35:32.797Z] STDOUT [AUTH] cookie: {"httpOnly":true,"secure":false,"sameSite":"lax","maxAge":604800000,"path":"/"}
+[2026-06-18T01:35:32.797Z] STDOUT [AUTH] ================================
+[2026-06-18T01:35:32.797Z] STDOUT [AUTH] Discord OAuth not configured on local backend — expected in Electron mode (auth handled by cloud server).
+[2026-06-18T01:35:32.798Z] STDOUT [WS] Live telemetry WebSocket server ready at /ws/telemetry (auth required)
+[2026-06-18T01:35:32.798Z] STDOUT 1:35:32 PM [express] serving on 127.0.0.1:59854
+[2026-06-18T01:35:32.811Z] Health check PASSED — attempt 6, 1448ms elapsed, body={"status":"ok","version":"1.1.2","uptime":1,"dbReachable":false,"timestamp":1781746532808}
+[2026-06-18T01:35:35.871Z] STDOUT [SysIntelligence] phase=full start — deep collection
+[2026-06-18T01:35:39.868Z] STDERR [SysIntelligence] phase=timeout source=battery limit=2000ms
+[2026-06-18T01:35:39.868Z] STDERR [SysIntelligence] phase=timeout source=users limit=2000ms
+[2026-06-18T01:35:39.868Z] STDERR [SysIntelligence] phase=timeout source=baseboard limit=3000ms
+[2026-06-18T01:35:39.869Z] STDERR [SysIntelligence] phase=timeout source=bios limit=3000ms
+[2026-06-18T01:35:39.869Z] STDERR [SysIntelligence] phase=timeout source=graphics limit=3000ms
+[2026-06-18T01:35:39.869Z] STDERR [SysIntelligence] phase=timeout source=osInfo limit=3000ms
+[2026-06-18T01:35:39.869Z] STDERR [SysIntelligence] phase=timeout source=platformPS limit=3000ms
+[2026-06-18T01:35:39.870Z] STDERR [SysIntelligence] phase=timeout source=monitorEDID limit=3000ms
+[2026-06-18T01:35:39.881Z] STDERR [SysIntelligence] phase=timeout source=memLayout limit=4000ms
+[2026-06-18T01:35:39.881Z] STDERR [SysIntelligence] phase=timeout source=diskLayout limit=4000ms
+[2026-06-18T01:35:39.881Z] STDERR [SysIntelligence] phase=timeout source=fsSize limit=4000ms
+[2026-06-18T01:35:39.881Z] STDERR [SysIntelligence] phase=timeout source=netIf limit=4000ms
+[2026-06-18T01:35:39.882Z] STDERR [SysIntelligence] phase=timeout source=netConn limit=4000ms
+[2026-06-18T01:35:39.882Z] STDERR [SysIntelligence] phase=timeout source=processes limit=4000ms
+[2026-06-18T01:35:40.874Z] STDERR [SysIntelligence] phase=timeout source=cpu limit=5000ms
+[2026-06-18T01:35:41.557Z] STDERR [HTTP] [9dcd77b0-ff87-4619-9a40-05a34c609587] GET /api/tweak-intelligence/system-state 503 1ms
+[2026-06-18T01:35:41.558Z] STDERR [HTTP] [bee5b586-9468-42ab-8c1e-41d81ea43fca] GET /api/tweak-intelligence/rankings 503 1ms
+[2026-06-18T01:35:43.064Z] STDOUT [SysIntelligence] phase=full complete in 7193ms | MB=null | BIOS=null | CPU=null | GPUs=0 | RAMsticks=0
+[2026-06-18T01:35:43.065Z] STDERR [SysIntelligence] phase=full returned all-null — skipping disk cache write to preserve previous good data
+[2026-06-18T01:35:44.957Z] STDOUT [AppBooster] GET /games userId=64f0e669-6db6-42e7-a68a-681f9f5db567 — catalog: 16, installed: 0
+[2026-06-18T01:35:49.660Z] STDOUT [AppBooster] POST /games/scan userId=64f0e669-6db6-42e7-a68a-681f9f5db567 — 16 result(s), 1 detected
+[2026-06-18T01:35:49.663Z] STDOUT [AppBooster] GET /games userId=64f0e669-6db6-42e7-a68a-681f9f5db567 — catalog: 16, installed: 1
+[2026-06-18T01:35:49.811Z] Child process EXITED — code=null signal=SIGTERM

@@ -1,0 +1,242 @@
+
+[2026-06-22T07:07:25.285Z] [INFO] SwitchControl started — PID:19372 platform:win32/x64 node:20.18.3
+[2026-06-22T07:07:25.316Z] [LOG] [Security] IPC handlers registered
+[2026-06-22T07:07:25.318Z] [LOG] [Debloat] IPC handlers registered
+[2026-06-22T07:07:25.318Z] [LOG] [Cleaner] IPC handlers registered
+[2026-06-22T07:07:25.319Z] [LOG] [Storage] IPC handlers registered
+[2026-06-22T07:07:25.319Z] [LOG] [Protocol] registered: true | isDefault: true | isDev: false
+[2026-06-22T07:07:25.339Z] [LOG] [STARTUP] whenReady — v1.1.6 | isDev:false | pid:19372
+[2026-06-22T07:07:25.341Z] [LOG] [ConfigStore] Initialized — file: C:\Users\SwitchTech\AppData\Roaming\SwitchControl\sc-config.json
+[2026-06-22T07:07:25.342Z] [LOG] [Enrich] disk cache hit — age 18min | GPU: AMD Radeon RX 7800 XT
+[2026-06-22T07:07:25.355Z] [LOG] [LAUNCH:1] BrowserWindow constructed — show:false, paintWhenInitiallyHidden:true, isVisible: false
+[2026-06-22T07:07:25.356Z] [LOG] [LAUNCH:2] packaged mode — indexPath: C:\Program Files\SwitchControl\resources\dist\index.html | exists: true
+[2026-06-22T07:07:25.360Z] [LOG] [Backend] ===== STARTUP DIAGNOSTICS =====
+[2026-06-22T07:07:25.360Z] [LOG] [Backend] process.execPath: C:\Program Files\SwitchControl\SwitchControl.exe
+[2026-06-22T07:07:25.360Z] [LOG] [Backend] process.resourcesPath: C:\Program Files\SwitchControl\resources
+[2026-06-22T07:07:25.360Z] [LOG] [Backend] app.isPackaged: true
+[2026-06-22T07:07:25.360Z] [LOG] [Backend] app.getAppPath(): C:\Program Files\SwitchControl\resources\app.asar
+[2026-06-22T07:07:25.360Z] [LOG] [Backend] Expected bundle path: C:\Program Files\SwitchControl\resources\dist\index.cjs
+[2026-06-22T07:07:25.360Z] [LOG] [Backend] Bundle size: 2.5 MB
+[2026-06-22T07:07:25.402Z] [LOG] [Updater] init — v1.1.6 | channel:stable | https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev
+[2026-06-22T07:07:25.403Z] [LOG] [STARTUP] app ready — 64ms from whenReady
+[2026-06-22T07:07:25.403Z] [LOG] [PREWARM] cachedSpecs seeded before window open — Ryzen 7 9800X3D 8-Core Processor | GPU: AMD Radeon RX 7800 XT
+[2026-06-22T07:07:25.404Z] [LOG] [Backend] Free port found: 55298
+[2026-06-22T07:07:25.405Z] [LOG] [Backend] ELECTRON_USER_DATA: C:\Users\SwitchTech\AppData\Roaming\SwitchControl
+[2026-06-22T07:07:25.405Z] [LOG] [Backend] ===== ENV KEY DIAGNOSTICS =====
+[2026-06-22T07:07:25.405Z] [LOG] [Backend]   OPENAI_API_KEY: parent_env=false | config_file=false | will_use=false
+[2026-06-22T07:07:25.405Z] [LOG] [Backend]   STRIPE_SECRET_KEY: parent_env=false | config_file=false | will_use=false
+[2026-06-22T07:07:25.405Z] [LOG] [Backend]   GOOGLE_CLIENT_ID: parent_env=false | config_file=false | will_use=false
+[2026-06-22T07:07:25.405Z] [LOG] [Backend]   GOOGLE_CLIENT_SECRET: parent_env=false | config_file=false | will_use=false
+[2026-06-22T07:07:25.405Z] [LOG] [Backend]   JWT_SECRET: parent_env=false | config_file=false | will_use=false
+[2026-06-22T07:07:25.405Z] [LOG] [Backend]   SESSION_SECRET: parent_env=false | config_file=false | will_use=false
+[2026-06-22T07:07:25.405Z] [LOG] [Backend] =====================================
+[2026-06-22T07:07:25.405Z] [LOG] [Backend] ===== CHILD ENV KEY DIAGNOSTICS =====
+[2026-06-22T07:07:25.405Z] [LOG] [Backend]   child_env OPENAI_API_KEY: false
+[2026-06-22T07:07:25.406Z] [LOG] [Backend]   child_env STRIPE_SECRET_KEY: false
+[2026-06-22T07:07:25.406Z] [LOG] [Backend]   child_env GOOGLE_CLIENT_ID: false
+[2026-06-22T07:07:25.406Z] [LOG] [Backend]   child_env GOOGLE_CLIENT_SECRET: false
+[2026-06-22T07:07:25.406Z] [LOG] [Backend]   child_env JWT_SECRET: false
+[2026-06-22T07:07:25.406Z] [LOG] [Backend]   child_env SESSION_SECRET: false
+[2026-06-22T07:07:25.406Z] [LOG] [Backend] AI_MODEL in child env: (not set, will use gpt-4o-mini)
+[2026-06-22T07:07:25.406Z] [LOG] [Backend] DATABASE_URL in child env: NO — Electron offline mode (expected; cloud DB unreachable from user machine)
+[2026-06-22T07:07:25.406Z] [LOG] [Backend] ELECTRON_BACKEND in child env: 1
+[2026-06-22T07:07:25.406Z] [LOG] [Backend] ==========================================
+[2026-06-22T07:07:25.406Z] [LOG] [Backend] Spawning child process...
+[2026-06-22T07:07:25.406Z] [LOG] [Backend]   execPath: C:\Program Files\SwitchControl\SwitchControl.exe
+[2026-06-22T07:07:25.406Z] [LOG] [Backend]   script: C:\Program Files\SwitchControl\resources\dist\index.cjs
+[2026-06-22T07:07:25.406Z] [LOG] [Backend]   ELECTRON_RUN_AS_NODE: 1 (runs as plain Node.js)
+[2026-06-22T07:07:25.406Z] [LOG] [Backend]   PORT: 55298
+[2026-06-22T07:07:25.407Z] [LOG] [Backend]   cwd: C:\Program Files\SwitchControl\resources\dist
+[2026-06-22T07:07:25.412Z] [LOG] [Backend] Child process spawned, PID: 4792
+[2026-06-22T07:07:25.412Z] [LOG] [Backend] Polling health endpoint: http://127.0.0.1:55298/api/health
+[2026-06-22T07:07:25.490Z] [LOG] [Backend:stdout] [DesktopSecrets] ELECTRON_BACKEND mode — bootstrapping secrets
+[2026-06-22T07:07:25.490Z] [LOG] [Backend:stdout] [DesktopSecrets] Secrets file path: C:\Users\SwitchTech\AppData\Roaming\SwitchControl\desktop-secrets.json
+[2026-06-22T07:07:25.490Z] [LOG] [Backend:stdout] [DesktopSecrets] Loaded persisted secrets from: C:\Users\SwitchTech\AppData\Roaming\SwitchControl\desktop-secrets.json
+[2026-06-22T07:07:25.490Z] [LOG] [Backend:stdout] [DesktopSecrets] JWT_SECRET: loaded from persisted file
+[2026-06-22T07:07:25.491Z] [LOG] [Backend:stdout] [DesktopSecrets] SESSION_SECRET: loaded from persisted file
+[2026-06-22T07:07:25.491Z] [LOG] [Backend:stdout] [DesktopSecrets] Bootstrap complete — JWT_SECRET and SESSION_SECRET are set
+[2026-06-22T07:07:25.541Z] [LOG] [Backend:stdout] [DB] Electron offline mode — no DATABASE_URL present, using in-memory mock storage.
+[2026-06-22T07:07:25.548Z] [LOG] [Renderer:info] (index-DR7kriMy.js:10) [RuntimeMode] electron=true | packaged=true | protocol=file: | preload=true | backendTarget=embedded-local | authTarget=cloud
+[2026-06-22T07:07:25.549Z] [LOG] [Renderer:info] (index-DR7kriMy.js:10) [API] Electron fetch interceptor installed | packaged=true (cloud-only-routes=blocked-from-local)
+[2026-06-22T07:07:25.549Z] [LOG] [Backend:stdout] [Stripe] Billing not configured on local backend — expected in Electron mode.
+[2026-06-22T07:07:25.551Z] [LOG] [Renderer:info] (index-DR7kriMy.js:27) [Store:REHYDRATE] total_stored=0 enabled=0 source=localStorage
+[2026-06-22T07:07:25.551Z] [LOG] [Renderer:info] (index-DR7kriMy.js:28) [CloudAPI] base=https://switchcontrol.org/api packaged=true electron=true
+[2026-06-22T07:07:25.556Z] [LOG] [Renderer:info] (index-DR7kriMy.js:145) [BiosStore] hydrated | scores from storage: null
+[2026-06-22T07:07:25.559Z] [LOG] [Renderer:info] (index-DR7kriMy.js:10) [IntervalGuard] installed — min interval enforced at 2000ms
+[2026-06-22T07:07:25.559Z] [LOG] [Renderer:info] (index-DR7kriMy.js:215) [LAUNCH:R0] renderer bootstrap | electron=true | t=+203ms
+[2026-06-22T07:07:25.559Z] [LOG] [Renderer:info] (index-DR7kriMy.js:215) [LAUNCH:R1] createRoot dispatching | t=+203ms
+[2026-06-22T07:07:25.560Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:569) [SwitchControl Desktop] Preload initialized - unified API ready
+[2026-06-22T07:07:25.560Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:570) [SwitchControl Desktop] Platform: win32
+[2026-06-22T07:07:25.561Z] [LOG] [LAUNCH:3] did-finish-load — HTML/JS fully parsed by Chromium (first-frame-ready IPC pending)
+[2026-06-22T07:07:25.561Z] [LOG] [LAUNCH:2] loadFile() promise RESOLVED
+[2026-06-22T07:07:25.561Z] [LOG] [Renderer:info] (index-DR7kriMy.js:10) [API] Backend port not ready, retrying in 200ms… (elapsed 12ms, attempt 1)
+[2026-06-22T07:07:25.561Z] [LOG] [LAUNCH:4] Gate A: ready-to-show (Chromium frame painted) | +202ms
+[2026-06-22T07:07:25.565Z] [LOG] [Renderer:info] (index-DR7kriMy.js:215) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: false
+[2026-06-22T07:07:25.577Z] [LOG] [Renderer:info] (index-DR7kriMy.js:215) [App] Registering deep link auth callback (once)
+[2026-06-22T07:07:25.583Z] [LOG] [Renderer:info] (index-DR7kriMy.js:215) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: false
+[2026-06-22T07:07:25.585Z] [LOG] [Renderer:info] (index-DR7kriMy.js:215) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: false
+[2026-06-22T07:07:25.585Z] [LOG] [LAUNCH:5] Gate B: app:first-frame-ready (React Splash composited) | +226ms
+[2026-06-22T07:07:25.597Z] [LOG] [LAUNCH:5] mainWindow.show() — both gates passed (chromium+react) | +238ms
+[2026-06-22T07:07:25.597Z] [LOG] [PS] start file=main.js fn=startTelemetryPolling:wmiGpu reason=startup-wmi-gpu id=1 active=1
+[2026-06-22T07:07:25.597Z] [LOG] [GPU] WMI fast-path start — t=1782112045597
+[2026-06-22T07:07:25.660Z] [LOG] [Backend:stdout] [JWT] ===== SELF-TEST START =====
+[2026-06-22T07:07:25.660Z] [LOG] [Backend:stdout] [JWT] config OK — JWT secret configured (secretFp=f577a787)
+[2026-06-22T07:07:25.661Z] [LOG] [Backend:stdout] [JWT] signed — userId=self-test-user-000 secretFp=f577a787 tokenFp=eyJhbGci.eyJzdWIi
+[2026-06-22T07:07:25.661Z] [LOG] [Backend:stdout] [JWT] PASS: valid token → sub=self-test-user-000 exp=1784704045
+[2026-06-22T07:07:25.661Z] [LOG] [Backend:stdout] [JWT] PASS: invalid token → null (rejected)
+[2026-06-22T07:07:25.661Z] [LOG] [Backend:stdout] [JWT] PASS: expired token → null (rejected)
+[2026-06-22T07:07:25.661Z] [LOG] [Backend:stdout] [JWT] PASS: empty token → null (fallback to cookie path)
+[2026-06-22T07:07:25.661Z] [LOG] [Backend:stdout] [JWT] PASS: alg=none token → null (rejected)
+[2026-06-22T07:07:25.662Z] [LOG] [Backend:stdout] [JWT] PASS: wrong issuer token → null (rejected)
+[2026-06-22T07:07:25.662Z] [LOG] [Backend:stdout] [JWT] ===== SELF-TEST END =====
+[2026-06-22T07:07:25.662Z] [LOG] [Backend:stdout] [AUTH] Google OAuth not configured on local backend — expected in Electron mode (auth handled by cloud server).
+[2026-06-22T07:07:25.662Z] [LOG] [Backend:stdout] [AUTH] Using memory session store (NO-DB / Electron desktop mode)
+[2026-06-22T07:07:25.663Z] [LOG] [Backend:stdout] [AUTH] ===== SESSION COOKIE CONFIG =====
+[2026-06-22T07:07:25.663Z] [LOG] [Backend:stdout] [AUTH] production: true
+[2026-06-22T07:07:25.663Z] [LOG] [Backend:stdout] [AUTH] electronBackend: true
+[2026-06-22T07:07:25.663Z] [LOG] [Backend:stdout] [AUTH] cookie: {"httpOnly":true,"secure":false,"sameSite":"lax","maxAge":604800000,"path":"/"}
+[2026-06-22T07:07:25.664Z] [LOG] [Backend:stdout] [AUTH] ================================
+[2026-06-22T07:07:25.664Z] [LOG] [Backend:stdout] [AUTH] Discord OAuth not configured on local backend — expected in Electron mode (auth handled by cloud server).
+[2026-06-22T07:07:25.664Z] [LOG] [Backend:stdout] [WS] Live telemetry WebSocket server ready at /ws/telemetry (auth required)
+[2026-06-22T07:07:25.664Z] [LOG] [Backend:stdout] 7:07:25 PM [express] serving on 127.0.0.1:55298
+[2026-06-22T07:07:25.667Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:150) [Window] Focus event received
+[2026-06-22T07:07:25.668Z] [LOG] [Renderer:info] (index-DR7kriMy.js:215) [App] Electron window focus (passive)
+[2026-06-22T07:07:25.672Z] [LOG] [Backend] Health check PASSED — attempt 5, 260ms elapsed, body={"status":"ok","version":"1.1.6","uptime":0,"dbReachable":false,"timestamp":1782112045669}
+[2026-06-22T07:07:25.673Z] [LOG] [Backend] ===== BACKEND READY =====
+[2026-06-22T07:07:25.673Z] [LOG] [Backend] PID: 4792
+[2026-06-22T07:07:25.674Z] [LOG] [Backend] Port: 55298
+[2026-06-22T07:07:25.674Z] [LOG] [Backend] Ready: true
+[2026-06-22T07:07:25.674Z] [LOG] [Backend] getBackendPort() will return: 55298
+[2026-06-22T07:07:25.674Z] [LOG] [Backend] isBackendReady() will return: true
+[2026-06-22T07:07:25.674Z] [LOG] [Backend] ========================
+[2026-06-22T07:07:25.674Z] [LOG] [STARTUP] backend ready — port 55298 (335ms)
+[2026-06-22T07:07:25.679Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:130) [Backend] backend-ready event received, port: 55298
+[2026-06-22T07:07:25.679Z] [LOG] [Renderer:info] (index-DR7kriMy.js:10) [API] Backend-ready push: base=http://127.0.0.1:55298/api (was: unset)
+[2026-06-22T07:07:25.679Z] [LOG] [Renderer:info] (index-DR7kriMy.js:10) [API] Backend port resolved: 55298 (130ms, push or poll)
+[2026-06-22T07:07:25.680Z] [LOG] [Renderer:info] (index-DR7kriMy.js:10) [API] Packaged Electron API base: http://127.0.0.1:55298/api
+[2026-06-22T07:07:25.680Z] [LOG] [Renderer:info] (index-DR7kriMy.js:10) [API] Resolved: http://127.0.0.1:55298/api | electron=true packaged=true
+[2026-06-22T07:07:26.345Z] [LOG] [PS] end file=main.js fn=startTelemetryPolling:wmiGpu id=1 duration=748ms active=0 calls60s=1
+[2026-06-22T07:07:26.345Z] [LOG] [GPU] WMI fast-path resolved: AMD Radeon RX 7800 XT
+[2026-06-22T07:07:28.076Z] [LOG] [Renderer:info] (index-DR7kriMy.js:28) [LAUNCH:R5] Splash onComplete — handing off to App
+[2026-06-22T07:07:28.077Z] [LOG] [Renderer:info] (index-DR7kriMy.js:215) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: false
+[2026-06-22T07:07:28.077Z] [LOG] [Renderer:info] (index-DR7kriMy.js:215) [AuthTruth] Boot: token present: true jwt present: true user present: true premium: false
+[2026-06-22T07:07:28.077Z] [LOG] [Renderer:info] (index-DR7kriMy.js:215) [AuthTruth] startup restore begin — hasCredential: true cached isPremium: false plan: trial_expired
+[2026-06-22T07:07:28.078Z] [LOG] [Renderer:info] (index-DR7kriMy.js:215) [AuthTruth] Boot: fast path — cached session, mounting dashboard immediately isPremium: false plan: trial_expired
+[2026-06-22T07:07:28.078Z] [LOG] [Renderer:info] (index-DR7kriMy.js:10) [HYDRATE:1] resolveAuthState start reqId=bqltr9
+[2026-06-22T07:07:28.078Z] [LOG] [Renderer:info] (index-DR7kriMy.js:10) [HYDRATE:1] persisted — user=64f0e669-6db6-42e7-a68a-681f9f5db567 jwt=present
+[2026-06-22T07:07:28.078Z] [LOG] [Renderer:info] (index-DR7kriMy.js:10) [HYDRATE:2] jwtCheck — malformed=false expired=false
+[2026-06-22T07:07:28.078Z] [LOG] [Renderer:info] (index-DR7kriMy.js:10) [HYDRATE:5] /api/me — jwt=present reqId=bqltr9
+[2026-06-22T07:07:28.078Z] [LOG] [Renderer:info] (index-DR7kriMy.js:215) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: false
+[2026-06-22T07:07:28.079Z] [WARN] [telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.
+[2026-06-22T07:07:28.079Z] [LOG] [Renderer:info] (index-DR7kriMy.js:215) [TourTransition] phase entered authenticated — waiting 500ms for dashboard to stabilize
+[2026-06-22T07:07:28.580Z] [LOG] [Renderer:info] (index-DR7kriMy.js:215) [TourTransition] dashboard stable — tours unblocked
+[2026-06-22T07:07:28.580Z] [LOG] [Renderer:info] (index-DR7kriMy.js:215) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: false
+[2026-06-22T07:07:28.581Z] [LOG] [Renderer:info] (index-DR7kriMy.js:215) [AppFlow] Flow eval — isPremium: false plan: trial_expired trialEndsAt: 2026-06-22T06:37:55.146Z hasSeenTrialActivation: true hasSeenTrialTour: true hasSeenUnlock: true hasSeenTour: true isFirstTimeUser: false isFirstLogin: false entitlementsAttempted: true entitlementsOk: true unlockFired: false trialUnlockFired: false
+[2026-06-22T07:07:28.581Z] [LOG] [Renderer:info] (index-DR7kriMy.js:215) [AppFlow] No flow conditions met — staying idle
+[2026-06-22T07:07:28.634Z] [ERROR] [Renderer:error] (index-DR7kriMy.js:9) ReferenceError: ent is not defined
+[2026-06-22T07:07:28.634Z] [ERROR] [Renderer:error] (index-DR7kriMy.js:10) [ErrorBoundary] Render error caught: ent is not defined
+[2026-06-22T07:07:28.647Z] [LOG] [Renderer:info] (index-DR7kriMy.js:215) [Handoff] dashboard fade-in started
+[2026-06-22T07:07:28.667Z] [LOG] [Renderer:info] (index-DR7kriMy.js:215) [Handoff] dashboard fade-in complete — layout stable
+[2026-06-22T07:07:29.935Z] [LOG] [Renderer:info] (index-DR7kriMy.js:10) [HYDRATE:6] result=verified source=cloud userId=64f0e669-6db6-42e7-a68a-681f9f5db567 isPremium=false plan=free isAdmin=true reqId=bqltr9
+[2026-06-22T07:07:29.935Z] [LOG] [Renderer:info] (index-DR7kriMy.js:215) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: false
+[2026-06-22T07:07:29.936Z] [LOG] [Renderer:info] (index-DR7kriMy.js:215) [AppFlow] Flow eval — isPremium: false plan: free trialEndsAt: null hasSeenTrialActivation: true hasSeenTrialTour: true hasSeenUnlock: true hasSeenTour: true isFirstTimeUser: false isFirstLogin: false entitlementsAttempted: true entitlementsOk: true unlockFired: false trialUnlockFired: false
+[2026-06-22T07:07:29.936Z] [LOG] [Renderer:info] (index-DR7kriMy.js:215) [AppFlow] No flow conditions met — staying idle
+[2026-06-22T07:07:29.936Z] [LOG] [Renderer:info] (index-DR7kriMy.js:215) [AuthTruth] Boot resolved verified=true reason=cloud_confirmed user=yes
+[2026-06-22T07:07:29.936Z] [LOG] [Renderer:info] (index-DR7kriMy.js:28) [Premium] Grace snapshot updated — isPremium=false plan=free userId=64f0e669-6db6-42e7-a68a-681f9f5db567
+[2026-06-22T07:07:29.936Z] [LOG] [Renderer:info] (index-DR7kriMy.js:215) [AuthTruth] Boot: cloud-confirmed — entitlementsVerified=true
+[2026-06-22T07:07:29.936Z] [LOG] [Renderer:info] (index-DR7kriMy.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: false
+[2026-06-22T07:07:29.937Z] [LOG] [Renderer:info] (index-DR7kriMy.js:28) [PremiumExpiry] Initial state recorded — active=false plan=free trialEndsAt=null
+[2026-06-22T07:07:29.937Z] [LOG] [Renderer:info] (index-DR7kriMy.js:28) [PremiumExpiry] Running startup power plan sanity check...
+[2026-06-22T07:07:29.937Z] [LOG] [IPC] premium:powerPlanSanityCheck — checking active power plan
+[2026-06-22T07:07:29.947Z] [LOG] [Sanity] Power plan check clean — active plan is not SC-managed (guid=381b4222-f694-41f0-9685-ff5bb260df2e name="Balanced")
+[2026-06-22T07:07:29.949Z] [LOG] [IPC] premium:powerPlanSanityCheck done — action=clean
+[2026-06-22T07:07:29.949Z] [LOG] [Renderer:info] (index-DR7kriMy.js:28) [PremiumExpiry] Sanity check result: [object Object]
+[2026-06-22T07:07:29.966Z] [LOG] [PowerPlan] deleteAllScPlans: no SC plans found to delete
+[2026-06-22T07:07:30.082Z] [WARN] [telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.
+[2026-06-22T07:07:32.338Z] [LOG] [Renderer:info] (index-DR7kriMy.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: false
+[2026-06-22T07:07:33.406Z] [INFO] Checking for update
+[2026-06-22T07:07:33.406Z] [LOG] [Updater] Checking for update...
+[2026-06-22T07:07:33.572Z] [ERROR] [Renderer:error] (index-DR7kriMy.js:9) ReferenceError: ent is not defined
+[2026-06-22T07:07:33.573Z] [ERROR] [Renderer:error] (index-DR7kriMy.js:10) [ErrorBoundary] Render error caught: ent is not defined
+[2026-06-22T07:07:33.575Z] [ERROR] Error: Error: Cannot find channel "latest.yml" update info: HttpError: 404 Not Found
+"method: GET url: https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev/latest.yml?noCache=1jrn2fq4v\n\nPlease double check that your authentication token is correct. Due to security reasons, actual status maybe not reported, but 404.\n"
+Headers: {
+  "cf-ray": "a0f96b6569c0d992-AKL",
+  "connection": "keep-alive",
+  "content-length": "27150",
+  "content-type": "text/html",
+  "date": "Mon, 22 Jun 2026 07:08:02 GMT",
+  "server": "cloudflare"
+}
+    at createHttpError (C:\Program Files\SwitchControl\resources\app.asar\node_modules\electron-updater\node_modules\builder-util-runtime\out\httpExecutor.js:53:12)
+    at ElectronHttpExecutor.handleResponse (C:\Program Files\SwitchControl\resources\app.asar\node_modules\electron-updater\node_modules\builder-util-runtime\out\httpExecutor.js:157:20)
+    at ClientRequest.<anonymous> (C:\Program Files\SwitchControl\resources\app.asar\node_modules\electron-updater\node_modules\builder-util-runtime\out\httpExecutor.js:122:26)
+    at ClientRequest.emit (node:events:518:28)
+    at SimpleURLLoaderWrapper.<anonymous> (node:electron/js2c/browser_init:2:118140)
+    at SimpleURLLoaderWrapper.emit (node:events:518:28)
+    at newError (C:\Program Files\SwitchControl\resources\app.asar\node_modules\electron-updater\node_modules\builder-util-runtime\out\error.js:5:19)
+    at GenericProvider.getLatestVersion (C:\Program Files\SwitchControl\resources\app.asar\node_modules\electron-updater\out\providers\GenericProvider.js:27:63)
+    at async NsisUpdater.getUpdateInfoAndProvider (C:\Program Files\SwitchControl\resources\app.asar\node_modules\electron-updater\out\AppUpdater.js:389:19)
+    at async NsisUpdater.doCheckForUpdates (C:\Program Files\SwitchControl\resources\app.asar\node_modules\electron-updater\out\AppUpdater.js:402:24)
+[2026-06-22T07:07:33.575Z] [WARN] [Updater] No update file found (404) — treating as not-available
+[2026-06-22T07:07:33.575Z] [WARN] [Updater] No update file found (404) — treating as not-available
+[2026-06-22T07:07:33.577Z] [LOG] [PS] start file=main.js fn=tweak:batchCheckAll reason=tweak-batch-check id=2 active=1
+[2026-06-22T07:07:33.577Z] [LOG] [PS:tweak-executor] #1 batchCheckAll SPAWN ts=1782112053577 tweaks=61
+[2026-06-22T07:07:34.266Z] [ERROR] [Renderer:error] (index-DR7kriMy.js:9) ReferenceError: ent is not defined
+[2026-06-22T07:07:34.266Z] [ERROR] [Renderer:error] (index-DR7kriMy.js:10) [ErrorBoundary] Render error caught: ent is not defined
+[2026-06-22T07:07:35.145Z] [LOG] [PS:tweak-executor] #1 batchCheckAll OK 1568ms
+[2026-06-22T07:07:35.146Z] [LOG] [PS] end file=main.js fn=tweak:batchCheckAll id=2 duration=1569ms active=0 calls60s=2
+[2026-06-22T07:07:35.146Z] [LOG] [Renderer:info] (index-DR7kriMy.js:27) [Tweaks:SET] id="nvidia-telemetry" enabled=false (from system sync)
+[2026-06-22T07:07:35.147Z] [LOG] [Renderer:info] (index-DR7kriMy.js:27) [Tweaks:SET] id="mem-opt" enabled=true (from system sync)
+[2026-06-22T07:07:35.147Z] [LOG] [Renderer:info] (index-DR7kriMy.js:27) [Tweaks:SET] id="gaming-mode" enabled=true (from system sync)
+[2026-06-22T07:07:35.147Z] [LOG] [Renderer:info] (index-DR7kriMy.js:27) [Tweaks:SET] id="cortana" enabled=false (from system sync)
+[2026-06-22T07:07:35.147Z] [LOG] [Renderer:info] (index-DR7kriMy.js:27) [Tweaks:SET] id="disable-wallpaper-compression" enabled=false (from system sync)
+[2026-06-22T07:07:35.147Z] [LOG] [Renderer:info] (index-DR7kriMy.js:27) [Tweaks:SET] id="maintenance" enabled=true (from system sync)
+[2026-06-22T07:07:35.147Z] [LOG] [Renderer:info] (index-DR7kriMy.js:27) [Tweaks:SET] id="page-combining" enabled=true (from system sync)
+[2026-06-22T07:07:35.148Z] [LOG] [Renderer:info] (index-DR7kriMy.js:27) [Tweaks:SET] id="hibernation" enabled=false (from system sync)
+[2026-06-22T07:07:35.148Z] [LOG] [Renderer:info] (index-DR7kriMy.js:27) [Tweaks:SET] id="xbox-bar" enabled=false (from system sync)
+[2026-06-22T07:07:35.148Z] [LOG] [Renderer:info] (index-DR7kriMy.js:27) [Tweaks:SET] id="mmcss-nolazymode" enabled=false (from system sync)
+[2026-06-22T07:07:35.148Z] [LOG] [Renderer:info] (index-DR7kriMy.js:27) [Tweaks:SET] id="wifi" enabled=false (from system sync)
+[2026-06-22T07:07:35.148Z] [LOG] [Renderer:info] (index-DR7kriMy.js:27) [Tweaks:SET] id="win-search-index" enabled=false (from system sync)
+[2026-06-22T07:07:35.148Z] [LOG] [Renderer:info] (index-DR7kriMy.js:27) [Tweaks:SET] id="core-isolation" enabled=true (from system sync)
+[2026-06-22T07:07:35.148Z] [LOG] [Renderer:info] (index-DR7kriMy.js:27) [Tweaks:SET] id="copilot" enabled=true (from system sync)
+[2026-06-22T07:07:35.149Z] [LOG] [Renderer:info] (index-DR7kriMy.js:27) [Tweaks:SET] id="xbox-services" enabled=false (from system sync)
+[2026-06-22T07:07:35.149Z] [LOG] [Renderer:info] (index-DR7kriMy.js:27) [Tweaks:SET] id="disable-auto-restart-apps" enabled=false (from system sync)
+[2026-06-22T07:07:35.149Z] [LOG] [Renderer:info] (index-DR7kriMy.js:27) [Tweaks:SET] id="recent-files" enabled=false (from system sync)
+[2026-06-22T07:07:35.149Z] [LOG] [Renderer:info] (index-DR7kriMy.js:27) [Tweaks:SET] id="disable-mpo" enabled=true (from system sync)
+[2026-06-22T07:07:35.149Z] [LOG] [Renderer:info] (index-DR7kriMy.js:27) [Tweaks:SET] id="prefetch" enabled=true (from system sync)
+[2026-06-22T07:07:35.149Z] [LOG] [Renderer:info] (index-DR7kriMy.js:27) [Tweaks:SET] id="ntfs-last-access" enabled=false (from system sync)
+[2026-06-22T07:07:35.149Z] [LOG] [Renderer:info] (index-DR7kriMy.js:27) [Tweaks:SET] id="compact-explorer" enabled=false (from system sync)
+[2026-06-22T07:07:35.149Z] [LOG] [Renderer:info] (index-DR7kriMy.js:27) [Tweaks:SET] id="large-system-cache" enabled=true (from system sync)
+[2026-06-22T07:07:35.150Z] [LOG] [Renderer:info] (index-DR7kriMy.js:27) [Tweaks:SET] id="disable-delivery-opt" enabled=false (from system sync)
+[2026-06-22T07:07:35.150Z] [LOG] [Renderer:info] (index-DR7kriMy.js:27) [Tweaks:SET] id="disable-transparency" enabled=false (from system sync)
+[2026-06-22T07:07:35.150Z] [LOG] [Renderer:info] (index-DR7kriMy.js:27) [Tweaks:SET] id="usb-selective-suspend" enabled=false (from system sync)
+[2026-06-22T07:07:35.150Z] [LOG] [Renderer:info] (index-DR7kriMy.js:27) [Tweaks:SET] id="tune-priority" enabled=false (from system sync)
+[2026-06-22T07:07:35.150Z] [LOG] [Renderer:info] (index-DR7kriMy.js:27) [Tweaks:SET] id="bluetooth" enabled=false (from system sync)
+[2026-06-22T07:07:35.150Z] [LOG] [Renderer:info] (index-DR7kriMy.js:27) [Tweaks:SET] id="explorer-separate-process" enabled=false (from system sync)
+[2026-06-22T07:07:35.150Z] [LOG] [Renderer:info] (index-DR7kriMy.js:27) [Tweaks:SET] id="fax-printer" enabled=false (from system sync)
+[2026-06-22T07:07:35.150Z] [LOG] [Renderer:info] (index-DR7kriMy.js:27) [Tweaks:SET] id="disable-animations" enabled=true (from system sync)
+[2026-06-22T07:07:35.151Z] [LOG] [Renderer:info] (index-DR7kriMy.js:27) [Tweaks:SET] id="search-highlights" enabled=false (from system sync)
+[2026-06-22T07:07:35.151Z] [LOG] [Renderer:info] (index-DR7kriMy.js:27) [Tweaks:SET] id="hyper-v" enabled=true (from system sync)
+[2026-06-22T07:07:35.151Z] [LOG] [Renderer:info] (index-DR7kriMy.js:27) [Tweaks:SET] id="disable-wer" enabled=false (from system sync)
+[2026-06-22T07:07:35.151Z] [LOG] [Renderer:info] (index-DR7kriMy.js:27) [Tweaks:SET] id="bg-apps" enabled=false (from system sync)
+[2026-06-22T07:07:35.151Z] [LOG] [Renderer:info] (index-DR7kriMy.js:27) [Tweaks:SET] id="power-throttling" enabled=false (from system sync)
+[2026-06-22T07:07:35.151Z] [LOG] [Renderer:info] (index-DR7kriMy.js:27) [Tweaks:SET] id="vbs" enabled=true (from system sync)
+[2026-06-22T07:07:35.151Z] [LOG] [Renderer:info] (index-DR7kriMy.js:27) [Tweaks:SET] id="energy-logging" enabled=false (from system sync)
+[2026-06-22T07:07:35.151Z] [LOG] [Renderer:info] (index-DR7kriMy.js:27) [Tweaks:SET] id="show-file-extensions" enabled=false (from system sync)
+[2026-06-22T07:07:35.152Z] [LOG] [Renderer:info] (index-DR7kriMy.js:27) [Tweaks:SET] id="preemption" enabled=false (from system sync)
+[2026-06-22T07:07:35.152Z] [LOG] [Renderer:info] (index-DR7kriMy.js:27) [Tweaks:SET] id="synth-timers" enabled=false (from system sync)
+[2026-06-22T07:07:35.152Z] [LOG] [Renderer:info] (index-DR7kriMy.js:27) [Tweaks:SET] id="disable-lock-screen" enabled=false (from system sync)
+[2026-06-22T07:07:35.152Z] [LOG] [Renderer:info] (index-DR7kriMy.js:27) [Tweaks:SET] id="fast-startup" enabled=true (from system sync)
+[2026-06-22T07:07:35.152Z] [LOG] [Renderer:info] (index-DR7kriMy.js:27) [Tweaks:SET] id="disable-fso" enabled=false (from system sync)
+[2026-06-22T07:07:35.152Z] [LOG] [Renderer:info] (index-DR7kriMy.js:27) [Tweaks:SET] id="storage-sense" enabled=false (from system sync)
+[2026-06-22T07:07:35.152Z] [LOG] [Renderer:info] (index-DR7kriMy.js:27) [Tweaks:SET] id="telemetry" enabled=false (from system sync)
+[2026-06-22T07:07:35.152Z] [LOG] [Renderer:info] (index-DR7kriMy.js:27) [Tweaks:SET] id="mmcss-gaming" enabled=false (from system sync)
+[2026-06-22T07:07:35.153Z] [LOG] [Renderer:info] (index-DR7kriMy.js:27) [Tweaks:SET] id="pcie-link-state" enabled=true (from system sync)
+[2026-06-22T07:07:35.153Z] [LOG] [Renderer:info] (index-DR7kriMy.js:27) [Tweaks:SET] id="superfetch" enabled=true (from system sync)
+[2026-06-22T07:07:35.153Z] [LOG] [Renderer:info] (index-DR7kriMy.js:27) [Tweaks:SET] id="disable-pointer-precision" enabled=true (from system sync)
+[2026-06-22T07:07:35.153Z] [LOG] [Renderer:info] (index-DR7kriMy.js:27) [Tweaks:SET] id="notifications" enabled=true (from system sync)
+[2026-06-22T07:07:35.153Z] [LOG] [Renderer:info] (index-DR7kriMy.js:27) [Tweaks:SET] id="disable-activity-history" enabled=false (from system sync)
+[2026-06-22T07:07:35.154Z] [LOG] [Renderer:info] (index-DR7kriMy.js:27) [Tweaks:SET] id="disable-dcom" enabled=true (from system sync)
+[2026-06-22T07:07:35.154Z] [LOG] [Renderer:info] (index-DR7kriMy.js:215) [App:STARTUP-RECONCILE] reconciled=52 tweaks from real Windows state
+[2026-06-22T07:07:35.154Z] [LOG] [Renderer:info] (index-DR7kriMy.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: false

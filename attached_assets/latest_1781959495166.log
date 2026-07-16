@@ -1,0 +1,1092 @@
+
+[2026-06-20T12:40:32.122Z] [INFO] SwitchControl started — PID:6504 platform:win32/x64 node:20.18.3
+[2026-06-20T12:40:32.154Z] [LOG] [Security] IPC handlers registered
+[2026-06-20T12:40:32.156Z] [LOG] [Debloat] IPC handlers registered
+[2026-06-20T12:40:32.156Z] [LOG] [Cleaner] IPC handlers registered
+[2026-06-20T12:40:32.157Z] [LOG] [Storage] IPC handlers registered
+[2026-06-20T12:40:32.157Z] [LOG] [Protocol] registered: true | isDefault: true | isDev: false
+[2026-06-20T12:40:32.176Z] [LOG] [STARTUP] whenReady — v1.1.5 | isDev:false | pid:6504
+[2026-06-20T12:40:32.179Z] [LOG] [ConfigStore] Initialized — file: C:\Users\SwitchTech\AppData\Roaming\SwitchControl\sc-config.json
+[2026-06-20T12:40:32.180Z] [LOG] [SwitchControl] Instant specs (sync): AMD Ryzen 7 9800X3D 8-Core Processor | GPU: Detecting… | enrichment starting…
+[2026-06-20T12:40:32.181Z] [LOG] [GPU] enrichment start
+[2026-06-20T12:40:32.181Z] [LOG] [GPU] si.graphics begin (3s timeout — WMI covers AMD DXGI hang)
+[2026-06-20T12:40:32.198Z] [LOG] [LAUNCH:1] BrowserWindow constructed — show:false, paintWhenInitiallyHidden:true, isVisible: false
+[2026-06-20T12:40:32.198Z] [LOG] [LAUNCH:2] packaged mode — indexPath: C:\Program Files\SwitchControl\resources\dist\index.html | exists: true
+[2026-06-20T12:40:32.204Z] [LOG] [Backend] ===== STARTUP DIAGNOSTICS =====
+[2026-06-20T12:40:32.204Z] [LOG] [Backend] process.execPath: C:\Program Files\SwitchControl\SwitchControl.exe
+[2026-06-20T12:40:32.204Z] [LOG] [Backend] process.resourcesPath: C:\Program Files\SwitchControl\resources
+[2026-06-20T12:40:32.204Z] [LOG] [Backend] app.isPackaged: true
+[2026-06-20T12:40:32.204Z] [LOG] [Backend] app.getAppPath(): C:\Program Files\SwitchControl\resources\app.asar
+[2026-06-20T12:40:32.205Z] [LOG] [Backend] Expected bundle path: C:\Program Files\SwitchControl\resources\dist\index.cjs
+[2026-06-20T12:40:32.205Z] [LOG] [Backend] Bundle size: 2.5 MB
+[2026-06-20T12:40:32.254Z] [LOG] [Updater] init — v1.1.5 | channel:stable | https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev
+[2026-06-20T12:40:32.254Z] [LOG] [STARTUP] app ready — 78ms from whenReady
+[2026-06-20T12:40:32.254Z] [LOG] [PREWARM] cachedSpecs seeded before window open — AMD Ryzen 7 9800X3D 8-Core Processor | GPU: Detecting…
+[2026-06-20T12:40:32.279Z] [LOG] [Backend] Free port found: 63042
+[2026-06-20T12:40:32.279Z] [LOG] [Backend] ELECTRON_USER_DATA: C:\Users\SwitchTech\AppData\Roaming\SwitchControl
+[2026-06-20T12:40:32.279Z] [LOG] [Backend] ===== ENV KEY DIAGNOSTICS =====
+[2026-06-20T12:40:32.280Z] [LOG] [Backend]   OPENAI_API_KEY: parent_env=false | config_file=false | will_use=false
+[2026-06-20T12:40:32.280Z] [LOG] [Backend]   STRIPE_SECRET_KEY: parent_env=false | config_file=false | will_use=false
+[2026-06-20T12:40:32.280Z] [LOG] [Backend]   GOOGLE_CLIENT_ID: parent_env=false | config_file=false | will_use=false
+[2026-06-20T12:40:32.280Z] [LOG] [Backend]   GOOGLE_CLIENT_SECRET: parent_env=false | config_file=false | will_use=false
+[2026-06-20T12:40:32.280Z] [LOG] [Backend]   JWT_SECRET: parent_env=false | config_file=false | will_use=false
+[2026-06-20T12:40:32.280Z] [LOG] [Backend]   SESSION_SECRET: parent_env=false | config_file=false | will_use=false
+[2026-06-20T12:40:32.280Z] [LOG] [Backend] =====================================
+[2026-06-20T12:40:32.281Z] [LOG] [Backend] ===== CHILD ENV KEY DIAGNOSTICS =====
+[2026-06-20T12:40:32.281Z] [LOG] [Backend]   child_env OPENAI_API_KEY: false
+[2026-06-20T12:40:32.281Z] [LOG] [Backend]   child_env STRIPE_SECRET_KEY: false
+[2026-06-20T12:40:32.281Z] [LOG] [Backend]   child_env GOOGLE_CLIENT_ID: false
+[2026-06-20T12:40:32.281Z] [LOG] [Backend]   child_env GOOGLE_CLIENT_SECRET: false
+[2026-06-20T12:40:32.281Z] [LOG] [Backend]   child_env JWT_SECRET: false
+[2026-06-20T12:40:32.281Z] [LOG] [Backend]   child_env SESSION_SECRET: false
+[2026-06-20T12:40:32.281Z] [LOG] [Backend] AI_MODEL in child env: (not set, will use gpt-4o-mini)
+[2026-06-20T12:40:32.282Z] [LOG] [Backend] DATABASE_URL in child env: NO — Electron offline mode (expected; cloud DB unreachable from user machine)
+[2026-06-20T12:40:32.282Z] [LOG] [Backend] ELECTRON_BACKEND in child env: 1
+[2026-06-20T12:40:32.282Z] [LOG] [Backend] ==========================================
+[2026-06-20T12:40:32.282Z] [LOG] [Backend] Spawning child process...
+[2026-06-20T12:40:32.282Z] [LOG] [Backend]   execPath: C:\Program Files\SwitchControl\SwitchControl.exe
+[2026-06-20T12:40:32.282Z] [LOG] [Backend]   script: C:\Program Files\SwitchControl\resources\dist\index.cjs
+[2026-06-20T12:40:32.282Z] [LOG] [Backend]   ELECTRON_RUN_AS_NODE: 1 (runs as plain Node.js)
+[2026-06-20T12:40:32.282Z] [LOG] [Backend]   PORT: 63042
+[2026-06-20T12:40:32.282Z] [LOG] [Backend]   cwd: C:\Program Files\SwitchControl\resources\dist
+[2026-06-20T12:40:32.289Z] [LOG] [Backend] Child process spawned, PID: 18384
+[2026-06-20T12:40:32.289Z] [LOG] [Backend] Polling health endpoint: http://127.0.0.1:63042/api/health
+[2026-06-20T12:40:32.423Z] [LOG] [Backend:stdout] [DesktopSecrets] ELECTRON_BACKEND mode — bootstrapping secrets
+[2026-06-20T12:40:32.424Z] [LOG] [Backend:stdout] [DesktopSecrets] Secrets file path: C:\Users\SwitchTech\AppData\Roaming\SwitchControl\desktop-secrets.json
+[2026-06-20T12:40:32.424Z] [LOG] [Backend:stdout] [DesktopSecrets] Loaded persisted secrets from: C:\Users\SwitchTech\AppData\Roaming\SwitchControl\desktop-secrets.json
+[2026-06-20T12:40:32.424Z] [LOG] [Backend:stdout] [DesktopSecrets] JWT_SECRET: loaded from persisted file
+[2026-06-20T12:40:32.425Z] [LOG] [Backend:stdout] [DesktopSecrets] SESSION_SECRET: loaded from persisted file
+[2026-06-20T12:40:32.425Z] [LOG] [Backend:stdout] [DesktopSecrets] Bootstrap complete — JWT_SECRET and SESSION_SECRET are set
+[2026-06-20T12:40:32.455Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [RuntimeMode] electron=true | packaged=true | protocol=file: | preload=true | backendTarget=embedded-local | authTarget=cloud
+[2026-06-20T12:40:32.456Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [API] Electron fetch interceptor installed | packaged=true (cloud-only-routes=blocked-from-local)
+[2026-06-20T12:40:32.459Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Store:REHYDRATE] total_stored=52 enabled=17 source=localStorage
+[2026-06-20T12:40:32.460Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:28) [CloudAPI] base=https://switchcontrol.org/api packaged=true electron=true
+[2026-06-20T12:40:32.467Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:145) [BiosStore] hydrated | scores from storage: {"latency":33,"frametime":32,"stability":27,"competitiveReadiness":32,"grade":"Stock / Unoptimized","profileBias":"Performance-focused"}
+[2026-06-20T12:40:32.467Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:145) [BiosStore] hydrated | sanitized scores: {"latency":33,"frametime":32,"stability":27,"competitiveReadiness":32,"grade":"Stock / Unoptimized","profileBias":"Performance-focused"}
+[2026-06-20T12:40:32.471Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [IntervalGuard] installed — min interval enforced at 2000ms
+[2026-06-20T12:40:32.472Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [LAUNCH:R0] renderer bootstrap | electron=true | t=+273ms
+[2026-06-20T12:40:32.472Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [LAUNCH:R1] createRoot dispatching | t=+273ms
+[2026-06-20T12:40:32.473Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:553) [SwitchControl Desktop] Preload initialized - unified API ready
+[2026-06-20T12:40:32.473Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:554) [SwitchControl Desktop] Platform: win32
+[2026-06-20T12:40:32.474Z] [LOG] [LAUNCH:3] did-finish-load — HTML/JS fully parsed by Chromium (first-frame-ready IPC pending)
+[2026-06-20T12:40:32.475Z] [LOG] [LAUNCH:2] loadFile() promise RESOLVED
+[2026-06-20T12:40:32.475Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [API] Backend port not ready, retrying in 200ms… (elapsed 19ms, attempt 1)
+[2026-06-20T12:40:32.475Z] [LOG] [LAUNCH:4] Gate A: ready-to-show (Chromium frame painted) | +271ms
+[2026-06-20T12:40:32.479Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: true
+[2026-06-20T12:40:32.498Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [App] Registering deep link auth callback (once)
+[2026-06-20T12:40:32.509Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: true
+[2026-06-20T12:40:32.511Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: true
+[2026-06-20T12:40:32.511Z] [LOG] [LAUNCH:5] Gate B: app:first-frame-ready (React Splash composited) | +307ms
+[2026-06-20T12:40:32.529Z] [LOG] [LAUNCH:5] mainWindow.show() — both gates passed (chromium+react) | +325ms
+[2026-06-20T12:40:32.529Z] [LOG] [GPU] WMI fast-path start — t=1781959232529
+[2026-06-20T12:40:33.557Z] [LOG] [Backend:stdout] [DB] Electron offline mode — no DATABASE_URL present, using in-memory mock storage.
+[2026-06-20T12:40:33.557Z] [LOG] [Backend:stdout] [Stripe] Billing not configured on local backend — expected in Electron mode.
+[2026-06-20T12:40:33.557Z] [LOG] [Backend:stdout] [JWT] ===== SELF-TEST START =====
+[2026-06-20T12:40:33.558Z] [LOG] [Backend:stdout] [JWT] config OK — JWT secret configured (secretFp=64ecaf8a)
+[2026-06-20T12:40:33.558Z] [LOG] [Backend:stdout] [JWT] signed — userId=self-test-user-000 secretFp=64ecaf8a tokenFp=eyJhbGci.eyJzdWIi
+[2026-06-20T12:40:33.558Z] [LOG] [Backend:stdout] [JWT] PASS: valid token → sub=self-test-user-000 exp=1784551233
+[2026-06-20T12:40:33.558Z] [LOG] [Backend:stdout] [JWT] PASS: invalid token → null (rejected)
+[2026-06-20T12:40:33.559Z] [LOG] [Backend:stdout] [JWT] PASS: expired token → null (rejected)
+[2026-06-20T12:40:33.559Z] [LOG] [Backend:stdout] [JWT] PASS: empty token → null (fallback to cookie path)
+[2026-06-20T12:40:33.559Z] [LOG] [Backend:stdout] [JWT] PASS: alg=none token → null (rejected)
+[2026-06-20T12:40:33.559Z] [LOG] [Backend:stdout] [JWT] PASS: wrong issuer token → null (rejected)
+[2026-06-20T12:40:33.560Z] [LOG] [Backend:stdout] [JWT] ===== SELF-TEST END =====
+[2026-06-20T12:40:33.560Z] [LOG] [Backend:stdout] [AUTH] Google OAuth not configured on local backend — expected in Electron mode (auth handled by cloud server).
+[2026-06-20T12:40:33.560Z] [LOG] [Backend:stdout] [AUTH] Using memory session store (NO-DB / Electron desktop mode)
+[2026-06-20T12:40:33.560Z] [LOG] [Backend:stdout] [AUTH] ===== SESSION COOKIE CONFIG =====
+[2026-06-20T12:40:33.561Z] [LOG] [Backend:stdout] [AUTH] production: true
+[2026-06-20T12:40:33.561Z] [LOG] [Backend:stdout] [AUTH] electronBackend: true
+[2026-06-20T12:40:33.561Z] [LOG] [Backend:stdout] [AUTH] cookie: {"httpOnly":true,"secure":false,"sameSite":"lax","maxAge":604800000,"path":"/"}
+[2026-06-20T12:40:33.562Z] [LOG] [Backend:stdout] [AUTH] ================================
+[2026-06-20T12:40:33.562Z] [LOG] [Backend:stdout] [AUTH] Discord OAuth not configured on local backend — expected in Electron mode (auth handled by cloud server).
+[2026-06-20T12:40:33.562Z] [LOG] [Backend:stdout] [WS] Live telemetry WebSocket server ready at /ws/telemetry (auth required)
+[2026-06-20T12:40:33.562Z] [LOG] [Backend:stdout] 12:40:33 AM [express] serving on 127.0.0.1:63042
+[2026-06-20T12:40:33.569Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:150) [Window] Focus event received
+[2026-06-20T12:40:33.569Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [App] Electron window focus (passive)
+[2026-06-20T12:40:33.569Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [API] Backend port not ready, retrying in 400ms… (elapsed 1111ms, attempt 2)
+[2026-06-20T12:40:33.576Z] [LOG] [Backend] Health check PASSED — attempt 6, 1287ms elapsed, body={"status":"ok","version":"1.1.5","uptime":1,"dbReachable":false,"timestamp":1781959233575}
+[2026-06-20T12:40:33.577Z] [LOG] [Backend] ===== BACKEND READY =====
+[2026-06-20T12:40:33.577Z] [LOG] [Backend] PID: 18384
+[2026-06-20T12:40:33.577Z] [LOG] [Backend] Port: 63042
+[2026-06-20T12:40:33.577Z] [LOG] [Backend] Ready: true
+[2026-06-20T12:40:33.578Z] [LOG] [Backend] getBackendPort() will return: 63042
+[2026-06-20T12:40:33.578Z] [LOG] [Backend] isBackendReady() will return: true
+[2026-06-20T12:40:33.578Z] [LOG] [Backend] ========================
+[2026-06-20T12:40:33.578Z] [LOG] [STARTUP] backend ready — port 63042 (1402ms)
+[2026-06-20T12:40:33.579Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:130) [Backend] backend-ready event received, port: 63042
+[2026-06-20T12:40:33.579Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [API] Backend-ready push: base=http://127.0.0.1:63042/api (was: unset)
+[2026-06-20T12:40:33.579Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [API] Backend port resolved: 63042 (1123ms, push or poll)
+[2026-06-20T12:40:33.579Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [API] Packaged Electron API base: http://127.0.0.1:63042/api
+[2026-06-20T12:40:33.580Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [API] Resolved: http://127.0.0.1:63042/api | electron=true packaged=true
+[2026-06-20T12:40:34.556Z] [LOG] [GPU] WMI fast-path resolved: AMD Radeon RX 7800 XT
+[2026-06-20T12:40:34.556Z] [LOG] [GPU] cachedSpecs patched from WMI fast-path — model: AMD Radeon RX 7800 XT
+[2026-06-20T12:40:34.557Z] [LOG] [GPU] specs:enriched IPC pushed from WMI fast-path
+[2026-06-20T12:40:34.558Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: true
+[2026-06-20T12:40:34.998Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:28) [LAUNCH:R5] Splash onComplete — handing off to App
+[2026-06-20T12:40:34.999Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: true
+[2026-06-20T12:40:35.001Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [AuthTruth] Boot: token present: true jwt present: true user present: true premium: true
+[2026-06-20T12:40:35.001Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [AuthTruth] startup restore begin — hasCredential: true cached isPremium: true plan: premium
+[2026-06-20T12:40:35.001Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [HYDRATE:1] resolveAuthState start reqId=8c75nq
+[2026-06-20T12:40:35.001Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [HYDRATE:1] persisted — user=64f0e669-6db6-42e7-a68a-681f9f5db567 jwt=present
+[2026-06-20T12:40:35.001Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [HYDRATE:2] jwtCheck — malformed=false expired=false
+[2026-06-20T12:40:35.002Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [HYDRATE:5] /api/me — jwt=present reqId=8c75nq
+[2026-06-20T12:40:35.002Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: true
+[2026-06-20T12:40:35.667Z] [LOG] [GPU] si.graphics resolved — +3486ms
+[2026-06-20T12:40:35.667Z] [LOG] [GPU] enrichment resolved — model=AMD Radeon RX 7800 XT +3486ms
+[2026-06-20T12:40:35.667Z] [LOG] [GPU] cachedSpecs updated — model=AMD Radeon RX 7800 XT +3486ms
+[2026-06-20T12:40:35.667Z] [LOG] [GPU] IPC sent — specs:enriched (gpu+cpu+disk)
+[2026-06-20T12:40:35.670Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [HYDRATE:6] result=verified source=cloud userId=64f0e669-6db6-42e7-a68a-681f9f5db567 isPremium=true plan=trial isAdmin=true reqId=8c75nq
+[2026-06-20T12:40:35.670Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: true
+[2026-06-20T12:40:35.671Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [AuthTruth] Boot resolved verified=true reason=cloud_confirmed user=yes
+[2026-06-20T12:40:35.671Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:28) [Premium] Grace snapshot updated — isPremium=true plan=trial userId=64f0e669-6db6-42e7-a68a-681f9f5db567
+[2026-06-20T12:40:35.672Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [AuthTruth] Boot: cloud-confirmed — entitlementsVerified=true
+[2026-06-20T12:40:35.672Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-20T12:40:35.672Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:28) [PremiumExpiry] Initial state recorded — active=true plan=trial trialEndsAt=2026-06-20T12:41:50.365Z
+[2026-06-20T12:40:35.673Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:28) [PremiumExpiry] Trial timer armed — fires in 75s
+[2026-06-20T12:40:35.673Z] [WARN] [telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.
+[2026-06-20T12:40:35.673Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [TourTransition] phase entered authenticated — waiting 500ms for dashboard to stabilize
+[2026-06-20T12:40:36.194Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:28) [Network] Heartbeat started (interval=30000ms)
+[2026-06-20T12:40:36.198Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:159) [Dashboard] mounted
+[2026-06-20T12:40:36.198Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:159) [ActivityMonitor] reused cached state — history points: 1 status: ready
+[2026-06-20T12:40:36.198Z] [LOG] [BOOT] ──────────────────────────────────────────
+[2026-06-20T12:40:36.198Z] [LOG] [BOOT] firstFrameReady  = 271ms
+[2026-06-20T12:40:36.198Z] [LOG] [BOOT] windowShown      = 308ms
+[2026-06-20T12:40:36.198Z] [LOG] [BOOT] telemetryStart   = 325ms
+[2026-06-20T12:40:36.199Z] [LOG] [BOOT] dashboardMounted = 3994ms
+[2026-06-20T12:40:36.199Z] [LOG] [BOOT] ──────────────────────────────────────────
+[2026-06-20T12:40:36.199Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:159) [Home] Specs pre-loaded from Splash — skipping getSpecs()
+[2026-06-20T12:40:36.199Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:159) [Disk] renderer: store updated from specs:enriched — C:
+[2026-06-20T12:40:36.200Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [Handoff] dashboard fade-in started
+[2026-06-20T12:40:36.200Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-20T12:40:36.227Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:63042/api
+[2026-06-20T12:40:36.227Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] path=/api/dashboard-intelligence/system-dna target=local reason=system-route base=http://127.0.0.1:63042/api
+[2026-06-20T12:40:36.228Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:63042/api
+[2026-06-20T12:40:36.228Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:63042/api
+[2026-06-20T12:40:36.228Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] path=/api/dashboard-intelligence/ram-analysis target=local reason=system-route base=http://127.0.0.1:63042/api
+[2026-06-20T12:40:36.229Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] path=/api/system-intelligence/fast target=local reason=system-route base=http://127.0.0.1:63042/api
+[2026-06-20T12:40:36.240Z] [LOG] [Backend:stdout] [SysIntelligence] phase=A start — identity collection
+[2026-06-20T12:40:36.259Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [TourTransition] dashboard stable — tours unblocked
+[2026-06-20T12:40:36.264Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [Handoff] dashboard fade-in complete — layout stable
+[2026-06-20T12:40:36.269Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-20T12:40:36.284Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [AppFlow] Flow eval — isPremium: true plan: trial trialEndsAt: 2026-06-20T12:41:50.365Z hasSeenTrialActivation: false hasSeenTrialTour: false hasSeenUnlock: true hasSeenTour: true isFirstTimeUser: false isFirstLogin: false entitlementsAttempted: true entitlementsOk: true unlockFired: false trialUnlockFired: false
+[2026-06-20T12:40:36.285Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [AppFlow] PRIORITY 2: Trial — skipping animation, going straight to tour [object Object]
+[2026-06-20T12:40:36.285Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-20T12:40:36.295Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:25) [TourTransition] mounted (invisible)
+[2026-06-20T12:40:36.301Z] [ERROR] [Renderer:warn] (index-DaKk5Yai.js:10) [IntervalGuard] ⚠ setInterval(1000ms) clamped to 2000ms. Caller: (stack capture disabled in production)
+[2026-06-20T12:40:36.466Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:25) [TourTransition] revealed — first visible frame
+[2026-06-20T12:40:36.804Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:25) [TourTransition] card fully visible
+[2026-06-20T12:40:36.935Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-20T12:40:37.399Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] path=/api/startup/apps target=local reason=system-route base=http://127.0.0.1:63042/api
+[2026-06-20T12:40:38.460Z] [ERROR] [Backend:stderr] [SysIntelligence] phase=timeout source=A.mem limit=1500ms
+[2026-06-20T12:40:38.463Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [AppFlow] Trial tour complete — persisting
+[2026-06-20T12:40:38.464Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-20T12:40:38.479Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [AppFlow] Trial tour complete — persisting
+[2026-06-20T12:40:38.479Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-20T12:40:38.539Z] [LOG] [PS] start file=main.js fn=tweak:batchCheckAll reason=tweak-batch-check id=1 active=1
+[2026-06-20T12:40:38.540Z] [LOG] [PS:tweak-executor] #1 batchCheckAll SPAWN ts=1781959238540 tweaks=61
+[2026-06-20T12:40:38.850Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] path=/api/issues/detect target=local reason=system-route base=http://127.0.0.1:63042/api
+[2026-06-20T12:40:38.896Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-20T12:40:38.914Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-20T12:40:38.926Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:25) [TourTransition] tour dismissed — fading out
+[2026-06-20T12:40:38.926Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [AppFlow] Flow eval — isPremium: true plan: trial trialEndsAt: 2026-06-20T12:41:50.365Z hasSeenTrialActivation: true hasSeenTrialTour: true hasSeenUnlock: true hasSeenTour: true isFirstTimeUser: false isFirstLogin: false entitlementsAttempted: true entitlementsOk: true unlockFired: true trialUnlockFired: true
+[2026-06-20T12:40:38.927Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [AppFlow] No flow conditions met — staying idle
+[2026-06-20T12:40:38.986Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-20T12:40:39.170Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [AppFlow] Trial tour complete — persisting
+[2026-06-20T12:40:39.170Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-20T12:40:39.181Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-20T12:40:39.238Z] [ERROR] [Backend:stderr] [SysIntelligence] phase=timeout source=baseboard limit=3000ms
+[2026-06-20T12:40:39.238Z] [ERROR] [Backend:stderr] [SysIntelligence] phase=timeout source=bios limit=3000ms
+[2026-06-20T12:40:39.238Z] [ERROR] [Backend:stderr] [SysIntelligence] phase=timeout source=graphics limit=3000ms
+[2026-06-20T12:40:39.426Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:25) [TourTransition] unmounted
+[2026-06-20T12:40:39.707Z] [LOG] [Backend:stdout] [SysIntelligence] phase=A complete in 3470ms | CPU=Ryzen 7 9800X3D 8-Core Processor | GPU=AMD Radeon RX 7800 XT | RAM=32372MB
+[2026-06-20T12:40:39.732Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:157) [SysIntelligence] Fast profile loaded | MB=X870E AORUS PRO ICE | CPU=Ryzen 7 9800X3D 8-Core Processor
+[2026-06-20T12:40:40.104Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-20T12:40:40.257Z] [INFO] Checking for update
+[2026-06-20T12:40:40.258Z] [LOG] [Updater] Checking for update...
+[2026-06-20T12:40:40.471Z] [INFO] Update for version 1.1.5 is not available (latest version: 1.1.5, downgrade is allowed).
+[2026-06-20T12:40:40.472Z] [LOG] [Updater] No update available — current version is latest.
+[2026-06-20T12:40:40.540Z] [LOG] [PS:tweak-executor] #1 batchCheckAll OK 2000ms
+[2026-06-20T12:40:40.541Z] [LOG] [PS] end file=main.js fn=tweak:batchCheckAll id=1 duration=2002ms active=0 calls60s=1
+[2026-06-20T12:40:40.562Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="nvidia-telemetry" enabled=false (from system sync)
+[2026-06-20T12:40:40.563Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="mem-opt" enabled=true (from system sync)
+[2026-06-20T12:40:40.563Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="gaming-mode" enabled=true (from system sync)
+[2026-06-20T12:40:40.563Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="cortana" enabled=false (from system sync)
+[2026-06-20T12:40:40.564Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="disable-wallpaper-compression" enabled=false (from system sync)
+[2026-06-20T12:40:40.564Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="maintenance" enabled=true (from system sync)
+[2026-06-20T12:40:40.564Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="page-combining" enabled=true (from system sync)
+[2026-06-20T12:40:40.564Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="hibernation" enabled=false (from system sync)
+[2026-06-20T12:40:40.565Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="xbox-bar" enabled=false (from system sync)
+[2026-06-20T12:40:40.565Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="mmcss-nolazymode" enabled=false (from system sync)
+[2026-06-20T12:40:40.565Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="wifi" enabled=false (from system sync)
+[2026-06-20T12:40:40.566Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="win-search-index" enabled=false (from system sync)
+[2026-06-20T12:40:40.566Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="core-isolation" enabled=true (from system sync)
+[2026-06-20T12:40:40.566Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="copilot" enabled=true (from system sync)
+[2026-06-20T12:40:40.566Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="xbox-services" enabled=false (from system sync)
+[2026-06-20T12:40:40.566Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="disable-auto-restart-apps" enabled=false (from system sync)
+[2026-06-20T12:40:40.566Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="recent-files" enabled=false (from system sync)
+[2026-06-20T12:40:40.566Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="disable-mpo" enabled=false (from system sync)
+[2026-06-20T12:40:40.566Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="prefetch" enabled=true (from system sync)
+[2026-06-20T12:40:40.567Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="ntfs-last-access" enabled=false (from system sync)
+[2026-06-20T12:40:40.567Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="compact-explorer" enabled=false (from system sync)
+[2026-06-20T12:40:40.567Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="large-system-cache" enabled=false (from system sync)
+[2026-06-20T12:40:40.567Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="disable-delivery-opt" enabled=false (from system sync)
+[2026-06-20T12:40:40.567Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="disable-transparency" enabled=false (from system sync)
+[2026-06-20T12:40:40.567Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="usb-selective-suspend" enabled=true (from system sync)
+[2026-06-20T12:40:40.568Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="tune-priority" enabled=true (from system sync)
+[2026-06-20T12:40:40.568Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="bluetooth" enabled=false (from system sync)
+[2026-06-20T12:40:40.568Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="explorer-separate-process" enabled=false (from system sync)
+[2026-06-20T12:40:40.568Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="fax-printer" enabled=false (from system sync)
+[2026-06-20T12:40:40.568Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="disable-animations" enabled=true (from system sync)
+[2026-06-20T12:40:40.568Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="search-highlights" enabled=false (from system sync)
+[2026-06-20T12:40:40.569Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="hyper-v" enabled=true (from system sync)
+[2026-06-20T12:40:40.569Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="disable-wer" enabled=false (from system sync)
+[2026-06-20T12:40:40.570Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="bg-apps" enabled=false (from system sync)
+[2026-06-20T12:40:40.570Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="power-throttling" enabled=false (from system sync)
+[2026-06-20T12:40:40.570Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="vbs" enabled=true (from system sync)
+[2026-06-20T12:40:40.570Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="energy-logging" enabled=false (from system sync)
+[2026-06-20T12:40:40.570Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="show-file-extensions" enabled=false (from system sync)
+[2026-06-20T12:40:40.571Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="preemption" enabled=false (from system sync)
+[2026-06-20T12:40:40.571Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="synth-timers" enabled=false (from system sync)
+[2026-06-20T12:40:40.571Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="disable-lock-screen" enabled=false (from system sync)
+[2026-06-20T12:40:40.571Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="fast-startup" enabled=true (from system sync)
+[2026-06-20T12:40:40.571Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="disable-fso" enabled=false (from system sync)
+[2026-06-20T12:40:40.571Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="storage-sense" enabled=false (from system sync)
+[2026-06-20T12:40:40.572Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="telemetry" enabled=false (from system sync)
+[2026-06-20T12:40:40.572Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="mmcss-gaming" enabled=false (from system sync)
+[2026-06-20T12:40:40.572Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="pcie-link-state" enabled=true (from system sync)
+[2026-06-20T12:40:40.572Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="superfetch" enabled=false (from system sync)
+[2026-06-20T12:40:40.572Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="disable-pointer-precision" enabled=true (from system sync)
+[2026-06-20T12:40:40.573Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="notifications" enabled=true (from system sync)
+[2026-06-20T12:40:40.573Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="disable-activity-history" enabled=false (from system sync)
+[2026-06-20T12:40:40.573Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="disable-dcom" enabled=true (from system sync)
+[2026-06-20T12:40:40.573Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [App:STARTUP-RECONCILE] reconciled=52 tweaks from real Windows state
+[2026-06-20T12:40:40.573Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-20T12:40:41.237Z] [ERROR] [Backend:stderr] [SysIntelligence] phase=timeout source=cpu limit=5000ms
+[2026-06-20T12:40:41.597Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-20T12:40:41.655Z] [LOG] [PS] start file=main.js fn=slider:readValue reason=slider-read id=2 active=1
+[2026-06-20T12:40:41.658Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-20T12:40:41.655Z
+[2026-06-20T12:40:41.658Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-20T12:40:41.655Z
+[2026-06-20T12:40:41.658Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-20T12:40:41.655Z
+[2026-06-20T12:40:41.658Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-20T12:40:41.655Z
+[2026-06-20T12:40:41.658Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-20T12:40:41.655Z
+[2026-06-20T12:40:41.658Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-20T12:40:41.655Z
+[2026-06-20T12:40:41.659Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-20T12:40:41.655Z
+[2026-06-20T12:40:41.659Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:159) [Tweaks:LOAD] source=zustand-persist enabled=17 total_known=52
+[2026-06-20T12:40:41.659Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:159) [Tweaks:LOAD] enabled_ids=mem-opt, gaming-mode, maintenance, page-combining, core-isolation, copilot, prefetch, usb-selective-suspend, tune-priority, disable-animations, hyper-v, vbs, fast-startup, pcie-link-state, disable-pointer-precision, notifications, disable-dcom
+[2026-06-20T12:40:41.659Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:159) [Tweaks:SYNC] hydration start gen=1
+[2026-06-20T12:40:41.659Z] [LOG] [PS] start file=main.js fn=tweak:syncAll reason=tweak-sync-all id=3 active=2
+[2026-06-20T12:40:41.659Z] [LOG] [PS-Exec] start file=main.js fn=tweak:syncAll reason=tweak-sync-all — batch mode, 63 tweaks
+[2026-06-20T12:40:41.660Z] [LOG] [PS:tweak-executor] #2 batchCheckAll SPAWN ts=1781959241660 tweaks=61
+[2026-06-20T12:40:41.673Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] path=/api/tweak-intelligence/system-state target=local reason=system-route base=http://127.0.0.1:63042/api
+[2026-06-20T12:40:41.673Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] path=/api/tweak-intelligence/rankings?applied=mem-opt%2Cgaming-mode%2Cmaintenance%2Cpage-combining%2Ccore-isolation%2Ccopilot%2Cprefetch%2Cusb-selective-suspend%2Ctune-priority%2Cdisable-animations%2Chyper-v%2Cvbs%2Cfast-startup%2Cpcie-link-state%2Cdisable-pointer-precision%2Cnotifications%2Cdisable-dcom target=local reason=system-route base=http://127.0.0.1:63042/api
+[2026-06-20T12:40:41.673Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] path=/api/tweak-intelligence/posture?applied=mem-opt%2Cgaming-mode%2Cmaintenance%2Cpage-combining%2Ccore-isolation%2Ccopilot%2Cprefetch%2Cusb-selective-suspend%2Ctune-priority%2Cdisable-animations%2Chyper-v%2Cvbs%2Cfast-startup%2Cpcie-link-state%2Cdisable-pointer-precision%2Cnotifications%2Cdisable-dcom target=local reason=system-route base=http://127.0.0.1:63042/api
+[2026-06-20T12:40:41.694Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:159) [SliderHydration] win32-priority-sep: read skipped — limiter busy (expected at startup)
+[2026-06-20T12:40:41.694Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:159) [SliderHydration] sys-responsiveness: read skipped — limiter busy (expected at startup)
+[2026-06-20T12:40:41.694Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:159) [SliderHydration] net-throttle-index: read skipped — limiter busy (expected at startup)
+[2026-06-20T12:40:41.695Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:159) [SliderHydration] menu-show-delay: read skipped — limiter busy (expected at startup)
+[2026-06-20T12:40:41.695Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:159) [SliderHydration] hung-app-timeout: read skipped — limiter busy (expected at startup)
+[2026-06-20T12:40:41.695Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:159) [SliderHydration] low-level-hooks-timeout: read skipped — limiter busy (expected at startup)
+[2026-06-20T12:40:41.695Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:159) [SliderHydration] wait-to-kill-app: read skipped — limiter busy (expected at startup)
+[2026-06-20T12:40:41.879Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-20T12:40:42.281Z] [LOG] [SliderExecutor] READ svchost-split-threshold: value=33554432 raw="33554432"
+[2026-06-20T12:40:42.281Z] [LOG] [PS] end file=main.js fn=slider:readValue id=2 duration=626ms active=1 calls60s=2
+[2026-06-20T12:40:42.282Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:159) [SliderHydration] svchost-split-threshold: value=33554432 missing=false
+[2026-06-20T12:40:42.282Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-20T12:40:43.424Z] [LOG] [PS:tweak-executor] #2 batchCheckAll OK 1764ms
+[2026-06-20T12:40:43.424Z] [LOG] [PS-Exec] done file=main.js fn=tweak:syncAll ms=1765 tweaks=70
+[2026-06-20T12:40:43.425Z] [LOG] [PS] end file=main.js fn=tweak:syncAll id=3 duration=1766ms active=0 calls60s=3
+[2026-06-20T12:40:43.426Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:159) [TweakSupport] id=p-states, supported=false, reason="Requires driver/service not installed — CPU P-state control needs a kernel-mode agent calling ACPI driver interfaces. Cannot be applied persistently via registry." (runtime check)
+[2026-06-20T12:40:43.426Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:159) [TweakSupport] id=irq-priority, supported=false, reason="Requires driver/service not installed — interrupt affinity control is not accessible from user-mode. Needs a signed kernel driver or MSR write access." (runtime check)
+[2026-06-20T12:40:43.427Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:159) [TweakSupport] id=desktop-comp, supported=false, reason="Unsupported on Windows 10/11 — Desktop Window Manager (DWM) is an integral system compositor and cannot be disabled. Disabling DWM was only possible on Windows XP/Vista." (runtime check)
+[2026-06-20T12:40:43.427Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:159) [TweakSupport] id=hdcp, supported=false, reason="Requires driver/service not installed — HDCP enforcement is controlled at the GPU hardware/display-driver level and cannot be reliably toggled via software or registry." (runtime check)
+[2026-06-20T12:40:43.427Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:159) [TweakSupport] id=mouse-queue-size, supported=false, reason="Requires driver/service not installed — MouseDataQueueSize (mouclass kernel driver) modification can cause complete mouse failure requiring Safe Mode recovery. Disabled for safety." (runtime check)
+[2026-06-20T12:40:43.427Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:159) [TweakSupport] id=kbd-queue-size, supported=false, reason="Requires driver/service not installed — KeyboardDataQueueSize (kbdclass kernel driver) modification can cause complete keyboard failure requiring Safe Mode recovery. Disabled for safety." (runtime check)
+[2026-06-20T12:40:43.428Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:159) [TweakSupport] id=tcp-winhttp, supported=false, reason="Helper not bundled — WinHTTP autotuning is applied via netsh and resets when the network adapter restarts. No persistent agent is shipped in this build." (runtime check)
+[2026-06-20T12:40:43.429Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="nvidia-telemetry" enabled=false (from system sync)
+[2026-06-20T12:40:43.429Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="mem-opt" enabled=true (from system sync)
+[2026-06-20T12:40:43.429Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="gaming-mode" enabled=true (from system sync)
+[2026-06-20T12:40:43.429Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="cortana" enabled=false (from system sync)
+[2026-06-20T12:40:43.429Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="disable-wallpaper-compression" enabled=false (from system sync)
+[2026-06-20T12:40:43.429Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="maintenance" enabled=true (from system sync)
+[2026-06-20T12:40:43.430Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="page-combining" enabled=true (from system sync)
+[2026-06-20T12:40:43.430Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="hibernation" enabled=false (from system sync)
+[2026-06-20T12:40:43.430Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="xbox-bar" enabled=false (from system sync)
+[2026-06-20T12:40:43.430Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="mmcss-nolazymode" enabled=false (from system sync)
+[2026-06-20T12:40:43.430Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="wifi" enabled=false (from system sync)
+[2026-06-20T12:40:43.430Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="win-search-index" enabled=false (from system sync)
+[2026-06-20T12:40:43.430Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="core-isolation" enabled=true (from system sync)
+[2026-06-20T12:40:43.430Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="copilot" enabled=true (from system sync)
+[2026-06-20T12:40:43.430Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="xbox-services" enabled=false (from system sync)
+[2026-06-20T12:40:43.431Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="disable-auto-restart-apps" enabled=false (from system sync)
+[2026-06-20T12:40:43.431Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="recent-files" enabled=false (from system sync)
+[2026-06-20T12:40:43.431Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="disable-mpo" enabled=false (from system sync)
+[2026-06-20T12:40:43.431Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="prefetch" enabled=true (from system sync)
+[2026-06-20T12:40:43.431Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="ntfs-last-access" enabled=false (from system sync)
+[2026-06-20T12:40:43.432Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="compact-explorer" enabled=false (from system sync)
+[2026-06-20T12:40:43.432Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="large-system-cache" enabled=false (from system sync)
+[2026-06-20T12:40:43.432Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="disable-delivery-opt" enabled=false (from system sync)
+[2026-06-20T12:40:43.433Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="disable-transparency" enabled=false (from system sync)
+[2026-06-20T12:40:43.433Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="usb-selective-suspend" enabled=true (from system sync)
+[2026-06-20T12:40:43.433Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="tune-priority" enabled=true (from system sync)
+[2026-06-20T12:40:43.433Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="bluetooth" enabled=false (from system sync)
+[2026-06-20T12:40:43.434Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="explorer-separate-process" enabled=false (from system sync)
+[2026-06-20T12:40:43.434Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="fax-printer" enabled=false (from system sync)
+[2026-06-20T12:40:43.434Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="disable-animations" enabled=true (from system sync)
+[2026-06-20T12:40:43.435Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="search-highlights" enabled=false (from system sync)
+[2026-06-20T12:40:43.435Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="hyper-v" enabled=true (from system sync)
+[2026-06-20T12:40:43.435Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="disable-wer" enabled=false (from system sync)
+[2026-06-20T12:40:43.435Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="bg-apps" enabled=false (from system sync)
+[2026-06-20T12:40:43.435Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="power-throttling" enabled=false (from system sync)
+[2026-06-20T12:40:43.435Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="vbs" enabled=true (from system sync)
+[2026-06-20T12:40:43.435Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="energy-logging" enabled=false (from system sync)
+[2026-06-20T12:40:43.435Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="show-file-extensions" enabled=false (from system sync)
+[2026-06-20T12:40:43.435Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="preemption" enabled=false (from system sync)
+[2026-06-20T12:40:43.436Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="synth-timers" enabled=false (from system sync)
+[2026-06-20T12:40:43.436Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="disable-lock-screen" enabled=false (from system sync)
+[2026-06-20T12:40:43.436Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="fast-startup" enabled=true (from system sync)
+[2026-06-20T12:40:43.436Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="disable-fso" enabled=false (from system sync)
+[2026-06-20T12:40:43.436Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="storage-sense" enabled=false (from system sync)
+[2026-06-20T12:40:43.436Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="telemetry" enabled=false (from system sync)
+[2026-06-20T12:40:43.436Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="mmcss-gaming" enabled=false (from system sync)
+[2026-06-20T12:40:43.436Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="pcie-link-state" enabled=true (from system sync)
+[2026-06-20T12:40:43.436Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="superfetch" enabled=false (from system sync)
+[2026-06-20T12:40:43.437Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="disable-pointer-precision" enabled=true (from system sync)
+[2026-06-20T12:40:43.437Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="notifications" enabled=true (from system sync)
+[2026-06-20T12:40:43.437Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="disable-activity-history" enabled=false (from system sync)
+[2026-06-20T12:40:43.437Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:SET] id="disable-dcom" enabled=true (from system sync)
+[2026-06-20T12:40:43.437Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:159) [Tweaks:SYNC] hydration done gen=1 reconciled=52
+[2026-06-20T12:40:43.437Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-20T12:40:43.772Z] [LOG] [PowerPlan] ── applyPowerProfile START: profileId="maximum_performance" ──
+[2026-06-20T12:40:43.772Z] [LOG] [PowerPlan]   basePlan="high_performance" scName="SwitchControl - Max Performance"
+[2026-06-20T12:40:43.783Z] [LOG] [PowerPlan]   GUID before: 0135dd1e-3bd6-4076-b5d7-f364a5f2ec5a ("SwitchControl - Max Performance")
+[2026-06-20T12:40:43.796Z] [LOG] [PowerPlan] Reusing existing SC scheme "0135dd1e-3bd6-4076-b5d7-f364a5f2ec5a" for maximum_performance
+[2026-06-20T12:40:43.806Z] [LOG] [PowerPlan]   target schemeGuid: 0135dd1e-3bd6-4076-b5d7-f364a5f2ec5a
+[2026-06-20T12:40:44.344Z] [LOG] [PowerPlan]   isAdmin=true — running 19 powercfg commands
+[2026-06-20T12:40:44.689Z] [LOG] [PowerPlan]   GUID after:  0135dd1e-3bd6-4076-b5d7-f364a5f2ec5a ("SwitchControl - Max Performance")
+[2026-06-20T12:40:44.689Z] [LOG] [PowerPlan]   target GUID: 0135dd1e-3bd6-4076-b5d7-f364a5f2ec5a
+[2026-06-20T12:40:44.689Z] [LOG] [PowerPlan] ── applyPowerProfile END ── success=true guidMatch=true settingsMatch=exact_match failedCmds=0 settingsErrors=0
+[2026-06-20T12:40:44.690Z] [LOG] [OwnershipStore] apply recorded: power_plan:active-scheme appliedValue={"profileId":"maximum_performance","guid":"0135dd1e-3bd6-4076-b5d7-f364a5f2ec5a"}
+[2026-06-20T12:40:44.690Z] [LOG] [PowerPlan] premium plan applied: profileId=maximum_performance guid=0135dd1e-3bd6-4076-b5d7-f364a5f2ec5a — appliedByApp=true recorded
+[2026-06-20T12:40:44.691Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-20T12:40:44.700Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] path=/api/history target=local reason=system-route base=http://127.0.0.1:63042/api
+[2026-06-20T12:40:44.957Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-20T12:40:44.996Z] [LOG] [PS] start file=main.js fn=slider:readValue reason=slider-read id=4 active=1
+[2026-06-20T12:40:44.998Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-20T12:40:44.996Z
+[2026-06-20T12:40:44.998Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-20T12:40:44.996Z
+[2026-06-20T12:40:44.998Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-20T12:40:44.996Z
+[2026-06-20T12:40:44.999Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-20T12:40:44.996Z
+[2026-06-20T12:40:44.999Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-20T12:40:44.996Z
+[2026-06-20T12:40:44.999Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-20T12:40:44.996Z
+[2026-06-20T12:40:44.999Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-20T12:40:44.996Z
+[2026-06-20T12:40:44.999Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:159) [Tweaks:LOAD] source=zustand-persist enabled=17 total_known=52
+[2026-06-20T12:40:44.999Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:159) [Tweaks:LOAD] enabled_ids=mem-opt, gaming-mode, maintenance, page-combining, core-isolation, copilot, prefetch, usb-selective-suspend, tune-priority, disable-animations, hyper-v, vbs, fast-startup, pcie-link-state, disable-pointer-precision, notifications, disable-dcom
+[2026-06-20T12:40:45.000Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:159) [Tweaks:SYNC] hydration start gen=2
+[2026-06-20T12:40:45.000Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [TweakExecutor] syncAll cooldown — skipping (last ran 3s ago, cooldown 300s)
+[2026-06-20T12:40:45.010Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] path=/api/tweak-intelligence/system-state target=local reason=system-route base=http://127.0.0.1:63042/api
+[2026-06-20T12:40:45.010Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] path=/api/tweak-intelligence/rankings?applied=mem-opt%2Cgaming-mode%2Cmaintenance%2Cpage-combining%2Ccore-isolation%2Ccopilot%2Cprefetch%2Cusb-selective-suspend%2Ctune-priority%2Cdisable-animations%2Chyper-v%2Cvbs%2Cfast-startup%2Cpcie-link-state%2Cdisable-pointer-precision%2Cnotifications%2Cdisable-dcom target=local reason=system-route base=http://127.0.0.1:63042/api
+[2026-06-20T12:40:45.010Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] path=/api/tweak-intelligence/posture?applied=mem-opt%2Cgaming-mode%2Cmaintenance%2Cpage-combining%2Ccore-isolation%2Ccopilot%2Cprefetch%2Cusb-selective-suspend%2Ctune-priority%2Cdisable-animations%2Chyper-v%2Cvbs%2Cfast-startup%2Cpcie-link-state%2Cdisable-pointer-precision%2Cnotifications%2Cdisable-dcom target=local reason=system-route base=http://127.0.0.1:63042/api
+[2026-06-20T12:40:45.010Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:159) [Tweaks:SYNC] skipped (no results from syncAll)
+[2026-06-20T12:40:45.045Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:159) [SliderHydration] win32-priority-sep: read skipped — limiter busy (expected at startup)
+[2026-06-20T12:40:45.046Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:159) [SliderHydration] sys-responsiveness: read skipped — limiter busy (expected at startup)
+[2026-06-20T12:40:45.046Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:159) [SliderHydration] net-throttle-index: read skipped — limiter busy (expected at startup)
+[2026-06-20T12:40:45.046Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:159) [SliderHydration] menu-show-delay: read skipped — limiter busy (expected at startup)
+[2026-06-20T12:40:45.046Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:159) [SliderHydration] hung-app-timeout: read skipped — limiter busy (expected at startup)
+[2026-06-20T12:40:45.046Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:159) [SliderHydration] low-level-hooks-timeout: read skipped — limiter busy (expected at startup)
+[2026-06-20T12:40:45.046Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:159) [SliderHydration] wait-to-kill-app: read skipped — limiter busy (expected at startup)
+[2026-06-20T12:40:45.644Z] [LOG] [SliderExecutor] READ svchost-split-threshold: value=33554432 raw="33554432"
+[2026-06-20T12:40:45.644Z] [LOG] [PS] end file=main.js fn=slider:readValue id=4 duration=648ms active=0 calls60s=4
+[2026-06-20T12:40:45.645Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:159) [SliderHydration] svchost-split-threshold: value=33554432 missing=false
+[2026-06-20T12:40:45.645Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-20T12:40:48.055Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-20T12:40:48.137Z] [LOG] [Backend:stdout] [SysIntelligence] Background deep collection triggered
+[2026-06-20T12:40:48.137Z] [LOG] [Backend:stdout] [SysIntelligence] phase=full start — deep collection
+[2026-06-20T12:40:50.561Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:159) [Tweaks:TOGGLE_START] id="superfetch" action=apply isReal=true
+[2026-06-20T12:40:50.561Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:159) [Tweaks:BACKEND_ACTION] id="superfetch" calling executeTweak action=apply
+[2026-06-20T12:40:50.561Z] [LOG] [PS] start file=main.js fn=tweak:checkStatus:superfetch reason=tweak-check-status id=5 active=1
+[2026-06-20T12:40:50.562Z] [LOG] [PS:tweak-executor] #3 queryPowerShell SPAWN ts=1781959250562 active=1
+[2026-06-20T12:40:51.679Z] [ERROR] [Backend:stderr] [SysIntelligence] phase=timeout source=baseboard limit=3000ms
+[2026-06-20T12:40:51.679Z] [ERROR] [Backend:stderr] [SysIntelligence] probe=baseboard timeout #1 — setting 12min cooldown
+[2026-06-20T12:40:51.680Z] [ERROR] [Backend:stderr] [SysIntelligence] phase=timeout source=bios limit=3000ms
+[2026-06-20T12:40:51.680Z] [ERROR] [Backend:stderr] [SysIntelligence] probe=bios timeout #1 — setting 12min cooldown
+[2026-06-20T12:40:51.680Z] [ERROR] [Backend:stderr] [SysIntelligence] phase=timeout source=graphics limit=3000ms
+[2026-06-20T12:40:51.680Z] [ERROR] [Backend:stderr] [SysIntelligence] probe=graphics timeout #1 — setting 12min cooldown
+[2026-06-20T12:40:51.681Z] [ERROR] [Backend:stderr] [SysIntelligence] phase=timeout source=osInfo limit=3000ms
+[2026-06-20T12:40:51.681Z] [ERROR] [Backend:stderr] [SysIntelligence] probe=osInfo timeout #1 — setting 12min cooldown
+[2026-06-20T12:40:51.681Z] [ERROR] [Backend:stderr] [SysIntelligence] phase=timeout source=platformPS limit=3000ms
+[2026-06-20T12:40:51.682Z] [ERROR] [Backend:stderr] [SysIntelligence] probe=platformPS timeout #1 — setting 12min cooldown
+[2026-06-20T12:40:51.682Z] [ERROR] [Backend:stderr] [SysIntelligence] phase=timeout source=monitorEDID limit=3000ms
+[2026-06-20T12:40:52.139Z] [ERROR] [Backend:stderr] [SysIntelligence] phase=timeout source=memLayout limit=4000ms
+[2026-06-20T12:40:52.140Z] [ERROR] [Backend:stderr] [SysIntelligence] phase=timeout source=diskLayout limit=4000ms
+[2026-06-20T12:40:52.140Z] [ERROR] [Backend:stderr] [SysIntelligence] probe=diskLayout timeout #1 — setting 12min cooldown
+[2026-06-20T12:40:52.140Z] [ERROR] [Backend:stderr] [SysIntelligence] phase=timeout source=fsSize limit=4000ms
+[2026-06-20T12:40:52.141Z] [ERROR] [Backend:stderr] [SysIntelligence] phase=timeout source=netIf limit=4000ms
+[2026-06-20T12:40:52.141Z] [ERROR] [Backend:stderr] [SysIntelligence] phase=timeout source=processes limit=4000ms
+[2026-06-20T12:40:52.180Z] [LOG] [PS:tweak-executor] #3 queryPowerShell OK 1618ms
+[2026-06-20T12:40:52.181Z] [LOG] [PS] end file=main.js fn=tweak:checkStatus:superfetch id=5 duration=1620ms active=0 calls60s=5
+[2026-06-20T12:40:52.181Z] [LOG] [PS] start file=main.js fn=tweak:execute:superfetch reason=tweak-apply id=6 active=1
+[2026-06-20T12:40:52.182Z] [LOG] [PS-Exec] start file=main.js fn=tweak:execute:superfetch reason=tweak-apply
+[2026-06-20T12:40:52.182Z] [LOG] [PS:tweak-executor] #4 queryPowerShell SPAWN ts=1781959252182 active=1
+[2026-06-20T12:40:52.735Z] [LOG] [PS:tweak-executor] #4 queryPowerShell OK 553ms
+[2026-06-20T12:40:52.735Z] [LOG] [TweakExecutor] APPLY superfetch
+[2026-06-20T12:40:52.735Z] [LOG] [PS:tweak-executor] #5 runPowerShell SPAWN ts=1781959252735 active=1
+[2026-06-20T12:40:53.141Z] [ERROR] [Backend:stderr] [SysIntelligence] phase=timeout source=cpu limit=5000ms
+[2026-06-20T12:40:53.692Z] [LOG] [PS:tweak-executor] #5 runPowerShell OK 957ms
+[2026-06-20T12:40:53.692Z] [LOG] [PS:tweak-executor] #6 queryPowerShell SPAWN ts=1781959253692 active=1
+[2026-06-20T12:40:54.289Z] [LOG] [PS:tweak-executor] #6 queryPowerShell OK 597ms
+[2026-06-20T12:40:54.290Z] [LOG] [TweakExecutor:PERSIST] superfetch → true (hkcu, verified) written
+[2026-06-20T12:40:54.295Z] [LOG] [OwnershipStore] apply recorded: tweak:superfetch appliedValue=true
+[2026-06-20T12:40:54.295Z] [LOG] [PS] end file=main.js fn=tweak:execute:superfetch id=6 duration=2114ms active=0 calls60s=6
+[2026-06-20T12:40:54.296Z] [LOG] [PS] start file=main.js fn=tweak:checkStatus:superfetch reason=tweak-check-status id=7 active=1
+[2026-06-20T12:40:54.296Z] [LOG] [PS:tweak-executor] #7 queryPowerShell SPAWN ts=1781959254296 active=1
+[2026-06-20T12:40:54.497Z] [LOG] [Backend:stdout] [SysIntelligence] phase=full complete in 6360ms | MB=null | BIOS=null | CPU=Ryzen 7 9800X3D 8-Core Processor | GPUs=0 | RAMsticks=2
+[2026-06-20T12:40:54.498Z] [LOG] [Backend:stdout] [SysIntelligence] Disk cache updated
+[2026-06-20T12:40:54.846Z] [LOG] [PS:tweak-executor] #7 queryPowerShell OK 550ms
+[2026-06-20T12:40:54.846Z] [LOG] [PS] end file=main.js fn=tweak:checkStatus:superfetch id=7 duration=550ms active=0 calls60s=7
+[2026-06-20T12:40:54.848Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Ownership:TWEAK] recorded apply tweakId="superfetch" prev=false applied=true premium=false
+[2026-06-20T12:40:54.848Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:159) [Tweaks:RESULT] id="superfetch" success=true action=apply
+[2026-06-20T12:40:54.848Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:TOGGLE] id="superfetch" title="Disable SysMain/Superfetch" OFF→ON
+[2026-06-20T12:40:54.849Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:STATE] enabled_count=18 | tweak="superfetch" applied=true
+[2026-06-20T12:40:54.849Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-20T12:40:54.862Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] path=/api/history target=local reason=system-route base=http://127.0.0.1:63042/api
+[2026-06-20T12:40:54.863Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] path=/api/tweak-intelligence/system-state target=local reason=system-route base=http://127.0.0.1:63042/api
+[2026-06-20T12:40:54.864Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] path=/api/tweak-intelligence/rankings?applied=mem-opt%2Cgaming-mode%2Cmaintenance%2Cpage-combining%2Ccore-isolation%2Ccopilot%2Cprefetch%2Cusb-selective-suspend%2Ctune-priority%2Cdisable-animations%2Chyper-v%2Cvbs%2Cfast-startup%2Cpcie-link-state%2Csuperfetch%2Cdisable-pointer-precision%2Cnotifications%2Cdisable-dcom target=local reason=system-route base=http://127.0.0.1:63042/api
+[2026-06-20T12:40:54.864Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] path=/api/tweak-intelligence/posture?applied=mem-opt%2Cgaming-mode%2Cmaintenance%2Cpage-combining%2Ccore-isolation%2Ccopilot%2Cprefetch%2Cusb-selective-suspend%2Ctune-priority%2Cdisable-animations%2Chyper-v%2Cvbs%2Cfast-startup%2Cpcie-link-state%2Csuperfetch%2Cdisable-pointer-precision%2Cnotifications%2Cdisable-dcom target=local reason=system-route base=http://127.0.0.1:63042/api
+[2026-06-20T12:40:54.932Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:159) [Tweaks:TOGGLE_START] id="page-combining" action=revert isReal=true
+[2026-06-20T12:40:54.932Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:159) [Tweaks:BACKEND_ACTION] id="page-combining" calling executeTweak action=revert
+[2026-06-20T12:40:54.932Z] [LOG] [PS] start file=main.js fn=tweak:execute:page-combining reason=tweak-revert id=8 active=1
+[2026-06-20T12:40:54.932Z] [LOG] [PS-Exec] start file=main.js fn=tweak:execute:page-combining reason=tweak-revert
+[2026-06-20T12:40:54.932Z] [LOG] [TweakExecutor] REVERT page-combining
+[2026-06-20T12:40:54.933Z] [LOG] [PS:tweak-executor] #8 runPowerShell SPAWN ts=1781959254933 active=1
+[2026-06-20T12:40:55.677Z] [LOG] [PS:tweak-executor] #8 runPowerShell OK 744ms
+[2026-06-20T12:40:55.678Z] [LOG] [PS:tweak-executor] #9 queryPowerShell SPAWN ts=1781959255678 active=1
+[2026-06-20T12:40:56.464Z] [LOG] [PS:tweak-executor] #9 queryPowerShell OK 786ms
+[2026-06-20T12:40:56.465Z] [LOG] [PS] end file=main.js fn=tweak:execute:page-combining id=8 duration=1533ms active=0 calls60s=8
+[2026-06-20T12:40:56.466Z] [ERROR] [Renderer:warn] (index-DaKk5Yai.js:159) [Tweaks:RESULT] id="page-combining" success=false failureType=verification_failed msg="Setting Could Not Be Verified"
+[2026-06-20T12:40:58.926Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:159) [Tweaks:TOGGLE_START] id="mem-opt" action=revert isReal=true
+[2026-06-20T12:40:58.927Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:159) [Tweaks:BACKEND_ACTION] id="mem-opt" calling executeTweak action=revert
+[2026-06-20T12:40:58.927Z] [LOG] [PS] start file=main.js fn=tweak:execute:mem-opt reason=tweak-revert id=9 active=1
+[2026-06-20T12:40:58.927Z] [LOG] [PS-Exec] start file=main.js fn=tweak:execute:mem-opt reason=tweak-revert
+[2026-06-20T12:40:58.927Z] [LOG] [TweakExecutor] REVERT mem-opt
+[2026-06-20T12:40:58.927Z] [LOG] [PS:tweak-executor] #10 runPowerShell SPAWN ts=1781959258927 active=1
+[2026-06-20T12:40:59.535Z] [LOG] [PS:tweak-executor] #10 runPowerShell OK 608ms
+[2026-06-20T12:40:59.536Z] [LOG] [PS:tweak-executor] #11 queryPowerShell SPAWN ts=1781959259536 active=1
+[2026-06-20T12:41:00.118Z] [LOG] [PS:tweak-executor] #11 queryPowerShell OK 582ms
+[2026-06-20T12:41:00.119Z] [LOG] [TweakExecutor:PERSIST] mem-opt → false (hkcu, verified) written
+[2026-06-20T12:41:00.120Z] [LOG] [OwnershipStore] apply recorded: tweak:mem-opt appliedValue=false
+[2026-06-20T12:41:00.121Z] [LOG] [PS] end file=main.js fn=tweak:execute:mem-opt id=9 duration=1194ms active=0 calls60s=9
+[2026-06-20T12:41:00.121Z] [LOG] [PS] start file=main.js fn=tweak:checkStatus:mem-opt reason=tweak-check-status id=10 active=1
+[2026-06-20T12:41:00.122Z] [LOG] [PS:tweak-executor] #12 queryPowerShell SPAWN ts=1781959260122 active=1
+[2026-06-20T12:41:00.666Z] [LOG] [PS:tweak-executor] #12 queryPowerShell OK 544ms
+[2026-06-20T12:41:00.666Z] [LOG] [PS] end file=main.js fn=tweak:checkStatus:mem-opt id=10 duration=545ms active=0 calls60s=10
+[2026-06-20T12:41:00.667Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:159) [Tweaks:RESULT] id="mem-opt" success=true action=revert
+[2026-06-20T12:41:00.667Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:TOGGLE] id="mem-opt" title="Optimize Memory Settings" ON→OFF
+[2026-06-20T12:41:00.667Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:STATE] enabled_count=17 | tweak="mem-opt" applied=false
+[2026-06-20T12:41:00.668Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-20T12:41:00.680Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] path=/api/history target=local reason=system-route base=http://127.0.0.1:63042/api
+[2026-06-20T12:41:00.682Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] path=/api/tweak-intelligence/system-state target=local reason=system-route base=http://127.0.0.1:63042/api
+[2026-06-20T12:41:00.682Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] path=/api/tweak-intelligence/rankings?applied=gaming-mode%2Cmaintenance%2Cpage-combining%2Ccore-isolation%2Ccopilot%2Cprefetch%2Cusb-selective-suspend%2Ctune-priority%2Cdisable-animations%2Chyper-v%2Cvbs%2Cfast-startup%2Cpcie-link-state%2Csuperfetch%2Cdisable-pointer-precision%2Cnotifications%2Cdisable-dcom target=local reason=system-route base=http://127.0.0.1:63042/api
+[2026-06-20T12:41:00.682Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] path=/api/tweak-intelligence/posture?applied=gaming-mode%2Cmaintenance%2Cpage-combining%2Ccore-isolation%2Ccopilot%2Cprefetch%2Cusb-selective-suspend%2Ctune-priority%2Cdisable-animations%2Chyper-v%2Cvbs%2Cfast-startup%2Cpcie-link-state%2Csuperfetch%2Cdisable-pointer-precision%2Cnotifications%2Cdisable-dcom target=local reason=system-route base=http://127.0.0.1:63042/api
+[2026-06-20T12:41:01.641Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:159) [Tweaks:TOGGLE_START] id="mem-opt" action=apply isReal=true
+[2026-06-20T12:41:01.641Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:159) [Tweaks:BACKEND_ACTION] id="mem-opt" calling executeTweak action=apply
+[2026-06-20T12:41:01.641Z] [LOG] [PS] start file=main.js fn=tweak:checkStatus:mem-opt reason=tweak-check-status id=11 active=1
+[2026-06-20T12:41:01.642Z] [LOG] [PS:tweak-executor] #13 queryPowerShell SPAWN ts=1781959261642 active=1
+[2026-06-20T12:41:02.252Z] [LOG] [PS:tweak-executor] #13 queryPowerShell OK 610ms
+[2026-06-20T12:41:02.252Z] [LOG] [PS] end file=main.js fn=tweak:checkStatus:mem-opt id=11 duration=611ms active=0 calls60s=11
+[2026-06-20T12:41:02.253Z] [LOG] [PS] start file=main.js fn=tweak:execute:mem-opt reason=tweak-apply id=12 active=1
+[2026-06-20T12:41:02.253Z] [LOG] [PS-Exec] start file=main.js fn=tweak:execute:mem-opt reason=tweak-apply
+[2026-06-20T12:41:02.254Z] [LOG] [TweakExecutor] APPLY mem-opt
+[2026-06-20T12:41:02.254Z] [LOG] [PS:tweak-executor] #14 runPowerShell SPAWN ts=1781959262254 active=1
+[2026-06-20T12:41:02.865Z] [LOG] [PS:tweak-executor] #14 runPowerShell OK 611ms
+[2026-06-20T12:41:02.865Z] [LOG] [PS:tweak-executor] #15 queryPowerShell SPAWN ts=1781959262865 active=1
+[2026-06-20T12:41:03.451Z] [LOG] [PS:tweak-executor] #15 queryPowerShell OK 586ms
+[2026-06-20T12:41:03.451Z] [LOG] [TweakExecutor:PERSIST] mem-opt → true (hkcu, verified) written
+[2026-06-20T12:41:03.453Z] [LOG] [OwnershipStore] apply recorded: tweak:mem-opt appliedValue=true
+[2026-06-20T12:41:03.453Z] [LOG] [PS] end file=main.js fn=tweak:execute:mem-opt id=12 duration=1200ms active=0 calls60s=12
+[2026-06-20T12:41:03.455Z] [LOG] [PS] start file=main.js fn=tweak:checkStatus:mem-opt reason=tweak-check-status id=13 active=1
+[2026-06-20T12:41:03.455Z] [LOG] [PS:tweak-executor] #16 queryPowerShell SPAWN ts=1781959263455 active=1
+[2026-06-20T12:41:04.003Z] [LOG] [PS:tweak-executor] #16 queryPowerShell OK 548ms
+[2026-06-20T12:41:04.003Z] [LOG] [PS] end file=main.js fn=tweak:checkStatus:mem-opt id=13 duration=548ms active=0 calls60s=13
+[2026-06-20T12:41:04.004Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Ownership:TWEAK] recorded apply tweakId="mem-opt" prev=false applied=true premium=false
+[2026-06-20T12:41:04.004Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:159) [Tweaks:RESULT] id="mem-opt" success=true action=apply
+[2026-06-20T12:41:04.004Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:TOGGLE] id="mem-opt" title="Optimize Memory Settings" OFF→ON
+[2026-06-20T12:41:04.004Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Tweaks:STATE] enabled_count=18 | tweak="mem-opt" applied=true
+[2026-06-20T12:41:04.005Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-20T12:41:04.016Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] path=/api/history target=local reason=system-route base=http://127.0.0.1:63042/api
+[2026-06-20T12:41:04.018Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] path=/api/tweak-intelligence/system-state target=local reason=system-route base=http://127.0.0.1:63042/api
+[2026-06-20T12:41:04.019Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] path=/api/tweak-intelligence/rankings?applied=mem-opt%2Cgaming-mode%2Cmaintenance%2Cpage-combining%2Ccore-isolation%2Ccopilot%2Cprefetch%2Cusb-selective-suspend%2Ctune-priority%2Cdisable-animations%2Chyper-v%2Cvbs%2Cfast-startup%2Cpcie-link-state%2Csuperfetch%2Cdisable-pointer-precision%2Cnotifications%2Cdisable-dcom target=local reason=system-route base=http://127.0.0.1:63042/api
+[2026-06-20T12:41:04.019Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] path=/api/tweak-intelligence/posture?applied=mem-opt%2Cgaming-mode%2Cmaintenance%2Cpage-combining%2Ccore-isolation%2Ccopilot%2Cprefetch%2Cusb-selective-suspend%2Ctune-priority%2Cdisable-animations%2Chyper-v%2Cvbs%2Cfast-startup%2Cpcie-link-state%2Csuperfetch%2Cdisable-pointer-precision%2Cnotifications%2Cdisable-dcom target=local reason=system-route base=http://127.0.0.1:63042/api
+[2026-06-20T12:41:04.734Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] path=/api/system-intelligence/profile target=local reason=system-route base=http://127.0.0.1:63042/api
+[2026-06-20T12:41:04.740Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:157) [SysIntelligence] Full profile upgrade | MB=null | platform.secureBoot=null
+[2026-06-20T12:41:04.807Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-20T12:41:04.831Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:200) [AI:CONTEXT] source=zustand-store enabled=18 disabled=48
+[2026-06-20T12:41:04.832Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:200) [AI:CONTEXT] enabled_tweaks=fast-startup, maintenance, core-isolation, vbs, hyper-v, notifications, pcie-link-state, disable-dcom, mem-opt, page-combining, prefetch, superfetch, copilot, gaming-mode, tune-priority, usb-selective-suspend, disable-pointer-precision, disable-animations
+[2026-06-20T12:41:04.832Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:200) [AI:CONTEXT] system-intelligence enriched | MB=null | BIOS=null | net=Wi-Fi 1201Mbps (Wi-Fi)
+[2026-06-20T12:41:04.832Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:200) [AI Specs Input] cpu="AMD Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="2x16GB DDR5 @ 6200MHz" ramTotalGB=32 disk="C:"
+[2026-06-20T12:41:05.260Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-20T12:41:05.261Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:139) [calculateBiosScores] settings=36 | latencyTotal=33.01 frametime=32.33999999999999 stability=27.18 | clamped: latency=33.01 frametime=32.33999999999999 stability=27.18 cr=32
+[2026-06-20T12:41:05.976Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-20T12:41:05.987Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:214) [ExtremeLabs] {"userTier":"trial_active","trial":true,"premium":false,"desktopMode":true,"canApply":true,"canAnalyze":true}
+[2026-06-20T12:41:07.189Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:214) [ExtremeLabsEntitlement] {"action":"applyTweak","allowed":true,"reason":"trial_active","tweakId":"global-timer-resolution"}
+[2026-06-20T12:41:07.191Z] [LOG] [TimerRes] agent started, pid=%d 15052
+[2026-06-20T12:41:07.192Z] [LOG] [ExtremeLabsApply] {"id":"global-timer-resolution","applied":true,"tweakId":"timer-res","type":"tweak","error":null}
+[2026-06-20T12:41:07.192Z] [LOG] [ExtremeLabsApply] {"requested":1,"applied":1,"failed":0,"adminBlocked":0,"notSupported":0}
+[2026-06-20T12:41:07.197Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Ownership:EL] recorded apply tweakId="global-timer-resolution"
+[2026-06-20T12:41:07.197Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:214) [ExtremeLabsApply] {"requested":["global-timer-resolution"],"applied":1,"failed":0,"blocked":0,"adminRequired":0}
+[2026-06-20T12:41:07.198Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-20T12:41:07.203Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] path=/api/history target=local reason=system-route base=http://127.0.0.1:63042/api
+[2026-06-20T12:41:08.091Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:214) [ExtremeLabsEntitlement] {"action":"applyTweak","allowed":true,"reason":"trial_active","tweakId":"dynamic-tick"}
+[2026-06-20T12:41:08.092Z] [LOG] [TweakExecutor] APPLY synth-timers
+[2026-06-20T12:41:08.092Z] [LOG] [PS:tweak-executor] #17 runPowerShell SPAWN ts=1781959268092 active=1
+[2026-06-20T12:41:08.574Z] [LOG] [PS:tweak-executor] #17 runPowerShell OK 482ms
+[2026-06-20T12:41:08.575Z] [LOG] [PS:tweak-executor] #18 queryPowerShell SPAWN ts=1781959268575 active=1
+[2026-06-20T12:41:09.275Z] [LOG] [PS:tweak-executor] #18 queryPowerShell OK 700ms
+[2026-06-20T12:41:09.276Z] [LOG] [TweakExecutor:PERSIST] synth-timers → true (hkcu, verified) written
+[2026-06-20T12:41:09.277Z] [LOG] [ExtremeLabsApply] {"id":"dynamic-tick","applied":true,"tweakId":"synth-timers","type":"tweak","error":null}
+[2026-06-20T12:41:09.277Z] [LOG] [ExtremeLabsApply] {"requested":1,"applied":1,"failed":0,"adminBlocked":0,"notSupported":0}
+[2026-06-20T12:41:09.278Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Ownership:EL] recorded apply tweakId="dynamic-tick"
+[2026-06-20T12:41:09.278Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:214) [ExtremeLabsApply] {"requested":["dynamic-tick"],"applied":1,"failed":0,"blocked":0,"adminRequired":0}
+[2026-06-20T12:41:09.278Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-20T12:41:09.283Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] path=/api/history target=local reason=system-route base=http://127.0.0.1:63042/api
+[2026-06-20T12:41:10.514Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-20T12:41:10.515Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:159) [Timing] NetworkTweaks | mount | +0ms
+[2026-06-20T12:41:10.515Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:159) [NetworkTweaks:CACHE] cold start — seeded from localStorage persisted state
+[2026-06-20T12:41:10.540Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:159) [NetworkTweaks] cache fresh — skipping fetch
+[2026-06-20T12:41:10.551Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] path=/api/network/ping-sample target=local reason=system-route base=http://127.0.0.1:63042/api
+[2026-06-20T12:41:12.072Z] [LOG] [PS] start file=main.js fn=networkTweaks:execute:smb-irp-stack reason=net-tweak-revert id=14 active=1
+[2026-06-20T12:41:12.072Z] [LOG] [PS-Exec] start file=main.js fn=networkTweaks:execute:smb-irp-stack reason=net-tweak-revert
+[2026-06-20T12:41:12.573Z] [LOG] [PS:network-tweak] #1 execPowerShell SPAWN ts=1781959272573
+[2026-06-20T12:41:13.286Z] [LOG] [PS:network-tweak] #1 execPowerShell OK 713ms
+[2026-06-20T12:41:13.286Z] [LOG] [PS:network-tweak] #2 execPowerShell SPAWN ts=1781959273286
+[2026-06-20T12:41:13.861Z] [LOG] [PS:network-tweak] #2 execPowerShell OK 575ms
+[2026-06-20T12:41:13.861Z] [LOG] [OwnershipStore] apply recorded: network_tweak:smb-irp-stack appliedValue=false
+[2026-06-20T12:41:13.862Z] [LOG] [PS-Exec] done fn=networkTweaks:execute:smb-irp-stack success=true verified=true
+[2026-06-20T12:41:13.862Z] [LOG] [PS] end file=main.js fn=networkTweaks:execute:smb-irp-stack id=14 duration=1790ms active=0 calls60s=14
+[2026-06-20T12:41:13.862Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] path=/api/network-tweaks/smb-irp-stack/report target=cloud reason=cloud-only
+[2026-06-20T12:41:14.675Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Ownership:NET] cleared after revert tweakId="smb-irp-stack"
+[2026-06-20T12:41:14.675Z] [LOG] [PS] start file=main.js fn=networkTweaks:checkStatus:smb-irp-stack reason=net-tweak-check-status id=15 active=1
+[2026-06-20T12:41:14.676Z] [LOG] [PS:network-tweak] #3 execPowerShell SPAWN ts=1781959274676
+[2026-06-20T12:41:14.677Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-20T12:41:14.680Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] path=/api/history target=local reason=system-route base=http://127.0.0.1:63042/api
+[2026-06-20T12:41:15.096Z] [LOG] [PS] start file=main.js fn=networkTweaks:execute:smb-irp-stack reason=net-tweak-apply id=16 active=2
+[2026-06-20T12:41:15.096Z] [LOG] [PS-Exec] start file=main.js fn=networkTweaks:execute:smb-irp-stack reason=net-tweak-apply
+[2026-06-20T12:41:15.096Z] [LOG] [PS:network-tweak] #4 execPowerShell SPAWN ts=1781959275096
+[2026-06-20T12:41:15.246Z] [LOG] [PS:network-tweak] #3 execPowerShell OK 570ms
+[2026-06-20T12:41:15.246Z] [LOG] [PS] end file=main.js fn=networkTweaks:checkStatus:smb-irp-stack id=15 duration=571ms active=1 calls60s=15
+[2026-06-20T12:41:15.247Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:159) [NetworkTweaks] apply verified tweakId=smb-irp-stack applied=false
+[2026-06-20T12:41:15.768Z] [LOG] [PS:network-tweak] #4 execPowerShell OK 672ms
+[2026-06-20T12:41:15.768Z] [LOG] [PS:network-tweak] #5 execPowerShell SPAWN ts=1781959275768
+[2026-06-20T12:41:16.381Z] [LOG] [PS:network-tweak] #5 execPowerShell OK 613ms
+[2026-06-20T12:41:16.382Z] [LOG] [OwnershipStore] apply recorded: network_tweak:smb-irp-stack appliedValue=true
+[2026-06-20T12:41:16.382Z] [LOG] [PS-Exec] done fn=networkTweaks:execute:smb-irp-stack success=true verified=true
+[2026-06-20T12:41:16.382Z] [LOG] [PS] end file=main.js fn=networkTweaks:execute:smb-irp-stack id=16 duration=1286ms active=0 calls60s=16
+[2026-06-20T12:41:16.383Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] path=/api/network-tweaks/smb-irp-stack/report target=cloud reason=cloud-only
+[2026-06-20T12:41:16.806Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Ownership:NET] recorded apply tweakId="smb-irp-stack" prev=off
+[2026-06-20T12:41:16.806Z] [LOG] [PS] start file=main.js fn=networkTweaks:checkStatus:smb-irp-stack reason=net-tweak-check-status id=17 active=1
+[2026-06-20T12:41:16.807Z] [LOG] [PS:network-tweak] #6 execPowerShell SPAWN ts=1781959276807
+[2026-06-20T12:41:16.809Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-20T12:41:16.812Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] path=/api/history target=local reason=system-route base=http://127.0.0.1:63042/api
+[2026-06-20T12:41:17.377Z] [LOG] [PS:network-tweak] #6 execPowerShell OK 570ms
+[2026-06-20T12:41:17.377Z] [LOG] [PS] end file=main.js fn=networkTweaks:checkStatus:smb-irp-stack id=17 duration=571ms active=0 calls60s=17
+[2026-06-20T12:41:17.379Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:159) [NetworkTweaks] apply verified tweakId=smb-irp-stack applied=true
+[2026-06-20T12:41:18.540Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] path=/api/network/ping-sample target=local reason=system-route base=http://127.0.0.1:63042/api
+[2026-06-20T12:41:19.255Z] [LOG] [PS] start file=main.js fn=networkTweaks:execute:smb-request-buffer reason=net-tweak-apply id=18 active=1
+[2026-06-20T12:41:19.255Z] [LOG] [PS-Exec] start file=main.js fn=networkTweaks:execute:smb-request-buffer reason=net-tweak-apply
+[2026-06-20T12:41:19.255Z] [LOG] [PS:network-tweak] #7 execPowerShell SPAWN ts=1781959279255
+[2026-06-20T12:41:19.870Z] [LOG] [PS:network-tweak] #7 execPowerShell OK 615ms
+[2026-06-20T12:41:19.871Z] [LOG] [OwnershipStore] baseline captured: network_tweak:smb-request-buffer → previousValue=false
+[2026-06-20T12:41:19.871Z] [LOG] [PS:network-tweak] #8 execPowerShell SPAWN ts=1781959279871
+[2026-06-20T12:41:20.488Z] [LOG] [PS:network-tweak] #8 execPowerShell OK 617ms
+[2026-06-20T12:41:20.488Z] [LOG] [PS:network-tweak] #9 execPowerShell SPAWN ts=1781959280488
+[2026-06-20T12:41:21.062Z] [LOG] [PS:network-tweak] #9 execPowerShell OK 574ms
+[2026-06-20T12:41:21.063Z] [LOG] [OwnershipStore] apply recorded: network_tweak:smb-request-buffer appliedValue=true
+[2026-06-20T12:41:21.063Z] [LOG] [PS-Exec] done fn=networkTweaks:execute:smb-request-buffer success=true verified=true
+[2026-06-20T12:41:21.063Z] [LOG] [PS] end file=main.js fn=networkTweaks:execute:smb-request-buffer id=18 duration=1808ms active=0 calls60s=18
+[2026-06-20T12:41:21.065Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] path=/api/network-tweaks/smb-request-buffer/report target=cloud reason=cloud-only
+[2026-06-20T12:41:21.447Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Ownership:NET] recorded apply tweakId="smb-request-buffer" prev=off
+[2026-06-20T12:41:21.448Z] [LOG] [PS] start file=main.js fn=networkTweaks:checkStatus:smb-request-buffer reason=net-tweak-check-status id=19 active=1
+[2026-06-20T12:41:21.448Z] [LOG] [PS:network-tweak] #10 execPowerShell SPAWN ts=1781959281448
+[2026-06-20T12:41:21.450Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-20T12:41:21.453Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] path=/api/history target=local reason=system-route base=http://127.0.0.1:63042/api
+[2026-06-20T12:41:22.028Z] [LOG] [PS:network-tweak] #10 execPowerShell OK 580ms
+[2026-06-20T12:41:22.029Z] [LOG] [PS] end file=main.js fn=networkTweaks:checkStatus:smb-request-buffer id=19 duration=581ms active=0 calls60s=19
+[2026-06-20T12:41:22.029Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:159) [NetworkTweaks] apply verified tweakId=smb-request-buffer applied=true
+[2026-06-20T12:41:22.664Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-20T12:41:22.694Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:159) [Dashboard] mounted
+[2026-06-20T12:41:22.694Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:159) [ActivityMonitor] reused cached state — history points: 24 status: ready
+[2026-06-20T12:41:22.715Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:63042/api
+[2026-06-20T12:41:22.715Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] path=/api/dashboard-intelligence/system-dna target=local reason=system-route base=http://127.0.0.1:63042/api
+[2026-06-20T12:41:22.715Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:63042/api
+[2026-06-20T12:41:22.716Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:63042/api
+[2026-06-20T12:41:22.716Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] path=/api/dashboard-intelligence/ram-analysis target=local reason=system-route base=http://127.0.0.1:63042/api
+[2026-06-20T12:41:23.898Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] path=/api/startup/apps target=local reason=system-route base=http://127.0.0.1:63042/api
+[2026-06-20T12:41:24.042Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] path=/api/issues/detect target=local reason=system-route base=http://127.0.0.1:63042/api
+[2026-06-20T12:41:34.210Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:63042/api
+[2026-06-20T12:41:39.215Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:63042/api
+[2026-06-20T12:41:44.221Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:63042/api
+[2026-06-20T12:41:50.870Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:28) [PremiumExpiry] Trial timer fired — triggering revert
+[2026-06-20T12:41:50.870Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:28) [TrialExpiry] trialEndingFlowActive → true
+[2026-06-20T12:41:50.870Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:28) [TrialExpiry] revertReason → trial_expired
+[2026-06-20T12:41:50.871Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:28) [PremiumExpiry] Detected premium→inactive transition — reason=trial_expired — running revert sequence
+[2026-06-20T12:41:50.871Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:28) [Revert] Starting premium revert sequence v2...
+[2026-06-20T12:41:50.871Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:28) [Revert] processing network tweak "smb-irp-stack" label="Increase IRP Stack Size"
+[2026-06-20T12:41:50.871Z] [LOG] [PS] start file=main.js fn=networkTweaks:execute:smb-irp-stack reason=net-tweak-revert id=20 active=1
+[2026-06-20T12:41:50.871Z] [LOG] [PS-Exec] start file=main.js fn=networkTweaks:execute:smb-irp-stack reason=net-tweak-revert
+[2026-06-20T12:41:50.871Z] [LOG] [PS:network-tweak] #11 execPowerShell SPAWN ts=1781959310871
+[2026-06-20T12:41:50.873Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: true
+[2026-06-20T12:41:50.881Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [TrialExpiry] revert modal opened — redirecting to /dashboard
+[2026-06-20T12:41:51.611Z] [LOG] [PS:network-tweak] #11 execPowerShell OK 740ms
+[2026-06-20T12:41:51.611Z] [LOG] [PS:network-tweak] #12 execPowerShell SPAWN ts=1781959311611
+[2026-06-20T12:41:52.197Z] [LOG] [PS:network-tweak] #12 execPowerShell OK 586ms
+[2026-06-20T12:41:52.198Z] [LOG] [OwnershipStore] apply recorded: network_tweak:smb-irp-stack appliedValue=false
+[2026-06-20T12:41:52.198Z] [LOG] [PS-Exec] done fn=networkTweaks:execute:smb-irp-stack success=true verified=true
+[2026-06-20T12:41:52.198Z] [LOG] [PS] end file=main.js fn=networkTweaks:execute:smb-irp-stack id=20 duration=1327ms active=0 calls60s=15
+[2026-06-20T12:41:52.201Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] Rewriting localhost cloud-truth request /api/network-tweaks/smb-irp-stack/report → https://switchcontrol.org
+[2026-06-20T12:41:52.202Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [API] Fetching CSRF token from http://127.0.0.1:63042/api/csrf-token
+[2026-06-20T12:41:52.206Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [API] CSRF token cached in memory (TTL 10 min)
+[2026-06-20T12:41:52.703Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Ownership:NET] cleared after revert tweakId="smb-irp-stack"
+[2026-06-20T12:41:52.704Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:28) [Revert:NET] success tweakId="smb-irp-stack" attempt=1
+[2026-06-20T12:41:52.704Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:28) [Revert] processing network tweak "smb-request-buffer" label="Increase Request Buffer Size"
+[2026-06-20T12:41:52.704Z] [LOG] [PS] start file=main.js fn=networkTweaks:execute:smb-request-buffer reason=net-tweak-revert id=21 active=1
+[2026-06-20T12:41:52.704Z] [LOG] [PS-Exec] start file=main.js fn=networkTweaks:execute:smb-request-buffer reason=net-tweak-revert
+[2026-06-20T12:41:52.704Z] [LOG] [PS:network-tweak] #13 execPowerShell SPAWN ts=1781959312704
+[2026-06-20T12:41:53.284Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [App] Window focused, refreshing entitlements...
+[2026-06-20T12:41:53.286Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:150) [Window] Focus event received
+[2026-06-20T12:41:53.286Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [App] Electron window focus (passive)
+[2026-06-20T12:41:53.316Z] [LOG] [PS:network-tweak] #13 execPowerShell OK 612ms
+[2026-06-20T12:41:53.317Z] [LOG] [PS:network-tweak] #14 execPowerShell SPAWN ts=1781959313317
+[2026-06-20T12:41:53.667Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: false
+[2026-06-20T12:41:53.677Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [AppFlow] Flow eval — isPremium: false plan: trial_expired trialEndsAt: 2026-06-20T12:41:50.365Z hasSeenTrialActivation: true hasSeenTrialTour: true hasSeenUnlock: true hasSeenTour: true isFirstTimeUser: false isFirstLogin: false entitlementsAttempted: true entitlementsOk: true unlockFired: true trialUnlockFired: true
+[2026-06-20T12:41:53.677Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [AppFlow] No flow conditions met — staying idle
+[2026-06-20T12:41:53.936Z] [LOG] [PS:network-tweak] #14 execPowerShell OK 619ms
+[2026-06-20T12:41:53.936Z] [LOG] [OwnershipStore] apply recorded: network_tweak:smb-request-buffer appliedValue=false
+[2026-06-20T12:41:53.936Z] [LOG] [PS-Exec] done fn=networkTweaks:execute:smb-request-buffer success=true verified=true
+[2026-06-20T12:41:53.937Z] [LOG] [PS] end file=main.js fn=networkTweaks:execute:smb-request-buffer id=21 duration=1232ms active=0 calls60s=16
+[2026-06-20T12:41:53.938Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] Rewriting localhost cloud-truth request /api/network-tweaks/smb-request-buffer/report → https://switchcontrol.org
+[2026-06-20T12:41:54.229Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:63042/api
+[2026-06-20T12:41:54.230Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:63042/api
+[2026-06-20T12:41:54.230Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:63042/api
+[2026-06-20T12:41:54.292Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Ownership:NET] cleared after revert tweakId="smb-request-buffer"
+[2026-06-20T12:41:54.293Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:28) [Revert:NET] success tweakId="smb-request-buffer" attempt=1
+[2026-06-20T12:41:54.293Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:28) [Revert] processing network tweak (ls-fallback) "tcp-nagle"
+[2026-06-20T12:41:54.293Z] [LOG] [PS] start file=main.js fn=networkTweaks:execute:tcp-nagle reason=net-tweak-revert id=22 active=1
+[2026-06-20T12:41:54.293Z] [LOG] [PS-Exec] start file=main.js fn=networkTweaks:execute:tcp-nagle reason=net-tweak-revert
+[2026-06-20T12:41:54.293Z] [LOG] [PS:network-tweak] #15 execPowerShell SPAWN ts=1781959314293
+[2026-06-20T12:41:54.912Z] [LOG] [PS:network-tweak] #15 execPowerShell OK 619ms
+[2026-06-20T12:41:54.912Z] [LOG] [OwnershipStore] baseline captured: network_tweak:tcp-nagle → previousValue=true
+[2026-06-20T12:41:54.913Z] [LOG] [PS:network-tweak] #16 execPowerShell SPAWN ts=1781959314913
+[2026-06-20T12:41:55.560Z] [LOG] [PS:network-tweak] #16 execPowerShell OK 647ms
+[2026-06-20T12:41:55.560Z] [LOG] [PS:network-tweak] #17 execPowerShell SPAWN ts=1781959315560
+[2026-06-20T12:41:56.148Z] [LOG] [PS:network-tweak] #17 execPowerShell OK 588ms
+[2026-06-20T12:41:56.149Z] [LOG] [OwnershipStore] apply recorded: network_tweak:tcp-nagle appliedValue=false
+[2026-06-20T12:41:56.149Z] [LOG] [PS-Exec] done fn=networkTweaks:execute:tcp-nagle success=true verified=true
+[2026-06-20T12:41:56.149Z] [LOG] [PS] end file=main.js fn=networkTweaks:execute:tcp-nagle id=22 duration=1856ms active=0 calls60s=15
+[2026-06-20T12:41:56.150Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] Rewriting localhost cloud-truth request /api/network-tweaks/tcp-nagle/report → https://switchcontrol.org
+[2026-06-20T12:41:56.503Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Ownership:NET] cleared after revert tweakId="tcp-nagle"
+[2026-06-20T12:41:56.503Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:28) [Revert:NET] success tweakId="tcp-nagle" attempt=1
+[2026-06-20T12:41:56.504Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:28) [Revert] processing network tweak (ls-fallback) "tcp-throttling-index"
+[2026-06-20T12:41:56.504Z] [LOG] [PS] start file=main.js fn=networkTweaks:execute:tcp-throttling-index reason=net-tweak-revert id=23 active=1
+[2026-06-20T12:41:56.504Z] [LOG] [PS-Exec] start file=main.js fn=networkTweaks:execute:tcp-throttling-index reason=net-tweak-revert
+[2026-06-20T12:41:56.504Z] [LOG] [PS:network-tweak] #18 execPowerShell SPAWN ts=1781959316504
+[2026-06-20T12:41:57.123Z] [LOG] [PS:network-tweak] #18 execPowerShell OK 619ms
+[2026-06-20T12:41:57.124Z] [LOG] [OwnershipStore] baseline captured: network_tweak:tcp-throttling-index → previousValue=true
+[2026-06-20T12:41:57.124Z] [LOG] [PS:network-tweak] #19 execPowerShell SPAWN ts=1781959317124
+[2026-06-20T12:41:57.769Z] [LOG] [PS:network-tweak] #19 execPowerShell OK 645ms
+[2026-06-20T12:41:57.770Z] [LOG] [PS:network-tweak] #20 execPowerShell SPAWN ts=1781959317770
+[2026-06-20T12:41:58.376Z] [LOG] [PS:network-tweak] #20 execPowerShell OK 606ms
+[2026-06-20T12:41:58.377Z] [LOG] [OwnershipStore] apply recorded: network_tweak:tcp-throttling-index appliedValue=false
+[2026-06-20T12:41:58.377Z] [LOG] [PS-Exec] done fn=networkTweaks:execute:tcp-throttling-index success=true verified=false
+[2026-06-20T12:41:58.377Z] [LOG] [PS] end file=main.js fn=networkTweaks:execute:tcp-throttling-index id=23 duration=1873ms active=0 calls60s=15
+[2026-06-20T12:41:58.379Z] [ERROR] [Renderer:warn] (index-DaKk5Yai.js:28) [Revert:NET] not verified tweakId="tcp-throttling-index" attempt=1
+[2026-06-20T12:41:58.993Z] [LOG] [PS] start file=main.js fn=networkTweaks:execute:tcp-throttling-index reason=net-tweak-revert id=24 active=1
+[2026-06-20T12:41:58.993Z] [LOG] [PS-Exec] start file=main.js fn=networkTweaks:execute:tcp-throttling-index reason=net-tweak-revert
+[2026-06-20T12:41:58.993Z] [LOG] [PS:network-tweak] #21 execPowerShell SPAWN ts=1781959318993
+[2026-06-20T12:41:59.612Z] [LOG] [PS:network-tweak] #21 execPowerShell OK 619ms
+[2026-06-20T12:41:59.612Z] [LOG] [PS:network-tweak] #22 execPowerShell SPAWN ts=1781959319612
+[2026-06-20T12:42:00.207Z] [LOG] [PS:network-tweak] #22 execPowerShell OK 595ms
+[2026-06-20T12:42:00.208Z] [LOG] [OwnershipStore] apply recorded: network_tweak:tcp-throttling-index appliedValue=false
+[2026-06-20T12:42:00.208Z] [LOG] [PS-Exec] done fn=networkTweaks:execute:tcp-throttling-index success=true verified=false
+[2026-06-20T12:42:00.208Z] [LOG] [PS] end file=main.js fn=networkTweaks:execute:tcp-throttling-index id=24 duration=1215ms active=0 calls60s=15
+[2026-06-20T12:42:00.209Z] [ERROR] [Renderer:warn] (index-DaKk5Yai.js:28) [Revert:NET] not verified tweakId="tcp-throttling-index" attempt=2
+[2026-06-20T12:42:01.409Z] [LOG] [PS] start file=main.js fn=networkTweaks:execute:tcp-throttling-index reason=net-tweak-revert id=25 active=1
+[2026-06-20T12:42:01.409Z] [LOG] [PS-Exec] start file=main.js fn=networkTweaks:execute:tcp-throttling-index reason=net-tweak-revert
+[2026-06-20T12:42:01.410Z] [LOG] [PS:network-tweak] #23 execPowerShell SPAWN ts=1781959321410
+[2026-06-20T12:42:02.084Z] [LOG] [PS:network-tweak] #23 execPowerShell OK 674ms
+[2026-06-20T12:42:02.084Z] [LOG] [PS:network-tweak] #24 execPowerShell SPAWN ts=1781959322084
+[2026-06-20T12:42:02.664Z] [LOG] [PS:network-tweak] #24 execPowerShell OK 580ms
+[2026-06-20T12:42:02.664Z] [LOG] [OwnershipStore] apply recorded: network_tweak:tcp-throttling-index appliedValue=false
+[2026-06-20T12:42:02.665Z] [LOG] [PS-Exec] done fn=networkTweaks:execute:tcp-throttling-index success=true verified=false
+[2026-06-20T12:42:02.665Z] [LOG] [PS] end file=main.js fn=networkTweaks:execute:tcp-throttling-index id=25 duration=1256ms active=0 calls60s=14
+[2026-06-20T12:42:02.666Z] [ERROR] [Renderer:warn] (index-DaKk5Yai.js:28) [Revert:NET] not verified tweakId="tcp-throttling-index" attempt=3
+[2026-06-20T12:42:02.666Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:28) [Revert] processing network tweak (ls-fallback) "tcp-rss"
+[2026-06-20T12:42:02.666Z] [LOG] [PS] start file=main.js fn=networkTweaks:execute:tcp-rss reason=net-tweak-revert id=26 active=1
+[2026-06-20T12:42:02.666Z] [LOG] [PS-Exec] start file=main.js fn=networkTweaks:execute:tcp-rss reason=net-tweak-revert
+[2026-06-20T12:42:02.666Z] [LOG] [PS:network-tweak] #25 execPowerShell SPAWN ts=1781959322666
+[2026-06-20T12:42:03.339Z] [LOG] [PS:network-tweak] #25 execPowerShell OK 673ms
+[2026-06-20T12:42:03.340Z] [LOG] [OwnershipStore] baseline captured: network_tweak:tcp-rss → previousValue=true
+[2026-06-20T12:42:03.340Z] [LOG] [PS:network-tweak] #26 execPowerShell SPAWN ts=1781959323340
+[2026-06-20T12:42:03.955Z] [LOG] [PS:network-tweak] #26 execPowerShell OK 615ms
+[2026-06-20T12:42:03.955Z] [LOG] [PS:network-tweak] #27 execPowerShell SPAWN ts=1781959323955
+[2026-06-20T12:42:04.240Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:63042/api
+[2026-06-20T12:42:04.581Z] [LOG] [PS:network-tweak] #27 execPowerShell OK 626ms
+[2026-06-20T12:42:04.582Z] [LOG] [OwnershipStore] apply recorded: network_tweak:tcp-rss appliedValue=false
+[2026-06-20T12:42:04.582Z] [LOG] [PS-Exec] done fn=networkTweaks:execute:tcp-rss success=true verified=true
+[2026-06-20T12:42:04.582Z] [LOG] [PS] end file=main.js fn=networkTweaks:execute:tcp-rss id=26 duration=1916ms active=0 calls60s=13
+[2026-06-20T12:42:04.649Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] Rewriting localhost cloud-truth request /api/network-tweaks/tcp-rss/report → https://switchcontrol.org
+[2026-06-20T12:42:05.006Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Ownership:NET] cleared after revert tweakId="tcp-rss"
+[2026-06-20T12:42:05.007Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:28) [Revert:NET] success tweakId="tcp-rss" attempt=1
+[2026-06-20T12:42:05.007Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:28) [Revert] processing network tweak (ls-fallback) "sec-llmnr"
+[2026-06-20T12:42:05.007Z] [LOG] [PS] start file=main.js fn=networkTweaks:execute:sec-llmnr reason=net-tweak-revert id=27 active=1
+[2026-06-20T12:42:05.007Z] [LOG] [PS-Exec] start file=main.js fn=networkTweaks:execute:sec-llmnr reason=net-tweak-revert
+[2026-06-20T12:42:05.007Z] [LOG] [PS:network-tweak] #28 execPowerShell SPAWN ts=1781959325007
+[2026-06-20T12:42:05.648Z] [LOG] [PS:network-tweak] #28 execPowerShell OK 641ms
+[2026-06-20T12:42:05.649Z] [LOG] [OwnershipStore] baseline captured: network_tweak:sec-llmnr → previousValue=true
+[2026-06-20T12:42:05.649Z] [LOG] [PS:network-tweak] #29 execPowerShell SPAWN ts=1781959325649
+[2026-06-20T12:42:06.265Z] [LOG] [PS:network-tweak] #29 execPowerShell OK 616ms
+[2026-06-20T12:42:06.266Z] [LOG] [PS:network-tweak] #30 execPowerShell SPAWN ts=1781959326266
+[2026-06-20T12:42:06.852Z] [LOG] [PS:network-tweak] #30 execPowerShell OK 586ms
+[2026-06-20T12:42:06.852Z] [LOG] [OwnershipStore] apply recorded: network_tweak:sec-llmnr appliedValue=false
+[2026-06-20T12:42:06.853Z] [LOG] [PS-Exec] done fn=networkTweaks:execute:sec-llmnr success=true verified=true
+[2026-06-20T12:42:06.853Z] [LOG] [PS] end file=main.js fn=networkTweaks:execute:sec-llmnr id=27 duration=1846ms active=0 calls60s=14
+[2026-06-20T12:42:06.854Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] Rewriting localhost cloud-truth request /api/network-tweaks/sec-llmnr/report → https://switchcontrol.org
+[2026-06-20T12:42:07.235Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Ownership:NET] cleared after revert tweakId="sec-llmnr"
+[2026-06-20T12:42:07.236Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:28) [Revert:NET] success tweakId="sec-llmnr" attempt=1
+[2026-06-20T12:42:07.236Z] [LOG] [TimerRes] agent killed, pid=%d 15052
+[2026-06-20T12:42:07.237Z] [LOG] [TweakExecutor] REVERT synth-timers
+[2026-06-20T12:42:07.238Z] [LOG] [PS:tweak-executor] #19 runPowerShell SPAWN ts=1781959327238 active=1
+[2026-06-20T12:42:07.239Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: false
+[2026-06-20T12:42:07.242Z] [LOG] [TimerRes] agent exited, code=%s null
+[2026-06-20T12:42:07.720Z] [LOG] [PS:tweak-executor] #19 runPowerShell OK 482ms
+[2026-06-20T12:42:07.720Z] [LOG] [PS:tweak-executor] #20 queryPowerShell SPAWN ts=1781959327720 active=1
+[2026-06-20T12:42:08.398Z] [LOG] [PS:tweak-executor] #20 queryPowerShell OK 678ms
+[2026-06-20T12:42:08.399Z] [LOG] [TweakExecutor:PERSIST] synth-timers → false (hkcu, verified) written
+[2026-06-20T12:42:08.402Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:28) [Revert:EL] restoreBaseline succeeded attempt=1 ids=2
+[2026-06-20T12:42:08.403Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Ownership:EL] cleared after revert tweakId="global-timer-resolution"
+[2026-06-20T12:42:08.403Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Ownership:EL] cleared after revert tweakId="dynamic-tick"
+[2026-06-20T12:42:08.405Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: false
+[2026-06-20T12:42:08.549Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:28) [Revert:PLAN] Active SC plan "SwitchControl - Max Performance" (0135dd1e-3bd6-4076-b5d7-f364a5f2ec5a) — hard-target Windows Balanced (381b4222-f694-41f0-9685-ff5bb260df2e)
+[2026-06-20T12:42:08.602Z] [LOG] [IPC] premium:cleanupScPlans — restoring built-in plan names, then deleting SC plans
+[2026-06-20T12:42:08.613Z] [LOG] [PowerPlan] restoreBuiltinPlanNames: restored "Balanced" (381b4222-f694-41f0-9685-ff5bb260df2e)
+[2026-06-20T12:42:08.623Z] [LOG] [PowerPlan] restoreBuiltinPlanNames: skipped "High performance" (8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c) — The power scheme, subgroup or setting specified does not exist.
+[2026-06-20T12:42:08.633Z] [LOG] [PowerPlan] restoreBuiltinPlanNames: restored "Power saver" (a1841308-3541-4fab-bc81-f71556f20b4a)
+[2026-06-20T12:42:08.643Z] [LOG] [PowerPlan] restoreBuiltinPlanNames: restored "Ultimate Performance" (e9a42b02-d5df-448d-aa00-03f14749eb61)
+[2026-06-20T12:42:08.677Z] [LOG] [PowerPlan] deleteAllScPlans: deleted "SwitchControl - Max Performance" (0135dd1e-3bd6-4076-b5d7-f364a5f2ec5a)
+[2026-06-20T12:42:08.690Z] [LOG] [PowerPlan] deleteAllScPlans: post-delete verification PASSED — no SC plans remain
+[2026-06-20T12:42:08.690Z] [LOG] [PowerPlan] deleteAllScPlans: deleted=1 skipped=0 errors=0 verified=true
+[2026-06-20T12:42:08.714Z] [LOG] [PowerPlan] verifyRevertClean: isBalanced=true scPlansRemaining=0 renamedBuiltins=0 clean=true
+[2026-06-20T12:42:08.714Z] [LOG] [IPC] premium:cleanupScPlans done — deleted=1 skipped=0 errors=0 clean=true renamedBuiltins=0
+[2026-06-20T12:42:08.715Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:28) [Revert:PLAN] SC plan cleanup — deleted=1 verified=true
+[2026-06-20T12:42:08.864Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:28) [Revert:PLAN] Verification passed — active: "Balanced" (381b4222-f694-41f0-9685-ff5bb260df2e)
+[2026-06-20T12:42:08.865Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Ownership:PLAN] cleared after revert
+[2026-06-20T12:42:08.865Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:28) [Revert] Complete — reverted=8 failed=true conflict=false el=2
+[2026-06-20T12:42:08.866Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: false
+[2026-06-20T12:42:09.249Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:63042/api
+[2026-06-20T12:42:14.261Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:63042/api
+[2026-06-20T12:42:15.387Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:150) [Window] Focus event received
+[2026-06-20T12:42:15.388Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [App] Electron window focus (passive)
+[2026-06-20T12:42:17.021Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:28) [TrialExpiry] trialEndingFlowActive → true
+[2026-06-20T12:42:17.022Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:28) [TrialExpiry] revertReason → premium_removed
+[2026-06-20T12:42:17.022Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:28) [PremiumExpiry] Detected premium→inactive transition — reason=premium_removed — running revert sequence
+[2026-06-20T12:42:17.022Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:28) [Revert] Starting premium revert sequence v2...
+[2026-06-20T12:42:17.022Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:28) [Revert] processing network tweak (ls-fallback) "tcp-throttling-index"
+[2026-06-20T12:42:17.022Z] [LOG] [PS] start file=main.js fn=networkTweaks:execute:tcp-throttling-index reason=net-tweak-revert id=28 active=1
+[2026-06-20T12:42:17.022Z] [LOG] [PS-Exec] start file=main.js fn=networkTweaks:execute:tcp-throttling-index reason=net-tweak-revert
+[2026-06-20T12:42:17.023Z] [LOG] [PS:network-tweak] #31 execPowerShell SPAWN ts=1781959337023
+[2026-06-20T12:42:17.024Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: false
+[2026-06-20T12:42:17.699Z] [LOG] [PS:network-tweak] #31 execPowerShell OK 676ms
+[2026-06-20T12:42:17.699Z] [LOG] [PS:network-tweak] #32 execPowerShell SPAWN ts=1781959337699
+[2026-06-20T12:42:18.279Z] [LOG] [PS:network-tweak] #32 execPowerShell OK 580ms
+[2026-06-20T12:42:18.280Z] [LOG] [OwnershipStore] apply recorded: network_tweak:tcp-throttling-index appliedValue=false
+[2026-06-20T12:42:18.280Z] [LOG] [PS-Exec] done fn=networkTweaks:execute:tcp-throttling-index success=true verified=false
+[2026-06-20T12:42:18.280Z] [LOG] [PS] end file=main.js fn=networkTweaks:execute:tcp-throttling-index id=28 duration=1258ms active=0 calls60s=11
+[2026-06-20T12:42:18.281Z] [ERROR] [Renderer:warn] (index-DaKk5Yai.js:28) [Revert:NET] not verified tweakId="tcp-throttling-index" attempt=1
+[2026-06-20T12:42:18.883Z] [LOG] [PS] start file=main.js fn=networkTweaks:execute:tcp-throttling-index reason=net-tweak-revert id=29 active=1
+[2026-06-20T12:42:18.883Z] [LOG] [PS-Exec] start file=main.js fn=networkTweaks:execute:tcp-throttling-index reason=net-tweak-revert
+[2026-06-20T12:42:18.883Z] [LOG] [PS:network-tweak] #33 execPowerShell SPAWN ts=1781959338883
+[2026-06-20T12:42:19.566Z] [LOG] [PS:network-tweak] #33 execPowerShell OK 683ms
+[2026-06-20T12:42:19.566Z] [LOG] [PS:network-tweak] #34 execPowerShell SPAWN ts=1781959339566
+[2026-06-20T12:42:20.181Z] [LOG] [PS:network-tweak] #34 execPowerShell OK 615ms
+[2026-06-20T12:42:20.181Z] [LOG] [OwnershipStore] apply recorded: network_tweak:tcp-throttling-index appliedValue=false
+[2026-06-20T12:42:20.182Z] [LOG] [PS-Exec] done fn=networkTweaks:execute:tcp-throttling-index success=true verified=false
+[2026-06-20T12:42:20.182Z] [LOG] [PS] end file=main.js fn=networkTweaks:execute:tcp-throttling-index id=29 duration=1299ms active=0 calls60s=12
+[2026-06-20T12:42:20.187Z] [ERROR] [Renderer:warn] (index-DaKk5Yai.js:28) [Revert:NET] not verified tweakId="tcp-throttling-index" attempt=2
+[2026-06-20T12:42:21.388Z] [LOG] [PS] start file=main.js fn=networkTweaks:execute:tcp-throttling-index reason=net-tweak-revert id=30 active=1
+[2026-06-20T12:42:21.388Z] [LOG] [PS-Exec] start file=main.js fn=networkTweaks:execute:tcp-throttling-index reason=net-tweak-revert
+[2026-06-20T12:42:21.388Z] [LOG] [PS:network-tweak] #35 execPowerShell SPAWN ts=1781959341388
+[2026-06-20T12:42:22.013Z] [LOG] [PS:network-tweak] #35 execPowerShell OK 625ms
+[2026-06-20T12:42:22.014Z] [LOG] [PS:network-tweak] #36 execPowerShell SPAWN ts=1781959342014
+[2026-06-20T12:42:22.619Z] [LOG] [PS:network-tweak] #36 execPowerShell OK 605ms
+[2026-06-20T12:42:22.619Z] [LOG] [OwnershipStore] apply recorded: network_tweak:tcp-throttling-index appliedValue=false
+[2026-06-20T12:42:22.620Z] [LOG] [PS-Exec] done fn=networkTweaks:execute:tcp-throttling-index success=true verified=false
+[2026-06-20T12:42:22.620Z] [LOG] [PS] end file=main.js fn=networkTweaks:execute:tcp-throttling-index id=30 duration=1232ms active=0 calls60s=11
+[2026-06-20T12:42:22.621Z] [ERROR] [Renderer:warn] (index-DaKk5Yai.js:28) [Revert:NET] not verified tweakId="tcp-throttling-index" attempt=3
+[2026-06-20T12:42:22.621Z] [LOG] [PS:nic-executor] #1 queryPS SPAWN ts=1781959342621
+[2026-06-20T12:42:22.623Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: false
+[2026-06-20T12:42:24.057Z] [LOG] [PS:nic-executor] #1 queryPS OK 1436ms
+[2026-06-20T12:42:24.057Z] [LOG] [TimerRes] no agent running
+[2026-06-20T12:42:24.059Z] [LOG] [SliderExecutor] Reverting win32-priority-sep to 2 (default)
+[2026-06-20T12:42:24.060Z] [LOG] [TweakExecutor] REVERT synth-timers
+[2026-06-20T12:42:24.061Z] [LOG] [TweakExecutor] REVERT hpet-disable
+[2026-06-20T12:42:24.061Z] [LOG] [PS:tweak-executor] #21 runPowerShell SPAWN ts=1781959344061 active=2
+[2026-06-20T12:42:24.062Z] [LOG] [PS:tweak-executor] #22 runPowerShell SPAWN ts=1781959344062 active=2
+[2026-06-20T12:42:24.269Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:63042/api
+[2026-06-20T12:42:24.270Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:63042/api
+[2026-06-20T12:42:24.270Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:63042/api
+[2026-06-20T12:42:24.271Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] path=/api/dashboard-intelligence/system-dna target=local reason=system-route base=http://127.0.0.1:63042/api
+[2026-06-20T12:42:24.271Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] path=/api/dashboard-intelligence/ram-analysis target=local reason=system-route base=http://127.0.0.1:63042/api
+[2026-06-20T12:42:24.619Z] [LOG] [PS:tweak-executor] #22 runPowerShell OK 557ms
+[2026-06-20T12:42:24.619Z] [LOG] [PS-Semaphore] queued — 2/2 slots active, queue=1
+[2026-06-20T12:42:24.620Z] [LOG] [PS:tweak-executor] #23 queryPowerShell SPAWN ts=1781959344620 active=2
+[2026-06-20T12:42:24.625Z] [LOG] [PS:tweak-executor] #21 runPowerShell OK 564ms
+[2026-06-20T12:42:24.625Z] [LOG] [PS-Semaphore] queued — 2/2 slots active, queue=1
+[2026-06-20T12:42:24.626Z] [LOG] [PS:tweak-executor] #24 queryPowerShell SPAWN ts=1781959344626 active=2
+[2026-06-20T12:42:24.660Z] [LOG] [SliderExecutor] revert win32-priority-sep: already admin — using runPS (no UAC spawn)
+[2026-06-20T12:42:25.487Z] [LOG] [PS:tweak-executor] #24 queryPowerShell OK 861ms
+[2026-06-20T12:42:25.488Z] [LOG] [TweakExecutor:PERSIST] synth-timers → false (hkcu, verified) written
+[2026-06-20T12:42:25.497Z] [LOG] [PS:tweak-executor] #23 queryPowerShell OK 877ms
+[2026-06-20T12:42:25.498Z] [LOG] [TweakExecutor:PERSIST] hpet-disable → false (hkcu, verified) written
+[2026-06-20T12:42:26.070Z] [LOG] [SliderExecutor] Reverting sys-responsiveness to 20 (default)
+[2026-06-20T12:42:26.070Z] [LOG] [SliderExecutor] revert sys-responsiveness: already admin — using runPS (no UAC spawn)
+[2026-06-20T12:42:26.072Z] [LOG] [TweakExecutor] REVERT mmcss-nolazymode
+[2026-06-20T12:42:26.072Z] [LOG] [TweakExecutor] REVERT power-throttling
+[2026-06-20T12:42:26.072Z] [LOG] [TweakExecutor] REVERT disable-game-dvr
+[2026-06-20T12:42:26.072Z] [LOG] [PS-Semaphore] queued — 2/2 slots active, queue=1
+[2026-06-20T12:42:26.072Z] [LOG] [PS:tweak-executor] #25 runPowerShell SPAWN ts=1781959346072 active=2
+[2026-06-20T12:42:26.073Z] [LOG] [PS:tweak-executor] #26 runPowerShell SPAWN ts=1781959346073 active=2
+[2026-06-20T12:42:26.735Z] [LOG] [PS:tweak-executor] #26 runPowerShell OK 662ms
+[2026-06-20T12:42:26.735Z] [LOG] [PS-Semaphore] queued — 2/2 slots active, queue=2
+[2026-06-20T12:42:26.735Z] [LOG] [PS:tweak-executor] #27 runPowerShell SPAWN ts=1781959346735 active=2
+[2026-06-20T12:42:26.737Z] [LOG] [PS:tweak-executor] #25 runPowerShell OK 665ms
+[2026-06-20T12:42:26.737Z] [LOG] [PS-Semaphore] queued — 2/2 slots active, queue=2
+[2026-06-20T12:42:26.737Z] [LOG] [PS:tweak-executor] #28 queryPowerShell SPAWN ts=1781959346737 active=2
+[2026-06-20T12:42:27.414Z] [LOG] [PS:tweak-executor] #27 runPowerShell OK 679ms
+[2026-06-20T12:42:27.414Z] [LOG] [PS-Semaphore] queued — 2/2 slots active, queue=2
+[2026-06-20T12:42:27.414Z] [LOG] [PS:tweak-executor] #29 queryPowerShell SPAWN ts=1781959347414 active=2
+[2026-06-20T12:42:27.434Z] [LOG] [PS:tweak-executor] #28 queryPowerShell OK 697ms
+[2026-06-20T12:42:27.434Z] [LOG] [PS:tweak-executor] #30 queryPowerShell SPAWN ts=1781959347434 active=2
+[2026-06-20T12:42:27.437Z] [LOG] [TweakExecutor:PERSIST] power-throttling → false (hkcu, verified) written
+[2026-06-20T12:42:28.023Z] [LOG] [PS:tweak-executor] #29 queryPowerShell OK 609ms
+[2026-06-20T12:42:28.024Z] [LOG] [TweakExecutor:PERSIST] mmcss-nolazymode → false (hkcu, verified) written
+[2026-06-20T12:42:28.025Z] [LOG] [PS:tweak-executor] #30 queryPowerShell OK 591ms
+[2026-06-20T12:42:28.026Z] [LOG] [TweakExecutor:PERSIST] disable-game-dvr → false (hkcu, verified) written
+[2026-06-20T12:42:28.027Z] [LOG] [SliderExecutor] Reverting net-throttle-index to 10 (default)
+[2026-06-20T12:42:28.027Z] [LOG] [TweakExecutor] REVERT disable-game-dvr
+[2026-06-20T12:42:28.027Z] [LOG] [TweakExecutor] REVERT optimize-windowed-games
+[2026-06-20T12:42:28.027Z] [LOG] [SliderExecutor] revert net-throttle-index: already admin — using runPS (no UAC spawn)
+[2026-06-20T12:42:28.029Z] [LOG] [TweakExecutor] REVERT tcp-no-delay
+[2026-06-20T12:42:28.029Z] [LOG] [PS-Semaphore] queued — 2/2 slots active, queue=1
+[2026-06-20T12:42:28.029Z] [LOG] [PS:tweak-executor] #31 runPowerShell SPAWN ts=1781959348029 active=2
+[2026-06-20T12:42:28.030Z] [LOG] [PS:tweak-executor] #32 runPowerShell SPAWN ts=1781959348030 active=2
+[2026-06-20T12:42:28.634Z] [LOG] [PS:tweak-executor] #31 runPowerShell OK 605ms
+[2026-06-20T12:42:28.634Z] [LOG] [PS-Semaphore] queued — 2/2 slots active, queue=2
+[2026-06-20T12:42:28.634Z] [LOG] [PS:tweak-executor] #33 runPowerShell SPAWN ts=1781959348634 active=2
+[2026-06-20T12:42:28.789Z] [LOG] [PS:tweak-executor] #32 runPowerShell OK 759ms
+[2026-06-20T12:42:28.789Z] [LOG] [PS-Semaphore] queued — 2/2 slots active, queue=2
+[2026-06-20T12:42:28.789Z] [LOG] [PS:tweak-executor] #34 queryPowerShell SPAWN ts=1781959348789 active=2
+[2026-06-20T12:42:29.266Z] [LOG] [PS:tweak-executor] #33 runPowerShell OK 632ms
+[2026-06-20T12:42:29.266Z] [LOG] [PS-Semaphore] queued — 2/2 slots active, queue=2
+[2026-06-20T12:42:29.267Z] [LOG] [PS:tweak-executor] #35 queryPowerShell SPAWN ts=1781959349267 active=2
+[2026-06-20T12:42:29.466Z] [LOG] [PS:tweak-executor] #34 queryPowerShell OK 677ms
+[2026-06-20T12:42:29.467Z] [LOG] [PS:tweak-executor] #36 queryPowerShell SPAWN ts=1781959349466 active=2
+[2026-06-20T12:42:29.469Z] [LOG] [TweakExecutor:PERSIST] disable-game-dvr → false (hkcu, verified) written
+[2026-06-20T12:42:29.990Z] [LOG] [PS:tweak-executor] #35 queryPowerShell OK 723ms
+[2026-06-20T12:42:29.991Z] [LOG] [TweakExecutor:PERSIST] optimize-windowed-games → false (hkcu, verified) written
+[2026-06-20T12:42:30.065Z] [LOG] [PS:tweak-executor] #36 queryPowerShell OK 599ms
+[2026-06-20T12:42:30.066Z] [LOG] [TweakExecutor:PERSIST] tcp-no-delay → false (hkcu, verified) written
+[2026-06-20T12:42:30.068Z] [LOG] [PS:nic-executor] #2 queryPS SPAWN ts=1781959350068
+[2026-06-20T12:42:30.069Z] [LOG] [PS:nic-executor] #3 queryPS SPAWN ts=1781959350069
+[2026-06-20T12:42:30.071Z] [LOG] [PS:nic-executor] #4 queryPS SPAWN ts=1781959350071
+[2026-06-20T12:42:30.073Z] [LOG] [PS:nic-executor] #5 queryPS SPAWN ts=1781959350073
+[2026-06-20T12:42:31.443Z] [LOG] [PS:nic-executor] #4 queryPS OK 1372ms
+[2026-06-20T12:42:31.445Z] [LOG] [PS:nic-executor] #5 queryPS OK 1372ms
+[2026-06-20T12:42:31.460Z] [LOG] [PS:nic-executor] #3 queryPS OK 1391ms
+[2026-06-20T12:42:31.532Z] [LOG] [PS:nic-executor] #2 queryPS OK 1464ms
+[2026-06-20T12:42:34.422Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:28) [Network] navigator.onLine → false
+[2026-06-20T12:42:35.119Z] [LOG] [PS:nic-executor] #6 queryPS SPAWN ts=1781959355119
+[2026-06-20T12:42:38.800Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:63042/api
+[2026-06-20T12:42:38.801Z] [LOG] [PS:nic-executor] #6 queryPS OK 3682ms
+[2026-06-20T12:42:38.801Z] [LOG] [TweakExecutor] REVERT win-search-index
+[2026-06-20T12:42:38.801Z] [LOG] [TweakExecutor] REVERT superfetch
+[2026-06-20T12:42:38.801Z] [LOG] [TweakExecutor] REVERT fax-printer
+[2026-06-20T12:42:38.801Z] [LOG] [PS-Semaphore] queued — 2/2 slots active, queue=1
+[2026-06-20T12:42:38.801Z] [LOG] [TweakExecutor] REVERT xbox-services
+[2026-06-20T12:42:38.801Z] [LOG] [PS-Semaphore] queued — 2/2 slots active, queue=2
+[2026-06-20T12:42:38.801Z] [LOG] [PS:tweak-executor] #37 runPowerShell SPAWN ts=1781959358801 active=2
+[2026-06-20T12:42:38.803Z] [LOG] [PS:tweak-executor] #38 runPowerShell SPAWN ts=1781959358803 active=2
+[2026-06-20T12:42:38.804Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [App] Window focused, refreshing entitlements...
+[2026-06-20T12:42:38.824Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:150) [Window] Focus event received
+[2026-06-20T12:42:38.824Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [App] Electron window focus (passive)
+[2026-06-20T12:42:39.505Z] [LOG] [PS:tweak-executor] #37 runPowerShell OK 704ms
+[2026-06-20T12:42:39.505Z] [LOG] [PS-Semaphore] queued — 2/2 slots active, queue=3
+[2026-06-20T12:42:39.505Z] [LOG] [PS:tweak-executor] #39 runPowerShell SPAWN ts=1781959359505 active=2
+[2026-06-20T12:42:39.776Z] [LOG] [PS:tweak-executor] #38 runPowerShell OK 973ms
+[2026-06-20T12:42:39.776Z] [LOG] [PS-Semaphore] queued — 2/2 slots active, queue=3
+[2026-06-20T12:42:39.776Z] [LOG] [PS:tweak-executor] #40 runPowerShell SPAWN ts=1781959359776 active=2
+[2026-06-20T12:42:40.098Z] [LOG] [PS:tweak-executor] #39 runPowerShell OK 593ms
+[2026-06-20T12:42:40.099Z] [LOG] [PS-Semaphore] queued — 2/2 slots active, queue=3
+[2026-06-20T12:42:40.099Z] [LOG] [PS:tweak-executor] #41 queryPowerShell SPAWN ts=1781959360099 active=2
+[2026-06-20T12:42:40.371Z] [LOG] [PS:tweak-executor] #40 runPowerShell OK 595ms
+[2026-06-20T12:42:40.371Z] [LOG] [PS-Semaphore] queued — 2/2 slots active, queue=3
+[2026-06-20T12:42:40.371Z] [LOG] [PS:tweak-executor] #42 queryPowerShell SPAWN ts=1781959360371 active=2
+[2026-06-20T12:42:40.713Z] [LOG] [PS:tweak-executor] #41 queryPowerShell OK 614ms
+[2026-06-20T12:42:40.714Z] [LOG] [PS:tweak-executor] #43 queryPowerShell SPAWN ts=1781959360714 active=2
+[2026-06-20T12:42:40.716Z] [LOG] [TweakExecutor:PERSIST] win-search-index → false (hkcu, verified) written
+[2026-06-20T12:42:40.999Z] [LOG] [PS:tweak-executor] #42 queryPowerShell OK 628ms
+[2026-06-20T12:42:40.999Z] [LOG] [PS:tweak-executor] #44 queryPowerShell SPAWN ts=1781959360999 active=2
+[2026-06-20T12:42:41.002Z] [LOG] [TweakExecutor:PERSIST] superfetch → false (hkcu, verified) written
+[2026-06-20T12:42:41.370Z] [LOG] [PS:tweak-executor] #43 queryPowerShell OK 656ms
+[2026-06-20T12:42:41.371Z] [LOG] [TweakExecutor:PERSIST] fax-printer → false (hkcu, verified) written
+[2026-06-20T12:42:41.601Z] [LOG] [PS:tweak-executor] #44 queryPowerShell OK 602ms
+[2026-06-20T12:42:41.602Z] [LOG] [TweakExecutor:PERSIST] xbox-services → false (hkcu, verified) written
+[2026-06-20T12:42:41.603Z] [LOG] [TweakExecutor] REVERT bluetooth
+[2026-06-20T12:42:41.603Z] [LOG] [TweakExecutor] REVERT edge-update
+[2026-06-20T12:42:41.603Z] [LOG] [TweakExecutor] REVERT adobe-updater
+[2026-06-20T12:42:41.603Z] [LOG] [PS-Semaphore] queued — 2/2 slots active, queue=1
+[2026-06-20T12:42:41.603Z] [LOG] [TweakExecutor] REVERT teams-startup
+[2026-06-20T12:42:41.603Z] [LOG] [PS-Semaphore] queued — 2/2 slots active, queue=2
+[2026-06-20T12:42:41.603Z] [LOG] [PS:tweak-executor] #45 runPowerShell SPAWN ts=1781959361603 active=2
+[2026-06-20T12:42:41.605Z] [LOG] [PS:tweak-executor] #46 runPowerShell SPAWN ts=1781959361605 active=2
+[2026-06-20T12:42:42.211Z] [LOG] [PS:tweak-executor] #45 runPowerShell OK 608ms
+[2026-06-20T12:42:42.211Z] [LOG] [PS-Semaphore] queued — 2/2 slots active, queue=3
+[2026-06-20T12:42:42.211Z] [LOG] [PS:tweak-executor] #47 runPowerShell SPAWN ts=1781959362211 active=2
+[2026-06-20T12:42:43.451Z] [LOG] [PS:tweak-executor] #47 runPowerShell OK 1240ms
+[2026-06-20T12:42:43.452Z] [LOG] [PS-Semaphore] queued — 2/2 slots active, queue=3
+[2026-06-20T12:42:43.452Z] [LOG] [PS:tweak-executor] #48 runPowerShell SPAWN ts=1781959363452 active=2
+[2026-06-20T12:42:43.841Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:63042/api
+[2026-06-20T12:42:44.284Z] [LOG] [PS:tweak-executor] #48 runPowerShell FAIL 832ms
+[2026-06-20T12:42:44.285Z] [ERROR] [TweakExecutor] Failed revert teams-startup: try { $p = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run"; Set-ItemProperty -Path $p -Name 
+"com.squirrel.Teams.Teams" -Value "$env:LOCALAPPDATA\Microsoft\Teams\Update.exe --processStart "Teams.exe"" -Type 
+String -Force -EA SilentlyContinue; exit 0 } catch { Write-Error $_.Exception.Message; exit 1 } : A positional 
+parameter cannot be found that accepts argument 'Teams.exe'.
+    + CategoryInfo          : NotSpecified: (:) [Write-Error], WriteErrorException
+    + FullyQualifiedErrorId : Microsoft.PowerShell.Commands.WriteErrorException
+[2026-06-20T12:42:44.287Z] [LOG] [PS:tweak-executor] #49 queryPowerShell SPAWN ts=1781959364287 active=2
+[2026-06-20T12:42:44.905Z] [LOG] [PS:tweak-executor] #49 queryPowerShell OK 618ms
+[2026-06-20T12:42:44.905Z] [LOG] [PS:tweak-executor] #50 queryPowerShell SPAWN ts=1781959364905 active=2
+[2026-06-20T12:42:44.907Z] [LOG] [TweakExecutor:PERSIST] bluetooth → false (hkcu, verified) written
+[2026-06-20T12:42:45.463Z] [LOG] [PS:tweak-executor] #50 queryPowerShell OK 558ms
+[2026-06-20T12:42:45.464Z] [LOG] [TweakExecutor:PERSIST] adobe-updater → false (hkcu, verified) written
+[2026-06-20T12:42:47.049Z] [LOG] [PS:tweak-executor] #46 runPowerShell OK 5444ms
+[2026-06-20T12:42:47.049Z] [LOG] [PS:tweak-executor] #51 queryPowerShell SPAWN ts=1781959367049 active=1
+[2026-06-20T12:42:47.673Z] [LOG] [PS:tweak-executor] #51 queryPowerShell OK 624ms
+[2026-06-20T12:42:47.674Z] [LOG] [TweakExecutor:PERSIST] edge-update → false (hkcu, verified) written
+[2026-06-20T12:42:47.675Z] [LOG] [TweakExecutor] REVERT vendor-updaters
+[2026-06-20T12:42:47.675Z] [LOG] [PS:tweak-executor] #52 runPowerShell SPAWN ts=1781959367675 active=1
+[2026-06-20T12:42:48.849Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:63042/api
+[2026-06-20T12:42:49.024Z] [LOG] [PS:tweak-executor] #52 runPowerShell OK 1349ms
+[2026-06-20T12:42:49.024Z] [LOG] [PS:tweak-executor] #53 queryPowerShell SPAWN ts=1781959369024 active=1
+[2026-06-20T12:42:49.621Z] [LOG] [PS:tweak-executor] #53 queryPowerShell OK 597ms
+[2026-06-20T12:42:49.622Z] [LOG] [TweakExecutor:PERSIST] vendor-updaters → false (hkcu, verified) written
+[2026-06-20T12:42:49.625Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:28) [Revert:EL] restoreBaseline succeeded attempt=1 ids=all
+[2026-06-20T12:42:49.626Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: false
+[2026-06-20T12:42:49.767Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:28) [Revert:PLAN] Active plan "Balanced" (381b4222-f694-41f0-9685-ff5bb260df2e) is not SC-managed — skipping
+[2026-06-20T12:42:49.767Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:28) [Revert] Complete — reverted=0 failed=true conflict=false el=0
+[2026-06-20T12:42:49.768Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: false
+[2026-06-20T12:42:51.616Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [Ownership] clearPremiumOwnership — app-applied premium entries removed
+[2026-06-20T12:42:51.616Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:28) [TrialExpiry] trialEndingFlowActive → false
+[2026-06-20T12:42:51.616Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:28) [TrialExpiry] revertReason → null
+[2026-06-20T12:42:51.617Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: false
+[2026-06-20T12:42:53.071Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: false
+[2026-06-20T12:42:53.081Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:214) [ExtremeLabs] {"userTier":"free","trial":false,"premium":false,"desktopMode":true,"canApply":false,"canAnalyze":true}
+[2026-06-20T12:42:55.367Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: false
+[2026-06-20T12:42:55.406Z] [LOG] [PS] start file=main.js fn=slider:readValue reason=slider-read id=31 active=1
+[2026-06-20T12:42:55.408Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-20T12:42:55.406Z
+[2026-06-20T12:42:55.408Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-20T12:42:55.406Z
+[2026-06-20T12:42:55.408Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-20T12:42:55.406Z
+[2026-06-20T12:42:55.408Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-20T12:42:55.406Z
+[2026-06-20T12:42:55.408Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-20T12:42:55.406Z
+[2026-06-20T12:42:55.409Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-20T12:42:55.406Z
+[2026-06-20T12:42:55.409Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=slider:readValue reason=slider-read activeOwner=main.js::slider:readValue activeSince=2026-06-20T12:42:55.406Z
+[2026-06-20T12:42:55.409Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:159) [Tweaks:LOAD] source=zustand-persist enabled=18 total_known=52
+[2026-06-20T12:42:55.410Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:159) [Tweaks:LOAD] enabled_ids=mem-opt, gaming-mode, maintenance, page-combining, core-isolation, copilot, prefetch, usb-selective-suspend, tune-priority, disable-animations, hyper-v, vbs, fast-startup, pcie-link-state, superfetch, disable-pointer-precision, notifications, disable-dcom
+[2026-06-20T12:42:55.410Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:159) [Tweaks:SYNC] hydration start gen=3
+[2026-06-20T12:42:55.410Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:27) [TweakExecutor] syncAll cooldown — skipping (last ran 134s ago, cooldown 300s)
+[2026-06-20T12:42:55.415Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] path=/api/tweak-intelligence/system-state target=local reason=system-route base=http://127.0.0.1:63042/api
+[2026-06-20T12:42:55.415Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] path=/api/tweak-intelligence/rankings?applied=mem-opt%2Cgaming-mode%2Cmaintenance%2Cpage-combining%2Ccore-isolation%2Ccopilot%2Cprefetch%2Cusb-selective-suspend%2Ctune-priority%2Cdisable-animations%2Chyper-v%2Cvbs%2Cfast-startup%2Cpcie-link-state%2Csuperfetch%2Cdisable-pointer-precision%2Cnotifications%2Cdisable-dcom target=local reason=system-route base=http://127.0.0.1:63042/api
+[2026-06-20T12:42:55.415Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] path=/api/tweak-intelligence/posture?applied=mem-opt%2Cgaming-mode%2Cmaintenance%2Cpage-combining%2Ccore-isolation%2Ccopilot%2Cprefetch%2Cusb-selective-suspend%2Ctune-priority%2Cdisable-animations%2Chyper-v%2Cvbs%2Cfast-startup%2Cpcie-link-state%2Csuperfetch%2Cdisable-pointer-precision%2Cnotifications%2Cdisable-dcom target=local reason=system-route base=http://127.0.0.1:63042/api
+[2026-06-20T12:42:55.416Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:159) [Tweaks:SYNC] skipped (no results from syncAll)
+[2026-06-20T12:42:55.446Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:159) [SliderHydration] win32-priority-sep: read skipped — limiter busy (expected at startup)
+[2026-06-20T12:42:55.446Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:159) [SliderHydration] sys-responsiveness: read skipped — limiter busy (expected at startup)
+[2026-06-20T12:42:55.447Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:159) [SliderHydration] net-throttle-index: read skipped — limiter busy (expected at startup)
+[2026-06-20T12:42:55.447Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:159) [SliderHydration] menu-show-delay: read skipped — limiter busy (expected at startup)
+[2026-06-20T12:42:55.447Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:159) [SliderHydration] hung-app-timeout: read skipped — limiter busy (expected at startup)
+[2026-06-20T12:42:55.447Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:159) [SliderHydration] low-level-hooks-timeout: read skipped — limiter busy (expected at startup)
+[2026-06-20T12:42:55.447Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:159) [SliderHydration] wait-to-kill-app: read skipped — limiter busy (expected at startup)
+[2026-06-20T12:42:56.029Z] [LOG] [SliderExecutor] READ svchost-split-threshold: value=33554432 raw="33554432"
+[2026-06-20T12:42:56.029Z] [LOG] [PS] end file=main.js fn=slider:readValue id=31 duration=623ms active=0 calls60s=10
+[2026-06-20T12:42:56.031Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:159) [SliderHydration] svchost-split-threshold: value=33554432 missing=false
+[2026-06-20T12:42:56.032Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: false
+[2026-06-20T12:43:03.454Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: false
+[2026-06-20T12:43:12.692Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:28) [Network] navigator.onLine → true
+[2026-06-20T12:43:13.829Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [App] Window focused, refreshing entitlements...
+[2026-06-20T12:43:13.831Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:150) [Window] Focus event received
+[2026-06-20T12:43:13.831Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [App] Electron window focus (passive)
+[2026-06-20T12:43:13.877Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:28) [Network] backend reachable=true → state=reconnecting
+[2026-06-20T12:43:13.878Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:28) [Network] reconnecting → online
+[2026-06-20T12:43:13.909Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: false
+[2026-06-20T12:43:15.056Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: false
+[2026-06-20T12:43:15.616Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: false
+[2026-06-20T12:43:16.185Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: false
+[2026-06-20T12:43:16.185Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:159) [Timing] SystemCleaner | mount | +0ms
+[2026-06-20T12:43:16.199Z] [LOG] [PS] start file=storage-helper.js fn=storage:getVolumes reason=storage-volumes id=32 active=1
+[2026-06-20T12:43:16.200Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:159) [Timing] SystemCleaner | init | +13ms
+[2026-06-20T12:43:16.411Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: false
+[2026-06-20T12:43:17.976Z] [LOG] [PS] end file=storage-helper.js fn=storage:getVolumes id=32 duration=1777ms active=0 calls60s=5
+[2026-06-20T12:44:00.803Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [App] Window focused, refreshing entitlements...
+[2026-06-20T12:44:00.806Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:150) [Window] Focus event received
+[2026-06-20T12:44:00.806Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [App] Electron window focus (passive)
+[2026-06-20T12:44:01.385Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-20T12:44:01.385Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:159) [Timing] NetworkTweaks | mount | +0ms
+[2026-06-20T12:44:01.386Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:159) [NetworkTweaks:CACHE] cache stale — showing cached values, background refresh queued
+[2026-06-20T12:44:01.412Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:159) [NetworkTweaks] cache fresh — skipping fetch
+[2026-06-20T12:44:01.412Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:28) [DeviceLock] target=cloud userId=present deviceIdPresent=true
+[2026-06-20T12:44:01.412Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [AppFlow] Flow eval — isPremium: true plan: premium trialEndsAt: null hasSeenTrialActivation: true hasSeenTrialTour: true hasSeenUnlock: false hasSeenTour: true isFirstTimeUser: false isFirstLogin: false entitlementsAttempted: true entitlementsOk: true unlockFired: false trialUnlockFired: true
+[2026-06-20T12:44:01.412Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [AppFlow] PRIORITY 4: Premium unlock animation — triggering
+[2026-06-20T12:44:01.413Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-20T12:44:01.426Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] path=/api/network/ping-sample target=local reason=system-route base=http://127.0.0.1:63042/api
+[2026-06-20T12:44:01.443Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:28) [CloudAPI] 2026-06-20T12:44:01.442Z | POST /device/premium-validate | auth=true | base=https://switchcontrol.org/api
+[2026-06-20T12:44:01.778Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:28) [CloudAPI] OK | POST /device/premium-validate | status=200
+[2026-06-20T12:44:01.778Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:28) [DeviceLock] Valid device
+[2026-06-20T12:44:01.778Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-20T12:44:02.108Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [AppFlow] Unlock animation complete — transitioning to premiumTour
+[2026-06-20T12:44:02.109Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-20T12:44:02.113Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:25) [TourTransition] mounted (invisible)
+[2026-06-20T12:44:02.169Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:25) [TourTransition] revealed — first visible frame
+[2026-06-20T12:44:02.501Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:25) [TourTransition] card fully visible
+[2026-06-20T12:44:02.616Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-20T12:44:02.648Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:159) [Dashboard] mounted
+[2026-06-20T12:44:02.649Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:159) [ActivityMonitor] reused cached state — history points: 60 status: ready
+[2026-06-20T12:44:02.672Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] path=/api/dashboard-intelligence/instability target=local reason=system-route base=http://127.0.0.1:63042/api
+[2026-06-20T12:44:02.673Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] path=/api/dashboard-intelligence/system-dna target=local reason=system-route base=http://127.0.0.1:63042/api
+[2026-06-20T12:44:02.673Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] path=/api/dashboard-intelligence/active-problems target=local reason=system-route base=http://127.0.0.1:63042/api
+[2026-06-20T12:44:02.674Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:63042/api
+[2026-06-20T12:44:02.674Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] path=/api/dashboard-intelligence/ram-analysis target=local reason=system-route base=http://127.0.0.1:63042/api
+[2026-06-20T12:44:03.857Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] path=/api/startup/apps target=local reason=system-route base=http://127.0.0.1:63042/api
+[2026-06-20T12:44:04.007Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] path=/api/issues/detect target=local reason=system-route base=http://127.0.0.1:63042/api
+[2026-06-20T12:44:14.166Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [AppFlow] Premium tour complete — persisting before clearing flow
+[2026-06-20T12:44:14.166Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-20T12:44:14.524Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] path=/api/dashboard-intelligence/latency-estimate target=local reason=system-route base=http://127.0.0.1:63042/api
+[2026-06-20T12:44:14.676Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-20T12:44:14.692Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-20T12:44:14.700Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:25) [TourTransition] tour dismissed — fading out
+[2026-06-20T12:44:14.700Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [AppFlow] Flow eval — isPremium: true plan: premium trialEndsAt: null hasSeenTrialActivation: true hasSeenTrialTour: true hasSeenUnlock: true hasSeenTour: true isFirstTimeUser: false isFirstLogin: false entitlementsAttempted: true entitlementsOk: true unlockFired: true trialUnlockFired: true
+[2026-06-20T12:44:14.700Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [AppFlow] No flow conditions met — staying idle
+[2026-06-20T12:44:15.200Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:25) [TourTransition] unmounted
+[2026-06-20T12:44:15.228Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-20T12:44:15.229Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:159) [Timing] NetworkTweaks | mount | +0ms
+[2026-06-20T12:44:15.229Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:159) [NetworkTweaks:CACHE] cache hit — rehydrating from session cache
+[2026-06-20T12:44:15.257Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:159) [NetworkTweaks] cache fresh — skipping fetch
+[2026-06-20T12:44:15.269Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] path=/api/network/ping-sample target=local reason=system-route base=http://127.0.0.1:63042/api
+[2026-06-20T12:44:23.258Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] path=/api/network/ping-sample target=local reason=system-route base=http://127.0.0.1:63042/api
+[2026-06-20T12:44:31.259Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] path=/api/network/ping-sample target=local reason=system-route base=http://127.0.0.1:63042/api
+[2026-06-20T12:44:39.252Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] path=/api/network/ping-sample target=local reason=system-route base=http://127.0.0.1:63042/api
+[2026-06-20T12:44:43.922Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [App] Window focused, refreshing entitlements...
+[2026-06-20T12:44:43.923Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:150) [Window] Focus event received
+[2026-06-20T12:44:43.923Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [App] Electron window focus (passive)
+[2026-06-20T12:44:44.695Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-20T12:44:45.814Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:150) [Window] Focus event received
+[2026-06-20T12:44:45.814Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [App] Electron window focus (passive)
+[2026-06-20T12:44:47.252Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:10) [AuthRoute] path=/api/network/ping-sample target=local reason=system-route base=http://127.0.0.1:63042/api
+[2026-06-20T12:44:47.302Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:150) [Window] Focus event received
+[2026-06-20T12:44:47.303Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [App] Electron window focus (passive)
+[2026-06-20T12:44:49.423Z] [LOG] [Renderer:info] (index-DaKk5Yai.js:215) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-06-20T12:44:53.388Z] [LOG] [Logs] Opening log directory: C:\Users\SwitchTech\AppData\Roaming\SwitchControl\logs
