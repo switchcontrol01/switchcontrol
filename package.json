@@ -2,6 +2,10 @@
   "name": "switchcontrol",
   "version": "1.2.2",
   "packageManager": "npm@11.6.2",
+  "engines": {
+    "node": "24.13.0",
+    "npm": "11.6.2"
+  },
   "description": "Elite Windows performance optimization suite",
   "author": "SwitchTech",
   "private": true,
