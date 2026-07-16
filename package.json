@@ -7,7 +7,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx server/index.ts",
-    "build": "npx tsx script/build.ts",
+  "build": "npm config set legacy-peer-deps true && npx tsx script/build.ts",
     "start": "node dist/index.cjs",
     "electron:build": "npm run build && node electron/scripts/build-native.js && electron-builder --win",
     "audit:package": "node electron/scripts/audit-package.js",

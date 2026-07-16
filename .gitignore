@@ -1,8 +1,20 @@
-node_modules
-dist
+node_modules/
+dist/
 .DS_Store
 server/public
 vite.config.ts.*
 *.tar.gz
 # R2 release credentials
 electron/.env
+dist-electron/
+release/
+release_asar/
+logs/
+*.log
+.env
+.env.*
+.local/
+.config/
+.cache/
+attached_assets/
+screenshots/
