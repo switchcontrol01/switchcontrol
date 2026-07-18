@@ -30,7 +30,7 @@ if (isNoDbMode) {
 //   briefly; failing at 5s was too aggressive and produced spurious 500s.
 const POOL_CONFIG = {
   connectionString: process.env.DATABASE_URL,
-  max: 25,
+  max: 10,
   idleTimeoutMillis: 20_000,
   connectionTimeoutMillis: 8_000,
 };
