@@ -33,12 +33,16 @@ export async function collectSystemSignals(): Promise<Record<string, SignalValue
     osVersionResult,
     memIntegResult,
     hagsResult,
+    cpuResponsivenessResult,
+    gpuMsiResult,
   ] = await Promise.allSettled([
-    hasTweakApi ? api.tweaks.checkStatus("game-mode")        : Promise.resolve(null),
-    hasTweakApi ? api.tweaks.checkStatus("power-plan")       : Promise.resolve(null),
+    hasTweakApi ? api.tweaks.checkStatus("game-mode")                    : Promise.resolve(null),
+    hasTweakApi ? api.tweaks.checkStatus("power-plan")                   : Promise.resolve(null),
     osVersionPromise,
-    hasTweakApi ? api.tweaks.checkStatus("memory-integrity") : Promise.resolve(null),
-    hasTweakApi ? api.tweaks.checkStatus("hags")             : Promise.resolve(null),
+    hasTweakApi ? api.tweaks.checkStatus("memory-integrity")             : Promise.resolve(null),
+    hasTweakApi ? api.tweaks.checkStatus("hags")                         : Promise.resolve(null),
+    hasTweakApi ? api.tweaks.checkStatus("maximum-cpu-responsiveness")   : Promise.resolve(null),
+    hasTweakApi ? api.tweaks.checkStatus("gpu-msi-mode")                 : Promise.resolve(null),
   ]);
 
   const signals: Record<string, SignalValue> = {};
@@ -86,6 +90,34 @@ export async function collectSystemSignals(): Promise<Record<string, SignalValue
     signals.hags = { value: hagsResult.value?.enabled ? "on" : "off", source: "electron" };
   } else {
     signals.hags = { value: null, source: "electron", error: "Failed to read HAGS status" };
+  }
+
+  // maximum-cpu-responsiveness
+  if (!hasTweakApi) {
+    signals.cpuResponsiveness = { value: null, source: "electron", error: "Electron API unavailable" };
+  } else if (cpuResponsivenessResult.status === "fulfilled") {
+    const r = cpuResponsivenessResult.value;
+    if (r?.unsupported) {
+      signals.cpuResponsiveness = { value: null, source: "electron", error: r.unsupportedReason || "Unsupported" };
+    } else {
+      signals.cpuResponsiveness = { value: r?.isApplied ? "on" : "off", source: "electron" };
+    }
+  } else {
+    signals.cpuResponsiveness = { value: null, source: "electron", error: "Failed to read CPU responsiveness status" };
+  }
+
+  // gpu-msi-mode
+  if (!hasTweakApi) {
+    signals.gpuMsiMode = { value: null, source: "electron", error: "Electron API unavailable" };
+  } else if (gpuMsiResult.status === "fulfilled") {
+    const r = gpuMsiResult.value;
+    if (r?.unsupported) {
+      signals.gpuMsiMode = { value: null, source: "electron", error: r.unsupportedReason || "Unsupported" };
+    } else {
+      signals.gpuMsiMode = { value: r?.isApplied ? "on" : "off", source: "electron" };
+    }
+  } else {
+    signals.gpuMsiMode = { value: null, source: "electron", error: "Failed to read GPU MSI mode status" };
   }
 
   return signals;

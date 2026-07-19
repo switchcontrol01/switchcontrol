@@ -177,6 +177,10 @@ function checkPowerShell(command) {
   });
 }
 
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 // ─── AudioGuard ──────────────────────────────────────────────────────────────────
 // Tweaks touching audio/mic services are blocked from bulk "Apply Recommended"
 // to prevent breaking Bluetooth headsets, microphones, or audio endpoints.
@@ -639,7 +643,11 @@ const ADMIN_TWEAKS = {
     requiresReboot: false,
     apply:  `powercfg /overlaysetactive ded574b5-45a0-4f42-8737-46345c09c238`,
     revert: `powercfg /overlaysetactive 00000000-0000-0000-0000-000000000000`,
-    check:  `[bool]((powercfg /overlaygetactivescheme 2>&1 | Out-String) -match "ded574b5-45a0-4f42-8737-46345c09c238")`,
+    // Dual check: powercfg command output + registry fallback.
+    // powercfg /overlaygetactivescheme is unreliable on some AMD/OEM builds — the
+    // registry value is the authoritative source and is always present after the
+    // overlay is applied via powercfg /overlaysetactive.
+    check:  `$tgt="ded574b5-45a0-4f42-8737-46345c09c238"; $cfgOut=(powercfg /overlaygetactivescheme 2>&1 | Out-String); $regVal=(Get-ItemProperty "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\User\\Default\\PowerSchemes" -Name "ActiveOverlayAcPowerScheme" -EA SilentlyContinue).ActiveOverlayAcPowerScheme; [bool](($cfgOut -imatch $tgt) -or ($regVal -imatch $tgt))`,
   },
   'fast-startup': {
     name: 'Disable Fast Startup',
@@ -1008,6 +1016,24 @@ const ADMIN_TWEAKS = {
     revert: `$names = @("DellSupportAssistRemedationService","DellOptimizer","HPWarrantyCheck","HPPrintScanDoctor","LenovoVantageService","IntelManagementEngine","IntelDriverUpdate","NVIDIAWebHelper","NvContainerLocalSystem","AMDExternalEvents"); foreach ($n in $names) { $s = Get-Service -Name $n -EA SilentlyContinue; if ($s) { Set-Service $n -StartupType Automatic -EA SilentlyContinue; Start-Service $n -EA SilentlyContinue } }; Get-ScheduledTask -TaskName "Dell*","HP*","Lenovo*","Intel*Driver*","NVIDIA*","AMD*" -EA SilentlyContinue | ForEach-Object { Enable-ScheduledTask -TaskName $_.TaskName -TaskPath $_.TaskPath | Out-Null }`,
     check:  `$names = @("DellSupportAssistRemedationService","DellOptimizer","HPWarrantyCheck","HPPrintScanDoctor","LenovoVantageService","IntelManagementEngine","IntelDriverUpdate","NVIDIAWebHelper","NvContainerLocalSystem","AMDExternalEvents"); $any = $false; foreach ($n in $names) { $s = Get-Service -Name $n -EA SilentlyContinue; if ($s -and ($s.StartType -eq "Disabled")) { $any = $true } }; $any`,
   },
+
+  // ── Maximum CPU Responsiveness — powercfg power-plan settings ─────────────────
+  // apply/revert/verify handled by executeMaxCpuResponsiveness below.
+  'maximum-cpu-responsiveness': {
+    name: 'Maximum CPU Responsiveness',
+    requiresAdmin:  true,
+    requiresReboot: false,
+    _special: 'maximum-cpu-responsiveness',
+  },
+
+  // ── GPU MSI Mode — registry interrupt properties ──────────────────────────────
+  // apply/revert/verify handled by executeGpuMsiMode below.
+  'gpu-msi-mode': {
+    name: 'GPU MSI Mode',
+    requiresAdmin:  true,
+    requiresReboot: true,
+    _special: 'gpu-msi-mode',
+  },
 };
 
 // Merged lookup (no unsupported tweaks here)
@@ -1159,6 +1185,354 @@ async function executeNvidiaTelemetry(action) {
   };
 }
 
+// ─── Maximum CPU Responsiveness — powercfg handler ────────────────────────────
+async function executeMaxCpuResponsiveness(action) {
+  const fs_   = require('fs');
+  const path_ = require('path');
+  const { CPU_RESPONSIVENESS_BACKUP_FILE } = require('./user-data-paths');
+
+  // Detect active scheme GUID
+  const rawScheme = await queryPowerShell(
+    `$s = (powercfg /getactivescheme 2>&1 | Out-String).Trim(); ` +
+    `if ($s -match 'GUID:\\s*([0-9a-fA-F-]{36})') { $matches[1] } else { '' }`
+  );
+  if (!rawScheme || rawScheme.trim().length < 36) {
+    return { ok: false, commandsRun: [], message: 'Active power scheme could not be detected.', errorCode: 'no_scheme' };
+  }
+  const schemeGuid = rawScheme.trim();
+
+  // ── Query helper: reads a SUB_PROCESSOR AC value from powercfg ──────────────
+  async function queryCpuSetting(settingAlias) {
+    const out = await queryPowerShell(
+      `$raw = (powercfg /query "${schemeGuid}" SUB_PROCESSOR ${settingAlias} 2>&1 | Out-String); ` +
+      `if ($raw -match 'Current AC Power Setting Index:\\s*0x([0-9a-fA-F]+)') { [Convert]::ToInt64($matches[1],16).ToString() } else { '' }`
+    );
+    return out !== null ? out.trim() : null;
+  }
+
+  if (action === 'apply') {
+    // Read original values before changing anything
+    const origCpMinCores   = await queryCpuSetting('CPMINCORES');
+    const origPerfBoostMode = await queryCpuSetting('PERFBOOSTMODE');
+
+    // If we cannot read the original values, do not proceed — rollback would be unsafe
+    if (origCpMinCores === null || origCpMinCores === '' || origPerfBoostMode === null || origPerfBoostMode === '') {
+      return { ok: false, commandsRun: [], message: 'Processor power setting unsupported — could not read CPMINCORES or PERFBOOSTMODE from active scheme.', errorCode: 'unsupported_setting' };
+    }
+
+    // Save backup atomically
+    const backup = { schemeGuid, origCpMinCores, origPerfBoostMode, savedAt: new Date().toISOString() };
+    try {
+      const dir = path_.dirname(CPU_RESPONSIVENESS_BACKUP_FILE);
+      if (!fs_.existsSync(dir)) fs_.mkdirSync(dir, { recursive: true });
+      const tmp = CPU_RESPONSIVENESS_BACKUP_FILE + '.tmp';
+      fs_.writeFileSync(tmp, JSON.stringify(backup, null, 2));
+      fs_.renameSync(tmp, CPU_RESPONSIVENESS_BACKUP_FILE);
+    } catch (e) {
+      console.warn('[CpuResponsiveness] backup write failed:', e.message);
+      return { ok: false, commandsRun: [], message: 'Original value could not be backed up — aborting to keep rollback available.', errorCode: 'backup_failed' };
+    }
+
+    // Apply settings
+    const applyCmd = `& powercfg /setacvalueindex "${schemeGuid}" SUB_PROCESSOR CPMINCORES 100 2>&1 | Out-Null; & powercfg /setacvalueindex "${schemeGuid}" SUB_PROCESSOR PERFBOOSTMODE 2 2>&1 | Out-Null; & powercfg /setactive "${schemeGuid}" 2>&1 | Out-Null; exit 0`;
+    try {
+      await runPowerShell(applyCmd);
+    } catch (e) {
+      return { ok: false, commandsRun: [applyCmd], message: e.message, errorCode: 'exec_failed' };
+    }
+
+    // Verify applied values
+    const vCpMin = await queryCpuSetting('CPMINCORES');
+    const vPbm   = await queryCpuSetting('PERFBOOSTMODE');
+    const cpOk   = vCpMin !== null && vCpMin === '100';
+    const pbOk   = vPbm  !== null && vPbm  === '2';
+    const verified = cpOk && pbOk;
+
+    return {
+      ok: verified,
+      commandsRun: [applyCmd],
+      verified,
+      message: verified
+        ? 'Maximum CPU Responsiveness applied and verified.'
+        : `Verification failed — CPMINCORES=${vCpMin ?? '?'}, PERFBOOSTMODE=${vPbm ?? '?'}`,
+      rebootRequired: false,
+      historyMeta: { schemeGuid, prevCpMinCores: origCpMinCores, prevPerfBoostMode: origPerfBoostMode, newCpMinCores: '100', newPerfBoostMode: '2' },
+    };
+  } else {
+    // Revert: restore original values from backup
+    let backup = null;
+    try {
+      const raw = fs_.readFileSync(CPU_RESPONSIVENESS_BACKUP_FILE, 'utf8');
+      backup = JSON.parse(raw);
+    } catch (_) {}
+
+    if (!backup || !backup.schemeGuid || backup.origCpMinCores == null || backup.origPerfBoostMode == null) {
+      return { ok: false, commandsRun: [], message: 'Revert backup unavailable — original values were not captured.', errorCode: 'no_backup' };
+    }
+
+    const { schemeGuid: bkGuid, origCpMinCores, origPerfBoostMode } = backup;
+    if (origCpMinCores === '' || origPerfBoostMode === '') {
+      return { ok: false, commandsRun: [], message: 'Revert backup unavailable — backup contains empty values.', errorCode: 'no_backup' };
+    }
+
+    const revertCmd = `& powercfg /setacvalueindex "${bkGuid}" SUB_PROCESSOR CPMINCORES ${origCpMinCores} 2>&1 | Out-Null; & powercfg /setacvalueindex "${bkGuid}" SUB_PROCESSOR PERFBOOSTMODE ${origPerfBoostMode} 2>&1 | Out-Null; & powercfg /setactive "${bkGuid}" 2>&1 | Out-Null; exit 0`;
+    try {
+      await runPowerShell(revertCmd);
+    } catch (e) {
+      return { ok: false, commandsRun: [revertCmd], message: e.message, errorCode: 'exec_failed' };
+    }
+
+    // Verify revert
+    const queryCpuSettingWithGuid = async (guid, settingAlias) => {
+      const out = await queryPowerShell(
+        `$raw = (powercfg /query "${guid}" SUB_PROCESSOR ${settingAlias} 2>&1 | Out-String); ` +
+        `if ($raw -match 'Current AC Power Setting Index:\\s*0x([0-9a-fA-F]+)') { [Convert]::ToInt64($matches[1],16).ToString() } else { '' }`
+      );
+      return out !== null ? out.trim() : null;
+    };
+
+    const vCpMin = await queryCpuSettingWithGuid(bkGuid, 'CPMINCORES');
+    const vPbm   = await queryCpuSettingWithGuid(bkGuid, 'PERFBOOSTMODE');
+    const verified = (vCpMin === String(origCpMinCores)) && (vPbm === String(origPerfBoostMode));
+
+    return {
+      ok: verified,
+      commandsRun: [revertCmd],
+      verified,
+      message: verified
+        ? 'Maximum CPU Responsiveness reverted and verified.'
+        : `Revert verification mismatch — CPMINCORES=${vCpMin ?? '?'}, PERFBOOSTMODE=${vPbm ?? '?'}`,
+      rebootRequired: false,
+    };
+  }
+}
+
+// ─── GPU MSI Mode — helpers ────────────────────────────────────────────────────
+
+// Adapters that must never be targeted by MSI mode changes.
+const GPU_MSI_BLOCK_PATTERNS = [
+  /microsoft basic display/i,
+  /remote display/i,
+  /virtual/i,
+  /parsec/i,
+  /sunshine/i,
+  /vnc/i,
+  /rdp/i,
+  /indirect/i,
+];
+
+/**
+ * Scan for physical, compatible display adapters using WMI.
+ * Returns array of { name, vendor, deviceInstanceId, registryPath } or empty.
+ */
+async function scanCompatibleGpus() {
+  const raw = await queryPowerShell(`
+    $adapters = Get-CimInstance Win32_VideoController -EA SilentlyContinue |
+      Where-Object { $_.Availability -ne $null -and $_.Name -notmatch 'Microsoft Basic Display|Remote|Virtual|Parsec|Sunshine|VNC|Indirect' -and $_.PNPDeviceID -ne $null -and $_.PNPDeviceID -match '^PCI' };
+    if ($null -eq $adapters) { Write-Output '[]'; return }
+    $results = @();
+    foreach ($a in $adapters) {
+      $id   = $a.PNPDeviceID.ToUpper();
+      $reg  = $id.Replace('\\\\','\\');
+      $path = "HKLM:\\SYSTEM\\CurrentControlSet\\Enum\\$reg\\Device Parameters\\Interrupt Management\\MessageSignaledInterruptProperties";
+      $vendor = if ($a.Name -match 'NVIDIA') { 'NVIDIA' } elseif ($a.Name -match 'AMD|Radeon|ATI') { 'AMD' } elseif ($a.Name -match 'Intel') { 'Intel' } else { 'Unknown' };
+      $results += [PSCustomObject]@{ name=$a.Name; vendor=$vendor; deviceInstanceId=$id; registryPath=$path }
+    };
+    if ($results.Count -eq 0) { Write-Output '[]'; return }
+    $results | ConvertTo-Json -Compress -AsArray
+  `.trim());
+
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    const arr = Array.isArray(parsed) ? parsed : [parsed];
+    return arr.filter(g => {
+      if (!g.deviceInstanceId || !g.name) return false;
+      // Double-check against block patterns
+      for (const pattern of GPU_MSI_BLOCK_PATTERNS) {
+        if (pattern.test(g.name)) return false;
+      }
+      return true;
+    });
+  } catch (e) {
+    console.warn('[GpuMsiMode] scanCompatibleGpus parse error:', e.message, 'raw:', (raw || '').slice(0, 200));
+    return [];
+  }
+}
+
+/**
+ * Build the MSI registry path from a device instance ID.
+ * The ID comes from WMI in the form "PCI\VEN_xxxx&DEV_xxxx\XXXXXXXX".
+ * Registry stores it as-is under HKLM\SYSTEM\CurrentControlSet\Enum\.
+ */
+function gpuInstanceIdToRegistryPath(deviceInstanceId) {
+  return `HKLM:\\SYSTEM\\CurrentControlSet\\Enum\\${deviceInstanceId}\\Device Parameters\\Interrupt Management\\MessageSignaledInterruptProperties`;
+}
+
+// ─── GPU MSI Mode — main handler ──────────────────────────────────────────────
+async function executeGpuMsiMode(action, options) {
+  const fs_   = require('fs');
+  const path_ = require('path');
+  const { GPU_MSI_BACKUP_FILE } = require('./user-data-paths');
+
+  if (action === 'apply') {
+    // Scan for compatible GPUs
+    const gpus = await scanCompatibleGpus();
+    if (gpus.length === 0) {
+      return { ok: false, commandsRun: [], message: 'Compatible physical GPU not found — no eligible display adapter detected.', errorCode: 'no_compatible_gpu' };
+    }
+
+    // Determine target GPU
+    let targetGpu = null;
+    const requestedId = options && options.deviceInstanceId;
+    if (requestedId) {
+      targetGpu = gpus.find(g => g.deviceInstanceId === requestedId) || null;
+      if (!targetGpu) {
+        return { ok: false, commandsRun: [], message: `GPU registry path could not be resolved — requested device "${requestedId}" not found among compatible adapters.`, errorCode: 'gpu_not_found' };
+      }
+    } else if (gpus.length === 1) {
+      targetGpu = gpus[0];
+    } else {
+      // Multiple GPUs, selection required
+      return { ok: false, needsGpuSelection: true, availableGpus: gpus, commandsRun: [], message: 'Multiple GPUs require selection — please choose which adapter to enable MSI Mode for.', errorCode: 'needs_gpu_selection' };
+    }
+
+    const { name: gpuName, vendor, deviceInstanceId, registryPath } = targetGpu;
+    const psRegPath = registryPath;
+
+    // Verify the exact adapter registry node and interrupt management structure exist
+    const structCheck = await queryPowerShell(
+      `$p = "${psRegPath}"; ` +
+      `if (Test-Path $p) { 'EXISTS' } else { 'MISSING' }`
+    );
+
+    let msiSupportedExisted = false;
+    let originalMsiValue    = null;
+
+    if (structCheck === 'EXISTS') {
+      // Read current MSISupported value
+      const msiRaw = await queryPowerShell(
+        `$p = "${psRegPath}"; ` +
+        `$v = Get-ItemProperty -Path $p -Name MSISupported -EA SilentlyContinue; ` +
+        `if ($null -ne $v) { "$($v.MSISupported)" } else { '__ABSENT__' }`
+      );
+      if (msiRaw === '__ABSENT__' || msiRaw === null) {
+        msiSupportedExisted = false;
+        originalMsiValue    = null;
+      } else {
+        msiSupportedExisted = true;
+        originalMsiValue    = parseInt(msiRaw.trim(), 10);
+        if (isNaN(originalMsiValue)) {
+          return { ok: false, commandsRun: [], message: 'MSI mode not supported by this adapter — MSISupported registry value has unexpected type.', errorCode: 'unsupported_adapter' };
+        }
+      }
+    } else {
+      // Registry node missing — create the path hierarchy and proceed
+      msiSupportedExisted = false;
+      originalMsiValue    = null;
+    }
+
+    // Save backup
+    const backup = { deviceInstanceId, gpuName, vendor, registryPath, msiSupportedExisted, originalMsiValue, savedAt: new Date().toISOString() };
+    try {
+      const dir = path_.dirname(GPU_MSI_BACKUP_FILE);
+      if (!fs_.existsSync(dir)) fs_.mkdirSync(dir, { recursive: true });
+      const tmp = GPU_MSI_BACKUP_FILE + '.tmp';
+      fs_.writeFileSync(tmp, JSON.stringify(backup, null, 2));
+      fs_.renameSync(tmp, GPU_MSI_BACKUP_FILE);
+    } catch (e) {
+      console.warn('[GpuMsiMode] backup write failed:', e.message);
+      return { ok: false, commandsRun: [], message: 'Original value could not be backed up — aborting to keep rollback available.', errorCode: 'backup_failed' };
+    }
+
+    // Apply MSISupported = 1
+    const applyCmd = `New-Item -Path "${psRegPath}" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path "${psRegPath}" -Name MSISupported -Value 1 -Type DWord -Force; exit 0`;
+    try {
+      await runPowerShell(applyCmd);
+    } catch (e) {
+      return { ok: false, commandsRun: [applyCmd], message: e.message, errorCode: 'exec_failed' };
+    }
+
+    // Verify
+    const verifyRaw = await queryPowerShell(
+      `$v = Get-ItemProperty -Path "${psRegPath}" -Name MSISupported -EA SilentlyContinue; ` +
+      `if ($null -ne $v -and $v.MSISupported -is [int] -and $v.MSISupported -eq 1) { 'OK' } else { 'FAIL' }`
+    );
+    const verified = verifyRaw === 'OK';
+
+    return {
+      ok: verified,
+      commandsRun: [applyCmd],
+      verified,
+      message: verified
+        ? `GPU MSI Mode enabled for ${gpuName}.`
+        : `Verification failed — MSISupported was not confirmed at ${psRegPath}`,
+      rebootRequired: true,
+      gpuName,
+      vendor,
+      deviceInstanceId,
+      registryPath,
+    };
+  } else {
+    // Revert
+    let backup = null;
+    try {
+      const raw = fs_.readFileSync(GPU_MSI_BACKUP_FILE, 'utf8');
+      backup = JSON.parse(raw);
+    } catch (_) {}
+
+    if (!backup || !backup.deviceInstanceId || !backup.registryPath) {
+      return { ok: false, commandsRun: [], message: 'Revert backup unavailable — original GPU MSI state was not captured.', errorCode: 'no_backup' };
+    }
+
+    const { deviceInstanceId, gpuName, vendor, registryPath, msiSupportedExisted, originalMsiValue } = backup;
+    let revertCmd;
+
+    if (msiSupportedExisted) {
+      // Restore the original value
+      revertCmd = `Set-ItemProperty -Path "${registryPath}" -Name MSISupported -Value ${originalMsiValue} -Type DWord -Force; exit 0`;
+    } else {
+      // SwitchControl created the value — remove only MSISupported, never parent keys
+      revertCmd = `Remove-ItemProperty -Path "${registryPath}" -Name MSISupported -EA SilentlyContinue; exit 0`;
+    }
+
+    try {
+      await runPowerShell(revertCmd);
+    } catch (e) {
+      return { ok: false, commandsRun: [revertCmd], message: e.message, errorCode: 'exec_failed' };
+    }
+
+    // Verify revert
+    let verified = false;
+    if (msiSupportedExisted) {
+      const checkRaw = await queryPowerShell(
+        `$v = Get-ItemProperty -Path "${registryPath}" -Name MSISupported -EA SilentlyContinue; ` +
+        `if ($null -ne $v -and $v.MSISupported -eq ${originalMsiValue}) { 'OK' } else { 'FAIL' }`
+      );
+      verified = checkRaw === 'OK';
+    } else {
+      const checkRaw = await queryPowerShell(
+        `$v = Get-ItemProperty -Path "${registryPath}" -Name MSISupported -EA SilentlyContinue; ` +
+        `if ($null -eq $v) { 'OK' } else { 'FAIL' }`
+      );
+      verified = checkRaw === 'OK';
+    }
+
+    return {
+      ok: verified,
+      commandsRun: [revertCmd],
+      verified,
+      message: verified
+        ? `GPU MSI Mode reverted for ${gpuName}.`
+        : `Revert verification failed — MSISupported state not confirmed at ${registryPath}`,
+      rebootRequired: true,
+      gpuName,
+      vendor,
+      deviceInstanceId,
+    };
+  }
+}
+
 // ─── Core functions ────────────────────────────────────────────────────────────
 async function verifyTweak(tweakId) {
   const osVer = require('os').release();
@@ -1175,6 +1549,63 @@ async function verifyTweak(tweakId) {
     const isRunning = !!((_timerResProcess) && !_timerResProcess.killed);
     logTweakSupport(tweakId, true, 'persistent PowerShell agent', { osRelease: osVer, helperFound: isRunning });
     return { isApplied: isRunning, verified: true };
+  }
+
+  // ── Maximum CPU Responsiveness ────────────────────────────────────────────────
+  if (tweakId === 'maximum-cpu-responsiveness') {
+    try {
+      // Check active scheme and whether CPMINCORES is currently 100 and PERFBOOSTMODE is 2
+      const schemeRaw = await queryPowerShell(
+        `$s = (powercfg /getactivescheme 2>&1 | Out-String).Trim(); ` +
+        `if ($s -match 'GUID:\\s*([0-9a-fA-F-]{36})') { $matches[1] } else { '' }`
+      );
+      if (!schemeRaw || schemeRaw.trim().length < 36) {
+        return { isApplied: false, verified: false, error: 'Active power scheme could not be detected.' };
+      }
+      const guid = schemeRaw.trim();
+      const cpMinRaw = await queryPowerShell(
+        `$raw = (powercfg /query "${guid}" SUB_PROCESSOR CPMINCORES 2>&1 | Out-String); ` +
+        `if ($raw -match 'Current AC Power Setting Index:\\s*0x([0-9a-fA-F]+)') { [Convert]::ToInt64($matches[1],16).ToString() } else { '' }`
+      );
+      const pbmRaw = await queryPowerShell(
+        `$raw = (powercfg /query "${guid}" SUB_PROCESSOR PERFBOOSTMODE 2>&1 | Out-String); ` +
+        `if ($raw -match 'Current AC Power Setting Index:\\s*0x([0-9a-fA-F]+)') { [Convert]::ToInt64($matches[1],16).ToString() } else { '' }`
+      );
+      if (cpMinRaw === null || cpMinRaw === '' || pbmRaw === null || pbmRaw === '') {
+        logTweakSupport(tweakId, false, 'CPMINCORES/PERFBOOSTMODE not available on this power scheme', { osRelease: osVer });
+        return { isApplied: false, unsupported: true, unsupportedReason: 'Processor power setting unsupported — CPMINCORES or PERFBOOSTMODE not available on this system.' };
+      }
+      logTweakSupport(tweakId, true, 'powercfg CPMINCORES/PERFBOOSTMODE available', { osRelease: osVer });
+      const isApplied = (cpMinRaw.trim() === '100') && (pbmRaw.trim() === '2');
+      return { isApplied, verified: true };
+    } catch (e) {
+      return { isApplied: false, verified: false, error: e.message };
+    }
+  }
+
+  // ── GPU MSI Mode ──────────────────────────────────────────────────────────────
+  if (tweakId === 'gpu-msi-mode') {
+    try {
+      const { GPU_MSI_BACKUP_FILE } = require('./user-data-paths');
+      const fs_ = require('fs');
+      // Without a backup we cannot know which GPU was targeted, so isApplied = false
+      if (!fs_.existsSync(GPU_MSI_BACKUP_FILE)) {
+        return { isApplied: false, verified: true };
+      }
+      let backup = null;
+      try { backup = JSON.parse(fs_.readFileSync(GPU_MSI_BACKUP_FILE, 'utf8')); } catch (_) {}
+      if (!backup || !backup.registryPath) {
+        return { isApplied: false, verified: true };
+      }
+      const checkRaw = await queryPowerShell(
+        `$v = Get-ItemProperty -Path "${backup.registryPath}" -Name MSISupported -EA SilentlyContinue; ` +
+        `if ($null -ne $v -and $v.MSISupported -is [int] -and $v.MSISupported -eq 1) { 'APPLIED' } else { 'NOT_APPLIED' }`
+      );
+      logTweakSupport(tweakId, true, 'GPU MSI backup and registry path available', { osRelease: osVer });
+      return { isApplied: checkRaw === 'APPLIED', verified: true, requiresRestart: true, gpuName: backup.gpuName };
+    } catch (e) {
+      return { isApplied: false, verified: false, error: e.message };
+    }
   }
 
   if (tweak._special === 'nvidia-telemetry') {
@@ -1229,7 +1660,7 @@ async function verifyTweak(tweakId) {
   }
 }
 
-async function executeTweak(tweakId, action) {
+async function executeTweak(tweakId, action, options = {}) {
   const startTime = Date.now();
   const commandsRun = [];
 
@@ -1326,9 +1757,17 @@ async function executeTweak(tweakId, action) {
         return result;
       }
 
-      // Elevated command succeeded — verify state
-      const verification = await verifyTweak(tweakId);
+      // Elevated command succeeded — verify state (with one retry after 750 ms)
       const expectedApplied = action === 'apply';
+      let verification = await verifyTweak(tweakId);
+      console.log(`[TweakExecutor:VERIFY] ${tweakId} attempt=1 expected=${expectedApplied} isApplied=${verification.isApplied} verified=${verification.verified}`);
+
+      if (verification.isApplied !== expectedApplied) {
+        console.log(`[TweakExecutor:VERIFY] ${tweakId} mismatch on attempt 1 — retrying in 750 ms`);
+        await sleep(750);
+        verification = await verifyTweak(tweakId);
+        console.log(`[TweakExecutor:VERIFY] ${tweakId} attempt=2 expected=${expectedApplied} isApplied=${verification.isApplied} verified=${verification.verified}`);
+      }
 
       if (verification.isApplied === expectedApplied) {
         const state = loadState();
@@ -1349,9 +1788,31 @@ async function executeTweak(tweakId, action) {
         };
         logEntry({ tweakId, action, verificationResult: verification, result, ms: Date.now() - startTime });
         return result;
+      } else if (!verification.verified) {
+        // Check script itself was inconclusive after retry — trust the apply command, persist state
+        const state = loadState();
+        state.tweaks[tweakId] = expectedApplied;
+        saveState(state);
+        console.log(`[TweakExecutor:VERIFY] ${tweakId} — inconclusive after retry (verified=false); trusting elevated command`);
+        const result = {
+          success:               true,
+          verified:              false,
+          verificationInconclusive: true,
+          failureType:           null,
+          userMessage:           null,
+          hint:                  null,
+          requiresReboot:        tweak.requiresReboot || false,
+          requiresAdmin:         true,
+          commandsRun,
+          message:               `${tweak.name} ${expectedApplied ? 'applied' : 'reverted'} — command succeeded but state could not be read back.`,
+          error:                 null,
+        };
+        logEntry({ tweakId, action, verificationResult: verification, result, ms: Date.now() - startTime });
+        return result;
       } else {
         const policyLocked = await checkPolicyLock(tweakId);
         const fType = policyLocked ? 'blocked_by_policy' : 'verification_failed';
+        console.log(`[TweakExecutor:VERIFY] ${tweakId} — definite mismatch after retry. expected=${expectedApplied} isApplied=${verification.isApplied} policyLocked=${policyLocked}`);
         const result = enrichFailure({
           success:        false,
           verified:       true,
@@ -1361,7 +1822,7 @@ async function executeTweak(tweakId, action) {
           message:        null,
           error:          policyLocked
             ? 'System state unchanged — a Windows Group Policy is blocking this change.'
-            : 'Elevated command ran but system state did not change.',
+            : `Elevated command ran but system state did not change. expected=${expectedApplied} detected=${verification.isApplied}`,
         }, fType);
         logEntry({ tweakId, action, verificationResult: verification, policyLocked, result, ms: Date.now() - startTime });
         return result;
@@ -1422,6 +1883,90 @@ async function executeTweak(tweakId, action) {
     } catch (err) {
       const result = {
         success: false, unsupported: false, requiresReboot: false, requiresAdmin: true,
+        commandsRun: [], message: null, error: err.message,
+      };
+      logEntry({ tweakId, action, result, ms: Date.now() - startTime });
+      return result;
+    }
+  }
+
+  if (tweak._special === 'maximum-cpu-responsiveness') {
+    try {
+      const res = await executeMaxCpuResponsiveness(action);
+      if (!res.ok && res.needsGpuSelection) {
+        // Should not happen for this tweak, but guard anyway
+        const r = enrichFailure({
+          success: false, unsupported: false, requiresReboot: false, requiresAdmin: true,
+          commandsRun: res.commandsRun || [], message: res.message || null, error: res.message || 'Unexpected selection required.',
+        }, 'unknown');
+        logEntry({ tweakId, action, result: r, ms: Date.now() - startTime });
+        return r;
+      }
+      const result = {
+        success:        res.ok,
+        unsupported:    !!(res.unsupported || res.errorCode === 'unsupported_setting'),
+        requiresReboot: false,
+        requiresAdmin:  true,
+        commandsRun:    res.commandsRun || [],
+        message:        res.message || null,
+        error:          res.ok ? null : (res.message || 'Maximum CPU Responsiveness operation failed'),
+        verified:       res.ok,
+      };
+      if (!res.ok && !result.unsupported) {
+        enrichFailure(result, res.errorCode === 'no_backup' ? 'verification_failed' : 'unknown');
+      }
+      logEntry({ tweakId, action, result, ms: Date.now() - startTime });
+      return result;
+    } catch (err) {
+      const result = {
+        success: false, unsupported: false, requiresReboot: false, requiresAdmin: true,
+        commandsRun: [], message: null, error: err.message,
+      };
+      logEntry({ tweakId, action, result, ms: Date.now() - startTime });
+      return result;
+    }
+  }
+
+  if (tweak._special === 'gpu-msi-mode') {
+    try {
+      const res = await executeGpuMsiMode(action, options || {});
+      if (!res.ok && res.needsGpuSelection) {
+        // Return selection-needed info to the caller; not a hard failure
+        const r = {
+          success: false,
+          needsGpuSelection: true,
+          availableGpus: res.availableGpus || [],
+          unsupported: false,
+          requiresReboot: true,
+          requiresAdmin: true,
+          commandsRun: [],
+          message: res.message || null,
+          error: null,
+          failureType: 'needs_gpu_selection',
+          userMessage: 'Multiple display adapters detected. Please choose which GPU to enable MSI Mode for.',
+          hint: null,
+        };
+        logEntry({ tweakId, action, result: r, ms: Date.now() - startTime });
+        return r;
+      }
+      const result = {
+        success:        res.ok,
+        unsupported:    !!(res.errorCode === 'no_compatible_gpu'),
+        requiresReboot: true,
+        requiresAdmin:  true,
+        commandsRun:    res.commandsRun || [],
+        message:        res.message || null,
+        error:          res.ok ? null : (res.message || 'GPU MSI Mode operation failed'),
+        verified:       res.ok,
+      };
+      if (!res.ok && !result.unsupported) {
+        enrichFailure(result, res.errorCode === 'no_backup' ? 'verification_failed' : 'unknown');
+      }
+      logEntry({ tweakId, action, result, ms: Date.now() - startTime });
+      return result;
+    } catch (err) {
+      const result = {
+        success: false, unsupported: false, requiresReboot: true, requiresAdmin: true,
         commandsRun: [], message: null, error: err.message,
       };
       logEntry({ tweakId, action, result, ms: Date.now() - startTime });
@@ -1567,6 +2112,40 @@ async function batchCheckAllTweaks() {
     }
   }
 
+  // 3b. maximum-cpu-responsiveness: uses powercfg queries, must run individually.
+  const cpuRespId = 'maximum-cpu-responsiveness';
+  if (ALL_TWEAKS[cpuRespId]) {
+    try {
+      const r = await verifyTweak(cpuRespId);
+      result[cpuRespId] = {
+        isApplied:         !!r.isApplied,
+        applied:           !!r.isApplied,
+        unsupported:       r.unsupported || false,
+        unsupportedReason: r.unsupportedReason || null,
+        error:             r.error || null,
+      };
+    } catch (err) {
+      result[cpuRespId] = { isApplied: false, applied: false, error: err.message };
+    }
+  }
+
+  // 3c. gpu-msi-mode: reads backup file + registry, must run individually.
+  const gpuMsiId = 'gpu-msi-mode';
+  if (ALL_TWEAKS[gpuMsiId]) {
+    try {
+      const r = await verifyTweak(gpuMsiId);
+      result[gpuMsiId] = {
+        isApplied:         !!r.isApplied,
+        applied:           !!r.isApplied,
+        unsupported:       r.unsupported || false,
+        unsupportedReason: r.unsupportedReason || null,
+        error:             r.error || null,
+      };
+    } catch (err) {
+      result[gpuMsiId] = { isApplied: false, applied: false, error: err.message };
+    }
+  }
+
   // 4. Build the batch PS script for all remaining tweaks.
   const batchIds = [];
   const lines    = ['$r = @{}'];
@@ -1678,7 +2257,7 @@ const ownershipStore = require('./ownership-store');
  * The baseline stores a boolean: was the tweak applied BEFORE we touched it?
  * This lets the revert pipeline restore the exact prior state, not just toggle off.
  */
-async function executeTweakWithOwnership(tweakId, action) {
+async function executeTweakWithOwnership(tweakId, action, options = {}) {
   const scopeKey = ownershipStore.buildScopeKey('tweak', tweakId);
 
   // Step 1+2: capture baseline if first time touching this tweak
@@ -1701,7 +2280,7 @@ async function executeTweakWithOwnership(tweakId, action) {
   }
 
   // Step 3: execute
-  const result = await executeTweak(tweakId, action);
+  const result = await executeTweak(tweakId, action, options);
 
   // Step 4: record ownership only after confirmed success
   if (result.success) {
@@ -1734,6 +2313,7 @@ module.exports = {
   isUnsupported,
   getUnsupportedReason,
   cleanupTimerResProcess,
+  scanCompatibleGpus,
   ALL_TWEAKS,
   HKCU_TWEAKS,
   ADMIN_TWEAKS,

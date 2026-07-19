@@ -211,6 +211,14 @@ function FailureBanner({ info, onDismiss }: { info: FailureInfo; onDismiss: () =
   );
 }
 
+// ── GPU Adapter info type ─────────────────────────────────────────────────────
+interface GpuAdapter {
+  name: string;
+  vendor: string;
+  deviceInstanceId: string;
+  registryPath: string;
+}
+
 // ── Main card ─────────────────────────────────────────────────────────────────
 export function TweakCard({ tweak, isEnabled, onToggle, isVerifying = false, isHighlighted = false, runtimeUnsupportedReason }: TweakCardProps) {
   const [open, setOpen]               = useState(false);
@@ -223,6 +231,12 @@ export function TweakCard({ tweak, isEnabled, onToggle, isVerifying = false, isH
   const { executeTweak, executing }   = useTweakExecutor();
   const { impacts, measuring, startMeasure, clearImpact } = useTweakImpact();
   const hardwareVerdict               = useTweakHardwareVerdict(tweak.id);
+
+  // ── GPU MSI Mode — adapter selection state ────────────────────────────────
+  const isGpuMsiCard                          = tweak.id === 'gpu-msi-mode';
+  const [gpuList,       setGpuList]           = useState<GpuAdapter[]>([]);
+  const [selectedGpuId, setSelectedGpuId]     = useState<string>('');
+  const [gpuScanDone,   setGpuScanDone]       = useState(false);
 
   const isPremiumTweak = isTweakPremium(tweak.id);
   const isLocked       = isPremiumTweak && !isPremium;
@@ -246,6 +260,21 @@ export function TweakCard({ tweak, isEnabled, onToggle, isVerifying = false, isH
   // Clear any existing failure timer when unmounting
   useEffect(() => () => { if (failureTimer.current) clearTimeout(failureTimer.current); }, []);
 
+  // GPU MSI Mode — scan for compatible adapters once when the card is real and not locked
+  useEffect(() => {
+    if (!isGpuMsiCard || !isReal || isLocked || gpuScanDone) return;
+    const api = (window as any).electronAPI;
+    if (!api?.tweaks?.scanGpusForMsi) return;
+    api.tweaks.scanGpusForMsi()
+      .then((res: { gpus?: GpuAdapter[] }) => {
+        const gpus: GpuAdapter[] = res?.gpus ?? [];
+        setGpuList(gpus);
+        if (gpus.length === 1) setSelectedGpuId(gpus[0].deviceInstanceId);
+      })
+      .catch(() => {})
+      .finally(() => setGpuScanDone(true));
+  }, [isGpuMsiCard, isReal, isLocked, gpuScanDone]);
+
   const showFailure = useCallback((info: FailureInfo) => {
     setFailureInfo(info);
     if (failureTimer.current) clearTimeout(failureTimer.current);
@@ -253,9 +282,18 @@ export function TweakCard({ tweak, isEnabled, onToggle, isVerifying = false, isH
     failureTimer.current = setTimeout(() => setFailureInfo(null), 8000);
   }, []);
 
+  // When gpu-msi-mode returns needsGpuSelection, the executor expects options.deviceInstanceId.
+  // The TweakCard passes the currently-selected GPU ID so the executor knows which adapter to target.
+  const gpuMsiOptions: Record<string, unknown> | undefined =
+    isGpuMsiCard && selectedGpuId ? { deviceInstanceId: selectedGpuId } : undefined;
+
+  // Derived: gpu-msi-mode apply is blocked when scan is done but no GPU is selected
+  const gpuMsiApplyBlocked = isGpuMsiCard && !isEnabled && gpuScanDone && !selectedGpuId;
+
   const handleToggle = useCallback(async () => {
-    if (isLocked)      { openUpgradeModal('Premium Tweak'); return; }
-    if (isUnsupported) return;
+    if (isLocked)           { openUpgradeModal('Premium Tweak'); return; }
+    if (isUnsupported)      return;
+    if (gpuMsiApplyBlocked) return; // no adapter selected / none found
 
     // Clear any previous failure / impact result immediately
     setFailureInfo(null);
@@ -268,7 +306,7 @@ export function TweakCard({ tweak, isEnabled, onToggle, isVerifying = false, isH
       // Begin measuring before execution
       const commit = startMeasure(tweak.id, action);
       console.log(`[Tweaks:BACKEND_ACTION] id="${tweak.id}" calling executeTweak action=${action}`);
-      const outcome = await executeTweak(tweak.id, isEnabled);
+      const outcome = await executeTweak(tweak.id, isEnabled, gpuMsiOptions);
       if (outcome.success) {
         console.log(`[Tweaks:RESULT] id="${tweak.id}" success=true action=${action}`);
         logHistory(`Tweaks: ${tweak.title}`, "Tweaks", action === "apply" ? "Applied" : "Reverted", `Tweak ID: ${tweak.id}`);
@@ -277,7 +315,7 @@ export function TweakCard({ tweak, isEnabled, onToggle, isVerifying = false, isH
       } else if (outcome.failureType) {
         console.warn(`[Tweaks:RESULT] id="${tweak.id}" success=false failureType=${outcome.failureType} msg="${outcome.userMessage}"`);
         showFailure({
-          type:    outcome.failureType,
+          type:    outcome.failureType === 'needs_gpu_selection' ? 'unknown' : outcome.failureType,
           message: outcome.userMessage ?? 'Tweak could not be applied.',
           hint:    outcome.hint ?? '',
         });
@@ -286,7 +324,7 @@ export function TweakCard({ tweak, isEnabled, onToggle, isVerifying = false, isH
       console.log(`[Tweaks:RESULT] id="${tweak.id}" success=true action=${action} (browser-mode, state-only)`);
       onToggle();
     }
-  }, [isLocked, isUnsupported, isReal, executeTweak, tweak.id, isEnabled, onToggle, showFailure, startMeasure, clearImpact]);
+  }, [isLocked, isUnsupported, gpuMsiApplyBlocked, isReal, executeTweak, tweak.id, isEnabled, onToggle, showFailure, startMeasure, clearImpact, gpuMsiOptions]);
 
   // ── Badge strip ──────────────────────────────────────────────────────────────
   // Priority-ordered badge list (max 3 displayed). Info badges (level/risk) always shown.
@@ -365,6 +403,30 @@ export function TweakCard({ tweak, isEnabled, onToggle, isVerifying = false, isH
                   {isUnsupported ? unsupportedMsg : tweak.description}
                 </p>
                 {!isUnsupported && hardwareVerdict && <HardwareVerdict verdict={hardwareVerdict} />}
+
+                {/* GPU MSI Mode — adapter selector (only shows when multiple GPUs found) */}
+                {isGpuMsiCard && isReal && !isLocked && gpuScanDone && gpuList.length > 1 && (
+                  <div className="mt-1.5 flex items-center gap-2">
+                    <span className="text-[10px] text-muted-foreground shrink-0">GPU:</span>
+                    <select
+                      value={selectedGpuId}
+                      onChange={e => setSelectedGpuId(e.target.value)}
+                      className="text-[10px] bg-[#1A1F27] border border-[#2A313A] rounded px-2 py-0.5 text-[#A0A8B3] focus:outline-none focus:border-primary/50 cursor-pointer min-w-0 truncate"
+                      onClick={e => e.stopPropagation()}
+                    >
+                      <option value="">— Select adapter —</option>
+                      {gpuList.map(g => (
+                        <option key={g.deviceInstanceId} value={g.deviceInstanceId}>
+                          {g.vendor !== 'Unknown' ? `[${g.vendor}] ` : ''}{g.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+                {/* GPU MSI Mode — no compatible GPU found warning */}
+                {isGpuMsiCard && isReal && !isLocked && gpuScanDone && gpuList.length === 0 && (
+                  <p className="mt-1 text-[10px] text-amber-400/80">No compatible physical display adapter detected.</p>
+                )}
               </div>
             </div>
 

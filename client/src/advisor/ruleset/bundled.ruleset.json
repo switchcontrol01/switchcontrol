@@ -193,6 +193,32 @@
       "failMessage": "Consider adjusting visual effects for performance mode.",
       "passMessage": "Visual effects optimized.",
       "fix": { "type": "app_tweak", "tweakId": "visual-effects", "enable": true }
+    },
+    {
+      "id": "maximum_cpu_responsiveness",
+      "title": "Maximum CPU Responsiveness",
+      "description": "Windows power plan core-parking and boost settings affect CPU response time. Setting CPMINCORES=100 and PERFBOOSTMODE=2 on AC power prevents cores from parking during gaming workloads.",
+      "severity": "recommended",
+      "maxPoints": 7,
+      "signal": "system.cpuResponsiveness",
+      "operator": "eq",
+      "expected": "on",
+      "failMessage": "CPU core-parking is active or boost mode is conservative. Maximum CPU Responsiveness is not enabled.",
+      "passMessage": "CPU core-parking and boost mode are configured for maximum responsiveness.",
+      "fix": { "type": "app_tweak", "tweakId": "maximum-cpu-responsiveness", "enable": true }
+    },
+    {
+      "id": "gpu_msi_mode",
+      "title": "GPU MSI Mode",
+      "description": "Message Signaled Interrupts (MSI) reduce interrupt latency for compatible display adapters. Enabling MSISupported can improve frame delivery consistency on NVIDIA, AMD, and Intel GPUs.",
+      "severity": "recommended",
+      "maxPoints": 6,
+      "signal": "system.gpuMsiMode",
+      "operator": "eq",
+      "expected": "on",
+      "failMessage": "GPU MSI Mode is not enabled. MSI-capable adapters may benefit from this interrupt mode change.",
+      "passMessage": "GPU MSI Mode is enabled for your display adapter.",
+      "fix": { "type": "app_tweak", "tweakId": "gpu-msi-mode", "enable": true }
     }
   ]
 }

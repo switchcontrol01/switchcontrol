@@ -214,6 +214,7 @@ export function useTweakExecutor() {
   const executeTweak = useCallback(async (
     tweakId: string,
     currentlyEnabled: boolean,
+    options?: Record<string, unknown>,
   ): Promise<TweakExecuteOutcome> => {
     const FAIL = (type: FailureType, msg?: string | null, hint?: string | null): TweakExecuteOutcome =>
       ({ success: false, failureType: type, userMessage: msg ?? FAILURE_TOAST[type].title, hint: hint ?? null });
@@ -227,7 +228,7 @@ export function useTweakExecutor() {
     const action = currentlyEnabled ? 'revert' : 'apply';
 
     try {
-      const result: TweakResult = await getTweaksAPI().execute(tweakId, action);
+      const result: TweakResult = await getTweaksAPI().execute(tweakId, action, options);
 
       if (result.unsupported) {
         const t = FAILURE_TOAST.unsupported;

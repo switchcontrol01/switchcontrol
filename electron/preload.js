@@ -316,18 +316,19 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // ── System mutation surfaces ─────────────────────────────────────────────────
   tweaks: {
-    execute: (tweakId, action) => {
+    execute: (tweakId, action, options) => {
       const id  = assertString(tweakId, 'tweakId');
       const act = assertString(action, 'action');
       if (!ALLOWED_TWEAK_ACTIONS.has(act)) {
         throw new TypeError('tweaks.execute: action must be "apply" or "revert"');
       }
-      return ipcRenderer.invoke('tweak:execute', id, act);
+      return ipcRenderer.invoke('tweak:execute', id, act, options || {});
     },
     checkStatus: (tweakId) => {
       assertString(tweakId, 'tweakId');
       return ipcRenderer.invoke('tweak:checkStatus', tweakId);
     },
+    scanGpusForMsi: () => ipcRenderer.invoke('gpuMsi:scanAdapters'),
     syncAll:       () => ipcRenderer.invoke('tweak:syncAll'),
     batchCheckAll: () => ipcRenderer.invoke('tweak:batchCheckAll'),
     getLocalState: () => ipcRenderer.invoke('tweak:getLocalState'),

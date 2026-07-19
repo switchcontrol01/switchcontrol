@@ -113,6 +113,9 @@ export const PREMIUM_EXCEPTION_IDS: Set<string> = new Set([
   // ── Windows UX ────────────────────────────────────────────────────────────
   "menu-show-delay",
   "hung-app-timeout",
+  // ── Premium Power / GPU ──────────────────────────────────────────────────
+  "maximum-cpu-responsiveness",
+  "gpu-msi-mode",
   "wait-to-kill-app",
   "disable-wallpaper-compression",
 ]);
@@ -209,6 +212,10 @@ export const TWEAK_TIER_MAP: Record<string, TweakTierInfo> = {
   "explorer-separate-process":{ level: "Advanced",     category: "Windows UX" },
   "disable-lock-screen":      { level: "Advanced",     category: "Windows UX" },
   "disable-wallpaper-compression": { level: "Advanced", category: "Windows UX" },
+
+  // ── Premium Power / GPU ───────────────────────────────────────────────────
+  "maximum-cpu-responsiveness": { level: "Advanced",   category: "System and Power" },
+  "gpu-msi-mode":               { level: "Advanced",   category: "GPU and Graphics" },
 };
 
 export function isPremiumTweakById(tweakId: string): boolean {

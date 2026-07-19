@@ -317,6 +317,24 @@ const BASE: BaseTweak[] = [
     supported: true, requiresAdmin: true,
   },
   {
+    id: "maximum-cpu-responsiveness",
+    title: "Maximum CPU Responsiveness",
+    description: "Reduces processor core parking and applies responsive boost behavior on AC power. Intended primarily for gaming desktops. May increase temperatures and energy consumption.",
+    impact: [
+      "Disables processor core parking on AC power (CPMINCORES = 100)",
+      "Selects responsive CPU boost mode (PERFBOOSTMODE = 2)",
+      "May improve latency consistency in CPU-bound workloads",
+      "Increases power usage and thermal output — not recommended for laptops on battery",
+    ],
+    expected: { cpu: "High", latency: "Medium", ram: "None", gpu: "None", disk: "None", network: "None", stabilityRisk: "Low" },
+    category: "System and Power", level: "Advanced", risk: "Moderate",
+    requiresReboot: false, supported: true, requiresAdmin: true,
+    whoShouldAvoid: "Laptop users on battery — this raises power consumption and temperatures. Do not apply if your system already runs hot.",
+    detailsConfig: {
+      warningText: "This modifies your active Windows power plan settings (CPMINCORES and PERFBOOSTMODE). It does not disable BIOS-level CPU C-States. Original values are backed up before any change is made and restored on revert.",
+    },
+  },
+  {
     id: "pcie-link-state",
     title: "Disable PCIe Link State Power Management",
     description: "Prevents PCIe from entering low-power states — eliminates micro-stutters caused by GPU/NVMe power transitions.",
@@ -807,6 +825,25 @@ const BASE: BaseTweak[] = [
   },
 
   // ── GPU and Graphics ──────────────────────────────────────────────────────
+
+  {
+    id: "gpu-msi-mode",
+    title: "GPU MSI Mode",
+    description: "Enables Message Signaled Interrupts for a compatible display adapter. This can improve interrupt handling on some systems, but results vary. A restart is required.",
+    impact: [
+      "Enables MSI (Message Signaled Interrupts) for the selected display adapter",
+      "Can reduce interrupt latency on compatible NVIDIA, AMD, and Intel GPUs",
+      "Results vary by system, driver version, and hardware configuration",
+      "A Windows restart is required before the driver uses the new interrupt mode",
+    ],
+    expected: { gpu: "Medium", latency: "Medium", cpu: "Low", ram: "None", disk: "None", network: "None", stabilityRisk: "Medium" },
+    category: "GPU and Graphics", level: "Advanced", risk: "Risky",
+    requiresReboot: true, supported: true, requiresAdmin: true,
+    whoShouldAvoid: "Systems with unsigned or unstable GPU drivers. Incompatible registry modifications can affect driver startup. Revert also requires a further restart.",
+    detailsConfig: {
+      warningText: "This modifies the interrupt properties registry key for your display adapter. Only MSISupported is written — no other values are changed, and no registry keys are deleted. A restart is required after apply and again after revert.",
+    },
+  },
 
   {
     id: "desktop-comp",

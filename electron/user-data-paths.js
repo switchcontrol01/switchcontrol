@@ -112,4 +112,19 @@ module.exports = {
    * UI works identically in both DB-backed and local-file-backed modes.
    */
   DEBLOAT_HISTORY_FILE: path.join(APPDATA_DIR, 'debloat-history.json'),
+
+  /**
+   * Original-value backup for the Maximum CPU Responsiveness tweak.
+   * Stores the active scheme GUID + pre-change CPMINCORES and PERFBOOSTMODE
+   * AC values so revert can restore them exactly.
+   */
+  CPU_RESPONSIVENESS_BACKUP_FILE: path.join(APPDATA_DIR, 'cpu-responsiveness-backup.json'),
+
+  /**
+   * Original-value backup for the GPU MSI Mode tweak.
+   * Stores the selected device instance ID, registry path, and the
+   * original MSISupported value (or a flag that it did not exist) so
+   * revert can restore or remove the value precisely.
+   */
+  GPU_MSI_BACKUP_FILE: path.join(APPDATA_DIR, 'gpu-msi-backup.json'),
 };

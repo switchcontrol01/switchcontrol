@@ -3405,7 +3405,7 @@
     }
   
     try {
-      const result = await tweakExecutor.executeTweakWithOwnership(tweakId, action);
+      const result = await tweakExecutor.executeTweakWithOwnership(tweakId, action, options);
   
       // NetworkGuard: post-check and auto-rollback on ping regression
       if (action === 'apply' && result.success) {
@@ -3484,6 +3484,17 @@
   
   ipcMain.handle('tweak:getLog', () => {
     return tweakExecutor.getExecutionLog();
+  });
+
+  // GPU MSI Mode — adapter scan used by the TweakCard GPU selector
+  ipcMain.handle('gpuMsi:scanAdapters', async () => {
+    try {
+      const gpus = await tweakExecutor.scanCompatibleGpus();
+      return { gpus: gpus || [] };
+    } catch (err) {
+      console.error('[gpuMsi:scanAdapters] error:', err.message);
+      return { gpus: [], error: err.message };
+    }
   });
   
   // Diagnostic: returns the live PS limiter state (active slots, global cap)
