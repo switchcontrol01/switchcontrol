@@ -69,6 +69,21 @@ export const RISK_AREAS: RiskArea[] = [
 export const EXTREME_TWEAKS: ExtremeTweak[] = [
   // ── Latency Core ────────────────────────────────────────────────────────────
   {
+    id: "pci-msi-mode-extreme",
+    name: "PCI MSI Mode",
+    category: "Latency Core",
+    risk: "Risky",
+    impact: "Medium",
+    requiresRestart: true,
+    description: "Enables Message Signaled Interrupts across all compatible PCI devices — GPUs, NICs, storage controllers, and USB controllers. Reduces interrupt latency at the hardware level.",
+    whatItChanges: "Sets MSISupported = 1 in the interrupt management registry key for each compatible PCI device. Per-device backup captured before apply.",
+    whatMayBreak: "May cause instability if a device driver doesn't fully support MSI mode. Revert restores original per-device values. Requires a restart to take effect.",
+    currentState: "Legacy line-based interrupts (device default)",
+    afterState: "Message Signaled Interrupts enabled per device",
+    registryTweakId: "pci-msi-mode",
+    riskAreas: ["GPU driver tools", "Network"],
+  },
+  {
     id: "global-timer-resolution",
     name: "Global Timer Resolution Requests",
     category: "Latency Core",

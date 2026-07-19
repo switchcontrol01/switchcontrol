@@ -528,20 +528,41 @@ export function TweakIntelligenceLayer() {
                     </span>
                   </div>
 
+                  <AnimatePresence mode="wait" initial={false}>
                   {intel.loading ? (
-                    <div className="flex flex-col items-center gap-3">
+                    <motion.div
+                      key="skel-posture"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.15 }}
+                      className="flex flex-col items-center gap-3"
+                    >
                       <SkeletonPulse className="w-[120px] h-[120px] rounded-full" />
                       <SkeletonPulse className="h-3 w-20" />
-                    </div>
+                      <div className="space-y-1 pt-1 w-full">
+                        {[0,1,2,3,4].map(i => (
+                          <div key={i} className="flex items-center justify-between">
+                            <SkeletonPulse className="h-2.5 w-24" />
+                            <SkeletonPulse className="h-2.5 w-8" />
+                          </div>
+                        ))}
+                      </div>
+                    </motion.div>
                   ) : (
-                    <>
+                    <motion.div
+                      key="data-posture"
+                      initial={{ opacity: 0, y: 10, filter: "blur(8px)" }}
+                      animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                      transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+                    >
                       <PostureRadar dimensions={intel.posture} />
                       <div className="text-center">
                         <motion.span
                           className="text-2xl font-bold text-[#E6EAF0] tabular-nums"
                           initial={{ opacity: 0 }}
                           animate={{ opacity: 1 }}
-                          transition={{ duration: 0.5, delay: 0.4 }}
+                          transition={{ duration: 0.5, delay: 0.15 }}
                         >
                           {intel.overallCoverage}
                           <span className="text-sm font-normal text-[#6B7380]">%</span>
@@ -563,8 +584,9 @@ export function TweakIntelligenceLayer() {
                           </div>
                         ))}
                       </div>
-                    </>
+                    </motion.div>
                   )}
+                  </AnimatePresence>
                 </GlassCard>
                 </RevealPanel>
 
@@ -591,8 +613,16 @@ export function TweakIntelligenceLayer() {
                     )}
                   </div>
 
+                  <AnimatePresence mode="wait" initial={false}>
                   {intel.loading ? (
-                    <div className="space-y-4">
+                    <motion.div
+                      key="skel-signals"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.15 }}
+                      className="space-y-4"
+                    >
                       {[0, 1, 2, 3].map((i) => (
                         <div key={i} className="space-y-1.5">
                           <div className="flex justify-between">
@@ -602,14 +632,21 @@ export function TweakIntelligenceLayer() {
                           <SkeletonPulse className="h-1 ml-6" />
                         </div>
                       ))}
-                    </div>
+                    </motion.div>
                   ) : (
-                    <div className="space-y-0.5 divide-y divide-white/[0.03]">
+                    <motion.div
+                      key="data-signals"
+                      initial={{ opacity: 0, y: 10, filter: "blur(8px)" }}
+                      animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                      transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+                      className="space-y-0.5 divide-y divide-white/[0.03]"
+                    >
                       {visibleSignals.map((sig) => (
                         <SignalRow key={sig.id} signal={sig} />
                       ))}
-                    </div>
+                    </motion.div>
                   )}
+                  </AnimatePresence>
 
                   {/* CPU Sparkline */}
                   <div className="pt-2  space-y-1">
@@ -642,8 +679,16 @@ export function TweakIntelligenceLayer() {
                     </span>
                   </div>
 
+                  <AnimatePresence mode="wait" initial={false}>
                   {intel.loading ? (
-                    <div className="space-y-4">
+                    <motion.div
+                      key="skel-cats"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.15 }}
+                      className="space-y-4"
+                    >
                       {[0, 1, 2, 3, 4].map((i) => (
                         <div key={i} className="space-y-1.5">
                           <div className="flex justify-between">
@@ -653,10 +698,18 @@ export function TweakIntelligenceLayer() {
                           <SkeletonPulse className="h-1.5 rounded-full" />
                         </div>
                       ))}
-                    </div>
+                    </motion.div>
                   ) : (
-                    <CategoryBars rankings={intel.rankings} />
+                    <motion.div
+                      key="data-cats"
+                      initial={{ opacity: 0, y: 10, filter: "blur(8px)" }}
+                      animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                      transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+                    >
+                      <CategoryBars rankings={intel.rankings} />
+                    </motion.div>
                   )}
+                  </AnimatePresence>
 
                   {/* Applied count */}
                   {!intel.loading && intel.overallCoverage > 0 && (
@@ -686,18 +739,27 @@ export function TweakIntelligenceLayer() {
                   )}
                 </div>
 
+                <AnimatePresence mode="wait" initial={false}>
                 {intel.loading ? (
-                  <div className="space-y-2">
+                  <motion.div
+                    key="skel-opps"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.15 }}
+                    className="space-y-2"
+                  >
                     {[0, 1, 2].map((i) => (
                       <SkeletonPulse key={i} className="h-16 rounded-xl" />
                     ))}
-                  </div>
+                  </motion.div>
                 ) : isWellOptimized ? (
                   <motion.div
+                    key="data-optimized"
                     className="flex items-center gap-3 px-4 py-5 rounded-xl border border-emerald-500/15 bg-emerald-500/5 text-sm text-emerald-400/80"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ duration: 0.4 }}
+                    initial={{ opacity: 0, y: 8, filter: "blur(6px)" }}
+                    animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                    transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
                   >
                     <Sparkles className="size-4 shrink-0 text-emerald-400" />
                     <div>
@@ -708,16 +770,29 @@ export function TweakIntelligenceLayer() {
                     </div>
                   </motion.div>
                 ) : topPriority.length > 0 ? (
-                  <div className="space-y-2">
+                  <motion.div
+                    key="data-opps"
+                    initial={{ opacity: 0, y: 10, filter: "blur(8px)" }}
+                    animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                    transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+                    className="space-y-2"
+                  >
                     {topPriority.map((r, i) => (
                       <PriorityTweakItem key={r.tweakId} rank={i + 1} ranking={r} />
                     ))}
-                  </div>
+                  </motion.div>
                 ) : (
-                  <div className="py-4 text-center text-xs text-[#6B7380]">
+                  <motion.div
+                    key="data-empty"
+                    initial={{ opacity: 0, y: 8, filter: "blur(6px)" }}
+                    animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                    transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                    className="py-4 text-center text-xs text-[#6B7380]"
+                  >
                     Apply some tweaks first to see personalized opportunity rankings.
-                  </div>
+                  </motion.div>
                 )}
+                </AnimatePresence>
               </GlassCard>
               </RevealPanel>
             </div>

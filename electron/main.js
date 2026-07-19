@@ -2754,12 +2754,49 @@
     switch ([int]$n) { 10{"DisplayPort"} 11{"DisplayPort (Embedded)"} 5{"HDMI"} 4{"DVI"} 8{"Internal (eDP)"} 0{"VGA"} 15{"Miracast"} default{$null} }
   }
   
-  $screens = @()
+  $screens = @(); $screenHz = @()
   try {
     Add-Type -AssemblyName System.Windows.Forms -EA Stop
     $screens = @([System.Windows.Forms.Screen]::AllScreens | ForEach-Object {
-      @{ w=$_.Bounds.Width; h=$_.Bounds.Height; primary=$_.Primary }
+      @{ w=$_.Bounds.Width; h=$_.Bounds.Height; primary=$_.Primary; x=$_.Bounds.X; y=$_.Bounds.Y }
     })
+    # Per-monitor refresh rate via EnumDisplaySettings (Win32 API) — one entry per logical display
+    Add-Type -TypeDefinition @'
+using System; using System.Runtime.InteropServices;
+public class DspHelper {
+  [StructLayout(LayoutKind.Sequential, CharSet=CharSet.Ansi)]
+  public struct DEVMODE {
+    [MarshalAs(UnmanagedType.ByValTStr, SizeConst=32)] public string dmDeviceName;
+    public short dmSpecVersion, dmDriverVersion, dmSize, dmDriverExtra;
+    public int dmFields, dmPositionX, dmPositionY, dmDisplayOrientation, dmDisplayFixedOutput;
+    public short dmColor, dmDuplex, dmYResolution, dmTTOption, dmCollate;
+    [MarshalAs(UnmanagedType.ByValTStr, SizeConst=32)] public string dmFormName;
+    public short dmLogPixels; public int dmBitsPerPel, dmPelsWidth, dmPelsHeight, dmDisplayFlags, dmDisplayFrequency;
+  }
+  [StructLayout(LayoutKind.Sequential, CharSet=CharSet.Ansi)]
+  public struct DISPLAY_DEVICE {
+    public int cb;
+    [MarshalAs(UnmanagedType.ByValTStr, SizeConst=32)] public string DeviceName;
+    [MarshalAs(UnmanagedType.ByValTStr, SizeConst=128)] public string DeviceString;
+    public int StateFlags;
+    [MarshalAs(UnmanagedType.ByValTStr, SizeConst=128)] public string DeviceID, DeviceKey;
+  }
+  [DllImport("user32.dll")] public static extern bool EnumDisplayDevices(string d, uint i, ref DISPLAY_DEVICE dd, uint f);
+  [DllImport("user32.dll")] public static extern bool EnumDisplaySettings(string d, int n, ref DEVMODE dm);
+}
+'@ -EA Stop
+    $di = [uint32]0
+    while ($true) {
+      $dd2 = New-Object DspHelper+DISPLAY_DEVICE; $dd2.cb = [System.Runtime.InteropServices.Marshal]::SizeOf($dd2)
+      if (![DspHelper]::EnumDisplayDevices($null, $di, [ref]$dd2, 0)) { break }
+      if ($dd2.StateFlags -band 1) {
+        $dm2 = New-Object DspHelper+DEVMODE; $dm2.dmSize = [System.Runtime.InteropServices.Marshal]::SizeOf($dm2)
+        if ([DspHelper]::EnumDisplaySettings($dd2.DeviceName, -1, [ref]$dm2) -and $dm2.dmDisplayFrequency -gt 0) {
+          $screenHz += @{ x=$dm2.dmPositionX; y=$dm2.dmPositionY; hz=$dm2.dmDisplayFrequency }
+        }
+      }
+      $di++
+    }
   } catch {}
   
   $vcs = @()
@@ -2883,7 +2920,12 @@
         $rx=[int]$Matches[1]; $ry=[int]$Matches[2]
       }
     }
-    if ($scr) { $rx=$scr.w; $ry=$scr.h }
+    if ($scr) {
+      $rx=$scr.w; $ry=$scr.h
+      # Override Hz with per-monitor value from EnumDisplaySettings, matched by virtual desktop position
+      $hzEntry = $screenHz | Where-Object { $_.x -eq $scr.x -and $_.y -eq $scr.y } | Select-Object -First 1
+      if ($hzEntry -and [int]$hzEntry.hz -gt 0) { $hz = [int]$hzEntry.hz }
+    }
   
     $monGpu = if ($i -lt $vcs.Count) { $vcs[$i].Name } else { $gpuName }
   
@@ -2910,6 +2952,11 @@
       $vc  = if ($fi -lt $vcs.Count) { $vcs[$fi] } else { if ($vcs.Count -gt 0) { $vcs[0] } else { $null } }
       $ed  = if ($fi -lt $edids.Count) { $edids[$fi] } else { $null }
       $hz  = if ($vc -and [int]$vc.CurrentRefreshRate -gt 0) { [int]$vc.CurrentRefreshRate } else { $null }
+      # Override Hz with per-monitor value from EnumDisplaySettings when available
+      if ($null -ne $src.x) {
+        $hzFb = $screenHz | Where-Object { $_.x -eq $src.x -and $_.y -eq $src.y } | Select-Object -First 1
+        if ($hzFb -and [int]$hzFb.hz -gt 0) { $hz = [int]$hzFb.hz }
+      }
       $bpp = if ($vc -and [int]$vc.CurrentBitsPerPixel -gt 0) { [int]$vc.CurrentBitsPerPixel } else { $null }
       $gn  = if ($vc) { $vc.Name } else { $gpuName }
       $out.monitors += @{

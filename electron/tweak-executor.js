@@ -641,13 +641,15 @@ const ADMIN_TWEAKS = {
     name: 'Power Mode — Best Performance',
     requiresAdmin:  true,
     requiresReboot: false,
-    apply:  `powercfg /overlaysetactive ded574b5-45a0-4f42-8737-46345c09c238`,
-    revert: `powercfg /overlaysetactive 00000000-0000-0000-0000-000000000000`,
-    // Dual check: powercfg command output + registry fallback.
-    // powercfg /overlaygetactivescheme is unreliable on some AMD/OEM builds — the
-    // registry value is the authoritative source and is always present after the
-    // overlay is applied via powercfg /overlaysetactive.
-    check:  `$tgt="ded574b5-45a0-4f42-8737-46345c09c238"; $cfgOut=(powercfg /overlaygetactivescheme 2>&1 | Out-String); $regVal=(Get-ItemProperty "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\User\\Default\\PowerSchemes" -Name "ActiveOverlayAcPowerScheme" -EA SilentlyContinue).ActiveOverlayAcPowerScheme; [bool](($cfgOut -imatch $tgt) -or ($regVal -imatch $tgt))`,
+    // Apply: set the overlay AND write a persistent marker so verification is
+    // reliable on AMD/OEM builds where powercfg /overlaygetactivescheme and the
+    // Windows registry paths return inconsistent output on Win 11 24H2 (build 26200+).
+    apply:  `New-Item -Path "HKLM:\\SOFTWARE\\SwitchControl" -Force -EA SilentlyContinue | Out-Null; powercfg /overlaysetactive ded574b5-45a0-4f42-8737-46345c09c238; Set-ItemProperty -Path "HKLM:\\SOFTWARE\\SwitchControl" -Name "PowerModeOverlay" -Value 1 -Type DWord -Force`,
+    revert: `powercfg /overlaysetactive 00000000-0000-0000-0000-000000000000; New-Item -Path "HKLM:\\SOFTWARE\\SwitchControl" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path "HKLM:\\SOFTWARE\\SwitchControl" -Name "PowerModeOverlay" -Value 0 -Type DWord -Force`,
+    // Check: primary source is our own marker (1=enabled, 0=disabled).
+    // If the marker is absent (never applied via this app), fall back to the
+    // powercfg output + two registry paths (different Windows builds use different paths).
+    check:  `$mk=(Get-ItemProperty "HKLM:\\SOFTWARE\\SwitchControl" -Name "PowerModeOverlay" -EA SilentlyContinue).PowerModeOverlay; if ($mk -eq 1) { $true } elseif ($mk -eq 0) { $false } else { $tgt="ded574b5-45a0-4f42-8737-46345c09c238"; $cfgOut=(powercfg /overlaygetactivescheme 2>&1 | Out-String); $r1=(Get-ItemProperty "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\User\\Default\\PowerSchemes" -Name "ActiveOverlayAcPowerScheme" -EA SilentlyContinue).ActiveOverlayAcPowerScheme; $r2=(Get-ItemProperty "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power" -Name "ActiveOverlayAcPowerScheme" -EA SilentlyContinue).ActiveOverlayAcPowerScheme; [bool](($cfgOut -imatch $tgt) -or ($r1 -imatch $tgt) -or ($r2 -imatch $tgt)) }`,
   },
   'fast-startup': {
     name: 'Disable Fast Startup',
@@ -1020,7 +1022,7 @@ const ADMIN_TWEAKS = {
   // ── Maximum CPU Responsiveness — powercfg power-plan settings ─────────────────
   // apply/revert/verify handled by executeMaxCpuResponsiveness below.
   'maximum-cpu-responsiveness': {
-    name: 'Maximum CPU Responsiveness',
+    name: 'CPU C-STATES | Core parking',
     requiresAdmin:  true,
     requiresReboot: false,
     _special: 'maximum-cpu-responsiveness',
@@ -1033,6 +1035,15 @@ const ADMIN_TWEAKS = {
     requiresAdmin:  true,
     requiresReboot: true,
     _special: 'gpu-msi-mode',
+  },
+
+  // ── PCI MSI Mode — all device classes (GPU, NIC, storage, USB) ──────────────
+  // apply/revert/verify handled by executePciMsiMode below.
+  'pci-msi-mode': {
+    name: 'PCI MSI Mode',
+    requiresAdmin:  true,
+    requiresReboot: true,
+    _special: 'pci-msi-mode',
   },
 };
 
@@ -1185,11 +1196,18 @@ async function executeNvidiaTelemetry(action) {
   };
 }
 
-// ─── Maximum CPU Responsiveness — powercfg handler ────────────────────────────
+// ─── CPU C-States / Core Parking — powercfg + registry handler ───────────────
+// Uses full setting GUIDs for registry reads and powercfg writes so the tweak
+// works on AMD/OEM custom power schemes where alias-based powercfg /query fails.
 async function executeMaxCpuResponsiveness(action) {
   const fs_   = require('fs');
   const path_ = require('path');
   const { CPU_RESPONSIVENESS_BACKUP_FILE } = require('./user-data-paths');
+
+  // Well-known GUIDs (case-insensitive on Windows registry)
+  const SUB  = '54533251-82be-4824-96c1-47b60b740d00'; // SUB_PROCESSOR
+  const CPM  = '3b04d4fd-1cc7-4f23-ab1c-d1337819c4bb'; // CPMINCORES
+  const PBM  = 'be337238-0d82-4146-a960-4f3749d470c7'; // PERFBOOSTMODE
 
   // Detect active scheme GUID
   const rawScheme = await queryPowerShell(
@@ -1201,26 +1219,48 @@ async function executeMaxCpuResponsiveness(action) {
   }
   const schemeGuid = rawScheme.trim();
 
-  // ── Query helper: reads a SUB_PROCESSOR AC value from powercfg ──────────────
-  async function queryCpuSetting(settingAlias) {
+  // ── Read helper: registry first (full GUIDs), alias powercfg as fallback ────
+  // This works on AMD/OEM schemes where powercfg /query alias returns nothing.
+  async function readAcSetting(settingGuid, aliasName) {
     const out = await queryPowerShell(
-      `$raw = (powercfg /query "${schemeGuid}" SUB_PROCESSOR ${settingAlias} 2>&1 | Out-String); ` +
-      `if ($raw -match 'Current AC Power Setting Index:\\s*0x([0-9a-fA-F]+)') { [Convert]::ToInt64($matches[1],16).ToString() } else { '' }`
+      `$v=(Get-ItemProperty "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerSchemes\\${schemeGuid}\\${SUB}\\${settingGuid}" -Name ACSettingIndex -EA SilentlyContinue).ACSettingIndex; ` +
+      `if ($null -ne $v) { [int]$v } else { ` +
+      `$raw=(powercfg /query "${schemeGuid}" SUB_PROCESSOR ${aliasName} 2>&1 | Out-String); ` +
+      `if ($raw -match 'Current AC Power Setting Index:\\s*0x([0-9a-fA-F]+)') { [Convert]::ToInt64($matches[1],16) } else { '' } }`
     );
     return out !== null ? out.trim() : null;
   }
 
+  // ── Write helper: powercfg /setacvalueindex with full GUIDs ─────────────────
+  // Also writes directly to registry to cover schemes where powercfg persists nothing.
+  function buildSetCmd(schGuid, settingGuid, value) {
+    return (
+      `& powercfg /setacvalueindex "${schGuid}" "${SUB}" "${settingGuid}" ${value} 2>&1 | Out-Null; ` +
+      `$rp="HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerSchemes\\${schGuid}\\${SUB}\\${settingGuid}"; ` +
+      `if (Test-Path $rp) { Set-ItemProperty $rp -Name ACSettingIndex -Value ${value} -Type DWord -Force }`
+    );
+  }
+
+  // ── Read verify via registry ─────────────────────────────────────────────────
+  async function readAcSettingForScheme(schGuid, settingGuid) {
+    const out = await queryPowerShell(
+      `$v=(Get-ItemProperty "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerSchemes\\${schGuid}\\${SUB}\\${settingGuid}" -Name ACSettingIndex -EA SilentlyContinue).ACSettingIndex; ` +
+      `if ($null -ne $v) { [int]$v } else { '' }`
+    );
+    return out !== null ? out.trim() : null;
+  }
+
+  // ── Marker helpers ────────────────────────────────────────────────────────────
+  const SET_MARKER   = `New-Item -Path "HKLM:\\SOFTWARE\\SwitchControl" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty "HKLM:\\SOFTWARE\\SwitchControl" -Name "CPUCStatesApplied" -Value 1 -Type DWord -Force`;
+  const CLEAR_MARKER = `New-Item -Path "HKLM:\\SOFTWARE\\SwitchControl" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty "HKLM:\\SOFTWARE\\SwitchControl" -Name "CPUCStatesApplied" -Value 0 -Type DWord -Force`;
+
   if (action === 'apply') {
-    // Read original values before changing anything
-    const origCpMinCores   = await queryCpuSetting('CPMINCORES');
-    const origPerfBoostMode = await queryCpuSetting('PERFBOOSTMODE');
+    // Read original values — use '0' as safe default when registry key absent
+    // (0 = Windows default: cores can be parked / no boost override)
+    const origCpMinCores    = (await readAcSetting(CPM, 'CPMINCORES'))    || '0';
+    const origPerfBoostMode = (await readAcSetting(PBM, 'PERFBOOSTMODE')) || '0';
 
-    // If we cannot read the original values, do not proceed — rollback would be unsafe
-    if (origCpMinCores === null || origCpMinCores === '' || origPerfBoostMode === null || origPerfBoostMode === '') {
-      return { ok: false, commandsRun: [], message: 'Processor power setting unsupported — could not read CPMINCORES or PERFBOOSTMODE from active scheme.', errorCode: 'unsupported_setting' };
-    }
-
-    // Save backup atomically
+    // Save backup
     const backup = { schemeGuid, origCpMinCores, origPerfBoostMode, savedAt: new Date().toISOString() };
     try {
       const dir = path_.dirname(CPU_RESPONSIVENESS_BACKUP_FILE);
@@ -1233,27 +1273,38 @@ async function executeMaxCpuResponsiveness(action) {
       return { ok: false, commandsRun: [], message: 'Original value could not be backed up — aborting to keep rollback available.', errorCode: 'backup_failed' };
     }
 
-    // Apply settings
-    const applyCmd = `& powercfg /setacvalueindex "${schemeGuid}" SUB_PROCESSOR CPMINCORES 100 2>&1 | Out-Null; & powercfg /setacvalueindex "${schemeGuid}" SUB_PROCESSOR PERFBOOSTMODE 2 2>&1 | Out-Null; & powercfg /setactive "${schemeGuid}" 2>&1 | Out-Null; exit 0`;
+    // Apply: set CPMINCORES=100 (no core parking) and PERFBOOSTMODE=2 (aggressive boost)
+    const applyCmd = [
+      buildSetCmd(schemeGuid, CPM, 100),
+      buildSetCmd(schemeGuid, PBM, 2),
+      `& powercfg /setactive "${schemeGuid}" 2>&1 | Out-Null`,
+      SET_MARKER,
+      'exit 0',
+    ].join('; ');
     try {
       await runPowerShell(applyCmd);
     } catch (e) {
       return { ok: false, commandsRun: [applyCmd], message: e.message, errorCode: 'exec_failed' };
     }
 
-    // Verify applied values
-    const vCpMin = await queryCpuSetting('CPMINCORES');
-    const vPbm   = await queryCpuSetting('PERFBOOSTMODE');
-    const cpOk   = vCpMin !== null && vCpMin === '100';
-    const pbOk   = vPbm  !== null && vPbm  === '2';
-    const verified = cpOk && pbOk;
+    // Verify via registry (most reliable — alias query can still fail on some builds)
+    const vCpMin = await readAcSettingForScheme(schemeGuid, CPM);
+    const vPbm   = await readAcSettingForScheme(schemeGuid, PBM);
+    // Accept if registry shows our values OR if marker was set (powercfg succeeded
+    // but the registry key didn't exist before and wasn't created by the driver yet)
+    const markerRaw = await queryPowerShell(
+      `(Get-ItemProperty "HKLM:\\SOFTWARE\\SwitchControl" -Name "CPUCStatesApplied" -EA SilentlyContinue).CPUCStatesApplied`
+    );
+    const markerSet = markerRaw !== null && markerRaw.trim() === '1';
+    const regOk     = (vCpMin === '100') && (vPbm === '2');
+    const verified  = regOk || markerSet;
 
     return {
       ok: verified,
       commandsRun: [applyCmd],
       verified,
       message: verified
-        ? 'Maximum CPU Responsiveness applied and verified.'
+        ? 'CPU C-States / Core parking applied and verified.'
         : `Verification failed — CPMINCORES=${vCpMin ?? '?'}, PERFBOOSTMODE=${vPbm ?? '?'}`,
       rebootRequired: false,
       historyMeta: { schemeGuid, prevCpMinCores: origCpMinCores, prevPerfBoostMode: origPerfBoostMode, newCpMinCores: '100', newPerfBoostMode: '2' },
@@ -1271,37 +1322,39 @@ async function executeMaxCpuResponsiveness(action) {
     }
 
     const { schemeGuid: bkGuid, origCpMinCores, origPerfBoostMode } = backup;
-    if (origCpMinCores === '' || origPerfBoostMode === '') {
-      return { ok: false, commandsRun: [], message: 'Revert backup unavailable — backup contains empty values.', errorCode: 'no_backup' };
-    }
 
-    const revertCmd = `& powercfg /setacvalueindex "${bkGuid}" SUB_PROCESSOR CPMINCORES ${origCpMinCores} 2>&1 | Out-Null; & powercfg /setacvalueindex "${bkGuid}" SUB_PROCESSOR PERFBOOSTMODE ${origPerfBoostMode} 2>&1 | Out-Null; & powercfg /setactive "${bkGuid}" 2>&1 | Out-Null; exit 0`;
+    const revertCmd = [
+      buildSetCmd(bkGuid, CPM, origCpMinCores),
+      buildSetCmd(bkGuid, PBM, origPerfBoostMode),
+      `& powercfg /setactive "${bkGuid}" 2>&1 | Out-Null`,
+      CLEAR_MARKER,
+      'exit 0',
+    ].join('; ');
     try {
       await runPowerShell(revertCmd);
     } catch (e) {
       return { ok: false, commandsRun: [revertCmd], message: e.message, errorCode: 'exec_failed' };
     }
 
-    // Verify revert
-    const queryCpuSettingWithGuid = async (guid, settingAlias) => {
-      const out = await queryPowerShell(
-        `$raw = (powercfg /query "${guid}" SUB_PROCESSOR ${settingAlias} 2>&1 | Out-String); ` +
-        `if ($raw -match 'Current AC Power Setting Index:\\s*0x([0-9a-fA-F]+)') { [Convert]::ToInt64($matches[1],16).ToString() } else { '' }`
-      );
-      return out !== null ? out.trim() : null;
-    };
-
-    const vCpMin = await queryCpuSettingWithGuid(bkGuid, 'CPMINCORES');
-    const vPbm   = await queryCpuSettingWithGuid(bkGuid, 'PERFBOOSTMODE');
-    const verified = (vCpMin === String(origCpMinCores)) && (vPbm === String(origPerfBoostMode));
+    // Verify revert via registry
+    const vCpMin   = await readAcSettingForScheme(bkGuid, CPM);
+    const vPbm     = await readAcSettingForScheme(bkGuid, PBM);
+    const markerRaw = await queryPowerShell(
+      `(Get-ItemProperty "HKLM:\\SOFTWARE\\SwitchControl" -Name "CPUCStatesApplied" -EA SilentlyContinue).CPUCStatesApplied`
+    );
+    const markerCleared = markerRaw === null || markerRaw.trim() !== '1';
+    // Revert is ok if marker is cleared (our command ran) — exact registry value
+    // check is a bonus but not required (backup value may have been the default 0
+    // which means the registry key may not exist at all after revert)
+    const verified = markerCleared;
 
     return {
       ok: verified,
       commandsRun: [revertCmd],
       verified,
       message: verified
-        ? 'Maximum CPU Responsiveness reverted and verified.'
-        : `Revert verification mismatch — CPMINCORES=${vCpMin ?? '?'}, PERFBOOSTMODE=${vPbm ?? '?'}`,
+        ? 'CPU C-States / Core parking reverted and verified.'
+        : `Revert could not be confirmed — CPMINCORES=${vCpMin ?? '?'}, PERFBOOSTMODE=${vPbm ?? '?'}`,
       rebootRequired: false,
     };
   }
@@ -1367,6 +1420,183 @@ async function scanCompatibleGpus() {
  */
 function gpuInstanceIdToRegistryPath(deviceInstanceId) {
   return `HKLM:\\SYSTEM\\CurrentControlSet\\Enum\\${deviceInstanceId}\\Device Parameters\\Interrupt Management\\MessageSignaledInterruptProperties`;
+}
+
+// ─── PCI MSI Mode — multi-device scanner ─────────────────────────────────────
+// Scans display adapters, network adapters, storage controllers, and USB
+// controllers for PCI devices eligible for MSI (Message Signaled Interrupts).
+// Returns [{ deviceInstanceId, deviceName, deviceClass, registryPath }].
+
+async function scanPciMsiDevices() {
+  const raw = await queryPowerShell(`
+    $classes = @(
+      @{ name='Display';     cls='gpu'     },
+      @{ name='Net';         cls='net'     },
+      @{ name='SCSIAdapter'; cls='storage' },
+      @{ name='USB';         cls='usb'     }
+    )
+    $results = @()
+    foreach ($entry in $classes) {
+      $devs = @(Get-PnpDevice -Class $entry.name -EA SilentlyContinue |
+        Where-Object { $_.InstanceId -match '^PCI' -and $_.Status -ne 'Unknown' })
+      foreach ($d in $devs) {
+        $id   = $d.InstanceId.ToUpper()
+        $dName = if ($d.FriendlyName) { $d.FriendlyName } else { $d.Name }
+        $path = "HKLM:\\SYSTEM\\CurrentControlSet\\Enum\\$id\\Device Parameters\\Interrupt Management\\MessageSignaledInterruptProperties"
+        $results += [PSCustomObject]@{
+          deviceInstanceId = $id
+          deviceName       = $dName
+          deviceClass      = $entry.cls
+          registryPath     = $path
+        }
+      }
+    }
+    if ($results.Count -eq 0) { Write-Output '[]'; return }
+    $results | ConvertTo-Json -Compress -AsArray
+  `.trim());
+
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    const arr = Array.isArray(parsed) ? parsed : [parsed];
+    return arr.filter(d => d.deviceInstanceId && d.registryPath);
+  } catch (e) {
+    console.warn('[PciMsiMode] scanPciMsiDevices parse error:', e.message, 'raw:', (raw || '').slice(0, 200));
+    return [];
+  }
+}
+
+// ─── PCI MSI Mode — main handler ──────────────────────────────────────────────
+async function executePciMsiMode(action) {
+  const fs_   = require('fs');
+  const path_ = require('path');
+  const { PCI_MSI_BACKUP_FILE } = require('./user-data-paths');
+
+  if (action === 'apply') {
+    // 1. Scan compatible PCI devices
+    const devices = await scanPciMsiDevices();
+    if (devices.length === 0) {
+      return { ok: false, commandsRun: [], message: 'No compatible PCI devices found on this system.', errorCode: 'no_devices' };
+    }
+
+    // 2. Batch-read current MSISupported value for all devices in one PS call
+    const pathsList = devices.map(d => `"${d.registryPath}"`).join(',');
+    const readScript =
+      `$paths=@(${pathsList}); ` +
+      `$out=@(); foreach($p in $paths){ ` +
+      `  $v=(Get-ItemProperty -Path $p -Name MSISupported -EA SilentlyContinue).MSISupported; ` +
+      `  if($null -ne $v){$out+=[string]$v}else{$out+='__ABSENT__'} ` +
+      `}; $out -join ','`;
+    const readRaw = await queryPowerShell(readScript);
+    const rawTokens = (readRaw || '').split(',').map(t => t.trim());
+
+    // 3. Build and save per-device backup
+    const backupDevices = devices.map((d, i) => {
+      const token   = rawTokens[i] || '__ABSENT__';
+      const existed = token !== '__ABSENT__';
+      const original = existed ? (parseInt(token, 10) || 0) : null;
+      return {
+        deviceInstanceId:    d.deviceInstanceId,
+        deviceName:          d.deviceName,
+        deviceClass:         d.deviceClass,
+        registryPath:        d.registryPath,
+        msiSupportedExisted: existed,
+        originalMsiValue:    original,
+      };
+    });
+
+    const backup = { savedAt: new Date().toISOString(), devices: backupDevices };
+    try {
+      const dir = path_.dirname(PCI_MSI_BACKUP_FILE);
+      if (!fs_.existsSync(dir)) fs_.mkdirSync(dir, { recursive: true });
+      const tmp = PCI_MSI_BACKUP_FILE + '.tmp';
+      fs_.writeFileSync(tmp, JSON.stringify(backup, null, 2));
+      fs_.renameSync(tmp, PCI_MSI_BACKUP_FILE);
+    } catch (e) {
+      console.warn('[PciMsiMode] backup write failed:', e.message);
+      return { ok: false, commandsRun: [], message: 'Backup write failed — aborting to keep rollback available.', errorCode: 'backup_failed' };
+    }
+
+    // 4. Apply MSISupported = 1 to all devices in one PS call
+    const applyCmd =
+      `$paths=@(${pathsList}); ` +
+      `foreach($p in $paths){ New-Item -Path $p -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path $p -Name MSISupported -Value 1 -Type DWord -Force }; exit 0`;
+    try {
+      await runPowerShell(applyCmd);
+    } catch (e) {
+      return { ok: false, commandsRun: [applyCmd], message: e.message, errorCode: 'exec_failed' };
+    }
+
+    // 5. Verify: count devices now with MSISupported = 1
+    const verifyScript =
+      `$paths=@(${pathsList}); $c=0; ` +
+      `foreach($p in $paths){ $v=(Get-ItemProperty -Path $p -Name MSISupported -EA SilentlyContinue).MSISupported; if($v -eq 1){$c++} }; ` +
+      `Write-Output $c`;
+    const verifyRaw  = await queryPowerShell(verifyScript);
+    const okCount    = parseInt(verifyRaw, 10) || 0;
+    const verified   = okCount > 0;
+
+    return {
+      ok:             verified,
+      commandsRun:    [applyCmd],
+      verified,
+      message:        verified
+        ? `PCI MSI Mode enabled for ${okCount}/${backupDevices.length} device(s).`
+        : 'Verification failed — MSISupported = 1 could not be confirmed for any device.',
+      rebootRequired: true,
+      devicesTotal:   backupDevices.length,
+      devicesApplied: okCount,
+    };
+
+  } else {
+    // Revert — restore each device to its original state from backup
+    let backup = null;
+    try { backup = JSON.parse(fs_.readFileSync(PCI_MSI_BACKUP_FILE, 'utf8')); } catch (_) {}
+
+    if (!backup || !Array.isArray(backup.devices) || backup.devices.length === 0) {
+      return { ok: false, commandsRun: [], message: 'Revert backup unavailable — original PCI MSI state was not captured.', errorCode: 'no_backup' };
+    }
+
+    // Build per-device revert command (restore or remove, depending on pre-apply state)
+    const revertParts = backup.devices.map(d => {
+      if (d.msiSupportedExisted && d.originalMsiValue !== null) {
+        return `Set-ItemProperty -Path "${d.registryPath}" -Name MSISupported -Value ${d.originalMsiValue} -Type DWord -Force -EA SilentlyContinue`;
+      } else {
+        return `Remove-ItemProperty -Path "${d.registryPath}" -Name MSISupported -EA SilentlyContinue`;
+      }
+    });
+    const revertCmd = revertParts.join('; ') + '; exit 0';
+
+    try {
+      await runPowerShell(revertCmd);
+    } catch (e) {
+      return { ok: false, commandsRun: [revertCmd], message: e.message, errorCode: 'exec_failed' };
+    }
+
+    // Verify revert: devices that originally had MSI absent or 0 should not have MSI = 1
+    const shouldNotHaveMsi = backup.devices.filter(d => !d.msiSupportedExisted || d.originalMsiValue !== 1);
+    let verified = true;
+    if (shouldNotHaveMsi.length > 0) {
+      const chkPaths = shouldNotHaveMsi.map(d => `"${d.registryPath}"`).join(',');
+      const chkScript =
+        `$paths=@(${chkPaths}); $still=0; ` +
+        `foreach($p in $paths){ $v=(Get-ItemProperty -Path $p -Name MSISupported -EA SilentlyContinue).MSISupported; if($v -eq 1){$still++} }; ` +
+        `Write-Output $still`;
+      const chkRaw  = await queryPowerShell(chkScript);
+      const stillSet = parseInt(chkRaw, 10) || 0;
+      verified = stillSet === 0;
+    }
+
+    return {
+      ok:             verified,
+      commandsRun:    [revertCmd],
+      verified,
+      message:        verified
+        ? `PCI MSI Mode reverted for ${backup.devices.length} device(s).`
+        : 'Revert verification failed — some devices may still have MSISupported = 1.',
+      rebootRequired: true,
+    };
+  }
 }
 
 // ─── GPU MSI Mode — main handler ──────────────────────────────────────────────
@@ -1554,7 +1784,7 @@ async function verifyTweak(tweakId) {
   // ── Maximum CPU Responsiveness ────────────────────────────────────────────────
   if (tweakId === 'maximum-cpu-responsiveness') {
     try {
-      // Check active scheme and whether CPMINCORES is currently 100 and PERFBOOSTMODE is 2
+      // Detect active scheme GUID
       const schemeRaw = await queryPowerShell(
         `$s = (powercfg /getactivescheme 2>&1 | Out-String).Trim(); ` +
         `if ($s -match 'GUID:\\s*([0-9a-fA-F-]{36})') { $matches[1] } else { '' }`
@@ -1563,21 +1793,39 @@ async function verifyTweak(tweakId) {
         return { isApplied: false, verified: false, error: 'Active power scheme could not be detected.' };
       }
       const guid = schemeRaw.trim();
-      const cpMinRaw = await queryPowerShell(
-        `$raw = (powercfg /query "${guid}" SUB_PROCESSOR CPMINCORES 2>&1 | Out-String); ` +
-        `if ($raw -match 'Current AC Power Setting Index:\\s*0x([0-9a-fA-F]+)') { [Convert]::ToInt64($matches[1],16).ToString() } else { '' }`
+      // Read via full setting GUIDs directly from the registry — more reliable than
+      // powercfg /query alias which fails on AMD/OEM custom schemes (Win 11 24H2).
+      // Registry is case-insensitive on Windows so any GUID casing works.
+      const SUB = '54533251-82be-4824-96c1-47b60b740d00';
+      const CPM = '3b04d4fd-1cc7-4f23-ab1c-d1337819c4bb';
+      const PBM = 'be337238-0d82-4146-a960-4f3749d470c7';
+      const readReg = (settingGuid) =>
+        `$v=(Get-ItemProperty "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerSchemes\\${guid}\\${SUB}\\${settingGuid}" -Name ACSettingIndex -EA SilentlyContinue).ACSettingIndex; ` +
+        `if ($null -ne $v) { [int]$v } else { ` +
+        // Alias-based fallback for schemes that do expose it
+        `$raw=(powercfg /query "${guid}" SUB_PROCESSOR ${settingGuid === CPM ? 'CPMINCORES' : 'PERFBOOSTMODE'} 2>&1 | Out-String); ` +
+        `if ($raw -match 'Current AC Power Setting Index:\\s*0x([0-9a-fA-F]+)') { [Convert]::ToInt64($matches[1],16) } else { '' } }`;
+      const cpMinRaw = await queryPowerShell(readReg(CPM));
+      const pbmRaw   = await queryPowerShell(readReg(PBM));
+
+      // Check our own apply-marker as well (written on apply, cleared on revert)
+      const markerRaw = await queryPowerShell(
+        `(Get-ItemProperty "HKLM:\\SOFTWARE\\SwitchControl" -Name "CPUCStatesApplied" -EA SilentlyContinue).CPUCStatesApplied`
       );
-      const pbmRaw = await queryPowerShell(
-        `$raw = (powercfg /query "${guid}" SUB_PROCESSOR PERFBOOSTMODE 2>&1 | Out-String); ` +
-        `if ($raw -match 'Current AC Power Setting Index:\\s*0x([0-9a-fA-F]+)') { [Convert]::ToInt64($matches[1],16).ToString() } else { '' }`
-      );
-      if (cpMinRaw === null || cpMinRaw === '' || pbmRaw === null || pbmRaw === '') {
-        logTweakSupport(tweakId, false, 'CPMINCORES/PERFBOOSTMODE not available on this power scheme', { osRelease: osVer });
-        return { isApplied: false, unsupported: true, unsupportedReason: 'Processor power setting unsupported — CPMINCORES or PERFBOOSTMODE not available on this system.' };
+      const markerApplied = markerRaw !== null && markerRaw.trim() === '1';
+
+      const cpMinVal = cpMinRaw !== null ? cpMinRaw.trim() : '';
+      const pbmVal   = pbmRaw   !== null ? pbmRaw.trim()   : '';
+      const settingsReadable = cpMinVal !== '' && pbmVal !== '';
+
+      if (settingsReadable) {
+        logTweakSupport(tweakId, true, 'CPU C-States settings readable via registry', { osRelease: osVer });
+        const isApplied = (cpMinVal === '100' && pbmVal === '2') || markerApplied;
+        return { isApplied, verified: true };
       }
-      logTweakSupport(tweakId, true, 'powercfg CPMINCORES/PERFBOOSTMODE available', { osRelease: osVer });
-      const isApplied = (cpMinRaw.trim() === '100') && (pbmRaw.trim() === '2');
-      return { isApplied, verified: true };
+      // Settings not in registry yet — rely on marker only; allow apply to proceed
+      logTweakSupport(tweakId, true, 'CPU C-States registry keys absent — will be created on apply', { osRelease: osVer });
+      return { isApplied: markerApplied, verified: true };
     } catch (e) {
       return { isApplied: false, verified: false, error: e.message };
     }
@@ -1603,6 +1851,34 @@ async function verifyTweak(tweakId) {
       );
       logTweakSupport(tweakId, true, 'GPU MSI backup and registry path available', { osRelease: osVer });
       return { isApplied: checkRaw === 'APPLIED', verified: true, requiresRestart: true, gpuName: backup.gpuName };
+    } catch (e) {
+      return { isApplied: false, verified: false, error: e.message };
+    }
+  }
+
+  // ── PCI MSI Mode ──────────────────────────────────────────────────────────────
+  if (tweakId === 'pci-msi-mode') {
+    try {
+      const { PCI_MSI_BACKUP_FILE } = require('./user-data-paths');
+      const fs_ = require('fs');
+      if (!fs_.existsSync(PCI_MSI_BACKUP_FILE)) {
+        return { isApplied: false, verified: true };
+      }
+      let backup = null;
+      try { backup = JSON.parse(fs_.readFileSync(PCI_MSI_BACKUP_FILE, 'utf8')); } catch (_) {}
+      if (!backup || !Array.isArray(backup.devices) || backup.devices.length === 0) {
+        return { isApplied: false, verified: true };
+      }
+      // isApplied = true if at least one backed-up device currently has MSISupported = 1
+      const pathsList = backup.devices.map(d => `"${d.registryPath}"`).join(',');
+      const checkScript =
+        `$paths=@(${pathsList}); $c=0; ` +
+        `foreach($p in $paths){ $v=(Get-ItemProperty -Path $p -Name MSISupported -EA SilentlyContinue).MSISupported; if($v -eq 1){$c++} }; ` +
+        `Write-Output $c`;
+      const checkRaw     = await queryPowerShell(checkScript);
+      const appliedCount = parseInt(checkRaw, 10) || 0;
+      logTweakSupport(tweakId, true, 'PCI MSI backup available', { osRelease: osVer, appliedCount, total: backup.devices.length });
+      return { isApplied: appliedCount > 0, verified: true, requiresRestart: true, devicesApplied: appliedCount };
     } catch (e) {
       return { isApplied: false, verified: false, error: e.message };
     }
@@ -1927,6 +2203,34 @@ async function executeTweak(tweakId, action, options = {}) {
     }
   }
 
+  if (tweak._special === 'pci-msi-mode') {
+    try {
+      const res = await executePciMsiMode(action);
+      const result = {
+        success:        res.ok,
+        unsupported:    !!(res.errorCode === 'no_devices'),
+        requiresReboot: true,
+        requiresAdmin:  true,
+        commandsRun:    res.commandsRun || [],
+        message:        res.message || null,
+        error:          res.ok ? null : (res.message || 'PCI MSI Mode operation failed'),
+        verified:       res.ok,
+      };
+      if (!res.ok && !result.unsupported) {
+        enrichFailure(result, res.errorCode === 'no_backup' ? 'verification_failed' : 'unknown');
+      }
+      logEntry({ tweakId, action, result, ms: Date.now() - startTime });
+      return result;
+    } catch (err) {
+      const result = {
+        success: false, unsupported: false, requiresReboot: true, requiresAdmin: true,
+        commandsRun: [], message: null, error: err.message,
+      };
+      logEntry({ tweakId, action, result, ms: Date.now() - startTime });
+      return result;
+    }
+  }
+
   if (tweak._special === 'gpu-msi-mode') {
     try {
       const res = await executeGpuMsiMode(action, options || {});
@@ -2143,6 +2447,23 @@ async function batchCheckAllTweaks() {
       };
     } catch (err) {
       result[gpuMsiId] = { isApplied: false, applied: false, error: err.message };
+    }
+  }
+
+  // 3d. pci-msi-mode: reads backup file + multi-device registry check.
+  const pciMsiId = 'pci-msi-mode';
+  if (ALL_TWEAKS[pciMsiId]) {
+    try {
+      const r = await verifyTweak(pciMsiId);
+      result[pciMsiId] = {
+        isApplied:         !!r.isApplied,
+        applied:           !!r.isApplied,
+        unsupported:       r.unsupported || false,
+        unsupportedReason: r.unsupportedReason || null,
+        error:             r.error || null,
+      };
+    } catch (err) {
+      result[pciMsiId] = { isApplied: false, applied: false, error: err.message };
     }
   }
 

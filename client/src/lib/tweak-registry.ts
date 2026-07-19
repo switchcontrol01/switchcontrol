@@ -318,7 +318,7 @@ const BASE: BaseTweak[] = [
   },
   {
     id: "maximum-cpu-responsiveness",
-    title: "Maximum CPU Responsiveness",
+    title: "CPU C-STATES | Core parking",
     description: "Reduces processor core parking and applies responsive boost behavior on AC power. Intended primarily for gaming desktops. May increase temperatures and energy consumption.",
     impact: [
       "Disables processor core parking on AC power (CPMINCORES = 100)",
@@ -842,6 +842,26 @@ const BASE: BaseTweak[] = [
     whoShouldAvoid: "Systems with unsigned or unstable GPU drivers. Incompatible registry modifications can affect driver startup. Revert also requires a further restart.",
     detailsConfig: {
       warningText: "This modifies the interrupt properties registry key for your display adapter. Only MSISupported is written — no other values are changed, and no registry keys are deleted. A restart is required after apply and again after revert.",
+    },
+  },
+
+  {
+    id: "pci-msi-mode",
+    title: "PCI MSI Mode",
+    description: "Enables Message Signaled Interrupts for all compatible PCI devices — display adapters, network adapters, storage controllers, and USB controllers. May reduce interrupt latency on compatible hardware. A restart is required.",
+    impact: [
+      "Enables MSI (Message Signaled Interrupts) across all compatible PCI devices",
+      "Targets display adapters, network adapters, storage controllers, and USB controllers",
+      "Can reduce interrupt latency and improve responsiveness on compatible hardware",
+      "Results vary by system, driver versions, and hardware configuration",
+      "A Windows restart is required before drivers use the new interrupt mode",
+    ],
+    expected: { gpu: "Low", latency: "Medium", cpu: "Low", ram: "None", disk: "None", network: "Low", stabilityRisk: "Medium" },
+    category: "Gaming and Latency", level: "Advanced", risk: "Risky",
+    requiresReboot: true, supported: true, requiresAdmin: true,
+    whoShouldAvoid: "Systems with unsigned or unstable drivers for any PCI device. This modifies registry interrupt settings across multiple devices simultaneously. Revert also requires a further restart.",
+    detailsConfig: {
+      warningText: "This writes MSISupported = 1 to the interrupt properties registry key for each compatible PCI device. Original values are backed up per-device and restored precisely on revert. No registry keys are deleted.",
     },
   },
 

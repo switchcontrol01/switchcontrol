@@ -127,4 +127,12 @@ module.exports = {
    * revert can restore or remove the value precisely.
    */
   GPU_MSI_BACKUP_FILE: path.join(APPDATA_DIR, 'gpu-msi-backup.json'),
+
+  /**
+   * Per-device backup for the PCI MSI Mode tweak (all device classes).
+   * Stores an array of { deviceInstanceId, deviceName, deviceClass,
+   * registryPath, msiSupportedExisted, originalMsiValue } so each
+   * device can be individually restored to its pre-apply state on revert.
+   */
+  PCI_MSI_BACKUP_FILE: path.join(APPDATA_DIR, 'pci-msi-backup.json'),
 };

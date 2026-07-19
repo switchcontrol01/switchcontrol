@@ -116,6 +116,7 @@ export const PREMIUM_EXCEPTION_IDS: Set<string> = new Set([
   // ── Premium Power / GPU ──────────────────────────────────────────────────
   "maximum-cpu-responsiveness",
   "gpu-msi-mode",
+  "pci-msi-mode",
   "wait-to-kill-app",
   "disable-wallpaper-compression",
 ]);
@@ -216,6 +217,7 @@ export const TWEAK_TIER_MAP: Record<string, TweakTierInfo> = {
   // ── Premium Power / GPU ───────────────────────────────────────────────────
   "maximum-cpu-responsiveness": { level: "Advanced",   category: "System and Power" },
   "gpu-msi-mode":               { level: "Advanced",   category: "GPU and Graphics" },
+  "pci-msi-mode":               { level: "Advanced",   category: "Gaming and Latency" },
 };
 
 export function isPremiumTweakById(tweakId: string): boolean {
