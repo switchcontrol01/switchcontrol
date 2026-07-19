@@ -143,12 +143,14 @@ const SAFE_REG_PATH_RE   = /^HK(CU|LM):\\[A-Za-z0-9\s._-]+(\\[A-Za-z0-9\s._-]+)*
 const SAFE_REG_NAME_RE   = /^[A-Za-z0-9\s._-]{1,64}$/;
 const SAFE_PACKAGE_RE    = /^[A-Za-z0-9._-]{1,128}$/;
 const SAFE_SERVICE_RE    = /^[A-Za-z0-9_-]{1,64}$/;
+const SAFE_TASK_PATH_RE  = /^(\\[A-Za-z0-9\s._-]+)+$/;
 const MAX_STR_LEN        = 512;
 
-function isSafeRegPath(v)   { return typeof v === 'string' && v.length <= MAX_STR_LEN && SAFE_REG_PATH_RE.test(v); }
-function isSafeRegName(v)   { return typeof v === 'string' && v.length <= MAX_STR_LEN && SAFE_REG_NAME_RE.test(v); }
+function isSafeRegPath(v)     { return typeof v === 'string' && v.length <= MAX_STR_LEN && SAFE_REG_PATH_RE.test(v); }
+function isSafeRegName(v)     { return typeof v === 'string' && v.length <= MAX_STR_LEN && SAFE_REG_NAME_RE.test(v); }
 function isSafePackageName(v) { return typeof v === 'string' && v.length <= MAX_STR_LEN && SAFE_PACKAGE_RE.test(v); }
-function isSafeServiceName(v)   { return typeof v === 'string' && v.length <= MAX_STR_LEN && SAFE_SERVICE_RE.test(v); }
+function isSafeServiceName(v) { return typeof v === 'string' && v.length <= MAX_STR_LEN && SAFE_SERVICE_RE.test(v); }
+function isSafeTaskPath(v)    { return typeof v === 'string' && v.length <= MAX_STR_LEN && SAFE_TASK_PATH_RE.test(v); }
 
 // ── PowerShell runners ────────────────────────────────────────────────────────
 
@@ -249,6 +251,26 @@ ipcMain.handle('debloat:scan', async (event, items) => {
         const startType = out.trim().toLowerCase();
         results[item.id] = { present: startType !== 'disabled' && startType !== '__missing__' };
 
+      } else if (item.type === 'task') {
+        if (!Array.isArray(item.taskPaths) || item.taskPaths.length === 0 || !item.taskPaths.every(isSafeTaskPath)) {
+          results[item.id] = { present: true, error: 'invalid-task-paths' };
+          continue;
+        }
+        const pathArr = item.taskPaths.map(p => `'${psEscape(p)}'`).join(', ');
+        const out = await runPS(
+          `$tasks = @(${pathArr})
+           $allDisabled = $true
+           foreach ($t in $tasks) {
+             $parent = (Split-Path $t -Parent) + '\\'
+             $leaf = Split-Path $t -Leaf
+             $s = Get-ScheduledTask -TaskPath $parent -TaskName $leaf -ErrorAction SilentlyContinue
+             if ($s -and $s.State -ne 'Disabled') { $allDisabled = $false; break }
+           }
+           if ($allDisabled) { Write-Output 'absent' } else { Write-Output 'present' }`,
+          15000
+        );
+        results[item.id] = { present: out.includes('present') };
+
       } else {
         results[item.id] = { present: true, error: 'unsupported-type' };
       }
@@ -311,6 +333,20 @@ ipcMain.handle('debloat:removeItem', async (event, item) => {
         If (!$svc) { Write-Output 'already-absent'; Exit }
         Stop-Service -Name '${psEscape(item.serviceName)}' -Force -ErrorAction SilentlyContinue
         Set-Service -Name '${psEscape(item.serviceName)}' -StartupType Disabled -ErrorAction Stop
+        Write-Output 'removed'
+      `;
+    } else if (item.type === 'task') {
+      if (!Array.isArray(item.taskPaths) || item.taskPaths.length === 0 || !item.taskPaths.every(isSafeTaskPath)) {
+        return { ok: false, status: 'unsupported', error: 'Invalid task paths' };
+      }
+      const pathArr = item.taskPaths.map(p => `'${psEscape(p)}'`).join(', ');
+      cmd = `
+        $tasks = @(${pathArr})
+        foreach ($t in $tasks) {
+          $parent = (Split-Path $t -Parent) + '\\'
+          $leaf = Split-Path $t -Leaf
+          Disable-ScheduledTask -TaskPath $parent -TaskName $leaf -ErrorAction SilentlyContinue
+        }
         Write-Output 'removed'
       `;
     } else {
@@ -385,6 +421,20 @@ ipcMain.handle('debloat:restoreItem', async (event, item) => {
         Start-Service -Name '${psEscape(item.serviceName)}' -ErrorAction SilentlyContinue
         Write-Output 'restored'
       `;
+    } else if (item.type === 'task') {
+      if (!Array.isArray(item.taskPaths) || item.taskPaths.length === 0 || !item.taskPaths.every(isSafeTaskPath)) {
+        return { ok: false, status: 'unsupported', error: 'Invalid task paths' };
+      }
+      const pathArr = item.taskPaths.map(p => `'${psEscape(p)}'`).join(', ');
+      cmd = `
+        $tasks = @(${pathArr})
+        foreach ($t in $tasks) {
+          $parent = (Split-Path $t -Parent) + '\\'
+          $leaf = Split-Path $t -Leaf
+          Enable-ScheduledTask -TaskPath $parent -TaskName $leaf -ErrorAction SilentlyContinue
+        }
+        Write-Output 'restored'
+      `;
     } else {
       return { ok: false, status: 'unsupported' };
     }
@@ -442,6 +492,23 @@ async function verifyItem(item) {
       6000
     );
     return out.trim().toLowerCase() === 'disabled';
+
+  } else if (item.type === 'task') {
+    if (!Array.isArray(item.taskPaths) || !item.taskPaths.every(isSafeTaskPath)) return false;
+    const pathArr = item.taskPaths.map(p => `'${psEscape(p)}'`).join(', ');
+    const out = await runPS(
+      `$tasks = @(${pathArr})
+       $allDisabled = $true
+       foreach ($t in $tasks) {
+         $parent = (Split-Path $t -Parent) + '\\'
+         $leaf = Split-Path $t -Leaf
+         $s = Get-ScheduledTask -TaskPath $parent -TaskName $leaf -ErrorAction SilentlyContinue
+         if ($s -and $s.State -ne 'Disabled') { $allDisabled = $false; break }
+       }
+       Write-Output $(if ($allDisabled) { 'absent' } else { 'present' })`,
+      15000
+    );
+    return out.includes('absent');
   }
   return false;
 }

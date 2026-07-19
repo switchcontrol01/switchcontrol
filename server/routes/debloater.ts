@@ -10,7 +10,7 @@ const router = Router();
 export type SystemRole = "gaming" | "streaming" | "workstation" | "laptop" | "minimal";
 export type DebloatLevel = "safe" | "balanced" | "aggressive" | "extreme";
 export type SafetyTier = "safe" | "medium" | "high";
-export type ItemType = "appx" | "registry" | "service";
+export type ItemType = "appx" | "registry" | "service" | "task";
 export type DebloatCategory = "consumer-apps" | "telemetry" | "gaming" | "cloud" | "system-services" | "shell-features";
 
 export type ResultStatus =
@@ -18,12 +18,13 @@ export type ResultStatus =
   | "failed" | "verification-failed" | "unsupported" | "partial";
 
 interface RemovalDef {
-  method: "appx" | "registry" | "service";
+  method: "appx" | "registry" | "service" | "task";
   packageName?: string;       // appx
   serviceName?: string;       // service
   regPath?: string;           // registry
   regName?: string;
   regValueDisabled?: number | string;
+  taskPaths?: string[];       // task — array of "\Path\TaskName" strings
   requiresAdmin: boolean;
   requiresRestart: boolean;
   requiresSignOut: boolean;
@@ -31,22 +32,24 @@ interface RemovalDef {
 
 interface RestoreDef {
   supported: boolean;
-  method?: "appx-store" | "appx-provisioned" | "registry" | "service";
+  method?: "appx-store" | "appx-provisioned" | "registry" | "service" | "task";
   packageName?: string;
   regValueDefault?: number | string;
   serviceName?: string;
   defaultStartType?: string;
+  taskPaths?: string[];
   notes?: string;
 }
 
 interface VerificationDef {
-  method: "appx-query" | "registry-read" | "service-query";
+  method: "appx-query" | "registry-read" | "service-query" | "task-query";
   packageName?: string;
   regPath?: string;
   regName?: string;
   expectedDisabledValue?: number | string;
   serviceName?: string;
   expectedDisabledState?: string;
+  taskPaths?: string[];
 }
 
 interface DebloatItemDef {
@@ -588,6 +591,640 @@ const DEBLOAT_REGISTRY: DebloatItemDef[] = [
     estimatedRamMb: 0,
     estimatedDiskMb: 0,
     affectedFeatures: ["App preloading", "RAM pre-population"],
+  },
+
+  // ── Consumer apps — extended ──────────────────────────────────────────────
+
+  {
+    id: "bing_news",
+    name: "Microsoft News",
+    description: "Microsoft news feed app. Replaced by browser-based news for most users.",
+    type: "appx",
+    category: "consumer-apps",
+    minLevel: "balanced",
+    safety: "safe",
+    defaultForRoles: ["gaming", "streaming", "workstation", "laptop", "minimal"],
+    removal: { method: "appx", packageName: "Microsoft.BingNews", requiresAdmin: false, requiresRestart: false, requiresSignOut: false },
+    restore: { supported: true, method: "appx-store", notes: "Reinstallable from Microsoft Store." },
+    verification: { method: "appx-query", packageName: "Microsoft.BingNews" },
+    estimatedRamMb: 40,
+    estimatedDiskMb: 80,
+    affectedFeatures: ["News tile in Start", "MSN news feed"],
+  },
+
+  {
+    id: "ms_todo",
+    name: "Microsoft To Do",
+    description: "Microsoft task manager app. Optional if you use other task managers.",
+    type: "appx",
+    category: "consumer-apps",
+    minLevel: "balanced",
+    safety: "safe",
+    defaultForRoles: ["gaming", "streaming", "workstation", "laptop", "minimal"],
+    removal: { method: "appx", packageName: "Microsoft.Todos", requiresAdmin: false, requiresRestart: false, requiresSignOut: false },
+    restore: { supported: true, method: "appx-store", notes: "Reinstallable from Microsoft Store." },
+    verification: { method: "appx-query", packageName: "Microsoft.Todos" },
+    estimatedRamMb: 0,
+    estimatedDiskMb: 35,
+    affectedFeatures: ["Microsoft To Do app"],
+  },
+
+  {
+    id: "clipchamp",
+    name: "Clipchamp",
+    description: "Microsoft video editor. Safe to remove if you use other video software.",
+    type: "appx",
+    category: "consumer-apps",
+    minLevel: "balanced",
+    safety: "safe",
+    defaultForRoles: ["gaming", "streaming", "workstation", "laptop", "minimal"],
+    removal: { method: "appx", packageName: "Clipchamp.Clipchamp", requiresAdmin: false, requiresRestart: false, requiresSignOut: false },
+    restore: { supported: true, method: "appx-store", notes: "Reinstallable from Microsoft Store." },
+    verification: { method: "appx-query", packageName: "Clipchamp.Clipchamp" },
+    estimatedRamMb: 0,
+    estimatedDiskMb: 150,
+    affectedFeatures: ["Clipchamp video editor"],
+  },
+
+  {
+    id: "ms_family",
+    name: "Microsoft Family Safety",
+    description: "Parental controls app. Safe to remove for single-user adult systems.",
+    type: "appx",
+    category: "consumer-apps",
+    minLevel: "balanced",
+    safety: "safe",
+    defaultForRoles: ["gaming", "streaming", "workstation", "minimal"],
+    removal: { method: "appx", packageName: "MicrosoftCorporationII.MicrosoftFamily", requiresAdmin: false, requiresRestart: false, requiresSignOut: false },
+    restore: { supported: true, method: "appx-store", notes: "Reinstallable from Microsoft Store." },
+    verification: { method: "appx-query", packageName: "MicrosoftCorporationII.MicrosoftFamily" },
+    estimatedRamMb: 0,
+    estimatedDiskMb: 45,
+    affectedFeatures: ["Family safety features"],
+  },
+
+  {
+    id: "ms_whiteboard",
+    name: "Microsoft Whiteboard",
+    description: "Digital whiteboard app. Not needed for most gaming systems.",
+    type: "appx",
+    category: "consumer-apps",
+    minLevel: "balanced",
+    safety: "safe",
+    defaultForRoles: ["gaming", "streaming", "minimal"],
+    removal: { method: "appx", packageName: "Microsoft.Whiteboard", requiresAdmin: false, requiresRestart: false, requiresSignOut: false },
+    restore: { supported: true, method: "appx-store", notes: "Reinstallable from Microsoft Store." },
+    verification: { method: "appx-query", packageName: "Microsoft.Whiteboard" },
+    estimatedRamMb: 0,
+    estimatedDiskMb: 120,
+    affectedFeatures: ["Microsoft Whiteboard"],
+  },
+
+  {
+    id: "power_automate",
+    name: "Microsoft Power Automate",
+    description: "Desktop automation tool. Not needed for most users.",
+    type: "appx",
+    category: "consumer-apps",
+    minLevel: "balanced",
+    safety: "safe",
+    defaultForRoles: ["gaming", "streaming", "minimal"],
+    removal: { method: "appx", packageName: "Microsoft.PowerAutomateDesktop", requiresAdmin: false, requiresRestart: false, requiresSignOut: false },
+    restore: { supported: true, method: "appx-store", notes: "Reinstallable from Microsoft Store." },
+    verification: { method: "appx-query", packageName: "Microsoft.PowerAutomateDesktop" },
+    estimatedRamMb: 0,
+    estimatedDiskMb: 200,
+    affectedFeatures: ["Power Automate Desktop"],
+  },
+
+  {
+    id: "voice_recorder",
+    name: "Windows Voice Recorder",
+    description: "Built-in voice recorder. Safe to remove if not used.",
+    type: "appx",
+    category: "consumer-apps",
+    minLevel: "balanced",
+    safety: "safe",
+    defaultForRoles: ["gaming", "streaming", "workstation", "laptop", "minimal"],
+    removal: { method: "appx", packageName: "Microsoft.WindowsSoundRecorder", requiresAdmin: false, requiresRestart: false, requiresSignOut: false },
+    restore: { supported: true, method: "appx-store", notes: "Reinstallable from Microsoft Store." },
+    verification: { method: "appx-query", packageName: "Microsoft.WindowsSoundRecorder" },
+    estimatedRamMb: 0,
+    estimatedDiskMb: 15,
+    affectedFeatures: ["Voice Recorder app"],
+  },
+
+  {
+    id: "xbox_identity_provider",
+    name: "Xbox Identity Provider",
+    description: "Xbox identity service app. Can be removed if not using Xbox features.",
+    type: "appx",
+    category: "gaming",
+    minLevel: "balanced",
+    safety: "medium",
+    defaultForRoles: ["streaming", "workstation", "laptop", "minimal"],
+    removal: { method: "appx", packageName: "Microsoft.XboxIdentityProvider", requiresAdmin: false, requiresRestart: false, requiresSignOut: false },
+    restore: { supported: true, method: "appx-store", notes: "Reinstallable from Microsoft Store. Required for Xbox Live sign-in." },
+    verification: { method: "appx-query", packageName: "Microsoft.XboxIdentityProvider" },
+    estimatedRamMb: 20,
+    estimatedDiskMb: 25,
+    affectedFeatures: ["Xbox sign-in features"],
+  },
+
+  {
+    id: "xbox_game_speech",
+    name: "Xbox Game Speech Window",
+    description: "Xbox speech recognition overlay. Rarely used on desktop PCs.",
+    type: "appx",
+    category: "gaming",
+    minLevel: "balanced",
+    safety: "safe",
+    defaultForRoles: ["streaming", "workstation", "laptop", "minimal"],
+    removal: { method: "appx", packageName: "Microsoft.XboxGameSpeech", requiresAdmin: false, requiresRestart: false, requiresSignOut: false },
+    restore: { supported: true, method: "appx-store" },
+    verification: { method: "appx-query", packageName: "Microsoft.XboxGameSpeech" },
+    estimatedRamMb: 0,
+    estimatedDiskMb: 10,
+    affectedFeatures: ["Xbox game speech features"],
+  },
+
+  {
+    id: "xbox_tcui",
+    name: "Xbox TCUI",
+    description: "Xbox title-callable UI. Required only for some Xbox Live features.",
+    type: "appx",
+    category: "gaming",
+    minLevel: "balanced",
+    safety: "medium",
+    defaultForRoles: ["streaming", "workstation", "laptop", "minimal"],
+    removal: { method: "appx", packageName: "Microsoft.Xbox.TCUI", requiresAdmin: false, requiresRestart: false, requiresSignOut: false },
+    restore: { supported: true, method: "appx-store", notes: "Reinstallable from Microsoft Store. Required for some Xbox Live UI." },
+    verification: { method: "appx-query", packageName: "Microsoft.Xbox.TCUI" },
+    estimatedRamMb: 0,
+    estimatedDiskMb: 15,
+    affectedFeatures: ["Xbox Live UI overlays"],
+  },
+
+  {
+    id: "phone_link",
+    name: "Phone Link (Your Phone)",
+    description: "Links an Android phone to your PC. Safe to remove if not used.",
+    type: "appx",
+    category: "consumer-apps",
+    minLevel: "balanced",
+    safety: "safe",
+    defaultForRoles: ["gaming", "streaming", "workstation", "minimal"],
+    removal: { method: "appx", packageName: "Microsoft.YourPhone", requiresAdmin: false, requiresRestart: false, requiresSignOut: false },
+    restore: { supported: true, method: "appx-store", notes: "Reinstallable from Microsoft Store." },
+    verification: { method: "appx-query", packageName: "Microsoft.YourPhone" },
+    estimatedRamMb: 60,
+    estimatedDiskMb: 90,
+    affectedFeatures: ["Phone Link", "cross-device features"],
+  },
+
+  {
+    id: "paint_3d",
+    name: "Paint 3D",
+    description: "3D painting app. Classic Paint is separate and completely unaffected.",
+    type: "appx",
+    category: "consumer-apps",
+    minLevel: "balanced",
+    safety: "safe",
+    defaultForRoles: ["gaming", "streaming", "workstation", "laptop", "minimal"],
+    removal: { method: "appx", packageName: "Microsoft.MSPaint", requiresAdmin: false, requiresRestart: false, requiresSignOut: false },
+    restore: { supported: true, method: "appx-store", notes: "Reinstallable from Microsoft Store. Classic Paint (mspaint.exe) is unaffected." },
+    verification: { method: "appx-query", packageName: "Microsoft.MSPaint" },
+    estimatedRamMb: 0,
+    estimatedDiskMb: 120,
+    affectedFeatures: ["Paint 3D only — classic Paint is preserved"],
+  },
+
+  {
+    id: "ms_3d_viewer",
+    name: "3D Viewer",
+    description: "3D model viewer app. Not needed for most users.",
+    type: "appx",
+    category: "consumer-apps",
+    minLevel: "balanced",
+    safety: "safe",
+    defaultForRoles: ["gaming", "streaming", "workstation", "laptop", "minimal"],
+    removal: { method: "appx", packageName: "Microsoft.Microsoft3DViewer", requiresAdmin: false, requiresRestart: false, requiresSignOut: false },
+    restore: { supported: true, method: "appx-store" },
+    verification: { method: "appx-query", packageName: "Microsoft.Microsoft3DViewer" },
+    estimatedRamMb: 0,
+    estimatedDiskMb: 50,
+    affectedFeatures: ["3D Viewer app"],
+  },
+
+  {
+    id: "skype",
+    name: "Skype",
+    description: "Pre-installed Skype app. Safe to remove if you use Discord or other apps.",
+    type: "appx",
+    category: "consumer-apps",
+    minLevel: "balanced",
+    safety: "safe",
+    defaultForRoles: ["gaming", "streaming", "workstation", "laptop", "minimal"],
+    removal: { method: "appx", packageName: "Microsoft.SkypeApp", requiresAdmin: false, requiresRestart: false, requiresSignOut: false },
+    restore: { supported: true, method: "appx-store", notes: "Reinstallable from Microsoft Store." },
+    verification: { method: "appx-query", packageName: "Microsoft.SkypeApp" },
+    estimatedRamMb: 80,
+    estimatedDiskMb: 120,
+    affectedFeatures: ["Skype app"],
+  },
+
+  // ── Shell & UI — extended ─────────────────────────────────────────────────
+
+  {
+    id: "chat_icon",
+    name: "Chat Icon (Teams in Taskbar)",
+    description: "Removes the Teams chat icon from the taskbar. Teams itself is unaffected.",
+    type: "registry",
+    category: "shell-features",
+    minLevel: "balanced",
+    safety: "safe",
+    defaultForRoles: ["gaming", "streaming", "workstation", "laptop", "minimal"],
+    removal: {
+      method: "registry",
+      regPath: "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+      regName: "TaskbarMn",
+      regValueDisabled: 0,
+      requiresAdmin: false,
+      requiresRestart: false,
+      requiresSignOut: false,
+    },
+    restore: { supported: true, method: "registry", regValueDefault: 1 },
+    verification: {
+      method: "registry-read",
+      regPath: "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+      regName: "TaskbarMn",
+      expectedDisabledValue: 0,
+    },
+    estimatedRamMb: 0,
+    estimatedDiskMb: 0,
+    affectedFeatures: ["Taskbar Teams chat icon only"],
+  },
+
+  {
+    id: "start_recommendations",
+    name: "Start Menu Recommendations",
+    description: "Removes the Recommended section from the Start menu.",
+    type: "registry",
+    category: "shell-features",
+    minLevel: "balanced",
+    safety: "safe",
+    defaultForRoles: ["gaming", "streaming", "workstation", "laptop", "minimal"],
+    removal: {
+      method: "registry",
+      regPath: "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\Explorer",
+      regName: "HideRecommendedSection",
+      regValueDisabled: 1,
+      requiresAdmin: true,
+      requiresRestart: false,
+      requiresSignOut: false,
+    },
+    restore: { supported: true, method: "registry", regValueDefault: 0 },
+    verification: {
+      method: "registry-read",
+      regPath: "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\Explorer",
+      regName: "HideRecommendedSection",
+      expectedDisabledValue: 1,
+    },
+    estimatedRamMb: 0,
+    estimatedDiskMb: 0,
+    affectedFeatures: ["Start menu recommended items"],
+  },
+
+  {
+    id: "tips_notifications",
+    name: "Tips Notifications",
+    description: "Disables Windows tips and tricks notification popups.",
+    type: "registry",
+    category: "shell-features",
+    minLevel: "balanced",
+    safety: "safe",
+    defaultForRoles: ["gaming", "streaming", "workstation", "laptop", "minimal"],
+    removal: {
+      method: "registry",
+      regPath: "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
+      regName: "SoftLandingEnabled",
+      regValueDisabled: 0,
+      requiresAdmin: false,
+      requiresRestart: false,
+      requiresSignOut: false,
+    },
+    restore: { supported: true, method: "registry", regValueDefault: 1 },
+    verification: {
+      method: "registry-read",
+      regPath: "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
+      regName: "SoftLandingEnabled",
+      expectedDisabledValue: 0,
+    },
+    estimatedRamMb: 0,
+    estimatedDiskMb: 0,
+    affectedFeatures: ["Windows tips notifications"],
+  },
+
+  {
+    id: "get_more_windows",
+    name: "Get More Out of Windows Prompts",
+    description: "Disables the annoying setup completion prompts after Windows updates.",
+    type: "registry",
+    category: "shell-features",
+    minLevel: "balanced",
+    safety: "safe",
+    defaultForRoles: ["gaming", "streaming", "workstation", "laptop", "minimal"],
+    removal: {
+      method: "registry",
+      regPath: "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\UserProfileEngagement",
+      regName: "ScoobeSystemSettingEnabled",
+      regValueDisabled: 0,
+      requiresAdmin: false,
+      requiresRestart: false,
+      requiresSignOut: false,
+    },
+    restore: { supported: true, method: "registry", regValueDefault: 1 },
+    verification: {
+      method: "registry-read",
+      regPath: "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\UserProfileEngagement",
+      regName: "ScoobeSystemSettingEnabled",
+      expectedDisabledValue: 0,
+    },
+    estimatedRamMb: 0,
+    estimatedDiskMb: 0,
+    affectedFeatures: ["Post-update setup prompts"],
+  },
+
+  // ── System Services — extended ────────────────────────────────────────────
+
+  {
+    id: "print_spooler",
+    name: "Print Spooler",
+    description: "Manages print jobs. Safe to disable if no printer is connected.",
+    type: "service",
+    category: "system-services",
+    minLevel: "aggressive",
+    safety: "medium",
+    defaultForRoles: ["gaming", "streaming", "minimal"],
+    removal: {
+      method: "service",
+      serviceName: "Spooler",
+      requiresAdmin: true,
+      requiresRestart: false,
+      requiresSignOut: false,
+    },
+    restore: { supported: true, method: "service", serviceName: "Spooler", defaultStartType: "Automatic" },
+    verification: { method: "service-query", serviceName: "Spooler", expectedDisabledState: "Disabled" },
+    estimatedRamMb: 20,
+    estimatedDiskMb: 0,
+    affectedFeatures: ["All printing functionality"],
+  },
+
+  {
+    id: "remote_registry",
+    name: "Remote Registry",
+    description: "Allows remote registry editing. Disabling improves security on personal PCs.",
+    type: "service",
+    category: "system-services",
+    minLevel: "aggressive",
+    safety: "safe",
+    defaultForRoles: ["gaming", "streaming", "workstation", "laptop", "minimal"],
+    removal: {
+      method: "service",
+      serviceName: "RemoteRegistry",
+      requiresAdmin: true,
+      requiresRestart: false,
+      requiresSignOut: false,
+    },
+    restore: { supported: true, method: "service", serviceName: "RemoteRegistry", defaultStartType: "Manual" },
+    verification: { method: "service-query", serviceName: "RemoteRegistry", expectedDisabledState: "Disabled" },
+    estimatedRamMb: 0,
+    estimatedDiskMb: 0,
+    affectedFeatures: ["Remote registry access"],
+  },
+
+  {
+    id: "win_remote_mgmt",
+    name: "Windows Remote Management",
+    description: "Remote management protocol. Not needed on personal gaming PCs.",
+    type: "service",
+    category: "system-services",
+    minLevel: "aggressive",
+    safety: "safe",
+    defaultForRoles: ["gaming", "streaming", "workstation", "laptop", "minimal"],
+    removal: {
+      method: "service",
+      serviceName: "WinRM",
+      requiresAdmin: true,
+      requiresRestart: false,
+      requiresSignOut: false,
+    },
+    restore: { supported: true, method: "service", serviceName: "WinRM", defaultStartType: "Manual" },
+    verification: { method: "service-query", serviceName: "WinRM", expectedDisabledState: "Disabled" },
+    estimatedRamMb: 0,
+    estimatedDiskMb: 0,
+    affectedFeatures: ["Remote management tools", "some IT admin tools"],
+  },
+
+  {
+    id: "xbox_live_auth",
+    name: "Xbox Live Auth Manager",
+    description: "Xbox Live authentication service. Disable if not using Xbox Live or Game Pass.",
+    type: "service",
+    category: "system-services",
+    minLevel: "aggressive",
+    safety: "medium",
+    defaultForRoles: ["streaming", "workstation", "laptop", "minimal"],
+    removal: {
+      method: "service",
+      serviceName: "XblAuthManager",
+      requiresAdmin: true,
+      requiresRestart: false,
+      requiresSignOut: false,
+    },
+    restore: { supported: true, method: "service", serviceName: "XblAuthManager", defaultStartType: "Manual" },
+    verification: { method: "service-query", serviceName: "XblAuthManager", expectedDisabledState: "Disabled" },
+    estimatedRamMb: 15,
+    estimatedDiskMb: 0,
+    affectedFeatures: ["Xbox Live sign-in", "Game Pass authentication"],
+  },
+
+  {
+    id: "xbox_live_gamesave",
+    name: "Xbox Live Game Save",
+    description: "Xbox Live cloud save sync. Disable if not using Xbox cloud saves.",
+    type: "service",
+    category: "system-services",
+    minLevel: "aggressive",
+    safety: "medium",
+    defaultForRoles: ["streaming", "workstation", "laptop", "minimal"],
+    removal: {
+      method: "service",
+      serviceName: "XblGameSave",
+      requiresAdmin: true,
+      requiresRestart: false,
+      requiresSignOut: false,
+    },
+    restore: { supported: true, method: "service", serviceName: "XblGameSave", defaultStartType: "Manual" },
+    verification: { method: "service-query", serviceName: "XblGameSave", expectedDisabledState: "Disabled" },
+    estimatedRamMb: 10,
+    estimatedDiskMb: 0,
+    affectedFeatures: ["Xbox Live cloud game saves"],
+  },
+
+  {
+    id: "xbox_live_network",
+    name: "Xbox Live Networking",
+    description: "Xbox Live networking service. Disable if not using Xbox Live features.",
+    type: "service",
+    category: "system-services",
+    minLevel: "aggressive",
+    safety: "medium",
+    defaultForRoles: ["streaming", "workstation", "laptop", "minimal"],
+    removal: {
+      method: "service",
+      serviceName: "XboxNetApiSvc",
+      requiresAdmin: true,
+      requiresRestart: false,
+      requiresSignOut: false,
+    },
+    restore: { supported: true, method: "service", serviceName: "XboxNetApiSvc", defaultStartType: "Manual" },
+    verification: { method: "service-query", serviceName: "XboxNetApiSvc", expectedDisabledState: "Disabled" },
+    estimatedRamMb: 10,
+    estimatedDiskMb: 0,
+    affectedFeatures: ["Xbox Live multiplayer networking"],
+  },
+
+  {
+    id: "windows_insider_svc",
+    name: "Windows Insider Service",
+    description: "Windows Insider preview update service. Safe to disable on stable builds.",
+    type: "service",
+    category: "system-services",
+    minLevel: "aggressive",
+    safety: "safe",
+    defaultForRoles: ["gaming", "streaming", "workstation", "laptop", "minimal"],
+    removal: {
+      method: "service",
+      serviceName: "wisvc",
+      requiresAdmin: true,
+      requiresRestart: false,
+      requiresSignOut: false,
+    },
+    restore: { supported: true, method: "service", serviceName: "wisvc", defaultStartType: "Manual" },
+    verification: { method: "service-query", serviceName: "wisvc", expectedDisabledState: "Disabled" },
+    estimatedRamMb: 0,
+    estimatedDiskMb: 0,
+    affectedFeatures: ["Windows Insider updates only"],
+  },
+
+  {
+    id: "retail_demo",
+    name: "Retail Demo Service",
+    description: "Demo mode service for retail store displays. Not needed on personal PCs.",
+    type: "service",
+    category: "system-services",
+    minLevel: "aggressive",
+    safety: "safe",
+    defaultForRoles: ["gaming", "streaming", "workstation", "laptop", "minimal"],
+    removal: {
+      method: "service",
+      serviceName: "RetailDemo",
+      requiresAdmin: true,
+      requiresRestart: false,
+      requiresSignOut: false,
+    },
+    restore: { supported: true, method: "service", serviceName: "RetailDemo", defaultStartType: "Manual" },
+    verification: { method: "service-query", serviceName: "RetailDemo", expectedDisabledState: "Disabled" },
+    estimatedRamMb: 0,
+    estimatedDiskMb: 0,
+    affectedFeatures: ["Windows retail demo mode only"],
+  },
+
+  // ── Privacy & Telemetry — extended ───────────────────────────────────────
+
+  {
+    id: "telemetry_tasks",
+    name: "Microsoft Compatibility Telemetry Tasks",
+    description: "Disables 7 Microsoft telemetry scheduled tasks that collect compatibility and usage data in the background.",
+    type: "task",
+    category: "telemetry",
+    minLevel: "aggressive",
+    safety: "safe",
+    defaultForRoles: ["gaming", "streaming", "workstation", "laptop", "minimal"],
+    removal: {
+      method: "task",
+      taskPaths: [
+        "\\Microsoft\\Windows\\Application Experience\\Microsoft Compatibility Appraiser",
+        "\\Microsoft\\Windows\\Application Experience\\ProgramDataUpdater",
+        "\\Microsoft\\Windows\\Customer Experience Improvement Program\\Consolidator",
+        "\\Microsoft\\Windows\\Customer Experience Improvement Program\\UsbCeip",
+        "\\Microsoft\\Windows\\DiskDiagnostic\\Microsoft-Windows-DiskDiagnosticDataCollector",
+        "\\Microsoft\\Windows\\Feedback\\Siuf\\DmClient",
+        "\\Microsoft\\Windows\\Feedback\\Siuf\\DmClientOnScenarioDownload",
+      ],
+      requiresAdmin: true,
+      requiresRestart: false,
+      requiresSignOut: false,
+    },
+    restore: {
+      supported: true,
+      method: "task",
+      taskPaths: [
+        "\\Microsoft\\Windows\\Application Experience\\Microsoft Compatibility Appraiser",
+        "\\Microsoft\\Windows\\Application Experience\\ProgramDataUpdater",
+        "\\Microsoft\\Windows\\Customer Experience Improvement Program\\Consolidator",
+        "\\Microsoft\\Windows\\Customer Experience Improvement Program\\UsbCeip",
+        "\\Microsoft\\Windows\\DiskDiagnostic\\Microsoft-Windows-DiskDiagnosticDataCollector",
+        "\\Microsoft\\Windows\\Feedback\\Siuf\\DmClient",
+        "\\Microsoft\\Windows\\Feedback\\Siuf\\DmClientOnScenarioDownload",
+      ],
+    },
+    verification: {
+      method: "task-query",
+      taskPaths: [
+        "\\Microsoft\\Windows\\Application Experience\\Microsoft Compatibility Appraiser",
+        "\\Microsoft\\Windows\\Application Experience\\ProgramDataUpdater",
+        "\\Microsoft\\Windows\\Customer Experience Improvement Program\\Consolidator",
+        "\\Microsoft\\Windows\\Customer Experience Improvement Program\\UsbCeip",
+        "\\Microsoft\\Windows\\DiskDiagnostic\\Microsoft-Windows-DiskDiagnosticDataCollector",
+        "\\Microsoft\\Windows\\Feedback\\Siuf\\DmClient",
+        "\\Microsoft\\Windows\\Feedback\\Siuf\\DmClientOnScenarioDownload",
+      ],
+    },
+    estimatedRamMb: 0,
+    estimatedDiskMb: 0,
+    affectedFeatures: ["Telemetry data collection tasks"],
+  },
+
+  {
+    id: "ceip_registry",
+    name: "Customer Experience Improvement Program",
+    description: "Disables the Windows Customer Experience Improvement Program data collection via policy.",
+    type: "registry",
+    category: "telemetry",
+    minLevel: "aggressive",
+    safety: "safe",
+    defaultForRoles: ["gaming", "streaming", "workstation", "laptop", "minimal"],
+    removal: {
+      method: "registry",
+      regPath: "HKLM:\\SOFTWARE\\Policies\\Microsoft\\SQMClient\\Windows",
+      regName: "CEIPEnable",
+      regValueDisabled: 0,
+      requiresAdmin: true,
+      requiresRestart: false,
+      requiresSignOut: false,
+    },
+    restore: { supported: true, method: "registry", regValueDefault: 1 },
+    verification: {
+      method: "registry-read",
+      regPath: "HKLM:\\SOFTWARE\\Policies\\Microsoft\\SQMClient\\Windows",
+      regName: "CEIPEnable",
+      expectedDisabledValue: 0,
+    },
+    estimatedRamMb: 0,
+    estimatedDiskMb: 0,
+    affectedFeatures: ["Background usage data collection"],
   },
 ];
 

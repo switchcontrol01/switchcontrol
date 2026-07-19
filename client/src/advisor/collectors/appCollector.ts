@@ -24,15 +24,15 @@ export function collectAppSignals(storeState: {
     if (api?.getAppVersion) {
       signals.appVersion = { value: "pending", source: "electron" };
       api.getAppVersion().then((v: string) => {
-        signals.appVersion = { value: v || "1.2.2", source: "electron" };
+        signals.appVersion = { value: v || "1.2.3", source: "electron" };
       }).catch(() => {
-        signals.appVersion = { value: "1.2.2", source: "static" };
+        signals.appVersion = { value: "1.2.3", source: "static" };
       });
     } else {
-      signals.appVersion = { value: "1.2.2", source: "static" };
+      signals.appVersion = { value: "1.2.3", source: "static" };
     }
   } catch {
-    signals.appVersion = { value: "1.2.2", source: "static", error: "Could not detect version" };
+    signals.appVersion = { value: "1.2.3", source: "static", error: "Could not detect version" };
   }
 
   try {

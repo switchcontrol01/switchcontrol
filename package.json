@@ -1,6 +1,6 @@
 {
   "name": "switchcontrol",
-  "version": "1.2.2",
+  "version": "1.2.3",
  "packageManager": "npm@10.8.2",
 "engines": {
   "node": ">=20.19.0 <21",

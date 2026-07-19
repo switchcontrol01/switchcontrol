@@ -633,6 +633,14 @@ const ADMIN_TWEAKS = {
     revert: `Set-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power" -Name "HibernateEnabled" -Value 1 -Type DWord -Force; & powercfg /h on 2>$null; exit 0`,
     check:  `(Get-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power" -Name "HibernateEnabled" -EA SilentlyContinue).HibernateEnabled -eq 0`,
   },
+  'power-mode-overlay': {
+    name: 'Power Mode — Best Performance',
+    requiresAdmin:  true,
+    requiresReboot: false,
+    apply:  `powercfg /overlaysetactive ded574b5-45a0-4f42-8737-46345c09c238`,
+    revert: `powercfg /overlaysetactive 00000000-0000-0000-0000-000000000000`,
+    check:  `(powercfg /overlaygetactivescheme) -match "ded574b5-45a0-4f42-8737-46345c09c238"`,
+  },
   'fast-startup': {
     name: 'Disable Fast Startup',
     requiresAdmin:  true,

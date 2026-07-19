@@ -11,13 +11,14 @@ import {
   Trash2, Shield, Zap, RefreshCw, CheckCircle2, History,
   AlertCircle, ChevronDown, HardDrive, Lock, Wifi, Cpu,
   ArrowLeft, Sparkles, X, Play, Clock,
+  Gamepad2, AppWindow, Globe, Monitor, FolderOpen,
 } from "lucide-react";
 import StorageHealthSection from "@/components/StorageHealthSection";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 type CleanMode     = "safe" | "advanced";
-type CleanCategory = "storage" | "privacy" | "latency" | "performance";
+type CleanCategory = "storage" | "privacy" | "latency" | "performance" | "gaming" | "apps" | "browsers" | "windows_system" | "storage_cleanup";
 type Phase         = "idle" | "scanning" | "ready" | "cleaning" | "result" | "history";
 
 interface CleanItemDef {
@@ -56,10 +57,15 @@ interface HistoryEntry {
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const CAT_META: Record<CleanCategory, { label: string; color: string; icon: typeof HardDrive; dim: string }> = {
-  storage:     { label: "Storage",     color: "#a78bfa", icon: HardDrive, dim: "rgba(167,139,250,0.12)" },
-  privacy:     { label: "Privacy",     color: "#22d3ee", icon: Lock,      dim: "rgba(34,211,238,0.12)" },
-  latency:     { label: "Latency",     color: "#fb923c", icon: Wifi,      dim: "rgba(251,146,60,0.12)" },
-  performance: { label: "Performance", color: "#4ade80", icon: Cpu,       dim: "rgba(74,222,128,0.12)" },
+  storage:          { label: "Storage",          color: "#a78bfa", icon: HardDrive,  dim: "rgba(167,139,250,0.12)" },
+  privacy:          { label: "Privacy",          color: "#22d3ee", icon: Lock,       dim: "rgba(34,211,238,0.12)" },
+  latency:          { label: "Latency",          color: "#fb923c", icon: Wifi,       dim: "rgba(251,146,60,0.12)" },
+  performance:      { label: "Performance",      color: "#4ade80", icon: Cpu,        dim: "rgba(74,222,128,0.12)" },
+  gaming:           { label: "Gaming",           color: "#f472b6", icon: Gamepad2,   dim: "rgba(244,114,182,0.12)" },
+  apps:             { label: "Apps",             color: "#60a5fa", icon: AppWindow,  dim: "rgba(96,165,250,0.12)" },
+  browsers:         { label: "Browsers",         color: "#34d399", icon: Globe,      dim: "rgba(52,211,153,0.12)" },
+  windows_system:   { label: "Windows System",   color: "#fbbf24", icon: Monitor,    dim: "rgba(251,191,36,0.12)" },
+  storage_cleanup:  { label: "Storage Cleanup",  color: "#a3e635", icon: FolderOpen, dim: "rgba(163,230,53,0.12)" },
 };
 
 const isElectron = () => typeof window !== "undefined" && !!(window as any).electronAPI?.cleaner;
@@ -469,6 +475,7 @@ export default function SystemCleaner() {
   const [phase,    setPhase]    = useState<Phase>("idle");
   const [categories, setCategories] = useState<Record<CleanCategory, CleanItemDef[]>>({
     storage: [], privacy: [], latency: [], performance: [],
+    gaming: [], apps: [], browsers: [], windows_system: [], storage_cleanup: [],
   });
   const [findings,    setFindings]    = useState<Record<string, ScanFinding>>({});
   const [categoryTotals, setCategoryTotals] = useState<Record<string, { sizeBytes: number; fileCount: number; itemCount: number }> | null>(null);
@@ -613,7 +620,7 @@ export default function SystemCleaner() {
 
   const donutSegments: DonutSegment[] = useMemo(() => {
     if (!categoryTotals) return [];
-    return (["storage", "privacy", "latency", "performance"] as CleanCategory[])
+    return (["storage", "privacy", "latency", "performance", "gaming", "apps", "browsers", "windows_system", "storage_cleanup"] as CleanCategory[])
       .map(cat => ({ id: cat, label: CAT_META[cat].label, color: CAT_META[cat].color, bytes: categoryTotals[cat]?.sizeBytes ?? 0 }))
       .filter(s => s.bytes > 0);
   }, [categoryTotals]);
@@ -758,8 +765,8 @@ export default function SystemCleaner() {
               <StorageHealthSection />
 
               {/* Category preview tiles */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                {(["storage", "privacy", "latency", "performance"] as CleanCategory[]).map((cat, i) => {
+              <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+                {(["storage", "privacy", "latency", "performance", "gaming", "apps", "browsers", "windows_system", "storage_cleanup"] as CleanCategory[]).map((cat, i) => {
                   const meta = CAT_META[cat];
                   const Icon = meta.icon;
                   const itemCount = categories[cat].length;
@@ -869,7 +876,7 @@ export default function SystemCleaner() {
 
               {/* Category sections */}
               <div className="space-y-3">
-                {(["storage", "privacy", "latency", "performance"] as CleanCategory[])
+                {(["storage", "privacy", "latency", "performance", "gaming", "apps", "browsers", "windows_system", "storage_cleanup"] as CleanCategory[])
                   .filter(cat => categories[cat].length > 0)
                   .map((cat, i) => (
                     <CategorySection key={cat} category={cat}
@@ -978,8 +985,8 @@ export default function SystemCleaner() {
               </div>
 
               {/* Per-category result */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                {(["storage", "privacy", "latency", "performance"] as CleanCategory[]).map(cat => {
+              <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+                {(["storage", "privacy", "latency", "performance", "gaming", "apps", "browsers", "windows_system", "storage_cleanup"] as CleanCategory[]).map(cat => {
                   const meta = CAT_META[cat];
                   const Icon = meta.icon;
                   const catItems = categories[cat];

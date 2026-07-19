@@ -27,7 +27,7 @@ import { PieChart, Pie, Cell } from "recharts";
 type SystemRole = "gaming" | "streaming" | "workstation" | "laptop" | "minimal";
 type DebloatLevel = "safe" | "balanced" | "aggressive" | "extreme";
 type SafetyTier = "safe" | "medium" | "high";
-type ItemType = "appx" | "registry" | "service";
+type ItemType = "appx" | "registry" | "service" | "task";
 type DebloatCategory = "consumer-apps" | "telemetry" | "gaming" | "cloud" | "system-services" | "shell-features";
 type ResultStatus = "removed" | "restored" | "already-absent" | "already-present"
   | "failed" | "verification-failed" | "unsupported" | "partial" | "pending";
@@ -49,6 +49,7 @@ interface DebloatItem {
   estimatedDiskMb: number;
   affectedFeatures: string[];
   defaultSelected: boolean;
+  taskPaths?: string[];
 }
 
 interface ApplyResult {
@@ -833,10 +834,11 @@ export default function Debloater() {
     try {
       const scanPayload = items.map(item => ({
         id: item.id, type: item.type,
-        packageName: (item as any).packageName,
-        regPath: (item as any).regPath, regName: (item as any).regName,
-        expectedDisabledValue: (item as any).expectedDisabledValue,
-        serviceName: (item as any).serviceName,
+        packageName: getPackageName(item.id),
+        regPath: getRegPath(item.id), regName: getRegName(item.id),
+        expectedDisabledValue: getRegValueDisabled(item.id),
+        serviceName: getServiceName(item.id),
+        taskPaths: getTaskPaths(item.id),
       }));
       const result = await window.electronAPI!.debloat!.scan(scanPayload);
       if (result.ok) {
@@ -1142,6 +1144,8 @@ export default function Debloater() {
       regValueDisabled: getRegValueDisabled(item.id),
       // service
       serviceName: getServiceName(item.id),
+      // task
+      taskPaths: getTaskPaths(item.id),
     };
   }
 
@@ -1155,6 +1159,7 @@ export default function Debloater() {
       regValueDefault: getRegValueDefault(item.id),
       serviceName: getServiceName(item.id),
       defaultStartType: getDefaultStartType(item.id),
+      taskPaths: getTaskPaths(item.id),
     };
   }
 
@@ -1162,80 +1167,155 @@ export default function Debloater() {
   // the full command parameters without a second network round-trip.
   function getPackageName(id: string): string | undefined {
     const map: Record<string, string> = {
-      teams_consumer: "MicrosoftTeams",
-      feedback_hub:   "Microsoft.WindowsFeedbackHub",
-      people_app:     "Microsoft.People",
-      solitaire:      "Microsoft.MicrosoftSolitaireCollection",
-      tips_app:       "Microsoft.Getstarted",
-      bing_weather:   "Microsoft.BingWeather",
-      maps_app:       "Microsoft.WindowsMaps",
-      cortana:        "Microsoft.549981C3F5F10",
-      xbox_gamebar:   "Microsoft.XboxGamingOverlay",
-      mixed_reality:  "Microsoft.MixedReality.Portal",
+      teams_consumer:        "MicrosoftTeams",
+      feedback_hub:          "Microsoft.WindowsFeedbackHub",
+      people_app:            "Microsoft.People",
+      solitaire:             "Microsoft.MicrosoftSolitaireCollection",
+      tips_app:              "Microsoft.Getstarted",
+      bing_weather:          "Microsoft.BingWeather",
+      maps_app:              "Microsoft.WindowsMaps",
+      cortana:               "Microsoft.549981C3F5F10",
+      xbox_gamebar:          "Microsoft.XboxGamingOverlay",
+      mixed_reality:         "Microsoft.MixedReality.Portal",
+      // Extended consumer apps
+      bing_news:             "Microsoft.BingNews",
+      ms_todo:               "Microsoft.Todos",
+      clipchamp:             "Clipchamp.Clipchamp",
+      ms_family:             "MicrosoftCorporationII.MicrosoftFamily",
+      ms_whiteboard:         "Microsoft.Whiteboard",
+      power_automate:        "Microsoft.PowerAutomateDesktop",
+      voice_recorder:        "Microsoft.WindowsSoundRecorder",
+      xbox_identity_provider:"Microsoft.XboxIdentityProvider",
+      xbox_game_speech:      "Microsoft.XboxGameSpeech",
+      xbox_tcui:             "Microsoft.Xbox.TCUI",
+      phone_link:            "Microsoft.YourPhone",
+      paint_3d:              "Microsoft.MSPaint",
+      ms_3d_viewer:          "Microsoft.Microsoft3DViewer",
+      skype:                 "Microsoft.SkypeApp",
     };
     return map[id];
   }
 
   function getRegPath(id: string): string | undefined {
     const map: Record<string, string> = {
-      advertising_id:  "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\AdvertisingInfo",
-      activity_history: "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\System",
-      start_suggestions: "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
-      lock_screen_ads: "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
-      copilot:         "HKCU:\\Software\\Policies\\Microsoft\\Windows\\WindowsCopilot",
-      widgets:         "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Dsh",
+      advertising_id:       "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\AdvertisingInfo",
+      activity_history:     "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\System",
+      start_suggestions:    "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
+      lock_screen_ads:      "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
+      copilot:              "HKCU:\\Software\\Policies\\Microsoft\\Windows\\WindowsCopilot",
+      widgets:              "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Dsh",
+      // Extended shell & UI
+      chat_icon:            "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+      start_recommendations:"HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\Explorer",
+      tips_notifications:   "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
+      get_more_windows:     "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\UserProfileEngagement",
+      // Extended telemetry
+      ceip_registry:        "HKLM:\\SOFTWARE\\Policies\\Microsoft\\SQMClient\\Windows",
     };
     return map[id];
   }
 
   function getRegName(id: string): string | undefined {
     const map: Record<string, string> = {
-      advertising_id:   "Enabled",
-      activity_history: "PublishUserActivities",
-      start_suggestions: "SystemPaneSuggestionsEnabled",
-      lock_screen_ads:  "RotatingLockScreenOverlayEnabled",
-      copilot:          "TurnOffWindowsCopilot",
-      widgets:          "AllowNewsAndInterests",
+      advertising_id:       "Enabled",
+      activity_history:     "PublishUserActivities",
+      start_suggestions:    "SystemPaneSuggestionsEnabled",
+      lock_screen_ads:      "RotatingLockScreenOverlayEnabled",
+      copilot:              "TurnOffWindowsCopilot",
+      widgets:              "AllowNewsAndInterests",
+      // Extended shell & UI
+      chat_icon:            "TaskbarMn",
+      start_recommendations:"HideRecommendedSection",
+      tips_notifications:   "SoftLandingEnabled",
+      get_more_windows:     "ScoobeSystemSettingEnabled",
+      // Extended telemetry
+      ceip_registry:        "CEIPEnable",
     };
     return map[id];
   }
 
   function getRegValueDisabled(id: string): number | string | undefined {
     const map: Record<string, number | string> = {
-      advertising_id:   0,
-      activity_history: 0,
-      start_suggestions: 0,
-      lock_screen_ads:  0,
-      copilot:          1,
-      widgets:          0,
+      advertising_id:       0,
+      activity_history:     0,
+      start_suggestions:    0,
+      lock_screen_ads:      0,
+      copilot:              1,
+      widgets:              0,
+      // Extended shell & UI
+      chat_icon:            0,
+      start_recommendations:1,
+      tips_notifications:   0,
+      get_more_windows:     0,
+      // Extended telemetry
+      ceip_registry:        0,
     };
     return map[id];
   }
 
   function getRegValueDefault(id: string): number | string | undefined {
     const map: Record<string, number | string> = {
-      advertising_id:   1,
-      activity_history: 1,
-      start_suggestions: 1,
-      lock_screen_ads:  1,
-      copilot:          0,
-      widgets:          1,
+      advertising_id:       1,
+      activity_history:     1,
+      start_suggestions:    1,
+      lock_screen_ads:      1,
+      copilot:              0,
+      widgets:              1,
+      // Extended shell & UI
+      chat_icon:            1,
+      start_recommendations:0,
+      tips_notifications:   1,
+      get_more_windows:     1,
+      // Extended telemetry
+      ceip_registry:        1,
     };
     return map[id];
   }
 
   function getServiceName(id: string): string | undefined {
     const map: Record<string, string> = {
-      diagtrack: "DiagTrack",
-      sysmain:   "SysMain",
+      diagtrack:           "DiagTrack",
+      sysmain:             "SysMain",
+      // Extended services
+      print_spooler:       "Spooler",
+      remote_registry:     "RemoteRegistry",
+      win_remote_mgmt:     "WinRM",
+      xbox_live_auth:      "XblAuthManager",
+      xbox_live_gamesave:  "XblGameSave",
+      xbox_live_network:   "XboxNetApiSvc",
+      windows_insider_svc: "wisvc",
+      retail_demo:         "RetailDemo",
     };
     return map[id];
   }
 
   function getDefaultStartType(id: string): string | undefined {
     const map: Record<string, string> = {
-      diagtrack: "Automatic",
-      sysmain:   "Automatic",
+      diagtrack:          "Automatic",
+      sysmain:            "Automatic",
+      print_spooler:      "Automatic",
+      remote_registry:    "Manual",
+      win_remote_mgmt:    "Manual",
+      xbox_live_auth:     "Manual",
+      xbox_live_gamesave: "Manual",
+      xbox_live_network:  "Manual",
+      windows_insider_svc:"Manual",
+      retail_demo:        "Manual",
+    };
+    return map[id];
+  }
+
+  function getTaskPaths(id: string): string[] | undefined {
+    const map: Record<string, string[]> = {
+      telemetry_tasks: [
+        "\\Microsoft\\Windows\\Application Experience\\Microsoft Compatibility Appraiser",
+        "\\Microsoft\\Windows\\Application Experience\\ProgramDataUpdater",
+        "\\Microsoft\\Windows\\Customer Experience Improvement Program\\Consolidator",
+        "\\Microsoft\\Windows\\Customer Experience Improvement Program\\UsbCeip",
+        "\\Microsoft\\Windows\\DiskDiagnostic\\Microsoft-Windows-DiskDiagnosticDataCollector",
+        "\\Microsoft\\Windows\\Feedback\\Siuf\\DmClient",
+        "\\Microsoft\\Windows\\Feedback\\Siuf\\DmClientOnScenarioDownload",
+      ],
     };
     return map[id];
   }

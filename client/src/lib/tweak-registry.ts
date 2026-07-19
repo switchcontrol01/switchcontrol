@@ -153,6 +153,19 @@ const BASE: BaseTweak[] = [
     supported: true, requiresAdmin: true,
   },
   {
+    id: "power-mode-overlay",
+    title: "Power Mode — Best Performance",
+    description: "Sets Windows 11 Power Mode to Best Performance. Stacks with your Power Plan for maximum performance. Found in Windows Settings → System → Power.",
+    impact: [
+      "Activates Windows 11 Best Performance power mode overlay",
+      "Stacks on top of your active Power Plan for maximum output",
+      "Takes effect instantly — no reboot required",
+    ],
+    expected: { disk: "None", ram: "None", cpu: "Medium", gpu: "None", network: "None", latency: "Medium", stabilityRisk: "Low" },
+    category: "System and Power", level: "Recommended", risk: "Safe",
+    supported: true, requiresAdmin: true,
+  },
+  {
     id: "fast-startup",
     title: "Disable Fast Startup",
     description: "Ensures clean boot state every time by disabling hybrid shutdown.",
