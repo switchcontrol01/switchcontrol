@@ -1427,32 +1427,37 @@ function gpuInstanceIdToRegistryPath(deviceInstanceId) {
 // Returns [{ deviceInstanceId, deviceName, deviceClass, registryPath }].
 
 async function scanPciMsiDevices() {
-  const raw = await queryPowerShell(`
-    $classes = @(
-      @{ name='Display';     cls='gpu'     },
-      @{ name='Net';         cls='net'     },
-      @{ name='SCSIAdapter'; cls='storage' },
-      @{ name='USB';         cls='usb'     }
-    )
-    $results = @()
-    foreach ($entry in $classes) {
-      $devs = @(Get-PnpDevice -Class $entry.name -EA SilentlyContinue |
-        Where-Object { $_.InstanceId -match '^PCI' -and $_.Status -ne 'Unknown' })
-      foreach ($d in $devs) {
-        $id   = $d.InstanceId.ToUpper()
-        $dName = if ($d.FriendlyName) { $d.FriendlyName } else { $d.Name }
-        $path = "HKLM:\\SYSTEM\\CurrentControlSet\\Enum\\$id\\Device Parameters\\Interrupt Management\\MessageSignaledInterruptProperties"
-        $results += [PSCustomObject]@{
-          deviceInstanceId = $id
-          deviceName       = $dName
-          deviceClass      = $entry.cls
-          registryPath     = $path
-        }
-      }
-    }
-    if ($results.Count -eq 0) { Write-Output '[]'; return }
-    $results | ConvertTo-Json -Compress -AsArray
-  `.trim());
+  // Read directly from HKLM:\SYSTEM\CurrentControlSet\Enum\PCI — no Get-PnpDevice,
+  // no elevation required. Get-PnpDevice silently returns empty without admin on
+  // some Windows configurations; the registry approach works for all users.
+  // IMPORTANT: Do NOT use a JS template literal (backtick string) here — PowerShell
+  // uses backticks for line continuation, and a bare backtick inside a JS template
+  // literal closes the string, causing a SyntaxError that crashes the whole app.
+  const psLines = [
+    '$pciRoot = "HKLM:\\\\SYSTEM\\\\CurrentControlSet\\\\Enum\\\\PCI"',
+    '$clsMap  = @{ Display="gpu"; Net="net"; SCSIAdapter="storage"; HDC="storage"; USB="usb" }',
+    '$results = @()',
+    'try {',
+    '  foreach ($devKey in (Get-ChildItem -Path $pciRoot -EA SilentlyContinue)) {',
+    '    $devFolder = $devKey.PSChildName',
+    '    foreach ($instKey in (Get-ChildItem -Path $devKey.PSPath -EA SilentlyContinue)) {',
+    '      $instFolder  = $instKey.PSChildName',
+    '      $instKeyPath = "$pciRoot\\\\$devFolder\\\\$instFolder"',
+    '      $props = Get-ItemProperty -Path $instKeyPath -EA SilentlyContinue',
+    '      $cls   = if ($props -and $props.Class) { $props.Class } else { "" }',
+    '      if ($cls -and $clsMap.ContainsKey($cls)) {',
+    '        $raw_ = if ($props.FriendlyName) { $props.FriendlyName } elseif ($props.DeviceDesc) { $props.DeviceDesc } else { "$devFolder\\\\$instFolder" }',
+    '        $dName = ($raw_ -replace "^@[^;]+;","").Trim()',
+    '        $instId  = ("PCI\\\\$devFolder\\\\$instFolder").ToUpper()',
+    '        $msiPath = "$instKeyPath\\\\Device Parameters\\\\Interrupt Management\\\\MessageSignaledInterruptProperties"',
+    '        $results += [PSCustomObject]@{ deviceInstanceId=$instId; deviceName=$dName; deviceClass=$clsMap[$cls]; registryPath=$msiPath }',
+    '      }',
+    '    }',
+    '  }',
+    '} catch {}',
+    'if ($results.Count -eq 0) { Write-Output "[]" } else { $results | ConvertTo-Json -Compress -AsArray }',
+  ];
+  const raw = await queryPowerShell(psLines.join('\n'));
 
   if (!raw) return [];
   try {

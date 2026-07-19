@@ -3982,7 +3982,7 @@ public class DspHelper {
           } else {
             if (ok) appliedCount++; else failedCount++;
             console.log('[ExtremeLabsApply]', JSON.stringify({ id, applied: ok, tweakId: mapped.tweakId, type: 'tweak', error: execResult.error }));
-            results.push({ id, applied: ok, result: execResult });
+            results.push({ id, applied: ok, result: execResult, error: execResult.error });
           }
         }
       } catch (e) {

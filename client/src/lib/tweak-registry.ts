@@ -236,17 +236,20 @@ const BASE: BaseTweak[] = [
   {
     id: "vbs",
     title: "Disable Windows VBS",
-    description: "Disables Virtualization Based Security entirely.",
+    description: "Disables Virtualization Based Security (VBS) entirely. Reduces CPU and memory overhead from hardware-isolated security processes. Recommended only on dedicated gaming builds — disables WSL2, Docker, and Windows Sandbox.",
     impact: [
-      "Removes VBS overhead from system",
-      "Can improve performance in certain workloads",
-      "Risk: significantly reduces security against advanced threats",
+      "Removes VBS hypervisor overhead — can reduce CPU interrupt latency",
+      "Frees memory reserved for isolated security processes",
+      "Requires a restart to take effect",
+      "Disables WSL2, Docker Desktop, Android Subsystem, and Windows Sandbox",
+      "Reduces protection against kernel-level exploits — only use on dedicated gaming PCs",
     ],
     expected: { cpu: "Medium", ram: "Low", gpu: "None", disk: "None", network: "None", latency: "Low", stabilityRisk: "High" },
-    category: "System and Power", level: "Experimental", risk: "Risky",
+    category: "System and Power", level: "Experimental", risk: "Moderate",
     requiresReboot: true, supported: true, requiresAdmin: true,
+    whoShouldAvoid: "Anyone using WSL2, Docker Desktop, Windows Sandbox, or Android app support. Multi-purpose PCs where security matters.",
     detailsConfig: {
-      warningText: "Disabling this feature reduces protection against kernel-level attacks and will break WSL2, Docker Desktop, Android emulators, and Windows Sandbox. Only disable on dedicated gaming builds.",
+      warningText: "Disabling VBS reduces protection against kernel-level attacks and will break WSL2, Docker Desktop, Android emulators, and Windows Sandbox. Only disable on dedicated gaming builds with no other workloads.",
     },
   },
   {
@@ -845,6 +848,42 @@ const BASE: BaseTweak[] = [
     },
   },
 
+  {
+    id: "timer-res",
+    title: "Global Timer Resolution",
+    description: "Holds the Windows system timer at 0.5 ms while SwitchControl is running. Reduces scheduling granularity and can lower frame-time jitter in games that rely on fine-grained sleep/timer calls.",
+    impact: [
+      "Reduces Sleep() and scheduler granularity from the default 15.6 ms to 0.5 ms",
+      "Can lower frame-time variance in latency-sensitive titles",
+      "Slightly increases idle CPU wakeups; effect resets automatically when the app closes",
+      "Results vary by game engine and workload",
+    ],
+    expected: { latency: "Medium", cpu: "Low", ram: "None", gpu: "None", disk: "None", network: "None", stabilityRisk: "Low" },
+    category: "Gaming and Latency", level: "Advanced", risk: "Moderate",
+    requiresReboot: false, supported: true, requiresAdmin: false,
+    whoShouldAvoid: "Laptop users on battery — continuous high-resolution timer increases power draw. The effect reverts automatically on app exit.",
+    detailsConfig: {
+      warningText: "Uses NtSetTimerResolution via a persistent background agent. No registry keys are written. The resolution resets to system default when SwitchControl exits.",
+    },
+  },
+  {
+    id: "hpet-disable",
+    title: "Disable HPET Platform Clock",
+    description: "Removes the HPET (High Precision Event Timer) as the platform clock source via BCDEdit. Forces Windows to rely on the TSC (Time Stamp Counter) instead, which can reduce scheduling overhead on modern CPUs.",
+    impact: [
+      "Can reduce timer interrupt overhead on systems where HPET adds latency",
+      "Forces Windows to use TSC — more efficient on modern x86 hardware",
+      "A restart is required to take effect",
+      "Results are hardware-dependent — may not help on all systems",
+    ],
+    expected: { latency: "Medium", cpu: "Low", ram: "None", gpu: "None", disk: "None", network: "None", stabilityRisk: "Low" },
+    category: "Gaming and Latency", level: "Advanced", risk: "Moderate",
+    requiresReboot: true, supported: true, requiresAdmin: true,
+    whoShouldAvoid: "Virtual machines and systems where HPET is the only reliable clock source. On most modern bare-metal systems this is safe.",
+    detailsConfig: {
+      warningText: "Runs: bcdedit /set useplatformclock No. Revert runs: bcdedit /set useplatformclock Yes. A restart is required after both apply and revert.",
+    },
+  },
   {
     id: "pci-msi-mode",
     title: "PCI MSI Mode",

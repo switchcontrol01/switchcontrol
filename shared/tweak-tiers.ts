@@ -95,6 +95,8 @@ export const PREMIUM_EXCEPTION_IDS: Set<string> = new Set([
   "irq-priority",
   "irq-optimization-profile",
   "synth-timers",
+  "timer-res",
+  "hpet-disable",
   "tune-priority",
   "win32-priority-sep",
   "sys-responsiveness",
@@ -176,6 +178,8 @@ export const TWEAK_TIER_MAP: Record<string, TweakTierInfo> = {
   "irq-priority":             { level: "Experimental", category: "Gaming and Latency" },
   "irq-optimization-profile": { level: "Advanced",     category: "Gaming and Latency" },
   "synth-timers":             { level: "Experimental", category: "Gaming and Latency" },
+  "timer-res":                { level: "Advanced",     category: "Gaming and Latency" },
+  "hpet-disable":             { level: "Advanced",     category: "Gaming and Latency" },
   "disable-fso":              { level: "Recommended",  category: "Gaming and Latency" },
   "usb-selective-suspend":    { level: "Recommended",  category: "Gaming and Latency" },
 
