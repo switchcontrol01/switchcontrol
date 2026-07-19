@@ -1,10 +1,6 @@
 # SwitchControl - Gaming Optimization Dashboard
 
-A premium gaming optimization dashboard with a cyberpunk aesthetic. This project includes both a web version and a Windows desktop application.
-
-## Quick Start (Web Version on Replit)
-
-The web version runs automatically on Replit. Just click "Run" and access the dashboard.
+A premium gaming optimization dashboard with a cyberpunk aesthetic. 
 
 ---
 
