@@ -196,6 +196,10 @@ export default function DriverIntelligence() {
   // when the tool is present, vs "Download from NVIDIA" when it isn't.
   const [detectedApps, setDetectedApps] = useState<Record<string, boolean>>({});
 
+  // Installed driver versions read from the Windows registry (Electron only).
+  const [installedVersions, setInstalledVersions] = useState<Record<string, string>>({});
+  const [installedLoading, setInstalledLoading] = useState(true);
+
   // Lazy scan: kick off only when the page is actually viewable (not locked).
   useEffect(() => {
     if (locked) return;
@@ -208,6 +212,25 @@ export default function DriverIntelligence() {
   useEffect(() => {
     return () => cancelScan();
   }, [cancelScan]);
+
+  // Fetch installed driver versions from the Windows registry once on mount (Electron only).
+  useEffect(() => {
+    const api = (window as any).electronAPI;
+    if (!api?.driverIntel?.getInstalledVersions) {
+      setInstalledLoading(false);
+      return;
+    }
+    api.driverIntel.getInstalledVersions()
+      .then((versions: Record<string, string>) => {
+        setInstalledVersions(versions || {});
+      })
+      .catch(() => {
+        setInstalledVersions({});
+      })
+      .finally(() => {
+        setInstalledLoading(false);
+      });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Detect installed vendor tools once the component list is ready (desktop only).
   useEffect(() => {
@@ -239,13 +262,48 @@ export default function DriverIntelligence() {
     };
   }, [components]);
 
+  // Map a component kind + vendorKey to the right installedVersions key.
+  function getInstalledVersion(kind: string, vendorKey: string | null): string | null {
+    const v = installedVersions;
+    const vendor = (vendorKey ?? "").toLowerCase();
+    if (kind === "gpu") {
+      if (vendor.includes("amd") || vendor.includes("radeon"))
+        return v.amd_gpu_adrenalin || v.amd_gpu || null;
+      if (vendor.includes("nvidia")) return v.nvidia_gpu || null;
+      if (vendor.includes("intel")) return v.intel_gpu || null;
+    }
+    if (kind === "chipset") {
+      if (vendor.includes("amd")) return v.amd_chipset || null;
+      if (vendor.includes("intel")) return v.intel_chipset || null;
+    }
+    if (kind === "network") return v.wifi || v.ethernet || null;
+    if (kind === "bluetooth") return v.bluetooth || null;
+    if (kind === "monitor") return v.display || null;
+    if (kind === "ssd") return v.storage || null;
+    if (kind === "cpu") return v.processor || null;
+    if (kind === "audio") return v.audio || null;
+    return null;
+  }
+
+  // Merge registry-detected installed versions into component list for display.
+  // bios and monitor already have real values from hw data — only fill null slots.
+  const displayComponents = useMemo<DriverComponent[]>(() => {
+    if (installedLoading || Object.keys(installedVersions).length === 0) return components;
+    return components.map((c) => {
+      if (c.current !== null) return c; // already has a real value — never overwrite
+      const detected = getInstalledVersion(c.kind, c.vendorKey);
+      if (!detected) return c;
+      return { ...c, current: detected };
+    });
+  }, [components, installedVersions, installedLoading]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const scanning = phase === "scanning";
   const dataReady = hasData(phase);
-  const actionable = useMemo(() => countActionable(components), [components]);
+  const actionable = useMemo(() => countActionable(displayComponents), [displayComponents]);
 
   const selectedComponent = useMemo(
-    () => components.find((c) => c.kind === selected) ?? null,
-    [components, selected],
+    () => displayComponents.find((c) => c.kind === selected) ?? null,
+    [displayComponents, selected],
   );
 
   const handleAskAi = (c: DriverComponent) => {
@@ -530,7 +588,7 @@ export default function DriverIntelligence() {
         <div className="mt-6">
           <h2 className="text-sm font-semibold text-[#E6EAF0] mb-3">Components</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
-            {(dataReady ? components : SKELETON_KINDS).map((c, i) =>
+            {(dataReady ? displayComponents : SKELETON_KINDS).map((c, i) =>
               "kind" in c && "device" in c ? (
                 <ComponentCard
                   key={c.kind}
@@ -612,7 +670,7 @@ export default function DriverIntelligence() {
                 // Pre-fill the AI Advisor with a summary of all actionable
                 // components so the conversation starts with real context.
                 try {
-                  const outdated = components.filter(
+                  const outdated = displayComponents.filter(
                     (c) => c.health === "outdated" || c.health === "critical",
                   );
                   if (outdated.length > 0) {

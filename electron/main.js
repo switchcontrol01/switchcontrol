@@ -2108,8 +2108,52 @@
       return { launched: false, reason: 'launch-failed' };
     }
   });
-  
-  // System info (basic)
+
+  // ── Driver Intelligence: read installed driver versions from registry ─────────
+  // ── Driver Intelligence: read installed driver versions from registry ─────────
+  ipcMain.handle('driverIntel:getInstalledVersions', async () => {
+    if (process.platform !== 'win32') return {};
+    const ps = [
+      "$result = @{}",
+      "try {",
+      "  $gc = \"HKLM:\\\\SYSTEM\\\\CurrentControlSet\\\\Control\\\\Class\\\\{4d36e968-e325-11ce-bfc1-08002be10318}\"",
+      "  Get-ChildItem $gc -EA SilentlyContinue |",
+      "    Where-Object { $_.PSChildName -match '^\\\\d+$' } |",
+      "    ForEach-Object {",
+      "      try {",
+      "        $v = (Get-ItemProperty $_.PSPath -Name DriverVersion -EA Stop).DriverVersion",
+      "        $n = (Get-ItemProperty $_.PSPath -Name DriverDesc -EA SilentlyContinue).DriverDesc",
+      "        if ($v -and $n) {",
+      "          $desc = $n.ToLower()",
+      "          if ($desc -match 'amd|radeon') { $result.amd_gpu = $v }",
+      "          elseif ($desc -match 'nvidia|geforce') {",
+      "            $ver = $v -replace '.*\\\\.',''",
+      "            $result.nvidia_gpu = if ($ver.Length -ge 5) { ($ver.Substring(0,$ver.Length-2) + '.' + $ver.Substring($ver.Length-2)) } else { $v }",
+      "          } elseif ($desc -match 'intel') { $result.intel_gpu = $v }",
+      "        }",
+      "      } catch {}",
+      "    }",
+      "} catch {}",
+      "try {",
+      "  $smi = & 'nvidia-smi' --query-gpu=driver_version --format=csv,noheader 2>`$null",
+      "  if (`$smi -and `$smi.Trim()) { `$result.nvidia_gpu = `$smi.Trim() }",
+      "} catch {}",
+      "ConvertTo-Json -InputObject `$result -Compress -Depth 2",
+    ].join("\n");
+    return new Promise((resolve) => {
+      execFile(
+        'powershell',
+        ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden',
+         '-ExecutionPolicy', 'Bypass', '-Command', ps],
+        { windowsHide: true, timeout: 8_000 },
+        (_err, stdout) => {
+          try { resolve(JSON.parse(stdout?.trim() || '{}')); }
+          catch { resolve({}); }
+        }
+      );
+    });
+  });
+
   ipcMain.handle('system:getInfo', () => ({
     platform: process.platform,
     arch: os.arch(),
@@ -4870,4 +4914,3 @@
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
-  

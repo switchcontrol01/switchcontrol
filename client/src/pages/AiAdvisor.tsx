@@ -672,12 +672,36 @@ function SystemProfileCard({ context }: { context: SystemContext | null }) {
           {s?.gpu && <SystemSpecRow icon={Layers} label="GPU" value={s.gpu} color="bg-[#00D4FF]/10 text-[#00D4FF]/70" />}
           {s?.ram && <SystemSpecRow icon={MemoryStick} label="RAM" value={s.ram} color="bg-cyan-500/10 text-cyan-400/70" />}
           {s?.storage && <SystemSpecRow icon={HardDrive} label="Storage" value={s.storage} color="bg-emerald-500/10 text-emerald-400/70" />}
-          {s?.motherboard && <SystemSpecRow icon={MonitorCog} label="Board" value={s.motherboard} color="bg-orange-500/10 text-orange-400/70" />}
-          {s?.network && <SystemSpecRow icon={Wifi} label="Network" value={s.network} color="bg-blue-500/10 text-blue-400/70" />}
-          {s?.display && <SystemSpecRow icon={Monitor} label="Display" value={s.display} color="bg-pink-500/10 text-pink-400/70" />}
-          {!hasExtended && s?.cpu && (
-            <p className="text-[10px] text-[#6B7380]/60 text-center pt-2">Hardware detail not available on this session</p>
-          )}
+          <AnimatePresence>
+            {s?.motherboard && (
+              <motion.div key="mb" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}>
+                <SystemSpecRow icon={MonitorCog} label="Board" value={s.motherboard} color="bg-orange-500/10 text-orange-400/70" />
+              </motion.div>
+            )}
+            {s?.network && (
+              <motion.div key="net" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.45, delay: 0.06, ease: [0.22, 1, 0.36, 1] }}>
+                <SystemSpecRow icon={Wifi} label="Network" value={s.network} color="bg-blue-500/10 text-blue-400/70" />
+              </motion.div>
+            )}
+            {s?.display && (
+              <motion.div key="disp" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.45, delay: 0.12, ease: [0.22, 1, 0.36, 1] }}>
+                <SystemSpecRow icon={Monitor} label="Display" value={s.display} color="bg-pink-500/10 text-pink-400/70" />
+              </motion.div>
+            )}
+            {!hasExtended && s?.cpu && (
+              <motion.div
+                key="loading-advanced"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.35 }}
+                className="flex items-center gap-1.5 pt-2.5 pb-0.5"
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-primary/40 animate-pulse shrink-0" />
+                <p className="text-[10px] text-[#6B7380]/70">Loading advanced hardware info…</p>
+              </motion.div>
+            )}
+          </AnimatePresence>
           {import.meta.env.DEV && (
             <p className="text-[9px] text-amber-400/70 font-mono mt-2 px-0.5 truncate" title={[s?.cpu, s?.gpu, s?.ram].filter(Boolean).join(", ")}>
               AI analyzing: {[s?.cpu, s?.gpu, s?.ram].filter(Boolean).join(", ") || "specs pending…"}

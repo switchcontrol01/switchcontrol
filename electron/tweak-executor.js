@@ -639,7 +639,7 @@ const ADMIN_TWEAKS = {
     requiresReboot: false,
     apply:  `powercfg /overlaysetactive ded574b5-45a0-4f42-8737-46345c09c238`,
     revert: `powercfg /overlaysetactive 00000000-0000-0000-0000-000000000000`,
-    check:  `(powercfg /overlaygetactivescheme) -match "ded574b5-45a0-4f42-8737-46345c09c238"`,
+    check:  `[bool]((powercfg /overlaygetactivescheme 2>&1 | Out-String) -match "ded574b5-45a0-4f42-8737-46345c09c238")`,
   },
   'fast-startup': {
     name: 'Disable Fast Startup',

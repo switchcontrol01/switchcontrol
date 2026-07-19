@@ -1086,6 +1086,10 @@ export default function BiosAdvisor() {
             state === "likely"    ? "bg-amber-500/15 text-amber-400 border-amber-500/30" :
                                     "bg-[#21262D] text-[#6B7380] border-[#2A313A]";
 
+          // True while the 25s deep-scan upgrade hasn't arrived yet
+          const awaitingDeepScan = si.memory.sticks.length === 0 && si.platform.secureBootEnabled === null;
+          const fadeIn = { initial: { opacity: 0, y: 4 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0 }, transition: { duration: 0.45, ease: [0.22, 1, 0.36, 1] as const } };
+
           return (
             <Item>
               <GlassCard className="p-4 border-primary/20">
@@ -1121,63 +1125,85 @@ export default function BiosAdvisor() {
                       <p className="text-xs font-medium text-[#E6EAF0] leading-tight">{biosStr}</p>
                     </div>
                   )}
-                  {ramStr !== "Unknown" && (
-                    <div className="space-y-0.5">
-                      <p className="text-[10px] text-[#6B7380] uppercase tracking-wider">RAM Layout</p>
-                      <p className="text-xs font-medium text-[#E6EAF0] leading-tight">{ramStr}</p>
-                    </div>
-                  )}
-                  {si.platform.secureBootEnabled !== null && (
-                    <div className="space-y-0.5">
-                      <p className="text-[10px] text-[#6B7380] uppercase tracking-wider">Secure Boot</p>
-                      <p className={`text-xs font-medium leading-tight ${si.platform.secureBootEnabled ? "text-emerald-400" : "text-amber-400"}`}>
-                        {si.platform.secureBootEnabled ? "Enabled" : "Disabled"}
-                      </p>
-                    </div>
-                  )}
-                  {si.platform.vbsEnabled !== null && (
-                    <div className="space-y-0.5">
-                      <p className="text-[10px] text-[#6B7380] uppercase tracking-wider">VBS / Memory Integrity</p>
-                      <p className={`text-xs font-medium leading-tight ${si.platform.vbsEnabled ? "text-amber-400" : "text-emerald-400"}`}>
-                        {si.platform.vbsEnabled ? "Enabled (may reduce GPU perf)" : "Disabled"}
-                      </p>
-                    </div>
-                  )}
-                  {si.platform.tpmPresent !== null && (
-                    <div className="space-y-0.5">
-                      <p className="text-[10px] text-[#6B7380] uppercase tracking-wider">TPM</p>
-                      <p className={`text-xs font-medium leading-tight ${si.platform.tpmPresent ? "text-emerald-400" : "text-[#6B7380]"}`}>
-                        {si.platform.tpmPresent ? "Present" : "Not Detected"}
-                      </p>
-                    </div>
-                  )}
-                  {si.platform.uefiBoot !== null && (
-                    <div className="space-y-0.5">
-                      <p className="text-[10px] text-[#6B7380] uppercase tracking-wider">Boot Mode</p>
-                      <p className={`text-xs font-medium leading-tight ${si.platform.uefiBoot ? "text-emerald-400" : "text-amber-400"}`}>
-                        {si.platform.uefiBoot ? "UEFI" : "Legacy BIOS"}
-                      </p>
-                    </div>
-                  )}
-                  {si.platform.virtualizationEnabled !== null && (
-                    <div className="space-y-0.5">
-                      <p className="text-[10px] text-[#6B7380] uppercase tracking-wider">Virtualization</p>
-                      <p className={`text-xs font-medium leading-tight ${si.platform.virtualizationEnabled ? "text-emerald-400" : "text-[#6B7380]"}`}>
-                        {si.platform.virtualizationEnabled ? "Enabled" : "Disabled"}
-                        {si.platform.hypervisorPresent ? " (Hypervisor Active)" : ""}
-                      </p>
-                    </div>
-                  )}
-                  {si.platform.resizeBarEnabled !== null && (
-                    <div className="space-y-0.5">
-                      <p className="text-[10px] text-[#6B7380] uppercase tracking-wider">Resize BAR / SAM</p>
-                      <p className={`text-xs font-medium leading-tight ${si.platform.resizeBarEnabled ? "text-emerald-400" : "text-amber-400"}`}>
-                        {si.platform.resizeBarEnabled ? "Active" : "Inactive"}
-                      </p>
-                    </div>
-                  )}
+                  {/* ── Deep-scan fields — animate in when the full profile arrives ── */}
+                  <AnimatePresence>
+                    {ramStr !== "Unknown" && si.memory.sticks.length > 0 && (
+                      <motion.div key="ram-layout" className="space-y-0.5" {...fadeIn} transition={{ ...fadeIn.transition, delay: 0 }}>
+                        <p className="text-[10px] text-[#6B7380] uppercase tracking-wider">RAM Layout</p>
+                        <p className="text-xs font-medium text-[#E6EAF0] leading-tight">{ramStr}</p>
+                      </motion.div>
+                    )}
+                    {si.platform.secureBootEnabled !== null && (
+                      <motion.div key="secure-boot" className="space-y-0.5" {...fadeIn} transition={{ ...fadeIn.transition, delay: 0.04 }}>
+                        <p className="text-[10px] text-[#6B7380] uppercase tracking-wider">Secure Boot</p>
+                        <p className={`text-xs font-medium leading-tight ${si.platform.secureBootEnabled ? "text-emerald-400" : "text-amber-400"}`}>
+                          {si.platform.secureBootEnabled ? "Enabled" : "Disabled"}
+                        </p>
+                      </motion.div>
+                    )}
+                    {si.platform.vbsEnabled !== null && (
+                      <motion.div key="vbs" className="space-y-0.5" {...fadeIn} transition={{ ...fadeIn.transition, delay: 0.08 }}>
+                        <p className="text-[10px] text-[#6B7380] uppercase tracking-wider">VBS / Memory Integrity</p>
+                        <p className={`text-xs font-medium leading-tight ${si.platform.vbsEnabled ? "text-amber-400" : "text-emerald-400"}`}>
+                          {si.platform.vbsEnabled ? "Enabled (may reduce GPU perf)" : "Disabled"}
+                        </p>
+                      </motion.div>
+                    )}
+                    {si.platform.tpmPresent !== null && (
+                      <motion.div key="tpm" className="space-y-0.5" {...fadeIn} transition={{ ...fadeIn.transition, delay: 0.1 }}>
+                        <p className="text-[10px] text-[#6B7380] uppercase tracking-wider">TPM</p>
+                        <p className={`text-xs font-medium leading-tight ${si.platform.tpmPresent ? "text-emerald-400" : "text-[#6B7380]"}`}>
+                          {si.platform.tpmPresent ? "Present" : "Not Detected"}
+                        </p>
+                      </motion.div>
+                    )}
+                    {si.platform.uefiBoot !== null && (
+                      <motion.div key="boot-mode" className="space-y-0.5" {...fadeIn} transition={{ ...fadeIn.transition, delay: 0.12 }}>
+                        <p className="text-[10px] text-[#6B7380] uppercase tracking-wider">Boot Mode</p>
+                        <p className={`text-xs font-medium leading-tight ${si.platform.uefiBoot ? "text-emerald-400" : "text-amber-400"}`}>
+                          {si.platform.uefiBoot ? "UEFI" : "Legacy BIOS"}
+                        </p>
+                      </motion.div>
+                    )}
+                    {si.platform.virtualizationEnabled !== null && (
+                      <motion.div key="virt" className="space-y-0.5" {...fadeIn} transition={{ ...fadeIn.transition, delay: 0.14 }}>
+                        <p className="text-[10px] text-[#6B7380] uppercase tracking-wider">Virtualization</p>
+                        <p className={`text-xs font-medium leading-tight ${si.platform.virtualizationEnabled ? "text-emerald-400" : "text-[#6B7380]"}`}>
+                          {si.platform.virtualizationEnabled ? "Enabled" : "Disabled"}
+                          {si.platform.hypervisorPresent ? " (Hypervisor Active)" : ""}
+                        </p>
+                      </motion.div>
+                    )}
+                    {si.platform.resizeBarEnabled !== null && (
+                      <motion.div key="rebar" className="space-y-0.5" {...fadeIn} transition={{ ...fadeIn.transition, delay: 0.16 }}>
+                        <p className="text-[10px] text-[#6B7380] uppercase tracking-wider">Resize BAR / SAM</p>
+                        <p className={`text-xs font-medium leading-tight ${si.platform.resizeBarEnabled ? "text-emerald-400" : "text-amber-400"}`}>
+                          {si.platform.resizeBarEnabled ? "Active" : "Inactive"}
+                        </p>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
-                <div className="flex items-center gap-2 mt-3 pt-3  flex-wrap">
+
+                {/* Loading banner — visible while deep-scan upgrade is pending */}
+                <AnimatePresence>
+                  {awaitingDeepScan && (
+                    <motion.div
+                      key="deep-scan-loading"
+                      initial={{ opacity: 0, y: 4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -4 }}
+                      transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                      className="flex items-center gap-2 mt-3 pt-3 border-t border-[#2A313A]"
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full bg-primary/50 animate-pulse shrink-0" />
+                      <span className="text-[10px] text-[#6B7380]/80">Loading advanced system data…</span>
+                      <span className="text-[9px] text-[#6B7380]/40 italic">RAM layout · Secure Boot · VBS · TPM</span>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                <div className="flex items-center gap-2 mt-3 pt-3 flex-wrap border-t border-[#2A313A]">
                   <span className="text-[10px] text-[#6B7380] uppercase tracking-wider mr-1">EXPO/XMP</span>
                   <span className={`text-[10px] px-2 py-0.5 rounded-full border font-medium ${getInferBadge(si.inference.expoOrXmp.state)}`}>
                     {si.inference.expoOrXmp.state === "confirmed" ? "Confirmed Active" :

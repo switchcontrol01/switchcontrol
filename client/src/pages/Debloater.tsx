@@ -783,8 +783,9 @@ export default function Debloater() {
   const [applying, setApplying] = useState(false);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [expandedCategories, setExpandedCategories] = useState<Set<DebloatCategory>>(
-    new Set<DebloatCategory>(["consumer-apps", "telemetry"])
+    new Set<DebloatCategory>(["consumer-apps", "telemetry", "gaming", "cloud", "system-services", "shell-features"])
   );
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const [session, setSession] = useState<ApplySession | null>(null);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [activeView, setActiveView] = useState<"items" | "results" | "history">("items");
@@ -906,6 +907,26 @@ export default function Debloater() {
       const next = new Set(prev);
       if (next.has(cat)) next.delete(cat);
       else next.add(cat);
+      return next;
+    });
+  };
+
+  const toggleCategorySelection = (cat: DebloatCategory, catItems: DebloatItem[]) => {
+    const ids = catItems.map(i => i.id);
+    const allSelected = ids.every(id => selected.has(id));
+    setSelected(prev => {
+      const next = new Set(prev);
+      if (allSelected) ids.forEach(id => next.delete(id));
+      else ids.forEach(id => next.add(id));
+      return next;
+    });
+  };
+
+  const toggleItemExpanded = (id: string) => {
+    setExpandedItems(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   };
@@ -1651,188 +1672,229 @@ export default function Debloater() {
               </div>
 
               {loading ? (
-                <Card className="bg-card/40 border-border/40">
-                  <CardContent className="p-6 text-center text-sm text-muted-foreground">
-                    <RefreshCw className="size-5 animate-spin mx-auto mb-2 text-primary" />
-                    Loading items…
-                  </CardContent>
-                </Card>
+                <div className="rounded-2xl border border-[#2A313A] bg-[#0D1117] p-8 text-center">
+                  <RefreshCw className="size-5 animate-spin mx-auto mb-2 text-primary" />
+                  <p className="text-sm text-muted-foreground">Loading items…</p>
+                </div>
               ) : visibleItems.length === 0 ? (
-                <Card className="bg-card/40 border-border/40">
-                  <CardContent className="p-6 text-center text-sm text-muted-foreground">
-                    No items available for this role + mode combination.
-                  </CardContent>
-                </Card>
+                <div className="rounded-2xl border border-[#2A313A] bg-[#0D1117] p-8 text-center text-sm text-muted-foreground">
+                  No items available for this role + mode combination.
+                </div>
               ) : (
-                categories.map(category => {
-                  const catItems = visibleItems.filter(i => i.category === category);
-                  if (catItems.length === 0) return null;
-                  const meta = CATEGORY_META[category];
-                  const Icon = meta.icon;
-                  const isExpanded = expandedCategories.has(category);
-                  const selCount = catItems.filter(i => selected.has(i.id)).length;
+                <div className="space-y-2">
+                  {categories.map(category => {
+                    const catItems = visibleItems.filter(i => i.category === category);
+                    if (catItems.length === 0) return null;
+                    const meta = CATEGORY_META[category];
+                    const Icon = meta.icon;
+                    const isExpanded = expandedCategories.has(category);
+                    const selCount = catItems.filter(i => selected.has(i.id)).length;
+                    const allCatSelected = selCount === catItems.length;
 
-                  return (
-                    <Card key={category} className="bg-card/40 border-border/40 overflow-hidden">
-                      <CardHeader
-                        className="py-3 px-4 cursor-pointer hover:bg-[#1A1F26] transition-colors"
-                        onClick={() => toggleCategory(category)}
-                        data-testid={`category-${category}`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2.5">
-                            <Icon className={cn("size-4", meta.color)} />
-                            <span className="font-semibold text-[#E6EAF0] text-sm">{meta.label}</span>
-                            {selCount > 0 && (
-                              <Badge className="bg-primary/20 text-primary border-primary/30 text-[10px] h-4 px-1.5">
-                                {selCount} selected
-                              </Badge>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-muted-foreground">{catItems.length} items</span>
-                            {isExpanded ? <ChevronUp className="size-4 text-muted-foreground" /> : <ChevronDown className="size-4 text-muted-foreground" />}
-                          </div>
-                        </div>
-                      </CardHeader>
-
-                      <AnimatePresence>
-                        {isExpanded && (
-                          <motion.div
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: "auto", opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            transition={{ duration: 0.2 }}
-                            className="overflow-hidden"
+                    return (
+                      <div key={category} className="rounded-2xl border border-[#1E252D] bg-[#0D1117]/80 overflow-hidden">
+                        {/* Category header */}
+                        <div className="flex items-center gap-3 px-4 py-2.5">
+                          {/* Expand toggle — left part clickable */}
+                          <button
+                            className="flex items-center gap-2.5 flex-1 min-w-0 text-left"
+                            onClick={() => toggleCategory(category)}
+                            data-testid={`category-${category}`}
                           >
-                            <CardContent className="pt-0 pb-3 px-3 space-y-1.5">
-                              {catItems.map(item => {
-                                const isSelected = selected.has(item.id);
-                                const scanStatus = itemState[item.id];
-                                const safety = SAFETY_CONFIG[item.safety];
-                                const isProcessing = processingId === item.id;
+                            <Icon className={cn("size-3.5 shrink-0", meta.color)} />
+                            <span className="font-semibold text-[#E6EAF0] text-[13px] leading-none">{meta.label}</span>
+                            <span className="text-[10px] text-muted-foreground/60 font-mono shrink-0">
+                              {selCount}/{catItems.length}
+                            </span>
+                          </button>
 
-                                return (
-                                  <motion.div
-                                    key={item.id}
-                                    data-testid={`item-${item.id}`}
-                                    className={cn(
-                                      "flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all duration-150",
-                                      isSelected
-                                        ? "bg-primary/8 border-primary/25 hover:border-primary/40"
-                                        : "bg-[#1A1F26] border-[#2A313A] hover:bg-[#21262D] hover:border-[#2A313A]2",
-                                      isProcessing && "opacity-60 pointer-events-none"
-                                    )}
-                                    onClick={() => toggleItem(item.id)}
-                                    whileHover={prefersReducedMotion ? {} : { scale: 1.002 }}
-                                    whileTap={prefersReducedMotion ? {} : { scale: 0.998 }}
-                                  >
-                                    {/* Checkbox */}
-                                    <div className={cn(
-                                      "mt-0.5 size-4 rounded shrink-0 border flex items-center justify-center transition-all",
-                                      isSelected
-                                        ? "bg-primary border-primary"
-                                        : "bg-transparent border-[#2A313A]"
-                                    )}>
-                                      {isSelected && <CheckCircle className="size-3 text-[#E6EAF0]" />}
-                                    </div>
+                          {/* Bulk select pill */}
+                          <button
+                            onClick={e => { e.stopPropagation(); toggleCategorySelection(category, catItems); }}
+                            className={cn(
+                              "shrink-0 text-[10px] font-medium px-2.5 py-0.5 rounded-full border transition-all duration-150",
+                              allCatSelected
+                                ? "bg-primary/20 border-primary/40 text-primary hover:bg-primary/10"
+                                : "bg-[#1A1F26] border-[#2A313A] text-muted-foreground hover:border-[#3A424D] hover:text-[#E6EAF0]"
+                            )}
+                          >
+                            {allCatSelected ? "Deselect all" : "Select all"}
+                          </button>
 
-                                    {/* Content */}
-                                    <div className="flex-1 min-w-0">
-                                      <div className="flex items-center gap-2 flex-wrap">
-                                        <span className="font-semibold text-sm text-[#E6EAF0]">{item.name}</span>
+                          {/* Chevron */}
+                          <button
+                            onClick={() => toggleCategory(category)}
+                            className="shrink-0 text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+                          >
+                            {isExpanded
+                              ? <ChevronUp className="size-3.5" />
+                              : <ChevronDown className="size-3.5" />}
+                          </button>
+                        </div>
 
-                                        {/* Type badge */}
-                                        <Badge variant="outline" className="text-[9px] h-4 px-1.5 border-[#2A313A]2 text-muted-foreground uppercase tracking-wide">
-                                          {item.type}
-                                        </Badge>
+                        {/* Item rows */}
+                        <AnimatePresence initial={false}>
+                          {isExpanded && (
+                            <motion.div
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: "auto", opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              transition={{ duration: 0.18, ease: "easeInOut" }}
+                              className="overflow-hidden"
+                            >
+                              <div className="border-t border-[#1E252D] divide-y divide-[#131820]">
+                                {catItems.map(item => {
+                                  const isSelected = selected.has(item.id);
+                                  const isItemExpanded = expandedItems.has(item.id);
+                                  const scanStatus = itemState[item.id];
+                                  const safety = SAFETY_CONFIG[item.safety];
+                                  const isProcessing = processingId === item.id;
+                                  const hasWarning = item.requiresAdmin || item.requiresSignOut || item.requiresRestart;
 
-                                        {/* Safety chip */}
-                                        <Badge variant="outline" className={cn("text-[9px] h-4 px-1.5", safety.bg, safety.color)}>
-                                          {safety.label} risk
-                                        </Badge>
-
-                                        {/* Restore badge */}
-                                        {item.canRestore ? (
-                                          <Badge variant="outline" className="text-[9px] h-4 px-1.5 bg-blue-500/10 border-blue-500/20 text-blue-400 flex items-center gap-1">
-                                            <RotateCcw className="size-2.5" />Restorable
-                                          </Badge>
-                                        ) : (
-                                          <Badge variant="outline" className="text-[9px] h-4 px-1.5 bg-[#21262D] border-[#2A313A] text-muted-foreground/60 flex items-center gap-1">
-                                            <Minus className="size-2.5" />Not restorable
-                                          </Badge>
+                                  return (
+                                    <div key={item.id} data-testid={`item-${item.id}`}>
+                                      {/* Compact row */}
+                                      <div
+                                        className={cn(
+                                          "flex items-center gap-3 px-4 py-2 cursor-pointer transition-colors duration-100 group",
+                                          isSelected
+                                            ? "bg-primary/6 hover:bg-primary/10"
+                                            : "hover:bg-[#111820]",
+                                          isProcessing && "opacity-50 pointer-events-none"
                                         )}
+                                        onClick={() => toggleItem(item.id)}
+                                      >
+                                        {/* Custom checkbox */}
+                                        <div className={cn(
+                                          "size-4 rounded-[4px] shrink-0 border flex items-center justify-center transition-all duration-150",
+                                          isSelected
+                                            ? "bg-primary border-primary shadow-[0_0_8px_rgba(0,160,255,0.3)]"
+                                            : "bg-transparent border-[#2A313A] group-hover:border-[#3A424D]"
+                                        )}>
+                                          {isSelected && (
+                                            <svg className="size-2.5 text-white" viewBox="0 0 10 10" fill="none">
+                                              <path d="M1.5 5L4 7.5L8.5 2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                            </svg>
+                                          )}
+                                        </div>
 
-                                        {/* Scan state */}
-                                        {scanStatus === "absent" && (
-                                          <Badge variant="outline" className="text-[9px] h-4 px-1.5 bg-emerald-500/10 border-emerald-500/20 text-emerald-400">
-                                            Already removed
-                                          </Badge>
-                                        )}
+                                        {/* Name + badges */}
+                                        <div className="flex-1 min-w-0 flex items-center gap-2 flex-wrap">
+                                          <span className={cn(
+                                            "text-[13px] font-medium truncate",
+                                            isSelected ? "text-[#E6EAF0]" : "text-[#A0ADB8] group-hover:text-[#C8D0D9]"
+                                          )}>{item.name}</span>
+
+                                          <span className={cn(
+                                            "text-[9px] uppercase tracking-widest font-mono px-1.5 py-0 rounded border shrink-0",
+                                            "bg-[#1A1F26] border-[#2A313A] text-muted-foreground/60"
+                                          )}>{item.type}</span>
+
+                                          <span className={cn(
+                                            "text-[9px] px-1.5 py-0 rounded border shrink-0",
+                                            safety.bg, safety.color
+                                          )}>{safety.label}</span>
+
+                                          {item.canRestore && (
+                                            <span className="text-[9px] px-1.5 py-0 rounded border bg-blue-500/10 border-blue-500/20 text-blue-400 shrink-0 flex items-center gap-0.5">
+                                              <RotateCcw className="size-2" />Restorable
+                                            </span>
+                                          )}
+
+                                          {scanStatus === "absent" && (
+                                            <span className="text-[9px] px-1.5 py-0 rounded border bg-emerald-500/10 border-emerald-500/20 text-emerald-400 shrink-0">
+                                              Removed
+                                            </span>
+                                          )}
+
+                                          {hasWarning && !isItemExpanded && (
+                                            <span className="text-[9px] text-amber-500/70 shrink-0 flex items-center gap-0.5">
+                                              <AlertTriangle className="size-2.5" />
+                                            </span>
+                                          )}
+                                        </div>
+
+                                        {/* Impact numbers */}
+                                        <div className="flex items-center gap-3 shrink-0">
+                                          {item.estimatedRamMb > 0 && (
+                                            <div className="text-right">
+                                              <p className="text-[11px] font-mono font-semibold text-cyan-400 leading-none">-{item.estimatedRamMb}MB</p>
+                                              <p className="text-[8px] text-muted-foreground/50 mt-0.5">RAM</p>
+                                            </div>
+                                          )}
+                                          {item.estimatedDiskMb > 0 && (
+                                            <div className="text-right">
+                                              <p className="text-[11px] font-mono font-semibold text-[#00D4FF] leading-none">-{item.estimatedDiskMb}MB</p>
+                                              <p className="text-[8px] text-muted-foreground/50 mt-0.5">Disk</p>
+                                            </div>
+                                          )}
+                                          {isProcessing && (
+                                            <RefreshCw className="size-3 text-primary animate-spin" />
+                                          )}
+                                        </div>
+
+                                        {/* Expand detail chevron */}
+                                        <button
+                                          onClick={e => { e.stopPropagation(); toggleItemExpanded(item.id); }}
+                                          className="shrink-0 size-5 flex items-center justify-center rounded text-muted-foreground/30 hover:text-muted-foreground hover:bg-[#1E252D] transition-all"
+                                          title="Show details"
+                                        >
+                                          <ChevronDown className={cn("size-3 transition-transform duration-150", isItemExpanded && "rotate-180")} />
+                                        </button>
                                       </div>
 
-                                      <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{item.description}</p>
-
-                                      {/* Warnings */}
-                                      {item.requiresAdmin && (
-                                        <p className="text-[10px] text-amber-500/80 mt-1 flex items-center gap-1">
-                                          <ShieldCheck className="size-2.5" />Requires admin
-                                        </p>
-                                      )}
-                                      {item.requiresSignOut && (
-                                        <p className="text-[10px] text-amber-500/80 mt-1 flex items-center gap-1">
-                                          <AlertTriangle className="size-2.5" />Sign-out required to take effect
-                                        </p>
-                                      )}
-                                      {item.requiresRestart && (
-                                        <p className="text-[10px] text-orange-500/80 mt-1 flex items-center gap-1">
-                                          <RefreshCw className="size-2.5" />Restart required
-                                        </p>
-                                      )}
-                                      {!item.canRestore && item.restoreNotes && (
-                                        <p className="text-[10px] text-muted-foreground/60 mt-1 flex items-center gap-1">
-                                          <Info className="size-2.5" />{item.restoreNotes}
-                                        </p>
-                                      )}
-                                      {item.affectedFeatures.length > 0 && (
-                                        <p className="text-[10px] text-muted-foreground/50 mt-1">
-                                          Affects: {item.affectedFeatures.join(", ")}
-                                        </p>
-                                      )}
+                                      {/* Expanded detail drawer */}
+                                      <AnimatePresence initial={false}>
+                                        {isItemExpanded && (
+                                          <motion.div
+                                            initial={{ height: 0, opacity: 0 }}
+                                            animate={{ height: "auto", opacity: 1 }}
+                                            exit={{ height: 0, opacity: 0 }}
+                                            transition={{ duration: 0.15 }}
+                                            className="overflow-hidden"
+                                          >
+                                            <div className="px-11 pb-3 pt-0.5 space-y-1.5 bg-[#080D14]">
+                                              <p className="text-[11px] text-muted-foreground leading-relaxed">{item.description}</p>
+                                              {item.requiresAdmin && (
+                                                <p className="text-[10px] text-amber-500/80 flex items-center gap-1">
+                                                  <ShieldCheck className="size-2.5" />Requires admin
+                                                </p>
+                                              )}
+                                              {item.requiresSignOut && (
+                                                <p className="text-[10px] text-amber-500/80 flex items-center gap-1">
+                                                  <AlertTriangle className="size-2.5" />Sign-out required to take effect
+                                                </p>
+                                              )}
+                                              {item.requiresRestart && (
+                                                <p className="text-[10px] text-orange-500/80 flex items-center gap-1">
+                                                  <RefreshCw className="size-2.5" />Restart required
+                                                </p>
+                                              )}
+                                              {!item.canRestore && item.restoreNotes && (
+                                                <p className="text-[10px] text-muted-foreground/60 flex items-center gap-1">
+                                                  <Info className="size-2.5" />{item.restoreNotes}
+                                                </p>
+                                              )}
+                                              {item.affectedFeatures.length > 0 && (
+                                                <p className="text-[10px] text-muted-foreground/40">
+                                                  Affects: {item.affectedFeatures.join(", ")}
+                                                </p>
+                                              )}
+                                            </div>
+                                          </motion.div>
+                                        )}
+                                      </AnimatePresence>
                                     </div>
-
-                                    {/* Impact */}
-                                    <div className="flex items-center gap-3 shrink-0 text-right">
-                                      {item.estimatedRamMb > 0 && (
-                                        <div>
-                                          <p className="text-xs font-mono font-semibold text-cyan-400">
-                                            -{item.estimatedRamMb}MB
-                                          </p>
-                                          <p className="text-[9px] text-muted-foreground">RAM est.</p>
-                                        </div>
-                                      )}
-                                      {item.estimatedDiskMb > 0 && (
-                                        <div>
-                                          <p className="text-xs font-mono font-semibold text-[#00D4FF]">
-                                            -{item.estimatedDiskMb}MB
-                                          </p>
-                                          <p className="text-[9px] text-muted-foreground">Disk est.</p>
-                                        </div>
-                                      )}
-                                      {isProcessing && (
-                                        <RefreshCw className="size-3.5 text-primary animate-spin" />
-                                      )}
-                                    </div>
-                                  </motion.div>
-                                );
-                              })}
-                            </CardContent>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </Card>
-                  );
-                })
+                                  );
+                                })}
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    );
+                  })}
+                </div>
               )}
             </motion.div>
           )}

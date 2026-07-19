@@ -499,6 +499,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     },
   },
 
+  // ── Driver Intelligence: read installed driver versions from registry ────────
+  driverIntel: {
+    getInstalledVersions: () => ipcRenderer.invoke('driverIntel:getInstalledVersions'),
+  },
+
   startup: {
     scan:        ()       => ipcRenderer.invoke('startup:scan'),
     setEnabled:  (params) => ipcRenderer.invoke('startup:setEnabled', params),

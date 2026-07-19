@@ -472,6 +472,8 @@ export default function SystemCleaner() {
   const { user } = useAuth();
 
   const [mode,     setMode]     = useState<CleanMode>("safe");
+  const [waveKey,  setWaveKey]  = useState(0);
+  const [waveMode, setWaveMode] = useState<CleanMode | null>(null);
   const [phase,    setPhase]    = useState<Phase>("idle");
   const [categories, setCategories] = useState<Record<CleanCategory, CleanItemDef[]>>({
     storage: [], privacy: [], latency: [], performance: [],
@@ -489,6 +491,14 @@ export default function SystemCleaner() {
   const scanRef = useRef(false);
 
   const allItems = useMemo(() => Object.values(categories).flat(), [categories]);
+
+  // Scroll to top whenever a new phase begins
+  useEffect(() => {
+    if (phase === "scanning" || phase === "cleaning") {
+      const el = document.getElementById("app-scroll-root");
+      if (el) el.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }, [phase]);
 
   // ── Load ──────────────────────────────────────────────────────────────────
 
@@ -631,6 +641,18 @@ export default function SystemCleaner() {
 
   const selLabel = fmtBytesShort(selectedBytes);
 
+  // ── Mode switch with wave effect ──────────────────────────────────────────
+  const switchMode = (m: CleanMode) => {
+    if (phase === "scanning") return;
+    setMode(m);
+    setFindings({});
+    setScanSummary(null);
+    setCategoryTotals(null);
+    if (phase !== "idle") setPhase("idle");
+    setWaveMode(m);
+    setWaveKey(k => k + 1);
+  };
+
   // ── Render ────────────────────────────────────────────────────────────────
 
   if (phase === "history") {
@@ -646,11 +668,37 @@ export default function SystemCleaner() {
   return (
     <AppLayout>
       <motion.div
-        className="space-y-5 pb-8"
+        className="relative space-y-5 pb-8"
         initial={{ opacity: 0, y: 14, filter: "blur(6px)" }}
         animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
         transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
       >
+        {/* ── Mode-switch wave wash ─────────────────────────────────────── */}
+        <AnimatePresence>
+          {waveMode !== null && (
+            <motion.div
+              key={waveKey}
+              className="pointer-events-none absolute inset-0 z-20 overflow-hidden rounded-xl"
+              initial={{ opacity: 1 }}
+              animate={{ opacity: 0 }}
+              transition={{ duration: 0.6, delay: 0.7, ease: "easeOut" }}
+              onAnimationComplete={() => setWaveMode(null)}
+            >
+              {/* The sweeping stripe */}
+              <motion.div
+                className="absolute inset-y-0 w-[200%]"
+                initial={{ x: "-100%" }}
+                animate={{ x: "100%" }}
+                transition={{ duration: 1.1, ease: [0.25, 0.46, 0.45, 0.94] }}
+                style={{
+                  background: waveMode === "safe"
+                    ? "linear-gradient(90deg, transparent 0%, rgba(52,211,153,0.05) 30%, rgba(52,211,153,0.18) 45%, rgba(52,211,153,0.22) 50%, rgba(52,211,153,0.18) 55%, rgba(52,211,153,0.05) 70%, transparent 100%)"
+                    : "linear-gradient(90deg, transparent 0%, rgba(251,146,60,0.05) 30%, rgba(251,146,60,0.18) 45%, rgba(251,146,60,0.22) 50%, rgba(251,146,60,0.18) 55%, rgba(251,146,60,0.05) 70%, transparent 100%)",
+                }}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* ── Page header ─────────────────────────────────────────────────── */}
         <div className="flex items-center justify-between">
@@ -667,7 +715,7 @@ export default function SystemCleaner() {
             {/* Mode chips */}
             {(["safe", "advanced"] as CleanMode[]).map(m => (
               <button key={m}
-                onClick={() => { if (phase !== "scanning") { setMode(m); setFindings({}); setScanSummary(null); setCategoryTotals(null); if (phase !== "idle") setPhase("idle"); } }}
+                onClick={() => switchMode(m)}
                 className={cn(
                   "flex items-center gap-1.5 h-7 px-3 rounded-full text-[11px] font-semibold border transition-all",
                   mode === m
@@ -805,19 +853,19 @@ export default function SystemCleaner() {
                 </div>
               </div>
 
-              {/* Scanning items ticker */}
-              <div className="w-full max-w-sm space-y-2">
+              {/* Scanning items — compact 2-column grid */}
+              <div className="w-full max-w-lg grid grid-cols-2 gap-x-6 gap-y-1.5">
                 {allItems.map((item, i) => (
                   <motion.div key={item.id}
-                    initial={{ opacity: 0, x: -8 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.18, duration: 0.3 }}
-                    className="flex items-center gap-2 text-[11px] text-[#6B7380]">
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: Math.min(i * 0.06, 1.2), duration: 0.25 }}
+                    className="flex items-center gap-2 text-[11px] text-[#6B7380] truncate">
                     <motion.div className="w-1.5 h-1.5 rounded-full shrink-0"
                       style={{ background: CAT_META[item.category].color }}
                       animate={{ scale: [1, 1.4, 1], opacity: [0.6, 1, 0.6] }}
-                      transition={{ duration: 1.2, delay: i * 0.18, repeat: Infinity }} />
-                    {item.name}
+                      transition={{ duration: 1.4, delay: (i % 8) * 0.18, repeat: Infinity }} />
+                    <span className="truncate">{item.name}</span>
                   </motion.div>
                 ))}
               </div>
@@ -905,7 +953,7 @@ export default function SystemCleaner() {
                 </div>
               </div>
 
-              <div className="space-y-2 max-w-lg mx-auto w-full">
+              <div className="grid grid-cols-2 gap-2 max-w-2xl mx-auto w-full">
                 {selectedItems.map((item, i) => {
                   const meta = CAT_META[item.category];
                   const result = cleanResults[item.id];
@@ -914,29 +962,29 @@ export default function SystemCleaner() {
                       <motion.div className="h-[3px] w-full origin-left"
                         style={{ background: meta.color }}
                         initial={{ scaleX: 0 }}
-                        animate={{ scaleX: result ? 1 : 1 }}
-                        transition={{ duration: 0.8, delay: i * 0.1, ease: "easeOut" }}
+                        animate={{ scaleX: 1 }}
+                        transition={{ duration: 0.8, delay: i * 0.05, ease: "easeOut" }}
                       />
-                      <div className="flex items-center gap-3 px-4 py-2.5">
-                        <div className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0" style={{ background: meta.dim }}>
-                          <meta.icon className="w-3 h-3" style={{ color: meta.color }} />
+                      <div className="flex items-center gap-2 px-3 py-2">
+                        <div className="w-5 h-5 rounded-md flex items-center justify-center shrink-0" style={{ background: meta.dim }}>
+                          <meta.icon className="w-2.5 h-2.5" style={{ color: meta.color }} />
                         </div>
-                        <span className="flex-1 text-[12px] font-semibold text-[#E6EAF0]">{item.name}</span>
+                        <span className="flex-1 text-[11px] font-semibold text-[#E6EAF0] truncate">{item.name}</span>
                         {result ? (
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex items-center gap-1 shrink-0">
                             {result.status === "cleaned" ? (
                               <>
-                                <CheckCircle2 className="w-3.5 h-3.5 text-green-400" />
-                                <span className="text-[11px] text-green-400 font-semibold">{fmtBytes(result.bytesRemoved)}</span>
+                                <CheckCircle2 className="w-3 h-3 text-green-400" />
+                                <span className="text-[10px] text-green-400 font-semibold">{fmtBytes(result.bytesRemoved)}</span>
                               </>
                             ) : result.status === "nothing" ? (
-                              <span className="text-[11px] text-[#4a5460]">Nothing</span>
+                              <span className="text-[10px] text-[#4a5460]">–</span>
                             ) : (
-                              <span className="text-[11px] text-red-400">Failed</span>
+                              <span className="text-[10px] text-red-400">Err</span>
                             )}
                           </div>
                         ) : (
-                          <motion.div className="w-3 h-3 rounded-full border-2 border-purple-400 border-t-transparent"
+                          <motion.div className="w-3 h-3 rounded-full border-2 border-purple-400 border-t-transparent shrink-0"
                             animate={{ rotate: 360 }} transition={{ duration: 0.8, repeat: Infinity, ease: "linear" }} />
                         )}
                       </div>
