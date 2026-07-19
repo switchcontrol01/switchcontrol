@@ -235,7 +235,7 @@ const BASE: BaseTweak[] = [
   },
   {
     id: "vbs",
-    title: "Disable VBS",
+    title: "Disable Windows VBS",
     description: "Disables Virtualization Based Security entirely.",
     impact: [
       "Removes VBS overhead from system",

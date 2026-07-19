@@ -2785,6 +2785,7 @@ public class DspHelper {
   [DllImport("user32.dll")] public static extern bool EnumDisplaySettings(string d, int n, ref DEVMODE dm);
 }
 '@ -EA Stop
+    $dispDevs = @()
     $di = [uint32]0
     while ($true) {
       $dd2 = New-Object DspHelper+DISPLAY_DEVICE; $dd2.cb = [System.Runtime.InteropServices.Marshal]::SizeOf($dd2)
@@ -2793,6 +2794,13 @@ public class DspHelper {
         $dm2 = New-Object DspHelper+DEVMODE; $dm2.dmSize = [System.Runtime.InteropServices.Marshal]::SizeOf($dm2)
         if ([DspHelper]::EnumDisplaySettings($dd2.DeviceName, -1, [ref]$dm2) -and $dm2.dmDisplayFrequency -gt 0) {
           $screenHz += @{ x=$dm2.dmPositionX; y=$dm2.dmPositionY; hz=$dm2.dmDisplayFrequency }
+          # Secondary call — extract monitor hardware ID from DeviceID (e.g. MONITOR\SAM0E4F\...)
+          $hwId = $null
+          $dd3 = New-Object DspHelper+DISPLAY_DEVICE; $dd3.cb = [System.Runtime.InteropServices.Marshal]::SizeOf($dd3)
+          if ([DspHelper]::EnumDisplayDevices($dd2.DeviceName, [uint32]0, [ref]$dd3, 0) -and $dd3.DeviceID) {
+            if ($dd3.DeviceID -match 'MONITOR\\([^\\]+)\\') { $hwId = $Matches[1].ToUpper() }
+          }
+          $dispDevs += @{ x=$dm2.dmPositionX; y=$dm2.dmPositionY; hz=$dm2.dmDisplayFrequency; w=$dm2.dmPelsWidth; h=$dm2.dmPelsHeight; bpp=$dm2.dmBitsPerPel; hwId=$hwId }
         }
       }
       $di++
@@ -2882,13 +2890,43 @@ public class DspHelper {
     $gpuName = if ($g) { $g.Name } else { $vcs[0].Name }
   }
   
+  # Pre-match: map each WmiMonitorID index to the correct dispDevs entry by hardware ID.
+  # WmiMonitorID.InstanceName looks like  DISPLAY\\SAM0E4F\\4&...\\UID...
+  # EnumDisplayDevices DeviceID looks like MONITOR\\SAM0E4F\\{...}\\NN
+  # Both embed the same EISA hardware ID, so we can correlate them reliably even when
+  # the two arrays come back in different orders.
+  $monToDisp = @{}
+  if ($dispDevs -and $dispDevs.Count -gt 0) {
+    $usedDispIdx = @{}
+    for ($mi2 = 0; $mi2 -lt $monIds.Count; $mi2++) {
+      $mHwId = $null
+      if ($monIds[$mi2].InstanceName -match 'DISPLAY\\([^\\]+)\\') { $mHwId = $Matches[1].ToUpper() }
+      $matched = $false
+      if ($mHwId) {
+        for ($j = 0; $j -lt $dispDevs.Count; $j++) {
+          if (-not $usedDispIdx.ContainsKey($j) -and $dispDevs[$j].hwId -eq $mHwId) {
+            $monToDisp[$mi2] = $dispDevs[$j]; $usedDispIdx[$j] = $true; $matched = $true; break
+          }
+        }
+      }
+      # Fall back: assign the first unused dispDev entry (preserves old behaviour for edge cases)
+      if (-not $matched) {
+        for ($j = 0; $j -lt $dispDevs.Count; $j++) {
+          if (-not $usedDispIdx.ContainsKey($j)) {
+            $monToDisp[$mi2] = $dispDevs[$j]; $usedDispIdx[$j] = $true; break
+          }
+        }
+      }
+    }
+  }
+
   $i = 0
   foreach ($mi in $monIds) {
     $name = Dec $mi.UserFriendlyName
     $mfr  = Dec $mi.ManufacturerName
     $ser  = Dec $mi.SerialNumberID
     if ($ser -ne $null -and ($ser -match '^0+$' -or $ser.Length -lt 2)) { $ser = $null }
-    if ($mfr -ne $null -and ($mfr -match '^[\\?\\*]+$'  -or $mfr.Length -lt 2)) { $mfr = $null }
+    if ($mfr -ne $null -and ($mfr -match '^[\\?\\*]+$' -or $mfr.Length -lt 2)) { $mfr = $null }
   
     $ipfx = if ($mi.InstanceName) { $mi.InstanceName -replace '_\\d+$','' } else { $null }
     $cp   = if ($ipfx) { $connPs | Where-Object { ($_.InstanceName -replace '_\\d+$','') -eq $ipfx } | Select-Object -First 1 } else { $null }
@@ -2906,25 +2944,36 @@ public class DspHelper {
       }
     } catch {}
   
-    $scr = if ($i -lt $screens.Count) { $screens[$i] } else { $null }
+    # Use the pre-matched display device (correlated by hardware ID, not array index)
+    $dev = if ($monToDisp.ContainsKey($i)) { $monToDisp[$i] } else { $null }
+    $scr = if ($dev) {
+      $screens | Where-Object { $_.x -eq $dev.x -and $_.y -eq $dev.y } | Select-Object -First 1
+    } elseif ($i -lt $screens.Count) { $screens[$i] } else { $null }
     $vc  = if ($i -lt $vcs.Count) { $vcs[$i] } else { if ($vcs.Count -gt 0) { $vcs[0] } else { $null } }
     $ed  = if ($i -lt $edids.Count) { $edids[$i] } else { $null }
   
     $hz=$null; $bpp=$null; $rx=$null; $ry=$null
-    if ($vc) {
-      if ([int]$vc.CurrentRefreshRate -gt 0)          { $hz  = [int]$vc.CurrentRefreshRate }
-      if ([int]$vc.CurrentBitsPerPixel -gt 0)         { $bpp = [int]$vc.CurrentBitsPerPixel }
-      if ([int]$vc.CurrentHorizontalResolution -gt 0) { $rx  = [int]$vc.CurrentHorizontalResolution }
-      if ([int]$vc.CurrentVerticalResolution -gt 0)   { $ry  = [int]$vc.CurrentVerticalResolution }
-      if ($rx -le 0 -and $vc.VideoModeDescription -match '(\\d+) x (\\d+)') {
-        $rx=[int]$Matches[1]; $ry=[int]$Matches[2]
+    if ($dev) {
+      # Per-device data from EnumDisplaySettings — authoritative for multi-monitor, no index aliasing
+      if ([int]$dev.hz  -gt 0) { $hz  = [int]$dev.hz  }
+      if ([int]$dev.w   -gt 0) { $rx  = [int]$dev.w   }
+      if ([int]$dev.h   -gt 0) { $ry  = [int]$dev.h   }
+      if ([int]$dev.bpp -gt 0) { $bpp = [int]$dev.bpp }
+    } else {
+      if ($vc) {
+        if ([int]$vc.CurrentRefreshRate -gt 0)          { $hz  = [int]$vc.CurrentRefreshRate }
+        if ([int]$vc.CurrentBitsPerPixel -gt 0)         { $bpp = [int]$vc.CurrentBitsPerPixel }
+        if ([int]$vc.CurrentHorizontalResolution -gt 0) { $rx  = [int]$vc.CurrentHorizontalResolution }
+        if ([int]$vc.CurrentVerticalResolution -gt 0)   { $ry  = [int]$vc.CurrentVerticalResolution }
+        if (($null -eq $rx -or $rx -le 0) -and $vc.VideoModeDescription -match '(\\d+) x (\\d+)') {
+          $rx=[int]$Matches[1]; $ry=[int]$Matches[2]
+        }
       }
-    }
-    if ($scr) {
-      $rx=$scr.w; $ry=$scr.h
-      # Override Hz with per-monitor value from EnumDisplaySettings, matched by virtual desktop position
-      $hzEntry = $screenHz | Where-Object { $_.x -eq $scr.x -and $_.y -eq $scr.y } | Select-Object -First 1
-      if ($hzEntry -and [int]$hzEntry.hz -gt 0) { $hz = [int]$hzEntry.hz }
+      if ($scr) {
+        $rx=$scr.w; $ry=$scr.h
+        $hzEntry = $screenHz | Where-Object { $_.x -eq $scr.x -and $_.y -eq $scr.y } | Select-Object -First 1
+        if ($hzEntry -and [int]$hzEntry.hz -gt 0) { $hz = [int]$hzEntry.hz }
+      }
     }
   
     $monGpu = if ($i -lt $vcs.Count) { $vcs[$i].Name } else { $gpuName }
@@ -3758,6 +3807,7 @@ public class DspHelper {
   function _extremeLabsValidateTweakIds(ids) {
     if (!Array.isArray(ids)) return { ok: false, error: 'ids must be an array' };
     const validIds = new Set([
+      'pci-msi-mode-extreme',
       'global-timer-resolution', 'dynamic-tick', 'hpet-disable',
       'win32-priority-separation', 'system-responsiveness', 'mmcss-no-lazy', 'power-throttling-extreme',
       'disable-game-dvr', 'disable-xbox-capture', 'windowed-games-opt', 'fortnite-priority-booster',
@@ -3778,6 +3828,7 @@ public class DspHelper {
   // Maps extreme tweak id to existing registry/slider tweak executor
   function _extremeLabsMapToRegistryTweak(id) {
     const map = {
+      'pci-msi-mode-extreme': { type: 'tweak', tweakId: 'pci-msi-mode' },
       'global-timer-resolution': { type: 'tweak', tweakId: 'timer-res' },
       'dynamic-tick': { type: 'tweak', tweakId: 'synth-timers' },
       'hpet-disable': { type: 'tweak', tweakId: 'hpet-disable' },
@@ -4046,6 +4097,7 @@ public class DspHelper {
     }
     try {
       const allIds = [
+        'pci-msi-mode-extreme',
         'global-timer-resolution', 'dynamic-tick', 'hpet-disable',
         'win32-priority-separation', 'system-responsiveness', 'mmcss-no-lazy', 'power-throttling-extreme',
         'disable-game-dvr', 'disable-xbox-capture', 'windowed-games-opt', 'fortnite-priority-booster',

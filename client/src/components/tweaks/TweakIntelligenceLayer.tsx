@@ -507,13 +507,39 @@ export function TweakIntelligenceLayer() {
             className="overflow-hidden"
           >
             <div className="space-y-4 pt-0.5">
-              {/* Error state */}
-              {intel.error && !intel.loading && (
-                <div className="flex items-center gap-2 text-xs text-red-400/80 bg-red-500/10 border border-red-500/15 rounded-xl px-3 py-2">
-                  <AlertCircle className="size-3.5 shrink-0" />
-                  {intel.error}
-                </div>
-              )}
+              {/* Loading / error state */}
+              <AnimatePresence mode="wait">
+                {intel.loading && !intel.error && (
+                  <motion.div
+                    key="intel-loading"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0, transition: { duration: 0.4 } }}
+                    transition={{ duration: 0.25 }}
+                    className="flex items-center gap-2.5 text-xs text-[#6B7380] bg-white/[0.025] border border-[#2A313A] rounded-xl px-3 py-2"
+                  >
+                    <motion.span
+                      className="size-3.5 shrink-0 rounded-full border-2 border-primary/40 border-t-primary"
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                    />
+                    Loading system intelligence…
+                  </motion.div>
+                )}
+                {intel.error && !intel.loading && (
+                  <motion.div
+                    key="intel-error"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.25 }}
+                    className="flex items-center gap-2 text-xs text-red-400/80 bg-red-500/10 border border-red-500/15 rounded-xl px-3 py-2"
+                  >
+                    <AlertCircle className="size-3.5 shrink-0" />
+                    {intel.error}
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {/* ── Row 1: 3-panel grid ────────────────────────────────────── */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

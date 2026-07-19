@@ -111,7 +111,17 @@ export function useTweakIntelligence(pollIntervalMs = 10_000) {
     } catch (e: any) {
       if (e.name === "AbortError") return;
       if (!mountedRef.current) return;
-      setState((prev) => ({ ...prev, loading: false, error: "Could not load system intelligence." }));
+      // If we've never successfully loaded, stay in loading state so the UI
+      // shows a "Loading…" indicator instead of an error banner. The poll will
+      // retry automatically and replace this state once the backend is ready.
+      setState((prev) => {
+        if (prev.lastUpdated === null) {
+          // First-load failure — keep loading:true, suppress the error banner.
+          return { ...prev, loading: true, error: null };
+        }
+        // Subsequent failure after we had real data — show the error.
+        return { ...prev, loading: false, error: "Could not load system intelligence." };
+      });
     }
   }, []);
 

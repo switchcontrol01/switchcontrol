@@ -343,10 +343,6 @@ export function TweakCard({ tweak, isEnabled, onToggle, isVerifying = false, isH
       <RefreshCw className="inline-block size-3 mr-0.5 -mt-0.5" /> Restart
     </span>
   );
-  if (!isLocked && !isUnsupported && isReal && needsAdmin) allBadges.push(
-    <span key="admin" className="text-[10px] font-medium px-2 py-0.5 rounded-full border bg-orange-500/10 text-orange-400 border-orange-500/20">Admin</span>
-  );
-
   const visiblePriorityBadges = allBadges.slice(0, 3);
 
   return (

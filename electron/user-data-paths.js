@@ -135,4 +135,13 @@ module.exports = {
    * device can be individually restored to its pre-apply state on revert.
    */
   PCI_MSI_BACKUP_FILE: path.join(APPDATA_DIR, 'pci-msi-backup.json'),
+
+  /**
+   * Original-value backup for the Disable Windows VBS tweak.
+   * Stores the pre-apply values of EnableVirtualizationBasedSecurity and
+   * RequirePlatformSecurityFeatures (including whether each key existed)
+   * so revert restores the user's exact prior configuration rather than
+   * blindly writing a hard-coded default.
+   */
+  VBS_BACKUP_FILE: path.join(APPDATA_DIR, 'vbs-backup.json'),
 };

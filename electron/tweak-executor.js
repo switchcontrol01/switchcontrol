@@ -688,12 +688,11 @@ const ADMIN_TWEAKS = {
     check:  `(Get-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\DeviceGuard\\Scenarios\\HypervisorEnforcedCodeIntegrity" -Name "Enabled" -EA SilentlyContinue).Enabled -eq 0`,
   },
   'vbs': {
-    name: 'Disable Virtualization Based Security',
+    name: 'Disable Windows VBS',
     requiresAdmin:  true,
     requiresReboot: true,
-    apply:  `New-Item -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\DeviceGuard" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\DeviceGuard" -Name "EnableVirtualizationBasedSecurity" -Value 0 -Type DWord -Force`,
-    revert: `Set-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\DeviceGuard" -Name "EnableVirtualizationBasedSecurity" -Value 1 -Type DWord -Force`,
-    check:  `(Get-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\DeviceGuard" -Name "EnableVirtualizationBasedSecurity" -EA SilentlyContinue).EnableVirtualizationBasedSecurity -eq 0`,
+    // apply/revert/verify handled by executeVbs below (saves original state for exact restore).
+    _special: 'vbs',
   },
   'hyper-v': {
     name: 'Disable Hyper-V',
@@ -715,9 +714,9 @@ const ADMIN_TWEAKS = {
     name: 'Disable Page Combining',
     requiresAdmin:  true,
     requiresReboot: false,
-    apply:  `try { Set-MMAgent -PageCombining $false } catch { New-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Memory Management" -Name "EnablePageCombining" -Value 0 -Type DWord -Force -EA SilentlyContinue | Out-Null }`,
-    revert: `try { Set-MMAgent -PageCombining $true } catch { Remove-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Memory Management" -Name "EnablePageCombining" -EA SilentlyContinue }`,
-    check:  `try { -not (Get-MMAgent).PageCombining } catch { (Get-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Memory Management" -Name "EnablePageCombining" -EA SilentlyContinue).EnablePageCombining -eq 0 }`,
+    apply:  `$rp="HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Memory Management"; try { Set-MMAgent -PageCombining $false -EA SilentlyContinue } catch {}; Set-ItemProperty -Path $rp -Name "EnablePageCombining" -Value 0 -Type DWord -Force`,
+    revert: `$rp="HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Memory Management"; try { Set-MMAgent -PageCombining $true -EA SilentlyContinue } catch {}; Set-ItemProperty -Path $rp -Name "EnablePageCombining" -Value 1 -Type DWord -Force`,
+    check:  `$rp="HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Memory Management"; $rv=(Get-ItemProperty -Path $rp -Name "EnablePageCombining" -EA SilentlyContinue).EnablePageCombining; if ($null -ne $rv) { $rv -eq 0 } else { try { -not (Get-MMAgent).PageCombining } catch { $false } }`,
   },
   'prefetch': {
     name: 'Disable Prefetch',
@@ -1466,6 +1465,113 @@ async function scanPciMsiDevices() {
   }
 }
 
+// ─── Disable Windows VBS — main handler ───────────────────────────────────────
+// Saves every relevant registry value before touching anything so revert restores
+// the user's exact prior configuration, not a hard-coded default.
+async function executeVbs(action) {
+  const fs_   = require('fs');
+  const path_ = require('path');
+  const { VBS_BACKUP_FILE } = require('./user-data-paths');
+
+  const DG_PATH  = 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\DeviceGuard';
+  const KEY_EVBS = 'EnableVirtualizationBasedSecurity';
+  const KEY_RPSF = 'RequirePlatformSecurityFeatures';
+  const commandsRun = [];
+
+  if (action === 'apply') {
+    // ── 1. Read current values (null = key absent) ────────────────────────────
+    const readRaw = await queryPowerShell(
+      `New-Item -Path "${DG_PATH}" -Force -EA SilentlyContinue | Out-Null; ` +
+      `$v1=(Get-ItemProperty -Path "${DG_PATH}" -Name "${KEY_EVBS}" -EA SilentlyContinue).${KEY_EVBS}; ` +
+      `$v2=(Get-ItemProperty -Path "${DG_PATH}" -Name "${KEY_RPSF}" -EA SilentlyContinue).${KEY_RPSF}; ` +
+      `@{ evbs=if($null -ne $v1){[int]$v1}else{$null}; evbsExisted=($null -ne $v1); rpsf=if($null -ne $v2){[int]$v2}else{$null}; rpsfExisted=($null -ne $v2) } | ConvertTo-Json -Compress`
+    );
+    let origState;
+    try { origState = JSON.parse(readRaw); } catch (_) {
+      return { ok: false, commandsRun, message: 'Could not read current VBS registry state.', errorCode: 'read_failed' };
+    }
+
+    // ── 2. Save backup — abort if it fails so revert stays possible ────────────
+    const backup = { ...origState, savedAt: new Date().toISOString() };
+    try {
+      const dir = path_.dirname(VBS_BACKUP_FILE);
+      if (!fs_.existsSync(dir)) fs_.mkdirSync(dir, { recursive: true });
+      const tmp = VBS_BACKUP_FILE + '.tmp';
+      fs_.writeFileSync(tmp, JSON.stringify(backup, null, 2));
+      fs_.renameSync(tmp, VBS_BACKUP_FILE);
+    } catch (e) {
+      console.warn('[VBS] backup write failed:', e.message);
+      return { ok: false, commandsRun, message: 'Original VBS configuration could not be backed up — aborting to preserve rollback.', errorCode: 'backup_failed' };
+    }
+
+    // ── 3. Apply ────────────────────────────────────────────────────────────────
+    commandsRun.push(`Set ${DG_PATH}\\${KEY_EVBS}=0 ${KEY_RPSF}=0`);
+    await queryPowerShell(
+      `New-Item -Path "${DG_PATH}" -Force -EA SilentlyContinue | Out-Null; ` +
+      `Set-ItemProperty -Path "${DG_PATH}" -Name "${KEY_EVBS}" -Value 0 -Type DWord -Force; ` +
+      `Set-ItemProperty -Path "${DG_PATH}" -Name "${KEY_RPSF}" -Value 0 -Type DWord -Force`
+    );
+
+    // ── 4. Verify ────────────────────────────────────────────────────────────────
+    const checkRaw = await queryPowerShell(
+      `(Get-ItemProperty -Path "${DG_PATH}" -Name "${KEY_EVBS}" -EA SilentlyContinue).${KEY_EVBS}`
+    );
+    if (checkRaw === null || checkRaw.trim() !== '0') {
+      return { ok: false, commandsRun, message: 'VBS registry write completed but verification failed.', errorCode: 'verify_failed' };
+    }
+    return { ok: true, commandsRun, message: 'VBS disabled. A system restart is required for the change to take effect.', requiresReboot: true };
+  }
+
+  if (action === 'revert') {
+    // ── 1. Load backup ────────────────────────────────────────────────────────
+    let backup = null;
+    try { backup = JSON.parse(fs_.readFileSync(VBS_BACKUP_FILE, 'utf8')); } catch (_) {}
+
+    // ── 2. Restore original values exactly, or safe defaults if no backup ─────
+    const steps = [];
+    if (!backup) {
+      // No backup — safe default: re-enable VBS, remove RPSF override
+      steps.push(`Set-ItemProperty -Path "${DG_PATH}" -Name "${KEY_EVBS}" -Value 1 -Type DWord -Force`);
+      steps.push(`Remove-ItemProperty -Path "${DG_PATH}" -Name "${KEY_RPSF}" -EA SilentlyContinue`);
+      commandsRun.push('[no-backup] restore-safe-default EVBS=1 remove RPSF');
+    } else {
+      if (backup.evbsExisted && backup.evbs !== null) {
+        steps.push(`Set-ItemProperty -Path "${DG_PATH}" -Name "${KEY_EVBS}" -Value ${backup.evbs} -Type DWord -Force`);
+      } else {
+        steps.push(`Remove-ItemProperty -Path "${DG_PATH}" -Name "${KEY_EVBS}" -EA SilentlyContinue`);
+      }
+      if (backup.rpsfExisted && backup.rpsf !== null) {
+        steps.push(`Set-ItemProperty -Path "${DG_PATH}" -Name "${KEY_RPSF}" -Value ${backup.rpsf} -Type DWord -Force`);
+      } else {
+        steps.push(`Remove-ItemProperty -Path "${DG_PATH}" -Name "${KEY_RPSF}" -EA SilentlyContinue`);
+      }
+      commandsRun.push(`restore-backup EVBS=${backup.evbs ?? 'absent'} RPSF=${backup.rpsf ?? 'absent'}`);
+    }
+    await queryPowerShell(
+      `New-Item -Path "${DG_PATH}" -Force -EA SilentlyContinue | Out-Null; ` + steps.join('; ')
+    );
+
+    // ── 3. Delete backup file ────────────────────────────────────────────────────
+    try { fs_.unlinkSync(VBS_BACKUP_FILE); } catch (_) {}
+
+    // ── 4. Verify — confirm EVBS matches what we intended ──────────────────────
+    const expectedVal = backup ? (backup.evbsExisted ? String(backup.evbs) : null) : '1';
+    const checkRaw = await queryPowerShell(
+      `(Get-ItemProperty -Path "${DG_PATH}" -Name "${KEY_EVBS}" -EA SilentlyContinue).${KEY_EVBS}`
+    );
+    const actualVal = checkRaw !== null ? checkRaw.trim() : null;
+    const reverted = expectedVal === null
+      ? (actualVal === null || actualVal === '')
+      : (actualVal === expectedVal);
+    if (!reverted) {
+      return { ok: false, commandsRun, message: 'VBS revert command ran but state verification failed.', errorCode: 'verify_failed' };
+    }
+    return { ok: true, commandsRun, message: 'VBS configuration restored. A system restart is required.', requiresReboot: true };
+  }
+
+  return { ok: false, commandsRun, message: `Unknown VBS action: ${action}`, errorCode: 'unknown_action' };
+}
+
 // ─── PCI MSI Mode — main handler ──────────────────────────────────────────────
 async function executePciMsiMode(action) {
   const fs_   = require('fs');
@@ -1856,6 +1962,23 @@ async function verifyTweak(tweakId) {
     }
   }
 
+  // ── Disable Windows VBS ───────────────────────────────────────────────────────
+  if (tweakId === 'vbs') {
+    try {
+      const { VBS_BACKUP_FILE } = require('./user-data-paths');
+      const fs_ = require('fs');
+      const checkRaw = await queryPowerShell(
+        `(Get-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\DeviceGuard" -Name "EnableVirtualizationBasedSecurity" -EA SilentlyContinue).EnableVirtualizationBasedSecurity`
+      );
+      const val = checkRaw !== null ? checkRaw.trim() : null;
+      const isApplied = val === '0';
+      logTweakSupport(tweakId, true, 'DeviceGuard registry readable', { osRelease: osVer, evbs: val });
+      return { isApplied, verified: true, requiresRestart: true, backupExists: fs_.existsSync(VBS_BACKUP_FILE) };
+    } catch (e) {
+      return { isApplied: false, verified: false, error: e.message };
+    }
+  }
+
   // ── PCI MSI Mode ──────────────────────────────────────────────────────────────
   if (tweakId === 'pci-msi-mode') {
     try {
@@ -2203,6 +2326,32 @@ async function executeTweak(tweakId, action, options = {}) {
     }
   }
 
+  if (tweak._special === 'vbs') {
+    try {
+      const res = await executeVbs(action);
+      const result = {
+        success:        res.ok,
+        unsupported:    false,
+        requiresReboot: true,
+        requiresAdmin:  true,
+        commandsRun:    res.commandsRun || [],
+        message:        res.message || null,
+        error:          res.ok ? null : (res.message || 'VBS operation failed'),
+        verified:       res.ok,
+      };
+      if (!res.ok) enrichFailure(result, res.errorCode === 'backup_failed' ? 'verification_failed' : 'unknown');
+      logEntry({ tweakId, action, result, ms: Date.now() - startTime });
+      return result;
+    } catch (err) {
+      const result = {
+        success: false, unsupported: false, requiresReboot: true, requiresAdmin: true,
+        commandsRun: [], message: null, error: err.message,
+      };
+      logEntry({ tweakId, action, result, ms: Date.now() - startTime });
+      return result;
+    }
+  }
+
   if (tweak._special === 'pci-msi-mode') {
     try {
       const res = await executePciMsiMode(action);
@@ -2464,6 +2613,23 @@ async function batchCheckAllTweaks() {
       };
     } catch (err) {
       result[pciMsiId] = { isApplied: false, applied: false, error: err.message };
+    }
+  }
+
+  // 3e. vbs: reads DeviceGuard registry, must run individually (backup-aware verify).
+  const vbsId = 'vbs';
+  if (ALL_TWEAKS[vbsId]) {
+    try {
+      const r = await verifyTweak(vbsId);
+      result[vbsId] = {
+        isApplied:         !!r.isApplied,
+        applied:           !!r.isApplied,
+        unsupported:       r.unsupported || false,
+        unsupportedReason: r.unsupportedReason || null,
+        error:             r.error || null,
+      };
+    } catch (err) {
+      result[vbsId] = { isApplied: false, applied: false, error: err.message };
     }
   }
 
