@@ -95,6 +95,9 @@ export interface DiagnosticsState {
   dnsBenchmarkError: string | null;
   runDnsBenchmark: () => Promise<void>;
   resetDnsBenchmark: () => void;
+  applyDnsState: ApplyDnsState;
+  applyDnsError: string | null;
+  applyDns: (ip: string) => Promise<void>;
 }
 
 const HISTORY_MAX = 60;
@@ -132,6 +135,9 @@ export function useNetworkDiagnostics(): DiagnosticsState {
   const [dnsBenchmarkState, setDnsBenchmarkState]   = useState<DnsBenchmarkState>("idle");
   const [dnsBenchmarkResult, setDnsBenchmarkResult] = useState<DnsBenchmarkResult | null>(null);
   const [dnsBenchmarkError, setDnsBenchmarkError]   = useState<string | null>(null);
+  const [applyDnsState, setApplyDnsState]           = useState<ApplyDnsState>("idle");
+  const [applyDnsError, setApplyDnsError]           = useState<string | null>(null);
+  const applyDnsResetRef                            = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const intervalRef        = useRef<ReturnType<typeof setInterval> | null>(null);
   const spikeTimestampsRef = useRef<number[]>([]);
@@ -316,12 +322,31 @@ export function useNetworkDiagnostics(): DiagnosticsState {
     setDnsBenchmarkResult(null);
     setDnsBenchmarkError(null);
     try {
-      const controller = new AbortController();
-      const tid = setTimeout(() => controller.abort(), 20_000);
-      const resp = await fetch("/api/network/dns-benchmark", { signal: controller.signal });
-      clearTimeout(tid);
-      if (!resp.ok) throw new Error(`Server returned ${resp.status}`);
-      const result: DnsBenchmarkResult = await resp.json();
+      const electronDns = (window as any).electronAPI?.dns;
+      let result: DnsBenchmarkResult;
+
+      if (electronDns?.benchmark) {
+        // Run benchmark locally on the user's PC via Electron IPC
+        const controller = new AbortController();
+        const tid = setTimeout(() => controller.abort(), 20_000);
+        try {
+          result = await Promise.race([
+            electronDns.benchmark(),
+            new Promise<never>((_, rej) => setTimeout(() => rej(new Error("Benchmark timed out")), 20_000)),
+          ]);
+        } finally {
+          clearTimeout(tid);
+        }
+      } else {
+        // Fall back to server endpoint (web / non-Electron)
+        const controller = new AbortController();
+        const tid = setTimeout(() => controller.abort(), 20_000);
+        const resp = await fetch("/api/network/dns-benchmark", { signal: controller.signal });
+        clearTimeout(tid);
+        if (!resp.ok) throw new Error(`Server returned ${resp.status}`);
+        result = await resp.json();
+      }
+
       if (mountedRef.current) {
         setDnsBenchmarkResult(result);
         setDnsBenchmarkState("done");
@@ -340,6 +365,38 @@ export function useNetworkDiagnostics(): DiagnosticsState {
     setDnsBenchmarkError(null);
   }, []);
 
+  // ── Apply DNS ─────────────────────────────────────────────────────────────────
+
+  const applyDns = useCallback(async (ip: string) => {
+    if (applyDnsResetRef.current) clearTimeout(applyDnsResetRef.current);
+    setApplyDnsState("loading");
+    setApplyDnsError(null);
+    try {
+      const result = await (window as any).electronAPI?.dns?.applyDns(ip);
+      if (!mountedRef.current) return;
+      if (result?.cancelled) {
+        setApplyDnsState("cancelled");
+        applyDnsResetRef.current = setTimeout(() => {
+          if (mountedRef.current) setApplyDnsState("idle");
+        }, 5_000);
+      } else if (result?.ok) {
+        setApplyDnsState("done");
+        applyDnsResetRef.current = setTimeout(() => {
+          if (mountedRef.current) setApplyDnsState("idle");
+        }, 8_000);
+      } else {
+        throw new Error(result?.error ?? "Apply DNS failed");
+      }
+    } catch (err: unknown) {
+      if (!mountedRef.current) return;
+      setApplyDnsError(err instanceof Error ? err.message : "Apply DNS failed");
+      setApplyDnsState("error");
+      applyDnsResetRef.current = setTimeout(() => {
+        if (mountedRef.current) { setApplyDnsState("idle"); setApplyDnsError(null); }
+      }, 8_000);
+    }
+  }, []);
+
   return {
     isMonitoring, monitorPhase, monitorError,
     history, current, spikes, spikesPerMin, health,
@@ -347,5 +404,6 @@ export function useNetworkDiagnostics(): DiagnosticsState {
     benchmarkState, benchmarkResult, startBenchmark, runBenchmarkCompare, resetBenchmark,
     pcVsInternetState, pcVsInternetResult, runPcVsInternet, resetPcVsInternet,
     dnsBenchmarkState, dnsBenchmarkResult, dnsBenchmarkError, runDnsBenchmark, resetDnsBenchmark,
+    applyDnsState, applyDnsError, applyDns,
   };
 }

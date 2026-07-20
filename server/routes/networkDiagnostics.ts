@@ -161,9 +161,14 @@ async function benchmarkProvider(provider: typeof DNS_PROVIDERS[number]) {
   };
 }
 
-let benchmarkBaseline: {
+type BenchmarkBaselineEntry = {
   avg: number; min: number; max: number; jitter: number; loss: number; ts: number;
-} | null = null;
+};
+const benchmarkBaselineMap = new Map<string, BenchmarkBaselineEntry>();
+
+function getClientIp(req: any): string {
+  return (req.headers["x-forwarded-for"] as string | undefined)?.split(",")[0].trim() ?? req.ip ?? "unknown";
+}
 
 router.get("/ping-sample", pingRateLimit, async (_req, res) => {
   try {
@@ -174,21 +179,25 @@ router.get("/ping-sample", pingRateLimit, async (_req, res) => {
   }
 });
 
-router.post("/benchmark/baseline", async (_req, res) => {
+router.post("/benchmark/baseline", async (req, res) => {
+  const ip = getClientIp(req);
   try {
     const result = await collectSamples(8);
-    benchmarkBaseline = { ...result, ts: Date.now() };
-    res.json(benchmarkBaseline);
+    const entry: BenchmarkBaselineEntry = { ...result, ts: Date.now() };
+    benchmarkBaselineMap.set(ip, entry);
+    res.json(entry);
   } catch {
     res.status(500).json({ error: "Baseline sampling failed" });
   }
 });
 
-router.get("/benchmark/compare", async (_req, res) => {
-  if (!benchmarkBaseline) return res.status(400).json({ error: "No baseline recorded" });
+router.get("/benchmark/compare", async (req, res) => {
+  const ip = getClientIp(req);
+  const baseline = benchmarkBaselineMap.get(ip);
+  if (!baseline) return res.status(400).json({ error: "No baseline recorded" });
   try {
     const after = await collectSamples(8);
-    const before = benchmarkBaseline;
+    const before = baseline;
     const deltaLabel = (b: number, a: number, threshold = 1): "improved" | "unchanged" | "worse" => {
       const diff = a - b;
       if (Math.abs(diff) < threshold) return "unchanged";

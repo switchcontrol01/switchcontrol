@@ -17,7 +17,7 @@ import { useStore } from "@/lib/store";
 import { useTweakOwnershipStore } from "@/stores/tweakOwnershipStore";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { GlassCard, UtilityCard } from "@/components/ui/glass-card";
+import { GlassCard } from "@/components/ui/glass-card";
 import { Button } from "@/components/ui/button";
 import { useEntitlementUiState } from "@/hooks/useEntitlementUiState";
 import type { EntitlementUiStatus } from "@/lib/entitlementResolver";
@@ -76,12 +76,10 @@ interface ApplyBatchResult {
 // ── Entitlement helpers (single source of truth for Extreme Labs) ─────────────
 
 function canRunExtremeAnalysis(status: EntitlementUiStatus): boolean {
-  // All logged-in users can run analysis — it's the funnel
   return status !== "unverified";
 }
 
 function canApplyExtremeTweaks(status: EntitlementUiStatus): boolean {
-  // trial_active users get full apply access
   return (
     status === "premium" ||
     status === "premium_grace" ||
@@ -93,16 +91,20 @@ function elLog(tag: "ExtremeLabs" | "ExtremeLabsApply" | "ExtremeLabsEntitlement
   console.log(`[${tag}]`, JSON.stringify(data));
 }
 
+// ── Design tokens ────────────────────────────────────────────────────────────
+
+const RISK_NEON: Record<RiskBadge, { glow: string; text: string; bg: string; border: string; bar: string }> = {
+  Safe:     { glow: "#00FF88", text: "text-emerald-400",   bg: "bg-emerald-500/10",  border: "border-emerald-500/30",  bar: "#00FF88" },
+  Moderate: { glow: "#FF9500", text: "text-amber-400",     bg: "bg-amber-500/10",    border: "border-amber-500/30",    bar: "#FF9500" },
+  Risky:    { glow: "#FF4444", text: "text-red-400",       bg: "bg-red-500/10",      border: "border-red-500/30",      bar: "#FF4444" },
+  High:     { glow: "#FF1A1A", text: "text-red-500",       bg: "bg-red-600/10",      border: "border-red-600/30",      bar: "#FF1A1A" },
+};
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function getRiskBg(risk: RiskBadge): string {
-  switch (risk) {
-    case "Safe": return "bg-emerald-500/10 border-emerald-500/30 text-emerald-400";
-    case "Moderate": return "bg-amber-500/10 border-amber-500/30 text-amber-400";
-    case "Risky": return "bg-red-500/10 border-red-500/30 text-red-400";
-    case "High": return "bg-red-600/10 border-red-600/30 text-red-500";
-    default: return "bg-slate-500/10 border-slate-500/30 text-slate-400";
-  }
+  const r = RISK_NEON[risk];
+  return `${r.bg} ${r.border} ${r.text}`;
 }
 
 function getImpactLabel(impact: string): string {
@@ -115,7 +117,6 @@ function getImpactLabel(impact: string): string {
   }
 }
 
-// Simulated latency score based on telemetry (0-100, lower is better)
 function computeLatencyScore(telemetry: ReturnType<typeof useLiveTelemetry>["telemetry"]): number {
   if (!telemetry) return 50;
   const cpuLoad = (telemetry as any).cpu?.usagePct ?? (telemetry as any).cpu?.load ?? 0;
@@ -124,46 +125,148 @@ function computeLatencyScore(telemetry: ReturnType<typeof useLiveTelemetry>["tel
   return Math.min(100, Math.max(10, score));
 }
 
+// ── Animated counter hook ────────────────────────────────────────────────────
+
+function useCountUp(target: number, duration = 800): number {
+  const [val, setVal] = useState(0);
+  useEffect(() => {
+    let start: number | null = null;
+    const step = (ts: number) => {
+      if (!start) start = ts;
+      const progress = Math.min((ts - start) / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setVal(Math.round(eased * target));
+      if (progress < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }, [target, duration]);
+  return val;
+}
+
 // ── SVG Gauge Component ──────────────────────────────────────────────────────
 
 function LatencyGauge({ value, label }: { value: number; label: string }) {
   const clamped = Math.min(100, Math.max(0, value));
-  const angle = (clamped / 100) * 270 - 135;
-  const color = clamped < 40 ? "#22c55e" : clamped < 70 ? "#f59e0b" : "#ef4444";
+  const angle = (clamped / 100) * 240 - 120;
+  const color = clamped < 40 ? "#00FF88" : clamped < 70 ? "#FF9500" : "#FF4444";
+  const displayVal = useCountUp(value);
+
+  // Arc params: radius=76, center=100,110, span=240deg
+  const R = 76;
+  const cx = 100, cy = 110;
+  const toXY = (deg: number) => {
+    const rad = ((deg - 90) * Math.PI) / 180;
+    return { x: cx + R * Math.cos(rad), y: cy + R * Math.sin(rad) };
+  };
+  const start = toXY(-120);
+  const end   = toXY(120);
+  const arcEnd = toXY(angle);
+
+  // Full track arc
+  const trackD = `M ${start.x} ${start.y} A ${R} ${R} 0 1 1 ${end.x} ${end.y}`;
+
+  // Value arc (partial)
+  const spanDeg = clamped / 100 * 240;
+  const largeArc = spanDeg > 180 ? 1 : 0;
+  const valueD = `M ${start.x} ${start.y} A ${R} ${R} 0 ${largeArc} 1 ${arcEnd.x} ${arcEnd.y}`;
+
+  // Tick marks
+  const ticks = Array.from({ length: 11 }, (_, i) => {
+    const deg = -120 + (i / 10) * 240;
+    const inner = i % 5 === 0 ? 62 : 68;
+    const outer = 76;
+    const rad = ((deg - 90) * Math.PI) / 180;
+    return {
+      x1: cx + inner * Math.cos(rad),
+      y1: cy + inner * Math.sin(rad),
+      x2: cx + outer * Math.cos(rad),
+      y2: cy + outer * Math.sin(rad),
+      major: i % 5 === 0,
+    };
+  });
 
   return (
-    <div className="flex flex-col items-center gap-2">
-      <div className="relative w-48 h-28">
-        <svg viewBox="0 0 200 120" className="w-full h-full">
-          <path d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke="#2A313A" strokeWidth="12" strokeLinecap="round" />
-          <path
-            d="M 20 100 A 80 80 0 0 1 180 100"
-            fill="none"
-            stroke="url(#gaugeGradient)"
-            strokeWidth="12"
-            strokeLinecap="round"
-            strokeDasharray={`${(clamped / 100) * 251} 251`}
-            style={{ transition: "stroke-dasharray 1s ease-out" }}
-          />
-          <line
-            x1="100" y1="100" x2="100" y2="35"
-            stroke={color} strokeWidth="3" strokeLinecap="round"
-            transform={`rotate(${angle} 100 100)`}
-            style={{ transition: "transform 1s ease-out" }}
-          />
-          <circle cx="100" cy="100" r="5" fill={color} />
+    <div className="flex flex-col items-center gap-1">
+      <div className="relative w-52 h-36">
+        <svg viewBox="0 0 200 140" className="w-full h-full overflow-visible">
           <defs>
-            <linearGradient id="gaugeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#22c55e" />
-              <stop offset="50%" stopColor="#f59e0b" />
-              <stop offset="100%" stopColor="#ef4444" />
+            <linearGradient id="gaugeTrack" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="#00FF88" stopOpacity="0.15" />
+              <stop offset="50%" stopColor="#FF9500" stopOpacity="0.15" />
+              <stop offset="100%" stopColor="#FF4444" stopOpacity="0.15" />
             </linearGradient>
+            <linearGradient id="gaugeValue" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="#00FF88" />
+              <stop offset="50%" stopColor="#FF9500" />
+              <stop offset="100%" stopColor="#FF4444" />
+            </linearGradient>
+            <filter id="gaugeGlow">
+              <feGaussianBlur stdDeviation="2.5" result="blur" />
+              <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+            </filter>
           </defs>
+
+          {/* Outer decorative ring */}
+          <circle cx={cx} cy={cy} r="90" fill="none" stroke="#1A2030" strokeWidth="1" />
+
+          {/* Track arc */}
+          <path d={trackD} fill="none" stroke="#1E2733" strokeWidth="10" strokeLinecap="round" />
+
+          {/* Colored zone fill under track */}
+          <path d={trackD} fill="none" stroke="url(#gaugeTrack)" strokeWidth="10" strokeLinecap="round" />
+
+          {/* Value arc with glow */}
+          {clamped > 0 && (
+            <>
+              <path
+                d={valueD}
+                fill="none"
+                stroke={color}
+                strokeWidth="10"
+                strokeLinecap="round"
+                opacity="0.25"
+                style={{ transition: "all 1.2s cubic-bezier(0.34,1.56,0.64,1)" }}
+              />
+              <path
+                d={valueD}
+                fill="none"
+                stroke={color}
+                strokeWidth="3"
+                strokeLinecap="round"
+                filter="url(#gaugeGlow)"
+                style={{ transition: "all 1.2s cubic-bezier(0.34,1.56,0.64,1)" }}
+              />
+            </>
+          )}
+
+          {/* Tick marks */}
+          {ticks.map((t, i) => (
+            <line
+              key={i}
+              x1={t.x1} y1={t.y1} x2={t.x2} y2={t.y2}
+              stroke={t.major ? "#3A4558" : "#252C38"}
+              strokeWidth={t.major ? 1.5 : 1}
+            />
+          ))}
+
+          {/* Needle */}
+          <g style={{ transform: `rotate(${angle}deg)`, transformOrigin: `${cx}px ${cy}px`, transition: "transform 1.2s cubic-bezier(0.34,1.56,0.64,1)" }}>
+            <line x1={cx} y1={cy} x2={cx} y2={cy - 58} stroke={color} strokeWidth="2.5" strokeLinecap="round" />
+            <line x1={cx} y1={cy} x2={cx} y2={cy + 14} stroke={color} strokeWidth="1.5" strokeLinecap="round" opacity="0.4" />
+          </g>
+
+          {/* Center hub */}
+          <circle cx={cx} cy={cy} r="7" fill="#0D1117" stroke={color} strokeWidth="2" />
+          <circle cx={cx} cy={cy} r="3" fill={color} />
+
+          {/* Value display */}
+          <text x={cx} y={cy - 20} textAnchor="middle" fill={color} fontSize="26" fontWeight="700" fontFamily="monospace" style={{ transition: "fill 0.5s" }}>
+            {displayVal}
+          </text>
         </svg>
       </div>
-      <div className="text-center">
-        <div className="text-2xl font-bold" style={{ color }}>{value}</div>
-        <div className="text-xs text-muted-foreground">{label}</div>
+      <div className="text-center space-y-0.5">
+        <div className="text-[10px] text-muted-foreground/60 uppercase tracking-widest font-medium">{label}</div>
       </div>
     </div>
   );
@@ -178,34 +281,89 @@ function ImpactBar({ label, before, after, unit, better }: {
   const beforePct = (before / max) * 100;
   const afterPct = (after / max) * 100;
   const improved = better === "lower" ? after < before : after > before;
+  const pctChange = before > 0 ? Math.round(Math.abs((after - before) / before) * 100) : 0;
 
   return (
-    <div className="space-y-2">
-      <div className="flex justify-between text-sm">
-        <span className="text-muted-foreground">{label}</span>
+    <div className="space-y-1.5">
+      <div className="flex justify-between items-center">
+        <span className="text-xs font-medium text-[#C8CDD6]">{label}</span>
         {improved && (
-          <span className="text-emerald-400 text-xs font-medium">
-            {better === "lower" ? "Reduced" : "Improved"}
-          </span>
+          <motion.span
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded"
+          >
+            -{pctChange}%
+          </motion.span>
         )}
       </div>
-      <div className="space-y-1.5">
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground w-12 shrink-0">Before</span>
-          <div className="flex-1 h-2 bg-[#1A1F26] rounded-full overflow-hidden">
-            <motion.div className="h-full bg-[#3A414D] rounded-full" initial={{ width: 0 }} animate={{ width: `${beforePct}%` }} transition={{ duration: 0.8, ease: "easeOut" }} />
-          </div>
-          <span className="text-xs text-muted-foreground w-16 text-right">{before}{unit}</span>
+      <div className="grid grid-cols-[40px_1fr_auto] items-center gap-2">
+        <span className="text-[10px] text-muted-foreground/50 text-right">before</span>
+        <div className="h-3 bg-[#0E1318] rounded-full overflow-hidden border border-[#1E2733]">
+          <motion.div
+            className="h-full bg-[#2A3344] rounded-full"
+            initial={{ width: 0 }}
+            animate={{ width: `${beforePct}%` }}
+            transition={{ duration: 0.9, ease: "easeOut" }}
+          />
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground w-12 shrink-0">After</span>
-          <div className="flex-1 h-2 bg-[#1A1F26] rounded-full overflow-hidden">
-            <motion.div className={cn("h-full rounded-full", improved ? "bg-emerald-500" : "bg-[#00D4FF]")} initial={{ width: 0 }} animate={{ width: `${afterPct}%` }} transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }} />
-          </div>
-          <span className={cn("text-xs w-16 text-right font-medium", improved ? "text-emerald-400" : "text-[#00D4FF]")}>{after}{unit}</span>
+        <span className="text-xs text-muted-foreground/60 font-mono w-14 text-right">{before}{unit}</span>
+      </div>
+      <div className="grid grid-cols-[40px_1fr_auto] items-center gap-2">
+        <span className="text-[10px] text-muted-foreground/50 text-right">after</span>
+        <div className="h-3 bg-[#0E1318] rounded-full overflow-hidden border border-[#1E2733]">
+          <motion.div
+            className="h-full rounded-full"
+            style={{ background: improved ? "linear-gradient(90deg,#00FF88,#00D4FF)" : "#00D4FF" }}
+            initial={{ width: 0 }}
+            animate={{ width: `${afterPct}%` }}
+            transition={{ duration: 0.9, delay: 0.25, ease: "easeOut" }}
+          />
         </div>
+        <span className={cn("text-xs font-mono font-bold w-14 text-right", improved ? "text-emerald-400" : "text-[#00D4FF]")}>
+          {after}{unit}
+        </span>
       </div>
     </div>
+  );
+}
+
+// ── Stat Card ────────────────────────────────────────────────────────────────
+
+function StatCard({ icon: Icon, value, label, color, animate = true }: {
+  icon: React.ElementType;
+  value: number | string;
+  label: string;
+  color: string;
+  animate?: boolean;
+}) {
+  const numVal = typeof value === "number" ? value : null;
+  const countVal = useCountUp(numVal ?? 0, 700);
+  const display = numVal !== null ? countVal : value;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+      whileHover={{ y: -2 }}
+      className="relative overflow-hidden rounded-xl border border-[#1E2733] bg-[#0C1118] p-4 group cursor-default"
+    >
+      {/* Top accent line */}
+      <div className="absolute top-0 left-0 right-0 h-[2px] rounded-t-xl" style={{ background: `linear-gradient(90deg, transparent, ${color}, transparent)` }} />
+
+      {/* Corner glow */}
+      <div className="absolute top-0 right-0 w-16 h-16 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+        style={{ background: `radial-gradient(circle, ${color}20 0%, transparent 70%)`, transform: "translate(30%,-30%)" }} />
+
+      <div className="flex flex-col gap-2">
+        <Icon className="size-4" style={{ color }} />
+        <div className="text-3xl font-black font-mono tabular-nums leading-none" style={{ color }}>
+          {display}
+        </div>
+        <div className="text-[10px] text-muted-foreground/60 uppercase tracking-widest font-medium">{label}</div>
+      </div>
+    </motion.div>
   );
 }
 
@@ -231,117 +389,172 @@ function TweakCard({
   onUpgrade: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const riskStyle = RISK_NEON[tweak.risk];
 
   return (
-    <GlassCard className="p-4">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-medium text-[#E6EAF0] text-sm">{tweak.name}</span>
-            <span className={cn("text-[10px] px-1.5 py-0.5 rounded border font-medium", getRiskBg(tweak.risk))}>
-              {tweak.risk}
-            </span>
-            {tweak.nicPropertyKey && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded border bg-purple-500/10 border-purple-500/30 text-purple-400 font-medium">
-                NIC
+    <motion.div
+      layout
+      initial={{ opacity: 0, x: -8 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.3 }}
+      className={cn(
+        "relative rounded-xl border bg-[#0C1118] overflow-hidden group transition-all duration-300",
+        isApplied
+          ? "border-emerald-500/30 bg-[#0A1510]"
+          : "border-[#1E2733] hover:border-[#2A3A4A]"
+      )}
+    >
+      {/* Left risk accent bar */}
+      <div
+        className="absolute left-0 top-0 bottom-0 w-[3px] rounded-l-xl transition-opacity duration-300"
+        style={{
+          background: `linear-gradient(180deg, ${riskStyle.glow}CC, ${riskStyle.glow}44)`,
+          opacity: isApplied ? 1 : 0.4,
+        }}
+      />
+
+      {/* Applied glow overlay */}
+      {isApplied && (
+        <div className="absolute inset-0 pointer-events-none rounded-xl"
+          style={{ background: "radial-gradient(ellipse at top left, rgba(0,255,136,0.04) 0%, transparent 60%)" }} />
+      )}
+
+      <div className="p-4 pl-5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-semibold text-[#E6EAF0] text-sm tracking-tight">{tweak.name}</span>
+              {/* Risk badge */}
+              <span className={cn(
+                "text-[9px] px-1.5 py-0.5 rounded border font-bold uppercase tracking-wider",
+                `${riskStyle.bg} ${riskStyle.border} ${riskStyle.text}`
+              )}>
+                {tweak.risk}
               </span>
-            )}
+              {tweak.nicPropertyKey && (
+                <span className="text-[9px] px-1.5 py-0.5 rounded border bg-purple-500/10 border-purple-500/30 text-purple-400 font-bold uppercase tracking-wider">
+                  NIC
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground/70 mt-1.5 leading-relaxed">{tweak.description}</p>
           </div>
-          <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{tweak.description}</p>
-        </div>
-        <div className="shrink-0">
-          {isApplied ? (
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs text-emerald-400 flex items-center gap-1">
-                <Check className="size-3" /> Applied
-              </span>
+
+          {/* Action */}
+          <div className="shrink-0 mt-0.5">
+            {isApplied ? (
+              <div className="flex items-center gap-2">
+                <motion.div
+                  className="flex items-center gap-1.5 text-xs text-emerald-400 font-semibold"
+                  animate={{ opacity: [0.7, 1, 0.7] }}
+                  transition={{ duration: 2.5, repeat: Infinity }}
+                >
+                  {/* Pulsing dot */}
+                  <span className="relative flex size-2">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-50" />
+                    <span className="relative inline-flex size-2 rounded-full bg-emerald-400" />
+                  </span>
+                  Applied
+                </motion.div>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="text-muted-foreground/40 hover:text-red-400 h-7 w-7 p-0 transition-colors"
+                  onClick={onUndo}
+                  disabled={isPending || disabled}
+                >
+                  <RotateCcw className="size-3" />
+                </Button>
+              </div>
+            ) : premiumLocked ? (
               <Button
                 size="sm"
                 variant="ghost"
-                className="text-xs text-muted-foreground hover:text-red-400 h-7 px-2"
-                onClick={onUndo}
-                disabled={isPending || disabled}
+                className="text-xs text-muted-foreground/50 hover:text-purple-400 h-7 px-2.5 border border-[#1E2733] hover:border-purple-500/30 transition-all"
+                onClick={onUpgrade}
               >
-                <RotateCcw className="size-3" />
+                <Lock className="size-3 mr-1" /> Premium
               </Button>
-            </div>
-          ) : premiumLocked ? (
-            <Button
-              size="sm"
-              variant="ghost"
-              className="text-xs text-muted-foreground hover:text-purple-400 h-7 px-2 border border-[#2A313A]/60"
-              onClick={onUpgrade}
-            >
-              <Lock className="size-3 mr-1" /> Premium
-            </Button>
-          ) : (
-            <Button
-              size="sm"
-              className="text-xs bg-[#00D4FF] hover:bg-[#00D4FF]/90 text-[#0A0E14] h-7"
-              onClick={onApply}
-              disabled={isPending || disabled}
-            >
-              {isPending ? <Loader2 className="size-3 animate-spin" /> : <Zap className="size-3 mr-1" />}
-              Apply
-            </Button>
-          )}
+            ) : (
+              <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}>
+                <Button
+                  size="sm"
+                  className="text-xs bg-[#00D4FF]/10 hover:bg-[#00D4FF]/20 text-[#00D4FF] border border-[#00D4FF]/30 hover:border-[#00D4FF]/60 h-7 px-3 font-semibold transition-all shadow-none hover:shadow-[0_0_12px_rgba(0,212,255,0.25)]"
+                  onClick={onApply}
+                  disabled={isPending || disabled}
+                >
+                  {isPending ? (
+                    <Loader2 className="size-3 animate-spin mr-1" />
+                  ) : (
+                    <Zap className="size-3 mr-1" />
+                  )}
+                  Apply
+                </Button>
+              </motion.div>
+            )}
+          </div>
         </div>
-      </div>
 
-      <button
-        onClick={() => setExpanded(!expanded)}
-        className="flex items-center gap-1 text-xs text-muted-foreground hover:text-[#00D4FF] mt-3 transition-colors"
-      >
-        {expanded ? <ChevronDown className="size-3" /> : <ChevronRight className="size-3" />}
-        {expanded ? "Hide details" : "Show details"}
-      </button>
+        {/* Expand toggle */}
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="flex items-center gap-1.5 text-[10px] text-muted-foreground/40 hover:text-[#00D4FF]/70 mt-3 transition-colors uppercase tracking-wider font-medium"
+        >
+          <motion.span animate={{ rotate: expanded ? 90 : 0 }} transition={{ duration: 0.2 }}>
+            <ChevronRight className="size-3" />
+          </motion.span>
+          {expanded ? "Hide details" : "Show details"}
+        </button>
 
-      <AnimatePresence>
-        {expanded && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.25 }}
-            className="overflow-hidden"
-          >
-            <div className="pt-3 mt-3  space-y-2">
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <div>
-                  <span className="text-muted-foreground">What it changes:</span>
-                  <p className="text-[#E6EAF0] mt-0.5">{tweak.whatItChanges}</p>
+        <AnimatePresence>
+          {expanded && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.25 }}
+              className="overflow-hidden"
+            >
+              <div className="pt-3 mt-3 border-t border-[#1A2030] space-y-3">
+                <div className="grid grid-cols-2 gap-3 text-xs">
+                  <div className="p-2.5 rounded-lg bg-[#0A0F14] border border-[#1A2030]">
+                    <span className="text-[9px] uppercase tracking-widest text-muted-foreground/40 font-medium block mb-1">Changes</span>
+                    <p className="text-[#C8CDD6] leading-relaxed">{tweak.whatItChanges}</p>
+                  </div>
+                  <div className="p-2.5 rounded-lg bg-[#0A0F14] border border-red-500/10">
+                    <span className="text-[9px] uppercase tracking-widest text-red-500/50 font-medium block mb-1">May break</span>
+                    <p className="text-red-400/80 leading-relaxed">{tweak.whatMayBreak}</p>
+                  </div>
                 </div>
-                <div>
-                  <span className="text-muted-foreground">What may break:</span>
-                  <p className="text-red-400/80 mt-0.5">{tweak.whatMayBreak}</p>
+                <div className="flex items-center gap-4 text-xs">
+                  <div>
+                    <span className="text-[9px] uppercase tracking-widest text-muted-foreground/40 font-medium block mb-0.5">Impact</span>
+                    <span style={{ color: getImpactColor(tweak.impact) }} className="font-semibold">
+                      {getImpactLabel(tweak.impact)}
+                    </span>
+                  </div>
+                  {tweak.requiresRestart && (
+                    <div className="flex items-center gap-1 text-amber-400/70 text-[10px]">
+                      <RotateCcw className="size-3" /> Requires restart
+                    </div>
+                  )}
                 </div>
-              </div>
-              <div className="flex items-center gap-3 text-xs">
-                <span className="text-muted-foreground">Impact:</span>
-                <span style={{ color: getImpactColor(tweak.impact) }} className="font-medium">
-                  {getImpactLabel(tweak.impact)}
-                </span>
-                {tweak.requiresRestart && (
-                  <span className="text-amber-400/80 flex items-center gap-1">
-                    <RotateCcw className="size-3" /> Restart required
-                  </span>
+                {tweak.riskAreas.length > 0 && (
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[9px] uppercase tracking-widest text-muted-foreground/40 font-medium">Risk areas:</span>
+                    {tweak.riskAreas.map((area) => (
+                      <span key={area} className="text-[9px] px-1.5 py-0.5 rounded bg-red-500/8 text-red-400/70 border border-red-500/15 font-medium">
+                        {area}
+                      </span>
+                    ))}
+                  </div>
                 )}
               </div>
-              {tweak.riskAreas.length > 0 && (
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-xs text-muted-foreground">Risk areas:</span>
-                  {tweak.riskAreas.map((area) => (
-                    <span key={area} className="text-[10px] px-1.5 py-0.5 rounded bg-red-500/10 text-red-400 border border-red-500/20">
-                      {area}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </GlassCard>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </motion.div>
   );
 }
 
@@ -374,18 +587,39 @@ function EntryModal({
 
   if (step === "analyzing") {
     return (
-      <div className="fixed top-0 bottom-0 left-64 right-0 z-[60] flex items-center justify-center bg-[#0A0E14]/90 backdrop-blur-xl">
-        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="flex flex-col items-center gap-6">
+      <div className="fixed top-0 bottom-0 left-64 right-0 z-[60] flex items-center justify-center bg-[#07090D]/95 backdrop-blur-xl">
+        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="flex flex-col items-center gap-8">
           <div className="relative">
-            <motion.div className="w-16 h-16 rounded-full border-2 border-[#00D4FF]/30" animate={{ rotate: 360 }} transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }} style={{ borderTopColor: "#00D4FF" }} />
-            <Zap className="size-6 text-[#00D4FF] absolute inset-0 m-auto" />
+            {/* Outer ring */}
+            <motion.div
+              className="absolute inset-0 rounded-full"
+              animate={{ rotate: 360 }}
+              transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+              style={{ border: "1px solid rgba(0,212,255,0.15)", borderTopColor: "#00D4FF", width: 96, height: 96, margin: -16 }}
+            />
+            {/* Inner ring */}
+            <motion.div
+              className="w-16 h-16 rounded-full border-2 border-[#00D4FF]/20"
+              animate={{ rotate: -360 }}
+              transition={{ duration: 1.8, repeat: Infinity, ease: "linear" }}
+              style={{ borderTopColor: "#00D4FF", borderRightColor: "#00D4FF40" }}
+            />
+            <Zap className="size-7 text-[#00D4FF] absolute inset-0 m-auto" />
           </div>
-          <div className="text-center">
-            <h3 className="text-lg font-semibold text-[#E6EAF0]">Analyzing system latency profile...</h3>
-            <p className="text-sm text-muted-foreground mt-1">This takes 10-15 seconds</p>
+          <div className="text-center space-y-2">
+            <h3 className="text-xl font-black text-[#E6EAF0] tracking-tight">Analyzing system latency profile</h3>
+            <p className="text-sm text-muted-foreground/60">Scanning hardware configuration — {Math.round(progress)}% complete</p>
           </div>
-          <div className="w-64 h-1.5 bg-[#1A1F26] rounded-full overflow-hidden">
-            <motion.div className="h-full bg-gradient-to-r from-[#00D4FF] to-[#00D4FF]/50 rounded-full" initial={{ width: "0%" }} animate={{ width: `${progress}%` }} transition={{ duration: 0.5 }} />
+          <div className="w-72 space-y-2">
+            <div className="h-1.5 bg-[#0E1318] rounded-full overflow-hidden border border-[#1E2733]">
+              <motion.div
+                className="h-full rounded-full"
+                style={{ background: "linear-gradient(90deg, #00D4FF, #00FF88)" }}
+                initial={{ width: "0%" }}
+                animate={{ width: `${progress}%` }}
+                transition={{ duration: 0.4 }}
+              />
+            </div>
           </div>
         </motion.div>
       </div>
@@ -393,98 +627,122 @@ function EntryModal({
   }
 
   return (
-    <div className="fixed top-0 bottom-0 left-64 right-0 z-[60] flex items-center justify-center bg-[#0A0E14]/90 backdrop-blur-xl">
+    <div className="fixed top-0 bottom-0 left-64 right-0 z-[60] flex items-center justify-center bg-[#07090D]/95 backdrop-blur-xl">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.4 }} className="w-full max-w-lg mx-4">
+        {/* Progress steps */}
         <div className="flex items-center gap-2 mb-6">
           {[1, 2, 3].map((n) => (
-            <div key={n} className="flex-1 h-1 rounded-full bg-[#1A1F26] overflow-hidden">
+            <div key={n} className="flex-1 h-0.5 rounded-full bg-[#1A2030] overflow-hidden">
               <motion.div
-                className="h-full bg-[#00D4FF] rounded-full"
+                className="h-full rounded-full"
+                style={{ background: "linear-gradient(90deg, #00D4FF, #00FF88)" }}
                 initial={{ width: "0%" }}
                 animate={{ width: step === "warning" ? (n === 1 ? "50%" : "0%") : n <= 2 ? "100%" : "0%" }}
                 transition={{ duration: 0.5 }}
               />
             </div>
           ))}
-          <span className="text-xs text-muted-foreground w-12 text-right">
+          <span className="text-[10px] text-muted-foreground/40 w-10 text-right uppercase tracking-wider font-medium">
             {step === "warning" ? "1/3" : step === "restore" ? "2/3" : "3/3"}
           </span>
         </div>
 
-        <GlassCard className="p-6">
+        <div className="relative rounded-2xl border border-[#1E2733] bg-[#0C1118] overflow-hidden p-6">
+          {/* Top glow */}
+          <div className="absolute top-0 left-0 right-0 h-[1px]"
+            style={{ background: "linear-gradient(90deg, transparent, #00D4FF60, transparent)" }} />
+
           {step === "warning" && (
             <>
-              <div className="flex items-center gap-3 mb-5">
-                <div className="size-10 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center">
-                  <AlertTriangle className="size-5 text-red-400" />
+              <div className="flex items-center gap-3 mb-6">
+                <div className="size-12 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center">
+                  <AlertTriangle className="size-6 text-red-400" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-[#E6EAF0]">Before you continue</h2>
-                  <p className="text-xs text-muted-foreground">Extreme Labs makes deep system changes</p>
+                  <h2 className="text-lg font-black text-[#E6EAF0] tracking-tight">Before you continue</h2>
+                  <p className="text-xs text-muted-foreground/50 mt-0.5">Extreme Labs makes deep system changes</p>
                 </div>
               </div>
-              <div className="space-y-3 mb-6">
+              <div className="space-y-2 mb-6">
                 {warnings.map((w, i) => (
-                  <motion.div key={w.title} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.1, duration: 0.3 }} className="flex gap-3 p-3 rounded-lg bg-[#1A1F26] border border-[#2A313A]/60">
-                    <w.icon className="size-4 text-amber-400 shrink-0 mt-0.5" />
+                  <motion.div
+                    key={w.title}
+                    initial={{ opacity: 0, x: -12 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.08, duration: 0.3 }}
+                    className="flex gap-3 p-3 rounded-xl bg-[#0A0F14] border border-[#1A2030] hover:border-[#2A3040] transition-colors"
+                  >
+                    <w.icon className="size-4 text-amber-400/80 shrink-0 mt-0.5" />
                     <div>
-                      <p className="text-sm font-medium text-[#E6EAF0]">{w.title}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{w.text}</p>
+                      <p className="text-xs font-semibold text-[#E6EAF0]">{w.title}</p>
+                      <p className="text-[11px] text-muted-foreground/50 mt-0.5 leading-relaxed">{w.text}</p>
                     </div>
                   </motion.div>
                 ))}
               </div>
               <div className="flex justify-end">
-                <Button onClick={onNext} className="bg-[#00D4FF] hover:bg-[#00D4FF]/90 text-[#0A0E14]">
-                  I understand <ArrowRight className="size-4 ml-1" />
-                </Button>
+                <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                  <Button onClick={onNext} className="bg-[#00D4FF] hover:bg-[#00D4FF]/90 text-[#0A0E14] font-bold px-6 shadow-[0_0_20px_rgba(0,212,255,0.3)]">
+                    I understand <ArrowRight className="size-4 ml-1.5" />
+                  </Button>
+                </motion.div>
               </div>
             </>
           )}
 
           {step === "restore" && (
             <>
-              <div className="flex items-center gap-3 mb-5">
-                <div className="size-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
-                  <Shield className="size-5 text-emerald-400" />
+              <div className="flex items-center gap-3 mb-6">
+                <div className="size-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+                  <Shield className="size-6 text-emerald-400" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-semibold text-[#E6EAF0]">Create restore point</h2>
-                  <p className="text-xs text-muted-foreground">Required before any changes can be made</p>
+                  <h2 className="text-lg font-black text-[#E6EAF0] tracking-tight">Create restore point</h2>
+                  <p className="text-xs text-muted-foreground/50 mt-0.5">Required before any changes can be made</p>
                 </div>
               </div>
-              <div className="p-4 rounded-lg bg-[#1A1F26] border border-[#2A313A]/60 mb-6">
-                <p className="text-sm text-[#E6EAF0] mb-2">A system restore point lets you undo all changes instantly if anything goes wrong.</p>
-                <ul className="space-y-1.5 text-xs text-muted-foreground">
-                  <li className="flex items-center gap-2"><Check className="size-3 text-emerald-400" /> Captures current registry state</li>
-                  <li className="flex items-center gap-2"><Check className="size-3 text-emerald-400" /> One-click revert from this page</li>
-                  <li className="flex items-center gap-2"><Check className="size-3 text-emerald-400" /> Does not delete personal files</li>
+              <div className="p-4 rounded-xl bg-[#0A0F14] border border-emerald-500/10 mb-5 space-y-3">
+                <p className="text-sm text-[#C8CDD6]">A system restore point lets you undo all changes instantly if anything goes wrong.</p>
+                <ul className="space-y-2">
+                  {["Captures current registry state", "One-click revert from this page", "Does not delete personal files"].map(item => (
+                    <li key={item} className="flex items-center gap-2.5 text-xs text-muted-foreground/60">
+                      <Check className="size-3 text-emerald-400 shrink-0" /> {item}
+                    </li>
+                  ))}
                 </ul>
               </div>
               {restoreError && (
-                <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 mb-4 text-sm text-red-400">
+                <div className="p-3 rounded-xl bg-red-500/8 border border-red-500/20 mb-4 text-sm text-red-400">
                   {restoreError}
                 </div>
               )}
               <div className="flex justify-between">
-                <Button variant="ghost" onClick={onBack} className="text-muted-foreground">
+                <Button variant="ghost" onClick={onBack} className="text-muted-foreground/50 hover:text-[#E6EAF0]">
                   <ArrowLeft className="size-4 mr-1" /> Back
                 </Button>
-                <Button onClick={onComplete} disabled={isRestoring} className="bg-emerald-500 hover:bg-emerald-500/90 text-white">
-                  {isRestoring ? <><Loader2 className="size-4 animate-spin mr-1" /> Creating...</> : <><Shield className="size-4 mr-1" /> Create Restore Point</>}
-                </Button>
+                <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                  <Button
+                    onClick={onComplete}
+                    disabled={isRestoring}
+                    className="bg-emerald-500 hover:bg-emerald-500/90 text-white font-bold px-5 shadow-[0_0_20px_rgba(0,255,136,0.2)]"
+                  >
+                    {isRestoring ? (
+                      <><Loader2 className="size-4 animate-spin mr-1.5" /> Creating...</>
+                    ) : (
+                      <><Shield className="size-4 mr-1.5" /> Create Restore Point</>
+                    )}
+                  </Button>
+                </motion.div>
               </div>
             </>
           )}
-        </GlassCard>
+        </div>
       </motion.div>
     </div>
   );
 }
 
 // ── Cross-page slider sync helpers ───────────────────────────────────────────
-// Maps EL sliderTweakId → the paired main-store slider id + values used for
-// apply (recommended gaming value) and revert (Windows default).
 const EL_SLIDER_APPLY: Record<string, { mainId: string; applyValue: number }> = {
   NetworkThrottlingIndex: { mainId: "net-throttle-index",   applyValue: 4294967295 },
   win32PrioritySeparation: { mainId: "win32-priority-sep",  applyValue: 26 },
@@ -503,9 +761,6 @@ function isELSliderApplied(sliderTweakId: string | undefined, mainSliderValues: 
   return val !== undefined && val !== check.defaultValue;
 }
 
-// ── Cross-page preset sync helpers ─────────────────────────────────────────────────────────────────
-// Maps EL presetTweakId → the paired main-store preset id + default option id
-// used for apply (recommended value) and revert (Windows default).
 const EL_PRESET_APPLY: Record<string, { mainId: string; applyOptionId: string }> = {
   'fortnite-high-priority': { mainId: "fortnite-high-priority", applyOptionId: "high" },
 };
@@ -518,6 +773,48 @@ function isELPresetApplied(presetTweakId: string | undefined, mainPresetOptions:
   if (!check) return false;
   const val = mainPresetOptions[check.mainId];
   return val !== undefined && val !== check.defaultOptionId;
+}
+
+// ── Category section header ──────────────────────────────────────────────────
+
+const CAT_ICON: Record<string, { icon: React.ElementType; color: string }> = {
+  "Latency Core":          { icon: Timer,    color: "#00D4FF" },
+  "Scheduler / CPU":       { icon: Cpu,      color: "#FF9500" },
+  "Gaming / Capture":      { icon: Zap,      color: "#BF5FFF" },
+  "Network Latency":       { icon: Network,  color: "#00FF88" },
+  "Service Weight":        { icon: Activity, color: "#5B9EFF" },
+  "Startup / Vendor Weight": { icon: Shield, color: "#8899AA" },
+};
+
+function CategoryHeader({ category, count }: { category: string; count: number }) {
+  const cfg = CAT_ICON[category] ?? { icon: Activity, color: "#888" };
+  const Icon = cfg.icon;
+
+  return (
+    <div className="flex items-center gap-3 mb-4">
+      <div
+        className="size-8 rounded-lg flex items-center justify-center border shrink-0"
+        style={{
+          background: `${cfg.color}15`,
+          borderColor: `${cfg.color}30`,
+          boxShadow: `0 0 12px ${cfg.color}20`,
+        }}
+      >
+        <Icon className="size-4" style={{ color: cfg.color }} />
+      </div>
+      <div className="flex items-center gap-2 flex-1 min-w-0">
+        <span className="text-sm font-black text-[#E6EAF0] tracking-tight">{category}</span>
+        <span
+          className="text-[10px] font-bold px-1.5 py-0.5 rounded-full border uppercase tracking-wider"
+          style={{ color: cfg.color, background: `${cfg.color}10`, borderColor: `${cfg.color}30` }}
+        >
+          {count}
+        </span>
+      </div>
+      {/* Separator line */}
+      <div className="flex-1 h-px" style={{ background: `linear-gradient(90deg, ${cfg.color}40, transparent)` }} />
+    </div>
+  );
 }
 
 // ── Dashboard ────────────────────────────────────────────────────────────────
@@ -572,166 +869,214 @@ function ExtremeDashboard({
   const nicCount = EXTREME_TWEAKS.filter((t) => t.nicPropertyKey).length;
 
   return (
-    <div className="space-y-6">
-      {/* Free-user notice banner */}
+    <div className="space-y-7">
+      {/* Free-user notice */}
       {!canApply && (
-        <div className="flex items-center justify-between gap-4 p-4 rounded-xl bg-purple-500/10 border border-purple-500/20">
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="relative flex items-center justify-between gap-4 p-4 rounded-xl overflow-hidden border border-purple-500/20"
+          style={{ background: "linear-gradient(135deg, rgba(120,50,200,0.08), rgba(90,30,160,0.04))" }}
+        >
+          <div className="absolute top-0 left-0 right-0 h-[1px]"
+            style={{ background: "linear-gradient(90deg,transparent,#9333ea60,transparent)" }} />
           <div className="flex items-center gap-3">
-            <Lock className="size-4 text-purple-400 shrink-0" />
+            <div className="size-9 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center">
+              <Lock className="size-4 text-purple-400" />
+            </div>
             <div>
-              <p className="text-sm font-medium text-[#E6EAF0]">
-                Analysis available on free plans. Applying optimization packs requires Premium.
-              </p>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Browse tweaks, view impact estimates, and explore recommendations below.
-              </p>
+              <p className="text-sm font-semibold text-[#E6EAF0]">Analysis available on free plans. Applying requires Premium.</p>
+              <p className="text-xs text-muted-foreground/50 mt-0.5">Browse tweaks, view impact estimates, and explore recommendations below.</p>
             </div>
           </div>
-          <Button
-            size="sm"
-            className="bg-purple-500 hover:bg-purple-500/90 text-white shrink-0 text-xs"
-            onClick={onUpgrade}
-          >
-            Upgrade
-          </Button>
-        </div>
+          <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}>
+            <Button size="sm" className="bg-purple-500 hover:bg-purple-500/90 text-white shrink-0 text-xs font-bold px-4 shadow-[0_0_16px_rgba(168,85,247,0.3)]" onClick={onUpgrade}>
+              Upgrade
+            </Button>
+          </motion.div>
+        </motion.div>
       )}
 
-      {/* Top stats row */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <UtilityCard className="p-4 flex flex-col items-center justify-center">
-          <Gauge className="size-5 text-[#00D4FF] mb-2" />
-          <div className="text-2xl font-bold text-[#E6EAF0]">{appliedCount}</div>
-          <div className="text-xs text-muted-foreground">Tweaks applied</div>
-        </UtilityCard>
-        <UtilityCard className="p-4 flex flex-col items-center justify-center">
-          <Activity className="size-5 text-amber-400 mb-2" />
-          <div className="text-2xl font-bold text-[#E6EAF0]">{totalCount}</div>
-          <div className="text-xs text-muted-foreground">Total tweaks</div>
-        </UtilityCard>
-        <UtilityCard className="p-4 flex flex-col items-center justify-center">
-          <Network className="size-5 text-purple-400 mb-2" />
-          <div className="text-2xl font-bold text-[#E6EAF0]">{nicCount}</div>
-          <div className="text-xs text-muted-foreground">NIC properties</div>
-        </UtilityCard>
-        <UtilityCard className="p-4 flex flex-col items-center justify-center">
-          <Timer className="size-5 text-emerald-400 mb-2" />
-          <div className="text-2xl font-bold text-[#E6EAF0]">{appliedCount > 0 ? "Active" : "Ready"}</div>
-          <div className="text-xs text-muted-foreground">Session status</div>
-        </UtilityCard>
+      {/* ── Stats row ── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <StatCard icon={Gauge}   value={appliedCount}                              label="Tweaks applied"    color="#00D4FF" />
+        <StatCard icon={Activity} value={totalCount}                               label="Total tweaks"      color="#FF9500" />
+        <StatCard icon={Network} value={nicCount}                                  label="NIC properties"    color="#BF5FFF" />
+        <StatCard icon={Timer}   value={appliedCount > 0 ? ("Active" as any) : ("Ready" as any)} label="Session status" color="#00FF88" animate={false} />
       </div>
 
-      {/* Graphs row */}
+      {/* ── Analytics row ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <GlassCard className="p-5 flex flex-col items-center">
-          <h3 className="text-sm font-medium text-[#E6EAF0] mb-4 flex items-center gap-2">
-            <Gauge className="size-4 text-[#00D4FF]" /> Latency Pressure
-          </h3>
-          <LatencyGauge value={latencyScore} label="System Load Score (lower is better)" />
-          <p className="text-[10px] text-muted-foreground mt-3 text-center max-w-[200px]">
+        {/* Latency Pressure */}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="relative rounded-xl border border-[#1E2733] bg-[#0C1118] p-5 overflow-hidden"
+        >
+          <div className="absolute top-0 left-0 right-0 h-[1px]"
+            style={{ background: "linear-gradient(90deg,transparent,#00D4FF40,transparent)" }} />
+          <div className="absolute bottom-0 right-0 w-32 h-32 rounded-full opacity-10"
+            style={{ background: "radial-gradient(circle,#00D4FF,transparent)", transform: "translate(30%,30%)" }} />
+
+          <div className="flex items-center gap-2 mb-4">
+            <Gauge className="size-4 text-[#00D4FF]" />
+            <h3 className="text-xs font-black text-[#E6EAF0] uppercase tracking-widest">Latency Pressure</h3>
+          </div>
+          <div className="flex justify-center">
+            <LatencyGauge value={latencyScore} label="System Load Score (lower is better)" />
+          </div>
+          <p className="text-[10px] text-muted-foreground/40 mt-2 text-center leading-relaxed">
             Based on live CPU load and RAM pressure. Not a true latency measurement.
           </p>
-        </GlassCard>
+        </motion.div>
 
-        <GlassCard className="p-5">
-          <h3 className="text-sm font-medium text-[#E6EAF0] mb-4 flex items-center gap-2">
-            <TrendingDown className="size-4 text-emerald-400" /> Estimated Impact
-          </h3>
-          <div className="space-y-4">
-            <ImpactBar label="Scheduling delay" before={8} after={appliedCount > 2 ? 5 : 8} unit="ms" better="lower" />
-            <ImpactBar label="Timer resolution" before={15} after={appliedCount > 0 ? 1 : 15} unit="ms" better="lower" />
+        {/* Estimated Impact */}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+          className="relative rounded-xl border border-[#1E2733] bg-[#0C1118] p-5 overflow-hidden"
+        >
+          <div className="absolute top-0 left-0 right-0 h-[1px]"
+            style={{ background: "linear-gradient(90deg,transparent,#00FF8840,transparent)" }} />
+          <div className="flex items-center gap-2 mb-5">
+            <TrendingDown className="size-4 text-emerald-400" />
+            <h3 className="text-xs font-black text-[#E6EAF0] uppercase tracking-widest">Estimated Impact</h3>
+          </div>
+          <div className="space-y-5">
+            <ImpactBar label="Scheduling delay"   before={8}  after={appliedCount > 2 ? 5 : 8}   unit="ms" better="lower" />
+            <ImpactBar label="Timer resolution"   before={15} after={appliedCount > 0 ? 1 : 15}  unit="ms" better="lower" />
             <ImpactBar label="Network throttling" before={60} after={appliedCount > 3 ? 30 : 60} unit="%" better="lower" />
           </div>
-          <p className="text-[10px] text-muted-foreground mt-4">
+          <p className="text-[9px] text-muted-foreground/30 mt-4 leading-relaxed uppercase tracking-wide">
             Estimates based on applied tweaks. Actual results are hardware-dependent.
           </p>
-        </GlassCard>
+        </motion.div>
 
-        <GlassCard className="p-5">
-          <h3 className="text-sm font-medium text-[#E6EAF0] mb-4 flex items-center gap-2">
-            <Flame className="size-4 text-red-400" /> Risk Distribution
-          </h3>
-          <div className="space-y-3">
-            {(["Safe", "Moderate", "Risky", "High"] as RiskBadge[]).map((risk) => {
+        {/* Risk Distribution */}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="relative rounded-xl border border-[#1E2733] bg-[#0C1118] p-5 overflow-hidden"
+        >
+          <div className="absolute top-0 left-0 right-0 h-[1px]"
+            style={{ background: "linear-gradient(90deg,transparent,#FF444440,transparent)" }} />
+          <div className="flex items-center gap-2 mb-5">
+            <Flame className="size-4 text-red-400" />
+            <h3 className="text-xs font-black text-[#E6EAF0] uppercase tracking-widest">Risk Distribution</h3>
+          </div>
+          <div className="space-y-4">
+            {(["Safe", "Moderate", "Risky", "High"] as RiskBadge[]).map((risk, i) => {
               const count = EXTREME_TWEAKS.filter((t) => t.risk === risk).length;
               const pct = (count / EXTREME_TWEAKS.length) * 100;
+              const neon = RISK_NEON[risk];
               return (
-                <div key={risk} className="space-y-1">
-                  <div className="flex justify-between text-xs">
-                    <span style={{ color: getRiskColor(risk) }} className="font-medium">{risk}</span>
-                    <span className="text-muted-foreground">{count}</span>
+                <motion.div
+                  key={risk}
+                  initial={{ opacity: 0, x: 10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.25 + i * 0.08 }}
+                  className="space-y-1.5"
+                >
+                  <div className="flex justify-between items-center">
+                    <span className={cn("text-xs font-bold", neon.text)}>{risk}</span>
+                    <span className="text-sm font-black font-mono tabular-nums" style={{ color: neon.glow }}>{count}</span>
                   </div>
-                  <div className="h-1.5 bg-[#1A1F26] rounded-full overflow-hidden">
-                    <motion.div className="h-full rounded-full" style={{ backgroundColor: getRiskColor(risk) }} initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ duration: 0.6, ease: "easeOut" }} />
+                  <div className="h-2 bg-[#0E1318] rounded-full overflow-hidden border border-[#1A2030]">
+                    <motion.div
+                      className="h-full rounded-full"
+                      style={{
+                        background: `linear-gradient(90deg, ${neon.glow}, ${neon.glow}80)`,
+                        boxShadow: `0 0 8px ${neon.glow}60`,
+                      }}
+                      initial={{ width: 0 }}
+                      animate={{ width: `${pct}%` }}
+                      transition={{ duration: 0.8, delay: 0.3 + i * 0.1, ease: "easeOut" }}
+                    />
                   </div>
-                </div>
+                </motion.div>
               );
             })}
           </div>
-        </GlassCard>
+        </motion.div>
       </div>
 
-      {/* Filters + Revert */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      {/* ── Filter bar ── */}
+      <div className="flex flex-wrap items-center justify-between gap-3 py-2">
         <div className="flex items-center gap-2 flex-wrap">
-          <Filter className="size-4 text-muted-foreground" />
-          {(["all", "Safe", "Moderate", "Risky", "High", "nic"] as const).map((f) => (
-            <button
-              key={f}
-              onClick={() => onSetFilter(f)}
-              className={cn(
-                "text-xs px-2.5 py-1 rounded-md border transition-colors",
-                activeFilter === f
-                  ? "bg-[#00D4FF]/10 border-[#00D4FF]/30 text-[#00D4FF]"
-                  : "bg-transparent border-[#2A313A]/60 text-muted-foreground hover:text-[#E6EAF0]"
-              )}
-            >
-              {f === "nic" ? "NIC" : f === "all" ? "All" : f}
-            </button>
-          ))}
+          <Filter className="size-3.5 text-muted-foreground/30" />
+          {(["all", "Safe", "Moderate", "Risky", "High", "nic"] as const).map((f) => {
+            const isActive = activeFilter === f;
+            const color = f === "all" ? "#00D4FF" : f === "nic" ? "#BF5FFF" : RISK_NEON[f as RiskBadge]?.glow ?? "#00D4FF";
+            return (
+              <motion.button
+                key={f}
+                onClick={() => onSetFilter(f)}
+                whileHover={{ scale: 1.04 }}
+                whileTap={{ scale: 0.97 }}
+                className={cn(
+                  "text-[10px] px-3 py-1.5 rounded-full border font-bold uppercase tracking-wider transition-all duration-200",
+                  isActive ? "text-[#0A0E14]" : "bg-transparent text-muted-foreground/50 border-[#1E2733] hover:border-[#2A3A4A] hover:text-[#E6EAF0]"
+                )}
+                style={isActive ? {
+                  background: color,
+                  borderColor: color,
+                  boxShadow: `0 0 12px ${color}50`,
+                } : {}}
+              >
+                {f === "nic" ? "NIC" : f === "all" ? "All" : f}
+              </motion.button>
+            );
+          })}
         </div>
         {appliedCount > 0 && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onRevertAll}
-            className="text-xs border-red-500/30 text-red-400 hover:bg-red-500/10 hover:text-red-300"
-          >
-            <RotateCcw className="size-3 mr-1" /> Revert All
-          </Button>
+          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onRevertAll}
+              className="text-xs border-red-500/30 text-red-400/80 hover:bg-red-500/8 hover:text-red-300 hover:border-red-500/50 font-semibold"
+            >
+              <RotateCcw className="size-3 mr-1.5" /> Revert All
+            </Button>
+          </motion.div>
         )}
       </div>
 
-      {/* Category sections */}
-      <div className="space-y-6">
-        {Array.from(grouped.entries()).map(([category, tweaks]) => (
-          <div key={category}>
-            <h3 className="text-sm font-semibold text-[#E6EAF0] mb-3 flex items-center gap-2">
-              {category === "Latency Core" && <Timer className="size-4 text-[#00D4FF]" />}
-              {category === "Scheduler / CPU" && <Cpu className="size-4 text-amber-400" />}
-              {category === "Gaming / Capture" && <Zap className="size-4 text-purple-400" />}
-              {category === "Network Latency" && <Network className="size-4 text-emerald-400" />}
-              {category === "Service Weight" && <Activity className="size-4 text-blue-400" />}
-              {category === "Startup / Vendor Weight" && <Shield className="size-4 text-slate-400" />}
-              {category}
-              <span className="text-xs text-muted-foreground font-normal">({tweaks.length})</span>
-            </h3>
-            <div className="space-y-3">
-              {tweaks.map((tweak) => (
-                <TweakCard
+      {/* ── Category sections ── */}
+      <div className="space-y-8">
+        {Array.from(grouped.entries()).map(([category, tweaks], catIdx) => (
+          <motion.div
+            key={category}
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: catIdx * 0.05 }}
+          >
+            <CategoryHeader category={category} count={tweaks.length} />
+            <div className="space-y-2.5">
+              {tweaks.map((tweak, tweakIdx) => (
+                <motion.div
                   key={tweak.id}
-                  tweak={tweak}
-                  isApplied={appliedTweaks.has(tweak.id) || (!!tweak.registryTweakId && !!mainTweaks[tweak.registryTweakId]) || isELSliderApplied(tweak.sliderTweakId, mainSliderValues) || isELPresetApplied(tweak.presetTweakId, mainPresetOptions)}
-                  isPending={isApplyingId === tweak.id}
-                  onApply={() => onApplyTweak(tweak.id)}
-                  onUndo={() => onUndoTweak(tweak.id)}
-                  disabled={isApplyingId !== null && isApplyingId !== tweak.id}
-                  premiumLocked={!canApply}
-                  onUpgrade={onUpgrade}
-                />
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: catIdx * 0.05 + tweakIdx * 0.04 }}
+                >
+                  <TweakCard
+                    tweak={tweak}
+                    isApplied={appliedTweaks.has(tweak.id) || (!!tweak.registryTweakId && !!mainTweaks[tweak.registryTweakId]) || isELSliderApplied(tweak.sliderTweakId, mainSliderValues) || isELPresetApplied(tweak.presetTweakId, mainPresetOptions)}
+                    isPending={isApplyingId === tweak.id}
+                    onApply={() => onApplyTweak(tweak.id)}
+                    onUndo={() => onUndoTweak(tweak.id)}
+                    disabled={isApplyingId !== null && isApplyingId !== tweak.id}
+                    premiumLocked={!canApply}
+                    onUpgrade={onUpgrade}
+                  />
+                </motion.div>
               ))}
             </div>
-          </div>
+          </motion.div>
         ))}
       </div>
     </div>
@@ -759,12 +1104,10 @@ export default function ExtremeLabs() {
   const canAnalyze = canRunExtremeAnalysis(entitlementStatus);
   const { openUpgradeModal } = useUpgradeModal();
   const { toast } = useToast();
-  // Subscribe to the main Tweaks store so we can reflect state cross-page
   const mainTweaks = useStore(s => s.tweaks);
   const mainSliderValues = useStore(s => s.sliderValues);
   const mainPresetOptions = useStore(s => s.presetOptions);
 
-  // Ref so the restore-point progress interval is always cleanable on unmount
   const restoreIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const [wizardStep, setWizardStep] = useState<WizardStep>("warning");
@@ -774,9 +1117,6 @@ export default function ExtremeLabs() {
   const [analyzingProgress, setAnalyzingProgress] = useState(0);
   const [isApplying, setIsApplying] = useState<string | null>(null);
   const [appliedTweaks, setAppliedTweaks] = useState<Set<string>>(() => {
-    // Hydrate from localStorage so applied state survives app restarts.
-    // The actual Windows registry / NIC changes are persistent; the UI just
-    // needs to remember which tweaks it applied.
     try {
       const stored = localStorage.getItem("extreme-labs-applied");
       if (stored) return new Set<string>(JSON.parse(stored));
@@ -785,7 +1125,6 @@ export default function ExtremeLabs() {
   });
   const [activeFilter, setActiveFilter] = useState<"all" | RiskBadge | "nic">("all");
 
-  // Keep localStorage in sync whenever appliedTweaks changes.
   useEffect(() => {
     try {
       if (appliedTweaks.size > 0) {
@@ -796,8 +1135,6 @@ export default function ExtremeLabs() {
     } catch (_) {}
   }, [appliedTweaks]);
 
-  // Cleanup: clear the restore-point progress interval on unmount so it can
-  // never fire state-setter calls on an unmounted component.
   useEffect(() => {
     return () => {
       if (restoreIntervalRef.current) {
@@ -807,16 +1144,9 @@ export default function ExtremeLabs() {
     };
   }, []);
 
-  // When the premium revert engine reverts Extreme Labs tweaks (trial expiry /
-  // downgrade), it dispatches "sc:el-reverted" and clears localStorage.
-  // Sync our in-memory appliedTweaks state AND the main Zustand store so the
-  // UI immediately reflects the revert without requiring a page refresh.
-  // The main store must be cleared because ExtremeDashboard's isApplied check
-  // looks at both appliedTweaks AND mainTweaks/mainSliderValues/mainPresetOptions.
   useEffect(() => {
     const handler = () => {
       setAppliedTweaks(new Set());
-      // Also clear the bridged main-store entries so cards don't stay "applied"
       const mainStore = useStore.getState();
       for (const t of EXTREME_TWEAKS) {
         if (t.registryTweakId) mainStore.setTweak(t.registryTweakId, false);
@@ -834,10 +1164,6 @@ export default function ExtremeLabs() {
     return () => window.removeEventListener('sc:el-reverted', handler);
   }, []);
 
-  // Live registry/system check on mount (Electron only).
-  // Reads each tweak's ACTUAL state from the registry so that deleting
-  // %appdata%\SwitchControl doesn't cause applied tweaks to show as "off".
-  // This overwrites the localStorage-hydrated state with the ground truth.
   const liveCheckDoneRef = useRef(false);
   useEffect(() => {
     if (!isElectron || !electronApi?.extremeLabs?.checkAllStatus) return;
@@ -852,7 +1178,6 @@ export default function ExtremeLabs() {
         for (const [id, isApplied] of Object.entries(result.status as Record<string, boolean>)) {
           if (isApplied) live.add(id);
         }
-        // Always replace with live registry truth — even if localStorage had data
         setAppliedTweaks(live);
       } catch {
         // non-fatal: localStorage state already shown as fallback
@@ -866,9 +1191,6 @@ export default function ExtremeLabs() {
     if (unlocked) {
       setIsUnlocked(true);
     } else if (canApply) {
-      // Auto-restore after AppData/localStorage deletion: premium users have
-      // already accepted the warning modal on a previous session. The server
-      // confirms their entitlement, so skip the modal and restore access.
       setIsUnlocked(true);
       localStorage.setItem("extreme-labs-unlocked", "true");
     }
@@ -919,7 +1241,7 @@ export default function ExtremeLabs() {
             localStorage.setItem("extreme-labs-unlocked", "true");
             setWizardStep("dashboard");
             toast({ title: "Restore point created", description: "Extreme Labs is now unlocked." });
-        logHistory("Extreme Labs: Restore Point Created", "Extreme Labs", "Created", "System restore point saved before tuning");
+            logHistory("Extreme Labs: Restore Point Created", "Extreme Labs", "Created", "System restore point saved before tuning");
           }, 400);
         }
         setAnalyzingProgress(Math.min(100, p));
@@ -953,20 +1275,12 @@ export default function ExtremeLabs() {
         const item = result.results?.find((r: any) => r.id === id);
         if (item) {
           if (item.adminRequired) {
-            toast({
-              title: "Administrator access required",
-              description: "This optimization requires the app to be run as Administrator. Right-click the app and choose 'Run as administrator'.",
-              variant: "destructive",
-            });
+            toast({ title: "Administrator access required", description: "This optimization requires the app to be run as Administrator. Right-click the app and choose 'Run as administrator'.", variant: "destructive" });
             elLog("ExtremeLabsApply", { requested: [id], applied: 0, failed: 0, blocked: 1, adminRequired: 1 });
             return;
           }
           if (item.notSupported) {
-            toast({
-              title: "Not supported on this build",
-              description: item.reason || "This tweak requires a helper agent that is not bundled in this version.",
-              variant: "destructive",
-            });
+            toast({ title: "Not supported on this build", description: item.reason || "This tweak requires a helper agent that is not bundled in this version.", variant: "destructive" });
             elLog("ExtremeLabsApply", { requested: [id], applied: 0, failed: 0, blocked: 0, adminRequired: 0, notSupported: 1, reason: item.reason });
             return;
           }
@@ -979,7 +1293,6 @@ export default function ExtremeLabs() {
       }
 
       setAppliedTweaks((prev) => { const next = new Set(prev); next.add(id); return next; });
-      // Bridge to main Tweaks store so the Tweaks page reflects this change too
       const tweak = EXTREME_TWEAKS.find(t => t.id === id);
       if (tweak?.registryTweakId) useStore.getState().setTweak(tweak.registryTweakId, true);
       if (tweak?.sliderTweakId) {
@@ -1031,7 +1344,6 @@ export default function ExtremeLabs() {
         }
       }
       setAppliedTweaks((prev) => { const next = new Set(prev); next.delete(id); return next; });
-      // Bridge to main Tweaks store
       const undoTweak = EXTREME_TWEAKS.find(x => x.id === id);
       if (undoTweak?.registryTweakId) useStore.getState().setTweak(undoTweak.registryTweakId, false);
       if (undoTweak?.sliderTweakId) {
@@ -1074,7 +1386,6 @@ export default function ExtremeLabs() {
       }
       const store = useTweakOwnershipStore.getState();
       for (const id of appliedTweaks) store.recordExtremeLabsRevertSuccess(id);
-      // Bridge: clear all EL-applied registry tweaks from the main Tweaks store
       const mainStore = useStore.getState();
       for (const id of appliedTweaks) {
         const t = EXTREME_TWEAKS.find(x => x.id === id);
@@ -1094,9 +1405,9 @@ export default function ExtremeLabs() {
     } catch (e: any) {
       toast({ title: "Revert failed", description: e?.message, variant: "destructive" });
     }
-  }, [isElectron, electronApi, toast]);
+  }, [isElectron, electronApi, toast, appliedTweaks]);
 
-  // Unverified = show full premium wall (not logged in)
+  // Unverified = show full premium wall
   if (entitlementStatus === "unverified") {
     return (
       <AppLayout>
@@ -1119,74 +1430,98 @@ export default function ExtremeLabs() {
     );
   }
 
-  // Free / trial_expired — show the page but Apply is locked
-  // Premium / trial_active — show with full access (gated behind wizard if not yet unlocked)
   return (
     <AppLayout>
       <div className="p-6 max-w-6xl mx-auto">
-        <PageHeader
-          icon={Zap}
-          iconClassName="text-[#00D4FF]"
-          title={
-            <span className="flex items-center gap-2">
-              Extreme Labs
-              <span className="text-[10px] px-2 py-0.5 rounded border bg-red-500/10 border-red-500/20 text-red-400 font-medium tracking-wide">
-                ADVANCED
-              </span>
-            </span>
-          }
-          subtitle="Hardware-dependent latency tuning with honest impact estimates. Always measure before and after."
-          actions={
-            appliedTweaks.size > 0 ? (
+        {/* ── Header ── */}
+        <div className="flex items-start justify-between gap-4 mb-8">
+          <div className="space-y-2">
+            <div className="flex items-center gap-3">
+              {/* Animated icon */}
+              <motion.div
+                className="size-10 rounded-xl flex items-center justify-center border border-[#00D4FF]/20"
+                style={{ background: "linear-gradient(135deg, rgba(0,212,255,0.15), rgba(0,212,255,0.05))" }}
+                animate={{ boxShadow: ["0 0 12px rgba(0,212,255,0.2)", "0 0 24px rgba(0,212,255,0.35)", "0 0 12px rgba(0,212,255,0.2)"] }}
+                transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+              >
+                <motion.div
+                  animate={{ rotate: [0, 5, -5, 0] }}
+                  transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                >
+                  <Zap className="size-5 text-[#00D4FF]" />
+                </motion.div>
+              </motion.div>
+
+              <div className="flex items-center gap-2.5">
+                <h1 className="text-2xl font-black text-[#E6EAF0] tracking-tight">Extreme Labs</h1>
+                <motion.span
+                  className="text-[9px] px-2 py-1 rounded border font-black uppercase tracking-widest"
+                  style={{ background: "rgba(255,68,68,0.12)", borderColor: "rgba(255,68,68,0.30)", color: "#FF4444" }}
+                  animate={{ opacity: [0.7, 1, 0.7] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                >
+                  ADVANCED
+                </motion.span>
+              </div>
+            </div>
+            <p className="text-sm text-muted-foreground/50 max-w-lg">
+              Hardware-dependent latency tuning with honest impact estimates. Always measure before and after.
+            </p>
+          </div>
+
+          {appliedTweaks.size > 0 && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
+            >
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleRevertAll}
-                className="text-xs border-red-500/30 text-red-400 hover:bg-red-500/10"
+                className="text-xs border-red-500/30 text-red-400/80 hover:bg-red-500/8 hover:text-red-300 hover:border-red-500/50 font-semibold"
               >
-                <RotateCcw className="size-3 mr-1" /> Revert All
+                <RotateCcw className="size-3 mr-1.5" /> Revert All
               </Button>
-            ) : null
-          }
-        />
-
-        <div className="mt-6">
-          {isUnlocked ? (
-            <ExtremeDashboard
-              appliedTweaks={appliedTweaks}
-              mainTweaks={mainTweaks}
-              mainSliderValues={mainSliderValues}
-              mainPresetOptions={mainPresetOptions}
-              onApplyTweak={handleApplyTweak}
-              onUndoTweak={handleUndoTweak}
-              onRevertAll={handleRevertAll}
-              activeFilter={activeFilter}
-              onSetFilter={setActiveFilter}
-              isApplyingId={isApplying}
-              canApply={canApply}
-              onUpgrade={openUpgradeModal}
-            />
-          ) : (
-            <EntryModal
-              step={wizardStep}
-              onNext={() => {
-                if (!canApply) {
-                  // Free users: acknowledge disclaimer and browse in read-only mode.
-                  // The premium gate fires per-tweak when they click Apply — not here.
-                  elLog("ExtremeLabsEntitlement", { action: "entryWizard", allowed: true, reason: "browse_mode" });
-                  setIsUnlocked(true);
-                  return;
-                }
-                setWizardStep("restore");
-              }}
-              onBack={() => setWizardStep("warning")}
-              onComplete={handleCreateRestorePoint}
-              progress={analyzingProgress}
-              isRestoring={isRestoring}
-              restoreError={restoreError}
-            />
+            </motion.div>
           )}
         </div>
+
+        {/* ── Content ── */}
+        {isUnlocked ? (
+          <ExtremeDashboard
+            appliedTweaks={appliedTweaks}
+            mainTweaks={mainTweaks}
+            mainSliderValues={mainSliderValues}
+            mainPresetOptions={mainPresetOptions}
+            onApplyTweak={handleApplyTweak}
+            onUndoTweak={handleUndoTweak}
+            onRevertAll={handleRevertAll}
+            activeFilter={activeFilter}
+            onSetFilter={setActiveFilter}
+            isApplyingId={isApplying}
+            canApply={canApply}
+            onUpgrade={openUpgradeModal}
+          />
+        ) : (
+          <EntryModal
+            step={wizardStep}
+            onNext={() => {
+              if (!canApply) {
+                elLog("ExtremeLabsEntitlement", { action: "entryWizard", allowed: true, reason: "browse_mode" });
+                setIsUnlocked(true);
+                return;
+              }
+              setWizardStep("restore");
+            }}
+            onBack={() => setWizardStep("warning")}
+            onComplete={handleCreateRestorePoint}
+            progress={analyzingProgress}
+            isRestoring={isRestoring}
+            restoreError={restoreError}
+          />
+        )}
       </div>
     </AppLayout>
   );

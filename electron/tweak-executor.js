@@ -150,7 +150,7 @@ function runPowerShell(command) {
   });
 }
 
-function queryPowerShell(command) {
+function queryPowerShell(command, timeout = 12000) {
   // Acquire semaphore slot before spawning — queues if MAX_PS_CONCURRENT is full
   return _withPsSemaphore(() => {
     const id = ++_tweak_psCount;
@@ -160,7 +160,7 @@ function queryPowerShell(command) {
       execFile(
         'powershell',
         ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-Command', command],
-        { timeout: 12000, windowsHide: true },
+        { timeout, windowsHide: true },
         (error, stdout) => {
           console.log(`[PS:tweak-executor] #${id} queryPowerShell ${error ? 'FAIL' : 'OK'} ${Date.now() - t0}ms`);
           resolve(error ? null : stdout.trim());
@@ -1485,17 +1485,27 @@ async function scanPciMsiDevices() {
   // IMPORTANT: Do NOT use a JS template literal (backtick string) here — PowerShell
   // uses backticks for line continuation, and a bare backtick inside a JS template
   // literal closes the string, causing a SyntaxError that crashes the whole app.
+  // Use 25s timeout — AMD + Win 11 24H2 registry enumeration can exceed 12s default.
+  const PCI_SCAN_TIMEOUT = 25000;
+
   const psLines = [
     '$pciRoot = "HKLM:\\\\SYSTEM\\\\CurrentControlSet\\\\Enum\\\\PCI"',
     '$clsMap  = @{ Display="gpu"; Net="net"; SCSIAdapter="storage"; HDC="storage"; USB="usb" }',
     // ClassGUID fallback — on AMD + Win 11 24H2 the Class string can be absent,
     // but ClassGUID is always present. Map well-known GUIDs to device class names.
+    // Keys include curly braces (Windows registry format) AND bare (without braces)
+    // to handle both formats that may appear on different Windows builds.
     '$guidMap = @{',
     '  "{4d36e968-e325-11ce-bfc1-08002be10318}"="gpu";',
+    '  "4d36e968-e325-11ce-bfc1-08002be10318"="gpu";',
     '  "{4d36e972-e325-11ce-bfc1-08002be10318}"="net";',
+    '  "4d36e972-e325-11ce-bfc1-08002be10318"="net";',
     '  "{4d36e97b-e325-11ce-bfc1-08002be10318}"="storage";',
+    '  "4d36e97b-e325-11ce-bfc1-08002be10318"="storage";',
     '  "{4d36e97c-e325-11ce-bfc1-08002be10318}"="storage";',
-    '  "{36fc9e60-c465-11cf-8056-444553540000}"="usb"',
+    '  "4d36e97c-e325-11ce-bfc1-08002be10318"="storage";',
+    '  "{36fc9e60-c465-11cf-8056-444553540000}"="usb";',
+    '  "36fc9e60-c465-11cf-8056-444553540000"="usb"',
     '}',
     '$results = @()',
     'try {',
@@ -1508,8 +1518,12 @@ async function scanPciMsiDevices() {
     '      $cls = ""',
     '      if ($props -and $props.Class) { $cls = $props.Class }',
     '      elseif ($props -and $props.ClassGUID) {',
+    // Try the raw GUID value first, then also try with curly braces stripped —
+    // registry stores them as "{GUID}" but some builds may omit the braces.
     '        $guid = $props.ClassGUID.ToLower()',
+    '        $guidBare = $guid.Trim("{}")',
     '        if ($guidMap.ContainsKey($guid)) { $cls = $guidMap[$guid] }',
+    '        elseif ($guidMap.ContainsKey($guidBare)) { $cls = $guidMap[$guidBare] }',
     '      }',
     '      if (-not $cls -or (-not $clsMap.ContainsKey($cls) -and -not @("gpu","net","storage","usb").Contains($cls))) { continue }',
     '      $deviceClass = if ($clsMap.ContainsKey($cls)) { $clsMap[$cls] } else { $cls }',
@@ -1523,15 +1537,74 @@ async function scanPciMsiDevices() {
     '} catch {}',
     'if ($results.Count -eq 0) { Write-Output "[]" } else { $results | ConvertTo-Json -Compress -AsArray }',
   ];
-  const raw = await queryPowerShell(psLines.join('\n'));
+  const raw = await queryPowerShell(psLines.join('\n'), PCI_SCAN_TIMEOUT);
+  console.log('[PciMsiMode] scanPciMsiDevices raw output:', (raw || '').slice(0, 400));
 
-  if (!raw) return [];
+  if (raw) {
+    try {
+      const parsed = JSON.parse(raw);
+      const arr = Array.isArray(parsed) ? parsed : [parsed];
+      const devices = arr.filter(d => d.deviceInstanceId && d.registryPath);
+      if (devices.length > 0) return devices;
+    } catch (e) {
+      console.warn('[PciMsiMode] scanPciMsiDevices parse error:', e.message, 'raw:', (raw || '').slice(0, 200));
+    }
+  }
+
+  // Fallback scan — ClassGUID-only, no Class string dependency, longer timeout.
+  // Covers AMD + Win 11 24H2 systems where Class property may be absent and the
+  // primary scan returned empty (e.g. due to slow registry enumeration / timeout).
+  console.warn('[PciMsiMode] Primary scan returned empty — attempting ClassGUID-only fallback scan');
+  const fallbackGuidMap = {
+    '4d36e968-e325-11ce-bfc1-08002be10318': 'gpu',
+    '4d36e972-e325-11ce-bfc1-08002be10318': 'net',
+    '4d36e97b-e325-11ce-bfc1-08002be10318': 'storage',
+    '4d36e97c-e325-11ce-bfc1-08002be10318': 'storage',
+    '36fc9e60-c465-11cf-8056-444553540000': 'usb',
+  };
+  // Build a PS hashtable string for the fallback script (bare GUIDs, no braces)
+  const fallbackGuidEntries = Object.entries(fallbackGuidMap)
+    .map(([k, v]) => `  "${k}"="${v}"`)
+    .join(';\n');
+  const fallbackLines = [
+    '$pciRoot = "HKLM:\\\\SYSTEM\\\\CurrentControlSet\\\\Enum\\\\PCI"',
+    '$guidMap = @{',
+    fallbackGuidEntries,
+    '}',
+    '$results = @()',
+    'try {',
+    '  foreach ($devKey in (Get-ChildItem -Path $pciRoot -EA SilentlyContinue)) {',
+    '    $devFolder = $devKey.PSChildName',
+    '    foreach ($instKey in (Get-ChildItem -Path $devKey.PSPath -EA SilentlyContinue)) {',
+    '      $instFolder  = $instKey.PSChildName',
+    '      $instKeyPath = "$pciRoot\\\\$devFolder\\\\$instFolder"',
+    '      $props = Get-ItemProperty -Path $instKeyPath -EA SilentlyContinue',
+    '      if (-not $props -or -not $props.ClassGUID) { continue }',
+    '      $guidRaw  = $props.ClassGUID.ToLower()',
+    // Strip curly braces to get bare GUID for lookup
+    '      $guidBare = $guidRaw.Trim("{ }")',
+    '      if (-not $guidMap.ContainsKey($guidBare)) { continue }',
+    '      $deviceClass = $guidMap[$guidBare]',
+    '      $raw_ = if ($props.FriendlyName) { $props.FriendlyName } elseif ($props.DeviceDesc) { $props.DeviceDesc } else { "$devFolder\\\\$instFolder" }',
+    '      $dName = ($raw_ -replace "^@[^;]+;","").Trim()',
+    '      $instId  = ("PCI\\\\$devFolder\\\\$instFolder").ToUpper()',
+    '      $msiPath = "$instKeyPath\\\\Device Parameters\\\\Interrupt Management\\\\MessageSignaledInterruptProperties"',
+    '      $results += [PSCustomObject]@{ deviceInstanceId=$instId; deviceName=$dName; deviceClass=$deviceClass; registryPath=$msiPath }',
+    '    }',
+    '  }',
+    '} catch {}',
+    'if ($results.Count -eq 0) { Write-Output "[]" } else { $results | ConvertTo-Json -Compress -AsArray }',
+  ];
+  const fallbackRaw = await queryPowerShell(fallbackLines.join('\n'), PCI_SCAN_TIMEOUT);
+  console.log('[PciMsiMode] scanPciMsiDevices fallback raw output:', (fallbackRaw || '').slice(0, 400));
+
+  if (!fallbackRaw) return [];
   try {
-    const parsed = JSON.parse(raw);
+    const parsed = JSON.parse(fallbackRaw);
     const arr = Array.isArray(parsed) ? parsed : [parsed];
     return arr.filter(d => d.deviceInstanceId && d.registryPath);
   } catch (e) {
-    console.warn('[PciMsiMode] scanPciMsiDevices parse error:', e.message, 'raw:', (raw || '').slice(0, 200));
+    console.warn('[PciMsiMode] scanPciMsiDevices fallback parse error:', e.message, 'raw:', (fallbackRaw || '').slice(0, 200));
     return [];
   }
 }

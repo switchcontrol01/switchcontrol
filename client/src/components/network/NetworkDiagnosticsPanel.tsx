@@ -722,6 +722,7 @@ export function DnsOptimizerCard(props: DiagnosticsState) {
   const {
     dnsBenchmarkState, dnsBenchmarkResult, dnsBenchmarkError,
     runDnsBenchmark, resetDnsBenchmark,
+    applyDnsState, applyDnsError, applyDns,
   } = props;
 
   const isRunning = dnsBenchmarkState === "running";
@@ -914,6 +915,44 @@ export function DnsOptimizerCard(props: DiagnosticsState) {
                     </div>
                   </div>
                 </div>
+              </div>
+
+              {/* Apply DNS button */}
+              <div className="space-y-2">
+                {applyDnsState === "idle" && (
+                  <Button
+                    size="sm"
+                    onClick={() => recProvider && applyDns(recProvider.ip)}
+                    className="bg-primary hover:bg-primary/90 text-xs gap-1.5 w-full"
+                    data-testid="button-apply-dns"
+                  >
+                    <Zap className="size-3" />
+                    Apply Recommended DNS
+                  </Button>
+                )}
+                {applyDnsState === "loading" && (
+                  <Button size="sm" disabled className="text-xs gap-1.5 w-full bg-primary/60">
+                    <Loader2 className="size-3 animate-spin" /> Applying…
+                  </Button>
+                )}
+                {applyDnsState === "done" && (
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-emerald-500/20 bg-emerald-500/5 text-xs text-emerald-400">
+                    <CheckCircle2 className="size-3.5 shrink-0" />
+                    DNS Applied — {recProvider?.label} set as primary
+                  </div>
+                )}
+                {applyDnsState === "cancelled" && (
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-yellow-500/20 bg-yellow-500/5 text-xs text-yellow-400">
+                    <AlertCircle className="size-3.5 shrink-0" />
+                    Admin permission cancelled
+                  </div>
+                )}
+                {applyDnsState === "error" && (
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-red-500/20 bg-red-500/5 text-xs text-red-400">
+                    <AlertCircle className="size-3.5 shrink-0" />
+                    {applyDnsError ?? "Apply DNS failed"}
+                  </div>
+                )}
               </div>
 
               {/* Leaderboard */}
