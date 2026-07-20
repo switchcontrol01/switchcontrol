@@ -329,9 +329,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
       return ipcRenderer.invoke('tweak:checkStatus', tweakId);
     },
     scanGpusForMsi: () => ipcRenderer.invoke('gpuMsi:scanAdapters'),
-    syncAll:       () => ipcRenderer.invoke('tweak:syncAll'),
-    batchCheckAll: () => ipcRenderer.invoke('tweak:batchCheckAll'),
-    getLocalState: () => ipcRenderer.invoke('tweak:getLocalState'),
+    syncAll:            () => ipcRenderer.invoke('tweak:syncAll'),
+    batchCheckAll:      () => ipcRenderer.invoke('tweak:batchCheckAll'),
+    getLocalState:      () => ipcRenderer.invoke('tweak:getLocalState'),
+    saveVerifiedState:  (stateMap) => ipcRenderer.invoke('tweak:saveVerifiedState', stateMap),
     getInfo:       () => ipcRenderer.invoke('tweak:getInfo'),
     getLog:        () => ipcRenderer.invoke('tweak:getLog'),
     // Slider-specific APIs
@@ -462,6 +463,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
     },
     checkAll:    () => ipcRenderer.invoke('networkTweaks:checkAll'),
     getDisabled: () => ipcRenderer.invoke('networkTweaks:getDisabled'),
+  },
+
+  dns: {
+    benchmark: () => ipcRenderer.invoke('dns:benchmark'),
+    applyDns:  (ip) => {
+      assertString(ip, 'ip');
+      return ipcRenderer.invoke('dns:applyDns', ip);
+    },
   },
 
   cleaner: {

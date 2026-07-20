@@ -7,8 +7,10 @@
 
 'use strict';
 
-const { execFile } = require('child_process');
+const { execFile }    = require('child_process');
+const { performance } = require('perf_hooks');
 const fs   = require('fs');
+const net  = require('net');
 const os   = require('os');
 const path = require('path');
 
@@ -925,12 +927,185 @@ async function executeNetworkTweakWithOwnership(tweakId, action) {
   return result;
 }
 
+// ── DNS Benchmark (runs locally on the user's PC) ─────────────────────────────
+
+const DNS_BENCHMARK_PROVIDERS = [
+  { id: 'cloudflare', label: 'Cloudflare', ip: '1.1.1.1',         port: 53 },
+  { id: 'google',     label: 'Google',     ip: '8.8.8.8',         port: 53 },
+  { id: 'quad9',      label: 'Quad9',      ip: '9.9.9.9',         port: 53 },
+  { id: 'opendns',    label: 'OpenDNS',    ip: '208.67.222.222',  port: 53 },
+  { id: 'adguard',    label: 'AdGuard',    ip: '94.140.14.14',    port: 53 },
+];
+
+/**
+ * Single TCP probe to host:port. Returns latency in ms, or null on failure/timeout.
+ */
+function tcpProbe(host, port, timeoutMs = 1500) {
+  return new Promise(resolve => {
+    const t0 = performance.now();
+    const socket = new net.Socket();
+    let done = false;
+    const finish = (val) => {
+      if (done) return;
+      done = true;
+      socket.destroy();
+      resolve(val);
+    };
+    socket.setTimeout(timeoutMs);
+    socket.on('connect', () => finish(performance.now() - t0));
+    socket.on('timeout', () => finish(null));
+    socket.on('error',   () => finish(null));
+    socket.connect(port, host);
+  });
+}
+
+/**
+ * Benchmark all 5 DNS providers from the local machine.
+ * Returns a DnsBenchmarkResult-shaped object matching the server schema.
+ */
+async function benchmarkDnsProviders() {
+  const PROBES         = 5;
+  const STAGGER_MS     = 90;
+
+  async function probeProvider(provider) {
+    const samples = [];
+    for (let i = 0; i < PROBES; i++) {
+      if (i > 0) await new Promise(r => setTimeout(r, STAGGER_MS));
+      const t = await tcpProbe(provider.ip, provider.port, 1500);
+      samples.push(t);
+    }
+    const succeeded = samples.filter(v => v !== null);
+    const loss      = parseFloat(((1 - succeeded.length / PROBES) * 100).toFixed(0));
+
+    if (succeeded.length === 0) {
+      return { id: provider.id, label: provider.label, ip: provider.ip,
+        avg: 999, median: 999, min: 999, max: 999, jitter: 0, loss: 100, stabilityScore: 0 };
+    }
+
+    // Trim highest + lowest outlier if 4+ samples succeeded
+    let trimmed = [...succeeded].sort((a, b) => a - b);
+    if (trimmed.length >= 4) trimmed = trimmed.slice(1, trimmed.length - 1);
+
+    const avg    = trimmed.reduce((s, v) => s + v, 0) / trimmed.length;
+    const mid    = Math.floor(trimmed.length / 2);
+    const median = trimmed.length % 2 === 0
+      ? (trimmed[mid - 1] + trimmed[mid]) / 2
+      : trimmed[mid];
+    const min    = trimmed[0];
+    const max    = trimmed[trimmed.length - 1];
+    const jitter = trimmed.length > 1
+      ? trimmed.reduce((s, v) => s + Math.abs(v - avg), 0) / trimmed.length
+      : 0;
+
+    const jitterRatio    = avg > 0 ? jitter / avg : 0;
+    const stabilityScore = Math.max(0, Math.min(100,
+      Math.round(100 - jitterRatio * 60 - loss * 1.5)));
+
+    return {
+      id: provider.id, label: provider.label, ip: provider.ip,
+      avg:    parseFloat(avg.toFixed(1)),
+      median: parseFloat(median.toFixed(1)),
+      min:    parseFloat(min.toFixed(1)),
+      max:    parseFloat(max.toFixed(1)),
+      jitter: parseFloat(jitter.toFixed(1)),
+      loss,
+      stabilityScore,
+    };
+  }
+
+  // All 5 providers probed in parallel
+  const results = await Promise.all(DNS_BENCHMARK_PROVIDERS.map(p => probeProvider(p)));
+
+  const alive  = results.filter(p => p.loss < 100);
+  const ranked = [...results].sort((a, b) => a.avg - b.avg);
+
+  const scored = alive.map(p => {
+    const latencyScore   = Math.max(0, 100 - p.avg * 0.8);
+    const jitterScore    = Math.max(0, 100 - p.jitter * 6);
+    const lossScore      = Math.max(0, 100 - p.loss * 8);
+    const stabilityBonus = p.stabilityScore;
+    const composite      = latencyScore * 0.40 + jitterScore * 0.30 + lossScore * 0.20 + stabilityBonus * 0.10;
+    return { ...p, composite };
+  }).sort((a, b) => b.composite - a.composite);
+
+  const recommended = scored[0]?.id ?? ranked[0]?.id ?? 'cloudflare';
+  const rec         = results.find(p => p.id === recommended);
+
+  const recommendedReasons = [];
+  if (rec && alive.length > 0) {
+    const byAvg    = [...alive].sort((a, b) => a.avg    - b.avg);
+    const byJitter = [...alive].sort((a, b) => a.jitter - b.jitter);
+    const byStab   = [...alive].sort((a, b) => b.stabilityScore - a.stabilityScore);
+    if (byAvg[0]?.id    === recommended) recommendedReasons.push('Lowest average latency');
+    if (byJitter[0]?.id === recommended) recommendedReasons.push('Lowest jitter');
+    if (byStab[0]?.id   === recommended) recommendedReasons.push('Highest stability score');
+    if (rec.loss === 0)                  recommendedReasons.push('Zero packet loss');
+    if (rec.median < byAvg[0].avg * 0.95) recommendedReasons.push('Best median response time');
+  }
+  if (recommendedReasons.length === 0) recommendedReasons.push('Best overall composite score');
+
+  const byAvg    = alive.length ? [...alive].sort((a, b) => a.avg    - b.avg)   : results;
+  const byJitter = alive.length ? [...alive].sort((a, b) => a.jitter - b.jitter) : results;
+  const byStab   = alive.length ? [...alive].sort((a, b) => b.stabilityScore - a.stabilityScore) : results;
+  const byGaming = alive.length
+    ? [...alive].sort((a, b) => (a.avg * 0.55 + a.jitter * 0.45) - (b.avg * 0.55 + b.jitter * 0.45))
+    : results;
+
+  const categoryWinners = {
+    bestOverall:   scored[0]?.id   ?? '',
+    lowestLatency: byAvg[0]?.id    ?? '',
+    lowestJitter:  byJitter[0]?.id ?? '',
+    mostStable:    byStab[0]?.id   ?? '',
+    bestGaming:    byGaming[0]?.id ?? '',
+  };
+
+  const avgLoss  = alive.length > 0 ? alive.reduce((s, p) => s + p.loss, 0) / alive.length : 100;
+  const allAlive = alive.length === DNS_BENCHMARK_PROVIDERS.length;
+  const topJitter = scored[0]?.jitter ?? 999;
+
+  let confidence;
+  if (allAlive && avgLoss === 0 && topJitter < 5)     confidence = 'very_high';
+  else if (alive.length >= 4 && avgLoss < 20)          confidence = 'high';
+  else if (alive.length >= 3)                          confidence = 'medium';
+  else                                                 confidence = 'low';
+
+  const providers = ranked.map((p, i) => ({ ...p, rank: i + 1 }));
+
+  return { providers, recommended, recommendedReasons, confidence, categoryWinners, ts: Date.now() };
+}
+
+/**
+ * Apply a DNS server to all active network adapters via elevated PowerShell.
+ * Uses the primary IP passed plus 1.0.0.1 as secondary.
+ * Returns { ok, error?, cancelled? }.
+ */
+async function applyDnsServers(ip) {
+  const safeIp = String(ip).replace(/[^0-9.:]/g, '');
+  if (!safeIp) return { ok: false, error: 'Invalid IP address' };
+
+  const command = [
+    `$adapters = Get-NetAdapter | Where-Object { $_.Status -eq 'Up' }`,
+    `foreach ($a in $adapters) {`,
+    `  Set-DnsClientServerAddress -InterfaceAlias $a.Name -ServerAddresses ('${safeIp}', '1.0.0.1') -ErrorAction SilentlyContinue`,
+    `}`,
+    `Write-Output "ok"`,
+  ].join('; ');
+
+  try {
+    return await runElevated(command);
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+}
+
 module.exports = {
   executeNetworkTweak,
   executeNetworkTweakWithOwnership,
   checkNetworkTweakStatus,
   checkAllNetworkTweakStatus,
   getDisabledTweaks,
+  benchmarkDnsProviders,
+  applyDnsServers,
   TWEAK_REGISTRY,
   // normalization helpers
   normalizePSBoolOutput,

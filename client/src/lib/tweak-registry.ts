@@ -695,6 +695,38 @@ const BASE: BaseTweak[] = [
     category: "Privacy and Telemetry", level: "Recommended", risk: "Safe",
     supported: true, requiresAdmin: true,
   },
+  {
+    id: "disable-remote-desktop",
+    title: "Disable Remote Desktop",
+    description: "Disables Remote Desktop Protocol (RDP) and stops the Remote Desktop service. Prevents remote connections to this PC. Recommended for gaming systems that do not need remote access.",
+    impact: [
+      "Reduces attack surface by closing RDP port 3389",
+      "Frees a small amount of RAM from the TermService process",
+      "Remote Desktop connections to this PC will no longer be possible",
+    ],
+    expected: { cpu: "None", ram: "Low", disk: "None", gpu: "None", network: "Low", latency: "None", stabilityRisk: "None" },
+    category: "Privacy and Telemetry", level: "Recommended", risk: "Safe",
+    supported: true, requiresAdmin: true,
+    detailsConfig: {
+      warningText: "Only apply this if you do not use Remote Desktop to connect to this PC remotely.",
+    },
+  },
+  {
+    id: "disable-remote-assistance",
+    title: "Disable Remote Assistance",
+    description: "Disables Windows Remote Assistance, which allows other users to connect to your PC to provide help. Not needed on gaming or personal systems.",
+    impact: [
+      "Closes a potential remote access vector",
+      "Slightly reduces background Windows service activity",
+      "Remote Assistance helpers will not be able to connect to this PC",
+    ],
+    expected: { cpu: "None", ram: "None", disk: "None", gpu: "None", network: "Low", latency: "None", stabilityRisk: "None" },
+    category: "Privacy and Telemetry", level: "Recommended", risk: "Safe",
+    supported: true, requiresAdmin: true,
+    detailsConfig: {
+      warningText: "Only apply this if you do not use Windows Remote Assistance to receive help from others.",
+    },
+  },
 
   // ── Gaming and Latency ────────────────────────────────────────────────────
 

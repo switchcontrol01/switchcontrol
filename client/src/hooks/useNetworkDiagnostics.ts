@@ -66,6 +66,7 @@ export interface DnsBenchmarkResult {
 export type BenchmarkState     = "idle" | "baseline" | "waiting" | "comparing" | "done";
 export type PcVsInternetState  = "idle" | "running" | "done";
 export type DnsBenchmarkState  = "idle" | "running" | "done" | "error";
+export type ApplyDnsState      = "idle" | "loading" | "done" | "error" | "cancelled";
 export type MonitorPhase       = "off" | "starting" | "live" | "error";
 
 export interface DiagnosticsState {

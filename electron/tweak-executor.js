@@ -1044,6 +1044,25 @@ const ADMIN_TWEAKS = {
     requiresReboot: true,
     _special: 'pci-msi-mode',
   },
+
+  // ── Security ─────────────────────────────────────────────────────────────────
+  'disable-remote-desktop': {
+    name: 'Disable Remote Desktop',
+    requiresAdmin: true,
+    requiresReboot: false,
+    apply:  `Set-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Terminal Server" -Name "fDenyTSConnections" -Value 1 -Type DWord -Force; Set-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Terminal Server\\WinStations\\RDP-Tcp" -Name "UserAuthentication" -Value 0 -Type DWord -Force; $s = Get-Service -Name TermService -EA SilentlyContinue; if ($s) { Stop-Service TermService -Force -EA SilentlyContinue; Set-Service TermService -StartupType Disabled }`,
+    revert: `Set-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Terminal Server" -Name "fDenyTSConnections" -Value 0 -Type DWord -Force; Set-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Terminal Server\\WinStations\\RDP-Tcp" -Name "UserAuthentication" -Value 1 -Type DWord -Force; $s = Get-Service -Name TermService -EA SilentlyContinue; if ($s) { Set-Service TermService -StartupType Manual; Start-Service TermService -EA SilentlyContinue }`,
+    check:  `(Get-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Terminal Server" -Name "fDenyTSConnections" -EA SilentlyContinue).fDenyTSConnections -eq 1`,
+  },
+
+  'disable-remote-assistance': {
+    name: 'Disable Remote Assistance',
+    requiresAdmin: true,
+    requiresReboot: false,
+    apply:  `New-Item -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Remote Assistance" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Remote Assistance" -Name "fAllowToGetHelp" -Value 0 -Type DWord -Force; New-Item -Path "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows NT\\Terminal Services" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows NT\\Terminal Services" -Name "fAllowUnsolicited" -Value 0 -Type DWord -Force`,
+    revert: `Set-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Remote Assistance" -Name "fAllowToGetHelp" -Value 1 -Type DWord -Force; Remove-ItemProperty -Path "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows NT\\Terminal Services" -Name "fAllowUnsolicited" -EA SilentlyContinue`,
+    check:  `(Get-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Remote Assistance" -Name "fAllowToGetHelp" -EA SilentlyContinue).fAllowToGetHelp -eq 0`,
+  },
 };
 
 // Merged lookup (no unsupported tweaks here)
@@ -1378,22 +1397,55 @@ const GPU_MSI_BLOCK_PATTERNS = [
  * Returns array of { name, vendor, deviceInstanceId, registryPath } or empty.
  */
 async function scanCompatibleGpus() {
-  const raw = await queryPowerShell(`
-    $adapters = Get-CimInstance Win32_VideoController -EA SilentlyContinue |
-      Where-Object { $_.Availability -ne $null -and $_.Name -notmatch 'Microsoft Basic Display|Remote|Virtual|Parsec|Sunshine|VNC|Indirect' -and $_.PNPDeviceID -ne $null -and $_.PNPDeviceID -match '^PCI' };
-    if ($null -eq $adapters) { Write-Output '[]'; return }
-    $results = @();
-    foreach ($a in $adapters) {
-      $id   = $a.PNPDeviceID.ToUpper();
-      $reg  = $id.Replace('\\\\','\\');
-      $path = "HKLM:\\SYSTEM\\CurrentControlSet\\Enum\\$reg\\Device Parameters\\Interrupt Management\\MessageSignaledInterruptProperties";
-      $vendor = if ($a.Name -match 'NVIDIA') { 'NVIDIA' } elseif ($a.Name -match 'AMD|Radeon|ATI') { 'AMD' } elseif ($a.Name -match 'Intel') { 'Intel' } else { 'Unknown' };
-      $results += [PSCustomObject]@{ name=$a.Name; vendor=$vendor; deviceInstanceId=$id; registryPath=$path }
-    };
-    if ($results.Count -eq 0) { Write-Output '[]'; return }
-    $results | ConvertTo-Json -Compress -AsArray
-  `.trim());
+  // Registry-based scan — avoids WMI (Win32_VideoController) which times out on
+  // some AMD systems. Reads GPU names from the GPU driver class key and matches
+  // them to PCI Enum entries by Class=Display, no WMI required.
+  const psLines = [
+    '$results = @()',
+    '$gpuClass = "HKLM:\\\\SYSTEM\\\\CurrentControlSet\\\\Control\\\\Class\\\\{4d36e968-e325-11ce-bfc1-08002be10318}"',
+    'try {',
+    '  Get-ChildItem $gpuClass -EA SilentlyContinue | Where-Object { $_.PSChildName -match "^\\\\d+$" } | ForEach-Object {',
+    '    $p = Get-ItemProperty $_.PSPath -EA SilentlyContinue',
+    '    if (-not $p) { return }',
+    '    $name = if ($p.DriverDesc) { $p.DriverDesc } else { $null }',
+    '    if (-not $name) { return }',
+    '    if ($name -match "Microsoft Basic|Remote|Virtual|Parsec|Sunshine|VNC|Indirect") { return }',
+    '    $ml = $name.ToLower()',
+    '    $vendor = if ($ml -match "nvidia|geforce") { "NVIDIA" } elseif ($ml -match "amd|radeon|ati") { "AMD" } elseif ($ml -match "intel") { "Intel" } else { "Unknown" }',
+    '    $matchingPciDevice = $null',
+    '    try {',
+    '      $pciRoot = "HKLM:\\\\SYSTEM\\\\CurrentControlSet\\\\Enum\\\\PCI"',
+    '      Get-ChildItem $pciRoot -EA SilentlyContinue | ForEach-Object {',
+    '        $devFolder = $_.PSChildName',
+    '        Get-ChildItem $_.PSPath -EA SilentlyContinue | ForEach-Object {',
+    '          $instFolder = $_.PSChildName',
+    '          $instPath = "$pciRoot\\\\$devFolder\\\\$instFolder"',
+    '          $instProps = Get-ItemProperty $instPath -EA SilentlyContinue',
+    '          if ($instProps -and $instProps.Class -eq "Display") {',
+    '            $instId = "PCI\\\\$devFolder\\\\$instFolder"',
+    '            $msiPath = "$instPath\\\\Device Parameters\\\\Interrupt Management\\\\MessageSignaledInterruptProperties"',
+    '            $matchingPciDevice = [PSCustomObject]@{',
+    '              deviceInstanceId = $instId.ToUpper()',
+    '              registryPath = $msiPath',
+    '            }',
+    '          }',
+    '        }',
+    '      }',
+    '    } catch {}',
+    '    if ($matchingPciDevice) {',
+    '      $results += [PSCustomObject]@{',
+    '        name = $name',
+    '        vendor = $vendor',
+    '        deviceInstanceId = $matchingPciDevice.deviceInstanceId',
+    '        registryPath = $matchingPciDevice.registryPath',
+    '      }',
+    '    }',
+    '  }',
+    '} catch {}',
+    'if ($results.Count -eq 0) { Write-Output "[]" } else { $results | ConvertTo-Json -Compress -AsArray }',
+  ];
 
+  const raw = await queryPowerShell(psLines.join('\n'));
   if (!raw) return [];
   try {
     const parsed = JSON.parse(raw);
@@ -1436,6 +1488,15 @@ async function scanPciMsiDevices() {
   const psLines = [
     '$pciRoot = "HKLM:\\\\SYSTEM\\\\CurrentControlSet\\\\Enum\\\\PCI"',
     '$clsMap  = @{ Display="gpu"; Net="net"; SCSIAdapter="storage"; HDC="storage"; USB="usb" }',
+    // ClassGUID fallback — on AMD + Win 11 24H2 the Class string can be absent,
+    // but ClassGUID is always present. Map well-known GUIDs to device class names.
+    '$guidMap = @{',
+    '  "{4d36e968-e325-11ce-bfc1-08002be10318}"="gpu";',
+    '  "{4d36e972-e325-11ce-bfc1-08002be10318}"="net";',
+    '  "{4d36e97b-e325-11ce-bfc1-08002be10318}"="storage";',
+    '  "{4d36e97c-e325-11ce-bfc1-08002be10318}"="storage";',
+    '  "{36fc9e60-c465-11cf-8056-444553540000}"="usb"',
+    '}',
     '$results = @()',
     'try {',
     '  foreach ($devKey in (Get-ChildItem -Path $pciRoot -EA SilentlyContinue)) {',
@@ -1444,14 +1505,19 @@ async function scanPciMsiDevices() {
     '      $instFolder  = $instKey.PSChildName',
     '      $instKeyPath = "$pciRoot\\\\$devFolder\\\\$instFolder"',
     '      $props = Get-ItemProperty -Path $instKeyPath -EA SilentlyContinue',
-    '      $cls   = if ($props -and $props.Class) { $props.Class } else { "" }',
-    '      if ($cls -and $clsMap.ContainsKey($cls)) {',
-    '        $raw_ = if ($props.FriendlyName) { $props.FriendlyName } elseif ($props.DeviceDesc) { $props.DeviceDesc } else { "$devFolder\\\\$instFolder" }',
-    '        $dName = ($raw_ -replace "^@[^;]+;","").Trim()',
-    '        $instId  = ("PCI\\\\$devFolder\\\\$instFolder").ToUpper()',
-    '        $msiPath = "$instKeyPath\\\\Device Parameters\\\\Interrupt Management\\\\MessageSignaledInterruptProperties"',
-    '        $results += [PSCustomObject]@{ deviceInstanceId=$instId; deviceName=$dName; deviceClass=$clsMap[$cls]; registryPath=$msiPath }',
+    '      $cls = ""',
+    '      if ($props -and $props.Class) { $cls = $props.Class }',
+    '      elseif ($props -and $props.ClassGUID) {',
+    '        $guid = $props.ClassGUID.ToLower()',
+    '        if ($guidMap.ContainsKey($guid)) { $cls = $guidMap[$guid] }',
     '      }',
+    '      if (-not $cls -or (-not $clsMap.ContainsKey($cls) -and -not @("gpu","net","storage","usb").Contains($cls))) { continue }',
+    '      $deviceClass = if ($clsMap.ContainsKey($cls)) { $clsMap[$cls] } else { $cls }',
+    '      $raw_ = if ($props.FriendlyName) { $props.FriendlyName } elseif ($props.DeviceDesc) { $props.DeviceDesc } else { "$devFolder\\\\$instFolder" }',
+    '      $dName = ($raw_ -replace "^@[^;]+;","").Trim()',
+    '      $instId  = ("PCI\\\\$devFolder\\\\$instFolder").ToUpper()',
+    '      $msiPath = "$instKeyPath\\\\Device Parameters\\\\Interrupt Management\\\\MessageSignaledInterruptProperties"',
+    '      $results += [PSCustomObject]@{ deviceInstanceId=$instId; deviceName=$dName; deviceClass=$deviceClass; registryPath=$msiPath }',
     '    }',
     '  }',
     '} catch {}',
@@ -2793,6 +2859,29 @@ function getUnsupportedReason(tweakId) {
   return UNSUPPORTED_TWEAKS[tweakId] || null;
 }
 
+/**
+ * Persist a verified state map { tweakId: boolean } back to tweak-state.json.
+ * Called after startup batchCheckAll so the local cache reflects real Windows
+ * state; subsequent cold starts read accurate values without waiting for a
+ * fresh batchCheck.
+ */
+function saveVerifiedState(stateMap) {
+  try {
+    if (!stateMap || typeof stateMap !== 'object') return { ok: false, error: 'invalid stateMap' };
+    const state = loadState();
+    for (const [id, val] of Object.entries(stateMap)) {
+      if (typeof val === 'boolean') {
+        state.tweaks[id] = val;
+      }
+    }
+    saveState(state);
+    return { ok: true };
+  } catch (e) {
+    console.error('[TweakExecutor] saveVerifiedState failed:', e.message);
+    return { ok: false, error: e.message };
+  }
+}
+
 module.exports = {
   executeTweak,
   executeTweakWithOwnership,
@@ -2800,6 +2889,7 @@ module.exports = {
   batchCheckAllTweaks,
   verifyTweak,
   getLocalState,
+  saveVerifiedState,
   getTweakInfo,
   getExecutionLog,
   isUnsupported,

@@ -388,33 +388,93 @@ function ElectronAppContent() {
   // audio glitch (process-spawn burst starving the Windows audio scheduler thread).
   useEffect(() => {
     if (!isElectron) return;
-    const t = setTimeout(() => {
-      batchCheckAllTweaks()
-        .then((results) => {
-          if (!results || Object.keys(results).length === 0) return;
-          let reconciled = 0;
-          for (const [tweakId, status] of Object.entries(results)) {
-            const s = status as {
-              isApplied?: boolean;
-              applied?: boolean;
-              unsupported?: boolean;
-              error?: string | null;
-            };
-            if (s.unsupported || s.error) continue;
-            if (!isRealTweak(tweakId)) continue;
-            const finalState = s.isApplied ?? s.applied ?? false;
-            setTweak(tweakId, finalState);
-            reconciled++;
-          }
-          if (reconciled > 0) {
-            console.log(
-              `[App:STARTUP-RECONCILE] reconciled=${reconciled} tweaks from real Windows state`,
-            );
-          }
-        })
-        .catch((err) => {
-          console.error("[App:STARTUP-RECONCILE] batch check failed:", err);
-        });
+    const t = setTimeout(async () => {
+      try {
+        const api = (window as any).electronAPI?.tweaks;
+        if (!api) return;
+
+        // Read local cached state first — needed to detect timer-res / power-mode-overlay
+        // cases where the user had a tweak enabled but it reset (agent died / overlay reset).
+        const localState: { appliedTweaks?: Record<string, boolean> } =
+          await api.getLocalState().catch(() => ({ appliedTweaks: {} }));
+        const prevEnabled: Record<string, boolean> = localState?.appliedTweaks ?? {};
+
+        const results = await batchCheckAllTweaks();
+        if (!results || Object.keys(results).length === 0) return;
+
+        const verifiedStateMap: Record<string, boolean> = {};
+        let reconciled = 0;
+
+        for (const [tweakId, status] of Object.entries(results)) {
+          const s = status as {
+            isApplied?: boolean;
+            applied?: boolean;
+            unsupported?: boolean;
+            error?: string | null;
+          };
+          if (s.unsupported || s.error) continue;
+          if (!isRealTweak(tweakId)) continue;
+          const finalState = s.isApplied ?? s.applied ?? false;
+          setTweak(tweakId, finalState);
+          verifiedStateMap[tweakId] = finalState;
+          reconciled++;
+        }
+
+        if (reconciled > 0) {
+          console.log(
+            `[App:STARTUP-RECONCILE] reconciled=${reconciled} tweaks from real Windows state`,
+          );
+        }
+
+        // Part 3 — timer-res auto-restart.
+        // The timer-res agent dies when the app closes. If the user had it enabled,
+        // restart it silently on startup rather than leaving it off.
+        const timerResStatus = results["timer-res"] as
+          | { isApplied?: boolean; applied?: boolean; unsupported?: boolean }
+          | undefined;
+        const timerResWasEnabled = prevEnabled["timer-res"] === true;
+        const timerResIsRunning = timerResStatus
+          ? (timerResStatus.isApplied ?? timerResStatus.applied ?? false)
+          : false;
+        if (timerResWasEnabled && !timerResIsRunning && !timerResStatus?.unsupported) {
+          console.log(
+            "[App:STARTUP-RECONCILE] timer-res: was enabled, agent not running — auto-restarting",
+          );
+          api.execute("timer-res", "apply").catch((e: unknown) => {
+            console.warn("[App:STARTUP-RECONCILE] timer-res auto-restart failed:", e);
+          });
+        }
+
+        // Part 4 — power-mode-overlay auto-re-apply.
+        // On some systems the Best Performance overlay resets to Balanced after reboot.
+        // Re-apply silently if the user had it enabled but it's no longer active.
+        const overlayStatus = results["power-mode-overlay"] as
+          | { isApplied?: boolean; applied?: boolean; unsupported?: boolean }
+          | undefined;
+        const overlayWasEnabled = prevEnabled["power-mode-overlay"] === true;
+        const overlayIsApplied = overlayStatus
+          ? (overlayStatus.isApplied ?? overlayStatus.applied ?? false)
+          : false;
+        if (overlayWasEnabled && !overlayIsApplied && !overlayStatus?.unsupported) {
+          console.log(
+            "[App:STARTUP-RECONCILE] power-mode-overlay: was enabled, not active — auto-re-applying",
+          );
+          api.execute("power-mode-overlay", "apply").catch((e: unknown) => {
+            console.warn("[App:STARTUP-RECONCILE] power-mode-overlay auto-re-apply failed:", e);
+          });
+        }
+
+        // Part 5 — Persist verified state back to tweak-state.json.
+        // Keeps the local cache accurate so the next cold start reflects real
+        // Windows state without waiting for a fresh batchCheck.
+        if (Object.keys(verifiedStateMap).length > 0) {
+          api.saveVerifiedState(verifiedStateMap).catch((e: unknown) => {
+            console.warn("[App:STARTUP-RECONCILE] saveVerifiedState failed:", e);
+          });
+        }
+      } catch (err) {
+        console.error("[App:STARTUP-RECONCILE] batch check failed:", err);
+      }
     }, 8000);
     return () => clearTimeout(t);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps

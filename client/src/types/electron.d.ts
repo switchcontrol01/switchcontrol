@@ -177,7 +177,9 @@ declare global {
         execute: (tweakId: string, action: 'apply' | 'revert') => Promise<TweakResult>;
         checkStatus: (tweakId: string) => Promise<TweakStatus>;
         syncAll: () => Promise<Record<string, TweakStatus>>;
+        batchCheckAll: () => Promise<Record<string, TweakStatus> | null>;
         getLocalState: () => Promise<LocalTweakState>;
+        saveVerifiedState: (stateMap: Record<string, boolean>) => Promise<{ ok: boolean; error?: string }>;
         getInfo: () => Promise<TweakInfo[]>;
       };
 

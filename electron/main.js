@@ -3682,6 +3682,10 @@ public class DspHelper {
   ipcMain.handle('tweak:getLocalState', () => {
     return tweakExecutor.getLocalState();
   });
+
+  ipcMain.handle('tweak:saveVerifiedState', (_event, stateMap) => {
+    return tweakExecutor.saveVerifiedState(stateMap);
+  });
   
   ipcMain.handle('tweak:getInfo', () => {
     return tweakExecutor.getTweakInfo();
@@ -4475,7 +4479,30 @@ public class DspHelper {
   ipcMain.handle('networkTweaks:getDisabled', () => {
     return networkTweakExecutor.getDisabledTweaks();
   });
-  
+
+  // ── DNS Benchmark & Apply ─────────────────────────────────────────────────────
+
+  ipcMain.handle('dns:benchmark', async () => {
+    try {
+      return await networkTweakExecutor.benchmarkDnsProviders();
+    } catch (e) {
+      console.error('[IPC] dns:benchmark error:', e.message);
+      return null;
+    }
+  });
+
+  ipcMain.handle('dns:applyDns', async (_event, ip) => {
+    if (typeof ip !== 'string' || !ip.trim()) {
+      return { ok: false, error: 'Invalid IP address' };
+    }
+    try {
+      return await networkTweakExecutor.applyDnsServers(ip.trim());
+    } catch (e) {
+      console.error('[IPC] dns:applyDns error:', e.message);
+      return { ok: false, error: e.message };
+    }
+  });
+
   // ── Premium expiry / ownership ────────────────────────────────────────────────
   
   const premiumRevertPipeline = require('./premium-revert-pipeline');

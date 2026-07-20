@@ -40,6 +40,8 @@ export const FREE_EXCEPTION_IDS: Set<string> = new Set([
   "disable-delivery-opt",
   "disable-wer",
   "disable-activity-history",
+  "disable-remote-desktop",
+  "disable-remote-assistance",
   // ── Gaming and Latency ────────────────────────────────────────────────────
   "gaming-mode",
   "disable-fso",
