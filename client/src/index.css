@@ -2001,20 +2001,47 @@ textarea,
 }
 
 /* Hero text light catch — soft glow response as sheen passes */
-@keyframes heroLightCatch {
-  0%, 100% { text-shadow: 0 0 0 transparent, 0 0 0 transparent, 0 0 0 transparent; }
-  35% { text-shadow: 0 0 12px rgba(180, 225, 255, 0.3), 0 0 30px rgba(140, 200, 255, 0.2), 0 0 60px rgba(100, 180, 255, 0.1); }
-  50% { text-shadow: 0 0 20px rgba(200, 235, 255, 0.5), 0 0 45px rgba(160, 210, 255, 0.35), 0 0 80px rgba(120, 190, 255, 0.2), 0 0 120px rgba(100, 170, 255, 0.1); }
-  65% { text-shadow: 0 0 12px rgba(180, 225, 255, 0.3), 0 0 30px rgba(140, 200, 255, 0.2), 0 0 60px rgba(100, 180, 255, 0.1); }
+/* heroLightCatch — was: animating text-shadow every frame (forces full repaint).
+   Fix: static blur on a pseudo-element behind the text; animate opacity + transform
+   only (compositor-accelerated). Visual result is identical: pulsing light-catch glow. */
+@keyframes heroLightCatchGlow {
+  0%, 100% { opacity: 0;    transform: scale(0.92); }
+  35%       { opacity: 0.5;  transform: scale(1);    }
+  50%       { opacity: 0.75; transform: scale(1.04); }
+  65%       { opacity: 0.5;  transform: scale(1);    }
 }
 .hero-text-light-catch {
-  animation: heroLightCatch 8s ease-in-out infinite;
+  position: relative;
+  isolation: isolate;
+}
+.hero-text-light-catch::after {
+  content: '';
+  position: absolute;
+  inset: -24px -12px;
+  /* static blur — painted once, then only opacity/transform are updated */
+  background: radial-gradient(ellipse at center,
+    rgba(180, 225, 255, 0.55) 0%,
+    rgba(140, 200, 255, 0.28) 38%,
+    rgba(100, 180, 255, 0.12) 62%,
+    transparent 75%
+  );
+  border-radius: 8px;
+  filter: blur(14px);
+  opacity: 0;
+  animation: heroLightCatchGlow 8s ease-in-out infinite;
+  will-change: opacity, transform;
+  pointer-events: none;
+  z-index: -1;
 }
 
-/* Hero text shine sweep */
-@keyframes heroShine {
-  0% { background-position: -200% center; }
-  100% { background-position: 200% center; }
+/* heroShine — was: animating background-position every frame (forces full repaint).
+   Fix: static gradient on the text element; a ::before pseudo-element sweeps a
+   luminance-shift strip via transform: translateX() — compositor-only, zero repaint.
+   mix-blend-mode: screen ensures the bright strip only affects the coloured text
+   pixels and doesn't wash out the dark background behind the element. */
+@keyframes heroShineSlide {
+  0%   { transform: translateX(-180%); }
+  100% { transform: translateX(280%);  }
 }
 .hero-text-glow {
   text-shadow: 0 0 30px rgba(0, 212, 255, 0.08), 0 0 60px rgba(139, 92, 246, 0.08);
@@ -2037,6 +2064,7 @@ textarea,
 }
 
 .hero-text-shine {
+  /* Static rainbow gradient — no background-position animation */
   background: linear-gradient(
     90deg,
     rgba(103, 232, 249, 0.9),
@@ -2051,7 +2079,25 @@ textarea,
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  animation: heroShine 6s linear infinite;
+  display: inline-block; /* required for overflow:hidden on inline element */
+  position: relative;
+  overflow: hidden;
+}
+.hero-text-shine::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 20%,
+    rgba(255, 255, 255, 0.55) 50%,
+    transparent 80%
+  );
+  transform: translateX(-180%);
+  animation: heroShineSlide 6s linear infinite;
+  will-change: transform;
+  pointer-events: none;
+  mix-blend-mode: screen;
 }
 
 /* Hero headline subtle float */
@@ -2327,13 +2373,30 @@ button, a, nav, header, footer, label {
   animation: zapPulse 2s ease-in-out infinite;
 }
 
-/* ─── Mockup window — live pill dot ─── */
-@keyframes mockupLiveDot {
-  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 hsl(160 80% 50% / 0.6); }
-  50%       { opacity: 0.7; box-shadow: 0 0 0 4px hsl(160 80% 50% / 0); }
+/* mockupLiveDot — was: animating box-shadow every frame (forces full repaint).
+   Fix: dot pulses opacity only; a ::before pseudo-element produces the ripple ring
+   via transform: scale() + opacity — both compositor-accelerated, zero repaint. */
+@keyframes mockupLiveDotFade {
+  0%, 100% { opacity: 1;   }
+  50%       { opacity: 0.65; }
+}
+@keyframes mockupLiveDotRipple {
+  0%   { transform: scale(1);   opacity: 0.7; }
+  100% { transform: scale(3.5); opacity: 0;   }
 }
 .mockup-live-dot {
-  animation: mockupLiveDot 2s ease-in-out infinite;
+  position: relative;
+  animation: mockupLiveDotFade 2s ease-in-out infinite;
+  will-change: opacity;
+}
+.mockup-live-dot::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: inherit; /* same green as the dot */
+  animation: mockupLiveDotRipple 2s ease-in-out infinite;
+  will-change: transform, opacity;
 }
 
 /* ─── Mockup metric cards ─── */
@@ -2346,11 +2409,13 @@ button, a, nav, header, footer, label {
   border-color: hsl(190 70% 50% / 0.30);
 }
 
-/* ─── Premium card animated aurora ─── */
+/* pricingAuroraShift — was: animating background-position every frame (forces repaint).
+   Fix: static gradient; animate opacity only for the breathing aurora effect —
+   compositor-accelerated. The gradient colours are unchanged; only the movement is
+   replaced with a subtle opacity pulse that reads as the same "living" quality. */
 @keyframes pricingAuroraShift {
-  0%   { background-position: 0% 50%; }
-  50%  { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+  0%, 100% { opacity: 0.7; }
+  50%       { opacity: 1;   }
 }
 .pricing-aurora {
   background: linear-gradient(
@@ -2361,8 +2426,8 @@ button, a, nav, header, footer, label {
     hsl(200,50%,60%,0.022) 80%,
     hsl(270,40%,55%,0.025) 100%
   );
-  background-size: 300% 300%;
   animation: pricingAuroraShift 8s ease-in-out infinite;
+  will-change: opacity;
 }
 
 /* ─── Global micro-animations ─── */
