@@ -490,17 +490,25 @@ export function Sidebar() {
                   {userInitials}
                 </div>
               )}
-              {/* Avatar ring glow — static CSS only, no animation, no GPU cost.
-                  Premium: warm gold-white ring + soft halo.
-                  Non-premium: subtle grey edge. */}
-              <div
-                className="absolute inset-0 rounded-full pointer-events-none"
-                style={{
-                  boxShadow: isPremium
-                    ? "0 0 0 1.5px rgba(255,210,80,0.65), 0 0 7px rgba(255,195,50,0.28), 0 0 14px rgba(255,180,40,0.10)"
-                    : "0 0 0 1px rgba(255,255,255,0.08)",
-                }}
-              />
+              {/* Avatar ring glow — premium gets a strong outward radiant halo */}
+              {isPremium && (
+                <div
+                  className="absolute rounded-full pointer-events-none"
+                  style={{
+                    inset: "-6px",
+                    borderRadius: "9999px",
+                    background: "radial-gradient(circle, rgba(255,195,50,0.22) 0%, rgba(255,160,30,0.10) 50%, transparent 70%)",
+                    boxShadow: "0 0 0 1.5px rgba(255,215,80,0.85), 0 0 10px 3px rgba(255,195,50,0.60), 0 0 22px 8px rgba(255,170,30,0.38), 0 0 40px 14px rgba(255,140,20,0.18)",
+                    animation: "sc-premium-halo 2.8s ease-in-out infinite",
+                  }}
+                />
+              )}
+              {!isPremium && (
+                <div
+                  className="absolute inset-0 rounded-full pointer-events-none"
+                  style={{ boxShadow: "0 0 0 1px rgba(255,255,255,0.08)" }}
+                />
+              )}
             </div>
 
             {/* User info */}

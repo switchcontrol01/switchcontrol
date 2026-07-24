@@ -312,10 +312,12 @@ function publisherToDomain(publisher: string, name: string): string | null {
   return heuristic.length >= 3 ? `${heuristic}.com` : null;
 }
 
-// Icon service URLs — tried in order when a domain is available
+// Icon service URLs — tried in order when a domain is available.
+// Google Favicons is intentionally omitted: it returns a generic globe SVG for
+// unknown domains (a "successful" load that looks broken). Clearbit returns a
+// real 404 on failure so the onError cascade continues correctly.
 const iconSrcs = (domain: string) => [
   `https://logo.clearbit.com/${domain}`,
-  `https://www.google.com/s2/favicons?domain=${domain}&sz=64`,
   `https://icons.duckduckgo.com/ip3/${domain}.ico`,
   `https://api.faviconkit.com/${domain}/64`,
 ];

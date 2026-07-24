@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import {
   ChevronDown, ChevronUp, Loader2, CheckCircle2, XCircle,
   RefreshCw, ShieldCheck, AlertTriangle, Info, RotateCcw,
@@ -31,6 +31,43 @@ import {
 } from "@/components/ui/tooltip";
 import type { RecommendationOverride } from "@/hooks/useDynamicRecommendations";
 import { getEffectiveSliderRecommendation } from "@/lib/recommendation-helpers";
+
+// Tooltip that stays open while hovered, then fades away 1s after mouse leaves
+function DelayedTooltip({ children, content, side = "top", isAi }: {
+  children: React.ReactNode;
+  content: React.ReactNode;
+  side?: "top" | "bottom" | "left" | "right";
+  isAi?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleOpen = () => {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    setOpen(true);
+  };
+  const handleClose = () => {
+    closeTimer.current = setTimeout(() => setOpen(false), 1000);
+  };
+
+  return (
+    <Tooltip open={open} onOpenChange={(o) => { if (!o) handleClose(); }}>
+      <TooltipTrigger asChild onMouseEnter={handleOpen} onMouseLeave={handleClose}>
+        {children}
+      </TooltipTrigger>
+      <TooltipContent
+        side={side}
+        className={cn(
+          "max-w-[220px] text-center",
+          "bg-white/80 backdrop-blur-md text-gray-700",
+          isAi ? "border border-violet-400/40" : "border border-cyan-400/30"
+        )}
+      >
+        {content}
+      </TooltipContent>
+    </Tooltip>
+  );
+}
 
 interface TweakSliderCardProps {
   tweak: Tweak;
@@ -154,30 +191,27 @@ function SteppedSelector({
               <span className="leading-snug">{preset.label}</span>
               {(preset.isDefault || isRec) && (
                 recReason ? (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span className={cn(
-                        "text-[9px] px-1.5 py-0.5 rounded-full cursor-help",
-                        isAiRec
-                          ? "bg-gradient-to-r from-violet-500/20 to-fuchsia-500/20 text-violet-300 border border-violet-400/30"
-                          : "bg-cyan-500/15 text-cyan-400"
-                      )}>
-                        {isAiRec ? "AI Pick ✦" : "Recommended ✦"}
-                      </span>
-                    </TooltipTrigger>
-                    <TooltipContent
-                      side="top"
-                      className={cn(
-                        "max-w-[220px] text-center bg-[#0D1117] text-[#A0A8B3]",
-                        isAiRec ? "border border-violet-400/30" : "border border-cyan-500/20"
-                      )}
-                    >
-                      {recReason}
-                      {isAiRec && (
-                        <div className="mt-1 text-[9px] text-violet-300/80">✦ AI-tuned to your hardware</div>
-                      )}
-                    </TooltipContent>
-                  </Tooltip>
+                  <DelayedTooltip
+                    side="top"
+                    isAi={isAiRec}
+                    content={
+                      <>
+                        {recReason}
+                        {isAiRec && (
+                          <div className="mt-1 text-[9px] text-violet-500/70">✦ AI-tuned to your hardware</div>
+                        )}
+                      </>
+                    }
+                  >
+                    <span className={cn(
+                      "text-[9px] px-1.5 py-0.5 rounded-full cursor-help",
+                      isAiRec
+                        ? "bg-gradient-to-r from-violet-500/20 to-fuchsia-500/20 text-violet-300 border border-violet-400/30"
+                        : "bg-cyan-500/15 text-cyan-400"
+                    )}>
+                      {isAiRec ? "AI Pick ✦" : "Recommended ✦"}
+                    </span>
+                  </DelayedTooltip>
                 ) : (
                   <span className={cn(
                     "text-[9px] px-1.5 py-0.5 rounded-full",
@@ -646,20 +680,20 @@ export function TweakSliderCard({ tweak, dynamicOverride }: TweakSliderCardProps
                 </span>
                 {dynRecReason ? (
                   <TooltipProvider delayDuration={200}>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span className={cn("tabular-nums cursor-help", dynRecIsAi ? "text-violet-300/90" : "text-cyan-400/80")}>
-                          {formatValue(effectiveRec.recommendedValue!, config.unit)} ✦
-                        </span>
-                      </TooltipTrigger>
-                      <TooltipContent side="top" className={cn(
-                        "max-w-[220px] text-center bg-[#0D1117] text-[#A0A8B3]",
-                        dynRecIsAi ? "border border-violet-400/30" : "border border-cyan-500/20"
-                      )}>
-                        {dynRecReason}
-                        {dynRecIsAi && <div className="mt-1 text-[9px] text-violet-300/80">✦ AI-tuned to your hardware</div>}
-                      </TooltipContent>
-                    </Tooltip>
+                    <DelayedTooltip
+                      side="top"
+                      isAi={dynRecIsAi}
+                      content={
+                        <>
+                          {dynRecReason}
+                          {dynRecIsAi && <div className="mt-1 text-[9px] text-violet-500/70">✦ AI-tuned to your hardware</div>}
+                        </>
+                      }
+                    >
+                      <span className={cn("tabular-nums cursor-help", dynRecIsAi ? "text-violet-300/90" : "text-cyan-400/80")}>
+                        {formatValue(effectiveRec.recommendedValue!, config.unit)} ✦
+                      </span>
+                    </DelayedTooltip>
                   </TooltipProvider>
                 ) : (
                   <span className="text-cyan-400/60 tabular-nums">{formatValue(effectiveRec.recommendedValue!, config.unit)}</span>

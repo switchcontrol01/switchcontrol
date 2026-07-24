@@ -153,9 +153,10 @@ function processIconDomain(name: string, publisher: string | null): string | nul
   return null;
 }
 
+// Google Favicons omitted — returns a generic globe SVG for unknown domains,
+// which looks like a successful load and blocks the category-icon fallback.
 const processIconSrcs = (domain: string) => [
   `https://logo.clearbit.com/${domain}`,
-  `https://www.google.com/s2/favicons?domain=${domain}&sz=64`,
   `https://icons.duckduckgo.com/ip3/${domain}.ico`,
   `https://api.faviconkit.com/${domain}/64`,
 ];

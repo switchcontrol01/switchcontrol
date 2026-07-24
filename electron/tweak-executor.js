@@ -607,16 +607,30 @@ const HKCU_TWEAKS = {
     // The apply/revert scripts are only reached on build ≥ 22621 because the
     // dynamic UNSUPPORTED_TWEAKS patch above short-circuits the executor for
     // older builds.  The build guard here is a belt-and-suspenders safety net.
+    //
+    // FIX 1: Removed "New-Item -Force" — on an existing key, -Force recreates
+    //   the key and wipes ALL values inside Explorer\Advanced (including
+    //   ShowTaskViewButton=0 set by other tweaks), making Task View reappear.
+    //   Explorer\Advanced always exists on Windows 11; no need to create it.
+    // FIX 2: Added Explorer shell restart — TaskbarEndTask is read by Explorer
+    //   only at startup, so without restarting the shell the toggle has no
+    //   visible effect in the current session. The shell relaunches itself
+    //   automatically after being killed.
     apply:  `
       $build = [int]((Get-ItemProperty 'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion' -Name CurrentBuildNumber -EA Stop).CurrentBuildNumber)
       if ($build -lt 22621) { throw "Not supported: Windows 11 build 22621 (22H2) or later required. Current build: $build" }
-      New-Item -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced" -Force -EA SilentlyContinue | Out-Null
       Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced" -Name "TaskbarEndTask" -Value 1 -Type DWord -Force
+      Stop-Process -Name explorer -Force -EA SilentlyContinue
+      Start-Sleep -Milliseconds 1200
+      Start-Process explorer
     `,
     revert: `
       $build = [int]((Get-ItemProperty 'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion' -Name CurrentBuildNumber -EA SilentlyContinue).CurrentBuildNumber)
       if ($build -lt 22621) { return }
       Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced" -Name "TaskbarEndTask" -Value 0 -Type DWord -Force
+      Stop-Process -Name explorer -Force -EA SilentlyContinue
+      Start-Sleep -Milliseconds 1200
+      Start-Process explorer
     `,
     check:  `
       $build = [int]((Get-ItemProperty 'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion' -Name CurrentBuildNumber -EA SilentlyContinue).CurrentBuildNumber)

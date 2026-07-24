@@ -43,39 +43,47 @@ const CAT_ICONS: Record<string, any> = {
   system: Monitor, drivers: Package, userApps: Gamepad2, scheduled: Package, broken: AlertTriangle
 };
 
-function AppIcon({ app, size = 32 }: { app: BootApp; size?: number }) {
-  const [failed, setFailed] = useState(false);
+// Try Clearbit first (high-quality official brand logos), fall back to Google favicons
+function AppIcon({ app, size = 28 }: { app: BootApp; size?: number }) {
+  const [srcIndex, setSrcIndex] = useState(0);
   const [visible, setVisible] = useState(false);
   const domain = resolveDomain(app);
+
+  // Google Favicons omitted — returns a globe SVG for unknown domains (looks
+  // like a successful load, blocks the category-icon fallback).
+  const sources = domain ? [
+    `https://logo.clearbit.com/${domain}`,
+    `https://icons.duckduckgo.com/ip3/${domain}.ico`,
+    `https://api.faviconkit.com/${domain}/64`,
+  ] : [];
+
+  const failed = srcIndex >= sources.length;
 
   if (!domain || failed) {
     const Icon = CAT_ICONS[app.category] || Package;
     return (
-      <div 
-        className="rounded-xl flex items-center justify-center shrink-0 bg-[#21262D] border border-white/[0.08]" 
+      <div
+        className="rounded-lg flex items-center justify-center shrink-0 bg-[#21262D] border border-white/[0.08]"
         style={{ width: size, height: size }}
       >
-        <Icon className="size-4 text-muted-foreground" />
+        <Icon className="size-3.5 text-muted-foreground" />
       </div>
     );
   }
 
   return (
     <div
-      className="rounded-xl flex items-center justify-center shrink-0 bg-[#21262D] border border-white/[0.08] overflow-hidden"
+      className="rounded-lg flex items-center justify-center shrink-0 bg-[#21262D] border border-white/[0.08] overflow-hidden"
       style={{ width: size, height: size }}
     >
       <img
-        src={`https://www.google.com/s2/favicons?domain=${domain}&sz=64`}
+        key={srcIndex}
+        src={sources[srcIndex]}
         alt=""
-        className="w-5 h-5"
-        style={{
-          imageRendering: "auto",
-          opacity: visible ? 1 : 0,
-          transition: "opacity 0.4s ease",
-        }}
+        className={srcIndex === 0 ? "w-full h-full object-contain p-0.5" : "w-4 h-4"}
+        style={{ opacity: visible ? 1 : 0, transition: "opacity 0.3s ease" }}
         onLoad={() => setVisible(true)}
-        onError={() => setFailed(true)}
+        onError={() => { setVisible(false); setSrcIndex(i => i + 1); }}
         draggable={false}
       />
     </div>
@@ -117,85 +125,84 @@ export function StartupAppRow({ app, onToggle, loading }: Props) {
       style={{ boxShadow: isEnabled && glowShadow !== "transparent" ? `0 4px 20px ${glowShadow}` : "none" }}
     >
       <div
-        className="flex items-center gap-4 px-4 py-3.5 cursor-pointer"
+        className="flex items-center gap-3 px-3 py-2.5 cursor-pointer"
         onClick={() => setExpanded(e => !e)}
       >
-        <AppIcon app={app} size={36} />
+        <AppIcon app={app} size={28} />
 
         <div className="flex-1 min-w-0 flex flex-col justify-center">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className={cn("text-sm font-bold truncate transition-colors", isEnabled ? "text-[#E6EAF0]" : "text-muted-foreground")}>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className={cn("text-xs font-semibold truncate transition-colors", isEnabled ? "text-[#E6EAF0]" : "text-muted-foreground")}>
               {app.entry.name}
             </span>
 
             {app.isMicrosoft && (
-              <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 font-bold uppercase tracking-wider">
+              <span className="text-[8px] px-1 py-px rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 font-bold uppercase tracking-wider">
                 System
               </span>
             )}
             {app.isDriver && (
-              <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 font-bold uppercase tracking-wider">
+              <span className="text-[8px] px-1 py-px rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 font-bold uppercase tracking-wider">
                 Driver
               </span>
             )}
             {app.entry.source === "task-scheduler" && !app.isDriver && !app.isMicrosoft && (
-              <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-white/[0.05] border border-white/[0.08] text-[#A0A8B3] font-bold uppercase tracking-wider">
+              <span className="text-[8px] px-1 py-px rounded-full bg-white/[0.05] border border-white/[0.08] text-[#A0A8B3] font-bold uppercase tracking-wider">
                 Task
               </span>
             )}
-
             {meta.label && (
-              <span className={cn("text-[9px] px-1.5 py-0.5 rounded-full border flex items-center gap-1 font-bold uppercase tracking-wider", meta.bg, meta.border, meta.color)}>
-                <AlertTriangle className="size-2.5" />
+              <span className={cn("text-[8px] px-1 py-px rounded-full border flex items-center gap-0.5 font-bold uppercase tracking-wider", meta.bg, meta.border, meta.color)}>
+                <AlertTriangle className="size-2" />
                 {meta.label}
               </span>
             )}
           </div>
 
-          <div className="flex items-center gap-3 mt-1">
+          <div className="flex items-center gap-2 mt-0.5">
             {app.entry.publisher && app.entry.publisher !== "unknown publisher" ? (
-              <span className="text-[10px] text-muted-foreground/60 truncate max-w-[200px] font-medium">{app.entry.publisher}</span>
+              <span className="text-[9px] text-muted-foreground/60 truncate max-w-[180px]">{app.entry.publisher}</span>
             ) : (
-              <span className="text-[10px] text-muted-foreground/40 font-medium italic">Unverified Publisher</span>
+              <span className="text-[9px] text-muted-foreground/35 italic">Unverified Publisher</span>
             )}
-            <span className="text-[10px] text-muted-foreground/30 font-mono tracking-tighter">|</span>
-            <span className="text-[10px] text-muted-foreground/50 uppercase tracking-widest font-bold">
+            <span className="text-[9px] text-muted-foreground/25 font-mono">·</span>
+            <span className="text-[9px] text-muted-foreground/45 uppercase tracking-widest font-bold">
               {app.entry.source.replace(/-/g, " ")}
             </span>
           </div>
         </div>
 
-        <div className={cn("hidden md:flex items-center gap-6 shrink-0 transition-opacity", isEnabled ? "opacity-100" : "opacity-30")}>
+        <div className={cn("hidden md:flex items-center gap-4 shrink-0 transition-opacity", isEnabled ? "opacity-100" : "opacity-30")}>
           <div className="flex flex-col items-end">
-            <span className="text-[9px] text-muted-foreground/50 uppercase tracking-widest font-bold flex items-center gap-1">
-              <Cpu className="size-3" /> CPU Load
+            <span className="text-[8px] text-muted-foreground/50 uppercase tracking-widest font-bold flex items-center gap-0.5">
+              <Cpu className="size-2.5" /> CPU
             </span>
-            <span className="text-xs font-mono font-medium text-[#E6EAF0]">{app.cpuImpact}%</span>
+            <span className="text-[10px] font-mono font-medium text-[#E6EAF0]">{app.cpuImpact}%</span>
           </div>
           <div className="flex flex-col items-end">
-            <span className="text-[9px] text-muted-foreground/50 uppercase tracking-widest font-bold flex items-center gap-1">
-              <HardDrive className="size-3" /> Disk I/O
+            <span className="text-[8px] text-muted-foreground/50 uppercase tracking-widest font-bold flex items-center gap-0.5">
+              <HardDrive className="size-2.5" /> Disk
             </span>
-            <span className="text-xs font-mono font-medium text-[#E6EAF0]">{app.diskImpact}%</span>
+            <span className="text-[10px] font-mono font-medium text-[#E6EAF0]">{app.diskImpact}%</span>
           </div>
-          <div className="flex flex-col items-end w-16">
-            <span className="text-[9px] text-muted-foreground/50 uppercase tracking-widest font-bold flex items-center gap-1">
-              <Gauge className="size-3" /> Impact
+          <div className="flex flex-col items-end w-14">
+            <span className="text-[8px] text-muted-foreground/50 uppercase tracking-widest font-bold flex items-center gap-0.5">
+              <Gauge className="size-2.5" /> Impact
             </span>
-            <span className={cn("text-xs font-mono font-bold", impactColor)}>{Math.round(app.delayMs)}ms</span>
+            <span className={cn("text-[10px] font-mono font-bold", impactColor)}>{Math.round(app.delayMs)}ms</span>
           </div>
         </div>
 
-        <div className="shrink-0 pl-2" onClick={e => e.stopPropagation()}>
+        <div className="shrink-0 pl-1" onClick={e => e.stopPropagation()}>
           {loading ? (
-            <div className="h-6 w-11 flex items-center justify-center">
-              <span className="size-4 border-2 border-[#2A313A] border-t-primary rounded-full animate-spin inline-block" />
+            <div className="h-5 w-9 flex items-center justify-center">
+              <span className="size-3.5 border-2 border-[#2A313A] border-t-primary rounded-full animate-spin inline-block" />
             </div>
           ) : (
             <Switch
               checked={isEnabled}
               onCheckedChange={onToggle}
-              className="data-[state=checked]:bg-primary shadow-[0_0_10px_rgba(0,212,255,0)] data-[state=checked]:shadow-[0_0_15px_rgba(0,212,255,0.4)] transition-all"
+              className="data-[state=checked]:bg-primary shadow-[0_0_10px_rgba(0,212,255,0)] data-[state=checked]:shadow-[0_0_15px_rgba(0,212,255,0.4)] transition-all scale-90"
             />
           )}
         </div>

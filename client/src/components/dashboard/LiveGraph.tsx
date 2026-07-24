@@ -657,6 +657,7 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
         @keyframes sc-area-glow{0%,100%{opacity:.55}50%{opacity:.8}}
         @keyframes sc-end-ring{0%{r:3.5;opacity:.85}70%{r:9;opacity:0}100%{r:9;opacity:0}}
         @keyframes sc-line-breathe{0%,100%{opacity:.82}50%{opacity:1}}
+        @keyframes sc-chart-reveal{0%{clip-path:inset(0 100% 0 0);opacity:0}30%{opacity:1}100%{clip-path:inset(0 0% 0 0);opacity:1}}
       `}</style>
 
       {/* Header */}
@@ -806,12 +807,10 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
         {isLoading ? (
           <GraphLoadingPlaceholder height={chartHeight} />
         ) : (
-          <motion.div
+          <div
             key="live-chart"
             className="absolute inset-0"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 1.4, ease: [0.25, 0.46, 0.45, 0.94] }}
+            style={{ animation: "sc-chart-reveal 1.6s cubic-bezier(0.25,0.46,0.45,0.94) both" }}
           >
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart data={data} margin={{ top: 4, right: expanded ? 44 : 4, left: -20, bottom: 4 }}>
@@ -1021,7 +1020,7 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
               )}
             </ComposedChart>
           </ResponsiveContainer>
-          </motion.div>
+          </div>
         )}
       </div>
 

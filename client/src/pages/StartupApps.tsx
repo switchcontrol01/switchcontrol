@@ -190,9 +190,7 @@ export default function StartupApps() {
   // ── Render ───────────────────────────────────────────────────────────────────────────────
   return (
     <AppLayout>
-      <StartupPulse active={isScanning} />
-      
-      <div className="relative z-10 w-full max-w-7xl mx-auto space-y-8 pb-16 pt-4 px-4 sm:px-6 lg:px-8">
+      <div className="relative z-10 w-full max-w-7xl mx-auto space-y-6 pb-16 pt-4 px-4 sm:px-6 lg:px-8">
         
         {/* Top actions */}
         <div className="flex justify-end gap-3 h-8">
@@ -280,13 +278,6 @@ export default function StartupApps() {
                           apps={apps}
                           onApply={optimize}
                           onReview={() => setActiveTab("userApps")}
-                          visible={hasScan}
-                        />
-                        <StartupBrokenEntries
-                          apps={apps}
-                          onFixAll={() => {
-                            toast({ title: "Clean Registry via Desktop", description: "This feature is restricted in the preview.", variant: "default" });
-                          }}
                           visible={hasScan}
                         />
                       </div>
