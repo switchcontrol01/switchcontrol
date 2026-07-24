@@ -37,6 +37,7 @@ let _sampleProcess    = null;     // active child_process for sample collection 
 let _sampleCallback   = null;     // (sample) => void — set by caller
 let _startedAt        = 0;
 let _sampleCount      = 0;
+let _lastError        = null;
 
 // ── PowerShell runner ──────────────────────────────────────────────────────────
 
@@ -105,16 +106,24 @@ try {
 
   try {
     const out = await runPS(script, PS_TIMEOUT_MS, { trackAs: 'sample' });
-    if (!out || out.startsWith('ERROR')) return null;
+    if (!out) throw new Error('Performance counter query returned no output.');
+    if (out.startsWith('ERROR')) {
+      throw new Error(out.slice('ERROR:'.length).trim() || 'Performance counter query failed.');
+    }
     const parts = out.split(',');
-    if (parts.length < 3) return null;
+    if (parts.length < 3) throw new Error(`Performance counter response was malformed: ${out}`);
     const dpcPct        = parseFloat(parts[0]);
     const intrPct       = parseFloat(parts[1]);
     const pageFaultsSec = parseFloat(parts[2]);
-    if (isNaN(dpcPct) || isNaN(intrPct) || isNaN(pageFaultsSec)) return null;
+    if (isNaN(dpcPct) || isNaN(intrPct) || isNaN(pageFaultsSec)) {
+      throw new Error(`Performance counter values were not numeric: ${out}`);
+    }
     return { dpcPct, intrPct, pageFaultsSec };
-  } catch {
-    return null;
+  } catch (err) {
+    const detail = err && err.message ? err.message : String(err);
+    const wrapped = new Error(`Unable to collect Windows performance counters: ${detail}`);
+    wrapped.code = err && err.code;
+    throw wrapped;
   }
 }
 
@@ -270,6 +279,7 @@ async function startAnalysis(onSample, onError) {
   _sampleCallback = onSample;
   _startedAt      = Date.now();
   _sampleCount    = 0;
+  _lastError      = null;
 
   async function poll() {
     if (!_sessionActive) return;
@@ -282,10 +292,12 @@ async function startAnalysis(onSample, onError) {
       const sample = await collectSample();
       if (_sessionActive && sample) {
         _sampleCount++;
+        _lastError = null;
         if (_sampleCallback) _sampleCallback(sample);
       }
     } catch (err) {
-      if (_sessionActive && onError) onError(err.message || String(err));
+      _lastError = err.message || String(err);
+      if (_sessionActive && onError) onError(_lastError);
     }
     if (_sessionActive) {
       _intervalHandle = setTimeout(poll, SAMPLE_INTERVAL_MS);
@@ -302,6 +314,7 @@ async function startAnalysis(onSample, onError) {
 function stopAnalysis() {
   _sessionActive = false;
   _sampleCallback = null;
+  _lastError = null;
   if (_intervalHandle) {
     clearTimeout(_intervalHandle);
     _intervalHandle = null;
@@ -327,6 +340,7 @@ function getStatus() {
     active: _sessionActive,
     startedAt: _startedAt,
     sampleCount: _sampleCount,
+    lastError: _lastError,
   };
 }
 

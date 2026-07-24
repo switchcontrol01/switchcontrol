@@ -96,6 +96,7 @@
     };
   }
   let _latencyLastSample = null; // last received sample for renderer polling
+  let _latencyLastError = null;
   
   app.setName('SwitchControl');
   const isDev = !app.isPackaged;
@@ -4689,7 +4690,9 @@ public class DspHelper {
   // ── Scheduler stats (lightweight — safe to call from devtools/debug panels) ────
   // ── Latency Analyzer ─────────────────────────────────────────────────────────
   ipcMain.handle('latencyAnalyzer:start', async () => {
+    console.info('[latencyAnalyzer:ipc] start request');
     if (!latencyAnalyzerAvailable) {
+      console.error('[latencyAnalyzer:ipc] start unavailable: module not packaged');
       return {
         ok: false,
         error: 'Latency analyzer module is not installed. Please reinstall SwitchControl.',
@@ -4699,27 +4702,39 @@ public class DspHelper {
       return { ok: false, error: 'Analysis already running' };
     }
     _latencyLastSample = null;
+    _latencyLastError = null;
     await latencyAnalyzer.startAnalysis(
-      (sample) => { _latencyLastSample = sample; },
-      (err)    => { console.warn('[latencyAnalyzer] sample error:', err); }
+      (sample) => {
+        _latencyLastSample = sample;
+        console.info('[latencyAnalyzer:ipc] sample received', JSON.stringify(sample));
+      },
+      (err) => {
+        _latencyLastError = err;
+        console.error('[latencyAnalyzer:ipc] collector error:', err);
+      }
     );
+    console.info('[latencyAnalyzer:ipc] start response ok');
     return { ok: true };
   });
 
   ipcMain.handle('latencyAnalyzer:stop', async () => {
+    console.info('[latencyAnalyzer:ipc] stop request');
     latencyAnalyzer.stopAnalysis();
     _latencyLastSample = null;
+    _latencyLastError = null;
+    console.info('[latencyAnalyzer:ipc] stop response ok');
     return { ok: true };
   });
 
   ipcMain.handle('latencyAnalyzer:getSample', () => {
     const s = _latencyLastSample;
     _latencyLastSample = null; // consume so renderer can tell when a new sample arrives
+    if (s) console.info('[latencyAnalyzer:ipc] sample delivered to renderer');
     return s;
   });
 
   ipcMain.handle('latencyAnalyzer:getStatus', () => {
-    return latencyAnalyzer.getStatus();
+    return { ...latencyAnalyzer.getStatus(), lastError: _latencyLastError };
   });
 
   ipcMain.handle('latencyAnalyzer:scanDrivers', async () => {

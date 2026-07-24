@@ -144,4 +144,13 @@ module.exports = {
    * blindly writing a hard-coded default.
    */
   VBS_BACKUP_FILE: path.join(APPDATA_DIR, 'vbs-backup.json'),
+
+  /** Original-value backup for PCIe Link State Power Management. */
+  PCIE_LINK_STATE_BACKUP_FILE: path.join(APPDATA_DIR, 'pcie-link-state-backup.json'),
+
+  /** Original-value backup for USB Selective Suspend. */
+  USB_SELECTIVE_SUSPEND_BACKUP_FILE: path.join(APPDATA_DIR, 'usb-selective-suspend-backup.json'),
+
+  /** Original-value backup for Hardware Accelerated GPU Scheduling. */
+  PREEMPTION_BACKUP_FILE: path.join(APPDATA_DIR, 'preemption-backup.json'),
 };

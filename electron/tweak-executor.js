@@ -769,7 +769,7 @@ const ADMIN_TWEAKS = {
     requiresAdmin:  true,
     requiresReboot: false,
     apply:  `Set-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\PriorityControl" -Name "Win32PrioritySeparation" -Value 38 -Type DWord -Force`,
-    revert: `Set-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\PriorityControl" -Name "Win32PrioritySeparation" -Value 2 -Type DWord -Force`,
+    revert: `Remove-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\PriorityControl" -Name "Win32PrioritySeparation" -EA SilentlyContinue`,
     check:  `(Get-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\PriorityControl" -Name "Win32PrioritySeparation" -EA SilentlyContinue).Win32PrioritySeparation -eq 38`,
   },
   'bluetooth': {
@@ -777,7 +777,7 @@ const ADMIN_TWEAKS = {
     requiresAdmin:  true,
     requiresReboot: false,
     apply:  `$svc = Get-Service -Name bthserv -EA SilentlyContinue; if ($svc) { Stop-Service bthserv -Force -EA SilentlyContinue; Set-Service bthserv -StartupType Disabled }; $svc2 = Get-Service -Name BthA2dp -EA SilentlyContinue; if ($svc2) { Stop-Service BthA2dp -Force -EA SilentlyContinue; Set-Service BthA2dp -StartupType Disabled }`,
-    revert: `$svc = Get-Service -Name bthserv -EA SilentlyContinue; if ($svc) { Set-Service bthserv -StartupType Automatic; Start-Service bthserv -EA SilentlyContinue }; $svc2 = Get-Service -Name BthA2dp -EA SilentlyContinue; if ($svc2) { Set-Service BthA2dp -StartupType Automatic; Start-Service BthA2dp -EA SilentlyContinue }`,
+    revert: `$svc = Get-Service -Name bthserv -EA SilentlyContinue; if ($svc) { Set-Service bthserv -StartupType Manual; Start-Service bthserv -EA SilentlyContinue }; $svc2 = Get-Service -Name BthA2dp -EA SilentlyContinue; if ($svc2) { Set-Service BthA2dp -StartupType Manual }`,
     check:  `$s = Get-Service -Name bthserv -EA SilentlyContinue; $s -and ($s.StartType -eq "Disabled")`,
   },
   'wifi': {
@@ -816,9 +816,8 @@ const ADMIN_TWEAKS = {
     name: 'Enable GPU Hardware Scheduling (Preemption)',
     requiresAdmin:  true,
     requiresReboot: true,
-    apply:  `New-Item -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\GraphicsDrivers" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\GraphicsDrivers" -Name "HwSchMode" -Value 2 -Type DWord -Force`,
-    revert: `Set-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\GraphicsDrivers" -Name "HwSchMode" -Value 1 -Type DWord -Force`,
-    check:  `(Get-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\GraphicsDrivers" -Name "HwSchMode" -EA SilentlyContinue).HwSchMode -eq 2`,
+    // apply/revert/verify handled by executePreemption below.
+    _special: 'preemption',
   },
   'disable-mpo': {
     name: 'Disable Multi-Plane Overlay',
@@ -835,9 +834,8 @@ const ADMIN_TWEAKS = {
     // Sub-group: USB (2a737441-1930-4402-8d77-b2bebba308a3)
     // Setting: USB selective suspend (48e6b7a6-50f5-4782-a5d4-53bb8f07e226)
     // 0 = Disabled, 1 = Enabled
-    apply:  `& powercfg /setacvalueindex SCHEME_CURRENT 2a737441-1930-4402-8d77-b2bebba308a3 48e6b7a6-50f5-4782-a5d4-53bb8f07e226 0 2>&1 | Out-Null; & powercfg /setdcvalueindex SCHEME_CURRENT 2a737441-1930-4402-8d77-b2bebba308a3 48e6b7a6-50f5-4782-a5d4-53bb8f07e226 0 2>&1 | Out-Null; & powercfg /setactive SCHEME_CURRENT 2>&1 | Out-Null; exit 0`,
-    revert: `& powercfg /setacvalueindex SCHEME_CURRENT 2a737441-1930-4402-8d77-b2bebba308a3 48e6b7a6-50f5-4782-a5d4-53bb8f07e226 1 2>&1 | Out-Null; & powercfg /setdcvalueindex SCHEME_CURRENT 2a737441-1930-4402-8d77-b2bebba308a3 48e6b7a6-50f5-4782-a5d4-53bb8f07e226 1 2>&1 | Out-Null; & powercfg /setactive SCHEME_CURRENT 2>&1 | Out-Null; exit 0`,
-    check:  `$out = (& powercfg /query SCHEME_CURRENT 2a737441-1930-4402-8d77-b2bebba308a3 48e6b7a6-50f5-4782-a5d4-53bb8f07e226 2>&1 | Out-String); [bool]($out -match "Current AC Power Setting Index: 0x00000000")`,
+    // apply/revert/verify handled by executeUsbSelectiveSuspend below.
+    _special: 'usb-selective-suspend',
   },
   'pcie-link-state': {
     name: 'Disable PCIe Link State Power Management',
@@ -846,9 +844,8 @@ const ADMIN_TWEAKS = {
     // Sub-group: PCI Express (501a4d13-42af-4429-9fd1-a8218c268e20)
     // Setting: Link State Power Management (ee12f906-d277-404b-b6da-e5fa1a576df5)
     // 0 = Off, 1 = Moderate, 2 = Maximum
-    apply:  `& powercfg /setacvalueindex SCHEME_CURRENT 501a4d13-42af-4429-9fd1-a8218c268e20 ee12f906-d277-404b-b6da-e5fa1a576df5 0 2>&1 | Out-Null; & powercfg /setdcvalueindex SCHEME_CURRENT 501a4d13-42af-4429-9fd1-a8218c268e20 ee12f906-d277-404b-b6da-e5fa1a576df5 0 2>&1 | Out-Null; & powercfg /setactive SCHEME_CURRENT 2>&1 | Out-Null; exit 0`,
-    revert: `& powercfg /setacvalueindex SCHEME_CURRENT 501a4d13-42af-4429-9fd1-a8218c268e20 ee12f906-d277-404b-b6da-e5fa1a576df5 2 2>&1 | Out-Null; & powercfg /setdcvalueindex SCHEME_CURRENT 501a4d13-42af-4429-9fd1-a8218c268e20 ee12f906-d277-404b-b6da-e5fa1a576df5 2 2>&1 | Out-Null; & powercfg /setactive SCHEME_CURRENT 2>&1 | Out-Null; exit 0`,
-    check:  `$out = (& powercfg /query SCHEME_CURRENT 501a4d13-42af-4429-9fd1-a8218c268e20 ee12f906-d277-404b-b6da-e5fa1a576df5 2>&1 | Out-String); [bool]($out -match "Current AC Power Setting Index: 0x00000000")`,
+    // apply/revert/verify handled by executePcieLinkState below.
+    _special: 'pcie-link-state',
   },
   'disable-delivery-opt': {
     name: 'Disable Delivery Optimization',
@@ -871,7 +868,7 @@ const ADMIN_TWEAKS = {
     requiresAdmin:  true,
     requiresReboot: false,
     apply:  `$s = Get-Service -Name WSearch -EA SilentlyContinue; if ($s) { Stop-Service WSearch -Force -EA SilentlyContinue; Set-Service WSearch -StartupType Disabled }`,
-    revert: `$s = Get-Service -Name WSearch -EA SilentlyContinue; if ($s) { Set-Service WSearch -StartupType Automatic; Start-Service WSearch -EA SilentlyContinue }`,
+    revert: `$s = Get-Service -Name WSearch -EA SilentlyContinue; if ($s) { Set-Service WSearch -StartupType AutomaticDelayedStart; Start-Service WSearch -EA SilentlyContinue }`,
     check:  `$s = Get-Service -Name WSearch -EA SilentlyContinue; $s -and ($s.StartType -eq "Disabled")`,
   },
   'disable-activity-history': {
@@ -938,7 +935,7 @@ const ADMIN_TWEAKS = {
     requiresAdmin: true,
     requiresReboot: false,
     apply:  `Set-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control" -Name "SvcHostSplitThresholdInKB" -Value 67108864 -Type DWord -Force`,
-    revert: `Set-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control" -Name "SvcHostSplitThresholdInKB" -Value 380000 -Type DWord -Force`,
+    revert: `Remove-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control" -Name "SvcHostSplitThresholdInKB" -EA SilentlyContinue`,
     check:  `(Get-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control" -Name "SvcHostSplitThresholdInKB" -EA SilentlyContinue).SvcHostSplitThresholdInKB -ge 67108864`,
   },
   // ── Extreme Labs specific tweaks ─────────────────────────────────────────────────
@@ -948,7 +945,7 @@ const ADMIN_TWEAKS = {
     requiresReboot: true,
     apply:  `& bcdedit /set useplatformclock No 2>&1 | Out-Null; exit 0`,
     revert: `& bcdedit /set useplatformclock Yes 2>&1 | Out-Null; exit 0`,
-    check:  `$out = & bcdedit /enum 2>&1; ($out | Select-String "useplatformclock") -match "No"`,
+    check:  `$out = & bcdedit /enum 2>&1; ($out | Select-String "useplatformclock") -match '\\bNo\\b'`,
   },
   'tcp-no-delay': {
     name: 'TCP NoDelay / TcpAckFrequency',
@@ -1376,6 +1373,267 @@ async function executeMaxCpuResponsiveness(action) {
       rebootRequired: false,
     };
   }
+}
+
+// ─── Power-plan baseline handlers ─────────────────────────────────────────────
+function parsePowerSettingIndex(raw, mode) {
+  const match = String(raw || '').match(
+    new RegExp(`Current ${mode} Power Setting Index:\\s*0x([0-9a-fA-F]+)`, 'i')
+  );
+  return match ? parseInt(match[1], 16) : null;
+}
+
+async function readPowerSettingIndices(subGroup, setting) {
+  const raw = await queryPowerShell(
+    `& powercfg /query SCHEME_CURRENT ${subGroup} ${setting} 2>&1 | Out-String`
+  );
+  return {
+    raw,
+    ac: parsePowerSettingIndex(raw, 'AC'),
+    dc: parsePowerSettingIndex(raw, 'DC'),
+  };
+}
+
+function isPowerSettingMissing(raw) {
+  return /does not exist|GUID is invalid|not found|error 0x8007|No Power Scheme/i.test(String(raw || ''));
+}
+
+function saveAtomicBackup(file, backup) {
+  const dir = path.dirname(file);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  const tmp = file + '.tmp';
+  fs.writeFileSync(tmp, JSON.stringify(backup, null, 2));
+  fs.renameSync(tmp, file);
+}
+
+async function executePcieLinkState(action) {
+  const { PCIE_LINK_STATE_BACKUP_FILE } = require('./user-data-paths');
+  const SUB = '501a4d13-42af-4429-9fd1-a8218c268e20';
+  const SETTING = 'ee12f906-d277-404b-b6da-e5fa1a576df5';
+  const commandsRun = [];
+
+  if (action === 'apply') {
+    const current = await readPowerSettingIndices(SUB, SETTING);
+    const backup = {
+      origAC: current.ac ?? 2,
+      origDC: current.dc ?? 2,
+      savedAt: new Date().toISOString(),
+    };
+    try {
+      saveAtomicBackup(PCIE_LINK_STATE_BACKUP_FILE, backup);
+    } catch (e) {
+      return { ok: false, commandsRun, message: 'Original PCIe Link State values could not be backed up — aborting to preserve rollback.', errorCode: 'backup_failed', rebootRequired: false };
+    }
+
+    const applyCmd = [
+      `& powercfg /setacvalueindex SCHEME_CURRENT ${SUB} ${SETTING} 0 2>&1 | Out-Null`,
+      `& powercfg /setdcvalueindex SCHEME_CURRENT ${SUB} ${SETTING} 0 2>&1 | Out-Null`,
+      '& powercfg /setactive SCHEME_CURRENT 2>&1 | Out-Null',
+    ].join('; ');
+    commandsRun.push(applyCmd);
+    try {
+      await runPowerShell(applyCmd);
+    } catch (e) {
+      return { ok: false, commandsRun, message: e.message, errorCode: 'exec_failed', rebootRequired: false };
+    }
+
+    const verified = (await readPowerSettingIndices(SUB, SETTING)).ac === 0;
+    return {
+      ok: verified,
+      commandsRun,
+      message: verified
+        ? 'PCIe Link State Power Management disabled and verified.'
+        : 'PCIe Link State write completed but verification failed.',
+      errorCode: verified ? undefined : 'verify_failed',
+      rebootRequired: false,
+    };
+  }
+
+  if (action === 'revert') {
+    let backup = null;
+    try { backup = JSON.parse(fs.readFileSync(PCIE_LINK_STATE_BACKUP_FILE, 'utf8')); } catch (_) {}
+    const origAC = Number.isInteger(backup?.origAC) ? backup.origAC : 1;
+    const origDC = Number.isInteger(backup?.origDC) ? backup.origDC : 1;
+    const revertCmd = [
+      `& powercfg /setacvalueindex SCHEME_CURRENT ${SUB} ${SETTING} ${origAC} 2>&1 | Out-Null`,
+      `& powercfg /setdcvalueindex SCHEME_CURRENT ${SUB} ${SETTING} ${origDC} 2>&1 | Out-Null`,
+      '& powercfg /setactive SCHEME_CURRENT 2>&1 | Out-Null',
+    ].join('; ');
+    commandsRun.push(revertCmd);
+    try {
+      await runPowerShell(revertCmd);
+    } catch (e) {
+      return { ok: false, commandsRun, message: e.message, errorCode: 'exec_failed', rebootRequired: false };
+    }
+    try { fs.unlinkSync(PCIE_LINK_STATE_BACKUP_FILE); } catch (_) {}
+
+    const actualAC = (await readPowerSettingIndices(SUB, SETTING)).ac;
+    const verified = actualAC === origAC;
+    return {
+      ok: verified,
+      commandsRun,
+      message: verified
+        ? 'PCIe Link State Power Management restored and verified.'
+        : `PCIe Link State revert verification failed — expected AC=${origAC}, got ${actualAC ?? '?'}.`,
+      errorCode: verified ? undefined : 'verify_failed',
+      rebootRequired: false,
+    };
+  }
+
+  return { ok: false, commandsRun, message: `Unknown PCIe Link State action: ${action}`, errorCode: 'unknown_action', rebootRequired: false };
+}
+
+async function executeUsbSelectiveSuspend(action) {
+  const { USB_SELECTIVE_SUSPEND_BACKUP_FILE } = require('./user-data-paths');
+  const SUB = '2a737441-1930-4402-8d77-b2bebba308a3';
+  const SETTING = '48e6b7a6-50f5-4782-a5d4-53bb8f07e226';
+  const commandsRun = [];
+
+  const current = await readPowerSettingIndices(SUB, SETTING);
+  if (isPowerSettingMissing(current.raw)) {
+    const reason = 'Power setting not found — USB Selective Suspend GUID is not available in the current power scheme';
+    return { ok: false, unsupported: true, unsupportedReason: reason, commandsRun, message: reason, errorCode: 'unsupported_setting', rebootRequired: false };
+  }
+
+  if (action === 'apply') {
+    const backup = {
+      origAC: current.ac ?? 1,
+      origDC: current.dc ?? 1,
+      savedAt: new Date().toISOString(),
+    };
+    try {
+      saveAtomicBackup(USB_SELECTIVE_SUSPEND_BACKUP_FILE, backup);
+    } catch (e) {
+      return { ok: false, commandsRun, message: 'Original USB Selective Suspend values could not be backed up — aborting to preserve rollback.', errorCode: 'backup_failed', rebootRequired: false };
+    }
+
+    const applyCmd = [
+      `& powercfg /setacvalueindex SCHEME_CURRENT ${SUB} ${SETTING} 0 2>&1 | Out-Null`,
+      `& powercfg /setdcvalueindex SCHEME_CURRENT ${SUB} ${SETTING} 0 2>&1 | Out-Null`,
+      '& powercfg /setactive SCHEME_CURRENT 2>&1 | Out-Null',
+    ].join('; ');
+    commandsRun.push(applyCmd);
+    try {
+      await runPowerShell(applyCmd);
+    } catch (e) {
+      return { ok: false, commandsRun, message: e.message, errorCode: 'exec_failed', rebootRequired: false };
+    }
+
+    const verified = (await readPowerSettingIndices(SUB, SETTING)).ac === 0;
+    return {
+      ok: verified,
+      commandsRun,
+      message: verified
+        ? 'USB Selective Suspend disabled and verified.'
+        : 'USB Selective Suspend write completed but verification failed.',
+      errorCode: verified ? undefined : 'verify_failed',
+      rebootRequired: false,
+    };
+  }
+
+  if (action === 'revert') {
+    let backup = null;
+    try { backup = JSON.parse(fs.readFileSync(USB_SELECTIVE_SUSPEND_BACKUP_FILE, 'utf8')); } catch (_) {}
+    const origAC = Number.isInteger(backup?.origAC) ? backup.origAC : 1;
+    const origDC = Number.isInteger(backup?.origDC) ? backup.origDC : 1;
+    const revertCmd = [
+      `& powercfg /setacvalueindex SCHEME_CURRENT ${SUB} ${SETTING} ${origAC} 2>&1 | Out-Null`,
+      `& powercfg /setdcvalueindex SCHEME_CURRENT ${SUB} ${SETTING} ${origDC} 2>&1 | Out-Null`,
+      '& powercfg /setactive SCHEME_CURRENT 2>&1 | Out-Null',
+    ].join('; ');
+    commandsRun.push(revertCmd);
+    try {
+      await runPowerShell(revertCmd);
+    } catch (e) {
+      return { ok: false, commandsRun, message: e.message, errorCode: 'exec_failed', rebootRequired: false };
+    }
+    try { fs.unlinkSync(USB_SELECTIVE_SUSPEND_BACKUP_FILE); } catch (_) {}
+
+    const actualAC = (await readPowerSettingIndices(SUB, SETTING)).ac;
+    const verified = actualAC === origAC;
+    return {
+      ok: verified,
+      commandsRun,
+      message: verified
+        ? 'USB Selective Suspend restored and verified.'
+        : `USB Selective Suspend revert verification failed — expected AC=${origAC}, got ${actualAC ?? '?'}.`,
+      errorCode: verified ? undefined : 'verify_failed',
+      rebootRequired: false,
+    };
+  }
+
+  return { ok: false, commandsRun, message: `Unknown USB Selective Suspend action: ${action}`, errorCode: 'unknown_action', rebootRequired: false };
+}
+
+async function executePreemption(action) {
+  const { PREEMPTION_BACKUP_FILE } = require('./user-data-paths');
+  const REG_PATH = 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\GraphicsDrivers';
+  const commandsRun = [];
+
+  if (action === 'apply') {
+    const readRaw = await queryPowerShell(
+      `$v=(Get-ItemProperty -Path "${REG_PATH}" -Name HwSchMode -EA SilentlyContinue).HwSchMode; ` +
+      `@{ originalValue=if($null -ne $v){[int]$v}else{$null} } | ConvertTo-Json -Compress`
+    );
+    let originalValue = null;
+    try { originalValue = JSON.parse(readRaw || '{}').originalValue ?? null; } catch (_) {}
+    try {
+      saveAtomicBackup(PREEMPTION_BACKUP_FILE, { originalValue, savedAt: new Date().toISOString() });
+    } catch (e) {
+      return { ok: false, commandsRun, message: 'Original Hardware Scheduling value could not be backed up — aborting to preserve rollback.', errorCode: 'backup_failed', rebootRequired: true };
+    }
+
+    const applyCmd = `New-Item -Path "${REG_PATH}" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path "${REG_PATH}" -Name HwSchMode -Value 2 -Type DWord -Force`;
+    commandsRun.push(applyCmd);
+    try {
+      await runPowerShell(applyCmd);
+    } catch (e) {
+      return { ok: false, commandsRun, message: e.message, errorCode: 'exec_failed', rebootRequired: true };
+    }
+    const verified = (await queryPowerShell(`(Get-ItemProperty -Path "${REG_PATH}" -Name HwSchMode -EA SilentlyContinue).HwSchMode`))?.trim() === '2';
+    return {
+      ok: verified,
+      commandsRun,
+      message: verified
+        ? 'GPU Hardware Scheduling enabled and verified.'
+        : 'GPU Hardware Scheduling write completed but verification failed.',
+      errorCode: verified ? undefined : 'verify_failed',
+      rebootRequired: true,
+    };
+  }
+
+  if (action === 'revert') {
+    let backup = null;
+    try { backup = JSON.parse(fs.readFileSync(PREEMPTION_BACKUP_FILE, 'utf8')); } catch (_) {}
+    const restoreCmd = backup && backup.originalValue !== null && Number.isInteger(backup.originalValue)
+      ? `Set-ItemProperty -Path "${REG_PATH}" -Name HwSchMode -Value ${backup.originalValue} -Type DWord -Force`
+      : backup
+        ? `Remove-ItemProperty -Path "${REG_PATH}" -Name HwSchMode -EA SilentlyContinue`
+        : `Set-ItemProperty -Path "${REG_PATH}" -Name HwSchMode -Value 1 -Type DWord -Force`;
+    commandsRun.push(restoreCmd);
+    try {
+      await runPowerShell(restoreCmd);
+    } catch (e) {
+      return { ok: false, commandsRun, message: e.message, errorCode: 'exec_failed', rebootRequired: true };
+    }
+    try { fs.unlinkSync(PREEMPTION_BACKUP_FILE); } catch (_) {}
+
+    const actualRaw = await queryPowerShell(`(Get-ItemProperty -Path "${REG_PATH}" -Name HwSchMode -EA SilentlyContinue).HwSchMode`);
+    const expected = backup ? backup.originalValue : 1;
+    const actual = actualRaw === null || actualRaw.trim() === '' ? null : Number(actualRaw.trim());
+    const verified = expected === null ? actual === null : actual === expected;
+    return {
+      ok: verified,
+      commandsRun,
+      message: verified
+        ? 'GPU Hardware Scheduling restored and verified.'
+        : `GPU Hardware Scheduling revert verification failed — expected ${expected ?? 'absent'}, got ${actual ?? 'absent'}.`,
+      errorCode: verified ? undefined : 'verify_failed',
+      rebootRequired: true,
+    };
+  }
+
+  return { ok: false, commandsRun, message: `Unknown preemption action: ${action}`, errorCode: 'unknown_action', rebootRequired: true };
 }
 
 // ─── GPU MSI Mode — helpers ────────────────────────────────────────────────────
@@ -2081,6 +2339,36 @@ async function verifyTweak(tweakId) {
     }
   }
 
+  // ── PCIe Link State Power Management ───────────────────────────────────────
+  if (tweakId === 'pcie-link-state') {
+    try {
+      const current = await readPowerSettingIndices(
+        '501a4d13-42af-4429-9fd1-a8218c268e20',
+        'ee12f906-d277-404b-b6da-e5fa1a576df5'
+      );
+      if (isPowerSettingMissing(current.raw)) {
+        const reason = 'Power setting not found — PCIe Link State GUID is not available in the current power scheme';
+        logTweakSupport(tweakId, false, reason, { osRelease: osVer, helperFound: false });
+        return { isApplied: false, unsupported: true, unsupportedReason: reason };
+      }
+      return { isApplied: current.ac === 0, verified: true };
+    } catch (e) {
+      return { isApplied: false, verified: false, error: e.message };
+    }
+  }
+
+  // ── GPU Hardware Scheduling / Preemption ────────────────────────────────────
+  if (tweakId === 'preemption') {
+    try {
+      const raw = await queryPowerShell(
+        '(Get-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\GraphicsDrivers" -Name HwSchMode -EA SilentlyContinue).HwSchMode'
+      );
+      return { isApplied: raw !== null && raw.trim() === '2', verified: true, requiresRestart: true };
+    } catch (e) {
+      return { isApplied: false, verified: false, error: e.message };
+    }
+  }
+
   // ── GPU MSI Mode ──────────────────────────────────────────────────────────────
   if (tweakId === 'gpu-msi-mode') {
     try {
@@ -2180,19 +2468,17 @@ async function verifyTweak(tweakId) {
   // exists in the current power scheme before trying the boolean check.
   // On VMs or headless builds powercfg may not expose the USB sub-group.
   if (tweakId === 'usb-selective-suspend') {
-    const probeResult = await queryPowerShell(
-      `$out = (& powercfg /query SCHEME_CURRENT 2a737441-1930-4402-8d77-b2bebba308a3 48e6b7a6-50f5-4782-a5d4-53bb8f07e226 2>&1 | Out-String).Trim(); ` +
-      `if ($out -match "does not exist|GUID is invalid|not found|error 0x8007|No Power Scheme") { Write-Output "SETTING_MISSING" } ` +
-      `elseif ($out -match "Current AC Power Setting Index: 0x00000000") { Write-Output "APPLIED" } ` +
-      `else { Write-Output "NOT_APPLIED" }`
+    const current = await readPowerSettingIndices(
+      '2a737441-1930-4402-8d77-b2bebba308a3',
+      '48e6b7a6-50f5-4782-a5d4-53bb8f07e226'
     );
-    if (probeResult === 'SETTING_MISSING') {
+    if (isPowerSettingMissing(current.raw)) {
       const reason = 'Power setting not found — USB Selective Suspend GUID is not available in the current power scheme';
       logTweakSupport(tweakId, false, reason, { osRelease: osVer, helperFound: false });
       return { isApplied: false, unsupported: true, unsupportedReason: reason };
     }
     logTweakSupport(tweakId, true, 'powercfg USB setting present', { osRelease: osVer, helperFound: true });
-    return { isApplied: probeResult === 'APPLIED', verified: true };
+    return { isApplied: current.ac === 0, verified: true };
   }
 
   try {
@@ -2470,6 +2756,90 @@ async function executeTweak(tweakId, action, options = {}) {
     }
   }
 
+  if (tweak._special === 'pcie-link-state') {
+    try {
+      const res = await executePcieLinkState(action);
+      const result = {
+        success:        res.ok,
+        unsupported:    !!res.unsupported,
+        requiresReboot: false,
+        requiresAdmin:  true,
+        commandsRun:    res.commandsRun || [],
+        message:        res.message || null,
+        error:          res.ok ? null : (res.message || 'PCIe Link State operation failed'),
+        verified:       res.ok,
+      };
+      if (!res.ok && !result.unsupported) {
+        enrichFailure(result, res.errorCode === 'backup_failed' ? 'verification_failed' : 'unknown');
+      }
+      logEntry({ tweakId, action, result, ms: Date.now() - startTime });
+      return result;
+    } catch (err) {
+      const result = {
+        success: false, unsupported: false, requiresReboot: false, requiresAdmin: true,
+        commandsRun: [], message: null, error: err.message,
+      };
+      logEntry({ tweakId, action, result, ms: Date.now() - startTime });
+      return result;
+    }
+  }
+
+  if (tweak._special === 'usb-selective-suspend') {
+    try {
+      const res = await executeUsbSelectiveSuspend(action);
+      const result = {
+        success:        res.ok,
+        unsupported:    !!res.unsupported,
+        requiresReboot: false,
+        requiresAdmin:  true,
+        commandsRun:    res.commandsRun || [],
+        message:        res.message || null,
+        error:          res.ok ? null : (res.message || 'USB Selective Suspend operation failed'),
+        verified:       res.ok,
+      };
+      if (!res.ok && !result.unsupported) {
+        enrichFailure(result, res.errorCode === 'backup_failed' ? 'verification_failed' : 'unknown');
+      }
+      logEntry({ tweakId, action, result, ms: Date.now() - startTime });
+      return result;
+    } catch (err) {
+      const result = {
+        success: false, unsupported: false, requiresReboot: false, requiresAdmin: true,
+        commandsRun: [], message: null, error: err.message,
+      };
+      logEntry({ tweakId, action, result, ms: Date.now() - startTime });
+      return result;
+    }
+  }
+
+  if (tweak._special === 'preemption') {
+    try {
+      const res = await executePreemption(action);
+      const result = {
+        success:        res.ok,
+        unsupported:    !!res.unsupported,
+        requiresReboot: true,
+        requiresAdmin:  true,
+        commandsRun:    res.commandsRun || [],
+        message:        res.message || null,
+        error:          res.ok ? null : (res.message || 'GPU Hardware Scheduling operation failed'),
+        verified:       res.ok,
+      };
+      if (!res.ok && !result.unsupported) {
+        enrichFailure(result, res.errorCode === 'backup_failed' ? 'verification_failed' : 'unknown');
+      }
+      logEntry({ tweakId, action, result, ms: Date.now() - startTime });
+      return result;
+    } catch (err) {
+      const result = {
+        success: false, unsupported: false, requiresReboot: true, requiresAdmin: true,
+        commandsRun: [], message: null, error: err.message,
+      };
+      logEntry({ tweakId, action, result, ms: Date.now() - startTime });
+      return result;
+    }
+  }
+
   if (tweak._special === 'vbs') {
     try {
       const res = await executeVbs(action);
@@ -2726,7 +3096,58 @@ async function batchCheckAllTweaks() {
     }
   }
 
-  // 3c. gpu-msi-mode: reads backup file + registry, must run individually.
+  // 3c. PCIe Link State: powercfg query must run individually.
+  const pcieLinkStateId = 'pcie-link-state';
+  if (ALL_TWEAKS[pcieLinkStateId]) {
+    try {
+      const r = await verifyTweak(pcieLinkStateId);
+      result[pcieLinkStateId] = {
+        isApplied: !!r.isApplied,
+        applied: !!r.isApplied,
+        unsupported: r.unsupported || false,
+        unsupportedReason: r.unsupportedReason || null,
+        error: r.error || null,
+      };
+    } catch (err) {
+      result[pcieLinkStateId] = { isApplied: false, applied: false, error: err.message };
+    }
+  }
+
+  // 3d. USB Selective Suspend: powercfg query must run individually.
+  const usbSelectiveSuspendId = 'usb-selective-suspend';
+  if (ALL_TWEAKS[usbSelectiveSuspendId]) {
+    try {
+      const r = await verifyTweak(usbSelectiveSuspendId);
+      result[usbSelectiveSuspendId] = {
+        isApplied: !!r.isApplied,
+        applied: !!r.isApplied,
+        unsupported: r.unsupported || false,
+        unsupportedReason: r.unsupportedReason || null,
+        error: r.error || null,
+      };
+    } catch (err) {
+      result[usbSelectiveSuspendId] = { isApplied: false, applied: false, error: err.message };
+    }
+  }
+
+  // 3e. preemption: reads the GraphicsDrivers registry value individually.
+  const preemptionId = 'preemption';
+  if (ALL_TWEAKS[preemptionId]) {
+    try {
+      const r = await verifyTweak(preemptionId);
+      result[preemptionId] = {
+        isApplied: !!r.isApplied,
+        applied: !!r.isApplied,
+        unsupported: r.unsupported || false,
+        unsupportedReason: r.unsupportedReason || null,
+        error: r.error || null,
+      };
+    } catch (err) {
+      result[preemptionId] = { isApplied: false, applied: false, error: err.message };
+    }
+  }
+
+  // 3f. gpu-msi-mode: reads backup file + registry, must run individually.
   const gpuMsiId = 'gpu-msi-mode';
   if (ALL_TWEAKS[gpuMsiId]) {
     try {
@@ -2743,7 +3164,7 @@ async function batchCheckAllTweaks() {
     }
   }
 
-  // 3d. pci-msi-mode: reads backup file + multi-device registry check.
+  // 3g. pci-msi-mode: reads backup file + multi-device registry check.
   const pciMsiId = 'pci-msi-mode';
   if (ALL_TWEAKS[pciMsiId]) {
     try {
@@ -2760,7 +3181,7 @@ async function batchCheckAllTweaks() {
     }
   }
 
-  // 3e. vbs: reads DeviceGuard registry, must run individually (backup-aware verify).
+  // 3h. vbs: reads DeviceGuard registry, must run individually (backup-aware verify).
   const vbsId = 'vbs';
   if (ALL_TWEAKS[vbsId]) {
     try {

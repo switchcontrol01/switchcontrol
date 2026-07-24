@@ -203,24 +203,31 @@ function ControlsCard({
   const durationReached = durationSec > 0 && elapsedSec >= durationSec;
 
   return (
-    <GlassCard className="p-5">
-      <div className="flex flex-wrap items-start gap-4 justify-between">
+    <GlassCard className="relative overflow-hidden p-5 lg:p-6 border-cyan-500/15 bg-[#151B24]">
+      <div className="pointer-events-none absolute -right-20 -top-24 size-64 rounded-full bg-cyan-400/[0.06] blur-3xl" />
+      <div className="pointer-events-none absolute bottom-0 left-1/3 h-px w-1/3 bg-gradient-to-r from-transparent via-cyan-400/40 to-transparent" />
+      <div className="relative flex flex-wrap items-start gap-5 justify-between">
         {/* Left: status + timer */}
-        <div className="flex flex-col gap-2 min-w-[200px]">
-          <h3 className="text-sm font-semibold flex items-center gap-2">
-            <Activity className="size-4 text-primary" />
-            Live Analysis Controls
-          </h3>
+        <div className="flex min-w-[220px] flex-1 flex-col gap-3">
+          <div className="flex items-center gap-2">
+            <span className="flex size-7 items-center justify-center rounded-lg border border-cyan-400/20 bg-cyan-400/[0.08]">
+              <Activity className="size-4 text-cyan-300" />
+            </span>
+            <div>
+              <h3 className="text-sm font-semibold text-[#E6EAF0]">Live Analysis</h3>
+              <p className="text-[9px] uppercase tracking-[0.18em] text-cyan-300/60">System signal monitor</p>
+            </div>
+          </div>
 
           <div className="flex items-center gap-3">
             <div className={cn(
-              "size-2 rounded-full",
-              isRunning  ? "bg-emerald-400 animate-pulse" :
-              isStopping ? "bg-amber-400 animate-pulse" :
-              sessionStatus === "stopped" ? "bg-[#6B7380]" :
-              "bg-[#2A313A]"
+              "size-2 rounded-full shadow-[0_0_10px_currentColor]",
+              isRunning  ? "bg-cyan-300 text-cyan-300 animate-pulse" :
+              isStopping ? "bg-amber-400 text-amber-400 animate-pulse" :
+              sessionStatus === "stopped" ? "bg-[#6B7380] text-[#6B7380]" :
+              "bg-[#2A313A] text-[#2A313A]"
             )} />
-            <span className="text-xs text-[#A0A8B3]">
+            <span className="text-xs font-medium text-[#C8D0DA]">
               {isRunning  ? `Collecting — ${fmtSec(elapsedSec)} elapsed` :
                isStopping ? "Stopping…" :
                sessionStatus === "starting" ? "Starting…" :
@@ -231,7 +238,7 @@ function ControlsCard({
           </div>
 
           {isRunning && (
-            <div className="text-[10px] text-[#6B7380]">
+            <div className="flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-[#7F8997]">
               {sampleCount} sample{sampleCount !== 1 ? "s" : ""} collected
               {durationSec > 0 && ` · ${Math.max(0, durationSec - elapsedSec)}s remaining`}
             </div>
@@ -254,17 +261,17 @@ function ControlsCard({
 
         {/* Center: duration picker */}
         {!isRunning && !isStopping && (
-          <div className="flex flex-col gap-1.5">
-            <span className="text-[10px] text-[#6B7380] uppercase tracking-wider">Duration</span>
+          <div className="flex min-w-[250px] flex-col gap-2">
+            <span className="text-[9px] text-[#778292] uppercase tracking-[0.18em]">Capture window</span>
             <div className="flex gap-1.5 flex-wrap">
               {DURATION_OPTIONS.map((o) => (
                 <button
                   key={o.sec}
                   onClick={() => setDuration(o.sec)}
                   className={cn(
-                    "px-3 py-1.5 rounded-lg text-[11px] font-medium border transition-all",
+                    "px-3 py-1.5 rounded-lg text-[11px] font-medium border transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/50",
                     durationSec === o.sec
-                      ? "bg-primary/20 border-primary/40 text-primary"
+                      ? "bg-cyan-400/15 border-cyan-300/40 text-cyan-200"
                       : "bg-[#1A1F26] border-[#2A313A] text-[#A0A8B3] hover:border-[#3A4250]"
                   )}
                 >
@@ -276,13 +283,13 @@ function ControlsCard({
         )}
 
         {/* Right: action buttons */}
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap sm:justify-end">
           {!isRunning && !isStopping && (
             <Button
               size="sm"
               onClick={onStart}
               disabled={!isElectron || isStopping}
-              className="bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/30 gap-1.5"
+              className="bg-cyan-400/15 hover:bg-cyan-400/25 text-cyan-200 border border-cyan-300/30 gap-1.5 shadow-[0_0_20px_rgba(34,211,238,0.08)]"
             >
               <Play className="size-3.5" />
               Start Analysis
@@ -344,61 +351,69 @@ function OverallStatusCard() {
   const rc   = ar ? riskColor(ar) : null;
 
   return (
-    <GlassCard className={cn("p-5 relative overflow-hidden", meta.bg, meta.border)}>
+    <GlassCard className={cn("relative overflow-hidden p-5 lg:p-6", meta.bg, meta.border, "bg-[#171D27]")}>
       <div
-        className="absolute inset-0 pointer-events-none rounded-2xl"
-        style={{ boxShadow: `inset 0 0 50px ${STATUS_META[status]?.color?.replace("text-", "") ?? "transparent"}11` }}
+        className="pointer-events-none absolute inset-0 rounded-2xl opacity-60"
+        style={{ background: "radial-gradient(circle at 82% 35%, rgba(34,211,238,0.10), transparent 34%), linear-gradient(115deg, transparent 25%, rgba(99,102,241,0.05), transparent 75%)" }}
       />
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="flex flex-col gap-3">
-          <h3 className="text-sm font-semibold text-[#E6EAF0] flex items-center gap-2">
-            <Gauge className="size-4 text-primary" />
-            Overall System Latency Status
-          </h3>
-          <StatusBadge status={status} />
-          <p className="text-[11px] text-[#A0A8B3] max-w-[340px] leading-relaxed">
+      <div className="relative flex flex-wrap items-center justify-between gap-6">
+        <div className="flex min-w-[240px] flex-1 flex-col gap-3">
+          <div className="flex items-center gap-2 text-[9px] uppercase tracking-[0.18em] text-[#7F8997]">
+            <Gauge className="size-4 text-cyan-300" />
+            Overall system signal
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <StatusBadge status={status} />
+            <span className="text-[10px] text-[#7F8997]">
+              {sampleCount >= 8 ? "Confidence: established" : "Confidence: collecting"}
+            </span>
+          </div>
+          <p className="max-w-[480px] text-[11px] leading-relaxed text-[#A0A8B3]">
             {meta.description}
           </p>
         </div>
 
-        {sampleCount > 0 && (
-          <div className="flex flex-col gap-3">
-            {/* Score ring */}
-            <div className="flex items-center gap-4">
-              <div className="relative w-16 h-16">
-                <svg viewBox="0 0 64 64" className="w-full h-full" style={{ transform: "rotate(-90deg)" }}>
-                  <circle cx={32} cy={32} r={26} fill="none" stroke="rgba(42,49,58,0.8)" strokeWidth={6} />
-                  <circle
-                    cx={32} cy={32} r={26}
-                    fill="none"
-                    stroke={overallScore >= 70 ? "#34d399" : overallScore >= 50 ? "#fbbf24" : "#f87171"}
-                    strokeWidth={6}
-                    strokeLinecap="round"
-                    strokeDasharray={`${(overallScore / 100) * 163.36} 163.36`}
-                    style={{ filter: `drop-shadow(0 0 4px currentColor)` }}
-                  />
-                </svg>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className={cn("text-sm font-bold tabular-nums", meta.color)}>
-                    {Math.round(overallScore)}
-                  </span>
-                </div>
-              </div>
-              <div className="space-y-1">
-                <div className="text-[10px] text-[#6B7380]">Score / 100</div>
-                <div className="text-[10px] text-[#A0A8B3]">{sampleCount} samples</div>
-                <div className="text-[10px] text-[#A0A8B3]">{fmtSec(elapsedSec)} elapsed</div>
+        <div className="flex flex-wrap items-center justify-end gap-4">
+          {/* Score ring */}
+          <div className="relative size-24">
+            <svg viewBox="0 0 64 64" className="h-full w-full" style={{ transform: "rotate(-90deg)" }}>
+              <circle cx={32} cy={32} r={26} fill="none" stroke="rgba(42,49,58,0.9)" strokeWidth={5} />
+              <circle
+                cx={32} cy={32} r={26}
+                fill="none"
+                stroke={overallScore >= 70 ? "#34d399" : overallScore >= 50 ? "#fbbf24" : "#f87171"}
+                strokeWidth={5}
+                strokeLinecap="round"
+                strokeDasharray={`${(overallScore / 100) * 163.36} 163.36`}
+                style={{ filter: `drop-shadow(0 0 4px currentColor)` }}
+              />
+            </svg>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="text-center">
+                <span className={cn("block text-2xl font-semibold tabular-nums", meta.color)}>
+                  {sampleCount > 0 ? Math.round(overallScore) : "--"}
+                </span>
+                <span className="text-[8px] uppercase tracking-widest text-[#7F8997]">score</span>
               </div>
             </div>
-
-            {ar && rc && (
-              <div className={cn("px-2.5 py-1.5 rounded-lg border text-[10px] font-medium", rc.bg, rc.border, rc.text)}>
-                Audio risk: {ar}
-              </div>
-            )}
           </div>
-        )}
+          <div className="space-y-1.5">
+            <div className="text-[10px] text-[#7F8997]">Analysis window</div>
+            <div className="text-sm font-medium tabular-nums text-[#E6EAF0]">{fmtSec(elapsedSec)}</div>
+            <div className="text-[10px] text-[#A0A8B3]">{sampleCount} samples</div>
+          </div>
+          {ar && rc && (
+            <div className={cn("hidden rounded-lg border px-2.5 py-1.5 text-[10px] font-medium md:block", rc.bg, rc.border, rc.text)}>
+              Audio risk: {ar}
+            </div>
+          )}
+        </div>
       </div>
+      {ar && rc && (
+        <div className={cn("relative mt-4 rounded-lg border px-2.5 py-1.5 text-[10px] font-medium md:hidden", rc.bg, rc.border, rc.text)}>
+          Audio risk: {ar}
+        </div>
+      )}
     </GlassCard>
   );
 }
@@ -412,8 +427,6 @@ function CoreMetricsGrid() {
     livePageFaultsSec, sessionStatus, elapsedSec,
   } = useLatencyAnalyzerStore();
   const hasData = sampleCount > 0;
-  const isRunning = sessionStatus === "collecting";
-
   const metrics = [
     {
       id: "avg-dpc",
@@ -542,17 +555,26 @@ function CoreMetricsGrid() {
   ];
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+    <div className="flex flex-wrap gap-2.5">
       {metrics.map((m, i) => (
         <motion.div
           key={m.id}
+          className={cn(
+            "min-w-0 flex-[1_1_145px]",
+            ["samples", "duration"].includes(m.id) && "flex-[0.7_1_125px]",
+            ["driver-dpc-us", "driver-isr-us"].includes(m.id) && "flex-[1.2_1_175px]",
+          )}
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.2, delay: i * 0.04 }}
         >
-          <GlassCard className={cn("p-4 h-full flex flex-col gap-2", m.note ? "border-[#2A313A]/60" : "")} variant="secondary">
+          <GlassCard className={cn(
+            "h-full min-h-[108px] flex flex-col gap-2 p-3.5",
+            "border-white/[0.07] bg-[#1A2029]/90",
+            m.note ? "border-[#2A313A]/60" : ""
+          )} variant="secondary">
             <div className="flex items-start justify-between gap-1">
-              <span className="text-[10px] text-[#6B7380] uppercase tracking-wider leading-snug">{m.label}</span>
+              <span className="text-[9px] text-[#7F8997] uppercase tracking-[0.13em] leading-snug">{m.label}</span>
               {m.note && (
                 <div className="group relative shrink-0">
                   <Info className="size-3 text-[#6B7380] cursor-help" />
@@ -562,12 +584,19 @@ function CoreMetricsGrid() {
                 </div>
               )}
             </div>
-            <div style={{ color: m.color }} className="text-lg font-bold tabular-nums leading-none">
+            <div style={{ color: m.color }} className="text-lg font-semibold tabular-nums leading-none">
               {m.value}
             </div>
-            <div className="text-[9px] text-[#6B7380]/70">{m.sublabel}</div>
+            <div className="text-[9px] text-[#7F8997]/80">{m.sublabel}</div>
             {m.barPct !== null && m.barMax !== null && hasData && (
               <MiniBar value={m.barPct} max={m.barMax} color={m.color} />
+            )}
+            {m.barPct === null && (
+              <div className="mt-auto flex h-1.5 items-end gap-0.5 opacity-60" aria-hidden="true">
+                {[35, 55, 42, 70, 48, 62, 38].map((h, index) => (
+                  <span key={index} className="w-1 rounded-full" style={{ height: `${h}%`, backgroundColor: m.color }} />
+                ))}
+              </div>
             )}
           </GlassCard>
         </motion.div>
@@ -590,10 +619,11 @@ function TimelineChart() {
   }));
 
   return (
-    <GlassCard className="p-5">
+    <GlassCard className="relative overflow-hidden p-5 lg:p-6 border-indigo-400/15 bg-[#151B24]">
+      <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-indigo-300/40 to-transparent" />
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-sm font-semibold flex items-center gap-2">
-          <Activity className="size-4 text-primary" />
+          <Activity className="size-4 text-indigo-300" />
           Live Activity Timeline
         </h3>
         <div className="flex items-center gap-3 text-[10px]">
@@ -604,8 +634,9 @@ function TimelineChart() {
       </div>
 
       {!hasData ? (
-        <div className="h-40 flex items-center justify-center text-[11px] text-[#6B7380]">
-          Start analysis to see live data
+        <div className="h-40 flex flex-col items-center justify-center gap-2 text-[11px] text-[#6B7380]">
+          <span className="size-2 rounded-full bg-indigo-300/50 shadow-[0_0_14px_rgba(129,140,248,0.6)]" />
+          Start analysis to establish a live signal
         </div>
       ) : (
         <div className="h-44">
@@ -1341,6 +1372,7 @@ export default function LatencyAnalyzer() {
   const store = useLatencyAnalyzerStore();
   const tickRef          = useRef<ReturnType<typeof setInterval> | null>(null);
   const durationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cancelSamplePollRef = useRef<(() => void) | null>(null);
   // Bug 2 fix: keep a stable ref to handleStop so the duration timer always
   // calls the *current* version even if the component re-renders between
   // handleStart and the timeout firing.
@@ -1362,6 +1394,7 @@ export default function LatencyAnalyzer() {
     return () => {
       if (tickRef.current)          clearInterval(tickRef.current);
       if (durationTimerRef.current) clearTimeout(durationTimerRef.current);
+      cancelSamplePollRef.current?.();
       if (isElectron) {
         eApi()?.latencyAnalyzer?.stop?.().catch(() => {});
       }
@@ -1372,6 +1405,8 @@ export default function LatencyAnalyzer() {
     store.setSessionStatus("stopping");
     if (tickRef.current)          { clearInterval(tickRef.current);   tickRef.current = null; }
     if (durationTimerRef.current) { clearTimeout(durationTimerRef.current); durationTimerRef.current = null; }
+    cancelSamplePollRef.current?.();
+    cancelSamplePollRef.current = null;
     try {
       if (isElectron) await eApi().latencyAnalyzer.stop();
     } catch {}
@@ -1387,7 +1422,11 @@ export default function LatencyAnalyzer() {
     store.setSessionStatus("starting");
 
     try {
-      await eApi().latencyAnalyzer.start();
+      const response = await eApi().latencyAnalyzer.start();
+      console.info("[latencyAnalyzer:renderer] start response", response);
+      if (!response?.ok) {
+        throw new Error(response?.error || "The latency collector could not start");
+      }
       store.setStartedAt(Date.now());
       store.setSessionStatus("collecting");
 
@@ -1398,19 +1437,40 @@ export default function LatencyAnalyzer() {
       // from a stale closure — the closure captures the token by reference so
       // it sees the updated value when handleStop/handleReset set it to true.
       let cancelled = false;
+      let scanActive = true;
+      cancelSamplePollRef.current = () => {
+        cancelled = true;
+        scanActive = false;
+      };
       const pollSamples = async () => {
         if (cancelled) return;
         try {
-          const sample = await eApi().latencyAnalyzer.getSample();
+          const [sample, status] = await Promise.all([
+            eApi().latencyAnalyzer.getSample(),
+            eApi().latencyAnalyzer.getStatus(),
+          ]);
+          console.info("[latencyAnalyzer:renderer] sample response", { sample, status });
           if (!cancelled && sample) store.pushSample(sample);
-        } catch {}
+          if (!cancelled && status?.lastError && !sample) {
+            store.setSessionStatus("error", status.lastError);
+          }
+        } catch (error) {
+          console.error("[latencyAnalyzer:renderer] sample request failed", error);
+        }
         if (!cancelled) setTimeout(pollSamples, 2000);
       };
       setTimeout(pollSamples, 2000);
 
       // Bug 3 fix: guard driver/audio scan results against store.reset() racing
       // the 12s driverquery call — only write to store if still mounted/active.
-      let scanActive = true;
+      const capturedDuration = store.durationSec;
+      if (capturedDuration > 0) {
+        durationTimerRef.current = setTimeout(
+          () => handleStopRef.current(),
+          capturedDuration * 1000,
+        );
+      }
+
       try {
         const [drivers, audioDevices] = await Promise.all([
           eApi().latencyAnalyzer.scanDrivers(),
@@ -1422,24 +1482,9 @@ export default function LatencyAnalyzer() {
         }
       } catch {}
 
-      // Patch cancelled + scanActive when stop/reset fire so in-flight
-      // callbacks don't write to a cleared store.
-      const origStop = handleStopRef.current;
-      handleStopRef.current = async () => {
-        cancelled = true;
-        scanActive = false;
-        await origStop();
-      };
-
-      // Auto-stop after duration (Bug 2: call via ref, not direct closure)
-      const capturedDuration = store.durationSec;
-      if (capturedDuration > 0) {
-        durationTimerRef.current = setTimeout(
-          () => handleStopRef.current(),
-          capturedDuration * 1000,
-        );
-      }
     } catch (err: any) {
+      cancelSamplePollRef.current?.();
+      cancelSamplePollRef.current = null;
       store.setSessionStatus("error", err?.message || "Failed to start analysis");
     }
   }, [store]);
@@ -1447,6 +1492,8 @@ export default function LatencyAnalyzer() {
   const handleReset = useCallback(() => {
     if (tickRef.current)          { clearInterval(tickRef.current);   tickRef.current = null; }
     if (durationTimerRef.current) { clearTimeout(durationTimerRef.current); durationTimerRef.current = null; }
+    cancelSamplePollRef.current?.();
+    cancelSamplePollRef.current = null;
     if (isElectron) eApi()?.latencyAnalyzer?.stop?.().catch(() => {});
     store.reset();
   }, [store]);
@@ -1458,15 +1505,21 @@ export default function LatencyAnalyzer() {
 
   return (
     <AppLayout noPageAnimation>
-      <div className="max-w-5xl mx-auto px-4 py-6 space-y-4">
+      <div className="relative mx-auto max-w-[1180px] space-y-5 px-4 py-6">
+        <div className="pointer-events-none absolute -left-24 top-20 -z-10 size-72 rounded-full bg-indigo-500/[0.07] blur-3xl" />
+        <div className="pointer-events-none absolute right-0 top-0 -z-10 size-64 rounded-full bg-cyan-500/[0.05] blur-3xl" />
         {/* Header */}
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
-            <h1 className="text-xl font-bold text-[#E6EAF0] flex items-center gap-2.5">
-              <Timer className="size-5 text-primary" />
+            <div className="mb-2 flex items-center gap-2 text-[9px] uppercase tracking-[0.22em] text-cyan-300/60">
+              <span className="size-1.5 rounded-full bg-cyan-300 shadow-[0_0_8px_rgba(103,232,249,0.8)]" />
+              Diagnostics / Windows performance
+            </div>
+            <h1 className="flex items-center gap-2.5 text-xl font-semibold tracking-tight text-[#E6EAF0]">
+              <Timer className="size-5 text-cyan-300" />
               Latency Analyzer
             </h1>
-            <p className="text-[11px] text-[#6B7380] mt-0.5">
+            <p className="mt-1 text-[11px] text-[#7F8997]">
               Windows user-mode DPC, interrupt &amp; driver activity analysis
             </p>
           </div>

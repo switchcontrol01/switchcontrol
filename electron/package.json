@@ -54,6 +54,7 @@
       "storage-helper.js",
       "driver-apps-helper.js",
       "process-control.js",
+      "latency-analyzer.js",
       "powershell-limiter.js",
       "node_modules/electron-updater/**/*",
       "node_modules/builder-util-runtime/**/*",
