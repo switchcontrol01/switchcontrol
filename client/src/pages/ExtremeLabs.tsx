@@ -130,15 +130,19 @@ function computeLatencyScore(telemetry: ReturnType<typeof useLiveTelemetry>["tel
 function useCountUp(target: number, duration = 800): number {
   const [val, setVal] = useState(0);
   useEffect(() => {
+    // Issue #15: skip animation loop entirely when target is 0 (e.g. string-value StatCards)
+    if (target === 0) { setVal(0); return; }
     let start: number | null = null;
+    let rafId: number;
     const step = (ts: number) => {
       if (!start) start = ts;
       const progress = Math.min((ts - start) / duration, 1);
       const eased = 1 - Math.pow(1 - progress, 3);
       setVal(Math.round(eased * target));
-      if (progress < 1) requestAnimationFrame(step);
+      if (progress < 1) rafId = requestAnimationFrame(step);
     };
-    requestAnimationFrame(step);
+    rafId = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(rafId);
   }, [target, duration]);
   return val;
 }
@@ -146,6 +150,7 @@ function useCountUp(target: number, duration = 800): number {
 // ── SVG Gauge Component ──────────────────────────────────────────────────────
 
 function LatencyGauge({ value, label }: { value: number; label: string }) {
+  // Issue #16: outer wrapper gets overflow-hidden so tick marks / needle at extremes don't clip outside
   const clamped = Math.min(100, Math.max(0, value));
   const angle = (clamped / 100) * 240 - 120;
   const color = clamped < 40 ? "#00FF88" : clamped < 70 ? "#FF9500" : "#FF4444";
@@ -187,7 +192,8 @@ function LatencyGauge({ value, label }: { value: number; label: string }) {
 
   return (
     <div className="flex flex-col items-center gap-1">
-      <div className="relative w-52 h-36">
+      {/* Issue #16: overflow-hidden prevents tick/needle clipping at viewport edges */}
+      <div className="relative w-52 h-36 overflow-hidden">
         <svg viewBox="0 0 200 140" className="w-full h-full overflow-visible">
           <defs>
             <linearGradient id="gaugeTrack" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -750,6 +756,9 @@ const EL_SLIDER_APPLY: Record<string, { mainId: string; applyValue: number }> = 
 };
 const EL_SLIDER_REVERT: Record<string, { mainId: string; defaultValue: number }> = {
   NetworkThrottlingIndex: { mainId: "net-throttle-index",   defaultValue: 10 },
+  // Issue #9: Windows Home default is 2, Pro/Server default is 24.
+  // The backend registry revert (electronAPI.tweaks.resetValue) uses the pre-apply snapshot,
+  // so this value only affects UI state sync — it may display incorrectly on Pro/Server.
   win32PrioritySeparation: { mainId: "win32-priority-sep",  defaultValue: 2 },
   SystemResponsiveness:    { mainId: "sys-responsiveness",  defaultValue: 20 },
 };
@@ -919,15 +928,16 @@ function ExtremeDashboard({
           <div className="absolute bottom-0 right-0 w-32 h-32 rounded-full opacity-10"
             style={{ background: "radial-gradient(circle,#00D4FF,transparent)", transform: "translate(30%,30%)" }} />
 
+          {/* Issue #7: renamed from "Latency Pressure" — CPU+RAM load ≠ network latency */}
           <div className="flex items-center gap-2 mb-4">
             <Gauge className="size-4 text-[#00D4FF]" />
-            <h3 className="text-xs font-black text-[#E6EAF0] uppercase tracking-widest">Latency Pressure</h3>
+            <h3 className="text-xs font-black text-[#E6EAF0] uppercase tracking-widest">System Load</h3>
           </div>
           <div className="flex justify-center">
-            <LatencyGauge value={latencyScore} label="System Load Score (lower is better)" />
+            <LatencyGauge value={latencyScore} label="CPU + RAM pressure (lower is better)" />
           </div>
           <p className="text-[10px] text-muted-foreground/40 mt-2 text-center leading-relaxed">
-            Based on live CPU load and RAM pressure. Not a true latency measurement.
+            Live CPU + RAM load only. High load does not imply high network latency.
           </p>
         </motion.div>
 
@@ -940,17 +950,21 @@ function ExtremeDashboard({
         >
           <div className="absolute top-0 left-0 right-0 h-[1px]"
             style={{ background: "linear-gradient(90deg,transparent,#00FF8840,transparent)" }} />
-          <div className="flex items-center gap-2 mb-5">
+          {/* Issue #8: renamed to "Illustrative Estimates" + more prominent disclaimer */}
+          <div className="flex items-center gap-2 mb-3">
             <TrendingDown className="size-4 text-emerald-400" />
-            <h3 className="text-xs font-black text-[#E6EAF0] uppercase tracking-widest">Estimated Impact</h3>
+            <h3 className="text-xs font-black text-[#E6EAF0] uppercase tracking-widest">Illustrative Estimates</h3>
           </div>
+          <p className="text-[10px] text-amber-400/60 mb-4 leading-relaxed border border-amber-500/15 bg-amber-500/5 rounded-lg px-2.5 py-1.5">
+            ⚠ These are simplified reference values, not measured results. Actual impact is hardware-specific.
+          </p>
           <div className="space-y-5">
             <ImpactBar label="Scheduling delay"   before={8}  after={appliedCount > 2 ? 5 : 8}   unit="ms" better="lower" />
             <ImpactBar label="Timer resolution"   before={15} after={appliedCount > 0 ? 1 : 15}  unit="ms" better="lower" />
             <ImpactBar label="Network throttling" before={60} after={appliedCount > 3 ? 30 : 60} unit="%" better="lower" />
           </div>
           <p className="text-[9px] text-muted-foreground/30 mt-4 leading-relaxed uppercase tracking-wide">
-            Estimates based on applied tweaks. Actual results are hardware-dependent.
+            Reference values only — not tweak-specific. Always measure before and after.
           </p>
         </motion.div>
 
@@ -1109,6 +1123,8 @@ export default function ExtremeLabs() {
   const mainPresetOptions = useStore(s => s.presetOptions);
 
   const restoreIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Issue #2: track mount state so the restore-point timer never fires setState on an unmounted component
+  const mountedRef = useRef(true);
 
   const [wizardStep, setWizardStep] = useState<WizardStep>("warning");
   const [isUnlocked, setIsUnlocked] = useState(false);
@@ -1128,7 +1144,7 @@ export default function ExtremeLabs() {
   useEffect(() => {
     try {
       if (appliedTweaks.size > 0) {
-        localStorage.setItem("extreme-labs-applied", JSON.stringify([...appliedTweaks]));
+        localStorage.setItem("extreme-labs-applied", JSON.stringify(Array.from(appliedTweaks)));
       } else {
         localStorage.removeItem("extreme-labs-applied");
       }
@@ -1136,7 +1152,10 @@ export default function ExtremeLabs() {
   }, [appliedTweaks]);
 
   useEffect(() => {
+    mountedRef.current = true;
     return () => {
+      mountedRef.current = false;
+      // Issue #2: clear restore-point progress timer on unmount
       if (restoreIntervalRef.current) {
         clearInterval(restoreIntervalRef.current);
         restoreIntervalRef.current = null;
@@ -1164,12 +1183,30 @@ export default function ExtremeLabs() {
     return () => window.removeEventListener('sc:el-reverted', handler);
   }, []);
 
+  // Issue #12: liveCheckDoneRef resets on unmount so re-mounting the page re-runs the live check
   const liveCheckDoneRef = useRef(false);
   useEffect(() => {
-    if (!isElectron || !electronApi?.extremeLabs?.checkAllStatus) return;
-    if (liveCheckDoneRef.current) return;
-    liveCheckDoneRef.current = true;
+    return () => { liveCheckDoneRef.current = false; };
+  }, []);
 
+  useEffect(() => {
+    if (!isElectron) return;
+    if (liveCheckDoneRef.current) return;
+
+    if (!electronApi?.extremeLabs?.checkAllStatus) {
+      // Issue #1: Electron present but live-check API unavailable — warn that displayed state may be stale
+      const hasStoredApplied = localStorage.getItem("extreme-labs-applied");
+      if (hasStoredApplied) {
+        toast({
+          title: "Applied state may be stale",
+          description: "Could not verify tweak status with the system. Shown state is from last session.",
+          variant: "destructive",
+        });
+      }
+      return;
+    }
+
+    liveCheckDoneRef.current = true;
     (async () => {
       try {
         const result = await electronApi.extremeLabs.checkAllStatus();
@@ -1183,17 +1220,33 @@ export default function ExtremeLabs() {
         // non-fatal: localStorage state already shown as fallback
       }
     })();
-  }, [isElectron, electronApi]);
+  }, [isElectron, electronApi, toast]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
+
     const unlocked = localStorage.getItem("extreme-labs-unlocked") === "true";
+    // Issue #5 / #13: track which tier completed the wizard.
+    // If a user completed the wizard in free/browse mode and has since upgraded to premium,
+    // clear the unlock so they go through the full wizard (warning + restore point) as a premium user.
+    const unlockTier = localStorage.getItem("extreme-labs-unlock-tier"); // "premium" | "free" | null
+
     if (unlocked) {
-      setIsUnlocked(true);
+      if (canApply && unlockTier === "free") {
+        // They previously bypassed the wizard as a free user — require full wizard now that they're premium
+        localStorage.removeItem("extreme-labs-unlocked");
+        localStorage.removeItem("extreme-labs-unlock-tier");
+        // fall through: isUnlocked stays false, wizard shows
+      } else {
+        setIsUnlocked(true);
+      }
     } else if (canApply) {
-      setIsUnlocked(true);
-      localStorage.setItem("extreme-labs-unlocked", "true");
+      // Premium user hitting page for first time — let wizard run (don't auto-unlock here)
+      // We only auto-unlock for users who completed the restore-point wizard
     }
+    // Issue #5: non-premium users who had unlock set from a previous premium session
+    // can still view the dashboard in browse mode (canApply=false blocks actual applies)
+    // but we intentionally do NOT auto-unlock for them to enforce the wizard warning step.
 
     elLog("ExtremeLabs", {
       userTier: entitlementStatus,
@@ -1202,6 +1255,7 @@ export default function ExtremeLabs() {
       desktopMode: isElectron,
       canApply,
       canAnalyze,
+      unlockTier,
     });
   }, [entitlementStatus, isElectron, canApply, canAnalyze]);
 
@@ -1236,15 +1290,18 @@ export default function ExtremeLabs() {
           p = 100;
           clearInterval(restoreIntervalRef.current!);
           restoreIntervalRef.current = null;
+          // Issue #2: guard against state update on unmounted component
           setTimeout(() => {
+            if (!mountedRef.current) return;
             setIsUnlocked(true);
             localStorage.setItem("extreme-labs-unlocked", "true");
+            localStorage.setItem("extreme-labs-unlock-tier", "premium");
             setWizardStep("dashboard");
             toast({ title: "Restore point created", description: "Extreme Labs is now unlocked." });
             logHistory("Extreme Labs: Restore Point Created", "Extreme Labs", "Created", "System restore point saved before tuning");
           }, 400);
         }
-        setAnalyzingProgress(Math.min(100, p));
+        if (mountedRef.current) setAnalyzingProgress(Math.min(100, p));
       }, 700);
     } catch (e: any) {
       setRestoreError(e?.message || "Failed to create restore point. Please try again.");
@@ -1303,9 +1360,9 @@ export default function ExtremeLabs() {
         const pv = EL_PRESET_APPLY[tweak.presetTweakId];
         if (pv) useStore.getState().setPresetOption(pv.mainId, pv.applyOptionId);
       }
-      useTweakOwnershipStore.getState().recordExtremeLabsApply(id, EXTREME_TWEAKS.find(t => t.id === id)?.label ?? id);
+      useTweakOwnershipStore.getState().recordExtremeLabsApply(id, EXTREME_TWEAKS.find(t => t.id === id)?.name ?? id);
       toast({ title: "Tweak applied", description: "Change is active. Monitor for issues." });
-      logHistory(`Extreme Labs: ${EXTREME_TWEAKS.find(t => t.id === id)?.label ?? id}`, "Extreme Labs", "Applied", `Tweak ID: ${id}`);
+      logHistory(`Extreme Labs: ${EXTREME_TWEAKS.find(t => t.id === id)?.name ?? id}`, "Extreme Labs", "Applied", `Tweak ID: ${id}`);
       elLog("ExtremeLabsApply", { requested: [id], applied: 1, failed: 0, blocked: 0, adminRequired: 0 });
     } catch (e: any) {
       toast({ title: "Apply failed", description: e?.message, variant: "destructive" });
@@ -1316,53 +1373,73 @@ export default function ExtremeLabs() {
   }, [canApply, isElectron, electronApi, toast, openUpgradeModal, entitlementStatus]);
 
   const handleUndoTweak = useCallback(async (id: string) => {
+    // Issue #3: entitlement check — free users must not be able to silently revert tweaks
+    if (!canApply) {
+      elLog("ExtremeLabsEntitlement", { action: "undoTweak", allowed: false, reason: "not_premium", tweakId: id });
+      openUpgradeModal();
+      return;
+    }
     if (!isElectron) {
       toast({ title: "Desktop app required", description: "Reverting tweaks requires the SwitchControl desktop app.", variant: "destructive" });
+      return;
+    }
+
+    const tweak = EXTREME_TWEAKS.find((t) => t.id === id);
+    if (!tweak) {
+      toast({ title: "Revert failed", description: "Unknown tweak ID.", variant: "destructive" });
       return;
     }
 
     setIsApplying(id);
     try {
       if (electronApi) {
-        const tweak = EXTREME_TWEAKS.find((t) => t.id === id);
-        if (!tweak) throw new Error("Tweak not found");
         const mappedRegistry = tweak.registryTweakId;
         const mappedSlider = tweak.sliderTweakId;
         const mappedPreset = tweak.presetTweakId;
-        if (mappedRegistry && (window as any).electronAPI?.tweaks?.execute) {
-          await (window as any).electronAPI.tweaks.execute(mappedRegistry, "revert");
-        } else if (mappedSlider && (window as any).electronAPI?.tweaks?.resetValue) {
-          await (window as any).electronAPI.tweaks.resetValue(mappedSlider);
-        } else if (mappedPreset && (window as any).electronAPI?.presetTweaks?.revert) {
-          await (window as any).electronAPI.presetTweaks.revert(mappedPreset);
-        } else if (tweak.nicPropertyKey && (window as any).electronAPI?.nic?.resetProperty) {
-          const adapters = await (window as any).electronAPI.nic.getAdapters();
+
+        // Issue #11: use the typed electronApi variable throughout, not (window as any).electronAPI
+        // Issue #4: detect no-op — throw if no revert path exists instead of silently succeeding
+        if (mappedRegistry) {
+          if (!electronApi.tweaks?.execute) throw new Error("Registry revert API unavailable for this tweak.");
+          await electronApi.tweaks.execute(mappedRegistry, "revert");
+        } else if (mappedSlider) {
+          if (!electronApi.tweaks?.resetValue) throw new Error("Slider revert API unavailable for this tweak.");
+          await electronApi.tweaks.resetValue(mappedSlider);
+        } else if (mappedPreset) {
+          if (!electronApi.presetTweaks?.revert) throw new Error("Preset revert API unavailable for this tweak.");
+          await electronApi.presetTweaks.revert(mappedPreset);
+        } else if (tweak.nicPropertyKey) {
+          if (!electronApi.nic?.resetProperty) throw new Error("NIC revert API unavailable for this tweak.");
+          const adapters = await electronApi.nic.getAdapters();
           const physical = adapters.find((a: any) => a.status === 'Up');
           if (physical) {
-            await (window as any).electronAPI.nic.resetProperty(physical.name, tweak.nicPropertyKey);
+            await electronApi.nic.resetProperty(physical.name, tweak.nicPropertyKey);
           }
+        } else {
+          // Issue #4: no mapping at all — refuse to silently succeed
+          throw new Error("No revert path is defined for this tweak. Cannot confirm system was restored.");
         }
       }
+
       setAppliedTweaks((prev) => { const next = new Set(prev); next.delete(id); return next; });
-      const undoTweak = EXTREME_TWEAKS.find(x => x.id === id);
-      if (undoTweak?.registryTweakId) useStore.getState().setTweak(undoTweak.registryTweakId, false);
-      if (undoTweak?.sliderTweakId) {
-        const sv = EL_SLIDER_REVERT[undoTweak.sliderTweakId];
+      if (tweak.registryTweakId) useStore.getState().setTweak(tweak.registryTweakId, false);
+      if (tweak.sliderTweakId) {
+        const sv = EL_SLIDER_REVERT[tweak.sliderTweakId];
         if (sv) useStore.getState().setSliderValue(sv.mainId, sv.defaultValue);
       }
-      if (undoTweak?.presetTweakId) {
-        const pv = EL_PRESET_REVERT[undoTweak.presetTweakId];
+      if (tweak.presetTweakId) {
+        const pv = EL_PRESET_REVERT[tweak.presetTweakId];
         if (pv) useStore.getState().setPresetOption(pv.mainId, pv.defaultOptionId);
       }
       useTweakOwnershipStore.getState().recordExtremeLabsRevertSuccess(id);
       toast({ title: "Tweak reverted", description: "Change has been undone." });
-      logHistory(`Extreme Labs: ${EXTREME_TWEAKS.find(t => t.id === id)?.label ?? id} Reverted`, "Extreme Labs", "Reverted", `Tweak ID: ${id}`);
+      logHistory(`Extreme Labs: ${tweak.name ?? id} Reverted`, "Extreme Labs", "Reverted", `Tweak ID: ${id}`);
     } catch (e: any) {
       toast({ title: "Revert failed", description: e?.message, variant: "destructive" });
     } finally {
       setIsApplying(null);
     }
-  }, [isElectron, electronApi, toast]);
+  }, [canApply, isElectron, electronApi, toast, openUpgradeModal]);
 
   const handleRevertAll = useCallback(async () => {
     if (!isElectron) {
@@ -1370,24 +1447,53 @@ export default function ExtremeLabs() {
       return;
     }
     try {
+      // Issue #6: track per-item revert success before updating ownership store
+      let successfulIds: Set<string> = new Set(appliedTweaks); // default: assume all succeed (no-Electron path)
+
       if (electronApi) {
         const result = await electronApi.extremeLabs.restoreBaseline();
         if (!result.ok) throw new Error(result.error || "Revert failed");
 
+        // Build set of IDs that actually reverted successfully per the API response
+        successfulIds = new Set<string>();
+        const rawResults: Array<{ id: string; reverted?: boolean; ok?: boolean; reason?: string }> = result.results ?? [];
+        for (const item of rawResults) {
+          if (item.reverted) successfulIds.add(item.id);
+        }
+        // Any ids in appliedTweaks not mentioned by results are treated as failed
+        const failedCount = Array.from(appliedTweaks).filter(id => !successfulIds.has(id)).length;
+        // Normalise to ApplyBatchResult.details shape
+        const resultItems: Array<{ id: string; ok: boolean; reason?: string }> = rawResults.map(r => ({
+          id: r.id,
+          ok: !!r.reverted,
+          reason: r.reason,
+        }));
+
         const batchResult: ApplyBatchResult = {
           applied: 0,
-          failed: result.results?.filter((r: any) => !r.reverted).length ?? 0,
+          failed: failedCount,
           skipped: 0,
           adminBlocked: 0,
           notSupported: 0,
-          details: result.results ?? [],
+          details: resultItems,
         };
         elLog("ExtremeLabsApply", { action: "revertAll", ...batchResult });
+
+        if (failedCount > 0) {
+          toast({
+            title: `Partial revert — ${failedCount} tweak${failedCount > 1 ? "s" : ""} could not be restored`,
+            description: "Some changes may still be active. Check individual tweaks.",
+            variant: "destructive",
+          });
+        }
       }
+
+      // Issue #6: only record successful reverts in the ownership store
       const store = useTweakOwnershipStore.getState();
-      for (const id of appliedTweaks) store.recordExtremeLabsRevertSuccess(id);
+      Array.from(successfulIds).forEach(id => store.recordExtremeLabsRevertSuccess(id));
+
       const mainStore = useStore.getState();
-      for (const id of appliedTweaks) {
+      Array.from(appliedTweaks).forEach(id => {
         const t = EXTREME_TWEAKS.find(x => x.id === id);
         if (t?.registryTweakId) mainStore.setTweak(t.registryTweakId, false);
         if (t?.sliderTweakId) {
@@ -1398,9 +1504,11 @@ export default function ExtremeLabs() {
           const pv = EL_PRESET_REVERT[t.presetTweakId];
           if (pv) mainStore.setPresetOption(pv.mainId, pv.defaultOptionId);
         }
-      }
+      });
       setAppliedTweaks(new Set());
-      toast({ title: "All tweaks reverted", description: "System restored to baseline." });
+      if (!electronApi || successfulIds.size === appliedTweaks.size) {
+        toast({ title: "All tweaks reverted", description: "System restored to baseline." });
+      }
       logHistory("Extreme Labs: Revert All", "Extreme Labs", "Reverted All", "All lab tweaks restored to baseline");
     } catch (e: any) {
       toast({ title: "Revert failed", description: e?.message, variant: "destructive" });
@@ -1511,11 +1619,19 @@ export default function ExtremeLabs() {
               if (!canApply) {
                 elLog("ExtremeLabsEntitlement", { action: "entryWizard", allowed: true, reason: "browse_mode" });
                 setIsUnlocked(true);
+                // Issue #13: record that this unlock was done in free/browse mode so we can
+                // require the full wizard (warning + restore point) if they later upgrade
+                localStorage.setItem("extreme-labs-unlocked", "true");
+                localStorage.setItem("extreme-labs-unlock-tier", "free");
                 return;
               }
               setWizardStep("restore");
             }}
-            onBack={() => setWizardStep("warning")}
+            onBack={() => {
+              // Issue #14: clear restoreError when navigating back so it doesn't persist on re-entry
+              setRestoreError(null);
+              setWizardStep("warning");
+            }}
             onComplete={handleCreateRestorePoint}
             progress={analyzingProgress}
             isRestoring={isRestoring}
