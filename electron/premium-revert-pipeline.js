@@ -64,7 +64,11 @@ function getSCPlanGuids() {
     const mgr = getPowerPlanManager();
     const guids = Object.values(mgr.getStoredSchemeGuids());
     return guids.filter(Boolean).map(g => String(g).toLowerCase());
-  } catch {
+  } catch (e) {
+    // Log so this edge case is visible in crash logs — if both this file read
+    // and the active plan name are absent, isSwitchControlPlanGuid returns false
+    // and an SC plan would not be detected.
+    console.warn('[RevertPipeline] getSCPlanGuids — could not read stored plan GUIDs, falling back to name-prefix detection only:', e.message);
     return [];
   }
 }
@@ -100,8 +104,10 @@ async function revertTweak(record) {
     return { skipped: true, reason: 'Baseline is inconclusive (null) — cannot determine original state. Failing safe.' };
   }
 
-  const action = previousValue === true ? 'apply' : 'revert';
-  console.log(`[RevertPipeline] tweak:${itemId} → restoring previousValue=${previousValue} via action="${action}"`);
+  // Use !!previousValue (not === true) so truthy non-boolean previousValues
+  // (e.g. the number 1 stored by some registry tweaks) are handled correctly.
+  const action = !!previousValue ? 'apply' : 'revert';
+  console.log(`[RevertPipeline] tweak:${itemId} → restoring previousValue=${previousValue} (type=${typeof previousValue}) via action="${action}"`);
 
   try {
     const result = await getTweakExecutor().executeTweak(itemId, action);
@@ -122,8 +128,10 @@ async function revertNetworkTweak(record) {
     return { skipped: true, reason: 'Baseline is inconclusive (null) — cannot determine original state. Failing safe.' };
   }
 
-  const action = previousValue === true ? 'apply' : 'revert';
-  console.log(`[RevertPipeline] network_tweak:${itemId} → restoring previousValue=${previousValue} via action="${action}"`);
+  // Use !!previousValue (not === true) so truthy non-boolean previousValues
+  // (e.g. the number 1 stored by some registry tweaks) are handled correctly.
+  const action = !!previousValue ? 'apply' : 'revert';
+  console.log(`[RevertPipeline] network_tweak:${itemId} → restoring previousValue=${previousValue} (type=${typeof previousValue}) via action="${action}"`);
 
   try {
     const result = await getNetworkTweakExecutor().executeNetworkTweak(itemId, action);
@@ -147,7 +155,15 @@ async function revertNicProperty(record) {
   const nicExec = getNicExecutor();
   const registryValue = previousValue?.registryValue ?? null;
 
-  if (registryValue !== null && registryValue !== undefined) {
+  // Guard: if the stored registryValue is boolean false, String(false) === "false"
+  // which is not a valid registry string. Treat boolean false as "not set" and
+  // fall through to resetNicProperty (driver default) instead of writing "false".
+  const hasValidRegistryValue =
+    registryValue !== null &&
+    registryValue !== undefined &&
+    registryValue !== false;
+
+  if (hasValidRegistryValue) {
     console.log(`[RevertPipeline] nic:${adapterName}:${itemId} → restoring registryValue="${registryValue}"`);
     try {
       const result = await nicExec.setNicProperty(adapterName, itemId, String(registryValue));
@@ -160,6 +176,9 @@ async function revertNicProperty(record) {
       return { success: false, action: 'restore_exact_value', registryValue, error: e.message };
     }
   } else {
+    if (registryValue === false) {
+      console.warn(`[RevertPipeline] nic:${adapterName}:${itemId} — registryValue is boolean false (invalid registry string), resetting to driver default instead`);
+    }
     console.log(`[RevertPipeline] nic:${adapterName}:${itemId} → no registryValue in baseline, resetting to driver default`);
     try {
       const result = await nicExec.resetNicProperty(adapterName, itemId);
@@ -519,6 +538,12 @@ function previewRevert() {
     appliedValue:     record.appliedValue,
     lastAppliedAt:    record.lastAppliedAt,
     willSkip:         !record.baselineCaptured && record.itemType !== 'power_plan',
+    // Power plan revert always forces Windows Balanced regardless of previousPlanGuid.
+    // previousPlanGuid is shown above for informational context only — it will NOT
+    // be restored. This note exists to prevent UI from promising GUID restoration.
+    revertNote:       record.itemType === 'power_plan'
+      ? 'Will activate Windows Balanced (built-in). previousPlanGuid is not restored — trial expiry policy.'
+      : null,
   }));
 }
 
@@ -559,7 +584,7 @@ async function runStartupPowerPlanSanityCheck() {
       if (c.deleted.length > 0) {
         console.log(`[Sanity] Orphan cleanup on clean startup — deleted=${c.deleted.length} plans`);
       }
-    }).catch(() => {/* non-fatal */});
+    }).catch(e => console.warn('[Sanity] Orphan cleanup threw (non-fatal):', e.message));
     return { checked: true, action: 'clean', activeGuid: currentGuid, activeName: currentName };
   }
 
