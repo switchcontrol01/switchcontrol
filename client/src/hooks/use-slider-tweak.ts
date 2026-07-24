@@ -334,7 +334,7 @@ export function useSliderTweak(tweakId: string, config: SliderConfig) {
           verifyResult:  { ok: true, actualValue: result.actualValue, error: null },
           lastError:     null,
         }));
-        toast({ title: 'Reset to Default', description: `Restored to system default (${config.defaultValue}).` });
+        toast({ title: 'Reset to Default', description: `Restored to ${resetValue}.` });
         scheduleResultDismiss();
       } else {
         setState(s => ({ ...s, status: 'failed', lastError: result.error }));
@@ -397,7 +397,12 @@ export function useSliderTweak(tweakId: string, config: SliderConfig) {
     setState(s => ({ ...s, verifyResult: null, status: s.status === 'verified' || s.status === 'failed' ? 'idle' : s.status }));
   }, [clearResultTimer]);
 
-  const isDirty = state.pendingValue !== null && state.pendingValue !== state.currentValue;
+  // Guard against false-positive dirty state on load: if currentValue is still
+  // null (registry read pending or failed), pendingValue !== null would always
+  // be true even though the user hasn't changed anything.  Only mark dirty once
+  // the real registry value has landed so the Apply button doesn't light up
+  // spuriously during startup or while the PS limiter is busy.
+  const isDirty = state.currentValue !== null && state.pendingValue !== null && state.pendingValue !== state.currentValue;
 
   return { state, isDirty, setPending, apply, reset, revert, refresh, dismissResult };
 }

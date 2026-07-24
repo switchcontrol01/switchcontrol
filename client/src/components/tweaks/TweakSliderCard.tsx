@@ -231,9 +231,13 @@ function CustomSlider({
   disabled: boolean;
   onChange: (v: number) => void;
 }) {
+  // Use the slider's own min/max as the safe bounds and omit extremeMin/extremeMax.
+  // The previous hardcoded extremeMin:0 / extremeMax:0 caused getRangeZone to
+  // return "extreme" for every non-negative value (i.e. all values), rendering
+  // the custom-range thumb permanently red regardless of position.
   const zone = getRangeZone(value, {
     min: range.min, max: range.max, step: range.step, defaultValue: range.min,
-    safeMin: 0, safeMax: 100, extremeMin: 0, extremeMax: 0,
+    safeMin: range.min, safeMax: range.max,
   });
 
   const thumbColor =

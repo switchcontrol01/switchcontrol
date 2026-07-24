@@ -280,8 +280,14 @@ const SLIDER_TWEAKS = {
     safeMin:       4,
     safeMax:       16,
     readCommand:   () => `(Get-ItemProperty -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Services\\mouclass\\Parameters' -Name 'MouseDataQueueSize' -EA SilentlyContinue).MouseDataQueueSize`,
-    writeCommand:  (v) => `New-Item -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Services\\mouclass\\Parameters' -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Services\\mouclass\\Parameters' -Name 'MouseDataQueueSize' -Value ${v} -Type DWord -Force`,
-    verifyCommand: (v) => `(Get-ItemProperty -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Services\\mouclass\\Parameters' -Name 'MouseDataQueueSize' -EA SilentlyContinue).MouseDataQueueSize -eq ${v}`,
+    // psInt() is required on both commands: without the [int] cast PowerShell may
+    // interpret a decimal string as hex on some locales, writing a corrupt value
+    // into the mouclass driver parameter — exactly the failure mode that caused
+    // this tweak to be disabled.  The disabled flag blocks normal Apply, but
+    // resetSliderValue() bypasses it for legacy-recovery reverts, so the cast
+    // must be present regardless of the disabled state.
+    writeCommand:  (v) => `New-Item -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Services\\mouclass\\Parameters' -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Services\\mouclass\\Parameters' -Name 'MouseDataQueueSize' -Value ${psInt(v)} -Type DWord -Force`,
+    verifyCommand: (v) => `(Get-ItemProperty -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Services\\mouclass\\Parameters' -Name 'MouseDataQueueSize' -EA SilentlyContinue).MouseDataQueueSize -eq ${psInt(v)}`,
   },
 
   /**
@@ -304,8 +310,11 @@ const SLIDER_TWEAKS = {
     safeMin:       4,
     safeMax:       16,
     readCommand:   () => `(Get-ItemProperty -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Services\\kbdclass\\Parameters' -Name 'KeyboardDataQueueSize' -EA SilentlyContinue).KeyboardDataQueueSize`,
-    writeCommand:  (v) => `New-Item -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Services\\kbdclass\\Parameters' -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Services\\kbdclass\\Parameters' -Name 'KeyboardDataQueueSize' -Value ${v} -Type DWord -Force`,
-    verifyCommand: (v) => `(Get-ItemProperty -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Services\\kbdclass\\Parameters' -Name 'KeyboardDataQueueSize' -EA SilentlyContinue).KeyboardDataQueueSize -eq ${v}`,
+    // Same psInt() requirement as mouse-queue-size above — revert path bypasses
+    // the disabled flag and must not write an uncast value into the kbdclass
+    // driver parameter.
+    writeCommand:  (v) => `New-Item -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Services\\kbdclass\\Parameters' -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Services\\kbdclass\\Parameters' -Name 'KeyboardDataQueueSize' -Value ${psInt(v)} -Type DWord -Force`,
+    verifyCommand: (v) => `(Get-ItemProperty -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Services\\kbdclass\\Parameters' -Name 'KeyboardDataQueueSize' -EA SilentlyContinue).KeyboardDataQueueSize -eq ${psInt(v)}`,
   },
 
   /**
@@ -544,7 +553,12 @@ const SLIDER_TWEAKS = {
     regPath:       'HKLM:\\SYSTEM\\CurrentControlSet\\Control',
     regName:       'SvcHostSplitThresholdInKB',
     regType:       'DWord',
-    defaultValue:  380000,
+    // 380000 KB (~371 MB) was a typo — it is ~22× below safeMin (8 GB) and would
+    // cause resetSliderValue() to write a threshold so low that Windows splits
+    // virtually every service into its own svchost process, massively increasing
+    // RAM and handle usage.  33554432 KB = 32 GB is a safe, in-range default
+    // that keeps services grouped on typical gaming systems.
+    defaultValue:  33554432,
     safeMin:       8388608,
     safeMax:       67108864,
     readCommand:   () => `(Get-ItemProperty -Path 'HKLM:\\SYSTEM\\CurrentControlSet\\Control' -Name 'SvcHostSplitThresholdInKB' -EA SilentlyContinue).SvcHostSplitThresholdInKB`,
