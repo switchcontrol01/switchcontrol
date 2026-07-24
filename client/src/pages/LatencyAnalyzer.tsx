@@ -376,7 +376,7 @@ function OverallStatusCard() {
         <div className="flex flex-wrap items-center justify-end gap-4">
           {/* Score ring */}
           <div className="relative size-24">
-            <svg viewBox="0 0 64 64" className="h-full w-full" style={{ transform: "rotate(-90deg)" }}>
+            <svg viewBox="0 0 64 64" className="h-full w-full" style={{ transform: "rotate(-90deg)", display: "block", background: "transparent", overflow: "visible" }}>
               <circle cx={32} cy={32} r={26} fill="none" stroke="rgba(42,49,58,0.9)" strokeWidth={5} />
               <circle
                 cx={32} cy={32} r={26}
@@ -385,7 +385,7 @@ function OverallStatusCard() {
                 strokeWidth={5}
                 strokeLinecap="round"
                 strokeDasharray={`${(overallScore / 100) * 163.36} 163.36`}
-                style={{ filter: `drop-shadow(0 0 4px currentColor)` }}
+                style={{ filter: `drop-shadow(0 0 6px ${overallScore >= 70 ? "#34d399bb" : overallScore >= 50 ? "#fbbf24bb" : "#f87171bb"})` }}
               />
             </svg>
             <div className="absolute inset-0 flex items-center justify-center">
@@ -1323,7 +1323,7 @@ function LockedState() {
   const { openUpgradeModal } = useUpgradeModal();
   return (
     <AppLayout noPageAnimation>
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6 px-4">
+      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-64px)] gap-6 px-4">
         <GlassCard className="p-8 max-w-md w-full space-y-5 text-center">
           <div className="w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto">
             <Timer className="size-7 text-primary" />

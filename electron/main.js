@@ -4528,6 +4528,15 @@ public class DspHelper {
     }
   });
 
+  ipcMain.handle('dns:revertDns', async () => {
+    try {
+      return await networkTweakExecutor.revertDnsServers();
+    } catch (e) {
+      console.error('[IPC] dns:revertDns error:', e.message);
+      return { ok: false, error: e.message };
+    }
+  });
+
   // ── Premium expiry / ownership ────────────────────────────────────────────────
   
   const premiumRevertPipeline = require('./premium-revert-pipeline');

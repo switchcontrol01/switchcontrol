@@ -700,14 +700,14 @@ const ADMIN_TWEAKS = {
     requiresReboot: true,
     apply:  `& bcdedit /set hypervisorlaunchtype off 2>&1 | Out-Null; exit 0`,
     revert: `& bcdedit /set hypervisorlaunchtype auto 2>&1 | Out-Null; exit 0`,
-    check:  `$out = & bcdedit /enum 2>&1; ($out | Select-String "hypervisorlaunchtype" | Select-Object -First 1) -match "Off$"`,
+    check:  `$out = & bcdedit /enum all 2>&1; ($out | Select-String "hypervisorlaunchtype" | Select-Object -First 1) -match "Off$"`,
   },
   'large-system-cache': {
     name: 'Disable Large System Cache',
     requiresAdmin:  true,
     requiresReboot: false,
     apply:  `Set-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Memory Management" -Name "LargeSystemCache" -Value 0 -Type DWord -Force`,
-    revert: `Set-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Memory Management" -Name "LargeSystemCache" -Value 1 -Type DWord -Force`,
+    revert: `Remove-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Memory Management" -Name "LargeSystemCache" -EA SilentlyContinue`,
     check:  `(Get-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Memory Management" -Name "LargeSystemCache" -EA SilentlyContinue).LargeSystemCache -eq 0`,
   },
   'page-combining': {
@@ -810,7 +810,7 @@ const ADMIN_TWEAKS = {
     requiresReboot: true,
     apply:  `& bcdedit /set disabledynamictick yes 2>&1 | Out-Null; exit 0`,
     revert: `& bcdedit /deletevalue disabledynamictick 2>&1 | Out-Null; exit 0`,
-    check:  `$out = & bcdedit /enum 2>&1; ($out | Select-String "disabledynamictick") -match "Yes"`,
+    check:  `$out = & bcdedit /enum all 2>&1; ($out | Select-String "disabledynamictick") -match "Yes"`,
   },
   'preemption': {
     name: 'Enable GPU Hardware Scheduling (Preemption)',
@@ -945,7 +945,7 @@ const ADMIN_TWEAKS = {
     requiresReboot: true,
     apply:  `& bcdedit /set useplatformclock No 2>&1 | Out-Null; exit 0`,
     revert: `& bcdedit /set useplatformclock Yes 2>&1 | Out-Null; exit 0`,
-    check:  `$out = & bcdedit /enum 2>&1; ($out | Select-String "useplatformclock") -match '\\bNo\\b'`,
+    check:  `$out = & bcdedit /enum all 2>&1; ($out | Select-String "useplatformclock") -match '\\bNo\\b'`,
   },
   'tcp-no-delay': {
     name: 'TCP NoDelay / TcpAckFrequency',
@@ -959,8 +959,8 @@ const ADMIN_TWEAKS = {
     name: 'Optimizations for Windowed Games',
     requiresAdmin: false,
     requiresReboot: false,
-    apply:  `$p = "HKCU:\\Software\\Microsoft\\DirectX\\UserGpuPreferences"; New-Item -Path $p -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path $p -Name "DirectXUserGlobalSettings" -Value "FlipOnVSync=1;FSE=0;HDR=1" -Type String -Force`,
-    revert: `$p = "HKCU:\\Software\\Microsoft\\DirectX\\UserGpuPreferences"; Remove-ItemProperty -Path $p -Name "DirectXUserGlobalSettings" -EA SilentlyContinue`,
+    apply:  `$p = "HKCU:\\Software\\Microsoft\\DirectX\\UserGpuPreferences"; $bk = "$env:APPDATA\\SwitchControl\\windowed-games-backup.json"; $orig = (Get-ItemProperty -Path $p -Name "DirectXUserGlobalSettings" -EA SilentlyContinue).DirectXUserGlobalSettings; $bdir = Split-Path $bk; if (-not (Test-Path $bdir)) { New-Item -ItemType Directory -Path $bdir -Force | Out-Null }; (@{ orig = $orig } | ConvertTo-Json -Compress) | Out-File -FilePath ($bk + '.tmp') -Encoding utf8 -Force; if (Test-Path ($bk + '.tmp')) { Move-Item -Path ($bk + '.tmp') -Destination $bk -Force -EA SilentlyContinue }; New-Item -Path $p -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path $p -Name "DirectXUserGlobalSettings" -Value "FlipOnVSync=1;FSE=0;HDR=1" -Type String -Force`,
+    revert: `$p = "HKCU:\\Software\\Microsoft\\DirectX\\UserGpuPreferences"; $bk = "$env:APPDATA\\SwitchControl\\windowed-games-backup.json"; $orig = $null; if (Test-Path $bk) { try { $orig = (Get-Content $bk -Raw | ConvertFrom-Json).orig } catch {}; Remove-Item $bk -Force -EA SilentlyContinue }; if ($null -ne $orig) { Set-ItemProperty -Path $p -Name "DirectXUserGlobalSettings" -Value $orig -Type String -Force -EA SilentlyContinue } else { Remove-ItemProperty -Path $p -Name "DirectXUserGlobalSettings" -EA SilentlyContinue }`,
     check:  `$p = "HKCU:\\Software\\Microsoft\\DirectX\\UserGpuPreferences"; $v = Get-ItemProperty -Path $p -Name "DirectXUserGlobalSettings" -EA SilentlyContinue; $v -and ($v.DirectXUserGlobalSettings -like "*FlipOnVSync=1*")`,
   },
   'disable-game-dvr': {
@@ -1000,7 +1000,7 @@ const ADMIN_TWEAKS = {
   },
   'teams-startup': {
     name: 'Disable Teams Background Startup',
-    requiresAdmin: true,
+    requiresAdmin: false,  // only touches HKCU and kills a user process — no elevation needed
     requiresReboot: false,
     apply:  `$p = "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Run"; Remove-ItemProperty -Path $p -Name "com.squirrel.Teams.Teams" -EA SilentlyContinue; Remove-ItemProperty -Path $p -Name "Teams" -EA SilentlyContinue; Get-Process -Name "Teams" -EA SilentlyContinue | Stop-Process -Force -EA SilentlyContinue`,
     revert: `$p = "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Run"; $val = "$env:LOCALAPPDATA\\Microsoft\\Teams\\Update.exe --processStart 'Teams.exe'"; Set-ItemProperty -Path $p -Name "com.squirrel.Teams.Teams" -Value $val -Type String -Force -EA SilentlyContinue`,
@@ -2585,6 +2585,9 @@ async function executeTweak(tweakId, action, options = {}) {
         logEntry({ tweakId, action, result, ms: Date.now() - startTime });
         return result;
       }
+
+      // Elevation succeeded — update admin cache so subsequent tweaks skip UAC.
+      _isAdmin = true;
 
       // Elevated command succeeded — verify state (with one retry after 750 ms)
       const expectedApplied = action === 'apply';

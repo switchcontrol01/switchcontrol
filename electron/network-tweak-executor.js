@@ -116,7 +116,7 @@ const TWEAK_REGISTRY = {
     `,
     check: `
       $v = (Get-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\LanmanServer\\Parameters" -Name "SMB2" -EA SilentlyContinue).SMB2;
-      if ($v -eq 1) { "true" } else { "false" }
+      if ($v -eq 1 -or $null -eq $v) { "true" } else { "false" }
     `,
   },
 
@@ -260,7 +260,9 @@ const TWEAK_REGISTRY = {
     `,
     check: `
       $v = (Get-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters" -Name "TcpNoDelay" -EA SilentlyContinue).TcpNoDelay;
-      if ($v -eq 1) { "true" } else { "false" }
+      $iface = Get-ChildItem "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters\\Interfaces" -EA SilentlyContinue | Select-Object -First 1;
+      $vi = if ($iface) { (Get-ItemProperty -Path $iface.PSPath -Name "TcpAckFrequency" -EA SilentlyContinue).TcpAckFrequency } else { $null };
+      if ($v -eq 1 -and ($null -eq $vi -or $vi -eq 1)) { "true" } else { "false" }
     `,
   },
 
@@ -332,12 +334,12 @@ const TWEAK_REGISTRY = {
       Write-Output "ok"
     `,
     revert: `
-      Set-ItemProperty -Path "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile" -Name "NetworkThrottlingIndex" -Value 10 -Type DWord -Force;
+      Remove-ItemProperty -Path "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile" -Name "NetworkThrottlingIndex" -EA SilentlyContinue;
       Write-Output "ok"
     `,
     check: `
       $v = (Get-ItemProperty -Path "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile" -Name "NetworkThrottlingIndex" -EA SilentlyContinue).NetworkThrottlingIndex;
-      if ($null -ne $v -and $v -lt 0) { "true" } else { "false" }
+      if ($null -ne $v -and ([int]$v -eq -1 -or $v -eq 0xFFFFFFFF -or [uint32]$v -ge 4294967295)) { "true" } else { "false" }
     `,
   },
 
@@ -367,7 +369,7 @@ const TWEAK_REGISTRY = {
       Write-Output "ok"
     `,
     revert: `
-      netsh int tcp set global rss=disabled;
+      netsh int tcp set global rss=enabled;
       Write-Output "ok"
     `,
     check: `
@@ -401,14 +403,14 @@ const TWEAK_REGISTRY = {
   'tcp-weak-host': {
     requiresAdmin: true,
     apply: `
-      $adapters = Get-NetAdapter | Where-Object { $_.Status -eq 'Up' };
+      $adapters = Get-NetAdapter;
       foreach ($a in $adapters) {
         try { netsh int ip set interface "$($a.Name)" weakhostsend=enabled weakhostreceive=enabled 2>&1 | Out-Null } catch {}
       }
       Write-Output "ok"
     `,
     revert: `
-      $adapters = Get-NetAdapter | Where-Object { $_.Status -eq 'Up' };
+      $adapters = Get-NetAdapter;
       foreach ($a in $adapters) {
         try { netsh int ip set interface "$($a.Name)" weakhostsend=disabled weakhostreceive=disabled 2>&1 | Out-Null } catch {}
       }
@@ -428,7 +430,7 @@ const TWEAK_REGISTRY = {
       Write-Output "ok"
     `,
     revert: `
-      netsh int tcp set global autotuninglevel=normal;
+      netsh int tcp set global autotuninglevel=disabled;
       Write-Output "ok"
     `,
     check: `
@@ -463,10 +465,10 @@ const TWEAK_REGISTRY = {
     requiresAdmin: true,
     apply: `
       try {
-        netsh int tcp set supplemental template=Internet congestionprovider=CTCP 2>&1 | Out-Null;
-        Write-Output "ok"
+        $out = netsh int tcp set supplemental template=Internet congestionprovider=CTCP 2>&1;
+        if ($out -imatch 'error|not supported|invalid') { Write-Output "unsupported" } else { Write-Output "ok" }
       } catch {
-        Write-Output "ok"
+        Write-Output "unsupported"
       }
     `,
     revert: `
@@ -507,13 +509,31 @@ const TWEAK_REGISTRY = {
   'tcp-port-range': {
     requiresAdmin: true,
     apply: `
+      $backupPath = "$env:APPDATA\\SwitchControl\\tcp-port-range-backup.json";
+      $tcpOut = netsh int ip show dynamicportrange protocol=tcp 2>&1;
+      $udpOut = netsh int ip show dynamicportrange protocol=udp 2>&1;
+      $tcpSP = if ($tcpOut -match 'Start Port\s*:\s*(\d+)') { $Matches[1] } else { '49152' };
+      $tcpNP = if ($tcpOut -match 'Number of Ports\s*:\s*(\d+)') { $Matches[1] } else { '16384' };
+      $udpSP = if ($udpOut -match 'Start Port\s*:\s*(\d+)') { $Matches[1] } else { '49152' };
+      $udpNP = if ($udpOut -match 'Number of Ports\s*:\s*(\d+)') { $Matches[1] } else { '16384' };
+      $b = [PSCustomObject]@{ tcpSP=$tcpSP; tcpNP=$tcpNP; udpSP=$udpSP; udpNP=$udpNP } | ConvertTo-Json -Compress;
+      $dir = Split-Path $backupPath;
+      if (-not (Test-Path $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null };
+      $b | Out-File -FilePath ($backupPath + '.tmp') -Encoding utf8 -Force;
+      if (Test-Path ($backupPath + '.tmp')) { Move-Item -Path ($backupPath + '.tmp') -Destination $backupPath -Force -EA SilentlyContinue };
       netsh int ip set dynamicportrange protocol=tcp startport=1024 numberofports=64511;
       netsh int ip set dynamicportrange protocol=udp startport=1024 numberofports=64511;
       Write-Output "ok"
     `,
     revert: `
-      netsh int ip set dynamicportrange protocol=tcp startport=49152 numberofports=16384;
-      netsh int ip set dynamicportrange protocol=udp startport=49152 numberofports=16384;
+      $backupPath = "$env:APPDATA\\SwitchControl\\tcp-port-range-backup.json";
+      $tcpSP = '49152'; $tcpNP = '16384'; $udpSP = '49152'; $udpNP = '16384';
+      if (Test-Path $backupPath) {
+        try { $b = Get-Content $backupPath -Raw | ConvertFrom-Json; $tcpSP=$b.tcpSP; $tcpNP=$b.tcpNP; $udpSP=$b.udpSP; $udpNP=$b.udpNP } catch {}
+        Remove-Item $backupPath -Force -EA SilentlyContinue;
+      };
+      netsh int ip set dynamicportrange protocol=tcp startport=$tcpSP numberofports=$tcpNP;
+      netsh int ip set dynamicportrange protocol=udp startport=$udpSP numberofports=$udpNP;
       Write-Output "ok"
     `,
     check: `
@@ -546,7 +566,7 @@ const TWEAK_REGISTRY = {
     check: `
       try {
         $offloads = Get-NetAdapterChecksumOffload -EA SilentlyContinue;
-        $disabled = $offloads | Where-Object { [string]$_.UdpIPv4RxEnabled -imatch '^false$|^disabled$|^0$' };
+        $disabled = $offloads | Where-Object { [string]$_.UdpIPv4RxEnabled -imatch '^false$|^disabled$|^0$' -and [string]$_.UdpIPv4TxEnabled -imatch '^false$|^disabled$|^0$' };
         if ($null -ne $disabled -and @($disabled).Count -gt 0) { 'true' } else { 'false' }
       } catch { 'false' }
     `,
@@ -584,13 +604,21 @@ const TWEAK_REGISTRY = {
   'sec-netbios': {
     requiresAdmin: true,
     apply: `
-      # Write NetbiosOptions=2 (disabled) directly to the registry for every
-      # Tcpip_{GUID} sub-key under NetBT\Parameters\Interfaces.
-      # WMI SetTcpipNetbios() is deprecated on Windows 11 and silently fails to
-      # update the registry, so we write the registry directly instead.
+      # Capture per-adapter baseline before writing, then disable NetBIOS.
+      # WMI SetTcpipNetbios() is deprecated on Windows 11 — write registry directly.
+      $backupPath = "$env:APPDATA\\SwitchControl\\netbios-backup.json"
       $root = 'HKLM:\SYSTEM\CurrentControlSet\Services\NetBT\Parameters\Interfaces'
+      $baseline = @()
       if (Test-Path $root) {
         $keys = Get-ChildItem -Path $root -ErrorAction SilentlyContinue
+        foreach ($k in $keys) {
+          $v = (Get-ItemProperty -Path $k.PSPath -Name NetbiosOptions -ErrorAction SilentlyContinue).NetbiosOptions
+          $baseline += [PSCustomObject]@{ keyName = $k.PSChildName; originalValue = if ($null -ne $v) { [int]$v } else { 0 } }
+        }
+        $dir = Split-Path $backupPath
+        if (-not (Test-Path $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
+        ($baseline | ConvertTo-Json -Compress) | Out-File -FilePath ($backupPath + '.tmp') -Encoding utf8 -Force
+        if (Test-Path ($backupPath + '.tmp')) { Move-Item -Path ($backupPath + '.tmp') -Destination $backupPath -Force -EA SilentlyContinue }
         foreach ($k in $keys) {
           Set-ItemProperty -Path $k.PSPath -Name NetbiosOptions -Value 2 -Type DWord -Force -ErrorAction SilentlyContinue
         }
@@ -598,12 +626,19 @@ const TWEAK_REGISTRY = {
       Write-Output "ok"
     `,
     revert: `
-      # Restore NetbiosOptions=0 (use DHCP/default) on all adapter sub-keys.
+      # Restore each adapter's original NetbiosOptions value from backup.
+      $backupPath = "$env:APPDATA\\SwitchControl\\netbios-backup.json"
       $root = 'HKLM:\SYSTEM\CurrentControlSet\Services\NetBT\Parameters\Interfaces'
       if (Test-Path $root) {
         $keys = Get-ChildItem -Path $root -ErrorAction SilentlyContinue
+        $baseline = @{}
+        if (Test-Path $backupPath) {
+          try { $arr = Get-Content $backupPath -Raw | ConvertFrom-Json; foreach ($e in $arr) { $baseline[$e.keyName] = $e.originalValue } } catch {}
+          Remove-Item $backupPath -Force -EA SilentlyContinue
+        }
         foreach ($k in $keys) {
-          Set-ItemProperty -Path $k.PSPath -Name NetbiosOptions -Value 0 -Type DWord -Force -ErrorAction SilentlyContinue
+          $restoreVal = if ($baseline.ContainsKey($k.PSChildName)) { $baseline[$k.PSChildName] } else { 0 }
+          Set-ItemProperty -Path $k.PSPath -Name NetbiosOptions -Value $restoreVal -Type DWord -Force -ErrorAction SilentlyContinue
         }
       }
       Write-Output "ok"
@@ -654,8 +689,10 @@ const TWEAK_REGISTRY = {
     `,
     check: `
       $path = "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\Dnscache\\Parameters";
-      $v = (Get-ItemProperty -Path $path -Name "CacheHashTableBucketSize" -EA SilentlyContinue).CacheHashTableBucketSize;
-      if ($v -eq 1) { "true" } else { "false" }
+      $v1 = (Get-ItemProperty -Path $path -Name "CacheHashTableBucketSize" -EA SilentlyContinue).CacheHashTableBucketSize;
+      $v2 = (Get-ItemProperty -Path $path -Name "NegativeCacheTime" -EA SilentlyContinue).NegativeCacheTime;
+      $v3 = (Get-ItemProperty -Path $path -Name "MaxCacheEntryTtlLimit" -EA SilentlyContinue).MaxCacheEntryTtlLimit;
+      if ($v1 -eq 1 -and $v2 -eq 0 -and $v3 -eq 64000) { "true" } else { "false" }
     `,
   },
 };
@@ -691,7 +728,7 @@ async function runElevated(command) {
   const safeResult = resultPath.replace(/'/g, "''");
 
   const scriptContent = [
-    `$ErrorActionPreference = 'Stop'`,
+    `$ErrorActionPreference = 'Continue'`,
     `try {`,
     `  ${command}`,
     `  $r = @{ ok = $true; error = $null }`,
@@ -809,6 +846,8 @@ async function executeNetworkTweak(tweakId, action) {
         error: 'elevation_failed',
       };
     }
+    // Elevation succeeded — update admin cache so subsequent tweaks skip UAC.
+    _isAdminCache = true;
   }
 
   // ── Verification step (read-only, no elevation needed) ─────────────────────
@@ -857,13 +896,13 @@ async function checkNetworkTweakStatus(tweakId) {
 }
 
 /**
- * Bulk check all tweaks.
+ * Bulk check all tweaks — runs all checks in parallel for speed.
  */
 async function checkAllNetworkTweakStatus() {
-  const results = {};
-  for (const tweakId of Object.keys(TWEAK_REGISTRY)) {
-    results[tweakId] = await checkNetworkTweakStatus(tweakId);
-  }
+  const tweakIds = Object.keys(TWEAK_REGISTRY);
+  const checks   = await Promise.all(tweakIds.map(id => checkNetworkTweakStatus(id)));
+  const results  = {};
+  tweakIds.forEach((id, i) => { results[id] = checks[i]; });
   return results;
 }
 
@@ -1074,20 +1113,76 @@ async function benchmarkDnsProviders() {
   return { providers, recommended, recommendedReasons, confidence, categoryWinners, ts: Date.now() };
 }
 
+/** Map a primary DNS IP to its provider's canonical secondary IP. */
+const DNS_SECONDARY_MAP = {
+  '1.1.1.1':       '1.0.0.1',       // Cloudflare
+  '8.8.8.8':       '8.8.4.4',       // Google
+  '9.9.9.9':       '149.112.112.112', // Quad9
+  '208.67.222.222':'208.67.220.220', // OpenDNS
+  '94.140.14.14':  '94.140.15.15',  // AdGuard
+};
+
 /**
  * Apply a DNS server to all active network adapters via elevated PowerShell.
- * Uses the primary IP passed plus 1.0.0.1 as secondary.
+ * Saves original per-adapter DNS before applying so revertDnsServers can restore.
  * Returns { ok, error?, cancelled? }.
  */
 async function applyDnsServers(ip) {
   const safeIp = String(ip).replace(/[^0-9.:]/g, '');
   if (!safeIp) return { ok: false, error: 'Invalid IP address' };
 
+  const secondaryIp = DNS_SECONDARY_MAP[safeIp] || safeIp;
+  const { DNS_SERVERS_BACKUP_FILE } = require('./user-data-paths');
+  const safeBackup = DNS_SERVERS_BACKUP_FILE.replace(/'/g, "''");
+
   const command = [
+    // Capture original DNS for all adapters before changing anything
     `$adapters = Get-NetAdapter | Where-Object { $_.Status -eq 'Up' }`,
+    `$backup = @()`,
     `foreach ($a in $adapters) {`,
-    `  Set-DnsClientServerAddress -InterfaceAlias $a.Name -ServerAddresses ('${safeIp}', '1.0.0.1') -ErrorAction SilentlyContinue`,
+    `  $cur = (Get-DnsClientServerAddress -InterfaceAlias $a.Name -AddressFamily IPv4 -ErrorAction SilentlyContinue).ServerAddresses`,
+    `  $backup += [PSCustomObject]@{ alias = $a.Name; dns = ($cur -join ',') }`,
     `}`,
+    `$dir = Split-Path '${safeBackup}'`,
+    `if (-not (Test-Path $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }`,
+    `($backup | ConvertTo-Json -Compress) | Out-File -FilePath ('${safeBackup}' + '.tmp') -Encoding utf8 -Force`,
+    `if (Test-Path ('${safeBackup}' + '.tmp')) { Move-Item -Path ('${safeBackup}' + '.tmp') -Destination '${safeBackup}' -Force -ErrorAction SilentlyContinue }`,
+    // Now apply the new DNS
+    `foreach ($a in $adapters) {`,
+    `  Set-DnsClientServerAddress -InterfaceAlias $a.Name -ServerAddresses ('${safeIp}', '${secondaryIp}') -ErrorAction SilentlyContinue`,
+    `}`,
+    `Write-Output "ok"`,
+  ].join('; ');
+
+  try {
+    return await runElevated(command);
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+}
+
+/**
+ * Restore DNS settings to what they were before the last applyDnsServers call.
+ * Reads the per-adapter backup written by applyDnsServers.
+ * Returns { ok, error?, cancelled? }.
+ */
+async function revertDnsServers() {
+  const { DNS_SERVERS_BACKUP_FILE } = require('./user-data-paths');
+  const safeBackup = DNS_SERVERS_BACKUP_FILE.replace(/'/g, "''");
+
+  const command = [
+    `$backupPath = '${safeBackup}'`,
+    `if (-not (Test-Path $backupPath)) { Write-Output "ok"; exit }`,
+    `try { $backup = Get-Content $backupPath -Raw | ConvertFrom-Json } catch { Remove-Item $backupPath -Force -EA SilentlyContinue; Write-Output "ok"; exit }`,
+    `foreach ($entry in $backup) {`,
+    `  $addrs = if ($entry.dns) { $entry.dns -split ',' | Where-Object { $_ } } else { @() }`,
+    `  if ($addrs.Count -gt 0) {`,
+    `    Set-DnsClientServerAddress -InterfaceAlias $entry.alias -ServerAddresses $addrs -ErrorAction SilentlyContinue`,
+    `  } else {`,
+    `    Set-DnsClientServerAddress -InterfaceAlias $entry.alias -ResetServerAddresses -ErrorAction SilentlyContinue`,
+    `  }`,
+    `}`,
+    `Remove-Item $backupPath -Force -EA SilentlyContinue`,
     `Write-Output "ok"`,
   ].join('; ');
 
@@ -1106,8 +1201,9 @@ module.exports = {
   getDisabledTweaks,
   benchmarkDnsProviders,
   applyDnsServers,
+  revertDnsServers,
   TWEAK_REGISTRY,
   // normalization helpers
   normalizePSBoolOutput,
-  normalizeNetshOutput,
+  // normalizeNetshOutput is defined above but currently unused by callers
 };

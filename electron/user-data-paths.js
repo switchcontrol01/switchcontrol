@@ -153,4 +153,25 @@ module.exports = {
 
   /** Original-value backup for Hardware Accelerated GPU Scheduling. */
   PREEMPTION_BACKUP_FILE: path.join(APPDATA_DIR, 'preemption-backup.json'),
+
+  /**
+   * Original-value backup for TCP/UDP dynamic port range.
+   * Stores the pre-apply startport and numberofports for both protocols so
+   * revert can restore the user's actual previous range, not a hardcoded default.
+   */
+  TCP_PORT_RANGE_BACKUP_FILE: path.join(APPDATA_DIR, 'tcp-port-range-backup.json'),
+
+  /**
+   * Original-value backup for per-adapter NetBIOS settings.
+   * Stores an array of { keyName, originalValue } captured before disabling
+   * NetBIOS on all adapters, so revert restores each adapter's exact prior state.
+   */
+  NETBIOS_BACKUP_FILE: path.join(APPDATA_DIR, 'netbios-backup.json'),
+
+  /**
+   * Original DNS server addresses backup.
+   * Stores per-adapter DNS addresses captured before applyDnsServers runs,
+   * so revertDnsServers can restore the user's exact prior DNS configuration.
+   */
+  DNS_SERVERS_BACKUP_FILE: path.join(APPDATA_DIR, 'dns-servers-backup.json'),
 };
