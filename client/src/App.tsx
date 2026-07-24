@@ -69,6 +69,8 @@ import { LightModeAdvisor, AppModeClassSync } from "@/components/LightModeAdviso
 import { ModeTransitionOverlay } from "@/components/ModeTransitionOverlay";
 import { usePremiumGraceStore, GRACE_WINDOW_MS } from "@/stores/premiumGraceStore";
 import { useTrialExpiryStore } from "@/stores/trialExpiryStore";
+import { useSystemConditionsStore } from "@/stores/systemConditionsStore";
+import { useToast } from "@/hooks/use-toast";
 
 import Splash from "@/screens/Splash";
 import CameraGlow from "@/screens/CameraGlow";
@@ -378,6 +380,8 @@ function ElectronAppContent() {
   useBaselineScan();
 
   const { realtimeMetricsEnabled, pauseWhenMinimized, setTweak } = useStore();
+  const { setConditions: setSystemConditions } = useSystemConditionsStore();
+  const { toast } = useToast();
 
   // Startup reconciliation — fires once, non-blocking.
   // Reads real Windows tweak state via a single batched PowerShell call and
@@ -472,6 +476,53 @@ function ElectronAppContent() {
         if (Object.keys(verifiedStateMap).length > 0) {
           api.saveVerifiedState(verifiedStateMap).catch((e: unknown) => {
             console.warn("[App:STARTUP-RECONCILE] saveVerifiedState failed:", e);
+          });
+        }
+
+        // Part 6 — Detect silently reverted tweaks and surface root-cause.
+        // A tweak is "silently reverted" if prevEnabled says it was ON but the
+        // verified live state is OFF (Windows Tamper Protection or missing elevation
+        // is the most common cause).
+        const silentlyReverted = Object.keys(prevEnabled).filter(
+          (id) => prevEnabled[id] === true && verifiedStateMap[id] === false,
+        );
+
+        // Fetch admin status and security status in parallel — both are needed
+        // to show the most accurate root-cause message.
+        const [adminResult, securityResult] = await Promise.allSettled([
+          (window as any).electronAPI?.isAdmin?.() as Promise<boolean>,
+          (window as any).electronAPI?.security?.getStatus?.() as Promise<any>,
+        ]);
+
+        const isAdminVal: boolean | null =
+          adminResult.status === "fulfilled" && typeof adminResult.value === "boolean"
+            ? adminResult.value
+            : null;
+        const tamperVal: boolean | null =
+          securityResult.status === "fulfilled" &&
+          securityResult.value?.available &&
+          securityResult.value?.data?.tamperProtection != null
+            ? (securityResult.value.data.tamperProtection as boolean)
+            : null;
+
+        setSystemConditions(isAdminVal, tamperVal);
+        console.log(
+          `[App:STARTUP-RECONCILE] conditions isAdmin=${isAdminVal} tamperProtection=${tamperVal}`,
+        );
+
+        if (silentlyReverted.length > 0) {
+          const reasons: string[] = [];
+          if (tamperVal === true) reasons.push("Tamper Protection is on");
+          if (isAdminVal === false) reasons.push("app not running as Administrator");
+          const reasonStr =
+            reasons.length > 0 ? reasons.join(", ") : "Windows policy";
+          console.warn(
+            `[App:STARTUP-RECONCILE] ${silentlyReverted.length} tweak(s) were silently reverted — ${reasonStr}`,
+          );
+          toast({
+            title: `${silentlyReverted.length} tweak${silentlyReverted.length === 1 ? "" : "s"} reverted by Windows`,
+            description: `${reasonStr.charAt(0).toUpperCase() + reasonStr.slice(1)}. Open the Tweaks page for details.`,
+            variant: "destructive",
           });
         }
       } catch (err) {

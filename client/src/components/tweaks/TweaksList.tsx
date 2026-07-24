@@ -8,7 +8,7 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { useStore } from "@/lib/store";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, SlidersHorizontal, RotateCcw, Sparkles, AlertTriangle, ShieldCheck, FlaskConical, Cpu, Lock } from "lucide-react";
+import { Search, SlidersHorizontal, RotateCcw, Sparkles, AlertTriangle, ShieldCheck, FlaskConical, Cpu, Lock, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useTweakExecutor, isElectronWithTweaks, isRealTweak, isSliderTweak, SLIDER_TWEAKS } from "@/hooks/use-tweak-executor";
@@ -19,6 +19,7 @@ import { useOptimizationStore } from "@/stores/optimizationStore";
 import { OptimizationFlow } from "@/components/optimization/OptimizationFlow";
 import { useAuth } from "@/hooks/use-auth";
 import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
+import { useSystemConditionsStore } from "@/stores/systemConditionsStore";
 
 // Module-level sync generation counter — persists across component remounts.
 // Incremented when a new mount starts its sync; old in-flight syncs that
@@ -156,6 +157,7 @@ export function TweaksList() {
   const { toast } = useToast();
   const { isPremium } = useAuth();
   const { openUpgradeModal } = useUpgradeModal();
+  const { isAdmin, tamperProtection } = useSystemConditionsStore();
   const [search, setSearch]         = useState("");
   const [activeChip, setActiveChip] = useState<string>("All");
   const [activeLevel, setActiveLevel] = useState<LevelFilter>("All");
@@ -168,7 +170,17 @@ export function TweaksList() {
   // These override/supplement the static frontend registry reasons.
   const [runtimeUnsupportedReasons, setRuntimeUnsupportedReasons] = useState<Record<string, string>>({});
   const [highlightId, setHighlightId] = useState<string | null>(null);
+  // Session-only dismiss for the revert root-cause banner — re-shows on next launch if
+  // conditions persist (banner is informational, not a one-time consent gate).
+  const [revertBannerDismissed, setRevertBannerDismissed] = useState(false);
   const seenWarnings = useRef<Set<string>>(new Set());
+
+  // Banner is visible when Tamper Protection is on OR the app isn't elevated,
+  // AND the user hasn't dismissed it this session.
+  const showRevertBanner =
+    isElectron &&
+    !revertBannerDismissed &&
+    (tamperProtection === true || isAdmin === false);
 
   const handleApplyRecommended = () => {
     if (!isPremium) {
@@ -487,6 +499,47 @@ export function TweaksList() {
           );
         })}
       </div>
+
+      {/* Root-cause warning banner — shown when Tamper Protection is ON or
+          the app is not running as Administrator. Either condition causes Windows
+          to silently revert registry / service tweaks after they are applied.
+          Dismiss is session-only: re-shows on the next launch if conditions persist. */}
+      <AnimatePresence>
+        {showRevertBanner && (
+          <motion.div
+            initial={{ opacity: 0, y: -6, height: 0 }}
+            animate={{ opacity: 1, y: 0, height: "auto" }}
+            exit={{ opacity: 0, y: -4, height: 0 }}
+            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+            className="overflow-hidden"
+          >
+            <div className="flex items-start gap-3 px-4 py-3 rounded-xl bg-amber-500/10 border border-amber-500/25 text-amber-300">
+              <AlertTriangle className="size-4 shrink-0 mt-0.5 text-amber-400" />
+              <div className="flex-1 min-w-0 space-y-1.5">
+                <p className="text-sm font-semibold text-amber-200">Tweaks may revert automatically</p>
+                <ul className="text-xs text-amber-300/80 space-y-0.5 list-disc list-inside">
+                  {tamperProtection === true && (
+                    <li>Windows Tamper Protection is enabled — it blocks registry and service changes</li>
+                  )}
+                  {isAdmin === false && (
+                    <li>App is not running as Administrator — some tweaks require elevated privileges</li>
+                  )}
+                </ul>
+                <p className="text-xs text-amber-400/70 font-medium mt-1">
+                  Fix: 1&nbsp;— Disable Tamper Protection in Windows Security&nbsp;&nbsp;2&nbsp;— Run SwitchControl as Administrator&nbsp;&nbsp;3&nbsp;— Re-apply tweaks and reboot
+                </p>
+              </div>
+              <button
+                onClick={() => setRevertBannerDismissed(true)}
+                aria-label="Dismiss warning"
+                className="shrink-0 rounded-md p-0.5 text-amber-400/60 hover:text-amber-300 hover:bg-amber-500/15 transition-colors"
+              >
+                <X className="size-3.5" />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Category chips */}
       <ScrollArea className="w-full whitespace-nowrap">

@@ -28,6 +28,7 @@ import {
 import { SecurityStartupTab } from "@/components/security/SecurityStartupTab";
 import { SecurityProcessesTab } from "@/components/security/SecurityProcessesTab";
 import { SecurityAuditTab } from "@/components/security/SecurityAuditTab";
+import { useSystemConditionsStore } from "@/stores/systemConditionsStore";
 
 const CLOUD_API_BASE = "https://switchcontrol.org/api";
 const HISTORY_KEY = "sc_security_history";
@@ -533,6 +534,18 @@ function ProtectionTab({
                 state={row.v === true ? "ok" : row.v === false ? (row.label === "Tamper Protection" ? "warn" : "off") : "unknown"}
               />
             ))}
+            {securityStatus.tamperProtection === true && (
+              <div className="flex items-center gap-1.5 mt-1.5 pt-1.5 border-t border-amber-500/10 text-[11px] text-amber-400/80">
+                <AlertTriangle className="size-3 shrink-0" />
+                <span>This may cause tweaks to revert.{" "}</span>
+                <a
+                  href="#/tweaks"
+                  className="underline underline-offset-2 hover:text-amber-300 transition-colors"
+                >
+                  View Tweaks page
+                </a>
+              </div>
+            )}
             {securityStatus.engineVersion && (
               <div className="pt-2 mt-1  text-xs text-muted-foreground flex justify-between">
                 <span>Engine</span><span className="font-mono text-[10px]">{securityStatus.engineVersion}</span>
@@ -926,6 +939,7 @@ export default function Security() {
   const hasSecurity = isElectronWithSecurity();
   const { telemetry: liveTel } = useLiveTelemetry();
   const { toast } = useToast();
+  const { setTamperProtection } = useSystemConditionsStore();
 
   const [activeTab, setActiveTab] = useState<Tab>("overview");
   const [securityStatus,    setSecurityStatus]    = useState<SecurityStatus | null>(null);
@@ -964,7 +978,14 @@ export default function Security() {
       timingMark("getStatus-start");
       eAPI().security.getStatus()
         .then((r: any) => {
-          if (r?.available && r.data) setSecurityStatus(r.data);
+          if (r?.available && r.data) {
+            setSecurityStatus(r.data);
+            // Keep the global system-conditions store in sync so TweaksList
+            // can show the revert root-cause banner without a separate IPC call.
+            if (r.data.tamperProtection != null) {
+              setTamperProtection(r.data.tamperProtection as boolean);
+            }
+          }
           timingMark("getStatus-done");
         })
         .catch(() => {});
@@ -1005,8 +1026,13 @@ export default function Security() {
 
   const refreshStatus = useCallback(() => {
     if (!hasSecurity) return;
-    eAPI().security.getStatus().then((r: any) => { if (r?.available && r.data) setSecurityStatus(r.data); }).catch(() => {});
-  }, [hasSecurity]);
+    eAPI().security.getStatus().then((r: any) => {
+      if (r?.available && r.data) {
+        setSecurityStatus(r.data);
+        if (r.data.tamperProtection != null) setTamperProtection(r.data.tamperProtection as boolean);
+      }
+    }).catch(() => {});
+  }, [hasSecurity]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const refreshAdvanced = useCallback(async () => {
     if (!hasSecurity) return;
