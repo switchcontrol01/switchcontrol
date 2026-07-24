@@ -2,15 +2,9 @@ import { motion } from "@/lib/motionTokens";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import {
-  calculateBootScore, getScoreLabel, getScoreColor,
-  estimateBootTimeMs, fmtBootTime, getRecommendations,
-} from "./startupUtils";
+import { calculateBootScore, getScoreLabel, getScoreColor, estimateBootTimeMs, fmtBootTime, getRecommendations } from "./startupUtils";
 import type { BootApp } from "./startupUtils";
-import {
-  Play, Zap, ShieldCheck, RefreshCw, ListFilter,
-  PowerOff, Activity,
-} from "lucide-react";
+import { Play, Zap, RefreshCw, ListFilter, Activity, Gauge } from "lucide-react";
 
 interface Props {
   scanStatus: "idle" | "scanning" | "done";
@@ -25,7 +19,6 @@ export function StartupHero({ scanStatus, apps, onScan, onOptimize, onReview }: 
   const hasScan = scanStatus === "done";
 
   const score = calculateBootScore(apps);
-  const label = getScoreLabel(score);
   const color = getScoreColor(score);
   const bootTime = estimateBootTimeMs(apps);
   const enabledCount = apps.filter(a => a.entry.enabled && !a.entry.broken).length;
@@ -34,99 +27,101 @@ export function StartupHero({ scanStatus, apps, onScan, onOptimize, onReview }: 
   const recs = getRecommendations(apps, 3);
 
   return (
-    <div className="space-y-4">
-      {/* Title row */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-sm text-muted-foreground">
-            {hasScan
-              ? `${enabledCount} apps enabled · est. ${fmtBootTime(bootTime)} boot`
-              : "Control what starts with Windows — scan to see boot impact"}
-          </p>
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
-          {isScanning && (
-            <Badge variant="outline" className="text-amber-400 border-amber-400/30 bg-amber-400/10 animate-pulse">
-              Scanning…
-            </Badge>
-          )}
-          {hasScan && (
-            <Badge
-              variant="outline"
-              className="border-[#2A313A] text-[#E6EAF0]"
-              style={{ color, borderColor: `${color}40`, backgroundColor: `${color}10` }}
-            >
-              {label} ({score})
-            </Badge>
-          )}
-        </div>
+    <div className="relative rounded-3xl overflow-hidden border border-white/[0.05] bg-[#14181D]">
+      {/* Background Graphic */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-0 right-0 w-3/4 h-full bg-gradient-to-l from-primary/10 to-transparent" />
+        <div className="absolute -top-32 -right-32 w-96 h-96 bg-primary/20 rounded-full blur-[100px]" />
+        
+        {/* Tech grid overlay */}
+        <div 
+          className="absolute inset-0 opacity-[0.03]" 
+          style={{ 
+            backgroundImage: `linear-gradient(rgba(255,255,255,1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,1) 1px, transparent 1px)`,
+            backgroundSize: `40px 40px`
+          }} 
+        />
       </div>
 
-      {/* Quick stats strip */}
-      {hasScan && (
-        <motion.div
-          className="grid grid-cols-3 gap-2"
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.15 }}
-        >
-          {[
-            { label: "Enabled", value: enabledCount, color: "text-[#E6EAF0]" },
-            { label: "Disabled", value: disabledCount, color: "text-muted-foreground/60" },
-            { label: "Broken", value: brokenCount, color: brokenCount > 0 ? "text-red-400" : "text-muted-foreground/40" },
-          ].map(s => (
-            <div key={s.label} className="rounded-lg bg-[#1A1F26] border border-[#2A313A] px-3 py-2 text-center">
-              <p className={cn("text-lg font-bold tabular-nums", s.color)}>{s.value}</p>
-              <p className="text-[10px] text-muted-foreground/50">{s.label}</p>
-            </div>
-          ))}
-        </motion.div>
-      )}
+      <div className="relative z-10 p-6 sm:p-10 flex flex-col lg:flex-row gap-8 lg:items-center justify-between">
+        <div className="max-w-2xl space-y-4">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-primary/30 bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-widest mb-2">
+            <Gauge className="size-3.5" /> Boot Intelligence Engine
+          </div>
+          
+          <h1 className="text-3xl sm:text-4xl font-bold text-white tracking-tight">
+            Startup Telemetry
+          </h1>
+          
+          <p className="text-muted-foreground text-sm sm:text-base font-medium max-w-lg leading-relaxed">
+            {hasScan
+              ? "Deep scan complete. Analyze process impact and trim dead weight to achieve sub-10 second boot times."
+              : "Engage the scanner to map the boot sequence, measure impact, and isolate bottlenecks."}
+          </p>
 
-      {/* CTA row */}
-      <div className="flex flex-wrap items-center gap-3">
-        <Button
-          onClick={onScan}
-          disabled={isScanning}
-          className={cn(
-            "h-10 px-5 text-sm font-semibold rounded-xl transition-all",
-            isScanning
-              ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
-              : "bg-primary hover:bg-primary/90 text-[#E6EAF0]"
-          )}
-        >
-          {isScanning ? (
-            <span className="flex items-center gap-2">
-              <span className="size-4 border-2 border-amber-300/40 border-t-amber-300 rounded-full animate-spin" />
-              Scanning…
-            </span>
-          ) : (
-            <span className="flex items-center gap-2">
-              <Play className="size-4" />
-              {hasScan ? "Rescan" : "Scan Startup"}
-            </span>
-          )}
-        </Button>
+          <div className="flex flex-wrap items-center gap-3 pt-4">
+            <Button
+              onClick={onScan}
+              disabled={isScanning}
+              className={cn(
+                "h-12 px-8 text-sm font-bold uppercase tracking-wider rounded-xl transition-all shadow-lg",
+                isScanning
+                  ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                  : "bg-primary hover:bg-primary/90 text-primary-foreground hover:shadow-[0_0_20px_rgba(0,212,255,0.4)]"
+              )}
+            >
+              {isScanning ? (
+                <span className="flex items-center gap-2.5">
+                  <span className="size-4 border-2 border-amber-300/40 border-t-amber-300 rounded-full animate-spin" />
+                  Analyzing Sequence...
+                </span>
+              ) : (
+                <span className="flex items-center gap-2.5">
+                  {hasScan ? <RefreshCw className="size-4" /> : <Play className="size-4" />}
+                  {hasScan ? "Rerun Diagnostics" : "Initialize Scan"}
+                </span>
+              )}
+            </Button>
 
-        {hasScan && recs.length > 0 && (
-          <Button
-            onClick={onOptimize}
-            className="h-10 px-5 text-sm font-semibold rounded-xl bg-emerald-600 hover:bg-emerald-500 text-[#E6EAF0]"
-          >
-            <Zap className="size-4 mr-1.5" />
-            Optimize ({recs.length} recommendations)
-          </Button>
-        )}
+            {hasScan && recs.length > 0 && (
+              <Button
+                onClick={onOptimize}
+                className="h-12 px-6 text-sm font-bold uppercase tracking-wider rounded-xl bg-emerald-500 hover:bg-emerald-400 text-emerald-950 shadow-[0_0_15px_rgba(16,185,129,0.3)] hover:shadow-[0_0_25px_rgba(16,185,129,0.5)] transition-all"
+              >
+                <Zap className="size-4 mr-2" />
+                Auto-Tune ({recs.length})
+              </Button>
+            )}
+          </div>
+        </div>
 
+        {/* Right side stats */}
         {hasScan && (
-          <Button
-            variant="ghost"
-            onClick={onReview}
-            className="h-10 px-4 text-sm rounded-xl text-[#E6EAF0] hover:text-[#E6EAF0] hover:bg-[#21262D]"
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="flex flex-row lg:flex-col gap-4 shrink-0 lg:min-w-[200px]"
           >
-            <ListFilter className="size-4 mr-1.5" />
-            Review Apps
-          </Button>
+            <div className="flex-1 lg:flex-none p-4 rounded-2xl bg-[#0E1116]/80 border border-white/[0.04] backdrop-blur-md">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold mb-1">Boot Time</p>
+              <div className="flex items-baseline gap-1">
+                <span className="text-3xl font-bold tabular-nums text-white">{fmtBootTime(bootTime).replace('s', '')}</span>
+                <span className="text-sm font-semibold text-muted-foreground">sec</span>
+              </div>
+            </div>
+            
+            <div className="flex-1 lg:flex-none p-4 rounded-2xl bg-[#0E1116]/80 border border-white/[0.04] backdrop-blur-md flex justify-between gap-4">
+              <div>
+                <p className="text-[10px] text-emerald-400/80 uppercase tracking-widest font-bold mb-1">Active</p>
+                <p className="text-xl font-bold tabular-nums text-emerald-400">{enabledCount}</p>
+              </div>
+              <div className="w-px bg-white/[0.05]" />
+              <div>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold mb-1">Halted</p>
+                <p className="text-xl font-bold tabular-nums text-muted-foreground">{disabledCount}</p>
+              </div>
+            </div>
+          </motion.div>
         )}
       </div>
     </div>

@@ -26,51 +26,48 @@ export function StartupBars({ apps, visible }: Props) {
 
   if (!visible || !totals) {
     return (
-      <div className="rounded-xl border border-[#2A313A] bg-[#1A1F26] p-4 text-center">
-        <p className="text-xs text-muted-foreground/40">Scan to see boot weight</p>
+      <div className="rounded-2xl border border-white/[0.04] bg-[#1A1F26]/60 backdrop-blur-xl p-6 flex items-center justify-center min-h-[140px]">
+        <p className="text-xs text-muted-foreground/40 font-medium tracking-wide uppercase">Awaiting telemetry</p>
       </div>
     );
   }
 
   const bars = [
-    {
-      label: "CPU Load", icon: Cpu, color: "#00D4FF",
-      value: totals.cpu, max: totals.maxCpu, unit: "%",
-    },
-    {
-      label: "Disk I/O", icon: HardDrive, color: "#22d3ee", // cyan
-      value: totals.disk, max: totals.maxDisk, unit: "%",
-    },
-    {
-      label: "Delay", icon: Gauge, color: "#f97316", // orange
-      value: totals.delay, max: totals.maxDelay, unit: "ms",
-    },
+    { label: "CPU Load", icon: Cpu, color: "#00D4FF", value: totals.cpu, max: totals.maxCpu, unit: "%" },
+    { label: "Disk I/O", icon: HardDrive, color: "#22d3ee", value: totals.disk, max: totals.maxDisk, unit: "%" },
+    { label: "Delay", icon: Gauge, color: "#f97316", value: totals.delay, max: totals.maxDelay, unit: "ms" },
   ];
 
   return (
-    <div className="space-y-3">
-      <span className="text-xs font-medium text-[#E6EAF0]">Boot Weight</span>
-      <div className="space-y-2.5">
+    <div className="rounded-2xl border border-white/[0.04] bg-[#1A1F26]/60 backdrop-blur-xl p-5 space-y-4">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-semibold text-[#E6EAF0] uppercase tracking-wider">Boot Load</span>
+        <div className="flex gap-1 items-center">
+          <div className="size-1.5 rounded-full bg-emerald-400 animate-pulse" />
+          <span className="text-[9px] text-emerald-400 uppercase tracking-widest font-bold">Active</span>
+        </div>
+      </div>
+      <div className="space-y-3.5">
         {bars.map((bar, i) => {
           const Icon = bar.icon;
           const pct = Math.min((bar.value / bar.max) * 100, 100);
           return (
-            <div key={bar.label} className="space-y-1">
+            <div key={bar.label} className="space-y-1.5 group">
               <div className="flex items-center justify-between text-[10px]">
-                <span className="text-muted-foreground/60 flex items-center gap-1">
-                  <Icon className="size-3" style={{ color: bar.color }} /> {bar.label}
+                <span className="text-muted-foreground/60 flex items-center gap-1.5 font-medium tracking-wide uppercase">
+                  <Icon className="size-3.5" style={{ color: bar.color }} /> {bar.label}
                 </span>
-                <span className="text-[#A0A8B3] tabular-nums">
-                  {Math.round(bar.value)}{bar.unit}
+                <span className="text-[#E6EAF0] font-mono tabular-nums">
+                  {Math.round(bar.value)}<span className="text-muted-foreground/50">{bar.unit}</span>
                 </span>
               </div>
-              <div className="h-2.5 rounded-full bg-[#21262D] overflow-hidden">
+              <div className="h-1.5 rounded-full bg-black/40 overflow-hidden relative border border-white/[0.02]">
                 <motion.div
-                  className="h-full rounded-full"
-                  style={{ backgroundColor: bar.color }}
+                  className="absolute inset-y-0 left-0 rounded-full"
+                  style={{ backgroundColor: bar.color, boxShadow: `0 0 8px ${bar.color}` }}
                   initial={{ width: 0 }}
                   animate={{ width: `${Math.max(pct, 2)}%` }}
-                  transition={{ duration: 0.6, delay: 0.1 * i, ease: [0.22, 1, 0.36, 1] }}
+                  transition={{ duration: 0.8, delay: 0.1 * i, ease: [0.16, 1, 0.3, 1] }}
                 />
               </div>
             </div>

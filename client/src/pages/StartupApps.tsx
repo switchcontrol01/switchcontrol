@@ -2,19 +2,15 @@ import { useState, useCallback, useEffect, useMemo } from "react";
 import { logHistory } from "@/lib/logHistory";
 import { usePageTiming } from "@/lib/page-timing";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { PageHeader } from "@/components/layout/PageHeader";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { cloudApiPost, cloudApiGet } from "@/lib/cloud-api";
-import { motion } from "@/lib/motionTokens";
-import {
-  List, RefreshCw, AlertTriangle, History, Laptop2,
-} from "lucide-react";
+import { motion, AnimatePresence } from "@/lib/motionTokens";
+import { Laptop2, AlertTriangle, History } from "lucide-react";
 
 import {
   enrichEntries, calculateBootScore, estimateBootTimeMs, fmtBootTime,
-  getRecommendations, groupByCategory, type BootApp, type StartupCategory,
+  getRecommendations, type BootApp, type StartupCategory,
 } from "@/components/startup/startupUtils";
 import { StartupPulse } from "@/components/startup/StartupPulse";
 import { StartupHero } from "@/components/startup/StartupHero";
@@ -70,6 +66,7 @@ export default function StartupApps() {
     setScanStatus("scanning");
     setScanError(null);
     setActiveTab("all");
+    setShowHistory(false);
     timingMark("startup-scan");
 
     try {
@@ -122,13 +119,11 @@ export default function StartupApps() {
         if (!result?.ok) throw new Error(result?.error ?? "Toggle failed");
       }
 
-      // Log to cloud DB (cloudApiPost resolves correct base URL in Electron)
+      // Log to cloud DB
       await cloudApiPost(`/startup/apps/${id}/toggle`, {
         name: app.entry.name, source: app.entry.source, enabled,
       }).catch(() => {});
 
-      // Store all fields needed to revert this action without a fresh scan.
-      // Format: "Source: X|reg: Y|task: Z|folder: W|was: enabled/disabled"
       logHistory(
         `Startup: ${app.entry.name} ${enabled ? "Enabled" : "Disabled"}`,
         "Startup",
@@ -141,7 +136,7 @@ export default function StartupApps() {
           `was: ${enabled ? "enabled" : "disabled"}`,
         ].join("|"),
       );
-      toast({ title: `${app.entry.name} ${enabled ? "enabled" : "disabled"}` });
+      toast({ title: `${app.entry.name} ${enabled ? "enabled" : "disabled"}`, variant: "default" });
     } catch (e: any) {
       // Revert
       setApps(prev => prev.map(a => a.entry.id === id
@@ -184,10 +179,6 @@ export default function StartupApps() {
     return apps.filter(a => a.category === activeTab);
   }, [apps, activeTab]);
 
-  const validApps = apps.filter(a => !a.entry.broken);
-  const brokenApps = apps.filter(a => a.entry.broken);
-
-  // Before/After: current vs if recommendations applied
   const beforeTime = bootTime;
   const recs = getRecommendations(apps, 3);
   const afterTime = useMemo(() => {
@@ -199,149 +190,148 @@ export default function StartupApps() {
   // ── Render ───────────────────────────────────────────────────────────────────────────────
   return (
     <AppLayout>
-      <div className="space-y-5 pb-6">
-        {/* Pulse line */}
-        <StartupPulse active={isScanning} />
-
-        {/* Page header */}
-        <PageHeader
-          icon={List}
-          title="Startup Manager"
-          subtitle="Visual boot intelligence — scan to see what slows your startup"
-          actions={
-            <div className="flex gap-2">
-              {!requiresElectron && (
-                <>
-                  <button
-                    onClick={() => { setShowHistory(v => !v); if (!showHistory) fetchHistory(); }}
-                    className="text-xs text-muted-foreground hover:text-[#E6EAF0] px-2 py-1.5 rounded hover:bg-[#21262D] flex items-center gap-1.5 transition-colors"
-                  >
-                    <History className="size-3.5" />History
-                  </button>
-                  <button
-                    onClick={scan}
-                    disabled={isScanning}
-                    className="text-xs text-muted-foreground hover:text-[#E6EAF0] px-2 py-1.5 rounded hover:bg-[#21262D] flex items-center gap-1.5 transition-colors disabled:opacity-50"
-                  >
-                    <RefreshCw className={cn("size-3.5", isScanning && "animate-spin")} />
-                    {isScanning ? "Scanning…" : "Rescan"}
-                  </button>
-                </>
-              )}
-            </div>
-          }
-        />
+      <StartupPulse active={isScanning} />
+      
+      <div className="relative z-10 w-full max-w-7xl mx-auto space-y-8 pb-16 pt-4 px-4 sm:px-6 lg:px-8">
+        
+        {/* Top actions */}
+        <div className="flex justify-end gap-3 h-8">
+          {!requiresElectron && !isScanning && !showHistory && (
+            <button
+              onClick={() => { setShowHistory(true); fetchHistory(); }}
+              className="flex items-center gap-2 px-3 py-1 rounded-lg bg-[#1A1F26] border border-white/[0.05] text-[10px] font-bold uppercase tracking-widest text-muted-foreground hover:text-[#E6EAF0] hover:bg-[#21262D] transition-colors"
+            >
+              <History className="size-3.5" /> View Log
+            </button>
+          )}
+        </div>
 
         {/* Requires Electron banner */}
         {requiresElectron && (
-          <div className="rounded-xl border border-[#2A313A] bg-[#1A1F26] p-8 text-center space-y-3">
-            <div className="size-12 rounded-full bg-[#21262D] border border-[#2A313A] flex items-center justify-center mx-auto">
-              <Laptop2 className="size-5 text-muted-foreground/40" />
+          <div className="rounded-3xl border border-[#2A313A] bg-[#14181D] p-12 text-center space-y-4">
+            <div className="size-16 rounded-2xl bg-white/[0.02] border border-white/[0.05] flex items-center justify-center mx-auto mb-6 shadow-xl">
+              <Laptop2 className="size-8 text-muted-foreground/40" />
             </div>
-            <p className="text-sm font-medium text-[#E6EAF0]">Desktop app required</p>
-            <p className="text-xs text-muted-foreground/50 max-w-xs mx-auto">
-              Startup scanning reads directly from your Windows registry and file system.
+            <h2 className="text-2xl font-bold text-[#E6EAF0]">Desktop App Required</h2>
+            <p className="text-muted-foreground/60 max-w-md mx-auto leading-relaxed">
+              Startup scanning connects directly to the Windows registry, startup folders, and task scheduler. You must use the SwitchControl desktop client for these features.
             </p>
           </div>
         )}
 
         {/* Scan error */}
         {scanError && !requiresElectron && (
-          <div className="rounded-xl border border-red-500/20 bg-red-500/[0.03] p-4 flex items-center gap-3">
-            <AlertTriangle className="size-4 text-red-400 shrink-0" />
-            <div>
-              <p className="text-sm text-red-400 font-medium">Scan failed</p>
-              <p className="text-xs text-red-400/60">{scanError}</p>
+          <div className="rounded-2xl border border-red-500/30 bg-red-500/[0.03] p-6 flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
+            <div className="size-12 rounded-full bg-red-500/10 flex items-center justify-center shrink-0">
+              <AlertTriangle className="size-6 text-red-400" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-lg font-bold text-red-400">Scanner Failure</h3>
+              <p className="text-sm text-red-400/70 mt-1">{scanError}</p>
             </div>
             <button
               onClick={scan}
-              className="ml-auto text-xs text-red-400 hover:text-red-300 px-2 py-1 rounded border border-red-500/20 hover:bg-red-500/10 transition-colors"
+              className="mt-4 sm:mt-0 px-6 py-2.5 rounded-xl bg-red-500/20 text-red-400 font-bold uppercase tracking-wider text-xs hover:bg-red-500/30 transition-colors"
             >
-              Retry
+              Retry Scan
             </button>
           </div>
         )}
 
-        {showHistory ? (
-          <StartupHistoryPanel
-            history={history}
-            loading={loadingHistory}
-            onBack={() => setShowHistory(false)}
-          />
-        ) : (
-          <div className="space-y-5">
-            {/* Hero */}
-            <StartupHero
-              scanStatus={scanStatus}
-              apps={apps}
-              onScan={scan}
-              onOptimize={optimize}
-              onReview={() => setActiveTab("userApps")}
-            />
+        {!requiresElectron && !scanError && (
+          <>
+            {showHistory ? (
+              <StartupHistoryPanel
+                history={history}
+                loading={loadingHistory}
+                onBack={() => setShowHistory(false)}
+              />
+            ) : (
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="space-y-8"
+              >
+                {/* Hero Dashboard Panel */}
+                <StartupHero
+                  scanStatus={scanStatus}
+                  apps={apps}
+                  onScan={scan}
+                  onOptimize={optimize}
+                  onReview={() => setActiveTab("userApps")}
+                />
 
-            {/* Recommendations */}
-            <StartupRecommendations
-              apps={apps}
-              onApply={optimize}
-              onReview={() => setActiveTab("userApps")}
-              visible={hasScan}
-            />
+                {hasScan && (
+                  <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
+                    
+                    {/* Left Column: Telemetry (4 cols) */}
+                    <div className="xl:col-span-4 space-y-6 flex flex-col">
+                      <StartupScore score={score} visible={hasScan} />
+                      <StartupBars apps={apps} visible={hasScan} />
+                      <StartupTimeline apps={apps} visible={hasScan} />
+                      <StartupBeforeAfter beforeMs={beforeTime} afterMs={afterTime} visible={hasScan && recs.length > 0} />
+                    </div>
 
-            {/* Two-column layout: left = score+bars+timeline, right = categories+list */}
-            {hasScan && (
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                {/* Left column — visual system */}
-                <div className="lg:col-span-1 space-y-4">
-                  <StartupScore score={score} visible={hasScan} />
-                  <StartupBars apps={apps} visible={hasScan} />
-                  <StartupTimeline apps={apps} visible={hasScan} />
-                  <StartupBeforeAfter beforeMs={beforeTime} afterMs={afterTime} visible={hasScan && recs.length > 0} />
-                </div>
-
-                {/* Right column — categories + app list */}
-                <div className="lg:col-span-2 space-y-4">
-                  <StartupCategories
-                    apps={apps}
-                    activeTab={activeTab}
-                    onTabChange={setActiveTab}
-                    visible={hasScan}
-                  />
-
-                  {/* App list */}
-                  <div className="space-y-1.5">
-                    {isScanning ? (
-                      Array.from({ length: 4 }).map((_, i) => (
-                        <div key={i} className="h-14 rounded-xl bg-[#21262D] animate-pulse" />
-                      ))
-                    ) : filteredApps.length === 0 && !scanError ? (
-                      <div className="rounded-xl border border-[#2A313A] bg-[#1A1F26] p-6 text-center">
-                        <p className="text-xs text-muted-foreground/40">No apps in this category</p>
-                      </div>
-                    ) : (
-                      filteredApps.map(app => (
-                        <StartupAppRow
-                          key={app.entry.id}
-                          app={app}
-                          onToggle={(enabled) => toggleEntry(app.entry.id, enabled)}
-                          loading={loadingId === app.entry.id}
+                    {/* Right Column: Execution & List (8 cols) */}
+                    <div className="xl:col-span-8 space-y-6 flex flex-col">
+                      
+                      <div className="grid gap-6 grid-cols-1">
+                        <StartupRecommendations
+                          apps={apps}
+                          onApply={optimize}
+                          onReview={() => setActiveTab("userApps")}
+                          visible={hasScan}
                         />
-                      ))
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
+                        <StartupBrokenEntries
+                          apps={apps}
+                          onFixAll={() => {
+                            toast({ title: "Clean Registry via Desktop", description: "This feature is restricted in the preview.", variant: "default" });
+                          }}
+                          visible={hasScan}
+                        />
+                      </div>
 
-            {/* Broken entries — full width */}
-            <StartupBrokenEntries
-              apps={apps}
-              onFixAll={() => {
-                // Fix all = remove broken registry entries (requires Electron)
-                toast({ title: "Remove broken entries via Registry Editor", description: "Or use the Electron app to auto-fix." });
-              }}
-              visible={hasScan}
-            />
-          </div>
+                      <div className="sticky top-0 z-20 pt-2 pb-4 bg-[#14181D]/80 backdrop-blur-xl border-b border-transparent">
+                        <StartupCategories
+                          apps={apps}
+                          activeTab={activeTab}
+                          onTabChange={setActiveTab}
+                          visible={hasScan}
+                        />
+                      </div>
+
+                      <div className="space-y-3 pb-20">
+                        {isScanning ? (
+                          Array.from({ length: 5 }).map((_, i) => (
+                            <div key={i} className="h-20 rounded-2xl bg-[#1A1F26]/40 border border-white/[0.02] animate-pulse" />
+                          ))
+                        ) : filteredApps.length === 0 ? (
+                          <div className="rounded-2xl border border-white/[0.04] bg-[#1A1F26]/40 p-12 text-center flex flex-col items-center">
+                            <div className="size-12 rounded-full bg-white/[0.02] flex items-center justify-center mb-4">
+                              <Laptop2 className="size-5 text-muted-foreground/30" />
+                            </div>
+                            <p className="text-sm font-bold text-[#E6EAF0] uppercase tracking-wide">Category Clear</p>
+                            <p className="text-xs text-muted-foreground/60 mt-1">No apps found matching this filter.</p>
+                          </div>
+                        ) : (
+                          <AnimatePresence mode="popLayout">
+                            {filteredApps.map((app, i) => (
+                              <StartupAppRow
+                                key={app.entry.id}
+                                app={app}
+                                onToggle={(enabled) => toggleEntry(app.entry.id, enabled)}
+                                loading={loadingId === app.entry.id}
+                              />
+                            ))}
+                          </AnimatePresence>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </>
         )}
       </div>
     </AppLayout>

@@ -6,12 +6,12 @@ import {
   HardDrive, Wrench, Gamepad2, CalendarDays, Bug,
 } from "lucide-react";
 
-const TAB_META: Record<StartupCategory, { label: string; icon: typeof HardDrive; color: string }> = {
-  system:    { label: "System",    icon: HardDrive,  color: "text-[#00D4FF]" },
-  drivers:   { label: "Drivers",   icon: Wrench,     color: "text-cyan-400" },
-  userApps:  { label: "User Apps", icon: Gamepad2,   color: "text-orange-400" },
-  scheduled: { label: "Scheduled", icon: CalendarDays, color: "text-emerald-400" },
-  broken:    { label: "Broken",    icon: Bug,        color: "text-red-400" },
+const TAB_META: Record<StartupCategory, { label: string; icon: typeof HardDrive; color: string; bg: string }> = {
+  system:    { label: "System",    icon: HardDrive,  color: "text-[#00D4FF]", bg: "bg-[#00D4FF]/10" },
+  drivers:   { label: "Drivers",   icon: Wrench,     color: "text-cyan-400", bg: "bg-cyan-400/10" },
+  userApps:  { label: "User Apps", icon: Gamepad2,   color: "text-orange-400", bg: "bg-orange-400/10" },
+  scheduled: { label: "Scheduled", icon: CalendarDays, color: "text-emerald-400", bg: "bg-emerald-400/10" },
+  broken:    { label: "Broken",    icon: Bug,        color: "text-red-400", bg: "bg-red-400/10" },
 };
 
 interface Props {
@@ -38,39 +38,57 @@ export function StartupCategories({ apps, activeTab, onTabChange, visible }: Pro
     return c;
   }, [apps]);
 
-  const tabs: (StartupCategory | "all")[] = ["all", "system", "drivers", "userApps", "scheduled", "broken"];
+  const tabs: (StartupCategory | "all")[] = ["all", "userApps", "system", "drivers", "scheduled", "broken"];
 
   return (
-    <div className="flex flex-wrap items-center gap-1.5">
-      {tabs.map(tab => {
-        const meta = tab === "all"
-          ? { label: "All", icon: HardDrive, color: "text-[#E6EAF0]" }
-          : TAB_META[tab];
-        const Icon = meta.icon;
-        const c = counts[tab] ?? { count: 0, delayMs: 0, enabled: 0 };
-        const isActive = activeTab === tab;
+    <div className="flex overflow-x-auto pb-2 scrollbar-hide -mx-2 px-2 mask-edges">
+      <div className="flex flex-nowrap items-center gap-2">
+        {tabs.map(tab => {
+          const meta = tab === "all"
+            ? { label: "All", icon: HardDrive, color: "text-[#E6EAF0]", bg: "bg-white/10" }
+            : TAB_META[tab];
+          const Icon = meta.icon;
+          const c = counts[tab] ?? { count: 0, delayMs: 0, enabled: 0 };
+          const isActive = activeTab === tab;
 
-        return (
-          <button
-            key={tab}
-            onClick={() => onTabChange(tab)}
-            className={cn(
-              "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all",
-              isActive
-                ? "bg-[#2A313A] border-[#2A313A] text-[#E6EAF0]"
-                : "bg-transparent border-[#2A313A] text-[#6B7380] hover:text-[#A0A8B3] hover:bg-[#1A1F26]"
-            )}
-          >
-            <Icon className={cn("size-3.5", meta.color)} />
-            <span>{meta.label}</span>
-            {c.count > 0 && (
-              <span className={cn("text-[10px] tabular-nums", isActive ? "text-[#A0A8B3]" : "text-[#6B7380]")}>
-                {c.enabled}/{c.count}
+          // Don't show empty categories except for 'all'
+          if (tab !== "all" && c.count === 0) return null;
+
+          return (
+            <button
+              key={tab}
+              onClick={() => onTabChange(tab)}
+              className={cn(
+                "group relative flex flex-col gap-1.5 px-4 py-3 rounded-xl border transition-all duration-300 min-w-[110px]",
+                isActive
+                  ? "bg-[#21262D] border-white/10 shadow-lg"
+                  : "bg-[#1A1F26]/40 border-white/[0.02] hover:bg-[#1A1F26] hover:border-white/[0.05]"
+              )}
+            >
+              {isActive && (
+                <motion.div 
+                  layoutId="activeTabIndicator" 
+                  className="absolute inset-0 rounded-xl border border-white/10 bg-white/[0.02] pointer-events-none" 
+                  transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                />
+              )}
+              <div className="flex items-center justify-between w-full relative z-10">
+                <div className={cn("size-6 rounded-lg flex items-center justify-center", meta.bg)}>
+                  <Icon className={cn("size-3.5", meta.color)} />
+                </div>
+                {c.count > 0 && (
+                  <span className={cn("text-[10px] tabular-nums font-mono", isActive ? "text-[#E6EAF0]" : "text-muted-foreground/60")}>
+                    {c.enabled}/{c.count}
+                  </span>
+                )}
+              </div>
+              <span className={cn("text-xs font-semibold relative z-10", isActive ? "text-[#E6EAF0]" : "text-muted-foreground/70")}>
+                {meta.label}
               </span>
-            )}
-          </button>
-        );
-      })}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
