@@ -90,6 +90,9 @@ export const sidebarSlide: Variants = {
   },
 };
 
+// Intentional no-op — used as a pass-through so callers can unconditionally
+// spread a transition variant prop without needing to branch on whether
+// page transitions are enabled. All states are identical by design.
 export const pageTransition: Variants = {
   initial: { opacity: 1, x: 0 },
   animate: { opacity: 1, x: 0 },
@@ -121,40 +124,53 @@ export const microHover = {
   },
 };
 
+// NOTE: boxShadow is intentionally absent from both glowHover and liftHover.
+// Animating box-shadow forces a full CPU-side repaint on every frame of the
+// hover transition — the same class of bug as the CSS background-position
+// animations on the landing page.
+//
+// To add a hover glow visually, use a CSS ::before/::after pseudo-element
+// that has the shadow as a static style, then animate its opacity with a
+// CSS transition (e.g. `.card::after { box-shadow: …; opacity: 0; transition: opacity 0.2s }
+// .card:hover::after { opacity: 1 }`). The shadow is painted once; only
+// the opacity change runs on the compositor — zero repaint per frame.
 export const glowHover = {
-  rest: { 
-    boxShadow: "0 0 0 rgba(139, 92, 246, 0)",
+  rest: {
+    scale: 1,
   },
-  hover: { 
-    boxShadow: "0 0 20px rgba(139, 92, 246, 0.15)",
-    transition: { duration: 0.2 }
+  hover: {
+    scale: 1.005,
+    transition: { duration: 0.2 },
   },
 };
 
 export const liftHover = {
-  rest: { y: 0, boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)" },
+  rest: { y: 0 },
   hover: { 
-    y: -2, 
-    boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.2)",
+    y: -2,
     transition: { duration: 0.2, ease: "easeOut" }
   },
 };
 
-// Timing presets
+// Timing presets (as const prevents accidental mutation of shared references)
 export const timing = {
   fast: 0.12,
   normal: 0.2,
   slow: 0.3,
   page: 0.25,
-};
+} as const;
 
-// Easing presets
+// Easing presets (as const prevents accidental mutation of shared references)
+// NOTE: easing.bounce has control-point values outside [0,1] — this is
+// intentional (it produces an overshoot/bounce). Only pair it with
+// transform/position properties, never with opacity or color: overshoot on
+// those produces a visible flash rather than a bouncy feel.
 export const easing = {
   smooth: [0.25, 0.1, 0.25, 1],
   snappy: [0.4, 0, 0.2, 1],
   bounce: [0.68, -0.55, 0.265, 1.55],
   gentle: [0.22, 1, 0.36, 1],
-};
+} as const;
 
 // Spring presets
 export const springs = {
@@ -185,7 +201,7 @@ export const entrancePresets = {
     animate: { opacity: 1, x: 0 },
     transition: { duration: timing.normal, ease: easing.gentle },
   },
-};
+} as const;
 
 export const toggleSpring = {
   type: "spring" as const,
@@ -230,11 +246,18 @@ export function Reveal({
   once = true,
   ...rest
 }: Omit<RevealProps, 'blur'>) {
+  const { prefersReducedMotion } = useMotion();
   const ref = useRef<HTMLDivElement | null>(null);
+
   // skipAnim = true when the element is already in the viewport on mount.
   // useLayoutEffect fires synchronously before the first browser paint, so
   // setting this here prevents the opacity-0 → opacity-1 transition from
   // ever being painted — eliminating the black flash on tab/page navigation.
+  //
+  // Edge case: if async content above this element causes a reflow that pushes
+  // it out of the viewport after this check runs, skipAnim remains true and the
+  // element will appear immediately without animation. This is acceptable — the
+  // alternative (a stale false that races with useInView) is worse.
   const [skipAnim, setSkipAnim] = useState(false);
   useLayoutEffect(() => {
     if (!ref.current) return;
@@ -251,6 +274,17 @@ export function Reveal({
   });
 
   const isVisible = skipAnim || inView;
+
+  // When the user prefers reduced motion, render immediately without any
+  // position or opacity animation — the context is live and responds to
+  // OS-level changes at runtime.
+  if (prefersReducedMotion) {
+    return (
+      <div ref={ref} className={cn(className)} {...(rest as object)}>
+        {children}
+      </div>
+    );
+  }
 
   return (
     <motion.div
@@ -270,6 +304,12 @@ export function Reveal({
   );
 }
 
+// NOTE on stagger child counts: staggerChildren: 0.08 means a list of N items
+// takes N×0.08 s before the last item finishes. Keep consumers to ≤15 items,
+// or reduce staggerChildren proportionally for larger lists. For lists of 20+
+// items prefer individual Reveal wrappers with capped delays rather than
+// RevealGroup so Framer Motion doesn't track intersection state for every child
+// simultaneously.
 export function RevealGroup({
   children,
   className,
@@ -277,6 +317,12 @@ export function RevealGroup({
   children: ReactNode;
   className?: string;
 }) {
+  const { prefersReducedMotion } = useMotion();
+
+  if (prefersReducedMotion) {
+    return <div className={cn(className)}>{children}</div>;
+  }
+
   return (
     <motion.div
       className={cn(className)}
@@ -304,6 +350,12 @@ export function RevealItem({
   children: ReactNode;
   className?: string;
 }) {
+  const { prefersReducedMotion } = useMotion();
+
+  if (prefersReducedMotion) {
+    return <div className={cn(className)}>{children}</div>;
+  }
+
   return (
     <motion.div
       className={cn(className)}
