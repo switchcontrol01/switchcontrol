@@ -806,7 +806,13 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
         {isLoading ? (
           <GraphLoadingPlaceholder height={chartHeight} />
         ) : (
-          <>
+          <motion.div
+            key="live-chart"
+            className="absolute inset-0"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 1.4, ease: [0.25, 0.46, 0.45, 0.94] }}
+          >
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart data={data} margin={{ top: 4, right: expanded ? 44 : 4, left: -20, bottom: 4 }}>
               {/* Gradient defs for area fills */}
@@ -1015,7 +1021,7 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
               )}
             </ComposedChart>
           </ResponsiveContainer>
-          </>
+          </motion.div>
         )}
       </div>
 
