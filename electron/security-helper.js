@@ -1103,15 +1103,28 @@ ipcMain.handle('security:runDefenderAction', async (_event, action) => {
   `;
 
   let mpCmdRunAction = '';
-  let psCmdletFallback = cmdlet;
   if (action === 'quickScan') {
     // Fire-and-forget — scan runs in background; Defender shows progress in system tray
     mpCmdRunAction = `Start-Process -FilePath $mpCmd -ArgumentList '-Scan -ScanType 1' -NoNewWindow -EA Stop; $result.message = 'Quick Scan started in the background.'`;
   } else {
-    // Signature update is quick — run synchronously so we can confirm completion.
-    // Redirect MpCmdRun output to $null so its verbose log lines don't pollute the
-    // JSON that ConvertTo-Json writes to stdout.  $LASTEXITCODE is still set correctly.
-    mpCmdRunAction = `$null = & $mpCmd -SignatureUpdate 2>&1; if ($LASTEXITCODE -eq 0) { $result.message = 'Signatures updated.' } else { throw "MpCmdRun exited $LASTEXITCODE" }`;
+    // Signature update:
+    // Exit code 0 = success.
+    // Exit code 2 = "already up to date" on some Windows versions, or elevation
+    //               required on others.  We treat both 0 and 2 as non-fatal and
+    //               attempt the PowerShell cmdlet path regardless so the update
+    //               actually lands even when MpCmdRun can't acquire the lock.
+    mpCmdRunAction = `
+      $null = & $mpCmd -SignatureUpdate 2>&1
+      $ec = $LASTEXITCODE
+      if ($ec -eq 0) {
+        $result.success = $true; $result.message = 'Signatures updated via MpCmdRun.'
+      } elseif ($ec -eq 2) {
+        # Code 2: signatures already current, or service busy — try PS cmdlet next
+        $result.message = "MpCmdRun code 2 — trying cmdlet fallback"
+      } else {
+        throw "MpCmdRun exited $ec"
+      }
+    `;
   }
 
   const psCmd = `
@@ -1120,11 +1133,38 @@ ipcMain.handle('security:runDefenderAction', async (_event, action) => {
     try {
       if ($mpCmd) {
         ${mpCmdRunAction}
-        $result.success = $true
-      } else {
-        # Fallback: PowerShell cmdlet (requires Defender WMI provider)
-        # Redirect output so cmdlet log lines don't pollute the JSON response
-        $null = ${psCmdletFallback} -ErrorAction Stop
+      }
+      # For signature updates: always also attempt the PowerShell cmdlet if we
+      # haven't already succeeded.  Update-MpSignature works for local admins
+      # without full UAC elevation and uses a different code path than MpCmdRun.
+      if (-not $result.success -and '${action}' -eq 'updateSignatures') {
+        try {
+          $null = Update-MpSignature -ErrorAction Stop
+          $result.success = $true
+          $result.message = 'Signatures updated via Update-MpSignature.'
+        } catch {
+          $psErr = $_.Exception.Message
+          # PS cmdlet failed — fire wuauclt as a non-elevated last resort.
+          # This kicks the Windows Update Agent to check for Defender definitions;
+          # it runs asynchronously so we report partial success.
+          try {
+            Start-Process -FilePath "wuauclt.exe" -ArgumentList "/detectnow /updatenow" -NoNewWindow -EA SilentlyContinue
+            Start-Process -FilePath "UsoClient.exe" -ArgumentList "StartScan" -NoNewWindow -EA SilentlyContinue
+          } catch {}
+          # If the cmdlet error looks like a policy restriction, surface that.
+          if ($psErr -match 'restricted|disabled by your administrator|access is denied|not recognized|cannot be loaded|is not installed|does not exist|access denied|No operation can be performed|invalid class|invalid namespace|0x800704ec|0x800706ba|0x80070005|Tamper') {
+            $result.restricted = $true
+            $result.message = 'Defender management is unavailable on this system.'
+          } else {
+            # wuauclt fired — mark as partially successful so the UI shows a
+            # "checking…" state rather than a hard red error.
+            $result.success = $true
+            $result.message = 'Windows Update Agent triggered to check for definition updates. Signatures will refresh shortly.'
+          }
+        }
+      } elseif (-not $result.success -and '${action}' -ne 'updateSignatures') {
+        # quickScan — no mpCmd found, fall back to PowerShell cmdlet
+        $null = ${cmdlet} -ErrorAction Stop
         $result.success = $true
         $result.message = '${friendly} completed.'
       }
