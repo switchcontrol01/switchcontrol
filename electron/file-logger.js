@@ -55,11 +55,13 @@ const isDebug = process.env.DEBUG_MODE === 'true' || process.env.LOG_VERBOSE ===
 
 // ── State ─────────────────────────────────────────────────────────────────────
 
-let _stream       = null;  // stream to timestamped startup file (debug only)
-let _logFilePath  = null;  // timestamped startup file path (debug only)
-let _latestPath   = null;
-let _backendPath  = null;
-let _initialized  = false;
+let _stream        = null;  // stream to timestamped startup file (debug only)
+let _logFilePath   = null;  // timestamped startup file path (debug only)
+let _latestPath    = null;
+let _backendPath   = null;
+let _latestStream  = null;  // async write stream for latest.log
+let _backendStream = null;  // async write stream for backend.log
+let _initialized   = false;
 
 // ── Utilities ─────────────────────────────────────────────────────────────────
 
@@ -76,7 +78,11 @@ function isoMs() {
 function ensureDir() {
   try {
     if (!fs.existsSync(LOG_DIR)) fs.mkdirSync(LOG_DIR, { recursive: true });
-  } catch (e) {}
+  } catch (e) {
+    // Surface dir-creation failures to the terminal so developers can diagnose
+    // permission/path issues even when no log file is available yet.
+    process.stdout.write(`[file-logger] WARNING: Could not create log directory ${LOG_DIR}: ${e.message}\n`);
+  }
 }
 
 function ensureCrashDir() {
@@ -176,11 +182,40 @@ function init() {
   // Prune old/excess log files
   pruneLogDir();
 
-  // Truncate latest.log at start of each run so it reflects only the current session
-  try { fs.writeFileSync(_latestPath, '', 'utf-8'); } catch (e) {}
+  // Open async write streams that truncate-on-open (flags:'w') — this replaces
+  // the old writeFileSync('','utf-8') truncation calls.  Using streams means
+  // every console.log goes through a single buffered handle instead of opening
+  // + writing + closing a file descriptor on every call (which caused main-thread
+  // stalls, especially on machines with slow HDDs or an active antivirus).
+  //
+  // Stream error safety: createWriteStream does NOT throw synchronously on open
+  // failures — it emits an async 'error' event instead.  Both streams therefore
+  // carry an 'error' listener that:
+  //   1. Nulls the stream reference so subsequent writeRaw/appendBackend calls
+  //      skip this sink cleanly (no further writes to a broken stream).
+  //   2. Warns to the original process.stdout so the failure is visible in the
+  //      terminal without crashing the app.
+  // The try/catch around createWriteStream itself guards against the rare case
+  // where the constructor throws synchronously (e.g., invalid path type).
+  function _makeLogStream(filePath, label) {
+    let stream;
+    try {
+      stream = fs.createWriteStream(filePath, { flags: 'w' });
+    } catch (e) {
+      process.stdout.write(`[file-logger] WARNING: Could not create ${label} stream: ${e.message}\n`);
+      return null;
+    }
+    stream.on('error', (e) => {
+      process.stdout.write(`[file-logger] WARNING: ${label} stream error — sink disabled: ${e.message}\n`);
+      // Null out the module-level reference so future writes skip this sink.
+      if (stream === _latestStream)  _latestStream  = null;
+      if (stream === _backendStream) _backendStream = null;
+    });
+    return stream;
+  }
 
-  // Truncate backend.log at start of each run
-  try { fs.writeFileSync(_backendPath, '', 'utf-8'); } catch (e) {}
+  _latestStream  = _makeLogStream(_latestPath,  'latest.log');
+  _backendStream = _makeLogStream(_backendPath, 'backend.log');
 
   // In debug/dev mode only: also open a timestamped per-launch log file
   if (isDebug) {
@@ -231,9 +266,9 @@ function init() {
 // ── Write helpers ─────────────────────────────────────────────────────────────
 
 function writeRaw(line) {
-  // Always write to latest.log
-  if (_latestPath) {
-    try { fs.appendFileSync(_latestPath, line, 'utf-8'); } catch (e) {}
+  // Always write to latest.log via the async stream (no per-call fd open/close)
+  if (_latestStream) {
+    try { _latestStream.write(line); } catch (e) {}
   }
   // Debug-only: also write to the per-launch timestamped file
   if (_stream) {
@@ -440,9 +475,9 @@ function writeCrashDump(type, message) {
 // ── Backend log helper ────────────────────────────────────────────────────────
 
 function appendBackend(line) {
-  if (!_backendPath) return;
+  if (!_backendStream) return;
   try {
-    fs.appendFileSync(_backendPath, `[${isoMs()}] ${line}\n`, 'utf-8');
+    _backendStream.write(`[${isoMs()}] ${line}\n`);
   } catch (e) {}
 }
 
