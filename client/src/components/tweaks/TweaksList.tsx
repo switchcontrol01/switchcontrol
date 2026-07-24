@@ -204,10 +204,13 @@ export function TweaksList() {
       url.searchParams.delete("tweak");
       window.history.replaceState({}, "", url.toString());
     }
-    // Pre-fill search so the tweak is visible, reset filters
+    // Pre-fill search so the tweak is visible, reset filters.
+    // If the tweak is Risky it is hidden by the showRisky guard — unlock it
+    // so the card actually appears instead of showing an empty "No tweaks found".
     setSearch(target.title);
     setActiveChip("All");
     setActiveLevel("All");
+    if (target.risk === "Risky") setShowRisky(true);
     setHighlightId(tweakId);
     // Scroll to the card after it renders
     const scrollTimer = setTimeout(() => {

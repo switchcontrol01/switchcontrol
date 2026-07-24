@@ -26,6 +26,7 @@ import { useStore } from "@/lib/store";
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
 import { useHashLocation } from "wouter/use-hash-location";
+import { TWEAKS_DATA } from "@/lib/tweak-registry";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -99,6 +100,7 @@ const CONFIDENCE_LABEL: Record<DetectedIssue["confidence"], string> = {
 const ISSUE_FIX_MAP: Record<string, { tweakId: string; chip: string }> = {
   "timer-res-off":              { tweakId: "timer-res",            chip: "Latency"     },
   "synth-timers-on":            { tweakId: "synth-timers",         chip: "Latency"     },
+  "hyperv-on":                  { tweakId: "hyper-v",              chip: "Performance" },
   "irq-priority-default":       { tweakId: "irq-priority",         chip: "Latency"     },
   "p-states-on":                { tweakId: "p-states",             chip: "Performance" },
   "power-throttling-on":        { tweakId: "power-throttling",     chip: "Performance" },
@@ -113,6 +115,15 @@ const ISSUE_FIX_MAP: Record<string, { tweakId: string; chip: string }> = {
   "gaming-mode-off":            { tweakId: "gaming-mode",          chip: "Latency"     },
   "sys-responsiveness-default": { tweakId: "sys-responsiveness",   chip: "Latency"     },
 };
+
+// Guard: verify the mapped tweakId actually exists in the registry.
+// If a future issue maps to a non-existent tweak the button would navigate to
+// an empty search result — filter those out so Fix Now is never a dead end.
+const VALID_FIX_MAP = Object.fromEntries(
+  Object.entries(ISSUE_FIX_MAP).filter(([, { tweakId }]) =>
+    TWEAKS_DATA.some((t) => t.id === tweakId),
+  ),
+);
 
 // ── Single issue card ─────────────────────────────────────────────────────────
 
@@ -131,7 +142,7 @@ function IssueCard({
   const SevIcon = cfg.icon;
   const CatIcon = CATEGORY_ICON[issue.category] ?? AlertTriangle;
 
-  const fixMapping = ISSUE_FIX_MAP[issue.id];
+  const fixMapping = VALID_FIX_MAP[issue.id];
 
   const handleFixNow = () => {
     console.log(`[DetectedIssue:FixNow] clicked issueId=${issue.id}`);
