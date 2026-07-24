@@ -630,9 +630,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
       return ipcRenderer.invoke('extremeLabs:applySelected', ids);
     },
     restoreBaseline:    (ids) => {
-      // Previously had no validation at all — the only extremeLabs method missing it.
-      assertStringArray(ids, 'extremeLabs.restoreBaseline ids');
-      return ipcRenderer.invoke('extremeLabs:restoreBaseline', ids);
+      // ids may be a specific array of tweak IDs (targeted revert) OR an empty
+      // array / undefined meaning "full safety sweep of all known IDs".
+      // Empty array is the canonical full-sweep signal — main.js checks
+      // `Array.isArray(ids) && ids.length > 0`; an empty array falls through
+      // to the allIds path.  Normalise undefined → [] so assertStringArray
+      // doesn't throw and kill every retry attempt in the revert engine.
+      const safeIds = Array.isArray(ids) ? ids : [];
+      assertStringArray(safeIds, 'extremeLabs.restoreBaseline ids');
+      return ipcRenderer.invoke('extremeLabs:restoreBaseline', safeIds);
     },
     getStatus:          () => ipcRenderer.invoke('extremeLabs:getStatus'),
     checkAllStatus:     () => ipcRenderer.invoke('extremeLabs:checkAllStatus'),

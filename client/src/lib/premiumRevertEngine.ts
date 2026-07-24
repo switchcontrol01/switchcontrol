@@ -599,10 +599,12 @@ async function revertExtremeLabsTweaks(): Promise<RevertItemResult[]> {
 
   // Pass the specific IDs we tracked so the handler only reverts those tweaks —
   // avoids spawning PowerShell for tweaks that were never applied.
-  // When the store is empty (cleared between sessions) we pass undefined so the
+  // When the store is empty (cleared between sessions) we pass [] so the
   // handler does a full safety sweep of all known IDs — this closes the loophole
   // where a user applied tweaks, the store was lost, and trial expiry ran: the
   // actual registry/system changes get rolled back even without store records.
+  // NOTE: never pass undefined here — the preload's assertStringArray guard
+  // throws on non-arrays, which silently kills all 3 retry attempts.
   const trackedIds = entries.map(([id]) => id);
 
   let lastResult: any = null;
@@ -610,7 +612,8 @@ async function revertExtremeLabsTweaks(): Promise<RevertItemResult[]> {
 
   for (let attempt = 1; attempt <= MAX_RETRY_ATTEMPTS; attempt++) {
     try {
-      lastResult = await api.restoreBaseline(trackedIds.length > 0 ? trackedIds : undefined);
+      // Empty array → full sweep in main.js (Array.isArray([]) && [].length > 0 is false → allIds).
+      lastResult = await api.restoreBaseline(trackedIds.length > 0 ? trackedIds : []);
       if (lastResult?.ok) {
         success = true;
         console.log(`[Revert:EL] restoreBaseline succeeded attempt=${attempt} ids=${trackedIds.length || 'all'}`);
