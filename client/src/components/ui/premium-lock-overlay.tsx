@@ -130,7 +130,7 @@ function CrownOrb() {
 
 // ── Full lock overlay ─────────────────────────────────────────────────────────
 
-interface PremiumLockOverlayProps {
+export interface PremiumLockOverlayProps {
   featureName: string;
   description?: string;
   className?: string;
@@ -291,7 +291,7 @@ export function PremiumLockOverlay({
 
 // ── Toggle-row lock (small inline lock icon on a row) ─────────────────────────
 
-interface PremiumToggleLockProps {
+export interface PremiumToggleLockProps {
   isLocked: boolean;
   onLockedClick: () => void;
   children: React.ReactNode;
@@ -315,7 +315,7 @@ export function PremiumToggleLock({ isLocked, onLockedClick, children }: Premium
 
 // ── Page header "Premium" badge ───────────────────────────────────────────────
 
-interface PremiumPageHeaderProps {
+export interface PremiumPageHeaderProps {
   title: string;
   description: string;
   isLocked: boolean;

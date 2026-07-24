@@ -9,16 +9,20 @@
 import { Crown } from "lucide-react";
 import { PremiumOverlayCard } from "@/components/ui/PremiumOverlayCard";
 import { premiumColor, premiumRgba } from "@/lib/themeTokens";
+import { useTrialExpiryStore } from "@/stores/trialExpiryStore";
 
 // ── Full-page overlay (covers the whole viewport) ────────────────────────────
 
-interface PremiumPageOverlayProps {
+export interface PremiumPageOverlayProps {
   featureName: string;
   buttonText?: string;
   description?: string;
 }
 
 export function PremiumPageOverlay({ featureName, buttonText, description }: PremiumPageOverlayProps) {
+  // PremiumOverlayCard already subscribes to trialEndingFlowActive and returns
+  // null when the trial-ending revert modal is active — no extra check needed here
+  // because this component is a direct pass-through with no extra DOM wrapper.
   return (
     <PremiumOverlayCard
       featureName={featureName}
@@ -31,7 +35,7 @@ export function PremiumPageOverlay({ featureName, buttonText, description }: Pre
 
 // ── Card-level overlay (renders over a child element) ────────────────────────
 
-interface PremiumCardOverlayProps {
+export interface PremiumCardOverlayProps {
   featureName: string;
   buttonText?: string;
   children: React.ReactNode;
@@ -44,7 +48,13 @@ export function PremiumCardOverlay({
   children,
   isLocked,
 }: PremiumCardOverlayProps) {
-  if (!isLocked) {
+  // CRITICAL: must check trialEndingFlowActive here, not just rely on
+  // PremiumOverlayCard returning null.  When PremiumOverlayCard returns null
+  // the dark backdrop <div> below would still render, blocking the revert modal
+  // that sits at a lower z-index than z-9999.
+  const trialEndingFlowActive = useTrialExpiryStore(s => s.trialEndingFlowActive);
+
+  if (!isLocked || trialEndingFlowActive) {
     return <>{children}</>;
   }
 
