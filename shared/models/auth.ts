@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { boolean, index, integer, jsonb, pgTable, real, text, timestamp, uniqueIndex, varchar } from "drizzle-orm/pg-core";
+import { boolean, index, integer, jsonb, pgTable, text, timestamp, uniqueIndex, varchar } from "drizzle-orm/pg-core";
 
 // Session storage table.
 // (IMPORTANT) This table is mandatory for Replit Auth, don't drop it.
@@ -36,7 +36,11 @@ export const users = pgTable("users", {
   plan: text("plan").default("free"),
   trialStartedAt: timestamp("trial_started_at"),
   trialEndsAt: timestamp("trial_ends_at"),
-  trialDurationHours: real("trial_duration_hours"),
+  // Stored as integer hours (not float) — float rounding on values like
+  // 71.999999 would cause off-by-seconds bugs in trial-expiry date math.
+  // Treat as informational only at runtime; use trialEndsAt for all
+  // expiry comparisons.
+  trialDurationHours: integer("trial_duration_hours"),
   trialGrantedByAdminId: varchar("trial_granted_by_admin_id"),
   trialReason: text("trial_reason"),
   hasUsedTrial: boolean("has_used_trial").notNull().default(false),
@@ -70,19 +74,54 @@ export const users = pgTable("users", {
 
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (table) => [
+  // ── Identity uniqueness ───────────────────────────────────────────────────
+  // Without these, a race condition (double-click login, retried OAuth
+  // callback, concurrent tabs) can silently insert duplicate user rows.
+  // A DB-level unique constraint turns those races into a rejected insert
+  // rather than a corrupt duplicate that app-level code never detects.
+  uniqueIndex("UQ_users_provider_providerUserId").on(table.provider, table.providerUserId),
 
-// Admin audit log — every plan/admin action is recorded here
+  // NULL is treated as distinct by Postgres unique indexes, so these are
+  // safe even when the columns are nullable — two NULL rows don't conflict.
+  uniqueIndex("UQ_users_email").on(table.email),
+  uniqueIndex("UQ_users_google_id").on(table.googleId),
+
+  // ── Billing uniqueness ────────────────────────────────────────────────────
+  // Prevents the same Stripe customer being attached to two user accounts.
+  // Without this, webhook handling is ambiguous: which user gets credited?
+  uniqueIndex("UQ_users_stripe_customer_id").on(table.stripeCustomerId),
+
+  // ── Device-binding uniqueness ─────────────────────────────────────────────
+  // Enforces the "one premium device per account" invariant at the DB level.
+  // Without this, the same physical device ID can be bound as the premium
+  // device on multiple accounts simultaneously — defeating license enforcement.
+  uniqueIndex("UQ_users_premium_bound_device_id").on(table.premiumBoundDeviceId),
+]);
+
+// Admin audit log — every plan/admin action is recorded here.
+// adminUserId and targetUserId reference users.id so orphaned audit records
+// (pointing at deleted/non-existent users) are prevented at the DB level.
+// The default ON DELETE RESTRICT means you cannot delete a user who appears
+// in the audit log — intentional for an audit trail.
 export const adminLogs = pgTable("admin_logs", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  adminUserId: varchar("admin_user_id").notNull(),
-  targetUserId: varchar("target_user_id").notNull(),
+  adminUserId: varchar("admin_user_id")
+    .notNull()
+    .references(() => users.id),
+  targetUserId: varchar("target_user_id")
+    .notNull()
+    .references(() => users.id),
   action: text("action").notNull(),
   previousValue: jsonb("previous_value"),
   newValue: jsonb("new_value"),
   metadata: jsonb("metadata"),
   createdAt: timestamp("created_at").defaultNow(),
-});
+}, (table) => [
+  // Lookup indexes so audit queries by admin or by target user are fast.
+  index("IDX_admin_logs_admin_user_id").on(table.adminUserId),
+  index("IDX_admin_logs_target_user_id").on(table.targetUserId),
+]);
 
 // Stripe webhook events log — persisted for admin visibility
 export const stripeWebhookEvents = pgTable("stripe_webhook_events", {
