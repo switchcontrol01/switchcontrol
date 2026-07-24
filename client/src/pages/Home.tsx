@@ -307,7 +307,8 @@ function useLiveStatus(): string {
     const cpu = telemetry.cpu?.usagePct ?? null;
     const ramUsed = telemetry.ram?.usedGb ?? null;
     const ramTotal = telemetry.ram?.totalGb ?? null;
-    const gpu = telemetry.gpu?.load ?? null;
+    // usagePct is the canonical field; load is a legacy alias some backends emit
+    const gpu = telemetry.gpu?.usagePct ?? telemetry.gpu?.load ?? null;
     const temp = telemetry.temps?.cpu ?? null;
 
     // Build honest status from whatever real data we have
@@ -321,11 +322,9 @@ function useLiveStatus(): string {
     }
     if (gpu !== null) parts.push(`GPU ${gpu.toFixed(0)}%`);
 
-    if (parts.length > 0) {
-      setStatus(parts.join(" · "));
-    } else {
-      setStatus("System active");
-    }
+    // Deduplicate: avoid a re-render when the string is identical to last frame
+    const next = parts.length > 0 ? parts.join(" · ") : "System active";
+    setStatus(prev => (prev === next ? prev : next));
   }, [telemetry, telStatus]);
 
   return status;
@@ -343,7 +342,10 @@ function useLiveStatus(): string {
 const _glowColor = getSessionGlowColor();
 
 const DashboardStartupGlow = memo(function DashboardStartupGlow() {
-  const alreadyPlayed = hasGlowPlayed();
+  // useState initializer: reads sessionStorage exactly once per mount,
+  // not on every render. Prevents a synchronous storage read on every
+  // parent re-render that triggers a DashboardStartupGlow re-render.
+  const [alreadyPlayed] = useState(() => hasGlowPlayed());
 
   useEffect(() => {
     if (!alreadyPlayed) markGlowPlayed();
@@ -437,6 +439,7 @@ export default function Home() {
   const sysIntel = useSystemIntelligence();
   const liveStatus = useLiveStatus();
   const timeOfDay = useMemo(() => getTimeOfDay(), []);
+  const greeting  = useMemo(() => getGreeting(),  []);
 
   // ── Event tracking ──────────────────────────────────────────────────────────
   const prevTweaksRef = useRef(account.stats.tweaksApplied);
@@ -459,22 +462,22 @@ export default function Home() {
       addEvent({ type: "memory_cleaned", label: "Memory cleaner completed", ts: Date.now() });
       setLastAction({ action: "Memory cleaner", result: "RAM cleared — system headroom restored", ts: Date.now(), positive: true });
       // Re-poll RAM so the Memory card reflects the freed headroom even when
-      // telemetry WebSocket is unavailable.  Use si.mem() directly (fast, <200ms)
-      // rather than the full getSpecs() which re-runs WMI/GPU queries.
+      // the telemetry WebSocket is unavailable. Use getLive() (fast, no WMI)
+      // rather than getSpecs() which re-runs GPU WMI queries and defeats the cache.
       const api = (window as any).electronAPI;
-      if (api?.system?.getSpecs) {
+      if (api?.telemetry?.getLive) {
         // P3-H1: store timeout id so we can cancel if component unmounts before it fires
         const ramRefreshTimer = setTimeout(() => {
-          withTimeout(api.system.getSpecs(), 8_000, null)
+          withTimeout(api.telemetry.getLive(null), 5_000, null)
             .then((fresh: any) => {
               if (!fresh?.ram) return;
-              const totalGB = fresh.ram.totalGB ?? fresh.ram.total ?? 0;
-              const usedGB  = fresh.ram.usedGB  ?? fresh.ram.used  ?? 0;
-              if (totalGB > 0) {
+              const totalGb = fresh.ram.totalGb ?? 0;
+              const usedGb  = fresh.ram.usedGb  ?? 0;
+              if (totalGb > 0) {
                 setStats(prev => ({
                   ...prev,
-                  totalRamGb: Math.round(totalGB),
-                  usedRamGb: parseFloat(Number(usedGB).toFixed(1)),
+                  totalRamGb: Math.round(totalGb),
+                  usedRamGb: parseFloat(Number(usedGb).toFixed(1)),
                 }));
               }
             })
@@ -666,8 +669,12 @@ export default function Home() {
               if (!enrichedGpu || enrichedGpu === 'Detecting\u2026' || enrichedGpu === '') return;
               const cur = (useStore as any).getState?.()?.stats;
               const curGpu: string = cur?.gpuName ?? '';
-              if (curGpu && curGpu !== 'Detecting\u2026' && curGpu !== 'Unavailable' && curGpu !== '') return;
-              setStats({ gpuName: enrichedGpu, gpuVendor: payload.gpu?.vendor ?? '' });
+              if (curGpu && curGpu !== 'Detecting\u2026' && curGpu !== 'Unavailable' && curGpu !== 'Switching\u2026' && curGpu !== '') return;
+              setStats({
+                gpuName:   enrichedGpu,
+                gpuVendor: payload.gpu?.vendor ?? '',
+                vramGb:    payload.gpu?.vramGB ?? 0,
+              });
               console.log('[GPU] renderer: store patched from specs:enriched (non-Splash path) —', enrichedGpu);
             });
           }
@@ -816,7 +823,7 @@ export default function Home() {
                 className="flex items-center flex-wrap gap-x-2 gap-y-1"
               >
                 <h1 className="greeting-glow text-3xl font-bold tracking-tight text-[#E6EAF0] leading-tight">
-                  Good {getGreeting()},
+                  Good {greeting},
                 </h1>
 
                 <span
@@ -1088,7 +1095,7 @@ export default function Home() {
                     {sysIntel.profile.network.interfaces.slice(0, 4).map((iface, i) => (
                       <div key={i} className="flex items-center justify-between gap-2 text-xs">
                         <div className="flex items-center gap-1.5 min-w-0">
-                          <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${iface.operstate === "up" ? "bg-emerald-400" : "bg-[#1A1F26]0"}`} />
+                          <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${iface.operstate === "up" ? "bg-emerald-400" : "bg-[#2A313A]"}`} />
                           <span className="text-[#A0A8B3] truncate">{iface.name ?? "Interface"}</span>
                           <span className={`text-[10px] px-1 py-0 rounded border font-medium ${iface.wifi ? "text-blue-400 border-blue-500/20 bg-blue-500/10" : "text-emerald-400 border-emerald-500/20 bg-emerald-500/10"}`}>
                             {iface.wifi ? "Wi-Fi" : "Ethernet"}
@@ -1160,7 +1167,7 @@ export default function Home() {
                             ? "bg-emerald-400"
                             : evt.type === "spike_detected"
                             ? "bg-red-400"
-                            : "bg-[#1A1F26]0"
+                            : "bg-[#2A313A]"
                         }`} />
                         <div className="flex-1 min-w-0">
                           <p className="text-[11px] text-[#E6EAF0] leading-tight truncate">{evt.label}</p>
