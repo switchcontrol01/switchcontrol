@@ -152,7 +152,11 @@ export async function registerRoutes(
     if (userId && ids.length > 0) {
       storage.getOrCreateSettings(userId).then(s => storage.addHistory({
         settingsId: s.id, action: `Extreme Labs: Apply Tweaks (${ids.length})`,
-        page: "Extreme Labs", result: "Applied",
+        page: "Extreme Labs",
+        // Accurately record that web sessions cannot apply registry tweaks.
+        // The response below returns applied:false for every id — storing "Applied"
+        // here would create false positives in any UI that reads history records.
+        result: "Not Applied — desktop app required",
         notes: ids.slice(0, 5).join(", ") + (ids.length > 5 ? ` +${ids.length - 5} more` : ""),
       })).catch(() => {});
     }
@@ -170,7 +174,7 @@ export async function registerRoutes(
     res.json({ ok: true, message: "All tweaks reverted to baseline" });
   });
 
-  // Warm up system intelligence in the background — delayed 15s so it doesn't
+  // Warm up system intelligence in the background — delayed 20s so it doesn't
   // compete with telemetry priming, window reveal, or dashboard hydration.
   // triggerBackgroundCollection() is idempotent (no-op if already running or fresh).
   // 20s gives Phase A (3.5s) + batchCheckAll (8s) time to finish before the
@@ -238,7 +242,7 @@ export async function registerRoutes(
   // local JWT has expired. The cloud server authenticates via the persisted session
   // cookie (Passport) and issues a fresh JWT the Electron local backend can verify.
   app.post("/api/auth/reissue-jwt", async (req, res) => {
-    const isElectronBackend = process.env.ELECTRON_BACKEND === '1';
+    // Uses the module-level isElectronBackend const — no local redeclaration needed.
     if (isElectronBackend) {
       return res.status(404).json({ error: 'Not available on local backend' });
     }
@@ -257,7 +261,7 @@ export async function registerRoutes(
   app.get("/api/csrf-token", (req, res) => {
     const token = req.cookies?._csrf || generateCsrfToken();
     if (!req.cookies?._csrf) {
-      const isElectronBackend = process.env.ELECTRON_BACKEND === '1';
+      // Uses the module-level isElectronBackend const — no local redeclaration needed.
       res.cookie("_csrf", token, {
         httpOnly: false,
         secure: !isElectronBackend,
@@ -282,7 +286,22 @@ export async function registerRoutes(
     try {
       const userId = req.cloudUser!.id;
       const settings = await storage.getOrCreateSettings(userId);
-      const updated = await storage.updateSettings(settings.id, req.body);
+      // Strip server-managed fields before passing the body to the DB.
+      // tweaksApplied/servicesDisabled/cleanersRun/startupAppsDisabled are
+      // maintained exclusively by server-side routes — a client sending these
+      // could inflate their own tweak count and unlock higher ai-scan tiers
+      // (getTierFromTweakCount reads tweaksApplied directly).
+      const {
+        tweaksApplied: _ta,
+        servicesDisabled: _sd,
+        cleanersRun: _cr,
+        startupAppsDisabled: _sad,
+        lastScan: _ls,
+        id: _id,
+        userId: _uid,
+        ...safeBody
+      } = req.body ?? {};
+      const updated = await storage.updateSettings(settings.id, safeBody);
       res.json(updated);
     } catch (error) {
       res.status(500).json({ error: "Failed to update settings" });
@@ -321,11 +340,15 @@ export async function registerRoutes(
       
       const settings = await storage.getOrCreateSettings(cloudUser.id);
       const tweak = await storage.setTweak(settings.id, String(tweakId), enabled);
-      
-      const currentCount = settings.tweaksApplied || 0;
-      const newCount = enabled ? currentCount + 1 : Math.max(0, currentCount - 1);
-      await storage.updateSettings(settings.id, { 
-        tweaksApplied: newCount,
+
+      // Recount from the DB rather than doing read-then-arithmetic on
+      // settings.tweaksApplied. The stale-read pattern (read count → ±1 → write)
+      // loses updates under concurrent toggles (double-click, retry-on-timeout,
+      // multiple tabs). The applied_tweaks table is the source of truth.
+      const allTweaks = await storage.getTweaks(settings.id);
+      const enabledCount = allTweaks.filter(t => t.enabled).length;
+      await storage.updateSettings(settings.id, {
+        tweaksApplied: enabledCount,
         lastScan: new Date()
       });
       
@@ -378,14 +401,26 @@ export async function registerRoutes(
         });
       }
 
-      const settings = await storage.getOrCreateSettings(cloudUser.id);
-      
-      for (const tweakId of tweakIds) {
-        await storage.setTweak(settings.id, tweakId, true);
+      // Guard moved before the DB round-trip: malformed body produces a clean 400
+      // instead of throwing inside the loop and falling through to a generic 500.
+      if (!Array.isArray(tweakIds) || tweakIds.length === 0) {
+        return res.status(400).json({ error: "tweakIds must be a non-empty array" });
       }
-      
-      await storage.updateSettings(settings.id, { 
-        tweaksApplied: tweakIds.length,
+
+      const settings = await storage.getOrCreateSettings(cloudUser.id);
+
+      for (const tweakId of tweakIds) {
+        await storage.setTweak(settings.id, String(tweakId), true);
+      }
+
+      // Recount from the DB — tweakIds.length would overwrite the existing count
+      // (e.g. 5 manual tweaks + 3 recommended → 3, not 8) and is also stale under
+      // concurrent requests. Reading applied_tweaks after all writes gives the true
+      // total and feeds getTierFromTweakCount() correctly in /api/ai-scan.
+      const allTweaks = await storage.getTweaks(settings.id);
+      const enabledCount = allTweaks.filter(t => t.enabled).length;
+      await storage.updateSettings(settings.id, {
+        tweaksApplied: enabledCount,
         lastScan: new Date()
       });
       
@@ -428,9 +463,16 @@ export async function registerRoutes(
     try {
       const userId = req.cloudUser!.id;
       const settings = await storage.getOrCreateSettings(userId);
+      // Destructure only the fields addHistory expects — spreading req.body
+      // passes unvalidated client data straight to the DB insert. settingsId
+      // is always sourced from the authenticated session, never from the client.
+      const { action, page, result, notes } = req.body ?? {};
       const entry = await storage.addHistory({
-        ...req.body,
         settingsId: settings.id,
+        action:  typeof action  === "string" ? action  : "",
+        page:    typeof page    === "string" ? page    : "",
+        result:  typeof result  === "string" ? result  : "",
+        notes:   typeof notes   === "string" ? notes   : undefined,
       });
       res.json(entry);
     } catch (error) {
@@ -998,7 +1040,9 @@ export async function registerRoutes(
       });
     }
 
-    console.log(`[Download] Installer requested — file=${fileName} source=${source}`);
+    // fileName is accepted in the route param for URL compatibility but does not
+    // affect which file is served — all requests redirect to INSTALLER_DOWNLOAD_URL.
+    console.log(`[Download] Installer requested — requestedFile=${fileName} source=${source} redirectsTo=${installerUrl}`);
     res.redirect(302, installerUrl);
   });
 
