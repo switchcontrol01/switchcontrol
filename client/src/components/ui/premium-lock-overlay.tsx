@@ -16,6 +16,8 @@ import { useAttentionBounce } from "@/hooks/useAttentionBounce";
 import { premiumColor, premiumRgba } from "@/lib/themeTokens";
 import { openPricing } from "@/lib/pricing";
 import { useTrialExpiryStore } from "@/stores/trialExpiryStore";
+import { getBenefits } from "@/lib/premiumBenefits";
+import { CrownGlowOrb } from "@/components/ui/PremiumOverlayCard";
 
 // ── CSS keyframes injected once ───────────────────────────────────────────────
 
@@ -25,10 +27,6 @@ import { useTrialExpiryStore } from "@/stores/trialExpiryStore";
 const KEYFRAMES = `
 @keyframes sc-plo-glow {
   0%,100%{ opacity:0.88; }
-  50%    { opacity:1; }
-}
-@keyframes sc-plo-orb {
-  0%,100%{ opacity:.85; }
   50%    { opacity:1; }
 }
 @keyframes sc-plo-badge {
@@ -56,77 +54,8 @@ if (typeof document !== 'undefined') {
   }
 }
 
-// ── Feature-aware benefit bullets ─────────────────────────────────────────────
-
-type Benefits = [string, string, string];
-
-const BENEFITS_MAP: Array<[string, Benefits]> = [
-  ["AI Advisor", [
-    "AI-powered diagnostics that surface hidden bottlenecks",
-    "Personalised recommendations for your exact hardware",
-    "Smart latency & FPS improvement suggestions in seconds",
-  ]],
-  ["BIOS", [
-    "Unlock hidden BIOS performance settings safely",
-    "XMP / EXPO memory profile tuning with live guidance",
-    "Thermal and power-limit recommendations for stable gains",
-  ]],
-  ["Network", [
-    "Reduce ping and eliminate packet jitter in real time",
-    "Optimised TCP/IP stack tuned for competitive play",
-    "Automatic traffic prioritisation for your game",
-  ]],
-  ["NIC Tuning", [
-    "Adapter-level interrupt moderation for lower latency",
-    "RSS queue tuning matched to your CPU core count",
-    "Driver-level power management disabled for gaming",
-  ]],
-  ["Startup", [
-    "One-click disable for the slowest boot offenders",
-    "Publisher trust scoring for unknown startup apps",
-    "Boot time reduction with smart delay suggestions",
-  ]],
-  ["Debloat", [
-    "Safe removal of telemetry and preinstalled bloatware",
-    "One-click restore for anything you change your mind on",
-    "Curated rules updated for every major Windows version",
-  ]],
-  ["Security", [
-    "Hardened Windows Defender and firewall configuration",
-    "Attack surface reduction with no app breakage",
-    "Real-time threat status visible on your dashboard",
-  ]],
-];
-
-function getBenefits(featureName: string): Benefits {
-  const lower = featureName.toLowerCase();
-  for (const [key, val] of BENEFITS_MAP) {
-    if (lower.includes(key.toLowerCase())) return val;
-  }
-  return [
-    "Advanced optimisation tuned to your hardware",
-    "Exclusive performance profiles across CPU, GPU & network",
-    "Priority support and early access to new features",
-  ];
-}
-
-// ── Tiny crown orb (CSS-animated, no framer-motion infinite loop) ─────────────
-
-function CrownOrb() {
-  return (
-    <div
-      className="flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center"
-      style={{
-        background: `rgba(168,85,247,0.16)`,
-        // Static glow ring — sc-plo-orb pulses opacity, not box-shadow.
-        boxShadow: "0 0 22px rgba(168,85,247,0.25),0 0 0 1px rgba(168,85,247,0.14)",
-        animation: "sc-plo-orb 3s ease-in-out infinite",
-      }}
-    >
-      <Crown className="size-6" style={{ color: premiumColor.light }} />
-    </div>
-  );
-}
+// getBenefits and CrownGlowOrb are imported from shared modules above.
+// Edit benefit copy in @/lib/premiumBenefits — changes apply to both overlays.
 
 // ── Full lock overlay ─────────────────────────────────────────────────────────
 
@@ -214,7 +143,7 @@ export function PremiumLockOverlay({
         >
           {/* Header row: crown orb + labels */}
           <div className="flex items-center gap-4">
-            <CrownOrb />
+            <CrownGlowOrb />
             <div>
               <p
                 className="text-[10px] font-semibold uppercase tracking-[0.18em] mb-0.5"
