@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef, memo } from "react";
 import { createPortal } from "react-dom";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Button } from "@/components/ui/button";
@@ -117,6 +117,281 @@ const CATEGORY_CONFIG: Record<AppCategory, { icon: React.FC<{ className?: string
   microsoft: { icon: Monitor,     cls: "bg-blue-500/15 text-blue-400 border-blue-500/25" },
   generic:   { icon: Package,     cls: "bg-zinc-500/15 text-zinc-500 border-zinc-700/50" },
 };
+
+// ── App icon with multi-layer web fallbacks ───────────────────────────────────
+// Publisher name → canonical domain used to pull logos from icon services.
+// Lower-cased, stripped of punctuation for matching.
+const PUBLISHER_DOMAINS: Record<string, string> = {
+  // Microsoft / Windows
+  "microsoft": "microsoft.com", "microsoft corporation": "microsoft.com",
+
+  // Processors & GPUs
+  "nvidia": "nvidia.com", "nvidia corporation": "nvidia.com",
+  "amd": "amd.com", "advanced micro devices": "amd.com", "advanced micro devices inc": "amd.com",
+  "intel": "intel.com", "intel corporation": "intel.com",
+  "qualcomm": "qualcomm.com", "qualcomm technologies": "qualcomm.com",
+
+  // Motherboard / peripheral
+  "asus": "asus.com", "asustek computer inc": "asus.com", "asustek": "asus.com",
+  "gigabyte": "gigabyte.com", "gigabyte technology": "gigabyte.com",
+  "msi": "msi.com", "micro-star international": "msi.com", "micro-star intl": "msi.com",
+  "evga": "evga.com",
+  "asrock": "asrock.com",
+
+  // Peripherals & audio
+  "corsair": "corsair.com", "corsair memory": "corsair.com", "corsair memory inc": "corsair.com",
+  "logitech": "logitech.com", "logitech inc": "logitech.com",
+  "razer": "razer.com", "razer inc": "razer.com",
+  "steelseries": "steelseries.com",
+  "hyperx": "hyperx.com",
+  "roccat": "roccat.com",
+  "elgato": "elgato.com", "elgato systems": "elgato.com",
+  "creative technology": "creative.com",
+  "creative labs": "creative.com",
+  "focusrite": "focusrite.com",
+  "fifine": "fifine-mic.com",
+  "fiio": "fiio.com",
+  "nzxt": "nzxt.com",
+  "kingston": "kingston.com",
+  "kingston technology": "kingston.com",
+  "western digital": "westerndigital.com",
+  "sandisk": "sandisk.com",
+  "seagate": "seagate.com",
+  "crucial": "crucial.com",
+
+  // Cooling / case / PSU
+  "thermaltake": "thermaltake.com",
+  "cooler master": "coolermaster.com",
+  "be quiet": "bequiet.com",
+  "noctua": "noctua.at",
+  "deepcool": "deepcool.com",
+  "fractal design": "fractal-design.com",
+  "arctic": "arctic.ac",
+
+  // Storage
+  "samsung": "samsung.com", "samsung electronics": "samsung.com",
+  "seagate technology": "seagate.com",
+  "qnap": "qnap.com",
+  "synology": "synology.com",
+
+  // Displays & accessories
+  "lg": "lg.com", "lg electronics": "lg.com",
+  "benq": "benq.com",
+  "hp": "hp.com", "hewlett-packard": "hp.com",
+  "dell": "dell.com", "dell inc": "dell.com",
+  "alienware": "dell.com",
+  "lenovo": "lenovo.com",
+  "acer": "acer.com",
+  "sony": "sony.com", "sony corporation": "sony.com",
+
+  // Gaming platforms & launchers
+  "valve": "steampowered.com", "valve corporation": "steampowered.com",
+  "epic games": "epicgames.com", "epic games inc": "epicgames.com",
+  "epic": "epicgames.com",
+  "gog": "gog.com", "gog.com": "gog.com",
+  "ea": "ea.com", "electronic arts": "ea.com",
+  "origin": "ea.com",
+  "riot games": "riotgames.com",
+  "blizzard": "battle.net", "blizzard entertainment": "battle.net",
+  "activision": "activision.com",
+  "ubisoft": "ubisoft.com",
+  "2k games": "2k.com",
+  "rockstar": "rockstargames.com", "rockstar games": "rockstargames.com",
+  "bethesda": "bethesda.net", "bethesda softworks": "bethesda.net",
+  "cdprojekt": "cdprojektred.com", "cd projekt": "cdprojektred.com",
+  "square enix": "square-enix.com",
+  "bandai namco": "bandainamcoent.com",
+  "sega": "sega.com",
+  "505 games": "505games.com",
+  "team17": "team17.com",
+  "paradox interactive": "paradoxinteractive.com",
+
+  // Streaming / recording
+  "obs project": "obsproject.com", "obs studio": "obsproject.com",
+  "streamlabs": "streamlabs.com",
+  "xsplit": "xsplit.com",
+  "twitch": "twitch.tv", "twitch interactive": "twitch.tv",
+  "discord": "discord.com", "discord inc": "discord.com",
+  "teamspeak": "teamspeak.com",
+
+  // Cloud / productivity
+  "google": "google.com", "google llc": "google.com",
+  "amazon": "amazon.com", "amazon.com": "amazon.com",
+  "apple": "apple.com", "apple inc": "apple.com",
+  "dropbox": "dropbox.com",
+  "slack": "slack.com", "slack technologies": "slack.com",
+  "zoom": "zoom.us", "zoom video communications": "zoom.us",
+  "notion": "notion.so",
+  "figma": "figma.com",
+  "atlassian": "atlassian.com",
+  "spotify": "spotify.com", "spotify ab": "spotify.com",
+  "telegram": "telegram.org",
+  "signal": "signal.org",
+  "whatsapp": "whatsapp.com",
+  "1password": "1password.com", "agilebits": "1password.com",
+  "lastpass": "lastpass.com",
+  "bitwarden": "bitwarden.com",
+
+  // VPN
+  "nordvpn": "nordvpn.com", "nordvpn s.a.": "nordvpn.com",
+  "expressvpn": "expressvpn.com",
+  "surfshark": "surfshark.com",
+  "protonvpn": "protonvpn.com", "proton": "proton.me",
+
+  // Media
+  "vlc": "videolan.org", "videolan": "videolan.org",
+  "adobe": "adobe.com", "adobe inc": "adobe.com", "adobe systems": "adobe.com",
+  "audacity": "audacityteam.org", "audacity team": "audacityteam.org",
+  "blender": "blender.org", "blender foundation": "blender.org",
+  "handbrake": "handbrake.fr",
+  "voicemeeter": "vb-audio.com", "vb-audio": "vb-audio.com",
+
+  // Security & AV
+  "malwarebytes": "malwarebytes.com",
+  "avast": "avast.com",
+  "avg": "avg.com",
+  "kaspersky": "kaspersky.com",
+  "norton": "norton.com",
+  "mcafee": "mcafee.com",
+  "eset": "eset.com",
+  "bitdefender": "bitdefender.com",
+  "webroot": "webroot.com",
+  "sophos": "sophos.com",
+
+  // Dev tools & runtimes
+  "jetbrains": "jetbrains.com",
+  "oracle": "oracle.com", "oracle corporation": "oracle.com",
+  "docker": "docker.com",
+  "vmware": "vmware.com",
+  "virtualbox": "virtualbox.org",
+
+  // Utilities
+  "7-zip": "7-zip.org", "igor pavlov": "7-zip.org",
+  "winrar": "rarlab.com", "rarlab": "rarlab.com", "win.rar gmbh": "rarlab.com",
+  "piriform": "piriform.com",
+  "ccleaner": "ccleaner.com",
+  "teamviewer": "teamviewer.com",
+  "anydesk": "anydesk.com",
+  "realtek": "realtek.com", "realtek semiconductor": "realtek.com",
+  "hifi technologies": "hifisimulations.com",
+  "parallels": "parallels.com",
+  "cpu-z": "cpuid.com", "cpuid": "cpuid.com",
+  "gpu-z": "techpowerup.com",
+  "hwinfo": "hwinfo.com", "martin malik": "hwinfo.com",
+  "crystaldiskinfo": "crystalmark.info", "crystalmark": "crystalmark.info",
+
+  // Sim / flight
+  "laminar research": "x-plane.com",
+  "lockheed martin": "prepar3d.com",
+};
+
+/** Convert a publisher string to a domain best suited for icon lookups. */
+function publisherToDomain(publisher: string, name: string): string | null {
+  const raw = (publisher || "").toLowerCase()
+    .replace(/[,.'"\u00ae\u2122]/g, "")   // strip punctuation, ®, ™
+    .replace(/\s+/g, " ")
+    .trim();
+
+  // 1. Direct known-publisher lookup
+  if (PUBLISHER_DOMAINS[raw]) return PUBLISHER_DOMAINS[raw];
+
+  // 2. Try stripping common legal suffixes and re-matching
+  const stripped = raw
+    .replace(/\s+(inc|corp|llc|ltd|gmbh|co|bv|ag|sa|ab|plc|pty|srl|s\.a\.|s\.l\.)\.?\s*$/, "")
+    .trim();
+  if (stripped !== raw && PUBLISHER_DOMAINS[stripped]) return PUBLISHER_DOMAINS[stripped];
+
+  // 3. Check app name itself for known brands
+  const nameLow = (name || "").toLowerCase();
+  for (const [key, domain] of Object.entries(PUBLISHER_DOMAINS)) {
+    if (key.length > 3 && nameLow.startsWith(key)) return domain;
+  }
+
+  // 4. Heuristic: squash stripped publisher into a single word → <word>.com
+  const heuristic = stripped.replace(/\s+/g, "").replace(/[^a-z0-9-]/g, "");
+  return heuristic.length >= 3 ? `${heuristic}.com` : null;
+}
+
+// Icon service URLs — tried in order when a domain is available
+const iconSrcs = (domain: string) => [
+  `https://logo.clearbit.com/${domain}`,
+  `https://www.google.com/s2/favicons?domain=${domain}&sz=64`,
+  `https://icons.duckduckgo.com/ip3/${domain}.ico`,
+  `https://api.faviconkit.com/${domain}/64`,
+];
+
+/**
+ * AppIcon — renders the best available icon for an installed app.
+ *
+ * Cascade:
+ *   1. Electron-extracted native icon (data URL from Windows Shell)
+ *   2. Clearbit Logo API        (high-quality company logos)
+ *   3. Google Favicons          (sz=64, very wide coverage)
+ *   4. DuckDuckGo favicons      (additional fallback)
+ *   5. FaviconKit               (last-resort favicon service)
+ *   6. Category icon            (always works, final fallback)
+ */
+const AppIcon = memo(function AppIcon({
+  app,
+  isLoading,
+}: {
+  app: InstalledApp;
+  isLoading: boolean;
+}) {
+  const catCfg = CATEGORY_CONFIG[detectCategory(app)];
+  const CatIcon = catCfg.icon;
+
+  // Compute the ordered list of image sources to try
+  const sources = useMemo<string[]>(() => {
+    const list: string[] = [];
+    if (app.iconDataUrl) list.push(app.iconDataUrl);
+    const domain = publisherToDomain(app.publisher, app.name);
+    if (domain) list.push(...iconSrcs(domain));
+    return list;
+  }, [app.iconDataUrl, app.publisher, app.name]);
+
+  const [idx, setIdx]       = useState(0);
+  const [failed, setFailed] = useState(false);
+
+  // Reset when sources list changes (e.g. iconDataUrl arrives from Electron)
+  useEffect(() => {
+    setIdx(0);
+    setFailed(false);
+  }, [sources]);
+
+  // Shimmer while Electron is still extracting and we have no web fallback yet
+  if (isLoading && !app.iconDataUrl) {
+    return (
+      <div className="size-9 rounded-xl shrink-0 bg-[#21262D] border border-[#2A313A] animate-pulse" />
+    );
+  }
+
+  // Try sources in order via onError cascade
+  if (sources.length > 0 && !failed) {
+    return (
+      <img
+        key={sources[idx]}   // force re-mount on src change to clear browser error state
+        src={sources[idx]}
+        alt=""
+        className="size-9 rounded-xl shrink-0 object-contain bg-[#1A1F26] border border-[#2A313A]"
+        onError={() => {
+          if (idx + 1 < sources.length) {
+            setIdx(i => i + 1);
+          } else {
+            setFailed(true);
+          }
+        }}
+      />
+    );
+  }
+
+  // Final fallback: category-colored lucide icon
+  return (
+    <div className={cn("size-9 rounded-xl flex items-center justify-center shrink-0 border", catCfg.cls)}>
+      <CatIcon className="size-4" />
+    </div>
+  );
+});
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
@@ -285,10 +560,8 @@ function AppRow({
   onUninstall: (app: InstalledApp) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const tCfg   = TRUST_CONFIG[app.trustLabel] ?? TRUST_CONFIG.unknown;
-  const mCfg   = METHOD_CONFIG[app.uninstallMethod] ?? METHOD_CONFIG.none;
-  const catCfg = CATEGORY_CONFIG[detectCategory(app)];
-  const CatIcon = catCfg.icon;
+  const tCfg        = TRUST_CONFIG[app.trustLabel] ?? TRUST_CONFIG.unknown;
+  const mCfg        = METHOD_CONFIG[app.uninstallMethod] ?? METHOD_CONFIG.none;
   const isProcessing = uninstallingId === app.id;
 
   const installDateFormatted = useMemo(() => {
@@ -325,21 +598,8 @@ function AppRow({
     )} data-testid={`app-row-${app.id}`}>
       {/* Main row */}
       <div className="flex items-center gap-3 p-3 sm:p-3.5 hover:bg-[#1A1F26] transition-colors">
-        {/* Icon — shimmer while loading, real icon or category fallback once resolved */}
-        {isIconLoading && !app.iconDataUrl ? (
-          <div className="size-9 rounded-xl shrink-0 bg-[#21262D] border border-[#2A313A] animate-pulse" />
-        ) : app.iconDataUrl ? (
-          <img
-            src={app.iconDataUrl}
-            alt=""
-            className="size-9 rounded-xl shrink-0 object-contain bg-[#1A1F26] border border-[#2A313A]"
-            data-testid={`app-icon-${app.id}`}
-          />
-        ) : (
-          <div className={cn("size-9 rounded-xl flex items-center justify-center shrink-0 border", catCfg.cls)}>
-            <CatIcon className="size-4" />
-          </div>
-        )}
+        {/* Icon — cascades: Electron native → Clearbit → Google → DuckDuckGo → category */}
+        <AppIcon app={app} isLoading={isIconLoading} />
 
         {/* Content */}
         <div className="flex-1 min-w-0">
