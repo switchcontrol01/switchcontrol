@@ -37,7 +37,11 @@ import {
   Gauge,
   Minus,
   Radio,
+  RotateCcw,
+  Shield,
+  Trash2,
   TrendingUp,
+  Wifi,
   Zap,
 } from "lucide-react";
 
@@ -71,6 +75,24 @@ const EVENT_ICONS: Record<string, ReactNode> = {
   bios_scan_completed:<TrendingUp className="size-3 text-[#00D4FF]" />,
   spike_detected:     <AlertTriangle className="size-3 text-amber-400" />,
   stability_restored: <CheckCircle className="size-3 text-emerald-400" />,
+};
+
+/** Map History page names → icon so every user action gets a meaningful glyph. */
+const PAGE_ICONS: Record<string, ReactNode> = {
+  "Tweaks":        <Zap className="size-3 text-[#00D4FF]" />,
+  "Power Plan":    <Zap className="size-3 text-amber-400" />,
+  "Network":       <Wifi className="size-3 text-sky-400" />,
+  "NIC Tuning":    <Radio className="size-3 text-sky-400" />,
+  "Extreme Labs":  <Zap className="size-3 text-purple-400" />,
+  "Cleaner":       <CheckCircle className="size-3 text-emerald-400" />,
+  "Debloat":       <Trash2 className="size-3 text-orange-400" />,
+  "Startup":       <Clock className="size-3 text-slate-400" />,
+  "Process Manager":<Gauge className="size-3 text-slate-400" />,
+  "BIOS Advisor":  <TrendingUp className="size-3 text-[#00D4FF]" />,
+  "AI Advisor":    <Activity className="size-3 text-primary" />,
+  "Security":      <Shield className="size-3 text-emerald-400" />,
+  "History":       <RotateCcw className="size-3 text-[#6B7380]" />,
+  "Dashboard":     <Gauge className="size-3 text-primary" />,
 };
 
 // ── 1. Interference Meter ─────────────────────────────────────────────────────
@@ -218,10 +240,45 @@ function SinceLastSession() {
 // ── 3. Recent Events ──────────────────────────────────────────────────────────
 
 function RecentEvents() {
-  const { events } = useDashboardActivityStore();
+  // Pull the full persistent history (all pages: tweaks, power plan, cleaner, etc.)
+  const historyItems = useStore((s) => s.history);
+  // Ephemeral session events (spikes, memory cleaned) that aren't in history
+  const { events: sessionEvents } = useDashboardActivityStore();
   const { prefersReducedMotion } = useMotion();
 
-  if (events.length === 0) {
+  // Merge: convert history items → display rows, then layer in session-only events
+  const merged = useMemo(() => {
+    // History items (persistent, covers every page action)
+    const fromHistory = historyItems.map((h) => ({
+      id: h.id,
+      label: h.action,
+      detail: h.result !== "Applied" && h.result !== "Success" ? h.result : undefined,
+      ts: new Date(h.timestamp).getTime(),
+      icon: PAGE_ICONS[h.page] ?? <Activity className="size-3 text-muted-foreground" />,
+    }));
+
+    // Session-only events not covered by history (spikes, stability restored,
+    // memory cleaned). Exclude bios/ai scan — those are too noisy and already
+    // show as history actions when the user explicitly ran them.
+    const ephemeralAllowed = new Set(["spike_detected", "stability_restored", "memory_cleaned"]);
+    const fromSession = sessionEvents
+      .filter((e) => ephemeralAllowed.has(e.type))
+      .map((e) => ({
+        id: e.id,
+        label: e.label,
+        detail: e.detail,
+        ts: e.ts,
+        icon: EVENT_ICONS[e.type] ?? <Activity className="size-3 text-muted-foreground" />,
+      }));
+
+    // Merge, sort newest-first, deduplicate by id, cap at 10
+    return [...fromHistory, ...fromSession]
+      .sort((a, b) => b.ts - a.ts)
+      .filter((v, i, arr) => arr.findIndex((x) => x.id === v.id) === i)
+      .slice(0, 10);
+  }, [historyItems, sessionEvents]);
+
+  if (merged.length === 0) {
     return (
       <div className="text-[11px] text-muted-foreground/50 text-center py-3" data-testid="text-events-empty">
         Events appear as you use the app
@@ -232,7 +289,7 @@ function RecentEvents() {
   return (
     <div className="space-y-2" data-testid="section-recent-events-list">
       <AnimatePresence initial={false}>
-        {events.map((evt) => (
+        {merged.map((evt) => (
           <motion.div
             key={evt.id}
             className="flex items-start gap-2.5"
@@ -242,7 +299,7 @@ function RecentEvents() {
             transition={{ duration: prefersReducedMotion ? 0 : 0.25 }}
             data-testid={`event-item-${evt.id}`}
           >
-            <span className="mt-0.5 shrink-0">{EVENT_ICONS[evt.type] ?? <Activity className="size-3 text-muted-foreground" />}</span>
+            <span className="mt-0.5 shrink-0">{evt.icon}</span>
             <div className="min-w-0 flex-1">
               <span className="text-[11px] text-[#E6EAF0] leading-tight">{evt.label}</span>
               {evt.detail && (

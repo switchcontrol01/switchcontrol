@@ -444,15 +444,26 @@ export default function Home() {
   // ── Event tracking ──────────────────────────────────────────────────────────
   const prevTweaksRef = useRef(account.stats.tweaksApplied);
   const prevMemCleanerRef = useRef(false);
+  // Guard refs: only fire addEvent when the timestamp is genuinely new vs what
+  // was seen on mount. Without these, every navigation back to Home re-adds the
+  // last BIOS/AI scan timestamp from the persisted store, flooding Recent Events.
+  const seenAdvisorRunAtRef = useRef<string | null>(advisorLastRunAt);
+  const seenBiosScanTimeRef  = useRef<string | null>(biosLastScanTime);
 
   useEffect(() => {
     if (!advisorLastRunAt) return;
+    // Only emit when the timestamp actually advances (new scan ran this session)
+    if (advisorLastRunAt === seenAdvisorRunAtRef.current) return;
+    seenAdvisorRunAtRef.current = advisorLastRunAt;
     addEvent({ type: "ai_scan_completed", label: "AI Advisor scan completed", ts: new Date(advisorLastRunAt).getTime() });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [advisorLastRunAt]);
 
   useEffect(() => {
     if (!biosLastScanTime) return;
+    // Only emit when the timestamp actually advances (new scan ran this session)
+    if (biosLastScanTime === seenBiosScanTimeRef.current) return;
+    seenBiosScanTimeRef.current = biosLastScanTime;
     addEvent({ type: "bios_scan_completed", label: "BIOS scan completed", ts: new Date(biosLastScanTime).getTime() });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [biosLastScanTime]);
