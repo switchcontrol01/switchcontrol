@@ -349,9 +349,18 @@ export function useSliderTweak(tweakId: string, config: SliderConfig) {
 
   const revert = useCallback(async () => {
     if (state.previousValue === null) return;
-    setState(s => ({ ...s, pendingValue: s.previousValue, verifyResult: null }));
+    // Clamp the stored previous value to the safe range so a value that was
+    // written by older code (e.g. 380000 for svchost-split-threshold, which is
+    // below safeMin 8388608) never reaches the backend and causes a hard failure.
+    const clampedPrev = (() => {
+      let v = state.previousValue as number;
+      if (config.safeMin !== undefined && v < config.safeMin) v = config.defaultValue;
+      if (config.safeMax !== undefined && v > config.safeMax) v = config.defaultValue;
+      return v;
+    })();
+    setState(s => ({ ...s, pendingValue: clampedPrev, verifyResult: null }));
     // Apply the previous value
-    const prevVal = state.previousValue;
+    const prevVal = clampedPrev;
     setState(s => ({ ...s, status: 'applying', lastError: null }));
 
     if (!isElectron) {

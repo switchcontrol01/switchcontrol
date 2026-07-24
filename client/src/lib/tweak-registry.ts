@@ -389,7 +389,7 @@ const BASE: BaseTweak[] = [
       },
       controlType: "slider",
       sliderConfig: {
-        min: 0, max: 67108864, step: 8388608, defaultValue: 380000, recommendedValue: 67108864, unit: "KB",
+        min: 0, max: 67108864, step: 8388608, defaultValue: 33554432, recommendedValue: 67108864, unit: "KB",
         safeMin: 8388608, safeMax: 67108864, cautionLabel: "Very high splitting — high RAM use",
         extremeMin: 0, extremeMax: 4194304, extremeLabel: "Low splitting — poor crash isolation",
         stepped: true,
