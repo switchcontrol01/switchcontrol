@@ -1,7 +1,8 @@
 const { execFile } = require('child_process');
-const path = require('path');
-const fs = require('fs');
-const os = require('os');
+const path         = require('path');
+const fs           = require('fs');
+const os           = require('os');
+const adminState   = require('./admin-state');
 const { TWEAK_STATE_FILE, TWEAK_LOG_FILE, WINDOWED_GAMES_BACKUP_FILE, VENDOR_UPDATERS_BACKUP_FILE, TEAMS_STARTUP_BACKUP_FILE } = require('./user-data-paths');
 
 // Backup-path constants used inside PowerShell double-quoted strings.
@@ -309,6 +310,10 @@ async function networkGuardPost(tweakId, baselineMs) {
 // ─── Admin detection (cached) ──────────────────────────────────────────────────
 let _isAdmin = null;
 async function checkIsAdmin() {
+  // Prefer the shared admin-state set by main.js at startup — avoids a redundant
+  // PowerShell IsInRole spawn (the value is invariant for the process lifetime).
+  const shared = adminState.getAdminState();
+  if (shared !== null) { _isAdmin = shared; return _isAdmin; }
   if (_isAdmin !== null) return _isAdmin;
   try {
     _isAdmin = await checkPowerShell(

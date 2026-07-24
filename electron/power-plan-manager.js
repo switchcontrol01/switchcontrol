@@ -1,8 +1,9 @@
 'use strict';
 const { execFile } = require('child_process');
-const path = require('path');
-const fs   = require('fs');
-const os   = require('os');
+const path         = require('path');
+const fs           = require('fs');
+const os           = require('os');
+const adminState   = require('./admin-state');
 
 // ── Storage ───────────────────────────────────────────────────────────────────
 
@@ -193,6 +194,10 @@ function runPowerShell(command) {
 
 let _isAdmin = null;
 async function checkIsAdmin() {
+  // Prefer the shared admin-state set by main.js at startup — avoids a redundant
+  // PowerShell IsInRole spawn (the value is invariant for the process lifetime).
+  const shared = adminState.getAdminState();
+  if (shared !== null) { _isAdmin = shared; return _isAdmin; }
   if (_isAdmin !== null) return _isAdmin;
   try {
     const out = await runPowerShell(
@@ -306,17 +311,23 @@ async function getActivePowerScheme() {
 }
 
 async function readAllSettings(schemeGuid) {
+  // Run all 9 /query calls concurrently — each targets an independent subgroup/setting
+  // pair, so there is no ordering requirement.  Parallel execution cuts load time by
+  // roughly 8× vs the previous sequential for-await loop (each powercfg spawn has
+  // ~50-150 ms of process-creation overhead on Windows).
+  const entries = Object.entries(SETTING_DEFS);
+  const results = await Promise.all(
+    entries.map(([key, def]) =>
+      runPowercfg('/query', schemeGuid, def.subgroup, def.setting)
+        .then(out => ({ key, val: parseAcValue(out), err: null }))
+        .catch(e  => ({ key, val: null,              err: e.message }))
+    )
+  );
   const settings = {};
   const errors   = {};
-  for (const [key, def] of Object.entries(SETTING_DEFS)) {
-    try {
-      const out = await runPowercfg('/query', schemeGuid, def.subgroup, def.setting);
-      const val = parseAcValue(out);
-      settings[key] = val;
-    } catch (e) {
-      errors[key]   = e.message;
-      settings[key] = null;
-    }
+  for (const { key, val, err } of results) {
+    settings[key] = val;
+    if (err) errors[key] = err;
   }
   return { settings, errors };
 }
@@ -441,7 +452,9 @@ async function ensureSwitchControlScheme(profileId) {
       console.log(
         `[PowerPlan] Found orphaned SC plan "${orphan.name}" (${orphanGuid}) — adopting instead of creating new`
       );
-      const newState = { ...loadState(), schemeGuids: { ...(loadState().schemeGuids || {}), [profileId]: orphanGuid } };
+      // Reuse the `state` already loaded at the top of this function — avoids a
+      // redundant second loadState() disk read in the same call frame.
+      const newState = { ...state, schemeGuids: { ...(state.schemeGuids || {}), [profileId]: orphanGuid } };
       saveState(newState);
       return orphanGuid;
     }

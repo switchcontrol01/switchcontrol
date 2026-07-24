@@ -3,7 +3,8 @@
   // console.log/warn/error from this point on is captured to disk.
   // Log files: %APPDATA%\SwitchControl\logs\
   // ============================================================
-  const fileLogger = require('./file-logger');
+  const fileLogger  = require('./file-logger');
+  const adminState  = require('./admin-state');
   fileLogger.init();
   const _LOG_PATHS = fileLogger.getPaths();
   const isDebug = fileLogger.isDebug;
@@ -4593,11 +4594,15 @@ $hpetQ     = try{$h=Get-WmiObject -Query "SELECT * FROM Win32_DeviceChangeEvent"
   // Power Plan handlers
   ipcMain.handle('powerPlans:getState', async () => {
     verboseLog('[IPC] powerPlans:getState');
+    const _token = psLimiter.tryAcquire({ file: 'main.js', fn: 'powerPlans:getState', reason: 'power-plan-read' });
+    if (!_token) return { success: false, skipped: true, error: 'Power-plan operation already in progress' };
     try {
       return await powerPlanManager.getPowerPlanState();
     } catch (e) {
       console.error('[IPC] powerPlans:getState error:', e.message);
       return { success: false, error: e.message };
+    } finally {
+      psLimiter.release(_token);
     }
   });
   
@@ -4606,20 +4611,28 @@ $hpetQ     = try{$h=Get-WmiObject -Query "SELECT * FROM Win32_DeviceChangeEvent"
     if (typeof profileId !== 'string') return { success: false, error: 'Invalid profileId' };
     const valid = Object.keys(powerPlanManager.POWER_PROFILES);
     if (!valid.includes(profileId)) return { success: false, error: `Unknown profileId "${profileId}". Valid: ${valid.join(', ')}` };
+    const _token = psLimiter.tryAcquire({ file: 'main.js', fn: 'powerPlans:applyProfile', reason: 'power-plan-apply' });
+    if (!_token) return { success: false, skipped: true, error: 'Power-plan operation already in progress' };
     try {
       return await powerPlanManager.applyPowerProfileWithOwnership(profileId);
     } catch (e) {
       console.error('[IPC] powerPlans:applyProfile error:', e.message);
       return { success: false, error: e.message };
+    } finally {
+      psLimiter.release(_token);
     }
   });
   
   ipcMain.handle('powerPlans:listSchemes', async () => {
     verboseLog('[IPC] powerPlans:listSchemes');
+    const _token = psLimiter.tryAcquire({ file: 'main.js', fn: 'powerPlans:listSchemes', reason: 'power-plan-list' });
+    if (!_token) return { success: false, skipped: true, error: 'Power-plan operation already in progress', schemes: [] };
     try {
       return await powerPlanManager.listSchemesForFrontend();
     } catch (e) {
       return { success: false, error: e.message, schemes: [] };
+    } finally {
+      psLimiter.release(_token);
     }
   });
   
@@ -4627,11 +4640,15 @@ $hpetQ     = try{$h=Get-WmiObject -Query "SELECT * FROM Win32_DeviceChangeEvent"
     verboseLog(`[IPC] powerPlans:applyCustom name="${name}"`);
     if (typeof name !== 'string') return { success: false, error: 'Invalid plan name' };
     if (!settings || typeof settings !== 'object') return { success: false, error: 'Invalid settings object' };
+    const _token = psLimiter.tryAcquire({ file: 'main.js', fn: 'powerPlans:applyCustom', reason: 'power-plan-custom' });
+    if (!_token) return { success: false, skipped: true, error: 'Power-plan operation already in progress' };
     try {
       return await powerPlanManager.applyCustomPowerProfile(name, settings);
     } catch (e) {
       console.error('[IPC] powerPlans:applyCustom error:', e.message);
       return { success: false, error: e.message };
+    } finally {
+      psLimiter.release(_token);
     }
   });
   
@@ -4682,6 +4699,8 @@ $hpetQ     = try{$h=Get-WmiObject -Query "SELECT * FROM Win32_DeviceChangeEvent"
     const cmdSet = OVERRIDE_PS[id];
     if (!cmdSet) return { success: false, error: `Unknown override: ${id}` };
     const ps = enabled ? cmdSet.apply : cmdSet.revert;
+    const _token = psLimiter.tryAcquire({ file: 'main.js', fn: 'powerPlans:applyOverride', reason: 'power-plan-override' });
+    if (!_token) return { success: false, skipped: true, error: 'Power-plan operation already in progress' };
     try {
       const result = await powerPlanManager.runElevatedCommands([ps]);
       if (result.cancelled) return { success: false, cancelled: true, error: 'Admin permission cancelled.' };
@@ -4690,6 +4709,8 @@ $hpetQ     = try{$h=Get-WmiObject -Query "SELECT * FROM Win32_DeviceChangeEvent"
     } catch (e) {
       console.error(`[IPC] powerPlans:applyOverride ${id} error:`, e.message);
       return { success: false, error: e.message };
+    } finally {
+      psLimiter.release(_token);
     }
   });
   
@@ -4718,6 +4739,8 @@ $hpetQ     = try{$h=Get-WmiObject -Query "SELECT * FROM Win32_DeviceChangeEvent"
     if (typeof guid !== 'string' || !UUID_RE.test(guid.trim())) {
       return { success: false, error: 'Invalid GUID' };
     }
+    const _token = psLimiter.tryAcquire({ file: 'main.js', fn: 'powerPlans:activateByGuid', reason: 'power-plan-activate' });
+    if (!_token) return { success: false, skipped: true, error: 'Power-plan operation already in progress' };
     try {
       // Route through activatePlanByGuid which handles admin/non-admin elevation,
       // the restoredefaultschemes fallback for the Balanced GUID, and GUID verification.
@@ -4731,6 +4754,8 @@ $hpetQ     = try{$h=Get-WmiObject -Query "SELECT * FROM Win32_DeviceChangeEvent"
     } catch (e) {
       console.error('[IPC] powerPlans:activateByGuid error:', e.message);
       return { success: false, error: e.message };
+    } finally {
+      psLimiter.release(_token);
     }
   });
   
@@ -4925,6 +4950,8 @@ $hpetQ     = try{$h=Get-WmiObject -Query "SELECT * FROM Win32_DeviceChangeEvent"
   // Safe to call at any time — skips the currently active plan.
   ipcMain.handle('premium:cleanupScPlans', async () => {
     console.log('[IPC] premium:cleanupScPlans — restoring built-in plan names, then deleting SC plans');
+    const _token = psLimiter.tryAcquire({ file: 'main.js', fn: 'premium:cleanupScPlans', reason: 'power-plan-cleanup' });
+    if (!_token) return { success: false, skipped: true, error: 'Power-plan operation already in progress' };
     try {
       // Restore original Windows names FIRST — this undoes any name corruption
       // where a built-in plan (e.g. Windows Balanced) was renamed "SwitchControl - *"
@@ -4948,6 +4975,8 @@ $hpetQ     = try{$h=Get-WmiObject -Query "SELECT * FROM Win32_DeviceChangeEvent"
     } catch (e) {
       console.error('[IPC] premium:cleanupScPlans error:', e.message);
       return { success: false, error: e.message };
+    } finally {
+      psLimiter.release(_token);
     }
   });
   
@@ -5254,9 +5283,11 @@ $hpetQ     = try{$h=Get-WmiObject -Query "SELECT * FROM Win32_DeviceChangeEvent"
     // renderer can confirm elevated status via the app:isAdmin IPC.
     checkWindowsAdmin().then(v => {
       _appIsAdmin = v;
+      adminState.setAdminState(v); // shared — eliminates redundant PS spawns in executor modules
       verboseLog('[UAC] isAdmin:', v, app.isPackaged ? '(packaged)' : '(dev mode)');
     }).catch((err) => {
       _appIsAdmin = false;
+      adminState.setAdminState(false);
       console.error('[UAC] Admin check failed:', err?.message);
     });
   
