@@ -18,6 +18,7 @@ const IMPACT_COLOR: Record<string, string> = {
   Medium: "bg-amber-400/60",
   High: "bg-red-400/60",
 };
+const IMPACT_COLOR_FALLBACK = "bg-amber-400/60"; // unknown level → treat as medium
 
 const RISK_CONFIG = {
   Safe: { icon: ShieldCheck, color: "text-emerald-400", label: "Safe" },
@@ -37,7 +38,7 @@ function ImpactRow({ metric, level }: ImpactRowProps) {
       <span className="text-[10px] text-muted-foreground w-16 flex-shrink-0">{metric}</span>
       <div className="flex-1 h-1 rounded-full bg-white/8 overflow-hidden">
         <motion.div
-          className={cn("h-full rounded-full", IMPACT_COLOR[level])}
+          className={cn("h-full rounded-full", IMPACT_COLOR[level] ?? IMPACT_COLOR_FALLBACK)}
           initial={{ width: 0 }}
           animate={{ width: `${IMPACT_BAR[level] ?? 0}%` }}
           transition={{ duration: 0.5, ease: "easeOut" }}
@@ -73,7 +74,7 @@ export function TrustLayer({ tweak, isOpen, delta, className }: TrustLayerProps)
           transition={{ duration: 0.22, ease: "easeInOut" }}
           className={cn("overflow-hidden", className)}
         >
-          <div className="px-4 pb-4 pt-3  space-y-4">
+          <div className="px-4 pb-4 pt-3 space-y-4">
             <div className="flex items-center gap-4 flex-wrap">
               <div className="flex items-center gap-1.5">
                 <RiskIcon className={cn("size-3.5", riskCfg.color)} />
@@ -103,14 +104,17 @@ export function TrustLayer({ tweak, isOpen, delta, className }: TrustLayerProps)
                 {impactEntries.map(([metric, level]) => (
                   <ImpactRow key={metric} metric={metric} level={level as string} />
                 ))}
-                {tweak.expected?.stabilityRisk && tweak.expected.stabilityRisk !== "None" && (
-                  <div className="flex items-center gap-1.5 mt-2">
-                    <AlertTriangle className="size-3 text-amber-400/70" />
-                    <span className="text-[10px] text-amber-400/70">
-                      Stability risk: {tweak.expected.stabilityRisk}
-                    </span>
-                  </div>
-                )}
+              </div>
+            )}
+
+            {/* Stability risk is rendered independently so it shows even when
+                all other expected values are "None" (impactEntries is empty). */}
+            {tweak.expected?.stabilityRisk && tweak.expected.stabilityRisk !== "None" && (
+              <div className="flex items-center gap-1.5">
+                <AlertTriangle className="size-3 text-amber-400/70" />
+                <span className="text-[10px] text-amber-400/70">
+                  Stability risk: {tweak.expected.stabilityRisk}
+                </span>
               </div>
             )}
 
@@ -148,6 +152,11 @@ export function TrustLayer({ tweak, isOpen, delta, className }: TrustLayerProps)
                       <span className="text-[10px] text-muted-foreground leading-snug">{item}</span>
                     </li>
                   ))}
+                  {tweak.impact.length > 3 && (
+                    <li className="text-[10px] text-muted-foreground/50 pl-3">
+                      and {tweak.impact.length - 3} more…
+                    </li>
+                  )}
                 </ul>
               </div>
             )}
