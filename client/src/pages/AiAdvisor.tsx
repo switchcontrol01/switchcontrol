@@ -606,13 +606,28 @@ function CoveragePanel({
         <div>
           <CoverageRow
             label="System Hardware"
-            status={coverage?.systemIntel ?? "unavailable"}
+            status={
+              // Server-side coverage is from the Replit cloud VM and is always
+              // "unavailable" for Electron users.  Fall back to the locally-loaded
+              // hardware context (already fetched from Windows IPC on mount).
+              coverage?.systemIntel !== "unavailable"
+                ? (coverage?.systemIntel ?? "unavailable")
+                : (context?.system?.cpu && context.system.cpu !== "Unavailable")
+                  ? "available"
+                  : "unavailable"
+            }
           />
           <CoverageRow
             label="Display Signal"
-            status={coverage?.display ?? "unavailable"}
+            status={
+              coverage?.display !== "unavailable"
+                ? (coverage?.display ?? "unavailable")
+                : context?.system?.display
+                  ? "available"
+                  : "unavailable"
+            }
             detail={
-              coverage?.display !== "unavailable" && ctxData?.display.refreshHz
+              ctxData?.display.refreshHz
                 ? `${ctxData.display.refreshHz}Hz`
                 : undefined
             }
@@ -628,7 +643,16 @@ function CoveragePanel({
           />
           <CoverageRow
             label="Network Tweaks"
-            status={coverage?.networkTweaks ?? "unavailable"}
+            status={
+              coverage?.networkTweaks !== "unavailable"
+                ? (coverage?.networkTweaks ?? "unavailable")
+                // Electron always has full network-tweak read/write access
+                : isElectron
+                  ? (context?.networkTweaksApplied && context.networkTweaksApplied.length > 0
+                      ? "available"
+                      : "partial")
+                  : "unavailable"
+            }
             detail={
               ctxData?.networkTweaks.applied.length
                 ? `${ctxData.networkTweaks.applied.length} applied`
@@ -637,7 +661,11 @@ function CoveragePanel({
           />
           <CoverageRow
             label="NIC Tuning"
-            status={coverage?.networkTweaks === "available" ? "available" : "partial"}
+            status={
+              isElectron
+                ? "available"
+                : (coverage?.networkTweaks === "available" ? "available" : "partial")
+            }
           />
           <CoverageRow
             label="Power Plan"
