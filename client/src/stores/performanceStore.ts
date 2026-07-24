@@ -42,6 +42,10 @@ export const usePerformanceStore = create<PerformanceStore>((set, get) => ({
   _normalCpuSince: null,
 
   enableLpm(manual = false) {
+    // If called with manual=false while lpmManual is already true, bail out.
+    // _onCpuTick guards this case too, but a direct enableLpm(false) call while
+    // lpmManual is true would otherwise silently proceed.
+    if (!manual && get().lpmManual) return;
     set({ lpmActive: true, lpmManual: manual || get().lpmManual });
   },
 
@@ -72,6 +76,12 @@ export const usePerformanceStore = create<PerformanceStore>((set, get) => ({
 
     if (pct >= LPM_AUTO_THRESHOLD_PCT) {
       if (!_highCpuSince) {
+        // Start the high-CPU streak timer. _normalCpuSince is cleared so the
+        // two timers are always mutually exclusive.
+        // Note: if CPU oscillates across the threshold, both timers reset on
+        // each crossing — a system bouncing between e.g. 69% and 71% will
+        // never trigger auto-enable or auto-disable. This is intentional:
+        // genuinely sustained load is required, not momentary spikes.
         set({ _highCpuSince: now, _normalCpuSince: null });
       } else if (!lpmActive && (now - _highCpuSince) >= LPM_AUTO_SUSTAIN_MS) {
         console.log(`[Perf] LPM auto-enabled — CPU has been ≥${LPM_AUTO_THRESHOLD_PCT}% for ${Math.round((now - _highCpuSince) / 1000)}s`);
@@ -94,7 +104,9 @@ export const usePerformanceStore = create<PerformanceStore>((set, get) => ({
   },
 }));
 
-// Expose to devtools console
-if (typeof window !== 'undefined') {
+// Expose to devtools console — dev builds only.
+// In production the entire store (including set/getState) would be reachable
+// from the browser console or a compromised extension via window.__performanceStore.
+if (import.meta.env.DEV && typeof window !== 'undefined') {
   (window as any).__performanceStore = usePerformanceStore;
 }
