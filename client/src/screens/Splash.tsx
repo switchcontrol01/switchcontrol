@@ -48,6 +48,9 @@ export default function Splash({ onComplete }: SplashProps) {
   const [contentVisible, setContentVisible] = useState(false);
   const [initializingDone, setInitializingDone] = useState(false);
   const [progress, setProgress] = useState(0);
+  // barDone: triggers the final snap-to-100 + completion flash
+  const [barDone, setBarDone] = useState(false);
+  const barDoneRef = useRef(false);
   const tagline = useMemo(() => getHonestTagline(), []);
 
   // Keep a stable ref to onComplete so the timer effect below can run with
@@ -130,9 +133,15 @@ export default function Splash({ onComplete }: SplashProps) {
       });
     }
 
-    const tContent = setTimeout(() => setContentVisible(true), 60);
-    const tInit    = setTimeout(() => setInitializingDone(true), 1000);
-    const tDone    = setTimeout(() => {
+    const tContent  = setTimeout(() => setContentVisible(true), 60);
+    const tInit     = setTimeout(() => setInitializingDone(true), 1000);
+    // Fire ~380ms before splash ends — bar snaps to 100 with a flash, creating
+    // a satisfying "charge complete" beat before the window transitions away.
+    const tBarDone  = setTimeout(() => {
+      barDoneRef.current = true;
+      setBarDone(true);
+    }, SPLASH_MS - 380);
+    const tDone     = setTimeout(() => {
       console.log('[LAUNCH:R5] Splash onComplete — handing off to App');
       onCompleteRef.current();
     }, SPLASH_MS);
@@ -140,6 +149,7 @@ export default function Splash({ onComplete }: SplashProps) {
     return () => {
       clearTimeout(tContent);
       clearTimeout(tInit);
+      clearTimeout(tBarDone);
       clearTimeout(tDone);
       enrichUnsub?.();
     };
@@ -158,13 +168,18 @@ export default function Splash({ onComplete }: SplashProps) {
       lastTs = ts;
 
       progressRef.current = (() => {
-        const p = progressRef.current;
-        if (p >= 100) return 100;
-        const r = 100 - p;
+        const p   = progressRef.current;
+        // When barDone fires, the cap lifts and the bar snaps to 100 via
+        // the spring transition on the animated div — rAF just needs to
+        // keep supplying 100 so the motion value settles there.
+        const cap = barDoneRef.current ? 100 : 96;
+        if (p >= cap) return cap;
+        const r     = cap - p;
         const scale = dt / 36;
         if (p < 60) return p + 5.5 * scale;
         if (p < 85) return p + Math.max(r * 0.18, 1.0) * scale;
-        return p + Math.max(r * 0.09, 0.35) * scale;
+        // Slow crawl from 85→96 so the user sees the bar almost-there
+        return p + Math.max(r * 0.06, 0.2) * scale;
       })();
 
       setProgress(Math.min(100, progressRef.current));
@@ -342,43 +357,115 @@ export default function Splash({ onComplete }: SplashProps) {
                 )}
               </AnimatePresence>
 
-              {/* Progress bar — colorful gradient fill + leading spark dot */}
-              <div className="relative w-52 rounded-full overflow-visible"
-                style={{ height: "3px", background: "rgba(255,255,255,0.06)" }}>
-                {/* Filled track */}
-                <motion.div
-                  className="absolute left-0 top-0 h-full rounded-full"
-                  style={{
-                    background: "linear-gradient(90deg, #7C3AED, #8B5CF6, #00C8F5, #33E0FF, #A855F7)",
-                    backgroundSize: "200% 100%",
-                    boxShadow: "0 0 10px rgba(139,92,246,0.7), 0 0 20px rgba(0,210,255,0.35)",
-                  }}
-                  animate={{ width: `${progress}%`, backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"] }}
-                  transition={{ width: { duration: 0.08, ease: "linear" }, backgroundPosition: { duration: 3, repeat: Infinity, ease: "linear" } }}
-                />
-                {/* Leading spark — bright dot at the head of the bar */}
-                {progress > 2 && progress < 100 && (
+              {/* Progress bar — outer div for spark/burst positioning (no clip),
+                  inner div clips track + shimmer so nothing bleeds past the edge */}
+              <div className="relative" style={{ width: "208px" }}>
+                {/* Inner track — overflow-hidden keeps fill + shimmer inside bounds */}
+                <div
+                  className="relative w-full rounded-full overflow-hidden"
+                  style={{ height: "3px", background: "rgba(255,255,255,0.06)" }}
+                >
+                  {/* Filled track */}
                   <motion.div
-                    className="absolute top-1/2 -translate-y-1/2 rounded-full"
+                    className="absolute left-0 top-0 h-full rounded-full"
                     style={{
-                      left: `${progress}%`,
-                      width: "6px",
-                      height: "6px",
-                      marginLeft: "-3px",
-                      background: "white",
-                      boxShadow: "0 0 8px 3px rgba(180,120,255,0.9), 0 0 16px 6px rgba(0,220,255,0.5)",
+                      background: "linear-gradient(90deg, #7C3AED, #8B5CF6, #00C8F5, #33E0FF, #A855F7)",
+                      backgroundSize: "200% 100%",
+                      boxShadow: "0 0 10px rgba(139,92,246,0.7), 0 0 20px rgba(0,210,255,0.35)",
                     }}
-                    animate={{ opacity: [1, 0.6, 1], scale: [1, 1.3, 1] }}
-                    transition={{ duration: 0.9, repeat: Infinity, ease: "easeInOut" }}
+                    animate={{
+                      width: `${progress}%`,
+                      backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
+                    }}
+                    transition={{
+                      // Snap to 100% with a spring overshoot when barDone fires
+                      width: barDone && progress >= 95
+                        ? { duration: 0.38, ease: [0.34, 1.4, 0.64, 1] }
+                        : { duration: 0.08, ease: "linear" },
+                      backgroundPosition: { duration: 3, repeat: Infinity, ease: "linear" },
+                    }}
                   />
-                )}
-                {/* Shimmer sweep */}
-                <motion.div
-                  className="absolute top-0 h-full w-10 rounded-full"
-                  style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.55), transparent)" }}
-                  animate={{ x: ["-40px", "208px"] }}
-                  transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut", repeatDelay: 0.2 }}
-                />
+                  {/* Shimmer sweep — stays inside clipped container */}
+                  <motion.div
+                    className="absolute top-0 h-full w-10 rounded-full"
+                    style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.55), transparent)" }}
+                    animate={{ x: ["-40px", "208px"] }}
+                    transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut", repeatDelay: 0.2 }}
+                  />
+                </div>
+
+                {/* Leading spark — lives in outer div so it's never clipped;
+                    capped at 95% so it can't protrude the right edge */}
+                <AnimatePresence>
+                  {progress > 2 && !barDone && (
+                    <motion.div
+                      className="absolute top-1/2 -translate-y-1/2 rounded-full pointer-events-none"
+                      style={{
+                        left: `${Math.min(progress, 95)}%`,
+                        width: "6px",
+                        height: "6px",
+                        marginLeft: "-3px",
+                        background: "white",
+                        boxShadow: "0 0 8px 3px rgba(180,120,255,0.9), 0 0 16px 6px rgba(0,220,255,0.5)",
+                      }}
+                      animate={{ opacity: [1, 0.6, 1], scale: [1, 1.3, 1] }}
+                      transition={{ duration: 0.9, repeat: Infinity, ease: "easeInOut" }}
+                    />
+                  )}
+                </AnimatePresence>
+
+                {/* Completion burst — radial flash that fires when bar snaps to 100% */}
+                <AnimatePresence>
+                  {barDone && (
+                    <>
+                      {/* Expanding ring from the right end */}
+                      <motion.div
+                        className="absolute top-1/2 pointer-events-none rounded-full"
+                        initial={{ opacity: 0.9, scale: 0, x: "-50%", y: "-50%" }}
+                        animate={{ opacity: 0, scale: 4.5 }}
+                        exit={{}}
+                        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+                        style={{
+                          left: "100%",
+                          width: "18px",
+                          height: "18px",
+                          background: "transparent",
+                          border: "1.5px solid rgba(139,92,246,0.9)",
+                          boxShadow: "0 0 8px rgba(0,210,255,0.8)",
+                        }}
+                      />
+                      {/* Bright core dot at right end */}
+                      <motion.div
+                        className="absolute top-1/2 pointer-events-none rounded-full"
+                        initial={{ opacity: 1, scale: 1, x: "-50%", y: "-50%" }}
+                        animate={{ opacity: 0, scale: 2.8 }}
+                        exit={{}}
+                        transition={{ duration: 0.45, ease: "easeOut" }}
+                        style={{
+                          left: "100%",
+                          width: "8px",
+                          height: "8px",
+                          background: "white",
+                          boxShadow: "0 0 12px 4px rgba(180,120,255,1), 0 0 24px 8px rgba(0,220,255,0.7)",
+                        }}
+                      />
+                      {/* Full bar glow pulse */}
+                      <motion.div
+                        className="absolute inset-0 rounded-full pointer-events-none"
+                        initial={{ opacity: 0.8 }}
+                        animate={{ opacity: 0 }}
+                        exit={{}}
+                        transition={{ duration: 0.55, ease: "easeOut" }}
+                        style={{
+                          height: "3px",
+                          background: "linear-gradient(90deg, #7C3AED, #8B5CF6, #00C8F5, #33E0FF)",
+                          boxShadow: "0 0 18px 5px rgba(139,92,246,0.95), 0 0 32px 10px rgba(0,210,255,0.6)",
+                          filter: "blur(1px)",
+                        }}
+                      />
+                    </>
+                  )}
+                </AnimatePresence>
               </div>
             </motion.div>
           )}
