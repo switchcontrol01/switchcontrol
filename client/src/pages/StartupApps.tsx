@@ -127,7 +127,20 @@ export default function StartupApps() {
         name: app.entry.name, source: app.entry.source, enabled,
       }).catch(() => {});
 
-      logHistory(`Startup: ${app.entry.name} ${enabled ? "Enabled" : "Disabled"}`, "Startup", enabled ? "Enabled" : "Disabled", `Source: ${app.entry.source}`);
+      // Store all fields needed to revert this action without a fresh scan.
+      // Format: "Source: X|reg: Y|task: Z|folder: W|was: enabled/disabled"
+      logHistory(
+        `Startup: ${app.entry.name} ${enabled ? "Enabled" : "Disabled"}`,
+        "Startup",
+        enabled ? "Enabled" : "Disabled",
+        [
+          `Source: ${app.entry.source}`,
+          `reg: ${app.entry.registryName ?? ""}`,
+          `task: ${app.entry.taskPath ?? ""}`,
+          `folder: ${app.entry.folderPath ?? ""}`,
+          `was: ${enabled ? "enabled" : "disabled"}`,
+        ].join("|"),
+      );
       toast({ title: `${app.entry.name} ${enabled ? "enabled" : "disabled"}` });
     } catch (e: any) {
       // Revert

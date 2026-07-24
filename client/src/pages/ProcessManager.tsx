@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, memo } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { GlassCard } from "@/components/ui/glass-card";
@@ -13,7 +13,200 @@ import {
   Layers, Search, Play, Shield, AlertTriangle, X,
   ChevronDown, Cpu, MemoryStick, ArrowUpDown,
   RotateCcw, Info, Trash2,
+  Monitor, Gamepad2, Globe, Music, Settings2, Package,
 } from "lucide-react";
+
+// ── Process icon — multi-layer logo cascade ────────────────────────────────────
+// Same 5-source fallback chain used in Debloater, adapted for process data.
+
+const PROCESS_PUBLISHER_DOMAINS: Record<string, string> = {
+  // Microsoft
+  "microsoft": "microsoft.com", "microsoft corporation": "microsoft.com",
+  // Browsers
+  "google": "google.com", "google llc": "google.com",
+  "mozilla": "mozilla.org", "mozilla corporation": "mozilla.org",
+  "mozilla foundation": "mozilla.org",
+  "opera": "opera.com", "opera software": "opera.com",
+  "brave": "brave.com", "brave software": "brave.com",
+  // GPU / drivers
+  "nvidia": "nvidia.com", "nvidia corporation": "nvidia.com",
+  "amd": "amd.com", "advanced micro devices": "amd.com",
+  "intel": "intel.com", "intel corporation": "intel.com",
+  "qualcomm": "qualcomm.com",
+  // Gaming platforms
+  "valve": "steampowered.com", "valve corporation": "steampowered.com",
+  "epic games": "epicgames.com", "epic games inc": "epicgames.com",
+  "gog": "gog.com",
+  "ea": "ea.com", "electronic arts": "ea.com",
+  "riot games": "riotgames.com",
+  "blizzard": "battle.net", "blizzard entertainment": "battle.net",
+  "ubisoft": "ubisoft.com",
+  "rockstar": "rockstargames.com", "rockstar games": "rockstargames.com",
+  "bethesda": "bethesda.net", "bethesda softworks": "bethesda.net",
+  "activision": "activision.com",
+  // Communication
+  "discord": "discord.com", "discord inc": "discord.com",
+  "slack technologies": "slack.com",
+  "zoom video communications": "zoom.us",
+  "teamspeak": "teamspeak.com",
+  "telegram": "telegram.org",
+  "signal": "signal.org",
+  // Productivity
+  "dropbox": "dropbox.com",
+  "notion": "notion.so",
+  "spotify": "spotify.com", "spotify ab": "spotify.com",
+  "apple": "apple.com", "apple inc": "apple.com",
+  "amazon": "amazon.com",
+  // Peripherals & utilities
+  "logitech": "logitech.com", "logitech inc": "logitech.com",
+  "corsair": "corsair.com", "corsair memory": "corsair.com",
+  "razer": "razer.com",
+  "steelseries": "steelseries.com",
+  "asus": "asus.com",
+  "msi": "msi.com",
+  "realtek": "realtek.com", "realtek semiconductor": "realtek.com",
+  // AV / security
+  "malwarebytes": "malwarebytes.com",
+  "avast": "avast.com", "kaspersky": "kaspersky.com",
+  "norton": "norton.com", "mcafee": "mcafee.com",
+  "bitdefender": "bitdefender.com",
+  // Dev
+  "jetbrains": "jetbrains.com",
+  "docker": "docker.com",
+  // Media
+  "vlc": "videolan.org", "videolan": "videolan.org",
+  "adobe": "adobe.com", "adobe inc": "adobe.com",
+  "obs project": "obsproject.com",
+  "streamlabs": "streamlabs.com",
+  "voicemeeter": "vb-audio.com", "vb-audio": "vb-audio.com",
+  // VPN
+  "nordvpn": "nordvpn.com",
+  "expressvpn": "expressvpn.com",
+  "proton": "proton.me", "protonvpn": "protonvpn.com",
+  // Peripherals / audio
+  "creative technology": "creative.com",
+  "focusrite": "focusrite.com",
+  "nzxt": "nzxt.com",
+  // Launchers / overlay
+  "overwolf": "overwolf.com",
+  "playnite": "playnite.link",
+};
+
+// Process name → domain overrides (when publisher is missing/generic)
+const PROCESS_NAME_DOMAINS: Record<string, string> = {
+  "chrome": "google.com", "googlechrome": "google.com",
+  "firefox": "mozilla.org", "firefox.exe": "mozilla.org",
+  "msedge": "microsoft.com", "microsoftedge": "microsoft.com",
+  "brave": "brave.com",
+  "opera": "opera.com",
+  "iexplore": "microsoft.com",
+  "steam": "steampowered.com",
+  "epicgameslauncher": "epicgames.com",
+  "discord": "discord.com",
+  "spotify": "spotify.com",
+  "teams": "microsoft.com", "msteams": "microsoft.com",
+  "slack": "slack.com",
+  "zoom": "zoom.us",
+  "vlc": "videolan.org",
+  "obs64": "obsproject.com", "obs32": "obsproject.com",
+  "nvcontainer": "nvidia.com", "nvdisplay.container": "nvidia.com", "nvtray": "nvidia.com",
+  "amdow": "amd.com", "radeoninstaller": "amd.com",
+  "corsair": "corsair.com", "icue": "corsair.com",
+  "logitech": "logitech.com", "lghub": "logitech.com",
+  "razer": "razer.com", "razercentralservice": "razer.com",
+  "onedrive": "microsoft.com",
+  "dropbox": "dropbox.com",
+  "telegram": "telegram.org",
+  "signal": "signal.org",
+  "battlenet": "battle.net",
+  "riotclient": "riotgames.com", "leagueclient": "riotgames.com",
+  "epicwebhelper": "epicgames.com",
+  "overwolf": "overwolf.com",
+  "docker": "docker.com",
+  "vscode": "microsoft.com",
+  "phpstorm": "jetbrains.com", "webstorm": "jetbrains.com", "idea": "jetbrains.com",
+  "nordvpn": "nordvpn.com",
+  "expressvpn": "expressvpn.com",
+  "protonvpn": "protonvpn.com",
+};
+
+function processIconDomain(name: string, publisher: string | null): string | null {
+  // 1. Name-based override (most reliable for well-known executables)
+  const nameLow = (name || "").toLowerCase().replace(/\.exe$/i, "").replace(/\s+/g, "");
+  if (PROCESS_NAME_DOMAINS[nameLow]) return PROCESS_NAME_DOMAINS[nameLow];
+
+  // 2. Publisher direct lookup
+  if (publisher) {
+    const pub = publisher.toLowerCase().replace(/[,.'"\u00ae\u2122]/g, "").replace(/\s+/g, " ").trim();
+    if (PROCESS_PUBLISHER_DOMAINS[pub]) return PROCESS_PUBLISHER_DOMAINS[pub];
+    // Strip legal suffixes and retry
+    const stripped = pub.replace(/\s+(inc|corp|llc|ltd|gmbh|co|bv|ag|sa|ab|plc|pty|srl|s\.a\.|s\.l\.)\.?\s*$/, "").trim();
+    if (stripped !== pub && PROCESS_PUBLISHER_DOMAINS[stripped]) return PROCESS_PUBLISHER_DOMAINS[stripped];
+    // Partial name match in publisher string
+    for (const [key, domain] of Object.entries(PROCESS_PUBLISHER_DOMAINS)) {
+      if (key.length > 3 && pub.includes(key)) return domain;
+    }
+    // Heuristic: first significant word of publisher → <word>.com
+    const word = stripped.split(" ")[0].replace(/[^a-z0-9-]/g, "");
+    if (word.length >= 4) return `${word}.com`;
+  }
+  return null;
+}
+
+const processIconSrcs = (domain: string) => [
+  `https://logo.clearbit.com/${domain}`,
+  `https://www.google.com/s2/favicons?domain=${domain}&sz=64`,
+  `https://icons.duckduckgo.com/ip3/${domain}.ico`,
+  `https://api.faviconkit.com/${domain}/64`,
+];
+
+// Category → fallback icon (used only when all web sources fail)
+const PROC_CAT_ICON: Record<string, { icon: React.FC<{className?: string}>; cls: string }> = {
+  "System Core":        { icon: Monitor,   cls: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20" },
+  "Gaming / Launchers": { icon: Gamepad2,  cls: "bg-purple-500/10 text-purple-400 border-purple-500/20" },
+  "Browser / Electron": { icon: Globe,     cls: "bg-amber-500/10 text-amber-400 border-amber-500/20" },
+  "Audio / Voice":      { icon: Music,     cls: "bg-pink-500/10 text-pink-400 border-pink-500/20" },
+  "Network / VPN":      { icon: Globe,     cls: "bg-blue-500/10 text-blue-400 border-blue-500/20" },
+  "Vendor Utilities":   { icon: Settings2, cls: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" },
+  "Windows Optional":   { icon: Monitor,   cls: "bg-blue-500/10 text-blue-400 border-blue-500/20" },
+  "Background Apps":    { icon: Package,   cls: "bg-zinc-500/10 text-zinc-500 border-zinc-700/50" },
+  "Unknown / Review":   { icon: Package,   cls: "bg-orange-500/10 text-orange-400 border-orange-500/20" },
+};
+
+const ProcessIcon = memo(function ProcessIcon({
+  name, publisher, category,
+}: {
+  name: string; publisher: string | null; category: string;
+}) {
+  const domain = useMemo(() => processIconDomain(name, publisher), [name, publisher]);
+  const sources = useMemo(() => domain ? processIconSrcs(domain) : [], [domain]);
+
+  const [idx,    setIdx]    = useState(0);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => { setIdx(0); setFailed(false); }, [sources]);
+
+  const catCfg = PROC_CAT_ICON[category] ?? PROC_CAT_ICON["Background Apps"];
+  const CatIcon = catCfg.icon;
+
+  if (sources.length > 0 && !failed) {
+    return (
+      <img
+        key={sources[idx]}
+        src={sources[idx]}
+        alt=""
+        className="size-8 rounded-lg shrink-0 object-contain bg-[#1A1F26] border border-[#2A313A]"
+        onError={() => idx + 1 < sources.length ? setIdx(i => i + 1) : setFailed(true)}
+      />
+    );
+  }
+
+  return (
+    <div className={cn("size-8 rounded-lg flex items-center justify-center shrink-0 border", catCfg.cls)}>
+      <CatIcon className="size-3.5" />
+    </div>
+  );
+});
 
 const isElectron = typeof window !== "undefined" && !!(window as any).electronAPI?.isElectron;
 
@@ -371,14 +564,12 @@ export default function ProcessManager() {
                       )}
                       data-testid={`row-process-${p.pid}`}
                     >
-                      {/* Icon / indicator */}
-                      <div className="shrink-0">
-                        {p.isProtected ? (
-                          <Shield className="size-4 text-cyan-400/70" />
-                        ) : (
-                          <div className={cn("size-2 rounded-full", p.memoryMb > 150 ? "bg-amber-400" : p.memoryMb > 50 ? "bg-[#6B7380]" : "bg-emerald-400/50")} />
-                        )}
-                      </div>
+                      {/* App logo — multi-layer web fallback cascade */}
+                      <ProcessIcon
+                        name={p.name}
+                        publisher={p.publisher}
+                        category={p.category}
+                      />
 
                       {/* Name & info */}
                       <div className="min-w-0 flex-1">

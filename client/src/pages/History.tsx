@@ -5,6 +5,7 @@ import type { HistoryItem } from "@/lib/store";
 import { useToast } from "@/hooks/use-toast";
 import { logHistory } from "@/lib/logHistory";
 import { EXTREME_TWEAKS } from "@/lib/extreme-labs-data";
+import { useAppModeStore } from "@/lib/appModeStore";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -413,16 +414,149 @@ function EventRow({ item, index }: { item: EnrichedItem; index: number }) {
         toast({ title: "Action logged", description: "Run on Windows to apply the revert" });
       }
 
-    } else {
-      // ── No supported revert action for this entry ──────────────────────────
-      // Don't claim success — tell the user honestly.
-      toast({
-        title: "No revert available",
-        description: "This entry doesn't have a supported revert action.",
-        variant: "destructive",
+    } else if (item.page === "Settings") {
+      // ── Settings page changes — toggle back in the Zustand store ─────────────
+      const act = item.action;
+      if (act.includes("Application Mode →")) {
+        // "Settings: Application Mode → Normal" → revert to Light, and vice-versa.
+        const wasNormal = act.includes("→ Normal");
+        const revertTo = wasNormal ? "light" : "normal";
+        useAppModeStore.getState().switchModeWithTransition(revertTo as "light" | "normal");
+        notifyRevert("Settings");
+        toast({ title: "App mode reverted", description: `Switched to ${wasNormal ? "Light" : "Normal"} mode` });
+      } else if (act.includes("Real-time Metrics")) {
+        const wasEnabled = act.includes("Enabled");
+        useStore.getState().setRealtimeMetricsEnabled(!wasEnabled);
+        notifyRevert("Settings");
+        toast({ title: "Setting reverted", description: `Real-time Metrics ${!wasEnabled ? "enabled" : "disabled"}` });
+      } else if (act.includes("Pause When Minimized")) {
+        const wasEnabled = act.includes("Enabled");
+        useStore.getState().setPauseWhenMinimized(!wasEnabled);
+        notifyRevert("Settings");
+        toast({ title: "Setting reverted", description: `Pause When Minimized ${!wasEnabled ? "enabled" : "disabled"}` });
+      } else {
+        toast({ title: "No revert available", description: "This settings entry can't be reverted.", variant: "destructive" });
+        setReverting(false);
+        return;
+      }
+
+    } else if (item.page === "Startup" && (item.status === "Enabled" || item.status === "Disabled")) {
+      // ── Startup app toggle — flip enabled state back ───────────────────────
+      // Notes format (new): "Source: reg|reg: Name|task: Path|folder: Path|was: enabled/disabled"
+      // Notes format (old):  "Source: reg"   — fall back to scanning by name.
+      const eApi = (window as any).electronAPI;
+      const wasEnabled = item.status === "Enabled"; // what was applied → revert = opposite
+      const revertEnabled = !wasEnabled;
+      // Parse name from action: "Startup: AppName Enabled" → "AppName"
+      const appName = item.action.replace(/^Startup:\s*/, "").replace(/\s+(Enabled|Disabled)$/i, "").trim();
+
+      // Parse rich notes
+      const noteFields: Record<string, string> = {};
+      (item.notes ?? "").split("|").forEach(part => {
+        const idx = part.indexOf(": ");
+        if (idx !== -1) noteFields[part.slice(0, idx).trim()] = part.slice(idx + 2).trim();
       });
+
+      if (eApi?.startup?.setEnabled) {
+        try {
+          let params: Record<string, any>;
+          if (noteFields["reg"] !== undefined) {
+            // Rich notes — have all fields stored at log time
+            params = {
+              source:       noteFields["Source"] ?? "reg",
+              registryName: noteFields["reg"]    || undefined,
+              taskPath:     noteFields["task"]   || undefined,
+              folderPath:   noteFields["folder"] || undefined,
+              enabled:      revertEnabled,
+            };
+          } else {
+            // Old notes ("Source: reg") — must scan to find entry by name
+            const list = await (eApi.startup?.getApps?.() ?? eApi.startup?.scan?.());
+            const found = (list ?? []).find((a: any) => a.name === appName);
+            if (!found) {
+              toast({ title: "App not found", description: `"${appName}" is no longer in the startup list.`, variant: "destructive" });
+              setReverting(false);
+              return;
+            }
+            params = {
+              source:       found.source,
+              registryName: found.registryName ?? undefined,
+              taskPath:     found.taskPath     ?? undefined,
+              folderPath:   found.folderPath   ?? undefined,
+              enabled:      revertEnabled,
+            };
+          }
+          const result = await eApi.startup.setEnabled(params);
+          if (result?.ok) {
+            notifyRevert("Startup");
+            toast({ title: "Startup reverted", description: `${appName} ${revertEnabled ? "enabled" : "disabled"}` });
+          } else {
+            toast({ title: "Revert failed", description: result?.error ?? "Could not toggle startup item", variant: "destructive" });
+            setReverting(false);
+            return;
+          }
+        } catch (e) {
+          console.warn("[History] Startup revert IPC error:", e);
+          toast({ title: "Revert failed", description: "Could not toggle startup item", variant: "destructive" });
+          setReverting(false);
+          return;
+        }
+      } else {
+        toast({ title: "Action logged", description: "Run on Windows to apply the revert" });
+      }
+
+    } else if (item.page === "NIC Tuning") {
+      // ── NIC Tuning — reset the property back to driver default ────────────
+      // Notes format: "propKey=value on adapterName" (applied) or "propKey restored … on adapterName" (reset)
+      // A Reset entry is already a revert — its own revert would be to re-apply the setting,
+      // which we don't have enough info for. We only support reverting "Applied" entries.
+      const eApi = (window as any).electronAPI;
+      const notes = item.notes ?? "";
+      const onIdx = notes.lastIndexOf(" on ");
+      if (onIdx === -1 || item.status === "Reset to Default") {
+        toast({ title: "No revert available", description: "NIC reset entries can't be reverted from history.", variant: "destructive" });
+        setReverting(false);
+        return;
+      }
+      const adapterName = notes.slice(onIdx + 4).trim();
+      const propKeyRaw  = notes.slice(0, onIdx).split("=")[0].trim();
+      if (eApi?.nic?.resetProperty) {
+        try {
+          const res = await eApi.nic.resetProperty(adapterName, propKeyRaw);
+          if (res?.ok) {
+            notifyRevert("NIC Tuning");
+            toast({ title: "NIC setting reverted", description: `${propKeyRaw} reset to driver default on ${adapterName}` });
+          } else {
+            toast({ title: "Revert failed", description: res?.error ?? "Could not reset NIC property", variant: "destructive" });
+            setReverting(false);
+            return;
+          }
+        } catch (e) {
+          console.warn("[History] NIC revert IPC error:", e);
+          toast({ title: "Revert failed", description: "Could not reset NIC property", variant: "destructive" });
+          setReverting(false);
+          return;
+        }
+      } else {
+        toast({ title: "Action logged", description: "Run on Windows to apply the revert" });
+      }
+
+    } else {
+      // ── Genuinely non-reversible entries (scans, AI messages, BIOS reads, etc.)
+      // Be specific about why so the user understands rather than seeing a generic error.
+      const irreversiblePages: Record<string, string> = {
+        "Cleaner":      "Cleaned files can't be restored — use a backup if needed.",
+        "Debloat":      "Removed apps need to be reinstalled from Microsoft Store.",
+        "AI Advisor":   "AI conversations don't have a system-level revert.",
+        "BIOS Advisor": "BIOS scan results are read-only — no system change was made.",
+        "Security":     "Security scan results are informational only.",
+        "Startup":      "Only enable/disable actions can be reverted. Scans can't.",
+        "Extreme Labs": "This Extreme Labs entry doesn't have a recorded tweak ID.",
+      };
+      const reason = irreversiblePages[item.page] ?? "This entry doesn't have a supported revert action.";
+      toast({ title: "No revert available", description: reason, variant: "destructive" });
       setReverting(false);
-      return; // skip logging a fake "Reverted" entry
+      return;
     }
 
     logHistory(`Reverted: ${item.action}`, item.page, "Reverted");

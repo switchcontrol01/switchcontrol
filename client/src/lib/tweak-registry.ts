@@ -1190,6 +1190,25 @@ const BASE: BaseTweak[] = [
     },
     supported: true, requiresAdmin: false,
   },
+  {
+    id: "taskbar-end-task",
+    title: "Taskbar End Task",
+    description: "Adds 'End Task' to the right-click context menu on any taskbar button, so you can instantly kill a hung or unresponsive app without opening Task Manager. Introduced in Windows 11 22H2 — automatically detected and shown as unsupported on Windows 10 or earlier Windows 11 builds.",
+    impact: [
+      "Right-click any taskbar app → End Task to force-kill it immediately",
+      "Eliminates the need to open Task Manager for quick process termination",
+      "No performance impact — purely a UI convenience shortcut",
+    ],
+    expected: { cpu: "None", ram: "None", disk: "None", gpu: "None", network: "None", latency: "None", stabilityRisk: "None" },
+    category: "Windows UX", level: "Recommended", risk: "Safe",
+    detailsConfig: {
+      registryPath: "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+      registryName: "TaskbarEndTask",
+      registryType: "DWORD",
+      technicalNote: "TaskbarEndTask=1 enables the context-menu entry. Mirrors the toggle in Settings → System → Advanced → Taskbar. Windows 11 build 22621 (22H2) or later only — automatically marked unsupported on older systems.",
+    },
+    supported: true, requiresAdmin: false,
+  },
 
   // ── Slider tweaks ─────────────────────────────────────────────────────────
 

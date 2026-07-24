@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useLocation } from "wouter";
 import { logHistory } from "@/lib/logHistory";
 import { usePageTiming, runWhenIdle } from "@/lib/page-timing";
 import { safeGetJwt } from "@/lib/auth-store";
@@ -538,12 +539,12 @@ function ProtectionTab({
               <div className="flex items-center gap-1.5 mt-1.5 pt-1.5 border-t border-amber-500/10 text-[11px] text-amber-400/80">
                 <AlertTriangle className="size-3 shrink-0" />
                 <span>This may cause tweaks to revert.{" "}</span>
-                <a
-                  href="#/tweaks"
+                <button
+                  onClick={() => setLocation("/tweaks")}
                   className="underline underline-offset-2 hover:text-amber-300 transition-colors"
                 >
                   View Tweaks page
-                </a>
+                </button>
               </div>
             )}
             {securityStatus.engineVersion && (
@@ -939,6 +940,7 @@ export default function Security() {
   const hasSecurity = isElectronWithSecurity();
   const { telemetry: liveTel } = useLiveTelemetry();
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const { setTamperProtection } = useSystemConditionsStore();
 
   const [activeTab, setActiveTab] = useState<Tab>("overview");

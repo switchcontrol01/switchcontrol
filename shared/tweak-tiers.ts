@@ -71,6 +71,7 @@ export const FREE_EXCEPTION_IDS: Set<string> = new Set([
   "disable-pointer-precision",
   "disable-lock-screen",
   "bg-apps",
+  "taskbar-end-task",
 ]);
 
 /**

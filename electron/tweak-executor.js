@@ -514,6 +514,24 @@ const UNSUPPORTED_TWEAKS = {
   'nvidia-telemetry': "Not applicable to current NVIDIA drivers — the legacy NvTelemetryContainer service and NvTm*/NvNode* scheduled tasks were removed by NVIDIA in the 500-series driver package. Nearly all modern GeForce/RTX installs are unaffected.",
 };
 
+// ── Dynamic unsupported entries (detected at runtime from OS version) ──────────
+// These cannot be static because whether a tweak is supported depends on the
+// Windows build the app is currently running on.  They are appended here once
+// at module load — no async I/O, just os.release() which is always synchronous.
+(function _patchDynamicUnsupported() {
+  if (process.platform !== 'win32') return;
+  try {
+    const buildStr = require('os').release().split('.')[2] || '0';
+    const build = parseInt(buildStr, 10);
+    // TaskbarEndTask — Settings → System → Advanced → Taskbar, added in 22H2.
+    if (build < 22621) {
+      UNSUPPORTED_TWEAKS['taskbar-end-task'] =
+        `Requires Windows 11 22H2 (build 22621) or later. Your system is running build ${build}. ` +
+        `Upgrade to Windows 11 22H2 or newer to use this feature.`;
+    }
+  } catch {}
+})();
+
 // ─── TweakSupport audit logger ────────────────────────────────────────────────
 // Emits structured [TweakSupport] lines so log analysis can quickly identify
 // every support decision made at runtime.  Call this whenever a tweak's support
@@ -581,6 +599,29 @@ const HKCU_TWEAKS = {
     apply:  `New-Item -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\StorageSense\\Parameters\\StoragePolicy" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\StorageSense\\Parameters\\StoragePolicy" -Name "01" -Value 0 -Type DWord -Force`,
     revert: `Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\StorageSense\\Parameters\\StoragePolicy" -Name "01" -Value 1 -Type DWord -Force`,
     check:  `(Get-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\StorageSense\\Parameters\\StoragePolicy" -Name "01" -EA SilentlyContinue)."01" -eq 0`,
+  },
+  'taskbar-end-task': {
+    name: 'Taskbar End Task',
+    requiresAdmin:  false,
+    requiresReboot: false,
+    // The apply/revert scripts are only reached on build ≥ 22621 because the
+    // dynamic UNSUPPORTED_TWEAKS patch above short-circuits the executor for
+    // older builds.  The build guard here is a belt-and-suspenders safety net.
+    apply:  `
+      $build = [int]((Get-ItemProperty 'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion' -Name CurrentBuildNumber -EA Stop).CurrentBuildNumber)
+      if ($build -lt 22621) { throw "Not supported: Windows 11 build 22621 (22H2) or later required. Current build: $build" }
+      New-Item -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced" -Force -EA SilentlyContinue | Out-Null
+      Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced" -Name "TaskbarEndTask" -Value 1 -Type DWord -Force
+    `,
+    revert: `
+      $build = [int]((Get-ItemProperty 'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion' -Name CurrentBuildNumber -EA SilentlyContinue).CurrentBuildNumber)
+      if ($build -lt 22621) { return }
+      Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced" -Name "TaskbarEndTask" -Value 0 -Type DWord -Force
+    `,
+    check:  `
+      $build = [int]((Get-ItemProperty 'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion' -Name CurrentBuildNumber -EA SilentlyContinue).CurrentBuildNumber)
+      if ($build -lt 22621) { $false } else { (Get-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced" -Name "TaskbarEndTask" -EA SilentlyContinue).TaskbarEndTask -eq 1 }
+    `,
   },
   'compact-explorer': {
     name: 'Compact Explorer View',
