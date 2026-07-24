@@ -398,7 +398,23 @@ function RevertProgressView({ phase, reason }: { phase: RevertPhase; reason?: Re
 
 // ── Main modal ────────────────────────────────────────────────────────────────
 export function PremiumRevertModal({ open, onClose, report, onRetry, reason, phase }: PremiumRevertModalProps) {
-  const isRunning = open && report === null && phase !== null && phase !== 'complete';
+  // Use loose != null to also exclude undefined — phase is an optional prop so
+  // it defaults to undefined, not null. `phase !== null` would let undefined
+  // through and show the results view before any report exists.
+  const isRunning = open && report === null && phase != null && phase !== 'complete';
+  // Block close during the brief window between phase='complete' and report being
+  // populated — isRunning is false at that point but the modal isn't ready yet.
+  const canClose = !isRunning && !(phase === 'complete' && report === null);
+
+  // Trap ESC while the engine is running so a keyboard shortcut can't close the
+  // modal mid-revert (which would leave the system in a partially-reverted state).
+  // Must be declared after isRunning so the dependency array evaluates correctly.
+  useEffect(() => {
+    if (!isRunning) return;
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') e.stopPropagation(); };
+    window.addEventListener('keydown', handler, /* capture */ true);
+    return () => window.removeEventListener('keydown', handler, true);
+  }, [isRunning]);
 
   const tweakResults       = report?.tweakResults       ?? [];
   const sliderResults      = report?.sliderResults      ?? [];
@@ -464,7 +480,7 @@ export function PremiumRevertModal({ open, onClose, report, onRetry, reason, pha
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.25 }}
-            onClick={isRunning ? undefined : onClose}
+            onClick={canClose ? onClose : undefined}
           />
 
           {/* Card */}
@@ -515,8 +531,8 @@ export function PremiumRevertModal({ open, onClose, report, onRetry, reason, pha
                 style={{ background: "linear-gradient(90deg, transparent, rgba(139,92,246,0.8), rgba(99,102,241,0.8), transparent)" }}
               />
 
-              {/* Close button — hidden while engine is running */}
-              {!isRunning && (
+              {/* Close button — hidden while engine is running or report not yet ready */}
+              {canClose && (
                 <button
                   onClick={onClose}
                   className="absolute right-3 top-3 z-20 p-1.5 rounded-lg hover:bg-[#2A313A] transition-colors"
@@ -701,14 +717,19 @@ export function PremiumRevertModal({ open, onClose, report, onRetry, reason, pha
                           <SectionHeader label="Power Plan" count={1} />
                           <PowerPlanRow
                             result={powerPlan!}
-                            delay={0.4 + (tweakResults.length + sliderResults.length + presetResults.length + networkResults.length + extremeLabsResults.length) * 0.06}
+                            delay={Math.min(
+                              0.4 + (tweakResults.length + sliderResults.length + presetResults.length + networkResults.length + extremeLabsResults.length) * 0.06,
+                              1.2, // cap so the row never animates in more than 1.2s after modal opens
+                            )}
                           />
                         </>
                       )}
 
-                      {(tweakResults.length + sliderResults.length + presetResults.length + networkResults.length + extremeLabsResults.length) > 12 && (
+                      {/* 5 sections × 4 items each = 20 max visible; threshold was 12 which
+                          fired even when all items were actually shown across the sections. */}
+                      {(tweakResults.length + sliderResults.length + presetResults.length + networkResults.length + extremeLabsResults.length) > 20 && (
                         <p className="text-[10px] text-[#6B7380] text-center pt-1">
-                          + {tweakResults.length + sliderResults.length + presetResults.length + networkResults.length + extremeLabsResults.length - 12} more
+                          + {tweakResults.length + sliderResults.length + presetResults.length + networkResults.length + extremeLabsResults.length - 20} more
                         </p>
                       )}
                     </div>
