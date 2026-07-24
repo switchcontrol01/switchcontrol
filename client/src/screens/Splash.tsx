@@ -10,26 +10,38 @@ interface SplashProps {
 
 const SPLASH_MS = 2500;
 
-// Dust particles — opacity + transform only, no filter animations
-const PARTICLES = Array.from({ length: 28 }, (_, i) => ({
+// Fine dust particles — small, numerous, gently drifting
+const PARTICLES = Array.from({ length: 52 }, (_, i) => ({
   id: i,
   x: (i * 37 + 11) % 100,
   y: (i * 53 + 7)  % 100,
-  size: 1.2 + (i % 4) * 0.6,
-  opacity: 0.12 + (i % 5) * 0.06,
-  dur: 6 + (i % 7) * 2.2,
-  dx: ((i % 9) - 4) * 18,
-  dy: ((i % 6) - 3) * 12,
-  delay: (i * 0.28) % 4,
+  size: 1.0 + (i % 5) * 0.55,
+  opacity: 0.14 + (i % 6) * 0.07,
+  dur: 5 + (i % 8) * 2.0,
+  dx: ((i % 11) - 5) * 22,
+  dy: ((i % 7) - 3) * 14,
+  delay: (i * 0.22) % 5,
+  color: i % 4 === 0 ? 'rgba(168,85,247,1)' : i % 4 === 1 ? 'rgba(0,210,255,1)' : i % 4 === 2 ? 'rgba(210,160,255,1)' : 'rgba(80,200,255,1)',
+  glow: i % 4 === 0 ? 'rgba(168,85,247,0.6)' : i % 4 === 1 ? 'rgba(0,210,255,0.6)' : i % 4 === 2 ? 'rgba(210,160,255,0.6)' : 'rgba(80,200,255,0.6)',
 }));
+
+// Large drifting nebula orbs — big, soft, dreamy
+const ORBS = [
+  { cx: 28,  cy: 35, rx: 38, ry: 30, color: "rgba(139,92,246,0.13)", dx: 25, dy: -18, dur: 18 },
+  { cx: 72,  cy: 60, rx: 42, ry: 34, color: "rgba(0,180,255,0.10)",  dx: -22, dy: 20, dur: 22 },
+  { cx: 50,  cy: 20, rx: 30, ry: 24, color: "rgba(200,100,255,0.10)", dx: -15, dy: 30, dur: 26 },
+  { cx: 15,  cy: 72, rx: 28, ry: 22, color: "rgba(0,220,255,0.08)",  dx: 30, dy: -12, dur: 20 },
+  { cx: 82,  cy: 25, rx: 32, ry: 26, color: "rgba(168,85,247,0.09)", dx: -20, dy: 22, dur: 24 },
+];
 
 // Diagonal sun-streak beams — opacity only, blur is static (not animated)
 const STREAKS = [
-  { left: "4%",  top: "-8%",  rot: "28deg", w: "170vw", h: "6px",  color: "rgba(168,85,247,0.55)",  blur: 4,   dur: 18, delay: 0   },
-  { left: "14%", top: "18%",  rot: "24deg", w: "155vw", h: "4px",  color: "rgba(0,200,255,0.48)",   blur: 3,   dur: 22, delay: 1.4 },
-  { left: "2%",  top: "44%",  rot: "20deg", w: "145vw", h: "8px",  color: "rgba(168,85,247,0.42)",  blur: 5,   dur: 26, delay: 0.7 },
-  { left: "28%", top: "-4%",  rot: "32deg", w: "125vw", h: "3px",  color: "rgba(0,230,255,0.45)",   blur: 2.5, dur: 20, delay: 2.8 },
-  { left: "0%",  top: "62%",  rot: "18deg", w: "135vw", h: "5px",  color: "rgba(200,120,255,0.40)", blur: 3.5, dur: 24, delay: 4.0 },
+  { left: "4%",  top: "-8%",  rot: "28deg", w: "170vw", h: "6px",  color: "rgba(168,85,247,0.65)",  blur: 4,   dur: 18, delay: 0   },
+  { left: "14%", top: "18%",  rot: "24deg", w: "155vw", h: "4px",  color: "rgba(0,200,255,0.58)",   blur: 3,   dur: 22, delay: 1.4 },
+  { left: "2%",  top: "44%",  rot: "20deg", w: "145vw", h: "8px",  color: "rgba(168,85,247,0.52)",  blur: 5,   dur: 26, delay: 0.7 },
+  { left: "28%", top: "-4%",  rot: "32deg", w: "125vw", h: "3px",  color: "rgba(0,230,255,0.55)",   blur: 2.5, dur: 20, delay: 2.8 },
+  { left: "0%",  top: "62%",  rot: "18deg", w: "135vw", h: "5px",  color: "rgba(200,120,255,0.50)", blur: 3.5, dur: 24, delay: 4.0 },
+  { left: "55%", top: "-12%", rot: "22deg", w: "120vw", h: "3px",  color: "rgba(120,80,255,0.42)",  blur: 3,   dur: 28, delay: 3.5 },
 ];
 
 export default function Splash({ onComplete }: SplashProps) {
@@ -168,17 +180,41 @@ export default function Splash({ onComplete }: SplashProps) {
       className="fixed inset-0 overflow-hidden flex items-center justify-center"
       style={{ background: "#07090D" }}
     >
-      {/* ── Static ambient glow — single non-animated composited layer ── */}
-      <div
+      {/* ── Breathing ambient halo — pulses slowly, dreamy atmosphere ── */}
+      <motion.div
         className="absolute pointer-events-none"
         style={{
           inset: 0,
           background: [
-            "radial-gradient(ellipse 70% 55% at 48% 44%, rgba(139,92,246,0.14) 0%, transparent 68%)",
-            "radial-gradient(ellipse 50% 40% at 52% 52%, rgba(0,190,255,0.08) 0%, transparent 70%)",
+            "radial-gradient(ellipse 80% 65% at 48% 46%, rgba(139,92,246,0.22) 0%, transparent 65%)",
+            "radial-gradient(ellipse 55% 45% at 52% 54%, rgba(0,190,255,0.14) 0%, transparent 70%)",
+            "radial-gradient(ellipse 40% 35% at 30% 30%, rgba(200,100,255,0.08) 0%, transparent 60%)",
+            "radial-gradient(ellipse 35% 30% at 70% 68%, rgba(0,220,255,0.07) 0%, transparent 60%)",
           ].join(", "),
         }}
+        animate={{ opacity: [0.75, 1, 0.75] }}
+        transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut" }}
       />
+
+      {/* ── Large drifting nebula orbs — soft blobs beneath everything ── */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none" style={{ zIndex: 1 }}>
+        {ORBS.map((o, i) => (
+          <motion.div
+            key={i}
+            className="absolute rounded-full"
+            style={{
+              left: `${o.cx - o.rx}%`,
+              top:  `${o.cy - o.ry}%`,
+              width:  `${o.rx * 2}%`,
+              height: `${o.ry * 2}%`,
+              background: `radial-gradient(ellipse, ${o.color} 0%, transparent 70%)`,
+              filter: "blur(32px)",
+            }}
+            animate={{ x: [0, o.dx, 0], y: [0, o.dy, 0] }}
+            transition={{ duration: o.dur, repeat: Infinity, ease: "easeInOut", delay: i * 1.8 }}
+          />
+        ))}
+      </div>
 
       {/* ── Diagonal sun-streak beams — opacity-only animation, blur is static ── */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -210,8 +246,8 @@ export default function Splash({ onComplete }: SplashProps) {
             style={{
               left: `${p.x}%`, top: `${p.y}%`,
               width: p.size, height: p.size,
-              background: p.id % 3 === 0 ? 'rgba(168,85,247,1)' : p.id % 3 === 1 ? 'rgba(0,210,255,1)' : 'rgba(210,160,255,1)',
-              boxShadow: `0 0 ${p.size * 2}px ${p.size}px ${p.id % 3 === 0 ? 'rgba(168,85,247,0.5)' : p.id % 3 === 1 ? 'rgba(0,210,255,0.5)' : 'rgba(210,160,255,0.5)'}`,
+              background: p.color,
+              boxShadow: `0 0 ${p.size * 2.5}px ${p.size * 1.5}px ${p.glow}`,
             }}
             initial={{ opacity: p.opacity * 0.2 }}
             animate={{ x: [0, p.dx, 0], y: [0, p.dy, 0], opacity: [p.opacity * 0.2, p.opacity, p.opacity * 0.35, p.opacity, p.opacity * 0.2] }}
@@ -306,23 +342,42 @@ export default function Splash({ onComplete }: SplashProps) {
                 )}
               </AnimatePresence>
 
-              {/* Progress bar */}
-              <div className="relative w-48 h-[1.5px] rounded-full overflow-hidden"
-                style={{ background: "rgba(255,255,255,0.07)" }}>
+              {/* Progress bar — colorful gradient fill + leading spark dot */}
+              <div className="relative w-52 rounded-full overflow-visible"
+                style={{ height: "3px", background: "rgba(255,255,255,0.06)" }}>
+                {/* Filled track */}
                 <motion.div
                   className="absolute left-0 top-0 h-full rounded-full"
                   style={{
-                    background: "linear-gradient(90deg, rgba(139,92,246,0.70), rgba(0,210,255,0.90), rgba(168,85,247,0.70))",
-                    boxShadow: "0 0 8px rgba(139,92,246,0.55)",
+                    background: "linear-gradient(90deg, #7C3AED, #8B5CF6, #00C8F5, #33E0FF, #A855F7)",
+                    backgroundSize: "200% 100%",
+                    boxShadow: "0 0 10px rgba(139,92,246,0.7), 0 0 20px rgba(0,210,255,0.35)",
                   }}
-                  animate={{ width: `${progress}%` }}
-                  transition={{ duration: 0.08, ease: "linear" }}
+                  animate={{ width: `${progress}%`, backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"] }}
+                  transition={{ width: { duration: 0.08, ease: "linear" }, backgroundPosition: { duration: 3, repeat: Infinity, ease: "linear" } }}
                 />
+                {/* Leading spark — bright dot at the head of the bar */}
+                {progress > 2 && progress < 100 && (
+                  <motion.div
+                    className="absolute top-1/2 -translate-y-1/2 rounded-full"
+                    style={{
+                      left: `${progress}%`,
+                      width: "6px",
+                      height: "6px",
+                      marginLeft: "-3px",
+                      background: "white",
+                      boxShadow: "0 0 8px 3px rgba(180,120,255,0.9), 0 0 16px 6px rgba(0,220,255,0.5)",
+                    }}
+                    animate={{ opacity: [1, 0.6, 1], scale: [1, 1.3, 1] }}
+                    transition={{ duration: 0.9, repeat: Infinity, ease: "easeInOut" }}
+                  />
+                )}
+                {/* Shimmer sweep */}
                 <motion.div
-                  className="absolute top-0 h-full w-12"
-                  style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.50), transparent)" }}
-                  animate={{ x: ["-48px", "192px"] }}
-                  transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut", repeatDelay: 0.3 }}
+                  className="absolute top-0 h-full w-10 rounded-full"
+                  style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.55), transparent)" }}
+                  animate={{ x: ["-40px", "208px"] }}
+                  transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut", repeatDelay: 0.2 }}
                 />
               </div>
             </motion.div>
