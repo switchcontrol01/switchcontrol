@@ -2965,7 +2965,16 @@ public class DspHelper {
           if ([DspHelper]::EnumDisplayDevices($dd2.DeviceName, [uint32]0, [ref]$dd3, 0) -and $dd3.DeviceID) {
             if ($dd3.DeviceID -match 'MONITOR\\([^\\]+)\\') { $hwId = $Matches[1].ToUpper() }
           }
-          $dispDevs += @{ x=$dm2.dmPositionX; y=$dm2.dmPositionY; hz=$dm2.dmDisplayFrequency; w=$dm2.dmPelsWidth; h=$dm2.dmPelsHeight; bpp=$dm2.dmBitsPerPel; hwId=$hwId }
+          # Enumerate ALL supported display modes to find the maximum refresh rate this
+          # monitor + GPU combination can drive — may be higher than the current setting.
+          $maxHz2 = $dm2.dmDisplayFrequency
+          $modeN = [uint32]0
+          $dmE = New-Object DspHelper+DEVMODE; $dmE.dmSize = [System.Runtime.InteropServices.Marshal]::SizeOf($dmE)
+          while ([DspHelper]::EnumDisplaySettings($dd2.DeviceName, $modeN, [ref]$dmE)) {
+            if ($dmE.dmDisplayFrequency -gt $maxHz2) { $maxHz2 = $dmE.dmDisplayFrequency }
+            $modeN++
+          }
+          $dispDevs += @{ x=$dm2.dmPositionX; y=$dm2.dmPositionY; hz=$dm2.dmDisplayFrequency; maxHz=$maxHz2; w=$dm2.dmPelsWidth; h=$dm2.dmPelsHeight; bpp=$dm2.dmBitsPerPel; hwId=$hwId }
         }
       }
       $di++
@@ -3117,10 +3126,11 @@ public class DspHelper {
     $vc  = if ($i -lt $vcs.Count) { $vcs[$i] } else { if ($vcs.Count -gt 0) { $vcs[0] } else { $null } }
     $ed  = if ($i -lt $edids.Count) { $edids[$i] } else { $null }
   
-    $hz=$null; $bpp=$null; $rx=$null; $ry=$null
+    $hz=$null; $maxHzOut=$null; $bpp=$null; $rx=$null; $ry=$null
     if ($dev) {
       # Per-device data from EnumDisplaySettings — authoritative for multi-monitor, no index aliasing
       if ([int]$dev.hz  -gt 0) { $hz  = [int]$dev.hz  }
+      if ($dev.maxHz -and [int]$dev.maxHz -gt 0) { $maxHzOut = [int]$dev.maxHz }
       if ([int]$dev.w   -gt 0) { $rx  = [int]$dev.w   }
       if ([int]$dev.h   -gt 0) { $ry  = [int]$dev.h   }
       if ([int]$dev.bpp -gt 0) { $bpp = [int]$dev.bpp }
@@ -3145,7 +3155,7 @@ public class DspHelper {
   
     $out.monitors += @{
       id=$("mon_$i"); name=$name; manufacturer=$mfr; serial=$ser; connectionType=$conn
-      currentResX=$rx; currentResY=$ry; refreshHz=$hz; bitsPerPixel=$bpp
+      currentResX=$rx; currentResY=$ry; refreshHz=$hz; maxRefreshHz=$maxHzOut; bitsPerPixel=$bpp
       nativeResX=if($ed){$ed.nx}else{$null}; nativeResY=if($ed){$ed.ny}else{$null}
       edidVersion=if($ed){$ed.ver}else{$null}
       hdrEnabled=$hdrOn; vrrEnabled=$vrrOn; vrrCapable=$vrrCap; freeSyncEnabled=$fsOn
@@ -3213,6 +3223,7 @@ public class DspHelper {
         currentResX:    m.currentResX    ?? null,
         currentResY:    m.currentResY    ?? null,
         refreshHz:      m.refreshHz      ?? null,
+        maxRefreshHz:   m.maxRefreshHz   ?? null,
         bitsPerPixel:   m.bitsPerPixel   ?? null,
         nativeResX:     m.nativeResX     ?? null,
         nativeResY:     m.nativeResY     ?? null,

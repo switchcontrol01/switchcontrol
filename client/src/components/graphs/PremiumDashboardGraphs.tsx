@@ -504,6 +504,7 @@ interface MonitorInfo {
   currentResX:     number | null;
   currentResY:     number | null;
   refreshHz:       number | null;
+  maxRefreshHz:    number | null;
   bitsPerPixel:    number | null;
   nativeResX:      number | null;
   nativeResY:      number | null;
@@ -519,15 +520,22 @@ interface MonitorInfo {
 }
 
 function monitorScore(mon: MonitorInfo): { score: number | null; reason: string } {
+  // Use the higher of current or max supported refresh rate for scoring so that
+  // a 500Hz monitor configured at 165Hz still scores as a high-refresh display.
   const hz = mon.refreshHz;
-  if (!hz || hz <= 0) {
+  const maxHz = mon.maxRefreshHz;
+  const effectiveHz = Math.max(hz ?? 0, maxHz ?? 0) || null;
+  if (!effectiveHz) {
     const res = mon.currentResX && mon.currentResY ? `${mon.currentResX}×${mon.currentResY}` : null;
     return { score: res ? 60 : null, reason: res ? "Refresh rate unavailable" : "Display detected" };
   }
-  let s = hz >= 240 ? 98 : hz >= 165 ? 92 : hz >= 144 ? 88 : hz >= 120 ? 80 : hz >= 75 ? 70 : 55;
+  let s = effectiveHz >= 360 ? 100 : effectiveHz >= 240 ? 98 : effectiveHz >= 165 ? 92 : effectiveHz >= 144 ? 88 : effectiveHz >= 120 ? 80 : effectiveHz >= 75 ? 70 : 55;
   const rx = mon.currentResX ?? 0, ry = mon.currentResY ?? 0;
   if (rx * ry >= 3840 * 2160) s = Math.min(s + 5, 100);
-  return { score: s, reason: `${hz}Hz display detected` };
+  const reason = maxHz && hz && maxHz > hz
+    ? `${hz}Hz active — monitor supports up to ${maxHz}Hz`
+    : `${effectiveHz}Hz display detected`;
+  return { score: s, reason };
 }
 
 function bppToBitDepth(bpp: number | null): number | null {
@@ -545,6 +553,7 @@ function profileToMonitor(p: DisplaySignalProfile): MonitorInfo {
     connectionType: p.connectionType,
     currentResX: rx || null, currentResY: ry || null,
     refreshHz: p.refreshHz,
+    maxRefreshHz: null,
     bitsPerPixel: p.bitDepth === 10 ? 30 : p.bitDepth === 6 ? 16 : p.bitDepth ? 32 : null,
     nativeResX: null, nativeResY: null, edidVersion: null,
     hdrEnabled: p.hdrEnabled, vrrEnabled: p.vrrEnabled,
@@ -725,6 +734,20 @@ export function DisplaySignalGraph({ delay = 0 }: { delay?: number }) {
                   <span className="text-xl font-bold tabular-nums font-mono" style={{ color: connColor }}>
                     {mon?.refreshHz ? `${mon.refreshHz}Hz` : "—Hz"}
                   </span>
+                  {/* Show max supported Hz badge when monitor can run faster than current Windows setting */}
+                  {mon?.maxRefreshHz && mon?.refreshHz && mon.maxRefreshHz > mon.refreshHz && (
+                    <span
+                      className="text-[10px] font-semibold px-1.5 py-0.5 rounded"
+                      style={{
+                        background: "rgba(251,191,36,0.12)",
+                        border: "1px solid rgba(251,191,36,0.3)",
+                        color: "#fbbf24",
+                      }}
+                      title={`This monitor supports up to ${mon.maxRefreshHz}Hz — increase it in Windows Display Settings → Advanced Display → Refresh Rate`}
+                    >
+                      max {mon.maxRefreshHz}Hz
+                    </span>
+                  )}
                   {resolution && (
                     <>
                       <span className="text-xs text-[#6B7380]">@</span>
