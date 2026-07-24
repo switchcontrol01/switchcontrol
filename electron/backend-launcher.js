@@ -37,10 +37,20 @@ function berr(...args) {
 
 const TRACKED_KEYS = ['OPENAI_API_KEY', 'STRIPE_SECRET_KEY', 'GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'JWT_SECRET', 'SESSION_SECRET'];
 
+// Only these keys are forwarded from sc-config.json into the child env.
+// Spreading the entire config object would silently pass unknown/stale keys
+// (e.g. from a manually edited config or a previous version) to the child.
+const CONFIG_ENV_ALLOWLIST = new Set(TRACKED_KEYS);
+
+// Cached once at module load — require('./package.json') is synchronous and
+// re-running it on every startBackend() call is wasteful.
+const _appVersion = (() => { try { return require('./package.json').version; } catch { return undefined; } })();
+
 let backendProcess = null;
 let backendReady = false;
 let backendPort = null;
 let lastError = null;
+let _sigkillTimer = null; // cleared on clean exit so double-stop doesn't stack timers
 
 function findFreePort() {
   return new Promise((resolve, reject) => {
@@ -61,6 +71,14 @@ function waitForBackend(port, timeoutMs = 20000) {
     let lastFailure = 'no attempts yet';
 
     function check() {
+      // If the process already exited, stop polling immediately rather than
+      // burning the remaining timeout window against a dead port.
+      if (backendProcess === null) {
+        const msg = `Backend process exited during health check (attempt ${attempt}, ${Date.now() - start}ms elapsed). Last failure: ${lastFailure}`;
+        berr(msg);
+        return reject(new Error(msg));
+      }
+
       attempt++;
       const elapsed = Date.now() - start;
       if (elapsed > timeoutMs) {
@@ -159,7 +177,12 @@ async function startBackend(app) {
       console.warn('[Backend] Could not get userData path:', e.message);
     }
 
-    const configSecrets = configStore.readConfig();
+    const _configRaw = configStore.readConfig();
+    // Only forward keys that are on the explicit allowlist — never spread the
+    // entire config object, which may contain stale or unexpected keys.
+    const configSecrets = Object.fromEntries(
+      Object.entries(_configRaw).filter(([k]) => CONFIG_ENV_ALLOWLIST.has(k))
+    );
 
     console.log('[Backend] ELECTRON_USER_DATA:', userDataPath || '(not set)');
     console.log('[Backend] ===== ENV KEY DIAGNOSTICS =====');
@@ -170,7 +193,6 @@ async function startBackend(app) {
     }
     console.log('[Backend] =====================================');
 
-    const appVersion = (() => { try { return require('./package.json').version; } catch { return undefined; } })();
     const env = {
       ...process.env,
       ...configSecrets,
@@ -179,26 +201,25 @@ async function startBackend(app) {
       ELECTRON_BACKEND: '1',
       ELECTRON_RUN_AS_NODE: '1',
       ELECTRON_USER_DATA: userDataPath,
-      ...(appVersion ? { npm_package_version: appVersion } : {}),
+      ...(_appVersion ? { npm_package_version: _appVersion } : {}),
     };
+
+    // Strip DATABASE_URL BEFORE diagnostic logging — the Replit PostgreSQL
+    // server is unreachable from the user's machine and the URL contains
+    // credentials that must not appear in log files, even partially.
+    if (env.DATABASE_URL) {
+      console.warn('[Backend] WARNING: DATABASE_URL found in child env — stripping it for Electron mode');
+      delete env.DATABASE_URL;
+    }
 
     console.log('[Backend] ===== CHILD ENV KEY DIAGNOSTICS =====');
     for (const k of TRACKED_KEYS) {
       console.log(`[Backend]   child_env ${k}: ${!!env[k]}`);
     }
     console.log('[Backend] AI_MODEL in child env:', env.AI_MODEL || '(not set, will use gpt-4o-mini)');
-    console.log('[Backend] DATABASE_URL in child env:', env.DATABASE_URL ? `YES (${env.DATABASE_URL.substring(0, 30)}...)` : 'NO — Electron offline mode (expected; cloud DB unreachable from user machine)');
+    console.log('[Backend] DATABASE_URL in child env: NO (stripped for Electron mode)');
     console.log('[Backend] ELECTRON_BACKEND in child env:', env.ELECTRON_BACKEND || '(not set)');
     console.log('[Backend] ==========================================');
-
-    // Explicitly strip DATABASE_URL when running as Electron backend.
-    // The Replit PostgreSQL server is unreachable from the user's machine —
-    // if this key leaks in (e.g. via a system env var or sc-config.json),
-    // the server would try to open PG connections and hang.
-    if (env.DATABASE_URL) {
-      console.warn('[Backend] WARNING: DATABASE_URL found in child env — stripping it for Electron mode');
-      delete env.DATABASE_URL;
-    }
 
     console.log('[Backend] Spawning child process...');
     console.log('[Backend]   execPath:', process.execPath);
@@ -225,7 +246,7 @@ async function startBackend(app) {
 
     console.log('[Backend] Child process spawned, PID:', backendProcess.pid);
 
-    backendProcess.stdout.on('data', (data) => {
+    backendProcess.stdout?.on('data', (data) => {
       const lines = data.toString().split(/\r?\n/);
       for (const line of lines) {
         if (!line) continue;
@@ -234,7 +255,7 @@ async function startBackend(app) {
       }
     });
 
-    backendProcess.stderr.on('data', (data) => {
+    backendProcess.stderr?.on('data', (data) => {
       const lines = data.toString().split(/\r?\n/);
       for (const line of lines) {
         if (!line) continue;
@@ -245,6 +266,9 @@ async function startBackend(app) {
 
     backendProcess.on('exit', (code, signal) => {
       blog(`Child process EXITED — code=${code} signal=${signal}`);
+      // Clear the SIGKILL watchdog — process exited cleanly so there's
+      // nothing to force-kill and we don't want stacked timers on double-stop.
+      if (_sigkillTimer) { clearTimeout(_sigkillTimer); _sigkillTimer = null; }
       if (code !== 0 && code !== null) {
         lastError = `Backend process crashed with exit code ${code}`;
         berr(lastError);
@@ -303,7 +327,11 @@ function stopBackend() {
     } catch (e) {
       console.warn('[Backend] SIGTERM failed:', e.message);
     }
-    setTimeout(() => {
+    // Store the timer so the exit handler can cancel it on clean exit,
+    // preventing stacked SIGKILL timeouts if stopBackend is called twice
+    // (e.g. from both before-quit and will-quit handlers in main.js).
+    _sigkillTimer = setTimeout(() => {
+      _sigkillTimer = null;
       if (backendProcess) {
         try {
           backendProcess.kill('SIGKILL');
