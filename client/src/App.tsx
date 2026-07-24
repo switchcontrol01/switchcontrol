@@ -591,6 +591,11 @@ function ElectronAppContent() {
     if (!user?.loggedIn) return;
     if (entitlementsAttempted) return;
 
+    // Guard against setState-after-unmount: if the component unmounts while
+    // refreshEntitlements() is in flight (e.g. user navigates away during login),
+    // none of the .then/.catch/.finally branches should fire setState.
+    let mounted = true;
+
     console.log(
       "[Entitlements] post-auth hydration begin — cached isPremium:",
       user?.isPremium,
@@ -603,6 +608,7 @@ function ElectronAppContent() {
     );
     refreshEntitlements()
       .then((result) => {
+        if (!mounted) return;
         console.log(
           "[Entitlements] post-auth hydration result — isPremium:",
           result.user?.isPremium ?? "null",
@@ -651,6 +657,7 @@ function ElectronAppContent() {
         }
       })
       .catch((err) => {
+        if (!mounted) return;
         console.warn(
           "[Entitlements] post-auth hydration error — checking grace store:",
           err,
@@ -667,8 +674,10 @@ function ElectronAppContent() {
         }
       })
       .finally(() => {
+        if (!mounted) return;
         setEntitlementsAttempted(true);
       });
+    return () => { mounted = false; };
   }, [phase, user?.loggedIn, entitlementsAttempted]);
 
   // Phase-stabilization gate: let the dashboard's fade-in finish before any
