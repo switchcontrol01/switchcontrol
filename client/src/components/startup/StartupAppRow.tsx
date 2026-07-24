@@ -255,7 +255,8 @@ function LetterAvatar({ name, size = 28 }: { name: string; size?: number }) {
 
 /** Favicon fetched from Google's favicon CDN, fallback to letter avatar */
 function AppIcon({ app, size = 28 }: { app: BootApp; size?: number }) {
-  const [failed, setFailed] = useState(false);
+  const [failed,  setFailed]  = useState(false);
+  const [visible, setVisible] = useState(false);   // starts invisible; fades in on load
   const domain = resolveDomain(app);
 
   if (!domain || failed) {
@@ -272,7 +273,12 @@ function AppIcon({ app, size = 28 }: { app: BootApp; size?: number }) {
         alt=""
         width={16}
         height={16}
-        style={{ imageRendering: "auto" }}
+        style={{
+          imageRendering: "auto",
+          opacity: visible ? 1 : 0,
+          transition: "opacity 0.35s ease",
+        }}
+        onLoad={() => setVisible(true)}
         onError={() => setFailed(true)}
         draggable={false}
       />

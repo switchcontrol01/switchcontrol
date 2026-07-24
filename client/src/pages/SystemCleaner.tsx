@@ -968,23 +968,41 @@ export default function SystemCleaner() {
               </div>
 
               <div className="grid grid-cols-2 gap-2 max-w-2xl mx-auto w-full">
-                {selectedItems.map((item, i) => {
-                  const meta = CAT_META[item.category];
-                  const result = cleanResults[item.id];
+                {allItems.map((item, i) => {
+                  const meta      = CAT_META[item.category];
+                  const result    = cleanResults[item.id];
+                  const isSkipped = !selected.has(item.id);
                   return (
-                    <div key={item.id} className="rounded-xl border border-white/[0.07] bg-white/[0.02] overflow-hidden">
-                      <motion.div className="h-[3px] w-full origin-left"
-                        style={{ background: meta.color }}
-                        initial={{ scaleX: 0 }}
-                        animate={{ scaleX: 1 }}
-                        transition={{ duration: 0.8, delay: i * 0.05, ease: "easeOut" }}
-                      />
+                    <div key={item.id}
+                      className={cn(
+                        "rounded-xl border overflow-hidden transition-opacity duration-200",
+                        isSkipped
+                          ? "border-white/[0.04] bg-white/[0.01] opacity-35"
+                          : "border-white/[0.07] bg-white/[0.02]",
+                      )}
+                    >
+                      {/* Progress bar — only for active (non-skipped) items */}
+                      {!isSkipped && (
+                        <motion.div className="h-[3px] w-full origin-left"
+                          style={{ background: meta.color }}
+                          initial={{ scaleX: 0 }}
+                          animate={{ scaleX: 1 }}
+                          transition={{ duration: 0.8, delay: i * 0.05, ease: "easeOut" }}
+                        />
+                      )}
                       <div className="flex items-center gap-2 px-3 py-2">
-                        <div className="w-5 h-5 rounded-md flex items-center justify-center shrink-0" style={{ background: meta.dim }}>
-                          <meta.icon className="w-2.5 h-2.5" style={{ color: meta.color }} />
+                        <div className="w-5 h-5 rounded-md flex items-center justify-center shrink-0"
+                          style={{ background: isSkipped ? "rgba(255,255,255,0.03)" : meta.dim }}>
+                          <meta.icon className="w-2.5 h-2.5" style={{ color: isSkipped ? "#4a5460" : meta.color }} />
                         </div>
-                        <span className="flex-1 text-[11px] font-semibold text-[#E6EAF0] truncate">{item.name}</span>
-                        {result ? (
+                        <span className={cn(
+                          "flex-1 text-[11px] font-semibold truncate",
+                          isSkipped ? "text-[#4a5460]" : "text-[#E6EAF0]",
+                        )}>{item.name}</span>
+                        {isSkipped ? (
+                          /* Item was deliberately unticked — show Skipped immediately, no spinner */
+                          <span className="text-[10px] text-[#3a4050] font-medium shrink-0 italic">Skipped</span>
+                        ) : result ? (
                           <div className="flex items-center gap-1 shrink-0">
                             {result.status === "cleaned" ? (
                               <>
