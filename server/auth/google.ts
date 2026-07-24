@@ -10,6 +10,7 @@ import { eq } from "drizzle-orm";
 import { storage } from "../storage";
 import { signJwt, verifyJwt, invalidateJwt } from "../lib/jwt";
 import { resolveEffectivePlan, isPlanActive } from "../lib/planUtils";
+import { csrfProtection } from "../middleware/csrf";
 
 declare global {
   namespace Express {
@@ -887,7 +888,7 @@ export function setupGoogleAuth(app: Express): void {
     }
   );
 
-  app.post("/auth/logout", (req, res) => {
+  app.post("/auth/logout", csrfProtection, (req, res) => {
     console.log("[AUTH] Logout requested");
     // Drop JWT from verification cache so it can't be reused during the 60s TTL window
     const authHeader = req.headers.authorization;
@@ -1054,7 +1055,7 @@ export function setupGoogleAuth(app: Express): void {
     return res.json({ loggedIn: false, isPremium: false, plan: "free", isAdmin: false, hasSeenPremiumUnlock: false, hasSeenPremiumTour: false, hasSeenTrialActivation: false, hasSeenTrialTour: false });
   });
 
-  app.post("/api/premium/unlock-seen", async (req, res) => {
+  app.post("/api/premium/unlock-seen", csrfProtection, async (req, res) => {
     try {
       const authHeader = req.headers.authorization;
       let userId: string | null = null;
@@ -1098,7 +1099,7 @@ export function setupGoogleAuth(app: Express): void {
     }
   });
 
-  app.post("/api/premium/tour-seen", async (req, res) => {
+  app.post("/api/premium/tour-seen", csrfProtection, async (req, res) => {
     try {
       const authHeader = req.headers.authorization;
       let userId: string | null = null;
@@ -1142,7 +1143,7 @@ export function setupGoogleAuth(app: Express): void {
     }
   });
 
-  app.post("/api/premium/trial-activation-seen", async (req, res) => {
+  app.post("/api/premium/trial-activation-seen", csrfProtection, async (req, res) => {
     try {
       const authHeader = req.headers.authorization;
       let userId: string | null = null;
@@ -1174,7 +1175,7 @@ export function setupGoogleAuth(app: Express): void {
     }
   });
 
-  app.post("/api/premium/trial-tour-seen", async (req, res) => {
+  app.post("/api/premium/trial-tour-seen", csrfProtection, async (req, res) => {
     try {
       const authHeader = req.headers.authorization;
       let userId: string | null = null;
@@ -1206,7 +1207,7 @@ export function setupGoogleAuth(app: Express): void {
     }
   });
 
-  app.post("/api/premium/reset-tour-flags", async (req, res) => {
+  app.post("/api/premium/reset-tour-flags", csrfProtection, async (req, res) => {
     try {
       const authHeader = req.headers.authorization;
       let userId: string | null = null;

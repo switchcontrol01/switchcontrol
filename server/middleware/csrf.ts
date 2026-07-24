@@ -27,17 +27,29 @@ export function generateCsrfToken(): string {
 }
 
 export function csrfProtection(req: Request, res: Response, next: NextFunction) {
+  // Electron backend only receives requests from its own renderer — safe to bypass.
   if (isElectronBackend) {
+    return next();
+  }
+
+  // JWT Bearer auth is not susceptible to CSRF. Browsers cannot attach an
+  // Authorization header to cross-site requests automatically — only cookies
+  // are sent implicitly. A request with a Bearer token therefore cannot be
+  // forged by a third-party page, so the double-submit check is unnecessary
+  // and must not block it (Electron-companion web calls use JWT mode even
+  // when talking to the cloud server).
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith("Bearer ")) {
     return next();
   }
 
   const cookieToken = req.cookies?.[CSRF_COOKIE];
   const headerToken = req.headers[CSRF_HEADER] as string | undefined;
-  
+
   if (!cookieToken || !headerToken || cookieToken !== headerToken) {
     return res.status(403).json({ error: "Invalid CSRF token" });
   }
-  
+
   next();
 }
 
