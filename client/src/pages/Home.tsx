@@ -902,10 +902,22 @@ export default function Home() {
           <SystemStateBar />
         </Reveal>
 
-        {/* Detected Issues — real evidence-backed problems only */}
-        <Reveal>
-          <DetectedIssues />
-        </Reveal>
+        {/* Detected Issues — hidden during startup warm-up so stale telemetry
+            never triggers a false alert on cold boot. Fades in once the
+            warm-up grace period ends and readings have settled. */}
+        <AnimatePresence>
+          {!warmingUp && (
+            <motion.div
+              key="detected-issues"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 8 }}
+              transition={{ duration: 0.45, ease: "easeOut" }}
+            >
+              <DetectedIssues />
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Activity Monitor Grid */}
         <Reveal className="space-y-4">
