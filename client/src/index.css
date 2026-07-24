@@ -2,6 +2,13 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* ── Global animation pause when tab is hidden ──────────────────────────────
+   App.tsx adds/removes the `tab-hidden` class on <html> via visibilitychange.
+   This kills all CSS animation GPU work the instant the user switches tabs. */
+:root.tab-hidden * {
+  animation-play-state: paused !important;
+}
+
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -993,10 +1000,10 @@ html {
     rgba(180, 200, 255, 0.03) 85%,
     transparent 100%
   );
-  filter: blur(1px);
+  /* filter: blur removed — blur on an animating element forces repaint every frame */
   transform: translateX(-150%) skewX(-18deg);
   opacity: 0;
-  animation: mockupReflectionSweep 3s ease-in-out infinite;
+  animation: mockupReflectionSweep 8s ease-in-out infinite;
   animation-delay: 1.4s;
 }
 
@@ -1016,11 +1023,11 @@ html {
     rgba(140, 180, 255, 0.015) 80%,
     transparent 100%
   );
-  filter: blur(2px);
+  /* filter: blur removed — blur on an animating element forces repaint every frame */
   transform: translateX(-150%) skewX(-12deg);
   opacity: 0;
-  animation: mockupReflectionSweep 3s ease-in-out infinite;
-  animation-delay: 1.8s;
+  animation: mockupReflectionSweep 8s ease-in-out infinite;
+  animation-delay: 5s;
 }
 
 .mockup-surface-highlight {
@@ -1050,7 +1057,8 @@ html {
 
   .mockup-reflection-sweep,
   .mockup-reflection-sweep-secondary {
-    animation: mockupReflectionSweep 6s ease-in-out infinite;
+    /* Already slowed to 8s in normal mode; disable entirely for reduced-motion */
+    animation: none;
   }
 }
 
@@ -1849,11 +1857,13 @@ textarea,
   60% { transform: translate3d(-8px, 4px, 0) rotate(-0.3deg); opacity: 0.45; }
   85% { transform: translate3d(6px, -2px, 0) rotate(0.1deg); opacity: 0.55; }
 }
-.ws-sun-streak-1 { animation: sunStreakDrift1 20s ease-in-out infinite; will-change: transform, opacity; }
-.ws-sun-streak-2 { animation: sunStreakDrift2 25s ease-in-out infinite; will-change: transform, opacity; }
-.ws-sun-streak-3 { animation: sunStreakDrift3 30s ease-in-out infinite; will-change: transform, opacity; }
-.ws-sun-streak-4 { animation: sunStreakDrift2 22s ease-in-out infinite; will-change: transform, opacity; }
-.ws-sun-streak-bp { animation: sunStreakDrift1 18s ease-in-out infinite; will-change: transform, opacity; }
+/* will-change removed from always-animating streaks — will-change on a permanent
+   animation just burns VRAM for a compositor layer that never gets torn down. */
+.ws-sun-streak-1 { animation: sunStreakDrift1 20s ease-in-out infinite; }
+.ws-sun-streak-2 { animation: sunStreakDrift2 25s ease-in-out infinite; }
+.ws-sun-streak-3 { animation: sunStreakDrift3 30s ease-in-out infinite; }
+.ws-sun-streak-4 { animation: sunStreakDrift2 22s ease-in-out infinite; }
+/* ws-sun-streak-bp is defined below with bp-streak rules */
 
 /* Floating particles */
 .ws-particle {
@@ -2224,17 +2234,23 @@ button, a, nav, header, footer, label {
   75% { transform: translate(-50%, -50%) rotate(-1.5deg) scale(1.14) translateY(-16px); }
 }
 
-.bp-float-1 { animation: bpFloat1 10s ease-in-out infinite; }
-.bp-float-2 { animation: bpFloat2 12s ease-in-out infinite; }
-.bp-float-3 { animation: bpFloat3 14s ease-in-out infinite; }
+/* bp-float animations removed — blueprint images are at 7–14% opacity and the
+   float (scale + translate + rotate changing every frame) costs more than it adds.
+   Static positioning is visually identical at these opacities. */
+.bp-float-1 { }
+.bp-float-2 { }
+.bp-float-3 { }
 
 @keyframes bpStreakPulse {
   0%, 100% { opacity: 0.7; }
   50% { opacity: 1; }
 }
-.ws-sun-streak-bp { animation: bpStreakPulse 6s ease-in-out infinite, sunStreakDrift1 18s ease-in-out infinite; will-change: transform, opacity; }
-.ws-sun-streak-bp-right { animation: bpStreakPulse 8s ease-in-out infinite, sunStreakDrift2 20s ease-in-out infinite; will-change: transform, opacity; }
-.ws-sun-streak-bp-center { animation: bpStreakPulse 10s ease-in-out infinite, sunStreakDrift3 24s ease-in-out infinite; will-change: transform, opacity; }
+/* Dual animations (opacity pulse + translate drift) replaced with opacity-only pulse.
+   Animating transform on large radial-gradient divs promotes compositor layers
+   for the lifetime of the page, which stays hot even when nothing is moving. */
+.ws-sun-streak-bp { animation: bpStreakPulse 6s ease-in-out infinite; }
+.ws-sun-streak-bp-right { animation: bpStreakPulse 8s ease-in-out infinite; }
+.ws-sun-streak-bp-center { animation: bpStreakPulse 10s ease-in-out infinite; }
 
 /* Tour sidebar highlight — pulsing glow on the active sidebar item */
 @keyframes tourSidebarPulse {
@@ -2295,7 +2311,8 @@ button, a, nav, header, footer, label {
   100% { transform: rotate(360deg); }
 }
 .pricing-border-spin {
-  animation: pricingBorderSpin 5s linear infinite;
+  /* Slowed 5s→15s: spinning a 200%×200% conic gradient at 5s is expensive */
+  animation: pricingBorderSpin 15s linear infinite;
 }
 
 /* Subtle pricing glow pulse */

@@ -361,6 +361,15 @@ function ElectronAppContent() {
     setLocation("/dashboard");
   }, [revertModalOpen, phase]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Pause ALL CSS animations when the tab is hidden — zero GPU work for background tabs.
+  useEffect(() => {
+    const sync = () =>
+      document.documentElement.classList.toggle("tab-hidden", document.hidden);
+    sync();
+    document.addEventListener("visibilitychange", sync);
+    return () => document.removeEventListener("visibilitychange", sync);
+  }, []);
+
   // Backend-error listener — shows an error immediately instead of spinning for 50s.
   // The api.ts module-level listener already rejects the port poll; this sets the
   // UI state so the booting screen displays a human-readable message.

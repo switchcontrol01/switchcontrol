@@ -422,7 +422,7 @@ function HeroAppMockup() {
   ] as const;
 
   return (
-    <div className="ws-hero-mockup relative animate-mockup-float">
+    <div className="ws-hero-mockup relative">
       {/* Ambient bloom */}
       <div className="absolute -inset-16 rounded-3xl blur-[40px] pointer-events-none"
         style={{ background: "radial-gradient(ellipse at 50% 55%, hsl(270 55% 48% / 0.18), hsl(190 75% 48% / 0.08), transparent 68%)" }} />

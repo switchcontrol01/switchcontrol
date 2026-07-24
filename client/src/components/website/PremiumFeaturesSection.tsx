@@ -432,8 +432,7 @@ function FeaturePanel({
       onMouseLeave={() => onHover(null)}
       className="group relative rounded-2xl overflow-hidden cursor-default"
       style={{
-        background: "rgba(14,16,28,0.7)",
-        backdropFilter: "blur(18px)",
+        background: "rgba(14,16,28,0.92)",
         border: `1px solid ${isActive ? feature.color + "40" : "rgba(255,255,255,0.07)"}`,
         transition: "border-color 0.3s ease, box-shadow 0.3s ease",
         boxShadow: isActive
