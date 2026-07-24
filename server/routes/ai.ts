@@ -335,10 +335,15 @@ You have complete real-time visibility into the user's FULL system state (provid
 - Exact hardware: CPU model, GPU model, RAM configuration (sticks, type, speed), storage, motherboard, BIOS version
 - Platform classification: laptop or desktop, AMD or Intel CPU
 - Display signal: monitor model, resolution, refresh rate, connection type, quality score, any issues detected
-- Every SwitchControl tweak they have enabled or disabled — across ALL sections: main Tweaks, Extreme Labs, Network Tweaks, Power Plan, Process Manager
+- Every SwitchControl tweak they have enabled or disabled — across ALL sections: main Tweaks, Extreme Labs, Network Tweaks, NIC Tuning, Power Plan, Process Manager, Security, BIOS Advisor
+- Installed driver versions (GPU, audio) from Driver Intel
+- Latency Analyzer results: DPC latency, kernel latency, problematic drivers detected
+- Startup Manager: total startup entries, how many are enabled/disabled/broken
+- System Cleaner and Debloater activity — what has been cleaned or removed (via recent history)
+- App settings: real-time metrics toggle, pause-when-minimized
 - Live telemetry: CPU/GPU load and temperature, VRAM usage, RAM pressure, process count, network throughput
 - Active power plan (system default + app-applied plan)
-- Recent SwitchControl activity history (what was changed and when)
+- Recent SwitchControl activity history across ALL pages (what was changed and when)
 - Security flags: VBS, Hyper-V, Resizable BAR, XMP/EXPO status
 - Subscription tier (Premium or Free)
 - The full conversation history — you remember everything discussed
@@ -349,6 +354,9 @@ CRITICAL RULE: NEVER say "I cannot check X" or "I don't have access to X" if the
 - What was recently changed → check the recent activity history
 - Network settings → check the network tweaks applied
 - Power plan → check the power plan field
+- Driver versions → check the installed driver versions field
+- Startup items → check the Startup Manager summary
+- Latency issues → check the Latency Analyzer results
 If a specific piece of data truly is "unavailable" or "data unavailable" in the context, then you may say you cannot see it.
 
 PERFORMANCE PHILOSOPHY (you are a system intelligence assistant, NOT a tweak dump):
@@ -375,14 +383,22 @@ ACTION DETECTION — treat these as apply/navigation intents, not text questions
 CRITICAL: "show me [tweak name/number]" ALWAYS uses <<APPLY:id>>, never <<NAV:>>. <<NAV:>> is only for navigating to app sections/pages, never for showing a specific tweak.
 
 NAVIGATION ROUTE MAP (use exact paths):
+- Dashboard → <<NAV:/:Dashboard>>
 - Main tweaks → <<NAV:/tweaks:Tweaks>>
 - Extreme Labs → <<NAV:/extreme-labs:Extreme Labs>>
-- Network tweaks → <<NAV:/network-tweaks:Network Tweaks>>
+- Network tweaks → <<NAV:/network:Network Tweaks>>
+- NIC Tuning → <<NAV:/nic-tuning:NIC Tuning>>
 - Power plan → <<NAV:/power-plan:Power Plan>>
 - Process Manager → <<NAV:/process-manager:Process Manager>>
 - BIOS Advisor → <<NAV:/bios-advisor:BIOS Advisor>>
 - Security → <<NAV:/security:Security>>
-- Dashboard → <<NAV:/:Dashboard>>
+- Driver Intel → <<NAV:/driver-intel:Driver Intel>>
+- Latency Analyzer → <<NAV:/latency-analyzer:Latency Analyzer>>
+- Startup Manager → <<NAV:/startup:Startup Manager>>
+- System Cleaner → <<NAV:/cleaner:System Cleaner>>
+- Debloater → <<NAV:/debloat:Debloater>>
+- History → <<NAV:/history:History>>
+- Settings → <<NAV:/settings:Settings>>
 
 PLATFORM AWARENESS — check the platform classification before recommending:
 - If platform = laptop: do NOT recommend PBO / Curve Optimizer / desktop-exclusive BIOS tuning. Warn that USB selective suspend tweaks may affect peripherals. Note that power limits are managed by laptop firmware.
@@ -621,6 +637,52 @@ function buildChatContext(context: any, serverCtx?: Awaited<ReturnType<typeof bu
     parts.push(`Power plan applied by app: "${context.powerPlanApplied}"`);
   }
 
+  // ── Driver Intel ──────────────────────────────────────────────────────────
+  const driverIntel = context?.driverIntel;
+  if (driverIntel && typeof driverIntel === "object" && Object.keys(driverIntel).length > 0) {
+    const entries = Object.entries(driverIntel)
+      .filter(([, v]) => v)
+      .map(([k, v]) => `${k.replace(/_/g, " ")}: v${v}`);
+    if (entries.length > 0) {
+      parts.push(`Installed driver versions (from Driver Intel): ${entries.join(", ")}`);
+    }
+  } else {
+    parts.push("Driver Intel: version scan not yet run — navigate to <<NAV:/driver-intel:Driver Intel>> to run it");
+  }
+
+  // ── Latency Analyzer ─────────────────────────────────────────────────────
+  const latState = context?.latencyState;
+  if (latState) {
+    const dpc = latState.dpcUs != null ? `DPC max ${latState.dpcUs}µs` : null;
+    const kern = latState.kernelUs != null ? `kernel max ${latState.kernelUs}µs` : null;
+    const issues = Array.isArray(latState.problematicDrivers) && latState.problematicDrivers.length > 0
+      ? `problematic drivers: ${latState.problematicDrivers.join(", ")}` : null;
+    const detail = [dpc, kern, issues].filter(Boolean).join(", ");
+    parts.push(`Latency Analyzer (status: ${latState.status}): ${detail || "no sample captured yet"}`);
+  } else {
+    parts.push("Latency Analyzer: not run in this session — navigate to <<NAV:/latency-analyzer:Latency Analyzer>> to start");
+  }
+
+  // ── Startup Manager ───────────────────────────────────────────────────────
+  const ss = context?.startupSummary;
+  if (ss) {
+    const brokenNote = ss.broken > 0 ? `, ${ss.broken} broken/missing` : "";
+    parts.push(`Startup Manager: ${ss.total} startup entries — ${ss.enabled} enabled, ${ss.disabled} disabled${brokenNote}`);
+  } else {
+    parts.push("Startup Manager: summary not loaded — navigate to <<NAV:/startup:Startup Manager>> to view");
+  }
+
+  // ── App settings ─────────────────────────────────────────────────────────
+  const settings = context?.settings;
+  if (settings) {
+    parts.push(`App settings: real-time metrics ${settings.realtimeMetricsEnabled ? "enabled" : "disabled"}, pause-when-minimized ${settings.pauseWhenMinimized ? "on" : "off"}`);
+  }
+
+  // ── History total ─────────────────────────────────────────────────────────
+  if (context?.historyTotal != null) {
+    parts.push(`Total recorded SwitchControl history events: ${context.historyTotal} — full log at <<NAV:/history:History>>`);
+  }
+
   // ── Platform classification ───────────────────────────────────────────────
   const platform = context?.platform;
   if (platform) {
@@ -715,20 +777,26 @@ function buildChatContext(context: any, serverCtx?: Awaited<ReturnType<typeof bu
   // ── Current route (page the user is viewing right now) ───────────────────
   if (context?.currentRoute && typeof context.currentRoute === "string") {
     const ROUTE_LABELS: Record<string, string> = {
-      "/":               "Dashboard",
-      "/tweaks":         "Tweaks",
-      "/network-tweaks": "Network Tweaks",
-      "/power-plan":     "Power Plan",
-      "/ai-advisor":     "AI Advisor",
-      "/bios-advisor":   "BIOS Advisor",
-      "/extreme-labs":   "Extreme Labs",
-      "/security":       "Security",
-      "/process-manager":"Process Manager",
-      "/system-cleaner": "System Cleaner",
-      "/debloater":      "Debloater",
-      "/nic-tuning":     "NIC Tuning",
-      "/history":        "History",
-      "/settings":       "Settings",
+      "/":                  "Dashboard",
+      "/tweaks":            "Tweaks",
+      "/network":           "Network Tweaks",
+      "/network-tweaks":    "Network Tweaks",  // legacy alias
+      "/nic-tuning":        "NIC Tuning",
+      "/power-plan":        "Power Plan",
+      "/ai-advisor":        "AI Advisor",
+      "/bios-advisor":      "BIOS Advisor",
+      "/extreme-labs":      "Extreme Labs",
+      "/security":          "Security",
+      "/process-manager":   "Process Manager",
+      "/driver-intel":      "Driver Intel",
+      "/latency-analyzer":  "Latency Analyzer",
+      "/startup":           "Startup Manager",
+      "/cleaner":           "System Cleaner",
+      "/system-cleaner":    "System Cleaner",  // legacy alias
+      "/debloat":           "Debloater",
+      "/debloater":         "Debloater",       // legacy alias
+      "/history":           "History",
+      "/settings":          "Settings",
     };
     const label = ROUTE_LABELS[context.currentRoute] ?? context.currentRoute;
     parts.push(`User's current page: ${label} (${context.currentRoute}) — use <<NAV:${context.currentRoute}:${label}>> if asked to stay here, or other routes to navigate away`);

@@ -203,17 +203,17 @@ function _diskCachePath(): string {
   return path.join(base, "SwitchControl", "cache", "system-profile.json");
 }
 
-async function _loadDiskCache(): Promise<SystemIntelligenceProfile | null> {
+async function _loadDiskCache(): Promise<{ profile: SystemIntelligenceProfile; ageMs: number } | null> {
   try {
     const raw = await fsp.readFile(_diskCachePath(), "utf-8");
     const { timestamp, profile } = JSON.parse(raw) as { timestamp: number; profile: SystemIntelligenceProfile };
     const ageMs = Date.now() - timestamp;
     if (ageMs < DISK_CACHE_TTL_MS) {
-      console.log(`[SysIntelligence] Disk cache hit — age=${Math.round(ageMs / 60000)}min`);
-      return profile;
+      console.log(`[SysIntelligence] Disk cache hit — age=${Math.round(ageMs / 60000)}min fresh`);
+    } else {
+      console.log("[SysIntelligence] Disk cache stale — background refresh scheduled");
     }
-    console.log("[SysIntelligence] Disk cache stale — background refresh scheduled");
-    return profile; // return stale rather than null so dashboard has something
+    return { profile, ageMs }; // always return the profile so dashboard has something
   } catch {
     return null; // first launch or corrupted cache
   }
@@ -320,11 +320,26 @@ function siTimeoutTracked<T>(label: string, p: Promise<T>, ms: number): Promise<
     return Promise.reject(new Error(`${label} skipped — degradation cooldown (${remainMin}min remaining)`));
   }
 
+  // Cooldown just expired — reset consecutiveTimeouts to 0 so the probe gets
+  // two fresh chances before entering cooldown again. Without this, a probe that
+  // spent its cooldown still has consecutiveTimeouts=2, meaning the very next
+  // timeout immediately re-enters cooldown rather than being treated as a first fail.
+  if (health && health.cooledUntil > 0 && health.cooledUntil <= now) {
+    _probeHealth[label] = { consecutiveTimeouts: 0, cooledUntil: 0, lastSuccessAt: health.lastSuccessAt };
+    _probeHealthDirty = true;
+    console.log(`[SysIntelligence] probe=${label} cooldown expired — resetting timeout counter`);
+  }
+
   return siTimeout(label, p, ms).then((result) => {
-    // Success — reset health for this source
-    if (_probeHealth[label]?.consecutiveTimeouts) {
+    // Success — always reset health for this source (not just when non-zero)
+    // so a probe that previously had health entries is fully cleared on success.
+    const h = _probeHealth[label];
+    if (h?.consecutiveTimeouts || h?.cooledUntil) {
       _probeHealth[label] = { consecutiveTimeouts: 0, cooledUntil: 0, lastSuccessAt: now };
       _probeHealthDirty = true;
+    } else if (!h) {
+      // Record first success so lastSuccessAt is always populated
+      _probeHealth[label] = { consecutiveTimeouts: 0, cooledUntil: 0, lastSuccessAt: now };
     }
     return result;
   }).catch((err: Error) => {
@@ -360,11 +375,18 @@ let _diskCacheBootstrapped = false;
 // Pre-populate in-memory cache from disk at module load time (fire-and-forget).
 // This ensures getCachedSystemIntelligence() returns something useful on first
 // request even before any async collection completes.
-void _loadDiskCache().then((cached) => {
+void _loadDiskCache().then((result) => {
   _diskCacheBootstrapped = true;
-  if (cached && !_cache) {
-    _cache   = cached;
-    _cacheAt = 0; // treat as stale so next call triggers background refresh
+  if (result && !_cache) {
+    _cache = result.profile;
+    // If the disk cache is still fresh, preserve its age so _cacheAt reflects
+    // elapsed time. A 5-minute-old cache should not trigger a full background
+    // collect immediately — only a stale (>30min) cache should.
+    if (result.ageMs < CACHE_TTL_MS) {
+      _cacheAt = Date.now() - result.ageMs; // fresh: advance timestamp appropriately
+    } else {
+      _cacheAt = 0; // stale: next call will trigger background refresh
+    }
     console.log("[SysIntelligence] In-memory cache pre-populated from disk");
   }
 });
@@ -476,7 +498,7 @@ try {
   $sb = $null; try { $sb = [bool](Confirm-SecureBootUEFI -ErrorAction SilentlyContinue) } catch {}
   $tpm = $null; try { $t = Get-WmiObject -Namespace root/cimv2/security/microsofttpm -Class Win32_Tpm -ErrorAction SilentlyContinue; if ($t) { $tpm = $true } else { $tpm = $false } } catch { $tpm = $false }
   $hvp = $null; try { $cs = Get-WmiObject Win32_ComputerSystem -ErrorAction SilentlyContinue; $hvp = [bool]$cs.HypervisorPresent } catch {}
-  $virt = $null; try { $si = systeminfo /fo csv 2>$null | ConvertFrom-Csv; $v = $si.'Hyper-V Requirements'; if ($v) { $virt = $v -notmatch "A hypervisor has been detected" } } catch {}
+  $virt = $null; try { $proc = Get-WmiObject Win32_Processor -ErrorAction SilentlyContinue | Select-Object -First 1; if ($null -ne $proc) { $virt = [bool]$proc.VirtualizationFirmwareEnabled } } catch {}
   $vbs = $null; $mi = $null
   try {
     $regVBS = Get-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\DeviceGuard" -ErrorAction SilentlyContinue
@@ -901,18 +923,22 @@ async function collect(): Promise<SystemIntelligenceProfile> {
   // Guard: if the profile is completely empty (all WMI calls timed out), do NOT overwrite
   // the disk cache — it may contain good data from a previous session when WMI was healthy.
   // Re-use whatever was already in the disk cache rather than poisoning it with all-nulls.
+  // Note: cpu.brand is almost always populated via the os.cpus() fallback, so it cannot
+  // be the sole emptiness signal. We require gpu, memory AND storage to all be empty too.
   const _isProfileEmpty = (p: SystemIntelligenceProfile) =>
     p.baseboard.model === null &&
     p.bios.version === null &&
     p.cpu.brand === null &&
     p.gpu.controllers.length === 0 &&
-    p.memory.sticks.length === 0;
+    p.memory.sticks.length === 0 &&
+    p.storage.layout.length === 0;
 
   if (_isProfileEmpty(profile)) {
     console.warn("[SysIntelligence] phase=full returned all-null — skipping disk cache write to preserve previous good data");
     // If in-memory cache is also null, try to reload from disk so callers get something useful
     if (!_cache || _isProfileEmpty(_cache)) {
-      const diskFallback = await _loadDiskCache();
+      const diskResult = await _loadDiskCache();
+      const diskFallback = diskResult?.profile ?? null;
       if (diskFallback && !_isProfileEmpty(diskFallback)) {
         console.log("[SysIntelligence] Restored disk cache as in-memory fallback after all-null collection");
         _cache   = diskFallback;
@@ -923,7 +949,7 @@ async function collect(): Promise<SystemIntelligenceProfile> {
     void _saveDiskCache(profile);   // persist to disk (fire-and-forget)
   }
 
-  void _saveProbeHealth();        // persist probe health (fire-and-forget)
+  void _saveProbeHealth(); // persist probe health (fire-and-forget)
   return profile;
 }
 
@@ -1021,10 +1047,8 @@ async function collectFast(): Promise<SystemIntelligenceProfile> {
     collectedAt: new Date().toISOString(),
   };
 
-  // Persist probe health so cooldowns survive app restarts
-  void _saveProbeHealth();
-
   console.log(`[SysIntelligence] phase=A complete in ${Date.now() - t}ms | CPU=${profile.cpu.brand} | GPU=${controllers[0]?.name ?? "n/a"} | RAM=${memTotalMb}MB | probes: mem+cpu+graphics (baseboard/bios skipped)`);
+  void _saveProbeHealth(); // persist probe health so cooldowns survive restarts
   return profile;
 }
 
@@ -1043,10 +1067,12 @@ export async function getSystemIntelligence(forceRefresh = false): Promise<Syste
 
   _collectingPromise = collect().then((p) => {
     // Never downgrade a good in-memory cache with an all-null result (e.g. probes
-    // in 12-min cooldown after first-launch timeouts). Preserve the richer data.
+    // in cooldown after first-launch timeouts). Preserve the richer data.
+    // Matches the _isProfileEmpty guard in collect() — includes storage so a
+    // profile where only os.cpus() succeeded isn't treated as non-empty.
     const empty = p.baseboard.model === null && p.bios.version === null &&
                   p.cpu.brand === null && p.gpu.controllers.length === 0 &&
-                  p.memory.sticks.length === 0;
+                  p.memory.sticks.length === 0 && p.storage.layout.length === 0;
     if (!empty || !_cache) {
       _cache = p;
     }
@@ -1055,6 +1081,7 @@ export async function getSystemIntelligence(forceRefresh = false): Promise<Syste
     return _cache!;
   }).catch((err) => {
     console.error("[SysIntelligence] Collection failed:", err);
+    void _saveProbeHealth(); // save health even on unexpected error
     _collectingPromise = null;
     if (_cache) return _cache; // return stale cache on error
     throw err;
@@ -1082,13 +1109,23 @@ export async function getFastSystemIntelligence(): Promise<SystemIntelligencePro
       _cache   = p;
       _cacheAt = 0; // keep marked stale so full collect() still runs
     }
+    // Clear _phaseAPromise AFTER _cache is written. If cleared first, a concurrent
+    // caller landing between the clear and the _cache write would see both as null
+    // and trigger a redundant collectFast().
     _phaseAPromise = null;
-    // Full collection is NOT auto-started here — the client schedules it
-    // via POST /trigger-background ~25s after dashboard is stable,
-    // so expensive WMI calls don't race with app startup.
+    // Safety fallback: if the client never calls /trigger-background (network error,
+    // early app close), auto-schedule the full collect after 60s so the profile
+    // doesn't stay as Phase-A-only data for the entire session.
+    setTimeout(() => {
+      if (!_collectingPromise && Date.now() - _cacheAt > CACHE_TTL_MS) {
+        console.log("[SysIntelligence] Auto-trigger fallback: client never called /trigger-background");
+        void getSystemIntelligence();
+      }
+    }, 60_000);
     return _cache!;
   }).catch((err) => {
     console.error("[SysIntelligence] Phase A failed:", err);
+    void _saveProbeHealth(); // save health even on Phase A error
     _phaseAPromise = null;
     if (_cache) return _cache;
     throw err;

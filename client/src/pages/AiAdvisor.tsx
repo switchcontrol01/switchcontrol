@@ -97,6 +97,27 @@ interface SystemContext {
   powerPlanApplied?: string | null;
   extremeLabsApplied?: Array<{ id: string; title: string }>;
   platform?: { isLaptop: boolean; cpuVendor: "amd" | "intel" | "unknown" };
+  isElectron?: boolean;
+  lastRecommendedTweaks?: string[];
+  // ── Extended section data ──────────────────────────────────────────────────
+  driverIntel?: Record<string, string>;  // e.g. { nvidia_gpu: "576.02", amd_audio: "10.0.1.0" }
+  latencyState?: {
+    status: string;
+    dpcUs: number | null;
+    kernelUs: number | null;
+    problematicDrivers: string[];
+  } | null;
+  startupSummary?: {
+    total: number;
+    enabled: number;
+    disabled: number;
+    broken: number;
+  };
+  settings?: {
+    realtimeMetricsEnabled: boolean;
+    pauseWhenMinimized: boolean;
+  };
+  historyTotal?: number;
 }
 
 interface AdvisorCoverage {
@@ -1054,7 +1075,7 @@ export default function AiAdvisor() {
   const { isPremium } = useAuth();
   const { openUpgradeModal } = useUpgradeModal();
   const { isOnline } = useNetworkStatus();
-  const { stats, tweaks, history, setStats } = useStore();
+  const { stats, tweaks, history, setStats, realtimeMetricsEnabled, pauseWhenMinimized } = useStore();
   const { telemetry: liveTel } = useLiveTelemetry();
   const sysIntel = useSystemIntelligence();
   const { messages: storedMessages, setMessages: syncToStore, clearMessages: clearStore } = useAiChatStore();
@@ -1079,6 +1100,9 @@ export default function AiAdvisor() {
   const [isClearingChat, setIsClearingChat] = useState(false);
   const [inputFocused, setInputFocused] = useState(false);
   const [advisorCtxData, setAdvisorCtxData] = useState<AdvisorContextData | null>(null);
+  const [driverVersions, setDriverVersions] = useState<Record<string, string>>({});
+  const [latencyState, setLatencyState] = useState<SystemContext["latencyState"]>(null);
+  const [startupSummary, setStartupSummary] = useState<SystemContext["startupSummary"] | null>(null);
 
   // AI tweak-recommendation state
   const [showApplyModal, setShowApplyModal] = useState(false);
@@ -1099,6 +1123,51 @@ export default function AiAdvisor() {
       .catch(() => {});
     return () => { cancelled = true; };
   }, [isPremium]);
+
+  // ── Fetch Electron-only extended data on mount ───────────────────────────
+  // Driver Intel versions, Latency Analyzer status, and Startup app summary
+  // are only available in the Electron desktop app via IPC. Fetched once and
+  // stored in state so the context builder can include them in every chat request.
+  useEffect(() => {
+    const api = (window as any).electronAPI;
+    if (!api) return;
+
+    // Driver Intel — installed GPU/audio driver versions
+    if (api.driverIntel?.getInstalledVersions) {
+      api.driverIntel.getInstalledVersions()
+        .then((versions: Record<string, string>) => {
+          if (versions && typeof versions === "object") setDriverVersions(versions);
+        })
+        .catch(() => {});
+    }
+
+    // Latency Analyzer — last sample + status (non-blocking; may not be running)
+    if (api.latencyAnalyzer?.getStatus) {
+      Promise.all([
+        api.latencyAnalyzer.getStatus().catch(() => ({ isActive: false })),
+        api.latencyAnalyzer.getSample ? api.latencyAnalyzer.getSample().catch(() => null) : Promise.resolve(null),
+      ]).then(([status, sample]: [any, any]) => {
+        setLatencyState({
+          status: status?.isActive ? "running" : "idle",
+          dpcUs: sample?.dpcMaxUs ?? sample?.dpcUs ?? null,
+          kernelUs: sample?.kernelMaxUs ?? sample?.kernelUs ?? null,
+          problematicDrivers: Array.isArray(sample?.problematicDrivers) ? sample.problematicDrivers : [],
+        });
+      }).catch(() => {});
+    }
+
+    // Startup apps — summarise counts via server API (works in both web and Electron)
+    fetch("/api/startup/apps")
+      .then(r => r.ok ? r.json() : null)
+      .then((apps: any) => {
+        if (!Array.isArray(apps)) return;
+        const enabled  = apps.filter((a: any) => a.enabled && !a.broken).length;
+        const broken   = apps.filter((a: any) => a.broken).length;
+        const disabled = apps.length - enabled - broken;
+        setStartupSummary({ total: apps.length, enabled, disabled, broken });
+      })
+      .catch(() => {});
+  }, []);
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -1390,6 +1459,15 @@ export default function AiAdvisor() {
       powerPlan: powerPlanFromIntel ?? undefined,
       recentHistory,
       isElectron: isElectronApp,
+      historyTotal: Array.isArray(history) ? history.length : 0,
+      // ── Extended section data ────────────────────────────────────────────────
+      driverIntel: Object.keys(driverVersions).length > 0 ? driverVersions : undefined,
+      latencyState,
+      startupSummary: startupSummary ?? undefined,
+      settings: {
+        realtimeMetricsEnabled: !!realtimeMetricsEnabled,
+        pauseWhenMinimized: !!pauseWhenMinimized,
+      },
       // ── Extended cross-section tweak coverage ────────────────────────────────
       networkTweaksApplied: [
         ...Object.entries(ownership.networkTweaks)
@@ -1443,7 +1521,7 @@ export default function AiAdvisor() {
       `ramTotalGB=${ramTotalForLog ?? "null"} ` +
       `disk="${ctx.system.storage || "none"}"`
     );
-  }, [stats, tweaks, liveTel, isPremium, sysIntel.profile, history, location]);
+  }, [stats, tweaks, liveTel, isPremium, sysIntel.profile, history, location, driverVersions, latencyState, startupSummary, realtimeMetricsEnabled, pauseWhenMinimized]);
 
   // Auto-analysis welcome message
   useEffect(() => {

@@ -50,7 +50,20 @@ const DRV_RE = /realtek|nvidia|amd.*driver|radeon|geforce|intel.*hd|corsair|logi
 const USER_RE = /steam|epic.?games|battle\.?net|blizzard|gog|xbox|ea.?desktop|origin|uplay|ubisoft|rockstar|bethesda|playnite|itch\.io|game.*bar|discord|teams|slack|zoom|skype|whatsapp|telegram|signal|wechat|viber|hangouts|webex|meet\b|chrome|firefox|opera|brave|edge|vivaldi|notion|obsidian|spotify|vlc|iTunes|itunes|acrobat|reader|office|word|excel|powerpoint|photoshop|illustrator|premiere|after|effects|lightroom|gimp|inkscape|blender|vscode|code|sublime|atom|postman|figma|slack/i;
 
 export function detectCategory(entry: StartupEntry): StartupCategory {
-  if (entry.broken || !entry.fileExists) return "broken";
+  // Task scheduler entries with unexpanded env-var paths (e.g. %SystemRoot%\...)
+  // or known-system paths are NOT truly broken — the scanner couldn't resolve the path.
+  // Only call them broken if there's a real, fully-qualified user-app path that's missing.
+  if (entry.broken || !entry.fileExists) {
+    if (entry.source === "task-scheduler") {
+      const p = (entry.executablePath ?? entry.commandLine ?? "").toLowerCase();
+      // Unexpanded env var → scanner limitation, not a broken task
+      const hasEnvVar = /^%[a-z]/.test(p);
+      // Windows/system paths — tasks living here are structural, not broken user apps
+      const isSystemPath = /\\windows\\|\\system32\\|\\syswow64\\|\\winsxs\\|\\microsoft\\|\\windowsapps\\/i.test(p);
+      if (hasEnvVar || isSystemPath || p === "") return "scheduled";
+    }
+    return "broken";
+  }
   const haystack = [entry.name, entry.publisher ?? "", entry.executablePath ?? ""].join(" ");
   if (SYS_RE.test(haystack)) return "system";
   if (DRV_RE.test(haystack)) return "drivers";
@@ -64,8 +77,8 @@ export function detectCategory(entry: StartupEntry): StartupCategory {
 // normal software, not threats; labelling them all critical causes alarm fatigue.
 
 export function detectRisk(entry: StartupEntry, category: StartupCategory): RiskLevel {
-  // Only truly broken entries warrant a critical label
-  if (entry.broken || !entry.fileExists) return "critical";
+  // Only truly broken entries warrant a critical label (scheduled entries re-classified above)
+  if ((entry.broken || !entry.fileExists) && category === "broken") return "critical";
 
   const haystack = [entry.name, entry.publisher ?? "", entry.executablePath ?? ""].join(" ");
 
