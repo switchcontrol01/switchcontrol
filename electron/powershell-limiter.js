@@ -27,6 +27,11 @@ let _seq = 0;
 const _callLog = [];    // rolling window
 let _lastCallTs = null; // timestamp of most recent completed call
 
+// Periodic background prune: if the app is idle for a long time with no PS
+// calls, _callLog is never pruned until the next acquire/release. Entries are
+// small but this keeps memory predictable on long-running sessions.
+setInterval(() => _pruneCallLog(), 60_000).unref?.();
+
 function _pruneCallLog() {
   const cutoff = Date.now() - 60_000;
   while (_callLog.length > 0 && _callLog[0].ts < cutoff) _callLog.shift();
@@ -39,7 +44,7 @@ function tryAcquire({ file, fn, reason }) {
   if (_slots.has(key)) {
     const owner = _slots.get(key);
     console.log(
-      `[PS-Limiter] acquire SKIPPED file=${file} fn=${fn} reason=${reason}` +
+      `[PS-Limiter] acquire SKIPPED (already_running) file=${file} fn=${fn} reason=${reason}` +
       ` activeOwner=${owner.file}::${owner.fn}` +
       ` activeSince=${new Date(owner.since).toISOString()}`
     );
@@ -49,7 +54,7 @@ function tryAcquire({ file, fn, reason }) {
   if (_slots.size >= MAX_CONCURRENT_PS) {
     const owners = [..._slots.keys()].join(', ');
     console.log(
-      `[PS-Limiter] acquire SKIPPED (global cap ${MAX_CONCURRENT_PS})` +
+      `[PS-Limiter] acquire SKIPPED (global_cap_reached cap=${MAX_CONCURRENT_PS})` +
       ` file=${file} fn=${fn} reason=${reason} active=[${owners}]`
     );
     return null;
@@ -66,6 +71,10 @@ function tryAcquire({ file, fn, reason }) {
 
 function release(token) {
   if (!token) return;
+  // Guard against double-release: a second call with the same token would
+  // delete a slot that may now belong to a different acquire, and would write
+  // a misleading log entry with a near-zero or negative duration.
+  if (!_slots.has(token.key)) return;
   _pruneCallLog();
   _slots.delete(token.key);
   const durationMs = Date.now() - token.since;
@@ -79,11 +88,15 @@ function release(token) {
 
 function skippedResult({ file, fn, reason }) {
   const key = `${file}::${fn}`;
+  const isSelfBlocked = _slots.has(key);
+  // For the global-cap case the specific key isn't in the map, so we fall back
+  // to any active slot — it's informative but not the specific blocking owner.
   const owner = _slots.get(key) || [..._slots.values()][0] || null;
   return {
     ok: false,
     skipped: true,
-    reason: 'already_running',
+    // Distinguish why the acquire was skipped so callers can log the right reason.
+    reason: isSelfBlocked ? 'already_running' : 'global_cap_reached',
     file,
     fn,
     activeOwner: owner ? `${owner.file}::${owner.fn}` : null,
