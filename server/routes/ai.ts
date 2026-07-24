@@ -608,6 +608,16 @@ function buildChatContext(context: any, serverCtx?: Awaited<ReturnType<typeof bu
     parts.push(`Available tweaks not yet enabled (${avail.length}): ${avail.join(", ")}`);
   }
 
+  // ── Slider / preset tweak values ─────────────────────────────────────────
+  // For enabled slider/preset-type tweaks, include the resolved human-readable
+  // value so the AI knows not just that a tweak is on, but at what setting.
+  const sliderTweaks: Array<{ id: string; title: string; valueLabel: string }> =
+    Array.isArray(context?.sliderTweaks) ? context.sliderTweaks : [];
+  if (sliderTweaks.length > 0) {
+    const sliderLines = sliderTweaks.map((s: any) => `${s.title} [id:${s.id}] = ${s.valueLabel}`);
+    parts.push(`Slider / preset tweak values (current settings):\n${sliderLines.map(l => `  • ${l}`).join("\n")}`);
+  }
+
   // ── Network tweaks ────────────────────────────────────────────────────────
   const nt = serverCtx?.networkTweaks;
   // Prefer client-supplied applied list (real ownership data) over server coverage status
@@ -665,11 +675,51 @@ function buildChatContext(context: any, serverCtx?: Awaited<ReturnType<typeof bu
 
   // ── Startup Manager ───────────────────────────────────────────────────────
   const ss = context?.startupSummary;
-  if (ss) {
-    const brokenNote = ss.broken > 0 ? `, ${ss.broken} broken/missing` : "";
-    parts.push(`Startup Manager: ${ss.total} startup entries — ${ss.enabled} enabled, ${ss.disabled} disabled${brokenNote}`);
+  const startupApps: Array<{ name: string; enabled: boolean; publisher?: string }> =
+    Array.isArray(context?.startupApps) ? context.startupApps : [];
+  if (startupApps.length > 0 || ss) {
+    const total = ss?.total ?? startupApps.length;
+    const enabledCount = ss?.enabled ?? startupApps.filter(a => a.enabled).length;
+    const disabledCount = ss?.disabled ?? startupApps.filter(a => !a.enabled).length;
+    const brokenNote = (ss?.broken ?? 0) > 0 ? `, ${ss!.broken} broken/missing` : "";
+    parts.push(`Startup Manager: ${total} startup entries — ${enabledCount} enabled, ${disabledCount} disabled${brokenNote}`);
+    // List enabled startup apps so the AI can reason about what's consuming boot-time resources
+    const enabledApps = startupApps.filter(a => a.enabled);
+    if (enabledApps.length > 0) {
+      parts.push(`Enabled startup apps: ${enabledApps.map(a => a.name + (a.publisher ? ` (${a.publisher})` : "")).join(", ")}`);
+    }
+    // List disabled apps so the AI knows what the user has already trimmed
+    const disabledApps = startupApps.filter(a => !a.enabled);
+    if (disabledApps.length > 0) {
+      parts.push(`Disabled startup apps: ${disabledApps.map(a => a.name).join(", ")}`);
+    }
   } else {
     parts.push("Startup Manager: summary not loaded — navigate to <<NAV:/startup:Startup Manager>> to view");
+  }
+
+  // ── Debloater ─────────────────────────────────────────────────────────────
+  const debloatApplied: Array<{ name: string; action: string }> =
+    Array.isArray(context?.debloatApplied) ? context.debloatApplied : [];
+  if (debloatApplied.length > 0) {
+    const grouped = debloatApplied.reduce<Record<string, string[]>>((acc, d) => {
+      const key = d.action || "removed";
+      (acc[key] = acc[key] || []).push(d.name);
+      return acc;
+    }, {});
+    const lines = Object.entries(grouped).map(([action, names]) =>
+      `  • ${action}: ${names.join(", ")}`
+    );
+    parts.push(`Debloater — Windows components removed/disabled (${debloatApplied.length} items):\n${lines.join("\n")}`);
+  } else {
+    parts.push("Debloater: no components debloated yet — navigate to <<NAV:/debloat:Debloater>> to view options");
+  }
+
+  // ── System Cleaner ────────────────────────────────────────────────────────
+  const cleanerRunCount = typeof context?.cleanerRunCount === "number" ? context.cleanerRunCount : 0;
+  if (cleanerRunCount > 0) {
+    parts.push(`System Cleaner: has been run ${cleanerRunCount} time${cleanerRunCount === 1 ? "" : "s"} this session`);
+  } else {
+    parts.push("System Cleaner: not run this session — navigate to <<NAV:/cleaner:System Cleaner>> to scan for junk files");
   }
 
   // ── App settings ─────────────────────────────────────────────────────────

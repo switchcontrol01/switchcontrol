@@ -118,6 +118,14 @@ interface SystemContext {
     pauseWhenMinimized: boolean;
   };
   historyTotal?: number;
+  /** Slider and preset tweaks that are enabled — includes the current value/preset label */
+  sliderTweaks?: Array<{ id: string; title: string; valueLabel: string }>;
+  /** Items debloated by the user via the Debloater section */
+  debloatApplied?: Array<{ name: string; action: string }>;
+  /** Startup apps — all entries with their current enabled/disabled state */
+  startupApps?: Array<{ name: string; enabled: boolean; publisher?: string }>;
+  /** How many times the System Cleaner has been run this session */
+  cleanerRunCount?: number;
 }
 
 interface AdvisorCoverage {
@@ -1075,7 +1083,7 @@ export default function AiAdvisor() {
   const { isPremium } = useAuth();
   const { openUpgradeModal } = useUpgradeModal();
   const { isOnline } = useNetworkStatus();
-  const { stats, tweaks, history, setStats, realtimeMetricsEnabled, pauseWhenMinimized } = useStore();
+  const { stats, tweaks, sliderValues, cleanersRun, history, setStats, realtimeMetricsEnabled, pauseWhenMinimized } = useStore();
   const { telemetry: liveTel } = useLiveTelemetry();
   const sysIntel = useSystemIntelligence();
   const { messages: storedMessages, setMessages: syncToStore, clearMessages: clearStore } = useAiChatStore();
@@ -1103,6 +1111,8 @@ export default function AiAdvisor() {
   const [driverVersions, setDriverVersions] = useState<Record<string, string>>({});
   const [latencyState, setLatencyState] = useState<SystemContext["latencyState"]>(null);
   const [startupSummary, setStartupSummary] = useState<SystemContext["startupSummary"] | null>(null);
+  const [startupApps, setStartupApps] = useState<Array<{ name: string; enabled: boolean; publisher?: string }>>([]);
+  const [debloatApplied, setDebloatApplied] = useState<Array<{ name: string; action: string }>>([]);
 
   // AI tweak-recommendation state
   const [showApplyModal, setShowApplyModal] = useState(false);
@@ -1156,7 +1166,7 @@ export default function AiAdvisor() {
       }).catch(() => {});
     }
 
-    // Startup apps — summarise counts via server API (works in both web and Electron)
+    // Startup apps — fetch full list for AI context + compute summary counts
     fetch("/api/startup/apps")
       .then(r => r.ok ? r.json() : null)
       .then((apps: any) => {
@@ -1165,6 +1175,33 @@ export default function AiAdvisor() {
         const broken   = apps.filter((a: any) => a.broken).length;
         const disabled = apps.length - enabled - broken;
         setStartupSummary({ total: apps.length, enabled, disabled, broken });
+        // Store full list (name + enabled state) for AI context — cap at 40 entries
+        const appList = apps.slice(0, 40).map((a: any) => ({
+          name:      typeof a.name === "string" ? a.name : (typeof a.command === "string" ? a.command : "Unknown"),
+          enabled:   a.enabled === true && !a.broken,
+          publisher: typeof a.publisher === "string" ? a.publisher : undefined,
+        }));
+        setStartupApps(appList);
+      })
+      .catch(() => {});
+
+    // Debloat history — fetch applied items from the Debloater section
+    fetch("/api/debloat/history")
+      .then(r => r.ok ? r.json() : null)
+      .then((data: any) => {
+        const rows: any[] = Array.isArray(data?.history) ? data.history : [];
+        // Only keep items that were successfully removed/disabled; deduplicate by name
+        const seen = new Set<string>();
+        const applied: Array<{ name: string; action: string }> = [];
+        for (const row of rows) {
+          if (row.status !== "ok" && row.status !== "success") continue;
+          const name = typeof row.item_name === "string" ? row.item_name : row.item_id;
+          if (!name || seen.has(name)) continue;
+          seen.add(name);
+          applied.push({ name, action: typeof row.action === "string" ? row.action : "removed" });
+          if (applied.length >= 30) break;
+        }
+        setDebloatApplied(applied);
       })
       .catch(() => {});
   }, []);
@@ -1464,6 +1501,36 @@ export default function AiAdvisor() {
       driverIntel: Object.keys(driverVersions).length > 0 ? driverVersions : undefined,
       latencyState,
       startupSummary: startupSummary ?? undefined,
+      // ── Slider / preset tweak values ─────────────────────────────────────
+      // For tweaks of type "slider" or "preset" that are enabled, resolve the
+      // raw numeric value (from sliderValues store) into a human-readable label
+      // using the preset list in the tweak registry.
+      sliderTweaks: TWEAKS_DATA
+        .filter(t => (t.controlType === "slider" || t.controlType === "preset") && tweaks[t.id])
+        .map(t => {
+          const rawVal = sliderValues[t.id];
+          let valueLabel = rawVal !== undefined ? String(rawVal) : "on";
+          if (rawVal !== undefined) {
+            if (t.controlType === "preset") {
+              const presets = (t as any).presetConfig?.presets as Array<{ label: string; value: number }> | undefined;
+              const match = presets?.find(p => p.value === rawVal);
+              if (match) valueLabel = match.label;
+            } else if (t.controlType === "slider") {
+              const sliderCfg = (t as any).sliderConfig as { unit?: string; presets?: Array<{ label: string; value: number }> } | undefined;
+              const match = sliderCfg?.presets?.find(p => p.value === rawVal);
+              if (match) {
+                valueLabel = match.label;
+              } else if (sliderCfg?.unit) {
+                valueLabel = `${rawVal} ${sliderCfg.unit}`;
+              }
+            }
+          }
+          return { id: t.id, title: t.title, valueLabel };
+        }),
+      // ── Debloat and startup apps ─────────────────────────────────────────
+      debloatApplied,
+      startupApps,
+      cleanerRunCount: cleanersRun ?? 0,
       settings: {
         realtimeMetricsEnabled: !!realtimeMetricsEnabled,
         pauseWhenMinimized: !!pauseWhenMinimized,
@@ -1521,7 +1588,7 @@ export default function AiAdvisor() {
       `ramTotalGB=${ramTotalForLog ?? "null"} ` +
       `disk="${ctx.system.storage || "none"}"`
     );
-  }, [stats, tweaks, liveTel, isPremium, sysIntel.profile, history, location, driverVersions, latencyState, startupSummary, realtimeMetricsEnabled, pauseWhenMinimized]);
+  }, [stats, tweaks, sliderValues, cleanersRun, liveTel, isPremium, sysIntel.profile, history, location, driverVersions, latencyState, startupSummary, startupApps, debloatApplied, realtimeMetricsEnabled, pauseWhenMinimized]);
 
   // Auto-analysis welcome message
   useEffect(() => {

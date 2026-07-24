@@ -45,6 +45,24 @@ export interface AiTelemetrySnapshot {
   pingMs: number | null;
 }
 
+export interface AiSliderTweakEntry {
+  id: string;
+  title: string;
+  /** Human-readable value label, e.g. "16 GB", "20%", "Balanced", "26 (Gaming)" */
+  valueLabel: string;
+}
+
+export interface AiStartupApp {
+  name: string;
+  enabled: boolean;
+  publisher?: string;
+}
+
+export interface AiDebloatEntry {
+  name: string;
+  action: "removed" | "disabled" | "restored" | string;
+}
+
 export interface AiContextSnapshot {
   isPremium: boolean;
   currentRoute: string;
@@ -62,6 +80,8 @@ export interface AiContextSnapshot {
   };
   enabledTweaks: AiTweakEntry[];
   disabledTweaks: AiTweakEntry[];
+  /** Slider and preset tweaks that are enabled — includes the current value/preset label */
+  sliderTweaks: AiSliderTweakEntry[];
   telemetry: AiTelemetrySnapshot;
   powerPlan: string;
   recentHistory: Array<{ action: string; page: string; result: string; timestamp: string }>;
@@ -71,6 +91,12 @@ export interface AiContextSnapshot {
   platform: { isLaptop: boolean; cpuVendor: "amd" | "intel" | "unknown" };
   isElectron: boolean;
   lastRecommendedTweaks: string[];
+  /** Items debloated by the user via the Debloater section */
+  debloatApplied: AiDebloatEntry[];
+  /** Startup apps — all entries with their current enabled/disabled state */
+  startupApps: AiStartupApp[];
+  /** How many times the System Cleaner has been run this session */
+  cleanerRunCount: number;
 }
 
 const EMPTY_TELEMETRY: AiTelemetrySnapshot = {
@@ -104,6 +130,7 @@ export function snapshotContext(raw: Record<string, unknown> | null | undefined)
       system: { cpu: "", gpu: "", ram: "", storage: "", os: "Windows", motherboard: "", display: "", network: "", notes: "" },
       enabledTweaks: [],
       disabledTweaks: [],
+      sliderTweaks: [],
       telemetry: { ...EMPTY_TELEMETRY },
       powerPlan: "",
       recentHistory: [],
@@ -113,6 +140,9 @@ export function snapshotContext(raw: Record<string, unknown> | null | undefined)
       platform: { isLaptop: false, cpuVendor: "unknown" },
       isElectron: false,
       lastRecommendedTweaks: [],
+      debloatApplied: [],
+      startupApps: [],
+      cleanerRunCount: 0,
     };
   }
 
@@ -137,6 +167,7 @@ export function snapshotContext(raw: Record<string, unknown> | null | undefined)
     },
     enabledTweaks:  Array.isArray(raw.enabledTweaks)  ? (raw.enabledTweaks  as AiTweakEntry[]) : [],
     disabledTweaks: Array.isArray(raw.disabledTweaks) ? (raw.disabledTweaks as AiTweakEntry[]) : [],
+    sliderTweaks:   Array.isArray(raw.sliderTweaks)   ? (raw.sliderTweaks   as AiSliderTweakEntry[]) : [],
     telemetry: {
       cpuTempC:       typeof tel.cpuTempC       === "number" ? tel.cpuTempC       : null,
       gpuTempC:       typeof tel.gpuTempC       === "number" ? tel.gpuTempC       : null,
@@ -164,6 +195,9 @@ export function snapshotContext(raw: Record<string, unknown> | null | undefined)
     },
     isElectron:            raw.isElectron === true,
     lastRecommendedTweaks: Array.isArray(raw.lastRecommendedTweaks) ? (raw.lastRecommendedTweaks as string[]) : [],
+    debloatApplied:        Array.isArray(raw.debloatApplied)   ? (raw.debloatApplied   as AiDebloatEntry[])   : [],
+    startupApps:           Array.isArray(raw.startupApps)      ? (raw.startupApps      as AiStartupApp[])      : [],
+    cleanerRunCount:       typeof raw.cleanerRunCount === "number" ? raw.cleanerRunCount : 0,
   };
 }
 
