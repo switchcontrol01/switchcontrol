@@ -24,7 +24,7 @@ export interface DiskTelemetry {
 
 export interface LiveTelemetry {
   ts: number;
-  status: "ready" | "loading";
+  status: TelemetryStatus;
   cpu: { load: number; speed: number; cores: number };
   ram: { totalGB: number; usedGB: number; usedPercent: number };
   network: { rx_sec: number; tx_sec: number; latency_ms: number };
@@ -53,6 +53,7 @@ export interface SpikeState {
   gpu: boolean;
 }
 
+// All three variants must be kept in sync with LiveTelemetry.status above.
 export type TelemetryStatus = "loading" | "ready" | "unavailable";
 
 // ── Hook ───────────────────────────────────────────────────────────────────────
@@ -67,7 +68,10 @@ export type TelemetryStatus = "loading" | "ready" | "unavailable";
 
 export function useLiveTelemetry() {
   useEffect(() => {
-    // Idempotent — calling start() when already running is a silent no-op.
+    // Fire-and-forget: telemetry is intended to run for the full app lifetime,
+    // so there is deliberately no stop() on unmount. start() is idempotent —
+    // calling it when already running is a silent no-op, so multiple concurrent
+    // consumers of this hook are safe.
     telemetryManager.start();
   }, []);
 
@@ -93,5 +97,5 @@ export function formatBytes(bytesPerSec: number): string {
 
 export function formatKbps(kbps: number): string {
   if (kbps < 1024) return `${kbps.toFixed(1)} KB/s`;
-  return `${(kbps / 1024).toFixed(2)} MB/s`;
+  return `${(kbps / 1024).toFixed(1)} MB/s`; // 1 decimal — consistent with formatBytes
 }
