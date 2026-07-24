@@ -1406,6 +1406,8 @@ async function applyPowerProfileWithOwnership(profileId) {
           itemId:          'active-scheme',
           previousPlanGuid: active.scheme.guid,
           previousValue:   { guid: active.scheme.guid, name: active.scheme.name },
+          // active.success && active.scheme guard above ensures this is a real read.
+          verifySucceeded: true,
         });
         console.log(
           `[PowerPlan] previousPlanGuid captured: ${active.scheme.guid}` +

@@ -1203,7 +1203,11 @@ const BASE: BaseTweak[] = [
     controlType: "slider",
     whoShouldAvoid: "Video editors, streamers, and developers who run CPU-intensive background tasks alongside foreground apps.",
     sliderConfig: {
-      min: 0, max: 3, step: 1, defaultValue: 2, recommendedValue: 26, stepped: true,
+      // min/max span the real preset values (2–38). The old min:0/max:3 were
+      // placeholder index counts, not actual registry value bounds — any slider
+      // component using min/max for clamping or track-range calculations would
+      // have corrupted values above 3 (e.g. the recommended value of 26 or 38).
+      min: 2, max: 38, step: 1, defaultValue: 2, recommendedValue: 26, stepped: true,
       presets: [
         { value: 2,  label: "Balanced (Default)",      description: "Windows default for workstations. Variable quanta, short, foreground boost.",       isDefault: true },
         { value: 22, label: "Favor Foreground",        description: "Fixed quanta, foreground boost. More CPU time for the active window.",               isRecommended: false },
@@ -1391,7 +1395,13 @@ const BASE: BaseTweak[] = [
     controlType: "slider",
     whoShouldAvoid: "Users on shared or bandwidth-constrained networks where unrestricted game network traffic could cause issues.",
     sliderConfig: {
-      min: 0, max: 3, step: 1, defaultValue: 10, recommendedValue: 4294967295, stepped: true,
+      // min/max now span all valid values. The old min:0/max:3 were placeholder
+      // index counts — any clamping or track-range logic using them would silently
+      // corrupt the defaultValue (10) and recommendedValue (4294967295 = 0xFFFFFFFF).
+      // 4294967295 is the special "disabled" sentinel; the continuous throttle range
+      // is 10–100 (see customRange below). This is a stepped preset slider so the
+      // component should use preset positions for the thumb, not a linear 10→4294967295 track.
+      min: 10, max: 4294967295, step: 1, defaultValue: 10, recommendedValue: 4294967295, stepped: true,
       presets: [
         { value: 4294967295, label: "Disabled (Gaming)",  description: "No throttling — full network bandwidth available for MMCSS processes.", isRecommended: true },
         { value: 10,         label: "Standard (Default)", description: "Windows default — limits multimedia process network throughput to ~10 packets/ms.", isDefault: true },

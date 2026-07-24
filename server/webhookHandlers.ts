@@ -3,7 +3,7 @@ import { getStripeClient, getWebhookSecret } from './stripeClient';
 import { db } from './db';
 import { users, stripeWebhookEvents } from '@shared/schema';
 import { eq, sql as drizzleSql } from 'drizzle-orm';
-import { isEventAlreadyProcessed, markEventProcessed } from './lib/stripeEventStore';
+import { tryClaimEvent } from './lib/stripeEventStore';
 import { storage } from './storage';
 
 const isProd = process.env.NODE_ENV === 'production';
@@ -56,6 +56,17 @@ export class WebhookHandlers {
       console.warn(`[Stripe] Failed to persist webhook event to DB: ${err.message}`);
     }
 
+    // ── Atomic idempotency claim ───────────────────────────────────────────────
+    // The INSERT is the gate. Doing it here, before any side effects, eliminates
+    // the TOCTOU gap of SELECT-then-INSERT: two concurrent deliveries of the same
+    // event both pass a SELECT before either commits; the unique-constraint INSERT
+    // means only one wins the race. Covers all event types uniformly.
+    const claimed = await tryClaimEvent(event.id);
+    if (!claimed) {
+      console.log(`[Stripe] Duplicate event ignored (already processed): type=${event.type} id=${event.id}`);
+      return;
+    }
+
     switch (event.type) {
       case 'checkout.session.completed':
         await handleCheckoutCompleted(event);
@@ -77,25 +88,17 @@ async function handleCheckoutCompleted(event: Stripe.Event): Promise<void> {
   const session = event.data.object as Stripe.Checkout.Session;
   const sessionId = session.id;
 
+  // Event is already claimed atomically by tryClaimEvent() in processWebhook.
   console.log(`[Stripe] Processing checkout.session.completed: event=${eventId} session=${sessionId}`);
 
-  // ── 1. Idempotency check ──────────────────────────────────────────────────
-  const alreadyProcessed = await isEventAlreadyProcessed(eventId);
-  if (alreadyProcessed) {
-    console.log(`[Stripe] Duplicate event ignored: id=${eventId}`);
-    return;
-  }
-
-  // ── 2. Verify payment status ──────────────────────────────────────────────
+  // ── 1. Verify payment status ──────────────────────────────────────────────
   if (session.payment_status !== 'paid') {
     console.log(`[Stripe] Session ${sessionId} payment_status=${session.payment_status} — not paid, skipping premium grant`);
-    await markEventProcessed(eventId);
     return;
   }
 
   if (session.mode !== 'payment') {
     console.log(`[Stripe] Session ${sessionId} mode=${session.mode} — not a one-time payment, skipping`);
-    await markEventProcessed(eventId);
     return;
   }
 
@@ -121,9 +124,8 @@ async function handleCheckoutCompleted(event: Stripe.Event): Promise<void> {
   }
 
   if (!priceMatched) {
+    // Event is already claimed — Stripe won't retry it.
     console.warn(`[Stripe] Session ${sessionId} does not contain expected premium price ID ${expectedPriceId}. Premium NOT granted. (event=${eventId})`);
-    // Mark processed so Stripe stops retrying this event.
-    await markEventProcessed(eventId);
     return;
   }
 
@@ -136,7 +138,6 @@ async function handleCheckoutCompleted(event: Stripe.Event): Promise<void> {
 
   if (!resolvedUserId && !customerId) {
     console.error(`[Stripe] No user mapping in session ${sessionId}: missing metadata.userId, client_reference_id, and customer. Premium NOT granted. (event=${eventId})`);
-    await markEventProcessed(eventId);
     return;
   }
 
@@ -207,9 +208,8 @@ async function handleCheckoutCompleted(event: Stripe.Event): Promise<void> {
     }
   }
 
-  // ── 6. Mark event processed ───────────────────────────────────────────────
-  await markEventProcessed(eventId);
-  console.log(`[Stripe] Event marked processed: id=${eventId} granted=${granted}`);
+  // Event already claimed atomically in processWebhook — no markEventProcessed needed here.
+  console.log(`[Stripe] checkout.session.completed processing complete: id=${eventId} granted=${granted}`);
 }
 
 // ── Refund handler: revoke premium on full refund ───────────────────────────

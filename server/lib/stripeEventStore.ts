@@ -54,6 +54,35 @@ export async function markEventProcessed(eventId: string): Promise<void> {
 }
 
 /**
+ * Atomically claims a Stripe event for processing.
+ *
+ * Attempts to INSERT the event ID. Returns true if this delivery is the first
+ * (row was inserted), false if the event was already processed (ON CONFLICT).
+ *
+ * Use this as the SOLE idempotency gate BEFORE any side effects, rather than
+ * the SELECT-then-INSERT (isEventAlreadyProcessed → markEventProcessed) pattern.
+ * That pattern has a TOCTOU gap: two concurrent deliveries of the same event can
+ * both pass the SELECT before either commits the INSERT, causing side effects to
+ * run twice. The INSERT here is atomic — the database unique constraint ensures
+ * exactly one concurrent delivery wins the race.
+ *
+ * In NO-DB mode (pool unavailable) always returns true; handlers must be safe to
+ * repeat in that mode by design.
+ *
+ * @returns true  — event claimed; proceed with all side effects
+ *          false — duplicate delivery; skip immediately
+ */
+export async function tryClaimEvent(eventId: string): Promise<boolean> {
+  if (!pool) return true;
+  await ensureTable();
+  const result = await pool.query(
+    'INSERT INTO stripe_processed_events (event_id) VALUES ($1) ON CONFLICT DO NOTHING',
+    [eventId]
+  );
+  return (result.rowCount ?? 0) > 0;
+}
+
+/**
  * Clean up old Stripe event records (older than 30 days).
  * Keeps enough history for debugging recent payment issues.
  * Safe to run periodically (e.g., on startup or via a scheduled job).

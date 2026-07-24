@@ -200,6 +200,19 @@ function captureBaseline(scopeKey, fields) {
     return;
   }
 
+  // Inconclusive verify guard — if the caller signals that the status read failed
+  // (PowerShell timeout, transient error, etc.), do NOT set baselineCaptured=true.
+  // Leave it false so the next touch can still capture the real pre-SwitchControl
+  // baseline. Immutably storing null-from-a-failed-read would permanently corrupt
+  // the revert pipeline's knowledge of the original system state.
+  //
+  // Callers must pass `verifySucceeded: true` only when they obtained a real value;
+  // `verifySucceeded: false` (or the field absent) skips the capture entirely.
+  if (fields.verifySucceeded === false) {
+    console.warn(`[OwnershipStore] baseline capture skipped for ${scopeKey} — verify was inconclusive. Will retry on next touch.`);
+    return;
+  }
+
   const record = existing || defaultRecord(scopeKey, fields.itemType, fields.itemId, fields.adapterName);
 
   record.baselineCaptured = true;

@@ -941,11 +941,13 @@ async function executeNetworkTweakWithOwnership(tweakId, action) {
     try {
       const status = await checkNetworkTweakStatus(tweakId);
       // status.applied: boolean | null (null = inconclusive or disabled)
-      const previousValue = (typeof status.applied === 'boolean') ? status.applied : null;
+      const verifySucceeded = typeof status.applied === 'boolean';
+      const previousValue = verifySucceeded ? status.applied : null;
       ownershipStore.captureBaseline(scopeKey, {
         itemType:      'network_tweak',
         itemId:        tweakId,
         previousValue,
+        verifySucceeded, // if false, captureBaseline skips the write so a later read can get the real baseline
       });
     } catch (e) {
       console.warn('[NetworkTweak] baseline capture failed for', tweakId, '—', e.message);

@@ -54,6 +54,13 @@ export function classifyCpuArchitecture(cpuBrand: string | undefined | null): Cp
 
   if (/ryzen|amd/.test(b)) return "ryzen";
   if (/intel|core\s*i|xeon/.test(b)) return "intel-conventional";
+  // Bare Intel model-number strings (e.g. "i7-9700", "i5-8600k") that lack the
+  // "Intel"/"Core i" vendor prefix. Most system-info libraries include it, but raw
+  // WMI Name strings from older OEM BIOSes sometimes omit it. The 12th-gen regex
+  // above already catches 12th+ gen hybrids; this catches 9th-gen and earlier that
+  // reach the fallback branch. Using the same tier-number pattern avoids false
+  // matches on arbitrary strings containing "i" + digits.
+  if (/\bi[3579][\s-]?\d{4,5}[a-z]*\b/.test(b)) return "intel-conventional";
   return "unknown";
 }
 

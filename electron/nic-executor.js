@@ -939,6 +939,9 @@ async function setNicPropertyWithOwnership(adapterName, propertyKey, value) {
             registryValue: current.registryValue  ?? null,
             displayValue:  current.displayValue   ?? null,
           },
+          // current.supported !== false guard above ensures we only reach here on
+          // a real successful read — baseline is always valid at this call site.
+          verifySucceeded: true,
         });
       }
     } catch (e) {

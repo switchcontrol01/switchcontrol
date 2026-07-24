@@ -3405,14 +3405,14 @@ async function executeTweakWithOwnership(tweakId, action, options = {}) {
   if (!existing || !existing.baselineCaptured) {
     try {
       const status = await verifyTweak(tweakId);
-      // status.isApplied = boolean | undefined; null means inconclusive
-      const previousValue = (status && typeof status.isApplied === 'boolean')
-        ? status.isApplied
-        : null;
+      // status.isApplied = boolean | undefined; null means inconclusive (transient error)
+      const verifySucceeded = !!(status && typeof status.isApplied === 'boolean');
+      const previousValue = verifySucceeded ? status.isApplied : null;
       ownershipStore.captureBaseline(scopeKey, {
         itemType:      'tweak',
         itemId:        tweakId,
         previousValue,
+        verifySucceeded, // if false, captureBaseline skips the write so a later read can get the real baseline
       });
     } catch (e) {
       console.warn('[TweakExecutor] baseline capture failed for', tweakId, '—', e.message);
