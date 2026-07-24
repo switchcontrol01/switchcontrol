@@ -23,9 +23,19 @@ import { useAuth } from "@/hooks/use-auth";
 import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
 import { Lock } from "lucide-react";
 import { TrustLayer } from "@/components/intelligence/TrustLayer";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import type { RecommendationOverride } from "@/hooks/useDynamicRecommendations";
+import { getEffectiveSliderRecommendation } from "@/lib/recommendation-helpers";
 
 interface TweakSliderCardProps {
   tweak: Tweak;
+  /** Hardware-derived recommended option override from the server. */
+  dynamicOverride?: RecommendationOverride;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -90,6 +100,9 @@ function SteppedSelector({
   onSelect,
   customActive,
   customValue,
+  dynamicRecommendedValue,
+  dynamicReason,
+  dynamicIsAi,
 }: {
   config: SliderConfig;
   currentValue: number | null;
@@ -98,46 +111,87 @@ function SteppedSelector({
   onSelect: (value: number) => void;
   customActive?: boolean;
   customValue?: number | null;
+  /** Dynamic hardware-derived recommended value (overrides static isRecommended). */
+  dynamicRecommendedValue?: number;
+  /** Reason string shown as tooltip on the Recommended badge. */
+  dynamicReason?: string;
+  /** True when the dynamic recommendation came from the premium AI layer. */
+  dynamicIsAi?: boolean;
 }) {
   const presets = config.presets ?? [];
   const isCustomPreset = (idx: number) => customActive && idx === presets.length - 1;
   return (
-    <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${presets.length}, 1fr)` }}>
-      {presets.map((preset, idx) => {
-        const isSelected = pendingValue === preset.value || isCustomPreset(idx);
-        const isCurrent = currentValue === preset.value || isCustomPreset(idx);
-        return (
-          <button
-            key={preset.value}
-            onClick={() => !disabled && onSelect(preset.value)}
-            disabled={disabled}
-            data-testid={`slider-preset-${preset.value}`}
-            className={cn(
-              "relative flex flex-col items-center gap-1 px-2 py-3 rounded-xl border text-center transition-all duration-200",
-              "text-[11px] font-medium leading-tight",
-              isSelected
-                ? "bg-primary/15 border-primary/40 text-primary shadow-[0_0_16px_rgba(0,212,255,0.2)]"
-                : "bg-[#21262D] border-[#2A313A] text-[#A0A8B3] hover:border-[#2A313A] hover:text-[#E6EAF0] hover:bg-[#21262D]",
-              disabled && "opacity-50 cursor-not-allowed",
-            )}
-          >
-            {/* Live indicator for currently applied value */}
-            {isCurrent && (
-              <span className="absolute -top-1 -right-1 size-2 rounded-full bg-cyan-400 shadow-[0_0_6px_rgba(34,211,238,0.7)]" />
-            )}
-            <span className="leading-snug">{preset.label}</span>
-            {(preset.isDefault || preset.isRecommended) && (
-              <span className={cn(
-                "text-[9px] px-1.5 py-0.5 rounded-full",
-                preset.isRecommended ? "bg-cyan-500/15 text-cyan-400" : "bg-[#2A313A] text-[#6B7380]"
-              )}>
-                {preset.isRecommended ? "Recommended" : "Default"}
-              </span>
-            )}
-          </button>
-        );
-      })}
-    </div>
+    <TooltipProvider delayDuration={300}>
+      <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${presets.length}, 1fr)` }}>
+        {presets.map((preset, idx) => {
+          const isSelected = pendingValue === preset.value || isCustomPreset(idx);
+          const isCurrent = currentValue === preset.value || isCustomPreset(idx);
+          // Dynamic override takes precedence; fall back to static flag.
+          const isDynamicRec = dynamicRecommendedValue !== undefined && preset.value === dynamicRecommendedValue;
+          const isStaticRec  = !dynamicRecommendedValue && preset.isRecommended;
+          const isRec        = isDynamicRec || isStaticRec;
+          const recReason    = isDynamicRec ? dynamicReason : undefined;
+          const isAiRec      = isDynamicRec && !!dynamicIsAi;
+          return (
+            <button
+              key={preset.value}
+              onClick={() => !disabled && onSelect(preset.value)}
+              disabled={disabled}
+              data-testid={`slider-preset-${preset.value}`}
+              className={cn(
+                "relative flex flex-col items-center gap-1 px-2 py-3 rounded-xl border text-center transition-all duration-200",
+                "text-[11px] font-medium leading-tight",
+                isSelected
+                  ? "bg-primary/15 border-primary/40 text-primary shadow-[0_0_16px_rgba(0,212,255,0.2)]"
+                  : "bg-[#21262D] border-[#2A313A] text-[#A0A8B3] hover:border-[#2A313A] hover:text-[#E6EAF0] hover:bg-[#21262D]",
+                disabled && "opacity-50 cursor-not-allowed",
+              )}
+            >
+              {/* Live indicator for currently applied value */}
+              {isCurrent && (
+                <span className="absolute -top-1 -right-1 size-2 rounded-full bg-cyan-400 shadow-[0_0_6px_rgba(34,211,238,0.7)]" />
+              )}
+              <span className="leading-snug">{preset.label}</span>
+              {(preset.isDefault || isRec) && (
+                recReason ? (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className={cn(
+                        "text-[9px] px-1.5 py-0.5 rounded-full cursor-help",
+                        isAiRec
+                          ? "bg-gradient-to-r from-violet-500/20 to-fuchsia-500/20 text-violet-300 border border-violet-400/30"
+                          : "bg-cyan-500/15 text-cyan-400"
+                      )}>
+                        {isAiRec ? "AI Pick ✦" : "Recommended ✦"}
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent
+                      side="top"
+                      className={cn(
+                        "max-w-[220px] text-center bg-[#0D1117] text-[#A0A8B3]",
+                        isAiRec ? "border border-violet-400/30" : "border border-cyan-500/20"
+                      )}
+                    >
+                      {recReason}
+                      {isAiRec && (
+                        <div className="mt-1 text-[9px] text-violet-300/80">✦ AI-tuned to your hardware</div>
+                      )}
+                    </TooltipContent>
+                  </Tooltip>
+                ) : (
+                  <span className={cn(
+                    "text-[9px] px-1.5 py-0.5 rounded-full",
+                    isRec ? "bg-cyan-500/15 text-cyan-400" : "bg-[#2A313A] text-[#6B7380]"
+                  )}>
+                    {isRec ? "Recommended" : "Default"}
+                  </span>
+                )
+              )}
+            </button>
+          );
+        })}
+      </div>
+    </TooltipProvider>
   );
 }
 
@@ -148,11 +202,20 @@ function ContinuousSlider({
   pendingValue,
   disabled,
   onChange,
+  dynamicRecommendedValue,
+  dynamicReason,
+  dynamicIsAi,
 }: {
   config: SliderConfig;
   pendingValue: number | null;
   disabled: boolean;
   onChange: (value: number) => void;
+  /** Dynamic hardware-derived recommended value override. */
+  dynamicRecommendedValue?: number;
+  /** Reason string shown as tooltip on the Recommended marker. */
+  dynamicReason?: string;
+  /** True when the dynamic recommendation came from the premium AI layer. */
+  dynamicIsAi?: boolean;
 }) {
   const val = pendingValue ?? config.defaultValue;
   const zone = getRangeZone(val, config);
@@ -194,18 +257,32 @@ function ContinuousSlider({
               </span>
             </div>
           )}
-          {/* Recommended marker */}
-          {config.recommendedValue !== undefined && config.recommendedValue >= config.min && config.recommendedValue <= config.max && config.recommendedValue !== config.defaultValue && (
-            <div
-              className="absolute top-0 -translate-x-1/2"
-              style={{ left: `${((config.recommendedValue - config.min) / (config.max - config.min)) * 100}%` }}
-            >
-              <div className="w-0.5 h-2.5 bg-cyan-400/50 rounded-full" />
-              <span className="absolute left-1/2 top-3 -translate-x-1/2 text-[9px] text-cyan-400/60 whitespace-nowrap">
-                Rec.
-              </span>
-            </div>
-          )}
+          {/* Recommended marker — uses dynamic override when available */}
+          {(() => {
+            const recVal = dynamicRecommendedValue ?? config.recommendedValue;
+            if (recVal === undefined || recVal < config.min || recVal > config.max || recVal === config.defaultValue) return null;
+            const pct = ((recVal - config.min) / (config.max - config.min)) * 100;
+            const label = dynamicReason
+              ? <TooltipProvider delayDuration={200}><Tooltip><TooltipTrigger asChild>
+                  <span className={cn(
+                    "absolute left-1/2 top-3 -translate-x-1/2 text-[9px] whitespace-nowrap cursor-help",
+                    dynamicIsAi ? "text-violet-300/90" : "text-cyan-400/80"
+                  )}>{dynamicIsAi ? "AI ✦" : "Rec. ✦"}</span>
+                </TooltipTrigger><TooltipContent side="top" className={cn(
+                  "max-w-[200px] text-center bg-[#0D1117] text-[#A0A8B3]",
+                  dynamicIsAi ? "border border-violet-400/30" : "border border-cyan-500/20"
+                )}>
+                  {dynamicReason}
+                  {dynamicIsAi && <div className="mt-1 text-[9px] text-violet-300/80">✦ AI-tuned to your hardware</div>}
+                </TooltipContent></Tooltip></TooltipProvider>
+              : <span className="absolute left-1/2 top-3 -translate-x-1/2 text-[9px] text-cyan-400/60 whitespace-nowrap">Rec.</span>;
+            return (
+              <div className="absolute top-0 -translate-x-1/2" style={{ left: `${pct}%` }}>
+                <div className="w-0.5 h-2.5 bg-cyan-400/50 rounded-full" />
+                {label}
+              </div>
+            );
+          })()}
         </div>
       </div>
 
@@ -382,7 +459,7 @@ function AdvancedDetails({ tweak, currentValue }: { tweak: Tweak; currentValue: 
 
 // ── Main card ─────────────────────────────────────────────────────────────────
 
-export function TweakSliderCard({ tweak }: TweakSliderCardProps) {
+export function TweakSliderCard({ tweak, dynamicOverride }: TweakSliderCardProps) {
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [trustOpen, setTrustOpen] = useState(false);
   const isElectron = isElectronWithTweaks();
@@ -393,6 +470,12 @@ export function TweakSliderCard({ tweak }: TweakSliderCardProps) {
   const isLocked = isPremiumTweak && !isPremium;
 
   const config = tweak.sliderConfig!;
+
+  // Compute effective recommendation — dynamic override takes precedence over static
+  const effectiveRec = getEffectiveSliderRecommendation(tweak.id, config, dynamicOverride ? { [tweak.id]: dynamicOverride } : null);
+  const dynRecValue  = effectiveRec.isDynamic ? effectiveRec.recommendedValue : undefined;
+  const dynRecReason = effectiveRec.isDynamic ? effectiveRec.reason : undefined;
+  const dynRecIsAi   = effectiveRec.isDynamic && effectiveRec.source === "ai";
 
   const { state, isDirty, setPending, apply, reset, revert, dismissResult } = useSliderTweak(tweak.id, config);
 
@@ -556,10 +639,31 @@ export function TweakSliderCard({ tweak }: TweakSliderCardProps) {
               <span className="text-[#6B7380] block mb-0.5 text-[10px]">Default</span>
               <span className="text-[#6B7380] tabular-nums">{formatValue(config.defaultValue, config.unit)}</span>
             </div>
-            {config.recommendedValue !== undefined && (
+            {(effectiveRec.recommendedValue !== undefined) && (
               <div>
-                <span className="text-[#6B7380] block mb-0.5 text-[10px]">Recommended</span>
-                <span className="text-cyan-400/60 tabular-nums">{formatValue(config.recommendedValue, config.unit)}</span>
+                <span className={cn("block mb-0.5 text-[10px]", dynRecIsAi ? "text-violet-300/70" : "text-[#6B7380]")}>
+                  {dynRecIsAi ? "AI Recommended" : "Recommended"}
+                </span>
+                {dynRecReason ? (
+                  <TooltipProvider delayDuration={200}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className={cn("tabular-nums cursor-help", dynRecIsAi ? "text-violet-300/90" : "text-cyan-400/80")}>
+                          {formatValue(effectiveRec.recommendedValue!, config.unit)} ✦
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className={cn(
+                        "max-w-[220px] text-center bg-[#0D1117] text-[#A0A8B3]",
+                        dynRecIsAi ? "border border-violet-400/30" : "border border-cyan-500/20"
+                      )}>
+                        {dynRecReason}
+                        {dynRecIsAi && <div className="mt-1 text-[9px] text-violet-300/80">✦ AI-tuned to your hardware</div>}
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                ) : (
+                  <span className="text-cyan-400/60 tabular-nums">{formatValue(effectiveRec.recommendedValue!, config.unit)}</span>
+                )}
               </div>
             )}
           </div>
@@ -575,6 +679,9 @@ export function TweakSliderCard({ tweak }: TweakSliderCardProps) {
                 onSelect={handleSteppedSelect}
                 customActive={customActive}
                 customValue={customValue}
+                dynamicRecommendedValue={dynRecValue}
+                dynamicReason={dynRecReason}
+                dynamicIsAi={dynRecIsAi}
               />
               {/* Custom draggable slider appears when Custom is selected */}
               {customActive && customRange && (
@@ -605,6 +712,9 @@ export function TweakSliderCard({ tweak }: TweakSliderCardProps) {
               pendingValue={state.pendingValue}
               disabled={disabled}
               onChange={setPending}
+              dynamicRecommendedValue={dynRecValue}
+              dynamicReason={dynRecReason}
+              dynamicIsAi={dynRecIsAi}
             />
           )}
 

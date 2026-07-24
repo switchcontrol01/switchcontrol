@@ -1,5 +1,12 @@
-import { Router } from "express";
+import { Router, type Request, type Response, type RequestHandler } from "express";
+import { z } from "zod";
+import OpenAI from "openai";
+import crypto from "crypto";
 import { getCachedSnapshot } from "../lib/telemetry";
+import { getCachedSystemIntelligence, getSystemIntelligence } from "../lib/systemIntelligence";
+import { classifyCpuArchitecture, classifyGpuVendor } from "../../shared/hardwareIntelligence";
+import { requireJwt } from "../middleware/requireCloudAuth";
+import { aiPerWindowLimiter, aiHourlyLimiter } from "../middleware/rateLimiter";
 
 const router = Router();
 
@@ -492,6 +499,578 @@ router.get("/rankings", (req, res) => {
     res.status(500).json({ error: "Failed to compute rankings" });
   }
 });
+
+// ── GET /api/tweak-intelligence/recommended-options ───────────────────────────
+// Returns hardware-derived recommended value/option overrides for slider and
+// preset tweaks. Rules are deterministic — no LLM inference involved.
+
+export interface RecommendationOverride {
+  recommendedValue?: number;
+  recommendedOptionId?: string;
+  reason: string;
+}
+
+router.get("/recommended-options", async (_req, res) => {
+  try {
+    // Try the in-memory cache first; if absent, await a short-timeout fetch.
+    let profile = getCachedSystemIntelligence();
+    if (!profile) {
+      try {
+        profile = await Promise.race([
+          getSystemIntelligence(),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error("timeout")), 5_000),
+          ),
+        ]);
+      } catch {
+        return res.json({ overrides: {}, ts: Date.now() });
+      }
+    }
+
+    const overrides: Record<string, RecommendationOverride> = {};
+
+    // ── Derive hardware facts ─────────────────────────────────────────────
+    const cpuBrand    = profile.cpu.brand ?? "";
+    const cpuFamily   = classifyCpuArchitecture(cpuBrand);
+    const totalRamGb  = (profile.memory.totalMb ?? 0) / 1024;
+    const isLaptop    =
+      profile.device.batteryPresent === true ||
+      (profile.device.chassisType
+        ? /laptop|notebook|portable|handheld/i.test(profile.device.chassisType)
+        : false);
+
+    const controllers    = profile.gpu.controllers ?? [];
+    const primaryGpuName = controllers[0]?.name ?? "";
+    const gpuVendor      = classifyGpuVendor(primaryGpuName);
+    const hasDedicatedGpu = gpuVendor === "nvidia" || gpuVendor === "amd";
+
+    const displays    = profile.gpu.displays ?? [];
+    const mainDisplay = displays.find(d => d.main) ?? displays[0];
+    const refreshHz   = mainDisplay?.refreshRate ?? 60;
+    const highRefresh = refreshHz >= 100;
+
+    const storageLayout = profile.storage?.layout ?? [];
+    const hasSsd = storageLayout.some(d =>
+      d.type === "SSD" ||
+      (d.interfaceType ?? "").toUpperCase().includes("NVME") ||
+      (d.name ?? "").toLowerCase().includes("nvme") ||
+      (d.name ?? "").toLowerCase().includes("ssd"),
+    );
+
+    // ── svchost-split-threshold: by RAM tier ─────────────────────────────
+    if (totalRamGb > 0) {
+      const ramGbRounded = Math.round(totalRamGb);
+      if (totalRamGb >= 64) {
+        overrides["svchost-split-threshold"] = {
+          recommendedValue: 67108864,
+          reason: `Best for ${ramGbRounded} GB RAM — maximum service isolation`,
+        };
+      } else if (totalRamGb >= 32) {
+        overrides["svchost-split-threshold"] = {
+          recommendedValue: 33554432,
+          reason: `Recommended for ${ramGbRounded} GB RAM systems`,
+        };
+      } else if (totalRamGb >= 16) {
+        overrides["svchost-split-threshold"] = {
+          recommendedValue: 16777216,
+          reason: `Balanced for ${ramGbRounded} GB RAM — moderate service isolation`,
+        };
+      } else {
+        overrides["svchost-split-threshold"] = {
+          recommendedValue: 8388608,
+          reason: `Tuned for ${ramGbRounded} GB RAM — fewer split processes, less RAM overhead`,
+        };
+      }
+    }
+
+    // ── win32-priority-sep: desktop vs laptop vs Intel hybrid ─────────────
+    if (isLaptop) {
+      overrides["win32-priority-sep"] = {
+        recommendedValue: 22, // Favor Foreground (not max — avoids thermal spikes)
+        reason: "Laptop — moderate foreground bias to avoid sustained CPU/thermal pressure",
+      };
+    } else if (cpuFamily === "intel-hybrid") {
+      overrides["win32-priority-sep"] = {
+        recommendedValue: 22,
+        reason: "Intel hybrid CPU — Thread Director manages P/E scheduling; keep foreground bias moderate",
+      };
+    } else {
+      overrides["win32-priority-sep"] = {
+        recommendedValue: 26, // Gaming (Recommended)
+        reason: "Desktop gaming — fixed short quanta with foreground boost for lower input latency",
+      };
+    }
+
+    // ── net-throttle-index: dedicated GPU vs integrated ───────────────────
+    if (hasDedicatedGpu) {
+      overrides["net-throttle-index"] = {
+        recommendedValue: 4294967295, // Disabled (Gaming)
+        reason: `${gpuVendor.toUpperCase()} discrete GPU — disable MMCSS throttling for full gaming bandwidth`,
+      };
+    } else {
+      overrides["net-throttle-index"] = {
+        recommendedValue: 10, // Standard (Default)
+        reason: "Integrated graphics — standard throttling prevents multimedia bandwidth floods",
+      };
+    }
+
+    // ── irq-optimization-profile: CPU family ─────────────────────────────
+    if (cpuFamily === "x3d") {
+      overrides["irq-optimization-profile"] = {
+        recommendedOptionId: "balanced",
+        reason: "AMD X3D — Windows already manages interrupt routing for the cache die; standard IRQ scheme avoids DPC conflicts",
+      };
+    } else if (cpuFamily === "intel-hybrid") {
+      overrides["irq-optimization-profile"] = {
+        recommendedOptionId: "balanced",
+        reason: "Intel hybrid CPU — Thread Director manages P/E interrupt routing; balanced IRQ avoids scheduling interference",
+      };
+    } else {
+      overrides["irq-optimization-profile"] = {
+        recommendedOptionId: "gaming",
+        reason: cpuBrand
+          ? `Recommended for your ${cpuBrand.split(" ").slice(0, 3).join(" ")} — elevates PCI interrupt priority for GPU, NVMe, and NIC`
+          : "Gaming profile elevates PCI interrupt priority for GPU, NVMe, and NIC",
+      };
+    }
+
+    // ── io-optimization-profile: SSD vs HDD, and RAM size ────────────────
+    if (hasSsd) {
+      overrides["io-optimization-profile"] = {
+        recommendedOptionId: totalRamGb >= 16 ? "gaming" : "gaming",
+        reason: totalRamGb >= 16
+          ? "SSD + sufficient RAM — larger NTFS metadata cache reduces game asset-streaming stutter"
+          : "SSD detected — gaming NTFS profile reduces load-time stutter",
+      };
+    } else {
+      overrides["io-optimization-profile"] = {
+        recommendedOptionId: "standard",
+        reason: "HDD detected — standard NTFS profile is safer; aggressive cache on HDD increases seek latency",
+      };
+    }
+
+    // ── timer-resolution-slider: form factor and display ─────────────────
+    if (isLaptop) {
+      overrides["timer-resolution-slider"] = {
+        recommendedValue: 50, // Balanced (5.0ms)
+        reason: "Laptop — 5ms timer balances latency improvement with battery and thermal impact",
+      };
+    } else if (highRefresh) {
+      overrides["timer-resolution-slider"] = {
+        recommendedValue: 10, // Aggressive Gaming (1.0ms)
+        reason: `${Math.round(refreshHz)}Hz display — 1ms timer resolution matches high-refresh frame pacing`,
+      };
+    } else {
+      overrides["timer-resolution-slider"] = {
+        recommendedValue: 20, // Gaming (2.0ms)
+        reason: "Desktop gaming — 2ms timer resolution reduces frame-time jitter",
+      };
+    }
+
+    // ── sys-responsiveness: laptop vs gaming desktop ──────────────────────
+    if (isLaptop) {
+      overrides["sys-responsiveness"] = {
+        recommendedValue: 20, // Windows Default
+        reason: "Laptop — default MMCSS reservation balances gaming performance and background tasks",
+      };
+    } else {
+      overrides["sys-responsiveness"] = {
+        recommendedValue: 15, // Gaming Focus (15%)
+        reason: "Desktop gaming — 15% MMCSS reservation gives more CPU headroom without starving audio",
+      };
+    }
+
+    // ── directx-optimization-profile: discrete GPU ────────────────────────
+    if (hasDedicatedGpu) {
+      overrides["directx-optimization-profile"] = {
+        recommendedOptionId: "extended",
+        reason: `${gpuVendor.toUpperCase()} GPU — extended TDR timeout reduces false-positive driver resets during shader compilation`,
+      };
+    }
+
+    // ── Network tweak hardware recommendations ────────────────────────────
+    // networkOverrides keys are tweak IDs; presence means "recommended for
+    // this user's hardware". Value is a reason string for the tooltip.
+    const networkOverrides: Record<string, string> = {};
+
+    const cpuCores = profile.cpu.physicalCores ?? profile.cpu.cores ?? 0;
+    const cpuModelName = cpuBrand.split(" ").slice(0, 4).join(" ");
+
+    // tcp-throttling-index: always useful for gaming, stronger for dedicated GPU
+    if (hasDedicatedGpu) {
+      networkOverrides["tcp-throttling-index"] = `${gpuVendor.toUpperCase()} GPU — disabling MMCSS throttling gives your GPU maximum network priority for gaming`;
+    } else {
+      networkOverrides["tcp-throttling-index"] = "Recommended for gaming — removes Windows MMCSS bandwidth limits";
+    }
+
+    // tcp-rss: multi-core systems benefit most
+    if (cpuCores >= 4) {
+      networkOverrides["tcp-rss"] = `${cpuCores}-core CPU — RSS spreads network processing across cores, preventing a single-core bottleneck`;
+    } else {
+      networkOverrides["tcp-rss"] = "Enables Receive Side Scaling for better throughput and stability";
+    }
+
+    // tcp-nagle: gaming desktops with dedicated GPU benefit most
+    if (!isLaptop && hasDedicatedGpu) {
+      networkOverrides["tcp-nagle"] = `Desktop gaming setup — disabling Nagle sends small packets immediately, reducing TCP latency for real-time games`;
+    }
+
+    // udp-offloads: desktop + dedicated GPU (not laptops — battery/thermal cost)
+    if (!isLaptop && hasDedicatedGpu) {
+      networkOverrides["udp-offloads"] = `${gpuVendor.toUpperCase()} desktop — disabling UDP checksum offload can reduce driver-level latency spikes during gaming`;
+    }
+
+    // smb-non-best-effort: always useful — removes QoS bandwidth reservation
+    networkOverrides["smb-non-best-effort"] = cpuBrand
+      ? `Frees Windows' 20% bandwidth reservation — more headroom for your gaming workload on ${cpuModelName}`
+      : "Removes Windows QoS bandwidth reservation — gives full bandwidth to applications";
+
+    // sec-llmnr: reduces background broadcast interference
+    networkOverrides["sec-llmnr"] = "Disables legacy LAN name resolution broadcasts — reduces background interrupt noise during gaming";
+
+    // sec-netbios: reduces legacy broadcast traffic
+    networkOverrides["sec-netbios"] = "Turns off NetBIOS broadcasts — less background LAN noise and lower attack surface";
+
+    // dns-optimize: safe for all hardware, improves first-connection latency
+    networkOverrides["dns-optimize"] = "Tuned DNS cache reduces name-resolution delay at round start — safe for all hardware";
+
+    // tcp-sack: always safe, benefits vary by ISP link quality
+    networkOverrides["tcp-sack"] = "Ensures fast packet-loss recovery — zero downside, recommended for all connections";
+
+    // tcp-pmtu: always safe
+    networkOverrides["tcp-pmtu"] = "Prevents fragmentation-related stalls — safe improvement for all network configurations";
+
+    // smb-v2v3: always safe and beneficial
+    networkOverrides["smb-v2v3"] = "Modern SMB for faster and more secure LAN file transfers — no downside";
+
+    // tcp-timestamps: gaming desktop (slight per-packet overhead reduction)
+    if (!isLaptop) {
+      networkOverrides["tcp-timestamps"] = "Disables TCP timestamp headers — slight per-packet overhead reduction for gaming sessions";
+    }
+
+    // tcp-wait-time: benefits any system with frequent connections
+    networkOverrides["tcp-wait-time"] = "Frees sockets faster after close — helps apps that open many short connections (matchmaking, CDN, asset streaming)";
+
+    res.json({ overrides, networkOverrides, ts: Date.now() });
+  } catch (e: any) {
+    console.error("[TweakIntel] recommended-options error:", e.message);
+    res.json({ overrides: {}, networkOverrides: {}, ts: Date.now() });
+  }
+});
+
+// ── POST /api/tweak-intelligence/ai-recommendations (premium) ─────────────────
+// LLM-backed recommendations. The CLIENT sends its real hardware specs (in
+// Electron the local machine, never this server's VM) plus the exact catalog of
+// tweak options it renders. The LLM picks a recommended option per tweak and
+// the server validates every pick against the submitted catalog before
+// returning it — the model can never invent tweak ids, values, or option ids.
+//
+// Premium-gated: requireJwt populates req.cloudUser, requirePremiumTI enforces
+// isPremium (mirrors server/routes/security.ts). OPENAI_API_KEY exists on the
+// cloud host only, so clients must call this via the cloud API base.
+
+const requirePremiumTI: RequestHandler = (req, res, next) => {
+  const cloudUser = (req as any).cloudUser as { id: string; isPremium: boolean } | undefined;
+  if (!cloudUser?.isPremium) {
+    if (!cloudUser) {
+      console.error(`[TweakIntel:ai] FORBIDDEN | cloudUser=undefined — possible middleware ordering bug`);
+    } else {
+      console.warn(`[TweakIntel:ai] FORBIDDEN | user=${cloudUser.id} isPremium=false`);
+    }
+    return res.status(403).json({ error: "Premium required." });
+  }
+  next();
+};
+
+const aiSystemSchema = z.object({
+  cpu: z.string().min(1).max(200),
+  gpu: z.string().max(200).default("Unknown"),
+  ramGb: z.number().min(0).max(4096).default(0),
+  isLaptop: z.boolean().default(false),
+  refreshHz: z.number().min(0).max(1000).nullable().default(null),
+  cores: z.number().min(0).max(512).nullable().default(null),
+  storage: z.string().max(200).default("Unknown"),
+  os: z.string().max(200).default("Windows"),
+});
+
+const aiCatalogSchema = z.object({
+  sliders: z.array(z.object({
+    id: z.string().min(1).max(80),
+    title: z.string().min(1).max(120),
+    unit: z.string().max(20).optional(),
+    // Stepped sliders: the allowed values with labels. Continuous: min/max/step.
+    presets: z.array(z.object({
+      value: z.number(),
+      label: z.string().max(80),
+    })).max(12).optional(),
+    min: z.number().optional(),
+    max: z.number().optional(),
+  })).max(40).default([]),
+  presets: z.array(z.object({
+    id: z.string().min(1).max(80),
+    title: z.string().min(1).max(120),
+    options: z.array(z.object({
+      id: z.string().min(1).max(80),
+      label: z.string().max(80),
+      description: z.string().max(200).optional(),
+    })).min(1).max(10),
+  })).max(20).default([]),
+  network: z.array(z.object({
+    id: z.string().min(1).max(80),
+    name: z.string().min(1).max(120),
+    summary: z.string().max(300).default(""),
+  })).max(40).default([]),
+});
+
+const aiRecsRequestSchema = z.object({
+  system: aiSystemSchema,
+  catalog: aiCatalogSchema,
+});
+
+type AiCatalog = z.infer<typeof aiCatalogSchema>;
+type AiSystem = z.infer<typeof aiSystemSchema>;
+
+interface AiRecsResponse {
+  source: "ai";
+  overrides: Record<string, RecommendationOverride>;
+  networkOverrides: Record<string, string>;
+  model: string;
+  ts: number;
+}
+
+// Cache keyed by hardware+catalog hash. Hardware rarely changes, so a long TTL
+// keeps token spend near-zero for repeat opens across sessions/devices.
+const AI_RECS_CACHE_TTL = 24 * 60 * 60 * 1000; // 24h
+const aiRecsCache = new Map<string, { data: AiRecsResponse; expiresAt: number }>();
+const aiRecsInFlight = new Map<string, Promise<AiRecsResponse>>();
+
+function aiRecsCacheKey(system: AiSystem, catalog: AiCatalog): string {
+  const normalized = JSON.stringify({
+    // Round RAM to the nearest GB so minor reporting jitter doesn't bust the cache.
+    s: { ...system, ramGb: Math.round(system.ramGb) },
+    c: {
+      sl: catalog.sliders.map(s => [s.id, (s.presets ?? []).map(p => p.value), s.min, s.max]),
+      pr: catalog.presets.map(p => [p.id, p.options.map(o => o.id)]),
+      nw: catalog.network.map(n => n.id),
+    },
+  });
+  return crypto.createHash("sha256").update(normalized).digest("hex");
+}
+
+function buildAiRecsPrompt(system: AiSystem, catalog: AiCatalog): string {
+  const hw = [
+    `CPU: ${system.cpu}${system.cores ? ` (${system.cores} cores)` : ""}`,
+    `GPU: ${system.gpu}`,
+    `RAM: ${Math.round(system.ramGb)} GB`,
+    `Form factor: ${system.isLaptop ? "LAPTOP (thermal/battery constrained)" : "DESKTOP"}`,
+    system.refreshHz ? `Display: ${Math.round(system.refreshHz)} Hz` : null,
+    `Storage: ${system.storage}`,
+    `OS: ${system.os}`,
+  ].filter(Boolean).join("\n");
+
+  const sliderLines = catalog.sliders.map(s => {
+    const opts = s.presets?.length
+      ? `allowed values: ${s.presets.map(p => `${p.value} ("${p.label}")`).join(", ")}`
+      : `numeric range ${s.min} to ${s.max}${s.unit ? ` ${s.unit}` : ""}`;
+    return `- ${s.id} | ${s.title} | ${opts}`;
+  }).join("\n");
+
+  const presetLines = catalog.presets.map(p =>
+    `- ${p.id} | ${p.title} | options: ${p.options.map(o => `${o.id} ("${o.label}")`).join(", ")}`
+  ).join("\n");
+
+  const networkLines = catalog.network.map(n => `- ${n.id} | ${n.name} — ${n.summary}`).join("\n");
+
+  return `You are a Windows gaming-performance tuning expert. Recommend the best option for THIS machine:
+
+${hw}
+
+Rules:
+- Slider tweaks: pick exactly one allowed value (or an in-range number for numeric ranges).
+- Preset tweaks: pick exactly one option id.
+- Network tweaks: set "recommend": true only when this hardware clearly benefits; omit or false otherwise.
+- Laptops: prefer conservative options (thermals, battery). Desktops with dedicated GPUs: prefer aggressive gaming options.
+- Every "reason" must be ≤ 90 characters and cite concrete hardware (e.g. "32 GB RAM", "RTX 4070", "laptop", "144Hz").
+- Only use tweak ids listed below. Never invent ids, values, or option ids.
+
+SLIDER TWEAKS:
+${sliderLines || "(none)"}
+
+PRESET TWEAKS:
+${presetLines || "(none)"}
+
+NETWORK TWEAKS:
+${networkLines || "(none)"}
+
+Respond with ONLY this JSON shape:
+{"sliders":{"<id>":{"value":<number>,"reason":"..."}},"presets":{"<id>":{"optionId":"...","reason":"..."}},"network":{"<id>":{"recommend":true,"reason":"..."}}}`;
+}
+
+function cleanReason(raw: unknown): string | null {
+  if (typeof raw !== "string") return null;
+  const s = raw.replace(/\s+/g, " ").trim().slice(0, 160);
+  return s.length >= 3 ? s : null;
+}
+
+/**
+ * Validate the raw LLM JSON against the submitted catalog. Only tweak ids,
+ * values, and option ids that exist in the catalog survive. Exported for tests.
+ */
+export function validateAiRecommendations(
+  raw: any,
+  catalog: AiCatalog,
+): { overrides: Record<string, RecommendationOverride>; networkOverrides: Record<string, string> } {
+  const overrides: Record<string, RecommendationOverride> = {};
+  const networkOverrides: Record<string, string> = {};
+
+  const sliderById = new Map(catalog.sliders.map(s => [s.id, s]));
+  const presetById = new Map(catalog.presets.map(p => [p.id, p]));
+  const networkIds = new Set(catalog.network.map(n => n.id));
+
+  if (raw && typeof raw.sliders === "object" && raw.sliders !== null) {
+    for (const [id, entry] of Object.entries<any>(raw.sliders)) {
+      const cfg = sliderById.get(id);
+      if (!cfg || !entry || typeof entry !== "object") continue;
+      const value = Number(entry.value);
+      if (!Number.isFinite(value)) continue;
+      const reason = cleanReason(entry.reason);
+      if (!reason) continue;
+      if (cfg.presets?.length) {
+        if (!cfg.presets.some(p => p.value === value)) continue; // not an allowed step
+      } else if (cfg.min !== undefined && cfg.max !== undefined) {
+        if (value < cfg.min || value > cfg.max) continue;
+      } else {
+        continue; // catalog entry has no usable constraint — reject
+      }
+      overrides[id] = { recommendedValue: value, reason };
+    }
+  }
+
+  if (raw && typeof raw.presets === "object" && raw.presets !== null) {
+    for (const [id, entry] of Object.entries<any>(raw.presets)) {
+      const cfg = presetById.get(id);
+      if (!cfg || !entry || typeof entry !== "object") continue;
+      const optionId = typeof entry.optionId === "string" ? entry.optionId : null;
+      const reason = cleanReason(entry.reason);
+      if (!optionId || !reason) continue;
+      if (!cfg.options.some(o => o.id === optionId)) continue;
+      overrides[id] = { recommendedOptionId: optionId, reason };
+    }
+  }
+
+  if (raw && typeof raw.network === "object" && raw.network !== null) {
+    for (const [id, entry] of Object.entries<any>(raw.network)) {
+      if (!networkIds.has(id) || !entry || typeof entry !== "object") continue;
+      if (entry.recommend !== true) continue;
+      const reason = cleanReason(entry.reason);
+      if (!reason) continue;
+      networkOverrides[id] = reason;
+    }
+  }
+
+  return { overrides, networkOverrides };
+}
+
+async function runAiRecommendations(
+  system: AiSystem,
+  catalog: AiCatalog,
+  userId: string,
+): Promise<AiRecsResponse> {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    const err: any = new Error("AI recommendations unavailable on this server.");
+    err.statusCode = 503;
+    throw err;
+  }
+  const model = process.env.AI_MODEL || "gpt-4o-mini";
+  const openai = new OpenAI({ apiKey });
+
+  const t0 = Date.now();
+  const completion = await openai.chat.completions.create({
+    model,
+    temperature: 0.2,
+    max_tokens: parseInt(process.env.AI_RECS_MAX_TOKENS || "1600", 10),
+    response_format: { type: "json_object" },
+    messages: [{ role: "user", content: buildAiRecsPrompt(system, catalog) }],
+  });
+
+  const content = completion.choices[0]?.message?.content ?? "{}";
+  let parsed: any = {};
+  try {
+    parsed = JSON.parse(content);
+  } catch {
+    throw new Error("AI returned malformed JSON.");
+  }
+
+  const { overrides, networkOverrides } = validateAiRecommendations(parsed, catalog);
+  const kept = Object.keys(overrides).length + Object.keys(networkOverrides).length;
+  console.log(
+    `[TweakIntel:ai] OK | user=${userId} | model=${model} | ${Date.now() - t0}ms | tweaks=${Object.keys(overrides).length} network=${Object.keys(networkOverrides).length} | tokens=${completion.usage?.total_tokens ?? "?"}`,
+  );
+  if (kept === 0) throw new Error("AI produced no valid recommendations.");
+
+  return { source: "ai", overrides, networkOverrides, model, ts: Date.now() };
+}
+
+router.post(
+  "/ai-recommendations",
+  aiPerWindowLimiter,
+  aiHourlyLimiter,
+  requireJwt,
+  requirePremiumTI,
+  async (req: Request, res: Response) => {
+    const cloudUser = (req as any).cloudUser as { id: string; isPremium: boolean };
+
+    const parsedBody = aiRecsRequestSchema.safeParse(req.body);
+    if (!parsedBody.success) {
+      return res.status(400).json({
+        error: "Invalid request data",
+        details: parsedBody.error.issues.map(i => ({ path: i.path.join("."), message: i.message })),
+      });
+    }
+    const { system, catalog } = parsedBody.data;
+    if (catalog.sliders.length + catalog.presets.length + catalog.network.length === 0) {
+      return res.status(400).json({ error: "Catalog is empty." });
+    }
+
+    const key = aiRecsCacheKey(system, catalog);
+
+    const cached = aiRecsCache.get(key);
+    if (cached && Date.now() < cached.expiresAt) {
+      console.log(`[TweakIntel:ai] cache hit | user=${cloudUser.id}`);
+      return res.json(cached.data);
+    }
+
+    let promise = aiRecsInFlight.get(key);
+    if (!promise) {
+      promise = runAiRecommendations(system, catalog, cloudUser.id).finally(() => {
+        aiRecsInFlight.delete(key);
+      });
+      aiRecsInFlight.set(key, promise);
+    }
+
+    try {
+      const data = await promise;
+      aiRecsCache.set(key, { data, expiresAt: Date.now() + AI_RECS_CACHE_TTL });
+      // Bounded cache: evict expired, then oldest, past 100 entries.
+      if (aiRecsCache.size > 100) {
+        const now = Date.now();
+        Array.from(aiRecsCache.entries()).forEach(([k, v]) => { if (now > v.expiresAt) aiRecsCache.delete(k); });
+        if (aiRecsCache.size > 100) {
+          Array.from(aiRecsCache.entries())
+            .sort((a, b) => a[1].expiresAt - b[1].expiresAt)
+            .slice(0, aiRecsCache.size - 80)
+            .forEach(([k]) => aiRecsCache.delete(k));
+        }
+      }
+      return res.json(data);
+    } catch (e: any) {
+      const status = e?.statusCode === 503 ? 503 : 502;
+      console.error(`[TweakIntel:ai] ERROR | user=${cloudUser.id} | ${e?.message}`);
+      return res.status(status).json({ error: e?.statusCode === 503 ? e.message : "AI recommendations failed." });
+    }
+  },
+);
 
 // ── GET /api/tweak-intelligence/posture ───────────────────────────────────────
 

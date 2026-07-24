@@ -20,6 +20,7 @@ import { OptimizationFlow } from "@/components/optimization/OptimizationFlow";
 import { useAuth } from "@/hooks/use-auth";
 import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
 import { useSystemConditionsStore } from "@/stores/systemConditionsStore";
+import { useDynamicRecommendations } from "@/hooks/useDynamicRecommendations";
 
 // Module-level sync generation counter — persists across component remounts.
 // Incremented when a new mount starts its sync; old in-flight syncs that
@@ -182,6 +183,7 @@ export function TweaksList() {
   const { isPremium } = useAuth();
   const { openUpgradeModal } = useUpgradeModal();
   const { isAdmin, tamperProtection } = useSystemConditionsStore();
+  const { overrides: dynOverrides } = useDynamicRecommendations();
   const [search, setSearch]         = useState("");
   const [activeChip, setActiveChip] = useState<string>("All");
   const [activeLevel, setActiveLevel] = useState<LevelFilter>("All");
@@ -778,7 +780,7 @@ export function TweaksList() {
                   }}
                   style={{ willChange: "opacity, transform" }}
                 >
-                  <TweakSliderCard tweak={tweak} />
+                  <TweakSliderCard tweak={tweak} dynamicOverride={dynOverrides?.[tweak.id]} />
                 </motion.div>
               ))}
             </AnimatePresence>
@@ -815,7 +817,7 @@ export function TweaksList() {
                     }}
                     style={{ willChange: "opacity, transform" }}
                   >
-                    <TweakSliderCard tweak={tweak} />
+                    <TweakSliderCard tweak={tweak} dynamicOverride={dynOverrides?.[tweak.id]} />
                   </motion.div>
                 ))}
                 {advancedPresetTweaks.map((tweak, index) => (
@@ -833,7 +835,7 @@ export function TweaksList() {
                     }}
                     style={{ willChange: "opacity, transform" }}
                   >
-                    <TweakPresetCard tweak={tweak} activeConflictIds={activeConflictIds} />
+                    <TweakPresetCard tweak={tweak} activeConflictIds={activeConflictIds} dynamicOverride={dynOverrides?.[tweak.id]} />
                   </motion.div>
                 ))}
               </AnimatePresence>

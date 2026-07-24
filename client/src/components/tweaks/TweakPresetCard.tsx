@@ -15,11 +15,21 @@ import { isTweakPremium } from "@/lib/premium-config";
 import { useAuth } from "@/hooks/use-auth";
 import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
 import { TrustLayer } from "@/components/intelligence/TrustLayer";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import type { RecommendationOverride } from "@/hooks/useDynamicRecommendations";
+import { getEffectivePresetRecommendation } from "@/lib/recommendation-helpers";
 
 interface TweakPresetCardProps {
   tweak: RegistryTweak;
   /** Ids of other preset/toggle tweaks currently at a non-default option — used for conflict detection. */
   activeConflictIds?: string[];
+  /** Hardware-derived recommended option override from the server. */
+  dynamicOverride?: RecommendationOverride;
 }
 
 const FreeBadge = () => (
@@ -132,7 +142,7 @@ function AdvancedDetails({ tweak }: { tweak: RegistryTweak }) {
   );
 }
 
-export function TweakPresetCard({ tweak, activeConflictIds = [] }: TweakPresetCardProps) {
+export function TweakPresetCard({ tweak, activeConflictIds = [], dynamicOverride }: TweakPresetCardProps) {
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [trustOpen, setTrustOpen] = useState(false);
   const isElectron = isElectronWithTweaks();
@@ -144,6 +154,12 @@ export function TweakPresetCard({ tweak, activeConflictIds = [] }: TweakPresetCa
 
   const config = tweak.presetConfig!;
   const { state, isDirty, select, apply, revert, dismissResult } = usePresetTweak(tweak.id, config);
+
+  // Compute effective recommendation — dynamic override takes precedence over static
+  const effectiveRec = getEffectivePresetRecommendation(tweak.id, config, dynamicOverride ? { [tweak.id]: dynamicOverride } : null);
+  const dynRecOptionId = effectiveRec.isDynamic ? effectiveRec.recommendedOptionId : undefined;
+  const dynRecReason   = effectiveRec.isDynamic ? effectiveRec.reason : undefined;
+  const dynRecIsAi     = effectiveRec.isDynamic && effectiveRec.source === "ai";
 
   const isLoading  = state.status === 'loading';
   const isApplying = state.status === 'applying' || state.status === 'reverting';
@@ -245,41 +261,75 @@ export function TweakPresetCard({ tweak, activeConflictIds = [] }: TweakPresetCa
           </div>
 
           {/* Preset option cards */}
-          <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${config.options.length}, 1fr)` }}>
-            {config.options.map((option) => {
-              const isSelected = state.pendingOptionId === option.id;
-              const isCurrent  = state.currentOptionId === option.id;
-              return (
-                <button
-                  key={option.id}
-                  onClick={() => !disabled && select(option.id)}
-                  disabled={disabled}
-                  data-testid={`preset-option-${tweak.id}-${option.id}`}
-                  className={cn(
-                    "relative flex flex-col items-start gap-1 px-3 py-3 rounded-xl border text-left transition-all duration-200",
-                    "text-[11px] font-medium leading-tight",
-                    isSelected
-                      ? "bg-primary/15 border-primary/40 text-primary shadow-[0_0_16px_rgba(0,212,255,0.2)]"
-                      : "bg-[#21262D] border-[#2A313A] text-[#A0A8B3] hover:border-[#2A313A] hover:text-[#E6EAF0] hover:bg-[#21262D]",
-                    disabled && "opacity-50 cursor-not-allowed",
-                  )}
-                >
-                  {isCurrent && (
-                    <span className="absolute -top-1 -right-1 size-2 rounded-full bg-cyan-400 shadow-[0_0_6px_rgba(34,211,238,0.7)]" />
-                  )}
-                  <span className="leading-snug">{option.label}</span>
-                  {(option.isDefault || option.isRecommended) && (
-                    <span className={cn(
-                      "text-[9px] px-1.5 py-0.5 rounded-full",
-                      option.isRecommended ? "bg-cyan-500/15 text-cyan-400" : "bg-[#2A313A] text-[#6B7380]"
-                    )}>
-                      {option.isRecommended ? "Recommended" : "Default"}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
+          <TooltipProvider delayDuration={300}>
+            <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${config.options.length}, 1fr)` }}>
+              {config.options.map((option) => {
+                const isSelected = state.pendingOptionId === option.id;
+                const isCurrent  = state.currentOptionId === option.id;
+                // Dynamic override takes precedence; fall back to static flag.
+                const isDynamicRec = dynRecOptionId !== undefined && option.id === dynRecOptionId;
+                const isStaticRec  = !dynRecOptionId && option.isRecommended;
+                const isRec        = isDynamicRec || isStaticRec;
+                const recReason    = isDynamicRec ? dynRecReason : undefined;
+                return (
+                  <button
+                    key={option.id}
+                    onClick={() => !disabled && select(option.id)}
+                    disabled={disabled}
+                    data-testid={`preset-option-${tweak.id}-${option.id}`}
+                    className={cn(
+                      "relative flex flex-col items-start gap-1 px-3 py-3 rounded-xl border text-left transition-all duration-200",
+                      "text-[11px] font-medium leading-tight",
+                      isSelected
+                        ? "bg-primary/15 border-primary/40 text-primary shadow-[0_0_16px_rgba(0,212,255,0.2)]"
+                        : "bg-[#21262D] border-[#2A313A] text-[#A0A8B3] hover:border-[#2A313A] hover:text-[#E6EAF0] hover:bg-[#21262D]",
+                      disabled && "opacity-50 cursor-not-allowed",
+                    )}
+                  >
+                    {isCurrent && (
+                      <span className="absolute -top-1 -right-1 size-2 rounded-full bg-cyan-400 shadow-[0_0_6px_rgba(34,211,238,0.7)]" />
+                    )}
+                    <span className="leading-snug">{option.label}</span>
+                    {(option.isDefault || isRec) && (
+                      recReason ? (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className={cn(
+                              "text-[9px] px-1.5 py-0.5 rounded-full cursor-help",
+                              isDynamicRec && dynRecIsAi
+                                ? "bg-gradient-to-r from-violet-500/20 to-fuchsia-500/20 text-violet-300 border border-violet-400/30"
+                                : "bg-cyan-500/15 text-cyan-400"
+                            )}>
+                              {isDynamicRec && dynRecIsAi ? "AI Pick ✦" : "Recommended ✦"}
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent
+                            side="top"
+                            className={cn(
+                              "max-w-[220px] text-center bg-[#0D1117] text-[#A0A8B3]",
+                              isDynamicRec && dynRecIsAi ? "border border-violet-400/30" : "border border-cyan-500/20"
+                            )}
+                          >
+                            {recReason}
+                            {isDynamicRec && dynRecIsAi && (
+                              <div className="mt-1 text-[9px] text-violet-300/80">✦ AI-tuned to your hardware</div>
+                            )}
+                          </TooltipContent>
+                        </Tooltip>
+                      ) : (
+                        <span className={cn(
+                          "text-[9px] px-1.5 py-0.5 rounded-full",
+                          isRec ? "bg-cyan-500/15 text-cyan-400" : "bg-[#2A313A] text-[#6B7380]"
+                        )}>
+                          {isRec ? "Recommended" : "Default"}
+                        </span>
+                      )
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </TooltipProvider>
 
           {/* Selected option description */}
           <AnimatePresence>

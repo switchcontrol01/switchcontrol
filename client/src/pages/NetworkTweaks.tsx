@@ -41,6 +41,13 @@ import { useAuth } from "@/hooks/use-auth";
 import { PremiumHeaderBadge, PremiumPageOverlay } from "@/components/ui/premium-page-overlay";
 import { useNetworkDiagnostics } from "@/hooks/useNetworkDiagnostics";
 import { NetworkDiagnosticsHero, NetworkDiagnosticsFooter } from "@/components/network/NetworkDiagnosticsPanel";
+import { useDynamicRecommendations } from "@/hooks/useDynamicRecommendations";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 // ── types ─────────────────────────────────────────────────────────────────────
 
@@ -446,9 +453,14 @@ interface NetworkTweakCardProps {
    *  has not yet been confirmed. Shows a pulsing neutral border instead of
    *  the grey idle/off state to prevent false "not applied" flash on cold open. */
   isVerifying?: boolean;
+  /** When set, shows a hardware-specific "✦ For your system" badge with this
+   *  reason as the tooltip text. */
+  hardwareRec?: string;
+  /** True when the recommendation came from the premium AI layer — upgrades the badge styling. */
+  hardwareRecAi?: boolean;
 }
 
-function NetworkTweakCard({ tweak, tweakState, onToggle, onInfoClick, isVerifying = false }: NetworkTweakCardProps) {
+function NetworkTweakCard({ tweak, tweakState, onToggle, onInfoClick, isVerifying = false, hardwareRec, hardwareRecAi = false }: NetworkTweakCardProps) {
   const { prefersReducedMotion } = useMotion();
   const isUnavailable = !!tweak.unavailable;
   const isApplying = tweakState.status === "applying";
@@ -505,6 +517,34 @@ function NetworkTweakCard({ tweak, tweakState, onToggle, onInfoClick, isVerifyin
             <div className="flex items-center gap-1.5 flex-wrap">
               <LevelBadge level={tweak.level} />
               <SafetyBadge level={tweak.safety} />
+              {hardwareRec && (
+                <TooltipProvider delayDuration={300}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className={cn(
+                        "text-[9px] font-medium px-1.5 py-0.5 rounded-full border cursor-help select-none",
+                        hardwareRecAi
+                          ? "bg-gradient-to-r from-violet-500/15 to-fuchsia-500/15 text-violet-300 border-violet-400/30"
+                          : "bg-cyan-500/10 text-cyan-400 border-cyan-500/20"
+                      )}>
+                        {hardwareRecAi ? "✦ AI Pick" : "✦ For your system"}
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent
+                      side="top"
+                      className={cn(
+                        "max-w-[240px] text-center bg-[#0D1117] text-[#A0A8B3]",
+                        hardwareRecAi ? "border border-violet-400/30" : "border border-cyan-500/20"
+                      )}
+                    >
+                      {hardwareRec}
+                      {hardwareRecAi && (
+                        <div className="mt-1 text-[9px] text-violet-300/80">✦ AI-tuned to your hardware</div>
+                      )}
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
             </div>
           )}
 
@@ -1151,6 +1191,7 @@ function NetworkTweaksContent() {
 
   const closePanel = useCallback(() => setSelectedTweak(null), []);
 
+  const { networkOverrides } = useDynamicRecommendations();
   const diagnostics = useNetworkDiagnostics();
 
   const enabledCount = Object.values(stateMap).filter(
@@ -1338,6 +1379,8 @@ function NetworkTweaksContent() {
                           onToggle={() => toggleTweak(tweak)}
                           onInfoClick={() => setSelectedTweak(tweak)}
                           isVerifying={fetching && !tweak.unavailable}
+                          hardwareRec={networkOverrides?.[tweak.id]?.reason}
+                          hardwareRecAi={networkOverrides?.[tweak.id]?.source === "ai"}
                         />
                       ))}
                     </div>
