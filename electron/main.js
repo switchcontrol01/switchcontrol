@@ -273,8 +273,11 @@
   let _netStatsLastTs = 0;
   let _netStatsCache = null;
   
-  // Telemetry safety: only pollTelemetry() may call systeminformation.
-  // Violations are logged as [TelemetryViolation] for debugging.
+  // Approved si.* callers — documentation only, not runtime-enforced.
+  // All entries in this set are intentionally calling si.* directly and are
+  // excluded from the "only pollTelemetry() may call systeminformation" rule.
+  // Handlers below marked "approved direct caller" have justification comments;
+  // do not add new direct callers without updating this set.
   const ALLOWED_SI_CALLERS = new Set([
     'pollTelemetry',
     'loadSystemSpecs',
@@ -283,6 +286,11 @@
     'telemetry:getGpu',
     'telemetry:refreshDeepHardware',
     'startTelemetryPolling-prime',
+    // On-demand reads (IPC handlers, not on the polling budget):
+    'system:getRamUsage',          // on-demand RAM snapshot for System page
+    'system:getAllDisks',           // on-demand disk list, not polled
+    'telemetry:getCpuCores',       // static at boot, cached by caller
+    'telemetry:getMemoryDetails',  // on-demand detail panel
   ]);
   // (3) cached value from previous refresh. NEVER polled automatically in loop.
   // { load: number|null, temp: number|null, memUsedMb: number|null, memTotalMb: number|null, power: number|null, clockMhz: number|null, source: string }
@@ -293,9 +301,6 @@
   // can unexpectedly bypass the other path's cache window.
   let _gpuCounterLastRefreshTs = 0;
   
-  // Background-loop GPU load poll tracker — NOT used (GPU load is on-demand only).
-  // Kept for backward compatibility with any external code referencing it.
-  let _gpuLoadPollLastTsDeprecated = 0;
   
   // Fast GPU existence flag — set true as soon as si.graphics() confirms a controller.
   // si.graphics() completes in ~300–600ms (no PowerShell overhead), so this is known
@@ -731,14 +736,22 @@
     console.log('[Sentinel] loop stopped');
   }
   
+  // In-flight flag prevents a second startTelemetryPolling() call that arrives
+  // during the ~1.5-2s prime window from passing the _telemetryLoopActive guard
+  // (which is only set to true AFTER the prime completes).  Without this, two
+  // callers that fire within the startup window both pass the guard and each
+  // independently run the full expensive prime + GPU WMI sequence.
+  let _telemetryStartInFlight = false;
+
   async function startTelemetryPolling() {
     // ── Singleton guard ────────────────────────────────────────────────────────
-    // If the loop is already running (should never happen — only called once from
-    // app.whenReady), bail out immediately rather than creating a second loop.
-    if (_telemetryLoopActive) {
-      console.warn('[Perf] telemetry loop already active, skipping duplicate start');
+    // If the loop is already running OR a start is already in-flight, bail out.
+    if (_telemetryLoopActive || _telemetryStartInFlight) {
+      console.warn('[Perf] telemetry loop already active or starting, skipping duplicate start');
       return;
     }
+    _telemetryStartInFlight = true;
+    try {
     verboseLog('[telemetry:poll] priming differential APIs + pre-warming GPU sources...');
   
     // ── GPU pre-warm (fire-and-forget, runs in parallel with CPU/disk prime) ──
@@ -899,7 +912,11 @@
     _telemetryLoopActive = true;
     _telemetryLoop(); // fire-and-forget — loop awaits each poll before sleeping 1s
     verboseLog('[telemetry:poll] async loop started (sequential, no overlap possible)');
+  } finally {
+    // Always clear the in-flight flag — whether we completed normally or threw.
+    _telemetryStartInFlight = false;
   }
+  } // end async function startTelemetryPolling
   
   // Register protocol handler BEFORE app is ready
   let protocolRegistered = false;
@@ -2225,7 +2242,6 @@
   });
 
   // ── Driver Intelligence: read installed driver versions from registry ─────────
-  // ── Driver Intelligence: read installed driver versions from registry ─────────
   ipcMain.handle('driverIntel:getInstalledVersions', async () => {
     if (process.platform !== 'win32') return {};
     const ps = [
@@ -2250,10 +2266,13 @@
       "    }",
       "} catch {}",
       "try {",
-      "  $smi = & 'nvidia-smi' --query-gpu=driver_version --format=csv,noheader 2>`$null",
-      "  if (`$smi -and `$smi.Trim()) { `$result.nvidia_gpu = `$smi.Trim() }",
+      // Note: $smi and $result are plain PS variables — no backtick-escaping needed
+      // here because these strings are passed directly to powershell.exe via execFile
+      // argv, NOT through a shell that would need $-escaping.
+      "  $smi = & 'nvidia-smi' --query-gpu=driver_version --format=csv,noheader 2>$null",
+      "  if ($smi -and $smi.Trim()) { $result.nvidia_gpu = $smi.Trim() }",
       "} catch {}",
-      "ConvertTo-Json -InputObject `$result -Compress -Depth 2",
+      "ConvertTo-Json -InputObject $result -Compress -Depth 2",
     ].join("\n");
     return new Promise((resolve) => {
       execFile(
@@ -3378,7 +3397,10 @@ public class DspHelper {
   ipcMain.handle('system:getRamUsage', async () => {
     try {
       const mem = await si.mem();
-      const used = mem.total - mem.available;
+      // Prefer mem.active (pages actually in use by processes) — matches Task Manager.
+      // mem.total - mem.available includes standby pages and reads ~3 GB higher than TM.
+      const activeBytes = mem.active ?? null;
+      const used = (activeBytes != null && activeBytes > 0) ? activeBytes : (mem.total - mem.available);
       return {
         total: mem.total,
         used,
@@ -4507,7 +4529,13 @@ $hpetQ     = try{$h=Get-WmiObject -Query "SELECT * FROM Win32_DeviceChangeEvent"
     if (typeof adapterName !== 'string' || !adapterName.trim()) {
       return { capabilities: {}, error: 'adapterName required' };
     }
-    return await nicExecutor.getAdapterCapabilities(adapterName);
+    const _token = psLimiter.tryAcquire({ file: 'main.js', fn: 'nic:getCapabilities', reason: 'nic-caps' });
+    if (!_token) return psLimiter.skippedResult({ file: 'main.js', fn: 'nic:getCapabilities', reason: 'nic-caps' });
+    try {
+      return await nicExecutor.getAdapterCapabilities(adapterName);
+    } finally {
+      psLimiter.release(_token);
+    }
   });
   
   ipcMain.handle('nic:invalidateCache', async (event, adapterName) => {
@@ -4520,7 +4548,13 @@ $hpetQ     = try{$h=Get-WmiObject -Query "SELECT * FROM Win32_DeviceChangeEvent"
     if (typeof adapterName !== 'string' || typeof propertyKey !== 'string') {
       return { value: null, supported: false, error: 'adapterName and propertyKey required' };
     }
-    return await nicExecutor.readNicProperty(adapterName, propertyKey);
+    const _token = psLimiter.tryAcquire({ file: 'main.js', fn: 'nic:readProperty', reason: 'nic-read' });
+    if (!_token) return psLimiter.skippedResult({ file: 'main.js', fn: 'nic:readProperty', reason: 'nic-read' });
+    try {
+      return await nicExecutor.readNicProperty(adapterName, propertyKey);
+    } finally {
+      psLimiter.release(_token);
+    }
   });
   
   ipcMain.handle('nic:setProperty', async (event, adapterName, propertyKey, value) => {
@@ -4530,14 +4564,26 @@ $hpetQ     = try{$h=Get-WmiObject -Query "SELECT * FROM Win32_DeviceChangeEvent"
     if (value === undefined || value === null) {
       return { ok: false, error: 'value required' };
     }
-    return await nicExecutor.setNicPropertyWithOwnership(adapterName, propertyKey, value);
+    const _token = psLimiter.tryAcquire({ file: 'main.js', fn: 'nic:setProperty', reason: 'nic-set' });
+    if (!_token) return psLimiter.skippedResult({ file: 'main.js', fn: 'nic:setProperty', reason: 'nic-set' });
+    try {
+      return await nicExecutor.setNicPropertyWithOwnership(adapterName, propertyKey, value);
+    } finally {
+      psLimiter.release(_token);
+    }
   });
   
   ipcMain.handle('nic:resetProperty', async (event, adapterName, propertyKey) => {
     if (typeof adapterName !== 'string' || typeof propertyKey !== 'string') {
       return { ok: false, error: 'adapterName and propertyKey required' };
     }
-    return await nicExecutor.resetNicProperty(adapterName, propertyKey);
+    const _token = psLimiter.tryAcquire({ file: 'main.js', fn: 'nic:resetProperty', reason: 'nic-reset' });
+    if (!_token) return psLimiter.skippedResult({ file: 'main.js', fn: 'nic:resetProperty', reason: 'nic-reset' });
+    try {
+      return await nicExecutor.resetNicProperty(adapterName, propertyKey);
+    } finally {
+      psLimiter.release(_token);
+    }
   });
   
   ipcMain.handle('nic:getPropertyMeta', () => {

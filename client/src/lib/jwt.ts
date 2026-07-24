@@ -16,6 +16,14 @@ const CLOCK_SKEW_TOLERANCE_S = 30;
 // ── Bad-token dedup ───────────────────────────────────────────────────────────
 // Track fingerprints we have already warned about so the same bad token never
 // floods the console on every API call.
+//
+// Size cap: in a long-running Electron session (weeks) with rotating 30-day
+// tokens, the set accumulates one entry per distinct bad token seen — forever,
+// without eviction. BAD_JWT_FP_MAX bounds worst-case memory; when the cap is
+// hit we clear entirely rather than tracking LRU order (entries are tiny and
+// losing dedup state for old fingerprints only re-enables a suppressed warning,
+// which is acceptable and self-correcting on the next good-token cycle).
+const BAD_JWT_FP_MAX = 500;
 const _badJwtFingerprints = new Set<string>();
 
 // ── Reissue dedup ────────────────────────────────────────────────────────────
@@ -121,9 +129,15 @@ export function validateAndClearJwt(
   if (result.malformed) {
     const fp = jwtFingerprint(jwt);
     if (!_badJwtFingerprints.has(fp)) {
+      // Enforce size cap before adding — clear entirely when full (entries are tiny;
+      // losing dedup state just re-enables a suppressed warning for old tokens).
+      if (_badJwtFingerprints.size >= BAD_JWT_FP_MAX) _badJwtFingerprints.clear();
       _badJwtFingerprints.add(fp);
       if (isDebug) console.warn('[JWT] malformed — cleared. tokenId:', fp);
     }
+    // clearJwt() is intentionally unconditional: the fingerprint set deduplicates
+    // the CONSOLE WARNING only.  The token must always be cleared so the caller
+    // re-authenticates — not just the first time it's detected as bad.
     clearJwt();
     return null;
   }
@@ -131,9 +145,11 @@ export function validateAndClearJwt(
   if (result.expired) {
     const fp = jwtFingerprint(jwt);
     if (!_badJwtFingerprints.has(fp)) {
+      if (_badJwtFingerprints.size >= BAD_JWT_FP_MAX) _badJwtFingerprints.clear();
       _badJwtFingerprints.add(fp);
       if (isDebug) console.warn('[JWT] expired — cleared. tokenId:', fp);
     }
+    // See malformed branch — clearJwt() is unconditional by design.
     clearJwt();
     return null;
   }
@@ -149,7 +165,10 @@ export function validateAndClearJwt(
  */
 export async function reissueJwtFromSession(): Promise<string | null> {
   if (_jwtReissuePromise) {
-    // Dedup is silent — the original call already has logging
+    // Dedup: return the already-in-flight promise.  Log so a burst of concurrent
+    // 401s is diagnosable — without this, only one event=start appears in logs
+    // and you can't tell how many callers were stacked behind it.
+    console.debug('[JWT:refresh] event=deduped — joining in-flight reissue');
     return _jwtReissuePromise;
   }
 
@@ -157,10 +176,17 @@ export async function reissueJwtFromSession(): Promise<string | null> {
   console.log('[JWT:refresh] event=start source=session_cookie');
 
   _jwtReissuePromise = (async () => {
+    // AbortController timeout: if the reissue endpoint hangs, _jwtReissuePromise
+    // stays non-null indefinitely and every concurrent caller is frozen waiting
+    // for the same hung promise.  15s is well above normal round-trip latency
+    // but safely below any user-visible hang threshold.
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15_000);
     try {
       const resp = await fetch(`${AUTH_DOMAIN}/api/auth/reissue-jwt`, {
         method: 'POST',
         credentials: 'include',
+        signal: controller.signal,
       });
 
       if (!resp.ok) {
@@ -187,10 +213,11 @@ export async function reissueJwtFromSession(): Promise<string | null> {
       console.log(`[JWT:refresh] event=success tokenFp=${newFp}`);
       return data.jwt as string;
     } catch (err) {
-      // Always log network-level refresh failures
-      console.warn('[JWT:refresh] event=failed reason=network error=' + (err as Error).message);
+      const isAbort = (err as any)?.name === 'AbortError';
+      console.warn('[JWT:refresh] event=failed reason=' + (isAbort ? 'timeout_15s' : 'network') + ' error=' + (err as Error).message);
       return null;
     } finally {
+      clearTimeout(timeoutId); // always cancel the abort timer
       _jwtReissuePromise = null;
     }
   })();

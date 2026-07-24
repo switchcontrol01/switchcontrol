@@ -374,10 +374,13 @@ async function tick(): Promise<void> {
       lastCpuTempTs = Date.now();
 
     } else if (now - lastDiskIoTs > diskTtl && !lowEndMode) {
-      // Task 2: Disk I/O
-      // PowerShell perf counters are more reliable on Windows than si.disksIO()
+      // Task 2: Disk I/O — try si.disksIO() first (kernel read, no spawn overhead);
+      // fall back to PowerShell Get-Counter only if it returns null.
+      // Previously PS was always tried first on Windows, spawning powershell.exe
+      // every ~4 s unconditionally even when si.disksIO() would have succeeded.
       let raw: any = null;
-      if (isWindows) {
+      raw = await runTimed("diskIO", () => si.disksIO().catch(() => null));
+      if (!raw && isWindows) {
         const psOut = await runTimed("diskIO:ps", async () => {
           const out = await runDiskPS(`
 try {
@@ -393,9 +396,6 @@ try {
         if (psOut && psOut.rIO_sec != null && psOut.wIO_sec != null) {
           raw = psOut;
         }
-      }
-      if (!raw) {
-        raw = await runTimed("diskIO", () => si.disksIO().catch(() => null));
       }
       cachedDisk = computeDisk(raw);
       lastDiskIoTs = Date.now();
@@ -544,7 +544,10 @@ export async function refreshRamNow(): Promise<void> {
     const memRes = await si.mem().catch(() => null);
     if (!memRes || !cachedSnapshot) return;
     const totalBytes = memRes.total;
-    const usedBytes  = memRes.used;
+    // Prefer mem.active (pages actually in use by processes) — matches Task Manager.
+    // mem.used includes standby pages and reads ~3 GB higher than TM on Windows.
+    const activeBytes = (memRes as any).active ?? null;
+    const usedBytes  = (activeBytes != null && activeBytes > 0) ? activeBytes : memRes.used;
     const totalGB    = totalBytes / 1073741824;
     const usedGB     = usedBytes  / 1073741824;
     const usedPercent = totalGB > 0 ? (usedGB / totalGB) * 100 : 0;

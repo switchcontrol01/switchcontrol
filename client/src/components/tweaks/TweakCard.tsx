@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { logHistory } from "@/lib/logHistory";
 import { createPortal } from "react-dom";
 import { Switch } from "@/components/ui/switch";
@@ -359,7 +359,14 @@ export function TweakCard({ tweak, isEnabled, onToggle, isVerifying = false, isH
   const handleToggle = useCallback(async () => {
     if (isLocked)           { openUpgradeModal('Premium Tweak'); return; }
     if (isUnsupported)      return;
-    if (gpuMsiApplyBlocked) return; // no adapter selected / none found
+    if (gpuMsiApplyBlocked) {
+      showFailure({
+        type: 'unknown',
+        message: 'Select a GPU adapter first.',
+        hint: 'Use the GPU dropdown above to choose the adapter you want to tune.',
+      });
+      return;
+    }
 
     // Clear any previous failure / impact result immediately
     setFailureInfo(null);
@@ -394,22 +401,27 @@ export function TweakCard({ tweak, isEnabled, onToggle, isVerifying = false, isH
 
   // ── Badge strip ──────────────────────────────────────────────────────────────
   // Priority-ordered badge list (max 3 displayed). Info badges (level/risk) always shown.
-  const allBadges: React.ReactNode[] = [];
-  if (isLocked) allBadges.push(<PremiumBadge key="premium" className="text-[10px] px-2 py-0.5" />);
-  if (isUnsupported) allBadges.push(
-    <span key="unsupported" className="text-[10px] font-medium px-2 py-0.5 rounded-full border bg-zinc-500/10 text-zinc-400 border-zinc-500/20">
-      <ShieldOff className="inline-block size-3 mr-0.5 -mt-0.5" /> Unsupported
-    </span>
-  );
-  if (!isLocked && !isUnsupported && tweak.risk === 'Risky') allBadges.push(
-    <span key="risk" className="text-[10px] font-medium px-2 py-0.5 rounded-full border bg-red-500/10 text-red-400 border-red-500/20">Risky</span>
-  );
-  if (!isLocked && !isUnsupported && tweak.requiresReboot) allBadges.push(
-    <span key="restart" className="text-[10px] font-medium px-2 py-0.5 rounded-full border bg-yellow-500/10 text-yellow-400 border-yellow-500/20">
-      <RefreshCw className="inline-block size-3 mr-0.5 -mt-0.5" /> Restart
-    </span>
-  );
-  const visiblePriorityBadges = allBadges.slice(0, 3);
+  // Memoised: rebuilding React elements every render causes unnecessary reconciliation
+  // on the badge strip, which is visible when many TweakCards are in the list.
+  const visiblePriorityBadges = useMemo(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const badges: any[] = [];
+    if (isLocked) badges.push(<PremiumBadge key="premium" className="text-[10px] px-2 py-0.5" />);
+    if (isUnsupported) badges.push(
+      <span key="unsupported" className="text-[10px] font-medium px-2 py-0.5 rounded-full border bg-zinc-500/10 text-zinc-400 border-zinc-500/20">
+        <ShieldOff className="inline-block size-3 mr-0.5 -mt-0.5" /> Unsupported
+      </span>
+    );
+    if (!isLocked && !isUnsupported && tweak.risk === 'Risky') badges.push(
+      <span key="risk" className="text-[10px] font-medium px-2 py-0.5 rounded-full border bg-red-500/10 text-red-400 border-red-500/20">Risky</span>
+    );
+    if (!isLocked && !isUnsupported && tweak.requiresReboot) badges.push(
+      <span key="restart" className="text-[10px] font-medium px-2 py-0.5 rounded-full border bg-yellow-500/10 text-yellow-400 border-yellow-500/20">
+        <RefreshCw className="inline-block size-3 mr-0.5 -mt-0.5" /> Restart
+      </span>
+    );
+    return badges.slice(0, 3);
+  }, [isLocked, isUnsupported, tweak.risk, tweak.requiresReboot]);
 
   return (
     <>
@@ -429,7 +441,6 @@ export function TweakCard({ tweak, isEnabled, onToggle, isVerifying = false, isH
             initial={{ opacity: 0.9 }}
             animate={{ opacity: [0.9, 0.4, 0.9] }}
             transition={{ duration: 1.6, repeat: 3, ease: "easeInOut", repeatType: "mirror" }}
-            onAnimationComplete={() => {}}
             style={{ boxShadow: "0 0 0 2px hsl(var(--primary)/0.7), 0 0 20px hsl(var(--primary)/0.35)", borderRadius: 12 }}
           />
         )}
@@ -534,7 +545,10 @@ export function TweakCard({ tweak, isEnabled, onToggle, isVerifying = false, isH
                 <div className="flex items-center justify-center w-11 h-6">
                   <Loader2 className="size-4 animate-spin text-primary" />
                 </div>
-              ) : isVerifying && !isEnabled ? (
+              ) : isVerifying ? (
+                // Guard on isVerifying alone (not AND !isEnabled): if the tweak is
+                // already enabled and a sync is in-progress, the switch must still be
+                // non-interactive — the !isEnabled variant silently left it clickable.
                 <div
                   className="flex items-center justify-center w-11 h-6 opacity-40 animate-pulse cursor-not-allowed"
                   title="Verifying system state…"

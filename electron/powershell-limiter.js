@@ -37,18 +37,35 @@ function _pruneCallLog() {
   while (_callLog.length > 0 && _callLog[0].ts < cutoff) _callLog.shift();
 }
 
+// A slot whose owner never called release() (hung execFile, unhandled exception)
+// permanently blocks that file::fn key for the process lifetime.  Evict any slot
+// older than this threshold on the next acquire attempt for the same key.
+const STALE_SLOT_MS = 60_000;
+
 function tryAcquire({ file, fn, reason }) {
   _pruneCallLog();
   const key = `${file}::${fn}`;
 
   if (_slots.has(key)) {
     const owner = _slots.get(key);
-    console.log(
-      `[PS-Limiter] acquire SKIPPED (already_running) file=${file} fn=${fn} reason=${reason}` +
-      ` activeOwner=${owner.file}::${owner.fn}` +
-      ` activeSince=${new Date(owner.since).toISOString()}`
-    );
-    return null;
+    const age = Date.now() - owner.since;
+    if (age >= STALE_SLOT_MS) {
+      // Evict the stale slot so the new acquire can proceed.  Log at WARN so
+      // the hung operation is visible without being treated as a normal skip.
+      console.warn(
+        `[PS-Limiter] stale slot EVICTED file=${owner.file} fn=${owner.fn}` +
+        ` id=${owner.id} age=${age}ms — likely hung execFile`
+      );
+      _slots.delete(key);
+      // Fall through to normal acquire below.
+    } else {
+      console.log(
+        `[PS-Limiter] acquire SKIPPED (already_running) file=${file} fn=${fn} reason=${reason}` +
+        ` activeOwner=${owner.file}::${owner.fn}` +
+        ` activeSince=${new Date(owner.since).toISOString()}`
+      );
+      return null;
+    }
   }
 
   if (_slots.size >= MAX_CONCURRENT_PS) {
@@ -71,10 +88,11 @@ function tryAcquire({ file, fn, reason }) {
 
 function release(token) {
   if (!token) return;
-  // Guard against double-release: a second call with the same token would
-  // delete a slot that may now belong to a different acquire, and would write
-  // a misleading log entry with a near-zero or negative duration.
-  if (!_slots.has(token.key)) return;
+  // Guard against double-release by identity, not just key presence.
+  // Checking _slots.has(key) is insufficient: a stale token released after its
+  // key was re-acquired by a newer acquire would silently delete the live slot.
+  // Comparing by reference ensures only the current owner can release the slot.
+  if (_slots.get(token.key) !== token) return;
   _pruneCallLog();
   _slots.delete(token.key);
   const durationMs = Date.now() - token.since;

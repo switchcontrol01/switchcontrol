@@ -21,19 +21,36 @@ import { useTrialExpiryStore } from "@/stores/trialExpiryStore";
 
 // ── CSS keyframes injected once ───────────────────────────────────────────────
 
+// box-shadow is NOT animated in these keyframes — animating box-shadow forces a
+// full CPU repaint on every frame and cannot be compositor-accelerated.
+// Instead each animation pulses opacity only; the visible glow ring comes from
+// the static boxShadow set on each element's inline style.
 const KEYFRAMES = `
 @keyframes sc-poc-glow {
-  0%,100%{ box-shadow:0 0 0 1px rgba(168,85,247,0.22),0 0 28px rgba(168,85,247,0.10); }
-  50%    { box-shadow:0 0 0 1px rgba(168,85,247,0.55),0 0 50px rgba(168,85,247,0.26); }
+  0%,100%{ opacity:0.88; }
+  50%    { opacity:1; }
 }
 @keyframes sc-poc-orb {
-  0%,100%{ box-shadow:0 0 22px rgba(168,85,247,0.25),0 0 0 1px rgba(168,85,247,0.14);opacity:.85; }
-  50%    { box-shadow:0 0 42px rgba(168,85,247,0.52),0 0 0 1px rgba(168,85,247,0.32);opacity:1; }
+  0%,100%{ opacity:.85; }
+  50%    { opacity:1; }
 }
 @keyframes sc-poc-p0{ 0%,100%{transform:translateY(0);opacity:.20} 50%{transform:translateY(-12px);opacity:.50} }
 @keyframes sc-poc-p1{ 0%,100%{transform:translateY(0);opacity:.14} 50%{transform:translateY(-9px); opacity:.42} }
 @keyframes sc-poc-p2{ 0%,100%{transform:translateY(0);opacity:.18} 50%{transform:translateY(-15px);opacity:.38} }
 `;
+
+// Inject KEYFRAMES once at module-load time so multiple simultaneous card
+// instances (e.g. a tweak list with several locked entries) share one <style>
+// tag instead of each mounting their own identical copy.
+if (typeof document !== 'undefined') {
+  const _styleId = 'sc-poc-keyframes';
+  if (!document.getElementById(_styleId)) {
+    const _el = document.createElement('style');
+    _el.id = _styleId;
+    _el.textContent = KEYFRAMES;
+    document.head.appendChild(_el);
+  }
+}
 
 // ── Feature-aware benefit bullets ─────────────────────────────────────────────
 
@@ -97,6 +114,8 @@ function CrownOrb() {
       className="flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center"
       style={{
         background: `rgba(168,85,247,0.16)`,
+        // Static glow ring — sc-poc-orb pulses opacity, not box-shadow.
+        boxShadow: "0 0 22px rgba(168,85,247,0.25),0 0 0 1px rgba(168,85,247,0.14)",
         animation: "sc-poc-orb 3s ease-in-out infinite",
       }}
     >
@@ -157,8 +176,10 @@ export function PremiumOverlayCard({
         animation: "sc-poc-glow 3s ease-in-out infinite",
       }}
       initial={{ opacity: 0, scale: 0.95, y: 8 }}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
-      {...(bounceProps as any)}
+      // bounceProps.animate drives both the mount animation (animateIdle = {opacity:1,scale:1,y:0})
+      // and the attention-bounce animation — do NOT also set animate here or TypeScript
+      // will warn TS2783 (duplicate prop) and the explicit value will be overwritten.
+      {...bounceProps}
       onClick={(e: React.MouseEvent) => e.stopPropagation()}
       data-testid="premium-overlay-card"
     >
@@ -254,6 +275,8 @@ export function PremiumOverlayCard({
   if (variant === "page") {
     return createPortal(
       <div
+        // left-64 assumes a 256px (16rem) sidebar.  If the sidebar width is ever
+        // changed, update this Tailwind class to match (or replace with a CSS var).
         className={`fixed top-0 right-0 bottom-0 left-64 z-[9999] flex items-center justify-center overflow-hidden ${className ?? ""}`}
         style={{
           background: "rgba(0,0,0,0.42)",
@@ -263,7 +286,7 @@ export function PremiumOverlayCard({
         onClick={handleOuterClick}
         data-testid="premium-overlay"
       >
-        <style>{KEYFRAMES}</style>
+        {/* KEYFRAMES injected once at module level — no <style> tag here */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden>
           <div style={{ position:"absolute", left:"18%", top:"22%", width:5, height:5, borderRadius:"50%", background:premiumRgba.glow45, animation:"sc-poc-p0 5s ease-in-out infinite" }} />
           <div style={{ position:"absolute", right:"22%", top:"30%", width:3, height:3, borderRadius:"50%", background:premiumRgba.glow35, animation:"sc-poc-p1 6.5s ease-in-out infinite 1.2s" }} />
@@ -283,7 +306,7 @@ export function PremiumOverlayCard({
       onClick={handleOuterClick}
       data-testid="premium-card-overlay"
     >
-      <style>{KEYFRAMES}</style>
+      {/* KEYFRAMES injected once at module level — no <style> tag here */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden>
         <div style={{ position:"absolute", left:"18%", top:"22%", width:5, height:5, borderRadius:"50%", background:premiumRgba.glow45, animation:"sc-poc-p0 5s ease-in-out infinite" }} />
         <div style={{ position:"absolute", right:"22%", top:"30%", width:3, height:3, borderRadius:"50%", background:premiumRgba.glow35, animation:"sc-poc-p1 6.5s ease-in-out infinite 1.2s" }} />

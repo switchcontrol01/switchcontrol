@@ -15,7 +15,7 @@
  */
 
 import { useState, useCallback, useRef, useEffect, useMemo } from "react";
-import { ATTENTION_BOUNCE_DURATION_MS, premiumGlow } from "@/lib/themeTokens";
+import { ATTENTION_BOUNCE_DURATION_MS } from "@/lib/themeTokens";
 
 interface BounceProps {
   animate: Record<string, unknown>;
@@ -32,6 +32,11 @@ export function useAttentionBounce(): UseAttentionBounceReturn {
   const [isAnimating, setIsAnimating] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mountedRef = useRef(true);
+  // Ref-backed guard so trigger() has a stable identity across the component
+  // lifetime.  Previously isAnimating was in trigger's dep array, which caused
+  // a new function reference on every state flip — consumers that memoized their
+  // own callbacks with trigger in their dep array would re-render unnecessarily.
+  const isAnimatingRef = useRef(false);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -42,27 +47,30 @@ export function useAttentionBounce(): UseAttentionBounceReturn {
   }, []);
 
   const trigger = useCallback(() => {
-    if (isAnimating) return;
+    if (isAnimatingRef.current) return;
+    isAnimatingRef.current = true;
     setIsAnimating(true);
     timerRef.current = setTimeout(() => {
+      isAnimatingRef.current = false;
       if (mountedRef.current) setIsAnimating(false);
     }, ATTENTION_BOUNCE_DURATION_MS);
-  }, [isAnimating]);
+  }, []); // stable — reads isAnimatingRef, never needs re-creation
 
   // Memoize the animation objects — recreating them every render causes
   // downstream TweakCards and premium overlays to rerender unnecessarily.
+  // boxShadow intentionally omitted: animating box-shadow forces a full CPU
+  // repaint on every frame and cannot be GPU-composited.  The scale bounce
+  // alone is sufficient as an attention signal and is compositor-friendly.
   const animateActive = useMemo(() => ({
     opacity: 1,
     y: 0,
     scale: [1, 1.03, 1],
-    boxShadow: [premiumGlow.card, premiumGlow.cardPeak, premiumGlow.card],
   }), []);
 
   const animateIdle = useMemo(() => ({
     opacity: 1,
     y: 0,
     scale: 1,
-    boxShadow: premiumGlow.card,
   }), []);
 
   const transition = useMemo(() => ({

@@ -15,22 +15,46 @@ import { motion } from "@/lib/motion";
 import { useAttentionBounce } from "@/hooks/useAttentionBounce";
 import { premiumColor, premiumRgba } from "@/lib/themeTokens";
 import { openPricing } from "@/lib/pricing";
+import { useTrialExpiryStore } from "@/stores/trialExpiryStore";
 
 // ── CSS keyframes injected once ───────────────────────────────────────────────
 
+// box-shadow is NOT animated — animating box-shadow forces a full CPU repaint
+// on every frame and cannot be compositor-accelerated.  Opacity pulses here;
+// the visible glow rings come from static boxShadow on each element's inline style.
 const KEYFRAMES = `
 @keyframes sc-plo-glow {
-  0%,100%{ box-shadow:0 0 0 1px rgba(168,85,247,0.22),0 0 24px rgba(168,85,247,0.10); }
-  50%    { box-shadow:0 0 0 1px rgba(168,85,247,0.55),0 0 44px rgba(168,85,247,0.26); }
+  0%,100%{ opacity:0.88; }
+  50%    { opacity:1; }
 }
 @keyframes sc-plo-orb {
-  0%,100%{ box-shadow:0 0 22px rgba(168,85,247,0.25),0 0 0 1px rgba(168,85,247,0.14);opacity:.85; }
-  50%    { box-shadow:0 0 42px rgba(168,85,247,0.52),0 0 0 1px rgba(168,85,247,0.32);opacity:1; }
+  0%,100%{ opacity:.85; }
+  50%    { opacity:1; }
+}
+@keyframes sc-plo-badge {
+  0%,100%{ opacity:.82; }
+  50%    { opacity:1; }
+}
+@keyframes sc-plo-icon {
+  0%,100%{ opacity:.80; }
+  50%    { opacity:1; }
 }
 @keyframes sc-plo-p0{ 0%,100%{transform:translateY(0);opacity:.20} 50%{transform:translateY(-12px);opacity:.50} }
 @keyframes sc-plo-p1{ 0%,100%{transform:translateY(0);opacity:.14} 50%{transform:translateY(-9px); opacity:.42} }
 @keyframes sc-plo-p2{ 0%,100%{transform:translateY(0);opacity:.18} 50%{transform:translateY(-15px);opacity:.38} }
 `;
+
+// Inject KEYFRAMES once at module-load time so multiple simultaneous overlay
+// instances share one <style> tag instead of each mounting an identical copy.
+if (typeof document !== 'undefined') {
+  const _styleId = 'sc-plo-keyframes';
+  if (!document.getElementById(_styleId)) {
+    const _el = document.createElement('style');
+    _el.id = _styleId;
+    _el.textContent = KEYFRAMES;
+    document.head.appendChild(_el);
+  }
+}
 
 // ── Feature-aware benefit bullets ─────────────────────────────────────────────
 
@@ -94,6 +118,8 @@ function CrownOrb() {
       className="flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center"
       style={{
         background: `rgba(168,85,247,0.16)`,
+        // Static glow ring — sc-plo-orb pulses opacity, not box-shadow.
+        boxShadow: "0 0 22px rgba(168,85,247,0.25),0 0 0 1px rgba(168,85,247,0.14)",
         animation: "sc-plo-orb 3s ease-in-out infinite",
       }}
     >
@@ -108,7 +134,6 @@ interface PremiumLockOverlayProps {
   featureName: string;
   description?: string;
   className?: string;
-  showInlineText?: boolean;
   children: React.ReactNode;
   isLocked: boolean;
 }
@@ -117,20 +142,24 @@ export function PremiumLockOverlay({
   featureName,
   description,
   className,
-  showInlineText = true,
   children,
   isLocked,
 }: PremiumLockOverlayProps) {
   const { bounceProps, trigger } = useAttentionBounce();
+  // When the trial-ending upsell flow is active the user has already seen the
+  // premium gate; showing a second lock overlay on top creates visual conflict.
+  const trialEndingFlowActive = useTrialExpiryStore(s => s.trialEndingFlowActive);
 
   if (!isLocked) return <>{children}</>;
+  // CRITICAL: suppress the lock overlay during the trial-expiry upsell so the
+  // PremiumOverlayCard / trial flow takes sole precedence over the page UI.
+  if (trialEndingFlowActive) return <>{children}</>;
 
   const benefits = getBenefits(featureName);
 
   return (
     <div className={cn("relative", className)}>
-      {/* Inject CSS keyframes once per render (tiny, no perf cost) */}
-      <style>{KEYFRAMES}</style>
+      {/* KEYFRAMES injected once at module level — no <style> tag here */}
 
       {/* Blurred-but-visible content preview */}
       <div className="opacity-45 blur-[2px] pointer-events-none select-none">
@@ -179,7 +208,7 @@ export function PremiumLockOverlay({
             boxShadow: "0 24px 72px rgba(0,0,0,0.55),0 0 0 1px rgba(255,255,255,0.09) inset,0 1px 0 rgba(255,255,255,0.15) inset",
             animation: "sc-plo-glow 3s ease-in-out infinite",
           }}
-          {...(bounceProps as any)}
+          {...bounceProps}
           onClick={(e: React.MouseEvent) => e.stopPropagation()}
           data-testid="premium-lock-card"
         >
@@ -300,31 +329,25 @@ export function PremiumPageHeader({ title, description, isLocked }: PremiumPageH
           {title}
         </h1>
         {isLocked && (
-          <motion.div
+          // CSS-only badge pulse: framer-motion animate+repeat:Infinity on boxShadow
+          // is JS-driven paint every frame — strictly worse than a CSS keyframe.
+          // sc-plo-badge pulses opacity; the static glow ring is set inline below.
+          <div
             className="flex items-center gap-2 px-3 py-1 rounded-full border"
             style={{
               background: `linear-gradient(to right,${premiumRgba.badge1},${premiumRgba.badge2})`,
               borderColor: premiumRgba.border,
+              boxShadow: `0 0 14px ${premiumRgba.glow20}`,
+              animation: "sc-plo-badge 3s ease-in-out infinite",
             }}
-            animate={{
-              boxShadow: [
-                `0 0 12px ${premiumRgba.glow20}`,
-                `0 0 20px ${premiumRgba.glow35}`,
-                `0 0 12px ${premiumRgba.glow20}`,
-              ],
-            }}
-            transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
           >
-            <motion.div
-              animate={{ opacity: [0.8, 1, 0.8] }}
-              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-            >
+            <div style={{ animation: "sc-plo-icon 3s ease-in-out infinite" }}>
               <Crown className="size-4" style={{ color: premiumColor.light }} />
-            </motion.div>
+            </div>
             <span className="text-xs font-medium" style={{ color: premiumColor.lighter }}>
               Premium
             </span>
-          </motion.div>
+          </div>
         )}
       </div>
       <p className="text-muted-foreground">{description}</p>
