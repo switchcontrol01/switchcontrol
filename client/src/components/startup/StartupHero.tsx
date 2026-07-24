@@ -43,13 +43,13 @@ export function StartupHero({ scanStatus, apps, onScan, onOptimize, onReview }: 
         />
       </div>
 
-      <div className="relative z-10 p-6 sm:p-10 flex flex-col lg:flex-row gap-8 lg:items-center justify-between">
-        <div className="max-w-2xl space-y-4">
+      <div className="relative z-10 p-5 sm:p-6 flex flex-col lg:flex-row gap-5 lg:items-center justify-between">
+        <div className="max-w-2xl space-y-3">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-primary/30 bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-widest mb-2">
             <Gauge className="size-3.5" /> Boot Intelligence Engine
           </div>
           
-          <h1 className="text-3xl sm:text-4xl font-bold text-white tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
             Startup Telemetry
           </h1>
           
@@ -59,7 +59,7 @@ export function StartupHero({ scanStatus, apps, onScan, onOptimize, onReview }: 
               : "Engage the scanner to map the boot sequence, measure impact, and isolate bottlenecks."}
           </p>
 
-          <div className="flex flex-wrap items-center gap-3 pt-4">
+          <div className="flex flex-wrap items-center gap-3 pt-2">
             <Button
               onClick={onScan}
               disabled={isScanning}
@@ -100,7 +100,7 @@ export function StartupHero({ scanStatus, apps, onScan, onOptimize, onReview }: 
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
-            className="flex flex-row lg:flex-col gap-4 shrink-0 lg:min-w-[200px]"
+            className="flex flex-row lg:flex-col gap-3 shrink-0 lg:min-w-[170px]"
           >
             <div className="flex-1 lg:flex-none p-4 rounded-2xl bg-[#0E1116]/80 border border-white/[0.04] backdrop-blur-md">
               <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold mb-1">Boot Time</p>

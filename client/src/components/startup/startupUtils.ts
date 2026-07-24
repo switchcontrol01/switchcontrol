@@ -25,6 +25,7 @@ export interface StartupEntry {
   registryName?: string;
   taskPath?: string;
   folderPath?: string;
+  iconDataUrl?: string;
 }
 
 export interface BootApp {

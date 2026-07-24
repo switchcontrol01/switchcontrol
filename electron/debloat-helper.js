@@ -10,14 +10,21 @@
  *  - Post-uninstall registry verification
  *  - WindowsInstaller flag captured in scan for reliable MSI detection
  *  - Rich structured result with methodUsed, executable, exitCode, errorDetail
+ *
+ * v1.0.3 — Icon resolution fixed:
+ *  - resolveIconPath's InstallLocation scan is now recursive (bounded depth
+ *    and file count). Previously only the top-level folder was scanned, so
+ *    any app whose real exe lives in a subfolder (bin\, app-1.2.3\, etc. —
+ *    common for Inno Setup / NSIS / Electron installs) silently fell through
+ *    to the uninstall-string-derived exe, which is usually a generic
+ *    uninstaller stub with no custom icon resource — producing Windows'
+ *    default exe icon instead of the real app logo.
  */
-
 const { ipcMain, shell, app: electronApp } = require('electron');
 const { execFile, spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-
 // ── Icon cache ────────────────────────────────────────────────────────────────
 // Persistent cache in userData (survives app restarts, unlike os.tmpdir).
 // Falls back to tmpdir if userData isn't available (very early startup).
@@ -28,9 +35,7 @@ function getIconCacheDir() {
     return path.join(os.tmpdir(), 'switchcontrol-icon-cache');
   }
 }
-
 let _lastScanApps = new Map(); // id -> app (for lazy icon resolution)
-
 // ── Environment variable expansion ───────────────────────────────────────────
 // Expands Windows-style %VAR% tokens in registry values.
 // Falls back to Node's process.env which mirrors the Win32 environment block.
@@ -41,16 +46,45 @@ function expandEnvVars(str) {
     return val !== undefined ? val : match; // leave unexpanded tokens as-is
   });
 }
-
+// ── Recursive .exe collector (bounded) ────────────────────────────────────────
+// Walks InstallLocation looking for .exe files. Bounded by MAX_DEPTH and
+// MAX_FILES so a pathological folder tree can never hang the icon lookup.
+// Skips folders that are extremely unlikely to contain the main app exe.
+const EXE_SCAN_MAX_DEPTH = 4;
+const EXE_SCAN_MAX_FILES = 400;
+const EXE_SCAN_SKIP_DIRS = /^(\$plugins.*|temp|tmp|logs?|cache|locale?s?|lang(uages)?|redist|vcredist|\.git)$/i;
+function collectExeFilesRecursive(rootDir) {
+  const results = [];
+  function walk(dir, depth) {
+    if (depth > EXE_SCAN_MAX_DEPTH || results.length >= EXE_SCAN_MAX_FILES) return;
+    let entries;
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      if (results.length >= EXE_SCAN_MAX_FILES) return;
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        if (EXE_SCAN_SKIP_DIRS.test(entry.name)) continue;
+        walk(full, depth + 1);
+      } else if (entry.isFile() && entry.name.toLowerCase().endsWith('.exe')) {
+        results.push({ full, rel: path.relative(rootDir, full) });
+      }
+    }
+  }
+  walk(rootDir, 0);
+  return results;
+}
 // ── Icon path resolver ────────────────────────────────────────────────────────
 // Priority order:
 //   1. DisplayIcon registry value (expand env vars, strip icon index)
-//   2. Best-match exe in InstallLocation
+//   2. Best-match exe in InstallLocation (recursive, bounded)
 //   3. Exe extracted from QuietUninstallString / UninstallString
 function resolveIconPath(app) {
   // ── 1. DisplayIcon ──────────────────────────────────────────────────────────
   let raw = String(app.displayIcon || '').trim();
-
   // Handle both quoted and unquoted forms, then strip trailing ,N icon index:
   //   "C:\Prog\app.exe",0   →  C:\Prog\app.exe
   //   C:\Prog\app.exe,-1    →  C:\Prog\app.exe
@@ -62,37 +96,45 @@ function resolveIconPath(app) {
     // Unquoted — only strip trailing ,N (not mid-path commas)
     raw = raw.replace(/,\s*-?\d+\s*$/, '').trim();
   }
-
   raw = expandEnvVars(raw);
-
   if (raw.length > 4 && fs.existsSync(raw)) return raw;
-
-  // ── 2. Best exe in InstallLocation ─────────────────────────────────────────
+  // ── 2. Best exe in InstallLocation (recursive, bounded) ────────────────────
+  // NOTE: a flat (non-recursive) directory read only sees the top-level
+  // folder. Many real-world installers (Inno Setup, NSIS, Electron apps, etc.)
+  // put the actual app exe in a subfolder (bin\, app-1.2.3\, resources\)
+  // while InstallLocation's root only contains the uninstaller stub. Without
+  // a recursive scan, those apps silently fall through to step 3 and end up
+  // icon-less — the uninstaller exe has no custom icon resource, so
+  // shell.getFileIcon() "succeeds" but returns Windows' generic default exe
+  // icon rather than the real app logo.
   const loc = expandEnvVars(String(app.installLocation || '').trim());
   if (loc && loc.length > 3 && fs.existsSync(loc)) {
     try {
-      const entries = fs.readdirSync(loc).filter(f => f.toLowerCase().endsWith('.exe'));
+      const entries = collectExeFilesRecursive(loc);
       if (entries.length > 0) {
         const appNameNorm = String(app.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-        const scored = entries.map(f => {
-          const base = path.basename(f, '.exe').toLowerCase().replace(/[^a-z0-9]/g, '');
+        const scored = entries.map(({ full, rel }) => {
+          const fname = path.basename(full);
+          const base = path.basename(fname, '.exe').toLowerCase().replace(/[^a-z0-9]/g, '');
           let score = 0;
           if (base === appNameNorm) score = 100;
           else if (appNameNorm.startsWith(base) || base.startsWith(appNameNorm)) score = 50;
           else if (appNameNorm.length >= 4 && (appNameNorm.includes(base) || base.includes(appNameNorm.slice(0, 4)))) score = 25;
           // Shorter basenames are usually the main exe; longer ones are helpers
           score -= base.length * 0.1;
-          // Deprioritize obvious helper/updater patterns
-          if (/update|uninstall|setup|helper|crash|report|launcher|installer/i.test(f)) score -= 40;
-          return { f, score };
+          // Prefer files closer to the InstallLocation root — deeply nested
+          // exes are more likely to be internal tools/helpers, not the main app
+          score -= (rel.split(path.sep).length - 1) * 5;
+          // Deprioritize obvious helper/updater/uninstaller/redistributable patterns
+          if (/update|uninstall|unins0|setup|helper|crash|report|launcher|installer|redist|vcredist/i.test(fname)) score -= 40;
+          return { full, score };
         });
         scored.sort((a, b) => b.score - a.score);
-        const best = path.join(loc, scored[0].f);
+        const best = scored[0].full;
         if (fs.existsSync(best)) return best;
       }
     } catch {}
   }
-
   // ── 3. Extract exe from uninstall strings ──────────────────────────────────
   for (const s of [String(app.quietUninstall || ''), String(app.uninstallString || '')]) {
     const us = expandEnvVars(s.trim());
@@ -104,10 +146,8 @@ function resolveIconPath(app) {
     const um = us.match(/^([A-Za-z]:[^\s,;]+\.exe)/i);
     if (um && fs.existsSync(um[1])) return um[1];
   }
-
   return null;
 }
-
 async function getAppIconDataUrl(appId, app) {
   const cacheDir = getIconCacheDir();
   if (!fs.existsSync(cacheDir)) {
@@ -131,29 +171,23 @@ async function getAppIconDataUrl(appId, app) {
     return null;
   }
 }
-
 // ── Input validation helpers ─────────────────────────────────────────────────
-
 function psEscape(str) {
   if (typeof str !== 'string') return '';
   return str.replace(/'/g, "''");
 }
-
 const SAFE_REG_PATH_RE   = /^HK(CU|LM):\\[A-Za-z0-9\s._-]+(\\[A-Za-z0-9\s._-]+)*$/;
 const SAFE_REG_NAME_RE   = /^[A-Za-z0-9\s._-]{1,64}$/;
 const SAFE_PACKAGE_RE    = /^[A-Za-z0-9._-]{1,128}$/;
 const SAFE_SERVICE_RE    = /^[A-Za-z0-9_-]{1,64}$/;
 const SAFE_TASK_PATH_RE  = /^(\\[A-Za-z0-9\s._-]+)+$/;
 const MAX_STR_LEN        = 512;
-
 function isSafeRegPath(v)     { return typeof v === 'string' && v.length <= MAX_STR_LEN && SAFE_REG_PATH_RE.test(v); }
 function isSafeRegName(v)     { return typeof v === 'string' && v.length <= MAX_STR_LEN && SAFE_REG_NAME_RE.test(v); }
 function isSafePackageName(v) { return typeof v === 'string' && v.length <= MAX_STR_LEN && SAFE_PACKAGE_RE.test(v); }
 function isSafeServiceName(v) { return typeof v === 'string' && v.length <= MAX_STR_LEN && SAFE_SERVICE_RE.test(v); }
 function isSafeTaskPath(v)    { return typeof v === 'string' && v.length <= MAX_STR_LEN && SAFE_TASK_PATH_RE.test(v); }
-
 // ── PowerShell runners ────────────────────────────────────────────────────────
-
 function runPS(cmd, timeoutMs = 15000) {
   return new Promise((resolve, reject) => {
     if (process.platform !== 'win32') return reject(new Error('Windows only'));
@@ -169,7 +203,6 @@ function runPS(cmd, timeoutMs = 15000) {
     );
   });
 }
-
 // Tolerant query — never rejects, returns null on error
 function queryPS(cmd, timeoutMs = 12000) {
   return new Promise((resolve) => {
@@ -183,9 +216,7 @@ function queryPS(cmd, timeoutMs = 12000) {
     );
   });
 }
-
 // ── Safety denylist ───────────────────────────────────────────────────────────
-
 const DENYLIST_PACKAGES = new Set([
   'Microsoft.Windows.Photos',
   'Microsoft.WindowsCalculator',
@@ -194,7 +225,6 @@ const DENYLIST_PACKAGES = new Set([
   'Microsoft.Paint',
   'Microsoft.WindowsTerminal',
 ]);
-
 const DENYLIST_SERVICES = new Set([
   'Windefend', 'mpssvc', 'BFE', 'WSC',
   'AudioSrv', 'AudioEndpointBuilder',
@@ -203,15 +233,11 @@ const DENYLIST_SERVICES = new Set([
   'CryptSvc', 'TrkWks', 'BITS',
   'PlugPlay', 'RpcSs', 'DcomLaunch',
 ]);
-
 // ── IPC: debloat:scan ─────────────────────────────────────────────────────────
-
 ipcMain.handle('debloat:scan', async (event, items) => {
   if (process.platform !== 'win32') return { ok: false, reason: 'not-windows', results: {} };
   if (!Array.isArray(items)) return { ok: false, reason: 'bad-input', results: {} };
-
   const results = {};
-
   for (const item of items) {
     try {
       if (item.type === 'appx') {
@@ -225,7 +251,6 @@ ipcMain.handle('debloat:scan', async (event, items) => {
           8000
         );
         results[item.id] = { present: out.includes('present') };
-
       } else if (item.type === 'registry') {
         if (!isSafeRegPath(item.regPath) || !isSafeRegName(item.regName)) {
           results[item.id] = { present: true, error: 'invalid-registry-key' };
@@ -238,7 +263,6 @@ ipcMain.handle('debloat:scan', async (event, items) => {
         const val = out.replace(/\r?\n/g, '').trim();
         const expectedDisabled = String(item.expectedDisabledValue ?? '');
         results[item.id] = { present: val !== expectedDisabled && val !== '__missing__' };
-
       } else if (item.type === 'service') {
         if (!isSafeServiceName(item.serviceName)) {
           results[item.id] = { present: true, error: 'invalid-service-name' };
@@ -250,7 +274,6 @@ ipcMain.handle('debloat:scan', async (event, items) => {
         );
         const startType = out.trim().toLowerCase();
         results[item.id] = { present: startType !== 'disabled' && startType !== '__missing__' };
-
       } else if (item.type === 'task') {
         if (!Array.isArray(item.taskPaths) || item.taskPaths.length === 0 || !item.taskPaths.every(isSafeTaskPath)) {
           results[item.id] = { present: true, error: 'invalid-task-paths' };
@@ -270,7 +293,6 @@ ipcMain.handle('debloat:scan', async (event, items) => {
           15000
         );
         results[item.id] = { present: out.includes('present') };
-
       } else {
         results[item.id] = { present: true, error: 'unsupported-type' };
       }
@@ -278,25 +300,19 @@ ipcMain.handle('debloat:scan', async (event, items) => {
       results[item.id] = { present: true, error: err.message };
     }
   }
-
   return { ok: true, results };
 });
-
 // ── IPC: debloat:removeItem ───────────────────────────────────────────────────
-
 ipcMain.handle('debloat:removeItem', async (event, item) => {
   if (process.platform !== 'win32') return { ok: false, reason: 'not-windows', status: 'unsupported' };
-
   if (item.type === 'appx' && DENYLIST_PACKAGES.has(item.packageName)) {
     return { ok: false, status: 'unsupported', error: 'Item is on the protected denylist.' };
   }
   if (item.type === 'service' && DENYLIST_SERVICES.has(item.serviceName)) {
     return { ok: false, status: 'unsupported', error: 'Service is protected and cannot be disabled.' };
   }
-
   try {
     let cmd = '';
-
     if (item.type === 'appx') {
       if (!isSafePackageName(item.packageName)) {
         return { ok: false, status: 'unsupported', error: 'Invalid package name' };
@@ -310,7 +326,6 @@ ipcMain.handle('debloat:removeItem', async (event, item) => {
           Write-Output 'already-absent'
         }
       `;
-
     } else if (item.type === 'registry') {
       if (!isSafeRegPath(item.regPath) || !isSafeRegName(item.regName)) {
         return { ok: false, status: 'unsupported', error: 'Invalid registry key' };
@@ -323,7 +338,6 @@ ipcMain.handle('debloat:removeItem', async (event, item) => {
         Set-ItemProperty -Path '${psEscape(item.regPath)}' -Name '${psEscape(item.regName)}' -Value ${valLiteral} -Type ${valType} -Force
         Write-Output 'removed'
       `;
-
     } else if (item.type === 'service') {
       if (!isSafeServiceName(item.serviceName)) {
         return { ok: false, status: 'unsupported', error: 'Invalid service name' };
@@ -352,34 +366,26 @@ ipcMain.handle('debloat:removeItem', async (event, item) => {
     } else {
       return { ok: false, status: 'unsupported', error: 'Unknown item type' };
     }
-
     const out = await runPS(cmd, 15000);
     const result = out.includes('already-absent') ? 'already-absent' : 'removed';
-
     let verified = false;
     try { verified = await verifyItem(item); } catch {}
-
     return {
       ok: true,
       status: verified ? result : 'verification-failed',
       verified,
     };
-
   } catch (err) {
     console.warn(`[Debloat] removeItem ${item.id} ERROR: ${err.message}`);
     return { ok: false, status: 'failed', error: err.message };
   }
 });
-
 // ── IPC: debloat:restoreItem ──────────────────────────────────────────────────
-
 ipcMain.handle('debloat:restoreItem', async (event, item) => {
   if (process.platform !== 'win32') return { ok: false, reason: 'not-windows', status: 'unsupported' };
   if (!item.restoreSupported) return { ok: false, status: 'unsupported', error: 'Item does not support restore.' };
-
   try {
     let cmd = '';
-
     if (item.type === 'appx') {
       if (!isSafePackageName(item.packageName)) {
         return { ok: false, status: 'unsupported', error: 'Invalid package name' };
@@ -395,7 +401,6 @@ ipcMain.handle('debloat:restoreItem', async (event, item) => {
           Write-Output 'store-required'
         }
       `;
-
     } else if (item.type === 'registry') {
       if (!isSafeRegPath(item.regPath) || !isSafeRegName(item.regName)) {
         return { ok: false, status: 'unsupported', error: 'Invalid registry key' };
@@ -408,7 +413,6 @@ ipcMain.handle('debloat:restoreItem', async (event, item) => {
         Set-ItemProperty -Path '${psEscape(item.regPath)}' -Name '${psEscape(item.regName)}' -Value ${valLiteral} -Type ${valType} -Force
         Write-Output 'restored'
       `;
-
     } else if (item.type === 'service') {
       if (!isSafeServiceName(item.serviceName)) {
         return { ok: false, status: 'unsupported', error: 'Invalid service name' };
@@ -438,22 +442,17 @@ ipcMain.handle('debloat:restoreItem', async (event, item) => {
     } else {
       return { ok: false, status: 'unsupported' };
     }
-
     const out = await runPS(cmd, 15000);
     const status = out.includes('restored') ? 'restored'
       : out.includes('store-required') ? 'partial'
       : 'failed';
-
     return { ok: status !== 'failed', status, storeRequired: out.includes('store-required') };
-
   } catch (err) {
     console.warn(`[Debloat] restoreItem ${item.id} ERROR: ${err.message}`);
     return { ok: false, status: 'failed', error: err.message };
   }
 });
-
 // ── IPC: debloat:verifyItem ───────────────────────────────────────────────────
-
 ipcMain.handle('debloat:verifyItem', async (event, item) => {
   if (process.platform !== 'win32') return { ok: false };
   try {
@@ -463,9 +462,7 @@ ipcMain.handle('debloat:verifyItem', async (event, item) => {
     return { ok: false, error: err.message };
   }
 });
-
 // ── Internal verify helper (debloat items) ────────────────────────────────────
-
 async function verifyItem(item) {
   if (item.type === 'appx') {
     if (!isSafePackageName(item.packageName)) return false;
@@ -475,7 +472,6 @@ async function verifyItem(item) {
       8000
     );
     return out.includes('absent');
-
   } else if (item.type === 'registry') {
     if (!isSafeRegPath(item.regPath) || !isSafeRegName(item.regName)) return false;
     const out = await runPS(
@@ -484,7 +480,6 @@ async function verifyItem(item) {
     );
     const val = out.trim();
     return val === String(item.regValueDisabled) || val === '__missing__';
-
   } else if (item.type === 'service') {
     if (!isSafeServiceName(item.serviceName)) return false;
     const out = await runPS(
@@ -492,7 +487,6 @@ async function verifyItem(item) {
       6000
     );
     return out.trim().toLowerCase() === 'disabled';
-
   } else if (item.type === 'task') {
     if (!Array.isArray(item.taskPaths) || !item.taskPaths.every(isSafeTaskPath)) return false;
     const pathArr = item.taskPaths.map(p => `'${psEscape(p)}'`).join(', ');
@@ -512,9 +506,7 @@ async function verifyItem(item) {
   }
   return false;
 }
-
 // ── Protected app name patterns ───────────────────────────────────────────────
-
 const PROTECTED_APP_PATTERNS = [
   /windows defender/i,
   /microsoft defender/i,
@@ -525,7 +517,6 @@ const PROTECTED_APP_PATTERNS = [
   /windows update/i,
   /windows subsystem for linux/i,
 ];
-
 function isAppProtected(name) {
   if (!name) return true;
   for (const pat of PROTECTED_APP_PATTERNS) {
@@ -533,7 +524,6 @@ function isAppProtected(name) {
   }
   return false;
 }
-
 // ── Uninstall string parser ───────────────────────────────────────────────────
 //
 // Windows uninstall strings are notoriously inconsistent:
@@ -544,11 +534,9 @@ function isAppProtected(name) {
 //   C:\Windows\system32\msiexec.exe /x {GUID}
 //
 // Returns { exe, args, guid? } or null if str is empty.
-
 function parseUninstallString(str) {
   str = (str || '').trim();
   if (!str) return null;
-
   // Case 1: Quoted executable path  →  "C:\path\exe.exe" [optional args]
   const quotedMatch = str.match(/^"([^"]+)"(.*)/s);
   if (quotedMatch) {
@@ -557,14 +545,12 @@ function parseUninstallString(str) {
     const guid = (args.match(/\{[A-F0-9\-]+\}/i) || [])[0] || null;
     return { exe, args, guid };
   }
-
   // Case 2: Unquoted msiexec at the start
   if (/^msiexec(?:\.exe)?\s/i.test(str)) {
     const args = str.replace(/^msiexec(?:\.exe)?\s+/i, '').trim();
     const guid = (args.match(/\{[A-F0-9\-]+\}/i) || [])[0] || null;
     return { exe: 'msiexec.exe', args, guid, isMsiExec: true };
   }
-
   // Case 3: Unquoted path — find the .exe boundary
   // Handles: C:\Program Files\App\uninstall.exe /S
   const exeMatch = str.match(/^(.*?\.exe)\b(.*)/i);
@@ -574,7 +560,6 @@ function parseUninstallString(str) {
     const guid = (args.match(/\{[A-F0-9\-]+\}/i) || [])[0] || null;
     return { exe, args, guid };
   }
-
   // Case 4: Fallback — split on first space
   const spIdx = str.indexOf(' ');
   if (spIdx > 0) {
@@ -582,12 +567,10 @@ function parseUninstallString(str) {
   }
   return { exe: str, args: '', guid: null };
 }
-
 // ── Argument tokenizer ────────────────────────────────────────────────────────
 //
 // Splits a Windows argument string into an array of tokens, respecting
 // quoted strings (both " and ').  Quotes are stripped.
-
 function tokenizeArgs(argStr) {
   if (!argStr) return [];
   const tokens = [];
@@ -609,7 +592,6 @@ function tokenizeArgs(argStr) {
   if (cur.length > 0) tokens.push(cur);
   return tokens;
 }
-
 // ── Process runner for EXE uninstallers ──────────────────────────────────────
 //
 // Runs an executable directly via Node's spawn().  No PowerShell wrapper —
@@ -617,7 +599,6 @@ function tokenizeArgs(argStr) {
 //
 // Since SwitchControl runs as Administrator (requireAdministrator manifest),
 // all child processes also inherit elevated rights automatically.
-
 async function runExeProcess(exe, argsArray, timeoutMs = 120000) {
   return new Promise((resolve) => {
     let errMsg = null;
@@ -627,27 +608,22 @@ async function runExeProcess(exe, argsArray, timeoutMs = 120000) {
     } catch (err) {
       return resolve({ exitCode: -1, timedOut: false, error: err.message });
     }
-
     const timer = setTimeout(() => {
       try { proc.kill(); } catch {}
       resolve({ exitCode: -2, timedOut: true, error: 'Uninstall timed out after 120 seconds' });
     }, timeoutMs);
-
     proc.on('error', (err) => { errMsg = err.message; });
-
     proc.on('close', (code) => {
       clearTimeout(timer);
       resolve({ exitCode: code ?? -1, timedOut: false, error: errMsg });
     });
   });
 }
-
 // ── Post-uninstall verification ───────────────────────────────────────────────
 //
 // Returns true  → app is confirmed gone (registry key absent)
 // Returns false → app still detected
 // Returns null  → verification inconclusive (PS error)
-
 async function verifyAppRemoved(appName, registryKeyPath) {
   // Primary: check if the specific registry subkey is gone
   if (registryKeyPath) {
@@ -666,7 +642,6 @@ async function verifyAppRemoved(appName, registryKeyPath) {
       }
     } catch {}
   }
-
   // Fallback: scan all uninstall hives by display name
   try {
     const safeName = (appName || '').replace(/'/g, "''");
@@ -688,9 +663,7 @@ if ($found) { 'present' } else { 'absent' }
     return null;
   }
 }
-
 // ── Classify exit code ────────────────────────────────────────────────────────
-
 function classifyExitCode(code, method) {
   if (code === 0)    return { ok: true, label: null };
   if (code === 3010) return { ok: true, label: 'restart-required' };
@@ -704,7 +677,6 @@ function classifyExitCode(code, method) {
   if (code === -2)   return { ok: false, label: 'timed-out' };
   return { ok: false, label: `exit-${code}` };
 }
-
 // ── IPC: installedApps:scan ───────────────────────────────────────────────────
 //
 // Returns { ok, apps, scannedAt }
@@ -712,10 +684,8 @@ function classifyExitCode(code, method) {
 //                   installLocation, uninstallString, quietUninstall,
 //                   windowsInstaller, registryKeyPath, source,
 //                   isProtected, canUninstall, uninstallMethod, trustLabel }
-
 ipcMain.handle('installedApps:scan', async () => {
   if (process.platform !== 'win32') return { ok: false, reason: 'not-windows', apps: [] };
-
   // Use Get-ChildItem per hive so we can capture the real registry subkey path
   // for post-uninstall verification.
   const cmd = `
@@ -752,19 +722,16 @@ foreach ($hive in $hives) {
 }
 $apps | ConvertTo-Json -Compress -Depth 1
   `;
-
   try {
     const raw = await runPS(cmd, 60000);
     if (!raw || raw.trim() === '' || raw.trim() === 'null') {
       return { ok: true, apps: [], scannedAt: new Date().toISOString() };
     }
-
     let parsed;
     try { parsed = JSON.parse(raw); } catch {
       return { ok: false, error: 'json-parse-failed', apps: [] };
     }
     if (!Array.isArray(parsed)) parsed = [parsed];
-
     const crypto = require('crypto');
     const apps = parsed
       .filter(a => a && a.N)
@@ -777,7 +744,6 @@ $apps | ConvertTo-Json -Compress -Depth 1
         const registryKeyPath  = String(a.KP || '').trim();
         const source           = String(a.SR || 'HKLM').trim();
         const protected_       = isAppProtected(name);
-
         // Reliable method detection:
         // WindowsInstaller=1 with any GUID → MSI
         // msiexec in uninstall string with GUID → MSI
@@ -785,7 +751,6 @@ $apps | ConvertTo-Json -Compress -Depth 1
         const hasGuid = /\{[A-F0-9\-]+\}/i.test(unStr) || /\{[A-F0-9\-]+\}/i.test(quietStr);
         let method = 'none';
         let canUninstall = false;
-
         if (!protected_) {
           if ((windowsInstaller && hasGuid) || (/msiexec/i.test(unStr) && hasGuid)) {
             method = 'msi'; canUninstall = true;
@@ -795,15 +760,12 @@ $apps | ConvertTo-Json -Compress -Depth 1
             method = 'exe'; canUninstall = true;
           }
         }
-
         let trustLabel = 'user-installed';
         if (protected_)                        trustLabel = 'protected';
         else if (/microsoft/i.test(publisher)) trustLabel = 'microsoft';
         else if (!publisher)                   trustLabel = 'unknown';
-
         const sizeMb = a.Sz ? Math.round(Number(a.Sz) / 1024) : 0;
         const id = crypto.createHash('md5').update(name + publisher).digest('hex').slice(0, 16);
-
         return {
           id, name, publisher,
           version:         String(a.V  || '').trim(),
@@ -822,24 +784,20 @@ $apps | ConvertTo-Json -Compress -Depth 1
           displayIcon:     String(a.DI || '').trim(),
         };
       });
-
     // Store for lazy icon resolution
     _lastScanApps = new Map(apps.map(a => [a.id, a]));
-
     return { ok: true, apps, scannedAt: new Date().toISOString() };
   } catch (err) {
     console.warn('[InstalledApps] scan error:', err.message);
     return { ok: false, error: err.message, apps: [] };
   }
 });
-
 ipcMain.handle('installedApps:icon', async (_event, appId) => {
   if (process.platform !== 'win32') return null;
   const app = _lastScanApps.get(appId);
   if (!app) return null;
   return await getAppIconDataUrl(appId, app);
 });
-
 // ── IPC: installedApps:uninstall ──────────────────────────────────────────────
 //
 // Full pipeline:
@@ -851,13 +809,11 @@ ipcMain.handle('installedApps:icon', async (_event, appId) => {
 //  6. Return structured result { ok, status, methodUsed, executable, args,
 //                                exitCode, requiresRestart, verifiedRemoved,
 //                                errorDetail }
-
 ipcMain.handle('installedApps:uninstall', async (event, app) => {
   if (process.platform !== 'win32') return { ok: false, reason: 'not-windows' };
   if (!app || typeof app !== 'object' || !app.name) {
     return { ok: false, status: 'blocked', errorDetail: 'Invalid input.' };
   }
-
   if (isAppProtected(app.name)) {
     return { ok: false, status: 'blocked', errorDetail: 'App is protected and cannot be removed.' };
   }
@@ -869,10 +825,8 @@ ipcMain.handle('installedApps:uninstall', async (event, app) => {
         : 'No uninstall string found in the registry.',
     };
   }
-
   const unStr    = String(app.uninstallString  || '').trim();
   const quietStr = String(app.quietUninstall   || '').trim();
-
   // ── MSI path ─────────────────────────────────────────────────────────────
   if (app.uninstallMethod === 'msi') {
     // Extract GUID — check both strings
@@ -883,15 +837,12 @@ ipcMain.handle('installedApps:uninstall', async (event, app) => {
     const guid = guidMatch[0];
     const args = ['/x', guid, '/qn', '/norestart'];
     console.log(`[InstalledApps] MSI uninstall: msiexec.exe ${args.join(' ')} — ${app.name}`);
-
     const proc = await runExeProcess('msiexec.exe', args, 120000);
     const { ok: codeOk, label: codeLabel } = classifyExitCode(proc.exitCode, 'msi');
-
     let verifiedRemoved = null;
     if (codeOk) {
       verifiedRemoved = await verifyAppRemoved(app.name, app.registryKeyPath);
     }
-
     const success = codeOk && verifiedRemoved !== false;
     return {
       ok:             success,
@@ -909,16 +860,13 @@ ipcMain.handle('installedApps:uninstall', async (event, app) => {
         : `MSI exited with code ${proc.exitCode} (${codeLabel ?? 'unknown'})`,
     };
   }
-
   // ── EXE path ──────────────────────────────────────────────────────────────
   // Prefer QuietUninstallString when available; fall back to UninstallString
   const rawStr = quietStr.length > 3 ? quietStr : unStr;
   const parsed = parseUninstallString(rawStr);
-
   if (!parsed || !parsed.exe) {
     return { ok: false, status: 'parse-error', errorDetail: 'Could not parse the uninstall command. Uninstall string: ' + rawStr.slice(0, 200) };
   }
-
   // Verify the exe exists before attempting to launch (catches bad path parses quickly)
   const exeExists = fs.existsSync(parsed.exe);
   if (!exeExists) {
@@ -935,20 +883,15 @@ ipcMain.handle('installedApps:uninstall', async (event, app) => {
       };
     }
   }
-
   const argsArray = tokenizeArgs(parsed.args);
   console.log(`[InstalledApps] EXE uninstall: "${parsed.exe}" [${argsArray.join(', ')}] — ${app.name}`);
-
   const proc = await runExeProcess(parsed.exe, argsArray, 180000);
   const { ok: codeOk, label: codeLabel } = classifyExitCode(proc.exitCode, 'exe');
-
   let verifiedRemoved = null;
   if (codeOk) {
     verifiedRemoved = await verifyAppRemoved(app.name, app.registryKeyPath);
   }
-
   const success = codeOk && verifiedRemoved !== false;
-
   return {
     ok:             success,
     status:         success ? (proc.exitCode === 3010 ? 'restart-required' : 'removed') : 'failed',
@@ -965,5 +908,4 @@ ipcMain.handle('installedApps:uninstall', async (event, app) => {
       : `Uninstaller exited with code ${proc.exitCode} (${codeLabel ?? 'unknown'})`,
   };
 });
-
 console.log('[Debloat] IPC handlers registered');

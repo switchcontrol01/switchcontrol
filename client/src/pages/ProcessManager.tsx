@@ -15,153 +15,18 @@ import {
   RotateCcw, Info, Trash2,
   Monitor, Gamepad2, Globe, Music, Settings2, Package,
 } from "lucide-react";
-
-// ── Process icon — multi-layer logo cascade ────────────────────────────────────
-// Same 5-source fallback chain used in Debloater, adapted for process data.
-
-const PROCESS_PUBLISHER_DOMAINS: Record<string, string> = {
-  // Microsoft
-  "microsoft": "microsoft.com", "microsoft corporation": "microsoft.com",
-  // Browsers
-  "google": "google.com", "google llc": "google.com",
-  "mozilla": "mozilla.org", "mozilla corporation": "mozilla.org",
-  "mozilla foundation": "mozilla.org",
-  "opera": "opera.com", "opera software": "opera.com",
-  "brave": "brave.com", "brave software": "brave.com",
-  // GPU / drivers
-  "nvidia": "nvidia.com", "nvidia corporation": "nvidia.com",
-  "amd": "amd.com", "advanced micro devices": "amd.com",
-  "intel": "intel.com", "intel corporation": "intel.com",
-  "qualcomm": "qualcomm.com",
-  // Gaming platforms
-  "valve": "steampowered.com", "valve corporation": "steampowered.com",
-  "epic games": "epicgames.com", "epic games inc": "epicgames.com",
-  "gog": "gog.com",
-  "ea": "ea.com", "electronic arts": "ea.com",
-  "riot games": "riotgames.com",
-  "blizzard": "battle.net", "blizzard entertainment": "battle.net",
-  "ubisoft": "ubisoft.com",
-  "rockstar": "rockstargames.com", "rockstar games": "rockstargames.com",
-  "bethesda": "bethesda.net", "bethesda softworks": "bethesda.net",
-  "activision": "activision.com",
-  // Communication
-  "discord": "discord.com", "discord inc": "discord.com",
-  "slack technologies": "slack.com",
-  "zoom video communications": "zoom.us",
-  "teamspeak": "teamspeak.com",
-  "telegram": "telegram.org",
-  "signal": "signal.org",
-  // Productivity
-  "dropbox": "dropbox.com",
-  "notion": "notion.so",
-  "spotify": "spotify.com", "spotify ab": "spotify.com",
-  "apple": "apple.com", "apple inc": "apple.com",
-  "amazon": "amazon.com",
-  // Peripherals & utilities
-  "logitech": "logitech.com", "logitech inc": "logitech.com",
-  "corsair": "corsair.com", "corsair memory": "corsair.com",
-  "razer": "razer.com",
-  "steelseries": "steelseries.com",
-  "asus": "asus.com",
-  "msi": "msi.com",
-  "realtek": "realtek.com", "realtek semiconductor": "realtek.com",
-  // AV / security
-  "malwarebytes": "malwarebytes.com",
-  "avast": "avast.com", "kaspersky": "kaspersky.com",
-  "norton": "norton.com", "mcafee": "mcafee.com",
-  "bitdefender": "bitdefender.com",
-  // Dev
-  "jetbrains": "jetbrains.com",
-  "docker": "docker.com",
-  // Media
-  "vlc": "videolan.org", "videolan": "videolan.org",
-  "adobe": "adobe.com", "adobe inc": "adobe.com",
-  "obs project": "obsproject.com",
-  "streamlabs": "streamlabs.com",
-  "voicemeeter": "vb-audio.com", "vb-audio": "vb-audio.com",
-  // VPN
-  "nordvpn": "nordvpn.com",
-  "expressvpn": "expressvpn.com",
-  "proton": "proton.me", "protonvpn": "protonvpn.com",
-  // Peripherals / audio
-  "creative technology": "creative.com",
-  "focusrite": "focusrite.com",
-  "nzxt": "nzxt.com",
-  // Launchers / overlay
-  "overwolf": "overwolf.com",
-  "playnite": "playnite.link",
-};
-
-// Process name → domain overrides (when publisher is missing/generic)
-const PROCESS_NAME_DOMAINS: Record<string, string> = {
-  "chrome": "google.com", "googlechrome": "google.com",
-  "firefox": "mozilla.org", "firefox.exe": "mozilla.org",
-  "msedge": "microsoft.com", "microsoftedge": "microsoft.com",
-  "brave": "brave.com",
-  "opera": "opera.com",
-  "iexplore": "microsoft.com",
-  "steam": "steampowered.com",
-  "epicgameslauncher": "epicgames.com",
-  "discord": "discord.com",
-  "spotify": "spotify.com",
-  "teams": "microsoft.com", "msteams": "microsoft.com",
-  "slack": "slack.com",
-  "zoom": "zoom.us",
-  "vlc": "videolan.org",
-  "obs64": "obsproject.com", "obs32": "obsproject.com",
-  "nvcontainer": "nvidia.com", "nvdisplay.container": "nvidia.com", "nvtray": "nvidia.com",
-  "amdow": "amd.com", "radeoninstaller": "amd.com",
-  "corsair": "corsair.com", "icue": "corsair.com",
-  "logitech": "logitech.com", "lghub": "logitech.com",
-  "razer": "razer.com", "razercentralservice": "razer.com",
-  "onedrive": "microsoft.com",
-  "dropbox": "dropbox.com",
-  "telegram": "telegram.org",
-  "signal": "signal.org",
-  "battlenet": "battle.net",
-  "riotclient": "riotgames.com", "leagueclient": "riotgames.com",
-  "epicwebhelper": "epicgames.com",
-  "overwolf": "overwolf.com",
-  "docker": "docker.com",
-  "vscode": "microsoft.com",
-  "phpstorm": "jetbrains.com", "webstorm": "jetbrains.com", "idea": "jetbrains.com",
-  "nordvpn": "nordvpn.com",
-  "expressvpn": "expressvpn.com",
-  "protonvpn": "protonvpn.com",
-};
-
-function processIconDomain(name: string, publisher: string | null): string | null {
-  // 1. Name-based override (most reliable for well-known executables)
-  const nameLow = (name || "").toLowerCase().replace(/\.exe$/i, "").replace(/\s+/g, "");
-  if (PROCESS_NAME_DOMAINS[nameLow]) return PROCESS_NAME_DOMAINS[nameLow];
-
-  // 2. Publisher direct lookup
-  if (publisher) {
-    const pub = publisher.toLowerCase().replace(/[,.'"\u00ae\u2122]/g, "").replace(/\s+/g, " ").trim();
-    if (PROCESS_PUBLISHER_DOMAINS[pub]) return PROCESS_PUBLISHER_DOMAINS[pub];
-    // Strip legal suffixes and retry
-    const stripped = pub.replace(/\s+(inc|corp|llc|ltd|gmbh|co|bv|ag|sa|ab|plc|pty|srl|s\.a\.|s\.l\.)\.?\s*$/, "").trim();
-    if (stripped !== pub && PROCESS_PUBLISHER_DOMAINS[stripped]) return PROCESS_PUBLISHER_DOMAINS[stripped];
-    // Partial name match in publisher string
-    for (const [key, domain] of Object.entries(PROCESS_PUBLISHER_DOMAINS)) {
-      if (key.length > 3 && pub.includes(key)) return domain;
-    }
-    // Heuristic: first significant word of publisher → <word>.com
-    const word = stripped.split(" ")[0].replace(/[^a-z0-9-]/g, "");
-    if (word.length >= 4) return `${word}.com`;
-  }
-  return null;
-}
-
-// Google Favicons omitted — returns a generic globe SVG for unknown domains,
-// which looks like a successful load and blocks the category-icon fallback.
-const processIconSrcs = (domain: string) => [
-  `https://logo.clearbit.com/${domain}`,
-  `https://icons.duckduckgo.com/ip3/${domain}.ico`,
-  `https://api.faviconkit.com/${domain}/64`,
-];
-
-// Category → fallback icon (used only when all web sources fail)
+// ── Process icon — native Windows icon extraction ──────────────────────────────
+// Uses the same appIcons:forPath IPC bridge as Startup and Debloater — reads the
+// real icon out of the .exe via Electron's shell.getFileIcon(), main-process side,
+// with its own on-disk cache (see electron/file-icon.js). No web requests, no
+// domain-guessing, no third-party favicon services.
+//
+// Module-level cache so re-renders / rescans of the same path never re-issue the
+// IPC call — the native side already caches to disk, but this avoids the extra
+// round trip within a single session.
+const _iconCache = new Map<string, string | null>();
+// Category → fallback icon (used only when there's no path, or the native lookup
+// returns null — e.g. process without a readable icon resource).
 const PROC_CAT_ICON: Record<string, { icon: React.FC<{className?: string}>; cls: string }> = {
   "System Core":        { icon: Monitor,   cls: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20" },
   "Gaming / Launchers": { icon: Gamepad2,  cls: "bg-purple-500/10 text-purple-400 border-purple-500/20" },
@@ -173,50 +38,56 @@ const PROC_CAT_ICON: Record<string, { icon: React.FC<{className?: string}>; cls:
   "Background Apps":    { icon: Package,   cls: "bg-zinc-500/10 text-zinc-500 border-zinc-700/50" },
   "Unknown / Review":   { icon: Package,   cls: "bg-orange-500/10 text-orange-400 border-orange-500/20" },
 };
-
 const ProcessIcon = memo(function ProcessIcon({
-  name, publisher, category,
+  path, category,
 }: {
-  name: string; publisher: string | null; category: string;
+  path: string | null; category: string;
 }) {
-  const domain = useMemo(() => processIconDomain(name, publisher), [name, publisher]);
-  const sources = useMemo(() => domain ? processIconSrcs(domain) : [], [domain]);
-
-  const [idx,    setIdx]    = useState(0);
-  const [failed, setFailed] = useState(false);
-
-  useEffect(() => { setIdx(0); setFailed(false); }, [sources]);
-
+  const [dataUrl, setDataUrl] = useState<string | null | undefined>(
+    path ? _iconCache.get(path) : null,
+  );
+  useEffect(() => {
+    if (!path) { setDataUrl(null); return; }
+    const cached = _iconCache.get(path);
+    if (cached !== undefined) { setDataUrl(cached); return; }
+    let cancelled = false;
+    const api = (window as any).electronAPI;
+    if (!api?.appIcons?.forPath) { setDataUrl(null); return; }
+    api.appIcons.forPath(path)
+      .then((url: string | null) => {
+        _iconCache.set(path, url);
+        if (!cancelled) setDataUrl(url);
+      })
+      .catch(() => {
+        _iconCache.set(path, null);
+        if (!cancelled) setDataUrl(null);
+      });
+    return () => { cancelled = true; };
+  }, [path]);
   const catCfg = PROC_CAT_ICON[category] ?? PROC_CAT_ICON["Background Apps"];
   const CatIcon = catCfg.icon;
-
-  if (sources.length > 0 && !failed) {
+  if (dataUrl) {
     return (
       <img
-        key={sources[idx]}
-        src={sources[idx]}
+        src={dataUrl}
         alt=""
         className="size-8 rounded-lg shrink-0 object-contain bg-[#1A1F26] border border-[#2A313A]"
-        onError={() => idx + 1 < sources.length ? setIdx(i => i + 1) : setFailed(true)}
       />
     );
   }
-
   return (
     <div className={cn("size-8 rounded-lg flex items-center justify-center shrink-0 border", catCfg.cls)}>
       <CatIcon className="size-3.5" />
     </div>
   );
 });
-
 const isElectron = typeof window !== "undefined" && !!(window as any).electronAPI?.isElectron;
-
 // ── Types ─────────────────────────────────────────────────────
-
 interface ProcessItem {
   pid: number;
   name: string;
   displayName: string;
+  path: string | null;
   publisher: string | null;
   cpuTimeCumulative: number;
   memoryMb: number;
@@ -229,7 +100,6 @@ interface ProcessItem {
   isProtected: boolean;
   impactScore: number;
 }
-
 interface ScanResult {
   timestamp: number;
   totalProcesses: number;
@@ -240,12 +110,9 @@ interface ScanResult {
   estimatedReductionPotential: number;
   processes: ProcessItem[];
 }
-
 type FilterTab = "all" | "safe" | "protected" | "browsers" | "heavy";
 type SortMode = "memory" | "cpu" | "name";
-
 // ── Helpers ─────────────────────────────────────────────────────
-
 function safetyBadge(s: ProcessItem["safety"]) {
   switch (s) {
     case "safe":
@@ -258,7 +125,6 @@ function safetyBadge(s: ProcessItem["safety"]) {
       return { label: "Protected", class: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20" };
   }
 }
-
 function categoryColor(cat: string): string {
   const map: Record<string, string> = {
     "System Core": "text-red-400",
@@ -273,7 +139,6 @@ function categoryColor(cat: string): string {
   };
   return map[cat] || "text-[#6B7380]";
 }
-
 function generateFakeScan(): ScanResult {
   const names: { name: string; displayName: string; publisher: string; cat: string; safe: ProcessItem["safety"]; mem: number; cpu: number }[] = [
     { name: "chrome", displayName: "Google Chrome", publisher: "Google LLC", cat: "Browser / Electron", safe: "moderate", mem: 420, cpu: 45 },
@@ -296,6 +161,7 @@ function generateFakeScan(): ScanResult {
     pid: 1000 + i * 137,
     name: n.name,
     displayName: n.displayName,
+    path: null, // Browser preview has no real filesystem access — icon falls back to category glyph
     publisher: n.publisher,
     cpuTimeCumulative: n.cpu,
     memoryMb: n.mem,
@@ -308,7 +174,6 @@ function generateFakeScan(): ScanResult {
     isProtected: n.safe === "protected",
     impactScore: Math.min(100, Math.round((n.mem / 200) * 100)),
   }));
-
   const protectedCount = processes.filter(p => p.isProtected).length;
   return {
     timestamp: Date.now(),
@@ -321,9 +186,7 @@ function generateFakeScan(): ScanResult {
     processes,
   };
 }
-
 // ── Component ─────────────────────────────────────────────────────
-
 export default function ProcessManager() {
   const [scanResult, setScanResult] = useState<ScanResult | null>(null);
   const [scanning, setScanning] = useState(false);
@@ -334,19 +197,16 @@ export default function ProcessManager() {
   const [confirmPid, setConfirmPid] = useState<number | null>(null);
   const [terminatedPids, setTerminatedPids] = useState<Set<number>>(new Set());
   const { toast } = useToast();
-
   const runScan = useCallback(async () => {
     setScanning(true);
     setScanProgress(0);
     setScanResult(null);
-
     // Animate a progress bar while the real scan runs
     let progress = 0;
     const progressTimer = setInterval(() => {
       progress = Math.min(progress + Math.random() * 15 + 5, 90);
       setScanProgress(progress);
     }, 250);
-
     try {
       const api = (window as any).electronAPI;
       if (api?.processControl?.scan) {
@@ -377,7 +237,6 @@ export default function ProcessManager() {
       setTimeout(() => setScanning(false), 400); // let the 100% bar sit for a moment
     }
   }, [toast]);
-
   const handleTerminate = useCallback(async (pid: number) => {
     const api = (window as any).electronAPI;
     if (api?.processControl?.terminate) {
@@ -398,11 +257,9 @@ export default function ProcessManager() {
     }
     setConfirmPid(null);
   }, [toast]);
-
   const filtered = useMemo(() => {
     if (!scanResult) return [];
     let list = scanResult.processes.filter(p => !terminatedPids.has(p.pid));
-
     if (search.trim()) {
       const q = search.toLowerCase();
       list = list.filter(p =>
@@ -411,24 +268,19 @@ export default function ProcessManager() {
         (p.publisher ?? "").toLowerCase().includes(q)
       );
     }
-
     if (filter === "safe") list = list.filter(p => p.canStop);
     if (filter === "protected") list = list.filter(p => p.isProtected);
     if (filter === "browsers") list = list.filter(p => p.category === "Browser / Electron");
     if (filter === "heavy") list = list.filter(p => p.memoryMb > 100 || p.cpuTimeCumulative > 20);
-
     list = [...list].sort((a, b) => {
       if (sort === "memory") return b.memoryMb - a.memoryMb;
       if (sort === "cpu") return b.cpuTimeCumulative - a.cpuTimeCumulative;
       return a.displayName.localeCompare(b.displayName);
     });
-
     return list;
   }, [scanResult, search, filter, sort, terminatedPids]);
-
   const safeCount = scanResult?.processes.filter(p => p.canStop && !terminatedPids.has(p.pid)).length ?? 0;
   const heavyCount = scanResult?.processes.filter(p => (p.memoryMb > 100 || p.cpuTimeCumulative > 20) && !terminatedPids.has(p.pid)).length ?? 0;
-
   return (
     <AppLayout>
       <div className="space-y-5 pb-6">
@@ -459,14 +311,12 @@ export default function ProcessManager() {
             </div>
           }
         />
-
         {!isElectron && scanResult && (
           <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-amber-500/20 bg-amber-500/10 text-[11px] text-amber-400">
             <AlertTriangle className="size-3.5" />
             Browser preview — real process termination requires the Electron desktop app
           </div>
         )}
-
         {scanResult && (
           <>
             {/* Stats row */}
@@ -492,7 +342,6 @@ export default function ProcessManager() {
                 <div className="text-[10px] text-muted-foreground">high mem / CPU</div>
               </GlassCard>
             </div>
-
             {/* Controls */}
             <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
               <div className="relative w-full sm:w-64">
@@ -510,7 +359,6 @@ export default function ProcessManager() {
                   </button>
                 )}
               </div>
-
               <div className="flex items-center gap-2 flex-wrap">
                 {(["all", "safe", "protected", "browsers", "heavy"] as FilterTab[]).map((f) => (
                   <button
@@ -527,7 +375,6 @@ export default function ProcessManager() {
                     {f === "all" ? "All" : f === "safe" ? "Safe" : f === "protected" ? "Protected" : f === "browsers" ? "Browsers" : "Heavy"}
                   </button>
                 ))}
-
                 <div className="relative">
                   <select
                     value={sort}
@@ -543,7 +390,6 @@ export default function ProcessManager() {
                 </div>
               </div>
             </div>
-
             {/* Process list */}
             <div className="space-y-1.5">
               <AnimatePresence>
@@ -565,13 +411,11 @@ export default function ProcessManager() {
                       )}
                       data-testid={`row-process-${p.pid}`}
                     >
-                      {/* App logo — multi-layer web fallback cascade */}
+                      {/* App logo — native Windows icon via appIcons:forPath */}
                       <ProcessIcon
-                        name={p.name}
-                        publisher={p.publisher}
+                        path={p.path}
                         category={p.category}
                       />
-
                       {/* Name & info */}
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
@@ -591,19 +435,16 @@ export default function ProcessManager() {
                           <span className="hidden sm:inline">{p.reason}</span>
                         </div>
                       </div>
-
                       {/* Stats */}
                       <div className="shrink-0 text-right min-w-[100px] hidden sm:block">
                         <div className="text-[10px] text-muted-foreground">Memory</div>
                         <div className="text-xs font-semibold text-[#E6EAF0]">{p.memoryMb.toFixed(0)} MB</div>
                         <Progress value={Math.min(100, (p.memoryMb / 500) * 100)} className="h-1 mt-1" />
                       </div>
-
                       <div className="shrink-0 text-right min-w-[60px] hidden md:block">
                         <div className="text-[10px] text-muted-foreground">CPU</div>
                         <div className="text-xs font-semibold text-[#E6EAF0]">{p.cpuTimeCumulative.toFixed(1)}s</div>
                       </div>
-
                       {/* Action */}
                       <div className="shrink-0">
                         {isTerminated ? (
@@ -630,7 +471,6 @@ export default function ProcessManager() {
                   );
                 })}
               </AnimatePresence>
-
               {filtered.length === 0 && scanResult && (
                 <div className="text-center py-10 text-muted-foreground text-sm">
                   No processes match your filters.
@@ -639,7 +479,6 @@ export default function ProcessManager() {
             </div>
           </>
         )}
-
         {/* Scanning animation state */}
         {scanning && !scanResult && (
           <GlassCard className="p-8 text-center relative overflow-hidden">
@@ -651,7 +490,6 @@ export default function ProcessManager() {
                 transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
               />
             </div>
-
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
@@ -670,14 +508,12 @@ export default function ProcessManager() {
                 />
                 <Cpu className="size-6 text-primary relative z-10" />
               </div>
-
               <h3 className="text-sm font-semibold text-[#E6EAF0] mb-1">
                 Scanning processes...
               </h3>
               <p className="text-xs text-muted-foreground mb-4">
                 Reading system process list and calculating impact scores
               </p>
-
               {/* Progress bar */}
               <div className="max-w-xs mx-auto">
                 <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-1.5">
@@ -693,7 +529,6 @@ export default function ProcessManager() {
                   />
                 </div>
               </div>
-
               {/* Staggered fake data rows to show activity */}
               <div className="mt-5 space-y-1.5 max-w-sm mx-auto opacity-40">
                 {["Reading process tree...", "Calculating memory footprints...", "Checking safety classifications...", "Building impact scores..."].map((label, i) => (
@@ -727,7 +562,6 @@ export default function ProcessManager() {
             </motion.div>
           </GlassCard>
         )}
-
         {!scanResult && !scanning && (
           <GlassCard className="p-8 text-center">
             <Layers className="size-8 text-muted-foreground mx-auto mb-3" />
@@ -741,7 +575,6 @@ export default function ProcessManager() {
           </GlassCard>
         )}
       </div>
-
       {/* Terminate confirmation modal */}
       <GlassModalLayout
         open={confirmPid !== null}

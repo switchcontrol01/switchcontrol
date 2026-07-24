@@ -41,8 +41,8 @@ export function StartupCategories({ apps, activeTab, onTabChange, visible }: Pro
   const tabs: (StartupCategory | "all")[] = ["all", "userApps", "system", "drivers", "scheduled", "broken"];
 
   return (
-    <div className="flex overflow-x-auto pb-2 scrollbar-hide -mx-2 px-2 mask-edges">
-      <div className="flex flex-nowrap items-center gap-2">
+    <div className="w-full pb-1">
+      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-2 w-full">
         {tabs.map(tab => {
           const meta = tab === "all"
             ? { label: "All", icon: HardDrive, color: "text-[#E6EAF0]", bg: "bg-white/10" }
@@ -59,7 +59,7 @@ export function StartupCategories({ apps, activeTab, onTabChange, visible }: Pro
               key={tab}
               onClick={() => onTabChange(tab)}
               className={cn(
-                "group relative flex flex-col gap-1.5 px-4 py-3 rounded-xl border transition-all duration-300 min-w-[110px]",
+                "group relative flex min-w-0 flex-col gap-1.5 px-2.5 py-2.5 rounded-xl border transition-all duration-300",
                 isActive
                   ? "bg-[#21262D] border-white/10 shadow-lg"
                   : "bg-[#1A1F26]/40 border-white/[0.02] hover:bg-[#1A1F26] hover:border-white/[0.05]"
@@ -72,7 +72,7 @@ export function StartupCategories({ apps, activeTab, onTabChange, visible }: Pro
                   transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
                 />
               )}
-              <div className="flex items-center justify-between w-full relative z-10">
+              <div className="flex items-center justify-between w-full min-w-0 relative z-10">
                 <div className={cn("size-6 rounded-lg flex items-center justify-center", meta.bg)}>
                   <Icon className={cn("size-3.5", meta.color)} />
                 </div>
@@ -82,7 +82,7 @@ export function StartupCategories({ apps, activeTab, onTabChange, visible }: Pro
                   </span>
                 )}
               </div>
-              <span className={cn("text-xs font-semibold relative z-10", isActive ? "text-[#E6EAF0]" : "text-muted-foreground/70")}>
+              <span className={cn("text-xs font-semibold truncate relative z-10", isActive ? "text-[#E6EAF0]" : "text-muted-foreground/70")}>
                 {meta.label}
               </span>
             </button>

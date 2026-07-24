@@ -490,15 +490,15 @@ export function Sidebar() {
                   {userInitials}
                 </div>
               )}
-              {/* Avatar ring glow — premium gets a strong outward radiant halo */}
+              {/* Avatar ring glow — premium gets a restrained warm halo */}
               {isPremium && (
                 <div
                   className="absolute rounded-full pointer-events-none"
                   style={{
-                    inset: "-6px",
+                    inset: "-3px",
                     borderRadius: "9999px",
-                    background: "radial-gradient(circle, rgba(255,195,50,0.22) 0%, rgba(255,160,30,0.10) 50%, transparent 70%)",
-                    boxShadow: "0 0 0 1.5px rgba(255,215,80,0.85), 0 0 10px 3px rgba(255,195,50,0.60), 0 0 22px 8px rgba(255,170,30,0.38), 0 0 40px 14px rgba(255,140,20,0.18)",
+                    background: "radial-gradient(circle, rgba(255,195,50,0.12) 0%, rgba(255,160,30,0.05) 48%, transparent 68%)",
+                    boxShadow: "0 0 0 1px rgba(255,215,80,0.72), 0 0 7px 2px rgba(255,195,50,0.32), 0 0 14px 4px rgba(255,170,30,0.14)",
                     animation: "sc-premium-halo 2.8s ease-in-out infinite",
                   }}
                 />

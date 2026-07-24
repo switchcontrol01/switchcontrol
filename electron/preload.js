@@ -1,5 +1,4 @@
 const { contextBridge, ipcRenderer } = require('electron');
-
 // ─── Zero-flash dark background ───────────────────────────────────────────────
 // Preload runs synchronously before any page HTML is fetched or parsed.
 //
@@ -18,26 +17,21 @@ try {
   document.documentElement.style.setProperty('color-scheme', 'dark');
   document.documentElement.style.setProperty('opacity', '0', 'important');
 } catch (_) {}
-
 // ─── Production detection ─────────────────────────────────────────────────────
 // Main process passes --switchcontrol-prod via additionalArguments in production.
 // This is reliable across dev/packaged builds without depending on NODE_ENV.
 const isProdBuild = process.argv.includes('--switchcontrol-prod');
-
 // DevTools are disabled in production builds. F12 and Ctrl+Shift+I are blocked
 // by the before-input-event handler in main.js.
-
 // ─── Input validation helpers ─────────────────────────────────────────────────
 // Lightweight guards that reject garbage before it crosses the privilege boundary.
 // Main process remains the final authority — these are a first filter only.
-
 function assertString(value, name) {
   if (typeof value !== 'string' || !value.trim()) {
     throw new TypeError(`${name} must be a non-empty string`);
   }
   return value.trim();
 }
-
 function assertOptionalString(value, name) {
   if (value == null) return value;
   if (typeof value !== 'string') {
@@ -45,25 +39,21 @@ function assertOptionalString(value, name) {
   }
   return value;
 }
-
 function assertFunction(value, name) {
   if (typeof value !== 'function') {
     throw new TypeError(`${name} must be a function`);
   }
   return value;
 }
-
 function assertPlainObject(value, name) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     throw new TypeError(`${name} must be a plain object`);
   }
   return value;
 }
-
 // ─── Allowed value sets ───────────────────────────────────────────────────────
 const ALLOWED_TWEAK_ACTIONS = new Set(['apply', 'revert']);
 const ALLOWED_MEMORY_MODES  = new Set(['safe', 'smart', 'advanced']);
-
 // Config keys that the renderer is allowed to read/write. The config store holds
 // secrets (e.g. selectedGpuIndex, sentinelNotificationStyle) — restricting to an
 // explicit allowlist prevents a compromised renderer from enumerating arbitrary keys.
@@ -75,17 +65,13 @@ const ALLOWED_CONFIG_KEYS = new Set([
   'sentinelGameNotifications',
   'sentinelNotificationStyle',
 ]);
-
 // IP address allowlist pattern (IPv4 only — DNS apply only accepts numeric IPs).
 const IP_RE = /^(\d{1,3}\.){3}\d{1,3}$/;
-
 // Drive letter pattern — single letter optionally followed by colon.
 const DRIVE_LETTER_RE = /^[A-Za-z]:?$/;
-
 // Max items allowed in bulk array IPC calls — prevents memory exhaustion from
 // a crafted oversized array reaching the main process.
 const MAX_ARRAY_IPC_LEN = 500;
-
 // ─── Array content validation helper ─────────────────────────────────────────
 // Validates that value is an array of non-empty strings with a length cap.
 function assertStringArray(value, name, maxLen = MAX_ARRAY_IPC_LEN) {
@@ -98,7 +84,6 @@ function assertStringArray(value, name, maxLen = MAX_ARRAY_IPC_LEN) {
   }
   return value;
 }
-
 // ─── specs:enriched replay cache ─────────────────────────────────────────────
 // Caches the most recent specs:enriched payload so that subscribers who
 // register AFTER the event fires (e.g. Home mounting 1-2s after enrichment
@@ -115,16 +100,13 @@ ipcRenderer.on('specs:enriched', (_, payload) => {
       : payload;
   }
 });
-
 // ─── Unified renderer API ─────────────────────────────────────────────────────
 // All frontend code must use window.electronAPI
 contextBridge.exposeInMainWorld('electronAPI', {
   isElectron: true,
-
   // ── Launch handshake: renderer signals first branded frame is painted ────────
   signalFirstFrameReady:    () => ipcRenderer.send('app:first-frame-ready'),
   signalDashboardMounted:   () => ipcRenderer.send('app:dashboard-mounted'),
-
   // ── Low-risk read-only ──────────────────────────────────────────────────────
   getVersion:    () => ipcRenderer.invoke('app:getVersion'),
   getAppVersion: () => ipcRenderer.invoke('app:getVersion'), // alias of getVersion — both kept for call-site compatibility; do not add a third
@@ -145,22 +127,18 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getPerformanceInfo: () => ipcRenderer.invoke('debug:getPerformanceInfo'),
   },
   openLogs:        () => ipcRenderer.invoke('app:openLogs'),
-
   // ── Controlled privileged actions ───────────────────────────────────────────
   quitApp:          () => ipcRenderer.invoke('app:quit'),
   restart:          () => ipcRenderer.invoke('app:restart'),
   resetAppData:     () => ipcRenderer.invoke('app:resetData', 'RESET_SWITCHCONTROL_DATA'),
   clearAuthCookies: () => ipcRenderer.invoke('auth:clearCookies'),
-
   openExternal: (url) => {
     assertString(url, 'url');
     return ipcRenderer.invoke('open-external', url);
   },
-
   // ── Event subscriptions ─────────────────────────────────────────────────────
   // Every subscription returns its own scoped unsubscribe function.
   // removeAllListeners is never used for app-owned shared channels.
-
   onBackendReady: (callback) => {
     assertFunction(callback, 'onBackendReady callback');
     const handler = (_event, data) => {
@@ -170,7 +148,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('backend-ready', handler);
     return () => ipcRenderer.removeListener('backend-ready', handler);
   },
-
   onBackendError: (callback) => {
     assertFunction(callback, 'onBackendError callback');
     const handler = (_event, data) => {
@@ -180,7 +157,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('backend-error', handler);
     return () => ipcRenderer.removeListener('backend-error', handler);
   },
-
   onWindowFocus: (callback) => {
     assertFunction(callback, 'onWindowFocus callback');
     const handler = () => {
@@ -190,7 +166,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('window-focus', handler);
     return () => ipcRenderer.removeListener('window-focus', handler);
   },
-
   // ── Launch handshake: main confirms window is now visible ────────────────
   // Called once after mainWindow.show() so the renderer can start the opacity
   // reveal ONLY after the OS window is actually on screen (no mid-transition flash).
@@ -203,7 +178,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.once('app:window-shown', handler);
     return () => ipcRenderer.removeListener('app:window-shown', handler);
   },
-
   // ── Auth — deep-link callback ───────────────────────────────────────────────
   auth: {
     onCallback: (callback) => {
@@ -220,14 +194,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
       return () => ipcRenderer.removeListener('auth-callback', handler);
     },
   },
-
   // ── Window controls ─────────────────────────────────────────────────────────
   window: {
     minimize: () => ipcRenderer.invoke('window:minimize'),
     maximize: () => ipcRenderer.invoke('window:maximize'),
     close:    () => ipcRenderer.invoke('window:close'),
   },
-
   // ── Low-risk read-only system data ──────────────────────────────────────────
   system: {
     getInfo:           () => ipcRenderer.invoke('system:getInfo'),
@@ -251,7 +223,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
       return () => ipcRenderer.removeListener('specs:enriched', handler);
     },
   },
-
+  // ── Shared native icon bridge (Process Manager, Startup) ─────────────────────
+  // Reads the real icon out of a .exe via Electron's shell.getFileIcon(),
+  // main-process side, with its own on-disk cache (see electron/file-icon.js).
+  appIcons: {
+    forPath: (filePath) => {
+      assertString(filePath, 'filePath');
+      return ipcRenderer.invoke('appIcons:forPath', filePath);
+    },
+  },
   // ── Security — system integrity data ────────────────────────────────────────
   security: {
     getStatus:            () => ipcRenderer.invoke('security:getStatus'),
@@ -291,7 +271,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
       return ipcRenderer.invoke('security:openStartupLocation', command);
     },
   },
-
   telemetry: {
     getLive:              (selectedDiskMount) => ipcRenderer.invoke('telemetry:getLive', selectedDiskMount),
     getEnhanced:          () => ipcRenderer.invoke('telemetry:getEnhanced'),
@@ -304,7 +283,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     refreshDeepHardware:   () => ipcRenderer.invoke('telemetry:refreshDeepHardware'),
     getSchedulerStats:     () => ipcRenderer.invoke('telemetry:getSchedulerStats'),
   },
-
   // ── Packaged config store — persisted app state ───────────────────────────
   config: {
     get: (key) => {
@@ -320,7 +298,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     },
     getPresence: () => ipcRenderer.invoke('config:getPresence'),
   },
-
   // ── Diagnostic logging bridge (narrow, validated) ────────────────────────────
   // Renderer → main only. Input is re-validated in main.js before writing.
   // Never exposes file paths or read access back to the renderer.
@@ -354,7 +331,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
       return ipcRenderer.invoke('log:exportDiagnostics', notes.substring(0, 2000));
     },
   },
-
   // ── System mutation surfaces ─────────────────────────────────────────────────
   tweaks: {
     execute: (tweakId, action, options) => {
@@ -407,7 +383,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getDisabledSliders: () => ipcRenderer.invoke('tweak:getDisabledSliders'),
     revertAllSliders: () => ipcRenderer.invoke('tweak:revertAllSliders'),
   },
-
   // ── Preset-profile tweak APIs ─────────────────────────────────────────────────
   presetTweaks: {
     getState: (tweakId) => {
@@ -430,7 +405,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     checkCrashSentinel: () => ipcRenderer.invoke('presetTweaks:checkCrashSentinel'),
     revertAll: () => ipcRenderer.invoke('presetTweaks:revertAll'),
   },
-
   nic: {
     getAdapters:      () => ipcRenderer.invoke('nic:getAdapters'),
     getPropertyMeta:  () => ipcRenderer.invoke('nic:getPropertyMeta'),
@@ -439,8 +413,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
       return ipcRenderer.invoke('nic:getCapabilities', adapterName);
     },
     invalidateCache: (adapterName) => {
-      // `??` only coalesces null/undefined — a non-string non-null value would
-      // pass through directly. Validate explicitly.
       if (adapterName != null && typeof adapterName !== 'string') {
         throw new TypeError('nic.invalidateCache: adapterName must be a string or null');
       }
@@ -455,8 +427,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
       assertString(adapterName, 'adapterName');
       assertString(propertyKey, 'propertyKey');
       if (value === undefined || value === null) throw new TypeError('nic.setProperty: value required');
-      // Reject objects/arrays before String() silently coerces them to "[object Object]"
-      // and writes that as a network adapter property value — a silent caller bug.
       if (typeof value === 'object') {
         throw new TypeError('nic.setProperty: value must be a string, number, or boolean — received object/array');
       }
@@ -468,7 +438,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
       return ipcRenderer.invoke('nic:resetProperty', adapterName, propertyKey);
     },
   },
-
   memory: {
     clean: (mode) => {
       const m = assertString(mode, 'mode');
@@ -478,7 +447,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
       return ipcRenderer.invoke('memory:clean', m);
     },
   },
-
   powerPlans: {
     getState:       ()          => ipcRenderer.invoke('powerPlans:getState'),
     applyProfile:   (profileId) => {
@@ -492,8 +460,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     },
     applyCustom:    (name, settings) => {
       assertString(name, 'customPlanName');
-      // assertPlainObject excludes arrays (unlike the previous inline check which
-      // would have accepted [] as a valid settings object).
       assertPlainObject(settings, 'applyCustom settings');
       return ipcRenderer.invoke('powerPlans:applyCustom', name, settings);
     },
@@ -504,7 +470,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
       return ipcRenderer.invoke('powerPlans:applyOverride', id, !!enabled);
     },
   },
-
   networkTweaks: {
     execute: (tweakId, action) => {
       const id  = assertString(tweakId, 'tweakId');
@@ -521,7 +486,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     checkAll:    () => ipcRenderer.invoke('networkTweaks:checkAll'),
     getDisabled: () => ipcRenderer.invoke('networkTweaks:getDisabled'),
   },
-
   dns: {
     benchmark: () => ipcRenderer.invoke('dns:benchmark'),
     applyDns:  (ip) => {
@@ -530,7 +494,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
       return ipcRenderer.invoke('dns:applyDns', ip);
     },
   },
-
   cleaner: {
     scan: (itemIds) => {
       assertStringArray(itemIds, 'cleaner.scan itemIds');
@@ -545,14 +508,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
       return ipcRenderer.invoke('cleaner:verify', itemIds);
     },
   },
-
   debloat: {
     scan: (items) => {
       assertStringArray(items, 'debloat.scan items');
       return ipcRenderer.invoke('debloat:scan', items);
     },
     removeItem: (item) => {
-      // Destructive — uninstalls bloatware. Guard before crossing the privilege boundary.
       assertPlainObject(item, 'debloat.removeItem item');
       if (typeof item.id !== 'string' || !item.id.trim()) throw new TypeError('debloat.removeItem: item.id must be a non-empty string');
       if (typeof item.type !== 'string' || !item.type.trim()) throw new TypeError('debloat.removeItem: item.type must be a non-empty string');
@@ -571,7 +532,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
       return ipcRenderer.invoke('debloat:verifyItem', item);
     },
   },
-
   installedApps: {
     scan: () => ipcRenderer.invoke('installedApps:scan'),
     icon: (appId) => {
@@ -579,16 +539,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
       return ipcRenderer.invoke('installedApps:icon', appId);
     },
     uninstall: (app) => {
-      // assertPlainObject rejects arrays; the previous `typeof app !== 'object'`
-      // check would have accepted [] as a valid payload.
       assertPlainObject(app, 'installedApps.uninstall app');
       return ipcRenderer.invoke('installedApps:uninstall', app);
     },
   },
-
   // ── Driver Intelligence: detect + launch official vendor tools ──────────────
-  // appKey is from a fixed allowlist (nvidia, amd, intel, samsung-magician,
-  // crucial-storage-executive, wd-dashboard). Renderer never passes a path.
   driverApps: {
     detect: (appKey) => {
       assertString(appKey, 'appKey');
@@ -599,12 +554,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
       return ipcRenderer.invoke('driverApps:launch', appKey);
     },
   },
-
-  // ── Driver Intelligence: read installed driver versions from registry ────────
   driverIntel: {
     getInstalledVersions: () => ipcRenderer.invoke('driverIntel:getInstalledVersions'),
   },
-
   startup: {
     scan: () => ipcRenderer.invoke('startup:scan'),
     setEnabled: (params) => {
@@ -620,7 +572,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
       return ipcRenderer.invoke('startup:verifyState', params);
     },
   },
-
   extremeLabs: {
     createRestorePoint: () => ipcRenderer.invoke('extremeLabs:createRestorePoint'),
     createBaseline:     () => ipcRenderer.invoke('extremeLabs:createBaseline'),
@@ -630,12 +581,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
       return ipcRenderer.invoke('extremeLabs:applySelected', ids);
     },
     restoreBaseline:    (ids) => {
-      // ids may be a specific array of tweak IDs (targeted revert) OR an empty
-      // array / undefined meaning "full safety sweep of all known IDs".
-      // Empty array is the canonical full-sweep signal — main.js checks
-      // `Array.isArray(ids) && ids.length > 0`; an empty array falls through
-      // to the allIds path.  Normalise undefined → [] so assertStringArray
-      // doesn't throw and kill every retry attempt in the revert engine.
       const safeIds = Array.isArray(ids) ? ids : [];
       assertStringArray(safeIds, 'extremeLabs.restoreBaseline ids');
       return ipcRenderer.invoke('extremeLabs:restoreBaseline', safeIds);
@@ -643,7 +588,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getStatus:          () => ipcRenderer.invoke('extremeLabs:getStatus'),
     checkAllStatus:     () => ipcRenderer.invoke('extremeLabs:checkAllStatus'),
   },
-
   focus: {
     apply: (params) => {
       assertPlainObject(params, 'focus.apply params');
@@ -670,11 +614,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
       return () => ipcRenderer.removeListener('focus:triggerFired', handler);
     },
   },
-
-  // ── Premium expiry / ownership ──────────────────────────────────────────────
-  // Invoke premium:revertAll when a trial expires or subscription is cancelled.
-  // Invoke premium:previewRevert before showing a confirmation dialog.
-  // Invoke premium:getOwnership for display or debugging.
   premium: {
     revertAll:            () => ipcRenderer.invoke('premium:revertAll'),
     previewRevert:        () => ipcRenderer.invoke('premium:previewRevert'),
@@ -682,8 +621,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     powerPlanSanityCheck: () => ipcRenderer.invoke('premium:powerPlanSanityCheck'),
     cleanupScPlans:       () => ipcRenderer.invoke('premium:cleanupScPlans'),
   },
-
-  // ── Updater — renderer reads state, main process owns all logic ─────────────
   updater: {
     getState: () => ipcRenderer.invoke('updater:getState'),
     check:    () => ipcRenderer.invoke('updater:check'),
@@ -704,9 +641,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
       return () => ipcRenderer.removeListener('updater:event', handler);
     },
   },
-
-
-  // ── Process Control ─────────────────────────────────────────────────────
   processControl: {
     scan:   () => ipcRenderer.invoke('processControl:scan'),
     buildPlan: (scanResult, profile) => ipcRenderer.invoke('processControl:buildPlan', scanResult, profile),
@@ -719,8 +653,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
       return ipcRenderer.invoke('processControl:terminate', pid);
     },
   },
-
-  // ── Latency Analyzer ─────────────────────────────────────────────────────────
   latencyAnalyzer: {
     start:            () => ipcRenderer.invoke('latencyAnalyzer:start'),
     stop:             () => ipcRenderer.invoke('latencyAnalyzer:stop'),
@@ -729,8 +661,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     scanDrivers:      () => ipcRenderer.invoke('latencyAnalyzer:scanDrivers'),
     scanAudioDevices: () => ipcRenderer.invoke('latencyAnalyzer:scanAudioDevices'),
   },
-
-  // ── Drive health & optimization ──────────────────────────────────────────────
   storage: {
     getVolumes: () => ipcRenderer.invoke('storage:getVolumes'),
     optimize: (driveLetter, type) => {
@@ -746,7 +676,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     },
   },
 });
-
 window.addEventListener('DOMContentLoaded', () => {
   console.log('[SwitchControl Desktop] Preload initialized - unified API ready');
   console.log('[SwitchControl Desktop] Platform:', process.platform);

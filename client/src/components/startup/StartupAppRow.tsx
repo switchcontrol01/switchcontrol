@@ -1,91 +1,72 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "@/lib/motionTokens";
 import { cn } from "@/lib/utils";
 import { Switch } from "@/components/ui/switch";
 import type { BootApp } from "./startupUtils";
 import { Cpu, HardDrive, Gauge, AlertTriangle, Monitor, Gamepad2, Globe, Music, Package } from "lucide-react";
 
-// Domains map
-const KNOWN_DOMAINS: Record<string, string> = {
-  steam: "store.steampowered.com", epicgames: "epicgames.com", "epic games": "epicgames.com", epicgameslauncher: "epicgames.com",
-  battlenet: "battle.net", "battle.net": "battle.net", blizzard: "blizzard.com", gog: "gog.com",
-  uplay: "ubisoft.com", ubisoft: "ubisoft.com", origin: "ea.com", "ea desktop": "ea.com",
-  rockstar: "rockstargames.com", bethesda: "bethesda.net", xbox: "xbox.com", riot: "riotgames.com",
-  valorant: "playvalorant.com", leagueoflegends: "leagueoflegends.com",
-  realtek: "realtek.com", nvidia: "nvidia.com", geforce: "nvidia.com", amd: "amd.com", radeon: "amd.com",
-  corsair: "corsair.com", icue: "corsair.com", logitech: "logitech.com", ghub: "logitech.com",
-  razer: "razer.com", synapse: "razer.com", steelseries: "steelseries.com", asus: "asus.com", msi: "msi.com",
-  discord: "discord.com", teams: "microsoft.com", slack: "slack.com", zoom: "zoom.us", skype: "skype.com",
-  chrome: "google.com", firefox: "firefox.com", opera: "opera.com", brave: "brave.com", edge: "microsoft.com",
-  notion: "notion.so", obsidian: "obsidian.md", dropbox: "dropbox.com", onedrive: "microsoft.com",
-  spotify: "spotify.com", vlc: "videolan.org", photoshop: "adobe.com", obs: "obsproject.com",
-  vscode: "code.visualstudio.com", figma: "figma.com", windows: "microsoft.com", microsoft: "microsoft.com",
-};
-
-function resolveDomain(app: BootApp): string | null {
-  const name = app.entry.name.toLowerCase().replace(/[._-]/g, " ").trim();
-  for (const [key, domain] of Object.entries(KNOWN_DOMAINS)) {
-    if (name.includes(key)) return domain;
-  }
-  if (app.entry.executablePath) {
-    const parts = app.entry.executablePath.split(/[\\/]/);
-    for (let i = parts.length - 2; i >= 0; i--) {
-      const seg = parts[i].toLowerCase();
-      for (const [key, domain] of Object.entries(KNOWN_DOMAINS)) {
-        if (seg.includes(key)) return domain;
-      }
-    }
-  }
-  return null;
-}
-
 const CAT_ICONS: Record<string, any> = {
   system: Monitor, drivers: Package, userApps: Gamepad2, scheduled: Package, broken: AlertTriangle
 };
 
-// Try Clearbit first (high-quality official brand logos), fall back to Google favicons
+// ── App icon — native Windows icon extraction ──────────────────────────────────
+// Uses the same appIcons:forPath IPC bridge as Process Manager and Debloater —
+// reads the real icon out of the .exe via Electron's shell.getFileIcon(),
+// main-process side, with its own on-disk cache (see electron/file-icon.js).
+// No domain-guessing, no web requests, no third-party favicon services.
+//
+// Module-level cache so re-renders / rescans of the same path never re-issue
+// the IPC call — the native side also disk-caches, this is a cheap second layer.
+const _iconCache = new Map<string, string | null>();
+
 function AppIcon({ app, size = 28 }: { app: BootApp; size?: number }) {
-  const [srcIndex, setSrcIndex] = useState(0);
-  const [visible, setVisible] = useState(false);
-  const domain = resolveDomain(app);
+  const path = app.entry.executablePath || null;
+  const [dataUrl, setDataUrl] = useState<string | null | undefined>(
+    path ? _iconCache.get(path) : null,
+  );
 
-  // Google Favicons omitted — returns a globe SVG for unknown domains (looks
-  // like a successful load, blocks the category-icon fallback).
-  const sources = domain ? [
-    `https://logo.clearbit.com/${domain}`,
-    `https://icons.duckduckgo.com/ip3/${domain}.ico`,
-    `https://api.faviconkit.com/${domain}/64`,
-  ] : [];
+  useEffect(() => {
+    if (!path) { setDataUrl(null); return; }
+    const cached = _iconCache.get(path);
+    if (cached !== undefined) { setDataUrl(cached); return; }
+    let cancelled = false;
+    const api = (window as any).electronAPI;
+    if (!api?.appIcons?.forPath) { setDataUrl(null); return; }
+    api.appIcons.forPath(path)
+      .then((url: string | null) => {
+        _iconCache.set(path, url);
+        if (!cancelled) setDataUrl(url);
+      })
+      .catch(() => {
+        _iconCache.set(path, null);
+        if (!cancelled) setDataUrl(null);
+      });
+    return () => { cancelled = true; };
+  }, [path]);
 
-  const failed = srcIndex >= sources.length;
-
-  if (!domain || failed) {
-    const Icon = CAT_ICONS[app.category] || Package;
+  if (dataUrl) {
     return (
       <div
-        className="rounded-lg flex items-center justify-center shrink-0 bg-[#21262D] border border-white/[0.08]"
+        className="rounded-lg flex items-center justify-center shrink-0 bg-[#21262D] border border-white/[0.08] overflow-hidden"
         style={{ width: size, height: size }}
       >
-        <Icon className="size-3.5 text-muted-foreground" />
+        <img
+          src={dataUrl}
+          alt=""
+          className="w-full h-full object-contain p-0.5"
+          draggable={false}
+        />
       </div>
     );
   }
 
+  const Icon = CAT_ICONS[app.category] || Package;
   return (
     <div
-      className="rounded-lg flex items-center justify-center shrink-0 bg-[#21262D] border border-white/[0.08] overflow-hidden"
+      className="rounded-lg flex items-center justify-center shrink-0 bg-[#21262D] border border-white/[0.08]"
       style={{ width: size, height: size }}
     >
-      <img
-        key={srcIndex}
-        src={sources[srcIndex]}
-        alt=""
-        className={srcIndex === 0 ? "w-full h-full object-contain p-0.5" : "w-4 h-4"}
-        style={{ opacity: visible ? 1 : 0, transition: "opacity 0.3s ease" }}
-        onLoad={() => setVisible(true)}
-        onError={() => { setVisible(false); setSrcIndex(i => i + 1); }}
-        draggable={false}
-      />
+      <Icon className="size-3.5 text-muted-foreground" />
     </div>
   );
 }

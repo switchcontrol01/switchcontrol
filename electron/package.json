@@ -50,6 +50,7 @@
       "critical-logger.js",
       "security-helper.js",
       "debloat-helper.js",
+      "file-icon.js",
       "cleaner-helper.js",
       "storage-helper.js",
       "driver-apps-helper.js",

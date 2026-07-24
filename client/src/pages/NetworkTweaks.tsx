@@ -42,15 +42,7 @@ import { PremiumHeaderBadge, PremiumPageOverlay } from "@/components/ui/premium-
 import { useNetworkDiagnostics } from "@/hooks/useNetworkDiagnostics";
 import { NetworkDiagnosticsHero, NetworkDiagnosticsFooter } from "@/components/network/NetworkDiagnosticsPanel";
 import { useDynamicRecommendations } from "@/hooks/useDynamicRecommendations";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-
 // ── types ─────────────────────────────────────────────────────────────────────
-
 type TweakStatus =
   | "idle"
   | "applying"
@@ -59,21 +51,16 @@ type TweakStatus =
   | "failed"
   | "unavailable"
   | "staged";
-
 interface TweakState {
   status: TweakStatus;
   message?: string;
   appliedAt?: string | null;
 }
-
 type StateMap = Record<string, TweakState>;
-
 // ── helpers ───────────────────────────────────────────────────────────────────
-
 const isElectron = typeof window !== "undefined" &&
   typeof (window as typeof window & { electronAPI?: unknown }).electronAPI !== "undefined" &&
   !!(window as typeof window & { electronAPI?: { networkTweaks?: unknown } }).electronAPI?.networkTweaks;
-
 async function callIpc(tweakId: string, action: "enable" | "disable") {
   if (!isElectron) return null;
   const api = (window as typeof window & {
@@ -91,11 +78,9 @@ async function callIpc(tweakId: string, action: "enable" | "disable") {
       };
     };
   }).electronAPI.networkTweaks;
-  // Preload expects "apply" / "revert" — translate from internal enable/disable semantics
   const ipcAction = action === "enable" ? "apply" : "revert";
   return api.execute(tweakId, ipcAction);
 }
-
 async function reportResult(
   tweakId: string,
   action: "apply" | "revert",
@@ -114,13 +99,7 @@ async function reportResult(
     // Non-fatal — state is still tracked in-memory
   }
 }
-
-// ── Persistent state cache (localStorage) ────────────────────────────────────
-// Survives full app restarts. Stores the last verified Windows state so that
-// on cold start we show the correct applied/idle badges immediately — before
-// checkAll finishes — instead of flashing "idle" for every tweak.
 const LS_KEY = 'sc-net-tweak-state-v1';
-
 function loadPersistedState(): Record<string, TweakStatus> | null {
   try {
     const raw = localStorage.getItem(LS_KEY);
@@ -132,12 +111,10 @@ function loadPersistedState(): Record<string, TweakStatus> | null {
     return null;
   }
 }
-
 function savePersistedState(map: StateMap): void {
   try {
     const out: Record<string, TweakStatus> = {};
     for (const [id, s] of Object.entries(map)) {
-      // Only persist confirmed states — not transient ones like "applying"
       if (s.status === "enabled" || s.status === "idle" || s.status === "unavailable") {
         out[id] = s.status;
       }
@@ -147,24 +124,9 @@ function savePersistedState(map: StateMap): void {
     // Storage full or unavailable — non-fatal
   }
 }
-
-// ── Session-level state cache ─────────────────────────────────────────────────
-// Survives component remounts (tab switches, route changes) within the same
-// app session.  On first mount the component initialises from this cache so
-// the user never sees a false "idle/off" flash when they return to the page.
-// Reset to null only on full app reload — intentional, because a cold start
-// loads from localStorage instead.
 let _networkTweakStateCache: StateMap | null = null;
 let _networkTweakStateCacheTime = 0;
-const CACHE_TTL_MS = 60_000; // 60 s — stale after this, background-refresh silently
-
-// ── Module-level revert listener ──────────────────────────────────────────────
-// The premium revert engine dispatches "sc:net-reverted" AFTER the component
-// may have been unmounted (e.g. trial-expiry modal redirects to /dashboard first,
-// then the async revert finishes). Patch _networkTweakStateCache here so the
-// NEXT mount of NetworkTweaksContent sees "idle" immediately instead of reading
-// stale "enabled" from the in-memory cache (which takes priority over localStorage
-// when the cache is fresh — < 60 s).
+const CACHE_TTL_MS = 60_000;
 if (typeof window !== 'undefined') {
   window.addEventListener('sc:net-reverted', (e: Event) => {
     const ids: string[] = (e as CustomEvent<{ ids: string[] }>).detail?.ids ?? [];
@@ -175,13 +137,9 @@ if (typeof window !== 'undefined') {
         if (next[id]) next[id] = { ...next[id], status: 'idle' as TweakStatus };
       }
       _networkTweakStateCache = next;
-      // Keep the timestamp intact — we updated the values, no need to re-fetch.
     }
-    // If the cache is null the component will read from localStorage (already
-    // patched by patchNetworkTweakLocalStorage in premiumRevertEngine.ts).
   });
 }
-
 function buildInitialStateMap(): StateMap {
   const cacheAge = _networkTweakStateCache ? Date.now() - _networkTweakStateCacheTime : Infinity;
   if (_networkTweakStateCache && cacheAge < CACHE_TTL_MS) {
@@ -192,9 +150,6 @@ function buildInitialStateMap(): StateMap {
     console.log('[NetworkTweaks:CACHE] cache stale — showing cached values, background refresh queued');
     return { ..._networkTweakStateCache };
   }
-
-  // On cold start, seed from localStorage so applied tweaks show immediately
-  // without waiting for checkAll to complete.
   const persisted = loadPersistedState();
   const initial: StateMap = {};
   for (const t of NETWORK_TWEAKS) {
@@ -213,10 +168,7 @@ function buildInitialStateMap(): StateMap {
   }
   return initial;
 }
-
-// ── Sync phase tracking ───────────────────────────────────────────────────────
 type SyncPhase = 'idle' | 'loading' | 'db_done' | 'windows_done' | 'error';
-
 function SectionSyncBadge({ phase }: { phase: SyncPhase }) {
   const [show, setShow] = useState(true);
   useEffect(() => {
@@ -227,9 +179,7 @@ function SectionSyncBadge({ phase }: { phase: SyncPhase }) {
     }
     setShow(true);
   }, [phase]);
-
   if (phase === 'idle' || (phase === 'windows_done' && !show)) return null;
-
   if (phase === 'loading') {
     return (
       <motion.span
@@ -277,9 +227,6 @@ function SectionSyncBadge({ phase }: { phase: SyncPhase }) {
   }
   return null;
 }
-
-// ── fetch from backend (DB state — stale, NOT verified Windows state) ─────────
-
 async function fetchBackendState(): Promise<StateMap> {
   try {
     const r = await fetch("/api/network-tweaks/state");
@@ -294,9 +241,6 @@ async function fetchBackendState(): Promise<StateMap> {
     return {};
   }
 }
-
-// ── fetch REAL Windows state via Electron IPC (source of truth) ───────────────
-
 async function fetchVerifiedWindowsState(): Promise<StateMap> {
   if (!isElectron) return {};
   try {
@@ -313,13 +257,11 @@ async function fetchVerifiedWindowsState(): Promise<StateMap> {
         };
       };
     }).electronAPI.networkTweaks;
-
     console.log('[NetworkTweaks] mount — hydrating verified status');
     const results = await api.checkAll();
     const map: StateMap = {};
     let verifiedCount = 0;
     let inconclusiveCount = 0;
-
     for (const [id, result] of Object.entries(results)) {
       if (result.disabled) {
         map[id] = { status: "unavailable", message: result.reason };
@@ -333,7 +275,6 @@ async function fetchVerifiedWindowsState(): Promise<StateMap> {
         verifiedCount++;
         console.log(`[NetworkTweaks] status loaded tweakId=${id} enabled=false verified=true source=windows`);
       } else {
-        // null = inconclusive check script result
         inconclusiveCount++;
         console.log(`[NetworkTweaks] status loaded tweakId=${id} enabled=null verified=false source=inconclusive`);
       }
@@ -346,9 +287,6 @@ async function fetchVerifiedWindowsState(): Promise<StateMap> {
     return {};
   }
 }
-
-// ── badge components ──────────────────────────────────────────────────────────
-
 const SafetyBadge = ({ level }: { level: SafetyLevel }) => {
   const colors = {
     Safe: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
@@ -361,7 +299,6 @@ const SafetyBadge = ({ level }: { level: SafetyLevel }) => {
     </span>
   );
 };
-
 const LevelBadge = ({ level }: { level: TweakLevel }) => {
   const colors = {
     Recommended: "bg-primary/10 text-primary border-primary/20",
@@ -375,7 +312,6 @@ const LevelBadge = ({ level }: { level: TweakLevel }) => {
     </span>
   );
 };
-
 const ImpactPill = ({ label, value }: { label: string; value: ImpactLevel }) => {
   if (value === "None") return null;
   const colors = {
@@ -389,7 +325,6 @@ const ImpactPill = ({ label, value }: { label: string; value: ImpactLevel }) => 
     </span>
   );
 };
-
 function StatusBadge({ status, message }: { status: TweakStatus; message?: string }) {
   if (status === "applying") {
     return (
@@ -441,25 +376,15 @@ function StatusBadge({ status, message }: { status: TweakStatus; message?: strin
   }
   return null;
 }
-
-// ── card ──────────────────────────────────────────────────────────────────────
-
 interface NetworkTweakCardProps {
   tweak: NetworkTweak;
   tweakState: TweakState;
   onToggle: () => void;
   onInfoClick: () => void;
-  /** True while the initial backend fetch is in-flight and this card's state
-   *  has not yet been confirmed. Shows a pulsing neutral border instead of
-   *  the grey idle/off state to prevent false "not applied" flash on cold open. */
   isVerifying?: boolean;
-  /** When set, shows a hardware-specific "✦ For your system" badge with this
-   *  reason as the tooltip text. */
   hardwareRec?: string;
-  /** True when the recommendation came from the premium AI layer — upgrades the badge styling. */
   hardwareRecAi?: boolean;
 }
-
 function NetworkTweakCard({ tweak, tweakState, onToggle, onInfoClick, isVerifying = false, hardwareRec, hardwareRecAi = false }: NetworkTweakCardProps) {
   const { prefersReducedMotion } = useMotion();
   const isUnavailable = !!tweak.unavailable;
@@ -469,7 +394,6 @@ function NetworkTweakCard({ tweak, tweakState, onToggle, onInfoClick, isVerifyin
                     tweakState.status === "staged";
   const hasFailed = tweakState.status === "failed";
   const isIdle = tweakState.status === "idle";
-
   return (
     <motion.div
       whileHover={{ scale: prefersReducedMotion ? 1.005 : 1.01, y: prefersReducedMotion ? -1 : -2 }}
@@ -504,7 +428,6 @@ function NetworkTweakCard({ tweak, tweakState, onToggle, onInfoClick, isVerifyin
             </h3>
             <StatusBadge status={tweakState.status} message={tweakState.message} />
           </div>
-
           {isUnavailable ? (
             <p className="text-xs text-muted-foreground/60 line-clamp-2 italic">
               {tweak.unavailableReason}
@@ -512,54 +435,32 @@ function NetworkTweakCard({ tweak, tweakState, onToggle, onInfoClick, isVerifyin
           ) : (
             <p className="text-xs text-muted-foreground line-clamp-1">{tweak.summary}</p>
           )}
-
           {!isUnavailable && (
             <div className="flex items-center gap-1.5 flex-wrap">
               <LevelBadge level={tweak.level} />
               <SafetyBadge level={tweak.safety} />
               {hardwareRec && (
-                <TooltipProvider delayDuration={300}>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span className={cn(
-                        "text-[9px] font-medium px-1.5 py-0.5 rounded-full border cursor-help select-none",
-                        hardwareRecAi
-                          ? "bg-gradient-to-r from-violet-500/15 to-fuchsia-500/15 text-violet-300 border-violet-400/30"
-                          : "bg-cyan-500/10 text-cyan-400 border-cyan-500/20"
-                      )}>
-                        {hardwareRecAi ? "✦ AI Pick" : "✦ For your system"}
-                      </span>
-                    </TooltipTrigger>
-                    <TooltipContent
-                      side="top"
-                      className={cn(
-                        "max-w-[240px] text-center bg-[#0D1117] text-[#A0A8B3]",
-                        hardwareRecAi ? "border border-violet-400/30" : "border border-cyan-500/20"
-                      )}
-                    >
-                      {hardwareRec}
-                      {hardwareRecAi && (
-                        <div className="mt-1 text-[9px] text-violet-300/80">✦ AI-tuned to your hardware</div>
-                      )}
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+                <span className={cn(
+                  "text-[9px] font-medium px-1.5 py-0.5 rounded-full border select-none",
+                  hardwareRecAi
+                    ? "bg-gradient-to-r from-violet-500/15 to-fuchsia-500/15 text-violet-300 border-violet-400/30"
+                    : "bg-cyan-500/10 text-cyan-400 border-cyan-500/20"
+                )}>
+                  {hardwareRecAi ? "✦ AI Pick" : "✦ For your system"}
+                </span>
               )}
             </div>
           )}
-
           {tweak.warning && !isUnavailable && (
             <div className="flex items-center gap-1.5 text-[10px] text-red-400 font-medium mt-1">
               <AlertTriangle className="size-3" />
               {tweak.warning}
             </div>
           )}
-
           {hasFailed && tweakState.message && (
             <p className="text-[10px] text-red-400 line-clamp-2 mt-1">{tweakState.message}</p>
           )}
         </div>
-
         <div className="flex items-center gap-3 pl-4 shrink-0">
           {!isUnavailable && (
             <motion.div
@@ -577,7 +478,6 @@ function NetworkTweakCard({ tweak, tweakState, onToggle, onInfoClick, isVerifyin
               </Button>
             </motion.div>
           )}
-
           {isApplying ? (
             <Loader2 className="size-5 animate-spin text-blue-400" />
           ) : (
@@ -594,17 +494,12 @@ function NetworkTweakCard({ tweak, tweakState, onToggle, onInfoClick, isVerifyin
     </motion.div>
   );
 }
-
-// ── info panel ────────────────────────────────────────────────────────────────
-
 interface InfoPanelProps {
   tweak: NetworkTweak | null;
   onClose: () => void;
 }
-
 function InfoPanel({ tweak, onClose }: InfoPanelProps) {
   const { prefersReducedMotion } = useMotion();
-
   useEffect(() => {
     if (!tweak) return;
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -613,14 +508,12 @@ function InfoPanel({ tweak, onClose }: InfoPanelProps) {
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [tweak, onClose]);
-
   const expectedEntries: [string, ImpactLevel | undefined][] = tweak ? [
     ["Network", tweak.expected.network],
     ["Latency", tweak.expected.latency],
     ["Risk", tweak.expected.stabilityRisk],
   ] : [];
   const activeExpected = expectedEntries.filter(([, v]) => v && v !== "None");
-
   return createPortal(
     <AnimatePresence>
       {tweak && (
@@ -656,7 +549,6 @@ function InfoPanel({ tweak, onClose }: InfoPanelProps) {
                 <X className="h-5 w-5 text-[#E6EAF0]" />
                 <span className="sr-only">Close</span>
               </motion.button>
-
               <div className="space-y-1.5 pr-8">
                 <h2 className="text-lg font-semibold text-[#E6EAF0] flex items-center gap-2 flex-wrap">
                   {tweak.name}
@@ -667,20 +559,17 @@ function InfoPanel({ tweak, onClose }: InfoPanelProps) {
                   <LevelBadge level={tweak.level} />
                 </div>
               </div>
-
               {tweak.unavailable && (
                 <div className="mt-4 flex items-start gap-2 p-3 rounded-lg bg-zinc-800/60 border border-zinc-700/40 text-zinc-400 text-xs">
                   <Ban className="size-4 shrink-0 mt-0.5" />
                   <span>{tweak.unavailableReason}</span>
                 </div>
               )}
-
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
                   <h4 className="text-sm font-medium text-[#E6EAF0]">Description</h4>
                   <p className="text-sm text-muted-foreground">{tweak.description}</p>
                 </div>
-
                 {activeExpected.length > 0 && (
                   <div className="space-y-2">
                     <h4 className="text-sm font-medium text-[#E6EAF0]">Expected Change</h4>
@@ -691,7 +580,6 @@ function InfoPanel({ tweak, onClose }: InfoPanelProps) {
                     </div>
                   </div>
                 )}
-
                 <div className="space-y-2">
                   <h4 className="text-sm font-medium text-[#E6EAF0]">Impact</h4>
                   <ul className="text-sm text-muted-foreground list-disc pl-4 space-y-1">
@@ -705,7 +593,6 @@ function InfoPanel({ tweak, onClose }: InfoPanelProps) {
                     ))}
                   </ul>
                 </div>
-
                 {tweak.warning && (
                   <div className="flex items-center gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs">
                     <AlertTriangle className="size-4 shrink-0" />
@@ -721,16 +608,12 @@ function InfoPanel({ tweak, onClose }: InfoPanelProps) {
     document.body
   );
 }
-
-// ── toast ─────────────────────────────────────────────────────────────────────
-
 interface Toast {
   id: string;
   tweakId: string;
   success: boolean;
   message: string;
 }
-
 function ToastContainer({ toasts, onDismiss }: { toasts: Toast[]; onDismiss: (id: string) => void }) {
   return createPortal(
     <div className="fixed bottom-6 right-6 z-[100] flex flex-col gap-2 max-w-sm">
@@ -771,9 +654,6 @@ function ToastContainer({ toasts, onDismiss }: { toasts: Toast[]; onDismiss: (id
     document.body
   );
 }
-
-// ── locked page (free users) ──────────────────────────────────────────────────
-
 function NetworkTweaksLocked() {
   return (
     <AppLayout>
@@ -803,9 +683,6 @@ function NetworkTweaksLocked() {
     </AppLayout>
   );
 }
-
-// ── main page ─────────────────────────────────────────────────────────────────
-
 function NetworkTweaksContent() {
   const { mark: timingMark } = usePageTiming("NetworkTweaks");
   const { isPremium, user } = useAuth();
@@ -816,30 +693,15 @@ function NetworkTweaksContent() {
     new Set(NETWORK_CATEGORIES)
   );
   const [selectedTweak, setSelectedTweak] = useState<NetworkTweak | null>(null);
-
-  // Per-tweak state map — initialised from session cache if available so tab
-  // switches never flash "idle/off" before the backend response arrives.
   const [stateMap, setStateMap] = useState<StateMap>(buildInitialStateMap);
-  // True during the initial backend fetch on cold launch (no session cache).
-  // While fetching, idle-status cards show a verifying shimmer instead of
-  // the grey off-state so the user never sees a false "not applied" flash.
   const [fetching, setFetching] = useState(() => _networkTweakStateCache === null);
-  // Tracks the current sync phase for section-level status indicators.
   const [syncPhase, setSyncPhase] = useState<SyncPhase>('idle');
-
-  // Keep the module-level session cache in sync with every stateMap update so
-  // that the next mount can skip the idle-flash window entirely.
   const stateMapRef = useRef<StateMap>(stateMap);
   useEffect(() => {
     stateMapRef.current      = stateMap;
     _networkTweakStateCache  = { ...stateMap };
     _networkTweakStateCacheTime = Date.now();
   }, [stateMap]);
-
-  // When the premium revert engine reverts network tweaks it dispatches
-  // "sc:net-reverted" with the list of tweakIds it just reverted.
-  // Update the in-memory state immediately so the UI reflects "idle" without
-  // requiring a page refresh (the localStorage patch is done on the engine side).
   useEffect(() => {
     const handler = (e: Event) => {
       const ids: string[] = (e as CustomEvent<{ ids: string[] }>).detail?.ids ?? [];
@@ -855,13 +717,6 @@ function NetworkTweaksContent() {
     window.addEventListener('sc:net-reverted', handler);
     return () => window.removeEventListener('sc:net-reverted', handler);
   }, []);
-
-  // ── NicTuning → NetworkTweaks live sync ───────────────────────────────────
-  // When the user configures a NIC adapter property in NicTuning that maps to
-  // a network tweak (e.g. adapter RSS → tcp-rss), update our stateMap so both
-  // pages agree on the displayed state without a page reload.
-  // The sentinel message 'Adapter configured via NIC Tuning' distinguishes
-  // NIC-sourced state from user-applied state, preventing override loops.
   useEffect(() => {
     const NIC_TO_NETWORK: Array<[string, string]> = [
       ["nic-rss", "tcp-rss"],
@@ -884,9 +739,6 @@ function NetworkTweaksContent() {
     });
     return unsub;
   }, []);
-
-  // Seed NicTuning adapter state into stateMap once on mount so an already-
-  // configured adapter is reflected immediately (not just after a change).
   useEffect(() => {
     const nicTweaks = useStore.getState().tweaks;
     const NIC_TO_NETWORK: Array<[string, string]> = [
@@ -904,54 +756,32 @@ function NetworkTweaksContent() {
       }
       return Object.keys(updates).length > 0 ? { ...prev, ...updates } : prev;
     });
-  }, []); // intentionally empty — seed once on mount
-
+  }, []);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const toastCounter = useRef(0);
-
   function addToast(tweakId: string, success: boolean, message: string) {
     const id = String(++toastCounter.current);
     setToasts(prev => [...prev, { id, tweakId, success, message }]);
     setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 5000);
   }
-
   function dismissToast(id: string) {
     setToasts(prev => prev.filter(t => t.id !== id));
   }
-
-  // On mount: verify real Windows state (Electron) or load DB state (web).
-  // DB and Windows fetches run CONCURRENTLY. DB state is applied first (fast,
-  // ~200 ms) so cards update immediately; Windows verified state overwrites it
-  // when ready (source of truth). This prevents the full sequential wait.
-  //
-  // Cache TTL: if session cache is fresh (< 60 s) we skip the fetch entirely.
-  // If stale or missing we fetch silently (no shimmer) on remounts; only a true
-  // cold-start (no cache at all) shows the isVerifying shimmer on cards.
   useEffect(() => {
     if (!user?.loggedIn) return;
-
-    // Skip fetch entirely when session cache is fresh — fast tab switches are instant
     const cacheAge = _networkTweakStateCache ? Date.now() - _networkTweakStateCacheTime : Infinity;
     if (_networkTweakStateCache && cacheAge < CACHE_TTL_MS) {
       console.log('[NetworkTweaks] cache fresh — skipping fetch');
       return;
     }
-
     let mounted = true;
     timingMark("fetch-state");
-
-    // Only show card shimmer on true cold-start (no session cache at all)
     if (!_networkTweakStateCache) setFetching(true);
     setSyncPhase('loading');
-
-    // ── Launch both fetches CONCURRENTLY ──────────────────────────────────────
     const dbPromise      = fetchBackendState();
     const windowsPromise = isElectron
       ? fetchVerifiedWindowsState()
       : Promise.resolve({} as StateMap);
-
-    // Phase 1 — DB state arrives first (~200 ms): apply immediately so cards
-    // stop showing shimmer / update to last-known state without waiting for PS.
     dbPromise.then(dbState => {
       if (!mounted) return;
       setStateMap(prev => {
@@ -965,9 +795,6 @@ function NetworkTweaksContent() {
       });
       if (mounted) setSyncPhase('db_done');
     }).catch(() => {});
-
-    // Phase 2 — Windows verified state arrives (~5–30 s in Electron): overwrite
-    // DB state with authoritative values, persist to localStorage, clear shimmer.
     windowsPromise.then(verifiedState => {
       if (!mounted) return;
       setStateMap(prev => {
@@ -988,52 +815,33 @@ function NetworkTweaksContent() {
       setFetching(false);
       setSyncPhase('error');
     });
-
     return () => { mounted = false; };
   }, [user?.loggedIn]); // eslint-disable-line
-
-  // toggleTweak reads stateMapRef (not the closure-captured stateMap) so the
-  // callback identity is stable — no stale-closure desync when the map updates
-  // between the user clicking and the callback firing.
   const toggleTweak = useCallback(async (tweak: NetworkTweak) => {
     if (tweak.unavailable) return;
-
     if (!isPremium) {
       addToast(tweak.id, false, "Premium required — upgrade at switchcontrol.org/pricing");
       return;
     }
-
     const current = stateMapRef.current[tweak.id] ?? { status: "idle" };
     if (current.status === "applying") return;
-
     const isCurrentlyEnabled =
       current.status === "enabled" ||
       current.status === "enabled_unverified" ||
       current.status === "staged";
-
     const action: "enable" | "disable" = isCurrentlyEnabled ? "disable" : "enable";
-    // Executor + preload only accept "apply" / "revert" — translate once here
-    // and use ipcAction for all reporting so the DB log uses consistent vocabulary.
     const ipcAction: "apply" | "revert" = action === "enable" ? "apply" : "revert";
-
-    // Mark as applying (do NOT flip the toggle yet)
     setStateMap(prev => ({ ...prev, [tweak.id]: { status: "applying" } }));
-
-    // ── Ownership: capture current status before toggling ───────────────────────
     const previousStatus: 'on' | 'off' | 'unknown' =
       current.status === 'enabled' || current.status === 'enabled_unverified' || current.status === 'staged'
         ? 'on' : 'off';
-
     try {
       if (isElectron) {
-        // Real execution via Electron IPC
         const result = await callIpc(tweak.id, action);
         if (!result) {
           throw new Error("IPC returned no result");
         }
-
         await reportResult(tweak.id, ipcAction, result.success, result.verified, result.message, result.disabled);
-
         const newStatus: TweakStatus = result.disabled
           ? "unavailable"
           : !result.success
@@ -1041,16 +849,11 @@ function NetworkTweaksContent() {
           : action === "enable"
           ? (result.verified ? "enabled" : "enabled_unverified")
           : "idle";
-
         setStateMap(prev => {
           const next = { ...prev, [tweak.id]: { status: newStatus, message: result.message } };
-          // Persist immediately on success so if re-verify is skipped/inconclusive
-          // the persisted state is still updated.
           if (result.success && !result.disabled) savePersistedState(next);
           return next;
         });
-
-        // ── Ownership recording ──────────────────────────────────────────────
         if (result.success && !result.disabled) {
           const ownership = useTweakOwnershipStore.getState();
           if (action === 'enable') {
@@ -1062,29 +865,17 @@ function NetworkTweaksContent() {
             }
           }
         }
-
         addToast(tweak.id, result.success, result.message);
         if (result.success) {
           logHistory(`Network: ${tweak.name}`, "Network", action === "enable" ? "Applied" : "Reverted", `Tweak ID: ${tweak.id}`);
-          // ── Cross-page state sync ────────────────────────────────────────────
-          // Keep the main Tweaks store and Extreme Labs in sync so any of the
-          // three surfaces that control the same Windows setting all agree.
           const mainStore = useStore.getState();
           if (tweak.id === "tcp-nagle") {
             mainStore.setTweak("tcp-no-delay", action === "enable");
           } else if (tweak.id === "tcp-throttling-index") {
             mainStore.setSliderValue("net-throttle-index", action === "enable" ? 4294967295 : 10);
           }
-          // Bridge ALL network tweaks to the canonical store so AI Advisor,
-          // Apply Recommended, and Dashboard see the full applied state.
           mainStore.setTweak(tweak.id, action === "enable");
         }
-
-        // ── Re-verify this tweak's real Windows state after apply/revert ──────────
-        // The execute result's .verified field is the executor's internal claim.
-        // We re-run the check script independently to confirm the system actually
-        // reflects the change. This catches cases where PowerShell succeeded but
-        // the registry value did not stick.
         if (result.success && !result.disabled) {
           try {
             const api = (window as typeof window & {
@@ -1093,7 +884,6 @@ function NetworkTweaksContent() {
             const verify = await api.checkStatus(tweak.id);
             if (!verify.error && !verify.disabled && verify.applied !== null) {
               if (verify.applied) {
-                // Confirmed applied — upgrade to fully verified
                 setStateMap(prev => {
                   const next = { ...prev, [tweak.id]: { status: "enabled" as TweakStatus, message: result.message } };
                   savePersistedState(next);
@@ -1101,7 +891,6 @@ function NetworkTweaksContent() {
                 });
                 console.log(`[NetworkTweaks] apply verified tweakId=${tweak.id} applied=true`);
               } else if (action === "disable") {
-                // Confirmed reverted — safe to mark idle
                 setStateMap(prev => {
                   const next = { ...prev, [tweak.id]: { status: "idle" as TweakStatus, message: result.message } };
                   savePersistedState(next);
@@ -1109,8 +898,6 @@ function NetworkTweaksContent() {
                 });
                 console.log(`[NetworkTweaks] revert verified tweakId=${tweak.id} applied=false`);
               } else {
-                // Check returned false but user just ENABLED it. Do NOT auto-disable.
-                // The apply succeeded; keep the enabled state and note inconclusive.
                 setStateMap(prev => {
                   const next = { ...prev, [tweak.id]: { status: "enabled_unverified" as TweakStatus, message: `${result.message} — verification inconclusive` } };
                   savePersistedState(next);
@@ -1126,22 +913,17 @@ function NetworkTweaksContent() {
           }
         }
       } else {
-        // Web mode — stage the change (no real OS execution)
         const stagedStatus: TweakStatus = action === "enable" ? "staged" : "idle";
         const msg = action === "enable"
           ? "Staged — will apply when running in the desktop app"
           : "Reverted (staged)";
-
         await reportResult(tweak.id, ipcAction, true, false, msg);
-
         setStateMap(prev => ({
           ...prev,
           [tweak.id]: { status: stagedStatus, message: msg },
         }));
-
         addToast(tweak.id, true, msg);
         logHistory(`Network: ${tweak.name}`, "Network", action === "enable" ? "Applied" : "Reverted", `Tweak ID: ${tweak.id}`);
-        // ── Cross-page state sync (web/staged path) ──────────────────────────
         const mainStore = useStore.getState();
         if (tweak.id === "tcp-nagle") {
           mainStore.setTweak("tcp-no-delay", action === "enable");
@@ -1159,8 +941,7 @@ function NetworkTweaksContent() {
       }));
       addToast(tweak.id, false, msg);
     }
-  }, [isPremium]); // stateMapRef is always current — no closure on stateMap needed
-
+  }, [isPremium]);
   const toggleCategory = useCallback((category: NetworkCategory) => {
     setExpandedCategories(prev => {
       const next = new Set(prev);
@@ -1169,7 +950,6 @@ function NetworkTweaksContent() {
       return next;
     });
   }, []);
-
   const filteredTweaks = useMemo(() => {
     return NETWORK_TWEAKS.filter(tweak => {
       const matchesSearch = search === "" ||
@@ -1180,7 +960,6 @@ function NetworkTweaksContent() {
       return matchesSearch && matchesCategory;
     });
   }, [search, activeCategory]);
-
   const tweaksByCategory = useMemo(() => {
     const grouped: Record<NetworkCategory, NetworkTweak[]> = {
       "SMB": [], "TCP/IP": [], "UDP": [], "Security": [], "DNS": [],
@@ -1188,16 +967,12 @@ function NetworkTweaksContent() {
     filteredTweaks.forEach(tweak => { grouped[tweak.category].push(tweak); });
     return grouped;
   }, [filteredTweaks]);
-
   const closePanel = useCallback(() => setSelectedTweak(null), []);
-
   const { networkOverrides } = useDynamicRecommendations();
   const diagnostics = useNetworkDiagnostics();
-
   const enabledCount = Object.values(stateMap).filter(
     s => s.status === "enabled" || s.status === "enabled_unverified" || s.status === "staged"
   ).length;
-
   return (
     <AppLayout>
       <Reveal className="p-8 space-y-8" data-tour="network-content">
@@ -1235,8 +1010,6 @@ function NetworkTweaksContent() {
             If your connection is already stable, the effect may be minimal. Impact depends on adapter, driver, router, and game server.
           </p>
         </motion.div>
-
-        {/* Live system pipeline */}
         {liveTel && (
           <motion.div
             initial={{ opacity: 0, y: 8 }}
@@ -1254,9 +1027,7 @@ function NetworkTweaksContent() {
             </GlassCard>
           </motion.div>
         )}
-
         <NetworkDiagnosticsHero {...diagnostics} />
-
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
@@ -1276,7 +1047,6 @@ function NetworkTweaksContent() {
             </div>
           </GlassCard>
         </motion.div>
-
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
@@ -1293,7 +1063,6 @@ function NetworkTweaksContent() {
                 data-testid="input-search-network"
               />
             </div>
-
             <div className="flex flex-wrap gap-2">
               <Button
                 variant={activeCategory === "All" ? "default" : "outline"}
@@ -1329,7 +1098,6 @@ function NetworkTweaksContent() {
             </div>
           </div>
         </motion.div>
-
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
@@ -1339,10 +1107,8 @@ function NetworkTweaksContent() {
             {NETWORK_CATEGORIES.map(category => {
               const categoryTweaks = tweaksByCategory[category];
               if (categoryTweaks.length === 0) return null;
-
               const availableCount = categoryTweaks.filter(t => !t.unavailable).length;
               const unavailableCount = categoryTweaks.filter(t => t.unavailable).length;
-
               return (
                 <Collapsible
                   key={category}
@@ -1389,26 +1155,19 @@ function NetworkTweaksContent() {
               );
             })}
           </div>
-
           {filteredTweaks.length === 0 && (
             <div className="text-center py-12 text-muted-foreground">
               No tweaks found matching your search.
             </div>
           )}
         </motion.div>
-
         <NetworkDiagnosticsFooter {...diagnostics} />
       </Reveal>
-
       <InfoPanel tweak={selectedTweak} onClose={closePanel} />
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />
-
     </AppLayout>
   );
 }
-
-// ── gated export ───────────────────────────────────────────────────────────────
-
 export default function NetworkTweaks() {
   const { isPremium } = useAuth();
   if (!isPremium) return <NetworkTweaksLocked />;

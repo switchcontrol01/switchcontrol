@@ -1202,10 +1202,10 @@ const BASE: BaseTweak[] = [
     expected: { cpu: "None", ram: "None", disk: "None", gpu: "None", network: "None", latency: "None", stabilityRisk: "None" },
     category: "Windows UX", level: "Recommended", risk: "Safe",
     detailsConfig: {
-      registryPath: "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+      registryPath: "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced\\TaskbarDeveloperSettings",
       registryName: "TaskbarEndTask",
       registryType: "DWORD",
-      technicalNote: "TaskbarEndTask=1 enables the context-menu entry. Mirrors the toggle in Settings → System → Advanced → Taskbar. Windows 11 build 22621 (22H2) or later only — automatically marked unsupported on older systems.",
+      technicalNote: "TaskbarDeveloperSettings\\TaskbarEndTask=1 enables the context-menu entry. Mirrors the toggle in Settings → System → Advanced → Taskbar. Windows 11 build 22621 (22H2) or later only — automatically marked unsupported on older systems.",
     },
     supported: true, requiresAdmin: false,
   },
