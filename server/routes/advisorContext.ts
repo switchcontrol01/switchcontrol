@@ -13,10 +13,6 @@
 
 import { Router } from "express";
 import { getSnapshot } from "../lib/telemetry";
-import { getCachedSystemIntelligence } from "../lib/systemIntelligence";
-import { getCachedDisplaySignal } from "./dashboardIntelligence";
-import { db, isNoDbMode } from "../db";
-import { sql } from "drizzle-orm";
 
 const router = Router();
 
@@ -103,19 +99,19 @@ export async function buildAdvisorServerContext(): Promise<AdvisorContextPayload
       resolveSysIntel(),
     ]);
 
-    // Note: resolveNetworkTweaks() currently does not scope by user because
-    // network_tweak_state lacks a user_id column. This is recorded in the
-    // threat model under "Information Disclosure / Shared-state cross-user access"
-    // as an accepted limitation with a migration path documented.
+    // Note: resolveNetworkTweaks() returns unavailable until network_tweak_state
+    // gains a user_id column. Previously it queried globally, which leaked every
+    // user's tweak state into other users' AI context (information disclosure).
 
-  const display = displayResult.status === "fulfilled" ? displayResult.value : unavailableDisplay();
-  const networkTweaks = networkResult.status === "fulfilled" ? networkResult.value : unavailableNetworkTweaks();
-  const telemetry = telemetryResult.status === "fulfilled" ? telemetryResult.value : unavailableTelemetry();
-  const systemIntel = sysIntelResult.status === "fulfilled" ? sysIntelResult.value : unavailableSysIntel();
+  const display      = displayResult.status      === "fulfilled" ? displayResult.value      : unavailableDisplay();
+  const networkTweaks = networkResult.status     === "fulfilled" ? networkResult.value      : unavailableNetworkTweaks();
+  const telemetry    = telemetryResult.status    === "fulfilled" ? telemetryResult.value    : unavailableTelemetry();
+  const systemIntel  = sysIntelResult.status     === "fulfilled" ? sysIntelResult.value     : unavailableSysIntel();
 
-  if (displayResult.status === "rejected") console.error("[AdvisorCtx] display failed:", displayResult.reason?.message);
-  if (networkResult.status === "rejected") console.error("[AdvisorCtx] network-tweaks failed:", networkResult.reason?.message);
-  if (sysIntelResult.status === "rejected") console.error("[AdvisorCtx] sys-intel failed:", sysIntelResult.reason?.message);
+  if (displayResult.status      === "rejected") console.error("[AdvisorCtx] display failed:",       displayResult.reason?.message);
+  if (networkResult.status      === "rejected") console.error("[AdvisorCtx] network-tweaks failed:", networkResult.reason?.message);
+  if (telemetryResult.status    === "rejected") console.error("[AdvisorCtx] telemetry failed:",      telemetryResult.reason?.message);
+  if (sysIntelResult.status     === "rejected") console.error("[AdvisorCtx] sys-intel failed:",      sysIntelResult.reason?.message);
 
   return {
     display,
@@ -134,62 +130,20 @@ export async function buildAdvisorServerContext(): Promise<AdvisorContextPayload
 // ── Source resolvers ──────────────────────────────────────────────────────────
 
 async function resolveDisplay(): Promise<AdvisorDisplaySignal> {
-  const cached = getCachedDisplaySignal();
-  if (!cached) {
-    return {
-      status: "unavailable",
-      primaryMonitor: null, resolution: null, refreshHz: null,
-      connectionType: null, qualityScore: null, qualityReason: null,
-      qualityActions: [], hdrEnabled: null, vrrEnabled: null, displayCount: 0,
-    };
-  }
-
-  const displays: any[] = cached.displays ?? [];
-  const primary = displays.find((d: any) => d.main) ?? displays[0] ?? null;
-
-  return {
-    status: primary ? "available" : "partial",
-    primaryMonitor: primary?.monitorName ?? null,
-    resolution: primary?.resolution ?? null,
-    refreshHz: primary?.refreshHz ?? null,
-    connectionType: primary?.connectionType ?? null,
-    qualityScore: primary?.qualityScore ?? cached.qualityScore ?? null,
-    qualityReason: primary?.qualityReason ?? cached.qualityReason ?? null,
-    qualityActions: primary?.qualityActions ?? cached.qualityActions ?? [],
-    hdrEnabled: primary?.hdrEnabled ?? null,
-    vrrEnabled: primary?.vrrEnabled ?? null,
-    displayCount: cached.displayCount ?? displays.length,
-  };
+  // getCachedDisplaySignal() reflects the cloud server's own display hardware
+  // (a headless VM), not the user's monitor. Returning this data to the coverage
+  // panel would show the server's display as if it were the user's hardware.
+  // The ai.ts chat handler already ignores serverCtx.display in favour of
+  // client-supplied display data, so "unavailable" here is both safe and honest.
+  return unavailableDisplay();
 }
 
-async function resolveNetworkTweaks(userId?: string): Promise<AdvisorNetworkTweaks> {
-  if (isNoDbMode || !db) {
-    return { status: "unavailable", applied: [], failed: [], total: 0 };
-  }
-  try {
-    // If userId is provided, we could scope by user in the future.
-    // The network_tweak_state table currently does not have a user_id column,
-    // so we query globally but log the user context for audit.
-    const result = await db.execute(sql`
-      SELECT tweak_id, status FROM network_tweak_state ORDER BY tweak_id
-    `);
-    const applied: string[] = [];
-    const failed: string[] = [];
-    for (const row of result.rows) {
-      const s = row.status as string;
-      if (s === "enabled" || s === "enabled_unverified") applied.push(row.tweak_id as string);
-      else if (s === "failed") failed.push(row.tweak_id as string);
-    }
-    const total = result.rows.length;
-    return {
-      status: total > 0 ? "available" : "partial",
-      applied,
-      failed,
-      total,
-    };
-  } catch {
-    return { status: "unavailable", applied: [], failed: [], total: 0 };
-  }
+async function resolveNetworkTweaks(): Promise<AdvisorNetworkTweaks> {
+  // network_tweak_state has no user_id column, so any query here would return
+  // every user's tweak state — an information disclosure in a multi-tenant
+  // deployment. Return unavailable until the schema migration adds user_id and
+  // this function can be properly scoped.
+  return { status: "unavailable", applied: [], failed: [], total: 0 };
 }
 
 async function resolveTelemetry(): Promise<AdvisorLiveTelemetry> {
@@ -219,33 +173,11 @@ async function resolveTelemetry(): Promise<AdvisorLiveTelemetry> {
 }
 
 async function resolveSysIntel(): Promise<AdvisorSystemIntel> {
-  const intel = getCachedSystemIntelligence();
-  if (!intel) return unavailableSysIntel();
-  try {
-    const mb = [intel.baseboard.manufacturer, intel.baseboard.model].filter(Boolean).join(" ");
-    return {
-      status: "available",
-      cpuBrand: intel.cpu.brand ?? null,
-      gpuNames: intel.gpu.controllers.map((g: any) => g.name).filter(Boolean),
-      ramTotalMb: intel.memory.totalMb ?? null,
-      ramStickCount: intel.memory.sticks.length,
-      ramType: intel.memory.sticks[0]?.type ?? null,
-      ramSpeedMhz: intel.memory.sticks[0]?.configuredClockMhz ?? intel.memory.sticks[0]?.clockMhz ?? null,
-      motherboard: mb || null,
-      biosVersion: intel.bios.version ?? null,
-      os: intel.platform.os ?? null,
-      vbsEnabled: intel.platform.vbsEnabled ?? null,
-      hypervisorPresent: intel.platform.hypervisorPresent ?? null,
-      resizeBarEnabled: intel.platform.resizeBarEnabled ?? null,
-      xmpInference: intel.inference?.expoOrXmp?.reason ?? null,
-      networkAdapters: (intel.network.interfaces ?? [])
-        .filter((n: any) => n.operstate === "up" && !n.internal)
-        .map((n: any) => [n.wifi ? "Wi-Fi" : "Ethernet", n.speedMbps ? `${n.speedMbps}Mbps` : null, n.name ? `(${n.name})` : null].filter(Boolean).join(" "))
-        .slice(0, 3),
-    };
-  } catch {
-    return unavailableSysIntel();
-  }
+  // getCachedSystemIntelligence() reflects the cloud server's own hardware
+  // (EPYC CPU, single RAM stick, ~4 GB) — not the user's PC. The ai.ts chat
+  // handler already ignores serverCtx.systemIntel in favour of client-supplied
+  // specs; the coverage panel must not show server hardware as user hardware.
+  return unavailableSysIntel();
 }
 
 // ── Fallback stubs ────────────────────────────────────────────────────────────
