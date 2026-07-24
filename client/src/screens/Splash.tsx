@@ -422,7 +422,7 @@ export default function Splash({ onComplete }: SplashProps) {
                       <motion.div
                         className="absolute top-1/2 pointer-events-none rounded-full"
                         initial={{ opacity: 0.9, scale: 0, x: "-50%", y: "-50%" }}
-                        animate={{ opacity: 0, scale: 4.5 }}
+                        animate={{ opacity: 0, scale: 2.2 }}
                         exit={{}}
                         transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
                         style={{
@@ -438,7 +438,7 @@ export default function Splash({ onComplete }: SplashProps) {
                       <motion.div
                         className="absolute top-1/2 pointer-events-none rounded-full"
                         initial={{ opacity: 1, scale: 1, x: "-50%", y: "-50%" }}
-                        animate={{ opacity: 0, scale: 2.8 }}
+                        animate={{ opacity: 0, scale: 1.6 }}
                         exit={{}}
                         transition={{ duration: 0.45, ease: "easeOut" }}
                         style={{
