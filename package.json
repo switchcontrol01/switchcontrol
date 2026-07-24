@@ -9,7 +9,7 @@
     "start": "node dist/index.cjs",
     "electron:dev": "cd electron && npm start",
     "electron:build": "cd electron && npm run dist:win",
-    "postinstall": "node scripts/postinstall.js"
+    "postinstall": "node scripts/postinstall.cjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
