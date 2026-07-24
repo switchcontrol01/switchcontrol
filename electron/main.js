@@ -30,7 +30,7 @@
     console.log('========================================');
   }
   
-  const { app, BrowserWindow, ipcMain, shell, globalShortcut, Menu, Notification } = require('electron');
+  const { app, BrowserWindow, ipcMain, shell, globalShortcut, Menu, Notification, dialog } = require('electron');
   const { exec, execFile } = require('child_process');
   const path = require('path');
   const os = require('os');
@@ -139,6 +139,11 @@
   }
   const PROTOCOL_NAME = 'switchcontrol';
   let mainWindow = null;
+  let _fadeTimer = null;
+  let _fallbackFadeTimer = null;
+  let _showFallbackTimer = null;
+  let _cookiesListenerRegistered = false;
+  const FACTORY_RESET_CONFIRMATION = 'RESET_SWITCHCONTROL_DATA';
   
   // ── Admin / elevation state ───────────────────────────────────────────────────
   // Cached once at startup. The app manifest uses requireAdministrator — Windows
@@ -170,6 +175,7 @@
   // Cache for system specs (5 minute TTL)
   let cachedSpecs = null;
   let cachedSpecsTime = 0;
+  let cachedSpecsRevision = 0;
   const SPECS_CACHE_TTL          = 5 * 60 * 1000;      // 5 min  — in-memory freshness
   const SPECS_DISK_SERVE_AGE_MS  = 4 * 60 * 60 * 1000; // 4 h    — serve disk cache instantly
   const SPECS_DISK_IGNORE_AGE_MS = 24 * 60 * 60 * 1000;// 24 h   — discard stale disk cache
@@ -192,7 +198,8 @@
   // GPU telemetry cache — served from cache ONLY. Background loop does NOT poll GPU load.
   // GPU load comes from: (1) si.graphics() static on startup, (2) telemetry:refreshGpuLoad IPC (user-initiated),
   // (3) NEVER from the background poll loop.
-  const GPU_POLL_TTL_MS = 15_000;
+  const GPU_COUNTER_REFRESH_TTL = 120_000;
+  const GPU_POLL_TTL_MS = GPU_COUNTER_REFRESH_TTL;
   
   // Network stats TTL — prevents slow NIC drivers from blocking the loop
   const NET_STATS_TTL_MS = 5_000;
@@ -282,9 +289,9 @@
   let gpuPollCache = { load: null, temp: null, memUsedMb: null, memTotalMb: null, power: null, clockMhz: null, source: 'none' };
   
   // On-demand GPU perf counter refresh — used only by telemetry:refreshGpuLoad IPC.
-  // The background loop uses its own _gpuLoadPollLastTs tracker below.
+  // The same TTL is used by the low-level reader and IPC handler so neither path
+  // can unexpectedly bypass the other path's cache window.
   let _gpuCounterLastRefreshTs = 0;
-  const GPU_COUNTER_REFRESH_TTL = 120_000; // ms — IPC on-demand minimum gap (2 min cache)
   
   // Background-loop GPU load poll tracker — NOT used (GPU load is on-demand only).
   // Kept for backward compatibility with any external code referencing it.
@@ -296,6 +303,8 @@
   // load pending" so the chart series is always structurally present from frame 1.
   let gpuExistsOnHardware = false;
   let wmiGpuModelName = null; // GPU name from WMI fast-path — fallback when si.graphics() times out
+  let wmiGpuModelPromise = null;
+  let _resolveWmiGpuModel = null;
   
   // ── Performance governor ──────────────────────────────────────────────────────
   // Base poll interval.  Stays at TELEMETRY_BASE_MS while CPU is normal.
@@ -375,11 +384,17 @@
   }
   
   async function _telemetryLoop() {
+    // Check before incrementing so a rejected duplicate start cannot poison the
+    // singleton counter for the remainder of the process lifetime.
+    if (_telemetryLoopCount > 0) {
+      console.error('[CRITICAL] Duplicate telemetry loop detected! loopCount=' + _telemetryLoopCount + ' — aborting duplicate.');
+      return;
+    }
     _telemetryLoopCount++;
     verboseLog('[PERF:TASK] name=telemetryLoop source=main.js interval=' + TELEMETRY_BASE_MS + 'ms reason=startup loopInstance=' + _telemetryLoopCount);
     if (_telemetryLoopCount > 1) {
       console.error('[CRITICAL] Duplicate telemetry loop detected! loopCount=' + _telemetryLoopCount + ' — this will double CPU usage. Aborting duplicate.');
-      _telemetryLoopCount--;
+      _telemetryLoopCount = Math.max(0, _telemetryLoopCount - 1);
       return;
     }
     while (_telemetryLoopActive) {
@@ -1231,7 +1246,7 @@
       if (_windowShown || !_chromiumFrameReady || !_reactSplashReady) return;
       if (!mainWindow || mainWindow.isDestroyed()) return;
       _windowShown = true;
-      clearTimeout(showFallbackTimer);
+      clearTimeout(_showFallbackTimer);
       _bm.windowShown = Date.now();
       // setOpacity(0) → show(): window is OS-invisible when shown, so DWM never
       // gets a chance to composite a white init frame. Then we animate setOpacity
@@ -1247,13 +1262,13 @@
       const _FADE_MS = 600;
       const _FADE_TICK = 16;
       let _fadeElapsed = 0;
-      const _fadeTimer = setInterval(() => {
-        if (!mainWindow || mainWindow.isDestroyed()) { clearInterval(_fadeTimer); return; }
+      _fadeTimer = setInterval(() => {
+        if (!mainWindow || mainWindow.isDestroyed()) { clearInterval(_fadeTimer); _fadeTimer = null; return; }
         _fadeElapsed += _FADE_TICK;
         const t = Math.min(1, _fadeElapsed / _FADE_MS);
         const eased = 1 - (1 - t) * (1 - t); // ease-out quad
         mainWindow.setOpacity(eased);
-        if (t >= 1) { clearInterval(_fadeTimer); mainWindow.setOpacity(1); }
+        if (t >= 1) { clearInterval(_fadeTimer); _fadeTimer = null; mainWindow.setOpacity(1); }
       }, _FADE_TICK);
       if (isDev) {
         mainWindow.webContents.openDevTools({ mode: 'undocked' });
@@ -1264,7 +1279,8 @@
     }
   
     // Hard fallback: show after 5 s if either gate never fires (e.g. IPC lost).
-    const showFallbackTimer = setTimeout(() => {
+    _showFallbackTimer = setTimeout(() => {
+      _showFallbackTimer = null;
       if (!mainWindow || mainWindow.isDestroyed()) return;
       if (!mainWindow.isVisible()) {
         console.warn(`[LAUNCH:FALLBACK] show gates timed out — force-showing | ${launchMs()}`);
@@ -1278,12 +1294,12 @@
         // Animate OS-level opacity 0→1 over 600ms (same as normal path)
         const _FADE_MS_FB = 600, _FADE_TICK_FB = 16;
         let _fbElapsed = 0;
-        const _fbTimer = setInterval(() => {
-          if (!mainWindow || mainWindow.isDestroyed()) { clearInterval(_fbTimer); return; }
+        _fallbackFadeTimer = setInterval(() => {
+          if (!mainWindow || mainWindow.isDestroyed()) { clearInterval(_fallbackFadeTimer); _fallbackFadeTimer = null; return; }
           _fbElapsed += _FADE_TICK_FB;
           const t = Math.min(1, _fbElapsed / _FADE_MS_FB);
           mainWindow.setOpacity(1 - (1 - t) * (1 - t));
-          if (t >= 1) { clearInterval(_fbTimer); mainWindow.setOpacity(1); }
+          if (t >= 1) { clearInterval(_fallbackFadeTimer); _fallbackFadeTimer = null; mainWindow.setOpacity(1); }
         }, _FADE_TICK_FB);
       }
       startTelemetryPolling().catch(e => console.error('[telemetry:poll] fallback error:', e.message));
@@ -1368,10 +1384,18 @@
       if (process.platform !== 'win32') {
         return resolve(null);
       }
-      exec(
-        'nvidia-smi --query-gpu=temperature.gpu --format=csv,noheader,nounits',
+      const token = psLimiter.tryAcquire({
+        file: 'main.js',
+        fn: 'getNvidiaGpuTemp',
+        reason: 'nvidia-smi-temperature',
+      });
+      if (!token) return resolve(null);
+      execFile(
+        'nvidia-smi',
+        ['--query-gpu=temperature.gpu', '--format=csv,noheader,nounits'],
         { windowsHide: true, timeout: 3000 },
         (err, stdout) => {
+          psLimiter.release(token);
           if (err) return resolve(null);
           const temp = Number(stdout.trim());
           resolve(Number.isFinite(temp) ? temp : null);
@@ -1393,10 +1417,18 @@
       if (process.platform !== 'win32') {
         return resolve(null);
       }
-      exec(
-        'nvidia-smi --query-gpu=utilization.gpu --format=csv,noheader,nounits',
+      const token = psLimiter.tryAcquire({
+        file: 'main.js',
+        fn: 'getNvidiaGpuLoad',
+        reason: 'nvidia-smi-load',
+      });
+      if (!token) return resolve(null);
+      execFile(
+        'nvidia-smi',
+        ['--query-gpu=utilization.gpu', '--format=csv,noheader,nounits'],
         { windowsHide: true, timeout: 3000 },
         (err, stdout) => {
+          psLimiter.release(token);
           if (err) return resolve(null);
           const load = Number(stdout.trim());
           resolve(Number.isFinite(load) ? load : null);
@@ -1617,8 +1649,14 @@
   async function getGpuStatic() {
     const now = Date.now();
     if (gpuStaticCache && now - gpuStaticTs < GPU_STATIC_TTL) return gpuStaticCache;
+    const token = psLimiter.tryAcquire({
+      file: 'main.js',
+      fn: 'getGpuStatic',
+      reason: 'gpu-static',
+    });
+    if (!token) return gpuStaticCache || { memUsedMb: null, memTotalMb: null };
     try {
-      const gr = await si.graphics().catch(() => null);
+      const gr = await siWithTimeout(() => si.graphics(), 4_000, 'getGpuStatic.graphics').catch(() => null);
       const ctrl = gr?.controllers?.[0];
       if (ctrl) {
         gpuStaticCache = {
@@ -1631,6 +1669,8 @@
       gpuStaticTs = now;
     } catch {
       gpuStaticCache = gpuStaticCache || { memUsedMb: null, memTotalMb: null };
+    } finally {
+      psLimiter.release(token);
     }
     return gpuStaticCache;
   }
