@@ -7,6 +7,7 @@ import { promisify } from "util";
 const execFileAsync = promisify(execFile);
 const isWindows = process.platform === "win32";
 
+/** Internal-only: runs a hardcoded PowerShell script string. Never call with user-influenced content. */
 async function runDisplayPS(script: string): Promise<string | null> {
   if (!isWindows) return null;
   try {
@@ -37,7 +38,7 @@ async function collectDisplayViaPowerShell(): Promise<{ controllers: any[]; disp
   const raw = await runDisplayPS(`
 $result = @{ controllers = @(); displays = @() }
 try {
-  $vcs = Get-WmiObject Win32_VideoController -ErrorAction Stop |
+  $vcs = Get-CimInstance Win32_VideoController -ErrorAction Stop |
     Select-Object Name, CurrentHorizontalResolution, CurrentVerticalResolution,
                   CurrentRefreshRate, AdapterRAM, VideoModeDescription
   if ($null -ne $vcs) {
@@ -63,7 +64,7 @@ if ($result.displays.Count -eq 0) {
     Add-Type -AssemblyName System.Windows.Forms -ErrorAction Stop
     $screens = [System.Windows.Forms.Screen]::AllScreens
     $hz = 0
-    try { $hz = [int](Get-WmiObject Win32_VideoController | Select-Object -First 1 -ExpandProperty CurrentRefreshRate) } catch {}
+    try { $hz = [int](Get-CimInstance Win32_VideoController -OperationTimeoutSec 2 | Select-Object -First 1 -ExpandProperty CurrentRefreshRate) } catch {}
     $result.displays = @($screens | ForEach-Object {
       @{ currentResX=$_.Bounds.Width; currentResY=$_.Bounds.Height; currentRefreshRate=$hz }
     })
@@ -106,6 +107,131 @@ $result | ConvertTo-Json -Depth 3 -Compress
   }
 }
 
+// ── Display signal types + normalizer (module-level so it's not recreated per request) ──
+
+interface DisplaySignalProfile {
+  monitorName:    string | null;
+  resolution:     string | null;
+  refreshHz:      number | null;
+  bitDepth:       number | null;
+  hdrEnabled:     boolean | null;
+  vrrEnabled:     boolean | null;
+  connectionType: string | null;
+  gpuName:        string | null;
+  isNativeMode:   boolean | null;
+  qualityScore:   number | null;
+  qualityReason:  string;
+  qualityAction:  string | null;
+  // All suggestions — callers should prefer this over qualityAction (first item only)
+  qualityActions: string[];
+  notes:          string[];
+  displayCount:   number;
+  ts:             number;
+}
+
+function normalizeDisplay(d: any, displayCount: number, gpuName: string | null): DisplaySignalProfile {
+  const resX = d.currentResX ?? d.resolutionX ?? null;
+  const resY = d.currentResY ?? d.resolutionY ?? null;
+  const hz   = d.currentRefreshRate ?? d.refreshRate ?? null;
+
+  const resolution     = (resX && resY) ? `${resX}×${resY}` : null;
+  const connectionType = typeof d.connection === "string" && d.connection.trim()
+    ? d.connection.trim() : null;
+  const monitorName    = typeof d.model === "string" && d.model.trim()
+    ? d.model.trim() : null;
+
+  // pixelDepth from si — only trust when explicitly non-null
+  const bitDepth: number | null = (typeof d.pixelDepth === "number" && d.pixelDepth > 0)
+    ? d.pixelDepth : null;
+
+  // HDR and VRR — si does not expose these fields reliably; never guess
+  const hdrEnabled: boolean | null = null;
+  const vrrEnabled: boolean | null = null;
+
+  // Native mode — si does not expose native/max resolution separately
+  const isNativeMode: boolean | null = null;
+
+  // ── Quality score ──────────────────────────────────────────────────────────
+  // Only score axes where we have real confirmed data
+  const notes: string[] = [];
+  let score: number | null = null;
+  let points = 0;
+  let maxPoints = 0;
+  const qualityActions: string[] = [];
+
+  // Axis 1: Refresh rate (40 pts)
+  if (hz !== null) {
+    maxPoints += 40;
+    if      (hz >= 240) { points += 40; notes.push(`${hz}Hz ultra-high refresh rate`); }
+    else if (hz >= 144) { points += 36; notes.push(`${hz}Hz high-refresh display`); }
+    else if (hz >= 100) { points += 28; notes.push(`${hz}Hz above standard refresh`); }
+    else if (hz >= 60)  { points += 18; notes.push(`${hz}Hz standard refresh rate`);
+      qualityActions.push(`Display supports ${hz}Hz — verify maximum is being used`); }
+    else                { points += 6;  notes.push(`${hz}Hz — below typical desktop rate`);
+      qualityActions.push("Enable a higher refresh rate in Display Settings"); }
+  }
+
+  // Axis 2: Resolution (35 pts)
+  if (resX !== null && resY !== null) {
+    maxPoints += 35;
+    const px = resX * resY;
+    if      (px >= 7680 * 4320) { points += 35; notes.push(`8K resolution active`); }
+    else if (px >= 3840 * 2160) { points += 35; notes.push(`4K (${resX}×${resY}) resolution`); }
+    else if (px >= 2560 * 1440) { points += 30; notes.push(`1440p (${resX}×${resY}) resolution`); }
+    else if (px >= 1920 * 1080) { points += 22; notes.push(`1080p (${resX}×${resY}) resolution`);
+      qualityActions.push("1080p detected — 1440p or higher would improve clarity"); }
+    else                         { points += 10; notes.push(`${resolution} — below 1080p`);
+      qualityActions.push("Resolution is below Full HD"); }
+  }
+
+  // Axis 3: Bit depth (15 pts)
+  if (bitDepth !== null) {
+    maxPoints += 15;
+    if      (bitDepth >= 12) { points += 15; notes.push(`${bitDepth}-bit deep color`); }
+    else if (bitDepth >= 10) { points += 13; notes.push(`${bitDepth}-bit wide color`); }
+    else if (bitDepth >= 8)  { points += 10; notes.push(`${bitDepth}-bit standard color depth`); }
+    else                     { points += 4;  notes.push(`${bitDepth}-bit limited color depth`); }
+  }
+
+  // Axis 4: Connection type (10 pts)
+  if (connectionType !== null) {
+    maxPoints += 10;
+    const conn = connectionType.toUpperCase();
+    if      (conn.includes("DP") || conn.includes("DISPLAYPORT")) { points += 10; notes.push(`DisplayPort connection`); }
+    else if (conn.includes("HDMI 2.1"))                           { points += 10; notes.push("HDMI 2.1 connection"); }
+    else if (conn.includes("HDMI"))                               { points += 7;  notes.push(`${connectionType} connection`); }
+    else if (conn.includes("VNC"))                                { points += 0;  notes.push("VNC virtual display — not a physical monitor"); }
+    else                                                          { points += 5;  notes.push(`${connectionType} connection`); }
+  }
+
+  if (maxPoints > 0) {
+    score = Math.round((points / maxPoints) * 100);
+  }
+
+  const qualityReason = notes.length > 0
+    ? notes.slice(0, 2).join(" · ")
+    : "Display data limited — connect a physical monitor for full analysis";
+
+  return {
+    monitorName,
+    resolution,
+    refreshHz: hz,
+    bitDepth,
+    hdrEnabled,
+    vrrEnabled,
+    connectionType,
+    gpuName,
+    isNativeMode,
+    qualityScore:  score,
+    qualityReason,
+    qualityAction:  qualityActions[0] ?? null,   // kept for backward compat
+    qualityActions,                               // full list for richer UI
+    notes,
+    displayCount,
+    ts: Date.now(),
+  };
+}
+
 const router = Router();
 
 // ── Server-side caches for expensive routes ───────────────────────────────────
@@ -120,6 +246,10 @@ const DISPLAY_SIGNAL_TTL     = 60_000;
 let ramAnalysisCache:      { data: any; ts: number } | null = null;
 let whatCausedThatCache:   { data: any; ts: number } | null = null;
 let displaySignalCache:    { data: any; ts: number } | null = null;
+
+// In-flight dedup: prevents multiple simultaneous si.processes() WMI enumerations
+// when "Analyze Again" is clicked rapidly. New requests wait for the running call.
+let _whatCausedThatFlight: Promise<any> | null = null;
 
 // ── Stability / Instability score ──────────────────────────────────────────────
 
@@ -160,7 +290,10 @@ router.get("/instability", (_req, res) => {
     if (netKbs > 8000) score -= 5;
     else if (netKbs > 3000) score -= 2;
 
-    score = Math.max(20, Math.min(100, Math.round(score)));
+    // Floor raised to 45: a score below 45 is "severe", which is misleading for
+    // an idle machine. 45 is the boundary between "unstable" and "severe" so the
+    // minimum representable state for any system is "unstable" not "severe".
+    score = Math.max(45, Math.min(100, Math.round(score)));
 
     const state =
       score >= 85 ? "stable" :
@@ -252,7 +385,12 @@ router.get("/what-caused-that", async (req, res) => {
     interface ProcRow { name: string; pid: number; pcpu: number; memRss: number }
     let procList: ProcRow[] = [];
     try {
-      const siProcs = await si.processes();
+      // In-flight dedup: reuse a running si.processes() call instead of spawning
+      // a second concurrent WMI enumeration when forceFresh requests overlap.
+      if (!_whatCausedThatFlight) {
+        _whatCausedThatFlight = si.processes().finally(() => { _whatCausedThatFlight = null; });
+      }
+      const siProcs = await _whatCausedThatFlight;
       procList = siProcs.list
         .filter((p: any) => typeof p.pcpu === "number" && p.pcpu >= 0)
         .map((p: any) => ({
@@ -272,10 +410,10 @@ router.get("/what-caused-that", async (req, res) => {
       procList.filter(p => frags.some(f => p.name.includes(f)))
               .sort((a, b) => b.pcpu - a.pcpu)[0] ?? null;
 
-    // PowerShell instances
+    // PowerShell instances — spread before sort to avoid mutating procList slice
     const psProcs   = procList.filter(p => p.name.startsWith("powershell"));
     const psCount   = psProcs.length;
-    const topPsProc = psProcs.sort((a, b) => b.pcpu - a.pcpu)[0] ?? null;
+    const topPsProc = [...psProcs].sort((a, b) => b.pcpu - a.pcpu)[0] ?? null;
 
     // Top 6 CPU processes (exclude idle/system placeholders)
     const topCpuProcs = [...procList]
@@ -508,7 +646,9 @@ router.get("/what-caused-that", async (req, res) => {
     }
 
     // ── 10. Gaming platform / overlay overhead ────────────────────────────────
-    if (gamingCpu > 4 && causes.length === 0) {
+    // Removed `causes.length === 0` gate: a user with a Defender scan AND a
+    // 25% browser spike should see both surfaced, not just the first.
+    if (gamingCpu > 4) {
       const top = gamingTop;
       const ev: string[] = [
         top ? `${top.name} at ${top.pcpu.toFixed(1)}% CPU` : `Gaming platform using ${gamingCpu.toFixed(1)}% CPU`,
@@ -527,7 +667,7 @@ router.get("/what-caused-that", async (req, res) => {
     }
 
     // ── 11. Browser activity ──────────────────────────────────────────────────
-    if (browserCpu > 8 && causes.length === 0) {
+    if (browserCpu > 8) {
       const top = browserTop;
       const ev: string[] = [
         top ? `${top.name} at ${top.pcpu.toFixed(1)}% CPU` : `Browser using ${browserCpu.toFixed(1)}% CPU`,
@@ -788,7 +928,9 @@ router.get("/latency-estimate", (_req, res) => {
     // Small live jitter ±0.2ms so the display never looks frozen on a stable system
     const jitter = parseFloat(((Math.random() * 0.4) - 0.2).toFixed(2));
 
-    const total = Math.round((base + cpuDelta + ramDelta + procDelta + jitter) * 10) / 10;
+    // Clamp to base minimum: jitter can be negative and on a near-idle system
+    // the sum could theoretically go below 1ms or negative without this guard.
+    const total = Math.max(base, Math.round((base + cpuDelta + ramDelta + procDelta + jitter) * 10) / 10);
 
     const quality =
       total < 4   ? "Excellent" :
@@ -837,24 +979,24 @@ router.get("/ram-analysis", async (req, res) => {
     const totalGB = snap.ram.totalGB;
     const usedPct = snap.ram.usedPercent;
 
-    // Get richer memory data from si.mem() — buffcache is real cached+buffered pages
+    // Run si.mem() and si.processes() in parallel — sequential awaits doubled latency
+    type TopProc = { name: string; pid: number | null; ramMb: number | null; cpuPct: number | null };
     let buffcacheGB: number | null = null;
     let availableGB: number | null = null;
     let swapUsedGB:  number | null = null;
+    let topProcesses: TopProc[] = [];
 
-    try {
-      const mem = await si.mem();
+    const [memResult, procsResult] = await Promise.allSettled([si.mem(), si.processes()]);
+
+    if (memResult.status === "fulfilled") {
+      const mem = memResult.value;
       buffcacheGB = mem.buffcache  > 0 ? parseFloat((mem.buffcache  / 1073741824).toFixed(1)) : null;
       availableGB = mem.available  > 0 ? parseFloat((mem.available  / 1073741824).toFixed(1)) : null;
       swapUsedGB  = mem.swapused   > 0 ? parseFloat((mem.swapused   / 1073741824).toFixed(2)) : null;
-    } catch (_) {}
+    }
 
-    // Top 5 RAM-consuming processes sorted by memRss (resident set size)
-    type TopProc = { name: string; pid: number | null; ramMb: number | null; cpuPct: number | null };
-    let topProcesses: TopProc[] = [];
-    try {
-      const procs = await si.processes();
-      topProcesses = procs.list
+    if (procsResult.status === "fulfilled") {
+      topProcesses = procsResult.value.list
         .filter((p: any) => p.memRss > 0)
         .sort((a: any, b: any) => b.memRss - a.memRss)
         .slice(0, 5)
@@ -864,7 +1006,7 @@ router.get("/ram-analysis", async (req, res) => {
           ramMb:  typeof p.memRss === "number" ? Math.round(p.memRss / 1024) : null,
           cpuPct: typeof p.pcpu === "number"   ? parseFloat(p.pcpu.toFixed(1)) : null,
         }));
-    } catch (_) {}
+    }
 
     // Reclaimable: if we have real buffcache data, use it — otherwise estimate conservatively
     let reclaimableGB: number;
@@ -881,8 +1023,11 @@ router.get("/ram-analysis", async (req, res) => {
       reclaimableSource = "estimated";
     }
 
-    const freeGB      = availableGB ?? Math.max(0, parseFloat((totalGB - usedGB).toFixed(1)));
-    const newUsedPct  = Math.round(Math.max(0, usedPct - (reclaimableGB / totalGB) * 100));
+    const freeGB = availableGB ?? Math.max(0, parseFloat((totalGB - usedGB).toFixed(1)));
+    // Cap newUsedPct from below at the actual committed ratio — reclaimableGB is
+    // standby/cache pages so we can't go below what's genuinely allocated.
+    const committedPct = totalGB > 0 ? ((usedGB - reclaimableGB) / totalGB) * 100 : 0;
+    const newUsedPct   = Math.round(Math.max(committedPct, usedPct - (reclaimableGB / totalGB) * 100));
 
     // ── State engine ──────────────────────────────────────────────────────────
     // "cached_heavy": lots of page cache, real memory is fine
@@ -983,129 +1128,7 @@ router.get("/display-signal", async (_req, res) => {
 
     const gpuName: string | null = rawCtrl?.model?.trim() || null;
 
-    interface DisplaySignalProfile {
-      monitorName:    string | null;
-      resolution:     string | null;
-      refreshHz:      number | null;
-      bitDepth:       number | null;
-      hdrEnabled:     boolean | null;
-      vrrEnabled:     boolean | null;
-      connectionType: string | null;
-      gpuName:        string | null;
-      isNativeMode:   boolean | null;
-      qualityScore:   number | null;
-      qualityReason:  string;
-      qualityAction:  string | null;
-      notes:          string[];
-      displayCount:   number;
-      ts:             number;
-    }
-
-    function normalizeDisplay(d: any): DisplaySignalProfile {
-      const resX = d.currentResX ?? d.resolutionX ?? null;
-      const resY = d.currentResY ?? d.resolutionY ?? null;
-      const hz   = d.currentRefreshRate ?? d.refreshRate ?? null;
-
-      const resolution     = (resX && resY) ? `${resX}×${resY}` : null;
-      const connectionType = typeof d.connection === "string" && d.connection.trim()
-        ? d.connection.trim() : null;
-      const monitorName    = typeof d.model === "string" && d.model.trim()
-        ? d.model.trim() : null;
-
-      // pixelDepth from si — only trust when explicitly non-null
-      const bitDepth: number | null = (typeof d.pixelDepth === "number" && d.pixelDepth > 0)
-        ? d.pixelDepth : null;
-
-      // HDR and VRR — si does not expose these fields reliably; never guess
-      const hdrEnabled: boolean | null = null;
-      const vrrEnabled: boolean | null = null;
-
-      // Native mode — si does not expose native/max resolution separately
-      const isNativeMode: boolean | null = null;
-
-      // ── Quality score ─────────────────────────────────────────────────────
-      // Only score axes where we have real confirmed data
-      const notes: string[] = [];
-      let score: number | null = null;
-      let points = 0;
-      let maxPoints = 0;
-      const qualityActions: string[] = [];
-
-      // Axis 1: Refresh rate (40 pts)
-      if (hz !== null) {
-        maxPoints += 40;
-        if      (hz >= 240) { points += 40; notes.push(`${hz}Hz ultra-high refresh rate`); }
-        else if (hz >= 144) { points += 36; notes.push(`${hz}Hz high-refresh display`); }
-        else if (hz >= 100) { points += 28; notes.push(`${hz}Hz above standard refresh`); }
-        else if (hz >= 60)  { points += 18; notes.push(`${hz}Hz standard refresh rate`);
-          qualityActions.push(`Display supports ${hz}Hz — verify maximum is being used`); }
-        else                { points += 6;  notes.push(`${hz}Hz — below typical desktop rate`);
-          qualityActions.push("Enable a higher refresh rate in Display Settings"); }
-      }
-
-      // Axis 2: Resolution (35 pts)
-      if (resX !== null && resY !== null) {
-        maxPoints += 35;
-        const px = resX * resY;
-        if      (px >= 7680 * 4320) { points += 35; notes.push(`8K resolution active`); }
-        else if (px >= 3840 * 2160) { points += 35; notes.push(`4K (${resX}×${resY}) resolution`); }
-        else if (px >= 2560 * 1440) { points += 30; notes.push(`1440p (${resX}×${resY}) resolution`); }
-        else if (px >= 1920 * 1080) { points += 22; notes.push(`1080p (${resX}×${resY}) resolution`);
-          qualityActions.push("1080p detected — 1440p or higher would improve clarity"); }
-        else                         { points += 10; notes.push(`${resolution} — below 1080p`);
-          qualityActions.push("Resolution is below Full HD"); }
-      }
-
-      // Axis 3: Bit depth (15 pts)
-      if (bitDepth !== null) {
-        maxPoints += 15;
-        if      (bitDepth >= 12) { points += 15; notes.push(`${bitDepth}-bit deep color`); }
-        else if (bitDepth >= 10) { points += 13; notes.push(`${bitDepth}-bit wide color`); }
-        else if (bitDepth >= 8)  { points += 10; notes.push(`${bitDepth}-bit standard color depth`); }
-        else                     { points += 4;  notes.push(`${bitDepth}-bit limited color depth`); }
-      }
-
-      // Axis 4: Connection type (10 pts)
-      if (connectionType !== null) {
-        maxPoints += 10;
-        const conn = connectionType.toUpperCase();
-        if      (conn.includes("DP") || conn.includes("DISPLAYPORT")) { points += 10; notes.push(`DisplayPort connection`); }
-        else if (conn.includes("HDMI 2.1"))                           { points += 10; notes.push("HDMI 2.1 connection"); }
-        else if (conn.includes("HDMI"))                               { points += 7;  notes.push(`${connectionType} connection`); }
-        else if (conn.includes("VNC"))                                { points += 0;  notes.push("VNC virtual display — not a physical monitor"); }
-        else                                                          { points += 5;  notes.push(`${connectionType} connection`); }
-      }
-
-      if (maxPoints > 0) {
-        score = Math.round((points / maxPoints) * 100);
-      }
-
-      const qualityReason = notes.length > 0
-        ? notes.slice(0, 2).join(" · ")
-        : "Display data limited — connect a physical monitor for full analysis";
-
-      const qualityAction = qualityActions.length > 0 ? qualityActions[0] : null;
-
-      return {
-        monitorName,
-        resolution,
-        refreshHz: hz,
-        bitDepth,
-        hdrEnabled,
-        vrrEnabled,
-        connectionType,
-        gpuName,
-        isNativeMode,
-        qualityScore: score,
-        qualityReason,
-        qualityAction,
-        notes,
-        displayCount: rawDisps.length,
-        ts: Date.now(),
-      };
-    }
-
-    const profile = rawDisps.length > 0 ? normalizeDisplay(rawDisps[0]) : null;
+    const profile = rawDisps.length > 0 ? normalizeDisplay(rawDisps[0], rawDisps.length, gpuName) : null;
 
     const displayResult = profile ?? {
       monitorName: null, resolution: null, refreshHz: null,
@@ -1114,6 +1137,7 @@ router.get("/display-signal", async (_req, res) => {
       qualityScore: null,
       qualityReason: "No display detected",
       qualityAction: null,
+      qualityActions: [],
       notes: [],
       displayCount: 0,
       ts: Date.now(),
