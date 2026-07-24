@@ -4,12 +4,12 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "node node_modules/tsx/dist/cli.mjs server/index.ts",
+    "dev": "tsx server/index.ts",
     "build": "npx tsx script/build.ts",
     "start": "node dist/index.cjs",
+    "postinstall": "cd electron && npm install",
     "electron:dev": "cd electron && npm start",
-    "electron:build": "cd electron && npm run dist:win",
-    "postinstall": "node scripts/postinstall.cjs"
+    "electron:build": "cd electron && npm run dist:win"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -86,9 +86,7 @@
     "vaul": "^1.1.2",
     "wouter": "^3.3.5",
     "zod": "^3.25.76",
-    "zustand": "^5.0.11",
-    "ws": "^8.21.1",
-    "systeminformation": "^5.33.1"
+    "zustand": "^5.0.11"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^5.0.4",
