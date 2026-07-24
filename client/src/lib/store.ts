@@ -239,7 +239,13 @@ export const useStore = create<AppState>()(
       resetData: () => set({
         tweaks: {},
         history: [],
-        stats: MOCK_STATS,
+        // Preserve real hardware specs — they're system facts, not user data.
+        // Resetting to MOCK_STATS wipes the CPU/GPU/RAM values already loaded
+        // from Windows IPC, leaving the dashboard blank until a full app restart.
+        // Only blank them if they were never loaded (still at defaults).
+        stats: get().stats.cpuName && get().stats.cpuName !== 'Unavailable'
+          ? get().stats
+          : MOCK_STATS,
         latestAIScan: null,
         account: {
           ...get().account,
