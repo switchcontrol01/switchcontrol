@@ -31,6 +31,8 @@
  *   motion            — framer-motion motion proxy
  *   AnimatePresence   — framer-motion AnimatePresence
  *   Reveal            — scroll-reveal wrapper component
+ *   RevealGroup       — stagger container (whileInView, staggerChildren)
+ *   RevealItem        — staggered child — must be a direct child of RevealGroup
  *   MotionProvider    — context provider (mount in root)
  *   useMotion         — hook: { prefersReducedMotion }
  */
@@ -66,6 +68,8 @@ export {
   motion,
   AnimatePresence,
   Reveal,
+  RevealGroup,
+  RevealItem,
   MotionProvider,
   useMotion,
 } from "@/lib/motion";
