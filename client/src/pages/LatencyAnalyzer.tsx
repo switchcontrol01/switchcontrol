@@ -47,6 +47,7 @@ import {
   Info,
   Layers,
   Loader2,
+  Minus,
   Music,
   Play,
   RefreshCw,
@@ -62,6 +63,7 @@ import {
 } from "lucide-react";
 import { useLatencyAnalyzerStore } from "@/stores/latencyAnalyzerStore";
 import type { DriverRow, AnalysisResult } from "@/stores/latencyAnalyzerStore";
+import { useDashboardIntelligence } from "@/hooks/useDashboardIntelligence";
 import {
   STATUS_META,
   audioRisk,
@@ -1298,7 +1300,262 @@ function ExportNotesCard() {
   );
 }
 
-// ── 10. Limitations notice ─────────────────────────────────────────────────────
+// ── 10. Input Delay Analysis ───────────────────────────────────────────────────
+
+/** Smoothly animates from the previous value to `target` over ~600 ms. */
+function useAnimatedDelayValue(target: number) {
+  const [val, setVal] = useState(target);
+  const rafRef = useRef<number | null>(null);
+  const prevRef = useRef(target);
+  useEffect(() => {
+    const from = prevRef.current;
+    const to   = target;
+    if (from === to) return;
+    const start = performance.now();
+    const dur   = 600;
+    const tick  = (now: number) => {
+      const p    = Math.min(1, (now - start) / dur);
+      const ease = 1 - Math.pow(1 - p, 3);
+      setVal(from + (to - from) * ease);
+      if (p < 1) rafRef.current = requestAnimationFrame(tick);
+      else { prevRef.current = to; setVal(to); }
+    };
+    rafRef.current = requestAnimationFrame(tick);
+    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
+  }, [target]);
+  return val;
+}
+
+function delayQuality(q: string) {
+  if (q === "Excellent") return { text: "text-emerald-400", badge: "bg-emerald-400/10 border-emerald-400/25" };
+  if (q === "Good")      return { text: "text-cyan-400",    badge: "bg-cyan-400/10 border-cyan-400/25" };
+  if (q === "Fair")      return { text: "text-amber-400",   badge: "bg-amber-400/10 border-amber-400/25" };
+  return                        { text: "text-red-400",     badge: "bg-red-400/10 border-red-400/25" };
+}
+
+function DelayBar({ ms, max, color }: { ms: number; max: number; color: string }) {
+  const pct = Math.min(100, (ms / Math.max(max, 0.001)) * 100);
+  return (
+    <div className="flex-1 h-1.5 rounded-full bg-[#1C2330]">
+      <motion.div
+        className="h-full rounded-full"
+        style={{ backgroundColor: color, boxShadow: `0 0 7px ${color}55` }}
+        initial={{ width: 0 }}
+        animate={{ width: `${pct}%` }}
+        transition={{ duration: 0.85, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
+      />
+    </div>
+  );
+}
+
+const BREAKDOWN_NOTES: Record<string, string> = {
+  "Base OS overhead":  "Kernel + scheduler baseline at current system load",
+  "CPU scheduling":    "Thread dispatch delay — rises with CPU load and process count",
+  "Memory paging":     "RAM access latency from working-set pressure or paging activity",
+  "Process overhead":  "Background process contention and context-switch cost",
+};
+const BAR_COLORS = [
+  "rgba(190,205,220,0.55)",
+  "hsl(338,70%,60%)",
+  "hsl(200,75%,55%)",
+  "hsl(45,80%,55%)",
+];
+
+function InputDelaySection() {
+  const { data: intel } = useDashboardIntelligence();
+  const latency    = intel?.latency ?? null;
+  const store      = useLatencyAnalyzerStore();
+  const hasAnalysis = store.sampleCount > 0;
+
+  const animMs = useAnimatedDelayValue(latency?.estimatedMs ?? 0);
+
+  // Correlate live-analyzer DPC/ISR data into delay budget when available
+  const dpcMs = hasAnalysis ? +(store.avgDpcPct * 0.08).toFixed(2) : null;
+  const isrMs = hasAnalysis ? +(store.avgIntrPct * 0.04).toFixed(2) : null;
+
+  const ql = latency ? delayQuality(latency.quality) : null;
+
+  const trendIcon = latency?.trend === "rising"
+    ? <TrendingUp  className="size-3 text-red-400" />
+    : latency?.trend === "falling"
+    ? <TrendingDown className="size-3 text-emerald-400" />
+    : <Minus className="size-3 text-[#6B7380]" />;
+
+  const total = latency?.breakdown.reduce((s, b) => s + b.ms, 0) ?? 0;
+
+  return (
+    <div>
+      <h2 className="text-[11px] text-[#6B7380] uppercase tracking-wider mb-3 flex items-center gap-1.5">
+        <Gauge className="size-3.5" /> Input Delay Analysis
+      </h2>
+
+      <GlassCard className="p-5 lg:p-6">
+        {/* ── Hero number ─────────────────────────────────────── */}
+        <div className="flex items-start justify-between gap-4 mb-6">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className="text-[10px] font-medium text-[#6B7380] uppercase tracking-wider">
+                Estimated end-to-end input delay
+              </span>
+              <span className="text-[9px] px-1.5 py-0.5 rounded border border-[#2A313A] text-[#5A6270]">
+                {latency?.confidence === "high" ? "High confidence" : "Estimated"}
+              </span>
+            </div>
+            <div className="flex items-end gap-2">
+              {latency ? (
+                <>
+                  <span className="text-5xl font-bold tabular-nums leading-none text-[#E6EAF0]">
+                    ~{animMs.toFixed(1)}
+                  </span>
+                  <span className="text-lg text-[#6B7380] mb-1">ms</span>
+                  <div className="flex items-center gap-1.5 mb-1.5 ml-1">
+                    {trendIcon}
+                    <span className={cn("text-sm font-semibold", ql?.text)}>
+                      {latency.quality}
+                    </span>
+                  </div>
+                </>
+              ) : (
+                <div className="h-12 w-40 rounded-lg bg-[#1C2330] animate-pulse" />
+              )}
+            </div>
+            <p className="text-[9px] text-[#4A5260] mt-1.5 leading-relaxed max-w-sm">
+              Derived from live OS metrics — not a hardware measurement. Reflects kernel scheduling and memory pressure.
+            </p>
+          </div>
+
+          {latency && ql && (
+            <div className={cn("shrink-0 rounded-xl border px-4 py-3 text-center min-w-[88px]", ql.badge)}>
+              <div className={cn("text-xs font-bold uppercase tracking-wide", ql.text)}>
+                {latency.quality}
+              </div>
+              <div className="text-[9px] text-[#5A6270] mt-0.5">overall</div>
+            </div>
+          )}
+        </div>
+
+        {/* ── OS-derived breakdown ─────────────────────────────── */}
+        <p className="text-[10px] text-[#6B7380] uppercase tracking-wider mb-3">OS delay breakdown</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 mb-2">
+          {latency ? (
+            latency.breakdown.map((b, i) => (
+              <div key={b.label} className="space-y-1.5">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <span className="text-xs font-medium text-[#C0C8D4]">{b.label}</span>
+                    <p className="text-[9px] text-[#5A6270] mt-0.5 leading-tight">
+                      {BREAKDOWN_NOTES[b.label] ?? b.note}
+                    </p>
+                  </div>
+                  <span className="text-xs font-mono text-[#A0A8B3] shrink-0 mt-0.5">{b.ms.toFixed(1)}ms</span>
+                </div>
+                <DelayBar ms={b.ms} max={5} color={BAR_COLORS[i] ?? BAR_COLORS[0]} />
+              </div>
+            ))
+          ) : (
+            Array.from({ length: 4 }, (_, i) => (
+              <div key={i} className="space-y-1.5">
+                <div className="h-4 w-3/4 rounded bg-[#1C2330] animate-pulse" />
+                <div className="h-1.5 rounded-full bg-[#1C2330] animate-pulse" />
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* ── Analyzer-sourced rows (shown only after a run) ──── */}
+        {hasAnalysis && (dpcMs !== null || isrMs !== null) && (
+          <>
+            <div className="border-t border-[#1C2330] my-5" />
+            <p className="text-[10px] text-[#6B7380] uppercase tracking-wider mb-3">
+              From live analyzer data
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 mb-2">
+              {dpcMs !== null && (
+                <div className="space-y-1.5">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <span className="text-xs font-medium text-[#C0C8D4]">DPC scheduling impact</span>
+                      <p className="text-[9px] text-[#5A6270] mt-0.5 leading-tight">
+                        Deferred procedure calls — avg {fmt1(store.avgDpcPct)}% CPU load
+                      </p>
+                    </div>
+                    <span className="text-xs font-mono text-[#A0A8B3] shrink-0 mt-0.5">{dpcMs.toFixed(2)}ms</span>
+                  </div>
+                  <DelayBar ms={dpcMs} max={3} color="hsl(270,60%,65%)" />
+                </div>
+              )}
+              {isrMs !== null && (
+                <div className="space-y-1.5">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <span className="text-xs font-medium text-[#C0C8D4]">ISR interrupt overhead</span>
+                      <p className="text-[9px] text-[#5A6270] mt-0.5 leading-tight">
+                        Hardware interrupt service — avg {fmt1(store.avgIntrPct)}% CPU load
+                      </p>
+                    </div>
+                    <span className="text-xs font-mono text-[#A0A8B3] shrink-0 mt-0.5">{isrMs.toFixed(2)}ms</span>
+                  </div>
+                  <DelayBar ms={isrMs} max={3} color="hsl(165,60%,55%)" />
+                </div>
+              )}
+            </div>
+          </>
+        )}
+
+        {/* ── Key contributors ranked ──────────────────────────── */}
+        {latency && total > 0 && (
+          <>
+            <div className="border-t border-[#1C2330] my-5" />
+            <p className="text-[10px] text-[#6B7380] uppercase tracking-wider mb-3">Key contributors</p>
+            <div className="space-y-1.5">
+              {latency.breakdown
+                .slice()
+                .sort((a, b) => b.ms - a.ms)
+                .map((b, i) => {
+                  const pct   = Math.round((b.ms / total) * 100);
+                  const isTop = i === 0;
+                  return (
+                    <div
+                      key={b.label}
+                      className={cn(
+                        "flex items-center justify-between rounded-lg px-3 py-2",
+                        isTop
+                          ? "bg-[#1A2233] border border-[#2A3545]"
+                          : "bg-[#141A23]",
+                      )}
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        {isTop
+                          ? <Zap className="size-3 text-amber-400 shrink-0" />
+                          : <span className="size-3 shrink-0" />
+                        }
+                        <span className="text-[11px] text-[#C0C8D4] truncate">{b.label}</span>
+                      </div>
+                      <div className="flex items-center gap-4 shrink-0">
+                        <span className="text-[10px] text-[#5A6270]">{pct}% of delay</span>
+                        <span className="text-[11px] font-mono text-[#A0A8B3] w-12 text-right">
+                          {b.ms.toFixed(1)}ms
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+          </>
+        )}
+
+        {/* ── Footnote ─────────────────────────────────────────── */}
+        <p className="text-[9px] text-[#333C4A] mt-5 leading-relaxed">
+          This estimate covers OS-level scheduling and memory overhead only. It does not include hardware polling
+          rate, USB transport delay, monitor response time, network round-trip, or in-game engine latency.
+          Run the Latency Analyzer above to capture DPC and interrupt-level driver data.
+        </p>
+      </GlassCard>
+    </div>
+  );
+}
+
+// ── 11. Limitations notice ─────────────────────────────────────────────────────
 
 function LimitationsNotice() {
   return (
@@ -1569,6 +1826,9 @@ export default function LatencyAnalyzer() {
 
         {/* Export + Notes */}
         <ExportNotesCard />
+
+        {/* Input Delay Analysis */}
+        <InputDelaySection />
 
         {/* Limitations */}
         <LimitationsNotice />
