@@ -1,8 +1,8 @@
 import express, { Router, Request, Response, RequestHandler } from "express";
 import { z } from "zod";
-import rateLimit from "express-rate-limit";
 import OpenAI from "openai";
 import { requireJwt } from "../middleware/requireCloudAuth";
+import { securityLimiter } from "../middleware/rateLimiter";
 import { generateRecommendations } from "../security/recommendations";
 import type {
   SecurityStatus,
@@ -19,25 +19,8 @@ const securityRouter = Router();
 // large images aren't silently rejected with a 413 before reaching the handler.
 securityRouter.use(express.json({ limit: "10mb" }));
 
-// ---------------------------------------------------------------------------
-// Rate limiter
-// ---------------------------------------------------------------------------
-
-const securityLimiter = rateLimit({
-  windowMs: 5 * 60 * 1000,
-  max: 20,
-  standardHeaders: true,
-  legacyHeaders: false,
-  validate: { xForwardedForHeader: false, keyGeneratorIpFallback: false },
-  keyGenerator: (req: Request) => {
-    if ((req as any).cloudUser?.id) return `sec:cloud:${(req as any).cloudUser.id}`;
-    const raw = req.headers["x-device-id"] as string | undefined;
-    if (raw && raw.length >= 16 && raw.length <= 128 && /^[a-zA-Z0-9_-]+$/.test(raw)) return `sec:device:${raw}`;
-    return req.ip || req.socket?.remoteAddress || "fallback";
-  },
-  message: { error: "Too many security requests. Please wait a few minutes." },
-});
-
+// Rate limiting is handled by the centralised rateLimiter module so composite-
+// key logic and future changes stay in one place.
 securityRouter.use(securityLimiter);
 
 // ---------------------------------------------------------------------------

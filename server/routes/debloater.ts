@@ -2,8 +2,13 @@ import { Router } from "express";
 import { sql } from "drizzle-orm";
 import { db, isNoDbMode } from "../db";
 import { appendLocalHistoryEntry, getLocalHistory } from "../lib/localDebloatHistory";
+import { debloatLimiter } from "../middleware/rateLimiter";
 
 const router = Router();
+
+// Each debloat request can spawn powershell.exe — cap throughput to prevent
+// sustained WMI load from a single user hammering the endpoint.
+router.use(debloatLimiter);
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
