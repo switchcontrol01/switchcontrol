@@ -14,9 +14,14 @@ import { useEntitlementUiState } from "@/hooks/useEntitlementUiState";
 import { useAuth } from "@/hooks/use-auth";
 
 
+// Module-level flag — survives remounts within the same session but resets on
+// app reboot (module reload). useState(false) was wrong: it reset every time
+// the user navigated away and the banner remounted.
+let _trialBannerDismissed = false;
+
 function TrialCountdownBanner() {
   const ent = useEntitlementUiState();
-  const [dismissed, setDismissed] = useState(false);
+  const [dismissed, setDismissed] = useState(_trialBannerDismissed);
 
   if (!ent.showTrialBanner || dismissed) return null;
 
@@ -56,7 +61,7 @@ function TrialCountdownBanner() {
       </div>
       <div className="flex items-center gap-3">
         <button
-          onClick={() => setDismissed(true)}
+          onClick={() => { _trialBannerDismissed = true; setDismissed(true); }}
           className="text-[#6B7380] hover:text-[#A0A8B3] text-xs transition-colors ml-1"
           aria-label="Dismiss"
         >
