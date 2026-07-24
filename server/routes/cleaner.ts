@@ -736,6 +736,18 @@ router.post("/clean", async (req: any, res) => {
     }
 
     const er = electronResults[itemId];
+
+    // No electron data = not actually cleaned (browser mode or IPC failure)
+    if (!er) {
+      results[itemId] = {
+        id: itemId,
+        status: "unsupported",
+        bytesRemoved: 0,
+        filesRemoved: 0,
+      };
+      continue;
+    }
+
     let status: CleanStatus = "cleaned";
     let bytesRemoved = 0, filesRemoved = 0;
     let error: string | undefined;

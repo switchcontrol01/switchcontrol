@@ -100,13 +100,16 @@ function timeAgo(iso: string): string {
 function CountUp({ target, duration = 900, decimals = 0 }: { target: number; duration?: number; decimals?: number }) {
   const [val, setVal] = useState(0);
   const raf = useRef(0);
+  const fromRef = useRef(0);
   useEffect(() => {
+    const from = fromRef.current;
     const start = performance.now();
-    const from = val;
     const tick = (now: number) => {
       const t = Math.min((now - start) / duration, 1);
       const eased = 1 - Math.pow(1 - t, 3);
-      setVal(from + (target - from) * eased);
+      const next = from + (target - from) * eased;
+      fromRef.current = next;
+      setVal(next);
       if (t < 1) raf.current = requestAnimationFrame(tick);
     };
     raf.current = requestAnimationFrame(tick);
@@ -137,7 +140,7 @@ function DonutChart({ segments, total, centerLabel, centerSub }: {
           const pct = total > 0 ? seg.bytes / total : 0;
           const dash = circ * pct;
           const gap  = circ - dash;
-          const rot  = -90 + (offset / total) * 360;
+          const rot  = total > 0 ? -90 + (offset / total) * 360 : -90;
           offset += seg.bytes;
           return (
             <circle key={seg.id} cx={cx} cy={cx} r={r} fill="none"
@@ -166,9 +169,10 @@ function DonutChart({ segments, total, centerLabel, centerSub }: {
 
 // ── Sparkline ─────────────────────────────────────────────────────────────────
 
-function Sparkline({ data, color = "#8b5cf6", height = 40 }: { data: number[]; color?: string; height?: number }) {
+function Sparkline({ data, color = "#8b5cf6", height = 40, id = "default" }: { data: number[]; color?: string; height?: number; id?: string }) {
   if (data.length < 2) return null;
   const w = 200; const pad = 4;
+  const gradId = `spark-fill-${id}`;
   const max = Math.max(...data) || 1;
   const pts = data.map((v, i) => [
     pad + (i / (data.length - 1)) * (w - pad * 2),
@@ -184,12 +188,12 @@ function Sparkline({ data, color = "#8b5cf6", height = 40 }: { data: number[]; c
   return (
     <svg width={w} height={height} viewBox={`0 0 ${w} ${height}`} style={{ overflow: "visible" }}>
       <defs>
-        <linearGradient id="spark-fill" x1="0" y1="0" x2="0" y2="1">
+        <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor={color} stopOpacity={0.3} />
           <stop offset="100%" stopColor={color} stopOpacity={0} />
         </linearGradient>
       </defs>
-      <path d={fillD} fill="url(#spark-fill)" />
+      <path d={fillD} fill={`url(#${gradId})`} />
       <path d={pathD} fill="none" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
       {/* Last point dot */}
       <circle cx={pts[pts.length - 1][0]} cy={pts[pts.length - 1][1]} r={3} fill={color} />
@@ -436,7 +440,7 @@ function HistoryPanel({ history, scanHistory, onBack }: {
       {scanHistory.length >= 2 && (
         <div className="rounded-2xl border border-white/[0.07] bg-white/[0.02] p-4">
           <p className="text-[11px] text-[#6B7380] mb-3">Bytes found per scan</p>
-          <Sparkline data={scanHistory.map(s => s.total_bytes)} height={48} color="#8b5cf6" />
+          <Sparkline data={scanHistory.map(s => s.total_bytes)} height={48} color="#8b5cf6" id="history-panel" />
         </div>
       )}
 
@@ -570,8 +574,9 @@ export default function SystemCleaner() {
     } catch (e: any) {
       setPhase("idle");
       toast({ title: "Scan error", description: e.message, variant: "destructive" });
+    } finally {
+      scanRef.current = false;
     }
-    scanRef.current = false;
   }, [allItems, mode, toast, loadHistory]);
 
   // ── Clean ─────────────────────────────────────────────────────────────────
@@ -592,7 +597,16 @@ export default function SystemCleaner() {
       for (const id of ids) {
         try {
           const r = await getEC()!.clean([id]);
-          if (r.ok && r.results[id]) electronResults[id] = r.results[id];
+          if (!r.ok) {
+            if (r.reason === 'busy') {
+              toast({ title: "Another operation is running", description: "Please wait and try again.", variant: "destructive" });
+              setIsCleaning(false);
+              setPhase("ready");
+              return;
+            }
+            continue;
+          }
+          if (r.results[id]) electronResults[id] = r.results[id];
         } catch (e: any) { electronResults[id] = { bytesRemoved: 0, filesRemoved: 0, failed: 1, error: e.message }; }
         setCleanResults(prev => ({ ...prev, [id]: { id, status: "cleaned", bytesRemoved: electronResults[id]?.bytesRemoved ?? 0, filesRemoved: electronResults[id]?.filesRemoved ?? 0 } }));
       }
@@ -795,7 +809,7 @@ export default function SystemCleaner() {
                         {scanHistory.length >= 2 && (
                           <div className="rounded-xl border border-white/[0.07] bg-white/[0.03] px-4 py-3">
                             <p className="text-[10px] text-[#6B7380] uppercase tracking-wide mb-2">Scan trend</p>
-                            <Sparkline data={scanHistory.slice(-8).map(s => s.total_bytes)} height={36} color="#8b5cf6" />
+                            <Sparkline data={scanHistory.slice(-8).map(s => s.total_bytes)} height={36} color="#8b5cf6" id="idle-trend" />
                           </div>
                         )}
                       </>
@@ -1062,7 +1076,7 @@ export default function SystemCleaner() {
               {scanHistory.length >= 2 && (
                 <div className="rounded-2xl border border-white/[0.07] bg-white/[0.02] px-5 py-4">
                   <p className="text-[11px] text-[#6B7380] uppercase tracking-wide mb-3 font-semibold">Scan trend</p>
-                  <Sparkline data={scanHistory.slice(-12).map(s => s.total_bytes)} height={52} color="#8b5cf6" />
+                  <Sparkline data={scanHistory.slice(-12).map(s => s.total_bytes)} height={52} color="#8b5cf6" id="result-trend" />
                   <div className="flex justify-between mt-2">
                     <span className="text-[10px] text-[#4a5460]">{scanHistory.length >= 2 ? timeAgo(scanHistory[Math.max(0, scanHistory.length - 12)].ran_at) : ""}</span>
                     <span className="text-[10px] text-[#4a5460]">now</span>

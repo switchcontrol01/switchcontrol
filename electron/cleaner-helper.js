@@ -362,9 +362,11 @@ const SCAN_DEFS = {
           $vals.PSObject.Properties |
             Where-Object { $_.Name -notlike 'PS*' } |
             ForEach-Object {
-              $exe = ($_.Value -replace '"','').Split(' ')[0].Trim()
-              # Check if path exists (skip env vars, registry-only, system paths)
-              If ($exe -match '^[A-Za-z]:\\' -and $exe -notmatch 'system32|SysWOW64' -and !(Test-Path $exe)) {
+              $rawVal = ($_.Value -replace '"','').Trim()
+              $expanded = [System.Environment]::ExpandEnvironmentVariables($rawVal)
+              $exe = $expanded.Split(' ')[0].Trim()
+              $sysPath = $exe -match '(?i)(system32|SysWOW64|SystemRoot|Windows\\)'
+              If (!$sysPath -and $exe -match '^[A-Za-z]:\\' -and !(Test-Path $exe)) {
                 $dead++
               }
             }
@@ -385,8 +387,11 @@ const SCAN_DEFS = {
             Where-Object { $_.Name -notlike 'PS*' } |
             ForEach-Object {
               $name = $_.Name
-              $exe = ($_.Value -replace '"','').Split(' ')[0].Trim()
-              If ($exe -match '^[A-Za-z]:\\' -and $exe -notmatch 'system32|SysWOW64' -and !(Test-Path $exe)) {
+              $rawVal = ($_.Value -replace '"','').Trim()
+              $expanded = [System.Environment]::ExpandEnvironmentVariables($rawVal)
+              $exe = $expanded.Split(' ')[0].Trim()
+              $sysPath = $exe -match '(?i)(system32|SysWOW64|SystemRoot|Windows\\)'
+              If (!$sysPath -and $exe -match '^[A-Za-z]:\\' -and !(Test-Path $exe)) {
                 Try {
                   Remove-ItemProperty -Path $rp -Name $name -ErrorAction Stop
                   $cnt++
@@ -418,7 +423,7 @@ const SCAN_DEFS = {
           Try {
             $sz = $_.Length
             wevtutil.exe cl $_.BaseName 2>$null
-            $removed += $sz - $_.Length; $cnt++
+            $removed += $sz; $cnt++
           } Catch {}
         }
       Write-Output "$removed|$cnt|0"
@@ -925,220 +930,23 @@ const SCAN_DEFS = {
 
   windows_installer_leftovers: {
     scanCmd: () => `
-      $p = '${windir}\\Installer\\$PatchCache
-
-// ── Parse scan/clean output ───────────────────────────────────────────────────
-function parseOutput(output) {
-  const parts = output.split('|').map(p => parseInt(p.trim(), 10) || 0);
-  return { a: parts[0] ?? 0, b: parts[1] ?? 0, c: parts[2] ?? 0 };
-}
-
-// ── IPC: cleaner:scan ─────────────────────────────────────────────────────────
-// Returns { ok, results: { [itemId]: { sizeBytes, fileCount, found, error? } } }
-
-ipcMain.handle('cleaner:scan', async (event, itemIds) => {
-  if (process.platform !== 'win32') {
-    return { ok: false, reason: 'not-windows', results: {} };
-  }
-  // P2-C1: single-flight — prevent a second scan while one is running
-  const token = psLimiter.tryAcquire({ file: 'cleaner-helper.js', fn: 'cleaner:scan', reason: 'cleaner-scan' });
-  if (!token) return { ok: false, reason: 'busy', results: {} };
-
-  const ids = Array.isArray(itemIds) ? itemIds : Object.keys(SCAN_DEFS);
-  const results = {};
-  try {
-    await Promise.all(ids.map(async id => {
-      const def = SCAN_DEFS[id];
-      if (!def) { results[id] = { sizeBytes: 0, fileCount: 0, found: false, error: 'unknown-item' }; return; }
-      try {
-        const out = await runPS(def.scanCmd(), 15000);
-        const { a: sizeBytes, b: fileCount } = parseOutput(out);
-        results[id] = { sizeBytes, fileCount, found: fileCount > 0 || sizeBytes > 0 };
-      } catch (err) {
-        results[id] = { sizeBytes: 0, fileCount: 0, found: false, error: err.message };
-      }
-    }));
-  } finally {
-    psLimiter.release(token);
-  }
-  return { ok: true, results };
-});
-
-// ── IPC: cleaner:clean ────────────────────────────────────────────────────────
-// Cleans selected items. Returns { ok, results: { [itemId]: { bytesRemoved, filesRemoved, failed, error? } } }
-
-ipcMain.handle('cleaner:clean', async (event, itemIds) => {
-  if (process.platform !== 'win32') {
-    return { ok: false, reason: 'not-windows', results: {} };
-  }
-  // P2-C1: single-flight — prevent clean while scan (or another clean) is running
-  const token = psLimiter.tryAcquire({ file: 'cleaner-helper.js', fn: 'cleaner:clean', reason: 'cleaner-clean' });
-  if (!token) return { ok: false, reason: 'busy', results: {} };
-
-  const results = {};
-  try {
-    for (const id of itemIds) {
-      const def = SCAN_DEFS[id];
-      if (!def) { results[id] = { bytesRemoved: 0, filesRemoved: 0, failed: 0, error: 'unknown-item' }; continue; }
-      try {
-        const out = await runPS(def.cleanCmd(), 20000);
-        const { a: bytesRemoved, b: filesRemoved, c: failed } = parseOutput(out);
-        results[id] = { bytesRemoved, filesRemoved, failed };
-      } catch (err) {
-        results[id] = { bytesRemoved: 0, filesRemoved: 0, failed: 1, error: err.message };
-      }
-    }
-  } finally {
-    psLimiter.release(token);
-  }
-  return { ok: true, results };
-});
-
-// ── IPC: cleaner:verify ───────────────────────────────────────────────────────
-// Re-scans after cleaning to verify. Returns same structure as scan.
-
-ipcMain.handle('cleaner:verify', async (event, itemIds) => {
-  if (process.platform !== 'win32') {
-    return { ok: false, reason: 'not-windows', results: {} };
-  }
-  // P2-C1: single-flight — verify is a scan operation, use the scan slot
-  const token = psLimiter.tryAcquire({ file: 'cleaner-helper.js', fn: 'cleaner:verify', reason: 'cleaner-verify' });
-  if (!token) return { ok: false, reason: 'busy', results: {} };
-
-  const results = {};
-  try {
-    await Promise.all(itemIds.map(async id => {
-      const def = SCAN_DEFS[id];
-      if (!def) { results[id] = { sizeBytes: 0, fileCount: 0, found: false }; return; }
-      try {
-        const out = await runPS(def.scanCmd(), 12000);
-        const { a: sizeBytes, b: fileCount } = parseOutput(out);
-        results[id] = { sizeBytes, fileCount, found: fileCount > 0 || sizeBytes > 0 };
-      } catch (err) {
-        results[id] = { sizeBytes: 0, fileCount: 0, found: false, error: err.message };
-      }
-    }));
-  } finally {
-    psLimiter.release(token);
-  }
-  return { ok: true, results };
-});
-
-console.log('[Cleaner] IPC handlers registered');
-
+      $p = '${windir}\\Installer\\$PatchCache$'
       If (Test-Path $p) {
-        $items = Get-ChildItem $p -Recurse -Force -ErrorAction SilentlyContinue | Where-Object {!$_.PSIsContainer}
+        $items = Get-ChildItem $p -Recurse -Force -ErrorAction SilentlyContinue |
+          Where-Object {!$_.PSIsContainer}
         $total = ($items | Measure-Object Length -Sum).Sum
         Write-Output "$total|$($items.Count)"
       } Else { Write-Output "0|0" }
     `,
     cleanCmd: () => `
-      $p = '${windir}\\Installer\\$PatchCache
-
-// ── Parse scan/clean output ───────────────────────────────────────────────────
-function parseOutput(output) {
-  const parts = output.split('|').map(p => parseInt(p.trim(), 10) || 0);
-  return { a: parts[0] ?? 0, b: parts[1] ?? 0, c: parts[2] ?? 0 };
-}
-
-// ── IPC: cleaner:scan ─────────────────────────────────────────────────────────
-// Returns { ok, results: { [itemId]: { sizeBytes, fileCount, found, error? } } }
-
-ipcMain.handle('cleaner:scan', async (event, itemIds) => {
-  if (process.platform !== 'win32') {
-    return { ok: false, reason: 'not-windows', results: {} };
-  }
-  // P2-C1: single-flight — prevent a second scan while one is running
-  const token = psLimiter.tryAcquire({ file: 'cleaner-helper.js', fn: 'cleaner:scan', reason: 'cleaner-scan' });
-  if (!token) return { ok: false, reason: 'busy', results: {} };
-
-  const ids = Array.isArray(itemIds) ? itemIds : Object.keys(SCAN_DEFS);
-  const results = {};
-  try {
-    await Promise.all(ids.map(async id => {
-      const def = SCAN_DEFS[id];
-      if (!def) { results[id] = { sizeBytes: 0, fileCount: 0, found: false, error: 'unknown-item' }; return; }
-      try {
-        const out = await runPS(def.scanCmd(), 15000);
-        const { a: sizeBytes, b: fileCount } = parseOutput(out);
-        results[id] = { sizeBytes, fileCount, found: fileCount > 0 || sizeBytes > 0 };
-      } catch (err) {
-        results[id] = { sizeBytes: 0, fileCount: 0, found: false, error: err.message };
-      }
-    }));
-  } finally {
-    psLimiter.release(token);
-  }
-  return { ok: true, results };
-});
-
-// ── IPC: cleaner:clean ────────────────────────────────────────────────────────
-// Cleans selected items. Returns { ok, results: { [itemId]: { bytesRemoved, filesRemoved, failed, error? } } }
-
-ipcMain.handle('cleaner:clean', async (event, itemIds) => {
-  if (process.platform !== 'win32') {
-    return { ok: false, reason: 'not-windows', results: {} };
-  }
-  // P2-C1: single-flight — prevent clean while scan (or another clean) is running
-  const token = psLimiter.tryAcquire({ file: 'cleaner-helper.js', fn: 'cleaner:clean', reason: 'cleaner-clean' });
-  if (!token) return { ok: false, reason: 'busy', results: {} };
-
-  const results = {};
-  try {
-    for (const id of itemIds) {
-      const def = SCAN_DEFS[id];
-      if (!def) { results[id] = { bytesRemoved: 0, filesRemoved: 0, failed: 0, error: 'unknown-item' }; continue; }
-      try {
-        const out = await runPS(def.cleanCmd(), 20000);
-        const { a: bytesRemoved, b: filesRemoved, c: failed } = parseOutput(out);
-        results[id] = { bytesRemoved, filesRemoved, failed };
-      } catch (err) {
-        results[id] = { bytesRemoved: 0, filesRemoved: 0, failed: 1, error: err.message };
-      }
-    }
-  } finally {
-    psLimiter.release(token);
-  }
-  return { ok: true, results };
-});
-
-// ── IPC: cleaner:verify ───────────────────────────────────────────────────────
-// Re-scans after cleaning to verify. Returns same structure as scan.
-
-ipcMain.handle('cleaner:verify', async (event, itemIds) => {
-  if (process.platform !== 'win32') {
-    return { ok: false, reason: 'not-windows', results: {} };
-  }
-  // P2-C1: single-flight — verify is a scan operation, use the scan slot
-  const token = psLimiter.tryAcquire({ file: 'cleaner-helper.js', fn: 'cleaner:verify', reason: 'cleaner-verify' });
-  if (!token) return { ok: false, reason: 'busy', results: {} };
-
-  const results = {};
-  try {
-    await Promise.all(itemIds.map(async id => {
-      const def = SCAN_DEFS[id];
-      if (!def) { results[id] = { sizeBytes: 0, fileCount: 0, found: false }; return; }
-      try {
-        const out = await runPS(def.scanCmd(), 12000);
-        const { a: sizeBytes, b: fileCount } = parseOutput(out);
-        results[id] = { sizeBytes, fileCount, found: fileCount > 0 || sizeBytes > 0 };
-      } catch (err) {
-        results[id] = { sizeBytes: 0, fileCount: 0, found: false, error: err.message };
-      }
-    }));
-  } finally {
-    psLimiter.release(token);
-  }
-  return { ok: true, results };
-});
-
-console.log('[Cleaner] IPC handlers registered');
-
+      $p = '${windir}\\Installer\\$PatchCache$'
       $removed = 0; $cnt = 0
       If (Test-Path $p) {
         Get-ChildItem $p -Recurse -Force -ErrorAction SilentlyContinue |
           Where-Object {!$_.PSIsContainer} |
-          ForEach-Object { Try { $sz=$_.Length; Remove-Item $_.FullName -Force -EA Stop; $removed+=$sz; $cnt++ } Catch {} }
+          ForEach-Object {
+            Try { $sz=$_.Length; Remove-Item $_.FullName -Force -EA Stop; $removed+=$sz; $cnt++ } Catch {}
+          }
       }
       Write-Output "$removed|$cnt|0"
     `,
@@ -1290,15 +1098,20 @@ console.log('[Cleaner] IPC handlers registered');
       } Else { Write-Output "0|0" }
     `,
     cleanCmd: () => `
-      $p = '${windir}\\System32\\spool\\PRINTERS'
       $removed = 0; $cnt = 0
+      $p = '${windir}\\System32\\spool\\PRINTERS'
       Try { Stop-Service -Name Spooler -Force -ErrorAction Stop } Catch {}
-      If (Test-Path $p) {
-        Get-ChildItem $p -Recurse -Force -ErrorAction SilentlyContinue |
-          Where-Object {!$_.PSIsContainer} |
-          ForEach-Object { Try { $sz=$_.Length; Remove-Item $_.FullName -Force -EA Stop; $removed+=$sz; $cnt++ } Catch {} }
+      Try {
+        If (Test-Path $p) {
+          Get-ChildItem $p -Recurse -Force -ErrorAction SilentlyContinue |
+            Where-Object {!$_.PSIsContainer} |
+            ForEach-Object {
+              Try { $sz=$_.Length; Remove-Item $_.FullName -Force -EA Stop; $removed+=$sz; $cnt++ } Catch {}
+            }
+        }
+      } Finally {
+        Try { Start-Service -Name Spooler -ErrorAction SilentlyContinue } Catch {}
       }
-      Try { Start-Service -Name Spooler -ErrorAction SilentlyContinue } Catch {}
       Write-Output "$removed|$cnt|0"
     `,
   },
@@ -1339,7 +1152,11 @@ console.log('[Cleaner] IPC handlers registered');
       If (Test-Path $p) {
         Get-ChildItem $p -Filter 'Microsoft-Windows-Bluetooth*.evtx' -Force -ErrorAction SilentlyContinue |
           ForEach-Object {
-            Try { $sz=$_.Length; wevtutil.exe cl $_.BaseName 2>$null; $removed+=$sz; $cnt++ } Catch {}
+            Try {
+              $sz = $_.Length
+              wevtutil.exe cl $_.BaseName 2>$null
+              $removed += $sz; $cnt++
+            } Catch {}
           }
       }
       Write-Output "$removed|$cnt|0"
@@ -1360,16 +1177,26 @@ console.log('[Cleaner] IPC handlers registered');
       Write-Output "$total|$cnt"
     `,
     cleanCmd: () => `
-      $total = 0; $cnt = 0
+      $total = 0; $cnt = 0; $failed = 0
       Get-PSDrive -PSProvider FileSystem -ErrorAction SilentlyContinue | ForEach-Object {
         $rb = "$($_.Root)\`$Recycle.Bin"
         If (Test-Path $rb) {
-          $items = Get-ChildItem $rb -Recurse -Force -ErrorAction SilentlyContinue | Where-Object {!$_.PSIsContainer}
-          $total += ($items | Measure-Object Length -Sum).Sum; $cnt += $items.Count
+          $items = Get-ChildItem $rb -Recurse -Force -ErrorAction SilentlyContinue |
+            Where-Object {!$_.PSIsContainer}
+          $drvBytes = ($items | Measure-Object Length -Sum).Sum
+          $drvCnt   = $items.Count
+          If ($drvCnt -gt 0) {
+            Try {
+              Clear-RecycleBin -DriveLetter $_.Name -Force -ErrorAction Stop
+              $total += $drvBytes
+              $cnt   += $drvCnt
+            } Catch {
+              $failed++
+            }
+          }
         }
       }
-      Clear-RecycleBin -Force -ErrorAction SilentlyContinue
-      Write-Output "$total|$cnt|0"
+      Write-Output "$total|$cnt|$failed"
     `,
   },
 
@@ -1476,7 +1303,8 @@ ipcMain.handle('cleaner:scan', async (event, itemIds) => {
       const def = SCAN_DEFS[id];
       if (!def) { results[id] = { sizeBytes: 0, fileCount: 0, found: false, error: 'unknown-item' }; return; }
       try {
-        const out = await runPS(def.scanCmd(), 15000);
+        const timeout = id === 'old_windows_update' ? 60000 : 15000;
+        const out = await runPS(def.scanCmd(), timeout);
         const { a: sizeBytes, b: fileCount } = parseOutput(out);
         results[id] = { sizeBytes, fileCount, found: fileCount > 0 || sizeBytes > 0 };
       } catch (err) {
