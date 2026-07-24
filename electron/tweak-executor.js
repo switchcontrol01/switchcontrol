@@ -4,10 +4,13 @@ const fs = require('fs');
 const os = require('os');
 const { TWEAK_STATE_FILE, TWEAK_LOG_FILE, WINDOWED_GAMES_BACKUP_FILE, VENDOR_UPDATERS_BACKUP_FILE, TEAMS_STARTUP_BACKUP_FILE } = require('./user-data-paths');
 
-// Pre-compute PS-escaped versions of backup paths (backslashes doubled for PS double-quoted strings).
-const _WINDOWED_GAMES_BK    = WINDOWED_GAMES_BACKUP_FILE.replace(/\\/g, '\\\\');
-const _VENDOR_UPDATERS_BK   = VENDOR_UPDATERS_BACKUP_FILE.replace(/\\/g, '\\\\');
-const _TEAMS_STARTUP_BK     = TEAMS_STARTUP_BACKUP_FILE.replace(/\\/g, '\\\\');
+// Backup-path constants used inside PowerShell double-quoted strings.
+// PowerShell does NOT treat backslash as an escape character in double-quoted
+// strings (only backtick is the escape); Windows path APIs accept single
+// backslashes normally, so no doubling is needed.
+const _WINDOWED_GAMES_BK    = WINDOWED_GAMES_BACKUP_FILE;
+const _VENDOR_UPDATERS_BK   = VENDOR_UPDATERS_BACKUP_FILE;
+const _TEAMS_STARTUP_BK     = TEAMS_STARTUP_BACKUP_FILE;
 
 // ─── file helpers ──────────────────────────────────────────────────────────────
 function ensureStateDir() {
@@ -59,6 +62,23 @@ function saveState(state) {
     console.error('[TweakExecutor] saveState failed:', e.message);
     try { fs.unlinkSync(TWEAK_STATE_FILE + '.tmp'); } catch {}
   }
+}
+
+// ─── Serialised state read-modify-write ───────────────────────────────────────
+// With MAX_PS_CONCURRENT=2, two tweaks can complete close together and both
+// execute loadState → mutate → saveState concurrently. Whichever write lands
+// last silently clobbers the other tweak's freshly-written status. Fix: funnel
+// ALL read-modify-write pairs through a promise queue so at most one is in
+// progress at any moment.
+let _stateLock = Promise.resolve();
+function _updateState(fn) {
+  const next = _stateLock.then(() => {
+    const state = loadState();
+    fn(state);
+    saveState(state);
+  });
+  _stateLock = next.catch(() => {}); // keep the chain alive even if fn throws
+  return next;
 }
 
 function logEntry(entry) {
@@ -342,7 +362,11 @@ async function runElevated(command) {
   const launchCmd = `Start-Process powershell -WindowStyle Hidden -ArgumentList @('-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-WindowStyle', 'Hidden', '-File', '${safeScriptPath}') -Verb RunAs -Wait`;
 
   try {
-    await new Promise((resolve, reject) => {
+    // Wrap the UAC-launcher execFile in the PS semaphore so runElevated counts
+    // against MAX_PS_CONCURRENT. Without this, bulk admin-tweak flows bypassed
+    // the cap entirely — each runElevated spawned its own launcher + elevated
+    // child outside the semaphore, violating the "never more than 2" invariant.
+    await _withPsSemaphore(() => new Promise((resolve, reject) => {
       execFile(
         'powershell',
         ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-Command', launchCmd],
@@ -358,7 +382,7 @@ async function runElevated(command) {
           }
         }
       );
-    });
+    }));
 
     // Poll for the result file for up to 5 seconds.
     // Start-Process -Wait has a race on some Windows versions where it returns
@@ -412,7 +436,10 @@ const POLICY_CHECKS = {
   'telemetry':      `$v=(Get-ItemProperty 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\DataCollection' -Name 'AllowTelemetry' -EA SilentlyContinue).AllowTelemetry; $null -ne $v -and $v -ne 0`,
   'gaming-mode':    `(Get-ItemProperty 'HKCU:\\SOFTWARE\\Policies\\Microsoft\\Windows\\GameDVR' -Name 'AllowGameDVR' -EA SilentlyContinue).AllowGameDVR -eq 0`,
   'cortana':        `$null -ne (Get-ItemProperty 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\Windows Search' -Name 'AllowCortana' -EA SilentlyContinue)`,
-  'notifications':  `Test-Path 'HKCU:\\SOFTWARE\\Policies\\Microsoft\\Windows\\Explorer'`,
+  // Check for the specific DWORD that blocks the Action Center/notification settings
+  // panel. Test-Path alone misreports whenever the Explorer policy key exists for
+  // unrelated reasons (e.g. other policies are set in the same key).
+  'notifications':  `$v=(Get-ItemProperty 'HKCU:\\SOFTWARE\\Policies\\Microsoft\\Windows\\Explorer' -Name 'NoNotificationCenter' -EA SilentlyContinue).NoNotificationCenter; $null -ne $v -and $v -eq 1`,
   'core-isolation': `$null -ne (Get-ItemProperty 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\DeviceGuard' -Name 'HypervisorEnforcedCodeIntegrity' -EA SilentlyContinue)`,
   'vbs':            `$null -ne (Get-ItemProperty 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\DeviceGuard' -Name 'EnableVirtualizationBasedSecurity' -EA SilentlyContinue)`,
   'fast-startup':   `$null -ne (Get-ItemProperty 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\System' -Name 'HiberbootEnabled' -EA SilentlyContinue)`,
@@ -430,10 +457,12 @@ async function checkPolicyLock(tweakId) {
 function classifyErrorMessage(msg) {
   if (!msg) return 'unknown';
   if (/cancel|deny|denied|declined|uac/i.test(msg))           return 'uac_cancelled';
+  // requires_admin must come before access_denied — a message like
+  // "Administrator access denied" should yield the more actionable hint.
+  if (/privilege|administrator|elevation|elevat/i.test(msg))  return 'requires_admin';
   if (/access.?denied|unauthorized|not.?allowed|forbidden/i.test(msg)) return 'access_denied';
   if (/not found|does not exist|cannot find|path does not/i.test(msg)) return 'not_found';
   if (/policy|gpo|group.?policy|mdm/i.test(msg))             return 'blocked_by_policy';
-  if (/privilege|administrator|elevation|elevat/i.test(msg))  return 'requires_admin';
   return 'unknown';
 }
 
@@ -636,8 +665,11 @@ const HKCU_TWEAKS = {
     name: 'Show File Extensions',
     requiresAdmin:  false,
     requiresReboot: false,
-    apply:  `New-Item -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced" -Name "HideFileExt" -Value 0 -Type DWord -Force; $windows = (New-Object -ComObject Shell.Application).Windows() | Where-Object { $_.Name -eq "File Explorer" }; if ($windows.Count -eq 0) { Stop-Process -Name explorer -Force -EA SilentlyContinue; Start-Sleep -Milliseconds 1200; Start-Process explorer }`,
-    revert: `Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced" -Name "HideFileExt" -Value 1 -Type DWord -Force; $windows = (New-Object -ComObject Shell.Application).Windows() | Where-Object { $_.Name -eq "File Explorer" }; if ($windows.Count -eq 0) { Stop-Process -Name explorer -Force -EA SilentlyContinue; Start-Sleep -Milliseconds 1200; Start-Process explorer }`,
+    // Explorer restart is isolated in its own try/catch so a COM enumeration
+    // failure (Shell.Application.Windows() can throw intermittently) never
+    // causes the registry write — which already succeeded — to report failure.
+    apply:  `New-Item -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced" -Name "HideFileExt" -Value 0 -Type DWord -Force; try { $windows = (New-Object -ComObject Shell.Application).Windows() | Where-Object { $_.Name -eq "File Explorer" }; if ($windows.Count -eq 0) { Stop-Process -Name explorer -Force -EA SilentlyContinue; Start-Sleep -Milliseconds 1200; Start-Process explorer } } catch {}`,
+    revert: `Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced" -Name "HideFileExt" -Value 1 -Type DWord -Force; try { $windows = (New-Object -ComObject Shell.Application).Windows() | Where-Object { $_.Name -eq "File Explorer" }; if ($windows.Count -eq 0) { Stop-Process -Name explorer -Force -EA SilentlyContinue; Start-Sleep -Milliseconds 1200; Start-Process explorer } } catch {}`,
     check:  `(Get-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced" -Name "HideFileExt" -EA SilentlyContinue).HideFileExt -eq 0`,
   },
   'explorer-separate-process': {
@@ -2702,9 +2734,7 @@ async function executeTweak(tweakId, action, options = {}) {
       }
 
       if (verification.isApplied === expectedApplied) {
-        const state = loadState();
-        state.tweaks[tweakId] = expectedApplied;
-        saveState(state);
+        await _updateState(state => { state.tweaks[tweakId] = expectedApplied; });
         console.log(`[TweakExecutor:PERSIST] ${tweakId} → ${expectedApplied} (elevated, verified) written`);
         const result = {
           success:        true,
@@ -2722,9 +2752,7 @@ async function executeTweak(tweakId, action, options = {}) {
         return result;
       } else if (!verification.verified) {
         // Check script itself was inconclusive after retry — trust the apply command, persist state
-        const state = loadState();
-        state.tweaks[tweakId] = expectedApplied;
-        saveState(state);
+        await _updateState(state => { state.tweaks[tweakId] = expectedApplied; });
         console.log(`[TweakExecutor:VERIFY] ${tweakId} — inconclusive after retry (verified=false); trusting elevated command`);
         const result = {
           success:               true,
@@ -3057,10 +3085,10 @@ async function executeTweak(tweakId, action, options = {}) {
     const expectedApplied = action === 'apply';
 
     if (verification.isApplied === expectedApplied) {
-      // Update persisted state
-      const state = loadState();
-      state.tweaks[tweakId] = expectedApplied;
-      saveState(state);
+      // Update persisted state (serialised through _updateState to prevent
+      // concurrent writes from clobbering each other when two tweaks finish
+      // at the same time under MAX_PS_CONCURRENT=2).
+      await _updateState(state => { state.tweaks[tweakId] = expectedApplied; });
       console.log(`[TweakExecutor:PERSIST] ${tweakId} → ${expectedApplied} (hkcu, verified) written`);
 
       const result = {
@@ -3204,124 +3232,51 @@ async function batchCheckAllTweaks() {
   // PowerShell spawns per startup that always returned "unsupported" on modern
   // drivers.  See the UNSUPPORTED_TWEAKS comment for the full rationale.
 
-  // 3b. maximum-cpu-responsiveness: uses powercfg queries, must run individually.
-  const cpuRespId = 'maximum-cpu-responsiveness';
-  if (ALL_TWEAKS[cpuRespId]) {
-    try {
-      const r = await verifyTweak(cpuRespId);
-      result[cpuRespId] = {
-        isApplied:         !!r.isApplied,
-        applied:           !!r.isApplied,
-        unsupported:       r.unsupported || false,
-        unsupportedReason: r.unsupportedReason || null,
-        error:             r.error || null,
-      };
-    } catch (err) {
-      result[cpuRespId] = { isApplied: false, applied: false, error: err.message };
-    }
-  }
+  // 3b–3h. Special tweaks that can't be batched into the single PS script.
+  // Each uses powercfg queries, backup files, or multi-step registry reads.
+  //
+  // Two improvements over the old sequential awaits:
+  //   a) All 7 run in parallel via Promise.all — saves ~2s of serial PS lag on
+  //      every startup/status-refresh (each verifyTweak internally spawns 2-4
+  //      powershell.exe calls through the semaphore, which now overlap).
+  //   b) On error, fall back to cached state (tweak-state.json) instead of
+  //      forcing isApplied=false — a transient PS hiccup no longer flips the
+  //      flashiest tweaks to OFF while ordinary registry tweaks stay cached.
+  const _specialCachedTweaks = loadState().tweaks;
 
-  // 3c. PCIe Link State: powercfg query must run individually.
-  const pcieLinkStateId = 'pcie-link-state';
-  if (ALL_TWEAKS[pcieLinkStateId]) {
-    try {
-      const r = await verifyTweak(pcieLinkStateId);
-      result[pcieLinkStateId] = {
-        isApplied: !!r.isApplied,
-        applied: !!r.isApplied,
-        unsupported: r.unsupported || false,
-        unsupportedReason: r.unsupportedReason || null,
-        error: r.error || null,
-      };
-    } catch (err) {
-      result[pcieLinkStateId] = { isApplied: false, applied: false, error: err.message };
-    }
-  }
+  const SPECIAL_TWEAK_IDS = [
+    'maximum-cpu-responsiveness', // 3b
+    'pcie-link-state',            // 3c
+    'usb-selective-suspend',      // 3d
+    'preemption',                 // 3e
+    'gpu-msi-mode',               // 3f
+    'pci-msi-mode',               // 3g
+    'vbs',                        // 3h
+  ];
 
-  // 3d. USB Selective Suspend: powercfg query must run individually.
-  const usbSelectiveSuspendId = 'usb-selective-suspend';
-  if (ALL_TWEAKS[usbSelectiveSuspendId]) {
-    try {
-      const r = await verifyTweak(usbSelectiveSuspendId);
-      result[usbSelectiveSuspendId] = {
-        isApplied: !!r.isApplied,
-        applied: !!r.isApplied,
-        unsupported: r.unsupported || false,
-        unsupportedReason: r.unsupportedReason || null,
-        error: r.error || null,
-      };
-    } catch (err) {
-      result[usbSelectiveSuspendId] = { isApplied: false, applied: false, error: err.message };
-    }
-  }
-
-  // 3e. preemption: reads the GraphicsDrivers registry value individually.
-  const preemptionId = 'preemption';
-  if (ALL_TWEAKS[preemptionId]) {
-    try {
-      const r = await verifyTweak(preemptionId);
-      result[preemptionId] = {
-        isApplied: !!r.isApplied,
-        applied: !!r.isApplied,
-        unsupported: r.unsupported || false,
-        unsupportedReason: r.unsupportedReason || null,
-        error: r.error || null,
-      };
-    } catch (err) {
-      result[preemptionId] = { isApplied: false, applied: false, error: err.message };
-    }
-  }
-
-  // 3f. gpu-msi-mode: reads backup file + registry, must run individually.
-  const gpuMsiId = 'gpu-msi-mode';
-  if (ALL_TWEAKS[gpuMsiId]) {
-    try {
-      const r = await verifyTweak(gpuMsiId);
-      result[gpuMsiId] = {
-        isApplied:         !!r.isApplied,
-        applied:           !!r.isApplied,
-        unsupported:       r.unsupported || false,
-        unsupportedReason: r.unsupportedReason || null,
-        error:             r.error || null,
-      };
-    } catch (err) {
-      result[gpuMsiId] = { isApplied: false, applied: false, error: err.message };
-    }
-  }
-
-  // 3g. pci-msi-mode: reads backup file + multi-device registry check.
-  const pciMsiId = 'pci-msi-mode';
-  if (ALL_TWEAKS[pciMsiId]) {
-    try {
-      const r = await verifyTweak(pciMsiId);
-      result[pciMsiId] = {
-        isApplied:         !!r.isApplied,
-        applied:           !!r.isApplied,
-        unsupported:       r.unsupported || false,
-        unsupportedReason: r.unsupportedReason || null,
-        error:             r.error || null,
-      };
-    } catch (err) {
-      result[pciMsiId] = { isApplied: false, applied: false, error: err.message };
-    }
-  }
-
-  // 3h. vbs: reads DeviceGuard registry, must run individually (backup-aware verify).
-  const vbsId = 'vbs';
-  if (ALL_TWEAKS[vbsId]) {
-    try {
-      const r = await verifyTweak(vbsId);
-      result[vbsId] = {
-        isApplied:         !!r.isApplied,
-        applied:           !!r.isApplied,
-        unsupported:       r.unsupported || false,
-        unsupportedReason: r.unsupportedReason || null,
-        error:             r.error || null,
-      };
-    } catch (err) {
-      result[vbsId] = { isApplied: false, applied: false, error: err.message };
-    }
-  }
+  await Promise.all(
+    SPECIAL_TWEAK_IDS
+      .filter(id => ALL_TWEAKS[id])
+      .map(async (id) => {
+        try {
+          const r = await verifyTweak(id);
+          result[id] = {
+            isApplied:         !!r.isApplied,
+            applied:           !!r.isApplied,
+            unsupported:       r.unsupported       || false,
+            unsupportedReason: r.unsupportedReason || null,
+            error:             r.error             || null,
+          };
+        } catch (err) {
+          // Transient PS failure — use last-known-good from tweak-state.json so
+          // the toggle doesn't flash OFF for a tweak that is genuinely applied.
+          const cachedVal = typeof _specialCachedTweaks[id] === 'boolean' ? _specialCachedTweaks[id] : false;
+          const hadCache  = typeof _specialCachedTweaks[id] === 'boolean';
+          console.warn(`[batchCheckAllTweaks] ${id} verify threw — ${hadCache ? `using cached=${cachedVal}` : 'no cache, defaulting false'}: ${err.message}`);
+          result[id] = { isApplied: cachedVal, applied: cachedVal, error: err.message, fromCache: hadCache };
+        }
+      })
+  );
 
   // 4. Build the batch PS script for all remaining tweaks.
   const batchIds = [];
