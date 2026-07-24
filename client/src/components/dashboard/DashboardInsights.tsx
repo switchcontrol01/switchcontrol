@@ -199,7 +199,7 @@ function SinceLastSession() {
     return () => clearTimeout(timer);
   }, [saveSessionSnapshot]);
 
-  const delta = computeDelta(currentSnap);
+  const delta = computeDelta();
 
   if (!delta) {
     return (

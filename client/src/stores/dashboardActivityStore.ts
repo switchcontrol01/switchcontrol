@@ -42,11 +42,23 @@ export interface LastActionResult {
   positive?: boolean;
 }
 
-// ── Store ─────────────────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
-const MAX_EVENTS = 10;
+// Fix: exported so UI can render "showing last N events" without hardcoding.
+export const MAX_EVENTS = 10;
+
+// Fix: session-unique prefix prevents ID collisions between persisted events
+// (loaded from localStorage on mount) and new events created this session.
+// Math.random() is only called once per module load, not per event.
+const _sessionPrefix = Math.random().toString(36).slice(2, 7);
 let _seq = 0;
-const mkId = () => `evt-${Date.now()}-${++_seq}`;
+const mkId = () => `evt-${_sessionPrefix}-${Date.now()}-${++_seq}`;
+
+// Snapshots older than 7 days are treated as stale and discarded — prevents
+// a cold-start delta against data from a previous week's session.
+const SNAPSHOT_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+
+// ── Store ─────────────────────────────────────────────────────────────────────
 
 interface DashboardActivityState {
   events: DashboardEvent[];
@@ -57,9 +69,9 @@ interface DashboardActivityState {
   addEvent: (event: Omit<DashboardEvent, "id">) => void;
   setLastAction: (result: LastActionResult) => void;
   saveSessionSnapshot: (snap: Omit<SessionSnapshot, "ts">) => void;
-  computeDelta: (
-    current: Omit<SessionSnapshot, "ts">
-  ) => SessionDelta | null;
+  // Fix: no `current` parameter — always diffs prevSnapshot vs currentSnapshot
+  // from store state so callers can't accidentally pass stale data.
+  computeDelta: () => SessionDelta | null;
 }
 
 export const useDashboardActivityStore = create<DashboardActivityState>()(
@@ -85,12 +97,18 @@ export const useDashboardActivityStore = create<DashboardActivityState>()(
         });
       },
 
-      computeDelta: (current) => {
-        const prev = get().prevSnapshot;
-        if (!prev) return null;
+      computeDelta: () => {
+        const { prevSnapshot: prev, currentSnapshot: current } = get();
+        if (!prev || !current) return null;
 
-        const ageMs = Date.now() - prev.ts;
+        const ageMs = current.ts - prev.ts;
+
+        // Too recent — debounce (< 60s between saves is noise).
         if (ageMs < 60_000) return null;
+
+        // Too old — snapshot is from a previous session more than a week ago;
+        // discard it so we don't show a misleading "since last session" delta.
+        if (ageMs > SNAPSHOT_MAX_AGE_MS) return null;
 
         const items: SessionDelta["items"] = [];
 
@@ -138,6 +156,18 @@ export const useDashboardActivityStore = create<DashboardActivityState>()(
           }
         }
 
+        // Fix: avgCpuLoad was stored in SessionSnapshot but never diffed.
+        if (prev.avgCpuLoad != null && current.avgCpuLoad != null) {
+          const diff = current.avgCpuLoad - prev.avgCpuLoad;
+          if (Math.abs(diff) >= 8) {
+            items.push({
+              label: "CPU load",
+              direction: diff > 0 ? "up" : "down",
+              detail: `${diff > 0 ? "+" : ""}${Math.round(diff)}%`,
+            });
+          }
+        }
+
         if (items.length === 0) {
           items.push({
             label: "System state",
@@ -153,9 +183,12 @@ export const useDashboardActivityStore = create<DashboardActivityState>()(
       name: "sc-dashboard-activity",
       version: 1,
       migrate: (persistedState: any, version: number) => {
-        if (!persistedState || typeof persistedState !== "object") {
+        // Fix: handle version 0 explicitly so future schema bumps can transform
+        // old data rather than silently returning a mismatched shape.
+        if (version === 0 || !persistedState || typeof persistedState !== "object") {
           return { events: [], lastAction: null, prevSnapshot: null, currentSnapshot: null };
         }
+        // version 1 → current: schema matches, pass through.
         return persistedState;
       },
       partialize: (s) => ({
