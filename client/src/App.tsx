@@ -92,6 +92,7 @@ import BiosAdvisor from "@/pages/BiosAdvisor";
 import AiAdvisor from "@/pages/AiAdvisor";
 import ExtremeLabs from "@/pages/ExtremeLabs";
 import DriverIntelligence from "@/pages/DriverIntelligence";
+import LatencyAnalyzer from "@/pages/LatencyAnalyzer";
 import Security from "@/pages/Security";
 import History from "@/pages/History";
 import ProcessManager from "@/pages/ProcessManager";
@@ -206,6 +207,7 @@ function ElectronAppRoutes() {
           <Route path="/security" component={Security} />
           <Route path="/history" component={History} />
           <Route path="/driver-intel" component={DriverIntelligence} />
+          <Route path="/latency-analyzer" component={LatencyAnalyzer} />
           <Route path="/process-manager" component={ProcessManager} />
           <Route path="/settings" component={Settings} />
           <Route component={Home} />

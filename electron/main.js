@@ -72,6 +72,30 @@
   const criticalLogger = require('./critical-logger');
   const { APPDATA_DIR, TWEAK_STATE_FILE, CONFIG_FILE, DEVICE_ID_FILE, SPECS_CACHE_FILE } = require('./user-data-paths');
   const processControl = require('./process-control');
+  // The latency analyzer is an optional feature. Some packaged builds do not
+  // include latency-analyzer.js; requiring it unconditionally makes Electron
+  // crash before the window can open.
+  let latencyAnalyzer;
+  let latencyAnalyzerAvailable = true;
+  try {
+    latencyAnalyzer = require('./latency-analyzer');
+  } catch (e) {
+    latencyAnalyzerAvailable = false;
+    console.error('[BOOT] latency-analyzer not found; latency analysis is disabled:', e.message);
+    latencyAnalyzer = {
+      isActive: () => false,
+      startAnalysis: async () => false,
+      stopAnalysis: () => {},
+      getStatus: () => ({
+        active: false,
+        available: false,
+        error: 'Latency analyzer module is not installed.',
+      }),
+      scanDrivers: async () => [],
+      scanAudioDevices: async () => [],
+    };
+  }
+  let _latencyLastSample = null; // last received sample for renderer polling
   
   app.setName('SwitchControl');
   const isDev = !app.isPackaged;
@@ -4662,6 +4686,60 @@ public class DspHelper {
     }));
   });
   
+  // ── Scheduler stats (lightweight — safe to call from devtools/debug panels) ────
+  // ── Latency Analyzer ─────────────────────────────────────────────────────────
+  ipcMain.handle('latencyAnalyzer:start', async () => {
+    if (!latencyAnalyzerAvailable) {
+      return {
+        ok: false,
+        error: 'Latency analyzer module is not installed. Please reinstall SwitchControl.',
+      };
+    }
+    if (latencyAnalyzer.isActive()) {
+      return { ok: false, error: 'Analysis already running' };
+    }
+    _latencyLastSample = null;
+    await latencyAnalyzer.startAnalysis(
+      (sample) => { _latencyLastSample = sample; },
+      (err)    => { console.warn('[latencyAnalyzer] sample error:', err); }
+    );
+    return { ok: true };
+  });
+
+  ipcMain.handle('latencyAnalyzer:stop', async () => {
+    latencyAnalyzer.stopAnalysis();
+    _latencyLastSample = null;
+    return { ok: true };
+  });
+
+  ipcMain.handle('latencyAnalyzer:getSample', () => {
+    const s = _latencyLastSample;
+    _latencyLastSample = null; // consume so renderer can tell when a new sample arrives
+    return s;
+  });
+
+  ipcMain.handle('latencyAnalyzer:getStatus', () => {
+    return latencyAnalyzer.getStatus();
+  });
+
+  ipcMain.handle('latencyAnalyzer:scanDrivers', async () => {
+    try {
+      return await latencyAnalyzer.scanDrivers();
+    } catch (e) {
+      console.warn('[latencyAnalyzer:scanDrivers] error:', e.message);
+      return [];
+    }
+  });
+
+  ipcMain.handle('latencyAnalyzer:scanAudioDevices', async () => {
+    try {
+      return await latencyAnalyzer.scanAudioDevices();
+    } catch (e) {
+      console.warn('[latencyAnalyzer:scanAudioDevices] error:', e.message);
+      return [];
+    }
+  });
+
   // ── Scheduler stats (lightweight — safe to call from devtools/debug panels) ────
   ipcMain.handle('telemetry:getSchedulerStats', () => {
     const _now = Date.now();

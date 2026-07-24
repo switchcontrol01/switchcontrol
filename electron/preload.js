@@ -595,6 +595,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
     terminate: (pid) => ipcRenderer.invoke('processControl:terminate', pid),
   },
 
+  // ── Latency Analyzer ─────────────────────────────────────────────────────────
+  latencyAnalyzer: {
+    start:            () => ipcRenderer.invoke('latencyAnalyzer:start'),
+    stop:             () => ipcRenderer.invoke('latencyAnalyzer:stop'),
+    getSample:        () => ipcRenderer.invoke('latencyAnalyzer:getSample'),
+    getStatus:        () => ipcRenderer.invoke('latencyAnalyzer:getStatus'),
+    scanDrivers:      () => ipcRenderer.invoke('latencyAnalyzer:scanDrivers'),
+    scanAudioDevices: () => ipcRenderer.invoke('latencyAnalyzer:scanAudioDevices'),
+  },
+
   // ── Drive health & optimization ──────────────────────────────────────────────
   storage: {
     getVolumes: () => ipcRenderer.invoke('storage:getVolumes'),
