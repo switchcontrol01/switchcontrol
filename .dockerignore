@@ -2,6 +2,7 @@ node_modules
 .git
 dist
 dist-electron
+electron
 release
 release_asar
 logs
