@@ -1362,8 +1362,8 @@ const BAR_COLORS = [
 ];
 
 function InputDelaySection() {
-  const { data: intel } = useDashboardIntelligence();
-  const latency    = intel?.latency ?? null;
+  const intel  = useDashboardIntelligence();
+  const latency = intel.latency;
   const store      = useLatencyAnalyzerStore();
   const hasAnalysis = store.sampleCount > 0;
 
