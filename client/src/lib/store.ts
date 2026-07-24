@@ -130,6 +130,10 @@ export const useStore = create<AppState>()(
 
       applyAction: (action, page, result = 'Success', notes) => {
         set((state) => ({
+          // Cap at 500 entries — mirrors the server-side hard cap in addHistory().
+          // Without this, the array grows unboundedly and is JSON.stringify'd into
+          // localStorage on every tweak toggle (a synchronous main-thread write
+          // that gets measurably slower over weeks of use as the array grows).
           history: [
             {
               id: Math.random().toString(36).substring(7),
@@ -140,7 +144,7 @@ export const useStore = create<AppState>()(
               notes,
             },
             ...state.history,
-          ]
+          ].slice(0, 500)
         }));
       },
 
@@ -279,6 +283,17 @@ export const useStore = create<AppState>()(
           osArch:     state.stats.osArch,
           hostname:   state.stats.hostname,
         },
+        // Persist account counters so servicesDisabled / cleanersRun /
+        // startupAppsDisabled survive page reload and app restart.
+        // Without this, onRehydrateStorage had no data to work with and was
+        // forced to hard-reset all three counters to 0 on every reload —
+        // users saw their "Services Disabled: 12" counter go back to 0 the
+        // moment they reopened the app.
+        account: {
+          email: state.account.email,
+          licenseStatus: state.account.licenseStatus,
+          stats: state.account.stats,
+        },
       }),
       onRehydrateStorage: () => (state, error) => {
         if (error) {
@@ -338,13 +353,21 @@ export const useStore = create<AppState>()(
           state.history = [];
         }
 
-        // Recompute tweaksApplied from actual persisted tweaks — never trust a stale counter
+        // Recompute tweaksApplied from actual persisted tweaks — never trust a stale counter.
+        // Preserve the other three counters from persisted state: they can't be
+        // derived from store data alone so resetting them to DEFAULT_ACCOUNT_STATS
+        // (i.e. 0) on every reload would visibly wipe user-facing progress counts.
         const actualCount = Object.values(state.tweaks).filter(Boolean).length;
+        const persistedStats = state.account?.stats;
         console.log(`[Store:REHYDRATE] total_stored=${Object.keys(state.tweaks).length} enabled=${actualCount} source=localStorage`);
         state.account = {
           ...state.account,
           stats: {
-            ...DEFAULT_ACCOUNT_STATS,
+            servicesDisabled:    persistedStats?.servicesDisabled    ?? 0,
+            cleanersRun:         persistedStats?.cleanersRun         ?? 0,
+            startupAppsDisabled: persistedStats?.startupAppsDisabled ?? 0,
+            // Always recompute from actual tweaks — the persisted tweaksApplied
+            // counter can drift if tweaks were toggled outside applyAction.
             tweaksApplied: actualCount,
             lastScan: actualCount > 0 ? new Date().toISOString() : null,
           },

@@ -265,15 +265,21 @@ class MockStorage implements IStorage {
   }
 
   async getUser(id: string): Promise<User | undefined> {
+    // Intentionally returns undefined in NO-DB / demo mode.
+    // Any "look up user → if not found, create" code path will always take the
+    // create branch. This is safe only because MockStorage is used exclusively
+    // in the Electron desktop demo path where real auth is never exercised.
+    // If real auth/session logic is ever routed through MockStorage, this must
+    // be replaced with an in-memory user store.
     return undefined;
   }
 
   async getUserByEmail(_email: string): Promise<User | undefined> {
-    return undefined;
+    return undefined; // same caveat as getUser above
   }
 
-  async getUserByStripeCustomerId(customerId: string): Promise<User | undefined> {
-    return undefined;
+  async getUserByStripeCustomerId(_customerId: string): Promise<User | undefined> {
+    return undefined; // same caveat as getUser above
   }
 
   async updateUserStripeInfo(userId: string, data: { stripeCustomerId?: string; isPremium?: boolean }): Promise<User> {
@@ -594,7 +600,12 @@ export class DatabaseStorage implements IStorage {
     const conditions: any[] = [];
 
     if (opts.search) {
-      const term = `%${opts.search}%`;
+      // Escape ILIKE wildcards before interpolating into the pattern.
+      // Without this, an admin searching for "_" or "%" gets Postgres wildcard
+      // behaviour (matches arbitrary characters / any string) instead of a literal
+      // character match — a correctness bug even though it's an admin-only path.
+      const escaped = opts.search.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_");
+      const term = `%${escaped}%`;
       conditions.push(
         or(
           ilike(users.email, term),
@@ -766,13 +777,23 @@ export class DatabaseStorage implements IStorage {
     }
 
     await cleanup("sessions", () => db.execute(drizzleSql`DELETE FROM sessions WHERE (sess->'passport'->>'user') = ${userId}`));
-    await cleanup("admin_logs", () => db.execute(drizzleSql`
-      UPDATE admin_logs
-         SET metadata = COALESCE(metadata, '{}'::jsonb) || '{"targetDeleted":true}'::jsonb
-       WHERE target_user_id = ${userId}
-    `));
 
-    await db.delete(users).where(eq(users.id, userId));
+    // deviceRecords — no FK to users but orphaned rows pollute the device-inspector
+    // and device-lock enforcement logic. Always clean up before deleting the user.
+    await cleanup("deviceRecords", () => db!.delete(deviceRecords).where(eq(deviceRecords.userId, userId)));
+
+    // admin_logs — the schema now has FK constraints on both admin_user_id and
+    // target_user_id (ON DELETE NO ACTION), so we must remove referencing rows
+    // before deleting the user or Postgres will reject the final DELETE.
+    // Delete rows where this user was the *target* of an admin action, and rows
+    // where this user was the *actor* (admin who performed actions).
+    await cleanup("admin_logs (target)", () => db!.execute(drizzleSql`DELETE FROM admin_logs WHERE target_user_id = ${userId}`));
+    await cleanup("admin_logs (actor)",  () => db!.execute(drizzleSql`DELETE FROM admin_logs WHERE admin_user_id = ${userId}`));
+
+    // Final user row delete — wrapped in cleanup so any residual FK from a table
+    // we missed is logged clearly rather than throwing an unhandled exception that
+    // leaves the caller thinking the delete succeeded when it didn't.
+    await cleanup("users", () => db!.delete(users).where(eq(users.id, userId)));
   }
 
   async countAdmins(): Promise<number> {
