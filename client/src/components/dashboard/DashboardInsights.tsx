@@ -11,7 +11,7 @@
  *   6. Last Action Result
  */
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { GlassCard } from "@/components/ui/glass-card";
 import { motion, AnimatePresence, useMotion } from "@/lib/motionTokens";
@@ -187,13 +187,17 @@ function SinceLastSession() {
     [telemetry?.cpu.load, telemetry?.ram.usedPercent, report?.score, scores?.competitiveReadiness, account.stats.tweaksApplied]
   );
 
+  // Ref keeps the snapshot current so the 5s timer always saves the live value,
+  // not the stale one captured at mount when telemetry may still be undefined.
+  const currentSnapRef = useRef(currentSnap);
+  useEffect(() => { currentSnapRef.current = currentSnap; }, [currentSnap]);
+
   useEffect(() => {
     const timer = setTimeout(() => {
-      saveSessionSnapshot(currentSnap);
+      saveSessionSnapshot(currentSnapRef.current);
     }, 5000);
     return () => clearTimeout(timer);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [saveSessionSnapshot]);
 
   const delta = computeDelta(currentSnap);
 
@@ -249,13 +253,19 @@ function RecentEvents() {
   // Merge: convert history items → display rows, then layer in session-only events
   const merged = useMemo(() => {
     // History items (persistent, covers every page action)
-    const fromHistory = historyItems.map((h) => ({
-      id: h.id,
-      label: h.action,
-      detail: h.result !== "Applied" && h.result !== "Success" ? h.result : undefined,
-      ts: new Date(h.timestamp).getTime(),
-      icon: PAGE_ICONS[h.page] ?? <Activity className="size-3 text-muted-foreground" />,
-    }));
+    const fromHistory = historyItems.map((h) => {
+      const rawTs = typeof h.timestamp === "number"
+        ? h.timestamp
+        : new Date(h.timestamp).getTime();
+      const ts = Number.isNaN(rawTs) ? Date.now() : rawTs;
+      return {
+        id: h.id,
+        label: h.action,
+        detail: h.result !== "Applied" && h.result !== "Success" ? h.result : undefined,
+        ts,
+        icon: PAGE_ICONS[h.page] ?? <Activity className="size-3 text-muted-foreground" />,
+      };
+    });
 
     // Session-only events not covered by history (spikes, stability restored,
     // memory cleaned). Exclude bios/ai scan — those are too noisy and already
@@ -395,7 +405,7 @@ function FpsAndBottleneck() {
         </p>
         <AnimatePresence mode="wait">
           <motion.p
-            key={fps.reason}
+            key={fps.hasIssue ? "fps-issue" : "fps-healthy"}
             className={cn(
               "text-xs leading-relaxed font-medium",
               fps.hasIssue ? "text-amber-200/90" : "text-emerald-300/90"
@@ -435,7 +445,7 @@ function FpsAndBottleneck() {
         </p>
         <AnimatePresence mode="wait">
           <motion.div
-            key={bottleneck.label}
+            key={bottleneck.hasBottleneck ? "bn-active" : "bn-none"}
             initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
