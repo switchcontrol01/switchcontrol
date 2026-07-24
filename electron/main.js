@@ -3,8 +3,7 @@
   // console.log/warn/error from this point on is captured to disk.
   // Log files: %APPDATA%\SwitchControl\logs\
   // ============================================================
-  const fileLogger  = require('./file-logger');
-  const adminState  = require('./admin-state');
+  const fileLogger = require('./file-logger');
   fileLogger.init();
   const _LOG_PATHS = fileLogger.getPaths();
   const isDebug = fileLogger.isDebug;
@@ -5283,11 +5282,9 @@ $hpetQ     = try{$h=Get-WmiObject -Query "SELECT * FROM Win32_DeviceChangeEvent"
     // renderer can confirm elevated status via the app:isAdmin IPC.
     checkWindowsAdmin().then(v => {
       _appIsAdmin = v;
-      adminState.setAdminState(v); // shared — eliminates redundant PS spawns in executor modules
       verboseLog('[UAC] isAdmin:', v, app.isPackaged ? '(packaged)' : '(dev mode)');
     }).catch((err) => {
       _appIsAdmin = false;
-      adminState.setAdminState(false);
       console.error('[UAC] Admin check failed:', err?.message);
     });
   
