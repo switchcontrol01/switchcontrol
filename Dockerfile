@@ -14,6 +14,12 @@ COPY . .
 
 RUN npm run build
 
+# ws and systeminformation are kept external in the server bundle (not inlined by
+# esbuild) so dist/index.cjs requires them from node_modules at runtime.
+# Re-install them explicitly after the build to guarantee they are present even
+# if an earlier npm ci layer was served from cache with a stale node_modules.
+RUN npm install --no-save --ignore-scripts --legacy-peer-deps ws systeminformation
+
 ENV NODE_ENV=production
 
 CMD ["npm", "run", "start"]

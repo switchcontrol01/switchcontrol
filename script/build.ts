@@ -22,13 +22,14 @@ const FORCE_EXTERNAL = [
   // dev tooling — never needed at server runtime
   "vite",
   "drizzle-kit",
-  // ws and systeminformation are pure-JS and can be bundled for the web/Railway
-  // deployment. In Electron they live in extra-resources next to the .asar, but
-  // for the web server we want a fully self-contained dist/index.cjs so the
-  // container doesn't need node_modules at runtime.
-  // NOTE: esbuild may emit warnings about unresolvable optional native deps
-  // (bufferutil, utf-8-validate for ws; platform-specific si modules). These
-  // warnings are safe to ignore — the packages handle missing optionals at runtime.
+  // Cannot be bundled by esbuild on all platforms:
+  // - ws: optional native extensions (bufferutil/utf-8-validate) built via node-gyp;
+  //   esbuild can't statically resolve the conditional require paths.
+  // - systeminformation: uses dynamic OS-specific requires that esbuild can't trace.
+  // Both are kept in package.json "dependencies" so npm ci installs them, and
+  // dist/index.cjs finds them via normal node_modules resolution at runtime.
+  "ws",
+  "systeminformation",
 ];
 
 // Packages that must be present in node_modules for esbuild to bundle them.
