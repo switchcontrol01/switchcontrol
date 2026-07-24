@@ -463,9 +463,14 @@
       if (!_lowEndCoresKnown && load?.cpus?.length) {
         _lowEndCoresKnown = true;
         const _cores = load.cpus.length;
-        if (_cores <= LOW_END_CORE_MAX) {
+        // os.totalmem() is synchronous and near-zero cost. Add RAM pressure to the
+        // low-end check — a 6-core laptop with 4 GB RAM is very common budget hardware
+        // but would never trigger low-end mode on core count alone, even though RAM
+        // pressure is often the bigger lag source for telemetry polling on such machines.
+        const _totalRamGB = os.totalmem() / 1_073_741_824;
+        if (_cores <= LOW_END_CORE_MAX || _totalRamGB <= 6) {
           _lowEndMode = true;
-          console.log(`[telemetry:poll] Low-end mode ENABLED — ${_cores} logical cores`);
+          console.log(`[telemetry:poll] Low-end mode ENABLED — cores=${_cores} ram=${_totalRamGB.toFixed(1)}GB`);
         }
       }
       // Sustained load check uses the global LOAD_HISTORY (written below in caller's scope)
@@ -607,7 +612,18 @@
       // ── 7. Performance governor ───────────────────────────────────────────────
       // Engage slow mode when CPU is high OR we are in low-end mode.
       // Disengage once CPU drops below the threshold and low-end mode is off.
-      const targetMs = (_lowEndMode || cpuPct > TELEMETRY_GOVERNOR_PCT) ? TELEMETRY_SLOW_MS : TELEMETRY_BASE_MS;
+      // Hysteresis prevents interval thrashing on a weak system that oscillates around
+      // the old single threshold (very plausible — ~50% is exactly where low-end machines
+      // cruise). Without it the interval can flip between 2s and 8s every other tick,
+      // defeating the purpose of slow mode being *stable* under sustained load.
+      // Engage at 60%, only disengage once CPU drops back below 35%.
+      const GOVERNOR_ENGAGE_PCT    = 60;
+      const GOVERNOR_DISENGAGE_PCT = 35;
+      const _currentlySlow = _telemetryCurrentIntervalMs === TELEMETRY_SLOW_MS;
+      const shouldBeSlow = _lowEndMode
+        || cpuPct > GOVERNOR_ENGAGE_PCT
+        || (_currentlySlow && cpuPct > GOVERNOR_DISENGAGE_PCT);
+      const targetMs = shouldBeSlow ? TELEMETRY_SLOW_MS : TELEMETRY_BASE_MS;
       if (targetMs !== _telemetryCurrentIntervalMs) {
         verboseLog(`[PERF:TASK] name=telemetryLoop — governor: cpu=${cpuPct.toFixed(0)}% lowEnd=${_lowEndMode} appCpu=${_appCpuPct.toFixed(1)}% → interval ${_telemetryCurrentIntervalMs}ms → ${targetMs}ms`);
         _telemetryCurrentIntervalMs = targetMs;
@@ -736,6 +752,14 @@
     // Routed through psLimiter so it doesn't race with batchCheckAll / syncAll.
     // After the name resolves we know the vendor, so we gate si.graphics() below.
     if (process.platform === 'win32') {
+      // Skip the redundant WMI spawn when enrichment has already populated wmiGpuModelName.
+      // _runEnrichment() fires at whenReady (before createWindow); startTelemetryPolling()
+      // runs after show() — so the GPU name is resolved on the vast majority of boots.
+      // Saving one powershell.exe cold-start (~300ms–1s on weak CPUs/HDDs) from the boot
+      // path is a direct, measurable win on exactly the low-end hardware we're targeting.
+      if (wmiGpuModelName) {
+        console.log('[GPU] WMI fast-path skipped — already resolved by enrichment:', wmiGpuModelName);
+      } else {
       const _wmiGpuPs = `try{$r=@(Get-WmiObject Win32_VideoController -ErrorAction Stop|Where-Object{$_.Name -notmatch 'Microsoft Basic|Remote Desktop'}|Sort-Object{-[uint64]$_.AdapterRAM});if($r.Count -gt 0){($r|ForEach-Object{"$($_.Name)|$([uint64]$_.AdapterRAM)"})-join';;'}else{''}}catch{''}`;
       const _fpToken = psLimiter.tryAcquire({ file: 'main.js', fn: 'startTelemetryPolling:wmiGpu', reason: 'startup-wmi-gpu' });
       if (!_fpToken) {
@@ -821,6 +845,7 @@
             }
           });
       }
+      } // end else — WMI fast-path (skipped when enrichment already resolved the GPU name)
     }
   
     // GPU load is available on-demand via telemetry:refreshGpuLoad (IPC) or when
@@ -1317,8 +1342,13 @@
           mainWindow.setOpacity(1 - (1 - t) * (1 - t));
           if (t >= 1) { clearInterval(_fallbackFadeTimer); _fallbackFadeTimer = null; mainWindow.setOpacity(1); }
         }, _FADE_TICK_FB);
+        // Start telemetry polling only from inside the force-show branch — the normal
+        // show-gate path already calls startTelemetryPolling() when both gates fire.
+        // Calling it unconditionally here emits a spurious "already active, skipping
+        // duplicate start" warning on every normal launch (the internal singleton guard
+        // prevents a real double-loop, but the log noise masks genuine future bugs).
+        startTelemetryPolling().catch(e => console.error('[telemetry:poll] fallback error:', e.message));
       }
-      startTelemetryPolling().catch(e => console.error('[telemetry:poll] fallback error:', e.message));
     }, 5000);
   
     // ── Boot metrics — single source of truth for startup timing ─────────────────
