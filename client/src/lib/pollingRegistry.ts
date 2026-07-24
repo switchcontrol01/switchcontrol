@@ -14,7 +14,7 @@
  */
 
 export interface PollEntry {
-  id: number;
+  id: number | string;
   name: string;
   file: string;
   intervalMs: number;
@@ -24,7 +24,10 @@ export interface PollEntry {
   active: boolean;
 }
 
-const _registry = new Map<number, PollEntry>();
+// String keys are used by intervalGuard ("guard-<nativeId>") to keep its
+// synthetic registry entries in a truly separate namespace from the numeric
+// native interval IDs registered by real components.
+const _registry = new Map<number | string, PollEntry>();
 
 // ── WebSocket connection tracking ────────────────────────────────────────────────
 // Single-connection assumption: only one WebSocket is tracked at a time.
@@ -56,7 +59,7 @@ const _ipcEntries = new Map<string, IpcEntry>();
 let _renderCount = 0;
 
 export const pollingRegistry = {
-  register(id: number, name: string, file: string, intervalMs: number): void {
+  register(id: number | string, name: string, file: string, intervalMs: number): void {
     _registry.set(id, {
       id,
       name,
@@ -69,7 +72,7 @@ export const pollingRegistry = {
     });
   },
 
-  tick(id: number): void {
+  tick(id: number | string): void {
     const entry = _registry.get(id);
     if (entry) {
       entry.lastTickAt = Date.now();
@@ -77,7 +80,7 @@ export const pollingRegistry = {
     }
   },
 
-  unregister(id: number): void {
+  unregister(id: number | string): void {
     // Delete directly — the `entry.active = false` that was here was dead code
     // because the entry is removed from the registry on the very next line and
     // the local reference is immediately discarded.
