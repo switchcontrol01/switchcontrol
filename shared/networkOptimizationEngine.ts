@@ -189,7 +189,9 @@ export function runNetworkOptimizationEngine(
   const tweakSig = recommended.map(e => e.tweakId).sort().join(",");
   let h = 5381;
   for (const ch of (sigFingerprint + "|" + tweakSig)) {
-    h = Math.imul(h << 5 + h, 1) ^ ch.charCodeAt(0);
+    // Same djb2 fix as optimizationEngine.ts: `h << 5 + h` parsed as `h << (5+h)`
+    // due to JS operator precedence (+  binds tighter than <<). Math.imul(h,33) is correct.
+    h = (Math.imul(h, 33) ^ ch.charCodeAt(0)) | 0;
   }
   const sessionId = `net_${Math.abs(h).toString(36)}`;
   return {

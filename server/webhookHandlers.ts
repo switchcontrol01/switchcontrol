@@ -1,8 +1,8 @@
 import Stripe from 'stripe';
 import { getStripeClient, getWebhookSecret } from './stripeClient';
 import { db } from './db';
-import { users } from '@shared/schema';
-import { eq } from 'drizzle-orm';
+import { users, stripeWebhookEvents } from '@shared/schema';
+import { eq, sql as drizzleSql } from 'drizzle-orm';
 import { isEventAlreadyProcessed, markEventProcessed } from './lib/stripeEventStore';
 import { storage } from './storage';
 
@@ -189,6 +189,22 @@ async function handleCheckoutCompleted(event: Stripe.Event): Promise<void> {
 
   if (!granted) {
     console.error(`[Stripe] Could not resolve user to grant premium: userId=${resolvedUserId} customerId=${customerId} (event=${eventId}). Manual review required.`);
+    // Flag the persisted webhook row so admins can query for unresolved payments.
+    // Without this the only trace is the console.error above — a paying customer
+    // who received nothing would require manual log-grepping to discover.
+    // We embed the flag in the JSONB payload column (no schema change needed).
+    if (db) {
+      try {
+        await db.update(stripeWebhookEvents)
+          .set({
+            payload: drizzleSql`${stripeWebhookEvents.payload} || '{"_needsManualReview":true,"_grantFailureReason":"Could not resolve userId or stripeCustomerId to any user row — premium not granted"}'::jsonb`,
+          })
+          .where(eq(stripeWebhookEvents.eventId, eventId));
+        console.error(`[Stripe] Event ${eventId} flagged _needsManualReview=true in stripe_webhook_events. Query: SELECT * FROM stripe_webhook_events WHERE payload->>'_needsManualReview' = 'true';`);
+      } catch (flagErr: any) {
+        console.error(`[Stripe] Could not write _needsManualReview flag for event ${eventId}: ${flagErr.message}`);
+      }
+    }
   }
 
   // ── 6. Mark event processed ───────────────────────────────────────────────

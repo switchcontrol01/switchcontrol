@@ -10,7 +10,7 @@
  *   hardwareScore = buildScore * hardwareCompatFactor  (0.0 = avoid, 1.0 = neutral, 1.3 = recommended)
  *   finalScore   = hardwareScore * (1.0 - riskPenalty)
  *
- * Recommendation threshold: finalScore >= 55
+ * Recommendation threshold: finalScore >= 50
  * Avoided list threshold:   finalScore < 35 OR explicit avoid verdicts
  */
 
@@ -102,7 +102,11 @@ export interface OptimizationPlan {
 function deterministicHash(input: string): string {
   let h = 5381;
   for (let i = 0; i < input.length; i++) {
-    h = Math.imul(h << 5 + h, 1) ^ input.charCodeAt(i);
+    // Correct djb2: h = h * 33 ^ c.
+    // Previous code had `h << 5 + h` which — because + binds tighter than << in JS —
+    // parsed as `h << (5 + h)`, shifting by (5+h) bits (mod 32) instead of computing
+    // h*33. Math.imul ensures 32-bit integer multiplication without overflow.
+    h = (Math.imul(h, 33) ^ input.charCodeAt(i)) | 0;
   }
   return Math.abs(h).toString(36);
 }

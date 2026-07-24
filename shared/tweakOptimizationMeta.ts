@@ -81,6 +81,11 @@ export const TWEAK_OPT_META: Record<string, TweakOptimizationMeta> = {
     intentWeights: { [LATENCY]: 9, [FPS]: 6, [STUTTER]: 7, [FRAMES]: 8, [BALANCED]: 7, [COMPFPS]: 9, [NETWORK]: 5, [AUTO]: 7 },
     // Win11 24H2 decay removed: MMCSS SystemResponsiveness still meaningfully
     // improves game-thread priority on 24H2. The auto-tuning claim was overstated.
+    // Excluded from one-click engine recommendations: slider-controlled tweak
+    // (MMCSS SystemResponsiveness DWORD). Recommending via the toggle path produces
+    // "Tweak not found" when Apply is clicked. Configure via the Advanced Tuning slider.
+    skipAlwaysForEngine: true,
+    antiRecommendReason: "Slider-controlled tweak (MMCSS SystemResponsiveness). Configure via the MMCSS Background Reservation slider in Advanced Tuning rather than the one-click apply flow.",
   },
 
   "net-throttle-index": {
@@ -89,14 +94,23 @@ export const TWEAK_OPT_META: Record<string, TweakOptimizationMeta> = {
     intentWeights: { [LATENCY]: 9, [NETWORK]: 10, [COMPFPS]: 8, [BALANCED]: 7, [AUTO]: 7 },
     // networkTweakOnly intentionally omitted (falsy by default). This is a
     // system-wide TCP/IP stack tuning that improves latency across all intents —
-    // not a network-only tweak like bluetooth/wifi. The explicit `false` that
-    // existed here was noise (functionally identical to omitting the field).
+    // not a network-only tweak like bluetooth/wifi.
+    // Excluded from one-click engine recommendations: this is a slider-controlled
+    // tweak (NetworkThrottlingIndex DWORD). The executor's ALL_TWEAKS registry only
+    // covers toggle tweaks — recommending it here would produce a "Tweak not found"
+    // error when the user clicks Apply. Configure via the Advanced Tuning slider.
+    skipAlwaysForEngine: true,
+    antiRecommendReason: "Slider-controlled tweak (NetworkThrottlingIndex). Configure via the Network Throttling Index slider in Advanced Tuning rather than the one-click apply flow.",
   },
 
   "win32-priority-sep": {
     measurabilityClass: "conditional",
     baseConfidence: 70,
     intentWeights: { [LATENCY]: 8, [FPS]: 7, [FRAMES]: 7, [COMPFPS]: 8, [BALANCED]: 5, [AUTO]: 5 },
+    // Slider-controlled tweak (Win32PrioritySeparation bitfield preset).
+    // Not in the toggle executor — one-click Apply produces "Tweak not found".
+    skipAlwaysForEngine: true,
+    antiRecommendReason: "Slider-controlled tweak (Win32PrioritySeparation). Configure via the Foreground/Background Priority slider in Advanced Tuning rather than the one-click apply flow.",
   },
 
   "tune-priority": {
@@ -177,6 +191,9 @@ export const TWEAK_OPT_META: Record<string, TweakOptimizationMeta> = {
     measurabilityClass: "conditional",
     baseConfidence: 55,
     intentWeights: { [LATENCY]: 5, [COMPFPS]: 5, [BALANCED]: 3 },
+    // Slider-controlled tweak (LowLevelHooksTimeout REG_SZ).
+    skipAlwaysForEngine: true,
+    antiRecommendReason: "Slider-controlled tweak (LowLevelHooksTimeout). Configure via the Low-Level Hook Timeout slider in Advanced Tuning rather than the one-click apply flow.",
   },
 
   // ── GPU and Graphics ───────────────────────────────────────────────────────
@@ -480,12 +497,18 @@ export const TWEAK_OPT_META: Record<string, TweakOptimizationMeta> = {
     measurabilityClass: "conditional",
     baseConfidence: 58,
     intentWeights: { [LATENCY]: 5, [COMPFPS]: 4, [BALANCED]: 4 },
+    // Slider-controlled tweak (MenuShowDelay REG_SZ).
+    skipAlwaysForEngine: true,
+    antiRecommendReason: "Slider-controlled tweak (MenuShowDelay). Configure via the Menu Show Delay slider in Advanced Tuning rather than the one-click apply flow.",
   },
 
   "hung-app-timeout": {
     measurabilityClass: "conditional",
     baseConfidence: 55,
     intentWeights: { [BALANCED]: 4, [AUTO]: 3 },
+    // Slider-controlled tweak (HungAppTimeout REG_SZ).
+    skipAlwaysForEngine: true,
+    antiRecommendReason: "Slider-controlled tweak (HungAppTimeout). Configure via the Hung Application Timeout slider in Advanced Tuning rather than the one-click apply flow.",
   },
 
   "compact-explorer": {
@@ -504,6 +527,9 @@ export const TWEAK_OPT_META: Record<string, TweakOptimizationMeta> = {
     measurabilityClass: "legacy",
     baseConfidence: 38,
     intentWeights: { [BALANCED]: 2 },
+    // Slider-controlled tweak (WaitToKillAppTimeout REG_SZ).
+    skipAlwaysForEngine: true,
+    antiRecommendReason: "Slider-controlled tweak (WaitToKillAppTimeout). Configure via the Shutdown App Kill Timeout slider in Advanced Tuning rather than the one-click apply flow.",
   },
 
   "show-file-extensions": {
