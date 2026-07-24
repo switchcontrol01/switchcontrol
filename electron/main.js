@@ -305,6 +305,11 @@
   let wmiGpuModelName = null; // GPU name from WMI fast-path — fallback when si.graphics() times out
   let wmiGpuModelPromise = null;
   let _resolveWmiGpuModel = null;
+  // ── Multi-GPU support ───────────────────────────────────────────────────
+  // wmiGpuList is populated once at startup from WMI (all discrete GPUs, ranked by VRAM).
+  // selectedGpuIndex is the user’s choice, persisted in configStore.
+  let wmiGpuList = [];   // [{ name, vramBytes }] sorted VRAM desc
+  let selectedGpuIndex = 0;
   
   // ── Performance governor ──────────────────────────────────────────────────────
   // Base poll interval.  Stays at TELEMETRY_BASE_MS while CPU is normal.
@@ -731,7 +736,7 @@
     // Routed through psLimiter so it doesn't race with batchCheckAll / syncAll.
     // After the name resolves we know the vendor, so we gate si.graphics() below.
     if (process.platform === 'win32') {
-      const _wmiGpuPs = `try{$r=Get-WmiObject Win32_VideoController -ErrorAction Stop|Where-Object{$_.Name -notmatch 'Microsoft Basic|Remote'};if($r){($r|Select-Object -First 1).Name}else{''}}catch{''}`;
+      const _wmiGpuPs = `try{$r=@(Get-WmiObject Win32_VideoController -ErrorAction Stop|Where-Object{$_.Name -notmatch 'Microsoft Basic|Remote Desktop'}|Sort-Object{-[uint64]$_.AdapterRAM});if($r.Count -gt 0){($r|ForEach-Object{"$($_.Name)|$([uint64]$_.AdapterRAM)"})-join';;'}else{''}}catch{''}`;
       const _fpToken = psLimiter.tryAcquire({ file: 'main.js', fn: 'startTelemetryPolling:wmiGpu', reason: 'startup-wmi-gpu' });
       if (!_fpToken) {
         console.log('[GPU] WMI fast-path skipped — psLimiter full at startup (enrichment will cover GPU)');
@@ -741,11 +746,22 @@
           { windowsHide: true, timeout: 5000 },
           (err, stdout) => {
             psLimiter.release(_fpToken);
-            const name = stdout ? stdout.trim() : '';
-            if (!err && name) {
+            const rawFp = stdout ? stdout.trim() : '';
+            if (!err && rawFp) {
+              // Parse delimited list: "Name1|vram1;;Name2|vram2"
+              const fpEntries = rawFp.split(';;').map(e => {
+                const p = e.trim().split('|');
+                return { name: p[0]?.trim() || '', vramBytes: parseInt(p[1]?.trim() || '0', 10) };
+              }).filter(e => e.name);
+              if (fpEntries.length > 0) {
+                wmiGpuList = fpEntries;
+                const storedIdx = configStore.get('selectedGpuIndex', 0);
+                selectedGpuIndex = Math.min(Math.max(0, storedIdx), wmiGpuList.length - 1);
+              }
+              const name = (wmiGpuList[selectedGpuIndex]?.name) || rawFp.split(';;')[0].split('|')[0].trim();
               gpuExistsOnHardware = true;
               wmiGpuModelName = name;
-              console.log('[GPU] WMI fast-path resolved:', name);
+              console.log('[GPU] WMI fast-path resolved:', name, '| total GPUs:', wmiGpuList.length);
               if (cachedSpecs) {
                 const _rawModel = cachedSpecs.gpu?.model;
                 const _gpuStillDetecting = !_rawModel || _rawModel === 'Detecting\u2026' || _rawModel === 'Unavailable';
@@ -1897,7 +1913,11 @@
     app.quit();
   });
   
-  ipcMain.handle('app:resetData', async () => {
+  ipcMain.handle('app:resetData', async (_event, confirmation) => {
+    if (confirmation !== FACTORY_RESET_CONFIRMATION) {
+      console.warn('[Reset] Rejected: missing or incorrect confirmation token');
+      return { ok: false, error: 'confirmation_required' };
+    }
     try {
       const fs = require('fs');
       const userDataPath = app.getPath('userData');
@@ -2440,17 +2460,21 @@
   //                        si.graphics() removed — it hangs 3-4s on AMD systems.
   //   Stage 2 (deferred 3s): si.cpu() + si.fsSize() — run after batchCheckAll/
   //                           syncAll PS calls have finished, then save to disk.
-  let _enrichmentInFlight = false;
-  
-  async function _enrichSpecsInBackground() {
-    if (_enrichmentInFlight) return;
-    _enrichmentInFlight = true;
+  let _enrichmentInFlight = null; // null | Promise<void> — deduplicates concurrent callers
+
+  function _enrichSpecsInBackground() {
+    if (_enrichmentInFlight) return _enrichmentInFlight;
+    _enrichmentInFlight = _runEnrichment();
+    return _enrichmentInFlight;
+  }
+
+  async function _runEnrichment() {
     const _t0 = Date.now();
     console.log('[Enrich] background enrichment start');
     try {
       // ── Stage 1: GPU via WMI only (fast, psLimiter-gated, no DXGI) ───────────
       const _wmiGpuPs = process.platform === 'win32'
-        ? `try{$g=Get-CimInstance Win32_VideoController -EA Stop|Where-Object{$_.Name -notmatch 'Microsoft Basic|Remote'}|Select-Object -First 1;if($g){Write-Output "$($g.Name)|$($g.AdapterRAM)"}else{''}}catch{''}`
+        ? `try{$r=@(Get-CimInstance Win32_VideoController -EA Stop|Where-Object{$_.Name -notmatch 'Microsoft Basic|Remote Desktop'}|Sort-Object{-[uint64]$_.AdapterRAM});if($r.Count -gt 0){($r|ForEach-Object{"$($_.Name)|$([uint64]$_.AdapterRAM)"})-join';;'}else{''}}catch{''}`
         : '';
   
       let gpuModel = null, gpuVendor = null, gpuVramGB = 0, gpuIsNvidia = false;
@@ -2473,11 +2497,21 @@
         });
   
         if (wmiGpuRaw) {
-          const parts = wmiGpuRaw.split('|');
-          const rawName = parts[0]?.trim();
+          // Parse all GPUs from delimited list (sorted VRAM desc)
+          const gpuEntries = wmiGpuRaw.split(';;').map(e => {
+            const p = e.trim().split('|');
+            return { name: p[0]?.trim() || '', vramBytes: parseInt(p[1]?.trim() || '0', 10) };
+          }).filter(e => e.name);
+          if (gpuEntries.length > 0 && wmiGpuList.length === 0) {
+            wmiGpuList = gpuEntries;
+            const storedIdx = configStore.get('selectedGpuIndex', 0);
+            selectedGpuIndex = Math.min(Math.max(0, storedIdx), wmiGpuList.length - 1);
+          }
+          const selEntry = wmiGpuList[selectedGpuIndex] || gpuEntries[0];
+          const rawName = selEntry?.name;
+          const wmiRamBytes = selEntry?.vramBytes || 0;
           if (rawName) {
             gpuModel = rawName;
-            const wmiRamBytes = parseInt(parts[1]?.trim() || '0', 10);
             if (wmiRamBytes > 0) gpuVramGB = parseFloat((wmiRamBytes / 1073741824).toFixed(1));
             const ml = gpuModel.toLowerCase();
             gpuVendor   = ml.includes('nvidia') ? 'NVIDIA'
@@ -2580,7 +2614,7 @@
     } catch (e) {
       console.warn('[Enrich] error:', e.message || e);
     } finally {
-      _enrichmentInFlight = false;
+      _enrichmentInFlight = null;
     }
   }
   
@@ -2604,6 +2638,15 @@
       if (diskCache) {
         cachedSpecs     = diskCache;
         cachedSpecsTime = now;
+        // Verify cached GPU matches the user's selected GPU index.
+        // If they differ (GPU swap, or user changed selection while app was closed), re-enrich.
+        const _cachedGpuName = diskCache?.gpu?.model;
+        const _selectedName  = wmiGpuList[selectedGpuIndex]?.name;
+        if (_selectedName && _cachedGpuName && _cachedGpuName !== _selectedName &&
+            _cachedGpuName !== 'Detecting…' && _cachedGpuName !== 'Unavailable') {
+          console.log('[SwitchControl] GPU selection mismatch — cached:', _cachedGpuName, '| selected:', _selectedName, '— invalidating');
+          _invalidateGpuCache();
+        }
         // Background refresh only when cache is getting old (>4h) so hardware
         // changes (new GPU, Windows Update) are eventually reflected.
         if (diskCache._diskCacheAgeMs > SPECS_DISK_SERVE_AGE_MS) {
@@ -2697,8 +2740,8 @@
       const specs = await loadSystemSpecs();
   
       const [mem, memLayout] = await Promise.all([
-        si.mem().catch(() => ({ total: 0, available: 0 })),
-        si.memLayout().catch(() => []),
+        siWithTimeout(() => si.mem(),       6_000, 'hwTelemetry.mem').catch(() => ({ total: 0, available: 0 })),
+        siWithTimeout(() => si.memLayout(), 10_000, 'hwTelemetry.memLayout').catch(() => []),
       ]);
   
       const cpuModel = specs?.cpu?.model || '';
@@ -2760,9 +2803,9 @@
     }
     try {
       const [graphicsResult, cpuTempResult, memLayoutResult] = await Promise.allSettled([
-        si.graphics().catch(() => null),
-        si.cpuTemperature().catch(() => null),
-        si.memLayout().catch(() => []),
+        siWithTimeout(() => si.graphics(),       10_000, 'deepHw.graphics'),
+        siWithTimeout(() => si.cpuTemperature(),  5_000, 'deepHw.cpuTemp'),
+        siWithTimeout(() => si.memLayout(),       10_000, 'deepHw.memLayout'),
       ]);
       const graphics  = graphicsResult.status  === 'fulfilled' ? graphicsResult.value  : null;
       const cpuTemp   = cpuTempResult.status   === 'fulfilled' ? cpuTempResult.value   : null;
@@ -2789,6 +2832,7 @@
   // 45s TTL cache — WMI + registry reads are expensive. display:invalidateCache clears it.
   let _displayInfoCache = null;
   let _displayInfoCachedAt = 0;
+  let _displayInfoInFlight = null; // Promise dedup — prevents parallel PS scripts
   const DISPLAY_INFO_TTL_MS = 45_000;
   
   ipcMain.handle('system:getDisplayInfo', async () => {
@@ -2797,6 +2841,13 @@
     if (_displayInfoCache && (now - _displayInfoCachedAt) < DISPLAY_INFO_TTL_MS) {
       return _displayInfoCache;
     }
+    if (_displayInfoInFlight) return _displayInfoInFlight;
+    _displayInfoInFlight = _runDisplayInfoPs().finally(() => { _displayInfoInFlight = null; });
+    return _displayInfoInFlight;
+  });
+
+  async function _runDisplayInfoPs() {
+    if (process.platform !== 'win32') return { monitors: [] };
   
     // ── Comprehensive multi-monitor detection script ─────────────────────────
     // Sources combined per monitor:
@@ -3135,7 +3186,7 @@ public class DspHelper {
       console.warn('[system:getDisplayInfo] error:', e.message);
       return { monitors: [] };
     }
-  });
+  }
   
   // Clear the display info cache so the next call re-runs the PowerShell scan.
   // Called by the UI refresh button and monitor hot-plug events.
@@ -3928,11 +3979,99 @@ public class DspHelper {
     return map[id] || null;
   }
   
+  // ── Multi-GPU: cache invalidation helper ─────────────────────────────────
+  // Clears ALL GPU-related caches so a GPU switch takes full effect immediately.
+  function _invalidateGpuCache() {
+    cachedSpecs     = null;
+    cachedSpecsTime = 0;
+    gpuStaticCache  = null;
+    gpuStaticTs     = 0;
+    gpuPollCache    = { load: null, temp: null, memUsedMb: null, memTotalMb: null, power: null, clockMhz: null, source: 'none' };
+    _gpuInfoCache   = null;
+    _gpuInfoCacheTs = 0;
+    try { const fs = require('fs'); fs.unlinkSync(SPECS_CACHE_FILE); } catch (_e) {}
+    console.log('[GPU] cache invalidated for GPU switch');
+  }
+
+  // Return all detected GPUs so the renderer can show a picker
+  ipcMain.handle('gpu:listAll', () => {
+    return {
+      gpus: wmiGpuList.map((g, i) => ({
+        index:    i,
+        name:     g.name,
+        vramGB:   g.vramBytes > 0 ? parseFloat((g.vramBytes / 1073741824).toFixed(1)) : 0,
+        vendor:   g.name.toLowerCase().includes('nvidia') ? 'NVIDIA'
+                : (g.name.toLowerCase().includes('amd') || g.name.toLowerCase().includes('radeon')) ? 'AMD'
+                : g.name.toLowerCase().includes('intel') ? 'Intel' : 'Unknown',
+        selected: i === selectedGpuIndex,
+      })),
+      selectedIndex: selectedGpuIndex,
+    };
+  });
+
+  // User picks a different GPU — invalidate caches, re-enrich with new selection
+  ipcMain.handle('gpu:setSelected', async (_e, index) => {
+    const idx = parseInt(index, 10);
+    if (!Number.isFinite(idx) || idx < 0 || idx >= wmiGpuList.length) {
+      return { ok: false, error: `Invalid GPU index: ${index} (have ${wmiGpuList.length} GPUs)` };
+    }
+    selectedGpuIndex = idx;
+    wmiGpuModelName  = wmiGpuList[idx].name;
+    configStore.set('selectedGpuIndex', idx);
+    _invalidateGpuCache();
+    console.log('[GPU] user selected GPU', idx, ':', wmiGpuModelName);
+    void _enrichSpecsInBackground();
+    return { ok: true, index: idx, name: wmiGpuModelName };
+  });
+
+  // Query the current GPU selection so the renderer can show it on load
+  ipcMain.handle('gpu:getSelected', () => {
+    const gpu = wmiGpuList[selectedGpuIndex];
+    return {
+      index:    selectedGpuIndex,
+      name:     gpu?.name   || wmiGpuModelName || null,
+      vramGB:   gpu ? parseFloat((gpu.vramBytes / 1073741824).toFixed(1)) : 0,
+      total:    wmiGpuList.length,
+    };
+  });
+
   ipcMain.handle('extremeLabs:createRestorePoint', async () => {
     try {
+      if (process.platform !== 'win32') {
+        return { ok: false, error: 'System restore points require Windows' };
+      }
       const now = Date.now();
-      extremeLabsStore.lastRestorePoint = now;
-      return { ok: true, timestamp: now };
+      const label = `SwitchControl Extreme Labs ${new Date(now).toISOString().replace('T', ' ').substring(0, 19)}`;
+      // Escape single quotes for PowerShell string literal
+      const safeLbl = label.replace(/'/g, "''");
+      const ps = `
+$ErrorActionPreference = 'Stop'
+try { Enable-ComputerRestore -Drive "$env:SystemDrive" -ErrorAction SilentlyContinue } catch {}
+Checkpoint-Computer -Description '${safeLbl}' -RestorePointType MODIFY_SETTINGS
+Write-Output 'ok'`.trim();
+      const result = await new Promise((resolve) => {
+        const token = psLimiter.tryAcquire({ file: 'main.js', fn: 'createRestorePoint', reason: 'extreme-labs-restore' });
+        if (!token) {
+          return resolve({ ok: false, error: 'System busy — try again in a moment' });
+        }
+        execFile('powershell', [
+          '-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden',
+          '-ExecutionPolicy', 'Bypass', '-Command', ps,
+        ], { windowsHide: true, timeout: 60_000 }, (err, stdout, stderr) => {
+          psLimiter.release(token);
+          if (err) {
+            const detail = (stderr || err.message || '').trim().split('\n')[0];
+            console.error('[ExtremeLabs] Restore point failed:', detail);
+            return resolve({ ok: false, error: 'Windows could not create a restore point: ' + detail });
+          }
+          if ((stdout || '').trim().toLowerCase().includes('ok')) {
+            extremeLabsStore.lastRestorePoint = now;
+            return resolve({ ok: true, timestamp: now, label });
+          }
+          resolve({ ok: false, error: 'Restore point script returned unexpected output — System Protection may be disabled on this drive.' });
+        });
+      });
+      return result;
     } catch (e) {
       return { ok: false, error: e.message };
     }
@@ -3950,18 +4089,78 @@ public class DspHelper {
   
   ipcMain.handle('extremeLabs:analyze', async () => {
     try {
-      // Simulated latency analysis — returns categories with tweak recommendations
+      if (process.platform !== 'win32') {
+        return { ok: false, error: 'Extreme Labs analysis requires Windows' };
+      }
+      // Check real registry/service state for each category instead of returning
+      // hardcoded scores.  Each WMI/registry check contributes to an honest score.
+      const ps = `
+$ErrorActionPreference = 'SilentlyContinue'
+function Reg($p,$n){try{(Get-ItemProperty -Path $p -Name $n -EA Stop).$n}catch{$null}}
+# Timer resolution / dynamic tick
+$timerRes  = Reg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\kernel' 'GlobalTimerResolutionRequests'
+$dynTick   = (bcdedit /enum {current} 2>$null) -match 'useplatformtick.*Yes'
+# Game DVR / Capture
+$gameDvr   = Reg 'HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\GameDVR' 'AppCaptureEnabled'
+$gameBar   = Reg 'HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\GameDVR' 'GameDVR_Enabled'
+# Win32PrioritySeparation
+$w32pri    = Reg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\PriorityControl' 'Win32PrioritySeparation'
+# SysMain (Superfetch) service
+$sysmain   = (Get-Service -Name SysMain -EA SilentlyContinue).Status
+# Network throttling index
+$netThrot  = Reg 'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile' 'NetworkThrottlingIndex'
+# MMCSS no lazy mode
+$mmcssLazy = Reg 'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile' 'NoLazyMode'
+# Power throttling
+$pwrThrot  = Reg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottling' 'PowerThrottlingOff'
+# HPET
+$hpetQ     = try{$h=Get-WmiObject -Query "SELECT * FROM Win32_DeviceChangeEvent" -EA Stop;'ok'}catch{'?'}
+@{
+  timerResSet    = ($timerRes -eq 1)
+  dynTickOff     = [bool]$dynTick
+  gameDvrOff     = ($gameDvr -eq 0 -and $gameBar -eq 0)
+  w32Pri         = [int]($w32pri -as [int])
+  sysMainStopped = ($sysmain -eq 'Stopped' -or $sysmain -eq $null)
+  netThrotMax    = ($netThrot -eq 4294967295 -or $netThrot -eq [uint32]::MaxValue)
+  mmcssNoLazy    = ($mmcssLazy -eq 1)
+  pwrThrotOff    = ($pwrThrot -eq 1)
+} | ConvertTo-Json -Compress`.trim();
+
+      const raw = await new Promise((resolve) => {
+        const token = psLimiter.tryAcquire({ file: 'main.js', fn: 'extremeLabs:analyze', reason: 'extreme-analyze' });
+        if (!token) return resolve(null);
+        execFile('powershell', [
+          '-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden',
+          '-ExecutionPolicy', 'Bypass', '-Command', ps,
+        ], { windowsHide: true, timeout: 15_000 }, (err, stdout) => {
+          psLimiter.release(token);
+          resolve(!err && stdout ? stdout.trim() : null);
+        });
+      });
+
+      let state = {};
+      try { state = raw ? JSON.parse(raw) : {}; } catch (_) {}
+
+      const timerScore  = state.timerResSet  ? 95 : (state.dynTickOff ? 60 : 35);
+      const schedScore  = (state.w32Pri === 26 || state.w32Pri === 24) ? 90 : (state.w32Pri > 0 ? 55 : 40);
+      const captScore   = state.gameDvrOff   ? 95 : 30;
+      const netScore    = state.netThrotMax  ? 90 : (state.mmcssNoLazy ? 60 : 45);
+      const svcScore    = state.sysMainStopped ? 85 : 55;
+      const pwrScore    = state.pwrThrotOff  ? 90 : 50;
+      const overallScore = Math.round((timerScore + schedScore + captScore + netScore + svcScore + pwrScore) / 6);
+
       return {
         ok: true,
+        scannedAt: Date.now(),
         categories: [
-          { name: 'Latency Core', score: 72, recommendation: 'Consider timer resolution and dynamic tick' },
-          { name: 'Scheduler / CPU', score: 65, recommendation: 'Priority separation may help' },
-          { name: 'Gaming / Capture', score: 45, recommendation: 'Game DVR is active — disabling may help' },
-          { name: 'Network Latency', score: 58, recommendation: 'Network throttling is moderate' },
-          { name: 'Service Weight', score: 80, recommendation: 'Services are light' },
-          { name: 'Startup / Vendor Weight', score: 55, recommendation: 'Several updaters active at boot' },
+          { name: 'Latency Core',          score: timerScore, recommendation: state.timerResSet  ? 'Timer resolution is optimised' : 'Enable timer resolution for lower scheduling latency' },
+          { name: 'Scheduler / CPU',       score: schedScore, recommendation: schedScore >= 85    ? 'Win32 priority separation is tuned' : 'Adjust Win32PrioritySeparation for foreground app priority' },
+          { name: 'Gaming / Capture',      score: captScore,  recommendation: state.gameDvrOff   ? 'Game DVR/capture is off — good' : 'Game DVR is active — disabling reduces capture overhead' },
+          { name: 'Network Latency',       score: netScore,   recommendation: state.netThrotMax  ? 'Network throttling index is maxed' : 'Set NetworkThrottlingIndex to max for lower jitter' },
+          { name: 'Service Weight',        score: svcScore,   recommendation: state.sysMainStopped ? 'SysMain is stopped' : 'SysMain is running — disabling frees memory and I/O' },
+          { name: 'Power Throttling',      score: pwrScore,   recommendation: state.pwrThrotOff  ? 'Power throttling is disabled' : 'Power throttling is active — may limit burst CPU performance' },
         ],
-        overallScore: 62,
+        overallScore,
       };
     } catch (e) {
       return { ok: false, error: e.message };
@@ -5099,34 +5298,36 @@ public class DspHelper {
     const { session } = require('electron');
     const ses = session.defaultSession;
   
-    ses.cookies.on('changed', (event, cookie, cause, removed) => {
-  
-      const shouldPersist = cookie.domain && (
-        cookie.domain.includes('switchcontrol.org') ||
-        cookie.domain.includes('127.0.0.1')
-      );
-      if (!removed && cookie.session && shouldPersist) {
-        verboseLog('[Auth] Persisting session cookie:', cookie.name, 'domain:', cookie.domain);
-        // Session cookies (no expiry) don't survive restart — persist them for 30 days
-        const isLocalhost = cookie.domain.includes('127.0.0.1');
-        const persistedCookie = {
-          url: isLocalhost
-            ? `http://127.0.0.1${cookie.path || '/'}`
-            : `https://${cookie.domain.replace(/^\./, '')}${cookie.path || '/'}`,
-          name: cookie.name,
-          value: cookie.value,
-          domain: cookie.domain,
-          path: cookie.path || '/',
-          secure: cookie.secure,
-          httpOnly: cookie.httpOnly,
-          sameSite: cookie.sameSite || 'no_restriction',
-          expirationDate: Math.floor(Date.now() / 1000) + (30 * 24 * 60 * 60),
-        };
-        ses.cookies.set(persistedCookie)
-          .then(() => verboseLog('[Auth] Cookie persisted:', cookie.name))
-          .catch(err => console.error('[Auth] Cookie persist failed:', cookie.name, err));
-      }
-    });
+    if (!_cookiesListenerRegistered) {
+      _cookiesListenerRegistered = true;
+      ses.cookies.on('changed', (event, cookie, cause, removed) => {
+        const shouldPersist = cookie.domain && (
+          cookie.domain.includes('switchcontrol.org') ||
+          cookie.domain.includes('127.0.0.1')
+        );
+        if (!removed && cookie.session && shouldPersist) {
+          verboseLog('[Auth] Persisting session cookie:', cookie.name, 'domain:', cookie.domain);
+          // Session cookies (no expiry) don't survive restart — persist them for 30 days
+          const isLocalhost = cookie.domain.includes('127.0.0.1');
+          const persistedCookie = {
+            url: isLocalhost
+              ? `http://127.0.0.1${cookie.path || '/'}`
+              : `https://${cookie.domain.replace(/^\./, '')}${cookie.path || '/'}`,
+            name: cookie.name,
+            value: cookie.value,
+            domain: cookie.domain,
+            path: cookie.path || '/',
+            secure: cookie.secure,
+            httpOnly: cookie.httpOnly,
+            sameSite: cookie.sameSite || 'no_restriction',
+            expirationDate: Math.floor(Date.now() / 1000) + (30 * 24 * 60 * 60),
+          };
+          ses.cookies.set(persistedCookie)
+            .then(() => verboseLog('[Auth] Cookie persisted:', cookie.name))
+            .catch(err => console.error('[Auth] Cookie persist failed:', cookie.name, err));
+        }
+      });
+    }
   
     console.log(`[STARTUP] app ready — ${Date.now() - bootStart}ms from whenReady`);
   });
@@ -5185,7 +5386,12 @@ public class DspHelper {
   
   app.on('before-quit', () => {
     _telemetryLoopActive = false; // signals the async loop to stop after current poll
+    _sentinelLoopActive  = false;
     console.log('[telemetry:poll] async loop stop requested on quit');
+    // Cancel any pending fade/fallback timers so they don't fire during teardown
+    if (_fadeTimer)         { clearInterval(_fadeTimer);         _fadeTimer         = null; }
+    if (_fallbackFadeTimer) { clearInterval(_fallbackFadeTimer); _fallbackFadeTimer = null; }
+    if (_showFallbackTimer) { clearTimeout(_showFallbackTimer);  _showFallbackTimer = null; }
     tweakExecutor.cleanupTimerResProcess();
     backendLauncher.stopBackend();
   });
@@ -5195,7 +5401,7 @@ public class DspHelper {
   app.on('will-quit',  () => tweakExecutor.cleanupTimerResProcess());
   process.on('exit',   () => tweakExecutor.cleanupTimerResProcess());
   process.on('SIGTERM',() => tweakExecutor.cleanupTimerResProcess());
-  
+
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });

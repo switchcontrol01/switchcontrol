@@ -28,19 +28,23 @@ function sendRendererCritical(event: {
   try {
     const api = (window as any).electronAPI?.logs;
     if (api?.reportCritical) {
-      api.reportCritical({
+      const result = api.reportCritical({
         category: 'renderer_failure',
         severity: event.severity ?? 'error',
         source:   event.source,
         message:  event.message,
         stack:    event.stack,
-        route:    typeof window !== 'undefined' ? window.location?.hash : undefined,
-      }).catch(() => {});
+        route:    typeof window !== 'undefined' ? (window.location?.hash || window.location?.pathname) : undefined,
+      });
+      // Guard: reportCritical may be synchronous on some IPC implementations
+      if (result && typeof result.catch === 'function') result.catch(() => {});
     }
   } catch (e) {}
 }
 
 window.addEventListener('error', (e) => {
+  // Filter cross-origin CORS-suppressed noise: e.error is null and message is generic
+  if (!e.error && e.message === 'Script error.') return;
   const err = e.error instanceof Error ? e.error : null;
   sendRendererCritical({
     source:  'window.onerror',
@@ -86,7 +90,9 @@ if (!_isElectron) {
 console.log(`[LAUNCH:R0] renderer bootstrap | electron=${_isElectron} | t=+${performance.now().toFixed(0)}ms`);
 
 console.log(`[LAUNCH:R1] createRoot dispatching | t=+${performance.now().toFixed(0)}ms`);
-createRoot(document.getElementById("root")!).render(<App />);
+const _rootEl = document.getElementById('root');
+if (!_rootEl) throw new Error('[SwitchControl] Root element #root is missing from the document — the build output may be corrupted.');
+createRoot(_rootEl).render(<App />);
 
 // Remove the static #boot-shell AFTER React has committed its first painted frame.
 // Double-rAF: first rAF = layout, second rAF = first paint committed.
@@ -108,3 +114,13 @@ requestAnimationFrame(() => {
     }
   });
 });
+
+// Fallback: if rAF is suppressed (background tab, throttled browser), force
+// opacity:1 after 2 s so the page doesn't stay invisible indefinitely.
+if (!_isElectron) {
+  setTimeout(() => {
+    if (document.documentElement.style.opacity === '0') {
+      document.documentElement.style.opacity = '1';
+    }
+  }, 2000);
+}

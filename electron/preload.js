@@ -114,7 +114,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // ── Controlled privileged actions ───────────────────────────────────────────
   quitApp:          () => ipcRenderer.invoke('app:quit'),
   restart:          () => ipcRenderer.invoke('app:restart'),
-  resetAppData:     () => ipcRenderer.invoke('app:resetData'),
+  resetAppData:     () => ipcRenderer.invoke('app:resetData', 'RESET_SWITCHCONTROL_DATA'),
   clearAuthCookies: () => ipcRenderer.invoke('auth:clearCookies'),
 
   openExternal: (url) => {
@@ -329,6 +329,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
       return ipcRenderer.invoke('tweak:checkStatus', tweakId);
     },
     scanGpusForMsi: () => ipcRenderer.invoke('gpuMsi:scanAdapters'),
+    // Multi-GPU picker — enumerate all detected GPUs and switch the active one
+    listAllGpus:    () => ipcRenderer.invoke('gpu:listAll'),
+    getSelectedGpu: () => ipcRenderer.invoke('gpu:getSelected'),
+    setSelectedGpu: (index) => ipcRenderer.invoke('gpu:setSelected', index),
     syncAll:            () => ipcRenderer.invoke('tweak:syncAll'),
     batchCheckAll:      () => ipcRenderer.invoke('tweak:batchCheckAll'),
     getLocalState:      () => ipcRenderer.invoke('tweak:getLocalState'),
