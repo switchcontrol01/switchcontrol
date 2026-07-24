@@ -5,10 +5,10 @@ WORKDIR /app
 RUN npm install -g npm@11.18.0
 
 COPY package.json package-lock.json ./
-# scripts/ must exist before npm ci so postinstall.cjs can run
-COPY scripts/ ./scripts/
 
-RUN npm ci --legacy-peer-deps --no-audit --no-fund
+# --ignore-scripts skips postinstall (which tries `cd electron && npm install`
+# and the Replit-specific tsx/esbuild proxy — neither is needed in a container)
+RUN npm ci --legacy-peer-deps --no-audit --no-fund --ignore-scripts
 
 COPY . .
 
