@@ -23,14 +23,30 @@ declare global {
 
 const isElectronBackend = process.env.ELECTRON_BACKEND === '1';
 
+// ── Loopback guard ────────────────────────────────────────────────────────────
+// Returns true only when the TCP connection originated from localhost.
+// Used to gate the Electron unsigned-token trust path — if the backend is ever
+// accidentally exposed on a non-loopback interface (misconfiguration, Docker,
+// future change), unsigned tokens must not be trusted regardless of the env var.
+function isLoopback(req: Parameters<RequestHandler>[0]): boolean {
+  const addr = req.socket?.remoteAddress ?? req.ip ?? "";
+  return (
+    addr === "127.0.0.1" ||
+    addr === "::1" ||
+    addr === "::ffff:127.0.0.1"
+  );
+}
+
 // ── Token fingerprint + dedup helpers ────────────────────────────────────────
-// A "fingerprint" is the first 6 chars of the base64url header + first 6 chars
-// of the base64url payload. This uniquely identifies a token without exposing
-// any secret data (the signature is never logged).
+// A "fingerprint" uses the first 6 chars of the base64url header + first 16
+// chars of the payload. The payload portion is used for uniqueness — JWT
+// headers are almost always identical (same algorithm), so using only 6 chars
+// of the header would mean many different tokens share the same fingerprint and
+// one could suppress warnings for another.
 function tokenFingerprint(token: string): string {
   try {
     const parts = token.split('.');
-    return (parts[0] ?? '').substring(0, 6) + '.' + (parts[1] ?? '').substring(0, 6);
+    return (parts[0] ?? '').substring(0, 6) + '.' + (parts[1] ?? '').substring(0, 16);
   } catch {
     return 'malformed';
   }
@@ -38,13 +54,20 @@ function tokenFingerprint(token: string): string {
 
 // Per-fingerprint dedup map: fingerprint → last-warning timestamp (ms).
 // Suppresses repeated "invalid JWT" warnings for the same token within 60 s.
+// Capped at MAX_WARN_MAP_SIZE to prevent unbounded growth under token-spray attacks.
 const _invalidTokenLastWarn = new Map<string, number>();
 const INVALID_TOKEN_WARN_INTERVAL_MS = 60_000;
+const MAX_WARN_MAP_SIZE = 500;
 
 function shouldWarnInvalidToken(fp: string): boolean {
   const last = _invalidTokenLastWarn.get(fp) ?? 0;
   const now = Date.now();
   if (now - last >= INVALID_TOKEN_WARN_INTERVAL_MS) {
+    // Evict oldest entry when the map is at capacity to prevent unbounded growth.
+    if (!_invalidTokenLastWarn.has(fp) && _invalidTokenLastWarn.size >= MAX_WARN_MAP_SIZE) {
+      const oldestKey = _invalidTokenLastWarn.keys().next().value;
+      if (oldestKey !== undefined) _invalidTokenLastWarn.delete(oldestKey);
+    }
     _invalidTokenLastWarn.set(fp, now);
     return true;
   }
@@ -55,50 +78,89 @@ export const requireJwt: RequestHandler = async (req, res, next) => {
   // ── Electron embedded backend fast-path ──────────────────────────────────────
   // The cloud JWT is signed with the cloud's JWT_SECRET which the packaged
   // embedded backend does not (and should not) have. Instead, the renderer sends
-  // the authenticated user's ID via x-electron-uid (safe: 127.0.0.1 only).
+  // the authenticated user's ID via x-electron-uid.
+  //
+  // SECURITY: this path is only trusted when the TCP connection is from loopback.
+  // If the backend is misconfigured or the ELECTRON_BACKEND env var is set on the
+  // cloud server by an attacker, the loopback check prevents unsigned token trust.
   if (isElectronBackend) {
+    if (!isLoopback(req)) {
+      console.error(
+        `[CloudAuth] ELECTRON_BACKEND=1 but request is not from loopback — rejecting | ` +
+        `remoteAddress=${req.socket?.remoteAddress} path=${req.path}`
+      );
+      return res.status(401).json({ error: "Authentication required. Please log in." });
+    }
+
     const electronUid = req.headers['x-electron-uid'];
     if (
       typeof electronUid === 'string' &&
       /^[a-zA-Z0-9_-]{8,64}$/.test(electronUid)
     ) {
-      req.cloudUser = {
-        id: electronUid,
-        isPremium: false,
-        plan: 'free',
-        trialEndsAt: null,
-        email: null,
-        isAdmin: false,
-        premiumBoundDeviceId: null,
-        deviceSignature: null,
-      };
-      return next();
+      // Validate the UID actually exists in the DB — without this, any well-formed
+      // string in x-electron-uid would be trusted as req.cloudUser.id, giving
+      // attacker-controlled input to all downstream DB writes and ownership records.
+      try {
+        const user = await storage.getUser(electronUid);
+        if (!user) {
+          console.warn(`[CloudAuth] Electron x-electron-uid not found in DB | uid=${electronUid} path=${req.path}`);
+          return res.status(401).json({ error: "Authentication required. Please log in." });
+        }
+        const effectivePlan = resolveEffectivePlan(user);
+        req.cloudUser = {
+          id: user.id,
+          isPremium: isPlanActive(effectivePlan),
+          plan: effectivePlan,
+          trialEndsAt: user.trialEndsAt ?? null,
+          email: user.email ?? null,
+          isAdmin: user.isAdmin ?? false,
+          premiumBoundDeviceId: user.premiumBoundDeviceId ?? null,
+          deviceSignature: user.deviceSignature ?? null,
+        };
+        return next();
+      } catch (e) {
+        console.error("[CloudAuth] DB error during Electron UID lookup:", e);
+        return res.status(500).json({ error: "Authentication check failed. Please try again." });
+      }
     }
 
     // Fallback: if a JWT is present (e.g. older client), decode WITHOUT signature
-    // verification — we cannot verify the cloud signature locally and logging it
-    // as an error would spam the log. Payload trust is safe here (127.0.0.1 only).
+    // verification — we cannot verify the cloud signature locally. The loopback
+    // check above already enforces the trust boundary for this path.
     const authHeader = req.headers.authorization;
     if (authHeader?.startsWith('Bearer ')) {
       const token = authHeader.substring(7);
       try {
         const jwtLib = await import('jsonwebtoken');
-        const decoded = jwtLib.default.decode(token) as { sub?: string; iss?: string } | null;
+        // Only extract sub — iss is not verified in local-trust mode.
+        const decoded = jwtLib.default.decode(token) as { sub?: string } | null;
         if (decoded?.sub) {
-          console.log(
-            `[CloudAuth] Electron local-trust decode | method=${req.method} path=${req.path} sub=${decoded.sub}`
-          );
-          req.cloudUser = {
-            id: decoded.sub,
-            isPremium: false,
-            plan: 'free',
-            trialEndsAt: null,
-            email: null,
-            isAdmin: false,
-            premiumBoundDeviceId: null,
-            deviceSignature: null,
-          };
-          return next();
+          // Validate sub exists in DB — same reason as the x-electron-uid path above.
+          try {
+            const user = await storage.getUser(decoded.sub);
+            if (!user) {
+              console.warn(`[CloudAuth] Electron local-trust sub not found in DB | sub=${decoded.sub} path=${req.path}`);
+              return res.status(401).json({ error: "Authentication required. Please log in." });
+            }
+            console.log(
+              `[CloudAuth] Electron local-trust decode | method=${req.method} path=${req.path} sub=${decoded.sub}`
+            );
+            const effectivePlan = resolveEffectivePlan(user);
+            req.cloudUser = {
+              id: user.id,
+              isPremium: isPlanActive(effectivePlan),
+              plan: effectivePlan,
+              trialEndsAt: user.trialEndsAt ?? null,
+              email: user.email ?? null,
+              isAdmin: user.isAdmin ?? false,
+              premiumBoundDeviceId: user.premiumBoundDeviceId ?? null,
+              deviceSignature: user.deviceSignature ?? null,
+            };
+            return next();
+          } catch (e) {
+            console.error("[CloudAuth] DB error during Electron JWT sub lookup:", e);
+            return res.status(500).json({ error: "Authentication check failed. Please try again." });
+          }
         }
       } catch {
         // jwt.decode never throws for malformed tokens — falls through below
@@ -182,7 +244,13 @@ export const requireJwt: RequestHandler = async (req, res, next) => {
         }
         return next();
       }
-    } catch {}
+      // user not found in DB — fall through to 401
+    } catch (e) {
+      // Consistent with JWT path: DB errors return 500, not a silent 401.
+      // A 401 here would be indistinguishable from "not authenticated" in logs.
+      console.error("[CloudAuth] DB error during session auth:", e);
+      return res.status(500).json({ error: "Authentication check failed. Please try again." });
+    }
   }
 
   return res.status(401).json({ error: "Authentication required. Please log in." });
@@ -190,6 +258,10 @@ export const requireJwt: RequestHandler = async (req, res, next) => {
 
 export const requireCloudPremium: RequestHandler = (req, res, next) => {
   if (!req.cloudUser) {
+    // req.cloudUser is only set by requireJwt. If it's missing, either the route
+    // forgot to run requireJwt first, or the user is not authenticated. The error
+    // is intentionally generic — a misconfigured route looks identical to an
+    // unauthenticated request so we don't expose middleware ordering in responses.
     return res.status(401).json({ error: "Authentication required." });
   }
   if (!req.cloudUser.isPremium) {
@@ -199,8 +271,12 @@ export const requireCloudPremium: RequestHandler = (req, res, next) => {
     });
   }
 
-  // Device lock enforcement — only applied when Electron sends x-device-id
-  // Website/browser sessions never send this header, so they are unaffected
+  // Device lock enforcement — only applied when Electron sends x-device-id.
+  // Website/browser sessions never send this header, so they are unaffected.
+  // Note: this means device locking provides no protection for web sessions —
+  // a device-locked account can still be accessed from any browser. This is
+  // intentional (web sessions use their own session cookie auth) but documented
+  // here so the security model is explicit.
   const deviceId = req.headers["x-device-id"] as string | undefined;
   const deviceSignature = req.headers["x-device-signature"] as string | undefined;
   const boundDeviceId = req.cloudUser.premiumBoundDeviceId;
