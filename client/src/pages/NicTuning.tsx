@@ -15,9 +15,12 @@ const NIC_CANONICAL_IDS: Record<string, string> = {
   RSS:                 "nic-rss",
   InterruptModeration: "nic-interrupt-mod",
   EEE:                 "nic-eee",
-  GreenEthernet:       "nic-eee",
+  // GreenEthernet gets its own ID — sharing nic-eee caused the last write to
+  // silently overwrite the store boolean when both coexist on one adapter (Intel).
+  GreenEthernet:       "nic-green-ethernet",
   FlowControl:         "nic-flow-control",
-  JumboPacket:         "nic-jumbo-frames",
+  // JumboPacket omitted — not defined in NIC_PROPERTY_DEFS so it was silently
+  // filtered out of every group and capability result.
 };
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -152,10 +155,10 @@ const PROPERTY_GROUPS: {
   },
   {
     label: "Flow & Packet Handling",
-    subtitle: "Flow control and jumbo frame configuration",
+    subtitle: "Flow control configuration",
     color: "indigo",
     icon: Network,
-    keys: ["FlowControl", "JumboPacket"],
+    keys: ["FlowControl"],
   },
 ];
 
@@ -281,7 +284,7 @@ function FeaturePill({
         "size-1.5 rounded-full",
         isOn ? "bg-emerald-400 shadow-[0_0_4px_rgba(52,211,153,0.8)]"
         : isOff ? "bg-red-400/60"
-        : "bg-[#1A1F26]0"
+        : "bg-[#2A313A]"
       )} />
       {label}
     </div>
@@ -337,9 +340,10 @@ interface PropertyControlProps {
   propKey: string;
   meta: PropertyMeta;
   capability: PropertyCapability;
+  onValueApplied: (propKey: string, newValue: string | null) => void;
 }
 
-function PropertyControl({ adapterName, propKey, meta, capability }: PropertyControlProps) {
+function PropertyControl({ adapterName, propKey, meta, capability, onValueApplied }: PropertyControlProps) {
   const { toast } = useToast();
   const [state, setState] = useState<PropertyState>({
     pending:  capability.currentValue,
@@ -359,6 +363,10 @@ function PropertyControl({ adapterName, propKey, meta, capability }: PropertyCon
     resultTimerRef.current = setTimeout(() => setState(s => ({ ...s, result: null })), 5000);
   }, []);
 
+  // Clear the dismiss timer on unmount so setState is never called on an
+  // unmounted component (switching adapters or collapsing a group mid-timer).
+  useEffect(() => () => { if (resultTimerRef.current) clearTimeout(resultTimerRef.current); }, []);
+
   const apply = useCallback(async () => {
     if (!state.pending) return;
     setState(s => ({ ...s, applying: true, result: null }));
@@ -375,12 +383,21 @@ function PropertyControl({ adapterName, propKey, meta, capability }: PropertyCon
       logHistory(`NIC Tuning: ${meta.label}`, "NIC Tuning", verified ? "Applied & Verified" : "Applied", `${propKey}=${state.pending} on ${adapterName}`);
       toast({ title: verified ? `${meta.label} Applied & Verified` : `${meta.label} Applied`, description: verified ? `Registry confirmed ${res.actualValue} on ${adapterName}.` : `Written to adapter. Readback pending driver confirmation.` });
       scheduleResultDismiss();
-      // Sync to canonical store so AI Advisor, NetworkTweaks, and Dashboard
-      // all reflect this NIC adapter state without a page reload.
+      // Patch parent capabilities map so isDirty resets and "Current:" label
+      // immediately reflects the applied value. Without this, capability.currentValue
+      // never changes (it's a prop from the parent's state), the isDirty comparison
+      // stays true, and the Apply button remains active after a successful write.
+      onValueApplied(propKey, res.actualValue ?? state.pending);
+      // Sync to canonical store so AI Advisor, NetworkTweaks, and Dashboard reflect
+      // this adapter state without a page reload.
       const cid = NIC_CANONICAL_IDS[propKey];
       if (cid) {
-        const isEnabled = meta.enabledValue !== undefined
+        // Stepped properties (e.g. FlowControl 0/1/2/3) have no enabledValue — treat
+        // any value other than the first preset ("0" / "Disabled") as the active state.
+        const isEnabled = meta.enabledValue != null
           ? state.pending === meta.enabledValue
+          : meta.presets?.[0] != null
+          ? state.pending !== meta.presets[0]
           : true;
         useStore.getState().setTweak(cid, isEnabled);
       }
@@ -404,6 +421,8 @@ function PropertyControl({ adapterName, propKey, meta, capability }: PropertyCon
       logHistory(`NIC Tuning: ${meta.label} Reset`, "NIC Tuning", "Reset to Default", `${propKey} restored to driver default on ${adapterName}`);
       toast({ title: "Reset to Default", description: `${meta.label} restored to driver default.` });
       scheduleResultDismiss();
+      // Patch parent capabilities so "Current:" label reflects the reset value.
+      onValueApplied(propKey, res.actualValue ?? null);
       // Clear canonical entry — property is back at driver default.
       const cid = NIC_CANONICAL_IDS[propKey];
       if (cid) useStore.getState().setTweak(cid, false);
@@ -513,11 +532,13 @@ function PropertyGroupSection({
   adapterName,
   propertyMeta,
   capabilities,
+  onValueApplied,
 }: {
   group: typeof PROPERTY_GROUPS[number];
   adapterName: string;
   propertyMeta: Record<string, PropertyMeta>;
   capabilities: Record<string, PropertyCapability>;
+  onValueApplied: (propKey: string, newValue: string | null) => void;
 }) {
   const [open, setOpen] = useState(true);
   const col = GROUP_COLORS[group.color];
@@ -566,6 +587,7 @@ function PropertyGroupSection({
                   propKey={k}
                   meta={propertyMeta[k]}
                   capability={capabilities[k] ?? { supported: false, currentValue: null }}
+                  onValueApplied={onValueApplied}
                 />
               ))}
             </div>
@@ -657,7 +679,7 @@ function NetworkThroughputCard({ adapterName }: { adapterName: string }) {
                 ? hasActivity
                   ? "bg-cyan-400 shadow-[0_0_6px_rgba(34,211,238,0.8)] animate-pulse"
                   : "bg-emerald-400 shadow-[0_0_4px_rgba(52,211,153,0.7)]"
-                : "bg-[#1A1F26]0",
+                : "bg-[#2A313A]",
             )}
           />
           <span className={cn("text-[10px] font-medium", connected ? "text-[#6B7380]" : "text-[#6B7380]/50")}>
@@ -925,6 +947,16 @@ export default function NicTuningPage() {
   const [capError, setCapError] = useState<string | null>(null);
   const capLoadedRef = useRef<Set<string>>(new Set());
 
+  // Patch a single property's currentValue in the capabilities map after a
+  // successful apply or reset, so isDirty resets and "Current:" label reflects
+  // the real driver state without a full capability reload.
+  const handleValueApplied = useCallback((propKey: string, newValue: string | null) => {
+    setCapabilities(prev => {
+      if (!prev || !prev[propKey]) return prev;
+      return { ...prev, [propKey]: { ...prev[propKey], currentValue: newValue } };
+    });
+  }, []);
+
   const loadAdapters = useCallback(async () => {
     setLoading(true);
     setLoadError(null);
@@ -981,6 +1013,22 @@ export default function NicTuningPage() {
       setCapLoading(false);
     }
   }, []);
+
+  // Refresh: invalidate the backend capability cache THEN force-reload.
+  // The plain onClick handler only cleared a client-side Set — the backend's
+  // session-lifetime Map was never flushed, so "Refresh" returned the same
+  // stale cached data. Also handles the case where the same adapter re-selects
+  // (no state change → selectedAdapter effect doesn't fire → no capability reload).
+  const handleRefresh = useCallback(async () => {
+    const api = getNicAPI();
+    if (api) { try { await api.invalidateCache(null); } catch {} }
+    capLoadedRef.current.clear();
+    if (selectedAdapter) {
+      setCapabilities(null);
+      loadCapabilities(selectedAdapter);
+    }
+    loadAdapters();
+  }, [selectedAdapter, loadCapabilities, loadAdapters]);
 
   // Load adapters on mount
   useEffect(() => {
@@ -1042,7 +1090,7 @@ export default function NicTuningPage() {
                 <div className="flex items-center gap-4 shrink-0">
                   <div className="text-right hidden sm:block">
                     <div className="flex items-center gap-1.5 justify-end">
-                      <span className={cn("size-1.5 rounded-full", isOnline ? "bg-emerald-400 shadow-[0_0_4px_rgba(52,211,153,0.9)]" : "bg-[#1A1F26]0")} />
+                      <span className={cn("size-1.5 rounded-full", isOnline ? "bg-emerald-400 shadow-[0_0_4px_rgba(52,211,153,0.9)]" : "bg-[#2A313A]")} />
                       <span className={cn("text-xs font-medium", isOnline ? "text-emerald-400" : "text-[#6B7380]")}>{activeAdapter.status}</span>
                     </div>
                     <p className="text-[10px] text-[#6B7380] mt-0.5 truncate max-w-[200px]">{activeAdapter.name}</p>
@@ -1119,13 +1167,13 @@ export default function NicTuningPage() {
                       : "bg-[#1A1F26] border-[#2A313A] text-[#A0A8B3] hover:bg-[#21262D] hover:text-[#E6EAF0]"
                   )}
                 >
-                  <span className={cn("size-1.5 rounded-full shrink-0", on ? "bg-emerald-400" : "bg-[#1A1F26]0")} />
+                  <span className={cn("size-1.5 rounded-full shrink-0", on ? "bg-emerald-400" : "bg-[#2A313A]")} />
                   {adapter.name}
                 </button>
               );
             })}
             <button
-              onClick={() => { capLoadedRef.current.clear(); loadAdapters(); }}
+              onClick={handleRefresh}
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[#2A313A] text-xs text-[#6B7380] hover:text-[#A0A8B3] hover:bg-[#21262D] transition-all ml-auto"
             >
               <RefreshCw className="size-3" />
@@ -1138,7 +1186,7 @@ export default function NicTuningPage() {
         {adapters.length === 1 && (
           <div className="flex justify-end">
             <button
-              onClick={() => { capLoadedRef.current.clear(); loadAdapters(); }}
+              onClick={handleRefresh}
               className="flex items-center gap-1.5 text-[11px] text-[#6B7380] hover:text-[#A0A8B3] transition-colors"
             >
               <RefreshCw className="size-3" />
@@ -1207,6 +1255,7 @@ export default function NicTuningPage() {
                     adapterName={activeAdapter.name}
                     propertyMeta={propertyMeta}
                     capabilities={capabilities}
+                    onValueApplied={handleValueApplied}
                   />
                 ))}
 
@@ -1226,6 +1275,7 @@ export default function NicTuningPage() {
                             propKey={k}
                             meta={propertyMeta[k]}
                             capability={capabilities[k] ?? { supported: false, currentValue: null }}
+                            onValueApplied={handleValueApplied}
                           />
                         ))}
                       </div>
