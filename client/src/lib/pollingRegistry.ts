@@ -27,6 +27,10 @@ export interface PollEntry {
 const _registry = new Map<number, PollEntry>();
 
 // ── WebSocket connection tracking ────────────────────────────────────────────────
+// Single-connection assumption: only one WebSocket is tracked at a time.
+// registerWs() overwrites any previous entry silently — if a reconnect fires
+// before the old connection closes, the previous entry is lost. This matches
+// the current app which has exactly one telemetry WebSocket.
 interface WsEntry {
   url: string;
   status: 'connecting' | 'open' | 'closed';
@@ -45,6 +49,10 @@ const _ipcEntries = new Map<string, IpcEntry>();
 
 // ── React render counter ───────────────────────────────────────────────────────
 // Incremented by telemetryStore._onTick (the main per-frame render driver).
+// Intended as a short-lived diagnostic — call resetRenderCount() before
+// measuring a window of interest, then getRenderCount() after. Without an
+// explicit reset the value grows monotonically for the lifetime of the session
+// and is only meaningful relative to a prior snapshot.
 let _renderCount = 0;
 
 export const pollingRegistry = {
@@ -70,8 +78,9 @@ export const pollingRegistry = {
   },
 
   unregister(id: number): void {
-    const entry = _registry.get(id);
-    if (entry) entry.active = false;
+    // Delete directly — the `entry.active = false` that was here was dead code
+    // because the entry is removed from the registry on the very next line and
+    // the local reference is immediately discarded.
     _registry.delete(id);
   },
 
@@ -79,7 +88,7 @@ export const pollingRegistry = {
     return [..._registry.values()];
   },
 
-  summary(): object {
+  summary(): { activeCount: number; total: number; entries: { name: string; file: string; intervalMs: number; tickCount: number; lastTickAgo: string }[] } {
     const all = [..._registry.values()];
     return {
       activeCount: all.filter(e => e.active).length,
@@ -144,7 +153,9 @@ export const pollingRegistry = {
   },
 };
 
-// Expose to devtools console
-if (typeof window !== 'undefined') {
+// Expose to devtools console — dev builds only.
+// dump() returns file paths and timing for all active polls; gating prevents
+// this diagnostic surface from being reachable in production renderer builds.
+if (import.meta.env.DEV && typeof window !== 'undefined') {
   (window as any).__pollingRegistry = pollingRegistry;
 }
