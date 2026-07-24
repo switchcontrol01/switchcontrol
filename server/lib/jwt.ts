@@ -120,6 +120,37 @@ const JWT_CACHE_MAX = 5000;
 const JWT_CACHE_TTL_MS = 60_000; // re-run jwt.verify at most once/min per token
 const verifiedCache = new Map<string, { payload: JwtPayload; cachedAt: number }>();
 
+// ── Token revocation list ─────────────────────────────────────────────────────
+// Tracks tokens explicitly revoked via invalidateJwt() (e.g. on logout).
+// Without this, a logged-out 30-day token stays cryptographically valid for its
+// full lifetime and re-verifies successfully on any call to verifyJwt() — even
+// on the same process that issued the logout — because jwt.verify() only checks
+// the HMAC and exp claim, not whether the token was deliberately invalidated.
+//
+// Storage: SHA-256(token)[0:32 hex] → exp timestamp (Unix seconds).
+// A 32-char hex fingerprint (128-bit) is collision-resistant for any practical
+// revocation list size. Each entry TTLs out at the token's own exp, so the Map
+// stays bounded without a separate sweep.
+//
+// Multi-instance note: this Map is per-process. In a horizontally-scaled
+// deployment, revocation is enforced only on the instance that handled the
+// logout request. A shared store (Redis, DB table with TTL) would be needed for
+// full cross-instance coverage. The current deployment is single-instance so
+// this provides complete protection.
+const revokedFingerprints = new Map<string, number>(); // fingerprint → exp (seconds)
+
+function tokenRevocationFp(token: string): string {
+  return crypto.createHash("sha256").update(token).digest("hex").slice(0, 32);
+}
+
+/** Remove revocation entries whose token exp has already passed (auto-cleanup). */
+function pruneRevokedTokens(): void {
+  const nowSec = Math.floor(Date.now() / 1000);
+  for (const [fp, exp] of revokedFingerprints) {
+    if (nowSec >= exp) revokedFingerprints.delete(fp);
+  }
+}
+
 function jwtCacheGet(token: string): JwtPayload | null {
   const hit = verifiedCache.get(token);
   if (!hit) return null;
@@ -148,9 +179,35 @@ function jwtCacheSet(token: string, payload: JwtPayload): void {
   verifiedCache.set(token, { payload, cachedAt: Date.now() });
 }
 
-/** Drop a single token from the verified cache (e.g. on logout / forced revocation). */
+/**
+ * Revoke a specific JWT: drop it from the verify cache AND add it to the
+ * revocation list so it cannot re-verify until its natural exp.
+ *
+ * Previously this only removed the cache entry — a pure performance optimization.
+ * The token remained cryptographically valid (HMAC still checks out) for its full
+ * 30-day lifetime, so "logout" provided no real protection against a stolen token.
+ * The revocation list closes that gap for single-instance deployments.
+ */
 export function invalidateJwt(token: string): void {
   verifiedCache.delete(token);
+  try {
+    const parts = token.split(".");
+    if (parts.length === 3) {
+      const raw = Buffer.from(parts[1], "base64").toString("utf-8");
+      const peek = JSON.parse(raw) as Record<string, unknown>;
+      // Use the token's own exp as the revocation entry TTL.
+      // Fall back to 30 days if exp is absent — the maximum token lifetime.
+      const exp = typeof peek.exp === "number"
+        ? peek.exp
+        : Math.floor(Date.now() / 1000) + 30 * 24 * 3600;
+      pruneRevokedTokens(); // trim naturally-expired entries on every logout
+      const fp = tokenRevocationFp(token);
+      revokedFingerprints.set(fp, exp);
+      console.log(`[JWT] token revoked — fp=${fp} exp=${exp} revokedListSize=${revokedFingerprints.size}`);
+    }
+  } catch {
+    // Malformed token — cannot verify anyway, no revocation entry needed.
+  }
 }
 
 /** Clear the entire verified-token cache (e.g. on secret rotation). */
@@ -160,6 +217,15 @@ export function clearJwtCache(): void {
 
 export function verifyJwt(token: string, silent = false): JwtPayload | null {
   if (!token || typeof token !== "string") {
+    return null;
+  }
+  // Revocation check comes first — before the cache — so a revoked token is
+  // always rejected even if it was re-added to the cache after invalidation
+  // (e.g. the same token presented to a different code path before the cache
+  // entry was evicted by the LRU). One SHA-256 per call is negligible.
+  const fp = tokenRevocationFp(token);
+  if (revokedFingerprints.has(fp)) {
+    if (!silent) console.log(`[JWT] rejected — token is on revocation list fp=${fp}`);
     return null;
   }
   const cached = jwtCacheGet(token);

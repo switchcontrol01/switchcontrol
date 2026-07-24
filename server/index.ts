@@ -98,9 +98,14 @@ const replitDevDomain = process.env.REPLIT_DEV_DOMAIN;
 
 const corsOriginValidator = function(origin: string | undefined, callback: (err: any, allow?: boolean) => void) {
   if (!origin) return callback(null, true);
-  if (origin === 'null') {
-    return callback(null, true);
-  }
+  // Do NOT allow origin === 'null'. Browsers send literal "null" for sandboxed
+  // iframes (<iframe sandbox> without allow-same-origin), file:// contexts, and
+  // some redirect chains. Explicitly allowing it with credentials:true means an
+  // attacker-controlled sandboxed iframe could make credentialed cross-origin
+  // requests and bypass the same-origin allowlist built below.
+  // The !origin guard above already covers same-origin and server-to-server requests
+  // (no Origin header at all) — the 'null' string case is a distinct browser signal
+  // that should be treated as untrusted.
   if (allowedOrigins.includes(origin)) {
     return callback(null, true);
   }
