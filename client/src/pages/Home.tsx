@@ -35,6 +35,7 @@ import { AnimatedCrown, PremiumBadge } from "@/components/ui/animated-crown";
 import { PremiumCardOverlay } from "@/components/ui/premium-page-overlay";
 import { useBiosAdvisorStore } from "@/stores/biosAdvisorStore";
 import { useSystemIntelligence } from "@/hooks/useSystemIntelligence";
+import { useGpuSelector } from "@/hooks/useGpuSelector";
 
 const MemoryCleanerModal = lazy(() =>
   import("@/components/dashboard/MemoryCleanerModal").then((m) => ({ default: m.MemoryCleanerModal }))
@@ -418,6 +419,7 @@ export default function Home() {
   const [memIntelOpen, setMemIntelOpen] = useState(false);
   const [gpuModalOpen, setGpuModalOpen] = useState(false);
   const [gpuDetailAvailable, setGpuDetailAvailable] = useState<boolean | null>(null);
+  const { gpuList, selectedIndex: selectedGpuIndex, switching: gpuSwitching, selectGpu } = useGpuSelector();
   const [diskModalOpen, setDiskModalOpen] = useState(false);
   const [isOnline, setIsOnline] = useState(() => navigator.onLine);
   useEffect(() => {
@@ -553,9 +555,12 @@ export default function Home() {
             if (gpuModel && gpuModel !== 'Detecting\u2026' && gpuModel !== '') {
               const cur = (useStore as any).getState?.()?.stats;
               const curGpu: string = cur?.gpuName ?? '';
-              if (!curGpu || curGpu === 'Detecting\u2026' || curGpu === '' || curGpu === 'Unavailable') {
+              // Always apply when current value is empty/detecting/switching,
+              // OR when it's a deliberate GPU switch (Switching… sentinel).
+              if (!curGpu || curGpu === 'Detecting\u2026' || curGpu === '' || curGpu === 'Unavailable' || curGpu === 'Switching\u2026') {
                 updates.gpuName   = gpuModel;
-                updates.gpuVendor = payload.gpu?.vendor ?? '';
+                updates.gpuVendor = payload.gpu?.vendor  ?? '';
+                updates.vramGb    = payload.gpu?.vramGB  ?? 0;
                 console.log('[GPU] renderer: store updated from specs:enriched —', gpuModel);
               }
             }
@@ -946,12 +951,45 @@ export default function Home() {
             
             <div>
               <StatCard
-                title="GPU"
-                value={stats.gpuName === 'Detecting\u2026' ? undefined : stats.gpuName}
+                title={
+                  gpuList.length > 1 ? (
+                    <div className="flex items-center gap-1">
+                      <span>GPU</span>
+                      <select
+                        value={selectedGpuIndex}
+                        onChange={(e) => selectGpu(Number(e.target.value))}
+                        className="bg-transparent border border-[#2A313A] rounded px-1.5 py-0.5 text-xs cursor-pointer hover:border-primary/50 transition-colors focus:outline-none focus:border-primary"
+                        onClick={(e) => e.stopPropagation()}
+                        disabled={gpuSwitching}
+                        data-testid="select-gpu"
+                      >
+                        {gpuList.map((gpu, idx) => (
+                          <option key={idx} value={idx} className="bg-zinc-900 text-[#E6EAF0]">
+                            {gpu.vramGB > 0 ? `GPU ${idx + 1} · ${gpu.vramGB} GB` : `GPU ${idx + 1}`}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  ) : "GPU"
+                }
+                value={
+                  gpuSwitching
+                    ? undefined
+                    : stats.gpuName === 'Detecting\u2026' || stats.gpuName === 'Switching\u2026'
+                    ? undefined
+                    : stats.gpuName
+                }
                 icon={Activity}
-                subtext={`${stats.vramGb} GB VRAM`}
+                onIconClick={() => setGpuModalOpen(true)}
+                subtext={
+                  gpuSwitching
+                    ? "Switching GPU…"
+                    : stats.vramGb > 0
+                    ? `${stats.vramGb} GB VRAM`
+                    : "Detecting…"
+                }
                 className="border-cyan-500/20 shadow-[0_0_20px_-10px_hsl(190_100%_50%/0.1)]"
-                loading={specStatus === "loading" || stats.gpuName === 'Detecting\u2026'}
+                loading={specStatus === "loading" || stats.gpuName === 'Detecting\u2026' || gpuSwitching}
               />
             </div>
             
