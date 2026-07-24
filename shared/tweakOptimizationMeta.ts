@@ -87,7 +87,10 @@ export const TWEAK_OPT_META: Record<string, TweakOptimizationMeta> = {
     measurabilityClass: "proven",
     baseConfidence: 84,
     intentWeights: { [LATENCY]: 9, [NETWORK]: 10, [COMPFPS]: 8, [BALANCED]: 7, [AUTO]: 7 },
-    networkTweakOnly: false,
+    // networkTweakOnly intentionally omitted (falsy by default). This is a
+    // system-wide TCP/IP stack tuning that improves latency across all intents —
+    // not a network-only tweak like bluetooth/wifi. The explicit `false` that
+    // existed here was noise (functionally identical to omitting the field).
   },
 
   "win32-priority-sep": {
@@ -182,7 +185,9 @@ export const TWEAK_OPT_META: Record<string, TweakOptimizationMeta> = {
     measurabilityClass: "conditional",
     baseConfidence: 72,
     intentWeights: { [FPS]: 7, [FRAMES]: 8, [LATENCY]: 6, [COMPFPS]: 7, [BALANCED]: 6, [AUTO]: 6 },
-    requiresNvidiaPrecondition: false,
+    // requiresNvidiaPrecondition intentionally omitted (falsy by default).
+    // GPU preemption scheduling applies to AMD and NVIDIA alike; this tweak is
+    // not vendor-gated. The explicit `false` that existed here was noise.
   },
 
   "disable-mpo": {
@@ -332,6 +337,12 @@ export const TWEAK_OPT_META: Record<string, TweakOptimizationMeta> = {
     measurabilityClass: "conditional",
     baseConfidence: 55,
     intentWeights: { [STUTTER]: 5, [BALANCED]: 4 },
+    // Must mirror superfetch's conflictsWith — the engine's conflict resolver is
+    // one-directional (reads only the incoming tweak's own list). If prefetch is
+    // accepted first (higher score), a missing entry here means superfetch is never
+    // blocked and both get recommended together, which is the very conflict this
+    // pair is meant to prevent.
+    conflictsWith: ["superfetch"],
     windowsBuildDecay: [
       { buildMin: BUILD_WIN11_22H2, multiplier: 0.8, reason: "Win11 SysMain handles most prefetching. Disabling Prefetch has reduced impact on NVMe." },
     ],
