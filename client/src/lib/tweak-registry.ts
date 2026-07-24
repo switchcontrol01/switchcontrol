@@ -775,15 +775,20 @@ const BASE: BaseTweak[] = [
   {
     id: "synth-timers",
     title: "Disable Synthetic Timers",
-    description: "Reduces latency overhead from virtualized timer sources.",
+    description: "Disables the Windows dynamic tick (disabledynamictick) via BCDEdit, removing the Hyper-V synthetic timer abstraction layer. Keeps the hardware interrupt clock running at a fixed rate instead of coalescing timer ticks to save power.",
     impact: [
-      "Can reduce timer-related latency in some scenarios",
-      "May improve consistency in time-sensitive applications",
-      "Risk: can cause issues with virtualization features",
+      "Removes synthetic timer overhead from CPU interrupt handling",
+      "Can lower DPC timer latency — measurable in LatencyMon as reduced timer interrupt times",
+      "Useful on systems where Hyper-V was previously enabled and its timer drivers are still registered",
+      "A full restart is required before the change takes effect",
     ],
     expected: { latency: "Low", cpu: "Low", ram: "None", gpu: "None", disk: "None", network: "None", stabilityRisk: "Medium" },
-    category: "Gaming and Latency", level: "Experimental", risk: "Risky",
+    category: "Gaming and Latency", level: "Experimental", risk: "Moderate",
     requiresReboot: true, supported: true, requiresAdmin: true,
+    whoShouldAvoid: "AMD X3D and modern Win11 24H2 users — Windows already manages timer coalescing and CCD parking automatically on these platforms. Forcing disabledynamictick here can raise DPC latency instead of lowering it. Virtual machine hosts should also avoid this tweak.",
+    detailsConfig: {
+      warningText: "Runs: bcdedit /set disabledynamictick yes. Revert runs: bcdedit /deletevalue disabledynamictick. A full Windows restart is required after both apply and revert. Hardware intelligence will warn if your CPU is not expected to benefit.",
+    },
   },
   {
     id: "disable-fso",
