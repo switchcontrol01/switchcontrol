@@ -1,4 +1,4 @@
-import { Router, Request, Response, RequestHandler } from "express";
+import express, { Router, Request, Response, RequestHandler } from "express";
 import { z } from "zod";
 import rateLimit from "express-rate-limit";
 import OpenAI from "openai";
@@ -12,6 +12,12 @@ import type {
 } from "../security/types";
 
 const securityRouter = Router();
+
+// The /image-analysis endpoint accepts base64 image payloads up to ~7 MB of
+// base64 text, which equals ~9.3 MB of HTTP body after JSON encoding overhead.
+// Express's default body-parser limit is 100 KB — set it explicitly here so
+// large images aren't silently rejected with a 413 before reaching the handler.
+securityRouter.use(express.json({ limit: "10mb" }));
 
 // ---------------------------------------------------------------------------
 // Rate limiter
@@ -124,7 +130,13 @@ securityRouter.get("/capabilities", (req: Request, res: Response) => {
 const requirePremium: RequestHandler = (req, res, next) => {
   const cloudUser = (req as any).cloudUser as { id: string; isPremium: boolean } | undefined;
   if (!cloudUser?.isPremium) {
-    console.warn(`[Security] FORBIDDEN | user=${cloudUser?.id ?? "none"}`);
+    // Distinguish between: (a) middleware ordering bug — cloudUser is undefined,
+    // (b) correct 403 — user is authenticated but not premium.
+    if (!cloudUser) {
+      console.error(`[Security] FORBIDDEN | cloudUser=undefined — possible middleware ordering bug`);
+    } else {
+      console.warn(`[Security] FORBIDDEN | user=${cloudUser.id} isPremium=false`);
+    }
     return res.status(403).json({ error: "Premium required." });
   }
   next();
@@ -239,27 +251,57 @@ RULES:
       ],
     });
 
-    const raw = completion.choices[0]?.message?.content;
-    if (!raw) return res.status(502).json({ error: "AI returned an empty response. Please try again." });
+    const rawContent = completion.choices[0]?.message?.content;
+    // Distinguish empty content (null/empty string) from a null message object —
+    // both correctly produce a 502, but the log should reflect which occurred.
+    if (!rawContent) {
+      const reason = completion.choices[0]?.message == null ? "null message object" : "empty content";
+      console.warn(`[Security:image] AI returned no content (${reason}) | user=${cloudUser?.id}`);
+      return res.status(502).json({ error: "AI returned an empty response. Please try again." });
+    }
 
-    let parsed_ai: any;
+    let aiResult: any;
     try {
-      parsed_ai = JSON.parse(raw);
+      aiResult = JSON.parse(rawContent);
     } catch {
       return res.status(502).json({ error: "AI returned invalid format. Please try again." });
     }
 
+    // Cap array lengths and string lengths on AI-supplied data before forwarding
+    // to the client — a jailbroken or misbehaving model could return thousands of
+    // findings or extremely long strings.
+    const MAX_STRING = 500;
+    const truncate = (s: unknown) =>
+      typeof s === "string" ? s.slice(0, MAX_STRING) : s;
+    const sanitizeFinding = (f: any) =>
+      typeof f === "object" && f !== null
+        ? { ...f, title: truncate(f.title), description: truncate(f.description) }
+        : f;
+
     const result = {
       analysisType,
-      findings: Array.isArray(parsed_ai.findings) ? parsed_ai.findings : [],
-      recommendations: Array.isArray(parsed_ai.recommendations) ? parsed_ai.recommendations : [],
-      rawAnalysis: parsed_ai.summary || raw,
+      findings: Array.isArray(aiResult.findings)
+        ? aiResult.findings.slice(0, 20).map(sanitizeFinding)
+        : [],
+      recommendations: Array.isArray(aiResult.recommendations)
+        ? aiResult.recommendations.slice(0, 20).map((r: unknown) => truncate(r))
+        : [],
+      rawAnalysis: typeof aiResult.summary === "string"
+        ? aiResult.summary.slice(0, 2000)
+        : rawContent.slice(0, 2000),
     };
 
     console.log(`[Security:image] OK | user=${cloudUser?.id} | findings=${result.findings.length}`);
     return res.json(result);
   } catch (error: any) {
     const status = error?.status;
+    // A 401 from OpenAI means the API key is invalid — that's a server
+    // misconfiguration, not a transient failure. Log it as critical so it
+    // surfaces immediately in monitoring.
+    if (status === 401) {
+      console.error(`[Security:image] CRITICAL — OpenAI API key rejected (401) | user=${cloudUser?.id}`);
+      return res.status(503).json({ error: "AI service is temporarily unavailable." });
+    }
     console.error(`[Security:image] ERROR | user=${cloudUser?.id} | status=${status} | ${error?.message}`);
     if (status === 429) return res.status(429).json({ error: "Rate limit reached. Please wait a moment." });
     return res.status(500).json({ error: "Failed to analyze image. Please try again." });

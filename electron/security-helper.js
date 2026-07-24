@@ -80,6 +80,31 @@ function classifyProcess(name) {
 // Returns Defender + firewall status
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Guard: remove previously registered handlers so this module is safe to
+// require more than once (e.g. if the module cache is cleared or the path is
+// required with different casing on a case-insensitive filesystem).
+// Without these guards, the second require() would throw "second handler
+// registered for <channel>" and crash the main process.
+// ---------------------------------------------------------------------------
+[
+  'security:getStatus',
+  'security:getStartupApps',
+  'security:getTopProcesses',
+  'startup:setEnabled',
+  'startup:setDelay',
+  'startup:verifyState',
+  'security:getAdvancedProtection',
+  'security:getAdvancedAudit',
+  'security:getProcessDetails',
+  'security:getScheduledTasks',
+  'security:getServices',
+  'security:openProcessLocation',
+  'security:openStartupLocation',
+  'security:setDefenderOption',
+  'security:runDefenderAction',
+].forEach(ch => ipcMain.removeHandler(ch));
+
 ipcMain.handle('security:getStatus', async () => {
   if (process.platform !== 'win32') {
     return { available: false, reason: 'not-windows' };
@@ -274,9 +299,6 @@ ipcMain.handle('security:getTopProcesses', async () => {
 // Params: { source, registryName, taskPath, folderPath, enabled }
 // ---------------------------------------------------------------------------
 
-// Guard: remove any previously registered handler so this file is safe to
-// require more than once and won't crash with "second handler" error.
-ipcMain.removeHandler('startup:setEnabled');
 ipcMain.handle('startup:setEnabled', async (event, params) => {
   if (process.platform !== 'win32') {
     return { ok: false, reason: 'not-windows' };
@@ -288,7 +310,9 @@ ipcMain.handle('startup:setEnabled', async (event, params) => {
   // Input sanitization guards
   function sanitizeName(str, maxLen = 128) {
     if (typeof str !== 'string') return '';
-    return str.replace(/[^A-Za-z0-9._\s-]/g, '').slice(0, maxLen);
+    // Use a literal space character (not \s) — \s matches \t, \n, \r etc.
+    // which could break out of the PowerShell string context.
+    return str.replace(/[^A-Za-z0-9._ -]/g, '').slice(0, maxLen);
   }
   function psEscape(str) {
     if (typeof str !== 'string') return '';
@@ -428,14 +452,26 @@ ipcMain.handle('startup:verifyState', async (event, { name, registryKey }) => {
     return { ok: false, reason: 'not-windows' };
   }
 
+  // SECURITY: sanitize `name` before embedding it in the PowerShell command.
+  // A compromised renderer could send a crafted name like:
+  //   '; Remove-Item -Recurse C:\Windows -Force; #
+  // which would execute arbitrary PowerShell via the registry path/property
+  // interpolation below.  Strip everything except safe identifier characters.
+  const safeName = typeof name === 'string'
+    ? name.replace(/[^A-Za-z0-9._ -]/g, '').slice(0, 128)
+    : '';
+  if (!safeName) return { ok: false, error: 'Invalid name' };
+
   try {
     const approvedKey = registryKey && registryKey.includes('HKLM')
       ? 'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved\\Run'
       : 'HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved\\Run';
 
+    // Single-quote escape for PowerShell: ' → ''
+    const psName = safeName.replace(/'/g, "''");
     const cmd = `
       Try {
-        $val = (Get-ItemProperty -Path '${approvedKey}' -Name '${name}' -ErrorAction Stop).'${name}'
+        $val = (Get-ItemProperty -Path '${approvedKey}' -Name '${psName}' -ErrorAction Stop).'${psName}'
         If ($val -and $val[0] -eq 3) { Write-Output 'disabled' }
         Else { Write-Output 'enabled' }
       } Catch {
@@ -444,7 +480,7 @@ ipcMain.handle('startup:verifyState', async (event, { name, registryKey }) => {
     `;
     const result = await runPowerShell(cmd, 6000);
     const state = result.trim();
-    return { ok: true, name, state };
+    return { ok: true, name: safeName, state };
   } catch (err) {
     return { ok: false, error: err?.message };
   }
@@ -672,7 +708,16 @@ ipcMain.handle('security:getAdvancedAudit', async () => {
       try {
         $hostsPath = "$env:WINDIR\\System32\\drivers\\etc\\hosts"
         $lines = Get-Content $hostsPath -ErrorAction Stop
-        $suspicious = @($lines | Where-Object { $_ -notmatch '^\\s*#' -and $_.Trim() -ne '' -and $_ -notmatch 'localhost' })
+        # Flag non-comment, non-empty lines that don't resolve to standard
+        # loopback/local addresses (127.0.0.1, ::1, 0.0.0.0, localhost).
+        # The original check only excluded lines containing 'localhost', which
+        # incorrectly flagged valid entries like '127.0.0.1 mydev.local'.
+        $suspicious = @($lines | Where-Object {
+          $_ -notmatch '^\\s*#' -and
+          $_.Trim() -ne '' -and
+          $_ -notmatch '\\blocalhost\\b' -and
+          $_ -notmatch '^\\s*(127\\.0\\.0\\.1|::1|0\\.0\\.0\\.0|255\\.255\\.255\\.255)\\s'
+        })
         $r.hostsModified      = $suspicious.Count -gt 0
         $r.hostsSuspiciousCount = $suspicious.Count
       } catch { $r.hostsModified = $null; $r.hostsSuspiciousCount = 0 }
@@ -895,7 +940,9 @@ ipcMain.handle('security:getServices', async () => {
 
     const suspicious = services.filter(s => s.suspicious);
     console.log(`[Security] getServices OK | total=${services.length} suspicious=${suspicious.length}`);
-    return { available: true, data: { services: suspicious.slice(0, 50), suspicious } };
+    // Bug fix: was accidentally sending `suspicious` in the `services` field,
+    // which meant the UI never received non-suspicious services at all.
+    return { available: true, data: { services: services.slice(0, 50), suspicious } };
   } catch (err) {
     console.warn(`[Security] getServices ERROR: ${err?.message}`);
     return { available: false, reason: 'error', error: err?.message };
@@ -909,6 +956,11 @@ ipcMain.handle('security:getServices', async () => {
 
 ipcMain.handle('security:openProcessLocation', async (event, filePath) => {
   if (!filePath || typeof filePath !== 'string') return { ok: false, reason: 'invalid-path' };
+  // SECURITY: reject UNC paths (\\server\share) — shell.showItemInFolder on a
+  // UNC path triggers an SMB connection to an attacker-controlled host.
+  // Only allow absolute local paths (drive-letter form: C:\...).
+  const isLocalPath = /^[A-Za-z]:\\/.test(filePath) && !filePath.startsWith('\\\\');
+  if (!isLocalPath) return { ok: false, reason: 'unsafe-path' };
   try {
     shell.showItemInFolder(filePath);
     return { ok: true };
@@ -929,6 +981,11 @@ ipcMain.handle('security:openStartupLocation', async (event, command) => {
     const match = command.match(/^(?:"([^"]+)"|([^\s]+))/);
     const exePath = match ? (match[1] || match[2]) : command;
     const dir = path.dirname(exePath);
+    // SECURITY: reject UNC paths (\\server\share) and non-local paths.
+    // shell.openPath on a UNC path would trigger an SMB connection to an
+    // attacker-controlled host.  Only allow absolute local paths (C:\...).
+    const isLocalPath = /^[A-Za-z]:\\/.test(dir) && !dir.startsWith('\\\\');
+    if (!isLocalPath) return { ok: false, reason: 'unsafe-path' };
     shell.openPath(dir);
     return { ok: true, dir };
   } catch (err) {
@@ -1027,9 +1084,14 @@ ipcMain.handle('security:runDefenderAction', async (_event, action) => {
   // MpCmdRun.exe — works even when the Defender WMI/CIM provider is absent.
   // Primary: %ProgramFiles%\Windows Defender\MpCmdRun.exe
   // Fallback: newest MpCmdRun.exe under %ProgramData%\Microsoft\Windows Defender\Platform\
+  // IMPORTANT: use $env:ProgramW6432 inside the PowerShell string rather than
+  // interpolating process.env['ProgramW6432'] at module-load time.  The Node.js
+  // environment variable is undefined in some sandboxed environments, would bake
+  // in 'C:\Program Files' permanently, and could contain special characters that
+  // break PowerShell string syntax.  Let PowerShell resolve it at runtime instead.
   const mpCmdRunLocator = `
     $mpCmd = $null
-    $pfPaths = @("$env:ProgramFiles\\Windows Defender\\MpCmdRun.exe", "${process.env['ProgramW6432'] || 'C:\\Program Files'}\\Windows Defender\\MpCmdRun.exe")
+    $pfPaths = @("$env:ProgramFiles\\Windows Defender\\MpCmdRun.exe", "$env:ProgramW6432\\Windows Defender\\MpCmdRun.exe")
     foreach ($p in $pfPaths) { if (Test-Path $p) { $mpCmd = $p; break } }
     if (-not $mpCmd) {
       $platDir = "$env:ProgramData\\Microsoft\\Windows Defender\\Platform"
@@ -1070,6 +1132,10 @@ ipcMain.handle('security:runDefenderAction', async (_event, action) => {
       $msg = $_.Exception.Message
       $result.error = $msg
       $result.message = $msg
+      # MAINTENANCE NOTE: this pattern must be kept in sync with the JS-side
+      # RESTRICTION_RE constant above.  Both detect the same error classes; the
+      # PowerShell copy handles errors caught inside PS, the JS copy handles
+      # errors that surface as thrown exceptions from execFile/runPowerShell.
       if ($msg -match 'restricted|disabled by your administrator|access is denied|not recognized|cannot be loaded|is not installed|does not exist|access denied|No operation can be performed|invalid class|invalid namespace|0x800704ec|0x800706ba|0x80070005|Tamper') {
         $result.restricted = $true
         $result.message = 'Defender management is unavailable on this system.'
