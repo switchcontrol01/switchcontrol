@@ -91,8 +91,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   signalDashboardMounted:   () => ipcRenderer.send('app:dashboard-mounted'),
 
   // ── Low-risk read-only ──────────────────────────────────────────────────────
-  getVersion:      () => ipcRenderer.invoke('app:getVersion'),
-  getAppVersion:   () => ipcRenderer.invoke('app:getVersion'),
+  getVersion:    () => ipcRenderer.invoke('app:getVersion'),
+  getAppVersion: () => ipcRenderer.invoke('app:getVersion'), // alias of getVersion — both kept for call-site compatibility; do not add a third
   getPlatform:     () => ipcRenderer.invoke('app:getPlatform'),
   isPackaged:      () => ipcRenderer.invoke('app:isPackaged'),
   getDeviceId:     () => ipcRenderer.invoke('app:getDeviceId'),
@@ -293,7 +293,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
      * @param {{ category, severity, source, message, stack?, route?, userId? }} event
      */
     reportCritical: (event) => {
-      if (!event || typeof event !== 'object') return Promise.resolve();
+      // Throw on bad input — silently resolving would hide caller bugs in the
+      // diagnostic-logging path, defeating the purpose of the call entirely.
+      if (!event || typeof event !== 'object') {
+        throw new TypeError('logs.reportCritical: event must be a non-null object');
+      }
       return ipcRenderer.invoke('log:reportCritical', event);
     },
     /**
@@ -409,6 +413,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
       assertString(adapterName, 'adapterName');
       assertString(propertyKey, 'propertyKey');
       if (value === undefined || value === null) throw new TypeError('nic.setProperty: value required');
+      // Reject objects/arrays before String() silently coerces them to "[object Object]"
+      // and writes that as a network adapter property value — a silent caller bug.
+      if (typeof value === 'object') {
+        throw new TypeError('nic.setProperty: value must be a string, number, or boolean — received object/array');
+      }
       return ipcRenderer.invoke('nic:setProperty', adapterName, propertyKey, String(value));
     },
     resetProperty: (adapterName, propertyKey) => {
@@ -441,7 +450,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     },
     applyCustom:    (name, settings) => {
       assertString(name, 'customPlanName');
-      if (!settings || typeof settings !== 'object') throw new TypeError('applyCustom: settings must be an object');
+      // assertPlainObject excludes arrays (unlike the previous inline check which
+      // would have accepted [] as a valid settings object).
+      assertPlainObject(settings, 'applyCustom settings');
       return ipcRenderer.invoke('powerPlans:applyCustom', name, settings);
     },
     getCustomMeta:     () => ipcRenderer.invoke('powerPlans:getCustomMeta'),
@@ -478,16 +489,38 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
 
   cleaner: {
-    scan:   (itemIds) => ipcRenderer.invoke('cleaner:scan', itemIds),
-    clean:  (itemIds) => ipcRenderer.invoke('cleaner:clean', itemIds),
-    verify: (itemIds) => ipcRenderer.invoke('cleaner:verify', itemIds),
+    scan: (itemIds) => {
+      if (!Array.isArray(itemIds)) throw new TypeError('cleaner.scan: itemIds must be an array');
+      return ipcRenderer.invoke('cleaner:scan', itemIds);
+    },
+    clean: (itemIds) => {
+      if (!Array.isArray(itemIds)) throw new TypeError('cleaner.clean: itemIds must be an array');
+      return ipcRenderer.invoke('cleaner:clean', itemIds);
+    },
+    verify: (itemIds) => {
+      if (!Array.isArray(itemIds)) throw new TypeError('cleaner.verify: itemIds must be an array');
+      return ipcRenderer.invoke('cleaner:verify', itemIds);
+    },
   },
 
   debloat: {
-    scan:        (items) => ipcRenderer.invoke('debloat:scan', items),
-    removeItem:  (item)  => ipcRenderer.invoke('debloat:removeItem', item),
-    restoreItem: (item)  => ipcRenderer.invoke('debloat:restoreItem', item),
-    verifyItem:  (item)  => ipcRenderer.invoke('debloat:verifyItem', item),
+    scan: (items) => {
+      if (!Array.isArray(items)) throw new TypeError('debloat.scan: items must be an array');
+      return ipcRenderer.invoke('debloat:scan', items);
+    },
+    removeItem: (item) => {
+      // Destructive — uninstalls bloatware. Guard before crossing the privilege boundary.
+      assertPlainObject(item, 'debloat.removeItem item');
+      return ipcRenderer.invoke('debloat:removeItem', item);
+    },
+    restoreItem: (item) => {
+      assertPlainObject(item, 'debloat.restoreItem item');
+      return ipcRenderer.invoke('debloat:restoreItem', item);
+    },
+    verifyItem: (item) => {
+      assertPlainObject(item, 'debloat.verifyItem item');
+      return ipcRenderer.invoke('debloat:verifyItem', item);
+    },
   },
 
   installedApps: {
@@ -519,10 +552,19 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
 
   startup: {
-    scan:        ()       => ipcRenderer.invoke('startup:scan'),
-    setEnabled:  (params) => ipcRenderer.invoke('startup:setEnabled', params),
-    setDelay:    (params) => ipcRenderer.invoke('startup:setDelay', params),
-    verifyState: (params) => ipcRenderer.invoke('startup:verifyState', params),
+    scan: () => ipcRenderer.invoke('startup:scan'),
+    setEnabled: (params) => {
+      assertPlainObject(params, 'startup.setEnabled params');
+      return ipcRenderer.invoke('startup:setEnabled', params);
+    },
+    setDelay: (params) => {
+      assertPlainObject(params, 'startup.setDelay params');
+      return ipcRenderer.invoke('startup:setDelay', params);
+    },
+    verifyState: (params) => {
+      assertPlainObject(params, 'startup.verifyState params');
+      return ipcRenderer.invoke('startup:verifyState', params);
+    },
   },
 
   extremeLabs: {
@@ -539,12 +581,24 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
 
   focus: {
-    apply:               (params) => ipcRenderer.invoke('focus:apply', params),
-    revert:              (params) => ipcRenderer.invoke('focus:revert', params),
-    verify:              ()       => ipcRenderer.invoke('focus:verify'),
-    startTriggerMonitor: (params) => ipcRenderer.invoke('focus:startTriggerMonitor', params),
-    stopTriggerMonitor:  ()       => ipcRenderer.invoke('focus:stopTriggerMonitor'),
-    checkSchedule:       (params) => ipcRenderer.invoke('focus:checkSchedule', params),
+    apply: (params) => {
+      assertPlainObject(params, 'focus.apply params');
+      return ipcRenderer.invoke('focus:apply', params);
+    },
+    revert: (params) => {
+      assertPlainObject(params, 'focus.revert params');
+      return ipcRenderer.invoke('focus:revert', params);
+    },
+    verify:             ()       => ipcRenderer.invoke('focus:verify'),
+    startTriggerMonitor: (params) => {
+      assertPlainObject(params, 'focus.startTriggerMonitor params');
+      return ipcRenderer.invoke('focus:startTriggerMonitor', params);
+    },
+    stopTriggerMonitor: ()       => ipcRenderer.invoke('focus:stopTriggerMonitor'),
+    checkSchedule: (params) => {
+      assertPlainObject(params, 'focus.checkSchedule params');
+      return ipcRenderer.invoke('focus:checkSchedule', params);
+    },
     onTriggerFired: (callback) => {
       assertFunction(callback, 'focus.onTriggerFired callback');
       const handler = (_event, payload) => callback(payload);
