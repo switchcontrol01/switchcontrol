@@ -109,9 +109,12 @@ export function usePremiumExpiry({
   const triggerRevert = useCallback(async (reason: import("@/stores/trialExpiryStore").RevertReason) => {
     if (revertRunning.current) return;
 
-    // Immediately suppress all premium gates and signal App.tsx to redirect.
-    useTrialExpiryStore.getState().setTrialEndingFlowActive(true);
-    useTrialExpiryStore.getState().setRevertReason(reason);
+    // Atomically suppress all premium gates and record the reason in one set()
+    // call — no intermediate render frame with active=true but stale reason.
+    // Also no-ops if the flow is already active (first trigger wins).
+    useTrialExpiryStore.getState().startRevertFlow(reason);
+    // If startRevertFlow no-oped (flow already active), bail out here too.
+    if (!useTrialExpiryStore.getState().trialEndingFlowActive) return;
 
     if (!isElectronWithTweaks()) {
       setRevertReport({
@@ -280,8 +283,10 @@ export function usePremiumExpiry({
       setModalOpen(false);
       setRevertPhase(null);
       useTweakOwnershipStore.getState().clearPremiumOwnership();
-      useTrialExpiryStore.getState().setTrialEndingFlowActive(false);
-      useTrialExpiryStore.getState().setRevertReason(null);
+      // Atomic reset — clears both trialEndingFlowActive and revertReason in
+      // one set() call so no close path can leave the store in a half-reset
+      // state (e.g. active=false but stale revertReason for the next run).
+      useTrialExpiryStore.getState().stopRevertFlow();
     },
     retryRevert,
     isActive: isCurrentlyActive,
