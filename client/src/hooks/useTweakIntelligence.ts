@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useStore } from "@/lib/store";
 
 export type PressureLevel = "low" | "moderate" | "elevated" | "high";
@@ -60,64 +60,117 @@ const DEFAULT_STATE: TweakIntelligenceState = {
   lastUpdated: null,
 };
 
+// After this many consecutive first-load failures we stop hiding the error.
+// Without a cap, a misconfigured or permanently-down backend shows an
+// infinite loading spinner with no user-facing signal that anything is wrong.
+const MAX_SILENT_FIRST_LOAD_FAILURES = 3;
+
 export function useTweakIntelligence(pollIntervalMs = 10_000) {
   const { tweaks } = useStore();
   const [state, setState] = useState<TweakIntelligenceState>(DEFAULT_STATE);
-  const abortRef     = useRef<AbortController | null>(null);
-  const timerRef     = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const mountedRef   = useRef(true);
+  const abortRef              = useRef<AbortController | null>(null);
+  const timerRef              = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const mountedRef            = useRef(true);
+  // Counts consecutive failures that occurred while lastUpdated === null (first load).
+  const firstLoadFailuresRef  = useRef(0);
 
-  const appliedIds = Object.keys(tweaks).filter((id) => tweaks[id]);
-  const appliedParam = appliedIds.join(",");
+  // Fix #4: memoize so the filter doesn't run on every render — only when
+  // `tweaks` actually changes.
+  const appliedParam = useMemo(
+    () => Object.keys(tweaks).filter((id) => tweaks[id]).join(","),
+    [tweaks],
+  );
 
-  const fetchAll = useCallback(async (param: string) => {
+  // Fix #1: `isStale` is a per-effect closure that returns true the moment the
+  // effect that created it is cleaned up (i.e. `appliedParam` changed or the
+  // component unmounted).  It is threaded into `fetchAll` so that every
+  // `setState` call is guarded by *this specific effect run's* staleness, not
+  // by `mountedRef` which gets flipped back to `true` immediately by the next
+  // effect run — causing stale responses for old `appliedParam` values to
+  // overwrite state set by the new fetch.
+  //
+  // `mountedRef` is still used as a secondary guard against updates after
+  // actual component unmount (the case `isStale` doesn't distinguish from
+  // a same-component re-run).
+  const fetchAll = useCallback(async (param: string, isStale: () => boolean) => {
     if (abortRef.current) abortRef.current.abort();
     const ac = new AbortController();
     abortRef.current = ac;
 
     try {
-      const [stateRes, rankRes, postureRes] = await Promise.all([
+      // Fix #3: use Promise.allSettled so a flaky endpoint (e.g. posture)
+      // doesn't discard perfectly good signals/rankings data from the other
+      // two.  Each result is merged independently — partial data is better
+      // than a blank dashboard.
+      const [stateResult, rankResult, postureResult] = await Promise.allSettled([
         fetch("/api/tweak-intelligence/system-state", { signal: ac.signal }),
         fetch(`/api/tweak-intelligence/rankings?applied=${encodeURIComponent(param)}`, { signal: ac.signal }),
         fetch(`/api/tweak-intelligence/posture?applied=${encodeURIComponent(param)}`, { signal: ac.signal }),
       ]);
 
-      if (!stateRes.ok || !rankRes.ok || !postureRes.ok) {
-        throw new Error("Non-OK response from intelligence API");
-      }
+      // Guard immediately after the await — if the effect was cleaned up while
+      // the fetches were in flight, abort.
+      if (isStale() || !mountedRef.current) return;
+
+      // Resolve each response independently.  A rejected or non-ok result
+      // leaves that slice as null; the setState below falls back to the
+      // previous slice value so existing good data isn't blanked.
+      const toJson = async (result: PromiseSettledResult<Response>) => {
+        if (result.status === "rejected") return null;
+        if (!result.value.ok) return null;
+        try { return await result.value.json(); } catch { return null; }
+      };
 
       const [systemState, rankData, postureData] = await Promise.all([
-        stateRes.json(),
-        rankRes.json(),
-        postureRes.json(),
+        toJson(stateResult),
+        toJson(rankResult),
+        toJson(postureResult),
       ]);
 
-      if (!mountedRef.current) return;
+      // Second guard after the .json() round-trip.
+      if (isStale() || !mountedRef.current) return;
 
-      setState({
-        signals:        systemState.signals ?? [],
-        rankings:       rankData.rankings   ?? [],
-        posture:        postureData.dimensions ?? [],
-        overallCoverage: postureData.overallCoverage ?? 0,
-        cpuLoad:        systemState.cpuLoad        ?? 0,
-        memPct:         systemState.memPct         ?? 0,
-        processCount:   systemState.processCount   ?? 0,
-        networkKbs:     systemState.networkKbs     ?? 0,
-        loadTrend:      systemState.loadTrend      ?? "stable",
-        loading:        false,
-        error:          null,
-        lastUpdated:    Date.now(),
-      });
+      // Track whether at least one endpoint succeeded.
+      const anySucceeded = systemState !== null || rankData !== null || postureData !== null;
+      if (!anySucceeded) {
+        throw new Error("All three intelligence endpoints failed");
+      }
+
+      // Reset the first-load failure counter on any partial success.
+      firstLoadFailuresRef.current = 0;
+
+      setState((prev: TweakIntelligenceState) => ({
+        signals:         systemState?.signals       ?? prev.signals,
+        rankings:        rankData?.rankings         ?? prev.rankings,
+        posture:         postureData?.dimensions    ?? prev.posture,
+        overallCoverage: postureData?.overallCoverage ?? prev.overallCoverage,
+        cpuLoad:         systemState?.cpuLoad       ?? prev.cpuLoad,
+        memPct:          systemState?.memPct        ?? prev.memPct,
+        processCount:    systemState?.processCount  ?? prev.processCount,
+        networkKbs:      systemState?.networkKbs    ?? prev.networkKbs,
+        loadTrend:       systemState?.loadTrend     ?? prev.loadTrend,
+        loading:         false,
+        error:           null,
+        lastUpdated:     Date.now(),
+      }));
     } catch (e: any) {
       if (e.name === "AbortError") return;
-      if (!mountedRef.current) return;
-      // If we've never successfully loaded, stay in loading state so the UI
-      // shows a "Loading…" indicator instead of an error banner. The poll will
-      // retry automatically and replace this state once the backend is ready.
-      setState((prev) => {
+      if (isStale() || !mountedRef.current) return;
+
+      setState((prev: TweakIntelligenceState) => {
         if (prev.lastUpdated === null) {
-          // First-load failure — keep loading:true, suppress the error banner.
-          return { ...prev, loading: true, error: null };
+          // Fix #2: cap the number of times we silently suppress a first-load
+          // error.  After MAX_SILENT_FIRST_LOAD_FAILURES consecutive failures
+          // we surface a real error so the user knows something is wrong
+          // rather than seeing an infinite loading spinner.
+          firstLoadFailuresRef.current += 1;
+          if (firstLoadFailuresRef.current <= MAX_SILENT_FIRST_LOAD_FAILURES) {
+            // Still within tolerance — keep loading:true, suppress error banner.
+            // The poll will retry automatically.
+            return { ...prev, loading: true, error: null };
+          }
+          // Exceeded tolerance — surface the error so the user can act.
+          return { ...prev, loading: false, error: "Could not load system intelligence." };
         }
         // Subsequent failure after we had real data — show the error.
         return { ...prev, loading: false, error: "Could not load system intelligence." };
@@ -125,23 +178,24 @@ export function useTweakIntelligence(pollIntervalMs = 10_000) {
     }
   }, []);
 
-  // Poll on mount and whenever applied IDs change
+  // Poll on mount and whenever applied IDs change.
   useEffect(() => {
     mountedRef.current = true;
-    // F-4: Per-effect cancellation closure. Without this, when the effect
-    // re-runs (appliedParam change), any setTimeout already queued from the
-    // previous effect run can still fire fetchAll() + reschedule itself
-    // after the cleanup has run — racing against the new effect's schedule
-    // and double-polling forever.
+    // Per-effect cancellation closure — maps 1:1 to "is this effect run still
+    // the current one?"  Passed into fetchAll as `isStale` so stale responses
+    // from a previous effect run (old appliedParam) cannot overwrite state set
+    // by the new effect run even if the requests had already resolved before
+    // cleanup fired (the window where abort() is a no-op).
     let cancelled = false;
+    const isStale = () => cancelled;
 
-    fetchAll(appliedParam);
+    fetchAll(appliedParam, isStale);
 
     const schedule = () => {
       if (cancelled) return;
       timerRef.current = setTimeout(() => {
         if (cancelled) return;
-        fetchAll(appliedParam);
+        fetchAll(appliedParam, isStale);
         schedule();
       }, pollIntervalMs);
     };
