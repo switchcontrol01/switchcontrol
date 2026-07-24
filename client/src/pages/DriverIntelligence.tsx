@@ -117,8 +117,9 @@ export default function DriverIntelligence() {
   const { prefersReducedMotion } = useMotion();
 
   const isTrial = ent.status === "trial_active";
-  const readOnly = isTrial; // trial users: scan yes, act no
-  const locked = !isPremium && !isTrial;
+  // Driver Intel is premium-only — trial and free both see the upgrade gate.
+  const readOnly = false;
+  const locked = !isPremium;
 
   const {
     phase,

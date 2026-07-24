@@ -387,9 +387,10 @@ export function Sidebar() {
 
   const currentPath = location === "/" ? "/dashboard" : location;
   const isTrial = ent.status === "trial_active";
-  // Only slide the sidebar away when the user actually has access (premium or trial).
-  // Free users see the gate page with the sidebar still present so they can navigate away.
-  const isDriverIntel = location === "/driver-intel" && (isPremium || isTrial);
+  // Only slide the sidebar away for premium users on Driver Intel — they get the
+  // full immersive scan UI.  Trial and free users see the upgrade gate with the
+  // sidebar present so they can navigate away.
+  const isDriverIntel = location === "/driver-intel" && isPremium;
   const userName = user?.name || user?.firstName || user?.email?.split("@")[0] || "User";
   const userInitials = userName.slice(0, 2).toUpperCase();
   const avatarUrl = user?.avatar;
