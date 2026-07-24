@@ -7,7 +7,7 @@
  */
 
 import { useState, useEffect, useRef, useId, useMemo, useCallback } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { MemoryStick, HardDrive, Activity, Cpu, Monitor, RefreshCw } from "lucide-react";
 import { GlassCard } from "@/components/ui/glass-card";
 import { TelemetrySparkline, type SparklinePoint } from "./TelemetrySparkline";
@@ -690,34 +690,66 @@ export function DisplaySignalGraph({ delay = 0 }: { delay?: number }) {
 
           {/* ── Score + primary metrics ── */}
           <div className="flex items-center gap-3 mb-3">
-            {score !== null ? (
-              <ScoreRing score={score} color={scoreColor} />
-            ) : (
-              <div className="w-[52px] h-[52px] rounded-full border-2 border-[#2A313A] flex items-center justify-center shrink-0">
-                <span className="text-[9px] text-[#6B7380]">—</span>
-              </div>
-            )}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-baseline gap-1 mb-0.5 flex-wrap">
-                <span className="text-xl font-bold tabular-nums font-mono" style={{ color: connColor }}>
-                  {mon?.refreshHz ? `${mon.refreshHz}Hz` : "—Hz"}
-                </span>
-                {resolution && (
-                  <>
-                    <span className="text-xs text-[#6B7380]">@</span>
-                    <span className="text-xs font-mono text-[#A0A8B3]">{resolution}</span>
-                  </>
-                )}
-              </div>
-              <p className="text-[10px] text-[#6B7380] leading-snug line-clamp-2">
-                {mon ? (reason || "Display detected") : "Collecting display data…"}
-              </p>
-            </div>
+            {/* key=mon.id forces ScoreRing to remount on every monitor switch,
+                replaying the arc-draw animation even when score is identical */}
+            <AnimatePresence mode="wait">
+              {score !== null ? (
+                <motion.div
+                  key={`ring-${mon?.id ?? selectedIdx}`}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+                >
+                  <ScoreRing score={score} color={scoreColor} />
+                </motion.div>
+              ) : (
+                <div className="w-[52px] h-[52px] rounded-full border-2 border-[#2A313A] flex items-center justify-center shrink-0">
+                  <span className="text-[9px] text-[#6B7380]">—</span>
+                </div>
+              )}
+            </AnimatePresence>
+
+            {/* key here makes the Hz + resolution headline animate in on every
+                monitor switch — gives clear feedback even when Hz is identical */}
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={`hz-${mon?.id ?? selectedIdx}`}
+                className="flex-1 min-w-0"
+                initial={{ opacity: 0, x: 6 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -6 }}
+                transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+              >
+                <div className="flex items-baseline gap-1 mb-0.5 flex-wrap">
+                  <span className="text-xl font-bold tabular-nums font-mono" style={{ color: connColor }}>
+                    {mon?.refreshHz ? `${mon.refreshHz}Hz` : "—Hz"}
+                  </span>
+                  {resolution && (
+                    <>
+                      <span className="text-xs text-[#6B7380]">@</span>
+                      <span className="text-xs font-mono text-[#A0A8B3]">{resolution}</span>
+                    </>
+                  )}
+                </div>
+                <p className="text-[10px] text-[#6B7380] leading-snug line-clamp-2">
+                  {mon ? (reason || "Display detected") : "Collecting display data…"}
+                </p>
+              </motion.div>
+            </AnimatePresence>
           </div>
 
           {/* ── Signal attribute grid — each row is skipped if data is absent ── */}
           {mon && (
-            <div className="rounded-lg bg-white/[0.025] border border-[#2A313A] px-3 py-0.5">
+            <AnimatePresence mode="wait">
+            <motion.div
+              key={`grid-${mon.id}`}
+              className="rounded-lg bg-white/[0.025] border border-[#2A313A] px-3 py-0.5"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.18, ease: "easeOut" }}
+            >
               <Field label="Monitor"      value={mon.name} />
               <Field label="Manufacturer" value={mon.manufacturer} />
               <Field label="Connection"   value={mon.connectionType} />
@@ -745,7 +777,8 @@ export function DisplaySignalGraph({ delay = 0 }: { delay?: number }) {
               )}
               <Field label="EDID Version" value={mon.edidVersion} mono />
               <Field label="Serial"       value={mon.serial} mono />
-            </div>
+            </motion.div>
+            </AnimatePresence>
           )}
 
           {/* ── Footer: scan timestamp + multi-monitor hint ── */}
