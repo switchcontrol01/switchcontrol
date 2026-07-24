@@ -490,13 +490,15 @@ export function Sidebar() {
                   {userInitials}
                 </div>
               )}
-              {/* Avatar ring glow — stable, not tied to hover */}
+              {/* Avatar ring glow — static CSS only, no animation, no GPU cost.
+                  Premium: warm gold-white ring + soft halo.
+                  Non-premium: subtle grey edge. */}
               <div
                 className="absolute inset-0 rounded-full pointer-events-none"
                 style={{
-                  boxShadow: ent.showPremiumBadge
-                    ? "0 0 0 1.5px rgba(0,212,255,0.25), 0 0 6px rgba(139,92,246,0.2)"
-                    : "0 0 0 1.5px rgba(255,255,255,0.1)",
+                  boxShadow: isPremium
+                    ? "0 0 0 1.5px rgba(255,210,80,0.65), 0 0 7px rgba(255,195,50,0.28), 0 0 14px rgba(255,180,40,0.10)"
+                    : "0 0 0 1px rgba(255,255,255,0.08)",
                 }}
               />
             </div>
