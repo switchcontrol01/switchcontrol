@@ -192,7 +192,7 @@ function CapabilityRing({ supported, total }: { supported: number; total: number
 
   return (
     <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
-      <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
+      <svg width={size} height={size} style={{ transform: "rotate(-90deg)", overflow: "visible", display: "block" }}>
         <circle
           cx={size / 2} cy={size / 2} r={r}
           fill="none"

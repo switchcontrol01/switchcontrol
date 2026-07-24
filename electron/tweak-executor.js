@@ -2,7 +2,12 @@ const { execFile } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
-const { TWEAK_STATE_FILE, TWEAK_LOG_FILE } = require('./user-data-paths');
+const { TWEAK_STATE_FILE, TWEAK_LOG_FILE, WINDOWED_GAMES_BACKUP_FILE, VENDOR_UPDATERS_BACKUP_FILE, TEAMS_STARTUP_BACKUP_FILE } = require('./user-data-paths');
+
+// Pre-compute PS-escaped versions of backup paths (backslashes doubled for PS double-quoted strings).
+const _WINDOWED_GAMES_BK    = WINDOWED_GAMES_BACKUP_FILE.replace(/\\/g, '\\\\');
+const _VENDOR_UPDATERS_BK   = VENDOR_UPDATERS_BACKUP_FILE.replace(/\\/g, '\\\\');
+const _TEAMS_STARTUP_BK     = TEAMS_STARTUP_BACKUP_FILE.replace(/\\/g, '\\\\');
 
 // ─── file helpers ──────────────────────────────────────────────────────────────
 function ensureStateDir() {
@@ -400,7 +405,11 @@ async function runElevated(command) {
 // Known Group Policy registry paths that can block specific tweaks.
 // Keyed by tweakId; value is a PS expression returning $true when a policy lock is active.
 const POLICY_CHECKS = {
-  'telemetry':      `$null -ne (Get-ItemProperty 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\DataCollection' -Name 'AllowTelemetry' -EA SilentlyContinue)`,
+  // Only report policy-locked when AllowTelemetry exists AND is NOT 0.
+  // The telemetry apply command itself writes AllowTelemetry=0 to this key, so
+  // checking for mere presence would always return true after a successful apply,
+  // causing a false "Blocked by Windows Policy" error on the next verification.
+  'telemetry':      `$v=(Get-ItemProperty 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\DataCollection' -Name 'AllowTelemetry' -EA SilentlyContinue).AllowTelemetry; $null -ne $v -and $v -ne 0`,
   'gaming-mode':    `(Get-ItemProperty 'HKCU:\\SOFTWARE\\Policies\\Microsoft\\Windows\\GameDVR' -Name 'AllowGameDVR' -EA SilentlyContinue).AllowGameDVR -eq 0`,
   'cortana':        `$null -ne (Get-ItemProperty 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\Windows Search' -Name 'AllowCortana' -EA SilentlyContinue)`,
   'notifications':  `Test-Path 'HKCU:\\SOFTWARE\\Policies\\Microsoft\\Windows\\Explorer'`,
@@ -600,12 +609,18 @@ const HKCU_TWEAKS = {
   },
   // ── New Pass 2 HKCU toggles ───────────────────────────────────────────────────
   'show-file-extensions': {
-    // HideFileExt = 0 means extensions ARE shown (inverse of the key name)
+    // HideFileExt = 0 means extensions ARE shown (inverse of the key name).
+    // Explorer restart is intentionally omitted: force-killing explorer.exe
+    // closes all open File Explorer windows (user loses navigation state) and
+    // the 800ms sleep is too short — Explorer can crash and restart twice.
+    // The registry key takes effect on the NEXT Explorer launch.
+    // The IPC handler emits a 'showFileExtensionsChanged' event so the UI
+    // can display a "Restart Explorer or sign out to see the change" toast.
     name: 'Show File Extensions',
     requiresAdmin:  false,
     requiresReboot: false,
-    apply:  `New-Item -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced" -Name "HideFileExt" -Value 0 -Type DWord -Force; & Stop-Process -Name explorer -Force -EA SilentlyContinue; Start-Sleep -Milliseconds 800; Start-Process explorer`,
-    revert: `Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced" -Name "HideFileExt" -Value 1 -Type DWord -Force; & Stop-Process -Name explorer -Force -EA SilentlyContinue; Start-Sleep -Milliseconds 800; Start-Process explorer`,
+    apply:  `New-Item -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced" -Name "HideFileExt" -Value 0 -Type DWord -Force; $windows = (New-Object -ComObject Shell.Application).Windows() | Where-Object { $_.Name -eq "File Explorer" }; if ($windows.Count -eq 0) { Stop-Process -Name explorer -Force -EA SilentlyContinue; Start-Sleep -Milliseconds 1200; Start-Process explorer }`,
+    revert: `Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced" -Name "HideFileExt" -Value 1 -Type DWord -Force; $windows = (New-Object -ComObject Shell.Application).Windows() | Where-Object { $_.Name -eq "File Explorer" }; if ($windows.Count -eq 0) { Stop-Process -Name explorer -Force -EA SilentlyContinue; Start-Sleep -Milliseconds 1200; Start-Process explorer }`,
     check:  `(Get-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced" -Name "HideFileExt" -EA SilentlyContinue).HideFileExt -eq 0`,
   },
   'explorer-separate-process': {
@@ -784,6 +799,9 @@ const ADMIN_TWEAKS = {
     name: 'Disable Wi-Fi',
     requiresAdmin:  true,
     requiresReboot: false,
+    // WlanSvc pre-check is handled in executeTweak and verifyTweak to return
+    // unsupported:true rather than a generic "not found" error on desktops
+    // with no Wi-Fi adapter.
     apply:  `$svc = Get-Service -Name WlanSvc -EA SilentlyContinue; if ($svc) { Stop-Service WlanSvc -Force -EA SilentlyContinue; Set-Service WlanSvc -StartupType Disabled } else { Write-Error "WlanSvc not found" }`,
     revert: `$svc = Get-Service -Name WlanSvc -EA SilentlyContinue; if ($svc) { Set-Service WlanSvc -StartupType Automatic; Start-Service WlanSvc -EA SilentlyContinue }`,
     check:  `$s = Get-Service -Name WlanSvc -EA SilentlyContinue; $s -and ($s.StartType -eq "Disabled")`,
@@ -926,7 +944,15 @@ const ADMIN_TWEAKS = {
     name: 'Disable DCOM',
     requiresAdmin: true,
     requiresReboot: true,
-    apply:  `Set-ItemProperty -Path "HKLM:\\SOFTWARE\\Microsoft\\Ole" -Name "EnableDCOM" -Value "N" -Type String -Force`,
+    // SAFETY: Disabling DCOM (EnableDCOM="N") is extremely aggressive.
+    // It can break Windows Update, Task Scheduler COM interfaces, WMI, and many
+    // shell extensions. Reboot is required and the change does NOT take effect
+    // until after restart (isApplied check will show true before reboot reflects it).
+    // The UI must display a prominent warning before this tweak is applied.
+    // A safety probe runs first: if WMI (WinMgmt) or Task Scheduler (Schedule)
+    // services are actively running, we emit a warning but still allow apply —
+    // the user sees the warning in the apply result message.
+    apply:  `$warn = ""; $wmi = Get-Service -Name Winmgmt -EA SilentlyContinue; $sched = Get-Service -Name Schedule -EA SilentlyContinue; if ($wmi -and $wmi.Status -eq "Running") { $warn += "WMI is running; " }; if ($sched -and $sched.Status -eq "Running") { $warn += "Task Scheduler is running; " }; if ($warn) { Write-Warning "DCOM disable may break: $warn — reboot required to take effect" }; Set-ItemProperty -Path "HKLM:\\SOFTWARE\\Microsoft\\Ole" -Name "EnableDCOM" -Value "N" -Type String -Force`,
     revert: `Set-ItemProperty -Path "HKLM:\\SOFTWARE\\Microsoft\\Ole" -Name "EnableDCOM" -Value "Y" -Type String -Force`,
     check:  `(Get-ItemProperty -Path "HKLM:\\SOFTWARE\\Microsoft\\Ole" -Name "EnableDCOM" -EA SilentlyContinue).EnableDCOM -eq "N"`,
   },
@@ -959,8 +985,11 @@ const ADMIN_TWEAKS = {
     name: 'Optimizations for Windowed Games',
     requiresAdmin: false,
     requiresReboot: false,
-    apply:  `$p = "HKCU:\\Software\\Microsoft\\DirectX\\UserGpuPreferences"; $bk = "$env:APPDATA\\SwitchControl\\windowed-games-backup.json"; $orig = (Get-ItemProperty -Path $p -Name "DirectXUserGlobalSettings" -EA SilentlyContinue).DirectXUserGlobalSettings; $bdir = Split-Path $bk; if (-not (Test-Path $bdir)) { New-Item -ItemType Directory -Path $bdir -Force | Out-Null }; (@{ orig = $orig } | ConvertTo-Json -Compress) | Out-File -FilePath ($bk + '.tmp') -Encoding utf8 -Force; if (Test-Path ($bk + '.tmp')) { Move-Item -Path ($bk + '.tmp') -Destination $bk -Force -EA SilentlyContinue }; New-Item -Path $p -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path $p -Name "DirectXUserGlobalSettings" -Value "FlipOnVSync=1;FSE=0;HDR=1" -Type String -Force`,
-    revert: `$p = "HKCU:\\Software\\Microsoft\\DirectX\\UserGpuPreferences"; $bk = "$env:APPDATA\\SwitchControl\\windowed-games-backup.json"; $orig = $null; if (Test-Path $bk) { try { $orig = (Get-Content $bk -Raw | ConvertFrom-Json).orig } catch {}; Remove-Item $bk -Force -EA SilentlyContinue }; if ($null -ne $orig) { Set-ItemProperty -Path $p -Name "DirectXUserGlobalSettings" -Value $orig -Type String -Force -EA SilentlyContinue } else { Remove-ItemProperty -Path $p -Name "DirectXUserGlobalSettings" -EA SilentlyContinue }`,
+    // Backup path uses the user-data-paths constant (via _WINDOWED_GAMES_BK) so it
+    // resolves consistently with all other SwitchControl backup files rather than
+    // relying on $env:APPDATA which can differ when AppData is on a separate drive.
+    apply:  `$p = "HKCU:\\Software\\Microsoft\\DirectX\\UserGpuPreferences"; $bk = "${_WINDOWED_GAMES_BK}"; $orig = (Get-ItemProperty -Path $p -Name "DirectXUserGlobalSettings" -EA SilentlyContinue).DirectXUserGlobalSettings; $bdir = Split-Path $bk; if (-not (Test-Path $bdir)) { New-Item -ItemType Directory -Path $bdir -Force | Out-Null }; (@{ orig = $orig } | ConvertTo-Json -Compress) | Out-File -FilePath ($bk + '.tmp') -Encoding utf8 -Force; if (Test-Path ($bk + '.tmp')) { Move-Item -Path ($bk + '.tmp') -Destination $bk -Force -EA SilentlyContinue }; New-Item -Path $p -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path $p -Name "DirectXUserGlobalSettings" -Value "FlipOnVSync=1;FSE=0;HDR=1" -Type String -Force`,
+    revert: `$p = "HKCU:\\Software\\Microsoft\\DirectX\\UserGpuPreferences"; $bk = "${_WINDOWED_GAMES_BK}"; $orig = $null; if (Test-Path $bk) { try { $orig = (Get-Content $bk -Raw | ConvertFrom-Json).orig } catch {}; Remove-Item $bk -Force -EA SilentlyContinue }; if ($null -ne $orig) { Set-ItemProperty -Path $p -Name "DirectXUserGlobalSettings" -Value $orig -Type String -Force -EA SilentlyContinue } else { Remove-ItemProperty -Path $p -Name "DirectXUserGlobalSettings" -EA SilentlyContinue }`,
     check:  `$p = "HKCU:\\Software\\Microsoft\\DirectX\\UserGpuPreferences"; $v = Get-ItemProperty -Path $p -Name "DirectXUserGlobalSettings" -EA SilentlyContinue; $v -and ($v.DirectXUserGlobalSettings -like "*FlipOnVSync=1*")`,
   },
   'disable-game-dvr': {
@@ -1002,17 +1031,27 @@ const ADMIN_TWEAKS = {
     name: 'Disable Teams Background Startup',
     requiresAdmin: false,  // only touches HKCU and kills a user process — no elevation needed
     requiresReboot: false,
-    apply:  `$p = "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Run"; Remove-ItemProperty -Path $p -Name "com.squirrel.Teams.Teams" -EA SilentlyContinue; Remove-ItemProperty -Path $p -Name "Teams" -EA SilentlyContinue; Get-Process -Name "Teams" -EA SilentlyContinue | Stop-Process -Force -EA SilentlyContinue`,
-    revert: `$p = "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Run"; $val = "$env:LOCALAPPDATA\\Microsoft\\Teams\\Update.exe --processStart 'Teams.exe'"; Set-ItemProperty -Path $p -Name "com.squirrel.Teams.Teams" -Value $val -Type String -Force -EA SilentlyContinue`,
-    check:  `$p = "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Run"; $v = Get-ItemProperty -Path $p -Name "com.squirrel.Teams.Teams" -EA SilentlyContinue; -not $v`,
+    // apply: capture both the old Squirrel and new Teams 2.0 startup entries to a
+    // backup file BEFORE removing them, so revert can restore the exact paths
+    // rather than hardcoding the old Squirrel path (breaks Teams 2.0 on ms-teams.exe).
+    apply:  `$p = "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Run"; $bk = "${_TEAMS_STARTUP_BK}"; $orig = (Get-ItemProperty -Path $p -EA SilentlyContinue)."com.squirrel.Teams.Teams"; $orig2 = (Get-ItemProperty -Path $p -EA SilentlyContinue).Teams; $bdir = Split-Path $bk; if (-not (Test-Path $bdir)) { New-Item -ItemType Directory -Path $bdir -Force | Out-Null }; @{ squirrel=$orig; teams=$orig2 } | ConvertTo-Json -Compress | Out-File -FilePath $bk -Encoding utf8 -Force; Remove-ItemProperty -Path $p -Name "com.squirrel.Teams.Teams" -EA SilentlyContinue; Remove-ItemProperty -Path $p -Name "Teams" -EA SilentlyContinue; Get-Process -Name "Teams" -EA SilentlyContinue | Stop-Process -Force -EA SilentlyContinue`,
+    revert: `$bk = "${_TEAMS_STARTUP_BK}"; $p = "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Run"; if (Test-Path $bk) { $data = Get-Content $bk -Raw | ConvertFrom-Json; if ($data.squirrel) { Set-ItemProperty -Path $p -Name "com.squirrel.Teams.Teams" -Value $data.squirrel -Type String -Force }; if ($data.teams) { Set-ItemProperty -Path $p -Name "Teams" -Value $data.teams -Type String -Force }; Remove-Item $bk -Force -EA SilentlyContinue }`,
+    check:  `$p = "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Run"; $v = Get-ItemProperty -Path $p -Name "com.squirrel.Teams.Teams" -EA SilentlyContinue; $v2 = Get-ItemProperty -Path $p -Name "Teams" -EA SilentlyContinue; -not $v -and -not $v2`,
   },
   'vendor-updaters': {
     name: 'Disable Vendor Update Helpers',
     requiresAdmin: true,
     requiresReboot: false,
-    apply:  `$names = @("DellSupportAssistRemedationService","DellOptimizer","HPWarrantyCheck","HPPrintScanDoctor","LenovoVantageService","IntelManagementEngine","IntelDriverUpdate","NVIDIAWebHelper","NvContainerLocalSystem","AMDExternalEvents"); foreach ($n in $names) { $s = Get-Service -Name $n -EA SilentlyContinue; if ($s) { Stop-Service $n -Force -EA SilentlyContinue; Set-Service $n -StartupType Disabled } }; Get-ScheduledTask -TaskName "Dell*","HP*","Lenovo*","Intel*Driver*","NVIDIA*","AMD*" -EA SilentlyContinue | ForEach-Object { Disable-ScheduledTask -TaskName $_.TaskName -TaskPath $_.TaskPath | Out-Null }`,
-    revert: `$names = @("DellSupportAssistRemedationService","DellOptimizer","HPWarrantyCheck","HPPrintScanDoctor","LenovoVantageService","IntelManagementEngine","IntelDriverUpdate","NVIDIAWebHelper","NvContainerLocalSystem","AMDExternalEvents"); foreach ($n in $names) { $s = Get-Service -Name $n -EA SilentlyContinue; if ($s) { Set-Service $n -StartupType Automatic -EA SilentlyContinue; Start-Service $n -EA SilentlyContinue } }; Get-ScheduledTask -TaskName "Dell*","HP*","Lenovo*","Intel*Driver*","NVIDIA*","AMD*" -EA SilentlyContinue | ForEach-Object { Enable-ScheduledTask -TaskName $_.TaskName -TaskPath $_.TaskPath | Out-Null }`,
-    check:  `$names = @("DellSupportAssistRemedationService","DellOptimizer","HPWarrantyCheck","HPPrintScanDoctor","LenovoVantageService","IntelManagementEngine","IntelDriverUpdate","NVIDIAWebHelper","NvContainerLocalSystem","AMDExternalEvents"); $any = $false; foreach ($n in $names) { $s = Get-Service -Name $n -EA SilentlyContinue; if ($s -and ($s.StartType -eq "Disabled")) { $any = $true } }; $any`,
+    // apply: only disables services that are NOT already disabled, records changed
+    // services to a backup file. This prevents false-positive check results on
+    // machines where IT policy pre-disabled one of these services before the user
+    // ever ran this tweak (the old check returned true for ANY disabled service).
+    apply:  `$names = @("DellSupportAssistRemedationService","DellOptimizer","HPWarrantyCheck","HPPrintScanDoctor","LenovoVantageService","IntelManagementEngine","IntelDriverUpdate","NVIDIAWebHelper","NvContainerLocalSystem","AMDExternalEvents"); $bk = "${_VENDOR_UPDATERS_BK}"; $bdir = Split-Path $bk; if (-not (Test-Path $bdir)) { New-Item -ItemType Directory -Path $bdir -Force | Out-Null }; $changed = @(); foreach ($n in $names) { $s = Get-Service -Name $n -EA SilentlyContinue; if ($s -and $s.StartType -ne "Disabled") { Stop-Service $n -Force -EA SilentlyContinue; Set-Service $n -StartupType Disabled; $changed += $n } }; @{ changed = $changed } | ConvertTo-Json -Compress | Out-File -FilePath $bk -Encoding utf8 -Force; Get-ScheduledTask -TaskName "Dell*","HP*","Lenovo*","Intel*Driver*","NVIDIA*","AMD*" -EA SilentlyContinue | ForEach-Object { Disable-ScheduledTask -TaskName $_.TaskName -TaskPath $_.TaskPath | Out-Null }`,
+    revert: `$bk = "${_VENDOR_UPDATERS_BK}"; if (Test-Path $bk) { $data = Get-Content $bk -Raw | ConvertFrom-Json; foreach ($n in $data.changed) { $s = Get-Service -Name $n -EA SilentlyContinue; if ($s) { Set-Service $n -StartupType Automatic -EA SilentlyContinue; Start-Service $n -EA SilentlyContinue } }; Remove-Item $bk -Force -EA SilentlyContinue }; Get-ScheduledTask -TaskName "Dell*","HP*","Lenovo*","Intel*Driver*","NVIDIA*","AMD*" -EA SilentlyContinue | ForEach-Object { Enable-ScheduledTask -TaskName $_.TaskName -TaskPath $_.TaskPath | Out-Null }`,
+    // check: only reports applied if our backup file exists AND all services we
+    // changed are still disabled. Returns false if no backup (tweak was never
+    // applied by SwitchControl, even if some services happen to be disabled).
+    check:  `$bk = "${_VENDOR_UPDATERS_BK}"; if (-not (Test-Path $bk)) { $false; return }; $data = Get-Content $bk -Raw | ConvertFrom-Json; $allDisabled = $true; foreach ($n in $data.changed) { $s = Get-Service -Name $n -EA SilentlyContinue; if (-not $s -or $s.StartType -ne "Disabled") { $allDisabled = $false } }; $allDisabled`,
   },
 
   // ── Maximum CPU Responsiveness — powercfg power-plan settings ─────────────────
@@ -1056,8 +1095,11 @@ const ADMIN_TWEAKS = {
     name: 'Disable Remote Assistance',
     requiresAdmin: true,
     requiresReboot: false,
-    apply:  `New-Item -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Remote Assistance" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Remote Assistance" -Name "fAllowToGetHelp" -Value 0 -Type DWord -Force; New-Item -Path "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows NT\\Terminal Services" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows NT\\Terminal Services" -Name "fAllowUnsolicited" -Value 0 -Type DWord -Force`,
-    revert: `Set-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Remote Assistance" -Name "fAllowToGetHelp" -Value 1 -Type DWord -Force; Remove-ItemProperty -Path "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows NT\\Terminal Services" -Name "fAllowUnsolicited" -EA SilentlyContinue`,
+    // Write to the non-policy SYSTEM path only. The Policies branch
+    // (HKLM\SOFTWARE\Policies\...) is overwritten by Group Policy every 90 minutes
+    // on domain-joined machines, silently undoing any value we write there.
+    apply:  `New-Item -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Remote Assistance" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Remote Assistance" -Name "fAllowToGetHelp" -Value 0 -Type DWord -Force; Set-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Remote Assistance" -Name "fAllowFullControl" -Value 0 -Type DWord -Force`,
+    revert: `Set-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Remote Assistance" -Name "fAllowToGetHelp" -Value 1 -Type DWord -Force; Set-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Remote Assistance" -Name "fAllowFullControl" -Value 1 -Type DWord -Force`,
     check:  `(Get-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Remote Assistance" -Name "fAllowToGetHelp" -EA SilentlyContinue).fAllowToGetHelp -eq 0`,
   },
 };
@@ -2481,6 +2523,19 @@ async function verifyTweak(tweakId) {
     return { isApplied: current.ac === 0, verified: true };
   }
 
+  // wifi: return unsupported when WlanSvc doesn't exist (no Wi-Fi adapter).
+  // Without this guard, the check PS fails with exit 1, which classifyErrorMessage
+  // maps to 'not_found' — the UI shows "Not Supported" but unsupported:true is never
+  // set, so the correct "not supported on this system" badge is never rendered.
+  if (tweakId === 'wifi') {
+    try {
+      const exists = await checkPowerShell(`$null -ne (Get-Service -Name WlanSvc -EA SilentlyContinue)`);
+      if (!exists) {
+        return { isApplied: false, unsupported: true, unsupportedReason: 'WlanSvc not present — no Wi-Fi adapter detected on this system.' };
+      }
+    } catch { /* fall through to standard check */ }
+  }
+
   try {
     const applied = await checkPowerShell(tweak.check);
     return { isApplied: applied, verified: true };
@@ -2516,6 +2571,7 @@ async function executeTweak(tweakId, action, options = {}) {
 
   // 2. Unknown tweak
   if (!tweak) {
+
     const result = enrichFailure({
       success: false,
       message: 'Tweak not found in registry.',
@@ -2526,6 +2582,31 @@ async function executeTweak(tweakId, action, options = {}) {
     }, 'not_found');
     logEntry({ tweakId, action, result, ms: 0 });
     return result;
+  }
+
+  // 2.5. wifi: pre-check for WlanSvc before attempting apply/revert.
+  // Prevents a generic "not found" error from reaching the user; returns a
+  // proper unsupported result with the correct badge in the UI instead.
+  if (tweakId === 'wifi') {
+    try {
+      const wlanExists = await checkPowerShell(`$null -ne (Get-Service -Name WlanSvc -EA SilentlyContinue)`);
+      if (!wlanExists) {
+        const reason = 'WlanSvc not present — no Wi-Fi adapter detected on this system.';
+        const result = enrichFailure({
+          success: false,
+          unsupported: true,
+          unsupportedReason: reason,
+          commandsRun: [],
+          requiresReboot: false,
+          requiresAdmin: false,
+          error: null,
+          message: reason,
+          hint: reason,
+        }, 'unsupported');
+        logEntry({ tweakId, action, result, ms: Date.now() - startTime });
+        return result;
+      }
+    } catch { /* proceed — WlanSvc check failure is non-fatal */ }
   }
 
   // 3. Admin check — elevate per-action when possible
@@ -2586,8 +2667,10 @@ async function executeTweak(tweakId, action, options = {}) {
         return result;
       }
 
-      // Elevation succeeded — update admin cache so subsequent tweaks skip UAC.
-      _isAdmin = true;
+      // NOTE: Do NOT set _isAdmin = true here. Per-action elevation only elevates
+      // the child PowerShell process, not the host process. Caching true would
+      // cause the next admin tweak to skip runElevated and run in the non-elevated
+      // host process instead — causing access denied failures on HKLM writes.
 
       // Elevated command succeeded — verify state (with one retry after 750 ms)
       const expectedApplied = action === 'apply';
@@ -3227,7 +3310,9 @@ async function batchCheckAllTweaks() {
   console.log(`[PS:tweak-executor] #${psId} batchCheckAll SPAWN ts=${t0} tweaks=${batchIds.length}`);
 
   try {
-    const raw = await new Promise((resolve, reject) => {
+    // Wrap in the PS semaphore so batchCheckAllTweaks counts against the
+    // MAX_PS_CONCURRENT cap alongside apply/verify calls arriving concurrently.
+    const raw = await _withPsSemaphore(() => new Promise((resolve, reject) => {
       execFile(
         'powershell',
         ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-File', tmpFile],
@@ -3243,7 +3328,7 @@ async function batchCheckAllTweaks() {
           }
         }
       );
-    });
+    }));
 
     let parsed;
     try {

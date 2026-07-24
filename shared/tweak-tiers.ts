@@ -80,6 +80,9 @@ export const FREE_EXCEPTION_IDS: Set<string> = new Set([
 export const PREMIUM_EXCEPTION_IDS: Set<string> = new Set([
   // ── System and Power ───────────────────────────────────────────────────────
   "core-isolation",
+  // ── Network ────────────────────────────────────────────────────────────────
+  // tcp-no-delay: reboot-required + can break latency-sensitive apps if misapplied.
+  "tcp-no-delay",
   "vbs",
   "hyper-v",
   "p-states",
@@ -198,6 +201,12 @@ export const TWEAK_TIER_MAP: Record<string, TweakTierInfo> = {
   "disable-mpo":              { level: "Advanced",     category: "GPU and Graphics" },
   "directx-optimization-profile": { level: "Advanced",     category: "GPU and Graphics" },
 
+  // Gaming and Latency (previously missing)
+  "mmcss-nolazymode":         { level: "Advanced",     category: "Gaming and Latency" },
+  "optimize-windowed-games":  { level: "Advanced",     category: "Gaming and Latency" },
+  "disable-game-dvr":         { level: "Advanced",     category: "Gaming and Latency" },
+  "tcp-no-delay":             { level: "Experimental", category: "Network" },
+
   // Network
   "bluetooth":                { level: "Recommended",  category: "Network" },
   "wifi":                     { level: "Advanced",     category: "Network" },
@@ -206,6 +215,16 @@ export const TWEAK_TIER_MAP: Record<string, TweakTierInfo> = {
   "xbox-bar":                 { level: "Recommended",  category: "Debloat and Apps" },
   "xbox-services":            { level: "Advanced",     category: "Debloat and Apps" },
   "fax-printer":              { level: "Advanced",     category: "Debloat and Apps" },
+  // Debloat and Apps (previously missing)
+  "teams-startup":            { level: "Recommended",  category: "Debloat and Apps" },
+  "adobe-updater":            { level: "Advanced",     category: "Debloat and Apps" },
+  "edge-update":              { level: "Advanced",     category: "Debloat and Apps" },
+  "vendor-updaters":          { level: "Advanced",     category: "Debloat and Apps" },
+  "disable-xbox-capture":     { level: "Recommended",  category: "Debloat and Apps" },
+
+  // System and Power (previously missing — remote access)
+  "disable-remote-desktop":   { level: "Advanced",     category: "System and Power" },
+  "disable-remote-assistance":{ level: "Advanced",     category: "System and Power" },
 
   // Windows UX
   "compact-explorer":         { level: "Recommended",  category: "Windows UX" },

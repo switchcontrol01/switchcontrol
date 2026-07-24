@@ -5149,6 +5149,12 @@ public class DspHelper {
     tweakExecutor.cleanupTimerResProcess();
     backendLauncher.stopBackend();
   });
+
+  // Ensure the timer-resolution PowerShell agent is cleaned up on hard exits.
+  // 'before-quit' handles graceful exits; these cover crashes and SIGTERM.
+  app.on('will-quit',  () => tweakExecutor.cleanupTimerResProcess());
+  process.on('exit',   () => tweakExecutor.cleanupTimerResProcess());
+  process.on('SIGTERM',() => tweakExecutor.cleanupTimerResProcess());
   
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();

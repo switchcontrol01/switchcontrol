@@ -59,14 +59,23 @@ export function detectCategory(entry: StartupEntry): StartupCategory {
 }
 
 // ── Risk detection ──────────────────────────────────────────────────────────
+// "critical" is reserved for entries that are genuinely broken (file missing /
+// entry malformed). Everything else is safe or moderate — startup items are
+// normal software, not threats; labelling them all critical causes alarm fatigue.
 
 export function detectRisk(entry: StartupEntry, category: StartupCategory): RiskLevel {
-  if (entry.broken) return "critical";
+  // Only truly broken entries warrant a critical label
+  if (entry.broken || !entry.fileExists) return "critical";
+
   const haystack = [entry.name, entry.publisher ?? "", entry.executablePath ?? ""].join(" ");
-  if (category === "system") return "critical";
+
+  // Security tools and system-critical services → moderate (informational, not scary)
+  if (/security|defender|antivirus|firewall|vpn|malware|bitdefender|kaspersky|avast|avira|eset|norton|mcafee/i.test(haystack)) return "moderate";
+  if (category === "system") return "moderate";
   if (category === "drivers") return "moderate";
-  if (/security|defender|antivirus|firewall|vpn/i.test(haystack)) return "critical";
-  if (/microsoft|windows/i.test(haystack)) return "critical";
+  if (/microsoft|windows/i.test(haystack)) return "moderate";
+
+  // Everything else (user apps, games, launchers, productivity) → safe
   return "safe";
 }
 

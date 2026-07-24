@@ -174,4 +174,27 @@ module.exports = {
    * so revertDnsServers can restore the user's exact prior DNS configuration.
    */
   DNS_SERVERS_BACKUP_FILE: path.join(APPDATA_DIR, 'dns-servers-backup.json'),
+
+  /**
+   * Original-value backup for the Optimizations for Windowed Games tweak.
+   * Stores the DirectXUserGlobalSettings string captured before apply so
+   * revert restores the user's actual previous value rather than removing the key.
+   */
+  WINDOWED_GAMES_BACKUP_FILE: path.join(APPDATA_DIR, 'windowed-games-backup.json'),
+
+  /**
+   * Backup for the Disable Vendor Update Helpers tweak.
+   * Stores the names of services that SwitchControl actually changed (were
+   * NOT already disabled before apply), so check and revert operate only
+   * on services the app itself disabled — not pre-disabled services.
+   */
+  VENDOR_UPDATERS_BACKUP_FILE: path.join(APPDATA_DIR, 'vendor-updaters-backup.json'),
+
+  /**
+   * Backup for the Disable Teams Background Startup tweak.
+   * Stores the original Run registry values captured before removal so
+   * revert can restore the exact entries rather than a hardcoded path
+   * (which breaks for Teams 2.0 users on ms-teams.exe).
+   */
+  TEAMS_STARTUP_BACKUP_FILE: path.join(APPDATA_DIR, 'teams-startup-backup.json'),
 };
