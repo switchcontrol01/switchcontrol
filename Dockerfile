@@ -5,6 +5,8 @@ WORKDIR /app
 RUN npm install -g npm@11.18.0
 
 COPY package.json package-lock.json ./
+# scripts/ must exist before npm ci so postinstall.cjs can run
+COPY scripts/ ./scripts/
 
 RUN npm ci --legacy-peer-deps --no-audit --no-fund
 
