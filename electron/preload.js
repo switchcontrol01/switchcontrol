@@ -64,6 +64,41 @@ function assertPlainObject(value, name) {
 const ALLOWED_TWEAK_ACTIONS = new Set(['apply', 'revert']);
 const ALLOWED_MEMORY_MODES  = new Set(['safe', 'smart', 'advanced']);
 
+// Config keys that the renderer is allowed to read/write. The config store holds
+// secrets (e.g. selectedGpuIndex, sentinelNotificationStyle) — restricting to an
+// explicit allowlist prevents a compromised renderer from enumerating arbitrary keys.
+const ALLOWED_CONFIG_KEYS = new Set([
+  'installedVersion',
+  'postUpdateGrace',
+  'previousVersion',
+  'selectedGpuIndex',
+  'sentinelGameNotifications',
+  'sentinelNotificationStyle',
+]);
+
+// IP address allowlist pattern (IPv4 only — DNS apply only accepts numeric IPs).
+const IP_RE = /^(\d{1,3}\.){3}\d{1,3}$/;
+
+// Drive letter pattern — single letter optionally followed by colon.
+const DRIVE_LETTER_RE = /^[A-Za-z]:?$/;
+
+// Max items allowed in bulk array IPC calls — prevents memory exhaustion from
+// a crafted oversized array reaching the main process.
+const MAX_ARRAY_IPC_LEN = 500;
+
+// ─── Array content validation helper ─────────────────────────────────────────
+// Validates that value is an array of non-empty strings with a length cap.
+function assertStringArray(value, name, maxLen = MAX_ARRAY_IPC_LEN) {
+  if (!Array.isArray(value)) throw new TypeError(`${name} must be an array`);
+  if (value.length > maxLen) throw new TypeError(`${name} exceeds max length of ${maxLen}`);
+  for (let i = 0; i < value.length; i++) {
+    if (typeof value[i] !== 'string' || !value[i].trim()) {
+      throw new TypeError(`${name}[${i}] must be a non-empty string`);
+    }
+  }
+  return value;
+}
+
 // ─── specs:enriched replay cache ─────────────────────────────────────────────
 // Caches the most recent specs:enriched payload so that subscribers who
 // register AFTER the event fires (e.g. Home mounting 1-2s after enrichment
@@ -270,14 +305,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getSchedulerStats:     () => ipcRenderer.invoke('telemetry:getSchedulerStats'),
   },
 
-  // ── Packaged config store — persisted secrets (e.g. OPENAI_API_KEY) ─────────
+  // ── Packaged config store — persisted app state ───────────────────────────
   config: {
     get: (key) => {
       assertString(key, 'key');
+      if (!ALLOWED_CONFIG_KEYS.has(key)) throw new TypeError(`config.get: unknown key "${key}"`);
       return ipcRenderer.invoke('config:get', key);
     },
     set: (key, value) => {
       assertString(key, 'key');
+      if (!ALLOWED_CONFIG_KEYS.has(key)) throw new TypeError(`config.set: unknown key "${key}"`);
       assertOptionalString(value, 'value');
       return ipcRenderer.invoke('config:set', key, value);
     },
@@ -402,6 +439,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
       return ipcRenderer.invoke('nic:getCapabilities', adapterName);
     },
     invalidateCache: (adapterName) => {
+      // `??` only coalesces null/undefined — a non-string non-null value would
+      // pass through directly. Validate explicitly.
+      if (adapterName != null && typeof adapterName !== 'string') {
+        throw new TypeError('nic.invalidateCache: adapterName must be a string or null');
+      }
       return ipcRenderer.invoke('nic:invalidateCache', adapterName ?? null);
     },
     readProperty: (adapterName, propertyKey) => {
@@ -484,50 +526,62 @@ contextBridge.exposeInMainWorld('electronAPI', {
     benchmark: () => ipcRenderer.invoke('dns:benchmark'),
     applyDns:  (ip) => {
       assertString(ip, 'ip');
+      if (!IP_RE.test(ip)) throw new TypeError(`dns.applyDns: "${ip}" is not a valid IPv4 address`);
       return ipcRenderer.invoke('dns:applyDns', ip);
     },
   },
 
   cleaner: {
     scan: (itemIds) => {
-      if (!Array.isArray(itemIds)) throw new TypeError('cleaner.scan: itemIds must be an array');
+      assertStringArray(itemIds, 'cleaner.scan itemIds');
       return ipcRenderer.invoke('cleaner:scan', itemIds);
     },
     clean: (itemIds) => {
-      if (!Array.isArray(itemIds)) throw new TypeError('cleaner.clean: itemIds must be an array');
+      assertStringArray(itemIds, 'cleaner.clean itemIds');
       return ipcRenderer.invoke('cleaner:clean', itemIds);
     },
     verify: (itemIds) => {
-      if (!Array.isArray(itemIds)) throw new TypeError('cleaner.verify: itemIds must be an array');
+      assertStringArray(itemIds, 'cleaner.verify itemIds');
       return ipcRenderer.invoke('cleaner:verify', itemIds);
     },
   },
 
   debloat: {
     scan: (items) => {
-      if (!Array.isArray(items)) throw new TypeError('debloat.scan: items must be an array');
+      assertStringArray(items, 'debloat.scan items');
       return ipcRenderer.invoke('debloat:scan', items);
     },
     removeItem: (item) => {
       // Destructive — uninstalls bloatware. Guard before crossing the privilege boundary.
       assertPlainObject(item, 'debloat.removeItem item');
+      if (typeof item.id !== 'string' || !item.id.trim()) throw new TypeError('debloat.removeItem: item.id must be a non-empty string');
+      if (typeof item.type !== 'string' || !item.type.trim()) throw new TypeError('debloat.removeItem: item.type must be a non-empty string');
       return ipcRenderer.invoke('debloat:removeItem', item);
     },
     restoreItem: (item) => {
       assertPlainObject(item, 'debloat.restoreItem item');
+      if (typeof item.id !== 'string' || !item.id.trim()) throw new TypeError('debloat.restoreItem: item.id must be a non-empty string');
+      if (typeof item.type !== 'string' || !item.type.trim()) throw new TypeError('debloat.restoreItem: item.type must be a non-empty string');
       return ipcRenderer.invoke('debloat:restoreItem', item);
     },
     verifyItem: (item) => {
       assertPlainObject(item, 'debloat.verifyItem item');
+      if (typeof item.id !== 'string' || !item.id.trim()) throw new TypeError('debloat.verifyItem: item.id must be a non-empty string');
+      if (typeof item.type !== 'string' || !item.type.trim()) throw new TypeError('debloat.verifyItem: item.type must be a non-empty string');
       return ipcRenderer.invoke('debloat:verifyItem', item);
     },
   },
 
   installedApps: {
     scan: () => ipcRenderer.invoke('installedApps:scan'),
-    icon: (appId) => ipcRenderer.invoke('installedApps:icon', appId),
+    icon: (appId) => {
+      assertString(appId, 'appId');
+      return ipcRenderer.invoke('installedApps:icon', appId);
+    },
     uninstall: (app) => {
-      if (!app || typeof app !== 'object') throw new Error('Invalid app payload');
+      // assertPlainObject rejects arrays; the previous `typeof app !== 'object'`
+      // check would have accepted [] as a valid payload.
+      assertPlainObject(app, 'installedApps.uninstall app');
       return ipcRenderer.invoke('installedApps:uninstall', app);
     },
   },
@@ -572,10 +626,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
     createBaseline:     () => ipcRenderer.invoke('extremeLabs:createBaseline'),
     analyze:            () => ipcRenderer.invoke('extremeLabs:analyze'),
     applySelected:      (ids) => {
-      if (!Array.isArray(ids)) throw new TypeError('extremeLabs.applySelected: ids must be an array');
+      assertStringArray(ids, 'extremeLabs.applySelected ids');
       return ipcRenderer.invoke('extremeLabs:applySelected', ids);
     },
-    restoreBaseline:    (ids) => ipcRenderer.invoke('extremeLabs:restoreBaseline', ids),
+    restoreBaseline:    (ids) => {
+      // Previously had no validation at all — the only extremeLabs method missing it.
+      assertStringArray(ids, 'extremeLabs.restoreBaseline ids');
+      return ipcRenderer.invoke('extremeLabs:restoreBaseline', ids);
+    },
     getStatus:          () => ipcRenderer.invoke('extremeLabs:getStatus'),
     checkAllStatus:     () => ipcRenderer.invoke('extremeLabs:checkAllStatus'),
   },
@@ -629,7 +687,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
       assertFunction(callback, 'updater.onEvent callback');
       const handler = (_event, payload) => {
         if (!payload || typeof payload !== 'object') {
-          if (process.env.NODE_ENV !== 'production') {
+          if (!isProdBuild) {
             console.warn('[preload] updater:event received malformed payload');
           }
           return;
@@ -650,7 +708,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getLastResult: () => ipcRenderer.invoke('processControl:getLastResult'),
     restoreLast: () => ipcRenderer.invoke('processControl:restoreLast'),
     getProtectedList: () => ipcRenderer.invoke('processControl:getProtectedList'),
-    terminate: (pid) => ipcRenderer.invoke('processControl:terminate', pid),
+    terminate: (pid) => {
+      if (!Number.isInteger(pid) || pid <= 0) throw new TypeError('processControl.terminate: pid must be a positive integer');
+      return ipcRenderer.invoke('processControl:terminate', pid);
+    },
   },
 
   // ── Latency Analyzer ─────────────────────────────────────────────────────────
@@ -668,6 +729,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getVolumes: () => ipcRenderer.invoke('storage:getVolumes'),
     optimize: (driveLetter, type) => {
       assertString(driveLetter, 'driveLetter');
+      if (!DRIVE_LETTER_RE.test(driveLetter)) {
+        throw new TypeError(`storage.optimize: "${driveLetter}" is not a valid drive letter (expected e.g. "C" or "C:")`);
+      }
       const ALLOWED_OPT_TYPES = new Set(['trim', 'defrag']);
       if (!ALLOWED_OPT_TYPES.has(type)) {
         throw new TypeError('storage.optimize: type must be "trim" or "defrag"');
