@@ -444,6 +444,9 @@ function ElectronAppContent() {
         // Part 3 — timer-res auto-restart.
         // The timer-res agent dies when the app closes. If the user had it enabled,
         // restart it silently on startup rather than leaving it off.
+        // Guard: skip if the slider-based keeper is already active (timer-resolution-slider
+        // at a non-default value) — that process survived the restart and is already holding
+        // the resolution, so spawning the toggle agent would create a duplicate.
         const timerResStatus = results["timer-res"] as
           | { isApplied?: boolean; applied?: boolean; unsupported?: boolean }
           | undefined;
@@ -451,7 +454,14 @@ function ElectronAppContent() {
         const timerResIsRunning = timerResStatus
           ? (timerResStatus.isApplied ?? timerResStatus.applied ?? false)
           : false;
-        if (timerResWasEnabled && !timerResIsRunning && !timerResStatus?.unsupported) {
+        const sliderKeeperActive = (() => {
+          try {
+            const sv = useStore.getState().sliderValues ?? {};
+            const ms10 = sv["timer-resolution-slider"] ?? 156;
+            return ms10 < 156; // slider keeper alive means resolution is already held
+          } catch { return false; }
+        })();
+        if (timerResWasEnabled && !timerResIsRunning && !timerResStatus?.unsupported && !sliderKeeperActive) {
           console.log(
             "[App:STARTUP-RECONCILE] timer-res: was enabled, agent not running — auto-restarting",
           );

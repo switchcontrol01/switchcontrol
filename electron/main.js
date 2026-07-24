@@ -3885,6 +3885,11 @@ public class DspHelper {
     if (value === undefined || value === null) return { ok: false, error: 'Value required' };
     const token = psLimiter.tryAcquire({ file: 'main.js', fn: 'slider:applyValue', reason: 'slider-apply' });
     if (!token) return { ok: false, error: 'Another tweak is being applied — please wait a moment.' };
+    // timer-resolution-slider and the timer-res toggle both call NtSetTimerResolution.
+    // Kill the toggle agent first so the two processes don't race each other.
+    if (tweakId === 'timer-resolution-slider') {
+      tweakExecutor.cleanupTimerResProcess();
+    }
     try { return await sliderTweakExecutor.applySliderValue(tweakId, value); } finally { psLimiter.release(token); }
   });
   

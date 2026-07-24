@@ -284,7 +284,7 @@ interface DetectedIssuesProps {
 }
 
 export function DetectedIssues({ className }: DetectedIssuesProps) {
-  const { tweaks } = useStore();
+  const { tweaks, sliderValues } = useStore();
   const { user } = useAuth();
   const [issues, setIssues] = useState<DetectedIssue[]>([]);
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
@@ -295,8 +295,16 @@ export function DetectedIssues({ className }: DetectedIssuesProps) {
   const runDetection = useCallback(async () => {
     setLoading(true);
     try {
-      // 1. Collect tweak states (Zustand — registry-verified on load)
-      const tweakStates = tweaks;
+      // 1. Collect tweak states (Zustand — registry-verified on load).
+      // timer-res (toggle at fixed 0.5ms) and timer-resolution-slider (variable
+      // preset slider) both write to the same Windows NtSetTimerResolution call.
+      // Synthesise a single "timer-res" boolean so the detected-issue is suppressed
+      // whenever either surface has the resolution overridden from its default.
+      const timerSliderValue = (sliderValues ?? {})["timer-resolution-slider"] ?? 156;
+      const tweakStates = {
+        ...tweaks,
+        "timer-res": tweaks["timer-res"] === true || timerSliderValue < 156,
+      };
 
       // 2+3. Fetch startup app count and power plan name in parallel —
       // these are independent async sources; running sequentially adds
@@ -341,7 +349,7 @@ export function DetectedIssues({ className }: DetectedIssuesProps) {
     } finally {
       setLoading(false);
     }
-  }, [tweaks]);
+  }, [tweaks, sliderValues]);
 
   useEffect(() => {
     if (!user?.loggedIn) return;

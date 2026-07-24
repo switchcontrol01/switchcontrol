@@ -1184,6 +1184,24 @@ function _startTimerResAgent() {
     console.log('[TimerRes] agent already running, pid=%d', _timerResProcess.pid);
     return true;
   }
+  // Evict any competing slider-based keeper process so both agents don't fight
+  // over NtSetTimerResolution simultaneously.  The slider keeper records its PID
+  // in timer-resolution-state.json — read that and kill the process before we
+  // start our own.
+  try {
+    const os_   = require('os');
+    const path_ = require('path');
+    const fs_   = require('fs');
+    const stateFile = path_.join(os_.homedir(), 'AppData', 'Roaming', 'SwitchControl', 'timer-resolution-state.json');
+    if (fs_.existsSync(stateFile)) {
+      const s = JSON.parse(fs_.readFileSync(stateFile, 'utf8'));
+      if (s && s.pid) {
+        try { process.kill(s.pid); } catch {}
+        try { fs_.unlinkSync(stateFile); } catch {}
+        console.log('[TimerRes] evicted slider keeper pid=%d before starting toggle agent', s.pid);
+      }
+    }
+  } catch (e) { /* non-fatal — log and continue */ console.warn('[TimerRes] evict-slider-keeper error:', e.message); }
   try {
     const proc = spawn('powershell.exe', [
       '-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden',

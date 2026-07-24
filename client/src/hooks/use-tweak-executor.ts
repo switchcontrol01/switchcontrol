@@ -10,6 +10,14 @@ import {
   PRESET_IDS,
   UNSUPPORTED_MAP,
 } from '@/lib/tweak-registry';
+import { useStore } from '@/lib/store';
+
+// timer-res toggle always pins to 0.5ms (5 ms10 units).
+// Mirror its apply/revert into the slider slot so both surfaces stay in sync.
+const TIMER_TOGGLE_ID       = 'timer-res';
+const TIMER_SLIDER_ID       = 'timer-resolution-slider';
+const TIMER_SLIDER_APPLIED  = 5;    // 0.5ms in ms10 units
+const TIMER_SLIDER_DEFAULT  = 156;  // 15.6ms — "using default" sentinel
 
 // ── syncAll cooldown — prevents repeated full scans on rapid remounts / focus ─
 // Module-level so it persists across component remounts for the app session.
@@ -297,6 +305,17 @@ export function useTweakExecutor() {
         ...prev,
         appliedTweaks: { ...prev.appliedTweaks, [tweakId]: actualState },
       }));
+
+      // Cross-state: timer-res toggle and timer-resolution-slider both control
+      // NtSetTimerResolution.  Mirror the toggle result into the slider Zustand
+      // slot so both UI surfaces and the issue detector stay consistent.
+      if (tweakId === TIMER_TOGGLE_ID) {
+        const { setSliderValue } = useStore.getState();
+        setSliderValue(
+          TIMER_SLIDER_ID,
+          action === 'apply' ? TIMER_SLIDER_APPLIED : TIMER_SLIDER_DEFAULT,
+        );
+      }
 
       toast({
         title:       action === 'apply' ? 'Tweak Applied' : 'Tweak Reverted',

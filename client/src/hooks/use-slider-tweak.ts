@@ -4,6 +4,14 @@ import { isElectronWithTweaks } from '@/hooks/use-tweak-executor';
 import { SliderConfig, SliderPreset } from '@/lib/mock-data';
 import { useStore } from '@/lib/store';
 
+// ── Cross-tweak sync constants ────────────────────────────────────────────────
+// timer-res (toggle) and timer-resolution-slider (slider) both control the same
+// Windows NtSetTimerResolution call.  When either is applied/reverted we mirror
+// the change into the other's Zustand slot so every UI surface stays consistent.
+const TIMER_SLIDER_ID  = 'timer-resolution-slider';
+const TIMER_TOGGLE_ID  = 'timer-res';
+const TIMER_SLIDER_DEFAULT = 156;   // 15.6ms — "using default" sentinel
+
 function getSliderAPI() {
   return (window as any).electronAPI?.tweaks;
 }
@@ -95,6 +103,7 @@ export function useSliderTweak(tweakId: string, config: SliderConfig) {
   const { toast } = useToast();
   const isElectron = isElectronWithTweaks();
   const setSliderValue = useStore((s) => s.setSliderValue);
+  const setTweak       = useStore((s) => s.setTweak);
   // Read the cached value once at mount — use it as the initial pendingValue so
   // the UI shows the last-applied setting immediately, even before the registry
   // read completes (or if it fails due to a busy PowerShell limiter at startup).
@@ -271,6 +280,11 @@ export function useSliderTweak(tweakId: string, config: SliderConfig) {
         const confirmedValue = result.actualValue ?? valueToApply;
         // Persist confirmed value — survives app restarts and busy-limiter fallback.
         setSliderValue(tweakId, confirmedValue);
+        // Cross-state: keep the timer-res toggle in sync so its card + detected
+        // issues reflect the real system state regardless of which surface was used.
+        if (tweakId === TIMER_SLIDER_ID) {
+          setTweak(TIMER_TOGGLE_ID, confirmedValue < TIMER_SLIDER_DEFAULT);
+        }
         setState(s => ({
           ...s,
           previousValue: s.currentValue,
@@ -325,6 +339,11 @@ export function useSliderTweak(tweakId: string, config: SliderConfig) {
         const resetValue = result.actualValue ?? config.defaultValue;
         // Persist the reset-to-default value so next startup shows default, not old applied value.
         setSliderValue(tweakId, resetValue);
+        // Cross-state: resetting timer-resolution-slider to default means no active
+        // resolution request — mirror that into the toggle so it shows as "off".
+        if (tweakId === TIMER_SLIDER_ID) {
+          setTweak(TIMER_TOGGLE_ID, false);
+        }
         setState(s => ({
           ...s,
           previousValue: s.currentValue,
