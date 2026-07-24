@@ -84,10 +84,12 @@ const EL_REGISTRY_TWEAK_IDS: string[] = [
   'bluetooth', 'edge-update', 'adobe-updater', 'teams-startup', 'vendor-updaters',
 ];
 
+// Single source of truth: reference PREMIUM_SLIDER_DEFAULTS so these never
+// silently diverge if defaults are updated in one object but not the other.
 const EL_SLIDER_DEFAULTS: Record<string, number> = {
-  'net-throttle-index': 10,
-  'win32-priority-sep': 2,
-  'sys-responsiveness': 20,
+  'net-throttle-index': PREMIUM_SLIDER_DEFAULTS['net-throttle-index'],
+  'win32-priority-sep': PREMIUM_SLIDER_DEFAULTS['win32-priority-sep'],
+  'sys-responsiveness': PREMIUM_SLIDER_DEFAULTS['sys-responsiveness'],
 };
 
 const EL_PRESET_DEFAULTS: Record<string, string> = {
@@ -302,6 +304,9 @@ async function revertSliderTweaks(): Promise<RevertItemResult[]> {
   }
 
   if (!lastResult) {
+    // IPC failed on all retries — still clear the Zustand store so the UI
+    // doesn't keep showing stale premium slider values after trial expiry.
+    clearPremiumSliderStoreValues(); // no arg = clear all known premium sliders
     return [];
   }
 
@@ -312,7 +317,11 @@ async function revertSliderTweaks(): Promise<RevertItemResult[]> {
   // We always clear, even when revertedIds is empty, because the executor may
   // have reverted to default without adding to the list (idempotent writes).
   clearPremiumSliderStoreValues(revertedIds.length > 0 ? revertedIds : undefined);
-  dispatchRevertEvent('sc:sliders-reverted', { ids: revertedIds });
+  // Gate dispatch: don't fire the event when nothing was reverted — components
+  // listening to sc:sliders-reverted would clear their UI state unnecessarily.
+  if (revertedIds.length > 0) {
+    dispatchRevertEvent('sc:sliders-reverted', { ids: revertedIds });
+  }
 
   const results: RevertItemResult[] = [];
 
@@ -517,20 +526,33 @@ async function revertSingleNetworkTweak(
       }
 
       if (result.verified === false) {
+        // Executor confirmed revert did NOT stick — retry.
         console.warn(`[Revert:NET] not verified tweakId="${tweakId}" attempt=${attempt}`);
         if (attempt < MAX_RETRY_ATTEMPTS) { await delay(RETRY_BASE_DELAY_MS * attempt); continue; }
         useTweakOwnershipStore.getState().markNetworkTweakRevertFailed(tweakId);
         return 'failed';
       }
+      if (result.verified === undefined) {
+        // Executor has no verification support — accept but surface for diagnostics.
+        // This is inconsistent with revertSingleTweak which always re-checks status;
+        // logging here makes silent no-verification cases visible in crash reports.
+        console.warn(`[Revert:NET] tweakId="${tweakId}" — executor returned no verification; accepting result unverified (attempt ${attempt})`);
+      }
 
-      // Report success to backend (non-fatal)
+      // Report success to backend (non-fatal).
+      // Validate tweakId before interpolating into URL — lsEnabledIds reads from
+      // localStorage which could be tampered with to inject path traversal chars.
       const { apiPost } = await import('./api');
+      if (!/^[\w-]+$/.test(tweakId)) {
+        console.error(`[Revert:NET] tweakId "${tweakId}" failed allowlist check — skipping backend report`);
+      } else {
       await apiPost(`/network-tweaks/${tweakId}/report`, {
         action: 'disable',
         success: true,
         verified: true,
         message: 'Reverted on premium expiry',
       }).catch(() => {});
+      } // end tweakId allowlist guard
 
       // Patch localStorage so the UI shows "idle" on next mount
       patchNetworkTweakLocalStorage([tweakId]);
@@ -615,8 +637,10 @@ async function revertExtremeLabsTweaks(): Promise<RevertItemResult[]> {
 
   const results = entries.map(([tweakId, rec]) => {
     const itemResult = lastResult?.results?.find((r: any) => r.id === tweakId);
-    // If the baseline call succeeded and there's no per-item failure → reverted
-    const reverted = success && (itemResult ? itemResult.reverted !== false : true);
+    // Use explicit === true check: `reverted !== false` counts `undefined` as reverted,
+    // which masks items where the API returned `{ id, error }` with no reverted field.
+    // When no per-item result exists but the overall call succeeded, treat as reverted.
+    const reverted = success && (itemResult ? itemResult.reverted === true : true);
 
     if (reverted) {
       store.recordExtremeLabsRevertSuccess(tweakId);
@@ -648,8 +672,10 @@ async function revertExtremeLabsTweaks(): Promise<RevertItemResult[]> {
 // Unchanged from v1 — power plans already had ~100% success. Kept intact.
 
 async function revertPowerPlan(): Promise<PowerPlanRevertResult> {
-  const store = useTweakOwnershipStore.getState();
-  const rec   = store.powerPlan;
+  // Read rec once for checking provenance/guids — but re-read store before any
+  // write so we're never calling actions on a reference that could be stale
+  // from a concurrent async operation having mutated the store in between.
+  const rec = useTweakOwnershipStore.getState().powerPlan;
 
   const api = getPowerPlanAPI();
   if (!api) return { status: 'not_applicable' };
@@ -664,7 +690,7 @@ async function revertPowerPlan(): Promise<PowerPlanRevertResult> {
     }
   } catch (e) {
     console.error('[Revert:PLAN] Failed to read active power scheme:', e);
-    if (rec?.provenance === 'app') store.markPowerPlanRevertFailed();
+    if (rec?.provenance === 'app') useTweakOwnershipStore.getState().markPowerPlanRevertFailed();
     return { status: 'failed', reason: 'Could not read current power plan state' };
   }
 
@@ -693,7 +719,7 @@ async function revertPowerPlan(): Promise<PowerPlanRevertResult> {
 
   if (!activeIsSCPlan) {
     console.log(`[Revert:PLAN] Active plan "${currentName}" (${currentGuid}) is not SC-managed — skipping`);
-    if (rec?.provenance === 'app') store.recordPowerPlanRevertSuccess();
+    if (rec?.provenance === 'app') useTweakOwnershipStore.getState().recordPowerPlanRevertSuccess();
     return {
       status: 'skipped_not_sc',
       reason: currentGuid
@@ -705,7 +731,7 @@ async function revertPowerPlan(): Promise<PowerPlanRevertResult> {
   const targetGuid = BALANCED_GUID;
 
   if (!api.activateByGuid) {
-    if (rec?.provenance === 'app') store.markPowerPlanRevertFailed();
+    if (rec?.provenance === 'app') useTweakOwnershipStore.getState().markPowerPlanRevertFailed();
     return { status: 'failed', reason: 'Power plan restore requires an app update (activateByGuid not exposed)' };
   }
 
@@ -738,13 +764,13 @@ async function revertPowerPlan(): Promise<PowerPlanRevertResult> {
       verifiedActiveName = verify?.activeScheme?.name;
       if (verifiedGuid !== targetGuid) {
         console.error(`[Revert:PLAN] Verification failed — expected ${targetGuid} got ${verifiedGuid}`);
-        if (rec?.provenance === 'app') store.markPowerPlanRevertFailed();
+        if (rec?.provenance === 'app') useTweakOwnershipStore.getState().markPowerPlanRevertFailed();
         return { status: 'failed', reason: 'Power plan set but verification failed', targetGuid };
       }
       console.log(`[Revert:PLAN] Verification passed — active: "${verifiedActiveName}" (${verifiedGuid})`);
     } catch { /* non-fatal */ }
 
-    if (rec?.provenance === 'app') store.recordPowerPlanRevertSuccess();
+    if (rec?.provenance === 'app') useTweakOwnershipStore.getState().recordPowerPlanRevertSuccess();
     return {
       status: 'forced_balanced',
       targetGuid,
@@ -758,7 +784,7 @@ async function revertPowerPlan(): Promise<PowerPlanRevertResult> {
   }
 
   console.error(`[Revert:PLAN] Windows Balanced activation failed: ${restoreResult?.error}`);
-  if (rec?.provenance === 'app') store.markPowerPlanRevertFailed();
+  if (rec?.provenance === 'app') useTweakOwnershipStore.getState().markPowerPlanRevertFailed();
   return {
     status: 'failed',
     reason: restoreResult?.error ?? 'Power plan restore failed',
@@ -766,6 +792,12 @@ async function revertPowerPlan(): Promise<PowerPlanRevertResult> {
     targetGuid,
   };
 }
+
+// ── In-flight guard ───────────────────────────────────────────────────────────
+// Prevents two concurrent runPremiumRevert() calls (e.g. double-click, timer retry)
+// from processing the same ownership records in parallel and double-writing store state.
+
+let _revertInFlight = false;
 
 // ── Public API ────────────────────────────────────────────────────────────────
 
@@ -782,6 +814,19 @@ async function revertPowerPlan(): Promise<PowerPlanRevertResult> {
 export async function runPremiumRevert(
   onProgress?: (phase: RevertPhase) => void,
 ): Promise<PremiumRevertReport> {
+  if (_revertInFlight) {
+    console.warn('[Revert] runPremiumRevert already in progress — ignoring concurrent call');
+    // Return a benign no-op report so the caller can handle it without crashing.
+    return {
+      tweakResults: [], sliderResults: [], presetResults: [],
+      networkResults: [], extremeLabsResults: [],
+      powerPlan: { status: 'not_applicable' },
+      anyFailed: false, anyConflict: false, revertedCount: 0,
+    };
+  }
+  _revertInFlight = true;
+
+  try {
   console.log('[Revert] Starting premium revert sequence v2...');
   onProgress?.('locking');
 
@@ -919,10 +964,11 @@ export async function runPremiumRevert(
     extremeLabsResults.filter(r => r.status === 'reverted').length +
     (powerPlanResult.status === 'reverted' || powerPlanResult.status === 'forced_balanced' ? 1 : 0);
 
-  // ── Final safety sweep: turn off every premium tweak in the main Zustand store
-  // regardless of ownership-store state. This catches edge cases like tweaks applied
-  // outside the app, ownership store cleared by prior upgrade, or IPC failures where
-  // the registry revert succeeded but the store was never updated.
+  // ── Final safety sweep ────────────────────────────────────────────────────
+  // Turn off every premium tweak in the main Zustand store regardless of
+  // ownership-store state. Also unconditionally clears slider and preset store
+  // values — if the earlier targeted clears failed (their try/catch swallowed
+  // the error), stale premium values would otherwise persist in the store.
   try {
     const mainStore = useStore.getState();
     const allPremiumIds = TWEAKS_DATA
@@ -939,8 +985,12 @@ export async function runPremiumRevert(
       console.log(`[Revert:SAFETY] turned off ${swept} premium tweak(s) in main store`);
     }
   } catch (e) {
-    console.warn('[Revert:SAFETY] final sweep failed:', e);
+    console.warn('[Revert:SAFETY] final sweep (tweaks) failed:', e);
   }
+  // Slider + preset store clear is unconditional here — a no-op when values are
+  // already at defaults, but ensures the UI is clean even if earlier clears threw.
+  clearPremiumSliderStoreValues();
+  clearPremiumPresetStoreValues();
 
   console.log(
     `[Revert] Complete — reverted=${revertedCount} failed=${anyFailed} conflict=${anyConflict}` +
@@ -958,6 +1008,9 @@ export async function runPremiumRevert(
     anyConflict,
     revertedCount,
   };
+  } finally {
+    _revertInFlight = false;
+  }
 }
 
 /**
@@ -993,7 +1046,9 @@ export function hasPremiumItemsToRevert(): boolean {
     const sliderValues = useStore.getState().sliderValues;
     hasSliders = Object.entries(PREMIUM_SLIDER_DEFAULTS).some(([id, defaultVal]) => {
       const stored = sliderValues[id];
-      return stored !== undefined && stored !== defaultVal;
+      // Float-safe comparison: `156.0 !== 156` is false in JS but serialized
+      // floats from localStorage could produce surprising inequality.
+      return stored !== undefined && Math.abs(stored - defaultVal) > 0.001;
     });
   } catch { /* non-Electron / store not ready */ }
 
