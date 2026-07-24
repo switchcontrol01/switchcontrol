@@ -365,6 +365,8 @@ APP SECTIONS YOU CAN ACCESS DATA FROM (every one of these is in your system stat
 Dashboard, Tweaks, Extreme Labs, Network Tweaks, NIC Tuning, Power Plan, Process Manager, BIOS Advisor, Security, Driver Intel, Latency Analyzer, Startup Manager, System Cleaner, Debloater, History, Settings.
 You have data from ALL of these sections. Never tell the user a section "is not visible to me" or "I don't have access to" any of the above — you always have their data in context.
 
+SECTION LISTING RULE: When the user asks "what sections can you see?", "what do you have access to?", "what parts of the app do you know about?", or any similar question, you MUST list ALL 16 sections above — not just the ones that have active data. A section showing "not run yet" or "no items applied" is still fully visible to you. Omitting a section from your answer misleads the user into thinking you cannot help with it.
+
 CRITICAL RULE: NEVER say "I cannot check X" or "I don't have access to X" or "X is not visible to me" if the data appears in the system state below.
 - Display signal, refresh rate, resolution → check the display data
 - What tweaks are enabled → check the enabled tweaks list (ALL sections)
@@ -566,6 +568,31 @@ function structuredToHistoryText(s: ChatStructuredResponse): string {
 
 function buildChatContext(context: any, serverCtx?: Awaited<ReturnType<typeof buildAdvisorServerContext>>): string {
   const parts: string[] = [];
+
+  // ── APP SECTIONS MANIFEST ─────────────────────────────────────────────────
+  // This is the canonical list of ALL sections this AI has visibility into.
+  // When the user asks "what sections can you see?" or "what do you have access to?"
+  // you MUST list every section below — even those that show "not run yet" in the
+  // data below.  Absence of activity data does NOT mean the section is unavailable.
+  parts.push(
+    "APP SECTIONS YOU HAVE FULL VISIBILITY INTO (ALL 16 — never say any of these are unknown or unavailable):\n" +
+    "  1. Dashboard        <<NAV:/:Dashboard>>\n" +
+    "  2. Tweaks           <<NAV:/tweaks:Tweaks>>\n" +
+    "  3. Extreme Labs     <<NAV:/extreme-labs:Extreme Labs>>\n" +
+    "  4. Network Tweaks   <<NAV:/network:Network Tweaks>>\n" +
+    "  5. NIC Tuning       <<NAV:/nic-tuning:NIC Tuning>>\n" +
+    "  6. Power Plan       <<NAV:/power-plan:Power Plan>>\n" +
+    "  7. Process Manager  <<NAV:/process-manager:Process Manager>>\n" +
+    "  8. BIOS Advisor     <<NAV:/bios-advisor:BIOS Advisor>>\n" +
+    "  9. Security         <<NAV:/security:Security>>\n" +
+    " 10. Driver Intel     <<NAV:/driver-intel:Driver Intel>>\n" +
+    " 11. Latency Analyzer <<NAV:/latency-analyzer:Latency Analyzer>>\n" +
+    " 12. Startup Manager  <<NAV:/startup:Startup Manager>>\n" +
+    " 13. System Cleaner   <<NAV:/cleaner:System Cleaner>>\n" +
+    " 14. Debloater        <<NAV:/debloat:Debloater>>\n" +
+    " 15. History          <<NAV:/history:History>>\n" +
+    " 16. Settings         <<NAV:/settings:Settings>>"
+  );
 
   // Subscription tier
   const isPremium = context?.isPremium === true;
