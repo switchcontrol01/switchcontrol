@@ -31,6 +31,7 @@ import { useTweakImpact } from "@/hooks/useTweakImpact";
 import { TweakImpactResult } from "@/components/tweaks/TweakImpactResult";
 import { useTweakHardwareVerdict } from "@/hooks/useHardwareProfile";
 import type { TweakHardwareVerdict } from "@shared/hardwareIntelligence";
+import { useSystemConditionsStore } from "@/stores/systemConditionsStore";
 
 // ── Hardware-aware verdict pill ───────────────────────────────────────────────
 // Shows adaptive guidance for the user's actual silicon (e.g. "Detected X3D —
@@ -211,6 +212,70 @@ function FailureBanner({ info, onDismiss }: { info: FailureInfo; onDismiss: () =
   );
 }
 
+// ── Tamper Protection / elevation warning strip ───────────────────────────────
+// Shown on each real TweakCard when the OS environment means tweaks won't stick.
+interface TamperWarningProps {
+  tamperProtection: boolean | null;
+  isAdmin: boolean | null;
+}
+
+function TamperWarning({ tamperProtection, isAdmin }: TamperWarningProps) {
+  const [expanded, setExpanded] = useState(false);
+
+  const hasTamper   = tamperProtection === true;
+  const notAdmin    = isAdmin === false;
+  if (!hasTamper && !notAdmin) return null;
+
+  // Build a compact label and detailed hint based on active conditions
+  const label = hasTamper && notAdmin
+    ? "May revert — Tamper Protection on · not running as Admin"
+    : hasTamper
+    ? "May revert — Tamper Protection on"
+    : "May revert — not running as Administrator";
+
+  const hints: string[] = [];
+  if (hasTamper) hints.push(
+    "Tamper Protection prevents registry writes from sticking. To fix: open Windows Security → Virus & threat protection → Manage settings → turn off Tamper Protection."
+  );
+  if (notAdmin) hints.push(
+    "Some tweaks require Administrator rights to apply permanently. Restart the app as Administrator or run from an elevated command prompt."
+  );
+
+  return (
+    <div className="mx-4 mb-3 rounded-lg border border-amber-500/25 bg-amber-500/10 text-xs overflow-hidden">
+      <div className="flex items-center gap-2 px-3 py-1.5">
+        <AlertTriangle className="size-3 shrink-0 text-amber-400/80" />
+        <span className="text-amber-300/80 font-medium flex-1 leading-snug">{label}</span>
+        <button
+          onClick={() => setExpanded(v => !v)}
+          className="text-amber-500/60 hover:text-amber-300 transition-colors shrink-0"
+          title={expanded ? "Hide details" : "How to fix"}
+          data-testid="button-tamper-expand"
+        >
+          {expanded ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />}
+        </button>
+      </div>
+      <AnimatePresence>
+        {expanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.14 }}
+            className="overflow-hidden"
+          >
+            <div className="px-3 pb-2.5 space-y-1.5">
+              {hints.map((h, i) => (
+                <p key={i} className="text-amber-200/60 leading-relaxed">{h}</p>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 // ── GPU Adapter info type ─────────────────────────────────────────────────────
 interface GpuAdapter {
   name: string;
@@ -231,6 +296,7 @@ export function TweakCard({ tweak, isEnabled, onToggle, isVerifying = false, isH
   const { executeTweak, executing }   = useTweakExecutor();
   const { impacts, measuring, startMeasure, clearImpact } = useTweakImpact();
   const hardwareVerdict               = useTweakHardwareVerdict(tweak.id);
+  const { tamperProtection, isAdmin } = useSystemConditionsStore();
 
   // ── GPU MSI Mode — adapter selection state ────────────────────────────────
   const isGpuMsiCard                          = tweak.id === 'gpu-msi-mode';
@@ -513,6 +579,11 @@ export function TweakCard({ tweak, isEnabled, onToggle, isVerifying = false, isH
 
           {/* TrustLayer — expandable impact breakdown */}
           <TrustLayer tweak={tweak} isOpen={trustOpen} />
+
+          {/* Per-tweak Tamper Protection / elevation warning (real tweaks only) */}
+          {isReal && !isUnsupported && !isLocked && (
+            <TamperWarning tamperProtection={tamperProtection} isAdmin={isAdmin} />
+          )}
         </GlassCard>
       </div>
 
