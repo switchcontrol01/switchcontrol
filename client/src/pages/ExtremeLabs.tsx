@@ -305,9 +305,9 @@ function ImpactBar({ label, before, after, unit, better }: {
       </div>
       <div className="grid grid-cols-[40px_1fr_auto] items-center gap-2">
         <span className="text-[10px] text-muted-foreground/50 text-right">before</span>
-        <div className="h-3 bg-[#0E1318] rounded-full overflow-hidden border border-[#1E2733]">
+        <div className="h-3 bg-[#162030] rounded-full overflow-hidden border border-[#253448]">
           <motion.div
-            className="h-full bg-[#2A3344] rounded-full"
+            className="h-full bg-[#2E4060] rounded-full"
             initial={{ width: 0 }}
             animate={{ width: `${beforePct}%` }}
             transition={{ duration: 0.9, ease: "easeOut" }}
@@ -317,7 +317,7 @@ function ImpactBar({ label, before, after, unit, better }: {
       </div>
       <div className="grid grid-cols-[40px_1fr_auto] items-center gap-2">
         <span className="text-[10px] text-muted-foreground/50 text-right">after</span>
-        <div className="h-3 bg-[#0E1318] rounded-full overflow-hidden border border-[#1E2733]">
+        <div className="h-3 bg-[#162030] rounded-full overflow-hidden border border-[#253448]">
           <motion.div
             className="h-full rounded-full"
             style={{ background: improved ? "linear-gradient(90deg,#00FF88,#00D4FF)" : "#00D4FF" }}
@@ -353,7 +353,7 @@ function StatCard({ icon: Icon, value, label, color, animate = true }: {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
       whileHover={{ y: -2 }}
-      className="relative overflow-hidden rounded-xl border border-[#1E2733] bg-[#0C1118] p-4 group cursor-default"
+      className="relative overflow-hidden rounded-xl border border-[#253448] bg-[#141E2E]/80 backdrop-blur-sm p-4 group cursor-default"
     >
       {/* Top accent line */}
       <div className="absolute top-0 left-0 right-0 h-[2px] rounded-t-xl" style={{ background: `linear-gradient(90deg, transparent, ${color}, transparent)` }} />
@@ -404,10 +404,10 @@ function TweakCard({
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.3 }}
       className={cn(
-        "relative rounded-xl border bg-[#0C1118] overflow-hidden group transition-all duration-300",
+        "relative rounded-xl border bg-[#141E2E] overflow-hidden group transition-all duration-300",
         isApplied
-          ? "border-emerald-500/30 bg-[#0A1510]"
-          : "border-[#1E2733] hover:border-[#2A3A4A]"
+          ? "border-emerald-500/30 bg-[#0F1E14]"
+          : "border-[#253448] hover:border-[#2A3A4A]"
       )}
     >
       {/* Left risk accent bar */}
@@ -476,7 +476,7 @@ function TweakCard({
               <Button
                 size="sm"
                 variant="ghost"
-                className="text-xs text-muted-foreground/50 hover:text-purple-400 h-7 px-2.5 border border-[#1E2733] hover:border-purple-500/30 transition-all"
+                className="text-xs text-muted-foreground/50 hover:text-purple-400 h-7 px-2.5 border border-[#253448] hover:border-purple-500/30 transition-all"
                 onClick={onUpgrade}
               >
                 <Lock className="size-3 mr-1" /> Premium
@@ -521,13 +521,13 @@ function TweakCard({
               transition={{ duration: 0.25 }}
               className="overflow-hidden"
             >
-              <div className="pt-3 mt-3 border-t border-[#1A2030] space-y-3">
+              <div className="pt-3 mt-3 border-t border-[#1E2C3E] space-y-3">
                 <div className="grid grid-cols-2 gap-3 text-xs">
-                  <div className="p-2.5 rounded-lg bg-[#0A0F14] border border-[#1A2030]">
+                  <div className="p-2.5 rounded-lg bg-[#111922] border border-[#1E2C3E]">
                     <span className="text-[9px] uppercase tracking-widest text-muted-foreground/40 font-medium block mb-1">Changes</span>
                     <p className="text-[#C8CDD6] leading-relaxed">{tweak.whatItChanges}</p>
                   </div>
-                  <div className="p-2.5 rounded-lg bg-[#0A0F14] border border-red-500/10">
+                  <div className="p-2.5 rounded-lg bg-[#111922] border border-red-500/10">
                     <span className="text-[9px] uppercase tracking-widest text-red-500/50 font-medium block mb-1">May break</span>
                     <p className="text-red-400/80 leading-relaxed">{tweak.whatMayBreak}</p>
                   </div>
@@ -617,7 +617,7 @@ function EntryModal({
             <p className="text-sm text-muted-foreground/60">Scanning hardware configuration — {Math.round(progress)}% complete</p>
           </div>
           <div className="w-72 space-y-2">
-            <div className="h-1.5 bg-[#0E1318] rounded-full overflow-hidden border border-[#1E2733]">
+            <div className="h-1.5 bg-[#162030] rounded-full overflow-hidden border border-[#253448]">
               <motion.div
                 className="h-full rounded-full"
                 style={{ background: "linear-gradient(90deg, #00D4FF, #00FF88)" }}
@@ -653,7 +653,7 @@ function EntryModal({
           </span>
         </div>
 
-        <div className="relative rounded-2xl border border-[#1E2733] bg-[#0C1118] overflow-hidden p-6">
+        <div className="relative rounded-2xl border border-[#253448] bg-[#141E2E] overflow-hidden p-6">
           {/* Top glow */}
           <div className="absolute top-0 left-0 right-0 h-[1px]"
             style={{ background: "linear-gradient(90deg, transparent, #00D4FF60, transparent)" }} />
@@ -676,7 +676,7 @@ function EntryModal({
                     initial={{ opacity: 0, x: -12 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: i * 0.08, duration: 0.3 }}
-                    className="flex gap-3 p-3 rounded-xl bg-[#0A0F14] border border-[#1A2030] hover:border-[#2A3040] transition-colors"
+                    className="flex gap-3 p-3 rounded-xl bg-[#111922] border border-[#1E2C3E] hover:border-[#2A3040] transition-colors"
                   >
                     <w.icon className="size-4 text-amber-400/80 shrink-0 mt-0.5" />
                     <div>
@@ -707,7 +707,7 @@ function EntryModal({
                   <p className="text-xs text-muted-foreground/50 mt-0.5">Required before any changes can be made</p>
                 </div>
               </div>
-              <div className="p-4 rounded-xl bg-[#0A0F14] border border-emerald-500/10 mb-5 space-y-3">
+              <div className="p-4 rounded-xl bg-[#111922] border border-emerald-500/10 mb-5 space-y-3">
                 <p className="text-sm text-[#C8CDD6]">A system restore point lets you undo all changes instantly if anything goes wrong.</p>
                 <ul className="space-y-2">
                   {["Captures current registry state", "One-click revert from this page", "Does not delete personal files"].map(item => (
@@ -921,10 +921,10 @@ function ExtremeDashboard({
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="relative rounded-xl border border-[#1E2733] bg-[#0C1118] p-5 overflow-hidden"
+          className="relative rounded-xl border border-[#253448] bg-[#141E2E]/80 backdrop-blur-sm p-5 overflow-hidden"
         >
           <div className="absolute top-0 left-0 right-0 h-[1px]"
-            style={{ background: "linear-gradient(90deg,transparent,#00D4FF40,transparent)" }} />
+            style={{ background: "linear-gradient(90deg,transparent,#00D4FF60,transparent)" }} />
           <div className="absolute bottom-0 right-0 w-32 h-32 rounded-full opacity-10"
             style={{ background: "radial-gradient(circle,#00D4FF,transparent)", transform: "translate(30%,30%)" }} />
 
@@ -946,10 +946,10 @@ function ExtremeDashboard({
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.15 }}
-          className="relative rounded-xl border border-[#1E2733] bg-[#0C1118] p-5 overflow-hidden"
+          className="relative rounded-xl border border-[#253448] bg-[#141E2E]/80 backdrop-blur-sm p-5 overflow-hidden"
         >
           <div className="absolute top-0 left-0 right-0 h-[1px]"
-            style={{ background: "linear-gradient(90deg,transparent,#00FF8840,transparent)" }} />
+            style={{ background: "linear-gradient(90deg,transparent,#00FF8860,transparent)" }} />
           {/* Issue #8: renamed to "Illustrative Estimates" + more prominent disclaimer */}
           <div className="flex items-center gap-2 mb-3">
             <TrendingDown className="size-4 text-emerald-400" />
@@ -973,10 +973,10 @@ function ExtremeDashboard({
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="relative rounded-xl border border-[#1E2733] bg-[#0C1118] p-5 overflow-hidden"
+          className="relative rounded-xl border border-[#253448] bg-[#141E2E]/80 backdrop-blur-sm p-5 overflow-hidden"
         >
           <div className="absolute top-0 left-0 right-0 h-[1px]"
-            style={{ background: "linear-gradient(90deg,transparent,#FF444440,transparent)" }} />
+            style={{ background: "linear-gradient(90deg,transparent,#FF444460,transparent)" }} />
           <div className="flex items-center gap-2 mb-5">
             <Flame className="size-4 text-red-400" />
             <h3 className="text-xs font-black text-[#E6EAF0] uppercase tracking-widest">Risk Distribution</h3>
@@ -998,7 +998,7 @@ function ExtremeDashboard({
                     <span className={cn("text-xs font-bold", neon.text)}>{risk}</span>
                     <span className="text-sm font-black font-mono tabular-nums" style={{ color: neon.glow }}>{count}</span>
                   </div>
-                  <div className="h-2 bg-[#0E1318] rounded-full overflow-hidden border border-[#1A2030]">
+                  <div className="h-2 bg-[#162030] rounded-full overflow-hidden border border-[#1E2C3E]">
                     <motion.div
                       className="h-full rounded-full"
                       style={{
@@ -1032,7 +1032,7 @@ function ExtremeDashboard({
                 whileTap={{ scale: 0.97 }}
                 className={cn(
                   "text-[10px] px-3 py-1.5 rounded-full border font-bold uppercase tracking-wider transition-all duration-200",
-                  isActive ? "text-[#0A0E14]" : "bg-transparent text-muted-foreground/50 border-[#1E2733] hover:border-[#2A3A4A] hover:text-[#E6EAF0]"
+                  isActive ? "text-[#0A0E14]" : "bg-transparent text-muted-foreground/50 border-[#253448] hover:border-[#2A3A4A] hover:text-[#E6EAF0]"
                 )}
                 style={isActive ? {
                   background: color,
