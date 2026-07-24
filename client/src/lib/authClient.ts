@@ -161,6 +161,12 @@ export async function retryRefreshEntitlements(opts?: {
   }
 
   _retryRefreshInFlight = (async () => {
+    // Tracks consecutive 401 responses. A single 401 can be transient (clock
+    // skew during JWT validation, mid-deploy restart). Two in a row is treated
+    // as a deterministic logged-out state and triggers logout. Resets on any
+    // non-401 response so an isolated blip doesn't accumulate toward the threshold.
+    let consecutive401s = 0;
+
     for (let i = 0; i < attempts; i++) {
       if (i > 0) {
         // Exponential backoff: baseDelay * 2^(i-1), capped at 8s
@@ -182,11 +188,18 @@ export async function retryRefreshEntitlements(opts?: {
         const resp = await fetch(`${AUTH_DOMAIN}/api/me`, { headers, credentials: 'include' });
 
         if (resp.status === 401) {
-          // Deterministic failure — stop retrying immediately
-          if (isDebug) console.log('[AuthClient] retryRefreshEntitlements: 401 — stopping');
-          useAuthStore.getState().logout();
-          return { ok: false, user: null, reason: 'unauthorized' };
+          consecutive401s++;
+          if (consecutive401s >= 2) {
+            // Two consecutive 401s — genuinely logged out, not a transient issue
+            if (isDebug) console.log('[AuthClient] retryRefreshEntitlements: repeated 401 — logging out');
+            useAuthStore.getState().logout();
+            return { ok: false, user: null, reason: 'unauthorized' };
+          }
+          // First 401 may be transient (clock skew, mid-deploy restart) — retry
+          if (isDebug) console.log(`[AuthClient] retryRefreshEntitlements: 401 on attempt ${i + 1} — retrying`);
+          continue;
         }
+        consecutive401s = 0; // reset on any non-401 response
 
         if (!resp.ok) {
           // Server error — may be transient, keep retrying

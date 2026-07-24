@@ -145,10 +145,24 @@ export function storePollCode(pollToken: string, code: string): void {
  *  module is first imported. Reading lazily prevents a module-load race where
  *  one-time auth codes would be signed/verified with the public default key. */
 function getHmacSecret(): string {
-  return (
-    (process.env.JWT_SECRET || process.env.SESSION_SECRET || "").trim() ||
-    "switchcontrol-default-hmac"
-  );
+  const secret = (process.env.JWT_SECRET || process.env.SESSION_SECRET || "").trim();
+  if (!secret) {
+    // Hard-fail rather than silently signing codes with the hardcoded fallback.
+    // The fallback literal is present in this source file — anyone who reads it
+    // can forge a valid userId.timestamp.HMAC code for any user ID and redeem
+    // it via /api/auth/exchange to log in as them.
+    //
+    // In Electron mode, desktop-secrets.ts populates JWT_SECRET before this
+    // function is ever called (server/index.ts imports it first).
+    // In cloud mode, JWT_SECRET / SESSION_SECRET must be in the environment.
+    throw new Error(
+      "[FATAL] JWT_SECRET (and SESSION_SECRET) are both unset. " +
+      "Cannot sign Electron one-time codes — refusing to fall back to the " +
+      "hardcoded default that is present in source code and therefore public. " +
+      "Set JWT_SECRET in your environment before starting the server."
+    );
+  }
+  return secret;
 }
 
 /** Build a self-verifying code: userId + timestamp + HMAC signature.
@@ -262,9 +276,28 @@ export function setupGoogleAuth(app: Express): void {
   console.log('[AUTH] cookie:', JSON.stringify(sessionCookieConfig));
   console.log('[AUTH] ================================');
 
+  // Hard-fail on missing session secret rather than silently using the hardcoded
+  // fallback. "switchcontrol-session-secret" is present in this source file —
+  // anyone who reads it can forge valid session cookies.
+  // In Electron mode, desktop-secrets.ts runs first (server/index.ts imports it
+  // at line 1) and populates SESSION_SECRET before setupGoogleAuth() is called.
+  // In cloud mode it must be set in the environment.
+  const _sessionSecret = process.env.SESSION_SECRET;
+  if (!_sessionSecret) {
+    const _missingSecretMsg =
+      "[AUTH] FATAL: SESSION_SECRET is not set. Session cookies would be signed " +
+      "with a public fallback string present in source code, making them forgeable. " +
+      "Set SESSION_SECRET in your environment before starting the server.";
+    if (process.env.NODE_ENV === 'production' || process.env.ELECTRON_BACKEND === '1') {
+      throw new Error(_missingSecretMsg);
+    }
+    // In local dev without the env var: log loudly but continue so developers
+    // without a .env file aren't immediately blocked from running the app.
+    console.error(_missingSecretMsg);
+  }
   app.use(
     session({
-      secret: process.env.SESSION_SECRET || "switchcontrol-session-secret",
+      secret: _sessionSecret || "dev-only-insecure-placeholder-set-SESSION_SECRET",
       store: sessionStore,
       resave: false,
       saveUninitialized: false,
@@ -1399,6 +1432,13 @@ export function setupGoogleAuth(app: Express): void {
       _desktopPollMap.delete(token);
       return res.json({ ready: false, expired: true });
     }
+    // Single-use: delete the entry immediately before returning the code.
+    // The legitimate Electron poller (2 s interval) reads it first and completes
+    // login. Any subsequent poll — by an attacker who observed or intercepted the
+    // poll token — sees { ready: false } instead of the exchangeable code.
+    // Without this, the code was readable for the full 5-minute POLL_TOKEN_TTL
+    // window by anyone who obtained the token URL.
+    _desktopPollMap.delete(token);
     return res.json({ ready: true, code: entry.code });
   });
 }

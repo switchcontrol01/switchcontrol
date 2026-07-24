@@ -66,25 +66,19 @@ async function findOrCreateDiscordUser(profile: {
     };
   }
 
-  if (profile.email) {
-    const existingByEmail = await db
-      .select()
-      .from(users)
-      .where(eq(users.email, profile.email))
-      .limit(1);
-
-    if (existingByEmail.length > 0) {
-      const user = existingByEmail[0];
-      return {
-        id: user.id,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        profileImageUrl: user.profileImageUrl,
-        isPremium: user.isPremium,
-      };
-    }
-  }
+  // ── Email-based cross-provider auto-linking is intentionally NOT performed ──
+  // Matching by email alone is an account-takeover vector: an attacker who
+  // registers a Discord account with a victim's email address would silently
+  // receive the victim's full session and premium entitlement. Discord does not
+  // guarantee email ownership (verified flag exists but is not enforced by all
+  // accounts), and SwitchControl has no re-auth confirmation step to prove the
+  // Discord user also owns the existing account.
+  //
+  // Google's findOrCreateUser correctly matches only by googleId — never bare
+  // email. Discord follows the same pattern: if no providerUserId match exists
+  // above, this is a brand-new account. Cross-provider linking (e.g. "connect
+  // your Discord to your Google account") must be an explicit re-authenticated
+  // flow, not a silent background merge.
 
   const avatarUrl = profile.avatar 
     ? `https://cdn.discordapp.com/avatars/${profile.discordId}/${profile.avatar}.png`
