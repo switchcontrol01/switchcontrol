@@ -66,15 +66,39 @@ function VirtualizedTweakGrid({
   const [scrollMargin, setScrollMargin] = useState(0);
 
   useLayoutEffect(() => {
-    if (!containerRef.current) return;
     const scrollRoot = document.getElementById("app-scroll-root");
     if (!scrollRoot) return;
-    // getBoundingClientRect gives positions relative to the viewport;
-    // subtracting the scroll root's rect and adding its scrollTop gives the
-    // container's offset from the scroll root's content top.
-    const rootRect = scrollRoot.getBoundingClientRect();
-    const containerRect = containerRef.current.getBoundingClientRect();
-    setScrollMargin(containerRect.top - rootRect.top + scrollRoot.scrollTop);
+
+    const measure = () => {
+      const container = containerRef.current;
+      if (!container) return;
+      // getBoundingClientRect gives positions relative to the viewport;
+      // subtracting the scroll root's rect and adding its scrollTop gives the
+      // container's offset from the scroll root's content top.
+      const rootRect = scrollRoot.getBoundingClientRect();
+      const containerRect = container.getBoundingClientRect();
+      setScrollMargin(containerRect.top - rootRect.top + scrollRoot.scrollTop);
+    };
+
+    measure();
+
+    // Re-measure after async content above the list finishes loading
+    // (e.g. TweakIntelligenceLayer fetches data and expands, shifting the
+    // container downward — without this the virtualizer's scrollMargin is stale
+    // and a gap appears at the top of the list when scrolling).
+    const t1 = setTimeout(measure, 100);
+    const t2 = setTimeout(measure, 400);
+
+    // Also watch the scroll root for any size changes (content above the
+    // virtualizer resizing collapses/expands the container offset).
+    const ro = new ResizeObserver(measure);
+    Array.from(scrollRoot.children).forEach((child) => ro.observe(child));
+
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      ro.disconnect();
+    };
   }, [items]); // re-measure when items change (filter change can shift layout)
 
   const rows = useMemo(() => {
