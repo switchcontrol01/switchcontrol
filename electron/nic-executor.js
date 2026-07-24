@@ -22,24 +22,64 @@ const os = require('os');
 const fs = require('fs');
 const path = require('path');
 
+// ── PowerShell concurrency cap ────────────────────────────────────────────────
+// Mirrors the _withPsSemaphore pattern from tweak-executor.js.
+// Bulk capability scans (getAdapterCapabilities iterates every NIC_PROPERTY_DEFS
+// entry, some falling through to a second ring-buffer PS spawn) can easily fire
+// 10-15+ concurrent powershell.exe processes with no throttling. Cap at 2.
+
+const MAX_NIC_PS_CONCURRENT = 2;
+let _nicPsActive = 0;
+const _nicPsQueue = [];
+
+function _withNicPsSemaphore(fn) {
+  return new Promise((resolve, reject) => {
+    const run = () => {
+      _nicPsActive++;
+      Promise.resolve()
+        .then(fn)
+        .then(resolve, reject)
+        .finally(() => {
+          _nicPsActive--;
+          if (_nicPsQueue.length > 0) _nicPsQueue.shift()();
+        });
+    };
+    if (_nicPsActive < MAX_NIC_PS_CONCURRENT) {
+      run();
+    } else {
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(`[PS-NIC-Semaphore] queued — ${_nicPsActive}/${MAX_NIC_PS_CONCURRENT} active, queue=${_nicPsQueue.length + 1}`);
+      }
+      _nicPsQueue.push(run);
+    }
+  });
+}
+
 // ── PowerShell helpers ────────────────────────────────────────────────────────
 // Diagnostic counter — every powershell.exe spawn from this file increments this.
+// Logged only outside production to avoid noise in shipped builds.
 let _nic_psCount = 0;
 
 function queryPS(command) {
-  const id = ++_nic_psCount;
-  const t0 = Date.now();
-  console.log(`[PS:nic-executor] #${id} queryPS SPAWN ts=${t0}`);
-  return new Promise((resolve) => {
-    execFile(
-      'powershell',
-      ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-Command', command],
-      { timeout: 20000, windowsHide: true },
-      (error, stdout) => {
-        console.log(`[PS:nic-executor] #${id} queryPS ${error ? 'FAIL' : 'OK'} ${Date.now() - t0}ms`);
-        resolve(error ? null : stdout.trim());
-      }
-    );
+  return _withNicPsSemaphore(() => {
+    const id = ++_nic_psCount;
+    const t0 = Date.now();
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`[PS:nic-executor] #${id} queryPS SPAWN ts=${t0} active=${_nicPsActive}`);
+    }
+    return new Promise((resolve) => {
+      execFile(
+        'powershell',
+        ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-Command', command],
+        { timeout: 20000, windowsHide: true },
+        (error, stdout) => {
+          if (process.env.NODE_ENV !== 'production') {
+            console.log(`[PS:nic-executor] #${id} queryPS ${error ? 'FAIL' : 'OK'} ${Date.now() - t0}ms`);
+          }
+          resolve(error ? null : stdout.trim());
+        }
+      );
+    });
   });
 }
 
@@ -67,14 +107,16 @@ async function runElevated(command) {
   const launchCmd = `Start-Process powershell -WindowStyle Hidden -ArgumentList @('-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-WindowStyle','Hidden','-File','${safeScript}') -Verb RunAs -Wait`;
 
   try {
-    await new Promise((resolve, reject) => {
+    // runElevated itself counts as one semaphore slot — the UAC launcher process
+    // is a single powershell.exe that blocks until the elevated child exits.
+    await _withNicPsSemaphore(() => new Promise((resolve, reject) => {
       execFile(
         'powershell',
         ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-Command', launchCmd],
         { timeout: 120_000, windowsHide: true },
         (err) => err ? reject(err) : resolve()
       );
-    });
+    }));
 
     const deadline = Date.now() + 5000;
     while (!fs.existsSync(resultPath)) {
@@ -91,7 +133,11 @@ async function runElevated(command) {
         return { ok: false, error: `Could not parse result (raw: ${raw.slice(0, 200)})` };
       }
     }
-    return { ok: false, error: 'Result file not found after elevation.' };
+    // Result file absent: elevated child likely crashed before writing output
+    // (e.g. script path contained characters that broke the PS argument list).
+    // Log enough context to diagnose without revealing the full command.
+    console.error(`[NIC:runElevated] result file absent after ${Date.now() - (Date.now() - 5000)}ms — elevated child may have crashed. scriptId=${scriptId}`);
+    return { ok: false, error: 'Result file not found after elevation — elevated script did not produce output.' };
   } catch (err) {
     const msg = (err && err.message) || String(err);
     if (/cancel|denied|elevat|access|uac/i.test(msg) || (err && err.code === 1)) {
@@ -155,6 +201,21 @@ async function checkRingBufferCmdlet() {
   _ringBufferCmdletAvailable = (raw === 'true');
   console.log(`[NIC:Tuning] ringBufferCmdlet=${_ringBufferCmdletAvailable}`);
   return _ringBufferCmdletAvailable;
+}
+
+/**
+ * Reset the ring-buffer cmdlet availability cache so the next call to
+ * checkRingBufferCmdlet() re-probes the system.
+ *
+ * Call after a NIC driver update or reinstall (e.g. triggered by a
+ * vendor-updater tweak) — without this, a newly-installed driver that adds
+ * Set-NetAdapterRingBuffer support would remain invisible for the session.
+ */
+function invalidateRingBufferCache() {
+  if (_ringBufferCmdletAvailable !== null) {
+    console.log('[NIC:Tuning] ringBufferCache=invalidated');
+    _ringBufferCmdletAvailable = null;
+  }
 }
 
 // ── Error → structured outcome mapping ────────────────────────────────────────
@@ -336,24 +397,24 @@ const NIC_PROPERTY_DEFS = {
 
 const REGISTRY_DISPLAY_ALIASES = {
   '0': ['0', 'disabled', 'no', 'off', 'false', 'none'],
-  // '1' covers both simple toggle-enabled AND FlowControl "Tx Enabled" (value 1)
+  // '1' covers both simple toggle-enabled AND FlowControl "Tx Enabled" (value 1).
+  // NOTE: bare 'enabled' lives ONLY here. It must not appear in '3' — a driver
+  // that returns the generic string "Enabled" almost certainly means toggle-on
+  // (value 1), not "Tx & Rx Enabled" (value 3). Having it in both alias lists
+  // would cause compareSemanticNicValue to give a false-positive 'write_succeeded_verified'
+  // when verifying a write of '3' on a driver that just says "Enabled".
   '1': ['1', 'enabled', 'yes', 'on', 'true', 'tx enabled', 'transmit enabled', 'tx only'],
   // FlowControl stepped values
   '2': ['2', 'rx enabled', 'receive enabled', 'rx only', 'receive only', 'rx'],
+  // '3' = Tx & Rx Enabled. Bare 'enabled' removed (see note on '1' above).
+  // Duplicate 'tx & rx enabled' entry also removed (was listed twice — harmless
+  // but wasteful; de-duplicated here).
   '3': ['3', 'rx & tx enabled', 'tx & rx enabled', 'rx and tx enabled',
-              'tx and rx enabled', 'tx & rx enabled', 'both enabled', 'enabled'],
-  // Numeric / queue counts — exact match suffices, handled by registryValue path
-  '4': ['4'],
-  '8': ['8'],
-  '16': ['16'],
-  '32': ['32'],
-  '64': ['64'],
-  '128': ['128'],
-  '256': ['256'],
-  '512': ['512'],
-  '1024': ['1024'],
-  '2048': ['2048'],
-  '4096': ['4096'],
+              'tx and rx enabled', 'both enabled'],
+  // Numeric queue/buffer counts — single-element arrays removed.
+  // compareSemanticNicValue's strategy-1 path (direct registryValue string
+  // comparison) always fires before the alias table is consulted, so these
+  // entries were never reached in practice and added no value.
 };
 
 /**
@@ -684,8 +745,13 @@ async function setNicProperty(adapterName, propertyKey, value) {
 
   console.log(`[NIC:Tuning] adapter="${adapterName}" property=${propertyKey} value=${value}`);
 
-  // Discover the real RegistryKeyword and DisplayName from the driver
-  const prop = await discoverProperty(safeAdapter, def);
+  // Use cached registryKeyword/displayName if getAdapterCapabilities already ran
+  // for this adapter — skips an entire Get-NetAdapterAdvancedProperty PS round-trip
+  // (~100-300ms) on every single apply. Falls back to discoverProperty() on cache miss.
+  const _cachedCap = _capabilityCache.get(adapterName)?.capabilities?.[propertyKey];
+  const prop = (_cachedCap?.registryKeyword)
+    ? { registryKeyword: _cachedCap.registryKeyword, displayName: _cachedCap.displayName || _cachedCap.registryKeyword.replace(/^\*/, '') }
+    : await discoverProperty(safeAdapter, def);
   if (!prop) {
     // Fallback: use Set-NetAdapterRingBuffer for buffer properties on NICs that
     // don't expose them through Get-NetAdapterAdvancedProperty (Realtek, AMD, etc.)
@@ -785,8 +851,12 @@ async function resetNicProperty(adapterName, propertyKey) {
 
   const safeAdapter = adapterName.replace(/'/g, "''");
 
-  // Discover both RegistryKeyword and actual DisplayName from the driver
-  const prop = await discoverProperty(safeAdapter, def);
+  // Use cached registryKeyword/displayName if available — same optimisation as
+  // setNicProperty: skips an extra Get-NetAdapterAdvancedProperty PS spawn.
+  const _cachedCapR = _capabilityCache.get(adapterName)?.capabilities?.[propertyKey];
+  const prop = (_cachedCapR?.registryKeyword)
+    ? { registryKeyword: _cachedCapR.registryKeyword, displayName: _cachedCapR.displayName || _cachedCapR.registryKeyword.replace(/^\*/, '') }
+    : await discoverProperty(safeAdapter, def);
   if (!prop) {
     // Fallback: reset buffer properties via Set-NetAdapterRingBuffer using def.defaultValue
     if (RING_BUFFER_PROPS.has(propertyKey)) {
@@ -850,15 +920,36 @@ async function resetNicProperty(adapterName, propertyKey) {
   const readback = await readNicProperty(adapterName, propertyKey);
   const actualValue = readback.registryValue ?? readback.displayValue ?? null;
 
-  let verified = true;
+  // Fail-safe default: unknown → unverified rather than silently claiming success.
+  // Previously this was `let verified = true`, meaning any future property with
+  // type !== 'toggle' and no defaultValue (or an unreadable adapter) would report
+  // 'reset_verified' without ever performing an actual readback check.
+  let verified;
   if (def.type === 'toggle' && def.enabledValue !== undefined) {
+    // "reset" means the property should no longer be at the toggle's enabled value.
+    // If the adapter is unreadable after reset (!readback.supported), treat as ok
+    // because the reset command exited cleanly and we can't do better.
     verified = !readback.supported || actualValue !== String(def.enabledValue);
   } else if (def.defaultValue !== undefined && readback.supported) {
     verified = String(actualValue) === String(def.defaultValue);
+  } else if (!readback.supported) {
+    // Property not readable post-reset — cannot confirm. Report unverified
+    // so the caller can show an appropriate "may need adapter restart" message.
+    verified = false;
+  } else {
+    // No defaultValue defined and no toggle check applicable. Any future property
+    // type that falls here gets 'reset_verify_failed' rather than a false positive.
+    verified = false;
   }
 
   const outcome = verified ? 'reset_verified' : 'reset_verify_failed';
   console.log(`[NIC:Tuning] reset=${verified ? 'success' : 'unverified'} outcome=${outcome} property=${propertyKey} actualValue=${actualValue}`);
+
+  // Invalidate the capability cache so the UI reflects the restored default value
+  // rather than the SwitchControl-applied value captured at discovery time.
+  if (verified) {
+    invalidateCapabilityCache(adapterName);
+  }
 
   return {
     ok:          verified,
@@ -900,8 +991,29 @@ function getNicPropertyMeta() {
 
 const ownershipStore = require('./ownership-store');
 
+// Per-scope write lock — serializes concurrent setNicPropertyWithOwnership calls
+// for the same adapter+property pair (e.g. rapid double-toggle from the UI).
+// Without this, two in-flight runElevated() calls can race: whichever finishes
+// last wins, and the earlier call's readback may read the second call's value
+// and falsely report write_succeeded_verified. Also prevents two stacked UAC prompts.
+const _nicWriteLocks = new Map();
+
+function _withNicWriteLock(scopeKey, fn) {
+  // Chain this call after whatever is already running for this scopeKey.
+  // If no lock exists, start from a resolved promise.
+  const prev = _nicWriteLocks.get(scopeKey) || Promise.resolve();
+  const next = prev.then(fn, fn); // run fn regardless of prev outcome
+  // Keep the chain alive but don't let it accumulate unhandled-rejection errors.
+  _nicWriteLocks.set(scopeKey, next.catch(() => {}));
+  return next;
+}
+
 /**
  * Set a NIC property AND maintain the ownership / baseline record.
+ *
+ * Calls are serialized per adapter+property pair via _withNicWriteLock so
+ * rapid double-toggles from the UI never produce concurrent UAC prompts or
+ * a race between two in-flight runElevated() calls.
  *
  * Order:
  *   1. Read current real property value from the adapter (baseline read)
@@ -909,6 +1021,7 @@ const ownershipStore = require('./ownership-store');
  *      (immutable first-capture — repeated toggles never overwrite the original)
  *   3. Set the property (existing setNicProperty)
  *   4. Record appliedByApp=true ONLY after the set reports success
+ *   5. Invalidate the capability cache so the UI reflects the new value
  *
  * previousValue stores { registryValue, displayValue } so the revert pipeline
  * can restore the exact adapter-specific registry value rather than guessing.
@@ -917,7 +1030,10 @@ const ownershipStore = require('./ownership-store');
  */
 async function setNicPropertyWithOwnership(adapterName, propertyKey, value) {
   const scopeKey = ownershipStore.buildScopeKey('nic', propertyKey, adapterName);
+  return _withNicWriteLock(scopeKey, () => _setNicPropertyWithOwnershipImpl(adapterName, propertyKey, value, scopeKey));
+}
 
+async function _setNicPropertyWithOwnershipImpl(adapterName, propertyKey, value, scopeKey) {
   // Step 1+2: capture baseline if first time touching this adapter+property pair.
   // Also tracks the "before" registry value so we can detect silent driver rejection.
   let beforeRegistryValue = null;
@@ -981,6 +1097,12 @@ async function setNicPropertyWithOwnership(adapterName, propertyKey, value) {
     }
   }
 
+  // Step 5: invalidate the capability cache so the next UI read shows the new
+  // value rather than the stale currentValue captured at discovery time.
+  // Do this regardless of success/failure — even a failed write may change
+  // adapter state (e.g. driver restart triggered mid-write).
+  invalidateCapabilityCache(adapterName);
+
   return result;
 }
 
@@ -988,6 +1110,7 @@ module.exports = {
   getNetAdapters,
   getAdapterCapabilities,
   invalidateCapabilityCache,
+  invalidateRingBufferCache,
   readNicProperty,
   setNicProperty,
   setNicPropertyWithOwnership,
