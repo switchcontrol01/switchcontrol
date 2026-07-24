@@ -189,6 +189,84 @@ async function fetchIntelNetwork(): Promise<FetchResult> {
   };
 }
 
+/**
+ * Intel Wireless Bluetooth driver — scrapes Intel's Bluetooth download page.
+ * Same site/structure as the Intel network and chipset pages.
+ * Version looks like "23.60.0" or "24.10.0".
+ */
+async function fetchIntelBluetooth(): Promise<FetchResult> {
+  const url =
+    "https://www.intel.com/content/www/us/en/download/18649/intel-wireless-bluetooth-for-windows-10-and-windows-11.html";
+  const r = await fetch(url, { headers: UA, signal: timeout(FETCH_TIMEOUT_MS) });
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  const html = await r.text();
+
+  // Version header: "Version: 23.60.0" or inside JSON metadata
+  const m =
+    html.match(/Version[^0-9]*(\d{2,}\.\d+\.\d+)/i) ||
+    html.match(/"softwareVersion"\s*:\s*"(\d{2,}\.\d+\.\d+)"/) ||
+    html.match(/\b(\d{2,}\.\d+\.\d+)\s*(?:<|,|\s)/);
+  if (!m) throw new Error("Intel Bluetooth version not found");
+
+  const dateM = html.match(/(\d{4}-\d{2}-\d{2})/);
+  return {
+    latest: m[1],
+    releaseDate: dateM?.[1],
+    source: "intel-download-center",
+  };
+}
+
+/**
+ * Realtek PCIe/GbE LAN driver — scrapes the Realtek NIC software listing page.
+ * Version format: "11.20.0610" (major.minor.MMDD) or "11.x.xxxx".
+ * The page is server-rendered HTML so a simple fetch works.
+ */
+async function fetchRealtekNetwork(): Promise<FetchResult> {
+  const url =
+    "https://www.realtek.com/en/component/zoo/category/network-interface-controllers-10-100-1000m-gigabit-ethernet-pci-express-software";
+  const r = await fetch(url, { headers: UA, signal: timeout(FETCH_TIMEOUT_MS) });
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  const html = await r.text();
+
+  // Look for version strings like "11.20.0610" — two leading digits, dot, then more digits
+  const m =
+    html.match(/(\d{1,2}\.\d{1,2}\.\d{4})\b/) ||
+    html.match(/Version[^0-9]*(\d{1,2}\.\d+\.\d+)/i);
+  if (!m) throw new Error("Realtek Network version not found");
+
+  const dateM = html.match(/(\d{4}-\d{2}-\d{2})/);
+  return {
+    latest: m[1],
+    releaseDate: dateM?.[1],
+    source: "realtek-software-page",
+  };
+}
+
+/**
+ * Realtek HD Audio codec driver — scrapes the Realtek audio software listing page.
+ * Version format: "6.0.9670.1" (four-part).
+ */
+async function fetchRealtekAudio(): Promise<FetchResult> {
+  const url =
+    "https://www.realtek.com/en/component/zoo/category/pc-audio-codecs-high-definition-audio-codecs-software";
+  const r = await fetch(url, { headers: UA, signal: timeout(FETCH_TIMEOUT_MS) });
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  const html = await r.text();
+
+  // Four-part version like "6.0.9670.1" — starts with 6.0 (UAD codec) or similar
+  const m =
+    html.match(/(\d+\.\d+\.\d{4,}\.\d+)\b/) ||
+    html.match(/Version[^0-9]*(\d+\.\d+\.\d+\.\d+)/i);
+  if (!m) throw new Error("Realtek Audio version not found");
+
+  const dateM = html.match(/(\d{4}-\d{2}-\d{2})/);
+  return {
+    latest: m[1],
+    releaseDate: dateM?.[1],
+    source: "realtek-software-page",
+  };
+}
+
 // ── Fetch registry ─────────────────────────────────────────────────────────────
 
 interface VendorFetchSpec {
@@ -198,12 +276,15 @@ interface VendorFetchSpec {
 }
 
 const VENDOR_FETCHERS: VendorFetchSpec[] = [
-  { category: "gpu", vendorKey: "nvidia", fetcher: fetchNvidiaGpu },
-  { category: "gpu", vendorKey: "amd", fetcher: fetchAmdGpu },
-  { category: "gpu", vendorKey: "intel", fetcher: fetchIntelGpu },
-  { category: "chipset", vendorKey: "intel", fetcher: fetchIntelChipset },
-  { category: "chipset", vendorKey: "amd", fetcher: fetchAmdChipset },
-  { category: "network", vendorKey: "intel", fetcher: fetchIntelNetwork },
+  { category: "gpu",       vendorKey: "nvidia",  fetcher: fetchNvidiaGpu },
+  { category: "gpu",       vendorKey: "amd",     fetcher: fetchAmdGpu },
+  { category: "gpu",       vendorKey: "intel",   fetcher: fetchIntelGpu },
+  { category: "chipset",   vendorKey: "intel",   fetcher: fetchIntelChipset },
+  { category: "chipset",   vendorKey: "amd",     fetcher: fetchAmdChipset },
+  { category: "network",   vendorKey: "intel",   fetcher: fetchIntelNetwork },
+  { category: "network",   vendorKey: "realtek", fetcher: fetchRealtekNetwork },
+  { category: "audio",     vendorKey: "realtek", fetcher: fetchRealtekAudio },
+  { category: "bluetooth", vendorKey: "intel",   fetcher: fetchIntelBluetooth },
 ];
 
 // ── Upsert helpers ─────────────────────────────────────────────────────────────

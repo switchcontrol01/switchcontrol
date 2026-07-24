@@ -66,8 +66,8 @@
    * the server data changes. Keys are normalised vendor identifiers.
    */
   const DATABASE = {
-    dbVersion: "2026.06.1",
-    updatedAt: "2026-06-15",
+    dbVersion: "2026.07.1",
+    updatedAt: "2026-07-24",
   
     gpu: {
       nvidia: {
@@ -272,6 +272,16 @@
   };
   
   const NEWS: DriverNewsItem[] = [
+    {
+      id: "news-db-202407",
+      vendor: "SwitchControl",
+      category: "Database",
+      title: "Driver database updated — July 2026",
+      summary:
+        "Realtek LAN, Realtek Audio, and Intel Bluetooth now auto-fetched daily. Database baseline refreshed to July 24, 2026.",
+      date: "2026-07-24",
+      safety: "safe",
+    },
     {
       id: "news-nv-57680",
       vendor: "NVIDIA",
