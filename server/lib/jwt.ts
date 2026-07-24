@@ -17,21 +17,36 @@ function getSecret(): string {
   const sessionSecret = (process.env.SESSION_SECRET || "").trim();
   const secret = jwtSecret || sessionSecret;
 
-  if (process.env.NODE_ENV === "production") {
+  // Fail-closed: enforce secret requirements for every environment EXCEPT
+  // explicit local development.  Using !== "development" (denylist) rather than
+  // === "production" (allowlist) so staging, CI, prod, and any deployment where
+  // NODE_ENV is unset/misspelled/set to "prod"/"Production"/"staging" all
+  // fail securely instead of silently signing tokens with the hardcoded fallback.
+  // The old allowlist meant anyone who had seen the fallback string (now public)
+  // could forge valid 30-day admin-equivalent JWTs in any non-strictly-"production"
+  // environment — a real credential-forgery risk in staging deployments.
+  if (process.env.NODE_ENV !== "development") {
     if (!secret) {
-      throw new Error("[FATAL] JWT secret not configured in production");
+      throw new Error("[FATAL] JWT secret not configured — set JWT_SECRET or SESSION_SECRET");
     }
     if (secret.length < 32) {
       throw new Error(`[FATAL] JWT secret too short (${secret.length} chars, minimum 32 required)`);
     }
   }
+  // This fallback is only reachable when NODE_ENV === "development".
   return secret || "sc-jwt-insecure-dev-only";
 }
 
 /**
- * First 8 hex chars of the SHA-256 of the secret.
+ * First 8 hex chars of SHA-256(secret) — 32-bit, enough for log readability.
  * Safe to log — does not expose any usable secret material.
  * Used to detect secret drift across restarts (both values must match).
+ *
+ * Intentionally shorter than tokenRevocationFp (128-bit / 32 hex chars).
+ * tokenRevocationFp needs collision resistance to prevent fingerprint squatting
+ * on the revocation list. secretFp / jwtFp are debug-only identifiers where a
+ * false log correlation is merely confusing, not a security failure — 8 chars
+ * (32-bit) is sufficient for that purpose and keeps log lines readable.
  */
 function secretFingerprint(): string {
   try {
@@ -102,7 +117,13 @@ export function signJwt(userId: string): string {
     expiresIn: "30d",
     issuer: "switchcontrol",
   });
-  console.log(`[JWT] signed — userId=${userId} secretFp=${secretFingerprint()} tokenFp=${jwtFingerprint(token)}`);
+  // userId is a stable internal ID, but omit it from production logs as a
+  // defence-in-depth measure — tokenFp is sufficient for tracing in prod.
+  if (process.env.NODE_ENV !== "production") {
+    console.log(`[JWT] signed — userId=${userId} secretFp=${secretFingerprint()} tokenFp=${jwtFingerprint(token)}`);
+  } else {
+    console.log(`[JWT] signed — secretFp=${secretFingerprint()} tokenFp=${jwtFingerprint(token)}`);
+  }
   return token;
 }
 
@@ -150,6 +171,19 @@ function pruneRevokedTokens(): void {
     if (nowSec >= exp) revokedFingerprints.delete(fp);
   }
 }
+
+// Periodic sweep — ensures revokedFingerprints stays trimmed even during quiet
+// periods with no logout activity.  pruneRevokedTokens() is also called on each
+// invalidateJwt() call, but at scale a 30-day token window means thousands of
+// entries can accumulate between logouts.  15-minute sweeps bound worst-case growth.
+// .unref() prevents this timer from keeping the Node process alive if nothing
+// else is running (relevant for test environments and graceful shutdown).
+const REVOKED_PRUNE_INTERVAL_MS = 15 * 60_000;
+setInterval(pruneRevokedTokens, REVOKED_PRUNE_INTERVAL_MS).unref();
+
+// Hard size cap mirroring JWT_CACHE_MAX — safety valve for burst logout events
+// that arrive before a prune cycle runs.  verifiedCache has the same limit.
+const REVOKED_MAX = JWT_CACHE_MAX;
 
 function jwtCacheGet(token: string): JwtPayload | null {
   const hit = verifiedCache.get(token);
@@ -201,6 +235,14 @@ export function invalidateJwt(token: string): void {
         ? peek.exp
         : Math.floor(Date.now() / 1000) + 30 * 24 * 3600;
       pruneRevokedTokens(); // trim naturally-expired entries on every logout
+      // Safety valve: if still over the cap after pruning (burst logout event),
+      // evict the oldest entries — they have the earliest exp and are least
+      // likely to receive a re-present attempt.
+      if (revokedFingerprints.size >= REVOKED_MAX) {
+        const evict = revokedFingerprints.size - REVOKED_MAX + 1;
+        // Array.from avoids the Map-iterator downlevelIteration tsc requirement.
+        Array.from(revokedFingerprints.keys()).slice(0, evict).forEach(k => revokedFingerprints.delete(k));
+      }
       const fp = tokenRevocationFp(token);
       revokedFingerprints.set(fp, exp);
       console.log(`[JWT] token revoked — fp=${fp} exp=${exp} revokedListSize=${revokedFingerprints.size}`);
@@ -281,6 +323,16 @@ export function runJwtSelfTest(): void {
   const config = validateJwtConfig();
   if (!config.ok) {
     console.error(`[JWT] SKIP: ${config.message}`);
+    // In any non-development environment a bad JWT config is critical — the app
+    // will throw on the first getSecret() call outside dev.  Make this impossible
+    // to miss in logs regardless of log level filtering.
+    if (process.env.NODE_ENV !== "development") {
+      console.error(
+        `[JWT] CRITICAL: JWT secret misconfigured in non-development environment ` +
+        `(NODE_ENV=${process.env.NODE_ENV ?? "unset"}). ` +
+        `Every authenticated request will fail. Set JWT_SECRET immediately.`
+      );
+    }
     console.log("[JWT] ===== SELF-TEST END =====");
     return;
   }
@@ -288,7 +340,9 @@ export function runJwtSelfTest(): void {
   console.log(`[JWT] config OK — ${config.message}`);
 
   const secret = getSecret();
-  if (process.env.NODE_ENV === "production" && secret.length < 32) {
+  // Align guard with getSecret() — use !== "development" so staging / unset
+  // NODE_ENV also catches a too-short secret (was === "production" before).
+  if (process.env.NODE_ENV !== "development" && secret.length < 32) {
     console.error("[JWT] FAIL: JWT secret is too short (minimum 32 bytes required)");
   }
 
@@ -349,6 +403,23 @@ export function runJwtSelfTest(): void {
     console.log("[JWT] PASS: wrong issuer token → null (rejected)");
   } else {
     console.error("[JWT] FAIL: wrong issuer token was NOT rejected");
+  }
+
+  // Test: valid structure and issuer, but signed with a completely different secret
+  // (simulates a stolen/forged token from a foreign service or a key-rotation gap).
+  // jwt.verify's HMAC check must reject this — covers the tampered/foreign-secret
+  // attack surface not exercised by the wrong-issuer or expired-token tests above.
+  const foreignSecret = "foreign-secret-totally-different-32ch";
+  const foreignToken = jwt.sign({ sub: testUserId }, foreignSecret, {
+    algorithm: "HS256",
+    expiresIn: "7d",
+    issuer: "switchcontrol",
+  });
+  const foreignResult = verifyJwt(foreignToken, true);
+  if (foreignResult === null) {
+    console.log("[JWT] PASS: foreign-secret token → null (rejected)");
+  } else {
+    console.error("[JWT] FAIL: foreign-secret token was NOT rejected — HMAC check bypassed");
   }
 
   console.log("[JWT] ===== SELF-TEST END =====");
