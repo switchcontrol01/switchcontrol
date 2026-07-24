@@ -571,9 +571,16 @@ const HKCU_TWEAKS = {
     name: 'Disable Background Apps',
     requiresAdmin:  false,
     requiresReboot: false,
-    apply:  `New-Item -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\BackgroundAccessApplications" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\BackgroundAccessApplications" -Name "GlobalUserDisabled" -Value 1 -Type DWord -Force`,
-    revert: `Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\BackgroundAccessApplications" -Name "GlobalUserDisabled" -Value 0 -Type DWord -Force`,
-    check:  `(Get-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\BackgroundAccessApplications" -Name "GlobalUserDisabled" -EA SilentlyContinue).GlobalUserDisabled -eq 1`,
+    // apply: set the legacy GlobalUserDisabled key AND write a SwitchControl marker.
+    // The marker is necessary because Microsoft removed the global toggle from
+    // Settings UI on Win 11 23H2/24H2 and the Settings app can silently clear
+    // GlobalUserDisabled when opened.  The marker survives that wipe so verify()
+    // still returns the correct applied state (same pattern as CPU C-States).
+    apply:  `New-Item -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\BackgroundAccessApplications" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\BackgroundAccessApplications" -Name "GlobalUserDisabled" -Value 1 -Type DWord -Force; New-Item -Path "HKLM:\\SOFTWARE\\SwitchControl" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path "HKLM:\\SOFTWARE\\SwitchControl" -Name "BgAppsDisabled" -Value 1 -Type DWord -Force`,
+    revert: `Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\BackgroundAccessApplications" -Name "GlobalUserDisabled" -Value 0 -Type DWord -Force; New-Item -Path "HKLM:\\SOFTWARE\\SwitchControl" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path "HKLM:\\SOFTWARE\\SwitchControl" -Name "BgAppsDisabled" -Value 0 -Type DWord -Force`,
+    // check: read legacy key first; fall back to SwitchControl marker so that
+    // verify is resilient to Windows clearing GlobalUserDisabled on modern builds.
+    check:  `$k=(Get-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\BackgroundAccessApplications" -Name "GlobalUserDisabled" -EA SilentlyContinue).GlobalUserDisabled; $m=(Get-ItemProperty -Path "HKLM:\\SOFTWARE\\SwitchControl" -Name "BgAppsDisabled" -EA SilentlyContinue).BgAppsDisabled; ($k -eq 1) -or ($m -eq 1)`,
   },
   'disable-fso': {
     name: 'Disable Fullscreen Optimizations',
@@ -3121,6 +3128,43 @@ async function checkTweakStatus(tweakId) {
   }
 }
 
+// ── Cache fallback for partial/failed batch results ───────────────────────────
+
+/**
+ * When the batch PS script times out, is blocked by AV, or produces unparseable
+ * output, `result` only contains unsupported entries + the in-process specials
+ * (timer-res, nvidia-telemetry, etc.).  Every standard registry tweak is absent.
+ *
+ * Without this helper, TweaksList's forEach loop never calls setTweak() for the
+ * missing IDs, so the Zustand store stays at its initial-mount default (false)
+ * and ALL toggles flip to OFF — even for tweaks that are genuinely applied in
+ * the Windows registry.
+ *
+ * Fix: for any tweak that is NOT already in `result`, read its last-known value
+ * from tweak-state.json and inject it as a cache-sourced entry.  This preserves
+ * the correct UI state across restarts when PS is unavailable.
+ */
+function _mergeCacheForMissingTweaks(result) {
+  try {
+    const cached = loadState().tweaks; // { tweakId: boolean }
+    if (!cached || typeof cached !== 'object') return;
+    for (const id of Object.keys(ALL_TWEAKS)) {
+      if (result[id] !== undefined) continue;        // already resolved — don't overwrite
+      if (UNSUPPORTED_TWEAKS[id])   continue;        // unsupported already in result
+      const val = cached[id];
+      if (typeof val === 'boolean') {
+        result[id] = { isApplied: val, applied: val, error: null, fromCache: true };
+      }
+    }
+    const cacheCount = Object.values(result).filter(r => r.fromCache).length;
+    if (cacheCount > 0) {
+      console.warn(`[batchCheckAllTweaks] batch PS unavailable — injected ${cacheCount} cached tweak state(s) from tweak-state.json`);
+    }
+  } catch (e) {
+    console.error('[batchCheckAllTweaks] _mergeCacheForMissingTweaks failed:', e.message);
+  }
+}
+
 // ── Batch check — ONE PowerShell invocation for ALL batchable tweaks ──────────
 // Replaces 60+ sequential PS launches with a single script written to a temp
 // file (avoids the 32 KB command-line length limit) and run with -File.
@@ -3335,7 +3379,10 @@ async function batchCheckAllTweaks() {
       parsed = JSON.parse(raw);
     } catch (parseErr) {
       console.error('[batchCheckAllTweaks] JSON parse failed. raw output:', raw.slice(0, 400));
-      return result; // return unsupported + timer-res that are already set
+      // PS ran but output was unparseable — fill missing standard tweaks from cache
+      // so toggles don't flash OFF for tweaks that are genuinely applied.
+      _mergeCacheForMissingTweaks(result);
+      return result;
     }
 
     for (const [id, val] of Object.entries(parsed)) {
@@ -3343,7 +3390,11 @@ async function batchCheckAllTweaks() {
     }
   } catch (err) {
     console.error('[batchCheckAllTweaks] batch PS failed:', err.message);
-    // Return whatever is already in result (unsupported + timer-res).
+    // PS timed out or was blocked (e.g. AV flagging hidden powershell.exe).
+    // Fill every standard tweak that is missing from result with its last-known
+    // value from tweak-state.json so the UI shows the correct cached state
+    // instead of flipping all toggles to OFF on every startup where PS is slow.
+    _mergeCacheForMissingTweaks(result);
   } finally {
     try { if (fs_.existsSync(tmpFile)) fs_.unlinkSync(tmpFile); } catch (_) {}
   }
