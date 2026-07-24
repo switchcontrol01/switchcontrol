@@ -65,8 +65,8 @@ const DEFAULT_STATE: TweakIntelligenceState = {
 // infinite loading spinner with no user-facing signal that anything is wrong.
 const MAX_SILENT_FIRST_LOAD_FAILURES = 3;
 
-export function useTweakIntelligence(pollIntervalMs = 10_000) {
-  const { tweaks } = useStore();
+export function useTweakIntelligence(pollIntervalMs = 5_000) {
+  const { tweaks, stats } = useStore();
   const [state, setState] = useState<TweakIntelligenceState>(DEFAULT_STATE);
   const abortRef              = useRef<AbortController | null>(null);
   const timerRef              = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -81,6 +81,13 @@ export function useTweakIntelligence(pollIntervalMs = 10_000) {
     [tweaks],
   );
 
+  // GPU name — forwarded to the server so vendor-specific tweaks (e.g.
+  // nvidia-telemetry) are excluded for users without matching hardware.
+  const gpuParam = useMemo(
+    () => encodeURIComponent(stats.gpuName ?? ""),
+    [stats.gpuName],
+  );
+
   // Fix #1: `isStale` is a per-effect closure that returns true the moment the
   // effect that created it is cleaned up (i.e. `appliedParam` changed or the
   // component unmounted).  It is threaded into `fetchAll` so that every
@@ -92,7 +99,7 @@ export function useTweakIntelligence(pollIntervalMs = 10_000) {
   // `mountedRef` is still used as a secondary guard against updates after
   // actual component unmount (the case `isStale` doesn't distinguish from
   // a same-component re-run).
-  const fetchAll = useCallback(async (param: string, isStale: () => boolean) => {
+  const fetchAll = useCallback(async (param: string, gpu: string, isStale: () => boolean) => {
     if (abortRef.current) abortRef.current.abort();
     const ac = new AbortController();
     abortRef.current = ac;
@@ -104,7 +111,7 @@ export function useTweakIntelligence(pollIntervalMs = 10_000) {
       // than a blank dashboard.
       const [stateResult, rankResult, postureResult] = await Promise.allSettled([
         fetch("/api/tweak-intelligence/system-state", { signal: ac.signal }),
-        fetch(`/api/tweak-intelligence/rankings?applied=${encodeURIComponent(param)}`, { signal: ac.signal }),
+        fetch(`/api/tweak-intelligence/rankings?applied=${encodeURIComponent(param)}&gpu=${gpu}`, { signal: ac.signal }),
         fetch(`/api/tweak-intelligence/posture?applied=${encodeURIComponent(param)}`, { signal: ac.signal }),
       ]);
 
@@ -189,13 +196,13 @@ export function useTweakIntelligence(pollIntervalMs = 10_000) {
     let cancelled = false;
     const isStale = () => cancelled;
 
-    fetchAll(appliedParam, isStale);
+    fetchAll(appliedParam, gpuParam, isStale);
 
     const schedule = () => {
       if (cancelled) return;
       timerRef.current = setTimeout(() => {
         if (cancelled) return;
-        fetchAll(appliedParam, isStale);
+        fetchAll(appliedParam, gpuParam, isStale);
         schedule();
       }, pollIntervalMs);
     };
@@ -211,7 +218,7 @@ export function useTweakIntelligence(pollIntervalMs = 10_000) {
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [appliedParam, pollIntervalMs]);
+  }, [appliedParam, gpuParam, pollIntervalMs]);
 
   return state;
 }

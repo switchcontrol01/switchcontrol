@@ -48,6 +48,28 @@ function classify(value: number, thresholds: [number, number, number]): Pressure
 
 function levelIndex(l: PressureLevel): number { return LEVEL_ORDER.indexOf(l); }
 
+// ── Vendor gates ──────────────────────────────────────────────────────────────
+// Tweaks that are only meaningful for a specific GPU/CPU vendor.
+// If the user's hardware string doesn't match any of the listed keywords
+// (case-insensitive), the tweak is excluded from ranked output entirely.
+const TWEAK_VENDOR_GATES: Record<string, { gpuVendors?: string[]; cpuVendors?: string[] }> = {
+  "nvidia-telemetry": { gpuVendors: ["nvidia", "geforce", "rtx", "gtx"] },
+};
+
+/** Returns true if the hardware vendor gate passes for the given GPU/CPU strings. */
+function vendorGatePasses(
+  id: string,
+  gpuName: string,
+): boolean {
+  const gate = TWEAK_VENDOR_GATES[id];
+  if (!gate) return true; // no gate → always passes
+  if (gate.gpuVendors) {
+    const gpu = gpuName.toLowerCase();
+    if (!gate.gpuVendors.some((kw) => gpu.includes(kw))) return false;
+  }
+  return true;
+}
+
 // ── Tweak signal weights ───────────────────────────────────────────────────────
 // cpu: how much CPU pressure makes this tweak valuable
 // mem: memory pressure weight
@@ -408,6 +430,9 @@ router.get("/rankings", (req, res) => {
     }
     const applied  = String(req.query.applied ?? "").split(",").filter(Boolean);
     const appliedSet = new Set(applied);
+    // GPU name forwarded by the client from its local hardware specs.
+    // Used to filter vendor-specific tweaks (e.g. nvidia-telemetry for AMD users).
+    const gpuName  = String(req.query.gpu ?? "");
 
     const cpuMult  = LEVEL_MULT[classify(snap.cpu.load, [20, 50, 75])];
     const memMult  = LEVEL_MULT[classify(snap.ram.usedPercent, [50, 70, 85])];
@@ -416,7 +441,11 @@ router.get("/rankings", (req, res) => {
     const netMult  = LEVEL_MULT[classify(netKbs, [50, 500, 2000])];
     const trendBonus = snap.load_trend === "rising" ? 1.0 : 0.3;
 
-    const rankings: TweakRanking[] = Object.entries(TWEAK_PROFILES).map(([id, p]) => {
+    const rankings: TweakRanking[] = Object.entries(TWEAK_PROFILES)
+    // Skip tweaks whose vendor gate doesn't match the client's hardware.
+    // When no GPU name is provided we pass through (conservative: don't hide anything).
+    .filter(([id]) => !gpuName || vendorGatePasses(id, gpuName))
+    .map(([id, p]) => {
       const cpuContrib   = p.cpu   * cpuMult;
       const memContrib   = p.mem   * memMult;
       const procContrib  = p.proc  * procMult;
