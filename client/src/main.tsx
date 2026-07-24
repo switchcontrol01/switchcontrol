@@ -67,6 +67,13 @@ window.addEventListener('unhandledrejection', (e) => {
 // Prevents UI elements and links from being dragged out of the window.
 // Without these listeners, Chromium lets users drag <a> tags onto the desktop
 // creating .url shortcut files that expose internal file:// paths.
+//
+// LIMITATION: the capture-phase `dragstart` listener fires before any component
+// handler and cannot be stopped by them, so it also blocks legitimate
+// text-selection dragging and any future in-app drag-to-reorder UI.
+// If a future feature requires drag-and-drop within the app, this handler
+// should be narrowed (e.g. only preventDefault when the drag source is an
+// <a href="file://"> element rather than blocking all drag events globally).
 document.addEventListener('dragstart', (e) => { e.preventDefault(); }, true);
 document.addEventListener('dragover',  (e) => { e.preventDefault(); }, true);
 document.addEventListener('drop',      (e) => { e.preventDefault(); }, true);
