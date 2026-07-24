@@ -278,7 +278,12 @@ function EventRow({ item, index }: { item: EnrichedItem; index: number }) {
   const handleRevert = async () => {
     setReverting(true);
 
-    if (item.page === "Extreme Labs" && item.notes?.startsWith("Tweak ID: ") && item.result !== "Reverted") {
+    // Helper: notify other pages that a revert happened so they can refresh.
+    const notifyRevert = (page: string) =>
+      window.dispatchEvent(new CustomEvent("sc:history-revert", { detail: { page } }));
+
+    if (item.page === "Extreme Labs" && item.notes?.startsWith("Tweak ID: ")) {
+      // ── Extreme Labs tweak — always revert to Windows default ──────────────
       const tweakId = item.notes.replace("Tweak ID: ", "").trim();
 
       try {
@@ -315,41 +320,68 @@ function EventRow({ item, index }: { item: EnrichedItem; index: number }) {
       }
 
       toast({ title: "Tweak reverted", description: `${item.action} has been undone` });
+      notifyRevert("Extreme Labs");
 
-    } else if (item.page === "Power Plan" && item.result !== "Reverted") {
+    } else if (item.page === "Power Plan") {
+      // ── Power Plan — restore previous GUID via activateByGuid ──────────────
+      // Note: applyProfile() only accepts named keys (maximum_performance etc).
+      //       prevGuid is a raw Windows GUID — must use activateByGuid instead.
+      //       Fall back to Balanced Gaming (Windows default) if the GUID is gone.
       const prevGuidMatch = item.notes?.match(/prevGuid: ([^\s|]+)/);
       const prevGuid = prevGuidMatch?.[1];
       const prevNameMatch = item.notes?.match(/prev: ([^|]+)/);
       const prevName = prevNameMatch?.[1]?.trim() ?? "previous plan";
-      if (prevGuid) {
-        const eApi = (window as any).electronAPI;
-        if (eApi?.powerPlans?.applyProfile) {
-          try {
-            const result = await eApi.powerPlans.applyProfile(prevGuid);
-            if (result?.success) {
-              toast({ title: "Power Plan reverted", description: `Switched back to ${prevName}` });
-            } else {
-              toast({ title: "Revert failed", description: result?.error ?? "Could not restore previous power plan", variant: "destructive" });
-            }
-          } catch (e) {
-            console.warn("[History] Power Plan revert IPC error:", e);
-            toast({ title: "Revert failed", description: "Could not restore previous power plan", variant: "destructive" });
+
+      const eApi = (window as any).electronAPI;
+      if (!eApi) {
+        toast({ title: "Action logged", description: `Run on Windows to apply — would switch back to ${prevName}` });
+      } else if (prevGuid) {
+        try {
+          // 1. Try activateByGuid (works for any Windows GUID including SC-managed ones)
+          let result: any = null;
+          if (eApi.powerPlans?.activateByGuid) {
+            result = await eApi.powerPlans.activateByGuid(prevGuid);
           }
-        } else {
-          toast({ title: "Action logged", description: `Run on Windows to apply — would switch back to ${prevName}` });
+          // 2. Fall back to Windows Balanced plan if GUID is no longer present
+          if (!result?.success && eApi.powerPlans?.applyProfile) {
+            result = await eApi.powerPlans.applyProfile("balanced_gaming");
+          }
+          if (result?.success) {
+            notifyRevert("Power Plan");
+            toast({ title: "Power Plan reverted", description: `Switched back to ${prevName}` });
+          } else {
+            toast({ title: "Revert failed", description: result?.error ?? "Could not restore previous power plan", variant: "destructive" });
+          }
+        } catch (e) {
+          console.warn("[History] Power Plan revert IPC error:", e);
+          toast({ title: "Revert failed", description: "Could not restore previous power plan", variant: "destructive" });
         }
       } else {
-        toast({ title: "Cannot revert", description: "Entry was recorded before revert support. Apply a plan again to enable future revert." });
+        // No prevGuid stored — reset to Windows Balanced as a safe default
+        try {
+          const result = eApi.powerPlans?.applyProfile
+            ? await eApi.powerPlans.applyProfile("balanced_gaming")
+            : null;
+          if (result?.success) {
+            notifyRevert("Power Plan");
+            toast({ title: "Power Plan reverted", description: "Reset to Balanced Gaming (Windows default)" });
+          } else {
+            toast({ title: "Cannot revert", description: "No previous plan recorded. Apply a plan first to enable future revert." });
+          }
+        } catch {
+          toast({ title: "Cannot revert", description: "No previous plan recorded. Apply a plan first to enable future revert." });
+        }
       }
 
     } else if (item.page === "Network" && item.notes?.startsWith("Tweak ID: ")) {
+      // ── Network tweak — always revert to Windows default ───────────────────
       const tweakId = item.notes.replace("Tweak ID: ", "").trim();
-      const ipcAction = item.result === "Applied" ? "revert" : "apply";
       const eApi = (window as any).electronAPI;
       if (eApi?.networkTweaks?.execute) {
         try {
-          const result = await eApi.networkTweaks.execute(tweakId, ipcAction);
+          const result = await eApi.networkTweaks.execute(tweakId, "revert");
           if (result?.success) {
+            notifyRevert("Network");
             toast({ title: "Network tweak reverted", description: `${item.action} has been undone` });
           } else {
             toast({ title: "Revert failed", description: result?.message ?? "Could not revert network tweak", variant: "destructive" });
@@ -363,13 +395,16 @@ function EventRow({ item, index }: { item: EnrichedItem; index: number }) {
       }
 
     } else if (item.page === "Tweaks" && item.notes?.startsWith("Tweak ID: ")) {
+      // ── Registry tweak — always execute "revert" to Windows default ────────
+      // Never toggle: even if the tweak looks already-reverted we still call
+      // execute("revert") so the registry is guaranteed to be at the default.
       const tweakId = item.notes.replace("Tweak ID: ", "").trim();
-      const ipcAction = item.result === "Applied" ? "revert" : "apply";
       const eApi = (window as any).electronAPI;
       if (eApi?.tweaks?.execute) {
         try {
-          await eApi.tweaks.execute(tweakId, ipcAction);
-          toast({ title: "Tweak reverted", description: `${item.action} has been undone` });
+          await eApi.tweaks.execute(tweakId, "revert");
+          notifyRevert("Tweaks");
+          toast({ title: "Tweak reverted", description: `${item.action} reset to Windows default` });
         } catch (e) {
           console.warn("[History] Tweak revert IPC error:", e);
           toast({ title: "Revert failed", description: "Could not revert tweak", variant: "destructive" });
@@ -379,7 +414,15 @@ function EventRow({ item, index }: { item: EnrichedItem; index: number }) {
       }
 
     } else {
-      toast({ title: "Action reverted", description: `Logged reversal of: ${item.action}` });
+      // ── No supported revert action for this entry ──────────────────────────
+      // Don't claim success — tell the user honestly.
+      toast({
+        title: "No revert available",
+        description: "This entry doesn't have a supported revert action.",
+        variant: "destructive",
+      });
+      setReverting(false);
+      return; // skip logging a fake "Reverted" entry
     }
 
     logHistory(`Reverted: ${item.action}`, item.page, "Reverted");

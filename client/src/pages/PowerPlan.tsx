@@ -706,6 +706,18 @@ export default function PowerPlan() {
     return () => clearTimeout(t);
   }, [fetchPowerState, isElectron, isPremium]);
 
+  // Refresh when the History page triggers a revert so the active plan badge
+  // immediately reflects the reverted state without requiring a page reload.
+  useEffect(() => {
+    const handler = (e: Event) => {
+      if ((e as CustomEvent).detail?.page === "Power Plan") {
+        fetchPowerState();
+      }
+    };
+    window.addEventListener("sc:history-revert", handler);
+    return () => window.removeEventListener("sc:history-revert", handler);
+  }, [fetchPowerState]);
+
   // Only treat a profile as "active" on exact_match — close_match / custom_modified /
   // unknown all mean a non-app or modified plan is active; no preset card should glow.
   const verifiedFrontendProfileId: FrontendProfileId | null =
