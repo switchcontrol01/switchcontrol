@@ -473,6 +473,16 @@ const UNSUPPORTED_TWEAKS = {
   // The effect resets when the network adapter restarts. Marked unsupported
   // because the app does not ship a persistent agent to maintain it.
   'tcp-winhttp':      "Helper not bundled — WinHTTP autotuning is applied via netsh and resets when the network adapter restarts. No persistent agent is shipped in this build.",
+  // NVIDIA removed the NvTm*/NvNode*/NvProfile* scheduled tasks and the
+  // NvTelemetryContainer service starting with the 500-series driver package.
+  // Virtually every current GeForce/RTX install uses a post-500 driver, so the
+  // live detection probe that previously ran at startup always evaluated to
+  // "no legacy components present → unsupported".  Marking it statically
+  // unsupported eliminates two PowerShell probes per startup (GPU detection +
+  // component check) and surfaces an honest, stable reason in the UI instead of
+  // making the card look broken.  If NVIDIA re-introduces scriptable telemetry
+  // controls, remove this entry and restore the dynamic detection path.
+  'nvidia-telemetry': "Not applicable to current NVIDIA drivers — the legacy NvTelemetryContainer service and NvTm*/NvNode* scheduled tasks were removed by NVIDIA in the 500-series driver package. Nearly all modern GeForce/RTX installs are unaffected.",
 };
 
 // ─── TweakSupport audit logger ────────────────────────────────────────────────
@@ -3188,26 +3198,11 @@ async function batchCheckAllTweaks() {
     result[timerResId] = { isApplied: isRunning, applied: isRunning, error: null };
   }
 
-  // 3. nvidia-telemetry: requires a GPU-detection pre-probe, so it can't be folded
-  //    into the single batch PS script above. Resolve it with a real per-tweak
-  //    check (verifyTweak) so syncAll's batch mode still reflects true state —
-  //    this used to rely on a follow-up per-tweak checkTweakStatus call that no
-  //    longer runs now that syncAll is fully batch-based.
-  const nvId = Object.keys(ALL_TWEAKS).find(id => ALL_TWEAKS[id]._special === 'nvidia-telemetry');
-  if (nvId) {
-    try {
-      const nvResult = await verifyTweak(nvId);
-      result[nvId] = {
-        isApplied: !!nvResult.isApplied,
-        applied:   !!nvResult.isApplied,
-        unsupported: nvResult.unsupported || false,
-        unsupportedReason: nvResult.unsupportedReason || null,
-        error: nvResult.error || null,
-      };
-    } catch (err) {
-      result[nvId] = { isApplied: false, applied: false, error: err.message };
-    }
-  }
+  // NOTE: nvidia-telemetry was previously resolved here via a live GPU-detection
+  // pre-probe, but it is now in UNSUPPORTED_TWEAKS (statically) and is handled
+  // by step 1 above.  The probe block has been removed to eliminate two wasteful
+  // PowerShell spawns per startup that always returned "unsupported" on modern
+  // drivers.  See the UNSUPPORTED_TWEAKS comment for the full rationale.
 
   // 3b. maximum-cpu-responsiveness: uses powercfg queries, must run individually.
   const cpuRespId = 'maximum-cpu-responsiveness';

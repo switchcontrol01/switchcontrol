@@ -606,16 +606,16 @@ const BASE: BaseTweak[] = [
   },
   {
     id: "nvidia-telemetry",
-    title: "Disable NVIDIA Telemetry",
-    description: "Disables NVIDIA telemetry and analytics scheduled tasks/services.",
+    title: "Disable Legacy NVIDIA Telemetry (older drivers only)",
+    description: "Targeted the NvTelemetryContainer service and NvTm*/NvNode* scheduled tasks removed by NVIDIA in the 500-series driver package. Not applicable to any modern GeForce/RTX install.",
     impact: [
-      "Reduces NVIDIA background telemetry tasks",
-      "Slight reduction in background CPU/disk activity",
-      "No effect on GPU performance features themselves",
+      "No effect on modern NVIDIA drivers (500-series and later)",
+      "Legacy: reduced NVIDIA background telemetry tasks on pre-500 drivers",
     ],
-    expected: { cpu: "Low", disk: "Low", ram: "None", gpu: "None", network: "None", latency: "None", stabilityRisk: "Low" },
+    unsupportedReason: "Not applicable to current NVIDIA drivers — the legacy NvTelemetryContainer service and NvTm*/NvNode* scheduled tasks were removed by NVIDIA in the 500-series driver package.",
+    expected: { cpu: "None", disk: "None", ram: "None", gpu: "None", network: "None", latency: "None", stabilityRisk: "Low" },
     category: "Privacy and Telemetry", level: "Advanced", risk: "Safe",
-    supported: true, requiresAdmin: true,
+    supported: false, requiresAdmin: true,
   },
   {
     id: "copilot",
