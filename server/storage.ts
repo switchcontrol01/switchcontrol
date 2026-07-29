@@ -473,7 +473,7 @@ export class DatabaseStorage implements IStorage {
     // Without this, history_entries grows unboundedly and degrades over time.
     // The DELETE runs after the INSERT so the new row is always kept.
     await db!.execute(
-      sql`DELETE FROM history_entries
+      drizzleSql`DELETE FROM history_entries
           WHERE settings_id = ${entry.settingsId}
             AND id NOT IN (
               SELECT id FROM history_entries
@@ -504,7 +504,7 @@ export class DatabaseStorage implements IStorage {
     // Keep only the 20 most-recent AI scans per user — JSONB recommendations
     // can be large and this table grows with every advisor session.
     await db!.execute(
-      sql`DELETE FROM ai_scans
+      drizzleSql`DELETE FROM ai_scans
           WHERE settings_id = ${scan.settingsId}
             AND id NOT IN (
               SELECT id FROM ai_scans

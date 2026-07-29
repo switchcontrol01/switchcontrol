@@ -65,6 +65,7 @@
   const psLimiter = require('./powershell-limiter');
   require('./security-helper');
   require('./debloat-helper');
+  const { getIconDataUrlForPath } = require('./file-icon');
   require('./cleaner-helper');
   require('./storage-helper');
   const configStore    = require('./config-store');
@@ -2744,6 +2745,11 @@
     return await loadSystemSpecs();
   });
   
+  // App icon handler — used by Process Manager and Startup pages
+  ipcMain.handle('appIcons:forPath', async (_event, filePath) => {
+    return getIconDataUrlForPath(filePath);
+  });
+
   // Telemetry handlers
   ipcMain.handle('telemetry:getBasic', async () => {
     if (!liveTelemetryCache) {
