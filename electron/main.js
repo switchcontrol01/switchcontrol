@@ -275,10 +275,12 @@
   let _netStatsCache = null;
   
   // Approved si.* callers — documentation only, not runtime-enforced.
-  // All entries in this set are intentionally calling si.* directly and are
-  // excluded from the "only pollTelemetry() may call systeminformation" rule.
-  // Handlers below marked "approved direct caller" have justification comments;
-  // do not add new direct callers without updating this set.
+  // Approved direct callers of systeminformation (si.*).
+  // Only these identifiers may call si.* directly; all others must go through
+  // the pollTelemetry cache.  assertSiCaller() enforces this at runtime —
+  // violations emit a console.error so they surface in dev and packaged logs.
+  // To add a new approved caller: add its name here AND call assertSiCaller()
+  // at the top of the new handler.
   const ALLOWED_SI_CALLERS = new Set([
     'pollTelemetry',
     'loadSystemSpecs',
@@ -293,6 +295,21 @@
     'telemetry:getCpuCores',       // static at boot, cached by caller
     'telemetry:getMemoryDetails',  // on-demand detail panel
   ]);
+
+  /**
+   * Enforce the si.* caller allowlist at runtime.
+   * Call this at the top of every function/handler that invokes si.* directly.
+   * Emits console.error (never throws) so a stray caller surfaces in logs
+   * without crashing the app.
+   */
+  function assertSiCaller(callerName) {
+    if (!ALLOWED_SI_CALLERS.has(callerName)) {
+      console.error(
+        `[SI-GUARD] Unapproved direct si.* call from "${callerName}". ` +
+        `Add it to ALLOWED_SI_CALLERS only if it cannot use the telemetry cache.`
+      );
+    }
+  }
   // (3) cached value from previous refresh. NEVER polled automatically in loop.
   // { load: number|null, temp: number|null, memUsedMb: number|null, memTotalMb: number|null, power: number|null, clockMhz: number|null, source: string }
   let gpuPollCache = { load: null, temp: null, memUsedMb: null, memTotalMb: null, power: null, clockMhz: null, source: 'none' };
@@ -3412,6 +3429,7 @@ public class DspHelper {
   });
   
   ipcMain.handle('system:getRamUsage', async () => {
+    assertSiCaller('system:getRamUsage');
     try {
       const mem = await si.mem();
       // Prefer mem.active (pages actually in use by processes) — matches Task Manager.
@@ -3433,6 +3451,7 @@ public class DspHelper {
   });
   
   ipcMain.handle('system:getAllDisks', async () => {
+    assertSiCaller('system:getAllDisks');
     try {
       const disks = await si.fsSize();
       return (disks || []).map(d => ({
@@ -3448,6 +3467,7 @@ public class DspHelper {
   });
   
   ipcMain.handle('telemetry:getCpuCores', async () => {
+    assertSiCaller('telemetry:getCpuCores');
     try {
       const load = await si.currentLoad();
       return (load.cpus || []).map((c, i) => ({ core: i, load: safeNum(c.load || 0) }));
@@ -3457,6 +3477,7 @@ public class DspHelper {
   });
   
   ipcMain.handle('telemetry:getMemoryDetails', async () => {
+    assertSiCaller('telemetry:getMemoryDetails');
     try {
       const [mem, layout] = await Promise.all([
         si.mem(),
