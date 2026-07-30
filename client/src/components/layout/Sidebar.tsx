@@ -40,6 +40,18 @@ import { useEntitlementUiState } from "@/hooks/useEntitlementUiState";
 // after the first renders the real version immediately, eliminating the flash.
 let cachedAppVersion: string | null = null;
 
+// Module-level session start — persists across remounts so every new Sidebar
+// instance computes a negative CSS animation-delay that places the orbs at the
+// correct phase in their cycle instead of restarting from scratch.
+const _SIDEBAR_SESSION_START = Date.now();
+/** Returns a CSS animation-delay string (always negative) that makes the
+ *  animation appear to resume at the current phase rather than restart. */
+function _orbDelay(periodS: number, staggerS = 0): string {
+  const elapsed = (Date.now() - _SIDEBAR_SESSION_START) / 1000 + staggerS;
+  const phase   = elapsed % periodS;
+  return `-${phase.toFixed(2)}s`;
+}
+
 function DiscordIcon({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
@@ -99,10 +111,12 @@ const SPRING_SNAPPY = { type: "spring", stiffness: 340, damping: 26 } as const;
 const EASE_PREMIUM = [0.22, 1, 0.36, 1] as const;
 
 function SidebarAmbientGlow() {
+  // CSS animations instead of Framer Motion so the negative-delay trick can
+  // phase-lock them across remounts (each route navigation unmounts Sidebar).
   return (
     <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden>
       {/* Top ambient orb — muted blue */}
-      <motion.div
+      <div
         className="absolute rounded-full"
         style={{
           width: 260,
@@ -110,15 +124,12 @@ function SidebarAmbientGlow() {
           background: "radial-gradient(circle, rgba(0,212,255,0.06) 0%, transparent 70%)",
           top: -40,
           left: -60,
+          animation: "sc-sidebar-orb-1 22s ease-in-out infinite",
+          animationDelay: _orbDelay(22),
         }}
-        animate={{
-          x: [0, 18, -8, 0],
-          y: [0, 12, -6, 0],
-        }}
-        transition={{ duration: 22, repeat: Infinity, ease: "easeInOut" }}
       />
       {/* Mid ambient orb — faint */}
-      <motion.div
+      <div
         className="absolute rounded-full"
         style={{
           width: 200,
@@ -126,13 +137,10 @@ function SidebarAmbientGlow() {
           background: "radial-gradient(circle, rgba(42,49,58,0.08) 0%, transparent 70%)",
           top: "38%",
           left: -40,
+          opacity: 0.6,
+          animation: "sc-sidebar-orb-2 28s ease-in-out infinite",
+          animationDelay: _orbDelay(28, 4),
         }}
-        animate={{
-          x: [0, -12, 10, 0],
-          y: [0, 20, -10, 0],
-          opacity: [0.6, 1, 0.7, 0.6],
-        }}
-        transition={{ duration: 28, repeat: Infinity, ease: "easeInOut", delay: 4 }}
       />
     </div>
   );
@@ -497,8 +505,8 @@ export function Sidebar() {
                   style={{
                     inset: "-3px",
                     borderRadius: "9999px",
-                    background: "radial-gradient(circle, rgba(255,195,50,0.12) 0%, rgba(255,160,30,0.05) 48%, transparent 68%)",
-                    boxShadow: "0 0 0 1px rgba(255,215,80,0.72), 0 0 7px 2px rgba(255,195,50,0.32), 0 0 14px 4px rgba(255,170,30,0.14)",
+                    background: "radial-gradient(circle, rgba(255,195,50,0.09) 0%, rgba(255,160,30,0.04) 48%, transparent 68%)",
+                    boxShadow: "0 0 0 1px rgba(255,215,80,0.52), 0 0 7px 2px rgba(255,195,50,0.22), 0 0 14px 4px rgba(255,170,30,0.09)",
                     animation: "sc-premium-halo 2.8s ease-in-out infinite",
                   }}
                 />

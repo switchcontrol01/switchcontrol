@@ -707,6 +707,7 @@ export function TweaksList() {
                     tweak.id !== highlightId
                   }
                   isHighlighted={tweak.id === highlightId}
+                  onHighlightComplete={() => setHighlightId(null)}
                   runtimeUnsupportedReason={runtimeUnsupportedReasons[tweak.id]}
                 />
               )}
@@ -741,6 +742,7 @@ export function TweaksList() {
                       tweak.id !== highlightId
                     }
                     isHighlighted={tweak.id === highlightId}
+                    onHighlightComplete={() => setHighlightId(null)}
                     runtimeUnsupportedReason={runtimeUnsupportedReasons[tweak.id]}
                   />
                 </motion.div>

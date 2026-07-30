@@ -118,7 +118,8 @@ async function runElevated(command) {
       );
     }));
 
-    const deadline = Date.now() + 5000;
+    const pollStartTs = Date.now();
+    const deadline = pollStartTs + 5000;
     while (!fs.existsSync(resultPath)) {
       if (Date.now() > deadline) break;
       await new Promise(r => setTimeout(r, 100));
@@ -136,7 +137,7 @@ async function runElevated(command) {
     // Result file absent: elevated child likely crashed before writing output
     // (e.g. script path contained characters that broke the PS argument list).
     // Log enough context to diagnose without revealing the full command.
-    console.error(`[NIC:runElevated] result file absent after ${Date.now() - (Date.now() - 5000)}ms — elevated child may have crashed. scriptId=${scriptId}`);
+    console.error(`[NIC:runElevated] result file absent after ${Date.now() - pollStartTs}ms — elevated child may have crashed. scriptId=${scriptId}`);
     return { ok: false, error: 'Result file not found after elevation — elevated script did not produce output.' };
   } catch (err) {
     const msg = (err && err.message) || String(err);
@@ -874,6 +875,11 @@ async function resetNicProperty(adapterName, propertyKey) {
       const rb = await _rbRead(safeAdapter, propertyKey);
       const actualValue = rb ? String(rb.current) : null;
       const verified = actualValue !== null && actualValue === String(defaultVal);
+      // Invalidate capability cache so the UI reflects the restored default value —
+      // same as the Reset-NetAdapterAdvancedProperty path below (line ~951).
+      // Previously missing here: the ring-buffer reset path returned without
+      // invalidating, leaving the stale applied value in the capability cache.
+      invalidateCapabilityCache(adapterName);
       return {
         ok:          verified,
         outcome:     verified ? 'reset_verified' : 'reset_verify_failed',

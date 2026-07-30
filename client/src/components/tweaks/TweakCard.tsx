@@ -68,6 +68,12 @@ interface TweakCardProps {
   isVerifying?: boolean;
   /** Pulse-highlight this card — used when deep-linked from Detected Issues */
   isHighlighted?: boolean;
+  /**
+   * Called when the highlight ring animation finishes (after its final repeat).
+   * The parent should clear whichever state drove isHighlighted=true so that a
+   * remount (e.g. filter change, navigation) doesn't replay the animation.
+   */
+  onHighlightComplete?: () => void;
   /** Runtime-detected unsupported reason from the backend (e.g. "Power setting not found").
    *  Overrides the static registry reason when set. Causes the card to show as unsupported. */
   runtimeUnsupportedReason?: string;
@@ -222,7 +228,7 @@ interface GpuAdapter {
 }
 
 // ── Main card ─────────────────────────────────────────────────────────────────
-export function TweakCard({ tweak, isEnabled, onToggle, isVerifying = false, isHighlighted = false, runtimeUnsupportedReason }: TweakCardProps) {
+export function TweakCard({ tweak, isEnabled, onToggle, isVerifying = false, isHighlighted = false, onHighlightComplete, runtimeUnsupportedReason }: TweakCardProps) {
   const [open, setOpen]               = useState(false);
   const [trustOpen, setTrustOpen]     = useState(false);
   const [failureInfo, setFailureInfo] = useState<FailureInfo | null>(null);
@@ -378,6 +384,7 @@ export function TweakCard({ tweak, isEnabled, onToggle, isVerifying = false, isH
             animate={{ opacity: [0.9, 0.4, 0.9] }}
             transition={{ duration: 1.6, repeat: 3, ease: "easeInOut", repeatType: "mirror" }}
             style={{ boxShadow: "0 0 0 2px hsl(var(--primary)/0.7), 0 0 20px hsl(var(--primary)/0.35)", borderRadius: 12 }}
+            onAnimationComplete={onHighlightComplete}
           />
         )}
         <GlassCard

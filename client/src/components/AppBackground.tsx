@@ -2,6 +2,17 @@ import { useEffect, useRef } from "react";
 import { useMotion } from "@/lib/motion";
 import { getSessionGlowColor } from "@/lib/startupGlow";
 
+// Module-level timestamp — survives remounts so every new AppBackground
+// instance can resume CSS animations at the correct phase rather than
+// restarting from scratch (each page navigation remounts AppLayout).
+const _BG_SESSION_START = Date.now();
+/** Returns a CSS animation-delay string (negative) that phase-locks the
+ *  animation to where it would be if it had run since session start. */
+function _bgDelay(periodS: number, staggerS = 0): string {
+  const elapsed = (Date.now() - _BG_SESSION_START) / 1000 + staggerS;
+  return `-${(elapsed % periodS).toFixed(2)}s`;
+}
+
 /* ─────────────────────────────────────────────────────────────
    AppBackground
    CPU-reduction strategy:
@@ -156,27 +167,31 @@ export function AppBackground() {
           background: "radial-gradient(ellipse, rgba(0,212,255,0.10) 0%, rgba(0,160,200,0.03) 45%, transparent 68%)",
           filter: "blur(40px)",
           animation: "sc-orb-a 18s ease-in-out infinite",
+          animationDelay: _bgDelay(18),
         }} />
         <div className="absolute" style={{
           bottom: "-8%", right: "-6%",
           width: "58vw", height: "58vw",
           background: "radial-gradient(ellipse, rgba(0,200,255,0.14) 0%, rgba(0,140,220,0.05) 45%, transparent 70%)",
           filter: "blur(44px)",
-          animation: "sc-orb-b 20s ease-in-out 3s infinite",
+          animation: "sc-orb-b 20s ease-in-out infinite",
+          animationDelay: _bgDelay(20, 3),
         }} />
         <div className="absolute" style={{
           top: "-2%", right: "5%",
           width: "42vw", height: "42vw",
           background: `radial-gradient(ellipse, ${getSessionGlowColor()}0.06) 0%, transparent 65%)`,
           filter: "blur(36px)",
-          animation: "sc-orb-c 22s ease-in-out 7s infinite",
+          animation: "sc-orb-c 22s ease-in-out infinite",
+          animationDelay: _bgDelay(22, 7),
         }} />
         <div className="absolute" style={{
           bottom: "5%", left: "8%",
           width: "38vw", height: "38vw",
           background: "radial-gradient(ellipse, rgba(42,49,58,0.05) 0%, transparent 65%)",
           filter: "blur(32px)",
-          animation: "sc-orb-d 25s ease-in-out 12s infinite",
+          animation: "sc-orb-d 25s ease-in-out infinite",
+          animationDelay: _bgDelay(25, 12),
         }} />
         <div className="absolute" style={{
           top: "50%", left: "50%",
@@ -185,6 +200,7 @@ export function AppBackground() {
           background: "radial-gradient(ellipse, rgba(0,212,255,0.06) 0%, rgba(0,212,255,0.04) 50%, transparent 72%)",
           filter: "blur(30px)",
           animation: "sc-orb-e 12s ease-in-out infinite",
+          animationDelay: _bgDelay(12),
         }} />
 
         {/* Layer 2: energy-flow wave grid (CSS-animated — no framer overhead) */}
