@@ -15,10 +15,9 @@
  *  4. Full audit log — every action records tweakId, previousOptionId, newOptionId,
  *     success/failure, and timestamp.
  */
-const { execFile } = require('child_process');
-const os = require('os');
 const fs = require('fs');
 const path = require('path');
+const { runPS, queryPS, checkIsAdmin, runElevated } = require('./ps-shared');
 const {
   PRESET_STATE_FILE,
   PRESET_LOG_FILE,
@@ -91,115 +90,7 @@ function clearCrashSentinel() {
   } catch {}
 }
 
-// ─── PowerShell helpers (same pattern as slider-tweak-executor.js) ────────────
-
-function runPS(command) {
-  return new Promise((resolve, reject) => {
-    const wrapped = `try { ${command}; exit 0 } catch { Write-Error $_.Exception.Message; exit 1 }`;
-    execFile(
-      'powershell',
-      ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-Command', wrapped],
-      { timeout: 30000, windowsHide: true },
-      (error, stdout, stderr) => {
-        if (error) {
-          reject(new Error(stderr?.trim() || stdout?.trim() || error.message));
-        } else {
-          resolve(stdout.trim());
-        }
-      }
-    );
-  });
-}
-
-function queryPS(command) {
-  return new Promise((resolve) => {
-    execFile(
-      'powershell',
-      ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-Command', command],
-      { timeout: 12000, windowsHide: true },
-      (error, stdout) => resolve(error ? null : stdout.trim())
-    );
-  });
-}
-
-let _isAdminCache = null;
-async function checkIsAdmin() {
-  if (_isAdminCache !== null) return _isAdminCache;
-  try {
-    _isAdminCache = await new Promise(resolve => {
-      execFile(
-        'powershell',
-        ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-Command',
-          '([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)'],
-        { windowsHide: true, timeout: 6000 },
-        (err, stdout) => resolve(!err && stdout.trim().toLowerCase() === 'true')
-      );
-    });
-  } catch { _isAdminCache = false; }
-  return _isAdminCache;
-}
-
-async function runElevated(command) {
-  const tmpDir     = os.tmpdir();
-  const scriptId   = `sc_preset_${Date.now()}_${Math.random().toString(36).slice(2)}`;
-  const scriptPath = path.join(tmpDir, `${scriptId}.ps1`);
-  const resultPath = path.join(tmpDir, `${scriptId}_result.json`);
-  const safeResult = resultPath.replace(/'/g, "''");
-  const safeScript = scriptPath.replace(/'/g, "''");
-
-  const scriptContent = [
-    `$ErrorActionPreference = 'Stop'`,
-    `try {`,
-    `  ${command}`,
-    `  $r = @{ ok = $true; error = $null }`,
-    `} catch {`,
-    `  $r = @{ ok = $false; error = $_.Exception.Message }`,
-    `}`,
-    `try { [System.IO.File]::WriteAllText('${safeResult}', ($r | ConvertTo-Json -Compress)) } catch { $r | ConvertTo-Json -Compress | Out-File -FilePath '${safeResult}' -Encoding ascii -Force }`,
-  ].join('\r\n');
-
-  fs.writeFileSync(scriptPath, scriptContent, 'utf8');
-
-  const launchCmd = `Start-Process powershell -WindowStyle Hidden -ArgumentList @('-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-WindowStyle','Hidden','-File','${safeScript}') -Verb RunAs -Wait`;
-
-  try {
-    await new Promise((resolve, reject) => {
-      execFile(
-        'powershell',
-        ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-Command', launchCmd],
-        { timeout: 120_000, windowsHide: true },
-        (err) => err ? reject(err) : resolve()
-      );
-    });
-
-    const deadline = Date.now() + 5000;
-    while (!fs.existsSync(resultPath)) {
-      if (Date.now() > deadline) break;
-      await new Promise(r => setTimeout(r, 100));
-    }
-
-    if (fs.existsSync(resultPath)) {
-      const raw = fs.readFileSync(resultPath, 'utf8').replace(/^\uFEFF/, '').trim();
-      try {
-        const parsed = JSON.parse(raw);
-        return parsed.ok === true ? { ok: true, error: null } : parsed;
-      } catch {
-        return { ok: false, error: `Could not parse result (raw: ${raw.slice(0, 200)})` };
-      }
-    }
-    return { ok: false, error: 'Result file not found after elevation.' };
-
-  } catch (err) {
-    const msg = (err && err.message) || String(err);
-    if (/cancel|denied|elevat|access|uac/i.test(msg) || (err && err.code === 1)) {
-      return { ok: false, error: 'UAC prompt was cancelled or access was denied.' };
-    }
-    return { ok: false, error: `Elevation failed: ${msg}` };
-  } finally {
-    try { fs.unlinkSync(scriptPath); } catch {}
-    try { fs.unlinkSync(resultPath); } catch {}
-  }
-}
+// runPS / queryPS / checkIsAdmin / runElevated are imported from ps-shared.js.
 
 // ─── Preset tweak definitions ─────────────────────────────────────────────────
 //
@@ -230,7 +121,7 @@ const PRESET_TWEAKS = {
     defaultOptionId: 'normal',
     options: {
       normal: {
-        value: 2,
+        value: null, // key is removed entirely — readPresetValue's null-match path correctly identifies this as the "key absent" / Windows-default state
         writeCommand: () => `Remove-Item -Path 'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\FortniteClient-Win64-Shipping.exe\\PerfOptions' -Recurse -Force -EA SilentlyContinue`,
       },
       'above-normal': {
@@ -411,7 +302,7 @@ async function applyPresetValue(tweakId, optionId) {
         console.log(`[PresetExecutor] ${tweakId}: already admin — using runPS (no UAC spawn)`);
         await runPS(option.writeCommand());
       } else {
-        const result = await runElevated(option.writeCommand());
+        const result = await runElevated(option.writeCommand(), { tempFilePrefix: 'sc_preset_' });
         if (!result.ok) {
           clearCrashSentinel();
           logPresetEntry({ tweakId, action: 'apply', previousOptionId, newOptionId: optionId, success: false, error: result.error });
@@ -473,7 +364,7 @@ async function resetPresetValue(tweakId) {
       if (alreadyAdmin) {
         await runPS(option.writeCommand());
       } else {
-        const result = await runElevated(option.writeCommand());
+        const result = await runElevated(option.writeCommand(), { tempFilePrefix: 'sc_preset_' });
         writeOk = result.ok;
         writeError = result.error;
       }
@@ -579,7 +470,7 @@ async function forceRevertPresetToDefault(tweakId) {
         console.log(`[PresetExecutor] force-revert ${tweakId}: already admin — using runPS`);
         await runPS(option.writeCommand());
       } else {
-        const result = await runElevated(option.writeCommand());
+        const result = await runElevated(option.writeCommand(), { tempFilePrefix: 'sc_preset_' });
         writeOk = result.ok;
         writeError = result.error;
       }
@@ -631,28 +522,37 @@ async function forceRevertPresetToDefault(tweakId) {
  * Returns { reverted: string[], failed: { tweakId, error }[] }
  */
 async function revertAllPremiumPresets() {
-  const state = loadPresetState();
-  const appliedIds = Object.keys(state.originalValues || {});
+  // Iterate ALL premium presets from PRESET_TWEAKS — not just ones with a backup
+  // entry in preset-state.json. This guarantees coverage even when the state file
+  // is missing, empty, or stale (reinstall, migration, first run on an already-
+  // tweaked system). Mirrors the fix already applied to revertAllPremiumSliders().
+  const premiumIds = Object.entries(PRESET_TWEAKS)
+    .filter(([, def]) => def.premium)
+    .map(([id]) => id);
+
   const reverted = [];
   const failed = [];
 
-  for (const tweakId of appliedIds) {
-    const def = PRESET_TWEAKS[tweakId];
-    if (!def || !def.premium) continue;
+  console.log(`[PresetExecutor] revertAllPremiumPresets starting — ${premiumIds.length} premium presets to process`);
+
+  for (const tweakId of premiumIds) {
     try {
       const result = await forceRevertPresetToDefault(tweakId);
       if (result.ok) {
         reverted.push(tweakId);
+        console.log(`[PresetExecutor] ✓ reverted ${tweakId} → ${result.restoredTo}`);
       } else {
         failed.push({ tweakId, error: result.error || 'Unknown revert failure' });
+        console.warn(`[PresetExecutor] ✗ failed ${tweakId}: ${result.error}`);
       }
     } catch (err) {
       failed.push({ tweakId, error: err.message });
+      console.error(`[PresetExecutor] ✗ exception ${tweakId}:`, err.message);
     }
   }
 
-  console.log(`[PresetExecutor] revertAllPremiumPresets: reverted=${reverted.length} failed=${failed.length}`);
-  return { reverted, failed };
+  console.log(`[PresetExecutor] revertAllPremiumPresets complete — total=${premiumIds.length} reverted=${reverted.length} failed=${failed.length}`);
+  return { success: true, reverted, failed };
 }
 
 module.exports = {

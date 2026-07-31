@@ -2,7 +2,9 @@ const { execFile } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
-const { TWEAK_STATE_FILE, TWEAK_LOG_FILE, WINDOWED_GAMES_BACKUP_FILE, VENDOR_UPDATERS_BACKUP_FILE, TEAMS_STARTUP_BACKUP_FILE } = require('./user-data-paths');
+const psLimiter = require('./powershell-limiter');
+const { _withPsSemaphore, runElevated } = require('./ps-shared');
+const { TWEAK_STATE_FILE, TWEAK_LOG_FILE, WINDOWED_GAMES_BACKUP_FILE, VENDOR_UPDATERS_BACKUP_FILE, TEAMS_STARTUP_BACKUP_FILE, TIMER_RESOLUTION_STATE_FILE } = require('./user-data-paths');
 
 // Backup-path constants used inside PowerShell double-quoted strings.
 // PowerShell does NOT treat backslash as an escape character in double-quoted
@@ -103,70 +105,44 @@ function getExecutionLog() {
   return [];
 }
 
-// ─── PowerShell concurrency semaphore ─────────────────────────────────────────
-// Hard cap: never allow more than MAX_PS_CONCURRENT powershell.exe processes
-// from this module at once. Callers that arrive when slots are full queue up
-// (await) rather than spawning a new process immediately. This prevents
-// verification bursts (e.g. syncAll + individual verify calls arriving
-// simultaneously) from flooding the process list with powershell.exe children.
-//
-// The global ps-limiter in main.js provides per-operation single-flight;
-// this semaphore is belt-and-suspenders at the spawn level.
-
-const MAX_PS_CONCURRENT = 2;
-let _psActive = 0;
-const _psQueue = [];
-
-function _withPsSemaphore(fn) {
-  return new Promise((resolve, reject) => {
-    const run = () => {
-      _psActive++;
-      Promise.resolve()
-        .then(fn)
-        .then(resolve, reject)
-        .finally(() => {
-          _psActive--;
-          if (_psQueue.length > 0) {
-            const next = _psQueue.shift();
-            next();
-          }
-        });
-    };
-    if (_psActive < MAX_PS_CONCURRENT) {
-      run();
-    } else {
-      console.log(`[PS-Semaphore] queued — ${_psActive}/${MAX_PS_CONCURRENT} slots active, queue=${_psQueue.length + 1}`);
-      _psQueue.push(run);
-    }
-  });
-}
-
 // ─── PowerShell helpers ────────────────────────────────────────────────────────
+// _withPsSemaphore and runElevated are imported from ps-shared.js, which owns
+// the single shared semaphore covering all three executor modules.
 // Diagnostic counter — every powershell.exe spawn increments this.
 // At idle this number must never climb. Log lines appear in the Electron console.
 let _tweak_psCount = 0;
 
-function runPowerShell(command) {
-  // Acquire semaphore slot before spawning — queues if MAX_PS_CONCURRENT is full.
-  // This prevents apply/revert bursts from spawning unlimited powershell.exe children.
+// ─── Shared PowerShell runner ──────────────────────────────────────────────────
+// runPowerShell and queryPowerShell shared ~90% of their body.  _runPs is the
+// single implementation; the two public functions are thin wrappers.
+//
+//   throwOnError=true  → wraps command in try/catch exit block, rejects on error
+//   throwOnError=false → no wrapper, resolves null on error (original queryPowerShell)
+function _runPs(command, { throwOnError = false, timeout = 12000 } = {}) {
   return _withPsSemaphore(() => {
     const id = ++_tweak_psCount;
     const t0 = Date.now();
-    console.log(`[PS:tweak-executor] #${id} runPowerShell SPAWN ts=${t0} active=${_psActive}`);
+    const label = throwOnError ? 'runPowerShell' : 'queryPowerShell';
+    console.log(`[PS:tweak-executor] #${id} ${label} SPAWN ts=${t0} active=${_psActive}`);
+    const cmd = throwOnError
+      ? `try { ${command}; exit 0 } catch { Write-Error $_.Exception.Message; exit 1 }`
+      : command;
     return new Promise((resolve, reject) => {
-      const wrapped = `try { ${command}; exit 0 } catch { Write-Error $_.Exception.Message; exit 1 }`;
       execFile(
         'powershell',
-        ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-Command', wrapped],
-        { timeout: 30000, windowsHide: true },
+        ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-Command', cmd],
+        { timeout, windowsHide: true },
         (error, stdout, stderr) => {
           const dur = Date.now() - t0;
           if (error) {
-            const msg = stderr?.trim() || stdout?.trim() || error.message;
-            console.log(`[PS:tweak-executor] #${id} runPowerShell FAIL ${dur}ms`);
-            reject(new Error(msg));
+            console.log(`[PS:tweak-executor] #${id} ${label} FAIL ${dur}ms`);
+            if (throwOnError) {
+              reject(new Error(stderr?.trim() || stdout?.trim() || error.message));
+            } else {
+              resolve(null);
+            }
           } else {
-            console.log(`[PS:tweak-executor] #${id} runPowerShell OK ${dur}ms`);
+            console.log(`[PS:tweak-executor] #${id} ${label} OK ${dur}ms`);
             resolve(stdout.trim());
           }
         }
@@ -175,24 +151,16 @@ function runPowerShell(command) {
   });
 }
 
+function runPowerShell(command) {
+  // Acquire semaphore slot before spawning — queues if MAX_PS_CONCURRENT is full.
+  // Wraps command in try/catch exit block; rejects on PowerShell error.
+  return _runPs(command, { throwOnError: true, timeout: 30000 });
+}
+
 function queryPowerShell(command, timeout = 12000) {
-  // Acquire semaphore slot before spawning — queues if MAX_PS_CONCURRENT is full
-  return _withPsSemaphore(() => {
-    const id = ++_tweak_psCount;
-    const t0 = Date.now();
-    console.log(`[PS:tweak-executor] #${id} queryPowerShell SPAWN ts=${t0} active=${_psActive}`);
-    return new Promise((resolve) => {
-      execFile(
-        'powershell',
-        ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-Command', command],
-        { timeout, windowsHide: true },
-        (error, stdout) => {
-          console.log(`[PS:tweak-executor] #${id} queryPowerShell ${error ? 'FAIL' : 'OK'} ${Date.now() - t0}ms`);
-          resolve(error ? null : stdout.trim());
-        }
-      );
-    });
-  });
+  // Acquire semaphore slot before spawning — queues if MAX_PS_CONCURRENT is full.
+  // Resolves null on error (never rejects) — safe for optional reads.
+  return _runPs(command, { throwOnError: false, timeout });
 }
 
 function checkPowerShell(command) {
@@ -319,111 +287,6 @@ async function checkIsAdmin() {
 }
 
 // ─── Per-action UAC elevation ──────────────────────────────────────────────────
-// Writes a temp PowerShell script, launches it via Start-Process -Verb RunAs,
-// then polls for the result file (Start-Process -Wait has a known race where it
-// can return before the child finishes writing the file on some Windows versions).
-async function runElevated(command) {
-  const tmpDir   = os.tmpdir();
-  const scriptId = `sc_tweak_${Date.now()}_${Math.random().toString(36).slice(2)}`;
-  const scriptPath = path.join(tmpDir, `${scriptId}.ps1`);
-  const resultPath = path.join(tmpDir, `${scriptId}_result.json`);
-
-  console.log(`[runElevated] scriptPath: "${scriptPath}"`);
-  console.log(`[runElevated] resultPath: "${resultPath}"`);
-
-  // PowerShell single-quoted strings treat backslash as literal — only ' needs doubling.
-  const safeResultPath = resultPath.replace(/'/g, "''");
-  const safeScriptPath = scriptPath.replace(/'/g, "''");
-
-  const scriptContent = [
-    `$ErrorActionPreference = 'Stop'`,
-    `try {`,
-    `  ${command}`,
-    `  $r = @{ ok = $true; error = $null }`,
-    `} catch {`,
-    `  $r = @{ ok = $false; error = $_.Exception.Message }`,
-    `}`,
-    // Use WriteAllText (2-arg overload) — writes UTF-8 without BOM on all PS versions.
-    // Set-Content -Encoding UTF8 on PS 5.x adds a BOM that breaks JSON.parse.
-    `try { [System.IO.File]::WriteAllText('${safeResultPath}', ($r | ConvertTo-Json -Compress)) } catch { $r | ConvertTo-Json -Compress | Out-File -FilePath '${safeResultPath}' -Encoding ascii -Force }`,
-    `Write-Host "[elevated] wrote result to: ${safeResultPath}"`,
-  ].join('\r\n');
-
-  fs.writeFileSync(scriptPath, scriptContent, 'utf8');
-  console.log(`[runElevated] script written (${scriptContent.length} bytes)`);
-
-  // ArgumentList as PS array — avoids nested quoting inside -Command strings.
-  // -Wait is passed so the host process waits for the elevated child.
-  // -WindowStyle Hidden suppresses the console popup in the elevated child.
-  // -WindowStyle Hidden is passed to Start-Process itself (not only inside -ArgumentList)
-  // so that ShellExecuteEx sets wShowWindow=SW_HIDE at process creation time.
-  // Without it, conhost.exe briefly creates a visible console window before
-  // powershell.exe has a chance to hide itself via its own -WindowStyle flag.
-  const launchCmd = `Start-Process powershell -WindowStyle Hidden -ArgumentList @('-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-WindowStyle', 'Hidden', '-File', '${safeScriptPath}') -Verb RunAs -Wait`;
-
-  try {
-    // Wrap the UAC-launcher execFile in the PS semaphore so runElevated counts
-    // against MAX_PS_CONCURRENT. Without this, bulk admin-tweak flows bypassed
-    // the cap entirely — each runElevated spawned its own launcher + elevated
-    // child outside the semaphore, violating the "never more than 2" invariant.
-    await _withPsSemaphore(() => new Promise((resolve, reject) => {
-      execFile(
-        'powershell',
-        ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-Command', launchCmd],
-        { timeout: 120_000, windowsHide: true },
-        (err) => {
-          if (err) {
-            const msg = err.message || '';
-            console.error(`[runElevated] execFile error: ${msg}`);
-            reject(err);
-          } else {
-            console.log('[runElevated] execFile completed — checking for result file');
-            resolve();
-          }
-        }
-      );
-    }));
-
-    // Poll for the result file for up to 5 seconds.
-    // Start-Process -Wait has a race on some Windows versions where it returns
-    // before the child's I/O is fully flushed to disk.
-    const pollDeadline = Date.now() + 5000;
-    while (!fs.existsSync(resultPath)) {
-      if (Date.now() > pollDeadline) break;
-      await new Promise(r => setTimeout(r, 100));
-    }
-
-    console.log(`[runElevated] resultPath exists: ${fs.existsSync(resultPath)}`);
-
-    if (fs.existsSync(resultPath)) {
-      // Strip UTF-8 BOM (\uFEFF) and trim whitespace — PS 5.x Set-Content adds BOM
-      const raw = fs.readFileSync(resultPath, 'utf8').replace(/^\uFEFF/, '').trim();
-      console.log(`[runElevated] result file contents: "${raw}"`);
-      try {
-        const parsed = JSON.parse(raw);
-        // Treat { ok: true, error: null } as clean success
-        if (parsed.ok === true) return { ok: true, error: null };
-        return parsed;
-      } catch {
-        return { ok: false, error: `Elevated script ran but result file could not be parsed (raw: ${raw.slice(0, 200)})` };
-      }
-    }
-
-    return { ok: false, error: 'Result file not found after 5s wait. The elevated script may have crashed before writing — check that PowerShell scripts can run in your temp folder.' };
-
-  } catch (err) {
-    const msg = (err && err.message) || String(err);
-    // execFile exits non-zero when UAC is declined — detect it by keyword
-    if (/cancel|denied|elevat|access|uac/i.test(msg) || (err && err.code === 1)) {
-      return { ok: false, cancelled: true, error: 'Admin permission was canceled. No system changes were made.' };
-    }
-    return { ok: false, error: `Elevation failed: ${msg}` };
-  } finally {
-    try { fs.unlinkSync(scriptPath); } catch {}
-    try { fs.unlinkSync(resultPath); } catch {}
-  }
-}
-
 // ─── Failure classification helpers ───────────────────────────────────────────
 
 // Known Group Policy registry paths that can block specific tweaks.
@@ -1238,15 +1101,12 @@ function _startTimerResAgent() {
   // in timer-resolution-state.json — read that and kill the process before we
   // start our own.
   try {
-    const os_   = require('os');
-    const path_ = require('path');
-    const fs_   = require('fs');
-    const stateFile = path_.join(os_.homedir(), 'AppData', 'Roaming', 'SwitchControl', 'timer-resolution-state.json');
-    if (fs_.existsSync(stateFile)) {
-      const s = JSON.parse(fs_.readFileSync(stateFile, 'utf8'));
+    // TIMER_RESOLUTION_STATE_FILE is imported from user-data-paths at the top of this file.
+    if (fs.existsSync(TIMER_RESOLUTION_STATE_FILE)) {
+      const s = JSON.parse(fs.readFileSync(TIMER_RESOLUTION_STATE_FILE, 'utf8'));
       if (s && s.pid) {
         try { process.kill(s.pid); } catch {}
-        try { fs_.unlinkSync(stateFile); } catch {}
+        try { fs.unlinkSync(TIMER_RESOLUTION_STATE_FILE); } catch {}
         console.log('[TimerRes] evicted slider keeper pid=%d before starting toggle agent', s.pid);
       }
     }
@@ -1436,11 +1296,7 @@ async function executeMaxCpuResponsiveness(action) {
     // Save backup
     const backup = { schemeGuid, origCpMinCores, origPerfBoostMode, savedAt: new Date().toISOString() };
     try {
-      const dir = path_.dirname(CPU_RESPONSIVENESS_BACKUP_FILE);
-      if (!fs_.existsSync(dir)) fs_.mkdirSync(dir, { recursive: true });
-      const tmp = CPU_RESPONSIVENESS_BACKUP_FILE + '.tmp';
-      fs_.writeFileSync(tmp, JSON.stringify(backup, null, 2));
-      fs_.renameSync(tmp, CPU_RESPONSIVENESS_BACKUP_FILE);
+      saveAtomicBackup(CPU_RESPONSIVENESS_BACKUP_FILE, backup);
     } catch (e) {
       console.warn('[CpuResponsiveness] backup write failed:', e.message);
       return { ok: false, commandsRun: [], message: 'Original value could not be backed up — aborting to keep rollback available.', errorCode: 'backup_failed' };
@@ -2054,11 +1910,7 @@ async function executeVbs(action) {
     // ── 2. Save backup — abort if it fails so revert stays possible ────────────
     const backup = { ...origState, savedAt: new Date().toISOString() };
     try {
-      const dir = path_.dirname(VBS_BACKUP_FILE);
-      if (!fs_.existsSync(dir)) fs_.mkdirSync(dir, { recursive: true });
-      const tmp = VBS_BACKUP_FILE + '.tmp';
-      fs_.writeFileSync(tmp, JSON.stringify(backup, null, 2));
-      fs_.renameSync(tmp, VBS_BACKUP_FILE);
+      saveAtomicBackup(VBS_BACKUP_FILE, backup);
     } catch (e) {
       console.warn('[VBS] backup write failed:', e.message);
       return { ok: false, commandsRun, message: 'Original VBS configuration could not be backed up — aborting to preserve rollback.', errorCode: 'backup_failed' };
@@ -2173,11 +2025,7 @@ async function executePciMsiMode(action) {
 
     const backup = { savedAt: new Date().toISOString(), devices: backupDevices };
     try {
-      const dir = path_.dirname(PCI_MSI_BACKUP_FILE);
-      if (!fs_.existsSync(dir)) fs_.mkdirSync(dir, { recursive: true });
-      const tmp = PCI_MSI_BACKUP_FILE + '.tmp';
-      fs_.writeFileSync(tmp, JSON.stringify(backup, null, 2));
-      fs_.renameSync(tmp, PCI_MSI_BACKUP_FILE);
+      saveAtomicBackup(PCI_MSI_BACKUP_FILE, backup);
     } catch (e) {
       console.warn('[PciMsiMode] backup write failed:', e.message);
       return { ok: false, commandsRun: [], message: 'Backup write failed — aborting to keep rollback available.', errorCode: 'backup_failed' };
@@ -2331,11 +2179,7 @@ async function executeGpuMsiMode(action, options) {
     // Save backup
     const backup = { deviceInstanceId, gpuName, vendor, registryPath, msiSupportedExisted, originalMsiValue, savedAt: new Date().toISOString() };
     try {
-      const dir = path_.dirname(GPU_MSI_BACKUP_FILE);
-      if (!fs_.existsSync(dir)) fs_.mkdirSync(dir, { recursive: true });
-      const tmp = GPU_MSI_BACKUP_FILE + '.tmp';
-      fs_.writeFileSync(tmp, JSON.stringify(backup, null, 2));
-      fs_.renameSync(tmp, GPU_MSI_BACKUP_FILE);
+      saveAtomicBackup(GPU_MSI_BACKUP_FILE, backup);
     } catch (e) {
       console.warn('[GpuMsiMode] backup write failed:', e.message);
       return { ok: false, commandsRun: [], message: 'Original value could not be backed up — aborting to keep rollback available.', errorCode: 'backup_failed' };
@@ -2429,6 +2273,24 @@ async function executeGpuMsiMode(action, options) {
   }
 }
 
+// ─── Shared special-tweak dispatch map ────────────────────────────────────────
+// Single source of truth for the 8 tweaks that have custom execution handlers.
+// Both executeTweak (which already checks tweak._special) and verifyTweak (which
+// previously used independent tweakId=== string comparisons) route through this
+// map so they can never silently diverge when a new special tweak is added.
+// timer-res is intentionally excluded — its handler is inline (persistent agent)
+// and does not follow the standard execute(action)→result function contract.
+const SPECIAL_HANDLERS = {
+  'nvidia-telemetry':            { execute: executeNvidiaTelemetry,       requiresReboot: false, requiresAdmin: true },
+  'maximum-cpu-responsiveness':  { execute: executeMaxCpuResponsiveness,  requiresReboot: false, requiresAdmin: true },
+  'pcie-link-state':             { execute: executePcieLinkState,         requiresReboot: false, requiresAdmin: true },
+  'usb-selective-suspend':       { execute: executeUsbSelectiveSuspend,   requiresReboot: false, requiresAdmin: true },
+  'preemption':                  { execute: executePreemption,            requiresReboot: true,  requiresAdmin: true },
+  'vbs':                         { execute: executeVbs,                   requiresReboot: true,  requiresAdmin: true },
+  'pci-msi-mode':                { execute: executePciMsiMode,            requiresReboot: true,  requiresAdmin: true },
+  'gpu-msi-mode':                { execute: executeGpuMsiMode,            requiresReboot: true,  requiresAdmin: true },
+};
+
 // ─── Core functions ────────────────────────────────────────────────────────────
 async function verifyTweak(tweakId) {
   const osVer = require('os').release();
@@ -2448,7 +2310,7 @@ async function verifyTweak(tweakId) {
   }
 
   // ── Maximum CPU Responsiveness ────────────────────────────────────────────────
-  if (tweakId === 'maximum-cpu-responsiveness') {
+  if (tweak._special === 'maximum-cpu-responsiveness') {
     try {
       // Detect active scheme GUID
       const schemeRaw = await queryPowerShell(
@@ -2498,7 +2360,7 @@ async function verifyTweak(tweakId) {
   }
 
   // ── PCIe Link State Power Management ───────────────────────────────────────
-  if (tweakId === 'pcie-link-state') {
+  if (tweak._special === 'pcie-link-state') {
     try {
       const current = await readPowerSettingIndices(
         '501a4d13-42af-4429-9fd1-a8218c268e20',
@@ -2516,7 +2378,7 @@ async function verifyTweak(tweakId) {
   }
 
   // ── GPU Hardware Scheduling / Preemption ────────────────────────────────────
-  if (tweakId === 'preemption') {
+  if (tweak._special === 'preemption') {
     try {
       const raw = await queryPowerShell(
         '(Get-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\GraphicsDrivers" -Name HwSchMode -EA SilentlyContinue).HwSchMode'
@@ -2528,7 +2390,7 @@ async function verifyTweak(tweakId) {
   }
 
   // ── GPU MSI Mode ──────────────────────────────────────────────────────────────
-  if (tweakId === 'gpu-msi-mode') {
+  if (tweak._special === 'gpu-msi-mode') {
     try {
       const { GPU_MSI_BACKUP_FILE } = require('./user-data-paths');
       const fs_ = require('fs');
@@ -2553,7 +2415,7 @@ async function verifyTweak(tweakId) {
   }
 
   // ── Disable Windows VBS ───────────────────────────────────────────────────────
-  if (tweakId === 'vbs') {
+  if (tweak._special === 'vbs') {
     try {
       const { VBS_BACKUP_FILE } = require('./user-data-paths');
       const fs_ = require('fs');
@@ -2570,7 +2432,7 @@ async function verifyTweak(tweakId) {
   }
 
   // ── PCI MSI Mode ──────────────────────────────────────────────────────────────
-  if (tweakId === 'pci-msi-mode') {
+  if (tweak._special === 'pci-msi-mode') {
     try {
       const { PCI_MSI_BACKUP_FILE } = require('./user-data-paths');
       const fs_ = require('fs');
@@ -2625,7 +2487,7 @@ async function verifyTweak(tweakId) {
   // USB Selective Suspend — runtime probe: verify the power setting GUID actually
   // exists in the current power scheme before trying the boolean check.
   // On VMs or headless builds powercfg may not expose the USB sub-group.
-  if (tweakId === 'usb-selective-suspend') {
+  if (tweak._special === 'usb-selective-suspend') {
     const current = await readPowerSettingIndices(
       '2a737441-1930-4402-8d77-b2bebba308a3',
       '48e6b7a6-50f5-4782-a5d4-53bb8f07e226'
@@ -2750,7 +2612,7 @@ async function executeTweak(tweakId, action, options = {}) {
 
       let elevResult;
       try {
-        elevResult = await runElevated(command);
+        elevResult = await runElevated(command, { tempFilePrefix: 'sc_tweak_' });
       } catch (elevErr) {
         const isCancelled = /cancel|deny|denied|access.?denied|declined|abort/i.test(elevErr.message);
         const result = enrichFailure({
@@ -3553,4 +3415,29 @@ module.exports = {
   audioGuardCheck,
   networkGuardPre,
   networkGuardPost,
+  SPECIAL_HANDLERS,
 };
+
+// ── Startup sanity-check: SPECIAL_HANDLERS ↔ ALL_TWEAKS._special parity ──────
+// Runs once at module load. Logs an error (never throws) if any future drift is
+// introduced between the dispatch map and the tweak catalogue, so mismatches are
+// caught immediately in logs rather than silently producing wrong verify results.
+;(function _assertSpecialHandlerCoverage() {
+  const specialFromTweaks = new Set(
+    Object.values(ALL_TWEAKS)
+      .map(t => t._special)
+      .filter(Boolean)
+      .filter(s => s !== 'timer-res') // timer-res has an inline handler, not in SPECIAL_HANDLERS
+  );
+  const specialFromMap = new Set(Object.keys(SPECIAL_HANDLERS));
+  for (const id of specialFromTweaks) {
+    if (!specialFromMap.has(id)) {
+      console.error(`[TweakExecutor] SPECIAL_HANDLERS missing entry for _special="${id}" — verifyTweak will not dispatch correctly for this tweak`);
+    }
+  }
+  for (const id of specialFromMap) {
+    if (!specialFromTweaks.has(id)) {
+      console.error(`[TweakExecutor] SPECIAL_HANDLERS entry "${id}" has no matching ALL_TWEAKS entry with _special="${id}"`);
+    }
+  }
+})();

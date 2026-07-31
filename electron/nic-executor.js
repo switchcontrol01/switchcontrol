@@ -17,139 +17,21 @@
  *   reset_verified              — Reset-NetAdapterAdvancedProperty ok
  *   reset_failed                — Reset-NetAdapterAdvancedProperty threw
  */
-const { execFile } = require('child_process');
-const os = require('os');
-const fs = require('fs');
-const path = require('path');
+// ── Shared PowerShell primitives ──────────────────────────────────────────────
+// runElevated uses the VBScript/ShellExecute wrapper (SW_HIDE via nShowCmd=0)
+// which reliably suppresses the console window through the UAC elevation path,
+// unlike Start-Process -WindowStyle Hidden -Verb RunAs which Windows silently ignores.
+// Concurrency is gated by the shared cap in ps-shared.js → powershell-limiter.js,
+// replacing the previous independent _withNicPsSemaphore that was invisible to the
+// global cap and incompatible with the shared ceiling.
+const { queryPS: _psQueryPS, runElevated } = require('./ps-shared');
 
-// ── PowerShell concurrency cap ────────────────────────────────────────────────
-// Mirrors the _withPsSemaphore pattern from tweak-executor.js.
-// Bulk capability scans (getAdapterCapabilities iterates every NIC_PROPERTY_DEFS
-// entry, some falling through to a second ring-buffer PS spawn) can easily fire
-// 10-15+ concurrent powershell.exe processes with no throttling. Cap at 2.
-
-const MAX_NIC_PS_CONCURRENT = 2;
-let _nicPsActive = 0;
-const _nicPsQueue = [];
-
-function _withNicPsSemaphore(fn) {
-  return new Promise((resolve, reject) => {
-    const run = () => {
-      _nicPsActive++;
-      Promise.resolve()
-        .then(fn)
-        .then(resolve, reject)
-        .finally(() => {
-          _nicPsActive--;
-          if (_nicPsQueue.length > 0) _nicPsQueue.shift()();
-        });
-    };
-    if (_nicPsActive < MAX_NIC_PS_CONCURRENT) {
-      run();
-    } else {
-      if (process.env.NODE_ENV !== 'production') {
-        console.log(`[PS-NIC-Semaphore] queued — ${_nicPsActive}/${MAX_NIC_PS_CONCURRENT} active, queue=${_nicPsQueue.length + 1}`);
-      }
-      _nicPsQueue.push(run);
-    }
-  });
-}
-
-// ── PowerShell helpers ────────────────────────────────────────────────────────
-// Diagnostic counter — every powershell.exe spawn from this file increments this.
-// Logged only outside production to avoid noise in shipped builds.
-let _nic_psCount = 0;
-
-function queryPS(command) {
-  return _withNicPsSemaphore(() => {
-    const id = ++_nic_psCount;
-    const t0 = Date.now();
-    if (process.env.NODE_ENV !== 'production') {
-      console.log(`[PS:nic-executor] #${id} queryPS SPAWN ts=${t0} active=${_nicPsActive}`);
-    }
-    return new Promise((resolve) => {
-      execFile(
-        'powershell',
-        ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-Command', command],
-        { timeout: 20000, windowsHide: true },
-        (error, stdout) => {
-          if (process.env.NODE_ENV !== 'production') {
-            console.log(`[PS:nic-executor] #${id} queryPS ${error ? 'FAIL' : 'OK'} ${Date.now() - t0}ms`);
-          }
-          resolve(error ? null : stdout.trim());
-        }
-      );
-    });
-  });
-}
-
-async function runElevated(command) {
-  const tmpDir     = os.tmpdir();
-  const scriptId   = `sc_nic_${Date.now()}_${Math.random().toString(36).slice(2)}`;
-  const scriptPath = path.join(tmpDir, `${scriptId}.ps1`);
-  const resultPath = path.join(tmpDir, `${scriptId}_result.json`);
-  const safeResult = resultPath.replace(/'/g, "''");
-  const safeScript = scriptPath.replace(/'/g, "''");
-
-  const scriptContent = [
-    `$ErrorActionPreference = 'Stop'`,
-    `try {`,
-    `  ${command}`,
-    `  $r = @{ ok = $true; error = $null }`,
-    `} catch {`,
-    `  $r = @{ ok = $false; error = $_.Exception.Message }`,
-    `}`,
-    `try { [System.IO.File]::WriteAllText('${safeResult}', ($r | ConvertTo-Json -Compress)) } catch { $r | ConvertTo-Json -Compress | Out-File -FilePath '${safeResult}' -Encoding ascii -Force }`,
-  ].join('\r\n');
-
-  fs.writeFileSync(scriptPath, scriptContent, 'utf8');
-
-  const launchCmd = `Start-Process powershell -WindowStyle Hidden -ArgumentList @('-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-WindowStyle','Hidden','-File','${safeScript}') -Verb RunAs -Wait`;
-
-  try {
-    // runElevated itself counts as one semaphore slot — the UAC launcher process
-    // is a single powershell.exe that blocks until the elevated child exits.
-    await _withNicPsSemaphore(() => new Promise((resolve, reject) => {
-      execFile(
-        'powershell',
-        ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-Command', launchCmd],
-        { timeout: 120_000, windowsHide: true },
-        (err) => err ? reject(err) : resolve()
-      );
-    }));
-
-    const pollStartTs = Date.now();
-    const deadline = pollStartTs + 5000;
-    while (!fs.existsSync(resultPath)) {
-      if (Date.now() > deadline) break;
-      await new Promise(r => setTimeout(r, 100));
-    }
-
-    if (fs.existsSync(resultPath)) {
-      const raw = fs.readFileSync(resultPath, 'utf8').replace(/^\uFEFF/, '').trim();
-      try {
-        const parsed = JSON.parse(raw);
-        return parsed.ok === true ? { ok: true, error: null } : parsed;
-      } catch {
-        return { ok: false, error: `Could not parse result (raw: ${raw.slice(0, 200)})` };
-      }
-    }
-    // Result file absent: elevated child likely crashed before writing output
-    // (e.g. script path contained characters that broke the PS argument list).
-    // Log enough context to diagnose without revealing the full command.
-    console.error(`[NIC:runElevated] result file absent after ${Date.now() - pollStartTs}ms — elevated child may have crashed. scriptId=${scriptId}`);
-    return { ok: false, error: 'Result file not found after elevation — elevated script did not produce output.' };
-  } catch (err) {
-    const msg = (err && err.message) || String(err);
-    if (/cancel|denied|elevat|access|uac/i.test(msg) || (err && err.code === 1)) {
-      return { ok: false, cancelled: true, error: 'Admin permission was canceled. No system changes were made.' };
-    }
-    return { ok: false, error: `Elevation failed: ${msg}` };
-  } finally {
-    try { fs.unlinkSync(scriptPath); } catch {}
-    try { fs.unlinkSync(resultPath); } catch {}
-  }
-}
+// NIC-specific queryPS: 20s timeout (adapter capability scans can be slow on
+// systems with many physical adapters or sluggish driver stacks).
+const queryPS = (command) => _psQueryPS(command, {
+  timeout: 20000,
+  meta: { file: 'nic-executor.js', fn: 'queryPS', reason: 'nic-read' },
+});
 
 // ── Ring-buffer fallback (Set/Get-NetAdapterRingBuffer) ───────────────────────
 // Some NICs (Realtek, AMD) do not expose *ReceiveBuffers / *TransmitBuffers
@@ -275,7 +157,10 @@ async function _rbSet(safeAdapter, propertyKey, value) {
   const num   = parseInt(value, 10);
   if (isNaN(num)) return { ok: false, outcome: 'write_failed', error: 'Value must be a number' };
 
-  const result = await runElevated(`Set-NetAdapterRingBuffer -Name '${safeAdapter}' -${param} ${num} -EA Stop`);
+  const result = await runElevated(`Set-NetAdapterRingBuffer -Name '${safeAdapter}' -${param} ${num} -EA Stop`, {
+    tempFilePrefix: 'sc_nic_',
+    meta: { file: 'nic-executor.js', fn: '_rbSet', reason: 'nic-ringbuf-set' },
+  });
   if (!result.ok) {
     const outcome = mapNicErrorToOutcome(result.error || '');
     return { ok: false, outcome, error: result.error };
@@ -801,7 +686,10 @@ async function setNicProperty(adapterName, propertyKey, value) {
 
   const command = `Set-NetAdapterAdvancedProperty -Name '${safeAdapter}' -RegistryKeyword '${prop.registryKeyword.replace(/'/g, "''")}' -RegistryValue '${safeValue}' -EA Stop`;
 
-  const result = await runElevated(command);
+  const result = await runElevated(command, {
+    tempFilePrefix: 'sc_nic_',
+    meta: { file: 'nic-executor.js', fn: 'setNicProperty', reason: 'nic-set' },
+  });
   if (!result.ok) {
     const errStr = result.error || '';
     const isInvalidValue = /no matching keyword value/i.test(errStr);
@@ -903,7 +791,10 @@ async function resetNicProperty(adapterName, propertyKey) {
 
   const command = `Reset-NetAdapterAdvancedProperty -Name '${safeAdapter}' -DisplayName '${realDisplayName.replace(/'/g, "''")}' -EA Stop`;
 
-  const result = await runElevated(command);
+  const result = await runElevated(command, {
+    tempFilePrefix: 'sc_nic_',
+    meta: { file: 'nic-executor.js', fn: 'resetNicProperty', reason: 'nic-reset' },
+  });
   if (!result.ok) {
     const isUac = /cancel|denied|elevat|access|uac/i.test(result.error || '');
     return {

@@ -19,6 +19,8 @@
 
 'use strict';
 
+const psLimiter = require('./powershell-limiter');
+
 const { execFile } = require('child_process');
 const fs = require('fs');
 const path = require('path');
@@ -133,7 +135,6 @@ function isProtected(proc) {
       cat === 'System Core' ||
       cat === 'Audio / Voice' ||
       cat === 'Network / VPN' ||
-      cat === 'Security' || // not in union but treated same
       cat === 'Unknown / Review';
     if (isCriticalCategory) return true;
     // Microsoft apps like Teams, Edge helpers, YourPhone = NOT protected by publisher alone
@@ -285,7 +286,18 @@ async function scan() {
       ConvertTo-Json -Compress -Depth 3 $procs
     `;
 
-    const result = await _runPowerShell(psCmd, 15_000);
+    const slot = psLimiter.tryAcquire({ file: 'process-control.js', fn: 'scan', reason: 'process-scan' });
+    if (!slot) {
+      console.warn('[ProcessControl:Scan] psLimiter busy — returning cache or empty');
+      _scanInFlight = false;
+      return _lastScan || _safeEmptyResult();
+    }
+    let result;
+    try {
+      result = await _runPowerShell(psCmd, 15_000);
+    } finally {
+      psLimiter.release(slot);
+    }
     let rawProcs = [];
     try {
       rawProcs = JSON.parse(result.stdout);
@@ -470,6 +482,11 @@ async function applyPlan(plan) {
       continue;
     }
 
+    const slotStop = psLimiter.tryAcquire({ file: 'process-control.js', fn: 'applyPlan:stop', reason: 'stop-process' });
+    if (!slotStop) {
+      errors.push({ name: proc.name, pid: proc.pid, error: 'System is busy, try again shortly.' });
+      continue;
+    }
     try {
       await _runPowerShell(`Stop-Process -Id ${proc.pid} -Force -ErrorAction Stop`, 5_000);
       stopped.push(proc.name);
@@ -477,6 +494,8 @@ async function applyPlan(plan) {
     } catch (err) {
       errors.push({ name: proc.name, pid: proc.pid, error: err.message });
       console.error(`[ProcessControl:Apply] failed to stop ${proc.name} (pid=${proc.pid}): ${err.message}`);
+    } finally {
+      psLimiter.release(slotStop);
     }
   }
 
@@ -487,6 +506,11 @@ async function applyPlan(plan) {
       continue;
     }
 
+    const slotLower = psLimiter.tryAcquire({ file: 'process-control.js', fn: 'applyPlan:lower', reason: 'lower-priority' });
+    if (!slotLower) {
+      errors.push({ name: proc.name, pid: proc.pid, error: 'System is busy, try again shortly.' });
+      continue;
+    }
     try {
       await _runPowerShell(`(Get-Process -Id ${proc.pid} -ErrorAction Stop).PriorityClass = 'BelowNormal'`, 5_000);
       priorityLowered.push(proc.name);
@@ -494,6 +518,8 @@ async function applyPlan(plan) {
     } catch (err) {
       errors.push({ name: proc.name, pid: proc.pid, error: err.message });
       console.error(`[ProcessControl:Apply] failed to lower priority ${proc.name} (pid=${proc.pid}): ${err.message}`);
+    } finally {
+      psLimiter.release(slotLower);
     }
   }
 
@@ -560,6 +586,11 @@ async function restoreLast() {
 
   // Restore priority changes
   for (const name of record.actionsApplied?.priorityLowered || []) {
+    const slotRestore = psLimiter.tryAcquire({ file: 'process-control.js', fn: 'restoreLast:priority', reason: 'restore-priority' });
+    if (!slotRestore) {
+      failed.push({ name, action: 'priority_restore', reason: 'System is busy, try again shortly.' });
+      continue;
+    }
     try {
       // Find process by name and restore to Normal
       await _runPowerShell(`$p = Get-Process -Name '${name.replace(/'/g, "''")}' -ErrorAction SilentlyContinue; if ($p) { $p.PriorityClass = 'Normal' }`, 5_000);
@@ -568,6 +599,8 @@ async function restoreLast() {
     } catch (err) {
       failed.push({ name, action: 'priority_restore', reason: err.message });
       console.error(`[ProcessControl:Restore] failed to restore priority for ${name}: ${err.message}`);
+    } finally {
+      psLimiter.release(slotRestore);
     }
   }
 
@@ -598,6 +631,8 @@ async function terminate(pid) {
     return { ok: false, error: 'Cannot terminate protected process: ' + proc.name };
   }
 
+  const slot = psLimiter.tryAcquire({ file: 'process-control.js', fn: 'terminate', reason: 'terminate-process' });
+  if (!slot) return { ok: false, error: 'System is busy, try again shortly.' };
   try {
     await _runPowerShell(`Stop-Process -Id ${pid} -Force -ErrorAction Stop`, 5_000);
     console.log(`[ProcessControl:Terminate] stopped pid=${pid} name=${proc.name}`);
@@ -605,6 +640,8 @@ async function terminate(pid) {
   } catch (err) {
     console.error(`[ProcessControl:Terminate] failed pid=${pid}:`, err.message);
     return { ok: false, error: err.message, name: proc.name, pid };
+  } finally {
+    psLimiter.release(slot);
   }
 }
 

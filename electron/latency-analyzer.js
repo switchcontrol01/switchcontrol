@@ -27,7 +27,8 @@ const path = require('path');
 
 const SAMPLE_INTERVAL_MS = 2000;
 const PS_TIMEOUT_MS      = 8000;  // per-sample PowerShell timeout
-const MAX_CONCURRENT_PS  = 1;     // one active poll at a time
+// Note: concurrent-poll prevention is done by the `if (_sampleProcess)` guard
+// in poll() — there is no semaphore; the guard is the correct single-flight mechanism.
 
 // ── Module state ───────────────────────────────────────────────────────────────
 

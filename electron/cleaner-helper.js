@@ -35,45 +35,79 @@ const temp    = process.env.TEMP  || path.join(os.homedir(), 'AppData', 'Local',
 const local   = process.env.LOCALAPPDATA || path.join(os.homedir(), 'AppData', 'Local');
 const roaming = process.env.APPDATA      || path.join(os.homedir(), 'AppData', 'Roaming');
 
+// ── SCAN_DEFS builder helpers ─────────────────────────────────────────────────
+// Returns a scanCmd thunk: scans a list of paths for matching files.
+// filter:  optional glob (e.g. '*.pf'); null = all files
+// recurse: true = -Recurse (default)
+function buildPathsScanCmd(paths, { filter = null, recurse = true } = {}) {
+  const psArr = paths.map(p => `'${p}'`).join(',\n        ');
+  let gci = 'Get-ChildItem $p';
+  if (filter) gci += ` -Filter '${filter}'`;
+  if (recurse) gci += ' -Recurse';
+  gci += ' -Force -ErrorAction SilentlyContinue';
+  const fileWhere = !filter ? ' | Where-Object {!$_.PSIsContainer}' : '';
+  return () => `
+      $paths = @(
+        ${psArr}
+      )
+      $total = 0; $cnt = 0
+      foreach ($p in $paths) {
+        If (Test-Path $p) {
+          $items = ${gci}${fileWhere}
+          $total += ($items | Measure-Object Length -Sum).Sum
+          $cnt   += $items.Count
+        }
+      }
+      Write-Output "$total|$cnt"
+    `;
+}
+
+// Returns a cleanCmd thunk: deletes matching files across a list of paths.
+// removeEmptyDirs: true = also prune empty directories after file deletion
+function buildPathsCleanCmd(paths, { filter = null, recurse = true, removeEmptyDirs = false } = {}) {
+  const psArr = paths.map(p => `'${p}'`).join(',\n        ');
+  let gci = 'Get-ChildItem $p';
+  if (filter) gci += ` -Filter '${filter}'`;
+  if (recurse) gci += ' -Recurse';
+  gci += ' -Force -ErrorAction SilentlyContinue';
+  const fileWhere = !filter ? '\n            | Where-Object {!$_.PSIsContainer}' : '';
+  const emptyDirPass = removeEmptyDirs ? `
+          # Remove empty dirs (deepest first)
+          Get-ChildItem $p -Recurse -Force -ErrorAction SilentlyContinue |
+            Where-Object {$_.PSIsContainer} |
+            Sort-Object FullName -Descending |
+            ForEach-Object {
+              Try { Remove-Item $_.FullName -Force -ErrorAction Stop } Catch {}
+            }` : '';
+  return () => `
+      $paths = @(
+        ${psArr}
+      )
+      $removed = 0; $cnt = 0; $fail = 0
+      foreach ($p in $paths) {
+        If (Test-Path $p) {
+          ${gci}${fileWhere} |
+            ForEach-Object {
+              Try {
+                $sz = $_.Length
+                Remove-Item $_.FullName -Force -ErrorAction Stop
+                $removed += $sz; $cnt++
+              } Catch { $fail++ }
+            }${emptyDirPass}
+        }
+      }
+      Write-Output "$removed|$cnt|$fail"
+    `;
+}
+
 // ── Item scan definitions ─────────────────────────────────────────────────────
 // Each entry describes HOW to scan for an item. Actual PowerShell is inlined.
 
 const SCAN_DEFS = {
   // Storage Noise ─────────────────────────────────────────────────────────────
   windows_temp: {
-    scanCmd: () => `
-      $paths = @('${temp}', '${windir}\\Temp')
-      $total = 0; $cnt = 0
-      foreach ($p in $paths) {
-        $items = Get-ChildItem $p -Recurse -Force -ErrorAction SilentlyContinue
-        $total += ($items | Where-Object {!$_.PSIsContainer} | Measure-Object Length -Sum).Sum
-        $cnt   += ($items | Where-Object {!$_.PSIsContainer}).Count
-      }
-      Write-Output "$total|$cnt"
-    `,
-    cleanCmd: () => `
-      $paths = @('${temp}', '${windir}\\Temp')
-      $removed = 0; $cnt = 0; $fail = 0
-      foreach ($p in $paths) {
-        Get-ChildItem $p -Recurse -Force -ErrorAction SilentlyContinue |
-          Where-Object {!$_.PSIsContainer} |
-          ForEach-Object {
-            Try {
-              $sz = $_.Length
-              Remove-Item $_.FullName -Force -ErrorAction Stop
-              $removed += $sz; $cnt++
-            } Catch { $fail++ }
-          }
-        # Remove empty dirs
-        Get-ChildItem $p -Recurse -Force -ErrorAction SilentlyContinue |
-          Where-Object {$_.PSIsContainer} |
-          Sort-Object FullName -Descending |
-          ForEach-Object {
-            Try { Remove-Item $_.FullName -Force -ErrorAction Stop } Catch {}
-          }
-      }
-      Write-Output "$removed|$cnt|$fail"
-    `,
+    scanCmd: buildPathsScanCmd([temp, windir + '\\Temp']),
+    cleanCmd: buildPathsCleanCmd([temp, windir + '\\Temp'], { removeEmptyDirs: true }),
   },
 
   update_downloads: {
@@ -105,230 +139,53 @@ const SCAN_DEFS = {
   },
 
   crash_dumps: {
-    scanCmd: () => `
-      $paths = @(
-        '${windir}\\Minidump',
-        '${local}\\CrashDumps',
-        '${windir}\\LiveKernelReports'
-      )
-      $total = 0; $cnt = 0
-      foreach ($p in $paths) {
-        If (Test-Path $p) {
-          $items = Get-ChildItem $p -Recurse -Force -ErrorAction SilentlyContinue | Where-Object {!$_.PSIsContainer}
-          $total += ($items | Measure-Object Length -Sum).Sum
-          $cnt   += $items.Count
-        }
-      }
-      Write-Output "$total|$cnt"
-    `,
-    cleanCmd: () => `
-      $paths = @('${windir}\\Minidump','${local}\\CrashDumps','${windir}\\LiveKernelReports')
-      $removed = 0; $cnt = 0
-      foreach ($p in $paths) {
-        If (Test-Path $p) {
-          Get-ChildItem $p -Recurse -Force -ErrorAction SilentlyContinue |
-            Where-Object {!$_.PSIsContainer} |
-            ForEach-Object {
-              Try { $sz=$_.Length; Remove-Item $_.FullName -Force -EA Stop; $removed+=$sz; $cnt++ } Catch {}
-            }
-        }
-      }
-      Write-Output "$removed|$cnt|0"
-    `,
+    scanCmd: buildPathsScanCmd([windir + '\\Minidump', local + '\\CrashDumps', windir + '\\LiveKernelReports']),
+    cleanCmd: buildPathsCleanCmd([windir + '\\Minidump', local + '\\CrashDumps', windir + '\\LiveKernelReports']),
   },
 
   wer_reports: {
-    scanCmd: () => `
-      $paths = @(
-        '${local}\\Microsoft\\Windows\\WER\\ReportArchive',
-        '${local}\\Microsoft\\Windows\\WER\\ReportQueue',
-        '${roaming}\\Microsoft\\Windows\\WER'
-      )
-      $total = 0; $cnt = 0
-      foreach ($p in $paths) {
-        If (Test-Path $p) {
-          $items = Get-ChildItem $p -Recurse -Force -ErrorAction SilentlyContinue | Where-Object {!$_.PSIsContainer}
-          $total += ($items | Measure-Object Length -Sum).Sum
-          $cnt   += $items.Count
-        }
-      }
-      Write-Output "$total|$cnt"
-    `,
-    cleanCmd: () => `
-      $paths = @(
-        '${local}\\Microsoft\\Windows\\WER\\ReportArchive',
-        '${local}\\Microsoft\\Windows\\WER\\ReportQueue',
-        '${roaming}\\Microsoft\\Windows\\WER'
-      )
-      $removed = 0; $cnt = 0
-      foreach ($p in $paths) {
-        If (Test-Path $p) {
-          Get-ChildItem $p -Recurse -Force -ErrorAction SilentlyContinue |
-            Where-Object {!$_.PSIsContainer} |
-            ForEach-Object { Try { $sz=$_.Length; Remove-Item $_.FullName -Force -EA Stop; $removed+=$sz; $cnt++ } Catch {} }
-        }
-      }
-      Write-Output "$removed|$cnt|0"
-    `,
+    scanCmd: buildPathsScanCmd([
+      local + '\\Microsoft\\Windows\\WER\\ReportArchive',
+      local + '\\Microsoft\\Windows\\WER\\ReportQueue',
+      roaming + '\\Microsoft\\Windows\\WER',
+    ]),
+    cleanCmd: buildPathsCleanCmd([
+      local + '\\Microsoft\\Windows\\WER\\ReportArchive',
+      local + '\\Microsoft\\Windows\\WER\\ReportQueue',
+      roaming + '\\Microsoft\\Windows\\WER',
+    ]),
   },
 
   // Privacy Residue ──────────────────────────────────────────────────────────
   thumbcache: {
-    scanCmd: () => `
-      $p = '${local}\\Microsoft\\Windows\\Explorer'
-      If (Test-Path $p) {
-        $items = Get-ChildItem $p -Filter 'thumbcache_*.db' -Force -ErrorAction SilentlyContinue
-        $total = ($items | Measure-Object Length -Sum).Sum
-        Write-Output "$total|$($items.Count)"
-      } Else { Write-Output "0|0" }
-    `,
-    cleanCmd: () => `
-      $p = '${local}\\Microsoft\\Windows\\Explorer'
-      $removed = 0; $cnt = 0
-      If (Test-Path $p) {
-        Get-ChildItem $p -Filter 'thumbcache_*.db' -Force -ErrorAction SilentlyContinue |
-          ForEach-Object { Try { $sz=$_.Length; Remove-Item $_.FullName -Force -EA Stop; $removed+=$sz; $cnt++ } Catch {} }
-      }
-      Write-Output "$removed|$cnt|0"
-    `,
+    scanCmd: buildPathsScanCmd([local + '\\Microsoft\\Windows\\Explorer'], { filter: 'thumbcache_*.db', recurse: false }),
+    cleanCmd: buildPathsCleanCmd([local + '\\Microsoft\\Windows\\Explorer'], { filter: 'thumbcache_*.db', recurse: false }),
   },
 
   recent_files: {
-    scanCmd: () => `
-      $p = '${roaming}\\Microsoft\\Windows\\Recent'
-      If (Test-Path $p) {
-        $items = Get-ChildItem $p -Filter '*.lnk' -Force -ErrorAction SilentlyContinue
-        $total = ($items | Measure-Object Length -Sum).Sum
-        Write-Output "$total|$($items.Count)"
-      } Else { Write-Output "0|0" }
-    `,
-    cleanCmd: () => `
-      $p = '${roaming}\\Microsoft\\Windows\\Recent'
-      $removed = 0; $cnt = 0
-      If (Test-Path $p) {
-        Get-ChildItem $p -Filter '*.lnk' -Force -ErrorAction SilentlyContinue |
-          ForEach-Object { Try { $sz=$_.Length; Remove-Item $_.FullName -Force -EA Stop; $removed+=$sz; $cnt++ } Catch {} }
-      }
-      Write-Output "$removed|$cnt|0"
-    `,
+    scanCmd: buildPathsScanCmd([roaming + '\\Microsoft\\Windows\\Recent'], { filter: '*.lnk', recurse: false }),
+    cleanCmd: buildPathsCleanCmd([roaming + '\\Microsoft\\Windows\\Recent'], { filter: '*.lnk', recurse: false }),
   },
 
   // Latency Killers ──────────────────────────────────────────────────────────
   discord_cache: {
-    scanCmd: () => `
-      $paths = @('${roaming}\\discord\\Cache','${roaming}\\discord\\Code Cache','${roaming}\\discord\\GPUCache')
-      $total = 0; $cnt = 0
-      foreach ($p in $paths) {
-        If (Test-Path $p) {
-          $items = Get-ChildItem $p -Recurse -Force -ErrorAction SilentlyContinue | Where-Object {!$_.PSIsContainer}
-          $total += ($items | Measure-Object Length -Sum).Sum; $cnt += $items.Count
-        }
-      }
-      Write-Output "$total|$cnt"
-    `,
-    cleanCmd: () => `
-      $paths = @('${roaming}\\discord\\Cache','${roaming}\\discord\\Code Cache','${roaming}\\discord\\GPUCache')
-      $removed = 0; $cnt = 0
-      foreach ($p in $paths) {
-        If (Test-Path $p) {
-          Get-ChildItem $p -Recurse -Force -ErrorAction SilentlyContinue |
-            Where-Object {!$_.PSIsContainer} |
-            ForEach-Object { Try { $sz=$_.Length; Remove-Item $_.FullName -Force -EA Stop; $removed+=$sz; $cnt++ } Catch {} }
-        }
-      }
-      Write-Output "$removed|$cnt|0"
-    `,
+    scanCmd: buildPathsScanCmd([roaming + '\\discord\\Cache', roaming + '\\discord\\Code Cache', roaming + '\\discord\\GPUCache']),
+    cleanCmd: buildPathsCleanCmd([roaming + '\\discord\\Cache', roaming + '\\discord\\Code Cache', roaming + '\\discord\\GPUCache']),
   },
 
   steam_htmlcache: {
-    scanCmd: () => `
-      $paths = @(
-        '${local}\\Steam\\htmlcache',
-        '${roaming}\\Microsoft\\Windows\\INetCache'
-      )
-      $total = 0; $cnt = 0
-      foreach ($p in $paths) {
-        If (Test-Path $p) {
-          $items = Get-ChildItem $p -Recurse -Force -ErrorAction SilentlyContinue | Where-Object {!$_.PSIsContainer}
-          $total += ($items | Measure-Object Length -Sum).Sum; $cnt += $items.Count
-        }
-      }
-      Write-Output "$total|$cnt"
-    `,
-    cleanCmd: () => `
-      $paths = @('${local}\\Steam\\htmlcache','${roaming}\\Microsoft\\Windows\\INetCache')
-      $removed = 0; $cnt = 0
-      foreach ($p in $paths) {
-        If (Test-Path $p) {
-          Get-ChildItem $p -Recurse -Force -ErrorAction SilentlyContinue |
-            Where-Object {!$_.PSIsContainer} |
-            ForEach-Object { Try { $sz=$_.Length; Remove-Item $_.FullName -Force -EA Stop; $removed+=$sz; $cnt++ } Catch {} }
-        }
-      }
-      Write-Output "$removed|$cnt|0"
-    `,
+    scanCmd: buildPathsScanCmd([local + '\\Steam\\htmlcache', roaming + '\\Microsoft\\Windows\\INetCache']),
+    cleanCmd: buildPathsCleanCmd([local + '\\Steam\\htmlcache', roaming + '\\Microsoft\\Windows\\INetCache']),
   },
 
   shader_cache: {
-    scanCmd: () => `
-      $paths = @(
-        '${local}\\NVIDIA\\DXCache',
-        '${local}\\NVIDIA\\GLCache',
-        '${local}\\D3DSCache',
-        '${local}\\AMD\\DxCache'
-      )
-      $total = 0; $cnt = 0
-      foreach ($p in $paths) {
-        If (Test-Path $p) {
-          $items = Get-ChildItem $p -Recurse -Force -ErrorAction SilentlyContinue | Where-Object {!$_.PSIsContainer}
-          $total += ($items | Measure-Object Length -Sum).Sum; $cnt += $items.Count
-        }
-      }
-      Write-Output "$total|$cnt"
-    `,
-    cleanCmd: () => `
-      $paths = @('${local}\\NVIDIA\\DXCache','${local}\\NVIDIA\\GLCache','${local}\\D3DSCache','${local}\\AMD\\DxCache')
-      $removed = 0; $cnt = 0
-      foreach ($p in $paths) {
-        If (Test-Path $p) {
-          Get-ChildItem $p -Recurse -Force -ErrorAction SilentlyContinue |
-            Where-Object {!$_.PSIsContainer} |
-            ForEach-Object { Try { $sz=$_.Length; Remove-Item $_.FullName -Force -EA Stop; $removed+=$sz; $cnt++ } Catch {} }
-        }
-      }
-      Write-Output "$removed|$cnt|0"
-    `,
+    scanCmd: buildPathsScanCmd([local + '\\NVIDIA\\DXCache', local + '\\NVIDIA\\GLCache', local + '\\D3DSCache', local + '\\AMD\\DxCache']),
+    cleanCmd: buildPathsCleanCmd([local + '\\NVIDIA\\DXCache', local + '\\NVIDIA\\GLCache', local + '\\D3DSCache', local + '\\AMD\\DxCache']),
   },
 
   anticheat_temp: {
-    scanCmd: () => `
-      $paths = @(
-        '${local}\\Temp\\EasyAntiCheat',
-        '${local}\\Temp\\Vanguard',
-        '${local}\\Temp\\BattlEye',
-        '${windir}\\Temp\\EasyAntiCheat'
-      )
-      $total = 0; $cnt = 0
-      foreach ($p in $paths) {
-        If (Test-Path $p) {
-          $items = Get-ChildItem $p -Recurse -Force -ErrorAction SilentlyContinue | Where-Object {!$_.PSIsContainer}
-          $total += ($items | Measure-Object Length -Sum).Sum; $cnt += $items.Count
-        }
-      }
-      Write-Output "$total|$cnt"
-    `,
-    cleanCmd: () => `
-      $paths = @('${local}\\Temp\\EasyAntiCheat','${local}\\Temp\\Vanguard','${local}\\Temp\\BattlEye','${windir}\\Temp\\EasyAntiCheat')
-      $removed = 0; $cnt = 0
-      foreach ($p in $paths) {
-        If (Test-Path $p) {
-          Get-ChildItem $p -Recurse -Force -ErrorAction SilentlyContinue |
-            Where-Object {!$_.PSIsContainer} |
-            ForEach-Object { Try { $sz=$_.Length; Remove-Item $_.FullName -Force -EA Stop; $removed+=$sz; $cnt++ } Catch {} }
-        }
-      }
-      Write-Output "$removed|$cnt|0"
-    `,
+    scanCmd: buildPathsScanCmd([local + '\\Temp\\EasyAntiCheat', local + '\\Temp\\Vanguard', local + '\\Temp\\BattlEye', windir + '\\Temp\\EasyAntiCheat']),
+    cleanCmd: buildPathsCleanCmd([local + '\\Temp\\EasyAntiCheat', local + '\\Temp\\Vanguard', local + '\\Temp\\BattlEye', windir + '\\Temp\\EasyAntiCheat']),
   },
 
   dns_cache: {
@@ -482,191 +339,55 @@ const SCAN_DEFS = {
   },
 
   epic_games_cache: {
-    scanCmd: () => `
-      $paths = @(
-        '${local}\\EpicGamesLauncher\\Saved\\webcache',
-        '${local}\\EpicGamesLauncher\\Saved\\Logs'
-      )
-      $total = 0; $cnt = 0
-      foreach ($p in $paths) {
-        If (Test-Path $p) {
-          $items = Get-ChildItem $p -Recurse -Force -ErrorAction SilentlyContinue | Where-Object {!$_.PSIsContainer}
-          $total += ($items | Measure-Object Length -Sum).Sum; $cnt += $items.Count
-        }
-      }
-      Write-Output "$total|$cnt"
-    `,
-    cleanCmd: () => `
-      $paths = @('${local}\\EpicGamesLauncher\\Saved\\webcache','${local}\\EpicGamesLauncher\\Saved\\Logs')
-      $removed = 0; $cnt = 0
-      foreach ($p in $paths) {
-        If (Test-Path $p) {
-          Get-ChildItem $p -Recurse -Force -ErrorAction SilentlyContinue |
-            Where-Object {!$_.PSIsContainer} |
-            ForEach-Object { Try { $sz=$_.Length; Remove-Item $_.FullName -Force -EA Stop; $removed+=$sz; $cnt++ } Catch {} }
-        }
-      }
-      Write-Output "$removed|$cnt|0"
-    `,
+    scanCmd: buildPathsScanCmd([local + '\\EpicGamesLauncher\\Saved\\webcache', local + '\\EpicGamesLauncher\\Saved\\Logs']),
+    cleanCmd: buildPathsCleanCmd([local + '\\EpicGamesLauncher\\Saved\\webcache', local + '\\EpicGamesLauncher\\Saved\\Logs']),
   },
 
   // ── Apps ──────────────────────────────────────────────────────────────────
   spotify_cache: {
-    scanCmd: () => `
-      $paths = @('${local}\\Spotify\\Data','${roaming}\\Spotify\\Data')
-      $total = 0; $cnt = 0
-      foreach ($p in $paths) {
-        If (Test-Path $p) {
-          $items = Get-ChildItem $p -Recurse -Force -ErrorAction SilentlyContinue | Where-Object {!$_.PSIsContainer}
-          $total += ($items | Measure-Object Length -Sum).Sum; $cnt += $items.Count
-        }
-      }
-      Write-Output "$total|$cnt"
-    `,
-    cleanCmd: () => `
-      $paths = @('${local}\\Spotify\\Data','${roaming}\\Spotify\\Data')
-      $removed = 0; $cnt = 0
-      foreach ($p in $paths) {
-        If (Test-Path $p) {
-          Get-ChildItem $p -Recurse -Force -ErrorAction SilentlyContinue |
-            Where-Object {!$_.PSIsContainer} |
-            ForEach-Object { Try { $sz=$_.Length; Remove-Item $_.FullName -Force -EA Stop; $removed+=$sz; $cnt++ } Catch {} }
-        }
-      }
-      Write-Output "$removed|$cnt|0"
-    `,
+    scanCmd: buildPathsScanCmd([local + '\\Spotify\\Data', roaming + '\\Spotify\\Data']),
+    cleanCmd: buildPathsCleanCmd([local + '\\Spotify\\Data', roaming + '\\Spotify\\Data']),
   },
 
   vscode_cache: {
-    scanCmd: () => `
-      $paths = @('${roaming}\\Code\\Cache','${roaming}\\Code\\CachedData','${roaming}\\Code\\logs')
-      $total = 0; $cnt = 0
-      foreach ($p in $paths) {
-        If (Test-Path $p) {
-          $items = Get-ChildItem $p -Recurse -Force -ErrorAction SilentlyContinue | Where-Object {!$_.PSIsContainer}
-          $total += ($items | Measure-Object Length -Sum).Sum; $cnt += $items.Count
-        }
-      }
-      Write-Output "$total|$cnt"
-    `,
-    cleanCmd: () => `
-      $paths = @('${roaming}\\Code\\Cache','${roaming}\\Code\\CachedData','${roaming}\\Code\\logs')
-      $removed = 0; $cnt = 0
-      foreach ($p in $paths) {
-        If (Test-Path $p) {
-          Get-ChildItem $p -Recurse -Force -ErrorAction SilentlyContinue |
-            Where-Object {!$_.PSIsContainer} |
-            ForEach-Object { Try { $sz=$_.Length; Remove-Item $_.FullName -Force -EA Stop; $removed+=$sz; $cnt++ } Catch {} }
-        }
-      }
-      Write-Output "$removed|$cnt|0"
-    `,
+    scanCmd: buildPathsScanCmd([roaming + '\\Code\\Cache', roaming + '\\Code\\CachedData', roaming + '\\Code\\logs']),
+    cleanCmd: buildPathsCleanCmd([roaming + '\\Code\\Cache', roaming + '\\Code\\CachedData', roaming + '\\Code\\logs']),
   },
 
   teams_cache: {
-    scanCmd: () => `
-      $paths = @(
-        '${roaming}\\Microsoft\\Teams\\Cache',
-        '${roaming}\\Microsoft\\Teams\\blob_storage',
-        '${roaming}\\Microsoft\\Teams\\databases',
-        '${roaming}\\Microsoft\\Teams\\GPUCache',
-        '${roaming}\\Microsoft\\Teams\\IndexedDB',
-        '${roaming}\\Microsoft\\Teams\\Local Storage',
-        '${roaming}\\Microsoft\\Teams\\tmp'
-      )
-      $total = 0; $cnt = 0
-      foreach ($p in $paths) {
-        If (Test-Path $p) {
-          $items = Get-ChildItem $p -Recurse -Force -ErrorAction SilentlyContinue | Where-Object {!$_.PSIsContainer}
-          $total += ($items | Measure-Object Length -Sum).Sum; $cnt += $items.Count
-        }
-      }
-      Write-Output "$total|$cnt"
-    `,
-    cleanCmd: () => `
-      $paths = @('${roaming}\\Microsoft\\Teams\\Cache','${roaming}\\Microsoft\\Teams\\blob_storage','${roaming}\\Microsoft\\Teams\\databases','${roaming}\\Microsoft\\Teams\\GPUCache','${roaming}\\Microsoft\\Teams\\IndexedDB','${roaming}\\Microsoft\\Teams\\Local Storage','${roaming}\\Microsoft\\Teams\\tmp')
-      $removed = 0; $cnt = 0
-      foreach ($p in $paths) {
-        If (Test-Path $p) {
-          Get-ChildItem $p -Recurse -Force -ErrorAction SilentlyContinue |
-            Where-Object {!$_.PSIsContainer} |
-            ForEach-Object { Try { $sz=$_.Length; Remove-Item $_.FullName -Force -EA Stop; $removed+=$sz; $cnt++ } Catch {} }
-        }
-      }
-      Write-Output "$removed|$cnt|0"
-    `,
+    scanCmd: buildPathsScanCmd([
+      roaming + '\\Microsoft\\Teams\\Cache',
+      roaming + '\\Microsoft\\Teams\\blob_storage',
+      roaming + '\\Microsoft\\Teams\\databases',
+      roaming + '\\Microsoft\\Teams\\GPUCache',
+      roaming + '\\Microsoft\\Teams\\IndexedDB',
+      roaming + '\\Microsoft\\Teams\\Local Storage',
+      roaming + '\\Microsoft\\Teams\\tmp',
+    ]),
+    cleanCmd: buildPathsCleanCmd([
+      roaming + '\\Microsoft\\Teams\\Cache',
+      roaming + '\\Microsoft\\Teams\\blob_storage',
+      roaming + '\\Microsoft\\Teams\\databases',
+      roaming + '\\Microsoft\\Teams\\GPUCache',
+      roaming + '\\Microsoft\\Teams\\IndexedDB',
+      roaming + '\\Microsoft\\Teams\\Local Storage',
+      roaming + '\\Microsoft\\Teams\\tmp',
+    ]),
   },
 
   zoom_cache: {
-    scanCmd: () => `
-      $paths = @('${roaming}\\Zoom\\data','${local}\\Zoom\\data')
-      $total = 0; $cnt = 0
-      foreach ($p in $paths) {
-        If (Test-Path $p) {
-          $items = Get-ChildItem $p -Recurse -Force -ErrorAction SilentlyContinue | Where-Object {!$_.PSIsContainer}
-          $total += ($items | Measure-Object Length -Sum).Sum; $cnt += $items.Count
-        }
-      }
-      Write-Output "$total|$cnt"
-    `,
-    cleanCmd: () => `
-      $paths = @('${roaming}\\Zoom\\data','${local}\\Zoom\\data')
-      $removed = 0; $cnt = 0
-      foreach ($p in $paths) {
-        If (Test-Path $p) {
-          Get-ChildItem $p -Recurse -Force -ErrorAction SilentlyContinue |
-            Where-Object {!$_.PSIsContainer} |
-            ForEach-Object { Try { $sz=$_.Length; Remove-Item $_.FullName -Force -EA Stop; $removed+=$sz; $cnt++ } Catch {} }
-        }
-      }
-      Write-Output "$removed|$cnt|0"
-    `,
+    scanCmd: buildPathsScanCmd([roaming + '\\Zoom\\data', local + '\\Zoom\\data']),
+    cleanCmd: buildPathsCleanCmd([roaming + '\\Zoom\\data', local + '\\Zoom\\data']),
   },
 
   obs_cache: {
-    scanCmd: () => `
-      $paths = @('${roaming}\\obs-studio\\logs','${roaming}\\obs-studio\\crashes')
-      $total = 0; $cnt = 0
-      foreach ($p in $paths) {
-        If (Test-Path $p) {
-          $items = Get-ChildItem $p -Recurse -Force -ErrorAction SilentlyContinue | Where-Object {!$_.PSIsContainer}
-          $total += ($items | Measure-Object Length -Sum).Sum; $cnt += $items.Count
-        }
-      }
-      Write-Output "$total|$cnt"
-    `,
-    cleanCmd: () => `
-      $paths = @('${roaming}\\obs-studio\\logs','${roaming}\\obs-studio\\crashes')
-      $removed = 0; $cnt = 0
-      foreach ($p in $paths) {
-        If (Test-Path $p) {
-          Get-ChildItem $p -Recurse -Force -ErrorAction SilentlyContinue |
-            Where-Object {!$_.PSIsContainer} |
-            ForEach-Object { Try { $sz=$_.Length; Remove-Item $_.FullName -Force -EA Stop; $removed+=$sz; $cnt++ } Catch {} }
-        }
-      }
-      Write-Output "$removed|$cnt|0"
-    `,
+    scanCmd: buildPathsScanCmd([roaming + '\\obs-studio\\logs', roaming + '\\obs-studio\\crashes']),
+    cleanCmd: buildPathsCleanCmd([roaming + '\\obs-studio\\logs', roaming + '\\obs-studio\\crashes']),
   },
 
   voicemeeter_logs: {
-    scanCmd: () => `
-      $p = '${roaming}\\VoicemeeterBanana'
-      If (Test-Path $p) {
-        $items = Get-ChildItem $p -Filter '*.log' -Force -ErrorAction SilentlyContinue
-        $total = ($items | Measure-Object Length -Sum).Sum
-        Write-Output "$total|$($items.Count)"
-      } Else { Write-Output "0|0" }
-    `,
-    cleanCmd: () => `
-      $p = '${roaming}\\VoicemeeterBanana'
-      $removed = 0; $cnt = 0
-      If (Test-Path $p) {
-        Get-ChildItem $p -Filter '*.log' -Force -ErrorAction SilentlyContinue |
-          ForEach-Object { Try { $sz=$_.Length; Remove-Item $_.FullName -Force -EA Stop; $removed+=$sz; $cnt++ } Catch {} }
-      }
-      Write-Output "$removed|$cnt|0"
-    `,
+    scanCmd: buildPathsScanCmd([roaming + '\\VoicemeeterBanana'], { filter: '*.log', recurse: false }),
+    cleanCmd: buildPathsCleanCmd([roaming + '\\VoicemeeterBanana'], { filter: '*.log', recurse: false }),
   },
 
   adobe_cache: {
@@ -717,88 +438,19 @@ const SCAN_DEFS = {
   },
 
   onedrive_cache: {
-    scanCmd: () => `
-      $paths = @('${local}\\Microsoft\\OneDrive\\logs','${local}\\Microsoft\\OneDrive\\temp')
-      $total = 0; $cnt = 0
-      foreach ($p in $paths) {
-        If (Test-Path $p) {
-          $items = Get-ChildItem $p -Recurse -Force -ErrorAction SilentlyContinue | Where-Object {!$_.PSIsContainer}
-          $total += ($items | Measure-Object Length -Sum).Sum; $cnt += $items.Count
-        }
-      }
-      Write-Output "$total|$cnt"
-    `,
-    cleanCmd: () => `
-      $paths = @('${local}\\Microsoft\\OneDrive\\logs','${local}\\Microsoft\\OneDrive\\temp')
-      $removed = 0; $cnt = 0
-      foreach ($p in $paths) {
-        If (Test-Path $p) {
-          Get-ChildItem $p -Recurse -Force -ErrorAction SilentlyContinue |
-            Where-Object {!$_.PSIsContainer} |
-            ForEach-Object { Try { $sz=$_.Length; Remove-Item $_.FullName -Force -EA Stop; $removed+=$sz; $cnt++ } Catch {} }
-        }
-      }
-      Write-Output "$removed|$cnt|0"
-    `,
+    scanCmd: buildPathsScanCmd([local + '\\Microsoft\\OneDrive\\logs', local + '\\Microsoft\\OneDrive\\temp']),
+    cleanCmd: buildPathsCleanCmd([local + '\\Microsoft\\OneDrive\\logs', local + '\\Microsoft\\OneDrive\\temp']),
   },
 
   // ── Browsers ──────────────────────────────────────────────────────────────
   edge_cache: {
-    scanCmd: () => `
-      $paths = @(
-        '${local}\\Microsoft\\Edge\\User Data\\Default\\Cache',
-        '${local}\\Microsoft\\Edge\\User Data\\Default\\Code Cache'
-      )
-      $total = 0; $cnt = 0
-      foreach ($p in $paths) {
-        If (Test-Path $p) {
-          $items = Get-ChildItem $p -Recurse -Force -ErrorAction SilentlyContinue | Where-Object {!$_.PSIsContainer}
-          $total += ($items | Measure-Object Length -Sum).Sum; $cnt += $items.Count
-        }
-      }
-      Write-Output "$total|$cnt"
-    `,
-    cleanCmd: () => `
-      $paths = @('${local}\\Microsoft\\Edge\\User Data\\Default\\Cache','${local}\\Microsoft\\Edge\\User Data\\Default\\Code Cache')
-      $removed = 0; $cnt = 0
-      foreach ($p in $paths) {
-        If (Test-Path $p) {
-          Get-ChildItem $p -Recurse -Force -ErrorAction SilentlyContinue |
-            Where-Object {!$_.PSIsContainer} |
-            ForEach-Object { Try { $sz=$_.Length; Remove-Item $_.FullName -Force -EA Stop; $removed+=$sz; $cnt++ } Catch {} }
-        }
-      }
-      Write-Output "$removed|$cnt|0"
-    `,
+    scanCmd: buildPathsScanCmd([local + '\\Microsoft\\Edge\\User Data\\Default\\Cache', local + '\\Microsoft\\Edge\\User Data\\Default\\Code Cache']),
+    cleanCmd: buildPathsCleanCmd([local + '\\Microsoft\\Edge\\User Data\\Default\\Cache', local + '\\Microsoft\\Edge\\User Data\\Default\\Code Cache']),
   },
 
   chrome_cache: {
-    scanCmd: () => `
-      $paths = @(
-        '${local}\\Google\\Chrome\\User Data\\Default\\Cache',
-        '${local}\\Google\\Chrome\\User Data\\Default\\Code Cache'
-      )
-      $total = 0; $cnt = 0
-      foreach ($p in $paths) {
-        If (Test-Path $p) {
-          $items = Get-ChildItem $p -Recurse -Force -ErrorAction SilentlyContinue | Where-Object {!$_.PSIsContainer}
-          $total += ($items | Measure-Object Length -Sum).Sum; $cnt += $items.Count
-        }
-      }
-      Write-Output "$total|$cnt"
-    `,
-    cleanCmd: () => `
-      $paths = @('${local}\\Google\\Chrome\\User Data\\Default\\Cache','${local}\\Google\\Chrome\\User Data\\Default\\Code Cache')
-      $removed = 0; $cnt = 0
-      foreach ($p in $paths) {
-        If (Test-Path $p) {
-          Get-ChildItem $p -Recurse -Force -ErrorAction SilentlyContinue |
-            Where-Object {!$_.PSIsContainer} |
-            ForEach-Object { Try { $sz=$_.Length; Remove-Item $_.FullName -Force -EA Stop; $removed+=$sz; $cnt++ } Catch {} }
-        }
-      }
-      Write-Output "$removed|$cnt|0"
-    `,
+    scanCmd: buildPathsScanCmd([local + '\\Google\\Chrome\\User Data\\Default\\Cache', local + '\\Google\\Chrome\\User Data\\Default\\Code Cache']),
+    cleanCmd: buildPathsCleanCmd([local + '\\Google\\Chrome\\User Data\\Default\\Cache', local + '\\Google\\Chrome\\User Data\\Default\\Code Cache']),
   },
 
   firefox_cache: {
@@ -843,43 +495,13 @@ const SCAN_DEFS = {
 
   // ── Windows System ─────────────────────────────────────────────────────────
   windows_prefetch: {
-    scanCmd: () => `
-      $p = '${windir}\\Prefetch'
-      If (Test-Path $p) {
-        $items = Get-ChildItem $p -Filter '*.pf' -Force -ErrorAction SilentlyContinue
-        $total = ($items | Measure-Object Length -Sum).Sum
-        Write-Output "$total|$($items.Count)"
-      } Else { Write-Output "0|0" }
-    `,
-    cleanCmd: () => `
-      $p = '${windir}\\Prefetch'
-      $removed = 0; $cnt = 0
-      If (Test-Path $p) {
-        Get-ChildItem $p -Filter '*.pf' -Force -ErrorAction SilentlyContinue |
-          ForEach-Object { Try { $sz=$_.Length; Remove-Item $_.FullName -Force -EA Stop; $removed+=$sz; $cnt++ } Catch {} }
-      }
-      Write-Output "$removed|$cnt|0"
-    `,
+    scanCmd: buildPathsScanCmd([windir + '\\Prefetch'], { filter: '*.pf', recurse: false }),
+    cleanCmd: buildPathsCleanCmd([windir + '\\Prefetch'], { filter: '*.pf', recurse: false }),
   },
 
   windows_font_cache: {
-    scanCmd: () => `
-      $p = '${windir}\\ServiceProfiles\\LocalService\\AppData\\Local\\FontCache'
-      If (Test-Path $p) {
-        $items = Get-ChildItem $p -Filter '*.dat' -Force -ErrorAction SilentlyContinue
-        $total = ($items | Measure-Object Length -Sum).Sum
-        Write-Output "$total|$($items.Count)"
-      } Else { Write-Output "0|0" }
-    `,
-    cleanCmd: () => `
-      $p = '${windir}\\ServiceProfiles\\LocalService\\AppData\\Local\\FontCache'
-      $removed = 0; $cnt = 0
-      If (Test-Path $p) {
-        Get-ChildItem $p -Filter '*.dat' -Force -ErrorAction SilentlyContinue |
-          ForEach-Object { Try { $sz=$_.Length; Remove-Item $_.FullName -Force -EA Stop; $removed+=$sz; $cnt++ } Catch {} }
-      }
-      Write-Output "$removed|$cnt|0"
-    `,
+    scanCmd: buildPathsScanCmd([windir + '\\ServiceProfiles\\LocalService\\AppData\\Local\\FontCache'], { filter: '*.dat', recurse: false }),
+    cleanCmd: buildPathsCleanCmd([windir + '\\ServiceProfiles\\LocalService\\AppData\\Local\\FontCache'], { filter: '*.dat', recurse: false }),
   },
 
   windows_icon_cache: {
@@ -978,114 +600,28 @@ const SCAN_DEFS = {
   },
 
   windows_cbs_logs: {
-    scanCmd: () => `
-      $p = '${windir}\\Logs\\CBS'
-      If (Test-Path $p) {
-        $items = Get-ChildItem $p -Filter '*.log' -Force -ErrorAction SilentlyContinue
-        $total = ($items | Measure-Object Length -Sum).Sum
-        Write-Output "$total|$($items.Count)"
-      } Else { Write-Output "0|0" }
-    `,
-    cleanCmd: () => `
-      $p = '${windir}\\Logs\\CBS'
-      $removed = 0; $cnt = 0
-      If (Test-Path $p) {
-        Get-ChildItem $p -Filter '*.log' -Force -ErrorAction SilentlyContinue |
-          ForEach-Object { Try { $sz=$_.Length; Remove-Item $_.FullName -Force -EA Stop; $removed+=$sz; $cnt++ } Catch {} }
-      }
-      Write-Output "$removed|$cnt|0"
-    `,
+    scanCmd: buildPathsScanCmd([windir + '\\Logs\\CBS'], { filter: '*.log', recurse: false }),
+    cleanCmd: buildPathsCleanCmd([windir + '\\Logs\\CBS'], { filter: '*.log', recurse: false }),
   },
 
   windows_dism_logs: {
-    scanCmd: () => `
-      $p = '${windir}\\Logs\\DISM'
-      If (Test-Path $p) {
-        $items = Get-ChildItem $p -Filter '*.log' -Force -ErrorAction SilentlyContinue
-        $total = ($items | Measure-Object Length -Sum).Sum
-        Write-Output "$total|$($items.Count)"
-      } Else { Write-Output "0|0" }
-    `,
-    cleanCmd: () => `
-      $p = '${windir}\\Logs\\DISM'
-      $removed = 0; $cnt = 0
-      If (Test-Path $p) {
-        Get-ChildItem $p -Filter '*.log' -Force -ErrorAction SilentlyContinue |
-          ForEach-Object { Try { $sz=$_.Length; Remove-Item $_.FullName -Force -EA Stop; $removed+=$sz; $cnt++ } Catch {} }
-      }
-      Write-Output "$removed|$cnt|0"
-    `,
+    scanCmd: buildPathsScanCmd([windir + '\\Logs\\DISM'], { filter: '*.log', recurse: false }),
+    cleanCmd: buildPathsCleanCmd([windir + '\\Logs\\DISM'], { filter: '*.log', recurse: false }),
   },
 
   windows_defender_history: {
-    scanCmd: () => `
-      $p = 'C:\\ProgramData\\Microsoft\\Windows Defender\\Scans\\History\\Service'
-      If (Test-Path $p) {
-        $items = Get-ChildItem $p -Recurse -Force -ErrorAction SilentlyContinue | Where-Object {!$_.PSIsContainer}
-        $total = ($items | Measure-Object Length -Sum).Sum
-        Write-Output "$total|$($items.Count)"
-      } Else { Write-Output "0|0" }
-    `,
-    cleanCmd: () => `
-      $p = 'C:\\ProgramData\\Microsoft\\Windows Defender\\Scans\\History\\Service'
-      $removed = 0; $cnt = 0
-      If (Test-Path $p) {
-        Get-ChildItem $p -Recurse -Force -ErrorAction SilentlyContinue |
-          Where-Object {!$_.PSIsContainer} |
-          ForEach-Object { Try { $sz=$_.Length; Remove-Item $_.FullName -Force -EA Stop; $removed+=$sz; $cnt++ } Catch {} }
-      }
-      Write-Output "$removed|$cnt|0"
-    `,
+    scanCmd: buildPathsScanCmd(['C:\\ProgramData\\Microsoft\\Windows Defender\\Scans\\History\\Service']),
+    cleanCmd: buildPathsCleanCmd(['C:\\ProgramData\\Microsoft\\Windows Defender\\Scans\\History\\Service']),
   },
 
   windows_delivery_optimization: {
-    scanCmd: () => `
-      $p = '${windir}\\SoftwareDistribution\\DeliveryOptimization'
-      If (Test-Path $p) {
-        $items = Get-ChildItem $p -Recurse -Force -ErrorAction SilentlyContinue | Where-Object {!$_.PSIsContainer}
-        $total = ($items | Measure-Object Length -Sum).Sum
-        Write-Output "$total|$($items.Count)"
-      } Else { Write-Output "0|0" }
-    `,
-    cleanCmd: () => `
-      $p = '${windir}\\SoftwareDistribution\\DeliveryOptimization'
-      $removed = 0; $cnt = 0
-      If (Test-Path $p) {
-        Get-ChildItem $p -Recurse -Force -ErrorAction SilentlyContinue |
-          Where-Object {!$_.PSIsContainer} |
-          ForEach-Object { Try { $sz=$_.Length; Remove-Item $_.FullName -Force -EA Stop; $removed+=$sz; $cnt++ } Catch {} }
-      }
-      Write-Output "$removed|$cnt|0"
-    `,
+    scanCmd: buildPathsScanCmd([windir + '\\SoftwareDistribution\\DeliveryOptimization']),
+    cleanCmd: buildPathsCleanCmd([windir + '\\SoftwareDistribution\\DeliveryOptimization']),
   },
 
   wer_queue: {
-    scanCmd: () => `
-      $paths = @(
-        'C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue',
-        'C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportArchive'
-      )
-      $total = 0; $cnt = 0
-      foreach ($p in $paths) {
-        If (Test-Path $p) {
-          $items = Get-ChildItem $p -Recurse -Force -ErrorAction SilentlyContinue | Where-Object {!$_.PSIsContainer}
-          $total += ($items | Measure-Object Length -Sum).Sum; $cnt += $items.Count
-        }
-      }
-      Write-Output "$total|$cnt"
-    `,
-    cleanCmd: () => `
-      $paths = @('C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue','C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportArchive')
-      $removed = 0; $cnt = 0
-      foreach ($p in $paths) {
-        If (Test-Path $p) {
-          Get-ChildItem $p -Recurse -Force -ErrorAction SilentlyContinue |
-            Where-Object {!$_.PSIsContainer} |
-            ForEach-Object { Try { $sz=$_.Length; Remove-Item $_.FullName -Force -EA Stop; $removed+=$sz; $cnt++ } Catch {} }
-        }
-      }
-      Write-Output "$removed|$cnt|0"
-    `,
+    scanCmd: buildPathsScanCmd(['C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue', 'C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportArchive']),
+    cleanCmd: buildPathsCleanCmd(['C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue', 'C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportArchive']),
   },
 
   print_spooler: {
@@ -1253,29 +789,8 @@ const SCAN_DEFS = {
   },
 
   amd_driver_cache: {
-    scanCmd: () => `
-      $paths = @('C:\\AMD',"${temp}\\AMD")
-      $total = 0; $cnt = 0
-      foreach ($p in $paths) {
-        If (Test-Path $p) {
-          $items = Get-ChildItem $p -Recurse -Force -ErrorAction SilentlyContinue | Where-Object {!$_.PSIsContainer}
-          $total += ($items | Measure-Object Length -Sum).Sum; $cnt += $items.Count
-        }
-      }
-      Write-Output "$total|$cnt"
-    `,
-    cleanCmd: () => `
-      $paths = @('C:\\AMD',"${temp}\\AMD")
-      $removed = 0; $cnt = 0
-      foreach ($p in $paths) {
-        If (Test-Path $p) {
-          Get-ChildItem $p -Recurse -Force -ErrorAction SilentlyContinue |
-            Where-Object {!$_.PSIsContainer} |
-            ForEach-Object { Try { $sz=$_.Length; Remove-Item $_.FullName -Force -EA Stop; $removed+=$sz; $cnt++ } Catch {} }
-        }
-      }
-      Write-Output "$removed|$cnt|0"
-    `,
+    scanCmd: buildPathsScanCmd(['C:\\AMD', temp + '\\AMD']),
+    cleanCmd: buildPathsCleanCmd(['C:\\AMD', temp + '\\AMD']),
   },
 };
 

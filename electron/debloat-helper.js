@@ -25,6 +25,7 @@ const { execFile, spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const psLimiter = require('./powershell-limiter');
 // ── Icon cache ────────────────────────────────────────────────────────────────
 // Persistent cache in userData (survives app restarts, unlike os.tmpdir).
 // Falls back to tmpdir if userData isn't available (very early startup).
@@ -237,6 +238,9 @@ const DENYLIST_SERVICES = new Set([
 ipcMain.handle('debloat:scan', async (event, items) => {
   if (process.platform !== 'win32') return { ok: false, reason: 'not-windows', results: {} };
   if (!Array.isArray(items)) return { ok: false, reason: 'bad-input', results: {} };
+  const token = psLimiter.tryAcquire({ file: 'debloat-helper.js', fn: 'debloat:scan', reason: 'debloat-scan' });
+  if (!token) return { ok: false, reason: 'busy', results: {} };
+  try {
   const results = {};
   for (const item of items) {
     try {
@@ -300,15 +304,22 @@ ipcMain.handle('debloat:scan', async (event, items) => {
       results[item.id] = { present: true, error: err.message };
     }
   }
-  return { ok: true, results };
+    return { ok: true, results };
+  } finally {
+    psLimiter.release(token);
+  }
 });
 // ── IPC: debloat:removeItem ───────────────────────────────────────────────────
 ipcMain.handle('debloat:removeItem', async (event, item) => {
   if (process.platform !== 'win32') return { ok: false, reason: 'not-windows', status: 'unsupported' };
+  const token = psLimiter.tryAcquire({ file: 'debloat-helper.js', fn: 'debloat:removeItem', reason: 'debloat-remove' });
+  if (!token) return { ok: false, reason: 'busy', status: 'unavailable' };
   if (item.type === 'appx' && DENYLIST_PACKAGES.has(item.packageName)) {
+    psLimiter.release(token);
     return { ok: false, status: 'unsupported', error: 'Item is on the protected denylist.' };
   }
   if (item.type === 'service' && DENYLIST_SERVICES.has(item.serviceName)) {
+    psLimiter.release(token);
     return { ok: false, status: 'unsupported', error: 'Service is protected and cannot be disabled.' };
   }
   try {
@@ -378,12 +389,16 @@ ipcMain.handle('debloat:removeItem', async (event, item) => {
   } catch (err) {
     console.warn(`[Debloat] removeItem ${item.id} ERROR: ${err.message}`);
     return { ok: false, status: 'failed', error: err.message };
+  } finally {
+    psLimiter.release(token);
   }
 });
 // ── IPC: debloat:restoreItem ──────────────────────────────────────────────────
 ipcMain.handle('debloat:restoreItem', async (event, item) => {
   if (process.platform !== 'win32') return { ok: false, reason: 'not-windows', status: 'unsupported' };
-  if (!item.restoreSupported) return { ok: false, status: 'unsupported', error: 'Item does not support restore.' };
+  const token = psLimiter.tryAcquire({ file: 'debloat-helper.js', fn: 'debloat:restoreItem', reason: 'debloat-restore' });
+  if (!token) return { ok: false, reason: 'busy', status: 'unavailable' };
+  if (!item.restoreSupported) { psLimiter.release(token); return { ok: false, status: 'unsupported', error: 'Item does not support restore.' }; }
   try {
     let cmd = '';
     if (item.type === 'appx') {
@@ -450,16 +465,22 @@ ipcMain.handle('debloat:restoreItem', async (event, item) => {
   } catch (err) {
     console.warn(`[Debloat] restoreItem ${item.id} ERROR: ${err.message}`);
     return { ok: false, status: 'failed', error: err.message };
+  } finally {
+    psLimiter.release(token);
   }
 });
 // ── IPC: debloat:verifyItem ───────────────────────────────────────────────────
 ipcMain.handle('debloat:verifyItem', async (event, item) => {
   if (process.platform !== 'win32') return { ok: false };
+  const token = psLimiter.tryAcquire({ file: 'debloat-helper.js', fn: 'debloat:verifyItem', reason: 'debloat-verify' });
+  if (!token) return { ok: false, reason: 'busy' };
   try {
     const absent = await verifyItem(item);
     return { ok: true, absent };
   } catch (err) {
     return { ok: false, error: err.message };
+  } finally {
+    psLimiter.release(token);
   }
 });
 // ── Internal verify helper (debloat items) ────────────────────────────────────
@@ -686,6 +707,8 @@ function classifyExitCode(code, method) {
 //                   isProtected, canUninstall, uninstallMethod, trustLabel }
 ipcMain.handle('installedApps:scan', async () => {
   if (process.platform !== 'win32') return { ok: false, reason: 'not-windows', apps: [] };
+  const token = psLimiter.tryAcquire({ file: 'debloat-helper.js', fn: 'installedApps:scan', reason: 'apps-scan' });
+  if (!token) return { ok: false, reason: 'busy', apps: [] };
   // Use Get-ChildItem per hive so we can capture the real registry subkey path
   // for post-uninstall verification.
   const cmd = `
@@ -790,6 +813,8 @@ $apps | ConvertTo-Json -Compress -Depth 1
   } catch (err) {
     console.warn('[InstalledApps] scan error:', err.message);
     return { ok: false, error: err.message, apps: [] };
+  } finally {
+    psLimiter.release(token);
   }
 });
 ipcMain.handle('installedApps:icon', async (_event, appId) => {
@@ -811,6 +836,9 @@ ipcMain.handle('installedApps:icon', async (_event, appId) => {
 //                                errorDetail }
 ipcMain.handle('installedApps:uninstall', async (event, app) => {
   if (process.platform !== 'win32') return { ok: false, reason: 'not-windows' };
+  const token = psLimiter.tryAcquire({ file: 'debloat-helper.js', fn: 'installedApps:uninstall', reason: 'apps-uninstall' });
+  if (!token) return { ok: false, reason: 'busy' };
+  try {
   if (!app || typeof app !== 'object' || !app.name) {
     return { ok: false, status: 'blocked', errorDetail: 'Invalid input.' };
   }
@@ -907,5 +935,8 @@ ipcMain.handle('installedApps:uninstall', async (event, app) => {
       : verifiedRemoved === false ? `Uninstaller ran (exit ${proc.exitCode}) but app still detected in registry`
       : `Uninstaller exited with code ${proc.exitCode} (${codeLabel ?? 'unknown'})`,
   };
+  } finally {
+    psLimiter.release(token);
+  }
 });
 console.log('[Debloat] IPC handlers registered');

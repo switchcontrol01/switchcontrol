@@ -3,6 +3,7 @@ const { execFile } = require('child_process');
 const path = require('path');
 const fs   = require('fs');
 const os   = require('os');
+const { checkIsAdmin, runElevated, runElevatedCommands } = require('./ps-shared');
 
 // ── Storage ───────────────────────────────────────────────────────────────────
 
@@ -176,89 +177,8 @@ function runPowercfg(...args) {
   });
 }
 
-function runPowerShell(command) {
-  return new Promise((resolve, reject) => {
-    const wrapped = `[Console]::OutputEncoding=[System.Text.Encoding]::UTF8; try{${command};exit 0}catch{Write-Error $_.Exception.Message;exit 1}`;
-    execFile(
-      'powershell',
-      ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-Command', wrapped],
-      { timeout: 20_000, windowsHide: true },
-      (err, stdout, stderr) => {
-        if (err) reject(new Error(stderr?.trim() || stdout?.trim() || err.message));
-        else resolve(stdout.trim());
-      }
-    );
-  });
-}
+// runPowerShell, checkIsAdmin, and runElevatedCommands are imported from ps-shared.js.
 
-let _isAdmin = null;
-async function checkIsAdmin() {
-  if (_isAdmin !== null) return _isAdmin;
-  try {
-    const out = await runPowerShell(
-      '([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)'
-    );
-    _isAdmin = out.trim().toLowerCase() === 'true';
-  } catch { _isAdmin = false; }
-  return _isAdmin;
-}
-
-// Run multiple powercfg commands via UAC-elevated PowerShell (same pattern as tweak-executor)
-async function runElevatedCommands(commands) {
-  const tmpDir     = os.tmpdir();
-  const scriptId   = `sc_pp_${Date.now()}_${Math.random().toString(36).slice(2)}`;
-  const scriptPath = path.join(tmpDir, `${scriptId}.ps1`);
-  const resultPath = path.join(tmpDir, `${scriptId}_result.json`);
-
-  const safeResultPath = resultPath.replace(/'/g, "''");
-  const safeScriptPath = scriptPath.replace(/'/g, "''");
-
-  const lines = [
-    `$ErrorActionPreference = 'Continue'`,
-    `$failed = @()`,
-    ...commands.map(cmd =>
-      `try { & ${cmd} 2>&1 | Out-Null } catch { $failed += '${cmd.replace(/'/g, "''")}' }`
-    ),
-    `$r = @{ ok = $true; failed = $failed }`,
-    `try { [System.IO.File]::WriteAllText('${safeResultPath}', ($r | ConvertTo-Json -Compress)) } catch { $r | ConvertTo-Json -Compress | Out-File -FilePath '${safeResultPath}' -Encoding ascii -Force }`,
-  ];
-
-  fs.writeFileSync(scriptPath, lines.join('\r\n'), 'utf8');
-  console.log(`[PowerPlan] runElevated: scriptPath="${scriptPath}" commands=${commands.length}`);
-
-  const launchCmd = `Start-Process powershell -ArgumentList @('-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-WindowStyle','Hidden','-File','${safeScriptPath}') -Verb RunAs -Wait`;
-  try {
-    await new Promise((resolve, reject) => {
-      execFile(
-        'powershell',
-        ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-Command', launchCmd],
-        { timeout: 120_000, windowsHide: true },
-        (err) => { err ? reject(err) : resolve(); }
-      );
-    });
-
-    const deadline = Date.now() + 5000;
-    while (!fs.existsSync(resultPath) && Date.now() < deadline) {
-      await new Promise(r => setTimeout(r, 100));
-    }
-
-    if (fs.existsSync(resultPath)) {
-      const raw = fs.readFileSync(resultPath, 'utf8').replace(/^\uFEFF/, '').trim();
-      console.log(`[PowerPlan] runElevated result: "${raw}"`);
-      try { return JSON.parse(raw); } catch { return { ok: false, error: `Bad result JSON: ${raw.slice(0, 100)}` }; }
-    }
-    return { ok: false, error: 'Result file not produced after 5s — elevated script may have crashed.' };
-  } catch (err) {
-    const msg = err?.message || String(err);
-    if (/cancel|denied|elevat|access|uac/i.test(msg) || err?.code === 1) {
-      return { ok: false, cancelled: true, error: 'Admin permission was canceled. No system changes were made.' };
-    }
-    return { ok: false, error: `Elevation failed: ${msg}` };
-  } finally {
-    try { fs.unlinkSync(scriptPath); } catch {}
-    try { fs.unlinkSync(resultPath); } catch {}
-  }
-}
 
 // ── Parsers ───────────────────────────────────────────────────────────────────
 
@@ -478,61 +398,30 @@ async function ensureSwitchControlScheme(profileId) {
       console.warn(`[PowerPlan] Admin direct duplicate failed — ${e.message}`);
     }
   } else {
-    // Non-admin path: write a proper standalone PS1 script and elevate it.
-    // NOTE: runElevatedCommands() wraps each entry with "& ${cmd}" which is
-    // only valid for executable invocations — not for PS variable assignments,
-    // regex operations, or conditional blocks.  We therefore write a proper
-    // script file and Start-Process it ourselves.
-    const scriptId   = `sc_pp_dup_${Date.now()}_${Math.random().toString(36).slice(2)}`;
-    const resultPath = path.join(os.tmpdir(), `${scriptId}.txt`);
-    const scriptPath = path.join(os.tmpdir(), `${scriptId}.ps1`);
-    const safeResultPath = resultPath.replace(/'/g, "''");
-    const safeScName     = profile.scName.replace(/'/g, "''");
-    const safeScDesc     = (profile.scDesc || 'SwitchControl managed power plan').replace(/'/g, "''");
+    // Non-admin path: use runElevated from ps-shared (VBScript/ShellExecute, no flash).
+    const guidId     = `sc_pp_guid_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+    const guidPath   = path.join(os.tmpdir(), `${guidId}.txt`);
+    const safeGuidPath = guidPath.replace(/'/g, "''");
+    const safeScName   = profile.scName.replace(/'/g, "''");
+    const safeScDesc   = (profile.scDesc || 'SwitchControl managed power plan').replace(/'/g, "''");
 
-    const scriptLines = [
+    const command = [
       `$ErrorActionPreference = 'Continue'`,
-      `try {`,
-      `  $raw = & powercfg /duplicatescheme ${baseGuid} 2>&1`,
-      `  $out = ($raw | Out-String).Trim()`,
-      `  $m   = [regex]::Match($out, '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}')`,
-      `  if ($m.Success) {`,
-      `    $guid = $m.Value.ToLower()`,
-      `    & powercfg /changename $guid '${safeScName}' '${safeScDesc}' | Out-Null`,
-      `    [System.IO.File]::WriteAllText('${safeResultPath}', $guid)`,
-      `  }`,
-      `} catch { }`,
-    ];
+      `$raw = & powercfg /duplicatescheme ${baseGuid} 2>&1`,
+      `$out = ($raw | Out-String).Trim()`,
+      `$m = [regex]::Match($out, '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}')`,
+      `if ($m.Success) {`,
+      `  $guid = $m.Value.ToLower()`,
+      `  & powercfg /changename $guid '${safeScName}' '${safeScDesc}' | Out-Null`,
+      `  [System.IO.File]::WriteAllText('${safeGuidPath}', $guid)`,
+      `}`,
+    ].join('\r\n');
 
-    try {
-      fs.writeFileSync(scriptPath, scriptLines.join('\r\n'), 'utf8');
-      const launchCmd = [
-        `Start-Process powershell`,
-        `-ArgumentList @('-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-WindowStyle','Hidden','-File','${scriptPath.replace(/'/g, "''")}')`,
-        `-Verb RunAs -Wait`,
-      ].join(' ');
-      await new Promise((resolve) => {
-        execFile(
-          'powershell',
-          ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-Command', launchCmd],
-          { timeout: 60_000, windowsHide: true },
-          () => resolve()   // resolve regardless — result is in resultPath
-        );
-      });
-    } catch (e) {
-      console.warn(`[PowerPlan] Non-admin: elevated duplicate script launch failed — ${e.message}`);
-    } finally {
-      try { fs.unlinkSync(scriptPath); } catch {}
-    }
+    await runElevated(command, { tempFilePrefix: 'sc_pp_dup_' });
 
-    const deadline = Date.now() + 5000;
-    while (!fs.existsSync(resultPath) && Date.now() < deadline) {
-      await new Promise(r => setTimeout(r, 100));
-    }
-
-    if (fs.existsSync(resultPath)) {
-      newGuid = fs.readFileSync(resultPath, 'utf8').replace(/^\uFEFF/, '').trim().toLowerCase();
-      try { fs.unlinkSync(resultPath); } catch {}
+    if (fs.existsSync(guidPath)) {
+      newGuid = fs.readFileSync(guidPath, 'utf8').replace(/^\uFEFF/, '').trim().toLowerCase();
+      try { fs.unlinkSync(guidPath); } catch {}
     }
   }
 
@@ -1156,43 +1045,24 @@ async function duplicateSchemeRaw(baseGuid) {
       console.warn(`[PowerPlan:Custom] admin direct duplicate failed — ${e.message}`);
     }
   } else {
-    const scriptId   = `sc_cust_dup_${Date.now()}_${Math.random().toString(36).slice(2)}`;
-    const resultPath = path.join(os.tmpdir(), `${scriptId}.txt`);
-    const scriptPath = path.join(os.tmpdir(), `${scriptId}.ps1`);
-    const scriptLines = [
+    // Non-admin path: use runElevated from ps-shared (VBScript/ShellExecute, no flash).
+    const guidId     = `sc_cust_guid_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+    const guidPath   = path.join(os.tmpdir(), `${guidId}.txt`);
+    const safeGuidPath = guidPath.replace(/'/g, "''");
+
+    const command = [
       `$ErrorActionPreference = 'Continue'`,
-      `try {`,
-      `  $raw = & powercfg /duplicatescheme ${baseGuid} 2>&1`,
-      `  $out = ($raw | Out-String).Trim()`,
-      `  $m   = [regex]::Match($out, '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}')`,
-      `  if ($m.Success) {`,
-      `    [System.IO.File]::WriteAllText('${resultPath.replace(/'/g, "''")}', $m.Value.ToLower())`,
-      `  }`,
-      `} catch { }`,
-    ];
-    try {
-      fs.writeFileSync(scriptPath, scriptLines.join('\r\n'), 'utf8');
-      const launchCmd = `Start-Process powershell -ArgumentList @('-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-WindowStyle','Hidden','-File','${scriptPath.replace(/'/g, "''")}') -Verb RunAs -Wait`;
-      await new Promise(resolve => {
-        execFile(
-          'powershell',
-          ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-Command', launchCmd],
-          { timeout: 60_000, windowsHide: true },
-          () => resolve()
-        );
-      });
-    } catch (e) {
-      console.warn(`[PowerPlan:Custom] elevated duplicate failed — ${e.message}`);
-    } finally {
-      try { fs.unlinkSync(scriptPath); } catch {}
-    }
-    const deadline = Date.now() + 5000;
-    while (!fs.existsSync(resultPath) && Date.now() < deadline) {
-      await new Promise(r => setTimeout(r, 100));
-    }
-    if (fs.existsSync(resultPath)) {
-      newGuid = fs.readFileSync(resultPath, 'utf8').replace(/^\uFEFF/, '').trim().toLowerCase();
-      try { fs.unlinkSync(resultPath); } catch {}
+      `$raw = & powercfg /duplicatescheme ${baseGuid} 2>&1`,
+      `$out = ($raw | Out-String).Trim()`,
+      `$m = [regex]::Match($out, '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}')`,
+      `if ($m.Success) { [System.IO.File]::WriteAllText('${safeGuidPath}', $m.Value.ToLower()) }`,
+    ].join('\r\n');
+
+    await runElevated(command, { tempFilePrefix: 'sc_cust_dup_' });
+
+    if (fs.existsSync(guidPath)) {
+      newGuid = fs.readFileSync(guidPath, 'utf8').replace(/^\uFEFF/, '').trim().toLowerCase();
+      try { fs.unlinkSync(guidPath); } catch {}
     }
   }
 

@@ -84,6 +84,28 @@ function assertStringArray(value, name, maxLen = MAX_ARRAY_IPC_LEN) {
   }
   return value;
 }
+// ─── Shared event subscription factory ───────────────────────────────────────
+// Eliminates the repetitive assertFunction → wrap-handler → ipcRenderer.on/once
+// → return-unsubscribe boilerplate that was duplicated across six subscriptions.
+//
+//   channel    — IPC channel name
+//   callback   — user callback; receives the event payload as its only argument
+//   once       — use ipcRenderer.once instead of .on (default: false)
+//   log        — called with payload in dev builds only (if !isProdBuild)
+//   alwaysLog  — called with payload unconditionally (for error/warning events)
+//   validate   — predicate; if it returns false the handler drops the event
+//                without calling callback (used for schema validation)
+function onEvent(channel, callback, { once = false, log, alwaysLog, validate } = {}) {
+  assertFunction(callback, `${channel} callback`);
+  const handler = (_e, data) => {
+    if (validate && !validate(data)) return;
+    if (alwaysLog) alwaysLog(data);
+    else if (log && !isProdBuild) log(data);
+    callback(data);
+  };
+  ipcRenderer[once ? 'once' : 'on'](channel, handler);
+  return () => ipcRenderer.removeListener(channel, handler);
+}
 // ─── specs:enriched replay cache ─────────────────────────────────────────────
 // Caches the most recent specs:enriched payload so that subscribers who
 // register AFTER the event fires (e.g. Home mounting 1-2s after enrichment
@@ -139,51 +161,29 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // ── Event subscriptions ─────────────────────────────────────────────────────
   // Every subscription returns its own scoped unsubscribe function.
   // removeAllListeners is never used for app-owned shared channels.
-  onBackendReady: (callback) => {
-    assertFunction(callback, 'onBackendReady callback');
-    const handler = (_event, data) => {
-      console.log('[Backend] backend-ready event received, port:', data?.port);
-      callback(data);
-    };
-    ipcRenderer.on('backend-ready', handler);
-    return () => ipcRenderer.removeListener('backend-ready', handler);
-  },
-  onBackendError: (callback) => {
-    assertFunction(callback, 'onBackendError callback');
-    const handler = (_event, data) => {
-      console.error('[Backend] backend-error event received:', data?.error);
-      callback(data);
-    };
-    ipcRenderer.on('backend-error', handler);
-    return () => ipcRenderer.removeListener('backend-error', handler);
-  },
-  onWindowFocus: (callback) => {
-    assertFunction(callback, 'onWindowFocus callback');
-    const handler = () => {
-      console.log('[Window] Focus event received');
-      callback();
-    };
-    ipcRenderer.on('window-focus', handler);
-    return () => ipcRenderer.removeListener('window-focus', handler);
-  },
+  onBackendReady: (callback) => onEvent('backend-ready', callback, {
+    log: (d) => console.log('[Backend] backend-ready event received, port:', d?.port),
+  }),
+  onBackendError: (callback) => onEvent('backend-error', callback, {
+    // Logs unconditionally (even in production) so backend failures are always visible.
+    alwaysLog: (d) => console.error('[Backend] backend-error event received:', d?.error),
+  }),
+  onWindowFocus: (callback) => onEvent('window-focus', callback, {
+    log: () => console.log('[Window] Focus event received'),
+  }),
   // ── Launch handshake: main confirms window is now visible ────────────────
   // Called once after mainWindow.show() so the renderer can start the opacity
   // reveal ONLY after the OS window is actually on screen (no mid-transition flash).
-  onWindowShown: (callback) => {
-    assertFunction(callback, 'onWindowShown callback');
-    const handler = () => {
-      console.log('[LAUNCH] app:window-shown received — starting opacity reveal');
-      callback();
-    };
-    ipcRenderer.once('app:window-shown', handler);
-    return () => ipcRenderer.removeListener('app:window-shown', handler);
-  },
+  onWindowShown: (callback) => onEvent('app:window-shown', callback, {
+    once: true,
+    log: () => console.log('[LAUNCH] app:window-shown received — starting opacity reveal'),
+  }),
   // ── Auth — deep-link callback ───────────────────────────────────────────────
   auth: {
     onCallback: (callback) => {
       assertFunction(callback, 'auth.onCallback callback');
       const handler = (_event, url) => {
-        console.log('[PremiumFlow] deep-link received:', url);
+        if (!isProdBuild) console.log('[PremiumFlow] deep-link received:', url);
         callback(url);
       };
       ipcRenderer.on('auth-callback', handler);
@@ -363,12 +363,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
     },
     applyValue: (tweakId, value) => {
       assertString(tweakId, 'tweakId');
-      if (typeof value !== 'number') throw new TypeError('tweaks.applyValue: value must be a number');
+      if (typeof value !== 'number' || !Number.isFinite(value)) throw new TypeError('tweaks.applyValue: value must be a finite number');
       return ipcRenderer.invoke('tweak:applyValue', tweakId, value);
     },
     verifyValue: (tweakId, expectedValue) => {
       assertString(tweakId, 'tweakId');
-      if (typeof expectedValue !== 'number') throw new TypeError('tweaks.verifyValue: expectedValue must be a number');
+      if (typeof expectedValue !== 'number' || !Number.isFinite(expectedValue)) throw new TypeError('tweaks.verifyValue: expectedValue must be a finite number');
       return ipcRenderer.invoke('tweak:verifyValue', tweakId, expectedValue);
     },
     resetValue: (tweakId) => {
@@ -540,6 +540,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     },
     uninstall: (app) => {
       assertPlainObject(app, 'installedApps.uninstall app');
+      if (typeof app.name !== 'string' || !app.name.trim()) throw new TypeError('installedApps.uninstall: app.name must be a non-empty string');
+      if (typeof app.type !== 'string' || !app.type.trim()) throw new TypeError('installedApps.uninstall: app.type must be a non-empty string');
       return ipcRenderer.invoke('installedApps:uninstall', app);
     },
   },
@@ -607,12 +609,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
       assertPlainObject(params, 'focus.checkSchedule params');
       return ipcRenderer.invoke('focus:checkSchedule', params);
     },
-    onTriggerFired: (callback) => {
-      assertFunction(callback, 'focus.onTriggerFired callback');
-      const handler = (_event, payload) => callback(payload);
-      ipcRenderer.on('focus:triggerFired', handler);
-      return () => ipcRenderer.removeListener('focus:triggerFired', handler);
-    },
+    onTriggerFired: (callback) => onEvent('focus:triggerFired', callback),
   },
   premium: {
     revertAll:            () => ipcRenderer.invoke('premium:revertAll'),
@@ -626,25 +623,33 @@ contextBridge.exposeInMainWorld('electronAPI', {
     check:    () => ipcRenderer.invoke('updater:check'),
     download: () => ipcRenderer.invoke('updater:download'),
     install:  () => ipcRenderer.invoke('updater:install'),
-    onEvent: (callback) => {
-      assertFunction(callback, 'updater.onEvent callback');
-      const handler = (_event, payload) => {
+    onEvent: (callback) => onEvent('updater:event', callback, {
+      validate: (payload) => {
         if (!payload || typeof payload !== 'object') {
-          if (!isProdBuild) {
-            console.warn('[preload] updater:event received malformed payload');
-          }
-          return;
+          if (!isProdBuild) console.warn('[preload] updater:event received malformed payload');
+          return false;
         }
-        callback(payload);
-      };
-      ipcRenderer.on('updater:event', handler);
-      return () => ipcRenderer.removeListener('updater:event', handler);
-    },
+        return true;
+      },
+    }),
   },
   processControl: {
     scan:   () => ipcRenderer.invoke('processControl:scan'),
-    buildPlan: (scanResult, profile) => ipcRenderer.invoke('processControl:buildPlan', scanResult, profile),
-    applyPlan: (profile) => ipcRenderer.invoke('processControl:applyPlan', profile),
+    buildPlan: (scanResult, profile) => {
+      assertPlainObject(scanResult, 'processControl.buildPlan scanResult');
+      if (!Array.isArray(scanResult.processes)) throw new TypeError('processControl.buildPlan: scanResult.processes must be an array');
+      const ALLOWED_PC_PROFILES = new Set(['safe', 'competitive', 'extreme']);
+      if (!ALLOWED_PC_PROFILES.has(profile)) throw new TypeError('processControl.buildPlan: profile must be "safe", "competitive", or "extreme"');
+      return ipcRenderer.invoke('processControl:buildPlan', scanResult, profile);
+    },
+    applyPlan: (plan) => {
+      assertPlainObject(plan, 'processControl.applyPlan plan');
+      const ALLOWED_PC_PROFILES = new Set(['safe', 'competitive', 'extreme']);
+      if (!ALLOWED_PC_PROFILES.has(plan.profile)) throw new TypeError('processControl.applyPlan: plan.profile must be "safe", "competitive", or "extreme"');
+      if (!Array.isArray(plan.toStop)) throw new TypeError('processControl.applyPlan: plan.toStop must be an array');
+      if (!Array.isArray(plan.toLowerPriority)) throw new TypeError('processControl.applyPlan: plan.toLowerPriority must be an array');
+      return ipcRenderer.invoke('processControl:applyPlan', plan);
+    },
     getLastResult: () => ipcRenderer.invoke('processControl:getLastResult'),
     restoreLast: () => ipcRenderer.invoke('processControl:restoreLast'),
     getProtectedList: () => ipcRenderer.invoke('processControl:getProtectedList'),

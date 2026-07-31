@@ -11,8 +11,8 @@ const { execFile }    = require('child_process');
 const { performance } = require('perf_hooks');
 const fs   = require('fs');
 const net  = require('net');
-const os   = require('os');
 const path = require('path');
+const { checkIsAdmin, runElevated, _withPsSemaphore } = require('./ps-shared');
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -23,7 +23,7 @@ function execPowerShell(command) {
   const id = ++_net_psCount;
   const t0 = Date.now();
   console.log(`[PS:network-tweak] #${id} execPowerShell SPAWN ts=${t0}`);
-  return new Promise((resolve, reject) => {
+  return _withPsSemaphore(() => new Promise((resolve, reject) => {
     execFile(
       'powershell',
       ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-Command', command],
@@ -37,7 +37,7 @@ function execPowerShell(command) {
         }
       }
     );
-  });
+  }));
 }
 
 // ── normalization helpers ─────────────────────────────────────────────────────
@@ -238,33 +238,10 @@ const TWEAK_REGISTRY = {
     reason: 'No stable, documented Windows parameter for TCP buffer-list tracking. Cannot be implemented without undocumented internals.',
   },
 
-  'tcp-nagle': {
-    requiresAdmin: true,
-    apply: `
-      Set-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters" -Name "TcpNoDelay" -Value 1 -Type DWord -Force;
-      $ifaces = Get-ChildItem "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters\\Interfaces" -EA SilentlyContinue;
-      foreach ($iface in $ifaces) {
-        Set-ItemProperty -Path $iface.PSPath -Name "TcpAckFrequency" -Value 1 -Type DWord -Force -EA SilentlyContinue;
-        Set-ItemProperty -Path $iface.PSPath -Name "TCPNoDelay" -Value 1 -Type DWord -Force -EA SilentlyContinue;
-      }
-      Write-Output "ok"
-    `,
-    revert: `
-      Remove-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters" -Name "TcpNoDelay" -EA SilentlyContinue;
-      $ifaces = Get-ChildItem "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters\\Interfaces" -EA SilentlyContinue;
-      foreach ($iface in $ifaces) {
-        Remove-ItemProperty -Path $iface.PSPath -Name "TcpAckFrequency" -EA SilentlyContinue;
-        Remove-ItemProperty -Path $iface.PSPath -Name "TCPNoDelay" -EA SilentlyContinue;
-      }
-      Write-Output "ok"
-    `,
-    check: `
-      $v = (Get-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters" -Name "TcpNoDelay" -EA SilentlyContinue).TcpNoDelay;
-      $iface = Get-ChildItem "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters\\Interfaces" -EA SilentlyContinue | Select-Object -First 1;
-      $vi = if ($iface) { (Get-ItemProperty -Path $iface.PSPath -Name "TcpAckFrequency" -EA SilentlyContinue).TcpAckFrequency } else { $null };
-      if ($v -eq 1 -and ($null -eq $vi -or $vi -eq 1)) { "true" } else { "false" }
-    `,
-  },
+  // 'tcp-nagle' has been REMOVED from this registry.
+  // Canonical owner: tweak-executor.js → 'tcp-no-delay'  (same TcpNoDelay + TcpAckFrequency
+  // registry values; single ownership record under itemType='tweak').
+  // main.js networkTweaks:execute / checkStatus / checkAll redirect this ID there automatically.
 
   'tcp-non-sack-rto': {
     disabled: true,
@@ -326,22 +303,11 @@ const TWEAK_REGISTRY = {
     reason: 'Direct Cache Access (DCA) is a hardware feature requiring BIOS/chipset support and cannot be enabled via Windows registry on most consumer systems.',
   },
 
-  'tcp-throttling-index': {
-    requiresAdmin: true,
-    apply: `
-      New-Item -Path "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile" -Force -EA SilentlyContinue | Out-Null;
-      Set-ItemProperty -Path "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile" -Name "NetworkThrottlingIndex" -Value 0xFFFFFFFF -Type DWord -Force;
-      Write-Output "ok"
-    `,
-    revert: `
-      Remove-ItemProperty -Path "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile" -Name "NetworkThrottlingIndex" -EA SilentlyContinue;
-      Write-Output "ok"
-    `,
-    check: `
-      $v = (Get-ItemProperty -Path "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile" -Name "NetworkThrottlingIndex" -EA SilentlyContinue).NetworkThrottlingIndex;
-      if ($null -ne $v -and ([int]$v -eq -1 -or $v -eq 0xFFFFFFFF -or [uint32]$v -ge 4294967295)) { "true" } else { "false" }
-    `,
-  },
+  // 'tcp-throttling-index' has been REMOVED from this registry.
+  // Canonical owner: slider-tweak-executor.js → 'net-throttle-index'  (same
+  // NetworkThrottlingIndex DWORD in Multimedia\SystemProfile; single ownership record
+  // under itemType='slider').
+  // main.js networkTweaks:execute / checkStatus / checkAll redirect this ID there automatically.
 
   'tcp-pmtu': {
     requiresAdmin: true,
@@ -698,83 +664,7 @@ const TWEAK_REGISTRY = {
 };
 
 // ── per-action UAC elevation helpers ─────────────────────────────────────────
-
-let _isAdminCache = null;
-async function checkIsAdmin() {
-  if (_isAdminCache !== null) return _isAdminCache;
-  try {
-    _isAdminCache = await new Promise(resolve => {
-      execFile(
-        'powershell',
-        ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-Command',
-          '([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)'],
-        { windowsHide: true, timeout: 6000 },
-        (err, stdout) => resolve(!err && stdout.trim().toLowerCase() === 'true')
-      );
-    });
-  } catch { _isAdminCache = false; }
-  return _isAdminCache;
-}
-
-/**
- * Run a single-line PowerShell command in an elevated process via
- * Start-Process -Verb RunAs. Returns { ok, error, cancelled }.
- */
-async function runElevated(command) {
-  const id         = `sc_net_${Date.now()}_${Math.random().toString(36).slice(2)}`;
-  const scriptPath = path.join(os.tmpdir(), `${id}.ps1`);
-  const resultPath = path.join(os.tmpdir(), `${id}_result.json`);
-  const safeScript = scriptPath.replace(/'/g, "''");
-  const safeResult = resultPath.replace(/'/g, "''");
-
-  const scriptContent = [
-    `$ErrorActionPreference = 'Continue'`,
-    `try {`,
-    `  ${command}`,
-    `  $r = @{ ok = $true; error = $null }`,
-    `} catch {`,
-    `  $r = @{ ok = $false; error = $_.Exception.Message }`,
-    `}`,
-    `try { [System.IO.File]::WriteAllText('${safeResult}', ($r | ConvertTo-Json -Compress)) } catch { $r | ConvertTo-Json -Compress | Out-File -FilePath '${safeResult}' -Encoding ascii -Force }`,
-  ].join('\r\n');
-
-  fs.writeFileSync(scriptPath, scriptContent, 'utf8');
-
-  // -WindowStyle Hidden on Start-Process itself sets SW_HIDE at ShellExecuteEx / process
-  // creation time so conhost.exe never shows the window, not just after powershell starts.
-  const launchCmd = `Start-Process powershell -WindowStyle Hidden -ArgumentList @('-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-WindowStyle','Hidden','-File','${safeScript}') -Verb RunAs -Wait`;
-
-  try {
-    await new Promise((resolve, reject) => {
-      execFile(
-        'powershell',
-        ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-Command', launchCmd],
-        { timeout: 120_000, windowsHide: true },
-        (err) => err ? reject(err) : resolve()
-      );
-    });
-
-    const deadline = Date.now() + 5000;
-    while (!fs.existsSync(resultPath) && Date.now() < deadline) {
-      await new Promise(r => setTimeout(r, 100));
-    }
-
-    if (fs.existsSync(resultPath)) {
-      const raw = fs.readFileSync(resultPath, 'utf8').replace(/^\uFEFF/, '').trim();
-      try { return JSON.parse(raw); } catch { return { ok: false, error: `Bad result JSON: ${raw.slice(0, 100)}` }; }
-    }
-    return { ok: false, error: 'Result file not produced — elevated script may have crashed.' };
-  } catch (err) {
-    const msg = err?.message || String(err);
-    if (/cancel|denied|elevat|access|uac/i.test(msg) || err?.code === 1) {
-      return { ok: false, cancelled: true, error: 'Admin permission was canceled. No system changes were made.' };
-    }
-    return { ok: false, error: `Elevation failed: ${msg}` };
-  } finally {
-    try { fs.unlinkSync(scriptPath); } catch {}
-    try { fs.unlinkSync(resultPath); } catch {}
-  }
-}
+// checkIsAdmin and runElevated are imported from ps-shared.js.
 
 // ── executor API ──────────────────────────────────────────────────────────────
 
@@ -846,8 +736,6 @@ async function executeNetworkTweak(tweakId, action) {
         error: 'elevation_failed',
       };
     }
-    // Elevation succeeded — update admin cache so subsequent tweaks skip UAC.
-    _isAdminCache = true;
   }
 
   // ── Verification step (read-only, no elevation needed) ─────────────────────

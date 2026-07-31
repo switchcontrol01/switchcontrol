@@ -855,13 +855,22 @@ function NetworkTweaksContent() {
           return next;
         });
         if (result.success && !result.disabled) {
-          const ownership = useTweakOwnershipStore.getState();
-          if (action === 'enable') {
-            ownership.recordNetworkTweakApply(tweak.id, previousStatus, tweak.name);
-          } else {
-            const rec = ownership.networkTweaks[tweak.id];
-            if (rec?.provenance === 'app') {
-              ownership.recordNetworkTweakRevertSuccess(tweak.id);
+          // 'tcp-nagle' and 'tcp-throttling-index' are routed to canonical executors
+          // (tweak-executor's 'tcp-no-delay' and slider-tweak-executor's
+          // 'net-throttle-index').  Those executors record ownership themselves, so
+          // we must NOT double-record here under a network_tweak scope key — doing
+          // so would create a second, independent ownership record for the same
+          // Windows setting that the revert pipeline would try to revert separately.
+          const isCanonicalRedirect = tweak.id === 'tcp-nagle' || tweak.id === 'tcp-throttling-index';
+          if (!isCanonicalRedirect) {
+            const ownership = useTweakOwnershipStore.getState();
+            if (action === 'enable') {
+              ownership.recordNetworkTweakApply(tweak.id, previousStatus, tweak.name);
+            } else {
+              const rec = ownership.networkTweaks[tweak.id];
+              if (rec?.provenance === 'app') {
+                ownership.recordNetworkTweakRevertSuccess(tweak.id);
+              }
             }
           }
         }

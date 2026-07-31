@@ -197,4 +197,11 @@ module.exports = {
    * (which breaks for Teams 2.0 users on ms-teams.exe).
    */
   TEAMS_STARTUP_BACKUP_FILE: path.join(APPDATA_DIR, 'teams-startup-backup.json'),
+
+  /**
+   * Timer-resolution keeper state — PID + target resolution written by the
+   * slider-based timer-res keeper so the tweak-executor agent can evict it
+   * before starting its own NtSetTimerResolution loop.
+   */
+  TIMER_RESOLUTION_STATE_FILE: path.join(APPDATA_DIR, 'timer-resolution-state.json'),
 };

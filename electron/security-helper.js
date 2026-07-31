@@ -9,6 +9,7 @@ const { execFile } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
+const psLimiter = require('./powershell-limiter');
 
 // ---------------------------------------------------------------------------
 // PowerShell helper
@@ -110,6 +111,8 @@ ipcMain.handle('security:getStatus', async () => {
     return { available: false, reason: 'not-windows' };
   }
 
+  const token = psLimiter.tryAcquire({ file: 'security-helper.js', fn: 'security:getStatus', reason: 'security-status' });
+  if (!token) return { available: false, reason: 'busy' };
   const result = { available: false, data: null, error: null };
 
   try {
@@ -215,6 +218,8 @@ ipcMain.handle('security:getStatus', async () => {
   } catch (err) {
     console.warn(`[Security] getStatus ERROR: ${err?.message}`);
     return { available: false, reason: 'error', error: err?.message };
+  } finally {
+    psLimiter.release(token);
   }
 });
 
@@ -227,7 +232,8 @@ ipcMain.handle('security:getStartupApps', async () => {
   if (process.platform !== 'win32') {
     return { available: false, reason: 'not-windows' };
   }
-
+  const token = psLimiter.tryAcquire({ file: 'security-helper.js', fn: 'security:getStartupApps', reason: 'security-startup-apps' });
+  if (!token) return { available: false, reason: 'busy' };
   try {
     const cmd = `Get-CimInstance Win32_StartupCommand -ErrorAction SilentlyContinue | Select-Object Name, Command, Location, User | ConvertTo-Json -Compress`;
     const raw = await runPowerShell(cmd, 12000);
@@ -252,6 +258,8 @@ ipcMain.handle('security:getStartupApps', async () => {
   } catch (err) {
     console.warn(`[Security] getStartupApps ERROR: ${err?.message}`);
     return { available: false, reason: 'error', error: err?.message };
+  } finally {
+    psLimiter.release(token);
   }
 });
 
@@ -264,7 +272,8 @@ ipcMain.handle('security:getTopProcesses', async () => {
   if (process.platform !== 'win32') {
     return { available: false, reason: 'not-windows' };
   }
-
+  const token = psLimiter.tryAcquire({ file: 'security-helper.js', fn: 'security:getTopProcesses', reason: 'security-top-procs' });
+  if (!token) return { available: false, reason: 'busy' };
   try {
     const cmd = `Get-Process -ErrorAction SilentlyContinue | Where-Object {$_.CPU -ne $null} | Sort-Object CPU -Descending | Select-Object -First 25 @{n='Name';e={$_.Name}}, @{n='Pid';e={$_.Id}}, @{n='CpuSec';e={[Math]::Round($_.CPU, 2)}}, @{n='MemMb';e={[Math]::Round($_.WorkingSet64/1MB, 1)}} | ConvertTo-Json -Compress`;
     const raw = await runPowerShell(cmd, 12000);
@@ -289,6 +298,8 @@ ipcMain.handle('security:getTopProcesses', async () => {
   } catch (err) {
     console.warn(`[Security] getTopProcesses ERROR: ${err?.message}`);
     return { available: false, reason: 'error', error: err?.message };
+  } finally {
+    psLimiter.release(token);
   }
 });
 
@@ -303,7 +314,8 @@ ipcMain.handle('startup:setEnabled', async (event, params) => {
   if (process.platform !== 'win32') {
     return { ok: false, reason: 'not-windows' };
   }
-
+  const token = psLimiter.tryAcquire({ file: 'security-helper.js', fn: 'startup:setEnabled', reason: 'startup-set-enabled' });
+  if (!token) return { ok: false, reason: 'busy' };
   const { source, registryName, taskPath, folderPath, enabled } = params || {};
   const flag = enabled ? 2 : 3; // 2=enabled, 3=disabled (Task Manager convention)
 
@@ -362,6 +374,8 @@ ipcMain.handle('startup:setEnabled', async (event, params) => {
   } catch (err) {
     console.warn(`[Startup] setEnabled ERROR: ${err?.message}`);
     return { ok: false, error: err?.message };
+  } finally {
+    psLimiter.release(token);
   }
 });
 
@@ -376,7 +390,8 @@ ipcMain.handle('startup:setDelay', async (event, { name, executable, delayIso, r
   if (process.platform !== 'win32') {
     return { ok: false, reason: 'not-windows' };
   }
-
+  const token = psLimiter.tryAcquire({ file: 'security-helper.js', fn: 'startup:setDelay', reason: 'startup-set-delay' });
+  if (!token) return { ok: false, reason: 'busy' };
   // Sanitize inputs: name becomes task name, executable must be a real file path
   function sanitizeStartupName(str) {
     if (typeof str !== 'string') return '';
@@ -399,6 +414,7 @@ ipcMain.handle('startup:setDelay', async (event, { name, executable, delayIso, r
 
   const taskName = `SC-Delay-${sanitizeStartupName(name)}`;
   if (!taskName || taskName.length < 10) {
+    psLimiter.release(token);
     return { ok: false, error: 'Invalid name' };
   }
 
@@ -439,6 +455,8 @@ ipcMain.handle('startup:setDelay', async (event, { name, executable, delayIso, r
   } catch (err) {
     console.warn(`[Startup] setDelay ERROR: ${err?.message}`);
     return { ok: false, error: err?.message };
+  } finally {
+    psLimiter.release(token);
   }
 });
 
@@ -451,7 +469,8 @@ ipcMain.handle('startup:verifyState', async (event, { name, registryKey }) => {
   if (process.platform !== 'win32') {
     return { ok: false, reason: 'not-windows' };
   }
-
+  const token = psLimiter.tryAcquire({ file: 'security-helper.js', fn: 'startup:verifyState', reason: 'startup-verify-state' });
+  if (!token) return { ok: false, reason: 'busy' };
   // SECURITY: sanitize `name` before embedding it in the PowerShell command.
   // A compromised renderer could send a crafted name like:
   //   '; Remove-Item -Recurse C:\Windows -Force; #
@@ -460,7 +479,7 @@ ipcMain.handle('startup:verifyState', async (event, { name, registryKey }) => {
   const safeName = typeof name === 'string'
     ? name.replace(/[^A-Za-z0-9._ -]/g, '').slice(0, 128)
     : '';
-  if (!safeName) return { ok: false, error: 'Invalid name' };
+  if (!safeName) { psLimiter.release(token); return { ok: false, error: 'Invalid name' }; }
 
   try {
     const approvedKey = registryKey && registryKey.includes('HKLM')
@@ -483,6 +502,8 @@ ipcMain.handle('startup:verifyState', async (event, { name, registryKey }) => {
     return { ok: true, name: safeName, state };
   } catch (err) {
     return { ok: false, error: err?.message };
+  } finally {
+    psLimiter.release(token);
   }
 });
 
@@ -493,6 +514,8 @@ ipcMain.handle('startup:verifyState', async (event, { name, registryKey }) => {
 
 ipcMain.handle('security:getAdvancedProtection', async () => {
   if (process.platform !== 'win32') return { available: false, reason: 'not-windows' };
+  const token = psLimiter.tryAcquire({ file: 'security-helper.js', fn: 'security:getAdvancedProtection', reason: 'security-adv-protection' });
+  if (!token) return { available: false, reason: 'busy' };
   try {
     const cmd = `
       # Primary: Get-MpComputerStatus; CIM fallback when cmdlet is restricted
@@ -619,6 +642,8 @@ ipcMain.handle('security:getAdvancedProtection', async () => {
   } catch (err) {
     console.warn(`[Security] getAdvancedProtection ERROR: ${err?.message}`);
     return { available: false, reason: 'error', error: err?.message };
+  } finally {
+    psLimiter.release(token);
   }
 });
 
@@ -629,6 +654,8 @@ ipcMain.handle('security:getAdvancedProtection', async () => {
 
 ipcMain.handle('security:getAdvancedAudit', async () => {
   if (process.platform !== 'win32') return { available: false, reason: 'not-windows' };
+  const token = psLimiter.tryAcquire({ file: 'security-helper.js', fn: 'security:getAdvancedAudit', reason: 'security-adv-audit' });
+  if (!token) return { available: false, reason: 'busy' };
   try {
     const cmd = `
       $r = @{}
@@ -731,6 +758,8 @@ ipcMain.handle('security:getAdvancedAudit', async () => {
   } catch (err) {
     console.warn(`[Security] getAdvancedAudit ERROR: ${err?.message}`);
     return { available: false, reason: 'error', error: err?.message };
+  } finally {
+    psLimiter.release(token);
   }
 });
 
@@ -741,6 +770,8 @@ ipcMain.handle('security:getAdvancedAudit', async () => {
 
 ipcMain.handle('security:getProcessDetails', async () => {
   if (process.platform !== 'win32') return { available: false, reason: 'not-windows' };
+  const token = psLimiter.tryAcquire({ file: 'security-helper.js', fn: 'security:getProcessDetails', reason: 'security-proc-details' });
+  if (!token) return { available: false, reason: 'busy' };
   try {
     const cmd = `
       $cimMap = @{}
@@ -835,6 +866,8 @@ ipcMain.handle('security:getProcessDetails', async () => {
   } catch (err) {
     console.warn(`[Security] getProcessDetails ERROR: ${err?.message}`);
     return { available: false, reason: 'error', error: err?.message };
+  } finally {
+    psLimiter.release(token);
   }
 });
 
@@ -845,6 +878,8 @@ ipcMain.handle('security:getProcessDetails', async () => {
 
 ipcMain.handle('security:getScheduledTasks', async () => {
   if (process.platform !== 'win32') return { available: false, reason: 'not-windows' };
+  const token = psLimiter.tryAcquire({ file: 'security-helper.js', fn: 'security:getScheduledTasks', reason: 'security-sched-tasks' });
+  if (!token) return { available: false, reason: 'busy' };
   try {
     const cmd = `
       $tasks = Get-ScheduledTask -ErrorAction SilentlyContinue |
@@ -886,6 +921,8 @@ ipcMain.handle('security:getScheduledTasks', async () => {
   } catch (err) {
     console.warn(`[Security] getScheduledTasks ERROR: ${err?.message}`);
     return { available: false, reason: 'error', error: err?.message };
+  } finally {
+    psLimiter.release(token);
   }
 });
 
@@ -896,6 +933,8 @@ ipcMain.handle('security:getScheduledTasks', async () => {
 
 ipcMain.handle('security:getServices', async () => {
   if (process.platform !== 'win32') return { available: false, reason: 'not-windows' };
+  const token = psLimiter.tryAcquire({ file: 'security-helper.js', fn: 'security:getServices', reason: 'security-services' });
+  if (!token) return { available: false, reason: 'busy' };
   try {
     const cmd = `
       Get-CimInstance Win32_Service -ErrorAction SilentlyContinue |
@@ -946,6 +985,8 @@ ipcMain.handle('security:getServices', async () => {
   } catch (err) {
     console.warn(`[Security] getServices ERROR: ${err?.message}`);
     return { available: false, reason: 'error', error: err?.message };
+  } finally {
+    psLimiter.release(token);
   }
 });
 
@@ -1013,7 +1054,8 @@ ipcMain.handle('security:setDefenderOption', async (_event, option, enabled) => 
   if (typeof enabled !== 'boolean') {
     return { ok: false, error: 'enabled must be a boolean' };
   }
-
+  const token = psLimiter.tryAcquire({ file: 'security-helper.js', fn: 'security:setDefenderOption', reason: 'security-set-defender-opt' });
+  if (!token) return { ok: false, reason: 'busy' };
   let cmd = '';
   switch (option) {
     case 'cloudProtection':
@@ -1045,6 +1087,8 @@ ipcMain.handle('security:setDefenderOption', async (_event, option, enabled) => 
   } catch (err) {
     console.warn(`[Security] setDefenderOption ERROR: ${err?.message}`);
     return { ok: false, error: err?.message };
+  } finally {
+    psLimiter.release(token);
   }
 });
 
@@ -1061,7 +1105,8 @@ ipcMain.handle('security:runDefenderAction', async (_event, action) => {
   if (!ALLOWED_DEFENDER_ACTIONS.has(action)) {
     return { ok: false, restricted: false, message: `Unknown action: ${action}` };
   }
-
+  const token = psLimiter.tryAcquire({ file: 'security-helper.js', fn: 'security:runDefenderAction', reason: 'security-run-defender-action' });
+  if (!token) return { ok: false, restricted: false, reason: 'busy' };
   let cmdlet = '';
   let friendly = '';
   switch (action) {
@@ -1204,6 +1249,8 @@ ipcMain.handle('security:runDefenderAction', async (_event, action) => {
       restricted,
       message: restricted ? RESTRICTION_MSG : msg,
     };
+  } finally {
+    psLimiter.release(token);
   }
 });
 

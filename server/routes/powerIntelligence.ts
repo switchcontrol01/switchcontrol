@@ -261,6 +261,14 @@ function detectConflicts(
   return conflicts;
 }
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+/** Parse and validate req.query.profile against PROFILE_SPECS. Returns the id or null. */
+function parseProfileId(req: import("express").Request): BackendProfileId | null {
+  const id = String(req.query.profile ?? "");
+  return PROFILE_SPECS[id as BackendProfileId] ? (id as BackendProfileId) : null;
+}
+
 // ── Routes ────────────────────────────────────────────────────────────────────
 
 router.get("/dna", (_req, res) => {
@@ -278,8 +286,8 @@ router.get("/dna", (_req, res) => {
 
 router.get("/behavior", (req, res) => {
   try {
-    const profileId = String(req.query.profile ?? "") as BackendProfileId;
-    if (!PROFILE_SPECS[profileId]) {
+    const profileId = parseProfileId(req);
+    if (!profileId) {
       return res.status(400).json({ error: "Unknown profile id" });
     }
 
@@ -305,8 +313,8 @@ router.get("/behavior", (req, res) => {
 
 router.get("/conflicts", (req, res) => {
   try {
-    const profileId = String(req.query.profile ?? "") as BackendProfileId;
-    if (!PROFILE_SPECS[profileId]) {
+    const profileId = parseProfileId(req);
+    if (!profileId) {
       return res.status(400).json({ conflicts: [], ts: Date.now() });
     }
 
@@ -341,12 +349,11 @@ router.get("/comparison", (req, res) => {
       const absD   = Math.abs(delta);
       const dir    = delta > 0 ? "increase" : delta < 0 ? "decrease" : "same";
 
-      // "Increase" in latency/responsiveness is good; "increase" in efficiency/battery is good differently
-      const isPositiveDimension = ["latency", "responsiveness", "stability"].includes(fromDim.id);
-      const sentiment =
-        absD < 8 ? "neutral" :
-        (isPositiveDimension ? (delta > 0 ? "positive" : "negative") :
-         (delta < 0 ? "positive" : "negative")); // for efficiency: lower score = less efficient = negative
+      // Every dimension uses higher-is-better scoring: latency focus, responsiveness,
+      // efficiency, thermal restraint, stability, and battery bias all increase toward
+      // their best state. No dimension inverts — a higher score is always the better
+      // outcome, so sentiment maps directly to the sign of the delta.
+      const sentiment = absD < 8 ? "neutral" : (delta > 0 ? "positive" : "negative");
 
       return {
         id:        fromDim.id,

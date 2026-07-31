@@ -102,6 +102,11 @@ function release(token) {
     `[PS] end file=${token.file} fn=${token.fn}` +
     ` id=${token.id} duration=${durationMs}ms active=${_slots.size} calls60s=${_callLog.length}`
   );
+  // Notify external queue listeners (e.g. tweak-executor) that a slot freed up
+  // so they can re-evaluate whether a queued item may now proceed.
+  for (const listener of _releaseListeners) {
+    try { listener(); } catch {}
+  }
 }
 
 function skippedResult({ file, fn, reason }) {
@@ -139,4 +144,26 @@ function getState() {
   };
 }
 
-module.exports = { tryAcquire, release, skippedResult, getState };
+// ── Release notification hooks ─────────────────────────────────────────────────
+// Modules (e.g. tweak-executor) that maintain their own queuing semaphore and
+// want to respect this limiter's global ceiling can register an onRelease
+// listener.  Each listener is called synchronously whenever a slot is freed so
+// the external queue can re-evaluate whether it may now proceed.
+const _releaseListeners = [];
+
+/**
+ * Register a callback that fires synchronously after every psLimiter slot
+ * is released.  Returns an unsubscribe function.
+ *
+ * @param {() => void} listener
+ * @returns {() => void} unsubscribe
+ */
+function onRelease(listener) {
+  _releaseListeners.push(listener);
+  return () => {
+    const idx = _releaseListeners.indexOf(listener);
+    if (idx >= 0) _releaseListeners.splice(idx, 1);
+  };
+}
+
+module.exports = { tryAcquire, release, skippedResult, getState, onRelease, MAX_CONCURRENT_PS };

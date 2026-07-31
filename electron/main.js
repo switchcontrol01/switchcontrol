@@ -71,7 +71,7 @@
   const configStore    = require('./config-store');
   const updaterService = require('./updater');
   const criticalLogger = require('./critical-logger');
-  const { APPDATA_DIR, TWEAK_STATE_FILE, CONFIG_FILE, DEVICE_ID_FILE, SPECS_CACHE_FILE } = require('./user-data-paths');
+  const { APPDATA_DIR, TWEAK_STATE_FILE, CONFIG_FILE, DEVICE_ID_FILE, SPECS_CACHE_FILE, DEVICE_SIGNATURE_FILE } = require('./user-data-paths');
   const processControl = require('./process-control');
   // The latency analyzer is an optional feature. Some packaged builds do not
   // include latency-analyzer.js; requiring it unconditionally makes Electron
@@ -159,14 +159,42 @@
   function checkWindowsAdmin() {
     if (process.platform !== 'win32') return Promise.resolve(true);
     return new Promise((resolve) => {
+      const token = psLimiter.tryAcquire({ file: 'main.js', fn: 'checkWindowsAdmin', reason: 'admin-check' });
+      if (!token) return resolve(false); // conservative: treat busy limiter as non-admin
       execFile('powershell', [
         '-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden',
         '-ExecutionPolicy', 'Bypass', '-Command',
         '([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)',
       ], { windowsHide: true, timeout: 6000 }, (err, stdout) => {
+        psLimiter.release(token);
         resolve(!err && stdout.trim().toLowerCase() === 'true');
       });
     });
+  }
+
+  // ─── Shared PowerShell runner for main.js IPC handlers ───────────────────────
+  // Acquires a psLimiter slot, spawns powershell.exe, returns trimmed stdout or
+  // null on error. Callers keep their own parsing/JSON logic; only the spawn
+  // boilerplate is centralised here.
+  // Sites with complex stderr handling or custom backoff (getGpuPerfCounterLoad,
+  // extremeLabs:createRestorePoint, startup:scan) keep their inline spans and are
+  // documented exceptions.
+  async function runMainPs(script, { timeout = 10000, label = '' } = {}) {
+    if (process.platform !== 'win32') return null;
+    const token = psLimiter.tryAcquire({ file: 'main.js', fn: label || 'runMainPs', reason: label || 'main-ps' });
+    if (!token) return null;
+    try {
+      return await new Promise((resolve) => {
+        execFile('powershell', [
+          '-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden',
+          '-ExecutionPolicy', 'Bypass', '-Command', script,
+        ], { windowsHide: true, timeout }, (err, stdout) => {
+          resolve(err ? null : (stdout || '').trim());
+        });
+      });
+    } finally {
+      psLimiter.release(token);
+    }
   }
   
   // Deep-link queue for when renderer is not ready
@@ -312,7 +340,16 @@
   }
   // (3) cached value from previous refresh. NEVER polled automatically in loop.
   // { load: number|null, temp: number|null, memUsedMb: number|null, memTotalMb: number|null, power: number|null, clockMhz: number|null, source: string }
-  let gpuPollCache = { load: null, temp: null, memUsedMb: null, memTotalMb: null, power: null, clockMhz: null, source: 'none' };
+  // ─── Unified GPU state — single source of truth for all GPU reads ─────────────
+  // Replaces three separate caches (gpuStaticCache/gpuStaticTs, gpuPollCache,
+  // _gpuInfoCache/_gpuInfoCacheTs). All IPC handlers read from here; the renderer
+  // API shapes are unchanged — only the internal plumbing is consolidated.
+  let gpuState = {
+    model: null, vendor: null, isNvidia: false, isAmd: false,
+    vramTotalMb: null, vramUsedMb: null, driverVersion: null,
+    load: null, temp: null, power: null, clockMhz: null, source: 'none',
+    lastStaticUpdate: 0, lastDynamicUpdate: 0,
+  };
   
   // On-demand GPU perf counter refresh — used only by telemetry:refreshGpuLoad IPC.
   // The same TTL is used by the low-level reader and IPC handler so neither path
@@ -775,7 +812,7 @@
     // ── GPU pre-warm (fire-and-forget, runs in parallel with CPU/disk prime) ──
     // ONE-TIME GPU pre-warm — fires exactly once at startup, never repeats.
     // PowerShell perf counters have a 2-4s cold-start overhead on first call.
-    // Seeding gpuPollCache now ensures getLive() returns a valid load reading
+    // Seeding gpuState now ensures getLive() returns a valid load reading
     // from the first renderer call rather than waiting for the user to trigger
     // a manual refresh. The loop itself does NOT call getGpuPerfCounterLoad().
     //
@@ -791,7 +828,7 @@
       if (wmiGpuModelName) {
         console.log('[GPU] WMI fast-path skipped — already resolved by enrichment:', wmiGpuModelName);
       } else {
-      const _wmiGpuPs = `try{$r=@(Get-WmiObject Win32_VideoController -ErrorAction Stop|Where-Object{$_.Name -notmatch 'Microsoft Basic|Remote Desktop'}|Sort-Object{-[uint64]$_.AdapterRAM});if($r.Count -gt 0){($r|ForEach-Object{"$($_.Name)|$([uint64]$_.AdapterRAM)"})-join';;'}else{''}}catch{''}`;
+      const _wmiGpuPs = `try{$r=@(Get-CimInstance Win32_VideoController -ErrorAction Stop|Where-Object{$_.Name -notmatch 'Microsoft Basic|Remote Desktop'}|Sort-Object{-[uint64]$_.AdapterRAM});if($r.Count -gt 0){($r|ForEach-Object{"$($_.Name)|$([uint64]$_.AdapterRAM)"})-join';;'}else{''}}catch{''}`;
       const _fpToken = psLimiter.tryAcquire({ file: 'main.js', fn: 'startTelemetryPolling:wmiGpu', reason: 'startup-wmi-gpu' });
       if (!_fpToken) {
         console.log('[GPU] WMI fast-path skipped — psLimiter full at startup (enrichment will cover GPU)');
@@ -844,12 +881,9 @@
                     gpuExistsOnHardware = true;
                     const memUsed  = ctrl.memoryUsed != null && ctrl.memoryUsed > 0 ? safeNum(ctrl.memoryUsed) : null;
                     const memTotal = ctrl.vram       != null && ctrl.vram       > 0 ? safeNum(ctrl.vram)       : null;
-                    if (!gpuStaticCache) {
-                      gpuStaticCache = { memUsedMb: memUsed, memTotalMb: memTotal };
-                      gpuStaticTs = Date.now();
-                    }
-                    gpuPollCache.memUsedMb  = gpuPollCache.memUsedMb  ?? memUsed;
-                    gpuPollCache.memTotalMb = gpuPollCache.memTotalMb ?? memTotal;
+                    gpuState.vramTotalMb = gpuState.vramTotalMb ?? memTotal;
+                    gpuState.vramUsedMb  = gpuState.vramUsedMb  ?? memUsed;
+                    if (!gpuState.lastStaticUpdate) gpuState.lastStaticUpdate = Date.now();
                     verboseLog('[GPU] si.graphics VRAM seeded (NVIDIA/Intel path):', memTotal, 'MB');
                   }
                 }).catch(() => {});
@@ -865,12 +899,9 @@
                   gpuExistsOnHardware = true;
                   const memUsed  = ctrl.memoryUsed != null && ctrl.memoryUsed > 0 ? safeNum(ctrl.memoryUsed) : null;
                   const memTotal = ctrl.vram       != null && ctrl.vram       > 0 ? safeNum(ctrl.vram)       : null;
-                  if (!gpuStaticCache) {
-                    gpuStaticCache = { memUsedMb: memUsed, memTotalMb: memTotal };
-                    gpuStaticTs = Date.now();
-                  }
-                  gpuPollCache.memUsedMb  = gpuPollCache.memUsedMb  ?? memUsed;
-                  gpuPollCache.memTotalMb = gpuPollCache.memTotalMb ?? memTotal;
+                  gpuState.vramTotalMb = gpuState.vramTotalMb ?? memTotal;
+                  gpuState.vramUsedMb  = gpuState.vramUsedMb  ?? memUsed;
+                  if (!gpuState.lastStaticUpdate) gpuState.lastStaticUpdate = Date.now();
                 }
               }).catch(() => {});
             }
@@ -1283,17 +1314,16 @@
       _telemetryLoopPaused = true;
       console.log('[Perf] minimized → pausing all loops (telemetry, no IPC polls while hidden)');
     });
-    mainWindow.on('restore', () => {
+    function _resumeTelemetryLoop(reason) {
       _telemetryLoopPaused = false;
-      console.log('[Perf] restored → resuming telemetry loop');
+      console.log(`[Perf] ${reason} → resuming telemetry loop`);
       pollTelemetry().catch(() => {});
+    }
+    mainWindow.on('restore', () => {
+      _resumeTelemetryLoop('restored');
     });
     mainWindow.on('show', () => {
-      if (_telemetryLoopPaused) {
-        _telemetryLoopPaused = false;
-        console.log('[Perf] window show → resuming telemetry loop');
-        pollTelemetry().catch(() => {});
-      }
+      if (_telemetryLoopPaused) _resumeTelemetryLoop('window show');
     });
   
     // ── Launch handshake ─────────────────────────────────────────────────────────
@@ -1542,6 +1572,16 @@
   let gpuPerfCounterFailCount = 0;
   const GPU_PERF_COUNTER_MAX_FAILS = 15; // stop trying after 15 consecutive failures
   let gpuPerfCounterPausedUntil = 0;    // timestamp: retry after cold-start backoff
+
+  // Increment the GPU perf-counter failure counter and engage the pause backoff
+  // when the fail limit is reached.  Extracted to replace three identical inline blocks.
+  function _recordGpuPerfFailure(reason) {
+    gpuPerfCounterFailCount++;
+    if (gpuPerfCounterFailCount >= GPU_PERF_COUNTER_MAX_FAILS && !gpuPerfCounterPausedUntil) {
+      gpuPerfCounterPausedUntil = Date.now() + 5 * 60 * 1000;
+      console.warn(`[GPU:perf] hit fail limit (${GPU_PERF_COUNTER_MAX_FAILS}) — pausing for 5min (${reason})`);
+    }
+  }
   
   // AMD zero-counter tracker:
   // AMD RX 7800 XT (and other AMD GPUs) can return 0 on all engine paths even when
@@ -1578,12 +1618,12 @@
     // TTL gate — prevent rapid PowerShell re-spawns within 15s
     if (Date.now() - _gpuCounterLastRefreshTs < GPU_POLL_TTL_MS) {
       verboseLog('[Telemetry] gpu_poll=ttl_blocked ttl=' + GPU_POLL_TTL_MS);
-      return gpuPollCache.load ?? null;
+      return gpuState.load ?? null;
     }
     const _token = psLimiter.tryAcquire({ file: 'main.js', fn: 'getGpuPerfCounterLoad', reason: 'gpu-counter' });
     if (!_token) {
       verboseLog('[Telemetry] gpu_poll=skipped limiter_busy');
-      return gpuPollCache.load ?? null;
+      return gpuState.load ?? null;
     }
   
     // PowerShell outputs JSON: { "max": <number>, "engines": { <type>: <sum>, ... } }
@@ -1635,11 +1675,7 @@
           '-ExecutionPolicy', 'Bypass', '-Command', ps,
         ], { windowsHide: true, timeout: 9000 }, (err, stdout, stderr) => {
           if (err) {
-            gpuPerfCounterFailCount++;
-            if (gpuPerfCounterFailCount >= GPU_PERF_COUNTER_MAX_FAILS && !gpuPerfCounterPausedUntil) {
-              gpuPerfCounterPausedUntil = Date.now() + 5 * 60 * 1000; // retry in 5 min
-              console.warn(`[GPU:perf] hit fail limit (${GPU_PERF_COUNTER_MAX_FAILS}) — pausing for 5min`);
-            }
+            _recordGpuPerfFailure('ps-error');
             console.warn(`[GPU:perf] PowerShell error (fail ${gpuPerfCounterFailCount}):`, err.message);
             return resolve(null);
           }
@@ -1647,11 +1683,7 @@
             const parsed = JSON.parse(stdout.trim());
             const max = parsed.max;
             if (!Number.isFinite(max) || max < 0) {
-              gpuPerfCounterFailCount++;
-              if (gpuPerfCounterFailCount >= GPU_PERF_COUNTER_MAX_FAILS && !gpuPerfCounterPausedUntil) {
-                gpuPerfCounterPausedUntil = Date.now() + 5 * 60 * 1000;
-                console.warn(`[GPU:perf] hit fail limit (${GPU_PERF_COUNTER_MAX_FAILS}) — pausing for 5min`);
-              }
+              _recordGpuPerfFailure('bad-max');
               console.warn(`[GPU:perf] unexpected max value (fail ${gpuPerfCounterFailCount}): ${max}`);
               return resolve(null);
             }
@@ -1678,11 +1710,7 @@
   
             resolve(parseFloat(max.toFixed(1)));
           } catch (parseErr) {
-            gpuPerfCounterFailCount++;
-            if (gpuPerfCounterFailCount >= GPU_PERF_COUNTER_MAX_FAILS && !gpuPerfCounterPausedUntil) {
-              gpuPerfCounterPausedUntil = Date.now() + 5 * 60 * 1000;
-              console.warn(`[GPU:perf] hit fail limit (${GPU_PERF_COUNTER_MAX_FAILS}) — pausing for 5min`);
-            }
+            _recordGpuPerfFailure('parse-error');
             console.warn(`[GPU:perf] JSON parse error (fail ${gpuPerfCounterFailCount}): "${stdout.trim()}"`);
             resolve(null);
           }
@@ -1708,53 +1736,18 @@
       '  \'{"rIO_sec":\' + [Math]::Round($r/512,1) + \',"wIO_sec":\' + [Math]::Round($w/512,1) + \',"ms_sec":\' + ($a*10) + \'}\'',
       "} catch { '{\"error\":\"failed\"}' }",
     ].join('\n');
-    return new Promise((resolve) => {
-      execFile('powershell', ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-Command', ps],
-        { windowsHide: true, timeout: 7000 },
-        (err, stdout) => {
-          if (err) { resolve(null); return; }
-          try {
-            const parsed = JSON.parse(stdout.trim());
-            if (parsed.error) { resolve(null); return; }
-            resolve(parsed);
-          } catch { resolve(null); }
-        });
-    });
-  }
-  
-  // ─── GPU static info (name, VRAM) — cached, refreshed every 60s ──────────────
-  let gpuStaticCache = null;
-  let gpuStaticTs = 0;
-  const GPU_STATIC_TTL = 60000;
-  
-  async function getGpuStatic() {
-    const now = Date.now();
-    if (gpuStaticCache && now - gpuStaticTs < GPU_STATIC_TTL) return gpuStaticCache;
-    const token = psLimiter.tryAcquire({
-      file: 'main.js',
-      fn: 'getGpuStatic',
-      reason: 'gpu-static',
-    });
-    if (!token) return gpuStaticCache || { memUsedMb: null, memTotalMb: null };
+    const raw = await runMainPs(ps, { timeout: 7000, label: 'getDiskIOViaPowerShell' });
+    if (!raw) return null;
     try {
-      const gr = await siWithTimeout(() => si.graphics(), 4_000, 'getGpuStatic.graphics').catch(() => null);
-      const ctrl = gr?.controllers?.[0];
-      if (ctrl) {
-        gpuStaticCache = {
-          memUsedMb:  ctrl.memoryUsed  != null && ctrl.memoryUsed  > 0 ? safeNum(ctrl.memoryUsed)  : null,
-          memTotalMb: ctrl.vram        != null && ctrl.vram        > 0 ? safeNum(ctrl.vram)         : null,
-        };
-      } else {
-        gpuStaticCache = { memUsedMb: null, memTotalMb: null };
-      }
-      gpuStaticTs = now;
-    } catch {
-      gpuStaticCache = gpuStaticCache || { memUsedMb: null, memTotalMb: null };
-    } finally {
-      psLimiter.release(token);
-    }
-    return gpuStaticCache;
+      const parsed = JSON.parse(raw);
+      if (parsed.error) return null;
+      return parsed;
+    } catch { return null; }
   }
+  
+  // getGpuStatic() has been folded into gpuState — callers (none remaining in
+  // steady-state) should read gpuState.vramTotalMb / gpuState.vramUsedMb directly.
+  // The ALLOWED_SI_CALLERS entry for 'getGpuStatic' is kept for historical coverage.
   
   // Persistent Device ID — generated once, stored forever in userData
   const DEVICE_ID_REGEX = /^[A-F0-9]{16}$/;
@@ -1849,8 +1842,8 @@
     return cachedDeviceId;
   });
   
-  const DEVICE_SIGNATURE_FILE = path.join(APPDATA_DIR, 'device-signature.json');
-  
+  // DEVICE_SIGNATURE_FILE is imported from user-data-paths at the top of this file.
+
   function getOrCreateDeviceSignature() {
     const fs = require('fs');
     try {
@@ -2292,18 +2285,9 @@
       "} catch {}",
       "ConvertTo-Json -InputObject $result -Compress -Depth 2",
     ].join("\n");
-    return new Promise((resolve) => {
-      execFile(
-        'powershell',
-        ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden',
-         '-ExecutionPolicy', 'Bypass', '-Command', ps],
-        { windowsHide: true, timeout: 8_000 },
-        (_err, stdout) => {
-          try { resolve(JSON.parse(stdout?.trim() || '{}')); }
-          catch { resolve({}); }
-        }
-      );
-    });
+    const raw = await runMainPs(ps, { timeout: 8_000, label: 'driverIntel:getInstalledVersions' });
+    try { return JSON.parse(raw || '{}'); }
+    catch { return {}; }
   });
 
   ipcMain.handle('system:getInfo', () => ({
@@ -2319,29 +2303,20 @@
   // AMD systems. Uses Get-PnpDevice (PnP Manager, not WMI) which is fast even on
   // systems where Win32_SoundDevice WMI queries hang indefinitely.
   // Returns { name: string | null }.
-  ipcMain.handle('system:getAudioDevice', () => {
+  ipcMain.handle('system:getAudioDevice', async () => {
     if (process.platform !== 'win32') return { name: null };
-    return new Promise((resolve) => {
-      // Try MEDIA class first (sound cards/codecs), then AudioEndpoint (rendered devices).
-      // Get-PnpDevice does NOT use WMI — it calls the PnP Manager directly.
-      const cmd = [
-        '$d = Get-PnpDevice -Class MEDIA -Status OK -ErrorAction SilentlyContinue | Select-Object -First 1;',
-        'if ($d) { $d.FriendlyName }',
-        'else {',
-        '  $d2 = Get-PnpDevice -Class AudioEndpoint -Status OK -ErrorAction SilentlyContinue | Select-Object -First 1;',
-        '  if ($d2) { $d2.FriendlyName }',
-        '}',
-      ].join(' ');
-      execFile(
-        'powershell',
-        ['-NoProfile', '-NonInteractive', '-Command', cmd],
-        { timeout: 4_000, windowsHide: true },
-        (_err, stdout) => {
-          const name = stdout?.trim() || null;
-          resolve({ name });
-        }
-      );
-    });
+    // Try MEDIA class first (sound cards/codecs), then AudioEndpoint (rendered devices).
+    // Get-PnpDevice does NOT use WMI — it calls the PnP Manager directly.
+    const cmd = [
+      '$d = Get-PnpDevice -Class MEDIA -Status OK -ErrorAction SilentlyContinue | Select-Object -First 1;',
+      'if ($d) { $d.FriendlyName }',
+      'else {',
+      '  $d2 = Get-PnpDevice -Class AudioEndpoint -Status OK -ErrorAction SilentlyContinue | Select-Object -First 1;',
+      '  if ($d2) { $d2.FriendlyName }',
+      '}',
+    ].join(' ');
+    const name = await runMainPs(cmd, { timeout: 4_000, label: 'system:getAudioDevice' }) || null;
+    return { name };
   });
   
   // Bluetooth radio name via PnP — used as a reliable fallback when WMI audio/NIC
@@ -2350,25 +2325,16 @@
   // e.g. "Intel(R) Wireless Bluetooth(R)" or "Realtek Bluetooth Adapter".
   // This is far more accurate than guessing from the wireless NIC adapter name.
   // Returns { name: string | null }.
-  ipcMain.handle('system:getBluetoothDevice', () => {
+  ipcMain.handle('system:getBluetoothDevice', async () => {
     if (process.platform !== 'win32') return { name: null };
-    return new Promise((resolve) => {
-      const cmd = [
-        '$d = Get-PnpDevice -Class Bluetooth -Status OK -ErrorAction SilentlyContinue |',
-        '  Where-Object { $_.Description -notmatch "enumerator|hub|root|port|hid|avrcp" } |',
-        '  Select-Object -First 1;',
-        'if ($d) { $d.FriendlyName ?? $d.Description } else { "" }',
-      ].join(' ');
-      execFile(
-        'powershell',
-        ['-NoProfile', '-NonInteractive', '-Command', cmd],
-        { timeout: 4_000, windowsHide: true },
-        (_err, stdout) => {
-          const name = stdout?.trim() || null;
-          resolve({ name });
-        }
-      );
-    });
+    const cmd = [
+      '$d = Get-PnpDevice -Class Bluetooth -Status OK -ErrorAction SilentlyContinue |',
+      '  Where-Object { $_.Description -notmatch "enumerator|hub|root|port|hid|avrcp" } |',
+      '  Select-Object -First 1;',
+      'if ($d) { $d.FriendlyName ?? $d.Description } else { "" }',
+    ].join(' ');
+    const name = await runMainPs(cmd, { timeout: 4_000, label: 'system:getBluetoothDevice' }) || null;
+    return { name };
   });
   
   // Motherboard info via registry — instant, no WMI/PowerShell process spawn.
@@ -2376,30 +2342,22 @@
   // and is always available without any driver query. Used as a fast fallback
   // when si.baseboard() WMI calls time out (common on AMD X670/X870 platforms).
   // Returns { manufacturer: string | null, model: string | null }.
-  ipcMain.handle('system:getMotherboard', () => {
+  ipcMain.handle('system:getMotherboard', async () => {
     if (process.platform !== 'win32') return { manufacturer: null, model: null };
-    return new Promise((resolve) => {
-      const cmd = [
-        '$p = "HKLM:\\HARDWARE\\DESCRIPTION\\System\\BIOS";',
-        '$r = Get-ItemProperty $p -ErrorAction SilentlyContinue;',
-        'if ($r) {',
-        '  [PSCustomObject]@{ manufacturer = $r.BaseBoardManufacturer; model = $r.BaseBoardProduct } | ConvertTo-Json -Compress',
-        '} else { \'{"manufacturer":null,"model":null}\' }',
-      ].join(' ');
-      execFile(
-        'powershell',
-        ['-NoProfile', '-NonInteractive', '-Command', cmd],
-        { timeout: 2_000, windowsHide: true },
-        (_err, stdout) => {
-          try {
-            const parsed = JSON.parse(stdout?.trim() || '{}');
-            resolve({ manufacturer: parsed.manufacturer ?? null, model: parsed.model ?? null });
-          } catch {
-            resolve({ manufacturer: null, model: null });
-          }
-        }
-      );
-    });
+    const cmd = [
+      '$p = "HKLM:\\HARDWARE\\DESCRIPTION\\System\\BIOS";',
+      '$r = Get-ItemProperty $p -ErrorAction SilentlyContinue;',
+      'if ($r) {',
+      '  [PSCustomObject]@{ manufacturer = $r.BaseBoardManufacturer; model = $r.BaseBoardProduct } | ConvertTo-Json -Compress',
+      '} else { \'{"manufacturer":null,"model":null}\' }',
+    ].join(' ');
+    const raw = await runMainPs(cmd, { timeout: 2_000, label: 'system:getMotherboard' });
+    try {
+      const parsed = JSON.parse(raw || '{}');
+      return { manufacturer: parsed.manufacturer ?? null, model: parsed.model ?? null };
+    } catch {
+      return { manufacturer: null, model: null };
+    }
   });
   
   /** Race a systeminformation call against a timeout so the renderer never hangs. */
@@ -2796,7 +2754,7 @@
     }
     const { load, mem, temps } = liveTelemetryCache;
     const cpuTemp = safeNum(temps?.main || 0);
-    const gpuTemp = gpuPollCache.temp;
+    const gpuTemp = gpuState.temp;
     return {
       cpuUsage: safeNum(load?.currentLoad || 0),
       cpuCores: (load?.cpus || []).map(c => safeNum(c.load || 0)),
@@ -3005,17 +2963,24 @@ public class DspHelper {
   } catch {}
   
   $vcs = @()
-  try { $vcs = @(Get-WmiObject Win32_VideoController -EA Stop |
+  try { $vcs = @(Get-CimInstance Win32_VideoController -EA Stop |
     Select-Object Name,CurrentHorizontalResolution,CurrentVerticalResolution,CurrentRefreshRate,CurrentBitsPerPixel,VideoModeDescription) } catch {}
   
   $monIds  = @(); try { $monIds  = @(Get-CimInstance -Namespace root/wmi -ClassName WmiMonitorID                       -EA Stop) } catch {}
   $connPs  = @(); try { $connPs  = @(Get-CimInstance -Namespace root/wmi -ClassName WmiMonitorConnectionParams         -EA Stop) } catch {}
   $dispFt  = @(); try { $dispFt  = @(Get-CimInstance -Namespace root/wmi -ClassName WmiMonitorSupportedDisplayFeatures -EA Stop) } catch {}
   
-  $edids = @()
+  # Build EDID map keyed by hardware model ID (e.g. "SAM0E4F").
+  # The registry key name under HKLM:\...\Enum\DISPLAY\ IS the hardware model ID —
+  # the same token WmiMonitorID.InstanceName encodes after "DISPLAY\". Keying by
+  # model ID instead of building a positional array removes the ordering dependency
+  # that caused the old $edids[$i] to associate the wrong EDID with the wrong monitor
+  # when WMI and the registry enumerate models in different orders.
+  $edidMap = @{}
   try {
     $base = "HKLM:\\SYSTEM\\CurrentControlSet\\Enum\\DISPLAY"
     foreach ($mod in (Get-ChildItem $base -EA SilentlyContinue | Select-Object -First 8)) {
+      $modelId = $mod.PSChildName.ToUpper()
       foreach ($inst in (Get-ChildItem $mod.PSPath -EA SilentlyContinue | Select-Object -First 4)) {
         $e = (Get-ItemProperty (Join-Path $inst.PSPath "Device Parameters") -Name EDID -EA SilentlyContinue).EDID
         if ($e -and $e.Count -ge 72) {
@@ -3023,7 +2988,10 @@ public class DspHelper {
           $vHi = ([int]$e[61] -band 0xF0) -shr 4; $vLo = [int]$e[59]
           $nx = ($hHi -shl 8) -bor $hLo; $ny = ($vHi -shl 8) -bor $vLo
           if ($nx -gt 320 -and $ny -gt 240) {
-            $edids += @{ nx=$nx; ny=$ny; ver="$([int]$e[18]).$([int]$e[19])" }
+            if (-not $edidMap.ContainsKey($modelId)) {
+              $edidMap[$modelId] = @{ nx=$nx; ny=$ny; ver="$([int]$e[18]).$([int]$e[19])" }
+            }
+            break
           }
         }
       }
@@ -3087,34 +3055,76 @@ public class DspHelper {
     $gpuName = if ($g) { $g.Name } else { $vcs[0].Name }
   }
   
-  # Pre-match: map each WmiMonitorID index to the correct dispDevs entry by hardware ID.
-  # WmiMonitorID.InstanceName looks like  DISPLAY\\SAM0E4F\\4&...\\UID...
-  # EnumDisplayDevices DeviceID looks like MONITOR\\SAM0E4F\\{...}\\NN
-  # Both embed the same EISA hardware ID, so we can correlate them reliably even when
-  # the two arrays come back in different orders.
+  # ── Monitor → display-device correlation (3-tier, identity-safe) ────────────
+  # WmiMonitorID.InstanceName: DISPLAY\\SAM0E4F\\<instance>  -- hwId = "SAM0E4F"
+  # EnumDisplayDevices DeviceID: MONITOR\\SAM0E4F\\{GUID}\\NN -- hwId = "SAM0E4F"
+  # Both embed the same EISA hardware model code, enabling reliable identity-based
+  # matching even when the two data sources enumerate monitors in different orders.
+  #
+  # Tier 1 (hwId exact match)  — most reliable; used when both sides produce a
+  #   matching hardware ID string. Fails silently when a driver/EDID quirk causes
+  #   EnumDisplayDevices to return an empty DeviceID for a monitor child device, or
+  #   when the two API paths format the ID differently (e.g. extra trailing segment).
+  #
+  # Tier 2 (EDID native-res constraint) — fallback when Tier 1 misses. A display
+  #   physically cannot run above its own native panel resolution. If exactly ONE
+  #   remaining candidate has currentRes <= nativeRes for a given monitor, assign it.
+  #   Uses $edidMap[$hwId] (keyed by the same EISA code) so native-res lookup is also
+  #   identity-based, not positional.
+  #
+  # Tier 3 (leave unmatched) — when neither Tier 1 nor Tier 2 can resolve uniquely,
+  #   the monitor intentionally has no $monToDisp entry. $dev will be null, and the
+  #   dynamic fields (currentResX/Y, refreshHz, isPrimary) will be null in the output.
+  #   An honest null is strictly less harmful than a 50%-likely-wrong positional guess,
+  #   which produced the "currentRes 2560×1440 on a 1920×1080-native monitor" bug.
   $monToDisp = @{}
+  $monHwIds  = @()
+  for ($mi2 = 0; $mi2 -lt $monIds.Count; $mi2++) {
+    $id = $null
+    if ($monIds[$mi2].InstanceName -match 'DISPLAY\\([^\\]+)\\') { $id = $Matches[1].ToUpper() }
+    $monHwIds += $id
+  }
   if ($dispDevs -and $dispDevs.Count -gt 0) {
     $usedDispIdx = @{}
+
+    # Tier 1: exact hwId match
     for ($mi2 = 0; $mi2 -lt $monIds.Count; $mi2++) {
-      $mHwId = $null
-      if ($monIds[$mi2].InstanceName -match 'DISPLAY\\([^\\]+)\\') { $mHwId = $Matches[1].ToUpper() }
-      $matched = $false
+      $mHwId = $monHwIds[$mi2]
       if ($mHwId) {
         for ($j = 0; $j -lt $dispDevs.Count; $j++) {
-          if (-not $usedDispIdx.ContainsKey($j) -and $dispDevs[$j].hwId -eq $mHwId) {
-            $monToDisp[$mi2] = $dispDevs[$j]; $usedDispIdx[$j] = $true; $matched = $true; break
-          }
-        }
-      }
-      # Fall back: assign the first unused dispDev entry (preserves old behaviour for edge cases)
-      if (-not $matched) {
-        for ($j = 0; $j -lt $dispDevs.Count; $j++) {
-          if (-not $usedDispIdx.ContainsKey($j)) {
+          if (-not $usedDispIdx.ContainsKey($j) -and $dispDevs[$j].hwId -ne $null -and $dispDevs[$j].hwId -eq $mHwId) {
             $monToDisp[$mi2] = $dispDevs[$j]; $usedDispIdx[$j] = $true; break
           }
         }
       }
     }
+
+    # Tier 2: EDID native-res constraint for monitors still unmatched after Tier 1
+    for ($mi2 = 0; $mi2 -lt $monIds.Count; $mi2++) {
+      if ($monToDisp.ContainsKey($mi2)) { continue }
+      $mHwId = $monHwIds[$mi2]
+      $mEd   = if ($mHwId -and $edidMap.ContainsKey($mHwId)) { $edidMap[$mHwId] } else { $null }
+      if ($mEd -and [int]$mEd.nx -gt 0 -and [int]$mEd.ny -gt 0) {
+        $compatible = @()
+        for ($j = 0; $j -lt $dispDevs.Count; $j++) {
+          if (-not $usedDispIdx.ContainsKey($j)) {
+            $d = $dispDevs[$j]
+            # currentRes <= nativeRes is the physical constraint; >0 guard avoids false-positives
+            # when $d.w/$d.h are 0 (EnumDisplaySettings returned no mode data for that output)
+            if ([int]$d.w -gt 0 -and [int]$d.h -gt 0 -and [int]$d.w -le [int]$mEd.nx -and [int]$d.h -le [int]$mEd.ny) {
+              $compatible += $j
+            }
+          }
+        }
+        # Assign only when exactly one candidate is constraint-compatible —
+        # if multiple candidates satisfy the constraint the choice is ambiguous
+        # and Tier 3 (leave null) is safer than guessing.
+        if ($compatible.Count -eq 1) {
+          $monToDisp[$mi2] = $dispDevs[$compatible[0]]; $usedDispIdx[$compatible[0]] = $true
+        }
+      }
+    }
+    # Tier 3: monitors without a $monToDisp entry are left with $dev = $null
   }
 
   $i = 0
@@ -3142,12 +3152,14 @@ public class DspHelper {
     } catch {}
   
     # Use the pre-matched display device (correlated by hardware ID, not array index)
-    $dev = if ($monToDisp.ContainsKey($i)) { $monToDisp[$i] } else { $null }
-    $scr = if ($dev) {
+    $dev   = if ($monToDisp.ContainsKey($i)) { $monToDisp[$i] } else { $null }
+    $scr   = if ($dev) {
       $screens | Where-Object { $_.x -eq $dev.x -and $_.y -eq $dev.y } | Select-Object -First 1
-    } elseif ($i -lt $screens.Count) { $screens[$i] } else { $null }
-    $vc  = if ($i -lt $vcs.Count) { $vcs[$i] } else { if ($vcs.Count -gt 0) { $vcs[0] } else { $null } }
-    $ed  = if ($i -lt $edids.Count) { $edids[$i] } else { $null }
+    } else { $null }
+    $vc    = if ($i -lt $vcs.Count) { $vcs[$i] } else { if ($vcs.Count -gt 0) { $vcs[0] } else { $null } }
+    # Look up EDID by the monitor's own hardware model ID (identity-safe, not positional)
+    $miHwId = $monHwIds[$i]
+    $ed     = if ($miHwId -and $edidMap.ContainsKey($miHwId)) { $edidMap[$miHwId] } else { $null }
   
     $hz=$null; $maxHzOut=$null; $bpp=$null; $rx=$null; $ry=$null
     if ($dev) {
@@ -3197,7 +3209,7 @@ public class DspHelper {
     $fi = 0
     foreach ($src in $srcs) {
       $vc  = if ($fi -lt $vcs.Count) { $vcs[$fi] } else { if ($vcs.Count -gt 0) { $vcs[0] } else { $null } }
-      $ed  = if ($fi -lt $edids.Count) { $edids[$fi] } else { $null }
+      $ed  = $null  # no hwId available in the WMI-absent fallback path; EDID cannot be keyed
       $hz  = if ($vc -and [int]$vc.CurrentRefreshRate -gt 0) { [int]$vc.CurrentRefreshRate } else { $null }
       # Override Hz with per-monitor value from EnumDisplaySettings when available
       if ($null -ne $src.x) {
@@ -3221,14 +3233,7 @@ public class DspHelper {
   $out | ConvertTo-Json -Depth 5 -Compress`.trim();
   
     try {
-      const raw = await new Promise((resolve) => {
-        execFile('powershell', [
-          '-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden',
-          '-ExecutionPolicy', 'Bypass', '-Command', ps,
-        ], { windowsHide: true, timeout: 15_000 }, (err, stdout) => {
-          resolve(err ? null : (stdout || '').trim());
-        });
-      });
+      const raw = await runMainPs(ps, { timeout: 15_000, label: 'system:getDisplayInfo' });
       if (!raw) return { monitors: [] };
   
       const parsed = JSON.parse(raw);
@@ -3309,15 +3314,15 @@ public class DspHelper {
       const ramUsedGb = parseFloat((ramUsed / (1024 * 1024 * 1024)).toFixed(1));
       const ramPercent = ramTotal > 0 ? Math.round((ramUsed / ramTotal) * 100) : 0;
   
-      // --- GPU telemetry: read from gpuPollCache (fast, non-blocking cache read) ---
+      // --- GPU telemetry: read from unified gpuState (fast, non-blocking cache read) ---
       // load: populated by LHM (if running) or by the last on-demand perf counter refresh.
       // No PowerShell is spawned in the polling loop — see telemetry:refreshGpuLoad for on-demand.
-      const gpuLoad     = gpuPollCache.load;
-      const gpuTemp     = gpuPollCache.temp;
-      const gpuMemUsed  = gpuPollCache.memUsedMb;
-      const gpuMemTotal = gpuPollCache.memTotalMb;
-      const gpuPower    = gpuPollCache.power;
-      const gpuClockMhz = gpuPollCache.clockMhz;
+      const gpuLoad     = gpuState.load;
+      const gpuTemp     = gpuState.temp;
+      const gpuMemUsed  = gpuState.vramUsedMb;
+      const gpuMemTotal = gpuState.vramTotalMb;
+      const gpuPower    = gpuState.power;
+      const gpuClockMhz = gpuState.clockMhz;
   
       // --- Disk: resolve selected disk, fall back to C: then first ---
       // usagePct is always available (from fsSize — capacity, not activity).
@@ -3385,7 +3390,7 @@ public class DspHelper {
           powerW:      gpuPower    != null && gpuPower    > 0 ? gpuPower    : null,
           clockMhz:    gpuClockMhz != null && gpuClockMhz > 0 ? gpuClockMhz : null,
           _debug: {
-            source:          gpuPollCache.source,
+            source:          gpuState.source,
             engines:         lastGpuEngineBreakdown,
             aggregation:     'max-of-engine-sums',
           },
@@ -3504,45 +3509,59 @@ public class DspHelper {
     }
   });
   
-  // ── GPU info cache (si.graphics is ~300–600ms; cache for 30s) ─────────────────
-  let _gpuInfoCache = null;
-  let _gpuInfoCacheTs = 0;
-  const GPU_INFO_TTL_MS = 30_000;
-  
+  // ── telemetry:getGpu — reads from / populates unified gpuState ────────────────
+  // Si.graphics() is ~300–600ms; a 30s staleness window avoids re-running it on
+  // every rapid UI open. nvidia-smi fills temp/power/clockCore for NVIDIA cards
+  // where si.graphics() returns 0 for those fields.
+  // _gpuInfoCache and _gpuInfoCacheTs have been folded into gpuState.lastStaticUpdate.
   ipcMain.handle('telemetry:getGpu', async () => {
     try {
       const now = Date.now();
-      if (_gpuInfoCache && (now - _gpuInfoCacheTs) < GPU_INFO_TTL_MS) {
-        return { ..._gpuInfoCache, cached: true };
+      const GPU_INFO_TTL_MS = 30_000;
+      // Serve from gpuState if the model is already known and the data is fresh
+      if (gpuState.model && (now - gpuState.lastStaticUpdate) < GPU_INFO_TTL_MS) {
+        return {
+          model:        gpuState.model,
+          vendor:       gpuState.vendor        || '',
+          driverVersion:gpuState.driverVersion || null,
+          vram:         gpuState.vramTotalMb,
+          memoryUsed:   gpuState.vramUsedMb,
+          temperature:  gpuState.temp,
+          load:         gpuState.load,
+          powerDraw:    gpuState.power,
+          clockCore:    gpuState.clockMhz,
+          clockMemory:  null,
+          cached:       true,
+        };
       }
+
       const graphics = await si.graphics();
-      const ctrl = (graphics.controllers || [])[0];
+      const ctrl = (graphics.controllers || [])[selectedGpuIndex] || (graphics.controllers || [])[0];
       if (!ctrl) return null;
-  
+
       const vendorLower = (ctrl.vendor || '').toLowerCase();
       const isAmd = vendorLower.includes('amd') || vendorLower.includes('advanced micro');
-  
-      // Base info from systeminformation
-      // For AMD, si.graphics() often returns 0 for load/temp — treat 0 as missing/unavailable
-      const result = {
-        model: ctrl.model || 'Unknown GPU',
-        vendor: ctrl.vendor || '',
-        driverVersion: ctrl.driverVersion || null,
-        vram: ctrl.vram > 0 ? safeNum(ctrl.vram) : null,             // MB
-        memoryUsed: ctrl.memoryUsed > 0 ? safeNum(ctrl.memoryUsed) : null, // MB
-        temperature: ctrl.temperatureGpu > 0 ? safeNum(ctrl.temperatureGpu) : null,
-        load: (!isAmd && ctrl.utilizationGpu >= 0) ? safeNum(ctrl.utilizationGpu) : null,
-        powerDraw: null,
-        clockCore: null,
-        clockMemory: null,
-      };
-  
+      const isNvidia = vendorLower.includes('nvidia');
+
+      // Populate gpuState with fresh static fields
+      gpuState.model        = ctrl.model         || gpuState.model || 'Unknown GPU';
+      gpuState.vendor       = ctrl.vendor         || gpuState.vendor || '';
+      gpuState.driverVersion= ctrl.driverVersion  || gpuState.driverVersion || null;
+      gpuState.isNvidia     = isNvidia;
+      gpuState.isAmd        = isAmd;
+      if (ctrl.vram        > 0) gpuState.vramTotalMb = safeNum(ctrl.vram);
+      if (ctrl.memoryUsed  > 0) gpuState.vramUsedMb  = safeNum(ctrl.memoryUsed);
+      if (!isAmd && ctrl.temperatureGpu > 0) gpuState.temp = safeNum(ctrl.temperatureGpu);
+      if (!isAmd && ctrl.utilizationGpu >= 0) { gpuState.load = safeNum(ctrl.utilizationGpu); gpuState.source = 'si'; }
+      gpuState.lastStaticUpdate = now;
+
       // nvidia-smi for NVIDIA as last resort (skip for AMD — no smi support)
-      if (!isAmd && cachedSpecs?.gpu?.isNvidia && (result.temperature === null || result.load === null)) {
+      if (isNvidia && (gpuState.temp === null || gpuState.load === null)) {
         try {
           const nvidiaFull = await new Promise((resolve) => {
-            exec(
-              'nvidia-smi --query-gpu=temperature.gpu,utilization.gpu,memory.used,memory.total,power.draw,clocks.current.graphics,clocks.current.memory --format=csv,noheader,nounits',
+            execFile(
+              'nvidia-smi',
+              ['--query-gpu=temperature.gpu,utilization.gpu,memory.used,memory.total,power.draw,clocks.current.graphics,clocks.current.memory', '--format=csv,noheader,nounits'],
               { windowsHide: true, timeout: 3000 },
               (err, stdout) => {
                 if (err || !stdout) return resolve(null);
@@ -3553,20 +3572,29 @@ public class DspHelper {
           });
           if (nvidiaFull) {
             const nv = nvidiaFull.map(s => parseFloat(s));
-            if (result.temperature === null && Number.isFinite(nv[0])) result.temperature = nv[0];
-            if (result.load === null && Number.isFinite(nv[1])) result.load = nv[1];
-            if (result.memoryUsed === null && Number.isFinite(nv[2])) result.memoryUsed = nv[2];
-            if (result.vram === null && Number.isFinite(nv[3])) result.vram = nv[3];
-            if (result.powerDraw === null && Number.isFinite(nv[4])) result.powerDraw = nv[4];
-            if (result.clockCore === null && Number.isFinite(nv[5])) result.clockCore = nv[5];
-            if (result.clockMemory === null && Number.isFinite(nv[6])) result.clockMemory = nv[6];
+            if (gpuState.temp       === null && Number.isFinite(nv[0])) gpuState.temp       = nv[0];
+            if (gpuState.load       === null && Number.isFinite(nv[1])) { gpuState.load = nv[1]; gpuState.source = 'nvidia-smi'; }
+            if (gpuState.vramUsedMb === null && Number.isFinite(nv[2])) gpuState.vramUsedMb = nv[2];
+            if (gpuState.vramTotalMb=== null && Number.isFinite(nv[3])) gpuState.vramTotalMb= nv[3];
+            if (gpuState.power      === null && Number.isFinite(nv[4])) gpuState.power      = nv[4];
+            if (gpuState.clockMhz   === null && Number.isFinite(nv[5])) gpuState.clockMhz   = nv[5];
           }
         } catch {}
       }
-  
-      // Fail honestly: if temp/load are still null, UI will show "Unavailable" rather than 0
-      _gpuInfoCache = { ...result };
-      _gpuInfoCacheTs = Date.now();
+
+      const result = {
+        model:        gpuState.model,
+        vendor:       gpuState.vendor       || '',
+        driverVersion:gpuState.driverVersion|| null,
+        vram:         gpuState.vramTotalMb,
+        memoryUsed:   gpuState.vramUsedMb,
+        temperature:  gpuState.temp,
+        load:         gpuState.load,
+        powerDraw:    gpuState.power,
+        clockCore:    gpuState.clockMhz,
+        clockMemory:  null,
+        cached:       false,
+      };
       verboseLog(`[telemetry:getGpu] model=${result.model} vendor=${result.vendor} load=${result.load} temp=${result.temperature} vram=${result.vram}MB power=${result.powerDraw}W`);
       return result;
     } catch (e) {
@@ -3588,20 +3616,22 @@ public class DspHelper {
   ipcMain.handle('telemetry:refreshGpuLoad', async () => {
     const now = Date.now();
     if (now - _gpuCounterLastRefreshTs < GPU_COUNTER_REFRESH_TTL) {
-      verboseLog('[telemetry:refreshGpuLoad] within TTL — returning cached load=' + gpuPollCache.load);
-      return { load: gpuPollCache.load, source: gpuPollCache.source, cached: true };
+      verboseLog('[telemetry:refreshGpuLoad] within TTL — returning cached load=' + gpuState.load);
+      return { load: gpuState.load, source: gpuState.source, cached: true };
     }
     _gpuCounterLastRefreshTs = now;
     try {
       const load = await getGpuPerfCounterLoad();
       if (load != null) {
-        gpuPollCache = { ...gpuPollCache, load, source: 'perf-counter' };
+        gpuState.load = load;
+        gpuState.source = 'perf-counter';
+        gpuState.lastDynamicUpdate = now;
         verboseLog('[telemetry:refreshGpuLoad] perf counter read: load=' + load + '%');
       }
-      return { load: gpuPollCache.load, source: gpuPollCache.source, cached: false };
+      return { load: gpuState.load, source: gpuState.source, cached: false };
     } catch (e) {
       console.error('[telemetry:refreshGpuLoad] error:', e.message);
-      return { load: gpuPollCache.load, source: gpuPollCache.source, cached: false, error: e.message };
+      return { load: gpuState.load, source: gpuState.source, cached: false, error: e.message };
     }
   });
   
@@ -4079,11 +4109,12 @@ public class DspHelper {
   function _invalidateGpuCache() {
     cachedSpecs     = null;
     cachedSpecsTime = 0;
-    gpuStaticCache  = null;
-    gpuStaticTs     = 0;
-    gpuPollCache    = { load: null, temp: null, memUsedMb: null, memTotalMb: null, power: null, clockMhz: null, source: 'none' };
-    _gpuInfoCache   = null;
-    _gpuInfoCacheTs = 0;
+    gpuState = {
+      model: null, vendor: null, isNvidia: false, isAmd: false,
+      vramTotalMb: null, vramUsedMb: null, driverVersion: null,
+      load: null, temp: null, power: null, clockMhz: null, source: 'none',
+      lastStaticUpdate: 0, lastDynamicUpdate: 0,
+    };
     try { const fs = require('fs'); fs.unlinkSync(SPECS_CACHE_FILE); } catch (_e) {}
     console.log('[GPU] cache invalidated for GPU switch');
   }
@@ -4209,7 +4240,7 @@ $mmcssLazy = Reg 'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multim
 # Power throttling
 $pwrThrot  = Reg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottling' 'PowerThrottlingOff'
 # HPET
-$hpetQ     = try{$h=Get-WmiObject -Query "SELECT * FROM Win32_DeviceChangeEvent" -EA Stop;'ok'}catch{'?'}
+$hpetQ     = try{$h=Get-CimInstance -Query "SELECT * FROM Win32_DeviceChangeEvent" -EA Stop;'ok'}catch{'?'}
 @{
   timerResSet    = ($timerRes -eq 1)
   dynTickOff     = [bool]$dynTick
@@ -4819,6 +4850,39 @@ $hpetQ     = try{$h=Get-WmiObject -Query "SELECT * FROM Win32_DeviceChangeEvent"
     }
     console.log(`[PS-Exec] start file=main.js fn=networkTweaks:execute:${tweakId} reason=net-tweak-${action}`);
     try {
+      // ── Canonical redirects ───────────────────────────────────────────────────
+      // 'tcp-nagle' and 'tcp-throttling-index' were duplicate owners of the same
+      // Windows registry values as tweak-executor's 'tcp-no-delay' and
+      // slider-tweak-executor's 'net-throttle-index'.  Duplicate entries have been
+      // removed from network-tweak-executor's TWEAK_REGISTRY; these two IDs are
+      // now routed to their canonical owners so ownership is recorded once and the
+      // premium revert pipeline sees a single coherent record per registry value.
+      if (tweakId === 'tcp-nagle') {
+        const ipcAction = action === 'enable' ? 'apply' : 'revert';
+        const r = await tweakExecutor.executeTweakWithOwnership('tcp-no-delay', ipcAction, {});
+        console.log(`[PS-Exec] done fn=networkTweaks:execute:${tweakId} (→tcp-no-delay) success=${r.success} verified=${r.verified}`);
+        return {
+          tweakId, action,
+          success:        r.success,
+          verified:       r.verified || false,
+          message:        r.message || (r.success ? 'ok' : 'failed'),
+          requiresRestart: r.requiresRestart || false,
+        };
+      }
+      if (tweakId === 'tcp-throttling-index') {
+        const r = action === 'enable'
+          ? await sliderTweakExecutor.applySliderValue('net-throttle-index', 4294967295)
+          : await sliderTweakExecutor.resetSliderValue('net-throttle-index');
+        console.log(`[PS-Exec] done fn=networkTweaks:execute:${tweakId} (→net-throttle-index) ok=${r.ok} verified=${r.verified}`);
+        return {
+          tweakId, action,
+          success:        r.ok === true,
+          verified:       r.verified || false,
+          message:        r.error || (r.ok ? 'ok' : 'failed'),
+          requiresRestart: false,
+        };
+      }
+      // ─────────────────────────────────────────────────────────────────────────
       const result = await networkTweakExecutor.executeNetworkTweakWithOwnership(tweakId, action);
       console.log(`[PS-Exec] done fn=networkTweaks:execute:${tweakId} success=${result.success} verified=${result.verified}`);
       return result;
@@ -4837,6 +4901,15 @@ $hpetQ     = try{$h=Get-WmiObject -Query "SELECT * FROM Win32_DeviceChangeEvent"
       return { tweakId, applied: null, skipped: true };
     }
     try {
+      // Redirect canonical duplicates (same redirect logic as networkTweaks:execute)
+      if (tweakId === 'tcp-nagle') {
+        const r = await tweakExecutor.checkTweakStatus('tcp-no-delay');
+        return { tweakId, applied: (typeof r.isApplied === 'boolean') ? r.isApplied : null };
+      }
+      if (tweakId === 'tcp-throttling-index') {
+        const r = await sliderTweakExecutor.readSliderValue('net-throttle-index');
+        return { tweakId, applied: !r.error && !r.missing && r.value === 4294967295 };
+      }
       return await networkTweakExecutor.checkNetworkTweakStatus(tweakId);
     } catch (e) {
       return { tweakId, applied: null, error: e.message };
@@ -4856,6 +4929,22 @@ $hpetQ     = try{$h=Get-WmiObject -Query "SELECT * FROM Win32_DeviceChangeEvent"
     console.log('[NetworkTweaks] checkAllStatus start');
     try {
       const result = await networkTweakExecutor.checkAllNetworkTweakStatus();
+
+      // Inject redirected IDs that were removed from TWEAK_REGISTRY but are still
+      // shown on the Network Tweaks page — check via their canonical executors.
+      try {
+        const tcpNoDelay = await tweakExecutor.checkTweakStatus('tcp-no-delay');
+        result['tcp-nagle'] = { tweakId: 'tcp-nagle', applied: (typeof tcpNoDelay.isApplied === 'boolean') ? tcpNoDelay.isApplied : null };
+      } catch (e) {
+        result['tcp-nagle'] = { tweakId: 'tcp-nagle', applied: null, error: e.message };
+      }
+      try {
+        const nti = await sliderTweakExecutor.readSliderValue('net-throttle-index');
+        result['tcp-throttling-index'] = { tweakId: 'tcp-throttling-index', applied: !nti.error && !nti.missing && nti.value === 4294967295 };
+      } catch (e) {
+        result['tcp-throttling-index'] = { tweakId: 'tcp-throttling-index', applied: null, error: e.message };
+      }
+
       let enabled = 0, disabled = 0, inconclusive = 0;
       for (const [id, r] of Object.entries(result)) {
         if (r.disabled) {
