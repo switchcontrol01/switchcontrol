@@ -940,6 +940,8 @@ export default function NicTuningPage() {
   const [adapters, setAdapters] = useState<NicAdapter[]>([]);
   const [propertyMeta, setPropertyMeta] = useState<Record<string, PropertyMeta>>({});
   const [selectedAdapter, setSelectedAdapter] = useState<string | null>(null);
+  // Tracks which adapter was auto-selected on load so we can pulse it briefly.
+  const [autoSelectedAdapter, setAutoSelectedAdapter] = useState<string | null>(null);
   const [capabilities, setCapabilities] = useState<Record<string, PropertyCapability> | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -977,7 +979,13 @@ export default function NicTuningPage() {
         const list: NicAdapter[] = adaptersResult.adapters ?? [];
         setAdapters(list);
         if (list.length > 0) {
-          setSelectedAdapter(list[0].name);
+          // Prefer the first adapter that is online ("Up") so the user always
+          // lands on their active connection rather than a disconnected one.
+          const preferred = list.find(a => a.status === "Up" || a.status === "up") ?? list[0];
+          setSelectedAdapter(preferred.name);
+          setAutoSelectedAdapter(preferred.name);
+          // Clear the pulse highlight after 2 s — just long enough to draw attention.
+          setTimeout(() => setAutoSelectedAdapter(null), 2000);
         }
       }
       if (metaResult) setPropertyMeta(metaResult);
@@ -1156,10 +1164,16 @@ export default function NicTuningPage() {
             {adapters.map(adapter => {
               const on = adapter.status === "Up" || adapter.status === "up";
               const isSelected = adapter.name === selectedAdapter;
+              const isPulsing = adapter.name === autoSelectedAdapter;
               return (
-                <button
+                <motion.button
                   key={adapter.name}
-                  onClick={() => setSelectedAdapter(adapter.name)}
+                  onClick={() => { setSelectedAdapter(adapter.name); setAutoSelectedAdapter(null); }}
+                  animate={isPulsing
+                    ? { boxShadow: ["0 0 0px rgba(34,211,238,0)", "0 0 10px rgba(34,211,238,0.55)", "0 0 4px rgba(34,211,238,0.25)"] }
+                    : { boxShadow: "0 0 0px rgba(34,211,238,0)" }
+                  }
+                  transition={isPulsing ? { duration: 0.9, repeat: 2, ease: "easeInOut" } : { duration: 0.3 }}
                   className={cn(
                     "flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-medium transition-all",
                     isSelected
@@ -1169,7 +1183,7 @@ export default function NicTuningPage() {
                 >
                   <span className={cn("size-1.5 rounded-full shrink-0", on ? "bg-emerald-400" : "bg-[#2A313A]")} />
                   {adapter.name}
-                </button>
+                </motion.button>
               );
             })}
             <button

@@ -527,8 +527,8 @@ const HKCU_TWEAKS = {
     // Settings UI on Win 11 23H2/24H2 and the Settings app can silently clear
     // GlobalUserDisabled when opened.  The marker survives that wipe so verify()
     // still returns the correct applied state (same pattern as CPU C-States).
-    apply:  `New-Item -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\BackgroundAccessApplications" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\BackgroundAccessApplications" -Name "GlobalUserDisabled" -Value 1 -Type DWord -Force; New-Item -Path "HKLM:\\SOFTWARE\\SwitchControl" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path "HKLM:\\SOFTWARE\\SwitchControl" -Name "BgAppsDisabled" -Value 1 -Type DWord -Force`,
-    revert: `Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\BackgroundAccessApplications" -Name "GlobalUserDisabled" -Value 0 -Type DWord -Force; New-Item -Path "HKLM:\\SOFTWARE\\SwitchControl" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path "HKLM:\\SOFTWARE\\SwitchControl" -Name "BgAppsDisabled" -Value 0 -Type DWord -Force`,
+    apply:  `New-Item -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\BackgroundAccessApplications" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\BackgroundAccessApplications" -Name "GlobalUserDisabled" -Value 1 -Type DWord -Force; New-Item -Path "HKLM:\\SOFTWARE\\SwitchControl" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path "HKLM:\\SOFTWARE\\SwitchControl" -Name "BgAppsDisabled" -Value 1 -Type DWord -EA SilentlyContinue`,
+    revert: `Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\BackgroundAccessApplications" -Name "GlobalUserDisabled" -Value 0 -Type DWord -Force; New-Item -Path "HKLM:\\SOFTWARE\\SwitchControl" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path "HKLM:\\SOFTWARE\\SwitchControl" -Name "BgAppsDisabled" -Value 0 -Type DWord -EA SilentlyContinue`,
     // check: read legacy key first; fall back to SwitchControl marker so that
     // verify is resilient to Windows clearing GlobalUserDisabled on modern builds.
     check:  `$k=(Get-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\BackgroundAccessApplications" -Name "GlobalUserDisabled" -EA SilentlyContinue).GlobalUserDisabled; $m=(Get-ItemProperty -Path "HKLM:\\SOFTWARE\\SwitchControl" -Name "BgAppsDisabled" -EA SilentlyContinue).BgAppsDisabled; ($k -eq 1) -or ($m -eq 1)`,
@@ -620,8 +620,8 @@ const ADMIN_TWEAKS = {
     // Apply: set the overlay AND write a persistent marker so verification is
     // reliable on AMD/OEM builds where powercfg /overlaygetactivescheme and the
     // Windows registry paths return inconsistent output on Win 11 24H2 (build 26200+).
-    apply:  `New-Item -Path "HKLM:\\SOFTWARE\\SwitchControl" -Force -EA SilentlyContinue | Out-Null; powercfg /overlaysetactive ded574b5-45a0-4f42-8737-46345c09c238; Set-ItemProperty -Path "HKLM:\\SOFTWARE\\SwitchControl" -Name "PowerModeOverlay" -Value 1 -Type DWord -Force`,
-    revert: `powercfg /overlaysetactive 00000000-0000-0000-0000-000000000000; New-Item -Path "HKLM:\\SOFTWARE\\SwitchControl" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path "HKLM:\\SOFTWARE\\SwitchControl" -Name "PowerModeOverlay" -Value 0 -Type DWord -Force`,
+    apply:  `New-Item -Path "HKLM:\\SOFTWARE\\SwitchControl" -Force -EA SilentlyContinue | Out-Null; powercfg /overlaysetactive ded574b5-45a0-4f42-8737-46345c09c238; Set-ItemProperty -Path "HKLM:\\SOFTWARE\\SwitchControl" -Name "PowerModeOverlay" -Value 1 -Type DWord -EA SilentlyContinue`,
+    revert: `powercfg /overlaysetactive 00000000-0000-0000-0000-000000000000; New-Item -Path "HKLM:\\SOFTWARE\\SwitchControl" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path "HKLM:\\SOFTWARE\\SwitchControl" -Name "PowerModeOverlay" -Value 0 -Type DWord -EA SilentlyContinue`,
     // Check: primary source is our own marker (1=enabled, 0=disabled).
     // If the marker is absent (never applied via this app), fall back to the
     // powercfg output + two registry paths (different Windows builds use different paths).

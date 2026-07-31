@@ -2334,39 +2334,65 @@
   });
 
   // ── Driver Intelligence: read installed driver versions from registry ─────────
+  // Queries four device-class registry keys (Display, Net, Media, Bluetooth) so
+  // the client can show real installed versions for GPU, WiFi, Ethernet, Audio,
+  // and Bluetooth — not just GPU.  Uses direct registry reads (not WMI) so it
+  // works even on heavy-WMI AMD systems where CimInstance queries time out.
   ipcMain.handle('driverIntel:getInstalledVersions', async () => {
     if (process.platform !== 'win32') return {};
     const ps = [
       "$result = @{}",
-      "try {",
-      "  $gc = \"HKLM:\\\\SYSTEM\\\\CurrentControlSet\\\\Control\\\\Class\\\\{4d36e968-e325-11ce-bfc1-08002be10318}\"",
-      "  Get-ChildItem $gc -EA SilentlyContinue |",
-      "    Where-Object { $_.PSChildName -match '^\\\\d+$' } |",
-      "    ForEach-Object {",
-      "      try {",
-      "        $v = (Get-ItemProperty $_.PSPath -Name DriverVersion -EA Stop).DriverVersion",
-      "        $n = (Get-ItemProperty $_.PSPath -Name DriverDesc -EA SilentlyContinue).DriverDesc",
-      "        if ($v -and $n) {",
+      // Map each device class GUID to a short type tag used in the switch below.
+      "$classes = @{",
+      "  '{4d36e968-e325-11ce-bfc1-08002be10318}' = 'display'",
+      "  '{4d36e975-e325-11ce-bfc1-08002be10318}' = 'net'",
+      "  '{4d36e96c-e325-11ce-bfc1-08002be10318}' = 'media'",
+      "  '{e0cbf06c-cd8b-4647-bb8a-263b43f0f974}' = 'bluetooth'",
+      "}",
+      "foreach ($entry in $classes.GetEnumerator()) {",
+      "  $gc = \"HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Class\\$($entry.Key)\"",
+      "  try {",
+      "    Get-ChildItem $gc -EA SilentlyContinue |",
+      "      Where-Object { $_.PSChildName -match '^\\d+$' } |",
+      "      ForEach-Object {",
+      "        try {",
+      "          $v = (Get-ItemProperty $_.PSPath -Name DriverVersion -EA Stop).DriverVersion",
+      "          $n = (Get-ItemProperty $_.PSPath -Name DriverDesc    -EA SilentlyContinue).DriverDesc",
+      "          if (-not ($v -and $n)) { return }",
       "          $desc = $n.ToLower()",
-      "          if ($desc -match 'amd|radeon') { $result.amd_gpu = $v }",
-      "          elseif ($desc -match 'nvidia|geforce') {",
-      "            $ver = $v -replace '.*\\\\.',''",
-      "            $result.nvidia_gpu = if ($ver.Length -ge 5) { ($ver.Substring(0,$ver.Length-2) + '.' + $ver.Substring($ver.Length-2)) } else { $v }",
-      "          } elseif ($desc -match 'intel') { $result.intel_gpu = $v }",
-      "        }",
-      "      } catch {}",
-      "    }",
-      "} catch {}",
+      "          switch ($entry.Value) {",
+      "            'display' {",
+      "              if     ($desc -match 'amd|radeon')     { $result.amd_gpu = $v }",
+      "              elseif ($desc -match 'nvidia|geforce') {",
+      "                $ver = $v -replace '.*\\.', ''",
+      "                $result.nvidia_gpu = if ($ver.Length -ge 5) { ($ver.Substring(0,$ver.Length-2)+'.'+$ver.Substring($ver.Length-2)) } else { $v }",
+      "              }",
+      "              elseif ($desc -match 'intel.*graphics|intel.*uhd|intel.*iris|intel.*xe') { $result.intel_gpu = $v }",
+      "            }",
+      "            'net' {",
+      "              if     ($desc -match 'wi-fi|wifi|wireless|wlan|802\\.11|airlink|fastconnect') { if (-not $result.wifi)     { $result.wifi     = $v } }",
+      "              elseif ($desc -match 'ethernet|pci.*e[0-9]|killer.*e[0-9]|realtek.*pci|intel.*i[0-9]|i225|i226') { if (-not $result.ethernet) { $result.ethernet = $v } }",
+      "            }",
+      "            'media' {",
+      "              if ($desc -match 'audio|sound|realtek|hd audio|ac97|high definition') { if (-not $result.audio) { $result.audio = $v } }",
+      "            }",
+      "            'bluetooth' {",
+      "              if ($desc -match 'bluetooth') { if (-not $result.bluetooth) { $result.bluetooth = $v } }",
+      "            }",
+      "          }",
+      "        } catch {}",
+      "      }",
+      "  } catch {}",
+      "}",
+      // nvidia-smi gives the canonical display-driver version on NVIDIA systems,
+      // overriding the WHQL-format registry string (e.g. 31.0.15.x → 551.xx).
       "try {",
-      // Note: $smi and $result are plain PS variables — no backtick-escaping needed
-      // here because these strings are passed directly to powershell.exe via execFile
-      // argv, NOT through a shell that would need $-escaping.
       "  $smi = & 'nvidia-smi' --query-gpu=driver_version --format=csv,noheader 2>$null",
       "  if ($smi -and $smi.Trim()) { $result.nvidia_gpu = $smi.Trim() }",
       "} catch {}",
       "ConvertTo-Json -InputObject $result -Compress -Depth 2",
     ].join("\n");
-    const raw = await runMainPs(ps, { timeout: 8_000, label: 'driverIntel:getInstalledVersions' });
+    const raw = await runMainPs(ps, { timeout: 12_000, label: 'driverIntel:getInstalledVersions' });
     try { return JSON.parse(raw || '{}'); }
     catch { return {}; }
   });
