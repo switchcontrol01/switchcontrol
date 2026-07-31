@@ -230,3 +230,16 @@ export function validateContextForSend(
 
   return null;
 }
+
+// ── Shared optimization score ─────────────────────────────────────────────────
+/**
+ * computeOptimizationScore — single canonical formula for both the on-screen
+ * OptimizationStatusCard and the AI system-prompt context builder.
+ *
+ * Raw coverage percentage, no artificial floor. A user with 0 tweaks enabled
+ * scores 0, not 40. The 40-point floor in the old Formula A was a stale
+ * leftover that caused the AI to believe the score was 40 when the UI showed 0.
+ */
+export function computeOptimizationScore(enabledCount: number, totalCount: number): number {
+  return totalCount > 0 ? Math.round((enabledCount / totalCount) * 100) : 0;
+}

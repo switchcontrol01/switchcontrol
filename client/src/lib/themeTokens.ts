@@ -110,6 +110,25 @@ export const tourGlow = {
   ambient: '0 0 40px rgba(251,191,36,0.15)',
 } as const;
 
+// ── Startup page amber/orange accent ─────────────────────────────────────────
+/** Distinct from Cleaner's purple and PowerPlan's cyan/red */
+export const startupColor = {
+  /** #f97316 — orange-500, matches existing StartupBars/Timeline convention */
+  main:     "#f97316",
+  /** #fb923c — orange-400 (lighter accent) */
+  light:    "#fb923c",
+  /** #ea580c — orange-600 (gradient end) */
+  end:      "#ea580c",
+  /** #fbbf24 — amber-400 (secondary, for the ratio ring) */
+  gold:     "#fbbf24",
+  glow20:   "rgba(249,115,22,0.20)",
+  glow30:   "rgba(249,115,22,0.30)",
+  glow40:   "rgba(249,115,22,0.40)",
+  bg08:     "rgba(249,115,22,0.08)",
+  bg15:     "rgba(249,115,22,0.15)",
+  border30: "rgba(249,115,22,0.30)",
+} as const;
+
 // ── Semantic aliases ──────────────────────────────────────────────────────────
 export const brand = {
   premium: premiumColor,

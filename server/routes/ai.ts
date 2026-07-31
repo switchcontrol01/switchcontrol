@@ -367,12 +367,14 @@ You have data from ALL of these sections. Never tell the user a section "is not 
 
 SECTION LISTING RULE: When the user asks "what sections can you see?", "what do you have access to?", "what parts of the app do you know about?", or any similar question, you MUST list ALL 16 sections above — not just the ones that have active data. A section showing "not run yet" or "no items applied" is still fully visible to you. Omitting a section from your answer misleads the user into thinking you cannot help with it.
 
+You are told the exact current date and time in the system state below — use it whenever the user asks what day/time it is, or when reasoning about how long ago something happened (last cleaner run, last driver scan, etc.). Never say you don't know the date or that you lack real-time awareness — the current date and time is always provided.
+
 CRITICAL RULE: NEVER say "I cannot check X" or "I don't have access to X" or "X is not visible to me" if the data appears in the system state below.
 - Display signal, refresh rate, resolution → check the display data
 - What tweaks are enabled → check the enabled tweaks list (ALL sections)
 - What was recently changed → check the recent activity history
 - Network settings → check the network tweaks applied
-- NIC Tuning → check the NIC Tuning data in the system state
+- NIC Tuning → check the nicTuning field for per-property live driver state (RSS, Interrupt Moderation, EEE, etc.)
 - Power plan → check the power plan field
 - Driver versions → check the installed driver versions field
 - Startup / Startup Manager → check the Startup Manager summary
@@ -381,6 +383,9 @@ CRITICAL RULE: NEVER say "I cannot check X" or "I don't have access to X" or "X 
 - Debloat / Debloater → check the Debloater data (components removed)
 - App settings / Settings → check the App settings field
 - History → check the recent activity history field
+- BIOS Advisor → check the biosAdvisor field (firmware detections: XMP/EXPO, SMT, PBO, Secure Boot, etc.)
+- Security → check the security field (Defender, Secure Boot, TPM, firewall, BitLocker, HVCI/VBS, RDP, SMBv1, guest account)
+- Process Manager → check the processManager summary field (total processes, top memory consumers)
 If a specific piece of data truly is "unavailable" or "data unavailable" in the context, then you may say you cannot see it — but NEVER say the entire section is invisible.
 
 PERFORMANCE PHILOSOPHY (you are a system intelligence assistant, NOT a tweak dump):
@@ -566,8 +571,37 @@ function structuredToHistoryText(s: ChatStructuredResponse): string {
 // with the client. It operates ONLY on the CLIENT-supplied hardware strings (the
 // user's real machine), never the cloud server's own hardware.
 
+/**
+ * relativeTimeFrom — human-readable relative timestamp string.
+ * Eliminates date arithmetic from the LLM; it can just read "3 days ago".
+ */
+function relativeTimeFrom(date: Date, now: Date): string {
+  const diffMs = now.getTime() - date.getTime();
+  if (diffMs < 0) return "just now";
+  const diffSec = Math.floor(diffMs / 1000);
+  if (diffSec < 60)  return "just now";
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60)  return `${diffMin} minute${diffMin === 1 ? "" : "s"} ago`;
+  const diffHr = Math.floor(diffMin / 60);
+  if (diffHr < 24)   return `${diffHr} hour${diffHr === 1 ? "" : "s"} ago`;
+  const diffDay = Math.floor(diffHr / 24);
+  if (diffDay < 30)  return `${diffDay} day${diffDay === 1 ? "" : "s"} ago`;
+  const diffMo = Math.floor(diffDay / 30);
+  if (diffMo < 12)   return `${diffMo} month${diffMo === 1 ? "" : "s"} ago`;
+  const diffYr = Math.floor(diffMo / 12);
+  return `${diffYr} year${diffYr === 1 ? "" : "s"} ago`;
+}
+
 function buildChatContext(context: any, serverCtx?: Awaited<ReturnType<typeof buildAdvisorServerContext>>): string {
   const parts: string[] = [];
+  const now = new Date();
+
+  // ── Current date/time — gives the AI real temporal awareness ─────────────
+  parts.push(
+    `CURRENT DATE AND TIME: ${now.toISOString()} ` +
+    `(${now.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}, ` +
+    `${now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", timeZoneName: "short" })})`
+  );
 
   // ── APP SECTIONS MANIFEST ─────────────────────────────────────────────────
   // This is the canonical list of ALL sections this AI has visibility into.
@@ -703,6 +737,42 @@ function buildChatContext(context: any, serverCtx?: Awaited<ReturnType<typeof bu
     parts.push("Extreme Labs tweaks: none currently active");
   }
 
+  // ── Full Extreme Labs catalog (Tier 3) ────────────────────────────────────
+  // The AI receives the FULL catalog so it can recommend tweaks the user hasn't
+  // enabled yet, not just describe what's already on.
+  if (Array.isArray(context?.extremeLabsCatalog) && context.extremeLabsCatalog.length > 0) {
+    const byCategory = (context.extremeLabsCatalog as any[]).reduce<Record<string, any[]>>((acc, e) => {
+      const cat = e.category || "Other";
+      (acc[cat] = acc[cat] || []).push(e);
+      return acc;
+    }, {});
+    const lines: string[] = [];
+    for (const [cat, items] of Object.entries(byCategory)) {
+      lines.push(`  [${cat}]`);
+      for (const e of items as any[]) {
+        lines.push(`    ${e.active ? "● ACTIVE" : "○ available"} ${e.title} [id:${e.id}]${e.risk ? ` (risk: ${e.risk})` : ""}`);
+      }
+    }
+    parts.push(`FULL Extreme Labs catalog (${context.extremeLabsCatalog.length} total — includes inactive options):\n${lines.join("\n")}`);
+  }
+
+  // ── Full Network Tweaks catalog (Tier 3) ──────────────────────────────────
+  if (Array.isArray(context?.networkTweaksCatalog) && context.networkTweaksCatalog.length > 0) {
+    const byCategory = (context.networkTweaksCatalog as any[]).reduce<Record<string, any[]>>((acc, e) => {
+      const cat = e.category || "Other";
+      (acc[cat] = acc[cat] || []).push(e);
+      return acc;
+    }, {});
+    const lines: string[] = [];
+    for (const [cat, items] of Object.entries(byCategory)) {
+      lines.push(`  [${cat}]`);
+      for (const e of items as any[]) {
+        lines.push(`    ${e.active ? "● APPLIED" : "○ available"} ${e.name} [id:${e.id}]${e.safety ? ` (${e.safety})` : ""}`);
+      }
+    }
+    parts.push(`FULL Network Tweaks catalog (${context.networkTweaksCatalog.length} total — includes unapplied options):\n${lines.join("\n")}`);
+  }
+
   // ── App-applied power plan ────────────────────────────────────────────────
   if (context?.powerPlanApplied) {
     parts.push(`Power plan applied by app: "${context.powerPlanApplied}"`);
@@ -732,6 +802,72 @@ function buildChatContext(context: any, serverCtx?: Awaited<ReturnType<typeof bu
     parts.push(`Latency Analyzer (status: ${latState.status}): ${detail || "no sample captured yet"}`);
   } else {
     parts.push("Latency Analyzer: not run in this session — navigate to <<NAV:/latency-analyzer:Latency Analyzer>> to start");
+  }
+
+  // ── BIOS Advisor (Tier 4) ─────────────────────────────────────────────────
+  const biosAdv = context?.biosAdvisor;
+  if (biosAdv?.checked && Array.isArray(biosAdv.findings) && biosAdv.findings.length > 0) {
+    const lines = (biosAdv.findings as any[]).map((f: any) => {
+      const optTag = f.isOptimal === false ? " ⚠️ NOT OPTIMAL" : f.isOptimal === true ? " ✓" : "";
+      return `  • ${f.setting}: ${f.status}${optTag}${f.detectedValue ? ` (${f.detectedValue})` : ""}${f.reason ? ` — ${f.reason}` : ""}`;
+    });
+    parts.push(`BIOS Advisor findings (${biosAdv.findings.length} settings detected):\n${lines.join("\n")}`);
+    if (biosAdv.scanTime) parts.push(`  Last BIOS scan: ${biosAdv.scanTime}`);
+  } else if (biosAdv?.checked === false) {
+    parts.push("BIOS Advisor: not yet run — navigate to <<NAV:/bios-advisor:BIOS Advisor>> to analyze firmware settings");
+  } else {
+    parts.push("BIOS Advisor: data unavailable (requires desktop app) — navigate to <<NAV:/bios-advisor:BIOS Advisor>>");
+  }
+
+  // ── Security (Tier 4) ────────────────────────────────────────────────────
+  const sec = context?.security;
+  if (sec?.available) {
+    const secParts: string[] = [];
+    if (sec.realtimeProtection != null) secParts.push(`Defender real-time: ${sec.realtimeProtection ? "ON" : "OFF ⚠️"}`);
+    if (sec.firewallEnabled != null)    secParts.push(`Firewall: ${sec.firewallEnabled ? "ON" : "OFF ⚠️"}`);
+    if (sec.secureBoot != null)         secParts.push(`Secure Boot: ${sec.secureBoot ? "enabled" : "disabled"}`);
+    if (sec.tpmReady != null)           secParts.push(`TPM: ${sec.tpmReady ? "ready" : "not ready"}`);
+    if (sec.bitlocker != null)          secParts.push(`BitLocker: ${sec.bitlocker}`);
+    if (sec.hvciEnabled != null)        secParts.push(`HVCI: ${sec.hvciEnabled ? "on" : "off"}`);
+    if (sec.vbsEnabled != null)         secParts.push(`VBS: ${sec.vbsEnabled ? "on (latency impact)" : "off"}`);
+    if (sec.rdpEnabled != null)         secParts.push(`RDP: ${sec.rdpEnabled ? "enabled ⚠️" : "disabled"}`);
+    if (sec.smbv1Enabled != null)       secParts.push(`SMBv1: ${sec.smbv1Enabled ? "enabled ⚠️ (legacy)" : "disabled"}`);
+    if (sec.guestAccountEnabled != null) secParts.push(`Guest account: ${sec.guestAccountEnabled ? "enabled ⚠️" : "disabled"}`);
+    if (secParts.length > 0) parts.push(`Security status: ${secParts.join(", ")}`);
+  } else {
+    parts.push("Security: data unavailable (requires desktop app) — navigate to <<NAV:/security:Security>>");
+  }
+
+  // ── NIC Tuning (Tier 4) ──────────────────────────────────────────────────
+  const nicTuning = context?.nicTuning;
+  if (nicTuning?.adapterName && Array.isArray(nicTuning.properties) && nicTuning.properties.length > 0) {
+    const supported = (nicTuning.properties as any[]).filter((p: any) => p.supported);
+    if (supported.length > 0) {
+      const propLines = supported.map((p: any) =>
+        `${p.label}: ${p.currentValue ?? "unknown"}`
+      );
+      parts.push(`NIC Tuning — adapter: ${nicTuning.adapterName}\n  ${propLines.join(", ")}`);
+    } else {
+      parts.push(`NIC Tuning — adapter: ${nicTuning.adapterName} (no tunable properties detected)`);
+    }
+  } else {
+    parts.push("NIC Tuning: no adapter data available — navigate to <<NAV:/nic-tuning:NIC Tuning>> to scan");
+  }
+
+  // ── Process Manager summary (Tier 4) ─────────────────────────────────────
+  const procMgr = context?.processManager;
+  if (procMgr?.totalProcesses != null && procMgr.totalProcesses > 0) {
+    const topStr = Array.isArray(procMgr.topConsumers) && procMgr.topConsumers.length > 0
+      ? `, top memory: ${procMgr.topConsumers.map((p: any) => `${p.name} (${p.memoryMb}MB)`).join(", ")}`
+      : "";
+    parts.push(
+      `Process Manager: ${procMgr.totalProcesses} processes` +
+      (procMgr.protectedCount != null ? `, ${procMgr.protectedCount} protected` : "") +
+      (procMgr.highMemoryCount != null ? `, ${procMgr.highMemoryCount} high-memory (>500MB)` : "") +
+      topStr
+    );
+  } else {
+    parts.push("Process Manager: summary not loaded — navigate to <<NAV:/process-manager:Process Manager>> to scan");
   }
 
   // ── Startup Manager ───────────────────────────────────────────────────────
@@ -865,8 +1001,14 @@ function buildChatContext(context: any, serverCtx?: Awaited<ReturnType<typeof bu
   const history: any[] = Array.isArray(context?.recentHistory) ? context.recentHistory.slice(0, 8) : [];
   if (history.length > 0) {
     const lines = history.map((h: any) => {
-      const when = h.timestamp ? new Date(h.timestamp).toLocaleString() : "recently";
-      return `${h.action} (${h.page ?? "?"}) — ${h.result ?? "Success"} at ${when}`;
+      let when = "recently";
+      let relTime = "";
+      if (h.timestamp) {
+        const d = new Date(h.timestamp);
+        when = d.toLocaleString();
+        relTime = ` (${relativeTimeFrom(d, now)})`;
+      }
+      return `${h.action} (${h.page ?? "?"}) — ${h.result ?? "Success"} at ${when}${relTime}`;
     });
     parts.push(`Recent SwitchControl activity (most recent first):\n${lines.map(l => `  • ${l}`).join("\n")}`);
   }
@@ -914,9 +1056,10 @@ function buildChatContext(context: any, serverCtx?: Awaited<ReturnType<typeof bu
   }
 
   // ── Optimization score ────────────────────────────────────────────────────
+  // Level bands mirror OptimizationStatusCard exactly (canonical source of truth).
   if (context?.optimizationScore != null && typeof context.optimizationScore === "number") {
     const score = context.optimizationScore as number;
-    const level = score >= 80 ? "Well optimized" : score >= 55 ? "Partially optimized" : score >= 40 ? "Getting started" : "Needs attention";
+    const level = score >= 90 ? "Peak Performance" : score >= 75 ? "Well Optimized" : score >= 55 ? "Getting Tuned" : score >= 25 ? "Getting Started" : "Needs Attention";
     parts.push(`Optimization score: ${score}/100 (${level})`);
   }
 
@@ -1388,6 +1531,9 @@ aiRouter.post("/chat", async (req: Request, res: Response) => {
 
 // ---------------------------------------------------------------------------
 // POST /ai/advice
+// NOTE: As of the Tier-5 audit pass (Jul 2026), no frontend route calls this endpoint.
+// It uses the older standalone SYSTEM_PROMPT (not CHAT_SYSTEM_PROMPT) and lacks all
+// Tier 2–4 context fields. Do NOT delete until confirmed no mobile/external client uses it.
 // ---------------------------------------------------------------------------
 
 aiRouter.post("/advice", async (req: Request, res: Response) => {

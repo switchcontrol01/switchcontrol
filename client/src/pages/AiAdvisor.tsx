@@ -34,6 +34,9 @@ import { isElectronWithTweaks, useTweakExecutor } from "@/hooks/use-tweak-execut
 import { getTweak } from "@/lib/tweak-registry";
 import { useTweakOwnershipStore } from "@/stores/tweakOwnershipStore";
 import { EXTREME_TWEAKS } from "@/lib/extreme-labs-data";
+import { NETWORK_TWEAKS } from "@/lib/network-tweaks-data";
+import { useBiosAdvisorStore } from "@/stores/biosAdvisorStore";
+import { computeOptimizationScore } from "@/lib/ai-context-builder";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -126,6 +129,38 @@ interface SystemContext {
   startupApps?: Array<{ name: string; enabled: boolean; publisher?: string }>;
   /** How many times the System Cleaner has been run this session */
   cleanerRunCount?: number;
+  // ── Tier 3: full tweak catalogs ───────────────────────────────────────────
+  extremeLabsCatalog?: Array<{ id: string; title: string; category: string; risk?: string; active: boolean }>;
+  networkTweaksCatalog?: Array<{ id: string; name: string; category: string; safety?: string; active: boolean }>;
+  // ── Tier 4: section data ──────────────────────────────────────────────────
+  biosAdvisor?: {
+    checked: boolean;
+    findings: Array<{ setting: string; status: string; reason?: string; detectedValue?: string | null; isOptimal?: boolean }>;
+    scanTime?: string | null;
+  };
+  security?: {
+    available: boolean;
+    realtimeProtection?: boolean | null;
+    firewallEnabled?: boolean | null;
+    secureBoot?: boolean | null;
+    tpmReady?: boolean | null;
+    bitlocker?: string | null;
+    hvciEnabled?: boolean | null;
+    vbsEnabled?: boolean | null;
+    rdpEnabled?: boolean | null;
+    smbv1Enabled?: boolean | null;
+    guestAccountEnabled?: boolean | null;
+  };
+  nicTuning?: {
+    adapterName: string | null;
+    properties: Array<{ key: string; label: string; supported: boolean; currentValue: string | null }>;
+  };
+  processManager?: {
+    totalProcesses: number;
+    protectedCount: number;
+    highMemoryCount: number;
+    topConsumers: Array<{ name: string; memoryMb: number }>;
+  };
 }
 
 interface AdvisorCoverage {
@@ -778,11 +813,9 @@ function SystemProfileCard({ context }: { context: SystemContext | null }) {
 }
 
 function OptimizationStatusCard({ enabledCount, totalCount }: { enabledCount: number; totalCount: number }) {
-  const pct = totalCount > 0 ? Math.round((enabledCount / totalCount) * 100) : 0;
-  // Score = raw coverage percentage (0–100). No artificial floor — a system
-  // with zero tweaks applied scores 0, not 40. Showing an inflated baseline
-  // score contradicts the product's stated values around honest progress tracking.
-  const score = pct;
+  // computeOptimizationScore is the single canonical formula (ai-context-builder.ts).
+  // No artificial floor — a user with 0 tweaks enabled scores 0, not 40.
+  const score = computeOptimizationScore(enabledCount, totalCount);
   const statusLabel = score >= 90 ? "Peak Performance" : score >= 75 ? "Well Optimized" : score >= 55 ? "Getting Tuned" : score >= 25 ? "Getting Started" : "Needs Attention";
   const barColor = score >= 75 ? "bg-emerald-400" : score >= 55 ? "bg-primary" : "bg-orange-400";
   return (
@@ -1144,6 +1177,14 @@ export default function AiAdvisor() {
   const [startupSummary, setStartupSummary] = useState<SystemContext["startupSummary"] | null>(null);
   const [startupApps, setStartupApps] = useState<Array<{ name: string; enabled: boolean; publisher?: string }>>([]);
   const [debloatApplied, setDebloatApplied] = useState<Array<{ name: string; action: string }>>([]);
+  // ── Extended section data (Tier 4) ────────────────────────────────────────
+  const [securityStatus, setSecurityStatus] = useState<Record<string, any> | null>(null);
+  const [securityAudit, setSecurityAudit] = useState<Record<string, any> | null>(null);
+  const [nicCapabilities, setNicCapabilities] = useState<SystemContext["nicTuning"] | null>(null);
+  const [processManagerSummary, setProcessManagerSummary] = useState<SystemContext["processManager"] | null>(null);
+
+  // Read BIOS Advisor findings directly from its persisted store — no IPC needed
+  const biosAdvisorStore = useBiosAdvisorStore();
 
   // AI tweak-recommendation state
   const [showApplyModal, setShowApplyModal] = useState(false);
@@ -1235,6 +1276,88 @@ export default function AiAdvisor() {
         setDebloatApplied(applied);
       })
       .catch(() => {});
+  }, []);
+
+  // ── Tier 4: fetch Security, NIC Tuning, and Process Manager data once on mount ──
+  // Each fetch is one-shot (not polled) — same lifecycle as driverVersions/latencyState.
+  // Security data is NOT logged to console in production builds.
+  useEffect(() => {
+    const api = (window as any).electronAPI;
+    if (!api) return;
+
+    // Security — getStatus (Defender, firewall) + getAdvancedAudit (Secure Boot, TPM, BitLocker, etc.)
+    const secStatus = api.security?.getStatus?.();
+    const secAudit  = api.security?.getAdvancedAudit?.();
+    if (secStatus && secAudit) {
+      Promise.all([secStatus.catch(() => null), secAudit.catch(() => null)])
+        .then(([st, aud]: [any, any]) => {
+          if (st?.available)  setSecurityStatus(st.data ?? null);
+          if (aud?.available) setSecurityAudit(aud.data ?? null);
+          if (import.meta.env.DEV) {
+            console.log("[AI:Security] fetched — status=", st?.available, "audit=", aud?.available);
+          }
+        })
+        .catch(() => {});
+    }
+
+    // NIC Tuning — find first "Up" physical adapter then read its capabilities
+    if (api.nic?.getAdapters && api.nic?.getCapabilities) {
+      api.nic.getAdapters()
+        .then((adapters: any[]) => {
+          if (!Array.isArray(adapters)) return;
+          const upAdapter = adapters.find((a: any) => a.operationalStatus === "Up" || a.status === "Up" || a.isUp);
+          const adapterName = upAdapter?.name ?? upAdapter?.adapterName ?? adapters[0]?.name ?? null;
+          if (!adapterName) return;
+          return api.nic.getCapabilities(adapterName)
+            .then((caps: any) => {
+              const props: Array<{ key: string; label: string; supported: boolean; currentValue: string | null }> = [];
+              if (caps?.capabilities && typeof caps.capabilities === "object") {
+                for (const [key, val] of Object.entries(caps.capabilities as Record<string, any>)) {
+                  props.push({
+                    key,
+                    label: val?.label ?? key,
+                    supported: val?.supported !== false,
+                    currentValue: val?.currentValue != null ? String(val.currentValue) : null,
+                  });
+                }
+              }
+              setNicCapabilities({ adapterName, properties: props });
+            });
+        })
+        .catch(() => {});
+    }
+
+    // Process Manager — use getLastResult if available (avoids a fresh PS spawn)
+    const pcApi = api.processControl;
+    if (pcApi?.getLastResult) {
+      pcApi.getLastResult()
+        .then((result: any) => {
+          // If no cached scan exists, do a lightweight fresh scan (one-shot only)
+          if (!result || !Array.isArray(result?.processes)) {
+            return pcApi.scan?.()
+              .then((r: any) => r)
+              .catch(() => null);
+          }
+          return result;
+        })
+        .then((result: any) => {
+          if (!result || !Array.isArray(result.processes)) return;
+          const procs = result.processes as any[];
+          const HIGH_MEM_MB = 500;
+          const topConsumers = procs
+            .filter((p: any) => (p.memMb ?? p.workingSetMb ?? 0) > 0)
+            .sort((a: any, b: any) => (b.memMb ?? b.workingSetMb ?? 0) - (a.memMb ?? a.workingSetMb ?? 0))
+            .slice(0, 5)
+            .map((p: any) => ({ name: p.name ?? "Unknown", memoryMb: Math.round(p.memMb ?? p.workingSetMb ?? 0) }));
+          setProcessManagerSummary({
+            totalProcesses: procs.length,
+            protectedCount: procs.filter((p: any) => p.protected || p.isProtected).length,
+            highMemoryCount: procs.filter((p: any) => (p.memMb ?? p.workingSetMb ?? 0) > HIGH_MEM_MB).length,
+            topConsumers,
+          });
+        })
+        .catch(() => {});
+    }
   }, []);
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -1521,10 +1644,11 @@ export default function AiAdvisor() {
       si?.powerPlan?.guid ??
       null;
 
+    // computeOptimizationScore is the single canonical formula (no 40-pt floor).
+    // Both this context builder and OptimizationStatusCard call the same function,
+    // so the AI's stated score and the on-screen score are always identical.
     const totalKnownForScore = enabledTweaks.length + disabledTweaks.length;
-    const optimizationScore = totalKnownForScore > 0
-      ? Math.round(Math.min(100, 40 + (enabledTweaks.length / totalKnownForScore) * 60))
-      : 40;
+    const optimizationScore = computeOptimizationScore(enabledTweaks.length, totalKnownForScore);
     const ctx: SystemContext = {
       isPremium,
       currentRoute: location,
@@ -1639,6 +1763,68 @@ export default function AiAdvisor() {
         const mobileSuffix = /\b\d{4,5}(H|HS|HK|HX|HQ|U|P|G)\b/i.test(cpuStr);
         return { isLaptop: laptopChassis || mobileSuffix, cpuVendor };
       })(),
+
+      // ── Tier 3: full tweak catalogs ─────────────────────────────────────────
+      // AI receives EVERY entry (not just active ones) so it can recommend
+      // tweaks the user hasn't enabled yet.
+      extremeLabsCatalog: EXTREME_TWEAKS.map(ext => ({
+        id:       ext.id,
+        title:    ext.name ?? (ext as any).title ?? ext.id,
+        category: ext.category ?? "Other",
+        risk:     ext.risk ?? undefined,
+        active:   ext.registryTweakId
+          ? !!tweaks[ext.registryTweakId]
+          : ext.sliderTweakId
+            ? !!tweaks[ext.sliderTweakId]
+            : false,
+      })),
+      networkTweaksCatalog: NETWORK_TWEAKS
+        .filter((nt: any) => !nt.unavailable)
+        .map((nt: any) => ({
+          id:       nt.id,
+          name:     nt.name,
+          category: nt.category ?? "Other",
+          safety:   nt.safety ?? undefined,
+          active:   ownership.networkTweaks[nt.id]?.provenance === "app",
+        })),
+
+      // ── Tier 4: BIOS Advisor (read from persisted store — no IPC needed) ───
+      biosAdvisor: biosAdvisorStore.hasScanned
+        ? {
+            checked: true,
+            findings: biosAdvisorStore.detections.map(d => ({
+              setting:       d.settingId,
+              status:        d.status,
+              reason:        d.reason,
+              detectedValue: d.detectedValue,
+              isOptimal:     d.isOptimal,
+            })),
+            scanTime: biosAdvisorStore.lastScanTime,
+          }
+        : { checked: false, findings: [] },
+
+      // ── Tier 4: Security ────────────────────────────────────────────────────
+      security: (securityStatus || securityAudit)
+        ? {
+            available:           true,
+            realtimeProtection:  securityStatus?.realtimeProtection  ?? null,
+            firewallEnabled:     securityStatus?.firewallEnabled      ?? null,
+            secureBoot:          securityAudit?.secureBoot            ?? null,
+            tpmReady:            securityAudit?.tpmReady              ?? null,
+            bitlocker:           securityAudit?.bitlocker             ?? null,
+            hvciEnabled:         securityAudit?.hvciEnabled           ?? null,
+            vbsEnabled:          securityAudit?.vbsEnabled            ?? null,
+            rdpEnabled:          securityAudit?.rdpEnabled            ?? null,
+            smbv1Enabled:        securityAudit?.smbv1Enabled          ?? null,
+            guestAccountEnabled: securityAudit?.guestAccountEnabled   ?? null,
+          }
+        : { available: false },
+
+      // ── Tier 4: NIC Tuning ──────────────────────────────────────────────────
+      nicTuning: nicCapabilities ?? undefined,
+
+      // ── Tier 4: Process Manager ─────────────────────────────────────────────
+      processManager: processManagerSummary ?? undefined,
     };
     setContext(ctx);
     contextRef.current = ctx;
