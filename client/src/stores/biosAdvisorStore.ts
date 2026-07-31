@@ -11,6 +11,31 @@ export interface AiExplanation {
   confidenceNote: string;
 }
 
+/**
+ * Lightweight snapshot of BIOS Advisor state, purpose-built for AI integration.
+ * Consumed by AiAdvisor.tsx via useBiosAdvisorStore.getState().getSnapshot() —
+ * a static non-reactive read taken at message-send time.
+ */
+export interface BiosAdvisorSnapshot {
+  hasScan: boolean;
+  scanDate: string | null;
+  /** Number of settings that were detected (confirmed or photo-derived). */
+  confirmedCount: number;
+  totalChecked: number;
+  /** Detections where isOptimal === false (explicitly non-optimal). */
+  criticalIssues: number;
+  /** Detections where isOptimal is null/undefined (state unknown / not evaluated). */
+  warnings: number;
+  settings: Array<{
+    id: string;
+    label: string;
+    status: string;
+    value: string | null;
+    reason: string | null | undefined;
+    isOptimal: boolean | null | undefined;
+  }>;
+}
+
 interface BiosAdvisorState {
   hasScanned: boolean;
   detections: FirmwareDetection[];
@@ -42,6 +67,8 @@ interface BiosAdvisorState {
   setAiExplanation: (explanation: AiExplanation, hash: string) => void;
   clearAiExplanation: () => void;
   resetBiosAdvisor: () => void;
+  /** Returns a lightweight snapshot for AI context — call via getState().getSnapshot(). */
+  getSnapshot: () => BiosAdvisorSnapshot;
 }
 
 const initialState = {
@@ -104,6 +131,28 @@ export const useBiosAdvisorStore = create<BiosAdvisorState>()(
         set({ aiExplanation: null, aiExplanationHash: null }),
 
       resetBiosAdvisor: () => set(initialState),
+
+      getSnapshot(): BiosAdvisorSnapshot {
+        const s = get();
+        const criticalIssues = s.detections.filter(d => d.isOptimal === false).length;
+        const warnings       = s.detections.filter(d => d.isOptimal == null).length;
+        return {
+          hasScan:        s.hasScanned,
+          scanDate:       s.lastScanTime,
+          confirmedCount: s.detections.length,
+          totalChecked:   s.detections.length,
+          criticalIssues,
+          warnings,
+          settings: s.detections.map(d => ({
+            id:        d.settingId,
+            label:     d.settingId,
+            status:    d.status,
+            value:     d.detectedValue ?? null,
+            reason:    d.reason,
+            isOptimal: d.isOptimal,
+          })),
+        };
+      },
     }),
     {
       name: "sc-bios-advisor-store",

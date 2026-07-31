@@ -1,3 +1,5 @@
+- [Kill-switch coverage map](kill-switch-coverage.md) — which features are gated, how, and the pattern to follow for new ones; security+updater were previously unwired.
+- [Railway dev DB schema state](railway-dev-db.md) — drizzle-kit push requires TTY (broken in ShellExec); use raw pg Pool scripts instead; documents current schema state post-promo-popup work.
 - [AppLayout lucide imports](applayout-lucide-imports.md) — TrialCountdownBanner uses lucide icons; a missing import is a ReferenceError that crashes the full React tree.
 - [AI Advisor hardware context](ai-advisor-hardware-context.md) — advisor must read client CPU/specs strings, never serverCtx.systemIntel (that's the cloud VM); Intel hybrid needs tier+gen+K, not just gen.
 - [Electron embedded backend](electron-embedded-backend.md) — desktop /api hits a LOCAL backend (real hardware); web /api hits the cloud VM. Gate hardware-only UI to Electron; prefer client specs.

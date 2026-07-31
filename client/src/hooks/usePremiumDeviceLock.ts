@@ -23,6 +23,7 @@ interface ValidateResponse {
   isFirstBind?: boolean;
   message?: string;
   deviceSignature?: string;
+  legacyMigrated?: boolean;
 }
 
 interface UsePremiumDeviceLockResult {
@@ -77,6 +78,13 @@ export function usePremiumDeviceLock(
       const result = await cloudApiPost<ValidateResponse>("/device/premium-validate");
       setStatus(result.status);
       setIsFirstBind(result.isFirstBind ?? false);
+
+      // Server confirmed the one-time legacy device-ID history migration —
+      // clear the local marker so the legacy header stops being sent.
+      if (result.legacyMigrated) {
+        (window as any).electronAPI?.clearLegacyDeviceId?.().catch?.(() => {});
+        console.log("[DeviceLock] Legacy device ID migration confirmed — local marker cleared");
+      }
 
       if (result.status === "ok") {
         // On first bind or stale rebind, the server returns a fresh device signature.

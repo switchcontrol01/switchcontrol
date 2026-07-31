@@ -1749,37 +1749,93 @@
   // steady-state) should read gpuState.vramTotalMb / gpuState.vramUsedMb directly.
   // The ALLOWED_SI_CALLERS entry for 'getGpuStatic' is kept for historical coverage.
   
-  // Persistent Device ID — generated once, stored forever in userData
+  // ── Persistent Device ID — permanently derived from Windows' MachineGuid ──────
+  // The ID is a hash of HKLM:\SOFTWARE\Microsoft\Cryptography\MachineGuid (see
+  // hardware-fingerprint.js), so it survives uninstall, %appdata% deletion, and
+  // factory reset. device-id.json is now a CACHE, not the source of truth: it is
+  // verified against a freshly-recomputed hash every launch and overwritten when
+  // stale. It also carries `legacyDeviceId` — the pre-permanent random ID —
+  // until the server confirms the one-time history migration (see cloud-api.ts
+  // x-legacy-device-id header + storage.migrateLegacyDeviceId on the server).
   const DEVICE_ID_REGEX = /^[A-F0-9]{16}$/;
-  
-  function getOrCreateDeviceId() {
+  const hwFingerprint = require('./hardware-fingerprint');
+
+  function _readDeviceIdCache() {
     const fs = require('fs');
-    const crypto = require('crypto');
-    const deviceIdPath = DEVICE_ID_FILE;
-  
     try {
-      if (fs.existsSync(deviceIdPath)) {
-        const data = JSON.parse(fs.readFileSync(deviceIdPath, 'utf-8'));
-        if (data.deviceId && typeof data.deviceId === 'string' && DEVICE_ID_REGEX.test(data.deviceId)) {
-          return data.deviceId;
-        }
-        console.warn('[DeviceID] Stored device ID is malformed — regenerating');
+      if (fs.existsSync(DEVICE_ID_FILE)) {
+        const data = JSON.parse(fs.readFileSync(DEVICE_ID_FILE, 'utf-8'));
+        if (data && typeof data === 'object') return data;
       }
     } catch (e) {
-      console.warn('[DeviceID] Failed to read existing device ID:', e.message);
+      console.warn('[DeviceID] Failed to read device-id cache:', e.message);
     }
-  
-    const deviceId = crypto.randomUUID().replace(/-/g, '').slice(0, 16).toUpperCase();
-    try {
-      fs.writeFileSync(deviceIdPath, JSON.stringify({ deviceId, createdAt: new Date().toISOString() }), 'utf-8');
-      console.log('[DeviceID] Generated and saved new device ID:', deviceId);
-    } catch (e) {
-      console.error('[DeviceID] Failed to save device ID:', e.message);
-    }
-    return deviceId;
+    return null;
   }
-  
+
+  function _writeDeviceIdCache(obj) {
+    const fs = require('fs');
+    try {
+      fs.writeFileSync(DEVICE_ID_FILE, JSON.stringify(obj), 'utf-8');
+    } catch (e) {
+      console.error('[DeviceID] Failed to write device-id cache:', e.message);
+    }
+  }
+
   let cachedDeviceId = null;
+  let _deviceIdPromise = null;
+
+  async function getOrCreatePermanentDeviceId() {
+    if (cachedDeviceId) return cachedDeviceId;
+    if (_deviceIdPromise) return _deviceIdPromise;
+    _deviceIdPromise = (async () => {
+      const cache = _readDeviceIdCache();
+      const permanentId = await hwFingerprint.getPermanentDeviceId(); // null on failure
+
+      if (permanentId) {
+        let legacyDeviceId = (cache?.legacyDeviceId && DEVICE_ID_REGEX.test(cache.legacyDeviceId))
+          ? cache.legacyDeviceId
+          : null;
+        // Capture the old random ID ONCE, before the cache is overwritten with the
+        // permanent value — the server needs it to carry trial/premium history and
+        // device locks forward to the new fingerprint-based ID.
+        if (
+          !legacyDeviceId &&
+          cache?.deviceId &&
+          DEVICE_ID_REGEX.test(cache.deviceId) &&
+          cache.deviceId !== permanentId &&
+          cache.source !== 'machine-guid-hash'
+        ) {
+          legacyDeviceId = cache.deviceId;
+          console.log(`[DeviceID] Legacy random ID captured for one-time migration: ${legacyDeviceId}`);
+        }
+        if (!cache || cache.deviceId !== permanentId || (cache.legacyDeviceId ?? null) !== legacyDeviceId) {
+          _writeDeviceIdCache({
+            deviceId: permanentId,
+            source: 'machine-guid-hash',
+            ...(legacyDeviceId ? { legacyDeviceId } : {}),
+            ...(cache?.legacyMigratedAt ? { legacyMigratedAt: cache.legacyMigratedAt } : {}),
+            updatedAt: new Date().toISOString(),
+          });
+        }
+        console.log(`[DeviceID] source=machine-guid-hash id=${permanentId}`);
+        cachedDeviceId = permanentId;
+        return permanentId;
+      }
+
+      // FAIL CLOSED — never generate a fresh random ID here: a random fallback
+      // would silently reintroduce the resettable-identity bug. Prefer the last
+      // known-good cached value; otherwise return null.
+      if (cache?.deviceId && DEVICE_ID_REGEX.test(cache.deviceId)) {
+        console.warn(`[DeviceID] source=cache-fallback (MachineGuid unavailable) id=${cache.deviceId}`);
+        cachedDeviceId = cache.deviceId;
+        return cache.deviceId;
+      }
+      console.error('[DeviceID] MachineGuid unavailable and no cached ID — failing closed (null)');
+      return null;
+    })().finally(() => { _deviceIdPromise = null; });
+    return _deviceIdPromise;
+  }
   
   // ── Deep link delivery — triggered when React registers its auth-callback listener ──
   // React's useEffect that calls electronAPI.auth.onCallback() runs after the
@@ -1837,10 +1893,35 @@
     }
   });
   
-  ipcMain.handle('app:getDeviceId', () => {
-    if (!cachedDeviceId) cachedDeviceId = getOrCreateDeviceId();
-    return cachedDeviceId;
+  ipcMain.handle('app:getDeviceId', () => getOrCreatePermanentDeviceId());
+
+  // Legacy random device ID (pre-permanent-fingerprint) — sent to the server as
+  // x-legacy-device-id until the one-time history migration is confirmed, then
+  // cleared via app:clearLegacyDeviceId.
+  ipcMain.handle('app:getLegacyDeviceId', () => {
+    const cache = _readDeviceIdCache();
+    const legacy = cache?.legacyDeviceId;
+    return (legacy && DEVICE_ID_REGEX.test(legacy)) ? legacy : null;
   });
+
+  ipcMain.handle('app:clearLegacyDeviceId', () => {
+    try {
+      const cache = _readDeviceIdCache();
+      if (cache?.legacyDeviceId) {
+        delete cache.legacyDeviceId;
+        cache.legacyMigratedAt = new Date().toISOString();
+        _writeDeviceIdCache(cache);
+        console.log('[DeviceID] Legacy device ID cleared — server migration confirmed');
+      }
+      return { ok: true };
+    } catch (e) {
+      return { ok: false, error: e?.message };
+    }
+  });
+
+  // Full 64-char SHA-256 hardware fingerprint (promo/anti-abuse). Never stored
+  // on disk — recomputed from the registry each launch (in-memory cached).
+  ipcMain.handle('app:getDeviceFingerprint', () => hwFingerprint.getDeviceFingerprint());
   
   // DEVICE_SIGNATURE_FILE is imported from user-data-paths at the top of this file.
 

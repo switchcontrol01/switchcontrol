@@ -19,6 +19,7 @@ import driverIntelRouter from "./routes/driverIntel";
 import securityRouter from "./routes/security";
 import networkDiagnosticsRouter from "./routes/networkDiagnostics";
 import adminRouter from "./routes/admin";
+import promoRouter from "./routes/promo";
 
 import networkTweaksRouter from "./routes/networkTweaks";
 import tweakIntelligenceRouter from "./routes/tweakIntelligence";
@@ -82,9 +83,12 @@ export async function registerRoutes(
   setupDiscordAuth(app);
 
   app.use("/api/ai", requireJwt, requireCloudPremium, aiRouter);
+  // Free-user premium promo popup (Discord CTA) — requireJwt only: it must be
+  // reachable by free users, and the server re-resolves the plan from the DB.
+  app.use("/api/promo", requireJwt, promoRouter);
   app.use("/api/bios", killSwitchMiddleware("bios"), requireJwt, requireCloudPremium, biosRouter);
   app.use("/api/driver-intel", driverIntelRouter);
-  app.use("/api/security", securityRouter);
+  app.use("/api/security", killSwitchMiddleware("security"), securityRouter);
   app.use("/api/network", killSwitchMiddleware("network_diag"), networkDiagnosticsRouter);
   app.use("/api/admin", (req, res, next) => {
     if (['POST', 'PATCH', 'PUT', 'DELETE'].includes(req.method)) {
@@ -109,7 +113,7 @@ export async function registerRoutes(
     res.json({ ok: true, hasRestorePoint: false, hasBaseline: false, sessionActive: false, lastRestoreTimestamp: null });
   });
 
-  app.post("/api/extreme-labs/restore-point", requireJwt, requireCloudPremium, async (req, res) => {
+  app.post("/api/extreme-labs/restore-point", killSwitchMiddleware("extreme_labs"), requireJwt, requireCloudPremium, async (req, res) => {
     const userId = (req as any).cloudUser?.id as string | undefined;
     if (userId) {
       storage.getOrCreateSettings(userId).then(s => storage.addHistory({
@@ -120,7 +124,7 @@ export async function registerRoutes(
     res.json({ ok: true, timestamp: Date.now() });
   });
 
-  app.post("/api/extreme-labs/baseline", requireJwt, requireCloudPremium, async (req, res) => {
+  app.post("/api/extreme-labs/baseline", killSwitchMiddleware("extreme_labs"), requireJwt, requireCloudPremium, async (req, res) => {
     const userId = (req as any).cloudUser?.id as string | undefined;
     if (userId) {
       storage.getOrCreateSettings(userId).then(s => storage.addHistory({
@@ -131,7 +135,7 @@ export async function registerRoutes(
     res.json({ ok: true, baseline: { timestamp: Date.now(), snapshot: "web-baseline" } });
   });
 
-  app.get("/api/extreme-labs/analyze", requireJwt, requireCloudPremium, (req, res) => {
+  app.get("/api/extreme-labs/analyze", killSwitchMiddleware("extreme_labs"), requireJwt, requireCloudPremium, (req, res) => {
     res.json({
       ok: true,
       categories: [
@@ -146,7 +150,7 @@ export async function registerRoutes(
     });
   });
 
-  app.post("/api/extreme-labs/apply", requireJwt, requireCloudPremium, async (req, res) => {
+  app.post("/api/extreme-labs/apply", killSwitchMiddleware("extreme_labs"), requireJwt, requireCloudPremium, async (req, res) => {
     const ids: string[] = req.body?.ids ?? [];
     const userId = (req as any).cloudUser?.id as string | undefined;
     if (userId && ids.length > 0) {
@@ -163,7 +167,7 @@ export async function registerRoutes(
     res.json({ ok: true, results: ids.map((id: string) => ({ id, applied: false, reason: "Web sessions cannot apply registry tweaks. Use the desktop app." })) });
   });
 
-  app.post("/api/extreme-labs/revert", requireJwt, requireCloudPremium, async (req, res) => {
+  app.post("/api/extreme-labs/revert", killSwitchMiddleware("extreme_labs"), requireJwt, requireCloudPremium, async (req, res) => {
     const userId = (req as any).cloudUser?.id as string | undefined;
     if (userId) {
       storage.getOrCreateSettings(userId).then(s => storage.addHistory({
@@ -172,6 +176,15 @@ export async function registerRoutes(
       })).catch(() => {});
     }
     res.json({ ok: true, message: "All tweaks reverted to baseline" });
+  });
+
+  // ── Updater gate — called by the Electron auto-updater before hitting R2 ────
+  // This is the only server touchpoint in the update flow; gating it with
+  // killSwitchMiddleware("updater") gives an instant, no-redeploy kill switch
+  // if a bad build ships or the CDN needs to be drained. Auth-free by design:
+  // the Electron updater runs before the user logs in.
+  app.get("/api/updates/enabled", killSwitchMiddleware("updater"), (_req, res) => {
+    res.json({ enabled: true });
   });
 
   // Warm up system intelligence in the background — delayed 20s so it doesn't
@@ -956,10 +969,24 @@ export async function registerRoutes(
       const deviceId = req.headers["x-device-id"] as string | undefined;
       const appVersion = (req.headers["x-app-version"] as string | undefined)?.slice(0, 64);
       const platform = (req.headers["x-platform"] as string | undefined)?.slice(0, 32);
-      const deviceMeta = { appVersion, platform };
+      // Permanent hardware fingerprint (64-char SHA-256 hex) — recorded on device
+      // rows so trial/premium history survives app reinstalls. Optional header.
+      const rawFingerprint = req.headers["x-device-fingerprint"] as string | undefined;
+      const fingerprint = rawFingerprint && /^[a-f0-9]{64}$/.test(rawFingerprint) ? rawFingerprint : null;
+      const deviceMeta = { appVersion, platform, fingerprint };
 
       if (!deviceId) {
         return res.status(400).json({ error: "Missing x-device-id header.", code: "missing_device_id" });
+      }
+
+      // One-time legacy device-ID migration (pre-permanent-fingerprint installs).
+      // MUST run BEFORE the user fetch below so a re-pointed premiumBoundDeviceId
+      // is already visible to the lock check — otherwise every migrated premium
+      // user would trip the device lock on their first post-update launch.
+      const rawLegacyId = req.headers["x-legacy-device-id"] as string | undefined;
+      let legacyMigrated = false;
+      if (rawLegacyId && /^[A-F0-9]{16}$/.test(rawLegacyId) && rawLegacyId !== deviceId) {
+        legacyMigrated = await storage.migrateLegacyDeviceId(cloudUser.id, rawLegacyId, deviceId);
       }
 
       // Always fetch a fresh user record — the JWT-cached isPremium field can be stale
@@ -980,7 +1007,7 @@ export async function registerRoutes(
       // showing the DeviceLockModal regardless of any previously-bound device ID.
       if (effectivePlan !== "premium") {
         console.log(`[DeviceBinding] Skip-lock | user=${cloudUser.id} | plan=${effectivePlan} | device=${deviceId} | recorded=lastSeen`);
-        return res.json({ status: "not_premium" });
+        return res.json({ status: "not_premium", legacyMigrated });
       }
 
       if (!user.premiumBoundDeviceId) {
@@ -988,13 +1015,13 @@ export async function registerRoutes(
         const signature = generateDeviceSignature(cloudUser.id, deviceId);
         await storage.bindPremiumDevice(cloudUser.id, deviceId, signature, deviceMeta);
         console.log(`[DeviceBinding] Assigned | user=${cloudUser.id} | device=${deviceId} | sig=${signature.substring(0, 8)}... | appVersion=${appVersion ?? "?"} | platform=${platform ?? "?"}`);
-        return res.json({ status: "ok", isFirstBind: true, deviceSignature: signature });
+        return res.json({ status: "ok", isFirstBind: true, deviceSignature: signature, legacyMigrated });
       }
 
       if (user.premiumBoundDeviceId === deviceId) {
         // Correct device — already updated above
         console.log(`[DeviceBinding] Valid | user=${cloudUser.id} | device=${deviceId}`);
-        return res.json({ status: "ok", isFirstBind: false });
+        return res.json({ status: "ok", isFirstBind: false, legacyMigrated });
       }
 
       // Device mismatch — check whether the binding has gone stale (device unseen for >30 days).
@@ -1009,13 +1036,14 @@ export async function registerRoutes(
         const signature = generateDeviceSignature(cloudUser.id, deviceId);
         await storage.bindPremiumDevice(cloudUser.id, deviceId, signature, deviceMeta);
         console.log(`[DeviceBinding] Rebind-stale | user=${cloudUser.id} | old=${user.premiumBoundDeviceId} | new=${deviceId} | sig=${signature.substring(0, 8)}...`);
-        return res.json({ status: "ok", isFirstBind: false, deviceSignature: signature });
+        return res.json({ status: "ok", isFirstBind: false, deviceSignature: signature, legacyMigrated });
       }
 
       // Active mismatch — block
       console.warn(`[DeviceBinding] Locked | user=${cloudUser.id} | bound=${user.premiumBoundDeviceId} | presented=${deviceId}`);
       return res.json({
         status: "locked",
+        legacyMigrated,
         message: "This premium license is already linked to a different device and can't be used here.",
       });
     } catch (err) {

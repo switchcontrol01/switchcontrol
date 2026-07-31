@@ -56,6 +56,11 @@ function cl() {
 const UPDATE_PROVIDER = 'generic';
 const UPDATE_BASE_URL = 'https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev';
 
+// Server-side kill-switch gate — checked before contacting R2.
+// The endpoint returns { enabled: true } normally; the kill switch env var makes
+// it return 503 so we can pause the auto-updater without a redeploy.
+const UPDATE_GATE_URL = 'https://switchcontrol.org/api/updates/enabled';
+
 // ── Release track configuration ───────────────────────────────────────────────
 
 /**
@@ -393,6 +398,33 @@ function initUpdater(isDev = false) {
   _autoUpdater = autoUpdater;
 }
 
+/**
+ * checkUpdateGate — asks the server whether the updater is enabled.
+ * Returns true (proceed) or false (paused by kill switch).
+ * Fails OPEN: any network error or non-503 response is treated as "enabled"
+ * so a transient connectivity hiccup never silently blocks updates.
+ */
+async function checkUpdateGate() {
+  try {
+    const https = require('https');
+    const response = await new Promise((resolve, reject) => {
+      const req = https.get(UPDATE_GATE_URL, { timeout: 5000 }, resolve);
+      req.on('error', reject);
+      req.on('timeout', () => { req.destroy(); reject(new Error('timeout')); });
+    });
+    if (response.statusCode === 503) {
+      console.warn('[Updater] Server kill switch active (503) — update check suppressed');
+      return false;
+    }
+    return true;
+  } catch (err) {
+    // Fail open: if we can't reach the gate, proceed with the update check.
+    // This prevents an offline environment from permanently blocking updates.
+    console.warn('[Updater] Gate check failed (fail-open):', err?.message);
+    return true;
+  }
+}
+
 function checkForUpdates() {
   if (!_autoUpdater) {
     console.warn('[Updater] checkForUpdates called before init or in dev mode.');
@@ -417,7 +449,15 @@ function checkForUpdates() {
     // synchronous throws — we MUST attach .catch() to the returned Promise
     // to prevent TLS/network rejections from becoming unhandled rejections
     // that crash the process via the global unhandledRejection handler.
-    const checkPromise = _autoUpdater.checkForUpdates();
+    const checkPromise = (async () => {
+      const gateOpen = await checkUpdateGate();
+      if (!gateOpen) {
+        state = { ...state, ...resetTransientState(), status: 'not-available', checkedAt: new Date().toISOString() };
+        broadcast('update-not-available');
+        return null;
+      }
+      return _autoUpdater.checkForUpdates();
+    })();
     if (checkPromise && typeof checkPromise.catch === 'function') {
       checkPromise.catch((err) => {
         const msg = err?.message || 'checkForUpdates promise rejected';

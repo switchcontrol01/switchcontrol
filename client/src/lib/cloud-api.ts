@@ -83,6 +83,15 @@ async function buildHeaders(): Promise<Record<string, string>> {
         if (appVersion) _deviceHeadersCache["x-app-version"] = appVersion;
         const platform = await (window as any).electronAPI.getPlatform?.().catch(() => null);
         if (platform) _deviceHeadersCache["x-platform"] = platform;
+        // One-time migration: the pre-permanent random device ID, sent until the
+        // server confirms the history migration (then cleared via IPC by the
+        // premium-validate / promo callers).
+        const legacyId = await (window as any).electronAPI.getLegacyDeviceId?.().catch(() => null);
+        if (legacyId) _deviceHeadersCache["x-legacy-device-id"] = legacyId;
+        // Hardware fingerprint — recorded server-side on device contact so trial/
+        // premium history survives app reinstalls (device_records.device_fingerprint).
+        const fingerprint = await (window as any).electronAPI.getDeviceFingerprint?.().catch(() => null);
+        if (fingerprint) _deviceHeadersCache["x-device-fingerprint"] = fingerprint;
       } catch {
         // Reset on error so the next request retries the IPC calls.
         _deviceHeadersCache = null;

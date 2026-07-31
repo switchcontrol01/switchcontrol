@@ -137,6 +137,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   isPackaged:      () => ipcRenderer.invoke('app:isPackaged'),
   getDeviceId:     () => ipcRenderer.invoke('app:getDeviceId'),
   getDeviceSignature: () => ipcRenderer.invoke('app:getDeviceSignature'),
+  // Legacy device-ID migration (one-time, pre-permanent-fingerprint installs)
+  getLegacyDeviceId:   () => ipcRenderer.invoke('app:getLegacyDeviceId'),
+  clearLegacyDeviceId: () => ipcRenderer.invoke('app:clearLegacyDeviceId'),
+  // 64-char SHA-256 hardware fingerprint (promo/anti-abuse) — read-only
+  getDeviceFingerprint: () => ipcRenderer.invoke('app:getDeviceFingerprint'),
   setDeviceSignature: (signature) => ipcRenderer.invoke('app:setDeviceSignature', signature),
   isAdmin:         () => ipcRenderer.invoke('app:isAdmin'),
   isIPCReady:      () => ipcRenderer.invoke('app:isIPCReady'),

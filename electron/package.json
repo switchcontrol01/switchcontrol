@@ -57,6 +57,8 @@
       "process-control.js",
       "latency-analyzer.js",
       "powershell-limiter.js",
+      "ps-shared.js",
+      "hardware-fingerprint.js",
       "node_modules/electron-updater/**/*",
       "node_modules/builder-util-runtime/**/*",
       "node_modules/semver/**/*",

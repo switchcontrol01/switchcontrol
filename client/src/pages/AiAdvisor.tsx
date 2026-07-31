@@ -1183,9 +1183,6 @@ export default function AiAdvisor() {
   const [nicCapabilities, setNicCapabilities] = useState<SystemContext["nicTuning"] | null>(null);
   const [processManagerSummary, setProcessManagerSummary] = useState<SystemContext["processManager"] | null>(null);
 
-  // Read BIOS Advisor findings directly from its persisted store — no IPC needed
-  const biosAdvisorStore = useBiosAdvisorStore();
-
   // AI tweak-recommendation state
   const [showApplyModal, setShowApplyModal] = useState(false);
   const [applyModalRecs, setApplyModalRecs] = useState<AiTweakRecommendation[]>([]);
@@ -1815,20 +1812,25 @@ export default function AiAdvisor() {
           active:   ownership.networkTweaks[nt.id]?.provenance === "app",
         })),
 
-      // ── Tier 4: BIOS Advisor (read from persisted store — no IPC needed) ───
-      biosAdvisor: biosAdvisorStore.hasScanned
-        ? {
-            checked: true,
-            findings: biosAdvisorStore.detections.map(d => ({
-              setting:       d.settingId,
-              status:        d.status,
-              reason:        d.reason,
-              detectedValue: d.detectedValue,
-              isOptimal:     d.isOptimal,
-            })),
-            scanTime: biosAdvisorStore.lastScanTime,
-          }
-        : { checked: false, findings: [] },
+      // ── Tier 4: BIOS Advisor (via getSnapshot() — single abstraction point) ─
+      // getState() is intentional: this callback runs at message-send time, so
+      // a static non-reactive read always captures the latest persisted state.
+      biosAdvisor: (() => {
+        const snap = useBiosAdvisorStore.getState().getSnapshot();
+        return snap.hasScan
+          ? {
+              checked: true,
+              findings: snap.settings.map(s => ({
+                setting:       s.id,
+                status:        s.status,
+                reason:        s.reason,
+                detectedValue: s.value,
+                isOptimal:     s.isOptimal,
+              })),
+              scanTime: snap.scanDate,
+            }
+          : { checked: false, findings: [] };
+      })(),
 
       // ── Tier 4: Security ────────────────────────────────────────────────────
       security: (securityStatus || securityAudit)

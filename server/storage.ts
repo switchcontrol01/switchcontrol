@@ -72,13 +72,14 @@ export interface IStorage {
   updateUserActivity(userId: string, data: { lastLoginAt?: Date; lastAppActiveAt?: Date; hasInstalledApp?: boolean }): Promise<void>;
 
   // Device binding
-  bindPremiumDevice(userId: string, deviceId: string, signature?: string, meta?: { appVersion?: string; platform?: string }): Promise<User>;
+  bindPremiumDevice(userId: string, deviceId: string, signature?: string, meta?: { appVersion?: string; platform?: string; fingerprint?: string | null }): Promise<User>;
   clearPremiumDevice(userId: string): Promise<User>;
   findUserByBoundDeviceId(deviceId: string): Promise<User | undefined>;
   findUsersByDeviceId(deviceId: string): Promise<User[]>;
-  upsertDeviceRecord(userId: string, deviceId: string, meta?: { appVersion?: string | null; platform?: string | null }): Promise<void>;
+  upsertDeviceRecord(userId: string, deviceId: string, meta?: { appVersion?: string | null; platform?: string | null; fingerprint?: string | null }): Promise<void>;
   findDeviceRecords(deviceId: string): Promise<DeviceRecord[]>;
-  updateDeviceLastSeen(userId: string, deviceId: string, meta?: { appVersion?: string; platform?: string }): Promise<void>;
+  updateDeviceLastSeen(userId: string, deviceId: string, meta?: { appVersion?: string; platform?: string; fingerprint?: string | null }): Promise<void>;
+  migrateLegacyDeviceId(userId: string, legacyDeviceId: string, newDeviceId: string): Promise<boolean>;
 
   // Admin
   listUsers(opts: ListUsersOpts): Promise<{ users: User[]; total: number }>;
@@ -326,8 +327,12 @@ class MockStorage implements IStorage {
     return [];
   }
 
-  async upsertDeviceRecord(_userId: string, _deviceId: string, _meta?: { appVersion?: string | null; platform?: string | null }): Promise<void> {
+  async upsertDeviceRecord(_userId: string, _deviceId: string, _meta?: { appVersion?: string | null; platform?: string | null; fingerprint?: string | null }): Promise<void> {
     // no-op in mock mode
+  }
+
+  async migrateLegacyDeviceId(_userId: string, _legacyDeviceId: string, _newDeviceId: string): Promise<boolean> {
+    return false; // no-op in mock mode
   }
 
   async findDeviceRecords(_deviceId: string): Promise<DeviceRecord[]> {
@@ -860,7 +865,7 @@ export class DatabaseStorage implements IStorage {
       .offset(offset);
   }
 
-  async bindPremiumDevice(userId: string, deviceId: string, signature?: string, meta?: { appVersion?: string; platform?: string }): Promise<User> {
+  async bindPremiumDevice(userId: string, deviceId: string, signature?: string, meta?: { appVersion?: string; platform?: string; fingerprint?: string | null }): Promise<User> {
     const updateData: Partial<typeof users.$inferInsert> = {
       premiumBoundDeviceId: deviceId,
       premiumBoundAt: new Date(),
@@ -928,7 +933,7 @@ export class DatabaseStorage implements IStorage {
       .limit(25);
   }
 
-  async upsertDeviceRecord(userId: string, deviceId: string, meta?: { appVersion?: string | null; platform?: string | null }): Promise<void> {
+  async upsertDeviceRecord(userId: string, deviceId: string, meta?: { appVersion?: string | null; platform?: string | null; fingerprint?: string | null }): Promise<void> {
     if (!db) return;
     try {
       // Fetch fresh user snapshot for trial/premium/email fields
@@ -941,6 +946,7 @@ export class DatabaseStorage implements IStorage {
       const adminGrantSeen = !!user.trialGrantedByAdminId;
       const appVer         = meta?.appVersion ?? user.appVersion ?? null;
       const platform       = meta?.platform  ?? user.platform   ?? null;
+      const fingerprint    = meta?.fingerprint ?? null;
 
       await db
         .insert(deviceRecords)
@@ -952,6 +958,7 @@ export class DatabaseStorage implements IStorage {
           lastSeenAt:     now,
           lastAppVersion: appVer,
           lastPlatform:   platform,
+          deviceFingerprint: fingerprint,
           trialUsed,
           trialStartedAt: user.trialStartedAt ?? null,
           trialEndedAt:   user.trialEndsAt    ?? null,
@@ -966,9 +973,10 @@ export class DatabaseStorage implements IStorage {
             lastSeenAt: now,
             updatedAt:  now,
             email:      user.email ?? null,
-            // Only overwrite version/platform when we have fresh values
+            // Only overwrite version/platform/fingerprint when we have fresh values
             lastAppVersion: drizzleSql`COALESCE(${appVer}, ${deviceRecords.lastAppVersion})`,
             lastPlatform:   drizzleSql`COALESCE(${platform}, ${deviceRecords.lastPlatform})`,
+            deviceFingerprint: drizzleSql`COALESCE(${fingerprint}, ${deviceRecords.deviceFingerprint})`,
             // Boolean flags only go false → true, never back
             trialUsed:      drizzleSql`${deviceRecords.trialUsed} OR ${trialUsed}`,
             premiumSeen:    drizzleSql`${deviceRecords.premiumSeen} OR ${premiumSeen}`,
@@ -998,7 +1006,7 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async updateDeviceLastSeen(userId: string, deviceId: string, meta?: { appVersion?: string; platform?: string }): Promise<void> {
+  async updateDeviceLastSeen(userId: string, deviceId: string, meta?: { appVersion?: string; platform?: string; fingerprint?: string | null }): Promise<void> {
     const updateData: Partial<typeof users.$inferInsert> = {
       premiumLastSeenDeviceId: deviceId,
       premiumDeviceLastSeenAt: new Date(),
@@ -1017,6 +1025,102 @@ export class DatabaseStorage implements IStorage {
     // Permanently record this device contact — fire-and-forget so it never
     // blocks the device-validate response even if the table doesn't exist yet.
     this.upsertDeviceRecord(userId, deviceId, meta).catch(() => {});
+  }
+
+  // ─── One-time legacy device-ID migration ──────────────────────────────────
+  //
+  // WHY THIS EXISTS (transitional mechanism — read before removing):
+  // Before v1.2.6 the desktop app generated its device ID as a random UUID
+  // stored in %appdata%\device-id.json. v1.2.6 replaced that with a permanent
+  // hash of Windows' MachineGuid, which means every existing install's device
+  // ID CHANGED on update. Without this migration, existing users would (a)
+  // trip the premium device lock (bound ID no longer matches) and (b) appear
+  // as "fresh" devices with no trial history — silently re-enabling a free
+  // trial for every existing user.
+  //
+  // The app sends its old ID via the x-legacy-device-id header until the
+  // migration is confirmed (response flag → app clears the local marker).
+  // This method is IDEMPOTENT: running it twice for the same device never
+  // creates duplicate rows or double-applies history (flags only ever go
+  // false → true; the legacy linkage is recorded in legacy_device_id).
+  //
+  // Returns true when the migration is processed/complete (safe for the
+  // client to stop sending the legacy header), false on error or no-db.
+  //
+  // SUNSET: safe to remove ~6 months after 1.2.6 ships, once telemetry shows
+  // near-zero devices still reporting an old-format ID.
+  async migrateLegacyDeviceId(userId: string, legacyDeviceId: string, newDeviceId: string): Promise<boolean> {
+    if (!db) return false;
+    if (!legacyDeviceId || !newDeviceId || legacyDeviceId === newDeviceId) return false;
+    try {
+      const now = new Date();
+
+      // 1. Re-point users-table device references from the old ID to the new
+      //    one so the premium device lock carries over instead of tripping.
+      const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+      if (user) {
+        const userUpdate: Partial<typeof users.$inferInsert> = {};
+        if (user.premiumBoundDeviceId === legacyDeviceId) userUpdate.premiumBoundDeviceId = newDeviceId;
+        if (user.premiumLastSeenDeviceId === legacyDeviceId) userUpdate.premiumLastSeenDeviceId = newDeviceId;
+        if (Object.keys(userUpdate).length > 0 || !user.legacyDeviceId) {
+          userUpdate.legacyDeviceId = user.legacyDeviceId ?? legacyDeviceId;
+          userUpdate.updatedAt = now;
+          await db.update(users).set(userUpdate).where(eq(users.id, userId));
+        }
+      }
+
+      // 2. Carry trial/premium history from the legacy device row onto the
+      //    new-ID row (upsert; boolean flags only ever go false → true).
+      const [legacyRow] = await db
+        .select()
+        .from(deviceRecords)
+        .where(and(eq(deviceRecords.userId, userId), eq(deviceRecords.deviceId, legacyDeviceId)))
+        .limit(1);
+
+      if (legacyRow) {
+        await db
+          .insert(deviceRecords)
+          .values({
+            userId,
+            deviceId:       newDeviceId,
+            email:          legacyRow.email,
+            firstSeenAt:    legacyRow.firstSeenAt,
+            lastSeenAt:     now,
+            lastAppVersion: legacyRow.lastAppVersion,
+            lastPlatform:   legacyRow.lastPlatform,
+            trialUsed:      legacyRow.trialUsed,
+            trialStartedAt: legacyRow.trialStartedAt,
+            trialEndedAt:   legacyRow.trialEndedAt,
+            premiumSeen:    legacyRow.premiumSeen,
+            adminGrantSeen: legacyRow.adminGrantSeen,
+            legacyDeviceId,
+            createdAt:      now,
+            updatedAt:      now,
+          })
+          .onConflictDoUpdate({
+            target: [deviceRecords.userId, deviceRecords.deviceId],
+            set: {
+              lastSeenAt: now,
+              updatedAt:  now,
+              trialUsed:      drizzleSql`${deviceRecords.trialUsed} OR ${legacyRow.trialUsed}`,
+              premiumSeen:    drizzleSql`${deviceRecords.premiumSeen} OR ${legacyRow.premiumSeen}`,
+              adminGrantSeen: drizzleSql`${deviceRecords.adminGrantSeen} OR ${legacyRow.adminGrantSeen}`,
+              trialStartedAt: drizzleSql`COALESCE(${deviceRecords.trialStartedAt}, ${legacyRow.trialStartedAt ?? null}::timestamptz)`,
+              trialEndedAt:   drizzleSql`COALESCE(${deviceRecords.trialEndedAt}, ${legacyRow.trialEndedAt ?? null}::timestamptz)`,
+              legacyDeviceId: drizzleSql`COALESCE(${deviceRecords.legacyDeviceId}, ${legacyDeviceId})`,
+            },
+          });
+        console.log(`[DeviceMigration] History carried forward | user=${userId} | ${legacyDeviceId} → ${newDeviceId} | trialUsed=${legacyRow.trialUsed} premiumSeen=${legacyRow.premiumSeen}`);
+      } else {
+        console.log(`[DeviceMigration] No legacy history to migrate | user=${userId} | legacy=${legacyDeviceId}`);
+      }
+
+      // Processed — nothing left to migrate for this device either way.
+      return true;
+    } catch (err: any) {
+      console.warn(`[DeviceMigration] Failed for user=${userId}: ${err.message?.slice(0, 160)}`);
+      return false;
+    }
   }
 
   // ─── Admin stats & operations ─────────────────────────────────────────────

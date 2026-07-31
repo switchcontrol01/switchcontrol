@@ -175,14 +175,41 @@ export const deviceRecords = pgTable("device_records", {
   trialEndedAt:     timestamp("trial_ended_at",    { withTimezone: true }),
   premiumSeen:      boolean("premium_seen").notNull().default(false),
   adminGrantSeen:   boolean("admin_grant_seen").notNull().default(false),
+  // 64-char SHA-256 hardware fingerprint (MachineGuid-derived) — survives app
+  // reinstalls, so trial/premium history can be correlated across device-ID
+  // regenerations. Historical rows won't have it (accepted gap).
+  deviceFingerprint: varchar("device_fingerprint", { length: 64 }),
+  // One-time migration linkage: the pre-permanent random device ID whose
+  // history was carried onto this row (see storage.migrateLegacyDeviceId).
+  legacyDeviceId:   text("legacy_device_id"),
   createdAt:        timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt:        timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => ({
   deviceIdIdx:    index("device_records_device_id_idx").on(t.deviceId),
   userDeviceUniq: uniqueIndex("device_records_user_device_idx").on(t.userId, t.deviceId),
+  fingerprintIdx: index("device_records_fingerprint_idx").on(t.deviceFingerprint),
 }));
 
 export type DeviceRecord = typeof deviceRecords.$inferSelect;
+
+// ── Free-user premium promo popup state ──────────────────────────────────────
+// Server-side launch counter keyed by the permanent hardware fingerprint —
+// deliberately NEVER stored client-side, so uninstalling the app, deleting
+// %appdata%, or factory-resetting cannot reset the cadence or the lockout.
+// locked_out is permanent once true (device has used a trial / seen premium).
+export const promoPopupState = pgTable("promo_popup_state", {
+  deviceFingerprint: varchar("device_fingerprint", { length: 64 }).primaryKey(),
+  launchCount:       integer("launch_count").notNull().default(0),
+  nextThreshold:     integer("next_threshold").notNull().default(30),
+  lockedOut:         boolean("locked_out").notNull().default(false),
+  lockedOutReason:   text("locked_out_reason"),
+  lastShownAt:       timestamp("last_shown_at", { withTimezone: true }),
+  shownCount:        integer("shown_count").notNull().default(0),
+  createdAt:         timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt:         timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export type PromoPopupState = typeof promoPopupState.$inferSelect;
 
 export const userSettingsRelations = relations(userSettings, ({ many }) => ({
   appliedTweaks: many(appliedTweaks),

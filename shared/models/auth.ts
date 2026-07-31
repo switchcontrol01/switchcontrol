@@ -55,6 +55,11 @@ export const users = pgTable("users", {
   premiumDeviceLastSeenAt: timestamp("premium_device_last_seen_at"),
   // HMAC signature for device-id header verification (cryptographic device binding)
   deviceSignature: varchar("device_signature"),
+  // One-time migration linkage: the pre-1.2.6 random device ID this account's
+  // device history was keyed to before the permanent MachineGuid-derived ID
+  // replaced it (see storage.migrateLegacyDeviceId). Safe to remove ~6 months
+  // after rollout once telemetry shows near-zero old-format IDs.
+  legacyDeviceId: varchar("legacy_device_id"),
   // Last-reported desktop app version / OS platform for the bound/last-seen device
   appVersion: varchar("app_version"),
   platform: varchar("platform"),

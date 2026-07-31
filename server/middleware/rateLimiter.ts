@@ -68,6 +68,19 @@ export const oauthStartLimiter = rateLimit({
   handler: blockHandler("oauth"),
 });
 
+// ── Promo popup check — called once per app launch by design ─────────────────
+// Anything faster than a couple of calls per window is a crash loop or abuse;
+// the endpoint itself also has a 2-minute server-side debounce.
+export const promoLimiter = rateLimit({
+  windowMs: 2 * 60 * 1000,
+  max: 4,
+  standardHeaders: true,
+  legacyHeaders: false,
+  validate: { xForwardedForHeader: false, keyGeneratorIpFallback: false },
+  keyGenerator: (req) => compositeKey(req, "promo"),
+  handler: blockHandler("promo"),
+});
+
 export const meLimiter = rateLimit({
   windowMs: 1 * 60 * 1000,
   max: 30,

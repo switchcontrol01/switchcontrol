@@ -61,6 +61,8 @@ import {
 } from "@/components/PatchNotesModal";
 import { DeviceLockModal } from "@/components/DeviceLockModal";
 import { usePremiumDeviceLock } from "@/hooks/usePremiumDeviceLock";
+import { usePremiumPromo } from "@/hooks/usePremiumPromo";
+import { PremiumPromoPopup } from "@/components/PremiumPromoPopup";
 import { usePremiumExpiry, useBaselineScan } from "@/hooks/usePremiumExpiry";
 import { useEntitlementRefresh } from "@/hooks/useEntitlementRefresh";
 import { useVisibilityInterval } from "@/hooks/useVisibilityInterval";
@@ -307,6 +309,25 @@ function ElectronAppContent() {
     isPremiumVerified,
     user?.loggedIn ?? false,
   );
+
+  // Free-user premium promo (Discord CTA) — server decides the every-30-launches
+  // cadence keyed by hardware fingerprint. Only for verified-free users; premium
+  // and trial users are excluded both here and server-side.
+  const isFreePlanForPromo =
+    entitlementsOk &&
+    !(user?.isPremium ?? false) &&
+    user?.plan !== "premium" &&
+    user?.plan !== "trial";
+  const {
+    promoOpen,
+    discordUrl: promoDiscordUrl,
+    closePromo,
+  } = usePremiumPromo({
+    isElectron,
+    loggedIn: user?.loggedIn ?? false,
+    entitlementsVerified: entitlementsOk,
+    isFreePlan: isFreePlanForPromo,
+  });
 
   // Premium expiry — detects trial/premium→free transition, triggers safe revert
   const {
@@ -2065,6 +2086,14 @@ function ElectronAppContent() {
           phase={revertPhase}
           onRetry={retryRevert}
           reason={useTrialExpiryStore((s) => s.revertReason)}
+        />
+
+        {/* Free-user premium promo — Discord CTA, at most once per ~30 launches.
+            Rendered BEFORE DeviceLockModal so the lock always stays on top. */}
+        <PremiumPromoPopup
+          open={promoOpen}
+          discordUrl={promoDiscordUrl}
+          onClose={closePromo}
         />
 
         {/* Premium device lock — must be last (highest z-order), not dismissible */}
