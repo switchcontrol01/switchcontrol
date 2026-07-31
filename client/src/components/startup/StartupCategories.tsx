@@ -11,7 +11,7 @@ const TAB_META: Record<StartupCategory, { label: string; icon: typeof HardDrive;
   drivers:   { label: "Drivers",   icon: Wrench,     color: "text-cyan-400", bg: "bg-cyan-400/10" },
   userApps:  { label: "User Apps", icon: Gamepad2,   color: "text-orange-400", bg: "bg-orange-400/10" },
   scheduled: { label: "Scheduled", icon: CalendarDays, color: "text-emerald-400", bg: "bg-emerald-400/10" },
-  broken:    { label: "Broken",    icon: Bug,        color: "text-red-400", bg: "bg-red-400/10" },
+  broken:    { label: "Orphaned", icon: Bug,        color: "text-red-400", bg: "bg-red-400/10" },
 };
 
 interface Props {

@@ -281,8 +281,25 @@ async function scan() {
 
   try {
     // 3. Run PowerShell command
+    // Get-Process .Path maps to .MainModule.FileName which silently returns null
+    // for many processes in non-elevated PowerShell (even user-owned ones like
+    // Firefox/Spotify) due to Windows module-list access restrictions.
+    // Get-CimInstance Win32_Process.ExecutablePath is far more reliable — it
+    // uses the kernel process object directly, not the managed module list.
+    // We build a PID→path lookup from CIM first, then join it onto Get-Process
+    // for the other fields (WorkingSet, CPU, Company) which Get-Process handles
+    // better. CIM is pre-filtered to save memory on large process lists.
     const psCmd = `
-      $procs = Get-Process | Select-Object Id, ProcessName, Path, @{N='WorkingSet';E={[math]::Round($_.WorkingSet64)}}, @{N='CPU';E={if ($_.CPU) { [math]::Round($_.CPU, 2) } else { 0 }}}, @{N='Company';E={$_.Company}};
+      $cimPaths = @{};
+      try {
+        Get-CimInstance Win32_Process -Property ProcessId,ExecutablePath -EA SilentlyContinue |
+          ForEach-Object { if ($_.ExecutablePath) { $cimPaths[[int]$_.ProcessId] = $_.ExecutablePath } }
+      } catch {}
+      $procs = Get-Process | Select-Object Id, ProcessName,
+        @{N='Path';E={ $cimPaths[[int]$_.Id] }},
+        @{N='WorkingSet';E={[math]::Round($_.WorkingSet64)}},
+        @{N='CPU';E={if ($_.CPU) { [math]::Round($_.CPU, 2) } else { 0 }}},
+        @{N='Company';E={$_.Company}};
       ConvertTo-Json -Compress -Depth 3 $procs
     `;
 

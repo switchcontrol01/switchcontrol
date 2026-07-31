@@ -57,8 +57,6 @@ export function StartupScore({ score, visible }: Props) {
         >
           {/* Outer track */}
           <circle cx="50" cy="50" r={r} fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="11" />
-          {/* Inner tick ring */}
-          <circle cx="50" cy="50" r="28" fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="1.5" strokeDasharray="1.5 5" />
           {/* Value arc — Cleaner-style transition */}
           <circle
             cx="50" cy="50" r={r}

@@ -94,12 +94,17 @@ function collectExeFilesRecursive(rootDir) {
 function resolveIconPath(app) {
   // ── 1. DisplayIcon ──────────────────────────────────────────────────────────
   let raw = String(app.displayIcon || '').trim();
-  // Handle both quoted and unquoted forms, then strip trailing ,N icon index:
-  //   "C:\Prog\app.exe",0  →  C:\Prog\app.exe
-  //   C:\Prog\app.exe,-1   →  C:\Prog\app.exe
+  // Handle both quoted and unquoted forms, then strip trailing ,N icon index.
+  // Two real-world formats exist in the Windows registry:
+  //   "C:\Prog\app.exe",0   — index OUTSIDE quotes (standard)
+  //   "C:\Prog\app.exe,0"   — index INSIDE  quotes (non-standard but common)
+  //   C:\Prog\app.exe,-1    — unquoted with index
+  // The regex `(?:,\s*-?\d+)?` only captures the index when it is OUTSIDE the
+  // closing quote, so `qm[1]` for the inside-quotes case still contains ",0".
+  // Always run the strip after extracting from either branch.
   const qm = raw.match(/^"([^"]+)"(?:,\s*-?\d+)?\s*$/);
   if (qm) {
-    raw = qm[1];
+    raw = qm[1].replace(/,\s*-?\d+\s*$/, '').trim(); // strip index even when inside quotes
   } else {
     raw = raw.replace(/,\s*-?\d+\s*$/, '').trim();
   }
@@ -195,7 +200,12 @@ async function getIconDataUrlForPath(rawPath, cacheKey = rawPath) {
 
   // Clean raw input before the security check so quoted / arg-containing
   // strings don't fail fs.existsSync with the decoration still attached.
-  const filePath = extractExecutablePath(rawPath);
+  // expandEnvVars MUST run after extractExecutablePath: registry values are
+  // stored with DoNotExpandEnvironmentNames (e.g. %LOCALAPPDATA%\App\App.exe)
+  // so path.isAbsolute() returns false and isSupportedIconPath rejects them
+  // unless we expand the tokens first. Task-scheduler paths are pre-expanded
+  // by the PS scan, so expandEnvVars is a no-op for them — safe either way.
+  const filePath = expandEnvVars(extractExecutablePath(rawPath));
   if (!isSupportedIconPath(filePath)) return null;
 
   const cacheDir = getIconCacheDir();

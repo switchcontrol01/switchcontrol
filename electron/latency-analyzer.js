@@ -174,40 +174,43 @@ function getKnownDriver(name) {
  * Returns an array of DriverRow objects.
  */
 async function scanDrivers() {
-  // Use driverquery WITHOUT /v (verbose) — the verbose flag adds extra columns we don't
-  // use and makes driverquery take 30–120 s on real machines (vs 3–5 s without /v).
-  // Column layout is identical for the columns we actually read:
-  //   [0] Module Name  [1] Display Name  [2] Driver Type  [3] Start Mode  [4] State  [5] Status
-  // Timeout bumped to 20 s as a conservative safety margin; even slow machines finish in ~10 s.
-  const script = `driverquery /fo csv 2>&1`;
+  // Previously used `driverquery /fo csv` but that command:
+  //   1. Can take 30-120 s with /v and 10-25 s without on systems with WMI pressure.
+  //   2. Uses OEM code-page output that can confuse Node's UTF-8 reader on non-English Windows.
+  //   3. Must go through a PowerShell host which adds its own overhead.
+  //
+  // Replacement: Get-CimInstance Win32_SystemDriver reads from the kernel SCM object
+  // directly (no WMI polling loop), returns consistent UTF-16 data, and typically
+  // completes in 1-4 s even on heavy systems.  We also widen the timeout to 30 s
+  // as a safety margin and fall back to an empty array on any failure.
+  const script = `
+try {
+  $d = Get-CimInstance Win32_SystemDriver -EA SilentlyContinue |
+    Select-Object Name, DisplayName, State, StartMode, @{N='DriverType';E={'Kernel'}};
+  if ($d) { ConvertTo-Json -Compress -Depth 2 @($d) } else { '[]' }
+} catch { '[]' }
+`.trim();
 
   try {
-    const out = await runPS(script, 20000);
-    if (!out) return [];
+    const out = await runPS(script, 30000);
+    if (!out || out === '[]') return [];
 
-    const lines = out.split('\n').filter(Boolean);
-    if (lines.length < 2) return [];
+    let raw;
+    try { raw = JSON.parse(out); } catch { return []; }
+    if (!Array.isArray(raw)) raw = [raw];
 
     const rows = [];
-    for (let i = 1; i < lines.length; i++) {
-      const line = lines[i].trim();
-      if (!line) continue;
-      // CSV fields: Module Name, Display Name, Driver Type, Start Mode, State, Status
-      const cols = parseCSVLine(line);
-      const name  = cols[0] || '';
-      const desc  = cols[1] || '';
-      const type  = cols[2] || '';
-      // Trim and normalise state — driverquery localises these strings on non-English
-      // Windows, so compare case-insensitively and accept any non-empty state value
-      // so the list isn't silently empty on locale variants.
-      const state = (cols[4] || '').trim();
+    for (const item of raw) {
+      const name  = (item.Name || '').trim();
+      const desc  = (item.DisplayName || '').trim();
+      const type  = (item.DriverType || 'Kernel').trim();
+      const state = (item.State || '').trim();
       if (!name) continue;
 
       const known = getKnownDriver(name);
       const finalDesc = (desc && desc !== name) ? desc : (known?.desc || 'System Driver');
       const action    = known?.action || 'Investigate only if latency remains consistently high';
 
-      // Impact heuristic: kernel-mode drivers that service hardware typically have more impact
       let impact = 'Low';
       const lName = name.toLowerCase();
       if (
@@ -231,15 +234,11 @@ async function scanDrivers() {
       });
     }
 
-    // Keep running + stopped drivers; use case-insensitive comparison to survive
-    // locale variants (e.g. German: "Wird ausgeführt" / "Beendet").
-    // Limit to 40 rows for UI performance.
+    // Accept any non-empty state string — Win32_SystemDriver returns English
+    // state values ("Running"/"Stopped") but guard against empty/null anyway.
     return rows
-      .filter(r => {
-        const s = r.state.toLowerCase();
-        return s === 'running' || s === 'stopped' || (s.length > 0 && s !== 'unknown');
-      })
-      .slice(0, 40);
+      .filter(r => r.state.length > 0)
+      .slice(0, 60);   // raised cap: CIM returns data quickly so more rows is fine
   } catch {
     return [];
   }

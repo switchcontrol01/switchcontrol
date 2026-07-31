@@ -14,7 +14,6 @@ import {
   getRecommendations, groupByCategory,
   type BootApp, type StartupCategory,
 } from "@/components/startup/startupUtils";
-import { StartupPulse }         from "@/components/startup/StartupPulse";
 import { StartupHero }          from "@/components/startup/StartupHero";
 import { StartupScore }         from "@/components/startup/StartupScore";
 import { StartupBars }          from "@/components/startup/StartupBars";
@@ -44,7 +43,7 @@ const GROUP_META: Record<StartupCategory, { label: string; color: string; dim: s
   system:    { label: "System",    color: "#00D4FF", dim: "rgba(0,212,255,0.08)",   border: "rgba(0,212,255,0.20)"   },
   drivers:   { label: "Drivers",   color: "#22d3ee", dim: "rgba(34,211,238,0.08)",  border: "rgba(34,211,238,0.20)"  },
   scheduled: { label: "Scheduled", color: "#4ade80", dim: "rgba(74,222,128,0.08)",  border: "rgba(74,222,128,0.20)"  },
-  broken:    { label: "Broken",    color: "#f87171", dim: "rgba(248,113,113,0.08)", border: "rgba(248,113,113,0.20)" },
+  broken:    { label: "Orphaned Entries", color: "#f87171", dim: "rgba(248,113,113,0.08)", border: "rgba(248,113,113,0.20)" },
 };
 
 // ── Electron helper ───────────────────────────────────────────────────────────
@@ -89,10 +88,18 @@ function GroupHeader({
           {enabledCount}/{count}
         </span>
       </div>
-      <ChevronDown
-        className={cn("size-3.5 transition-transform duration-200", open && "rotate-180")}
-        style={{ color: m.color + "80" }}
-      />
+      {/* Micro-animation on the chevron when collapsed — gentle vertical bob
+          hints to the user that this section is openable. Stops once open. */}
+      <motion.div
+        animate={open ? { rotate: 180, y: 0 } : { rotate: 0, y: [0, -2, 0] }}
+        transition={open
+          ? { duration: 0.2 }
+          : { y: { duration: 1.8, repeat: Infinity, ease: "easeInOut", repeatDelay: 1.2 }, rotate: { duration: 0.2 } }
+        }
+        style={{ color: m.color + "80", display: "flex" }}
+      >
+        <ChevronDown className="size-3.5" />
+      </motion.div>
     </button>
   );
 }
@@ -115,13 +122,15 @@ export default function StartupApps() {
 
   // ── Step 5: search + collapsible group state ──────────────────────────────
   const [searchQuery,  setSearchQuery]  = useState("");
-  // Default: userApps expanded, others collapsed (most actionable first)
+  // Default: userApps expanded, everything else collapsed.
+  // "Orphaned Entries" (formerly "broken") intentionally starts closed — seeing
+  // a section called that expanded on first load alarms users unnecessarily.
   const [groupsOpen,   setGroupsOpen]   = useState<Record<StartupCategory, boolean>>({
     userApps:  true,
     system:    false,
     drivers:   false,
     scheduled: false,
-    broken:    true,
+    broken:    false,
   });
 
   // ── Scan ──────────────────────────────────────────────────────────────────
@@ -155,14 +164,15 @@ export default function StartupApps() {
       setApps(enriched);
       setScanStatus("done");
 
-      // Re-open relevant groups after new scan
+      // After scan: expand userApps if it has items; orphaned entries stay
+      // collapsed so users don't see alarming "broken" items by default.
       const grouped = groupByCategory(enriched);
       setGroupsOpen({
         userApps:  (grouped.userApps?.length ?? 0) > 0,
         system:    false,
         drivers:   false,
         scheduled: false,
-        broken:    (grouped.broken?.length ?? 0) > 0,
+        broken:    false,
       });
 
       logHistory(
@@ -299,7 +309,6 @@ export default function StartupApps() {
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <AppLayout>
-      <StartupPulse active={isScanning} />
 
       <div className="relative z-10 w-full max-w-7xl mx-auto space-y-6 pb-16 pt-4 px-4 sm:px-6 lg:px-8">
 
