@@ -2,9 +2,13 @@
 <html lang="en">
   <head>
     <meta name="google-site-verification" content="jPrsWbn3yTc0Y127PAL_KkF8wPZijSQ17Y6lyGfweVQ" />
+    <!-- color-scheme must be a <meta> tag, not just a CSS property, so the
+         browser applies dark defaults (dark scrollbars, dark form controls,
+         dark chrome) BEFORE any CSS is parsed — preventing the white flash. -->
+    <meta name="color-scheme" content="dark" />
     <style>
       html {
-        background: #070b14;
+        background: #040508;
         color-scheme: dark;
         height: 100%;
         width: 100%;
@@ -16,14 +20,17 @@
         width: 100%;
         height: 100%;
         overflow: hidden;
-        background: #070b14 !important;
-        background-color: #070b14 !important;
+        background: #040508 !important;
+        background-color: #040508 !important;
       }
 
+      /* Web landing mode — allow vertical scrolling but explicitly lock
+         horizontal overflow so no scrollbar track bleeds through on Windows. */
       html.sc-web,
       html.sc-web body,
       html.sc-web #root {
-        overflow: auto !important;
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
         height: auto !important;
       }
 
@@ -81,16 +88,16 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Playfair+Display:wght@400;500;600;700;800;900&display=swap" media="print" onload="this.media='all'">
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Playfair+Display:wght@400;500;600;700;800;900&display=swap"></noscript>
-    <script type="module" crossorigin src="./assets/index-Bfy5HCkM.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-BQRL-18-.css">
+    <script type="module" crossorigin src="./assets/index-kJGyg49u.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-DlvaRbeY.css">
   </head>
-  <body style="margin:0;padding:0;background:#070b14;overflow:hidden;height:100%;width:100%;">
+  <body style="margin:0;padding:0;background:#040508;overflow:hidden;height:100%;width:100%;">
 
     <!-- Pure dark boot shell — covers the window until React's first frame.
-         No animations, no blur, no opacity tricks. Solid #070b14 only.
+         No animations, no blur, no opacity tricks. Solid #040508 only.
          Removed by main.tsx via double-rAF after React mounts. -->
     <div id="boot-shell"></div>
 
-    <div id="root" style="background:#070b14;height:100%;width:100%;"></div>
+    <div id="root" style="background:#040508;height:100%;width:100%;"></div>
   </body>
 </html>
