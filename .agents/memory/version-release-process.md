@@ -15,3 +15,7 @@ When asked to bump the app version and "update patch notes everywhere", update a
 **How to apply:** grep the repo for the old version string (excluding `node_modules`, `.cache`, `attached_assets`, `package-lock.json`) after editing to confirm no stragglers remain, then run `npm run build` and restart the workflow.
 
 **Actual installer build/upload is NOT done in the Replit sandbox.** `.github/workflows/release.yml` builds the Windows NSIS installer via `electron-builder` on `windows-latest` and uploads to Cloudflare R2, triggered by pushing a git tag matching `v[0-9]+.[0-9]+.[0-9]+` to GitHub. That workflow re-syncs the version from the tag itself. This Replit environment has no GitHub remote configured (only Replit's own gitsafe-backup/subrepl remotes) — pushing the release tag must happen from the user's own GitHub-connected clone/CI, not from here.
+
+**⚠️ After every `npm --prefix electron run release` build: manually re-upload the new installer to Cloudflare R2.** Each build produces a new `.exe` and `latest.yml` that replace the previous files. The R2 bucket is the live CDN the auto-updater reads from — if the old file stays there, users get served the stale build. This is a mandatory manual step every single release, no exceptions.
+
+**Why:** electron-builder outputs to `electron/dist/` locally but does not push to R2 automatically outside the GitHub Actions workflow. Running the release command locally regenerates the artifacts but leaves R2 stale until manually synced.
