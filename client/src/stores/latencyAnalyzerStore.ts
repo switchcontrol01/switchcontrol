@@ -104,6 +104,7 @@ interface LatencyAnalyzerState {
 
   // drivers & audio
   drivers: DriverRow[];
+  driversScanned: boolean;   // true once scanDrivers() has resolved (even if list is empty)
   audioDevices: AudioDevice[];
   isAdmin: boolean;
 
@@ -121,6 +122,7 @@ interface LatencyAnalyzerState {
   tick: () => void;
   pushSample: (s: { dpcPct: number; intrPct: number; pageFaultsSec: number }) => void;
   setDrivers: (d: DriverRow[]) => void;
+  setDriversScanned: (v: boolean) => void;
   setAudioDevices: (d: AudioDevice[]) => void;
   setIsAdmin: (v: boolean) => void;
   setTestLabel: (l: string) => void;
@@ -176,6 +178,7 @@ export const useLatencyAnalyzerStore = create<LatencyAnalyzerState>((set, get) =
   status: "Not enough data",
 
   drivers: [],
+  driversScanned: false,
   audioDevices: [],
   isAdmin: false,
 
@@ -240,6 +243,7 @@ export const useLatencyAnalyzerStore = create<LatencyAnalyzerState>((set, get) =
     }),
 
   setDrivers: (d) => set({ drivers: d }),
+  setDriversScanned: (v) => set({ driversScanned: v }),
   setAudioDevices: (d) => set({ audioDevices: d }),
   setIsAdmin: (v) => set({ isAdmin: v }),
   setTestLabel: (l) => set({ testLabel: l }),
@@ -310,6 +314,7 @@ export const useLatencyAnalyzerStore = create<LatencyAnalyzerState>((set, get) =
       overallScore: 0,
       status: "Not enough data",
       drivers: [],
+      driversScanned: false,
       audioDevices: [],
       currentResult: null,
       testLabel: "",

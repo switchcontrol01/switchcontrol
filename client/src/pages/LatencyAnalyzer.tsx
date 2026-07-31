@@ -1737,7 +1737,13 @@ export default function LatencyAnalyzer() {
           store.setDrivers(drivers || []);
           store.setAudioDevices(audioDevices || []);
         }
-      } catch {}
+      } catch {
+        // scan failed — fall through to finally so spinner is always cleared
+      } finally {
+        // Mark scan complete regardless of outcome so the UI doesn't spin forever.
+        // driversScanned being true means "the scan ran to completion (even if empty)".
+        if (scanActive) store.setDriversScanned(true);
+      }
 
     } catch (err: any) {
       cancelSamplePollRef.current?.();
@@ -1757,7 +1763,7 @@ export default function LatencyAnalyzer() {
 
   if (locked) return <LockedState />;
 
-  const { sessionStatus, drivers, audioDevices, sampleCount } = store;
+  const { sessionStatus, drivers, driversScanned, audioDevices, sampleCount } = store;
   const hasData = sampleCount > 0;
 
   return (
@@ -1812,11 +1818,18 @@ export default function LatencyAnalyzer() {
 
         {/* Driver table */}
         {drivers.length > 0 && <DriverTable drivers={drivers} />}
-        {hasData && drivers.length === 0 && (
+        {hasData && !driversScanned && (
           <GlassCard className="p-5">
             <div className="flex items-center gap-2 text-[11px] text-[#6B7380]">
               <Loader2 className="size-4 animate-spin" />
               Scanning drivers…
+            </div>
+          </GlassCard>
+        )}
+        {hasData && driversScanned && drivers.length === 0 && (
+          <GlassCard className="p-5">
+            <div className="text-[11px] text-[#6B7380]">
+              No driver data available — driverquery returned no results on this system.
             </div>
           </GlassCard>
         )}

@@ -26,9 +26,22 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const psLimiter = require('./powershell-limiter');
+// ── Icon utilities (single source in file-icon.js) ────────────────────────────
+// resolveIconPath, collectExeFilesRecursive, expandEnvVars, and the EXE_SCAN_*
+// constants now live in file-icon.js so they can be reused by any future caller
+// without pulling in debloat-helper.js's full scan/uninstall pipeline.
+// getAppIconDataUrl (below) continues to own its own appId-keyed cache and is
+// the only path through which Installed Apps resolves icons — unchanged.
+const {
+  expandEnvVars,
+  EXE_SCAN_MAX_DEPTH, EXE_SCAN_MAX_FILES, EXE_SCAN_SKIP_DIRS,
+  collectExeFilesRecursive,
+  resolveIconPath,
+} = require('./file-icon');
 // ── Icon cache ────────────────────────────────────────────────────────────────
 // Persistent cache in userData (survives app restarts, unlike os.tmpdir).
 // Falls back to tmpdir if userData isn't available (very early startup).
+// Keyed by appId (not sha1-of-path like file-icon.js uses) — no collision.
 function getIconCacheDir() {
   try {
     return path.join(electronApp.getPath('userData'), 'icon-cache');
@@ -37,118 +50,6 @@ function getIconCacheDir() {
   }
 }
 let _lastScanApps = new Map(); // id -> app (for lazy icon resolution)
-// ── Environment variable expansion ───────────────────────────────────────────
-// Expands Windows-style %VAR% tokens in registry values.
-// Falls back to Node's process.env which mirrors the Win32 environment block.
-function expandEnvVars(str) {
-  if (!str || typeof str !== 'string') return '';
-  return str.replace(/%([^%]+)%/g, (match, key) => {
-    const val = process.env[key] ?? process.env[key.toUpperCase()];
-    return val !== undefined ? val : match; // leave unexpanded tokens as-is
-  });
-}
-// ── Recursive .exe collector (bounded) ────────────────────────────────────────
-// Walks InstallLocation looking for .exe files. Bounded by MAX_DEPTH and
-// MAX_FILES so a pathological folder tree can never hang the icon lookup.
-// Skips folders that are extremely unlikely to contain the main app exe.
-const EXE_SCAN_MAX_DEPTH = 4;
-const EXE_SCAN_MAX_FILES = 400;
-const EXE_SCAN_SKIP_DIRS = /^(\$plugins.*|temp|tmp|logs?|cache|locale?s?|lang(uages)?|redist|vcredist|\.git)$/i;
-function collectExeFilesRecursive(rootDir) {
-  const results = [];
-  function walk(dir, depth) {
-    if (depth > EXE_SCAN_MAX_DEPTH || results.length >= EXE_SCAN_MAX_FILES) return;
-    let entries;
-    try {
-      entries = fs.readdirSync(dir, { withFileTypes: true });
-    } catch {
-      return;
-    }
-    for (const entry of entries) {
-      if (results.length >= EXE_SCAN_MAX_FILES) return;
-      const full = path.join(dir, entry.name);
-      if (entry.isDirectory()) {
-        if (EXE_SCAN_SKIP_DIRS.test(entry.name)) continue;
-        walk(full, depth + 1);
-      } else if (entry.isFile() && entry.name.toLowerCase().endsWith('.exe')) {
-        results.push({ full, rel: path.relative(rootDir, full) });
-      }
-    }
-  }
-  walk(rootDir, 0);
-  return results;
-}
-// ── Icon path resolver ────────────────────────────────────────────────────────
-// Priority order:
-//   1. DisplayIcon registry value (expand env vars, strip icon index)
-//   2. Best-match exe in InstallLocation (recursive, bounded)
-//   3. Exe extracted from QuietUninstallString / UninstallString
-function resolveIconPath(app) {
-  // ── 1. DisplayIcon ──────────────────────────────────────────────────────────
-  let raw = String(app.displayIcon || '').trim();
-  // Handle both quoted and unquoted forms, then strip trailing ,N icon index:
-  //   "C:\Prog\app.exe",0   →  C:\Prog\app.exe
-  //   C:\Prog\app.exe,-1    →  C:\Prog\app.exe
-  //   "C:\Prog\app.exe"     →  C:\Prog\app.exe
-  const qm = raw.match(/^"([^"]+)"(?:,\s*-?\d+)?\s*$/);
-  if (qm) {
-    raw = qm[1];
-  } else {
-    // Unquoted — only strip trailing ,N (not mid-path commas)
-    raw = raw.replace(/,\s*-?\d+\s*$/, '').trim();
-  }
-  raw = expandEnvVars(raw);
-  if (raw.length > 4 && fs.existsSync(raw)) return raw;
-  // ── 2. Best exe in InstallLocation (recursive, bounded) ────────────────────
-  // NOTE: a flat (non-recursive) directory read only sees the top-level
-  // folder. Many real-world installers (Inno Setup, NSIS, Electron apps, etc.)
-  // put the actual app exe in a subfolder (bin\, app-1.2.3\, resources\)
-  // while InstallLocation's root only contains the uninstaller stub. Without
-  // a recursive scan, those apps silently fall through to step 3 and end up
-  // icon-less — the uninstaller exe has no custom icon resource, so
-  // shell.getFileIcon() "succeeds" but returns Windows' generic default exe
-  // icon rather than the real app logo.
-  const loc = expandEnvVars(String(app.installLocation || '').trim());
-  if (loc && loc.length > 3 && fs.existsSync(loc)) {
-    try {
-      const entries = collectExeFilesRecursive(loc);
-      if (entries.length > 0) {
-        const appNameNorm = String(app.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-        const scored = entries.map(({ full, rel }) => {
-          const fname = path.basename(full);
-          const base = path.basename(fname, '.exe').toLowerCase().replace(/[^a-z0-9]/g, '');
-          let score = 0;
-          if (base === appNameNorm) score = 100;
-          else if (appNameNorm.startsWith(base) || base.startsWith(appNameNorm)) score = 50;
-          else if (appNameNorm.length >= 4 && (appNameNorm.includes(base) || base.includes(appNameNorm.slice(0, 4)))) score = 25;
-          // Shorter basenames are usually the main exe; longer ones are helpers
-          score -= base.length * 0.1;
-          // Prefer files closer to the InstallLocation root — deeply nested
-          // exes are more likely to be internal tools/helpers, not the main app
-          score -= (rel.split(path.sep).length - 1) * 5;
-          // Deprioritize obvious helper/updater/uninstaller/redistributable patterns
-          if (/update|uninstall|unins0|setup|helper|crash|report|launcher|installer|redist|vcredist/i.test(fname)) score -= 40;
-          return { full, score };
-        });
-        scored.sort((a, b) => b.score - a.score);
-        const best = scored[0].full;
-        if (fs.existsSync(best)) return best;
-      }
-    } catch {}
-  }
-  // ── 3. Extract exe from uninstall strings ──────────────────────────────────
-  for (const s of [String(app.quietUninstall || ''), String(app.uninstallString || '')]) {
-    const us = expandEnvVars(s.trim());
-    if (!us || us.length < 4) continue;
-    // Quoted path: "C:\path\app.exe"
-    const qm2 = us.match(/^"([^"]+\.exe)"/i);
-    if (qm2 && fs.existsSync(qm2[1])) return qm2[1];
-    // Unquoted absolute path: C:\path\app.exe
-    const um = us.match(/^([A-Za-z]:[^\s,;]+\.exe)/i);
-    if (um && fs.existsSync(um[1])) return um[1];
-  }
-  return null;
-}
 async function getAppIconDataUrl(appId, app) {
   const cacheDir = getIconCacheDir();
   if (!fs.existsSync(cacheDir)) {

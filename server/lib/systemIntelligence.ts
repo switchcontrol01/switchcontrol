@@ -717,6 +717,50 @@ async function collect(): Promise<SystemIntelligenceProfile> {
     type: safeStr(s.type),
   })).filter((s: SipMemStick) => s.sizeMb !== null && s.sizeMb > 0);
 
+  // ── WMI fallback for memory layout (Win32_PhysicalMemory) ─────────────────
+  // si.memLayout() frequently times out on AMD/WMI systems (seen: Ryzen 9800X3D).
+  // When it does, sticks[] is empty and expoOrXmp falls back to "Unknown / Off".
+  // Win32_PhysicalMemory returns Speed (module rated speed) and
+  // ConfiguredClockSpeed (actual BIOS-configured speed) — exactly what we need
+  // for EXPO/XMP detection. Falls back gracefully on any error.
+  if (sticks.length === 0 && process.platform === "win32") {
+    try {
+      const wmiScript = [
+        "Get-CimInstance -ClassName Win32_PhysicalMemory -ErrorAction Stop",
+        "| Select-Object Speed,ConfiguredClockSpeed,ConfiguredVoltage,Capacity,Manufacturer,PartNumber,BankLabel",
+        "| ConvertTo-Json -Compress",
+      ].join(" ");
+      const { stdout: wmiOut } = await execFileAsync(
+        "powershell.exe",
+        ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", wmiScript],
+        { timeout: 12_000 },
+      );
+      const wmiRaw = JSON.parse(wmiOut.trim());
+      const wmiItems: any[] = Array.isArray(wmiRaw) ? wmiRaw : [wmiRaw];
+      const wmiSticks: SipMemStick[] = wmiItems
+        .filter((s: any) => s && (Number(s.Capacity) > 0 || Number(s.Speed) > 0))
+        .map((s: any) => ({
+          bank:               s.BankLabel ? String(s.BankLabel).trim() : null,
+          slot:               null,
+          sizeMb:             s.Capacity ? Math.round(Number(s.Capacity) / 1024 / 1024) : null,
+          // Speed = module's rated/XMP speed stamped on the module
+          clockMhz:           s.Speed ? Number(s.Speed) : null,
+          // ConfiguredClockSpeed = speed the BIOS actually programmed
+          configuredClockMhz: s.ConfiguredClockSpeed ? Number(s.ConfiguredClockSpeed) : null,
+          manufacturer:       s.Manufacturer ? String(s.Manufacturer).trim() : null,
+          partNum:            s.PartNumber  ? String(s.PartNumber).trim()  : null,
+          type:               null,
+        }))
+        .filter((s: SipMemStick) => s.sizeMb !== null && s.sizeMb > 0);
+      if (wmiSticks.length > 0) {
+        sticks.push(...wmiSticks);
+        console.log(`[SysIntelligence] memLayout WMI fallback OK — ${wmiSticks.length} stick(s)`);
+      }
+    } catch (wmiErr: any) {
+      console.warn("[SysIntelligence] memLayout WMI fallback failed:", wmiErr?.message ?? wmiErr);
+    }
+  }
+
   // Infer dual channel: 2+ sticks with same size
   let inferredDualChannel: boolean | null = null;
   if (sticks.length >= 2) {
@@ -837,20 +881,56 @@ async function collect(): Promise<SystemIntelligenceProfile> {
 
   // ── Inference ──
 
-  // EXPO/XMP inference — based on memory configured speed vs rated speed
+  // EXPO/XMP inference — based on memory configured speed vs rated speed.
+  //
+  // Win32_PhysicalMemory field semantics (same as si.memLayout() on Windows):
+  //   Speed               → clockMhz:          module's rated/stamped XMP/EXPO speed
+  //   ConfiguredClockSpeed → configuredClockMhz: speed the BIOS actually programmed
+  //
+  // Detection rule:
+  //   configured ≈ rated  → EXPO/XMP confirmed (BIOS applied the XMP/EXPO profile)
+  //   configured < rated  → EXPO/XMP disabled  (BIOS running below the module's rated speed)
+  //   no rated data, but configured ≥ 3200 → likely active (older si data only has one field)
   let expoOrXmp: SipInference = { state: "unknown", reason: "No memory layout data available." };
   if (sticks.length > 0) {
     const configuredSpeeds = sticks.map(s => s.configuredClockMhz).filter((s): s is number => s !== null);
-    const ratedSpeeds = sticks.map(s => s.clockMhz).filter((s): s is number => s !== null);
+    const ratedSpeeds      = sticks.map(s => s.clockMhz).filter((s): s is number => s !== null);
     if (configuredSpeeds.length > 0 && ratedSpeeds.length > 0) {
       const maxConfigured = Math.max(...configuredSpeeds);
-      const maxRated = Math.max(...ratedSpeeds);
+      const maxRated      = Math.max(...ratedSpeeds);
       if (maxConfigured >= maxRated * 0.95) {
-        expoOrXmp = { state: "confirmed", reason: `Memory running at configured speed (${maxConfigured} MHz ≈ rated ${maxRated} MHz) — EXPO/XMP profile is active.` };
+        // Configured ≈ rated → BIOS applied the XMP/EXPO profile.
+        expoOrXmp = {
+          state:  "confirmed",
+          reason: `Enabled (EXPO/XMP) — ${maxConfigured} MHz (rated ${maxRated} MHz)`,
+        };
       } else if (maxConfigured >= 3200) {
-        expoOrXmp = { state: "likely", reason: `Memory configured at ${maxConfigured} MHz but rated at ${maxRated} MHz — profile may be partially applied.` };
+        // Running above low JEDEC but below the module's stamped speed.
+        expoOrXmp = {
+          state:  "likely",
+          reason: `Partially active — ${maxConfigured} MHz configured, module rated ${maxRated} MHz`,
+        };
       } else {
-        expoOrXmp = { state: "unknown", reason: `Memory running at ${maxConfigured} MHz vs rated ${maxRated} MHz — EXPO/XMP appears disabled or not set.` };
+        // Well below the module's rated speed — XMP/EXPO clearly disabled.
+        expoOrXmp = {
+          state:  "unknown",
+          reason: `Disabled — running at ${maxConfigured} MHz (module rated ${maxRated} MHz)`,
+        };
+      }
+    } else if (configuredSpeeds.length > 0) {
+      // Only configuredClockSpeed available (no rated speed in this data source).
+      // Fall back to the JEDEC-comparison heuristic.
+      const maxConfigured = Math.max(...configuredSpeeds);
+      if (maxConfigured >= 3200) {
+        expoOrXmp = {
+          state:  "likely",
+          reason: `Memory at ${maxConfigured} MHz — likely above JEDEC baseline, EXPO/XMP probably active`,
+        };
+      } else {
+        expoOrXmp = {
+          state:  "unknown",
+          reason: `Disabled — running at rated speed (${maxConfigured} MHz)`,
+        };
       }
     }
   }

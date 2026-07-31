@@ -174,12 +174,15 @@ function getKnownDriver(name) {
  * Returns an array of DriverRow objects.
  */
 async function scanDrivers() {
-  // Call driverquery directly — errors go to stderr which 2>&1 merges into stdout.
-  // Do NOT wrap in a PS try/catch: driverquery failures write to stderr, not PS exceptions.
-  const script = `driverquery /fo csv /v 2>&1`;
+  // Use driverquery WITHOUT /v (verbose) — the verbose flag adds extra columns we don't
+  // use and makes driverquery take 30–120 s on real machines (vs 3–5 s without /v).
+  // Column layout is identical for the columns we actually read:
+  //   [0] Module Name  [1] Display Name  [2] Driver Type  [3] Start Mode  [4] State  [5] Status
+  // Timeout bumped to 20 s as a conservative safety margin; even slow machines finish in ~10 s.
+  const script = `driverquery /fo csv 2>&1`;
 
   try {
-    const out = await runPS(script, 12000);
+    const out = await runPS(script, 20000);
     if (!out) return [];
 
     const lines = out.split('\n').filter(Boolean);
@@ -189,12 +192,15 @@ async function scanDrivers() {
     for (let i = 1; i < lines.length; i++) {
       const line = lines[i].trim();
       if (!line) continue;
-      // CSV fields: Module Name, Display Name, Driver Type, Start Mode, State, Status, ...
+      // CSV fields: Module Name, Display Name, Driver Type, Start Mode, State, Status
       const cols = parseCSVLine(line);
       const name  = cols[0] || '';
       const desc  = cols[1] || '';
       const type  = cols[2] || '';
-      const state = cols[4] || '';
+      // Trim and normalise state — driverquery localises these strings on non-English
+      // Windows, so compare case-insensitively and accept any non-empty state value
+      // so the list isn't silently empty on locale variants.
+      const state = (cols[4] || '').trim();
       if (!name) continue;
 
       const known = getKnownDriver(name);
@@ -225,9 +231,14 @@ async function scanDrivers() {
       });
     }
 
-    // Return kernel-mode drivers first, limit to 40 for UI performance
+    // Keep running + stopped drivers; use case-insensitive comparison to survive
+    // locale variants (e.g. German: "Wird ausgeführt" / "Beendet").
+    // Limit to 40 rows for UI performance.
     return rows
-      .filter(r => r.state === 'Running' || r.state === 'Stopped')
+      .filter(r => {
+        const s = r.state.toLowerCase();
+        return s === 'running' || s === 'stopped' || (s.length > 0 && s !== 'unknown');
+      })
       .slice(0, 40);
   } catch {
     return [];
