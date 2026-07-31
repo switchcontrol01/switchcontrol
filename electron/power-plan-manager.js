@@ -533,7 +533,10 @@ async function applyPowerProfile(profileId) {
         console.error(`[PowerPlan]   cmd FAILED: ${cmd} — stderr: ${e.message}`);
       }
     }
-    applyResult = { ok: true, failed };
+    // Fix: ok must reflect real outcome — hardcoding ok:true masked silent
+    // failures.  The non-admin (runElevatedCommands) path already propagates
+    // ok:false when any command fails; this branch now matches that semantic.
+    applyResult = { ok: failed.length === 0, failed };
   } else {
     applyResult = await runElevatedCommands(settingCmds);
     if (applyResult.cancelled) {
@@ -548,7 +551,22 @@ async function applyPowerProfile(profileId) {
 
   const failedSettings = applyResult.failed ?? [];
   if (failedSettings.length > 0) {
-    console.warn(`[PowerPlan]   ${failedSettings.length} setting cmd(s) failed:`, failedSettings);
+    // Some powercfg commands failed.  This is intentionally non-fatal: hardware-
+    // limited settings (e.g. perfBoostMode not supported on all CPUs) are expected
+    // to fail on read-back and are still useful with whatever DOES apply.
+    // Overall `success` stays tied to guidMatch (GUID became active) — see comment
+    // below — not to individual setting commands.
+    //
+    // NOTE: the frontend currently checks only result.success and does NOT render
+    // failedSettings to the user, so these failures are invisible in the UI.
+    // They ARE present in the returned response for callers that inspect them.
+    // If command failures should be surfaced visibly, the frontend PowerPlan
+    // apply handler must be updated to read and display result.failedSettings.
+    console.warn(
+      `[PowerPlan]   ${failedSettings.length} of ${settingCmds.length} setting cmd(s) failed ` +
+      `(plan GUID may still be active — check success/verified below):`,
+      failedSettings,
+    );
   }
 
   // ── Step 4: Verify — confirm the target GUID is now active ─────────────────
@@ -1192,7 +1210,8 @@ async function applyCustomPowerProfile(name, settings) {
         console.error(`[PowerPlan:Custom] cmd FAILED: ${cmd} — ${e.message}`);
       }
     }
-    applyResult = { ok: true, failed };
+    // Fix: ok must reflect real outcome — same correction as in applyPowerProfile().
+    applyResult = { ok: failed.length === 0, failed };
   } else {
     applyResult = await runElevatedCommands(cmds);
     if (applyResult.cancelled) {

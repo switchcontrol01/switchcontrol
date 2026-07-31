@@ -1278,87 +1278,114 @@ export default function AiAdvisor() {
       .catch(() => {});
   }, []);
 
-  // ── Tier 4: fetch Security, NIC Tuning, and Process Manager data once on mount ──
-  // Each fetch is one-shot (not polled) — same lifecycle as driverVersions/latencyState.
-  // Security data is NOT logged to console in production builds.
-  useEffect(() => {
+  // ── Tier 4: Security, NIC Tuning, Process Manager — fetched LAZILY ──────────
+  // These calls are deferred until the user actually sends their first message.
+  // This avoids paying the PS/WMI cost on every page mount for data that is
+  // only needed when the AI builds a chat context. Each fetch is one-shot:
+  // once the data is in state it is reused for all subsequent messages.
+  const extendedContextFetchedRef = useRef(false);
+  const extendedContextFetchingRef = useRef<Promise<void> | null>(null);
+
+  const fetchExtendedContextOnce = useCallback((): Promise<void> => {
+    // Already fetched or in-flight — return the existing promise so callers
+    // that `await` this don't race each other on the first message.
+    if (extendedContextFetchedRef.current) return Promise.resolve();
+    if (extendedContextFetchingRef.current) return extendedContextFetchingRef.current;
+
     const api = (window as any).electronAPI;
-    if (!api) return;
-
-    // Security — getStatus (Defender, firewall) + getAdvancedAudit (Secure Boot, TPM, BitLocker, etc.)
-    const secStatus = api.security?.getStatus?.();
-    const secAudit  = api.security?.getAdvancedAudit?.();
-    if (secStatus && secAudit) {
-      Promise.all([secStatus.catch(() => null), secAudit.catch(() => null)])
-        .then(([st, aud]: [any, any]) => {
-          if (st?.available)  setSecurityStatus(st.data ?? null);
-          if (aud?.available) setSecurityAudit(aud.data ?? null);
-          if (import.meta.env.DEV) {
-            console.log("[AI:Security] fetched — status=", st?.available, "audit=", aud?.available);
-          }
-        })
-        .catch(() => {});
+    if (!api) {
+      extendedContextFetchedRef.current = true;
+      return Promise.resolve();
     }
 
-    // NIC Tuning — find first "Up" physical adapter then read its capabilities
-    if (api.nic?.getAdapters && api.nic?.getCapabilities) {
-      api.nic.getAdapters()
-        .then((adapters: any[]) => {
-          if (!Array.isArray(adapters)) return;
-          const upAdapter = adapters.find((a: any) => a.operationalStatus === "Up" || a.status === "Up" || a.isUp);
-          const adapterName = upAdapter?.name ?? upAdapter?.adapterName ?? adapters[0]?.name ?? null;
-          if (!adapterName) return;
-          return api.nic.getCapabilities(adapterName)
-            .then((caps: any) => {
-              const props: Array<{ key: string; label: string; supported: boolean; currentValue: string | null }> = [];
-              if (caps?.capabilities && typeof caps.capabilities === "object") {
-                for (const [key, val] of Object.entries(caps.capabilities as Record<string, any>)) {
-                  props.push({
-                    key,
-                    label: val?.label ?? key,
-                    supported: val?.supported !== false,
-                    currentValue: val?.currentValue != null ? String(val.currentValue) : null,
-                  });
-                }
+    const work = (async () => {
+      const fetches: Promise<void>[] = [];
+
+      // Security — getStatus (Defender, firewall) + getAdvancedAudit (Secure Boot, TPM, etc.)
+      const secStatus = api.security?.getStatus?.();
+      const secAudit  = api.security?.getAdvancedAudit?.();
+      if (secStatus && secAudit) {
+        fetches.push(
+          Promise.all([secStatus.catch(() => null), secAudit.catch(() => null)])
+            .then(([st, aud]: [any, any]) => {
+              if (st?.available)  setSecurityStatus(st.data ?? null);
+              if (aud?.available) setSecurityAudit(aud.data ?? null);
+              if (import.meta.env.DEV) {
+                console.log("[AI:Security] lazy-fetched — status=", st?.available, "audit=", aud?.available);
               }
-              setNicCapabilities({ adapterName, properties: props });
-            });
-        })
-        .catch(() => {});
-    }
+            })
+            .catch(() => {})
+        );
+      }
 
-    // Process Manager — use getLastResult if available (avoids a fresh PS spawn)
-    const pcApi = api.processControl;
-    if (pcApi?.getLastResult) {
-      pcApi.getLastResult()
-        .then((result: any) => {
-          // If no cached scan exists, do a lightweight fresh scan (one-shot only)
-          if (!result || !Array.isArray(result?.processes)) {
-            return pcApi.scan?.()
-              .then((r: any) => r)
-              .catch(() => null);
-          }
-          return result;
-        })
-        .then((result: any) => {
-          if (!result || !Array.isArray(result.processes)) return;
-          const procs = result.processes as any[];
-          const HIGH_MEM_MB = 500;
-          const topConsumers = procs
-            .filter((p: any) => (p.memMb ?? p.workingSetMb ?? 0) > 0)
-            .sort((a: any, b: any) => (b.memMb ?? b.workingSetMb ?? 0) - (a.memMb ?? a.workingSetMb ?? 0))
-            .slice(0, 5)
-            .map((p: any) => ({ name: p.name ?? "Unknown", memoryMb: Math.round(p.memMb ?? p.workingSetMb ?? 0) }));
-          setProcessManagerSummary({
-            totalProcesses: procs.length,
-            protectedCount: procs.filter((p: any) => p.protected || p.isProtected).length,
-            highMemoryCount: procs.filter((p: any) => (p.memMb ?? p.workingSetMb ?? 0) > HIGH_MEM_MB).length,
-            topConsumers,
-          });
-        })
-        .catch(() => {});
-    }
-  }, []);
+      // NIC Tuning — find first "Up" physical adapter then read its capabilities
+      if (api.nic?.getAdapters && api.nic?.getCapabilities) {
+        fetches.push(
+          api.nic.getAdapters()
+            .then((adapters: any[]) => {
+              if (!Array.isArray(adapters)) return;
+              const upAdapter = adapters.find((a: any) => a.operationalStatus === "Up" || a.status === "Up" || a.isUp);
+              const adapterName = upAdapter?.name ?? upAdapter?.adapterName ?? adapters[0]?.name ?? null;
+              if (!adapterName) return;
+              return api.nic.getCapabilities(adapterName)
+                .then((caps: any) => {
+                  const props: Array<{ key: string; label: string; supported: boolean; currentValue: string | null }> = [];
+                  if (caps?.capabilities && typeof caps.capabilities === "object") {
+                    for (const [key, val] of Object.entries(caps.capabilities as Record<string, any>)) {
+                      props.push({
+                        key,
+                        label: val?.label ?? key,
+                        supported: val?.supported !== false,
+                        currentValue: val?.currentValue != null ? String(val.currentValue) : null,
+                      });
+                    }
+                  }
+                  setNicCapabilities({ adapterName, properties: props });
+                });
+            })
+            .catch(() => {})
+        );
+      }
+
+      // Process Manager — prefer cached result to avoid a fresh PS spawn
+      const pcApi = api.processControl;
+      if (pcApi?.getLastResult) {
+        fetches.push(
+          pcApi.getLastResult()
+            .then((result: any) => {
+              // Only fall back to a fresh scan if no prior result exists at all
+              if (!result || !Array.isArray(result?.processes)) {
+                return pcApi.scan?.().then((r: any) => r).catch(() => null);
+              }
+              return result;
+            })
+            .then((result: any) => {
+              if (!result || !Array.isArray(result.processes)) return;
+              const procs = result.processes as any[];
+              const HIGH_MEM_MB = 500;
+              const topConsumers = procs
+                .filter((p: any) => (p.memMb ?? p.workingSetMb ?? 0) > 0)
+                .sort((a: any, b: any) => (b.memMb ?? b.workingSetMb ?? 0) - (a.memMb ?? a.workingSetMb ?? 0))
+                .slice(0, 5)
+                .map((p: any) => ({ name: p.name ?? "Unknown", memoryMb: Math.round(p.memMb ?? p.workingSetMb ?? 0) }));
+              setProcessManagerSummary({
+                totalProcesses: procs.length,
+                protectedCount: procs.filter((p: any) => p.protected || p.isProtected).length,
+                highMemoryCount: procs.filter((p: any) => (p.memMb ?? p.workingSetMb ?? 0) > HIGH_MEM_MB).length,
+                topConsumers,
+              });
+            })
+            .catch(() => {})
+        );
+      }
+
+      await Promise.allSettled(fetches);
+      extendedContextFetchedRef.current = true;
+    })();
+
+    extendedContextFetchingRef.current = work;
+    return work;
+  }, []); // eslint-disable-line
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -2035,6 +2062,11 @@ export default function AiAdvisor() {
     chatHistory.push({ role: "user", content: messageContent });
 
     try {
+      // Lazy-fetch extended context (Security / NIC / ProcessManager) on first
+      // message only. Awaited here so the data lands in state *before* contextRef
+      // is read below — giving the AI full context even on the opening message.
+      await fetchExtendedContextOnce();
+
       const ctx = contextRef.current;
       console.log(`[AI:INPUT] sending_message="${messageContent.slice(0, 80)}"${messageContent.length > 80 ? "…" : ""}`);
       console.log(`[AI:INPUT] enabled_tweaks=${ctx?.enabledTweaks?.length ?? 0} disabled_tweaks=${ctx?.disabledTweaks?.length ?? 0}`);

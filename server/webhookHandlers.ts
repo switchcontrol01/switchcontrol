@@ -115,9 +115,19 @@ async function handleCheckoutCompleted(event: Stripe.Event): Promise<void> {
 
   try {
     const lineItems = await stripe.checkout.sessions.listLineItems(sessionId, { limit: 10 });
-    priceMatched = lineItems.data.some((item) => item.price?.id === expectedPriceId);
+    // Require the session to contain EXACTLY ONE line item and have it be the
+    // expected premium price.  Checking `.some()` alone would pass a session
+    // that bundles the premium price alongside any other item (e.g. a $0.01
+    // add-on), which could be exploited if a client-side checkout call ever
+    // allows multi-item sessions.  Strict single-item enforcement closes this.
+    priceMatched =
+      lineItems.data.length === 1 &&
+      lineItems.data[0].price?.id === expectedPriceId;
     const purchasedIds = lineItems.data.map((i) => i.price?.id).join(', ');
-    console.log(`[Stripe] Session ${sessionId} line items: [${purchasedIds}] — expected: ${expectedPriceId} — matched: ${priceMatched}`);
+    console.log(
+      `[Stripe] Session ${sessionId} line items: [${purchasedIds}] (count=${lineItems.data.length}) ` +
+      `— expected: ${expectedPriceId} — matched: ${priceMatched}`,
+    );
   } catch (err: any) {
     console.error(`[Stripe] Failed to retrieve line items for session ${sessionId}: ${err.message}`);
     throw err;

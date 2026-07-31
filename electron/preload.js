@@ -52,8 +52,9 @@ function assertPlainObject(value, name) {
   return value;
 }
 // ─── Allowed value sets ───────────────────────────────────────────────────────
-const ALLOWED_TWEAK_ACTIONS = new Set(['apply', 'revert']);
-const ALLOWED_MEMORY_MODES  = new Set(['safe', 'smart', 'advanced']);
+const ALLOWED_TWEAK_ACTIONS  = new Set(['apply', 'revert']);
+const ALLOWED_MEMORY_MODES   = new Set(['safe', 'smart', 'advanced']);
+const ALLOWED_PC_PROFILES    = new Set(['safe', 'competitive', 'extreme']);
 // Config keys that the renderer is allowed to read/write. The config store holds
 // secrets (e.g. selectedGpuIndex, sentinelNotificationStyle) — restricting to an
 // explicit allowlist prevents a compromised renderer from enumerating arbitrary keys.
@@ -638,13 +639,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     buildPlan: (scanResult, profile) => {
       assertPlainObject(scanResult, 'processControl.buildPlan scanResult');
       if (!Array.isArray(scanResult.processes)) throw new TypeError('processControl.buildPlan: scanResult.processes must be an array');
-      const ALLOWED_PC_PROFILES = new Set(['safe', 'competitive', 'extreme']);
       if (!ALLOWED_PC_PROFILES.has(profile)) throw new TypeError('processControl.buildPlan: profile must be "safe", "competitive", or "extreme"');
       return ipcRenderer.invoke('processControl:buildPlan', scanResult, profile);
     },
     applyPlan: (plan) => {
       assertPlainObject(plan, 'processControl.applyPlan plan');
-      const ALLOWED_PC_PROFILES = new Set(['safe', 'competitive', 'extreme']);
       if (!ALLOWED_PC_PROFILES.has(plan.profile)) throw new TypeError('processControl.applyPlan: plan.profile must be "safe", "competitive", or "extreme"');
       if (!Array.isArray(plan.toStop)) throw new TypeError('processControl.applyPlan: plan.toStop must be an array');
       if (!Array.isArray(plan.toLowerPriority)) throw new TypeError('processControl.applyPlan: plan.toLowerPriority must be an array');

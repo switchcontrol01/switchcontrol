@@ -381,6 +381,13 @@ export function runJwtSelfTest(): void {
     console.error("[JWT] FAIL: empty token was NOT rejected");
   }
 
+  // Note: this test verifies that the jsonwebtoken library's built-in
+  // `algorithms: ["HS256"]` allowlist (set inside verifyJwt) rejects alg=none
+  // tokens.  It is NOT exercising a custom defence written here — the library
+  // does the work.  If the allowlist option were ever removed from verifyJwt,
+  // this test would still pass because jwt.sign with alg=none and an empty
+  // secret throws before verifyJwt is even called.  The real protection lives
+  // in the `algorithms: ["HS256"]` option passed to jwt.verify in verifyJwt.
   try {
     const algNoneToken = jwt.sign({ sub: testUserId }, "", { algorithm: "none" as any });
     const algNoneResult = verifyJwt(algNoneToken, true);

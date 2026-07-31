@@ -3536,7 +3536,28 @@ public class DspHelper {
       }
 
       const graphics = await si.graphics();
-      const ctrl = (graphics.controllers || [])[selectedGpuIndex] || (graphics.controllers || [])[0];
+      const controllers = graphics.controllers || [];
+      // Correlate by GPU name rather than raw array index — si.graphics() and wmiGpuList
+      // are independent enumeration sources (systeminformation vs WMI Win32_VideoController)
+      // and are NOT guaranteed to return GPUs in the same order.  On a multi-GPU system
+      // positional indexing silently returns the wrong card's temperature / VRAM.
+      // Mirror of the monitor-detection fix: name match → positional fallback with a warning.
+      const targetName = (wmiGpuList[selectedGpuIndex]?.name || gpuState.model || '').toLowerCase();
+      let ctrl = null;
+      if (targetName && controllers.length > 1) {
+        // Bidirectional substring: handles "NVIDIA GeForce RTX 4080" ↔ "NVIDIA GeForce RTX 4080 SUPER" variants
+        ctrl = controllers.find(c => {
+          const m = (c.model || '').toLowerCase();
+          return m.includes(targetName) || targetName.includes(m);
+        });
+        if (!ctrl) {
+          verboseLog(`[telemetry:getGpu] name-match failed for "${wmiGpuList[selectedGpuIndex]?.name}" — falling back to positional index ${selectedGpuIndex}`);
+          ctrl = controllers[selectedGpuIndex] || controllers[0];
+        }
+      } else {
+        // Single GPU or no reference name — positional indexing is safe here
+        ctrl = controllers[selectedGpuIndex] || controllers[0];
+      }
       if (!ctrl) return null;
 
       const vendorLower = (ctrl.vendor || '').toLowerCase();
@@ -4239,8 +4260,6 @@ $netThrot  = Reg 'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multim
 $mmcssLazy = Reg 'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile' 'NoLazyMode'
 # Power throttling
 $pwrThrot  = Reg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottling' 'PowerThrottlingOff'
-# HPET
-$hpetQ     = try{$h=Get-CimInstance -Query "SELECT * FROM Win32_DeviceChangeEvent" -EA Stop;'ok'}catch{'?'}
 @{
   timerResSet    = ($timerRes -eq 1)
   dynTickOff     = [bool]$dynTick

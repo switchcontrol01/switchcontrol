@@ -77,28 +77,35 @@
 }
 
 /* ── Hard-lock dark background at every DOM level ────────────────
-   !important overrides any cascade from Tailwind resets or other
-   sheets. Ensures no white frame can bleed through at any stage:
-   before JS, during hydration, or if paint order is surprising. */
+   #040508 matches the WebsiteShell/WebsiteBackground base colour so
+   there is zero colour difference between the pre-React paint and the
+   settled page — no visible flash even on slow connections.
+   !important overrides Tailwind's Preflight `background-color` reset
+   and any other cascade ordering surprise. */
 html {
-  background: #14181D !important;
-  background-color: #14181D !important;
+  background: #040508 !important;
+  background-color: #040508 !important;
   width: 100%;
   margin: 0;
   padding: 0;
+  /* Prevent any horizontal scrollbar track from appearing in web mode.
+     The sc-web override in index.html sets overflow-y:auto and keeps
+     overflow-x:hidden, but this rule acts as an extra safety net. */
+  overflow-x: hidden;
 }
 
 body {
-  background: #14181D !important;
-  background-color: #14181D !important;
+  background: #040508 !important;
+  background-color: #040508 !important;
   width: 100%;
   margin: 0;
   padding: 0;
+  overflow-x: hidden;
 }
 
 #root {
-  background: #14181D !important;
-  background-color: #14181D !important;
+  background: #040508 !important;
+  background-color: #040508 !important;
 }
 /* ────────────────────────────────────────────────────────────── */
 

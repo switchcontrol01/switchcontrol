@@ -246,6 +246,10 @@ router.post("/users/:id/extend-trial", requireAdmin, writeLimiter, async (req, r
   }
 });
 
+const resetTrialBodySchema = z.object({
+  reason: z.string().max(500).optional(),
+});
+
 const revokeTrialSchema = z.object({
   reason: z.string().max(500).optional(),
 });
@@ -276,7 +280,9 @@ router.post("/users/:id/revoke-trial", requireAdmin, writeLimiter, async (req, r
 router.post("/users/:id/reset-trial", requireAdmin, writeLimiter, async (req, res) => {
   const admin = getAdminId(req);
   const targetId = req.params.id;
-  const { reason } = req.body || {};
+  const parsed = resetTrialBodySchema.safeParse(req.body ?? {});
+  if (!parsed.success) return res.status(400).json({ error: "Invalid request." });
+  const { reason } = parsed.data;
 
   try {
     const existing = await storage.getUser(targetId);

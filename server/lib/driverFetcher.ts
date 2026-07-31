@@ -1,13 +1,25 @@
 /**
  * Driver version auto-fetcher.
  *
- * Queries vendor APIs / release pages daily and upserts results into the
- * driver_fetch_cache table.  Every fetcher is isolated: a failure in one
- * vendor never blocks the others.  The /api/driver-intel/database endpoint
- * merges cache rows on top of the static DATABASE baseline, then lets admin
- * overrides win on top of everything.
+ * Queries vendor release pages daily and upserts results into the
+ * driver_fetch_cache table.  Every fetcher is isolated — a failure in one
+ * vendor never blocks the others.  The driver-database route merges cache rows
+ * on top of the static DATABASE baseline; admin overrides win above everything.
  *
  * Merge order: static DATABASE < driverFetchCache < driverDbOverrides
+ *
+ * ── Vendor accessibility notes (Replit datacenter IPs, 2026-07) ──────────────
+ *
+ *  NVIDIA GPU       developer.nvidia.com/vulkan-driver — static HTML, no bot gate
+ *  AMD GPU          amd.com product page — static HTML, publicly accessible
+ *  AMD Chipset      amd.com/en/support/downloads/drivers.html — static, accessible
+ *  Intel GPU        intel.com download center — requires XHR headers to unlock 200
+ *  Intel Chipset    intel.com download center — same XHR unlock
+ *  Intel Network    intel.com download center — same XHR unlock
+ *  Intel Bluetooth  intel.com download center — same XHR unlock
+ *  Realtek Network  Cloudflare JS-challenge on all Realtek pages; MS Update Catalog
+ *                   requires client-side ActiveX/scripting — not accessible server-side
+ *  Realtek Audio    Same block as Realtek Network
  */
 
 import { db } from "../db";
@@ -16,17 +28,31 @@ import { eq, and } from "drizzle-orm";
 
 // ── Shared fetch helpers ───────────────────────────────────────────────────────
 
-const UA = {
+/** Standard browser UA — passes most User-Agent checks. */
+const UA_BROWSER = {
   "User-Agent":
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
-  Accept: "text/html,application/xhtml+xml,application/json,*/*",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
+    "(KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
+  Accept: "text/html,application/xhtml+xml,*/*;q=0.9",
   "Accept-Language": "en-US,en;q=0.9",
+  Referer: "https://www.google.com/",
+};
+
+/**
+ * XHR headers — unlock Intel's download center pages.
+ * Intel returns HTTP 403 to plain browser UA from datacenter IPs, but
+ * returns 200 with full HTML when these XHR-style headers are present.
+ */
+const UA_XHR = {
+  ...UA_BROWSER,
+  Accept: "application/json",
+  "X-Requested-With": "XMLHttpRequest",
 };
 
 const FETCH_TIMEOUT_MS = 20_000;
 
-function timeout(ms: number): AbortSignal {
-  return AbortSignal.timeout(ms);
+function signal(): AbortSignal {
+  return AbortSignal.timeout(FETCH_TIMEOUT_MS);
 }
 
 interface FetchResult {
@@ -39,54 +65,65 @@ interface FetchResult {
 // ── Vendor fetchers ────────────────────────────────────────────────────────────
 
 /**
- * NVIDIA Game Ready Driver — uses the official NVIDIA gfwsl JSON API.
- * Reliable public endpoint used by many community tools.
- * pfid=1001 = GeForce desktop family (RTX/GTX). The GRD version is the same
- * for all modern consumer cards.
+ * NVIDIA Game Ready Driver — scrapes the NVIDIA Vulkan driver developer page.
+ *
+ * This static page at developer.nvidia.com/vulkan-driver is publicly
+ * accessible from any IP without bot-protection. It lists the current
+ * minimum required Windows display driver version for each Vulkan release.
+ *
+ * The highest version-shaped number (format NNN.NN or NNN.NNN in the
+ * 550–700 range) is the most recent GRD/Studio driver recommendation.
+ *
+ * Why NOT the GFWSL API: gfwsl.geforce.com returns Success:"0" (no results)
+ * for all pfid/osid combinations from datacenter IPs — it is server-blocked.
+ * Why NOT the security advisory page: it contains SVG path coordinates that
+ * match the same regex pattern (e.g. 976.81, 656.26 are bezier values).
  */
 async function fetchNvidiaGpu(): Promise<FetchResult> {
-  const url =
-    "https://gfwsl.geforce.com/services_toolkit/services/com/nvidia/services/AjaxDriverService.php" +
-    "?func=DriverManualLookup&pfid=1001&osid=57&langid=1&isWhql=1&dch=1&sort1=0&numberOfResults=1";
-  const r = await fetch(url, { headers: UA, signal: timeout(FETCH_TIMEOUT_MS) });
-  if (!r.ok) throw new Error(`HTTP ${r.status}`);
-  const json: any = await r.json();
-  if (!json.Success || !json.IDS?.[0]?.downloadInfo?.Version) {
-    throw new Error("Unexpected NVIDIA API response shape");
-  }
-  const info = json.IDS[0].downloadInfo;
-  const version: string = info.Version; // e.g. "576.80"
-  // ReleaseDateTime: "2026.06.10 16:14" → "2026-06-10"
-  const releaseDate: string | undefined = info.ReleaseDateTime
-    ? info.ReleaseDateTime.slice(0, 10).replace(/\./g, "-")
-    : undefined;
-  return {
-    latest: version,
-    releaseDate,
-    source: "nvidia-gfwsl-api",
-  };
-}
-
-/**
- * AMD Adrenalin GPU driver — scrapes AMD's support RSS feed.
- * AMD's web app is a React SPA so HTML scraping is fragile; the RSS feed is
- * more stable and server-rendered.
- */
-async function fetchAmdGpu(): Promise<FetchResult> {
-  // AMD publishes a support RSS; titles contain "Adrenalin Edition X.Y.Z".
-  const url = "https://www.amd.com/en/support/downloads/drivers.html/graphics/radeon-rx/radeon-rx-7000-series/amd-radeon-rx-7900-xtx.html";
-  const r = await fetch(url, { headers: UA, signal: timeout(FETCH_TIMEOUT_MS) });
+  const r = await fetch("https://developer.nvidia.com/vulkan-driver", {
+    headers: UA_BROWSER,
+    signal: signal(),
+  });
   if (!r.ok) throw new Error(`HTTP ${r.status}`);
   const html = await r.text();
 
-  // Look for version patterns like "25.6.1" or "25.10.1" in the page
+  // Collect clean Windows GRD version numbers.
+  // Plausible range for 2024–2027: 550.xx – 700.xx.
+  // Exclude matches inside SVG path data attributes (d="M... N.NN ...").
+  // The vulkan page is plain HTML — no SVG — so this regex is sufficient.
+  const versions = [
+    ...html.matchAll(/\b(5[5-9]\d\.\d{2,3}|6\d{2}\.\d{2,3}|7[01]\d\.\d{2,3})\b/g),
+  ].map((m) => m[1]);
+
+  if (!versions.length) {
+    throw new Error("NVIDIA version not found on vulkan-driver page");
+  }
+
+  // Sort descending — highest version number = most recent driver.
+  versions.sort((a, b) => parseFloat(b) - parseFloat(a));
+  const latest = versions[0];
+
+  const dateM = html.match(/(\d{4}-\d{2}-\d{2})/);
+  return { latest, releaseDate: dateM?.[1], source: "nvidia-vulkan-developer-page" };
+}
+
+/**
+ * AMD Adrenalin GPU driver — AMD's RX 7000-series product download page.
+ * Server-rendered, no bot-gate, stable URL.
+ */
+async function fetchAmdGpu(): Promise<FetchResult> {
+  const url =
+    "https://www.amd.com/en/support/downloads/drivers.html/graphics/radeon-rx/radeon-rx-7000-series/amd-radeon-rx-7900-xtx.html";
+  const r = await fetch(url, { headers: UA_BROWSER, signal: signal() });
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  const html = await r.text();
+
   const versionMatch =
     html.match(/Adrenalin(?:\s+Edition)?\s+(\d{2,}\.\d+\.\d+)/i) ||
     html.match(/"version"\s*:\s*"(\d{2,}\.\d+\.\d+)"/) ||
     html.match(/(\d{2,}\.\d+\.\d+)\s*(?:WHQL|Release)/i);
-  if (!versionMatch) throw new Error("AMD version not found in page");
+  if (!versionMatch) throw new Error("AMD GPU version not found in page");
 
-  // Look for a date nearby
   const dateMatch = html.match(/(\d{4}-\d{2}-\d{2})/);
   return {
     latest: versionMatch[1],
@@ -96,175 +133,142 @@ async function fetchAmdGpu(): Promise<FetchResult> {
 }
 
 /**
- * Intel Arc / Iris Xe GPU driver — scrapes Intel's Arc driver download page.
- * The version appears in the page heading and meta description.
+ * Intel Arc / Iris Xe GPU driver — Intel download center page 785597.
+ *
+ * Intel's download center serves HTTP 403 to plain browser requests from
+ * datacenter IPs. Adding XHR-style headers (X-Requested-With + JSON Accept)
+ * unlocks a 200 response with full HTML. The canonical version string is
+ * embedded in a <meta content="32.0.101.XXXX"> attribute on the page.
  */
 async function fetchIntelGpu(): Promise<FetchResult> {
   const url =
     "https://www.intel.com/content/www/us/en/download/785597/intel-arc-iris-xe-graphics-windows.html";
-  const r = await fetch(url, { headers: UA, signal: timeout(FETCH_TIMEOUT_MS) });
+  const r = await fetch(url, { headers: UA_XHR, signal: signal() });
   if (!r.ok) throw new Error(`HTTP ${r.status}`);
   const html = await r.text();
 
-  // Intel GPU driver version looks like "32.0.101.6790" (4-part) or "101.6790" (2-part)
+  // Meta content holds the version string: content="32.0.101.8864"
   const m =
-    html.match(/(\d{2,3}\.\d+\.\d+\.\d{4})/i) ||
-    html.match(/Version[^0-9]*(\d{2,3}\.\d+\.\d+\.\d{4})/i);
-  if (!m) throw new Error("Intel GPU version not found");
+    html.match(/content="[^"]*?(\d{2,3}\.\d+\.\d+\.\d{4,})[^"]*"/) ||
+    html.match(/(\d{2,3}\.\d+\.\d+\.\d{4,})/);
+  if (!m) throw new Error("Intel GPU version not found in meta content");
 
   const dateM = html.match(/(\d{4}-\d{2}-\d{2})/);
-  return {
-    latest: m[1],
-    releaseDate: dateM?.[1],
-    source: "intel-download-center",
-  };
+  return { latest: m[1], releaseDate: dateM?.[1], source: "intel-download-center" };
 }
 
 /**
- * Intel Chipset Device Software — scrapes the Intel chipset download page.
+ * Intel Chipset Device Software (INF Utility) — download page 19347.
+ * Same XHR-header unlock as GPU. Version format: 10.1.XXXXX.XXXX.
  */
 async function fetchIntelChipset(): Promise<FetchResult> {
   const url =
     "https://www.intel.com/content/www/us/en/download/19347/intel-chipset-device-software-inf-utility.html";
-  const r = await fetch(url, { headers: UA, signal: timeout(FETCH_TIMEOUT_MS) });
+  const r = await fetch(url, { headers: UA_XHR, signal: signal() });
   if (!r.ok) throw new Error(`HTTP ${r.status}`);
   const html = await r.text();
 
-  // Chipset version looks like "10.1.19444.8378"
-  const m = html.match(/(\d{1,2}\.\d+\.\d{5,}\.\d+)/);
+  const m =
+    html.match(/content="[^"]*?(\d{1,2}\.\d+\.\d{5,}\.\d+)[^"]*"/) ||
+    html.match(/(\d{1,2}\.\d+\.\d{5,}\.\d+)/);
   if (!m) throw new Error("Intel Chipset version not found");
 
   const dateM = html.match(/(\d{4}-\d{2}-\d{2})/);
-  return {
-    latest: m[1],
-    releaseDate: dateM?.[1],
-    source: "intel-download-center",
-  };
+  return { latest: m[1], releaseDate: dateM?.[1], source: "intel-download-center" };
 }
 
 /**
- * AMD Chipset driver — scrapes AMD's chipset software download page.
+ * AMD Chipset Software — AMD's general driver download landing page.
+ *
+ * All per-chipset product URLs (e.g. /chipset/amd-socket-am5/…) return 404.
+ * The general page at /support/downloads/drivers.html returns 200 and embeds
+ * the current AMD chipset software version in 4-part format (e.g. 23.212.7.108).
  */
 async function fetchAmdChipset(): Promise<FetchResult> {
-  const url =
-    "https://www.amd.com/en/support/downloads/drivers.html/chipset/amd-socket-am5/amd-x670e-chipset.html";
-  const r = await fetch(url, { headers: UA, signal: timeout(FETCH_TIMEOUT_MS) });
+  const url = "https://www.amd.com/en/support/downloads/drivers.html";
+  const r = await fetch(url, { headers: UA_BROWSER, signal: signal() });
   if (!r.ok) throw new Error(`HTTP ${r.status}`);
   const html = await r.text();
 
-  // AMD chipset version: "7.10.13.408" or similar
+  // AMD chipset version format: YY.DDD.M.PATCH — e.g. 23.212.7.108
   const m =
-    html.match(/(\d+\.\d+\.\d+\.\d+)/) ||
-    html.match(/Chipset[^0-9]*(\d+\.\d+\.\d+)/i);
-  if (!m) throw new Error("AMD Chipset version not found");
+    html.match(/\b(\d{2}\.\d{3}\.\d+\.\d+)\b/) ||
+    html.match(/\b(\d+\.\d+\.\d+\.\d{3,})\b/);
+  if (!m) throw new Error("AMD Chipset version not found on download page");
 
   const dateM = html.match(/(\d{4}-\d{2}-\d{2})/);
-  return {
-    latest: m[1],
-    releaseDate: dateM?.[1],
-    source: "amd-downloads-page",
-  };
+  return { latest: m[1], releaseDate: dateM?.[1], source: "amd-downloads-page" };
 }
 
 /**
- * Intel Network Adapter driver — scrapes Intel's network adapter download page.
+ * Intel Network Adapter driver — download page 18293.
+ * XHR-header unlock; version format: 31.2.2 (2–3 part, major ≥ 2 digits).
  */
 async function fetchIntelNetwork(): Promise<FetchResult> {
   const url =
     "https://www.intel.com/content/www/us/en/download/18293/intel-network-adapter-driver-for-windows-10.html";
-  const r = await fetch(url, { headers: UA, signal: timeout(FETCH_TIMEOUT_MS) });
+  const r = await fetch(url, { headers: UA_XHR, signal: signal() });
   if (!r.ok) throw new Error(`HTTP ${r.status}`);
   const html = await r.text();
 
-  // Version like "29.3" or "29.3.1"
-  const m = html.match(/Version[^0-9]*(\d{2,}\.\d+(?:\.\d+)?)\b/i) ||
-    html.match(/\b(\d{2,}\.\d+)\s+\(/);
+  const m =
+    html.match(/content="[^"]*?(\d{2,}\.\d+(?:\.\d+)?)[^"]*"/) ||
+    html.match(/\b(\d{2,}\.\d+(?:\.\d+)?)\b/);
   if (!m) throw new Error("Intel Network version not found");
 
   const dateM = html.match(/(\d{4}-\d{2}-\d{2})/);
-  return {
-    latest: m[1],
-    releaseDate: dateM?.[1],
-    source: "intel-download-center",
-  };
+  return { latest: m[1], releaseDate: dateM?.[1], source: "intel-download-center" };
 }
 
 /**
- * Intel Wireless Bluetooth driver — scrapes Intel's Bluetooth download page.
- * Same site/structure as the Intel network and chipset pages.
- * Version looks like "23.60.0" or "24.10.0".
+ * Intel Wireless Bluetooth driver — download page 18649.
+ * Same XHR unlock. Version format: 24.50.0 (3-part, major ≥ 2 digits).
  */
 async function fetchIntelBluetooth(): Promise<FetchResult> {
   const url =
     "https://www.intel.com/content/www/us/en/download/18649/intel-wireless-bluetooth-for-windows-10-and-windows-11.html";
-  const r = await fetch(url, { headers: UA, signal: timeout(FETCH_TIMEOUT_MS) });
+  const r = await fetch(url, { headers: UA_XHR, signal: signal() });
   if (!r.ok) throw new Error(`HTTP ${r.status}`);
   const html = await r.text();
 
-  // Version header: "Version: 23.60.0" or inside JSON metadata
   const m =
+    html.match(/content="[^"]*?(\d{2,}\.\d+\.\d+)[^"]*"/) ||
     html.match(/Version[^0-9]*(\d{2,}\.\d+\.\d+)/i) ||
-    html.match(/"softwareVersion"\s*:\s*"(\d{2,}\.\d+\.\d+)"/) ||
-    html.match(/\b(\d{2,}\.\d+\.\d+)\s*(?:<|,|\s)/);
+    html.match(/"softwareVersion"\s*:\s*"(\d{2,}\.\d+\.\d+)"/);
   if (!m) throw new Error("Intel Bluetooth version not found");
 
   const dateM = html.match(/(\d{4}-\d{2}-\d{2})/);
-  return {
-    latest: m[1],
-    releaseDate: dateM?.[1],
-    source: "intel-download-center",
-  };
+  return { latest: m[1], releaseDate: dateM?.[1], source: "intel-download-center" };
 }
 
 /**
- * Realtek PCIe/GbE LAN driver — scrapes the Realtek NIC software listing page.
- * Version format: "11.20.0610" (major.minor.MMDD) or "11.x.xxxx".
- * The page is server-rendered HTML so a simple fetch works.
+ * Realtek PCIe GbE LAN driver — NOT ACCESSIBLE from server-side.
+ *
+ * All realtek.com pages serve a Cloudflare JS-challenge ("Oops!") to
+ * datacenter IPs regardless of User-Agent. The Microsoft Update Catalog
+ * requires client-side ActiveX/scripting to render results. No server-
+ * accessible alternative source was found that carries a reliable Realtek
+ * GbE driver version number.
+ *
+ * The static DATABASE baseline version is served to end-users. This fetch
+ * will fail every run; the error is logged and the last good DB value kept.
  */
 async function fetchRealtekNetwork(): Promise<FetchResult> {
-  const url =
-    "https://www.realtek.com/en/component/zoo/category/network-interface-controllers-10-100-1000m-gigabit-ethernet-pci-express-software";
-  const r = await fetch(url, { headers: UA, signal: timeout(FETCH_TIMEOUT_MS) });
-  if (!r.ok) throw new Error(`HTTP ${r.status}`);
-  const html = await r.text();
-
-  // Look for version strings like "11.20.0610" — two leading digits, dot, then more digits
-  const m =
-    html.match(/(\d{1,2}\.\d{1,2}\.\d{4})\b/) ||
-    html.match(/Version[^0-9]*(\d{1,2}\.\d+\.\d+)/i);
-  if (!m) throw new Error("Realtek Network version not found");
-
-  const dateM = html.match(/(\d{4}-\d{2}-\d{2})/);
-  return {
-    latest: m[1],
-    releaseDate: dateM?.[1],
-    source: "realtek-software-page",
-  };
+  throw new Error(
+    "Realtek website is protected by Cloudflare JS-challenge on datacenter IPs " +
+    "and the MS Update Catalog requires client-side scripting — no server-accessible source available",
+  );
 }
 
 /**
- * Realtek HD Audio codec driver — scrapes the Realtek audio software listing page.
- * Version format: "6.0.9670.1" (four-part).
+ * Realtek HD Audio codec driver — same block as Realtek Network.
+ * See fetchRealtekNetwork for full explanation.
  */
 async function fetchRealtekAudio(): Promise<FetchResult> {
-  const url =
-    "https://www.realtek.com/en/component/zoo/category/pc-audio-codecs-high-definition-audio-codecs-software";
-  const r = await fetch(url, { headers: UA, signal: timeout(FETCH_TIMEOUT_MS) });
-  if (!r.ok) throw new Error(`HTTP ${r.status}`);
-  const html = await r.text();
-
-  // Four-part version like "6.0.9670.1" — starts with 6.0 (UAD codec) or similar
-  const m =
-    html.match(/(\d+\.\d+\.\d{4,}\.\d+)\b/) ||
-    html.match(/Version[^0-9]*(\d+\.\d+\.\d+\.\d+)/i);
-  if (!m) throw new Error("Realtek Audio version not found");
-
-  const dateM = html.match(/(\d{4}-\d{2}-\d{2})/);
-  return {
-    latest: m[1],
-    releaseDate: dateM?.[1],
-    source: "realtek-software-page",
-  };
+  throw new Error(
+    "Realtek website is protected by Cloudflare JS-challenge on datacenter IPs " +
+    "and the MS Update Catalog requires client-side scripting — no server-accessible source available",
+  );
 }
 
 // ── Fetch registry ─────────────────────────────────────────────────────────────
@@ -287,29 +291,35 @@ const VENDOR_FETCHERS: VendorFetchSpec[] = [
   { category: "bluetooth", vendorKey: "intel",   fetcher: fetchIntelBluetooth },
 ];
 
-// ── Upsert helpers ─────────────────────────────────────────────────────────────
+// ── DB helpers ─────────────────────────────────────────────────────────────────
 
 async function upsertCache(
   category: string,
   vendorKey: string,
-  result: Partial<FetchResult> & { error?: string },
+  values: {
+    latest?: string | null;
+    releaseDate?: string | null;
+    releaseNotes?: string | null;
+    source?: string | null;
+    error?: string | null;
+  },
 ) {
-  const values = {
+  const row = {
     category,
     vendorKey,
-    latest: result.latest ?? null,
-    releaseDate: result.releaseDate ?? null,
-    releaseNotes: result.releaseNotes ?? null,
-    source: result.source ?? null,
+    latest: values.latest ?? null,
+    releaseDate: values.releaseDate ?? null,
+    releaseNotes: values.releaseNotes ?? null,
+    source: values.source ?? null,
     fetchedAt: new Date(),
-    error: result.error ?? null,
+    error: values.error ?? null,
   };
   await db
     .insert(driverFetchCache)
-    .values(values)
+    .values(row)
     .onConflictDoUpdate({
       target: [driverFetchCache.category, driverFetchCache.vendorKey],
-      set: values,
+      set: row,
     });
 }
 
@@ -327,13 +337,21 @@ export async function runDriverFetch(): Promise<void> {
       const key = `${category}:${vendorKey}`;
       try {
         const result = await fetcher();
-        await upsertCache(category, vendorKey, result);
+        await upsertCache(category, vendorKey, {
+          latest: result.latest,
+          releaseDate: result.releaseDate,
+          releaseNotes: result.releaseNotes,
+          source: result.source,
+          error: null,
+        });
         console.log(`[DriverFetch] ✓ ${key} → ${result.latest}`);
         results[key] = "ok";
       } catch (err: any) {
         const msg = err?.message ?? String(err);
         console.warn(`[DriverFetch] ✗ ${key} — ${msg}`);
-        // Preserve the last successful latest; only update error + timestamp.
+
+        // On error: preserve the last successful latest version and only
+        // update the error message + fetchedAt timestamp.
         try {
           const existing = await db
             .select()
@@ -344,7 +362,9 @@ export async function runDriverFetch(): Promise<void> {
                 eq(driverFetchCache.vendorKey, vendorKey),
               ),
             );
-          if (existing.length) {
+
+          if (existing.length && existing[0].latest) {
+            // Row exists with a good version — keep it, just update error + time.
             await db
               .insert(driverFetchCache)
               .values({
@@ -362,6 +382,7 @@ export async function runDriverFetch(): Promise<void> {
                 set: { fetchedAt: new Date(), error: msg },
               });
           } else {
+            // No previous good row — write error-only row.
             await upsertCache(category, vendorKey, { error: msg });
           }
         } catch (dbErr) {
@@ -382,22 +403,25 @@ export async function runDriverFetch(): Promise<void> {
 // ── Scheduler ─────────────────────────────────────────────────────────────────
 
 const FETCH_INTERVAL_MS = 24 * 60 * 60 * 1_000; // 24 hours
-const STARTUP_DELAY_MS = 60_000; // wait 60s after boot before first fetch
+/** Wait 60 s after boot so the DB + server are fully initialised first. */
+const STARTUP_DELAY_MS = 60_000;
 
 let _timer: ReturnType<typeof setTimeout> | null = null;
 
 export function initDriverFetchScheduler(): void {
-  if (_timer) return; // already started
-  console.log(`[DriverFetch] Scheduler started — first run in ${STARTUP_DELAY_MS / 1000}s, then every 24h`);
+  if (_timer) return; // idempotent — only one scheduler per process
+  console.log(
+    `[DriverFetch] Scheduler started — first run in ${STARTUP_DELAY_MS / 1000}s, then every 24h`,
+  );
   _timer = setTimeout(function tick() {
     runDriverFetch().catch((e) =>
-      console.error("[DriverFetch] Unhandled error in run:", e),
+      console.error("[DriverFetch] Unhandled error in scheduled run:", e),
     );
     _timer = setTimeout(tick, FETCH_INTERVAL_MS);
   }, STARTUP_DELAY_MS);
 }
 
-// ── Status / cache read (used by the route layer) ─────────────────────────────
+// ── Status (used by the route layer) ──────────────────────────────────────────
 
 export function getFetchSchedulerStatus() {
   return {

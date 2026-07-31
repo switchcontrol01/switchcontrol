@@ -45,8 +45,14 @@ export function resolveEffectivePlan(user: PlanResolvable): EffectivePlan {
   if (user.plan === "premium") return "premium";
 
   if (user.plan === "trial") {
-    if (user.trialEndsAt && new Date() < new Date(user.trialEndsAt)) {
-      return "trial";
+    if (user.trialEndsAt) {
+      const trialEnd = new Date(user.trialEndsAt);
+      // Guard against Invalid Date (e.g. unexpected ORM serialization quirk).
+      // An unparseable trialEndsAt is treated as expired rather than silently
+      // granting perpetual access via a botched date comparison.
+      if (!isNaN(trialEnd.getTime()) && new Date() < trialEnd) {
+        return "trial";
+      }
     }
     return "trial_expired";
   }
