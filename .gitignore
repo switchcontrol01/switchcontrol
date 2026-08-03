@@ -18,3 +18,6 @@ logs/
 .cache/
 attached_assets/
 screenshots/
+# Agent memory - may contain credentials
+.agents/memory/r2-credentials.md
+.agents/memory/service-startup-registry.md

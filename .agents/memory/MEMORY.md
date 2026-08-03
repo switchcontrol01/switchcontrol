@@ -1,3 +1,5 @@
+- [R2 credentials](r2-credentials.md) — R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY stored as Replit Secrets (Replit blocks .env writes).
+- [Service startup registry](service-startup-registry.md) — Set-Service -StartupType AutomaticDelayedStart invalid in PS7+; use registry Start=2 + DelayedAutoStart=1.
 - [Kill-switch coverage map](kill-switch-coverage.md) — which features are gated, how, and the pattern to follow for new ones; security+updater were previously unwired.
 - [Railway dev DB schema state](railway-dev-db.md) — drizzle-kit push requires TTY (broken in ShellExec); use raw pg Pool scripts instead; documents current schema state post-promo-popup work.
 - [AppLayout lucide imports](applayout-lucide-imports.md) — TrialCountdownBanner uses lucide icons; a missing import is a ReferenceError that crashes the full React tree.
