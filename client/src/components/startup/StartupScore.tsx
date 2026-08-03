@@ -36,10 +36,9 @@ export function StartupScore({ score, visible }: Props) {
 
   return (
     <div
-      className="relative flex flex-col items-center justify-center p-6 rounded-2xl border overflow-hidden group"
+      className="relative flex flex-col items-center justify-center p-6 rounded-2xl overflow-hidden group"
       style={{
         background: "#1A1F26",
-        borderColor: "rgba(255,255,255,0.04)",
       }}
     >
       {/* Ambient glow behind ring — severity color, same as Cleaner's health glow */}

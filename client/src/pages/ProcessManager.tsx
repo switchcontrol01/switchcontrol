@@ -15,18 +15,17 @@ import {
   RotateCcw, Info, Trash2,
   Monitor, Gamepad2, Globe, Music, Settings2, Package,
 } from "lucide-react";
-// ── Process icon — native Windows icon extraction ──────────────────────────────
-// Uses the same appIcons:forPath IPC bridge as Startup and Debloater — reads the
-// real icon out of the .exe via Electron's shell.getFileIcon(), main-process side,
-// with its own on-disk cache (see electron/file-icon.js). No web requests, no
-// domain-guessing, no third-party favicon services.
+import { publisherToDomain, processNameToDomain, iconSrcsForDomain } from "@/lib/publisherIcons";
+// ── Process icon — native icon + web logo fallback ────────────────────────────
+// Priority:
+//   1. Native icon from .exe via Electron shell.getFileIcon (appIcons:forPath IPC)
+//   2. Clearbit → DuckDuckGo → FaviconKit (publisher or process-name derived domain)
+//   3. Category glyph (always works)
 //
-// Module-level cache so re-renders / rescans of the same path never re-issue the
-// IPC call — the native side already caches to disk, but this avoids the extra
-// round trip within a single session.
+// Module-level cache so re-renders / rescans of the same path never re-issue
+// the IPC call; the native side already caches to disk.
 const _iconCache = new Map<string, string | null>();
-// Category → fallback icon (used only when there's no path, or the native lookup
-// returns null — e.g. process without a readable icon resource).
+// Category → fallback glyph
 const PROC_CAT_ICON: Record<string, { icon: React.FC<{className?: string}>; cls: string }> = {
   "System Core":        { icon: Monitor,   cls: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20" },
   "Gaming / Launchers": { icon: Gamepad2,  cls: "bg-purple-500/10 text-purple-400 border-purple-500/20" },
@@ -39,14 +38,27 @@ const PROC_CAT_ICON: Record<string, { icon: React.FC<{className?: string}>; cls:
   "Unknown / Review":   { icon: Package,   cls: "bg-orange-500/10 text-orange-400 border-orange-500/20" },
 };
 const ProcessIcon = memo(function ProcessIcon({
-  path, category,
+  path, category, publisher, name,
 }: {
-  path: string | null; category: string;
+  path: string | null; category: string; publisher: string | null; name: string;
 }) {
   const [dataUrl, setDataUrl] = useState<string | null | undefined>(
     path ? _iconCache.get(path) : null,
   );
+  const [webIdx, setWebIdx] = useState(0);
+  const [webFailed, setWebFailed] = useState(false);
+
+  // Web sources: publisher name first, then process name heuristic
+  const webSrcs = useMemo<string[]>(() => {
+    const domain =
+      publisherToDomain(publisher ?? "", name) ??
+      processNameToDomain(name);
+    return domain ? iconSrcsForDomain(domain) : [];
+  }, [publisher, name]);
+
   useEffect(() => {
+    setWebIdx(0);
+    setWebFailed(false);
     if (!path) { setDataUrl(null); return; }
     const cached = _iconCache.get(path);
     if (cached !== undefined) { setDataUrl(cached); return; }
@@ -64,8 +76,11 @@ const ProcessIcon = memo(function ProcessIcon({
       });
     return () => { cancelled = true; };
   }, [path]);
+
   const catCfg = PROC_CAT_ICON[category] ?? PROC_CAT_ICON["Background Apps"];
   const CatIcon = catCfg.icon;
+
+  // 1. Native icon
   if (dataUrl) {
     return (
       <img
@@ -75,6 +90,24 @@ const ProcessIcon = memo(function ProcessIcon({
       />
     );
   }
+
+  // 2. Web logo cascade
+  if (dataUrl === null && webSrcs.length > 0 && !webFailed) {
+    return (
+      <img
+        key={webSrcs[webIdx]}
+        src={webSrcs[webIdx]}
+        alt=""
+        className="size-8 rounded-lg shrink-0 object-contain bg-[#1A1F26] border border-[#2A313A]"
+        onError={() => {
+          if (webIdx + 1 < webSrcs.length) setWebIdx((i: number) => i + 1);
+          else setWebFailed(true);
+        }}
+      />
+    );
+  }
+
+  // 3. Category glyph
   return (
     <div className={cn("size-8 rounded-lg flex items-center justify-center shrink-0 border", catCfg.cls)}>
       <CatIcon className="size-3.5" />
@@ -411,10 +444,12 @@ export default function ProcessManager() {
                       )}
                       data-testid={`row-process-${p.pid}`}
                     >
-                      {/* App logo — native Windows icon via appIcons:forPath */}
+                      {/* App logo — native icon + web fallback */}
                       <ProcessIcon
                         path={p.path}
                         category={p.category}
+                        publisher={p.publisher}
+                        name={p.name}
                       />
                       {/* Name & info */}
                       <div className="min-w-0 flex-1">

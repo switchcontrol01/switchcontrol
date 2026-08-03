@@ -206,7 +206,12 @@ async function getIconDataUrlForPath(rawPath, cacheKey = rawPath) {
   // unless we expand the tokens first. Task-scheduler paths are pre-expanded
   // by the PS scan, so expandEnvVars is a no-op for them — safe either way.
   const filePath = expandEnvVars(extractExecutablePath(rawPath));
-  if (!isSupportedIconPath(filePath)) return null;
+  if (!isSupportedIconPath(filePath)) {
+    // Log at warn level so the developer can see which paths are rejected and why.
+    // Possible causes: relative path, non-exe extension, file not found on disk.
+    console.warn(`[FileIcon] rejected path — raw="${rawPath?.slice?.(0, 120)}" cleaned="${filePath?.slice?.(0, 120)}"`);
+    return null;
+  }
 
   const cacheDir = getIconCacheDir();
   try {
