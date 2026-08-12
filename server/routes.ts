@@ -399,56 +399,6 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/tweaks/apply-recommended", requireJwt, csrfProtection, async (req, res) => {
-    try {
-      const { tweakIds } = req.body;
-      const cloudUser = req.cloudUser!;
-
-      // Premium enforcement: reject if any of the requested tweaks are premium-only
-      const hasPremiumTweaks = Array.isArray(tweakIds) && tweakIds.some((id: string) => isPremiumTweakById(id));
-      if (hasPremiumTweaks && !cloudUser.isPremium) {
-        return res.status(403).json({
-          error: "premium_required",
-          message: "Premium subscription required for premium tweaks",
-          upgradeUrl: "/pricing"
-        });
-      }
-
-      // Guard moved before the DB round-trip: malformed body produces a clean 400
-      // instead of throwing inside the loop and falling through to a generic 500.
-      if (!Array.isArray(tweakIds) || tweakIds.length === 0) {
-        return res.status(400).json({ error: "tweakIds must be a non-empty array" });
-      }
-
-      const settings = await storage.getOrCreateSettings(cloudUser.id);
-
-      for (const tweakId of tweakIds) {
-        await storage.setTweak(settings.id, String(tweakId), true);
-      }
-
-      // Recount from the DB — tweakIds.length would overwrite the existing count
-      // (e.g. 5 manual tweaks + 3 recommended → 3, not 8) and is also stale under
-      // concurrent requests. Reading applied_tweaks after all writes gives the true
-      // total and feeds getTierFromTweakCount() correctly in /api/ai-scan.
-      const allTweaks = await storage.getTweaks(settings.id);
-      const enabledCount = allTweaks.filter(t => t.enabled).length;
-      await storage.updateSettings(settings.id, {
-        tweaksApplied: enabledCount,
-        lastScan: new Date()
-      });
-      
-      await storage.addHistory({
-        settingsId: settings.id,
-        action: 'Apply Recommended',
-        page: 'Tweaks',
-        result: `Enabled ${tweakIds.length} tweaks`,
-      });
-      
-      res.json({ success: true, count: tweakIds.length });
-    } catch (error) {
-      res.status(500).json({ error: "Failed to apply recommended" });
-    }
-  });
 
   app.get("/api/history", requireJwt, async (req, res) => {
     try {

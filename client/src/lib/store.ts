@@ -1,7 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { MOCK_STATS, SystemStats, TWEAKS_DATA, AIScanResult } from './mock-data';
-import { isRecommendedSafe } from './hooks';
 import { isElectronWithTweaks, isRealTweak } from '@/hooks/use-tweak-executor';
 
 export interface HistoryItem {
@@ -45,7 +44,6 @@ interface AppState {
   clearRam: () => void;
   resetData: () => void;
   setStats: (stats: Partial<SystemStats>) => void;
-  enableRecommended: () => void;
   runAIScan: () => Promise<void>;
   updateCounter: (key: keyof Omit<AccountStats, 'lastScan'>, increment?: number) => void;
   setRealtimeMetricsEnabled: (enabled: boolean) => void;
@@ -181,31 +179,6 @@ export const useStore = create<AppState>()(
         get().applyAction('Clear RAM', 'Dashboard', `Freed ${Number.isFinite(freed) ? freed.toFixed(1) : '0.0'} GB`);
       },
       
-      enableRecommended: () => {
-        // Uses the canonical isRecommendedSafe filter imported from hooks.ts —
-        // the single source of truth for safe-to-bulk-apply tweaks.
-        // Any exclusion logic belongs in hooks.ts GUARDED_TWEAK_IDS, not here.
-        const recommendedIds = TWEAKS_DATA
-          .filter(isRecommendedSafe)
-          .map(t => t.id);
-          
-        set((state) => {
-          const newTweaks = { ...state.tweaks };
-          let count = 0;
-          recommendedIds.forEach(id => {
-            if (!newTweaks[id]) {
-              newTweaks[id] = true;
-              count++;
-            }
-          });
-          return { tweaks: newTweaks };
-        });
-        
-        const newlyEnabled = recommendedIds.length;
-        get().updateCounter('tweaksApplied', newlyEnabled);
-        get().applyAction('Apply Recommended', 'Tweaks', `Enabled ${newlyEnabled} tweaks`);
-      },
-
       runAIScan: async () => {
         const { stats } = get();
         

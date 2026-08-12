@@ -38,7 +38,6 @@ import { isTweakPremium } from "@/lib/premium-config";
 import { useStore } from "@/lib/store";
 import { useAuthStore } from "@/lib/auth-store";
 import { bulkApplyTweaks, bulkRevertTweaks, isElectronWithTweaks, isSliderTweak } from "@/hooks/use-tweak-executor";
-import { applyRecommended } from "@/lib/api";
 import { premiumColor, successColor } from "@/lib/themeTokens";
 import { NeuralScanField } from "@/components/optimization/NeuralScanField";
 import {
@@ -1206,12 +1205,8 @@ export function OptimizationFlow() {
         failedIds.push(...toApply);
       }
     } else {
-      try {
-        await applyRecommended(toApply);
-        for (const id of toApply) { appliedIds.push(id); setTweak(id, true); }
-      } catch {
-        failedIds.push(...toApply);
-      }
+      // Web path: no local executor, just update store state for each tweak.
+      for (const id of toApply) { appliedIds.push(id); setTweak(id, true); }
     }
 
     // Adaptive memory: learn from this session.

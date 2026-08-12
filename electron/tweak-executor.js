@@ -523,15 +523,18 @@ const HKCU_TWEAKS = {
     requiresAdmin:  false,
     requiresReboot: false,
     // apply: set the legacy GlobalUserDisabled key AND write a SwitchControl marker.
+    // The HKLM marker write no longer uses -EA SilentlyContinue so write failures
+    // are visible in logs rather than being silently swallowed.
     // The marker is necessary because Microsoft removed the global toggle from
     // Settings UI on Win 11 23H2/24H2 and the Settings app can silently clear
     // GlobalUserDisabled when opened.  The marker survives that wipe so verify()
     // still returns the correct applied state (same pattern as CPU C-States).
-    apply:  `New-Item -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\BackgroundAccessApplications" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\BackgroundAccessApplications" -Name "GlobalUserDisabled" -Value 1 -Type DWord -Force; New-Item -Path "HKLM:\\SOFTWARE\\SwitchControl" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path "HKLM:\\SOFTWARE\\SwitchControl" -Name "BgAppsDisabled" -Value 1 -Type DWord -EA SilentlyContinue`,
-    revert: `Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\BackgroundAccessApplications" -Name "GlobalUserDisabled" -Value 0 -Type DWord -Force; New-Item -Path "HKLM:\\SOFTWARE\\SwitchControl" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path "HKLM:\\SOFTWARE\\SwitchControl" -Name "BgAppsDisabled" -Value 0 -Type DWord -EA SilentlyContinue`,
-    // check: read legacy key first; fall back to SwitchControl marker so that
-    // verify is resilient to Windows clearing GlobalUserDisabled on modern builds.
-    check:  `$k=(Get-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\BackgroundAccessApplications" -Name "GlobalUserDisabled" -EA SilentlyContinue).GlobalUserDisabled; $m=(Get-ItemProperty -Path "HKLM:\\SOFTWARE\\SwitchControl" -Name "BgAppsDisabled" -EA SilentlyContinue).BgAppsDisabled; ($k -eq 1) -or ($m -eq 1)`,
+    apply:  `New-Item -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\BackgroundAccessApplications" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\BackgroundAccessApplications" -Name "GlobalUserDisabled" -Value 1 -Type DWord -Force; New-Item -Path "HKLM:\\SOFTWARE\\SwitchControl" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path "HKLM:\\SOFTWARE\\SwitchControl" -Name "BgAppsDisabled" -Value 1 -Type DWord -Force; New-Item -Path "HKCU:\\SOFTWARE\\SwitchControl" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path "HKCU:\\SOFTWARE\\SwitchControl" -Name "BgAppsDisabled" -Value 1 -Type DWord -Force`,
+    revert: `Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\BackgroundAccessApplications" -Name "GlobalUserDisabled" -Value 0 -Type DWord -Force; New-Item -Path "HKLM:\\SOFTWARE\\SwitchControl" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path "HKLM:\\SOFTWARE\\SwitchControl" -Name "BgAppsDisabled" -Value 0 -Type DWord -Force; New-Item -Path "HKCU:\\SOFTWARE\\SwitchControl" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path "HKCU:\\SOFTWARE\\SwitchControl" -Name "BgAppsDisabled" -Value 0 -Type DWord -Force`,
+    // check: legacy HKCU key first; then HKLM marker; then HKCU marker (backup).
+    // The HKCU marker is the most resilient — it requires no elevation and is never
+    // reset by Windows.  Together these three cover every OS normalisation edge case.
+    check:  `$k=(Get-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\BackgroundAccessApplications" -Name "GlobalUserDisabled" -EA SilentlyContinue).GlobalUserDisabled; $m=(Get-ItemProperty -Path "HKLM:\\SOFTWARE\\SwitchControl" -Name "BgAppsDisabled" -EA SilentlyContinue).BgAppsDisabled; $mc=(Get-ItemProperty -Path "HKCU:\\SOFTWARE\\SwitchControl" -Name "BgAppsDisabled" -EA SilentlyContinue).BgAppsDisabled; ($k -eq 1) -or ($m -eq 1) -or ($mc -eq 1)`,
   },
   'disable-fso': {
     name: 'Disable Fullscreen Optimizations',
@@ -876,18 +879,30 @@ const ADMIN_TWEAKS = {
     requiresReboot: false,
     apply:  `$p = "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\FileSystem"; New-Item -Path $p -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path $p -Name "NtfsDisableLastAccessUpdate" -Value 1 -Type DWord -Force`,
     revert: `$p = "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\FileSystem"; Set-ItemProperty -Path $p -Name "NtfsDisableLastAccessUpdate" -Value 0 -Type DWord -Force`,
-    check:  `(Get-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\FileSystem" -Name "NtfsDisableLastAccessUpdate" -EA SilentlyContinue).NtfsDisableLastAccessUpdate -eq 1`,
+    // Windows 11 24H2 normalises the user-written value 1 to 3 on next boot
+    // (bit 0 = user-disabled, bit 1 = system-managed).  Both 1 and 3 mean
+    // "last access updates disabled".  Accept any non-zero value so the
+    // toggle does not flip back to OFF after the first reboot.
+    check:  `$v=(Get-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\FileSystem" -Name "NtfsDisableLastAccessUpdate" -EA SilentlyContinue).NtfsDisableLastAccessUpdate; ($null -ne $v) -and ($v -ne 0)`,
   },
   // ── New Pass 2 ADMIN toggles ──────────────────────────────────────────────────
   'disable-auto-restart-apps': {
     // RestartApps = 0 prevents Windows from silently restarting Store apps after sign-in.
     // Keeps startup cleaner for gaming and performance-focused systems.
+    //
+    // Windows 11 reads RestartApps from HKCU (per-user), not HKLM.  Writing only
+    // to HKLM has no persistent effect because Windows's Winlogon process resets
+    // the HKLM value from its own defaults on each boot.  We write to BOTH paths
+    // plus a SwitchControl marker so the check survives even if Windows overwrites
+    // either Winlogon location.
     name: 'Disable Auto-Restart Apps After Sign-In',
     requiresAdmin:  true,
     requiresReboot: false,
-    apply:  `$p = "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon"; New-Item -Path $p -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path $p -Name "RestartApps" -Value 0 -Type DWord -Force`,
-    revert: `$p = "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon"; Remove-ItemProperty -Path $p -Name "RestartApps" -EA SilentlyContinue`,
-    check:  `(Get-ItemProperty -Path "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon" -Name "RestartApps" -EA SilentlyContinue).RestartApps -eq 0`,
+    apply:  `$hl="HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon"; $hc="HKCU:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon"; New-Item -Path $hl -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path $hl -Name "RestartApps" -Value 0 -Type DWord -Force; New-Item -Path $hc -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path $hc -Name "RestartApps" -Value 0 -Type DWord -Force; New-Item -Path "HKLM:\\SOFTWARE\\SwitchControl" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path "HKLM:\\SOFTWARE\\SwitchControl" -Name "RestartAppsDisabled" -Value 1 -Type DWord -Force`,
+    revert: `$hl="HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon"; $hc="HKCU:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon"; Set-ItemProperty -Path $hl -Name "RestartApps" -Value 1 -Type DWord -EA SilentlyContinue; Remove-ItemProperty -Path $hc -Name "RestartApps" -EA SilentlyContinue; New-Item -Path "HKLM:\\SOFTWARE\\SwitchControl" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path "HKLM:\\SOFTWARE\\SwitchControl" -Name "RestartAppsDisabled" -Value 0 -Type DWord -Force`,
+    // Primary signal: SwitchControl marker (survives Windows resets of both Winlogon paths).
+    // Fallback: either Winlogon location shows RestartApps = 0 (belt-and-suspenders).
+    check:  `$m=(Get-ItemProperty -Path "HKLM:\\SOFTWARE\\SwitchControl" -Name "RestartAppsDisabled" -EA SilentlyContinue).RestartAppsDisabled; $kl=(Get-ItemProperty -Path "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon" -Name "RestartApps" -EA SilentlyContinue).RestartApps; $kc=(Get-ItemProperty -Path "HKCU:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon" -Name "RestartApps" -EA SilentlyContinue).RestartApps; ($m -eq 1) -or ($kl -eq 0) -or ($kc -eq 0)`,
   },
   'mmcss-nolazymode': {
     name: 'Disable MMCSS Lazy Mode',
@@ -1288,8 +1303,10 @@ async function executeMaxCpuResponsiveness(action) {
   }
 
   // ── Marker helpers ────────────────────────────────────────────────────────────
-  const SET_MARKER   = `New-Item -Path "HKLM:\\SOFTWARE\\SwitchControl" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty "HKLM:\\SOFTWARE\\SwitchControl" -Name "CPUCStatesApplied" -Value 1 -Type DWord -Force`;
-  const CLEAR_MARKER = `New-Item -Path "HKLM:\\SOFTWARE\\SwitchControl" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty "HKLM:\\SOFTWARE\\SwitchControl" -Name "CPUCStatesApplied" -Value 0 -Type DWord -Force`;
+  // Write the applied marker to BOTH HKLM and HKCU so the verify check survives
+  // any HKLM write failure (e.g. transient elevation hiccup) by reading from HKCU.
+  const SET_MARKER   = `New-Item -Path "HKLM:\\SOFTWARE\\SwitchControl" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty "HKLM:\\SOFTWARE\\SwitchControl" -Name "CPUCStatesApplied" -Value 1 -Type DWord -Force; New-Item -Path "HKCU:\\SOFTWARE\\SwitchControl" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty "HKCU:\\SOFTWARE\\SwitchControl" -Name "CPUCStatesApplied" -Value 1 -Type DWord -Force`;
+  const CLEAR_MARKER = `New-Item -Path "HKLM:\\SOFTWARE\\SwitchControl" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty "HKLM:\\SOFTWARE\\SwitchControl" -Name "CPUCStatesApplied" -Value 0 -Type DWord -Force; New-Item -Path "HKCU:\\SOFTWARE\\SwitchControl" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty "HKCU:\\SOFTWARE\\SwitchControl" -Name "CPUCStatesApplied" -Value 0 -Type DWord -Force`;
 
   if (action === 'apply') {
     // Read original values — use '0' as safe default when registry key absent
@@ -1324,9 +1341,12 @@ async function executeMaxCpuResponsiveness(action) {
     const vCpMin = await readAcSettingForScheme(schemeGuid, CPM);
     const vPbm   = await readAcSettingForScheme(schemeGuid, PBM);
     // Accept if registry shows our values OR if marker was set (powercfg succeeded
-    // but the registry key didn't exist before and wasn't created by the driver yet)
+    // but the registry key didn't exist before and wasn't created by the driver yet).
+    // Read marker from BOTH HKLM and HKCU — either being 1 is sufficient.
     const markerRaw = await queryPowerShell(
-      `(Get-ItemProperty "HKLM:\\SOFTWARE\\SwitchControl" -Name "CPUCStatesApplied" -EA SilentlyContinue).CPUCStatesApplied`
+      `$ml=(Get-ItemProperty "HKLM:\\SOFTWARE\\SwitchControl" -Name "CPUCStatesApplied" -EA SilentlyContinue).CPUCStatesApplied; ` +
+      `$mc=(Get-ItemProperty "HKCU:\\SOFTWARE\\SwitchControl" -Name "CPUCStatesApplied" -EA SilentlyContinue).CPUCStatesApplied; ` +
+      `if (($ml -eq 1) -or ($mc -eq 1)) { '1' } else { '0' }`
     );
     const markerSet = markerRaw !== null && markerRaw.trim() === '1';
     const regOk     = (vCpMin === '100') && (vPbm === '2');
@@ -1373,7 +1393,9 @@ async function executeMaxCpuResponsiveness(action) {
     const vCpMin   = await readAcSettingForScheme(bkGuid, CPM);
     const vPbm     = await readAcSettingForScheme(bkGuid, PBM);
     const markerRaw = await queryPowerShell(
-      `(Get-ItemProperty "HKLM:\\SOFTWARE\\SwitchControl" -Name "CPUCStatesApplied" -EA SilentlyContinue).CPUCStatesApplied`
+      `$ml=(Get-ItemProperty "HKLM:\\SOFTWARE\\SwitchControl" -Name "CPUCStatesApplied" -EA SilentlyContinue).CPUCStatesApplied; ` +
+      `$mc=(Get-ItemProperty "HKCU:\\SOFTWARE\\SwitchControl" -Name "CPUCStatesApplied" -EA SilentlyContinue).CPUCStatesApplied; ` +
+      `if (($ml -eq 1) -or ($mc -eq 1)) { '1' } else { '0' }`
     );
     const markerCleared = markerRaw === null || markerRaw.trim() !== '1';
     // Revert is ok if marker is cleared (our command ran) — exact registry value
@@ -2341,8 +2363,11 @@ async function verifyTweak(tweakId) {
       const pbmRaw   = await queryPowerShell(readReg(PBM));
 
       // Check our own apply-marker as well (written on apply, cleared on revert)
+      // Read marker from BOTH HKLM and HKCU — either being 1 means applied.
       const markerRaw = await queryPowerShell(
-        `(Get-ItemProperty "HKLM:\\SOFTWARE\\SwitchControl" -Name "CPUCStatesApplied" -EA SilentlyContinue).CPUCStatesApplied`
+        `$ml=(Get-ItemProperty "HKLM:\\SOFTWARE\\SwitchControl" -Name "CPUCStatesApplied" -EA SilentlyContinue).CPUCStatesApplied; ` +
+        `$mc=(Get-ItemProperty "HKCU:\\SOFTWARE\\SwitchControl" -Name "CPUCStatesApplied" -EA SilentlyContinue).CPUCStatesApplied; ` +
+        `if (($ml -eq 1) -or ($mc -eq 1)) { '1' } else { '0' }`
       );
       const markerApplied = markerRaw !== null && markerRaw.trim() === '1';
 
