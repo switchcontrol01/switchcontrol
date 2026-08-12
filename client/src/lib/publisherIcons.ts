@@ -362,6 +362,11 @@ const PROCESS_NAME_DOMAINS: Record<string, string> = {
   // Security / anti-cheat
   "easyanticheat":        "easy.ac",
   "battleye":             "battleye.com",
+
+  // Games — use the game domain so the game logo shows, not the launcher/publisher logo
+  "fortniteclient":                    "fortnite.com",
+  "fortniteclient-win64-shipping":     "fortnite.com",
+  "fortniteclient-win64-shipping_eac": "fortnite.com",
 };
 
 /**
@@ -369,6 +374,12 @@ const PROCESS_NAME_DOMAINS: Record<string, string> = {
  * Returns null when no match can be found.
  */
 export function publisherToDomain(publisher: string, name: string): string | null {
+  // Product-name exact match takes priority over publisher so product-specific
+  // logos always win — e.g. "firefox" → firefox.com (not mozilla.org),
+  // "fortniteclient-win64-shipping" → fortnite.com (not epicgames.com).
+  const nameKey0 = (name || "").toLowerCase().replace(/\.exe$/i, "").trim();
+  if (nameKey0 && PROCESS_NAME_DOMAINS[nameKey0]) return PROCESS_NAME_DOMAINS[nameKey0];
+
   const raw = (publisher || "")
     .toLowerCase()
     .replace(/[,.'"\u00ae\u2122]/g, "")
