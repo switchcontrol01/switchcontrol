@@ -367,6 +367,125 @@ const PROCESS_NAME_DOMAINS: Record<string, string> = {
   "fortniteclient":                    "fortnite.com",
   "fortniteclient-win64-shipping":     "fortnite.com",
   "fortniteclient-win64-shipping_eac": "fortnite.com",
+
+  // ── Windows / Microsoft scheduled tasks & services ──────────────────────────
+  // All of these ship with Windows or Microsoft products; map to microsoft.com
+  // so the Microsoft logo shows rather than a generic glyph.
+  //
+  // MDM / device management
+  "mdmdiagnosticscleanup":             "microsoft.com",
+  "mdmcorreenrollment":                "microsoft.com",
+  "mdmdiagnostics":                    "microsoft.com",
+  // Device join / AAD
+  "automatic-device-join":             "microsoft.com",
+  "automaticdevicejoin":               "microsoft.com",
+  "deviceenroll":                      "microsoft.com",
+  // Storage Sense
+  "spaceagenttask":                    "microsoft.com",
+  "spacemanagertask":                  "microsoft.com",
+  // Windows Update / servicing
+  "runonreboot":                       "microsoft.com",
+  "retry":                             "microsoft.com",
+  "pre-staged app cleanup":            "microsoft.com",
+  "pre-stagedappcleanup":              "microsoft.com",
+  "queuereporting":                    "microsoft.com",
+  "recovery-check":                    "microsoft.com",
+  "recoverycheck":                     "microsoft.com",
+  // Login / auth
+  "logincheck":                        "microsoft.com",
+  "verifiedpublishercertstorecheck":   "microsoft.com",
+  // Licensing / IMDS
+  "license validation":                "microsoft.com",
+  "licensevalidation":                 "microsoft.com",
+  "licenseimdsintegration":            "microsoft.com",
+  // DirectX / DXGI
+  "directxdatabaseupdater":            "microsoft.com",
+  "dxgiadaptercache":                  "microsoft.com",
+  // Networking
+  "ucpd velocity":                     "microsoft.com",
+  "ucpdvelocity":                      "microsoft.com",
+  "proxy":                             "microsoft.com",
+  // Misc Windows tasks
+  "spaceagent":                        "microsoft.com",
+  "spacemanager":                      "microsoft.com",
+  "diskfootprint":                     "microsoft.com",
+  "diskdiagnostic":                    "microsoft.com",
+  "diskcleanup":                       "microsoft.com",
+  "maintenancewdagent":                "microsoft.com",
+  "wdagentcleanup":                    "microsoft.com",
+  "windowsupdateagent":                "microsoft.com",
+  "scheduleddefrag":                   "microsoft.com",
+  "silentcleanup":                     "microsoft.com",
+  "wosc":                              "microsoft.com",
+  "wuappx":                            "microsoft.com",
+  "nettrace":                          "microsoft.com",
+  "tcpipautotunning":                  "microsoft.com",
+  "backgroundtransferhost":            "microsoft.com",
+  "backgroundtaskhost":                "microsoft.com",
+  "winsat":                            "microsoft.com",
+  "defrag":                            "microsoft.com",
+  "chkdsk":                            "microsoft.com",
+  "srtasks":                           "microsoft.com",
+  "tpm-maintenance":                   "microsoft.com",
+  "tpmmaintenance":                    "microsoft.com",
+  "usoclient":                         "microsoft.com",
+  "musnotification":                   "microsoft.com",
+  "musnotificationux":                 "microsoft.com",
+  "gathernetworkinfo":                 "microsoft.com",
+  "microsoftedgeupdatetaskmachinecore": "microsoft.com",
+  "microsoftedgeupdatetaskmachinua":   "microsoft.com",
+  "edgeupdatetaskmachinecore":         "microsoft.com",
+  "edgeupdatetaskmachinua":            "microsoft.com",
+  "nvtmreponsible":                    "nvidia.com",
+  "nvdisplay.container":               "nvidia.com",
+  "nvcontainer":                       "nvidia.com",
+
+  // ── Third-party startup/registry entries (REGISTRY HKCU / task-scheduler) ───
+  // These have "Unverified Publisher" so publisher-domain lookup fails;
+  // process-name lookup is the only path to a correct logo.
+  "volume controller sd plugin": "elgato.com",    // Stream Deck volume plugin
+  "volumecontrollersdplugin":    "elgato.com",
+  "fifinecontroldeck":           "fifine-audio.com",
+  "fifine control deck":         "fifine-audio.com",
+  "robloxplayerbeta":            "roblox.com",
+  "startdvr":                    "microsoft.com",  // Windows Game DVR
+  "startcn":                     "tencent.com",    // Honor of Kings / Tencent launcher
+  "monitoring":                  "microsoft.com",  // Windows task
+  "logon":                       "microsoft.com",  // Windows task
+  "equalizerapoupdatechecker":   "github.com",     // EqualizerAPO (open source)
+  "equalizerapo":                "github.com",
+  "modifylinkupdate":            "microsoft.com",  // typically a Windows store update task
+  "aimemoryboost":               "microsoft.com",  // Windows memory management task
+  "forcetimer":                  "github.com",     // Force Timer Resolution (open source)
+  "force timer resolution":      "github.com",
+  "volumecontrol":               "elgato.com",
+  // Logon / auth tasks
+  "aadplugjoin":                 "microsoft.com",
+  "aadregistrationservice":      "microsoft.com",
+  "entraplugjoin":               "microsoft.com",
+  // Windows Defender tasks
+  "windowsdefenderscheduledsc":  "microsoft.com",
+  "mpidleworker":                "microsoft.com",
+  "mpcrashhandlerexe":           "microsoft.com",
+
+  // ── AMD tasks / services ─────────────────────────────────────────────────────
+  "amdnoisesuppression":               "amd.com",
+  "amdupdater":                        "amd.com",
+  "amdrsservicemanager":               "amd.com",
+  "amdrsservice":                      "amd.com",
+  "amdsettings":                       "amd.com",
+  "cnext":                             "amd.com",
+  "amdcpbsyssvc":                      "amd.com",
+  "amdlogs":                           "amd.com",
+
+  // ── Realtek tasks / services ─────────────────────────────────────────────────
+  "rkauduservice":                     "realtek.com",
+  "rkauduservice64":                   "realtek.com",
+  "rtkauduservice":                    "realtek.com",
+  "rtkauduservice64":                  "realtek.com",
+  "rtkaudioservice64":                 "realtek.com",
+  "rtkaudiouniversalservice":          "realtek.com",
+  "rtkaudio":                          "realtek.com",
 };
 
 /**
@@ -439,13 +558,44 @@ export function processNameToDomain(procName: string): string | null {
   return PROCESS_NAME_DOMAINS[key] ?? null;
 }
 
+// ── Per-domain icon source overrides ─────────────────────────────────────────
+// Clearbit indexes by *company* domain, not *product* domain.  For apps whose
+// product URL differs from their company URL, the Clearbit lookup fails and we
+// fall through to a low-res DuckDuckGo favicon.  This map provides a custom
+// ordered URL list so each well-known product shows its real branded icon.
+const DOMAIN_SRC_OVERRIDES: Record<string, string[]> = {
+  // Firefox: clearbit has no entry for firefox.com (product) → use Google's
+  // high-quality favicon service, then DDG, then FaviconKit
+  "firefox.com": [
+    `https://www.google.com/s2/favicons?sz=128&domain=firefox.com`,
+    `https://icons.duckduckgo.com/ip3/firefox.com.ico`,
+    `https://api.faviconkit.com/firefox.com/64`,
+  ],
+  // Fortnite: clearbit sometimes misses fortnite.com → hit Google first
+  "fortnite.com": [
+    `https://logo.clearbit.com/fortnite.com`,
+    `https://www.google.com/s2/favicons?sz=128&domain=fortnite.com`,
+    `https://icons.duckduckgo.com/ip3/fortnite.com.ico`,
+  ],
+  // Chromium project → Google favicon is cleaner than clearbit
+  "chromium.org": [
+    `https://www.google.com/s2/favicons?sz=128&domain=chromium.org`,
+    `https://logo.clearbit.com/chromium.org`,
+    `https://icons.duckduckgo.com/ip3/chromium.org.ico`,
+  ],
+};
+
 /**
  * Returns ordered list of image URLs to try for a given domain.
- * Clearbit → DuckDuckGo → FaviconKit (same cascade as InstalledAppsPanel).
+ * Per-domain overrides → Clearbit → Google S2 favicon → DuckDuckGo → FaviconKit.
+ * Google's S2 service is used as a mid-tier fallback because it provides
+ * higher-resolution icons (sz=128) than DuckDuckGo's ICO service.
  */
 export function iconSrcsForDomain(domain: string): string[] {
+  if (DOMAIN_SRC_OVERRIDES[domain]) return DOMAIN_SRC_OVERRIDES[domain];
   return [
     `https://logo.clearbit.com/${domain}`,
+    `https://www.google.com/s2/favicons?sz=128&domain=${domain}`,
     `https://icons.duckduckgo.com/ip3/${domain}.ico`,
     `https://api.faviconkit.com/${domain}/64`,
   ];
