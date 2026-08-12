@@ -3288,6 +3288,13 @@ public class DspHelper {
     $miHwId = $monHwIds[$i]
     $ed     = if ($miHwId -and $edidMap.ContainsKey($miHwId)) { $edidMap[$miHwId] } else { $null }
   
+    # Positional screen fallback — screens sorted left-to-right by x so index $i maps
+    # to the same display order as WmiMonitorID.  Used when hwId/EDID matching fails
+    # ($dev is null) so we still get the correct per-monitor Hz from EnumDisplaySettings.
+    # NOTE: $scr is ALWAYS null when $dev is null (it is derived from $dev's position),
+    # so the old "if ($scr)" branch inside the else block was dead code.  This replaces it.
+    $sortedScreens = @($screens | Sort-Object { [int]$_.x })
+    $fallbackScr   = if ($i -lt $sortedScreens.Count) { $sortedScreens[$i] } else { $null }
     $hz=$null; $maxHzOut=$null; $bpp=$null; $rx=$null; $ry=$null
     if ($dev) {
       # Per-device data from EnumDisplaySettings — authoritative for multi-monitor, no index aliasing
@@ -3306,10 +3313,14 @@ public class DspHelper {
           $rx=[int]$Matches[1]; $ry=[int]$Matches[2]
         }
       }
-      if ($scr) {
-        $rx=$scr.w; $ry=$scr.h
-        $hzEntry = $screenHz | Where-Object { $_.x -eq $scr.x -and $_.y -eq $scr.y } | Select-Object -First 1
-        if ($hzEntry -and [int]$hzEntry.hz -gt 0) { $hz = [int]$hzEntry.hz }
+      # Per-monitor Hz via positional screen (sorted left-to-right).
+      # This is authoritative for the Hz when hwId/EDID correlation fails,
+      # because $vc.CurrentRefreshRate is a GPU-level value that always reflects
+      # the PRIMARY monitor's refresh rate on single-GPU setups.
+      if ($fallbackScr) {
+        $rx = $fallbackScr.w; $ry = $fallbackScr.h
+        $hzFb = $screenHz | Where-Object { $_.x -eq $fallbackScr.x -and $_.y -eq $fallbackScr.y } | Select-Object -First 1
+        if ($hzFb -and [int]$hzFb.hz -gt 0) { $hz = [int]$hzFb.hz }
       }
     }
   
@@ -3322,7 +3333,7 @@ public class DspHelper {
       edidVersion=if($ed){$ed.ver}else{$null}
       hdrEnabled=$hdrOn; vrrEnabled=$vrrOn; vrrCapable=$vrrCap; freeSyncEnabled=$fsOn
       vrrMin=$vrrMin; vrrMax=$vrrMax; gpuName=$monGpu
-      isPrimary=if($scr){$scr.primary}else{($i -eq 0)}
+      isPrimary=if($scr){$scr.primary}elseif($fallbackScr){$fallbackScr.primary}else{($i -eq 0)}
     }
     $i++
   }
@@ -4109,7 +4120,14 @@ public class DspHelper {
     if (typeof tweakId !== 'string') return { ok: false, error: 'Invalid tweakId' };
     const token = psLimiter.tryAcquire({ file: 'main.js', fn: 'slider:resetValue', reason: 'slider-reset' });
     if (!token) return { ok: false, error: 'busy' };
-    try { return await sliderTweakExecutor.resetSliderValue(tweakId); } finally { psLimiter.release(token); }
+    // Use forceRevertSliderToDefault (not resetSliderValue) so the UI "Reset to Default"
+    // button always lands on the compiled-in Windows default, bypassing any stale
+    // per-session backup.  resetSliderValue restores the backup first (e.g. 38 from a
+    // prior session) which makes the user click twice to reach the real default — and
+    // leaves a non-default value in the registry between clicks.
+    // resetSliderValue is still used by the premium-revert engine (trial expiry) where
+    // "restore what was there before the user ever touched this tweak" is the right goal.
+    try { return await sliderTweakExecutor.forceRevertSliderToDefault(tweakId); } finally { psLimiter.release(token); }
   });
   
   ipcMain.handle('tweak:getSliderMeta', (event, tweakId) => {
@@ -4813,16 +4831,28 @@ $pwrThrot  = Reg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottl
   // Power Plan handlers
   ipcMain.handle('powerPlans:getState', async () => {
     verboseLog('[IPC] powerPlans:getState');
-    const _token = psLimiter.tryAcquire({ file: 'main.js', fn: 'powerPlans:getState', reason: 'power-plan-read' });
-    if (!_token) return { success: false, skipped: true, error: 'Power-plan operation already in progress' };
-    try {
-      return await powerPlanManager.getPowerPlanState();
-    } catch (e) {
-      console.error('[IPC] powerPlans:getState error:', e.message);
-      return { success: false, error: e.message };
-    } finally {
-      psLimiter.release(_token);
+    // Retry up to 3× with 1.5 s delay — psLimiter slots may all be occupied by
+    // startup scans (enrichment, syncAll, batchCheckAll, etc.) when the user
+    // navigates to the Power Plan page immediately after launch.  Same pattern
+    // as system:getInfo (line 2407 area).
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const _token = psLimiter.tryAcquire({ file: 'main.js', fn: 'powerPlans:getState', reason: 'power-plan-read' });
+      if (_token) {
+        try {
+          return await powerPlanManager.getPowerPlanState();
+        } catch (e) {
+          console.error('[IPC] powerPlans:getState error:', e.message);
+          return { success: false, error: e.message };
+        } finally {
+          psLimiter.release(_token);
+        }
+      }
+      if (attempt < 2) {
+        console.log(`[IPC] powerPlans:getState — limiter busy (attempt ${attempt + 1}/3), retrying in 1.5 s`);
+        await new Promise(r => setTimeout(r, 1500));
+      }
     }
+    return { success: false, skipped: true, error: 'Power-plan state read timed out — the app is busy at startup. Use the Retry button.' };
   });
   
   ipcMain.handle('powerPlans:applyProfile', async (event, profileId) => {

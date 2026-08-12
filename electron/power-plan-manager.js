@@ -214,6 +214,19 @@ async function listPowerSchemes() {
   }
 }
 
+/**
+ * Returns true if the given scheme GUID is present in the current powercfg /list output.
+ * Returns false on any error (caller should treat unknown as absent for safety checks).
+ */
+async function schemeExists(guid) {
+  try {
+    const { schemes } = await listPowerSchemes();
+    return schemes.some(s => s.guid === guid.toLowerCase());
+  } catch {
+    return false;
+  }
+}
+
 async function getActivePowerScheme() {
   try {
     const out = await runPowercfg('/getactivescheme');
@@ -506,6 +519,48 @@ async function applyPowerProfile(profileId) {
   } catch (e) {
     console.error(`[PowerPlan]   ensureSwitchControlScheme failed: ${e.message}`);
     return { success: false, error: `Could not prepare power scheme: ${e.message}` };
+  }
+
+  // ── Step 2b: Guard — if target scheme doesn't exist, restore built-in plans and retry once ──
+  // Happens when OEM software (e.g. "Lumin Updated Power") removes all built-in Windows
+  // schemes.  We never run restoredefaultschemes unconditionally — only when the scheme
+  // we need is provably absent.  We never retry more than once.
+  const schemePresent = await schemeExists(schemeGuid);
+  if (!schemePresent) {
+    console.warn(`[PowerPlan]   schemeGuid ${schemeGuid} not found — running powercfg -restoredefaultschemes (once)`);
+    const isAdminNowRestore = await checkIsAdmin();
+    try {
+      if (isAdminNowRestore) {
+        await runPowercfg('-restoredefaultschemes');
+      } else {
+        const r = await runElevatedCommands(['powercfg -restoredefaultschemes']);
+        if (r.cancelled) {
+          return { success: false, cancelled: true, error: 'Admin permission was canceled. No system changes were made.' };
+        }
+      }
+      console.log('[PowerPlan]   restoredefaultschemes done — retrying ensureSwitchControlScheme');
+      try {
+        schemeGuid = await ensureSwitchControlScheme(profileId);
+        console.log(`[PowerPlan]   retry schemeGuid: ${schemeGuid}`);
+      } catch (retryErr) {
+        console.error(`[PowerPlan]   retry ensureSwitchControlScheme failed: ${retryErr.message}`);
+      }
+    } catch (restoreErr) {
+      console.error(`[PowerPlan]   restoredefaultschemes failed: ${restoreErr.message}`);
+    }
+
+    // Final check — if still absent, surface a specific user-facing message
+    const stillMissing = !(await schemeExists(schemeGuid));
+    if (stillMissing) {
+      return {
+        success: false,
+        missingScheme: true,
+        error:
+          "Your PC's manufacturer software may have removed some standard Windows power plans. " +
+          'Open Windows Settings → Power & Sleep → Additional power settings, then click ' +
+          '"Restore plan defaults" or reinstall your OEM power utility to fix this.',
+      };
+    }
   }
 
   // ── Step 3: Build and run setting commands ─────────────────────────────────

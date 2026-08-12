@@ -494,6 +494,70 @@ function SweepLine({ active }: { active: boolean }) {
 
 const isElectron = typeof window !== "undefined" && !!(window as any).electronAPI?.isElectron;
 
+// ── Known-monitor database ─────────────────────────────────────────────────────
+// Maps lowercase model-name fragments to the monitor's true maximum refresh rate.
+// Used to fill in maxRefreshHz when EnumDisplaySettings doesn't enumerate the
+// full range (e.g. GPU driver only exposes currently-active modes, or the user
+// hasn't yet activated the high-Hz mode in Windows Display Settings).
+// Keys are matched as substrings of the lowercased monitor name.
+const KNOWN_MONITOR_MAX_HZ: Array<[pattern: string, maxHz: number]> = [
+  // Samsung QD-OLED 500 Hz
+  ["g60sf",     500],
+  ["ls27cg60",  500],
+  ["ls32cg60",  500],
+  // Samsung QD-OLED 360 Hz
+  ["g80sf",     360],
+  ["g75sf",     360],
+  ["g65sf",     360],
+  ["odyssey g8",360],
+  // ASUS ROG Swift 500 Hz
+  ["pg248qp",   500],
+  // ASUS ROG Swift 360 Hz
+  ["pg259qn",   360],
+  ["pg279qm",   360],
+  // AOC 360 Hz
+  ["ag274qzm",  360],
+  // LG OLED 480/240 Hz
+  ["27gr75qe",  240],
+  ["27gp950",   160],
+  // Dell 360 Hz
+  ["aw2524hf",  360],
+  ["aw2723df",  280],
+  // MSI 360 Hz
+  ["meg271",    360],
+  ["maq271",    360],
+  // Acer Predator 360 Hz
+  ["xb273u",    270],
+  // BenQ Zowie 360 Hz
+  ["xl2566k",   360],
+  ["xl2546k",   240],
+];
+
+/**
+ * Returns the known maximum refresh rate for a monitor model, or null if unknown.
+ * Matched against the lowercased monitor name as a substring.
+ */
+function knownMaxHz(monitorName: string | null): number | null {
+  if (!monitorName) return null;
+  const lower = monitorName.toLowerCase();
+  for (const [pattern, hz] of KNOWN_MONITOR_MAX_HZ) {
+    if (lower.includes(pattern)) return hz;
+  }
+  return null;
+}
+
+/**
+ * Enriches a MonitorInfo with the known max Hz when the Windows-reported
+ * maxRefreshHz is absent or lower than what the monitor is physically capable of.
+ */
+function enrichMonitor(mon: MonitorInfo): MonitorInfo {
+  const known = knownMaxHz(mon.name);
+  if (known && (mon.maxRefreshHz === null || known > mon.maxRefreshHz)) {
+    return { ...mon, maxRefreshHz: known };
+  }
+  return mon;
+}
+
 // ── Per-monitor data shape returned by the new IPC handler ────────────────────
 interface MonitorInfo {
   id:              string;
@@ -611,7 +675,7 @@ export function DisplaySignalGraph({ delay = 0 }: { delay?: number }) {
     return () => clearInterval(t);
   }, [load]);
 
-  const mon = monitors[selectedIdx] ?? null;
+  const mon = monitors[selectedIdx] ? enrichMonitor(monitors[selectedIdx]) : null;
   const { score, reason } = mon ? monitorScore(mon) : { score: null, reason: "" };
   const bitDepth   = bppToBitDepth(mon?.bitsPerPixel ?? null);
   const resolution = mon?.currentResX && mon?.currentResY ? `${mon.currentResX}×${mon.currentResY}` : null;

@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import { Switch } from "@/components/ui/switch";
 import type { BootApp } from "./startupUtils";
 import { Cpu, HardDrive, Timer, AlertTriangle, Monitor, Gamepad2, Globe, Package, ChevronDown } from "lucide-react";
-import { publisherToDomain, iconSrcsForDomain } from "@/lib/publisherIcons";
+import { publisherToDomain, processNameToDomain, iconSrcsForDomain } from "@/lib/publisherIcons";
 
 const CAT_ICONS: Record<string, any> = {
   system:    Monitor,
@@ -32,11 +32,24 @@ function AppIcon({ app, size = 28 }: { app: BootApp; size?: number }) {
   const [webIdx, setWebIdx] = useState(0);
   const [webFailed, setWebFailed] = useState(false);
 
-  // Web icon sources derived from publisher and app name
+  // Web icon sources: publisher lookup → process-name lookup → smart fallback.
+  //
+  // Smart fallback rules:
+  //   • task-scheduler source   → microsoft.com  (nearly all unmatched tasks are Windows)
+  //   • app.isMicrosoft flag     → microsoft.com  (name/publisher heuristic detected MS)
+  //
+  // This ensures every startup entry shows at minimum a Windows logo rather than
+  // a generic glyph, with specific overrides for known third-party entries (Roblox,
+  // Fifine, EqualizerAPO, etc.) handled via PROCESS_NAME_DOMAINS / PUBLISHER_DOMAINS.
   const webSrcs = useMemo<string[]>(() => {
-    const domain = publisherToDomain(app.entry.publisher ?? "", app.entry.name);
+    const domain =
+      publisherToDomain(app.entry.publisher ?? "", app.entry.name) ??
+      processNameToDomain(app.entry.name) ??
+      (app.entry.source === "task-scheduler" || app.isMicrosoft
+        ? "microsoft.com"
+        : null);
     return domain ? iconSrcsForDomain(domain) : [];
-  }, [app.entry.publisher, app.entry.name]);
+  }, [app.entry.publisher, app.entry.name, app.entry.source, app.isMicrosoft]);
 
   useEffect(() => {
     // Reset web fallback state when app changes

@@ -264,6 +264,15 @@ const PUBLISHER_DOMAINS: Record<string, string> = {
   "docker": "docker.com",
   "vmware": "vmware.com",
   "virtualbox": "virtualbox.org",
+  "nodejs foundation": "nodejs.org",
+  "node.js foundation": "nodejs.org",
+  "openjs foundation": "nodejs.org",
+  "python software foundation": "python.org",
+  "postgresql global development group": "postgresql.org",
+  "the git development community": "git-scm.com",
+  "git development community": "git-scm.com",
+  "the qt company": "qt.io", "the qt company ltd": "qt.io", "qt company": "qt.io",
+  "autohotkey foundation": "autohotkey.com",
 
   // Utilities
   "7-zip": "7-zip.org", "igor pavlov": "7-zip.org",
@@ -273,16 +282,33 @@ const PUBLISHER_DOMAINS: Record<string, string> = {
   "teamviewer": "teamviewer.com",
   "anydesk": "anydesk.com",
   "realtek": "realtek.com", "realtek semiconductor": "realtek.com",
-  "hifi technologies": "hifisimulations.com",
+  "hifi technologies": "hifisimulations.com", "hifi technologies inc": "hifisimulations.com",
   "parallels": "parallels.com",
   "cpu-z": "cpuid.com", "cpuid": "cpuid.com",
   "gpu-z": "techpowerup.com",
   "hwinfo": "hwinfo.com", "martin malik": "hwinfo.com",
   "crystaldiskinfo": "crystalmark.info", "crystalmark": "crystalmark.info",
+  "voidtools": "voidtools.com",
+  "translucenttb open source developers": "github.com",
+  "bitwarden inc": "bitwarden.com",
 
-  // Sim / flight
+  // Torrent / download
+  "the qbittorrent project": "qbittorrent.org",
+  "qbittorrent project": "qbittorrent.org",
+  "qbittorrent": "qbittorrent.org",
+  "deluge team": "deluge-torrent.org",
+
+  // Flight sim ecosystem
   "laminar research": "x-plane.com",
   "lockheed martin": "prepar3d.com",
+  "flybywire simulations": "flybywire.com",
+  "rex game studios": "rexsimulations.com",
+  "fsuipc": "fsuipc.com",
+  "orbx": "orbxdirect.com",
+  "pmdg simulations": "pmdgsimulations.com",
+
+  // SwitchControl
+  "switchtech": "switchcontrol.org",
 };
 
 /** Convert a publisher string to a domain best suited for icon lookups. */
@@ -301,10 +327,12 @@ function publisherToDomain(publisher: string, name: string): string | null {
     .trim();
   if (stripped !== raw && PUBLISHER_DOMAINS[stripped]) return PUBLISHER_DOMAINS[stripped];
 
-  // 3. Check app name itself for known brands
+  // 3. Check app name itself for known brands.
+  // Use >= 3 so 3-char keys like "amd", "msi", "vlc" are included.
+  // Previously > 3 silently skipped them.
   const nameLow = (name || "").toLowerCase();
   for (const [key, domain] of Object.entries(PUBLISHER_DOMAINS)) {
-    if (key.length > 3 && nameLow.startsWith(key)) return domain;
+    if (key.length >= 3 && nameLow.startsWith(key)) return domain;
   }
 
   // 4. Heuristic: squash stripped publisher into a single word → <word>.com

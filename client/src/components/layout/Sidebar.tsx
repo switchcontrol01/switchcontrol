@@ -224,9 +224,11 @@ function NavItemRow({
               }}
             />
           </div>
-          {/* Outer bloom */}
+          {/* Outer bloom — ring-1 class exempts this element from the
+              light-mode box-shadow:none kill so the active-state outline
+              remains visible when app-light-mode is active. */}
           <motion.div
-            className="absolute inset-0 rounded-xl"
+            className="absolute inset-0 rounded-xl ring-1 ring-cyan-400/[0.18]"
             style={{ boxShadow: "0 0 0 1px rgba(0,212,255,0.18), 0 0 16px -2px rgba(0,212,255,0.18)" }}
             animate={{ opacity: [0.8, 1, 0.8] }}
             transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
@@ -401,7 +403,28 @@ export function Sidebar() {
   const isDriverIntel = location === "/driver-intel" && isPremium;
   const userName = user?.name || user?.firstName || user?.email?.split("@")[0] || "User";
   const userInitials = userName.slice(0, 2).toUpperCase();
-  const avatarUrl = user?.avatar;
+
+  // Avatar caching — read localStorage immediately so the avatar shows on first
+  // render before the auth fetch resolves.  When the real URL arrives, persist
+  // it and kick off a browser-cache preload so subsequent mounts are instant.
+  const AVATAR_CACHE_KEY = "sc_cached_avatar_url";
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(
+    () => {
+      try { return localStorage.getItem(AVATAR_CACHE_KEY) || null; } catch { return null; }
+    }
+  );
+  useEffect(() => {
+    const liveUrl = user?.avatar ?? null;
+    if (!liveUrl) return;
+    // Update displayed URL
+    setAvatarUrl(liveUrl);
+    // Persist for next cold start
+    try { localStorage.setItem(AVATAR_CACHE_KEY, liveUrl); } catch { /* quota */ }
+    // Preload into browser cache so the network round-trip is already done
+    // by the time any subsequent component renders the <img>.
+    const img = new Image();
+    img.src = liveUrl;
+  }, [user?.avatar]);
 
   const navigate = (href: string) => setLocation(href);
 

@@ -8,7 +8,7 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { useStore } from "@/lib/store";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, SlidersHorizontal, RotateCcw, Sparkles, AlertTriangle, ShieldCheck, FlaskConical, Cpu, Lock, X } from "lucide-react";
+import { Search, SlidersHorizontal, RotateCcw, AlertTriangle, ShieldCheck, FlaskConical, Cpu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useTweakExecutor, isElectronWithTweaks, isRealTweak, isSliderTweak, SLIDER_TWEAKS } from "@/hooks/use-tweak-executor";
@@ -177,7 +177,6 @@ const LEVEL_WARN: Record<string, { title: string; body: string }> = {
 
 export function TweaksList() {
   const { tweaks, toggleTweak, resetData, setTweak } = useStore();
-  const startOptimizationFlow = useOptimizationStore(s => s.startFlow);
   const { syncAllTweaks, isElectron } = useTweakExecutor();
   const { toast } = useToast();
   const { isPremium } = useAuth();
@@ -191,7 +190,6 @@ export function TweaksList() {
   const [syncing, setSyncing]       = useState(false);
   const [syncFailed, setSyncFailed] = useState(false);
   const [warnLevel, setWarnLevel]   = useState<string | null>(null); // level name that needs confirmation
-  const [lockShaking, setLockShaking] = useState(false);
   // Runtime-detected unsupported reasons from backend (e.g. USB power setting not found).
   // These override/supplement the static frontend registry reasons.
   const [runtimeUnsupportedReasons, setRuntimeUnsupportedReasons] = useState<Record<string, string>>({});
@@ -207,17 +205,6 @@ export function TweaksList() {
     isElectron &&
     !revertBannerDismissed &&
     (tamperProtection === true || isAdmin === false);
-
-  const handleApplyRecommended = () => {
-    if (!isPremium) {
-      // Shake the lock badge then open the upgrade modal
-      setLockShaking(true);
-      setTimeout(() => setLockShaking(false), 600);
-      openUpgradeModal('Apply Recommended');
-      return;
-    }
-    startOptimizationFlow();
-  };
 
   // Read ?tweak=<id> deep-link param on mount and scroll to that card.
   // The Electron app uses a hash-based router, so the param may live inside
@@ -434,47 +421,6 @@ export function TweaksList() {
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Apply Recommended — premium-gated */}
-          <div className="relative">
-            <Button
-              onClick={handleApplyRecommended}
-              size="sm"
-              data-testid="button-apply-safe"
-              className="h-9 px-4 gap-2 bg-violet-500/10 text-violet-300 border border-violet-500/20 hover:bg-violet-500/20"
-            >
-              <Sparkles className="size-4" />
-              Apply Recommended
-            </Button>
-
-            {/* Lock badge — only visible to non-premium users */}
-            {!isPremium && (
-              <motion.div
-                className="absolute -top-2 -right-2 flex items-center justify-center w-5 h-5 rounded-full cursor-pointer z-10"
-                style={{
-                  background: "linear-gradient(135deg, #F59E0B 0%, #D97706 100%)",
-                  boxShadow: "0 0 8px rgba(245,158,11,0.55), 0 2px 4px rgba(0,0,0,0.4)",
-                  rotate: "15deg",
-                }}
-                animate={lockShaking ? {
-                  rotate: ["15deg", "-20deg", "25deg", "-18deg", "15deg"],
-                  scale:  [1, 1.25, 1.15, 1.2, 1],
-                } : { rotate: "15deg", scale: 1 }}
-                transition={lockShaking ? {
-                  duration: 0.5,
-                  ease: "easeInOut",
-                } : { duration: 0.3 }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setLockShaking(true);
-                  setTimeout(() => setLockShaking(false), 600);
-                  openUpgradeModal('Apply Recommended');
-                }}
-                title="Premium feature"
-              >
-                <Lock className="size-2.5 text-white" strokeWidth={2.5} />
-              </motion.div>
-            )}
-          </div>
           <Button
             variant="outline" size="sm"
             onClick={resetData}

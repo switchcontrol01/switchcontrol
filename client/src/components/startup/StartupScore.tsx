@@ -18,11 +18,6 @@ export function StartupScore({ score, visible }: Props) {
   const color = getScoreColor(score);
   const label = getScoreLabel(score);
 
-  // r=40 — larger than original (r=44 but viewBox 100), stroke=11 (Cleaner uses 14)
-  const r = 40;
-  const circumference = 2 * Math.PI * r;
-
-  // Animate ring fill from 0 → value on mount (Cleaner pattern)
   const [drawn, setDrawn] = useState(false);
   useEffect(() => {
     if (visible) {
@@ -32,42 +27,57 @@ export function StartupScore({ score, visible }: Props) {
     setDrawn(false);
   }, [visible]);
 
-  const dashOffset = drawn ? circumference - (score / 100) * circumference : circumference;
+  // 270° open-arc design (identical to PerformanceLab's StabilityRing).
+  // pathLength=1 so strokeDasharray values are fractions of the full circle.
+  // The track covers 0.75 (270°); the gap 0.25 (90°) sits at the bottom.
+  // The value arc fills from 0 → (score/100 × 0.75) via CSS transition on
+  // stroke-dasharray, exactly as the dashboard ring does — no strokeDashoffset.
+  // This means the arc NEVER forms a complete circle so the glow has no border.
+  const fill = drawn ? (score / 100) * 0.75 : 0;
 
   return (
     <div
       className="relative flex flex-col items-center justify-center p-6 rounded-2xl overflow-hidden group"
-      style={{
-        background: "#1A1F26",
-      }}
+      style={{ background: "#1A1F26" }}
     >
-      {/* Ambient glow behind ring — severity color, same as Cleaner's health glow */}
+      {/* Ambient glow behind ring */}
       <div
         className="absolute inset-0 transition-opacity duration-700 pointer-events-none group-hover:opacity-100 opacity-70"
         style={{ background: `radial-gradient(circle at center, ${severityBg(score)} 0%, transparent 70%)` }}
       />
 
-      {/* Ring gauge — Cleaner stroke width 11 (wider than original 6) */}
+      {/* Ring gauge */}
       <div className="relative w-36 h-36 flex items-center justify-center">
         <svg
           className="absolute inset-0 w-full h-full"
           viewBox="0 0 100 100"
-          style={{ transform: "rotate(-90deg)" }}
+          aria-hidden="true"
+          style={{ display: "block", overflow: "visible" }}
         >
-          {/* Outer track */}
-          <circle cx="50" cy="50" r={r} fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="11" />
-          {/* Value arc — Cleaner-style transition */}
+          {/* Track arc — dark matte, 270°, same spec as PerformanceLab track */}
           <circle
-            cx="50" cy="50" r={r}
+            cx={50} cy={50} r={40}
+            fill="none"
+            stroke="rgba(42,49,58,0.8)"
+            strokeWidth={11}
+            strokeLinecap="round"
+            pathLength={1}
+            transform="rotate(135 50 50)"
+            strokeDasharray="0.75 0.25"
+          />
+          {/* Value arc — animated, 270° max, no border (open arc = no circular glow ring) */}
+          <circle
+            cx={50} cy={50} r={40}
             fill="none"
             stroke={color}
-            strokeWidth="11"
+            strokeWidth={11}
             strokeLinecap="round"
-            strokeDasharray={circumference}
-            strokeDashoffset={dashOffset}
+            pathLength={1}
+            transform="rotate(135 50 50)"
+            strokeDasharray={`${fill} ${1 - fill}`}
             style={{
-              transition: "stroke-dashoffset 1.4s cubic-bezier(0.16, 1, 0.3, 1)",
-              filter: `drop-shadow(0 0 5px ${color}80)`,
+              transition: "stroke-dasharray 1.4s cubic-bezier(0.16, 1, 0.3, 1)",
+              filter: `drop-shadow(0 0 6px ${color}bb)`,
             }}
           />
         </svg>

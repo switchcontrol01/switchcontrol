@@ -39,61 +39,6 @@ export function useResetTweaks() {
   });
 }
 
-/* ── Apply Recommended Safety Guard ──
-   Only tweaks that are boring-safe make it into Apply Recommended.
-   Rejects: risky, network-risk, audio/mic-risk, reboot-required,
-   unsupported, helper-required, unclear-revert.
-*/
-export const GUARDED_TWEAK_IDS = new Set([
-  // Network / ping-risk
-  'bluetooth', 'wifi', 'tcp-congestion', 'tcp-task-offload', 'tcp-nagle',
-  'tcp-timestamps', 'tcp-window-heuristics', 'udp-offloads', 'nic-flow-control',
-  // System-breaking
-  'disable-dcom', 'hyper-v', 'vbs', 'core-isolation', 'fax-printer',
-  'fast-startup', 'disable-fso', 'irq-priority', 'synth-timers',
-  // Unsupported / helper-required
-  'hdcp', 'p-states', 'mouse-queue-size', 'kbd-queue-size',
-  // Reboot-required (blocked from bulk apply)
-  'preemption', 'disable-mpo',
-  // Audio / mic risk
-  'bluetooth',
-  // MMCSS aggressive (0 value)
-  'sys-responsiveness',
-]);
-
-export function isRecommendedSafe(t: (typeof TWEAKS_DATA)[number]): boolean {
-  // Must be explicitly marked Recommended AND Safe
-  if (t.level !== 'Recommended') return false;
-  if (t.risk !== 'Safe') return false;
-  if (!t.supported) return false;
-  if (GUARDED_TWEAK_IDS.has(t.id)) return false;
-  if (t.requiresReboot) return false;
-  if (t.requiresAgent) return false;
-  if (t.controlType === 'slider') return false; // sliders require manual choice
-  if (t.requiresAdmin === false) return true;   // HKCU Safe = definitely OK
-  return true; // HKLM Safe admin tweaks are OK for bulk apply
-}
-
-export function useApplyRecommended() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async () => {
-      const recommendedIds = TWEAKS_DATA
-        .filter(isRecommendedSafe)
-        .map(t => t.id);
-      // In Electron, use the guarded bulk path to protect audio/network devices
-      if (typeof window !== 'undefined' && (window as any).electronAPI?.tweaks) {
-        const { bulkApplyTweaks } = await import('@/hooks/use-tweak-executor');
-        return bulkApplyTweaks(recommendedIds);
-      }
-      return api.applyRecommended(recommendedIds);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["tweaks"] });
-      queryClient.invalidateQueries({ queryKey: ["settings"] });
-    },
-  });
-}
 
 export function useHistory() {
   return useQuery({

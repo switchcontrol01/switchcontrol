@@ -1,17 +1,16 @@
 {
-  "version": "1.2.5",
-  "title": "Bug Fixes & Security Hardening",
-  "headline": "GPU telemetry now correctly tracks your selected card on multi-GPU systems, the landing page no longer flashes on load, and several security and reliability fixes ship under the hood.",
-  "date": "2026-07-31",
+  "version": "1.2.6",
+  "title": "Icon Coverage, Light Mode Fixes & UI Polish",
+  "headline": "Process Manager and Debloat now recognise far more apps with correct logos, light mode loading spinners and active nav indicators are fixed, the startup score ring is cleaner, and the Apply Recommended button has been removed.",
+  "date": "2026-08-12",
   "type": "patch",
   "changes": [
-    "Fixed GPU telemetry showing wrong card's data on multi-GPU systems — now matches by name instead of raw array index",
-    "Fixed white flash on landing page load and right-edge scrollbar border on Windows",
-    "Fixed power plan manager admin path silently reporting success when individual powercfg commands failed",
-    "Hardened checkout webhook — prevents multi-item cart bypass edge case",
-    "Fixed trial expiry mis-comparison when trialEndsAt is null or invalid",
-    "Fixed admin reset-trial endpoint missing input validation",
-    "Removed wasteful WMI query in Extreme Labs analysis that ran but was never used",
-    "Performance and stability improvements"
+    "Expanded Process Manager icon coverage — Firefox now shows the correct flame logo, SwitchControl, StreamDeck, Node.js, Qt processes, TranslucentTB, and dozens more now resolve proper brand icons",
+    "Expanded Debloat installed-apps icon coverage — Git, Python, PostgreSQL, Node.js, qBittorrent, FlyByWire Simulations, REX Game Studios, Qt Company, and more now display correct logos",
+    "Fixed icon lookup bug where 3-character publisher keys (amd, msi, hp, obs) were silently skipped in prefix matching — now correctly matched",
+    "Fixed light mode: loading spinners (Rescan, sync, etc.) were frozen due to the global animation-duration kill catching animate-spin — now correctly exempted",
+    "Fixed light mode: active sidebar nav item lost its visible ring outline — inline box-shadow was stripped; replaced with Tailwind ring class which survives the light-mode kill",
+    "Removed decorative track ring from the Startup boot score gauge — value arc now floats cleanly on the dark background",
+    "Removed Apply Recommended button, its premium gate, lock badge, backend route, and all associated dead code"
   ]
 }

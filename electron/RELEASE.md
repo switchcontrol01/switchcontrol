@@ -37,26 +37,26 @@ Renderer (use-updater.ts hook)
 
 | Channel | Tag pattern | Notes |
 |---------|------------|-------|
-| stable | `v1.2.5` | Default for all users |
-| beta | `v1.2.5-beta.1` | Opt-in (structure ready, not yet exposed in UI) |
+| stable | `v1.2.6` | Default for all users |
+| beta | `v1.2.6-beta.1` | Opt-in (structure ready, not yet exposed in UI) |
 
 ## How a new release reaches users
 
 1. Developer bumps version:
    ```bash
-   cd electron && npm version 1.2.5
+   cd electron && npm version 1.2.6
    ```
 2. Commit + push tag:
    ```bash
    git add electron/package.json
-   git commit -m "chore: bump to v1.2.5"
-   git tag v1.2.5
+   git commit -m "chore: bump to v1.2.6"
+   git tag v1.2.6
    git push origin main --tags
    ```
 3. CI (`release.yml`) triggers:
    - Builds React frontend
    - Runs `electron-builder --win --publish always`
-   - Generates `SwitchControl Setup 1.2.5.exe` + `latest.yml`
+   - Generates `SwitchControl Setup 1.2.6.exe` + `latest.yml`
    - Uploads both to GitHub Release + release server
 4. Installed apps check `https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev/latest.yml` on startup (after 8s)
 5. If `latest.yml` version > installed version → update-available event fires
@@ -77,7 +77,7 @@ Parsed from `releaseNotes` field in `latest.yml`.
 
 Example `latest.yml` release notes field:
 ```
-version: 1.2.5
+version: 1.2.6
 releaseDate: '2026-04-03'
 releaseNotes: |
   [RECOMMENDED] Fixed GPU detection crash on AMD cards.

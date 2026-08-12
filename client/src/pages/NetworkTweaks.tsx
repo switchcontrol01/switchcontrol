@@ -892,27 +892,42 @@ function NetworkTweaksContent() {
             }).electronAPI.networkTweaks;
             const verify = await api.checkStatus(tweak.id);
             if (!verify.error && !verify.disabled && verify.applied !== null) {
-              if (verify.applied) {
-                setStateMap(prev => {
-                  const next = { ...prev, [tweak.id]: { status: "enabled" as TweakStatus, message: result.message } };
-                  savePersistedState(next);
-                  return next;
-                });
-                console.log(`[NetworkTweaks] apply verified tweakId=${tweak.id} applied=true`);
-              } else if (action === "disable") {
-                setStateMap(prev => {
-                  const next = { ...prev, [tweak.id]: { status: "idle" as TweakStatus, message: result.message } };
-                  savePersistedState(next);
-                  return next;
-                });
-                console.log(`[NetworkTweaks] revert verified tweakId=${tweak.id} applied=false`);
+              if (action === "enable") {
+                // We tried to enable — use verification result to decide confirmed vs. inconclusive
+                if (verify.applied) {
+                  setStateMap(prev => {
+                    const next = { ...prev, [tweak.id]: { status: "enabled" as TweakStatus, message: result.message } };
+                    savePersistedState(next);
+                    return next;
+                  });
+                  console.log(`[NetworkTweaks] apply verified tweakId=${tweak.id} applied=true`);
+                } else {
+                  // Enable ran but system still reads as not applied — inconclusive
+                  setStateMap(prev => {
+                    const next = { ...prev, [tweak.id]: { status: "enabled_unverified" as TweakStatus, message: `${result.message} — verification inconclusive` } };
+                    savePersistedState(next);
+                    return next;
+                  });
+                  console.log(`[NetworkTweaks] apply re-check returned false — keeping enabled_unverified tweakId=${tweak.id}`);
+                }
               } else {
-                setStateMap(prev => {
-                  const next = { ...prev, [tweak.id]: { status: "enabled_unverified" as TweakStatus, message: `${result.message} — verification inconclusive` } };
-                  savePersistedState(next);
-                  return next;
-                });
-                console.log(`[NetworkTweaks] apply re-check returned false — keeping enabled tweakId=${tweak.id}`);
+                // action === "disable" — only update state when verification *confirms* the revert.
+                // If verify.applied is still true, the system may not have reflected the change yet
+                // (common for settings that need a service restart, e.g. smb-v2v3 with Windows
+                // defaulting to SMBv2 enabled).  In that case do NOT bounce the toggle back —
+                // the execute already reported success=true and the UI is already showing "idle".
+                if (!verify.applied) {
+                  setStateMap(prev => {
+                    const next = { ...prev, [tweak.id]: { status: "idle" as TweakStatus, message: result.message } };
+                    savePersistedState(next);
+                    return next;
+                  });
+                  console.log(`[NetworkTweaks] revert verified tweakId=${tweak.id} applied=false`);
+                } else {
+                  // Revert ran but system still reads as applied — leave toggle in the OFF state
+                  // the user requested; do not bounce it back to ON.
+                  console.log(`[NetworkTweaks] revert inconclusive tweakId=${tweak.id} — system still reports applied (may need restart)`);
+                }
               }
             } else {
               console.log(`[NetworkTweaks] apply re-check inconclusive tweakId=${tweak.id} applied=${verify.applied} error=${verify.error}`);

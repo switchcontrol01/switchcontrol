@@ -769,12 +769,6 @@ export async function resetTweaks() {
   return result;
 }
 
-export async function applyRecommended(tweakIds: string[]) {
-  const result = await apiPost("/tweaks/apply-recommended", { tweakIds });
-  queryClient.invalidateQueries({ queryKey: ["settings"] });
-  queryClient.invalidateQueries({ queryKey: ["history"] });
-  return result;
-}
 
 export async function fetchHistory() {
   return apiGet("/history");

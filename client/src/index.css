@@ -2669,6 +2669,14 @@ html.app-light-mode .animate-bounce {
   animation: none !important;
 }
 
+/* Loading spinners must keep rotating even in light mode.
+   The global animation-duration:0.01ms / iteration-count:1 rule above freezes
+   them, which makes the UI appear stuck. Re-override just this token. */
+html.app-light-mode .animate-spin {
+  animation-duration: 0.75s !important;
+  animation-iteration-count: infinite !important;
+}
+
 /* Global GPU-compositing kill: any inline/utility `filter`, `box-shadow`, or
    `text-shadow` (glow rings, drop-shadow(), premium crown glow, etc.) forces
    the browser to keep a paint layer alive even when nothing on screen is
@@ -2690,10 +2698,15 @@ html.app-light-mode *:not(.mode-transition-overlay):not(.mode-transition-spinner
 /* Decorative blur orbs (ambient background glow divs) used across Login,
    Home, Landing, Debloater, SystemCleaner, and various modals. These are
    pure GPU-compositing decoration with no informational content, so they are
-   hidden outright rather than merely de-blurred. */
-html.app-light-mode [class*="blur-3xl"],
-html.app-light-mode [class*="blur-2xl"],
-html.app-light-mode [class*="blur-xl"] {
+   hidden outright rather than merely de-blurred.
+   IMPORTANT: use CLASS selectors (.blur-xl), NOT attribute substring selectors
+   ([class*="blur-xl"]). The substring form accidentally matches backdrop-blur-xl,
+   backdrop-blur-2xl, backdrop-blur-3xl — hiding dialogs, toasts, modals, and page
+   sections that carry those utility classes. Class selectors match the exact Tailwind
+   token (.blur-xl ≠ .backdrop-blur-xl) and are therefore safe. */
+html.app-light-mode .blur-3xl,
+html.app-light-mode .blur-2xl,
+html.app-light-mode .blur-xl {
   display: none !important;
 }
 

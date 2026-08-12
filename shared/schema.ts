@@ -14,7 +14,7 @@ export const userSettings = pgTable("user_settings", {
   cleanersRun: integer("cleaners_run").notNull().default(0),
   startupAppsDisabled: integer("startup_apps_disabled").notNull().default(0),
   lastScan: timestamp("last_scan"),
-  usedRamGb: real("used_ram_gb"),
+  usedRamGb: real("used_ram_gb").default(0),
 });
 
 export const appliedTweaks = pgTable("applied_tweaks", {

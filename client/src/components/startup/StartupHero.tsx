@@ -155,10 +155,10 @@ export function StartupHero({ scanStatus, apps, onScan, onOptimize, onReview }: 
         />
       </div>
 
-      <div className="relative z-10 p-5 sm:p-6 flex flex-col lg:flex-row gap-6 lg:items-center justify-between">
+      <motion.div layout className="relative z-10 p-5 sm:p-6 flex flex-col lg:flex-row gap-6 lg:items-center justify-between">
 
         {/* Left: Orb + content */}
-        <div className="flex items-start gap-5">
+        <motion.div layout className="flex items-start gap-5">
           <BootOrb scanning={isScanning} />
 
           <div className="space-y-2.5 max-w-lg">
@@ -239,7 +239,7 @@ export function StartupHero({ scanStatus, apps, onScan, onOptimize, onReview }: 
               )}
             </div>
           </div>
-        </div>
+        </motion.div>
 
         {/* Right: stat boxes (appear after scan) */}
         <AnimatePresence>
@@ -309,7 +309,7 @@ export function StartupHero({ scanStatus, apps, onScan, onOptimize, onReview }: 
             </motion.div>
           )}
         </AnimatePresence>
-      </div>
+      </motion.div>
     </div>
   );
 }
