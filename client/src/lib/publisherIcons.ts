@@ -232,7 +232,6 @@ const PROCESS_NAME_DOMAINS: Record<string, string> = {
 
   // Microsoft system processes
   "onedrive":             "microsoft.com",
-  "microsoftedge":        "microsoft.com",
   "microsoftedgeupdate":  "microsoft.com",
   "msedgewebview2":       "microsoft.com",
   "mscorsvw":             "microsoft.com",
