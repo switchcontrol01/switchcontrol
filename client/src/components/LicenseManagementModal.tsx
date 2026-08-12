@@ -32,17 +32,6 @@ interface VerifiedLicense {
   graceRemainingMs: number;
 }
 
-function generateDeviceHash(userId: string): string {
-  let hash = 0;
-  const seed = `${userId}-${navigator.userAgent}-${screen.width}x${screen.height}`;
-  for (let i = 0; i < seed.length; i++) {
-    const char = seed.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash |= 0;
-  }
-  return Math.abs(hash).toString(16).padStart(8, "0").slice(0, 8).toUpperCase();
-}
-
 function InfoRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between py-2">
@@ -89,7 +78,12 @@ export function LicenseManagementModal({ open, onOpenChange, isPremium, userId }
   const [isRestoring, setIsRestoring] = useState(false);
   const [appVersion, setAppVersion] = useState("1.2.6");
   const [platform, setPlatform] = useState("Web");
-  const [deviceId, setDeviceId] = useState(() => generateDeviceHash(userId));
+  // null  = not yet loaded (show skeleton) — only used in Electron
+  // ""    = IPC returned empty / unavailable (show "Unavailable")
+  // string = real 16-char hardware-anchored device ID from hardware-fingerprint.js
+  const [deviceId, setDeviceId] = useState<string | null>(null);
+  // deviceIdLoading: true only while the IPC call is in-flight (Electron only)
+  const [deviceIdLoading, setDeviceIdLoading] = useState(false);
 
   // ── Resolve offline grace — reads grace store to confirm a real grace window ──
   function resolveOfflineGrace(): VerifiedLicense {
@@ -135,22 +129,54 @@ export function LicenseManagementModal({ open, onOpenChange, isPremium, userId }
       return;
     }
 
-    // Fetch device info (Electron only) — does not affect status display
+    // Single cancelled flag — shared by both the device-ID IPC call and the
+    // license verification fetch. Cleanup sets it to true so no stale setState
+    // runs after the modal closes or the effect re-fires.
+    let cancelled = false;
+
+    // ── Device info (Electron only) ────────────────────────────────────────
+    // None of this touches the license status block.
     if (isElectron) {
       const api = (window as any).electronAPI;
       if (api?.system?.getInfo) {
         api.system.getInfo().then((info: any) => {
+          if (cancelled) return;
           if (info?.platform === "win32") setPlatform("Windows");
           else if (info?.platform === "darwin") setPlatform("macOS");
           else if (info?.platform === "linux") setPlatform("Linux");
           else setPlatform(info?.platform || "Desktop");
         });
       }
-      if (api?.getAppVersion) api.getAppVersion().then((v: string) => setAppVersion(v));
-      if (api?.getDeviceId) api.getDeviceId().then((id: string) => { if (id) setDeviceId(id); });
+      if (api?.getAppVersion) {
+        api.getAppVersion().then((v: string) => { if (!cancelled) setAppVersion(v); });
+      }
+
+      // Fetch the REAL 16-char hardware-anchored device ID via window.electronAPI.getDeviceId().
+      // This calls hardware-fingerprint.js → getPermanentDeviceId() in the main process,
+      // which derives a SHA-256 of Windows MachineGuid, truncated to 16 hex chars.
+      // Fail-closed: if the IPC call fails or returns null/empty, show "Unavailable".
+      // Never fall back to any locally-generated ID — that would silently lie to the user.
+      if (api?.getDeviceId) {
+        setDeviceIdLoading(true);
+        setDeviceId(null);
+        api.getDeviceId()
+          .then((id: string | null) => {
+            if (cancelled) return;
+            // Accept only non-empty strings. An empty result or null means the
+            // hardware-fingerprint system returned nothing (registry failure, non-Windows).
+            setDeviceId(id && id.length > 0 ? id : "");
+          })
+          .catch(() => {
+            if (cancelled) return;
+            setDeviceId(""); // IPC error → unavailable, not a fake ID
+          })
+          .finally(() => {
+            if (!cancelled) setDeviceIdLoading(false);
+          });
+      }
     }
 
-    // Enter strict loading — status block renders nothing premium until this resolves.
+    // ── License status (strict loading gate) ──────────────────────────────
     setLicenseLoading(true);
     setVerifiedLicense(null);
 
@@ -160,19 +186,18 @@ export function LicenseManagementModal({ open, onOpenChange, isPremium, userId }
       // not raw stale 'active' which could be from a previous premium session.
       const offlineResult = resolveOfflineGrace();
       console.log('[PremiumTruth] modal opened offline — resolved:', offlineResult.status);
-      setVerifiedLicense(offlineResult);
-      setLicenseLoading(false);
-      return;
+      if (!cancelled) { setVerifiedLicense(offlineResult); setLicenseLoading(false); }
+      return () => { cancelled = true; };
     }
 
     // Online path: live server verification is the only truth.
     console.log('[PremiumTruth] modal opened online — starting strict load, ignoring stale grace store');
     safeRefreshEntitlements()
       .then((result) => {
+        if (cancelled) return;
         if (result.user) {
           // Write verified data back to grace store (persistence layer only)
           grace.setVerified(result.user.isPremium, result.user.plan ?? null, result.user.id ?? null);
-
           const verified: VerifiedLicense = {
             status: result.user.isPremium ? 'active' : 'free',
             plan: result.user.plan ?? null,
@@ -183,25 +208,19 @@ export function LicenseManagementModal({ open, onOpenChange, isPremium, userId }
           console.log('[PremiumTruth] modal auto-refresh done — isPremium:', result.user.isPremium, 'status:', verified.status);
           setVerifiedLicense(verified);
         } else {
-          // Server responded but no user data — default to free
-          setVerifiedLicense({
-            status: 'free',
-            plan: null,
-            isPremium: false,
-            lastVerifiedAt: null,
-            graceRemainingMs: 0,
-          });
+          setVerifiedLicense({ status: 'free', plan: null, isPremium: false, lastVerifiedAt: null, graceRemainingMs: 0 });
         }
       })
       .catch((err) => {
+        if (cancelled) return;
         console.warn('[PremiumTruth] modal auto-refresh failed:', err);
-        // Network error during online path — fall back to offline grace resolution
-        // (same conservative logic: only pass through a confirmed grace window)
         const fallback = resolveOfflineGrace();
         console.log('[PremiumTruth] fallback after error — status:', fallback.status);
         setVerifiedLicense(fallback);
       })
-      .finally(() => setLicenseLoading(false));
+      .finally(() => { if (!cancelled) setLicenseLoading(false); });
+
+    return () => { cancelled = true; };
   }, [open]);
 
   const handleRefreshLicense = async () => {
@@ -484,20 +503,42 @@ export function LicenseManagementModal({ open, onOpenChange, isPremium, userId }
                   <div className="px-4 pb-3.5 divide-y divide-white/[0.05]">
                     <InfoRow label="Device ID">
                       <div className="flex items-center gap-1.5">
-                        <code
-                          className="text-[11px] text-[#E6EAF0]/75 bg-[#21262D] px-2 py-0.5 rounded-md font-mono border border-[#2A313A]"
-                          data-testid="text-device-id"
-                        >
-                          {deviceId}
-                        </code>
-                        <button
-                          onClick={() => { navigator.clipboard.writeText(deviceId); toast({ title: "Copied", description: "Device ID copied." }); }}
-                          className="text-[#6B7380] hover:text-[#A0A8B3] transition-colors"
-                          data-testid="button-copy-device-id"
-                          aria-label="Copy device ID"
-                        >
-                          <Copy className="size-3" />
-                        </button>
+                        {/* Loading: IPC call in flight */}
+                        {deviceIdLoading ? (
+                          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-[#21262D] border border-[#2A313A]">
+                            <Loader2 className="size-2.5 animate-spin text-[#6B7380]" />
+                            <span className="text-[11px] text-[#6B7380] font-mono">loading…</span>
+                          </div>
+                        ) : deviceId ? (
+                          /* Real 16-char hardware-anchored device ID */
+                          <>
+                            <code
+                              className="text-[11px] text-[#E6EAF0]/75 bg-[#21262D] px-2 py-0.5 rounded-md font-mono border border-[#2A313A] tracking-wide"
+                              data-testid="text-device-id"
+                            >
+                              {deviceId}
+                            </code>
+                            <button
+                              onClick={() => {
+                                navigator.clipboard.writeText(deviceId);
+                                toast({ title: "Copied", description: "Device ID copied to clipboard." });
+                              }}
+                              className="text-[#6B7380] hover:text-[#A0A8B3] transition-colors"
+                              data-testid="button-copy-device-id"
+                              aria-label="Copy device ID"
+                            >
+                              <Copy className="size-3" />
+                            </button>
+                          </>
+                        ) : (
+                          /* IPC returned null/empty — fail-closed, no fake fallback */
+                          <span
+                            className="text-[11px] text-[#6B7380] italic px-2 py-0.5 rounded-md bg-[#21262D] border border-[#2A313A]"
+                            data-testid="text-device-id-unavailable"
+                          >
+                            {isElectron ? "Unavailable" : "Desktop app only"}
+                          </span>
+                        )}
                       </div>
                     </InfoRow>
                     <InfoRow label="App Version">

@@ -1,15 +1,5 @@
 import type { SignalValue } from "../types";
 
-function generateDeviceHash(userId: string): string {
-  const raw = `${userId}-${navigator.userAgent}-${screen.width}x${screen.height}`;
-  let hash = 0;
-  for (let i = 0; i < raw.length; i++) {
-    const chr = raw.charCodeAt(i);
-    hash = ((hash << 5) - hash) + chr;
-    hash |= 0;
-  }
-  return Math.abs(hash).toString(16).padStart(8, "0").slice(0, 8).toUpperCase();
-}
 
 export function collectAppSignals(storeState: {
   tweaks: Record<string, boolean>;
@@ -38,17 +28,20 @@ export function collectAppSignals(storeState: {
   try {
     const api = (window as any).electronAPI;
     if (api?.getDeviceId) {
-      signals.deviceIdShort = { value: "pending", source: "electron" };
-      api.getDeviceId().then((id: string) => {
-        signals.deviceIdShort = { value: id || generateDeviceHash(storeState.userId), source: "electron" };
+      // Real 16-char hardware-anchored device ID from hardware-fingerprint.js via IPC.
+      // Fail-closed: if IPC fails or returns null/empty, leave as null — never fake it.
+      signals.deviceIdShort = { value: null, source: "electron" };
+      api.getDeviceId().then((id: string | null) => {
+        signals.deviceIdShort = { value: id && id.length > 0 ? id : null, source: "electron" };
       }).catch(() => {
-        signals.deviceIdShort = { value: generateDeviceHash(storeState.userId), source: "browser" };
+        signals.deviceIdShort = { value: null, source: "electron", error: "IPC call failed" };
       });
     } else {
-      signals.deviceIdShort = { value: generateDeviceHash(storeState.userId), source: "browser" };
+      // Web / non-Electron: no hardware fingerprint available.
+      signals.deviceIdShort = { value: null, source: "browser" };
     }
   } catch {
-    signals.deviceIdShort = { value: null, source: "browser", error: "Failed to generate device ID" };
+    signals.deviceIdShort = { value: null, source: "browser", error: "Failed to read device ID" };
   }
 
   try {
