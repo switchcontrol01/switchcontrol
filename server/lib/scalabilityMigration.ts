@@ -125,6 +125,20 @@ const MIGRATIONS: string[] = [
 
   `ALTER TABLE user_settings
      ALTER COLUMN used_ram_gb DROP DEFAULT`,
+
+  // ── Fix used_ram_gb NOT NULL constraint ────────────────────────────────────
+  // The column was created with NOT NULL in an older schema version. The
+  // migration above then dropped its DEFAULT, leaving it NOT NULL with no
+  // fallback — every insert that omits used_ram_gb now fails with:
+  //   "null value in column used_ram_gb violates not-null constraint"
+  // The Drizzle schema declares it nullable (no .notNull()), so bring the DB
+  // in line: drop NOT NULL and restore DEFAULT 0 so inserts of new rows work
+  // without callers having to supply a value.
+  `ALTER TABLE user_settings
+     ALTER COLUMN used_ram_gb DROP NOT NULL`,
+
+  `ALTER TABLE user_settings
+     ALTER COLUMN used_ram_gb SET DEFAULT 0`,
 ];
 
 export async function runScalabilityMigration(): Promise<void> {

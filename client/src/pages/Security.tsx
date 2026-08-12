@@ -507,6 +507,7 @@ function ProtectionTab({
   togglingOption: string | null;
   toggleDefenderOption: (option: string, enabled: boolean) => void;
 }) {
+  const [, setLocation] = useLocation();
   return (
     <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
       {/* Core Defender Status */}

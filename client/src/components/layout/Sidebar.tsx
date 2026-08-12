@@ -403,7 +403,28 @@ export function Sidebar() {
   const isDriverIntel = location === "/driver-intel" && isPremium;
   const userName = user?.name || user?.firstName || user?.email?.split("@")[0] || "User";
   const userInitials = userName.slice(0, 2).toUpperCase();
-  const avatarUrl = user?.avatar;
+
+  // Avatar caching — read localStorage immediately so the avatar shows on first
+  // render before the auth fetch resolves.  When the real URL arrives, persist
+  // it and kick off a browser-cache preload so subsequent mounts are instant.
+  const AVATAR_CACHE_KEY = "sc_cached_avatar_url";
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(
+    () => {
+      try { return localStorage.getItem(AVATAR_CACHE_KEY) || null; } catch { return null; }
+    }
+  );
+  useEffect(() => {
+    const liveUrl = user?.avatar ?? null;
+    if (!liveUrl) return;
+    // Update displayed URL
+    setAvatarUrl(liveUrl);
+    // Persist for next cold start
+    try { localStorage.setItem(AVATAR_CACHE_KEY, liveUrl); } catch { /* quota */ }
+    // Preload into browser cache so the network round-trip is already done
+    // by the time any subsequent component renders the <img>.
+    const img = new Image();
+    img.src = liveUrl;
+  }, [user?.avatar]);
 
   const navigate = (href: string) => setLocation(href);
 

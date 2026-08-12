@@ -4120,7 +4120,14 @@ public class DspHelper {
     if (typeof tweakId !== 'string') return { ok: false, error: 'Invalid tweakId' };
     const token = psLimiter.tryAcquire({ file: 'main.js', fn: 'slider:resetValue', reason: 'slider-reset' });
     if (!token) return { ok: false, error: 'busy' };
-    try { return await sliderTweakExecutor.resetSliderValue(tweakId); } finally { psLimiter.release(token); }
+    // Use forceRevertSliderToDefault (not resetSliderValue) so the UI "Reset to Default"
+    // button always lands on the compiled-in Windows default, bypassing any stale
+    // per-session backup.  resetSliderValue restores the backup first (e.g. 38 from a
+    // prior session) which makes the user click twice to reach the real default — and
+    // leaves a non-default value in the registry between clicks.
+    // resetSliderValue is still used by the premium-revert engine (trial expiry) where
+    // "restore what was there before the user ever touched this tweak" is the right goal.
+    try { return await sliderTweakExecutor.forceRevertSliderToDefault(tweakId); } finally { psLimiter.release(token); }
   });
   
   ipcMain.handle('tweak:getSliderMeta', (event, tweakId) => {
