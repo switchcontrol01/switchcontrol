@@ -818,29 +818,60 @@ async function resetNicProperty(adapterName, propertyKey) {
   // bug for NIC-backed Extreme Labs tweaks (RSS, Interrupt Moderation, EEE,
   // Flow Control). Now we read back the value and confirm it no longer matches
   // the toggle's "enabled" (applied) value before reporting success.
-  const readback = await readNicProperty(adapterName, propertyKey);
-  const actualValue = readback.registryValue ?? readback.displayValue ?? null;
 
+  // Helper: compute verified state from a readback result.
   // Fail-safe default: unknown → unverified rather than silently claiming success.
   // Previously this was `let verified = true`, meaning any future property with
   // type !== 'toggle' and no defaultValue (or an unreadable adapter) would report
   // 'reset_verified' without ever performing an actual readback check.
-  let verified;
-  if (def.type === 'toggle' && def.enabledValue !== undefined) {
-    // "reset" means the property should no longer be at the toggle's enabled value.
-    // If the adapter is unreadable after reset (!readback.supported), treat as ok
-    // because the reset command exited cleanly and we can't do better.
-    verified = !readback.supported || actualValue !== String(def.enabledValue);
-  } else if (def.defaultValue !== undefined && readback.supported) {
-    verified = String(actualValue) === String(def.defaultValue);
-  } else if (!readback.supported) {
-    // Property not readable post-reset — cannot confirm. Report unverified
-    // so the caller can show an appropriate "may need adapter restart" message.
-    verified = false;
-  } else {
-    // No defaultValue defined and no toggle check applicable. Any future property
-    // type that falls here gets 'reset_verify_failed' rather than a false positive.
-    verified = false;
+  function _computeNicResetVerified(rb, av) {
+    if (def.type === 'toggle' && def.enabledValue !== undefined) {
+      // "reset" means the property should no longer be at the toggle's enabled value.
+      // If the adapter is unreadable after reset (!rb.supported), treat as ok
+      // because the reset command exited cleanly and we can't do better.
+      return !rb.supported || av !== String(def.enabledValue);
+    } else if (def.defaultValue !== undefined && rb.supported) {
+      return String(av) === String(def.defaultValue);
+    } else if (!rb.supported) {
+      // Property not readable post-reset — cannot confirm. Report unverified
+      // so the caller can show an appropriate "may need adapter restart" message.
+      return false;
+    } else {
+      // No defaultValue defined and no toggle check applicable. Any future property
+      // type that falls here gets 'reset_verify_failed' rather than a false positive.
+      return false;
+    }
+  }
+
+  // ── Verify readback with one retry for driver-commit latency ─────────────────
+  // Some NIC drivers apply Reset-NetAdapterAdvancedProperty asynchronously: the
+  // cmdlet returns immediately but the driver takes a short additional moment to
+  // commit the new value before it's readable. A single immediate readback can
+  // see the stale (pre-reset) value and incorrectly report verify failure even
+  // though the reset genuinely succeeded.
+  //
+  // Strategy: attempt readback immediately (fast path — no added latency when
+  // the driver commits synchronously). If verify fails but the adapter is still
+  // readable, wait 250ms and try exactly once more. Two total attempts — we do
+  // not loop indefinitely. A genuine failure (adapter disconnected, truly
+  // unsupported) will still be readable and produce the same wrong value on
+  // both attempts, so it correctly remains failed after the retry.
+  let readback = await readNicProperty(adapterName, propertyKey);
+  let actualValue = readback.registryValue ?? readback.displayValue ?? null;
+  let verified = _computeNicResetVerified(readback, actualValue);
+
+  if (!verified && readback.supported) {
+    // First attempt failed and adapter is readable — wait for driver async commit
+    await new Promise(resolve => setTimeout(resolve, 250));
+    readback    = await readNicProperty(adapterName, propertyKey);
+    actualValue = readback.registryValue ?? readback.displayValue ?? null;
+    verified    = _computeNicResetVerified(readback, actualValue);
+    if (verified) {
+      console.log(
+        `[NIC:Tuning] reset=verify-retry-success property=${propertyKey} ` +
+        `actualValue=${actualValue} — driver-commit latency resolved after 250ms`
+      );
+    }
   }
 
   const outcome = verified ? 'reset_verified' : 'reset_verify_failed';

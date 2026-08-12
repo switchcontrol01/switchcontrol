@@ -621,6 +621,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     revertAll:            () => ipcRenderer.invoke('premium:revertAll'),
     previewRevert:        () => ipcRenderer.invoke('premium:previewRevert'),
     getOwnership:         () => ipcRenderer.invoke('premium:getOwnership'),
+    // Reads the disk-backed ownership store directly — survives clearPremiumOwnership()
+    // on the client Zustand store. Use for the boot-time revert gate so that tweaks
+    // that failed to revert in a prior session are still detected on next launch.
+    hasAppOwned:          () => ipcRenderer.invoke('premium:hasAppOwned'),
     powerPlanSanityCheck: () => ipcRenderer.invoke('premium:powerPlanSanityCheck'),
     cleanupScPlans:       () => ipcRenderer.invoke('premium:cleanupScPlans'),
   },

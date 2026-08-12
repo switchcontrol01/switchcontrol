@@ -228,11 +228,54 @@ export function usePremiumExpiry({
           }
         }
 
-        if (hasPremiumItemsToRevert()) {
-          const reason = determineRevertReason(plan ?? null, trialEndsAt ?? null);
-          console.log(`[PremiumExpiry] Opened post-expiry with owned items — reason=${reason} — triggering revert`);
-          triggerRevert(reason);
-        }
+        // ── Boot-time revert gate ─────────────────────────────────────────────
+        //
+        // Source-of-truth priority: Electron disk store > client Zustand store.
+        //
+        // The client Zustand store (tweakOwnershipStore) is cleared by
+        // closeRevertModal() via clearPremiumOwnership() for UI purposes.
+        // This means hasPremiumItemsToRevert() returns false on the next boot
+        // even when some tweaks failed to revert — those failure records persist
+        // correctly on the Electron disk-backed ownership store (appliedByApp=true).
+        //
+        // We call premium:hasAppOwned via IPC first. If the disk store confirms
+        // pending items, we trigger regardless of the client store state.
+        // hasPremiumItemsToRevert() is kept as a fallback for:
+        //   - Slider/preset tweaks (tracked only in client store, not disk store)
+        //   - Store-fallback tweaks (main Zustand only)
+        //   - Non-Electron paths
+        const reason = determineRevertReason(plan ?? null, trialEndsAt ?? null);
+        const checkDiskAndMaybeRevert = async () => {
+          let diskHasItems = false;
+          if (isElectronWithTweaks()) {
+            try {
+              const premiumAPI = (window as any).electronAPI?.premium;
+              if (premiumAPI?.hasAppOwned) {
+                const r = await premiumAPI.hasAppOwned();
+                diskHasItems = r?.hasItems === true;
+                console.log(
+                  `[PremiumExpiry] Disk ownership check — hasItems=${diskHasItems} count=${r?.count ?? 0}` +
+                  (r?.error ? ` error=${r.error}` : '')
+                );
+              }
+            } catch (e: any) {
+              // IPC failure is non-fatal — fall back to client store check below
+              console.warn('[PremiumExpiry] premium:hasAppOwned IPC failed, falling back to client store:', e?.message);
+            }
+          }
+
+          if (diskHasItems || hasPremiumItemsToRevert()) {
+            console.log(
+              `[PremiumExpiry] Opened post-expiry with owned items ` +
+              `(disk=${diskHasItems} clientStore=${hasPremiumItemsToRevert()}) ` +
+              `— reason=${reason} — triggering revert`
+            );
+            triggerRevert(reason);
+          } else {
+            console.log(`[PremiumExpiry] Boot check: no owned items on disk or client store — no revert needed`);
+          }
+        };
+        checkDiskAndMaybeRevert();
       }
       return;
     }

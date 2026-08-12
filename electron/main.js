@@ -5227,6 +5227,26 @@ $pwrThrot  = Reg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottl
       return { success: false, error: e.message, records: [] };
     }
   });
+
+  /**
+   * Check whether the disk-backed ownership store has any app-applied items
+   * that still need reverting (appliedByApp === true).
+   *
+   * This is the authoritative source of truth for the boot-time revert gate.
+   * The client-side Zustand ownership store is cleared by closeRevertModal() for
+   * UI purposes, which breaks the boot-time retry for items that failed to revert.
+   * Reading from the disk store directly avoids that gap — a failed revert leaves
+   * its record on disk with appliedByApp=true even after the modal is closed.
+   */
+  ipcMain.handle('premium:hasAppOwned', () => {
+    try {
+      const owned = ownershipStore.getAllAppOwned();
+      return { success: true, hasItems: owned.length > 0, count: owned.length };
+    } catch (e) {
+      console.error('[IPC] premium:hasAppOwned error:', e.message);
+      return { success: false, hasItems: false, count: 0, error: e.message };
+    }
+  });
   
   /**
    * Startup sanity check — Section 6 guard.
