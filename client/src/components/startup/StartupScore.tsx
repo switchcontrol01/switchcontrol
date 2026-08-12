@@ -54,8 +54,6 @@ export function StartupScore({ score, visible }: Props) {
           viewBox="0 0 100 100"
           style={{ transform: "rotate(-90deg)" }}
         >
-          {/* Outer track */}
-          <circle cx="50" cy="50" r={r} fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="11" />
           {/* Value arc — Cleaner-style transition */}
           <circle
             cx="50" cy="50" r={r}

@@ -224,9 +224,11 @@ function NavItemRow({
               }}
             />
           </div>
-          {/* Outer bloom */}
+          {/* Outer bloom — ring-1 class exempts this element from the
+              light-mode box-shadow:none kill so the active-state outline
+              remains visible when app-light-mode is active. */}
           <motion.div
-            className="absolute inset-0 rounded-xl"
+            className="absolute inset-0 rounded-xl ring-1 ring-cyan-400/[0.18]"
             style={{ boxShadow: "0 0 0 1px rgba(0,212,255,0.18), 0 0 16px -2px rgba(0,212,255,0.18)" }}
             animate={{ opacity: [0.8, 1, 0.8] }}
             transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
