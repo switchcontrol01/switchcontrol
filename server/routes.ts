@@ -639,11 +639,14 @@ export async function registerRoutes(
     }
   });
 
-  // Rate limited: max 5 checkout session creations per user per hour.
-  // This prevents checkout spam and reduces Stripe API load.
+  // Rate limited: max 10 checkout session creations per user per hour.
+  // Raised from 5 → 10: a legitimate user retrying after transient Stripe errors
+  // could exhaust 5 in a single frustrated session; 10 keeps abuse protection while
+  // giving real purchasers enough headroom. keyGenerator is per-authenticated-user
+  // (req.cloudUser.id) so different users cannot affect each other's counters.
   const stripeCheckoutLimiter = rateLimit({
     windowMs: 60 * 60 * 1000,
-    max: 5,
+    max: 10,
     standardHeaders: true,
     legacyHeaders: false,
     validate: { xForwardedForHeader: false, keyGeneratorIpFallback: false },

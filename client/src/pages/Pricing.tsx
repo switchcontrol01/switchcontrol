@@ -522,6 +522,31 @@ export default function Pricing() {
         credentials: "include",
       });
       const data = await res.json();
+
+      if (res.status === 429) {
+        // Server sets Retry-After as seconds remaining in the rate-limit window
+        // (standardHeaders: true in express-rate-limit). Parse it and tell the
+        // user exactly how long to wait instead of a generic "try again later".
+        let waitMsg = "Please try again later.";
+        try {
+          const retryAfterSec = Number(res.headers.get("Retry-After"));
+          if (!isNaN(retryAfterSec) && retryAfterSec > 0) {
+            const mins = Math.ceil(retryAfterSec / 60);
+            waitMsg = mins <= 1
+              ? "Please try again in about a minute."
+              : `Please try again in ${mins} minutes.`;
+          }
+        } catch {
+          // header missing or unparseable — fall back to generic message
+        }
+        toast({
+          title: "Checkout Error",
+          description: `Checkout rate limit reached. ${waitMsg}`,
+          variant: "destructive",
+        });
+        return;
+      }
+
       if (!res.ok) throw new Error(data.error || "Failed to create checkout session");
       if (data.url) window.location.href = data.url;
       else throw new Error("No checkout URL received");
