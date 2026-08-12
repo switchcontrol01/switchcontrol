@@ -2340,61 +2340,81 @@
   // works even on heavy-WMI AMD systems where CimInstance queries time out.
   ipcMain.handle('driverIntel:getInstalledVersions', async () => {
     if (process.platform !== 'win32') return {};
-    const ps = [
-      "$result = @{}",
-      // Map each device class GUID to a short type tag used in the switch below.
-      "$classes = @{",
-      "  '{4d36e968-e325-11ce-bfc1-08002be10318}' = 'display'",
-      "  '{4d36e975-e325-11ce-bfc1-08002be10318}' = 'net'",
-      "  '{4d36e96c-e325-11ce-bfc1-08002be10318}' = 'media'",
-      "  '{e0cbf06c-cd8b-4647-bb8a-263b43f0f974}' = 'bluetooth'",
-      "}",
-      "foreach ($entry in $classes.GetEnumerator()) {",
-      "  $gc = \"HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Class\\$($entry.Key)\"",
-      "  try {",
-      "    Get-ChildItem $gc -EA SilentlyContinue |",
-      "      Where-Object { $_.PSChildName -match '^\\d+$' } |",
-      "      ForEach-Object {",
-      "        try {",
-      "          $v = (Get-ItemProperty $_.PSPath -Name DriverVersion -EA Stop).DriverVersion",
-      "          $n = (Get-ItemProperty $_.PSPath -Name DriverDesc    -EA SilentlyContinue).DriverDesc",
-      "          if (-not ($v -and $n)) { return }",
-      "          $desc = $n.ToLower()",
-      "          switch ($entry.Value) {",
-      "            'display' {",
-      "              if     ($desc -match 'amd|radeon')     { $result.amd_gpu = $v }",
-      "              elseif ($desc -match 'nvidia|geforce') {",
-      "                $ver = $v -replace '.*\\.', ''",
-      "                $result.nvidia_gpu = if ($ver.Length -ge 5) { ($ver.Substring(0,$ver.Length-2)+'.'+$ver.Substring($ver.Length-2)) } else { $v }",
-      "              }",
-      "              elseif ($desc -match 'intel.*graphics|intel.*uhd|intel.*iris|intel.*xe') { $result.intel_gpu = $v }",
-      "            }",
-      "            'net' {",
-      "              if     ($desc -match 'wi-fi|wifi|wireless|wlan|802\\.11|airlink|fastconnect') { if (-not $result.wifi)     { $result.wifi     = $v } }",
-      "              elseif ($desc -match 'ethernet|pci.*e[0-9]|killer.*e[0-9]|realtek.*pci|intel.*i[0-9]|i225|i226') { if (-not $result.ethernet) { $result.ethernet = $v } }",
-      "            }",
-      "            'media' {",
-      "              if ($desc -match 'audio|sound|realtek|hd audio|ac97|high definition') { if (-not $result.audio) { $result.audio = $v } }",
-      "            }",
-      "            'bluetooth' {",
-      "              if ($desc -match 'bluetooth') { if (-not $result.bluetooth) { $result.bluetooth = $v } }",
-      "            }",
-      "          }",
-      "        } catch {}",
-      "      }",
-      "  } catch {}",
-      "}",
-      // nvidia-smi gives the canonical display-driver version on NVIDIA systems,
-      // overriding the WHQL-format registry string (e.g. 31.0.15.x → 551.xx).
-      "try {",
-      "  $smi = & 'nvidia-smi' --query-gpu=driver_version --format=csv,noheader 2>$null",
-      "  if ($smi -and $smi.Trim()) { $result.nvidia_gpu = $smi.Trim() }",
-      "} catch {}",
-      "ConvertTo-Json -InputObject $result -Compress -Depth 2",
-    ].join("\n");
-    const raw = await runMainPs(ps, { timeout: 12_000, label: 'driverIntel:getInstalledVersions' });
-    try { return JSON.parse(raw || '{}'); }
-    catch { return {}; }
+
+    // Flat sequential script — one section per device class so there is no
+    // switch-inside-ForEach-inside-foreach nesting that can behave oddly on
+    // some PS versions.  Bracket notation ($result['key']) is used throughout
+    // because it is more reliable than dot notation inside pipeline blocks.
+    const ps = `
+$result = @{}
+
+function Read-DeviceClass($classPath) {
+  if (-not (Test-Path $classPath)) { return }
+  Get-ChildItem $classPath -EA SilentlyContinue |
+    Where-Object { $_.PSChildName -match '^\\d+$' } |
+    ForEach-Object {
+      try {
+        $v = (Get-ItemProperty $_.PSPath -Name DriverVersion -EA Stop).DriverVersion
+        $n = (Get-ItemProperty $_.PSPath -Name DriverDesc    -EA SilentlyContinue).DriverDesc
+        if ($v -and $n) { [PSCustomObject]@{ Version=$v; Desc=$n.ToLower() } }
+      } catch {}
+    }
+}
+
+# ── GPU (Display class) ───────────────────────────────────────────────────────
+$gcGpu = 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Class\\{4d36e968-e325-11ce-bfc1-08002be10318}'
+Read-DeviceClass $gcGpu | ForEach-Object {
+  $d = $_.Desc; $v = $_.Version
+  if     ($d -match 'amd|radeon')                                        { if (-not $result['amd_gpu'])   { $result['amd_gpu']   = $v } }
+  elseif ($d -match 'nvidia|geforce')                                    { if (-not $result['nvidia_gpu'])  {
+      $ver = $v -replace '.*\\.', ''
+      $result['nvidia_gpu'] = if ($ver.Length -ge 5) { $ver.Substring(0,$ver.Length-2)+'.'+$ver.Substring($ver.Length-2) } else { $v }
+  }}
+  elseif ($d -match 'intel.*graphics|intel.*uhd|intel.*iris|intel.*xe') { if (-not $result['intel_gpu'])  { $result['intel_gpu']  = $v } }
+}
+
+# ── Network (Net class) ───────────────────────────────────────────────────────
+$gcNet = 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Class\\{4d36e975-e325-11ce-bfc1-08002be10318}'
+Read-DeviceClass $gcNet | ForEach-Object {
+  $d = $_.Desc; $v = $_.Version
+  if     ($d -match 'wi-fi|wifi|wireless|wlan|802\\.11|fastconnect|airlink') { if (-not $result['wifi'])     { $result['wifi']     = $v } }
+  elseif ($d -match 'ethernet|pci.*e[0-9]|killer|realtek.*pci|intel.*i[0-9]|i225|i226') { if (-not $result['ethernet']) { $result['ethernet'] = $v } }
+}
+
+# ── Audio / Media (Media class) ───────────────────────────────────────────────
+$gcMedia = 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Class\\{4d36e96c-e325-11ce-bfc1-08002be10318}'
+Read-DeviceClass $gcMedia | ForEach-Object {
+  $d = $_.Desc; $v = $_.Version
+  if ($d -match 'audio|sound|realtek|hd audio|ac97|high definition') { if (-not $result['audio']) { $result['audio'] = $v } }
+}
+
+# ── Bluetooth ─────────────────────────────────────────────────────────────────
+$gcBt = 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Class\\{e0cbf06c-cd8b-4647-bb8a-263b43f0f974}'
+Read-DeviceClass $gcBt | ForEach-Object {
+  $d = $_.Desc; $v = $_.Version
+  if ($d -match 'bluetooth') { if (-not $result['bluetooth']) { $result['bluetooth'] = $v } }
+}
+
+# ── NVIDIA canonical version via nvidia-smi (overrides WHQL registry string) ─
+try {
+  $smi = & 'nvidia-smi' --query-gpu=driver_version --format=csv,noheader 2>$null
+  if ($smi -and $smi.Trim()) { $result['nvidia_gpu'] = $smi.Trim() }
+} catch {}
+
+ConvertTo-Json -InputObject $result -Compress -Depth 2
+`.trim();
+
+    // Retry up to 3× with 2 s delay — psLimiter slots may all be occupied by
+    // startup WMI queries on AMD/heavy-WMI systems.
+    for (let attempt = 0; attempt < 3; attempt++) {
+      if (attempt > 0) await new Promise(r => setTimeout(r, 2000));
+      const raw = await runMainPs(ps, { timeout: 15_000, label: 'driverIntel:getInstalledVersions' });
+      if (raw) {
+        try { return JSON.parse(raw); }
+        catch { return {}; }
+      }
+    }
+    return {};
   });
 
   ipcMain.handle('system:getInfo', () => ({
@@ -3268,6 +3288,13 @@ public class DspHelper {
     $miHwId = $monHwIds[$i]
     $ed     = if ($miHwId -and $edidMap.ContainsKey($miHwId)) { $edidMap[$miHwId] } else { $null }
   
+    # Positional screen fallback — screens sorted left-to-right by x so index $i maps
+    # to the same display order as WmiMonitorID.  Used when hwId/EDID matching fails
+    # ($dev is null) so we still get the correct per-monitor Hz from EnumDisplaySettings.
+    # NOTE: $scr is ALWAYS null when $dev is null (it is derived from $dev's position),
+    # so the old "if ($scr)" branch inside the else block was dead code.  This replaces it.
+    $sortedScreens = @($screens | Sort-Object { [int]$_.x })
+    $fallbackScr   = if ($i -lt $sortedScreens.Count) { $sortedScreens[$i] } else { $null }
     $hz=$null; $maxHzOut=$null; $bpp=$null; $rx=$null; $ry=$null
     if ($dev) {
       # Per-device data from EnumDisplaySettings — authoritative for multi-monitor, no index aliasing
@@ -3286,10 +3313,14 @@ public class DspHelper {
           $rx=[int]$Matches[1]; $ry=[int]$Matches[2]
         }
       }
-      if ($scr) {
-        $rx=$scr.w; $ry=$scr.h
-        $hzEntry = $screenHz | Where-Object { $_.x -eq $scr.x -and $_.y -eq $scr.y } | Select-Object -First 1
-        if ($hzEntry -and [int]$hzEntry.hz -gt 0) { $hz = [int]$hzEntry.hz }
+      # Per-monitor Hz via positional screen (sorted left-to-right).
+      # This is authoritative for the Hz when hwId/EDID correlation fails,
+      # because $vc.CurrentRefreshRate is a GPU-level value that always reflects
+      # the PRIMARY monitor's refresh rate on single-GPU setups.
+      if ($fallbackScr) {
+        $rx = $fallbackScr.w; $ry = $fallbackScr.h
+        $hzFb = $screenHz | Where-Object { $_.x -eq $fallbackScr.x -and $_.y -eq $fallbackScr.y } | Select-Object -First 1
+        if ($hzFb -and [int]$hzFb.hz -gt 0) { $hz = [int]$hzFb.hz }
       }
     }
   
@@ -3302,7 +3333,7 @@ public class DspHelper {
       edidVersion=if($ed){$ed.ver}else{$null}
       hdrEnabled=$hdrOn; vrrEnabled=$vrrOn; vrrCapable=$vrrCap; freeSyncEnabled=$fsOn
       vrrMin=$vrrMin; vrrMax=$vrrMax; gpuName=$monGpu
-      isPrimary=if($scr){$scr.primary}else{($i -eq 0)}
+      isPrimary=if($scr){$scr.primary}elseif($fallbackScr){$fallbackScr.primary}else{($i -eq 0)}
     }
     $i++
   }
@@ -3985,7 +4016,7 @@ public class DspHelper {
   function GP($p){try{if(!$p -or !(Test-Path $p -EA SilentlyContinue)){return $null};$v=[Diagnostics.FileVersionInfo]::GetVersionInfo($p);if($v.CompanyName){return $v.CompanyName.Trim()}}catch{};return $null}
   function GA($rp){$m=@{};try{$k=Get-Item $rp -EA SilentlyContinue;if($k){foreach($n in $k.GetValueNames()){try{$b=$k.GetValue($n,$null,'DoNotExpandEnvironmentNames');$m[$n]=($b -is [byte[]] -and $b.Length -gt 0 -and $b[0] -eq 2)}catch{}}}}catch{};return $m}
   function MID($s){[Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($s)) -replace '[^A-Za-z0-9]',''}
-  function RRK($src,$rp,$ap){$ap2=GA $ap;try{$k=Get-Item $rp -EA SilentlyContinue;if(!$k){return};foreach($n in $k.GetValueNames()){try{$cmd=$k.GetValue($n,$null,'DoNotExpandEnvironmentNames');if(!$cmd){continue};$exe=EP $cmd;$ex=TE $exe;$pub=if($ex){GP $exe}else{$null};$en=if($ap2.ContainsKey($n)){$ap2[$n]}else{$true};$entries.Add(@{id=(MID "\${src}-$n");name=$n;publisher=$pub;executablePath=$exe;commandLine="$cmd";source=$src;enabled=$en;fileExists=$ex;broken=(!$ex);registryName=$n})}catch{}}}catch{$errs+="RunKey \${src}: \${_}"}}
+  function RRK($src,$rp,$ap){$ap2=GA $ap;try{$k=Get-Item $rp -EA SilentlyContinue;if(!$k){return};foreach($n in $k.GetValueNames()){try{$cmd=$k.GetValue($n,$null,'DoNotExpandEnvironmentNames');if(!$cmd){continue};$exe=EP $cmd;$exeE=if($exe){[Environment]::ExpandEnvironmentVariables($exe)}else{$null};$ex=TE $exeE;$pub=if($ex){GP $exeE}else{$null};$en=if($ap2.ContainsKey($n)){$ap2[$n]}else{$true};$entries.Add(@{id=(MID "\${src}-$n");name=$n;publisher=$pub;executablePath=$exeE;commandLine="$cmd";source=$src;enabled=$en;fileExists=$ex;broken=(!$ex);registryName=$n})}catch{}}}catch{$errs+="RunKey \${src}: \${_}"}}
   RRK 'registry-hkcu' 'HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Run' 'HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved\\Run'
   RRK 'registry-hklm' 'HKLM:\\Software\\Microsoft\\Windows\\CurrentVersion\\Run' 'HKLM:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved\\Run'
   function RF($src,$folder){if(!(Test-Path $folder -EA SilentlyContinue)){return};Get-ChildItem $folder -Filter '*.lnk' -EA SilentlyContinue|ForEach-Object{try{$sh=New-Object -ComObject WScript.Shell;$lnk=$sh.CreateShortcut($_.FullName);$exe=$lnk.TargetPath;$a2=$lnk.Arguments;$cmd=if($a2){"$([char]34)$exe$([char]34) $a2"}else{$exe};$ex=TE $exe;$pub=if($ex){GP $exe}else{$null};$n=$_.BaseName;$entries.Add(@{id=(MID "$src-$n");name=$n;publisher=$pub;executablePath=$exe;commandLine=$cmd;source=$src;enabled=$true;fileExists=$ex;broken=(!$ex);folderPath=$_.FullName})}catch{}}}
@@ -4793,16 +4824,28 @@ $pwrThrot  = Reg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottl
   // Power Plan handlers
   ipcMain.handle('powerPlans:getState', async () => {
     verboseLog('[IPC] powerPlans:getState');
-    const _token = psLimiter.tryAcquire({ file: 'main.js', fn: 'powerPlans:getState', reason: 'power-plan-read' });
-    if (!_token) return { success: false, skipped: true, error: 'Power-plan operation already in progress' };
-    try {
-      return await powerPlanManager.getPowerPlanState();
-    } catch (e) {
-      console.error('[IPC] powerPlans:getState error:', e.message);
-      return { success: false, error: e.message };
-    } finally {
-      psLimiter.release(_token);
+    // Retry up to 3× with 1.5 s delay — psLimiter slots may all be occupied by
+    // startup scans (enrichment, syncAll, batchCheckAll, etc.) when the user
+    // navigates to the Power Plan page immediately after launch.  Same pattern
+    // as system:getInfo (line 2407 area).
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const _token = psLimiter.tryAcquire({ file: 'main.js', fn: 'powerPlans:getState', reason: 'power-plan-read' });
+      if (_token) {
+        try {
+          return await powerPlanManager.getPowerPlanState();
+        } catch (e) {
+          console.error('[IPC] powerPlans:getState error:', e.message);
+          return { success: false, error: e.message };
+        } finally {
+          psLimiter.release(_token);
+        }
+      }
+      if (attempt < 2) {
+        console.log(`[IPC] powerPlans:getState — limiter busy (attempt ${attempt + 1}/3), retrying in 1.5 s`);
+        await new Promise(r => setTimeout(r, 1500));
+      }
     }
+    return { success: false, skipped: true, error: 'Power-plan state read timed out — the app is busy at startup. Use the Retry button.' };
   });
   
   ipcMain.handle('powerPlans:applyProfile', async (event, profileId) => {

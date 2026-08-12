@@ -418,7 +418,7 @@ async function discoverProperty(safeAdapter, def) {
  */
 async function getNetAdapters() {
   const raw = await queryPS(
-    `Get-NetAdapter | Where-Object { $_.Virtual -eq $false -and $_.MediaType -ne 'Unsupported' } | Select-Object Name, InterfaceDescription, Status, MediaType, MacAddress | ConvertTo-Json -Compress`
+    `Get-NetAdapter | Where-Object { $_.Virtual -eq $false -and $_.MediaType -ne 'Unsupported' } | Select-Object Name, InterfaceDescription, Status, MediaConnectorPresent, MediaConnectionState, MediaType, MacAddress | ConvertTo-Json -Compress`
   );
 
   if (!raw) return { adapters: [], error: 'Could not query network adapters.' };
@@ -431,6 +431,10 @@ async function getNetAdapters() {
         name:        a.Name || '',
         description: a.InterfaceDescription || '',
         status:      a.Status || 'Unknown',
+        // connected = true means the adapter has an active link (cable in / WiFi associated).
+        // MediaConnectionState: 1 = Connected, 2 = Disconnected, 0/null = unknown.
+        // This is separate from Status ("Up" = enabled, not necessarily linked).
+        connected:   a.MediaConnectionState === 1,
         mediaType:   a.MediaType || '',
         macAddress:  a.MacAddress || '',
       })),

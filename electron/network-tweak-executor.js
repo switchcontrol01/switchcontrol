@@ -110,10 +110,17 @@ const TWEAK_REGISTRY = {
       Set-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\LanmanServer\\Parameters" -Name "SMB2" -Value 1 -Type DWord -Force;
       Write-Output "ok"
     `,
+    // Revert explicitly sets SMB2=0 (disabled) instead of removing the key.
+    // Removing the key returns Windows to its default (SMBv2 enabled), so
+    // checkStatus would immediately read back applied=true even after a successful
+    // revert — causing the toggle to bounce back to ON in the UI.  Setting SMB2=0
+    // makes the disabled state explicit and verifiable.
     revert: `
-      Remove-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\LanmanServer\\Parameters" -Name "SMB2" -EA SilentlyContinue;
+      Set-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\LanmanServer\\Parameters" -Name "SMB2" -Value 0 -Type DWord -Force;
       Write-Output "ok"
     `,
+    // check: SMB2=1 or absent (null) → Windows default = enabled → true
+    //        SMB2=0 → explicitly disabled → false
     check: `
       $v = (Get-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\LanmanServer\\Parameters" -Name "SMB2" -EA SilentlyContinue).SMB2;
       if ($v -eq 1 -or $null -eq $v) { "true" } else { "false" }
@@ -335,7 +342,7 @@ const TWEAK_REGISTRY = {
       Write-Output "ok"
     `,
     revert: `
-      netsh int tcp set global rss=enabled;
+      netsh int tcp set global rss=disabled;
       Write-Output "ok"
     `,
     check: `

@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { Switch } from "@/components/ui/switch";
 import type { BootApp } from "./startupUtils";
 import { Cpu, HardDrive, Timer, AlertTriangle, Monitor, Gamepad2, Globe, Package, ChevronDown } from "lucide-react";
+import { publisherToDomain, iconSrcsForDomain } from "@/lib/publisherIcons";
 
 const CAT_ICONS: Record<string, any> = {
   system:    Monitor,
@@ -13,7 +14,13 @@ const CAT_ICONS: Record<string, any> = {
   broken:    AlertTriangle,
 };
 
-// ── Native app icon extraction (unchanged — same IPC bridge) ──────────────────
+// ── Native app icon extraction with web logo fallback ─────────────────────────
+// Priority:
+//   1. Native icon from .exe via Electron shell.getFileIcon (appIcons:forPath IPC)
+//   2. Clearbit logo API          (high-quality company logos)
+//   3. DuckDuckGo favicons        (wide coverage)
+//   4. FaviconKit                 (last-resort favicon service)
+//   5. Category icon              (always works, final fallback)
 
 const _iconCache = new Map<string, string | null>();
 
@@ -22,8 +29,20 @@ function AppIcon({ app, size = 28 }: { app: BootApp; size?: number }) {
   const [dataUrl, setDataUrl] = useState<string | null | undefined>(
     path ? _iconCache.get(path) : null,
   );
+  const [webIdx, setWebIdx] = useState(0);
+  const [webFailed, setWebFailed] = useState(false);
+
+  // Web icon sources derived from publisher and app name
+  const webSrcs = useMemo<string[]>(() => {
+    const domain = publisherToDomain(app.entry.publisher ?? "", app.entry.name);
+    return domain ? iconSrcsForDomain(domain) : [];
+  }, [app.entry.publisher, app.entry.name]);
 
   useEffect(() => {
+    // Reset web fallback state when app changes
+    setWebIdx(0);
+    setWebFailed(false);
+
     if (!path) { setDataUrl(null); return; }
     const cached = _iconCache.get(path);
     if (cached !== undefined) { setDataUrl(cached); return; }
@@ -42,6 +61,7 @@ function AppIcon({ app, size = 28 }: { app: BootApp; size?: number }) {
     return () => { cancelled = true; };
   }, [path]);
 
+  // 1. Native icon loaded successfully
   if (dataUrl) {
     return (
       <div
@@ -53,6 +73,29 @@ function AppIcon({ app, size = 28 }: { app: BootApp; size?: number }) {
     );
   }
 
+  // 2. Native returned null — try web logo cascade
+  if (dataUrl === null && webSrcs.length > 0 && !webFailed) {
+    return (
+      <div
+        className="rounded-lg flex items-center justify-center shrink-0 bg-[#21262D] border border-white/[0.07] overflow-hidden"
+        style={{ width: size, height: size }}
+      >
+        <img
+          key={webSrcs[webIdx]}
+          src={webSrcs[webIdx]}
+          alt=""
+          className="w-full h-full object-contain p-0.5"
+          draggable={false}
+          onError={() => {
+            if (webIdx + 1 < webSrcs.length) setWebIdx((i: number) => i + 1);
+            else setWebFailed(true);
+          }}
+        />
+      </div>
+    );
+  }
+
+  // 3. Final fallback: category glyph
   const Icon = CAT_ICONS[app.category] || Package;
   return (
     <div

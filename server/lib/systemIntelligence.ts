@@ -4,7 +4,6 @@
  * Collects once on first request, caches for CACHE_TTL_MS, refreshes on demand.
  * Every field is nullable — if data is unreliable it returns null, never fake values.
  */
-
 import si from "systeminformation";
 import { execFile } from "child_process";
 import { promisify } from "util";
@@ -430,41 +429,118 @@ async function runPS(script: string): Promise<string | null> {
   }
 }
 
-// ── Windows monitor EDID name collector ───────────────────────────────────────
-
-async function collectMonitorEdidNames(): Promise<Array<{ name: string; manufacturer: string }>> {
+// ── Windows monitor EDID + identity collector ─────────────────────────────────
+// Returns:
+//   edidMap          — keyed by hardware ID (e.g. "SAM0E4F"), from the registry
+//                       key name under HKLM:\...\Enum\DISPLAY\<hwid>\ — the same
+//                       token WmiMonitorID.InstanceName encodes after "DISPLAY\".
+//   deviceNameToHwId — keyed by Windows' logical display name (e.g. "\\.\DISPLAY1"),
+//                       which is exactly what si.graphics().displays[].deviceName
+//                       returns on Windows. Built via EnumDisplayDevices (Win32 API),
+//                       the same technique used in electron/main.js's monitor
+//                       correlation fix.
+//
+// This lets callers match si.graphics().displays[] to the correct EDID entry by
+// IDENTITY (hardware ID) rather than by array position — si.graphics() and this
+// WMI/registry probe are two independent enumeration sources and are NOT
+// guaranteed to return monitors in the same order.
+interface MonitorEdidEntry {
+  name: string;
+  manufacturer: string;
+  nativeResX: number | null;
+  nativeResY: number | null;
+}
+interface MonitorIdentityResult {
+  edidMap: Record<string, MonitorEdidEntry>;
+  deviceNameToHwId: Record<string, string>;
+}
+async function collectMonitorEdidInfo(): Promise<MonitorIdentityResult> {
   const raw = await runPS(`
+Set-StrictMode -Off
+$edidMap = @{}
+$deviceNameToHwId = @{}
+
+# ── EDID map, keyed by hardware ID (registry key name under Enum\\DISPLAY\\) ──
 try {
-  $monitors = Get-CimInstance -Namespace root/wmi -ClassName WmiMonitorID -ErrorAction SilentlyContinue
-  if (-not $monitors) { Write-Output '[]'; return }
-  $result = @()
-  foreach ($m in $monitors) {
-    $name = ''
-    $mfr  = ''
-    if ($m.UserFriendlyName) {
-      $name = ([System.Text.Encoding]::ASCII.GetString($m.UserFriendlyName)).TrimEnd([char]0).Trim()
+  $base = "HKLM:\\SYSTEM\\CurrentControlSet\\Enum\\DISPLAY"
+  foreach ($mod in (Get-ChildItem $base -EA SilentlyContinue | Select-Object -First 8)) {
+    $hwid = $mod.PSChildName.ToUpper()
+    foreach ($inst in (Get-ChildItem $mod.PSPath -EA SilentlyContinue | Select-Object -First 4)) {
+      $e = (Get-ItemProperty (Join-Path $inst.PSPath "Device Parameters") -Name EDID -EA SilentlyContinue).EDID
+      if ($e -and $e.Count -ge 72) {
+        $name = ''
+        $mfr  = ''
+        try {
+          $mid = Get-CimInstance -Namespace root/wmi -ClassName WmiMonitorID -Filter "InstanceName like '%$hwid%'" -EA SilentlyContinue | Select-Object -First 1
+          if ($mid) {
+            if ($mid.UserFriendlyName)  { $name = ([System.Text.Encoding]::ASCII.GetString($mid.UserFriendlyName)).TrimEnd([char]0).Trim() }
+            if ($mid.ManufacturerName)  { $mfr  = ([System.Text.Encoding]::ASCII.GetString($mid.ManufacturerName)).TrimEnd([char]0).Trim() }
+          }
+        } catch {}
+        $hHi = ([int]$e[58] -band 0xF0) -shr 4; $hLo = [int]$e[56]
+        $vHi = ([int]$e[61] -band 0xF0) -shr 4; $vLo = [int]$e[59]
+        $nx = ($hHi -shl 8) -bor $hLo; $ny = ($vHi -shl 8) -bor $vLo
+        if (-not $edidMap.ContainsKey($hwid)) {
+          $edidMap[$hwid] = @{
+            name = $name; manufacturer = $mfr
+            nativeResX = if ($nx -gt 320) { $nx } else { $null }
+            nativeResY = if ($ny -gt 240) { $ny } else { $null }
+          }
+        }
+        break
+      }
     }
-    if ($m.ManufacturerName) {
-      $mfr = ([System.Text.Encoding]::ASCII.GetString($m.ManufacturerName)).TrimEnd([char]0).Trim()
-    }
-    $result += [PSCustomObject]@{ Name = $name; Manufacturer = $mfr }
   }
-  $result | ConvertTo-Json -Compress
-} catch { Write-Output '[]' }
+} catch {}
+
+# ── deviceName ("\\\\.\\DISPLAYn") → hardware ID map, via EnumDisplayDevices ────
+try {
+  Add-Type -TypeDefinition @'
+using System; using System.Runtime.InteropServices;
+public class DspIdHelper {
+  [StructLayout(LayoutKind.Sequential, CharSet=CharSet.Ansi)]
+  public struct DISPLAY_DEVICE {
+    public int cb;
+    [MarshalAs(UnmanagedType.ByValTStr, SizeConst=32)]  public string DeviceName;
+    [MarshalAs(UnmanagedType.ByValTStr, SizeConst=128)] public string DeviceString;
+    public int StateFlags;
+    [MarshalAs(UnmanagedType.ByValTStr, SizeConst=128)] public string DeviceID, DeviceKey;
+  }
+  [DllImport("user32.dll")] public static extern bool EnumDisplayDevices(string d, uint i, ref DISPLAY_DEVICE dd, uint f);
+}
+'@ -EA Stop
+
+  $di = [uint32]0
+  while ($true) {
+    $dd = New-Object DspIdHelper+DISPLAY_DEVICE; $dd.cb = [System.Runtime.InteropServices.Marshal]::SizeOf($dd)
+    if (![DspIdHelper]::EnumDisplayDevices($null, $di, [ref]$dd, 0)) { break }
+    if ($dd.StateFlags -band 1) {
+      # $dd.DeviceName is the adapter-level logical name, e.g. "\\\\.\\DISPLAY1" —
+      # this is the SAME string si.graphics().displays[].deviceName returns.
+      $dd2 = New-Object DspIdHelper+DISPLAY_DEVICE; $dd2.cb = [System.Runtime.InteropServices.Marshal]::SizeOf($dd2)
+      if ([DspIdHelper]::EnumDisplayDevices($dd.DeviceName, [uint32]0, [ref]$dd2, 0) -and $dd2.DeviceID) {
+        if ($dd2.DeviceID -match 'MONITOR\\([^\\]+)\\') {
+          $deviceNameToHwId[$dd.DeviceName] = $Matches[1].ToUpper()
+        }
+      }
+    }
+    $di++
+  }
+} catch {}
+
+[PSCustomObject]@{ edidMap = $edidMap; deviceNameToHwId = $deviceNameToHwId } | ConvertTo-Json -Compress -Depth 4
 `.trim());
 
-  if (!raw) return [];
+  const empty: MonitorIdentityResult = { edidMap: {}, deviceNameToHwId: {} };
+  if (!raw) return empty;
   try {
     const parsed = JSON.parse(raw);
-    const arr = Array.isArray(parsed) ? parsed : [parsed];
-    return arr
-      .filter((m: any) => typeof m === "object" && m !== null)
-      .map((m: any) => ({
-        name: (m.Name ?? "").trim(),
-        manufacturer: (m.Manufacturer ?? "").trim(),
-      }));
+    return {
+      edidMap: parsed?.edidMap ?? {},
+      deviceNameToHwId: parsed?.deviceNameToHwId ?? {},
+    };
   } catch {
-    return [];
+    return empty;
   }
 }
 
@@ -601,19 +677,19 @@ async function collect(): Promise<SystemIntelligenceProfile> {
   ]);
   await new Promise(r => setTimeout(r, 400));
 
-  // Batch 5: graphics + monitor EDID — known AMD/Radeon hangers.
+  // Batch 5: graphics + monitor EDID/identity — known AMD/Radeon hangers.
   // By the time these run, all critical data is already collected.
   const [graphicsRes, monitorEdidRes] = await Promise.allSettled([
     siTimeoutTracked("graphics",    si.graphics(),             8_000),
-    siTimeoutTracked("monitorEDID", collectMonitorEdidNames(), 8_000),
+    siTimeoutTracked("monitorEDID", collectMonitorEdidInfo(),  8_000),
   ]);
 
   // CPU: si.cpu() spawns PowerShell and frequently hangs on AMD cold-start.
   // os.cpus() gives brand + core count instantly with no process spawn.
   // The existing os.cpus() fallback below handles this transparently.
   const cpuRes: PromiseSettledResult<null> = { status: "fulfilled", value: null };
-  const edidNames: Array<{ name: string; manufacturer: string }> =
-    monitorEdidRes.status === "fulfilled" ? monitorEdidRes.value : [];
+  const monitorIdentity: MonitorIdentityResult =
+    monitorEdidRes.status === "fulfilled" ? monitorEdidRes.value : { edidMap: {}, deviceNameToHwId: {} };
 
   const audioDevices: Array<{ name: string | null; manufacturer: string | null }> =
     audioRes.status === "fulfilled"
@@ -668,22 +744,69 @@ async function collect(): Promise<SystemIntelligenceProfile> {
     external: typeof c.external === "boolean" ? c.external : null,
   })).filter((c: SipController) => c.name !== null);
 
+  // ── Identity-based EDID correlation (Tier 1 → Tier 2 → Tier 3) ────────────────
+  // si.graphics().displays[] and the WMI/registry EDID probe are two independent
+  // enumeration sources — NOT guaranteed to return monitors in the same order.
+  // Positional matching (displays[i] ↔ edidNames[i]) silently attaches the wrong
+  // monitor's name/native-res to the wrong entry when the two sources enumerate
+  // in different orders. Mirrors the identity-based fix already applied to
+  // electron/main.js's _runDisplayInfoPs().
+  //
+  // Tier 1 — deviceName ("\\.\DISPLAYn", from si.graphics()) → hardware ID
+  //          (from EnumDisplayDevices) → EDID entry (from registry, same hwId key).
+  //          Most reliable; used whenever si supplies deviceName and the hwId
+  //          lookup succeeds.
+  // Tier 2 — native-resolution constraint: a display cannot run above its own
+  //          native resolution. If exactly ONE unused EDID entry satisfies
+  //          currentRes <= nativeRes for a display still unmatched after Tier 1,
+  //          assign it. If ambiguous (0 or 2+ candidates), do not guess.
+  // Tier 3 — leave the original si model name as-is (no EDID override) rather
+  //          than attach a guessed name — an honest "unresolved" is safer than a
+  //          confidently wrong one.
+  const rawDisplays: any[] = graphics?.displays ?? [];
+  const usedHwIds = new Set<string>();
+
+  // Tier 1 pass — resolve by identity wherever possible.
+  const tier1Resolved = rawDisplays.map((d: any) => {
+    const deviceName = typeof d.deviceName === "string" ? d.deviceName : null;
+    const hwId = deviceName ? monitorIdentity.deviceNameToHwId[deviceName] : undefined;
+    const edid = hwId ? monitorIdentity.edidMap[hwId] : undefined;
+    if (hwId && edid) usedHwIds.add(hwId);
+    return { raw: d, edid: (hwId && edid ? edid : null) as MonitorEdidEntry | null, tier1Matched: !!(hwId && edid) };
+  });
+
+  // Tier 2 pass — native-res constraint fallback for anything Tier 1 missed.
+  for (const entry of tier1Resolved) {
+    if (entry.tier1Matched) continue;
+    const rx = safeNum(entry.raw.currentResX ?? entry.raw.resolutionX);
+    const ry = safeNum(entry.raw.currentResY ?? entry.raw.resolutionY);
+    if (rx === null || ry === null) continue;
+    const candidates = Object.entries(monitorIdentity.edidMap).filter(([hwId, e]) => {
+      if (usedHwIds.has(hwId)) return false;
+      const nx = (e as MonitorEdidEntry).nativeResX;
+      const ny = (e as MonitorEdidEntry).nativeResY;
+      return nx !== null && ny !== null && rx <= nx && ry <= ny;
+    });
+    if (candidates.length === 1) {
+      const [hwId, edid] = candidates[0];
+      entry.edid = edid as MonitorEdidEntry;
+      usedHwIds.add(hwId);
+    }
+    // 0 or 2+ candidates → Tier 3, leave entry.edid as null (no guess).
+  }
+
   // Generic-sounding model names that should be replaced with EDID data when available
   const GENERIC_NAMES = new Set([
     "generic pnp monitor", "generic monitor", "pnp monitor",
     "default monitor", "non-pnp monitor", "plug and play monitor",
   ]);
 
-  const displays: SipDisplay[] = (graphics?.displays ?? []).map((d: any, i: number) => {
+  const displays: SipDisplay[] = tier1Resolved.map(({ raw: d, edid }) => {
     const siModel = safeStr(d.model);
-    const edid = edidNames[i] ?? null;
-
-    // Prefer EDID model name when systeminformation returns a generic placeholder
     let resolvedModel: string | null = siModel;
     if (edid && edid.name) {
       const siLower = (siModel ?? "").toLowerCase().trim();
       if (!siModel || GENERIC_NAMES.has(siLower)) {
-        // Build display name: "Samsung S27AG32x" style if manufacturer differs from name prefix
         const mfr = edid.manufacturer;
         const mdl = edid.name;
         if (mfr && !mdl.toLowerCase().startsWith(mfr.toLowerCase())) {
@@ -693,7 +816,6 @@ async function collect(): Promise<SystemIntelligenceProfile> {
         }
       }
     }
-
     return {
       model: resolvedModel,
       main: safeBool(d.main),
@@ -758,6 +880,72 @@ async function collect(): Promise<SystemIntelligenceProfile> {
       }
     } catch (wmiErr: any) {
       console.warn("[SysIntelligence] memLayout WMI fallback failed:", wmiErr?.message ?? wmiErr);
+    }
+  }
+
+  // ── Part-number speed extraction ──────────────────────────────────────────
+  // Win32_PhysicalMemory often returns Speed=0 / ConfiguredClockSpeed=0 on AMD
+  // EXPO boards (DRAM controller reports nothing via WMI).  Most DDR4/DDR5 kit
+  // PartNumbers encode the rated MT/s:  "F5-6200J3040…"→6200,
+  // "CMK32GX5M2E6000C30"→6000, "KF560C36BBEAK2-32"→6000, etc.
+  // Use the first standalone 4-digit number in [3200, 9000] that isn't a
+  // well-known JEDEC base speed as a clockMhz fallback.
+  if (sticks.some(s => s.clockMhz === null && s.configuredClockMhz === null && s.partNum)) {
+    // Capture the first standalone 4-digit number in [3200, 9000] — this range
+    // covers all real DDR4/DDR5 speeds (JEDEC base and XMP/EXPO profiles alike).
+    // Numbers outside [3200, 9000] are almost certainly batch codes or
+    // capacity/CAS values, not speeds.
+    const speedRe = /(?<![0-9])([3-9][0-9]{3})(?![0-9])/g;
+    for (const stick of sticks) {
+      if (stick.clockMhz !== null || !stick.partNum) continue;
+      const candidates: number[] = [];
+      let m: RegExpExecArray | null;
+      speedRe.lastIndex = 0;
+      while ((m = speedRe.exec(stick.partNum)) !== null) {
+        const v = parseInt(m[1], 10);
+        if (v >= 3200 && v <= 9000) candidates.push(v);
+      }
+      if (candidates.length > 0) {
+        stick.clockMhz = candidates[0];
+        console.log(`[SysIntelligence] memLayout partNum extraction: "${stick.partNum}" → ${stick.clockMhz} MHz`);
+      }
+    }
+  }
+
+  // ── Get-WmiObject (DCOM) speed fallback ───────────────────────────────────
+  // If every stick still has no speed after CimInstance + part-number heuristic,
+  // retry via the old DCOM transport (Get-WmiObject).  Some Ryzen/AM5 boards
+  // return Speed=0 through WinRM/CIM but serve correct values over DCOM.
+  if (
+    sticks.length > 0 &&
+    sticks.every(s => s.clockMhz === null && s.configuredClockMhz === null) &&
+    process.platform === "win32"
+  ) {
+    try {
+      const dcomScript = [
+        "Get-WmiObject -Class Win32_PhysicalMemory -ErrorAction Stop",
+        "| Select-Object Speed,ConfiguredClockSpeed",
+        "| ConvertTo-Json -Compress",
+      ].join(" ");
+      const { stdout: dcomOut } = await execFileAsync(
+        "powershell.exe",
+        ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", dcomScript],
+        { timeout: 8_000 },
+      );
+      const dcomRaw = JSON.parse(dcomOut.trim());
+      const dcomItems: any[] = Array.isArray(dcomRaw) ? dcomRaw : [dcomRaw];
+      let enriched = 0;
+      dcomItems.forEach((item: any, idx: number) => {
+        if (!item || idx >= sticks.length) return;
+        const cs = Number(item.ConfiguredClockSpeed);
+        const sp = Number(item.Speed);
+        if (cs > 0) { sticks[idx].configuredClockMhz = cs; enriched++; }
+        if (sp > 0) { sticks[idx].clockMhz             = sp; }
+      });
+      if (enriched > 0)
+        console.log(`[SysIntelligence] memLayout DCOM fallback enriched ${enriched} stick(s)`);
+    } catch (dcomErr: any) {
+      console.warn("[SysIntelligence] memLayout DCOM fallback failed:", dcomErr?.message ?? dcomErr);
     }
   }
 

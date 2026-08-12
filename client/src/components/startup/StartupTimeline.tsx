@@ -194,7 +194,7 @@ export function StartupTimeline({ apps, visible }: Props) {
 
   return (
     <div
-      className="rounded-2xl border p-4 space-y-4"
+      className="rounded-2xl border p-4 space-y-4 overflow-hidden"
       style={{ background: "rgba(26,31,38,0.6)", borderColor: "rgba(255,255,255,0.05)" }}
     >
       {/* Header */}
@@ -206,7 +206,7 @@ export function StartupTimeline({ apps, visible }: Props) {
       {/* Flow diagram — overflow-x-auto for narrow windows, overflow-y-hidden so
           nothing leaks above/below the box. items-start keeps nodes top-aligned;
           the fixed NODE_SIZE ensures the connector line bisects every node correctly. */}
-      <div className="flex items-start overflow-x-auto overflow-y-hidden gap-0 pb-1 -mx-1 px-1">
+      <div className="flex items-start overflow-x-auto overflow-y-visible gap-0 pb-1">
         {/* INIT */}
         <EndpointNode label="INIT" color="rgba(255,255,255,0.35)">
           <Zap className="size-[15px] text-muted-foreground/50" />

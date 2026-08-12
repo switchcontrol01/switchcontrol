@@ -123,7 +123,7 @@ function _runPs(command, { throwOnError = false, timeout = 12000 } = {}) {
     const id = ++_tweak_psCount;
     const t0 = Date.now();
     const label = throwOnError ? 'runPowerShell' : 'queryPowerShell';
-    console.log(`[PS:tweak-executor] #${id} ${label} SPAWN ts=${t0} active=${_psActive}`);
+    console.log(`[PS:tweak-executor] #${id} ${label} SPAWN ts=${t0} spawn#=${_tweak_psCount}`);
     const cmd = throwOnError
       ? `try { ${command}; exit 0 } catch { Write-Error $_.Exception.Message; exit 1 }`
       : command;
@@ -847,7 +847,11 @@ const ADMIN_TWEAKS = {
     requiresAdmin:  true,
     requiresReboot: false,
     apply:  `$s = Get-Service -Name WSearch -EA SilentlyContinue; if ($s) { Stop-Service WSearch -Force -EA SilentlyContinue; Set-Service WSearch -StartupType Disabled }`,
-    revert: `$s = Get-Service -Name WSearch -EA SilentlyContinue; if ($s) { Set-Service WSearch -StartupType AutomaticDelayedStart; Start-Service WSearch -EA SilentlyContinue }`,
+    // Set-Service -StartupType AutomaticDelayedStart is not a valid ServiceStartMode enum
+    // value in PS7+ and throws a parameter-binding error.  The correct way to restore
+    // AutomaticDelayedStart is to write the two registry keys directly:
+    //   Start = 2 (Automatic)   DelayedAutoStart = 1
+    revert: `$s = Get-Service -Name WSearch -EA SilentlyContinue; if ($s) { $rk = 'HKLM:\\SYSTEM\\CurrentControlSet\\Services\\WSearch'; Set-ItemProperty -Path $rk -Name Start -Value 2 -Type DWord -Force; Set-ItemProperty -Path $rk -Name DelayedAutoStart -Value 1 -Type DWord -Force; Start-Service WSearch -EA SilentlyContinue }`,
     check:  `$s = Get-Service -Name WSearch -EA SilentlyContinue; $s -and ($s.StartType -eq "Disabled")`,
   },
   'disable-activity-history': {

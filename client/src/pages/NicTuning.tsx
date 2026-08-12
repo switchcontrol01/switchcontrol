@@ -44,6 +44,8 @@ interface NicAdapter {
   name: string;
   description: string;
   status: string;
+  /** true when MediaConnectionState === 1 — cable in / WiFi associated. */
+  connected?: boolean;
   mediaType: string;
   macAddress: string;
 }
@@ -818,7 +820,7 @@ function AdapterDiagnostics({
   capabilities: Record<string, PropertyCapability> | null;
   capLoading: boolean;
 }) {
-  const isOnline = adapter.status === "Up" || adapter.status === "up";
+  const isOnline = adapter.connected ?? (adapter.status === "Up" || adapter.status === "up");
   const total = Object.keys(propertyMeta).length;
   const supported = capabilities ? Object.values(capabilities).filter(c => c.supported).length : 0;
 
@@ -979,9 +981,12 @@ export default function NicTuningPage() {
         const list: NicAdapter[] = adaptersResult.adapters ?? [];
         setAdapters(list);
         if (list.length > 0) {
-          // Prefer the first adapter that is online ("Up") so the user always
-          // lands on their active connection rather than a disconnected one.
-          const preferred = list.find(a => a.status === "Up" || a.status === "up") ?? list[0];
+          // Prefer the adapter with an active link (connected = MediaConnectionState 1).
+          // Fall back to status-based check, then list[0].
+          const preferred =
+            list.find(a => a.connected) ??
+            list.find(a => a.status === "Up" || a.status === "up") ??
+            list[0];
           setSelectedAdapter(preferred.name);
           setAutoSelectedAdapter(preferred.name);
           // Clear the pulse highlight after 2 s — just long enough to draw attention.
@@ -1053,7 +1058,7 @@ export default function NicTuningPage() {
   }, [selectedAdapter, loadCapabilities]);
 
   const activeAdapter = adapters.find(a => a.name === selectedAdapter) ?? null;
-  const isOnline = activeAdapter?.status === "Up" || activeAdapter?.status === "up";
+  const isOnline = activeAdapter?.connected ?? (activeAdapter?.status === "Up" || activeAdapter?.status === "up");
 
   return (
     <AppLayout>
@@ -1162,7 +1167,7 @@ export default function NicTuningPage() {
             className="flex gap-2 flex-wrap"
           >
             {adapters.map(adapter => {
-              const on = adapter.status === "Up" || adapter.status === "up";
+              const on = adapter.connected ?? (adapter.status === "Up" || adapter.status === "up");
               const isSelected = adapter.name === selectedAdapter;
               const isPulsing = adapter.name === autoSelectedAdapter;
               return (
