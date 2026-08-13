@@ -1,3 +1,579 @@
+'use strict';
+const { execFile } = require('child_process');
+const path = require('path');
+const fs   = require('fs');
+const os   = require('os');
+const { checkIsAdmin, runElevated, runElevatedCommands } = require('./ps-shared');
+
+// ── Storage ───────────────────────────────────────────────────────────────────
+
+const STATE_DIR  = path.join(process.env.APPDATA || os.homedir(), 'SwitchControl');
+const STATE_FILE = path.join(STATE_DIR, 'power-plans.json');
+
+function ensureDir() {
+  if (!fs.existsSync(STATE_DIR)) fs.mkdirSync(STATE_DIR, { recursive: true });
+}
+
+function loadState() {
+  try {
+    ensureDir();
+    if (fs.existsSync(STATE_FILE)) return JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
+  } catch {}
+  return {};
+}
+
+function saveState(state) {
+  try {
+    ensureDir();
+    const tmpFile = STATE_FILE + '.tmp';
+    fs.writeFileSync(tmpFile, JSON.stringify(state, null, 2), { encoding: 'utf8' });
+    fs.renameSync(tmpFile, STATE_FILE);
+  } catch (e) {
+    console.error('[PowerPlan] saveState failed:', e.message);
+  }
+}
+
+// ── Windows GUIDs ─────────────────────────────────────────────────────────────
+
+const BUILTIN_GUIDS = {
+  balanced:             '381b4222-f694-41f0-9685-ff5bb260df2e',
+  high_performance:     '8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c',
+  power_saver:          'a1841308-3541-4fab-bc81-f71556f20b4a',
+  ultimate_performance: 'e9a42b02-d5df-448d-aa00-03f14749eb61',
+};
+
+// subgroup + setting GUIDs for every managed property
+const SETTING_DEFS = {
+  cpuMinPercentAC: {
+    subgroup: '54533251-82be-4824-96c1-47b60b740d00',
+    setting:  '893dee8e-2bef-41e0-89c6-b55d0929964c',
+    label:    'Min CPU State',
+    fmt:      (v) => v >= 100 ? 'Fixed at maximum' : v <= 5 ? 'Minimal idle floor' : `${v}% minimum`,
+  },
+  cpuMaxPercentAC: {
+    subgroup: '54533251-82be-4824-96c1-47b60b740d00',
+    setting:  'bc5038f7-23e0-4960-96da-33abaf5935ec',
+    label:    'Max CPU State',
+    fmt:      (v) => v >= 100 ? 'Uncapped' : `Capped at ${v}%`,
+  },
+  coreParkingMinCoresAC: {
+    subgroup: '54533251-82be-4824-96c1-47b60b740d00',
+    setting:  '0cc5b647-c1df-4637-891a-dec35c318583',
+    label:    'Core Parking',
+    fmt:      (v) => v >= 100 ? 'No parking allowed' : v <= 25 ? 'Aggressive parking' : 'Minimal parking allowed',
+  },
+  perfBoostModeAC: {
+    subgroup: '54533251-82be-4824-96c1-47b60b740d00',
+    setting:  'be337238-0d82-4146-a960-4f3749d470c7',
+    label:    'CPU Boost Mode',
+    fmt:      (v) => ({ 0: 'Disabled', 1: 'Enabled', 2: 'Aggressive', 3: 'Efficient enabled', 4: 'Efficient aggressive' })[v] ?? `Mode ${v}`,
+  },
+  usbSelectiveSuspendAC: {
+    subgroup: '2a737441-1930-4402-8d77-b2bebba308a3',
+    setting:  '48e6b7a6-50f5-4782-a5d4-53bb8f07e226',
+    label:    'USB Selective Suspend',
+    fmt:      (v) => v === 0 ? 'Disabled' : 'Enabled',
+  },
+  pcieAspmAC: {
+    subgroup: '501a4d13-42af-4429-9fd1-a8218c268e20',
+    setting:  'ee12f906-d277-404b-b6da-e5fa1a576df5',
+    label:    'PCIe ASPM',
+    fmt:      (v) => v === 0 ? 'Off (max performance)' : v === 1 ? 'Moderate' : 'Maximum saving',
+  },
+  sleepAfterAC: {
+    subgroup: '238c9fa8-0aad-41ed-83f4-97be242c8f20',
+    setting:  '29f6c1db-86da-48c5-9fdb-f2b67b1f44da',
+    label:    'Sleep Timeout',
+    fmt:      (v) => v === 0 ? 'Never' : v < 120 ? `${v}s` : `After ${Math.round(v / 60)} min`,
+  },
+  hibernateAfterAC: {
+    subgroup: '238c9fa8-0aad-41ed-83f4-97be242c8f20',
+    setting:  '9d7815a6-7ee4-497e-8888-515a05f02364',
+    label:    'Hibernate Timeout',
+    fmt:      (v) => v === 0 ? 'Never' : `After ${Math.round(v / 60)} min`,
+  },
+  displayOffAfterAC: {
+    subgroup: '7516b95f-f776-4464-8c53-06167f40cc99',
+    setting:  '3c0bc021-c8a8-4e07-a973-6b14cbcb2b7e',
+    label:    'Display Off',
+    fmt:      (v) => v === 0 ? 'Never' : v < 120 ? `${v}s` : `After ${Math.round(v / 60)} min`,
+  },
+  processorThrottleStates: {
+    subgroup: '54533251-82be-4824-96c1-47b60b740d00',
+    setting:  '3b04d4fd-1cc7-4f23-ab1c-d1337819c4bb',
+    label:    'Processor Throttle States',
+    fmt:      (v) => v === 0 ? 'Disabled' : 'Enabled',
+  },
+};
+
+// ── Preset profile definitions ────────────────────────────────────────────────
+// perfBoostModeAC: 0=Disabled 1=Enabled 2=Aggressive 3=EfficientEnabled 4=EfficientAggressive
+
+const POWER_PROFILES = {
+  maximum_performance: {
+    id: 'maximum_performance',
+    name: 'Maximum Performance',
+    basePlan: 'high_performance',
+    scName: 'SwitchControl - Max Performance',
+    scDesc: 'Full CPU at all times, USB/PCIe power saving off, no sleep. Optimised for gaming and low-latency workloads.',
+    settings: {
+      cpuMinPercentAC:       100,
+      cpuMaxPercentAC:       100,
+      coreParkingMinCoresAC: 100,
+      perfBoostModeAC:       2,
+      usbSelectiveSuspendAC: 0,
+      pcieAspmAC:            0,
+      sleepAfterAC:          0,
+      hibernateAfterAC:      0,
+      displayOffAfterAC:     0,
+    },
+  },
+  balanced_gaming: {
+    id: 'balanced_gaming',
+    name: 'Balanced Gaming',
+    basePlan: 'balanced',
+    scName: 'SwitchControl - Balanced Gaming',
+    scDesc: 'Dynamic CPU scaling with aggressive boost, cores always unparked. Good balance of performance and temperature.',
+    settings: {
+      cpuMinPercentAC:       5,
+      cpuMaxPercentAC:       100,
+      coreParkingMinCoresAC: 100,
+      perfBoostModeAC:       4,
+      usbSelectiveSuspendAC: 0,
+      pcieAspmAC:            0,
+      sleepAfterAC:          0,
+      hibernateAfterAC:      1800,
+      displayOffAfterAC:     0,
+    },
+  },
+  efficiency_laptop: {
+    id: 'efficiency_laptop',
+    name: 'Efficiency / Laptop',
+    basePlan: 'balanced',
+    scName: 'SwitchControl - Efficiency',
+    scDesc: 'CPU capped at 85%, core parking and PCIe saving enabled. Extends battery life on laptops.',
+    settings: {
+      cpuMinPercentAC:       5,
+      cpuMaxPercentAC:       85,
+      coreParkingMinCoresAC: 25,
+      perfBoostModeAC:       3,
+      usbSelectiveSuspendAC: 1,
+      pcieAspmAC:            2,
+      sleepAfterAC:          900,
+      hibernateAfterAC:      1800,
+      displayOffAfterAC:     300,
+    },
+  },
+};
+
+// ── Low-level helpers ─────────────────────────────────────────────────────────
+
+function runPowercfg(...args) {
+  return new Promise((resolve, reject) => {
+    execFile('powercfg', args, { timeout: 15_000, windowsHide: true }, (err, stdout, stderr) => {
+      if (err) reject(new Error(stderr?.trim() || stdout?.trim() || err.message));
+      else resolve(stdout.trim());
+    });
+  });
+}
+
+// runPowerShell, checkIsAdmin, and runElevatedCommands are imported from ps-shared.js.
+
+
+// ── Parsers ───────────────────────────────────────────────────────────────────
+
+function parseSchemeList(output) {
+  const schemes = [];
+  for (const line of output.split('\n')) {
+    const m = line.match(/Power Scheme GUID:\s*([0-9a-f-]{36})\s+\(([^)]+)\)\s*(\*)?/i);
+    if (m) schemes.push({ guid: m[1].toLowerCase(), name: m[2].trim(), isActive: !!m[3] });
+  }
+  return schemes;
+}
+
+function parseActiveScheme(output) {
+  const m = output.match(/Power Scheme GUID:\s*([0-9a-f-]{36})\s+\(([^)]+)\)/i);
+  return m ? { guid: m[1].toLowerCase(), name: m[2].trim() } : null;
+}
+
+function parseAcValue(output) {
+  const m = output.match(/Current AC Power Setting Index:\s*(0x[0-9a-fA-F]+|\d+)/i);
+  if (!m) return null;
+  const raw = m[1];
+  return raw.startsWith('0x') ? parseInt(raw, 16) : parseInt(raw, 10);
+}
+
+// ── Core operations ───────────────────────────────────────────────────────────
+
+async function listPowerSchemes() {
+  try {
+    const out = await runPowercfg('/list');
+    return { success: true, schemes: parseSchemeList(out) };
+  } catch (e) {
+    return { success: false, error: e.message, schemes: [] };
+  }
+}
+
+/**
+ * Returns true if the given scheme GUID is present in the current powercfg /list output.
+ * Returns false on any error (caller should treat unknown as absent for safety checks).
+ */
+async function schemeExists(guid) {
+  try {
+    const { schemes } = await listPowerSchemes();
+    return schemes.some(s => s.guid === guid.toLowerCase());
+  } catch {
+    return false;
+  }
+}
+
+async function getActivePowerScheme() {
+  try {
+    const out = await runPowercfg('/getactivescheme');
+    const scheme = parseActiveScheme(out);
+    if (!scheme) return { success: false, error: 'Could not parse active scheme output', scheme: null };
+    return { success: true, scheme };
+  } catch (e) {
+    return { success: false, error: e.message, scheme: null };
+  }
+}
+
+async function readAllSettings(schemeGuid) {
+  // Run all 9 /query calls concurrently — each targets an independent subgroup/setting
+  // pair, so there is no ordering requirement.  Parallel execution cuts load time by
+  // roughly 8× vs the previous sequential for-await loop (each powercfg spawn has
+  // ~50-150 ms of process-creation overhead on Windows).
+  const entries = Object.entries(SETTING_DEFS);
+  const results = await Promise.all(
+    entries.map(([key, def]) =>
+      runPowercfg('/query', schemeGuid, def.subgroup, def.setting)
+        .then(out => ({ key, val: parseAcValue(out), err: null }))
+        .catch(e  => ({ key, val: null,              err: e.message }))
+    )
+  );
+  const settings = {};
+  const errors   = {};
+  for (const { key, val, err } of results) {
+    settings[key] = val;
+    if (err) errors[key] = err;
+  }
+  return { settings, errors };
+}
+
+function generateBreakdown(settings) {
+  const get = (key) => {
+    const v = settings[key];
+    return v !== null && v !== undefined ? SETTING_DEFS[key]?.fmt(v) ?? String(v) : null;
+  };
+
+  const minPct = settings.cpuMinPercentAC;
+  const maxPct = settings.cpuMaxPercentAC;
+
+  return {
+    cpuBoost:            get('perfBoostModeAC')           ?? 'Unknown',
+    cpuRange:            (minPct !== null && maxPct !== null) ? `${minPct}% – ${maxPct}%` : 'Unknown',
+    coreParking:         get('coreParkingMinCoresAC')     ?? 'Unknown',
+    sleepHibernate:      settings.sleepAfterAC === 0 ? 'Sleep disabled'
+                           : settings.sleepAfterAC != null ? `After ${Math.round(settings.sleepAfterAC / 60)} min`
+                           : 'Unknown',
+    usbPowerSaving:      get('usbSelectiveSuspendAC')     ?? 'Unknown',
+    frequencyScaling:    (maxPct === 100 && minPct === 100) ? 'Fixed at maximum' : 'Dynamic based on demand',
+    pciePower:           get('pcieAspmAC')                ?? 'Unknown',
+    displayTimeout:      get('displayOffAfterAC')         ?? 'Unknown',
+  };
+}
+
+function matchProfileToPreset(activeGuid, settings) {
+  // First: check GUID match against known builtin + stored SC GUIDs
+  const storedState = loadState();
+  const guidMap = storedState.schemeGuids || {};
+  for (const [profileId, guid] of Object.entries(guidMap)) {
+    if (guid && guid.toLowerCase() === activeGuid) {
+      // Validate settings still match
+      const profile = POWER_PROFILES[profileId];
+      if (!profile) continue;
+      const keys = Object.keys(profile.settings).filter(k => settings[k] !== null && settings[k] !== undefined);
+      const matches = keys.filter(k => settings[k] === profile.settings[k]).length;
+      if (keys.length > 0 && matches / keys.length >= 0.85) {
+        const mismatches = {};
+        keys.filter(k => settings[k] !== profile.settings[k]).forEach(k => {
+          mismatches[k] = { expected: profile.settings[k], actual: settings[k] };
+        });
+        return { match: matches === keys.length ? 'exact_match' : 'close_match', profileId, mismatches };
+      }
+    }
+  }
+
+  // Fall back to settings-based matching
+  let bestProfileId = null;
+  let bestScore = 0;
+  let bestMismatches = null;
+
+  for (const [profileId, profile] of Object.entries(POWER_PROFILES)) {
+    const keys = Object.keys(profile.settings).filter(k => settings[k] !== null && settings[k] !== undefined);
+    if (keys.length === 0) continue;
+    const matches = keys.filter(k => settings[k] === profile.settings[k]).length;
+    const score = matches / keys.length;
+    if (score > bestScore) {
+      bestScore = score;
+      bestProfileId = profileId;
+      const m = {};
+      keys.filter(k => settings[k] !== profile.settings[k]).forEach(k => {
+        m[k] = { expected: profile.settings[k], actual: settings[k] };
+      });
+      bestMismatches = m;
+    }
+  }
+
+  if (bestScore >= 1.0)  return { match: 'exact_match',  profileId: bestProfileId, mismatches: {} };
+  if (bestScore >= 0.7)  return { match: 'close_match',  profileId: bestProfileId, mismatches: bestMismatches };
+  return { match: 'custom_modified', profileId: null, mismatches: {} };
+}
+
+// Get or create a SwitchControl-managed scheme for the given profile.
+// Returns the GUID to use (string) or throws.
+async function ensureSwitchControlScheme(profileId) {
+  const profile = POWER_PROFILES[profileId];
+  if (!profile) throw new Error(`Unknown profileId: ${profileId}`);
+
+  const state = loadState();
+  const existingGuid = state.schemeGuids?.[profileId];
+
+  if (existingGuid) {
+    const existingLower = existingGuid.toLowerCase();
+    // Confirm it still exists
+    const listResult = await listPowerSchemes();
+    if (listResult.schemes.some(s => s.guid === existingLower)) {
+      console.log(`[PowerPlan] Reusing existing SC scheme "${existingGuid}" for ${profileId}`);
+      // Refresh name & description in case they changed.
+      // CRITICAL GUARD: NEVER rename a built-in Windows plan.
+      // If existingGuid is a built-in GUID (e.g. BALANCED_GUID stored as fallback from
+      // a failed duplication), renaming it would corrupt the Windows Balanced plan name
+      // to "SwitchControl - Balanced Gaming", which then can't be cleaned up on revert.
+      const builtinGuidSet = new Set(Object.values(BUILTIN_GUIDS).map(g => g.toLowerCase()));
+      if (!builtinGuidSet.has(existingLower)) {
+        try {
+          await runPowercfg('/changename', existingLower, profile.scName, profile.scDesc || 'SwitchControl managed power plan');
+        } catch { /* non-critical, ignore */ }
+      } else {
+        console.warn(
+          `[PowerPlan] Stored GUID ${existingLower} is a built-in Windows plan — ` +
+          `skipping changename to prevent name corruption. ` +
+          `A proper SC duplicate should be created instead.`
+        );
+      }
+      return existingLower;
+    }
+    console.warn(`[PowerPlan] Stored GUID ${existingGuid} no longer exists — will scan for orphaned SC plan`);
+  }
+
+  // Before creating a new plan, check if an orphaned SC plan with the same name
+  // already exists on Windows (e.g. from a previous install where state was cleared).
+  // Adopting it avoids accumulating duplicate plans in Power Options.
+  try {
+    const listResult = await listPowerSchemes();
+    const orphan = listResult.schemes?.find(
+      s => s.name && s.name.toLowerCase() === profile.scName.toLowerCase()
+    );
+    if (orphan) {
+      const orphanGuid = orphan.guid.toLowerCase();
+      console.log(
+        `[PowerPlan] Found orphaned SC plan "${orphan.name}" (${orphanGuid}) — adopting instead of creating new`
+      );
+      // Reuse the `state` already loaded at the top of this function — avoids a
+      // redundant second loadState() disk read in the same call frame.
+      const newState = { ...state, schemeGuids: { ...(state.schemeGuids || {}), [profileId]: orphanGuid } };
+      saveState(newState);
+      return orphanGuid;
+    }
+  } catch (e) {
+    console.warn('[PowerPlan] Orphan scan failed — will proceed to create new plan:', e.message);
+  }
+
+  // Need to duplicate the base plan (requires admin)
+  const baseGuid = await resolveBasePlanGuid(profile.basePlan);
+  const isAdminNow = await checkIsAdmin();
+  let newGuid = null;
+
+  if (isAdminNow) {
+    // Run directly — no elevation needed, no window flash
+    try {
+      const dupOut = await runPowercfg('/duplicatescheme', baseGuid);
+      const m = dupOut.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
+      if (m) {
+        newGuid = m[0].toLowerCase();
+        try {
+          await runPowercfg('/changename', newGuid, profile.scName, profile.scDesc || 'SwitchControl managed power plan');
+        } catch { /* non-critical */ }
+        console.log(`[PowerPlan] Admin: duplicated scheme "${newGuid}" for ${profileId}`);
+      }
+    } catch (e) {
+      console.warn(`[PowerPlan] Admin direct duplicate failed — ${e.message}`);
+    }
+  } else {
+    // Non-admin path: use runElevated from ps-shared (VBScript/ShellExecute, no flash).
+    const guidId     = `sc_pp_guid_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+    const guidPath   = path.join(os.tmpdir(), `${guidId}.txt`);
+    const safeGuidPath = guidPath.replace(/'/g, "''");
+    const safeScName   = profile.scName.replace(/'/g, "''");
+    const safeScDesc   = (profile.scDesc || 'SwitchControl managed power plan').replace(/'/g, "''");
+
+    const command = [
+      `$ErrorActionPreference = 'Continue'`,
+      `$raw = & powercfg /duplicatescheme ${baseGuid} 2>&1`,
+      `$out = ($raw | Out-String).Trim()`,
+      `$m = [regex]::Match($out, '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}')`,
+      `if ($m.Success) {`,
+      `  $guid = $m.Value.ToLower()`,
+      `  & powercfg /changename $guid '${safeScName}' '${safeScDesc}' | Out-Null`,
+      `  [System.IO.File]::WriteAllText('${safeGuidPath}', $guid)`,
+      `}`,
+    ].join('\r\n');
+
+    await runElevated(command, { tempFilePrefix: 'sc_pp_dup_' });
+
+    if (fs.existsSync(guidPath)) {
+      newGuid = fs.readFileSync(guidPath, 'utf8').replace(/^\uFEFF/, '').trim().toLowerCase();
+      try { fs.unlinkSync(guidPath); } catch {}
+    }
+  }
+
+  if (!newGuid || !/^[0-9a-f-]{36}$/.test(newGuid)) {
+    // Fallback: use built-in base plan directly
+    console.warn(`[PowerPlan] Could not create duplicate scheme — falling back to base plan GUID ${baseGuid}`);
+    newGuid = baseGuid;
+    // CRITICAL GUARD: NEVER persist a built-in GUID as an SC scheme GUID.
+    // If persisted, the reuse path would call `powercfg /changename <BALANCED_GUID>
+    // "SwitchControl - Balanced Gaming"` on the next apply — permanently renaming
+    // the Windows Balanced plan.  That renamed plan can then never be deleted on
+    // revert (Windows refuses to delete the active plan) and the revert verifier
+    // falsely reports clean because the GUID matches BALANCED_GUID.
+    const builtinGuidSet = new Set(Object.values(BUILTIN_GUIDS).map(g => g.toLowerCase()));
+    if (builtinGuidSet.has(newGuid.toLowerCase())) {
+      console.warn(
+        `[PowerPlan] Fallback GUID ${newGuid} is a built-in Windows plan — ` +
+        `NOT persisting to power-plans.json (prevents name corruption on reuse).`
+      );
+      return newGuid;   // use for this session only, do not save
+    }
+  }
+
+  // Persist
+  const newState = { ...state, schemeGuids: { ...(state.schemeGuids || {}), [profileId]: newGuid } };
+  saveState(newState);
+  console.log(`[PowerPlan] Saved SC scheme "${newGuid}" for ${profileId}`);
+  return newGuid;
+}
+
+async function resolveBasePlanGuid(basePlan) {
+  let listResult = null;
+  try { listResult = await listPowerSchemes(); } catch { /* non-fatal */ }
+
+  const schemes = listResult?.schemes ?? [];
+
+  // Ultimate Performance: consumer Windows editions don't include it by default.
+  if (basePlan === 'ultimate_performance') {
+    const hasUltimate = schemes.some(s => s.guid === BUILTIN_GUIDS.ultimate_performance);
+    if (!hasUltimate) {
+      console.log('[PowerPlan] Ultimate Performance not available — trying High Performance');
+      basePlan = 'high_performance';
+    }
+  }
+
+  // High Performance: may be missing if the user deleted it.
+  if (basePlan === 'high_performance') {
+    const hasHighPerf = schemes.length === 0 || schemes.some(s => s.guid === BUILTIN_GUIDS.high_performance);
+    if (!hasHighPerf) {
+      console.log('[PowerPlan] High Performance plan not found in scheme list — falling back to Balanced');
+      return BUILTIN_GUIDS.balanced;
+    }
+  }
+
+  return BUILTIN_GUIDS[basePlan] || BUILTIN_GUIDS.balanced;
+}
+
+// ── Main API ──────────────────────────────────────────────────────────────────
+
+async function applyPowerProfile(profileId) {
+  const profile = POWER_PROFILES[profileId];
+  if (!profile) return { success: false, error: `Unknown profileId: ${profileId}` };
+
+  console.log(`[PowerPlan] ── applyPowerProfile START: profileId="${profileId}" ──`);
+  console.log(`[PowerPlan]   basePlan="${profile.basePlan}" scName="${profile.scName}"`);
+
+  // ── Step 1: Read active GUID before any change ─────────────────────────────
+  let guidBefore = '(unread)';
+  try {
+    const pre = await getActivePowerScheme();
+    guidBefore = pre.scheme?.guid ?? '(null)';
+    console.log(`[PowerPlan]   GUID before: ${guidBefore} ("${pre.scheme?.name ?? ''}")`);
+  } catch (e) {
+    console.warn(`[PowerPlan]   pre-read failed: ${e.message}`);
+  }
+
+  // ── Step 2: Ensure/create the SC scheme ────────────────────────────────────
+  let schemeGuid;
+  try {
+    schemeGuid = await ensureSwitchControlScheme(profileId);
+    console.log(`[PowerPlan]   target schemeGuid: ${schemeGuid}`);
+  } catch (e) {
+    console.error(`[PowerPlan]   ensureSwitchControlScheme failed: ${e.message}`);
+    return { success: false, error: `Could not prepare power scheme: ${e.message}` };
+  }
+
+  // ── Step 2b: Guard — if target scheme doesn't exist, restore built-in plans and retry once ──
+  // Happens when OEM software (e.g. "Lumin Updated Power") removes all built-in Windows
+  // schemes.  We never run restoredefaultschemes unconditionally — only when the scheme
+  // we need is provably absent.  We never retry more than once.
+  const schemePresent = await schemeExists(schemeGuid);
+  if (!schemePresent) {
+    console.warn(`[PowerPlan]   schemeGuid ${schemeGuid} not found — running powercfg -restoredefaultschemes (once)`);
+    const isAdminNowRestore = await checkIsAdmin();
+    try {
+      if (isAdminNowRestore) {
+        await runPowercfg('-restoredefaultschemes');
+      } else {
+        const r = await runElevatedCommands(['powercfg -restoredefaultschemes']);
+        if (r.cancelled) {
+          return { success: false, cancelled: true, error: 'Admin permission was canceled. No system changes were made.' };
+        }
+      }
+      console.log('[PowerPlan]   restoredefaultschemes done — retrying ensureSwitchControlScheme');
+      try {
+        schemeGuid = await ensureSwitchControlScheme(profileId);
+        console.log(`[PowerPlan]   retry schemeGuid: ${schemeGuid}`);
+      } catch (retryErr) {
+        console.error(`[PowerPlan]   retry ensureSwitchControlScheme failed: ${retryErr.message}`);
+      }
+    } catch (restoreErr) {
+      console.error(`[PowerPlan]   restoredefaultschemes failed: ${restoreErr.message}`);
+    }
+
+    // Final check — if still absent, surface a specific user-facing message
+    const stillMissing = !(await schemeExists(schemeGuid));
+    if (stillMissing) {
+      return {
+        success: false,
+        missingScheme: true,
+        error:
+          "Your PC's manufacturer software may have removed some standard Windows power plans. " +
+          'Open Windows Settings → Power & Sleep → Additional power settings, then click ' +
+          '"Restore plan defaults" or reinstall your OEM power utility to fix this.',
+      };
+    }
+  }
+
+  // ── Step 3: Build and run setting commands ─────────────────────────────────
+  const settingCmds = [];
+  for (const [key, value] of Object.entries(profile.settings)) {
+    const def = SETTING_DEFS[key];
+    if (!def) continue;
+    settingCmds.push(`powercfg /setacvalueindex ${schemeGuid} ${def.subgroup} ${def.setting} ${value}`);
+    settingCmds.push(`powercfg /setdcvalueindex ${schemeGuid} ${def.subgroup} ${def.setting} ${value}`);
+  }
+  settingCmds.push(`powercfg /setactive ${schemeGuid}`);
+
+  const isAdmin = await checkIsAdmin();
   console.log(`[PowerPlan]   isAdmin=${isAdmin} — running ${settingCmds.length} powercfg commands`);
   let applyResult = { ok: true, failed: [] };
 
