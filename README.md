@@ -4,6 +4,12 @@ A premium gaming optimization dashboard with a cyberpunk aesthetic.
 
 ---
 
+## Hosting
+
+SwitchControl is permanently hosted on **Railway**. Replit is used only as a development workspace/editor and is not the production hosting platform or production database. Keep production PostgreSQL on Railway using its public connection endpoint; never switch the project to Replit hosting or Replit's managed database.
+
+---
+
 ## Windows Desktop App Setup
 
 ### Prerequisites

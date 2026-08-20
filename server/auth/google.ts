@@ -4,7 +4,7 @@ import session from "express-session";
 import connectPg from "connect-pg-simple";
 import MemoryStore from "memorystore";
 import type { Express, RequestHandler } from "express";
-import { db, isNoDbMode } from "../db";
+import { db, databaseConnectionUrl, isNoDbMode } from "../db";
 import { users } from "@shared/models/auth";
 import { eq } from "drizzle-orm";
 import { storage } from "../storage";

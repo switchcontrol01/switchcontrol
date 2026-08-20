@@ -4,6 +4,13 @@
 
 SwitchControl is a web-based gaming optimization dashboard. It offers a UI-first experience for Windows system tweaks, power plan management, network optimization, and system monitoring. The application uses a dark theme with purple/pink accents. All optimization actions are simulated and do not make actual Windows system changes in the web version. The project also includes a packaged Electron desktop app with real system integration.
 
+## Hosting Rule
+
+- **Permanent hosting platform:** Railway.
+- The app and project must remain hosted on Railway, never Replit.
+- Replit is used only as a development workspace/editor; do not treat Replit's managed database or deployment as the production source of truth.
+- Production PostgreSQL must use Railway's public connection endpoint, not Railway's private `*.railway.internal` hostname.
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.

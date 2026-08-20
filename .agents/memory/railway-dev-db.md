@@ -3,6 +3,8 @@ name: Railway dev database schema state
 description: What schema the Railway dev DB has, what was added, and how to apply future schema changes without drizzle-kit push (which requires a TTY).
 ---
 
+**Hosting rule:** SwitchControl is permanently hosted on Railway. Replit is only the development workspace; production must not be moved to Replit. Use Railway's public PostgreSQL endpoint from external environments, not `*.railway.internal`.
+
 **DB URL pattern:** Railway PostgreSQL, host `tokaido.proxy.rlwy.net:18609`, database `railway`.
 
 **drizzle-kit push is broken in non-TTY shells** (Replit ShellExec). It hangs on `promptNamedWithSchemasConflict` even with `--force`. The workaround is to run raw SQL via the `pg` Pool directly in a node -e script.
