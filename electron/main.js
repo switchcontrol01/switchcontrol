@@ -3265,7 +3265,11 @@ public class DspHelper {
     $ipfx = if ($mi.InstanceName) { $mi.InstanceName -replace '_\\d+$','' } else { $null }
     $cp   = if ($ipfx) { $connPs | Where-Object { ($_.InstanceName -replace '_\\d+$','') -eq $ipfx } | Select-Object -First 1 } else { $null }
     if ($null -eq $cp -and $i -lt $connPs.Count) { $cp = $connPs[$i] }
-    $conn = if ($cp) { ConnStr $cp.VideoOutputTechnology } else { $null }
+    # TEMPORARY DISPLAY DIAGNOSTIC: preserve the raw WMI value in the internal
+    # PowerShell result so the JS boundary can identify malformed driver output.
+    # This field is stripped before the renderer response is returned.
+    $rawConn = if ($cp) { $cp.VideoOutputTechnology } else { $null }
+    $conn = if ($cp) { ConnStr $rawConn } else { $null }
   
     $df     = if ($ipfx) { $dispFt | Where-Object { ($_.InstanceName -replace '_\\d+$','') -eq $ipfx } | Select-Object -First 1 } else { $null }
     if ($null -eq $df -and $i -lt $dispFt.Count) { $df = $dispFt[$i] }
@@ -3327,7 +3331,7 @@ public class DspHelper {
     $monGpu = if ($i -lt $vcs.Count) { $vcs[$i].Name } else { $gpuName }
   
     $out.monitors += @{
-      id=$("mon_$i"); name=$name; manufacturer=$mfr; serial=$ser; connectionType=$conn
+      id=$("mon_$i"); name=$name; manufacturer=$mfr; serial=$ser; connectionType=$conn; connectionTypeRaw=$rawConn
       currentResX=$rx; currentResY=$ry; refreshHz=$hz; maxRefreshHz=$maxHzOut; bitsPerPixel=$bpp
       nativeResX=if($ed){$ed.nx}else{$null}; nativeResY=if($ed){$ed.ny}else{$null}
       edidVersion=if($ed){$ed.ver}else{$null}
