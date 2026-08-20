@@ -1,17 +1,16 @@
 {
-  "version": "1.2.5",
-  "title": "Bug Fixes & Security Hardening",
-  "headline": "GPU telemetry now correctly tracks your selected card on multi-GPU systems, the landing page no longer flashes on load, and several security and reliability fixes ship under the hood.",
-  "date": "2026-07-31",
+  "version": "1.2.7",
+  "title": "Security Hardening, Startup Reliability & Display Fix",
+  "headline": "Live intelligence and debloater endpoints are now protected, startup history and diagnostics are user-scoped, telemetry startup is smoother, and malformed display metadata can no longer blank the dashboard.",
+  "date": "2026-08-21",
   "type": "patch",
   "changes": [
-    "Fixed GPU telemetry showing wrong card's data on multi-GPU systems — now matches by name instead of raw array index",
-    "Fixed white flash on landing page load and right-edge scrollbar border on Windows",
-    "Fixed power plan manager admin path silently reporting success when individual powercfg commands failed",
-    "Hardened checkout webhook — prevents multi-item cart bypass edge case",
-    "Fixed trial expiry mis-comparison when trialEndsAt is null or invalid",
-    "Fixed admin reset-trial endpoint missing input validation",
-    "Removed wasteful WMI query in Extreme Labs analysis that ran but was never used",
-    "Performance and stability improvements"
+    "Protected live network diagnostics, tweak intelligence, power intelligence, dashboard intelligence, and debloater history/action endpoints with authenticated access",
+    "Scoped network benchmark baselines and debloater history to the authenticated user while preserving Electron loopback authentication",
+    "Added CSRF-safe authenticated client requests for network benchmarking and debloater actions",
+    "Hardened startup telemetry priming and heartbeat execution to reduce duplicate probes and startup overhead",
+    "Fixed the Electron startup reveal flow so the window waits for both Chromium and the first React splash frame before showing",
+    "Fixed a dashboard crash caused by malformed display connection metadata calling string methods on non-string values",
+    "Expanded Process Manager and Debloat installed-app icon coverage, fixed light-mode loading spinners and active navigation rings, and cleaned up the startup score gauge"
   ]
 }
