@@ -205,6 +205,12 @@
   let cachedSpecs = null;
   let cachedSpecsTime = 0;
   let cachedSpecsRevision = 0;
+  // Expensive live disk fallback work is allowed only after the initial
+  // dashboard has rendered.
+  let dashboardMountedAt = 0;
+  // A trusted recent specs cache can hydrate the complete GPU list, making the
+  // startup WMI probe redundant.
+  let skipStartupWmiGpu = false;
   const SPECS_CACHE_TTL          = 5 * 60 * 1000;      // 5 min  — in-memory freshness
   const SPECS_DISK_SERVE_AGE_MS  = 4 * 60 * 60 * 1000; // 4 h    — serve disk cache instantly
   const SPECS_DISK_IGNORE_AGE_MS = 24 * 60 * 60 * 1000;// 24 h   — discard stale disk cache
@@ -566,10 +572,12 @@
           // If si.disksIO() failed or returned null, try PowerShell perf counter.
           // getDiskIOViaPowerShell returns per-second rates (rIO_sec/wIO_sec/ms_sec),
           // handled by the disksio-persec branch in the delta computation below.
-          if (rawDiskIO === null) {
+          if (rawDiskIO === null && dashboardMountedAt > 0) {
             verboseLog('[telemetry:poll] disksIO returned null — trying PowerShell fallback');
             rawDiskIO = await getDiskIOViaPowerShell().catch(() => null);
             if (rawDiskIO) verboseLog('[telemetry:poll] disksIO PowerShell fallback succeeded');
+          } else if (rawDiskIO === null) {
+            verboseLog('[telemetry:poll] disksIO returned null — PowerShell fallback deferred until dashboard mount');
           }
           _diskIoLastTs  = Date.now();
           _recordTiming('diskIO', _t0);
@@ -825,7 +833,9 @@
       // runs after show() — so the GPU name is resolved on the vast majority of boots.
       // Saving one powershell.exe cold-start (~300ms–1s on weak CPUs/HDDs) from the boot
       // path is a direct, measurable win on exactly the low-end hardware we're targeting.
-      if (wmiGpuModelName) {
+      if (skipStartupWmiGpu) {
+        console.log('[GPU] WMI fast-path skipped — trusted recent specs cache hydrated GPU list');
+      } else if (wmiGpuModelName) {
         console.log('[GPU] WMI fast-path skipped — already resolved by enrichment:', wmiGpuModelName);
       } else {
       const _wmiGpuPs = `try{$r=@(Get-CimInstance Win32_VideoController -ErrorAction Stop|Where-Object{$_.Name -notmatch 'Microsoft Basic|Remote Desktop'}|Sort-Object{-[uint64]$_.AdapterRAM});if($r.Count -gt 0){($r|ForEach-Object{"$($_.Name)|$([uint64]$_.AdapterRAM)"})-join';;'}else{''}}catch{''}`;
@@ -1437,6 +1447,7 @@
     ipcMain.once('app:dashboard-mounted', () => {
       if (_bm.dashboardMounted) return; // already fired
       _bm.dashboardMounted = Date.now();
+      dashboardMountedAt = _bm.dashboardMounted;
       const rel = (t) => t ? `${t - _bm.whenReady}ms` : 'pending';
       console.log('[BOOT] ──────────────────────────────────────────');
       console.log(`[BOOT] firstFrameReady  = ${rel(_bm.firstFrameReady)}`);
@@ -2552,10 +2563,13 @@ ConvertTo-Json -InputObject $result -Compress -Depth 2
       const toSave = {
         cpu:    specs.cpu,
         gpu:    specs.gpu,
+        gpuList: wmiGpuList,
+        selectedGpuIndex,
         ram:    specs.ram,
         system: specs.system,
         disk:   specs.disk,
         disks:  specs.disks,
+        _appVersion: app.getVersion(),
         _savedAt: Date.now(),
       };
       fs.writeFileSync(SPECS_CACHE_FILE, JSON.stringify(toSave), 'utf8');
@@ -2790,6 +2804,38 @@ ConvertTo-Json -InputObject $result -Compress -Depth 2
       if (diskCache) {
         cachedSpecs     = diskCache;
         cachedSpecsTime = now;
+        const _currentAppVersion = app.getVersion();
+        const _configuredGpuIndex = Math.max(0, Number(configStore.get('selectedGpuIndex', 0)) || 0);
+        const _cachedGpuList = Array.isArray(diskCache.gpuList)
+          ? diskCache.gpuList.filter(g => g && typeof g.name === 'string' && g.name.trim())
+          : [];
+        const _cachedSelectedIndex = Number.isInteger(diskCache.selectedGpuIndex)
+          ? diskCache.selectedGpuIndex
+          : -1;
+        const _cachedSelectedGpu = _cachedGpuList[_cachedSelectedIndex]?.name?.trim() || '';
+        const _cacheVersionMatches = diskCache._appVersion === _currentAppVersion;
+        const _cacheSelectionMatches = _cachedSelectedIndex === _configuredGpuIndex;
+        const _cacheGpuMatchesSelection = !!_cachedSelectedGpu &&
+          _cachedSelectedGpu === String(diskCache.gpu?.model || '').trim();
+
+        // Hydrate multi-GPU state before the renderer can request it. This lets
+        // a trusted cache skip redundant startup WMI enumeration without
+        // breaking gpu:listAll or selected-GPU behavior.
+        if (diskCache._diskCacheAgeMs < SPECS_DISK_SERVE_AGE_MS &&
+            _cacheVersionMatches && _cacheSelectionMatches && _cacheGpuMatchesSelection) {
+          wmiGpuList = _cachedGpuList;
+          selectedGpuIndex = Math.min(_configuredGpuIndex, wmiGpuList.length - 1);
+          wmiGpuModelName = wmiGpuList[selectedGpuIndex]?.name || diskCache.gpu.model;
+          gpuExistsOnHardware = !!wmiGpuModelName;
+          skipStartupWmiGpu = true;
+          console.log('[GPU] trusted specs cache — startup WMI probe eligible to skip | version:', _currentAppVersion,
+            '| selected index:', selectedGpuIndex, '| GPUs:', wmiGpuList.length);
+        } else {
+          skipStartupWmiGpu = false;
+          console.log('[GPU] specs cache requires startup WMI probe | age:', Math.round(diskCache._diskCacheAgeMs / 60000) + 'min',
+            '| versionMatch:', _cacheVersionMatches, '| selectionMatch:', _cacheSelectionMatches,
+            '| gpuMatch:', _cacheGpuMatchesSelection);
+        }
         // Verify cached GPU matches the user's selected GPU index.
         // If they differ (GPU swap, or user changed selection while app was closed), re-enrich.
         const _cachedGpuName = diskCache?.gpu?.model;
