@@ -578,22 +578,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
       return ipcRenderer.invoke('startup:verifyState', params);
     },
   },
-  extremeLabs: {
-    createRestorePoint: () => ipcRenderer.invoke('extremeLabs:createRestorePoint'),
-    createBaseline:     () => ipcRenderer.invoke('extremeLabs:createBaseline'),
-    analyze:            () => ipcRenderer.invoke('extremeLabs:analyze'),
-    applySelected:      (ids) => {
-      assertStringArray(ids, 'extremeLabs.applySelected ids');
-      return ipcRenderer.invoke('extremeLabs:applySelected', ids);
-    },
-    restoreBaseline:    (ids) => {
-      const safeIds = Array.isArray(ids) ? ids : [];
-      assertStringArray(safeIds, 'extremeLabs.restoreBaseline ids');
-      return ipcRenderer.invoke('extremeLabs:restoreBaseline', safeIds);
-    },
-    getStatus:          () => ipcRenderer.invoke('extremeLabs:getStatus'),
-    checkAllStatus:     () => ipcRenderer.invoke('extremeLabs:checkAllStatus'),
-  },
   premium: {
     revertAll:            () => ipcRenderer.invoke('premium:revertAll'),
     previewRevert:        () => ipcRenderer.invoke('premium:previewRevert'),

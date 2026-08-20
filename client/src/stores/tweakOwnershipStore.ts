@@ -44,17 +44,6 @@ function migratePowerPlan(
   return migrateRecord(powerPlan) as unknown as PowerPlanOwnership;
 }
 
-function migrateExtremeLabs(
-  extremeLabs: Record<string, LegacyRecord> | undefined
-): Record<string, ExtremeTweakOwnership> {
-  if (!extremeLabs) return {};
-  const out: Record<string, ExtremeTweakOwnership> = {};
-  for (const [k, rec] of Object.entries(extremeLabs)) {
-    out[k] = migrateRecord(rec) as unknown as ExtremeTweakOwnership;
-  }
-  return out;
-}
-
 // ── Ownership record shapes ────────────────────────────────────────────────────
 
 /** Metadata for a tweak the app knows about.
@@ -93,21 +82,12 @@ export interface PowerPlanOwnership {
   conflictDetected: boolean;
 }
 
-export interface ExtremeTweakOwnership {
-  provenance: 'app' | 'baseline';
-  timestamp: number;
-  label: string;
-  revertFailed: boolean;
-}
-
 // ── Store ──────────────────────────────────────────────────────────────────────
 
 interface TweakOwnershipState {
   appliedTweaks: Record<string, TweakOwnership>;
   networkTweaks: Record<string, NetworkTweakOwnership>;
   powerPlan: PowerPlanOwnership | null;
-  /** Extreme Labs tweaks applied by the app — tracked for premium revert. */
-  extremeLabs: Record<string, ExtremeTweakOwnership>;
   baselineInitialized: boolean;
 
   // ── Tweak actions ────────────────────────────────────────────────────────────
@@ -133,11 +113,6 @@ interface TweakOwnershipState {
   markPowerPlanConflict: () => void;
   markPowerPlanRevertFailed: () => void;
 
-  // ── Extreme Labs actions ─────────────────────────────────────────────────────
-  recordExtremeLabsApply: (tweakId: string, label: string) => void;
-  recordExtremeLabsRevertSuccess: (tweakId: string) => void;
-  markExtremeLabsRevertFailed: (tweakId: string) => void;
-
   // ── Baseline ─────────────────────────────────────────────────────────────────
   setBaselineInitialized: () => void;
   resetOwnership: () => void;
@@ -150,7 +125,6 @@ export const useTweakOwnershipStore = create<TweakOwnershipState>()(
       appliedTweaks: {},
       networkTweaks: {},
       powerPlan: null,
-      extremeLabs: {},
       baselineInitialized: false,
 
       // ── Tweak ───────────────────────────────────────────────────────────────
@@ -311,38 +285,6 @@ export const useTweakOwnershipStore = create<TweakOwnershipState>()(
         set(s => s.powerPlan ? { powerPlan: { ...s.powerPlan, revertFailed: true } } : s);
       },
 
-      // ── Extreme Labs ─────────────────────────────────────────────────────────
-      recordExtremeLabsApply(tweakId, label) {
-        set(s => ({
-          extremeLabs: {
-            ...s.extremeLabs,
-            [tweakId]: {
-              provenance: 'app',
-              timestamp: Date.now(),
-              label,
-              revertFailed: false,
-            },
-          },
-        }));
-        console.log(`[Ownership:EL] recorded apply tweakId="${tweakId}"`);
-      },
-
-      recordExtremeLabsRevertSuccess(tweakId) {
-        set(s => {
-          const { [tweakId]: _, ...rest } = s.extremeLabs;
-          return { extremeLabs: rest };
-        });
-        console.log(`[Ownership:EL] cleared after revert tweakId="${tweakId}"`);
-      },
-
-      markExtremeLabsRevertFailed(tweakId) {
-        set(s => {
-          const rec = s.extremeLabs[tweakId];
-          if (!rec) return s;
-          return { extremeLabs: { ...s.extremeLabs, [tweakId]: { ...rec, revertFailed: true } } };
-        });
-      },
-
       // ── Baseline ────────────────────────────────────────────────────────────
       setBaselineInitialized() {
         set({ baselineInitialized: true });
@@ -350,7 +292,7 @@ export const useTweakOwnershipStore = create<TweakOwnershipState>()(
       },
 
       resetOwnership() {
-        set({ appliedTweaks: {}, networkTweaks: {}, powerPlan: null, extremeLabs: {}, baselineInitialized: false });
+        set({ appliedTweaks: {}, networkTweaks: {}, powerPlan: null, baselineInitialized: false });
       },
 
       clearPremiumOwnership() {
@@ -359,7 +301,7 @@ export const useTweakOwnershipStore = create<TweakOwnershipState>()(
           for (const [id, rec] of Object.entries(s.appliedTweaks)) {
             if (rec.provenance === 'baseline') remaining[id] = rec;
           }
-          return { appliedTweaks: remaining, networkTweaks: {}, powerPlan: null, extremeLabs: {} };
+          return { appliedTweaks: remaining, networkTweaks: {}, powerPlan: null };
         });
         console.log('[Ownership] clearPremiumOwnership — app-applied premium entries removed');
       },
@@ -374,14 +316,12 @@ export const useTweakOwnershipStore = create<TweakOwnershipState>()(
           appliedTweaks: migrateAppliedTweaks(s?.appliedTweaks),
           networkTweaks: migrateNetworkTweaks(s?.networkTweaks),
           powerPlan: migratePowerPlan(s?.powerPlan),
-          extremeLabs: migrateExtremeLabs(s?.extremeLabs),
         };
       },
       partialize: (s) => ({
         appliedTweaks:       s.appliedTweaks,
         networkTweaks:       s.networkTweaks,
         powerPlan:           s.powerPlan,
-        extremeLabs:         s.extremeLabs,
         baselineInitialized: s.baselineInitialized,
       }),
     }

@@ -11,7 +11,6 @@ import type { Request, Response, NextFunction } from "express";
  *   KILL_AI=true           disables /api/ai routes (AI advisor only)
  *   KILL_TELEMETRY=true    disables /ws/telemetry broadcasts
  *   KILL_UPDATER=true      disables updater check endpoint
- *   KILL_EXTREME_LABS=true disables Extreme Labs endpoints
  *   KILL_CLEANER=true      disables /api/cleaner
  *   KILL_BIOS=true         disables /api/bios (independent of KILL_AI)
  *   KILL_NETWORK_DIAG=true disables /api/network diagnostics
@@ -22,7 +21,6 @@ export type KillSwitchFeature =
   | "ai"
   | "telemetry"
   | "updater"
-  | "extreme_labs"
   | "cleaner"
   | "bios"
   | "network_diag"
@@ -32,7 +30,6 @@ const ENV_MAP: Record<KillSwitchFeature, string> = {
   ai:           "KILL_AI",
   telemetry:    "KILL_TELEMETRY",
   updater:      "KILL_UPDATER",
-  extreme_labs: "KILL_EXTREME_LABS",
   cleaner:      "KILL_CLEANER",
   bios:         "KILL_BIOS",
   network_diag: "KILL_NETWORK_DIAG",

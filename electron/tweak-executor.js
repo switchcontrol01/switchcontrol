@@ -944,7 +944,6 @@ const ADMIN_TWEAKS = {
     revert: `Remove-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control" -Name "SvcHostSplitThresholdInKB" -EA SilentlyContinue`,
     check:  `(Get-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control" -Name "SvcHostSplitThresholdInKB" -EA SilentlyContinue).SvcHostSplitThresholdInKB -ge 67108864`,
   },
-  // ── Extreme Labs specific tweaks ─────────────────────────────────────────────────
   'hpet-disable': {
     name: 'Disable HPET Platform Clock',
     requiresAdmin: true,

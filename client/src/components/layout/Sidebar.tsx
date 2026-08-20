@@ -98,7 +98,6 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Process Manager", icon: Layers, href: "/process-manager" },
   { label: "AI Advisor", icon: Brain, href: "/ai-advisor", isPremium: true, tourId: "ai-advisor" },
   { label: "BIOS Advisor", icon: Cpu, href: "/bios-advisor", isPremium: true, tourId: "bios-advisor" },
-  { label: "Extreme Labs", icon: Zap, href: "/extreme-labs", isPremium: true, tourId: "extreme-labs" },
   { label: "Security", icon: Shield, href: "/security", tourId: "security" },
   { label: "History", icon: Activity, href: "/history" },
   { label: "Driver Intel", icon: ScanSearch, href: "/driver-intel", isPremium: true, tourId: "driver-intel" },

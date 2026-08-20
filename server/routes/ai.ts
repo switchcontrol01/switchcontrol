@@ -345,7 +345,7 @@ You have complete real-time visibility into the user's FULL system state (provid
 - Exact hardware: CPU model, GPU model, RAM configuration (sticks, type, speed), storage, motherboard, BIOS version
 - Platform classification: laptop or desktop, AMD or Intel CPU
 - Display signal: monitor model, resolution, refresh rate, connection type, quality score, any issues detected
-- Every SwitchControl tweak they have enabled or disabled — across ALL sections: main Tweaks, Extreme Labs, Network Tweaks, NIC Tuning, Power Plan, Process Manager, Security, BIOS Advisor
+- Every SwitchControl tweak they have enabled or disabled across the app's supported sections
 - Installed driver versions (GPU, audio) from Driver Intel
 - Latency Analyzer results: DPC latency, kernel latency, problematic drivers detected
 - Startup Manager: total startup entries, how many are enabled/disabled/broken
@@ -362,7 +362,7 @@ You have complete real-time visibility into the user's FULL system state (provid
 - The full conversation history — you remember everything discussed
 
 APP SECTIONS YOU CAN ACCESS DATA FROM (every one of these is in your system state):
-Dashboard, Tweaks, Extreme Labs, Network Tweaks, NIC Tuning, Power Plan, Process Manager, BIOS Advisor, Security, Driver Intel, Latency Analyzer, Startup Manager, System Cleaner, Debloater, History, Settings.
+Dashboard, Tweaks, Network Tweaks, NIC Tuning, Power Plan, Process Manager, BIOS Advisor, Security, Driver Intel, Latency Analyzer, Startup Manager, System Cleaner, Debloater, History, Settings.
 You have data from ALL of these sections. Never tell the user a section "is not visible to me" or "I don't have access to" any of the above — you always have their data in context.
 
 SECTION LISTING RULE: When the user asks "what sections can you see?", "what do you have access to?", "what parts of the app do you know about?", or any similar question, you MUST list ALL 16 sections above — not just the ones that have active data. A section showing "not run yet" or "no items applied" is still fully visible to you. Omitting a section from your answer misleads the user into thinking you cannot help with it.
@@ -414,7 +414,6 @@ CRITICAL: "show me [tweak name/number]" ALWAYS uses <<APPLY:id>>, never <<NAV:>>
 NAVIGATION ROUTE MAP (use exact paths):
 - Dashboard → <<NAV:/:Dashboard>>
 - Main tweaks → <<NAV:/tweaks:Tweaks>>
-- Extreme Labs → <<NAV:/extreme-labs:Extreme Labs>>
 - Network tweaks → <<NAV:/network:Network Tweaks>>
 - NIC Tuning → <<NAV:/nic-tuning:NIC Tuning>>
 - Power plan → <<NAV:/power-plan:Power Plan>>
@@ -612,7 +611,6 @@ function buildChatContext(context: any, serverCtx?: Awaited<ReturnType<typeof bu
     "APP SECTIONS YOU HAVE FULL VISIBILITY INTO (ALL 16 — never say any of these are unknown or unavailable):\n" +
     "  1. Dashboard        <<NAV:/:Dashboard>>\n" +
     "  2. Tweaks           <<NAV:/tweaks:Tweaks>>\n" +
-    "  3. Extreme Labs     <<NAV:/extreme-labs:Extreme Labs>>\n" +
     "  4. Network Tweaks   <<NAV:/network:Network Tweaks>>\n" +
     "  5. NIC Tuning       <<NAV:/nic-tuning:NIC Tuning>>\n" +
     "  6. Power Plan       <<NAV:/power-plan:Power Plan>>\n" +
@@ -726,34 +724,6 @@ function buildChatContext(context: any, serverCtx?: Awaited<ReturnType<typeof bu
     if (nt.failed.length > 0) parts.push(`Network tweaks that failed: ${nt.failed.join(", ")}`);
   } else {
     parts.push("Network tweaks: none applied yet via the Network Tweaks section");
-  }
-
-  // ── Extreme Labs tweaks ───────────────────────────────────────────────────
-  const extremeApplied: Array<{ id: string; title: string }> = Array.isArray(context?.extremeLabsApplied)
-    ? context.extremeLabsApplied : [];
-  if (extremeApplied.length > 0) {
-    parts.push(`Extreme Labs tweaks active (${extremeApplied.length}): ${extremeApplied.map((e: any) => e.title).join(", ")}`);
-  } else {
-    parts.push("Extreme Labs tweaks: none currently active");
-  }
-
-  // ── Full Extreme Labs catalog (Tier 3) ────────────────────────────────────
-  // The AI receives the FULL catalog so it can recommend tweaks the user hasn't
-  // enabled yet, not just describe what's already on.
-  if (Array.isArray(context?.extremeLabsCatalog) && context.extremeLabsCatalog.length > 0) {
-    const byCategory = (context.extremeLabsCatalog as any[]).reduce<Record<string, any[]>>((acc, e) => {
-      const cat = e.category || "Other";
-      (acc[cat] = acc[cat] || []).push(e);
-      return acc;
-    }, {});
-    const lines: string[] = [];
-    for (const [cat, items] of Object.entries(byCategory)) {
-      lines.push(`  [${cat}]`);
-      for (const e of items as any[]) {
-        lines.push(`    ${e.active ? "● ACTIVE" : "○ available"} ${e.title} [id:${e.id}]${e.risk ? ` (risk: ${e.risk})` : ""}`);
-      }
-    }
-    parts.push(`FULL Extreme Labs catalog (${context.extremeLabsCatalog.length} total — includes inactive options):\n${lines.join("\n")}`);
   }
 
   // ── Full Network Tweaks catalog (Tier 3) ──────────────────────────────────
@@ -1038,7 +1008,6 @@ function buildChatContext(context: any, serverCtx?: Awaited<ReturnType<typeof bu
       "/power-plan":        "Power Plan",
       "/ai-advisor":        "AI Advisor",
       "/bios-advisor":      "BIOS Advisor",
-      "/extreme-labs":      "Extreme Labs",
       "/security":          "Security",
       "/process-manager":   "Process Manager",
       "/driver-intel":      "Driver Intel",

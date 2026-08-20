@@ -5,7 +5,6 @@ export interface EntitlementFeatures {
   biosAdvisor: boolean;
   aiAdvisor: boolean;
   historyRollback: boolean;
-  extremeLabs: boolean;
 }
 
 /** Builds the per-feature flags for the entitlements response. */
@@ -16,7 +15,6 @@ export function buildEntitlementFeatures(plan: EffectivePlan): EntitlementFeatur
     biosAdvisor:    active,
     aiAdvisor:      active,
     historyRollback: active,
-    extremeLabs:    active,
   };
 }
 

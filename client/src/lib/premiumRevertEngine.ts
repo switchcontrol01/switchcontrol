@@ -1,7 +1,7 @@
 /**
  * Premium Revert Engine v2
  * ────────────────────────
- * Reverts tweaks, network tweaks, Extreme Labs, and power plan changes applied
+ * Reverts tweaks, network tweaks, and power plan changes applied
  * during trial or premium use.
  *
  * RELIABILITY FIXES (v2)
@@ -12,8 +12,6 @@
  * • Network tweaks: removed HTTP backend state pre-check — it used a potentially
  *   stale DB snapshot and caused false "conflict → skip" on every state divergence.
  *   Now executes IPC revert directly and verifies via the IPC result.
- * • Extreme Labs: fully integrated. Records apply/revert in the ownership store
- *   (ExtremeLabs.tsx) and reverts via electronAPI.extremeLabs.restoreBaseline().
  * • Retry loop: all three categories retry up to MAX_RETRY_ATTEMPTS on failure,
  *   with exponential back-off, before marking an item as failed.
  * • Live progress: runPremiumRevert() accepts an onProgress callback so the UI
@@ -238,7 +236,6 @@ export interface PremiumRevertReport {
   sliderResults: RevertItemResult[];
   presetResults: RevertItemResult[];
   networkResults: RevertItemResult[];
-  extremeLabsResults: RevertItemResult[];
   powerPlan: PowerPlanRevertResult;
   anyFailed: boolean;
   anyConflict: boolean;
@@ -251,7 +248,6 @@ function getTweaksAPI()     { return (window as any).electronAPI?.tweaks       ?
 function getNetworkAPI()    { return (window as any).electronAPI?.networkTweaks ?? null; }
 function getPowerPlanAPI()  { return (window as any).electronAPI?.powerPlans    ?? null; }
 function getPremiumAPI()    { return (window as any).electronAPI?.premium       ?? null; }
-function getExtremeLabsAPI(){ return (window as any).electronAPI?.extremeLabs  ?? null; }
 function getSliderAPI()     { return (window as any).electronAPI?.tweaks       ?? null; }
 function getPresetAPI()     { return (window as any).electronAPI?.presetTweaks ?? null; }
 
@@ -571,105 +567,6 @@ async function revertSingleNetworkTweak(
   return 'failed';
 }
 
-// ── Extreme Labs revert ───────────────────────────────────────────────────────
-//
-// NEW: Extreme Labs was previously completely unconnected from the revert engine
-// (0% success rate). Now:
-//   1. ExtremeLabs.tsx records each apply/undo in the ownership store.
-//   2. On trial expiry, restoreBaseline() is called — it reverts all IDs atomically
-//      (registry, slider, and NIC tweaks) via the Electron IPC handler.
-//   3. Retried up to 3× before marking failures.
-
-async function revertExtremeLabsTweaks(): Promise<RevertItemResult[]> {
-  const store = useTweakOwnershipStore.getState();
-  const entries = Object.entries(store.extremeLabs).filter(([, rec]) => rec.provenance === 'app');
-
-  const api = getExtremeLabsAPI();
-  if (!api?.restoreBaseline) {
-    // No API — only report failure for tracked items; if store is empty just skip silently.
-    if (entries.length === 0) return [];
-    console.warn('[Revert:EL] electronAPI.extremeLabs.restoreBaseline not available');
-    return entries.map(([tweakId, rec]) => ({
-      tweakId,
-      label: rec.label,
-      status: 'failed' as const,
-      reason: 'Electron API not available',
-    }));
-  }
-
-  // Pass the specific IDs we tracked so the handler only reverts those tweaks —
-  // avoids spawning PowerShell for tweaks that were never applied.
-  // When the store is empty (cleared between sessions) we pass [] so the
-  // handler does a full safety sweep of all known IDs — this closes the loophole
-  // where a user applied tweaks, the store was lost, and trial expiry ran: the
-  // actual registry/system changes get rolled back even without store records.
-  // NOTE: never pass undefined here — the preload's assertStringArray guard
-  // throws on non-arrays, which silently kills all 3 retry attempts.
-  const trackedIds = entries.map(([id]) => id);
-
-  let lastResult: any = null;
-  let success = false;
-
-  for (let attempt = 1; attempt <= MAX_RETRY_ATTEMPTS; attempt++) {
-    try {
-      // Empty array → full sweep in main.js (Array.isArray([]) && [].length > 0 is false → allIds).
-      lastResult = await api.restoreBaseline(trackedIds.length > 0 ? trackedIds : []);
-      if (lastResult?.ok) {
-        success = true;
-        console.log(`[Revert:EL] restoreBaseline succeeded attempt=${attempt} ids=${trackedIds.length || 'all'}`);
-        break;
-      }
-      console.warn(`[Revert:EL] restoreBaseline failed attempt=${attempt}`, lastResult?.error);
-    } catch (err) {
-      console.error(`[Revert:EL] exception attempt=${attempt}`, err);
-    }
-    if (attempt < MAX_RETRY_ATTEMPTS) await delay(RETRY_BASE_DELAY_MS * attempt);
-  }
-
-  // Nothing tracked in the store — safety sweep completed but nothing to report to UI.
-  if (entries.length === 0) {
-    // Still clear localStorage + main store so the component doesn't show stale
-    // Applied state on any page (Extreme Labs or Tweaks).
-    if (success) {
-      try { localStorage.removeItem('extreme-labs-applied'); } catch (_) {}
-      clearMainStoreForELTweaks();
-      dispatchRevertEvent('sc:el-reverted');
-    }
-    return [];
-  }
-
-  const results = entries.map(([tweakId, rec]) => {
-    const itemResult = lastResult?.results?.find((r: any) => r.id === tweakId);
-    // Use explicit === true check: `reverted !== false` counts `undefined` as reverted,
-    // which masks items where the API returned `{ id, error }` with no reverted field.
-    // When no per-item result exists but the overall call succeeded, treat as reverted.
-    const reverted = success && (itemResult ? itemResult.reverted === true : true);
-
-    if (reverted) {
-      store.recordExtremeLabsRevertSuccess(tweakId);
-      return { tweakId, label: rec.label, status: 'reverted' as const };
-    } else {
-      store.markExtremeLabsRevertFailed(tweakId);
-      return {
-        tweakId,
-        label: rec.label,
-        status: 'failed' as const,
-        reason: itemResult?.error ?? lastResult?.error ?? 'Extreme Labs restore failed',
-      };
-    }
-  });
-
-  // Clear UI state for reverted items (localStorage, main store, and event dispatch)
-  const anyReverted = results.some(r => r.status === 'reverted');
-  if (anyReverted) {
-    try { localStorage.removeItem('extreme-labs-applied'); } catch (_) {}
-    clearMainStoreForELTweaks();
-    dispatchRevertEvent('sc:el-reverted');
-  }
-
-  return results;
-}
-
 // ── Power plan revert ─────────────────────────────────────────────────────────
 //
 // Unchanged from v1 — power plans already had ~100% success. Kept intact.
@@ -808,7 +705,7 @@ let _revertInFlight = false;
  * Run the full premium revert sequence.
  *
  * Phase order:
- *   locking → reverting_tweaks → reverting_network → reverting_extreme_labs
+ *   locking → reverting_tweaks → reverting_network
  *   → verifying (power plan + cleanup) → complete
  *
  * @param onProgress  Optional callback invoked at each phase boundary so the
@@ -822,7 +719,7 @@ export async function runPremiumRevert(
     // Return a benign no-op report so the caller can handle it without crashing.
     return {
       tweakResults: [], sliderResults: [], presetResults: [],
-      networkResults: [], extremeLabsResults: [],
+       networkResults: [],
       powerPlan: { status: 'not_applicable' },
       anyFailed: false, anyConflict: false, revertedCount: 0,
     };
@@ -839,7 +736,6 @@ export async function runPremiumRevert(
   let   sliderResults:      RevertItemResult[] = [];
   let   presetResults:      RevertItemResult[] = [];
   const networkResults:     RevertItemResult[] = [];
-  let   extremeLabsResults: RevertItemResult[] = [];
 
   // ── Tweaks ──────────────────────────────────────────────────────────────────
   onProgress?.('reverting_tweaks');
@@ -930,17 +826,6 @@ export async function runPremiumRevert(
     dispatchRevertEvent('sc:net-reverted', { ids: revertedNetIds });
   }
 
-  // ── Extreme Labs ─────────────────────────────────────────────────────────────
-  onProgress?.('reverting_extreme_labs');
-  try {
-    extremeLabsResults = await revertExtremeLabsTweaks();
-  } catch (err) {
-    console.error('[Revert:EL] unexpected error:', err);
-    extremeLabsResults = Object.entries(store.extremeLabs)
-      .filter(([, r]) => r.provenance === 'app')
-      .map(([tweakId, rec]) => ({ tweakId, label: rec.label, status: 'failed' as const }));
-  }
-
   // ── Power plan ───────────────────────────────────────────────────────────────
   onProgress?.('verifying');
   const powerPlanResult = await revertPowerPlan();
@@ -952,7 +837,6 @@ export async function runPremiumRevert(
     sliderResults.some(r => r.status === 'failed') ||
     presetResults.some(r => r.status === 'failed') ||
     networkResults.some(r => r.status === 'failed') ||
-    extremeLabsResults.some(r => r.status === 'failed') ||
     powerPlanResult.status === 'failed';
 
   const anyConflict =
@@ -964,7 +848,6 @@ export async function runPremiumRevert(
     sliderResults.filter(r => r.status === 'reverted').length +
     presetResults.filter(r => r.status === 'reverted').length +
     networkResults.filter(r => r.status === 'reverted').length +
-    extremeLabsResults.filter(r => r.status === 'reverted').length +
     (powerPlanResult.status === 'reverted' || powerPlanResult.status === 'forced_balanced' ? 1 : 0);
 
   // ── Final safety sweep ────────────────────────────────────────────────────
@@ -997,7 +880,7 @@ export async function runPremiumRevert(
 
   console.log(
     `[Revert] Complete — reverted=${revertedCount} failed=${anyFailed} conflict=${anyConflict}` +
-    ` sliders=${sliderResults.length} presets=${presetResults.length} el=${extremeLabsResults.length}`
+     ` sliders=${sliderResults.length} presets=${presetResults.length}`
   );
 
   return {
@@ -1005,7 +888,6 @@ export async function runPremiumRevert(
     sliderResults,
     presetResults,
     networkResults,
-    extremeLabsResults,
     powerPlan: powerPlanResult,
     anyFailed,
     anyConflict,
@@ -1039,7 +921,6 @@ export function hasPremiumItemsToRevert(): boolean {
   const hasTweaks      = Object.values(store.appliedTweaks).some(r => r.provenance === 'app' && r.isPremium);
   const hasNetwork     = Object.values(store.networkTweaks).some(r => r.provenance === 'app');
   const hasPlan        = store.powerPlan?.provenance === 'app';
-  const hasExtremeLabs = Object.values(store.extremeLabs).some(r => r.provenance === 'app');
 
   // Check premium sliders: any stored value that differs from the Windows default
   // means the slider was applied (even across app restarts, since sliderValues is
@@ -1080,5 +961,5 @@ export function hasPremiumItemsToRevert(): boolean {
     );
   } catch { /* non-Electron / store not ready */ }
 
-  return hasTweaks || hasNetwork || hasPlan || hasExtremeLabs || hasSliders || hasPresets || hasStoreFallbackTweaks;
+  return hasTweaks || hasNetwork || hasPlan || hasSliders || hasPresets || hasStoreFallbackTweaks;
 }

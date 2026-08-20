@@ -83,7 +83,6 @@ const PAGE_ICONS: Record<string, ReactNode> = {
   "Power Plan":    <Zap className="size-3 text-amber-400" />,
   "Network":       <Wifi className="size-3 text-sky-400" />,
   "NIC Tuning":    <Radio className="size-3 text-sky-400" />,
-  "Extreme Labs":  <Zap className="size-3 text-purple-400" />,
   "Cleaner":       <CheckCircle className="size-3 text-emerald-400" />,
   "Debloat":       <Trash2 className="size-3 text-orange-400" />,
   "Startup":       <Clock className="size-3 text-slate-400" />,

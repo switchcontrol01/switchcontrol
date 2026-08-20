@@ -172,7 +172,7 @@
   // null on error. Callers keep their own parsing/JSON logic; only the spawn
   // boilerplate is centralised here.
   // Sites with complex stderr handling or custom backoff (getGpuPerfCounterLoad,
-  // extremeLabs:createRestorePoint, startup:scan) keep their inline spans and are
+  // startup:scan) keep their inline spans and are
   // documented exceptions.
   async function runMainPs(script, { timeout = 10000, label = '' } = {}) {
     if (process.platform !== 'win32') return null;
@@ -4233,70 +4233,6 @@ public class DspHelper {
     }
   });
   
-  // ── Extreme Labs IPC handlers ─────────────────────────────────────────────────────
-  
-  const extremeLabsStore = {
-    sessions: [],
-    currentSession: null,
-    lastRestorePoint: null,
-    lastBaseline: null,
-  };
-  
-  function _extremeLabsValidateTweakIds(ids) {
-    if (!Array.isArray(ids)) return { ok: false, error: 'ids must be an array' };
-    const validIds = new Set([
-      'pci-msi-mode-extreme',
-      'global-timer-resolution', 'dynamic-tick', 'hpet-disable',
-      'win32-priority-separation', 'system-responsiveness', 'mmcss-no-lazy', 'power-throttling-extreme',
-      'disable-game-dvr', 'disable-xbox-capture', 'windowed-games-opt', 'fortnite-priority-booster',
-      'network-throttling-index', 'tcp-no-delay', 'rss-enable',
-      'interrupt-moderation', 'eee-disable', 'flow-control',
-      'windows-search-disable', 'sysmain-disable', 'print-spooler-disable',
-      'xbox-services-disable', 'bluetooth-disable',
-      'edge-update-disable', 'adobe-updater-disable', 'teams-startup-disable', 'vendor-updaters-disable',
-    ]);
-    for (const id of ids) {
-      if (typeof id !== 'string' || !validIds.has(id)) {
-        return { ok: false, error: `Invalid tweak id: ${id}` };
-      }
-    }
-    return { ok: true };
-  }
-  
-  // Maps extreme tweak id to existing registry/slider tweak executor
-  function _extremeLabsMapToRegistryTweak(id) {
-    const map = {
-      'pci-msi-mode-extreme': { type: 'tweak', tweakId: 'pci-msi-mode' },
-      'global-timer-resolution': { type: 'tweak', tweakId: 'timer-res' },
-      'dynamic-tick': { type: 'tweak', tweakId: 'synth-timers' },
-      'hpet-disable': { type: 'tweak', tweakId: 'hpet-disable' },
-      'power-throttling-extreme': { type: 'tweak', tweakId: 'power-throttling' },
-      'disable-game-dvr': { type: 'tweak', tweakId: 'disable-game-dvr' },
-      'disable-xbox-capture': { type: 'tweak', tweakId: 'disable-xbox-capture' },
-      'windowed-games-opt': { type: 'tweak', tweakId: 'optimize-windowed-games' },
-      'win32-priority-separation': { type: 'slider', tweakId: 'win32-priority-sep', recommendedValue: 26 },
-      'system-responsiveness': { type: 'slider', tweakId: 'sys-responsiveness', recommendedValue: 10 },
-      'mmcss-no-lazy': { type: 'tweak', tweakId: 'mmcss-nolazymode' },
-      'network-throttling-index': { type: 'slider', tweakId: 'net-throttle-index', recommendedValue: 4294967295 },
-      'tcp-no-delay': { type: 'tweak', tweakId: 'tcp-no-delay' },
-      'rss-enable': { type: 'nic', propertyKey: 'RSS', enabledValue: '1' },
-      'interrupt-moderation': { type: 'nic', propertyKey: 'InterruptModeration', enabledValue: '0' },
-      'eee-disable': { type: 'nic', propertyKey: 'EEE', enabledValue: '0' },
-      'flow-control': { type: 'nic', propertyKey: 'FlowControl', enabledValue: '0' },
-      'windows-search-disable': { type: 'tweak', tweakId: 'win-search-index' },
-      'sysmain-disable': { type: 'tweak', tweakId: 'superfetch' },
-      'print-spooler-disable': { type: 'tweak', tweakId: 'fax-printer' },
-      'xbox-services-disable': { type: 'tweak', tweakId: 'xbox-services' },
-      'bluetooth-disable': { type: 'tweak', tweakId: 'bluetooth' },
-      'edge-update-disable': { type: 'tweak', tweakId: 'edge-update' },
-      'adobe-updater-disable': { type: 'tweak', tweakId: 'adobe-updater' },
-      'teams-startup-disable': { type: 'tweak', tweakId: 'teams-startup' },
-      'vendor-updaters-disable': { type: 'tweak', tweakId: 'vendor-updaters' },
-      'fortnite-priority-booster': { type: 'preset', tweakId: 'fortnite-high-priority', recommendedOptionId: 'high' },
-    };
-    return map[id] || null;
-  }
-  
   // ── Multi-GPU: cache invalidation helper ─────────────────────────────────
   // Clears ALL GPU-related caches so a GPU switch takes full effect immediately.
   function _invalidateGpuCache() {
@@ -4354,6 +4290,9 @@ public class DspHelper {
     };
   });
 
+  // Extreme Labs was retired. Keep the legacy implementation unreachable so
+  // existing installs cannot expose or execute the removed IPC surface.
+  if (false) {
   ipcMain.handle('extremeLabs:createRestorePoint', async () => {
     try {
       if (process.platform !== 'win32') {
@@ -4786,6 +4725,8 @@ $pwrThrot  = Reg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottl
     }
   });
   
+  }
+
   // NIC tuning IPC handlers
   ipcMain.handle('nic:getAdapters', async () => {
     return await nicExecutor.getNetAdapters();

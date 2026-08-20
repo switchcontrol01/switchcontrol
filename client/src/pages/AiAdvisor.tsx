@@ -33,7 +33,6 @@ import { OptimizeWorkflow } from "@/components/ai/OptimizeWorkflow";
 import { isElectronWithTweaks, useTweakExecutor } from "@/hooks/use-tweak-executor";
 import { getTweak } from "@/lib/tweak-registry";
 import { useTweakOwnershipStore } from "@/stores/tweakOwnershipStore";
-import { EXTREME_TWEAKS } from "@/lib/extreme-labs-data";
 import { NETWORK_TWEAKS } from "@/lib/network-tweaks-data";
 import { useBiosAdvisorStore } from "@/stores/biosAdvisorStore";
 import { computeOptimizationScore } from "@/lib/ai-context-builder";
@@ -98,7 +97,6 @@ interface SystemContext {
   recentHistory?: Array<{ action: string; page: string; result: string; timestamp: string }>;
   networkTweaksApplied?: Array<{ id: string; label: string }>;
   powerPlanApplied?: string | null;
-  extremeLabsApplied?: Array<{ id: string; title: string }>;
   platform?: { isLaptop: boolean; cpuVendor: "amd" | "intel" | "unknown" };
   isElectron?: boolean;
   lastRecommendedTweaks?: string[];
@@ -130,7 +128,6 @@ interface SystemContext {
   /** How many times the System Cleaner has been run this session */
   cleanerRunCount?: number;
   // ── Tier 3: full tweak catalogs ───────────────────────────────────────────
-  extremeLabsCatalog?: Array<{ id: string; title: string; category: string; risk?: string; active: boolean }>;
   networkTweaksCatalog?: Array<{ id: string; name: string; category: string; safety?: string; active: boolean }>;
   // ── Tier 4: section data ──────────────────────────────────────────────────
   biosAdvisor?: {
@@ -706,19 +703,6 @@ function CoveragePanel({
             label="Power Plan"
             status={powerPlan ? "available" : "partial"}
             detail={powerPlan ? powerPlan.slice(0, 14) : undefined}
-          />
-          <CoverageRow
-            label="Extreme Labs"
-            status={
-              context?.extremeLabsApplied != null
-                ? context.extremeLabsApplied.length > 0 ? "available" : "partial"
-                : "partial"
-            }
-            detail={
-              context?.extremeLabsApplied && context.extremeLabsApplied.length > 0
-                ? `${context.extremeLabsApplied.length} active`
-                : undefined
-            }
           />
           <CoverageRow label="Process Manager" status={isElectron ? "available" : "partial"} />
           <CoverageRow label="Cleaner" status={isElectron ? "available" : "partial"} />
@@ -1778,13 +1762,6 @@ export default function AiAdvisor() {
       powerPlanApplied: ownership.powerPlan?.provenance === 'app'
         ? ownership.powerPlan.appliedPlanName
         : null,
-      extremeLabsApplied: EXTREME_TWEAKS
-        .filter(ext => {
-          if (ext.registryTweakId) return !!tweaks[ext.registryTweakId];
-          if (ext.sliderTweakId) return !!tweaks[ext.sliderTweakId];
-          return false;
-        })
-        .map(ext => ({ id: ext.id, title: ext.title })),
       platform: (() => {
         const cpuStr = stats.cpuName || si?.cpu.brand || "";
         const cpuVendor: "amd" | "intel" | "unknown" =
@@ -1800,17 +1777,6 @@ export default function AiAdvisor() {
       // ── Tier 3: full tweak catalogs ─────────────────────────────────────────
       // AI receives EVERY entry (not just active ones) so it can recommend
       // tweaks the user hasn't enabled yet.
-      extremeLabsCatalog: EXTREME_TWEAKS.map(ext => ({
-        id:       ext.id,
-        title:    ext.name ?? (ext as any).title ?? ext.id,
-        category: ext.category ?? "Other",
-        risk:     ext.risk ?? undefined,
-        active:   ext.registryTweakId
-          ? !!tweaks[ext.registryTweakId]
-          : ext.sliderTweakId
-            ? !!tweaks[ext.sliderTweakId]
-            : false,
-      })),
       networkTweaksCatalog: NETWORK_TWEAKS
         .filter((nt: any) => !nt.unavailable)
         .map((nt: any) => ({

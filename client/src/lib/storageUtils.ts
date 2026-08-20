@@ -14,7 +14,6 @@
 
 const SC_LEGACY_KEYS: readonly string[] = [
   'switchcontrol-powerplan',
-  'extreme-labs-unlocked',
 ];
 
 /**

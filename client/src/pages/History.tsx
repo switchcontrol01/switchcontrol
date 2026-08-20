@@ -4,7 +4,6 @@ import { useStore } from "@/lib/store";
 import type { HistoryItem } from "@/lib/store";
 import { useToast } from "@/hooks/use-toast";
 import { logHistory } from "@/lib/logHistory";
-import { EXTREME_TWEAKS } from "@/lib/extreme-labs-data";
 import { useAppModeStore } from "@/lib/appModeStore";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Button } from "@/components/ui/button";
@@ -48,7 +47,6 @@ export const MODULE_CONFIG: Record<string, { label: string; cls: string }> = {
   "BIOS Advisor":   { label: "BIOS",          cls: "bg-yellow-500/15 text-yellow-400 border-yellow-500/25" },
   Dashboard:        { label: "Dashboard",     cls: "bg-sky-500/15 text-sky-400 border-sky-500/25" },
   "NIC Tuning":     { label: "NIC Tuning",    cls: "bg-indigo-500/15 text-indigo-400 border-indigo-500/25" },
-  "Extreme Labs":   { label: "Extreme Labs",  cls: "bg-purple-500/15 text-purple-400 border-purple-500/25" },
   Settings:         { label: "Settings",      cls: "bg-zinc-500/15 text-zinc-400 border-zinc-500/25" },
   History:          { label: "History",       cls: "bg-zinc-500/15 text-zinc-400 border-zinc-500/25" },
 };
@@ -67,7 +65,7 @@ const IMPACT_CONFIG = {
   high:   { color: "text-red-400",     label: "High" },
 };
 
-const MODULES_ALL = ["All", "Tweaks", "Security", "Power", "Network", "Cleaner", "Debloat", "Startup", "AI Advisor", "BIOS Advisor", "Dashboard", "NIC Tuning", "Extreme Labs", "Settings"];
+const MODULES_ALL = ["All", "Tweaks", "Security", "Power", "Network", "Cleaner", "Debloat", "Startup", "AI Advisor", "BIOS Advisor", "Dashboard", "NIC Tuning", "Settings"];
 const STATUSES_ALL = ["All", "success", "failed", "warning", "reverted", "info"];
 
 // ── Enrichment ────────────────────────────────────────────────────────────
@@ -91,7 +89,6 @@ function deriveModule(page: string): string {
   if (lp.includes("clean"))   return "Cleaner";
   if (lp.includes("debloat")) return "Debloat";
   if (lp.includes("startup")) return "Startup";
-  if (lp.includes("extreme")) return "Extreme Labs";
   if (lp.includes("bios"))    return "BIOS Advisor";
   if (lp.includes("ai") || (lp.includes("advisor") && !lp.includes("bios"))) return "AI Advisor";
   if (lp.includes("nic") || lp.includes("adapter")) return "NIC Tuning";
@@ -283,47 +280,7 @@ function EventRow({ item, index }: { item: EnrichedItem; index: number }) {
     const notifyRevert = (page: string) =>
       window.dispatchEvent(new CustomEvent("sc:history-revert", { detail: { page } }));
 
-    if (item.page === "Extreme Labs" && item.notes?.startsWith("Tweak ID: ")) {
-      // ── Extreme Labs tweak — always revert to Windows default ──────────────
-      const tweakId = item.notes.replace("Tweak ID: ", "").trim();
-
-      try {
-        const stored = localStorage.getItem("extreme-labs-applied");
-        if (stored) {
-          const applied: string[] = JSON.parse(stored);
-          const updated = applied.filter((id: string) => id !== tweakId);
-          if (updated.length > 0) {
-            localStorage.setItem("extreme-labs-applied", JSON.stringify(updated));
-          } else {
-            localStorage.removeItem("extreme-labs-applied");
-          }
-        }
-      } catch (_) {}
-
-      const eApi = (window as any).electronAPI;
-      if (eApi) {
-        try {
-          const tweak = EXTREME_TWEAKS.find((t: any) => t.id === tweakId);
-          if (tweak) {
-            if ((tweak as any).registryTweakId && eApi.tweaks?.execute) {
-              await eApi.tweaks.execute((tweak as any).registryTweakId, "revert");
-            } else if ((tweak as any).sliderTweakId && eApi.tweaks?.resetValue) {
-              await eApi.tweaks.resetValue((tweak as any).sliderTweakId);
-            } else if ((tweak as any).nicPropertyKey && eApi.nic?.resetProperty) {
-              const adapters = await eApi.nic.getAdapters();
-              const physical = adapters?.find((a: any) => a.status === "Up");
-              if (physical) await eApi.nic.resetProperty(physical.name, (tweak as any).nicPropertyKey);
-            }
-          }
-        } catch (e) {
-          console.warn("[History] Extreme Labs revert IPC error:", e);
-        }
-      }
-
-      toast({ title: "Tweak reverted", description: `${item.action} has been undone` });
-      notifyRevert("Extreme Labs");
-
-    } else if (item.page === "Power Plan") {
+    if (item.page === "Power Plan") {
       // ── Power Plan — restore previous GUID via activateByGuid ──────────────
       // Note: applyProfile() only accepts named keys (maximum_performance etc).
       //       prevGuid is a raw Windows GUID — must use activateByGuid instead.
@@ -551,7 +508,6 @@ function EventRow({ item, index }: { item: EnrichedItem; index: number }) {
         "BIOS Advisor": "BIOS scan results are read-only — no system change was made.",
         "Security":     "Security scan results are informational only.",
         "Startup":      "Only enable/disable actions can be reverted. Scans can't.",
-        "Extreme Labs": "This Extreme Labs entry doesn't have a recorded tweak ID.",
       };
       const reason = irreversiblePages[item.page] ?? "This entry doesn't have a supported revert action.";
       toast({ title: "No revert available", description: reason, variant: "destructive" });

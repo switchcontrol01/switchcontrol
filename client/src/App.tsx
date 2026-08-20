@@ -95,7 +95,6 @@ const StartupApps = lazy(() => import("@/pages/StartupApps"));
 const NicTuningPage = lazy(() => import("@/pages/NicTuning"));
 const BiosAdvisor = lazy(() => import("@/pages/BiosAdvisor"));
 const AiAdvisor = lazy(() => import("@/pages/AiAdvisor"));
-const ExtremeLabs = lazy(() => import("@/pages/ExtremeLabs"));
 const DriverIntelligence = lazy(() => import("@/pages/DriverIntelligence"));
 const LatencyAnalyzer = lazy(() => import("@/pages/LatencyAnalyzer"));
 const Security = lazy(() => import("@/pages/Security"));
@@ -209,7 +208,6 @@ function ElectronAppRoutes() {
             <Route path="/startup" component={StartupApps} />
             <Route path="/bios-advisor" component={BiosAdvisor} />
             <Route path="/ai-advisor" component={AiAdvisor} />
-            <Route path="/extreme-labs" component={ExtremeLabs} />
             <Route path="/security" component={Security} />
             <Route path="/history" component={History} />
             <Route path="/driver-intel" component={DriverIntelligence} />

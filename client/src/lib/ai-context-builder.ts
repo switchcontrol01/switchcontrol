@@ -87,7 +87,6 @@ export interface AiContextSnapshot {
   recentHistory: Array<{ action: string; page: string; result: string; timestamp: string }>;
   networkTweaksApplied: Array<{ id: string; label: string }>;
   powerPlanApplied: string | null;
-  extremeLabsApplied: Array<{ id: string; title: string }>;
   platform: { isLaptop: boolean; cpuVendor: "amd" | "intel" | "unknown" };
   isElectron: boolean;
   lastRecommendedTweaks: string[];
@@ -136,7 +135,6 @@ export function snapshotContext(raw: Record<string, unknown> | null | undefined)
       recentHistory: [],
       networkTweaksApplied: [],
       powerPlanApplied: null,
-      extremeLabsApplied: [],
       platform: { isLaptop: false, cpuVendor: "unknown" },
       isElectron: false,
       lastRecommendedTweaks: [],
@@ -188,7 +186,6 @@ export function snapshotContext(raw: Record<string, unknown> | null | undefined)
     recentHistory:         Array.isArray(raw.recentHistory)         ? (raw.recentHistory         as AiContextSnapshot["recentHistory"])         : [],
     networkTweaksApplied:  Array.isArray(raw.networkTweaksApplied)  ? (raw.networkTweaksApplied  as AiContextSnapshot["networkTweaksApplied"])  : [],
     powerPlanApplied:      typeof raw.powerPlanApplied      === "string" ? raw.powerPlanApplied      : null,
-    extremeLabsApplied:    Array.isArray(raw.extremeLabsApplied)    ? (raw.extremeLabsApplied    as AiContextSnapshot["extremeLabsApplied"])    : [],
     platform: {
       isLaptop:   plat.isLaptop   === true,
       cpuVendor:  ["amd","intel","unknown"].includes(plat.cpuVendor as string) ? plat.cpuVendor as "amd"|"intel"|"unknown" : "unknown",

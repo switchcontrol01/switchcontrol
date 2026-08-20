@@ -16,7 +16,6 @@ export interface EntitlementFeatures {
   biosAdvisor:     boolean;
   aiAdvisor:       boolean;
   historyRollback: boolean;
-  extremeLabs:     boolean;
 }
 
 export interface PremiumGraceSnapshot {

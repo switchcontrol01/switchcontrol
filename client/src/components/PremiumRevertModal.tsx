@@ -62,7 +62,6 @@ const REVERT_STEPS: Array<{ phase: RevertPhase; label: string; detail: string }>
   { phase: 'reverting_sliders',     label: 'Restoring slider settings',  detail: 'Registry values & system timers' },
   { phase: 'reverting_presets',     label: 'Restoring preset profiles',  detail: 'IRQ, I/O & GPU driver profiles' },
   { phase: 'reverting_network',     label: 'Restoring network settings', detail: 'TCP/IP, DNS, NIC properties' },
-  { phase: 'reverting_extreme_labs',label: 'Restoring Extreme Labs',     detail: 'Scheduler, latency & NIC tuning' },
   { phase: 'verifying',             label: 'Verifying & cleanup',        detail: 'Power plan + final checks' },
 ];
 
@@ -72,9 +71,8 @@ const PHASE_INDEX: Record<RevertPhase, number> = {
   reverting_sliders:      2,
   reverting_presets:      3,
   reverting_network:      4,
-  reverting_extreme_labs: 5,
-  verifying:              6,
-  complete:               7,
+  verifying:              5,
+  complete:               6,
 };
 
 // ── Animated counter ──────────────────────────────────────────────────────────
@@ -420,7 +418,6 @@ export function PremiumRevertModal({ open, onClose, report, onRetry, reason, pha
   const sliderResults      = report?.sliderResults      ?? [];
   const presetResults      = report?.presetResults      ?? [];
   const networkResults     = report?.networkResults     ?? [];
-  const extremeLabsResults = report?.extremeLabsResults ?? [];
 
   const revertedTweaks  = tweakResults.filter(r => r.status === 'reverted');
   const failedTweaks    = tweakResults.filter(r => r.status === 'failed');
@@ -436,8 +433,6 @@ export function PremiumRevertModal({ open, onClose, report, onRetry, reason, pha
   const failedNet   = networkResults.filter(r => r.status === 'failed');
   const conflictNet = networkResults.filter(r => r.status === 'skipped_conflict');
 
-  const revertedEL = extremeLabsResults.filter(r => r.status === 'reverted');
-  const failedEL   = extremeLabsResults.filter(r => r.status === 'failed');
 
   const powerPlan         = report?.powerPlan;
   const powerPlanHandled  = powerPlan && powerPlan.status !== 'not_applicable';
@@ -448,7 +443,6 @@ export function PremiumRevertModal({ open, onClose, report, onRetry, reason, pha
     sliderResults.length +
     presetResults.length +
     networkResults.length +
-    extremeLabsResults.length +
     (powerPlanHandled ? 1 : 0);
 
   const revertedItemCount =
@@ -456,17 +450,15 @@ export function PremiumRevertModal({ open, onClose, report, onRetry, reason, pha
     revertedSliders.length +
     revertedPresets.length +
     revertedNet.length +
-    revertedEL.length +
     (powerPlanReverted ? 1 : 0);
 
   const conflictCount = conflictTweaks.length + conflictNet.length;
-  const failedCount   = failedTweaks.length + failedSliders.length + failedPresets.length + failedNet.length + failedEL.length + (powerPlan?.status === 'failed' ? 1 : 0);
+  const failedCount   = failedTweaks.length + failedSliders.length + failedPresets.length + failedNet.length + (powerPlan?.status === 'failed' ? 1 : 0);
 
   const hasTweakItems      = tweakResults.length > 0;
   const hasSliderItems     = sliderResults.length > 0;
   const hasPresetItems     = presetResults.length > 0;
   const hasNetworkItems    = networkResults.length > 0;
-  const hasExtremeLabItems = extremeLabsResults.length > 0;
 
   return createPortal(
     <AnimatePresence>
@@ -655,7 +647,7 @@ export function PremiumRevertModal({ open, onClose, report, onRetry, reason, pha
                   )}
 
                   {/* Item list — grouped by category */}
-                  {(tweakResults.length > 0 || sliderResults.length > 0 || presetResults.length > 0 || networkResults.length > 0 || extremeLabsResults.length > 0 || powerPlanHandled) && (
+                      {(tweakResults.length > 0 || sliderResults.length > 0 || presetResults.length > 0 || networkResults.length > 0 || powerPlanHandled) && (
                     <div className="space-y-1 max-h-[220px] overflow-y-auto pr-0.5" style={{ scrollbarWidth: "thin" }}>
 
                       {hasTweakItems && (
@@ -686,31 +678,6 @@ export function PremiumRevertModal({ open, onClose, report, onRetry, reason, pha
                         </>
                       )}
 
-                      {hasExtremeLabItems && (
-                        <>
-                          <SectionHeader label="Extreme Labs" count={extremeLabsResults.length} color="text-violet-400/60" />
-                          {extremeLabsResults.slice(0, 4).map((r, i) => (
-                            <motion.div
-                              key={r.tweakId}
-                              initial={{ opacity: 0, x: -10 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              transition={{ delay: 0.4 + i * 0.06, duration: 0.3 }}
-                              className="flex items-center gap-2.5 px-3 py-2 rounded-lg border border-[#2A313A] bg-[#1A1F26]"
-                              style={{ boxShadow: r.status === 'reverted' ? "inset 0 0 0 1px rgba(139,92,246,0.12)" : "inset 0 0 0 1px rgba(248,113,113,0.12)" }}
-                            >
-                              {r.status === 'reverted' ? (
-                                <FlaskConical className="size-3.5 shrink-0 text-violet-400" />
-                              ) : (
-                                <AlertTriangle className="size-3.5 shrink-0 text-red-400" />
-                              )}
-                              <span className="flex-1 text-[#E6EAF0] text-[11px] truncate">{r.label}</span>
-                              <span className={cn("text-[10px] font-medium shrink-0", r.status === 'reverted' ? "text-violet-400" : "text-red-400")}>
-                                {r.status === 'reverted' ? 'Restored' : 'Failed'}
-                              </span>
-                            </motion.div>
-                          ))}
-                        </>
-                      )}
 
                       {powerPlanHandled && (
                         <>
@@ -718,7 +685,7 @@ export function PremiumRevertModal({ open, onClose, report, onRetry, reason, pha
                           <PowerPlanRow
                             result={powerPlan!}
                             delay={Math.min(
-                              0.4 + (tweakResults.length + sliderResults.length + presetResults.length + networkResults.length + extremeLabsResults.length) * 0.06,
+                              0.4 + (tweakResults.length + sliderResults.length + presetResults.length + networkResults.length) * 0.06,
                               1.2, // cap so the row never animates in more than 1.2s after modal opens
                             )}
                           />
@@ -727,9 +694,9 @@ export function PremiumRevertModal({ open, onClose, report, onRetry, reason, pha
 
                       {/* 5 sections × 4 items each = 20 max visible; threshold was 12 which
                           fired even when all items were actually shown across the sections. */}
-                      {(tweakResults.length + sliderResults.length + presetResults.length + networkResults.length + extremeLabsResults.length) > 20 && (
+                      {(tweakResults.length + sliderResults.length + presetResults.length + networkResults.length) > 20 && (
                         <p className="text-[10px] text-[#6B7380] text-center pt-1">
-                          + {tweakResults.length + sliderResults.length + presetResults.length + networkResults.length + extremeLabsResults.length - 20} more
+                          + {tweakResults.length + sliderResults.length + presetResults.length + networkResults.length - 20} more
                         </p>
                       )}
                     </div>

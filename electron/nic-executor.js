@@ -815,7 +815,6 @@ async function resetNicProperty(adapterName, propertyKey) {
   // Some drivers accept the reset call but silently no-op (unsupported reset,
   // stale driver cache, etc.), leaving the SwitchControl-applied value in place.
   // That produced the "premium revert shows success but tweak is still applied"
-  // bug for NIC-backed Extreme Labs tweaks (RSS, Interrupt Moderation, EEE,
   // Flow Control). Now we read back the value and confirm it no longer matches
   // the toggle's "enabled" (applied) value before reporting success.
 
