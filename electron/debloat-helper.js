@@ -446,6 +446,18 @@ function isAppProtected(name) {
   }
   return false;
 }
+
+// SwitchControl cannot remove its own running executable. Treat its registry
+// entry as visible but non-actionable so the UI can explain the safe handoff
+// instead of launching the app's own EXE as an uninstaller.
+function isCurrentSwitchControlInstall(name, installLocation, uninstallString) {
+  if (/^switchcontrol(?:\.exe)?$/i.test(String(name || '').trim())) return true;
+  const currentDir = path.dirname(process.execPath).replace(/[\\/]+$/, '').toLowerCase();
+  const location = String(installLocation || '').replace(/[\\/]+$/, '').toLowerCase();
+  if (location && (currentDir === location || currentDir.startsWith(`${location}\\`))) return true;
+  return /switchcontrol\.exe/i.test(String(uninstallString || '')) &&
+    /switchcontrol/i.test(String(name || ''));
+}
 // ── Uninstall string parser ───────────────────────────────────────────────────
 //
 // Windows uninstall strings are notoriously inconsistent:
@@ -667,7 +679,8 @@ $apps | ConvertTo-Json -Compress -Depth 1
         const windowsInstaller = a.WI === 1 || a.WI === '1';
         const registryKeyPath  = String(a.KP || '').trim();
         const source           = String(a.SR || 'HKLM').trim();
-        const protected_       = isAppProtected(name);
+         const protected_       = isAppProtected(name);
+         const isSelf           = isCurrentSwitchControlInstall(name, a.IL, unStr || quietStr);
         // Reliable method detection:
         // WindowsInstaller=1 with any GUID → MSI
         // msiexec in uninstall string with GUID → MSI
@@ -675,7 +688,7 @@ $apps | ConvertTo-Json -Compress -Depth 1
         const hasGuid = /\{[A-F0-9\-]+\}/i.test(unStr) || /\{[A-F0-9\-]+\}/i.test(quietStr);
         let method = 'none';
         let canUninstall = false;
-        if (!protected_) {
+         if (!protected_ && !isSelf) {
           if ((windowsInstaller && hasGuid) || (/msiexec/i.test(unStr) && hasGuid)) {
             method = 'msi'; canUninstall = true;
           } else if (quietStr.length > 3) {
@@ -701,7 +714,8 @@ $apps | ConvertTo-Json -Compress -Depth 1
           windowsInstaller,
           registryKeyPath,
           source,
-          isProtected:     protected_,
+           isProtected:     protected_,
+           isSelf,
           canUninstall,
           uninstallMethod: method,
           trustLabel,
@@ -745,6 +759,14 @@ ipcMain.handle('installedApps:uninstall', async (event, app) => {
   }
   if (isAppProtected(app.name)) {
     return { ok: false, status: 'blocked', errorDetail: 'App is protected and cannot be removed.' };
+  }
+  if (isCurrentSwitchControlInstall(app.name, app.installLocation, app.uninstallString || app.quietUninstall)) {
+    return {
+      ok: false,
+      status: 'self-uninstall-blocked',
+      selfUninstall: true,
+      errorDetail: 'SwitchControl cannot uninstall itself while it is open. Close SwitchControl first, then remove it from Windows Settings > Apps > Installed apps.',
+    };
   }
   if (!app.canUninstall) {
     return {

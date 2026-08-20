@@ -43,6 +43,7 @@ export interface InstalledApp {
   trustLabel:       "microsoft" | "user-installed" | "system" | "protected" | "unknown";
   displayIcon:      string;
   iconDataUrl?:     string;
+  isSelf?:          boolean;
 }
 
 type UninstallResult = {
@@ -56,6 +57,7 @@ type UninstallResult = {
   verifiedRemoved?: boolean | null;
   errorDetail?:    string;
   error?:          string;
+  selfUninstall?:  boolean;
 };
 
 type AppResult = { kind: "removed" } | { kind: "restart-required" } | { kind: "failed"; detail: string } | { kind: "pending" };
@@ -679,21 +681,21 @@ function AppRow({
             <Button
               variant="outline"
               size="sm"
-              disabled={app.isProtected || !app.canUninstall}
+              disabled={app.isProtected || app.isSelf || !app.canUninstall}
               onClick={() => onUninstall(app)}
               className={cn(
                 "h-7 text-xs gap-1.5",
-                app.isProtected
+                app.isProtected || app.isSelf
                   ? "opacity-40 cursor-not-allowed"
                   : !app.canUninstall
                     ? "opacity-40 cursor-not-allowed"
                     : "hover:text-destructive hover:border-destructive/30 hover:bg-destructive/8"
               )}
-              title={app.isProtected ? "Protected — cannot uninstall" : !app.canUninstall ? "No uninstall path" : `Uninstall ${app.name}`}
+              title={app.isSelf ? "Close SwitchControl, then uninstall it from Windows Settings" : app.isProtected ? "Protected — cannot uninstall" : !app.canUninstall ? "No uninstall path" : `Uninstall ${app.name}`}
               data-testid={`button-uninstall-${app.id}`}
             >
-              {app.isProtected ? <Lock className="size-3" /> : <Trash2 className="size-3" />}
-              <span className="hidden sm:inline">{app.isProtected ? "Protected" : !app.canUninstall ? "N/A" : "Uninstall"}</span>
+              {app.isSelf ? <Info className="size-3" /> : app.isProtected ? <Lock className="size-3" /> : <Trash2 className="size-3" />}
+              <span className="hidden sm:inline">{app.isSelf ? "Close app first" : app.isProtected ? "Protected" : !app.canUninstall ? "N/A" : "Uninstall"}</span>
             </Button>
           )}
           <button
@@ -744,14 +746,21 @@ function AppRow({
                   <p className="text-xs font-mono text-muted-foreground truncate">{app.installLocation}</p>
                 </div>
               )}
-              {app.isProtected && (
+              {app.isSelf ? (
+                <div className="col-span-2 sm:col-span-3">
+                  <p className="text-[11px] text-amber-300 flex items-center gap-1.5">
+                    <Info className="size-3" />
+                    SwitchControl is currently open, so it cannot remove its own files. Close the app first, then uninstall it from Windows Settings &gt; Apps &gt; Installed apps.
+                  </p>
+                </div>
+              ) : app.isProtected && (
                 <div className="col-span-2 sm:col-span-3">
                   <p className="text-[11px] text-emerald-400 flex items-center gap-1.5">
                     <Lock className="size-3" />This app is protected and cannot be uninstalled from SwitchControl.
                   </p>
                 </div>
               )}
-              {!app.canUninstall && !app.isProtected && (
+              {!app.canUninstall && !app.isProtected && !app.isSelf && (
                 <div className="col-span-2 sm:col-span-3">
                   <p className="text-[11px] text-zinc-400 flex items-center gap-1.5">
                     <Info className="size-3" />No supported uninstall path detected for this app.
@@ -829,6 +838,9 @@ function VirtualizedAppList({
 // ── Failure label helper ──────────────────────────────────────────────────────
 
 function buildFailureLabel(res: UninstallResult): string {
+  if (res.selfUninstall) {
+    return "Close SwitchControl first, then uninstall it from Windows Settings > Apps > Installed apps.";
+  }
   if (res.errorDetail) return res.errorDetail;
   if (res.error)       return res.error;
   if (res.exitCode !== undefined && res.exitCode !== null) {
