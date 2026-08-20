@@ -3002,8 +3002,8 @@ ConvertTo-Json -InputObject $result -Compress -Depth 2
   $screens = @(); $screenHz = @()
   try {
     Add-Type -AssemblyName System.Windows.Forms -EA Stop
-    $screens = @([System.Windows.Forms.Screen]::AllScreens | ForEach-Object {
-      @{ w=$_.Bounds.Width; h=$_.Bounds.Height; primary=$_.Primary; x=$_.Bounds.X; y=$_.Bounds.Y }
+     $screens = @([System.Windows.Forms.Screen]::AllScreens | ForEach-Object {
+       @{ device=$_.DeviceName; w=$_.Bounds.Width; h=$_.Bounds.Height; primary=$_.Primary; x=$_.Bounds.X; y=$_.Bounds.Y }
     })
     # Per-monitor refresh rate via EnumDisplaySettings (Win32 API) — one entry per logical display
     Add-Type -TypeDefinition @'
@@ -3042,8 +3042,8 @@ public class DspHelper {
           # Secondary call — extract monitor hardware ID from DeviceID (e.g. MONITOR\SAM0E4F\...)
           $hwId = $null
           $dd3 = New-Object DspHelper+DISPLAY_DEVICE; $dd3.cb = [System.Runtime.InteropServices.Marshal]::SizeOf($dd3)
-          if ([DspHelper]::EnumDisplayDevices($dd2.DeviceName, [uint32]0, [ref]$dd3, 0) -and $dd3.DeviceID) {
-            if ($dd3.DeviceID -match 'MONITOR\\([^\\]+)\\') { $hwId = $Matches[1].ToUpper() }
+           if ([DspHelper]::EnumDisplayDevices($dd2.DeviceName, [uint32]0, [ref]$dd3, 0) -and $dd3.DeviceID) {
+             if ($dd3.DeviceID -match '(?i)(?:MONITOR|DISPLAY)\\([^\\]+)') { $hwId = $Matches[1].ToUpper() }
           }
           # Enumerate ALL supported display modes to find the maximum refresh rate this
           # monitor + GPU combination can drive — may be higher than the current setting.
