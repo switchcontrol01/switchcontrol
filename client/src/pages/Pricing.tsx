@@ -759,7 +759,7 @@ export default function Pricing() {
 
                   <h3 className="text-2xl font-bold text-[#E6EAF0] mb-1" data-testid="text-plan-premium">Premium</h3>
                   <div className="flex items-baseline gap-1.5 mb-1">
-                    <span className="text-5xl font-extrabold text-[#E6EAF0] tracking-tight">$50</span>
+                    <span className="text-5xl font-extrabold text-[#E6EAF0] tracking-tight">$39</span>
                     <span className="text-[#6B7380] text-sm">one-time</span>
                   </div>
                   <p className="text-[13px] text-[#A0A8B3] mb-2 leading-relaxed">
@@ -806,7 +806,7 @@ export default function Pricing() {
                     ) : !isAuthenticated ? (
                       "Log in to purchase"
                     ) : (
-                      <>Get Premium — $50<ArrowRight className="size-4" /></>
+                      <>Get Premium — $39<ArrowRight className="size-4" /></>
                     )}
                   </GlowButton>
 
@@ -1121,7 +1121,7 @@ export default function Pricing() {
                   ) : isPremium ? (
                     <><Check className="size-4" />Already Premium</>
                   ) : (
-                    <>Get Premium — $50<ArrowRight className="size-4" /></>
+                    <>Get Premium — $39<ArrowRight className="size-4" /></>
                   )}
                 </GlowButton>
 
@@ -1139,7 +1139,7 @@ export default function Pricing() {
               <div className="mt-8 flex flex-wrap justify-center gap-4">
                 {[
                   { icon: Shield,        text: "Anti-cheat safe" },
-                  { icon: CreditCard,    text: "One-time $50" },
+                  { icon: CreditCard,    text: "One-time $39" },
                   { icon: Rocket,        text: "Instant access" },
                 ].map(trust => {
                   const TIcon = trust.icon;
