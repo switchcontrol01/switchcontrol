@@ -1026,6 +1026,7 @@ export default function Landing() {
                     <div className="flex items-end gap-1 mb-1">
                       <span className="text-[#33E0FF]/60 text-xl font-medium self-start mt-2">$</span>
                       <span className="text-6xl font-black text-[#E6EAF0] tracking-tight leading-none">39</span>
+                      <span className="mb-1 text-sm font-semibold text-[#A0A8B3]">USD</span>
                     </div>
                     <p className="text-[#6B7380] text-sm mb-7">one-time · lifetime access</p>
 
