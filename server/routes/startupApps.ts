@@ -2,8 +2,10 @@ import { Router } from "express";
 import { sql } from "drizzle-orm";
 import { db, isNoDbMode } from "../db";
 import rateLimit from "express-rate-limit";
+import { requireJwt } from "../middleware/requireCloudAuth";
 
 const router = Router();
+router.use(requireJwt);
 const startupMutationLimit = rateLimit({
   windowMs: 60 * 1000,
   max: 20,
@@ -28,12 +30,21 @@ async function initTables() {
   await db.execute(sql`
     CREATE TABLE IF NOT EXISTS startup_toggle_history (
       id         SERIAL PRIMARY KEY,
+      user_id    TEXT,
       entry_id   TEXT NOT NULL,
       entry_name TEXT NOT NULL,
       source     TEXT NOT NULL,
       enabled    BOOLEAN NOT NULL,
       changed_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
+  `);
+  await db.execute(sql`
+    ALTER TABLE startup_toggle_history
+      ADD COLUMN IF NOT EXISTS user_id TEXT
+  `);
+  await db.execute(sql`
+    CREATE INDEX IF NOT EXISTS startup_toggle_history_user_id_idx
+      ON startup_toggle_history (user_id)
   `);
 }
 
@@ -75,8 +86,8 @@ router.post("/apps/:id/toggle", startupMutationLimit, async (req, res) => {
   try {
     if (!isNoDbMode && db) {
       await db.execute(sql`
-        INSERT INTO startup_toggle_history (entry_id, entry_name, source, enabled)
-        VALUES (${id}, ${name}, ${source}, ${enabled})
+        INSERT INTO startup_toggle_history (user_id, entry_id, entry_name, source, enabled)
+        VALUES (${req.cloudUser!.id}, ${id}, ${name}, ${source}, ${enabled})
       `);
     }
     res.json({ ok: true });
@@ -87,18 +98,25 @@ router.post("/apps/:id/toggle", startupMutationLimit, async (req, res) => {
 });
 
 // GET /api/startup/history
-router.get("/history", async (_req, res) => {
+router.get("/history", async (req, res) => {
   if (isNoDbMode || !db) return res.json({ ok: true, history: [] });
   try {
     const rows = await db.execute<{
       id: number;
       entry_id: string;
+      user_id: string | null;
       entry_name: string;
       source: string;
       enabled: boolean;
       changed_at: string;
     }>(
-      sql`SELECT * FROM startup_toggle_history ORDER BY changed_at DESC LIMIT 50`
+      sql`
+        SELECT *
+        FROM startup_toggle_history
+        WHERE user_id = ${req.cloudUser!.id}
+        ORDER BY changed_at DESC
+        LIMIT 50
+      `
     );
     res.json({ ok: true, history: rows.rows });
   } catch (e: any) {

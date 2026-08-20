@@ -101,14 +101,10 @@ export async function registerRoutes(
   app.use("/api/tweak-intelligence", tweakIntelligenceRouter);
   app.use("/api/power-intelligence", powerIntelligenceRouter);
   app.use("/api/dashboard-intelligence", dashboardIntelligenceRouter);
-  // Startup changes only record/log authenticated client actions; they must not
-  // be usable as an unauthenticated write or database/logging amplifier.
+  // Startup scans/history are user-scoped and must never be publicly readable.
   app.use("/api/startup", (req, res, next) => {
     if (["POST", "PATCH", "PUT", "DELETE"].includes(req.method)) {
-      return requireJwt(req, res, (authError?: any) => {
-        if (authError) return next(authError);
-        return csrfProtection(req, res, next);
-      });
+      return csrfProtection(req, res, next);
     }
     next();
   }, startupAppsRouter);

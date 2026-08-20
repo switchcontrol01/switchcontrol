@@ -48,7 +48,7 @@ const router = Router();
  * Responds in <1s (7s worst-case on AMD cold-start, then cached forever).
  * Automatically schedules a background full collection after returning.
  */
-router.get("/fast", async (_req, res) => {
+router.get("/fast", requireJwt, async (_req, res) => {
   try {
     const profile = await getFastSystemIntelligence();
     res.json(profile);
@@ -67,7 +67,7 @@ router.post("/trigger-background", requireJwt, backgroundTriggerRateLimit, (_req
   res.json({ ok: true });
 });
 
-router.get("/profile", async (_req, res) => {
+router.get("/profile", requireJwt, async (_req, res) => {
   try {
     const profile = await getSystemIntelligence();
     res.json(profile);
@@ -77,7 +77,7 @@ router.get("/profile", async (_req, res) => {
   }
 });
 
-router.post("/refresh", refreshRateLimit, async (_req, res) => {
+router.post("/refresh", requireJwt, refreshRateLimit, async (_req, res) => {
   try {
     invalidateSystemIntelligence();
     const profile = await getSystemIntelligence(true);

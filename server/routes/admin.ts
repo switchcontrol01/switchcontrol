@@ -1012,30 +1012,26 @@ router.post("/bootstrap", writeLimiter, async (req, res) => {
 
   const { key } = req.body || {};
   const setupKey = process.env.ADMIN_SETUP_KEY;
-  const keyMatches = setupKey && key === setupKey;
+  if (!setupKey) {
+    console.error("[AdminBootstrap] ADMIN_SETUP_KEY is not configured");
+    return res.status(503).json({ error: "Admin bootstrap is not configured." });
+  }
+  if (key !== setupKey) {
+    console.warn(`[AdminBootstrap] rejected invalid setup key | user=${userId}`);
+    return res.status(403).json({ error: "Invalid admin setup key." });
+  }
 
   try {
-    if (keyMatches) {
-      // Privileged bootstrap with setup key — still block if admins already exist.
-      // This prevents leaked keys from being used to hijack admin after launch.
-      const adminCount = await storage.countAdmins();
-      if (adminCount > 0) {
-        console.warn(`[AdminBootstrap] blocked key path because ${adminCount} admin(s) already exist | user=${userId}`);
-        return res.status(403).json({ error: "Admin bootstrap disabled — admins already exist." });
-      }
-      const updated = await storage.setUserAdmin(userId, true);
-      console.log(`[AdminBootstrap] first admin granted via key | user=${userId} (${updated.email})`);
-      return res.json({ ok: true, message: "Admin access granted.", userId });
-    }
-
-    // Non-privileged first-admin bootstrap — atomically check and grant
+    // The setup key is required even for the first admin. The storage method
+    // performs the first-admin check and grant atomically.
     const result = await storage.bootstrapFirstAdmin(userId);
     if (!result.granted) {
-      console.warn(`[AdminBootstrap] rejected first-admin bootstrap — admins already exist | user=${userId}`);
+      console.warn(`[AdminBootstrap] blocked because an admin already exists | user=${userId}`);
       return res.status(403).json({ error: "Admin bootstrap disabled — admins already exist." });
     }
-    console.log(`[AdminBootstrap] first admin granted | user=${userId} (${result.user?.email})`);
-    res.json({ ok: true, message: "Admin access granted.", userId });
+
+    console.log(`[AdminBootstrap] first admin granted via setup key | user=${userId} (${result.user?.email})`);
+    return res.json({ ok: true, message: "Admin access granted.", userId });
   } catch (err) {
     console.error("[AdminBootstrap] error:", err);
     res.status(500).json({ error: "Failed to grant admin." });

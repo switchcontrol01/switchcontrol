@@ -258,7 +258,14 @@ function computeDisk(diskIo: any): DiskTelemetry {
 
 // ── Tick — one iteration of the scheduler loop ────────────────────────────────
 
-async function tick(): Promise<void> {
+interface PrimedTelemetry {
+  loadRes: any;
+  memRes: any;
+  netRes: any;
+  diskRes: any;
+}
+
+async function tick(primed?: PrimedTelemetry): Promise<void> {
   tickCount++;
   const now = Date.now();
 
@@ -277,13 +284,20 @@ async function tick(): Promise<void> {
   // Network stats run every 6 s (normal) / 10 s (low-end) to cut idle CPU cost.
   const netTtl = lowEndMode ? 10000 : 6000;
   const shouldPollNet = (now - lastNetTs) >= netTtl;
-  const [loadRes, memRes, netRes] = await runTimed("lightweight", () =>
-    Promise.all([
-      si.currentLoad().catch(() => null),
-      si.mem().catch(() => null),
-      shouldPollNet ? si.networkStats().catch(() => null) : Promise.resolve(null),
-    ])
-  );
+  let loadRes: any;
+  let memRes: any;
+  let netRes: any;
+  if (primed) {
+    ({ loadRes, memRes, netRes } = primed);
+  } else {
+    [loadRes, memRes, netRes] = await runTimed("lightweight", () =>
+      Promise.all([
+        si.currentLoad().catch(() => null),
+        si.mem().catch(() => null),
+        shouldPollNet ? si.networkStats().catch(() => null) : Promise.resolve(null),
+      ])
+    );
+  }
   if (shouldPollNet) lastNetTs = now;
 
   // CPU load & trend
@@ -378,8 +392,10 @@ async function tick(): Promise<void> {
       // fall back to PowerShell Get-Counter only if it returns null.
       // Previously PS was always tried first on Windows, spawning powershell.exe
       // every ~4 s unconditionally even when si.disksIO() would have succeeded.
-      let raw: any = null;
-      raw = await runTimed("diskIO", () => si.disksIO().catch(() => null));
+      let raw: any = primed?.diskRes ?? null;
+      if (!primed) {
+        raw = await runTimed("diskIO", () => si.disksIO().catch(() => null));
+      }
       if (!raw && isWindows) {
         const psOut = await runTimed("diskIO:ps", async () => {
           const out = await runDiskPS(`
@@ -595,12 +611,8 @@ function ensureLoopRunning(): void {
   if (loopActive) return;
   loopActive = true;
 
-  // Fast pre-seed: call si.mem() immediately so the very first WebSocket
-  // broadcast delivers real RAM data (status:"ready") rather than the
-  // synthetic loading placeholder. si.mem() is a single OS API call and
-  // resolves in <100ms, well before the priming phase below completes.
-  si.mem().then((memRes) => {
-    if (cachedSnapshot) return; // first full tick already ran — don't overwrite
+  // Initial RAM is collected as part of the shared priming pass below.
+  /*
     if (!memRes) return;
     const totalBytes = memRes.total;
     const activeBytes = (memRes as any).active ?? memRes.used;
@@ -622,18 +634,25 @@ function ensureLoopRunning(): void {
       gpu:         cachedGpu,
       disk:        cachedDisk,
       processes:   cachedProcs,
-      load_trend:  "stable",
-    };
-  }).catch(() => {});
+    load_trend:  "stable",
+  } */
 
-  // Prime the differential APIs (currentLoad, networkStats, disksIO return 0 on first call)
+  // Prime the differential APIs once, then reuse those results for the first
+  // real tick instead of immediately launching the same OS probes again.
   Promise.allSettled([
     si.currentLoad(),
+    si.mem(),
     si.networkStats(),
     si.disksIO(),
-  ]).then(() => {
-    // After priming, run first tick immediately then hand off to loop
-    tick().catch(() => {}).finally(() => {
+  ]).then(([load, mem, net, disk]) => {
+    const value = (result: PromiseSettledResult<any>) =>
+      result.status === "fulfilled" ? result.value : null;
+    tick({
+      loadRes: value(load),
+      memRes: value(mem),
+      netRes: value(net),
+      diskRes: value(disk),
+    }).catch(() => {}).finally(() => {
       schedulerLoop().catch(() => {});
     });
   });

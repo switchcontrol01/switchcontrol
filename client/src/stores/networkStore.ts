@@ -21,6 +21,7 @@ interface NetworkStore {
   lastCheckedAt: number | null;
   _heartbeatHandle: ReturnType<typeof setInterval> | null;
   _heartbeatInFlight: boolean;
+  _runHeartbeat: (onResult?: (reachable: boolean) => void) => void;
 
   _setNetworkState: (s: NetworkState) => void;
   _setReachable: (r: boolean) => void;
@@ -70,6 +71,19 @@ export const useNetworkStore = create<NetworkStore>()((set, get) => ({
   _heartbeatHandle: null,
   _heartbeatInFlight: false,
 
+  _runHeartbeat(onResult?: (reachable: boolean) => void) {
+    const { isOnline } = get();
+    if (!isOnline || document.hidden || get()._heartbeatInFlight) return;
+    set({ _heartbeatInFlight: true });
+    pingBackend()
+      .then((reachable) => {
+        get()._setReachable(reachable);
+        get()._setCheckedAt();
+        onResult?.(reachable);
+      })
+      .finally(() => set({ _heartbeatInFlight: false }));
+  },
+
   _setNetworkState(s) {
     const { networkState } = get();
     if (s === networkState) return;
@@ -94,17 +108,12 @@ export const useNetworkStore = create<NetworkStore>()((set, get) => ({
   },
 
   retryConnectionCheck() {
-    const { isOnline } = get();
-    if (!isOnline || document.hidden || get()._heartbeatInFlight) {
+    if (!get().isOnline || document.hidden || get()._heartbeatInFlight) {
       console.log('[Network] retryConnectionCheck — offline, skipping ping');
       return;
     }
     console.log('[Network] retryConnectionCheck triggered');
-    set({ _heartbeatInFlight: true });
-    pingBackend().then((r) => {
-      get()._setReachable(r);
-      get()._setCheckedAt();
-    }).finally(() => set({ _heartbeatInFlight: false }));
+    get()._runHeartbeat();
   },
 
   _startHeartbeat() {
@@ -114,11 +123,7 @@ export const useNetworkStore = create<NetworkStore>()((set, get) => ({
     const handle = setInterval(() => {
       const { isOnline } = get();
       if (!isOnline || document.hidden || get()._heartbeatInFlight) return;
-      set({ _heartbeatInFlight: true });
-      pingBackend().then((r) => {
-        get()._setReachable(r);
-        get()._setCheckedAt();
-      }).finally(() => set({ _heartbeatInFlight: false }));
+      get()._runHeartbeat();
     }, intervalMs);
     set({ _heartbeatHandle: handle });
     console.log('[Network] Heartbeat started (interval=' + intervalMs + 'ms)');
@@ -155,9 +160,7 @@ export const useNetworkStore = create<NetworkStore>()((set, get) => ({
       _debounceTimer = setTimeout(() => {
         console.log('[Network] navigator.onLine → true');
         set({ isOnline: true, networkState: 'reconnecting' });
-        pingBackend().then((r) => {
-          get()._setReachable(r);
-          get()._setCheckedAt();
+        get()._runHeartbeat((r) => {
           const next = r ? 'online' : 'degraded';
           get()._setNetworkState(next);
           set({ lastOnlineAt: Date.now() });
