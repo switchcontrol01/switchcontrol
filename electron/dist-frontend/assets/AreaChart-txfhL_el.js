@@ -1,0 +1,1 @@
+import{x as a,A as s,X as r,Y as i,z as x}from"./index-SAUBn1tn.js";var e=a({chartName:"AreaChart",GraphicalChild:s,axisComponents:[{axisType:"xAxis",AxisComp:r},{axisType:"yAxis",AxisComp:i}],formatAxisMap:x});export{e as A};

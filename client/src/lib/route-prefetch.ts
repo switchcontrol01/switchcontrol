@@ -51,12 +51,13 @@ export function loadDesktopRoute(route: DesktopRoute): Promise<any> {
   return promise;
 }
 
-export function preloadDesktopRoute(path: string): void {
+export function preloadDesktopRoute(path: string): Promise<void> {
   const route = path.replace(/^\/+/, "") as DesktopRoute;
-  if (!loaders[route]) return;
-  void loadDesktopRoute(route).catch(() => {
+  if (!loaders[route]) return Promise.resolve();
+  return loadDesktopRoute(route).then(() => undefined).catch((error) => {
     // The lazy route will retry through the same importer on navigation and
     // ErrorBoundary will surface a real failure if the chunk remains broken.
     loaded.delete(route);
+    throw error;
   });
 }

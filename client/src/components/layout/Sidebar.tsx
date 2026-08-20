@@ -493,8 +493,13 @@ export function Sidebar() {
                 isTourLocked={isTourActive}
                 onClick={() => {
                   if (isTourActive) return;
-                  preloadDesktopRoute(item.href);
-                  navigate(item.href);
+                  // Keep the current page mounted while the first-visit route
+                  // chunk downloads. Navigating immediately exposes the
+                  // Suspense skeleton as a full page and makes every new route
+                  // look stuck during slower Electron disk/network reads.
+                  void preloadDesktopRoute(item.href)
+                    .catch(() => undefined)
+                    .then(() => navigate(item.href));
                 }}
               />
             </div>
