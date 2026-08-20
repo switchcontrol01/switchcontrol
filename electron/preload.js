@@ -594,27 +594,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getStatus:          () => ipcRenderer.invoke('extremeLabs:getStatus'),
     checkAllStatus:     () => ipcRenderer.invoke('extremeLabs:checkAllStatus'),
   },
-  focus: {
-    apply: (params) => {
-      assertPlainObject(params, 'focus.apply params');
-      return ipcRenderer.invoke('focus:apply', params);
-    },
-    revert: (params) => {
-      assertPlainObject(params, 'focus.revert params');
-      return ipcRenderer.invoke('focus:revert', params);
-    },
-    verify:             ()       => ipcRenderer.invoke('focus:verify'),
-    startTriggerMonitor: (params) => {
-      assertPlainObject(params, 'focus.startTriggerMonitor params');
-      return ipcRenderer.invoke('focus:startTriggerMonitor', params);
-    },
-    stopTriggerMonitor: ()       => ipcRenderer.invoke('focus:stopTriggerMonitor'),
-    checkSchedule: (params) => {
-      assertPlainObject(params, 'focus.checkSchedule params');
-      return ipcRenderer.invoke('focus:checkSchedule', params);
-    },
-    onTriggerFired: (callback) => onEvent('focus:triggerFired', callback),
-  },
   premium: {
     revertAll:            () => ipcRenderer.invoke('premium:revertAll'),
     previewRevert:        () => ipcRenderer.invoke('premium:previewRevert'),
