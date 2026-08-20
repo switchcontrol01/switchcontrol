@@ -692,10 +692,11 @@ export function DisplaySignalGraph({ delay = 0 }: { delay?: number }) {
   const scoreColor =
     score === null ? "#6b7280" : score >= 80 ? "#34d399" : score >= 55 ? "#fbbf24" : "#f87171";
 
+  const connType = typeof mon?.connectionType === "string" ? mon.connectionType.toUpperCase() : "";
   const connColor =
-    mon?.connectionType?.toUpperCase().includes("DP")       ? "#06b6d4"
-    : mon?.connectionType?.toUpperCase().includes("HDMI 2.1") ? "#a78bfa"
-    : mon?.connectionType?.toUpperCase().includes("HDMI")    ? "#00D4FF"
+    connType.includes("DP")       ? "#06b6d4"
+    : connType.includes("HDMI 2.1") ? "#a78bfa"
+    : connType.includes("HDMI")    ? "#00D4FF"
     : "#00D4FF";
 
   const timeAgo = scannedAt
