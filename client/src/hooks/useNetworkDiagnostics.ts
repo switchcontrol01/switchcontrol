@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { cloudApiPost } from "@/lib/cloud-api";
 import { useAppModeStore, getPollingMultiplier } from "@/lib/appModeStore";
 
 export interface PingSample {
@@ -277,7 +278,7 @@ export function useNetworkDiagnostics(): DiagnosticsState {
     setBenchmarkState("baseline");
     setBenchmarkResult(null);
     try {
-      await fetch("/api/network/benchmark/baseline", { method: "POST" });
+      await cloudApiPost("/network/benchmark/baseline");
       if (mountedRef.current) setBenchmarkState("waiting");
     } catch {
       if (mountedRef.current) setBenchmarkState("idle");

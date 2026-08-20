@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { getCachedSnapshot } from "../lib/telemetry";
+import { requireJwt } from "../middleware/requireCloudAuth";
 
 const router = Router();
 
@@ -284,7 +285,7 @@ router.get("/dna", (_req, res) => {
   res.json({ dna, ts: Date.now() });
 });
 
-router.get("/behavior", (req, res) => {
+router.get("/behavior", requireJwt, (req, res) => {
   try {
     const profileId = parseProfileId(req);
     if (!profileId) {
@@ -311,7 +312,7 @@ router.get("/behavior", (req, res) => {
   }
 });
 
-router.get("/conflicts", (req, res) => {
+router.get("/conflicts", requireJwt, (req, res) => {
   try {
     const profileId = parseProfileId(req);
     if (!profileId) {
@@ -331,7 +332,7 @@ router.get("/conflicts", (req, res) => {
   }
 });
 
-router.get("/comparison", (req, res) => {
+router.get("/comparison", requireJwt, (req, res) => {
   try {
     const fromId = String(req.query.from ?? "") as BackendProfileId;
     const toId   = String(req.query.to   ?? "") as BackendProfileId;
@@ -401,7 +402,7 @@ router.get("/comparison", (req, res) => {
   }
 });
 
-router.get("/system-snapshot", (_req, res) => {
+router.get("/system-snapshot", requireJwt, (_req, res) => {
   try {
     const snap = getCachedSnapshot();
     res.json({

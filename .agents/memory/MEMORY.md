@@ -44,3 +44,4 @@
 - [Ring graph design rule](ring-graph-design.md) — SVG ring gauges: track + value arc only; never add an inner tick/dashed ring; glow via drop-shadow on arc, not extra circle strokes.
 - [Power-plan module integrity](power-plan-module-integrity.md) — Electron power-plan manager had a committed truncated body; keep Windows-only operations explicit and verify activation rather than reporting placeholder success.
 - [Desktop route loading](desktop-route-loading.md) — lazy desktop pages need a shell fallback and shared sidebar-prefetch cache; route Suspense otherwise removes the whole AppLayout on first navigation.
+- [Authenticated POST conventions](authenticated-post-conventions.md) — protected raw POST callers must use the shared API helper so JWT, Electron headers, and CSRF remain intact.

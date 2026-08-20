@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 import { format, parseISO } from "date-fns";
 import { logHistory } from "@/lib/logHistory";
+import { cloudApiPost } from "@/lib/cloud-api";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import {
   RefreshCw, Search, X, Package, Shield, ShieldOff, AlertTriangle,
@@ -934,14 +935,10 @@ export function InstalledAppsPanel() {
           "Removed from Installed Apps",
           app.publisher ? `Publisher: ${app.publisher}` : undefined
         );
-        fetch("/api/debloat/apps/log", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            appName: app.name, publisher: app.publisher,
-            version: app.version, method: app.uninstallMethod,
-            status: "removed", source: "InstalledApps",
-          }),
+        cloudApiPost("/debloat/apps/log", {
+          appName: app.name, publisher: app.publisher,
+          version: app.version, method: app.uninstallMethod,
+          status: "removed", source: "InstalledApps",
         }).catch(() => {});
       } else {
         // Build a concise user-facing failure reason

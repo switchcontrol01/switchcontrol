@@ -89,7 +89,12 @@ export async function registerRoutes(
   app.use("/api/bios", killSwitchMiddleware("bios"), requireJwt, requireCloudPremium, biosRouter);
   app.use("/api/driver-intel", driverIntelRouter);
   app.use("/api/security", killSwitchMiddleware("security"), securityRouter);
-  app.use("/api/network", killSwitchMiddleware("network_diag"), networkDiagnosticsRouter);
+  app.use("/api/network", killSwitchMiddleware("network_diag"), requireJwt, (req, res, next) => {
+    if (["POST", "PATCH", "PUT", "DELETE"].includes(req.method)) {
+      return csrfProtection(req, res, next);
+    }
+    next();
+  }, networkDiagnosticsRouter);
   app.use("/api/admin", (req, res, next) => {
     if (['POST', 'PATCH', 'PUT', 'DELETE'].includes(req.method)) {
       return csrfProtection(req, res, next);
@@ -98,9 +103,9 @@ export async function registerRoutes(
   }, adminRouter);
 
   app.use("/api/network-tweaks", requireJwt, requireCloudPremium, networkTweaksRouter);
-  app.use("/api/tweak-intelligence", tweakIntelligenceRouter);
+  app.use("/api/tweak-intelligence", requireJwt, tweakIntelligenceRouter);
   app.use("/api/power-intelligence", powerIntelligenceRouter);
-  app.use("/api/dashboard-intelligence", dashboardIntelligenceRouter);
+  app.use("/api/dashboard-intelligence", requireJwt, dashboardIntelligenceRouter);
   // Startup scans/history are user-scoped and must never be publicly readable.
   app.use("/api/startup", (req, res, next) => {
     if (["POST", "PATCH", "PUT", "DELETE"].includes(req.method)) {
@@ -108,7 +113,15 @@ export async function registerRoutes(
     }
     next();
   }, startupAppsRouter);
-  app.use("/api/debloat", debloaterRouter);
+  app.use("/api/debloat", (req, res, next) => {
+    if (["POST", "PATCH", "PUT", "DELETE"].includes(req.method)) {
+      return requireJwt(req, res, (authError?: any) => {
+        if (authError) return next(authError);
+        return csrfProtection(req, res, next);
+      });
+    }
+    next();
+  }, debloaterRouter);
   app.use("/api/cleaner", killSwitchMiddleware("cleaner"), requireJwt, cleanerRouter);
   app.use("/api/system-intelligence", systemIntelligenceRouter);
   app.use("/api/issues", issueDetectorRouter);

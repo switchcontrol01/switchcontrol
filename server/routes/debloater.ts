@@ -3,6 +3,7 @@ import { sql } from "drizzle-orm";
 import { db, isNoDbMode } from "../db";
 import { appendLocalHistoryEntry, getLocalHistory } from "../lib/localDebloatHistory";
 import { debloatLimiter } from "../middleware/rateLimiter";
+import { requireJwt } from "../middleware/requireCloudAuth";
 
 const router = Router();
 
@@ -1256,6 +1257,7 @@ async function initTables() {
   await db.execute(sql`
     CREATE TABLE IF NOT EXISTS debloat_applied_items (
       id            SERIAL PRIMARY KEY,
+      user_id       TEXT,
       item_id       TEXT NOT NULL,
       item_name     TEXT NOT NULL,
       action        TEXT NOT NULL DEFAULT 'remove',
@@ -1267,6 +1269,14 @@ async function initTables() {
       signout_req   BOOLEAN NOT NULL DEFAULT FALSE,
       applied_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
+  `);
+  await db.execute(sql`
+    ALTER TABLE debloat_applied_items
+      ADD COLUMN IF NOT EXISTS user_id TEXT
+  `);
+  await db.execute(sql`
+    CREATE INDEX IF NOT EXISTS debloat_applied_items_user_id_idx
+      ON debloat_applied_items (user_id)
   `);
 }
 
@@ -1356,9 +1366,9 @@ router.post("/apply", async (req, res) => {
     if (!isNoDbMode && db) {
       await db.execute(sql`
         INSERT INTO debloat_applied_items
-          (item_id, item_name, action, status, role, level, verification, restart_req, signout_req)
+          (user_id, item_id, item_name, action, status, role, level, verification, restart_req, signout_req)
         VALUES
-          (${itemId}, ${def.name}, 'remove', ${status}, ${role ?? null}, ${level ?? null},
+          (${req.cloudUser!.id}, ${itemId}, ${def.name}, 'remove', ${status}, ${role ?? null}, ${level ?? null},
            ${verification}, ${def.removal.requiresRestart}, ${def.removal.requiresSignOut})
       `).catch(e => console.error("[Debloater] log insert failed:", e.message));
     } else {
@@ -1432,8 +1442,8 @@ router.post("/restore", async (req, res) => {
 
     if (!isNoDbMode && db) {
       await db.execute(sql`
-        INSERT INTO debloat_applied_items (item_id, item_name, action, status, verification)
-        VALUES (${itemId}, ${def.name}, 'restore', ${status}, ${eResult ? 'verified' : 'pending'})
+        INSERT INTO debloat_applied_items (user_id, item_id, item_name, action, status, verification)
+        VALUES (${req.cloudUser!.id}, ${itemId}, ${def.name}, 'restore', ${status}, ${eResult ? 'verified' : 'pending'})
       `).catch(() => {});
     } else {
       appendLocalHistoryEntry({
@@ -1492,9 +1502,9 @@ router.post("/apps/log", async (req, res) => {
   if (!isNoDbMode && db) {
     await db.execute(sql`
       INSERT INTO debloat_applied_items
-        (item_id, item_name, action, status, role, level, verification, restart_req, signout_req)
+        (user_id, item_id, item_name, action, status, role, level, verification, restart_req, signout_req)
       VALUES
-        (${itemId}, ${appName}, 'uninstall-installed', ${finalStatus},
+        (${req.cloudUser!.id}, ${itemId}, ${appName}, 'uninstall-installed', ${finalStatus},
          null, null, 'electron', false, false)
     `).catch(e => console.warn("[Debloater/AppsLog] insert failed:", e.message));
   } else {
@@ -1515,14 +1525,20 @@ router.post("/apps/log", async (req, res) => {
 });
 
 // GET /api/debloat/history
-router.get("/history", async (req, res) => {
+router.get("/history", requireJwt, async (req, res) => {
   if (isNoDbMode || !db) return res.json({ ok: true, history: getLocalHistory(100) });
   try {
     const rows = await db.execute<{
-      id: number; item_id: string; item_name: string; action: string;
+      id: number; user_id: string | null; item_id: string; item_name: string; action: string;
       status: string; role: string|null; level: string|null;
       verification: string; restart_req: boolean; applied_at: string;
-    }>(sql`SELECT * FROM debloat_applied_items ORDER BY applied_at DESC LIMIT 100`);
+    }>(sql`
+      SELECT *
+      FROM debloat_applied_items
+      WHERE user_id = ${req.cloudUser!.id}
+      ORDER BY applied_at DESC
+      LIMIT 100
+    `);
     res.json({ ok: true, history: rows.rows });
   } catch (e: any) {
     res.status(500).json({ ok: false, error: e.message });

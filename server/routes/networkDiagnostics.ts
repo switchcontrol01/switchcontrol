@@ -170,8 +170,8 @@ type BenchmarkBaselineEntry = {
 };
 const benchmarkBaselineMap = new Map<string, BenchmarkBaselineEntry>();
 
-function getClientIp(req: any): string {
-  return (req.headers["x-forwarded-for"] as string | undefined)?.split(",")[0].trim() ?? req.ip ?? "unknown";
+function getClientUserKey(req: any): string {
+  return req.cloudUser?.id ?? "unknown-user";
 }
 
 router.get("/ping-sample", pingRateLimit, async (_req, res) => {
@@ -184,11 +184,11 @@ router.get("/ping-sample", pingRateLimit, async (_req, res) => {
 });
 
 router.post("/benchmark/baseline", async (req, res) => {
-  const ip = getClientIp(req);
+  const userKey = getClientUserKey(req);
   try {
     const result = await collectSamples(8);
     const entry: BenchmarkBaselineEntry = { ...result, ts: Date.now() };
-    benchmarkBaselineMap.set(ip, entry);
+    benchmarkBaselineMap.set(userKey, entry);
     res.json(entry);
   } catch {
     res.status(500).json({ error: "Baseline sampling failed" });
@@ -196,8 +196,8 @@ router.post("/benchmark/baseline", async (req, res) => {
 });
 
 router.get("/benchmark/compare", async (req, res) => {
-  const ip = getClientIp(req);
-  const baseline = benchmarkBaselineMap.get(ip);
+  const userKey = getClientUserKey(req);
+  const baseline = benchmarkBaselineMap.get(userKey);
   if (!baseline) return res.status(400).json({ error: "No baseline recorded" });
   try {
     const after = await collectSamples(8);

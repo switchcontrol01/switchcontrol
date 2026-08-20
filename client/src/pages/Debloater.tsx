@@ -19,6 +19,7 @@
   import { ApplyProgressOverlay, ApplyProgressState, ApplyProgressItem } from "@/components/debloater/ApplyProgressOverlay";
   import { cn } from "@/lib/utils";
   import { useToast } from "@/hooks/use-toast";
+  import { cloudApiPost } from "@/lib/cloud-api";
   import { motion, AnimatePresence, useMotion, Reveal } from "@/lib/motion";
   import { PieChart, Pie, Cell } from "recharts";
   
@@ -1041,16 +1042,11 @@
   
       // POST to backend with results
       try {
-        const res = await fetch("/api/debloat/apply", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            role, level,
-            itemIds: selectedItems.map(i => i.id),
-            electronResults: isElectron() ? electronResults : undefined,
-          }),
+        const data = await cloudApiPost("/debloat/apply", {
+          role, level,
+          itemIds: selectedItems.map(i => i.id),
+          electronResults: isElectron() ? electronResults : undefined,
         });
-        const data = await res.json();
   
         if (data.ok) {
           const failed = data.results.filter((r: ApplyResult) => r.status === "failed").length;
@@ -1123,15 +1119,10 @@
       setProcessingId(null);
   
       try {
-        const res = await fetch("/api/debloat/restore", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            itemIds: restorableIds,
-            electronResults: isElectron() ? electronResults : undefined,
-          }),
+        const data = await cloudApiPost("/debloat/restore", {
+          itemIds: restorableIds,
+          electronResults: isElectron() ? electronResults : undefined,
         });
-        const data = await res.json();
         if (data.ok) {
           setSession({
             role, level, results: data.results,
