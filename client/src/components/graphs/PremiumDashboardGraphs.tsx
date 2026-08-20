@@ -584,6 +584,20 @@ interface MonitorInfo {
   isPrimary:       boolean;
 }
 
+function normalizeConnectionType(value: unknown): string | null {
+  if (typeof value === "string") {
+    const normalized = value.trim();
+    return normalized || null;
+  }
+  if (value && typeof value === "object") {
+    const candidate = value as { name?: unknown; type?: unknown; label?: unknown };
+    for (const nested of [candidate.name, candidate.type, candidate.label]) {
+      if (typeof nested === "string" && nested.trim()) return nested.trim();
+    }
+  }
+  return null;
+}
+
 function monitorScore(mon: MonitorInfo): { score: number | null; reason: string } {
   // Use the higher of current or max supported refresh rate for scoring so that
   // a 500Hz monitor configured at 165Hz still scores as a high-refresh display.
@@ -615,7 +629,7 @@ function profileToMonitor(p: DisplaySignalProfile): MonitorInfo {
   const [rx, ry] = (p.resolution ?? "").split("×").map(Number);
   return {
     id: "web-0", name: p.monitorName, manufacturer: null, serial: null,
-    connectionType: p.connectionType,
+    connectionType: normalizeConnectionType(p.connectionType),
     currentResX: rx || null, currentResY: ry || null,
     refreshHz: p.refreshHz,
     maxRefreshHz: null,
@@ -654,7 +668,10 @@ export function DisplaySignalGraph({ delay = 0 }: { delay?: number }) {
         }
         const raw = await api.system.getDisplayInfo();
         if (raw?.monitors?.length > 0) {
-          setMonitors(raw.monitors as MonitorInfo[]);
+          setMonitors(raw.monitors.map((monitor: MonitorInfo) => ({
+            ...monitor,
+            connectionType: normalizeConnectionType(monitor.connectionType),
+          })));
           setScannedAt(raw.scannedAt ?? Date.now());
           setSelectedIdx(prev => Math.min(prev, raw.monitors.length - 1));
           flash();
