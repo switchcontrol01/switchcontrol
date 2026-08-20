@@ -3384,7 +3384,22 @@ public class DspHelper {
         ? parsed.monitors
         : parsed.monitors ? [parsed.monitors] : [];
   
-      const monitors = rawMonitors.map((m) => ({
+      const monitors = rawMonitors.map((m) => {
+        // TEMPORARY DISPLAY DIAGNOSTIC: record the raw WMI value and the value
+        // produced by ConnStr() so the affected user's local log identifies
+        // the exact monitor/driver shape. The raw field is never returned to
+        // the renderer.
+        try {
+          console.info(
+            `[DisplayInfo:diagnostic] id=${m.id ?? 'unknown'} name=${JSON.stringify(m.name ?? null)} ` +
+            `rawType=${typeof m.connectionTypeRaw} raw=${JSON.stringify(m.connectionTypeRaw ?? null)} ` +
+            `normalizedType=${typeof m.connectionType} normalized=${JSON.stringify(m.connectionType ?? null)}`
+          );
+        } catch (e) {
+          console.warn('[DisplayInfo:diagnostic] failed to serialize connection metadata:', e.message);
+        }
+
+        return {
         id:             m.id             ?? null,
         name:           m.name           ?? null,
         manufacturer:   m.manufacturer   ?? null,
@@ -3406,7 +3421,8 @@ public class DspHelper {
         vrrMax:         m.vrrMax         ?? null,
         gpuName:        m.gpuName        ?? null,
         isPrimary:      m.isPrimary      ?? false,
-      }));
+        };
+      });
   
       const result = { monitors, scannedAt: parsed.scannedAt ?? Date.now() };
       _displayInfoCache = result;
