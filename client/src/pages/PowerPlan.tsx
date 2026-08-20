@@ -916,10 +916,12 @@ export default function PowerPlan() {
     return () => window.removeEventListener("sc:history-revert", handler);
   }, [fetchPowerState]);
 
-  // Only treat a profile as "active" on exact_match — close_match / custom_modified /
-  // unknown all mean a non-app or modified plan is active; no preset card should glow.
+  // Treat exact and close matches as the selected preset. A close match means
+  // Windows activated the corresponding scheme but normalized or blocked some
+  // settings; the warning badge communicates that distinction.
   const verifiedFrontendProfileId: FrontendProfileId | null =
-    backendState?.profileMatch?.match === "exact_match"
+    (backendState?.profileMatch?.match === "exact_match" ||
+      backendState?.profileMatch?.match === "close_match")
       ? backendIdToFrontendId(backendState.profileMatch.profileId ?? null)
       : null;
 
@@ -1160,6 +1162,13 @@ export default function PowerPlan() {
   const displayBreakdown = displayProfile ? getBreakdownForProfile(displayProfile.id) : null;
   const isCustomState    = backendState?.profileMatch?.match === "custom_modified";
   const isCloseMatch     = backendState?.profileMatch?.match === "close_match";
+  // A successful apply can return close_match when Windows normalizes or
+  // blocks one setting. Keep the selected card visibly active while the
+  // verification badge still communicates that distinction.
+  const optimisticActiveProfileId: FrontendProfileId | null =
+    applyResult?.success && applyResult.profileId !== "custom"
+      ? applyResult.profileId as FrontendProfileId
+      : activeProfileId;
 
   const isCustomPlanActive = !!(
     customPlanMeta?.guid &&
@@ -1323,7 +1332,9 @@ export default function PowerPlan() {
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 {/* Standard profiles */}
                 {POWER_PROFILES.map((profile) => {
-                  const isActive   = activeProfileId === profile.id;
+                  const isActive   =
+                    optimisticActiveProfileId === profile.id ||
+                    (applyResult?.success && applyResult.profileId === profile.id);
                   const isApplying = applying === profile.id;
                   const Icon       = profile.icon;
                   const t          = PROFILE_THEME[profile.id];
@@ -1347,7 +1358,9 @@ export default function PowerPlan() {
                         style={{
                           background: t.bgGrad,
                           borderColor: isActive ? t.accent : t.borderColor,
-                          boxShadow: isActive ? `0 0 48px -10px ${t.glow}` : undefined,
+                          boxShadow: isActive
+                            ? `0 0 0 1px rgba(52,211,153,.24), 0 0 18px -10px rgba(52,211,153,.72), 0 0 48px -10px ${t.glow}`
+                            : undefined,
                         }}
                         data-testid={`card-profile-${profile.id}`}
                       >
@@ -1406,25 +1419,23 @@ export default function PowerPlan() {
                             <ImpactBar label="Battery Efficiency" value={impact.battery} color="#4b5563" />
                           </div>
 
-                          {isActive && (
-                            <motion.button
-                              type="button"
-                              layoutId="active-applied-settings-trigger"
-                              initial={{ opacity: 0, y: 8, scale: 0.96 }}
-                              animate={{ opacity: 1, y: 0, scale: 1 }}
-                              transition={{ type: "spring", stiffness: 420, damping: 28 }}
-                              onClick={() => setExpandedProfileId(expandedProfileId === profile.id ? null : profile.id)}
-                              className="mb-4 flex items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-[10px] font-semibold text-[#D6DEE8] transition-colors hover:text-white"
-                              style={{ borderColor: `${t.accent}55`, background: `linear-gradient(135deg, ${t.accent}18, rgba(23,28,34,.9))` }}
-                              data-testid={`button-settings-${profile.id}`}
-                            >
-                              <ShieldCheck className="size-3.5" style={{ color: t.accent }} />
-                              View applied settings
-                              <ChevronDown className="size-3" />
-                            </motion.button>
-                          )}
+                          <motion.button
+                            type="button"
+                            initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            transition={{ type: "spring", stiffness: 420, damping: 28 }}
+                            onClick={() => setExpandedProfileId(expandedProfileId === profile.id ? null : profile.id)}
+                            className="mb-4 flex items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-[10px] font-semibold text-[#D6DEE8] transition-colors hover:text-white"
+                            style={{ borderColor: `${t.accent}55`, background: `linear-gradient(135deg, ${t.accent}18, rgba(23,28,34,.9))` }}
+                            aria-expanded={expandedProfileId === profile.id}
+                            data-testid={`button-settings-${profile.id}`}
+                          >
+                            <Info className="size-3.5" style={{ color: t.accent }} />
+                            {isActive ? "View applied settings" : "See what this changes"}
+                            {expandedProfileId === profile.id ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />}
+                          </motion.button>
                           <AnimatePresence>
-                            {expandedProfileId === profile.id && isActive && (
+                            {expandedProfileId === profile.id && (
                               <AppliedSettingsPanel
                                 profileId={profile.id}
                                 backendState={backendState}
@@ -1478,7 +1489,9 @@ export default function PowerPlan() {
                     style={{
                       background: PROFILE_THEME.custom.bgGrad,
                       borderColor: effectiveCustomApplied ? PROFILE_THEME.custom.accent : PROFILE_THEME.custom.borderColor,
-                      boxShadow: effectiveCustomApplied ? `0 0 48px -10px ${PROFILE_THEME.custom.glow}` : undefined,
+                        boxShadow: effectiveCustomApplied
+                          ? "0 0 0 1px rgba(52,211,153,.24), 0 0 18px -10px rgba(52,211,153,.72), 0 0 48px -10px rgba(167,139,250,.25)"
+                          : undefined,
                     }}
                     data-testid="card-profile-custom"
                   >
@@ -1527,25 +1540,23 @@ export default function PowerPlan() {
                         <ImpactBar label="Battery Efficiency" value={computeCustomImpact(localState.customSettings).battery} color="#4b5563" />
                       </div>
 
-                        {effectiveCustomApplied && (
-                          <motion.button
-                            type="button"
-                            layoutId="active-applied-settings-trigger"
-                            initial={{ opacity: 0, y: 8, scale: 0.96 }}
-                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                            transition={{ type: "spring", stiffness: 420, damping: 28 }}
-                            onClick={() => setExpandedProfileId(expandedProfileId === "custom" ? null : "custom")}
-                            className="mb-4 flex items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-[10px] font-semibold text-[#D6DEE8] transition-colors hover:text-white"
-                            style={{ borderColor: "#a78bfa66", background: "linear-gradient(135deg, rgba(167,139,250,.14), rgba(23,28,34,.9))" }}
-                            data-testid="button-settings-custom"
-                          >
-                            <ShieldCheck className="size-3.5 text-[#a78bfa]" />
-                            View applied settings
-                            <ChevronDown className="size-3" />
-                          </motion.button>
-                        )}
+                        <motion.button
+                          type="button"
+                          initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          transition={{ type: "spring", stiffness: 420, damping: 28 }}
+                          onClick={() => setExpandedProfileId(expandedProfileId === "custom" ? null : "custom")}
+                          className="mb-4 flex items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-[10px] font-semibold text-[#D6DEE8] transition-colors hover:text-white"
+                          style={{ borderColor: "#a78bfa66", background: "linear-gradient(135deg, rgba(167,139,250,.14), rgba(23,28,34,.9))" }}
+                          aria-expanded={expandedProfileId === "custom"}
+                          data-testid="button-settings-custom"
+                        >
+                          <Info className="size-3.5 text-[#a78bfa]" />
+                          {effectiveCustomApplied ? "View applied settings" : "See what this changes"}
+                          {expandedProfileId === "custom" ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />}
+                        </motion.button>
                         <AnimatePresence>
-                          {expandedProfileId === "custom" && effectiveCustomApplied && (
+                          {expandedProfileId === "custom" && (
                             <AppliedSettingsPanel
                               profileId="custom"
                               backendState={backendState}
