@@ -46,3 +46,4 @@
 - [Desktop route loading](desktop-route-loading.md) — lazy desktop pages need a shell fallback and shared sidebar-prefetch cache; route Suspense otherwise removes the whole AppLayout on first navigation.
 - [Authenticated POST conventions](authenticated-post-conventions.md) — protected raw POST callers must use the shared API helper so JWT, Electron headers, and CSRF remain intact.
 - [Background telemetry policy](background-telemetry-policy.md) — telemetry pauses automatically when the app is hidden, minimized, unfocused, or closing; there is no user toggle.
+- [Electron intelligence telemetry bridge](electron-intelligence-telemetry-bridge.md) — embedded backend skips its scheduler; intelligence routes must consume the authenticated renderer’s existing main-process live snapshot.

@@ -110,13 +110,35 @@ export function useTweakIntelligence(pollIntervalMs = 5_000) {
     abortRef.current = ac;
 
     try {
+      // In Electron, the main process owns the live telemetry loop while the
+      // embedded backend deliberately does not start a duplicate scheduler.
+      // Forward the already-available live signal subset so intelligence can
+      // render on the first visit instead of receiving 503 "Telemetry not
+      // ready" until another route happens to remount this component.
+      let liveQuery = "";
+      const electronAPI = (window as any).electronAPI;
+      if (electronAPI?.isElectron && electronAPI.telemetry?.getLive) {
+        const live = await electronAPI.telemetry.getLive().catch(() => null);
+        const cpuLoad = live?.cpu?.usagePct;
+        const memPct = live?.ram?.usagePct;
+        const networkKbs = (Number(live?.network?.rxKBps) || 0) + (Number(live?.network?.txKBps) || 0);
+        if (Number.isFinite(cpuLoad) && Number.isFinite(memPct)) {
+          const params = new URLSearchParams({
+            cpuLoad: String(cpuLoad),
+            memPct: String(memPct),
+            networkKbs: String(networkKbs),
+          });
+          liveQuery = `&${params.toString()}`;
+        }
+      }
+
       // Fix #3: use Promise.allSettled so a flaky endpoint (e.g. posture)
       // doesn't discard perfectly good signals/rankings data from the other
       // two.  Each result is merged independently — partial data is better
       // than a blank dashboard.
       const [stateResult, rankResult, postureResult] = await Promise.allSettled([
-        fetch("/api/tweak-intelligence/system-state", { signal: ac.signal }),
-        fetch(`/api/tweak-intelligence/rankings?applied=${encodeURIComponent(param)}&gpu=${gpu}`, { signal: ac.signal }),
+        fetch(`/api/tweak-intelligence/system-state?${liveQuery.slice(1)}`, { signal: ac.signal }),
+        fetch(`/api/tweak-intelligence/rankings?applied=${encodeURIComponent(param)}&gpu=${gpu}${liveQuery}`, { signal: ac.signal }),
         fetchPosture
           ? fetch(`/api/tweak-intelligence/posture?applied=${encodeURIComponent(param)}`, { signal: ac.signal })
           : Promise.resolve(null),

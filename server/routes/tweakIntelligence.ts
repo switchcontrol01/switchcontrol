@@ -60,6 +60,45 @@ function classify(value: number, thresholds: [number, number, number]): Pressure
 
 function levelIndex(l: PressureLevel): number { return LEVEL_ORDER.indexOf(l); }
 
+/**
+ * Electron owns the live telemetry loop in desktop mode. The embedded HTTP
+ * backend intentionally does not start a second systeminformation scheduler,
+ * so its server cache can still be "loading" while the Electron main process
+ * already has a valid live snapshot. Accept the small live signal subset from
+ * the authenticated renderer in that case; web mode continues using the
+ * server-owned cache.
+ */
+function getSnapshotForRequest(req: Request) {
+  const cached = getCachedSnapshot();
+  const q = req.query;
+  const cpuLoad = Number(q.cpuLoad);
+  const memPct = Number(q.memPct);
+  const networkKbs = Number(q.networkKbs);
+  const processCount = Number(q.processCount);
+  const hasClientTelemetry =
+    Number.isFinite(cpuLoad) &&
+    Number.isFinite(memPct) &&
+    Number.isFinite(networkKbs);
+
+  if (cached.status === "ready" || !hasClientTelemetry) return cached;
+
+  return {
+    ...cached,
+    status: "ready" as const,
+    cpu: { ...cached.cpu, load: Math.max(0, cpuLoad) },
+    ram: { ...cached.ram, usedPercent: Math.max(0, Math.min(100, memPct)) },
+    network: {
+      ...cached.network,
+      rx_sec: Math.max(0, networkKbs * 1024),
+      tx_sec: 0,
+    },
+    processes: {
+      ...cached.processes,
+      total: Number.isFinite(processCount) ? Math.max(0, processCount) : 0,
+    },
+  };
+}
+
 // ── Vendor gates ──────────────────────────────────────────────────────────────
 // Tweaks that are only meaningful for a specific GPU/CPU vendor.
 // If the user's hardware string doesn't match any of the listed keywords
@@ -347,7 +386,7 @@ const POSTURE_SETS: Array<{
 
 router.get("/system-state", (_req, res) => {
   try {
-    const snap = getCachedSnapshot();
+    const snap = getSnapshotForRequest(_req);
     if (snap.status !== "ready") {
       return res.status(503).json({ error: "Telemetry not ready", status: snap.status });
     }
@@ -436,7 +475,7 @@ router.get("/system-state", (_req, res) => {
 
 router.get("/rankings", (req, res) => {
   try {
-    const snap     = getCachedSnapshot();
+    const snap     = getSnapshotForRequest(req);
     if (snap.status !== "ready") {
       return res.status(503).json({ error: "Telemetry not ready", status: snap.status });
     }
