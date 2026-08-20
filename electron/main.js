@@ -367,6 +367,40 @@
   let gpuExistsOnHardware = false;
   let wmiGpuModelName = null; // GPU name from WMI fast-path — fallback when si.graphics() times out
   let wmiGpuModelPromise = null;
+  // Single-flight startup GPU probe. Specs enrichment and telemetry startup can
+  // be initiated by different lifecycle events; they must share one WMI call
+  // instead of each spawning powershell.exe on cold/low-end machines.
+  let _startupWmiGpuRaw = null;
+  let _startupWmiGpuInFlight = null;
+  let _startupWmiGpuAttempted = false;
+  function _getStartupWmiGpuRaw() {
+    if (process.platform !== 'win32') return Promise.resolve('');
+    if (_startupWmiGpuRaw) return Promise.resolve(_startupWmiGpuRaw);
+    if (_startupWmiGpuInFlight) return _startupWmiGpuInFlight;
+
+    const _wmiGpuPs = `try{$r=@(Get-CimInstance Win32_VideoController -ErrorAction Stop|Where-Object{$_.Name -notmatch 'Microsoft Basic|Remote Desktop'}|Sort-Object{-[uint64]$_.AdapterRAM});if($r.Count -gt 0){($r|ForEach-Object{"$($_.Name)|$([uint64]$_.AdapterRAM)"})-join';;'}else{''}}catch{''}`;
+    const _fpToken = psLimiter.tryAcquire({ file: 'main.js', fn: '_getStartupWmiGpuRaw', reason: 'startup-wmi-gpu-single-flight' });
+    if (!_fpToken) {
+      // Do not mark the probe attempted when the shared limiter is busy. A
+      // later lifecycle event can retry after the competing elevated work ends.
+      return Promise.resolve('');
+    }
+
+    _startupWmiGpuAttempted = true;
+    _startupWmiGpuInFlight = new Promise(resolve => {
+      execFile('powershell', ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-Command', _wmiGpuPs],
+        { windowsHide: true, timeout: 5000 },
+        (err, stdout) => {
+          psLimiter.release(_fpToken);
+          const raw = !err && stdout ? stdout.trim() : '';
+          if (raw) _startupWmiGpuRaw = raw;
+          resolve(raw);
+        });
+    }).finally(() => {
+      _startupWmiGpuInFlight = null;
+    });
+    return _startupWmiGpuInFlight;
+  }
   let _resolveWmiGpuModel = null;
   // ── Multi-GPU support ───────────────────────────────────────────────────
   // wmiGpuList is populated once at startup from WMI (all discrete GPUs, ranked by VRAM).
