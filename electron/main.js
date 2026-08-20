@@ -3180,7 +3180,7 @@ public class DspHelper {
   $monHwIds  = @()
   for ($mi2 = 0; $mi2 -lt $monIds.Count; $mi2++) {
     $id = $null
-    if ($monIds[$mi2].InstanceName -match 'DISPLAY\\([^\\]+)\\') { $id = $Matches[1].ToUpper() }
+     if ($monIds[$mi2].InstanceName -match '(?i)(?:DISPLAY|MONITOR)\\([^\\]+)') { $id = $Matches[1].ToUpper() }
     $monHwIds += $id
   }
   if ($dispDevs -and $dispDevs.Count -gt 0) {
@@ -3223,7 +3223,21 @@ public class DspHelper {
         }
       }
     }
-    # Tier 3: monitors without a $monToDisp entry are left with $dev = $null
+    # Tier 3: if exactly one monitor/device pair remains, the pairing is no
+    # longer ambiguous. This recovers refresh/resolution data when a driver
+    # exposes a malformed child DeviceID but all other displays matched.
+    $leftMon = @()
+    for ($mi2 = 0; $mi2 -lt $monIds.Count; $mi2++) {
+      if (-not $monToDisp.ContainsKey($mi2)) { $leftMon += $mi2 }
+    }
+    $leftDisp = @()
+    for ($j = 0; $j -lt $dispDevs.Count; $j++) {
+      if (-not $usedDispIdx.ContainsKey($j)) { $leftDisp += $j }
+    }
+    if ($leftMon.Count -eq 1 -and $leftDisp.Count -eq 1) {
+      $monToDisp[$leftMon[0]] = $dispDevs[$leftDisp[0]]
+    }
+    # Tier 4: monitors without a $monToDisp entry are left with $dev = $null
   }
 
   $i = 0
