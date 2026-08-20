@@ -569,7 +569,13 @@ async function applyPowerProfile(profileId) {
     const def = SETTING_DEFS[key];
     if (!def) continue;
     settingCmds.push(`powercfg /setacvalueindex ${schemeGuid} ${def.subgroup} ${def.setting} ${value}`);
-    settingCmds.push(`powercfg /setdcvalueindex ${schemeGuid} ${def.subgroup} ${def.setting} ${value}`);
+    // Presets are intentionally AC-focused.  A newly-created scheme inherits
+    // its battery values from the base plan, so overwriting DC here could
+    // unexpectedly change a laptop's battery behavior.  Profiles that
+    // deliberately own their battery settings must opt in explicitly.
+    if (profile.applyDcSettings === true) {
+      settingCmds.push(`powercfg /setdcvalueindex ${schemeGuid} ${def.subgroup} ${def.setting} ${value}`);
+    }
   }
   settingCmds.push(`powercfg /setactive ${schemeGuid}`);
 
