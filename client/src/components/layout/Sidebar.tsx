@@ -530,8 +530,8 @@ export function Sidebar() {
                   style={{
                     inset: "-3px",
                     borderRadius: "9999px",
-                    background: "radial-gradient(circle, rgba(255,195,50,0.09) 0%, rgba(255,160,30,0.04) 48%, transparent 68%)",
-                    boxShadow: "0 0 0 1px rgba(255,215,80,0.52), 0 0 7px 2px rgba(255,195,50,0.22), 0 0 14px 4px rgba(255,170,30,0.09)",
+                    background: "radial-gradient(circle, rgba(255,195,50,0.072) 0%, rgba(255,160,30,0.032) 48%, transparent 68%)",
+                    boxShadow: "0 0 0 1px rgba(255,215,80,0.416), 0 0 7px 2px rgba(255,195,50,0.176), 0 0 14px 4px rgba(255,170,30,0.072)",
                     animation: "sc-premium-halo 2.8s ease-in-out infinite",
                     animationDelay: `${-(((Date.now() - _SIDEBAR_SESSION_START) / 1000) % 2.8).toFixed(3)}s`,
                   }}
