@@ -234,7 +234,16 @@ function ElectronAppRoutes() {
     telemetryManager.setDemandMode(mode);
     if (!realtimeMetricsEnabled || mode === "paused") {
       telemetryManager.pause();
+      // A disabled live-metrics preference must stop continuous polling, not
+      // leave the active page with an empty dashboard. Take one read-only
+      // snapshot for visible Dashboard/Tweaks cards, then remain paused.
+      if (mode !== "paused") {
+        queueMicrotask(() => telemetryManager.refreshNow());
+      }
     }
+    console.info(
+      `[TelemetryRoute] path=${path} mode=${mode} live=${realtimeMetricsEnabled}`,
+    );
   }, [location, realtimeMetricsEnabled]);
 
   return (
