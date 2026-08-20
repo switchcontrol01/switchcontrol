@@ -804,14 +804,36 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
 
       {/* Chart or loading placeholder */}
       <div className={cn("relative transition-all duration-300", expanded ? "h-80" : "h-48")}>
-        {isLoading ? (
+        {/* Keep both states mounted so the first real telemetry frame does not
+            replace the placeholder abruptly. The outgoing layer softens into
+            the background while the chart resolves from a gentle blur. */}
+        <div
+          className="absolute inset-0"
+          aria-hidden={!isLoading}
+          style={{
+            opacity: isLoading ? 1 : 0,
+            filter: isLoading ? "blur(0px)" : "blur(5px)",
+            transform: isLoading ? "scale(1)" : "scale(0.985)",
+            transition: "opacity 520ms ease, filter 760ms ease, transform 520ms ease",
+            pointerEvents: isLoading ? "auto" : "none",
+            zIndex: isLoading ? 2 : 1,
+          }}
+        >
           <GraphLoadingPlaceholder height={chartHeight} />
-        ) : (
-          <div
-            key="live-chart"
-            className="absolute inset-0"
-            style={{ animation: "sc-chart-reveal 1.6s cubic-bezier(0.25,0.46,0.45,0.94) both" }}
-          >
+        </div>
+        <div
+          key="live-chart"
+          className="absolute inset-0"
+          aria-hidden={isLoading}
+          style={{
+            opacity: isLoading ? 0 : 1,
+            filter: isLoading ? "blur(8px)" : "blur(0px)",
+            transform: isLoading ? "scale(1.012)" : "scale(1)",
+            transition: "opacity 680ms ease, filter 900ms cubic-bezier(0.22, 1, 0.36, 1), transform 680ms ease",
+            pointerEvents: isLoading ? "none" : "auto",
+            zIndex: isLoading ? 1 : 2,
+          }}
+        >
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart data={data} margin={{ top: 4, right: expanded ? 44 : 4, left: -20, bottom: 4 }}>
               {/* Gradient defs for area fills */}
@@ -1020,8 +1042,7 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
               )}
             </ComposedChart>
           </ResponsiveContainer>
-          </div>
-        )}
+        </div>
       </div>
 
       {/* Stability zone label */}
