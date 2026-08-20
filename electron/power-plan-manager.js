@@ -116,6 +116,7 @@ const POWER_PROFILES = {
     basePlan: 'high_performance',
     scName: 'SwitchControl - Max Performance',
     scDesc: 'Full CPU at all times, USB/PCIe power saving off, no sleep. Optimised for gaming and low-latency workloads.',
+    applyDcSettings: false,
     settings: {
       cpuMinPercentAC:       100,
       cpuMaxPercentAC:       100,
@@ -134,6 +135,7 @@ const POWER_PROFILES = {
     basePlan: 'balanced',
     scName: 'SwitchControl - Balanced Gaming',
     scDesc: 'Dynamic CPU scaling with aggressive boost, cores always unparked. Good balance of performance and temperature.',
+    applyDcSettings: false,
     settings: {
       cpuMinPercentAC:       5,
       cpuMaxPercentAC:       100,
@@ -152,6 +154,7 @@ const POWER_PROFILES = {
     basePlan: 'balanced',
     scName: 'SwitchControl - Efficiency',
     scDesc: 'CPU capped at 85%, core parking and PCIe saving enabled. Extends battery life on laptops.',
+    applyDcSettings: false,
     settings: {
       cpuMinPercentAC:       5,
       cpuMaxPercentAC:       85,
@@ -569,10 +572,6 @@ async function applyPowerProfile(profileId) {
     const def = SETTING_DEFS[key];
     if (!def) continue;
     settingCmds.push(`powercfg /setacvalueindex ${schemeGuid} ${def.subgroup} ${def.setting} ${value}`);
-    // Presets are intentionally AC-focused.  A newly-created scheme inherits
-    // its battery values from the base plan, so overwriting DC here could
-    // unexpectedly change a laptop's battery behavior.  Profiles that
-    // deliberately own their battery settings must opt in explicitly.
     if (profile.applyDcSettings === true) {
       settingCmds.push(`powercfg /setdcvalueindex ${schemeGuid} ${def.subgroup} ${def.setting} ${value}`);
     }
