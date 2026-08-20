@@ -578,7 +578,7 @@ function ElectronAppContent() {
   // entry smooth on low-end CPUs.
   useEffect(() => {
     if (phase !== "authenticated") return;
-    telemetryManager.start();
+    telemetryManager.startWhenIdle();
   }, [phase]);
 
 
@@ -592,7 +592,7 @@ function ElectronAppContent() {
     console.log(
       "[Telemetry] JWT now available after prior auth rejection — restarting manager",
     );
-    telemetryManager.start();
+    telemetryManager.startWhenIdle();
   }, [jwt, phase]);
 
   // React to the "Real-time Metrics" toggle.
@@ -1949,7 +1949,7 @@ function ElectronAppContent() {
           />
         )}
 
-        {!isResetting && (
+        {!isResetting && activeFlow === "trialUnlock" && (
           <TrialActivationAnimation
             show={activeFlow === "trialUnlock"}
             onComplete={async () => {
@@ -1971,7 +1971,7 @@ function ElectronAppContent() {
           />
         )}
 
-        {!isResetting && (
+        {!isResetting && activeFlow === "trialTour" && (
           <TrialTour
             show={activeFlow === "trialTour"}
             onComplete={async () => {
@@ -1993,7 +1993,7 @@ function ElectronAppContent() {
           />
         )}
 
-        {!isResetting && (
+        {!isResetting && activeFlow === "premiumUnlock" && (
           <PremiumUpgradeAnimation
             show={activeFlow === "premiumUnlock"}
             onComplete={() => {
@@ -2018,7 +2018,7 @@ function ElectronAppContent() {
           />
         )}
 
-        {!isResetting && (
+        {!isResetting && activeFlow === "premiumTour" && (
           <GuidedTour
             show={activeFlow === "premiumTour"}
             onComplete={async () => {
@@ -2146,8 +2146,8 @@ function WebsiteContent() {
             // start telemetry.  tryReissueJwt() is idempotent (deduped) and
             // stores the fresh token in useAuthStore automatically.
             tryReissueJwt()
-              .then(() => telemetryManager.start())
-              .catch(() => telemetryManager.start()); // start even if JWT fails
+              .then(() => telemetryManager.startWhenIdle())
+              .catch(() => telemetryManager.startWhenIdle()); // start even if JWT fails
           }
         }
       } catch (err) {

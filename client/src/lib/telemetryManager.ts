@@ -51,6 +51,7 @@ let _paused = false;      // true = connected but discarding incoming data
 let _ws: WebSocket | null = null;
 let _reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 let _unavailableTimer: ReturnType<typeof setTimeout> | null = null;
+let _idleStartCancel: (() => void) | null = null;
 const _spikeTimers: Record<string, ReturnType<typeof setTimeout>> = {};
 // Reconnect backoff: resets to BASE on successful open, doubles on each failure
 const RECONNECT_BASE_MS = 3_000;
@@ -551,6 +552,28 @@ export const telemetryManager = {
   },
 
   /**
+   * Start after the renderer has had an idle opportunity to finish its first
+   * dashboard commit. Multiple callers share one scheduled start, and an
+   * explicit start() still wins immediately (the scheduled callback becomes
+   * a harmless idempotent no-op).
+   */
+  startWhenIdle() {
+    if (_started || _idleStartCancel) return;
+    const run = () => {
+      _idleStartCancel = null;
+      telemetryManager.start();
+    };
+    const win = window as any;
+    if (typeof win.requestIdleCallback === "function") {
+      const id = win.requestIdleCallback(run, { timeout: 1200 });
+      _idleStartCancel = () => win.cancelIdleCallback?.(id);
+    } else {
+      const id = setTimeout(run, 650);
+      _idleStartCancel = () => clearTimeout(id);
+    }
+  },
+
+  /**
    * Pause processing incoming telemetry messages.
    * The WebSocket stays connected — data is just discarded until resume().
    */
@@ -606,6 +629,10 @@ export const telemetryManager = {
 
     if (_reconnectTimer) clearTimeout(_reconnectTimer);
     if (_unavailableTimer) clearTimeout(_unavailableTimer);
+    if (_idleStartCancel) {
+      _idleStartCancel();
+      _idleStartCancel = null;
+    }
     if (_ws) { _ws.close(); _ws = null; }
     _reconnectDelay = RECONNECT_BASE_MS; // reset backoff on explicit user-triggered reset
     _authRejected = false;

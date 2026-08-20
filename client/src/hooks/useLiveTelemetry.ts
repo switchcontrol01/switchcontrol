@@ -72,7 +72,7 @@ export function useLiveTelemetry() {
     // so there is deliberately no stop() on unmount. start() is idempotent —
     // calling it when already running is a silent no-op, so multiple concurrent
     // consumers of this hook are safe.
-    telemetryManager.start();
+    telemetryManager.startWhenIdle();
   }, []);
 
   return useTelemetryStore(
