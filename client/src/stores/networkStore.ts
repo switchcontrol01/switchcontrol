@@ -1,11 +1,17 @@
 'use client';
 import { create } from 'zustand';
+import { getPollingMultiplier, subscribeToAppMode } from '@/lib/appModeStore';
 
 export type NetworkState = 'online' | 'offline' | 'reconnecting' | 'degraded';
 
 const HEARTBEAT_URL = 'https://switchcontrol.org/api/health';
 const HEARTBEAT_INTERVAL_MS = 30_000;
 const HEARTBEAT_TIMEOUT_MS = 6_000;
+let _heartbeatModeUnsubscribe: (() => void) | null = null;
+
+function getHeartbeatIntervalMs(): number {
+  return Math.round(HEARTBEAT_INTERVAL_MS * getPollingMultiplier());
+}
 
 interface NetworkStore {
   networkState: NetworkState;
@@ -104,6 +110,7 @@ export const useNetworkStore = create<NetworkStore>()((set, get) => ({
   _startHeartbeat() {
     const { _heartbeatHandle } = get();
     if (_heartbeatHandle) return;
+    const intervalMs = getHeartbeatIntervalMs();
     const handle = setInterval(() => {
       const { isOnline } = get();
       if (!isOnline || document.hidden || get()._heartbeatInFlight) return;
@@ -112,9 +119,22 @@ export const useNetworkStore = create<NetworkStore>()((set, get) => ({
         get()._setReachable(r);
         get()._setCheckedAt();
       }).finally(() => set({ _heartbeatInFlight: false }));
-    }, HEARTBEAT_INTERVAL_MS);
+    }, intervalMs);
     set({ _heartbeatHandle: handle });
-    console.log('[Network] Heartbeat started (interval=' + HEARTBEAT_INTERVAL_MS + 'ms)');
+    console.log('[Network] Heartbeat started (interval=' + intervalMs + 'ms)');
+
+    // Application Mode is the central background-work policy. Reschedule the
+    // existing heartbeat when the user changes Normal/Light mode so the new
+    // interval applies immediately instead of waiting for the old timer.
+    if (!_heartbeatModeUnsubscribe) {
+      _heartbeatModeUnsubscribe = subscribeToAppMode(() => {
+        const currentHandle = get()._heartbeatHandle;
+        if (!currentHandle || document.hidden) return;
+        clearInterval(currentHandle);
+        set({ _heartbeatHandle: null });
+        get()._startHeartbeat();
+      });
+    }
   },
 
   _stopHeartbeat() {
@@ -122,6 +142,10 @@ export const useNetworkStore = create<NetworkStore>()((set, get) => ({
     if (_heartbeatHandle) {
       clearInterval(_heartbeatHandle);
       set({ _heartbeatHandle: null });
+    }
+    if (_heartbeatModeUnsubscribe) {
+      _heartbeatModeUnsubscribe();
+      _heartbeatModeUnsubscribe = null;
     }
   },
 

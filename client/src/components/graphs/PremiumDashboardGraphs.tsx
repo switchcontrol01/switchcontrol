@@ -12,6 +12,7 @@ import { MemoryStick, HardDrive, Activity, Cpu, Monitor, RefreshCw } from "lucid
 import { GlassCard } from "@/components/ui/glass-card";
 import { TelemetrySparkline, type SparklinePoint } from "./TelemetrySparkline";
 import { useLiveTelemetry } from "@/hooks/useLiveTelemetry";
+import { useVisibilityInterval } from "@/hooks/useVisibilityInterval";
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
 import { cloudApiGet } from "@/lib/cloud-api";
@@ -670,10 +671,18 @@ export function DisplaySignalGraph({ delay = 0 }: { delay?: number }) {
 
   useEffect(() => {
     load();
-    // Poll every 30 s so hot-plug events are caught within half a minute
-    const t = setInterval(() => load(), 30_000);
-    return () => clearInterval(t);
   }, [load]);
+  // Poll for hot-plug monitor changes while visible. This uses the shared
+  // Application Mode profile: Light Mode slows background display detection
+  // and hidden windows stop polling entirely, while the manual refresh button
+  // still calls load() immediately.
+  useVisibilityInterval(
+    () => { void load(); },
+    30_000,
+    "PremiumDashboardGraphs:displayDetection",
+    "PremiumDashboardGraphs.tsx",
+    !!user?.loggedIn,
+  );
 
   const mon = monitors[selectedIdx] ? enrichMonitor(monitors[selectedIdx]) : null;
   const { score, reason } = mon ? monitorScore(mon) : { score: null, reason: "" };
