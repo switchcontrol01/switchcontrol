@@ -548,6 +548,12 @@ function ProtectionTab({
                 </button>
               </div>
             )}
+            {securityStatus.firewallEnabled === false && (
+              <div className="flex items-center gap-1.5 mt-1.5 pt-1.5 border-t border-red-500/10 text-[11px] text-red-400/85">
+                <ShieldAlert className="size-3 shrink-0" />
+                <span>Windows Firewall is disabled — enable it in Windows Security to protect this device.</span>
+              </div>
+            )}
             {securityStatus.engineVersion && (
               <div className="pt-2 mt-1  text-xs text-muted-foreground flex justify-between">
                 <span>Engine</span><span className="font-mono text-[10px]">{securityStatus.engineVersion}</span>

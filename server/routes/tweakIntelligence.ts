@@ -10,6 +10,11 @@ import { aiPerWindowLimiter, aiHourlyLimiter } from "../middleware/rateLimiter";
 
 const router = Router();
 
+let rankingsCache: {
+  key: string;
+  rankings: TweakRanking[];
+} | null = null;
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 export type PressureLevel = "low" | "moderate" | "elevated" | "high";
@@ -440,6 +445,11 @@ router.get("/rankings", (req, res) => {
     // GPU name forwarded by the client from its local hardware specs.
     // Used to filter vendor-specific tweaks (e.g. nvidia-telemetry for AMD users).
     const gpuName  = String(req.query.gpu ?? "");
+    const cacheKey = JSON.stringify([snap.ts, applied.join(","), gpuName]);
+
+    if (rankingsCache?.key === cacheKey) {
+      return res.json({ rankings: rankingsCache.rankings, ts: Date.now() });
+    }
 
     const cpuMult  = LEVEL_MULT[classify(snap.cpu.load, [20, 50, 75])];
     const memMult  = LEVEL_MULT[classify(snap.ram.usedPercent, [50, 70, 85])];
@@ -493,6 +503,7 @@ router.get("/rankings", (req, res) => {
       return b.score - a.score;
     });
 
+    rankingsCache = { key: cacheKey, rankings };
     res.json({ rankings, ts: Date.now() });
   } catch (e: any) {
     console.error("[TweakIntel] rankings error:", e.message);

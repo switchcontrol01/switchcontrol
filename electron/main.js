@@ -3914,6 +3914,27 @@ public class DspHelper {
     }
   });
   
+  // Shared across both startup reconciliation IPC paths. App.tsx uses
+  // tweak:batchCheckAll while TweaksList uses tweak:syncAll, but both need the
+  // same expensive full PowerShell verification. Await the existing promise
+  // instead of launching a second batch when the calls overlap.
+  let _batchCheckAllInFlight = null;
+
+  async function runSharedBatchCheckAll() {
+    if (_batchCheckAllInFlight) {
+      console.log('[tweak:batchCheckAll] joining existing batch verification');
+      return _batchCheckAllInFlight;
+    }
+
+    _batchCheckAllInFlight = Promise.resolve()
+      .then(() => tweakExecutor.batchCheckAllTweaks())
+      .finally(() => {
+        _batchCheckAllInFlight = null;
+      });
+
+    return _batchCheckAllInFlight;
+  }
+
   // Tweak handlers
   ipcMain.handle('tweak:execute', async (event, tweakId, action, options = {}) => {
     if (typeof tweakId !== 'string' || typeof action !== 'string') {
@@ -4006,6 +4027,10 @@ public class DspHelper {
   });
   
   ipcMain.handle('tweak:syncAll', async () => {
+    if (_batchCheckAllInFlight) {
+      console.log('[tweak:syncAll] joining existing batch verification');
+      return _batchCheckAllInFlight;
+    }
     const _token = psLimiter.tryAcquire({ file: 'main.js', fn: 'tweak:syncAll', reason: 'tweak-sync-all' });
     if (!_token) {
       const skipped = psLimiter.skippedResult({ file: 'main.js', fn: 'tweak:syncAll', reason: 'tweak-sync-all' });
@@ -4015,7 +4040,7 @@ public class DspHelper {
     const t0 = Date.now();
     console.log(`[PS-Exec] start file=main.js fn=tweak:syncAll reason=tweak-sync-all — batch mode, ${Object.keys(tweakExecutor.ALL_TWEAKS).length} tweaks`);
     try {
-      const results = await tweakExecutor.batchCheckAllTweaks();
+      const results = await runSharedBatchCheckAll();
       console.log(`[PS-Exec] done file=main.js fn=tweak:syncAll ms=${Date.now() - t0} tweaks=${Object.keys(results).length}`);
       return results;
     } finally {
@@ -4027,13 +4052,17 @@ public class DspHelper {
   // Called once at app startup (non-blocking) to reconcile the Zustand store
   // against real Windows state after an AppData wipe or first launch.
   ipcMain.handle('tweak:batchCheckAll', async () => {
+    if (_batchCheckAllInFlight) {
+      console.log('[tweak:batchCheckAll] joining existing batch verification');
+      return _batchCheckAllInFlight;
+    }
     const _token = psLimiter.tryAcquire({ file: 'main.js', fn: 'tweak:batchCheckAll', reason: 'tweak-batch-check' });
     if (!_token) {
       console.log('[tweak:batchCheckAll] skipped — PS limiter full, will retry on TweaksList mount');
       return null; // caller treats null as "skip reconciliation"
     }
     try {
-      return await tweakExecutor.batchCheckAllTweaks();
+      return await runSharedBatchCheckAll();
     } finally {
       psLimiter.release(_token);
     }

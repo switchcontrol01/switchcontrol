@@ -99,7 +99,12 @@ export function useTweakIntelligence(pollIntervalMs = 5_000) {
   // `mountedRef` is still used as a secondary guard against updates after
   // actual component unmount (the case `isStale` doesn't distinguish from
   // a same-component re-run).
-  const fetchAll = useCallback(async (param: string, gpu: string, isStale: () => boolean) => {
+  const fetchAll = useCallback(async (
+    param: string,
+    gpu: string,
+    isStale: () => boolean,
+    fetchPosture: boolean,
+  ) => {
     if (abortRef.current) abortRef.current.abort();
     const ac = new AbortController();
     abortRef.current = ac;
@@ -112,7 +117,9 @@ export function useTweakIntelligence(pollIntervalMs = 5_000) {
       const [stateResult, rankResult, postureResult] = await Promise.allSettled([
         fetch("/api/tweak-intelligence/system-state", { signal: ac.signal }),
         fetch(`/api/tweak-intelligence/rankings?applied=${encodeURIComponent(param)}&gpu=${gpu}`, { signal: ac.signal }),
-        fetch(`/api/tweak-intelligence/posture?applied=${encodeURIComponent(param)}`, { signal: ac.signal }),
+        fetchPosture
+          ? fetch(`/api/tweak-intelligence/posture?applied=${encodeURIComponent(param)}`, { signal: ac.signal })
+          : Promise.resolve(null),
       ]);
 
       // Guard immediately after the await — if the effect was cleaned up while
@@ -122,7 +129,8 @@ export function useTweakIntelligence(pollIntervalMs = 5_000) {
       // Resolve each response independently.  A rejected or non-ok result
       // leaves that slice as null; the setState below falls back to the
       // previous slice value so existing good data isn't blanked.
-      const toJson = async (result: PromiseSettledResult<Response>) => {
+      const toJson = async (result: PromiseSettledResult<Response> | null) => {
+        if (!result) return null;
         if (result.status === "rejected") return null;
         if (!result.value.ok) return null;
         try { return await result.value.json(); } catch { return null; }
@@ -196,13 +204,16 @@ export function useTweakIntelligence(pollIntervalMs = 5_000) {
     let cancelled = false;
     const isStale = () => cancelled;
 
-    fetchAll(appliedParam, gpuParam, isStale);
+    fetchAll(appliedParam, gpuParam, isStale, true);
 
     const schedule = () => {
       if (cancelled) return;
       timerRef.current = setTimeout(() => {
         if (cancelled) return;
-        fetchAll(appliedParam, gpuParam, isStale);
+        // System state remains live at the five-second cadence. Posture is
+        // derived solely from applied IDs, so it is fetched on the initial
+        // request and when this effect restarts because those IDs changed.
+        fetchAll(appliedParam, gpuParam, isStale, false);
         schedule();
       }, pollIntervalMs);
     };
