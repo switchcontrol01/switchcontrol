@@ -112,7 +112,6 @@ export function useGpuSelector(): GpuSelectorState {
             gpuVendor: newGpu.vendor  ?? "",
             vramGb:    newGpu.vramGB  ?? 0,
           });
-        }
           setSwitching(false);
           console.log("[GpuSelector] switched to GPU index", index, "→", newGpu?.model);
         }
