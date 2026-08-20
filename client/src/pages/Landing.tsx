@@ -675,9 +675,12 @@ export default function Landing() {
                     <span className="block text-5xl md:text-7xl lg:text-8xl xl:text-[6.5rem] font-extrabold text-[#E6EAF0] hero-text-glow hero-text-light-catch">
                       Your PC <span className="font-light italic text-[#E6EAF0]">is holding</span>
                     </span>
-                    <span className="block text-5xl md:text-7xl lg:text-8xl xl:text-[6.5rem] font-extrabold text-[#E6EAF0] hero-text-glow hero-text-light-catch">
+                    <span className="block text-5xl md:text-7xl lg:text-8xl xl:text-[6.5rem] font-extrabold text-[#E6EAF0] hero-text-glow">
                       <span className="font-light italic text-[#E6EAF0]">you</span> back.{" "}
-                      <span className="font-black hero-text-shine hero-accent-glow">
+                      <span
+                        className="font-black hero-text-shine hero-accent-glow"
+                        data-text="Fix it."
+                      >
                         Fix it.
                       </span>
                     </span>

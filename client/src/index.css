@@ -2088,8 +2088,8 @@ textarea,
    mix-blend-mode: screen ensures the bright strip only affects the coloured text
    pixels and doesn't wash out the dark background behind the element. */
 @keyframes heroShineSlide {
-  0%   { transform: translateX(-180%); }
-  100% { transform: translateX(280%);  }
+  0%   { background-position: -120% 50%; }
+  100% { background-position: 220% 50%; }
 }
 .hero-text-glow {
   text-shadow: 0 0 30px rgba(0, 212, 255, 0.08), 0 0 60px rgba(139, 92, 246, 0.08);
@@ -2112,40 +2112,24 @@ textarea,
 }
 
 .hero-text-shine {
-  /* Static rainbow gradient — no background-position animation */
+  /* The animated gradient is clipped directly to the glyphs — no overlay box. */
   background: linear-gradient(
-    90deg,
-    rgba(103, 232, 249, 0.9),
-    rgba(216, 180, 254, 0.9),
-    rgba(249, 168, 212, 0.9),
-    rgba(255, 255, 255, 1),
-    rgba(103, 232, 249, 0.9),
-    rgba(216, 180, 254, 0.9),
-    rgba(249, 168, 212, 0.9)
+    105deg,
+    rgba(103, 232, 249, 0.9) 0%,
+    rgba(216, 180, 254, 0.9) 30%,
+    rgba(255, 255, 255, 1) 47%,
+    rgba(255, 255, 255, 1) 53%,
+    rgba(249, 168, 212, 0.9) 70%,
+    rgba(103, 232, 249, 0.9) 100%
   );
-  background-size: 200% auto;
+  background-size: 240% 100%;
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  display: inline-block; /* required for overflow:hidden on inline element */
+  -webkit-text-fill-color: transparent;
+  display: inline-block;
   position: relative;
-  overflow: hidden;
-}
-.hero-text-shine::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    105deg,
-    transparent 20%,
-    rgba(255, 255, 255, 0.55) 50%,
-    transparent 80%
-  );
-  transform: translateX(-180%);
   animation: heroShineSlide 6s linear infinite;
-  will-change: transform;
-  pointer-events: none;
-  mix-blend-mode: screen;
 }
 
 /* Hero headline subtle float */
