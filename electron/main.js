@@ -417,6 +417,9 @@
   const TELEMETRY_SLOW_MS      = 8000;   // low-end / over-budget mode
   const TELEMETRY_GOVERNOR_PCT = 50;     // engage slow mode when cpu > 50%
   let _telemetryCurrentIntervalMs = TELEMETRY_BASE_MS;
+  // The renderer selects the single telemetry demand profile for the active
+  // route. Electron remains the sole hardware-polling owner.
+  let _telemetryDemandMode = 'full';
   
   // ── Per-task TTLs — heavy tasks run NO MORE OFTEN than their TTL ──────────────
   // Only ONE heavy task fires per tick (rotation). Lightweight tasks (currentLoad,
@@ -465,6 +468,7 @@
   // Set _telemetryLoopPaused = true to pause without stopping (window minimized).
   let _telemetryLoopActive = false;
   let _telemetryLoopPaused = false;
+  let _telemetryDemandPaused = false;
   let _telemetryLoopCount  = 0; // incremented every time the loop actually starts; must stay ≤ 1
   
   async function _telemetryLoop() {
@@ -482,7 +486,7 @@
       return;
     }
     while (_telemetryLoopActive) {
-      if (!_telemetryLoopPaused) {
+      if (!_telemetryLoopPaused && !_telemetryDemandPaused) {
         await pollTelemetry();
       }
       if (_telemetryLoopActive) await new Promise(r => setTimeout(r, _telemetryCurrentIntervalMs));
@@ -566,7 +570,12 @@
       let rawDiskIO = null;
       const temps = _cpuTempCache; // used below; may be refreshed in this block
   
-      if (!_overBudget && !inCooldown) {
+      if (
+        _telemetryDemandMode !== 'paused' &&
+        _telemetryDemandMode !== 'intelligence' &&
+        !_overBudget &&
+        !inCooldown
+      ) {
         const _tempTtl  = _lowEndMode ? CPU_TEMP_TTL_MS * 2 : CPU_TEMP_TTL_MS;
         const _diskTtl  = _lowEndMode ? Infinity            : DISK_IO_TTL_MS;
         const _fsTtl    = _lowEndMode ? FS_SIZE_TTL_MS  * 2 : FS_SIZE_TTL_MS;
@@ -704,7 +713,15 @@
       const shouldBeSlow = _lowEndMode
         || cpuPct > GOVERNOR_ENGAGE_PCT
         || (_currentlySlow && cpuPct > GOVERNOR_DISENGAGE_PCT);
-      const targetMs = shouldBeSlow ? TELEMETRY_SLOW_MS : TELEMETRY_BASE_MS;
+      const demandMs =
+        _telemetryDemandMode === 'paused'
+          ? TELEMETRY_SLOW_MS
+          : _telemetryDemandMode === 'intelligence'
+            ? 5000
+            : TELEMETRY_BASE_MS;
+      const targetMs = _telemetryDemandMode === 'paused'
+        ? TELEMETRY_SLOW_MS
+        : Math.max(demandMs, shouldBeSlow ? TELEMETRY_SLOW_MS : TELEMETRY_BASE_MS);
       if (targetMs !== _telemetryCurrentIntervalMs) {
         verboseLog(`[PERF:TASK] name=telemetryLoop — governor: cpu=${cpuPct.toFixed(0)}% lowEnd=${_lowEndMode} appCpu=${_appCpuPct.toFixed(1)}% → interval ${_telemetryCurrentIntervalMs}ms → ${targetMs}ms`);
         _telemetryCurrentIntervalMs = targetMs;
@@ -1263,7 +1280,9 @@
       _resumeTelemetryLoop('restored');
     });
     mainWindow.on('show', () => {
-      if (_telemetryLoopPaused) _resumeTelemetryLoop('window show');
+      if (_telemetryLoopPaused) {
+        _resumeTelemetryLoop('window show');
+      }
     });
   
     // ── Launch handshake ─────────────────────────────────────────────────────────
@@ -5476,6 +5495,23 @@ $pwrThrot  = Reg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottl
   });
 
   // ── Scheduler stats (lightweight — safe to call from devtools/debug panels) ────
+  ipcMain.handle('telemetry:setDemandMode', (_event, mode) => {
+    if (!['full', 'intelligence', 'paused'].includes(mode)) {
+      throw new Error('Invalid telemetry demand mode');
+    }
+    if (_telemetryDemandMode === mode) return { ok: true, mode };
+    _telemetryDemandMode = mode;
+    _telemetryDemandPaused = mode === 'paused';
+    const shouldSlow = mode !== 'full' || _lowEndMode || _telemetryCurrentIntervalMs === TELEMETRY_SLOW_MS;
+    _telemetryCurrentIntervalMs = mode === 'paused'
+      ? TELEMETRY_SLOW_MS
+      : mode === 'intelligence'
+        ? Math.max(5000, shouldSlow ? TELEMETRY_SLOW_MS : 5000)
+        : (shouldSlow ? TELEMETRY_SLOW_MS : TELEMETRY_BASE_MS);
+    console.log(`[telemetry:demand] mode=${mode} interval=${_telemetryCurrentIntervalMs}ms`);
+    return { ok: true, mode };
+  });
+
   ipcMain.handle('telemetry:getSchedulerStats', () => {
     const _now = Date.now();
     return {
@@ -5487,6 +5523,7 @@ $pwrThrot  = Reg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottl
       skippedTicks:         _skippedTicks,
       taskTimings:          _taskTimings,
       currentIntervalMs:    _telemetryCurrentIntervalMs,
+      demandMode:           _telemetryDemandMode,
       baseIntervalMs:       TELEMETRY_BASE_MS,
       slowIntervalMs:       TELEMETRY_SLOW_MS,
       budgetPct:            CPU_BUDGET_PCT,
@@ -5506,9 +5543,10 @@ $pwrThrot  = Reg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottl
     return {
       telemetryLoop: {
         active:            _telemetryLoopActive,
-        paused:            _telemetryLoopPaused,
+        paused:            _telemetryLoopPaused || _telemetryDemandPaused,
         instances:         _telemetryLoopCount,
         currentIntervalMs: _telemetryCurrentIntervalMs,
+          demandMode: _telemetryDemandMode,
         baseIntervalMs:    TELEMETRY_BASE_MS,
         slowIntervalMs:    TELEMETRY_SLOW_MS,
       },

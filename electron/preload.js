@@ -277,6 +277,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   telemetry: {
     getLive:              (selectedDiskMount) => ipcRenderer.invoke('telemetry:getLive', selectedDiskMount),
+    setDemandMode:        (mode) => {
+      if (!['full', 'intelligence', 'paused'].includes(mode)) {
+        throw new Error('Invalid telemetry demand mode');
+      }
+      return ipcRenderer.invoke('telemetry:setDemandMode', mode);
+    },
     getEnhanced:          () => ipcRenderer.invoke('telemetry:getEnhanced'),
     getCpuCores:          () => ipcRenderer.invoke('telemetry:getCpuCores'),
     getMemoryDetails:     () => ipcRenderer.invoke('telemetry:getMemoryDetails'),

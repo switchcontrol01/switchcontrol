@@ -47,3 +47,4 @@
 - [Authenticated POST conventions](authenticated-post-conventions.md) — protected raw POST callers must use the shared API helper so JWT, Electron headers, and CSRF remain intact.
 - [Background telemetry policy](background-telemetry-policy.md) — telemetry pauses automatically when the app is hidden, minimized, unfocused, or closing; there is no user toggle.
 - [Electron intelligence telemetry bridge](electron-intelligence-telemetry-bridge.md) — embedded backend skips its scheduler; intelligence routes must consume the authenticated renderer’s existing main-process live snapshot.
+- [Route-aware telemetry demand](route-aware-telemetry-demand.md) — one central mode policy: Dashboard full, Tweaks intelligence, static paused; Electron and web polling must follow it.

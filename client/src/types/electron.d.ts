@@ -169,6 +169,7 @@ declare global {
       
       telemetry: {
         getLive: () => Promise<LiveTelemetry>;
+        setDemandMode: (mode: 'full' | 'intelligence' | 'paused') => Promise<{ ok: boolean; mode: string }>;
         getEnhanced: () => Promise<EnhancedTelemetry>;
         getHardwareTelemetry: () => Promise<HardwareTelemetryData>;
       };

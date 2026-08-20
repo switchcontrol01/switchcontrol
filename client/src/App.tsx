@@ -221,6 +221,22 @@ const ElectronRouteFallback = () => (
 
 function ElectronAppRoutes() {
   const [location] = useLocation();
+  const realtimeMetricsEnabled = useStore((state) => state.realtimeMetricsEnabled);
+
+  useEffect(() => {
+    const path = location.split("?")[0];
+    const mode =
+      path === "/" || path === "/dashboard"
+        ? "full"
+        : path === "/tweaks"
+          ? "intelligence"
+          : "paused";
+    telemetryManager.setDemandMode(mode);
+    if (!realtimeMetricsEnabled || mode === "paused") {
+      telemetryManager.pause();
+    }
+  }, [location, realtimeMetricsEnabled]);
+
   return (
     <ErrorBoundary route={location}>
       <div style={{ minHeight: "100%" }}>
@@ -631,7 +647,9 @@ function ElectronAppContent() {
   // so re-enabling instantly resumes without a reconnect.
   useEffect(() => {
     if (realtimeMetricsEnabled) {
-      telemetryManager.resume();
+      if (telemetryManager.demandMode !== "paused") {
+        telemetryManager.resume();
+      }
     } else {
       telemetryManager.pause();
     }
@@ -647,7 +665,12 @@ function ElectronAppContent() {
     const resumeIfVisible = () => {
       // The explicit Real-time Metrics toggle remains the higher-priority
       // user control. A hidden window can never force metrics back on.
-      if (realtimeMetricsEnabled && !document.hidden && document.hasFocus()) {
+      if (
+        realtimeMetricsEnabled &&
+        telemetryManager.demandMode !== "paused" &&
+        !document.hidden &&
+        document.hasFocus()
+      ) {
         telemetryManager.resume();
       }
     };

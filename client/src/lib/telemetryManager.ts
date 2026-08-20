@@ -351,6 +351,16 @@ function connect() {
 
 let _ipcPollActive = false;
 let _ipcPollTimer: ReturnType<typeof setTimeout> | null = null;
+export type TelemetryDemandMode = "full" | "intelligence" | "paused";
+let _demandMode: TelemetryDemandMode = "full";
+
+function _notifyElectronDemand(mode: TelemetryDemandMode): void {
+  const electronAPI = (window as any).electronAPI;
+  const modeUpdate = electronAPI?.telemetry?.setDemandMode?.(mode);
+  if (modeUpdate && typeof modeUpdate.catch === "function") {
+    void modeUpdate.catch(() => {});
+  }
+}
 // Guard against overlapping getLive() IPC calls (e.g. scheduled tick racing
 // with a manual refreshNow() call). A second entry simply skips rather than
 // queuing another round-trip — the next scheduled tick will pick it up.
@@ -452,6 +462,11 @@ async function _ipcPollTick(): Promise<void> {
 // (Normal: 2s / Light: 8s). While the window is hidden/minimized the interval
 // is multiplied further (Light: 8s × 4 = 32s) to cut tray-idle CPU to near zero.
 function _currentIpcIntervalMs(): number {
+  if (_demandMode === "intelligence") {
+    // Tweaks only needs pressure signals. Keep it responsive, but do not
+    // sample as aggressively as the Dashboard's full live graphs.
+    return Math.max(5000, getPollingProfile().telemetryMs);
+  }
   const profile = getPollingProfile();
   const base = profile.telemetryMs;
   return document.hidden ? base * profile.hiddenMultiplier : base;
@@ -521,6 +536,33 @@ function _handleVisibilityChange() {
 
 export const telemetryManager = {
   /**
+   * Set the single app-wide telemetry demand profile. Route changes call this
+   * method; individual pages must not create their own polling loops.
+   */
+  setDemandMode(mode: TelemetryDemandMode) {
+    _demandMode = mode;
+    _notifyElectronDemand(mode);
+
+    if (mode === "paused") {
+      this.pause();
+      return;
+    }
+
+    // A hidden/unfocused window remains paused until the existing lifecycle
+    // handler explicitly resumes it.
+    if (document.hidden || !document.hasFocus()) return;
+    if (!_started) {
+      this.startWhenIdle();
+    } else {
+      this.resume();
+    }
+  },
+
+  get demandMode(): TelemetryDemandMode {
+    return _demandMode;
+  },
+
+  /**
    * Start the singleton WebSocket. Idempotent — safe to call many times.
    * Also clears the auth-rejected flag so a fresh JWT attempt can proceed.
    */
@@ -529,6 +571,9 @@ export const telemetryManager = {
       _idleStartCancel();
       _idleStartCancel = null;
     }
+    // Route policy may intentionally keep telemetry dormant while auth
+    // finishes booting. The next active route will request a start.
+    if (_demandMode === "paused" || _paused) return;
     if (_started) {
       return; // silent no-op — already running, no log spam
     }
@@ -587,6 +632,9 @@ export const telemetryManager = {
    */
   pause() {
     _paused = true;
+    // Keep Electron's hardware owner aligned with the renderer transport.
+    // Route mode is retained separately so resume() can restore it.
+    if (_demandMode !== "paused") _notifyElectronDemand("paused");
     _stopIpcPolling();
     if (_reconnectTimer) {
       clearTimeout(_reconnectTimer);
@@ -605,7 +653,15 @@ export const telemetryManager = {
    */
   resume() {
     _paused = false;
-    if (!_started) return;
+    if (_demandMode === "paused") {
+      _paused = true;
+      return;
+    }
+    _notifyElectronDemand(_demandMode);
+    if (!_started) {
+      this.startWhenIdle();
+      return;
+    }
     const electronAPI = (window as any).electronAPI;
     if (electronAPI?.telemetry?.getLive) {
       _startIpcPolling();

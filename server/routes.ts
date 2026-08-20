@@ -32,7 +32,7 @@ import { systemIntelligenceRouter } from "./routes/systemIntelligence";
 import issueDetectorRouter from "./routes/issueDetector";
 import advisorContextRouter from "./routes/advisorContext";
 import { getSystemIntelligence, triggerBackgroundCollection } from "./lib/systemIntelligence";
-import { getSnapshot, getSystemSpecs, getSchedulerStats, startTelemetryPolling } from "./lib/telemetry";
+import { getSnapshot, getSystemSpecs, getSchedulerStats } from "./lib/telemetry";
 import { broadcastNow, setupWebSocketServer } from "./lib/wsServer";
 import { signJwt } from "./lib/jwt";
 import { generateDeviceSignature, verifyDeviceSignature } from "./lib/deviceSignature";
@@ -541,12 +541,10 @@ export async function registerRoutes(
     }
   });
 
-  // Start background telemetry polling only when NOT running as Electron backend.
-  // Electron has its own telemetry loop in main.js; running both would duplicate
-  // systeminformation calls and double CPU usage.
-  if (!isElectronBackend) {
-    startTelemetryPolling(1000);
-  }
+  // Telemetry is demand-driven. The WebSocket connection starts the server
+  // scheduler when a live consumer exists; REST reads use getSnapshot()'s
+  // deduplicated one-shot refresh when the scheduler is idle. Do not start a
+  // process-wide poller here: static pages must not keep hardware probes alive.
   setupWebSocketServer(httpServer);
 
   app.post("/api/clear-ram", requireJwt, csrfProtection, async (req, res) => {
