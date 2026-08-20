@@ -521,6 +521,10 @@ export const telemetryManager = {
    * Also clears the auth-rejected flag so a fresh JWT attempt can proceed.
    */
   start() {
+    if (_idleStartCancel) {
+      _idleStartCancel();
+      _idleStartCancel = null;
+    }
     if (_started) {
       return; // silent no-op — already running, no log spam
     }
