@@ -1,1 +1,0 @@
-import{r as t}from"./index-D-_7xljJ.js";var o=Object.defineProperty,n=(e,r)=>o(e,"name",{value:r,configurable:!0}),i=t.createContext(void 0);function a(e){const r=t.useContext(i);return e||r||"ltr"}n(a,"useDirection");export{a as u};

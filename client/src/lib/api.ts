@@ -431,7 +431,17 @@ if (typeof window !== 'undefined' && isElectron) {
             if (!normalized['x-electron-uid'] && !normalized['authorization']) {
               const userId = useAuthStore.getState().user?.id;
               if (userId) {
-                init = { ...(init ?? {}), headers: { ...normalized, 'x-electron-uid': userId } };
+                const user = useAuthStore.getState().user;
+                init = {
+                  ...(init ?? {}),
+                  headers: {
+                    ...normalized,
+                    'x-electron-uid': userId,
+                    ...(user?.plan ? { 'x-electron-plan': user.plan } : {}),
+                    'x-electron-premium': user?.isPremium ? 'true' : 'false',
+                    'x-electron-admin': user?.isAdmin ? 'true' : 'false',
+                  },
+                };
               }
             }
           } else {

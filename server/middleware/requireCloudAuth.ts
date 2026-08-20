@@ -1,6 +1,7 @@
 import { RequestHandler } from "express";
 import { verifyJwt } from "../lib/jwt";
 import { storage } from "../storage";
+import { isNoDbMode } from "../db";
 import { resolveEffectivePlan, isPlanActive } from "../lib/planUtils";
 import { verifyDeviceSignature } from "../lib/deviceSignature";
 
@@ -103,6 +104,30 @@ export const requireJwt: RequestHandler = async (req, res, next) => {
       try {
         const user = await storage.getUser(electronUid);
         if (!user) {
+          // The packaged Electron backend deliberately runs without the cloud
+          // database. The loopback guard above plus the renderer-provided
+          // authenticated identity is the local trust boundary in this mode.
+          // Do not reject every intelligence/telemetry request merely because
+          // MockStorage cannot persist the cloud user.
+          if (isNoDbMode) {
+            const planHeader = req.headers['x-electron-plan'];
+            const plan = typeof planHeader === 'string' && /^[a-zA-Z0-9_-]{1,32}$/.test(planHeader)
+              ? planHeader
+              : 'free';
+            const premium = req.headers['x-electron-premium'] === 'true';
+            const admin = req.headers['x-electron-admin'] === 'true';
+            req.cloudUser = {
+              id: electronUid,
+              isPremium: premium,
+              plan,
+              trialEndsAt: null,
+              email: null,
+              isAdmin: admin,
+              premiumBoundDeviceId: null,
+              deviceSignature: null,
+            };
+            return next();
+          }
           console.warn(`[CloudAuth] Electron x-electron-uid not found in DB | uid=${electronUid} path=${req.path}`);
           return res.status(401).json({ error: "Authentication required. Please log in." });
         }

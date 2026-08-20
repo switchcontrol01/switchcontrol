@@ -48,3 +48,4 @@
 - [Background telemetry policy](background-telemetry-policy.md) — telemetry pauses automatically when the app is hidden, minimized, unfocused, or closing; there is no user toggle.
 - [Electron intelligence telemetry bridge](electron-intelligence-telemetry-bridge.md) — embedded backend skips its scheduler; intelligence routes must consume the authenticated renderer’s existing main-process live snapshot.
 - [Route-aware telemetry demand](route-aware-telemetry-demand.md) — one central mode policy: Dashboard full, Tweaks intelligence, static paused; Electron and web polling must follow it.
+- [Electron offline auth boundary](electron-offline-auth-boundary.md) — loopback Electron requests use the renderer identity plus local entitlement headers when no cloud DB exists; native focus must resume telemetry.

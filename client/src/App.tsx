@@ -674,6 +674,19 @@ function ElectronAppContent() {
         telemetryManager.resume();
       }
     };
+    const resumeFromElectronFocus = () => {
+      // Chromium's document.hasFocus() can remain false during Electron's
+      // first-frame/window-show handoff even though the native window is
+      // visibly focused. Trust the authenticated native focus signal; the
+      // main process has already applied its own hide/minimize boundary.
+      if (
+        realtimeMetricsEnabled &&
+        telemetryManager.demandMode !== "paused" &&
+        !document.hidden
+      ) {
+        telemetryManager.resume();
+      }
+    };
     const syncVisibility = () => {
       if (document.hidden || !document.hasFocus()) {
         pauseIfBackgrounded();
@@ -687,10 +700,13 @@ function ElectronAppContent() {
     document.addEventListener("visibilitychange", syncVisibility);
     window.addEventListener("blur", pauseIfBackgrounded);
     window.addEventListener("focus", resumeIfVisible);
+    const unsubscribeElectronFocus =
+      (window as any).electronAPI?.onWindowFocus?.(resumeFromElectronFocus) ?? null;
     return () => {
       document.removeEventListener("visibilitychange", syncVisibility);
       window.removeEventListener("blur", pauseIfBackgrounded);
       window.removeEventListener("focus", resumeIfVisible);
+      unsubscribeElectronFocus?.();
     };
   }, [realtimeMetricsEnabled]);
 
