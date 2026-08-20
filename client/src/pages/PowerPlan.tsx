@@ -687,13 +687,20 @@ function AppliedSettingsPanel({
     const actual = backendState?.settings?.[descriptor.key] ?? null;
     const target = profileId === "custom" ? customValues[descriptor.key] : expected[descriptor.key];
     const hasActual = isLive && actual !== null && actual !== undefined;
+    const readError = !!backendState?.settingsErrors?.[descriptor.key];
     const matches = hasActual && target !== undefined && actual === target;
-    const status = isLive ? (!hasActual ? "Unavailable" : matches ? "Applied" : "Different") : "Target";
-    return { descriptor, actual, target, hasActual, status };
+    // A null value with no backend error means powercfg completed but did not
+    // return a parseable AC index. That is not proof the hardware lacks the
+    // setting; only an explicit backend query error is an unavailable state.
+    const status = isLive
+      ? (!hasActual ? (readError ? "Unavailable" : "Not reported") : matches ? "Applied" : "Different")
+      : "Target";
+    return { descriptor, actual, target, hasActual, status, readError };
   });
   const appliedCount = rowsWithStatus.filter(row => row.status === "Applied").length;
   const differentCount = rowsWithStatus.filter(row => row.status === "Different").length;
   const unavailableCount = rowsWithStatus.filter(row => row.status === "Unavailable").length;
+  const notReportedCount = rowsWithStatus.filter(row => row.status === "Not reported").length;
 
   if (typeof document === "undefined") return null;
 
@@ -753,6 +760,7 @@ function AppliedSettingsPanel({
             { label: "Applied", value: appliedCount, color: "#34D399" },
             { label: "Different", value: differentCount, color: "#FBBF24" },
             { label: "Unavailable", value: unavailableCount, color: "#FB7185" },
+            { label: "Not reported", value: notReportedCount, color: "#94A3B8" },
           ] : [{ label: "Profile targets", value: rows.length, color: accent }]).map(item => (
             <span key={item.label} className="rounded-full border px-3 py-1.5 text-xs font-medium" style={{ color: item.color, borderColor: `${item.color}44`, backgroundColor: `${item.color}12` }}>
               {item.value} {item.label}
@@ -766,20 +774,23 @@ function AppliedSettingsPanel({
               <section key={category}>
                 <h3 className="mb-2 text-[10px] font-semibold uppercase tracking-[.2em] text-[#778394]">{category}</h3>
                 <div className="space-y-1.5">
-                  {rowsWithStatus.filter(row => row.descriptor.category === category).map(({ descriptor, actual, target, hasActual, status }) => (
+                  {rowsWithStatus.filter(row => row.descriptor.category === category).map(({ descriptor, actual, target, hasActual, status, readError }) => (
                     <div key={descriptor.key} className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-3 rounded-xl border border-white/[.06] bg-[#1A2029] px-3.5 py-3">
                       <div className="min-w-0">
                         <p className="text-sm font-medium text-[#E9EEF5]">{descriptor.label}</p>
-                        <p className="mt-0.5 text-xs text-[#778394]">{hasActual ? "Current Windows value" : isLive ? "Not exposed by this device or Windows policy" : "Activation target"}</p>
+                        <p className="mt-0.5 text-xs text-[#778394]">
+                          {hasActual ? "Current Windows value" : isLive ? (readError ? "Query failed for this setting" : "Windows returned no readable AC value") : "Activation target"}
+                        </p>
                       </div>
                       <span className="whitespace-nowrap text-sm font-semibold text-[#F4F7FB]">
-                        {hasActual ? descriptor.format(actual) : descriptor.format(target)}
+                        {hasActual ? descriptor.format(actual) : isLive ? "Not returned" : descriptor.format(target)}
                       </span>
                       <span className={cn(
                         "min-w-[74px] rounded-full border px-2.5 py-1 text-center text-[10px] font-semibold uppercase tracking-wide",
                         status === "Applied" && "border-emerald-400/30 bg-emerald-400/10 text-emerald-300",
                         status === "Different" && "border-amber-400/30 bg-amber-400/10 text-amber-300",
                         status === "Unavailable" && "border-rose-400/30 bg-rose-400/10 text-rose-300",
+                        status === "Not reported" && "border-slate-400/20 bg-slate-400/10 text-slate-300",
                         status === "Target" && "border-slate-400/20 bg-slate-400/10 text-slate-300",
                       )}>
                         {status}
@@ -790,10 +801,10 @@ function AppliedSettingsPanel({
               </section>
             ))}
           </div>
-          {isLive && (differentCount > 0 || unavailableCount > 0 || Object.keys(backendState?.settingsErrors ?? {}).length > 0) && (
+          {isLive && (differentCount > 0 || unavailableCount > 0 || notReportedCount > 0 || Object.keys(backendState?.settingsErrors ?? {}).length > 0) && (
             <p className="mt-5 flex items-start gap-2 rounded-xl border border-amber-400/20 bg-amber-400/[.07] px-3.5 py-3 text-xs leading-relaxed text-amber-200">
               <AlertTriangle className="mt-0.5 size-4 shrink-0" />
-              Some advanced controls are unavailable or differ because of CPU support, firmware, Windows policy, or the active driver. Unavailable values are reported honestly and are not treated as applied.
+              Some values differ, failed to query, or were not returned in a readable form. Only explicit powercfg query errors are classified as unavailable; a missing value is not treated as proof that the hardware lacks the setting.
             </p>
           )}
         </div>

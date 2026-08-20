@@ -334,7 +334,12 @@ function matchProfileToPreset(activeGuid, settings) {
       // Validate settings still match
       const profile = POWER_PROFILES[profileId];
       if (!profile) continue;
-      const keys = Object.keys(profile.settings).filter(k => settings[k] !== null && settings[k] !== undefined);
+      const expectedKeys = Object.keys(profile.settings);
+      const keys = expectedKeys.filter(k => settings[k] !== null && settings[k] !== undefined);
+      // Never call a partial readback exact. A null value without a powercfg
+      // error is still an unreadable value, not proof that the requested
+      // setting matched.
+      if (keys.length !== expectedKeys.length) continue;
       const matches = keys.filter(k => settings[k] === profile.settings[k]).length;
       if (keys.length > 0 && matches / keys.length >= 0.85) {
         const mismatches = {};
@@ -352,8 +357,9 @@ function matchProfileToPreset(activeGuid, settings) {
   let bestMismatches = null;
 
   for (const [profileId, profile] of Object.entries(POWER_PROFILES)) {
-    const keys = Object.keys(profile.settings).filter(k => settings[k] !== null && settings[k] !== undefined);
-    if (keys.length === 0) continue;
+    const expectedKeys = Object.keys(profile.settings);
+    const keys = expectedKeys.filter(k => settings[k] !== null && settings[k] !== undefined);
+    if (keys.length === 0 || keys.length !== expectedKeys.length) continue;
     const matches = keys.filter(k => settings[k] === profile.settings[k]).length;
     const score = matches / keys.length;
     if (score > bestScore) {
