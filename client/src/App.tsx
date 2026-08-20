@@ -80,26 +80,27 @@ import LoginScreen from "@/screens/Login";
 import { WelcomeAnimation } from "@/components/WelcomeAnimation";
 import { OnboardingTour } from "@/components/OnboardingTour";
 import { FirstRunDisclaimer } from "@/components/FirstRunDisclaimer";
-// All Electron app routes are eager (static imports) so every page is
-// available instantly with zero Suspense cycle or chunk-fetch delay.
+// Keep only the dashboard eager for the first render. Other desktop routes are
+// loaded on navigation so their heavy feature code does not inflate the
+// initial renderer bundle. The Electron build uses base="./", so these chunks
+// resolve correctly from the packaged file:// app.
 import Home from "@/pages/Home";
-import Tweaks from "@/pages/Tweaks";
-import NetworkTweaks from "@/pages/NetworkTweaks";
-import SystemCleaner from "@/pages/SystemCleaner";
-import Settings from "@/pages/Settings";
-import PowerPlan from "@/pages/PowerPlan";
-
-import Debloater from "@/pages/Debloater";
-import StartupApps from "@/pages/StartupApps";
-import NicTuningPage from "@/pages/NicTuning";
-import BiosAdvisor from "@/pages/BiosAdvisor";
-import AiAdvisor from "@/pages/AiAdvisor";
-import ExtremeLabs from "@/pages/ExtremeLabs";
-import DriverIntelligence from "@/pages/DriverIntelligence";
-import LatencyAnalyzer from "@/pages/LatencyAnalyzer";
-import Security from "@/pages/Security";
-import History from "@/pages/History";
-import ProcessManager from "@/pages/ProcessManager";
+const Tweaks = lazy(() => import("@/pages/Tweaks"));
+const NetworkTweaks = lazy(() => import("@/pages/NetworkTweaks"));
+const SystemCleaner = lazy(() => import("@/pages/SystemCleaner"));
+const Settings = lazy(() => import("@/pages/Settings"));
+const PowerPlan = lazy(() => import("@/pages/PowerPlan"));
+const Debloater = lazy(() => import("@/pages/Debloater"));
+const StartupApps = lazy(() => import("@/pages/StartupApps"));
+const NicTuningPage = lazy(() => import("@/pages/NicTuning"));
+const BiosAdvisor = lazy(() => import("@/pages/BiosAdvisor"));
+const AiAdvisor = lazy(() => import("@/pages/AiAdvisor"));
+const ExtremeLabs = lazy(() => import("@/pages/ExtremeLabs"));
+const DriverIntelligence = lazy(() => import("@/pages/DriverIntelligence"));
+const LatencyAnalyzer = lazy(() => import("@/pages/LatencyAnalyzer"));
+const Security = lazy(() => import("@/pages/Security"));
+const History = lazy(() => import("@/pages/History"));
+const ProcessManager = lazy(() => import("@/pages/ProcessManager"));
 // Website-only chunks — only prefetch on web (not in Electron where file:// protocol
 // causes chunk fetch failures for pages that are never shown in the desktop app).
 const _isElectronRuntime =
@@ -194,28 +195,30 @@ function ElectronAppRoutes() {
   return (
     <ErrorBoundary route={location}>
       <div style={{ minHeight: "100%" }}>
-        <Switch>
-          <Route path="/" component={Home} />
-          <Route path="/dashboard" component={Home} />
-          <Route path="/tweaks" component={Tweaks} />
-          <Route path="/power-plan" component={PowerPlan} />
+        <Suspense fallback={<DarkFallback />}>
+          <Switch>
+            <Route path="/" component={Home} />
+            <Route path="/dashboard" component={Home} />
+            <Route path="/tweaks" component={Tweaks} />
+            <Route path="/power-plan" component={PowerPlan} />
 
-          <Route path="/nic-tuning" component={NicTuningPage} />
-          <Route path="/network" component={NetworkTweaks} />
-          <Route path="/cleaner" component={SystemCleaner} />
-          <Route path="/debloat" component={Debloater} />
-          <Route path="/startup" component={StartupApps} />
-          <Route path="/bios-advisor" component={BiosAdvisor} />
-          <Route path="/ai-advisor" component={AiAdvisor} />
-          <Route path="/extreme-labs" component={ExtremeLabs} />
-          <Route path="/security" component={Security} />
-          <Route path="/history" component={History} />
-          <Route path="/driver-intel" component={DriverIntelligence} />
-          <Route path="/latency-analyzer" component={LatencyAnalyzer} />
-          <Route path="/process-manager" component={ProcessManager} />
-          <Route path="/settings" component={Settings} />
-          <Route component={Home} />
-        </Switch>
+            <Route path="/nic-tuning" component={NicTuningPage} />
+            <Route path="/network" component={NetworkTweaks} />
+            <Route path="/cleaner" component={SystemCleaner} />
+            <Route path="/debloat" component={Debloater} />
+            <Route path="/startup" component={StartupApps} />
+            <Route path="/bios-advisor" component={BiosAdvisor} />
+            <Route path="/ai-advisor" component={AiAdvisor} />
+            <Route path="/extreme-labs" component={ExtremeLabs} />
+            <Route path="/security" component={Security} />
+            <Route path="/history" component={History} />
+            <Route path="/driver-intel" component={DriverIntelligence} />
+            <Route path="/latency-analyzer" component={LatencyAnalyzer} />
+            <Route path="/process-manager" component={ProcessManager} />
+            <Route path="/settings" component={Settings} />
+            <Route component={Home} />
+          </Switch>
+        </Suspense>
       </div>
     </ErrorBoundary>
   );
