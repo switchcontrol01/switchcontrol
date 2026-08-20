@@ -355,6 +355,9 @@
   // The same TTL is used by the low-level reader and IPC handler so neither path
   // can unexpectedly bypass the other path's cache window.
   let _gpuCounterLastRefreshTs = 0;
+  let _gpuCounterRefreshInFlight = null;
+  let _gpuCounterFailureBackoffUntil = 0;
+  const GPU_COUNTER_FAILURE_BACKOFF_MS = 5_000;
   
   
   // Fast GPU existence flag — set true as soon as si.graphics() confirms a controller.
@@ -2494,12 +2497,25 @@ ConvertTo-Json -InputObject $result -Compress -Depth 2
   
   /** Race a systeminformation call against a timeout so the renderer never hangs. */
   function siWithTimeout(fn, ms = 5_000, label = 'si call') {
-    return Promise.race([
-      fn(),
-      new Promise((_, reject) =>
-        setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms)
-      ),
+    // A timed-out systeminformation call may continue running underneath the
+    // timeout. Do not start another call for the same operation while it is
+    // still in flight (particularly important for WMI-backed calls).
+    if (!siWithTimeout._inFlight) siWithTimeout._inFlight = new Map();
+    const existing = siWithTimeout._inFlight.get(label);
+    if (existing) return existing;
+    let timer;
+    const promise = Promise.resolve().then(fn).finally(() => {
+      clearTimeout(timer);
+      if (siWithTimeout._inFlight.get(label) === promise) siWithTimeout._inFlight.delete(label);
+    });
+    const timed = Promise.race([
+      promise,
+      new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms);
+      }),
     ]);
+    siWithTimeout._inFlight.set(label, timed);
+    return timed;
   }
   
   // ── Specs disk cache ──────────────────────────────────────────────────────────
@@ -3829,24 +3845,35 @@ public class DspHelper {
    */
   ipcMain.handle('telemetry:refreshGpuLoad', async () => {
     const now = Date.now();
+    if (_gpuCounterRefreshInFlight) return _gpuCounterRefreshInFlight;
+    if (now < _gpuCounterFailureBackoffUntil) {
+      return { load: gpuState.load, source: gpuState.source, cached: true, skipped: true, error: 'GPU load refresh is backing off after a failed read.' };
+    }
     if (now - _gpuCounterLastRefreshTs < GPU_COUNTER_REFRESH_TTL) {
       verboseLog('[telemetry:refreshGpuLoad] within TTL — returning cached load=' + gpuState.load);
       return { load: gpuState.load, source: gpuState.source, cached: true };
     }
-    _gpuCounterLastRefreshTs = now;
-    try {
-      const load = await getGpuPerfCounterLoad();
-      if (load != null) {
+    _gpuCounterRefreshInFlight = (async () => {
+      try {
+        const load = await getGpuPerfCounterLoad();
+        if (typeof load !== 'number' || !Number.isFinite(load) || load < 0 || load > 100) {
+          throw new Error('GPU perf counter returned no valid load');
+        }
         gpuState.load = load;
         gpuState.source = 'perf-counter';
-        gpuState.lastDynamicUpdate = now;
+        gpuState.lastDynamicUpdate = Date.now();
+        _gpuCounterLastRefreshTs = Date.now(); // advance success TTL only after valid read
         verboseLog('[telemetry:refreshGpuLoad] perf counter read: load=' + load + '%');
+        return { load: gpuState.load, source: gpuState.source, cached: false };
+      } catch (e) {
+        _gpuCounterFailureBackoffUntil = Date.now() + GPU_COUNTER_FAILURE_BACKOFF_MS;
+        console.error('[telemetry:refreshGpuLoad] error:', e.message);
+        return { load: gpuState.load, source: gpuState.source, cached: false, error: e.message };
+      } finally {
+        _gpuCounterRefreshInFlight = null;
       }
-      return { load: gpuState.load, source: gpuState.source, cached: false };
-    } catch (e) {
-      console.error('[telemetry:refreshGpuLoad] error:', e.message);
-      return { load: gpuState.load, source: gpuState.source, cached: false, error: e.message };
-    }
+    })();
+    return _gpuCounterRefreshInFlight;
   });
   
   ipcMain.handle('telemetry:getDisk', async (event, selectedDiskMount) => {
@@ -4048,7 +4075,7 @@ public class DspHelper {
     const _token = psLimiter.tryAcquire({ file: 'main.js', fn: 'tweak:batchCheckAll', reason: 'tweak-batch-check' });
     if (!_token) {
       console.log('[tweak:batchCheckAll] skipped — PS limiter full, will retry on TweaksList mount');
-      return null; // caller treats null as "skip reconciliation"
+      return { ok: false, skipped: true, inconclusive: true, status: {}, error: 'Verification busy; no state was changed.' };
     }
     try {
       return await runSharedBatchCheckAll();
@@ -4735,7 +4762,7 @@ $pwrThrot  = Reg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottl
     const _token = psLimiter.tryAcquire({ file: 'main.js', fn: 'extremeLabs:checkAllStatus', reason: 'el-check-all-status' });
     if (!_token) {
       console.log('[extremeLabs:checkAllStatus] SKIPPED — PS limiter full');
-      return { ok: true, status: {}, skipped: true };
+      return { ok: false, status: {}, skipped: true, inconclusive: true, error: 'Verification busy; no state was changed.' };
     }
     try {
       const allIds = [
@@ -4765,8 +4792,8 @@ $pwrThrot  = Reg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottl
           const r = await sliderTweakExecutor.readSliderValue(mapped.tweakId);
           // Applied = registry holds the recommended value (not absent/default, no error)
           sliderStatus[id] = !r.missing && r.value === mapped.recommendedValue && r.error == null;
-        } catch {
-          sliderStatus[id] = false;
+          } catch {
+          sliderStatus[id] = null;
         }
       }));
   
@@ -4782,8 +4809,8 @@ $pwrThrot  = Reg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottl
           const meta = presetTweakExecutor.getPresetTweakMeta(mapped.tweakId);
           const r = await presetTweakExecutor.readPresetValue(mapped.tweakId);
           presetStatus[id] = !r.missing && r.optionId !== (meta && meta.defaultOptionId) && r.error == null;
-        } catch {
-          presetStatus[id] = false;
+          } catch {
+          presetStatus[id] = null;
         }
       }));
   
@@ -4801,13 +4828,13 @@ $pwrThrot  = Reg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottl
         } catch { /* non-fatal */ }
   
         await Promise.all(nicIds.map(async id => {
-          if (!physicalAdapter) { nicStatus[id] = false; return; }
+          if (!physicalAdapter) { nicStatus[id] = null; return; }
           const mapped = _extremeLabsMapToRegistryTweak(id);
           try {
             const r = await nicExecutor.readNicProperty(physicalAdapter.name, mapped.propertyKey);
             nicStatus[id] = r.supported && r.registryValue === String(mapped.enabledValue);
           } catch {
-            nicStatus[id] = false;
+            nicStatus[id] = null;
           }
         }));
       }
@@ -4816,24 +4843,25 @@ $pwrThrot  = Reg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottl
       const status = {};
       for (const id of allIds) {
         const mapped = _extremeLabsMapToRegistryTweak(id);
-        if (!mapped) { status[id] = false; continue; }
+        if (!mapped) { status[id] = null; continue; }
         if (mapped.type === 'tweak') {
           const entry = batchResults[mapped.tweakId];
-          status[id] = !!(entry && (entry.isApplied || entry.applied));
+          status[id] = entry?.inconclusive ? null : (entry ? !!(entry.isApplied || entry.applied) : null);
         } else if (mapped.type === 'slider') {
-          status[id] = !!sliderStatus[id];
+          status[id] = sliderStatus[id] ?? null;
         } else if (mapped.type === 'preset') {
-          status[id] = !!presetStatus[id];
+          status[id] = presetStatus[id] ?? null;
         } else if (mapped.type === 'nic') {
-          status[id] = !!nicStatus[id];
+          status[id] = nicStatus[id] ?? null;
         } else {
-          status[id] = false;
+          status[id] = null;
         }
       }
   
       const appliedCount = Object.values(status).filter(Boolean).length;
+      const inconclusive = Object.entries(status).filter(([, value]) => value === null).map(([id]) => id);
       console.log(`[extremeLabs:checkAllStatus] done applied=${appliedCount}/${allIds.length}`);
-      return { ok: true, status };
+      return { ok: inconclusive.length === 0, status, inconclusive, verified: inconclusive.length === 0 };
     } catch (e) {
       console.error('[extremeLabs:checkAllStatus] error:', e.message);
       return { ok: false, status: {}, error: e.message };
@@ -4985,6 +5013,21 @@ $pwrThrot  = Reg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottl
     }
   });
   
+  // Captured per-session baselines keep revert operations from imposing
+  // assumptions (especially on laptops, where DC policy is user-specific).
+  const _powerOverrideBackups = new Map();
+  async function _capturePowerOverride(id, subgroup, setting) {
+    if (_powerOverrideBackups.has(id)) return _powerOverrideBackups.get(id);
+    const raw = await runMainPs(`powercfg /q scheme_current ${subgroup} ${setting}`, { timeout: 4000, label: 'powerPlans:captureOverride' });
+    if (!raw) return null;
+    const ac = raw.match(/Current AC Power Setting Index:\s*0x([0-9a-f]+)/i);
+    const dc = raw.match(/Current DC Power Setting Index:\s*0x([0-9a-f]+)/i);
+    if (!ac && !dc) return null;
+    const backup = { ac: ac ? parseInt(ac[1], 16) : null, dc: dc ? parseInt(dc[1], 16) : null };
+    _powerOverrideBackups.set(id, backup);
+    return backup;
+  }
+
   ipcMain.handle('powerPlans:applyOverride', async (event, id, enabled) => {
     verboseLog(`[IPC] powerPlans:applyOverride id="${id}" enabled=${enabled}`);
     const OVERRIDE_PS = {
@@ -5031,7 +5074,39 @@ $pwrThrot  = Reg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottl
     };
     const cmdSet = OVERRIDE_PS[id];
     if (!cmdSet) return { success: false, error: `Unknown override: ${id}` };
-    const ps = enabled ? cmdSet.apply : cmdSet.revert;
+    // For setting overrides, capture both AC and DC before the first apply.
+    // Revert restores exactly what the user had, rather than hard-coded values.
+    const settingMatch = cmdSet.apply.match(/setacvalueindex\s+scheme_current\s+([0-9a-f-]+)\s+([0-9a-f-]+)/i);
+    let ps = enabled ? cmdSet.apply : cmdSet.revert;
+    if (id === 'sleep') {
+      const backup = await _capturePowerOverride(
+        id,
+        '238c9fa8-0aad-41ed-83f4-97be242c8f20',
+        '29f6c1db-86da-48c5-9fdb-f2b67b1f44da',
+      );
+      if (!enabled && backup) {
+        const restore = [];
+        if (backup.ac !== null) restore.push(`powercfg /setacvalueindex scheme_current 238c9fa8-0aad-41ed-83f4-97be242c8f20 29f6c1db-86da-48c5-9fdb-f2b67b1f44da ${backup.ac}`);
+        if (backup.dc !== null) restore.push(`powercfg /setdcvalueindex scheme_current 238c9fa8-0aad-41ed-83f4-97be242c8f20 29f6c1db-86da-48c5-9fdb-f2b67b1f44da ${backup.dc}`);
+        restore.push('powercfg /setactive scheme_current');
+        ps = restore.join('; ');
+      } else if (!enabled && !backup) {
+        return { success: false, inconclusive: true, error: 'Could not read the prior sleep values; nothing was reverted.' };
+      }
+    }
+    if (settingMatch) {
+      const [, subgroup, setting] = settingMatch;
+      const backup = await _capturePowerOverride(id, subgroup, setting);
+      if (!enabled && backup) {
+        const restore = [];
+        if (backup.ac !== null) restore.push(`powercfg /setacvalueindex scheme_current ${subgroup} ${setting} ${backup.ac}`);
+        if (backup.dc !== null) restore.push(`powercfg /setdcvalueindex scheme_current ${subgroup} ${setting} ${backup.dc}`);
+        restore.push('powercfg /setactive scheme_current');
+        ps = restore.join('; ');
+      } else if (!enabled && !backup) {
+        return { success: false, inconclusive: true, error: 'Could not read the prior power-plan values; nothing was reverted.' };
+      }
+    }
     const _token = psLimiter.tryAcquire({ file: 'main.js', fn: 'powerPlans:applyOverride', reason: 'power-plan-override' });
     if (!_token) return { success: false, skipped: true, error: 'Power-plan operation already in progress' };
     try {

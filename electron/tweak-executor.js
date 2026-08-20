@@ -3228,10 +3228,10 @@ async function batchCheckAllTweaks() {
         } catch (err) {
           // Transient PS failure — use last-known-good from tweak-state.json so
           // the toggle doesn't flash OFF for a tweak that is genuinely applied.
-          const cachedVal = typeof _specialCachedTweaks[id] === 'boolean' ? _specialCachedTweaks[id] : false;
+          const cachedVal = typeof _specialCachedTweaks[id] === 'boolean' ? _specialCachedTweaks[id] : null;
           const hadCache  = typeof _specialCachedTweaks[id] === 'boolean';
-          console.warn(`[batchCheckAllTweaks] ${id} verify threw — ${hadCache ? `using cached=${cachedVal}` : 'no cache, defaulting false'}: ${err.message}`);
-          result[id] = { isApplied: cachedVal, applied: cachedVal, error: err.message, fromCache: hadCache };
+          console.warn(`[batchCheckAllTweaks] ${id} verify threw — ${hadCache ? `using cached=${cachedVal}` : 'no cache, marking inconclusive'}: ${err.message}`);
+          result[id] = { isApplied: cachedVal, applied: cachedVal, error: err.message, fromCache: hadCache, inconclusive: !hadCache };
         }
       })
   );
@@ -3307,6 +3307,14 @@ async function batchCheckAllTweaks() {
     try { if (fs_.existsSync(tmpFile)) fs_.unlinkSync(tmpFile); } catch (_) {}
   }
 
+  // A missing entry means verification did not produce a trustworthy answer.
+  // Never manufacture false here: callers can preserve their existing state
+  // and surface an explicit inconclusive outcome.
+  for (const id of batchIds) {
+    if (result[id] === undefined) {
+      result[id] = { isApplied: null, applied: null, error: 'Verification unavailable', inconclusive: true };
+    }
+  }
   return result;
 }
 
