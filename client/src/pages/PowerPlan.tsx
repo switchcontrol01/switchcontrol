@@ -271,7 +271,9 @@ function backendIdToFrontendId(backendId: BackendProfileId | null | undefined): 
 // ── Premium sub-components ────────────────────────────────────────────────────
 
 function EnergyLines() {
-  return (
+  if (typeof document === "undefined") return null;
+
+  return createPortal((
     <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none" aria-hidden>
       <defs>
         <linearGradient id="pp-eg1" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -295,7 +297,7 @@ function EnergyLines() {
         <animateTransform attributeName="transform" type="translate" values="100 0;-100 0;100 0" dur="14s" repeatCount="indefinite" />
       </path>
     </svg>
-  );
+  ), document.body);
 }
 
 function VerificationBadge({ match, loading }: { match?: string; loading?: boolean }) {
@@ -308,11 +310,13 @@ function VerificationBadge({ match, loading }: { match?: string; loading?: boole
     unknown:          { icon: <ShieldX className="size-3" />, label: "Unknown State", cls: "bg-[#2A313A] text-[#6B7380] border-[#2A313A]" },
   } as const;
   const s = states[match as keyof typeof states] ?? states.unknown;
-  return (
+  if (typeof document === "undefined") return null;
+
+  return createPortal((
     <span className={cn("inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-[11px] font-medium", s.cls)}>
       {s.icon} {s.label}
     </span>
-  );
+  ), document.body);
 }
 
 function ImpactBar({ label, value, color }: { label: string; value: number; color: string }) {
@@ -647,13 +651,23 @@ function AppliedSettingsPanel({
   activeProfileId,
   customSettings,
   accent,
+  onClose,
 }: {
   profileId: FrontendProfileId;
   backendState: BackendState | null;
   activeProfileId: FrontendProfileId | null;
   customSettings?: CustomSettings;
   accent: string;
+  onClose: () => void;
 }) {
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [onClose]);
+
   const isLive = profileId !== "custom" && activeProfileId === profileId && !!backendState?.settings;
   const expected = PROFILE_EXPECTED_SETTINGS[profileId];
   const customValues: Record<string, number> = profileId === "custom" && customSettings ? {
@@ -669,57 +683,123 @@ function AppliedSettingsPanel({
     ? SETTING_DESCRIPTORS.filter(d => d.key in customValues)
     : SETTING_DESCRIPTORS;
 
-  return (
-    <div className="mt-3 rounded-xl border border-[#2A313A] bg-[#101419]/80 p-3" data-testid={`panel-applied-settings-${profileId}`}>
-      <div className="flex items-center justify-between mb-2.5">
-        <div>
-          <p className="text-[10px] uppercase tracking-widest font-semibold" style={{ color: accent }}>
-            {isLive ? "Verified Windows values" : profileId === "custom" ? "Builder values" : "Preset targets"}
-          </p>
-          <p className="text-[10px] text-muted-foreground/70 mt-0.5">
-            {isLive ? "Read back from the active power scheme" : "Values shown before activation are targets"}
-          </p>
-        </div>
-        {isLive && (
-          <span className="text-[9px] px-2 py-1 rounded-full border border-emerald-500/25 bg-emerald-500/10 text-emerald-400 flex items-center gap-1">
-            <ShieldCheck className="size-3" /> Readback verified
-          </span>
-        )}
-      </div>
-      <div className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
-        {rows.map((descriptor) => {
-          const actual = backendState?.settings?.[descriptor.key] ?? null;
-          const target = profileId === "custom" ? customValues[descriptor.key] : expected[descriptor.key];
-          const hasActual = isLive && actual !== null && actual !== undefined;
-          const matches = hasActual && target !== undefined && actual === target;
-          const status = isLive ? (!hasActual ? "Unsupported" : matches ? "Applied" : "Different") : "Target";
-          return (
-            <div key={descriptor.key} className="flex items-center gap-2 rounded-lg px-2 py-1.5 bg-[#1A1F26]">
-              <span className={cn(
-                "size-1.5 rounded-full shrink-0",
-                status === "Applied" ? "bg-emerald-400" : status === "Different" ? "bg-amber-400" : status === "Unsupported" ? "bg-red-400" : "bg-slate-500",
-              )} />
-              <span className="text-[10px] text-[#A0A8B3] flex-1 min-w-0 truncate" title={`${descriptor.category} · ${descriptor.label}`}>
-                {descriptor.label}
+  const rowsWithStatus = rows.map((descriptor) => {
+    const actual = backendState?.settings?.[descriptor.key] ?? null;
+    const target = profileId === "custom" ? customValues[descriptor.key] : expected[descriptor.key];
+    const hasActual = isLive && actual !== null && actual !== undefined;
+    const matches = hasActual && target !== undefined && actual === target;
+    const status = isLive ? (!hasActual ? "Unavailable" : matches ? "Applied" : "Different") : "Target";
+    return { descriptor, actual, target, hasActual, status };
+  });
+  const appliedCount = rowsWithStatus.filter(row => row.status === "Applied").length;
+  const differentCount = rowsWithStatus.filter(row => row.status === "Different").length;
+  const unavailableCount = rowsWithStatus.filter(row => row.status === "Unavailable").length;
+
+  if (typeof document === "undefined") return null;
+
+  return createPortal((
+    <motion.div
+      className="fixed inset-0 z-[120] flex items-center justify-center p-4 sm:p-8"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby={`applied-settings-title-${profileId}`}
+      data-testid={`panel-applied-settings-${profileId}`}
+    >
+      <motion.button
+        type="button"
+        aria-label="Close applied settings"
+        className="absolute inset-0 cursor-default bg-[#05070b]/75 backdrop-blur-md"
+        onClick={onClose}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+      />
+      <motion.div
+        className="relative w-full max-w-2xl overflow-hidden rounded-3xl border bg-[#11161d]/[.98] shadow-[0_24px_100px_rgba(0,0,0,.65)]"
+        style={{ borderColor: `${accent}66`, boxShadow: `0 0 80px -28px ${accent}` }}
+        initial={{ opacity: 0, y: 18, scale: 0.96 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 10, scale: 0.98 }}
+        transition={{ type: "spring", stiffness: 380, damping: 30 }}
+      >
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-28 opacity-40" style={{ background: `radial-gradient(ellipse at 50% -20%, ${accent}66, transparent 72%)` }} />
+        <div className="relative flex items-start justify-between gap-4 border-b border-white/[.08] px-5 py-5 sm:px-7">
+          <div>
+            <div className="mb-1 flex items-center gap-2">
+              <span className="flex size-8 items-center justify-center rounded-xl border" style={{ color: accent, borderColor: `${accent}55`, backgroundColor: `${accent}18` }}>
+                <ShieldCheck className="size-4" />
               </span>
-              <span className={cn(
-                "text-[10px] font-medium whitespace-nowrap",
-                status === "Applied" ? "text-emerald-300" : status === "Different" ? "text-amber-300" : status === "Unsupported" ? "text-red-300" : "text-[#E6EAF0]",
-              )}>
-                {hasActual ? descriptor.format(actual) : descriptor.format(target)}
-              </span>
-              <span className="text-[9px] text-muted-foreground/60 w-14 text-right">{status}</span>
+              <p className="text-[10px] font-semibold uppercase tracking-[.22em]" style={{ color: accent }}>
+                {isLive ? "Live Windows readback" : profileId === "custom" ? "Custom profile values" : "Profile target map"}
+              </p>
             </div>
-          );
-        })}
-      </div>
-      {isLive && (Object.keys(backendState?.profileMatch?.mismatches ?? {}).length > 0 || Object.keys(backendState?.settingsErrors ?? {}).length > 0) && (
-        <p className="text-[10px] text-amber-300/80 mt-2 flex items-center gap-1.5">
-          <AlertTriangle className="size-3 shrink-0" /> Some controls are restricted by this CPU, firmware, or Windows policy.
-        </p>
-      )}
-    </div>
-  );
+            <h2 id={`applied-settings-title-${profileId}`} className="text-xl font-semibold tracking-tight text-[#F4F7FB]">
+              {profileId === "custom" ? "Custom power settings" : POWER_PROFILES.find(p => p.id === profileId)?.name}
+            </h2>
+            <p className="mt-1 text-sm leading-relaxed text-[#9BA6B5]">
+              {isLive ? "Values read directly from the active Windows power scheme." : "These values are targets used when this profile is activated."}
+            </p>
+          </div>
+          <button type="button" onClick={onClose} aria-label="Close" className="rounded-xl p-2 text-[#7F8A99] transition-colors hover:bg-white/[.08] hover:text-white">
+            <X className="size-5" />
+          </button>
+        </div>
+
+        <div className="relative flex flex-wrap gap-2 px-5 py-4 sm:px-7">
+          {(isLive ? [
+            { label: "Applied", value: appliedCount, color: "#34D399" },
+            { label: "Different", value: differentCount, color: "#FBBF24" },
+            { label: "Unavailable", value: unavailableCount, color: "#FB7185" },
+          ] : [{ label: "Profile targets", value: rows.length, color: accent }]).map(item => (
+            <span key={item.label} className="rounded-full border px-3 py-1.5 text-xs font-medium" style={{ color: item.color, borderColor: `${item.color}44`, backgroundColor: `${item.color}12` }}>
+              {item.value} {item.label}
+            </span>
+          ))}
+        </div>
+
+        <div className="relative max-h-[min(58vh,520px)] overflow-y-auto px-5 pb-5 sm:px-7 sm:pb-7">
+          <div className="space-y-4">
+            {Array.from(new Set(rowsWithStatus.map(row => row.descriptor.category))).map(category => (
+              <section key={category}>
+                <h3 className="mb-2 text-[10px] font-semibold uppercase tracking-[.2em] text-[#778394]">{category}</h3>
+                <div className="space-y-1.5">
+                  {rowsWithStatus.filter(row => row.descriptor.category === category).map(({ descriptor, actual, target, hasActual, status }) => (
+                    <div key={descriptor.key} className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-3 rounded-xl border border-white/[.06] bg-[#1A2029] px-3.5 py-3">
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-[#E9EEF5]">{descriptor.label}</p>
+                        <p className="mt-0.5 text-xs text-[#778394]">{hasActual ? "Current Windows value" : isLive ? "Not exposed by this device or Windows policy" : "Activation target"}</p>
+                      </div>
+                      <span className="whitespace-nowrap text-sm font-semibold text-[#F4F7FB]">
+                        {hasActual ? descriptor.format(actual) : descriptor.format(target)}
+                      </span>
+                      <span className={cn(
+                        "min-w-[74px] rounded-full border px-2.5 py-1 text-center text-[10px] font-semibold uppercase tracking-wide",
+                        status === "Applied" && "border-emerald-400/30 bg-emerald-400/10 text-emerald-300",
+                        status === "Different" && "border-amber-400/30 bg-amber-400/10 text-amber-300",
+                        status === "Unavailable" && "border-rose-400/30 bg-rose-400/10 text-rose-300",
+                        status === "Target" && "border-slate-400/20 bg-slate-400/10 text-slate-300",
+                      )}>
+                        {status}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            ))}
+          </div>
+          {isLive && (differentCount > 0 || unavailableCount > 0 || Object.keys(backendState?.settingsErrors ?? {}).length > 0) && (
+            <p className="mt-5 flex items-start gap-2 rounded-xl border border-amber-400/20 bg-amber-400/[.07] px-3.5 py-3 text-xs leading-relaxed text-amber-200">
+              <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+              Some advanced controls are unavailable or differ because of CPU support, firmware, Windows policy, or the active driver. Unavailable values are reported honestly and are not treated as applied.
+            </p>
+          )}
+        </div>
+      </motion.div>
+    </motion.div>
+  ), document.body);
 }
 
 // ── Main component ─────────────────────────────────────────────────────────────
@@ -1315,26 +1395,32 @@ export default function PowerPlan() {
                             <ImpactBar label="Battery Efficiency" value={impact.battery} color="#4b5563" />
                           </div>
 
-                          <button
-                            type="button"
-                            onClick={() => setExpandedProfileId(expandedProfileId === profile.id ? null : profile.id)}
-                            className="mb-4 flex items-center justify-center gap-1.5 rounded-lg border border-[#2A313A] bg-[#171C22] px-3 py-2 text-[10px] font-medium text-[#A0A8B3] transition-colors hover:border-primary/40 hover:text-[#E6EAF0]"
-                            data-testid={`button-settings-${profile.id}`}
-                          >
-                            <ShieldCheck className="size-3.5 text-emerald-400/80" />
-                            {expandedProfileId === profile.id ? "Hide applied settings" : "View applied settings"}
-                            {expandedProfileId === profile.id ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />}
-                          </button>
-                          <AnimatePresence initial={false}>
-                            {expandedProfileId === profile.id && (
-                              <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
-                                <AppliedSettingsPanel
-                                  profileId={profile.id}
-                                  backendState={backendState}
-                                  activeProfileId={reportedProfileId}
-                                  accent={t.accent}
-                                />
-                              </motion.div>
+                          {isActive && (
+                            <motion.button
+                              type="button"
+                              layoutId="active-applied-settings-trigger"
+                              initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                              animate={{ opacity: 1, y: 0, scale: 1 }}
+                              transition={{ type: "spring", stiffness: 420, damping: 28 }}
+                              onClick={() => setExpandedProfileId(expandedProfileId === profile.id ? null : profile.id)}
+                              className="mb-4 flex items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-[10px] font-semibold text-[#D6DEE8] transition-colors hover:text-white"
+                              style={{ borderColor: `${t.accent}55`, background: `linear-gradient(135deg, ${t.accent}18, rgba(23,28,34,.9))` }}
+                              data-testid={`button-settings-${profile.id}`}
+                            >
+                              <ShieldCheck className="size-3.5" style={{ color: t.accent }} />
+                              View applied settings
+                              <ChevronDown className="size-3" />
+                            </motion.button>
+                          )}
+                          <AnimatePresence>
+                            {expandedProfileId === profile.id && isActive && (
+                              <AppliedSettingsPanel
+                                profileId={profile.id}
+                                backendState={backendState}
+                                activeProfileId={reportedProfileId}
+                                accent={t.accent}
+                                onClose={() => setExpandedProfileId(null)}
+                              />
                             )}
                           </AnimatePresence>
 
@@ -1430,27 +1516,33 @@ export default function PowerPlan() {
                         <ImpactBar label="Battery Efficiency" value={computeCustomImpact(localState.customSettings).battery} color="#4b5563" />
                       </div>
 
-                        <button
-                          type="button"
-                          onClick={() => setExpandedProfileId(expandedProfileId === "custom" ? null : "custom")}
-                          className="mb-4 flex items-center justify-center gap-1.5 rounded-lg border border-[#2A313A] bg-[#171C22] px-3 py-2 text-[10px] font-medium text-[#A0A8B3] transition-colors hover:border-[#a78bfa]/50 hover:text-[#E6EAF0]"
-                          data-testid="button-settings-custom"
-                        >
-                          <ShieldCheck className="size-3.5 text-emerald-400/80" />
-                          {expandedProfileId === "custom" ? "Hide applied settings" : "View applied settings"}
-                          {expandedProfileId === "custom" ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />}
-                        </button>
-                        <AnimatePresence initial={false}>
-                          {expandedProfileId === "custom" && (
-                            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
-                              <AppliedSettingsPanel
-                                profileId="custom"
-                                backendState={backendState}
-                                activeProfileId={effectiveCustomApplied ? "custom" : activeProfileId}
-                                customSettings={localState.customSettings}
-                                accent="#a78bfa"
-                              />
-                            </motion.div>
+                        {effectiveCustomApplied && (
+                          <motion.button
+                            type="button"
+                            layoutId="active-applied-settings-trigger"
+                            initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            transition={{ type: "spring", stiffness: 420, damping: 28 }}
+                            onClick={() => setExpandedProfileId(expandedProfileId === "custom" ? null : "custom")}
+                            className="mb-4 flex items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-[10px] font-semibold text-[#D6DEE8] transition-colors hover:text-white"
+                            style={{ borderColor: "#a78bfa66", background: "linear-gradient(135deg, rgba(167,139,250,.14), rgba(23,28,34,.9))" }}
+                            data-testid="button-settings-custom"
+                          >
+                            <ShieldCheck className="size-3.5 text-[#a78bfa]" />
+                            View applied settings
+                            <ChevronDown className="size-3" />
+                          </motion.button>
+                        )}
+                        <AnimatePresence>
+                          {expandedProfileId === "custom" && effectiveCustomApplied && (
+                            <AppliedSettingsPanel
+                              profileId="custom"
+                              backendState={backendState}
+                              activeProfileId="custom"
+                              customSettings={localState.customSettings}
+                              accent="#a78bfa"
+                              onClose={() => setExpandedProfileId(null)}
+                            />
                           )}
                         </AnimatePresence>
 
