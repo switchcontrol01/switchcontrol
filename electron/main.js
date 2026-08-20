@@ -431,26 +431,6 @@
   let _telemetryLoopPaused = false;
   let _telemetryLoopCount  = 0; // incremented every time the loop actually starts; must stay ≤ 1
   
-  // ── Game Sentinel ─────────────────────────────────────────────────────────────
-  // Watches for a boosted game's process and pauses telemetry while it runs.
-  let _sentinelGameExe            = null;  // bare .exe filename being watched (no path)
-  let _sentinelLoopActive         = false; // set false to stop the sentinel cleanly
-  let _boosterProcessPlan         = null;  // last auto-applied process-control plan (for cleanup on revert)
-  let _sentinelSessionStartedAt   = null;  // Date.now() when game was first detected
-  let _sentinelDeprioritisedCount = 0;     // # processes deprioritised by sentinel this session
-  
-  /**
-   * Returns the effective notification style: 'off' | 'banner' | 'sound'.
-   * Reads sentinelNotificationStyle first; falls back to the legacy
-   * sentinelGameNotifications boolean key so existing user prefs are honoured.
-   */
-  function _sentinelNotificationStyle() {
-    const style = configStore.get('sentinelNotificationStyle');
-    if (style === 'off' || style === 'banner' || style === 'sound') return style;
-    // Legacy migration: old boolean key — 'false' means off, anything else means sound
-    return configStore.get('sentinelGameNotifications') === 'false' ? 'off' : 'sound';
-  }
-  
   async function _telemetryLoop() {
     // Check before incrementing so a rejected duplicate start cannot poison the
     // singleton counter for the remainder of the process lifetime.
@@ -696,104 +676,6 @@
     } catch (e) {
       console.error('[telemetry:poll] unexpected error:', e.message);
     }
-  }
-  
-  // ── Game Sentinel loop ────────────────────────────────────────────────────────
-  // Polls tasklist every 5s to detect whether the boosted game is running.
-  // While the game is active: telemetry is paused and interval set to 30s.
-  // When the game exits: telemetry resumes and interval resets to TELEMETRY_BASE_MS.
-  // Uses execFile (never exec) to avoid shell injection — game exe comes from
-  // user-supplied manual paths and must be treated as untrusted.
-  async function _sentinelLoop() {
-    let _wasActive = false;
-    console.log('[Sentinel] loop started — watching exe:', _sentinelGameExe);
-    while (_sentinelLoopActive && _sentinelGameExe) {
-      const exeName = path.basename(_sentinelGameExe);
-      // Validate: must be a non-empty string ending in .exe with no path separators
-      if (!exeName || !/^[^/\\]+\.exe$/i.test(exeName)) {
-        console.warn('[Sentinel] invalid exe name, stopping:', exeName);
-        break;
-      }
-      try {
-        await new Promise((resolve) => {
-          execFile('tasklist', ['/FI', `IMAGENAME eq ${exeName}`, '/NH', '/FO', 'CSV'],
-            { timeout: 8000, windowsHide: true },
-            (err, stdout) => {
-              const running = !err && stdout && stdout.toLowerCase().includes(exeName.toLowerCase());
-              if (running && !_wasActive) {
-                _wasActive = true;
-                _sentinelSessionStartedAt   = Date.now();
-                _sentinelDeprioritisedCount = 0;
-                _telemetryLoopPaused = true;
-                _telemetryCurrentIntervalMs = 30000;
-                console.log('[Sentinel] game detected RUNNING — telemetry paused:', exeName);
-                if (mainWindow && !mainWindow.isDestroyed()) {
-                  mainWindow.webContents.send('sentinel:status', { active: true, exe: exeName });
-                }
-                // System notification — style controlled by sentinelNotificationStyle
-                if (Notification.isSupported()) {
-                  const _notifStyle = _sentinelNotificationStyle();
-                  if (_notifStyle !== 'off') {
-                    new Notification({
-                      title: 'Game detected',
-                      body: 'SwitchControl is throttled to maximise your FPS',
-                      silent: _notifStyle === 'banner',
-                    }).show();
-                  }
-                }
-              } else if (!running && _wasActive) {
-                _wasActive = false;
-                _telemetryLoopPaused = false;
-                _telemetryCurrentIntervalMs = TELEMETRY_BASE_MS;
-                console.log('[Sentinel] game exited — telemetry resumed:', exeName);
-                if (mainWindow && !mainWindow.isDestroyed()) {
-                  mainWindow.webContents.send('sentinel:status', { active: false });
-                }
-                // Build session summary body
-                let summaryBody = 'Telemetry resumed — SwitchControl is back to full monitoring';
-                if (_sentinelSessionStartedAt) {
-                  const elapsedMin = Math.round((Date.now() - _sentinelSessionStartedAt) / 60000);
-                  summaryBody = elapsedMin > 0
-                    ? `Session: ${elapsedMin} min — telemetry resumed`
-                    : 'Telemetry resumed — SwitchControl is back to full monitoring';
-                  if (_sentinelDeprioritisedCount > 0) {
-                    summaryBody += ` · ${_sentinelDeprioritisedCount} app${_sentinelDeprioritisedCount !== 1 ? 's' : ''} deprioritised`;
-                  }
-                }
-                _sentinelSessionStartedAt   = null;
-                _sentinelDeprioritisedCount = 0;
-                // System notification — style controlled by sentinelNotificationStyle
-                if (Notification.isSupported()) {
-                  const _notifStyle = _sentinelNotificationStyle();
-                  if (_notifStyle !== 'off') {
-                    new Notification({
-                      title: 'Game closed',
-                      body: summaryBody,
-                      silent: _notifStyle === 'banner',
-                    }).show();
-                  }
-                }
-              }
-              resolve();
-            }
-          );
-        });
-      } catch (e) {
-        console.warn('[Sentinel] tasklist error:', e.message);
-      }
-      if (_sentinelLoopActive && _sentinelGameExe) {
-        await new Promise(r => setTimeout(r, 5000));
-      }
-    }
-    // On exit: always restore telemetry if it was paused
-    if (_wasActive) {
-      _telemetryLoopPaused = false;
-      _telemetryCurrentIntervalMs = TELEMETRY_BASE_MS;
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send('sentinel:status', { active: false });
-      }
-    }
-    console.log('[Sentinel] loop stopped');
   }
   
   // In-flight flag prevents a second startTelemetryPolling() call that arrives
@@ -5977,7 +5859,6 @@ $pwrThrot  = Reg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottl
   
   app.on('before-quit', () => {
     _telemetryLoopActive = false; // signals the async loop to stop after current poll
-    _sentinelLoopActive  = false;
     console.log('[telemetry:poll] async loop stop requested on quit');
     // Cancel any pending fade/fallback timers so they don't fire during teardown
     if (_fadeTimer)         { clearInterval(_fadeTimer);         _fadeTimer         = null; }

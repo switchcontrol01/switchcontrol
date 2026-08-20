@@ -56,15 +56,13 @@ const ALLOWED_TWEAK_ACTIONS  = new Set(['apply', 'revert']);
 const ALLOWED_MEMORY_MODES   = new Set(['safe', 'smart', 'advanced']);
 const ALLOWED_PC_PROFILES    = new Set(['safe', 'competitive', 'extreme']);
 // Config keys that the renderer is allowed to read/write. The config store holds
-// secrets (e.g. selectedGpuIndex, sentinelNotificationStyle) — restricting to an
+// secrets (e.g. selectedGpuIndex) — restricting to an
 // explicit allowlist prevents a compromised renderer from enumerating arbitrary keys.
 const ALLOWED_CONFIG_KEYS = new Set([
   'installedVersion',
   'postUpdateGrace',
   'previousVersion',
   'selectedGpuIndex',
-  'sentinelGameNotifications',
-  'sentinelNotificationStyle',
 ]);
 // IP address allowlist pattern (IPv4 only — DNS apply only accepts numeric IPs).
 const IP_RE = /^(\d{1,3}\.){3}\d{1,3}$/;
