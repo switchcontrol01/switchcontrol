@@ -110,6 +110,14 @@ export const PREMIUM_EXCEPTION_IDS: Set<string> = new Set([
   "timer-resolution-slider",
   "net-throttle-index",
   "fortnite-high-priority",
+  // Advanced tweaks kept premium until the default-tier policy receives a
+  // complete free-exception audit.
+  "mmcss-nolazymode",
+  "optimize-windowed-games",
+  "disable-game-dvr",
+  "adobe-updater",
+  "edge-update",
+  "vendor-updaters",
   // ── Input ─────────────────────────────────────────────────────────────────
   "mouse-queue-size",
   "kbd-queue-size",
