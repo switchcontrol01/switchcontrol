@@ -5247,20 +5247,34 @@ $pwrThrot  = Reg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottl
   
   const premiumRevertPipeline = require('./premium-revert-pipeline');
   const ownershipStore        = require('./ownership-store');
+  let premiumRevertInFlight = null;
   
   /**
    * Revert all app-owned premium changes when a trial expires or subscription ends.
    * Returns a full result report ({ total, reverted, skipped, failed, details }).
    */
   ipcMain.handle('premium:revertAll', async () => {
+    if (premiumRevertInFlight) {
+      console.log('[IPC] premium:revertAll — joining existing expiry revert pipeline');
+      return premiumRevertInFlight;
+    }
+
     console.log('[IPC] premium:revertAll — starting expiry revert pipeline');
+    premiumRevertInFlight = (async () => {
+      try {
+        const result = await premiumRevertPipeline.revertAllAppOwned();
+        console.log(`[IPC] premium:revertAll done — reverted=${result.reverted} skipped=${result.skipped} failed=${result.failed}`);
+        return { success: true, ...result };
+      } catch (e) {
+        console.error('[IPC] premium:revertAll error:', e.message);
+        return { success: false, error: e.message, total: 0, reverted: 0, skipped: 0, failed: 0, details: {} };
+      }
+    })();
+
     try {
-      const result = await premiumRevertPipeline.revertAllAppOwned();
-      console.log(`[IPC] premium:revertAll done — reverted=${result.reverted} skipped=${result.skipped} failed=${result.failed}`);
-      return { success: true, ...result };
-    } catch (e) {
-      console.error('[IPC] premium:revertAll error:', e.message);
-      return { success: false, error: e.message, total: 0, reverted: 0, skipped: 0, failed: 0, details: {} };
+      return await premiumRevertInFlight;
+    } finally {
+      premiumRevertInFlight = null;
     }
   });
   

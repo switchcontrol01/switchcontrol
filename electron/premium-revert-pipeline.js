@@ -139,6 +139,20 @@ async function revertNetworkTweak(record) {
       ownershipStore.recordRevert(scopeKey);
       return { success: true, action, verified: result.verified };
     }
+    // These legacy IDs were moved to canonical owners:
+    // tcp-nagle → tweak-executor/tcp-no-delay
+    // tcp-throttling-index → slider-executor/net-throttle-index
+    // A stale network ownership record must not keep the expiry pipeline
+    // failing and reopening on every application launch.
+    if (result.error === 'not_found' && (itemId === 'tcp-nagle' || itemId === 'tcp-throttling-index')) {
+      ownershipStore.recordRevert(scopeKey);
+      return {
+        success: true,
+        skipped: true,
+        action: 'skipped_legacy_canonical_owner',
+        reason: 'Legacy network ID has been replaced by its canonical owner.',
+      };
+    }
     return { success: false, action, error: result.error || result.message || 'executeNetworkTweak failed' };
   } catch (e) {
     return { success: false, action, error: e.message };

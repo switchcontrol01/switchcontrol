@@ -51,6 +51,35 @@ interface UsePremiumExpiryReturn {
   isActive: boolean;
 }
 
+// Disk ownership intentionally remains after a failed item so the user can
+// retry it, but that must not turn every application launch into another full
+// revert attempt. This marker gates only the automatic startup pass; the
+// explicit Retry button still runs normally. It is cleared when premium is
+// active again, beginning a new entitlement cycle.
+const AUTO_REVERT_ATTEMPT_KEY = 'switchcontrol-premium-revert-attempted';
+
+function wasAutoRevertAttempted(): boolean {
+  try {
+    return localStorage.getItem(AUTO_REVERT_ATTEMPT_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+function markAutoRevertAttempted(): void {
+  try {
+    localStorage.setItem(AUTO_REVERT_ATTEMPT_KEY, '1');
+  } catch {
+    // Local storage is only a repeat-launch guard; never block the revert flow.
+  }
+}
+
+function clearAutoRevertAttempted(): void {
+  try {
+    localStorage.removeItem(AUTO_REVERT_ATTEMPT_KEY);
+  } catch {}
+}
+
 export function usePremiumExpiry({
   isPremium,
   plan,
@@ -77,6 +106,12 @@ export function usePremiumExpiry({
   const graceSessionVerified = usePremiumGraceStore((s) => s.sessionVerified);
 
   const isCurrentlyActive = isPremium || isTrialActive(plan ?? '', trialEndsAt);
+
+  useEffect(() => {
+    if (entitlementsVerified && isCurrentlyActive) {
+      clearAutoRevertAttempted();
+    }
+  }, [entitlementsVerified, isCurrentlyActive]);
 
   // ── Load post-update grace flag from main process ─────────────────────────
   useEffect(() => {
@@ -115,6 +150,7 @@ export function usePremiumExpiry({
     useTrialExpiryStore.getState().startRevertFlow(reason);
     // If startRevertFlow no-oped (flow already active), bail out here too.
     if (!useTrialExpiryStore.getState().trialEndingFlowActive) return;
+    markAutoRevertAttempted();
 
     if (!isElectronWithTweaks()) {
       setRevertReport({
@@ -263,6 +299,12 @@ export function usePremiumExpiry({
           }
 
           if (diskHasItems || hasPremiumItemsToRevert()) {
+            if (wasAutoRevertAttempted()) {
+              console.log(
+                '[PremiumExpiry] Startup revert already attempted for this inactive entitlement cycle — waiting for explicit Retry.'
+              );
+              return;
+            }
             console.log(
               `[PremiumExpiry] Opened post-expiry with owned items ` +
               `(disk=${diskHasItems} clientStore=${hasPremiumItemsToRevert()}) ` +
@@ -312,6 +354,10 @@ export function usePremiumExpiry({
 
   const retryRevert = useCallback(async () => {
     revertRunning.current = false;
+    // A completed run leaves the flow active until the user chooses a modal
+    // action. Reset it here so Retry is the one intentional path that may
+    // launch another pass; startup and modal close never do.
+    useTrialExpiryStore.getState().stopRevertFlow();
     const reason = determineRevertReason(prevPlan.current, prevTrialEndsAt.current);
     await triggerRevert(reason);
   }, [triggerRevert]);

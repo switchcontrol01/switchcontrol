@@ -1434,18 +1434,6 @@ export default function PowerPlan() {
                             {isActive ? "View applied settings" : "See what this changes"}
                             {expandedProfileId === profile.id ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />}
                           </motion.button>
-                          <AnimatePresence>
-                            {expandedProfileId === profile.id && (
-                              <AppliedSettingsPanel
-                                profileId={profile.id}
-                                backendState={backendState}
-                                activeProfileId={reportedProfileId}
-                                accent={t.accent}
-                                onClose={() => setExpandedProfileId(null)}
-                              />
-                            )}
-                          </AnimatePresence>
-
                           <div className="flex-1" />
 
                           {/* Apply button */}
@@ -1555,19 +1543,6 @@ export default function PowerPlan() {
                           {effectiveCustomApplied ? "View applied settings" : "See what this changes"}
                           {expandedProfileId === "custom" ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />}
                         </motion.button>
-                        <AnimatePresence>
-                          {expandedProfileId === "custom" && (
-                            <AppliedSettingsPanel
-                              profileId="custom"
-                              backendState={backendState}
-                              activeProfileId="custom"
-                              customSettings={localState.customSettings}
-                              accent="#a78bfa"
-                              onClose={() => setExpandedProfileId(null)}
-                            />
-                          )}
-                        </AnimatePresence>
-
                       <div className="flex-1" />
 
                       <div className="flex gap-2">
@@ -1605,6 +1580,22 @@ export default function PowerPlan() {
                 </motion.div>
               </div>
             )}
+
+            {/* Render the settings dialog once, outside the cards. Keeping the
+                portal host at tab level means every profile button opens the
+                selected profile's target map, including inactive profiles. */}
+            <AnimatePresence>
+              {expandedProfileId && (
+                <AppliedSettingsPanel
+                  profileId={expandedProfileId}
+                  backendState={backendState}
+                  activeProfileId={reportedProfileId}
+                  customSettings={expandedProfileId === "custom" ? localState.customSettings : undefined}
+                  accent={PROFILE_THEME[expandedProfileId].accent}
+                  onClose={() => setExpandedProfileId(null)}
+                />
+              )}
+            </AnimatePresence>
 
             {/* ── Before / After Impact Comparison ─────────────────── */}
             <AnimatePresence>
