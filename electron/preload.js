@@ -433,8 +433,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
       assertString(adapterName, 'adapterName');
       assertString(propertyKey, 'propertyKey');
       if (value === undefined || value === null) throw new TypeError('nic.setProperty: value required');
-      if (typeof value === 'object') {
-        throw new TypeError('nic.setProperty: value must be a string, number, or boolean — received object/array');
+      if (!['string', 'number', 'boolean'].includes(typeof value)) {
+        throw new TypeError('nic.setProperty: value must be a string, number, or boolean');
       }
       return ipcRenderer.invoke('nic:setProperty', adapterName, propertyKey, String(value));
     },
