@@ -89,6 +89,7 @@ interface BackendState {
     mismatches?: Record<string, { expected: number; actual: number }>;
   };
   settingsErrors?: Record<string, string>;
+  failedSettings?: string[];
 }
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -98,7 +99,7 @@ const POWER_PROFILES: PowerProfile[] = [
     id: "performance",
     backendId: "maximum_performance",
     name: "Maximum Performance",
-    description: "Full power mode for competitive gaming. All power saving features disabled.",
+    description: "SwitchControl's strongest verified profile: maximum CPU availability, active cooling, no parking, no idle states, and power-saving features disabled.",
     icon: Zap,
     compatibility: ["desktop", "laptop"],
     color: "from-red-500/20 to-orange-500/20 border-red-500/30",
@@ -107,7 +108,7 @@ const POWER_PROFILES: PowerProfile[] = [
     id: "balanced",
     backendId: "balanced_gaming",
     name: "Balanced Gaming",
-    description: "Smart power scaling for consistent FPS without excess heat or noise.",
+    description: "Smart scaling for consistent frame times, strong foreground performance, and controlled heat.",
     icon: Gauge,
     compatibility: ["desktop", "laptop"],
     color: "from-primary/20 to-cyan-500/20 border-primary/30",
@@ -116,7 +117,7 @@ const POWER_PROFILES: PowerProfile[] = [
     id: "efficiency",
     backendId: "efficiency_laptop",
     name: "Efficiency / Laptop",
-    description: "Maximize battery life while maintaining playable performance.",
+    description: "Laptop-first efficiency with dynamic scaling, sleep protection, and lower power draw.",
     icon: Leaf,
     compatibility: ["laptop"],
     color: "from-emerald-500/20 to-teal-500/20 border-emerald-500/30",
@@ -133,10 +134,34 @@ const PROFILE_IMPACT: Record<FrontendProfileId, { latency: number; speed: number
 
 // Key settings summary shown on each card
 const PROFILE_KEY_SETTINGS: Record<FrontendProfileId, string[]> = {
-  performance: ["CPU 100%–100%", "Boost: Aggressive", "No Core Parking", "USB Always On", "Sleep Off"],
-  balanced:    ["CPU 5%–100%",   "Boost: Efficient",  "No Core Parking", "USB Always On", "Sleep Off"],
-  efficiency:  ["CPU 5%–85%",   "Boost: Efficient",  "Min Parking",     "USB Save",      "Sleep 15m"],
+  performance: ["CPU 100%–100%", "Aggressive boost", "All cores active", "Idle off", "EPP 0", "USB/PCIe off"],
+  balanced:    ["CPU 5%–100%",   "Efficient boost",  "All cores available", "EPP 32", "USB/PCIe off", "Sleep off"],
+  efficiency:  ["CPU 5%–85%",   "Efficient boost",  "Parking enabled", "EPP 80", "USB save", "Sleep 15m"],
   custom:      ["CPU: Custom",   "Boost: Custom",     "Park: Custom",    "USB: Custom",   "Sleep: Custom"],
+};
+
+const SETTING_DESCRIPTORS: Array<{ key: string; label: string; category: string; format: (v: number | null | undefined) => string }> = [
+  { key: "cpuMinPercentAC", label: "Minimum processor state", category: "CPU", format: v => v == null ? "Unavailable" : `${v}%` },
+  { key: "cpuMaxPercentAC", label: "Maximum processor state", category: "CPU", format: v => v == null ? "Unavailable" : `${v}%` },
+  { key: "perfBoostModeAC", label: "Processor boost mode", category: "CPU", format: v => ({ 0: "Disabled", 1: "Enabled", 2: "Aggressive", 3: "Efficient enabled", 4: "Efficient aggressive" } as Record<number, string>)[v ?? -1] ?? `Mode ${v}` },
+  { key: "energyPerformancePreferenceAC", label: "Energy performance preference", category: "CPU", format: v => v == null ? "Unavailable" : v === 0 ? "Maximum performance (0)" : `${v}% performance preference` },
+  { key: "processorIdleDisableAC", label: "Processor idle states", category: "CPU", format: v => v == null ? "Unsupported" : v === 1 ? "Disabled" : "Enabled" },
+  { key: "processorThrottleStates", label: "Throttle states", category: "CPU", format: v => v == null ? "Unsupported" : v === 0 ? "Disabled" : "Enabled" },
+  { key: "systemCoolingPolicyAC", label: "Cooling policy", category: "Thermals", format: v => v == null ? "Unsupported" : v === 1 ? "Active cooling" : "Passive cooling" },
+  { key: "coreParkingMinCoresAC", label: "Minimum unparked cores", category: "Core parking", format: v => v == null ? "Unavailable" : `${v}%` },
+  { key: "coreParkingMaxCoresAC", label: "Maximum unparked cores", category: "Core parking", format: v => v == null ? "Unsupported" : `${v}%` },
+  { key: "usbSelectiveSuspendAC", label: "USB selective suspend", category: "Devices", format: v => v == null ? "Unsupported" : v === 0 ? "Disabled" : "Enabled" },
+  { key: "pcieAspmAC", label: "PCIe link-state power management", category: "Devices", format: v => v == null ? "Unsupported" : v === 0 ? "Off" : v === 1 ? "Moderate saving" : "Maximum saving" },
+  { key: "sleepAfterAC", label: "Sleep timeout", category: "Power saving", format: v => v == null ? "Unavailable" : v === 0 ? "Never" : `After ${Math.round(v / 60)} min` },
+  { key: "hibernateAfterAC", label: "Hibernate timeout", category: "Power saving", format: v => v == null ? "Unavailable" : v === 0 ? "Never" : `After ${Math.round(v / 60)} min` },
+  { key: "displayOffAfterAC", label: "Display timeout", category: "Power saving", format: v => v == null ? "Unavailable" : v === 0 ? "Never" : `After ${Math.round(v / 60)} min` },
+];
+
+const PROFILE_EXPECTED_SETTINGS: Record<FrontendProfileId, Record<string, number>> = {
+  performance: { cpuMinPercentAC: 100, cpuMaxPercentAC: 100, perfBoostModeAC: 2, energyPerformancePreferenceAC: 0, processorIdleDisableAC: 1, processorThrottleStates: 0, systemCoolingPolicyAC: 1, coreParkingMinCoresAC: 100, coreParkingMaxCoresAC: 100, usbSelectiveSuspendAC: 0, pcieAspmAC: 0, sleepAfterAC: 0, hibernateAfterAC: 0, displayOffAfterAC: 0 },
+  balanced: { cpuMinPercentAC: 5, cpuMaxPercentAC: 100, perfBoostModeAC: 4, energyPerformancePreferenceAC: 32, processorIdleDisableAC: 0, processorThrottleStates: 1, systemCoolingPolicyAC: 1, coreParkingMinCoresAC: 100, coreParkingMaxCoresAC: 100, usbSelectiveSuspendAC: 0, pcieAspmAC: 0, sleepAfterAC: 0, hibernateAfterAC: 1800, displayOffAfterAC: 0 },
+  efficiency: { cpuMinPercentAC: 5, cpuMaxPercentAC: 85, perfBoostModeAC: 3, energyPerformancePreferenceAC: 80, processorIdleDisableAC: 0, processorThrottleStates: 1, systemCoolingPolicyAC: 0, coreParkingMinCoresAC: 25, coreParkingMaxCoresAC: 75, usbSelectiveSuspendAC: 1, pcieAspmAC: 2, sleepAfterAC: 900, hibernateAfterAC: 1800, displayOffAfterAC: 300 },
+  custom: {},
 };
 
 // Per-profile visual theme
@@ -616,6 +641,87 @@ function OverrideToggleCard({ toggle, enabled, onToggle, onInfo }: { toggle: Ove
   );
 }
 
+function AppliedSettingsPanel({
+  profileId,
+  backendState,
+  activeProfileId,
+  customSettings,
+  accent,
+}: {
+  profileId: FrontendProfileId;
+  backendState: BackendState | null;
+  activeProfileId: FrontendProfileId | null;
+  customSettings?: CustomSettings;
+  accent: string;
+}) {
+  const isLive = profileId !== "custom" && activeProfileId === profileId && !!backendState?.settings;
+  const expected = PROFILE_EXPECTED_SETTINGS[profileId];
+  const customValues: Record<string, number> = profileId === "custom" && customSettings ? {
+    cpuMinPercentAC: customSettings.minProcessorState,
+    cpuMaxPercentAC: customSettings.maxProcessorState,
+    coreParkingMinCoresAC: customSettings.disableCoreParking ? 100 : 25,
+    usbSelectiveSuspendAC: customSettings.disableUsbSelectiveSuspend ? 0 : 1,
+    sleepAfterAC: customSettings.disableSleep ? 0 : 900,
+    hibernateAfterAC: customSettings.disableHibernation ? 0 : 1800,
+    displayOffAfterAC: customSettings.keepDisplayOn ? 0 : 300,
+  } : {};
+  const rows = profileId === "custom"
+    ? SETTING_DESCRIPTORS.filter(d => d.key in customValues)
+    : SETTING_DESCRIPTORS;
+
+  return (
+    <div className="mt-3 rounded-xl border border-[#2A313A] bg-[#101419]/80 p-3" data-testid={`panel-applied-settings-${profileId}`}>
+      <div className="flex items-center justify-between mb-2.5">
+        <div>
+          <p className="text-[10px] uppercase tracking-widest font-semibold" style={{ color: accent }}>
+            {isLive ? "Verified Windows values" : profileId === "custom" ? "Builder values" : "Preset targets"}
+          </p>
+          <p className="text-[10px] text-muted-foreground/70 mt-0.5">
+            {isLive ? "Read back from the active power scheme" : "Values shown before activation are targets"}
+          </p>
+        </div>
+        {isLive && (
+          <span className="text-[9px] px-2 py-1 rounded-full border border-emerald-500/25 bg-emerald-500/10 text-emerald-400 flex items-center gap-1">
+            <ShieldCheck className="size-3" /> Readback verified
+          </span>
+        )}
+      </div>
+      <div className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
+        {rows.map((descriptor) => {
+          const actual = backendState?.settings?.[descriptor.key] ?? null;
+          const target = profileId === "custom" ? customValues[descriptor.key] : expected[descriptor.key];
+          const hasActual = isLive && actual !== null && actual !== undefined;
+          const matches = hasActual && target !== undefined && actual === target;
+          const status = isLive ? (!hasActual ? "Unsupported" : matches ? "Applied" : "Different") : "Target";
+          return (
+            <div key={descriptor.key} className="flex items-center gap-2 rounded-lg px-2 py-1.5 bg-[#1A1F26]">
+              <span className={cn(
+                "size-1.5 rounded-full shrink-0",
+                status === "Applied" ? "bg-emerald-400" : status === "Different" ? "bg-amber-400" : status === "Unsupported" ? "bg-red-400" : "bg-slate-500",
+              )} />
+              <span className="text-[10px] text-[#A0A8B3] flex-1 min-w-0 truncate" title={`${descriptor.category} · ${descriptor.label}`}>
+                {descriptor.label}
+              </span>
+              <span className={cn(
+                "text-[10px] font-medium whitespace-nowrap",
+                status === "Applied" ? "text-emerald-300" : status === "Different" ? "text-amber-300" : status === "Unsupported" ? "text-red-300" : "text-[#E6EAF0]",
+              )}>
+                {hasActual ? descriptor.format(actual) : descriptor.format(target)}
+              </span>
+              <span className="text-[9px] text-muted-foreground/60 w-14 text-right">{status}</span>
+            </div>
+          );
+        })}
+      </div>
+      {isLive && (Object.keys(backendState?.profileMatch?.mismatches ?? {}).length > 0 || Object.keys(backendState?.settingsErrors ?? {}).length > 0) && (
+        <p className="text-[10px] text-amber-300/80 mt-2 flex items-center gap-1.5">
+          <AlertTriangle className="size-3 shrink-0" /> Some controls are restricted by this CPU, firmware, or Windows policy.
+        </p>
+      )}
+    </div>
+  );
+}
+
 // ── Main component ─────────────────────────────────────────────────────────────
 
 export default function PowerPlan() {
@@ -626,6 +732,7 @@ export default function PowerPlan() {
   const [localState, setLocalState] = useState(loadLocalState);
   const [activeTab, setActiveTab]   = useState<"profiles" | "custom">("profiles");
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [expandedProfileId, setExpandedProfileId] = useState<FrontendProfileId | null>(null);
   const [debugOpen, setDebugOpen]       = useState(false);
   const [infoToggle, setInfoToggle]     = useState<OverrideToggle | null>(null);
   const [intentMode, setIntentMode]     = useState<IntentMode>(() => localState.intentMode ?? "frametime-stability");
@@ -726,6 +833,12 @@ export default function PowerPlan() {
       : null;
 
   const activeProfileId: FrontendProfileId | null = verifiedFrontendProfileId;
+  // The card badge remains exact-match-only, but the settings report should still
+  // show real Windows readback for a close/partial match.
+  const reportedProfileId: FrontendProfileId | null =
+    backendState?.profileMatch?.profileId
+      ? backendIdToFrontendId(backendState.profileMatch.profileId)
+      : activeProfileId;
 
   const activateProfile = useCallback(async (frontendId: FrontendProfileId) => {
     const profile = POWER_PROFILES.find(p => p.id === frontendId);
@@ -767,6 +880,7 @@ export default function PowerPlan() {
         breakdown: result.breakdown,
         profileMatch: result.profileMatch,
         settingsErrors: result.settingsErrors,
+        failedSettings: result.failedSettings,
       });
 
       // Fix: clear custom-applied flag so only ONE plan shows "Active"
@@ -1201,6 +1315,29 @@ export default function PowerPlan() {
                             <ImpactBar label="Battery Efficiency" value={impact.battery} color="#4b5563" />
                           </div>
 
+                          <button
+                            type="button"
+                            onClick={() => setExpandedProfileId(expandedProfileId === profile.id ? null : profile.id)}
+                            className="mb-4 flex items-center justify-center gap-1.5 rounded-lg border border-[#2A313A] bg-[#171C22] px-3 py-2 text-[10px] font-medium text-[#A0A8B3] transition-colors hover:border-primary/40 hover:text-[#E6EAF0]"
+                            data-testid={`button-settings-${profile.id}`}
+                          >
+                            <ShieldCheck className="size-3.5 text-emerald-400/80" />
+                            {expandedProfileId === profile.id ? "Hide applied settings" : "View applied settings"}
+                            {expandedProfileId === profile.id ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />}
+                          </button>
+                          <AnimatePresence initial={false}>
+                            {expandedProfileId === profile.id && (
+                              <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
+                                <AppliedSettingsPanel
+                                  profileId={profile.id}
+                                  backendState={backendState}
+                                  activeProfileId={reportedProfileId}
+                                  accent={t.accent}
+                                />
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+
                           <div className="flex-1" />
 
                           {/* Apply button */}
@@ -1292,6 +1429,30 @@ export default function PowerPlan() {
                         <ImpactBar label="Responsiveness"    value={computeCustomImpact(localState.customSettings).speed}   color="#a78bfa" />
                         <ImpactBar label="Battery Efficiency" value={computeCustomImpact(localState.customSettings).battery} color="#4b5563" />
                       </div>
+
+                        <button
+                          type="button"
+                          onClick={() => setExpandedProfileId(expandedProfileId === "custom" ? null : "custom")}
+                          className="mb-4 flex items-center justify-center gap-1.5 rounded-lg border border-[#2A313A] bg-[#171C22] px-3 py-2 text-[10px] font-medium text-[#A0A8B3] transition-colors hover:border-[#a78bfa]/50 hover:text-[#E6EAF0]"
+                          data-testid="button-settings-custom"
+                        >
+                          <ShieldCheck className="size-3.5 text-emerald-400/80" />
+                          {expandedProfileId === "custom" ? "Hide applied settings" : "View applied settings"}
+                          {expandedProfileId === "custom" ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />}
+                        </button>
+                        <AnimatePresence initial={false}>
+                          {expandedProfileId === "custom" && (
+                            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
+                              <AppliedSettingsPanel
+                                profileId="custom"
+                                backendState={backendState}
+                                activeProfileId={effectiveCustomApplied ? "custom" : activeProfileId}
+                                customSettings={localState.customSettings}
+                                accent="#a78bfa"
+                              />
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
 
                       <div className="flex-1" />
 
