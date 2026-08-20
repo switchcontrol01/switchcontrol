@@ -4,7 +4,9 @@ import { defineConfig } from "drizzle-kit";
 // We warn instead of throwing so that Electron frontend builds and CI tooling that
 // import or evaluate this file without a database connection do not crash at load time.
 // The drizzle-kit CLI will fail at the connection step (not here) if the URL is missing.
-if (!process.env.DATABASE_URL) {
+const databaseUrl = process.env.RAILWAY_DATABASE_URL || process.env.DATABASE_URL;
+
+if (!databaseUrl) {
   console.warn(
     "[drizzle.config] DATABASE_URL is not set. " +
     "drizzle-kit migration commands will not work until it is configured. " +
@@ -17,6 +19,6 @@ export default defineConfig({
   schema: "./shared/schema.ts",
   dialect: "postgresql",
   dbCredentials: {
-    url: process.env.DATABASE_URL ?? "postgres://placeholder:placeholder@localhost/placeholder",
+    url: databaseUrl ?? "postgres://placeholder:placeholder@localhost/placeholder",
   },
 });

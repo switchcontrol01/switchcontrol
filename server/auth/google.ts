@@ -236,7 +236,7 @@ export function setupGoogleAuth(app: Express): void {
 
   const isElectronMode = process.env.ELECTRON_BACKEND === '1';
 
-  if (isNoDbMode || !process.env.DATABASE_URL || isElectronMode) {
+  if (isNoDbMode || !databaseConnectionUrl || isElectronMode) {
     const MemStore = MemoryStore(session);
     sessionStore = new MemStore({
       checkPeriod: sessionTtl,
@@ -245,7 +245,7 @@ export function setupGoogleAuth(app: Express): void {
   } else {
     const pgStore = connectPg(session);
     sessionStore = new pgStore({
-      conString: process.env.DATABASE_URL,
+      conString: databaseConnectionUrl,
       createTableIfMissing: false,
       ttl: sessionTtl,
       tableName: "sessions",
