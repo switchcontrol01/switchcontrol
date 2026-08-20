@@ -1,8 +1,16 @@
 import { Router } from "express";
 import { sql } from "drizzle-orm";
 import { db, isNoDbMode } from "../db";
+import rateLimit from "express-rate-limit";
 
 const router = Router();
+const startupMutationLimit = rateLimit({
+  windowMs: 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { ok: false, error: "Too many startup changes. Please try again shortly." },
+});
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -44,7 +52,7 @@ router.get("/apps", (_req, res) => {
 
 // POST /api/startup/apps/:id/toggle
 // Logs an enable/disable change to DB for the history panel.
-router.post("/apps/:id/toggle", async (req, res) => {
+router.post("/apps/:id/toggle", startupMutationLimit, async (req, res) => {
   const { id } = req.params;
   const { name, source, enabled } = req.body as {
     name?: string;
@@ -52,10 +60,16 @@ router.post("/apps/:id/toggle", async (req, res) => {
     enabled?: boolean;
   };
 
-  if (!name || !source || typeof enabled !== "boolean") {
+  const validSources: StartupSource[] = [
+    "registry-hkcu", "registry-hklm", "startup-folder-user",
+    "startup-folder-common", "task-scheduler",
+  ];
+  if (!id || id.length > 512 || typeof name !== "string" || name.length === 0 || name.length > 256 ||
+      typeof source !== "string" || !validSources.includes(source as StartupSource) ||
+      typeof enabled !== "boolean") {
     return res
       .status(400)
-      .json({ ok: false, error: "name, source and enabled are required" });
+      .json({ ok: false, error: "id, name, source and enabled are invalid" });
   }
 
   try {
@@ -67,8 +81,8 @@ router.post("/apps/:id/toggle", async (req, res) => {
     }
     res.json({ ok: true });
   } catch (e: any) {
-    console.error("[StartupApps] toggle log error:", e.message);
-    res.status(500).json({ ok: false, error: e.message });
+    console.error("[StartupApps] toggle log error:", e?.message ?? "unknown database error");
+    res.status(500).json({ ok: false, error: "Failed to record startup change" });
   }
 });
 

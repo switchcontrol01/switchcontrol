@@ -101,7 +101,17 @@ export async function registerRoutes(
   app.use("/api/tweak-intelligence", tweakIntelligenceRouter);
   app.use("/api/power-intelligence", powerIntelligenceRouter);
   app.use("/api/dashboard-intelligence", dashboardIntelligenceRouter);
-  app.use("/api/startup", startupAppsRouter);
+  // Startup changes only record/log authenticated client actions; they must not
+  // be usable as an unauthenticated write or database/logging amplifier.
+  app.use("/api/startup", (req, res, next) => {
+    if (["POST", "PATCH", "PUT", "DELETE"].includes(req.method)) {
+      return requireJwt(req, res, (authError?: any) => {
+        if (authError) return next(authError);
+        return csrfProtection(req, res, next);
+      });
+    }
+    next();
+  }, startupAppsRouter);
   app.use("/api/debloat", debloaterRouter);
   app.use("/api/cleaner", killSwitchMiddleware("cleaner"), requireJwt, cleanerRouter);
   app.use("/api/system-intelligence", systemIntelligenceRouter);
@@ -187,12 +197,9 @@ export async function registerRoutes(
     res.json({ enabled: true });
   });
 
-  // Warm up system intelligence in the background — delayed 20s so it doesn't
-  // compete with telemetry priming, window reveal, or dashboard hydration.
-  // triggerBackgroundCollection() is idempotent (no-op if already running or fresh).
-  // 20s gives Phase A (3.5s) + batchCheckAll (8s) time to finish before the
-  // full 12-probe WMI deep collection fires — prevents a process-burst pile-up.
-  setTimeout(() => triggerBackgroundCollection(), 20_000);
+  // Deep system intelligence is triggered by the authenticated dashboard
+  // request, not by an unauthenticated startup timer. This avoids making every
+  // server restart spawn an expensive WMI/PowerShell collection.
 
   // Cloud connectivity probe — used by packaged Electron to verify JWT auth without an OpenAI call
   app.post("/api/ai/cloud-probe", requireJwt, requireCloudPremium, (req, res) => {

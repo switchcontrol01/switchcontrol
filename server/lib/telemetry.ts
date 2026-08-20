@@ -707,6 +707,24 @@ function siWithTimeout<T>(fn: () => Promise<T>, ms = 5_000, label = 'si call'): 
 }
 
 export async function getSystemSpecs() {
+  if (cachedSystemSpecs && Date.now() - cachedSystemSpecsAt < SYSTEM_SPECS_TTL_MS) {
+    return cachedSystemSpecs;
+  }
+  if (systemSpecsPromise) return systemSpecsPromise;
+  systemSpecsPromise = collectSystemSpecs().then((specs) => {
+    cachedSystemSpecs = specs;
+    cachedSystemSpecsAt = Date.now();
+    return specs;
+  }).finally(() => { systemSpecsPromise = null; });
+  return systemSpecsPromise;
+}
+
+const SYSTEM_SPECS_TTL_MS = 5 * 60 * 1000;
+let cachedSystemSpecs: Awaited<ReturnType<typeof collectSystemSpecs>> | null = null;
+let cachedSystemSpecsAt = 0;
+let systemSpecsPromise: Promise<Awaited<ReturnType<typeof collectSystemSpecs>>> | null = null;
+
+async function collectSystemSpecs() {
   const [cpu, mem, os, gpu, disk] = await Promise.allSettled([
     siWithTimeout(() => si.cpu(), 30_000, 'si.cpu()').catch(() => { throw new Error('cpu timeout'); }),
     siWithTimeout(() => si.mem(), 10_000, 'si.mem()').catch(() => { throw new Error('mem timeout'); }),

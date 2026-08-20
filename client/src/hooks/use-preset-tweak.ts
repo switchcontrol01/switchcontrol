@@ -182,10 +182,10 @@ export function usePresetTweak(tweakId: string, config: PresetConfig) {
     if (!isElectron) {
       setState(s => ({
         ...s,
-        previousOptionId: s.currentOptionId,
-        currentOptionId:  optionToApply,
-        status:           'verified',
-        verifyResult:     { ok: true, error: null },
+        previousOptionId: s.previousOptionId,
+        status:           'failed',
+        verifyResult:     { ok: false, error: 'Preset verification is unavailable outside the desktop app.' },
+        lastError:        'Preset verification is unavailable outside the desktop app.',
       }));
       scheduleResultDismiss();
       return;
@@ -193,10 +193,18 @@ export function usePresetTweak(tweakId: string, config: PresetConfig) {
 
     try {
       const api = getPresetAPI();
+      if (!api?.apply || !api?.getState) throw new Error('Preset verification is unavailable.');
       const result: { ok: boolean; error: string | null } = await api.apply(tweakId, optionToApply);
 
       if (result.ok) {
-        setPresetOption(tweakId, optionToApply);
+        const readback = await api.getState(tweakId);
+        if (readback.error || readback.optionId !== optionToApply) {
+          const msg = readback.error ?? `Read-back returned ${readback.optionId ?? 'no preset'} instead of ${optionToApply}.`;
+          setState(s => ({ ...s, status: 'failed', verifyResult: { ok: false, error: msg }, lastError: msg }));
+          toast({ title: 'Apply Unverified', description: msg, variant: 'destructive' });
+          return;
+        }
+        setPresetOption(tweakId, readback.optionId);
         setState(s => ({
           ...s,
           previousOptionId: s.currentOptionId,
@@ -230,11 +238,10 @@ export function usePresetTweak(tweakId: string, config: PresetConfig) {
     if (!isElectron) {
       setState(s => ({
         ...s,
-        currentOptionId:  config.defaultOptionId,
-        pendingOptionId:  config.defaultOptionId,
-        previousOptionId: null,
-        status:           'verified',
-        verifyResult:     { ok: true, error: null },
+        previousOptionId: s.previousOptionId,
+        status:           'failed',
+        verifyResult:     { ok: false, error: 'Preset verification is unavailable outside the desktop app.' },
+        lastError:        'Preset verification is unavailable outside the desktop app.',
       }));
       scheduleResultDismiss();
       return;
@@ -242,10 +249,18 @@ export function usePresetTweak(tweakId: string, config: PresetConfig) {
 
     try {
       const api = getPresetAPI();
+      if (!api?.revert || !api?.getState) throw new Error('Preset verification is unavailable.');
       const result: { ok: boolean; optionId?: string; error: string | null } = await api.revert(tweakId);
       if (result.ok) {
         const resetId = result.optionId ?? config.defaultOptionId;
-        setPresetOption(tweakId, resetId);
+        const readback = await api.getState(tweakId);
+        if (readback.error || readback.optionId !== resetId) {
+          const msg = readback.error ?? `Read-back returned ${readback.optionId ?? 'no preset'} instead of ${resetId}.`;
+          setState(s => ({ ...s, status: 'failed', verifyResult: { ok: false, error: msg }, lastError: msg }));
+          toast({ title: 'Revert Unverified', description: msg, variant: 'destructive' });
+          return;
+        }
+        setPresetOption(tweakId, readback.optionId);
         setState(s => ({
           ...s,
           currentOptionId:  resetId,

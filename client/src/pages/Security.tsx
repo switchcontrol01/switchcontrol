@@ -997,7 +997,11 @@ export default function Security() {
           }
           timingMark("getStatus-done");
         })
-        .catch(() => {});
+        .catch((err: any) => {
+          console.error("[Security] getStatus IPC failed:", err);
+          setSecurityStatus(null);
+          toast({ title: "Security status unavailable", description: err?.message ?? "Windows Security could not be queried.", variant: "destructive" });
+        });
     }, 3000);
   }, [hasSecurity]); // eslint-disable-line
 
@@ -1040,7 +1044,10 @@ export default function Security() {
         setSecurityStatus(r.data);
         if (r.data.tamperProtection != null) setTamperProtection(r.data.tamperProtection as boolean);
       }
-    }).catch(() => {});
+    }).catch((err: any) => {
+      console.error("[Security] refresh status IPC failed:", err);
+      toast({ title: "Security refresh failed", description: err?.message ?? "Windows Security could not be queried.", variant: "destructive" });
+    });
   }, [hasSecurity]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const refreshAdvanced = useCallback(async () => {
@@ -1077,7 +1084,10 @@ export default function Security() {
       if (r?.ok) {
         setAdvancedProtection(prev => prev ? { ...prev, [option]: enabled } : prev);
       }
-    } catch (_) {}
+    } catch (err: any) {
+      console.error("[Security] Defender option IPC failed:", err);
+      toast({ title: "Security setting failed", description: err?.message ?? "The setting could not be changed.", variant: "destructive" });
+    }
     setTogglingOption(null);
   }, [hasSecurity, togglingOption]);
 

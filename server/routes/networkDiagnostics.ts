@@ -57,6 +57,8 @@ const DNS_PROVIDERS = [
 const DNS_PROBE_COUNT = 5;
 const DNS_PROBE_TIMEOUT_MS = 1500;
 const DNS_PROBE_STAGGER_MS = 90;
+const DNS_BENCHMARK_CACHE_MS = 5_000;
+let dnsBenchmarkCache: { results: Awaited<ReturnType<typeof benchmarkProvider>>[]; ts: number } | null = null;
 
 function tcpPing(host: string, port: number, timeoutMs = 2000): Promise<number | null> {
   return new Promise((resolve) => {
@@ -111,7 +113,9 @@ async function collectSamples(count: number): Promise<{
   };
 }
 
-// Benchmark a single DNS provider with DNS_PROBE_COUNT sequential TCP probes
+// Benchmark a single provider using TCP connect latency to its DNS port.
+// This is deliberately not a DNS query benchmark: it measures reachability and
+// transport latency, while resolver/cache/query performance is not measured.
 async function benchmarkProvider(provider: typeof DNS_PROVIDERS[number]) {
   const raw: Array<number | null> = [];
   for (let i = 0; i < DNS_PROBE_COUNT; i++) {
@@ -280,10 +284,15 @@ router.get("/pc-vs-internet", async (_req, res) => {
 
 router.get("/dns-benchmark", dnsBenchmarkRateLimit, async (_req, res) => {
   try {
-    // All 5 providers run in parallel; probes within each provider are sequential
-    const results = await Promise.all(
-      DNS_PROVIDERS.map(p => benchmarkProvider(p))
-    );
+    // All 5 providers run in parallel; share a very short result cache so
+    // concurrent dashboard requests do not multiply the network probes.
+    let results: Awaited<ReturnType<typeof benchmarkProvider>>[];
+    if (dnsBenchmarkCache && Date.now() - dnsBenchmarkCache.ts < DNS_BENCHMARK_CACHE_MS) {
+      results = dnsBenchmarkCache.results;
+    } else {
+      results = await Promise.all(DNS_PROVIDERS.map(p => benchmarkProvider(p)));
+      dnsBenchmarkCache = { results, ts: Date.now() };
+    }
 
     const alive = results.filter(p => p.loss < 100);
 
@@ -300,7 +309,7 @@ router.get("/dns-benchmark", dnsBenchmarkRateLimit, async (_req, res) => {
       return { ...p, composite };
     }).sort((a, b) => b.composite - a.composite);
 
-    const recommended = scored[0]?.id ?? ranked[0]?.id ?? "cloudflare";
+    const recommended = scored[0]?.id ?? null;
     const rec = results.find(p => p.id === recommended);
 
     // Build reasons for recommendation
@@ -315,7 +324,9 @@ router.get("/dns-benchmark", dnsBenchmarkRateLimit, async (_req, res) => {
       if (rec.loss === 0)                  recommendedReasons.push("Zero packet loss");
       if (rec.median < byAvg[0].avg * 0.95) recommendedReasons.push("Best median response time");
     }
-    if (recommendedReasons.length === 0) recommendedReasons.push("Best overall composite score");
+    if (recommendedReasons.length === 0) {
+      recommendedReasons.push(alive.length ? "Best overall composite score" : "No DNS provider was reachable");
+    }
 
     // Category winners
     const byAvg    = alive.length ? [...alive].sort((a, b) => a.avg    - b.avg)   : results;
@@ -346,7 +357,18 @@ router.get("/dns-benchmark", dnsBenchmarkRateLimit, async (_req, res) => {
 
     const providers = ranked.map((p, i) => ({ ...p, rank: i + 1 }));
 
-    res.json({ providers, recommended, recommendedReasons, confidence, categoryWinners, ts: Date.now() });
+    res.json({
+      providers,
+      recommended,
+      recommendedReasons,
+      confidence,
+      categoryWinners,
+      // Explicitly document the measurement so callers do not present TCP
+      // connect time as DNS lookup latency.
+      measurement: "tcp-connect-to-dns-port",
+      inconclusive: alive.length === 0,
+      ts: Date.now(),
+    });
   } catch (err) {
     res.status(500).json({ error: "DNS benchmark failed" });
   }

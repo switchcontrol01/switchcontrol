@@ -14,6 +14,7 @@ interface NetworkStore {
   lastOnlineAt: number | null;
   lastCheckedAt: number | null;
   _heartbeatHandle: ReturnType<typeof setInterval> | null;
+  _heartbeatInFlight: boolean;
 
   _setNetworkState: (s: NetworkState) => void;
   _setReachable: (r: boolean) => void;
@@ -61,6 +62,7 @@ export const useNetworkStore = create<NetworkStore>()((set, get) => ({
   lastOnlineAt: navigator.onLine ? Date.now() : null,
   lastCheckedAt: null,
   _heartbeatHandle: null,
+  _heartbeatInFlight: false,
 
   _setNetworkState(s) {
     const { networkState } = get();
@@ -87,15 +89,16 @@ export const useNetworkStore = create<NetworkStore>()((set, get) => ({
 
   retryConnectionCheck() {
     const { isOnline } = get();
-    if (!isOnline) {
+    if (!isOnline || document.hidden || get()._heartbeatInFlight) {
       console.log('[Network] retryConnectionCheck — offline, skipping ping');
       return;
     }
     console.log('[Network] retryConnectionCheck triggered');
+    set({ _heartbeatInFlight: true });
     pingBackend().then((r) => {
       get()._setReachable(r);
       get()._setCheckedAt();
-    });
+    }).finally(() => set({ _heartbeatInFlight: false }));
   },
 
   _startHeartbeat() {
@@ -103,11 +106,12 @@ export const useNetworkStore = create<NetworkStore>()((set, get) => ({
     if (_heartbeatHandle) return;
     const handle = setInterval(() => {
       const { isOnline } = get();
-      if (!isOnline) return;
+      if (!isOnline || document.hidden || get()._heartbeatInFlight) return;
+      set({ _heartbeatInFlight: true });
       pingBackend().then((r) => {
         get()._setReachable(r);
         get()._setCheckedAt();
-      });
+      }).finally(() => set({ _heartbeatInFlight: false }));
     }, HEARTBEAT_INTERVAL_MS);
     set({ _heartbeatHandle: handle });
     console.log('[Network] Heartbeat started (interval=' + HEARTBEAT_INTERVAL_MS + 'ms)');
@@ -137,6 +141,11 @@ export const useNetworkStore = create<NetworkStore>()((set, get) => ({
       }, 400);
     }
 
+    function onVisibility() {
+      if (document.hidden) get()._stopHeartbeat();
+      else get()._startHeartbeat();
+    }
+
     function onOffline() {
       if (_debounceTimer) clearTimeout(_debounceTimer);
       _debounceTimer = setTimeout(() => {
@@ -148,9 +157,11 @@ export const useNetworkStore = create<NetworkStore>()((set, get) => ({
 
     window.addEventListener('online', onOnline);
     window.addEventListener('offline', onOffline);
+    document.addEventListener('visibilitychange', onVisibility);
     return () => {
       window.removeEventListener('online', onOnline);
       window.removeEventListener('offline', onOffline);
+      document.removeEventListener('visibilitychange', onVisibility);
     };
   },
 }));

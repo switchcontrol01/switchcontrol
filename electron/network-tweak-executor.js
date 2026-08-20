@@ -376,17 +376,25 @@ const TWEAK_REGISTRY = {
   'tcp-weak-host': {
     requiresAdmin: true,
     apply: `
-      $adapters = Get-NetAdapter;
+      $adapters = @(Get-NetAdapter -ErrorAction Stop);
+      if ($adapters.Count -eq 0) { throw "No network adapters were found." }
+      $failed = @();
       foreach ($a in $adapters) {
-        try { netsh int ip set interface "$($a.Name)" weakhostsend=enabled weakhostreceive=enabled 2>&1 | Out-Null } catch {}
+        & netsh int ip set interface "$($a.Name)" weakhostsend=enabled weakhostreceive=enabled 2>&1 | Out-Null;
+        if ($LASTEXITCODE -ne 0) { $failed += $a.Name }
       }
+      if ($failed.Count -gt 0) { throw "Weak-host enable failed for: $($failed -join ', ')" }
       Write-Output "ok"
     `,
     revert: `
-      $adapters = Get-NetAdapter;
+      $adapters = @(Get-NetAdapter -ErrorAction Stop);
+      if ($adapters.Count -eq 0) { throw "No network adapters were found." }
+      $failed = @();
       foreach ($a in $adapters) {
-        try { netsh int ip set interface "$($a.Name)" weakhostsend=disabled weakhostreceive=disabled 2>&1 | Out-Null } catch {}
+        & netsh int ip set interface "$($a.Name)" weakhostsend=disabled weakhostreceive=disabled 2>&1 | Out-Null;
+        if ($LASTEXITCODE -ne 0) { $failed += $a.Name }
       }
+      if ($failed.Count -gt 0) { throw "Weak-host disable failed for: $($failed -join ', ')" }
       Write-Output "ok"
     `,
     check: `

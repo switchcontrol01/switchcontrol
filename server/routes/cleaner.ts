@@ -631,7 +631,13 @@ router.post("/scan", async (req: any, res) => {
     electronResults?: Record<string, { sizeBytes?: number; fileCount?: number; found?: boolean; error?: string }>;
   };
 
-  const items = getItemsForMode(mode as CleanMode);
+  if (mode !== "safe" && mode !== "advanced") {
+    return res.status(400).json({ ok: false, error: "mode must be safe or advanced" });
+  }
+  if (!electronResults || typeof electronResults !== "object" || Array.isArray(electronResults)) {
+    return res.status(400).json({ ok: false, error: "electronResults must be an object" });
+  }
+  const items = getItemsForMode(mode);
   const findings: Record<string, any> = {};
 
   let totalBytes = 0;
@@ -646,9 +652,17 @@ router.post("/scan", async (req: any, res) => {
       };
       continue;
     }
+    if (typeof er !== "object" || Array.isArray(er)) {
+      return res.status(400).json({ ok: false, error: `Invalid scan result for ${item.id}` });
+    }
 
     const sizeBytes = er.sizeBytes ?? 0;
     const fileCount = er.fileCount ?? 0;
+    if ((typeof sizeBytes !== "number" || !Number.isFinite(sizeBytes) || sizeBytes < 0) ||
+        (typeof fileCount !== "number" || !Number.isFinite(fileCount) || fileCount < 0 || !Number.isInteger(fileCount)) ||
+        (er.found !== undefined && typeof er.found !== "boolean")) {
+      return res.status(400).json({ ok: false, error: `Invalid numeric scan result for ${item.id}` });
+    }
     const found     = er.found ?? (fileCount > 0 || sizeBytes > 0);
     const hasError  = !!er.error;
 
@@ -720,6 +734,14 @@ router.post("/clean", async (req: any, res) => {
   if (!Array.isArray(itemIds) || itemIds.length === 0) {
     return res.status(400).json({ ok: false, error: "No items specified" });
   }
+  if ((mode !== "safe" && mode !== "advanced") ||
+      itemIds.some((id: unknown) => typeof id !== "string" || !id.trim()) ||
+      new Set(itemIds).size !== itemIds.length) {
+    return res.status(400).json({ ok: false, error: "mode, itemIds and their values are invalid" });
+  }
+  if (!electronResults || typeof electronResults !== "object" || Array.isArray(electronResults)) {
+    return res.status(400).json({ ok: false, error: "electronResults must be an object" });
+  }
 
   const results: Record<string, {
     id: string; status: CleanStatus;
@@ -757,6 +779,13 @@ router.post("/clean", async (req: any, res) => {
       filesRemoved = er.filesRemoved ?? 0;
       const failed = er.failed ?? 0;
       error        = er.error;
+      if (![bytesRemoved, filesRemoved, failed].every(v =>
+        typeof v === "number" && Number.isFinite(v) && v >= 0 && Number.isInteger(v))) {
+        return res.status(400).json({ ok: false, error: `Invalid numeric clean result for ${itemId}` });
+      }
+      if (error !== undefined && typeof error !== "string") {
+        return res.status(400).json({ ok: false, error: `Invalid error value for ${itemId}` });
+      }
 
       if (error || (failed > 0 && filesRemoved === 0)) { status = "failed"; errors++; }
       else if (filesRemoved === 0 && bytesRemoved === 0) status = "nothing";

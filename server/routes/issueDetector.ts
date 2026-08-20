@@ -46,19 +46,37 @@ function off(states: Record<string, boolean>, id: string): boolean {
   return states[id] === false;
 }
 
-router.post("/detect", (req, res) => {
+router.post("/detect", async (req, res) => {
   try {
+    const body = req.body;
+    if (body == null || typeof body !== "object" || Array.isArray(body)) {
+      return res.status(400).json({ ok: false, error: "Request body must be an object" });
+    }
     const {
       tweakStates = {} as Record<string, boolean>,
       startupAppCount,
       powerPlanName,
-    } = (req.body ?? {}) as {
+    } = body as {
       tweakStates?: Record<string, boolean>;
       startupAppCount?: number;
       powerPlanName?: string;
     };
 
-    const snapshot = getSnapshot();
+    if (tweakStates == null || typeof tweakStates !== "object" || Array.isArray(tweakStates) ||
+        Object.entries(tweakStates).some(([key, value]) => typeof key !== "string" || typeof value !== "boolean")) {
+      return res.status(400).json({ ok: false, error: "tweakStates must be an object of boolean values" });
+    }
+    if (startupAppCount !== undefined &&
+        (typeof startupAppCount !== "number" || !Number.isFinite(startupAppCount) ||
+         startupAppCount < 0 || !Number.isInteger(startupAppCount))) {
+      return res.status(400).json({ ok: false, error: "startupAppCount must be a non-negative integer" });
+    }
+    if (powerPlanName !== undefined &&
+        (typeof powerPlanName !== "string" || powerPlanName.length > 256)) {
+      return res.status(400).json({ ok: false, error: "powerPlanName must be a string of at most 256 characters" });
+    }
+
+    const snapshot = await getSnapshot();
     const intel = getCachedSystemIntelligence();
 
     const issues: DetectedIssue[] = [];

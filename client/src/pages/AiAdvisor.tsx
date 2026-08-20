@@ -1584,12 +1584,16 @@ export default function AiAdvisor() {
     // Build display string from system intelligence
     let displayStr = "";
     if (si?.gpu.displays.length) {
-      const main = si.gpu.displays.find(d => d.main) ?? si.gpu.displays[0];
+      const main = si.gpu.displays.find(d => d.main === true);
+      if (!main) {
+        displayStr = "Unavailable (main display not identified)";
+      } else {
       const parts: string[] = [];
       if (main.model) parts.push(main.model);
       if (main.resolutionX && main.resolutionY) parts.push(`${main.resolutionX}x${main.resolutionY}`);
       if (main.refreshRate) parts.push(`@ ${main.refreshRate}Hz`);
       displayStr = parts.join(" ");
+      }
     }
 
     // Build motherboard string
@@ -1636,8 +1640,13 @@ export default function AiAdvisor() {
     // GPU — prefer system intelligence name + VRAM detail
     let gpuStr = stats.gpuName || "";
     if (si?.gpu.controllers.length) {
-      const g = si.gpu.controllers[0];
+      const g = si.gpu.controllers.find(c => c.name && stats.gpuName && c.name === stats.gpuName)
+        ?? si.gpu.controllers.find(c => /nvidia|amd|radeon|geforce|rtx|rx /i.test(`${c.vendor ?? ""} ${c.name ?? ""}`));
+      if (!g) {
+        gpuStr = "Unavailable (selected GPU not identified)";
+      } else {
       gpuStr = [g.name, g.vramMb ? `${Math.round(g.vramMb / 1024)}GB VRAM` : null].filter(Boolean).join(" ") || gpuStr;
+      }
     }
 
     // Storage

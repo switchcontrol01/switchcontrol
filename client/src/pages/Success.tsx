@@ -215,6 +215,7 @@ export default function Success() {
   const showButtons = phaseIndex >= 5;
 
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pollInFlightRef = useRef(false);
   const pollCountRef = useRef(0);
   const mountedRef = useRef(true);
   const POLL_INTERVAL_MS = 1500;
@@ -252,6 +253,8 @@ export default function Success() {
     const startPolling = () => {
       pollCountRef.current = 0;
       pollRef.current = setInterval(async () => {
+        if (pollInFlightRef.current) return;
+        pollInFlightRef.current = true;
         pollCountRef.current += 1;
         try {
           const isPremium = await checkPremiumStatus();
@@ -267,6 +270,8 @@ export default function Success() {
           }
         } catch {
           // network blip — keep polling
+        } finally {
+          pollInFlightRef.current = false;
         }
         if (!pollRef.current) return;
         if (pollCountRef.current >= POLL_MAX_ATTEMPTS) {

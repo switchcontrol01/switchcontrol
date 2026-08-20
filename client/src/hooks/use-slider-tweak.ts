@@ -262,10 +262,10 @@ export function useSliderTweak(tweakId: string, config: SliderConfig) {
       // Browser mode — just update state
       setState(s => ({
         ...s,
-        previousValue: s.currentValue,
-        currentValue:  valueToApply,
-        status:        'verified',
-        verifyResult:  { ok: true, actualValue: valueToApply, error: null },
+        previousValue: s.previousValue,
+        status:        'failed',
+        verifyResult:  { ok: false, actualValue: null, error: 'Slider verification is unavailable outside the desktop app.' },
+        lastError:     'Slider verification is unavailable outside the desktop app.',
       }));
       scheduleResultDismiss();
       return;
@@ -273,10 +273,18 @@ export function useSliderTweak(tweakId: string, config: SliderConfig) {
 
     try {
       const api = getSliderAPI();
+      if (!api?.applyValue || !api?.readValue) throw new Error('Slider verification is unavailable.');
       const result: { ok: boolean; verified: boolean; actualValue: number | null; error: string | null } =
         await api.applyValue(tweakId, valueToApply);
 
       if (result.ok && result.verified) {
+        const readback = await api.readValue(tweakId);
+        if (readback.error || readback.value !== result.actualValue) {
+          const msg = readback.error ?? `Read-back returned ${readback.value ?? 'no value'} instead of ${result.actualValue ?? valueToApply}.`;
+          setState(s => ({ ...s, status: 'failed', verifyResult: { ok: false, actualValue: readback.value, error: msg }, lastError: msg }));
+          toast({ title: 'Apply Unverified', description: msg, variant: 'destructive' });
+          return;
+        }
         const confirmedValue = result.actualValue ?? valueToApply;
         // Persist confirmed value — survives app restarts and busy-limiter fallback.
         setSliderValue(tweakId, confirmedValue);
@@ -320,11 +328,10 @@ export function useSliderTweak(tweakId: string, config: SliderConfig) {
     if (!isElectron) {
       setState(s => ({
         ...s,
-        previousValue: s.currentValue,
-        currentValue:  config.defaultValue,
-        pendingValue:  config.defaultValue,
-        status:        'verified',
-        verifyResult:  { ok: true, actualValue: config.defaultValue, error: null },
+        previousValue: s.previousValue,
+        status:        'failed',
+        verifyResult:  { ok: false, actualValue: null, error: 'Slider verification is unavailable outside the desktop app.' },
+        lastError:     'Slider verification is unavailable outside the desktop app.',
       }));
       scheduleResultDismiss();
       return;
@@ -335,7 +342,9 @@ export function useSliderTweak(tweakId: string, config: SliderConfig) {
       const result: { ok: boolean; verified: boolean; actualValue: number | null; error: string | null } =
         await api.resetValue(tweakId);
 
-      if (result.ok) {
+      if (result.ok && result.verified) {
+        const readback = await api.readValue(tweakId);
+        if (readback.error || readback.value !== result.actualValue) throw new Error(readback.error ?? 'Reset read-back did not match the requested value.');
         const resetValue = result.actualValue ?? config.defaultValue;
         // Persist the reset-to-default value so next startup shows default, not old applied value.
         setSliderValue(tweakId, resetValue);
@@ -385,11 +394,10 @@ export function useSliderTweak(tweakId: string, config: SliderConfig) {
     if (!isElectron) {
       setState(s => ({
         ...s,
-        currentValue:  prevVal,
-        pendingValue:  prevVal,
-        previousValue: null,
-        status:        'verified',
-        verifyResult:  { ok: true, actualValue: prevVal, error: null },
+        previousValue: s.previousValue,
+        status:        'failed',
+        verifyResult:  { ok: false, actualValue: null, error: 'Slider verification is unavailable outside the desktop app.' },
+        lastError:     'Slider verification is unavailable outside the desktop app.',
       }));
       scheduleResultDismiss();
       return;
@@ -398,7 +406,9 @@ export function useSliderTweak(tweakId: string, config: SliderConfig) {
     try {
       const api = getSliderAPI();
       const result = await api.applyValue(tweakId, prevVal);
-      if (result.ok) {
+      if (result.ok && result.verified) {
+        const readback = await api.readValue(tweakId);
+        if (readback.error || readback.value !== result.actualValue) throw new Error(readback.error ?? 'Revert read-back did not match the requested value.');
         setState(s => ({
           ...s,
           currentValue:  result.actualValue ?? prevVal,

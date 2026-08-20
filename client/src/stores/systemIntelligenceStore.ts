@@ -171,6 +171,7 @@ const CACHE_TTL_MS = 30 * 60 * 1000;
 let _initSpecsFetched = false;
 // Prevents the delayed full-profile upgrade from being scheduled more than once.
 let _fullCollectScheduled = false;
+let _fetchGeneration = 0;
 
 interface SystemIntelligenceState {
   profile: SystemIntelligenceProfile | null;
@@ -205,6 +206,7 @@ export const useSystemIntelligenceStore = create<SystemIntelligenceState>((set, 
     if (!forceRefresh && !stale && get().profile) return;
     if (loading) return;
 
+    const generation = ++_fetchGeneration;
     set({ loading: true, error: null });
     try {
       // Initial load uses /fast — Phase A identity data (CPU, GPU, MB, BIOS, RAM).
@@ -218,6 +220,7 @@ export const useSystemIntelligenceStore = create<SystemIntelligenceState>((set, 
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json() as SystemIntelligenceProfile;
       _initSpecsFetched = true;
+      if (generation !== _fetchGeneration) return;
       set({ profile: data, activeHardwareProfile: data, initSpecsFetched: true, loading: false, fetchedAt: Date.now() });
       console.log(`[SysIntelligence] Fast profile loaded | MB=${data.baseboard.model} | CPU=${data.cpu.brand}`);
 
@@ -231,27 +234,32 @@ export const useSystemIntelligenceStore = create<SystemIntelligenceState>((set, 
             const fullRes = await fetch("/api/system-intelligence/profile");
             if (!fullRes.ok) return;
             const fullData = await fullRes.json() as SystemIntelligenceProfile;
+            if (generation !== _fetchGeneration) return;
             set({ profile: fullData, activeHardwareProfile: fullData, fetchedAt: Date.now() });
             console.log(`[SysIntelligence] Full profile upgrade | MB=${fullData.baseboard.model} | platform.secureBoot=${fullData.platform.secureBootEnabled}`);
           } catch {}
         }, 25_000);
       }
     } catch (err: any) {
+      if (generation !== _fetchGeneration) return;
       console.warn("[SysIntelligence] fetch failed:", err?.message);
       set({ loading: false, error: err?.message ?? "Failed to load system profile" });
     }
   },
 
   refresh: async () => {
+    const generation = ++_fetchGeneration;
     set({ loading: true, error: null });
     try {
       const res = await fetch("/api/system-intelligence/refresh", { method: "POST" });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json() as SystemIntelligenceProfile;
       _initSpecsFetched = true;
+      if (generation !== _fetchGeneration) return;
       set({ profile: data, activeHardwareProfile: data, initSpecsFetched: true, loading: false, fetchedAt: Date.now() });
       console.log("[SysIntelligence] Profile refreshed");
     } catch (err: any) {
+      if (generation !== _fetchGeneration) return;
       set({ loading: false, error: err?.message ?? "Refresh failed" });
     }
   },

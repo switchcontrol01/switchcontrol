@@ -63,6 +63,7 @@
   const powerPlanManager = require('./power-plan-manager');
   const backendLauncher = require('./backend-launcher');
   const psLimiter = require('./powershell-limiter');
+  const { checkIsAdmin: checkSharedIsAdmin } = require('./ps-shared');
   require('./security-helper');
   require('./debloat-helper');
   const { getIconDataUrlForPath } = require('./file-icon');
@@ -158,17 +159,10 @@
   
   function checkWindowsAdmin() {
     if (process.platform !== 'win32') return Promise.resolve(true);
-    return new Promise((resolve) => {
-      const token = psLimiter.tryAcquire({ file: 'main.js', fn: 'checkWindowsAdmin', reason: 'admin-check' });
-      if (!token) return resolve(false); // conservative: treat busy limiter as non-admin
-      execFile('powershell', [
-        '-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden',
-        '-ExecutionPolicy', 'Bypass', '-Command',
-        '([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)',
-      ], { windowsHide: true, timeout: 6000 }, (err, stdout) => {
-        psLimiter.release(token);
-        resolve(!err && stdout.trim().toLowerCase() === 'true');
-      });
+    if (_appIsAdmin !== null) return Promise.resolve(_appIsAdmin);
+    return checkSharedIsAdmin().then(value => {
+      _appIsAdmin = value;
+      return value;
     });
   }
 
@@ -508,8 +502,8 @@
       const _t0Light = Date.now();
       const _shouldPollNet = (now - _netStatsLastTs) >= NET_STATS_TTL_MS;
       const [load, mem, netStatsRaw] = await Promise.all([
-        si.currentLoad().catch(e => { console.warn('[telemetry:poll] currentLoad error:', e.message); return { currentLoad: 0, cpus: [] }; }),
-        si.mem().catch(e => { console.warn('[telemetry:poll] mem error:', e.message); return { total: 0, available: 0 }; }),
+        si.currentLoad().catch(e => { console.warn('[telemetry:poll] currentLoad error:', e.message); return { currentLoad: null, cpus: [] }; }),
+        si.mem().catch(e => { console.warn('[telemetry:poll] mem error:', e.message); return { total: null, available: null }; }),
         _shouldPollNet
           ? si.networkStats().catch(e => { console.warn('[telemetry:poll] networkStats error:', e.message); return []; })
           : Promise.resolve(null),
@@ -2603,7 +2597,7 @@ ConvertTo-Json -InputObject $result -Compress -Depth 2
       gpu: {
         model:    'Detecting…',
         vendor:   'Detecting…',
-        vramGB:   0,
+        vramGB:   null,
         isNvidia: false,
       },
       ram: { totalGB, usedGB, freeGB },
@@ -2614,7 +2608,7 @@ ConvertTo-Json -InputObject $result -Compress -Depth 2
         hostname:  os.hostname()  || 'Unknown',
         hasLibreHardwareMonitor: false,
       },
-      disk:  { name: 'C:', usedGB: 0, totalGB: 0, usePercent: 0 },
+      disk:  { name: 'C:', usedGB: null, totalGB: null, usePercent: null },
       disks: [],
       _partial: true, // enrichment still in-flight
     };
@@ -3310,7 +3304,6 @@ public class DspHelper {
   
     $ipfx = if ($mi.InstanceName) { $mi.InstanceName -replace '_\\d+$','' } else { $null }
     $cp   = if ($ipfx) { $connPs | Where-Object { ($_.InstanceName -replace '_\\d+$','') -eq $ipfx } | Select-Object -First 1 } else { $null }
-    if ($null -eq $cp -and $i -lt $connPs.Count) { $cp = $connPs[$i] }
     # TEMPORARY DISPLAY DIAGNOSTIC: preserve the raw WMI value in the internal
     # PowerShell result so the JS boundary can identify malformed driver output.
     # This field is stripped before the renderer response is returned.
@@ -3318,7 +3311,6 @@ public class DspHelper {
     $conn = if ($cp) { ConnStr $rawConn } else { $null }
   
     $df     = if ($ipfx) { $dispFt | Where-Object { ($_.InstanceName -replace '_\\d+$','') -eq $ipfx } | Select-Object -First 1 } else { $null }
-    if ($null -eq $df -and $i -lt $dispFt.Count) { $df = $dispFt[$i] }
     $vrrCap = if ($df -and $null -ne $df.ContinuousFrequencySupported) { [bool]$df.ContinuousFrequencySupported } else { $null }
     $vrrMin = $null; $vrrMax = $null
     try {
@@ -3333,18 +3325,17 @@ public class DspHelper {
     $scr   = if ($dev) {
       $screens | Where-Object { $_.x -eq $dev.x -and $_.y -eq $dev.y } | Select-Object -First 1
     } else { $null }
-    $vc    = if ($i -lt $vcs.Count) { $vcs[$i] } else { if ($vcs.Count -gt 0) { $vcs[0] } else { $null } }
+    # WMI video-controller order is not a display identity.  Do not attach a
+    # controller to a monitor by array position; an unknown association is
+    # represented as null below.
+    $vc    = $null
     # Look up EDID by the monitor's own hardware model ID (identity-safe, not positional)
     $miHwId = $monHwIds[$i]
     $ed     = if ($miHwId -and $edidMap.ContainsKey($miHwId)) { $edidMap[$miHwId] } else { $null }
   
-    # Positional screen fallback — screens sorted left-to-right by x so index $i maps
-    # to the same display order as WmiMonitorID.  Used when hwId/EDID matching fails
-    # ($dev is null) so we still get the correct per-monitor Hz from EnumDisplaySettings.
-    # NOTE: $scr is ALWAYS null when $dev is null (it is derived from $dev's position),
-    # so the old "if ($scr)" branch inside the else block was dead code.  This replaces it.
-    $sortedScreens = @($screens | Sort-Object { [int]$_.x })
-    $fallbackScr   = if ($i -lt $sortedScreens.Count) { $sortedScreens[$i] } else { $null }
+    # Do not use left-to-right screen order as a monitor identity fallback.
+    # It is not stable with mixed adapters, docking stations, or mirroring.
+    $fallbackScr   = $null
     $hz=$null; $maxHzOut=$null; $bpp=$null; $rx=$null; $ry=$null
     if ($dev) {
       # Per-device data from EnumDisplaySettings — authoritative for multi-monitor, no index aliasing
@@ -3374,7 +3365,7 @@ public class DspHelper {
       }
     }
   
-    $monGpu = if ($i -lt $vcs.Count) { $vcs[$i].Name } else { $gpuName }
+    $monGpu = if ($vc) { $vc.Name } elseif ($vcs.Count -eq 1) { $gpuName } else { $null }
   
     $out.monitors += @{
       id=$("mon_$i"); name=$name; manufacturer=$mfr; serial=$ser; connectionType=$conn; connectionTypeRaw=$rawConn
@@ -3396,7 +3387,7 @@ public class DspHelper {
     }
     $fi = 0
     foreach ($src in $srcs) {
-      $vc  = if ($fi -lt $vcs.Count) { $vcs[$fi] } else { if ($vcs.Count -gt 0) { $vcs[0] } else { $null } }
+      $vc  = if ($vcs.Count -eq 1) { $vcs[0] } else { $null }
       $ed  = $null  # no hwId available in the WMI-absent fallback path; EDID cannot be keyed
       $hz  = if ($vc -and [int]$vc.CurrentRefreshRate -gt 0) { [int]$vc.CurrentRefreshRate } else { $null }
       # Override Hz with per-monitor value from EnumDisplaySettings when available
@@ -3405,7 +3396,7 @@ public class DspHelper {
         if ($hzFb -and [int]$hzFb.hz -gt 0) { $hz = [int]$hzFb.hz }
       }
       $bpp = if ($vc -and [int]$vc.CurrentBitsPerPixel -gt 0) { [int]$vc.CurrentBitsPerPixel } else { $null }
-      $gn  = if ($vc) { $vc.Name } else { $gpuName }
+       $gn  = if ($vc) { $vc.Name } elseif ($vcs.Count -eq 1) { $gpuName } else { $null }
       $out.monitors += @{
         id="mon_$fi"; name=$null; manufacturer=$null; serial=$null; connectionType=$null
         currentResX=$src.w; currentResY=$src.h; refreshHz=$hz; bitsPerPixel=$bpp
@@ -3745,7 +3736,8 @@ public class DspHelper {
       // are independent enumeration sources (systeminformation vs WMI Win32_VideoController)
       // and are NOT guaranteed to return GPUs in the same order.  On a multi-GPU system
       // positional indexing silently returns the wrong card's temperature / VRAM.
-      // Mirror of the monitor-detection fix: name match → positional fallback with a warning.
+      // Never fall back to enumeration position: independent providers reorder
+      // adapters differently on hybrid/multi-GPU systems.
       const targetName = (wmiGpuList[selectedGpuIndex]?.name || gpuState.model || '').toLowerCase();
       let ctrl = null;
       if (targetName && controllers.length > 1) {
@@ -3754,13 +3746,10 @@ public class DspHelper {
           const m = (c.model || '').toLowerCase();
           return m.includes(targetName) || targetName.includes(m);
         });
-        if (!ctrl) {
-          verboseLog(`[telemetry:getGpu] name-match failed for "${wmiGpuList[selectedGpuIndex]?.name}" — falling back to positional index ${selectedGpuIndex}`);
-          ctrl = controllers[selectedGpuIndex] || controllers[0];
-        }
+        if (!ctrl) verboseLog(`[telemetry:getGpu] name-match failed for "${wmiGpuList[selectedGpuIndex]?.name}"`);
       } else {
-        // Single GPU or no reference name — positional indexing is safe here
-        ctrl = controllers[selectedGpuIndex] || controllers[0];
+        // Only a single controller is unambiguous.
+        ctrl = controllers.length === 1 ? controllers[0] : null;
       }
       if (!ctrl) return null;
 

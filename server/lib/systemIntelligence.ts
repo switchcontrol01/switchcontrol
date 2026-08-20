@@ -205,8 +205,17 @@ function _diskCachePath(): string {
 async function _loadDiskCache(): Promise<{ profile: SystemIntelligenceProfile; ageMs: number } | null> {
   try {
     const raw = await fsp.readFile(_diskCachePath(), "utf-8");
-    const { timestamp, profile } = JSON.parse(raw) as { timestamp: number; profile: SystemIntelligenceProfile };
+    const parsed: unknown = JSON.parse(raw);
+    if (!isValidDiskCache(parsed)) {
+      console.warn("[SysIntelligence] Ignoring invalid disk cache");
+      return null;
+    }
+    const { timestamp, profile } = parsed;
     const ageMs = Date.now() - timestamp;
+    if (ageMs < 0 || !Number.isFinite(ageMs)) {
+      console.warn("[SysIntelligence] Ignoring disk cache with invalid timestamp");
+      return null;
+    }
     if (ageMs < DISK_CACHE_TTL_MS) {
       console.log(`[SysIntelligence] Disk cache hit — age=${Math.round(ageMs / 60000)}min fresh`);
     } else {
@@ -216,6 +225,30 @@ async function _loadDiskCache(): Promise<{ profile: SystemIntelligenceProfile; a
   } catch {
     return null; // first launch or corrupted cache
   }
+}
+
+/** Runtime guard: disk data is untrusted and may be truncated or hand-edited. */
+function isValidDiskCache(value: unknown): value is {
+  timestamp: number;
+  profile: SystemIntelligenceProfile;
+} {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const record = value as Record<string, unknown>;
+  if (typeof record.timestamp !== "number" || !Number.isFinite(record.timestamp) ||
+      record.timestamp < 0 || !record.profile || typeof record.profile !== "object") return false;
+  const profile = record.profile as Record<string, unknown>;
+  const arraySections = ["gpu", "memory", "storage", "network", "processes", "users", "containers", "audio"];
+  if (arraySections.some(section => !profile[section] || typeof profile[section] !== "object")) return false;
+  const hasArray = (section: string, key: string) => {
+    const value = (profile[section] as Record<string, unknown>)[key];
+    return Array.isArray(value);
+  };
+  return hasArray("gpu", "controllers") && hasArray("gpu", "displays") &&
+    hasArray("memory", "sticks") && hasArray("storage", "layout") &&
+    hasArray("storage", "filesystems") && hasArray("network", "interfaces") &&
+    hasArray("network", "activeConnections") && hasArray("processes", "topCpu") &&
+    hasArray("processes", "topMemory") && hasArray("users", "sessions") &&
+    hasArray("containers", "containers") && hasArray("audio", "devices");
 }
 
 async function _saveDiskCache(profile: SystemIntelligenceProfile): Promise<void> {
@@ -1381,15 +1414,6 @@ export async function getFastSystemIntelligence(): Promise<SystemIntelligencePro
     // caller landing between the clear and the _cache write would see both as null
     // and trigger a redundant collectFast().
     _phaseAPromise = null;
-    // Safety fallback: if the client never calls /trigger-background (network error,
-    // early app close), auto-schedule the full collect after 60s so the profile
-    // doesn't stay as Phase-A-only data for the entire session.
-    setTimeout(() => {
-      if (!_collectingPromise && Date.now() - _cacheAt > CACHE_TTL_MS) {
-        console.log("[SysIntelligence] Auto-trigger fallback: client never called /trigger-background");
-        void getSystemIntelligence();
-      }
-    }, 60_000);
     return _cache!;
   }).catch((err) => {
     console.error("[SysIntelligence] Phase A failed:", err);

@@ -147,8 +147,11 @@ export function useNetworkDiagnostics(): DiagnosticsState {
   const appMode = useAppModeStore((s) => s.mode);
   const historyRef         = useRef<PingSample[]>([]);
   const consecutiveFailRef = useRef(0);
+  const sampleInFlightRef = useRef(false);
 
   const fetchSample = useCallback(async () => {
+    if (sampleInFlightRef.current || document.hidden) return;
+    sampleInFlightRef.current = true;
     try {
       const controller = new AbortController();
       const tid = setTimeout(() => controller.abort(), 12000);
@@ -204,10 +207,13 @@ export function useNetworkDiagnostics(): DiagnosticsState {
         setMonitorError(msg);
         setMonitorPhase("error");
       }
+    } finally {
+      sampleInFlightRef.current = false;
     }
   }, []);
 
   const startMonitoring = useCallback(() => {
+    if (document.hidden) return;
     if (intervalRef.current) return;
     consecutiveFailRef.current = 0;
     historyRef.current = [];

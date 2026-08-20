@@ -60,7 +60,7 @@ export function useGpuSelector(): GpuSelectorState {
         setGpuList(list);
       }
       if (typeof sel?.index === "number") {
-        setSelectedIndex(sel.index);
+        setSelectedIndex(Math.max(0, Math.min(sel.index, list.length - 1)));
       }
     });
 
@@ -78,14 +78,8 @@ export function useGpuSelector(): GpuSelectorState {
     if (!api) return;
 
     setSwitching(true);
-    // Optimistically update the shown index so the dropdown responds instantly.
-    setSelectedIndex(index);
-
     // Immediately flag the store GPU as "switching" so the card shows a spinner.
     setStats({ gpuName: "Switching\u2026", gpuVendor: "", vramGb: 0 });
-
-    // Tell main.js to swap GPU, invalidate cache, and kick off re-enrichment.
-    api.setSelectedGpu(index).catch(() => {});
 
     // Wait for main.js to push the enriched payload via specs:enriched.
     // This fires once _enrichSpecsInBackground() resolves for the new GPU.
@@ -102,27 +96,39 @@ export function useGpuSelector(): GpuSelectorState {
 
     if (systemApi?.onSpecsEnriched) {
       unsub = systemApi.onSpecsEnriched((payload: any) => {
-        clearTimeout(timeout);
-        unsub?.();
         if (!mountedRef.current) return;
+        const payloadIndex = payload?.gpuIndex ?? payload?.selectedGpuIndex ?? payload?.gpu?.index;
+        if (typeof payloadIndex === "number" && payloadIndex !== index) return;
 
         const newGpu = payload?.gpu;
+        const expectedName = gpuList[index]?.name;
+        if (typeof payloadIndex !== "number" && expectedName && newGpu?.model && newGpu.model !== expectedName) return;
         if (newGpu?.model && newGpu.model !== "Detecting\u2026") {
+          clearTimeout(timeout);
+          unsub?.();
+          setSelectedIndex(index);
           setStats({
             gpuName:   newGpu.model   ?? "Unavailable",
             gpuVendor: newGpu.vendor  ?? "",
             vramGb:    newGpu.vramGB  ?? 0,
           });
         }
+          setSwitching(false);
+          console.log("[GpuSelector] switched to GPU index", index, "→", newGpu?.model);
+        }
+      });
+      api.setSelectedGpu(index).catch((err: unknown) => {
+        clearTimeout(timeout);
+        unsub?.();
+        if (!mountedRef.current) return;
         setSwitching(false);
-        console.log("[GpuSelector] switched to GPU index", index, "→", newGpu?.model);
+        console.warn("[GpuSelector] GPU switch failed", err);
       });
     } else {
-      // No IPC listener available — just clear switching after a short delay.
+      // Without the enrichment event there is no safe confirmation path.
       clearTimeout(timeout);
-      setTimeout(() => {
-        if (mountedRef.current) setSwitching(false);
-      }, 3_000);
+      setSwitching(false);
+      setStats({ gpuName: "Unavailable", gpuVendor: "", vramGb: 0 });
     }
   }, [selectedIndex, gpuList.length, setStats]);
 

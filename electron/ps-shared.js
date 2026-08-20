@@ -77,24 +77,37 @@ function _withPsSemaphore(fn) {
 // Single module-level variable — one PowerShell spawn determines admin status
 // for the entire process lifetime, regardless of which executor asks first.
 let _isAdminCache = null;
+let _isAdminPromise = null;
 
 async function checkIsAdmin() {
   if (_isAdminCache !== null) return _isAdminCache;
-  try {
-    _isAdminCache = await new Promise(resolve => {
-      execFile(
-        'powershell',
-        [
-          '-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden',
-          '-ExecutionPolicy', 'Bypass', '-Command',
-          '([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)',
-        ],
-        { windowsHide: true, timeout: 6000 },
-        (err, stdout) => resolve(!err && stdout.trim().toLowerCase() === 'true')
-      );
-    });
-  } catch { _isAdminCache = false; }
-  return _isAdminCache;
+  if (_isAdminPromise) return _isAdminPromise;
+  _isAdminPromise = _withPsSemaphore(() => new Promise(resolve => {
+    execFile(
+      'powershell',
+      [
+        '-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden',
+        '-ExecutionPolicy', 'Bypass', '-Command',
+        '([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)',
+      ],
+      { windowsHide: true, timeout: 6000 },
+      (err, stdout, stderr) => {
+        // A native exit/error or any diagnostic stderr makes this result
+        // inconclusive; never turn a partial response into an admin grant.
+        resolve(!err && !String(stderr || '').trim() &&
+          String(stdout || '').trim().toLowerCase() === 'true');
+      }
+    );
+  })).then(value => {
+    _isAdminCache = value;
+    _isAdminPromise = null;
+    return value;
+  }, () => {
+    _isAdminCache = false;
+    _isAdminPromise = null;
+    return false;
+  });
+  return _isAdminPromise;
 }
 
 // ── runPS ─────────────────────────────────────────────────────────────────────
@@ -108,8 +121,9 @@ function runPS(command) {
       ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-Command', wrapped],
       { timeout: 30000, windowsHide: true },
       (error, stdout, stderr) => {
-        if (error) {
-          reject(new Error(stderr?.trim() || stdout?.trim() || error.message));
+        const diagnostic = String(stderr || '').trim();
+        if (error || diagnostic) {
+          reject(new Error(diagnostic || String(stdout || '').trim() || error.message));
         } else {
           resolve(stdout.trim());
         }
@@ -127,7 +141,9 @@ function queryPS(command) {
       'powershell',
       ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-Command', command],
       { timeout: 12000, windowsHide: true },
-      (error, stdout) => resolve(error ? null : stdout.trim())
+      (error, stdout, stderr) => resolve(
+        error || String(stderr || '').trim() ? null : String(stdout || '').trim()
+      )
     );
   }));
 }
@@ -156,6 +172,11 @@ async function runElevated(command, { tempFilePrefix = 'sc_ps_' } = {}) {
   const scriptPath = path.join(tmpDir, `${scriptId}.ps1`);
   const resultPath = path.join(tmpDir, `${scriptId}_result.json`);
   const vbsPath    = path.join(tmpDir, `${scriptId}_launch.vbs`);
+  const cleanup = () => {
+    try { fs.unlinkSync(scriptPath); } catch {}
+    try { fs.unlinkSync(resultPath); } catch {}
+    try { fs.unlinkSync(vbsPath); } catch {}
+  };
 
   console.log(`[runElevated] scriptPath: "${scriptPath}"`);
   console.log(`[runElevated] resultPath: "${resultPath}"`);
@@ -179,7 +200,8 @@ async function runElevated(command, { tempFilePrefix = 'sc_ps_' } = {}) {
     `Write-Host "[elevated] wrote result to: ${safeResultPath}"`,
   ].join('\r\n');
 
-  fs.writeFileSync(scriptPath, scriptContent, 'utf8');
+  try { fs.writeFileSync(scriptPath, scriptContent, 'utf8'); }
+  catch (err) { cleanup(); throw err; }
   console.log(`[runElevated] script written (${scriptContent.length} bytes)`);
 
   // VBScript wrapper: ShellExecute with nShowCmd=0 (SW_HIDE) is reliably
@@ -188,7 +210,8 @@ async function runElevated(command, { tempFilePrefix = 'sc_ps_' } = {}) {
     `Set objShell = CreateObject("Shell.Application")`,
     `objShell.ShellExecute "powershell.exe", "-NoProfile -NonInteractive -ExecutionPolicy Bypass -WindowStyle Hidden -File ""${safeVbsScriptPath}""", "", "runas", 0`,
   ].join('\r\n');
-  fs.writeFileSync(vbsPath, vbsContent, 'utf8');
+  try { fs.writeFileSync(vbsPath, vbsContent, 'utf8'); }
+  catch (err) { cleanup(); throw err; }
   console.log(`[runElevated] vbs launcher written`);
 
   try {
@@ -250,9 +273,7 @@ async function runElevated(command, { tempFilePrefix = 'sc_ps_' } = {}) {
     }
     return { ok: false, error: `Elevation failed: ${msg}` };
   } finally {
-    try { fs.unlinkSync(scriptPath); } catch {}
-    try { fs.unlinkSync(resultPath); } catch {}
-    try { fs.unlinkSync(vbsPath); } catch {}
+    cleanup();
   }
 }
 
@@ -267,6 +288,11 @@ async function runElevatedCommands(commands, { tempFilePrefix = 'sc_batch_' } = 
   const scriptPath = path.join(tmpDir, `${scriptId}.ps1`);
   const resultPath = path.join(tmpDir, `${scriptId}_result.json`);
   const vbsPath    = path.join(tmpDir, `${scriptId}_launch.vbs`);
+  const cleanup = () => {
+    try { fs.unlinkSync(scriptPath); } catch {}
+    try { fs.unlinkSync(resultPath); } catch {}
+    try { fs.unlinkSync(vbsPath); } catch {}
+  };
 
   const safeResultPath    = resultPath.replace(/'/g, "''");
   const safeVbsScriptPath = scriptPath.replace(/"/g, '""');
@@ -280,13 +306,15 @@ async function runElevatedCommands(commands, { tempFilePrefix = 'sc_batch_' } = 
     `$r = @{ ok = $true; failed = $failed }`,
     `try { [System.IO.File]::WriteAllText('${safeResultPath}', ($r | ConvertTo-Json -Compress)) } catch { $r | ConvertTo-Json -Compress | Out-File -FilePath '${safeResultPath}' -Encoding ascii -Force }`,
   ];
-  fs.writeFileSync(scriptPath, lines.join('\r\n'), 'utf8');
+  try { fs.writeFileSync(scriptPath, lines.join('\r\n'), 'utf8'); }
+  catch (err) { cleanup(); throw err; }
 
   const vbsContent = [
     `Set objShell = CreateObject("Shell.Application")`,
     `objShell.ShellExecute "powershell.exe", "-NoProfile -NonInteractive -ExecutionPolicy Bypass -WindowStyle Hidden -File ""${safeVbsScriptPath}""", "", "runas", 0`,
   ].join('\r\n');
-  fs.writeFileSync(vbsPath, vbsContent, 'utf8');
+  try { fs.writeFileSync(vbsPath, vbsContent, 'utf8'); }
+  catch (err) { cleanup(); throw err; }
 
   try {
     await _withPsSemaphore(() => new Promise((resolve, reject) => {
@@ -314,9 +342,7 @@ async function runElevatedCommands(commands, { tempFilePrefix = 'sc_batch_' } = 
     }
     return { ok: false, error: `Elevation failed: ${msg}` };
   } finally {
-    try { fs.unlinkSync(scriptPath); } catch {}
-    try { fs.unlinkSync(resultPath); } catch {}
-    try { fs.unlinkSync(vbsPath); } catch {}
+    cleanup();
   }
 }
 

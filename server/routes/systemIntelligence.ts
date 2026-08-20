@@ -7,6 +7,7 @@
 
 import { Router } from "express";
 import rateLimit from "express-rate-limit";
+import { requireJwt } from "../middleware/requireCloudAuth";
 import {
   getSystemIntelligence,
   getFastSystemIntelligence,
@@ -32,6 +33,13 @@ const refreshRateLimit = rateLimit({
     });
   },
 });
+const backgroundTriggerRateLimit = rateLimit({
+  windowMs: 60 * 1000,
+  max: 2,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Background collection trigger rate limit exceeded." },
+});
 
 const router = Router();
 
@@ -54,7 +62,7 @@ router.get("/fast", async (_req, res) => {
  * POST /trigger-background — nudges a background deep collection.
  * Called by the dashboard after it's stable (no auth required — just a hint).
  */
-router.post("/trigger-background", (_req, res) => {
+router.post("/trigger-background", requireJwt, backgroundTriggerRateLimit, (_req, res) => {
   triggerBackgroundCollection();
   res.json({ ok: true });
 });
