@@ -440,7 +440,7 @@ function ElectronAppContent() {
   // First-run baseline scan — records pre-existing applied state before the app touches anything
   useBaselineScan();
 
-  const { realtimeMetricsEnabled, pauseWhenMinimized, setTweak } = useStore();
+  const { realtimeMetricsEnabled, setTweak } = useStore();
   const { setConditions: setSystemConditions } = useSystemConditionsStore();
   const { toast } = useToast();
 
@@ -637,27 +637,39 @@ function ElectronAppContent() {
     }
   }, [realtimeMetricsEnabled]);
 
-  // React to the "Pause when minimized" toggle + document visibility changes.
-  // When the window is hidden (minimized or another app is in front) AND the
-  // user has enabled the setting, fully pause the telemetry pipeline so the
-  // app uses zero CPU/network for live stats while backgrounded.
-  // Re-enabling the setting or restoring the window resumes immediately.
+  // Hidden/minimized is always a hard telemetry boundary. Live stats are
+  // useful only while the dashboard is visible, so background polling must
+  // stop by default rather than being an opt-in power preference.
   useEffect(() => {
-    const handleVisibility = () => {
-      // Never override the user's explicit "Real-time Metrics: off" — that takes priority.
-      if (!realtimeMetricsEnabled) return;
-      if (pauseWhenMinimized && document.hidden) {
-        telemetryManager.pause();
-      } else {
+    const pauseIfBackgrounded = () => {
+      telemetryManager.pause();
+    };
+    const resumeIfVisible = () => {
+      // The explicit Real-time Metrics toggle remains the higher-priority
+      // user control. A hidden window can never force metrics back on.
+      if (realtimeMetricsEnabled && !document.hidden && document.hasFocus()) {
         telemetryManager.resume();
+      }
+    };
+    const syncVisibility = () => {
+      if (document.hidden || !document.hasFocus()) {
+        pauseIfBackgrounded();
+      } else {
+        resumeIfVisible();
       }
     };
     // Run immediately so toggling the setting applies right away even if the
     // window is already hidden.
-    handleVisibility();
-    document.addEventListener("visibilitychange", handleVisibility);
-    return () => document.removeEventListener("visibilitychange", handleVisibility);
-  }, [pauseWhenMinimized, realtimeMetricsEnabled]);
+    syncVisibility();
+    document.addEventListener("visibilitychange", syncVisibility);
+    window.addEventListener("blur", pauseIfBackgrounded);
+    window.addEventListener("focus", resumeIfVisible);
+    return () => {
+      document.removeEventListener("visibilitychange", syncVisibility);
+      window.removeEventListener("blur", pauseIfBackgrounded);
+      window.removeEventListener("focus", resumeIfVisible);
+    };
+  }, [realtimeMetricsEnabled]);
 
   // login_success → next phase.
   // First-time users: 500ms (welcome animation plays next, no need to hold long).

@@ -1239,16 +1239,26 @@
   
     // ── Telemetry pause on minimize / restore ────────────────────────────────
     // Zero CPU is wasted polling telemetry while the window is minimized or
-    // hidden — no UI is visible to consume the data anyway.
-    mainWindow.on('minimize', () => {
+    // hidden or unfocused — no UI is visible to consume the data anyway.
+    function _pauseTelemetryLoop(reason) {
+      if (_telemetryLoopPaused) return;
       _telemetryLoopPaused = true;
-      console.log('[Perf] minimized → pausing all loops (telemetry, no IPC polls while hidden)');
+      console.log(`[Perf] ${reason} → pausing telemetry loop`);
+    }
+    mainWindow.on('minimize', () => {
+      _pauseTelemetryLoop('minimized');
     });
     function _resumeTelemetryLoop(reason) {
+      if (!_telemetryLoopPaused) return;
       _telemetryLoopPaused = false;
       console.log(`[Perf] ${reason} → resuming telemetry loop`);
-      pollTelemetry().catch(() => {});
     }
+    mainWindow.on('hide', () => {
+      _pauseTelemetryLoop('hidden');
+    });
+    mainWindow.on('blur', () => {
+      _pauseTelemetryLoop('unfocused');
+    });
     mainWindow.on('restore', () => {
       _resumeTelemetryLoop('restored');
     });

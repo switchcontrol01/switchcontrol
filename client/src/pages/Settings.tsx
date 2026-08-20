@@ -440,7 +440,6 @@ export default function Settings() {
   const { 
     account, resetData, 
     realtimeMetricsEnabled, setRealtimeMetricsEnabled,
-    pauseWhenMinimized, setPauseWhenMinimized,
   } = useStore();
   const { toast } = useToast();
   const { isPremium, user, factoryReset } = useAppAuth();
@@ -484,7 +483,7 @@ export default function Settings() {
                 <div className="flex items-center justify-between py-1 px-2 -mx-2 rounded-lg hover:bg-[#1A1F26] transition-colors">
                   <div className="space-y-0.5">
                     <Label>Real-time Metrics</Label>
-                    <p className="text-xs text-muted-foreground">Update dashboard stats every second.</p>
+                     <p className="text-xs text-muted-foreground">Updates while visible and pauses automatically in the background.</p>
                   </div>
                   <Switch
                     checked={realtimeMetricsEnabled}
@@ -497,25 +496,6 @@ export default function Settings() {
                   />
                 </div>
                 <Separator className="bg-border/50 mt-5" />
-              </motion.div>
-
-              {/* Pause when minimized */}
-              <motion.div initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3, delay: 0.17, ease: [0.22, 1, 0.36, 1] }}>
-                <div className="flex items-center justify-between py-1 px-2 -mx-2 rounded-lg hover:bg-[#1A1F26] transition-colors">
-                  <div className="space-y-0.5">
-                    <Label>Pause when minimized</Label>
-                    <p className="text-xs text-muted-foreground">Stop polling stats when app is in background.</p>
-                  </div>
-                  <Switch
-                    checked={pauseWhenMinimized}
-                    data-testid="toggle-pause-when-minimized"
-                    onCheckedChange={(checked) => {
-                      setPauseWhenMinimized(checked);
-                      toast({ title: checked ? "Background Pause Enabled" : "Background Pause Disabled", description: checked ? "Stats polling pauses when app is hidden." : "Stats will update even when app is minimized." });
-                      logHistory(`Settings: Pause When Minimized ${checked ? "Enabled" : "Disabled"}`, "Settings", "Saved");
-                    }}
-                  />
-                </div>
               </motion.div>
 
             </CardContent>

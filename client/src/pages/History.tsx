@@ -386,11 +386,6 @@ function EventRow({ item, index }: { item: EnrichedItem; index: number }) {
         useStore.getState().setRealtimeMetricsEnabled(!wasEnabled);
         notifyRevert("Settings");
         toast({ title: "Setting reverted", description: `Real-time Metrics ${!wasEnabled ? "enabled" : "disabled"}` });
-      } else if (act.includes("Pause When Minimized")) {
-        const wasEnabled = act.includes("Enabled");
-        useStore.getState().setPauseWhenMinimized(!wasEnabled);
-        notifyRevert("Settings");
-        toast({ title: "Setting reverted", description: `Pause When Minimized ${!wasEnabled ? "enabled" : "disabled"}` });
       } else {
         toast({ title: "No revert available", description: "This settings entry can't be reverted.", variant: "destructive" });
         setReverting(false);

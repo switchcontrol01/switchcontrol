@@ -33,7 +33,6 @@ interface AppState {
   history: HistoryItem[];
   latestAIScan: AIScanResult | null;
   realtimeMetricsEnabled: boolean;
-  pauseWhenMinimized: boolean;
   
   // Actions
   toggleTweak: (id: string) => void;
@@ -47,7 +46,6 @@ interface AppState {
   runAIScan: () => Promise<void>;
   updateCounter: (key: keyof Omit<AccountStats, 'lastScan'>, increment?: number) => void;
   setRealtimeMetricsEnabled: (enabled: boolean) => void;
-  setPauseWhenMinimized: (enabled: boolean) => void;
 }
 
 const DEFAULT_ACCOUNT_STATS: AccountStats = {
@@ -73,7 +71,6 @@ export const useStore = create<AppState>()(
       history: [],
       latestAIScan: null,
       realtimeMetricsEnabled: true,
-      pauseWhenMinimized: true,
 
       setSliderValue: (id, value) => {
         set((state) => ({
@@ -207,7 +204,6 @@ export const useStore = create<AppState>()(
       setStats: (newStats) => set((state) => ({ stats: { ...state.stats, ...newStats } })),
       
       setRealtimeMetricsEnabled: (enabled) => set({ realtimeMetricsEnabled: enabled }),
-      setPauseWhenMinimized: (enabled) => set({ pauseWhenMinimized: enabled }),
       
       resetData: () => set({
         tweaks: {},
@@ -241,7 +237,6 @@ export const useStore = create<AppState>()(
         history: state.history,
         latestAIScan: state.latestAIScan,
         realtimeMetricsEnabled: state.realtimeMetricsEnabled,
-        pauseWhenMinimized: state.pauseWhenMinimized,
         // Persist stable hardware identity so the dashboard renders instantly
         // on the next launch without waiting for IPC/WebSocket.
         // Volatile fields (usedRamGb, freeRamGb, diskUsedGb) are intentionally

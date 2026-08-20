@@ -116,7 +116,6 @@ interface SystemContext {
   };
   settings?: {
     realtimeMetricsEnabled: boolean;
-    pauseWhenMinimized: boolean;
   };
   historyTotal?: number;
   /** Slider and preset tweaks that are enabled — includes the current value/preset label */
@@ -1131,7 +1130,7 @@ export default function AiAdvisor() {
   const { isPremium } = useAuth();
   const { openUpgradeModal } = useUpgradeModal();
   const { isOnline } = useNetworkStatus();
-  const { stats, tweaks, sliderValues, cleanersRun, history, setStats, realtimeMetricsEnabled, pauseWhenMinimized } = useStore();
+  const { stats, tweaks, sliderValues, cleanersRun, history, setStats, realtimeMetricsEnabled } = useStore();
   const { telemetry: liveTel } = useLiveTelemetry();
   const sysIntel = useSystemIntelligence();
   const { messages: storedMessages, setMessages: syncToStore, clearMessages: clearStore } = useAiChatStore();
@@ -1739,7 +1738,6 @@ export default function AiAdvisor() {
       cleanerRunCount: cleanersRun ?? 0,
       settings: {
         realtimeMetricsEnabled: !!realtimeMetricsEnabled,
-        pauseWhenMinimized: !!pauseWhenMinimized,
       },
       // ── Extended cross-section tweak coverage ────────────────────────────────
       networkTweaksApplied: [
@@ -1848,7 +1846,7 @@ export default function AiAdvisor() {
   // the entire session.  Live telemetry is read from liveTelRef.current (always
   // current) inside the effect body instead.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stats, tweaks, sliderValues, cleanersRun, isPremium, sysIntel.profile, history, location, driverVersions, latencyState, startupSummary, startupApps, debloatApplied, realtimeMetricsEnabled, pauseWhenMinimized]);
+  }, [stats, tweaks, sliderValues, cleanersRun, isPremium, sysIntel.profile, history, location, driverVersions, latencyState, startupSummary, startupApps, debloatApplied, realtimeMetricsEnabled]);
 
   // Auto-analysis welcome message
   useEffect(() => {

@@ -45,3 +45,4 @@
 - [Power-plan module integrity](power-plan-module-integrity.md) — Electron power-plan manager had a committed truncated body; keep Windows-only operations explicit and verify activation rather than reporting placeholder success.
 - [Desktop route loading](desktop-route-loading.md) — lazy desktop pages need a shell fallback and shared sidebar-prefetch cache; route Suspense otherwise removes the whole AppLayout on first navigation.
 - [Authenticated POST conventions](authenticated-post-conventions.md) — protected raw POST callers must use the shared API helper so JWT, Electron headers, and CSRF remain intact.
+- [Background telemetry policy](background-telemetry-policy.md) — telemetry pauses automatically when the app is hidden, minimized, unfocused, or closing; there is no user toggle.

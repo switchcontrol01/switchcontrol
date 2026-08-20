@@ -47,7 +47,7 @@ const WARMUP_MS = 15_000;
 
 let _started = false;
 let _listenerAttached = false; // separate from _started so hardReset() can't stack duplicate listeners
-let _paused = false;      // true = connected but discarding incoming data
+let _paused = false;      // true = hidden/disabled; transports and polling are stopped
 let _ws: WebSocket | null = null;
 let _reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 let _unavailableTimer: ReturnType<typeof setTimeout> | null = null;
@@ -316,6 +316,10 @@ function connect() {
             return; // do NOT schedule a reconnect
           }
 
+          // A deliberate lifecycle pause must not start a reconnect loop from
+          // the close event triggered by pause().
+          if (_paused) return;
+
           if (_started) {
             _reconnectCount += 1;
             const delay = document.hidden ? RECONNECT_MAX_MS : _reconnectDelay;
@@ -465,7 +469,7 @@ function _rescheduleIpcPoll(delayMs: number): void {
 }
 
 function _startIpcPolling(): void {
-  if (_ipcPollActive) return;
+  if (_paused || _ipcPollActive) return;
   _ipcPollActive = true;
   pollingRegistry.registerIpc("telemetry.getLive");
 
@@ -583,6 +587,17 @@ export const telemetryManager = {
    */
   pause() {
     _paused = true;
+    _stopIpcPolling();
+    if (_reconnectTimer) {
+      clearTimeout(_reconnectTimer);
+      _reconnectTimer = null;
+    }
+    if (_ws) {
+      const socket = _ws;
+      _ws = null;
+      try { socket.close(1000, "telemetry paused while hidden"); } catch {}
+    }
+    useTelemetryStore.getState()._setConnected(false);
   },
 
   /**
@@ -590,6 +605,14 @@ export const telemetryManager = {
    */
   resume() {
     _paused = false;
+    if (!_started) return;
+    const electronAPI = (window as any).electronAPI;
+    if (electronAPI?.telemetry?.getLive) {
+      _startIpcPolling();
+      useTelemetryStore.getState()._setConnected(true);
+    } else if (!_ws) {
+      connect();
+    }
   },
 
   get paused() {
