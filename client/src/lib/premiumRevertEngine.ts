@@ -255,6 +255,95 @@ function delay(ms: number): Promise<void> {
   return new Promise(r => setTimeout(r, ms));
 }
 
+/**
+ * The Electron pipeline is the single owner of premium expiry reverts. It
+ * handles every ownership type (including sliders, presets, NIC properties,
+ * network tweaks, and power plans) and clears each ownership record after a
+ * successful revert. Do not call the individual slider/preset IPC sweeps here:
+ * doing so leaves the other ownership records behind and reopens the modal on
+ * every launch.
+ */
+async function runPipelineRevert(
+  onProgress?: (phase: RevertPhase) => void,
+): Promise<PremiumRevertReport> {
+  const api = getPremiumAPI();
+  onProgress?.('locking');
+  if (!api?.revertAll) {
+    throw new Error('Premium revert pipeline is unavailable');
+  }
+
+  onProgress?.('reverting_tweaks');
+  const response = await api.revertAll();
+  onProgress?.('verifying');
+
+  const details = response?.details && typeof response.details === 'object'
+    ? response.details as Record<string, any>
+    : {};
+  const toItem = (scopeKey: string, detail: any): RevertItemResult => ({
+    tweakId: scopeKey,
+    label: detail?.label || scopeKey,
+    status: detail?.success ? 'reverted' : detail?.skipped ? 'skipped_not_active' : 'failed',
+    reason: detail?.reason || detail?.error,
+  });
+  const entries = Object.entries(details);
+  const networkEntries = entries
+    .filter(([key]) => key.startsWith('network_tweak:') || key.startsWith('network:'));
+  const tweakResults = entries
+    .filter(([key]) =>
+      !key.startsWith('slider:') &&
+      !key.startsWith('preset:') &&
+      !key.startsWith('power_plan') &&
+      !key.startsWith('network_tweak:') &&
+      !key.startsWith('network:'))
+    .map(([key, value]) => toItem(key, value));
+  const networkResults = networkEntries.map(([key, value]) => toItem(key, value));
+  const sliderResults = entries
+    .filter(([key]) => key.startsWith('slider:'))
+    .map(([key, value]) => toItem(key.slice(7), value));
+  const presetResults = entries
+    .filter(([key]) => key.startsWith('preset:'))
+    .map(([key, value]) => toItem(key.slice(7), value));
+  const powerPlanEntry = entries.find(([key]) => key.startsWith('power_plan'));
+  const powerPlan: PowerPlanRevertResult = powerPlanEntry
+    ? {
+        status: powerPlanEntry[1]?.success ? 'reverted' : powerPlanEntry[1]?.skipped ? 'skipped_not_sc' : 'failed',
+        reason: powerPlanEntry[1]?.reason || powerPlanEntry[1]?.error,
+      }
+    : { status: 'not_applicable' };
+
+  // Keep renderer state aligned with the authoritative backend result.
+  clearPremiumSliderStoreValues();
+  clearPremiumPresetStoreValues();
+  try {
+    const mainStore = useStore.getState();
+    const premiumIds = TWEAKS_DATA.filter(t => t.supported && isTweakPremium(t.id)).map(t => t.id);
+    for (const id of premiumIds) mainStore.setTweak(id, false);
+  } catch (e) {
+    console.warn('[Revert:PIPELINE] renderer store cleanup failed:', e);
+  }
+
+  const anyFailed = response?.success === false ||
+    Number(response?.failed || 0) > 0 ||
+    [...tweakResults, ...sliderResults, ...presetResults].some(r => r.status === 'failed') ||
+    powerPlan.status === 'failed';
+  const anyConflict = [...tweakResults, ...sliderResults, ...presetResults]
+    .some(r => r.status === 'skipped_conflict');
+  const revertedCount = Number(response?.reverted || 0);
+
+  onProgress?.('complete');
+  console.log(`[Revert] Pipeline complete — total=${response?.total ?? entries.length} reverted=${revertedCount} skipped=${response?.skipped ?? 0} failed=${response?.failed ?? 0}`);
+  return {
+    tweakResults,
+    sliderResults,
+    presetResults,
+    networkResults,
+    powerPlan,
+    anyFailed,
+    anyConflict,
+    revertedCount,
+  };
+}
+
 // ── Slider revert ───────────────────────────────────────────────────────────
 //
 // Slider tweaks were completely skipped by the old revert engine (0% success).
@@ -727,6 +816,10 @@ export async function runPremiumRevert(
   _revertInFlight = true;
 
   try {
+  // The backend pipeline is authoritative. It performs the complete revert
+  // and clears disk-backed ownership records in one transaction-aware flow.
+  return await runPipelineRevert(onProgress);
+
   console.log('[Revert] Starting premium revert sequence v2...');
   onProgress?.('locking');
 

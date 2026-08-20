@@ -28,6 +28,7 @@ import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTourStore } from "@/lib/tour-store";
 import { useEntitlementUiState } from "@/hooks/useEntitlementUiState";
+import { preloadDesktopRoute } from "@/lib/route-prefetch";
 
 // Module-level cache for the app version. `Sidebar` is remounted on every
 // route change (each page wraps itself in <AppLayout>), so without this the
@@ -490,7 +491,11 @@ export function Sidebar() {
                 isActive={isActive}
                 isTourHighlighted={isTourHighlighted}
                 isTourLocked={isTourActive}
-                onClick={() => { if (!isTourActive) navigate(item.href); }}
+                onClick={() => {
+                  if (isTourActive) return;
+                  preloadDesktopRoute(item.href);
+                  navigate(item.href);
+                }}
               />
             </div>
           );

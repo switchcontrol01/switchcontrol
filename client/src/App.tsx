@@ -30,6 +30,7 @@ import { TrialTour } from "@/components/TrialTour";
 
 import { GuidedTour } from "@/components/GuidedTour";
 import { WindowControls } from "@/components/WindowControls";
+import { AppLayout } from "@/components/layout/AppLayout";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   useAuthStore,
@@ -73,6 +74,7 @@ import { usePremiumGraceStore, GRACE_WINDOW_MS } from "@/stores/premiumGraceStor
 import { useTrialExpiryStore } from "@/stores/trialExpiryStore";
 import { useSystemConditionsStore } from "@/stores/systemConditionsStore";
 import { useToast } from "@/hooks/use-toast";
+import { loadDesktopRoute } from "@/lib/route-prefetch";
 
 import Splash from "@/screens/Splash";
 import CameraGlow from "@/screens/CameraGlow";
@@ -85,21 +87,21 @@ import { FirstRunDisclaimer } from "@/components/FirstRunDisclaimer";
 // initial renderer bundle. The Electron build uses base="./", so these chunks
 // resolve correctly from the packaged file:// app.
 import Home from "@/pages/Home";
-const Tweaks = lazy(() => import("@/pages/Tweaks"));
-const NetworkTweaks = lazy(() => import("@/pages/NetworkTweaks"));
-const SystemCleaner = lazy(() => import("@/pages/SystemCleaner"));
-const Settings = lazy(() => import("@/pages/Settings"));
-const PowerPlan = lazy(() => import("@/pages/PowerPlan"));
-const Debloater = lazy(() => import("@/pages/Debloater"));
-const StartupApps = lazy(() => import("@/pages/StartupApps"));
-const NicTuningPage = lazy(() => import("@/pages/NicTuning"));
-const BiosAdvisor = lazy(() => import("@/pages/BiosAdvisor"));
-const AiAdvisor = lazy(() => import("@/pages/AiAdvisor"));
-const DriverIntelligence = lazy(() => import("@/pages/DriverIntelligence"));
-const LatencyAnalyzer = lazy(() => import("@/pages/LatencyAnalyzer"));
-const Security = lazy(() => import("@/pages/Security"));
-const History = lazy(() => import("@/pages/History"));
-const ProcessManager = lazy(() => import("@/pages/ProcessManager"));
+const Tweaks = lazy(() => loadDesktopRoute("tweaks"));
+const NetworkTweaks = lazy(() => loadDesktopRoute("network"));
+const SystemCleaner = lazy(() => loadDesktopRoute("cleaner"));
+const Settings = lazy(() => loadDesktopRoute("settings"));
+const PowerPlan = lazy(() => loadDesktopRoute("power-plan"));
+const Debloater = lazy(() => loadDesktopRoute("debloat"));
+const StartupApps = lazy(() => loadDesktopRoute("startup"));
+const NicTuningPage = lazy(() => loadDesktopRoute("nic-tuning"));
+const BiosAdvisor = lazy(() => loadDesktopRoute("bios-advisor"));
+const AiAdvisor = lazy(() => loadDesktopRoute("ai-advisor"));
+const DriverIntelligence = lazy(() => loadDesktopRoute("driver-intel"));
+const LatencyAnalyzer = lazy(() => loadDesktopRoute("latency-analyzer"));
+const Security = lazy(() => loadDesktopRoute("security"));
+const History = lazy(() => loadDesktopRoute("history"));
+const ProcessManager = lazy(() => loadDesktopRoute("process-manager"));
 // Website-only chunks — only prefetch on web (not in Electron where file:// protocol
 // causes chunk fetch failures for pages that are never shown in the desktop app).
 const _isElectronRuntime =
@@ -189,12 +191,40 @@ const DarkFallback = () => (
   />
 );
 
+// Keep the desktop shell mounted while a first-visit route chunk downloads.
+// Page components currently own AppLayout, so the route-level Suspense fallback
+// must provide the shell itself; otherwise React removes the Sidebar,
+// background, and content area together and Electron shows a blank dark frame.
+const ElectronRouteFallback = () => (
+  <AppLayout noPageAnimation>
+    <div
+      className="min-h-[calc(100vh-5rem)] space-y-7"
+      role="status"
+      aria-label="Loading page"
+      data-testid="route-loading-fallback"
+    >
+      <div className="space-y-3">
+        <div className="h-8 w-56 rounded-lg bg-white/[0.07] animate-pulse" />
+        <div className="h-4 w-[min(34rem,80%)] rounded bg-white/[0.045] animate-pulse" />
+      </div>
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {[0, 1, 2, 3, 4, 5].map((item) => (
+          <div
+            key={item}
+            className="h-36 rounded-2xl border border-white/[0.07] bg-white/[0.025] animate-pulse"
+          />
+        ))}
+      </div>
+    </div>
+  </AppLayout>
+);
+
 function ElectronAppRoutes() {
   const [location] = useLocation();
   return (
     <ErrorBoundary route={location}>
       <div style={{ minHeight: "100%" }}>
-        <Suspense fallback={<DarkFallback />}>
+        <Suspense fallback={<ElectronRouteFallback />}>
           <Switch>
             <Route path="/" component={Home} />
             <Route path="/dashboard" component={Home} />

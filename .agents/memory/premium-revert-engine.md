@@ -46,3 +46,10 @@ When touching the revert engine or ownership store, ensure:
 **Why:** Any IPC boundary that reports `ok:true` without an independent readback of real system state will eventually go stale relative to driver/OS behavior it doesn't control. Apply and revert paths for the same property must use symmetric verification — if one verifies and the other doesn't, that asymmetry is the bug.
 
 **How to apply:** When adding/auditing any tweak revert/reset path (registry, service, NIC, slider), confirm it performs a readback verification symmetric with its apply counterpart, not just "did the command exit 0".
+
+### 5. Downgrade entry point must be the backend pipeline
+**Rule:** Premium expiry must call the single `premium:revertAll` IPC pipeline; the client must not invoke slider or preset sweeps as standalone downgrade steps.
+
+**Why:** The backend pipeline also reverts ownership-tracked tweaks, network/NIC state, and power plans and records each successful revert. Standalone advanced-tweak sweeps leave the other records app-owned, causing the expiry modal to return on every launch.
+
+**How to apply:** Keep renderer cleanup/report mapping after the pipeline response, but treat `premium:revertAll` as the only execution entry point.
