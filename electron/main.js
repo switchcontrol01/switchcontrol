@@ -143,6 +143,7 @@
   let mainWindow = null;
   let _fadeTimer = null;
   let _fallbackFadeTimer = null;
+  let _telemetryStartDelayTimer = null;
   let _showFallbackTimer = null;
   let _cookiesListenerRegistered = false;
   const FACTORY_RESET_CONFIRMATION = 'RESET_SWITCHCONTROL_DATA';
@@ -377,6 +378,7 @@
     if (process.platform !== 'win32') return Promise.resolve('');
     if (_startupWmiGpuRaw) return Promise.resolve(_startupWmiGpuRaw);
     if (_startupWmiGpuInFlight) return _startupWmiGpuInFlight;
+    if (_startupWmiGpuAttempted) return Promise.resolve('');
 
     const _wmiGpuPs = `try{$r=@(Get-CimInstance Win32_VideoController -ErrorAction Stop|Where-Object{$_.Name -notmatch 'Microsoft Basic|Remote Desktop'}|Sort-Object{-[uint64]$_.AdapterRAM});if($r.Count -gt 0){($r|ForEach-Object{"$($_.Name)|$([uint64]$_.AdapterRAM)"})-join';;'}else{''}}catch{''}`;
     const _fpToken = psLimiter.tryAcquire({ file: 'main.js', fn: '_getStartupWmiGpuRaw', reason: 'startup-wmi-gpu-single-flight' });
@@ -718,6 +720,19 @@
   // callers that fire within the startup window both pass the guard and each
   // independently run the full expensive prime + GPU WMI sequence.
   let _telemetryStartInFlight = false;
+  function _scheduleStartupTelemetryStart(reason) {
+    if (_telemetryStartDelayTimer) clearTimeout(_telemetryStartDelayTimer);
+    const logicalCores = os.cpus()?.length || 0;
+    const totalRamGb = os.totalmem() / 1_073_741_824;
+    const lowEndHardware = logicalCores > 0 &&
+      (logicalCores <= LOW_END_CORE_MAX || totalRamGb <= 6);
+    const delayMs = lowEndHardware ? 1500 : 500;
+    verboseLog(`[telemetry:poll] startup prime scheduled in ${delayMs}ms | reason=${reason} cores=${logicalCores} ram=${totalRamGb.toFixed(1)}GB`);
+    _telemetryStartDelayTimer = setTimeout(() => {
+      _telemetryStartDelayTimer = null;
+      startTelemetryPolling().catch(e => console.error('[telemetry:poll] error:', e.message));
+    }, delayMs);
+  }
 
   async function startTelemetryPolling() {
     // ── Singleton guard ────────────────────────────────────────────────────────
@@ -751,18 +766,9 @@
       } else if (wmiGpuModelName) {
         console.log('[GPU] WMI fast-path skipped — already resolved by enrichment:', wmiGpuModelName);
       } else {
-      const _wmiGpuPs = `try{$r=@(Get-CimInstance Win32_VideoController -ErrorAction Stop|Where-Object{$_.Name -notmatch 'Microsoft Basic|Remote Desktop'}|Sort-Object{-[uint64]$_.AdapterRAM});if($r.Count -gt 0){($r|ForEach-Object{"$($_.Name)|$([uint64]$_.AdapterRAM)"})-join';;'}else{''}}catch{''}`;
-      const _fpToken = psLimiter.tryAcquire({ file: 'main.js', fn: 'startTelemetryPolling:wmiGpu', reason: 'startup-wmi-gpu' });
-      if (!_fpToken) {
-        console.log('[GPU] WMI fast-path skipped — psLimiter full at startup (enrichment will cover GPU)');
-      } else {
-        console.log('[GPU] WMI fast-path start — t=' + Date.now());
-        execFile('powershell', ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-Command', _wmiGpuPs],
-          { windowsHide: true, timeout: 5000 },
-          (err, stdout) => {
-            psLimiter.release(_fpToken);
-            const rawFp = stdout ? stdout.trim() : '';
-            if (!err && rawFp) {
+        console.log('[GPU] WMI fast-path requesting shared startup probe — t=' + Date.now());
+        _getStartupWmiGpuRaw().then(rawFp => {
+            if (rawFp) {
               // Parse delimited list: "Name1|vram1;;Name2|vram2"
               const fpEntries = rawFp.split(';;').map(e => {
                 const p = e.trim().split('|');
@@ -814,7 +820,7 @@
                 verboseLog('[GPU] si.graphics skipped for AMD — VRAM will come from WMI enrichment');
               }
             } else {
-              console.warn('[GPU] WMI fast-path returned empty — err:', err?.message || 'none');
+              console.warn('[GPU] WMI fast-path returned empty — shared probe unavailable');
               // AMD/unknown: still try si.graphics() as last resort (will timeout on AMD but won't block)
               siWithTimeout(() => si.graphics(), 4_000, 'startup-graphics-fallback').then(gfx => {
                 const ctrl = gfx?.controllers?.find(c => c.model) ?? gfx?.controllers?.[0];
@@ -828,8 +834,9 @@
                 }
               }).catch(() => {});
             }
+          }).catch(() => {
+            console.warn('[GPU] WMI fast-path shared probe failed');
           });
-      }
       } // end else — WMI fast-path (skipped when enrichment already resolved the GPU name)
     }
   
@@ -1304,7 +1311,7 @@
       }
       console.log(`[LAUNCH:5] mainWindow.show() — both gates passed (chromium+react) | ${launchMs()}`);
       _bm.telemetryStart = Date.now();
-      startTelemetryPolling().catch(e => console.error('[telemetry:poll] error:', e.message));
+      _scheduleStartupTelemetryStart('window-shown');
     }
   
     // Hard fallback: show after 5 s if either gate never fires (e.g. IPC lost).
@@ -1335,7 +1342,7 @@
         // Calling it unconditionally here emits a spurious "already active, skipping
         // duplicate start" warning on every normal launch (the internal singleton guard
         // prevents a real double-loop, but the log noise masks genuine future bugs).
-        startTelemetryPolling().catch(e => console.error('[telemetry:poll] fallback error:', e.message));
+        _scheduleStartupTelemetryStart('show-fallback');
       }
     }, 5000);
   
@@ -2565,28 +2572,13 @@ ConvertTo-Json -InputObject $result -Compress -Depth 2
     console.log('[Enrich] background enrichment start');
     try {
       // ── Stage 1: GPU via WMI only (fast, psLimiter-gated, no DXGI) ───────────
-      const _wmiGpuPs = process.platform === 'win32'
-        ? `try{$r=@(Get-CimInstance Win32_VideoController -EA Stop|Where-Object{$_.Name -notmatch 'Microsoft Basic|Remote Desktop'}|Sort-Object{-[uint64]$_.AdapterRAM});if($r.Count -gt 0){($r|ForEach-Object{"$($_.Name)|$([uint64]$_.AdapterRAM)"})-join';;'}else{''}}catch{''}`
-        : '';
-  
       let gpuModel = null, gpuVendor = null, gpuVramGB = 0, gpuIsNvidia = false;
   
       if (process.platform === 'win32') {
-        const _psToken = psLimiter.tryAcquire({ file: 'main.js', fn: '_enrichSpecsInBackground:gpu', reason: 'enrich-gpu-wmi' });
-        const wmiGpuRaw = await new Promise(resolve => {
-          if (!_psToken) {
-            // Limiter full at this moment — use startup WMI fast-path name if available
-            console.log('[Enrich] psLimiter full — GPU WMI deferred to fast-path fallback');
-            return resolve(wmiGpuModelName ? `${wmiGpuModelName}|0` : '');
-          }
-          execFile('powershell',
-            ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-Command', _wmiGpuPs],
-            { windowsHide: true, timeout: 5000 },
-            (err, stdout) => {
-              psLimiter.release(_psToken);
-              resolve(!err && stdout ? stdout.trim() : (wmiGpuModelName ? `${wmiGpuModelName}|0` : ''));
-            });
-        });
+        const wmiGpuRaw = await _getStartupWmiGpuRaw();
+        if (!wmiGpuRaw && wmiGpuModelName) {
+          console.log('[Enrich] shared GPU WMI probe unavailable — using startup fast-path fallback');
+        }
   
         if (wmiGpuRaw) {
           // Parse all GPUs from delimited list (sorted VRAM desc)
@@ -2716,7 +2708,7 @@ ConvertTo-Json -InputObject $result -Compress -Depth 2
   //   2. Disk cache 4-24h → serve instantly, fire background enrichment.
   //   3. No/stale cache   → _buildInstantSpecs() (sync <1ms), fire enrichment.
   // Home.tsx calls this with an 8s timeout — by then enrichment is always done.
-  async function loadSystemSpecs() {
+  async function loadSystemSpecs({ deferEnrichment = false } = {}) {
     const now = Date.now();
   
     // Return fully-enriched in-memory cache if still fresh (normal hot-path)
@@ -2773,7 +2765,7 @@ ConvertTo-Json -InputObject $result -Compress -Depth 2
         }
         // Background refresh only when cache is getting old (>4h) so hardware
         // changes (new GPU, Windows Update) are eventually reflected.
-        if (diskCache._diskCacheAgeMs > SPECS_DISK_SERVE_AGE_MS) {
+        if (diskCache._diskCacheAgeMs > SPECS_DISK_SERVE_AGE_MS && !deferEnrichment) {
           console.log('[SwitchControl] Disk cache stale (>' + Math.round(SPECS_DISK_SERVE_AGE_MS / 3600000) + 'h) — background refresh');
           void _enrichSpecsInBackground();
         }
@@ -2797,13 +2789,21 @@ ConvertTo-Json -InputObject $result -Compress -Depth 2
         console.log('[SwitchControl] Instant specs: WMI fast-path GPU already ready —', wmiGpuModelName);
       }
       cachedSpecsTime = now;
-      console.log('[SwitchControl] Instant specs (sync):', cachedSpecs.cpu.model, '| GPU:', cachedSpecs.gpu.model, '| enrichment starting…');
-      void _enrichSpecsInBackground();
+      console.log('[SwitchControl] Instant specs (sync):', cachedSpecs.cpu.model, '| GPU:', cachedSpecs.gpu.model,
+        deferEnrichment ? '| enrichment deferred until renderer request' : '| enrichment starting…');
+      if (!deferEnrichment) void _enrichSpecsInBackground();
       return cachedSpecs;
     }
   
     // Enrichment in-flight — return partial result, caller will retry on specs:enriched
     if (cachedSpecs._partial) {
+      // The prewarm path intentionally creates only the synchronous partial
+      // snapshot. The first renderer request must be the point that starts
+      // WMI/systeminformation enrichment, otherwise cold boot work competes
+      // with Chromium and the backend before a window is visible.
+      if (!deferEnrichment && !_enrichmentInFlight) {
+        void _enrichSpecsInBackground();
+      }
       return cachedSpecs;
     }
   
@@ -5734,13 +5734,13 @@ $pwrThrot  = Reg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottl
     }
   
     // ── C. Create main window ─────────────────────────────────────────────────────
-    // Pre-warm specs BEFORE the window opens so cachedSpecs is set by the time
-    // Splash.tsx fires its getSpecs() IPC call.  loadSystemSpecs() is synchronous
-    // on first call (_buildInstantSpecs uses os.cpus/totalmem only, < 1ms).
-    // This eliminates the race where Splash called getSpecs() while cachedSpecs
-    // was still null, causing a redundant _buildInstantSpecs inside the IPC handler.
-    loadSystemSpecs().then(specs => {
-      console.log('[PREWARM] cachedSpecs seeded before window open —', specs?.cpu?.model, '| GPU:', specs?.gpu?.model);
+    // Pre-warm only the synchronous snapshot before the window opens. The
+    // previous call also launched WMI/systeminformation enrichment here, which
+    // competed with Chromium and the packaged backend on cold/low-end boots.
+    // Splash.tsx's first getSpecs() request starts the shared enrichment after
+    // the renderer exists, while still receiving this instant snapshot.
+    loadSystemSpecs({ deferEnrichment: true }).then(specs => {
+      console.log('[PREWARM] instant cachedSpecs seeded before window open —', specs?.cpu?.model, '| GPU:', specs?.gpu?.model);
     }).catch(e => {
       console.warn('[PREWARM] specs pre-warm failed (non-fatal):', e?.message);
     });
@@ -5894,6 +5894,10 @@ $pwrThrot  = Reg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottl
   app.on('before-quit', () => {
     _telemetryLoopActive = false; // signals the async loop to stop after current poll
     console.log('[telemetry:poll] async loop stop requested on quit');
+    if (_telemetryStartDelayTimer) {
+      clearTimeout(_telemetryStartDelayTimer);
+      _telemetryStartDelayTimer = null;
+    }
     // Cancel any pending fade/fallback timers so they don't fire during teardown
     if (_fadeTimer)         { clearInterval(_fadeTimer);         _fadeTimer         = null; }
     if (_fallbackFadeTimer) { clearInterval(_fallbackFadeTimer); _fallbackFadeTimer = null; }
