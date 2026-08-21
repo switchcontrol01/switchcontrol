@@ -50,6 +50,7 @@
 - [Windows RAM telemetry source](windows-ram-telemetry.md) — dashboard RAM uses native os.totalmem/os.freemem counters to match Task Manager, not systeminformation.mem().
 - [Telemetry warm-up paused route](telemetry-warmup-paused-route.md) — paused/static routes must clear the global warm-up flag or the startup banner can persist forever.
 - [Windows disk telemetry fallback](windows-disk-telemetry-fallback.md) — validate disk counters, not just truthy probe objects; fall back to PowerShell for incomplete Windows samples.
+- [Cleaner accuracy boundary](cleaner-accuracy.md) — cleanup totals are post-delete facts, Recycle Bin is verified by before/after scope, and active navigation must be cancellable.
 - [Electron intelligence telemetry bridge](electron-intelligence-telemetry-bridge.md) — embedded backend skips its scheduler; intelligence routes must consume the authenticated renderer’s existing main-process live snapshot.
 - [Route-aware telemetry demand](route-aware-telemetry-demand.md) — one central mode policy: Dashboard full, Tweaks intelligence, static paused; Electron and web polling must follow it.
 - [Electron offline auth boundary](electron-offline-auth-boundary.md) — loopback Electron requests use the renderer identity plus local entitlement headers when no cloud DB exists; native focus must resume telemetry.

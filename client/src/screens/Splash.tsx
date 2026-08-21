@@ -359,19 +359,55 @@ export default function Splash({ onComplete }: SplashProps) {
               transition={{ duration: 0.40, ease: [0.22, 1, 0.36, 1], delay: 0.06 }}
               className="flex flex-col items-center gap-4"
             >
-              <h1 className="text-3xl font-bold tracking-tight select-none" style={{ letterSpacing: "-0.01em" }}>
-                <span className="text-white">Switch</span>
-                <span style={{
-                  background: "linear-gradient(90deg, #00D4FF, #33E0FF, #00C8F5)",
-                  WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
-                }}>Control</span>
-              </h1>
+              <motion.h1
+                aria-label="SwitchControl"
+                className="text-3xl font-bold tracking-tight select-none"
+                style={{ letterSpacing: "-0.025em", perspective: "600px" }}
+              >
+                <motion.span
+                  className="inline-block text-white"
+                  initial={{ opacity: 0, y: 9, filter: "blur(7px)", letterSpacing: "0.08em" }}
+                  animate={{ opacity: 1, y: 0, filter: "blur(0px)", letterSpacing: "-0.025em" }}
+                  transition={{ duration: 0.54, delay: 0.16, ease: [0.22, 1, 0.36, 1] }}
+                >
+                  Switch
+                </motion.span>
+                <motion.span
+                  className="relative inline-block"
+                  initial={{ opacity: 0, y: 9, filter: "blur(7px)", letterSpacing: "0.08em" }}
+                  animate={{ opacity: 1, y: 0, filter: "blur(0px)", letterSpacing: "-0.025em" }}
+                  transition={{ duration: 0.62, delay: 0.34, ease: [0.22, 1, 0.36, 1] }}
+                  style={{
+                    background: "linear-gradient(105deg, #00BFEA 0%, #7AEAFF 42%, #00D4FF 58%, #00A9D2 100%)",
+                    WebkitBackgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
+                    textShadow: "0 0 22px rgba(0, 212, 255, 0.16)",
+                  }}
+                >
+                  Control
+                  <motion.span
+                    aria-hidden="true"
+                    className="pointer-events-none absolute inset-y-0 -left-1 w-5"
+                    initial={{ x: "-150%", opacity: 0 }}
+                    animate={{ x: "500%", opacity: [0, 0.75, 0] }}
+                    transition={{ duration: 0.72, delay: 0.52, ease: [0.22, 1, 0.36, 1] }}
+                    style={{
+                      background: "linear-gradient(90deg, transparent, rgba(220, 252, 255, 0.95), transparent)",
+                      filter: "blur(3px)",
+                      transform: "skewX(-18deg)",
+                    }}
+                  />
+                </motion.span>
+              </motion.h1>
 
-              <p className="text-[13px] text-white/35 text-center tracking-wide select-none"
+              <motion.p
+                initial={{ opacity: 0, y: 5 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.45, delay: 0.67, ease: [0.22, 1, 0.36, 1] }}
+                className="text-[13px] text-white/35 text-center tracking-wide select-none"
                 data-testid="text-splash-tagline">
                 {tagline}
-              </p>
+              </motion.p>
 
               {/* Initializing status — fades after the first second */}
               <AnimatePresence>

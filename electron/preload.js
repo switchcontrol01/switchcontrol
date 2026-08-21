@@ -517,6 +517,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
       assertStringArray(itemIds, 'cleaner.verify itemIds');
       return ipcRenderer.invoke('cleaner:verify', itemIds);
     },
+    cancel: () => ipcRenderer.invoke('cleaner:cancel'),
   },
   debloat: {
     scan: (items) => {

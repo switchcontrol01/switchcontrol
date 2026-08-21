@@ -11,6 +11,7 @@ const os = require('os');
 const path = require('path');
 // P2-C1: use global limiter so cleaner never exceeds system-wide PS process cap
 const psLimiter = require('./powershell-limiter');
+let cleanerCancelRequested = false;
 
 // ── PowerShell runner ─────────────────────────────────────────────────────────
 function runPS(cmd, timeoutMs = 20000) {
@@ -63,9 +64,9 @@ function buildPathsScanCmd(paths, { filter = null, recurse = true } = {}) {
 }
 
 // Returns a cleanCmd thunk: deletes matching files across a list of paths.
-// Strategy: measure total size FIRST (one fast pass), then bulk-delete via
-// pipeline (no per-file size lookup during delete).  This is 10-50× faster
-// than the old per-file Try/Catch approach on large directories.
+// Count bytes and files only after each individual delete succeeds. A scan is
+// an estimate; locked files and permission failures must not be reported as
+// cleaned.
 // removeEmptyDirs: true = also prune empty directories after file deletion
 function buildPathsCleanCmd(paths, { filter = null, recurse = true, removeEmptyDirs = false } = {}) {
   const psArr = paths.map(p => `'${p}'`).join(',\n        ');
@@ -84,17 +85,17 @@ function buildPathsCleanCmd(paths, { filter = null, recurse = true, removeEmptyD
       $paths = @(
         ${psArr}
       )
-      $removed = 0; $cnt = 0; $fail = 0
+      $removed = [int64]0; $cnt = 0; $fail = 0
       foreach ($p in $paths) {
         If (Test-Path $p) {
-          # Pass 1: measure (fast — no delete overhead)
           $items = ${gci}${fileWhere}
-          $removed += ($items | Measure-Object Length -Sum).Sum
-          $cnt   += $items.Count
-          # Pass 2: bulk delete — pipeline Remove-Item is much faster than per-file loop
           $items | ForEach-Object {
-            Try { Remove-Item $_.FullName -Force -EA Stop }
-            Catch { $fail++ }
+            Try {
+              $sz = [int64]$_.Length
+              Remove-Item $_.FullName -Force -EA Stop
+              $removed += $sz
+              $cnt++
+            } Catch { $fail++ }
           }${emptyDirPass}
         }
       }
@@ -124,19 +125,19 @@ const SCAN_DEFS = {
     `,
     cleanCmd: () => `
       $p = '${windir}\\SoftwareDistribution\\Download'
-      $removed = 0; $cnt = 0
+      $removed = [int64]0; $cnt = 0; $fail = 0
       If (Test-Path $p) {
-        Get-ChildItem $p -Force -ErrorAction SilentlyContinue |
+        Get-ChildItem $p -Recurse -Force -ErrorAction SilentlyContinue |
+          Where-Object {!$_.PSIsContainer} |
           ForEach-Object {
             Try {
-              $sz = (Get-ChildItem $_.FullName -Recurse -Force -EA SilentlyContinue |
-                Where-Object {!$_.PSIsContainer} | Measure-Object Length -Sum).Sum
-              Remove-Item $_.FullName -Recurse -Force -ErrorAction Stop
+              $sz = [int64]$_.Length
+              Remove-Item $_.FullName -Force -ErrorAction Stop
               $removed += $sz; $cnt++
-            } Catch {}
+            } Catch { $fail++ }
           }
       }
-      Write-Output "$removed|$cnt|0"
+      Write-Output "$removed|$cnt|$fail"
     `,
   },
 
@@ -715,26 +716,35 @@ const SCAN_DEFS = {
       Write-Output "$total|$cnt"
     `,
     cleanCmd: () => `
-      $total = 0; $cnt = 0; $failed = 0
+      $before = [int64]0; $beforeCnt = 0
       Get-PSDrive -PSProvider FileSystem -ErrorAction SilentlyContinue | ForEach-Object {
         $rb = "$($_.Root)\`$Recycle.Bin"
         If (Test-Path $rb) {
           $items = Get-ChildItem $rb -Recurse -Force -ErrorAction SilentlyContinue |
             Where-Object {!$_.PSIsContainer}
-          $drvBytes = ($items | Measure-Object Length -Sum).Sum
-          $drvCnt   = $items.Count
-          If ($drvCnt -gt 0) {
-            Try {
-              Clear-RecycleBin -DriveLetter $_.Name -Force -ErrorAction Stop
-              $total += $drvBytes
-              $cnt   += $drvCnt
-            } Catch {
-              $failed++
-            }
-          }
+          $before += (($items | Measure-Object Length -Sum).Sum ?? 0)
+          $beforeCnt += $items.Count
         }
       }
-      Write-Output "$total|$cnt|$failed"
+      $clearFailed = 0
+      Get-PSDrive -PSProvider FileSystem -ErrorAction SilentlyContinue | ForEach-Object {
+        Try { Clear-RecycleBin -DriveLetter $_.Name -Force -ErrorAction Stop }
+        Catch { $clearFailed++ }
+      }
+      $after = [int64]0; $afterCnt = 0
+      Get-PSDrive -PSProvider FileSystem -ErrorAction SilentlyContinue | ForEach-Object {
+        $rb = "$($_.Root)\`$Recycle.Bin"
+        If (Test-Path $rb) {
+          $items = Get-ChildItem $rb -Recurse -Force -ErrorAction SilentlyContinue |
+            Where-Object {!$_.PSIsContainer}
+          $after += (($items | Measure-Object Length -Sum).Sum ?? 0)
+          $afterCnt += $items.Count
+        }
+      }
+      $removed = [Math]::Max([int64]0, $before - $after)
+      $cnt = [Math]::Max(0, $beforeCnt - $afterCnt)
+      $failed = $clearFailed + $afterCnt
+      Write-Output "$removed|$cnt|$failed"
     `,
   },
 
@@ -752,15 +762,20 @@ const SCAN_DEFS = {
     `,
     cleanCmd: () => `
       $paths = @('C:\\Windows.old','C:\\$WinREAgent')
-      $removed = 0; $cnt = 0
+      $removed = [int64]0; $cnt = 0; $fail = 0
       foreach ($p in $paths) {
         If (Test-Path $p) {
           $items = Get-ChildItem $p -Recurse -Force -ErrorAction SilentlyContinue | Where-Object {!$_.PSIsContainer}
-          $removed += ($items | Measure-Object Length -Sum).Sum; $cnt += $items.Count
-          Try { Remove-Item $p -Recurse -Force -ErrorAction Stop } Catch {}
+          $items | ForEach-Object {
+            Try {
+              $sz = [int64]$_.Length
+              Remove-Item $_.FullName -Force -ErrorAction Stop
+              $removed += $sz; $cnt++
+            } Catch { $fail++ }
+          }
         }
       }
-      Write-Output "$removed|$cnt|0"
+      Write-Output "$removed|$cnt|$fail"
     `,
   },
 
@@ -814,6 +829,7 @@ ipcMain.handle('cleaner:scan', async (event, itemIds) => {
   if (!token) return { ok: false, reason: 'busy', results: {} };
 
   const ids = Array.isArray(itemIds) ? itemIds : Object.keys(SCAN_DEFS);
+  cleanerCancelRequested = false;
   const results = {};
   try {
     await Promise.all(ids.map(async id => {
@@ -831,6 +847,7 @@ ipcMain.handle('cleaner:scan', async (event, itemIds) => {
   } finally {
     psLimiter.release(token);
   }
+  if (cleanerCancelRequested) return { ok: false, reason: 'cancelled', results };
   return { ok: true, results };
 });
 
@@ -846,6 +863,7 @@ ipcMain.handle('cleaner:clean', async (event, itemIds) => {
   if (!token) return { ok: false, reason: 'busy', results: {} };
 
   const results = {};
+  cleanerCancelRequested = false;
   try {
     // Timeout tiers — large-storage items need much more time than 20 s.
     // Per-file iteration on 100k+ files was the original bottleneck; the
@@ -865,6 +883,7 @@ ipcMain.handle('cleaner:clean', async (event, itemIds) => {
     ]);
 
     for (const id of itemIds) {
+      if (cleanerCancelRequested) break;
       const def = SCAN_DEFS[id];
       if (!def) { results[id] = { bytesRemoved: 0, filesRemoved: 0, failed: 0, error: 'unknown-item' }; continue; }
       const timeout = LARGE_ITEMS.has(id) ? LONG_TIMEOUT : MID_ITEMS.has(id) ? MID_TIMEOUT : STD_TIMEOUT;
@@ -879,7 +898,13 @@ ipcMain.handle('cleaner:clean', async (event, itemIds) => {
   } finally {
     psLimiter.release(token);
   }
+  if (cleanerCancelRequested) return { ok: false, reason: 'cancelled', results };
   return { ok: true, results };
+});
+
+ipcMain.handle('cleaner:cancel', () => {
+  cleanerCancelRequested = true;
+  return { ok: true };
 });
 
 // ── IPC: cleaner:verify ───────────────────────────────────────────────────────

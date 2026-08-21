@@ -426,7 +426,27 @@ export function Sidebar() {
     img.src = liveUrl;
   }, [user?.avatar]);
 
-  const navigate = (href: string) => setLocation(href);
+  const navigate = async (href: string) => {
+    // The Cleaner can veto navigation while a scan/clean is active. The event
+    // is intentionally a handshake so ordinary routes remain synchronous from
+    // the user's perspective when no guard is mounted.
+    let handled = false;
+    const allowed = await new Promise<boolean>((resolve) => {
+      const event = new CustomEvent("sc:navigation-request", {
+        detail: {
+          claim: () => { handled = true; },
+          href,
+          resolve: (value: boolean) => {
+            handled = true;
+            resolve(value);
+          },
+        },
+      });
+      window.dispatchEvent(event);
+      if (!handled) resolve(true);
+    });
+    if (allowed) setLocation(href);
+  };
 
   return (
     <motion.aside

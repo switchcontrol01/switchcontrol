@@ -14,6 +14,11 @@ import {
   Gamepad2, AppWindow, Globe, Monitor, FolderOpen,
 } from "lucide-react";
 import StorageHealthSection from "@/components/StorageHealthSection";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -493,6 +498,12 @@ export default function SystemCleaner() {
   const [scanHistory, setScanHistory] = useState<ScanHistoryEntry[]>([]);
   const [isCleaning,  setIsCleaning]  = useState(false);
   const scanRef = useRef(false);
+  const cancelRequestedRef = useRef(false);
+  const restoringPopStateRef = useRef(false);
+  const [navigationRequest, setNavigationRequest] = useState<{
+    href: string;
+    resolve: (allowed: boolean) => void;
+  } | null>(null);
 
   const allItems = useMemo(() => Object.values(categories).flat(), [categories]);
 
@@ -502,6 +513,81 @@ export default function SystemCleaner() {
       const el = document.getElementById("app-scroll-root");
       if (el) el.scrollTo({ top: 0, behavior: "smooth" });
     }
+  }, [phase]);
+
+  // popstate cannot be prevented by the browser after it fires. Move the
+  // history pointer back immediately, then let the same dialog decide whether
+  // to replay the navigation.
+  useEffect(() => {
+    const onPopState = () => {
+      if (restoringPopStateRef.current) {
+        restoringPopStateRef.current = false;
+        return;
+      }
+      if (phase !== "scanning" && phase !== "cleaning") return;
+      restoringPopStateRef.current = true;
+      window.history.forward();
+      setNavigationRequest({
+        href: "the previous page",
+        resolve: (allow) => {
+          if (!allow) return;
+          cancelRequestedRef.current = true;
+          if (isElectron()) getEC()?.cancel?.();
+          setIsCleaning(false);
+          setPhase("idle");
+          restoringPopStateRef.current = true;
+          window.history.back();
+        },
+      });
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, [phase]);
+
+  // Sidebar navigation is owned by a separate mounted AppLayout. Intercept it
+  // here before this page unmounts so an active filesystem operation cannot be
+  // abandoned without the user seeing a choice.
+  useEffect(() => {
+    const onNavigationRequest = (event: Event) => {
+      const detail = (event as CustomEvent).detail;
+      if (!detail || typeof detail.resolve !== "function") return;
+      if (phase !== "scanning" && phase !== "cleaning") return;
+      detail.claim?.();
+      setNavigationRequest({ href: String(detail.href || ""), resolve: detail.resolve });
+    };
+    window.addEventListener("sc:navigation-request", onNavigationRequest);
+    return () => window.removeEventListener("sc:navigation-request", onNavigationRequest);
+  }, [phase]);
+
+  const finishNavigationRequest = useCallback((allow: boolean) => {
+    const request = navigationRequest;
+    setNavigationRequest(null);
+    if (!request) return;
+    if (allow) {
+      cancelRequestedRef.current = true;
+      if (isElectron()) getEC()?.cancel?.();
+      setIsCleaning(false);
+      setPhase("idle");
+    }
+    request.resolve(allow);
+  }, [navigationRequest]);
+
+  const requestInPageNavigation = useCallback((action: () => void) => {
+    if (phase !== "scanning" && phase !== "cleaning") {
+      action();
+      return;
+    }
+    setNavigationRequest({
+      href: "Cleaner History",
+      resolve: (allow) => {
+        if (allow) {
+          cancelRequestedRef.current = true;
+          if (isElectron()) getEC()?.cancel?.();
+          setIsCleaning(false);
+          setPhase("history");
+        }
+      },
+    });
   }, [phase]);
 
   // ── Load ──────────────────────────────────────────────────────────────────
@@ -543,6 +629,7 @@ export default function SystemCleaner() {
   const runScan = useCallback(async () => {
     if (scanRef.current) return;
     scanRef.current = true;
+    cancelRequestedRef.current = false;
     setPhase("scanning");
     setFindings({});
     setScanSummary(null);
@@ -555,6 +642,10 @@ export default function SystemCleaner() {
         const res = await getEC()!.scan(ids);
         if (res.ok) electronResults = res.results;
       } catch {}
+    }
+    if (cancelRequestedRef.current) {
+      scanRef.current = false;
+      return;
     }
 
     try {
@@ -587,6 +678,7 @@ export default function SystemCleaner() {
     setIsCleaning(true);
     setPhase("cleaning");
     setCleanResults({});
+    cancelRequestedRef.current = false;
 
     const beforeBytes = ids
       .filter(id => allItems.find(i => i.id === id)?.diskBased)
@@ -595,8 +687,10 @@ export default function SystemCleaner() {
     let electronResults: Record<string, any> = {};
     if (isElectron()) {
       for (const id of ids) {
+        if (cancelRequestedRef.current) break;
         try {
           const r = await getEC()!.clean([id]);
+          if (r.results?.[id]) electronResults[id] = r.results[id];
           if (!r.ok) {
             if (r.reason === 'busy') {
               toast({ title: "Another operation is running", description: "Please wait and try again.", variant: "destructive" });
@@ -606,10 +700,41 @@ export default function SystemCleaner() {
             }
             continue;
           }
-          if (r.results[id]) electronResults[id] = r.results[id];
         } catch (e: any) { electronResults[id] = { bytesRemoved: 0, filesRemoved: 0, failed: 1, error: e.message }; }
         setCleanResults(prev => ({ ...prev, [id]: { id, status: "cleaned", bytesRemoved: electronResults[id]?.bytesRemoved ?? 0, filesRemoved: electronResults[id]?.filesRemoved ?? 0 } }));
       }
+    }
+
+    if (cancelRequestedRef.current) {
+      const completedIds = Object.keys(electronResults);
+      if (completedIds.length > 0) {
+        await cloudApiPost<any>("/cleaner/clean", {
+          mode, itemIds: completedIds, electronResults,
+        }).catch(() => {});
+      }
+      setIsCleaning(false);
+      setPhase("idle");
+      return;
+    }
+
+    // A successful PowerShell process is not proof that every candidate was
+    // removed. Re-scan the same item scope before persisting the session and
+    // mark anything remaining as a partial/failure.
+    if (isElectron()) {
+      try {
+        const verification = await getEC()!.verify(ids);
+        for (const id of ids) {
+          const remaining = verification.results?.[id];
+          if (remaining?.found) {
+            const current = electronResults[id] ?? { bytesRemoved: 0, filesRemoved: 0, failed: 0 };
+            electronResults[id] = {
+              ...current,
+              failed: (current.failed ?? 0) + Math.max(1, remaining.fileCount ?? 0),
+              error: "Data remains after cleanup verification",
+            };
+          }
+        }
+      } catch {}
     }
 
     try {
@@ -743,7 +868,7 @@ export default function SystemCleaner() {
                 {m === "safe" ? "Safe" : "Advanced"}
               </button>
             ))}
-            <button onClick={() => setPhase("history")}
+             <button onClick={() => requestInPageNavigation(() => setPhase("history"))}
               className="flex items-center gap-1.5 h-7 px-3 rounded-full text-[11px] text-[#6B7380] hover:text-[#E6EAF0] border border-white/[0.08] hover:bg-white/[0.04] transition-all">
               <History className="w-3 h-3" /> History
             </button>
@@ -1063,7 +1188,7 @@ export default function SystemCleaner() {
                   style={{ background: "linear-gradient(135deg, #7c3aed, #6d28d9)", boxShadow: "0 0 20px rgba(124,58,237,0.35)" }}>
                   <RefreshCw className="w-4 h-4" /> New Scan
                 </motion.button>
-                <button onClick={() => setPhase("history")}
+                 <button onClick={() => requestInPageNavigation(() => setPhase("history"))}
                   className="flex items-center gap-1.5 h-10 px-4 rounded-xl text-[12px] font-semibold text-[#6B7380] border border-white/[0.08] hover:bg-white/[0.04] hover:text-[#E6EAF0] transition-colors">
                   <History className="w-3.5 h-3.5" /> History
                 </button>
@@ -1072,6 +1197,48 @@ export default function SystemCleaner() {
           )}
 
         </AnimatePresence>
+
+        <AlertDialog
+          open={navigationRequest !== null}
+          onOpenChange={(open) => {
+            if (!open) finishNavigationRequest(false);
+          }}
+        >
+          <AlertDialogContent className="border-purple-500/30 bg-[#11151D]">
+            <button
+              type="button"
+              aria-label="Close"
+              onClick={() => finishNavigationRequest(false)}
+              className="absolute right-4 top-4 rounded-sm p-1 text-[#6B7380] hover:text-[#E6EAF0] focus:outline-none focus:ring-2 focus:ring-purple-400"
+            >
+              <X className="h-4 w-4" />
+            </button>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="text-[#E6EAF0]">
+                Cancel the active Cleaner operation?
+              </AlertDialogTitle>
+              <AlertDialogDescription className="text-[#A0A8B3]">
+                {phase === "scanning"
+                  ? "The scan is still running. Leaving now will discard its unfinished results."
+                  : "Cleaning may already have removed some files. Leaving now will stop after the current item and keep the completed results accurate."}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => finishNavigationRequest(false)}>
+                Keep working
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={(event) => {
+                  event.preventDefault();
+                  finishNavigationRequest(true);
+                }}
+                className="bg-red-500 text-white hover:bg-red-600"
+              >
+                Cancel and leave
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {/* ── Sticky clean bar (shown when ready and items selected) ───── */}
         <AnimatePresence>
