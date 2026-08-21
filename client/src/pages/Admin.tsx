@@ -1796,6 +1796,7 @@ export default function AdminPage() {
   const [maintenanceSaving, setMaintenanceSaving] = useState(false);
   const [maintenanceError, setMaintenanceError] = useState<string | null>(null);
   const [maintenanceSaved, setMaintenanceSaved] = useState(false);
+  const [showDownloadMaintenance, setShowDownloadMaintenance] = useState(false);
 
   // Driver database control plane
   const [showDriverDb, setShowDriverDb] = useState(false);
@@ -2179,6 +2180,35 @@ export default function AdminPage() {
             ? "border-amber-400/30 bg-amber-500/[0.06]"
             : "border-[#2A313A] bg-white/[0.02]"
         }`}>
+          <button
+            type="button"
+            onClick={() => setShowDownloadMaintenance((open) => !open)}
+            aria-expanded={showDownloadMaintenance}
+            className="w-full flex items-center justify-between gap-4 text-left"
+          >
+            <span className="flex items-center gap-3">
+              <span className={`w-9 h-9 rounded-xl flex items-center justify-center border ${
+                downloadMaintenance?.enabled
+                  ? "bg-amber-500/15 border-amber-400/30 text-amber-300"
+                  : "bg-cyan-500/10 border-cyan-500/20 text-cyan-300"
+              }`}>
+                <span className="text-lg">⚙</span>
+              </span>
+              <span>
+                <span className="block text-sm font-semibold text-[#E6EAF0]">Download page maintenance</span>
+                <span className="block text-xs text-[#6B7380] mt-1">
+                  {downloadMaintenance?.enabled ? "Enabled — visitors see the maintenance page." : "Disabled — downloads are available normally."}
+                </span>
+              </span>
+            </span>
+            <span className="shrink-0 inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-semibold border border-[#2A313A] bg-[#21262D] text-[#A0A8B3]">
+              {showDownloadMaintenance ? "Hide settings" : "Show settings"}
+              <span aria-hidden="true">{showDownloadMaintenance ? "↑" : "↓"}</span>
+            </span>
+          </button>
+
+          {showDownloadMaintenance && (
+          <>
           <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
             <div className="flex items-start gap-3">
               <div className={`w-9 h-9 rounded-xl flex items-center justify-center border ${
@@ -2247,6 +2277,8 @@ export default function AdminPage() {
           </div>
           {maintenanceError && <p className="text-xs text-red-300 mt-3">{maintenanceError}</p>}
           {maintenanceSaved && <p className="text-xs text-emerald-300 mt-3">Download maintenance settings saved.</p>}
+          </>
+          )}
         </div>
 
         {/* Trials Expiring Panel */}

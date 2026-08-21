@@ -352,7 +352,7 @@ function ElectronAppContent() {
       user: s.user,
       setToken: s.setToken,
       setUser: s.setUser,
-      storeLogout: s.logout,
+      logout: s.logout,
       setValidating: s.setValidating,
     })),
   );
@@ -1554,7 +1554,17 @@ function ElectronAppContent() {
         // Cloud explicitly rejected the session — clear and force login.
         // This handles the case where a cached session is no longer valid.
         console.warn("[AuthTruth] Boot: logged_out_by_cloud — forcing logout");
-        storeLogout();
+        try {
+          storeLogout();
+        } catch (error) {
+          // Auth cleanup must never be able to strand the app on the boot screen.
+          console.error("[AuthTruth] Boot: local logout cleanup failed — clearing auth store directly", error);
+          try {
+            useAuthStore.getState().clear();
+          } catch (fallbackError) {
+            console.error("[AuthTruth] Boot: direct auth-store cleanup also failed", fallbackError);
+          }
+        }
         setPhase("unauthenticated");
         return;
       }
@@ -1597,7 +1607,17 @@ function ElectronAppContent() {
       } else {
         // Had a cached session but cloud returned no user — force logout
         console.warn("[AuthTruth] Boot: cached session invalidated by cloud — forcing logout");
-        storeLogout();
+        try {
+          storeLogout();
+        } catch (error) {
+          // Auth cleanup must never be able to strand the app on the boot screen.
+          console.error("[AuthTruth] Boot: local logout cleanup failed — clearing auth store directly", error);
+          try {
+            useAuthStore.getState().clear();
+          } catch (fallbackError) {
+            console.error("[AuthTruth] Boot: direct auth-store cleanup also failed", fallbackError);
+          }
+        }
         setPhase("unauthenticated");
       }
     };
