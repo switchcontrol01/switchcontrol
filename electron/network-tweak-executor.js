@@ -860,12 +860,18 @@ async function executeNetworkTweakWithOwnership(tweakId, action) {
   // Step 3: execute
   const result = await executeNetworkTweak(tweakId, action);
 
-  // Step 4: record ownership only after confirmed success
+  // Step 4: update ownership only after confirmed success. A revert must
+  // clear app ownership; recording every successful action as recordApply()
+  // leaves a reverted network tweak owned/applied forever.
   if (result.success) {
-    ownershipStore.recordApply(scopeKey, {
-      appliedValue:      action === 'apply',
-      verificationState: result.verified ? 'verified' : 'unverified',
-    });
+    if (action === 'revert') {
+      ownershipStore.recordRevert(scopeKey);
+    } else {
+      ownershipStore.recordApply(scopeKey, {
+        appliedValue:      true,
+        verificationState: result.verified ? 'verified' : 'unverified',
+      });
+    }
   }
 
   return result;

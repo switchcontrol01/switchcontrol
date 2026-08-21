@@ -138,9 +138,21 @@ async function revertNetworkTweak(record) {
 
   try {
     const result = await getNetworkTweakExecutor().executeNetworkTweak(itemId, action);
-    if (result.success) {
+    // Do not report a network revert as complete unless the executor's
+    // post-write check confirms the requested end state. Previously a
+    // successful PowerShell exit was enough, which made the modal claim
+    // "Restored" while Windows still reported the tweak as enabled.
+    if (result.success && result.verified) {
       ownershipStore.recordRevert(scopeKey);
       return { success: true, action, verified: result.verified };
+    }
+    if (result.success && action === 'revert' && !result.verified) {
+      return {
+        success: false,
+        action,
+        verified: false,
+        error: result.message || 'Network state is still enabled after revert verification',
+      };
     }
     // These legacy IDs were moved to canonical owners:
     // tcp-nagle → tweak-executor/tcp-no-delay
