@@ -136,7 +136,27 @@ export function StartupHero({ scanStatus, apps, onScan, onOptimize, onReview }: 
   const recs         = getRecommendations(apps, 3);
 
   return (
-    <div className="relative rounded-2xl overflow-hidden border" style={{ borderColor: "rgba(255,255,255,0.06)", background: "#14181D" }}>
+    <motion.div
+      layout
+      className={cn(
+        "relative w-full",
+        isScanning && "min-h-[calc(100vh-8rem)] flex items-center justify-center",
+      )}
+      transition={{ layout: { duration: 0.62, ease: [0.22, 1, 0.36, 1] } }}
+    >
+    <motion.div
+      layout
+      animate={{ scale: isScanning ? 1.04 : 1 }}
+      transition={{
+        layout: { duration: 0.62, ease: [0.22, 1, 0.36, 1] },
+        scale: { duration: 0.62, ease: [0.22, 1, 0.36, 1] },
+      }}
+      className={cn(
+        "relative rounded-2xl overflow-hidden border w-full",
+        isScanning && "max-w-2xl",
+      )}
+      style={{ borderColor: "rgba(255,255,255,0.06)", background: "#14181D" }}
+    >
       {/* Ambient background */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-0 right-0 w-2/3 h-full"
@@ -155,10 +175,22 @@ export function StartupHero({ scanStatus, apps, onScan, onOptimize, onReview }: 
         />
       </div>
 
-      <motion.div layout className="relative z-10 p-5 sm:p-6 flex flex-col lg:flex-row gap-6 lg:items-center justify-between">
+      <motion.div
+        layout
+        className={cn(
+          "relative z-10 p-5 sm:p-6 flex flex-col lg:flex-row gap-6 lg:items-center justify-between",
+          isScanning && "items-center justify-center text-center",
+        )}
+      >
 
         {/* Left: Orb + content */}
-        <motion.div layout className="flex items-start gap-5">
+        <motion.div
+          layout
+          className={cn(
+            "flex items-start gap-5",
+            isScanning && "flex-col items-center text-center",
+          )}
+        >
           <BootOrb scanning={isScanning} />
 
           <div className="space-y-2.5 max-w-lg">
@@ -310,6 +342,7 @@ export function StartupHero({ scanStatus, apps, onScan, onOptimize, onReview }: 
           )}
         </AnimatePresence>
       </motion.div>
-    </div>
+    </motion.div>
+    </motion.div>
   );
 }

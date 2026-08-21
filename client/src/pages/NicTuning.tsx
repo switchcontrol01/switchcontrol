@@ -1069,8 +1069,8 @@ export default function NicTuningPage() {
         <motion.div
           layout
           className={cn(
-            "relative",
-            loading && "min-h-[300px] flex items-center justify-center",
+            "relative w-full",
+            loading && "min-h-[calc(100vh-8rem)] flex items-center justify-center",
           )}
           transition={{ layout: { duration: 0.62, ease: [0.22, 1, 0.36, 1] } }}
         >
@@ -1084,7 +1084,7 @@ export default function NicTuningPage() {
               scale: { duration: 0.62, ease: [0.22, 1, 0.36, 1] },
               y: { duration: 0.45, ease: [0.22, 1, 0.36, 1] },
             }}
-            className="w-full"
+            className={cn("w-full", loading && "max-w-2xl")}
           >
             <div
               className="relative rounded-2xl overflow-hidden border border-[#2A313A] p-5"
@@ -1099,8 +1099,14 @@ export default function NicTuningPage() {
               <div className="absolute -bottom-10 right-0 w-56 h-56 rounded-full pointer-events-none"
                 style={{ background: "radial-gradient(circle, rgba(139,92,246,0.08) 0%, transparent 70%)", filter: "blur(40px)" }} />
 
-              <div className="relative flex flex-col sm:flex-row sm:items-center gap-4">
-                <div className="flex items-center gap-3 flex-1 min-w-0">
+              <div className={cn(
+                "relative flex flex-col sm:flex-row sm:items-center gap-4",
+                loading && "justify-center",
+              )}>
+                <div className={cn(
+                  "flex items-center gap-3 flex-1 min-w-0",
+                  loading && "justify-center text-center",
+                )}>
                   <div className="size-10 rounded-xl bg-gradient-to-br from-cyan-500/20 to-indigo-500/10 border border-[#2A313A] flex items-center justify-center shrink-0">
                     <Network className="size-5 text-cyan-400" />
                   </div>

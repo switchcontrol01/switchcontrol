@@ -9,11 +9,9 @@ import { LiveGraph } from "@/components/dashboard/LiveGraph";
 import { LiveGraphsGate } from "@/components/dashboard/LiveGraphsGate";
 import { StorageCards } from "@/components/dashboard/StorageCards";
 import { SystemStateBar } from "@/components/dashboard/SystemStateBar";
-import { DashboardInsights } from "@/components/dashboard/DashboardInsights";
 import { DashboardHeaderParticles, type DashboardTimeOfDay } from "@/components/DashboardHeaderParticles";
 import { useStore } from "@/lib/store";
 import { useAdvisorStore } from "@/stores/advisorStore";
-import { useDashboardActivityStore } from "@/stores/dashboardActivityStore";
 import { getAdvisorInsightText, getBiosStatusText } from "@/lib/systemStateEngine";
 import { Cpu, HardDrive, MemoryStick, Activity, Zap, Shield, Sparkles, Brain, Target, ArrowRight, Wifi } from "lucide-react";
 import { useLiveTelemetry, useLiveTelemetryValues, formatKbps } from "@/hooks/useLiveTelemetry";
@@ -406,9 +404,6 @@ export default function Home() {
     }
   }, []);
   // ── End lifecycle logging ────────────────────────────────────────────────────
-  const { addEvent } = useDashboardActivityStore();
-  const { lastRunAt: advisorLastRunAt } = useAdvisorStore();
-  const { lastScanTime: biosLastScanTime } = useBiosAdvisorStore();
   const [specStatus, setSpecStatus] = useState<"loading" | "ready" | "unavailable">(() => {
     try {
       const s = (useStore as any).getState?.()?.stats;
@@ -444,36 +439,9 @@ export default function Home() {
   const timeOfDay = useMemo(() => getTimeOfDay(), []);
   const greeting  = useMemo(() => getGreeting(),  []);
 
-  // ── Event tracking ──────────────────────────────────────────────────────────
-  const prevTweaksRef = useRef(account.stats.tweaksApplied);
   const prevMemCleanerRef = useRef(false);
-  // Guard refs: only fire addEvent when the timestamp is genuinely new vs what
-  // was seen on mount. Without these, every navigation back to Home re-adds the
-  // last BIOS/AI scan timestamp from the persisted store, flooding Recent Events.
-  const seenAdvisorRunAtRef = useRef<string | null>(advisorLastRunAt);
-  const seenBiosScanTimeRef  = useRef<string | null>(biosLastScanTime);
-
-  useEffect(() => {
-    if (!advisorLastRunAt) return;
-    // Only emit when the timestamp actually advances (new scan ran this session)
-    if (advisorLastRunAt === seenAdvisorRunAtRef.current) return;
-    seenAdvisorRunAtRef.current = advisorLastRunAt;
-    addEvent({ type: "ai_scan_completed", label: "AI Advisor scan completed", ts: new Date(advisorLastRunAt).getTime() });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [advisorLastRunAt]);
-
-  useEffect(() => {
-    if (!biosLastScanTime) return;
-    // Only emit when the timestamp actually advances (new scan ran this session)
-    if (biosLastScanTime === seenBiosScanTimeRef.current) return;
-    seenBiosScanTimeRef.current = biosLastScanTime;
-    addEvent({ type: "bios_scan_completed", label: "BIOS scan completed", ts: new Date(biosLastScanTime).getTime() });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [biosLastScanTime]);
-
   useEffect(() => {
     if (prevMemCleanerRef.current && !memCleanerOpen) {
-      addEvent({ type: "memory_cleaned", label: "Memory cleaner completed", ts: Date.now() });
       // Re-poll RAM so the Memory card reflects the freed headroom even when
       // the telemetry WebSocket is unavailable. Use getLive() (fast, no WMI)
       // rather than getSpecs() which re-runs GPU WMI queries and defeats the cache.
@@ -502,21 +470,6 @@ export default function Home() {
     prevMemCleanerRef.current = memCleanerOpen;
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [memCleanerOpen]);
-
-  useEffect(() => {
-    const curr = account.stats.tweaksApplied;
-    const prev = prevTweaksRef.current;
-    if (curr > prev) {
-      const d = curr - prev;
-      addEvent({ type: "tweak_applied", label: `${d} tweak${d !== 1 ? "s" : ""} applied`, ts: Date.now() });
-    } else if (curr < prev) {
-      const d = prev - curr;
-      addEvent({ type: "tweak_reverted", label: `${d} tweak${d !== 1 ? "s" : ""} reverted`, ts: Date.now() });
-    }
-    prevTweaksRef.current = curr;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [account.stats.tweaksApplied]);
-  // ── End event tracking ──────────────────────────────────────────────────────
 
   const getUserDisplayName = (): string => {
     if (user?.firstName) return user.firstName;
@@ -1178,11 +1131,6 @@ export default function Home() {
           <div>
             <BiosScoreSummaryCard isPremium={isPremium} />
           </div>
-        </Reveal>
-
-        {/* Dashboard Insights — scroll-depth section with real system intelligence */}
-        <Reveal delay={0.18}>
-          <DashboardInsights />
         </Reveal>
 
         </motion.div>{/* end staged content reveal */}
