@@ -468,7 +468,9 @@ export function TweakCard({ tweak, isEnabled, onToggle, isVerifying = false, isH
                 <Button
                   variant="ghost" size="icon" onClick={openModal}
                   data-testid={`button-info-${tweak.id}`}
-                  className="size-8 text-muted-foreground hover:text-foreground hover:bg-[#2A313A] opacity-0 group-hover:opacity-100 transition-all duration-300 rounded-full"
+                  aria-label={`Show details for ${tweak.title}`}
+                  title="Show details"
+                  className="size-8 text-cyan-300/85 bg-cyan-500/[0.08] border border-cyan-400/25 hover:text-cyan-100 hover:bg-cyan-500/20 hover:border-cyan-300/50 transition-all duration-200 rounded-full"
                 >
                   <Info className="size-4" />
                 </Button>
