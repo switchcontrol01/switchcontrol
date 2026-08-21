@@ -718,6 +718,22 @@ function NetworkTweaksContent() {
     return () => window.removeEventListener('sc:net-reverted', handler);
   }, []);
   useEffect(() => {
+    const handler = (event: Event) => {
+      const detail = (event as CustomEvent<{ sliderId?: string; value?: number }>).detail;
+      if (detail?.sliderId !== 'net-throttle-index' || typeof detail.value !== 'number') return;
+      const isDisabled = detail.value === 4294967295;
+      setStateMap(prev => ({
+        ...prev,
+        'tcp-throttling-index': {
+          status: isDisabled ? 'enabled' : 'idle',
+          message: 'Verified from Slider Tweaks',
+        },
+      }));
+    };
+    window.addEventListener('sc:slider-state-changed', handler);
+    return () => window.removeEventListener('sc:slider-state-changed', handler);
+  }, []);
+  useEffect(() => {
     const NIC_TO_NETWORK: Array<[string, string]> = [
       ["nic-rss", "tcp-rss"],
     ];
@@ -881,7 +897,11 @@ function NetworkTweaksContent() {
           if (tweak.id === "tcp-nagle") {
             mainStore.setTweak("tcp-no-delay", action === "enable");
           } else if (tweak.id === "tcp-throttling-index") {
-            mainStore.setSliderValue("net-throttle-index", action === "enable" ? 4294967295 : 10);
+            const value = action === "enable" ? 4294967295 : 10;
+            mainStore.setSliderValue("net-throttle-index", value);
+            window.dispatchEvent(new CustomEvent('sc:slider-state-changed', {
+              detail: { sliderId: 'net-throttle-index', value },
+            }));
           }
           mainStore.setTweak(tweak.id, action === "enable");
         }
@@ -952,7 +972,11 @@ function NetworkTweaksContent() {
         if (tweak.id === "tcp-nagle") {
           mainStore.setTweak("tcp-no-delay", action === "enable");
         } else if (tweak.id === "tcp-throttling-index") {
-          mainStore.setSliderValue("net-throttle-index", action === "enable" ? 4294967295 : 10);
+          const value = action === "enable" ? 4294967295 : 10;
+          mainStore.setSliderValue("net-throttle-index", value);
+          window.dispatchEvent(new CustomEvent('sc:slider-state-changed', {
+            detail: { sliderId: 'net-throttle-index', value },
+          }));
         }
         mainStore.setTweak(tweak.id, action === "enable");
       }

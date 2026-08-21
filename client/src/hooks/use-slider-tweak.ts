@@ -247,6 +247,30 @@ export function useSliderTweak(tweakId: string, config: SliderConfig) {
     };
   }, [refresh, clearResultTimer]);
 
+  // Network Tweaks and Slider Tweaks are two views of the same registry value.
+  // Adopt a value that was already verified by the other surface instead of
+  // waiting for a remount or leaving this card showing a stale "unapplied"
+  // pending state.
+  useEffect(() => {
+    const handleExternalSync = (event: Event) => {
+      const detail = (event as CustomEvent<{ sliderId?: string; value?: number }>).detail;
+      if (detail?.sliderId !== tweakId || typeof detail.value !== "number" || !Number.isFinite(detail.value)) return;
+      const value = detail.value;
+      setSliderValue(tweakId, value);
+      setState(s => ({
+        ...s,
+        currentValue: value,
+        pendingValue: value,
+        isUsingDefault: value === config.defaultValue,
+        status: 'idle',
+        verifyResult: null,
+        lastError: null,
+      }));
+    };
+    window.addEventListener('sc:slider-state-changed', handleExternalSync);
+    return () => window.removeEventListener('sc:slider-state-changed', handleExternalSync);
+  }, [config.defaultValue, setSliderValue, tweakId]);
+
   const setPending = useCallback((value: number) => {
     setState(s => ({ ...s, pendingValue: value, verifyResult: null }));
     clearResultTimer();
@@ -288,6 +312,15 @@ export function useSliderTweak(tweakId: string, config: SliderConfig) {
         const confirmedValue = result.actualValue ?? valueToApply;
         // Persist confirmed value — survives app restarts and busy-limiter fallback.
         setSliderValue(tweakId, confirmedValue);
+        if (tweakId === 'net-throttle-index') {
+          // The Network Tweaks toggle is the boolean view of this slider:
+          // 0xFFFFFFFF means throttling disabled, while all other values mean
+          // the Windows throttling limit is active.
+          setTweak('tcp-throttling-index', confirmedValue === 4294967295);
+          window.dispatchEvent(new CustomEvent('sc:slider-state-changed', {
+            detail: { sliderId: tweakId, value: confirmedValue },
+          }));
+        }
         // Cross-state: keep the timer-res toggle in sync so its card + detected
         // issues reflect the real system state regardless of which surface was used.
         if (tweakId === TIMER_SLIDER_ID) {
@@ -348,6 +381,12 @@ export function useSliderTweak(tweakId: string, config: SliderConfig) {
         const resetValue = result.actualValue ?? config.defaultValue;
         // Persist the reset-to-default value so next startup shows default, not old applied value.
         setSliderValue(tweakId, resetValue);
+        if (tweakId === 'net-throttle-index') {
+          setTweak('tcp-throttling-index', resetValue === 4294967295);
+          window.dispatchEvent(new CustomEvent('sc:slider-state-changed', {
+            detail: { sliderId: tweakId, value: resetValue },
+          }));
+        }
         // Cross-state: resetting timer-resolution-slider to default means no active
         // resolution request — mirror that into the toggle so it shows as "off".
         if (tweakId === TIMER_SLIDER_ID) {

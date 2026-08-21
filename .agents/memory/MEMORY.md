@@ -46,6 +46,7 @@
 - [Desktop route loading](desktop-route-loading.md) — lazy desktop pages need a shell fallback and shared sidebar-prefetch cache; route Suspense otherwise removes the whole AppLayout on first navigation.
 - [Authenticated POST conventions](authenticated-post-conventions.md) — protected raw POST callers must use the shared API helper so JWT, Electron headers, and CSRF remain intact.
 - [Network revert verification](network-revert-verification.md) — network expiry reverts must require post-write verification; successful PowerShell alone is not enough, and revert actions must clear ownership.
+- [Network/slider cross-sync](network-slider-cross-sync.md) — Network Throttling Index toggle and numeric slider are one live registry value; verified writes must update both surfaces immediately.
 - [Background telemetry policy](background-telemetry-policy.md) — telemetry pauses automatically when the app is hidden, minimized, unfocused, or closing; there is no user toggle.
 - [Windows RAM telemetry source](windows-ram-telemetry.md) — dashboard RAM uses native os.totalmem/os.freemem counters to match Task Manager, not systeminformation.mem().
 - [Telemetry warm-up paused route](telemetry-warmup-paused-route.md) — paused/static routes must clear the global warm-up flag or the startup banner can persist forever.
