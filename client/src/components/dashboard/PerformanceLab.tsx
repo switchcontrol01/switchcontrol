@@ -5,9 +5,7 @@
  *   1. Stability Score       — real-time SVG arc gauge + source analysis
  *   2. Active Problems       — backend-derived issue list with severity
  *   3. Input Latency         — conservatively estimated, honestly labeled
- *   4. System DNA            — behavioral fingerprint from live telemetry
- *   5. What Just Caused That — on-demand event correlation
- *   6. Smart RAM Analysis    — reclaimable standby + risk + impact
+ *   4. Smart RAM Analysis    — reclaimable standby + risk + impact
  *
  * All data: backend-derived from getCachedSnapshot(), no fake numbers.
  */
@@ -24,29 +22,20 @@ import {
   type InstabilityData,
   type ActiveProblemsData,
   type LatencyData,
-  type SystemDNAData,
-  type CausationData,
   type SmartRamProfile,
   type RamState,
   type ActiveProblem,
 } from "@/hooks/useDashboardIntelligence";
 import {
-  Activity,
   AlertTriangle,
-  ArrowRight,
-  ArrowUp,
-  ArrowDown,
-  Brain,
   CheckCircle,
   ChevronRight,
   Cpu,
   Gauge,
   HardDrive,
-  HelpCircle,
   Minus,
   RefreshCw,
   Shield,
-  Sparkles,
   TrendingDown,
   TrendingUp,
   Zap,
@@ -461,272 +450,7 @@ function InputLatencyCard({ data }: { data: LatencyData | null }) {
   );
 }
 
-// ── 4. System DNA Card ────────────────────────────────────────────────────────
-
-function DNABar({ dimension, index, prefersReducedMotion }: { dimension: any; index: number; prefersReducedMotion: boolean }) {
-  return (
-    <div className="space-y-1" data-testid={`dna-dimension-${dimension.id}`}>
-      <div className="flex items-center justify-between">
-        <span className="text-[10px] text-[#A0A8B3]">{dimension.label}</span>
-        <span className="text-[10px] font-mono tabular-nums" style={{ color: dimension.color }}>
-          {Math.round(dimension.score)}
-        </span>
-      </div>
-      <div className="h-1.5 rounded-full bg-[#21262D]">
-        <motion.div
-          className="h-full rounded-full"
-          style={{
-            backgroundColor: dimension.color,
-            boxShadow: `0 0 8px ${dimension.color}55`,
-          }}
-          initial={{ width: 0 }}
-          animate={{ width: `${Math.max(2, dimension.score)}%` }}
-          transition={{
-            duration: prefersReducedMotion ? 0.1 : 0.65,
-            delay: prefersReducedMotion ? 0 : index * 0.06 + 0.2,
-            ease: [0.22, 1, 0.36, 1],
-          }}
-        />
-      </div>
-    </div>
-  );
-}
-
-function SystemDNACard({ data }: { data: SystemDNAData | null }) {
-  const { prefersReducedMotion } = useMotion();
-
-  const profileColor =
-    data?.profile === "Responsive" ? "text-emerald-400 border-emerald-500/25 bg-emerald-500/8" :
-    data?.profile === "Pressured"  ? "text-red-400 border-red-500/25 bg-red-500/8" :
-    "text-amber-400 border-amber-500/25 bg-amber-500/8";
-
-  return (
-    <GlassCard className="h-full" data-testid="card-system-dna">
-      <div className="p-5 space-y-4 h-full flex flex-col">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-medium flex items-center gap-2">
-            <Sparkles className="size-4 text-primary" />
-            System DNA
-          </h3>
-          {data && (
-            <motion.span
-              key={data.profile}
-              className={cn("text-[10px] font-semibold px-2 py-0.5 rounded-full border", profileColor)}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.25 }}
-              data-testid="text-dna-profile"
-            >
-              {data.profile}
-            </motion.span>
-          )}
-        </div>
-
-        {data?.profileNote && (
-          <p className="text-[10px] text-muted-foreground/60 leading-snug" data-testid="text-dna-note">
-            {data.profileNote}
-          </p>
-        )}
-
-        <div className="flex-1 space-y-2.5">
-          {!data && (
-            <div className="space-y-3">
-              {[1, 2, 3, 4, 5, 6].map(i => <div key={i} className="h-5 rounded bg-[#21262D] animate-pulse" />)}
-            </div>
-          )}
-          {data?.dimensions.map((dim, i) => (
-            <DNABar key={dim.id} dimension={dim} index={i} prefersReducedMotion={prefersReducedMotion} />
-          ))}
-        </div>
-      </div>
-    </GlassCard>
-  );
-}
-
-// ── 5. What Just Caused That Card ─────────────────────────────────────────────
-
-function WhatCausedThatCard({
-  causation,
-  causeLoading,
-  analyzeCause,
-}: {
-  causation: CausationData | null;
-  causeLoading: boolean;
-  analyzeCause: () => Promise<void>;
-}) {
-
-  const confidenceText = (c: string) =>
-    c === "high" ? "High confidence" : c === "medium" ? "Medium confidence" : "Low confidence";
-
-  return (
-    <GlassCard className="h-full" data-testid="card-what-caused-that">
-      <div className="p-5 space-y-4 h-full flex flex-col">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-medium flex items-center gap-2">
-            <Brain className="size-4 text-primary" />
-            What Just Caused That?
-          </h3>
-          {causation && (
-            <span className="text-[10px] text-muted-foreground/50">
-              {new Date(causation.ts).toLocaleTimeString()}
-            </span>
-          )}
-        </div>
-
-        <AnimatePresence mode="wait">
-          {!causation && !causeLoading && (
-            <motion.div
-              key="idle"
-              className="flex-1 flex flex-col items-center justify-center gap-4 text-center"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-            >
-              <div className="space-y-1.5">
-                <p className="text-xs text-[#A0A8B3] font-medium">Spike or stutter occurred?</p>
-                <p className="text-[10px] text-muted-foreground/50 max-w-[200px] leading-snug">
-                  Analyzes current system state to identify the most likely cause.
-                </p>
-              </div>
-              <Button
-                size="sm"
-                onClick={analyzeCause}
-                className="bg-primary/20 hover:bg-primary/30 text-primary border border-primary/20"
-                data-testid="button-analyze-cause"
-              >
-                <Activity className="size-3.5 mr-1.5" />
-                Analyze Now
-              </Button>
-            </motion.div>
-          )}
-
-          {causeLoading && (
-            <motion.div
-              key="loading"
-              className="flex-1 flex items-center justify-center gap-3"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-            >
-              <RefreshCw className="size-4 text-primary animate-spin" />
-              <span className="text-xs text-muted-foreground">Analyzing system state…</span>
-            </motion.div>
-          )}
-
-          {causation && !causeLoading && (
-            <motion.div
-              key="result"
-              className="flex-1 space-y-3"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
-            >
-              {/* Primary cause */}
-              {(() => {
-                const isUncertain = causation.primaryCause.id === "cause-uncertain";
-                const isTweakVerify = causation.primaryCause.id === "tweak-verification" || causation.primaryCause.id === "tweak-check-single";
-                const borderBg =
-                  causation.noIssue   ? "border-emerald-500/20 bg-emerald-500/[0.05]"
-                  : isUncertain       ? "border-[#2A313A] bg-[#1A1F26]"
-                  : isTweakVerify     ? "border-[#00D4FF] bg-[#00D4FF]/[0.05]"
-                  :                     "border-amber-500/20 bg-amber-500/[0.05]";
-                const labelColor =
-                  causation.noIssue   ? "text-emerald-300"
-                  : isUncertain       ? "text-[#A0A8B3]"
-                  : isTweakVerify     ? "text-[#33E0FF]"
-                  :                     "text-amber-200";
-                const Icon =
-                  causation.noIssue   ? CheckCircle
-                  : isUncertain       ? HelpCircle
-                  :                     AlertTriangle;
-                const iconColor =
-                  causation.noIssue   ? "text-emerald-400"
-                  : isUncertain       ? "text-[#6B7380]"
-                  : isTweakVerify     ? "text-[#00D4FF]"
-                  :                     "text-amber-400";
-                return (
-              <div className={cn("p-3 rounded-lg border space-y-2", borderBg)} data-testid="section-cause-result">
-                <div className="flex items-center gap-2">
-                  <Icon className={cn("size-3.5 shrink-0", iconColor)} />
-                  <span className={cn("text-xs font-semibold", labelColor)} data-testid="text-cause-label">
-                    {causation.primaryCause.label}
-                  </span>
-                </div>
-
-                {/* Evidence */}
-                <div className="flex flex-wrap gap-1.5">
-                  {causation.primaryCause.evidence.map((e, i) => (
-                    <span
-                      key={i}
-                      className="text-[10px] text-[#A0A8B3] px-2 py-0.5 rounded border border-[#2A313A] bg-[#1A1F26]"
-                      data-testid={`evidence-chip-${i}`}
-                    >
-                      {e}
-                    </span>
-                  ))}
-                </div>
-
-                {/* Confidence + subsystem */}
-                <div className="flex items-center gap-2 pt-0.5">
-                  <span className={cn("text-[9px] px-1.5 py-0.5 rounded border font-medium", confidenceColor(causation.primaryCause.confidence))}>
-                    {confidenceText(causation.primaryCause.confidence)}
-                  </span>
-                  {causation.primaryCause.subsystem !== "None" && (
-                    <span className="text-[10px] text-muted-foreground/50">
-                      Subsystem: <span className="text-[#A0A8B3]">{causation.primaryCause.subsystem}</span>
-                    </span>
-                  )}
-                </div>
-              </div>
-                );
-              })()}
-
-              {/* Suggestion */}
-              {causation.primaryCause.destination && (
-                <Link href={causation.primaryCause.destination}>
-                  <div className="flex items-center gap-2 text-[11px] text-primary/80 hover:text-primary transition-colors cursor-pointer">
-                    <ArrowRight className="size-3" />
-                    {causation.primaryCause.suggestion}
-                  </div>
-                </Link>
-              )}
-
-              {/* Other causes */}
-              {causation.allCauses.length > 1 && (
-                <div className="space-y-1 pt-1">
-                  <p className="text-[10px] text-muted-foreground/50 uppercase tracking-wider">Also contributing</p>
-                  {causation.allCauses.slice(1, 3).map(c => (
-                    <div key={c.id} className="flex items-center gap-2">
-                      <div className="size-1.5 rounded-full bg-[#1A1F26]0 shrink-0" />
-                      <span className="text-[10px] text-[#A0A8B3]">{c.label}</span>
-                      <span className={cn("text-[9px] ml-auto", confidenceColor(c.confidence))}>{c.confidence}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Re-analyze */}
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={analyzeCause}
-                className="w-full text-[11px] h-7 border-[#2A313A] text-[#6B7380] hover:text-[#E6EAF0]"
-                data-testid="button-re-analyze"
-              >
-                <RefreshCw className="size-3 mr-1.5" />
-                Analyze Again
-              </Button>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-    </GlassCard>
-  );
-}
-
-// ── 6. Smart RAM Card — real memory state engine ──────────────────────────────
+// ── 4. Smart RAM Card — real memory state engine ──────────────────────────────
 
 const RAM_STATE_CONFIG: Record<RamState, {
   label: string;
@@ -1102,7 +826,7 @@ function RevealCard({ children, delay = 0 }: { children: ReactNode; delay?: numb
 
 export function PerformanceLab({ onClearRAM }: { onClearRAM: () => void }) {
   const { user } = useAuth();
-  const { instability, dna, problems, latency, ram, causation, causeLoading, analyzeCause, refreshRam } = useDashboardIntelligence(!!user?.loggedIn);
+  const { instability, problems, latency, ram, refreshRam } = useDashboardIntelligence(!!user?.loggedIn);
   const { prefersReducedMotion } = useMotion();
 
   return (
@@ -1125,23 +849,15 @@ export function PerformanceLab({ onClearRAM }: { onClearRAM: () => void }) {
         </div>
       </motion.div>
 
-      {/* Row 1: Stability | Active Problems | Latency */}
+      {/* Primary row: the three core performance signals */}
       <div className="grid gap-4 md:grid-cols-3">
         <RevealCard delay={0.05}><StabilityScoreCard data={instability} /></RevealCard>
         <RevealCard delay={0.10}><ActiveProblemsCard data={problems} /></RevealCard>
         <RevealCard delay={0.15}><InputLatencyCard data={latency} /></RevealCard>
       </div>
 
-      {/* Row 2: System DNA | What Caused That */}
-      <div className="grid gap-4 md:grid-cols-2">
-        <RevealCard delay={0.18}><SystemDNACard data={dna} /></RevealCard>
-        <RevealCard delay={0.22}>
-          <WhatCausedThatCard causation={causation} causeLoading={causeLoading} analyzeCause={analyzeCause} />
-        </RevealCard>
-      </div>
-
-      {/* Row 3: Smart RAM */}
-      <RevealCard delay={0.26}>
+      {/* Smart RAM */}
+      <RevealCard delay={0.18}>
         <SmartRAMCard data={ram} onRefreshRam={refreshRam} onOpenAdvanced={onClearRAM} />
       </RevealCard>
     </div>

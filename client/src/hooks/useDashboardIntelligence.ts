@@ -18,17 +18,6 @@ export interface InstabilityData {
   ts: number;
 }
 
-export interface CauseFinding {
-  id: string;
-  label: string;
-  evidence: string[];
-  confidence: "high" | "medium" | "low";
-  subsystem: string;
-  score: number;
-  suggestion: string;
-  destination: string;
-}
-
 export interface ActiveProblem {
   id: string;
   severity: "high" | "warning" | "info";
@@ -241,15 +230,6 @@ export function useDashboardIntelligence(enabled = true): DashboardIntelligenceS
           );
         }
 
-        if (now - lastRunRef.current.dna >= TTL.dna) {
-          lastRunRef.current.dna = now;
-          tasks.push(
-            fetchJSON<SystemDNAData>("/api/dashboard-intelligence/system-dna", ac.signal)
-              .then(guarded(setDna))
-              .catch(() => {})
-          );
-        }
-
         if (now - lastRunRef.current.ram >= TTL.ram) {
           lastRunRef.current.ram = now;
           tasks.push(
@@ -281,7 +261,6 @@ export function useDashboardIntelligence(enabled = true): DashboardIntelligenceS
         const now = Date.now();
         lastRunRef.current = {
           instability: now,
-          dna: now,
           problems: now,
           latency: now,
           ram: now,
@@ -317,5 +296,5 @@ export function useDashboardIntelligence(enabled = true): DashboardIntelligenceS
     };
   }, [enabled, fetchAll]);
 
-  return { instability, dna, problems, latency, ram, loading, causation, causeLoading, analyzeCause, refresh, refreshRam };
+  return { instability, problems, latency, ram, loading, refresh, refreshRam };
 }
