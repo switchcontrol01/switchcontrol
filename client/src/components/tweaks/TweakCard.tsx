@@ -321,7 +321,10 @@ export function TweakCard({ tweak, isEnabled, onToggle, isVerifying = false, isH
       // Begin measuring before execution
       const commit = startMeasure(tweak.id, action);
       console.log(`[Tweaks:BACKEND_ACTION] id="${tweak.id}" calling executeTweak action=${action}`);
-      const outcome = await executeTweak(tweak.id, isEnabled, gpuMsiOptions);
+      const outcome = await executeTweak(tweak.id, isEnabled, {
+        ...gpuMsiOptions,
+        source: 'manual_toggle',
+      });
       if (outcome.success) {
         console.log(`[Tweaks:RESULT] id="${tweak.id}" success=true action=${action}`);
         logHistory(`Tweaks: ${tweak.title}`, "Tweaks", action === "apply" ? "Applied" : "Reverted", `Tweak ID: ${tweak.id}`);

@@ -11,6 +11,10 @@ import {
   UNSUPPORTED_MAP,
 } from '@/lib/tweak-registry';
 import { useStore } from '@/lib/store';
+import {
+  isAutomaticApplyBlocked,
+  entitlementGuardReason,
+} from '@/lib/entitlement-transition-guard';
 
 // timer-res toggle always pins to 0.5ms (5 ms10 units).
 // Mirror its apply/revert into the slider slot so both surfaces stay in sync.
@@ -60,6 +64,11 @@ export interface TweakExecuteOutcome {
   hint?: string | null;
   requiresReboot?: boolean;
 }
+
+export type TweakApplySource =
+  | 'manual_toggle'
+  | 'optimizer_apply'
+  | 'startup_reconcile';
 
 export interface TweakStatus {
   tweakId: string;
@@ -190,11 +199,27 @@ export async function bulkApplyTweaks(tweakIds: string[]): Promise<Record<string
     }
     return empty;
   }
+  if (isAutomaticApplyBlocked()) {
+    const reason = entitlementGuardReason();
+    console.warn(`[TweakExecutor] blocked automatic apply batch source=optimizer_apply — ${reason}`);
+    return Object.fromEntries(tweakIds.map(id => [id, {
+      success: false,
+      requiresReboot: false,
+      requiresAdmin: false,
+      commandsRun: [],
+      message: 'Automatic apply blocked while Premium access is changing.',
+      error: reason,
+      failureType: 'blocked_by_guard' as FailureType,
+    }]));
+  }
   const api = getTweaksAPI();
   const results: Record<string, TweakResult> = {};
   for (const id of tweakIds) {
     try {
-      results[id] = await api.execute(id, 'apply', { context: 'bulk' });
+      results[id] = await api.execute(id, 'apply', {
+        context: 'bulk',
+        source: 'optimizer_apply' satisfies TweakApplySource,
+      });
     } catch (err) {
       results[id] = {
         success: false, requiresReboot: false, requiresAdmin: false,
@@ -222,7 +247,7 @@ export function useTweakExecutor() {
   const executeTweak = useCallback(async (
     tweakId: string,
     currentlyEnabled: boolean,
-    options?: Record<string, unknown>,
+    options?: Record<string, unknown> & { source?: TweakApplySource },
   ): Promise<TweakExecuteOutcome> => {
     const FAIL = (type: FailureType, msg?: string | null, hint?: string | null): TweakExecuteOutcome =>
       ({ success: false, failureType: type, userMessage: msg ?? FAILURE_TOAST[type].title, hint: hint ?? null });
@@ -234,9 +259,16 @@ export function useTweakExecutor() {
     setInProgress(prev => new Set(prev).add(tweakId));
     setExecuting(tweakId);
     const action = currentlyEnabled ? 'revert' : 'apply';
+    const source: TweakApplySource = options?.source ?? 'manual_toggle';
+    if (action === 'apply') {
+      console.info(`[TweakExecutor] apply requested id="${tweakId}" source=${source}`);
+    }
 
     try {
-      const result: TweakResult = await getTweaksAPI().execute(tweakId, action, options);
+      const result: TweakResult = await getTweaksAPI().execute(tweakId, action, {
+        ...options,
+        source,
+      });
 
       if (result.unsupported) {
         const t = FAILURE_TOAST.unsupported;

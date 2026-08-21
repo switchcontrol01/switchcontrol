@@ -516,6 +516,10 @@ function ElectronAppContent() {
           if (s.unsupported || s.error) continue;
           if (!isRealTweak(tweakId)) continue;
           const finalState = s.isApplied ?? s.applied ?? false;
+          console.info(
+            `[App:STARTUP-RECONCILE] source=startup_reconcile id="${tweakId}" ` +
+            `observed=${finalState} — read-only hydration`,
+          );
           setTweak(tweakId, finalState);
           verifiedStateMap[tweakId] = finalState;
           reconciled++;
