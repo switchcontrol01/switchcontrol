@@ -29,6 +29,15 @@ import * as path from "path";
 import { db, isNoDbMode } from "./db";
 import { eq, desc, and, ilike, or, count, sql as drizzleSql } from "drizzle-orm";
 
+// Device validation can arrive more frequently than the metadata it records
+// changes. Keep the durable heartbeat fresh without turning every app request
+// into two database writes. This is process-local by design; a new process
+// simply refreshes the timestamp on its first request.
+const DEVICE_LAST_SEEN_THROTTLE_MS = 60_000;
+const DEVICE_RECORD_REFRESH_MS = 5 * 60_000;
+const HISTORY_CLEANUP_INTERVAL = 10;
+const deviceLastSeenWrites = new Map<string, { userWriteAt: number; recordWriteAt: number }>();
+
 export interface ListUsersOpts {
   limit?: number;
   offset?: number;
@@ -243,6 +252,10 @@ class MockStorage implements IStorage {
       this.mockHistoryMap.set(entry.settingsId, []);
     }
     this.mockHistoryMap.get(entry.settingsId)!.unshift(historyEntry);
+    this.mockHistoryMap.set(
+      entry.settingsId,
+      this.mockHistoryMap.get(entry.settingsId)!.slice(0, 500),
+    );
     return historyEntry;
   }
 
@@ -437,6 +450,8 @@ class MockStorage implements IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
+  private historyCleanupCounts = new Map<string, number>();
+
   async getOrCreateSettings(userId: string): Promise<UserSettings> {
     const [existing] = await db!
       .select()
@@ -466,25 +481,16 @@ export class DatabaseStorage implements IStorage {
   }
 
   async setTweak(settingsId: string, tweakId: string, enabled: boolean): Promise<AppliedTweak> {
-    const [existing] = await db!
-      .select()
-      .from(appliedTweaks)
-      .where(and(eq(appliedTweaks.settingsId, settingsId), eq(appliedTweaks.tweakId, tweakId)));
-
-    if (existing) {
-      const [updated] = await db!
-        .update(appliedTweaks)
-        .set({ enabled })
-        .where(eq(appliedTweaks.id, existing.id))
-        .returning();
-      return updated;
-    }
-
-    const [created] = await db!
+    // The composite unique index makes retries and concurrent toggles safe.
+    const [tweak] = await db!
       .insert(appliedTweaks)
       .values({ settingsId, tweakId, enabled })
+      .onConflictDoUpdate({
+        target: [appliedTweaks.settingsId, appliedTweaks.tweakId],
+        set: { enabled },
+      })
       .returning();
-    return created;
+    return tweak;
   }
 
   async resetTweaks(settingsId: string): Promise<void> {
@@ -502,19 +508,25 @@ export class DatabaseStorage implements IStorage {
 
   async addHistory(entry: InsertHistoryEntry): Promise<HistoryEntry> {
     const [created] = await db!.insert(historyEntries).values(entry).returning();
-    // Hard cap: keep only the 500 most-recent history entries per user.
-    // Without this, history_entries grows unboundedly and degrades over time.
-    // The DELETE runs after the INSERT so the new row is always kept.
-    await db!.execute(
-      drizzleSql`DELETE FROM history_entries
-          WHERE settings_id = ${entry.settingsId}
-            AND id NOT IN (
-              SELECT id FROM history_entries
-              WHERE settings_id = ${entry.settingsId}
-              ORDER BY timestamp DESC
-              LIMIT 500
-            )`
-    );
+    // Pruning is intentionally amortized. The table can temporarily exceed
+    // 500 rows by at most the cleanup interval, but avoids a sort/delete on
+    // every history write while retaining the same long-term retention bound.
+    const cleanupCount = (this.historyCleanupCounts.get(entry.settingsId) ?? 0) + 1;
+    if (cleanupCount >= HISTORY_CLEANUP_INTERVAL) {
+      this.historyCleanupCounts.set(entry.settingsId, 0);
+      await db!.execute(
+        drizzleSql`DELETE FROM history_entries
+            WHERE settings_id = ${entry.settingsId}
+              AND id NOT IN (
+                SELECT id FROM history_entries
+                WHERE settings_id = ${entry.settingsId}
+                ORDER BY timestamp DESC
+                LIMIT 500
+              )`
+      );
+    } else {
+      this.historyCleanupCounts.set(entry.settingsId, cleanupCount);
+    }
     return created;
   }
 
@@ -1035,10 +1047,19 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateDeviceLastSeen(userId: string, deviceId: string, meta?: { appVersion?: string; platform?: string; fingerprint?: string | null }): Promise<void> {
+    if (!db) return;
+    const nowMs = Date.now();
+    const key = `${userId}:${deviceId}`;
+    const previous = deviceLastSeenWrites.get(key);
+    const userWriteDue = !previous || nowMs - previous.userWriteAt >= DEVICE_LAST_SEEN_THROTTLE_MS;
+    const recordWriteDue = !previous || nowMs - previous.recordWriteAt >= DEVICE_RECORD_REFRESH_MS;
+
+    if (!userWriteDue && !recordWriteDue) return;
+
     const updateData: Partial<typeof users.$inferInsert> = {
       premiumLastSeenDeviceId: deviceId,
-      premiumDeviceLastSeenAt: new Date(),
-      updatedAt: new Date(),
+      premiumDeviceLastSeenAt: new Date(nowMs),
+      updatedAt: new Date(nowMs),
     };
     if (meta?.appVersion) {
       updateData.appVersion = meta.appVersion;
@@ -1046,13 +1067,23 @@ export class DatabaseStorage implements IStorage {
     if (meta?.platform) {
       updateData.platform = meta.platform;
     }
-    await db!
-      .update(users)
-      .set(updateData)
-      .where(eq(users.id, userId));
+    if (userWriteDue) {
+      await db
+        .update(users)
+        .set(updateData)
+        .where(eq(users.id, userId));
+    }
+
+    deviceLastSeenWrites.set(key, {
+      userWriteAt: userWriteDue ? nowMs : (previous?.userWriteAt ?? nowMs),
+      recordWriteAt: recordWriteDue ? nowMs : (previous?.recordWriteAt ?? nowMs),
+    });
+
     // Permanently record this device contact — fire-and-forget so it never
     // blocks the device-validate response even if the table doesn't exist yet.
-    this.upsertDeviceRecord(userId, deviceId, meta).catch(() => {});
+    if (recordWriteDue) {
+      this.upsertDeviceRecord(userId, deviceId, meta).catch(() => {});
+    }
   }
 
   // ─── One-time legacy device-ID migration ──────────────────────────────────

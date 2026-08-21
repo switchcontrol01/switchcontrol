@@ -97,6 +97,17 @@ const MIGRATIONS: string[] = [
   `CREATE INDEX IF NOT EXISTS applied_tweaks_settings_id_idx
      ON applied_tweaks (settings_id)`,
 
+  // setTweak uses a single-statement upsert. Remove any legacy duplicates
+  // before adding the constraint so older databases can adopt it safely.
+  `DELETE FROM applied_tweaks a
+     USING applied_tweaks b
+    WHERE a.settings_id = b.settings_id
+      AND a.tweak_id = b.tweak_id
+      AND a.ctid < b.ctid`,
+
+  `CREATE UNIQUE INDEX IF NOT EXISTS applied_tweaks_settings_tweak_uidx
+     ON applied_tweaks (settings_id, tweak_id)`,
+
   // historyEntries.settingsId — most common query in the app; table is append-only.
   `CREATE INDEX IF NOT EXISTS history_entries_settings_id_idx
      ON history_entries (settings_id)`,

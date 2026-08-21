@@ -223,6 +223,9 @@ app.post(
 
 app.use(
   express.json({
+    // Keep the established global limit until every legitimate large-payload
+    // route is mounted ahead of this parser and has its own explicit limit.
+    // Stripe uses a raw parser above; security scans retain their route parser.
     limit: '12mb',
     verify: (req, _res, buf) => {
       req.rawBody = buf;

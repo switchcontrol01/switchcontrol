@@ -24,6 +24,7 @@ export const appliedTweaks = pgTable("applied_tweaks", {
   enabled: boolean("enabled").notNull().default(false),
 }, (t) => ({
   settingsIdIdx: index("applied_tweaks_settings_id_idx").on(t.settingsId),
+  settingsTweakUniqueIdx: uniqueIndex("applied_tweaks_settings_tweak_uidx").on(t.settingsId, t.tweakId),
 }));
 
 export const historyEntries = pgTable("history_entries", {
