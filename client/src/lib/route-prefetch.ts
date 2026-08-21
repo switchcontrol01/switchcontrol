@@ -61,3 +61,14 @@ export function preloadDesktopRoute(path: string): Promise<void> {
     throw error;
   });
 }
+
+/**
+ * Warm all desktop chunks while the authenticated shell is settling. The
+ * sidebar can then switch between pages without exposing the route-level
+ * skeleton on every first visit.
+ */
+export function preloadAllDesktopRoutes(): Promise<void> {
+  return Promise.all(
+    Object.keys(loaders).map((route) => preloadDesktopRoute(route)),
+  ).then(() => undefined);
+}

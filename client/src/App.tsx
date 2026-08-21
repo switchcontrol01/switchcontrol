@@ -74,7 +74,7 @@ import { usePremiumGraceStore, GRACE_WINDOW_MS } from "@/stores/premiumGraceStor
 import { useTrialExpiryStore } from "@/stores/trialExpiryStore";
 import { useSystemConditionsStore } from "@/stores/systemConditionsStore";
 import { useToast } from "@/hooks/use-toast";
-import { loadDesktopRoute } from "@/lib/route-prefetch";
+import { loadDesktopRoute, preloadAllDesktopRoutes } from "@/lib/route-prefetch";
 
 import Splash from "@/screens/Splash";
 import CameraGlow from "@/screens/CameraGlow";
@@ -222,6 +222,15 @@ const ElectronRouteFallback = () => (
 function ElectronAppRoutes() {
   const [location] = useLocation();
   const realtimeMetricsEnabled = useStore((state) => state.realtimeMetricsEnabled);
+
+  useEffect(() => {
+    // Load route chunks in parallel once per renderer session. This keeps the
+    // authenticated shell responsive while eliminating repeated Suspense
+    // skeletons when users visit each desktop tab for the first time.
+    void preloadAllDesktopRoutes().catch((error) => {
+      console.warn("[Routes] desktop chunk warm-up incomplete:", error);
+    });
+  }, []);
 
   useEffect(() => {
     const path = location.split("?")[0];
