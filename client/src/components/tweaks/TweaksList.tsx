@@ -90,14 +90,29 @@ function VirtualizedTweakGrid({
     const t1 = setTimeout(measure, 100);
     const t2 = setTimeout(measure, 400);
 
-    // Also watch the scroll root for any size changes (content above the
-    // virtualizer resizing collapses/expands the container offset).
-    const ro = new ResizeObserver(measure);
-    Array.from(scrollRoot.children).forEach((child) => ro.observe(child));
+    // Watch only content that can move this list, never the scroll-root child
+    // that contains the virtualizer itself. Observing the whole scroll-root
+    // subtree creates a feedback loop: the observer updates scrollMargin,
+    // virtualizer transforms change, the observed list resizes, and the
+    // observer fires again in the same delivery cycle.
+    let frame = 0;
+    const scheduleMeasure = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(measure);
+    };
+    const ro = new ResizeObserver(scheduleMeasure);
+    const container = containerRef.current;
+    const listParent = container?.parentElement;
+    if (listParent) {
+      Array.from(listParent.children)
+        .filter((child) => child !== container)
+        .forEach((child) => ro.observe(child));
+    }
 
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);
+      cancelAnimationFrame(frame);
       ro.disconnect();
     };
   }, [items]); // re-measure when items change (filter change can shift layout)

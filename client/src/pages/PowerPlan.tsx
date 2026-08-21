@@ -933,7 +933,8 @@ export default function PowerPlan() {
   // settings; the warning badge communicates that distinction.
   const verifiedFrontendProfileId: FrontendProfileId | null =
     (backendState?.profileMatch?.match === "exact_match" ||
-      backendState?.profileMatch?.match === "close_match")
+      backendState?.profileMatch?.match === "close_match" ||
+      backendState?.profileMatch?.match === "custom_modified")
       ? backendIdToFrontendId(backendState.profileMatch.profileId ?? null)
       : null;
 

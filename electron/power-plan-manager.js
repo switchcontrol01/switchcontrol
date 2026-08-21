@@ -348,6 +348,17 @@ function matchProfileToPreset(activeGuid, settings) {
         });
         return { match: matches === keys.length ? 'exact_match' : 'close_match', profileId, mismatches };
       }
+
+      // The GUID is authoritative ownership for a SwitchControl-managed
+      // scheme. Windows/OEM firmware can normalize enough values that the
+      // settings score falls below close-match even though this exact managed
+      // scheme is active. Preserve the profile identity so callers can show
+      // the correct active card and report the setting drift separately.
+      const mismatches = {};
+      keys.filter(k => settings[k] !== profile.settings[k]).forEach(k => {
+        mismatches[k] = { expected: profile.settings[k], actual: settings[k] };
+      });
+      return { match: 'custom_modified', profileId, mismatches };
     }
   }
 
