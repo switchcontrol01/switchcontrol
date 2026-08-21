@@ -140,7 +140,7 @@ export function StartupHero({ scanStatus, apps, onScan, onOptimize, onReview }: 
       layout
       className={cn(
         "relative w-full",
-        isScanning && "min-h-[calc(100vh-8rem)] flex items-center justify-center",
+        isScanning && "min-h-[calc(100vh-8rem)] flex items-center justify-center -top-6",
       )}
       transition={{ layout: { duration: 0.62, ease: [0.22, 1, 0.36, 1] } }}
     >
@@ -226,7 +226,10 @@ export function StartupHero({ scanStatus, apps, onScan, onOptimize, onReview }: 
             </p>
 
             {/* CTA buttons */}
-            <div className="flex flex-wrap items-center gap-3 pt-1">
+            <div className={cn(
+              "flex flex-wrap items-center gap-3 pt-1",
+              isScanning && "w-full justify-center",
+            )}>
               <Button
                 onClick={onScan}
                 disabled={isScanning}

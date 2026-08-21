@@ -1072,17 +1072,17 @@ export default function NicTuningPage() {
             "relative w-full",
             loading && "min-h-[calc(100vh-8rem)] flex items-center justify-center",
           )}
-          transition={{ layout: { duration: 0.62, ease: [0.22, 1, 0.36, 1] } }}
+          transition={{ layout: { duration: 0.775, ease: [0.22, 1, 0.36, 1] } }}
         >
           <motion.div
             layout
             initial={{ opacity: 0, y: -12 }}
-            animate={{ opacity: 1, scale: loading ? 1.04 : 1, y: 0 }}
+            animate={{ opacity: 1, scale: loading ? 1.2 : 1, y: 0 }}
             transition={{
-              layout: { duration: 0.62, ease: [0.22, 1, 0.36, 1] },
+              layout: { duration: 0.775, ease: [0.22, 1, 0.36, 1] },
               opacity: { duration: 0.35 },
-              scale: { duration: 0.62, ease: [0.22, 1, 0.36, 1] },
-              y: { duration: 0.45, ease: [0.22, 1, 0.36, 1] },
+              scale: { duration: 0.775, ease: [0.22, 1, 0.36, 1] },
+              y: { duration: 0.5625, ease: [0.22, 1, 0.36, 1] },
             }}
             className={cn("w-full", loading && "max-w-2xl")}
           >
