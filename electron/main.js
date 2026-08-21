@@ -3080,8 +3080,15 @@ public class DspHelper {
       if (![DspHelper]::EnumDisplayDevices($null, $di, [ref]$dd2, 0)) { break }
       if ($dd2.StateFlags -band 1) {
         $dm2 = New-Object DspHelper+DEVMODE; $dm2.dmSize = [System.Runtime.InteropServices.Marshal]::SizeOf($dm2)
-        if ([DspHelper]::EnumDisplaySettings($dd2.DeviceName, -1, [ref]$dm2) -and $dm2.dmDisplayFrequency -gt 0) {
-          $screenHz += @{ x=$dm2.dmPositionX; y=$dm2.dmPositionY; hz=$dm2.dmDisplayFrequency }
+        if ([DspHelper]::EnumDisplaySettings($dd2.DeviceName, -1, [ref]$dm2)) {
+          # Some AMD/Windows driver combinations return the active mode with
+          # dmDisplayFrequency=0 even though the supported mode list below
+          # contains the real refresh rates. Keep the display record in that
+          # case so monitor identity/resolution can still be correlated and
+          # maxHz can be used as the honest fallback.
+          if ($dm2.dmDisplayFrequency -gt 0) {
+            $screenHz += @{ x=$dm2.dmPositionX; y=$dm2.dmPositionY; hz=$dm2.dmDisplayFrequency }
+          }
           # Secondary call — extract monitor hardware ID from DeviceID (e.g. MONITOR\SAM0E4F\...)
           $hwId = $null
           $dd3 = New-Object DspHelper+DISPLAY_DEVICE; $dd3.cb = [System.Runtime.InteropServices.Marshal]::SizeOf($dd3)
