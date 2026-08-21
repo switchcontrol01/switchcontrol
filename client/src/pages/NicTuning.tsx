@@ -945,7 +945,7 @@ export default function NicTuningPage() {
   // Tracks which adapter was auto-selected on load so we can pulse it briefly.
   const [autoSelectedAdapter, setAutoSelectedAdapter] = useState<string | null>(null);
   const [capabilities, setCapabilities] = useState<Record<string, PropertyCapability> | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(isElectron);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [capLoading, setCapLoading] = useState(false);
   const [capError, setCapError] = useState<string | null>(null);
@@ -1064,58 +1064,89 @@ export default function NicTuningPage() {
     <AppLayout>
       <div className="space-y-5">
 
-        {/* ── Hero strip ─────────────────────────────────────────────────────── */}
+        {/* ── Hero strip + centered detection intro ─────────────────────────── */}
         <motion.div
-          initial={{ opacity: 0, y: -12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+          layout
+          className={cn(
+            "relative",
+            loading && "min-h-[300px] flex items-center justify-center",
+          )}
+          transition={{ layout: { duration: 0.62, ease: [0.22, 1, 0.36, 1] } }}
         >
-          <div
-            className="relative rounded-2xl overflow-hidden border border-[#2A313A] p-5"
-            style={{
-              background: "linear-gradient(135deg, rgba(0,190,255,0.06) 0%, rgba(139,92,246,0.08) 50%, rgba(7,9,13,0) 100%)",
-              boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05)",
+          <motion.div
+            layout
+            initial={{ opacity: 0, y: -12 }}
+            animate={{ opacity: 1, scale: loading ? 1.04 : 1, y: 0 }}
+            transition={{
+              layout: { duration: 0.62, ease: [0.22, 1, 0.36, 1] },
+              opacity: { duration: 0.35 },
+              scale: { duration: 0.62, ease: [0.22, 1, 0.36, 1] },
+              y: { duration: 0.45, ease: [0.22, 1, 0.36, 1] },
             }}
+            className="w-full"
           >
-            {/* Ambient glow */}
-            <div className="absolute -top-12 -left-12 w-64 h-64 rounded-full pointer-events-none"
-              style={{ background: "radial-gradient(circle, rgba(0,190,255,0.10) 0%, transparent 70%)", filter: "blur(40px)" }} />
-            <div className="absolute -bottom-10 right-0 w-56 h-56 rounded-full pointer-events-none"
-              style={{ background: "radial-gradient(circle, rgba(139,92,246,0.08) 0%, transparent 70%)", filter: "blur(40px)" }} />
+            <div
+              className="relative rounded-2xl overflow-hidden border border-[#2A313A] p-5"
+              style={{
+                background: "linear-gradient(135deg, rgba(0,190,255,0.06) 0%, rgba(139,92,246,0.08) 50%, rgba(7,9,13,0) 100%)",
+                boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05)",
+              }}
+            >
+              {/* Ambient glow */}
+              <div className="absolute -top-12 -left-12 w-64 h-64 rounded-full pointer-events-none"
+                style={{ background: "radial-gradient(circle, rgba(0,190,255,0.10) 0%, transparent 70%)", filter: "blur(40px)" }} />
+              <div className="absolute -bottom-10 right-0 w-56 h-56 rounded-full pointer-events-none"
+                style={{ background: "radial-gradient(circle, rgba(139,92,246,0.08) 0%, transparent 70%)", filter: "blur(40px)" }} />
 
-            <div className="relative flex flex-col sm:flex-row sm:items-center gap-4">
-              <div className="flex items-center gap-3 flex-1 min-w-0">
-                <div className="size-10 rounded-xl bg-gradient-to-br from-cyan-500/20 to-indigo-500/10 border border-[#2A313A] flex items-center justify-center shrink-0">
-                  <Network className="size-5 text-cyan-400" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2.5">
-                    <h1 className="text-lg font-bold text-[#E6EAF0] tracking-tight">NIC Tuning</h1>
+              <div className="relative flex flex-col sm:flex-row sm:items-center gap-4">
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <div className="size-10 rounded-xl bg-gradient-to-br from-cyan-500/20 to-indigo-500/10 border border-[#2A313A] flex items-center justify-center shrink-0">
+                    <Network className="size-5 text-cyan-400" />
                   </div>
-                  <p className="text-[12px] text-[#A0A8B3] mt-0.5">
-                    Advanced Network Adapter Control Center — Buffers · RSS · Interrupt Moderation · Power
-                  </p>
-                </div>
-              </div>
-
-              {/* Live status strip */}
-              {activeAdapter && (
-                <div className="flex items-center gap-4 shrink-0">
-                  <div className="text-right hidden sm:block">
-                    <div className="flex items-center gap-1.5 justify-end">
-                      <span className={cn("size-1.5 rounded-full", isOnline ? "bg-emerald-400 shadow-[0_0_4px_rgba(52,211,153,0.9)]" : "bg-[#2A313A]")} />
-                      <span className={cn("text-xs font-medium", isOnline ? "text-emerald-400" : "text-[#6B7380]")}>{activeAdapter.status}</span>
+                  <div>
+                    <div className="flex items-center gap-2.5">
+                      <h1 className="text-lg font-bold text-[#E6EAF0] tracking-tight">NIC Tuning</h1>
                     </div>
-                    <p className="text-[10px] text-[#6B7380] mt-0.5 truncate max-w-[200px]">{activeAdapter.name}</p>
-                  </div>
-                  <div className="text-right hidden sm:block">
-                    <span className="text-xs font-mono text-[#A0A8B3]">{adapters.length}</span>
-                    <p className="text-[10px] text-[#6B7380]">adapter{adapters.length !== 1 ? "s" : ""}</p>
+                    <p className="text-[12px] text-[#A0A8B3] mt-0.5">
+                      Advanced Network Adapter Control Center — Buffers · RSS · Interrupt Moderation · Power
+                    </p>
                   </div>
                 </div>
-              )}
+
+                {/* Live status strip */}
+                {activeAdapter && (
+                  <div className="flex items-center gap-4 shrink-0">
+                    <div className="text-right hidden sm:block">
+                      <div className="flex items-center gap-1.5 justify-end">
+                        <span className={cn("size-1.5 rounded-full", isOnline ? "bg-emerald-400 shadow-[0_0_4px_rgba(52,211,153,0.9)]" : "bg-[#2A313A]")} />
+                        <span className={cn("text-xs font-medium", isOnline ? "text-emerald-400" : "text-[#6B7380]")}>{activeAdapter.status}</span>
+                      </div>
+                      <p className="text-[10px] text-[#6B7380] mt-0.5 truncate max-w-[200px]">{activeAdapter.name}</p>
+                    </div>
+                    <div className="text-right hidden sm:block">
+                      <span className="text-xs font-mono text-[#A0A8B3]">{adapters.length}</span>
+                      <p className="text-[10px] text-[#6B7380]">adapter{adapters.length !== 1 ? "s" : ""}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+
+            <AnimatePresence initial={false}>
+              {loading && (
+                <motion.div
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -4 }}
+                  transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+                  className="flex items-center justify-center gap-2.5 pt-5 text-sm text-[#6B7380]"
+                >
+                  <Loader2 className="size-4 animate-spin text-cyan-400/60" />
+                  <span>Detecting network adapters…</span>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
         </motion.div>
 
         {/* ── Non-Electron notice ─────────────────────────────────────────────── */}
@@ -1137,14 +1168,6 @@ export default function NicTuningPage() {
               </div>
             </GlassCard>
           </motion.div>
-        )}
-
-        {/* ── Loading state ────────────────────────────────────────────────────── */}
-        {loading && (
-          <div className="flex items-center gap-2.5 py-6 text-sm text-[#6B7380]">
-            <Loader2 className="size-4 animate-spin text-cyan-400/60" />
-            Detecting network adapters…
-          </div>
         )}
 
         {/* ── Load error ───────────────────────────────────────────────────────── */}
