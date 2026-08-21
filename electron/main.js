@@ -2982,6 +2982,7 @@ ConvertTo-Json -InputObject $result -Compress -Depth 2
   // Results are cached for 60s to prevent re-hammering on rapid opens.
   let _deepHardwareCache   = null;
   let _deepHardwareCacheTs = 0;
+  let _deepHardwareInFlight = null;
   const DEEP_HARDWARE_TTL_MS = 60_000;
   
   ipcMain.handle('telemetry:refreshDeepHardware', async () => {
@@ -2989,24 +2990,28 @@ ConvertTo-Json -InputObject $result -Compress -Depth 2
     if (_deepHardwareCache && (now - _deepHardwareCacheTs) < DEEP_HARDWARE_TTL_MS) {
       return { ..._deepHardwareCache, cached: true };
     }
-    try {
-      const [graphicsResult, cpuTempResult, memLayoutResult] = await Promise.allSettled([
-        siWithTimeout(() => si.graphics(),       10_000, 'deepHw.graphics'),
-        siWithTimeout(() => si.cpuTemperature(),  5_000, 'deepHw.cpuTemp'),
-        siWithTimeout(() => si.memLayout(),       10_000, 'deepHw.memLayout'),
-      ]);
-      const graphics  = graphicsResult.status  === 'fulfilled' ? graphicsResult.value  : null;
-      const cpuTemp   = cpuTempResult.status   === 'fulfilled' ? cpuTempResult.value   : null;
-      const memLayout = memLayoutResult.status === 'fulfilled' ? memLayoutResult.value : [];
-  
-      const result = { graphics, cpuTemperature: cpuTemp, memLayout, timestamp: now, cached: false };
-      _deepHardwareCache   = result;
-      _deepHardwareCacheTs = now;
-      return result;
-    } catch (e) {
-      console.error('[telemetry:refreshDeepHardware] error:', e.message);
-      return null;
-    }
+    if (_deepHardwareInFlight) return _deepHardwareInFlight;
+    _deepHardwareInFlight = (async () => {
+      try {
+        const [graphicsResult, cpuTempResult, memLayoutResult] = await Promise.allSettled([
+          readGraphicsOnce(10_000, 'deepHw.graphics'),
+          siWithTimeout(() => si.cpuTemperature(),  5_000, 'deepHw.cpuTemp'),
+          siWithTimeout(() => si.memLayout(),       10_000, 'deepHw.memLayout'),
+        ]);
+        const graphics  = graphicsResult.status  === 'fulfilled' ? graphicsResult.value  : null;
+        const cpuTemp   = cpuTempResult.status   === 'fulfilled' ? cpuTempResult.value   : null;
+        const memLayout = memLayoutResult.status === 'fulfilled' ? memLayoutResult.value : [];
+
+        const result = { graphics, cpuTemperature: cpuTemp, memLayout, timestamp: now, cached: false };
+        _deepHardwareCache   = result;
+        _deepHardwareCacheTs = now;
+        return result;
+      } catch (e) {
+        console.error('[telemetry:refreshDeepHardware] error:', e.message);
+        return null;
+      }
+    })().finally(() => { _deepHardwareInFlight = null; });
+    return _deepHardwareInFlight;
   });
   
   // Alias handlers for preload/main name alignment
@@ -3760,10 +3765,22 @@ public class DspHelper {
     }
   });
   
+  // Direct disk reads are only used when the telemetry cache is not ready.
+  // Share that fallback across the disk list and disk detail IPC handlers so
+  // simultaneous page mounts do not start multiple fsSize probes.
+  let _diskSizeInFlight = null;
+  function readDiskSizesOnce() {
+    if (_diskSizeInFlight) return _diskSizeInFlight;
+    _diskSizeInFlight = si.fsSize()
+      .catch(() => [])
+      .finally(() => { _diskSizeInFlight = null; });
+    return _diskSizeInFlight;
+  }
+
   ipcMain.handle('system:getAllDisks', async () => {
     assertSiCaller('system:getAllDisks');
     try {
-      const disks = await si.fsSize();
+      const disks = await readDiskSizesOnce();
       return (disks || []).map(d => ({
         mount:       d.mount || 'Unknown',
         name:        d.fs   || d.mount || 'Unknown',
@@ -3786,32 +3803,37 @@ public class DspHelper {
     }
   });
   
+  let _memoryDetailsInFlight = null;
   ipcMain.handle('telemetry:getMemoryDetails', async () => {
     assertSiCaller('telemetry:getMemoryDetails');
-    try {
-      const [mem, layout] = await Promise.all([
-        si.mem(),
-        si.memLayout().catch(() => [])
-      ]);
-      return {
-        total: mem.total,
-        free: mem.free,
-        used: mem.used || (mem.total - mem.available),
-        available: mem.available,
-        swaptotal: mem.swaptotal,
-        swapused: mem.swapused,
-        modules: (layout || []).map(m => ({
-          size: m.size,
-          type: m.type,
-          clockSpeed: m.clockSpeed,
-          formFactor: m.formFactor,
-          manufacturer: m.manufacturer,
-          voltageConfigured: m.voltageConfigured
-        }))
-      };
-    } catch (e) {
-      return { total: 0, free: 0, used: 0, available: 0, modules: [] };
-    }
+    if (_memoryDetailsInFlight) return _memoryDetailsInFlight;
+    _memoryDetailsInFlight = (async () => {
+      try {
+        const [mem, layout] = await Promise.all([
+          si.mem(),
+          si.memLayout().catch(() => [])
+        ]);
+        return {
+          total: mem.total,
+          free: mem.free,
+          used: mem.used || (mem.total - mem.available),
+          available: mem.available,
+          swaptotal: mem.swaptotal,
+          swapused: mem.swapused,
+          modules: (layout || []).map(m => ({
+            size: m.size,
+            type: m.type,
+            clockSpeed: m.clockSpeed,
+            formFactor: m.formFactor,
+            manufacturer: m.manufacturer,
+            voltageConfigured: m.voltageConfigured
+          }))
+        };
+      } catch (e) {
+        return { total: 0, free: 0, used: 0, available: 0, modules: [] };
+      }
+    })().finally(() => { _memoryDetailsInFlight = null; });
+    return _memoryDetailsInFlight;
   });
   
   // ── telemetry:getGpu — reads from / populates unified gpuState ────────────────
@@ -3819,28 +3841,39 @@ public class DspHelper {
   // every rapid UI open. nvidia-smi fills temp/power/clockCore for NVIDIA cards
   // where si.graphics() returns 0 for those fields.
   // _gpuInfoCache and _gpuInfoCacheTs have been folded into gpuState.lastStaticUpdate.
-  ipcMain.handle('telemetry:getGpu', async () => {
-    try {
-      const now = Date.now();
-      const GPU_INFO_TTL_MS = 30_000;
-      // Serve from gpuState if the model is already known and the data is fresh
-      if (gpuState.model && (now - gpuState.lastStaticUpdate) < GPU_INFO_TTL_MS) {
-        return {
-          model:        gpuState.model,
-          vendor:       gpuState.vendor        || '',
-          driverVersion:gpuState.driverVersion || null,
-          vram:         gpuState.vramTotalMb,
-          memoryUsed:   gpuState.vramUsedMb,
-          temperature:  gpuState.temp,
-          load:         gpuState.load,
-          powerDraw:    gpuState.power,
-          clockCore:    gpuState.clockMhz,
-          clockMemory:  null,
-          cached:       true,
-        };
-      }
+  let _graphicsProbeInFlight = null;
+  function readGraphicsOnce(timeout = 10_000, label = 'graphics probe') {
+    if (_graphicsProbeInFlight) return _graphicsProbeInFlight;
+    _graphicsProbeInFlight = siWithTimeout(() => si.graphics(), timeout, label)
+      .finally(() => { _graphicsProbeInFlight = null; });
+    return _graphicsProbeInFlight;
+  }
 
-      const graphics = await si.graphics();
+  let _gpuInfoInFlight = null;
+  ipcMain.handle('telemetry:getGpu', async () => {
+    const now = Date.now();
+    const GPU_INFO_TTL_MS = 30_000;
+    // Serve from gpuState if the model is already known and the data is fresh
+    if (gpuState.model && (now - gpuState.lastStaticUpdate) < GPU_INFO_TTL_MS) {
+      return {
+        model:        gpuState.model,
+        vendor:       gpuState.vendor        || '',
+        driverVersion:gpuState.driverVersion || null,
+        vram:         gpuState.vramTotalMb,
+        memoryUsed:   gpuState.vramUsedMb,
+        temperature:  gpuState.temp,
+        load:         gpuState.load,
+        powerDraw:    gpuState.power,
+        clockCore:    gpuState.clockMhz,
+        clockMemory:  null,
+        cached:       true,
+      };
+    }
+    if (_gpuInfoInFlight) return _gpuInfoInFlight;
+    _gpuInfoInFlight = (async () => {
+      try {
+
+      const graphics = await readGraphicsOnce(10_000, 'telemetry:getGpu.graphics');
       const controllers = graphics.controllers || [];
       // Correlate by GPU name rather than raw array index — si.graphics() and wmiGpuList
       // are independent enumeration sources (systeminformation vs WMI Win32_VideoController)
@@ -3924,7 +3957,9 @@ public class DspHelper {
     } catch (e) {
       console.error('[telemetry:getGpu] error:', e.message);
       return null;
-    }
+      }
+    })().finally(() => { _gpuInfoInFlight = null; });
+    return _gpuInfoInFlight;
   });
   
   /**
@@ -3977,7 +4012,7 @@ public class DspHelper {
       let fsData = liveTelemetryCache?.fsData;
       if (!fsData || fsData.length === 0) {
         // Cache not ready yet — fall back to a direct call
-        fsData = await si.fsSize().catch(() => []);
+        fsData = await readDiskSizesOnce();
       }
   
       // Use cached disk IO — disksIO() is a differential API; fresh calls return 0 without a baseline.

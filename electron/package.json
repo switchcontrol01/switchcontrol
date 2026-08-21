@@ -12,6 +12,7 @@
     "build:native": "node -e \"const f=require('fs'),p=require('path');const sp=p.join(process.cwd(),'scripts','build-native.js');if(f.existsSync(sp)){require(sp);}else{console.warn('[build:native] build-native.js not found — skipping (existing bin/sc_memory.exe will be used)');}\"",
     "dist:win": "npm run prebuild && node scripts/verify-package-contract.js && npm run build:native && electron-builder --win",
     "package:check": "node scripts/verify-package-contract.js",
+    "validate:native-work": "node scripts/validate-native-work-lifecycle.js",
     "generate-latest-yml": "node scripts/generate-latest-yml.js",
     "sync-version": "node scripts/sync-version.js",
     "release": "node -e \"const f=require('fs'),p=require('path');const sp=p.join(process.cwd(),'scripts','release.js');if(f.existsSync(sp)){require(sp);}else{console.error('[release] release.js not found.\\nFix: run git pull in the SwitchControl directory to download the release script, then retry.');process.exit(1);}\""
