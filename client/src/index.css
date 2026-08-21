@@ -2694,6 +2694,21 @@ html.app-light-mode .blur-xl {
   display: none !important;
 }
 
+/* Dialogs still need a real open/close lifecycle in Light Mode. The rest of
+   the app uses the reduced-motion profile, but removing the Radix dialog
+   transition entirely can leave a controlled dialog visually stuck while its
+   state is already closing. */
+html.app-light-mode .sc-dialog-content,
+html.app-light-mode .sc-dialog-content *,
+html.app-light-mode [role="dialog"],
+html.app-light-mode [role="dialog"] *,
+html.app-light-mode [role="alertdialog"],
+html.app-light-mode [role="alertdialog"] * {
+  animation-duration: 180ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 180ms !important;
+}
+
 /* ── Mode switch transition overlay ─────────────────────────────────────── */
 .mode-transition-overlay {
   position: fixed;

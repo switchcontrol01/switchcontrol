@@ -1282,31 +1282,6 @@ export default function Security() {
           </div>
         </motion.div>
 
-        {/* Live telemetry strip */}
-        {liveTel && (
-          <motion.div
-            className="flex items-center gap-3 px-3 py-2 rounded-lg border border-[#2A313A] bg-[#1A1F26] flex-wrap"
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4, delay: 0.25 }}
-          >
-            <div className="flex items-center gap-1.5">
-              <Cpu className="size-3 text-muted-foreground" />
-              <span className="text-[11px] font-mono tabular-nums">
-                CPU <span className={liveTel.cpu.load > 75 ? "text-red-400" : liveTel.cpu.load > 50 ? "text-amber-400" : "text-emerald-400"}>{liveTel.cpu.load.toFixed(0)}%</span>
-              </span>
-            </div>
-            <div className="h-3 w-px bg-[#2A313A]" />
-            <span className="text-[11px] font-mono tabular-nums text-muted-foreground">
-              RAM <span className={liveTel.ram.usedPercent > 80 ? "text-red-400" : liveTel.ram.usedPercent > 60 ? "text-amber-400" : "text-cyan-400"}>{liveTel.ram.usedPercent.toFixed(0)}%</span>
-            </span>
-            <div className="h-3 w-px bg-[#2A313A]" />
-            <span className="text-[11px] text-muted-foreground">{liveTel.processes.total} processes</span>
-            {liveTel.load_trend !== "stable" && (
-              <><div className="h-3 w-px bg-[#2A313A]" /><span className={cn("text-[10px]", liveTel.load_trend === "rising" ? "text-amber-400" : "text-emerald-400")}>Load {liveTel.load_trend}</span></>
-            )}
-            <span className="ml-auto text-[9px] text-muted-foreground/50">Live</span>
-          </motion.div>
-        )}
-
         {/* Non-Electron notice */}
         {!hasSecurity && (
           <div className="flex items-start gap-3 p-4 rounded-xl bg-blue-500/10 border border-blue-500/20 text-sm">
