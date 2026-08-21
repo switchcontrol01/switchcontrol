@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { ExternalLink, Download } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { WebsiteBackground } from "@/components/website/WebsiteBackground";
+import { useVisibilityInterval } from "@/hooks/useVisibilityInterval";
 
 
 type ConfirmState = "loading" | "activating" | "success" | "error";
@@ -214,7 +215,6 @@ export default function Success() {
   const showText = phaseIndex >= 4;
   const showButtons = phaseIndex >= 5;
 
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pollInFlightRef = useRef(false);
   const pollCountRef = useRef(0);
   const mountedRef = useRef(true);
@@ -227,61 +227,46 @@ export default function Success() {
     return () => { mountedRef.current = false; };
   }, []);
 
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const sessionId = params.get("session_id");
+  const sessionId = new URLSearchParams(window.location.search).get("session_id");
 
+  useVisibilityInterval(
+    async () => {
+      if (pollInFlightRef.current || !mountedRef.current) return;
+      pollInFlightRef.current = true;
+      pollCountRef.current += 1;
+      try {
+        const res = await fetch("/api/user/premium-status", { credentials: "include" });
+        const data = await res.json();
+        if (!mountedRef.current || state !== "activating") return;
+        if (data.isPremium === true) {
+          await refetch();
+          if (!mountedRef.current) return;
+          setState("success");
+          return;
+        }
+      } catch {
+        // network blip — keep polling
+      } finally {
+        pollInFlightRef.current = false;
+      }
+      if (!mountedRef.current || state !== "activating") return;
+      if (pollCountRef.current >= POLL_MAX_ATTEMPTS) {
+        setState("error");
+        setError("Your payment was received, but premium activation is taking longer than expected. Please refresh the page in a few minutes or contact support.");
+      }
+    },
+    POLL_INTERVAL_MS,
+    "Checkout:premiumActivation",
+    "Success.tsx",
+    state === "activating" && !!sessionId,
+  );
+
+  useEffect(() => {
     if (!sessionId) {
       setState("error");
       setError("No session ID provided");
       return;
     }
-
-    const stopPolling = () => {
-      if (pollRef.current) {
-        clearInterval(pollRef.current);
-        pollRef.current = null;
-      }
-    };
-
-    const checkPremiumStatus = async (): Promise<boolean> => {
-      const res = await fetch("/api/user/premium-status", { credentials: "include" });
-      const data = await res.json();
-      return data.isPremium === true;
-    };
-
-    const startPolling = () => {
-      pollCountRef.current = 0;
-      pollRef.current = setInterval(async () => {
-        if (pollInFlightRef.current) return;
-        pollInFlightRef.current = true;
-        pollCountRef.current += 1;
-        try {
-          const isPremium = await checkPremiumStatus();
-          // P1-A5: guard setState after await — pollRef is cleared on unmount,
-          // so treat a nulled ref as "unmounted/cancelled" and bail.
-          if (!pollRef.current) return;
-          if (isPremium) {
-            stopPolling();
-            await refetch();
-            if (!mountedRef.current) return;
-            setState("success");
-            return;
-          }
-        } catch {
-          // network blip — keep polling
-        } finally {
-          pollInFlightRef.current = false;
-        }
-        if (!pollRef.current) return;
-        if (pollCountRef.current >= POLL_MAX_ATTEMPTS) {
-          stopPolling();
-          if (!mountedRef.current) return;
-          setState("error");
-          setError("Your payment was received, but premium activation is taking longer than expected. Please refresh the page in a few minutes or contact support.");
-        }
-      }, POLL_INTERVAL_MS);
-    };
 
     const verifyAndWait = async () => {
       try {
@@ -318,8 +303,8 @@ export default function Success() {
         }
 
         // Step 3: Payment is confirmed but webhook hasn't fired yet — wait for it.
+        pollCountRef.current = 0;
         setState("activating");
-        startPolling();
       } catch (err: any) {
         setState("error");
         setError(err.message || "Network error. Please check your connection.");
@@ -328,9 +313,7 @@ export default function Success() {
 
     verifyAndWait();
 
-    return () => {
-      stopPolling();
-    };
+    return undefined;
   }, [refetch]);
 
   const handleOpenApp = useCallback(() => {

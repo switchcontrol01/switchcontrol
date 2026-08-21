@@ -14,10 +14,11 @@
  *   ent.status            → for dev logging / conditional styling
  */
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useAppAuth } from "@/lib/appAuthContext";
 import { usePremiumGraceStore } from "@/stores/premiumGraceStore";
 import { useNetworkStore } from "@/stores/networkStore";
+import { useVisibilityInterval } from "@/hooks/useVisibilityInterval";
 import {
   resolveEntitlementUiState,
   EntitlementUiState,
@@ -59,11 +60,13 @@ export function useEntitlementUiState(): EntitlementUiState {
   // a fresh Date.now(), keeping the countdown accurate without any useState
   // for the label string.
   const [, setTick] = useState(0);
-  useEffect(() => {
-    if (!trialCurrentlyActive) return;
-    const id = setInterval(() => setTick((n) => n + 1), 60_000);
-    return () => clearInterval(id);
-  }, [trialCurrentlyActive]);
+  useVisibilityInterval(
+    () => setTick((n) => n + 1),
+    60_000,
+    "Entitlement:trialCountdown",
+    "useEntitlementUiState.ts",
+    trialCurrentlyActive,
+  );
 
   const cachedFeatures = grace.features;
 
