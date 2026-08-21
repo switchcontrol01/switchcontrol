@@ -83,6 +83,9 @@ export interface ModeRecommendation {
   reasons: string[];
 }
 
+let transitionModeTimer: ReturnType<typeof setTimeout> | null = null;
+let transitionEndTimer: ReturnType<typeof setTimeout> | null = null;
+
 interface AppModeState {
   mode: ApplicationMode;
   /** True while the ~3s mode-switch transition overlay is playing */
@@ -126,18 +129,28 @@ export const useAppModeStore = create<AppModeState>()(
 
       switchModeWithTransition: (mode) => {
         if (get().mode === mode || get().transitioning) return;
+        if (transitionModeTimer) clearTimeout(transitionModeTimer);
+        if (transitionEndTimer) clearTimeout(transitionEndTimer);
         set({ transitioning: true, transitionTarget: mode });
         // Halfway through the fade, flip the actual mode so the new interface
         // fades in already stripped/restored. Overlay unmount at ~3s.
-        setTimeout(() => {
+        transitionModeTimer = setTimeout(() => {
           set({ mode, liveGraphsResumed: false });
+          transitionModeTimer = null;
         }, 1400);
-        setTimeout(() => {
+        transitionEndTimer = setTimeout(() => {
           get()._endTransition();
+          transitionEndTimer = null;
         }, 3000);
       },
 
-      _endTransition: () => set({ transitioning: false, transitionTarget: null }),
+      _endTransition: () => {
+        if (transitionModeTimer) clearTimeout(transitionModeTimer);
+        if (transitionEndTimer) clearTimeout(transitionEndTimer);
+        transitionModeTimer = null;
+        transitionEndTimer = null;
+        set({ transitioning: false, transitionTarget: null });
+      },
 
       markRecommendationShown: (rec) =>
         set({ recommendationShown: true, lastRecommendation: rec }),

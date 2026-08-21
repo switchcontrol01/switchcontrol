@@ -2706,7 +2706,8 @@ html.app-light-mode .blur-xl {
   gap: 14px;
   background: #07090d;
   opacity: 0;
-  pointer-events: all;
+  /* Visual-only layer: it must never block modal buttons or page controls. */
+  pointer-events: none;
   animation: modeTransitionFade 3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 /* The overlay itself must animate even in light mode */
