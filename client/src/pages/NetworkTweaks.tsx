@@ -770,7 +770,7 @@ function NetworkTweaksContent() {
   useEffect(() => {
     if (!user?.loggedIn) return;
     const cacheAge = _networkTweakStateCache ? Date.now() - _networkTweakStateCacheTime : Infinity;
-    if (_networkTweakStateCache && cacheAge < CACHE_TTL_MS) {
+    if (_networkTweakStateCache && cacheAge < CACHE_TTL_MS && !(isElectron && !isPremium)) {
       console.log('[NetworkTweaks] cache fresh — skipping fetch');
       return;
     }
@@ -816,7 +816,7 @@ function NetworkTweaksContent() {
       setSyncPhase('error');
     });
     return () => { mounted = false; };
-  }, [user?.loggedIn]); // eslint-disable-line
+  }, [user?.loggedIn, isPremium]); // eslint-disable-line
   const toggleTweak = useCallback(async (tweak: NetworkTweak) => {
     if (tweak.unavailable) return;
     if (!isPremium) {

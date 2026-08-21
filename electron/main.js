@@ -5382,7 +5382,7 @@ $pwrThrot  = Reg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottl
       try {
         const result = await premiumRevertPipeline.revertAllAppOwned(options);
         console.log(`[IPC] premium:revertAll done — reverted=${result.reverted} skipped=${result.skipped} failed=${result.failed}`);
-        return { success: true, ...result };
+        return { success: result.success !== false && result.failed === 0, ...result };
       } catch (e) {
         console.error('[IPC] premium:revertAll error:', e.message);
         return { success: false, error: e.message, total: 0, reverted: 0, skipped: 0, failed: 0, details: {} };

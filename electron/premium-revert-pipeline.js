@@ -41,6 +41,11 @@
 const ownershipStore = require('./ownership-store');
 
 const BALANCED_GUID = '381b4222-f694-41f0-9685-ff5bb260df2e';
+const CANONICAL_NETWORK_TWEAK_IDS = new Set(['tcp-no-delay']);
+const LEGACY_NETWORK_IDS = new Map([
+  ['tcp-nagle', 'tcp-no-delay'],
+  ['tcp-throttling-index', 'net-throttle-index'],
+]);
 
 // Lazy-require executors to avoid circular-dependency issues at module load.
 function getTweakExecutor()          { return require('./tweak-executor'); }
@@ -104,6 +109,13 @@ async function revertTweak(record) {
     return { skipped: true, reason: 'Baseline is inconclusive (null) — cannot determine original state. Failing safe.' };
   }
 
+  // tcp-no-delay is the canonical owner for the legacy tcp-nagle network card.
+  // Premium expiry policy is to disable app-owned network changes, never restore
+  // an enabled baseline. Its ownership record is itemType=tweak for compatibility.
+  if (CANONICAL_NETWORK_TWEAK_IDS.has(itemId)) {
+    return revertCanonicalNetworkTweak(record);
+  }
+
   // Use !!previousValue (not === true) so truthy non-boolean previousValues
   // (e.g. the number 1 stored by some registry tweaks) are handled correctly.
   const action = !!previousValue ? 'apply' : 'revert';
@@ -121,11 +133,50 @@ async function revertTweak(record) {
   }
 }
 
+async function revertCanonicalNetworkTweak(record) {
+  const { itemId, scopeKey } = record;
+  try {
+    const executor = getTweakExecutor();
+    const result = await executor.executeTweak(itemId, 'revert');
+    if (!result.success) {
+      return { success: false, action: 'revert', verified: false, error: result.error || result.message || 'executeTweak failed' };
+    }
+    const after = await executor.verifyTweak(itemId);
+    if (after?.isApplied !== false || after?.verified === false) {
+      return { success: false, action: 'revert', verified: false, error: 'Canonical network tweak is still enabled after revert verification' };
+    }
+    ownershipStore.recordRevert(scopeKey);
+    return { success: true, action: 'revert', verified: true };
+  } catch (e) {
+    return { success: false, action: 'revert', verified: false, error: e.message };
+  }
+}
+
 async function revertNetworkTweak(record) {
   const { itemId, previousValue, scopeKey } = record;
 
   if (previousValue === null || previousValue === undefined) {
     return { skipped: true, reason: 'Baseline is inconclusive (null) — cannot determine original state. Failing safe.' };
+  }
+
+  // Older ownership stores may still contain the removed duplicate IDs. Route
+  // them to the canonical owner instead of treating "not found" as clean:
+  // tcp-nagle → tweak-executor/tcp-no-delay
+  // tcp-throttling-index → slider-executor/net-throttle-index
+  if (itemId === 'tcp-nagle') {
+    return revertCanonicalNetworkTweak({ ...record, itemId: 'tcp-no-delay' });
+  }
+  if (itemId === 'tcp-throttling-index') {
+    try {
+      const result = await getSliderTweakExecutor().resetSliderValue('net-throttle-index');
+      if (result.ok && result.verified) {
+        ownershipStore.recordRevert(scopeKey);
+        return { success: true, action: 'recovery_reset', verified: true };
+      }
+      return { success: false, action: 'recovery_reset', verified: false, error: result.error || 'Network throttle state remains enabled after revert verification' };
+    } catch (e) {
+      return { success: false, action: 'recovery_reset', verified: false, error: e.message };
+    }
   }
 
   // Premium network tweaks are app-owned performance changes. On expiry they
@@ -439,10 +490,32 @@ async function revertAllAppOwned(options = {}) {
       .filter(id => typeof id === 'string' && /^[\w-]+$/.test(id))
       .filter(id => !ownedScopeKeys.has(`network_tweak:${id}`))
     : [];
+  const fallbackCanonicalIds = [];
+  const fallbackDirectNetworkIds = [];
   for (const itemId of fallbackNetworkTweakIds) {
+    const canonicalId = LEGACY_NETWORK_IDS.get(itemId) || itemId;
+    if (canonicalId === 'tcp-no-delay') {
+      if (!ownedScopeKeys.has('tweak:tcp-no-delay')) fallbackCanonicalIds.push(canonicalId);
+    } else if (canonicalId === 'net-throttle-index') {
+      fallbackCanonicalIds.push(canonicalId);
+    } else {
+      fallbackDirectNetworkIds.push(canonicalId);
+    }
+  }
+  for (const itemId of fallbackDirectNetworkIds) {
     otherRecords.push({
       scopeKey: `network_tweak:${itemId}`,
       itemType: 'network_tweak',
+      itemId,
+      previousValue: false,
+      baselineCaptured: true,
+      fallback: true,
+    });
+  }
+  for (const itemId of fallbackCanonicalIds.filter(id => id === 'tcp-no-delay')) {
+    otherRecords.push({
+      scopeKey: `tweak:${itemId}:recovery`,
+      itemType: 'tweak',
       itemId,
       previousValue: false,
       baselineCaptured: true,
@@ -520,6 +593,24 @@ async function revertAllAppOwned(options = {}) {
     console.error(`[RevertPipeline] Slider revert sweep threw: ${e.message}`);
   }
 
+  // A legacy network card may have been recorded only in localStorage while its
+  // canonical slider ownership record was lost. Reset it explicitly as part of
+  // the trace-based recovery sweep, then verify through the same read path used
+  // by checkAll.
+  if (fallbackCanonicalIds.includes('net-throttle-index')) {
+    try {
+      const result = await getSliderTweakExecutor().resetSliderValue('net-throttle-index');
+      const detail = result.ok
+        ? { success: true, verified: true, action: 'recovery_reset' }
+        : { success: false, verified: false, error: result.error || 'Network throttle recovery reset failed' };
+      details['slider:net-throttle-index:recovery'] = detail;
+      if (detail.success) revertedCount++; else failedCount++;
+    } catch (e) {
+      details['slider:net-throttle-index:recovery'] = { success: false, verified: false, error: e.message };
+      failedCount++;
+    }
+  }
+
   try {
     const { reverted: presetsReverted, failed: presetsFailed } = await getPresetTweakExecutor().revertAllPremiumPresets();
     for (const tweakId of presetsReverted) {
@@ -561,12 +652,61 @@ async function revertAllAppOwned(options = {}) {
     }
   }
 
+  // Final authoritative network audit. Only inspect settings with a SwitchControl
+  // trace (ownership or legacy renderer state); never rewrite an untouched system.
+  const tracedNetworkIds = new Set();
+  for (const record of owned) {
+    if (record.itemType === 'network_tweak') tracedNetworkIds.add(LEGACY_NETWORK_IDS.get(record.itemId) || record.itemId);
+    if (record.itemType === 'tweak' && CANONICAL_NETWORK_TWEAK_IDS.has(record.itemId)) tracedNetworkIds.add(record.itemId);
+    if (record.itemType === 'slider' && record.itemId === 'net-throttle-index') tracedNetworkIds.add(record.itemId);
+  }
+  for (const id of fallbackNetworkTweakIds) tracedNetworkIds.add(LEGACY_NETWORK_IDS.get(id) || id);
+  const finalNetworkAudit = {};
+  for (const itemId of tracedNetworkIds) {
+    try {
+      let applied = null;
+      if (itemId === 'tcp-no-delay') {
+        const status = await getTweakExecutor().verifyTweak(itemId);
+        applied = typeof status?.isApplied === 'boolean' ? status.isApplied : null;
+      } else if (itemId === 'net-throttle-index') {
+        const status = await getSliderTweakExecutor().readSliderValue(itemId);
+        applied = !status.error && !status.missing && status.value === 4294967295;
+      } else {
+        const status = await getNetworkTweakExecutor().checkNetworkTweakStatus(itemId);
+        applied = status.applied;
+      }
+      finalNetworkAudit[itemId] = { applied };
+      if (applied === false) {
+        const ownedRecord = owned.find(r =>
+          (r.itemType === 'network_tweak' && r.itemId === itemId) ||
+          (r.itemType === 'tweak' && r.itemId === itemId) ||
+          (r.itemType === 'slider' && r.itemId === itemId)
+        );
+        if (ownedRecord) ownershipStore.recordRevert(ownedRecord.scopeKey);
+      } else {
+        failedCount++;
+        details[`network_audit:${itemId}`] = {
+          success: false,
+          verified: false,
+          error: applied === true ? 'Network tweak remains enabled after final revert audit' : 'Network state inconclusive after final revert audit',
+        };
+      }
+    } catch (e) {
+      failedCount++;
+      finalNetworkAudit[itemId] = { applied: null, error: e.message };
+      details[`network_audit:${itemId}`] = { success: false, verified: false, error: e.message };
+    }
+  }
+
   const summary = {
-    total:    owned.length,
+    total:    owned.length + fallbackNetworkTweakIds.length,
     reverted: revertedCount,
     skipped:  skippedCount,
     failed:   failedCount,
+    success:  failedCount === 0,
     details,
+    networkIds: Array.from(tracedNetworkIds),
+    finalNetworkAudit,
   };
 
   console.log(
