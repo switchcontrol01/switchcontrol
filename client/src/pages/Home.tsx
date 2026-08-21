@@ -861,11 +861,6 @@ export default function Home() {
         {/* Predictive warnings strip — only renders when there are real warnings */}
         <PredictiveWarnings telemetry={liveTel} warmingUp={warmingUp} />
 
-        {/* Recent Events — retained after removing the Dashboard intelligence cards. */}
-        <Reveal>
-          <DashboardRecentEvents />
-        </Reveal>
-
         {/* Activity Monitor Grid */}
         <Reveal className="space-y-4">
           <div className="flex items-center justify-between">
@@ -1113,6 +1108,9 @@ export default function Home() {
           <div>
             <BiosScoreSummaryCard isPremium={isPremium} />
           </div>
+
+          {/* Recent Events — kept at the very bottom of the Dashboard. */}
+          <DashboardRecentEvents />
         </Reveal>
 
         </motion.div>{/* end staged content reveal */}
