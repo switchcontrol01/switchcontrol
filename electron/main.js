@@ -3338,6 +3338,48 @@ public class DspHelper {
     }
   }
 
+  # Final identity-safe fallback for drivers that expose WMI monitor records
+  # but omit a usable child DeviceID/DeviceString. Match an unmatched monitor
+  # to a Windows screen only when its EDID native resolution leaves exactly one
+  # compatible candidate. This supplies that screen's own EnumDisplaySettings
+  # refresh rate without guessing by WMI array order.
+  $usedFallbackScreens = @{}
+  foreach ($mappedKey in $monToDisp.Keys) {
+    $mapped = $monToDisp[$mappedKey]
+    for ($si = 0; $si -lt $screens.Count; $si++) {
+      if ($screens[$si].x -eq $mapped.x -and $screens[$si].y -eq $mapped.y) {
+        $usedFallbackScreens[$si] = $true
+      }
+    }
+  }
+  foreach ($mappedKey in $fallbackScreenByMon.Keys) {
+    $mapped = $fallbackScreenByMon[$mappedKey]
+    for ($si = 0; $si -lt $screens.Count; $si++) {
+      if ($screens[$si].x -eq $mapped.x -and $screens[$si].y -eq $mapped.y) {
+        $usedFallbackScreens[$si] = $true
+      }
+    }
+  }
+  for ($mi2 = 0; $mi2 -lt $monIds.Count; $mi2++) {
+    if ($monToDisp.ContainsKey($mi2) -or $fallbackScreenByMon.ContainsKey($mi2)) { continue }
+    $mHwId = $monHwIds[$mi2]
+    $mEd = if ($mHwId -and $edidMap.ContainsKey($mHwId)) { $edidMap[$mHwId] } else { $null }
+    if (-not $mEd -or [int]$mEd.nx -le 0 -or [int]$mEd.ny -le 0) { continue }
+    $compatibleScreens = @()
+    for ($si = 0; $si -lt $screens.Count; $si++) {
+      if (-not $usedFallbackScreens.ContainsKey($si) -and
+          [int]$screens[$si].w -gt 0 -and [int]$screens[$si].h -gt 0 -and
+          [int]$screens[$si].w -le [int]$mEd.nx -and [int]$screens[$si].h -le [int]$mEd.ny) {
+        $compatibleScreens += $si
+      }
+    }
+    if ($compatibleScreens.Count -eq 1) {
+      $screenIndex = $compatibleScreens[0]
+      $fallbackScreenByMon[$mi2] = $screens[$screenIndex]
+      $usedFallbackScreens[$screenIndex] = $true
+    }
+  }
+
   $i = 0
   foreach ($mi in $monIds) {
     $name = Dec $mi.UserFriendlyName

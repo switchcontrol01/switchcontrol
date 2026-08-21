@@ -231,14 +231,12 @@ function ElectronAppRoutes() {
           ? "intelligence"
           : "paused";
     telemetryManager.setDemandMode(mode);
-    if (!realtimeMetricsEnabled || mode === "paused") {
+    // Dashboard analytics are visible product UI, not an optional background
+    // service. Keep the dashboard route polling so Storage Activity, Memory
+    // Pressure, and System Rhythm receive real values. Static routes remain
+    // paused; the preference still controls non-dashboard consumers.
+    if (mode === "paused") {
       telemetryManager.pause();
-      // A disabled live-metrics preference must stop continuous polling, not
-      // leave the active page with an empty dashboard. Take one read-only
-      // snapshot for visible Dashboard/Tweaks cards, then remain paused.
-      if (mode !== "paused") {
-        queueMicrotask(() => telemetryManager.refreshNow());
-      }
     }
     console.info(
       `[TelemetryRoute] path=${path} mode=${mode} live=${realtimeMetricsEnabled}`,
