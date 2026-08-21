@@ -29,32 +29,6 @@ export interface CauseFinding {
   destination: string;
 }
 
-export interface CausationData {
-  primaryCause: CauseFinding;
-  allCauses: CauseFinding[];
-  noIssue: boolean;
-  cpuLoad: number;
-  ramPct: number;
-  psCount?: number;
-  topProcesses?: { name: string; cpuPct: number }[];
-  ts: number;
-}
-
-export interface DNADimension {
-  id: string;
-  label: string;
-  score: number;
-  color: string;
-  higherIsBad: boolean;
-}
-
-export interface SystemDNAData {
-  dimensions: DNADimension[];
-  profile: string;
-  profileNote: string;
-  ts: number;
-}
-
 export interface ActiveProblem {
   id: string;
   severity: "high" | "warning" | "info";
@@ -140,14 +114,10 @@ export interface DisplaySignalProfile {
 
 interface DashboardIntelligenceState {
   instability:   InstabilityData | null;
-  dna:           SystemDNAData | null;
   problems:      ActiveProblemsData | null;
   latency:       LatencyData | null;
   ram:           SmartRamProfile | null;
   loading:       boolean;
-  causation:     CausationData | null;
-  causeLoading:  boolean;
-  analyzeCause:  () => Promise<void>;
   refresh:       () => void;
   refreshRam:    () => Promise<void>;
 }
@@ -160,13 +130,10 @@ async function fetchJSON<T>(url: string, signal?: AbortSignal): Promise<T> {
 
 export function useDashboardIntelligence(enabled = true): DashboardIntelligenceState {
   const [instability,   setInstability]   = useState<InstabilityData | null>(null);
-  const [dna,           setDna]           = useState<SystemDNAData | null>(null);
   const [problems,      setProblems]      = useState<ActiveProblemsData | null>(null);
   const [latency,       setLatency]       = useState<LatencyData | null>(null);
   const [ram,           setRam]           = useState<SmartRamProfile | null>(null);
   const [loading,       setLoading]       = useState(true);
-  const [causation,     setCausation]     = useState<CausationData | null>(null);
-  const [causeLoading,  setCauseLoading]  = useState(false);
   const initRef = useRef(false);
   // F-3: AbortController so an unmount mid-fetch cancels the network requests
   // AND prevents the setState() calls from running on an unmounted hook.
@@ -174,9 +141,8 @@ export function useDashboardIntelligence(enabled = true): DashboardIntelligenceS
 
   const fetchAll = useCallback(async (signal?: AbortSignal) => {
     try {
-      const [inst, d, probs, lat, r] = await Promise.allSettled([
+      const [inst, probs, lat, r] = await Promise.allSettled([
         fetchJSON<InstabilityData>("/api/dashboard-intelligence/instability", signal),
-        fetchJSON<SystemDNAData>("/api/dashboard-intelligence/system-dna", signal),
         fetchJSON<ActiveProblemsData>("/api/dashboard-intelligence/active-problems", signal),
         fetchJSON<LatencyData>("/api/dashboard-intelligence/latency-estimate", signal),
         fetchJSON<SmartRamProfile>("/api/dashboard-intelligence/ram-analysis", signal),
@@ -184,40 +150,12 @@ export function useDashboardIntelligence(enabled = true): DashboardIntelligenceS
       // F-3: Bail before any setState if the caller has aborted (unmount).
       if (signal?.aborted) return;
       if (inst.status  === "fulfilled") setInstability(inst.value);
-      if (d.status     === "fulfilled") setDna(d.value);
       if (probs.status === "fulfilled") setProblems(probs.value);
       if (lat.status   === "fulfilled") setLatency(lat.value);
       if (r.status     === "fulfilled") setRam(r.value);
     } catch (_) {}
     if (signal?.aborted) return;
     setLoading(false);
-  }, []);
-
-  const analyzeCauseAbortRef = useRef<AbortController | null>(null);
-  // P1-A4: abort any in-flight analyzeCause on unmount so setState after await is safe.
-  useEffect(() => {
-    return () => {
-      analyzeCauseAbortRef.current?.abort();
-      analyzeCauseAbortRef.current = null;
-    };
-  }, []);
-  const analyzeCause = useCallback(async () => {
-    // P1-A4: cancel any in-flight analyzeCause before starting a new one;
-    // guard setState after await so unmount/cancellation does not leak updates.
-    analyzeCauseAbortRef.current?.abort();
-    const ctrl = new AbortController();
-    analyzeCauseAbortRef.current = ctrl;
-    setCauseLoading(true);
-    try {
-      const data = await fetchJSON<CausationData>(
-        `/api/dashboard-intelligence/what-caused-that?t=${Date.now()}`,
-        ctrl.signal,
-      );
-      if (ctrl.signal.aborted) return;
-      setCausation(data);
-    } catch (_) {}
-    if (ctrl.signal.aborted) return;
-    setCauseLoading(false);
   }, []);
 
   const refresh = useCallback(() => {
@@ -236,7 +174,6 @@ export function useDashboardIntelligence(enabled = true): DashboardIntelligenceS
   const inFlightRef = useRef(false);
   const lastRunRef = useRef({
     instability: 0,
-    dna: 0,
     problems: 0,
     latency: 0,
     ram: 0,
@@ -255,7 +192,6 @@ export function useDashboardIntelligence(enabled = true): DashboardIntelligenceS
       latency: 8000,
       instability: 15000,
       problems: 30000,
-      dna: 60000,
       ram: 60000,
     };
 
