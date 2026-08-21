@@ -82,7 +82,9 @@ function optRec(d: DriveVolume, lastOpt?: DriveOptHistory) {
 
 const isElectron = () => typeof window !== "undefined" && !!(window as any).electronAPI?.storage;
 
-// ── Mock data for web preview ─────────────────────────────────────────────────
+// ── Demo data for the public web preview only ─────────────────────────────────
+// Never use this for Electron: desktop users must see their actual Windows
+// volumes or an unavailable/empty state, never another user's example hardware.
 
 const WEB_DEMO_DRIVES: DriveVolume[] = [
   {
@@ -322,20 +324,31 @@ export default function StorageHealthSection() {
   const loadDrives = useCallback(async () => {
     setDrivesLoading(true);
     try {
-      if (isElectron()) {
+      const desktop = isElectron();
+      if (desktop) {
         const res = await (window as any).electronAPI.storage.getVolumes();
         if (res?.ok && res.volumes?.length > 0) {
           setDrives(res.volumes);
           setActiveLetter(prev => prev || res.volumes[0].letter);
           return;
         }
+        // Do not fall through to web demo data in Electron. A busy/failed
+        // hardware scan must not display fictional drives.
+        setDrives([]);
+        setActiveLetter("");
+        return;
       }
       // Web fallback — demo data
       setDrives(WEB_DEMO_DRIVES);
       setActiveLetter(prev => prev || WEB_DEMO_DRIVES[0].letter);
     } catch {
-      setDrives(WEB_DEMO_DRIVES);
-      setActiveLetter(prev => prev || WEB_DEMO_DRIVES[0].letter);
+      if (isElectron()) {
+        setDrives([]);
+        setActiveLetter("");
+      } else {
+        setDrives(WEB_DEMO_DRIVES);
+        setActiveLetter(prev => prev || WEB_DEMO_DRIVES[0].letter);
+      }
     } finally {
       setDrivesLoading(false);
     }
