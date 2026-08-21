@@ -35,13 +35,6 @@ export interface SessionDelta {
   sessionAge: number;
 }
 
-export interface LastActionResult {
-  action: string;
-  result: string;
-  ts: number;
-  positive?: boolean;
-}
-
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 // Fix: exported so UI can render "showing last N events" without hardcoding.
@@ -62,12 +55,10 @@ const SNAPSHOT_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 
 interface DashboardActivityState {
   events: DashboardEvent[];
-  lastAction: LastActionResult | null;
   prevSnapshot: SessionSnapshot | null;
   currentSnapshot: SessionSnapshot | null;
 
   addEvent: (event: Omit<DashboardEvent, "id">) => void;
-  setLastAction: (result: LastActionResult) => void;
   saveSessionSnapshot: (snap: Omit<SessionSnapshot, "ts">) => void;
   // Fix: no `current` parameter — always diffs prevSnapshot vs currentSnapshot
   // from store state so callers can't accidentally pass stale data.
@@ -78,7 +69,6 @@ export const useDashboardActivityStore = create<DashboardActivityState>()(
   persist(
     (set, get) => ({
       events: [],
-      lastAction: null,
       prevSnapshot: null,
       currentSnapshot: null,
 
@@ -86,8 +76,6 @@ export const useDashboardActivityStore = create<DashboardActivityState>()(
         set((s) => ({
           events: [{ ...event, id: mkId() }, ...s.events].slice(0, MAX_EVENTS),
         })),
-
-      setLastAction: (result) => set({ lastAction: result }),
 
       saveSessionSnapshot: (snap) => {
         const prev = get().currentSnapshot;
@@ -186,14 +174,13 @@ export const useDashboardActivityStore = create<DashboardActivityState>()(
         // Fix: handle version 0 explicitly so future schema bumps can transform
         // old data rather than silently returning a mismatched shape.
         if (version === 0 || !persistedState || typeof persistedState !== "object") {
-          return { events: [], lastAction: null, prevSnapshot: null, currentSnapshot: null };
+          return { events: [], prevSnapshot: null, currentSnapshot: null };
         }
         // version 1 → current: schema matches, pass through.
         return persistedState;
       },
       partialize: (s) => ({
         events: s.events,
-        lastAction: s.lastAction,
         prevSnapshot: s.prevSnapshot,
         currentSnapshot: s.currentSnapshot,
       }),

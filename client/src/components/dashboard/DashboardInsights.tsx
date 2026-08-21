@@ -6,9 +6,7 @@
  *   1. Live Interference Meter
  *   2. Since Last Session
  *   3. Recent Events feed
- *   4. Active Analysis strip
- *   5. Why Your FPS Feels Off + Current Bottleneck
- *   6. Last Action Result
+ *   4. Why Your FPS Feels Off + Current Bottleneck
  */
 
 import { useEffect, useMemo, useRef } from "react";
@@ -36,7 +34,6 @@ import {
   Clock,
   Gauge,
   Minus,
-  Radio,
   RotateCcw,
   Shield,
   Trash2,
@@ -325,56 +322,7 @@ function RecentEvents() {
   );
 }
 
-// ── 4. Active Analysis strip ──────────────────────────────────────────────────
-
-function ActiveAnalysisStrip() {
-  const { telemetry, spikes, history } = useLiveTelemetry();
-  const { runState } = useAdvisorStore();
-  const { prefersReducedMotion } = useMotion();
-
-  const items = useMemo(() => {
-    const out: string[] = [];
-
-    if (runState === "collecting" || runState === "evaluating") {
-      out.push("AI analysis in progress");
-    }
-
-    if (spikes.cpu) out.push("Tracking CPU spike activity");
-    else if (telemetry && telemetry.cpu.load > 65) out.push("Monitoring elevated CPU load");
-
-    if (spikes.ram) out.push("Monitoring RAM spike");
-    else if (telemetry && telemetry.ram.usedPercent > 80) out.push("Watching memory pressure");
-
-    if (telemetry?.load_trend === "rising") out.push("Load trend: rising");
-
-    const stability = computeGraphStability(history.cpu);
-    if (stability.zone !== "stable") out.push(`Graph: ${stability.label.toLowerCase()}`);
-
-    if (out.length === 0) out.push("Monitoring baseline stability");
-
-    return out.slice(0, 3);
-  }, [telemetry, spikes, history.cpu, runState]);
-
-  return (
-    <div className="flex flex-wrap gap-1.5" data-testid="section-active-analysis">
-      {items.map((item, i) => (
-        <motion.span
-          key={item}
-          className="flex items-center gap-1 text-[10px] text-[#A0A8B3] px-2.5 py-1 rounded-full border border-[#2A313A] bg-white/[0.025]"
-          initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, scale: 0.94 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: prefersReducedMotion ? 0 : 0.2, delay: i * 0.05 }}
-          data-testid={`analysis-pill-${i}`}
-        >
-          <Radio className="size-2.5 text-primary/60" />
-          {item}
-        </motion.span>
-      ))}
-    </div>
-  );
-}
-
-// ── 5. Why FPS Feels Off + Bottleneck ─────────────────────────────────────────
+// ── 4. Why FPS Feels Off + Bottleneck ─────────────────────────────────────────
 
 function FpsAndBottleneck() {
   const { telemetry, spikes } = useLiveTelemetry();
@@ -480,43 +428,10 @@ function FpsAndBottleneck() {
   );
 }
 
-// ── 6. Last Action Result ─────────────────────────────────────────────────────
-
-function LastActionResult() {
-  const { lastAction } = useDashboardActivityStore();
-
-  if (!lastAction) return null;
-
-  const age = relativeTime(lastAction.ts);
-  const isPos = lastAction.positive !== false;
-
-  return (
-    <div
-      className={cn(
-        "flex items-start gap-3 p-3 rounded-lg border",
-        isPos
-          ? "border-emerald-500/20 bg-emerald-500/[0.04]"
-          : "border-[#2A313A] bg-[#1A1F26]"
-      )}
-      data-testid="card-last-action"
-    >
-      <CheckCircle
-        className={cn("size-4 mt-0.5 shrink-0", isPos ? "text-emerald-400" : "text-muted-foreground")}
-      />
-      <div className="min-w-0 flex-1">
-        <p className="text-[11px] font-medium text-[#E6EAF0]">{lastAction.action}</p>
-        <p className="text-[11px] text-muted-foreground/70 mt-0.5">{lastAction.result}</p>
-      </div>
-      <span className="text-[10px] text-muted-foreground/50 shrink-0 tabular-nums mt-0.5">{age}</span>
-    </div>
-  );
-}
-
 // ── Root export ───────────────────────────────────────────────────────────────
 
 export function DashboardInsights() {
   const { prefersReducedMotion } = useMotion();
-  const { lastAction } = useDashboardActivityStore();
 
   const reveal = (delay: number) => ({
     initial: { opacity: 0, y: prefersReducedMotion ? 0 : 16 },
@@ -571,29 +486,6 @@ export function DashboardInsights() {
         </GlassCard>
       </motion.div>
 
-      {/* Row 4 — Active Analysis */}
-      <motion.div {...reveal(0.15)}>
-        <GlassCard className="p-4" hoverEffect={false} data-testid="card-active-analysis">
-          <h3 className="text-[11px] uppercase tracking-wider text-muted-foreground/60 font-semibold flex items-center gap-1.5 mb-3">
-            <Radio className="size-3" />
-            Active analysis
-          </h3>
-          <ActiveAnalysisStrip />
-        </GlassCard>
-      </motion.div>
-
-      {/* Row 5 — Last Action Result (conditional) */}
-      {lastAction && (
-        <motion.div {...reveal(0.17)}>
-          <GlassCard className="p-4" hoverEffect={false} data-testid="card-last-action-wrapper">
-            <h3 className="text-[11px] uppercase tracking-wider text-muted-foreground/60 font-semibold flex items-center gap-1.5 mb-3">
-              <CheckCircle className="size-3" />
-              Last action
-            </h3>
-            <LastActionResult />
-          </GlassCard>
-        </motion.div>
-      )}
     </div>
   );
 }

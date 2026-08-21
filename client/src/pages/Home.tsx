@@ -402,7 +402,7 @@ export default function Home() {
     }
   }, []);
   // ── End lifecycle logging ────────────────────────────────────────────────────
-  const { addEvent, setLastAction, events: activityEvents } = useDashboardActivityStore();
+  const { addEvent, events: activityEvents } = useDashboardActivityStore();
   const { lastRunAt: advisorLastRunAt } = useAdvisorStore();
   const { lastScanTime: biosLastScanTime } = useBiosAdvisorStore();
   const [specStatus, setSpecStatus] = useState<"loading" | "ready" | "unavailable">(() => {
@@ -471,7 +471,6 @@ export default function Home() {
   useEffect(() => {
     if (prevMemCleanerRef.current && !memCleanerOpen) {
       addEvent({ type: "memory_cleaned", label: "Memory cleaner completed", ts: Date.now() });
-      setLastAction({ action: "Memory cleaner", result: "RAM cleared — system headroom restored", ts: Date.now(), positive: true });
       // Re-poll RAM so the Memory card reflects the freed headroom even when
       // the telemetry WebSocket is unavailable. Use getLive() (fast, no WMI)
       // rather than getSpecs() which re-runs GPU WMI queries and defeats the cache.
@@ -507,7 +506,6 @@ export default function Home() {
     if (curr > prev) {
       const d = curr - prev;
       addEvent({ type: "tweak_applied", label: `${d} tweak${d !== 1 ? "s" : ""} applied`, ts: Date.now() });
-      setLastAction({ action: `${d} tweak${d !== 1 ? "s" : ""} applied`, result: "Optimization applied — changes are active", ts: Date.now(), positive: true });
     } else if (curr < prev) {
       const d = prev - curr;
       addEvent({ type: "tweak_reverted", label: `${d} tweak${d !== 1 ? "s" : ""} reverted`, ts: Date.now() });
