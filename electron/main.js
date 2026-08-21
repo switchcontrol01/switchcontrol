@@ -3085,8 +3085,8 @@ public class DspHelper {
           # Secondary call — extract monitor hardware ID from DeviceID (e.g. MONITOR\SAM0E4F\...)
           $hwId = $null
           $dd3 = New-Object DspHelper+DISPLAY_DEVICE; $dd3.cb = [System.Runtime.InteropServices.Marshal]::SizeOf($dd3)
-           if ([DspHelper]::EnumDisplayDevices($dd2.DeviceName, [uint32]0, [ref]$dd3, 0) -and $dd3.DeviceID) {
-             if ($dd3.DeviceID -match '(?i)(?:MONITOR|DISPLAY)\\([^\\]+)') { $hwId = $Matches[1].ToUpper() }
+           if ([DspHelper]::EnumDisplayDevices($dd2.DeviceName, [uint32]0, [ref]$dd3, 0)) {
+             if ($dd3.DeviceID -and $dd3.DeviceID -match '(?i)(?:MONITOR|DISPLAY)\\([^\\]+)') { $hwId = $Matches[1].ToUpper() }
           }
           # Enumerate ALL supported display modes to find the maximum refresh rate this
           # monitor + GPU combination can drive — may be higher than the current setting.
@@ -3097,7 +3097,7 @@ public class DspHelper {
             if ($dmE.dmDisplayFrequency -gt $maxHz2) { $maxHz2 = $dmE.dmDisplayFrequency }
             $modeN++
           }
-          $dispDevs += @{ x=$dm2.dmPositionX; y=$dm2.dmPositionY; hz=$dm2.dmDisplayFrequency; maxHz=$maxHz2; w=$dm2.dmPelsWidth; h=$dm2.dmPelsHeight; bpp=$dm2.dmBitsPerPel; hwId=$hwId }
+           $dispDevs += @{ x=$dm2.dmPositionX; y=$dm2.dmPositionY; hz=$dm2.dmDisplayFrequency; maxHz=$maxHz2; w=$dm2.dmPelsWidth; h=$dm2.dmPelsHeight; bpp=$dm2.dmBitsPerPel; hwId=$hwId; displayName=$dd3.DeviceString }
         }
       }
       $di++
@@ -3242,7 +3242,27 @@ public class DspHelper {
       }
     }
 
-    # Tier 2: EDID native-res constraint for monitors still unmatched after Tier 1
+    # Tier 2: match the friendly monitor name exposed by the display-device
+    # child. Some drivers omit DeviceID even though DeviceString is present.
+    # Normalize punctuation/spaces so "LS24AG32x" matches common driver
+    # variants such as "LS24AG32x (NVIDIA High Definition Audio)".
+    for ($mi2 = 0; $mi2 -lt $monIds.Count; $mi2++) {
+      if ($monToDisp.ContainsKey($mi2)) { continue }
+      $mName = Dec $monIds[$mi2].UserFriendlyName
+      $mKey = if ($mName) { ($mName.ToLower() -replace '[^a-z0-9]','') } else { $null }
+      if (-not $mKey -or $mKey.Length -lt 4) { continue }
+      for ($j = 0; $j -lt $dispDevs.Count; $j++) {
+        if ($usedDispIdx.ContainsKey($j)) { continue }
+        $dName = $dispDevs[$j].displayName
+        $dKey = if ($dName) { ($dName.ToLower() -replace '[^a-z0-9]','') } else { $null }
+        if ($dKey -and ($dKey -eq $mKey -or $dKey.Contains($mKey) -or $mKey.Contains($dKey))) {
+          $monToDisp[$mi2] = $dispDevs[$j]; $usedDispIdx[$j] = $true; break
+        }
+      }
+    }
+
+    # Tier 3: EDID native-res constraint for monitors still unmatched after
+    # identity matching.
     for ($mi2 = 0; $mi2 -lt $monIds.Count; $mi2++) {
       if ($monToDisp.ContainsKey($mi2)) { continue }
       $mHwId = $monHwIds[$mi2]
@@ -3267,7 +3287,7 @@ public class DspHelper {
         }
       }
     }
-    # Tier 3: if exactly one monitor/device pair remains, the pairing is no
+    # Tier 4: if exactly one monitor/device pair remains, the pairing is no
     # longer ambiguous. This recovers refresh/resolution data when a driver
     # exposes a malformed child DeviceID but all other displays matched.
     $leftMon = @()
@@ -3282,7 +3302,7 @@ public class DspHelper {
       $monToDisp[$leftMon[0]] = $dispDevs[$leftDisp[0]]
     }
 
-    # Tier 4: when a driver omits the child monitor hardware ID, use the
+    # Tier 5: when a driver omits the child monitor hardware ID, use the
     # monitor's EDID native-resolution constraint to match it to exactly one
     # remaining Windows screen. This supplies that screen's own EnumDisplaySettings
     # refresh rate without falling back to arbitrary array position.

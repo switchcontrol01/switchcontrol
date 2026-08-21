@@ -765,7 +765,7 @@ export function DisplaySignalGraph({ delay = 0 }: { delay?: number }) {
                 >
                   {monitors.map((m, i) => (
                     <option key={m.id} value={i}>
-                      {m.name ?? `Display ${i + 1}`}{m.isPrimary ? " ★" : ""}
+                      {`Display ${i + 1} · ${m.name ?? "Unknown monitor"}`}{m.isPrimary ? " ★" : ""}
                     </option>
                   ))}
                 </select>
