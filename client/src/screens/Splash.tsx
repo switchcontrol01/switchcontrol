@@ -271,7 +271,7 @@ export default function Splash({ onComplete }: SplashProps) {
         ))}
       </div>
 
-      {/* ── Logo + text — opacity + transform, no blur animation ── */}
+      {/* ── Logo + text — restrained "signal lock" reveal ── */}
       <div className="relative flex flex-col items-center gap-7" style={{ zIndex: 10 }}>
 
         <AnimatePresence>
@@ -282,7 +282,23 @@ export default function Splash({ onComplete }: SplashProps) {
               transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
               className="relative"
             >
-              {/* Outer glow ring — opacity animation only */}
+              {/* Soft bloom behind the mark — a quiet powered-on reveal */}
+              <motion.div
+                className="absolute pointer-events-none rounded-full"
+                style={{
+                  inset: "-34px",
+                  background: [
+                    "radial-gradient(circle at 38% 46%, rgba(168,85,247,0.38) 0%, transparent 48%)",
+                    "radial-gradient(circle at 66% 54%, rgba(0,210,255,0.28) 0%, transparent 52%)",
+                  ].join(", "),
+                  filter: "blur(18px)",
+                }}
+                initial={{ opacity: 0, scale: 0.78 }}
+                animate={{ opacity: [0.18, 0.78, 0.38], scale: [0.78, 1.08, 1] }}
+                transition={{ duration: 1.35, times: [0, 0.54, 1], ease: [0.22, 1, 0.36, 1] }}
+              />
+
+              {/* Outer glow ring — settles into a quiet ambient pulse */}
               <motion.div
                 className="absolute rounded-[26%] pointer-events-none"
                 style={{
@@ -294,7 +310,7 @@ export default function Splash({ onComplete }: SplashProps) {
                 transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }}
               />
 
-              {/* Shimmer sweep inside logo — transform only */}
+              {/* Violet-to-cyan energy sweep — clipped to the logo surface */}
               <div className="absolute inset-0 rounded-[22%] overflow-hidden pointer-events-none">
                 <motion.div
                   className="absolute inset-0"
