@@ -214,67 +214,70 @@ async function runElevated(command, { tempFilePrefix = 'sc_ps_' } = {}) {
   catch (err) { cleanup(); throw err; }
   console.log(`[runElevated] vbs launcher written`);
 
-  try {
-    // Gate the wscript launch through the shared semaphore so runElevated counts
-    // against the combined PS ceiling — without this, every elevated call would
-    // spawn wscript.exe + an elevated powershell.exe outside all concurrency control.
-    await _withPsSemaphore(() => new Promise((resolve, reject) => {
-      execFile(
-        'wscript.exe',
-        ['//B', vbsPath],
-        { timeout: 120_000, windowsHide: true },
-        (err) => {
-          if (err) {
-            console.error(`[runElevated] wscript launch error: ${err.message}`);
-            reject(err);
-          } else {
-            console.log('[runElevated] wscript launch completed — checking for result file');
-            resolve();
+  // The shared permit covers the complete native lifecycle, not just the
+  // non-blocking wscript launch.  ShellExecute returns before the elevated
+  // PowerShell child finishes, so releasing inside the launch callback lets
+  // another native operation overlap the still-running child.
+  return _withPsSemaphore(async () => {
+    try {
+      await new Promise((resolve, reject) => {
+        execFile(
+          'wscript.exe',
+          ['//B', vbsPath],
+          { timeout: 120_000, windowsHide: true },
+          (err) => {
+            if (err) {
+              console.error(`[runElevated] wscript launch error: ${err.message}`);
+              reject(err);
+            } else {
+              console.log('[runElevated] wscript launch completed — checking for result file');
+              resolve();
+            }
           }
-        }
-      );
-    }));
+        );
+      });
 
-    // Poll for the result file. ShellExecute does not block (unlike the old
-    // Start-Process -Wait), so we need a generous deadline. 10 s covers even
-    // heavy tweaks that touch services or scheduled tasks; the loop exits early
-    // the moment the file appears so there is no unnecessary wait on fast tweaks.
-    const pollDeadline = Date.now() + 10000;
-    while (!fs.existsSync(resultPath)) {
-      if (Date.now() > pollDeadline) break;
-      await new Promise(r => setTimeout(r, 100));
-    }
-
-    console.log(`[runElevated] resultPath exists: ${fs.existsSync(resultPath)}`);
-
-    if (fs.existsSync(resultPath)) {
-      // Strip UTF-8 BOM (\uFEFF) and trim whitespace — PS 5.x Set-Content adds BOM
-      const raw = fs.readFileSync(resultPath, 'utf8').replace(/^\uFEFF/, '').trim();
-      console.log(`[runElevated] result file contents: "${raw}"`);
-      try {
-        const parsed = JSON.parse(raw);
-        if (parsed.ok === true) return { ok: true, error: null };
-        return parsed;
-      } catch {
-        return { ok: false, error: `Elevated script ran but result file could not be parsed (raw: ${raw.slice(0, 200)})` };
+      // Poll for the result file. ShellExecute does not block (unlike the old
+      // Start-Process -Wait), so we need a generous deadline. 10 s covers even
+      // heavy tweaks that touch services or scheduled tasks; the loop exits early
+      // the moment the file appears so there is no unnecessary wait on fast tweaks.
+      const pollDeadline = Date.now() + 10000;
+      while (!fs.existsSync(resultPath)) {
+        if (Date.now() > pollDeadline) break;
+        await new Promise(r => setTimeout(r, 100));
       }
-    }
 
-    return {
-      ok: false,
-      error: 'Result file not found after 10s wait. The elevated script may have crashed before writing — check that PowerShell scripts can run in your temp folder.',
-    };
+      console.log(`[runElevated] resultPath exists: ${fs.existsSync(resultPath)}`);
 
-  } catch (err) {
-    const msg = (err && err.message) || String(err);
-    // wscript exits non-zero when UAC is declined — detect it by keyword
-    if (/cancel|denied|elevat|access|uac/i.test(msg) || (err && err.code === 1)) {
-      return { ok: false, cancelled: true, error: 'Admin permission was canceled. No system changes were made.' };
+      if (fs.existsSync(resultPath)) {
+        // Strip UTF-8 BOM (\uFEFF) and trim whitespace — PS 5.x Set-Content adds BOM
+        const raw = fs.readFileSync(resultPath, 'utf8').replace(/^\uFEFF/, '').trim();
+        console.log(`[runElevated] result file contents: "${raw}"`);
+        try {
+          const parsed = JSON.parse(raw);
+          if (parsed.ok === true) return { ok: true, error: null };
+          return parsed;
+        } catch {
+          return { ok: false, error: `Elevated script ran but result file could not be parsed (raw: ${raw.slice(0, 200)})` };
+        }
+      }
+
+      return {
+        ok: false,
+        error: 'Result file not found after 10s wait. The elevated script may have crashed before writing — check that PowerShell scripts can run in your temp folder.',
+      };
+    } catch (err) {
+      const msg = (err && err.message) || String(err);
+      // wscript exits non-zero when UAC is declined — detect it by keyword
+      if (/cancel|denied|elevat|access|uac/i.test(msg) || (err && err.code === 1)) {
+        return { ok: false, cancelled: true, error: 'Admin permission was canceled. No system changes were made.' };
+      }
+      return { ok: false, error: `Elevation failed: ${msg}` };
+    } finally {
+      // Cleanup happens before _withPsSemaphore releases the permit.
+      cleanup();
     }
-    return { ok: false, error: `Elevation failed: ${msg}` };
-  } finally {
-    cleanup();
-  }
+  });
 }
 
 // ── runElevatedCommands ───────────────────────────────────────────────────────
@@ -316,34 +319,36 @@ async function runElevatedCommands(commands, { tempFilePrefix = 'sc_batch_' } = 
   try { fs.writeFileSync(vbsPath, vbsContent, 'utf8'); }
   catch (err) { cleanup(); throw err; }
 
-  try {
-    await _withPsSemaphore(() => new Promise((resolve, reject) => {
-      execFile('wscript.exe', ['//B', vbsPath], { timeout: 120_000, windowsHide: true },
-        (err) => err ? reject(err) : resolve()
-      );
-    }));
+  return _withPsSemaphore(async () => {
+    try {
+      await new Promise((resolve, reject) => {
+        execFile('wscript.exe', ['//B', vbsPath], { timeout: 120_000, windowsHide: true },
+          (err) => err ? reject(err) : resolve()
+        );
+      });
 
-    const pollDeadline = Date.now() + 10000;
-    while (!fs.existsSync(resultPath)) {
-      if (Date.now() > pollDeadline) break;
-      await new Promise(r => setTimeout(r, 100));
-    }
+      const pollDeadline = Date.now() + 10000;
+      while (!fs.existsSync(resultPath)) {
+        if (Date.now() > pollDeadline) break;
+        await new Promise(r => setTimeout(r, 100));
+      }
 
-    if (fs.existsSync(resultPath)) {
-      const raw = fs.readFileSync(resultPath, 'utf8').replace(/^\uFEFF/, '').trim();
-      try { return JSON.parse(raw); }
-      catch { return { ok: false, error: `Bad result JSON: ${raw.slice(0, 100)}` }; }
+      if (fs.existsSync(resultPath)) {
+        const raw = fs.readFileSync(resultPath, 'utf8').replace(/^\uFEFF/, '').trim();
+        try { return JSON.parse(raw); }
+        catch { return { ok: false, error: `Bad result JSON: ${raw.slice(0, 100)}` }; }
+      }
+      return { ok: false, error: 'Result file not produced after 10s.' };
+    } catch (err) {
+      const msg = err?.message || String(err);
+      if (/cancel|denied|elevat|access|uac/i.test(msg) || err?.code === 1) {
+        return { ok: false, cancelled: true, error: 'Admin permission was canceled.' };
+      }
+      return { ok: false, error: `Elevation failed: ${msg}` };
+    } finally {
+      cleanup();
     }
-    return { ok: false, error: 'Result file not produced after 10s.' };
-  } catch (err) {
-    const msg = err?.message || String(err);
-    if (/cancel|denied|elevat|access|uac/i.test(msg) || err?.code === 1) {
-      return { ok: false, cancelled: true, error: 'Admin permission was canceled.' };
-    }
-    return { ok: false, error: `Elevation failed: ${msg}` };
-  } finally {
-    cleanup();
-  }
+  });
 }
 
 module.exports = { runPS, queryPS, checkIsAdmin, runElevated, runElevatedCommands, _withPsSemaphore };
