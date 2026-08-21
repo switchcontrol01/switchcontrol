@@ -8,7 +8,7 @@ import { StatCard } from "@/components/dashboard/StatCard";
 import { LiveGraph } from "@/components/dashboard/LiveGraph";
 import { LiveGraphsGate } from "@/components/dashboard/LiveGraphsGate";
 import { StorageCards } from "@/components/dashboard/StorageCards";
-import { SystemStateBar } from "@/components/dashboard/SystemStateBar";
+import { DashboardRecentEvents } from "@/components/dashboard/DashboardRecentEvents";
 import { DashboardHeaderParticles, type DashboardTimeOfDay } from "@/components/DashboardHeaderParticles";
 import { useStore } from "@/lib/store";
 import { useAdvisorStore } from "@/stores/advisorStore";
@@ -44,7 +44,6 @@ import { MemoryIntelligenceModal } from "@/components/dashboard/MemoryIntelligen
 import { GpuModal } from "@/components/dashboard/GpuModal";
 import { DiskTelemetryModal } from "@/components/dashboard/DiskTelemetryModal";
 import { PerformanceLab } from "@/components/dashboard/PerformanceLab";
-import { DetectedIssues } from "@/components/dashboard/DetectedIssues";
 import {
   MemoryPressureGraph,
   StorageActivityGraph,
@@ -862,27 +861,10 @@ export default function Home() {
         {/* Predictive warnings strip — only renders when there are real warnings */}
         <PredictiveWarnings telemetry={liveTel} warmingUp={warmingUp} />
 
-        {/* System State Bar — real-time derived anchor */}
+        {/* Recent Events — retained after removing the Dashboard intelligence cards. */}
         <Reveal>
-          <SystemStateBar />
+          <DashboardRecentEvents />
         </Reveal>
-
-        {/* Detected Issues — hidden during startup warm-up so stale telemetry
-            never triggers a false alert on cold boot. Fades in once the
-            warm-up grace period ends and readings have settled. */}
-        <AnimatePresence>
-          {!warmingUp && (
-            <motion.div
-              key="detected-issues"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 8 }}
-              transition={{ duration: 0.45, ease: "easeOut" }}
-            >
-              <DetectedIssues />
-            </motion.div>
-          )}
-        </AnimatePresence>
 
         {/* Activity Monitor Grid */}
         <Reveal className="space-y-4">
