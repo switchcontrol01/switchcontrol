@@ -141,7 +141,7 @@ function PlanBadge({ plan, effectivePlan }: { plan: string | null; effectivePlan
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function AdminDeviceInspectorPage() {
-  const { user } = useAuthStore();
+  const user = useAuthStore((s) => s.user);
   // Pre-fill from ?q= URL param (e.g. linked from admin user card)
   const _initialQ = useRef(
     typeof window !== "undefined" ? (new URLSearchParams(window.location.search).get("q") ?? "") : ""

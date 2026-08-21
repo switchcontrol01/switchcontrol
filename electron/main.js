@@ -443,6 +443,22 @@
   let _lowEndCoresKnown   = false;
   const LOW_END_CORE_MAX  = 4;    // <= this many logical cores → low-end
   const LOAD_HIST_LEN     = 5;    // ticks to average for sustained-load check
+
+  // os.cpus() and os.totalmem() are synchronous, near-zero-cost reads. Resolve
+  // the hardware-based portion of low-end mode before any startup prime so the
+  // expensive disk differential probe can be skipped on constrained systems.
+  function _detectLowEndHardware(source = 'startup') {
+    if (_lowEndCoresKnown) return _lowEndMode;
+    const logicalCores = os.cpus()?.length || 0;
+    if (!logicalCores) return _lowEndMode;
+    const totalRamGb = os.totalmem() / 1_073_741_824;
+    _lowEndCoresKnown = true;
+    if (logicalCores <= LOW_END_CORE_MAX || totalRamGb <= 6) {
+      _lowEndMode = true;
+      console.log(`[telemetry:${source}] Low-end mode ENABLED — cores=${logicalCores} ram=${totalRamGb.toFixed(1)}GB`);
+    }
+    return _lowEndMode;
+  }
   
   // ── CPU budget ────────────────────────────────────────────────────────────────
   // If SwitchControl's own Node process exceeds CPU_BUDGET_PCT, skip heavy tasks
@@ -547,20 +563,10 @@
       _recordTiming('lightweight', _t0Light);
   
       // ── 3. Low-end mode detection ─────────────────────────────────────────────
-      // Detect from core count on first tick; also check sustained load average.
-      if (!_lowEndCoresKnown && load?.cpus?.length) {
-        _lowEndCoresKnown = true;
-        const _cores = load.cpus.length;
-        // os.totalmem() is synchronous and near-zero cost. Add RAM pressure to the
-        // low-end check — a 6-core laptop with 4 GB RAM is very common budget hardware
-        // but would never trigger low-end mode on core count alone, even though RAM
-        // pressure is often the bigger lag source for telemetry polling on such machines.
-        const _totalRamGB = os.totalmem() / 1_073_741_824;
-        if (_cores <= LOW_END_CORE_MAX || _totalRamGB <= 6) {
-          _lowEndMode = true;
-          console.log(`[telemetry:poll] Low-end mode ENABLED — cores=${_cores} ram=${_totalRamGB.toFixed(1)}GB`);
-        }
-      }
+      // Hardware-based detection is already resolved before startup priming.
+      // The first tick still calls this helper for safe recovery if the prime
+      // was interrupted before the synchronous hardware read completed.
+      _detectLowEndHardware('poll');
       // Sustained load check uses the global LOAD_HISTORY (written below in caller's scope)
       // We read cpuPct now and let the governor below also update the interval.
       const cpuPct = load?.currentLoad ?? 0;
@@ -747,10 +753,9 @@
   let _telemetryStartInFlight = false;
   function _scheduleStartupTelemetryStart(reason) {
     if (_telemetryStartDelayTimer) clearTimeout(_telemetryStartDelayTimer);
+    const lowEndHardware = _detectLowEndHardware('schedule');
     const logicalCores = os.cpus()?.length || 0;
     const totalRamGb = os.totalmem() / 1_073_741_824;
-    const lowEndHardware = logicalCores > 0 &&
-      (logicalCores <= LOW_END_CORE_MAX || totalRamGb <= 6);
     const delayMs = lowEndHardware ? 1500 : 500;
     verboseLog(`[telemetry:poll] startup prime scheduled in ${delayMs}ms | reason=${reason} cores=${logicalCores} ram=${totalRamGb.toFixed(1)}GB`);
     _telemetryStartDelayTimer = setTimeout(() => {
@@ -873,10 +878,14 @@
     // First call to differential APIs always returns 0 — prime them and seed lastDiskSnapshot
     // so that the first real pollTelemetry() can compute disk deltas immediately.
     // Include si.mem() so we can pre-seed liveTelemetryCache immediately.
+    // Low-end mode is known before this point, so avoid paying for the
+    // differential disk probe on constrained machines. CPU and RAM priming
+    // remain unchanged.
+    _detectLowEndHardware('prime');
     const [primeCpuLoad, , primeDisksIO, primeMem] = await Promise.allSettled([
       si.currentLoad(),
       si.networkStats(),
-      si.disksIO(),
+      _lowEndMode ? Promise.resolve(null) : si.disksIO(),
       si.mem(),
     ]);
     if (primeDisksIO.status === 'fulfilled' && primeDisksIO.value) {

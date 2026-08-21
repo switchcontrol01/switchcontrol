@@ -42,7 +42,7 @@ const isElectron = typeof window !== "undefined" && !!(window as any).electronAP
 const REFRESH_MS = 2000;
 
 export default function AdminPerformancePage() {
-  const { user } = useAuthStore();
+  const user = useAuthStore((s) => s.user);
   const [authorized, setAuthorized] = useState<boolean | null>(null);
 
   const [registryEntries, setRegistryEntries] = useState<ReturnType<typeof pollingRegistry.dump>>([]);

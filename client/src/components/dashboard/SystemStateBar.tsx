@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence, useMotion } from "@/lib/motionTokens";
-import { useLiveTelemetry } from "@/hooks/useLiveTelemetry";
+import { useLiveTelemetryValues } from "@/hooks/useLiveTelemetry";
 import { useAdvisorStore } from "@/stores/advisorStore";
 import { computeSystemState, computeInterference } from "@/lib/systemStateEngine";
 
@@ -23,7 +23,7 @@ const INTERFERENCE_CHIP: Record<string, string> = {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export function SystemStateBar() {
-  const { telemetry, spikes, warmingUp } = useLiveTelemetry();
+  const { telemetry, spikes, warmingUp } = useLiveTelemetryValues();
   const { report } = useAdvisorStore();
   const { prefersReducedMotion } = useMotion();
 

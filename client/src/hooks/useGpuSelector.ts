@@ -40,7 +40,7 @@ export function useGpuSelector(): GpuSelectorState {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [switching, setSwitching]         = useState(false);
 
-  const { setStats } = useStore();
+  const setStats = useStore((s) => s.setStats);
   const mountedRef   = useRef(true);
 
   // ── Load GPU list + stored selection on mount ──────────────────────────────

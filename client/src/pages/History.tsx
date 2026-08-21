@@ -793,7 +793,8 @@ function FilteredEmpty({ onClear }: { onClear: () => void }) {
 // ── Main History component ────────────────────────────────────────────────
 
 export default function History() {
-  const { history, resetData } = useStore();
+  const history = useStore((s) => s.history);
+  const resetData = useStore((s) => s.resetData);
   const { prefersReducedMotion } = useMotion();
 
   // ── State ────────────────────────────────────────────────────────────────

@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "tsx server/index.ts",
     "build": "npx tsx script/build.ts",
+    "validate:performance": "node scripts/validate-performance-optimizations.cjs",
     "start": "node dist/index.cjs",
     "postinstall": "cd electron && npm install",
     "electron:dev": "cd electron && npm start",

@@ -66,7 +66,8 @@ const DEFAULT_STATE: TweakIntelligenceState = {
 const MAX_SILENT_FIRST_LOAD_FAILURES = 3;
 
 export function useTweakIntelligence(pollIntervalMs = 5_000) {
-  const { tweaks, stats } = useStore();
+  const tweaks = useStore((s) => s.tweaks);
+  const gpuName = useStore((s) => s.stats.gpuName);
   const [state, setState] = useState<TweakIntelligenceState>(DEFAULT_STATE);
   const abortRef              = useRef<AbortController | null>(null);
   const timerRef              = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -84,8 +85,8 @@ export function useTweakIntelligence(pollIntervalMs = 5_000) {
   // GPU name — forwarded to the server so vendor-specific tweaks (e.g.
   // nvidia-telemetry) are excluded for users without matching hardware.
   const gpuParam = useMemo(
-    () => encodeURIComponent(stats.gpuName ?? ""),
-    [stats.gpuName],
+    () => encodeURIComponent(gpuName ?? ""),
+    [gpuName],
   );
 
   // Fix #1: `isStale` is a per-effect closure that returns true the moment the

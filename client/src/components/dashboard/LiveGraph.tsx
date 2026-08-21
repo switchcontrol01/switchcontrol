@@ -9,7 +9,7 @@ import {
 import { safeFixed, safeNumber } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { useLiveTelemetry } from "@/hooks/useLiveTelemetry";
+import { useLiveTelemetryValues, useTelemetryHistory } from "@/hooks/useLiveTelemetry";
 import { computeGraphStability } from "@/lib/systemStateEngine";
 
 // ── Persistent cross-mount cache (survives React unmount/remount) ─────────────
@@ -441,7 +441,8 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
   // telemetryManager (started in Splash.tsx) is the single IPC/WS source.
   // In Electron it polls getLive() via IPC; on web it uses WebSocket.
   // LiveGraph subscribes to the resulting store via useLiveTelemetry().
-  const { telemetry: wsTelemetry, spikes: wsSpikes, status: wsStatus, history: wsHistory } = useLiveTelemetry();
+  const { telemetry: wsTelemetry, spikes: wsSpikes, status: wsStatus } = useLiveTelemetryValues();
+  const wsHistory = useTelemetryHistory();
 
   // ── Seed graph history from persistent store on (re)mount ──────────────────
   // This ensures the graph isn't blank when returning to Dashboard after

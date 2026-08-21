@@ -1748,7 +1748,8 @@ function DriverDbAdmin() {
 // ─── Main Admin Page ──────────────────────────────────────────────────────────
 
 export default function AdminPage() {
-  const { user, jwt } = useAuthStore();
+  const user = useAuthStore((s) => s.user);
+  const jwt = useAuthStore((s) => s.jwt);
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);

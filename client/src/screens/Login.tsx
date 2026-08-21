@@ -141,7 +141,8 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
   const softTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pollTokenRef = useRef<string | null>(null);
-  const { electronAuthState, oauthError } = useAuthStore();
+  const electronAuthState = useAuthStore((s) => s.electronAuthState);
+  const oauthError = useAuthStore((s) => s.oauthError);
 
   const clearSoftTimeout = useCallback(() => {
     if (softTimeoutRef.current) {

@@ -31,7 +31,7 @@ const DEV = import.meta.env.DEV;
 export function useEntitlementUiState(): EntitlementUiState {
   const { user: rawUser, entitlementsVerified } = useAppAuth();
   const grace = usePremiumGraceStore();
-  const { isBackendReachable } = useNetworkStore();
+  const isBackendReachable = useNetworkStore((s) => s.isBackendReachable);
   const graceStatus = grace.getStatus(isBackendReachable);
 
   // Map AppAuthContext user → resolver input shape.

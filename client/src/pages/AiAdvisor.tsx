@@ -16,13 +16,14 @@ import {
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence, useMotion } from "@/lib/motion";
 import { useStore } from "@/lib/store";
+import { useShallow } from "zustand/react/shallow";
 import { useAiChatStore } from "@/lib/ai-chat-store";
 import { TWEAKS_DATA } from "@/lib/mock-data";
 import { getUserFriendlyError } from "@/lib/api";
 import { cloudApiPost } from "@/lib/cloud-api";
 import { useAuth } from "@/hooks/use-auth";
 import { useNetworkStatus } from "@/hooks/use-network-status";
-import { useLiveTelemetry } from "@/hooks/useLiveTelemetry";
+import { useLiveTelemetryValues } from "@/hooks/useLiveTelemetry";
 import { useSystemIntelligence } from "@/hooks/useSystemIntelligence";
 import { PremiumPageOverlay, PremiumHeaderBadge } from "@/components/ui/premium-page-overlay";
 import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
@@ -1130,8 +1131,18 @@ export default function AiAdvisor() {
   const { isPremium } = useAuth();
   const { openUpgradeModal } = useUpgradeModal();
   const { isOnline } = useNetworkStatus();
-  const { stats, tweaks, sliderValues, cleanersRun, history, setStats, realtimeMetricsEnabled } = useStore();
-  const { telemetry: liveTel } = useLiveTelemetry();
+  const { stats, tweaks, sliderValues, cleanersRun, history, setStats, realtimeMetricsEnabled } = useStore(
+    useShallow((s) => ({
+      stats: s.stats,
+      tweaks: s.tweaks,
+      sliderValues: s.sliderValues,
+      cleanersRun: s.account.stats.cleanersRun,
+      history: s.history,
+      setStats: s.setStats,
+      realtimeMetricsEnabled: s.realtimeMetricsEnabled,
+    })),
+  );
+  const { telemetry: liveTel } = useLiveTelemetryValues();
   const sysIntel = useSystemIntelligence();
   const { messages: storedMessages, setMessages: syncToStore, clearMessages: clearStore } = useAiChatStore();
 

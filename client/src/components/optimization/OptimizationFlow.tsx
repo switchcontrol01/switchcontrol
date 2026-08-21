@@ -1046,7 +1046,8 @@ export function OptimizationFlow() {
     setSnapshotReady, setIntent, decidePlan, startApplying, finishApplying, setError, reset,
   } = useOptimizationStore();
 
-  const { tweaks, setTweak } = useStore();
+  const tweaks = useStore((s) => s.tweaks);
+  const setTweak = useStore((s) => s.setTweak);
   const user = useAuthStore(s => s.user);
   const isPremiumUser = !!(user as any)?.plan && (user as any)?.plan !== "free";
 

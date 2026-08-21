@@ -11,7 +11,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { MemoryStick, HardDrive, Activity, Cpu, Monitor, RefreshCw } from "lucide-react";
 import { GlassCard } from "@/components/ui/glass-card";
 import { TelemetrySparkline, type SparklinePoint } from "./TelemetrySparkline";
-import { useLiveTelemetry } from "@/hooks/useLiveTelemetry";
+import { useLiveTelemetryValues } from "@/hooks/useLiveTelemetry";
 import { useVisibilityInterval } from "@/hooks/useVisibilityInterval";
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
@@ -115,7 +115,7 @@ function GraphHeader({
 // ══ Memory Pressure Graph ════════════════════════════════════════════════════
 
 export function MemoryPressureGraph({ delay = 0 }: { delay?: number }) {
-  const { telemetry } = useLiveTelemetry();
+  const { telemetry } = useLiveTelemetryValues();
   const H = 72;
   const W = 300;
   const PX = 3;
@@ -220,7 +220,7 @@ export function MemoryPressureGraph({ delay = 0 }: { delay?: number }) {
 // ══ Storage Activity Graph ═══════════════════════════════════════════════════
 
 export function StorageActivityGraph({ delay = 0 }: { delay?: number }) {
-  const { telemetry } = useLiveTelemetry();
+  const { telemetry } = useLiveTelemetryValues();
   const H = 72;
   const W = 300;
   const PX = 3;
@@ -330,7 +330,7 @@ export function StorageActivityGraph({ delay = 0 }: { delay?: number }) {
 // ══ System Rhythm Graph ══════════════════════════════════════════════════════
 
 export function SystemRhythmGraph({ delay = 0 }: { delay?: number }) {
-  const { telemetry } = useLiveTelemetry();
+  const { telemetry } = useLiveTelemetryValues();
   const H = 80;
   const W = 300;
   const PX = 3;

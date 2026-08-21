@@ -616,7 +616,7 @@ export default function BiosAdvisor() {
   const { prefersReducedMotion } = useMotion();
   const { isPremium } = useAuth();
   const { isOnline } = useNetworkStatus();
-  const { stats } = useStore();
+  const stats = useStore((s) => s.stats);
   const sysIntel = useSystemIntelligence();
   const { chassisType, batteryPresent } = useSystemIntelligenceStore();
 

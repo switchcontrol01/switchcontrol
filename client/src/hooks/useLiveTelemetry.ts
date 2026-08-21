@@ -67,6 +67,21 @@ export type TelemetryStatus = "loading" | "ready" | "unavailable";
 // changed but not the fields they use.
 
 export function useLiveTelemetry() {
+  useTelemetryManager();
+
+  return useTelemetryStore(
+    useShallow((s) => ({
+      telemetry: s.telemetry,
+      history: s.history,
+      spikes: s.spikes,
+      status: s.status,
+      connected: s.connected,
+      warmingUp: s.warmingUp,
+    }))
+  );
+}
+
+function useTelemetryManager() {
   useEffect(() => {
     // Fire-and-forget: telemetry is intended to run for the full app lifetime,
     // so there is deliberately no stop() on unmount. start() is idempotent —
@@ -82,17 +97,25 @@ export function useLiveTelemetry() {
       telemetryManager.startWhenIdle();
     }
   }, []);
+}
+
+export function useLiveTelemetryValues() {
+  useTelemetryManager();
 
   return useTelemetryStore(
     useShallow((s) => ({
       telemetry: s.telemetry,
-      history: s.history,
       spikes: s.spikes,
       status: s.status,
       connected: s.connected,
       warmingUp: s.warmingUp,
     }))
   );
+}
+
+export function useTelemetryHistory() {
+  useTelemetryManager();
+  return useTelemetryStore((s) => s.history);
 }
 
 // ── Formatters ─────────────────────────────────────────────────────────────────

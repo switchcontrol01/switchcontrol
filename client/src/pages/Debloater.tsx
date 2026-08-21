@@ -1,7 +1,7 @@
   import { useState, useEffect, useCallback, useMemo, useRef } from "react";
   import { logHistory } from "@/lib/logHistory";
   import { AppLayout } from "@/components/layout/AppLayout";
-  import { useLiveTelemetry } from "@/hooks/useLiveTelemetry";
+  import { useLiveTelemetryValues } from "@/hooks/useLiveTelemetry";
   import { PageHeader } from "@/components/layout/PageHeader";
   import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
   import { Button } from "@/components/ui/button";
@@ -786,7 +786,7 @@
   export default function Debloater() {
     const { toast } = useToast();
     const { prefersReducedMotion } = useMotion();
-    const { telemetry: liveTel } = useLiveTelemetry();
+    const { telemetry: liveTel } = useLiveTelemetryValues();
   
     const [mainTab, setMainTab] = useState<"curated" | "installed">("curated");
   

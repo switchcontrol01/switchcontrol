@@ -13,7 +13,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { GlassCard } from "@/components/ui/glass-card";
 import { motion, AnimatePresence, useMotion } from "@/lib/motionTokens";
-import { useLiveTelemetry } from "@/hooks/useLiveTelemetry";
+import { useLiveTelemetryValues } from "@/hooks/useLiveTelemetry";
 import { useAdvisorStore } from "@/stores/advisorStore";
 import { useBiosAdvisorStore } from "@/stores/biosAdvisorStore";
 import { useDashboardActivityStore } from "@/stores/dashboardActivityStore";
@@ -94,7 +94,7 @@ const PAGE_ICONS: Record<string, ReactNode> = {
 // ── 1. Interference Meter ─────────────────────────────────────────────────────
 
 function InterferenceMeter() {
-  const { telemetry } = useLiveTelemetry();
+  const { telemetry } = useLiveTelemetryValues();
   const { prefersReducedMotion } = useMotion();
   const interference = computeInterference(telemetry);
 
@@ -166,10 +166,10 @@ function InterferenceMeter() {
 // ── 2. Since Last Session ─────────────────────────────────────────────────────
 
 function SinceLastSession() {
-  const { account } = useStore();
+  const account = useStore((s) => s.account);
   const { report } = useAdvisorStore();
   const { scores } = useBiosAdvisorStore();
-  const { telemetry } = useLiveTelemetry();
+  const { telemetry } = useLiveTelemetryValues();
   const { computeDelta, saveSessionSnapshot } = useDashboardActivityStore();
 
   const currentSnap = useMemo(
@@ -325,7 +325,7 @@ function RecentEvents() {
 // ── 4. Why FPS Feels Off + Bottleneck ─────────────────────────────────────────
 
 function FpsAndBottleneck() {
-  const { telemetry, spikes } = useLiveTelemetry();
+  const { telemetry, spikes } = useLiveTelemetryValues();
   const { report } = useAdvisorStore();
 
   const fps = computeFpsExplanation(

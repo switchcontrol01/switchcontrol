@@ -16,7 +16,9 @@ import { useAdvisorStore } from "@/stores/advisorStore";
 import { useDashboardActivityStore } from "@/stores/dashboardActivityStore";
 import { getAdvisorInsightText, getBiosStatusText } from "@/lib/systemStateEngine";
 import { Cpu, HardDrive, MemoryStick, Activity, Zap, Shield, Sparkles, Brain, Target, ArrowRight, Wifi, MonitorCog, Network, Server, Layers, AlertTriangle } from "lucide-react";
-import { useLiveTelemetry, formatKbps } from "@/hooks/useLiveTelemetry";
+import { useLiveTelemetry, useLiveTelemetryValues, formatKbps } from "@/hooks/useLiveTelemetry";
+import { useTelemetryStore } from "@/stores/telemetryStore";
+import { useShallow } from "zustand/react/shallow";
 import { PredictiveWarnings } from "@/components/intelligence/PredictiveWarnings";
 import { LatencyMap } from "@/components/intelligence/LatencyMap";
 import { SystemAura } from "@/components/intelligence/SystemAura";
@@ -297,7 +299,7 @@ function getTimeOfDay(): DashboardTimeOfDay {
 
 function useLiveStatus(): string {
   const [status, setStatus] = useState("System active");
-  const { telemetry, status: telStatus } = useLiveTelemetry();
+  const { telemetry, status: telStatus } = useLiveTelemetryValues();
 
   useEffect(() => {
     if (!telemetry) {
@@ -375,8 +377,10 @@ const DashboardStartupGlow = memo(function DashboardStartupGlow() {
 
 export default function Home() {
   const [, navigate] = useLocation();
-  const { stats, account, setStats } = useStore();
-  const { telemetry: liveTel, status: telStatus, history: telHistory, warmingUp } = useLiveTelemetry();
+  const { stats, account, setStats } = useStore(
+    useShallow((s) => ({ stats: s.stats, account: s.account, setStats: s.setStats })),
+  );
+  const { telemetry: liveTel, status: telStatus, warmingUp } = useLiveTelemetryValues();
 
   // ── Mount/remount lifecycle logging ─────────────────────────────────────────
   const mountCountRef = useRef(0);
@@ -387,9 +391,10 @@ export default function Home() {
     } else {
       console.log('[Dashboard] remounted (visit #' + mountCountRef.current + ')');
     }
-    const hasCached = telHistory.cpu.length > 0;
+    const cachedHistory = useTelemetryStore.getState().history;
+    const hasCached = cachedHistory.cpu.length > 0;
     if (hasCached) {
-      console.log('[ActivityMonitor] reused cached state — history points:', telHistory.cpu.length, 'status:', telStatus);
+      console.log('[ActivityMonitor] reused cached state — history points:', cachedHistory.cpu.length, 'status:', telStatus);
     } else {
       console.log('[ActivityMonitor] mounted — no cached history yet, status:', telStatus);
     }

@@ -29,7 +29,7 @@ import {
   Server, Shield, ChevronRight, ChevronDown,
   ArrowDownToLine, ArrowUpFromLine, Radio,
 } from "lucide-react";
-import { useLiveTelemetry, formatKbps } from "@/hooks/useLiveTelemetry";
+import { useLiveTelemetryValues, useTelemetryHistory, formatKbps } from "@/hooks/useLiveTelemetry";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Button } from "@/components/ui/button";
@@ -630,7 +630,8 @@ function buildAreaPath(
 }
 
 function NetworkThroughputCard({ adapterName }: { adapterName: string }) {
-  const { telemetry, history, connected } = useLiveTelemetry();
+  const { telemetry, connected } = useLiveTelemetryValues();
+  const history = useTelemetryHistory();
   const peakRxRef = useRef(0);
   const peakTxRef = useRef(0);
   const [peakRx, setPeakRx] = useState(0);

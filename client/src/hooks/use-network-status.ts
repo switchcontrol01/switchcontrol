@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useNetworkStore, type NetworkState } from '@/stores/networkStore';
+import { useShallow } from 'zustand/react/shallow';
 
 export { type NetworkState };
 
@@ -16,7 +17,18 @@ let _listenersStarted = false;
 let _heartbeatStarted = false;
 
 export function useNetworkStatus(): NetworkStatus {
-  const store = useNetworkStore();
+  const store = useNetworkStore(
+    useShallow((s) => ({
+      networkState: s.networkState,
+      isOnline: s.isOnline,
+      isBackendReachable: s.isBackendReachable,
+      lastOnlineAt: s.lastOnlineAt,
+      lastCheckedAt: s.lastCheckedAt,
+      retryConnectionCheck: s.retryConnectionCheck,
+      _startListeners: s._startListeners,
+      _startHeartbeat: s._startHeartbeat,
+    })),
+  );
 
   useEffect(() => {
     if (!_listenersStarted) {

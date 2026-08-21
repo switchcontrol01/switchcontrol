@@ -6,6 +6,7 @@ import React, {
   Suspense,
   startTransition,
 } from "react";
+import { useShallow } from "zustand/react/shallow";
 import { PerformanceOverlay } from "@/components/debug/PerformanceOverlay";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { Router, Route, Switch, useLocation } from "wouter";
@@ -344,7 +345,17 @@ function ElectronAppContent() {
     setUser,
     logout: storeLogout,
     setValidating,
-  } = useAuthStore();
+  } = useAuthStore(
+    useShallow((s) => ({
+      token: s.token,
+      jwt: s.jwt,
+      user: s.user,
+      setToken: s.setToken,
+      setUser: s.setUser,
+      storeLogout: s.logout,
+      setValidating: s.setValidating,
+    })),
+  );
   const flowResetTs = useAuthStore((s) => s.flowResetTs);
   const [, setLocation] = useHashLocation();
 
@@ -462,8 +473,9 @@ function ElectronAppContent() {
   // First-run baseline scan — records pre-existing applied state before the app touches anything
   useBaselineScan();
 
-  const { realtimeMetricsEnabled, setTweak } = useStore();
-  const { setConditions: setSystemConditions } = useSystemConditionsStore();
+  const realtimeMetricsEnabled = useStore((s) => s.realtimeMetricsEnabled);
+  const setTweak = useStore((s) => s.setTweak);
+  const setSystemConditions = useSystemConditionsStore((s) => s.setConditions);
   const { toast } = useToast();
 
   // Startup reconciliation — fires once, non-blocking.

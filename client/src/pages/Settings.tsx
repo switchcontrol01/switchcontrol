@@ -1,6 +1,7 @@
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useStore } from "@/lib/store";
+import { useShallow } from "zustand/react/shallow";
 import { logHistory } from "@/lib/logHistory";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -529,7 +530,14 @@ export default function Settings() {
   const { 
     account, resetData, 
     realtimeMetricsEnabled, setRealtimeMetricsEnabled,
-  } = useStore();
+  } = useStore(
+    useShallow((s) => ({
+      account: s.account,
+      resetData: s.resetData,
+      realtimeMetricsEnabled: s.realtimeMetricsEnabled,
+      setRealtimeMetricsEnabled: s.setRealtimeMetricsEnabled,
+    })),
+  );
   const { toast } = useToast();
   const { isPremium, user, factoryReset } = useAppAuth();
   const isElectron = typeof window !== 'undefined' && !!(window as any).electronAPI?.isElectron;

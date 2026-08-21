@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { useLiveTelemetry, formatKbps } from "@/hooks/useLiveTelemetry";
+import { useLiveTelemetryValues, formatKbps } from "@/hooks/useLiveTelemetry";
 
 interface Stage {
   label: string;
@@ -93,7 +93,7 @@ interface LatencyMapProps {
 }
 
 export function LatencyMap({ className, compact = false }: LatencyMapProps) {
-  const { telemetry } = useLiveTelemetry();
+  const { telemetry } = useLiveTelemetryValues();
 
   const rxKbps  = telemetry ? telemetry.network.rx_sec / 1024 : 0;
   const txKbps  = telemetry ? telemetry.network.tx_sec / 1024 : 0;

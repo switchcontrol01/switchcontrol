@@ -6,7 +6,7 @@ import { safeGetJwt } from "@/lib/auth-store";
 import { useToast } from "@/hooks/use-toast";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { GlassCard } from "@/components/ui/glass-card";
-import { useLiveTelemetry } from "@/hooks/useLiveTelemetry";
+import { useLiveTelemetryValues } from "@/hooks/useLiveTelemetry";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -945,7 +945,7 @@ const TABS: { id: Tab; label: string; Icon: any }[] = [
 export default function Security() {
   const { prefersReducedMotion } = useMotion();
   const hasSecurity = isElectronWithSecurity();
-  const { telemetry: liveTel } = useLiveTelemetry();
+  const { telemetry: liveTel } = useLiveTelemetryValues();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const { setTamperProtection } = useSystemConditionsStore();

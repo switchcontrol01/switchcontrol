@@ -7,7 +7,7 @@ import { GlassModalSurface } from "@/components/ui/GlassModalLayout";
 import { useTweakOwnershipStore } from "@/stores/tweakOwnershipStore";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { GlassCard } from "@/components/ui/glass-card";
-import { useLiveTelemetry, formatKbps } from "@/hooks/useLiveTelemetry";
+import { useLiveTelemetryValues, formatKbps } from "@/hooks/useLiveTelemetry";
 import { LatencyMap } from "@/components/intelligence/LatencyMap";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -686,7 +686,7 @@ function NetworkTweaksLocked() {
 function NetworkTweaksContent() {
   const { mark: timingMark } = usePageTiming("NetworkTweaks");
   const { isPremium, user } = useAuth();
-  const { telemetry: liveTel } = useLiveTelemetry();
+  const { telemetry: liveTel } = useLiveTelemetryValues();
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState<NetworkCategory | "All">("All");
   const [expandedCategories, setExpandedCategories] = useState<Set<NetworkCategory>>(

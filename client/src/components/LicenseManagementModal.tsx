@@ -65,7 +65,8 @@ export function LicenseManagementModal({ open, onOpenChange, isPremium, userId }
   const { toast } = useToast();
   const { safeRefreshEntitlements } = useAppAuth();
   const grace = usePremiumGraceStore();
-  const { isBackendReachable, networkState } = useNetworkStore();
+  const isBackendReachable = useNetworkStore((s) => s.isBackendReachable);
+  const networkState = useNetworkStore((s) => s.networkState);
   const isOffline = networkState === 'offline' || networkState === 'degraded';
 
   // ── Modal-local verified state — the ONLY source of truth for the status block ──

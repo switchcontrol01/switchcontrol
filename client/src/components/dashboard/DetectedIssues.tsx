@@ -284,7 +284,8 @@ interface DetectedIssuesProps {
 }
 
 export function DetectedIssues({ className }: DetectedIssuesProps) {
-  const { tweaks, sliderValues } = useStore();
+  const tweaks = useStore((s) => s.tweaks);
+  const sliderValues = useStore((s) => s.sliderValues);
   const { user } = useAuth();
   const [issues, setIssues] = useState<DetectedIssue[]>([]);
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());

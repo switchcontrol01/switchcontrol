@@ -191,7 +191,10 @@ const LEVEL_WARN: Record<string, { title: string; body: string }> = {
 };
 
 export function TweaksList() {
-  const { tweaks, toggleTweak, resetData, setTweak } = useStore();
+  const tweaks = useStore((s) => s.tweaks);
+  const toggleTweak = useStore((s) => s.toggleTweak);
+  const resetData = useStore((s) => s.resetData);
+  const setTweak = useStore((s) => s.setTweak);
   const { syncAllTweaks, isElectron } = useTweakExecutor();
   const { toast } = useToast();
   const { isPremium } = useAuth();

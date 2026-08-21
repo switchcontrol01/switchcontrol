@@ -148,7 +148,8 @@ export function MemoryCleanerModal({ open, onOpenChange, onCleanComplete }: Memo
   const [result, setResult] = useState<CleanResult | null>(null);
   const [showDetails, setShowDetails] = useState(false);
   const { toast } = useToast();
-  const { clearRam, setStats } = useStore();
+  const clearRam = useStore((s) => s.clearRam);
+  const setStats = useStore((s) => s.setStats);
 
   // Ref tracking the delayed telemetry refresh so it can be cancelled on unmount.
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);

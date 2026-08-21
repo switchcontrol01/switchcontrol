@@ -525,7 +525,9 @@ export function OptimizeWorkflow({ isOpen, onClose, context, isPremium, isElectr
 
   // Read live Zustand store (tweaks + sliderValues) via refs so detectConflicts
   // always sees real applied state rather than stale closure values.
-  const { setTweak, tweaks: storeTweaks, sliderValues } = useStore();
+  const setTweak = useStore((s) => s.setTweak);
+  const storeTweaks = useStore((s) => s.tweaks);
+  const sliderValues = useStore((s) => s.sliderValues);
   const storeTweaksRef  = useRef(storeTweaks);
   const sliderValuesRef = useRef(sliderValues);
   useEffect(() => { storeTweaksRef.current  = storeTweaks;  });
