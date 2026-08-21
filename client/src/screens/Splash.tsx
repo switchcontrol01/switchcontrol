@@ -313,22 +313,38 @@ export default function Splash({ onComplete }: SplashProps) {
               {/* Violet-to-cyan energy sweep — clipped to the logo surface */}
               <div className="absolute inset-0 rounded-[22%] overflow-hidden pointer-events-none">
                 <motion.div
-                  className="absolute inset-0"
+                  className="absolute inset-y-0"
                   style={{
-                    background: "linear-gradient(115deg, transparent 25%, rgba(255,255,255,0.18) 50%, transparent 75%)",
+                    left: "-55%",
+                    width: "72%",
+                    background: "linear-gradient(105deg, transparent 0%, rgba(168,85,247,0.08) 20%, rgba(196,125,255,0.72) 45%, rgba(0,220,255,0.88) 58%, rgba(103,232,249,0.20) 78%, transparent 100%)",
+                    filter: "blur(5px)",
+                    mixBlendMode: "screen",
                   }}
-                  animate={{ x: ["-130%", "160%"] }}
-                  transition={{ duration: 2.0, repeat: Infinity, repeatDelay: 2.8, ease: "easeInOut" }}
+                  initial={{ x: "-20%" }}
+                  animate={{ x: ["-20%", "205%"] }}
+                  transition={{ duration: 1.05, delay: 0.22, ease: [0.22, 1, 0.36, 1] }}
                 />
               </div>
 
-              <img
+              <motion.img
                 src={logoImg}
                 alt="SwitchControl"
                 className="w-24 h-24 object-contain rounded-[22%]"
                 draggable={false}
+                initial={{
+                  opacity: 0.58,
+                  scale: 0.96,
+                  filter: "blur(3px) brightness(0.72) saturate(0.82) drop-shadow(0 0 10px rgba(139,92,246,0.22))",
+                }}
+                animate={{
+                  opacity: 1,
+                  scale: 1,
+                  filter: "blur(0px) brightness(1) saturate(1.08) drop-shadow(0 0 22px rgba(139,92,246,0.55)) drop-shadow(0 0 48px rgba(0,210,255,0.18))",
+                }}
+                transition={{ duration: 0.72, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
                 style={{
-                  filter: "drop-shadow(0 0 22px rgba(139,92,246,0.55)) drop-shadow(0 0 48px rgba(0,210,255,0.18))",
+                  willChange: "transform, filter, opacity",
                 }}
               />
             </motion.div>
