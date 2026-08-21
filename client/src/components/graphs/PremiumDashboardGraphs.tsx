@@ -705,6 +705,10 @@ export function DisplaySignalGraph({ delay = 0 }: { delay?: number }) {
   const { score, reason } = mon ? monitorScore(mon) : { score: null, reason: "" };
   const bitDepth   = bppToBitDepth(mon?.bitsPerPixel ?? null);
   const resolution = mon?.currentResX && mon?.currentResY ? `${mon.currentResX}×${mon.currentResY}` : null;
+  // If Windows does not expose the active mode for a monitor but the EDID
+  // lookup knows its supported maximum, show that verified value rather than
+  // displaying an empty headline while the explanation says "500Hz detected".
+  const displayHz = mon?.refreshHz ?? mon?.maxRefreshHz;
 
   const isNativeMode =
     mon?.nativeResX && mon?.nativeResY && mon?.currentResX && mon?.currentResY
@@ -823,7 +827,7 @@ export function DisplaySignalGraph({ delay = 0 }: { delay?: number }) {
               >
                 <div className="flex items-baseline gap-1 mb-0.5 flex-wrap">
                   <span className="text-xl font-bold tabular-nums font-mono" style={{ color: connColor }}>
-                    {mon?.refreshHz ? `${mon.refreshHz}Hz` : "—Hz"}
+                    {displayHz ? `${displayHz}Hz` : "—Hz"}
                   </span>
                   {/* Show max supported Hz badge when monitor can run faster than current Windows setting */}
                   {mon?.maxRefreshHz && mon?.refreshHz && mon.maxRefreshHz > mon.refreshHz && (

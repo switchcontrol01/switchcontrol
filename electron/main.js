@@ -3220,6 +3220,7 @@ public class DspHelper {
   #   An honest null is strictly less harmful than a 50%-likely-wrong positional guess,
   #   which produced the "currentRes 2560×1440 on a 1920×1080-native monitor" bug.
   $monToDisp = @{}
+  $fallbackScreenByMon = @{}
   $monHwIds  = @()
   for ($mi2 = 0; $mi2 -lt $monIds.Count; $mi2++) {
     $id = $null
@@ -3280,7 +3281,41 @@ public class DspHelper {
     if ($leftMon.Count -eq 1 -and $leftDisp.Count -eq 1) {
       $monToDisp[$leftMon[0]] = $dispDevs[$leftDisp[0]]
     }
-    # Tier 4: monitors without a $monToDisp entry are left with $dev = $null
+
+    # Tier 4: when a driver omits the child monitor hardware ID, use the
+    # monitor's EDID native-resolution constraint to match it to exactly one
+    # remaining Windows screen. This supplies that screen's own EnumDisplaySettings
+    # refresh rate without falling back to arbitrary array position.
+    $usedScreenIdx = @{}
+    for ($mi2 = 0; $mi2 -lt $monIds.Count; $mi2++) {
+      if ($monToDisp.ContainsKey($mi2)) {
+        $mapped = $monToDisp[$mi2]
+        for ($si = 0; $si -lt $screens.Count; $si++) {
+          if ($screens[$si].x -eq $mapped.x -and $screens[$si].y -eq $mapped.y) {
+            $usedScreenIdx[$si] = $true
+          }
+        }
+      }
+    }
+    for ($mi2 = 0; $mi2 -lt $monIds.Count; $mi2++) {
+      if ($monToDisp.ContainsKey($mi2) -or $fallbackScreenByMon.ContainsKey($mi2)) { continue }
+      $mHwId = $monHwIds[$mi2]
+      $mEd = if ($mHwId -and $edidMap.ContainsKey($mHwId)) { $edidMap[$mHwId] } else { $null }
+      if (-not $mEd -or [int]$mEd.nx -le 0 -or [int]$mEd.ny -le 0) { continue }
+      $compatibleScreens = @()
+      for ($si = 0; $si -lt $screens.Count; $si++) {
+        if (-not $usedScreenIdx.ContainsKey($si) -and
+            [int]$screens[$si].w -gt 0 -and [int]$screens[$si].h -gt 0 -and
+            [int]$screens[$si].w -le [int]$mEd.nx -and [int]$screens[$si].h -le [int]$mEd.ny) {
+          $compatibleScreens += $si
+        }
+      }
+      if ($compatibleScreens.Count -eq 1) {
+        $screenIndex = $compatibleScreens[0]
+        $fallbackScreenByMon[$mi2] = $screens[$screenIndex]
+        $usedScreenIdx[$screenIndex] = $true
+      }
+    }
   }
 
   $i = 0
@@ -3324,7 +3359,7 @@ public class DspHelper {
   
     # Do not use left-to-right screen order as a monitor identity fallback.
     # It is not stable with mixed adapters, docking stations, or mirroring.
-    $fallbackScr   = $null
+    $fallbackScr   = if ($fallbackScreenByMon.ContainsKey($i)) { $fallbackScreenByMon[$i] } else { $null }
     $hz=$null; $maxHzOut=$null; $bpp=$null; $rx=$null; $ry=$null
     if ($dev) {
       # Per-device data from EnumDisplaySettings — authoritative for multi-monitor, no index aliasing
