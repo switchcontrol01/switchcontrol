@@ -205,17 +205,15 @@ export function MemoryCleanerModal({ open, onOpenChange, onCleanComplete }: Memo
 
         setResult(res);
 
-        // Immediate telemetry refresh — in Electron this fires an IPC poll
-        // directly, so the RAM card updates within one round-trip (~10-30ms).
-        // A second refresh at 3 s catches the fully settled OS value after
-        // working-set reclaim completes.
-        telemetryManager.refreshNow();
         onCleanComplete?.();
         if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
         refreshTimerRef.current = setTimeout(() => {
+          // Windows and Task Manager need a short settling window after
+          // working-set trimming. Reading immediately reports the pre-clean
+          // value while the OS is still reclaiming memory.
           telemetryManager.refreshNow();
           refreshTimerRef.current = null;
-        }, 3000);
+        }, 2300);
       } else {
         await minDelay;
         clearRam();
