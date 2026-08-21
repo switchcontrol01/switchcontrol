@@ -49,6 +49,14 @@ interface AdminLog {
   createdAt: string;
 }
 
+interface DownloadMaintenanceSettings {
+  enabled: boolean;
+  message: string;
+  returnTime: string | null;
+  updatedAt?: string;
+  updatedBy?: string | null;
+}
+
 function buildHeaders(): HeadersInit {
   const jwt = useAuthStore.getState().jwt;
   const headers: Record<string, string> = { "Content-Type": "application/json" };
@@ -1787,6 +1795,15 @@ export default function AdminPage() {
   const [healthLoading, setHealthLoading] = useState(false);
   const [showHealth, setShowHealth] = useState(false);
 
+  // Public download maintenance control
+  const [downloadMaintenance, setDownloadMaintenance] = useState<DownloadMaintenanceSettings | null>(null);
+  const [maintenanceMessage, setMaintenanceMessage] = useState("We are updating the download service.");
+  const [maintenanceReturnTime, setMaintenanceReturnTime] = useState("");
+  const [maintenanceLoading, setMaintenanceLoading] = useState(false);
+  const [maintenanceSaving, setMaintenanceSaving] = useState(false);
+  const [maintenanceError, setMaintenanceError] = useState<string | null>(null);
+  const [maintenanceSaved, setMaintenanceSaved] = useState(false);
+
   // Driver database control plane
   const [showDriverDb, setShowDriverDb] = useState(false);
 
@@ -1913,6 +1930,52 @@ export default function AdminPage() {
     setHealthLoading(false);
   }, []);
 
+  const fetchDownloadMaintenance = useCallback(async () => {
+    setMaintenanceLoading(true);
+    setMaintenanceError(null);
+    try {
+      const r = await fetch("/api/admin/download-maintenance", { headers: buildHeaders() as any });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(data.error || "Failed to fetch download maintenance settings.");
+      setDownloadMaintenance(data);
+      setMaintenanceMessage(data.message || "We are updating the download service.");
+      setMaintenanceReturnTime(data.returnTime || "");
+    } catch (e: any) {
+      setMaintenanceError(e.message || "Failed to fetch maintenance settings.");
+    } finally {
+      setMaintenanceLoading(false);
+    }
+  }, []);
+
+  const saveDownloadMaintenance = async (enabled: boolean) => {
+    if (maintenanceSaving) return;
+    setMaintenanceSaving(true);
+    setMaintenanceError(null);
+    setMaintenanceSaved(false);
+    try {
+      const r = await fetch("/api/admin/download-maintenance", {
+        method: "PATCH",
+        headers: buildHeaders() as any,
+        body: JSON.stringify({
+          enabled,
+          message: maintenanceMessage.trim(),
+          returnTime: maintenanceReturnTime.trim() || null,
+        }),
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(data.error || "Failed to save maintenance settings.");
+      setDownloadMaintenance(data);
+      setMaintenanceMessage(data.message);
+      setMaintenanceReturnTime(data.returnTime || "");
+      setMaintenanceSaved(true);
+      setTimeout(() => setMaintenanceSaved(false), 2500);
+    } catch (e: any) {
+      setMaintenanceError(e.message || "Failed to save maintenance settings.");
+    } finally {
+      setMaintenanceSaving(false);
+    }
+  };
+
   const exportCsv = () => {
     const params = new URLSearchParams();
     if (search) params.set("search", search);
@@ -1928,8 +1991,9 @@ export default function AdminPage() {
     if (authorized === true) {
       fetchStats();
       fetchTrialsExpiring(trialsExpiringHours);
+      fetchDownloadMaintenance();
     }
-  }, [authorized, fetchStats, fetchTrialsExpiring, trialsExpiringHours]);
+  }, [authorized, fetchStats, fetchTrialsExpiring, fetchDownloadMaintenance, trialsExpiringHours]);
 
   const openUserDetail = async (u: AdminUser) => {
     setSelectedUser(u);
@@ -2114,6 +2178,82 @@ export default function AdminPage() {
               <p className="text-xs text-[#6B7380]">{s.label}</p>
             </div>
           ))}
+        </div>
+
+        {/* Download maintenance control */}
+        <div className={`mb-6 rounded-xl border p-4 ${
+          downloadMaintenance?.enabled
+            ? "border-amber-400/30 bg-amber-500/[0.06]"
+            : "border-[#2A313A] bg-white/[0.02]"
+        }`}>
+          <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <div className={`w-9 h-9 rounded-xl flex items-center justify-center border ${
+                downloadMaintenance?.enabled
+                  ? "bg-amber-500/15 border-amber-400/30 text-amber-300"
+                  : "bg-cyan-500/10 border-cyan-500/20 text-cyan-300"
+              }`}>
+                <span className="text-lg">⚙</span>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-[#E6EAF0]">Download page maintenance</p>
+                <p className="text-xs text-[#6B7380] mt-1 max-w-2xl">
+                  Show visitors a clear maintenance notice instead of sending them to unavailable installer or update links.
+                </p>
+                {downloadMaintenance?.enabled && (
+                  <p className="text-xs text-amber-300/80 mt-2 font-medium">Visitors currently see the maintenance page.</p>
+                )}
+              </div>
+            </div>
+            <button
+              onClick={() => saveDownloadMaintenance(!downloadMaintenance?.enabled)}
+              disabled={maintenanceLoading || maintenanceSaving || !maintenanceMessage.trim()}
+              data-testid="button-toggle-download-maintenance"
+              className={`shrink-0 rounded-lg px-4 py-2 text-xs font-semibold border transition-all disabled:opacity-50 ${
+                downloadMaintenance?.enabled
+                  ? "bg-amber-500/20 border-amber-400/35 text-amber-200 hover:bg-amber-500/30"
+                  : "bg-cyan-500/15 border-cyan-400/30 text-cyan-200 hover:bg-cyan-500/25"
+              }`}
+            >
+              {maintenanceSaving ? "Saving…" : downloadMaintenance?.enabled ? "Turn maintenance off" : "Turn maintenance on"}
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_260px] gap-3 mt-4">
+            <div>
+              <label className="block text-xs text-[#A0A8B3] mb-1.5">Visitor message</label>
+              <textarea
+                value={maintenanceMessage}
+                onChange={(e) => setMaintenanceMessage(e.target.value)}
+                maxLength={500}
+                rows={2}
+                data-testid="input-download-maintenance-message"
+                placeholder="We are updating the download service."
+                className="w-full resize-y rounded-lg bg-[#21262D] border border-[#2A313A] px-3 py-2 text-sm text-[#E6EAF0] placeholder-[#6B7380] outline-none focus:border-[#00D4FF] transition-colors"
+              />
+              <p className="text-[10px] text-[#6B7380] mt-1">{maintenanceMessage.length}/500 characters</p>
+            </div>
+            <div>
+              <label className="block text-xs text-[#A0A8B3] mb-1.5">Expected return (optional)</label>
+              <input
+                value={maintenanceReturnTime}
+                onChange={(e) => setMaintenanceReturnTime(e.target.value)}
+                maxLength={160}
+                data-testid="input-download-maintenance-return-time"
+                placeholder="e.g. Today at 6:00 PM NZT"
+                className="w-full rounded-lg bg-[#21262D] border border-[#2A313A] px-3 py-2 text-sm text-[#E6EAF0] placeholder-[#6B7380] outline-none focus:border-[#00D4FF] transition-colors"
+              />
+              <button
+                onClick={() => saveDownloadMaintenance(downloadMaintenance?.enabled ?? false)}
+                disabled={maintenanceLoading || maintenanceSaving || !maintenanceMessage.trim()}
+                className="mt-2 rounded-lg px-3 py-1.5 text-xs font-medium border border-[#2A313A] bg-[#21262D] text-[#A0A8B3] hover:text-[#E6EAF0] hover:border-[#3A424E] transition-all disabled:opacity-50"
+              >
+                Save message
+              </button>
+            </div>
+          </div>
+          {maintenanceError && <p className="text-xs text-red-300 mt-3">{maintenanceError}</p>}
+          {maintenanceSaved && <p className="text-xs text-emerald-300 mt-3">Download maintenance settings saved.</p>}
         </div>
 
         {/* Trials Expiring Panel */}

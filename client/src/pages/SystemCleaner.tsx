@@ -826,27 +826,6 @@ export default function SystemCleaner() {
               {/* ── Storage Health & Drive Optimization ── */}
               <StorageHealthSection />
 
-              {/* Category preview tiles */}
-              <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-                {(["storage", "privacy", "latency", "performance", "gaming", "apps", "browsers", "windows_system", "storage_cleanup"] as CleanCategory[]).map((cat, i) => {
-                  const meta = CAT_META[cat];
-                  const Icon = meta.icon;
-                  const itemCount = categories[cat].length;
-                  return (
-                    <motion.div key={cat} initial={{ opacity: 1 }} animate={{ opacity: 1 }}
-                      transition={{ delay: i * 0.07, duration: 0.3 }}
-                      className="rounded-xl border border-white/[0.07] bg-white/[0.02] px-4 py-3 flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: meta.dim }}>
-                        <Icon className="w-4 h-4" style={{ color: meta.color }} />
-                      </div>
-                      <div>
-                        <p className="text-[12px] font-bold text-[#E6EAF0]">{meta.label}</p>
-                        <p className="text-[10px] text-[#6B7380]">{itemCount} check{itemCount !== 1 ? "s" : ""}</p>
-                      </div>
-                    </motion.div>
-                  );
-                })}
-              </div>
             </motion.div>
           )}
 

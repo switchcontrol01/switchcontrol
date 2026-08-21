@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { Download, CheckCircle, Monitor, Clock, Sparkles, Zap, ArrowRight, Rocket } from "lucide-react";
+import { Download, CheckCircle, Monitor, Clock, Sparkles, Zap, ArrowRight, Rocket, Wrench, RefreshCw } from "lucide-react";
 import { useAuth } from "@/components/ProtectedRoute";
 import { motion } from "framer-motion";
 import { useState, useEffect, useRef, useCallback } from "react";
@@ -24,6 +24,11 @@ const PARTICLES = Array.from({ length: 30 }, (_, i) => ({
 
 // ── Patch notes card ──────────────────────────────────────────────────────────
 interface PatchNotes { version: string; title: string; headline: string; date: string; changes: string[]; type: string; }
+interface DownloadMaintenance {
+  enabled: boolean;
+  message: string;
+  returnTime: string | null;
+}
 
 function PatchNotesCard() {
   const [notes, setNotes] = useState<PatchNotes | null>(null);
@@ -75,6 +80,8 @@ function PatchNotesCard() {
 export default function DownloadPage() {
   const { user } = useAuth();
   const launched = true;
+  const [maintenance, setMaintenance] = useState<DownloadMaintenance | null>(null);
+  const [maintenanceChecked, setMaintenanceChecked] = useState(false);
   const [sceneReady, setSceneReady] = useState(false);
   const rafRef = useRef<number | null>(null);
 
@@ -102,6 +109,27 @@ export default function DownloadPage() {
         glow4Ref.current.style.transform = `translate(-50%, ${(y - 0.5) * 8}px)`;
       rafRef.current = null;
     });
+  }, []);
+
+  useEffect(() => {
+    // A failed status check deliberately leaves the normal page available.
+    // The endpoint is advisory; it must not turn a transient API failure into
+    // a second kind of broken download page.
+    fetch("/api/download/maintenance")
+      .then((r) => r.ok ? r.json() : Promise.reject(new Error("status unavailable")))
+      .then((data) => {
+        if (data && data.enabled === true) {
+          setMaintenance({
+            enabled: true,
+            message: typeof data.message === "string" ? data.message : "We are updating the download service.",
+            returnTime: typeof data.returnTime === "string" && data.returnTime.trim() ? data.returnTime : null,
+          });
+        } else {
+          setMaintenance(null);
+        }
+      })
+      .catch(() => setMaintenance(null))
+      .finally(() => setMaintenanceChecked(true));
   }, []);
 
   useEffect(() => {
@@ -418,6 +446,102 @@ export default function DownloadPage() {
 
         </div>
 
+        {!maintenanceChecked ? (
+          <div style={{
+            position: "relative", zIndex: 1, width: "100%", maxWidth: "680px",
+            minHeight: "250px", display: "flex", alignItems: "center", justifyContent: "center",
+          }}>
+            <div style={{
+              width: "28px", height: "28px", borderRadius: "50%",
+              border: "2px solid rgba(167,139,250,0.25)", borderTopColor: "#a78bfa",
+              animation: "spin 0.8s linear infinite",
+            }} aria-label="Checking download availability" />
+          </div>
+        ) : maintenance?.enabled ? (
+          <motion.div
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.65, ease: SILK }}
+            style={{ position: "relative", zIndex: 1, width: "100%", maxWidth: "680px" }}
+          >
+            <div style={{
+              borderRadius: "24px",
+              padding: "clamp(28px,5vw,52px)",
+              textAlign: "center",
+              background: "linear-gradient(145deg,rgba(139,92,246,0.14),rgba(6,182,212,0.06) 48%,rgba(8,6,18,0.82))",
+              backdropFilter: "blur(28px)", WebkitBackdropFilter: "blur(28px)",
+              border: "1px solid rgba(139,92,246,0.30)",
+              boxShadow: "0 28px 80px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.10), 0 0 70px rgba(109,40,217,0.15)",
+            }}>
+              <div style={{
+                width: "78px", height: "78px", margin: "0 auto 22px",
+                borderRadius: "24px", display: "flex", alignItems: "center", justifyContent: "center",
+                background: "linear-gradient(135deg,rgba(167,139,250,0.22),rgba(103,232,249,0.12))",
+                border: "1px solid rgba(167,139,250,0.32)",
+                boxShadow: "0 0 32px rgba(139,92,246,0.25)",
+              }}>
+                <Wrench size={32} style={{ color: "#c4b5fd" }} />
+              </div>
+              <div style={{
+                display: "inline-flex", alignItems: "center", gap: "7px",
+                padding: "5px 12px", borderRadius: "999px", marginBottom: "18px",
+                background: "rgba(251,191,36,0.10)", border: "1px solid rgba(251,191,36,0.24)",
+                color: "rgba(253,230,138,0.90)", fontSize: "10px", fontWeight: 700,
+                letterSpacing: "0.13em", textTransform: "uppercase",
+              }}>
+                <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#fbbf24" }} />
+                Maintenance in progress
+              </div>
+              <h1 style={{
+                fontSize: "clamp(32px,5vw,54px)", fontWeight: 800, letterSpacing: "-0.035em",
+                lineHeight: 1.06, color: "rgba(255,255,255,0.97)", margin: "0 0 14px",
+                textShadow: "0 4px 42px rgba(139,92,246,0.30)",
+              }}>
+                We&apos;ll be back soon
+              </h1>
+              <p style={{
+                maxWidth: "510px", margin: "0 auto", color: "rgba(255,255,255,0.56)",
+                fontSize: "15px", lineHeight: 1.65,
+              }}>
+                {maintenance.message}
+              </p>
+              {maintenance.returnTime && (
+                <div style={{
+                  display: "inline-flex", alignItems: "center", gap: "8px", marginTop: "22px",
+                  padding: "10px 14px", borderRadius: "11px",
+                  background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.09)",
+                  color: "rgba(255,255,255,0.64)", fontSize: "12px",
+                }}>
+                  <Clock size={14} style={{ color: "#67e8f9" }} />
+                  Expected back: <strong style={{ color: "rgba(255,255,255,0.88)" }}>{maintenance.returnTime}</strong>
+                </div>
+              )}
+              <p style={{ margin: "24px auto 0", color: "rgba(255,255,255,0.32)", fontSize: "12px" }}>
+                Please check back in a little while. Your account and settings are safe.
+              </p>
+              <div style={{ display: "flex", justifyContent: "center", gap: "10px", flexWrap: "wrap", marginTop: "24px" }}>
+                <button
+                  onClick={() => window.location.reload()}
+                  style={{
+                    display: "inline-flex", alignItems: "center", gap: "8px", padding: "10px 15px",
+                    borderRadius: "10px", cursor: "pointer", color: "#fff", fontSize: "12px", fontWeight: 700,
+                    background: "linear-gradient(135deg,#00D4FF,#6d28d9)", border: "none",
+                  }}
+                >
+                  <RefreshCw size={14} /> Check again
+                </button>
+                <Link href="/" style={{
+                  display: "inline-flex", alignItems: "center", padding: "10px 15px", borderRadius: "10px",
+                  color: "rgba(255,255,255,0.58)", fontSize: "12px", fontWeight: 600,
+                  border: "1px solid rgba(255,255,255,0.12)", textDecoration: "none",
+                }}>
+                  Return home
+                </Link>
+              </div>
+            </div>
+          </motion.div>
+        ) : (
+        <>
         {/* ── Main hero — two columns on desktop, stack on mobile ── */}
         <motion.div
           initial={{ opacity: 0 }}
@@ -712,6 +836,8 @@ export default function DownloadPage() {
         <div style={{ position: "relative", zIndex: 1, width: "100%", display: "flex", justifyContent: "center" }}>
           <PatchNotesCard />
         </div>
+        </>
+        )}
 
       </main>
     </WebsiteShell>

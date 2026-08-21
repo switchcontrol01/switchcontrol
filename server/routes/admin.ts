@@ -25,6 +25,12 @@ const writeLimiter = rateLimit({
   message: { error: "Too many write requests, please slow down." },
 });
 
+const downloadMaintenanceSchema = z.object({
+  enabled: z.boolean(),
+  message: z.string().trim().min(1).max(500),
+  returnTime: z.string().trim().max(160).nullable().optional(),
+});
+
 function serializeUser(u: User) {
   const effectivePlan = resolveEffectivePlan(u);
   return {
@@ -373,6 +379,60 @@ router.post("/users/:id/reset-flags", requireAdmin, writeLimiter, async (req, re
 });
 
 // ─── Admin Status ────────────────────────────────────────────────────────────
+
+// ─── Download Maintenance ───────────────────────────────────────────────────
+
+router.get("/download-maintenance", requireAdmin, readLimiter, async (_req, res) => {
+  try {
+    const settings = await storage.getDownloadPageSettings();
+    res.json({
+      enabled: settings.enabled,
+      message: settings.message,
+      returnTime: settings.returnTime,
+      updatedAt: settings.updatedAt,
+      updatedBy: settings.updatedBy,
+    });
+  } catch (err) {
+    console.error("[admin] getDownloadMaintenance error:", err);
+    res.status(500).json({ error: "Failed to fetch download maintenance settings." });
+  }
+});
+
+router.patch("/download-maintenance", requireAdmin, writeLimiter, async (req, res) => {
+  const admin = getAdminId(req);
+  const parsed = downloadMaintenanceSchema.safeParse(req.body ?? {});
+  if (!parsed.success) {
+    return res.status(400).json({ error: "Invalid maintenance settings.", details: parsed.error.flatten() });
+  }
+
+  try {
+    const previous = await storage.getDownloadPageSettings();
+    const updated = await storage.updateDownloadPageSettings({
+      enabled: parsed.data.enabled,
+      message: parsed.data.message,
+      returnTime: parsed.data.returnTime?.trim() || null,
+      updatedBy: admin.id,
+    });
+    await auditLog(
+      admin.id,
+      admin.id,
+      "update_download_maintenance",
+      { enabled: previous.enabled, message: previous.message, returnTime: previous.returnTime },
+      { enabled: updated.enabled, message: updated.message, returnTime: updated.returnTime },
+    );
+    res.json({
+      ok: true,
+      enabled: updated.enabled,
+      message: updated.message,
+      returnTime: updated.returnTime,
+      updatedAt: updated.updatedAt,
+      updatedBy: updated.updatedBy,
+    });
+  } catch (err) {
+    console.error("[admin] updateDownloadMaintenance error:", err);
+    res.status(500).json({ error: "Failed to save download maintenance settings." });
+  }
+});
 
 const setAdminSchema = z.object({
   isAdmin: z.boolean(),

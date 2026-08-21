@@ -60,6 +60,26 @@ export async function registerRoutes(
   app: Express
 ): Promise<Server> {
 
+  // Keep the single-row download control available across deployments that
+  // have not run a schema push yet. This is idempotent and does not affect
+  // Electron's no-database backend.
+  if (pool) {
+    try {
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS download_page_settings (
+          id VARCHAR(64) PRIMARY KEY DEFAULT 'default',
+          enabled BOOLEAN NOT NULL DEFAULT FALSE,
+          message TEXT NOT NULL DEFAULT 'We are updating the download service.',
+          return_time TEXT,
+          updated_by TEXT,
+          updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+      `);
+    } catch (err) {
+      console.error("[DownloadMaintenance] Failed to ensure settings table:", (err as Error).message);
+    }
+  }
+
   // Local-backend 409 shield — installed before any route handler.
   if (isElectronBackend) {
     app.use((req, res, next) => {
@@ -101,6 +121,25 @@ export async function registerRoutes(
     }
     next();
   }, adminRouter);
+
+  // Public read endpoint: no auth is required so visitors can be told about
+  // maintenance even when the download service itself is unavailable.
+  app.get("/api/download/maintenance", async (_req, res) => {
+    try {
+      const settings = await storage.getDownloadPageSettings();
+      res.json({
+        enabled: settings.enabled === true,
+        message: settings.message,
+        returnTime: settings.returnTime,
+        updatedAt: settings.updatedAt,
+      });
+    } catch (err) {
+      // The download page treats this as normal operation. A status read
+      // failure must never take down the public page or falsely block users.
+      console.error("[DownloadMaintenance] Public status read failed:", (err as Error).message);
+      res.status(503).json({ error: "Maintenance status unavailable." });
+    }
+  });
 
   app.use("/api/network-tweaks", requireJwt, requireCloudPremium, networkTweaksRouter);
   app.use("/api/tweak-intelligence", requireJwt, tweakIntelligenceRouter);

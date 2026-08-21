@@ -211,6 +211,21 @@ export const promoPopupState = pgTable("promo_popup_state", {
 
 export type PromoPopupState = typeof promoPopupState.$inferSelect;
 
+// ── Public download maintenance control ─────────────────────────────────────
+// A single server-backed row controls whether the public download CTA is
+// available. The page intentionally treats a read failure as "not enabled";
+// only authenticated admins can change this state.
+export const downloadPageSettings = pgTable("download_page_settings", {
+  id:         varchar("id").primaryKey().default("default"),
+  enabled:    boolean("enabled").notNull().default(false),
+  message:    text("message").notNull().default("We are updating the download service."),
+  returnTime: text("return_time"),
+  updatedBy:  text("updated_by"),
+  updatedAt:  timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export type DownloadPageSettings = typeof downloadPageSettings.$inferSelect;
+
 export const userSettingsRelations = relations(userSettings, ({ many }) => ({
   appliedTweaks: many(appliedTweaks),
   historyEntries: many(historyEntries),

@@ -7,6 +7,7 @@ import {
   adminLogs,
   stripeWebhookEvents,
   deviceRecords,
+  downloadPageSettings,
   type UserSettings,
   type InsertUserSettings,
   type AppliedTweak,
@@ -21,6 +22,7 @@ import {
   type StripeWebhookEvent,
   type InsertStripeWebhookEvent,
   type DeviceRecord,
+  type DownloadPageSettings,
 } from "@shared/schema";
 import * as fs from "fs";
 import * as path from "path";
@@ -92,6 +94,8 @@ export interface IStorage {
   setUserAdmin(userId: string, isAdmin: boolean): Promise<User>;
   addAdminLog(log: Omit<InsertAdminLog, "id" | "createdAt">): Promise<AdminLog>;
   getAdminLogs(opts: { targetUserId?: string; limit?: number; offset?: number }): Promise<AdminLog[]>;
+  getDownloadPageSettings(): Promise<DownloadPageSettings>;
+  updateDownloadPageSettings(data: { enabled: boolean; message: string; returnTime: string | null; updatedBy: string }): Promise<DownloadPageSettings>;
 
   // Admin stats & operations
   getAdminStats(): Promise<{
@@ -397,6 +401,30 @@ class MockStorage implements IStorage {
 
   async getTrialsExpiring(_hours: number): Promise<User[]> {
     return [];
+  }
+
+  async getDownloadPageSettings(): Promise<DownloadPageSettings> {
+    return {
+      id: "default",
+      enabled: false,
+      message: "We are updating the download service.",
+      returnTime: null,
+      updatedBy: null,
+      updatedAt: new Date(),
+    };
+  }
+
+  async updateDownloadPageSettings(data: {
+    enabled: boolean;
+    message: string;
+    returnTime: string | null;
+    updatedBy: string;
+  }): Promise<DownloadPageSettings> {
+    return {
+      id: "default",
+      ...data,
+      updatedAt: new Date(),
+    };
   }
 
   async addStripeWebhookEvent(_event: Omit<InsertStripeWebhookEvent, "id" | "processedAt">): Promise<StripeWebhookEvent> {
@@ -1187,6 +1215,42 @@ export class DatabaseStorage implements IStorage {
       deviceLockedUsers: Number(deviceLockedUsers),
       totalStripeEvents,
     };
+  }
+
+  async getDownloadPageSettings(): Promise<DownloadPageSettings> {
+    const [existing] = await db!
+      .select()
+      .from(downloadPageSettings)
+      .where(eq(downloadPageSettings.id, "default"))
+      .limit(1);
+    if (existing) return existing;
+
+    const [created] = await db!
+      .insert(downloadPageSettings)
+      .values({ id: "default" })
+      .returning();
+    return created;
+  }
+
+  async updateDownloadPageSettings(data: {
+    enabled: boolean;
+    message: string;
+    returnTime: string | null;
+    updatedBy: string;
+  }): Promise<DownloadPageSettings> {
+    const current = await this.getDownloadPageSettings();
+    const [updated] = await db!
+      .update(downloadPageSettings)
+      .set({
+        enabled: data.enabled,
+        message: data.message,
+        returnTime: data.returnTime,
+        updatedBy: data.updatedBy,
+        updatedAt: new Date(),
+      })
+      .where(eq(downloadPageSettings.id, current.id))
+      .returning();
+    return updated;
   }
 
   async getTrialsExpiring(hours: number): Promise<User[]> {

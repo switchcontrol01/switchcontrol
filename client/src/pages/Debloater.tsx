@@ -133,6 +133,22 @@
   };
   
   const LEVEL_ORDER: DebloatLevel[] = ["safe", "balanced", "aggressive", "extreme"];
+
+  // Generate a deterministic sparkline from the current metric snapshot.
+  // The previous paths were hardcoded decoration, so changing a profile or
+  // selection changed the number but left the visual trend untouched.
+  function buildMetricSparkline(value: number, maxValue: number, seed: number): string {
+    const xs = [0, 14, 28, 42, 56, 70];
+    const ratio = Math.max(0, Math.min(1, maxValue > 0 ? value / maxValue : 0));
+    const phase = Math.abs(Math.round(seed * 997)) % 31;
+    const points = xs.map((x, index) => {
+      const wave = Math.sin((phase + index * 7) * 0.72) * (1.25 + ratio * 2.25);
+      const slope = (index / (xs.length - 1) - 0.5) * (ratio * 2.8);
+      const y = Math.max(3, Math.min(19, 18 - ratio * 11 + wave + slope));
+      return `${x} ${y.toFixed(1)}`;
+    });
+    return `M${points.join(" L")}`;
+  }
   
   // ── Electron helpers ──────────────────────────────────────────────────────────
   
@@ -1416,10 +1432,26 @@
           {/* ── Overview stat cards ────────────────────────────────────────────── */}
           <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
             {[
-              { key: "apps", label: "Removable items", value: visibleItems.length, unit: "", icon: Boxes, color: "#00D4FF", spark: "M0 18 L14 14 L28 16 L42 8 L56 10 L70 3", decimals: 0 },
-              { key: "ram", label: "RAM recoverable", value: visibleItems.reduce((a, i) => a + i.estimatedRamMb, 0), unit: "MB", icon: MemoryStick, color: "#22d3ee", spark: "M0 16 L14 17 L28 11 L42 13 L56 6 L70 7", decimals: 0 },
-              { key: "proc", label: "Live processes", value: liveTel?.processes.total ?? 0, unit: "", icon: Activity, color: "#a855f7", spark: "M0 12 L14 8 L28 14 L42 9 L56 13 L70 7", decimals: 0 },
-              { key: "disk", label: "Disk recoverable", value: visibleItems.reduce((a, i) => a + i.estimatedDiskMb, 0), unit: "MB", icon: HardDrive, color: "#34d399", spark: "M0 17 L14 12 L28 15 L42 6 L56 9 L70 4", decimals: 0 },
+              {
+                key: "apps", label: "Removable items", value: visibleItems.length, unit: "", icon: Boxes, color: "#00D4FF",
+                spark: buildMetricSparkline(visibleItems.length, Math.max(items.length, 1), visibleItems.length * 11 + selectedItems.length * 3 + LEVEL_ORDER.indexOf(level)),
+                decimals: 0,
+              },
+              {
+                key: "ram", label: "RAM recoverable", value: visibleItems.reduce((a, i) => a + i.estimatedRamMb, 0), unit: "MB", icon: MemoryStick, color: "#22d3ee",
+                spark: buildMetricSparkline(stats.totalRam, Math.max(stats.allRam, 1), stats.totalRam * 0.17 + selectedItems.length * 5 + LEVEL_ORDER.indexOf(level)),
+                decimals: 0,
+              },
+              {
+                key: "proc", label: "Live processes", value: liveTel?.processes.total ?? 0, unit: "", icon: Activity, color: "#a855f7",
+                spark: buildMetricSparkline(liveTel?.processes.total ?? 0, Math.max(liveTel?.processes.total ?? 0, 100), (liveTel?.processes.total ?? 0) * 0.31 + selectedItems.length),
+                decimals: 0,
+              },
+              {
+                key: "disk", label: "Disk recoverable", value: visibleItems.reduce((a, i) => a + i.estimatedDiskMb, 0), unit: "MB", icon: HardDrive, color: "#34d399",
+                spark: buildMetricSparkline(stats.totalDisk, Math.max(stats.allDisk, 1), stats.totalDisk * 0.11 + selectedItems.length * 7 + LEVEL_ORDER.indexOf(level)),
+                decimals: 0,
+              },
             ].map((s, i) => {
               const SIcon = s.icon;
               return (
@@ -1458,7 +1490,7 @@
                       d={s.spark} fill="none" stroke={s.color} strokeWidth="2"
                       strokeLinecap="round" strokeLinejoin="round"
                       initial={{ pathLength: 0, opacity: 0.4 }}
-                      animate={{ pathLength: 1, opacity: 0.85 }}
+                      animate={{ d: s.spark, pathLength: 1, opacity: 0.85 }}
                       transition={{ duration: 1.1, delay: 0.2 + 0.05 * i, ease: "easeOut" }}
                       style={{ filter: `drop-shadow(0 0 4px ${s.color}66)` }}
                     />
