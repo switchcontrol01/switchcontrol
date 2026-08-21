@@ -46,6 +46,7 @@
 - [Desktop route loading](desktop-route-loading.md) — lazy desktop pages need a shell fallback and shared sidebar-prefetch cache; route Suspense otherwise removes the whole AppLayout on first navigation.
 - [Authenticated POST conventions](authenticated-post-conventions.md) — protected raw POST callers must use the shared API helper so JWT, Electron headers, and CSRF remain intact.
 - [Background telemetry policy](background-telemetry-policy.md) — telemetry pauses automatically when the app is hidden, minimized, unfocused, or closing; there is no user toggle.
+- [Telemetry warm-up paused route](telemetry-warmup-paused-route.md) — paused/static routes must clear the global warm-up flag or the startup banner can persist forever.
 - [Electron intelligence telemetry bridge](electron-intelligence-telemetry-bridge.md) — embedded backend skips its scheduler; intelligence routes must consume the authenticated renderer’s existing main-process live snapshot.
 - [Route-aware telemetry demand](route-aware-telemetry-demand.md) — one central mode policy: Dashboard full, Tweaks intelligence, static paused; Electron and web polling must follow it.
 - [Electron offline auth boundary](electron-offline-auth-boundary.md) — loopback Electron requests use the renderer identity plus local entitlement headers when no cloud DB exists; native focus must resume telemetry.

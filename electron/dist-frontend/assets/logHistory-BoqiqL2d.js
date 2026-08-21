@@ -1,1 +1,0 @@
-import{B as p}from"./index-yuz8bAfg.js";function r(t,o,i="Applied",e){p.getState().applyAction(t,o,i,e),fetch("/api/history",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:t,page:o,result:i,notes:e})}).catch(()=>{})}export{r as l};

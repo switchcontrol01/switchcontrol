@@ -104,7 +104,10 @@ export const useTelemetryStore = create<TelemetryStoreState>((set) => ({
   status: "loading",
   connected: false,
   lastUpdateTs: null,
-  warmingUp: true,
+  // Telemetry is route-demand driven. Static tabs can intentionally start
+  // paused, so the default must not present a perpetual startup state before
+  // the manager has ever been started.
+  warmingUp: false,
 
   // Single batched update — one React render pass per tick.
   // Also drives the LPM auto-governor via performanceStore._onCpuTick so the

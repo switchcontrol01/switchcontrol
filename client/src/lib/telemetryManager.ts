@@ -632,6 +632,15 @@ export const telemetryManager = {
    */
   pause() {
     _paused = true;
+    // A paused/static route must never retain the previous startup state. If
+    // pause happens before the first active telemetry start, the store starts
+    // with warmingUp=false; if it happens during warm-up, cancel that grace
+    // timer and clear the UI state as well.
+    if (_warmupTimer) {
+      clearTimeout(_warmupTimer);
+      _warmupTimer = null;
+    }
+    useTelemetryStore.getState()._setWarmingUp(false);
     // Keep Electron's hardware owner aligned with the renderer transport.
     // Route mode is retained separately so resume() can restore it.
     if (_demandMode !== "paused") _notifyElectronDemand("paused");
