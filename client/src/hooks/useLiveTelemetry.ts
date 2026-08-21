@@ -72,7 +72,15 @@ export function useLiveTelemetry() {
     // so there is deliberately no stop() on unmount. start() is idempotent —
     // calling it when already running is a silent no-op, so multiple concurrent
     // consumers of this hook are safe.
-    telemetryManager.startWhenIdle();
+    // A route transition can briefly pause the singleton while the route-demand
+    // effect and the global visibility/preference effects settle. If this is an
+    // active telemetry route, resume that existing manager instead of relying on
+    // startWhenIdle() (which intentionally does nothing once _started is true).
+    if (telemetryManager.demandMode !== "paused") {
+      telemetryManager.resume();
+    } else {
+      telemetryManager.startWhenIdle();
+    }
   }, []);
 
   return useTelemetryStore(

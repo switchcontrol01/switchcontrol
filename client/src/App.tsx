@@ -656,7 +656,13 @@ function ElectronAppContent() {
   // When disabled the telemetry WS stays connected but messages are discarded,
   // so re-enabling instantly resumes without a reconnect.
   useEffect(() => {
-    if (realtimeMetricsEnabled) {
+    // Dashboard telemetry is product UI, not an optional background service.
+    // Keep it alive even if a stale/persisted preference is false during boot;
+    // otherwise this effect can pause immediately after the route sets mode=full,
+    // leaving LiveGraph stuck on its initial loading state until a route switch.
+    const path = window.location.pathname;
+    const dashboardRoute = path === "/" || path === "/dashboard";
+    if (realtimeMetricsEnabled || dashboardRoute) {
       if (telemetryManager.demandMode !== "paused") {
         telemetryManager.resume();
       }

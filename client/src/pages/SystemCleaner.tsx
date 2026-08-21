@@ -1043,32 +1043,6 @@ export default function SystemCleaner() {
                 </div>
               </div>
 
-              {/* Per-category result */}
-              <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-                {(["storage", "privacy", "latency", "performance", "gaming", "apps", "browsers", "windows_system", "storage_cleanup"] as CleanCategory[]).map(cat => {
-                  const meta = CAT_META[cat];
-                  const Icon = meta.icon;
-                  const catItems = categories[cat];
-                  const freed = catItems.reduce((a, i) => a + (session.results[i.id]?.bytesRemoved ?? 0), 0);
-                  const cleaned = catItems.filter(i => session.results[i.id]?.status === "cleaned").length;
-                  return (
-                    <div key={cat} className={cn("rounded-xl border px-4 py-3",
-                      freed > 0 ? "border-white/[0.10] bg-white/[0.03]" : "border-white/[0.05] bg-white/[0.01] opacity-50")}>
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: meta.dim }}>
-                          <Icon className="w-3 h-3" style={{ color: meta.color }} />
-                        </div>
-                        <span className="text-[11px] font-bold text-[#E6EAF0]">{meta.label}</span>
-                      </div>
-                      <p className="text-[16px] font-black" style={{ color: freed > 0 ? meta.color : "#4a5460" }}>
-                        {freed > 0 ? fmtBytes(freed) : "—"}
-                      </p>
-                      {cleaned > 0 && <p className="text-[10px] text-[#6B7380] mt-0.5">{cleaned} items</p>}
-                    </div>
-                  );
-                })}
-              </div>
-
               {/* Scan trend */}
               {scanHistory.length >= 2 && (
                 <div className="rounded-2xl border border-white/[0.07] bg-white/[0.02] px-5 py-4">

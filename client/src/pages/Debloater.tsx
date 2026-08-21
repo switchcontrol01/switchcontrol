@@ -878,14 +878,27 @@
       return items.filter(i => LEVEL_ORDER.indexOf(i.minLevel) <= cutoff);
     }, [items, level]);
   
+    // Once the Windows scan/apply result is known, don't keep showing already
+    // removed items as recoverable. Before the first scan, the catalog remains
+    // the source of truth so the web preview still has useful estimates.
+    const availableItems = useMemo(() => {
+      if (Object.keys(itemState).length === 0) return visibleItems;
+      return visibleItems.filter(item => itemState[item.id] !== "absent");
+    }, [visibleItems, itemState]);
+
     const selectedItems = useMemo(() => {
       return visibleItems.filter(i => selected.has(i.id));
     }, [visibleItems, selected]);
   
+    const activeSelectedItems = useMemo(() => {
+      if (Object.keys(itemState).length === 0) return selectedItems;
+      return selectedItems.filter(item => itemState[item.id] !== "absent");
+    }, [selectedItems, itemState]);
+
     // ── Stats ──────────────────────────────────────────────────────────────────
   
     const stats = useMemo(() => {
-      const sel = selectedItems;
+      const sel = activeSelectedItems;
       const totalRam  = sel.reduce((a, i) => a + i.estimatedRamMb, 0);
       const totalDisk = sel.reduce((a, i) => a + i.estimatedDiskMb, 0);
       const safeCnt   = sel.filter(i => i.safety === "safe").length;
@@ -896,12 +909,12 @@
       const restartReq = sel.some(i => i.requiresRestart);
   
       // Max values across ALL items for bar scaling
-      const allRam  = items.reduce((a, i) => a + i.estimatedRamMb, 0);
-      const allDisk = items.reduce((a, i) => a + i.estimatedDiskMb, 0);
+      const allRam  = availableItems.reduce((a, i) => a + i.estimatedRamMb, 0);
+      const allDisk = availableItems.reduce((a, i) => a + i.estimatedDiskMb, 0);
   
       return { count: sel.length, totalRam, totalDisk, safeCnt, medCnt, highCnt,
         restorableCnt, adminReq, restartReq, allRam, allDisk };
-    }, [selectedItems, items]);
+    }, [activeSelectedItems, availableItems]);
   
     const categories = useMemo(() => {
       const cats = new Set<DebloatCategory>(visibleItems.map(i => i.category));
