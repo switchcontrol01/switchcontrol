@@ -50,3 +50,4 @@
 - [Route-aware telemetry demand](route-aware-telemetry-demand.md) — one central mode policy: Dashboard full, Tweaks intelligence, static paused; Electron and web polling must follow it.
 - [Electron offline auth boundary](electron-offline-auth-boundary.md) — loopback Electron requests use the renderer identity plus local entitlement headers when no cloud DB exists; native focus must resume telemetry.
 - [Premium revert cycle guard](premium-revert-cycle-guard.md) — automatic expiry reverts run once per inactive entitlement cycle; retained failures require explicit Retry.
+- [Electron packaged bundle verification](electron-packaged-bundle-verification.md) — web workflow restarts do not update installed Windows renderer; verify a fresh packaged build.
