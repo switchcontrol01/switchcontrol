@@ -314,6 +314,29 @@ async function runPipelineRevert(
       }
     : { status: 'not_applicable' };
 
+  // The Electron pipeline owns the actual network revert, but the mounted
+  // NetworkTweaks page also has its own React state and persisted status map.
+  // Keep those UI layers aligned immediately; otherwise the next Premium
+  // reactivation can rehydrate stale "enabled" badges even after Windows was
+  // successfully disabled.
+  const revertedNetworkIds = networkResults
+    .filter((result) => result.status === 'reverted')
+    .map((result) => result.tweakId.replace(/^network_tweak:/, '').replace(/^network:/, ''));
+  if (revertedNetworkIds.length > 0) {
+    patchNetworkTweakLocalStorage(revertedNetworkIds);
+    dispatchRevertEvent('sc:net-reverted', { ids: revertedNetworkIds });
+    try {
+      const mainStore = useStore.getState();
+      for (const id of revertedNetworkIds) {
+        mainStore.setTweak(id, false);
+      }
+      // NIC RSS is bridged to the canonical tcp-rss card.
+      if (revertedNetworkIds.includes('tcp-rss')) mainStore.setTweak('nic-rss', false);
+    } catch (e) {
+      console.warn('[Revert:PIPELINE] network renderer cleanup failed:', e);
+    }
+  }
+
   // Keep renderer state aligned with the authoritative backend result.
   clearPremiumSliderStoreValues();
   clearPremiumPresetStoreValues();

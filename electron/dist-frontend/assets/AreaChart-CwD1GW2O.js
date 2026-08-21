@@ -1,1 +1,0 @@
-import{x as a,A as s,X as r,Y as i,z as x}from"./index-BC0r6oqj.js";var e=a({chartName:"AreaChart",GraphicalChild:s,axisComponents:[{axisType:"xAxis",AxisComp:r},{axisType:"yAxis",AxisComp:i}],formatAxisMap:x});export{e as A};

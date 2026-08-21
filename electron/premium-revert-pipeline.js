@@ -128,13 +128,14 @@ async function revertNetworkTweak(record) {
     return { skipped: true, reason: 'Baseline is inconclusive (null) — cannot determine original state. Failing safe.' };
   }
 
-  // Use !!previousValue (not === true) so truthy non-boolean previousValues
-  // (e.g. the number 1 stored by some registry tweaks) are handled correctly.
-  // Network ownership stores the previous state as the strings "on"/"off".
-  // Do not use boolean coercion here: !!"off" is true and causes expiry
-  // reverts to re-apply the tweak instead of restoring the Windows default.
-  const action = previousValue === 'on' || previousValue === true ? 'apply' : 'revert';
-  console.log(`[RevertPipeline] network_tweak:${itemId} → restoring previousValue=${previousValue} (type=${typeof previousValue}) via action="${action}"`);
+  // Premium network tweaks are app-owned performance changes. On expiry they
+  // must be disabled, even when the captured pre-apply state was already
+  // enabled. Restoring a true baseline re-applied the Premium tweak and left
+  // SMBv2/SMBv3, RSS, and TCP wait-time showing Applied after expiry.
+  // `previousValue` remains useful for audit/debugging, but does not select
+  // the expiry action for this feature class.
+  const action = 'revert';
+  console.log(`[RevertPipeline] network_tweak:${itemId} → disabling Premium-owned tweak (captured previousValue=${previousValue}, type=${typeof previousValue}) via action="${action}"`);
 
   try {
     const result = await getNetworkTweakExecutor().executeNetworkTweak(itemId, action);
