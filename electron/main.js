@@ -591,15 +591,18 @@
           // Task B: Disk I/O — kernel counter, only when not in low-end mode
           const _t0 = Date.now();
           rawDiskIO      = await si.disksIO().catch(e => { console.warn('[telemetry:poll] disksIO error:', e.message); return null; });
-          // If si.disksIO() failed or returned null, try PowerShell perf counter.
-          // getDiskIOViaPowerShell returns per-second rates (rIO_sec/wIO_sec/ms_sec),
-          // handled by the disksio-persec branch in the delta computation below.
-          if (rawDiskIO === null && dashboardMountedAt > 0) {
-            verboseLog('[telemetry:poll] disksIO returned null — trying PowerShell fallback');
+          // Windows can return an object without usable counters instead of
+          // rejecting. Treat that the same as null so disk activity does not
+          // remain unavailable forever on machines where systeminformation's
+          // disk counter provider is incomplete.
+          // getDiskIOViaPowerShell returns per-second rates
+          // (rIO_sec/wIO_sec/ms_sec), handled by the disksio-persec branch.
+          if (!hasUsableDiskIO(rawDiskIO) && dashboardMountedAt > 0) {
+            verboseLog('[telemetry:poll] disksIO had no usable counters — trying PowerShell fallback');
             rawDiskIO = await getDiskIOViaPowerShell().catch(() => null);
             if (rawDiskIO) verboseLog('[telemetry:poll] disksIO PowerShell fallback succeeded');
-          } else if (rawDiskIO === null) {
-            verboseLog('[telemetry:poll] disksIO returned null — PowerShell fallback deferred until dashboard mount');
+          } else if (!hasUsableDiskIO(rawDiskIO)) {
+            verboseLog('[telemetry:poll] disksIO had no usable counters — PowerShell fallback deferred until dashboard mount');
           }
           _diskIoLastTs  = Date.now();
           _recordTiming('diskIO', _t0);
@@ -1703,6 +1706,17 @@
       if (parsed.error) return null;
       return parsed;
     } catch { return null; }
+  }
+
+  function hasUsableDiskIO(value) {
+    if (!value || typeof value !== 'object') return false;
+    const cumulative =
+      typeof value.rIO === 'number' && Number.isFinite(value.rIO) &&
+      typeof value.wIO === 'number' && Number.isFinite(value.wIO);
+    const perSecond =
+      (typeof value.rIO_sec === 'number' && Number.isFinite(value.rIO_sec)) ||
+      (typeof value.wIO_sec === 'number' && Number.isFinite(value.wIO_sec));
+    return cumulative || perSecond;
   }
   
   // getGpuStatic() has been folded into gpuState — callers (none remaining in
