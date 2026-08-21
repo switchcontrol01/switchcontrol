@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { formatTrialCountdown, getTrialTimeRemaining } from "@/lib/trialCountdown";
 import { useVisibilityInterval } from "@/hooks/useVisibilityInterval";
 
@@ -15,6 +15,10 @@ import { useVisibilityInterval } from "@/hooks/useVisibilityInterval";
 export function useTrialCountdown(trialEndsAt: string | null): string {
   const [text, setText] = useState(() => formatTrialCountdown(trialEndsAt));
   const countdownActive = !!trialEndsAt && !getTrialTimeRemaining(trialEndsAt).expired;
+
+  useEffect(() => {
+    setText(formatTrialCountdown(trialEndsAt));
+  }, [trialEndsAt]);
 
   useVisibilityInterval(
     () => setText(formatTrialCountdown(trialEndsAt)),
