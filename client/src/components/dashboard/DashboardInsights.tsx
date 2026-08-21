@@ -34,6 +34,7 @@ import {
   Clock,
   Gauge,
   Minus,
+  Radio,
   RotateCcw,
   Shield,
   Trash2,
