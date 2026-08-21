@@ -69,10 +69,10 @@ export function computeSystemState(
   if (warmingUp) {
     return {
       state: "stable",
-      label: "Starting up",
-      sublabel: "Letting system and services settle…",
-      colorClass: "text-white/40",
-      dotColor: "bg-white/30",
+      label: "System active",
+      sublabel: "Telemetry settling…",
+      colorClass: "text-emerald-400",
+      dotColor: "bg-emerald-500",
     };
   }
 
