@@ -15,7 +15,7 @@ import { useStore } from "@/lib/store";
 import { useAdvisorStore } from "@/stores/advisorStore";
 import { useDashboardActivityStore } from "@/stores/dashboardActivityStore";
 import { getAdvisorInsightText, getBiosStatusText } from "@/lib/systemStateEngine";
-import { Cpu, HardDrive, MemoryStick, Activity, Zap, Shield, Sparkles, Brain, Target, ArrowRight, Wifi, MonitorCog, Network, Server, Layers, AlertTriangle } from "lucide-react";
+import { Cpu, HardDrive, MemoryStick, Activity, Zap, Shield, Sparkles, Brain, Target, ArrowRight, Wifi } from "lucide-react";
 import { useLiveTelemetry, useLiveTelemetryValues, formatKbps } from "@/hooks/useLiveTelemetry";
 import { useTelemetryStore } from "@/stores/telemetryStore";
 import { useShallow } from "zustand/react/shallow";
@@ -36,7 +36,6 @@ import { useAuth } from "@/hooks/use-auth";
 import { AnimatedCrown, PremiumBadge } from "@/components/ui/animated-crown";
 import { PremiumCardOverlay } from "@/components/ui/premium-page-overlay";
 import { useBiosAdvisorStore } from "@/stores/biosAdvisorStore";
-import { useSystemIntelligence } from "@/hooks/useSystemIntelligence";
 import { useGpuSelector } from "@/hooks/useGpuSelector";
 
 const MemoryCleanerModal = lazy(() =>
@@ -407,7 +406,7 @@ export default function Home() {
     }
   }, []);
   // ── End lifecycle logging ────────────────────────────────────────────────────
-  const { addEvent, events: activityEvents } = useDashboardActivityStore();
+  const { addEvent } = useDashboardActivityStore();
   const { lastRunAt: advisorLastRunAt } = useAdvisorStore();
   const { lastScanTime: biosLastScanTime } = useBiosAdvisorStore();
   const [specStatus, setSpecStatus] = useState<"loading" | "ready" | "unavailable">(() => {
@@ -441,7 +440,6 @@ export default function Home() {
   }, []);
   const { prefersReducedMotion } = useMotion();
   const { user, isPremium } = useAuth();
-  const sysIntel = useSystemIntelligence();
   const liveStatus = useLiveStatus();
   const timeOfDay = useMemo(() => getTimeOfDay(), []);
   const greeting  = useMemo(() => getGreeting(),  []);
@@ -1095,124 +1093,6 @@ export default function Home() {
         <Reveal delay={0.12}>
           <StorageCards ssds={ssdData} />
         </Reveal>
-
-        {/* System Intelligence — Live Dynamic Grid */}
-        {sysIntel.profile && (
-          <Reveal className="space-y-4" delay={0.12}>
-            <h2 className="text-lg font-semibold tracking-tight text-[#E6EAF0] flex items-center gap-2">
-              <MonitorCog className="size-5 text-[#00D4FF]" />
-              System Intelligence
-              <span className="ml-auto text-[10px] font-mono text-[#6B7380]">
-                {new Date(sysIntel.profile.collectedAt).toLocaleTimeString()}
-              </span>
-            </h2>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-
-              {/* Network Status — live operstate */}
-              {sysIntel.profile.network.interfaces.length > 0 && (
-                <GlassCard className="p-4 h-full border-blue-500/15">
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="w-6 h-6 rounded-lg bg-blue-500/15 border border-blue-500/25 flex items-center justify-center shrink-0">
-                      <Network className="size-3 text-blue-400" />
-                    </div>
-                    <span className="text-xs font-semibold text-[#E6EAF0]">Network Interfaces</span>
-                  </div>
-                  <div className="space-y-2">
-                    {sysIntel.profile.network.interfaces.slice(0, 4).map((iface, i) => (
-                      <div key={i} className="flex items-center justify-between gap-2 text-xs">
-                        <div className="flex items-center gap-1.5 min-w-0">
-                          <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${iface.operstate === "up" ? "bg-emerald-400" : "bg-[#2A313A]"}`} />
-                          <span className="text-[#A0A8B3] truncate">{iface.name ?? "Interface"}</span>
-                          <span className={`text-[10px] px-1 py-0 rounded border font-medium ${iface.wifi ? "text-blue-400 border-blue-500/20 bg-blue-500/10" : "text-emerald-400 border-emerald-500/20 bg-emerald-500/10"}`}>
-                            {iface.wifi ? "Wi-Fi" : "Ethernet"}
-                          </span>
-                        </div>
-                        <span className="text-[#A0A8B3] font-mono shrink-0">
-                          {iface.speedMbps ? `${iface.speedMbps}M` : "—"}
-                        </span>
-                      </div>
-                    ))}
-                    {sysIntel.profile.network.defaultGateway && (
-                      <div className="pt-1 ">
-                        <p className="text-[10px] text-[#6B7380]">
-                          Gateway: <span className="font-mono text-[#A0A8B3]">{sysIntel.profile.network.defaultGateway}</span>
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </GlassCard>
-              )}
-
-              {/* Top CPU Processes — live snapshot */}
-              {sysIntel.profile.processes.topCpu.length > 0 && (
-                <GlassCard className="p-4 h-full border-orange-500/15">
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="w-6 h-6 rounded-lg bg-orange-500/15 border border-orange-500/25 flex items-center justify-center shrink-0">
-                      <Cpu className="size-3 text-orange-400" />
-                    </div>
-                    <span className="text-xs font-semibold text-[#E6EAF0]">Top CPU Processes</span>
-                  </div>
-                  <div className="space-y-1.5">
-                    {sysIntel.profile.processes.topCpu.slice(0, 6).map((proc, i) => (
-                      <div key={i} className="flex items-center gap-2 text-xs">
-                        <span className="text-[10px] text-[#6B7380] w-4 font-mono shrink-0">{i + 1}</span>
-                        <div className="flex-1 min-w-0 relative">
-                          <div
-                            className="absolute inset-y-0 left-0 rounded bg-orange-500/10"
-                            style={{ width: `${Math.min(100, (proc.cpu ?? 0) * 3)}%` }}
-                          />
-                          <span className="relative text-[#E6EAF0] truncate block">{proc.name}</span>
-                        </div>
-                        <span className={`font-mono shrink-0 ${(proc.cpu ?? 0) > 20 ? "text-red-400" : (proc.cpu ?? 0) > 10 ? "text-amber-400" : "text-[#A0A8B3]"}`}>
-                          {proc.cpu?.toFixed(1) ?? "–"}%
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </GlassCard>
-              )}
-
-              {/* Recent Optimizer Actions */}
-              <GlassCard className="p-4 h-full border-teal-500/15">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-6 h-6 rounded-lg bg-teal-500/15 border border-teal-500/25 flex items-center justify-center shrink-0">
-                    <Zap className="size-3 text-teal-400" />
-                  </div>
-                  <span className="text-xs font-semibold text-[#E6EAF0]">Recent Actions</span>
-                </div>
-                {activityEvents.length === 0 ? (
-                  <p className="text-[11px] text-[#6B7380] leading-snug">
-                    No optimizer actions recorded yet. Run a scan or clear RAM to see activity here.
-                  </p>
-                ) : (
-                  <div className="space-y-2">
-                    {activityEvents.slice(0, 5).map((evt) => (
-                      <div key={evt.id} className="flex items-start gap-2">
-                        <span className={`mt-0.5 size-1.5 rounded-full shrink-0 ${
-                          evt.type === "tweak_applied" || evt.type === "memory_cleaned" || evt.type === "stability_restored"
-                            ? "bg-emerald-400"
-                            : evt.type === "spike_detected"
-                            ? "bg-red-400"
-                            : "bg-[#2A313A]"
-                        }`} />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-[11px] text-[#E6EAF0] leading-tight truncate">{evt.label}</p>
-                          {evt.detail && (
-                            <p className="text-[10px] text-[#6B7380] leading-tight truncate">{evt.detail}</p>
-                          )}
-                        </div>
-                        <span className="text-[9px] text-[#6B7380] shrink-0 font-mono tabular-nums">
-                          {new Date(evt.ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </GlassCard>
-
-            </div>
-          </Reveal>
-        )}
 
         {/* ── Telemetry Analytics ────────────────────────────────────── */}
         <Reveal className="space-y-3">
