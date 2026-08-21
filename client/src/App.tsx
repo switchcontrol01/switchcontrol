@@ -74,7 +74,6 @@ import { usePremiumGraceStore, GRACE_WINDOW_MS } from "@/stores/premiumGraceStor
 import { useTrialExpiryStore } from "@/stores/trialExpiryStore";
 import { useSystemConditionsStore } from "@/stores/systemConditionsStore";
 import { useToast } from "@/hooks/use-toast";
-import { loadDesktopRoute, preloadAllDesktopRoutes } from "@/lib/route-prefetch";
 
 import Splash from "@/screens/Splash";
 import CameraGlow from "@/screens/CameraGlow";
@@ -82,26 +81,26 @@ import LoginScreen from "@/screens/Login";
 import { WelcomeAnimation } from "@/components/WelcomeAnimation";
 import { OnboardingTour } from "@/components/OnboardingTour";
 import { FirstRunDisclaimer } from "@/components/FirstRunDisclaimer";
-// Keep only the dashboard eager for the first render. Other desktop routes are
-// loaded on navigation so their heavy feature code does not inflate the
-// initial renderer bundle. The Electron build uses base="./", so these chunks
-// resolve correctly from the packaged file:// app.
+// Desktop routes are eager imports so the packaged Electron renderer never
+// gets stuck behind a file:// lazy-chunk request. The previous route-level
+// Suspense loader could leave every tab showing the shell skeleton forever
+// when one packaged chunk failed to resolve.
 import Home from "@/pages/Home";
-const Tweaks = lazy(() => loadDesktopRoute("tweaks"));
-const NetworkTweaks = lazy(() => loadDesktopRoute("network"));
-const SystemCleaner = lazy(() => loadDesktopRoute("cleaner"));
-const Settings = lazy(() => loadDesktopRoute("settings"));
-const PowerPlan = lazy(() => loadDesktopRoute("power-plan"));
-const Debloater = lazy(() => loadDesktopRoute("debloat"));
-const StartupApps = lazy(() => loadDesktopRoute("startup"));
-const NicTuningPage = lazy(() => loadDesktopRoute("nic-tuning"));
-const BiosAdvisor = lazy(() => loadDesktopRoute("bios-advisor"));
-const AiAdvisor = lazy(() => loadDesktopRoute("ai-advisor"));
-const DriverIntelligence = lazy(() => loadDesktopRoute("driver-intel"));
-const LatencyAnalyzer = lazy(() => loadDesktopRoute("latency-analyzer"));
-const Security = lazy(() => loadDesktopRoute("security"));
-const History = lazy(() => loadDesktopRoute("history"));
-const ProcessManager = lazy(() => loadDesktopRoute("process-manager"));
+import Tweaks from "@/pages/Tweaks";
+import NetworkTweaks from "@/pages/NetworkTweaks";
+import SystemCleaner from "@/pages/SystemCleaner";
+import Settings from "@/pages/Settings";
+import PowerPlan from "@/pages/PowerPlan";
+import Debloater from "@/pages/Debloater";
+import StartupApps from "@/pages/StartupApps";
+import NicTuningPage from "@/pages/NicTuning";
+import BiosAdvisor from "@/pages/BiosAdvisor";
+import AiAdvisor from "@/pages/AiAdvisor";
+import DriverIntelligence from "@/pages/DriverIntelligence";
+import LatencyAnalyzer from "@/pages/LatencyAnalyzer";
+import Security from "@/pages/Security";
+import History from "@/pages/History";
+import ProcessManager from "@/pages/ProcessManager";
 // Website-only chunks — only prefetch on web (not in Electron where file:// protocol
 // causes chunk fetch failures for pages that are never shown in the desktop app).
 const _isElectronRuntime =
@@ -222,15 +221,6 @@ const ElectronRouteFallback = () => (
 function ElectronAppRoutes() {
   const [location] = useLocation();
   const realtimeMetricsEnabled = useStore((state) => state.realtimeMetricsEnabled);
-
-  useEffect(() => {
-    // Load route chunks in parallel once per renderer session. This keeps the
-    // authenticated shell responsive while eliminating repeated Suspense
-    // skeletons when users visit each desktop tab for the first time.
-    void preloadAllDesktopRoutes().catch((error) => {
-      console.warn("[Routes] desktop chunk warm-up incomplete:", error);
-    });
-  }, []);
 
   useEffect(() => {
     const path = location.split("?")[0];
