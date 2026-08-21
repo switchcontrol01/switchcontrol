@@ -2010,6 +2010,17 @@
         console.log('[Memory] stdout raw:', stdout.trim());
         try {
           const result = JSON.parse(stdout.trim());
+          // The helper changes process working sets, but the background
+          // telemetry cache still contains the pre-clean sample. Invalidate
+          // that RAM portion before resolving IPC so the renderer's immediate
+          // refresh observes the post-clean OS value.
+          if (liveTelemetryCache) {
+            liveTelemetryCache = {
+              ...liveTelemetryCache,
+              mem: { total: os.totalmem(), available: os.freemem() },
+              timestamp: Date.now(),
+            };
+          }
           console.log(`[Memory] ${mode} mode: scanned=${result.processes_scanned} trimmed=${result.processes_trimmed} freed=${result.estimated_mb_freed}MB`);
           resolve(result);
         } catch (parseErr) {
@@ -3729,19 +3740,20 @@ public class DspHelper {
   ipcMain.handle('system:getRamUsage', async () => {
     assertSiCaller('system:getRamUsage');
     try {
-      const mem = await si.mem();
-      // Prefer mem.active (pages actually in use by processes) — matches Task Manager.
-      // mem.total - mem.available includes standby pages and reads ~3 GB higher than TM.
-      const activeBytes = mem.active ?? null;
-      const used = (activeBytes != null && activeBytes > 0) ? activeBytes : (mem.total - mem.available);
+      // Keep this on the same native physical-memory counters as telemetry.
+      // Mixing systeminformation.active with os.freemem makes the RAM card
+      // disagree with Task Manager after an optimization.
+      const total = os.totalmem();
+      const free = os.freemem();
+      const used = Math.max(0, total - free);
       return {
-        total: mem.total,
+        total,
         used,
-        free: mem.available,
-        usagePercent: Math.round((used / mem.total) * 100),
-        totalGB: Math.round(mem.total / 1024 / 1024 / 1024),
+        free,
+        usagePercent: Math.round((used / total) * 100),
+        totalGB: Math.round(total / 1024 / 1024 / 1024),
         usedGB: Number((used / 1024 / 1024 / 1024).toFixed(1)),
-        freeGB: Number((mem.available / 1024 / 1024 / 1024).toFixed(1)),
+        freeGB: Number((free / 1024 / 1024 / 1024).toFixed(1)),
       };
     } catch (e) {
       return { total: 0, used: 0, free: 0, usagePercent: 0, totalGB: 0, usedGB: 0, freeGB: 0 };

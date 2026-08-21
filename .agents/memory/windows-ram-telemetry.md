@@ -7,4 +7,4 @@ On Windows, dashboard RAM usage must use Node's native `os.totalmem()` and `os.f
 
 **Why:** A visible mismatch occurred where the dashboard reported substantially higher RAM usage than Task Manager on the same machine.
 
-**How to apply:** Calculate used memory as `total - free/available`, expose total and used in one-decimal GiB, and keep the percentage based on the same byte values. Do not reintroduce a separate `systeminformation.mem()` source for the dashboard.
+**How to apply:** Calculate used memory as `total - free/available`, expose total and used in one-decimal GiB, and keep the percentage based on the same byte values. Do not reintroduce a separate `systeminformation.mem()` source for the dashboard. After a memory-clean helper completes, invalidate the cached RAM sample before the renderer's immediate refresh; manual refreshes must queue behind an in-flight poll.

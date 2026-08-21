@@ -362,9 +362,12 @@ function _notifyElectronDemand(mode: TelemetryDemandMode): void {
   }
 }
 // Guard against overlapping getLive() IPC calls (e.g. scheduled tick racing
-// with a manual refreshNow() call). A second entry simply skips rather than
-// queuing another round-trip — the next scheduled tick will pick it up.
+// with a manual refreshNow() call). A manual refresh queues one follow-up read
+// instead of being lost behind the scheduled tick.
 let _ipcPollInFlight = false;
+// A manual refresh must not be lost when it lands during the scheduled poll.
+// Queue one follow-up read so memory-clean completion always reaches the UI.
+let _ipcRefreshQueued = false;
 
 function _safeNum(v: unknown, fallback = 0): number {
   return typeof v === "number" && isFinite(v) ? v : fallback;
@@ -455,6 +458,10 @@ async function _ipcPollTick(): Promise<void> {
   } catch {
   } finally {
     _ipcPollInFlight = false;
+    if (_ipcRefreshQueued) {
+      _ipcRefreshQueued = false;
+      void _ipcPollTick();
+    }
   }
 }
 
@@ -703,7 +710,11 @@ export const telemetryManager = {
   refreshNow() {
     const electronAPI = (window as any).electronAPI;
     if (electronAPI?.telemetry?.getLive) {
-      if (!_ipcPollInFlight) _ipcPollTick().catch(() => {});
+      if (_ipcPollInFlight) {
+        _ipcRefreshQueued = true;
+      } else {
+        _ipcPollTick().catch(() => {});
+      }
     } else {
       fetch("/api/telemetry/force-refresh", { method: "POST" }).catch(() => {});
     }
