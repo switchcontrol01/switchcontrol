@@ -438,38 +438,39 @@ const PROCESS_NAME_DOMAINS: Record<string, string> = {
   "edgeupdatetaskmachinua":            "microsoft.com",
   "nvtmreponsible":                    "nvidia.com",
   "nvdisplay.container":               "nvidia.com",
-  // nvcontainer already defined above
+  "nvcontainer":                       "nvidia.com",
 
   // ── Third-party startup/registry entries (REGISTRY HKCU / task-scheduler) ───
   // These have "Unverified Publisher" so publisher-domain lookup fails;
   // process-name lookup is the only path to a correct logo.
-  // Note: fifinecontroldeck, robloxplayerbeta already defined in the user-apps
-  // section above — not repeated here.
-  "volume controller sd plugin":       "elgato.com",    // Stream Deck volume plugin
-  "volumecontrollersdplugin":          "elgato.com",
-  "fifine control deck":               "fifine-audio.com",
-  "startdvr":                          "microsoft.com",  // Windows Game DVR
-  "startcn":                           "tencent.com",    // Honor of Kings / Tencent launcher
-  "monitoring":                        "microsoft.com",  // Windows task
-  "logon":                             "microsoft.com",  // Windows task
-  "equalizerapoupdatechecker":         "github.com",     // EqualizerAPO (open source)
-  "equalizerapo":                      "github.com",
-  "modifylinkupdate":                  "microsoft.com",  // Windows store update task
-  "aimemoryboost":                     "microsoft.com",  // Windows memory management task
-  "forcetimer":                        "github.com",     // Force Timer Resolution (open source)
-  "force timer resolution":            "github.com",
-  "volumecontrol":                     "elgato.com",
+  "volume controller sd plugin": "elgato.com",    // Stream Deck volume plugin
+  "volumecontrollersdplugin":    "elgato.com",
+  "fifinecontroldeck":           "fifine-audio.com",
+  "fifine control deck":         "fifine-audio.com",
+  "robloxplayerbeta":            "roblox.com",
+  "startdvr":                    "microsoft.com",  // Windows Game DVR
+  "startcn":                     "tencent.com",    // Honor of Kings / Tencent launcher
+  "monitoring":                  "microsoft.com",  // Windows task
+  "logon":                       "microsoft.com",  // Windows task
+  "equalizerapoupdatechecker":   "github.com",     // EqualizerAPO (open source)
+  "equalizerapo":                "github.com",
+  "modifylinkupdate":            "microsoft.com",  // typically a Windows store update task
+  "aimemoryboost":               "microsoft.com",  // Windows memory management task
+  "forcetimer":                  "github.com",     // Force Timer Resolution (open source)
+  "force timer resolution":      "github.com",
+  "volumecontrol":               "elgato.com",
   // Logon / auth tasks
-  "aadplugjoin":                       "microsoft.com",
-  "aadregistrationservice":            "microsoft.com",
-  "entraplugjoin":                     "microsoft.com",
+  "aadplugjoin":                 "microsoft.com",
+  "aadregistrationservice":      "microsoft.com",
+  "entraplugjoin":               "microsoft.com",
   // Windows Defender tasks
-  "windowsdefenderscheduledsc":        "microsoft.com",
-  "mpidleworker":                      "microsoft.com",
-  "mpcrashhandlerexe":                 "microsoft.com",
+  "windowsdefenderscheduledsc":  "microsoft.com",
+  "mpidleworker":                "microsoft.com",
+  "mpcrashhandlerexe":           "microsoft.com",
 
-  // ── AMD tasks / services (non-duplicate entries only) ────────────────────────
-  // amdnoisesuppression, amdupdater already defined above
+  // ── AMD tasks / services ─────────────────────────────────────────────────────
+  "amdnoisesuppression":               "amd.com",
+  "amdupdater":                        "amd.com",
   "amdrsservicemanager":               "amd.com",
   "amdrsservice":                      "amd.com",
   "amdsettings":                       "amd.com",
@@ -477,8 +478,8 @@ const PROCESS_NAME_DOMAINS: Record<string, string> = {
   "amdcpbsyssvc":                      "amd.com",
   "amdlogs":                           "amd.com",
 
-  // ── Realtek tasks / services (non-duplicate entries only) ────────────────────
-  // rkauduservice already defined above
+  // ── Realtek tasks / services ─────────────────────────────────────────────────
+  "rkauduservice":                     "realtek.com",
   "rkauduservice64":                   "realtek.com",
   "rtkauduservice":                    "realtek.com",
   "rtkauduservice64":                  "realtek.com",
