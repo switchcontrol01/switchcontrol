@@ -129,8 +129,8 @@ if (!fs.existsSync(DIST_DIR)) {
     log('WARNING', 'JWT_SECRET is shorter than 32 characters -- consider strengthening.');
   }
 
-  // --- Phase 5: dist-frontend content audit ---
-  const frontendDir = path.join(ELECTRON_DIR, 'dist-frontend');
+  // --- Phase 5: Electron renderer content audit ---
+  const frontendDir = path.join(ROOT, 'dist-electron');
   if (fs.existsSync(frontendDir)) {
     walk(frontendDir, (full, name) => {
       if (/\.(js|cjs)$/.test(name)) {

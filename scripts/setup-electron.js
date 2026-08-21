@@ -17,8 +17,8 @@ try {
   packageJson.main = 'electron/main.js';
 
   packageJson.scripts['electron:dev'] = 'concurrently --kill-others "npm run dev" "wait-on http://localhost:5000 && cross-env NODE_ENV=development VITE_DEV_SERVER_URL=http://localhost:5000 electron ."';
-  packageJson.scripts['electron:build'] = 'npm run build && electron-builder --win';
-  packageJson.scripts['electron:pack'] = 'npm run build && electron-builder --dir';
+  packageJson.scripts['electron:build'] = 'npm run build && cd electron && npm run dist:win';
+  packageJson.scripts['electron:pack'] = 'npm run build && cd electron && npm run prebuild && npm run package:check && npm run build:native && electron-builder --dir';
 
   fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
 

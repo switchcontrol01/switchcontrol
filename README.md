@@ -114,7 +114,7 @@ SwitchControl/
 ├── build/                  # App icons
 │   └── icon.ico            # Windows icon
 ├── shared/                 # Shared types/schemas
-└── electron-builder.json   # Installer config
+└── electron/package.json   # Authoritative Electron installer config
 ```
 
 ---

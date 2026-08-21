@@ -38,7 +38,7 @@ const ROOT = path.resolve(__dirname, "..");
 const SCAN_DIRS = ["client/src", "server", "electron"];
 const SKIP_DIRS = new Set([
   "node_modules", "dist", "build", ".local", "attached_assets",
-  "electron/dist-frontend", "electron/dist-electron", "out",
+  "electron/dist-electron", "out",
 ]);
 const SOURCE_EXTS = new Set([".ts", ".tsx", ".js", ".mjs", ".cjs"]);
 
