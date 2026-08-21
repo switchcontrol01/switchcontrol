@@ -246,10 +246,22 @@ function loadLocalState() {
     const saved = localStorage.getItem("switchcontrol-powerplan");
     if (saved) return JSON.parse(saved);
   } catch {}
-  return { overrides: {} as Record<string, boolean>, customSettings: DEFAULT_CUSTOM_SETTINGS, intentMode: "frametime-stability" as IntentMode };
+  return {
+    overrides: {} as Record<string, boolean>,
+    customSettings: DEFAULT_CUSTOM_SETTINGS,
+    intentMode: "frametime-stability" as IntentMode,
+    appliedProfileId: null as FrontendProfileId | null,
+    appliedPlanGuid: null as string | null,
+  };
 }
 
-function saveLocalState(state: { overrides: Record<string, boolean>; customSettings: CustomSettings; intentMode?: IntentMode }) {
+function saveLocalState(state: {
+  overrides: Record<string, boolean>;
+  customSettings: CustomSettings;
+  intentMode?: IntentMode;
+  appliedProfileId?: FrontendProfileId | null;
+  appliedPlanGuid?: string | null;
+}) {
   localStorage.setItem("switchcontrol-powerplan", JSON.stringify(state));
 }
 
@@ -925,7 +937,21 @@ export default function PowerPlan() {
       ? backendIdToFrontendId(backendState.profileMatch.profileId ?? null)
       : null;
 
-  const activeProfileId: FrontendProfileId | null = verifiedFrontendProfileId;
+  // Settings readback can be incomplete or hardware-normalized after a page
+  // remount, which may report custom_modified even though the same
+  // SwitchControl-created Windows scheme is still active. Keep the applied
+  // profile tied to its GUID so the badge survives route changes/restarts
+  // without claiming a profile if Windows switched to another scheme.
+  const persistedProfileId: FrontendProfileId | null =
+    localState.appliedProfileId &&
+    localState.appliedProfileId !== "custom" &&
+    localState.appliedPlanGuid &&
+    backendState?.activeScheme?.guid &&
+    localState.appliedPlanGuid.toLowerCase() === backendState.activeScheme.guid.toLowerCase()
+      ? localState.appliedProfileId
+      : null;
+
+  const activeProfileId: FrontendProfileId | null = verifiedFrontendProfileId ?? persistedProfileId;
   // The card badge remains exact-match-only, but the settings report should still
   // show real Windows readback for a close/partial match.
   const reportedProfileId: FrontendProfileId | null =
@@ -978,6 +1004,15 @@ export default function PowerPlan() {
 
       // Fix: clear custom-applied flag so only ONE plan shows "Active"
       setCustomApplied(false);
+       setLocalState((prev: any) => {
+         const next = {
+           ...prev,
+           appliedProfileId: frontendId,
+           appliedPlanGuid: result.activeScheme?.guid ?? profile.backendId,
+         };
+         saveLocalState(next);
+         return next;
+       });
       // Record prev for before/after comparison
       setPrevProfileId(currentActiveFrontendId);
       setShowComparison(true);
@@ -1049,6 +1084,15 @@ export default function PowerPlan() {
         setCustomPlanMeta(newMeta);
         setCustomPlanName(result.name);
         setCustomApplied(true);
+         setLocalState((prev: any) => {
+           const next = {
+             ...prev,
+             appliedProfileId: "custom" as FrontendProfileId,
+             appliedPlanGuid: result.guid ?? null,
+           };
+           saveLocalState(next);
+           return next;
+         });
         setPrevProfileId(capturedPrev);
         setShowComparison(true);
         toast({ title: "Custom Plan Applied", description: `"${result.name}" is now active in Windows.` });
