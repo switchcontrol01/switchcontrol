@@ -47,6 +47,7 @@
 - [Authenticated POST conventions](authenticated-post-conventions.md) — protected raw POST callers must use the shared API helper so JWT, Electron headers, and CSRF remain intact.
 - [Network revert verification](network-revert-verification.md) — network expiry reverts must require post-write verification; successful PowerShell alone is not enough, and revert actions must clear ownership.
 - [Background telemetry policy](background-telemetry-policy.md) — telemetry pauses automatically when the app is hidden, minimized, unfocused, or closing; there is no user toggle.
+- [Windows RAM telemetry source](windows-ram-telemetry.md) — dashboard RAM uses native os.totalmem/os.freemem counters to match Task Manager, not systeminformation.mem().
 - [Telemetry warm-up paused route](telemetry-warmup-paused-route.md) — paused/static routes must clear the global warm-up flag or the startup banner can persist forever.
 - [Windows disk telemetry fallback](windows-disk-telemetry-fallback.md) — validate disk counters, not just truthy probe objects; fall back to PowerShell for incomplete Windows samples.
 - [Electron intelligence telemetry bridge](electron-intelligence-telemetry-bridge.md) — embedded backend skips its scheduler; intelligence routes must consume the authenticated renderer’s existing main-process live snapshot.

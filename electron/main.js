@@ -526,7 +526,12 @@
       const _shouldPollNet = (now - _netStatsLastTs) >= NET_STATS_TTL_MS;
       const [load, mem, netStatsRaw] = await Promise.all([
         si.currentLoad().catch(e => { console.warn('[telemetry:poll] currentLoad error:', e.message); return { currentLoad: null, cpus: [] }; }),
-        si.mem().catch(e => { console.warn('[telemetry:poll] mem error:', e.message); return { total: null, available: null }; }),
+        // Use Node's native physical-memory counters for the dashboard. On
+        // Windows these come from GlobalMemoryStatusEx, the same available
+        // physical-memory view used by Task Manager. systeminformation.mem()
+        // can mix platform-specific fields and produce a visibly different
+        // "used" value on some Windows builds.
+        Promise.resolve({ total: os.totalmem(), available: os.freemem() }),
         _shouldPollNet
           ? si.networkStats().catch(e => { console.warn('[telemetry:poll] networkStats error:', e.message); return []; })
           : Promise.resolve(null),
@@ -3598,7 +3603,7 @@ public class DspHelper {
   
       const ramTotal = mem.total || 0;
       const ramUsed = (mem.total || 0) - (mem.available || 0);
-      const ramTotalGb = Math.round(ramTotal / (1024 * 1024 * 1024));
+      const ramTotalGb = parseFloat((ramTotal / (1024 * 1024 * 1024)).toFixed(1));
       const ramUsedGb = parseFloat((ramUsed / (1024 * 1024 * 1024)).toFixed(1));
       const ramPercent = ramTotal > 0 ? Math.round((ramUsed / ramTotal) * 100) : 0;
   
