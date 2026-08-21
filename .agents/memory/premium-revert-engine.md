@@ -60,3 +60,10 @@ When touching the revert engine or ownership store, ensure:
 **Why:** `!!'off'` is true, which silently turns an expiry revert into an apply operation and reports success while leaving the tweak enabled.
 
 **How to apply:** Treat only `'on'` (or a legacy boolean `true`) as an apply target; all other valid previous states should execute the network revert path. Legacy localStorage-only network state should be passed into the Electron pipeline as a recovery sweep.
+
+### 7. Entitlement transitions must not replay applies
+**Rule:** Premium activation is read-only; automatic optimizer batches must be blocked briefly while entitlement state settles, while explicit manual card actions remain available.
+
+**Why:** Live entitlement refresh can re-render optimization surfaces at the same time as state hydration. Without a transition guard, a replayed batch can apply previously used Premium tweaks immediately after a grant.
+
+**How to apply:** Label apply sources (`manual_toggle`, `optimizer_apply`, `startup_reconcile`), keep startup reconciliation read-only, and enforce the guard in the shared bulk-apply entry point.

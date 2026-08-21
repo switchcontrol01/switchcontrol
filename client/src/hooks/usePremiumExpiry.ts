@@ -32,6 +32,10 @@ import { isTrialActive } from '@/lib/trialCountdown';
 import { useTrialExpiryStore } from '@/stores/trialExpiryStore';
 import { useTweakOwnershipStore } from '@/stores/tweakOwnershipStore';
 import { usePremiumGraceStore } from '@/stores/premiumGraceStore';
+import {
+  beginEntitlementTransition,
+  clearEntitlementTransition,
+} from '@/lib/entitlement-transition-guard';
 
 interface UsePremiumExpiryOptions {
   isPremium: boolean;
@@ -207,6 +211,18 @@ export function usePremiumExpiry({
     }
 
     const wasActive = prevWasActive.current;
+
+    // Entitlement changes may re-render optimizer surfaces while they hydrate.
+    // Block automatic apply batches during downgrade and reactivation; explicit
+    // card actions remain available.
+    if (wasActive !== null && wasActive !== isCurrentlyActive) {
+      beginEntitlementTransition(
+        wasActive
+          ? 'premium became inactive; expiry revert is being evaluated'
+          : 'premium became active; controls are unlocking without replay',
+      );
+      window.setTimeout(clearEntitlementTransition, 4_100);
+    }
 
     if (wasActive === null) {
       // ── Startup: first time both isLoggedIn and entitlementsVerified are true ─
