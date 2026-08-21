@@ -553,7 +553,11 @@ export default function SystemCleaner() {
       if (!detail || typeof detail.resolve !== "function") return;
       if (phase !== "scanning" && phase !== "cleaning") return;
       detail.claim?.();
-      setNavigationRequest({ href: String(detail.href || ""), resolve: detail.resolve });
+      cancelRequestedRef.current = true;
+      if (isElectron()) getEC()?.cancel?.();
+      setIsCleaning(false);
+      setPhase("idle");
+      detail.resolve(true);
     };
     window.addEventListener("sc:navigation-request", onNavigationRequest);
     return () => window.removeEventListener("sc:navigation-request", onNavigationRequest);

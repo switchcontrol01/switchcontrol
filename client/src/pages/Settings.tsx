@@ -24,14 +24,6 @@ import { useAppModeStore, type ApplicationMode } from "@/lib/appModeStore";
 import { motion } from "framer-motion";
 import { Reveal } from "@/lib/motion";
 import { PATCH_NOTES_STORAGE_KEY, PatchNotesModal } from "@/components/PatchNotesModal";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 
 interface PatchNotes {
   version: string;
@@ -354,32 +346,17 @@ function ApplicationModeSection() {
   const lastRecommendation = useAppModeStore((s) => s.lastRecommendation);
   const switchModeWithTransition = useAppModeStore((s) => s.switchModeWithTransition);
   const resetRecommendations = useAppModeStore((s) => s.resetRecommendations);
-  const [pendingMode, setPendingMode] = useState<ApplicationMode | null>(null);
-  const [understood, setUnderstood] = useState(false);
 
   const selectMode = (target: ApplicationMode) => {
     if (target === mode || transitioning) return;
-    setUnderstood(false);
-    setPendingMode(target);
-  };
-
-  const confirmModeChange = () => {
-    if (!pendingMode || !understood) return;
-    const target = pendingMode;
-    setPendingMode(null);
-    // Let the dialog's close animation finish before the full-screen mode
-    // transition begins, so the two overlays never compete visually.
-    window.setTimeout(() => {
-      switchModeWithTransition(target);
-      logHistory(`Settings: Application Mode → ${target === "light" ? "Light" : "Normal"}`, "Settings", "Saved");
-      toast({
-        title: target === "light" ? "Light Mode enabled" : "Normal Mode restored",
-        description:
-          target === "light"
-            ? "Visual effects reduced and background activity slowed."
-            : "Full visual experience and live monitoring restored.",
-      });
-    }, 220);
+    switchModeWithTransition(target);
+    logHistory(`Settings: Application Mode → ${target === "light" ? "Light" : "Normal"}`, "Settings", "Saved");
+    toast({
+      title: target === "light" ? "Light Mode enabled" : "Normal Mode restored",
+      description: target === "light"
+        ? "Visual effects reduced and background activity slowed."
+        : "Full visual experience and live monitoring restored.",
+    });
   };
 
   const options: { value: ApplicationMode; label: string; desc: string; Icon: typeof Zap }[] = [
@@ -431,73 +408,6 @@ function ApplicationModeSection() {
           ({lastRecommendation.confidence}% confidence).
         </p>
       )}
-
-      <Dialog
-        open={pendingMode !== null}
-        onOpenChange={(open) => {
-          if (!open) {
-            setPendingMode(null);
-            setUnderstood(false);
-          }
-        }}
-      >
-        <DialogContent
-          className="max-w-md border-[#8B5CF6]/35 bg-[#11151D]/95 shadow-[0_0_55px_-18px_rgba(139,92,246,.7)]"
-          data-testid="dialog-confirm-application-mode"
-        >
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-[#E6EAF0]">
-              <span className="flex size-9 items-center justify-center rounded-xl border border-amber-400/25 bg-amber-400/10">
-                <AlertTriangle className="size-4 text-amber-300" />
-              </span>
-              Confirm {pendingMode === "light" ? "Light Mode" : "Normal Mode"}
-            </DialogTitle>
-            <DialogDescription className="pt-2 leading-relaxed text-[#A0A8B3]">
-              {pendingMode === "light"
-                ? "Light Mode reduces visual effects and slows background monitoring to use fewer system resources. Some features may not work or appear exactly as they do in Normal Mode."
-                : "Normal Mode restores full visuals, animations, live monitoring, and the standard polling speed. Use it if anything is missing, delayed, or behaving unexpectedly in Light Mode."}
-            </DialogDescription>
-          </DialogHeader>
-
-          <label
-            className="flex cursor-pointer items-start gap-3 rounded-xl border border-[#2A313A] bg-white/[0.025] p-3 text-xs text-[#C9D1DC] transition-colors hover:border-[#8B5CF6]/45"
-          >
-            <input
-              type="checkbox"
-              checked={understood}
-              onChange={(event) => setUnderstood(event.target.checked)}
-              className="mt-0.5 size-4 accent-[#8B5CF6]"
-              data-testid="checkbox-confirm-application-mode"
-            />
-            <span>
-              I understand that some things may not work normally in this mode, and I will switch back to Normal Mode in Settings if I see bugs or unexpected behavior.
-            </span>
-          </label>
-
-          <DialogFooter className="gap-2 sm:gap-2">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => {
-                setPendingMode(null);
-                setUnderstood(false);
-              }}
-              data-testid="button-cancel-application-mode"
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              disabled={!understood}
-              onClick={confirmModeChange}
-              className="bg-[#8B5CF6] text-white hover:bg-[#7C3AED] disabled:opacity-40"
-              data-testid="button-confirm-application-mode"
-            >
-              I understand — continue
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {(recommendationShown || dontAskAgain) && (
         <div className="flex items-center justify-between pt-1">
