@@ -1228,10 +1228,8 @@ export default function SystemCleaner() {
                 Keep working
               </AlertDialogCancel>
               <AlertDialogAction
-                onClick={(event) => {
-                  event.preventDefault();
-                  finishNavigationRequest(true);
-                }}
+                type="button"
+                onClick={() => finishNavigationRequest(true)}
                 className="bg-red-500 text-white hover:bg-red-600"
               >
                 Cancel and leave
