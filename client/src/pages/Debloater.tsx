@@ -920,6 +920,15 @@
       const cats = new Set<DebloatCategory>(visibleItems.map(i => i.category));
       return Array.from(cats);
     }, [visibleItems]);
+
+    const overviewRam = useMemo(
+      () => availableItems.reduce((total, item) => total + item.estimatedRamMb, 0),
+      [availableItems],
+    );
+    const overviewDisk = useMemo(
+      () => availableItems.reduce((total, item) => total + item.estimatedDiskMb, 0),
+      [availableItems],
+    );
   
     // ── Selection helpers ──────────────────────────────────────────────────────
   
@@ -1080,6 +1089,15 @@
         if (data.ok) {
           const failed = data.results.filter((r: ApplyResult) => r.status === "failed").length;
           const skipped = data.results.filter((r: ApplyResult) => r.status === "already-absent").length;
+          setItemState(prev => {
+            const next = { ...prev };
+            for (const result of data.results as ApplyResult[]) {
+              if (result.status === "removed" || result.status === "already-absent") {
+                next[result.id] = "absent";
+              }
+            }
+            return next;
+          });
           setSession({
             role, level, results: data.results,
             successCount: data.successCount, failCount: data.failCount,
@@ -1446,23 +1464,23 @@
           <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
             {[
               {
-                key: "apps", label: "Removable items", value: visibleItems.length, unit: "", icon: Boxes, color: "#00D4FF",
-                spark: buildMetricSparkline(visibleItems.length, Math.max(items.length, 1), visibleItems.length * 11 + selectedItems.length * 3 + LEVEL_ORDER.indexOf(level)),
+                key: "apps", label: "Removable items", value: availableItems.length, unit: "", icon: Boxes, color: "#00D4FF",
+                spark: buildMetricSparkline(availableItems.length, Math.max(items.length, 1), availableItems.length * 11 + activeSelectedItems.length * 3 + LEVEL_ORDER.indexOf(level)),
                 decimals: 0,
               },
               {
-                key: "ram", label: "RAM recoverable", value: visibleItems.reduce((a, i) => a + i.estimatedRamMb, 0), unit: "MB", icon: MemoryStick, color: "#22d3ee",
-                spark: buildMetricSparkline(stats.totalRam, Math.max(stats.allRam, 1), stats.totalRam * 0.17 + selectedItems.length * 5 + LEVEL_ORDER.indexOf(level)),
+                key: "ram", label: "RAM recoverable", value: overviewRam, unit: "MB", icon: MemoryStick, color: "#22d3ee",
+                spark: buildMetricSparkline(overviewRam, Math.max(stats.allRam, 1), overviewRam * 0.17 + activeSelectedItems.length * 5 + LEVEL_ORDER.indexOf(level)),
                 decimals: 0,
               },
               {
                 key: "proc", label: "Live processes", value: liveTel?.processes.total ?? 0, unit: "", icon: Activity, color: "#a855f7",
-                spark: buildMetricSparkline(liveTel?.processes.total ?? 0, Math.max(liveTel?.processes.total ?? 0, 100), (liveTel?.processes.total ?? 0) * 0.31 + selectedItems.length),
+                spark: buildMetricSparkline(liveTel?.processes.total ?? 0, Math.max(liveTel?.processes.total ?? 0, 100), (liveTel?.processes.total ?? 0) * 0.31 + activeSelectedItems.length),
                 decimals: 0,
               },
               {
-                key: "disk", label: "Disk recoverable", value: visibleItems.reduce((a, i) => a + i.estimatedDiskMb, 0), unit: "MB", icon: HardDrive, color: "#34d399",
-                spark: buildMetricSparkline(stats.totalDisk, Math.max(stats.allDisk, 1), stats.totalDisk * 0.11 + selectedItems.length * 7 + LEVEL_ORDER.indexOf(level)),
+                key: "disk", label: "Disk recoverable", value: overviewDisk, unit: "MB", icon: HardDrive, color: "#34d399",
+                spark: buildMetricSparkline(overviewDisk, Math.max(stats.allDisk, 1), overviewDisk * 0.11 + activeSelectedItems.length * 7 + LEVEL_ORDER.indexOf(level)),
                 decimals: 0,
               },
             ].map((s, i) => {
