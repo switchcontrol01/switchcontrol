@@ -1425,7 +1425,7 @@ export default function PowerPlan() {
                             animate={{ opacity: 1, y: 0, scale: 1 }}
                             transition={{ type: "spring", stiffness: 420, damping: 28 }}
                             onClick={() => setExpandedProfileId(expandedProfileId === profile.id ? null : profile.id)}
-                            className="mb-4 flex items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-[10px] font-semibold text-[#D6DEE8] transition-colors hover:text-white"
+                             className="mt-auto mb-4 flex items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-[10px] font-semibold text-[#D6DEE8] transition-colors hover:text-white"
                             style={{ borderColor: `${t.accent}55`, background: `linear-gradient(135deg, ${t.accent}18, rgba(23,28,34,.9))` }}
                             aria-expanded={expandedProfileId === profile.id}
                             data-testid={`button-settings-${profile.id}`}
@@ -1534,7 +1534,7 @@ export default function PowerPlan() {
                           animate={{ opacity: 1, y: 0, scale: 1 }}
                           transition={{ type: "spring", stiffness: 420, damping: 28 }}
                           onClick={() => setExpandedProfileId(expandedProfileId === "custom" ? null : "custom")}
-                          className="mb-4 flex items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-[10px] font-semibold text-[#D6DEE8] transition-colors hover:text-white"
+                           className="mt-auto mb-4 flex items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-[10px] font-semibold text-[#D6DEE8] transition-colors hover:text-white"
                           style={{ borderColor: "#a78bfa66", background: "linear-gradient(135deg, rgba(167,139,250,.14), rgba(23,28,34,.9))" }}
                           aria-expanded={expandedProfileId === "custom"}
                           data-testid="button-settings-custom"
