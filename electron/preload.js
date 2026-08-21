@@ -585,7 +585,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     },
   },
   premium: {
-    revertAll:            () => ipcRenderer.invoke('premium:revertAll'),
+    revertAll:            (options) => {
+      if (options !== undefined) assertPlainObject(options, 'premium.revertAll options');
+      return ipcRenderer.invoke('premium:revertAll', options);
+    },
     previewRevert:        () => ipcRenderer.invoke('premium:previewRevert'),
     getOwnership:         () => ipcRenderer.invoke('premium:getOwnership'),
     // Reads the disk-backed ownership store directly — survives clearPremiumOwnership()

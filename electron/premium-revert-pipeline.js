@@ -130,7 +130,10 @@ async function revertNetworkTweak(record) {
 
   // Use !!previousValue (not === true) so truthy non-boolean previousValues
   // (e.g. the number 1 stored by some registry tweaks) are handled correctly.
-  const action = !!previousValue ? 'apply' : 'revert';
+  // Network ownership stores the previous state as the strings "on"/"off".
+  // Do not use boolean coercion here: !!"off" is true and causes expiry
+  // reverts to re-apply the tweak instead of restoring the Windows default.
+  const action = previousValue === 'on' || previousValue === true ? 'apply' : 'revert';
   console.log(`[RevertPipeline] network_tweak:${itemId} → restoring previousValue=${previousValue} (type=${typeof previousValue}) via action="${action}"`);
 
   try {
@@ -398,7 +401,7 @@ async function revertPowerPlan(record) {
  *   details:  Record<string, object>
  * }>}
  */
-async function revertAllAppOwned() {
+async function revertAllAppOwned(options = {}) {
   const owned = ownershipStore.getAllAppOwned();
   console.log(`[RevertPipeline] Starting — ${owned.length} app-owned item(s) to revert`);
 
@@ -412,6 +415,30 @@ async function revertAllAppOwned() {
   //   2. Power plan — must run last; has strict ordering requirements (see module header).
   const powerPlanRecords = owned.filter(r => r.itemType === 'power_plan');
   const otherRecords     = owned.filter(r => r.itemType !== 'power_plan');
+
+  // Older renderer builds tracked network tweaks only in localStorage. Accept
+  // those IDs from the renderer as a recovery sweep so a stale local applied
+  // state cannot survive premium expiry just because it predates ownership
+  // tracking. Never duplicate a currently-owned record.
+  const ownedScopeKeys = new Set(owned.map(r => r.scopeKey));
+  const fallbackNetworkTweakIds = Array.isArray(options.fallbackNetworkTweakIds)
+    ? options.fallbackNetworkTweakIds
+      .filter(id => typeof id === 'string' && /^[\w-]+$/.test(id))
+      .filter(id => !ownedScopeKeys.has(`network_tweak:${id}`))
+    : [];
+  for (const itemId of fallbackNetworkTweakIds) {
+    otherRecords.push({
+      scopeKey: `network_tweak:${itemId}`,
+      itemType: 'network_tweak',
+      itemId,
+      previousValue: false,
+      baselineCaptured: true,
+      fallback: true,
+    });
+  }
+  if (fallbackNetworkTweakIds.length > 0) {
+    console.log(`[RevertPipeline] Recovery sweep — ${fallbackNetworkTweakIds.length} legacy network tweak(s): ${fallbackNetworkTweakIds.join(', ')}`);
+  }
 
   // ── Phase 1: parallel revert of independent items ─────────────────────────
   // Begin a batch-write window so that N successful reverts produce ONE disk

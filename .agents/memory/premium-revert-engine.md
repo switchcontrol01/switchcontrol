@@ -53,3 +53,10 @@ When touching the revert engine or ownership store, ensure:
 **Why:** The backend pipeline also reverts ownership-tracked tweaks, network/NIC state, and power plans and records each successful revert. Standalone advanced-tweak sweeps leave the other records app-owned, causing the expiry modal to return on every launch.
 
 **How to apply:** Keep renderer cleanup/report mapping after the pipeline response, but treat `premium:revertAll` as the only execution entry point.
+
+### 6. Network previous-state values are strings
+**Rule:** Network ownership records store `previousStatus` as `'on' | 'off'`; revert action selection must compare explicitly, never use boolean coercion.
+
+**Why:** `!!'off'` is true, which silently turns an expiry revert into an apply operation and reports success while leaving the tweak enabled.
+
+**How to apply:** Treat only `'on'` (or a legacy boolean `true`) as an apply target; all other valid previous states should execute the network revert path. Legacy localStorage-only network state should be passed into the Electron pipeline as a recovery sweep.

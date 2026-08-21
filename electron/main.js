@@ -5267,7 +5267,7 @@ $pwrThrot  = Reg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottl
    * Revert all app-owned premium changes when a trial expires or subscription ends.
    * Returns a full result report ({ total, reverted, skipped, failed, details }).
    */
-  ipcMain.handle('premium:revertAll', async () => {
+  ipcMain.handle('premium:revertAll', async (_event, options) => {
     if (premiumRevertInFlight) {
       console.log('[IPC] premium:revertAll — joining existing expiry revert pipeline');
       return premiumRevertInFlight;
@@ -5276,7 +5276,7 @@ $pwrThrot  = Reg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottl
     console.log('[IPC] premium:revertAll — starting expiry revert pipeline');
     premiumRevertInFlight = (async () => {
       try {
-        const result = await premiumRevertPipeline.revertAllAppOwned();
+        const result = await premiumRevertPipeline.revertAllAppOwned(options);
         console.log(`[IPC] premium:revertAll done — reverted=${result.reverted} skipped=${result.skipped} failed=${result.failed}`);
         return { success: true, ...result };
       } catch (e) {

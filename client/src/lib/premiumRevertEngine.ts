@@ -273,7 +273,10 @@ async function runPipelineRevert(
   }
 
   onProgress?.('reverting_tweaks');
-  const response = await api.revertAll();
+  // Some older sessions have network tweak state in localStorage but no
+  // ownership record. Pass that state to the Electron recovery sweep.
+  const fallbackNetworkTweakIds = readEnabledNetworkTweakIdsFromLocalStorage();
+  const response = await api.revertAll({ fallbackNetworkTweakIds });
   onProgress?.('verifying');
 
   const details = response?.details && typeof response.details === 'object'
