@@ -931,6 +931,7 @@ module.exports = {
   applySliderValue,
   verifySliderValue,
   resetSliderValue,
+  forceRevertSliderToDefault,
   revertAllPremiumSliders,
   stopTimerResolutionKeeper,
   checkCrashSentinel,
