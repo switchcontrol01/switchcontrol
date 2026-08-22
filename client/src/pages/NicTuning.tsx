@@ -50,6 +50,16 @@ interface NicAdapter {
   macAddress: string;
 }
 
+const RING_BUFFER_PROP_KEYS = new Set(["ReceiveBuffers", "TransmitBuffers"]);
+
+function isWifiAdapter(adapter: NicAdapter): boolean {
+  return (
+    /802\.11|native 802\.11/i.test(adapter.mediaType) ||
+    /wifi|wi-fi|wireless|wlan/i.test(adapter.description) ||
+    /wifi|wi-fi|wireless|wlan/i.test(adapter.name)
+  );
+}
+
 interface PropertyCapability {
   supported: boolean;
   currentValue: string | null;
@@ -82,8 +92,15 @@ type NicOutcome =
   | "write_failed"
   | "invalid_value"
   | "unsupported_on_adapter"
+  | "unsupported_driver"
+  | "driver_locked"
+  | "access_denied"
+  | "adapter_busy"
+  | "driver_rejected"
+  | "reboot_required"
   | "elevation_denied"
   | "reset_verified"
+  | "reset_verify_failed"
   | "reset_failed";
 
 interface PropertyState {
@@ -116,6 +133,15 @@ function sanitizeNicError(err: string | null | undefined): string {
   }
   if (/access.?denied|uac|cancel/i.test(err)) return "Access denied — run as administrator.";
   return err.length > 120 ? err.slice(0, 117) + "…" : err;
+}
+
+function unsupportedPropertyMessage(propKey: string, isWifi: boolean): string {
+  if (isWifi && RING_BUFFER_PROP_KEYS.has(propKey)) {
+    return "Not available on this Wi‑Fi adapter. Ring-buffer controls are exposed only by some wired NIC drivers.";
+  }
+  return isWifi
+    ? "Not available on this Wi‑Fi adapter. This driver does not expose the setting."
+    : "Not available on this adapter. Its driver does not expose the setting.";
 }
 
 // ── Property group config ─────────────────────────────────────────────────────
@@ -342,10 +368,11 @@ interface PropertyControlProps {
   propKey: string;
   meta: PropertyMeta;
   capability: PropertyCapability;
+  isWifi: boolean;
   onValueApplied: (propKey: string, newValue: string | null) => void;
 }
 
-function PropertyControl({ adapterName, propKey, meta, capability, onValueApplied }: PropertyControlProps) {
+function PropertyControl({ adapterName, propKey, meta, capability, isWifi, onValueApplied }: PropertyControlProps) {
   const { toast } = useToast();
   const [state, setState] = useState<PropertyState>({
     pending:  capability.currentValue,
@@ -355,6 +382,7 @@ function PropertyControl({ adapterName, propKey, meta, capability, onValueApplie
   const resultTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isElectron = isElectronWithTweaks();
   const isDirty = state.pending !== null && state.pending !== capability.currentValue;
+  const isSupported = capability.supported === true;
 
   useEffect(() => {
     setState(s => ({ ...s, pending: capability.currentValue }));
@@ -370,72 +398,93 @@ function PropertyControl({ adapterName, propKey, meta, capability, onValueApplie
   useEffect(() => () => { if (resultTimerRef.current) clearTimeout(resultTimerRef.current); }, []);
 
   const apply = useCallback(async () => {
-    if (!state.pending) return;
+    if (!isSupported || state.pending === null) return;
     setState(s => ({ ...s, applying: true, result: null }));
     const api = getNicAPI();
     if (!api || !isElectron) {
-      setState(s => ({ ...s, applying: false, result: { ok: true, outcome: "write_succeeded_verified", verified: true, error: null, actualValue: state.pending } }));
-      scheduleResultDismiss();
+      const error = "NIC changes are available only in the Windows desktop app.";
+      setState(s => ({ ...s, applying: false, result: { ok: false, outcome: "write_failed", verified: false, error, actualValue: null } }));
+      toast({ title: "Apply Failed", description: error, variant: "destructive" });
       return;
     }
-    const res = await api.setProperty(adapterName, propKey, state.pending);
-    setState(s => ({ ...s, applying: false, result: { ok: res.ok, outcome: (res.outcome ?? null) as NicOutcome | null, verified: res.verified ?? false, error: res.error, actualValue: res.actualValue } }));
-    if (res.ok) {
-      const verified = res.outcome === "write_succeeded_verified";
-      logHistory(`NIC Tuning: ${meta.label}`, "NIC Tuning", verified ? "Applied & Verified" : "Applied", `${propKey}=${state.pending} on ${adapterName}`, {
-        category: "nic", targetId: `${adapterName}.${propKey}`, restoreTarget: { adapterName, propertyKey: propKey }, reversible: true,
-      });
-      toast({ title: verified ? `${meta.label} Applied & Verified` : `${meta.label} Applied`, description: verified ? `Registry confirmed ${res.actualValue} on ${adapterName}.` : `Written to adapter. Readback pending driver confirmation.` });
-      scheduleResultDismiss();
-      // Patch parent capabilities map so isDirty resets and "Current:" label
-      // immediately reflects the applied value. Without this, capability.currentValue
-      // never changes (it's a prop from the parent's state), the isDirty comparison
-      // stays true, and the Apply button remains active after a successful write.
-      onValueApplied(propKey, res.actualValue ?? state.pending);
-      // Sync to canonical store so AI Advisor, NetworkTweaks, and Dashboard reflect
-      // this adapter state without a page reload.
-      const cid = NIC_CANONICAL_IDS[propKey];
-      if (cid) {
-        // Stepped properties (e.g. FlowControl 0/1/2/3) have no enabledValue — treat
-        // any value other than the first preset ("0" / "Disabled") as the active state.
-        const isEnabled = meta.enabledValue != null
-          ? state.pending === meta.enabledValue
-          : meta.presets?.[0] != null
-          ? state.pending !== meta.presets[0]
-          : true;
-        useStore.getState().setTweak(cid, isEnabled);
+    try {
+      const res = await api.setProperty(adapterName, propKey, state.pending);
+      setState(s => ({ ...s, applying: false, result: { ok: res.ok, outcome: (res.outcome ?? null) as NicOutcome | null, verified: res.verified ?? false, error: res.error, actualValue: res.actualValue } }));
+      if (res.ok) {
+        const verified = res.outcome === "write_succeeded_verified";
+        logHistory(`NIC Tuning: ${meta.label}`, "NIC Tuning", verified ? "Applied & Verified" : "Applied", `${propKey}=${state.pending} on ${adapterName}`, {
+          category: "nic", targetId: `${adapterName}.${propKey}`, restoreTarget: { adapterName, propertyKey: propKey }, reversible: true,
+        });
+        toast({ title: verified ? `${meta.label} Applied & Verified` : `${meta.label} Applied`, description: verified ? `Registry confirmed ${res.actualValue} on ${adapterName}.` : `Written to adapter. Readback pending driver confirmation.` });
+        scheduleResultDismiss();
+        onValueApplied(propKey, res.actualValue ?? state.pending);
+        const cid = NIC_CANONICAL_IDS[propKey];
+        if (cid) {
+          const isEnabled = meta.enabledValue != null
+            ? state.pending === meta.enabledValue
+            : meta.presets?.[0] != null
+            ? state.pending !== meta.presets[0]
+            : true;
+          useStore.getState().setTweak(cid, isEnabled);
+        }
+      } else {
+        const msgs: Record<string, string> = { unsupported_on_adapter: unsupportedPropertyMessage(propKey, isWifi), unsupported_driver: "Your NIC driver does not expose this control.", driver_locked: "The driver exposes this setting but rejected modification requests.", access_denied: "Access denied — run as administrator.", elevation_denied: "Access denied — run as administrator.", adapter_busy: "Adapter is busy — try again in a moment.", driver_rejected: "The driver rejected this change. Try a different value.", reboot_required: "A system restart is required to apply this change.", invalid_value: sanitizeNicError(res.error), write_failed: sanitizeNicError(res.error) };
+        toast({ title: "Apply Failed", description: msgs[res.outcome] ?? sanitizeNicError(res.error), variant: "destructive" });
       }
-    } else {
-      const msgs: Record<string, string> = { unsupported_on_adapter: "Property not supported on this NIC driver.", elevation_denied: "Access denied — run as administrator.", invalid_value: sanitizeNicError(res.error), write_failed: sanitizeNicError(res.error) };
-      toast({ title: "Apply Failed", description: msgs[res.outcome] ?? sanitizeNicError(res.error), variant: "destructive" });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      setState(s => ({ ...s, applying: false, result: { ok: false, outcome: "write_failed", verified: false, error: message, actualValue: null } }));
+      toast({ title: "Apply Failed", description: sanitizeNicError(message), variant: "destructive" });
     }
-  }, [adapterName, propKey, meta.label, meta.enabledValue, state.pending, isElectron, toast, scheduleResultDismiss]);
+  }, [adapterName, propKey, meta, state.pending, isElectron, isSupported, isWifi, toast, scheduleResultDismiss, onValueApplied]);
 
   const reset = useCallback(async () => {
+    if (!isSupported) return;
     setState(s => ({ ...s, applying: true, result: null }));
     const api = getNicAPI();
     if (!api || !isElectron) {
-      setState(s => ({ ...s, applying: false, pending: meta.defaultValue ?? null, result: { ok: true, outcome: "reset_verified", verified: true, error: null, actualValue: meta.defaultValue ?? null } }));
-      scheduleResultDismiss();
+      const error = "NIC changes are available only in the Windows desktop app.";
+      setState(s => ({ ...s, applying: false, result: { ok: false, outcome: "reset_failed", verified: false, error, actualValue: null } }));
+      toast({ title: "Reset Failed", description: error, variant: "destructive" });
       return;
     }
-    const res = await api.resetProperty(adapterName, propKey);
-    if (res.ok) {
-      setState(s => ({ ...s, applying: false, pending: res.actualValue ?? null, result: { ok: true, outcome: (res.outcome ?? "reset_verified") as NicOutcome, verified: true, error: null, actualValue: res.actualValue } }));
-      logHistory(`NIC Tuning: ${meta.label} Reset`, "NIC Tuning", "Reset to Default", `${propKey} restored to driver default on ${adapterName}`);
-      toast({ title: "Reset to Default", description: `${meta.label} restored to driver default.` });
-      scheduleResultDismiss();
-      // Patch parent capabilities so "Current:" label reflects the reset value.
-      onValueApplied(propKey, res.actualValue ?? null);
-      // Clear canonical entry — property is back at driver default.
-      const cid = NIC_CANONICAL_IDS[propKey];
-      if (cid) useStore.getState().setTweak(cid, false);
-    } else {
-      const msgs: Record<string, string> = { unsupported_on_adapter: "Not supported on this NIC driver.", elevation_denied: "Access denied — run as administrator.", reset_failed: sanitizeNicError(res.error) };
-      setState(s => ({ ...s, applying: false, result: { ok: false, outcome: (res.outcome ?? "reset_failed") as NicOutcome, verified: false, error: res.error, actualValue: null } }));
-      toast({ title: "Reset Failed", description: msgs[res.outcome] ?? sanitizeNicError(res.error), variant: "destructive" });
+    try {
+      const res = await api.resetProperty(adapterName, propKey);
+      if (res.ok) {
+        setState(s => ({ ...s, applying: false, pending: res.actualValue ?? null, result: { ok: true, outcome: (res.outcome ?? "reset_verified") as NicOutcome, verified: true, error: null, actualValue: res.actualValue } }));
+        logHistory(`NIC Tuning: ${meta.label} Reset`, "NIC Tuning", "Reset to Default", `${propKey} restored to driver default on ${adapterName}`);
+        toast({ title: "Reset to Default", description: `${meta.label} restored to driver default.` });
+        scheduleResultDismiss();
+        onValueApplied(propKey, res.actualValue ?? null);
+        const cid = NIC_CANONICAL_IDS[propKey];
+        if (cid) useStore.getState().setTweak(cid, false);
+      } else {
+        const msgs: Record<string, string> = { unsupported_on_adapter: unsupportedPropertyMessage(propKey, isWifi), unsupported_driver: "Your NIC driver does not expose this control.", elevation_denied: "Access denied — run as administrator.", reset_failed: sanitizeNicError(res.error) };
+        setState(s => ({ ...s, applying: false, result: { ok: false, outcome: (res.outcome ?? "reset_failed") as NicOutcome, verified: false, error: res.error, actualValue: null } }));
+        toast({ title: "Reset Failed", description: msgs[res.outcome] ?? sanitizeNicError(res.error), variant: "destructive" });
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      setState(s => ({ ...s, applying: false, result: { ok: false, outcome: "reset_failed", verified: false, error: message, actualValue: null } }));
+      toast({ title: "Reset Failed", description: sanitizeNicError(message), variant: "destructive" });
     }
-  }, [adapterName, propKey, meta.label, meta.defaultValue, isElectron, toast, scheduleResultDismiss]);
+  }, [adapterName, propKey, meta, isElectron, isSupported, isWifi, toast, scheduleResultDismiss, onValueApplied]);
+
+  if (!isSupported) {
+    return (
+      <div className="py-3 px-3 rounded-xl border bg-[#1A1F26] border-[#2A313A] opacity-60">
+        <div className="flex items-center gap-2 flex-wrap mb-1.5">
+          <span className="text-xs font-medium text-[#A0A8B3]">{meta.label}</span>
+          <RiskBadge risk={meta.risk} />
+          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[#21262D] text-[#6B7380] border border-[#2A313A] flex items-center gap-1">
+            <Ban className="size-2.5" />
+            Not available
+          </span>
+        </div>
+        <p className="text-[11px] text-[#4A5160] leading-relaxed">{unsupportedPropertyMessage(propKey, isWifi)}</p>
+      </div>
+    );
+  }
 
   return (
     <div className={cn(
@@ -502,7 +551,7 @@ function PropertyControl({ adapterName, propKey, meta, capability, onValueApplie
               const isWarn = r.outcome === "write_succeeded_verify_failed";
               const colorCls = r.ok ? isWarn ? "border-yellow-500/20 bg-yellow-500/10 text-yellow-300" : "border-emerald-500/20 bg-emerald-500/10 text-emerald-300" : r.outcome === "elevation_denied" ? "border-orange-500/20 bg-orange-500/10 text-orange-300" : r.outcome === "unsupported_on_adapter" ? "border-[#2A313A] bg-[#21262D] text-[#6B7380]" : "border-red-500/20 bg-red-500/10 text-red-300";
               const icon = r.ok ? isWarn ? <AlertTriangle className="size-3 shrink-0" /> : <CheckCircle2 className="size-3 shrink-0" /> : r.outcome === "unsupported_on_adapter" ? <Ban className="size-3 shrink-0" /> : <XCircle className="size-3 shrink-0" />;
-              const LABELS: Record<string, string> = { write_succeeded_verified: `Verified — registry confirmed ${r.actualValue ?? ""}`, write_succeeded_verify_failed: `Written — readback pending (read: ${r.actualValue ?? "?"})`, write_failed: sanitizeNicError(r.error), invalid_value: sanitizeNicError(r.error), unsupported_on_adapter: "Property not supported on this NIC driver.", elevation_denied: "Access denied — run as administrator.", reset_verified: `Reset to default${r.actualValue ? ` — read back: ${r.actualValue}` : ""}`, reset_failed: sanitizeNicError(r.error) };
+              const LABELS: Record<string, string> = { write_succeeded_verified: `Verified — registry confirmed ${r.actualValue ?? ""}`, write_succeeded_verify_failed: `Written — readback pending (read: ${r.actualValue ?? "?"})`, write_failed: sanitizeNicError(r.error), invalid_value: sanitizeNicError(r.error), unsupported_on_adapter: unsupportedPropertyMessage(propKey, isWifi), unsupported_driver: "Your NIC driver does not expose this control.", driver_locked: "The driver exposes this setting but rejected modification requests.", access_denied: "Access denied — run as administrator.", adapter_busy: "Adapter busy — try again in a moment.", driver_rejected: "Driver rejected this change.", reboot_required: "Restart required to apply this change.", elevation_denied: "Access denied — run as administrator.", reset_verified: `Reset to default${r.actualValue ? ` — read back: ${r.actualValue}` : ""}`, reset_verify_failed: `Reset was not verified — readback: ${r.actualValue ?? "unknown"}`, reset_failed: sanitizeNicError(r.error) };
               const msg = r.outcome ? LABELS[r.outcome] : (r.ok ? `Done — ${r.actualValue ?? ""}` : sanitizeNicError(r.error));
               return (
                 <div className={cn("flex items-center gap-2 mt-2 px-2.5 py-1.5 rounded-lg text-xs border", colorCls)}>
@@ -536,12 +585,14 @@ function PropertyGroupSection({
   adapterName,
   propertyMeta,
   capabilities,
+  isWifi,
   onValueApplied,
 }: {
   group: typeof PROPERTY_GROUPS[number];
   adapterName: string;
   propertyMeta: Record<string, PropertyMeta>;
   capabilities: Record<string, PropertyCapability>;
+  isWifi: boolean;
   onValueApplied: (propKey: string, newValue: string | null) => void;
 }) {
   const [open, setOpen] = useState(true);
@@ -590,7 +641,8 @@ function PropertyGroupSection({
                   adapterName={adapterName}
                   propKey={k}
                   meta={propertyMeta[k]}
-                  capability={capabilities[k] ?? { supported: false, currentValue: null }}
+                   capability={capabilities[k] ?? { supported: false, currentValue: null }}
+                   isWifi={isWifi}
                   onValueApplied={onValueApplied}
                 />
               ))}
@@ -1061,6 +1113,7 @@ export default function NicTuningPage() {
   }, [selectedAdapter, loadCapabilities]);
 
   const activeAdapter = adapters.find(a => a.name === selectedAdapter) ?? null;
+  const activeAdapterIsWifi = activeAdapter ? isWifiAdapter(activeAdapter) : false;
   const isOnline = activeAdapter?.connected ?? (activeAdapter?.status === "Up" || activeAdapter?.status === "up");
 
   return (
@@ -1271,7 +1324,7 @@ export default function NicTuningPage() {
               <div className="flex items-start gap-2 px-3 py-2.5 rounded-xl border border-amber-500/15 bg-amber-500/[0.06] text-xs text-amber-300/70">
                 <AlertTriangle className="size-3.5 shrink-0 mt-0.5" />
                 <span>
-                  NIC property changes require admin rights and take effect immediately — some changes may briefly interrupt your connection. Only unsupported properties are hidden.
+                   NIC property changes require admin rights and take effect immediately — some changes may briefly interrupt your connection. Settings your selected adapter does not expose remain visible as unavailable so you know why they cannot be changed.
                 </span>
               </div>
             )}
@@ -1306,6 +1359,7 @@ export default function NicTuningPage() {
                     adapterName={activeAdapter.name}
                     propertyMeta={propertyMeta}
                     capabilities={capabilities}
+                    isWifi={activeAdapterIsWifi}
                     onValueApplied={handleValueApplied}
                   />
                 ))}
@@ -1326,6 +1380,7 @@ export default function NicTuningPage() {
                             propKey={k}
                             meta={propertyMeta[k]}
                             capability={capabilities[k] ?? { supported: false, currentValue: null }}
+                            isWifi={activeAdapterIsWifi}
                             onValueApplied={handleValueApplied}
                           />
                         ))}

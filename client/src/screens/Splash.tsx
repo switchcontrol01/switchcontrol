@@ -368,7 +368,7 @@ export default function Splash({ onComplete }: SplashProps) {
                   className="inline-block text-white"
                   initial={{ opacity: 0, y: 9, filter: "blur(7px)", letterSpacing: "0.08em" }}
                   animate={{ opacity: 1, y: 0, filter: "blur(0px)", letterSpacing: "-0.025em" }}
-                  transition={{ duration: 0.54, delay: 0.16, ease: [0.22, 1, 0.36, 1] }}
+                  transition={{ duration: 0.54, delay: 0.36, ease: [0.22, 1, 0.36, 1] }}
                 >
                   Switch
                 </motion.span>
@@ -376,12 +376,13 @@ export default function Splash({ onComplete }: SplashProps) {
                   className="relative inline-block"
                   initial={{ opacity: 0, y: 9, filter: "blur(7px)", letterSpacing: "0.08em" }}
                   animate={{ opacity: 1, y: 0, filter: "blur(0px)", letterSpacing: "-0.025em" }}
-                  transition={{ duration: 0.62, delay: 0.34, ease: [0.22, 1, 0.36, 1] }}
+                  transition={{ duration: 0.62, delay: 0.54, ease: [0.22, 1, 0.36, 1] }}
                   style={{
                     background: "linear-gradient(105deg, #00BFEA 0%, #7AEAFF 42%, #00D4FF 58%, #00A9D2 100%)",
                     WebkitBackgroundClip: "text",
                     WebkitTextFillColor: "transparent",
-                    textShadow: "0 0 22px rgba(0, 212, 255, 0.16)",
+                    textShadow: "0 0 26px rgba(0, 212, 255, 0.24)",
+                    filter: "drop-shadow(0 0 5px rgba(0, 212, 255, 0.22)) drop-shadow(0 0 14px rgba(0, 180, 255, 0.12))",
                   }}
                 >
                   Control
@@ -390,7 +391,7 @@ export default function Splash({ onComplete }: SplashProps) {
                     className="pointer-events-none absolute inset-y-0 -left-1 w-5"
                     initial={{ x: "-150%", opacity: 0 }}
                     animate={{ x: "500%", opacity: [0, 0.75, 0] }}
-                    transition={{ duration: 0.72, delay: 0.52, ease: [0.22, 1, 0.36, 1] }}
+                    transition={{ duration: 0.72, delay: 0.72, ease: [0.22, 1, 0.36, 1] }}
                     style={{
                       background: "linear-gradient(90deg, transparent, rgba(220, 252, 255, 0.95), transparent)",
                       filter: "blur(3px)",

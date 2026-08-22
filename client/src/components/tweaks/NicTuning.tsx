@@ -264,7 +264,7 @@ function PropertyControl({ adapterName, propKey, meta, capability, isWifi }: Pro
   }, [adapterName, propKey, meta.label, meta.defaultValue, isElectron, toast, scheduleResultDismiss]);
 
   // ── WiFi: Ethernet-only — hide entirely, show a concise note ─────────────────
-  if (isWifi && ETHERNET_ONLY_PROP_KEYS.has(propKey)) {
+  if (isWifi && ETHERNET_ONLY_PROP_KEYS.has(propKey) && !capability.supported) {
     return (
       <div className="py-3 px-3 rounded-xl border bg-[#1A1F26] border-[#2A313A] opacity-45">
         <div className="flex items-center gap-2 flex-wrap mb-1.5">
@@ -786,7 +786,7 @@ export function NicTuning() {
                 <div className="flex items-start gap-2 px-3 py-2.5 rounded-xl border border-amber-500/15 bg-amber-500/[0.06] text-xs text-amber-300/70">
                   <AlertTriangle className="size-3.5 shrink-0 mt-0.5" />
                   <span>
-                    NIC property changes require admin rights and take effect immediately — some changes may briefly drop your connection. Only unsupported properties are hidden.
+                    NIC property changes require admin rights and take effect immediately — some changes may briefly drop your connection. Settings your selected adapter does not expose remain visible as unavailable.
                   </span>
                 </div>
               )}

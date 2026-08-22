@@ -1,16 +1,14 @@
 {
-  "version": "1.2.7",
-  "title": "Security Hardening, Startup Reliability & Display Fix",
-  "headline": "Live intelligence and debloater endpoints are now protected, startup history and diagnostics are user-scoped, telemetry startup is smoother, and malformed display metadata can no longer blank the dashboard.",
-  "date": "2026-08-21",
+  "version": "1.2.8",
+  "title": "NIC Tuning Reliability & Recovery Fixes",
+  "headline": "NIC Tuning now reflects the capabilities of the selected adapter, while ownership recovery, DNS reverts, device signatures, and premium expiry cleanup fail safely.",
+  "date": "2026-08-22",
   "type": "patch",
   "changes": [
-    "Protected live network diagnostics, tweak intelligence, power intelligence, dashboard intelligence, and debloater history/action endpoints with authenticated access",
-    "Scoped network benchmark baselines and debloater history to the authenticated user while preserving Electron loopback authentication",
-    "Added CSRF-safe authenticated client requests for network benchmarking and debloater actions",
-    "Hardened startup telemetry priming and heartbeat execution to reduce duplicate probes and startup overhead",
-    "Fixed the Electron startup reveal flow so the window waits for both Chromium and the first React splash frame before showing",
-    "Fixed a dashboard crash caused by malformed display connection metadata calling string methods on non-string values",
-    "Expanded Process Manager and Debloat installed-app icon coverage, fixed light-mode loading spinners and active navigation rings, and cleaned up the startup score gauge"
+    "Made NIC Tuning capability-aware: unsupported Wi-Fi and adapter-specific settings are shown as unavailable instead of exposing unusable controls",
+    "Added fail-safe NIC apply and reset handling with native readback verification, driver-lock reporting, and explicit unsupported-driver messages",
+    "Reconstructed ownership records for confirmed active tweaks after local AppData loss without guessing unknown baselines",
+    "Stopped missing or corrupt DNS backups from reporting false-success reverts and repaired missing signatures for already-bound devices",
+    "Removed unreachable duplicate premium-revert execution logic so the Electron ownership pipeline remains the single authoritative expiry path"
   ]
 }
