@@ -58,3 +58,4 @@
 - [Electron offline auth boundary](electron-offline-auth-boundary.md) — loopback Electron requests use the renderer identity plus local entitlement headers when no cloud DB exists; native focus must resume telemetry.
 - [Premium revert cycle guard](premium-revert-cycle-guard.md) — automatic expiry reverts run once per inactive entitlement cycle; retained failures require explicit Retry.
 - [Electron packaged bundle verification](electron-packaged-bundle-verification.md) — web workflow restarts do not update installed Windows renderer; verify a fresh packaged build.
+- [Timer resolution single control](timer-resolution-single-control.md) — Global Timer Resolution and System Timer Resolution are two live views of one request; sync UI and keeper process.

@@ -343,10 +343,14 @@ export function useTweakExecutor() {
       // slot so both UI surfaces and the issue detector stay consistent.
       if (tweakId === TIMER_TOGGLE_ID) {
         const { setSliderValue } = useStore.getState();
-        setSliderValue(
-          TIMER_SLIDER_ID,
-          action === 'apply' ? TIMER_SLIDER_APPLIED : TIMER_SLIDER_DEFAULT,
-        );
+        const timerValue = action === 'apply' ? TIMER_SLIDER_APPLIED : TIMER_SLIDER_DEFAULT;
+        setSliderValue(TIMER_SLIDER_ID, timerValue);
+        // The slider card owns local React state in addition to Zustand. Notify
+        // it immediately so switching the toggle never leaves the slider card
+        // showing the old value until it remounts.
+        window.dispatchEvent(new CustomEvent('sc:slider-state-changed', {
+          detail: { sliderId: TIMER_SLIDER_ID, value: timerValue },
+        }));
       }
 
       toast({

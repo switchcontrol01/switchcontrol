@@ -908,12 +908,31 @@ async function revertAllPremiumSliders() {
   return { success: true, reverted, failed };
 }
 
+/**
+ * Stop the shared timer-resolution keeper used by the slider surface.
+ * The toggle surface has its own agent, so disabling either surface must
+ * release both possible holders before the other surface reports "off".
+ */
+function stopTimerResolutionKeeper() {
+  try {
+    if (!fs.existsSync(TIMER_RESOLUTION_STATE_FILE)) return;
+    const state = JSON.parse(fs.readFileSync(TIMER_RESOLUTION_STATE_FILE, 'utf8'));
+    if (state?.pid) {
+      try { process.kill(state.pid); } catch {}
+    }
+    try { fs.unlinkSync(TIMER_RESOLUTION_STATE_FILE); } catch {}
+  } catch (err) {
+    console.warn('[SliderExecutor] stopTimerResolutionKeeper failed:', err.message);
+  }
+}
+
 module.exports = {
   readSliderValue,
   applySliderValue,
   verifySliderValue,
   resetSliderValue,
   revertAllPremiumSliders,
+  stopTimerResolutionKeeper,
   checkCrashSentinel,
   getSliderTweakMeta,
   SLIDER_TWEAKS,

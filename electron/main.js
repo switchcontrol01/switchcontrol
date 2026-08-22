@@ -4158,6 +4158,13 @@ public class DspHelper {
     }
   
     try {
+      // Both timer controls operate the same NtSetTimerResolution request.
+      // Release the slider keeper before applying the toggle, and before
+      // reverting the toggle, so the two agents can never leave contradictory
+      // live state behind.
+      if (tweakId === 'timer-res') {
+        sliderTweakExecutor.stopTimerResolutionKeeper();
+      }
       const result = await tweakExecutor.executeTweakWithOwnership(tweakId, action, options);
   
       // NetworkGuard: post-check and auto-rollback on ping regression

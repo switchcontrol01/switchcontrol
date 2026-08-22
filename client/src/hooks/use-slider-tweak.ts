@@ -325,6 +325,9 @@ export function useSliderTweak(tweakId: string, config: SliderConfig) {
         // issues reflect the real system state regardless of which surface was used.
         if (tweakId === TIMER_SLIDER_ID) {
           setTweak(TIMER_TOGGLE_ID, confirmedValue < TIMER_SLIDER_DEFAULT);
+          window.dispatchEvent(new CustomEvent('sc:timer-toggle-state-changed', {
+            detail: { enabled: confirmedValue < TIMER_SLIDER_DEFAULT },
+          }));
         }
         setState(s => ({
           ...s,
@@ -391,6 +394,9 @@ export function useSliderTweak(tweakId: string, config: SliderConfig) {
         // resolution request — mirror that into the toggle so it shows as "off".
         if (tweakId === TIMER_SLIDER_ID) {
           setTweak(TIMER_TOGGLE_ID, false);
+          window.dispatchEvent(new CustomEvent('sc:timer-toggle-state-changed', {
+            detail: { enabled: false },
+          }));
         }
         setState(s => ({
           ...s,
