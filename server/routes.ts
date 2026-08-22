@@ -903,6 +903,7 @@ export async function registerRoutes(
     try {
       const cloudUser = req.cloudUser!;
       const deviceId = req.headers["x-device-id"] as string | undefined;
+      const clientSignature = req.headers["x-device-signature"] as string | undefined;
       const appVersion = (req.headers["x-app-version"] as string | undefined)?.slice(0, 64);
       const platform = (req.headers["x-platform"] as string | undefined)?.slice(0, 32);
       // Permanent hardware fingerprint (64-char SHA-256 hex) — recorded on device
@@ -955,6 +956,17 @@ export async function registerRoutes(
       }
 
       if (user.premiumBoundDeviceId === deviceId) {
+        // Correct device. A wiped local device-signature.json means the client
+        // cannot authenticate subsequent protected requests. Reissue the
+        // deterministic signature only after the device ID has matched the
+        // stored premium binding; never use a missing signature to establish a
+        // new binding or bypass the active-device lock.
+        if (!clientSignature || !user.deviceSignature) {
+          const signature = generateDeviceSignature(cloudUser.id, deviceId);
+          await storage.updatePremiumDeviceSignature(cloudUser.id, signature);
+          console.log(`[DeviceBinding] Signature repaired | user=${cloudUser.id} | device=${deviceId} | sig=${signature.substring(0, 8)}...`);
+          return res.json({ status: "ok", isFirstBind: false, deviceSignature: signature, signatureRepaired: true, legacyMigrated });
+        }
         // Correct device — already updated above
         console.log(`[DeviceBinding] Valid | user=${cloudUser.id} | device=${deviceId}`);
         return res.json({ status: "ok", isFirstBind: false, legacyMigrated });

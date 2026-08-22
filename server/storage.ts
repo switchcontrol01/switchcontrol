@@ -84,6 +84,7 @@ export interface IStorage {
 
   // Device binding
   bindPremiumDevice(userId: string, deviceId: string, signature?: string, meta?: { appVersion?: string; platform?: string; fingerprint?: string | null }): Promise<User>;
+  updatePremiumDeviceSignature(userId: string, signature: string): Promise<User>;
   clearPremiumDevice(userId: string): Promise<User>;
   findUserByBoundDeviceId(deviceId: string): Promise<User | undefined>;
   findUsersByDeviceId(deviceId: string): Promise<User[]>;
@@ -329,6 +330,10 @@ class MockStorage implements IStorage {
   }
 
   async bindPremiumDevice(_userId: string, _deviceId: string, _signature?: string, _meta?: { appVersion?: string; platform?: string }): Promise<User> {
+    throw new Error("Database not available in NO-DB mode");
+  }
+
+  async updatePremiumDeviceSignature(_userId: string, _signature: string): Promise<User> {
     throw new Error("Database not available in NO-DB mode");
   }
 
@@ -929,6 +934,15 @@ export class DatabaseStorage implements IStorage {
       .returning();
     // Permanently record this device binding in device_records
     this.upsertDeviceRecord(userId, deviceId, meta).catch(() => {});
+    return updated;
+  }
+
+  async updatePremiumDeviceSignature(userId: string, signature: string): Promise<User> {
+    const [updated] = await db!
+      .update(users)
+      .set({ deviceSignature: signature, updatedAt: new Date() })
+      .where(eq(users.id, userId))
+      .returning();
     return updated;
   }
 
