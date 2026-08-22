@@ -17,4 +17,4 @@ logs/
 .config/
 .cache/
 attached_assets/
-screenshots/
+screenshots/electron/native/sc_memory/target/
