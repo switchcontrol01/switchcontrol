@@ -88,6 +88,7 @@ export interface ProcessTrustItem {
   signed: boolean | null;
   signerName: string | null;
   publisher: string | null;
+  unsignedExecutable?: boolean;
   elevated: boolean | null;
 }
 

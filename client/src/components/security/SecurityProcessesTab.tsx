@@ -35,6 +35,7 @@ const GAMING_IMPACT = {
 };
 
 function trustReason(p: ProcessTrustItem): string {
+  if (p.unsignedExecutable) return "Executable is unsigned and runs outside a standard Windows or Program Files path";
   if (p.suspiciousLocation) return "Executable is in a suspicious or user-writable location";
   if (p.trustState === "trusted") return "Path is in a known safe system directory";
   if (p.trustState === "review") return "Not in a standard Windows or Program Files path";
@@ -119,6 +120,18 @@ function ProcessRow({ process, hasSecurity }: { process: ProcessTrustItem; hasSe
                   <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">RAM</p>
                   <p className="text-xs font-mono">{memDisplay}</p>
                 </div>
+                <div>
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Code Signature</p>
+                  <p className={cn("text-xs font-medium", process.signed === true ? "text-emerald-400" : process.signed === false ? "text-red-400" : "text-zinc-400")}>
+                    {process.signed === true ? "Valid signature" : process.signed === false ? "Unsigned" : "Unknown"}
+                  </p>
+                </div>
+                {process.signerName && (
+                  <div className="col-span-2">
+                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Signer</p>
+                    <p className="text-xs text-foreground/75 break-all">{process.signerName}</p>
+                  </div>
+                )}
                 {process.parentPid && (
                   <div>
                     <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Parent PID</p>
