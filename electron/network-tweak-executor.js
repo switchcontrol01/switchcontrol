@@ -1083,8 +1083,12 @@ async function revertDnsServers() {
 
   const command = [
     `$backupPath = '${safeBackup}'`,
-    `if (-not (Test-Path $backupPath)) { Write-Output "ok"; exit }`,
-    `try { $backup = Get-Content $backupPath -Raw | ConvertFrom-Json } catch { Remove-Item $backupPath -Force -EA SilentlyContinue; Write-Output "ok"; exit }`,
+    // Never reset every adapter to DHCP when the backup is gone: the user may
+    // have intentionally configured static, VPN, enterprise, or filtered DNS.
+    // Throw before touching Windows so the caller can report an inconclusive
+    // revert rather than falsely claiming the original values were restored.
+    `if (-not (Test-Path $backupPath)) { throw "DNS_BACKUP_MISSING" }`,
+    `try { $backup = Get-Content $backupPath -Raw | ConvertFrom-Json } catch { throw "DNS_BACKUP_INVALID" }`,
     `foreach ($entry in $backup) {`,
     `  $addrs = if ($entry.dns) { $entry.dns -split ',' | Where-Object { $_ } } else { @() }`,
     `  if ($addrs.Count -gt 0) {`,
@@ -1098,9 +1102,27 @@ async function revertDnsServers() {
   ].join('; ');
 
   try {
-    return await runElevated(command);
+    const result = await runElevated(command);
+    if (result?.ok) return { ok: true, success: true, verified: true, error: null };
+    if (result?.error === 'DNS_BACKUP_MISSING') {
+      return {
+        ok: false,
+        success: false,
+        inconclusive: true,
+        error: 'No DNS backup found — cannot confirm original values, nothing was reverted.',
+      };
+    }
+    if (result?.error === 'DNS_BACKUP_INVALID') {
+      return {
+        ok: false,
+        success: false,
+        inconclusive: true,
+        error: 'DNS backup is invalid — cannot confirm original values, nothing was reverted.',
+      };
+    }
+    return { ...result, ok: false, success: false };
   } catch (e) {
-    return { ok: false, error: e.message };
+    return { ok: false, success: false, inconclusive: true, error: e.message };
   }
 }
 
