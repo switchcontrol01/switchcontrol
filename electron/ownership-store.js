@@ -180,6 +180,24 @@ function getOwnershipRecord(scopeKey) {
 }
 
 /**
+ * Ensure an ownership record exists without claiming a baseline.
+ *
+ * Used when startup reconciliation finds an active system tweak after the
+ * local ownership file was lost. The app can prove the tweak is active, but
+ * cannot prove what value existed before SwitchControl touched it. Keeping
+ * baselineCaptured=false makes exact-value revert paths fail safe.
+ */
+function ensureRecord(scopeKey, fields) {
+  const data = loadOwnership();
+  if (data.items[scopeKey]) return data.items[scopeKey];
+  const record = defaultRecord(scopeKey, fields.itemType, fields.itemId, fields.adapterName);
+  data.items[scopeKey] = record;
+  saveOwnership(data);
+  console.warn(`[OwnershipStore] created ownership record without baseline: ${scopeKey}`);
+  return record;
+}
+
+/**
  * Capture the baseline for a scope key.
  *
  * IMMUTABLE FIRST-CAPTURE: if a baseline is already stored for this scope key
@@ -329,6 +347,7 @@ module.exports = {
   recordApply,
   recordRevert,
   getOwnershipRecord,
+  ensureRecord,
   getAllAppOwned,
   getAllRecords,
   beginBatch,
