@@ -892,7 +892,9 @@ function NetworkTweaksContent() {
         }
         addToast(tweak.id, result.success, result.message);
         if (result.success) {
-          logHistory(`Network: ${tweak.name}`, "Network", action === "enable" ? "Applied" : "Reverted", `Tweak ID: ${tweak.id}`);
+          logHistory(`Network: ${tweak.name}`, "Network", action === "enable" ? "Applied" : "Reverted", `Tweak ID: ${tweak.id}`, {
+            category: "network", targetId: tweak.id, reversible: true,
+          });
           const mainStore = useStore.getState();
           if (tweak.id === "tcp-nagle") {
             mainStore.setTweak("tcp-no-delay", action === "enable");
@@ -967,7 +969,9 @@ function NetworkTweaksContent() {
           [tweak.id]: { status: stagedStatus, message: msg },
         }));
         addToast(tweak.id, true, msg);
-        logHistory(`Network: ${tweak.name}`, "Network", action === "enable" ? "Applied" : "Reverted", `Tweak ID: ${tweak.id}`);
+        logHistory(`Network: ${tweak.name}`, "Network", action === "enable" ? "Applied" : "Reverted", `Tweak ID: ${tweak.id}`, {
+          category: "network", targetId: tweak.id, reversible: true,
+        });
         const mainStore = useStore.getState();
         if (tweak.id === "tcp-nagle") {
           mainStore.setTweak("tcp-no-delay", action === "enable");

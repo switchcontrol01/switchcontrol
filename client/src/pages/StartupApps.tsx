@@ -227,6 +227,18 @@ export default function StartupApps() {
           `folder: ${app.entry.folderPath ?? ""}`,
           `was: ${enabled ? "enabled" : "disabled"}`,
         ].join("|"),
+        {
+          category: "startup",
+          targetId: app.entry.id,
+          restoreTarget: {
+            source: app.entry.source,
+            registryName: app.entry.registryName ?? null,
+            taskPath: app.entry.taskPath ?? null,
+            folderPath: app.entry.folderPath ?? null,
+            enabled: !enabled,
+          },
+          reversible: true,
+        },
       );
       toast({ title: `${app.entry.name} ${enabled ? "enabled" : "disabled"}`, variant: "default" });
     } catch (e: any) {
@@ -247,7 +259,8 @@ export default function StartupApps() {
     }
     logHistory(
       `Startup: Optimized — ${recs.length} app${recs.length > 1 ? "s" : ""} disabled`,
-      "Startup", "Optimized", recs.map(a => a.entry.name).join(", ")
+      "Startup", "Optimized", recs.map(a => a.entry.name).join(", "),
+      { category: "summary", reversible: false, reason: "Use the individual startup entries above to revert each app." }
     );
     toast({ title: `Optimized — ${recs.length} app${recs.length > 1 ? "s" : ""} disabled` });
   }, [apps, toggleEntry, toast]);

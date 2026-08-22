@@ -1116,7 +1116,9 @@
             restorePointCreated: false,
           } : p);
           fetchHistory();
-          logHistory(`Debloat: ${data.successCount} item${data.successCount !== 1 ? "s" : ""} removed`, "Debloat", data.failCount > 0 ? "Partial" : "Removed", `${data.successCount} removed, ${skipped} skipped, ${data.failCount} failed`);
+          logHistory(`Debloat: ${data.successCount} item${data.successCount !== 1 ? "s" : ""} removed`, "Debloat", data.failCount > 0 ? "Partial" : "Removed", `${data.successCount} removed, ${skipped} skipped, ${data.failCount} failed`, {
+            category: "non-revertible", reversible: false, reason: "Destructive debloat changes require the supported Restore flow.",
+          });
           // eslint-disable-next-line no-console
           console.log(`[DebloatApply] complete removed=${data.successCount} skipped=${skipped} failed=${data.failCount}`);
   

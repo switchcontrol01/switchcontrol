@@ -933,7 +933,8 @@ export function InstalledAppsPanel() {
           `Uninstalled ${app.name}`,
           "Debloat",
           "Removed from Installed Apps",
-          app.publisher ? `Publisher: ${app.publisher}` : undefined
+          app.publisher ? `Publisher: ${app.publisher}` : undefined,
+          { category: "non-revertible", reversible: false, reason: "Installed-app uninstall has no supported in-app restore target." }
         );
         cloudApiPost("/debloat/apps/log", {
           appName: app.name, publisher: app.publisher,

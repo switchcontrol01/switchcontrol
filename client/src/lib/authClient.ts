@@ -56,9 +56,15 @@ async function getDeviceHeaders(): Promise<Record<string, string>> {
 // ── refreshEntitlements ───────────────────────────────────────────────────────
 // Deduplicates concurrent calls — only one /api/me can be in flight at a time.
 
-let _refreshInFlight: Promise<{ user: AuthUser | null }> | null = null;
+export interface EntitlementRefreshResult {
+  user: AuthUser | null;
+  /** True only when /api/me returned an authoritative cloud result. */
+  verified: boolean;
+}
 
-export async function refreshEntitlements(): Promise<{ user: AuthUser | null }> {
+let _refreshInFlight: Promise<EntitlementRefreshResult> | null = null;
+
+export async function refreshEntitlements(): Promise<EntitlementRefreshResult> {
   if (_refreshInFlight) {
     if (isDebug) console.log('[AuthClient] refreshEntitlements deduped — returning in-flight');
     return _refreshInFlight;
@@ -80,7 +86,7 @@ export async function refreshEntitlements(): Promise<{ user: AuthUser | null }> 
       // Stale-response guard: if a logout happened while this was in-flight, discard.
       if (currentMeGeneration() !== generationAtStart) {
         if (isDebug) console.log('[AuthClient] refreshEntitlements: stale — generation changed, discarding');
-        return { user: null };
+        return { user: null, verified: false };
       }
 
       if (!resp.ok) {
@@ -88,12 +94,12 @@ export async function refreshEntitlements(): Promise<{ user: AuthUser | null }> 
           // Cloud explicitly rejected — deterministic logged-out state
           if (isDebug) console.log('[AuthClient] refreshEntitlements: 401 → logout');
           useAuthStore.getState().logout();
-          return { user: null };
+          return { user: null, verified: true };
         }
         if (isDebug) {
           console.warn(`[AuthClient] refreshEntitlements: HTTP ${resp.status} — preserving cached`);
         }
-        return { user: cachedUser };
+        return { user: cachedUser, verified: false };
       }
 
       const data = await resp.json();
@@ -106,7 +112,7 @@ export async function refreshEntitlements(): Promise<{ user: AuthUser | null }> 
       if (data.loggedIn === false) {
         if (isDebug) console.log('[AuthClient] /api/me loggedIn=false → logout');
         useAuthStore.getState().logout();
-        return { user: null };
+        return { user: null, verified: true };
       }
 
       const user = normalizeApiMeUser(data, cachedUser);
@@ -116,12 +122,12 @@ export async function refreshEntitlements(): Promise<{ user: AuthUser | null }> 
           `[AuthTruth] source=cloud userId=${user.id} isPremium=${user.isPremium} plan=${user.plan} verified=true`,
         );
       }
-      return { user };
+      return { user, verified: true };
     } catch (err) {
       if (isDebug) {
         console.warn('[AuthClient] refreshEntitlements network error — preserving cached:', (err as Error).message);
       }
-      return { user: cachedUser };
+      return { user: cachedUser, verified: false };
     }
   })();
 

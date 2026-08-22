@@ -1,4 +1,5 @@
 import { useStore } from "@/lib/store";
+import { encodeHistoryNotes, HistoryMetadata } from "@/lib/historyContract";
 
 /**
  * Log an action to BOTH the local Zustand history store (immediately visible
@@ -11,12 +12,14 @@ export function logHistory(
   action: string,
   page: string,
   result: string = "Applied",
-  notes?: string
+  notes?: string,
+  metadata?: HistoryMetadata
 ): void {
-  useStore.getState().applyAction(action, page, result, notes);
+  const encodedNotes = encodeHistoryNotes(notes, metadata);
+  useStore.getState().applyAction(action, page, result, encodedNotes);
   fetch("/api/history", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ action, page, result, notes }),
+    body: JSON.stringify({ action, page, result, notes: encodedNotes }),
   }).catch(() => {});
 }

@@ -35,7 +35,7 @@ export function useEntitlementRefresh(options: UseEntitlementRefreshOptions = {}
         refreshEntitlements(),
         _fetchEntitlementFeatures(),
       ]);
-      if (result?.user) {
+      if (result?.verified && result.user) {
         setVerified(result.user.isPremium, result.user.plan ?? null, result.user.id ?? null, features);
         console.log(`[Premium] Grace snapshot saved — isPremium=${result.user.isPremium} features=${!!features}`);
 
@@ -51,6 +51,8 @@ export function useEntitlementRefresh(options: UseEntitlementRefreshOptions = {}
         } catch {
           // Non-fatal — worst case the flag stays until the next successful auth
         }
+      } else if (!result?.verified) {
+        console.warn('[Entitlement] refresh was not verified — cached entitlement snapshot unchanged');
       }
     } catch (err) {
       console.error('[Entitlement] Refresh failed:', err);

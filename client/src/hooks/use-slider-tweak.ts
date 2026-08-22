@@ -3,6 +3,7 @@ import { useToast } from '@/hooks/use-toast';
 import { isElectronWithTweaks } from '@/hooks/use-tweak-executor';
 import { SliderConfig, SliderPreset } from '@/lib/mock-data';
 import { useStore } from '@/lib/store';
+import { logHistory } from '@/lib/logHistory';
 
 // ── Cross-tweak sync constants ────────────────────────────────────────────────
 // timer-res (toggle) and timer-resolution-slider (slider) both control the same
@@ -310,6 +311,7 @@ export function useSliderTweak(tweakId: string, config: SliderConfig) {
           return;
         }
         const confirmedValue = result.actualValue ?? valueToApply;
+        const restoreValue = state.currentValue;
         // Persist confirmed value — survives app restarts and busy-limiter fallback.
         setSliderValue(tweakId, confirmedValue);
         if (tweakId === 'net-throttle-index') {
@@ -340,6 +342,10 @@ export function useSliderTweak(tweakId: string, config: SliderConfig) {
         toast({
           title:       'Setting Applied',
           description: `Value set to ${valueToApply} and verified on your system.`,
+        });
+        logHistory(`Slider: ${tweakId}`, "Tweaks", "Applied", `Tweak ID: ${tweakId} | Value: ${confirmedValue}`, {
+          category: "slider", targetId: tweakId, restoreValue, reversible: restoreValue !== null,
+          reason: restoreValue === null ? "No prior slider value was available." : undefined,
         });
         scheduleResultDismiss();
       } else {

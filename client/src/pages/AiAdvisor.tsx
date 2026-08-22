@@ -2537,6 +2537,9 @@ export default function AiAdvisor() {
       // Sync the applied state to the global tweak store so the Tweaks page shows it as on
       const store = useStore.getState();
       store.setTweak(tweakId, true);
+        logHistory(`AI Advisor: Applied ${tweak.title}`, "AI Advisor", "Applied", `Tweak ID: ${tweakId}`, {
+          category: "tweak", targetId: tweakId, reversible: true,
+        });
 
       setMessages(prev => [...prev, {
         id: `applied-${Date.now()}`, role: "system" as const,
@@ -2563,7 +2566,14 @@ export default function AiAdvisor() {
     const failCount = results?.filter(r => !r.outcome.success).length ?? 0;
     console.log(`[AI:APPLY] batch complete — ${successCount} applied, ${failCount} failed`);
     if (successCount > 0) {
-      logHistory(`AI Advisor: Applied ${successCount} Recommendation${successCount !== 1 ? "s" : ""}`, "AI Advisor", failCount > 0 ? "Partial" : "Applied", `${successCount} applied, ${failCount} failed`);
+      results?.filter(r => r.outcome.success).forEach(({ rec }) => {
+        logHistory(`AI Advisor: Applied ${rec.tweakId}`, "AI Advisor", "Applied", `Tweak ID: ${rec.tweakId}`, {
+          category: "tweak", targetId: rec.tweakId, reversible: true,
+        });
+      });
+      logHistory(`AI Advisor: Applied ${successCount} Recommendation${successCount !== 1 ? "s" : ""}`, "AI Advisor", failCount > 0 ? "Partial" : "Applied", `${successCount} applied, ${failCount} failed`, {
+        category: "summary", reversible: false, reason: "Use the individual recommendation entries to revert applied tweaks.",
+      });
     }
   }, []);
 

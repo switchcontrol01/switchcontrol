@@ -3,6 +3,7 @@ import { useToast } from '@/hooks/use-toast';
 import { isElectronWithTweaks } from '@/hooks/use-tweak-executor';
 import { PresetConfig, PresetOption } from '@/lib/tweak-registry';
 import { useStore } from '@/lib/store';
+import { logHistory } from '@/lib/logHistory';
 
 function getPresetAPI() {
   return (window as any).electronAPI?.presetTweaks;
@@ -204,6 +205,7 @@ export function usePresetTweak(tweakId: string, config: PresetConfig) {
           toast({ title: 'Apply Unverified', description: msg, variant: 'destructive' });
           return;
         }
+        const restoreOptionId = state.currentOptionId;
         setPresetOption(tweakId, readback.optionId);
         setState(s => ({
           ...s,
@@ -215,6 +217,10 @@ export function usePresetTweak(tweakId: string, config: PresetConfig) {
         }));
         const label = config.options.find(o => o.id === optionToApply)?.label ?? optionToApply;
         toast({ title: 'Profile Applied', description: `${label} applied and verified on your system.` });
+        logHistory(`Preset: ${label}`, "Tweaks", "Applied", `Tweak ID: ${tweakId} | Option: ${optionToApply}`, {
+          category: "preset", targetId: tweakId, restoreValue: restoreOptionId, reversible: restoreOptionId !== null,
+          reason: restoreOptionId === null ? "No prior preset value was available." : undefined,
+        });
         scheduleResultDismiss();
       } else {
         setState(s => ({

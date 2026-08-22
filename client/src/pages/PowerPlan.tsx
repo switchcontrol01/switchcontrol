@@ -1038,7 +1038,10 @@ export default function PowerPlan() {
         );
       }
 
-      logHistory(`Power Plan: ${profile.name}`, "Power Plan", "Applied", `Match: ${match} | prev: ${prevName} | prevGuid: ${prevGuid}`);
+      logHistory(`Power Plan: ${profile.name}`, "Power Plan", "Applied", `Match: ${match} | prev: ${prevName} | prevGuid: ${prevGuid}`, {
+        category: "power-plan", targetId: result.activeScheme?.guid ?? profile.backendId,
+        restoreValue: prevGuid || null, restoreTarget: { guid: prevGuid || null, name: prevName }, reversible: !!prevGuid,
+      });
     } catch (e: any) {
       toast({ title: "Error", description: e?.message ?? "Unexpected error.", variant: "destructive" });
     } finally {
@@ -1097,7 +1100,10 @@ export default function PowerPlan() {
         setPrevProfileId(capturedPrev);
         setShowComparison(true);
         toast({ title: "Custom Plan Applied", description: `"${result.name}" is now active in Windows.` });
-        logHistory(`Power Plan: ${result.name} (Custom)`, "Power Plan", "Applied", "Custom power profile created and activated");
+         logHistory(`Power Plan: ${result.name} (Custom)`, "Power Plan", "Applied", "Custom power profile created and activated", {
+           category: "power-plan", targetId: result.guid, restoreValue: prevGuidCustom || null,
+           restoreTarget: { guid: prevGuidCustom || null, name: prevNameCustom }, reversible: !!prevGuidCustom,
+         });
 
         // Record ownership so the revert engine can clean up on trial expiry.
         // Only record if the GUID actually changed (plan switched, not a re-apply).

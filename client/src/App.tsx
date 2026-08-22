@@ -788,7 +788,7 @@ function ElectronAppContent() {
           "[PremiumTruth] entitlement fetch result — isPremium:",
           result.user?.isPremium ?? "null (no user)",
         );
-        if (result.user) {
+        if (result.verified && result.user) {
           setEntitlementsOk(true);
           setEntitlementsVerified(true);
           usePremiumGraceStore
@@ -804,7 +804,7 @@ function ElectronAppContent() {
             "plan:",
             result.user.plan,
           );
-        } else {
+        } else if (result.verified) {
           console.warn(
             "[Entitlements] server returned no user — checking grace store for fallback",
           );
@@ -823,6 +823,13 @@ function ElectronAppContent() {
               "[Entitlements] grace store expired/unavailable — showing free state",
             );
           }
+        } else {
+          console.warn(
+            "[Entitlements] cloud verification unavailable — preserving prior verification state",
+          );
+          console.warn(
+            "[PremiumTruth] cached user preserved, entitlement verification unchanged",
+          );
         }
       })
       .catch((err) => {
@@ -834,13 +841,8 @@ function ElectronAppContent() {
         console.warn(
           "[PremiumTruth] entitlement fetch failed — checking grace store fallback",
         );
-        const graceStatus = usePremiumGraceStore.getState().getStatus(true);
-        if (graceStatus === "active" || graceStatus === "grace") {
-          console.log(
-            "[Entitlements] grace fallback on error — entitlementsVerified set",
-          );
-          setEntitlementsVerified(true);
-        }
+         // Do not promote a grace snapshot after an unexpected refresh error.
+         // The prior verification state is intentionally preserved unchanged.
       })
       .finally(() => {
         if (!mounted) return;
@@ -1696,7 +1698,7 @@ function ElectronAppContent() {
         "[PremiumTruth] modal-triggered entitlement fetch result — isPremium:",
         result.user?.isPremium ?? "null (no user)",
       );
-      if (result.user) {
+      if (result.verified && result.user) {
         setEntitlementsOk(true);
         setEntitlementsVerified(true);
         usePremiumGraceStore
@@ -1709,7 +1711,7 @@ function ElectronAppContent() {
         console.log(
           "[Entitlements] manual refresh — grace store updated, UI unlocked",
         );
-      } else {
+      } else if (result.verified) {
         console.warn(
           "[Entitlements] manual refresh — server returned no user, checking grace store",
         );
@@ -1723,9 +1725,11 @@ function ElectronAppContent() {
             "[Entitlements] manual refresh — grace fallback active, entitlementsVerified set",
           );
           setEntitlementsVerified(true);
-        } else {
-          setEntitlementsVerified(false);
         }
+      } else {
+        console.warn(
+          "[Entitlements] manual refresh was not cloud-verified — preserving prior verification state",
+        );
       }
       return result;
     } finally {

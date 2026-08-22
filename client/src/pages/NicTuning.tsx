@@ -382,7 +382,9 @@ function PropertyControl({ adapterName, propKey, meta, capability, onValueApplie
     setState(s => ({ ...s, applying: false, result: { ok: res.ok, outcome: (res.outcome ?? null) as NicOutcome | null, verified: res.verified ?? false, error: res.error, actualValue: res.actualValue } }));
     if (res.ok) {
       const verified = res.outcome === "write_succeeded_verified";
-      logHistory(`NIC Tuning: ${meta.label}`, "NIC Tuning", verified ? "Applied & Verified" : "Applied", `${propKey}=${state.pending} on ${adapterName}`);
+      logHistory(`NIC Tuning: ${meta.label}`, "NIC Tuning", verified ? "Applied & Verified" : "Applied", `${propKey}=${state.pending} on ${adapterName}`, {
+        category: "nic", targetId: `${adapterName}.${propKey}`, restoreTarget: { adapterName, propertyKey: propKey }, reversible: true,
+      });
       toast({ title: verified ? `${meta.label} Applied & Verified` : `${meta.label} Applied`, description: verified ? `Registry confirmed ${res.actualValue} on ${adapterName}.` : `Written to adapter. Readback pending driver confirmation.` });
       scheduleResultDismiss();
       // Patch parent capabilities map so isDirty resets and "Current:" label

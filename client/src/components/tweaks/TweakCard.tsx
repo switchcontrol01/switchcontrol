@@ -327,7 +327,9 @@ export function TweakCard({ tweak, isEnabled, onToggle, isVerifying = false, isH
       });
       if (outcome.success) {
         console.log(`[Tweaks:RESULT] id="${tweak.id}" success=true action=${action}`);
-        logHistory(`Tweaks: ${tweak.title}`, "Tweaks", action === "apply" ? "Applied" : "Reverted", `Tweak ID: ${tweak.id}`);
+        logHistory(`Tweaks: ${tweak.title}`, "Tweaks", action === "apply" ? "Applied" : "Reverted", `Tweak ID: ${tweak.id}`, {
+          category: "tweak", targetId: tweak.id, reversible: true,
+        });
         onToggle();
         commit(); // start the 3.5s settle window
       } else if (outcome.failureType) {

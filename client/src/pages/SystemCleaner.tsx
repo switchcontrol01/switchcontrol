@@ -750,7 +750,9 @@ export default function SystemCleaner() {
         loadHistory();
         const cleaned = fmtBytes(data.summary?.totalBytesRemoved ?? 0);
         const fileCount = data.summary?.totalFilesRemoved ?? 0;
-        logHistory(`Cleaner: ${cleaned} cleaned`, "Cleaner", data.summary?.errors > 0 ? "Partial" : "Cleaned", `${data.summary?.successCount ?? 0} items cleaned, ${fileCount} files removed`);
+        logHistory(`Cleaner: ${cleaned} cleaned`, "Cleaner", data.summary?.errors > 0 ? "Partial" : "Cleaned", `${data.summary?.successCount ?? 0} items cleaned, ${fileCount} files removed`, {
+          category: "non-revertible", reversible: false, reason: "Cleaner deletes files and has no restore backup.",
+        });
       }
     } catch { toast({ title: "Clean failed", variant: "destructive" }); }
     finally { setIsCleaning(false); }

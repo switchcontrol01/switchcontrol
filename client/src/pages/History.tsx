@@ -4,6 +4,7 @@ import { useStore } from "@/lib/store";
 import type { HistoryItem } from "@/lib/store";
 import { useToast } from "@/hooks/use-toast";
 import { logHistory } from "@/lib/logHistory";
+import { displayHistoryNotes, isValidTargetId, readHistoryMetadata } from "@/lib/historyContract";
 import { useAppModeStore } from "@/lib/appModeStore";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Button } from "@/components/ui/button";
@@ -271,7 +272,10 @@ function EventRow({ item, index }: { item: EnrichedItem; index: number }) {
   const mCfg = MODULE_CONFIG[item.module] ?? MODULE_CONFIG.History;
   const iCfg = IMPACT_CONFIG[item.impact];
 
-  const canRevert = item.status !== "reverted" && !item.action.toLowerCase().startsWith("reverted:");
+  const historyMeta = readHistoryMetadata(item);
+  const canRevert = item.status !== "reverted" &&
+    !item.action.toLowerCase().startsWith("reverted:") &&
+    historyMeta?.reversible !== false;
 
   const handleRevert = async () => {
     setReverting(true);
@@ -279,6 +283,55 @@ function EventRow({ item, index }: { item: EnrichedItem; index: number }) {
     // Helper: notify other pages that a revert happened so they can refresh.
     const notifyRevert = (page: string) =>
       window.dispatchEvent(new CustomEvent("sc:history-revert", { detail: { page } }));
+    const meta = readHistoryMetadata(item);
+    console.info(`[History] revert start entry=${item.id} category=${meta?.category ?? "legacy"} target=${meta?.targetId ?? "none"}`);
+
+    if (meta && meta.reversible !== false &&
+        ((meta.category === "tweak" || meta.category === "network" || meta.category === "slider" || meta.category === "preset") &&
+          (!isValidTargetId(meta.targetId) ||
+            ((meta.category === "slider" || meta.category === "preset") && meta.restoreValue == null)))) {
+      toast({ title: "Cannot revert", description: "This history entry has incomplete restore metadata.", variant: "destructive" });
+      setReverting(false);
+      return;
+    }
+
+    if (meta?.category === "slider" && isValidTargetId(meta.targetId) && typeof meta.restoreValue === "number") {
+      try {
+        const api = (window as any).electronAPI?.tweaks;
+        if (!api?.applyValue || !api?.readValue) throw new Error("Slider revert requires the desktop app.");
+        const result = await api.applyValue(meta.targetId, meta.restoreValue);
+        const readback = await api.readValue(meta.targetId);
+        if (!result?.ok || !result?.verified || readback?.value !== meta.restoreValue) {
+          throw new Error(result?.error ?? readback?.error ?? `Verification returned ${readback?.value ?? "no value"}.`);
+        }
+        notifyRevert("Tweaks");
+        toast({ title: "Slider reverted", description: `${meta.targetId} restored and verified.` });
+      } catch (e) {
+        toast({ title: "Revert failed", description: e instanceof Error ? e.message : "Could not restore slider.", variant: "destructive" });
+        setReverting(false);
+        return;
+      }
+    } else if (meta?.category === "preset" && isValidTargetId(meta.targetId) && typeof meta.restoreValue === "string") {
+      try {
+        const api = (window as any).electronAPI?.presetTweaks;
+        if (!api?.apply || !api?.getState) throw new Error("Preset revert requires the desktop app.");
+        const result = await api.apply(meta.targetId, meta.restoreValue);
+        const readback = await api.getState(meta.targetId);
+        if (!result?.ok || readback?.optionId !== meta.restoreValue) {
+          throw new Error(result?.error ?? readback?.error ?? `Verification returned ${readback?.optionId ?? "no option"}.`);
+        }
+        notifyRevert("Tweaks");
+        toast({ title: "Preset reverted", description: `${meta.targetId} restored and verified.` });
+      } catch (e) {
+        toast({ title: "Revert failed", description: e instanceof Error ? e.message : "Could not restore preset.", variant: "destructive" });
+        setReverting(false);
+        return;
+      }
+    } else if (meta?.reversible === false) {
+      toast({ title: "No revert available", description: meta.reason ?? "This action is not reversible.", variant: "destructive" });
+      setReverting(false);
+      return;
+    } else
 
     if (item.page === "Power Plan") {
       // ── Power Plan — restore previous GUID via activateByGuid ──────────────
@@ -292,7 +345,9 @@ function EventRow({ item, index }: { item: EnrichedItem; index: number }) {
 
       const eApi = (window as any).electronAPI;
       if (!eApi) {
-        toast({ title: "Action logged", description: `Run on Windows to apply — would switch back to ${prevName}` });
+        toast({ title: "Cannot revert", description: "History reverts require the Windows desktop app.", variant: "destructive" });
+        setReverting(false);
+        return;
       } else if (prevGuid) {
         try {
           // 1. Try activateByGuid (works for any Windows GUID including SC-managed ones)
@@ -305,6 +360,11 @@ function EventRow({ item, index }: { item: EnrichedItem; index: number }) {
             result = await eApi.powerPlans.applyProfile("balanced_gaming");
           }
           if (result?.success) {
+            const state = eApi.powerPlans?.getState ? await eApi.powerPlans.getState() : null;
+            const activeGuid = state?.activeScheme?.guid ?? state?.guid;
+            if (activeGuid && activeGuid.toLowerCase() !== prevGuid.toLowerCase()) {
+              throw new Error(`Verification returned active plan ${activeGuid}.`);
+            }
             notifyRevert("Power Plan");
             toast({ title: "Power Plan reverted", description: `Switched back to ${prevName}` });
           } else {
@@ -339,17 +399,25 @@ function EventRow({ item, index }: { item: EnrichedItem; index: number }) {
         try {
           const result = await eApi.networkTweaks.execute(tweakId, "revert");
           if (result?.success) {
+            const verify = eApi.networkTweaks.checkStatus ? await eApi.networkTweaks.checkStatus(tweakId) : null;
+            if (!verify || verify.error || verify.applied !== false) {
+              throw new Error(verify?.error ?? "Network tweak verification failed.");
+            }
             notifyRevert("Network");
             toast({ title: "Network tweak reverted", description: `${item.action} has been undone` });
           } else {
             toast({ title: "Revert failed", description: result?.message ?? "Could not revert network tweak", variant: "destructive" });
+            setReverting(false);
+            return;
           }
         } catch (e) {
           console.warn("[History] Network tweak revert IPC error:", e);
           toast({ title: "Revert failed", description: "Could not revert network tweak", variant: "destructive" });
         }
       } else {
-        toast({ title: "Action logged", description: "Run on Windows to apply the revert" });
+        toast({ title: "Cannot revert", description: "History reverts require the Windows desktop app.", variant: "destructive" });
+        setReverting(false);
+        return;
       }
 
     } else if (item.page === "Tweaks" && item.notes?.startsWith("Tweak ID: ")) {
@@ -360,7 +428,11 @@ function EventRow({ item, index }: { item: EnrichedItem; index: number }) {
       const eApi = (window as any).electronAPI;
       if (eApi?.tweaks?.execute) {
         try {
-          await eApi.tweaks.execute(tweakId, "revert");
+          const result = await eApi.tweaks.execute(tweakId, "revert");
+          const verify = eApi.tweaks.checkStatus ? await eApi.tweaks.checkStatus(tweakId) : null;
+          if (result?.success === false || !verify || verify.error || verify.applied !== false) {
+            throw new Error(result?.error ?? verify?.error ?? "Tweak verification failed.");
+          }
           notifyRevert("Tweaks");
           toast({ title: "Tweak reverted", description: `${item.action} reset to Windows default` });
         } catch (e) {
@@ -368,7 +440,9 @@ function EventRow({ item, index }: { item: EnrichedItem; index: number }) {
           toast({ title: "Revert failed", description: "Could not revert tweak", variant: "destructive" });
         }
       } else {
-        toast({ title: "Action logged", description: "Run on Windows to apply the revert" });
+        toast({ title: "Cannot revert", description: "History reverts require the Windows desktop app.", variant: "destructive" });
+        setReverting(false);
+        return;
       }
 
     } else if (item.page === "Settings") {
@@ -440,6 +514,16 @@ function EventRow({ item, index }: { item: EnrichedItem; index: number }) {
           }
           const result = await eApi.startup.setEnabled(params);
           if (result?.ok) {
+            if (eApi.startup.verifyState) {
+              const verify = await eApi.startup.verifyState({
+                name: appName,
+                registryKey: params.registryName,
+              });
+              const expectedState = revertEnabled ? "enabled" : "disabled";
+              if (verify?.ok === false || (verify?.state && verify.state !== expectedState)) {
+                throw new Error(verify?.error ?? "Startup state verification failed.");
+              }
+            }
             notifyRevert("Startup");
             toast({ title: "Startup reverted", description: `${appName} ${revertEnabled ? "enabled" : "disabled"}` });
           } else {
@@ -454,7 +538,9 @@ function EventRow({ item, index }: { item: EnrichedItem; index: number }) {
           return;
         }
       } else {
-        toast({ title: "Action logged", description: "Run on Windows to apply the revert" });
+        toast({ title: "Cannot revert", description: "History reverts require the Windows desktop app.", variant: "destructive" });
+        setReverting(false);
+        return;
       }
 
     } else if (item.page === "NIC Tuning") {
@@ -490,7 +576,9 @@ function EventRow({ item, index }: { item: EnrichedItem; index: number }) {
           return;
         }
       } else {
-        toast({ title: "Action logged", description: "Run on Windows to apply the revert" });
+        toast({ title: "Cannot revert", description: "History reverts require the Windows desktop app.", variant: "destructive" });
+        setReverting(false);
+        return;
       }
 
     } else {
@@ -510,7 +598,9 @@ function EventRow({ item, index }: { item: EnrichedItem; index: number }) {
       return;
     }
 
-    logHistory(`Reverted: ${item.action}`, item.page, "Reverted");
+    logHistory(`Reverted: ${item.action}`, item.page, "Reverted", undefined, {
+      category: "summary", reversible: false, reason: "This is a confirmation record.",
+    });
     setTimeout(() => setReverting(false), 800);
   };
 
@@ -557,7 +647,7 @@ function EventRow({ item, index }: { item: EnrichedItem; index: number }) {
           </div>
           <div className="text-[11px] text-muted-foreground mt-0.5 truncate">
             <span data-testid={`text-result-${index}`}>{item.result}</span>
-            {item.notes && <span className="opacity-60"> · {item.notes}</span>}
+            {item.notes && <span className="opacity-60"> · {displayHistoryNotes(item.notes)}</span>}
           </div>
         </div>
 
@@ -604,7 +694,7 @@ function EventRow({ item, index }: { item: EnrichedItem; index: number }) {
               {item.notes && (
                 <div className="col-span-2 sm:col-span-3 md:col-span-4">
                   <p className="text-[10px] uppercase tracking-wide text-muted-foreground/50 mb-0.5">Notes</p>
-                  <p className="text-xs text-muted-foreground">{item.notes}</p>
+                  <p className="text-xs text-muted-foreground">{displayHistoryNotes(item.notes)}</p>
                 </div>
               )}
               <div>
@@ -624,7 +714,7 @@ function EventRow({ item, index }: { item: EnrichedItem; index: number }) {
                   )}
                 >
                   <RotateCcw className={cn("size-3", reverting && "animate-spin")} />
-                  {item.status === "reverted" ? "Already reverted" : "Revert"}
+                  {item.status === "reverted" ? "Already reverted" : historyMeta?.reversible === false ? "Not reversible" : "Revert"}
                 </Button>
               </div>
             </div>

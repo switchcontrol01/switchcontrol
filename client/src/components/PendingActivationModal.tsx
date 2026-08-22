@@ -28,7 +28,7 @@ export function PendingActivationModal({ show, onUpgradeDetected, onDismiss }: P
     const result = await refreshEntitlements();
     if (!mountedRef.current) return false;
 
-    if (result.user?.isPremium) {
+    if (result.verified && result.user?.isPremium) {
       console.log('[PendingActivation] Premium detected!');
       setStatus('syncing');
       onUpgradeDetected();
