@@ -59,3 +59,4 @@
 - [Premium revert cycle guard](premium-revert-cycle-guard.md) — automatic expiry reverts run once per inactive entitlement cycle; retained failures require explicit Retry.
 - [Electron packaged bundle verification](electron-packaged-bundle-verification.md) — web workflow restarts do not update installed Windows renderer; verify a fresh packaged build.
 - [Timer resolution single control](timer-resolution-single-control.md) — Global Timer Resolution and System Timer Resolution are two live views of one request; sync UI and keeper process.
+- [Entitlement cache verification boundary](entitlement-cache-verification-boundary.md) — preserved cached users from failed /api/me calls must not be marked cloud-verified.
