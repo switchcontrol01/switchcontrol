@@ -190,7 +190,10 @@ function PanelBody({
             Installed
           </div>
           <div className="text-sm font-medium mt-1 break-words" data-testid="text-current-version">
-            {c.current ?? "Not detected"}
+            {c.current ??
+              (c.kind === "ssd" && c.device !== "Unknown drive"
+                ? "Device detected — firmware unavailable"
+                : "Not detected")}
           </div>
         </div>
         <div className="rounded-xl border border-white/8 bg-white/[0.02] p-3">

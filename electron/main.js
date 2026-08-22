@@ -2420,8 +2420,7 @@ try {
     Where-Object { $_.FriendlyName -notmatch 'enumerator|hub|root|port|hid|avrcp' } |
     ForEach-Object {
       if ($result['bluetooth']) { return }
-      $p = Get-PnpDeviceProperty -InstanceId $_.InstanceId `
-        -KeyName 'DEVPKEY_Device_DriverVersion' -EA SilentlyContinue
+      $p = Get-PnpDeviceProperty -InstanceId $_.InstanceId -KeyName 'DEVPKEY_Device_DriverVersion' -EA SilentlyContinue
       if ($p.Data) { $result['bluetooth'] = [string]$p.Data }
     }
 } catch {}
