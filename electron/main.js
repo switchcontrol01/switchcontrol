@@ -2381,6 +2381,23 @@ Read-DeviceClass $gcNet | ForEach-Object {
   elseif ($d -match 'ethernet|pci.*e[0-9]|killer|realtek.*pci|intel.*i[0-9]|i225|i226') { if (-not $result['ethernet']) { $result['ethernet'] = $v } }
 }
 
+# Get-NetAdapter is a second source for modern Windows drivers. It exposes the
+# actual InterfaceDescription and DriverVersion even when the legacy class key
+# has no usable DriverVersion value.
+try {
+  Get-NetAdapter -Physical -EA SilentlyContinue | ForEach-Object {
+    $d = [string]$_.InterfaceDescription
+    $v = [string]$_.DriverVersion
+    if (-not $v) { return }
+    if ($d -match 'wi-fi|wifi|wireless|wlan|802\\.11|fastconnect|airlink') {
+      if (-not $result['wifi']) { $result['wifi'] = $v }
+    }
+    elseif ($d -match 'ethernet|killer|realtek|intel.*i[0-9]|i225|i226') {
+      if (-not $result['ethernet']) { $result['ethernet'] = $v }
+    }
+  }
+} catch {}
+
 # ── Audio / Media (Media class) ───────────────────────────────────────────────
 $gcMedia = 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Class\\{4d36e96c-e325-11ce-bfc1-08002be10318}'
 Read-DeviceClass $gcMedia | ForEach-Object {
@@ -2394,6 +2411,20 @@ Read-DeviceClass $gcBt | ForEach-Object {
   $d = $_.Desc; $v = $_.Version
   if ($d -match 'bluetooth') { if (-not $result['bluetooth']) { $result['bluetooth'] = $v } }
 }
+
+# Modern Bluetooth drivers are also exposed by the PnP Manager. This fallback
+# reads the documented DEVPKEY driver-version property directly from each
+# active Bluetooth device, instead of depending on the class registry value.
+try {
+  Get-PnpDevice -Class Bluetooth -Status OK -EA SilentlyContinue |
+    Where-Object { $_.FriendlyName -notmatch 'enumerator|hub|root|port|hid|avrcp' } |
+    ForEach-Object {
+      if ($result['bluetooth']) { return }
+      $p = Get-PnpDeviceProperty -InstanceId $_.InstanceId `
+        -KeyName 'DEVPKEY_Device_DriverVersion' -EA SilentlyContinue
+      if ($p.Data) { $result['bluetooth'] = [string]$p.Data }
+    }
+} catch {}
 
 # ── Chipset / System devices ──────────────────────────────────────────────────
 # Chipset packages install several System-class devices rather than one
@@ -2411,6 +2442,25 @@ $chipCandidates | ForEach-Object {
   elseif ($d -match 'intel|smbus|chipset|serial io|management engine|mei') {
     if (-not $result['intel_chipset']) { $result['intel_chipset'] = $v }
   }
+}
+
+# ── Storage / disk firmware ───────────────────────────────────────────────────
+# Windows does not guarantee a universal SSD firmware property. When the
+# storage stack does expose it, use it; otherwise the UI remains explicit that
+# the vendor utility is required rather than displaying a fabricated version.
+try {
+  Get-PhysicalDisk -EA SilentlyContinue | ForEach-Object {
+    $v = [string]$_.FirmwareVersion
+    if ($v -and -not $result['storage']) { $result['storage'] = $v }
+  }
+} catch {}
+if (-not $result['storage']) {
+  try {
+    Get-CimInstance Win32_DiskDrive -EA SilentlyContinue | ForEach-Object {
+      $v = [string]$_.FirmwareRevision
+      if ($v -and -not $result['storage']) { $result['storage'] = $v }
+    }
+  } catch {}
 }
 
 # ── NVIDIA canonical version via nvidia-smi (overrides WHQL registry string) ─
