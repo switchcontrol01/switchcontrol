@@ -327,6 +327,65 @@ async function upsertCache(
 
 let lastRunAt: Date | null = null;
 let lastRunResults: Record<string, "ok" | "error"> = {};
+/**
+ * Keeps a successful refresh usable when the optional persistence table is
+ * unavailable (Electron/no-DB mode, or a deployment waiting for migration).
+ * The database remains the durable source whenever it is available.
+ */
+const runtimeFetchCache = new Map<string, DriverFetchCache>();
+let cachePersistenceUnavailable = false;
+
+function cacheKey(category: string, vendorKey: string): string {
+  return `${category}:${vendorKey}`;
+}
+
+function runtimeRow(
+  category: string,
+  vendorKey: string,
+  values: Partial<Pick<DriverFetchCache, "latest" | "releaseDate" | "releaseNotes" | "source" | "error">>,
+): DriverFetchCache {
+  const previous = runtimeFetchCache.get(cacheKey(category, vendorKey));
+  const row = {
+    id: previous?.id ?? `runtime-${category}-${vendorKey}`,
+    category,
+    vendorKey,
+    latest: values.latest ?? previous?.latest ?? null,
+    releaseDate: values.releaseDate ?? previous?.releaseDate ?? null,
+    releaseNotes: values.releaseNotes ?? previous?.releaseNotes ?? null,
+    source: values.source ?? previous?.source ?? null,
+    fetchedAt: new Date(),
+    error: values.error ?? null,
+  } as DriverFetchCache;
+  runtimeFetchCache.set(cacheKey(category, vendorKey), row);
+  return row;
+}
+
+function mergeRuntimeRows(rows: DriverFetchCache[]): DriverFetchCache[] {
+  const byKey = new Map(
+    [...runtimeFetchCache.values(), ...rows].map((row) => [
+      cacheKey(row.category, row.vendorKey),
+      row,
+    ]),
+  );
+  return [...byKey.values()];
+}
+
+async function persistCache(
+  category: string,
+  vendorKey: string,
+  values: Parameters<typeof upsertCache>[2],
+): Promise<void> {
+  runtimeRow(category, vendorKey, values);
+  if (cachePersistenceUnavailable || !db) return;
+  try {
+    await upsertCache(category, vendorKey, values);
+  } catch (err: any) {
+    cachePersistenceUnavailable = true;
+    console.warn(
+      `[DriverFetch] Persistent cache unavailable; using runtime cache: ${err?.message ?? String(err)}`,
+    );
+  }
+}
 
 export async function runDriverFetch(): Promise<void> {
   console.log("[DriverFetch] Starting driver version fetch run…");
@@ -337,7 +396,7 @@ export async function runDriverFetch(): Promise<void> {
       const key = `${category}:${vendorKey}`;
       try {
         const result = await fetcher();
-        await upsertCache(category, vendorKey, {
+        await persistCache(category, vendorKey, {
           latest: result.latest,
           releaseDate: result.releaseDate,
           releaseNotes: result.releaseNotes,
@@ -353,40 +412,42 @@ export async function runDriverFetch(): Promise<void> {
         // On error: preserve the last successful latest version and only
         // update the error message + fetchedAt timestamp.
         try {
-          const existing = await db
-            .select()
-            .from(driverFetchCache)
-            .where(
-              and(
-                eq(driverFetchCache.category, category),
-                eq(driverFetchCache.vendorKey, vendorKey),
-              ),
-            );
+          let existing: DriverFetchCache[] = [];
+          if (!cachePersistenceUnavailable && db) {
+            try {
+              existing = await db
+                .select()
+                .from(driverFetchCache)
+                .where(
+                  and(
+                    eq(driverFetchCache.category, category),
+                    eq(driverFetchCache.vendorKey, vendorKey),
+                  ),
+                );
+            } catch {
+              // A missing/unavailable cache table is expected in a fresh
+              // deployment. Do not retry the same failing query for every
+              // vendor in this run.
+              cachePersistenceUnavailable = true;
+            }
+          }
 
-          if (existing.length && existing[0].latest) {
+          const previous = existing[0] ?? runtimeFetchCache.get(cacheKey(category, vendorKey));
+          if (previous?.latest) {
             // Row exists with a good version — keep it, just update error + time.
-            await db
-              .insert(driverFetchCache)
-              .values({
-                category,
-                vendorKey,
-                latest: existing[0].latest,
-                releaseDate: existing[0].releaseDate,
-                releaseNotes: existing[0].releaseNotes,
-                source: existing[0].source,
-                fetchedAt: new Date(),
-                error: msg,
-              })
-              .onConflictDoUpdate({
-                target: [driverFetchCache.category, driverFetchCache.vendorKey],
-                set: { fetchedAt: new Date(), error: msg },
-              });
+            await persistCache(category, vendorKey, {
+              latest: previous.latest,
+              releaseDate: previous.releaseDate,
+              releaseNotes: previous.releaseNotes,
+              source: previous.source,
+              error: msg,
+            });
           } else {
             // No previous good row — write error-only row.
-            await upsertCache(category, vendorKey, { error: msg });
+            await persistCache(category, vendorKey, { error: msg });
           }
         } catch (dbErr) {
-          console.error(`[DriverFetch] DB write failed for ${key}:`, dbErr);
+          console.error(`[DriverFetch] Cache write failed for ${key}:`, dbErr);
         }
         results[key] = "error";
       }
@@ -434,9 +495,17 @@ export function getFetchSchedulerStatus() {
 }
 
 export async function loadFetchCache(): Promise<DriverFetchCache[]> {
+  if (!db || cachePersistenceUnavailable) {
+    return [...runtimeFetchCache.values()];
+  }
   try {
-    return await db.select().from(driverFetchCache);
-  } catch {
-    return [];
+    const rows = await db.select().from(driverFetchCache);
+    return mergeRuntimeRows(rows);
+  } catch (err: any) {
+    cachePersistenceUnavailable = true;
+    console.warn(
+      `[DriverFetch] Persistent cache unavailable; serving runtime cache: ${err?.message ?? String(err)}`,
+    );
+    return [...runtimeFetchCache.values()];
   }
 }

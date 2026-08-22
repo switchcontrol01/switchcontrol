@@ -202,13 +202,13 @@
     dbVersion: "local",
     updatedAt: "bundled",
     gpu: {
-      nvidia: { latest: "576.80", releaseDate: "2026-06-10", safety: "safe" },
-      amd: { latest: "25.6.1", releaseDate: "2026-06-04", safety: "safe" },
-      intel: { latest: "32.0.101.6790", releaseDate: "2026-05-28", safety: "safe" },
+      nvidia: { latest: "596.99", releaseDate: "2026-06-10", safety: "safe" },
+      amd: { latest: "26.8.1", releaseDate: "2026-06-10", safety: "safe" },
+      intel: { latest: "32.0.101.8974", releaseDate: "2026-05-28", safety: "safe" },
     },
     chipset: {
-      amd: { latest: "7.10.13.408", safety: "safe" },
-      intel: { latest: "10.1.19444.8378", safety: "safe" },
+      amd: { latest: "23.205.114.203", safety: "safe" },
+      intel: { latest: "10.1.20658.8883", safety: "safe" },
     },
     bios: {
       gigabyte: { latest: "F10", safety: "caution" },
@@ -235,7 +235,7 @@
       transcend: { latest: "S9FM01.8", safety: "caution" },
     },
     network: {
-      intel: { latest: "29.3", safety: "safe" },
+      intel: { latest: "31.2.2", safety: "safe" },
       realtek: { latest: "11.20.0610", safety: "safe" },
       killer: { latest: "3.1.1456", safety: "caution" },
       qualcomm: { latest: "3.3.0.814", safety: "safe" },
@@ -249,7 +249,7 @@
       logitech: { latest: "G HUB 2026.4", safety: "caution" },
     },
     bluetooth: {
-      intel: { latest: "23.60.0", safety: "safe" },
+      intel: { latest: "24.60.0", safety: "safe" },
       realtek: { latest: "1.8.1061", safety: "safe" },
       qualcomm: { latest: "12.0.0.900", safety: "safe" },
       mediatek: { latest: "3.3.0.501", safety: "safe" },

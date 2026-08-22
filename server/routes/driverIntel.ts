@@ -66,12 +66,12 @@
    * the server data changes. Keys are normalised vendor identifiers.
    */
   const DATABASE = {
-    dbVersion: "2026.07.1",
-    updatedAt: "2026-07-24",
+    dbVersion: "2026.08.1",
+    updatedAt: "2026-08-22",
   
     gpu: {
       nvidia: {
-        latest: "576.80",
+        latest: "596.99",
         releaseDate: "2026-06-10",
         releaseNotes:
           "Game Ready driver. Adds optimisations for recent titles, fixes a DPC latency regression present in 575.x, improves DLSS frame generation stability.",
@@ -81,7 +81,7 @@
         safety: "safe",
       } as DriverDbEntry,
       amd: {
-        latest: "25.6.1",
+        latest: "26.8.1",
         releaseDate: "2026-06-04",
         releaseNotes:
           "Adrenalin Edition. Performance uplift in DX12 titles, fixes for AFMF stutter, improved Radeon Anti-Lag compatibility.",
@@ -89,7 +89,7 @@
         safety: "safe",
       } as DriverDbEntry,
       intel: {
-        latest: "32.0.101.6790",
+        latest: "32.0.101.8974",
         releaseDate: "2026-05-28",
         releaseNotes:
           "Arc & Iris Xe driver. Game optimisations and DX11 overhead reductions, several application-crash fixes.",
@@ -99,7 +99,7 @@
   
     chipset: {
       amd: {
-        latest: "7.10.13.408",
+        latest: "23.205.114.203",
         releaseDate: "2026-05-20",
         releaseNotes:
           "AMD Chipset driver bundle. Updated power plan behaviour, preferred-core (CPPC) scheduling refinements, USB stability fixes.",
@@ -107,7 +107,7 @@
         safety: "safe",
       } as DriverDbEntry,
       intel: {
-        latest: "10.1.19444.8378",
+        latest: "10.1.20658.8883",
         releaseDate: "2026-04-30",
         releaseNotes:
           "Intel Chipset Device Software. Refreshes device identification for current platforms.",
@@ -173,7 +173,7 @@
   
     network: {
       intel: {
-        latest: "29.3",
+        latest: "31.2.2",
         releaseDate: "2026-05-15",
         releaseNotes:
           "Intel Ethernet/Wi-Fi driver. RSS and interrupt-moderation tuning, latency improvements, security fixes.",
@@ -245,7 +245,7 @@
   
     bluetooth: {
       intel: {
-        latest: "23.60.0",
+        latest: "24.60.0",
         releaseDate: "2026-05-15",
         releaseNotes: "Intel Bluetooth driver. Connection stability and pairing fixes.",
         safety: "safe",
@@ -273,30 +273,30 @@
   
   const NEWS: DriverNewsItem[] = [
     {
-      id: "news-db-202407",
+      id: "news-db-20260822",
       vendor: "SwitchControl",
       category: "Database",
-      title: "Driver database updated — July 2026",
+      title: "Driver database updated — August 2026",
       summary:
-        "Realtek LAN, Realtek Audio, and Intel Bluetooth now auto-fetched daily. Database baseline refreshed to July 24, 2026.",
-      date: "2026-07-24",
+        "Verified vendor refresh: NVIDIA, AMD, and Intel GPU/chipset/network/Bluetooth records are current as of August 22, 2026. Realtek remains on its last known-good baseline because its official server sources block automated access.",
+      date: "2026-08-22",
       safety: "safe",
     },
     {
-      id: "news-nv-57680",
+      id: "news-nv-59699",
       vendor: "NVIDIA",
       category: "GPU",
-      title: "NVIDIA released Game Ready 576.80",
+      title: "NVIDIA Game Ready 596.99 available",
       summary:
         "Fixes a DPC latency regression from the 575 branch and improves frame-generation stability.",
       date: "2026-06-10",
       safety: "safe",
     },
     {
-      id: "news-amd-chipset-710",
+      id: "news-amd-chipset-23205",
       vendor: "AMD",
       category: "Chipset",
-      title: "AMD chipset 7.10 available",
+      title: "AMD chipset 23.205.114.203 available",
       summary:
         "Preferred-core scheduling refinements and USB stability fixes for AM5 platforms.",
       date: "2026-05-20",
@@ -313,10 +313,10 @@
       safety: "caution",
     },
     {
-      id: "news-intel-lan-293",
+      id: "news-intel-lan-3122",
       vendor: "Intel",
       category: "Network",
-      title: "Intel LAN/Wi-Fi 29.3 update",
+      title: "Intel LAN/Wi-Fi 31.2.2 update",
       summary: "RSS and interrupt-moderation tuning with measurable latency improvements.",
       date: "2026-05-15",
       safety: "safe",

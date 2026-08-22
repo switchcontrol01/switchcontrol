@@ -60,3 +60,4 @@
 - [Electron packaged bundle verification](electron-packaged-bundle-verification.md) — web workflow restarts do not update installed Windows renderer; verify a fresh packaged build.
 - [Timer resolution single control](timer-resolution-single-control.md) — Global Timer Resolution and System Timer Resolution are two live views of one request; sync UI and keeper process.
 - [Entitlement cache verification boundary](entitlement-cache-verification-boundary.md) — preserved cached users from failed /api/me calls must not be marked cloud-verified.
+- [Driver fetch cache fallback](driver-fetch-cache-fallback.md) — vendor refreshes must remain useful in no-DB or pre-migration environments via runtime cache; never discard successful fetches.
