@@ -445,6 +445,31 @@ function EventRow({ item, index }: { item: EnrichedItem; index: number }) {
         return;
       }
 
+    } else if (item.page === "AI Advisor" && item.notes?.startsWith("Tweak ID: ")) {
+      // ── AI Advisor-applied tweak — use the same verified native revert path
+      // as the Tweaks page.  Conversation/message entries do not carry a
+      // Tweak ID and continue through the non-reversible fallback below.
+      const tweakId = item.notes.replace("Tweak ID: ", "").trim();
+      const eApi = (window as any).electronAPI;
+      if (eApi?.tweaks?.execute) {
+        try {
+          const result = await eApi.tweaks.execute(tweakId, "revert");
+          const verify = eApi.tweaks.checkStatus ? await eApi.tweaks.checkStatus(tweakId) : null;
+          if (result?.success === false || !verify || verify.error || verify.applied !== false) {
+            throw new Error(result?.error ?? verify?.error ?? "AI Advisor tweak verification failed.");
+          }
+          notifyRevert("AI Advisor");
+          toast({ title: "AI Advisor tweak reverted", description: `${item.action} reset to Windows default` });
+        } catch (e) {
+          console.warn("[History] AI Advisor tweak revert IPC error:", e);
+          toast({ title: "Revert failed", description: e instanceof Error ? e.message : "Could not revert AI Advisor tweak", variant: "destructive" });
+        }
+      } else {
+        toast({ title: "Cannot revert", description: "History reverts require the Windows desktop app.", variant: "destructive" });
+        setReverting(false);
+        return;
+      }
+
     } else if (item.page === "Settings") {
       // ── Settings page changes — toggle back in the Zustand store ─────────────
       const act = item.action;
