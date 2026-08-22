@@ -683,6 +683,18 @@ ipcMain.handle('security:getAdvancedAudit', async () => {
         $r.vbsEnabled  = $dg.EnableVirtualizationBasedSecurity -eq 1
       } catch { $r.hvciEnabled = $null; $r.vbsEnabled = $null }
 
+      # LSA Protection / Credential Guard
+      try {
+        $lsa = Get-ItemProperty 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Lsa' -ErrorAction Stop
+        $r.lsaProtectionEnabled = if ($null -eq $lsa.RunAsPPL) { $false } else { [int]$lsa.RunAsPPL -in @(1, 2) }
+      } catch { $r.lsaProtectionEnabled = $null }
+      try {
+        $dgStatus = Get-ItemProperty 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\DeviceGuard' -ErrorAction Stop
+        $running = @($dgStatus.SecurityServicesRunning)
+        # SecurityServicesRunning value 1 is Credential Guard.
+        $r.credentialGuardEnabled = $running -contains 1
+      } catch { $r.credentialGuardEnabled = $null }
+
       # UAC
       try {
         $uac = Get-ItemProperty 'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System' -ErrorAction Stop
@@ -745,9 +757,46 @@ ipcMain.handle('security:getAdvancedAudit', async () => {
           $_ -notmatch '\\blocalhost\\b' -and
           $_ -notmatch '^\\s*(127\\.0\\.0\\.1|::1|0\\.0\\.0\\.0|255\\.255\\.255\\.255)\\s'
         })
-        $r.hostsModified      = $suspicious.Count -gt 0
+        $hostEntries = @()
+        foreach ($line in $suspicious) {
+          $clean = ($line -replace '#.*$', '').Trim()
+          if ($clean -match '^(\S+)\s+(.+)$') {
+            $ip = $Matches[1]
+            $domains = $Matches[2] -split '\s+' | Where-Object { $_ }
+            foreach ($domain in $domains) {
+              if ($hostEntries.Count -lt 30) {
+                $hostEntries += [PSCustomObject]@{ ip = $ip; domain = $domain }
+              }
+            }
+          }
+        }
+        $r.hostsModified = $suspicious.Count -gt 0
         $r.hostsSuspiciousCount = $suspicious.Count
+        $r.hostsSuspiciousEntries = $hostEntries
       } catch { $r.hostsModified = $null; $r.hostsSuspiciousCount = 0 }
+
+      # Listening TCP ports. Keep the complete list for inspection, but mark
+      # non-allowlisted ports as notable rather than calling them malicious.
+      try {
+        $allowedPorts = @(135, 139, 445)
+        if ($r.rdpEnabled -eq $true) { $allowedPorts += 3389 }
+        $connections = @(Get-NetTCPConnection -State Listen -ErrorAction Stop)
+        $portRows = @()
+        foreach ($conn in $connections) {
+          $procName = $null
+          try { $procName = (Get-Process -Id $conn.OwningProcess -ErrorAction Stop).ProcessName } catch {}
+          $portRows += [PSCustomObject]@{
+            address = [string]$conn.LocalAddress
+            port = [int]$conn.LocalPort
+            pid = [int]$conn.OwningProcess
+            processName = $procName
+            protocol = 'TCP'
+            notable = $allowedPorts -notcontains [int]$conn.LocalPort
+          }
+        }
+        $r.listeningPorts = $portRows
+        $r.notableListeningPorts = @($portRows | Where-Object { $_.notable })
+      } catch { $r.listeningPorts = @(); $r.notableListeningPorts = @(); $r.listeningPortsUnavailable = $true }
 
       $r | ConvertTo-Json -Compress
     `;
@@ -786,6 +835,19 @@ ipcMain.handle('security:getProcessDetails', async () => {
         $exePath = $null
         try { $exePath = $p.MainModule.FileName } catch {}
         $cim = $cimMap[$p.Id]
+        $signed = $null
+        $signerName = $null
+        if ($exePath) {
+          try {
+            $sig = Get-AuthenticodeSignature -FilePath $exePath -ErrorAction Stop
+            if ($sig.Status -eq 'Valid') {
+              $signed = $true
+              $signerName = $sig.SignerCertificate.Subject
+            } elseif ($sig.Status -eq 'NotSigned') {
+              $signed = $false
+            }
+          } catch {}
+        }
         [PSCustomObject]@{
           Name      = $p.Name
           Pid       = $p.Id
@@ -793,6 +855,8 @@ ipcMain.handle('security:getProcessDetails', async () => {
           MemMb     = [Math]::Round($p.WorkingSet64/1MB, 1)
           Path      = $exePath
           ParentPid = if ($cim -ne $null) { $cim.ParentProcessId } else { $null }
+          Signed    = $signed
+          SignerName = $signerName
         }
       }
       $result | ConvertTo-Json -Compress
@@ -818,14 +882,19 @@ ipcMain.handle('security:getProcessDetails', async () => {
       const classification = classifyProcess(p.Name);
       const exePath = p.Path || null;
 
-      let trustState = 'unknown';
+       let trustState = 'unknown';
       let suspiciousLocation = false;
+       let unsignedExecutable = false;
 
       if (exePath) {
         const isSafe = SAFE_PATH_PREFIXES.some(r => r.test(exePath));
         const isSuspicious = SUSPICIOUS_PATH_PATTERNS.some(r => r.test(exePath));
         suspiciousLocation = isSuspicious;
-        if (isSafe) {
+         unsignedExecutable = p.Signed === false;
+         if (unsignedExecutable && !isSafe) {
+           trustState = 'suspicious';
+           suspiciousLocation = true;
+         } else if (isSafe) {
           trustState = 'trusted';
         } else if (isSuspicious) {
           trustState = 'suspicious';
@@ -839,6 +908,7 @@ ipcMain.handle('security:getProcessDetails', async () => {
       if (sysProcs.includes(p.Name.toLowerCase().replace(/\.exe$/i, ''))) {
         trustState = 'trusted';
         suspiciousLocation = false;
+         unsignedExecutable = false;
       }
 
       const gamingImpactMap = { launcher: 'high', overlay: 'medium', browser: 'medium', updater: 'low', security: 'low', system: 'low' };
@@ -854,9 +924,10 @@ ipcMain.handle('security:getProcessDetails', async () => {
         trustState,
         suspiciousLocation,
         gamingImpact: gamingImpactMap[classification.category] || 'low',
-        signed: null,
-        signerName: null,
-        publisher: null,
+         signed: p.Signed ?? null,
+         signerName: p.SignerName || null,
+         publisher: p.SignerName || null,
+         unsignedExecutable,
         elevated: null,
       };
     });

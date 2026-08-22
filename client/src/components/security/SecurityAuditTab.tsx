@@ -30,6 +30,12 @@ interface AuditData {
   windowsUpdateRunning: boolean | null;
   hostsModified: boolean | null;
   hostsSuspiciousCount: number;
+  hostsSuspiciousEntries?: Array<{ ip: string; domain: string }>;
+  lsaProtectionEnabled: boolean | null;
+  credentialGuardEnabled: boolean | null;
+  listeningPorts?: Array<{ address: string; port: number; pid: number; processName: string | null; protocol: string; notable?: boolean }>;
+  notableListeningPorts?: Array<{ address: string; port: number; pid: number; processName: string | null; protocol: string; notable?: boolean }>;
+  listeningPortsUnavailable?: boolean;
 }
 
 interface TaskData { tasks: any[]; suspicious: any[]; }
@@ -43,6 +49,7 @@ interface AuditItem {
   severity: Severity;
   explanation: string;
   fix?: string;
+  details?: string[];
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -78,6 +85,8 @@ function buildAuditItems(d: AuditData): { platform: AuditItem[]; remote: AuditIt
     },
     makeItem("Memory Integrity (HVCI)", d.hvciEnabled, "Enabled", "Disabled", "ok", "warn", "Hypervisor-Protected Code Integrity prevents unsigned kernel-mode drivers from running.", "Enable in Windows Security → Device Security → Core isolation."),
     makeItem("Virtualization-Based Security", d.vbsEnabled, "Active", "Disabled", "ok", "warn", "VBS uses hardware virtualisation to isolate sensitive system processes from the OS."),
+    makeItem("LSA Protection", d.lsaProtectionEnabled, "Enabled", "Disabled", "ok", "warn", "Protected Process Light makes credential-dumping from LSASS substantially harder.", "Enable LSA protection with Windows Security or the RunAsPPL policy."),
+    makeItem("Credential Guard", d.credentialGuardEnabled, "Running", "Not running", "ok", "warn", "Credential Guard isolates reusable Windows credentials using virtualization-based security.", "Enable Credential Guard through your organization's Windows security policy."),
     makeItem("UAC Enabled",        d.uacEnabled,   "On",       "Disabled",  "ok", "critical", "User Account Control prompts before apps make privileged changes. Disabling it is a significant security risk.", "Turn UAC back on in Control Panel → User Accounts."),
   ];
 
@@ -90,6 +99,7 @@ function buildAuditItems(d: AuditData): { platform: AuditItem[]; remote: AuditIt
     });
   }
 
+  const notablePorts = d.notableListeningPorts ?? [];
   const remote: AuditItem[] = [
     makeItem("RDP (Remote Desktop)",  d.rdpEnabled,        "Enabled", "Disabled", "warn", "ok", "RDP enabled means port 3389 is open. If unused, disable it to reduce your attack surface.", "Disable in Settings → System → Remote Desktop."),
     makeItem("Remote Assistance",     d.remoteAssistance,  "Enabled", "Disabled", "warn", "ok", "Remote Assistance allows other users to view and control your PC when invited."),
@@ -97,6 +107,15 @@ function buildAuditItems(d: AuditData): { platform: AuditItem[]; remote: AuditIt
     makeItem("Guest Account",         d.guestAccountEnabled, "Enabled", "Disabled", "warn", "ok", "A live guest account provides a vector for unauthenticated local access."),
     makeItem("Proxy Configured",      d.proxyEnabled,      "Active", "None",      "warn", "ok", "An active proxy routes traffic through a third-party server. Verify the proxy is trusted."),
     makeItem("Windows Update Service", d.windowsUpdateRunning, "Running", "Stopped", "ok", "warn", "The Windows Update service must be running to receive security patches."),
+    {
+      label: "Listening TCP Ports",
+      value: d.listeningPortsUnavailable ? "Unavailable" : `${d.listeningPorts?.length ?? 0} listening`,
+      severity: d.listeningPortsUnavailable ? "unknown" : notablePorts.length > 0 ? "warn" : "ok",
+      explanation: notablePorts.length > 0
+        ? "These ports are listening outside the small expected Windows/RDP allowlist. Review the owning process and firewall rule."
+        : "Enumerates active TCP listeners and highlights ports outside the expected Windows/RDP allowlist.",
+      details: notablePorts.map(p => `${p.port} · ${p.processName || "unknown process"} · ${p.address} · PID ${p.pid}`),
+    },
   ];
 
   const persistence: AuditItem[] = [
@@ -105,6 +124,7 @@ function buildAuditItems(d: AuditData): { platform: AuditItem[]; remote: AuditIt
       value: d.hostsModified ? `${d.hostsSuspiciousCount} custom entries` : "Clean",
       severity: d.hostsModified === null ? "unknown" : d.hostsModified ? "warn" : "ok",
       explanation: "The hosts file can redirect domains to malicious IP addresses. Entries beyond localhost are worth reviewing.",
+      details: (d.hostsSuspiciousEntries ?? []).map(e => `${e.domain} → ${e.ip}`),
     },
   ];
 
@@ -146,6 +166,15 @@ function AuditSection({ title, Icon, items }: { title: string; Icon: any; items:
               )}
               {item.fix && item.severity !== "ok" && (
                 <p className={cn("text-[11px] mt-0.5", cfg.color)}>→ {item.fix}</p>
+              )}
+              {item.details && item.details.length > 0 && (
+                <div className="mt-2 rounded-lg border border-white/8 bg-black/15 p-2 space-y-1">
+                  {item.details.map((detail, detailIndex) => (
+                    <p key={`${item.label}-${detailIndex}`} className="text-[10px] font-mono text-muted-foreground/80 break-all">
+                      {detail}
+                    </p>
+                  ))}
+                </div>
               )}
             </motion.div>
           );
@@ -263,7 +292,7 @@ export function SecurityAuditTab({ hasSecurity }: { hasSecurity: boolean }) {
               <h3 className="font-semibold text-sm">Advanced Security Audit</h3>
             </div>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Firmware, remote access, persistence risks, scheduled tasks, and services.
+               Firmware, process trust, credential protection, remote access, ports, and persistence risks.
             </p>
           </div>
           <div className="flex items-center gap-2">
