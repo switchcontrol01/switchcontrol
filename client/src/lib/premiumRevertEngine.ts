@@ -845,176 +845,10 @@ export async function runPremiumRevert(
   _revertInFlight = true;
 
   try {
-  // The backend pipeline is authoritative. It performs the complete revert
-  // and clears disk-backed ownership records in one transaction-aware flow.
-  return await runPipelineRevert(onProgress);
-
-  console.log('[Revert] Starting premium revert sequence v2...');
-  onProgress?.('locking');
-
-  const store = useTweakOwnershipStore.getState();
-
-  const tweakResults:       RevertItemResult[] = [];
-  let   sliderResults:      RevertItemResult[] = [];
-  let   presetResults:      RevertItemResult[] = [];
-  const networkResults:     RevertItemResult[] = [];
-
-  // ── Tweaks ──────────────────────────────────────────────────────────────────
-  onProgress?.('reverting_tweaks');
-  const tweakEntries = Object.entries(store.appliedTweaks)
-    .filter(([, rec]) => rec.provenance === 'app' && rec.isPremium);
-
-  for (const [tweakId, rec] of tweakEntries) {
-    console.log(`[Revert] processing tweak "${tweakId}" label="${rec.label}"`);
-    const status = await revertSingleTweak(tweakId, rec.label);
-    tweakResults.push({ tweakId, label: rec.label, status });
-  }
-
-  // ── Tweak store-fallback sweep ───────────────────────────────────────────
-  // Catches premium tweaks that are enabled in the main Zustand store but have
-  // NO ownership record (applied in an older session before ownership tracking,
-  // or after ownership was cleared by a prior upgrade). Without this, those
-  // tweaks stay system-applied even though the ownership-based phase above
-  // ran cleanly — they just never appeared in tweakEntries.
-  //
-  // Mirrors the network-tweak lsEnabledIds fallback (lines ~841-855).
-  const ownershipTrackedIds = new Set(tweakEntries.map(([id]) => id));
-  try {
-    const mainStoreTweaks = useStore.getState().tweaks;
-    const fallbackEntries = TWEAKS_DATA
-      .filter(t => t.supported && isTweakPremium(t.id) && mainStoreTweaks[t.id] && !ownershipTrackedIds.has(t.id));
-    for (const t of fallbackEntries) {
-      console.log(`[Revert] processing tweak (store-fallback) "${t.id}" label="${t.label}"`);
-      const status = await revertSingleTweak(t.id, t.label);
-      tweakResults.push({ tweakId: t.id, label: t.label, status });
-    }
-  } catch (e) {
-    console.warn('[Revert:TWEAK-FALLBACK] store-fallback sweep failed:', e);
-  }
-
-  // Immediately clear the main Zustand store for every reverted tweak so the
-  // Tweaks page UI turns off / blue highlight disappears.
-  const revertedTweakIds = tweakResults
-    .filter(r => r.status === 'reverted')
-    .map(r => r.tweakId);
-  if (revertedTweakIds.length > 0) {
-    clearMainStoreForTweaks(revertedTweakIds);
-  }
-
-  // ── Slider tweaks ─────────────────────────────────────────────────────────
-  onProgress?.('reverting_sliders');
-  try {
-    sliderResults = await revertSliderTweaks();
-  } catch (err) {
-    console.error('[Revert:SLIDER] unexpected error:', err);
-  }
-
-  // ── Preset tweaks ─────────────────────────────────────────────────────────
-  onProgress?.('reverting_presets');
-  try {
-    presetResults = await revertPresetTweaks();
-  } catch (err) {
-    console.error('[Revert:PRESET] unexpected error:', err);
-  }
-
-  // ── Network tweaks ──────────────────────────────────────────────────────────
-  onProgress?.('reverting_network');
-  const networkEntries = Object.entries(store.networkTweaks)
-    .filter(([, rec]) => rec.provenance === 'app');
-
-  // Also pick up any tweaks that are "enabled" in localStorage but are NOT
-  // already in the ownership store. This covers the case where the user applied
-  // a network tweak in a previous session and the ownership store was cleared
-  // (e.g. by clearPremiumOwnership on a premium upgrade).
-  const ownershipIds = new Set(networkEntries.map(([id]) => id));
-  const lsEnabledIds = readEnabledNetworkTweakIdsFromLocalStorage()
-    .filter(id => !ownershipIds.has(id));
-
-  for (const [tweakId, rec] of networkEntries) {
-    console.log(`[Revert] processing network tweak "${tweakId}" label="${rec.label}"`);
-    const status = await revertSingleNetworkTweak(tweakId, rec.label);
-    networkResults.push({ tweakId, label: rec.label, status });
-  }
-
-  for (const tweakId of lsEnabledIds) {
-    console.log(`[Revert] processing network tweak (ls-fallback) "${tweakId}"`);
-    const status = await revertSingleNetworkTweak(tweakId, tweakId);
-    networkResults.push({ tweakId, label: tweakId, status });
-  }
-
-  // Signal any mounted NetworkTweaks component to update its in-memory cache
-  const revertedNetIds = networkResults.filter(r => r.status === 'reverted').map(r => r.tweakId);
-  if (revertedNetIds.length > 0) {
-    dispatchRevertEvent('sc:net-reverted', { ids: revertedNetIds });
-  }
-
-  // ── Power plan ───────────────────────────────────────────────────────────────
-  onProgress?.('verifying');
-  const powerPlanResult = await revertPowerPlan();
-
-  onProgress?.('complete');
-
-  const anyFailed =
-    tweakResults.some(r => r.status === 'failed') ||
-    sliderResults.some(r => r.status === 'failed') ||
-    presetResults.some(r => r.status === 'failed') ||
-    networkResults.some(r => r.status === 'failed') ||
-    powerPlanResult.status === 'failed';
-
-  const anyConflict =
-    tweakResults.some(r => r.status === 'skipped_conflict') ||
-    networkResults.some(r => r.status === 'skipped_conflict');
-
-  const revertedCount =
-    tweakResults.filter(r => r.status === 'reverted').length +
-    sliderResults.filter(r => r.status === 'reverted').length +
-    presetResults.filter(r => r.status === 'reverted').length +
-    networkResults.filter(r => r.status === 'reverted').length +
-    (powerPlanResult.status === 'reverted' || powerPlanResult.status === 'forced_balanced' ? 1 : 0);
-
-  // ── Final safety sweep ────────────────────────────────────────────────────
-  // Turn off every premium tweak in the main Zustand store regardless of
-  // ownership-store state. Also unconditionally clears slider and preset store
-  // values — if the earlier targeted clears failed (their try/catch swallowed
-  // the error), stale premium values would otherwise persist in the store.
-  try {
-    const mainStore = useStore.getState();
-    const allPremiumIds = TWEAKS_DATA
-      .filter(t => t.supported && isTweakPremium(t.id))
-      .map(t => t.id);
-    let swept = 0;
-    for (const id of allPremiumIds) {
-      if (mainStore.tweaks[id]) {
-        mainStore.setTweak(id, false);
-        swept++;
-      }
-    }
-    if (swept > 0) {
-      console.log(`[Revert:SAFETY] turned off ${swept} premium tweak(s) in main store`);
-    }
-  } catch (e) {
-    console.warn('[Revert:SAFETY] final sweep (tweaks) failed:', e);
-  }
-  // Slider + preset store clear is unconditional here — a no-op when values are
-  // already at defaults, but ensures the UI is clean even if earlier clears threw.
-  clearPremiumSliderStoreValues();
-  clearPremiumPresetStoreValues();
-
-  console.log(
-    `[Revert] Complete — reverted=${revertedCount} failed=${anyFailed} conflict=${anyConflict}` +
-     ` sliders=${sliderResults.length} presets=${presetResults.length}`
-  );
-
-  return {
-    tweakResults,
-    sliderResults,
-    presetResults,
-    networkResults,
-    powerPlan: powerPlanResult,
-    anyFailed,
-    anyConflict,
-    revertedCount,
-  };
+    // The backend pipeline is the single authoritative revert implementation.
+    // It handles every ownership type and performs renderer cleanup after the
+    // authoritative result is received.
+    return await runPipelineRevert(onProgress);
   } finally {
     _revertInFlight = false;
   }
@@ -1029,14 +863,10 @@ export async function runPremiumRevert(
  * false when only slider tweaks have been applied — preventing the revert flow
  * from starting at all.
  *
- * STORE-FALLBACK FIX: also checks the main Zustand store for any premium toggle
- * tweak that is enabled but has no OwnershipStore record.  This catches tweaks
- * applied in older sessions (before ownership tracking), or detected as already
- * applied at boot via system-sync (which sets the main store but never writes an
- * OwnershipStore record).  Without this, nvidia-telemetry and similar tweaks that
- * are only visible in the main store would pass the gate check as "nothing to revert"
- * — so the revert modal never opens and runPremiumRevert()'s store-fallback sweep
- * never runs.
+ * ORPHANED-STATE GATE: also checks the main Zustand store for any premium toggle
+ * tweak that is enabled but has no OwnershipStore record. This keeps the recovery
+ * flow available if local UI state survives an ownership wipe; startup
+ * reconciliation adopts confirmed live tweaks into the backend ownership store.
  */
 export function hasPremiumItemsToRevert(): boolean {
   const store = useTweakOwnershipStore.getState();
@@ -1069,11 +899,9 @@ export function hasPremiumItemsToRevert(): boolean {
     });
   } catch { /* non-Electron / store not ready */ }
 
-  // Store-fallback check: premium toggle tweaks enabled in the main Zustand store
-  // but absent from the OwnershipStore.  These are tweaks that were either applied
-  // in an old session (before ownership tracking) or detected as applied at boot via
-  // system-sync.  runPremiumRevert() has a matching sweep — this gate check must
-  // be consistent with it so the revert flow starts when needed.
+  // Orphaned-state check: keep the recovery flow available for premium toggles
+  // that remain enabled in the main Zustand store without a local ownership
+  // record. Startup reconciliation normally adopts confirmed live states first.
   let hasStoreFallbackTweaks = false;
   try {
     const mainStoreTweaks = useStore.getState().tweaks;
