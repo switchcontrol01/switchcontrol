@@ -8,7 +8,6 @@ import { StatCard } from "@/components/dashboard/StatCard";
 import { LiveGraph } from "@/components/dashboard/LiveGraph";
 import { LiveGraphsGate } from "@/components/dashboard/LiveGraphsGate";
 import { StorageCards } from "@/components/dashboard/StorageCards";
-import { DashboardRecentEvents } from "@/components/dashboard/DashboardRecentEvents";
 import { DashboardHeaderParticles, type DashboardTimeOfDay } from "@/components/DashboardHeaderParticles";
 import { useStore } from "@/lib/store";
 import { useAdvisorStore } from "@/stores/advisorStore";
@@ -1109,8 +1108,6 @@ export default function Home() {
             <BiosScoreSummaryCard isPremium={isPremium} />
           </div>
 
-          {/* Recent Events — kept at the very bottom of the Dashboard. */}
-          <DashboardRecentEvents />
         </Reveal>
 
         </motion.div>{/* end staged content reveal */}

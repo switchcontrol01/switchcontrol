@@ -140,7 +140,7 @@ export function StartupHero({ scanStatus, apps, onScan, onOptimize, onReview }: 
       layout
       className={cn(
         "relative w-full",
-        isScanning && "min-h-[calc(100vh-8rem)] flex items-center justify-center -top-6",
+        isScanning && "min-h-[calc(100vh-8rem)] flex items-center justify-center",
       )}
       transition={{ layout: { duration: 0.62, ease: [0.22, 1, 0.36, 1] } }}
     >
@@ -153,7 +153,7 @@ export function StartupHero({ scanStatus, apps, onScan, onOptimize, onReview }: 
       }}
       className={cn(
         "relative rounded-2xl overflow-hidden border w-full",
-        isScanning && "max-w-2xl",
+        isScanning && "max-w-2xl min-h-[11rem]",
       )}
       style={{ borderColor: "rgba(255,255,255,0.06)", background: "#14181D" }}
     >
