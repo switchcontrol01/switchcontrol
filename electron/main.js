@@ -2333,7 +2333,8 @@
   });
 
   // ── Driver Intelligence: read installed driver versions from registry ─────────
-  // Queries four device-class registry keys (Display, Net, Media, Bluetooth) so
+   // Queries five device-class registry keys (Display, Net, Media, Bluetooth,
+   // System) so
   // the client can show real installed versions for GPU, WiFi, Ethernet, Audio,
   // and Bluetooth — not just GPU.  Uses direct registry reads (not WMI) so it
   // works even on heavy-WMI AMD systems where CimInstance queries time out.
@@ -2392,6 +2393,24 @@ $gcBt = 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Class\\{e0cbf06c-cd8b-4647-b
 Read-DeviceClass $gcBt | ForEach-Object {
   $d = $_.Desc; $v = $_.Version
   if ($d -match 'bluetooth') { if (-not $result['bluetooth']) { $result['bluetooth'] = $v } }
+}
+
+# ── Chipset / System devices ──────────────────────────────────────────────────
+# Chipset packages install several System-class devices rather than one
+# universal "chipset" device. Pick a version from a chipset-owned device and
+# prefer AMD/Intel-specific descriptors over generic system entries.
+$gcSystem = 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Class\\{4d36e97d-e325-11ce-bfc1-08002be10318}'
+$chipCandidates = @(Read-DeviceClass $gcSystem | Where-Object {
+  $_.Desc -match 'amd|ryzen|promontory|smbus|chipset|serial io|gpio|management engine|mei'
+})
+$chipCandidates | ForEach-Object {
+  $d = $_.Desc; $v = $_.Version
+  if ($d -match 'amd|ryzen|promontory|amd.*smbus|amd.*gpio') {
+    if (-not $result['amd_chipset']) { $result['amd_chipset'] = $v }
+  }
+  elseif ($d -match 'intel|smbus|chipset|serial io|management engine|mei') {
+    if (-not $result['intel_chipset']) { $result['intel_chipset'] = $v }
+  }
 }
 
 # ── NVIDIA canonical version via nvidia-smi (overrides WHQL registry string) ─
