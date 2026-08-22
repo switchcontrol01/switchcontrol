@@ -61,3 +61,4 @@
 - [Timer resolution single control](timer-resolution-single-control.md) — Global Timer Resolution and System Timer Resolution are two live views of one request; sync UI and keeper process.
 - [Entitlement cache verification boundary](entitlement-cache-verification-boundary.md) — preserved cached users from failed /api/me calls must not be marked cloud-verified.
 - [Driver fetch cache fallback](driver-fetch-cache-fallback.md) — vendor refreshes must remain useful in no-DB or pre-migration environments via runtime cache; never discard successful fetches.
+- [Cleaner navigation modal](cleaner-navigation-modal.md) — active-operation confirmation must render at body level with explicit pointer handling to avoid freezing the Electron shell.

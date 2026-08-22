@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "@/lib/motion";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { cn } from "@/lib/utils";
@@ -14,11 +15,6 @@ import {
   Gamepad2, AppWindow, Globe, Monitor, FolderOpen,
 } from "lucide-react";
 import StorageHealthSection from "@/components/StorageHealthSection";
-import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -1204,45 +1200,65 @@ export default function SystemCleaner() {
 
         </AnimatePresence>
 
-        <AlertDialog
-          open={navigationRequest !== null}
-          onOpenChange={(open) => {
-            if (!open) finishNavigationRequest(false);
-          }}
-        >
-          <AlertDialogContent className="border-purple-500/30 bg-[#11151D]">
-            <button
-              type="button"
-              aria-label="Close"
-              onClick={() => finishNavigationRequest(false)}
-              className="absolute right-4 top-4 rounded-sm p-1 text-[#6B7380] hover:text-[#E6EAF0] focus:outline-none focus:ring-2 focus:ring-purple-400"
+        {navigationRequest !== null && typeof document !== "undefined" && createPortal(
+          <div
+            className="fixed inset-0 z-[10003] flex items-center justify-center p-4"
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="cleaner-navigation-title"
+            onPointerDown={(event) => {
+              if (event.target === event.currentTarget) finishNavigationRequest(false);
+            }}
+            style={{ pointerEvents: "auto" }}
+          >
+            <div
+              className="absolute inset-0 bg-black/45 backdrop-blur-xl"
+              aria-hidden="true"
+              style={{ pointerEvents: "auto" }}
+            />
+            <div
+              className="relative z-10 w-full max-w-lg grid gap-4 rounded-lg border border-purple-500/30 bg-[#11151D] p-6 shadow-2xl"
+              onPointerDown={(event) => event.stopPropagation()}
+              style={{ pointerEvents: "auto" }}
             >
-              <X className="h-4 w-4" />
-            </button>
-            <AlertDialogHeader>
-              <AlertDialogTitle className="text-[#E6EAF0]">
-                Cancel the active Cleaner operation?
-              </AlertDialogTitle>
-              <AlertDialogDescription className="text-[#A0A8B3]">
-                {phase === "scanning"
-                  ? "The scan is still running. Leaving now will discard its unfinished results."
-                  : "Cleaning may already have removed some files. Leaving now will stop after the current item and keep the completed results accurate."}
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel onClick={() => finishNavigationRequest(false)}>
-                Keep working
-              </AlertDialogCancel>
-              <AlertDialogAction
+              <button
                 type="button"
-                onClick={() => finishNavigationRequest(true)}
-                className="bg-red-500 text-white hover:bg-red-600"
+                aria-label="Close"
+                onClick={() => finishNavigationRequest(false)}
+                className="absolute right-4 top-4 rounded-sm p-1 text-[#6B7380] hover:text-[#E6EAF0] focus:outline-none focus:ring-2 focus:ring-purple-400"
               >
-                Cancel and leave
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+                <X className="h-4 w-4" />
+              </button>
+              <div className="flex flex-col space-y-2 text-center sm:text-left">
+                <h2 id="cleaner-navigation-title" className="text-lg font-semibold text-[#E6EAF0]">
+                  Cancel the active Cleaner operation?
+                </h2>
+                <p className="text-sm text-[#A0A8B3]">
+                  {phase === "scanning"
+                    ? "The scan is still running. Leaving now will discard its unfinished results."
+                    : "Cleaning may already have removed some files. Leaving now will stop after the current item and keep the completed results accurate."}
+                </p>
+              </div>
+              <div className="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2">
+                <button
+                  type="button"
+                  onClick={() => finishNavigationRequest(false)}
+                  className="mt-2 sm:mt-0 inline-flex h-10 items-center justify-center rounded-md border border-[#2A313A] bg-transparent px-4 py-2 text-sm font-semibold text-[#E6EAF0] hover:bg-white/[0.06] focus:outline-none focus:ring-2 focus:ring-purple-400"
+                >
+                  Keep working
+                </button>
+                <button
+                  type="button"
+                  onClick={() => finishNavigationRequest(true)}
+                  className="inline-flex h-10 items-center justify-center rounded-md bg-red-500 px-4 py-2 text-sm font-semibold text-white hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-300"
+                >
+                  Cancel and leave
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )}
 
         {/* ── Sticky clean bar (shown when ready and items selected) ───── */}
         <AnimatePresence>
