@@ -668,10 +668,16 @@ export function DisplaySignalGraph({ delay = 0 }: { delay?: number }) {
         }
         const raw = await api.system.getDisplayInfo();
         if (raw?.monitors?.length > 0) {
-          setMonitors(raw.monitors.map((monitor: MonitorInfo) => ({
-            ...monitor,
-            connectionType: normalizeConnectionType(monitor.connectionType),
-          })));
+          setMonitors(raw.monitors.map((monitor: MonitorInfo) => {
+            const validHz = (value: unknown): number | null =>
+              typeof value === "number" && Number.isFinite(value) && value > 0 ? value : null;
+            return {
+              ...monitor,
+              connectionType: normalizeConnectionType(monitor.connectionType),
+              refreshHz: validHz(monitor.refreshHz),
+              maxRefreshHz: validHz(monitor.maxRefreshHz),
+            };
+          }));
           setScannedAt(raw.scannedAt ?? Date.now());
           setSelectedIdx(prev => Math.min(prev, raw.monitors.length - 1));
           flash();

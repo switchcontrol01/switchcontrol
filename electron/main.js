@@ -3090,6 +3090,7 @@ public class DspHelper {
     public short dmColor, dmDuplex, dmYResolution, dmTTOption, dmCollate;
     [MarshalAs(UnmanagedType.ByValTStr, SizeConst=32)] public string dmFormName;
     public short dmLogPixels; public int dmBitsPerPel, dmPelsWidth, dmPelsHeight, dmDisplayFlags, dmDisplayFrequency;
+    public int dmICMMethod, dmICMIntent, dmMediaType, dmDitherType, dmReserved1, dmReserved2, dmPanningWidth, dmPanningHeight;
   }
   [StructLayout(LayoutKind.Sequential, CharSet=CharSet.Ansi)]
   public struct DISPLAY_DEVICE {
@@ -3233,6 +3234,18 @@ public class DspHelper {
     $g = $vcs | Where-Object { $_.Name -notmatch 'Microsoft|Basic|Virtual|Remote' } | Select-Object -First 1
     $gpuName = if ($g) { $g.Name } else { $vcs[0].Name }
   }
+   # Win32_VideoController reports the active mode for the primary output on
+   # many drivers even when EnumDisplaySettings cannot expose it. Keep this as
+   # a primary-only fallback; applying it to every monitor would mislabel
+   # mixed-refresh multi-monitor setups.
+   $fallbackCurrentHz = 0
+   try {
+     $fallbackCurrentHz = @($vcs |
+       Where-Object { $_.Name -notmatch 'Microsoft|Basic|Virtual|Remote' -and [int]$_.CurrentRefreshRate -gt 0 } |
+       ForEach-Object { [int]$_.CurrentRefreshRate } |
+       Select-Object -First 1)[0]
+     if ($null -eq $fallbackCurrentHz) { $fallbackCurrentHz = 0 }
+   } catch { $fallbackCurrentHz = 0 }
   
   # ── Monitor → display-device correlation (3-tier, identity-safe) ────────────
   # WmiMonitorID.InstanceName: DISPLAY\\SAM0E4F\\<instance>  -- hwId = "SAM0E4F"
@@ -3487,6 +3500,14 @@ public class DspHelper {
         if ($hzFb -and [int]$hzFb.hz -gt 0) { $hz = [int]$hzFb.hz }
       }
     }
+     # Safe last resort for the primary display only. WMI's refresh value is
+     # GPU-level on most systems, so using it for secondary displays would be
+     # worse than returning null.
+     if (($null -eq $hz -or $hz -le 0) -and $fallbackCurrentHz -gt 0 -and
+         (($scr -and $scr.primary) -or ($fallbackScr -and $fallbackScr.primary) -or
+          (-not $scr -and -not $fallbackScr -and $i -eq 0))) {
+       $hz = [int]$fallbackCurrentHz
+     }
   
     $monGpu = if ($vc) { $vc.Name } elseif ($vcs.Count -eq 1) { $gpuName } else { $null }
   
