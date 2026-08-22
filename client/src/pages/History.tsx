@@ -5,6 +5,8 @@ import type { HistoryItem } from "@/lib/store";
 import { useToast } from "@/hooks/use-toast";
 import { logHistory } from "@/lib/logHistory";
 import { displayHistoryNotes, isValidTargetId, readHistoryMetadata } from "@/lib/historyContract";
+import { TWEAKS_DATA } from "@/lib/tweak-registry";
+import { NETWORK_TWEAKS } from "@/lib/network-tweaks-data";
 import { useAppModeStore } from "@/lib/appModeStore";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Button } from "@/components/ui/button";
@@ -110,6 +112,35 @@ function deriveImpact(module: string, status: HistoryStatus): ImpactLevel {
 function isMajorEvent(item: EnrichedItem): boolean {
   return item.status === "failed" || item.impact === "high" ||
     item.module === "Security" || item.module === "BIOS Advisor";
+}
+
+function normalizeHistoryLabel(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/^(tweaks?|network):\s*/i, "")
+    .replace(/^(enabled|disabled|applied|reverted)\s+/i, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/**
+ * Resolve both current and legacy history entries. Older records only stored
+ * the human-readable action (for example "Disabled Disable Background Apps")
+ * and did not include a Tweak ID in their notes.
+ */
+function resolveHistoryTweakId(
+  item: HistoryItem,
+  meta: ReturnType<typeof readHistoryMetadata>,
+  candidates: Array<{ id: string; label: string }>,
+): string | null {
+  if (isValidTargetId(meta?.targetId)) return meta.targetId;
+
+  const explicitId = item.notes?.match(/(?:^|\|\s*)Tweak ID:\s*([a-zA-Z0-9][a-zA-Z0-9._-]{0,127})/i)?.[1];
+  if (explicitId && candidates.some(candidate => candidate.id === explicitId)) return explicitId;
+
+  const actionLabel = normalizeHistoryLabel(item.action);
+  const match = candidates.find(candidate => normalizeHistoryLabel(candidate.label) === actionLabel);
+  return match?.id ?? null;
 }
 
 function enrich(item: HistoryItem): EnrichedItem {
@@ -391,9 +422,18 @@ function EventRow({ item, index }: { item: EnrichedItem; index: number }) {
         }
       }
 
-    } else if (item.page === "Network" && item.notes?.startsWith("Tweak ID: ")) {
+    } else if (item.page === "Network") {
       // ── Network tweak — always revert to Windows default ───────────────────
-      const tweakId = item.notes.replace("Tweak ID: ", "").trim();
+      const tweakId = resolveHistoryTweakId(
+        item,
+        meta,
+        NETWORK_TWEAKS.map(tweak => ({ id: tweak.id, label: tweak.name })),
+      );
+      if (!tweakId) {
+        toast({ title: "No revert available", description: "This network history entry does not identify a reversible setting.", variant: "destructive" });
+        setReverting(false);
+        return;
+      }
       const eApi = (window as any).electronAPI;
       if (eApi?.networkTweaks?.execute) {
         try {
@@ -420,11 +460,22 @@ function EventRow({ item, index }: { item: EnrichedItem; index: number }) {
         return;
       }
 
-    } else if (item.page === "Tweaks" && item.notes?.startsWith("Tweak ID: ")) {
+    } else if (item.page === "Tweaks") {
       // ── Registry tweak — always execute "revert" to Windows default ────────
       // Never toggle: even if the tweak looks already-reverted we still call
       // execute("revert") so the registry is guaranteed to be at the default.
-      const tweakId = item.notes.replace("Tweak ID: ", "").trim();
+      const tweakId = resolveHistoryTweakId(
+        item,
+        meta,
+        TWEAKS_DATA
+          .filter(tweak => tweak.supported && tweak.controlType === "toggle")
+          .map(tweak => ({ id: tweak.id, label: tweak.title })),
+      );
+      if (!tweakId) {
+        toast({ title: "No revert available", description: "This tweak history entry does not identify a reversible setting.", variant: "destructive" });
+        setReverting(false);
+        return;
+      }
       const eApi = (window as any).electronAPI;
       if (eApi?.tweaks?.execute) {
         try {
@@ -445,11 +496,22 @@ function EventRow({ item, index }: { item: EnrichedItem; index: number }) {
         return;
       }
 
-    } else if (item.page === "AI Advisor" && item.notes?.startsWith("Tweak ID: ")) {
+    } else if (item.page === "AI Advisor") {
       // ── AI Advisor-applied tweak — use the same verified native revert path
       // as the Tweaks page.  Conversation/message entries do not carry a
       // Tweak ID and continue through the non-reversible fallback below.
-      const tweakId = item.notes.replace("Tweak ID: ", "").trim();
+      const tweakId = resolveHistoryTweakId(
+        item,
+        meta,
+        TWEAKS_DATA
+          .filter(tweak => tweak.supported && tweak.controlType === "toggle")
+          .map(tweak => ({ id: tweak.id, label: tweak.title })),
+      );
+      if (!tweakId) {
+        toast({ title: "No revert available", description: "AI Advisor messages do not have a system-level revert.", variant: "destructive" });
+        setReverting(false);
+        return;
+      }
       const eApi = (window as any).electronAPI;
       if (eApi?.tweaks?.execute) {
         try {
