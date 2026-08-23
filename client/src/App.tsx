@@ -50,6 +50,7 @@ import {
   resolveAuthState,
 } from "@/lib/auth-store";
 import { clearSwitchControlStorage } from "@/lib/storageUtils";
+import { runPremiumRevert } from "@/lib/premiumRevertEngine";
 import { tryReissueJwt } from "@/lib/api";
 import { isTrialActive } from "@/lib/trialCountdown";
 import { telemetryManager } from "@/lib/telemetryManager";
@@ -1745,6 +1746,40 @@ function ElectronAppContent() {
     setIsResetting(true);
     setActiveFlow("none");
     await postResetTourFlags();
+
+    // Revert while the ownership/baseline files still exist. Wiping AppData
+    // first would destroy the exact values needed to restore premium changes.
+    if (isElectron) {
+      try {
+        const revertReport = await runPremiumRevert();
+        const revertItems = [
+          ...revertReport.tweakResults,
+          ...revertReport.sliderResults,
+          ...revertReport.presetResults,
+          ...revertReport.networkResults,
+        ];
+        const revertIncomplete = revertReport.anyFailed ||
+          revertReport.powerPlan.status === "failed" ||
+          revertItems.some((item) => item.status === "failed" || item.status === "skipped_not_active");
+
+        if (revertIncomplete) {
+          console.error("[AppFlow] Factory reset blocked — premium changes were not fully reverted", revertReport);
+          setIsResetting(false);
+          window.alert(
+            "Factory reset was stopped because some SwitchControl changes could not be safely reverted. Resolve the failed revert first, then try again."
+          );
+          return;
+        }
+      } catch (error) {
+        console.error("[AppFlow] Factory reset blocked — premium revert failed", error);
+        setIsResetting(false);
+        window.alert(
+          "Factory reset was stopped because SwitchControl could not verify its system changes were reverted."
+        );
+        return;
+      }
+    }
+
     await performFullLogout("factory_reset");
     clearSwitchControlStorage();
     if (isElectron && (window as any).electronAPI?.resetAppData) {
