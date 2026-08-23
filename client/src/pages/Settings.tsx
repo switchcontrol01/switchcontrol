@@ -147,13 +147,17 @@ function PatchNotesSection({ onViewFull }: { onViewFull: () => void }) {
   );
 }
 
-function PreferenceSwitch({ label, description, checked, onChange, testId }: {
+function PreferenceSwitch({ label, description, checked, onChange, testId, status }: {
   label: string; description: string; checked: boolean; onChange: (value: boolean) => void; testId: string;
+  status?: "not-active";
 }) {
   return (
     <div className="flex items-center justify-between gap-4 py-3 px-3 -mx-3 rounded-xl hover:bg-white/[0.03] transition-colors">
       <div className="min-w-0">
-        <Label className="text-sm">{label}</Label>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Label className="text-sm">{label}</Label>
+          {status === "not-active" && <span className="text-[9px] uppercase tracking-wide rounded border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-amber-300">Not yet active</span>}
+        </div>
         <p className="text-xs text-muted-foreground mt-1">{description}</p>
       </div>
       <Switch checked={checked} onCheckedChange={onChange} data-testid={testId} />
@@ -280,7 +284,7 @@ function CustomizationSettings() {
 
       <PreferenceCard icon={LayoutGrid} title="Layout" description="Arrange the navigation rail and dashboard around the information you use most.">
         <div className="grid gap-6 lg:grid-cols-2">
-          <div><Label className="mb-2 block">Sidebar items</Label><ReorderList items={preferences.sidebarOrder} hidden={preferences.sidebarHidden} labels={SIDEBAR_LABELS} onToggle={preferences.toggleSidebarItem} onMove={preferences.moveSidebarItem} testPrefix="sidebar" /></div>
+          <div><Label className="mb-2 block">Sidebar items</Label><ReorderList items={preferences.sidebarOrder.filter((id) => id !== "/settings")} hidden={preferences.sidebarHidden} labels={SIDEBAR_LABELS} onToggle={preferences.toggleSidebarItem} onMove={preferences.moveSidebarItem} testPrefix="sidebar" /><p className="text-[11px] text-muted-foreground mt-2">Settings is always available so you can recover or reset your layout.</p></div>
           <div><Label className="mb-2 block">Dashboard cards</Label><ReorderList items={preferences.dashboardOrder} hidden={preferences.dashboardHidden} labels={DASHBOARD_LABELS} onToggle={preferences.toggleDashboardCard} onMove={preferences.moveDashboardCard} testPrefix="dashboard" /></div>
         </div>
         <Separator className="my-5 bg-border/40" />
@@ -297,32 +301,32 @@ function CustomizationSettings() {
         <PreferenceSwitch label="Hide unsupported tweaks" description="Remove tweaks that cannot run on this device." checked={preferences.hideUnsupported} onChange={(v) => set("hideUnsupported", v)} testId="toggle-hide-unsupported" />
         <PreferenceSwitch label="Hide advanced tweaks" description="Keep advanced controls out of the default list." checked={preferences.hideAdvanced} onChange={(v) => set("hideAdvanced", v)} testId="toggle-hide-advanced" />
         <PreferenceSwitch label="Show experimental tweaks" description="Include clearly marked experimental options." checked={preferences.showExperimental} onChange={(v) => set("showExperimental", v)} testId="toggle-show-experimental" />
-        <PreferenceSwitch label="Expand Performance Intelligence" description="Open the intelligence panel when it becomes available." checked={preferences.expandIntelligence} onChange={(v) => set("expandIntelligence", v)} testId="toggle-expand-intelligence" />
-        <PreferenceSwitch label="Refresh intelligence automatically" description="Retry intelligence data after startup and on return." checked={preferences.autoRefreshIntelligence} onChange={(v) => set("autoRefreshIntelligence", v)} testId="toggle-auto-refresh-intelligence" />
-        <PreferenceSwitch label="Create restore point" description="Request a Windows restore point before system changes." checked={preferences.createRestorePoint} onChange={(v) => set("createRestorePoint", v)} testId="toggle-create-restore-point" />
-        <PreferenceSwitch label="Save registry backup" description="Keep a local backup before registry changes." checked={preferences.saveRegistryBackup} onChange={(v) => set("saveRegistryBackup", v)} testId="toggle-save-registry-backup" />
-        <PreferenceSwitch label="Show verification results" description="Display post-change verification details." checked={preferences.showVerification} onChange={(v) => set("showVerification", v)} testId="toggle-show-verification" />
-        <PreferenceSwitch label="Retry failed reverts automatically" description="Retry a failed revert during the next eligible check." checked={preferences.autoRevertFailed} onChange={(v) => set("autoRevertFailed", v)} testId="toggle-auto-revert" />
+        <PreferenceSwitch label="Expand Performance Intelligence" description="Open the intelligence panel when it becomes available." checked={preferences.expandIntelligence} onChange={(v) => set("expandIntelligence", v)} testId="toggle-expand-intelligence" status="not-active" />
+        <PreferenceSwitch label="Refresh intelligence automatically" description="Retry intelligence data after startup and on return." checked={preferences.autoRefreshIntelligence} onChange={(v) => set("autoRefreshIntelligence", v)} testId="toggle-auto-refresh-intelligence" status="not-active" />
+        <PreferenceSwitch label="Create restore point" description="Request a Windows restore point before system changes." checked={preferences.createRestorePoint} onChange={(v) => set("createRestorePoint", v)} testId="toggle-create-restore-point" status="not-active" />
+        <PreferenceSwitch label="Save registry backup" description="Keep a local backup before registry changes." checked={preferences.saveRegistryBackup} onChange={(v) => set("saveRegistryBackup", v)} testId="toggle-save-registry-backup" status="not-active" />
+        <PreferenceSwitch label="Show verification results" description="Display post-change verification details." checked={preferences.showVerification} onChange={(v) => set("showVerification", v)} testId="toggle-show-verification" status="not-active" />
+        <PreferenceSwitch label="Retry failed reverts automatically" description="Retry a failed revert during the next eligible check." checked={preferences.autoRevertFailed} onChange={(v) => set("autoRevertFailed", v)} testId="toggle-auto-revert" status="not-active" />
       </PreferenceCard>
 
       <PreferenceCard icon={Bell} title="Notifications & startup" description="Choose what deserves your attention and how the desktop app opens.">
         <PreferenceSelect label="Metrics refresh" description="Set the live metrics cadence, or pause it completely." value={String(preferences.metricsRefreshSeconds)}
           options={[["0", "Paused"], ["2", "Every 2 seconds"], ["5", "Every 5 seconds"], ["10", "Every 10 seconds"]]}
           onChange={(value) => set("metricsRefreshSeconds", Number(value) as 0 | 2 | 5 | 10)} testId="select-metrics-refresh" />
-        <PreferenceSwitch label="Tweak notifications" description="Show a confirmation when a tweak is applied or reverted." checked={preferences.showTweakNotifications} onChange={(v) => set("showTweakNotifications", v)} testId="toggle-tweak-notifications" />
-        <PreferenceSwitch label="Verification warnings" description="Notify when a system change cannot be verified." checked={preferences.showVerificationWarnings} onChange={(v) => set("showVerificationWarnings", v)} testId="toggle-verification-warnings" />
-        <PreferenceSwitch label="Health alerts" description="Show actionable warnings for elevated system pressure." checked={preferences.showHealthAlerts} onChange={(v) => set("showHealthAlerts", v)} testId="toggle-health-alerts" />
-        <PreferenceSwitch label="Premium reminders" description="Allow reminders about premium-only optimization tools." checked={preferences.showPremiumReminders} onChange={(v) => set("showPremiumReminders", v)} testId="toggle-premium-reminders" />
-        <PreferenceSwitch label="Start with Windows" description="Register the desktop app to launch when Windows starts." checked={preferences.startWithWindows} onChange={(v) => set("startWithWindows", v)} testId="toggle-start-with-windows" />
-        <PreferenceSwitch label="Launch minimized" description="Start quietly in the background instead of opening the dashboard." checked={preferences.launchMinimized} onChange={(v) => set("launchMinimized", v)} testId="toggle-launch-minimized" />
-        <PreferenceSwitch label="Open Dashboard on startup" description="Return to the dashboard after authentication." checked={preferences.openDashboardOnStartup} onChange={(v) => set("openDashboardOnStartup", v)} testId="toggle-dashboard-startup" />
-        <PreferenceSwitch label="Check for updates automatically" description="Allow the desktop app to look for new releases." checked={preferences.autoUpdateChecks} onChange={(v) => set("autoUpdateChecks", v)} testId="toggle-auto-update-checks" />
+        <PreferenceSwitch label="Tweak notifications" description="Show a confirmation when a tweak is applied or reverted." checked={preferences.showTweakNotifications} onChange={(v) => set("showTweakNotifications", v)} testId="toggle-tweak-notifications" status="not-active" />
+        <PreferenceSwitch label="Verification warnings" description="Notify when a system change cannot be verified." checked={preferences.showVerificationWarnings} onChange={(v) => set("showVerificationWarnings", v)} testId="toggle-verification-warnings" status="not-active" />
+        <PreferenceSwitch label="Health alerts" description="Show actionable warnings for elevated system pressure." checked={preferences.showHealthAlerts} onChange={(v) => set("showHealthAlerts", v)} testId="toggle-health-alerts" status="not-active" />
+        <PreferenceSwitch label="Premium reminders" description="Allow reminders about premium-only optimization tools." checked={preferences.showPremiumReminders} onChange={(v) => set("showPremiumReminders", v)} testId="toggle-premium-reminders" status="not-active" />
+        <PreferenceSwitch label="Start with Windows" description="Register the desktop app to launch when Windows starts." checked={preferences.startWithWindows} onChange={(v) => set("startWithWindows", v)} testId="toggle-start-with-windows" status="not-active" />
+        <PreferenceSwitch label="Launch minimized" description="Start quietly in the background instead of opening the dashboard." checked={preferences.launchMinimized} onChange={(v) => set("launchMinimized", v)} testId="toggle-launch-minimized" status="not-active" />
+        <PreferenceSwitch label="Open Dashboard on startup" description="Return to the dashboard after authentication." checked={preferences.openDashboardOnStartup} onChange={(v) => set("openDashboardOnStartup", v)} testId="toggle-dashboard-startup" status="not-active" />
+        <PreferenceSwitch label="Check for updates automatically" description="Allow the desktop app to look for new releases." checked={preferences.autoUpdateChecks} onChange={(v) => set("autoUpdateChecks", v)} testId="toggle-auto-update-checks" status="not-active" />
       </PreferenceCard>
 
       <PreferenceCard icon={ShieldCheck} title="Privacy & diagnostics" description="Keep control of local diagnostics and optional product context.">
-        <PreferenceSwitch label="Anonymous crash reports" description="Share anonymous crash details to help improve stability." checked={preferences.anonymousCrashReports} onChange={(v) => set("anonymousCrashReports", v)} testId="toggle-crash-reports" />
-        <PreferenceSwitch label="Share performance diagnostics" description="Allow non-identifying performance diagnostics when support needs them." checked={preferences.sharePerformanceDiagnostics} onChange={(v) => set("sharePerformanceDiagnostics", v)} testId="toggle-performance-sharing" />
-        <PreferenceSwitch label="Share hardware context with AI Advisor" description="Include your local CPU, GPU, and memory details in AI requests." checked={preferences.shareAiHardwareContext} onChange={(v) => set("shareAiHardwareContext", v)} testId="toggle-ai-hardware-context" />
+        <PreferenceSwitch label="Anonymous crash reports" description="Share anonymous crash details to help improve stability." checked={preferences.anonymousCrashReports} onChange={(v) => set("anonymousCrashReports", v)} testId="toggle-crash-reports" status="not-active" />
+        <PreferenceSwitch label="Share performance diagnostics" description="Allow non-identifying performance diagnostics when support needs them." checked={preferences.sharePerformanceDiagnostics} onChange={(v) => set("sharePerformanceDiagnostics", v)} testId="toggle-performance-sharing" status="not-active" />
+        <PreferenceSwitch label="Share hardware context with AI Advisor" description="Include your local CPU, GPU, and memory details in AI requests." checked={preferences.shareAiHardwareContext} onChange={(v) => set("shareAiHardwareContext", v)} testId="toggle-ai-hardware-context" status="not-active" />
         <Separator className="my-4 bg-border/40" />
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={exportSettings} data-testid="button-export-settings"><FileDown className="size-3.5 mr-2" />Export settings</Button>
@@ -828,6 +832,7 @@ export default function Settings() {
                     <Button
                       variant="outline"
                       onClick={() => {
+                        if (!window.confirm("Reset local settings and activity data to their defaults? Your login and premium status will be kept.")) return;
                         resetData();
                         resetPreferences();
                         toast({ title: "Settings Reset", description: "Your preferences have been restored to defaults. You are still logged in." });

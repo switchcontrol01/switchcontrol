@@ -40,7 +40,8 @@ export function UserPreferencesSync() {
     root.style.setProperty("--accent", hsl);
     root.style.setProperty("--sidebar-primary", hsl);
     root.dataset.themeMode = preferences.theme;
-    root.classList.toggle("sc-reduced-motion", preferences.reducedMotion || preferences.disableGraphAnimation);
+    root.classList.toggle("sc-reduced-motion", preferences.reducedMotion);
+    root.classList.toggle("sc-disable-graph-animation", preferences.disableGraphAnimation);
     root.classList.toggle("sc-large-text", preferences.largerText);
     root.classList.toggle("sc-high-contrast", preferences.highContrast || preferences.theme === "contrast");
     root.classList.toggle("sc-large-sidebar", preferences.largeSidebar);

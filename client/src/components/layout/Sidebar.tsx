@@ -504,7 +504,7 @@ export function Sidebar() {
       <nav className="relative z-10 flex-1 overflow-y-auto py-2 px-3 space-y-0.5 scrollbar-thin scrollbar-thumb-sidebar-accent scrollbar-track-transparent">
         {sidebarOrder
           .map((href) => NAV_ITEMS.find((item) => item.href === href))
-          .filter((item): item is NavItem => !!item && !sidebarHidden.includes(item.href))
+           .filter((item): item is NavItem => !!item && (item.href === "/settings" || !sidebarHidden.includes(item.href)))
           .map((item) => {
           const isActive = currentPath === item.href;
           const isTourHighlighted = isTourActive && item.tourId === activeTourHighlight;

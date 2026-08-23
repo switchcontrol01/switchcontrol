@@ -65,3 +65,4 @@
 - [Windows display connection enum](windows-display-connection-enum.md) — HDMI is enum 6; external DisplayPort is 11; preserve unknown raw values instead of guessing.
 - [Latency measurement honesty](latency-measurement-honesty.md) — load heuristics and DPC counters are system-responsiveness signals, not mouse-to-screen input-latency measurements.
 - [Free customization settings](free-customization-settings.md) — appearance, layout, accessibility, behavior, startup, and privacy preferences are available to every account.
+- [Customization audit safeguards](customization-audit-safeguards.md) — Settings stays unhideable and graph-only animation is independent from reduced motion.

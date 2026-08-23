@@ -124,9 +124,11 @@ export const useUserPreferencesStore = create<UserPreferencesState>()(
       ...DEFAULTS,
       setPreference: (key, value) => set({ [key]: value } as Partial<UserPreferencesState>),
       toggleSidebarItem: (href) => set((s) => ({
+        ...(href === "/settings" ? { sidebarHidden: s.sidebarHidden.filter((x) => x !== href) } : {
         sidebarHidden: s.sidebarHidden.includes(href)
           ? s.sidebarHidden.filter((x) => x !== href)
           : [...s.sidebarHidden, href],
+        }),
       })),
       moveSidebarItem: (href, direction) => set((s) => {
         const order = [...s.sidebarOrder];
