@@ -230,6 +230,19 @@ function ReorderList({ items, hidden, labels, onToggle, onMove, testPrefix }: {
 function CustomizationSettings() {
   const preferences = useUserPreferencesStore();
   const set = preferences.setPreference;
+  const { toast } = useToast();
+  const clearHistory = useStore((s) => s.clearHistory);
+  const exportSettings = () => {
+    const settings = Object.fromEntries(Object.entries(preferences).filter(([, value]) => typeof value !== "function"));
+    const blob = new Blob([JSON.stringify(settings, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = "switchcontrol-settings.json";
+    anchor.click();
+    URL.revokeObjectURL(url);
+    toast({ title: "Settings exported", description: "Your local preferences were downloaded." });
+  };
   const accentOptions = Object.entries(ACCENT_COLORS) as [Exclude<keyof typeof ACCENT_COLORS, "custom">, string][];
   return (
     <div className="space-y-6">
@@ -272,7 +285,7 @@ function CustomizationSettings() {
         </div>
         <Separator className="my-5 bg-border/40" />
         <PreferenceSwitch label="Large sidebar" description="Use a wider navigation rail for longer labels." checked={preferences.largeSidebar} onChange={(v) => set("largeSidebar", v)} testId="toggle-large-sidebar" />
-        <Button variant="outline" size="sm" onClick={preferences.resetPreferences} data-testid="button-reset-customization"><RotateCcw className="size-3.5 mr-2" />Reset customization</Button>
+        <Button variant="outline" size="sm" onClick={() => { if (window.confirm("Reset layout and appearance preferences to their defaults?")) preferences.resetPreferences(); }} data-testid="button-reset-customization"><RotateCcw className="size-3.5 mr-2" />Reset customization</Button>
       </PreferenceCard>
 
       <PreferenceCard icon={SlidersHorizontal} title="Tweak behavior" description="Control sorting, confirmations, intelligence, and safety checks.">
@@ -310,6 +323,12 @@ function CustomizationSettings() {
         <PreferenceSwitch label="Anonymous crash reports" description="Share anonymous crash details to help improve stability." checked={preferences.anonymousCrashReports} onChange={(v) => set("anonymousCrashReports", v)} testId="toggle-crash-reports" />
         <PreferenceSwitch label="Share performance diagnostics" description="Allow non-identifying performance diagnostics when support needs them." checked={preferences.sharePerformanceDiagnostics} onChange={(v) => set("sharePerformanceDiagnostics", v)} testId="toggle-performance-sharing" />
         <PreferenceSwitch label="Share hardware context with AI Advisor" description="Include your local CPU, GPU, and memory details in AI requests." checked={preferences.shareAiHardwareContext} onChange={(v) => set("shareAiHardwareContext", v)} testId="toggle-ai-hardware-context" />
+        <Separator className="my-4 bg-border/40" />
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" onClick={exportSettings} data-testid="button-export-settings"><FileDown className="size-3.5 mr-2" />Export settings</Button>
+          <Button variant="outline" size="sm" onClick={() => { if (!window.confirm("Clear all local history? This cannot be undone.")) return; clearHistory(); toast({ title: "History cleared", description: "Local activity history was removed." }); }} data-testid="button-clear-local-history" className="text-destructive hover:text-destructive"><Trash2 className="size-3.5 mr-2" />Clear local history</Button>
+          <Button variant="outline" size="sm" onClick={() => { if (!window.confirm("Reset all local settings to their defaults?")) return; preferences.resetPreferences(); toast({ title: "Local settings reset", description: "Customization preferences were restored." }); }} data-testid="button-reset-local-settings"><RotateCcw className="size-3.5 mr-2" />Reset local settings</Button>
+        </div>
       </PreferenceCard>
     </div>
   );

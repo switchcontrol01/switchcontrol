@@ -42,6 +42,7 @@ interface AppState {
   applyAction: (actionName: string, page: string, result?: string, notes?: string) => void;
   clearRam: () => void;
   resetData: () => void;
+  clearHistory: () => void;
   setStats: (stats: Partial<SystemStats>) => void;
   runAIScan: () => Promise<void>;
   updateCounter: (key: keyof Omit<AccountStats, 'lastScan'>, increment?: number) => void;
@@ -227,6 +228,8 @@ export const useStore = create<AppState>()(
           }
         }
       }),
+
+      clearHistory: () => set({ history: [] }),
     }),
     {
       name: 'switch-control-storage',
