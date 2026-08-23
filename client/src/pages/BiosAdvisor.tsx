@@ -612,6 +612,16 @@ function Item({ children, className, ...props }: { children?: ReactNode; classNa
   );
 }
 
+function AdvancedDetailRow({ label, value, tone = "neutral" }: { label: string; value: string; tone?: "good" | "warn" | "neutral" }) {
+  const color = tone === "good" ? "text-emerald-400" : tone === "warn" ? "text-amber-400" : "text-[#E6EAF0]";
+  return (
+    <div className="flex items-center justify-between gap-3 py-2 border-b border-[#2A313A]/70 last:border-0">
+      <span className="text-[10px] text-[#8A93A1] uppercase tracking-wider">{label}</span>
+      <span className={`text-xs font-medium text-right ${color}`}>{value}</span>
+    </div>
+  );
+}
+
 export default function BiosAdvisor() {
   const { prefersReducedMotion } = useMotion();
   const { isPremium } = useAuth();
@@ -649,6 +659,7 @@ export default function BiosAdvisor() {
   const [activeCategory, setActiveCategory] = useState<BiosCategory>("CPU Scheduling & Latency");
   const [activeTab, setActiveTab] = useState<"opportunities" | "settings">("opportunities");
   const [showFirmwareInputs, setShowFirmwareInputs] = useState(false);
+  const [showAdvancedDetails, setShowAdvancedDetails] = useState(false);
   const [aiExplainLoading, setAiExplainLoading] = useState(false);
   const [aiExplainError, setAiExplainError] = useState<string | null>(null);
   const [photoUploading, setPhotoUploading] = useState(false);
@@ -1220,6 +1231,59 @@ export default function BiosAdvisor() {
                     <span className="text-[10px] text-[#6B7380] ml-1">{si.inference.biosFreshness.reason}</span>
                   </div>
                 )}
+                <div className="mt-3 pt-3 border-t border-[#2A313A]">
+                  <button
+                    type="button"
+                    className="flex items-center gap-2 text-[10px] text-[#8A93A1] hover:text-[#E6EAF0] transition-colors"
+                    onClick={() => setShowAdvancedDetails(value => !value)}
+                    aria-expanded={showAdvancedDetails}
+                    data-testid="button-advanced-firmware-details"
+                  >
+                    {showAdvancedDetails ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+                    {showAdvancedDetails ? "Hide advanced firmware details" : "View advanced firmware details"}
+                  </button>
+                  <AnimatePresence initial={false}>
+                    {showAdvancedDetails && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.25 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
+                          <div className="rounded-lg bg-[#151A21]/70 border border-[#2A313A] p-3">
+                            <p className="text-[10px] text-primary uppercase tracking-wider mb-1">Boot & Security</p>
+                            <AdvancedDetailRow label="Secure Boot" value={si.platform.secureBootEnabled === null ? "Not exposed" : si.platform.secureBootEnabled ? "Enabled" : "Disabled"} tone={si.platform.secureBootEnabled ? "good" : "warn"} />
+                            <AdvancedDetailRow label="UEFI Mode" value={si.platform.uefiBoot === null ? "Not exposed" : si.platform.uefiBoot ? "UEFI" : "Legacy BIOS"} tone={si.platform.uefiBoot ? "good" : "warn"} />
+                            <AdvancedDetailRow label="TPM" value={si.platform.tpmPresent === null ? "Not exposed" : si.platform.tpmPresent ? "Present" : "Not detected"} tone={si.platform.tpmPresent ? "good" : "warn"} />
+                            <AdvancedDetailRow label="TPM Version" value="Not exposed by current collector" />
+                            <AdvancedDetailRow label="CSM / Legacy Boot" value={si.platform.uefiBoot === false ? "Legacy mode detected" : si.platform.uefiBoot === true ? "CSM likely off" : "Not exposed"} />
+                          </div>
+                          <div className="rounded-lg bg-[#151A21]/70 border border-[#2A313A] p-3">
+                            <p className="text-[10px] text-primary uppercase tracking-wider mb-1">Virtualization</p>
+                            <AdvancedDetailRow label="CPU Virtualization" value={si.platform.virtualizationEnabled === null ? "Not exposed" : si.platform.virtualizationEnabled ? "Enabled" : "Disabled"} tone={si.platform.virtualizationEnabled ? "good" : "warn"} />
+                            <AdvancedDetailRow label="Hypervisor" value={si.platform.hypervisorPresent === null ? "Not exposed" : si.platform.hypervisorPresent ? "Active" : "Not active"} tone={si.platform.hypervisorPresent ? "good" : "neutral"} />
+                            <AdvancedDetailRow label="IOMMU / AMD-Vi" value="Not exposed by current collector" />
+                            <AdvancedDetailRow label="Above 4G Decoding" value="Not exposed by current collector" />
+                            <AdvancedDetailRow label="Kernel DMA Protection" value="Not exposed by current collector" />
+                          </div>
+                          <div className="rounded-lg bg-[#151A21]/70 border border-[#2A313A] p-3">
+                            <p className="text-[10px] text-primary uppercase tracking-wider mb-1">Graphics & Memory</p>
+                            <AdvancedDetailRow label="Resizable BAR / SAM" value={si.platform.resizeBarEnabled === null ? "Not exposed" : si.platform.resizeBarEnabled ? "Active" : "Inactive"} tone={si.platform.resizeBarEnabled ? "good" : "warn"} />
+                            <AdvancedDetailRow label="VBS" value={si.platform.vbsEnabled === null ? "Not exposed" : si.platform.vbsEnabled ? "Enabled" : "Disabled"} tone={si.platform.vbsEnabled ? "warn" : "good"} />
+                            <AdvancedDetailRow label="Memory Integrity" value={si.platform.memoryIntegrityEnabled === null ? "Not exposed" : si.platform.memoryIntegrityEnabled ? "Enabled" : "Disabled"} tone={si.platform.memoryIntegrityEnabled ? "warn" : "good"} />
+                            <AdvancedDetailRow label="EXPO / XMP" value={si.inference.expoOrXmp.state === "confirmed" ? "Confirmed active" : si.inference.expoOrXmp.state === "likely" ? "Likely active" : "Unknown / off"} tone={si.inference.expoOrXmp.state === "unknown" ? "neutral" : "good"} />
+                            <AdvancedDetailRow label="BIOS Date" value={si.bios.releaseDate || "Not exposed"} />
+                          </div>
+                        </div>
+                        <p className="text-[9px] text-[#6B7380] mt-3">
+                          Values are read-only. “Not exposed” means Windows or the motherboard did not provide a reliable value; it is not an assumption that the setting is disabled.
+                        </p>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
               </GlassCard>
             </Item>
           );
