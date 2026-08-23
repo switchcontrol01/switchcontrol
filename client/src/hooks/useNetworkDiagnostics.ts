@@ -372,6 +372,24 @@ export function useNetworkDiagnostics(): DiagnosticsState {
       if (mountedRef.current) {
         setDnsBenchmarkResult(result);
         setDnsBenchmarkState("done");
+
+        // The Apply button must reflect the real Windows resolver state, not
+        // the short-lived React state from the previous session. The Electron
+        // benchmark returns the currently configured DNS servers in
+        // localResolvers, so reconcile the recommendation after every scan
+        // (including scans performed after an app or PC restart).
+        const recommendedProvider = result.providers.find(
+          provider => provider.id === result.recommended,
+        );
+        const activeResolverIps = new Set(
+          (result.localResolvers ?? []).map(resolver => resolver.ip),
+        );
+        if (recommendedProvider && activeResolverIps.has(recommendedProvider.ip)) {
+          setApplyDnsState("done");
+          setApplyDnsError(null);
+        } else {
+          setApplyDnsState("idle");
+        }
       }
     } catch (err: unknown) {
       if (!mountedRef.current) return;

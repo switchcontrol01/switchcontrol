@@ -329,10 +329,30 @@ async function _runOccasionalMsinfo(): Promise<MsinfoCache | null> {
       const report = path.join(os.tmpdir(), `switchcontrol-msinfo-${Date.now()}-${process.pid}.txt`);
       const script = `
         try {
+          Add-Type @'
+          using System;
+          using System.Runtime.InteropServices;
+          public static class SwitchControlWindowHider {
+            [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+          }
+'@ -ErrorAction SilentlyContinue
           $p = Start-Process -FilePath "msinfo32.exe" -ArgumentList @("/report", "${report.replace(/\\/g, "\\\\")}") -WindowStyle Hidden -PassThru
-          if ($p.WaitForExit(7000) -and (Test-Path -LiteralPath "${report.replace(/\\/g, "\\\\")}")) {
+          $deadline = (Get-Date).AddSeconds(7)
+          while ((Get-Date) -lt $deadline -and -not (Test-Path -LiteralPath "${report.replace(/\\/g, "\\\\")}")) {
+            # Windows can create the System Information progress dialog after
+            # Start-Process returns. Hide every msinfo32 top-level window while
+            # the report is being generated.
+            Get-Process -Name "msinfo32" -ErrorAction SilentlyContinue | ForEach-Object {
+              if ($_.MainWindowHandle -ne 0) {
+                [SwitchControlWindowHider]::ShowWindow($_.MainWindowHandle, 0) | Out-Null
+              }
+            }
+            Start-Sleep -Milliseconds 100
+          }
+          if (Test-Path -LiteralPath "${report.replace(/\\/g, "\\\\")}") {
             Get-Content -LiteralPath "${report.replace(/\\/g, "\\\\")}" -Raw -ErrorAction SilentlyContinue
           }
+          if ($p -and -not $p.HasExited) { $p.CloseMainWindow() | Out-Null; $p.WaitForExit(500) | Out-Null }
           Remove-Item -LiteralPath "${report.replace(/\\/g, "\\\\")}" -Force -ErrorAction SilentlyContinue
         } catch {}
       `;
