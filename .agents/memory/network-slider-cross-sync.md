@@ -7,4 +7,4 @@ The Network Throttling Index surfaces must synchronize through a verified cross-
 
 **Why:** Updating only Zustand or only a component's local hook state leaves the other surface showing stale current/pending values and contradictory applied status.
 
-**How to apply:** After either surface verifies a write, update the shared value, mirror the boolean network state, and dispatch the cross-surface sync event so mounted cards adopt the same current and pending value immediately. In Electron, native verification is authoritative; backend state is audit/history data and must not overwrite it when responses race.
+**How to apply:** After either surface verifies a write, update the shared value, mirror the boolean network state, and dispatch the cross-surface sync event so mounted cards adopt the same current and pending value immediately. In Electron, native verification is authoritative; backend state is audit/history data and must not overwrite it when responses race. Initial native status checks must be bounded so a stalled PowerShell/WMI query cannot leave the cards animating indefinitely.
