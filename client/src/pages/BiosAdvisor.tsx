@@ -1234,7 +1234,7 @@ export default function BiosAdvisor() {
                 <div className="mt-3 pt-3 border-t border-[#2A313A]">
                   <button
                     type="button"
-                    className="flex items-center gap-2 text-[10px] text-[#8A93A1] hover:text-[#E6EAF0] transition-colors"
+                    className="inline-flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/[0.08] px-3 py-2 text-[10px] font-semibold uppercase tracking-wide text-primary shadow-[0_0_14px_rgba(0,212,255,0.08)] transition-all hover:border-primary/60 hover:bg-primary/[0.15] hover:text-primary-foreground hover:shadow-[0_0_18px_rgba(0,212,255,0.16)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
                     onClick={() => setShowAdvancedDetails(value => !value)}
                     aria-expanded={showAdvancedDetails}
                     data-testid="button-advanced-firmware-details"
