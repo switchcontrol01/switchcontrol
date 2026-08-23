@@ -614,6 +614,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
       },
     }),
   },
+  settings: {
+    apply: (preferences) => {
+      assertPlainObject(preferences, 'settings.apply preferences');
+      return ipcRenderer.invoke('settings:apply', preferences);
+    },
+  },
   processControl: {
     scan:   () => ipcRenderer.invoke('processControl:scan'),
     buildPlan: (scanResult, profile) => {

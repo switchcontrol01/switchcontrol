@@ -1340,6 +1340,11 @@
       mainWindow.show();
       mainWindow.focus();
       mainWindow.webContents.send('app:window-shown');
+      if (configStore.get('launchMinimized') === true) {
+        // Show once so the renderer can finish its startup handshake, then
+        // honor the user's preference by placing the app in the taskbar.
+        mainWindow.minimize();
+      }
       // Animate OS-level opacity 0 → 1 with ease-out over 600ms (~60fps)
       const _FADE_MS = 600;
       const _FADE_TICK = 16;
@@ -1373,6 +1378,7 @@
         mainWindow.setOpacity(0);
         mainWindow.show();
         mainWindow.focus();
+        if (configStore.get('launchMinimized') === true) mainWindow.minimize();
         // Animate OS-level opacity 0→1 over 600ms (same as normal path)
         const _FADE_MS_FB = 600, _FADE_TICK_FB = 16;
         let _fbElapsed = 0;
@@ -5924,6 +5930,34 @@ $pwrThrot  = Reg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottl
     ipcMain.handle('app:isIPCReady',      () => ipcReady);
   
     ipcMain.handle('updater:getState', () => updaterService.getState());
+    ipcMain.handle('settings:apply', (_event, preferences) => {
+      if (!preferences || typeof preferences !== 'object' || Array.isArray(preferences)) {
+        return { ok: false, error: 'Invalid preferences payload.' };
+      }
+      const allowed = [
+        'startWithWindows', 'launchMinimized', 'openDashboardOnStartup',
+        'autoUpdateChecks', 'anonymousCrashReports', 'sharePerformanceDiagnostics',
+        'shareAiHardwareContext', 'showTweakNotifications', 'showVerificationWarnings',
+        'showHealthAlerts', 'showPremiumReminders', 'autoRevertFailed',
+      ];
+      try {
+        for (const key of allowed) {
+          if (typeof preferences[key] === 'boolean') configStore.set(`preference:${key}`, preferences[key]);
+        }
+        if (typeof preferences.startWithWindows === 'boolean') {
+          app.setLoginItemSettings({ openAtLogin: preferences.startWithWindows });
+        }
+        if (typeof preferences.launchMinimized === 'boolean' && preferences.launchMinimized) {
+          configStore.set('launchMinimized', true);
+        } else if (typeof preferences.launchMinimized === 'boolean') {
+          configStore.set('launchMinimized', false);
+        }
+        return { ok: true };
+      } catch (error) {
+        console.error('[IPC] settings:apply failed:', error?.message);
+        return { ok: false, error: error?.message || 'Could not save desktop settings.' };
+      }
+    });
     ipcMain.handle('updater:check', () => {
       const { status } = updaterService.getState();
       if (!updaterService.canCheck(status)) { console.warn('[IPC] updater:check ignored — blocked in state:', status); return false; }
@@ -6120,7 +6154,11 @@ $pwrThrot  = Reg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottl
     if (!isDev) {
       setTimeout(() => {
         verboseLog('[Updater] Startup check (8s after ready)...');
-        updaterService.checkForUpdates();
+        if (configStore.get('preference:autoUpdateChecks') !== false) {
+          updaterService.checkForUpdates();
+        } else {
+          verboseLog('[Updater] Startup check skipped — disabled in General Settings.');
+        }
       }, 8000);
     }
   

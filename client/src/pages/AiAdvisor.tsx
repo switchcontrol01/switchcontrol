@@ -36,6 +36,7 @@ import { getTweak } from "@/lib/tweak-registry";
 import { useTweakOwnershipStore } from "@/stores/tweakOwnershipStore";
 import { NETWORK_TWEAKS } from "@/lib/network-tweaks-data";
 import { useBiosAdvisorStore } from "@/stores/biosAdvisorStore";
+import { useUserPreferencesStore } from "@/stores/userPreferencesStore";
 import { computeOptimizationScore } from "@/lib/ai-context-builder";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -958,6 +959,7 @@ export default function AiAdvisor() {
   );
   const { telemetry: liveTel } = useLiveTelemetryValues();
   const sysIntel = useSystemIntelligence();
+  const shareAiHardwareContext = useUserPreferencesStore((s) => s.shareAiHardwareContext);
   const { messages: storedMessages, setMessages: syncToStore, clearMessages: clearStore } = useAiChatStore();
 
   const [messages, setMessages] = useState<ChatMessage[]>(() =>
@@ -2047,10 +2049,20 @@ export default function AiAdvisor() {
       const contextWithPlatform = ctx
         ? { ...ctx, isElectron: isElectronApp, lastRecommendedTweaks }
         : { isElectron: isElectronApp, lastRecommendedTweaks };
+      const requestContext = shareAiHardwareContext
+        ? contextWithPlatform
+        : {
+            ...contextWithPlatform,
+            system: contextWithPlatform.system
+              ? { ...contextWithPlatform.system, cpu: "Not shared", gpu: "Not shared", ram: "Not shared", motherboard: "Not shared" }
+              : undefined,
+            telemetry: {},
+            platform: undefined,
+          };
 
       const requestBody: Record<string, unknown> = {
         messages: chatHistory,
-        context: contextWithPlatform,
+        context: requestContext,
       };
       if (imgData?.base64 && imgData.base64.length > 10) {
         requestBody.imageData = imgData.base64;

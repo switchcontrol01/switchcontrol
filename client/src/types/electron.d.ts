@@ -200,6 +200,9 @@ declare global {
         install: () => Promise<boolean>;
         onEvent: (callback: (payload: { event: string; state: UpdaterState }) => void) => () => void;
       };
+      settings: {
+        apply: (preferences: Record<string, unknown>) => Promise<{ ok: boolean; error?: string }>;
+      };
 
       security: {
         getStatus: () => Promise<{ available: boolean; data?: any; reason?: string }>;

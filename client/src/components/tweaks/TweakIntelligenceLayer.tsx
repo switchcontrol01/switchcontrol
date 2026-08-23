@@ -9,6 +9,7 @@ import { GlassCard } from "@/components/ui/glass-card";
 import { motion, AnimatePresence, useMotion } from "@/lib/motion";
 import { TWEAKS_DATA } from "@/lib/mock-data";
 import { useTweakIntelligence, type PressureLevel, type SystemSignal, type TweakRanking, type PostureDimension } from "@/hooks/useTweakIntelligence";
+import { useUserPreferencesStore } from "@/stores/userPreferencesStore";
 
 // ── Tweak title lookup ────────────────────────────────────────────────────────
 
@@ -428,8 +429,14 @@ function RevealPanel({ children, delay = 0, className }: { children: ReactNode; 
 // ── Main component ────────────────────────────────────────────────────────────
 
 export function TweakIntelligenceLayer() {
-  const intel = useTweakIntelligence();
-  const [collapsed, setCollapsed] = useState(false);
+  const autoRefreshIntelligence = useUserPreferencesStore((s) => s.autoRefreshIntelligence);
+  const expandIntelligence = useUserPreferencesStore((s) => s.expandIntelligence);
+  const intel = useTweakIntelligence(autoRefreshIntelligence ? 5_000 : 86_400_000);
+  const [collapsed, setCollapsed] = useState(!expandIntelligence);
+
+  useEffect(() => {
+    setCollapsed(!expandIntelligence);
+  }, [expandIntelligence]);
 
   // Accumulate CPU load history for sparkline (max 40 points)
   const cpuHistoryRef = useRef<number[]>([]);

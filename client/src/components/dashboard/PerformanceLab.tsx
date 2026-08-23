@@ -26,6 +26,7 @@ import {
   type RamState,
   type ActiveProblem,
 } from "@/hooks/useDashboardIntelligence";
+import { useUserPreferencesStore } from "@/stores/userPreferencesStore";
 import {
   AlertTriangle,
   CheckCircle,
@@ -294,7 +295,7 @@ function ProblemRow({ problem, index }: { problem: ActiveProblem; index: number 
   );
 }
 
-function ActiveProblemsCard({ data }: { data: ActiveProblemsData | null }) {
+function ActiveProblemsCard({ data, alertsEnabled = true }: { data: ActiveProblemsData | null; alertsEnabled?: boolean }) {
   return (
     <GlassCard className="h-full" data-testid="card-active-problems">
       <div className="p-5 space-y-3 h-full flex flex-col">
@@ -320,7 +321,14 @@ function ActiveProblemsCard({ data }: { data: ActiveProblemsData | null }) {
 
         <div className="flex-1 space-y-2 overflow-hidden">
           <AnimatePresence mode="popLayout">
-            {!data && (
+            {!alertsEnabled && (
+              <motion.div key="alerts-disabled" className="flex flex-col items-center justify-center gap-2 py-6 text-center">
+                <AlertTriangle className="size-8 text-muted-foreground/40" />
+                <p className="text-xs text-muted-foreground">Health alerts are disabled</p>
+                <p className="text-[10px] text-muted-foreground/50">Enable them in Settings to see system pressure warnings</p>
+              </motion.div>
+            )}
+            {!data && alertsEnabled && (
               <div className="space-y-2">
                 {[1, 2].map(i => <div key={i} className="h-14 rounded-lg bg-[#21262D] animate-pulse" />)}
               </div>
@@ -821,6 +829,7 @@ function RevealCard({ children, delay = 0 }: { children: ReactNode; delay?: numb
 export function PerformanceLab({ onClearRAM }: { onClearRAM: () => void }) {
   const { user } = useAuth();
   const { instability, problems, latency, ram, refreshRam } = useDashboardIntelligence(!!user?.loggedIn);
+  const showHealthAlerts = useUserPreferencesStore((s) => s.showHealthAlerts);
   const { prefersReducedMotion } = useMotion();
 
   return (
@@ -846,7 +855,7 @@ export function PerformanceLab({ onClearRAM }: { onClearRAM: () => void }) {
       {/* Primary row: the three core performance signals */}
       <div className="grid gap-4 md:grid-cols-3">
         <RevealCard delay={0.05}><StabilityScoreCard data={instability} /></RevealCard>
-        <RevealCard delay={0.10}><ActiveProblemsCard data={problems} /></RevealCard>
+        <RevealCard delay={0.10}><ActiveProblemsCard data={showHealthAlerts ? problems : null} alertsEnabled={showHealthAlerts} /></RevealCard>
         <RevealCard delay={0.15}><SystemResponsivenessCard data={latency} /></RevealCard>
       </div>
 

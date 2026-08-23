@@ -54,6 +54,32 @@ export function UserPreferencesSync() {
   }, [preferences]);
 
   useEffect(() => {
+    const api = (window as any).electronAPI?.settings;
+    if (!api?.apply) return;
+    api.apply({
+      startWithWindows: preferences.startWithWindows,
+      launchMinimized: preferences.launchMinimized,
+      openDashboardOnStartup: preferences.openDashboardOnStartup,
+      autoUpdateChecks: preferences.autoUpdateChecks,
+      anonymousCrashReports: preferences.anonymousCrashReports,
+      sharePerformanceDiagnostics: preferences.sharePerformanceDiagnostics,
+      shareAiHardwareContext: preferences.shareAiHardwareContext,
+      showTweakNotifications: preferences.showTweakNotifications,
+      showVerificationWarnings: preferences.showVerificationWarnings,
+      showHealthAlerts: preferences.showHealthAlerts,
+      showPremiumReminders: preferences.showPremiumReminders,
+      autoRevertFailed: preferences.autoRevertFailed,
+    }).catch(() => {});
+  }, [
+    preferences.startWithWindows, preferences.launchMinimized,
+    preferences.openDashboardOnStartup, preferences.autoUpdateChecks,
+    preferences.anonymousCrashReports, preferences.sharePerformanceDiagnostics,
+    preferences.shareAiHardwareContext, preferences.showTweakNotifications,
+    preferences.showVerificationWarnings, preferences.showHealthAlerts,
+    preferences.showPremiumReminders, preferences.autoRevertFailed,
+  ]);
+
+  useEffect(() => {
     setRealtimeMetricsEnabled(preferences.metricsRefreshSeconds !== 0);
   }, [preferences.metricsRefreshSeconds, setRealtimeMetricsEnabled]);
 

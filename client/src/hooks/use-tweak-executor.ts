@@ -11,6 +11,7 @@ import {
   UNSUPPORTED_MAP,
 } from '@/lib/tweak-registry';
 import { useStore } from '@/lib/store';
+import { useUserPreferencesStore } from '@/stores/userPreferencesStore';
 import {
   isAutomaticApplyBlocked,
   entitlementGuardReason,
@@ -234,6 +235,9 @@ export async function bulkApplyTweaks(tweakIds: string[]): Promise<Record<string
 // ── Hook ──────────────────────────────────────────────────────────────────────
 export function useTweakExecutor() {
   const { toast } = useToast();
+  const showTweakNotifications = useUserPreferencesStore((s) => s.showTweakNotifications);
+  const showVerificationWarnings = useUserPreferencesStore((s) => s.showVerificationWarnings);
+  const showVerification = useUserPreferencesStore((s) => s.showVerification);
   const [executing, setExecuting]   = useState<string | null>(null);
   const [inProgress, setInProgress] = useState<Set<string>>(new Set());
   const [localState, setLocalState] = useState<LocalTweakState>({ appliedTweaks: {}, lastSync: null });
@@ -267,6 +271,8 @@ export function useTweakExecutor() {
     try {
       const result: TweakResult = await getTweaksAPI().execute(tweakId, action, {
         ...options,
+        createRestorePoint: useUserPreferencesStore.getState().createRestorePoint,
+        saveRegistryBackup: useUserPreferencesStore.getState().saveRegistryBackup,
         source,
       });
 
@@ -280,7 +286,9 @@ export function useTweakExecutor() {
         (!result.failureType && /cancel|declined|uac prompt/i.test(result.error ?? ''));
 
       if (isCancelled) {
-        toast({ title: 'UAC Prompt Declined', description: 'Click "Yes" on the prompt that appears to allow the change.' });
+        if (showVerificationWarnings) {
+          toast({ title: 'UAC Prompt Declined', description: 'Click "Yes" on the prompt that appears to allow the change.' });
+        }
         return FAIL('uac_cancelled', result.userMessage, result.hint);
       }
 
@@ -288,11 +296,13 @@ export function useTweakExecutor() {
         const fType: FailureType = (result.failureType as FailureType) ?? 'unknown';
         const t = FAILURE_TOAST[fType] ?? FAILURE_TOAST.unknown;
 
-        toast({
-          title:       result.userMessage ?? t.title,
-          description: result.hint        ?? result.error ?? t.description,
-          variant:     'destructive',
-        });
+        if (showVerificationWarnings || fType !== 'verification_failed') {
+          toast({
+            title:       result.userMessage ?? t.title,
+            description: result.hint        ?? result.error ?? t.description,
+            variant:     'destructive',
+          });
+        }
 
         return FAIL(fType, result.userMessage, result.hint);
       }
@@ -353,12 +363,16 @@ export function useTweakExecutor() {
         }));
       }
 
-      toast({
-        title:       action === 'apply' ? 'Tweak Applied' : 'Tweak Reverted',
-        description: result.message ?? `Successfully ${action === 'apply' ? 'applied' : 'reverted'}`,
-      });
+      if (showTweakNotifications) {
+        toast({
+          title:       action === 'apply' ? 'Tweak Applied' : 'Tweak Reverted',
+          description: showVerification
+            ? (result.message ?? `Successfully ${action === 'apply' ? 'applied' : 'reverted'}`)
+            : `Successfully ${action === 'apply' ? 'applied' : 'reverted'}`,
+        });
+      }
 
-      if (result.requiresReboot) {
+      if (result.requiresReboot && showTweakNotifications) {
         toast({ title: 'Restart Required', description: 'This change takes full effect after a system restart.' });
       }
 
@@ -388,7 +402,7 @@ export function useTweakExecutor() {
       setExecuting(null);
       setInProgress(prev => { const n = new Set(prev); n.delete(tweakId); return n; });
     }
-  }, [toast, inProgress]);
+  }, [toast, inProgress, showTweakNotifications, showVerificationWarnings, showVerification]);
 
   const syncAllTweaks = useCallback(async (): Promise<Record<string, TweakStatus>> => {
     if (!isElectronWithTweaks()) return {};
