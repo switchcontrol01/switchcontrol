@@ -1253,6 +1253,14 @@ export default function BiosAdvisor() {
                       >
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
                           <div className="rounded-lg bg-[#151A21]/70 border border-[#2A313A] p-3">
+                            <p className="text-[10px] text-primary uppercase tracking-wider mb-1">Detected Hardware</p>
+                            <AdvancedDetailRow label="Motherboard" value={[si.baseboard.manufacturer, si.baseboard.model].filter(Boolean).join(" ") || "Not exposed"} />
+                            <AdvancedDetailRow label="BIOS Vendor" value={si.bios.vendor || "Not exposed"} />
+                            <AdvancedDetailRow label="BIOS Version" value={si.bios.version || "Not exposed"} />
+                            <AdvancedDetailRow label="BIOS Date" value={si.bios.releaseDate || "Not exposed"} />
+                            <AdvancedDetailRow label="CPU" value={si.cpu.brand || "Not exposed"} />
+                          </div>
+                          <div className="rounded-lg bg-[#151A21]/70 border border-[#2A313A] p-3">
                             <p className="text-[10px] text-primary uppercase tracking-wider mb-1">Boot & Security</p>
                             <AdvancedDetailRow label="Secure Boot" value={si.platform.secureBootEnabled === null ? "Not exposed" : si.platform.secureBootEnabled ? "Enabled" : "Disabled"} tone={si.platform.secureBootEnabled ? "good" : "warn"} />
                             <AdvancedDetailRow label="UEFI Mode" value={si.platform.uefiBoot === null ? "Not exposed" : si.platform.uefiBoot ? "UEFI" : "Legacy BIOS"} tone={si.platform.uefiBoot ? "good" : "warn"} />
@@ -1264,8 +1272,8 @@ export default function BiosAdvisor() {
                             <p className="text-[10px] text-primary uppercase tracking-wider mb-1">Virtualization</p>
                             <AdvancedDetailRow label="CPU Virtualization" value={si.platform.virtualizationEnabled === null ? "Not exposed" : si.platform.virtualizationEnabled ? "Enabled" : "Disabled"} tone={si.platform.virtualizationEnabled ? "good" : "warn"} />
                             <AdvancedDetailRow label="Hypervisor" value={si.platform.hypervisorPresent === null ? "Not exposed" : si.platform.hypervisorPresent ? "Active" : "Not active"} tone={si.platform.hypervisorPresent ? "good" : "neutral"} />
-                            <AdvancedDetailRow label="IOMMU / AMD-Vi" value="Firmware-only — not reported by Windows" />
-                            <AdvancedDetailRow label="Above 4G Decoding" value="Firmware-only — not reported by Windows" />
+                            <AdvancedDetailRow label="IOMMU / AMD-Vi" value="Firmware setting — verify in UEFI" />
+                            <AdvancedDetailRow label="Above 4G Decoding" value="Firmware setting — verify in UEFI" />
                             <AdvancedDetailRow label="Kernel DMA Protection" value={si.platform.kernelDmaProtectionEnabled === null ? "Not exposed" : si.platform.kernelDmaProtectionEnabled ? "Enabled" : "Disabled"} tone={si.platform.kernelDmaProtectionEnabled ? "good" : "warn"} />
                           </div>
                           <div className="rounded-lg bg-[#151A21]/70 border border-[#2A313A] p-3">
@@ -1274,7 +1282,8 @@ export default function BiosAdvisor() {
                             <AdvancedDetailRow label="VBS" value={si.platform.vbsEnabled === null ? "Not exposed" : si.platform.vbsEnabled ? "Enabled" : "Disabled"} tone={si.platform.vbsEnabled ? "warn" : "good"} />
                             <AdvancedDetailRow label="Memory Integrity" value={si.platform.memoryIntegrityEnabled === null ? "Not exposed" : si.platform.memoryIntegrityEnabled ? "Enabled" : "Disabled"} tone={si.platform.memoryIntegrityEnabled ? "warn" : "good"} />
                             <AdvancedDetailRow label="EXPO / XMP" value={si.inference.expoOrXmp.state === "confirmed" ? "Confirmed active" : si.inference.expoOrXmp.state === "likely" ? "Likely active" : "Unknown / off"} tone={si.inference.expoOrXmp.state === "unknown" ? "neutral" : "good"} />
-                            <AdvancedDetailRow label="BIOS Date" value={si.bios.releaseDate || "Not exposed"} />
+                            <AdvancedDetailRow label="RAM Layout" value={si.memory.sticks.length > 0 ? `${si.memory.sticks.length} stick${si.memory.sticks.length === 1 ? "" : "s"} · ${sysIntel.ram}` : "Not exposed"} />
+                            <AdvancedDetailRow label="Memory Channel" value={si.memory.inferredDualChannel === null ? "Not exposed" : si.memory.inferredDualChannel ? "Dual-channel inferred" : "Single-channel inferred"} />
                           </div>
                         </div>
                         <p className="text-[9px] text-[#6B7380] mt-3">

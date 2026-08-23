@@ -300,7 +300,7 @@ function CustomizationSettings() {
   const accentOptions = Object.entries(ACCENT_COLORS) as [Exclude<keyof typeof ACCENT_COLORS, "custom">, string][];
   return (
     <div className="space-y-6">
-      <PreferenceCard icon={Palette} title="Appearance" description="Make SwitchControl feel like your workspace. Changes apply instantly and are saved locally." defaultOpen>
+      <PreferenceCard icon={Palette} title="Appearance" description="Make SwitchControl feel like your workspace. Changes apply instantly and are saved locally.">
         <div className="space-y-4">
           <div>
             <Label>Accent color</Label>
@@ -753,12 +753,8 @@ export default function Settings() {
 
         <div className="space-y-6">
           <Reveal delay={0}>
-          <Card className="bg-card/50 border-border/50">
-            <CardHeader>
-              <CardTitle>General</CardTitle>
-              <CardDescription>Configure general app behavior.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
+          <PreferenceCard icon={SettingsIcon} title="General" description="Configure general app behavior." defaultOpen>
+            <div className="space-y-6">
               {/* Real-time Metrics */}
               <motion.div initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3, delay: 0.11, ease: [0.22, 1, 0.36, 1] }}>
                 <div className="flex items-center justify-between py-1 px-2 -mx-2 rounded-lg hover:bg-[#1A1F26] transition-colors">
@@ -779,8 +775,8 @@ export default function Settings() {
                 <Separator className="bg-border/50 mt-5" />
               </motion.div>
 
-            </CardContent>
-          </Card>
+            </div>
+          </PreferenceCard>
           </Reveal>
 
           <Reveal delay={0.04}>
