@@ -242,6 +242,60 @@ function ReorderList({ items, hidden, labels, onToggle, onReorder, testPrefix }:
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dropIndex, setDropIndex] = useState<number | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  const draggedIdRef = useRef<string | null>(null);
+  const dropIndexRef = useRef<number | null>(null);
+
+  const beginDrag = (id: string, index: number, event: React.PointerEvent<HTMLDivElement>) => {
+    if (event.button !== 0) return;
+    event.preventDefault();
+    event.stopPropagation();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    draggedIdRef.current = id;
+    dropIndexRef.current = index;
+    setDraggedId(id);
+    setDropIndex(index);
+  };
+
+  const updateDropTarget = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (draggedIdRef.current === null || !event.currentTarget.hasPointerCapture(event.pointerId)) return;
+    const rows = Array.from(listRef.current?.querySelectorAll<HTMLElement>("[data-reorder-index]") ?? []);
+    if (!rows.length) return;
+    const target = rows.reduce((closest, row) => {
+      const rect = row.getBoundingClientRect();
+      const distance = Math.abs(event.clientY - (rect.top + rect.height / 2));
+      return distance < closest.distance ? { row, distance } : closest;
+    }, { row: rows[0], distance: Number.POSITIVE_INFINITY }).row;
+    const nextIndex = Number(target.dataset.reorderIndex);
+    if (Number.isInteger(nextIndex)) {
+      dropIndexRef.current = nextIndex;
+      setDropIndex(nextIndex);
+    }
+  };
+
+  const finishDrag = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (draggedIdRef.current === null || !event.currentTarget.hasPointerCapture(event.pointerId)) return;
+    event.preventDefault();
+    event.currentTarget.releasePointerCapture(event.pointerId);
+    const fromIndex = items.indexOf(draggedIdRef.current);
+    const targetIndex = dropIndexRef.current;
+    if (fromIndex >= 0 && targetIndex !== null && fromIndex !== targetIndex) {
+      onReorder(fromIndex, targetIndex);
+    }
+    draggedIdRef.current = null;
+    dropIndexRef.current = null;
+    setDraggedId(null);
+    setDropIndex(null);
+  };
+
+  const cancelDrag = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    draggedIdRef.current = null;
+    dropIndexRef.current = null;
+    setDraggedId(null);
+    setDropIndex(null);
+  };
 
   return (
     <div ref={listRef} className="space-y-1.5" data-reorder-list={testPrefix}>
@@ -257,40 +311,10 @@ function ReorderList({ items, hidden, labels, onToggle, onReorder, testPrefix }:
           data-testid={`${testPrefix}-reorder-${id.replace(/[^a-z0-9]/gi, "-")}`}
         >
           <div
-            onPointerDown={(event) => {
-              if (event.button !== 0) return;
-              event.preventDefault();
-              event.stopPropagation();
-              event.currentTarget.setPointerCapture(event.pointerId);
-              setDraggedId(id);
-              setDropIndex(index);
-            }}
-            onPointerMove={(event) => {
-              if (draggedId === null || !event.currentTarget.hasPointerCapture(event.pointerId)) return;
-              const element = document.elementFromPoint(event.clientX, event.clientY);
-              const row = element?.closest<HTMLElement>(`[data-reorder-list="${testPrefix}"] [data-reorder-index]`);
-              if (!row) return;
-              const nextIndex = Number(row.dataset.reorderIndex);
-              if (Number.isInteger(nextIndex)) setDropIndex(nextIndex);
-            }}
-            onPointerUp={(event) => {
-              if (draggedId === null || !event.currentTarget.hasPointerCapture(event.pointerId)) return;
-              event.preventDefault();
-              event.currentTarget.releasePointerCapture(event.pointerId);
-              const fromIndex = items.indexOf(draggedId);
-              if (fromIndex >= 0 && dropIndex !== null && fromIndex !== dropIndex) {
-                onReorder(fromIndex, dropIndex);
-              }
-              setDraggedId(null);
-              setDropIndex(null);
-            }}
-            onPointerCancel={(event) => {
-              if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-                event.currentTarget.releasePointerCapture(event.pointerId);
-              }
-              setDraggedId(null);
-              setDropIndex(null);
-            }}
+            onPointerDown={(event) => beginDrag(id, index, event)}
+            onPointerMove={updateDropTarget}
+            onPointerUp={finishDrag}
+            onPointerCancel={cancelDrag}
             className="shrink-0 cursor-grab active:cursor-grabbing touch-none rounded p-1 -ml-1 hover:bg-primary/10"
             title="Click and hold to drag"
             aria-label={`Drag ${labels[id] || id} to reorder`}
