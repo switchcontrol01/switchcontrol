@@ -434,10 +434,10 @@ export default function Home() {
   }, []);
   const { prefersReducedMotion } = useMotion();
   const { user, isPremium } = useAuth();
-  const { dashboardHidden, dashboardOrder } = useUserPreferencesStore((s) => ({
+  const { dashboardHidden, dashboardOrder } = useUserPreferencesStore(useShallow((s) => ({
     dashboardHidden: s.dashboardHidden,
     dashboardOrder: s.dashboardOrder,
-  }));
+  })));
   const showDashboardCard = useCallback((id: string) => !dashboardHidden.includes(id), [dashboardHidden]);
   const dashboardCardOrder = useCallback((id: string) => ({
     order: dashboardOrder.indexOf(id) < 0 ? 99 : dashboardOrder.indexOf(id),

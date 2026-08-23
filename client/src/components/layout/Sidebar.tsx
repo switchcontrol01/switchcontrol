@@ -30,6 +30,7 @@ import { useTourStore } from "@/lib/tour-store";
 import { useEntitlementUiState } from "@/hooks/useEntitlementUiState";
 import { preloadDesktopRoute } from "@/lib/route-prefetch";
 import { useUserPreferencesStore } from "@/stores/userPreferencesStore";
+import { useShallow } from "zustand/react/shallow";
 
 // Module-level cache for the app version. `Sidebar` is remounted on every
 // route change (each page wraps itself in <AppLayout>), so without this the
@@ -371,11 +372,11 @@ export function Sidebar() {
   const activeItemRef = useRef<HTMLDivElement>(null);
   const { activeTourHighlight, isTourActive } = useTourStore();
   const [appVersion, setAppVersion] = useState<string | null>(cachedAppVersion);
-  const { sidebarHidden, sidebarOrder, largeSidebar } = useUserPreferencesStore((s) => ({
+  const { sidebarHidden, sidebarOrder, largeSidebar } = useUserPreferencesStore(useShallow((s) => ({
     sidebarHidden: s.sidebarHidden,
     sidebarOrder: s.sidebarOrder,
     largeSidebar: s.largeSidebar,
-  }));
+  })));
   useEffect(() => {
     if (cachedAppVersion) return;
     const api = (window as any).electronAPI;

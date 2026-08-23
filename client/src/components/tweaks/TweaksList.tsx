@@ -21,6 +21,7 @@ import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
 import { useSystemConditionsStore } from "@/stores/systemConditionsStore";
 import { useDynamicRecommendations } from "@/hooks/useDynamicRecommendations";
 import { useUserPreferencesStore } from "@/stores/userPreferencesStore";
+import { useShallow } from "zustand/react/shallow";
 
 // Module-level sync generation counter — persists across component remounts.
 // Incremented when a new mount starts its sync; old in-flight syncs that
@@ -206,13 +207,13 @@ export function TweaksList() {
     hideUnsupported,
     hideAdvanced,
     showExperimental,
-  } = useUserPreferencesStore((s) => ({
+  } = useUserPreferencesStore(useShallow((s) => ({
     showAppliedFirst: s.showAppliedFirst,
     showRecommendedFirst: s.showRecommendedFirst,
     hideUnsupported: s.hideUnsupported,
     hideAdvanced: s.hideAdvanced,
     showExperimental: s.showExperimental,
-  }));
+  })));
   const [search, setSearch]         = useState("");
   const [activeChip, setActiveChip] = useState<string>("All");
   const [activeLevel, setActiveLevel] = useState<LevelFilter>("All");
