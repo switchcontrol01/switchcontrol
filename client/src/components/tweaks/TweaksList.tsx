@@ -20,6 +20,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
 import { useSystemConditionsStore } from "@/stores/systemConditionsStore";
 import { useDynamicRecommendations } from "@/hooks/useDynamicRecommendations";
+import { useUserPreferencesStore } from "@/stores/userPreferencesStore";
 
 // Module-level sync generation counter — persists across component remounts.
 // Incremented when a new mount starts its sync; old in-flight syncs that
@@ -199,6 +200,19 @@ export function TweaksList() {
   const { openUpgradeModal } = useUpgradeModal();
   const { isAdmin, tamperProtection } = useSystemConditionsStore();
   const { overrides: dynOverrides } = useDynamicRecommendations();
+  const {
+    showAppliedFirst,
+    showRecommendedFirst,
+    hideUnsupported,
+    hideAdvanced,
+    showExperimental,
+  } = useUserPreferencesStore((s) => ({
+    showAppliedFirst: s.showAppliedFirst,
+    showRecommendedFirst: s.showRecommendedFirst,
+    hideUnsupported: s.hideUnsupported,
+    hideAdvanced: s.hideAdvanced,
+    showExperimental: s.showExperimental,
+  }));
   const [search, setSearch]         = useState("");
   const [activeChip, setActiveChip] = useState<string>("All");
   const [activeLevel, setActiveLevel] = useState<LevelFilter>("All");
@@ -359,6 +373,8 @@ export function TweaksList() {
   const filteredTweaks = useMemo(() => {
     const items = TWEAKS_DATA.filter((t) => {
       if (t.isAdvancedTuning) return false; // rendered in its own "Advanced Tuning" section below
+      if (hideExperimental && t.level === "Experimental") return false;
+      if (hideUnsupported && runtimeUnsupportedReasons[t.id]) return false;
       const matchesSearch = t.title.toLowerCase().includes(search.toLowerCase()) ||
                             t.description.toLowerCase().includes(search.toLowerCase());
       let matchesChip: boolean;
@@ -375,11 +391,19 @@ export function TweaksList() {
     });
     // Sort: toggle tweaks first, then slider tweaks at the bottom
     return items.sort((a, b) => {
+      if (showAppliedFirst) {
+        const appliedDiff = Number(getTweakEnabled(b.id)) - Number(getTweakEnabled(a.id));
+        if (appliedDiff !== 0) return appliedDiff;
+      }
+      if (showRecommendedFirst) {
+        const recommendedDiff = Number(b.level === "Recommended") - Number(a.level === "Recommended");
+        if (recommendedDiff !== 0) return recommendedDiff;
+      }
       const aSlider = a.controlType === "slider" ? 1 : 0;
       const bSlider = b.controlType === "slider" ? 1 : 0;
       return aSlider - bSlider;
     });
-  }, [search, activeChip, showRisky, activeLevel]);
+  }, [search, activeChip, showRisky, activeLevel, showAppliedFirst, showRecommendedFirst, hideUnsupported, hideExperimental, runtimeUnsupportedReasons, tweaks]);
 
   const toggleTweaks = useMemo(() => filteredTweaks.filter(t => t.controlType !== "slider"), [filteredTweaks]);
   const sliderTweaks = useMemo(() => filteredTweaks.filter(t => t.controlType === "slider"), [filteredTweaks]);
@@ -390,13 +414,15 @@ export function TweaksList() {
   const advancedTuningTweaks = useMemo(() => {
     return TWEAKS_DATA.filter((t) => {
       if (!t.isAdvancedTuning) return false;
+      if (hideAdvanced || (hideExperimental && t.level === "Experimental")) return false;
+      if (hideUnsupported && runtimeUnsupportedReasons[t.id]) return false;
       const matchesSearch = t.title.toLowerCase().includes(search.toLowerCase()) ||
                             t.description.toLowerCase().includes(search.toLowerCase());
       const matchesRisk  = showRisky ? true : t.risk !== "Risky";
       const matchesLevel = activeLevel === "All" || t.level === activeLevel;
       return matchesSearch && matchesRisk && matchesLevel;
     });
-  }, [search, showRisky, activeLevel]);
+  }, [search, showRisky, activeLevel, hideAdvanced, hideExperimental, hideUnsupported, runtimeUnsupportedReasons]);
 
   const advancedSliderTweaks = useMemo(() => advancedTuningTweaks.filter(t => t.controlType === "slider"), [advancedTuningTweaks]);
   const advancedPresetTweaks = useMemo(() => advancedTuningTweaks.filter(t => t.controlType === "preset"), [advancedTuningTweaks]);

@@ -434,8 +434,14 @@ export default function Home() {
   }, []);
   const { prefersReducedMotion } = useMotion();
   const { user, isPremium } = useAuth();
-  const dashboardHidden = useUserPreferencesStore((s) => s.dashboardHidden);
+  const { dashboardHidden, dashboardOrder } = useUserPreferencesStore((s) => ({
+    dashboardHidden: s.dashboardHidden,
+    dashboardOrder: s.dashboardOrder,
+  }));
   const showDashboardCard = useCallback((id: string) => !dashboardHidden.includes(id), [dashboardHidden]);
+  const dashboardCardOrder = useCallback((id: string) => ({
+    order: dashboardOrder.indexOf(id) < 0 ? 99 : dashboardOrder.indexOf(id),
+  }), [dashboardOrder]);
   const liveStatus = useLiveStatus();
   const timeOfDay = useMemo(() => getTimeOfDay(), []);
   const greeting  = useMemo(() => getGreeting(),  []);
@@ -875,6 +881,7 @@ export default function Home() {
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
              {showDashboardCard("memory") && <div
               style={{
+                ...dashboardCardOrder("memory"),
                 borderRadius: 12,
                 transition: "box-shadow 0.15s ease-out",
                 boxShadow: ramGlow ? "0 0 22px 5px rgba(52,211,153,0.30)" : undefined,
@@ -895,7 +902,7 @@ export default function Home() {
                />
               </div>}
             
-             {showDashboardCard("cpu") && <div>
+             {showDashboardCard("cpu") && <div style={dashboardCardOrder("cpu")}>
               <StatCard
                 title="CPU"
                 value={stats.cpuName}
@@ -912,7 +919,7 @@ export default function Home() {
                />
               </div>}
             
-             {showDashboardCard("gpu") && <div>
+             {showDashboardCard("gpu") && <div style={dashboardCardOrder("gpu")}>
               <StatCard
                 title={
                   gpuList.length > 1 ? (
@@ -956,7 +963,7 @@ export default function Home() {
                />
              </div>}
             
-             {showDashboardCard("storage") && <div>
+              {showDashboardCard("storage") && <div style={dashboardCardOrder("storage")}>
               <StatCard
                 title={
                   allDisks.length > 1 ? (
