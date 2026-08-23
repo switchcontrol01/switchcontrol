@@ -7,8 +7,7 @@ import { TWEAKS_DATA, TweakCategory, TweakLevel, Tweak } from "@/lib/mock-data";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useStore } from "@/lib/store";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Search, SlidersHorizontal, RotateCcw, AlertTriangle, ShieldCheck, FlaskConical, Cpu, X } from "lucide-react";
+import { Search, SlidersHorizontal, AlertTriangle, ShieldCheck, FlaskConical, Cpu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useTweakExecutor, isElectronWithTweaks, isRealTweak, isSliderTweak, SLIDER_TWEAKS } from "@/hooks/use-tweak-executor";
@@ -193,7 +192,6 @@ const LEVEL_WARN: Record<string, { title: string; body: string }> = {
 export function TweaksList() {
   const tweaks = useStore((s) => s.tweaks);
   const toggleTweak = useStore((s) => s.toggleTweak);
-  const resetData = useStore((s) => s.resetData);
   const setTweak = useStore((s) => s.setTweak);
   const { syncAllTweaks, isElectron } = useTweakExecutor();
   const { toast } = useToast();
@@ -438,32 +436,6 @@ export function TweaksList() {
           />
         </div>
 
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline" size="sm"
-            onClick={resetData}
-            data-testid="button-reset-tweaks"
-            className="h-9 gap-2 border-[#2A313A] hover:bg-[#2A313A]"
-          >
-            <RotateCcw className="size-4" />
-            Reset
-          </Button>
-
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowRisky(!showRisky)}
-            data-testid="button-filter-settings"
-            className={cn(
-              "h-9 w-9 p-0 transition-colors",
-              showRisky
-                ? "text-orange-400 bg-orange-500/10 border border-orange-500/25 hover:bg-orange-500/20"
-                : "hover:bg-[#2A313A]"
-            )}
-          >
-            <SlidersHorizontal className="size-4" />
-          </Button>
-        </div>
       </motion.div>
 
       {/* Level filter tabs */}
