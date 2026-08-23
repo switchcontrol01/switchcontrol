@@ -246,15 +246,16 @@ function ReorderList({ items, hidden, labels, onToggle, onReorder, testPrefix }:
       {items.map((id, index) => (
         <div
           key={id}
-          draggable
-          onDragStart={(event) => {
-            setDraggedIndex(index);
-            event.dataTransfer.effectAllowed = "move";
-            event.dataTransfer.setData("text/plain", id);
-          }}
           onDragOver={(event) => {
             event.preventDefault();
             event.dataTransfer.dropEffect = "move";
+          }}
+          onDragEnter={(event) => {
+            event.preventDefault();
+            if (draggedIndex !== null && draggedIndex !== index) {
+              onReorder(draggedIndex, index);
+              setDraggedIndex(index);
+            }
           }}
           onDrop={(event) => {
             event.preventDefault();
@@ -268,7 +269,21 @@ function ReorderList({ items, hidden, labels, onToggle, onReorder, testPrefix }:
           aria-label={`Drag to reorder ${labels[id] || id}`}
           data-testid={`${testPrefix}-reorder-${id.replace(/[^a-z0-9]/gi, "-")}`}
         >
-          <GripVertical className="size-3.5 shrink-0 text-muted-foreground/50 group-hover:text-primary/80" aria-hidden="true" />
+          <div
+            draggable
+            onDragStart={(event) => {
+              setDraggedIndex(index);
+              event.dataTransfer.effectAllowed = "move";
+              event.dataTransfer.setData("text/plain", id);
+            }}
+            onDragEnd={() => setDraggedIndex(null)}
+            className="shrink-0 cursor-grab active:cursor-grabbing touch-none rounded p-1 -ml-1 hover:bg-primary/10"
+            title="Click and hold to drag"
+            aria-label={`Drag ${labels[id] || id} to reorder`}
+            data-testid={`${testPrefix}-drag-handle-${id.replace(/[^a-z0-9]/gi, "-")}`}
+          >
+            <GripVertical className="size-3.5 text-muted-foreground/50 group-hover:text-primary/80" aria-hidden="true" />
+          </div>
           <button type="button" onClick={() => onToggle(id)} aria-label={`${hidden.includes(id) ? "Show" : "Hide"} ${labels[id]}`}
             data-testid={`${testPrefix}-toggle-${id.replace(/[^a-z0-9]/gi, "-")}`} className="rounded-md p-1.5 text-muted-foreground hover:text-foreground">
             <Eye className="size-3.5" />
@@ -276,7 +291,7 @@ function ReorderList({ items, hidden, labels, onToggle, onReorder, testPrefix }:
           <span className="flex-1 text-sm">{labels[id] || id}</span>
         </div>
       ))}
-      <p className="text-[10px] text-muted-foreground/70">Click and hold a row, then drag it to reorder.</p>
+      <p className="text-[10px] text-muted-foreground/70">Click and hold the grip, then drag over another row to reorder.</p>
     </div>
   );
 }
