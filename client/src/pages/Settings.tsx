@@ -17,7 +17,7 @@ import { SOCIAL_LINKS } from "@/config/socialLinks";
 import { useAppAuth } from "@/lib/appAuthContext";
 import { useAuthStore } from "@/lib/auth-store";
 import { LicenseManagementModal } from "@/components/LicenseManagementModal";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { Sparkles, Zap, Gauge } from "lucide-react";
 import { useAppModeStore, type ApplicationMode } from "@/lib/appModeStore";
@@ -240,45 +240,56 @@ function ReorderList({ items, hidden, labels, onToggle, onReorder, testPrefix }:
   onToggle: (id: string) => void; onReorder: (fromIndex: number, toIndex: number) => void; testPrefix: string;
 }) {
   const [draggedId, setDraggedId] = useState<string | null>(null);
+  const [dropIndex, setDropIndex] = useState<number | null>(null);
+  const listRef = useRef<HTMLDivElement>(null);
 
   return (
-    <div className="space-y-1.5">
+    <div ref={listRef} className="space-y-1.5" data-reorder-list={testPrefix}>
       {items.map((id, index) => (
         <div
           key={id}
-          draggable
-          onDragStart={(event) => {
-            setDraggedId(id);
-            event.dataTransfer.effectAllowed = "move";
-            event.dataTransfer.setData("text/plain", id);
-          }}
-          onDragOver={(event) => {
-            event.preventDefault();
-            event.dataTransfer.dropEffect = "move";
-          }}
-          onDrop={(event) => {
-            event.preventDefault();
-            const transferredId = event.dataTransfer.getData("text/plain");
-            const sourceId = transferredId || draggedId;
-            const fromIndex = sourceId === null || sourceId === "" ? -1 : items.indexOf(sourceId);
-            if (fromIndex >= 0 && fromIndex !== index) onReorder(fromIndex, index);
-            setDraggedId(null);
-          }}
-          onDragEnd={() => setDraggedId(null)}
           aria-grabbed={draggedId === id}
           className={`group flex items-center gap-2 rounded-lg border px-2 py-1.5 cursor-grab active:cursor-grabbing select-none transition-all ${
             hidden.includes(id) ? "border-border/30 opacity-50" : "border-border/60 bg-background/20"
-          } ${draggedId === id ? "opacity-40 border-primary/60" : "hover:border-primary/40"}`}
+          } ${draggedId === id ? "opacity-40 border-primary/60" : dropIndex === index ? "border-primary/70 bg-primary/10" : "hover:border-primary/40"}`}
           aria-label={`Drag to reorder ${labels[id] || id}`}
+          data-reorder-index={index}
           data-testid={`${testPrefix}-reorder-${id.replace(/[^a-z0-9]/gi, "-")}`}
         >
           <div
-            draggable
-            onDragStart={(event) => {
+            onPointerDown={(event) => {
+              if (event.button !== 0) return;
+              event.preventDefault();
               event.stopPropagation();
+              event.currentTarget.setPointerCapture(event.pointerId);
               setDraggedId(id);
-              event.dataTransfer.effectAllowed = "move";
-              event.dataTransfer.setData("text/plain", id);
+              setDropIndex(index);
+            }}
+            onPointerMove={(event) => {
+              if (draggedId === null || !event.currentTarget.hasPointerCapture(event.pointerId)) return;
+              const element = document.elementFromPoint(event.clientX, event.clientY);
+              const row = element?.closest<HTMLElement>(`[data-reorder-list="${testPrefix}"] [data-reorder-index]`);
+              if (!row) return;
+              const nextIndex = Number(row.dataset.reorderIndex);
+              if (Number.isInteger(nextIndex)) setDropIndex(nextIndex);
+            }}
+            onPointerUp={(event) => {
+              if (draggedId === null || !event.currentTarget.hasPointerCapture(event.pointerId)) return;
+              event.preventDefault();
+              event.currentTarget.releasePointerCapture(event.pointerId);
+              const fromIndex = items.indexOf(draggedId);
+              if (fromIndex >= 0 && dropIndex !== null && fromIndex !== dropIndex) {
+                onReorder(fromIndex, dropIndex);
+              }
+              setDraggedId(null);
+              setDropIndex(null);
+            }}
+            onPointerCancel={(event) => {
+              if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+                event.currentTarget.releasePointerCapture(event.pointerId);
+              }
+              setDraggedId(null);
+              setDropIndex(null);
             }}
             className="shrink-0 cursor-grab active:cursor-grabbing touch-none rounded p-1 -ml-1 hover:bg-primary/10"
             title="Click and hold to drag"

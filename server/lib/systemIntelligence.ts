@@ -494,19 +494,10 @@ async function collectWindowsFirmwareSignals(): Promise<{
       if ($boot -match '(?im)^\\s*path\\s+.*winload\\.efi\\s*$') { $uefi = $true }
       elseif ($boot -match '(?im)^\\s*path\\s+.*winload\\.exe\\s*$') { $uefi = $false }
     } catch {}
-    try {
-      $report = [IO.Path]::Combine($env:TEMP, "switchcontrol-msinfo-$([guid]::NewGuid().ToString('N')).txt")
-      $p = Start-Process -FilePath "msinfo32.exe" -ArgumentList @("/report", $report) -WindowStyle Hidden -PassThru
-      if ($p.WaitForExit(7000) -and (Test-Path $report)) {
-        $text = Get-Content -LiteralPath $report -Raw -ErrorAction SilentlyContinue
-        if ($text -match '(?im)^\\s*Kernel DMA Protection\\s+(.+?)\\s*$') {
-          $value = $Matches[1].Trim()
-          if ($value -match '^(On|Enabled|Yes)$') { $dma = $true }
-          elseif ($value -match '^(Off|Disabled|No)$') { $dma = $false }
-        }
-      }
-      Remove-Item -LiteralPath $report -Force -ErrorAction SilentlyContinue
-    } catch {}
+    # Do not launch msinfo32.exe here. Even with -WindowStyle Hidden, Windows
+    # can display its "System Information" progress dialog while the report is
+    # generated. DMA status is read directly from the DmaGuard registry keys
+    # below, so spawning msinfo32 is unnecessary and disruptive on every scan.
     [PSCustomObject]@{
       Socket = if ([string]::IsNullOrWhiteSpace($socket)) { "null" } else { $socket }
       KernelDma = if ($dma -eq $null) { "null" } elseif ($dma) { "true" } else { "false" }
