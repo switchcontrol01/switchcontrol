@@ -800,6 +800,14 @@ function NetworkTweaksContent() {
       : Promise.resolve({} as StateMap);
     dbPromise.then(dbState => {
       if (!mounted) return;
+      // In Electron, the native Windows read is authoritative. The backend
+      // state is only an audit/history record and may lag behind a value that
+      // was just applied from Slider Tweaks. Do not let a late DB response
+      // overwrite the verified registry result.
+      if (isElectron) {
+        if (mounted) setSyncPhase('db_done');
+        return;
+      }
       setStateMap(prev => {
         const next = { ...prev };
         for (const [id, s] of Object.entries(dbState)) {
