@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { GlassCard } from "@/components/ui/glass-card";
-import { Settings as SettingsIcon, RotateCcw, Trash2, FolderOpen, ExternalLink, Mail, Copy, Crown, FileDown, AlertCircle, CheckCircle2, AlertTriangle, Palette, LayoutGrid, Accessibility, Bell, Rocket, ShieldCheck, ChevronUp, ChevronDown, Eye, SlidersHorizontal } from "lucide-react";
+import { Settings as SettingsIcon, RotateCcw, Trash2, FolderOpen, ExternalLink, Mail, Copy, Crown, FileDown, AlertCircle, CheckCircle2, AlertTriangle, Palette, LayoutGrid, Accessibility, Bell, Rocket, ShieldCheck, ChevronRight, Eye, GripVertical, SlidersHorizontal } from "lucide-react";
 import { UpdateCard } from "@/components/UpdateCard";
 import { useToast } from "@/hooks/use-toast";
 import { SOCIAL_LINKS } from "@/config/socialLinks";
@@ -25,6 +25,7 @@ import { motion } from "framer-motion";
 import { Reveal } from "@/lib/motion";
 import { PATCH_NOTES_STORAGE_KEY, PatchNotesModal } from "@/components/PatchNotesModal";
 import { ACCENT_COLORS, useUserPreferencesStore, type ThemeMode, type ConfirmationMode } from "@/stores/userPreferencesStore";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface PatchNotes {
   version: string;
@@ -183,17 +184,41 @@ function PreferenceSelect({ label, description, value, options, onChange, testId
   );
 }
 
-function PreferenceCard({ icon: Icon, title, description, children, className = "" }: {
-  icon: React.ElementType; title: string; description: string; children: React.ReactNode; className?: string;
+function PreferenceCard({ icon: Icon, title, description, children, className = "", defaultOpen = false }: {
+  icon: React.ElementType; title: string; description: string; children: React.ReactNode; className?: string; defaultOpen?: boolean;
 }) {
+  const [open, setOpen] = useState(defaultOpen);
+
   return (
-    <Card className={`bg-card/50 border-border/50 ${className}`}>
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-base"><Icon className="size-4 text-primary" />{title}</CardTitle>
-        <CardDescription>{description}</CardDescription>
-      </CardHeader>
-      <CardContent>{children}</CardContent>
-    </Card>
+    <Collapsible open={open} onOpenChange={setOpen}>
+      <Card className={`bg-card/50 border-border/50 ${className}`}>
+        <CollapsibleTrigger asChild>
+          <div
+            role="button"
+            tabIndex={0}
+            className="w-full text-left rounded-t-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-inset"
+            aria-expanded={open}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                setOpen((value) => !value);
+              }
+            }}
+          >
+            <CardHeader className="pb-3 transition-colors hover:bg-white/[0.02]">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <ChevronRight className={`size-4 text-muted-foreground transition-transform ${open ? "rotate-90" : ""}`} />
+                <Icon className="size-4 text-primary" />{title}
+              </CardTitle>
+              <CardDescription>{description}</CardDescription>
+            </CardHeader>
+          </div>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <CardContent>{children}</CardContent>
+        </CollapsibleContent>
+      </Card>
+    </Collapsible>
   );
 }
 
@@ -210,23 +235,48 @@ const SIDEBAR_LABELS: Record<string, string> = {
   "/latency-analyzer": "Latency Analyzer", "/settings": "Settings",
 };
 
-function ReorderList({ items, hidden, labels, onToggle, onMove, testPrefix }: {
+function ReorderList({ items, hidden, labels, onToggle, onReorder, testPrefix }: {
   items: string[]; hidden: string[]; labels: Record<string, string>;
-  onToggle: (id: string) => void; onMove: (id: string, direction: -1 | 1) => void; testPrefix: string;
+  onToggle: (id: string) => void; onReorder: (fromIndex: number, toIndex: number) => void; testPrefix: string;
 }) {
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+
   return (
     <div className="space-y-1.5">
       {items.map((id, index) => (
-        <div key={id} className={`flex items-center gap-2 rounded-lg border px-2 py-1.5 ${hidden.includes(id) ? "border-border/30 opacity-50" : "border-border/60 bg-background/20"}`}>
+        <div
+          key={id}
+          draggable
+          onDragStart={(event) => {
+            setDraggedIndex(index);
+            event.dataTransfer.effectAllowed = "move";
+            event.dataTransfer.setData("text/plain", id);
+          }}
+          onDragOver={(event) => {
+            event.preventDefault();
+            event.dataTransfer.dropEffect = "move";
+          }}
+          onDrop={(event) => {
+            event.preventDefault();
+            if (draggedIndex !== null && draggedIndex !== index) onReorder(draggedIndex, index);
+            setDraggedIndex(null);
+          }}
+          onDragEnd={() => setDraggedIndex(null)}
+          className={`group flex items-center gap-2 rounded-lg border px-2 py-1.5 cursor-grab active:cursor-grabbing select-none transition-all ${
+            hidden.includes(id) ? "border-border/30 opacity-50" : "border-border/60 bg-background/20"
+          } ${draggedIndex === index ? "opacity-40 border-primary/60" : "hover:border-primary/40"}`}
+          aria-label={`Drag to reorder ${labels[id] || id}`}
+          data-testid={`${testPrefix}-reorder-${id.replace(/[^a-z0-9]/gi, "-")}`}
+        >
+          <GripVertical className="size-3.5 shrink-0 text-muted-foreground/50 group-hover:text-primary/80" aria-hidden="true" />
           <button type="button" onClick={() => onToggle(id)} aria-label={`${hidden.includes(id) ? "Show" : "Hide"} ${labels[id]}`}
             data-testid={`${testPrefix}-toggle-${id.replace(/[^a-z0-9]/gi, "-")}`} className="rounded-md p-1.5 text-muted-foreground hover:text-foreground">
             <Eye className="size-3.5" />
           </button>
           <span className="flex-1 text-sm">{labels[id] || id}</span>
-          <button type="button" onClick={() => onMove(id, -1)} disabled={index === 0} aria-label={`Move ${labels[id]} up`} className="rounded-md p-1 text-muted-foreground hover:text-foreground disabled:opacity-20"><ChevronUp className="size-3.5" /></button>
-          <button type="button" onClick={() => onMove(id, 1)} disabled={index === items.length - 1} aria-label={`Move ${labels[id]} down`} className="rounded-md p-1 text-muted-foreground hover:text-foreground disabled:opacity-20"><ChevronDown className="size-3.5" /></button>
         </div>
       ))}
+      <p className="text-[10px] text-muted-foreground/70">Click and hold a row, then drag it to reorder.</p>
     </div>
   );
 }
@@ -250,7 +300,7 @@ function CustomizationSettings() {
   const accentOptions = Object.entries(ACCENT_COLORS) as [Exclude<keyof typeof ACCENT_COLORS, "custom">, string][];
   return (
     <div className="space-y-6">
-      <PreferenceCard icon={Palette} title="Appearance" description="Make SwitchControl feel like your workspace. Changes apply instantly and are saved locally.">
+      <PreferenceCard icon={Palette} title="Appearance" description="Make SwitchControl feel like your workspace. Changes apply instantly and are saved locally." defaultOpen>
         <div className="space-y-4">
           <div>
             <Label>Accent color</Label>
@@ -284,8 +334,39 @@ function CustomizationSettings() {
 
       <PreferenceCard icon={LayoutGrid} title="Layout" description="Arrange the navigation rail and dashboard around the information you use most.">
         <div className="grid gap-6 lg:grid-cols-2">
-          <div><Label className="mb-2 block">Sidebar items</Label><ReorderList items={preferences.sidebarOrder.filter((id) => id !== "/settings")} hidden={preferences.sidebarHidden} labels={SIDEBAR_LABELS} onToggle={preferences.toggleSidebarItem} onMove={preferences.moveSidebarItem} testPrefix="sidebar" /><p className="text-[11px] text-muted-foreground mt-2">Settings is always available so you can recover or reset your layout.</p></div>
-          <div><Label className="mb-2 block">Dashboard cards</Label><ReorderList items={preferences.dashboardOrder} hidden={preferences.dashboardHidden} labels={DASHBOARD_LABELS} onToggle={preferences.toggleDashboardCard} onMove={preferences.moveDashboardCard} testPrefix="dashboard" /></div>
+          <div>
+            <Label className="mb-2 block">Sidebar items</Label>
+            <ReorderList
+              items={preferences.sidebarOrder.filter((id) => id !== "/settings")}
+              hidden={preferences.sidebarHidden}
+              labels={SIDEBAR_LABELS}
+              onToggle={preferences.toggleSidebarItem}
+              onReorder={(from, to) => {
+                const order = preferences.sidebarOrder.filter((id) => id !== "/settings");
+                const [moved] = order.splice(from, 1);
+                order.splice(to, 0, moved);
+                preferences.setSidebarOrder([...order, "/settings"]);
+              }}
+              testPrefix="sidebar"
+            />
+            <p className="text-[11px] text-muted-foreground mt-2">Settings is always available so you can recover or reset your layout.</p>
+          </div>
+          <div>
+            <Label className="mb-2 block">Dashboard cards</Label>
+            <ReorderList
+              items={preferences.dashboardOrder}
+              hidden={preferences.dashboardHidden}
+              labels={DASHBOARD_LABELS}
+              onToggle={preferences.toggleDashboardCard}
+              onReorder={(from, to) => {
+                const order = [...preferences.dashboardOrder];
+                const [moved] = order.splice(from, 1);
+                order.splice(to, 0, moved);
+                preferences.setDashboardOrder(order);
+              }}
+              testPrefix="dashboard"
+            />
+          </div>
         </div>
         <Separator className="my-5 bg-border/40" />
         <PreferenceSwitch label="Large sidebar" description="Use a wider navigation rail for longer labels." checked={preferences.largeSidebar} onChange={(v) => set("largeSidebar", v)} testId="toggle-large-sidebar" />
@@ -311,7 +392,7 @@ function CustomizationSettings() {
 
       <PreferenceCard icon={Bell} title="Notifications & startup" description="Choose what deserves your attention and how the desktop app opens.">
         <PreferenceSelect label="Metrics refresh" description="Set the live metrics cadence, or pause it completely." value={String(preferences.metricsRefreshSeconds)}
-          options={[["0", "Paused"], ["2", "Every 2 seconds"], ["5", "Every 5 seconds"], ["10", "Every 10 seconds"]]}
+          options={[["0", "Paused"], ["2", "Every 2 seconds"], ["5", "Every 5 seconds"], ["10", "Every 10 seconds"]].map(([value, label]) => ({ value, label }))}
           onChange={(value) => set("metricsRefreshSeconds", Number(value) as 0 | 2 | 5 | 10)} testId="select-metrics-refresh" />
         <PreferenceSwitch label="Tweak notifications" description="Show a confirmation when a tweak is applied or reverted." checked={preferences.showTweakNotifications} onChange={(v) => set("showTweakNotifications", v)} testId="toggle-tweak-notifications" status="not-active" />
         <PreferenceSwitch label="Verification warnings" description="Notify when a system change cannot be verified." checked={preferences.showVerificationWarnings} onChange={(v) => set("showVerificationWarnings", v)} testId="toggle-verification-warnings" status="not-active" />

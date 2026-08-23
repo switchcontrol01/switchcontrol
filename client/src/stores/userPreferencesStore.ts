@@ -113,8 +113,10 @@ interface UserPreferencesState extends UserPreferences {
   setPreference: <K extends keyof UserPreferences>(key: K, value: UserPreferences[K]) => void;
   toggleSidebarItem: (href: string) => void;
   moveSidebarItem: (href: string, direction: -1 | 1) => void;
+  setSidebarOrder: (order: string[]) => void;
   toggleDashboardCard: (id: string) => void;
   moveDashboardCard: (id: string, direction: -1 | 1) => void;
+  setDashboardOrder: (order: string[]) => void;
   resetPreferences: () => void;
 }
 
@@ -138,6 +140,7 @@ export const useUserPreferencesStore = create<UserPreferencesState>()(
         [order[index], order[next]] = [order[next], order[index]];
         return { sidebarOrder: order };
       }),
+      setSidebarOrder: (order) => set({ sidebarOrder: [...order] }),
       toggleDashboardCard: (id) => set((s) => ({
         dashboardHidden: s.dashboardHidden.includes(id)
           ? s.dashboardHidden.filter((x) => x !== id)
@@ -151,6 +154,7 @@ export const useUserPreferencesStore = create<UserPreferencesState>()(
         [order[index], order[next]] = [order[next], order[index]];
         return { dashboardOrder: order };
       }),
+      setDashboardOrder: (order) => set({ dashboardOrder: [...order] }),
       resetPreferences: () => set({ ...DEFAULTS, sidebarOrder: [...DEFAULT_SIDEBAR_ORDER], dashboardOrder: [...DEFAULT_DASHBOARD_CARDS] }),
     }),
     {

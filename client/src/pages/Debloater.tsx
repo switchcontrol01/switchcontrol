@@ -338,8 +338,11 @@
             data={data} dataKey="value" nameKey="name"
             cx="50%" cy="50%" innerRadius={44} outerRadius={62}
             paddingAngle={3} startAngle={90} endAngle={-270}
-            stroke="none" isAnimationActive
-            animationDuration={900} animationBegin={120}
+            stroke="none"
+            // Recharts can emit an invalid transient path while animating a
+            // filtered, single-segment dataset during route transitions.
+            // This is a static result summary, so avoid animating SVG geometry.
+            isAnimationActive={false}
           >
             {data.map((d, i) => <Cell key={i} fill={d.color} />)}
           </Pie>
