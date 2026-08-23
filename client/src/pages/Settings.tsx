@@ -768,7 +768,7 @@ export default function Settings() {
 
         <div className="space-y-6">
           <Reveal delay={0}>
-          <PreferenceCard icon={SettingsIcon} title="General" description="Configure general app behavior." defaultOpen>
+          <PreferenceCard icon={SettingsIcon} title="General" description="Configure general app behavior.">
             <div className="space-y-6">
               {/* Real-time Metrics */}
               <motion.div initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3, delay: 0.11, ease: [0.22, 1, 0.36, 1] }}>
