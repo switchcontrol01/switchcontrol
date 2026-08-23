@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useStore } from "@/lib/store";
+import { apiFetch } from "@/lib/api";
 
 export type PressureLevel = "low" | "moderate" | "elevated" | "high";
 
@@ -138,10 +139,10 @@ export function useTweakIntelligence(pollIntervalMs = 5_000) {
       // two.  Each result is merged independently — partial data is better
       // than a blank dashboard.
       const [stateResult, rankResult, postureResult] = await Promise.allSettled([
-        fetch(`/api/tweak-intelligence/system-state?${liveQuery.slice(1)}`, { signal: ac.signal }),
-        fetch(`/api/tweak-intelligence/rankings?applied=${encodeURIComponent(param)}&gpu=${gpu}${liveQuery}`, { signal: ac.signal }),
+        apiFetch(`/tweak-intelligence/system-state?${liveQuery.slice(1)}`, {}, { signal: ac.signal }),
+        apiFetch(`/tweak-intelligence/rankings?applied=${encodeURIComponent(param)}&gpu=${gpu}${liveQuery}`, {}, { signal: ac.signal }),
         fetchPosture
-          ? fetch(`/api/tweak-intelligence/posture?applied=${encodeURIComponent(param)}`, { signal: ac.signal })
+          ? apiFetch(`/tweak-intelligence/posture?applied=${encodeURIComponent(param)}`, {}, { signal: ac.signal })
           : Promise.resolve(null),
       ]);
 

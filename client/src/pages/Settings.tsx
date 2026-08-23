@@ -239,44 +239,38 @@ function ReorderList({ items, hidden, labels, onToggle, onReorder, testPrefix }:
   items: string[]; hidden: string[]; labels: Record<string, string>;
   onToggle: (id: string) => void; onReorder: (fromIndex: number, toIndex: number) => void; testPrefix: string;
 }) {
-  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [draggedId, setDraggedId] = useState<string | null>(null);
 
   return (
     <div className="space-y-1.5">
       {items.map((id, index) => (
         <div
           key={id}
+          draggable
+          onDragStart={(event) => {
+            setDraggedId(id);
+            event.dataTransfer.effectAllowed = "move";
+            event.dataTransfer.setData("text/plain", id);
+          }}
           onDragOver={(event) => {
             event.preventDefault();
             event.dataTransfer.dropEffect = "move";
           }}
-          onDragEnter={(event) => {
-            event.preventDefault();
-            if (draggedIndex !== null && draggedIndex !== index) {
-              onReorder(draggedIndex, index);
-              setDraggedIndex(index);
-            }
-          }}
           onDrop={(event) => {
             event.preventDefault();
-            if (draggedIndex !== null && draggedIndex !== index) onReorder(draggedIndex, index);
-            setDraggedIndex(null);
+            const fromIndex = draggedId === null ? -1 : items.indexOf(draggedId);
+            if (fromIndex >= 0 && fromIndex !== index) onReorder(fromIndex, index);
+            setDraggedId(null);
           }}
-          onDragEnd={() => setDraggedIndex(null)}
+          onDragEnd={() => setDraggedId(null)}
+          aria-grabbed={draggedId === id}
           className={`group flex items-center gap-2 rounded-lg border px-2 py-1.5 cursor-grab active:cursor-grabbing select-none transition-all ${
             hidden.includes(id) ? "border-border/30 opacity-50" : "border-border/60 bg-background/20"
-          } ${draggedIndex === index ? "opacity-40 border-primary/60" : "hover:border-primary/40"}`}
+          } ${draggedId === id ? "opacity-40 border-primary/60" : "hover:border-primary/40"}`}
           aria-label={`Drag to reorder ${labels[id] || id}`}
           data-testid={`${testPrefix}-reorder-${id.replace(/[^a-z0-9]/gi, "-")}`}
         >
           <div
-            draggable
-            onDragStart={(event) => {
-              setDraggedIndex(index);
-              event.dataTransfer.effectAllowed = "move";
-              event.dataTransfer.setData("text/plain", id);
-            }}
-            onDragEnd={() => setDraggedIndex(null)}
             className="shrink-0 cursor-grab active:cursor-grabbing touch-none rounded p-1 -ml-1 hover:bg-primary/10"
             title="Click and hold to drag"
             aria-label={`Drag ${labels[id] || id} to reorder`}

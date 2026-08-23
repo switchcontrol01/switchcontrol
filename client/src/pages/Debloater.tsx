@@ -1349,6 +1349,13 @@
         xbox_live_network:   "XboxNetApiSvc",
         windows_insider_svc: "wisvc",
         retail_demo:         "RetailDemo",
+        delivery_optimization: "DoSvc",
+        fax_service:          "Fax",
+        geolocation_service:  "lfsvc",
+        error_reporting:      "WerSvc",
+        maps_broker:          "MapsBroker",
+        windows_search:       "WSearch",
+        connected_devices_platform: "CDPSvc",
       };
       return map[id];
     }
@@ -1365,6 +1372,13 @@
         xbox_live_network:  "Manual",
         windows_insider_svc:"Manual",
         retail_demo:        "Manual",
+        delivery_optimization: "Automatic",
+        fax_service:          "Manual",
+        geolocation_service: "Manual",
+        error_reporting:     "Manual",
+        maps_broker:         "Automatic",
+        windows_search:      "DelayedAuto",
+        connected_devices_platform: "Automatic",
       };
       return map[id];
     }
