@@ -64,3 +64,4 @@
 - [Cleaner navigation modal](cleaner-navigation-modal.md) — active-operation confirmation must render at body level with explicit pointer handling to avoid freezing the Electron shell.
 - [Windows display connection enum](windows-display-connection-enum.md) — HDMI is enum 6; external DisplayPort is 11; preserve unknown raw values instead of guessing.
 - [Latency measurement honesty](latency-measurement-honesty.md) — load heuristics and DPC counters are system-responsiveness signals, not mouse-to-screen input-latency measurements.
+- [Free customization settings](free-customization-settings.md) — appearance, layout, accessibility, behavior, startup, and privacy preferences are available to every account.

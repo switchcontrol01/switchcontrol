@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useUserPreferencesStore, getAccentColor } from "@/stores/userPreferencesStore";
+import { useStore } from "@/lib/store";
 
 function hexToHsl(hex: string): string {
   const clean = hex.replace("#", "");
@@ -27,6 +28,7 @@ function hexToHsl(hex: string): string {
 
 export function UserPreferencesSync() {
   const preferences = useUserPreferencesStore();
+  const setRealtimeMetricsEnabled = useStore((s) => s.setRealtimeMetricsEnabled);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -49,6 +51,10 @@ export function UserPreferencesSync() {
     else if (preferences.theme === "dark" || preferences.theme === "midnight" || preferences.theme === "oled") root.classList.remove("app-light-mode");
     else if (preferences.theme === "system") root.classList.toggle("app-light-mode", window.matchMedia("(prefers-color-scheme: light)").matches);
   }, [preferences]);
+
+  useEffect(() => {
+    setRealtimeMetricsEnabled(preferences.metricsRefreshSeconds !== 0);
+  }, [preferences.metricsRefreshSeconds, setRealtimeMetricsEnabled]);
 
   useEffect(() => {
     if (preferences.theme !== "system") return;

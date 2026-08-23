@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { GlassCard } from "@/components/ui/glass-card";
-import { Settings as SettingsIcon, RotateCcw, Trash2, FolderOpen, ExternalLink, Mail, Copy, Crown, FileDown, AlertCircle, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Settings as SettingsIcon, RotateCcw, Trash2, FolderOpen, ExternalLink, Mail, Copy, Crown, FileDown, AlertCircle, CheckCircle2, AlertTriangle, Palette, LayoutGrid, Accessibility, Bell, Rocket, ShieldCheck, ChevronUp, ChevronDown, Eye, SlidersHorizontal } from "lucide-react";
 import { UpdateCard } from "@/components/UpdateCard";
 import { useToast } from "@/hooks/use-toast";
 import { SOCIAL_LINKS } from "@/config/socialLinks";
@@ -24,6 +24,7 @@ import { useAppModeStore, type ApplicationMode } from "@/lib/appModeStore";
 import { motion } from "framer-motion";
 import { Reveal } from "@/lib/motion";
 import { PATCH_NOTES_STORAGE_KEY, PatchNotesModal } from "@/components/PatchNotesModal";
+import { ACCENT_COLORS, useUserPreferencesStore, type ThemeMode, type ConfirmationMode } from "@/stores/userPreferencesStore";
 
 interface PatchNotes {
   version: string;
@@ -143,6 +144,174 @@ function PatchNotesSection({ onViewFull }: { onViewFull: () => void }) {
         </span>
       </div>
     </motion.div>
+  );
+}
+
+function PreferenceSwitch({ label, description, checked, onChange, testId }: {
+  label: string; description: string; checked: boolean; onChange: (value: boolean) => void; testId: string;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-4 py-3 px-3 -mx-3 rounded-xl hover:bg-white/[0.03] transition-colors">
+      <div className="min-w-0">
+        <Label className="text-sm">{label}</Label>
+        <p className="text-xs text-muted-foreground mt-1">{description}</p>
+      </div>
+      <Switch checked={checked} onCheckedChange={onChange} data-testid={testId} />
+    </div>
+  );
+}
+
+function PreferenceSelect({ label, description, value, options, onChange, testId }: {
+  label: string; description: string; value: string; options: { value: string; label: string }[];
+  onChange: (value: string) => void; testId: string;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-4 py-3">
+      <div className="min-w-0">
+        <Label className="text-sm">{label}</Label>
+        <p className="text-xs text-muted-foreground mt-1">{description}</p>
+      </div>
+      <select value={value} onChange={(e) => onChange(e.target.value)} data-testid={testId}
+        className="shrink-0 rounded-lg border border-border/70 bg-background/70 px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/40">
+        {options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+      </select>
+    </div>
+  );
+}
+
+function PreferenceCard({ icon: Icon, title, description, children, className = "" }: {
+  icon: React.ElementType; title: string; description: string; children: React.ReactNode; className?: string;
+}) {
+  return (
+    <Card className={`bg-card/50 border-border/50 ${className}`}>
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2 text-base"><Icon className="size-4 text-primary" />{title}</CardTitle>
+        <CardDescription>{description}</CardDescription>
+      </CardHeader>
+      <CardContent>{children}</CardContent>
+    </Card>
+  );
+}
+
+const DASHBOARD_LABELS: Record<string, string> = {
+  cpu: "CPU", gpu: "GPU", memory: "Memory", storage: "Storage", network: "Network",
+  stability: "Stability", problems: "Problems", responsiveness: "System Responsiveness",
+};
+
+const SIDEBAR_LABELS: Record<string, string> = {
+  "/dashboard": "Dashboard", "/tweaks": "Tweaks", "/network": "Network Tweaks", "/nic-tuning": "NIC Tuning",
+  "/power-plan": "Power Plan", "/cleaner": "Cleaner", "/debloat": "Debloat", "/startup": "Startup",
+  "/process-manager": "Process Manager", "/ai-advisor": "AI Advisor", "/bios-advisor": "BIOS Advisor",
+  "/security": "Security", "/history": "History", "/driver-intel": "Driver Intel",
+  "/latency-analyzer": "Latency Analyzer", "/settings": "Settings",
+};
+
+function ReorderList({ items, hidden, labels, onToggle, onMove, testPrefix }: {
+  items: string[]; hidden: string[]; labels: Record<string, string>;
+  onToggle: (id: string) => void; onMove: (id: string, direction: -1 | 1) => void; testPrefix: string;
+}) {
+  return (
+    <div className="space-y-1.5">
+      {items.map((id, index) => (
+        <div key={id} className={`flex items-center gap-2 rounded-lg border px-2 py-1.5 ${hidden.includes(id) ? "border-border/30 opacity-50" : "border-border/60 bg-background/20"}`}>
+          <button type="button" onClick={() => onToggle(id)} aria-label={`${hidden.includes(id) ? "Show" : "Hide"} ${labels[id]}`}
+            data-testid={`${testPrefix}-toggle-${id.replace(/[^a-z0-9]/gi, "-")}`} className="rounded-md p-1.5 text-muted-foreground hover:text-foreground">
+            <Eye className="size-3.5" />
+          </button>
+          <span className="flex-1 text-sm">{labels[id] || id}</span>
+          <button type="button" onClick={() => onMove(id, -1)} disabled={index === 0} aria-label={`Move ${labels[id]} up`} className="rounded-md p-1 text-muted-foreground hover:text-foreground disabled:opacity-20"><ChevronUp className="size-3.5" /></button>
+          <button type="button" onClick={() => onMove(id, 1)} disabled={index === items.length - 1} aria-label={`Move ${labels[id]} down`} className="rounded-md p-1 text-muted-foreground hover:text-foreground disabled:opacity-20"><ChevronDown className="size-3.5" /></button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function CustomizationSettings() {
+  const preferences = useUserPreferencesStore();
+  const set = preferences.setPreference;
+  const accentOptions = Object.entries(ACCENT_COLORS) as [Exclude<keyof typeof ACCENT_COLORS, "custom">, string][];
+  return (
+    <div className="space-y-6">
+      <PreferenceCard icon={Palette} title="Appearance" description="Make SwitchControl feel like your workspace. Changes apply instantly and are saved locally.">
+        <div className="space-y-4">
+          <div>
+            <Label>Accent color</Label>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {accentOptions.map(([name, color]) => (
+                <button key={name} type="button" aria-label={`Use ${name} accent`} data-testid={`accent-${name}`}
+                  onClick={() => set("accent", name)}
+                  className={`size-8 rounded-full border-2 transition-transform hover:scale-110 ${preferences.accent === name ? "border-foreground scale-110" : "border-transparent"}`}
+                  style={{ backgroundColor: color, boxShadow: preferences.accent === name ? `0 0 16px ${color}88` : undefined }} />
+              ))}
+              <label className={`flex size-8 cursor-pointer items-center justify-center rounded-full border-2 ${preferences.accent === "custom" ? "border-foreground" : "border-border/70"}`} style={{ background: `conic-gradient(#f87171, #fbbf24, #34d399, #60a5fa, #a78bfa, #f87171)` }}>
+                <input type="color" value={preferences.customAccent} onChange={(e) => { set("customAccent", e.target.value); set("accent", "custom"); }} className="sr-only" aria-label="Choose custom accent color" />
+              </label>
+            </div>
+          </div>
+          <PreferenceSelect label="Theme" description="Choose the surface treatment used throughout the app." value={preferences.theme}
+            options={[["dark", "Dark"], ["light", "Light"], ["system", "System"], ["midnight", "Midnight"], ["oled", "OLED Black"], ["contrast", "High Contrast"]].map(([value, label]) => ({ value, label }))}
+            onChange={(value) => set("theme", value as ThemeMode)} testId="select-theme" />
+          <PreferenceSwitch label="Reduced motion" description="Minimize transitions and animated effects." checked={preferences.reducedMotion} onChange={(v) => set("reducedMotion", v)} testId="toggle-reduced-motion" />
+          <PreferenceSwitch label="Disable graph animation" description="Keep live charts updating without animated redraws." checked={preferences.disableGraphAnimation} onChange={(v) => set("disableGraphAnimation", v)} testId="toggle-disable-graph-animation" />
+        </div>
+      </PreferenceCard>
+
+      <PreferenceCard icon={Accessibility} title="Accessibility" description="Tune readability, contrast, focus, and interaction sizing.">
+        <PreferenceSwitch label="Larger text" description="Increase the base application font size." checked={preferences.largerText} onChange={(v) => set("largerText", v)} testId="toggle-larger-text" />
+        <PreferenceSwitch label="High contrast controls" description="Increase contrast for borders, labels, and secondary text." checked={preferences.highContrast} onChange={(v) => set("highContrast", v)} testId="toggle-high-contrast" />
+        <PreferenceSwitch label="Larger click targets" description="Give buttons and fields more room to operate." checked={preferences.largeTargets} onChange={(v) => set("largeTargets", v)} testId="toggle-large-targets" />
+        <PreferenceSwitch label="Color-blind-safe statuses" description="Use a shape and amber distinction alongside red status colors." checked={preferences.colorBlindSafe} onChange={(v) => set("colorBlindSafe", v)} testId="toggle-colorblind-safe" />
+        <PreferenceSwitch label="Always show status labels" description="Keep text labels visible beside status indicators." checked={preferences.alwaysShowStatusLabels} onChange={(v) => set("alwaysShowStatusLabels", v)} testId="toggle-status-labels" />
+      </PreferenceCard>
+
+      <PreferenceCard icon={LayoutGrid} title="Layout" description="Arrange the navigation rail and dashboard around the information you use most.">
+        <div className="grid gap-6 lg:grid-cols-2">
+          <div><Label className="mb-2 block">Sidebar items</Label><ReorderList items={preferences.sidebarOrder} hidden={preferences.sidebarHidden} labels={SIDEBAR_LABELS} onToggle={preferences.toggleSidebarItem} onMove={preferences.moveSidebarItem} testPrefix="sidebar" /></div>
+          <div><Label className="mb-2 block">Dashboard cards</Label><ReorderList items={preferences.dashboardOrder} hidden={preferences.dashboardHidden} labels={DASHBOARD_LABELS} onToggle={preferences.toggleDashboardCard} onMove={preferences.moveDashboardCard} testPrefix="dashboard" /></div>
+        </div>
+        <Separator className="my-5 bg-border/40" />
+        <PreferenceSwitch label="Large sidebar" description="Use a wider navigation rail for longer labels." checked={preferences.largeSidebar} onChange={(v) => set("largeSidebar", v)} testId="toggle-large-sidebar" />
+        <Button variant="outline" size="sm" onClick={preferences.resetPreferences} data-testid="button-reset-customization"><RotateCcw className="size-3.5 mr-2" />Reset customization</Button>
+      </PreferenceCard>
+
+      <PreferenceCard icon={SlidersHorizontal} title="Tweak behavior" description="Control sorting, confirmations, intelligence, and safety checks.">
+        <PreferenceSelect label="Confirmation prompts" description="Choose which tweak actions ask before applying." value={preferences.confirmationMode}
+          options={[["always", "Every change"], ["risky", "Risky changes only"], ["safe", "Never for safe changes"]].map(([value, label]) => ({ value, label }))}
+          onChange={(value) => set("confirmationMode", value as ConfirmationMode)} testId="select-confirmation-mode" />
+        <PreferenceSwitch label="Recommended tweaks first" description="Keep the safest recommendations at the top." checked={preferences.showRecommendedFirst} onChange={(v) => set("showRecommendedFirst", v)} testId="toggle-recommended-first" />
+        <PreferenceSwitch label="Applied tweaks first" description="Group currently active tweaks above inactive ones." checked={preferences.showAppliedFirst} onChange={(v) => set("showAppliedFirst", v)} testId="toggle-applied-first" />
+        <PreferenceSwitch label="Hide unsupported tweaks" description="Remove tweaks that cannot run on this device." checked={preferences.hideUnsupported} onChange={(v) => set("hideUnsupported", v)} testId="toggle-hide-unsupported" />
+        <PreferenceSwitch label="Hide advanced tweaks" description="Keep advanced controls out of the default list." checked={preferences.hideAdvanced} onChange={(v) => set("hideAdvanced", v)} testId="toggle-hide-advanced" />
+        <PreferenceSwitch label="Show experimental tweaks" description="Include clearly marked experimental options." checked={preferences.showExperimental} onChange={(v) => set("showExperimental", v)} testId="toggle-show-experimental" />
+        <PreferenceSwitch label="Expand Performance Intelligence" description="Open the intelligence panel when it becomes available." checked={preferences.expandIntelligence} onChange={(v) => set("expandIntelligence", v)} testId="toggle-expand-intelligence" />
+        <PreferenceSwitch label="Refresh intelligence automatically" description="Retry intelligence data after startup and on return." checked={preferences.autoRefreshIntelligence} onChange={(v) => set("autoRefreshIntelligence", v)} testId="toggle-auto-refresh-intelligence" />
+        <PreferenceSwitch label="Create restore point" description="Request a Windows restore point before system changes." checked={preferences.createRestorePoint} onChange={(v) => set("createRestorePoint", v)} testId="toggle-create-restore-point" />
+        <PreferenceSwitch label="Save registry backup" description="Keep a local backup before registry changes." checked={preferences.saveRegistryBackup} onChange={(v) => set("saveRegistryBackup", v)} testId="toggle-save-registry-backup" />
+        <PreferenceSwitch label="Show verification results" description="Display post-change verification details." checked={preferences.showVerification} onChange={(v) => set("showVerification", v)} testId="toggle-show-verification" />
+        <PreferenceSwitch label="Retry failed reverts automatically" description="Retry a failed revert during the next eligible check." checked={preferences.autoRevertFailed} onChange={(v) => set("autoRevertFailed", v)} testId="toggle-auto-revert" />
+      </PreferenceCard>
+
+      <PreferenceCard icon={Bell} title="Notifications & startup" description="Choose what deserves your attention and how the desktop app opens.">
+        <PreferenceSelect label="Metrics refresh" description="Set the live metrics cadence, or pause it completely." value={String(preferences.metricsRefreshSeconds)}
+          options={[["0", "Paused"], ["2", "Every 2 seconds"], ["5", "Every 5 seconds"], ["10", "Every 10 seconds"]]}
+          onChange={(value) => set("metricsRefreshSeconds", Number(value) as 0 | 2 | 5 | 10)} testId="select-metrics-refresh" />
+        <PreferenceSwitch label="Tweak notifications" description="Show a confirmation when a tweak is applied or reverted." checked={preferences.showTweakNotifications} onChange={(v) => set("showTweakNotifications", v)} testId="toggle-tweak-notifications" />
+        <PreferenceSwitch label="Verification warnings" description="Notify when a system change cannot be verified." checked={preferences.showVerificationWarnings} onChange={(v) => set("showVerificationWarnings", v)} testId="toggle-verification-warnings" />
+        <PreferenceSwitch label="Health alerts" description="Show actionable warnings for elevated system pressure." checked={preferences.showHealthAlerts} onChange={(v) => set("showHealthAlerts", v)} testId="toggle-health-alerts" />
+        <PreferenceSwitch label="Premium reminders" description="Allow reminders about premium-only optimization tools." checked={preferences.showPremiumReminders} onChange={(v) => set("showPremiumReminders", v)} testId="toggle-premium-reminders" />
+        <PreferenceSwitch label="Start with Windows" description="Register the desktop app to launch when Windows starts." checked={preferences.startWithWindows} onChange={(v) => set("startWithWindows", v)} testId="toggle-start-with-windows" />
+        <PreferenceSwitch label="Launch minimized" description="Start quietly in the background instead of opening the dashboard." checked={preferences.launchMinimized} onChange={(v) => set("launchMinimized", v)} testId="toggle-launch-minimized" />
+        <PreferenceSwitch label="Open Dashboard on startup" description="Return to the dashboard after authentication." checked={preferences.openDashboardOnStartup} onChange={(v) => set("openDashboardOnStartup", v)} testId="toggle-dashboard-startup" />
+        <PreferenceSwitch label="Check for updates automatically" description="Allow the desktop app to look for new releases." checked={preferences.autoUpdateChecks} onChange={(v) => set("autoUpdateChecks", v)} testId="toggle-auto-update-checks" />
+      </PreferenceCard>
+
+      <PreferenceCard icon={ShieldCheck} title="Privacy & diagnostics" description="Keep control of local diagnostics and optional product context.">
+        <PreferenceSwitch label="Anonymous crash reports" description="Share anonymous crash details to help improve stability." checked={preferences.anonymousCrashReports} onChange={(v) => set("anonymousCrashReports", v)} testId="toggle-crash-reports" />
+        <PreferenceSwitch label="Share performance diagnostics" description="Allow non-identifying performance diagnostics when support needs them." checked={preferences.sharePerformanceDiagnostics} onChange={(v) => set("sharePerformanceDiagnostics", v)} testId="toggle-performance-sharing" />
+        <PreferenceSwitch label="Share hardware context with AI Advisor" description="Include your local CPU, GPU, and memory details in AI requests." checked={preferences.shareAiHardwareContext} onChange={(v) => set("shareAiHardwareContext", v)} testId="toggle-ai-hardware-context" />
+      </PreferenceCard>
+    </div>
   );
 }
 
@@ -450,6 +619,7 @@ export default function Settings() {
   );
   const { toast } = useToast();
   const { isPremium, user, factoryReset } = useAppAuth();
+  const resetPreferences = useUserPreferencesStore((s) => s.resetPreferences);
   const isElectron = typeof window !== 'undefined' && !!(window as any).electronAPI?.isElectron;
   const isAdmin = !!(user as any)?.isAdmin;
   const [licenseModalOpen, setLicenseModalOpen] = useState(false);
@@ -507,6 +677,10 @@ export default function Settings() {
 
             </CardContent>
           </Card>
+          </Reveal>
+
+          <Reveal delay={0.04}>
+            <CustomizationSettings />
           </Reveal>
 
           {/* Account Settings */}
@@ -636,6 +810,7 @@ export default function Settings() {
                       variant="outline"
                       onClick={() => {
                         resetData();
+                        resetPreferences();
                         toast({ title: "Settings Reset", description: "Your preferences have been restored to defaults. You are still logged in." });
                       }}
                       className="border-border/50 hover:bg-muted/50 text-[#E6EAF0]"

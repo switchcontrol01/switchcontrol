@@ -12,6 +12,7 @@ import { useNetworkStatus } from "@/hooks/use-network-status";
 import { useTourStore } from "@/lib/tour-store";
 import { useEntitlementUiState } from "@/hooks/useEntitlementUiState";
 import { useAuth } from "@/hooks/use-auth";
+import { useUserPreferencesStore } from "@/stores/userPreferencesStore";
 
 
 // Module-level flag — survives remounts within the same session but resets on
@@ -21,6 +22,7 @@ let _trialBannerDismissed = false;
 
 function TrialCountdownBanner() {
   const ent = useEntitlementUiState();
+  const largeSidebar = useUserPreferencesStore((s) => s.largeSidebar);
   const [dismissed, setDismissed] = useState(_trialBannerDismissed);
 
   if (!ent.showTrialBanner || dismissed) return null;
@@ -31,7 +33,7 @@ function TrialCountdownBanner() {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -6 }}
       transition={{ duration: 0.3 }}
-      className={`fixed ${isPackagedElectron ? "top-[38px]" : "top-0"} ${SIDEBAR_WIDTH_CLASS} right-0 z-50 flex items-center justify-between px-4 py-1.5 backdrop-blur`}
+      className={`fixed ${isPackagedElectron ? "top-[38px]" : "top-0"} ${largeSidebar ? "left-72" : "left-64"} right-0 z-50 flex items-center justify-between px-4 py-1.5 backdrop-blur`}
       style={{
         background: ent.isTrialUrgent
           ? "linear-gradient(90deg, rgba(220,38,38,0.18) 0%, rgba(0,212,255,0.14) 100%)"
@@ -74,9 +76,6 @@ function TrialCountdownBanner() {
 
 const isElectron = typeof window !== "undefined" && !!(window as any).electronAPI?.isElectron;
 const isPackagedElectron = isElectron && typeof window !== "undefined" && window.location.protocol === "file:";
-
-/** Sidebar width class — must stay in sync with Sidebar.tsx `w-64`. */
-const SIDEBAR_WIDTH_CLASS = "left-64";
 
 const BACKEND_TIMEOUT_MS = 20_000;
 
@@ -150,6 +149,7 @@ export function AppLayout({
 
   const ent = useEntitlementUiState();
   const { isPremium } = useAuth();
+  const largeSidebar = useUserPreferencesStore((s) => s.largeSidebar);
   const isTrial = ent.status === "trial_active";
   // Only expand the content area when the user has access — free users keep the
   // sidebar and normal layout so they can navigate to the upgrade flow.
@@ -180,7 +180,7 @@ export function AppLayout({
       <Sidebar />
       <motion.div
         className="pt-2 flex items-start justify-end pr-4 shrink-0"
-        animate={{ paddingLeft: isDriverIntel ? 0 : 256 }}
+        animate={{ paddingLeft: isDriverIntel ? 0 : largeSidebar ? 288 : 256 }}
         transition={isDriverIntel ? SIDEBAR_SPRING : { duration: 0 }}
       >
         <div className="pt-1 shrink-0">
@@ -193,7 +193,7 @@ export function AppLayout({
       <motion.main
         id="app-scroll-root"
         className="relative z-10 flex-1 min-h-0 overflow-y-auto overflow-x-hidden"
-        animate={{ paddingLeft: isDriverIntel ? 0 : 256 }}
+        animate={{ paddingLeft: isDriverIntel ? 0 : largeSidebar ? 288 : 256 }}
         transition={isDriverIntel ? SIDEBAR_SPRING : { duration: 0 }}
       >
         <div className="container max-w-7xl mx-auto p-8">{children}</div>

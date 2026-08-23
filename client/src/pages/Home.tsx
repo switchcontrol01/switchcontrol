@@ -34,6 +34,7 @@ import { AnimatedCrown, PremiumBadge } from "@/components/ui/animated-crown";
 import { PremiumCardOverlay } from "@/components/ui/premium-page-overlay";
 import { useBiosAdvisorStore } from "@/stores/biosAdvisorStore";
 import { useGpuSelector } from "@/hooks/useGpuSelector";
+import { useUserPreferencesStore } from "@/stores/userPreferencesStore";
 
 const MemoryCleanerModal = lazy(() =>
   import("@/components/dashboard/MemoryCleanerModal").then((m) => ({ default: m.MemoryCleanerModal }))
@@ -139,8 +140,8 @@ function AIAdvisorSummaryCard({ isPremium }: { isPremium: boolean }) {
               </div>
               <p className={cn("text-[10px] mt-0.5", getScoreColor(report.score))}>
                 {report.score >= 95 ? "Fully Optimized" : report.score >= 85 ? "Good Configuration" : report.score >= 60 ? "Needs Improvement" : "Issues Found"}
-              </p>
-            </div>
+               </p>
+             </div>
             {insight.primary && (
               <p className="text-[10px] text-[#A0A8B3] leading-snug px-0.5" data-testid="text-advisor-insight">
                 {insight.primary}
@@ -149,8 +150,8 @@ function AIAdvisorSummaryCard({ isPremium }: { isPremium: boolean }) {
             <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground">
               <span>{report.findings.filter(f => f.status === "pass").length}/{report.findings.length} rules passed</span>
               <span className="text-border">|</span>
-              <span>{report.topFailed.length} issue{report.topFailed.length !== 1 ? "s" : ""}</span>
-            </div>
+               <span>{report.topFailed.length} issue{report.topFailed.length !== 1 ? "s" : ""}</span>
+             </div>
           </div>
         ) : (
           <div className="py-4 text-center">
@@ -433,6 +434,8 @@ export default function Home() {
   }, []);
   const { prefersReducedMotion } = useMotion();
   const { user, isPremium } = useAuth();
+  const dashboardHidden = useUserPreferencesStore((s) => s.dashboardHidden);
+  const showDashboardCard = useCallback((id: string) => !dashboardHidden.includes(id), [dashboardHidden]);
   const liveStatus = useLiveStatus();
   const timeOfDay = useMemo(() => getTimeOfDay(), []);
   const greeting  = useMemo(() => getGreeting(),  []);
@@ -870,7 +873,7 @@ export default function Home() {
           </div>
 
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <div
+             {showDashboardCard("memory") && <div
               style={{
                 borderRadius: 12,
                 transition: "box-shadow 0.15s ease-out",
@@ -888,11 +891,11 @@ export default function Home() {
                 actionLabel="Clear RAM"
                 onAction={() => setMemCleanerOpen(true)}
                 className="border-teal-500/20 shadow-[0_0_20px_-10px_hsl(170_100%_50%/0.1)]"
-                loading={specStatus === "loading" && stats.totalRamGb === 0}
-              />
-            </div>
+                 loading={specStatus === "loading" && stats.totalRamGb === 0}
+               />
+              </div>}
             
-            <div>
+             {showDashboardCard("cpu") && <div>
               <StatCard
                 title="CPU"
                 value={stats.cpuName}
@@ -905,11 +908,11 @@ export default function Home() {
                 }
                 progress={liveTel ? liveTel.cpu.load : undefined}
                 className="border-[#00D4FF]/40 shadow-[0_0_20px_-10px_rgba(0,212,255,0.1)]"
-                loading={specStatus === "loading"}
-              />
-            </div>
+                 loading={specStatus === "loading"}
+               />
+              </div>}
             
-            <div>
+             {showDashboardCard("gpu") && <div>
               <StatCard
                 title={
                   gpuList.length > 1 ? (
@@ -928,8 +931,8 @@ export default function Home() {
                             {gpu.vramGB > 0 ? `GPU ${idx + 1} · ${gpu.vramGB} GB` : `GPU ${idx + 1}`}
                           </option>
                         ))}
-                      </select>
-                    </div>
+                       </select>
+                     </div>
                   ) : "GPU"
                 }
                 value={
@@ -949,11 +952,11 @@ export default function Home() {
                     : "Detecting…"
                 }
                 className="border-cyan-500/20 shadow-[0_0_20px_-10px_hsl(190_100%_50%/0.1)]"
-                loading={specStatus === "loading" || stats.gpuName === 'Detecting\u2026' || gpuSwitching}
-              />
-            </div>
+                 loading={specStatus === "loading" || stats.gpuName === 'Detecting\u2026' || gpuSwitching}
+               />
+             </div>}
             
-            <div>
+             {showDashboardCard("storage") && <div>
               <StatCard
                 title={
                   allDisks.length > 1 ? (
@@ -971,8 +974,8 @@ export default function Home() {
                             {disk.mount}
                           </option>
                         ))}
-                      </select>
-                    </div>
+                       </select>
+                     </div>
                   ) : `Disk (${currentDiskName})`
                 }
                 value={currentDiskUsed}
@@ -983,26 +986,26 @@ export default function Home() {
                 progress={diskPercent}
                 subtext={selectedDisk?.name || stats.diskName}
                 className="border-amber-500/20 shadow-[0_0_20px_-10px_hsl(40_100%_50%/0.1)]"
-                loading={specStatus === "loading"}
-              />
-            </div>
+                 loading={specStatus === "loading"}
+               />
+             </div>}
           </div>
         </Reveal>
 
         {/* Live Graph */}
-        <Reveal delay={0.06}>
+         {showDashboardCard("network") && <Reveal delay={0.06}>
           <LiveGraphsGate title="Live performance graph paused">
             <LiveGraph
               onTelemetryUpdate={handleTelemetryUpdate}
               selectedDiskMount={selectedDisk?.mount ?? null}
             />
           </LiveGraphsGate>
-        </Reveal>
+         </Reveal>}
 
         {/* Performance Lab — intelligence hub */}
-        <Reveal delay={0.06}>
+         {showDashboardCard("responsiveness") && <Reveal delay={0.06}>
           <PerformanceLab onClearRAM={() => setMemCleanerOpen(true)} />
-        </Reveal>
+         </Reveal>}
 
         {/* System Pipeline — Latency Map */}
         {liveTel && (
@@ -1019,9 +1022,9 @@ export default function Home() {
         )}
 
         {/* Storage Section */}
-        <Reveal delay={0.12}>
+         {showDashboardCard("storage") && <Reveal delay={0.12}>
           <StorageCards ssds={ssdData} />
-        </Reveal>
+         </Reveal>}
 
         {/* ── Telemetry Analytics ────────────────────────────────────── */}
         <Reveal className="space-y-3">
