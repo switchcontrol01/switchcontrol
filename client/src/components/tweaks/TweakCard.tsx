@@ -458,7 +458,7 @@ export function TweakCard({ tweak, isEnabled, onToggle, isVerifying = false, isH
                   onClick={() => setTrustOpen(!trustOpen)}
                   data-testid={`button-trust-${tweak.id}`}
                   className={cn(
-                    "size-7 border border-primary/25 bg-primary/[0.06] hover:bg-primary/15 transition-all duration-300 rounded-md",
+                    "size-6 border border-primary/25 bg-primary/[0.06] hover:bg-primary/15 transition-all duration-300 rounded-md",
                     trustOpen ? "text-primary opacity-100" : "text-muted-foreground/80 opacity-75 group-hover:opacity-100"
                   )}
                   title="Show impact details"
@@ -470,7 +470,7 @@ export function TweakCard({ tweak, isEnabled, onToggle, isVerifying = false, isH
                 <Button
                   variant="ghost" size="icon" onClick={openModal}
                   data-testid={`button-info-${tweak.id}`}
-                    className="size-7 border border-primary/25 bg-primary/[0.06] text-muted-foreground/80 hover:text-foreground hover:bg-primary/15 opacity-75 group-hover:opacity-100 transition-all duration-300 rounded-md"
+                    className="size-6 border border-primary/25 bg-primary/[0.06] text-muted-foreground/80 hover:text-foreground hover:bg-primary/15 opacity-75 group-hover:opacity-100 transition-all duration-300 rounded-md"
                 >
                   <Info className="size-3.5" />
                 </Button>
