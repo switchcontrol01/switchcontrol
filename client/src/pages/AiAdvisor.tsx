@@ -1018,7 +1018,7 @@ function ChatBubble({ msg, isSlow, reducedMotion, onApply, onApplyInline, isAdmi
     <motion.div
       key={msg.id}
       {...anim}
-      className={cn("flex gap-2.5", msg.role === "user" ? "flex-row-reverse" : "flex-row")}
+      className={cn("flex gap-2.5", msg.role === "user" ? "flex-row justify-end" : "flex-row")}
     >
       {msg.role !== "user" && (
         <div className={cn(
