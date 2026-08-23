@@ -12,7 +12,7 @@ import { motion, AnimatePresence } from "@/lib/motion";
 import {
   Layers, Search, Play, Shield, AlertTriangle, X,
   ChevronDown, Cpu, MemoryStick, ArrowUpDown,
-  RotateCcw, Info, Trash2,
+  Info, Trash2,
   Monitor, Gamepad2, Globe, Music, Settings2, Package,
 } from "lucide-react";
 import { publisherToDomain, processNameToDomain, iconSrcsForDomain } from "@/lib/publisherIcons";
@@ -323,11 +323,6 @@ export default function ProcessManager() {
           subtitle="Scan and manage running processes. Protected system and gaming processes are always safeguarded."
           actions={
             <div className="flex items-center gap-2">
-              {scanResult && (
-                <Button variant="outline" size="sm" onClick={runScan} disabled={scanning} className="gap-1.5">
-                  <RotateCcw className="size-3.5" /> Rescan
-                </Button>
-              )}
               <Button
                 size="sm"
                 onClick={runScan}
