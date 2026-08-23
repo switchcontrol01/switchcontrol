@@ -4,7 +4,7 @@
  * Panels:
  *   1. Stability Score       — real-time SVG arc gauge + source analysis
  *   2. Active Problems       — backend-derived issue list with severity
- *   3. Input Latency         — conservatively estimated, honestly labeled
+ *   3. System Responsiveness — conservatively estimated, honestly labeled
  *   4. Smart RAM Analysis    — reclaimable standby + risk + impact
  *
  * All data: backend-derived from getCachedSnapshot(), no fake numbers.
@@ -60,12 +60,6 @@ function qualityColor(q: string) {
   if (q === "Good")      return "text-teal-400";
   if (q === "Fair")      return "text-amber-400";
   return "text-red-400";
-}
-
-function confidenceColor(c: string) {
-  if (c === "high")   return "text-emerald-400 border-emerald-500/25 bg-emerald-500/6";
-  if (c === "medium") return "text-amber-400   border-amber-500/25   bg-amber-500/6";
-  return "text-[#6B7380] border-[#2A313A] bg-[#1A1F26]";
 }
 
 // ── Animated counter ─────────────────────────────────────────────────────────
@@ -357,7 +351,7 @@ function ActiveProblemsCard({ data }: { data: ActiveProblemsData | null }) {
   );
 }
 
-// ── 3. Input Latency Card ─────────────────────────────────────────────────────
+// ── 3. System Responsiveness Card ─────────────────────────────────────────────
 
 function LatencyBar({ ms, max, color }: { ms: number; max: number; color: string }) {
   const pct = Math.min(100, (ms / max) * 100);
@@ -374,7 +368,7 @@ function LatencyBar({ ms, max, color }: { ms: number; max: number; color: string
   );
 }
 
-function InputLatencyCard({ data }: { data: LatencyData | null }) {
+function SystemResponsivenessCard({ data }: { data: LatencyData | null }) {
   const animMs = useAnimatedValue(data?.estimatedMs ?? 0, 300);
   const maxMs = 12;
 
@@ -390,11 +384,11 @@ function InputLatencyCard({ data }: { data: LatencyData | null }) {
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-medium flex items-center gap-2">
             <Gauge className="size-4 text-muted-foreground" />
-            Input Latency
+            System Responsiveness Estimate
           </h3>
           {data && (
             <span className="text-[9px] font-medium px-1.5 py-0.5 rounded border border-[#2A313A] text-[#6B7380]">
-              Estimated
+              Model estimate
             </span>
           )}
         </div>
@@ -442,7 +436,7 @@ function InputLatencyCard({ data }: { data: LatencyData | null }) {
 
         {data && (
           <p className="text-[9px] text-muted-foreground/40">
-            Derived estimate — not directly measured. Based on CPU, RAM, and process load.
+            Load-based estimate — not directly measured. This is not mouse-to-screen input latency.
           </p>
         )}
       </div>
@@ -853,7 +847,7 @@ export function PerformanceLab({ onClearRAM }: { onClearRAM: () => void }) {
       <div className="grid gap-4 md:grid-cols-3">
         <RevealCard delay={0.05}><StabilityScoreCard data={instability} /></RevealCard>
         <RevealCard delay={0.10}><ActiveProblemsCard data={problems} /></RevealCard>
-        <RevealCard delay={0.15}><InputLatencyCard data={latency} /></RevealCard>
+        <RevealCard delay={0.15}><SystemResponsivenessCard data={latency} /></RevealCard>
       </div>
 
       {/* Smart RAM */}

@@ -367,7 +367,7 @@ function OverallStatusCard() {
           <div className="flex flex-wrap items-center gap-3">
             <StatusBadge status={status} />
             <span className="text-[10px] text-[#7F8997]">
-              {sampleCount >= 8 ? "Confidence: established" : "Confidence: collecting"}
+              {sampleCount >= 8 ? "Data quality: established" : "Data quality: collecting"}
             </span>
           </div>
           <p className="max-w-[480px] text-[11px] leading-relaxed text-[#A0A8B3]">
@@ -1300,7 +1300,7 @@ function ExportNotesCard() {
   );
 }
 
-// ── 10. Input Delay Analysis ───────────────────────────────────────────────────
+// ── 10. System Responsiveness Analysis ─────────────────────────────────────────
 
 /** Smoothly animates from the previous value to `target` over ~600 ms. */
 function useAnimatedDelayValue(target: number) {
@@ -1386,7 +1386,7 @@ function InputDelaySection() {
   return (
     <div>
       <h2 className="text-[11px] text-[#6B7380] uppercase tracking-wider mb-3 flex items-center gap-1.5">
-        <Gauge className="size-3.5" /> Input Delay Analysis
+        <Gauge className="size-3.5" /> System Responsiveness Analysis
       </h2>
 
       <GlassCard className="p-5 lg:p-6">
@@ -1395,10 +1395,10 @@ function InputDelaySection() {
           <div className="min-w-0">
             <div className="flex items-center gap-2 mb-1.5">
               <span className="text-[10px] font-medium text-[#6B7380] uppercase tracking-wider">
-                Estimated end-to-end input delay
+                DPC, interrupt, and memory-pressure responsiveness
               </span>
               <span className="text-[9px] px-1.5 py-0.5 rounded border border-[#2A313A] text-[#5A6270]">
-                {latency?.confidence === "high" ? "High confidence" : "Estimated"}
+                Model estimate
               </span>
             </div>
             <div className="flex items-end gap-2">
@@ -1840,7 +1840,7 @@ export default function LatencyAnalyzer() {
         {/* Export + Notes */}
         <ExportNotesCard />
 
-        {/* Input Delay Analysis */}
+        {/* System Responsiveness Analysis */}
         <InputDelaySection />
 
         {/* Limitations */}

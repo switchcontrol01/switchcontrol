@@ -901,7 +901,7 @@ router.get("/active-problems", (_req, res) => {
   }
 });
 
-// ── Input latency estimate ────────────────────────────────────────────────────
+// ── System responsiveness estimate ────────────────────────────────────────────
 
 router.get("/latency-estimate", (_req, res) => {
   try {
@@ -925,20 +925,15 @@ router.get("/latency-estimate", (_req, res) => {
     const procNorm  = Math.min(1, Math.max(0, (procs - 60) / 320));
     const procDelta = parseFloat((procNorm * 1.8).toFixed(2));
 
-    // Small live jitter ±0.2ms so the display never looks frozen on a stable system
-    const jitter = parseFloat(((Math.random() * 0.4) - 0.2).toFixed(2));
-
-    // Clamp to base minimum: jitter can be negative and on a near-idle system
-    // the sum could theoretically go below 1ms or negative without this guard.
-    const total = Math.max(base, Math.round((base + cpuDelta + ramDelta + procDelta + jitter) * 10) / 10);
+    // Clamp to the base minimum. The estimate must only change when its source
+    // measurements change; cosmetic randomness would falsely imply a live
+    // input-latency measurement.
+    const total = Math.max(base, Math.round((base + cpuDelta + ramDelta + procDelta) * 10) / 10);
 
     const quality =
       total < 4   ? "Excellent" :
       total < 7   ? "Good"      :
       total < 11  ? "Fair"      : "Poor";
-
-    const confidence =
-      (ramPct > 85 || cpuLoad > 70) ? "medium" : "high";
 
     const trend =
       snap.load_trend === "rising"  ? "rising" :
@@ -947,7 +942,6 @@ router.get("/latency-estimate", (_req, res) => {
     res.json({
       estimatedMs: total,
       quality,
-      confidence,
       trend,
       breakdown: [
         { label: "Base OS overhead", ms: base,      note: "Minimum kernel scheduler latency" },

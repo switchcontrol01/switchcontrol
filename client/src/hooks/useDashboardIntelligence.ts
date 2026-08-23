@@ -44,7 +44,6 @@ export interface LatencyBreakdown {
 export interface LatencyData {
   estimatedMs: number;
   quality: "Excellent" | "Good" | "Fair" | "Poor";
-  confidence: "high" | "medium";
   trend: "rising" | "falling" | "stable";
   breakdown: LatencyBreakdown[];
   ts: number;
