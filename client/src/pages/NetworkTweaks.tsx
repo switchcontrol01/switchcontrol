@@ -530,9 +530,9 @@ function NetworkTweakCard({ tweak, tweakState, onToggle, onInfoClick, isVerifyin
                 size="icon"
                 onClick={onInfoClick}
                 data-testid={`button-info-${tweak.id}`}
-                className="size-8 border border-primary/25 bg-primary/[0.06] text-muted-foreground/80 hover:text-foreground hover:bg-primary/15 opacity-75 group-hover:opacity-100 transition-all duration-300 rounded-lg"
+                className="size-5 border border-primary/25 bg-primary/[0.06] text-muted-foreground/80 hover:text-foreground hover:bg-primary/15 opacity-75 group-hover:opacity-100 transition-all duration-300 rounded-md"
               >
-                <Info className="size-4" />
+                <Info className="size-3" />
               </Button>
             </motion.div>
           )}

@@ -212,12 +212,12 @@ export function TweakPresetCard({ tweak, activeConflictIds = [], dynamicOverride
             onClick={() => setTrustOpen(!trustOpen)}
             data-testid={`button-trust-${tweak.id}`}
             className={cn(
-              "size-8 rounded-full flex items-center justify-center transition-all hover:bg-[#2A313A]",
+              "size-5 rounded-md flex items-center justify-center transition-all hover:bg-[#2A313A]",
               trustOpen ? "text-primary" : "text-muted-foreground opacity-0 group-hover:opacity-100"
             )}
             title="Show impact details"
           >
-            <Info className="size-3.5" />
+            <Info className="size-3" />
           </button>
         </div>
 

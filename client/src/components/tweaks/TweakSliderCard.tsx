@@ -449,7 +449,7 @@ export function TweakSliderCard({ tweak, dynamicOverride }: TweakSliderCardProps
       blur="sm"
       hoverEffect={false}
       className={cn(
-        "group flex flex-col transition-all duration-500",
+        "group flex flex-col transition-all duration-500 hover:border-primary/25 hover:shadow-[0_0_18px_rgba(0,212,255,0.08)]",
         isDirty && "border-cyan-500/20 bg-cyan-500/[0.02]",
         state.verifyResult?.ok && "border-emerald-500/20",
         state.verifyResult?.ok === false && "border-red-500/20",
@@ -491,12 +491,12 @@ export function TweakSliderCard({ tweak, dynamicOverride }: TweakSliderCardProps
             onClick={() => setTrustOpen(!trustOpen)}
             data-testid={`button-trust-${tweak.id}`}
             className={cn(
-              "size-8 rounded-full flex items-center justify-center transition-all hover:bg-[#2A313A]",
+              "size-5 rounded-md flex items-center justify-center transition-all duration-200 hover:scale-110 hover:bg-primary/10 hover:text-primary hover:shadow-[0_0_10px_rgba(0,212,255,0.22)] focus-visible:ring-1 focus-visible:ring-primary/60 active:scale-95",
               trustOpen ? "text-primary" : "text-muted-foreground opacity-0 group-hover:opacity-100"
             )}
             title="Show impact details"
           >
-            <Info className="size-3.5" />
+            <Info className="size-3" />
           </button>
         </div>
         <p className="text-xs text-muted-foreground leading-relaxed">
