@@ -378,11 +378,11 @@ export default function Splash({ onComplete }: SplashProps) {
                   animate={{ opacity: 1, y: 0, filter: "blur(0px)", letterSpacing: "-0.025em" }}
                   transition={{ duration: 0.62, delay: 0.34, ease: [0.22, 1, 0.36, 1] }}
                   style={{
-                    background: "linear-gradient(105deg, #00BFEA 0%, #7AEAFF 42%, #00D4FF 58%, #00A9D2 100%)",
+                     background: "linear-gradient(105deg, #00BFEA 0%, #A5F3FF 40%, #00E3FF 56%, #00A9D2 100%)",
                     WebkitBackgroundClip: "text",
                     WebkitTextFillColor: "transparent",
-                    textShadow: "0 0 26px rgba(0, 212, 255, 0.24)",
-                    filter: "drop-shadow(0 0 5px rgba(0, 212, 255, 0.22)) drop-shadow(0 0 14px rgba(0, 180, 255, 0.12))",
+                     textShadow: "0 0 30px rgba(0, 212, 255, 0.30)",
+                     filter: "drop-shadow(0 0 6px rgba(0, 212, 255, 0.30)) drop-shadow(0 0 18px rgba(0, 180, 255, 0.17)) drop-shadow(0 0 28px rgba(139, 92, 246, 0.10))",
                   }}
                 >
                   Control
@@ -393,8 +393,8 @@ export default function Splash({ onComplete }: SplashProps) {
                     animate={{ x: "500%", opacity: [0, 0.75, 0] }}
                     transition={{ duration: 0.72, delay: 0.52, ease: [0.22, 1, 0.36, 1] }}
                     style={{
-                      background: "linear-gradient(90deg, transparent, rgba(220, 252, 255, 0.95), transparent)",
-                      filter: "blur(3px)",
+                       background: "linear-gradient(90deg, transparent, rgba(235, 254, 255, 1), transparent)",
+                       filter: "blur(2.5px)",
                       transform: "skewX(-18deg)",
                     }}
                   />
