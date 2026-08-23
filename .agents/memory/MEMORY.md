@@ -62,3 +62,4 @@
 - [Entitlement cache verification boundary](entitlement-cache-verification-boundary.md) — preserved cached users from failed /api/me calls must not be marked cloud-verified.
 - [Driver fetch cache fallback](driver-fetch-cache-fallback.md) — vendor refreshes must remain useful in no-DB or pre-migration environments via runtime cache; never discard successful fetches.
 - [Cleaner navigation modal](cleaner-navigation-modal.md) — active-operation confirmation must render at body level with explicit pointer handling to avoid freezing the Electron shell.
+- [Windows display connection enum](windows-display-connection-enum.md) — HDMI is enum 6; external DisplayPort is 11; preserve unknown raw values instead of guessing.

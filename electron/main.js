@@ -3137,7 +3137,16 @@ ConvertTo-Json -InputObject $result -Compress -Depth 2
       return ([System.Text.Encoding]::ASCII.GetString([byte[]]@($b))).Trim() } catch { return $null }
   }
   function ConnStr($n) {
-    switch ([int]$n) { 10{"DisplayPort"} 11{"DisplayPort (Embedded)"} 5{"HDMI"} 4{"DVI"} 8{"Internal (eDP)"} 0{"VGA"} 15{"Miracast"} default{$null} }
+    # WmiMonitorConnectionParams.VideoOutputTechnology uses the
+    # D3DKMDT_VIDEO_OUTPUT_TECHNOLOGY enum:
+    # DVI=5, HDMI=6, DisplayPort external=11, DisplayPort embedded=12.
+    # Keep the raw value in the diagnostic payload so future driver-specific
+    # values are not silently presented as the wrong physical connector.
+    switch ([int]$n) {
+      1{"VGA"} 5{"DVI"} 6{"HDMI"} 8{"Internal (eDP)"}
+      11{"DisplayPort"} 12{"DisplayPort (Embedded)"} 16{"Miracast"}
+      default{$null}
+    }
   }
   
   $screens = @(); $screenHz = @()
