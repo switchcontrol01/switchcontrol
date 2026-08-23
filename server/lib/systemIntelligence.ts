@@ -156,10 +156,12 @@ export interface SystemIntelligenceProfile {
     uptimeSec: number | null;
     secureBootEnabled: boolean | null;
     tpmPresent: boolean | null;
+    tpmVersion: string | null;
     virtualizationEnabled: boolean | null;
     hypervisorPresent: boolean | null;
     memoryIntegrityEnabled: boolean | null;
     vbsEnabled: boolean | null;
+    kernelDmaProtectionEnabled: boolean | null;
     resizeBarEnabled: boolean | null;
     uefiBoot: boolean | null;
   };
@@ -582,20 +584,24 @@ public class DspIdHelper {
 async function collectWindowsPlatformStates(): Promise<{
   secureBootEnabled: boolean | null;
   tpmPresent: boolean | null;
+  tpmVersion: string | null;
   hypervisorPresent: boolean | null;
   virtualizationEnabled: boolean | null;
   memoryIntegrityEnabled: boolean | null;
   vbsEnabled: boolean | null;
+  kernelDmaProtectionEnabled: boolean | null;
   uefiBoot: boolean | null;
   resizeBarEnabled: boolean | null;
 }> {
   const defaults = {
     secureBootEnabled: null as boolean | null,
     tpmPresent: null as boolean | null,
+    tpmVersion: null as string | null,
     hypervisorPresent: null as boolean | null,
     virtualizationEnabled: null as boolean | null,
     memoryIntegrityEnabled: null as boolean | null,
     vbsEnabled: null as boolean | null,
+    kernelDmaProtectionEnabled: null as boolean | null,
     uefiBoot: null as boolean | null,
     resizeBarEnabled: null as boolean | null,
   };
@@ -605,9 +611,13 @@ async function collectWindowsPlatformStates(): Promise<{
   const script = `
 try {
   $sb = $null; try { $sb = [bool](Confirm-SecureBootUEFI -ErrorAction SilentlyContinue) } catch {}
-  $tpm = $null; try { $t = Get-WmiObject -Namespace root/cimv2/security/microsofttpm -Class Win32_Tpm -ErrorAction SilentlyContinue; if ($t) { $tpm = $true } else { $tpm = $false } } catch { $tpm = $false }
-  $hvp = $null; try { $cs = Get-WmiObject Win32_ComputerSystem -ErrorAction SilentlyContinue; $hvp = [bool]$cs.HypervisorPresent } catch {}
-  $virt = $null; try { $proc = Get-WmiObject Win32_Processor -ErrorAction SilentlyContinue | Select-Object -First 1; if ($null -ne $proc) { $virt = [bool]$proc.VirtualizationFirmwareEnabled } } catch {}
+  $tpm = $null; $tpmVersion = $null
+  try {
+    $t = Get-CimInstance -Namespace root/cimv2/security/microsofttpm -ClassName Win32_Tpm -ErrorAction SilentlyContinue
+    if ($t) { $tpm = $true; $tpmVersion = [string]$t.SpecVersion } else { $tpm = $false }
+  } catch { $tpm = $false }
+  $hvp = $null; try { $cs = Get-CimInstance Win32_ComputerSystem -ErrorAction SilentlyContinue; $hvp = [bool]$cs.HypervisorPresent } catch {}
+  $virt = $null; try { $proc = Get-CimInstance Win32_Processor -ErrorAction SilentlyContinue | Select-Object -First 1; if ($null -ne $proc) { $virt = [bool]$proc.VirtualizationFirmwareEnabled } } catch {}
   $vbs = $null; $mi = $null
   try {
     $regVBS = Get-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\DeviceGuard" -ErrorAction SilentlyContinue
@@ -615,7 +625,16 @@ try {
     $regHVCI = Get-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\DeviceGuard\\Scenarios\\HypervisorEnforcedCodeIntegrity" -ErrorAction SilentlyContinue
     if ($regHVCI) { $mi = [bool]($regHVCI.Enabled -eq 1) }
   } catch {}
-  $uefi = $null; try { $fw = (Get-WmiObject -Class Win32_OperatingSystem -ErrorAction SilentlyContinue).FirmwareType; if ($fw -eq "Uefi") { $uefi = $true } elseif ($fw -eq "Bios") { $uefi = $false } } catch {}
+  $dma = $null
+  try {
+    $dmaKey = Get-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\DmaGuard\\Status" -ErrorAction SilentlyContinue
+    if ($null -ne $dmaKey -and $null -ne $dmaKey.Enabled) { $dma = [bool]($dmaKey.Enabled -eq 1) }
+    if ($null -eq $dma) {
+      $dmaKey = Get-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\DmaGuard" -ErrorAction SilentlyContinue
+      if ($null -ne $dmaKey -and $null -ne $dmaKey.Enabled) { $dma = [bool]($dmaKey.Enabled -eq 1) }
+    }
+  } catch {}
+  $uefi = $null; try { $fw = (Get-CimInstance -ClassName Win32_OperatingSystem -ErrorAction SilentlyContinue).FirmwareType; if ($fw -eq "Uefi") { $uefi = $true } elseif ($fw -eq "Bios") { $uefi = $false } } catch {}
   $rebar = $null
   try {
     $gpuClass = "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Class\\{4d36e968-e325-11ce-bfc1-08002be10318}"
@@ -633,10 +652,12 @@ try {
   [PSCustomObject]@{
     SecureBoot = if ($sb -eq $null) { "null" } else { if ($sb) { "true" } else { "false" } }
     TpmPresent = if ($tpm -eq $null) { "null" } else { if ($tpm) { "true" } else { "false" } }
+    TpmVersion = if ([string]::IsNullOrWhiteSpace($tpmVersion)) { "null" } else { $tpmVersion }
     HypervisorPresent = if ($hvp -eq $null) { "null" } else { if ($hvp) { "true" } else { "false" } }
     VirtualizationEnabled = if ($virt -eq $null) { "null" } else { if ($virt) { "true" } else { "false" } }
     VbsEnabled = if ($vbs -eq $null) { "null" } else { if ($vbs) { "true" } else { "false" } }
     MemoryIntegrityEnabled = if ($mi -eq $null) { "null" } else { if ($mi) { "true" } else { "false" } }
+    KernelDmaProtectionEnabled = if ($dma -eq $null) { "null" } else { if ($dma) { "true" } else { "false" } }
     UefiBoot = if ($uefi -eq $null) { "null" } else { if ($uefi) { "true" } else { "false" } }
     ResizeBar = if ($rebar -eq $null) { "null" } else { if ($rebar) { "true" } else { "false" } }
   } | ConvertTo-Json -Compress
@@ -654,10 +675,12 @@ try {
     return {
       secureBootEnabled:        parseBool(obj.SecureBoot),
       tpmPresent:               parseBool(obj.TpmPresent),
+      tpmVersion:              typeof obj.TpmVersion === "string" && obj.TpmVersion !== "null" ? obj.TpmVersion : null,
       hypervisorPresent:        parseBool(obj.HypervisorPresent),
       virtualizationEnabled:    parseBool(obj.VirtualizationEnabled),
       vbsEnabled:               parseBool(obj.VbsEnabled),
       memoryIntegrityEnabled:   parseBool(obj.MemoryIntegrityEnabled),
+      kernelDmaProtectionEnabled: parseBool(obj.KernelDmaProtectionEnabled),
       uefiBoot:                 parseBool(obj.UefiBoot),
       resizeBarEnabled:         parseBool(obj.ResizeBar),
     };
@@ -1075,7 +1098,9 @@ async function collect(): Promise<SystemIntelligenceProfile> {
   // ── Platform states (Windows) ──
   const pStates = platformStates.status === "fulfilled" ? platformStates.value : {
     secureBootEnabled: null, tpmPresent: null, hypervisorPresent: null,
+    tpmVersion: null,
     virtualizationEnabled: null, memoryIntegrityEnabled: null, vbsEnabled: null,
+    kernelDmaProtectionEnabled: null,
     uefiBoot: null, resizeBarEnabled: null,
   };
 
@@ -1337,7 +1362,9 @@ async function collectFast(): Promise<SystemIntelligenceProfile> {
     platform:   {
       os: null, build: null, hostname: null, uptimeSec: null,
       secureBootEnabled: null, tpmPresent: null, hypervisorPresent: null,
+      tpmVersion: null,
       virtualizationEnabled: null, vbsEnabled: null, memoryIntegrityEnabled: null,
+      kernelDmaProtectionEnabled: null,
       uefiBoot: null, resizeBarEnabled: null,
     },
     device:     { batteryPresent: null, batteryPercent: null, chassisType: null },

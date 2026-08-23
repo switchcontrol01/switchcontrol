@@ -2405,6 +2405,7 @@ export default function AiAdvisor() {
   }, []);
 
   const isBusy = loading || isStreaming;
+  const enabledCount = context?.enabledTweaks.length ?? 0;
 
   // ── Render ────────────────────────────────────────────────────────────────
 

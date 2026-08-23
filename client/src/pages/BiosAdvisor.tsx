@@ -1257,16 +1257,16 @@ export default function BiosAdvisor() {
                             <AdvancedDetailRow label="Secure Boot" value={si.platform.secureBootEnabled === null ? "Not exposed" : si.platform.secureBootEnabled ? "Enabled" : "Disabled"} tone={si.platform.secureBootEnabled ? "good" : "warn"} />
                             <AdvancedDetailRow label="UEFI Mode" value={si.platform.uefiBoot === null ? "Not exposed" : si.platform.uefiBoot ? "UEFI" : "Legacy BIOS"} tone={si.platform.uefiBoot ? "good" : "warn"} />
                             <AdvancedDetailRow label="TPM" value={si.platform.tpmPresent === null ? "Not exposed" : si.platform.tpmPresent ? "Present" : "Not detected"} tone={si.platform.tpmPresent ? "good" : "warn"} />
-                            <AdvancedDetailRow label="TPM Version" value="Not exposed by current collector" />
+                            <AdvancedDetailRow label="TPM Version" value={si.platform.tpmVersion || "Not exposed"} />
                             <AdvancedDetailRow label="CSM / Legacy Boot" value={si.platform.uefiBoot === false ? "Legacy mode detected" : si.platform.uefiBoot === true ? "CSM likely off" : "Not exposed"} />
                           </div>
                           <div className="rounded-lg bg-[#151A21]/70 border border-[#2A313A] p-3">
                             <p className="text-[10px] text-primary uppercase tracking-wider mb-1">Virtualization</p>
                             <AdvancedDetailRow label="CPU Virtualization" value={si.platform.virtualizationEnabled === null ? "Not exposed" : si.platform.virtualizationEnabled ? "Enabled" : "Disabled"} tone={si.platform.virtualizationEnabled ? "good" : "warn"} />
                             <AdvancedDetailRow label="Hypervisor" value={si.platform.hypervisorPresent === null ? "Not exposed" : si.platform.hypervisorPresent ? "Active" : "Not active"} tone={si.platform.hypervisorPresent ? "good" : "neutral"} />
-                            <AdvancedDetailRow label="IOMMU / AMD-Vi" value="Not exposed by current collector" />
-                            <AdvancedDetailRow label="Above 4G Decoding" value="Not exposed by current collector" />
-                            <AdvancedDetailRow label="Kernel DMA Protection" value="Not exposed by current collector" />
+                            <AdvancedDetailRow label="IOMMU / AMD-Vi" value="Firmware-only — not reported by Windows" />
+                            <AdvancedDetailRow label="Above 4G Decoding" value="Firmware-only — not reported by Windows" />
+                            <AdvancedDetailRow label="Kernel DMA Protection" value={si.platform.kernelDmaProtectionEnabled === null ? "Not exposed" : si.platform.kernelDmaProtectionEnabled ? "Enabled" : "Disabled"} tone={si.platform.kernelDmaProtectionEnabled ? "good" : "warn"} />
                           </div>
                           <div className="rounded-lg bg-[#151A21]/70 border border-[#2A313A] p-3">
                             <p className="text-[10px] text-primary uppercase tracking-wider mb-1">Graphics & Memory</p>

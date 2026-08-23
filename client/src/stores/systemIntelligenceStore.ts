@@ -132,10 +132,12 @@ export interface SystemIntelligenceProfile {
     uptimeSec: number | null;
     secureBootEnabled: boolean | null;
     tpmPresent: boolean | null;
+    tpmVersion: string | null;
     virtualizationEnabled: boolean | null;
     hypervisorPresent: boolean | null;
     memoryIntegrityEnabled: boolean | null;
     vbsEnabled: boolean | null;
+    kernelDmaProtectionEnabled: boolean | null;
     resizeBarEnabled: boolean | null;
     uefiBoot: boolean | null;
   };
