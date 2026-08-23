@@ -4,7 +4,6 @@ import { getPollingMultiplier } from "@/lib/appModeStore";
 import { logHistory } from "@/lib/logHistory";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { cloudApiGet } from "@/lib/cloud-api";
 import {
   Brain, Cpu, MemoryStick, HardDrive, Wifi,
@@ -2460,7 +2459,6 @@ export default function AiAdvisor() {
             <div>
               <h1 className="text-lg font-bold text-[#E6EAF0] flex items-center gap-2" data-testid="text-ai-advisor-title">
                 AI Advisor
-                <Badge className="bg-primary/20 text-primary border-primary/30 text-[10px]">Beta</Badge>
                 <PremiumHeaderBadge isLocked={!isPremium} />
               </h1>
               <p className="text-[11px] text-muted-foreground">Precision system diagnosis engine</p>

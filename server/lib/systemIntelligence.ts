@@ -810,9 +810,9 @@ async function collect(): Promise<SystemIntelligenceProfile> {
   const cpuRes: PromiseSettledResult<null> = { status: "fulfilled", value: null };
   const monitorIdentity: MonitorIdentityResult =
     monitorEdidRes.status === "fulfilled" ? monitorEdidRes.value : { edidMap: {}, deviceNameToHwId: {} };
-  // SocketDesignation is collected separately because systeminformation.cpu()
-  // can time out on AMD systems even when this focused WMI property is available.
-  const cpuSocket = await collectCpuSocket();
+  // Focused Windows firmware reads remain available even when the broader
+  // systeminformation/WMI probes time out on AMD systems.
+  const firmwareSignals = await collectWindowsFirmwareSignals();
 
   const audioDevices: Array<{ name: string | null; manufacturer: string | null }> =
     audioRes.status === "fulfilled"
@@ -846,7 +846,7 @@ async function collect(): Promise<SystemIntelligenceProfile> {
         manufacturer:  null,
         physicalCores: Math.max(1, Math.floor(osCpus.length / 2)),
         cores:         osCpus.length,
-        socket:        cpuSocket,
+        socket:        firmwareSignals.socket,
         speed:         osCpus[0].speed ? parseFloat((osCpus[0].speed / 1000).toFixed(2)) : null,
       };
       console.log(`[SysIntelligence] cpu WMI timeout — os.cpus() fallback: ${cpu.brand}`);
@@ -1163,12 +1163,17 @@ async function collect(): Promise<SystemIntelligenceProfile> {
   // battery + users removed — no value for desktop gaming; battery always null on desktop PCs
 
   // ── Platform states (Windows) ──
-  const pStates = platformStates.status === "fulfilled" ? platformStates.value : {
+  const pStatesBase = platformStates.status === "fulfilled" ? platformStates.value : {
     secureBootEnabled: null, tpmPresent: null, hypervisorPresent: null,
     tpmVersion: null,
     virtualizationEnabled: null, memoryIntegrityEnabled: null, vbsEnabled: null,
     kernelDmaProtectionEnabled: null,
     uefiBoot: null, resizeBarEnabled: null,
+  };
+  const pStates = {
+    ...pStatesBase,
+    kernelDmaProtectionEnabled: pStatesBase.kernelDmaProtectionEnabled ?? firmwareSignals.kernelDmaProtectionEnabled,
+    uefiBoot: pStatesBase.uefiBoot ?? firmwareSignals.uefiBoot,
   };
 
   // ── Containers — skip quickly on non-Docker hosts or slow-WMI machines ──
@@ -1283,7 +1288,7 @@ async function collect(): Promise<SystemIntelligenceProfile> {
       brand: safeStr(cpu?.brand),
       physicalCores: safeNum(cpu?.physicalCores ?? null),
       logicalCores: safeNum(cpu?.cores ?? null),
-      socket: safeStr(cpu?.socket) ?? cpuSocket,
+      socket: safeStr(cpu?.socket) ?? firmwareSignals.socket,
       speedGHz: cpu?.speed != null ? parseFloat(cpu.speed.toFixed(2)) : null,
     },
     gpu: { controllers, displays },

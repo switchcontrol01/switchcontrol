@@ -1266,15 +1266,15 @@ export default function BiosAdvisor() {
                             <AdvancedDetailRow label="UEFI Mode" value={si.platform.uefiBoot === null ? "Not exposed" : si.platform.uefiBoot ? "UEFI" : "Legacy BIOS"} tone={si.platform.uefiBoot ? "good" : "warn"} />
                             <AdvancedDetailRow label="TPM" value={si.platform.tpmPresent === null ? "Not exposed" : si.platform.tpmPresent ? "Present" : "Not detected"} tone={si.platform.tpmPresent ? "good" : "warn"} />
                             <AdvancedDetailRow label="TPM Version" value={si.platform.tpmVersion || "Not exposed"} />
-                            <AdvancedDetailRow label="CSM / Legacy Boot" value={si.platform.uefiBoot === false ? "Legacy mode detected" : si.platform.uefiBoot === true ? "CSM likely off" : "Not exposed"} />
+                            <AdvancedDetailRow label="CSM / Legacy Boot" value={si.platform.uefiBoot === false ? "Legacy mode detected" : si.platform.uefiBoot === true ? "CSM likely off (UEFI inferred)" : "Not exposed"} />
                           </div>
                           <div className="rounded-lg bg-[#151A21]/70 border border-[#2A313A] p-3">
                             <p className="text-[10px] text-primary uppercase tracking-wider mb-1">Virtualization</p>
                             <AdvancedDetailRow label="CPU Virtualization" value={si.platform.virtualizationEnabled === null ? "Not exposed" : si.platform.virtualizationEnabled ? "Enabled" : "Disabled"} tone={si.platform.virtualizationEnabled ? "good" : "warn"} />
                             <AdvancedDetailRow label="Hypervisor" value={si.platform.hypervisorPresent === null ? "Not exposed" : si.platform.hypervisorPresent ? "Active" : "Not active"} tone={si.platform.hypervisorPresent ? "good" : "neutral"} />
-                            <AdvancedDetailRow label="IOMMU / AMD-Vi" value="Firmware setting — verify in UEFI" />
-                            <AdvancedDetailRow label="Above 4G Decoding" value="Firmware setting — verify in UEFI" />
-                            <AdvancedDetailRow label="Kernel DMA Protection" value={si.platform.kernelDmaProtectionEnabled === null ? "Not exposed" : si.platform.kernelDmaProtectionEnabled ? "Enabled" : "Disabled"} tone={si.platform.kernelDmaProtectionEnabled ? "good" : "warn"} />
+                            <AdvancedDetailRow label="IOMMU / AMD-Vi" value={si.platform.kernelDmaProtectionEnabled === true ? "Active (OS DMA remapping)" : "Firmware setting — verify in UEFI"} tone={si.platform.kernelDmaProtectionEnabled === true ? "good" : "neutral"} />
+                            <AdvancedDetailRow label="Above 4G Decoding" value={si.platform.resizeBarEnabled === true ? "Enabled (required by active ReBAR)" : "Firmware setting — verify in UEFI"} tone={si.platform.resizeBarEnabled === true ? "good" : "neutral"} />
+                            <AdvancedDetailRow label="Kernel DMA Protection" value={si.platform.kernelDmaProtectionEnabled === null ? "Not exposed" : si.platform.kernelDmaProtectionEnabled ? "Enabled" : "Disabled"} tone={si.platform.kernelDmaProtectionEnabled === null ? "warn" : si.platform.kernelDmaProtectionEnabled ? "good" : "warn"} />
                           </div>
                           <div className="rounded-lg bg-[#151A21]/70 border border-[#2A313A] p-3">
                             <p className="text-[10px] text-primary uppercase tracking-wider mb-1">Graphics & Memory</p>
