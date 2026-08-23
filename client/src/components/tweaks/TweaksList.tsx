@@ -373,7 +373,7 @@ export function TweaksList() {
   const filteredTweaks = useMemo(() => {
     const items = TWEAKS_DATA.filter((t) => {
       if (t.isAdvancedTuning) return false; // rendered in its own "Advanced Tuning" section below
-      if (hideExperimental && t.level === "Experimental") return false;
+      if (!showExperimental && t.level === "Experimental") return false;
       if (hideUnsupported && runtimeUnsupportedReasons[t.id]) return false;
       const matchesSearch = t.title.toLowerCase().includes(search.toLowerCase()) ||
                             t.description.toLowerCase().includes(search.toLowerCase());
@@ -403,7 +403,7 @@ export function TweaksList() {
       const bSlider = b.controlType === "slider" ? 1 : 0;
       return aSlider - bSlider;
     });
-  }, [search, activeChip, showRisky, activeLevel, showAppliedFirst, showRecommendedFirst, hideUnsupported, hideExperimental, runtimeUnsupportedReasons, tweaks]);
+  }, [search, activeChip, showRisky, activeLevel, showAppliedFirst, showRecommendedFirst, hideUnsupported, showExperimental, runtimeUnsupportedReasons, tweaks]);
 
   const toggleTweaks = useMemo(() => filteredTweaks.filter(t => t.controlType !== "slider"), [filteredTweaks]);
   const sliderTweaks = useMemo(() => filteredTweaks.filter(t => t.controlType === "slider"), [filteredTweaks]);
@@ -414,7 +414,7 @@ export function TweaksList() {
   const advancedTuningTweaks = useMemo(() => {
     return TWEAKS_DATA.filter((t) => {
       if (!t.isAdvancedTuning) return false;
-      if (hideAdvanced || (hideExperimental && t.level === "Experimental")) return false;
+      if (hideAdvanced || (!showExperimental && t.level === "Experimental")) return false;
       if (hideUnsupported && runtimeUnsupportedReasons[t.id]) return false;
       const matchesSearch = t.title.toLowerCase().includes(search.toLowerCase()) ||
                             t.description.toLowerCase().includes(search.toLowerCase());
@@ -422,7 +422,7 @@ export function TweaksList() {
       const matchesLevel = activeLevel === "All" || t.level === activeLevel;
       return matchesSearch && matchesRisk && matchesLevel;
     });
-  }, [search, showRisky, activeLevel, hideAdvanced, hideExperimental, hideUnsupported, runtimeUnsupportedReasons]);
+  }, [search, showRisky, activeLevel, hideAdvanced, showExperimental, hideUnsupported, runtimeUnsupportedReasons]);
 
   const advancedSliderTweaks = useMemo(() => advancedTuningTweaks.filter(t => t.controlType === "slider"), [advancedTuningTweaks]);
   const advancedPresetTweaks = useMemo(() => advancedTuningTweaks.filter(t => t.controlType === "preset"), [advancedTuningTweaks]);
