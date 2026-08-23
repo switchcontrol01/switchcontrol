@@ -1285,6 +1285,24 @@ export default function BiosAdvisor() {
                             <AdvancedDetailRow label="RAM Layout" value={si.memory.sticks.length > 0 ? `${si.memory.sticks.length} stick${si.memory.sticks.length === 1 ? "" : "s"} · ${sysIntel.ram}` : "Not exposed"} />
                             <AdvancedDetailRow label="Memory Channel" value={si.memory.inferredDualChannel === null ? "Not exposed" : si.memory.inferredDualChannel ? "Dual-channel inferred" : "Single-channel inferred"} />
                           </div>
+                          <div className="rounded-lg bg-[#151A21]/70 border border-[#2A313A] p-3">
+                            <p className="text-[10px] text-primary uppercase tracking-wider mb-1">CPU & Memory Topology</p>
+                            <AdvancedDetailRow label="Physical Cores" value={si.cpu.physicalCores === null ? "Not exposed" : `${si.cpu.physicalCores}`} />
+                            <AdvancedDetailRow label="Logical Cores" value={si.cpu.logicalCores === null ? "Not exposed" : `${si.cpu.logicalCores}`} />
+                            <AdvancedDetailRow label="Reported CPU Speed" value={si.cpu.speedGHz === null ? "Not exposed" : `${si.cpu.speedGHz} GHz`} />
+                            <AdvancedDetailRow label="CPU Socket" value={si.cpu.socket || "Not exposed"} />
+                            <AdvancedDetailRow label="Total Memory" value={si.memory.totalMb === null ? "Not exposed" : `${(si.memory.totalMb / 1024).toFixed(1)} GB`} />
+                            <AdvancedDetailRow label="Channel Signal" value={si.memory.inferredDualChannel === null ? "Not exposed" : si.memory.inferredDualChannel ? "Dual-channel inferred" : "Single-channel inferred"} />
+                          </div>
+                          <div className="rounded-lg bg-[#151A21]/70 border border-[#2A313A] p-3">
+                            <p className="text-[10px] text-primary uppercase tracking-wider mb-1">Device Fabric</p>
+                            <AdvancedDetailRow label="GPU Controllers" value={`${si.gpu.controllers.length}`} />
+                            <AdvancedDetailRow label="Detected Displays" value={`${si.gpu.displays.length}`} />
+                            <AdvancedDetailRow label="Storage Devices" value={`${si.storage.layout.length}`} />
+                            <AdvancedDetailRow label="Network Interfaces" value={`${si.network.interfaces.length}`} />
+                            <AdvancedDetailRow label="Audio Devices" value={`${si.audio.devices.length}`} />
+                            <AdvancedDetailRow label="Chassis" value={si.device.chassisType || "Not exposed"} />
+                          </div>
                         </div>
                         <p className="text-[9px] text-[#6B7380] mt-3">
                           Values are read-only. “Not exposed” means Windows or the motherboard did not provide a reliable value; it is not an assumption that the setting is disabled.
