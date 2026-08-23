@@ -24,6 +24,7 @@ export interface CleanItemDef {
   requiresRestart: boolean;
   estimateBasis: string;
   diskBased: boolean;
+  warning?: string;
 }
 
 // ── Canonical item registry ───────────────────────────────────────────────────
@@ -45,7 +46,7 @@ const ITEM_REGISTRY: CleanItemDef[] = [
     name: "Windows Update Download Cache",
     description: "Downloaded update packages in SoftwareDistribution\\Download. Safe after updates complete — Windows re-downloads if needed.",
     category: "storage",
-    risk: "safe",
+    risk: "advanced",
     impactRam: 0, impactBootSec: 0,
     requiresAdmin: true, requiresRestart: false,
     estimateBasis: "Real file sizes from SoftwareDistribution\\Download.",
@@ -107,14 +108,22 @@ const ITEM_REGISTRY: CleanItemDef[] = [
     diskBased: true,
   },
   {
+    id: "inet_cache",
+    name: "Windows Internet Cache",
+    description: "Windows INetCache files only. Kept separate from Steam so each location is counted once.",
+    category: "latency", risk: "safe",
+    impactRam: 0, impactBootSec: 0, requiresAdmin: false, requiresRestart: false,
+    estimateBasis: "Real file sizes from user and local Windows INetCache folders.", diskBased: true,
+  },
+  {
     id: "steam_htmlcache",
     name: "Browser & Web Caches",
-    description: "Steam HTML cache and Windows INet cache. Rebuilt on next use — no data loss.",
+    description: "Steam web-helper cache from discovered Steam installations and libraries. Rebuilt on next use.",
     category: "latency",
     risk: "safe",
     impactRam: 0, impactBootSec: 0,
     requiresAdmin: false, requiresRestart: false,
-    estimateBasis: "Real file sizes from Steam htmlcache and INetCache.",
+    estimateBasis: "Real file sizes from discovered Steam installations and libraries.",
     diskBased: true,
   },
   {
@@ -171,7 +180,7 @@ const ITEM_REGISTRY: CleanItemDef[] = [
     impactRam: 0, impactBootSec: 0,
     requiresAdmin: true, requiresRestart: false,
     estimateBasis: "Real file sizes from non-critical .evtx log files.",
-    diskBased: true,
+    diskBased: false,
   },
 
   // ── Gaming ─────────────────────────────────────────────────────────────────
@@ -207,6 +216,30 @@ const ITEM_REGISTRY: CleanItemDef[] = [
     requiresAdmin: false, requiresRestart: false,
     estimateBasis: "Real file sizes from EpicGamesLauncher Saved/webcache and Saved/Logs.",
     diskBased: true,
+  },
+  {
+    id: "ea_app_cache", name: "EA App Cache",
+    description: "EA App cache and logs only. Game installs and settings are not touched.",
+    category: "gaming", risk: "safe", impactRam: 0, impactBootSec: 0,
+    requiresAdmin: false, requiresRestart: false, estimateBasis: "Known EA App cache and log directories.", diskBased: true,
+  },
+  {
+    id: "battle_net_cache", name: "Battle.net Cache",
+    description: "Battle.net cache and logs. Rebuilt on next launch; game installations are untouched.",
+    category: "gaming", risk: "safe", impactRam: 0, impactBootSec: 0,
+    requiresAdmin: false, requiresRestart: false, estimateBasis: "Known Battle.net cache and log directories.", diskBased: true,
+  },
+  {
+    id: "ubisoft_cache", name: "Ubisoft Connect Cache",
+    description: "Ubisoft Connect cache and logs only.",
+    category: "gaming", risk: "safe", impactRam: 0, impactBootSec: 0,
+    requiresAdmin: false, requiresRestart: false, estimateBasis: "Known Ubisoft Connect cache and log directories.", diskBased: true,
+  },
+  {
+    id: "riot_client_cache", name: "Riot Client Cache",
+    description: "Riot Client cache and logs only. Game data is not touched.",
+    category: "gaming", risk: "safe", impactRam: 0, impactBootSec: 0,
+    requiresAdmin: false, requiresRestart: false, estimateBasis: "Known Riot Client cache and log directories.", diskBased: true,
   },
 
   // ── Apps ──────────────────────────────────────────────────────────────────
@@ -277,6 +310,18 @@ const ITEM_REGISTRY: CleanItemDef[] = [
     diskBased: true,
   },
   {
+    id: "discord_variants_cache", name: "Discord Canary & PTB Cache",
+    description: "Cache files for Discord Canary, PTB, and alternate installs. Messages and account data are not touched.",
+    category: "apps", risk: "safe", impactRam: 0, impactBootSec: 0,
+    requiresAdmin: false, requiresRestart: false, estimateBasis: "Known cache directories for Discord release channels.", diskBased: true,
+  },
+  {
+    id: "office_temp", name: "Office & Outlook Temporary Files",
+    description: "Temporary Office and Outlook cache files. Mail, documents, and profiles are not deleted.",
+    category: "apps", risk: "safe", impactRam: 0, impactBootSec: 0,
+    requiresAdmin: false, requiresRestart: false, estimateBasis: "Scoped OfficeFileCache, Outlook RoamCache, and *.tmp files.", diskBased: true,
+  },
+  {
     id: "adobe_cache",
     name: "Adobe Cache",
     description: "Adobe Premiere Pro, After Effects disk cache, and Media Cache Files. Rebuilt when you next open a project.",
@@ -333,6 +378,30 @@ const ITEM_REGISTRY: CleanItemDef[] = [
     estimateBasis: "Real file sizes from Firefox Profiles/*.default-release/cache2 and startupCache.",
     diskBased: true,
   },
+  {
+    id: "browser_crash_logs", name: "Browser Crash Reports",
+    description: "Crash reports and temporary browser diagnostics across all discovered Chrome, Edge, and Firefox profiles.",
+    category: "browsers", risk: "safe", impactRam: 0, impactBootSec: 0,
+    requiresAdmin: false, requiresRestart: false, estimateBasis: "Scoped crash-report directories across discovered profiles.", diskBased: true,
+  },
+  {
+    id: "windows_setup_logs", name: "Windows Setup Logs",
+    description: "Old Windows setup and upgrade log files. Useful for troubleshooting only; no system files are removed.",
+    category: "windows_system", risk: "advanced", impactRam: 0, impactBootSec: 0,
+    requiresAdmin: true, requiresRestart: false, estimateBasis: "Scoped *.log files in Windows setup log directories.", diskBased: true,
+  },
+  {
+    id: "visual_studio_cache", name: "Visual Studio Logs",
+    description: "Visual Studio diagnostic logs only. Projects, solutions, extensions, and source files are not touched.",
+    category: "apps", risk: "advanced", impactRam: 0, impactBootSec: 0,
+    requiresAdmin: false, requiresRestart: false, estimateBasis: "Scoped Visual Studio and VSCommon *.log files.", diskBased: true,
+  },
+  {
+    id: "jetbrains_logs", name: "JetBrains Logs",
+    description: "JetBrains IDE log files only. Projects and IDE settings remain untouched.",
+    category: "apps", risk: "advanced", impactRam: 0, impactBootSec: 0,
+    requiresAdmin: false, requiresRestart: false, estimateBasis: "Scoped JetBrains *.log files.", diskBased: true,
+  },
 
   // ── Windows System ─────────────────────────────────────────────────────────
   {
@@ -355,7 +424,7 @@ const ITEM_REGISTRY: CleanItemDef[] = [
     impactRam: 0, impactBootSec: 0,
     requiresAdmin: true, requiresRestart: false,
     estimateBasis: "Real file sizes of *.dat files in LocalService FontCache folder.",
-    diskBased: true,
+    diskBased: false,
   },
   {
     id: "windows_icon_cache",
@@ -366,18 +435,7 @@ const ITEM_REGISTRY: CleanItemDef[] = [
     impactRam: 0, impactBootSec: 0,
     requiresAdmin: false, requiresRestart: false,
     estimateBasis: "Real file sizes of IconCache.db and iconcache*.db files.",
-    diskBased: true,
-  },
-  {
-    id: "directx_shader_cache",
-    name: "DirectX Shader Cache",
-    description: "D3D compiled shader cache. Recompiled on next game or app launch. May cause brief stutter on first run.",
-    category: "windows_system",
-    risk: "safe",
-    impactRam: 0, impactBootSec: 0,
-    requiresAdmin: false, requiresRestart: false,
-    estimateBasis: "Real file sizes from LocalAppData/D3DSCache.",
-    diskBased: true,
+    diskBased: false,
   },
   {
     id: "windows_installer_leftovers",
@@ -388,7 +446,7 @@ const ITEM_REGISTRY: CleanItemDef[] = [
     impactRam: 0, impactBootSec: 0,
     requiresAdmin: true, requiresRestart: false,
     estimateBasis: "Real file sizes from Windows/Installer/$PatchCache$.",
-    diskBased: true,
+    diskBased: false,
   },
   {
     id: "windows_memory_dump",
@@ -426,13 +484,13 @@ const ITEM_REGISTRY: CleanItemDef[] = [
   {
     id: "windows_defender_history",
     name: "Windows Defender Scan History",
-    description: "Historical scan records stored by Windows Defender. Defender continues to protect after clearing.",
+    description: "Historical scan records retained by Windows Defender. Manual deletion is disabled to avoid interfering with protection diagnostics.",
     category: "windows_system",
     risk: "advanced",
     impactRam: 0, impactBootSec: 0,
     requiresAdmin: true, requiresRestart: false,
     estimateBasis: "Real file sizes from Windows Defender Scans/History/Service folder.",
-    diskBased: true,
+    diskBased: false,
   },
   {
     id: "windows_delivery_optimization",
@@ -443,7 +501,7 @@ const ITEM_REGISTRY: CleanItemDef[] = [
     impactRam: 0, impactBootSec: 0,
     requiresAdmin: true, requiresRestart: false,
     estimateBasis: "Real file sizes from SoftwareDistribution/DeliveryOptimization.",
-    diskBased: true,
+    diskBased: false,
   },
   {
     id: "wer_queue",
@@ -511,7 +569,7 @@ const ITEM_REGISTRY: CleanItemDef[] = [
     impactRam: 0, impactBootSec: 0,
     requiresAdmin: true, requiresRestart: false,
     estimateBasis: "Real file sizes from C:/Windows.old and C:/$WinREAgent if they exist.",
-    diskBased: true,
+    diskBased: false,
   },
   {
     id: "nvidia_driver_cache",
@@ -766,6 +824,13 @@ router.post("/clean", async (req: any, res) => {
         status: "unsupported",
         bytesRemoved: 0,
         filesRemoved: 0,
+      };
+      continue;
+    }
+    if (!def.diskBased && (er.error === "unsupported-item" || er.error === "unknown-item")) {
+      results[itemId] = {
+        id: itemId, status: "unsupported", bytesRemoved: 0, filesRemoved: 0,
+        error: "This cleanup requires a supported Windows maintenance flow.",
       };
       continue;
     }

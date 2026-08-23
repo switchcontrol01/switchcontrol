@@ -12,26 +12,30 @@ const path = require('path');
 // P2-C1: use global limiter so cleaner never exceeds system-wide PS process cap
 const psLimiter = require('./powershell-limiter');
 let cleanerCancelRequested = false;
+const activeCleanerProcesses = new Set();
 
 // ── PowerShell runner ─────────────────────────────────────────────────────────
 function runPS(cmd, timeoutMs = 20000) {
   return new Promise((resolve, reject) => {
     if (process.platform !== 'win32') return reject(new Error('Windows only'));
-    execFile(
+    const child = execFile(
       'powershell.exe',
       ['-NonInteractive', '-NoProfile', '-ExecutionPolicy', 'Bypass',
        '-WindowStyle', 'Hidden', '-Command', cmd],
       { timeout: timeoutMs, maxBuffer: 1024 * 512, windowsHide: true },
       (err, stdout, stderr) => {
+        activeCleanerProcesses.delete(child);
         if (err) return reject(err);
         resolve(stdout?.trim() ?? '');
       }
     );
+    activeCleanerProcesses.add(child);
   });
 }
 
 // ── Path helpers ──────────────────────────────────────────────────────────────
 const windir = process.env.WINDIR || 'C:\\Windows';
+const systemDrive = process.env.SystemDrive || path.parse(windir).root.replace(/\\$/, '') || 'C:';
 const temp    = process.env.TEMP  || path.join(os.homedir(), 'AppData', 'Local', 'Temp');
 const local   = process.env.LOCALAPPDATA || path.join(os.homedir(), 'AppData', 'Local');
 const roaming = process.env.APPDATA      || path.join(os.homedir(), 'AppData', 'Roaming');
@@ -101,6 +105,81 @@ function buildPathsCleanCmd(paths, { filter = null, recurse = true, removeEmptyD
       }
       Write-Output "$removed|$cnt|$fail"
     `;
+}
+
+// Discover profile/library locations at scan time instead of assuming the
+// default drive or profile name. Only well-known disposable subdirectories
+// are returned; parent folders are never eligible for recursive deletion.
+function buildDiscoveredCacheCmd({ roots, subdirs, recurse = true } = {}) {
+  const rootArr = roots.map(root => `'${root}'`).join(',\n        ');
+  const subArr = subdirs.map(sub => `'${sub}'`).join(', ');
+  const recurseFlag = recurse ? ' -Recurse' : '';
+  const scan = `
+      $roots = @(${rootArr}); $subs = @(${subArr}); $paths = @()
+      foreach ($root in $roots) {
+        if (Test-Path $root) {
+          Get-ChildItem $root -Directory -Force -ErrorAction SilentlyContinue | ForEach-Object {
+            foreach ($sub in $subs) { $candidate = Join-Path $_.FullName $sub; if (Test-Path $candidate) { $paths += $candidate } }
+          }
+        }
+      }
+      $total = [int64]0; $cnt = 0
+      foreach ($p in ($paths | Sort-Object -Unique)) {
+        $items = Get-ChildItem $p${recurseFlag} -Force -ErrorAction SilentlyContinue | Where-Object {!$_.PSIsContainer}
+        $total += (($items | Measure-Object Length -Sum).Sum ?? 0); $cnt += $items.Count
+      }
+      Write-Output "$total|$cnt"
+    `;
+  const clean = `
+      $roots = @(${rootArr}); $subs = @(${subArr}); $paths = @()
+      foreach ($root in $roots) {
+        if (Test-Path $root) {
+          Get-ChildItem $root -Directory -Force -ErrorAction SilentlyContinue | ForEach-Object {
+            foreach ($sub in $subs) { $candidate = Join-Path $_.FullName $sub; if (Test-Path $candidate) { $paths += $candidate } }
+          }
+        }
+      }
+      $removed = [int64]0; $cnt = 0; $fail = 0
+      foreach ($p in ($paths | Sort-Object -Unique)) {
+        $items = Get-ChildItem $p${recurseFlag} -Force -ErrorAction SilentlyContinue | Where-Object {!$_.PSIsContainer}
+        foreach ($item in $items) {
+          try { $sz=[int64]$item.Length; Remove-Item $item.FullName -Force -ErrorAction Stop; $removed += $sz; $cnt++ } catch { $fail++ }
+        }
+      }
+      Write-Output "$removed|$cnt|$fail"
+    `;
+  return { scanCmd: () => scan, cleanCmd: () => clean };
+}
+
+function buildSteamCacheCmd(subdirs) {
+  const subArr = subdirs.map(s => `'${s}'`).join(', ');
+  const body = (cleaning) => `
+      $roots = @()
+      $roots += @('${local}\\Steam', '${local}\\SteamLibrary', '${roaming}\\Steam',
+        '${process.env.ProgramFiles || 'C:\\Program Files'}\\Steam',
+        '${process.env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)'}\\Steam')
+      try { $roots += (Get-ItemProperty 'HKCU:\\Software\\Valve\\Steam' -ErrorAction Stop).SteamPath } catch {}
+      try { $roots += (Get-ItemProperty 'HKCU:\\Software\\Valve\\Steam' -ErrorAction Stop).BaseInstallFolder_1 } catch {}
+      $libraryRoots = @()
+      foreach ($root in ($roots | Where-Object {$_} | Sort-Object -Unique)) {
+        if (Test-Path $root) { $libraryRoots += $root; $vf = Join-Path $root 'steamapps\\libraryfolders.vdf'
+          if (Test-Path $vf) { $text = Get-Content $vf -Raw -ErrorAction SilentlyContinue; [regex]::Matches($text, '"path"\\s+"([^"]+)"') | ForEach-Object { $libraryRoots += $_.Groups[1].Value.Replace('\\\\','\\') } }
+        }
+      }
+      $paths = @(); $subs = @(${subArr})
+      foreach ($root in ($libraryRoots | Sort-Object -Unique)) {
+        foreach ($sub in $subs) { $candidate = Join-Path $root $sub; if (Test-Path $candidate) { $paths += $candidate } }
+      }
+      $total = [int64]0; $cnt = 0; $fail = 0
+      foreach ($p in ($paths | Sort-Object -Unique)) {
+        $items = Get-ChildItem $p -Recurse -Force -ErrorAction SilentlyContinue | Where-Object {!$_.PSIsContainer}
+        foreach ($item in $items) {
+          ${cleaning ? `try { $sz=[int64]$item.Length; Remove-Item $item.FullName -Force -ErrorAction Stop; $total += $sz; $cnt++ } catch { $fail++ }` : `$total += (($items | Measure-Object Length -Sum).Sum ?? 0); $cnt += $items.Count; break`}
+        }
+      }
+      Write-Output "${cleaning ? '$total|$cnt|$fail' : '$total|$cnt'}"
+    `;
+  return { scanCmd: () => body(false), cleanCmd: () => body(true) };
 }
 
 // ── Item scan definitions ─────────────────────────────────────────────────────
@@ -177,8 +256,12 @@ const SCAN_DEFS = {
   },
 
   steam_htmlcache: {
-    scanCmd: buildPathsScanCmd([local + '\\Steam\\htmlcache', roaming + '\\Microsoft\\Windows\\INetCache']),
-    cleanCmd: buildPathsCleanCmd([local + '\\Steam\\htmlcache', roaming + '\\Microsoft\\Windows\\INetCache']),
+    ...buildSteamCacheCmd(['steamapps\\common\\SteamWebHelper\\htmlcache', 'htmlcache']),
+  },
+
+  inet_cache: {
+    scanCmd: buildPathsScanCmd([local + '\\Microsoft\\Windows\\INetCache', roaming + '\\Microsoft\\Windows\\INetCache']),
+    cleanCmd: buildPathsCleanCmd([local + '\\Microsoft\\Windows\\INetCache', roaming + '\\Microsoft\\Windows\\INetCache']),
   },
 
   shader_cache: {
@@ -292,53 +375,11 @@ const SCAN_DEFS = {
 
   // ── Gaming ─────────────────────────────────────────────────────────────────
   steam_download_cache: {
-    scanCmd: () => `
-      $paths = @(
-        'C:\\Program Files (x86)\\Steam\\steamapps\\downloading',
-        'C:\\Program Files (x86)\\Steam\\steamapps\\temp'
-      )
-      $total = 0; $cnt = 0
-      foreach ($p in $paths) {
-        If (Test-Path $p) {
-          $items = Get-ChildItem $p -Recurse -Force -ErrorAction SilentlyContinue | Where-Object {!$_.PSIsContainer}
-          $total += ($items | Measure-Object Length -Sum).Sum; $cnt += $items.Count
-        }
-      }
-      Write-Output "$total|$cnt"
-    `,
-    cleanCmd: () => `
-      $paths = @('C:\\Program Files (x86)\\Steam\\steamapps\\downloading','C:\\Program Files (x86)\\Steam\\steamapps\\temp')
-      $removed = 0; $cnt = 0
-      foreach ($p in $paths) {
-        If (Test-Path $p) {
-          Get-ChildItem $p -Recurse -Force -ErrorAction SilentlyContinue |
-            Where-Object {!$_.PSIsContainer} |
-            ForEach-Object { Try { $sz=$_.Length; Remove-Item $_.FullName -Force -EA Stop; $removed+=$sz; $cnt++ } Catch {} }
-        }
-      }
-      Write-Output "$removed|$cnt|0"
-    `,
+    ...buildSteamCacheCmd(['steamapps\\downloading', 'steamapps\\temp']),
   },
 
   steam_shader_cache: {
-    scanCmd: () => `
-      $p = 'C:\\Program Files (x86)\\Steam\\steamapps\\shadercache'
-      If (Test-Path $p) {
-        $items = Get-ChildItem $p -Recurse -Force -ErrorAction SilentlyContinue | Where-Object {!$_.PSIsContainer}
-        $total = ($items | Measure-Object Length -Sum).Sum
-        Write-Output "$total|$($items.Count)"
-      } Else { Write-Output "0|0" }
-    `,
-    cleanCmd: () => `
-      $p = 'C:\\Program Files (x86)\\Steam\\steamapps\\shadercache'
-      $removed = 0; $cnt = 0
-      If (Test-Path $p) {
-        Get-ChildItem $p -Recurse -Force -ErrorAction SilentlyContinue |
-          Where-Object {!$_.PSIsContainer} |
-          ForEach-Object { Try { $sz=$_.Length; Remove-Item $_.FullName -Force -EA Stop; $removed+=$sz; $cnt++ } Catch {} }
-      }
-      Write-Output "$removed|$cnt|0"
-    `,
+    ...buildSteamCacheCmd(['steamapps\\shadercache']),
   },
 
   epic_games_cache: {
@@ -348,8 +389,14 @@ const SCAN_DEFS = {
 
   // ── Apps ──────────────────────────────────────────────────────────────────
   spotify_cache: {
-    scanCmd: buildPathsScanCmd([local + '\\Spotify\\Data', roaming + '\\Spotify\\Data']),
-    cleanCmd: buildPathsCleanCmd([local + '\\Spotify\\Data', roaming + '\\Spotify\\Data']),
+    scanCmd: buildPathsScanCmd([
+      local + '\\Spotify\\Data\\Browser', local + '\\Spotify\\Data\\Cache',
+      local + '\\Spotify\\Data\\GPUCache', local + '\\Spotify\\Data\\Code Cache',
+    ]),
+    cleanCmd: buildPathsCleanCmd([
+      local + '\\Spotify\\Data\\Browser', local + '\\Spotify\\Data\\Cache',
+      local + '\\Spotify\\Data\\GPUCache', local + '\\Spotify\\Data\\Code Cache',
+    ]),
   },
 
   vscode_cache: {
@@ -358,24 +405,15 @@ const SCAN_DEFS = {
   },
 
   teams_cache: {
-    scanCmd: buildPathsScanCmd([
-      roaming + '\\Microsoft\\Teams\\Cache',
-      roaming + '\\Microsoft\\Teams\\blob_storage',
-      roaming + '\\Microsoft\\Teams\\databases',
-      roaming + '\\Microsoft\\Teams\\GPUCache',
-      roaming + '\\Microsoft\\Teams\\IndexedDB',
-      roaming + '\\Microsoft\\Teams\\Local Storage',
-      roaming + '\\Microsoft\\Teams\\tmp',
-    ]),
-    cleanCmd: buildPathsCleanCmd([
-      roaming + '\\Microsoft\\Teams\\Cache',
-      roaming + '\\Microsoft\\Teams\\blob_storage',
-      roaming + '\\Microsoft\\Teams\\databases',
-      roaming + '\\Microsoft\\Teams\\GPUCache',
-      roaming + '\\Microsoft\\Teams\\IndexedDB',
-      roaming + '\\Microsoft\\Teams\\Local Storage',
-      roaming + '\\Microsoft\\Teams\\tmp',
-    ]),
+    ...buildDiscoveredCacheCmd({
+      roots: [roaming + '\\Microsoft', local + '\\Microsoft', local + '\\Packages'],
+      subdirs: [
+        'Teams\\Cache', 'Teams\\Code Cache', 'Teams\\GPUCache', 'Teams\\blob_storage',
+        'Teams\\IndexedDB', 'Teams\\Local Storage', 'Teams\\tmp',
+        'LocalCache\\Microsoft\\MSTeams\\Cache', 'LocalCache\\Microsoft\\MSTeams\\Code Cache',
+        'LocalCache\\Microsoft\\MSTeams\\GPUCache', 'LocalCache\\Microsoft\\MSTeams\\IndexedDB',
+      ],
+    }),
   },
 
   zoom_cache: {
@@ -447,13 +485,17 @@ const SCAN_DEFS = {
 
   // ── Browsers ──────────────────────────────────────────────────────────────
   edge_cache: {
-    scanCmd: buildPathsScanCmd([local + '\\Microsoft\\Edge\\User Data\\Default\\Cache', local + '\\Microsoft\\Edge\\User Data\\Default\\Code Cache']),
-    cleanCmd: buildPathsCleanCmd([local + '\\Microsoft\\Edge\\User Data\\Default\\Cache', local + '\\Microsoft\\Edge\\User Data\\Default\\Code Cache']),
+    ...buildDiscoveredCacheCmd({
+      roots: [local + '\\Microsoft\\Edge\\User Data'],
+      subdirs: ['Cache', 'Code Cache', 'GPUCache', 'Network\\Cache'],
+    }),
   },
 
   chrome_cache: {
-    scanCmd: buildPathsScanCmd([local + '\\Google\\Chrome\\User Data\\Default\\Cache', local + '\\Google\\Chrome\\User Data\\Default\\Code Cache']),
-    cleanCmd: buildPathsCleanCmd([local + '\\Google\\Chrome\\User Data\\Default\\Cache', local + '\\Google\\Chrome\\User Data\\Default\\Code Cache']),
+    ...buildDiscoveredCacheCmd({
+      roots: [local + '\\Google\\Chrome\\User Data'],
+      subdirs: ['Cache', 'Code Cache', 'GPUCache', 'Network\\Cache'],
+    }),
   },
 
   firefox_cache: {
@@ -462,7 +504,7 @@ const SCAN_DEFS = {
       $total = 0; $cnt = 0
       If (Test-Path $profilesDir) {
         Get-ChildItem $profilesDir -Directory -ErrorAction SilentlyContinue |
-          Where-Object { $_.Name -like '*.default-release' } |
+          Where-Object { $_.Name -match '\\.default(?:-release|-esr)?$' } |
           ForEach-Object {
             foreach ($sub in @('cache2','startupCache')) {
               $sp = "$($_.FullName)\\$sub"
@@ -480,7 +522,7 @@ const SCAN_DEFS = {
       $removed = 0; $cnt = 0
       If (Test-Path $profilesDir) {
         Get-ChildItem $profilesDir -Directory -ErrorAction SilentlyContinue |
-          Where-Object { $_.Name -like '*.default-release' } |
+          Where-Object { $_.Name -match '\\.default(?:-release|-esr)?$' } |
           ForEach-Object {
             foreach ($sub in @('cache2','startupCache')) {
               $sp = "$($_.FullName)\\$sub"
@@ -526,27 +568,6 @@ const SCAN_DEFS = {
       $explorerDir = '${local}\\Microsoft\\Windows\\Explorer'
       If (Test-Path $explorerDir) {
         Get-ChildItem $explorerDir -Filter 'iconcache*.db' -Force -ErrorAction SilentlyContinue |
-          ForEach-Object { Try { $sz=$_.Length; Remove-Item $_.FullName -Force -EA Stop; $removed+=$sz; $cnt++ } Catch {} }
-      }
-      Write-Output "$removed|$cnt|0"
-    `,
-  },
-
-  directx_shader_cache: {
-    scanCmd: () => `
-      $p = '${local}\\D3DSCache'
-      If (Test-Path $p) {
-        $items = Get-ChildItem $p -Recurse -Force -ErrorAction SilentlyContinue | Where-Object {!$_.PSIsContainer}
-        $total = ($items | Measure-Object Length -Sum).Sum
-        Write-Output "$total|$($items.Count)"
-      } Else { Write-Output "0|0" }
-    `,
-    cleanCmd: () => `
-      $p = '${local}\\D3DSCache'
-      $removed = 0; $cnt = 0
-      If (Test-Path $p) {
-        Get-ChildItem $p -Recurse -Force -ErrorAction SilentlyContinue |
-          Where-Object {!$_.PSIsContainer} |
           ForEach-Object { Try { $sz=$_.Length; Remove-Item $_.FullName -Force -EA Stop; $removed+=$sz; $cnt++ } Catch {} }
       }
       Write-Output "$removed|$cnt|0"
@@ -623,8 +644,8 @@ const SCAN_DEFS = {
   },
 
   wer_queue: {
-    scanCmd: buildPathsScanCmd(['C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue', 'C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportArchive']),
-    cleanCmd: buildPathsCleanCmd(['C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue', 'C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportArchive']),
+    scanCmd: buildPathsScanCmd([systemDrive + '\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue', systemDrive + '\\ProgramData\\Microsoft\\Windows\\WER\\ReportArchive']),
+    cleanCmd: buildPathsCleanCmd([systemDrive + '\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue', systemDrive + '\\ProgramData\\Microsoft\\Windows\\WER\\ReportArchive']),
   },
 
   print_spooler: {
@@ -781,7 +802,7 @@ const SCAN_DEFS = {
 
   nvidia_driver_cache: {
     scanCmd: () => `
-      $paths = @('C:\\NVIDIA',"${temp}\\NVIDIA Corporation")
+      $paths = @("${systemDrive}\\NVIDIA","${temp}\\NVIDIA Corporation")
       $total = 0; $cnt = 0
       foreach ($p in $paths) {
         If (Test-Path $p) {
@@ -792,7 +813,7 @@ const SCAN_DEFS = {
       Write-Output "$total|$cnt"
     `,
     cleanCmd: () => `
-      $paths = @('C:\\NVIDIA',"${temp}\\NVIDIA Corporation")
+      $paths = @("${systemDrive}\\NVIDIA","${temp}\\NVIDIA Corporation")
       $removed = 0; $cnt = 0
       foreach ($p in $paths) {
         If (Test-Path $p) {
@@ -806,10 +827,82 @@ const SCAN_DEFS = {
   },
 
   amd_driver_cache: {
-    scanCmd: buildPathsScanCmd(['C:\\AMD', temp + '\\AMD']),
-    cleanCmd: buildPathsCleanCmd(['C:\\AMD', temp + '\\AMD']),
+    scanCmd: buildPathsScanCmd([systemDrive + '\\AMD', temp + '\\AMD']),
+    cleanCmd: buildPathsCleanCmd([systemDrive + '\\AMD', temp + '\\AMD']),
+  },
+
+  browser_crash_logs: {
+    scanCmd: buildDiscoveredCacheCmd({
+      roots: [
+        local + '\\Google\\Chrome\\User Data', local + '\\Microsoft\\Edge\\User Data',
+        local + '\\Mozilla\\Firefox\\Profiles',
+      ],
+      subdirs: ['Crashpad\\reports', 'Crash Reports', 'crashes', 'minidumps'],
+    }),
+    cleanCmd: buildDiscoveredCacheCmd({
+      roots: [
+        local + '\\Google\\Chrome\\User Data', local + '\\Microsoft\\Edge\\User Data',
+        local + '\\Mozilla\\Firefox\\Profiles',
+      ],
+      subdirs: ['Crashpad\\reports', 'Crash Reports', 'crashes', 'minidumps'],
+    }),
+  },
+
+  discord_variants_cache: {
+    scanCmd: buildPathsScanCmd([
+      local + '\\Discord\\Cache', local + '\\Discord\\Code Cache', local + '\\Discord\\GPUCache',
+      local + '\\DiscordCanary\\Cache', local + '\\DiscordPTB\\Cache',
+      roaming + '\\discordcanary\\Cache', roaming + '\\discordptb\\Cache',
+    ]),
+    cleanCmd: buildPathsCleanCmd([
+      local + '\\Discord\\Cache', local + '\\Discord\\Code Cache', local + '\\Discord\\GPUCache',
+      local + '\\DiscordCanary\\Cache', local + '\\DiscordPTB\\Cache',
+      roaming + '\\discordcanary\\Cache', roaming + '\\discordptb\\Cache',
+    ]),
+  },
+
+  ea_app_cache: {
+    scanCmd: buildPathsScanCmd([local + '\\Electronic Arts\\EA Desktop\\Cache', local + '\\Electronic Arts\\EA Desktop\\Logs']),
+    cleanCmd: buildPathsCleanCmd([local + '\\Electronic Arts\\EA Desktop\\Cache', local + '\\Electronic Arts\\EA Desktop\\Logs']),
+  },
+  battle_net_cache: {
+    scanCmd: buildPathsScanCmd([local + '\\Battle.net\\Cache', local + '\\Blizzard Entertainment\\Battle.net\\Cache', local + '\\Blizzard Entertainment\\Battle.net\\Logs']),
+    cleanCmd: buildPathsCleanCmd([local + '\\Battle.net\\Cache', local + '\\Blizzard Entertainment\\Battle.net\\Cache', local + '\\Blizzard Entertainment\\Battle.net\\Logs']),
+  },
+  ubisoft_cache: {
+    scanCmd: buildPathsScanCmd([local + '\\Ubisoft Game Launcher\\cache', local + '\\Ubisoft Game Launcher\\logs']),
+    cleanCmd: buildPathsCleanCmd([local + '\\Ubisoft Game Launcher\\cache', local + '\\Ubisoft Game Launcher\\logs']),
+  },
+  riot_client_cache: {
+    scanCmd: buildPathsScanCmd([local + '\\Riot Games\\Riot Client\\Data\\Cache', local + '\\Riot Games\\Riot Client\\Logs']),
+    cleanCmd: buildPathsCleanCmd([local + '\\Riot Games\\Riot Client\\Data\\Cache', local + '\\Riot Games\\Riot Client\\Logs']),
+  },
+  office_temp: {
+    scanCmd: buildPathsScanCmd([local + '\\Microsoft\\Office\\16.0\\OfficeFileCache', local + '\\Microsoft\\Outlook\\RoamCache', temp], { filter: '*.tmp' }),
+    cleanCmd: buildPathsCleanCmd([local + '\\Microsoft\\Office\\16.0\\OfficeFileCache', local + '\\Microsoft\\Outlook\\RoamCache', temp], { filter: '*.tmp' }),
+  },
+  windows_setup_logs: {
+    scanCmd: buildPathsScanCmd([windir + '\\Panther', windir + '\\Logs\\MoSetup', windir + '\\Logs\\SetupCleanupTask'], { filter: '*.log', recurse: false }),
+    cleanCmd: buildPathsCleanCmd([windir + '\\Panther', windir + '\\Logs\\MoSetup', windir + '\\Logs\\SetupCleanupTask'], { filter: '*.log', recurse: false }),
+  },
+  visual_studio_cache: {
+    scanCmd: buildPathsScanCmd([local + '\\Microsoft\\VisualStudio', local + '\\Microsoft\\VSCommon'], { filter: '*.log' }),
+    cleanCmd: buildPathsCleanCmd([local + '\\Microsoft\\VisualStudio', local + '\\Microsoft\\VSCommon'], { filter: '*.log' }),
+  },
+  jetbrains_logs: {
+    scanCmd: buildPathsScanCmd([local + '\\JetBrains', roaming + '\\JetBrains'], { filter: '*.log' }),
+    cleanCmd: buildPathsCleanCmd([local + '\\JetBrains', roaming + '\\JetBrains'], { filter: '*.log' }),
   },
 };
+
+// These folders require Windows-managed service/API cleanup or can break
+// repair, rollback, or protection history. Keep them visible in Advanced mode
+// as unsupported information rather than allowing a filesystem wipe.
+for (const id of [
+  'event_logs_old', 'windows_installer_leftovers', 'windows_defender_history',
+  'old_windows_update', 'windows_font_cache', 'windows_icon_cache',
+  'update_downloads', 'windows_delivery_optimization',
+]) delete SCAN_DEFS[id];
 
 // ── Parse scan/clean output ───────────────────────────────────────────────────
 function parseOutput(output) {
@@ -832,9 +925,15 @@ ipcMain.handle('cleaner:scan', async (event, itemIds) => {
   cleanerCancelRequested = false;
   const results = {};
   try {
-    await Promise.all(ids.map(async id => {
+    // Keep a small native worker pool. Launching one recursive PowerShell
+    // process per item made the cleaner compete with the desktop and disk.
+    const workerCount = Math.min(3, Math.max(1, ids.length));
+    let nextIndex = 0;
+    const scanWorker = async () => {
+      while (nextIndex < ids.length && !cleanerCancelRequested) {
+        const id = ids[nextIndex++];
       const def = SCAN_DEFS[id];
-      if (!def) { results[id] = { sizeBytes: 0, fileCount: 0, found: false, error: 'unknown-item' }; return; }
+      if (!def) { results[id] = { sizeBytes: 0, fileCount: 0, found: false, error: 'unknown-item' }; continue; }
       try {
         const timeout = id === 'old_windows_update' ? 60000 : 15000;
         const out = await runPS(def.scanCmd(), timeout);
@@ -843,7 +942,9 @@ ipcMain.handle('cleaner:scan', async (event, itemIds) => {
       } catch (err) {
         results[id] = { sizeBytes: 0, fileCount: 0, found: false, error: err.message };
       }
-    }));
+      }
+    };
+    await Promise.all(Array.from({ length: workerCount }, () => scanWorker()));
   } finally {
     psLimiter.release(token);
   }
@@ -877,7 +978,7 @@ ipcMain.handle('cleaner:clean', async (event, itemIds) => {
     ]);
     const MID_ITEMS = new Set([
       'windows_temp', 'edge_cache', 'chrome_cache', 'firefox_cache',
-      'shader_cache', 'directx_shader_cache', 'steam_shader_cache',
+      'shader_cache', 'steam_shader_cache',
       'steam_download_cache', 'recycle_bin', 'teams_cache', 'adobe_cache',
       'spotify_cache', 'event_logs_old', 'windows_defender_history',
     ]);
@@ -904,6 +1005,12 @@ ipcMain.handle('cleaner:clean', async (event, itemIds) => {
 
 ipcMain.handle('cleaner:cancel', () => {
   cleanerCancelRequested = true;
+  // execFile's timeout is intentionally generous for large caches, so an
+  // explicit cancel must terminate the actual children rather than merely
+  // preventing the next item from starting.
+  for (const child of activeCleanerProcesses) {
+    try { child.kill(); } catch (_) {}
+  }
   return { ok: true };
 });
 
@@ -919,10 +1026,15 @@ ipcMain.handle('cleaner:verify', async (event, itemIds) => {
   if (!token) return { ok: false, reason: 'busy', results: {} };
 
   const results = {};
+  cleanerCancelRequested = false;
   try {
-    await Promise.all(itemIds.map(async id => {
+    const ids = Array.isArray(itemIds) ? itemIds : Object.keys(SCAN_DEFS);
+    let nextIndex = 0;
+    const verifyWorker = async () => {
+      while (nextIndex < ids.length && !cleanerCancelRequested) {
+        const id = ids[nextIndex++];
       const def = SCAN_DEFS[id];
-      if (!def) { results[id] = { sizeBytes: 0, fileCount: 0, found: false }; return; }
+      if (!def) { results[id] = { sizeBytes: 0, fileCount: 0, found: false }; continue; }
       try {
         const out = await runPS(def.scanCmd(), 12000);
         const { a: sizeBytes, b: fileCount } = parseOutput(out);
@@ -930,11 +1042,13 @@ ipcMain.handle('cleaner:verify', async (event, itemIds) => {
       } catch (err) {
         results[id] = { sizeBytes: 0, fileCount: 0, found: false, error: err.message };
       }
-    }));
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(3, Math.max(1, ids.length)) }, () => verifyWorker()));
   } finally {
     psLimiter.release(token);
   }
-  return { ok: true, results };
+  return cleanerCancelRequested ? { ok: false, reason: 'cancelled', results } : { ok: true, results };
 });
 
 console.log('[Cleaner] IPC handlers registered');

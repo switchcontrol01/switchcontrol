@@ -26,7 +26,7 @@ interface CleanItemDef {
   id: string; name: string; description: string; category: CleanCategory;
   risk: "safe" | "moderate" | "advanced"; impactRam: number; impactBootSec: number;
   requiresAdmin: boolean; requiresRestart: boolean; diskBased: boolean;
-  defaultSelected: boolean;
+  defaultSelected: boolean; warning?: string;
 }
 
 interface ScanFinding {
@@ -323,6 +323,11 @@ function ItemRow({ item, finding, selected, onToggle, cleanResult, isCleaning, d
           >
             <div className="px-4 pb-3 pt-0">
               <p className="text-[11px] text-[#6B7380] leading-relaxed mt-2">{item.description}</p>
+              {item.warning && (
+                <p className="text-[10px] text-amber-400/90 leading-relaxed mt-2 border-l-2 border-amber-400/40 pl-2">
+                  {item.warning}
+                </p>
+              )}
               <div className="flex flex-wrap gap-3 mt-2">
                 {item.requiresAdmin && <span className="text-[10px] text-amber-400/80">Requires admin</span>}
                 {item.requiresRestart && <span className="text-[10px] text-amber-400/80">Requires restart</span>}
@@ -686,22 +691,28 @@ export default function SystemCleaner() {
 
     let electronResults: Record<string, any> = {};
     if (isElectron()) {
-      for (const id of ids) {
-        if (cancelRequestedRef.current) break;
-        try {
-          const r = await getEC()!.clean([id]);
-          if (r.results?.[id]) electronResults[id] = r.results[id];
-          if (!r.ok) {
-            if (r.reason === 'busy') {
-              toast({ title: "Another operation is running", description: "Please wait and try again.", variant: "destructive" });
-              setIsCleaning(false);
-              setPhase("ready");
-              return;
-            }
-            continue;
-          }
-        } catch (e: any) { electronResults[id] = { bytesRemoved: 0, filesRemoved: 0, failed: 1, error: e.message }; }
-        setCleanResults(prev => ({ ...prev, [id]: { id, status: "cleaned", bytesRemoved: electronResults[id]?.bytesRemoved ?? 0, filesRemoved: electronResults[id]?.filesRemoved ?? 0 } }));
+      try {
+        // Send one operation so the native side owns cancellation and
+        // accounting for the entire selection instead of resetting a
+        // single-flight cleaner once per row.
+        const r = await getEC()!.clean(ids);
+        electronResults = r.results ?? {};
+        if (!r.ok && r.reason === 'busy') {
+          toast({ title: "Another operation is running", description: "Please wait and try again.", variant: "destructive" });
+          setIsCleaning(false);
+          setPhase("ready");
+          return;
+        }
+        for (const id of ids) {
+          const result = electronResults[id];
+          if (result) setCleanResults(prev => ({ ...prev, [id]: {
+            id, status: result.failed ? "partial" : "cleaned",
+            bytesRemoved: result.bytesRemoved ?? 0, filesRemoved: result.filesRemoved ?? 0,
+            error: result.error,
+          } }));
+        }
+      } catch (e: any) {
+        for (const id of ids) electronResults[id] = { bytesRemoved: 0, filesRemoved: 0, failed: 1, error: e.message };
       }
     }
 
