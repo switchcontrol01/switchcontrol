@@ -2210,23 +2210,13 @@ export default function AdminPage() {
           {showDownloadMaintenance && (
           <>
           <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
-            <div className="flex items-start gap-3">
-              <div className={`w-9 h-9 rounded-xl flex items-center justify-center border ${
-                downloadMaintenance?.enabled
-                  ? "bg-amber-500/15 border-amber-400/30 text-amber-300"
-                  : "bg-cyan-500/10 border-cyan-500/20 text-cyan-300"
-              }`}>
-                <span className="text-lg">⚙</span>
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-[#E6EAF0]">Download page maintenance</p>
-                <p className="text-xs text-[#6B7380] mt-1 max-w-2xl">
-                  Show visitors a clear maintenance notice instead of sending them to unavailable installer or update links.
-                </p>
-                {downloadMaintenance?.enabled && (
-                  <p className="text-xs text-amber-300/80 mt-2 font-medium">Visitors currently see the maintenance page.</p>
-                )}
-              </div>
+             <div className="min-w-0">
+               <p className="text-xs text-[#6B7380] max-w-2xl">
+                 Show visitors a clear maintenance notice instead of sending them to unavailable installer or update links.
+               </p>
+               {downloadMaintenance?.enabled && (
+                 <p className="text-xs text-amber-300/80 mt-2 font-medium">Visitors currently see the maintenance page.</p>
+               )}
             </div>
             <button
               onClick={() => saveDownloadMaintenance(!downloadMaintenance?.enabled)}
