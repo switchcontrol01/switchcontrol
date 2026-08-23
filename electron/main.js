@@ -74,6 +74,48 @@
   const criticalLogger = require('./critical-logger');
   const { APPDATA_DIR, TWEAK_STATE_FILE, CONFIG_FILE, DEVICE_ID_FILE, SPECS_CACHE_FILE, DEVICE_SIGNATURE_FILE } = require('./user-data-paths');
   const processControl = require('./process-control');
+
+  // Create the restore point used by the "Create restore point" preference.
+  // This intentionally runs immediately before an apply operation, not when
+  // the preference is toggled. Windows may refuse frequent restore points, so
+  // a successful point is reused for 24 hours.
+  async function createTweakRestorePoint() {
+    if (process.platform !== 'win32') {
+      return { ok: true, skipped: true };
+    }
+    const previous = configStore.get('lastTweakRestorePointAt');
+    if (previous && Number.isFinite(Number(previous)) && Date.now() - Number(previous) < 24 * 60 * 60 * 1000) {
+      return { ok: true, reused: true };
+    }
+
+    const label = `SwitchControl before tweak ${new Date().toISOString().replace('T', ' ').slice(0, 19)}`;
+    const safeLabel = label.replace(/'/g, "''");
+    const command = [
+      "$ErrorActionPreference = 'Stop'",
+      "Enable-ComputerRestore -Drive $env:SystemDrive -ErrorAction SilentlyContinue",
+      `Checkpoint-Computer -Description '${safeLabel}' -RestorePointType MODIFY_SETTINGS`,
+      "Write-Output 'SWITCHCONTROL_RESTORE_OK'",
+    ].join('; ');
+
+    return new Promise((resolve) => {
+      execFile('powershell', [
+        '-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden',
+        '-ExecutionPolicy', 'Bypass', '-Command', command,
+      ], { windowsHide: true, timeout: 60_000 }, (error, stdout, stderr) => {
+        if (error || !(stdout || '').includes('SWITCHCONTROL_RESTORE_OK')) {
+          const detail = String(stderr || error?.message || 'Windows did not confirm the restore point.').trim().split(/\r?\n/)[0];
+          console.error('[RestorePoint] Create failed:', detail);
+          resolve({ ok: false, error: `Windows could not create a restore point: ${detail}` });
+          return;
+        }
+        try { configStore.set('lastTweakRestorePointAt', Date.now()); } catch (storeError) {
+          console.warn('[RestorePoint] Timestamp could not be saved:', storeError?.message);
+        }
+        console.log('[RestorePoint] Created before tweak apply:', label);
+        resolve({ ok: true, label });
+      });
+    });
+  }
   // The latency analyzer is an optional feature. Some packaged builds do not
   // include latency-analyzer.js; requiring it unconditionally makes Electron
   // crash before the window can open.
@@ -4263,6 +4305,24 @@ public class DspHelper {
     }
   
     try {
+      if (action === 'apply' && options?.createRestorePoint === true) {
+        const restorePoint = await createTweakRestorePoint();
+        if (!restorePoint.ok) {
+          return {
+            success: false,
+            failureType: 'unknown',
+            userMessage: 'Restore Point Required',
+            hint: restorePoint.error,
+            message: null,
+            error: restorePoint.error,
+            verified: false,
+            requiresReboot: false,
+            requiresAdmin: false,
+            commandsRun: [],
+          };
+        }
+      }
+
       // Both timer controls operate the same NtSetTimerResolution request.
       // Release the slider keeper before applying the toggle, and before
       // reverting the toggle, so the two agents can never leave contradictory
