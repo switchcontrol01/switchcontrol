@@ -7,10 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cloudApiGet } from "@/lib/cloud-api";
 import {
-  Brain, Cpu, MemoryStick, HardDrive, Wifi, Gamepad2,
+  Brain, Cpu, MemoryStick, HardDrive, Wifi,
   AlertTriangle, Loader2, Zap, Send, SquarePen,
   Bot, User, MonitorCog, Activity, Layers, Monitor, Eye,
-  Paperclip, X, CheckCircle2, TrendingUp, ChevronRight,
+  Paperclip, X, CheckCircle2, ChevronRight,
   ShieldAlert, Info, ArrowRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -189,92 +189,6 @@ interface AttachedImage {
   mimeType: string;
   sizeKb: number;
 }
-
-// ── Quick Actions ─────────────────────────────────────────────────────────────
-
-const QUICK_ACTIONS = [
-  {
-    id: "fps",
-    label: "Max FPS",
-    icon: Zap,
-    glow: "group-hover:shadow-primary/20",
-    border: "border-primary/20 hover:border-primary/40",
-    iconColor: "text-primary",
-    bgColor: "bg-primary/[0.07] hover:bg-primary/[0.12]",
-    prompt: "What are the highest-impact changes I can make right now to maximize FPS? Be specific to my hardware and current tweak state.",
-  },
-  {
-    id: "latency",
-    label: "Input Delay",
-    icon: Gamepad2,
-    glow: "group-hover:shadow-cyan-500/20",
-    border: "border-cyan-500/20 hover:border-cyan-500/40",
-    iconColor: "text-cyan-400",
-    bgColor: "bg-cyan-500/[0.07] hover:bg-cyan-500/[0.12]",
-    prompt: "How can I reduce input latency as much as possible? Focus on the changes with the most noticeable competitive impact.",
-  },
-  {
-    id: "stability",
-    label: "Stable FPS",
-    icon: Activity,
-    glow: "group-hover:shadow-emerald-500/20",
-    border: "border-emerald-500/20 hover:border-emerald-500/40",
-    iconColor: "text-emerald-400",
-    bgColor: "bg-emerald-500/[0.07] hover:bg-emerald-500/[0.12]",
-    prompt: "Diagnose frame pacing issues and micro-stutters. What is the root cause on this hardware, and what is the honest expected improvement from each fix?",
-  },
-  {
-    id: "network",
-    label: "Lower Ping",
-    icon: Wifi,
-    glow: "group-hover:shadow-blue-500/20",
-    border: "border-blue-500/20 hover:border-blue-500/40",
-    iconColor: "text-blue-400",
-    bgColor: "bg-blue-500/[0.07] hover:bg-blue-500/[0.12]",
-    prompt: "Diagnose network latency sources. What changes have measurable impact on ping, jitter, and stability? Be honest about diminishing returns.",
-  },
-  {
-    id: "overhead",
-    label: "Less Overhead",
-    icon: Cpu,
-    glow: "group-hover:shadow-orange-500/20",
-    border: "border-orange-500/20 hover:border-orange-500/40",
-    iconColor: "text-orange-400",
-    bgColor: "bg-orange-500/[0.07] hover:bg-orange-500/[0.12]",
-    prompt: "What's consuming the most background CPU and memory? How do I reduce system overhead while gaming?",
-  },
-  {
-    id: "bios",
-    label: "BIOS Advice",
-    icon: MonitorCog,
-    glow: "group-hover:shadow-none",
-    border: "border-[#00D4FF] hover:border-[#00D4FF]",
-    iconColor: "text-[#00D4FF]",
-    bgColor: "bg-#00D4FF/[0.07] hover:bg-#00D4FF/[0.12]",
-    prompt: "Based on my system, what BIOS settings should I check or change to improve gaming performance? What's safe to adjust?",
-  },
-  {
-    id: "bottleneck",
-    label: "Bottlenecks",
-    icon: AlertTriangle,
-    glow: "group-hover:shadow-yellow-500/20",
-    border: "border-yellow-500/20 hover:border-yellow-500/40",
-    iconColor: "text-yellow-400",
-    bgColor: "bg-yellow-500/[0.07] hover:bg-yellow-500/[0.12]",
-    prompt: "Analyze my system for potential bottlenecks. Which component is most likely limiting my gaming performance right now?",
-  },
-  {
-    id: "screenshot",
-    label: "Analyze Image",
-    icon: Eye,
-    glow: "group-hover:shadow-pink-500/20",
-    border: "border-pink-500/20 hover:border-pink-500/40",
-    iconColor: "text-pink-400",
-    bgColor: "bg-pink-500/[0.07] hover:bg-pink-500/[0.12]",
-    prompt: "Please analyze this image and tell me what optimization opportunities or issues you can identify.",
-    triggersImageUpload: true,
-  },
-] as const;
 
 const THINKING_PHASES = [
   "Analyzing your system…",
@@ -792,106 +706,6 @@ function SystemProfileCard({ context }: { context: SystemContext | null }) {
           )}
         </>
       )}
-    </motion.div>
-  );
-}
-
-function OptimizationStatusCard({ enabledCount, totalCount }: { enabledCount: number; totalCount: number }) {
-  // computeOptimizationScore is the single canonical formula (ai-context-builder.ts).
-  // No artificial floor — a user with 0 tweaks enabled scores 0, not 40.
-  const score = computeOptimizationScore(enabledCount, totalCount);
-  const statusLabel = score >= 90 ? "Peak Performance" : score >= 75 ? "Well Optimized" : score >= 55 ? "Getting Tuned" : score >= 25 ? "Getting Started" : "Needs Attention";
-  const barColor = score >= 75 ? "bg-emerald-400" : score >= 55 ? "bg-primary" : "bg-orange-400";
-  return (
-    <motion.div
-      initial={{ opacity: 0, x: -16 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.45, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
-      className="rounded-2xl bg-[#1A1F26] border border-[#2A313A] p-3.5 backdrop-blur-sm"
-    >
-      <div className="flex items-center gap-2 mb-3">
-        <div className="w-5 h-5 rounded-md bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center shrink-0">
-          <TrendingUp className="size-2.5 text-emerald-400" />
-        </div>
-        <p className="text-[10px] font-semibold text-[#A0A8B3] uppercase tracking-wider">Optimization</p>
-      </div>
-      <div className="flex items-end justify-between mb-2">
-        <div>
-          <p className="text-[22px] font-bold text-[#E6EAF0] leading-none">{score}</p>
-          <p className="text-[9px] text-[#6B7380] mt-0.5">/100</p>
-        </div>
-        <div className="text-right">
-          <p className="text-[10px] font-semibold text-[#A0A8B3]">{statusLabel}</p>
-          <p className="text-[9px] text-[#6B7380] mt-0.5">{enabledCount} / {totalCount} active</p>
-        </div>
-      </div>
-      <div className="h-1 rounded-full bg-[#21262D] overflow-hidden">
-        <motion.div
-          className={cn("h-full rounded-full", barColor)}
-          initial={{ width: 0 }}
-          animate={{ width: `${score}%` }}
-          transition={{ duration: 0.8, delay: 0.4, ease: [0.22, 1, 0.36, 1] }}
-        />
-      </div>
-      {totalCount - enabledCount > 0 && (
-        <p className="text-[9px] text-[#6B7380] mt-2">{totalCount - enabledCount} improvements available</p>
-      )}
-    </motion.div>
-  );
-}
-
-// ── Quick Actions Panel ───────────────────────────────────────────────────────
-
-function QuickActionsPanel({
-  onAction,
-  onImageUploadAction,
-  disabled,
-}: {
-  onAction: (prompt: string) => void;
-  onImageUploadAction: (prompt: string) => void;
-  disabled: boolean;
-}) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, x: -16 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.45, delay: 0.28, ease: [0.22, 1, 0.36, 1] }}
-      className="rounded-2xl bg-[#1A1F26] border border-[#2A313A] p-3.5 backdrop-blur-sm"
-    >
-      <div className="flex items-center gap-2 mb-3">
-        <div className="w-5 h-5 rounded-md bg-cyan-500/15 border border-cyan-500/25 flex items-center justify-center shrink-0">
-          <Zap className="size-2.5 text-cyan-400" />
-        </div>
-        <p className="text-[10px] font-semibold text-[#A0A8B3] uppercase tracking-wider">Quick Actions</p>
-      </div>
-      <div className="flex flex-col gap-1.5">
-        {QUICK_ACTIONS.map((action) => {
-          const Icon = action.icon;
-          return (
-            <button
-              key={action.id}
-              onClick={() => {
-                if ("triggersImageUpload" in action && action.triggersImageUpload) {
-                  onImageUploadAction(action.prompt);
-                } else {
-                  onAction(action.prompt);
-                }
-              }}
-              disabled={disabled}
-              className={cn(
-                "group flex items-center gap-2.5 w-full px-2.5 py-2 rounded-xl border transition-all duration-200 text-left",
-                "disabled:opacity-30 disabled:cursor-not-allowed",
-                action.bgColor,
-                action.border,
-              )}
-              data-testid={`button-quick-action-${action.id}`}
-            >
-              <Icon className={cn("size-3.5 shrink-0 transition-transform duration-200 group-hover:scale-110", action.iconColor)} />
-              <span className="text-[11px] text-[#A0A8B3] group-hover:text-[#E6EAF0]/85 transition-colors">{action.label}</span>
-            </button>
-          );
-        })}
-      </div>
     </motion.div>
   );
 }
@@ -1672,7 +1486,7 @@ export default function AiAdvisor() {
       null;
 
     // computeOptimizationScore is the single canonical formula (no 40-pt floor).
-    // Both this context builder and OptimizationStatusCard call the same function,
+    // The context builder uses the same canonical formula as the dashboard,
     // so the AI's stated score and the on-screen score are always identical.
     const totalKnownForScore = enabledTweaks.length + disabledTweaks.length;
     const optimizationScore = computeOptimizationScore(enabledTweaks.length, totalKnownForScore);
@@ -2445,10 +2259,10 @@ export default function AiAdvisor() {
     if (hasSpecs) {
       const specLine = [ctx?.system.cpu, ctx?.system.gpu, ctx?.system.ram].filter(Boolean).join(" · ");
       resetText = enabledCount === 0
-        ? `System detected: **${specLine}**\n\n${disabledCount}+ optimizations are ready — use a quick action to begin diagnosis.`
+        ? `System detected: **${specLine}**\n\n${disabledCount}+ optimizations are ready — ask me what to diagnose first.`
         : `System detected: **${specLine}**\n\n${enabledCount} tweaks active (${coveragePct}% coverage) — ${disabledCount} more improvements available. Ask me what to prioritize.`;
     } else {
-      resetText = `Ask about your system state, or use a quick action for a targeted analysis.\n\nUpload a screenshot for visual analysis.`;
+      resetText = `Ask about your system state for a targeted analysis.\n\nUpload a screenshot for visual analysis.`;
     }
 
     const welcomeMsg: ChatMessage = {
@@ -2467,10 +2281,6 @@ export default function AiAdvisor() {
       setImageError(null);
     });
   };
-
-  const handleQuickAction = useCallback((prompt: string) => {
-    sendMessage(prompt);
-  }, [sendMessage]);
 
   // ── AI Tweak recommendation handlers ───────────────────────────────────────
 
@@ -2595,8 +2405,6 @@ export default function AiAdvisor() {
   }, []);
 
   const isBusy = loading || isStreaming;
-  const totalTweaks = TWEAKS_DATA.length;
-  const enabledCount = Object.values(tweaks).filter(Boolean).length;
 
   // ── Render ────────────────────────────────────────────────────────────────
 
@@ -2736,7 +2544,6 @@ export default function AiAdvisor() {
           {/* ── LEFT PANEL ── */}
           <div className="w-56 shrink-0 flex flex-col gap-3 overflow-y-auto scrollbar-thin">
             <SystemProfileCard context={context} />
-            <OptimizationStatusCard enabledCount={enabledCount} totalCount={totalTweaks} />
             <CoveragePanel
               coverage={advisorCtxData?.coverage ?? null}
               ctxData={advisorCtxData}
@@ -2745,11 +2552,6 @@ export default function AiAdvisor() {
               powerPlan={context?.powerPlan ?? context?.powerPlanApplied ?? null}
               context={context}
               isElectron={isElectronApp}
-            />
-            <QuickActionsPanel
-              onAction={handleQuickAction}
-              onImageUploadAction={handleImageUploadAction}
-              disabled={isBusy}
             />
           </div>
 
