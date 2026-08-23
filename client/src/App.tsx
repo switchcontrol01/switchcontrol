@@ -75,6 +75,7 @@ import { usePremiumGraceStore, GRACE_WINDOW_MS } from "@/stores/premiumGraceStor
 import { useTrialExpiryStore } from "@/stores/trialExpiryStore";
 import { useSystemConditionsStore } from "@/stores/systemConditionsStore";
 import { useToast } from "@/hooks/use-toast";
+import { UserPreferencesSync } from "@/components/UserPreferencesSync";
 
 import Splash from "@/screens/Splash";
 import CameraGlow from "@/screens/CameraGlow";
@@ -2338,6 +2339,7 @@ export default function App() {
       <QueryClientProvider client={queryClient}>
         <MotionProvider>
           <TooltipProvider>
+            <UserPreferencesSync />
             {isElectron ? (
               <div className="app-root">
                 <div className="titlebar">

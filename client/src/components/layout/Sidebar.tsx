@@ -29,6 +29,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useTourStore } from "@/lib/tour-store";
 import { useEntitlementUiState } from "@/hooks/useEntitlementUiState";
 import { preloadDesktopRoute } from "@/lib/route-prefetch";
+import { useUserPreferencesStore } from "@/stores/userPreferencesStore";
 
 // Module-level cache for the app version. `Sidebar` is remounted on every
 // route change (each page wraps itself in <AppLayout>), so without this the
@@ -370,6 +371,11 @@ export function Sidebar() {
   const activeItemRef = useRef<HTMLDivElement>(null);
   const { activeTourHighlight, isTourActive } = useTourStore();
   const [appVersion, setAppVersion] = useState<string | null>(cachedAppVersion);
+  const { sidebarHidden, sidebarOrder, largeSidebar } = useUserPreferencesStore((s) => ({
+    sidebarHidden: s.sidebarHidden,
+    sidebarOrder: s.sidebarOrder,
+    largeSidebar: s.largeSidebar,
+  }));
   useEffect(() => {
     if (cachedAppVersion) return;
     const api = (window as any).electronAPI;
@@ -449,7 +455,7 @@ export function Sidebar() {
 
   return (
     <motion.aside
-      className="sidebar-shell fixed left-0 top-0 h-full w-64 flex flex-col z-50"
+      className={`sidebar-shell fixed left-0 top-0 h-full ${largeSidebar ? "w-72" : "w-64"} flex flex-col z-50`}
       animate={{
         x: isDriverIntel ? -264 : 0,
         opacity: isDriverIntel ? 0 : 1,
@@ -496,7 +502,10 @@ export function Sidebar() {
 
       {/* ── Nav rail ── */}
       <nav className="relative z-10 flex-1 overflow-y-auto py-2 px-3 space-y-0.5 scrollbar-thin scrollbar-thumb-sidebar-accent scrollbar-track-transparent">
-        {NAV_ITEMS.map((item) => {
+        {sidebarOrder
+          .map((href) => NAV_ITEMS.find((item) => item.href === href))
+          .filter((item): item is NavItem => !!item && !sidebarHidden.includes(item.href))
+          .map((item) => {
           const isActive = currentPath === item.href;
           const isTourHighlighted = isTourActive && item.tourId === activeTourHighlight;
 

@@ -94,6 +94,41 @@ html {
   overflow-x: hidden;
 }
 
+/* User-selected appearance and accessibility preferences. These classes are
+   applied once at the document root so pages do not need their own theme forks. */
+html[data-theme-mode="midnight"] {
+  --background: 222 47% 7%;
+  --card: 222 40% 10%;
+  --popover: 222 40% 10%;
+}
+html[data-theme-mode="oled"] body,
+html[data-theme-mode="oled"] #root {
+  background: #000 !important;
+}
+html[data-theme-mode="contrast"] {
+  --background: 0 0% 0%;
+  --foreground: 0 0% 100%;
+  --border: 0 0% 75%;
+  --muted-foreground: 0 0% 88%;
+}
+html.sc-large-text { font-size: 17px; }
+html.sc-large-targets button,
+html.sc-large-targets [role="button"],
+html.sc-large-targets input,
+html.sc-large-targets select { min-height: 2.75rem; }
+html.sc-large-sidebar .sidebar-shell { width: 18rem !important; }
+html.sc-reduced-motion *,
+html.sc-reduced-motion *::before,
+html.sc-reduced-motion *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  scroll-behavior: auto !important;
+  transition-duration: 0.001ms !important;
+}
+html.sc-high-contrast .text-muted-foreground { color: hsl(var(--foreground) / 0.82) !important; }
+html.sc-high-contrast [class*="border-"] { border-color: hsl(var(--foreground) / 0.35) !important; }
+html.sc-colorblind-safe .text-red-400 { color: #F59E0B !important; }
+
 body {
   background: #040508 !important;
   background-color: #040508 !important;
