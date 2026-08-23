@@ -258,7 +258,9 @@ function ReorderList({ items, hidden, labels, onToggle, onReorder, testPrefix }:
           }}
           onDrop={(event) => {
             event.preventDefault();
-            const fromIndex = draggedId === null ? -1 : items.indexOf(draggedId);
+            const transferredId = event.dataTransfer.getData("text/plain");
+            const sourceId = transferredId || draggedId;
+            const fromIndex = sourceId === null || sourceId === "" ? -1 : items.indexOf(sourceId);
             if (fromIndex >= 0 && fromIndex !== index) onReorder(fromIndex, index);
             setDraggedId(null);
           }}
@@ -271,6 +273,13 @@ function ReorderList({ items, hidden, labels, onToggle, onReorder, testPrefix }:
           data-testid={`${testPrefix}-reorder-${id.replace(/[^a-z0-9]/gi, "-")}`}
         >
           <div
+            draggable
+            onDragStart={(event) => {
+              event.stopPropagation();
+              setDraggedId(id);
+              event.dataTransfer.effectAllowed = "move";
+              event.dataTransfer.setData("text/plain", id);
+            }}
             className="shrink-0 cursor-grab active:cursor-grabbing touch-none rounded p-1 -ml-1 hover:bg-primary/10"
             title="Click and hold to drag"
             aria-label={`Drag ${labels[id] || id} to reorder`}
