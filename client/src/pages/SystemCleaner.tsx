@@ -554,11 +554,10 @@ export default function SystemCleaner() {
       if (!detail || typeof detail.resolve !== "function") return;
       if (phase !== "scanning" && phase !== "cleaning") return;
       detail.claim?.();
-      cancelRequestedRef.current = true;
-      if (isElectron()) getEC()?.cancel?.();
-      setIsCleaning(false);
-      setPhase("idle");
-      detail.resolve(true);
+      setNavigationRequest({
+        href: detail.href ?? "another SwitchControl feature",
+        resolve: detail.resolve,
+      });
     };
     window.addEventListener("sc:navigation-request", onNavigationRequest);
     return () => window.removeEventListener("sc:navigation-request", onNavigationRequest);
