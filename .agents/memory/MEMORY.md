@@ -68,3 +68,4 @@
 - [Customization audit safeguards](customization-audit-safeguards.md) — Settings stays unhideable and graph-only animation is independent from reduced motion.
 - [Zustand selector stability](zustand-selector-stability.md) — multi-field preference selectors must use useShallow to prevent Electron render loops and blank windows.
 - [Network verification cache boundary](network-verification-cache.md) — Electron may paint cached network states, but must always reconcile them with live Windows checks.
+- [Account-switch revert boundary](account-switch-revert-boundary.md) — normal logout preserves device ownership for downgrade reverts; deleting AppData loses baselines and causes fail-safe skips.
