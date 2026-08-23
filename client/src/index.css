@@ -152,17 +152,20 @@ html.sc-reduced-motion .sc-icon-scan-reveal {
 }
 
 .sc-discoverable-control {
-  transition: background-color 180ms ease, border-color 180ms ease, color 180ms ease, transform 180ms ease;
+  box-shadow: 0 0 0 1px hsl(var(--primary) / 0.06), 0 0 7px hsl(var(--primary) / 0.11);
+  transition: background-color 180ms ease, border-color 180ms ease, color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
 }
 .sc-discoverable-control:hover,
 .sc-discoverable-control:focus-visible {
   transform: translateY(-1px);
+  box-shadow: 0 0 0 1px hsl(var(--primary) / 0.18), 0 0 11px hsl(var(--primary) / 0.2);
 }
 .sc-discoverable-control svg {
   transition: transform 180ms ease, filter 180ms ease;
 }
 .sc-discoverable-control:hover svg {
   transform: scale(1.12);
+  filter: drop-shadow(0 0 3px hsl(var(--primary) / 0.48));
 }
 /* Graph-only motion preference. Unlike reduced motion, this deliberately
    does not affect page transitions, controls, or other application motion. */
