@@ -706,7 +706,7 @@ export function TweakSliderCard({ tweak, dynamicOverride }: TweakSliderCardProps
           <button
             onClick={() => setAdvancedOpen(!advancedOpen)}
             data-testid={`button-advanced-${tweak.id}`}
-            className="sc-discoverable-control inline-flex items-center gap-1.5 rounded-lg border border-primary/25 bg-primary/[0.06] px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-primary/80 hover:border-primary/50 hover:bg-primary/15 hover:text-primary transition-all"
+            className="sc-discoverable-control inline-flex items-center gap-1 rounded-md border border-primary/25 bg-primary/[0.06] px-2 py-1 text-[9px] font-semibold uppercase tracking-wide text-primary/80 hover:border-primary/50 hover:bg-primary/15 hover:text-primary transition-all [&>svg]:size-2.5"
           >
             {advancedOpen ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />}
             {advancedOpen ? "Hide" : "Show"} advanced details

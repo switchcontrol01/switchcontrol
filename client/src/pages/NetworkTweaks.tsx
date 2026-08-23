@@ -479,7 +479,7 @@ function NetworkTweakCard({ tweak, tweakState, onToggle, onInfoClick, isVerifyin
         <div className="flex items-center gap-3 pl-4 shrink-0">
           {!isUnavailable && (
             <motion.div
-              className="sc-discoverable-control rounded-full"
+              className="sc-discoverable-control rounded-lg"
               whileHover={{ scale: prefersReducedMotion ? 1.05 : 1.1 }}
               whileTap={{ scale: prefersReducedMotion ? 0.95 : 0.9 }}
             >
@@ -488,7 +488,7 @@ function NetworkTweakCard({ tweak, tweakState, onToggle, onInfoClick, isVerifyin
                 size="icon"
                 onClick={onInfoClick}
                 data-testid={`button-info-${tweak.id}`}
-                className="size-8 border border-primary/25 bg-primary/[0.06] text-muted-foreground/80 hover:text-foreground hover:bg-primary/15 opacity-75 group-hover:opacity-100 transition-all duration-300 rounded-full"
+                className="size-8 border border-primary/25 bg-primary/[0.06] text-muted-foreground/80 hover:text-foreground hover:bg-primary/15 opacity-75 group-hover:opacity-100 transition-all duration-300 rounded-lg"
               >
                 <Info className="size-4" />
               </Button>
