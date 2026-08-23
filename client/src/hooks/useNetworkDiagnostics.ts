@@ -39,6 +39,7 @@ export interface DnsProviderResult {
   id: string;
   label: string;
   ip: string;
+  local?: boolean;
   avg: number;
   median: number;
   min: number;
@@ -51,6 +52,7 @@ export interface DnsProviderResult {
 
 export interface DnsBenchmarkResult {
   providers: DnsProviderResult[];
+  localResolvers?: Array<{ id: string; label: string; ip: string }>;
   recommended: string;
   recommendedReasons: string[];
   confidence: "very_high" | "high" | "medium" | "low";
@@ -102,7 +104,8 @@ export interface DiagnosticsState {
 }
 
 const HISTORY_MAX = 60;
-const BASE_POLL_INTERVAL_MS = 8000;
+// The server allows one expensive multi-target probe every 30 seconds.
+const BASE_POLL_INTERVAL_MS = 30_000;
 const SPIKE_MULTIPLIER = 1.5;
 const SPIKE_MIN_DELTA_MS = 20;
 
@@ -122,7 +125,7 @@ function computeHealth(sample: PingSample, spikesPerMin: number): HealthScore {
 
 export function useNetworkDiagnostics(): DiagnosticsState {
   const [isMonitoring, setIsMonitoring]     = useState(false);
-  const [monitorPhase, setMonitorPhase]     = useState<MonitorPhase>("starting");
+  const [monitorPhase, setMonitorPhase]     = useState<MonitorPhase>("off");
   const [monitorError, setMonitorError]     = useState<string | null>(null);
   const [history, setHistory]               = useState<PingSample[]>([]);
   const [current, setCurrent]               = useState<PingSample | null>(null);
@@ -143,8 +146,7 @@ export function useNetworkDiagnostics(): DiagnosticsState {
   const intervalRef        = useRef<ReturnType<typeof setInterval> | null>(null);
   const spikeTimestampsRef = useRef<number[]>([]);
   const mountedRef         = useRef(true);
-  // Network ping-sample polling obeys the global ApplicationMode — 8s Normal,
-  // 32s Light — instead of a hardcoded interval.
+  // Polling remains active only after the user explicitly starts a scan.
   const appMode = useAppModeStore((s) => s.mode);
   const historyRef         = useRef<PingSample[]>([]);
   const consecutiveFailRef = useRef(0);
@@ -161,7 +163,19 @@ export function useNetworkDiagnostics(): DiagnosticsState {
 
       if (!mountedRef.current) return;
 
-      if (!resp.ok) throw new Error(`Server returned ${resp.status}`);
+       if (!resp.ok) {
+         if (resp.status === 429) {
+           let retryAfter = 30;
+           try {
+             const body = await resp.json() as { retryAfter?: number };
+             if (typeof body.retryAfter === "number") {
+               retryAfter = Math.max(1, Math.ceil(body.retryAfter));
+             }
+           } catch {}
+           throw new Error(`Probe cooldown active — try again in ${retryAfter}s`);
+         }
+         throw new Error(`Server returned ${resp.status}`);
+       }
 
       const sample: PingSample = await resp.json();
       if (typeof sample?.avg !== "number" || typeof sample?.ts !== "number") {
@@ -204,7 +218,10 @@ export function useNetworkDiagnostics(): DiagnosticsState {
         : err instanceof Error ? err.message : "Unknown error";
 
       consecutiveFailRef.current++;
-      if (consecutiveFailRef.current >= 2) {
+       if (err instanceof Error && err.message.startsWith("Probe cooldown active")) {
+         setMonitorError(err.message);
+         setMonitorPhase("error");
+       } else if (consecutiveFailRef.current >= 2) {
         setMonitorError(msg);
         setMonitorPhase("error");
       }
@@ -256,11 +273,9 @@ export function useNetworkDiagnostics(): DiagnosticsState {
 
   useEffect(() => {
     mountedRef.current = true;
-    if (!document.hidden) startMonitoring();
 
     const handleVisibility = () => {
       if (document.hidden) stopMonitoring();
-      else startMonitoring();
     };
     document.addEventListener("visibilitychange", handleVisibility);
 

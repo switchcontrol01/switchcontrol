@@ -378,7 +378,7 @@ export function NetworkDiagnosticsHero(props: DiagnosticsState) {
             onClick={isMonitoring ? stopMonitoring : startMonitoring}
             className={cn("text-xs gap-1.5", isMonitoring ? "border-[#2A313A] hover:bg-[#21262D] text-muted-foreground" : "bg-primary hover:bg-primary/90")}
             data-testid="button-toggle-monitoring">
-            {isMonitoring ? <><Square className="size-3" /> Stop</> : <><Play className="size-3" /> Start Monitoring</>}
+             {isMonitoring ? <><Square className="size-3" /> Stop Scan</> : <><Play className="size-3" /> Run Scan</>}
           </Button>
         </div>
       </div>
@@ -645,6 +645,11 @@ function DnsLeaderboardRow({
             {provider.label}
           </span>
           <span className="text-[9px] text-muted-foreground/50 font-mono">{provider.ip}</span>
+           {provider.local && (
+             <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-full border border-sky-400/25 bg-sky-400/10 text-sky-300 leading-none ml-0.5">
+               Local
+             </span>
+           )}
           {isRecommended && (
             <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-full border border-primary/30 bg-primary/10 text-primary leading-none ml-0.5">
               Recommended
@@ -777,7 +782,7 @@ export function DnsOptimizerCard(props: DiagnosticsState) {
           {dnsBenchmarkState === "idle" && (
             <motion.div key="idle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-3">
               <div className="text-xs text-muted-foreground leading-relaxed space-y-1">
-                <p>Tests <span className="text-[#E6EAF0] font-medium">Cloudflare, Google, Quad9, OpenDNS,</span> and <span className="text-[#E6EAF0] font-medium">AdGuard</span> simultaneously.</p>
+                <p>Tests <span className="text-[#E6EAF0] font-medium">Cloudflare, Google, Quad9, OpenDNS,</span> and <span className="text-[#E6EAF0] font-medium">AdGuard</span>, plus your active network DNS when available.</p>
                 <p>Measures latency, jitter, packet loss, and stability — then picks the best option for gaming.</p>
               </div>
               <div className="flex flex-wrap gap-1.5">
@@ -812,7 +817,7 @@ export function DnsOptimizerCard(props: DiagnosticsState) {
                   <div className="absolute inset-0 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
                 </div>
                 <div>
-                  <p className="text-sm text-[#E6EAF0]">Benchmarking 5 DNS providers…</p>
+                   <p className="text-sm text-[#E6EAF0]">Benchmarking public and local DNS…</p>
                   <p className="text-xs text-muted-foreground">Running probes simultaneously — takes about 3 seconds</p>
                 </div>
               </div>

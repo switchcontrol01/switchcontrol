@@ -9,6 +9,7 @@
 
 const { execFile }    = require('child_process');
 const { performance } = require('perf_hooks');
+const dns             = require('dns');
 const fs   = require('fs');
 const net  = require('net');
 const path = require('path');
@@ -917,6 +918,23 @@ async function benchmarkDnsProviders() {
   const PROBES         = 5;
   const STAGGER_MS     = 90;
 
+  // Node reports the resolver addresses currently selected by Windows. This
+  // commonly includes the user's router (for example 192.168.1.1), while
+  // still respecting VPN and manually configured adapter DNS.
+  const localResolvers = dns.getServers()
+    .filter(ip => net.isIPv4(ip) && !ip.startsWith('127.') && ip !== '0.0.0.0')
+    .filter((ip, index, list) => list.indexOf(ip) === index)
+    .map((ip, index) => ({
+      id: `local-dns-${index}`,
+      label: index === 0 ? 'Your Network DNS' : `Your Network DNS ${index + 1}`,
+      ip,
+      port: 53,
+      local: true,
+    }))
+    .filter(provider => !DNS_BENCHMARK_PROVIDERS.some(publicProvider => publicProvider.ip === provider.ip));
+
+  const providersToBenchmark = [...localResolvers, ...DNS_BENCHMARK_PROVIDERS];
+
   async function probeProvider(provider) {
     const samples = [];
     for (let i = 0; i < PROBES; i++) {
@@ -929,6 +947,7 @@ async function benchmarkDnsProviders() {
 
     if (succeeded.length === 0) {
       return { id: provider.id, label: provider.label, ip: provider.ip,
+        local: provider.local === true,
         avg: 999, median: 999, min: 999, max: 999, jitter: 0, loss: 100, stabilityScore: 0 };
     }
 
@@ -953,6 +972,7 @@ async function benchmarkDnsProviders() {
 
     return {
       id: provider.id, label: provider.label, ip: provider.ip,
+      local: provider.local === true,
       avg:    parseFloat(avg.toFixed(1)),
       median: parseFloat(median.toFixed(1)),
       min:    parseFloat(min.toFixed(1)),
@@ -964,7 +984,7 @@ async function benchmarkDnsProviders() {
   }
 
   // All 5 providers probed in parallel
-  const results = await Promise.all(DNS_BENCHMARK_PROVIDERS.map(p => probeProvider(p)));
+  const results = await Promise.all(providersToBenchmark.map(p => probeProvider(p)));
 
   const alive  = results.filter(p => p.loss < 100);
   const ranked = [...results].sort((a, b) => a.avg - b.avg);
@@ -1010,7 +1030,7 @@ async function benchmarkDnsProviders() {
   };
 
   const avgLoss  = alive.length > 0 ? alive.reduce((s, p) => s + p.loss, 0) / alive.length : 100;
-  const allAlive = alive.length === DNS_BENCHMARK_PROVIDERS.length;
+  const allAlive = alive.length === providersToBenchmark.length;
   const topJitter = scored[0]?.jitter ?? 999;
 
   let confidence;
@@ -1021,7 +1041,15 @@ async function benchmarkDnsProviders() {
 
   const providers = ranked.map((p, i) => ({ ...p, rank: i + 1 }));
 
-  return { providers, recommended, recommendedReasons, confidence, categoryWinners, ts: Date.now() };
+  return {
+    providers,
+    recommended,
+    recommendedReasons,
+    confidence,
+    categoryWinners,
+    localResolvers: localResolvers.map(({ id, label, ip }) => ({ id, label, ip })),
+    ts: Date.now(),
+  };
 }
 
 /** Map a primary DNS IP to its provider's canonical secondary IP. */
@@ -1042,7 +1070,8 @@ async function applyDnsServers(ip) {
   const safeIp = String(ip).replace(/[^0-9.:]/g, '');
   if (!safeIp) return { ok: false, error: 'Invalid IP address' };
 
-  const secondaryIp = DNS_SECONDARY_MAP[safeIp] || safeIp;
+  const secondaryIp = DNS_SECONDARY_MAP[safeIp] || null;
+  const serverAddresses = secondaryIp ? `'${safeIp}', '${secondaryIp}'` : `'${safeIp}'`;
   const { DNS_SERVERS_BACKUP_FILE } = require('./user-data-paths');
   const safeBackup = DNS_SERVERS_BACKUP_FILE.replace(/'/g, "''");
 
@@ -1060,7 +1089,7 @@ async function applyDnsServers(ip) {
     `if (Test-Path ('${safeBackup}' + '.tmp')) { Move-Item -Path ('${safeBackup}' + '.tmp') -Destination '${safeBackup}' -Force -ErrorAction SilentlyContinue }`,
     // Now apply the new DNS
     `foreach ($a in $adapters) {`,
-    `  Set-DnsClientServerAddress -InterfaceAlias $a.Name -ServerAddresses ('${safeIp}', '${secondaryIp}') -ErrorAction SilentlyContinue`,
+    `  Set-DnsClientServerAddress -InterfaceAlias $a.Name -ServerAddresses (${serverAddresses}) -ErrorAction SilentlyContinue`,
     `}`,
     `Write-Output "ok"`,
   ].join('; ');

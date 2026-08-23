@@ -153,7 +153,7 @@ export function StartupHero({ scanStatus, apps, onScan, onOptimize, onReview }: 
       }}
       className={cn(
         "relative rounded-2xl overflow-hidden border w-full",
-         isScanning && "max-w-2xl min-h-[15rem] -translate-y-12",
+         isScanning && "max-w-2xl min-h-[18rem] -translate-y-12",
       )}
       style={{ borderColor: "rgba(255,255,255,0.06)", background: "#14181D" }}
     >
