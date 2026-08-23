@@ -414,6 +414,7 @@ export default function Home() {
   const [allDisks, setAllDisks] = useState<DiskInfo[]>([]);
   const [selectedDiskIndex, setSelectedDiskIndex] = useState(0);
   const [memCleanerOpen, setMemCleanerOpen] = useState(false);
+  const [ramRefreshing, setRamRefreshing] = useState(false);
   const [ramGlow, setRamGlow] = useState(false);
   const [cpuModalOpen, setCpuModalOpen] = useState(false);
   const [memIntelOpen, setMemIntelOpen] = useState(false);
@@ -898,7 +899,7 @@ export default function Home() {
                 actionLabel="Clear RAM"
                 onAction={() => setMemCleanerOpen(true)}
                 className="border-teal-500/20 shadow-[0_0_20px_-10px_hsl(170_100%_50%/0.1)]"
-                 loading={specStatus === "loading" && stats.totalRamGb === 0}
+                 loading={ramRefreshing || (specStatus === "loading" && stats.totalRamGb === 0)}
                />
               </div>}
             
@@ -1011,7 +1012,10 @@ export default function Home() {
 
         {/* Performance Lab — intelligence hub */}
          {showDashboardCard("responsiveness") && <Reveal delay={0.06}>
-          <PerformanceLab onClearRAM={() => setMemCleanerOpen(true)} />
+          <PerformanceLab
+            onClearRAM={() => setMemCleanerOpen(true)}
+            onRamRefreshStateChange={setRamRefreshing}
+          />
          </Reveal>}
 
         {/* System Pipeline — Latency Map */}
@@ -1127,6 +1131,7 @@ export default function Home() {
         <MemoryCleanerModal
           open={memCleanerOpen}
           onOpenChange={setMemCleanerOpen}
+          onRefreshStateChange={setRamRefreshing}
           onCleanComplete={() => {
             setRamGlow(true);
             setTimeout(() => setRamGlow(false), 550);

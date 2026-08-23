@@ -481,10 +481,14 @@ const CLEAR_ANIM_PHASES = [
 function SmartRAMCard({
   data,
   onRefreshRam,
+  onRamRefreshStateChange,
+  ramRefreshing,
   onOpenAdvanced,
 }: {
   data: SmartRamProfile | null;
   onRefreshRam: () => Promise<void>;
+  onRamRefreshStateChange?: (refreshing: boolean) => void;
+  ramRefreshing: boolean;
   onOpenAdvanced: () => void;
 }) {
   const [phase, setPhase]               = useState<ClearPhase>("idle");
@@ -527,16 +531,22 @@ function SmartRAMCard({
       await minDelay;
     }
 
-    // Settling — wait for server-side 8s cache TTL to expire, then refresh
+    // The helper has finished. Mark the dashboard as loading immediately so it
+    // never presents the pre-clean value as if it were the post-clean result.
+    onRamRefreshStateChange?.(true);
+
+    // Give Windows a short settling window, then force the first post-clean
+    // telemetry read. Do not wait for the dashboard intelligence TTL.
     setPhase("settling");
     setClearProgress(100);
 
     timersRef.current.push(setTimeout(async () => {
       await onRefreshRam();
+      onRamRefreshStateChange?.(false);
       setPhase("done");
       // Auto-dismiss after 12 s
       timersRef.current.push(setTimeout(() => { setPhase("idle"); setFreedGb(null); }, 12_000));
-    }, 6_500)); // 2.5 + 6.5 = 9 s total — well past 8 s TTL
+    }, 2_000));
   };
 
   // Detect actual memory freed once "done" data arrives
@@ -597,7 +607,7 @@ function SmartRAMCard({
               )}
             </AnimatePresence>
           </div>
-          {data ? (
+          {data && !ramRefreshing ? (
             <div className="shrink-0 text-right">
               <div className={cn("text-2xl font-bold tabular-nums transition-colors duration-500", isActive ? "text-teal-400" : phase === "done" ? "text-emerald-400" : cfg.textColor)} data-testid="text-ram-used-pct">
                 {usedPct}%
@@ -610,7 +620,7 @@ function SmartRAMCard({
         </div>
 
         {/* RAM usage bar */}
-        {data ? (
+        {data && !ramRefreshing ? (
           <div className="space-y-2">
             <div className="h-2 rounded-full bg-[#21262D] relative overflow-hidden">
               <motion.div
@@ -716,7 +726,7 @@ function SmartRAMCard({
         )}
 
         {/* Stats grid */}
-        {data && !isActive ? (
+        {data && !isActive && !ramRefreshing ? (
           <div className="grid grid-cols-3 gap-2.5">
             <div className={cn("p-2.5 rounded-lg text-center border", cfg.bgColor, cfg.borderColor)}>
               <div className={cn("text-sm font-bold tabular-nums", cfg.textColor)} data-testid="text-ram-reclaimable">
@@ -748,7 +758,7 @@ function SmartRAMCard({
         ) : null}
 
         {/* Top processes — only when idle */}
-        {data && phase === "idle" && data.topProcesses.length > 0 && (
+         {data && phase === "idle" && !ramRefreshing && data.topProcesses.length > 0 && (
           <div>
             <p className="text-[9px] text-[#6B7380] uppercase tracking-widest mb-2">Top Memory Consumers</p>
             <div className="space-y-1.5">
@@ -826,9 +836,15 @@ function RevealCard({ children, delay = 0 }: { children: ReactNode; delay?: numb
 
 // ── PerformanceLab main export ────────────────────────────────────────────────
 
-export function PerformanceLab({ onClearRAM }: { onClearRAM: () => void }) {
+export function PerformanceLab({
+  onClearRAM,
+  onRamRefreshStateChange,
+}: {
+  onClearRAM: () => void;
+  onRamRefreshStateChange?: (refreshing: boolean) => void;
+}) {
   const { user } = useAuth();
-  const { instability, problems, latency, ram, refreshRam } = useDashboardIntelligence(!!user?.loggedIn);
+  const { instability, problems, latency, ram, ramRefreshing, refreshRam } = useDashboardIntelligence(!!user?.loggedIn);
   const showHealthAlerts = useUserPreferencesStore((s) => s.showHealthAlerts);
   const { prefersReducedMotion } = useMotion();
 
@@ -861,7 +877,13 @@ export function PerformanceLab({ onClearRAM }: { onClearRAM: () => void }) {
 
       {/* Smart RAM */}
       <RevealCard delay={0.18}>
-        <SmartRAMCard data={ram} onRefreshRam={refreshRam} onOpenAdvanced={onClearRAM} />
+        <SmartRAMCard
+          data={ram}
+          ramRefreshing={ramRefreshing}
+          onRefreshRam={refreshRam}
+          onRamRefreshStateChange={onRamRefreshStateChange}
+          onOpenAdvanced={onClearRAM}
+        />
       </RevealCard>
     </div>
   );

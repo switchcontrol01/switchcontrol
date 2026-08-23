@@ -264,6 +264,119 @@ async function _saveDiskCache(profile: SystemIntelligenceProfile): Promise<void>
   }
 }
 
+// ── Occasional msinfo32 enrichment ───────────────────────────────────────────
+// msinfo32 is useful as a broad Windows fallback, but Windows may display its
+// progress dialog even when launched with a hidden window style. Run it only
+// every 15 backend launches, cache the parsed values, and never make it part
+// of the fast/startup path.
+interface MsinfoCache {
+  launchCount: number;
+  lastReportAt: number | null;
+  data: {
+    systemManufacturer: string | null;
+    systemModel: string | null;
+    biosMode: string | null;
+    biosVersion: string | null;
+    secureBootState: string | null;
+    kernelDmaProtection: string | null;
+    processor: string | null;
+    installedMemory: string | null;
+  };
+}
+
+const MSINFO_LAUNCH_INTERVAL = 15;
+let _msinfoLaunchGate: Promise<MsinfoCache | null> | null = null;
+
+function _msinfoCachePath(): string {
+  const base = process.env.APPDATA ?? os.homedir();
+  return path.join(base, "SwitchControl", "cache", "msinfo-cache.json");
+}
+
+const _emptyMsinfoData = (): MsinfoCache["data"] => ({
+  systemManufacturer: null,
+  systemModel: null,
+  biosMode: null,
+  biosVersion: null,
+  secureBootState: null,
+  kernelDmaProtection: null,
+  processor: null,
+  installedMemory: null,
+});
+
+async function _runOccasionalMsinfo(): Promise<MsinfoCache | null> {
+  if (!isWindows) return null;
+  try {
+    const cachePath = _msinfoCachePath();
+    let cache: MsinfoCache = {
+      launchCount: 0,
+      lastReportAt: null,
+      data: _emptyMsinfoData(),
+    };
+    try {
+      const parsed = JSON.parse(await fsp.readFile(cachePath, "utf-8")) as Partial<MsinfoCache>;
+      if (Number.isInteger(parsed.launchCount) && parsed.launchCount >= 0) {
+        cache.launchCount = parsed.launchCount;
+      }
+      if (typeof parsed.lastReportAt === "number") cache.lastReportAt = parsed.lastReportAt;
+      if (parsed.data && typeof parsed.data === "object") {
+        cache.data = { ...cache.data, ...parsed.data };
+      }
+    } catch {}
+
+    cache.launchCount += 1;
+    const shouldReport = cache.launchCount % MSINFO_LAUNCH_INTERVAL === 0;
+    if (shouldReport) {
+      const report = path.join(os.tmpdir(), `switchcontrol-msinfo-${Date.now()}-${process.pid}.txt`);
+      const script = `
+        try {
+          $p = Start-Process -FilePath "msinfo32.exe" -ArgumentList @("/report", "${report.replace(/\\/g, "\\\\")}") -WindowStyle Hidden -PassThru
+          if ($p.WaitForExit(7000) -and (Test-Path -LiteralPath "${report.replace(/\\/g, "\\\\")}")) {
+            Get-Content -LiteralPath "${report.replace(/\\/g, "\\\\")}" -Raw -ErrorAction SilentlyContinue
+          }
+          Remove-Item -LiteralPath "${report.replace(/\\/g, "\\\\")}" -Force -ErrorAction SilentlyContinue
+        } catch {}
+      `;
+      const { stdout } = await execFileAsync(
+        "powershell.exe",
+        ["-NonInteractive", "-NoProfile", "-Command", script],
+        { timeout: PS_TIMEOUT_MS, windowsHide: true, maxBuffer: 1024 * 1024 },
+      );
+      const text = stdout || "";
+      const readField = (label: string): string | null => {
+        const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const match = text.match(new RegExp(`^\\s*${escaped}\\s+(.+?)\\s*$`, "im"));
+        return match?.[1]?.trim() || null;
+      };
+      cache.data = {
+        systemManufacturer: readField("System Manufacturer") ?? cache.data.systemManufacturer,
+        systemModel: readField("System Model") ?? cache.data.systemModel,
+        biosMode: readField("BIOS Mode") ?? cache.data.biosMode,
+        biosVersion: readField("BIOS Version/Date") ?? cache.data.biosVersion,
+        secureBootState: readField("Secure Boot State") ?? cache.data.secureBootState,
+        kernelDmaProtection: readField("Kernel DMA Protection") ?? cache.data.kernelDmaProtection,
+        processor: readField("Processor") ?? cache.data.processor,
+        installedMemory: readField("Installed Physical Memory (RAM)") ?? cache.data.installedMemory,
+      };
+      cache.lastReportAt = Date.now();
+      console.log(`[SysIntelligence] msinfo32 enrichment completed on launch ${cache.launchCount}`);
+    } else {
+      console.log(`[SysIntelligence] msinfo32 enrichment skipped — launch ${cache.launchCount}/${MSINFO_LAUNCH_INTERVAL}`);
+    }
+
+    await fsp.mkdir(path.dirname(cachePath), { recursive: true });
+    await fsp.writeFile(cachePath, JSON.stringify(cache), "utf-8");
+    return cache;
+  } catch (e: any) {
+    console.warn("[SysIntelligence] msinfo32 enrichment unavailable:", e?.message ?? e);
+    return null;
+  }
+}
+
+function _getMsinfoCacheOnce(): Promise<MsinfoCache | null> {
+  if (!_msinfoLaunchGate) _msinfoLaunchGate = _runOccasionalMsinfo();
+  return _msinfoLaunchGate;
+}
+
 // ── Probe degradation cache ────────────────────────────────────────────────────
 // Per-source health tracker. After 2+ consecutive timeouts, a source enters a
 // 12-minute cooldown where it is skipped entirely instead of blocking startup.

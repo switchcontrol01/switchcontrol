@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { telemetryManager } from "@/lib/telemetryManager";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -105,6 +106,7 @@ interface DashboardIntelligenceState {
   problems:      ActiveProblemsData | null;
   latency:       LatencyData | null;
   ram:           SmartRamProfile | null;
+  ramRefreshing: boolean;
   loading:       boolean;
   refresh:       () => void;
   refreshRam:    () => Promise<void>;
@@ -121,6 +123,7 @@ export function useDashboardIntelligence(enabled = true): DashboardIntelligenceS
   const [problems,      setProblems]      = useState<ActiveProblemsData | null>(null);
   const [latency,       setLatency]       = useState<LatencyData | null>(null);
   const [ram,           setRam]           = useState<SmartRamProfile | null>(null);
+  const [ramRefreshing, setRamRefreshing] = useState(false);
   const [loading,       setLoading]       = useState(true);
   const initRef = useRef(false);
   // F-3: AbortController so an unmount mid-fetch cancels the network requests
@@ -152,10 +155,18 @@ export function useDashboardIntelligence(enabled = true): DashboardIntelligenceS
   }, [fetchAll]);
 
   const refreshRam = useCallback(async () => {
+    setRamRefreshing(true);
+    // Pull the shared Electron telemetry snapshot immediately as well as
+    // refreshing the RAM analysis endpoint. The dashboard Memory card is
+    // driven by this singleton poller, while Smart RAM uses the endpoint.
+    telemetryManager.refreshNow();
     try {
       const r = await fetchJSON<SmartRamProfile>("/api/dashboard-intelligence/ram-analysis?bust=1");
       setRam(r);
-    } catch (_) {}
+    } catch (_) {
+    } finally {
+      setRamRefreshing(false);
+    }
   }, []);
 
   const runningRef = useRef(false);
@@ -295,5 +306,5 @@ export function useDashboardIntelligence(enabled = true): DashboardIntelligenceS
     };
   }, [enabled, fetchAll]);
 
-  return { instability, problems, latency, ram, loading, refresh, refreshRam };
+  return { instability, problems, latency, ram, ramRefreshing, loading, refresh, refreshRam };
 }

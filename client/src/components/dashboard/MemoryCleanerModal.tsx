@@ -25,6 +25,8 @@ interface CleanResult {
 interface MemoryCleanerModalProps {
   /** Called immediately after a successful clean so callers can refresh UI */
   onCleanComplete?: () => void;
+  /** Marks the dashboard Memory card while the post-clean sample is pending. */
+  onRefreshStateChange?: (refreshing: boolean) => void;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
@@ -142,7 +144,7 @@ const STAGGER_VARIANTS = {
   }),
 };
 
-export function MemoryCleanerModal({ open, onOpenChange, onCleanComplete }: MemoryCleanerModalProps) {
+export function MemoryCleanerModal({ open, onOpenChange, onCleanComplete, onRefreshStateChange }: MemoryCleanerModalProps) {
   const [selectedMode, setSelectedMode] = useState<CleanMode>("smart");
   const [cleaning, setCleaning] = useState(false);
   const [result, setResult] = useState<CleanResult | null>(null);
@@ -205,7 +207,7 @@ export function MemoryCleanerModal({ open, onOpenChange, onCleanComplete }: Memo
 
         setResult(res);
 
-        onCleanComplete?.();
+        onRefreshStateChange?.(true);
         if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
         refreshTimerRef.current = setTimeout(() => {
           // Windows and Task Manager need a short settling window after
@@ -213,6 +215,8 @@ export function MemoryCleanerModal({ open, onOpenChange, onCleanComplete }: Memo
           // value while the OS is still reclaiming memory.
           telemetryManager.refreshNow();
           refreshTimerRef.current = null;
+          onRefreshStateChange?.(false);
+          onCleanComplete?.();
         }, 2300);
       } else {
         await minDelay;
