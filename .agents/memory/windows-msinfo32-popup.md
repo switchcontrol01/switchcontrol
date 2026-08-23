@@ -3,8 +3,8 @@ name: Windows msinfo32 popup
 description: Windows behavior to avoid when collecting system intelligence
 ---
 
-Do not launch `msinfo32.exe` from background system-intelligence collection, even with a hidden-window option. Windows can still show its System Information progress dialog while the report is generated.
+Do not launch `msinfo32.exe` on normal startup, even with a hidden-window option. The only permitted exception is the persistent, non-blocking enrichment run every 15 launches, whose parsed report is cached and used only as a fallback.
 
-**Why:** The report process produced a visible popup on every SwitchControl load and was unnecessary where direct registry probes provide the needed signal.
+**Why:** The report process produced a visible popup on every SwitchControl load and was unnecessary where direct registry probes provide the needed signal; occasional caching preserves extra firmware fields without recurring startup disruption.
 
-**How to apply:** Prefer direct WMI, registry, or other non-UI probes for firmware and security fields. If a report executable is unavoidable, treat hidden-window behavior as unreliable and isolate it behind explicit user action.
+**How to apply:** Prefer direct WMI, registry, or other non-UI probes for firmware and security fields. The occasional report must run after the fast profile, use a timeout, clean up its temporary file, and never overwrite a non-null direct value.

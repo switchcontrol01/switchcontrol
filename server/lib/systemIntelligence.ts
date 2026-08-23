@@ -592,10 +592,12 @@ async function collectWindowsFirmwareSignals(): Promise<{
   socket: string | null;
   kernelDmaProtectionEnabled: boolean | null;
   uefiBoot: boolean | null;
+  msinfo: MsinfoCache["data"];
 }> {
-  const defaults = { socket: null, kernelDmaProtectionEnabled: null, uefiBoot: null };
+  const defaults = { socket: null, kernelDmaProtectionEnabled: null, uefiBoot: null, msinfo: _emptyMsinfoData() };
   if (!isWindows) return defaults;
 
+  const msinfoPromise = _getMsinfoCacheOnce();
   const raw = await runPS(`
     $socket = $null; $uefi = $null; $dma = $null
     try {
@@ -617,18 +619,26 @@ async function collectWindowsFirmwareSignals(): Promise<{
       Uefi = if ($uefi -eq $null) { "null" } elseif ($uefi) { "true" } else { "false" }
     } | ConvertTo-Json -Compress
   `);
-  if (!raw) return defaults;
+  const msinfo = (await msinfoPromise)?.data ?? defaults.msinfo;
+  if (!raw) return { ...defaults, msinfo };
   try {
     const obj = JSON.parse(raw);
     const parseBool = (v: unknown): boolean | null =>
       v === "true" ? true : v === "false" ? false : null;
+    const cachedBool = (v: string | null): boolean | null =>
+      v?.toLowerCase() === "on" || v?.toLowerCase() === "enabled" || v?.toLowerCase() === "uefi"
+        ? true
+        : v?.toLowerCase() === "off" || v?.toLowerCase() === "disabled" || v?.toLowerCase() === "legacy"
+          ? false
+          : null;
     return {
       socket: safeStr(obj.Socket),
-      kernelDmaProtectionEnabled: parseBool(obj.KernelDma),
-      uefiBoot: parseBool(obj.Uefi),
+      kernelDmaProtectionEnabled: parseBool(obj.KernelDma) ?? cachedBool(msinfo.kernelDmaProtection),
+      uefiBoot: parseBool(obj.Uefi) ?? cachedBool(msinfo.biosMode),
+      msinfo,
     };
   } catch {
-    return defaults;
+    return { ...defaults, msinfo };
   }
 }
 
@@ -1378,13 +1388,13 @@ async function collect(): Promise<SystemIntelligenceProfile> {
 
   const profile: SystemIntelligenceProfile = {
     baseboard: {
-      manufacturer: safeStr(bb?.manufacturer),
-      model: safeStr(bb?.model),
+      manufacturer: safeStr(bb?.manufacturer) ?? safeStr(firmwareSignals.msinfo.systemManufacturer),
+      model: safeStr(bb?.model) ?? safeStr(firmwareSignals.msinfo.systemModel),
       version: safeStr(bb?.version),
     },
     bios: {
       vendor: safeStr(bios?.vendor),
-      version: safeStr(bios?.version),
+      version: safeStr(bios?.version) ?? safeStr(firmwareSignals.msinfo.biosVersion),
       releaseDate: safeStr(bios?.releaseDate),
     },
     cpu: {
@@ -1406,6 +1416,18 @@ async function collect(): Promise<SystemIntelligenceProfile> {
       hostname: safeStr(osData?.hostname),
       uptimeSec: safeNum((osData as any)?.uptime ?? null),
       ...pStates,
+      // Direct registry/WMI probes remain authoritative; msinfo32 is only a
+      // cached fallback for values Windows does not expose through them.
+      kernelDmaProtectionEnabled: pStates.kernelDmaProtectionEnabled ?? (() => {
+        const value = firmwareSignals.msinfo.kernelDmaProtection?.toLowerCase();
+        return value === "on" || value === "enabled" ? true
+          : value === "off" || value === "disabled" ? false
+          : null;
+      })(),
+      uefiBoot: pStates.uefiBoot ?? (() => {
+        const value = firmwareSignals.msinfo.biosMode?.toLowerCase();
+        return value === "uefi" ? true : value === "legacy" ? false : null;
+      })(),
     },
     device: {
       batteryPresent: null,
