@@ -134,7 +134,7 @@ const CATEGORY_COLORS: Record<BiosCategory, string> = {
   "Power & Voltage": "from-amber-500/20 to-orange-500/10 border-amber-500/30",
   "Memory & Fabric": "from-blue-500/20 to-indigo-500/10 border-blue-500/30",
   "EMI & Signal Integrity": "from-emerald-500/20 to-teal-500/10 border-emerald-500/30",
-  "Platform & Security": "from-#00D4FF/20 to-#00D4FF/10 border-[#00D4FF]",
+  "Platform & Security": "from-[#00D4FF]/20 to-[#00D4FF]/10 border-[#00D4FF]",
 };
 
 const LEVEL_COLORS: Record<string, string> = {
@@ -1291,7 +1291,7 @@ export default function BiosAdvisor() {
 
         {/* ── Firmware Analytics Block ─────────────────────────────── */}
         <Item>
-          <GlassCard className="p-5 border-[#00D4FF] bg-gradient-to-br from-#00D4FF/[0.04] to-cyan-500/[0.02] overflow-hidden relative">
+          <GlassCard className="p-5 border-[#00D4FF] bg-gradient-to-br from-[#00D4FF]/[0.04] to-cyan-500/[0.02] overflow-hidden relative">
             <div
               className="absolute inset-0 pointer-events-none"
               style={{ background: "radial-gradient(ellipse 70% 50% at 50% -20%, rgba(124,58,237,0.08), transparent)" }}
