@@ -382,7 +382,7 @@ export default function Splash({ onComplete }: SplashProps) {
                     WebkitBackgroundClip: "text",
                     WebkitTextFillColor: "transparent",
                      textShadow: "0 0 30px rgba(0, 212, 255, 0.30)",
-                     filter: "drop-shadow(0 0 6px rgba(0, 212, 255, 0.30)) drop-shadow(0 0 18px rgba(0, 180, 255, 0.17)) drop-shadow(0 0 28px rgba(139, 92, 246, 0.10))",
+                     filter: "drop-shadow(0 0 6px rgba(0, 212, 255, 0.30)) drop-shadow(0 0 18px rgba(0, 180, 255, 0.17))",
                   }}
                 >
                   Control
