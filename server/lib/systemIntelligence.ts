@@ -475,6 +475,59 @@ async function collectCpuSocket(): Promise<string | null> {
   return safeStr(raw);
 }
 
+async function collectWindowsFirmwareSignals(): Promise<{
+  socket: string | null;
+  kernelDmaProtectionEnabled: boolean | null;
+  uefiBoot: boolean | null;
+}> {
+  const defaults = { socket: null, kernelDmaProtectionEnabled: null, uefiBoot: null };
+  if (!isWindows) return defaults;
+
+  const raw = await runPS(`
+    $socket = $null; $uefi = $null; $dma = $null
+    try {
+      $proc = Get-CimInstance Win32_Processor -ErrorAction Stop | Select-Object -First 1
+      if ($proc) { $socket = [string]$proc.SocketDesignation }
+    } catch {}
+    try {
+      $boot = (bcdedit.exe /enum "{current}" 2>$null | Out-String)
+      if ($boot -match '(?im)^\\s*path\\s+.*winload\\.efi\\s*$') { $uefi = $true }
+      elseif ($boot -match '(?im)^\\s*path\\s+.*winload\\.exe\\s*$') { $uefi = $false }
+    } catch {}
+    try {
+      $report = [IO.Path]::Combine($env:TEMP, "switchcontrol-msinfo-$([guid]::NewGuid().ToString('N')).txt")
+      $p = Start-Process -FilePath "msinfo32.exe" -ArgumentList @("/report", $report) -WindowStyle Hidden -PassThru
+      if ($p.WaitForExit(7000) -and (Test-Path $report)) {
+        $text = Get-Content -LiteralPath $report -Raw -ErrorAction SilentlyContinue
+        if ($text -match '(?im)^\\s*Kernel DMA Protection\\s+(.+?)\\s*$') {
+          $value = $Matches[1].Trim()
+          if ($value -match '^(On|Enabled|Yes)$') { $dma = $true }
+          elseif ($value -match '^(Off|Disabled|No)$') { $dma = $false }
+        }
+      }
+      Remove-Item -LiteralPath $report -Force -ErrorAction SilentlyContinue
+    } catch {}
+    [PSCustomObject]@{
+      Socket = if ([string]::IsNullOrWhiteSpace($socket)) { "null" } else { $socket }
+      KernelDma = if ($dma -eq $null) { "null" } elseif ($dma) { "true" } else { "false" }
+      Uefi = if ($uefi -eq $null) { "null" } elseif ($uefi) { "true" } else { "false" }
+    } | ConvertTo-Json -Compress
+  `);
+  if (!raw) return defaults;
+  try {
+    const obj = JSON.parse(raw);
+    const parseBool = (v: unknown): boolean | null =>
+      v === "true" ? true : v === "false" ? false : null;
+    return {
+      socket: safeStr(obj.Socket),
+      kernelDmaProtectionEnabled: parseBool(obj.KernelDma),
+      uefiBoot: parseBool(obj.Uefi),
+    };
+  } catch {
+    return defaults;
+  }
+}
+
 // ── Windows monitor EDID + identity collector ─────────────────────────────────
 // Returns:
 //   edidMap          — keyed by hardware ID (e.g. "SAM0E4F"), from the registry
