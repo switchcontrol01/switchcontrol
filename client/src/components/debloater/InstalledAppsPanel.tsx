@@ -367,9 +367,13 @@ const iconSrcs = (domain: string) => [
 const AppIcon = memo(function AppIcon({
   app,
   isLoading,
+  revealIndex,
+  revealKey,
 }: {
   app: InstalledApp;
   isLoading: boolean;
+  revealIndex: number;
+  revealKey: number;
 }) {
   const catCfg = CATEGORY_CONFIG[detectCategory(app)];
   const CatIcon = catCfg.icon;
@@ -395,7 +399,8 @@ const AppIcon = memo(function AppIcon({
   // Shimmer while Electron is still extracting and we have no web fallback yet
   if (isLoading && !app.iconDataUrl) {
     return (
-      <div className="size-9 rounded-xl shrink-0 bg-[#21262D] border border-[#2A313A] animate-pulse" />
+      <div key={`icon-${app.id}-${revealKey}`} className="sc-icon-scan-reveal size-9 rounded-xl shrink-0 bg-[#21262D] border border-[#2A313A] animate-pulse"
+        style={{ "--sc-icon-reveal-index": revealIndex } as React.CSSProperties} />
     );
   }
 
@@ -406,7 +411,8 @@ const AppIcon = memo(function AppIcon({
         key={sources[idx]}   // force re-mount on src change to clear browser error state
         src={sources[idx]}
         alt=""
-        className="size-9 rounded-xl shrink-0 object-contain bg-[#1A1F26] border border-[#2A313A]"
+        className="sc-icon-scan-reveal size-9 rounded-xl shrink-0 object-contain bg-[#1A1F26] border border-[#2A313A]"
+        style={{ "--sc-icon-reveal-index": revealIndex } as React.CSSProperties}
         onError={() => {
           if (idx + 1 < sources.length) {
             setIdx(i => i + 1);
@@ -420,7 +426,8 @@ const AppIcon = memo(function AppIcon({
 
   // Final fallback: category-colored lucide icon
   return (
-    <div className={cn("size-9 rounded-xl flex items-center justify-center shrink-0 border", catCfg.cls)}>
+    <div className={cn("sc-icon-scan-reveal size-9 rounded-xl flex items-center justify-center shrink-0 border", catCfg.cls)}
+      style={{ "--sc-icon-reveal-index": revealIndex } as React.CSSProperties}>
       <CatIcon className="size-4" />
     </div>
   );
@@ -584,12 +591,16 @@ function AppRow({
   result,
   uninstallingId,
   isIconLoading,
+  revealIndex,
+  revealKey,
   onUninstall,
 }: {
   app: InstalledApp;
   result?: AppResult;
   uninstallingId: string | null;
   isIconLoading: boolean;
+  revealIndex: number;
+  revealKey: number;
   onUninstall: (app: InstalledApp) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
@@ -632,7 +643,7 @@ function AppRow({
       {/* Main row */}
       <div className="flex items-center gap-3 p-3 sm:p-3.5 hover:bg-[#1A1F26] transition-colors">
         {/* Icon — cascades: Electron native → Clearbit → Google → DuckDuckGo → category */}
-        <AppIcon app={app} isLoading={isIconLoading} />
+        <AppIcon app={app} isLoading={isIconLoading} revealIndex={revealIndex} revealKey={revealKey} />
 
         {/* Content */}
         <div className="flex-1 min-w-0">
@@ -783,12 +794,14 @@ function VirtualizedAppList({
   results,
   uninstallingId,
   iconLoadingIds,
+  revealKey,
   onUninstall,
 }: {
   apps: InstalledApp[];
   results: Record<string, AppResult>;
   uninstallingId: string | null;
   iconLoadingIds: Set<string>;
+  revealKey: number;
   onUninstall: (app: InstalledApp) => void;
 }) {
   const parentRef = useRef<HTMLDivElement>(null);
@@ -826,6 +839,8 @@ function VirtualizedAppList({
                 result={results[app.id]}
                 uninstallingId={uninstallingId}
                 isIconLoading={iconLoadingIds.has(app.id)}
+                revealIndex={virtualRow.index}
+                revealKey={revealKey}
                 onUninstall={onUninstall}
               />
             </div>
@@ -866,6 +881,7 @@ export function InstalledAppsPanel() {
   // Tracks which app IDs are still waiting for their icon to resolve.
   // Used to show shimmer placeholders while icons load asynchronously.
   const [iconLoadingIds, setIconLoadingIds] = useState<Set<string>>(new Set());
+  const [iconRevealKey, setIconRevealKey] = useState(0);
 
   const isElectronAvail = typeof window !== "undefined" && !!getInstalledAppsAPI();
 
@@ -873,6 +889,7 @@ export function InstalledAppsPanel() {
     const api = getInstalledAppsAPI();
     if (!api) return;
     setScanning(true);
+    setIconRevealKey(key => key + 1);
     setScanError(null);
     try {
       const res = await api.scan();
@@ -1169,6 +1186,7 @@ export function InstalledAppsPanel() {
                 results={results}
                 uninstallingId={uninstallingId}
                 iconLoadingIds={iconLoadingIds}
+                revealKey={iconRevealKey}
                 onUninstall={(app) => {
                   // eslint-disable-next-line no-console
                   console.log(`[Debloat] uninstall confirm opened appName=${app.name} source=installed_apps_list`);
@@ -1198,6 +1216,8 @@ export function InstalledAppsPanel() {
                       result={results[app.id]}
                       uninstallingId={uninstallingId}
                       isIconLoading={iconLoadingIds.has(app.id)}
+                      revealIndex={i}
+                      revealKey={iconRevealKey}
                       onUninstall={(app) => {
                         // eslint-disable-next-line no-console
                         console.log(`[Debloat] uninstall confirm opened appName=${app.name} source=installed_apps_list`);

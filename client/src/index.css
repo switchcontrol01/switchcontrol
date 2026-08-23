@@ -134,6 +134,22 @@ html.sc-reduced-motion *::after {
   scroll-behavior: auto !important;
   transition-duration: 0.001ms !important;
 }
+
+@keyframes sc-icon-scan-reveal {
+  from { opacity: 0; filter: blur(9px); transform: translateY(-10px) scale(0.94); }
+  to { opacity: 1; filter: blur(0); transform: translateY(0) scale(1); }
+}
+.sc-icon-scan-reveal {
+  opacity: 0;
+  animation: sc-icon-scan-reveal 0.48s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation-delay: calc(var(--sc-icon-reveal-index, 0) * 42ms);
+}
+html.sc-reduced-motion .sc-icon-scan-reveal {
+  opacity: 1;
+  animation: none;
+  filter: none;
+  transform: none;
+}
 /* Graph-only motion preference. Unlike reduced motion, this deliberately
    does not affect page transitions, controls, or other application motion. */
 html.sc-disable-graph-animation .recharts-animation,

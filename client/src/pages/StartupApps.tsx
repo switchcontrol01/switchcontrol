@@ -115,6 +115,7 @@ export default function StartupApps() {
   const [requiresElectron, setRequiresElectron] = useState(false);
   const [scanError,        setScanError]        = useState<string | null>(null);
   const [loadingId,        setLoadingId]        = useState<string | null>(null);
+  const [iconRevealKey,    setIconRevealKey]    = useState(0);
   const [activeTab,        setActiveTab]        = useState<StartupCategory | "all">("all");
   const [history,          setHistory]          = useState<any[]>([]);
   const [loadingHistory,   setLoadingHistory]   = useState(false);
@@ -142,6 +143,7 @@ export default function StartupApps() {
     }
 
     setScanStatus("scanning");
+    setIconRevealKey(key => key + 1);
     setScanError(null);
     setActiveTab("all");
     setSearchQuery("");
@@ -542,7 +544,7 @@ export default function StartupApps() {
                                       >
                                         {items.map((app, i) => (
                                           <motion.div
-                                            key={app.entry.id}
+                                            key={`${app.entry.id}-${iconRevealKey}`}
                                             initial={{ opacity: 0, y: 3 }}
                                             animate={{ opacity: 1, y: 0 }}
                                             transition={{ duration: 0.2, delay: Math.min(i, 6) * 0.04 }}
@@ -551,6 +553,7 @@ export default function StartupApps() {
                                               app={app}
                                               onToggle={enabled => toggleEntry(app.entry.id, enabled)}
                                               loading={loadingId === app.entry.id}
+                                              revealIndex={i}
                                             />
                                           </motion.div>
                                         ))}
@@ -576,7 +579,7 @@ export default function StartupApps() {
                             <AnimatePresence mode="popLayout">
                               {filteredApps.map((app, i) => (
                                 <motion.div
-                                  key={app.entry.id}
+                                  key={`${app.entry.id}-${iconRevealKey}`}
                                   initial={{ opacity: 0, y: 4 }}
                                   animate={{ opacity: 1, y: 0 }}
                                   exit={{ opacity: 0 }}
@@ -586,6 +589,7 @@ export default function StartupApps() {
                                     app={app}
                                     onToggle={enabled => toggleEntry(app.entry.id, enabled)}
                                     loading={loadingId === app.entry.id}
+                                    revealIndex={i}
                                   />
                                 </motion.div>
                               ))}

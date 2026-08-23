@@ -24,7 +24,7 @@ const CAT_ICONS: Record<string, any> = {
 
 const _iconCache = new Map<string, string | null>();
 
-function AppIcon({ app, size = 28 }: { app: BootApp; size?: number }) {
+function AppIcon({ app, size = 28, revealIndex = 0 }: { app: BootApp; size?: number; revealIndex?: number }) {
   const path = app.entry.executablePath || null;
   const [dataUrl, setDataUrl] = useState<string | null | undefined>(
     path ? _iconCache.get(path) : null,
@@ -78,7 +78,8 @@ function AppIcon({ app, size = 28 }: { app: BootApp; size?: number }) {
   if (dataUrl) {
     return (
       <div
-        className="rounded-lg flex items-center justify-center shrink-0 bg-[#21262D] border border-white/[0.07] overflow-hidden"
+        className="sc-icon-scan-reveal rounded-lg flex items-center justify-center shrink-0 bg-[#21262D] border border-white/[0.07] overflow-hidden"
+        style={{ "--sc-icon-reveal-index": revealIndex } as React.CSSProperties}
         style={{ width: size, height: size }}
       >
         <img src={dataUrl} alt="" className="w-full h-full object-contain p-0.5" draggable={false} />
@@ -90,7 +91,8 @@ function AppIcon({ app, size = 28 }: { app: BootApp; size?: number }) {
   if (dataUrl === null && webSrcs.length > 0 && !webFailed) {
     return (
       <div
-        className="rounded-lg flex items-center justify-center shrink-0 bg-[#21262D] border border-white/[0.07] overflow-hidden"
+        className="sc-icon-scan-reveal rounded-lg flex items-center justify-center shrink-0 bg-[#21262D] border border-white/[0.07] overflow-hidden"
+        style={{ "--sc-icon-reveal-index": revealIndex } as React.CSSProperties}
         style={{ width: size, height: size }}
       >
         <img
@@ -112,7 +114,8 @@ function AppIcon({ app, size = 28 }: { app: BootApp; size?: number }) {
   const Icon = CAT_ICONS[app.category] || Package;
   return (
     <div
-      className="rounded-lg flex items-center justify-center shrink-0 bg-[#21262D] border border-white/[0.07]"
+      className="sc-icon-scan-reveal rounded-lg flex items-center justify-center shrink-0 bg-[#21262D] border border-white/[0.07]"
+      style={{ "--sc-icon-reveal-index": revealIndex } as React.CSSProperties}
       style={{ width: size, height: size }}
     >
       <Icon className="size-3.5 text-muted-foreground/50" />
@@ -160,7 +163,7 @@ interface Props {
 
 // ── StartupAppRow ─────────────────────────────────────────────────────────────
 
-export function StartupAppRow({ app, onToggle, loading }: Props) {
+export function StartupAppRow({ app, onToggle, loading, revealIndex = 0 }: Props & { revealIndex?: number }) {
   const [expanded, setExpanded] = useState(false);
   const isEnabled  = app.entry.enabled;
   const isBroken   = app.entry.broken ?? false;
@@ -192,7 +195,7 @@ export function StartupAppRow({ app, onToggle, loading }: Props) {
         onClick={() => setExpanded(e => !e)}
       >
         {/* Icon */}
-        <AppIcon app={app} size={26} />
+        <AppIcon app={app} size={26} revealIndex={revealIndex} />
 
         {/* Name + badges */}
         <div className="flex-1 min-w-0 flex flex-col justify-center gap-0.5">
