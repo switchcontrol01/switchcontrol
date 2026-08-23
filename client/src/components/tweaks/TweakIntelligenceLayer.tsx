@@ -533,10 +533,21 @@ export function TweakIntelligenceLayer() {
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.25 }}
-                    className="flex items-center gap-2 text-xs text-red-400/80 bg-red-500/10 border border-red-500/15 rounded-xl px-3 py-2"
+                    className="flex items-center justify-between gap-3 text-xs text-red-400/80 bg-red-500/10 border border-red-500/15 rounded-xl px-3 py-2"
                   >
-                    <AlertCircle className="size-3.5 shrink-0" />
-                    {intel.error}
+                    <span className="flex items-center gap-2 min-w-0">
+                      <AlertCircle className="size-3.5 shrink-0" />
+                      <span>{intel.error}</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={intel.refresh}
+                      className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-red-400/25 bg-red-400/10 px-2 py-1 text-[10px] font-medium text-red-300 transition-colors hover:bg-red-400/20 hover:text-red-200"
+                      data-testid="button-refresh-intelligence"
+                    >
+                      <RefreshCw className="size-3" />
+                      Refresh
+                    </button>
                   </motion.div>
                 )}
               </AnimatePresence>

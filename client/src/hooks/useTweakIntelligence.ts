@@ -216,6 +216,14 @@ export function useTweakIntelligence(pollIntervalMs = 5_000) {
     }
   }, []);
 
+  const refresh = useCallback(() => {
+    // A manual retry is an explicit recovery action after the bounded
+    // first-load failure policy has surfaced the error banner.
+    firstLoadFailuresRef.current = 0;
+    setState((prev) => ({ ...prev, loading: true, error: null }));
+    fetchAll(appliedParam, gpuParam, () => false, true);
+  }, [appliedParam, fetchAll, gpuParam]);
+
   // Poll on mount and whenever applied IDs change.
   useEffect(() => {
     mountedRef.current = true;
@@ -254,5 +262,5 @@ export function useTweakIntelligence(pollIntervalMs = 5_000) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [appliedParam, gpuParam, pollIntervalMs]);
 
-  return state;
+  return { ...state, refresh };
 }
