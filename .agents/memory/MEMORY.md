@@ -67,3 +67,4 @@
 - [Free customization settings](free-customization-settings.md) — appearance, layout, accessibility, behavior, startup, and privacy preferences are available to every account.
 - [Customization audit safeguards](customization-audit-safeguards.md) — Settings stays unhideable and graph-only animation is independent from reduced motion.
 - [Zustand selector stability](zustand-selector-stability.md) — multi-field preference selectors must use useShallow to prevent Electron render loops and blank windows.
+- [Network verification cache boundary](network-verification-cache.md) — Electron may paint cached network states, but must always reconcile them with live Windows checks.

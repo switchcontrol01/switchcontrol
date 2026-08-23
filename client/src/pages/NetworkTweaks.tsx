@@ -479,6 +479,7 @@ function NetworkTweakCard({ tweak, tweakState, onToggle, onInfoClick, isVerifyin
         <div className="flex items-center gap-3 pl-4 shrink-0">
           {!isUnavailable && (
             <motion.div
+              className="sc-discoverable-control rounded-full"
               whileHover={{ scale: prefersReducedMotion ? 1.05 : 1.1 }}
               whileTap={{ scale: prefersReducedMotion ? 0.95 : 0.9 }}
             >
@@ -487,7 +488,7 @@ function NetworkTweakCard({ tweak, tweakState, onToggle, onInfoClick, isVerifyin
                 size="icon"
                 onClick={onInfoClick}
                 data-testid={`button-info-${tweak.id}`}
-                className="size-8 text-muted-foreground hover:text-foreground hover:bg-[#2A313A] opacity-0 group-hover:opacity-100 transition-all duration-300 rounded-full"
+                className="size-8 border border-primary/25 bg-primary/[0.06] text-muted-foreground/80 hover:text-foreground hover:bg-primary/15 opacity-75 group-hover:opacity-100 transition-all duration-300 rounded-full"
               >
                 <Info className="size-4" />
               </Button>
@@ -801,7 +802,11 @@ function NetworkTweaksContent() {
   useEffect(() => {
     if (!user?.loggedIn) return;
     const cacheAge = _networkTweakStateCache ? Date.now() - _networkTweakStateCacheTime : Infinity;
-    if (_networkTweakStateCache && cacheAge < CACHE_TTL_MS && !(isElectron && !isPremium)) {
+    const cacheFresh = !!_networkTweakStateCache && cacheAge < CACHE_TTL_MS;
+    // Browser mode can trust the short-lived session cache. Electron must
+    // always re-read the actual Windows registry/netsh state: a cached
+    // optimistic "enabled" value is not verification.
+    if (cacheFresh && !isElectron && !(isElectron && !isPremium)) {
       console.log('[NetworkTweaks] cache fresh — skipping fetch');
       return;
     }
@@ -809,7 +814,7 @@ function NetworkTweaksContent() {
     timingMark("fetch-state");
     if (!_networkTweakStateCache) setFetching(true);
     setSyncPhase('loading');
-    const dbPromise      = fetchBackendState();
+    const dbPromise      = cacheFresh ? Promise.resolve({} as StateMap) : fetchBackendState();
     const windowsPromise = isElectron
       ? fetchVerifiedWindowsState()
       : Promise.resolve({} as StateMap);

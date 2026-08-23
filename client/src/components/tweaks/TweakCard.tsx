@@ -452,25 +452,25 @@ export function TweakCard({ tweak, isEnabled, onToggle, isVerifying = false, isH
             </div>
 
             <div className="flex items-center gap-4 pl-4 shrink-0">
-              <motion.div whileHover={{ scale: prefersReducedMotion ? 1.05 : 1.1 }} whileTap={{ scale: prefersReducedMotion ? 0.95 : 0.9 }}>
+              <motion.div className="sc-discoverable-control rounded-full" whileHover={{ scale: prefersReducedMotion ? 1.05 : 1.1 }} whileTap={{ scale: prefersReducedMotion ? 0.95 : 0.9 }}>
                 <Button
                   variant="ghost" size="icon"
                   onClick={() => setTrustOpen(!trustOpen)}
                   data-testid={`button-trust-${tweak.id}`}
                   className={cn(
-                    "size-8 hover:bg-[#2A313A] transition-all duration-300 rounded-full",
-                    trustOpen ? "text-primary opacity-100" : "text-muted-foreground opacity-0 group-hover:opacity-100"
+                    "size-8 border border-primary/25 bg-primary/[0.06] hover:bg-primary/15 transition-all duration-300 rounded-full",
+                    trustOpen ? "text-primary opacity-100" : "text-muted-foreground/80 opacity-75 group-hover:opacity-100"
                   )}
                   title="Show impact details"
                 >
                   <BarChart2 className="size-3.5" />
                 </Button>
               </motion.div>
-              <motion.div whileHover={{ scale: prefersReducedMotion ? 1.05 : 1.1 }} whileTap={{ scale: prefersReducedMotion ? 0.95 : 0.9 }}>
+              <motion.div className="sc-discoverable-control rounded-full" whileHover={{ scale: prefersReducedMotion ? 1.05 : 1.1 }} whileTap={{ scale: prefersReducedMotion ? 0.95 : 0.9 }}>
                 <Button
                   variant="ghost" size="icon" onClick={openModal}
                   data-testid={`button-info-${tweak.id}`}
-                  className="size-8 text-muted-foreground hover:text-foreground hover:bg-[#2A313A] opacity-0 group-hover:opacity-100 transition-all duration-300 rounded-full"
+                   className="size-8 border border-primary/25 bg-primary/[0.06] text-muted-foreground/80 hover:text-foreground hover:bg-primary/15 opacity-75 group-hover:opacity-100 transition-all duration-300 rounded-full"
                 >
                   <Info className="size-4" />
                 </Button>
