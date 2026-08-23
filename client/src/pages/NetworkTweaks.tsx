@@ -258,7 +258,19 @@ async function fetchVerifiedWindowsState(): Promise<StateMap> {
       };
     }).electronAPI.networkTweaks;
     console.log('[NetworkTweaks] mount — hydrating verified status');
-    const results = await api.checkAll();
+    // Native verification can contend with startup PowerShell/WMI work. Never
+    // leave the page in its breathing "verifying" state forever if the native
+    // call is delayed or a Windows query becomes stuck.
+    const results = await Promise.race([
+      api.checkAll(),
+      new Promise<Record<string, {
+        tweakId: string;
+        applied: boolean | null;
+        disabled?: boolean;
+        reason?: string;
+        error?: string;
+      }>>((resolve) => setTimeout(() => resolve({}), 20_000)),
+    ]);
     const map: StateMap = {};
     let verifiedCount = 0;
     let inconclusiveCount = 0;
@@ -278,6 +290,9 @@ async function fetchVerifiedWindowsState(): Promise<StateMap> {
         inconclusiveCount++;
         console.log(`[NetworkTweaks] status loaded tweakId=${id} enabled=null verified=false source=inconclusive`);
       }
+    }
+    if (Object.keys(results).length === 0) {
+      console.warn('[NetworkTweaks] native verification timed out or returned no results — keeping cached state');
     }
     console.log(`[NetworkTweaks] status loaded total=${Object.keys(results).length} confirmed=${verifiedCount} inconclusive=${inconclusiveCount}`);
     return map;
