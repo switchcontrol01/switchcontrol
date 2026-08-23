@@ -1,14 +1,16 @@
 {
-  "version": "1.2.8",
-  "title": "NIC Tuning Reliability & Recovery Fixes",
-  "headline": "NIC Tuning now reflects the capabilities of the selected adapter, while ownership recovery, DNS reverts, device signatures, and premium expiry cleanup fail safely.",
-  "date": "2026-08-22",
+  "version": "1.2.9",
+  "title": "Visibility, Verification & OLED Improvements",
+  "headline": "SwitchControl 1.2.9 makes important controls easier to discover, keeps network states verified against Windows, and adds a true OLED Black appearance.",
+  "date": "2026-08-23",
   "type": "patch",
   "changes": [
-    "Made NIC Tuning capability-aware: unsupported Wi-Fi and adapter-specific settings are shown as unavailable instead of exposing unusable controls",
-    "Added fail-safe NIC apply and reset handling with native readback verification, driver-lock reporting, and explicit unsupported-driver messages",
-    "Reconstructed ownership records for confirmed active tweaks after local AppData loss without guessing unknown baselines",
-    "Stopped missing or corrupt DNS backups from reporting false-success reverts and repaired missing signatures for already-bound devices",
-    "Removed unreachable duplicate premium-revert execution logic so the Electron ownership pipeline remains the single authoritative expiry path"
+    "Added true OLED Black theming with pure-black backgrounds and near-black card surfaces across legacy and modern UI panels",
+    "Network Tweaks now always verifies live Windows registry and netsh state in Electron instead of trusting a fresh cached status",
+    "Made tweak info, graph/impact, and advanced-details controls persistently discoverable with accent styling, hover feedback, and a gentle attention pulse",
+    "Added synchronized top-to-bottom blur and fade icon reveals for Startup Apps and Debloat Installed Apps after scans",
+    "Made BIOS Advisor advanced firmware details easier to find and expanded the Startup Telemetry scan card",
+    "Added reliable drag-handle reordering for Settings sidebar and dashboard sections",
+    "Added real Windows System Restore point creation before tweak applies when the preference is enabled, with a clear failure instead of silently continuing"
   ]
 }
