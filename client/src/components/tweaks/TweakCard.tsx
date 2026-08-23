@@ -451,28 +451,28 @@ export function TweakCard({ tweak, isEnabled, onToggle, isVerifying = false, isH
               </div>
             </div>
 
-            <div className="flex items-center gap-4 pl-4 shrink-0">
+            <div className="flex items-center gap-3 pl-4 shrink-0">
               <motion.div className="sc-discoverable-control rounded-lg" whileHover={{ scale: prefersReducedMotion ? 1.05 : 1.1 }} whileTap={{ scale: prefersReducedMotion ? 0.95 : 0.9 }}>
                 <Button
                   variant="ghost" size="icon"
                   onClick={() => setTrustOpen(!trustOpen)}
                   data-testid={`button-trust-${tweak.id}`}
                   className={cn(
-                    "size-8 border border-primary/25 bg-primary/[0.06] hover:bg-primary/15 transition-all duration-300 rounded-lg",
+                    "size-7 border border-primary/25 bg-primary/[0.06] hover:bg-primary/15 transition-all duration-300 rounded-md",
                     trustOpen ? "text-primary opacity-100" : "text-muted-foreground/80 opacity-75 group-hover:opacity-100"
                   )}
                   title="Show impact details"
                 >
-                  <BarChart2 className="size-3.5" />
+                  <BarChart2 className="size-3" />
                 </Button>
               </motion.div>
               <motion.div className="sc-discoverable-control rounded-lg" whileHover={{ scale: prefersReducedMotion ? 1.05 : 1.1 }} whileTap={{ scale: prefersReducedMotion ? 0.95 : 0.9 }}>
                 <Button
                   variant="ghost" size="icon" onClick={openModal}
                   data-testid={`button-info-${tweak.id}`}
-                   className="size-8 border border-primary/25 bg-primary/[0.06] text-muted-foreground/80 hover:text-foreground hover:bg-primary/15 opacity-75 group-hover:opacity-100 transition-all duration-300 rounded-lg"
+                    className="size-7 border border-primary/25 bg-primary/[0.06] text-muted-foreground/80 hover:text-foreground hover:bg-primary/15 opacity-75 group-hover:opacity-100 transition-all duration-300 rounded-md"
                 >
-                  <Info className="size-4" />
+                  <Info className="size-3.5" />
                 </Button>
               </motion.div>
 
@@ -510,7 +510,7 @@ export function TweakCard({ tweak, isEnabled, onToggle, isVerifying = false, isH
                   onCheckedChange={handleToggle}
                   data-testid={`switch-tweak-${tweak.id}`}
                   className={cn(
-                    "data-[state=checked]:bg-primary shadow-lg",
+                    "rounded-md data-[state=checked]:bg-primary shadow-lg",
                     isReal && "data-[state=checked]:bg-cyan-500"
                   )}
                 />
