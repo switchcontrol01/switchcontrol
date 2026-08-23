@@ -83,8 +83,8 @@
    !important overrides Tailwind's Preflight `background-color` reset
    and any other cascade ordering surprise. */
 html {
-  background: #040508 !important;
-  background-color: #040508 !important;
+  background: hsl(var(--background)) !important;
+  background-color: hsl(var(--background)) !important;
   width: 100%;
   margin: 0;
   padding: 0;
@@ -138,8 +138,8 @@ html.sc-high-contrast [class*="border-"] { border-color: hsl(var(--foreground) /
 html.sc-colorblind-safe .text-red-400 { color: #F59E0B !important; }
 
 body {
-  background: #040508 !important;
-  background-color: #040508 !important;
+  background: hsl(var(--background)) !important;
+  background-color: hsl(var(--background)) !important;
   width: 100%;
   margin: 0;
   padding: 0;
@@ -147,8 +147,8 @@ body {
 }
 
 #root {
-  background: #040508 !important;
-  background-color: #040508 !important;
+  background: hsl(var(--background)) !important;
+  background-color: hsl(var(--background)) !important;
 }
 /* ────────────────────────────────────────────────────────────── */
 
@@ -710,7 +710,7 @@ html {
   margin: 0;
   padding: 0;
   height: 100%;
-  background: hsl(260 20% 6%);
+  background: hsl(var(--background));
 }
 
 body {
@@ -720,6 +720,21 @@ body {
   background-attachment: fixed;
   position: relative;
   overflow-x: hidden;
+}
+
+/* Legacy surface utilities are still used by older pages. Keep them tied to
+   the active theme so Midnight changes the complete interface, not only new
+   shadcn surfaces. Attribute selectors avoid requiring every older component
+   to be rewritten at once. */
+html[data-theme-mode="midnight"] [class~="bg-[#21262D]"],
+html[data-theme-mode="midnight"] [class~="bg-[#1A1F26]"] {
+  background-color: hsl(var(--card)) !important;
+}
+html[data-theme-mode="midnight"] [class~="border-[#2A313A]"] {
+  border-color: hsl(var(--border)) !important;
+}
+html[data-theme-mode="midnight"] [class~="hover:bg-[#2A313A]"]:hover {
+  background-color: hsl(var(--muted)) !important;
 }
 
 #root {

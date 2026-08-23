@@ -18,13 +18,13 @@ type CardVariant = "primary" | "secondary" | "utility";
 
 const VARIANT_STYLES: Record<CardVariant, string> = {
   primary:
-    "bg-[#21262D] border border-[#2A313A] rounded-2xl " +
+    "bg-card border border-border rounded-2xl " +
     "shadow-[0_2px_12px_rgba(0,0,0,0.20)]",
   secondary:
-    "bg-[#1A1F26] border border-[#2A313A]/80 rounded-xl " +
+    "bg-muted border border-border/80 rounded-xl " +
     "shadow-[0_1px_8px_rgba(0,0,0,0.15)]",
   utility:
-    "bg-[#21262D] border border-[#2A313A]/60 rounded-lg " +
+    "bg-card border border-border/60 rounded-lg " +
     "shadow-[0_1px_4px_rgba(0,0,0,0.12)]",
 };
 
@@ -44,7 +44,7 @@ const GlassCard = React.forwardRef<
       hoverEffect && [
         "transition-[transform,box-shadow,border-color,background-color] duration-200 ease-out",
         "hover:-translate-y-0.5 hover:shadow-[0_4px_20px_rgba(0,0,0,0.30)]",
-        "hover:border-[#3A414D] hover:bg-[#2A313A]",
+        "hover:border-border hover:bg-muted",
       ],
       className
     )}
