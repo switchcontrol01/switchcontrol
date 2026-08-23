@@ -755,8 +755,16 @@ function NetworkTweaksContent() {
   const [fetching, setFetching] = useState(() => _networkTweakStateCache === null);
   const [syncPhase, setSyncPhase] = useState<SyncPhase>('idle');
   const stateMapRef = useRef<StateMap>(stateMap);
+  const stateMapInitializedRef = useRef(false);
   useEffect(() => {
     stateMapRef.current      = stateMap;
+    // The first state map may come from localStorage and has not been
+    // verified against Windows yet. Do not promote it to the session cache;
+    // the hydration effect below must perform the first real check.
+    if (!stateMapInitializedRef.current) {
+      stateMapInitializedRef.current = true;
+      return;
+    }
     const changed = !_networkTweakStateCache ||
       JSON.stringify(_networkTweakStateCache) !== JSON.stringify(stateMap);
     if (changed) {

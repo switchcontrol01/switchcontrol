@@ -464,6 +464,17 @@ async function runPS(script: string): Promise<string | null> {
   }
 }
 
+async function collectCpuSocket(): Promise<string | null> {
+  const raw = await runPS(`
+    try {
+      $socket = Get-CimInstance Win32_Processor -ErrorAction Stop |
+        Select-Object -First 1 -ExpandProperty SocketDesignation
+      if ($socket) { [string]$socket }
+    } catch {}
+  `);
+  return safeStr(raw);
+}
+
 // ── Windows monitor EDID + identity collector ─────────────────────────────────
 // Returns:
 //   edidMap          — keyed by hardware ID (e.g. "SAM0E4F"), from the registry
@@ -746,6 +757,9 @@ async function collect(): Promise<SystemIntelligenceProfile> {
   const cpuRes: PromiseSettledResult<null> = { status: "fulfilled", value: null };
   const monitorIdentity: MonitorIdentityResult =
     monitorEdidRes.status === "fulfilled" ? monitorEdidRes.value : { edidMap: {}, deviceNameToHwId: {} };
+  // SocketDesignation is collected separately because systeminformation.cpu()
+  // can time out on AMD systems even when this focused WMI property is available.
+  const cpuSocket = await collectCpuSocket();
 
   const audioDevices: Array<{ name: string | null; manufacturer: string | null }> =
     audioRes.status === "fulfilled"
@@ -779,7 +793,7 @@ async function collect(): Promise<SystemIntelligenceProfile> {
         manufacturer:  null,
         physicalCores: Math.max(1, Math.floor(osCpus.length / 2)),
         cores:         osCpus.length,
-        socket:        null,
+        socket:        cpuSocket,
         speed:         osCpus[0].speed ? parseFloat((osCpus[0].speed / 1000).toFixed(2)) : null,
       };
       console.log(`[SysIntelligence] cpu WMI timeout — os.cpus() fallback: ${cpu.brand}`);
@@ -1216,7 +1230,7 @@ async function collect(): Promise<SystemIntelligenceProfile> {
       brand: safeStr(cpu?.brand),
       physicalCores: safeNum(cpu?.physicalCores ?? null),
       logicalCores: safeNum(cpu?.cores ?? null),
-      socket: safeStr(cpu?.socket),
+      socket: safeStr(cpu?.socket) ?? cpuSocket,
       speedGHz: cpu?.speed != null ? parseFloat(cpu.speed.toFixed(2)) : null,
     },
     gpu: { controllers, displays },
