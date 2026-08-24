@@ -985,6 +985,7 @@ export default function Landing() {
                       "System cleaner and cleanup scans",
                       "Debloater and Windows component cleanup",
                       "Process Manager",
+                      "NIC Tuning",
                       "Full Settings customization",
                       "Change history",
                     ].map((f) => (
@@ -1050,7 +1051,6 @@ export default function Landing() {
                         { text: "Network Tweaks and DNS optimization", dim: false },
                         { text: "AI Advisor", dim: false },
                         { text: "BIOS Advisor and firmware scoring", dim: false },
-                        { text: "NIC Tuning", dim: false },
                         { text: "Latency Analyzer", dim: false },
                         { text: "Driver Intelligence", dim: false },
                       ].map((f) => (

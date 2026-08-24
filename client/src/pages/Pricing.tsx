@@ -76,6 +76,7 @@ const FREE_BENEFITS = [
   { text: "System cleaner",               note: "Junk files, temp data, and cleanup scans" },
   { text: "Debloater",                    note: "Remove unwanted Windows components" },
   { text: "Process Manager",              note: "Inspect and manage running processes" },
+  { text: "NIC Tuning",                   note: "Free adapter diagnostics and controls" },
   { text: "Full Settings customization",  note: "Themes, layout, accessibility, and privacy" },
   { text: "Change history",               note: "See actions and system changes" },
 ];
@@ -87,7 +88,6 @@ const PREMIUM_BENEFITS = [
   { text: "BIOS Advisor",                 note: "Firmware scoring and guided tuning" },
   { text: "Network Tweaks",               note: "DNS, jitter, TCP, and adapter tuning" },
   { text: "Power Plan control",           note: "Ryzen and Intel performance profiles" },
-  { text: "NIC Tuning",                   note: "Adapter-level latency controls" },
   { text: "Latency Analyzer",             note: "System responsiveness and driver analysis" },
   { text: "Driver Intelligence",          note: "Hardware-aware driver guidance" },
 ];
@@ -164,6 +164,7 @@ const COMPARISON_CATEGORIES = [
       { feature: "Debloater",                                         free: true,  premium: true  },
       { feature: "RAM cleanup tools",                                 free: true,  premium: true  },
       { feature: "Process Manager",                                   free: true,  premium: true  },
+      { feature: "NIC Tuning",                                        free: true,  premium: true  },
       { feature: "Settings customization and accessibility",          free: true,  premium: true  },
       { feature: "Change history",                                    free: true,  premium: true  },
     ],
