@@ -199,26 +199,26 @@ const COMPARISON_CATEGORIES = [
 
 const OBJECTIONS = [
   {
-    q: "Is this safe? Will it break my games or system?",
-    a: "Yes, it's safe. Every tweak is tagged Safe / Moderate / Experimental. Nothing touches boot sectors or kernel drivers. All changes are logged and one-click reversible from the History page.",
+    q: "Could a system change interfere with my games or Windows?",
+    a: "SwitchControl identifies the risk level before you apply a change and records the previous state when it is available. The app does not modify game files, inject into processes, or install kernel drivers. Supported changes can be reversed from your History page.",
     accent: "rgba(52,211,153,",
     badge: "Safety",
   },
   {
-    q: "Why pay for Premium when free optimizers exist?",
-    a: "Free tools either apply blanket changes without explanation or leave you to guess. SwitchControl Premium gives you AI-guided, hardware-specific advice, BIOS scoring, and 40+ individually explained tweaks — not a script wrapped in a UI.",
+    q: "What does Premium add beyond the free tools?",
+    a: `The Free plan already includes useful tools and system tweaks. Premium adds ${PREMIUM_TWEAK_COUNT} advanced controls, hardware-aware AI guidance, BIOS recommendations, power profiles, network analysis, and deeper performance diagnostics. Each option is explained so you can decide whether it fits your setup.`,
     accent: "rgba(168,85,247,",
     badge: "Value",
   },
   {
-    q: "Does it work with Fortnite, Valorant, CS2, Warzone?",
-    a: "Yes. SwitchControl modifies Windows settings only — the same class of changes as Control Panel or regedit. No process injection, no game file edits. Fully compatible with EAC, Vanguard, FACEIT, and BattlEye.",
+    q: "Can I use it with Fortnite, Valorant, CS2, and Warzone?",
+    a: "Yes. SwitchControl changes supported Windows settings, similar to adjustments made through Windows tools. It does not inject into games, edit game files, or install game drivers. That makes it separate from the areas monitored by EAC, Vanguard, FACEIT, and BattlEye.",
     accent: "rgba(6,182,212,",
     badge: "Anti-cheat",
   },
   {
-    q: "Do I need to keep SwitchControl running while I play?",
-    a: "No. Tweaks are applied to Windows and persist after reboot. Open it when you want to make changes or use the AI Advisor. Otherwise it stays out of your way.",
+    q: "Does the app need to run while I am playing?",
+    a: "No. Applied Windows settings remain in place after you close SwitchControl and restart your computer. Open the app when you want to review your system, make a change, or use one of its monitoring tools.",
     accent: "rgba(251,191,36,",
     badge: "Usage",
   },
@@ -1052,7 +1052,7 @@ export default function Pricing() {
           <ScrollFade>
             <div className="text-center mb-12">
               <h2 className="text-3xl md:text-4xl font-extrabold text-[#E6EAF0] tracking-tight mb-4">
-                Before you go —
+                Before you go
               </h2>
               <p className="text-[#E6EAF0]/38 text-[15px]">The questions people actually ask.</p>
             </div>

@@ -471,7 +471,7 @@ export default function FAQPage() {
             transition={{ duration: 0.6, delay: 0.18, ease: EASE_OUT }}
             className="text-[16px] text-[#A0A8B3] max-w-xl mx-auto leading-relaxed mb-10"
           >
-            We answer the questions that actually matter — safety, compatibility,
+            We answer the questions that actually matter: safety, compatibility,
             what to expect, and what makes SwitchControl worth using.
           </motion.p>
 
@@ -631,7 +631,7 @@ export default function FAQPage() {
                   <InfoCard
                     icon={Shield}
                     title="Anti-cheat safe"
-                    body="EAC, Vanguard, FACEIT, and BattlEye all approved. SwitchControl modifies Windows settings only — no process injection, no kernel hooks, no game file modifications."
+                    body="EAC, Vanguard, FACEIT, and BattlEye are supported. SwitchControl modifies Windows settings only. It does not inject into processes, use kernel hooks, or change game files."
                     accentColor="rgba(52,211,153,"
                     delay={0}
                   />
@@ -649,8 +649,8 @@ export default function FAQPage() {
                 <div className="mt-6 grid grid-cols-1 gap-3">
                   <InfoCard
                     icon={Brain}
-                    title="AI Advisor — hardware aware"
-                    body="The AI Advisor knows your CPU, GPU, and RAM configuration. It gives you system-specific advice — not the same generic recommendations every tweak tool gives to every user."
+                    title="AI Advisor, hardware aware"
+                    body="AI Advisor uses your CPU, GPU, and RAM configuration to provide guidance for your system. Its recommendations are based on your hardware instead of a generic checklist."
                     accentColor="rgba(168,85,247,"
                     delay={0.05}
                   />
@@ -662,14 +662,14 @@ export default function FAQPage() {
                   <InfoCard
                     icon={Zap}
                     title="Power plan impact"
-                    body="Most impactful on AMD Ryzen. Correct power plan affects boost clock behavior, memory latency, and scheduler decisions — real, measurable gains on supported hardware."
+                    body="Power plans can have the greatest effect on AMD Ryzen systems. The right profile can influence boost clock behaviour, memory latency, and scheduling when your hardware supports it."
                     accentColor="rgba(251,191,36,"
                     delay={0}
                   />
                   <InfoCard
                     icon={Wifi}
                     title="Network tweaks scope"
-                    body="Target: jitter and packet loss — not raw ping. Reduces the spikes you feel as rubber-banding in online games. Most effective on Wi-Fi and variable-latency connections."
+                    body="Network tools focus on jitter and packet loss rather than raw ping. They can reduce the connection spikes that feel like rubber banding, especially on Wi Fi and variable latency connections."
                     accentColor="rgba(59,130,246,"
                     delay={0.07}
                   />
@@ -715,7 +715,7 @@ export default function FAQPage() {
               Still have a question?
             </h2>
             <p className="text-[#6B7380] mb-8 leading-relaxed text-[15px] max-w-md mx-auto">
-              Join the Discord — we answer questions fast, and the community has been through most setup scenarios already.
+              Join the Discord. We answer questions quickly, and the community has already worked through many common setup scenarios.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
