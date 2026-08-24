@@ -1675,7 +1675,15 @@ export async function getSystemIntelligence(forceRefresh = false): Promise<Syste
 
   if (!forceRefresh && !stale && _cache) return _cache;
   if (!forceRefresh && _cache && !(await _claimDeepProbeCollection())) return _cache;
-  if (_collectingPromise) return _collectingPromise;
+  // A deep collection can contain slow or non-cancellable Windows WMI calls.
+  // Normal profile readers should never block on that work when a valid fast
+  // profile already exists; they can receive the richer profile on the next
+  // request after the background collection commits it. Explicit refreshes
+  // still await the requested collection below.
+  if (_collectingPromise) {
+    if (!forceRefresh && _cache) return _cache;
+    return _collectingPromise;
+  }
 
   _collectingPromise = collect().then((p) => {
     // Never downgrade a good in-memory cache with an all-null result (e.g. probes
