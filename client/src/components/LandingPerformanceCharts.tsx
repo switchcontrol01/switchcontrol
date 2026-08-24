@@ -276,7 +276,7 @@ function ChartCard({
    Eliminates 3× repeated <ResponsiveContainer>/<AreaChart> blocks.
 ═══════════════════════════════════════════ */
 interface DualAreaChartConfig {
-  /** Unique prefix used for linearGradient IDs — must be unique per chart on page */
+  /** Unique prefix used for linearGradient IDs, must be unique per chart on page */
   id: string;
   data: { t: number; stock: number; optimized: number }[];
   streaming: boolean;
@@ -331,7 +331,7 @@ function DualAreaChart({
 }
 
 /* ═══════════════════════════════════════════
-   Individual charts — mount-gated
+   Individual charts, mount-gated
 ═══════════════════════════════════════════ */
 function FpsChart({ active }: { active: boolean }) {
   const initial = useMemo(genFpsData, []);

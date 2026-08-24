@@ -10,7 +10,7 @@ import { INSTALLER_CONFIG, installerUrl } from "@shared/downloadConfig";
 // ── Constants ─────────────────────────────────────────────────────────────────
 const SILK = [0.22, 1, 0.36, 1] as const;
 
-// ── Ambient particles — full viewport distribution ─────────────────────────────
+// ── Ambient particles, full viewport distribution ─────────────────────────────
 const PARTICLES = Array.from({ length: 30 }, (_, i) => ({
   id: i,
   x: 3 + ((i * 29 + i * i * 3) % 93),
@@ -85,7 +85,7 @@ export default function DownloadPage() {
   const [sceneReady, setSceneReady] = useState(false);
   const rafRef = useRef<number | null>(null);
 
-  // Mouse parallax driven entirely via refs — no React state, zero re-renders per frame
+  // Mouse parallax driven entirely via refs, no React state, zero re-renders per frame
   const mouseRef = useRef({ x: 0.5, y: 0.5 });
   const glow1Ref = useRef<HTMLDivElement>(null);
   const glow2Ref = useRef<HTMLDivElement>(null);
@@ -238,14 +238,14 @@ export default function DownloadPage() {
         gap: "clamp(16px,2.5vh,24px)",
       }}>
 
-        {/* ── Background atmosphere — full-scene layered system ── */}
+        {/* ── Background atmosphere, full-scene layered system ── */}
         <div aria-hidden style={{
           position: "fixed", inset: 0, pointerEvents: "none", zIndex: 0,
           opacity: sceneReady ? 1 : 0,
           transition: "opacity 1.2s ease",
         }}>
 
-          {/* Layer 1: Primary center glow — mouse parallax via ref */}
+          {/* Layer 1: Primary center glow, mouse parallax via ref */}
           <div ref={glow1Ref} style={{
             position: "absolute", top: "8%", left: "50%",
             width: "clamp(700px,90vw,1300px)", height: "clamp(420px,58vw,820px)",
@@ -257,7 +257,7 @@ export default function DownloadPage() {
             animation: "ambientBreathe 9s ease-in-out infinite",
           }} />
 
-          {/* Layer 2: Secondary offset glow bottom-right — mouse parallax via ref */}
+          {/* Layer 2: Secondary offset glow bottom-right, mouse parallax via ref */}
           <div ref={glow2Ref} style={{
             position: "absolute", bottom: "6%", right: "4%",
             width: "clamp(260px,36vw,500px)", height: "clamp(160px,24vw,320px)",
@@ -269,7 +269,7 @@ export default function DownloadPage() {
             animation: "blobDrift2 14s ease-in-out infinite",
           }} />
 
-          {/* Layer 3: Upper-left ghost glow — mouse parallax via ref */}
+          {/* Layer 3: Upper-left ghost glow, mouse parallax via ref */}
           <div ref={glow3Ref} style={{
             position: "absolute", top: "5%", left: "2%",
             width: "clamp(200px,28vw,400px)", height: "clamp(150px,22vw,300px)",
@@ -281,7 +281,7 @@ export default function DownloadPage() {
             animation: "blobDrift3 18s ease-in-out infinite",
           }} />
 
-          {/* Layer 4: Lower mid glow — fills dead lower zone */}
+          {/* Layer 4: Lower mid glow, fills dead lower zone */}
           <div ref={glow4Ref} style={{
             position: "absolute", bottom: "22%", left: "50%",
             width: "clamp(400px,55vw,800px)", height: "clamp(200px,28vw,400px)",
@@ -301,7 +301,7 @@ export default function DownloadPage() {
             filter: "blur(48px)",
             animation: "sunStreakSweep 5s linear 0s infinite",
           }} />
-          {/* Layer 5b: Sun-streak tight bright core — 0.08s stagger so it trails naturally */}
+          {/* Layer 5b: Sun-streak tight bright core, 0.08s stagger so it trails naturally */}
           <div style={{
             position: "absolute", top: "5%", left: "-25%",
             width: "40%", height: "90%",
@@ -310,7 +310,7 @@ export default function DownloadPage() {
             animation: "sunStreakSweep 5s linear 0.08s infinite",
           }} />
 
-          {/* Layer 6: Topology / network SVG lines — staged in after 0.6s */}
+          {/* Layer 6: Topology / network SVG lines, staged in after 0.6s */}
           <svg
             viewBox="0 0 1440 900"
             fill="none"
@@ -388,7 +388,7 @@ export default function DownloadPage() {
             />
           </svg>
 
-          {/* Second topology layer — drifts opposite direction */}
+          {/* Second topology layer, drifts opposite direction */}
           <svg
             viewBox="0 0 1440 900"
             fill="none"
@@ -427,7 +427,7 @@ export default function DownloadPage() {
             />
           </svg>
 
-          {/* Layer 7: Particles — full viewport */}
+          {/* Layer 7: Particles, full viewport */}
           <div style={{
             position: "absolute", inset: 0,
             opacity: sceneReady ? 1 : 0,
@@ -542,7 +542,7 @@ export default function DownloadPage() {
           </motion.div>
         ) : (
         <>
-        {/* ── Main hero — two columns on desktop, stack on mobile ── */}
+        {/* ── Main hero, two columns on desktop, stack on mobile ── */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -591,7 +591,7 @@ export default function DownloadPage() {
               </h1>
             </motion.div>
 
-            {/* ── Live release section — replaces countdown ── */}
+            {/* ── Live release section, replaces countdown ── */}
             <motion.div {...stagger(2)} style={{ width: "100%" }}>
               <div style={{
                 position: "relative",
@@ -704,7 +704,7 @@ export default function DownloadPage() {
                 "0 0 60px rgba(109,40,217,0.14)",
               ].join(","),
             }}>
-              {/* Card header — compact inline logo + title */}
+              {/* Card header, compact inline logo + title */}
               <div style={{
                 padding: "24px 26px 20px",
                 borderBottom: "1px solid rgba(255,255,255,0.06)",
@@ -804,7 +804,7 @@ export default function DownloadPage() {
                   <Link href="/privacy" style={{ color: "rgba(139,92,246,0.75)", textDecoration: "none" }}>Privacy Policy</Link>.
                 </p>
 
-                {/* Install steps — compact */}
+                {/* Install steps, compact */}
                 <div style={{
                   marginTop: "14px", paddingTop: "14px",
                   borderTop: "1px solid rgba(255,255,255,0.06)",
@@ -832,7 +832,7 @@ export default function DownloadPage() {
           </motion.div>
         </motion.div>
 
-        {/* ── Patch notes — below the fold ── */}
+        {/* ── Patch notes, below the fold ── */}
         <div style={{ position: "relative", zIndex: 1, width: "100%", display: "flex", justifyContent: "center" }}>
           <PatchNotesCard />
         </div>

@@ -51,7 +51,7 @@ function genLowFpsData() {
   }));
 }
 
-/* ─── Tooltip style — frosted glass ─── */
+/* ─── Tooltip style, frosted glass ─── */
 const TT_STYLE = {
   backgroundColor: "rgba(255,255,255,0.07)",
   backdropFilter: "blur(24px) saturate(1.8)",

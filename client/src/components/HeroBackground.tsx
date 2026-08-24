@@ -45,7 +45,7 @@ export function HeroBackground() {
 
   return (
     <div ref={containerRef} className="absolute inset-0 overflow-hidden pointer-events-none">
-      {/* Main hero glow — direct DOM transform, zero re-renders */}
+      {/* Main hero glow, direct DOM transform, zero re-renders */}
       <div
         ref={glowRef}
         className="absolute inset-0"
@@ -71,7 +71,7 @@ export function HeroBackground() {
         }}
       />
 
-      {/* Static noise — very low opacity */}
+      {/* Static noise, very low opacity */}
       <div className="absolute inset-0 bg-noise opacity-[0.010]" />
     </div>
   );

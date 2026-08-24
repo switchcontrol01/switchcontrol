@@ -41,23 +41,23 @@ export default function Login() {
         <div className="login-sun-streak" />
         <div className="login-sun-streak-2" />
         <SpotlightCursor />
-        {/* Side particles — left strip */}
+        {/* Side particles, left strip */}
         <div className="absolute inset-0" style={{ clipPath: "inset(0 52% 0 0)" }}>
           <LoginParticles />
         </div>
-        {/* Side particles — right strip */}
+        {/* Side particles, right strip */}
         <div className="absolute inset-0" style={{ clipPath: "inset(0 0 0 52%)" }}>
           <LoginParticles />
         </div>
       </div>
 
       <main className="flex-1 flex items-center justify-center p-4 min-h-[calc(100vh-80px)] relative z-10">
-        {/* Aura behind card — warm+violet light the card emits */}
+        {/* Aura behind card, warm+violet light the card emits */}
         <div className="login-card-aura" aria-hidden="true" />
 
-        {/* Floating wrapper — CSS sine-wave float, buttery smooth */}
+        {/* Floating wrapper, CSS sine-wave float, buttery smooth */}
         <div className="w-full max-w-md relative z-10 login-card-float">
-        {/* Card entrance — spring up, scale, blur clears */}
+        {/* Card entrance, spring up, scale, blur clears */}
         <motion.div
           className="w-full max-w-md"
           initial={{ opacity: 0, y: 48, scale: 0.9, filter: "blur(18px)" }}
@@ -69,7 +69,7 @@ export default function Login() {
             {/* ── Header ── */}
             <div className="p-6 sm:p-8 text-center ">
 
-              {/* Logo — bounces in with spring */}
+              {/* Logo, bounces in with spring */}
               <motion.div
                 className="flex justify-center mb-5"
                 initial={{ opacity: 0, y: -24, scale: 0.5 }}

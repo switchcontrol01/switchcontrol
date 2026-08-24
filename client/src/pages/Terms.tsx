@@ -39,9 +39,9 @@ export default function Terms() {
                 SwitchControl offers three access states:
               </p>
               <ul className="list-disc list-inside text-[#A0A8B3] space-y-2 ml-2">
-                <li><span className="text-[#E6EAF0]">Free</span> — basic access to selected features at no cost</li>
-                <li><span className="text-[#E6EAF0]">Trial</span> — temporary access to Premium features for a limited time</li>
-                <li><span className="text-[#E6EAF0]">Premium</span> — full feature access, unlocked through purchase</li>
+                <li><span className="text-[#E6EAF0]">Free</span>, basic access to selected features at no cost</li>
+                <li><span className="text-[#E6EAF0]">Trial</span>, temporary access to Premium features for a limited time</li>
+                <li><span className="text-[#E6EAF0]">Premium</span>, full feature access, unlocked through purchase</li>
               </ul>
               <p className="text-[#A0A8B3] leading-relaxed mt-3">
                 The features available at each tier may change over time. SwitchControl reserves the right to adjust what is included in each plan.
@@ -112,7 +112,7 @@ export default function Terms() {
             <section>
               <h2 className="text-xl font-semibold text-[#E6EAF0] mb-3">9. Suspension and termination</h2>
               <p className="text-[#A0A8B3] leading-relaxed mb-2">
-                SwitchControl may suspend or terminate your access — with or without notice — if we reasonably determine that you have:
+                SwitchControl may suspend or terminate your access, with or without notice, if we reasonably determine that you have:
               </p>
               <ul className="list-disc list-inside text-[#A0A8B3] space-y-1 ml-2">
                 <li>Violated these Terms of Service</li>
@@ -136,7 +136,7 @@ export default function Terms() {
             <section>
               <h2 className="text-xl font-semibold text-[#E6EAF0] mb-3">11. No guaranteed results</h2>
               <p className="text-[#A0A8B3] leading-relaxed">
-                SwitchControl does not guarantee specific performance outcomes. Results vary based on hardware configuration, installed software, drivers, network conditions, and many other factors outside our control. This includes but is not limited to: FPS, frame time, input latency, ping, network stability, boot speed, and general system responsiveness. AI-generated recommendations and advisor outputs are provided as informational guidance only — they are not guaranteed to be accurate or suitable for every system.
+                SwitchControl does not guarantee specific performance outcomes. Results vary based on hardware configuration, installed software, drivers, network conditions, and many other factors outside our control. This includes but is not limited to: FPS, frame time, input latency, ping, network stability, boot speed, and general system responsiveness. AI-generated recommendations and advisor outputs are provided as informational guidance only, they are not guaranteed to be accurate or suitable for every system.
               </p>
             </section>
 
@@ -169,7 +169,7 @@ export default function Terms() {
             <section>
               <h2 className="text-xl font-semibold text-[#E6EAF0] mb-3">15. Limitation of liability</h2>
               <p className="text-[#A0A8B3] leading-relaxed">
-                To the fullest extent permitted by law, SwitchControl is not liable for indirect, incidental, special, consequential, or punitive damages — including but not limited to loss of data, loss of profit, or system damage — arising from your use of, or inability to use, the service.
+                To the fullest extent permitted by law, SwitchControl is not liable for indirect, incidental, special, consequential, or punitive damages, including but not limited to loss of data, loss of profit, or system damage, arising from your use of, or inability to use, the service.
               </p>
             </section>
 

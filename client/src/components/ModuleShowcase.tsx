@@ -50,7 +50,7 @@ const MODULES = [
     name: "NIC Tuning",
     icon: Network,
     description: "Adapter-level network optimization",
-    details: "Fine-tune your network adapter at the driver level — interrupt moderation, RSS queues, and power management for lower latency.",
+    details: "Fine-tune your network adapter at the driver level, interrupt moderation, RSS queues, and power management for lower latency.",
     color: "from-indigo-500/20 to-indigo-600/10",
     preview: ["Interrupt Moderation", "RSS Queues", "Offload Settings"]
   },
@@ -86,7 +86,7 @@ const MODULES = [
     name: "Security",
     icon: Shield,
     description: "Harden your system",
-    details: "Audit and harden Windows security settings — disable vulnerable services, manage firewall rules, and review startup processes for threats.",
+    details: "Audit and harden Windows security settings, disable vulnerable services, manage firewall rules, and review startup processes for threats.",
     color: "from-rose-500/20 to-rose-600/10",
     preview: ["Service Audit", "Firewall Rules", "Startup Scan"]
   },

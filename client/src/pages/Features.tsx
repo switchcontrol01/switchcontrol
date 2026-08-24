@@ -75,7 +75,7 @@ function LiveLineChart({
     const fill1 = svg.querySelector("[data-fill='1']") as SVGPathElement | null;
     const fill2 = svg.querySelector("[data-fill='2']") as SVGPathElement | null;
 
-    /* GPU: throttle decorative chart to ~3 fps — still feels alive, not CPU-heavy */
+    /* GPU: throttle decorative chart to ~3 fps, still feels alive, not CPU-heavy */
     let frameCount = 0;
     const tick = () => {
       frameCount++;
@@ -185,11 +185,11 @@ function CountUp({ to, suffix = "", duration = 1.8 }: { to: number; suffix?: str
 
 // ─── AI chat preview ──────────────────────────────────────────────────────────
 const AI_MESSAGES = [
-  { role: "system", text: "System detected: Ryzen 9 9900X · RTX 4090 · 64 GB — 38 optimizations available" },
+  { role: "system", text: "System detected: Ryzen 9 9900X · RTX 4090 · 64 GB, 38 optimizations available" },
   { role: "user",   text: "What's the single most impactful tweak I can make right now?" },
   { role: "ai",     text: "Enable CPU Core Parking Disable in Power Plan. Your Ryzen 9 is parking cores under load which is adding 4–8ms latency spikes. This alone typically drops 1% lows by 15–22%. Want me to walk you through it safely?" },
   { role: "user",   text: "Will it hurt temps or stability?" },
-  { role: "ai",     text: "No — unparking cores doesn't affect TDP or thermals. Your NH-D15 has 14°C headroom. Stability is fine; this is a scheduler policy, not an overclock." },
+  { role: "ai",     text: "No, unparking cores doesn't affect TDP or thermals. Your NH-D15 has 14°C headroom. Stability is fine; this is a scheduler policy, not an overclock." },
 ];
 
 function AIChatPreview() {
@@ -305,7 +305,7 @@ function BiosNodeGraph() {
 const WORKFLOW_STEPS = [
   { icon: Eye,         label: "Analyze",    desc: "System profile, hardware detection, active tweak audit" },
   { icon: Brain,       label: "Recommend",  desc: "AI ranks impact vs risk for your exact hardware" },
-  { icon: Target,      label: "Understand", desc: "Every change explained — not just a checkbox" },
+  { icon: Target,      label: "Understand", desc: "Every change explained, not just a checkbox" },
   { icon: Zap,         label: "Optimize",   desc: "Apply changes safely with instant rollback" },
   { icon: Activity,    label: "Monitor",    desc: "Live telemetry confirms real improvements" },
   { icon: TrendingUp,  label: "Refine",     desc: "BIOS, timing, and advanced tuning next steps" },
@@ -362,13 +362,13 @@ function WorkflowTimeline() {
 const FEATURE_CARDS = [
   { icon: Bot,         title: "AI Advisor",       desc: "Context-aware recommendations ranked by impact for your hardware.", color: "#00D4FF" },
   { icon: CircuitBoard,title: "BIOS Advisor",      desc: "Understand and action BIOS settings with guided explanations.", color: "#38bdf8" },
-  { icon: Activity,    title: "Live Telemetry",    desc: "Real-time CPU, RAM, GPU, disk — know what's actually happening.", color: "#34d399" },
-  { icon: Brain,       title: "Intelligent Ranks", desc: "Tweaks ranked by measurable impact — never blindly applied.", color: "#f59e0b" },
+  { icon: Activity,    title: "Live Telemetry",    desc: "Real-time CPU, RAM, GPU, disk, know what's actually happening.", color: "#34d399" },
+  { icon: Brain,       title: "Intelligent Ranks", desc: "Tweaks ranked by measurable impact, never blindly applied.", color: "#f59e0b" },
   { icon: Shield,      title: "Safe Rollback",     desc: "Every change is reversible. No registry nightmares.", color: "#ef4444" },
   { icon: Layers,      title: "Guided Workflow",   desc: "Analyze → recommend → explain → apply → monitor → refine.", color: "#00D4FF" },
-  { icon: Zap,         title: "Gaming Focus",      desc: "Designed for frame rates, 1% lows, and input latency — not bloat removal.", color: "#38bdf8" },
+  { icon: Zap,         title: "Gaming Focus",      desc: "Designed for frame rates, 1% lows, and input latency, not bloat removal.", color: "#38bdf8" },
   { icon: BarChart3,   title: "Performance Data",  desc: "Visual benchmarks and session history to track real gains.", color: "#34d399" },
-  { icon: Settings2,   title: "Precise Control",   desc: "Deep settings without the danger — power-user depth, consumer safety.", color: "#f59e0b" },
+  { icon: Settings2,   title: "Precise Control",   desc: "Deep settings without the danger, power-user depth, consumer safety.", color: "#f59e0b" },
 ];
 
 function FeatureCard({ feature, delay }: { feature: typeof FEATURE_CARDS[0]; delay: number }) {
@@ -443,7 +443,7 @@ function TelemetryDashboard() {
 
   useEffect(() => {
     if (!inView) return;
-    /* GPU: throttle live metrics to ~6 fps — still feels alive, not CPU-heavy */
+    /* GPU: throttle live metrics to ~6 fps, still feels alive, not CPU-heavy */
     let frameCount = 0;
     let running = true;
     const tick = () => {
@@ -631,7 +631,7 @@ function HeroDashboardMockup() {
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-[10px] text-[#6B7380]">Readiness Estimate</div>
-                <div className="text-xl font-bold text-primary font-mono">—<span className="text-xs text-[#6B7380]">/100</span></div>
+                <div className="text-xl font-bold text-primary font-mono">N/A<span className="text-xs text-[#6B7380]">/100</span></div>
               </div>
               <div className="text-[10px] text-right text-[#6B7380]">
                 <div>Run a scan for your estimate</div>
@@ -662,7 +662,7 @@ export default function Features() {
 
         <div className="max-w-6xl mx-auto">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
-            {/* Left — copy */}
+            {/* Left, copy */}
             <div>
 
               <motion.h1
@@ -684,7 +684,7 @@ export default function Features() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
               >
-                SwitchControl analyzes, explains, and optimizes your system with AI-driven guidance, BIOS insight, live telemetry, and real tuning workflows — not blind scripts.
+                SwitchControl analyzes, explains, and optimizes your system with AI-driven guidance, BIOS insight, live telemetry, and real tuning workflows, not blind scripts.
               </motion.p>
 
               <motion.div
@@ -725,7 +725,7 @@ export default function Features() {
               </motion.div>
             </div>
 
-            {/* Right — animated dashboard */}
+            {/* Right, animated dashboard */}
             <HeroDashboardMockup />
           </div>
         </div>
@@ -739,7 +739,7 @@ export default function Features() {
             pillIcon={<GitBranch className="w-3 h-3" />}
             title="Most tools just"
             titleAccent="apply scripts."
-            subtitle="SwitchControl is an optimization platform built around understanding your system — not guessing at it."
+            subtitle="SwitchControl is an optimization platform built around understanding your system, not guessing at it."
           />
 
           <div className="grid md:grid-cols-2 gap-6">
@@ -761,7 +761,7 @@ export default function Features() {
                     "Zero explanation of what each change does",
                     "No BIOS-level awareness or guidance",
                     "No hardware-specific recommendations",
-                    "No live monitoring — blind before and after",
+                    "No live monitoring, blind before and after",
                     "Optimize once, never revisit or refine",
                     "Random script packs from forum threads",
                     "One-click button that feels like placebo",
@@ -797,7 +797,7 @@ export default function Features() {
                     "Live telemetry during and after every session",
                     "Guided workflow from scan to refinement",
                     "Curated, tested, and validated optimization paths",
-                    "Transparent control — you decide, you understand",
+                    "Transparent control, you decide, you understand",
                   ].map(t => (
                     <li key={t} className="flex items-start gap-2.5 text-sm text-[#E6EAF0]/75">
                       <Check className="w-3.5 h-3.5 text-primary/80 mt-0.5 shrink-0" />
@@ -864,14 +864,14 @@ export default function Features() {
                   <span className="bg-gradient-to-r from-primary to-[#00D4FF] bg-clip-text text-transparent">just what.</span>
                 </h2>
                 <p className="text-[#A0A8B3] leading-relaxed mb-6">
-                  AI Advisor isn't a chatbot bolted on for marketing. It reads your live system state, understands your hardware, and gives ranked recommendations with real explanations — so you stop copying settings blindly and start optimizing with clarity.
+                  AI Advisor isn't a chatbot bolted on for marketing. It reads your live system state, understands your hardware, and gives ranked recommendations with real explanations, so you stop copying settings blindly and start optimizing with clarity.
                 </p>
               </Reveal>
 
               <div className="space-y-4 mt-6">
                 {[
                   { icon: Target,   title: "Impact-ranked",  desc: "Prioritizes by measurable gain on your exact CPU/GPU combo." },
-                  { icon: Brain,    title: "Explains itself", desc: "Every suggestion includes the why — not just the what." },
+                  { icon: Brain,    title: "Explains itself", desc: "Every suggestion includes the why, not just the what." },
                   { icon: Shield,   title: "Risk-aware",      desc: "Flags tweaks that need caution, so you never fly blind." },
                 ].map((item, i) => (
                   <Reveal key={item.title} delay={i * 0.1}>
@@ -911,7 +911,7 @@ export default function Features() {
                   <span className="bg-gradient-to-r from-sky-400 to-cyan-300 bg-clip-text text-transparent">never touch.</span>
                 </h2>
                 <p className="text-[#A0A8B3] leading-relaxed mb-6">
-                  BIOS configuration is the single largest untapped performance lever for most systems. Memory subtimings, power delivery, PCIe settings — they matter enormously. SwitchControl makes them understandable and actionable without requiring an engineering degree.
+                  BIOS configuration is the single largest untapped performance lever for most systems. Memory subtimings, power delivery, PCIe settings, they matter enormously. SwitchControl makes them understandable and actionable without requiring an engineering degree.
                 </p>
               </Reveal>
 
@@ -972,7 +972,7 @@ export default function Features() {
             pillIcon={<Activity className="w-3 h-3" />}
             title="See your system."
             titleAccent="In real time."
-            subtitle="Optimization without visibility is guessing. SwitchControl shows you CPU, RAM, GPU, disk, temps, and network — live — so you know what's actually happening."
+            subtitle="Optimization without visibility is guessing. SwitchControl shows you CPU, RAM, GPU, disk, temps, and network, live, so you know what's actually happening."
           />
 
           <div className="grid lg:grid-cols-5 gap-8 items-start">
@@ -984,7 +984,7 @@ export default function Features() {
                 backdropFilter: "blur(24px)",
               }}>
                 <div className="flex items-center justify-between">
-                  <div className="text-sm font-semibold text-[#E6EAF0]">CPU + RAM Load — Live</div>
+                  <div className="text-sm font-semibold text-[#E6EAF0]">CPU + RAM Load, Live</div>
                   <div className="flex items-center gap-3 text-[11px] text-[#6B7380]">
                     <span className="flex items-center gap-1"><span className="w-2 h-0.5 bg-primary inline-block rounded" /> CPU</span>
                     <span className="flex items-center gap-1"><span className="w-2 h-0.5 bg-sky-400 inline-block rounded" /> RAM</span>
@@ -1032,7 +1032,7 @@ export default function Features() {
             pillIcon={<Layers className="w-3 h-3" />}
             title="A system. Not"
             titleAccent="a button."
-            subtitle="Real optimization is a process. SwitchControl guides you through it — from first scan to sustained performance."
+            subtitle="Real optimization is a process. SwitchControl guides you through it, from first scan to sustained performance."
           />
           <WorkflowTimeline />
         </div>
@@ -1123,7 +1123,7 @@ export default function Features() {
             pillIcon={<TrendingUp className="w-3 h-3" />}
             title="Real numbers."
             titleAccent="Real gains."
-            subtitle="Measured results from optimized systems — not marketing estimates."
+            subtitle="Measured results from optimized systems, not marketing estimates."
           />
 
           <div className="grid md:grid-cols-2 gap-8">
@@ -1233,7 +1233,7 @@ export default function Features() {
               </span>
             </h2>
             <p className="text-lg text-[#A0A8B3] leading-relaxed mb-10 max-w-xl mx-auto">
-              SwitchControl gives you the analysis, the intelligence, and the workflow to optimize your system with clarity — not chance.
+              SwitchControl gives you the analysis, the intelligence, and the workflow to optimize your system with clarity, not chance.
             </p>
             <div className="flex flex-wrap gap-4 justify-center">
               <Link href="/download">

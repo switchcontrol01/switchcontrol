@@ -245,7 +245,7 @@ export default function Success() {
           return;
         }
       } catch {
-        // network blip — keep polling
+        // network blip, keep polling
       } finally {
         pollInFlightRef.current = false;
       }
@@ -271,7 +271,7 @@ export default function Success() {
     const verifyAndWait = async () => {
       try {
         // Step 1: Verify payment is confirmed and get current premium status.
-        // /api/stripe/confirm is READ-ONLY — it never writes premium.
+        // /api/stripe/confirm is READ-ONLY, it never writes premium.
         const response = await fetch("/api/stripe/confirm", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -302,7 +302,7 @@ export default function Success() {
           return;
         }
 
-        // Step 3: Payment is confirmed but webhook hasn't fired yet — wait for it.
+        // Step 3: Payment is confirmed but webhook hasn't fired yet, wait for it.
         pollCountRef.current = 0;
         setState("activating");
       } catch (err: any) {
