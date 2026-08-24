@@ -1006,10 +1006,29 @@ export async function registerRoutes(
   app.get("/downloads/:fileName", (req, res) => {
     const { fileName } = req.params;
     const source = typeof req.query.source === "string" ? req.query.source : "direct";
-    const installerUrl = process.env.INSTALLER_DOWNLOAD_URL;
+    let installerUrl = process.env.INSTALLER_DOWNLOAD_URL;
 
     if (!installerUrl) {
       console.error(`[Download] INSTALLER_DOWNLOAD_URL is not configured — cannot serve ${fileName}`);
+      return res.status(503).json({
+        error: "Installer temporarily unavailable. Please try again later.",
+        path: fileName,
+      });
+    }
+
+    // The published R2 object uses the original spaced electron-builder name.
+    // Keep older deployments from redirecting to the retired hyphenated key.
+    try {
+      const parsed = new URL(installerUrl);
+      if (/SwitchControl-Setup-1\.2\.9\.exe$/i.test(parsed.pathname)) {
+        parsed.pathname = parsed.pathname.replace(
+          /SwitchControl-Setup-1\.2\.9\.exe$/i,
+          "SwitchControl%20Setup%201.2.9.exe",
+        );
+        installerUrl = parsed.toString();
+      }
+    } catch {
+      console.warn(`[Download] Ignoring malformed INSTALLER_DOWNLOAD_URL for ${fileName}`);
       return res.status(503).json({
         error: "Installer temporarily unavailable. Please try again later.",
         path: fileName,
