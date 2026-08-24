@@ -22,6 +22,7 @@
 - [ps-shared module](ps-shared.md) — single shared PS primitive module (electron/ps-shared.js); all three executors import runPS/queryPS/checkIsAdmin/runElevated from it; one semaphore, one _isAdminCache.
 - [Version release process](version-release-process.md) — version strings live in 6+ files (no single constant); actual installer build/upload happens via GitHub Actions tag push, not in Replit.
 - [Electron startup spec enrichment](electron-startup-enrichment.md) — disk cache (specs-cache.json, 4h/24h TTL) eliminates WMI on repeat boots; si.graphics() removed from enrichment (AMD hangs); psLimiter gates all startup PS calls; two-stage: GPU immediately, CPU+disk deferred 3s.
+- [Deep hardware probe cadence](deep-hardware-probe-cadence.md) — automatic deep WMI/si enrichment is gated to every 15th launch; first install, expired cache, and explicit refreshes remain eligible.
 - [Light Mode architecture](light-mode-architecture.md) — one appModeStore drives CSS class + polling profiles + graph gating; never add per-component lightMode if-checks.
 - [Preset-card tweak pattern](preset-tweak-pattern.md) — multi-option preset tweaks mirror the slider-tweak trio exactly (executor/IPC/hook/store/UI); isAdvancedTuning flag pulls sliders+presets into one dedicated section.
 - [Telemetry startup warm-up](telemetry-startup-warmup.md) — CPU/RAM/GPU readings right after (re)start are real but caused by startup overhead, not user load; gate centrally in telemetryManager, not per-component.

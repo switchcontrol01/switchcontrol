@@ -316,7 +316,7 @@ export default function ProcessManager() {
   const heavyCount = scanResult?.processes.filter(p => (p.memoryMb > 100 || p.cpuTimeCumulative > 20) && !terminatedPids.has(p.pid)).length ?? 0;
   return (
     <AppLayout>
-      <div className="space-y-5 pb-6">
+      <div className="sc-page-blur-in space-y-5 pb-6">
         <PageHeader
           icon={Layers}
           title="Process Manager"
@@ -427,8 +427,9 @@ export default function ProcessManager() {
                   return (
                     <motion.div
                       key={p.pid}
-                      initial={{ opacity: 0, y: 6 }}
-                      animate={{ opacity: 1, y: 0 }}
+                      initial={{ opacity: 0, y: 6, filter: "blur(7px)" }}
+                      whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                      viewport={{ once: true, amount: 0.08 }}
                       exit={{ opacity: 0, height: 0 }}
                       transition={{ delay: Math.min(i * 0.02, 0.3), duration: 0.2 }}
                       className={cn(

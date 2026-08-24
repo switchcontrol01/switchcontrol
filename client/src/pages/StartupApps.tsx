@@ -325,7 +325,7 @@ export default function StartupApps() {
   return (
     <AppLayout>
 
-      <div className="relative z-10 w-full max-w-7xl mx-auto space-y-6 pb-16 pt-4 px-4 sm:px-6 lg:px-8">
+      <div className="sc-page-blur-in relative z-10 w-full max-w-7xl mx-auto space-y-6 pb-16 pt-4 px-4 sm:px-6 lg:px-8">
 
         {/* Top actions row */}
         <div className="flex justify-end gap-3 h-8">
@@ -546,7 +546,8 @@ export default function StartupApps() {
                                           <motion.div
                                             key={`${app.entry.id}-${iconRevealKey}`}
                                             initial={{ opacity: 0, y: 3 }}
-                                            animate={{ opacity: 1, y: 0 }}
+                                            whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                                            viewport={{ once: true, amount: 0.08 }}
                                             transition={{ duration: 0.2, delay: Math.min(i, 6) * 0.04 }}
                                           >
                                             <StartupAppRow
@@ -580,8 +581,9 @@ export default function StartupApps() {
                               {filteredApps.map((app, i) => (
                                 <motion.div
                                   key={`${app.entry.id}-${iconRevealKey}`}
-                                  initial={{ opacity: 0, y: 4 }}
-                                  animate={{ opacity: 1, y: 0 }}
+                                  initial={{ opacity: 0, y: 4, filter: "blur(7px)" }}
+                                  whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                                  viewport={{ once: true, amount: 0.08 }}
                                   exit={{ opacity: 0 }}
                                   transition={{ duration: 0.2, delay: Math.min(i, 8) * 0.04 }}
                                 >

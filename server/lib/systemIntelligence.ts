@@ -15,6 +15,7 @@ const execFileAsync = promisify(execFile);
 
 const CACHE_TTL_MS          = 30 * 60 * 1000; // 30-minute in-memory refresh
 const DISK_CACHE_TTL_MS     = 24 * 60 * 60 * 1000; // 24-hour disk persistence
+const DEEP_PROBE_LAUNCH_INTERVAL = 15;
 // AMD/WMI systems (e.g. Ryzen 9800X3D) can take 8-15s for a WMI call.
 // The timeout here is only for the PowerShell-based platform-states script.
 const PS_TIMEOUT_MS         = 10_000; // was 3s — many AMD WMI calls need 8-12s
@@ -538,6 +539,70 @@ let _cacheAt: number = 0;
 let _collectingPromise: Promise<SystemIntelligenceProfile> | null = null;
 let _phaseAPromise: Promise<SystemIntelligenceProfile> | null = null;
 let _diskCacheBootstrapped = false;
+
+interface DeepProbeLaunchState {
+  launchCount: number;
+  lastDeepCollectionLaunch: number | null;
+}
+
+let _deepProbeLaunchState: DeepProbeLaunchState = {
+  launchCount: 0,
+  lastDeepCollectionLaunch: null,
+};
+let _deepProbeLaunchReady: Promise<void>;
+let _deepProbeClaimed = false;
+
+function _deepProbeLaunchStatePath(): string {
+  const base = process.env.APPDATA ?? os.homedir();
+  return path.join(base, "SwitchControl", "cache", "deep-probe-launch-state.json");
+}
+
+async function _initializeDeepProbeLaunchState(): Promise<void> {
+  try {
+    const statePath = _deepProbeLaunchStatePath();
+    try {
+      const parsed = JSON.parse(await fsp.readFile(statePath, "utf-8")) as Partial<DeepProbeLaunchState>;
+      if (Number.isInteger(parsed.launchCount) && parsed.launchCount >= 0) {
+        _deepProbeLaunchState.launchCount = parsed.launchCount;
+      }
+      if (typeof parsed.lastDeepCollectionLaunch === "number") {
+        _deepProbeLaunchState.lastDeepCollectionLaunch = parsed.lastDeepCollectionLaunch;
+      }
+    } catch {}
+
+    _deepProbeLaunchState.launchCount += 1;
+    await fsp.mkdir(path.dirname(statePath), { recursive: true });
+    await fsp.writeFile(statePath, JSON.stringify(_deepProbeLaunchState), "utf-8");
+
+    const due = _deepProbeLaunchState.launchCount % DEEP_PROBE_LAUNCH_INTERVAL === 0;
+    console.log(
+      `[SysIntelligence] deep probe launch ${_deepProbeLaunchState.launchCount}/${DEEP_PROBE_LAUNCH_INTERVAL}` +
+      (due ? " — full collection eligible" : " — fast collection only"),
+    );
+  } catch (e: any) {
+    // A missing/unwritable state file must not prevent hardware collection.
+    // Treat this launch as eligible rather than silently leaving deep data stale.
+    console.warn("[SysIntelligence] Deep probe launch state unavailable:", e?.message ?? e);
+    _deepProbeLaunchState.launchCount += 1;
+  }
+}
+
+_deepProbeLaunchReady = _initializeDeepProbeLaunchState();
+
+async function _claimDeepProbeCollection(): Promise<boolean> {
+  await _deepProbeLaunchReady;
+  if (_deepProbeClaimed) return false;
+  const due = _deepProbeLaunchState.launchCount % DEEP_PROBE_LAUNCH_INTERVAL === 0;
+  if (!due) return false;
+  _deepProbeClaimed = true;
+  _deepProbeLaunchState.lastDeepCollectionLaunch = _deepProbeLaunchState.launchCount;
+  try {
+    await fsp.writeFile(_deepProbeLaunchStatePath(), JSON.stringify(_deepProbeLaunchState), "utf-8");
+  } catch (e: any) {
+    console.warn("[SysIntelligence] Deep probe launch state update failed:", e?.message ?? e);
+  }
+  return true;
+}
 
 // Pre-populate in-memory cache from disk at module load time (fire-and-forget).
 // This ensures getCachedSystemIntelligence() returns something useful on first
@@ -1609,6 +1674,7 @@ export async function getSystemIntelligence(forceRefresh = false): Promise<Syste
   const stale = Date.now() - _cacheAt > CACHE_TTL_MS;
 
   if (!forceRefresh && !stale && _cache) return _cache;
+  if (!forceRefresh && _cache && !(await _claimDeepProbeCollection())) return _cache;
   if (_collectingPromise) return _collectingPromise;
 
   _collectingPromise = collect().then((p) => {
@@ -1644,12 +1710,15 @@ export async function getSystemIntelligence(forceRefresh = false): Promise<Syste
  */
 export async function getFastSystemIntelligence(): Promise<SystemIntelligenceProfile> {
   // Disk-restored cache: already populated, just return it
-  if (_cache) return _cache;
+  if (_cache) {
+    if (await _claimDeepProbeCollection()) void getSystemIntelligence(true);
+    return _cache;
+  }
 
   // Deduplicate concurrent callers
   if (_phaseAPromise) return _phaseAPromise;
 
-  _phaseAPromise = collectFast().then((p) => {
+  _phaseAPromise = collectFast().then(async (p) => {
     // Only write Phase A data if there is no richer full profile yet
     if (!_cache) {
       _cache   = p;
@@ -1659,6 +1728,7 @@ export async function getFastSystemIntelligence(): Promise<SystemIntelligencePro
     // caller landing between the clear and the _cache write would see both as null
     // and trigger a redundant collectFast().
     _phaseAPromise = null;
+    if (await _claimDeepProbeCollection()) void getSystemIntelligence(true);
     return _cache!;
   }).catch((err) => {
     console.error("[SysIntelligence] Phase A failed:", err);
@@ -1677,10 +1747,14 @@ export async function getFastSystemIntelligence(): Promise<SystemIntelligencePro
  */
 export function triggerBackgroundCollection(): void {
   if (_collectingPromise) return; // already running
-  const stale = Date.now() - _cacheAt > CACHE_TTL_MS;
-  if (!stale && _cache) return; // fresh enough
-  console.log("[SysIntelligence] Background deep collection triggered");
-  void getSystemIntelligence();
+  void (async () => {
+    const stale = Date.now() - _cacheAt > CACHE_TTL_MS;
+    if (!stale && _cache && !(await _claimDeepProbeCollection())) return;
+    console.log("[SysIntelligence] Background deep collection triggered");
+    // The launch gate was claimed above when the cache was still fresh. For a
+    // stale cache, getSystemIntelligence() claims it itself.
+    void getSystemIntelligence(!stale);
+  })();
 }
 
 /**

@@ -251,6 +251,32 @@
   const SPECS_CACHE_TTL          = 5 * 60 * 1000;      // 5 min  — in-memory freshness
   const SPECS_DISK_SERVE_AGE_MS  = 4 * 60 * 60 * 1000; // 4 h    — serve disk cache instantly
   const SPECS_DISK_IGNORE_AGE_MS = 24 * 60 * 60 * 1000;// 24 h   — discard stale disk cache
+  const DEEP_HARDWARE_LAUNCH_INTERVAL = 15;
+  let deepHardwareProbeDue = process.platform !== 'win32';
+  let deepHardwareProbeClaimed = false;
+  try {
+    const launchStatePath = path.join(APPDATA_DIR, 'deep-hardware-launch-state.json');
+    let launchState = { launchCount: 0, lastDeepCollectionLaunch: null };
+    try {
+      const parsed = JSON.parse(fs.readFileSync(launchStatePath, 'utf8'));
+      if (Number.isInteger(parsed.launchCount) && parsed.launchCount >= 0) {
+        launchState.launchCount = parsed.launchCount;
+      }
+      if (Number.isInteger(parsed.lastDeepCollectionLaunch)) {
+        launchState.lastDeepCollectionLaunch = parsed.lastDeepCollectionLaunch;
+      }
+    } catch (_e) {}
+    launchState.launchCount += 1;
+    deepHardwareProbeDue = launchState.launchCount % DEEP_HARDWARE_LAUNCH_INTERVAL === 0;
+    fs.mkdirSync(APPDATA_DIR, { recursive: true });
+    fs.writeFileSync(launchStatePath, JSON.stringify(launchState), 'utf8');
+    console.log(`[Enrich] deep hardware launch ${launchState.launchCount}/${DEEP_HARDWARE_LAUNCH_INTERVAL}` +
+      (deepHardwareProbeDue ? ' — full enrichment eligible' : ' — cached/instant path only'));
+  } catch (e) {
+    // An unwritable counter must not make hardware detection unavailable.
+    deepHardwareProbeDue = true;
+    console.warn('[Enrich] deep hardware launch state unavailable:', e.message || e);
+  }
   let lastCpuLoad = 0;
   
   // ─── Live telemetry cache ────────────────────────────────────────────────────
@@ -2628,7 +2654,8 @@ ConvertTo-Json -InputObject $result -Compress -Depth 2
   // ── Specs disk cache ──────────────────────────────────────────────────────────
   // Saves enriched hardware specs to disk after the first successful enrichment.
   // On subsequent launches the cache is loaded instantly — zero WMI/si calls.
-  // Cache is served as-is when < 4h old; refreshed in background when 4-24h old;
+  // Cache is served as-is when < 4h old; refreshed in background on the
+  // 15th launch when 4-24h old; ignored and re-probed when > 24h old.
   // ignored and re-probed when > 24h old (e.g. hardware change after Windows Update).
   
   function _loadSpecsFromDisk() {
@@ -2638,6 +2665,7 @@ ConvertTo-Json -InputObject $result -Compress -Depth 2
       if (!raw || typeof raw._savedAt !== 'number' || !raw.cpu || !raw.gpu) return null;
       const age = Date.now() - raw._savedAt;
       if (age > SPECS_DISK_IGNORE_AGE_MS) {
+        deepHardwareProbeDue = true;
         verboseLog('[Enrich] disk cache too old (' + Math.round(age / 3600000) + 'h) — ignored');
         return null;
       }
@@ -2745,8 +2773,13 @@ ConvertTo-Json -InputObject $result -Compress -Depth 2
   //                           syncAll PS calls have finished, then save to disk.
   let _enrichmentInFlight = null; // null | Promise<void> — deduplicates concurrent callers
 
-  function _enrichSpecsInBackground() {
+  function _enrichSpecsInBackground({ force = false } = {}) {
     if (_enrichmentInFlight) return _enrichmentInFlight;
+    if (!force && (!deepHardwareProbeDue || deepHardwareProbeClaimed)) {
+      console.log('[Enrich] deep enrichment skipped — launch cadence gate');
+      return Promise.resolve();
+    }
+    deepHardwareProbeClaimed = true;
     _enrichmentInFlight = _runEnrichment();
     return _enrichmentInFlight;
   }
@@ -2958,6 +2991,7 @@ ConvertTo-Json -InputObject $result -Compress -Depth 2
   
       // No disk cache — build instant result (sync OS APIs only, <1ms), then
       // fire background enrichment for GPU/disk/full-CPU.
+      deepHardwareProbeDue = true;
       cachedSpecs = _buildInstantSpecs();
       // If the startup WMI fast-path already resolved (race window ~0-2s),
       // apply GPU name immediately so callers never see "Detecting…".
@@ -4688,7 +4722,7 @@ public class DspHelper {
     configStore.set('selectedGpuIndex', idx);
     _invalidateGpuCache();
     console.log('[GPU] user selected GPU', idx, ':', wmiGpuModelName);
-    void _enrichSpecsInBackground();
+    void _enrichSpecsInBackground({ force: true });
     return { ok: true, index: idx, name: wmiGpuModelName };
   });
 

@@ -139,6 +139,20 @@ html.sc-reduced-motion *::after {
   from { opacity: 0; filter: blur(9px); transform: translateY(-10px) scale(0.94); }
   to { opacity: 1; filter: blur(0); transform: translateY(0) scale(1); }
 }
+.sc-page-blur-in {
+  animation: sc-page-blur-in 0.58s cubic-bezier(0.22, 1, 0.36, 1) both;
+  transform-origin: 50% 0;
+}
+@keyframes sc-page-blur-in {
+  from { opacity: 0; filter: blur(12px); transform: translateY(8px); }
+  to { opacity: 1; filter: blur(0); transform: translateY(0); }
+}
+html.sc-reduced-motion .sc-page-blur-in {
+  animation: none;
+  opacity: 1;
+  filter: none;
+  transform: none;
+}
 .sc-icon-scan-reveal {
   opacity: 0;
   animation: sc-icon-scan-reveal 0.48s cubic-bezier(0.22, 1, 0.36, 1) forwards;

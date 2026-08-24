@@ -13,7 +13,7 @@ On every launch, `loadSystemSpecs()` checks `specs-cache.json` before spawning a
 
 - **Location:** `SPECS_CACHE_FILE` from `user-data-paths.js` → `%APPDATA%\SwitchControl\specs-cache.json`
 - **Serve instantly (<4h):** return `cachedSpecs` from file, no enrichment
-- **Background refresh (4h–24h):** serve file, fire `_enrichSpecsInBackground()` silently
+- **Background refresh (4h–24h):** serve file, fire `_enrichSpecsInBackground()` silently only on the 15th launch
 - **Ignore (>24h):** discard file, run full fresh enrichment (handles GPU swaps, Windows Update)
 - RAM fields are always refreshed from `os.totalmem()/os.freemem()` (change each boot)
 - Written at end of enrichment Stage 2 (`_saveSpecsToDisk`)

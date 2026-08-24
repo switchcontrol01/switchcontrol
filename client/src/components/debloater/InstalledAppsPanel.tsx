@@ -1045,7 +1045,7 @@ export function InstalledAppsPanel() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="sc-page-blur-in space-y-4">
 
       {/* ── Header ──────────────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between flex-wrap gap-3">
@@ -1206,8 +1206,9 @@ export function InstalledAppsPanel() {
                   <motion.div
                     key={app.id}
                     layout
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
+                    initial={{ opacity: 0, y: 8, filter: "blur(7px)" }}
+                    whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                    viewport={{ once: true, amount: 0.08 }}
                     exit={{ opacity: 0, x: -12, transition: { duration: 0.18 } }}
                     transition={{ duration: 0.22, delay: Math.min(i * 0.015, 0.3), ease: [0.22, 1, 0.36, 1] }}
                   >
