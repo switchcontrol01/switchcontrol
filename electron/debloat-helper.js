@@ -255,10 +255,11 @@ ipcMain.handle('debloat:removeItem', async (event, item) => {
         return { ok: false, status: 'unsupported', error: 'Invalid service name' };
       }
       cmd = `
-        $svc = Get-Service -Name '${psEscape(item.serviceName)}' -ErrorAction SilentlyContinue
+        $svc = Get-CimInstance Win32_Service -Filter "Name='${psEscape(item.serviceName)}'" -ErrorAction SilentlyContinue
         If (!$svc) { Write-Output 'already-absent'; Exit }
         Stop-Service -Name '${psEscape(item.serviceName)}' -Force -ErrorAction SilentlyContinue
-        Set-Service -Name '${psEscape(item.serviceName)}' -StartupType Disabled -ErrorAction Stop
+        & sc.exe config '${psEscape(item.serviceName)}' start= disabled | Out-Null
+        If ($LASTEXITCODE -ne 0) { throw "Windows could not disable service ${psEscape(item.serviceName)} (sc.exe exit $LASTEXITCODE)" }
         Write-Output 'removed'
       `;
     } else if (item.type === 'task') {
@@ -405,10 +406,11 @@ async function verifyItem(item) {
   } else if (item.type === 'service') {
     if (!isSafeServiceName(item.serviceName)) return false;
     const out = await runPS(
-      `Try { (Get-Service -Name '${psEscape(item.serviceName)}' -ErrorAction Stop).StartType } Catch { Write-Output '__missing__' }`,
+      `$svc = Get-CimInstance Win32_Service -Filter "Name='${psEscape(item.serviceName)}'" -ErrorAction SilentlyContinue; ` +
+      `If (!$svc -or $svc.StartMode -eq 'Disabled') { Write-Output 'absent' } Else { Write-Output 'present' }`,
       6000
     );
-    return out.trim().toLowerCase() === 'disabled';
+    return out.trim().toLowerCase() === 'absent';
   } else if (item.type === 'task') {
     if (!Array.isArray(item.taskPaths) || !item.taskPaths.every(isSafeTaskPath)) return false;
     const pathArr = item.taskPaths.map(p => `'${psEscape(p)}'`).join(', ');
