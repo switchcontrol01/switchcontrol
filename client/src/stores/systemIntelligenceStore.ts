@@ -226,21 +226,33 @@ export const useSystemIntelligenceStore = create<SystemIntelligenceState>((set, 
       set({ profile: data, activeHardwareProfile: data, initSpecsFetched: true, loading: false, fetchedAt: Date.now() });
       console.log(`[SysIntelligence] Fast profile loaded | MB=${data.baseboard.model} | CPU=${data.cpu.brand}`);
 
-      // 25s after the fast fetch, silently upgrade to the full profile.
-      // By then the background full collection started by /fast is complete
-      // and /profile returns rich platform/storage/network data from cache.
+      // Start checking for the deep profile shortly after the fast profile.
+      // The server deduplicates the expensive collection, while the short
+      // client timeout prevents one slow WMI request from holding the UI open.
       if (!forceRefresh && !_fullCollectScheduled) {
         _fullCollectScheduled = true;
-        setTimeout(async () => {
+        const pollFullProfile = async (attempt: number) => {
+          if (generation !== _fetchGeneration || attempt > 24) return;
+          const controller = new AbortController();
+          const timeoutId = window.setTimeout(() => controller.abort(), 7_000);
           try {
-            const fullRes = await fetch("/api/system-intelligence/profile");
+            const fullRes = await fetch("/api/system-intelligence/profile", {
+              signal: controller.signal,
+            });
             if (!fullRes.ok) return;
             const fullData = await fullRes.json() as SystemIntelligenceProfile;
             if (generation !== _fetchGeneration) return;
             set({ profile: fullData, activeHardwareProfile: fullData, fetchedAt: Date.now() });
             console.log(`[SysIntelligence] Full profile upgrade | MB=${fullData.baseboard.model} | platform.secureBoot=${fullData.platform.secureBootEnabled}`);
-          } catch {}
-        }, 25_000);
+            return;
+          } catch {
+            // A client timeout is expected while Windows finishes a slow WMI probe.
+          } finally {
+            window.clearTimeout(timeoutId);
+          }
+          window.setTimeout(() => { void pollFullProfile(attempt + 1); }, 3_000);
+        };
+        window.setTimeout(() => { void pollFullProfile(0); }, 5_000);
       }
     } catch (err: any) {
       if (generation !== _fetchGeneration) return;
