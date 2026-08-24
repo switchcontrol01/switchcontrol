@@ -3192,7 +3192,7 @@ ConvertTo-Json -InputObject $result -Compress -Depth 2
     # values are not silently presented as the wrong physical connector.
     switch ([int]$n) {
       1{"VGA"} 5{"DVI"} 6{"HDMI"} 8{"Internal (eDP)"}
-      11{"DisplayPort"} 12{"DisplayPort (Embedded)"} 16{"Miracast"}
+      10{"DisplayPort"} 11{"DisplayPort"} 12{"DisplayPort (Embedded)"} 16{"Miracast"}
       default{$null}
     }
   }
@@ -3230,13 +3230,12 @@ public class DspHelper {
 }
 '@ -EA Stop
     $dispDevs = @()
-    $di = [uint32]0
-    while ($true) {
-      $dd2 = New-Object DspHelper+DISPLAY_DEVICE; $dd2.cb = [System.Runtime.InteropServices.Marshal]::SizeOf($dd2)
-      if (![DspHelper]::EnumDisplayDevices($null, $di, [ref]$dd2, 0)) { break }
-      if ($dd2.StateFlags -band 1) {
-        $dm2 = New-Object DspHelper+DEVMODE; $dm2.dmSize = [System.Runtime.InteropServices.Marshal]::SizeOf($dm2)
-        if ([DspHelper]::EnumDisplaySettings($dd2.DeviceName, -1, [ref]$dm2)) {
+    # Enumerate each logical screen, not each GPU adapter. One adapter can
+    # drive multiple monitors, so adapter enumeration loses secondary output
+    # refresh rates.
+    foreach ($screen in $screens) {
+      $dm2 = New-Object DspHelper+DEVMODE; $dm2.dmSize = [System.Runtime.InteropServices.Marshal]::SizeOf($dm2)
+      if ([DspHelper]::EnumDisplaySettings($screen.device, -1, [ref]$dm2)) {
           # Some AMD/Windows driver combinations return the active mode with
           # dmDisplayFrequency=0 even though the supported mode list below
           # contains the real refresh rates. Keep the display record in that
@@ -3248,7 +3247,7 @@ public class DspHelper {
           # Secondary call — extract monitor hardware ID from DeviceID (e.g. MONITOR\SAM0E4F\...)
           $hwId = $null
           $dd3 = New-Object DspHelper+DISPLAY_DEVICE; $dd3.cb = [System.Runtime.InteropServices.Marshal]::SizeOf($dd3)
-           if ([DspHelper]::EnumDisplayDevices($dd2.DeviceName, [uint32]0, [ref]$dd3, 0)) {
+            if ([DspHelper]::EnumDisplayDevices($screen.device, [uint32]0, [ref]$dd3, 0)) {
              if ($dd3.DeviceID -and $dd3.DeviceID -match '(?i)(?:MONITOR|DISPLAY)\\([^\\]+)') { $hwId = $Matches[1].ToUpper() }
           }
           # Enumerate ALL supported display modes to find the maximum refresh rate this
@@ -3256,14 +3255,13 @@ public class DspHelper {
           $maxHz2 = $dm2.dmDisplayFrequency
           $modeN = [uint32]0
           $dmE = New-Object DspHelper+DEVMODE; $dmE.dmSize = [System.Runtime.InteropServices.Marshal]::SizeOf($dmE)
-          while ([DspHelper]::EnumDisplaySettings($dd2.DeviceName, $modeN, [ref]$dmE)) {
+          while ([DspHelper]::EnumDisplaySettings($screen.device, $modeN, [ref]$dmE)) {
             if ($dmE.dmDisplayFrequency -gt $maxHz2) { $maxHz2 = $dmE.dmDisplayFrequency }
             $modeN++
           }
-           $dispDevs += @{ x=$dm2.dmPositionX; y=$dm2.dmPositionY; hz=$dm2.dmDisplayFrequency; maxHz=$maxHz2; w=$dm2.dmPelsWidth; h=$dm2.dmPelsHeight; bpp=$dm2.dmBitsPerPel; hwId=$hwId; displayName=$dd3.DeviceString }
+           $dispDevs += @{ x=$screen.x; y=$screen.y; hz=$dm2.dmDisplayFrequency; maxHz=$maxHz2; w=$dm2.dmPelsWidth; h=$dm2.dmPelsHeight; bpp=$dm2.dmBitsPerPel; hwId=$hwId; displayName=$dd3.DeviceString }
         }
       }
-      $di++
     }
   } catch {}
   
