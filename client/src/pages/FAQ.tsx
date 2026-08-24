@@ -754,7 +754,7 @@ export default function FAQPage() {
               {[
                 { icon: CheckCircle2, text: "Responses within 24h" },
                 { icon: CheckCircle2, text: "Real human support" },
-                { icon: CheckCircle2, text: "Community of 100+ users" },
+                { icon: CheckCircle2, text: "Community of 500+ users" },
               ].map(r => (
                 <div key={r.text} className="flex items-center gap-1.5 text-[12px] text-[#6B7380]">
                   <r.icon className="size-3.5 text-emerald-500/60" />
