@@ -1184,6 +1184,12 @@ export default function SystemCleaner() {
                         "rounded-xl border overflow-hidden transition-opacity duration-200",
                         isSkipped
                           ? "border-white/[0.04] bg-white/[0.01] opacity-35"
+                            : result?.status === "cleaned"
+                              ? "border-green-400/25 bg-green-400/[0.035] shadow-[0_0_18px_rgba(74,222,128,0.06)]"
+                              : result?.status === "partial"
+                                ? "border-amber-400/25 bg-amber-400/[0.025]"
+                                : result?.status === "failed"
+                                  ? "border-red-400/25 bg-red-400/[0.025]"
                           : "border-white/[0.07] bg-white/[0.02]",
                       )}
                     >
@@ -1210,15 +1216,22 @@ export default function SystemCleaner() {
                           <span className="text-[10px] text-[#3a4050] font-medium shrink-0 italic">Skipped</span>
                         ) : result ? (
                           <div className="flex items-center gap-1 shrink-0">
-                            {result.status === "cleaned" ? (
+                            {result.status === "cleaned" || result.status === "partial" ? (
                               <>
-                                <CheckCircle2 className="w-3 h-3 text-green-400" />
-                                <span className="text-[10px] text-green-400 font-semibold">{fmtBytes(result.bytesRemoved)}</span>
+                                <CheckCircle2 className={cn("w-3 h-3", result.status === "cleaned" ? "text-green-400" : "text-amber-400")} />
+                                <span className={cn("text-[10px] font-semibold", result.status === "cleaned" ? "text-green-400" : "text-amber-400")}>
+                                  {result.status === "partial" && result.bytesRemoved === 0 ? "Partial" : fmtBytes(result.bytesRemoved)}
+                                </span>
                               </>
                             ) : result.status === "nothing" ? (
                               <span className="text-[10px] text-[#4a5460]">–</span>
                             ) : (
-                              <span className="text-[10px] text-red-400">Err</span>
+                              <span
+                                className="text-[10px] text-red-400"
+                                title={result.error || "This cleanup item could not be completed"}
+                              >
+                                Err
+                              </span>
                             )}
                           </div>
                         ) : (
