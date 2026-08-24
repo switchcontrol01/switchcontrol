@@ -3762,42 +3762,6 @@ public class DspHelper {
         };
       });
 
-      // The WMI/EDID path can legitimately return no records on a driver
-      // transition even though Electron already knows the active displays.
-      // Keep Display Signal useful with the OS display list as a safe fallback.
-      if (monitors.length === 0) {
-        try {
-          monitors = screen.getAllDisplays().map((display, index) => ({
-            id: `electron_${display.id ?? index}`,
-            name: null,
-            manufacturer: null,
-            serial: null,
-            connectionType: null,
-            currentResX: Number(display.size?.width) || null,
-            currentResY: Number(display.size?.height) || null,
-            refreshHz: Number(display.displayFrequency) > 0 ? Number(display.displayFrequency) : null,
-            maxRefreshHz: null,
-            bitsPerPixel: null,
-            nativeResX: null,
-            nativeResY: null,
-            edidVersion: null,
-            hdrEnabled: null,
-            vrrEnabled: null,
-            vrrCapable: null,
-            freeSyncEnabled: null,
-            vrrMin: null,
-            vrrMax: null,
-            gpuName: null,
-            isPrimary: display.bounds?.x === 0 && display.bounds?.y === 0,
-          }));
-          if (monitors.length > 0) {
-            console.info(`[system:getDisplayInfo] WMI empty — using Electron display fallback (${monitors.length} display(s))`);
-          }
-        } catch (fallbackError) {
-          console.warn('[system:getDisplayInfo] Electron display fallback failed:', fallbackError.message);
-        }
-      }
-  
       const result = { monitors, scannedAt: parsed.scannedAt ?? Date.now() };
       _displayInfoCache = result;
       _displayInfoCachedAt = Date.now();

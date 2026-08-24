@@ -48,7 +48,6 @@ import {
   MemoryPressureGraph,
   StorageActivityGraph,
   SystemRhythmGraph,
-  DisplaySignalGraph,
 } from "@/components/graphs/PremiumDashboardGraphs";
 
 
@@ -1053,8 +1052,6 @@ export default function Home() {
               <div><SystemRhythmGraph delay={0.1} /></div>
             </div>
 
-            {/* Display Signal, live intelligence panel, always shown */}
-            <DisplaySignalGraph delay={0.1} />
           </LiveGraphsGate>
         </Reveal>
 
