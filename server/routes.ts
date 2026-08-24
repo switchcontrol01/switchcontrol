@@ -1,5 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import { Readable } from "stream";
 import { pool } from "./db";
 import { storage } from "./storage";
 import { z } from "zod";
@@ -1002,9 +1003,9 @@ export async function registerRoutes(
   });
 
   // ── Installer download route ──────────────────────────────────────────────────
-  // Serves the SwitchControl Windows installer. INSTALLER_DOWNLOAD_URL must be set
-  // to the real hosted file URL (e.g. Cloudflare R2, S3, etc).
-  app.get("/downloads/:fileName", (req, res) => {
+  // Proxies the SwitchControl Windows installer so the storage provider URL
+  // never leaks into the browser's address bar or download history.
+  app.get("/downloads/:fileName", async (req, res) => {
     const { fileName } = req.params;
     const source = typeof req.query.source === "string" ? req.query.source : "direct";
     let installerUrl = process.env.INSTALLER_DOWNLOAD_URL;
@@ -1032,10 +1033,37 @@ export async function registerRoutes(
       });
     }
 
-    // fileName is accepted in the route param for URL compatibility but does not
-    // affect which file is served — all requests redirect to INSTALLER_DOWNLOAD_URL.
-    console.log(`[Download] Installer requested — requestedFile=${fileName} source=${source} redirectsTo=${installerUrl}`);
-    res.redirect(302, installerUrl);
+    console.log(`[Download] Installer requested — requestedFile=${fileName} source=${source} proxyingCurrentRelease=true`);
+
+    try {
+      const upstream = await fetch(installerUrl);
+      if (!upstream.ok || !upstream.body) {
+        console.error(`[Download] Upstream installer unavailable — status=${upstream.status}`);
+        return res.status(502).json({ error: "Installer temporarily unavailable. Please try again later." });
+      }
+
+      res.statusCode = 200;
+      res.setHeader("Content-Type", upstream.headers.get("content-type") || "application/octet-stream");
+      const contentLength = upstream.headers.get("content-length");
+      if (contentLength) res.setHeader("Content-Length", contentLength);
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="SwitchControl Setup ${INSTALLER_CONFIG.version}.exe"; filename*=UTF-8''SwitchControl%20Setup%20${INSTALLER_CONFIG.version}.exe`,
+      );
+      res.setHeader("Cache-Control", "public, max-age=3600");
+      Readable.fromWeb(upstream.body as any).on("error", (error) => {
+        console.error("[Download] Installer proxy stream failed:", error);
+        if (!res.headersSent) res.status(502);
+        res.destroy(error);
+      }).pipe(res);
+    } catch (error) {
+      console.error("[Download] Installer proxy request failed:", error);
+      if (!res.headersSent) {
+        res.status(502).json({ error: "Installer temporarily unavailable. Please try again later." });
+      } else {
+        res.destroy(error as Error);
+      }
+    }
   });
 
   return httpServer;
