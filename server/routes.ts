@@ -7,6 +7,7 @@ import { setupGoogleAuth, requirePremium } from "./auth/google";
 import { setupDiscordAuth } from "./auth/discord";
 import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClient";
 import { isPremiumTweakById } from "../shared/tweak-tiers";
+import { INSTALLER_CONFIG } from "../shared/downloadConfig";
 import { getTierFromTweakCount, getRandomMessage, getSmartRecommendations, type SystemContext } from "./lib/aiMessages";
 import { csrfProtection, generateCsrfToken } from "./middleware/csrf";
 import { requireJwt, requireCloudPremium } from "./middleware/requireCloudAuth";
@@ -1016,17 +1017,13 @@ export async function registerRoutes(
       });
     }
 
-    // The published R2 object uses the original spaced electron-builder name.
-    // Keep older deployments from redirecting to the retired hyphenated key.
+    // Always target the current release object. The deployment variable may
+    // retain an older version after a release, which otherwise causes a
+    // confusing R2 404 even though the current installer is present.
     try {
       const parsed = new URL(installerUrl);
-      if (/SwitchControl-Setup-1\.2\.9\.exe$/i.test(parsed.pathname)) {
-        parsed.pathname = parsed.pathname.replace(
-          /SwitchControl-Setup-1\.2\.9\.exe$/i,
-          "SwitchControl%20Setup%201.2.9.exe",
-        );
-        installerUrl = parsed.toString();
-      }
+      parsed.pathname = `/${encodeURIComponent(INSTALLER_CONFIG.fileName)}`;
+      installerUrl = parsed.toString();
     } catch {
       console.warn(`[Download] Ignoring malformed INSTALLER_DOWNLOAD_URL for ${fileName}`);
       return res.status(503).json({
