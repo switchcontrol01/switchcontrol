@@ -71,3 +71,4 @@
 - [Network verification cache boundary](network-verification-cache.md) — Electron may paint cached network states, but must always reconcile them with live Windows checks.
 - [Account-switch revert boundary](account-switch-revert-boundary.md) — normal logout preserves device ownership for downgrade reverts; deleting AppData loses baselines and causes fail-safe skips.
 - [Windows msinfo32 popup](windows-msinfo32-popup.md) — hidden msinfo32 report launches can still display a System Information dialog; use direct registry probes instead.
+- [Partial system profile cache](partial-system-profile-cache.md) — focused identity results must remain stale until the complete inventory finishes, or deep polling falsely accepts partial data.

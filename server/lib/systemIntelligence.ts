@@ -540,6 +540,7 @@ let _collectingPromise: Promise<SystemIntelligenceProfile> | null = null;
 let _phaseAPromise: Promise<SystemIntelligenceProfile> | null = null;
 let _identityPromise: Promise<SystemIntelligenceProfile> | null = null;
 let _diskCacheBootstrapped = false;
+let _fullProfileAvailable = false;
 
 interface DeepProbeLaunchState {
   launchCount: number;
@@ -1754,6 +1755,7 @@ export async function getSystemIntelligence(forceRefresh = false): Promise<Syste
                   p.memory.sticks.length === 0 && p.storage.layout.length === 0;
     if (!empty || !_cache) {
       _cache = p;
+      _fullProfileAvailable = !empty;
     }
     _cacheAt = Date.now(); // always advance timestamp to stop re-collect spam
     _collectingPromise = null;
@@ -1821,7 +1823,11 @@ export async function getAdvancedIdentity(): Promise<SystemIntelligenceProfile> 
   _identityPromise = collectAdvancedIdentity()
     .then((profile) => {
       _cache = profile;
-      _cacheAt = Date.now();
+      _fullProfileAvailable = false;
+      // Keep the partial profile marked stale. The client will poll /profile
+      // for the complete inventory, and a fresh timestamp here would make
+      // getSystemIntelligence() incorrectly return this partial snapshot.
+      _cacheAt = 0;
       return profile;
     })
     .catch((err) => {
@@ -1857,6 +1863,11 @@ export function triggerBackgroundCollection(): void {
 export function invalidateSystemIntelligence(): void {
   _cacheAt = 0;
   _cache = null;
+  _fullProfileAvailable = false;
+}
+
+export function isFullSystemIntelligenceAvailable(): boolean {
+  return _fullProfileAvailable;
 }
 
 /**

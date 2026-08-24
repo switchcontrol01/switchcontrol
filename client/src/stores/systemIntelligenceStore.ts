@@ -238,7 +238,7 @@ export const useSystemIntelligenceStore = create<SystemIntelligenceState>((set, 
           const controller = new AbortController();
           const timeoutId = window.setTimeout(() => controller.abort(), 7_000);
           try {
-            const fullRes = await fetch("/api/system-intelligence/profile", {
+            const fullRes = await fetch("/api/system-intelligence/profile?deep=1", {
               signal: controller.signal,
             });
             if (!fullRes.ok) return;

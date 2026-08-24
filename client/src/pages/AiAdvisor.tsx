@@ -526,7 +526,6 @@ function CoveragePanel({
   isElectron: boolean;
 }) {
   const allUnavailable = !coverage || (
-    coverage.display === "unavailable" &&
     coverage.networkTweaks === "unavailable" &&
     coverage.telemetry === "unavailable" &&
     coverage.systemIntel === "unavailable"
@@ -560,21 +559,6 @@ function CoveragePanel({
                 : (context?.system?.cpu && context.system.cpu !== "Unavailable")
                   ? "available"
                   : "unavailable"
-            }
-          />
-          <CoverageRow
-            label="Display Signal"
-            status={
-              coverage?.display !== "unavailable"
-                ? (coverage?.display ?? "unavailable")
-                : context?.system?.display
-                  ? "available"
-                  : "unavailable"
-            }
-            detail={
-              ctxData?.display.refreshHz
-                ? `${ctxData.display.refreshHz}Hz`
-                : undefined
             }
           />
           <CoverageRow

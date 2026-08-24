@@ -12,6 +12,7 @@ import {
   getSystemIntelligence,
   getFastSystemIntelligence,
   getAdvancedIdentity,
+  isFullSystemIntelligenceAvailable,
   triggerBackgroundCollection,
   invalidateSystemIntelligence,
 } from "../lib/systemIntelligence";
@@ -80,7 +81,11 @@ router.post("/trigger-background", requireJwt, backgroundTriggerRateLimit, (_req
 
 router.get("/profile", requireJwt, async (_req, res) => {
   try {
-    const profile = await getSystemIntelligence();
+    // The browser's post-identity polling explicitly asks for the complete
+    // inventory. Normal callers retain the launch-gated cached behavior.
+    const profile = await getSystemIntelligence(
+      _req.query.deep === "1" && !isFullSystemIntelligenceAvailable(),
+    );
     res.json(profile);
   } catch (err: any) {
     console.error("[SysIntelligence] /profile error:", err?.message);
