@@ -1162,6 +1162,7 @@
             failedCount: data.failCount,
             skippedCount: skipped,
             currentItemName: null,
+             completedAt: Date.now(),
             requiresRestart: data.requiresRestart,
             requiresSignOut: data.requiresSignOut,
             restorePointCreated: false,

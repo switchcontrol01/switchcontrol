@@ -29,6 +29,7 @@ export interface ApplyProgressState {
   skippedCount: number;
   currentItemName: string | null;
   startTime: number;
+  completedAt?: number;
   requiresRestart?: boolean;
   requiresSignOut?: boolean;
   restorePointCreated?: boolean;
@@ -242,7 +243,7 @@ export function ApplyProgressOverlay({ isOpen, state, onClose, onViewResults }: 
   }, [isOpen, state.phase, onClose]);
 
   const elapsed = state.phase === "complete"
-    ? (state.startTime ? Date.now() - state.startTime : 0)
+    ? (state.startTime ? (state.completedAt ?? Date.now()) - state.startTime : 0)
     : (state.startTime ? now - state.startTime : 0);
 
   const pct = state.totalCount > 0

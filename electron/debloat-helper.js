@@ -26,6 +26,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const psLimiter = require('./powershell-limiter');
+const { runElevated } = require('./ps-shared');
 // ── Icon utilities (single source in file-icon.js) ────────────────────────────
 // resolveIconPath, collectExeFilesRecursive, expandEnvVars, and the EXE_SCAN_*
 // constants now live in file-icon.js so they can be reused by any future caller
@@ -256,11 +257,14 @@ ipcMain.handle('debloat:removeItem', async (event, item) => {
       }
       cmd = `
         $svc = Get-CimInstance Win32_Service -Filter "Name='${psEscape(item.serviceName)}'" -ErrorAction SilentlyContinue
-        If (!$svc) { Write-Output 'already-absent'; Exit }
-        Stop-Service -Name '${psEscape(item.serviceName)}' -Force -ErrorAction SilentlyContinue
-        & sc.exe config '${psEscape(item.serviceName)}' start= disabled | Out-Null
-        If ($LASTEXITCODE -ne 0) { throw "Windows could not disable service ${psEscape(item.serviceName)} (sc.exe exit $LASTEXITCODE)" }
-        Write-Output 'removed'
+        If (!$svc) {
+          Write-Output 'already-absent'
+        } Else {
+          Stop-Service -Name '${psEscape(item.serviceName)}' -Force -ErrorAction SilentlyContinue
+          & sc.exe config '${psEscape(item.serviceName)}' start= disabled | Out-Null
+          If ($LASTEXITCODE -ne 0) { throw "Windows could not disable service ${psEscape(item.serviceName)} (sc.exe exit $LASTEXITCODE)" }
+          Write-Output 'removed'
+        }
       `;
     } else if (item.type === 'task') {
       if (!Array.isArray(item.taskPaths) || item.taskPaths.length === 0 || !item.taskPaths.every(isSafeTaskPath)) {
@@ -279,7 +283,16 @@ ipcMain.handle('debloat:removeItem', async (event, item) => {
     } else {
       return { ok: false, status: 'unsupported', error: 'Unknown item type' };
     }
-    const out = await runPS(cmd, 15000);
+    // Service configuration is protected by Windows even when the current
+    // PowerShell process can query the service. Use the existing hidden UAC
+    // path so Delivery Optimization and similar services do not fail with
+    // sc.exe exit code 5 (access denied).
+    if (item.type === 'service') {
+      const elevated = await runElevated(cmd, { tempFilePrefix: 'sc_debloat_' });
+      if (!elevated.ok) throw new Error(elevated.error || 'Administrator permission was required.');
+    } else {
+      await runPS(cmd, 15000);
+    }
     const result = out.includes('already-absent') ? 'already-absent' : 'removed';
     let verified = false;
     try { verified = await verifyItem(item); } catch {}
