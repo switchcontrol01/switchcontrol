@@ -1404,7 +1404,7 @@
   
     return (
       <AppLayout>
-        <Reveal className="space-y-5">
+        <Reveal className="sc-page-blur-in space-y-5">
   
           {/* Header */}
           <PageHeader
@@ -1825,7 +1825,14 @@
                                     const hasWarning = item.requiresAdmin || item.requiresSignOut || item.requiresRestart;
   
                                     return (
-                                      <div key={item.id} data-testid={`item-${item.id}`}>
+                                      <motion.div
+                                        key={item.id}
+                                        initial={{ opacity: 0, y: 6, filter: "blur(6px)" }}
+                                        whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                                        viewport={{ once: true, amount: 0.08 }}
+                                        transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+                                        data-testid={`item-${item.id}`}
+                                      >
                                         {/* Compact row */}
                                         <div
                                           className={cn(
@@ -1957,7 +1964,7 @@
                                             </motion.div>
                                           )}
                                         </AnimatePresence>
-                                      </div>
+                                      </motion.div>
                                     );
                                   })}
                                 </div>
