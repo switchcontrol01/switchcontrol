@@ -164,8 +164,10 @@ function buildDiscoveredCacheCmd({ roots, subdirs, recurse = true } = {}) {
       }
       $total = [int64]0; $cnt = 0
       foreach ($p in ($paths | Sort-Object -Unique)) {
-        $items = Get-ChildItem $p${recurseFlag} -Force -ErrorAction SilentlyContinue | Where-Object {!$_.PSIsContainer}
-        $total += (($items | Measure-Object Length -Sum).Sum ?? 0); $cnt += $items.Count
+        $items = @(Get-ChildItem $p${recurseFlag} -Force -ErrorAction SilentlyContinue | Where-Object {!$_.PSIsContainer})
+        $measure = $items | Measure-Object Length -Sum
+        if ($null -ne $measure.Sum) { $total += [int64]$measure.Sum }
+        $cnt += $items.Count
       }
       Write-Output "$total|$cnt"
     `;
@@ -180,7 +182,7 @@ function buildDiscoveredCacheCmd({ roots, subdirs, recurse = true } = {}) {
       }
       $removed = [int64]0; $cnt = 0; $fail = 0
       foreach ($p in ($paths | Sort-Object -Unique)) {
-        $items = Get-ChildItem $p${recurseFlag} -Force -ErrorAction SilentlyContinue | Where-Object {!$_.PSIsContainer}
+        $items = @(Get-ChildItem $p${recurseFlag} -Force -ErrorAction SilentlyContinue | Where-Object {!$_.PSIsContainer})
         foreach ($item in $items) {
           try { $sz=[int64]$item.Length; Remove-Item $item.FullName -Force -ErrorAction Stop; $removed += $sz; $cnt++ } catch { $fail++ }
         }
@@ -213,7 +215,7 @@ function buildSteamCacheCmd(subdirs) {
       foreach ($p in ($paths | Sort-Object -Unique)) {
         $items = Get-ChildItem $p -Recurse -Force -ErrorAction SilentlyContinue | Where-Object {!$_.PSIsContainer}
         foreach ($item in $items) {
-          ${cleaning ? `try { $sz=[int64]$item.Length; Remove-Item $item.FullName -Force -ErrorAction Stop; $total += $sz; $cnt++ } catch { $fail++ }` : `$total += (($items | Measure-Object Length -Sum).Sum ?? 0); $cnt += $items.Count; break`}
+          ${cleaning ? `try { $sz=[int64]$item.Length; Remove-Item $item.FullName -Force -ErrorAction Stop; $total += $sz; $cnt++ } catch { $fail++ }` : `$measure = $items | Measure-Object Length -Sum; if ($null -ne $measure.Sum) { $total += [int64]$measure.Sum }; $cnt += $items.Count; break`}
         }
       }
       Write-Output "${cleaning ? '$total|$cnt|$fail' : '$total|$cnt'}"
