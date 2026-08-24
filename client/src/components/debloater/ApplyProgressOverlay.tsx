@@ -5,7 +5,7 @@ import { GlassCard } from "@/components/ui/glass-card";
 import { Button } from "@/components/ui/button";
 import {
   CheckCircle2, XCircle, AlertTriangle, Clock,
-  HardDrive, Zap, Layers, ShieldAlert,
+  HardDrive, Zap, Layers,
   Trash2, RotateCcw, ArrowRight, X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -259,13 +259,6 @@ export function ApplyProgressOverlay({ isOpen, state, onClose, onViewResults }: 
     }
   }, [state.phase, state.completedCount, state.totalCount]);
 
-  const riskLevel = useMemo(() => {
-    const failRate = state.totalCount > 0 ? state.failedCount / state.totalCount : 0;
-    if (failRate === 0) return { label: "Low", color: "text-emerald-400", bg: "bg-emerald-500", pct: 20 };
-    if (failRate < 0.3) return { label: "Medium", color: "text-amber-400", bg: "bg-amber-500", pct: 55 };
-    return { label: "High", color: "text-red-400", bg: "bg-red-500", pct: 90 };
-  }, [state.failedCount, state.totalCount]);
-
   if (!isOpen) return null;
 
   return createPortal(
@@ -368,25 +361,6 @@ export function ApplyProgressOverlay({ isOpen, state, onClose, onViewResults }: 
                   />
                 </>
               )}
-            </div>
-          </div>
-
-          {/* Risk meter */}
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between text-[11px]">
-              <div className="flex items-center gap-1.5 text-[#A0A8B3]">
-                <ShieldAlert className="size-3" />
-                <span>Risk level</span>
-              </div>
-              <span className={cn("font-medium", riskLevel.color)}>{riskLevel.label}</span>
-            </div>
-            <div className="h-1.5 rounded-full bg-[#21262D] overflow-hidden">
-              <motion.div
-                className={cn("h-full rounded-full", riskLevel.bg)}
-                initial={{ width: "0%" }}
-                animate={{ width: `${riskLevel.pct}%` }}
-                transition={{ duration: 1, ease: "easeOut" }}
-              />
             </div>
           </div>
 
