@@ -41,6 +41,10 @@ import ReleaseStory from "@/components/website/ReleaseStory";
 import MagneticTilt from "@/components/website/MagneticTilt";
 import PremiumFeaturesSection from "@/components/website/PremiumFeaturesSection";
 import DrawUnderline from "@/components/website/DrawUnderline";
+import { countFreeTweaks, countPremiumTweaks } from "@/lib/premium-config";
+
+const FREE_TWEAK_COUNT = countFreeTweaks();
+const PREMIUM_TWEAK_COUNT = countPremiumTweaks();
 
 function HeroTiltContainer({ children }: { children: React.ReactNode }) {
   const rafRef = useRef<number | null>(null);
@@ -974,10 +978,15 @@ export default function Landing() {
 
                   <ul className="space-y-3.5 flex-1 mb-8">
                     {[
-                      "System monitoring dashboard",
-                      "7 beginner-safe tweaks",
-                      "Basic RAM cleanup tools",
-                      "Community support",
+                      `Live activity monitoring — CPU, RAM, GPU, disk, network`,
+                      `${FREE_TWEAK_COUNT} free system tweaks — safe and explained`,
+                      "RAM cleanup tools",
+                      "Startup app manager",
+                      "System cleaner and cleanup scans",
+                      "Debloater and Windows component cleanup",
+                      "Process Manager",
+                      "Full Settings customization",
+                      "Change history",
                     ].map((f) => (
                       <li key={f} className="flex items-center gap-3 text-sm text-[#A0A8B3]">
                         <span className="flex-shrink-0 w-4 h-4 rounded-full border border-[#2A313A] flex items-center justify-center">
@@ -1036,13 +1045,14 @@ export default function Landing() {
                     <ul className="space-y-3 flex-1 mb-8">
                       {[
                         { text: "Everything in Free", dim: false },
-                        { text: "Advanced system tweaks", dim: false },
+                        { text: `${PREMIUM_TWEAK_COUNT} advanced system tweaks`, dim: false },
                         { text: "Power Plan control", dim: false },
-                        { text: "Network optimization", dim: false },
+                        { text: "Network Tweaks and DNS optimization", dim: false },
                         { text: "AI Advisor", dim: false },
-                        { text: "BIOS Advisor (guidance)", dim: false },
-                        { text: "Competitive performance tuning", dim: false },
-                        { text: "Priority support", dim: false },
+                        { text: "BIOS Advisor and firmware scoring", dim: false },
+                        { text: "NIC Tuning", dim: false },
+                        { text: "Latency Analyzer", dim: false },
+                        { text: "Driver Intelligence", dim: false },
                       ].map((f) => (
                         <li key={f.text} className="flex items-center gap-3 text-sm text-[#A0A8B3]">
                           <span className="flex-shrink-0 w-4 h-4 rounded-full flex items-center justify-center"

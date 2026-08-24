@@ -28,6 +28,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { WebsiteShell } from "@/components/website/WebsiteShell";
 import { GlowButton } from "@/components/website/GlowButton";
+import { countFreeTweaks, countPremiumTweaks } from "@/lib/premium-config";
 
 interface IconItem {
   icon: ElementType;
@@ -64,24 +65,31 @@ function ReducedMotionGate({ children }: { children: (active: boolean) => React.
 }
 
 // ── Data ───────────────────────────────────────────────────────────────────
+const FREE_TWEAK_COUNT = countFreeTweaks();
+const PREMIUM_TWEAK_COUNT = countPremiumTweaks();
+
 const FREE_BENEFITS = [
-  { text: "System Activity Monitor",      note: "Live CPU, RAM, GPU, disk" },
-  { text: "7 beginner-safe tweaks",       note: "Safe, reversible, explained" },
-  { text: "RAM cleanup tools",            note: "Free standing memory" },
-  { text: "Startup manager",             note: "Control what launches at boot" },
-  { text: "System cleaner",              note: "Junk files, temp data" },
-  { text: "Debloater",                   note: "Remove pre-installed clutter" },
+  { text: "Live activity monitor",        note: "CPU, RAM, GPU, disk, and network" },
+  { text: `${FREE_TWEAK_COUNT} free system tweaks`, note: "Safe, reversible, and explained" },
+  { text: "RAM cleanup tools",             note: "Free standing-memory cleanup" },
+  { text: "Startup app manager",           note: "Control what launches with Windows" },
+  { text: "System cleaner",               note: "Junk files, temp data, and cleanup scans" },
+  { text: "Debloater",                    note: "Remove unwanted Windows components" },
+  { text: "Process Manager",              note: "Inspect and manage running processes" },
+  { text: "Full Settings customization",  note: "Themes, layout, accessibility, and privacy" },
+  { text: "Change history",               note: "See actions and system changes" },
 ];
 
 const PREMIUM_BENEFITS = [
-  { text: "Everything in Free",           note: "All entry features included" },
-  { text: "Advanced system tweaks",       note: "40+ competitive-grade settings" },
+  { text: "Everything in Free",           note: `All free tools and ${FREE_TWEAK_COUNT} free tweaks` },
+  { text: `${PREMIUM_TWEAK_COUNT} advanced system tweaks`, note: "Hardware-sensitive controls and profiles" },
   { text: "AI Advisor",                   note: "Hardware-aware optimization" },
-  { text: "BIOS Advisor",                 note: "Scoring + guided BIOS tuning" },
-  { text: "Network Tweaks",               note: "Reduce jitter, tighten ping" },
-  { text: "Power Plan control",           note: "Ryzen & Intel tuning profiles" },
-  { text: "NIC Tuning",                   note: "Adapter-level latency tuning" },
-  { text: "Full history & revert log",    note: "Undo any change, any time" },
+  { text: "BIOS Advisor",                 note: "Firmware scoring and guided tuning" },
+  { text: "Network Tweaks",               note: "DNS, jitter, TCP, and adapter tuning" },
+  { text: "Power Plan control",           note: "Ryzen and Intel performance profiles" },
+  { text: "NIC Tuning",                   note: "Adapter-level latency controls" },
+  { text: "Latency Analyzer",             note: "System responsiveness and driver analysis" },
+  { text: "Driver Intelligence",          note: "Hardware-aware driver guidance" },
 ];
 
 const TRUST_ITEMS: IconItem[] = [
@@ -150,20 +158,23 @@ const COMPARISON_CATEGORIES = [
   {
     label: "Foundation",
     rows: [
-      { feature: "Activity Monitor (CPU, RAM, GPU, disk)", free: true,  premium: true  },
-      { feature: "Startup app manager",                    free: true,  premium: true  },
-      { feature: "System cleaner",                         free: true,  premium: true  },
-      { feature: "Debloater",                              free: true,  premium: true  },
-      { feature: "RAM cleanup tools",                      free: true,  premium: true  },
+      { feature: "Live activity monitor (CPU, RAM, GPU, disk, network)", free: true,  premium: true  },
+      { feature: "Startup app manager",                                free: true,  premium: true  },
+      { feature: "System cleaner",                                    free: true,  premium: true  },
+      { feature: "Debloater",                                         free: true,  premium: true  },
+      { feature: "RAM cleanup tools",                                 free: true,  premium: true  },
+      { feature: "Process Manager",                                   free: true,  premium: true  },
+      { feature: "Settings customization and accessibility",          free: true,  premium: true  },
+      { feature: "Change history",                                    free: true,  premium: true  },
     ],
   },
   {
     label: "Optimization",
     rows: [
-      { feature: "7 beginner-safe tweaks",                 free: true,  premium: true  },
-      { feature: "40+ advanced system tweaks",             free: false, premium: true  },
-      { feature: "Power Plan profiles",                    free: false, premium: true  },
-      { feature: "App process priority booster",           free: false, premium: true  },
+      { feature: `${FREE_TWEAK_COUNT} free system tweaks`,             free: true,  premium: true  },
+      { feature: `${PREMIUM_TWEAK_COUNT} advanced system tweaks`,     free: false, premium: true  },
+      { feature: "Power Plan profiles",                                free: false, premium: true  },
+      { feature: "App process priority booster",                       free: false, premium: true  },
     ],
   },
   {
@@ -172,6 +183,8 @@ const COMPARISON_CATEGORIES = [
       { feature: "AI Advisor (hardware-aware)",            free: false, premium: true  },
       { feature: "BIOS Advisor + scoring",                 free: false, premium: true  },
       { feature: "Network Tweaks + jitter reduction",      free: false, premium: true  },
+      { feature: "Latency Analyzer",                       free: false, premium: true  },
+      { feature: "Driver Intelligence",                    free: false, premium: true  },
     ],
   },
   {
