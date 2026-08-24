@@ -125,6 +125,16 @@ jobs:
             node scripts/build-native.js || echo "Native build skipped (non-fatal)"
           fi
 
+      # Keep locally downloaded checkouts and CI builds on the same packaging
+      # contract. This recreates electron/build/ and restores the SWC icon if
+      # the directory was omitted by an archive/export operation.
+      - name: Verify Electron branding assets
+        working-directory: electron
+        shell: bash
+        run: |
+          node scripts/ensure-assets.js
+          node scripts/verify-package-contract.js
+
       # ── 11. Build NSIS installer ─────────────────────────────────────────────
       # --publish never: electron-builder must NOT push to any publish target.
       # Upload is handled manually by release.js so we control the exact order.
