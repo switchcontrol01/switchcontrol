@@ -653,6 +653,7 @@ export function DisplaySignalGraph({ delay = 0 }: { delay?: number }) {
   const [selectedIdx, setSelectedIdx] = useState(0);
   const [scannedAt, setScannedAt]   = useState<number | null>(null);
   const [scanning, setScanning]     = useState(false);
+  const [scanResolved, setScanResolved] = useState(false);
   const [changed, setChanged]       = useState(false);
 
   const flash = () => { setChanged(true); setTimeout(() => setChanged(false), 2000); };
@@ -660,13 +661,19 @@ export function DisplaySignalGraph({ delay = 0 }: { delay?: number }) {
   const load = useCallback(async (invalidate = false) => {
     if (!user?.loggedIn) return;
     setScanning(true);
+    setScanResolved(false);
     try {
       if (isElectron) {
         const api = (window as any).electronAPI;
         if (invalidate) {
           try { await api.system.invalidateDisplayCache(); } catch {}
         }
-        const raw = await api.system.getDisplayInfo();
+        const raw = await Promise.race([
+          api?.system?.getDisplayInfo?.(),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error("Display detection timed out")), 20_000)
+          ),
+        ]);
         if (raw?.monitors?.length > 0) {
           setMonitors(raw.monitors.map((monitor: MonitorInfo) => {
             const validHz = (value: unknown): number | null =>
@@ -688,8 +695,12 @@ export function DisplaySignalGraph({ delay = 0 }: { delay?: number }) {
         setScannedAt(d.ts);
         flash();
       }
-    } catch { /* silent */ }
-    setScanning(false);
+    } catch (error) {
+      console.warn("[DisplaySignal] detection failed:", error);
+    } finally {
+      setScanning(false);
+      setScanResolved(true);
+    }
   }, [user?.loggedIn]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -749,7 +760,7 @@ export function DisplaySignalGraph({ delay = 0 }: { delay?: number }) {
       transition={{ duration: 0.55, delay, ease: [0.22, 1, 0.36, 1] }}
     >
       <GlassCard className="relative overflow-hidden border-[#00D4FF] bg-[#00D4FF]/[0.015]">
-        <SweepLine active={changed || (monitors.length === 0 && scanning)} />
+        <SweepLine active={changed || scanning} />
 
         <div className="absolute inset-0 pointer-events-none"
           style={{ background: "radial-gradient(ellipse 45% 50% at 90% 30%, rgba(139,92,246,0.07), transparent)" }} />
@@ -792,7 +803,7 @@ export function DisplaySignalGraph({ delay = 0 }: { delay?: number }) {
                   monitors.length > 0 ? "bg-emerald-400 animate-pulse" : "bg-[#2A313A]"
                 )} />
                 <span className="text-[9px] text-[#6B7380] uppercase tracking-widest">
-                  {monitors.length > 0 ? "Live" : "Loading"}
+                  {monitors.length > 0 ? "Live" : scanning ? "Loading" : scanResolved ? "Unavailable" : "Ready"}
                 </span>
               </div>
             </div>
@@ -857,7 +868,13 @@ export function DisplaySignalGraph({ delay = 0 }: { delay?: number }) {
                   )}
                 </div>
                 <p className="text-[10px] text-[#6B7380] leading-snug line-clamp-2">
-                  {mon ? (reason || "Display detected") : "Collecting display data…"}
+                  {mon
+                    ? (reason || "Display detected")
+                    : scanning
+                      ? "Collecting display data…"
+                      : scanResolved
+                        ? "Display information is unavailable. Use refresh to try again."
+                        : "Waiting to scan…"}
                 </p>
               </motion.div>
             </AnimatePresence>
