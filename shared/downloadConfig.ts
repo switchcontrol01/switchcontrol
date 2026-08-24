@@ -9,8 +9,10 @@ export type DownloadReleaseConfig = {
 
 export const INSTALLER_CONFIG: DownloadReleaseConfig = {
   version: "1.2.9",
-  fileName: "SwitchControl Setup 1.2.9.exe",
-  publicPath: "https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev/SwitchControl%20Setup%201.2.9.exe",
+  fileName: "SwitchControl-Setup-1.2.9.exe",
+  // Keep the storage provider private behind the Railway app route. Railway
+  // redirects this path to the Cloudflare R2 object using its server secret.
+  publicPath: "/downloads/SwitchControl-Setup-1.2.9.exe",
   platform: "windows",
   fileSizeMb: 110,
   releasedAt: "2026-08-23",
