@@ -241,6 +241,7 @@ function ItemRow({ item, finding, selected, onToggle, cleanResult, isCleaning, d
   const meta  = CAT_META[item.category];
 
   const status = cleanResult?.status;
+  const completed = !!cleanResult;
   const progress = isCleaning && selected && !status ? 1 : 0;
 
   return (
@@ -251,7 +252,8 @@ function ItemRow({ item, finding, selected, onToggle, cleanResult, isCleaning, d
       className={cn(
         "rounded-xl border transition-all duration-200 overflow-hidden",
         selected ? "border-white/[0.12] bg-white/[0.04]" : "border-white/[0.06] bg-white/[0.02]",
-        status === "cleaned" && "border-green-500/20 bg-green-500/[0.04]",
+        completed && status === "cleaned" && "border-green-400/25 bg-green-400/[0.035] shadow-[0_0_18px_rgba(74,222,128,0.06)]",
+        completed && status === "partial" && "border-amber-400/20 bg-amber-400/[0.025]",
       )}
     >
       {/* Clean progress bar */}
@@ -289,7 +291,9 @@ function ItemRow({ item, finding, selected, onToggle, cleanResult, isCleaning, d
             {item.risk === "advanced" && (
               <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-red-500/15 text-red-400 border border-red-500/20 shrink-0">ADV</span>
             )}
-            {status === "cleaned" && <CheckCircle2 className="w-3 h-3 text-green-400 shrink-0" />}
+            {(status === "cleaned" || status === "partial" || status === "nothing") && (
+              <CheckCircle2 className={cn("w-3 h-3 shrink-0", status === "cleaned" ? "text-green-400" : "text-amber-400")} />
+            )}
             {status === "failed" && <AlertCircle className="w-3 h-3 text-red-400 shrink-0" />}
           </div>
           <div className="flex items-center gap-2 mt-0.5">
@@ -541,6 +545,32 @@ export default function SystemCleaner() {
     }, 1000);
     return () => window.clearInterval(timer);
   }, [phase]);
+
+  // Native cleanup reports each target as soon as its operation finishes so
+  // completed rows can acknowledge progress without waiting for verification.
+  useEffect(() => {
+    if (!isElectron()) return;
+    const unsubscribe = getEC()?.onProgress?.((payload: any) => {
+      if (!payload?.id) return;
+      const failed = Number(payload.failed ?? 0);
+      const hasError = typeof payload.error === "string" && payload.error.length > 0;
+      setCleanResults(prev => ({
+        ...prev,
+        [payload.id]: {
+          id: payload.id,
+          status: hasError || (failed > 0 && Number(payload.filesRemoved ?? 0) === 0)
+            ? "failed"
+            : failed > 0 ? "partial"
+            : Number(payload.filesRemoved ?? 0) === 0 && Number(payload.bytesRemoved ?? 0) === 0
+              ? "nothing" : "cleaned",
+          bytesRemoved: Number(payload.bytesRemoved ?? 0),
+          filesRemoved: Number(payload.filesRemoved ?? 0),
+          error: payload.error,
+        },
+      }));
+    });
+    return () => unsubscribe?.();
+  }, []);
 
   // popstate cannot be prevented by the browser after it fires. Move the
   // history pointer back immediately, then let the same dialog decide whether

@@ -1121,10 +1121,12 @@ ipcMain.handle('cleaner:clean', async (event, itemIds) => {
         const def = SCAN_DEFS[id];
         if (!def) {
           results[id] = { bytesRemoved: 0, filesRemoved: 0, failed: 0, unsupported: true, error: 'unsupported-item' };
+          event.sender.send('cleaner:progress', { id, ...results[id] });
           continue;
         }
         if (!isVendorApplicable(id, gpuCapabilities)) {
           results[id] = { bytesRemoved: 0, filesRemoved: 0, failed: 0, notApplicable: true, error: 'gpu-vendor-not-present' };
+          event.sender.send('cleaner:progress', { id, ...results[id] });
           continue;
         }
         const timeout = LARGE_ITEMS.has(id) ? LONG_TIMEOUT : MID_ITEMS.has(id) ? MID_TIMEOUT : STD_TIMEOUT;
@@ -1132,8 +1134,10 @@ ipcMain.handle('cleaner:clean', async (event, itemIds) => {
           const out = await runPS(def.cleanCmd(), timeout);
           const { a: bytesRemoved, b: filesRemoved, c: failed } = parseOutput(out);
           results[id] = { bytesRemoved, filesRemoved, failed };
+          event.sender.send('cleaner:progress', { id, ...results[id] });
         } catch (err) {
           results[id] = { bytesRemoved: 0, filesRemoved: 0, failed: 1, error: err.message };
+          event.sender.send('cleaner:progress', { id, ...results[id] });
         }
       }
     };
