@@ -166,6 +166,11 @@
   }
   
   const isElectron = () => typeof window !== "undefined" && !!window.electronAPI?.debloat;
+
+  const debloatItemsCache = new Map<string, DebloatItem[]>();
+  const debloatItemsRequests = new Map<string, Promise<DebloatItem[]>>();
+  let debloatHistoryCache: HistoryEntry[] | null = null;
+  let debloatHistoryRequest: Promise<HistoryEntry[]> | null = null;
   
   function SafetyRing({ safe, medium, high }: { safe: number; medium: number; high: number }) {
     const total = safe + medium + high;
@@ -816,18 +821,41 @@
   
     const fetchItems = useCallback(async (r: SystemRole, l: DebloatLevel) => {
       setLoading(true);
+      const cacheKey = `${r}:${l}`;
       try {
-        const res = await fetch(`/api/debloat/items?role=${r}&level=${l}`);
-        const data = await res.json();
-        if (data.ok) {
-          setItems(data.items);
-          const defaults = new Set<string>(
-            data.items.filter((i: DebloatItem) => i.defaultSelected).map((i: DebloatItem) => i.id)
-          );
-          setSelected(defaults);
+        const cached = debloatItemsCache.get(cacheKey);
+        if (cached) {
+          setItems(cached);
+          setSelected(new Set(cached.filter(i => i.defaultSelected).map(i => i.id)));
+          return;
         }
+
+        let request = debloatItemsRequests.get(cacheKey);
+        if (!request) {
+          request = fetch(`/api/debloat/items?role=${r}&level=${l}`).then(async res => {
+            const data = await res.json().catch(() => null);
+            if (!res.ok || !data?.ok || !Array.isArray(data.items)) {
+              throw new Error(data?.error || `Debloat catalog request failed (${res.status})`);
+            }
+            debloatItemsCache.set(cacheKey, data.items);
+            return data.items as DebloatItem[];
+          }).finally(() => {
+            debloatItemsRequests.delete(cacheKey);
+          });
+          debloatItemsRequests.set(cacheKey, request);
+        }
+
+        const nextItems = await request;
+        setItems(nextItems);
+        setSelected(new Set(nextItems.filter(i => i.defaultSelected).map(i => i.id)));
       } catch (e) {
-        toast({ title: "Failed to load items", variant: "destructive" });
+        setItems([]);
+        setSelected(new Set());
+        toast({
+          title: "Failed to load Debloat items",
+          description: e instanceof Error ? e.message : "The catalog request failed.",
+          variant: "destructive",
+        });
       } finally {
         setLoading(false);
       }
@@ -839,11 +867,31 @@
   
     const fetchHistory = useCallback(async () => {
       try {
-        const res = await fetch("/api/debloat/history");
-        const data = await res.json();
-        if (data.ok) setHistory(data.history);
-      } catch {}
-    }, []);
+        if (debloatHistoryCache) {
+          setHistory(debloatHistoryCache);
+          return;
+        }
+        if (!debloatHistoryRequest) {
+          debloatHistoryRequest = fetch("/api/debloat/history").then(async res => {
+            const data = await res.json().catch(() => null);
+            if (!res.ok || !data?.ok || !Array.isArray(data.history)) {
+              throw new Error(data?.error || `Debloat history request failed (${res.status})`);
+            }
+            debloatHistoryCache = data.history as HistoryEntry[];
+            return debloatHistoryCache;
+          }).finally(() => {
+            debloatHistoryRequest = null;
+          });
+        }
+        setHistory(await debloatHistoryRequest);
+      } catch (e) {
+        toast({
+          title: "Failed to load Debloat history",
+          description: e instanceof Error ? e.message : "The history request failed.",
+          variant: "destructive",
+        });
+      }
+    }, [toast]);
   
     useEffect(() => { fetchHistory(); }, [fetchHistory]);
   
