@@ -16,14 +16,16 @@ function rng(seed: number) {
 
 /* ─── Version milestones ─── */
 const VERSIONS = [
-  { v: "v0.8", label: "Oct '25" },
-  { v: "v0.9", label: "Nov '25" },
-  { v: "v1.0", label: "Dec '25" },
   { v: "v1.2", label: "Jan '26" },
-  { v: "v1.5", label: "Feb '26" },
-  { v: "v2.0", label: "Mar '26" },
+  { v: "v1.3", label: "Feb '26" },
+  { v: "v1.4", label: "Mar '26" },
+  { v: "v1.5", label: "Apr '26" },
+  { v: "v1.6", label: "May '26" },
+  { v: "v1.7", label: "Jun '26" },
+  { v: "v1.8", label: "Jul '26" },
+  { v: "v1.2.9", label: "Aug '26" },
 ];
-const VERSION_INDICES = [0, 3, 5, 8, 12, 17];
+const VERSION_INDICES = [0, 2, 5, 7, 10, 12, 15, 17];
 
 /* ─── Full timeline data (18 pts, growing trend) ─── */
 function buildTimelineData() {
