@@ -726,43 +726,64 @@ const SCAN_DEFS = {
   // ── Storage Cleanup ────────────────────────────────────────────────────────
   recycle_bin: {
     scanCmd: () => `
-      $total = 0; $cnt = 0
-      Get-PSDrive -PSProvider FileSystem -ErrorAction SilentlyContinue | ForEach-Object {
-        $rb = "$($_.Root)\`$Recycle.Bin"
-        If (Test-Path $rb) {
-          $items = Get-ChildItem $rb -Recurse -Force -ErrorAction SilentlyContinue | Where-Object {!$_.PSIsContainer}
-          $total += ($items | Measure-Object Length -Sum).Sum; $cnt += $items.Count
-        }
+      $items = @()
+      Try {
+        $items = @(Get-RecycleBin -ErrorAction Stop)
+      } Catch {
+        Try {
+          $shell = New-Object -ComObject Shell.Application
+          $folder = $shell.Namespace(10)
+          If ($folder) { $items = @($folder.Items()) }
+        } Catch {}
+      }
+      $total = [int64]0; $cnt = 0
+      foreach ($item in $items) {
+        $size = 0
+        Try { $size = [int64]$item.Size } Catch {}
+        $total += $size
+        $cnt++
       }
       Write-Output "$total|$cnt"
     `,
     cleanCmd: () => `
-      $before = [int64]0; $beforeCnt = 0
-      Get-PSDrive -PSProvider FileSystem -ErrorAction SilentlyContinue | ForEach-Object {
-        $rb = "$($_.Root)\`$Recycle.Bin"
-        If (Test-Path $rb) {
-          $items = Get-ChildItem $rb -Recurse -Force -ErrorAction SilentlyContinue |
-            Where-Object {!$_.PSIsContainer}
-          $before += (($items | Measure-Object Length -Sum).Sum ?? 0)
-          $beforeCnt += $items.Count
+      function Get-RecycleSnapshot {
+        $items = @()
+        Try {
+          $items = @(Get-RecycleBin -ErrorAction Stop)
+        } Catch {
+          Try {
+            $shell = New-Object -ComObject Shell.Application
+            $folder = $shell.Namespace(10)
+            If ($folder) { $items = @($folder.Items()) }
+          } Catch {}
         }
+        $total = [int64]0; $count = 0
+        foreach ($item in $items) {
+          $size = 0
+          Try { $size = [int64]$item.Size } Catch {}
+          $total += $size
+          $count++
+        }
+        return @($total, $count)
       }
+      $before = Get-RecycleSnapshot
       $clearFailed = 0
-      Get-PSDrive -PSProvider FileSystem -ErrorAction SilentlyContinue | ForEach-Object {
-        Try { Clear-RecycleBin -DriveLetter $_.Name -Force -ErrorAction Stop }
-        Catch { $clearFailed++ }
+      Try {
+        Clear-RecycleBin -Force -ErrorAction Stop
+      } Catch {
+        $clearFailed++
+        Try {
+          $shell = New-Object -ComObject Shell.Application
+          $folder = $shell.Namespace(10)
+          If ($folder) { $folder.Items() | ForEach-Object { $_.InvokeVerb("delete") } }
+        } Catch {}
       }
-      $after = [int64]0; $afterCnt = 0
-      Get-PSDrive -PSProvider FileSystem -ErrorAction SilentlyContinue | ForEach-Object {
-        $rb = "$($_.Root)\`$Recycle.Bin"
-        If (Test-Path $rb) {
-          $items = Get-ChildItem $rb -Recurse -Force -ErrorAction SilentlyContinue |
-            Where-Object {!$_.PSIsContainer}
-          $after += (($items | Measure-Object Length -Sum).Sum ?? 0)
-          $afterCnt += $items.Count
-        }
-      }
-      $removed = [Math]::Max([int64]0, $before - $after)
+      $after = Get-RecycleSnapshot
+      $beforeBytes = [int64]$before[0]
+      $beforeCnt = [int]$before[1]
+      $afterBytes = [int64]$after[0]
+      $afterCnt = [int]$after[1]
+      $removed = [Math]::Max([int64]0, $beforeBytes - $afterBytes)
       $cnt = [Math]::Max(0, $beforeCnt - $afterCnt)
       $failed = $clearFailed + $afterCnt
       Write-Output "$removed|$cnt|$failed"
