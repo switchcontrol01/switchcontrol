@@ -46,100 +46,100 @@ const FAQ_ITEMS: FAQItem[] = [
   // ── General ─────────────────────────────────────────────────────────────────
   {
     category: "general",
-    question: "What makes SwitchControl different from other optimizers?",
-    answer: "Most optimizers are a batch script with a progress bar slapped on top. You click a button, 200 things change, and you have no idea what any of them did. SwitchControl works the opposite way — every single change is listed individually, described in plain English, tagged with a risk level, and stored in a history log you can reverse at any time. You also get live CPU/RAM/GPU telemetry, a real BIOS scoring system, and an AI Advisor that actually reads your hardware instead of just repeating the same advice that gets copy-pasted to every PC on the internet.",
+    question: "How is SwitchControl different from other PC optimizers?",
+    answer: "SwitchControl gives you a clear view of every change before it is applied. Each option includes a plain language explanation, a risk rating, and a record of the original setting. You can review your history and reverse changes when needed. The app also combines live hardware monitoring with system specific guidance from BIOS Advisor and AI Advisor, so the recommendations are based on your computer rather than a generic checklist.",
   },
   {
     category: "general",
-    question: "Is this just another script wrapped in a UI?",
-    answer: "No. If you want a PowerShell script in a trench coat, there are dozens of free ones on GitHub. SwitchControl is a full desktop app with a live system monitor that reads real WMI data, a history engine that stores every change and its original value, a BIOS scoring system that cross-references your hardware against known firmware settings, and driver intelligence that tracks what's installed on your specific machine. The tweaks themselves go through a validation layer before applying — they're not just pasted strings from a forum post.",
+    question: "Is SwitchControl only a script with a graphical interface?",
+    answer: "No. SwitchControl is a desktop application with live system monitoring, hardware detection, change history, BIOS guidance, and driver information. Before a setting is changed, the app checks the current state and records what it needs for a safe reversal. The available actions are organised and explained so you can understand what each one does instead of running an unknown collection of commands.",
     badge: "Important",
   },
   {
     category: "general",
-    question: "Do I need to keep SwitchControl running while gaming?",
-    answer: "No. Close it after you've applied what you want. Registry changes, power plan switches, service configurations — all of those persist across reboots with no process running in the background. The only reason to leave it open is if you want the live performance monitor on a second screen, or you're mid-session and still deciding on changes.",
+    question: "Does SwitchControl need to stay open while I play?",
+    answer: "No. Settings applied through the app remain active after you close it and after you restart Windows. You only need to keep SwitchControl open when you want to watch live system activity, review information, or make another adjustment.",
   },
   {
     category: "general",
-    question: "How does the AI Advisor actually work?",
-    answer: "It reads your actual hardware spec — CPU model, generation, core count, GPU, installed RAM — along with whatever live telemetry SwitchControl is pulling at the time (CPU load, clock speeds, temperature if available). That context goes into the conversation so when you ask something like 'why am I dropping frames in this specific game' it's not guessing generically. It knows you're on a Ryzen 9800X3D with 32GB at 6000MHz, not some hypothetical average PC. It won't make changes for you — it explains what to do and why, then you decide.",
+    question: "What information does AI Advisor use?",
+    answer: "AI Advisor considers the hardware that SwitchControl can identify, including your processor, graphics card, memory, and core configuration. It can also use available live readings such as processor load, clock speed, and temperature. This gives its responses useful context when you ask about frame drops, settings, or system behaviour. It provides an explanation and suggested next steps, but it does not change your computer without your approval.",
   },
   {
     category: "general",
-    question: "What does BIOS Advisor do?",
-    answer: "It reads what SwitchControl can detect about your hardware — CPU generation, platform, memory — and tells you which BIOS settings are worth checking based on your actual setup. On an AMD system it'll flag XMP/EXPO status, Precision Boost Overdrive, curve optimizer, FCLK ratio. On Intel it covers memory training, ring/cache ratio, C-states. You get a scored list of what to look at, ordered by likely impact. You still go into your BIOS yourself and make the changes — SwitchControl can't touch firmware, and honestly that's by design.",
+    question: "What can BIOS Advisor help me with?",
+    answer: "BIOS Advisor uses your detected platform and memory information to highlight firmware options that may be worth reviewing. Depending on your hardware, it can cover memory profiles, boost behaviour, fabric settings, power states, and other relevant controls. Results are presented as guidance with clear limits when Windows cannot expose a value. You make any BIOS changes yourself because SwitchControl does not write to firmware.",
   },
 
   // ── Safety & Anti-Cheat ───────────────────────────────────────────────────
   {
     category: "safety",
-    question: "Is it safe? Will it break my games or system?",
-    answer: "The short answer: SwitchControl does not touch anything it can't put back. Every tweak has a risk tag — Safe, Moderate, or High — and anything High shows an explicit warning before you apply it. Nothing in the app touches kernel drivers, boot configuration, or files that require system ownership. If something goes sideways, History is right there with a one-click revert per change, or you can roll back an entire session at once.",
+    question: "Can a tweak damage my system or affect my games?",
+    answer: "SwitchControl labels each tweak by risk and warns you before higher risk actions. The app records the previous value whenever it can, which allows you to reverse supported changes from History. It does not inject into games or modify game files. You should still read the description, create a restore point when offered, and test changes one at a time.",
     badge: "Core principle",
   },
   {
     category: "safety",
-    question: "Does it work with Fortnite, Valorant, CS2, and other anti-cheat games?",
-    answer: "Yes, and here's why: SwitchControl only touches Windows settings and registry values — the exact same things you'd change by hand through regedit or the Control Panel. It doesn't inject into running processes, doesn't hook system calls, doesn't modify game files, and doesn't install drivers. Easy Anti-Cheat, Vanguard, FACEIT AC, and BattlEye all operate at a level entirely separate from what SwitchControl does. If you're still nervous, the Tweaks page tells you the specific registry path or policy key being changed for every single item.",
+    question: "Is SwitchControl compatible with anti cheat software?",
+    answer: "SwitchControl changes supported Windows settings and registry values. It does not inject into a game, alter game files, hook running processes, or install a game driver. That keeps it separate from the parts of a game that anti cheat systems monitor. You can also inspect the affected setting on the Tweaks page before applying it.",
     badge: "Anti-cheat safe",
   },
   {
     category: "safety",
-    question: "Can I undo every change SwitchControl makes?",
-    answer: "Yes, and this isn't a marketing claim — the History page is literally how the app is built. Before applying any change, it reads the current value and stores it. You can revert a single tweak, an entire session, or everything since day one. The revert runs the same validation path as the original apply, so it's not just writing a value back blindly.",
+    question: "How do I reverse a change?",
+    answer: "Open History to review your previous actions. Supported changes can be reversed individually, by session, or as a larger group. SwitchControl stores the previous state before applying a setting and verifies the result when it can. If Windows or your hardware does not provide enough information for a reliable reversal, the app will not guess.",
   },
 
   // ── Performance ──────────────────────────────────────────────────────────
   {
     category: "performance",
-    question: "What kind of performance improvements can I expect?",
-    answer: "Depends entirely on where you're starting from. A stock Windows install with default power settings, Nagle algorithm enabled, and a bunch of telemetry services running in the background has more room to improve than a machine someone already spent 40 hours tuning. Realistically: people on stock setups often notice reduced frame time variance (smoother, not necessarily higher FPS), lower input lag, and less background CPU activity during gaming. Nobody should promise you specific numbers — anyone who does is lying.",
+    question: "What results should I expect from the performance tools?",
+    answer: "Results depend on your hardware, Windows setup, drivers, temperatures, and the settings you already use. A computer with heavy background activity may benefit from reduced interruptions and steadier frame pacing. Another system may see little change. The tools are designed to improve consistency and responsiveness where possible, not promise a fixed FPS or latency increase.",
   },
   {
     category: "performance",
-    question: "Does tweaking power plans actually help, or is it placebo?",
-    answer: "On Ryzen, it's measurable. Windows' default Balanced plan throttles processor frequency in ways that affect the latency between a frame being rendered and your input being registered. High Performance and Ryzen-specific plans change the minimum processor state and park behavior, which keeps clocks up. On Intel it's less dramatic unless you're thermally throttling or running a hybrid-core chip where thread scheduling matters. SwitchControl's Power Plan page explains what each profile actually changes so you can decide if it applies to your situation, rather than just trusting that 'Ultimate Performance = more better'.",
+    question: "Can changing a power plan improve performance?",
+    answer: "A power plan changes how Windows manages processor speed, idle states, and power limits. The effect varies between systems. It can help when a computer is reacting slowly to changing workloads, but it may add heat or power use without improving a well tuned setup. SwitchControl explains the main settings in each available profile so you can choose one that suits your priorities.",
   },
   {
     category: "performance",
-    question: "Will network tweaks reduce my ping?",
-    answer: "Your base ping is physics — distance to server plus whatever your ISP adds. No software changes that. What network tweaks address is jitter: the inconsistency in how long packets take. Rubber-banding, hitbox desyncs, and shots that feel like they didn't register are almost always jitter, not raw ping. Disabling Nagle's algorithm, adjusting TCP receive window auto-tuning, and tweaking QoS packet scheduling can reduce that variance, especially noticeable on Wi-Fi or on connections with lots of background traffic.",
+    question: "Can network settings lower my ping?",
+    answer: "Network settings cannot remove the distance between you and a game server, so they cannot guarantee a lower base ping. They may help with variation in packet timing, which is called jitter. SwitchControl lets you review network options and DNS results so you can focus on connection consistency rather than expecting software to overcome your internet route.",
   },
 
   // ── Installation & Usage ─────────────────────────────────────────────────
   {
     category: "usage",
-    question: "Do I need to be technical to use SwitchControl?",
-    answer: "Not really. Each tweak has a description that explains what it does in plain terms, a risk label so you know what you're getting into, and a note on what gets affected. The Recommended set is curated so you can just apply it and move on without reading every single item. If you want to go deeper, the raw details are there. If you just want results in two minutes, that works too.",
+    question: "Is SwitchControl suitable if I am not technical?",
+    answer: "Yes. Each tweak includes an explanation, a risk level, and information about what it affects. Recommended options are grouped separately from more advanced controls. You can use the guided descriptions for a quick setup or open the detailed information when you want to understand the underlying Windows setting.",
   },
   {
     category: "usage",
-    question: "What Windows versions are supported?",
-    answer: "Windows 10 version 1903 or later, and Windows 11. 64-bit only — there's no 32-bit build and there won't be one. ARM Windows is not supported right now. If you're on an older Windows 10 build, the app will tell you on launch rather than silently misbehaving.",
+    question: "Which versions of Windows can run SwitchControl?",
+    answer: "SwitchControl supports 64 bit Windows 10 version 1903 or later and Windows 11. The current release does not support 32 bit Windows or Windows on ARM. If your system is below the supported version, the app will identify that during launch.",
     badge: "Compatibility",
   },
   {
     category: "usage",
-    question: "What if a tweak does nothing or makes things worse on my system?",
-    answer: "Revert it. Genuinely, that's the whole answer. Windows optimisation is hardware-specific — what cuts 6ms of input lag on one system configuration might do nothing on another. SwitchControl is built around the assumption that you'll test things and undo what doesn't work. The History page is not a fallback feature, it's a core part of how the app is meant to be used.",
+    question: "What should I do if a tweak has no benefit?",
+    answer: "Give the change a fair test under the same conditions, then reverse it if it does not help or causes a problem. Windows behaviour differs between hardware and drivers, so a setting that helps one computer may have no useful effect on another. History is available for supported reversals, which makes it practical to compare changes instead of keeping settings that do not suit your system.",
   },
   {
     category: "usage",
-    question: "Does SwitchControl run at startup? Does it add background processes?",
-    answer: "Not by default. It doesn't add itself to startup, doesn't install a background service or tray agent, and doesn't run anything when it's closed. If you want startup launch, you can enable it in Settings — but that's your choice, not something that happens automatically during install. The performance monitor only reads data while the window is open.",
+    question: "Does the app start with Windows or run in the background?",
+    answer: "Not by default. SwitchControl does not add a startup entry, background service, or tray agent during installation. You can choose startup behaviour in Settings if you want the app available when Windows opens. Live monitoring runs while the app is open.",
   },
 
   // ── Billing ──────────────────────────────────────────────────────────────
   {
     category: "billing",
-    question: "What is your refund policy?",
-    answer: "All purchases are final. That's why we have a free trial — you can use every Premium feature before paying anything. If you hit an issue that stops the app from working on your system, contact support first and we'll try to sort it out. Refunds for 'I changed my mind' aren't something we offer, and the trial exists specifically so you don't need to make that call blind.",
+    question: "What is the refund policy?",
+    answer: "Purchases are final. A free trial is available so you can test the Premium tools before paying. If a technical issue prevents the app from working on your system, contact support with the details and we will help investigate the problem.",
   },
   {
     category: "billing",
-    question: "What is included in the free plan vs Premium?",
-    answer: "The free plan covers core tweaks, the live Activity Monitor, System Cleaner, Startup Manager, and Debloater — genuinely useful features, not crippled demos. Premium adds the AI Advisor, BIOS Advisor, Network Tweaks, Power Plans, and NIC Tuning. Those are the parts that require reading your hardware in detail and giving specific guidance. The trial lets you run all of Premium for free so you can decide if it's worth it before spending anything.",
+    question: "What is included with Free and Premium?",
+    answer: "Free includes the core system tweaks, live Activity Monitor, RAM cleanup, Startup Manager, System Cleaner, Debloater, Process Manager, NIC Tuning, and Settings customization. Premium adds advanced system tweaks, AI Advisor, BIOS Advisor, Network Tweaks, Power Plan controls, Latency Analyzer, and Driver Intelligence. The trial lets you explore Premium before making a purchase.",
     badge: "Trial available",
   },
 ];
