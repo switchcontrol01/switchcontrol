@@ -1055,23 +1055,33 @@ ipcMain.handle('cleaner:clean', async (event, itemIds) => {
       'spotify_cache', 'event_logs_old', 'windows_defender_history',
     ]);
 
-    for (const id of itemIds) {
-      if (cleanerCancelRequested) break;
-      const def = SCAN_DEFS[id];
-      if (!def) { results[id] = { bytesRemoved: 0, filesRemoved: 0, failed: 0, unsupported: true, error: 'unsupported-item' }; continue; }
-      if (!isVendorApplicable(id, gpuCapabilities)) {
-        results[id] = { bytesRemoved: 0, filesRemoved: 0, failed: 0, notApplicable: true, error: 'gpu-vendor-not-present' };
-        continue;
+    // Cleanup targets are independent. Use a small bounded pool so a large
+    // selection does not make the UI look frozen for minutes, while keeping
+    // one cleaner operation and one cancellation scope for the whole batch.
+    let nextIndex = 0;
+    const cleanWorker = async () => {
+      while (nextIndex < itemIds.length && !cleanerCancelRequested) {
+        const id = itemIds[nextIndex++];
+        const def = SCAN_DEFS[id];
+        if (!def) {
+          results[id] = { bytesRemoved: 0, filesRemoved: 0, failed: 0, unsupported: true, error: 'unsupported-item' };
+          continue;
+        }
+        if (!isVendorApplicable(id, gpuCapabilities)) {
+          results[id] = { bytesRemoved: 0, filesRemoved: 0, failed: 0, notApplicable: true, error: 'gpu-vendor-not-present' };
+          continue;
+        }
+        const timeout = LARGE_ITEMS.has(id) ? LONG_TIMEOUT : MID_ITEMS.has(id) ? MID_TIMEOUT : STD_TIMEOUT;
+        try {
+          const out = await runPS(def.cleanCmd(), timeout);
+          const { a: bytesRemoved, b: filesRemoved, c: failed } = parseOutput(out);
+          results[id] = { bytesRemoved, filesRemoved, failed };
+        } catch (err) {
+          results[id] = { bytesRemoved: 0, filesRemoved: 0, failed: 1, error: err.message };
+        }
       }
-      const timeout = LARGE_ITEMS.has(id) ? LONG_TIMEOUT : MID_ITEMS.has(id) ? MID_TIMEOUT : STD_TIMEOUT;
-      try {
-        const out = await runPS(def.cleanCmd(), timeout);
-        const { a: bytesRemoved, b: filesRemoved, c: failed } = parseOutput(out);
-        results[id] = { bytesRemoved, filesRemoved, failed };
-      } catch (err) {
-        results[id] = { bytesRemoved: 0, filesRemoved: 0, failed: 1, error: err.message };
-      }
-    }
+    };
+    await Promise.all(Array.from({ length: Math.min(3, Math.max(1, itemIds.length)) }, () => cleanWorker()));
   } finally {
     psLimiter.release(token);
   }
