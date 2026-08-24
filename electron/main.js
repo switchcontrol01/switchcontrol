@@ -30,7 +30,7 @@
     console.log('========================================');
   }
   
-  const { app, BrowserWindow, ipcMain, shell, globalShortcut, Menu, Notification, dialog } = require('electron');
+  const { app, BrowserWindow, ipcMain, shell, screen, globalShortcut, Menu, Notification, dialog } = require('electron');
   const { exec, execFile } = require('child_process');
   const path = require('path');
   const os = require('os');
@@ -3722,7 +3722,7 @@ public class DspHelper {
         ? parsed.monitors
         : parsed.monitors ? [parsed.monitors] : [];
   
-      const monitors = rawMonitors.map((m) => {
+      let monitors = rawMonitors.map((m) => {
         // TEMPORARY DISPLAY DIAGNOSTIC: record the raw WMI value and the value
         // produced by ConnStr() so the affected user's local log identifies
         // the exact monitor/driver shape. The raw field is never returned to
@@ -3761,6 +3761,42 @@ public class DspHelper {
         isPrimary:      m.isPrimary      ?? false,
         };
       });
+
+      // The WMI/EDID path can legitimately return no records on a driver
+      // transition even though Electron already knows the active displays.
+      // Keep Display Signal useful with the OS display list as a safe fallback.
+      if (monitors.length === 0) {
+        try {
+          monitors = screen.getAllDisplays().map((display, index) => ({
+            id: `electron_${display.id ?? index}`,
+            name: null,
+            manufacturer: null,
+            serial: null,
+            connectionType: null,
+            currentResX: Number(display.size?.width) || null,
+            currentResY: Number(display.size?.height) || null,
+            refreshHz: Number(display.displayFrequency) > 0 ? Number(display.displayFrequency) : null,
+            maxRefreshHz: null,
+            bitsPerPixel: null,
+            nativeResX: null,
+            nativeResY: null,
+            edidVersion: null,
+            hdrEnabled: null,
+            vrrEnabled: null,
+            vrrCapable: null,
+            freeSyncEnabled: null,
+            vrrMin: null,
+            vrrMax: null,
+            gpuName: null,
+            isPrimary: display.bounds?.x === 0 && display.bounds?.y === 0,
+          }));
+          if (monitors.length > 0) {
+            console.info(`[system:getDisplayInfo] WMI empty — using Electron display fallback (${monitors.length} display(s))`);
+          }
+        } catch (fallbackError) {
+          console.warn('[system:getDisplayInfo] Electron display fallback failed:', fallbackError.message);
+        }
+      }
   
       const result = { monitors, scannedAt: parsed.scannedAt ?? Date.now() };
       _displayInfoCache = result;
