@@ -641,6 +641,24 @@ function profileToMonitor(p: DisplaySignalProfile): MonitorInfo {
   };
 }
 
+function rendererDisplayFallback(): MonitorInfo | null {
+  if (typeof window === "undefined" || !window.screen) return null;
+  const scale = Number(window.devicePixelRatio) > 0 ? Number(window.devicePixelRatio) : 1;
+  const width = Math.round(window.screen.width * scale);
+  const height = Math.round(window.screen.height * scale);
+  if (width <= 0 || height <= 0) return null;
+  return {
+    id: "renderer-display-fallback",
+    name: "Active display",
+    manufacturer: null, serial: null, connectionType: null,
+    currentResX: width, currentResY: height,
+    refreshHz: null, maxRefreshHz: null, bitsPerPixel: null,
+    nativeResX: null, nativeResY: null, edidVersion: null,
+    hdrEnabled: null, vrrEnabled: null, vrrCapable: null, freeSyncEnabled: null,
+    vrrMin: null, vrrMax: null, gpuName: null, isPrimary: true,
+  };
+}
+
 // Conditional field row — renders nothing when value is absent
 function Field({ label, value, mono }: { label: string; value: string | null | undefined; mono?: boolean }) {
   if (!value) return null;
@@ -688,6 +706,13 @@ export function DisplaySignalGraph({ delay = 0 }: { delay?: number }) {
           setScannedAt(raw.scannedAt ?? Date.now());
           setSelectedIdx(prev => Math.min(prev, raw.monitors.length - 1));
           flash();
+        } else {
+          const fallback = rendererDisplayFallback();
+          if (fallback) {
+            setMonitors([fallback]);
+            setScannedAt(Date.now());
+            flash();
+          }
         }
       } else {
         const d = await cloudApiGet<DisplaySignalProfile>("/dashboard-intelligence/display-signal");
@@ -697,6 +722,11 @@ export function DisplaySignalGraph({ delay = 0 }: { delay?: number }) {
       }
     } catch (error) {
       console.warn("[DisplaySignal] detection failed:", error);
+      const fallback = rendererDisplayFallback();
+      if (fallback) {
+        setMonitors([fallback]);
+        setScannedAt(Date.now());
+      }
     } finally {
       setScanning(false);
       setScanResolved(true);
