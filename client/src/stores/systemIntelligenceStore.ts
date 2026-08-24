@@ -254,7 +254,9 @@ export const useSystemIntelligenceStore = create<SystemIntelligenceState>((set, 
           }
           window.setTimeout(() => { void pollFullProfile(attempt + 1); }, 3_000);
         };
-        window.setTimeout(() => { void pollFullProfile(0); }, 5_000);
+           // Let AI/BIOS page-specific identity requests run first. The
+           // server also delays its deep collection for this same reason.
+           window.setTimeout(() => { void pollFullProfile(0); }, 15_000);
       }
     } catch (err: any) {
       if (generation !== _fetchGeneration) return;

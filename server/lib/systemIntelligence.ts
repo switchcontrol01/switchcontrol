@@ -541,6 +541,15 @@ let _phaseAPromise: Promise<SystemIntelligenceProfile> | null = null;
 let _identityPromise: Promise<SystemIntelligenceProfile> | null = null;
 let _diskCacheBootstrapped = false;
 let _fullProfileAvailable = false;
+let _backgroundCollectTimer: ReturnType<typeof setTimeout> | null = null;
+
+function scheduleBackgroundFullCollection(): void {
+  if (_backgroundCollectTimer) return;
+  _backgroundCollectTimer = setTimeout(() => {
+    _backgroundCollectTimer = null;
+    if (!_identityPromise) void getSystemIntelligence(true);
+  }, 12_000);
+}
 
 interface DeepProbeLaunchState {
   launchCount: number;
@@ -1780,7 +1789,7 @@ export async function getSystemIntelligence(forceRefresh = false): Promise<Syste
 export async function getFastSystemIntelligence(): Promise<SystemIntelligenceProfile> {
   // Disk-restored cache: already populated, just return it
   if (_cache) {
-    if (await _claimDeepProbeCollection()) void getSystemIntelligence(true);
+    if (await _claimDeepProbeCollection()) scheduleBackgroundFullCollection();
     return _cache;
   }
 
@@ -1797,7 +1806,7 @@ export async function getFastSystemIntelligence(): Promise<SystemIntelligencePro
     // caller landing between the clear and the _cache write would see both as null
     // and trigger a redundant collectFast().
     _phaseAPromise = null;
-    if (await _claimDeepProbeCollection()) void getSystemIntelligence(true);
+    if (await _claimDeepProbeCollection()) scheduleBackgroundFullCollection();
     return _cache!;
   }).catch((err) => {
     console.error("[SysIntelligence] Phase A failed:", err);
