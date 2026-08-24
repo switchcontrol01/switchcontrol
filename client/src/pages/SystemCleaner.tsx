@@ -505,6 +505,9 @@ export default function SystemCleaner() {
   const [history,     setHistory]     = useState<HistoryEntry[]>([]);
   const [scanHistory, setScanHistory] = useState<ScanHistoryEntry[]>([]);
   const [isCleaning,  setIsCleaning]  = useState(false);
+  const [cleanElapsedSec, setCleanElapsedSec] = useState(0);
+  const [cancelPending, setCancelPending] = useState(false);
+  const cleanStartedAtRef = useRef<number | null>(null);
   const scanRef = useRef(false);
   const cancelRequestedRef = useRef(false);
   const restoringPopStateRef = useRef(false);
@@ -521,6 +524,22 @@ export default function SystemCleaner() {
       const el = document.getElementById("app-scroll-root");
       if (el) el.scrollTo({ top: 0, behavior: "smooth" });
     }
+  }, [phase]);
+
+  useEffect(() => {
+    if (phase !== "cleaning") {
+      cleanStartedAtRef.current = null;
+      setCleanElapsedSec(0);
+      setCancelPending(false);
+      return;
+    }
+    cleanStartedAtRef.current = Date.now();
+    const timer = window.setInterval(() => {
+      if (cleanStartedAtRef.current !== null) {
+        setCleanElapsedSec(Math.floor((Date.now() - cleanStartedAtRef.current) / 1000));
+      }
+    }, 1000);
+    return () => window.clearInterval(timer);
   }, [phase]);
 
   // popstate cannot be prevented by the browser after it fires. Move the
@@ -689,6 +708,7 @@ export default function SystemCleaner() {
     setIsCleaning(true);
     setPhase("cleaning");
     setCleanResults({});
+    setCancelPending(false);
     cancelRequestedRef.current = false;
 
     const beforeBytes = ids
@@ -766,10 +786,24 @@ export default function SystemCleaner() {
         logHistory(`Cleaner: ${cleaned} cleaned`, "Cleaner", data.summary?.errors > 0 ? "Partial" : "Cleaned", `${data.summary?.successCount ?? 0} items cleaned, ${fileCount} files removed`, {
           category: "non-revertible", reversible: false, reason: "Cleaner deletes files and has no restore backup.",
         });
+      } else {
+        setPhase("ready");
+        toast({ title: "Clean failed", description: data.error ?? "The cleaner could not save its results.", variant: "destructive" });
       }
-    } catch { toast({ title: "Clean failed", variant: "destructive" }); }
-    finally { setIsCleaning(false); }
+    } catch {
+      setPhase("ready");
+      toast({ title: "Clean failed", description: "The cleanup finished, but its results could not be saved.", variant: "destructive" });
+    } finally {
+      setIsCleaning(false);
+      setCancelPending(false);
+    }
   }, [selected, allItems, findings, mode, toast, loadHistory]);
+
+  const cancelClean = useCallback(() => {
+    cancelRequestedRef.current = true;
+    setCancelPending(true);
+    if (isElectron()) getEC()?.cancel?.();
+  }, []);
 
   // ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -1085,8 +1119,27 @@ export default function SystemCleaner() {
                   <Sparkles className="w-10 h-10 text-purple-400" />
                 </motion.div>
                 <div className="text-center">
-                  <p className="text-[20px] font-black text-white">Cleaning…</p>
-                  <p className="text-[12px] text-[#6B7380] mt-1">Removing selected junk from your system</p>
+                  <p className="text-[20px] font-black text-white">{cancelPending ? "Stopping cleanup…" : "Cleaning…"}</p>
+                  <p className="text-[12px] text-[#6B7380] mt-1">
+                    {cancelPending
+                      ? "Finishing the current file operation safely"
+                      : cleanElapsedSec >= 15
+                        ? "Large caches can take a little longer. Your cleanup is still running."
+                        : "Removing selected junk from your system"}
+                  </p>
+                  <div className="flex items-center gap-3 text-[11px] text-[#6B7380]">
+                    <span className="inline-flex items-center gap-1.5"><Clock className="w-3 h-3" /> {cleanElapsedSec}s elapsed</span>
+                    <span>·</span>
+                    <span>{selected.size} item{selected.size === 1 ? "" : "s"} selected</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={cancelClean}
+                    disabled={cancelPending}
+                    className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg text-[11px] font-semibold text-[#A0A8B3] border border-white/[0.1] hover:bg-white/[0.05] hover:text-white disabled:opacity-50 transition-colors"
+                  >
+                    <X className="w-3 h-3" /> {cancelPending ? "Stopping…" : "Cancel"}
+                  </button>
                 </div>
               </div>
 
