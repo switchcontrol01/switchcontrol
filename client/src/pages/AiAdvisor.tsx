@@ -956,7 +956,7 @@ export default function AiAdvisor() {
     })),
   );
   const { telemetry: liveTel } = useLiveTelemetryValues();
-  const sysIntel = useSystemIntelligence();
+  const sysIntel = useSystemIntelligence({ requestAdvanced: true });
   const shareAiHardwareContext = useUserPreferencesStore((s) => s.shareAiHardwareContext);
   const { messages: storedMessages, setMessages: syncToStore, clearMessages: clearStore } = useAiChatStore();
 

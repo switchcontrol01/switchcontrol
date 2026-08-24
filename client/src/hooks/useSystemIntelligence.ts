@@ -30,10 +30,11 @@ export interface UseSystemIntelligenceResult {
   ram: string;
   storage: string;
   network: string;
+  requestAdvancedIdentity: () => Promise<void>;
 }
 
-export function useSystemIntelligence(): UseSystemIntelligenceResult {
-  const { profile, loading, error, fetch, refresh, initSpecsFetched, activeHardwareProfile } =
+export function useSystemIntelligence(options?: { requestAdvanced?: boolean }): UseSystemIntelligenceResult {
+  const { profile, loading, error, fetch, refresh, requestAdvancedIdentity, initSpecsFetched, activeHardwareProfile } =
     useSystemIntelligenceStore();
 
   useEffect(() => {
@@ -41,6 +42,12 @@ export function useSystemIntelligence(): UseSystemIntelligenceResult {
       fetch();
     }
   }, [fetch, initSpecsFetched]);
+
+  useEffect(() => {
+    if (options?.requestAdvanced) {
+      void requestAdvancedIdentity();
+    }
+  }, [options?.requestAdvanced, requestAdvancedIdentity]);
 
   const displayProfile = profile ?? activeHardwareProfile;
 
@@ -56,5 +63,6 @@ export function useSystemIntelligence(): UseSystemIntelligenceResult {
     ram: formatRam(displayProfile),
     storage: formatStorage(displayProfile),
     network: formatNetwork(displayProfile),
+    requestAdvancedIdentity,
   };
 }

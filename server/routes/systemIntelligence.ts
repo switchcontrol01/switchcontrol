@@ -11,6 +11,7 @@ import { requireJwt } from "../middleware/requireCloudAuth";
 import {
   getSystemIntelligence,
   getFastSystemIntelligence,
+  getAdvancedIdentity,
   triggerBackgroundCollection,
   invalidateSystemIntelligence,
 } from "../lib/systemIntelligence";
@@ -55,6 +56,16 @@ router.get("/fast", requireJwt, async (_req, res) => {
   } catch (err: any) {
     console.error("[SysIntelligence] /fast error:", err?.message);
     res.status(500).json({ error: "Failed to collect fast system profile." });
+  }
+});
+
+router.get("/identity", requireJwt, async (_req, res) => {
+  try {
+    const profile = await getAdvancedIdentity();
+    res.json(profile);
+  } catch (err: any) {
+    console.error("[SysIntelligence] /identity error:", err?.message);
+    res.status(500).json({ error: "Failed to collect advanced system identity." });
   }
 });
 

@@ -627,7 +627,7 @@ export default function BiosAdvisor() {
   const { isPremium } = useAuth();
   const { isOnline } = useNetworkStatus();
   const stats = useStore((s) => s.stats);
-  const sysIntel = useSystemIntelligence();
+  const sysIntel = useSystemIntelligence({ requestAdvanced: true });
   const { chassisType, batteryPresent } = useSystemIntelligenceStore();
 
   const platformInfo: PlatformInfo = useMemo(() => {

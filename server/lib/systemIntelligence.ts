@@ -538,6 +538,7 @@ let _cache: SystemIntelligenceProfile | null = null;
 let _cacheAt: number = 0;
 let _collectingPromise: Promise<SystemIntelligenceProfile> | null = null;
 let _phaseAPromise: Promise<SystemIntelligenceProfile> | null = null;
+let _identityPromise: Promise<SystemIntelligenceProfile> | null = null;
 let _diskCacheBootstrapped = false;
 
 interface DeepProbeLaunchState {
@@ -1663,6 +1664,64 @@ async function collectFast(): Promise<SystemIntelligenceProfile> {
   return profile;
 }
 
+/**
+ * Collects the small set of fields needed by BIOS/AI identity views without
+ * starting the launch-gated full inventory. This is intentionally separate
+ * from collect(): a missing deep-probe slot must not leave motherboard,
+ * firmware, or security information unavailable on a page that needs it.
+ */
+async function collectAdvancedIdentity(): Promise<SystemIntelligenceProfile> {
+  const base = _cache ?? await getFastSystemIntelligence();
+  console.log("[SysIntelligence] focused identity scan start");
+
+  const [bbRes, biosRes, platformRes, chassisRes] = await Promise.allSettled([
+    siTimeoutTracked("baseboard", si.baseboard(), 7_000),
+    siTimeoutTracked("bios", si.bios(), 7_000),
+    siTimeoutTracked("platformPS", collectWindowsPlatformStates(), 10_000),
+    siTimeoutTracked("chassis", si.chassis(), 4_000),
+  ]);
+
+  const bb = bbRes.status === "fulfilled" ? bbRes.value as any : null;
+  const bios = biosRes.status === "fulfilled" ? biosRes.value as any : null;
+  const platform = platformRes.status === "fulfilled"
+    ? platformRes.value
+    : base.platform;
+  const chassis = chassisRes.status === "fulfilled" ? chassisRes.value as any : null;
+
+  const profile: SystemIntelligenceProfile = {
+    ...base,
+    baseboard: {
+      manufacturer: safeStr(bb?.manufacturer) ?? base.baseboard.manufacturer,
+      model: safeStr(bb?.model) ?? base.baseboard.model,
+      version: safeStr(bb?.version) ?? base.baseboard.version,
+    },
+    bios: {
+      vendor: safeStr(bios?.vendor) ?? base.bios.vendor,
+      version: safeStr(bios?.version) ?? base.bios.version,
+      releaseDate: safeStr(bios?.releaseDate) ?? base.bios.releaseDate,
+    },
+    platform: {
+      ...base.platform,
+      ...platform,
+    },
+    device: {
+      ...base.device,
+      chassisType: safeStr(chassis?.type) ?? base.device.chassisType,
+    },
+    collectedAt: new Date().toISOString(),
+  };
+
+  if (profile.baseboard.model || profile.bios.version ||
+      profile.platform.secureBootEnabled !== null ||
+      profile.platform.tpmPresent !== null) {
+    void _saveDiskCache(profile);
+  }
+  console.log(
+    `[SysIntelligence] focused identity scan complete | MB=${profile.baseboard.model ?? "n/a"} | BIOS=${profile.bios.version ?? "n/a"} | secureBoot=${profile.platform.secureBootEnabled}`,
+  );
+  return profile;
+}
+
 // ── Public API ────────────────────────────────────────────────────────────────
 
 /**
@@ -1747,6 +1806,33 @@ export async function getFastSystemIntelligence(): Promise<SystemIntelligencePro
   });
 
   return _phaseAPromise;
+}
+
+/**
+ * Requests only the advanced identity/security fields needed by firmware
+ * views. Concurrent page visits share one scan and never consume the
+ * launch-based deep-probe claim.
+ */
+export async function getAdvancedIdentity(): Promise<SystemIntelligenceProfile> {
+  // A launch-gated full scan may already be running after Phase A. Reuse it
+  // rather than spawning a second set of WMI/PowerShell probes.
+  if (_collectingPromise) return _collectingPromise;
+  if (_identityPromise) return _identityPromise;
+  _identityPromise = collectAdvancedIdentity()
+    .then((profile) => {
+      _cache = profile;
+      _cacheAt = Date.now();
+      return profile;
+    })
+    .catch((err) => {
+      console.warn("[SysIntelligence] focused identity scan failed:", err?.message ?? err);
+      if (_cache) return _cache;
+      throw err;
+    })
+    .finally(() => {
+      _identityPromise = null;
+    });
+  return _identityPromise;
 }
 
 /**

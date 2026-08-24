@@ -173,6 +173,7 @@ const CACHE_TTL_MS = 30 * 60 * 1000;
 let _initSpecsFetched = false;
 // Prevents the delayed full-profile upgrade from being scheduled more than once.
 let _fullCollectScheduled = false;
+let _advancedIdentityRequested = false;
 let _fetchGeneration = 0;
 
 interface SystemIntelligenceState {
@@ -188,6 +189,7 @@ interface SystemIntelligenceState {
 
   fetch: (forceRefresh?: boolean) => Promise<void>;
   refresh: () => Promise<void>;
+  requestAdvancedIdentity: () => Promise<void>;
 }
 
 export const useSystemIntelligenceStore = create<SystemIntelligenceState>((set, get) => ({
@@ -275,6 +277,21 @@ export const useSystemIntelligenceStore = create<SystemIntelligenceState>((set, 
     } catch (err: any) {
       if (generation !== _fetchGeneration) return;
       set({ loading: false, error: err?.message ?? "Refresh failed" });
+    }
+  },
+
+  requestAdvancedIdentity: async () => {
+    if (_advancedIdentityRequested) return;
+    _advancedIdentityRequested = true;
+    try {
+      const res = await fetch("/api/system-intelligence/identity");
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json() as SystemIntelligenceProfile;
+      set({ profile: data, activeHardwareProfile: data, fetchedAt: Date.now(), error: null });
+      console.log(`[SysIntelligence] Focused identity loaded | MB=${data.baseboard.model} | BIOS=${data.bios.version}`);
+    } catch (err: any) {
+      _advancedIdentityRequested = false;
+      console.warn("[SysIntelligence] focused identity request failed:", err?.message);
     }
   },
 }));
