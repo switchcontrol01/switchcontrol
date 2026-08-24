@@ -73,6 +73,7 @@ function StatBadge({ label, value, color }: { label: string; value: string; colo
     </div>
   );
 }
+// End of telemetry graph components.
 
 // End of telemetry graph components.
 
