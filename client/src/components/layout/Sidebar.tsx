@@ -498,7 +498,11 @@ export function Sidebar() {
 
       {/* ── Logo ── */}
       <div className="relative z-10 px-6 pt-6 pb-3">
-        <BrandLogo size="lg" linkTo="#/dashboard" />
+        <BrandLogo
+          size="lg"
+          linkTo="#/dashboard"
+          startupAnimate={currentPath === "/dashboard"}
+        />
       </div>
 
       {/* ── Nav rail ── */}

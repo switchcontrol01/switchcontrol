@@ -7,6 +7,7 @@ interface BrandLogoProps {
   className?: string;
   linkTo?: string;
   animate?: boolean;
+  startupAnimate?: boolean;
 }
 
 const sizeConfig = {
@@ -37,7 +38,8 @@ export function BrandLogo({
   size = 'md',
   className,
   linkTo = '#/dashboard',
-  animate = true
+  animate = true,
+  startupAnimate = false,
 }: BrandLogoProps) {
   const config = sizeConfig[size];
   
@@ -55,10 +57,11 @@ export function BrandLogo({
   const content = (
     <div className={cn(
       'flex items-center transition-all duration-300 group',
+      startupAnimate && 'brand-logo-startup',
       config.gap, 
       className
     )}>
-      <div className="relative flex-shrink-0">
+      <div className="relative flex-shrink-0 overflow-hidden rounded-[22%]">
         <div className={cn(
           "absolute inset-0 rounded-lg bg-primary/0 blur-md transition-all duration-300",
           animate && "group-hover:bg-primary/30 group-hover:blur-lg"
@@ -72,6 +75,9 @@ export function BrandLogo({
             animate && 'group-hover:scale-[1.05]'
           )}
         />
+        {startupAnimate && (
+          <span className="brand-logo-shine absolute inset-[-45%] z-20 pointer-events-none" aria-hidden />
+        )}
       </div>
       {showWordmark && (
         <img 
