@@ -191,8 +191,8 @@ const PROPERTY_GROUPS: {
 ];
 
 const GROUP_COLORS: Record<string, { bg: string; text: string; border: string; dot: string }> = {
-  cyan:    { bg: "bg-cyan-500/10",    text: "text-cyan-400",    border: "border-cyan-500/20",    dot: "bg-cyan-400" },
-  violet:  { bg: "bg-[#00D4FF]",  text: "text-[#00D4FF]",  border: "border-[#00D4FF]",  dot: "bg-[#00D4FF]" },
+  cyan:    { bg: "bg-primary/10",    text: "text-primary",    border: "border-primary/20",    dot: "bg-primary" },
+  violet:  { bg: "bg-primary/10",  text: "text-primary",  border: "border-primary/20",  dot: "bg-primary" },
   amber:   { bg: "bg-amber-500/10",   text: "text-amber-400",   border: "border-amber-500/20",   dot: "bg-amber-400" },
   emerald: { bg: "bg-emerald-500/10", text: "text-emerald-400", border: "border-emerald-500/20", dot: "bg-emerald-400" },
   indigo:  { bg: "bg-indigo-500/10",  text: "text-indigo-400",  border: "border-indigo-500/20",  dot: "bg-indigo-400" },
@@ -219,7 +219,7 @@ function CapabilityRing({ supported, total }: { supported: number; total: number
   const stroke = 6;
   const size = (r + stroke) * 2 + 4;
   const circ = 2 * Math.PI * r;
-  const scoreColor = pct >= 0.75 ? "#22d3ee" : pct >= 0.5 ? "#a78bfa" : "#f59e0b";
+  const scoreColor = pct >= 0.75 ? "hsl(var(--primary))" : pct >= 0.5 ? "#a78bfa" : "#f59e0b";
 
   return (
     <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
@@ -266,7 +266,7 @@ function BufferBar({ value, min, max, label }: { value: number; min: number; max
     <div className="space-y-1">
       <div className="flex justify-between text-[10px] text-[#6B7380]">
         <span>{label}</span>
-        <span className="text-cyan-400 font-mono">{value}</span>
+        <span className="text-primary font-mono">{value}</span>
       </div>
       <div className="relative h-1.5 rounded-full overflow-hidden bg-[#21262D]">
         <motion.div
@@ -343,14 +343,14 @@ function PropertyHeatmap({
               loading
                 ? "bg-[#1A1F26] border-[#2A313A] text-[#6B7380]/50 animate-pulse"
                 : supported
-                ? "bg-cyan-500/[0.08] border-cyan-500/15 text-cyan-400/80"
+                ? "bg-primary/[0.08] border-primary/15 text-primary/80"
                 : "bg-[#1A1F26] border-[#2A313A] text-[#6B7380]"
             )}
           >
             <span className={cn(
               "size-1.5 rounded-full",
               loading ? "bg-[#2A313A]"
-              : supported ? "bg-cyan-400 shadow-[0_0_4px_rgba(34,211,238,0.7)]"
+              : supported ? "bg-primary shadow-[0_0_4px_hsl(var(--primary)/0.7)]"
               : "bg-[#2A313A]"
             )} />
             {meta.label.replace(" (EEE)", "").replace(" (RSS)", "").replace("Receive Side Scaling", "RSS")}
@@ -489,14 +489,14 @@ function PropertyControl({ adapterName, propKey, meta, capability, isWifi, onVal
   return (
     <div className={cn(
       "py-3 px-3 rounded-xl border transition-all duration-300",
-      isDirty ? "bg-cyan-500/[0.03] border-cyan-500/15" : "bg-[#1A1F26] border-[#2A313A]"
+      isDirty ? "bg-primary/[0.03] border-primary/15" : "bg-[#1A1F26] border-[#2A313A]"
     )}>
       <div className="flex items-center gap-2 flex-wrap mb-2">
         <span className="text-xs font-medium text-[#E6EAF0]">{meta.label}</span>
         <RiskBadge risk={meta.risk} />
         {meta.requiresAdmin && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-orange-500/10 text-orange-400 border border-orange-500/20">Admin</span>}
         {capability.supported
-          ? <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">Supported</span>
+          ? <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">Supported</span>
           : <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[#21262D] text-[#6B7380] border border-[#2A313A]">Unverified</span>
         }
       </div>
@@ -516,7 +516,7 @@ function PropertyControl({ adapterName, propKey, meta, capability, isWifi, onVal
             const ok = !capability.validValues || capability.validValues.includes(preset);
             if (!ok) return null;
             return (
-              <button key={preset} onClick={() => setState(s => ({ ...s, pending: preset }))} disabled={state.applying} className={cn("px-2.5 py-1 rounded-lg text-xs font-medium border transition-all", state.pending === preset ? "bg-cyan-500/15 text-cyan-400 border-cyan-500/25" : "bg-[#21262D] text-[#6B7380] border-[#2A313A] hover:border-[#2A313A] hover:text-[#A0A8B3]")}>
+              <button key={preset} onClick={() => setState(s => ({ ...s, pending: preset }))} disabled={state.applying} className={cn("px-2.5 py-1 rounded-lg text-xs font-medium border transition-all", state.pending === preset ? "bg-primary/15 text-primary border-primary/25" : "bg-[#21262D] text-[#6B7380] border-[#2A313A] hover:border-[#2A313A] hover:text-[#A0A8B3]")}>
                 {meta.presetLabels?.[i] ?? preset}
               </button>
             );
@@ -529,8 +529,8 @@ function PropertyControl({ adapterName, propKey, meta, capability, isWifi, onVal
         <div className="space-y-2">
           <div className="flex items-center gap-3 text-[11px]">
             <span className="text-[#6B7380]">Current: <span className="text-[#A0A8B3]">{capability.currentValue ?? "—"}</span></span>
-            {isDirty && <span className="text-cyan-400 font-medium">Pending: {state.pending}</span>}
-            {meta.recommendedValue != null && <span className="text-cyan-400/50">Rec: {meta.recommendedValue}</span>}
+            {isDirty && <span className="text-primary font-medium">Pending: {state.pending}</span>}
+            {meta.recommendedValue != null && <span className="text-primary/50">Rec: {meta.recommendedValue}</span>}
           </div>
           <Slider min={meta.min!} max={meta.max!} step={meta.step ?? 1} value={[Number(state.pending) || meta.min!]} onValueChange={([v]) => setState(s => ({ ...s, pending: String(v) }))} disabled={state.applying} className="w-full cursor-pointer" />
           <div className="flex justify-between text-[10px] text-[#6B7380]/50">
@@ -565,7 +565,7 @@ function PropertyControl({ adapterName, propKey, meta, capability, isWifi, onVal
       </AnimatePresence>
 
       <div className="flex items-center gap-2 mt-2.5">
-        <Button size="sm" onClick={apply} disabled={state.applying || !isDirty} className={cn("h-7 px-3 text-[11px] gap-1.5", isDirty ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 hover:bg-cyan-500/30" : "bg-[#21262D] text-[#6B7380] border border-[#2A313A]")}>
+        <Button size="sm" onClick={apply} disabled={state.applying || !isDirty} className={cn("h-7 px-3 text-[11px] gap-1.5", isDirty ? "bg-primary/20 text-primary border border-primary/30 hover:bg-primary/30" : "bg-[#21262D] text-[#6B7380] border border-[#2A313A]")}>
           {state.applying ? <Loader2 className="size-3 animate-spin" /> : <CheckCircle2 className="size-3" />}
           Apply
         </Button>
@@ -723,8 +723,8 @@ function NetworkThroughputCard({ adapterName }: { adapterName: string }) {
       {/* Header */}
       <div className="flex items-center justify-between px-4 pt-4 pb-3">
         <div className="flex items-center gap-2">
-          <div className="size-7 rounded-lg bg-cyan-500/15 flex items-center justify-center">
-            <Activity className="size-3.5 text-cyan-400" />
+          <div className="size-7 rounded-lg bg-primary/15 flex items-center justify-center">
+            <Activity className="size-3.5 text-primary" />
           </div>
           <span className="text-xs font-semibold text-[#E6EAF0]">Live Network Throughput</span>
         </div>
@@ -734,7 +734,7 @@ function NetworkThroughputCard({ adapterName }: { adapterName: string }) {
               "size-1.5 rounded-full",
               connected
                 ? hasActivity
-                  ? "bg-cyan-400 shadow-[0_0_6px_rgba(34,211,238,0.8)] animate-pulse"
+                  ? "bg-primary shadow-[0_0_6px_hsl(var(--primary)/0.8)] animate-pulse"
                   : "bg-emerald-400 shadow-[0_0_4px_rgba(52,211,153,0.7)]"
                 : "bg-[#2A313A]",
             )}
@@ -752,12 +752,12 @@ function NetworkThroughputCard({ adapterName }: { adapterName: string }) {
         {/* Download */}
         <div className="bg-[rgba(10,12,18,0.7)] p-3.5 space-y-1">
           <div className="flex items-center gap-1.5">
-            <ArrowDownToLine className="size-3 text-cyan-400" />
+                    <ArrowDownToLine className="size-3 text-primary" />
             <span className="text-[10px] font-semibold uppercase tracking-wider text-[#6B7380]">Download</span>
           </div>
           <motion.p
             key={fmtRx}
-            className="text-2xl font-bold tabular-nums text-cyan-300 leading-none tracking-tight"
+                    className="text-2xl font-bold tabular-nums text-primary leading-none tracking-tight"
             initial={{ opacity: 0.6, y: 2 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.18 }}
@@ -771,7 +771,7 @@ function NetworkThroughputCard({ adapterName }: { adapterName: string }) {
         {/* Upload */}
         <div className="bg-[rgba(10,12,18,0.7)] p-3.5 space-y-1">
           <div className="flex items-center gap-1.5">
-            <ArrowUpFromLine className="size-3 text-[#00D4FF]" />
+                    <ArrowUpFromLine className="size-3 text-primary" />
             <span className="text-[10px] font-semibold uppercase tracking-wider text-[#6B7380]">Upload</span>
           </div>
           <motion.p
@@ -849,11 +849,11 @@ function NetworkThroughputCard({ adapterName }: { adapterName: string }) {
         {/* Legend */}
         <div className="absolute bottom-2 right-3 flex items-center gap-3">
           <div className="flex items-center gap-1">
-            <span className="w-4 h-px bg-cyan-400/80 inline-block" />
+            <span className="w-4 h-px bg-primary/80 inline-block" />
             <span className="text-[9px] text-[#6B7380]">RX</span>
           </div>
           <div className="flex items-center gap-1">
-            <span className="w-4 h-px bg-[#00D4FF]/70 inline-block" />
+            <span className="w-4 h-px bg-primary/70 inline-block" />
             <span className="text-[9px] text-[#6B7380]">TX</span>
           </div>
         </div>
@@ -890,8 +890,8 @@ function AdapterDiagnostics({
       {/* Adapter info card */}
       <GlassCard blur="sm" hoverEffect={false} className="p-4 lg:col-span-1 space-y-3">
         <div className="flex items-center gap-2">
-          <div className={cn("size-7 rounded-lg flex items-center justify-center", isOnline ? "bg-cyan-500/15" : "bg-[#21262D]")}>
-            <Wifi className={cn("size-3.5", isOnline ? "text-cyan-400" : "text-[#6B7380]")} />
+          <div className={cn("size-7 rounded-lg flex items-center justify-center", isOnline ? "bg-primary/15" : "bg-[#21262D]")}>
+            <Wifi className={cn("size-3.5", isOnline ? "text-primary" : "text-[#6B7380]")} />
           </div>
           <span className="text-xs font-semibold text-[#E6EAF0]">Adapter Info</span>
         </div>
@@ -928,8 +928,8 @@ function AdapterDiagnostics({
       {/* Capability ring + heatmap */}
       <GlassCard blur="sm" hoverEffect={false} className="p-4 lg:col-span-2 space-y-4">
         <div className="flex items-center gap-2">
-          <div className="size-7 rounded-lg bg-[#00D4FF] flex items-center justify-center">
-            <Activity className="size-3.5 text-[#00D4FF]" />
+          <div className="size-7 rounded-lg bg-primary flex items-center justify-center">
+            <Activity className="size-3.5 text-primary" />
           </div>
           <span className="text-xs font-semibold text-[#E6EAF0]">Property Support Intelligence</span>
         </div>
@@ -957,7 +957,7 @@ function AdapterDiagnostics({
             </p>
             {!capLoading && capabilities && (
               <div className="flex gap-3 text-[10px] text-[#6B7380] pt-1">
-                <span className="text-cyan-400">{supported} supported</span>
+                <span className="text-primary">{supported} supported</span>
                 <span>·</span>
                 <span>{total - supported} unsupported</span>
               </div>
@@ -1162,8 +1162,8 @@ export default function NicTuningPage() {
                   "flex items-center gap-3 flex-1 min-w-0",
                   loading && "justify-center text-center",
                 )}>
-                  <div className="size-10 rounded-xl bg-gradient-to-br from-cyan-500/20 to-indigo-500/10 border border-[#2A313A] flex items-center justify-center shrink-0">
-                    <Network className="size-5 text-cyan-400" />
+                  <div className="size-10 rounded-xl bg-gradient-to-br from-primary/20 to-indigo-500/10 border border-[#2A313A] flex items-center justify-center shrink-0">
+                    <Network className="size-5 text-primary" />
                   </div>
                   <div>
                     <div className="flex items-center gap-2.5">
@@ -1203,7 +1203,7 @@ export default function NicTuningPage() {
                   transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
                   className="flex items-center justify-center gap-2.5 pt-5 text-sm text-[#6B7380]"
                 >
-                  <Loader2 className="size-4 animate-spin text-cyan-400/60" />
+                  <Loader2 className="size-4 animate-spin text-primary/60" />
                   <span>Detecting network adapters…</span>
                 </motion.div>
               )}
@@ -1220,7 +1220,7 @@ export default function NicTuningPage() {
           >
             <GlassCard blur="sm" hoverEffect={false} className="p-4">
               <div className="flex items-start gap-3 text-sm text-[#A0A8B3]">
-                <Info className="size-4 shrink-0 text-cyan-400/60 mt-0.5" />
+                <Info className="size-4 shrink-0 text-primary/60 mt-0.5" />
                 <div>
                   <p className="font-medium text-[#A0A8B3] mb-1">Desktop app required</p>
                   <p className="text-xs leading-relaxed">
@@ -1267,7 +1267,7 @@ export default function NicTuningPage() {
                   className={cn(
                     "flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-medium transition-all",
                     isSelected
-                      ? "bg-cyan-500/15 border-cyan-500/30 text-cyan-300"
+                      ? "bg-primary/15 border-primary/30 text-primary"
                       : "bg-[#1A1F26] border-[#2A313A] text-[#A0A8B3] hover:bg-[#21262D] hover:text-[#E6EAF0]"
                   )}
                 >
@@ -1306,7 +1306,7 @@ export default function NicTuningPage() {
               <Network className="size-5 text-[#6B7380]/50" />
             </div>
             <p className="text-sm text-[#6B7380]">No physical network adapters found.</p>
-            <button onClick={loadAdapters} className="text-xs text-cyan-400/60 hover:text-cyan-400 underline">Retry detection</button>
+            <button onClick={loadAdapters} className="text-xs text-primary/60 hover:text-primary underline">Retry detection</button>
           </GlassCard>
         )}
 

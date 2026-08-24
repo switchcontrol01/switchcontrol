@@ -195,17 +195,17 @@ function BiosScoreSummaryCard({ isPremium }: { isPremium: boolean }) {
       "relative overflow-hidden group h-full transition-all duration-500",
       !isPremium && "opacity-60 blur-[2px]"
     )} data-testid="card-bios-score">
-      <div className="absolute -right-12 -top-12 h-36 w-36 bg-[#00D4FF]/8 blur-3xl rounded-full pointer-events-none group-hover:bg-[#00D4FF]/15 transition-colors duration-500" />
+      <div className="absolute -right-12 -top-12 h-36 w-36 bg-primary/8 blur-3xl rounded-full pointer-events-none group-hover:bg-primary/15 transition-colors duration-500" />
       <div className="absolute top-0 right-0 p-3 z-20">
         {isPremium ? (
-          <Target className="size-4 text-[#00D4FF]" />
+          <Target className="size-4 text-primary" />
         ) : (
           <AnimatedCrown size="sm" tooltipText="Premium feature" />
         )}
       </div>
       <div className="p-6 pb-3">
         <h3 className="text-base font-medium flex items-center gap-2">
-          <Target className="size-4 text-[#00D4FF]" />
+          <Target className="size-4 text-primary" />
           BIOS Score
           {!isPremium && <PremiumBadge className="ml-1" />}
         </h3>
@@ -220,8 +220,8 @@ function BiosScoreSummaryCard({ isPremium }: { isPremium: boolean }) {
           </div>
         ) : (
           <>
-            <div className="p-3 rounded-lg border bg-[#00D4FF]/10 border-[#00D4FF]/20 text-center">
-              <div className="text-2xl font-bold tabular-nums text-[#00D4FF]" data-testid="text-bios-dashboard-score">
+            <div className="p-3 rounded-lg border bg-primary/10 border-primary/20 text-center">
+              <div className="text-2xl font-bold tabular-nums text-primary" data-testid="text-bios-dashboard-score">
                 {Number.isFinite(scores.competitiveReadiness) ? scores.competitiveReadiness : 0}
               </div>
               <p className="text-[10px] mt-0.5 text-muted-foreground">Readiness Estimate</p>
@@ -257,7 +257,7 @@ function BiosScoreSummaryCard({ isPremium }: { isPremium: boolean }) {
             </div>
           </>
         )}
-        <Button size="sm" className="w-full bg-[#00D4FF]/15 hover:bg-[#00D4FF]/25 text-[#00D4FF] border border-[#00D4FF]/25 hover:border-[#00D4FF]/40" data-testid="button-open-bios-advisor" onClick={() => goTo("/bios-advisor")}>
+        <Button size="sm" className="w-full bg-primary/15 hover:bg-primary/25 text-primary border border-primary/25 hover:border-primary/40" data-testid="button-open-bios-advisor" onClick={() => goTo("/bios-advisor")}>
           <Target className="size-3.5 mr-1.5" />
           {hasScanned && scores ? "View BIOS Analysis" : "Open BIOS Advisor"}
           <ArrowRight className="size-3 ml-auto" />
@@ -915,7 +915,7 @@ export default function Home() {
                     : `${stats.cpuCores} Cores / ${stats.cpuThreads} Threads`
                 }
                 progress={liveTel ? liveTel.cpu.load : undefined}
-                className="border-[#00D4FF]/40 shadow-[0_0_20px_-10px_rgba(0,212,255,0.1)]"
+                className="border-primary/40 shadow-[0_0_20px_-10px_hsl(var(--primary)/0.1)]"
                  loading={specStatus === "loading"}
                />
               </div>}
@@ -1040,7 +1040,7 @@ export default function Home() {
         {/* ── Telemetry Analytics ────────────────────────────────────── */}
         <Reveal className="space-y-3">
           <div className="flex items-center gap-2">
-            <Activity className="size-4 text-cyan-400" />
+            <Activity className="size-4 text-primary" />
             <h2 className="text-lg font-semibold tracking-tight text-[#E6EAF0]">Telemetry Analytics</h2>
             <span className="ml-auto text-[9px] uppercase tracking-widest text-[#6B7380]/50 font-semibold">Live · Rolling window</span>
           </div>

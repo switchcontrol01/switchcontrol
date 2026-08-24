@@ -170,7 +170,7 @@ export function TweakPresetCard({ tweak, activeConflictIds = [], dynamicOverride
       hoverEffect={false}
       className={cn(
         "group flex flex-col transition-all duration-500",
-        isDirty && "border-cyan-500/20 bg-cyan-500/[0.02]",
+        isDirty && "border-primary/20 bg-primary/[0.02]",
         state.verifyResult?.ok && "border-emerald-500/20",
         state.verifyResult?.ok === false && "border-red-500/20",
       )}
@@ -184,7 +184,7 @@ export function TweakPresetCard({ tweak, activeConflictIds = [], dynamicOverride
             </h3>
             <div className="flex items-center gap-1.5 flex-wrap mt-1.5 opacity-80 group-hover:opacity-100 transition-opacity">
               {isLocked && (
-                <span className="text-[10px] font-medium px-2 py-0.5 rounded-full border bg-[#00D4FF]/10 text-[#00D4FF] border-[#00D4FF]/20 flex items-center gap-1">
+                <span className="text-[10px] font-medium px-2 py-0.5 rounded-full border bg-primary/10 text-primary border-primary/20 flex items-center gap-1">
                   <Lock className="inline-block size-3" /> Premium
                 </span>
               )}
@@ -201,7 +201,7 @@ export function TweakPresetCard({ tweak, activeConflictIds = [], dynamicOverride
                 {tweak.risk}
               </span>
               {isElectron && (
-                <span className="text-[10px] font-medium px-2 py-0.5 rounded-full border bg-cyan-500/10 text-cyan-400 border-cyan-500/20">
+                <span className="text-[10px] font-medium px-2 py-0.5 rounded-full border bg-primary/10 text-primary border-primary/20">
                   <Zap className="inline-block size-3 mr-0.5 -mt-0.5" /> Real
                 </span>
               )}
@@ -247,7 +247,7 @@ export function TweakPresetCard({ tweak, activeConflictIds = [], dynamicOverride
             </div>
             <div className="flex-1">
               <span className="text-[#6B7380] block mb-0.5 text-[10px]">Pending</span>
-              <span className={cn("font-medium transition-colors", isDirty ? "text-cyan-400" : "text-[#6B7380]")}>
+              <span className={cn("font-medium transition-colors", isDirty ? "text-primary" : "text-[#6B7380]")}>
                 {isDirty ? (pendingOption?.label ?? "—") : "—"}
               </span>
             </div>
@@ -288,7 +288,7 @@ export function TweakPresetCard({ tweak, activeConflictIds = [], dynamicOverride
                       isAiRec
                         ? "bg-gradient-to-r from-violet-500/20 to-fuchsia-500/20 text-violet-300 border border-violet-400/30"
                         : isRec
-                        ? "bg-cyan-500/15 text-cyan-400"
+                        ? "bg-primary/15 text-primary"
                         : "bg-[#2A313A] text-[#6B7380]"
                     )}>
                       {isAiRec ? "AI Pick ✦" : isRec ? "Recommended" : "Default"}
@@ -337,7 +337,7 @@ export function TweakPresetCard({ tweak, activeConflictIds = [], dynamicOverride
               <Button
                 size="sm"
                 onClick={() => openUpgradeModal('Premium Tweak')}
-                className="h-8 px-3 text-xs text-[#00D4FF] border border-[#00D4FF]/30 bg-[#00D4FF]/10 hover:bg-[#00D4FF]/20 gap-2"
+                className="h-8 px-3 text-xs text-primary border border-primary/30 bg-primary/10 hover:bg-primary/20 gap-2"
                 data-testid={`button-unlock-preset-${tweak.id}`}
               >
                 <Lock className="size-3" /> Unlock
@@ -352,7 +352,7 @@ export function TweakPresetCard({ tweak, activeConflictIds = [], dynamicOverride
                   className={cn(
                     "h-8 px-4 text-xs gap-2 transition-all",
                     isDirty
-                      ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 hover:bg-cyan-500/30"
+                      ? "bg-primary/20 text-primary border border-primary/30 hover:bg-primary/30"
                       : "bg-[#21262D] text-[#6B7380] border border-[#2A313A]"
                   )}
                 >

@@ -313,7 +313,7 @@ function PropertyControl({ adapterName, propKey, meta, capability, isWifi }: Pro
     <div className={cn(
       "py-3 px-3 rounded-xl border transition-all duration-300",
       isDirty
-        ? "bg-cyan-500/[0.03] border-cyan-500/15"
+        ? "bg-primary/[0.03] border-primary/15"
         : "bg-[#1A1F26] border-[#2A313A]"
     )}>
       <div className="flex items-center gap-2 flex-wrap mb-2">
@@ -322,7 +322,7 @@ function PropertyControl({ adapterName, propKey, meta, capability, isWifi }: Pro
         {meta.requiresAdmin && (
           <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-orange-500/10 text-orange-400 border border-orange-500/20">Admin</span>
         )}
-        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">Supported</span>
+        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">Supported</span>
       </div>
 
       <p className="text-[11px] text-[#6B7380] mb-3 leading-relaxed">{meta.description}</p>
@@ -374,7 +374,7 @@ function PropertyControl({ adapterName, propKey, meta, capability, isWifi }: Pro
                 className={cn(
                   "px-2.5 py-1 rounded-lg text-xs font-medium border transition-all",
                   state.pending === preset
-                    ? "bg-cyan-500/15 text-cyan-400 border-cyan-500/25"
+                    ? "bg-primary/15 text-primary border-primary/25"
                     : "bg-[#21262D] text-[#6B7380] border-[#2A313A] hover:border-[#2A313A] hover:text-[#A0A8B3]"
                 )}
               >
@@ -393,11 +393,11 @@ function PropertyControl({ adapterName, propKey, meta, capability, isWifi }: Pro
         <div className="space-y-2">
           <div className="flex items-center gap-3 text-[11px]">
             <span className="text-[#6B7380]">Current: <span className="text-[#A0A8B3]">{capability.currentValue ?? '—'}</span></span>
-            <span className={cn("font-medium", isDirty ? "text-cyan-400" : "text-[#6B7380]")}>
+            <span className={cn("font-medium", isDirty ? "text-primary" : "text-[#6B7380]")}>
               {isDirty ? `Pending: ${state.pending}` : ''}
             </span>
             {meta.recommendedValue !== undefined && meta.recommendedValue !== null && (
-              <span className="text-cyan-400/50">Rec: {meta.recommendedValue}</span>
+              <span className="text-primary/50">Rec: {meta.recommendedValue}</span>
             )}
           </div>
           <Slider
@@ -480,7 +480,7 @@ function PropertyControl({ adapterName, propKey, meta, capability, isWifi }: Pro
           className={cn(
             "h-7 px-3 text-[11px] gap-1.5",
             isDirty
-              ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 hover:bg-cyan-500/30"
+              ? "bg-primary/20 text-primary border border-primary/30 hover:bg-primary/30"
               : "bg-[#21262D] text-[#6B7380] border border-[#2A313A]"
           )}
         >
@@ -572,7 +572,7 @@ function AdapterPanel({ adapter, propertyMeta, isExpanded, onToggle }: AdapterPa
       >
         <div className={cn(
           "size-8 rounded-xl flex items-center justify-center shrink-0",
-          isOnline ? "bg-cyan-500/15 text-cyan-400" : "bg-[#21262D] text-[#6B7380]"
+          isOnline ? "bg-primary/15 text-primary" : "bg-[#21262D] text-[#6B7380]"
         )}>
           {wifi ? <Wifi className="size-4" /> : <Network className="size-4" />}
         </div>
@@ -637,7 +637,7 @@ function AdapterPanel({ adapter, propertyMeta, isExpanded, onToggle }: AdapterPa
               )}
               {!isElectron && (
                 <div className="flex items-center gap-2 py-3 px-3 rounded-xl bg-[#1A1F26] border border-[#2A313A] text-xs text-[#6B7380]">
-                  <Info className="size-3.5 shrink-0 text-cyan-400/60" />
+                  <Info className="size-3.5 shrink-0 text-primary/60" />
                   {wifi ? 'WiFi adapter' : 'NIC'} property control is only available in the Windows desktop app. Capability detection requires Electron + PowerShell.
                 </div>
               )}
@@ -731,8 +731,8 @@ export function NicTuning() {
         className="w-full flex items-center gap-3 p-0 group"
       >
         <div className="flex items-center gap-3 flex-1">
-          <div className="size-8 rounded-xl bg-gradient-to-br from-indigo-500/20 to-cyan-500/10 flex items-center justify-center border border-[#2A313A]">
-            <Network className="size-4 text-indigo-400" />
+                  <div className="size-8 rounded-xl bg-gradient-to-br from-indigo-500/20 to-primary/10 flex items-center justify-center border border-[#2A313A]">
+                    <Network className="size-4 text-primary" />
           </div>
           <div className="text-left">
             <h3 className="text-sm font-semibold text-[#E6EAF0] group-hover:text-[#E6EAF0] transition-colors">
@@ -770,7 +770,7 @@ export function NicTuning() {
               {!isElectron && (
                 <GlassCard blur="sm" hoverEffect={false} className="p-4">
                   <div className="flex items-start gap-3 text-sm text-[#A0A8B3]">
-                    <Info className="size-4 shrink-0 text-cyan-400/60 mt-0.5" />
+                    <Info className="size-4 shrink-0 text-primary/60 mt-0.5" />
                     <div>
                       <p className="font-medium text-[#A0A8B3] mb-1">Desktop app required</p>
                       <p className="text-xs leading-relaxed">

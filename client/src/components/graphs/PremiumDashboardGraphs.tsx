@@ -151,10 +151,10 @@ export function MemoryPressureGraph({ delay = 0 }: { delay?: number }) {
       <div className="flex items-center gap-4 mb-2.5">
         <StatBadge label="Used" value={`${currentUsed.toFixed(0)}%`} color="text-cyan-400" />
         <StatBadge label="Total" value={`${totalGB.toFixed(0)}G`} color="text-[#A0A8B3]" />
-        <StatBadge label="Live" value={`${usedGB.toFixed(1)}G`} color="text-[#00D4FF]" />
+        <StatBadge label="Live" value={`${usedGB.toFixed(1)}G`} color="text-primary" />
         <div className="flex items-center gap-2.5 ml-auto text-[9px] text-[#6B7380] uppercase tracking-widest">
           <span className="flex items-center gap-1"><span className="inline-block w-5 h-px bg-cyan-400/70" />Used</span>
-          <span className="flex items-center gap-1"><span className="inline-block w-5 h-px bg-[#00D4FF]/50" />Free</span>
+          <span className="flex items-center gap-1"><span className="inline-block w-5 h-px bg-primary/50" />Free</span>
         </div>
       </div>
 
@@ -367,7 +367,7 @@ export function SystemRhythmGraph({ delay = 0 }: { delay?: number }) {
       <div className="flex items-center gap-4 mb-2.5">
         <StatBadge label="CPU" value={`${cpu.toFixed(0)}%`} color="text-primary" />
         <StatBadge label="RAM" value={`${ram.toFixed(0)}%`} color="text-cyan-400" />
-        {gpu !== null && <StatBadge label="GPU" value={`${gpu.toFixed(0)}%`} color="text-[#00D4FF]" />}
+        {gpu !== null && <StatBadge label="GPU" value={`${gpu.toFixed(0)}%`} color="text-primary" />}
         <div className="flex items-center gap-2 ml-auto text-[9px] text-[#6B7380] uppercase tracking-widest">
           <span className="flex items-center gap-1"><span className="inline-block w-5 h-px" style={{ background: "#06b6d4" }} />CPU</span>
           <span className="flex items-center gap-1"><span className="inline-block w-5 h-px" style={{ background: "#00D4FF", opacity: 0.6 }} />GPU</span>
@@ -759,7 +759,7 @@ export function DisplaySignalGraph({ delay = 0 }: { delay?: number }) {
       animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
       transition={{ duration: 0.55, delay, ease: [0.22, 1, 0.36, 1] }}
     >
-      <GlassCard className="relative overflow-hidden border-[#00D4FF] bg-[#00D4FF]/[0.015]">
+      <GlassCard className="relative overflow-hidden border-primary bg-primary/[0.015]">
         <SweepLine active={changed || scanning} />
 
         <div className="absolute inset-0 pointer-events-none"
@@ -769,7 +769,7 @@ export function DisplaySignalGraph({ delay = 0 }: { delay?: number }) {
           {/* ── Header ── */}
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2 min-w-0">
-              <Monitor className="size-4 text-[#00D4FF] shrink-0" />
+              <Monitor className="size-4 text-primary shrink-0" />
               <span className="text-[11px] font-semibold text-[#E6EAF0] uppercase tracking-widest shrink-0">
                 Display Signal
               </span>

@@ -338,7 +338,7 @@ function ItemRow({ item, finding, selected, onToggle, cleanResult, isCleaning, d
               <div className="flex flex-wrap gap-3 mt-2">
                 {item.requiresAdmin && <span className="text-[10px] text-amber-400/80">Requires admin</span>}
                 {item.requiresRestart && <span className="text-[10px] text-amber-400/80">Requires restart</span>}
-                {item.impactBootSec > 0 && <span className="text-[10px] text-cyan-400/80">~{item.impactBootSec}s boot impact</span>}
+                {item.impactBootSec > 0 && <span className="text-[10px] text-primary/80">~{item.impactBootSec}s boot impact</span>}
                 {item.impactRam > 0 && <span className="text-[10px] text-purple-400/80">~{item.impactRam} MB RAM</span>}
               </div>
             </div>

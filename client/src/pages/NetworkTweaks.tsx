@@ -183,7 +183,7 @@ function SectionSyncBadge({ phase }: { phase: SyncPhase }) {
   if (phase === 'loading') {
     return (
       <motion.span
-        className="flex items-center gap-1 text-[10px] text-cyan-400/70 font-medium ml-2"
+        className="flex items-center gap-1 text-[10px] text-primary/70 font-medium ml-2"
         initial={{ opacity: 0, x: -4 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.2 }}
       >
         <span className="size-1.5 rounded-full bg-cyan-400 animate-pulse inline-block" />
@@ -501,7 +501,7 @@ function NetworkTweakCard({ tweak, tweakState, onToggle, onInfoClick, isVerifyin
                   "text-[9px] font-medium px-1.5 py-0.5 rounded-full border select-none",
                   hardwareRecAi
                     ? "bg-gradient-to-r from-violet-500/15 to-fuchsia-500/15 text-violet-300 border-violet-400/30"
-                    : "bg-cyan-500/10 text-cyan-400 border-cyan-500/20"
+                    : "bg-primary/10 text-primary border-primary/20"
                 )}>
                   {hardwareRecAi ? "✦ AI Pick" : "✦ For your system"}
                 </span>
@@ -1171,7 +1171,7 @@ function NetworkTweaksContent() {
         >
           <GlassCard className="p-4 border-[rgba(0,212,255,0.2)] bg-[rgba(0,212,255,0.05)]">
             <div className="flex gap-3">
-              <Info className="size-5 text-[#00D4FF] shrink-0 mt-0.5" />
+              <Info className="size-5 text-primary shrink-0 mt-0.5" />
               <div className="space-y-2">
                 <h3 className="text-sm font-medium text-[#E6EAF0]">Real system changes, applied immediately</h3>
                 <ul className="text-xs text-muted-foreground space-y-1.5">

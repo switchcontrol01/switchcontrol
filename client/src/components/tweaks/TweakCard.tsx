@@ -480,7 +480,7 @@ export function TweakCard({ tweak, isEnabled, onToggle, isVerifying = false, isH
                 <Button
                   variant="ghost" size="sm"
                   onClick={() => openUpgradeModal('Premium Tweak')}
-                  className="h-8 px-3 text-[10px] text-[#00D4FF] border border-[#00D4FF]/30 bg-[#00D4FF]/10 hover:bg-[#00D4FF]/20"
+                  className="h-8 px-3 text-[10px] text-primary border border-primary/30 bg-primary/10 hover:bg-primary/20"
                   data-testid={`button-unlock-${tweak.id}`}
                 >
                   <Lock className="size-3 mr-1" /> Unlock
@@ -511,7 +511,7 @@ export function TweakCard({ tweak, isEnabled, onToggle, isVerifying = false, isH
                   data-testid={`switch-tweak-${tweak.id}`}
                   className={cn(
                     "rounded-md data-[state=checked]:bg-primary shadow-lg",
-                    isReal && "data-[state=checked]:bg-cyan-500"
+                    isReal && "data-[state=checked]:bg-primary"
                   )}
                 />
               )}
@@ -670,12 +670,12 @@ export function TweakCard({ tweak, isEnabled, onToggle, isVerifying = false, isH
                   {isReal && !isUnsupported && isEnabled && (
                     <div className="space-y-2">
                       <h4 className="text-sm font-medium text-[#E6EAF0] flex items-center gap-2">
-                        <Terminal className="size-4 text-cyan-400" /> Verification Status
+                        <Terminal className="size-4 text-primary" /> Verification Status
                       </h4>
-                      <div className="p-3 rounded-lg bg-cyan-500/5 border border-cyan-500/20 font-mono text-[10px] space-y-1.5">
+                      <div className="p-3 rounded-lg bg-primary/5 border border-primary/20 font-mono text-[10px] space-y-1.5">
                         <div className="flex items-center gap-2">
-                          <CheckCircle2 className="size-3 text-cyan-400 shrink-0" />
-                          <span className="text-cyan-400">System state verified — tweak is active</span>
+                          <CheckCircle2 className="size-3 text-primary shrink-0" />
+                          <span className="text-primary">System state verified — tweak is active</span>
                         </div>
                         <div className="text-muted-foreground/70 leading-relaxed">
                           {needsAdmin
