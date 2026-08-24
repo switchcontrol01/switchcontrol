@@ -113,6 +113,38 @@ function buildPathsScanCmd(paths, { filter = null, recurse = true } = {}) {
 // removeEmptyDirs: true = also prune empty directories after file deletion
 function buildPathsCleanCmd(paths, { filter = null, recurse = true, removeEmptyDirs = false } = {}) {
   const psArr = paths.map(p => `'${p}'`).join(',\n        ');
+  // Recursive per-file Remove-Item is extremely slow for browser/game caches.
+  // For unfiltered directory targets, delete each direct child recursively and
+  // compare before/after inventory so locked files are still reported honestly.
+  if (!filter && recurse) {
+    return () => `
+      $paths = @(
+        ${psArr}
+      )
+      $beforeBytes = [int64]0; $beforeCount = 0
+      $afterBytes = [int64]0; $afterCount = 0
+      foreach ($p in $paths) {
+        If (Test-Path $p) {
+          $before = @(Get-ChildItem $p -Recurse -Force -ErrorAction SilentlyContinue | Where-Object {!$_.PSIsContainer})
+          $beforeMeasure = $before | Measure-Object Length -Sum
+          if ($null -ne $beforeMeasure.Sum) { $beforeBytes += [int64]$beforeMeasure.Sum }
+          $beforeCount += $before.Count
+          # Removing top-level children lets PowerShell perform recursive
+          # deletion internally instead of spawning work for every file.
+          @(Get-ChildItem $p -Force -ErrorAction SilentlyContinue) |
+            ForEach-Object { Remove-Item $_.FullName -Recurse -Force -ErrorAction SilentlyContinue }
+          $after = @(Get-ChildItem $p -Recurse -Force -ErrorAction SilentlyContinue | Where-Object {!$_.PSIsContainer})
+          $afterMeasure = $after | Measure-Object Length -Sum
+          if ($null -ne $afterMeasure.Sum) { $afterBytes += [int64]$afterMeasure.Sum }
+          $afterCount += $after.Count
+        }
+      }
+      $removed = [Math]::Max([int64]0, $beforeBytes - $afterBytes)
+      $cnt = [Math]::Max(0, $beforeCount - $afterCount)
+      $fail = $afterCount
+      Write-Output "$removed|$cnt|$fail"
+    `;
+  }
   let gci = 'Get-ChildItem $p';
   if (filter) gci += ` -Filter '${filter}'`;
   if (recurse) gci += ' -Recurse';
@@ -180,13 +212,23 @@ function buildDiscoveredCacheCmd({ roots, subdirs, recurse = true } = {}) {
           }
         }
       }
-      $removed = [int64]0; $cnt = 0; $fail = 0
+      $beforeBytes = [int64]0; $beforeCount = 0
+      $afterBytes = [int64]0; $afterCount = 0
       foreach ($p in ($paths | Sort-Object -Unique)) {
-        $items = @(Get-ChildItem $p${recurseFlag} -Force -ErrorAction SilentlyContinue | Where-Object {!$_.PSIsContainer})
-        foreach ($item in $items) {
-          try { $sz=[int64]$item.Length; Remove-Item $item.FullName -Force -ErrorAction Stop; $removed += $sz; $cnt++ } catch { $fail++ }
-        }
+        $before = @(Get-ChildItem $p${recurseFlag} -Force -ErrorAction SilentlyContinue | Where-Object {!$_.PSIsContainer})
+        $measure = $before | Measure-Object Length -Sum
+        if ($null -ne $measure.Sum) { $beforeBytes += [int64]$measure.Sum }
+        $beforeCount += $before.Count
+        @(Get-ChildItem $p -Force -ErrorAction SilentlyContinue) |
+          ForEach-Object { Remove-Item $_.FullName -Recurse -Force -ErrorAction SilentlyContinue }
+        $after = @(Get-ChildItem $p${recurseFlag} -Force -ErrorAction SilentlyContinue | Where-Object {!$_.PSIsContainer})
+        $measure = $after | Measure-Object Length -Sum
+        if ($null -ne $measure.Sum) { $afterBytes += [int64]$measure.Sum }
+        $afterCount += $after.Count
       }
+      $removed = [Math]::Max([int64]0, $beforeBytes - $afterBytes)
+      $cnt = [Math]::Max(0, $beforeCount - $afterCount)
+      $fail = $afterCount
       Write-Output "$removed|$cnt|$fail"
     `;
   return { scanCmd: () => scan, cleanCmd: () => clean };
@@ -213,9 +255,23 @@ function buildSteamCacheCmd(subdirs) {
       }
       $total = [int64]0; $cnt = 0; $fail = 0
       foreach ($p in ($paths | Sort-Object -Unique)) {
-        $items = Get-ChildItem $p -Recurse -Force -ErrorAction SilentlyContinue | Where-Object {!$_.PSIsContainer}
-        foreach ($item in $items) {
-          ${cleaning ? `try { $sz=[int64]$item.Length; Remove-Item $item.FullName -Force -ErrorAction Stop; $total += $sz; $cnt++ } catch { $fail++ }` : `$measure = $items | Measure-Object Length -Sum; if ($null -ne $measure.Sum) { $total += [int64]$measure.Sum }; $cnt += $items.Count; break`}
+        $items = @(Get-ChildItem $p -Recurse -Force -ErrorAction SilentlyContinue | Where-Object {!$_.PSIsContainer})
+        if (${cleaning}) {
+          $before = $items
+          $beforeMeasure = $before | Measure-Object Length -Sum
+          $beforeBytes = if ($null -ne $beforeMeasure.Sum) { [int64]$beforeMeasure.Sum } else { [int64]0 }
+          @(Get-ChildItem $p -Force -ErrorAction SilentlyContinue) |
+            ForEach-Object { Remove-Item $_.FullName -Recurse -Force -ErrorAction SilentlyContinue }
+          $after = @(Get-ChildItem $p -Recurse -Force -ErrorAction SilentlyContinue | Where-Object {!$_.PSIsContainer})
+          $afterMeasure = $after | Measure-Object Length -Sum
+          $afterBytes = if ($null -ne $afterMeasure.Sum) { [int64]$afterMeasure.Sum } else { [int64]0 }
+          $total += [Math]::Max([int64]0, $beforeBytes - $afterBytes)
+          $cnt += [Math]::Max(0, $before.Count - $after.Count)
+          $fail += $after.Count
+        } else {
+          $measure = $items | Measure-Object Length -Sum
+          if ($null -ne $measure.Sum) { $total += [int64]$measure.Sum }
+          $cnt += $items.Count
         }
       }
       Write-Output "${cleaning ? '$total|$cnt|$fail' : '$total|$cnt'}"
