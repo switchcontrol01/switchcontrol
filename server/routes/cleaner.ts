@@ -686,7 +686,10 @@ router.post("/scan", async (req: any, res) => {
   const userId: string = req.cloudUser?.id ?? '__legacy__';
   const { mode = "safe", electronResults = {} } = req.body as {
     mode?: CleanMode;
-    electronResults?: Record<string, { sizeBytes?: number; fileCount?: number; found?: boolean; error?: string }>;
+    electronResults?: Record<string, {
+      sizeBytes?: number; fileCount?: number; found?: boolean; error?: string;
+      notApplicable?: boolean; unsupported?: boolean;
+    }>;
   };
 
   if (mode !== "safe" && mode !== "advanced") {
@@ -723,6 +726,8 @@ router.post("/scan", async (req: any, res) => {
     }
     const found     = er.found ?? (fileCount > 0 || sizeBytes > 0);
     const hasError  = !!er.error;
+    const notApplicable = er.notApplicable === true;
+    const unsupported = er.unsupported === true;
 
     let impactBootSec = 0, impactRamMb = 0;
     if (item.id === "dead_startup_entries" && found) impactBootSec = +(fileCount * item.impactBootSec).toFixed(1);
@@ -732,7 +737,7 @@ router.post("/scan", async (req: any, res) => {
     findings[item.id] = {
       id: item.id, sizeBytes, fileCount, found,
       scanStatus: hasError ? "error" : "scanned",
-      error: er.error, impactBootSec, impactRamMb,
+      error: er.error, notApplicable, unsupported, impactBootSec, impactRamMb,
     };
   }
 

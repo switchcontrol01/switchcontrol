@@ -40,6 +40,45 @@ const temp    = process.env.TEMP  || path.join(os.homedir(), 'AppData', 'Local',
 const local   = process.env.LOCALAPPDATA || path.join(os.homedir(), 'AppData', 'Local');
 const roaming = process.env.APPDATA      || path.join(os.homedir(), 'AppData', 'Roaming');
 
+let gpuCapabilityCache = null;
+let gpuCapabilityCachedAt = 0;
+
+async function getGpuCapabilities() {
+  if (gpuCapabilityCache && Date.now() - gpuCapabilityCachedAt < 300000) {
+    return gpuCapabilityCache;
+  }
+  try {
+    const output = await runPS(`
+      $names = @(Get-CimInstance Win32_VideoController -ErrorAction SilentlyContinue |
+        ForEach-Object { $_.Name } | Where-Object { $_ })
+      $joined = ($names -join ' ')
+      [PSCustomObject]@{
+        amd = [bool]($joined -match '(?i)AMD|Radeon')
+        nvidia = [bool]($joined -match '(?i)NVIDIA|GeForce|Quadro|Tesla|RTX|GTX')
+        names = $names
+      } | ConvertTo-Json -Compress
+    `, 10000);
+    const parsed = JSON.parse(output || '{}');
+    gpuCapabilityCache = {
+      amd: parsed.amd === true,
+      nvidia: parsed.nvidia === true,
+      names: Array.isArray(parsed.names) ? parsed.names : [],
+    };
+  } catch {
+    // Unknown must not silently disable a vendor scan. The scan will run and
+    // report its real filesystem result when Windows cannot identify the GPU.
+    gpuCapabilityCache = { amd: true, nvidia: true, names: [] };
+  }
+  gpuCapabilityCachedAt = Date.now();
+  return gpuCapabilityCache;
+}
+
+function isVendorApplicable(id, gpuCapabilities) {
+  if (id === 'nvidia_driver_cache') return gpuCapabilities.nvidia;
+  if (id === 'amd_driver_cache') return gpuCapabilities.amd;
+  return true;
+}
+
 // ── SCAN_DEFS builder helpers ─────────────────────────────────────────────────
 // Returns a scanCmd thunk: scans a list of paths for matching files.
 // filter:  optional glob (e.g. '*.pf'); null = all files
@@ -919,11 +958,12 @@ const SCAN_DEFS = {
 // These folders require Windows-managed service/API cleanup or can break
 // repair, rollback, or protection history. Keep them visible in Advanced mode
 // as unsupported information rather than allowing a filesystem wipe.
-for (const id of [
+const UNSUPPORTED_SCAN_IDS = new Set([
   'event_logs_old', 'windows_installer_leftovers', 'windows_defender_history',
   'old_windows_update', 'windows_font_cache', 'windows_icon_cache',
   'update_downloads', 'windows_delivery_optimization',
-]) delete SCAN_DEFS[id];
+]);
+for (const id of UNSUPPORTED_SCAN_IDS) delete SCAN_DEFS[id];
 
 // ── Parse scan/clean output ───────────────────────────────────────────────────
 function parseOutput(output) {
@@ -946,6 +986,7 @@ ipcMain.handle('cleaner:scan', async (event, itemIds) => {
   cleanerCancelRequested = false;
   const results = {};
   try {
+    const gpuCapabilities = await getGpuCapabilities();
     // Keep a small native worker pool. Launching one recursive PowerShell
     // process per item made the cleaner compete with the desktop and disk.
     const workerCount = Math.min(3, Math.max(1, ids.length));
@@ -954,7 +995,14 @@ ipcMain.handle('cleaner:scan', async (event, itemIds) => {
       while (nextIndex < ids.length && !cleanerCancelRequested) {
         const id = ids[nextIndex++];
       const def = SCAN_DEFS[id];
-      if (!def) { results[id] = { sizeBytes: 0, fileCount: 0, found: false, error: 'unknown-item' }; continue; }
+      if (!def) {
+        results[id] = { sizeBytes: 0, fileCount: 0, found: false, unsupported: true, error: 'unsupported-item' };
+        continue;
+      }
+      if (!isVendorApplicable(id, gpuCapabilities)) {
+        results[id] = { sizeBytes: 0, fileCount: 0, found: false, notApplicable: true, error: 'gpu-vendor-not-present' };
+        continue;
+      }
       try {
         const timeout = id === 'old_windows_update' ? 60000 : 15000;
         const out = await runPS(def.scanCmd(), timeout);
@@ -987,6 +1035,7 @@ ipcMain.handle('cleaner:clean', async (event, itemIds) => {
   const results = {};
   cleanerCancelRequested = false;
   try {
+    const gpuCapabilities = await getGpuCapabilities();
     // Timeout tiers — large-storage items need much more time than 20 s.
     // Per-file iteration on 100k+ files was the original bottleneck; the
     // new bulk-delete strategy is faster, but large dirs still need headroom.
@@ -1007,7 +1056,11 @@ ipcMain.handle('cleaner:clean', async (event, itemIds) => {
     for (const id of itemIds) {
       if (cleanerCancelRequested) break;
       const def = SCAN_DEFS[id];
-      if (!def) { results[id] = { bytesRemoved: 0, filesRemoved: 0, failed: 0, error: 'unknown-item' }; continue; }
+      if (!def) { results[id] = { bytesRemoved: 0, filesRemoved: 0, failed: 0, unsupported: true, error: 'unsupported-item' }; continue; }
+      if (!isVendorApplicable(id, gpuCapabilities)) {
+        results[id] = { bytesRemoved: 0, filesRemoved: 0, failed: 0, notApplicable: true, error: 'gpu-vendor-not-present' };
+        continue;
+      }
       const timeout = LARGE_ITEMS.has(id) ? LONG_TIMEOUT : MID_ITEMS.has(id) ? MID_TIMEOUT : STD_TIMEOUT;
       try {
         const out = await runPS(def.cleanCmd(), timeout);
@@ -1049,13 +1102,18 @@ ipcMain.handle('cleaner:verify', async (event, itemIds) => {
   const results = {};
   cleanerCancelRequested = false;
   try {
+    const gpuCapabilities = await getGpuCapabilities();
     const ids = Array.isArray(itemIds) ? itemIds : Object.keys(SCAN_DEFS);
     let nextIndex = 0;
     const verifyWorker = async () => {
       while (nextIndex < ids.length && !cleanerCancelRequested) {
         const id = ids[nextIndex++];
       const def = SCAN_DEFS[id];
-      if (!def) { results[id] = { sizeBytes: 0, fileCount: 0, found: false }; continue; }
+      if (!def) { results[id] = { sizeBytes: 0, fileCount: 0, found: false, unsupported: true, error: 'unsupported-item' }; continue; }
+      if (!isVendorApplicable(id, gpuCapabilities)) {
+        results[id] = { sizeBytes: 0, fileCount: 0, found: false, notApplicable: true, error: 'gpu-vendor-not-present' };
+        continue;
+      }
       try {
         const out = await runPS(def.scanCmd(), 12000);
         const { a: sizeBytes, b: fileCount } = parseOutput(out);

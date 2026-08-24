@@ -32,6 +32,7 @@ interface CleanItemDef {
 interface ScanFinding {
   id: string; sizeBytes: number; fileCount: number; found: boolean;
   scanStatus: "pending" | "scanned" | "error"; impactBootSec: number; impactRamMb: number;
+  notApplicable?: boolean; unsupported?: boolean; error?: string;
 }
 
 interface CleanResult {
@@ -300,6 +301,12 @@ function ItemRow({ item, finding, selected, onToggle, cleanResult, isCleaning, d
                 {files > 0 && bytes > 0 && <span className="text-[10px] text-[#4a5460]">·</span>}
                 {files > 0 && bytes > 0 && <span className="text-[10px] text-[#6B7380]">{files.toLocaleString()} files</span>}
               </>
+            ) : finding?.notApplicable ? (
+              <span className="text-[10px] text-[#6B7380]">Not applicable for this GPU</span>
+            ) : finding?.unsupported ? (
+              <span className="text-[10px] text-[#6B7380]">Not supported on this system</span>
+            ) : finding?.scanStatus === "error" ? (
+              <span className="text-[10px] text-amber-400">Scan failed</span>
             ) : (
               <span className="text-[10px] text-[#4a5460]">Nothing found</span>
             )}
