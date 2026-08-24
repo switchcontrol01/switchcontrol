@@ -47,7 +47,7 @@ export default function StickyComparison() {
     if (!section) return;
 
     const onScroll = () => {
-      // One rAF per frame — prevents setState on every raw scroll event.
+      // One rAF per frame, prevents setState on every raw scroll event.
       if (rafRef.current !== null) return;
       rafRef.current = requestAnimationFrame(() => {
         const rect = section.getBoundingClientRect();
@@ -56,7 +56,7 @@ export default function StickyComparison() {
         const end = rect.bottom - vh * 0.5;
         const range = end - start;
         const pct = range > 0 ? Math.max(0, Math.min(1, -start / range)) : 1;
-        // Skip imperceptible deltas — avoids reconciling when change < 0.5%.
+        // Skip imperceptible deltas, avoids reconciling when change < 0.5%.
         if (Math.abs(pct - prevPct.current) > 0.005) {
           prevPct.current = pct;
           setRevealPct(pct);
@@ -100,7 +100,7 @@ export default function StickyComparison() {
         />
 
         <div className={cn("grid gap-6", isMobile ? "grid-cols-1" : "grid-cols-2")}>
-          {/* BAD SIDE — premium dark glass with readable text */}
+          {/* BAD SIDE, premium dark glass with readable text */}
           <motion.div
             className="relative rounded-2xl border border-white/[0.10] bg-[#141420]/90 p-6 md:p-8 overflow-hidden"
             style={{
@@ -155,7 +155,7 @@ export default function StickyComparison() {
             </ul>
           </motion.div>
 
-          {/* GOOD SIDE — premium cyan glass with depth */}
+          {/* GOOD SIDE, premium cyan glass with depth */}
           <motion.div
             className="relative rounded-2xl border border-white/[0.10] bg-[#0d1825]/90 p-6 md:p-8 overflow-hidden"
             style={{

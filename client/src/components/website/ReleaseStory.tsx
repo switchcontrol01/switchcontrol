@@ -17,7 +17,7 @@ const STEPS = [
   {
     icon: Zap,
     label: "Instant Premium Status on Launch",
-    desc: "Premium badge now appears the moment the app opens — no more split-second 'Free' flash before cloud verification. A local grace cache bridges the round-trip so your status is always correct from frame one.",
+    desc: "Premium badge now appears the moment the app opens, no more split-second 'Free' flash before cloud verification. A local grace cache bridges the round-trip so your status is always correct from frame one.",
   },
   {
     icon: Shield,
@@ -32,12 +32,12 @@ const STEPS = [
   {
     icon: Gauge,
     label: "Health Score Radial & Component Cards",
-    desc: "A radial gauge summarises your overall driver health score with animated subscores per category. Each component card shows version, release date, and safety level — hover to expand and see what changed in the latest release.",
+    desc: "A radial gauge summarises your overall driver health score with animated subscores per category. Each component card shows version, release date, and safety level, hover to expand and see what changed in the latest release.",
   },
   {
     icon: Activity,
     label: "Sliding Component Detail Panel",
-    desc: "Click any component to open a smooth sliding panel with full release notes, known issues, estimated performance benefit, and a direct link to the manufacturer's official download page. Safe-update links only — nothing is ever auto-installed.",
+    desc: "Click any component to open a smooth sliding panel with full release notes, known issues, estimated performance benefit, and a direct link to the manufacturer's official download page. Safe-update links only, nothing is ever auto-installed.",
   },
   {
     icon: Sparkles,
@@ -47,7 +47,7 @@ const STEPS = [
   {
     icon: Cpu,
     label: "AMD/WMI Compatibility & GPU VRAM Fix",
-    desc: "All hardware probes now use longer timeouts so AMD Ryzen systems correctly populate hardware data. GPU VRAM reporting is also fixed — modern cards like the RX 7800 XT now show their real 16 GB instead of a 4 GB cap.",
+    desc: "All hardware probes now use longer timeouts so AMD Ryzen systems correctly populate hardware data. GPU VRAM reporting is also fixed, modern cards like the RX 7800 XT now show their real 16 GB instead of a 4 GB cap.",
   },
 ];
 

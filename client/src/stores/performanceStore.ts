@@ -20,7 +20,7 @@ interface PerformanceStore {
   lpmActive: boolean;
   lpmManual: boolean;
 
-  // Internal — high-CPU streak tracking
+  // Internal, high-CPU streak tracking
   _highCpuSince: number | null;
   _normalCpuSince: number | null;
 
@@ -28,7 +28,7 @@ interface PerformanceStore {
   disableLpm(manual?: boolean): void;
   toggleManualLpm(): void;
 
-  /** Internal — called by telemetryStore._onTick per tick to drive LPM logic. */
+  /** Internal, called by telemetryStore._onTick per tick to drive LPM logic. */
   _onCpuTick(pct: number): void;
 
   /** Returns the effective poll interval given a base ms. */
@@ -79,19 +79,19 @@ export const usePerformanceStore = create<PerformanceStore>((set, get) => ({
         // Start the high-CPU streak timer. _normalCpuSince is cleared so the
         // two timers are always mutually exclusive.
         // Note: if CPU oscillates across the threshold, both timers reset on
-        // each crossing — a system bouncing between e.g. 69% and 71% will
+        // each crossing, a system bouncing between e.g. 69% and 71% will
         // never trigger auto-enable or auto-disable. This is intentional:
         // genuinely sustained load is required, not momentary spikes.
         set({ _highCpuSince: now, _normalCpuSince: null });
       } else if (!lpmActive && (now - _highCpuSince) >= LPM_AUTO_SUSTAIN_MS) {
-        console.log(`[Perf] LPM auto-enabled — CPU has been ≥${LPM_AUTO_THRESHOLD_PCT}% for ${Math.round((now - _highCpuSince) / 1000)}s`);
+        console.log(`[Perf] LPM auto-enabled, CPU has been ≥${LPM_AUTO_THRESHOLD_PCT}% for ${Math.round((now - _highCpuSince) / 1000)}s`);
         set({ lpmActive: true });
       }
     } else {
       if (!_normalCpuSince) {
         set({ _normalCpuSince: now, _highCpuSince: null });
       } else if (lpmActive && !lpmManual && (now - _normalCpuSince) >= LPM_AUTO_CLEAR_MS) {
-        console.log(`[Perf] LPM auto-disabled — CPU has been <${LPM_AUTO_THRESHOLD_PCT}% for ${Math.round((now - _normalCpuSince) / 1000)}s`);
+        console.log(`[Perf] LPM auto-disabled, CPU has been <${LPM_AUTO_THRESHOLD_PCT}% for ${Math.round((now - _normalCpuSince) / 1000)}s`);
         set({ lpmActive: false, _normalCpuSince: null });
       }
     }
@@ -104,7 +104,7 @@ export const usePerformanceStore = create<PerformanceStore>((set, get) => ({
   },
 }));
 
-// Expose to devtools console — dev builds only.
+// Expose to devtools console, dev builds only.
 // In production the entire store (including set/getState) would be reachable
 // from the browser console or a compromised extension via window.__performanceStore.
 if (import.meta.env.DEV && typeof window !== 'undefined') {

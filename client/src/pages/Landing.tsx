@@ -310,7 +310,7 @@ function LiveBar({ base, range, color, interval = 2500 }: { base: number; range:
   );
 }
 
-// Stable particle data — 6 per side, slow outward drift
+// Stable particle data, 6 per side, slow outward drift
 const LEFT_PARTICLES = Array.from({ length: 6 }, (_, i) => ({
   id: i,
   top: 15 + (i / 5) * 70,
@@ -329,18 +329,18 @@ const RIGHT_PARTICLES = Array.from({ length: 6 }, (_, i) => ({
 function MockupSideParticles() {
   return (
     <>
-      {/* Left haze — cyan gradient bleeding from the edge */}
+      {/* Left haze, cyan gradient bleeding from the edge */}
       <div
         className="absolute inset-y-0 left-0 w-24 pointer-events-none"
         style={{ background: 'linear-gradient(to right, hsl(190 90% 55% / 0.18), transparent)' }}
       />
-      {/* Right haze — purple gradient bleeding from the edge */}
+      {/* Right haze, purple gradient bleeding from the edge */}
       <div
         className="absolute inset-y-0 right-0 w-24 pointer-events-none"
         style={{ background: 'linear-gradient(to left, hsl(270 80% 62% / 0.18), transparent)' }}
       />
 
-      {/* Left particles — drift outward, very low opacity */}
+      {/* Left particles, drift outward, very low opacity */}
       {LEFT_PARTICLES.map(p => (
         <div
           key={p.id}
@@ -357,7 +357,7 @@ function MockupSideParticles() {
           }}
         />
       ))}
-      {/* Right particles — drift outward, very low opacity */}
+      {/* Right particles, drift outward, very low opacity */}
       {RIGHT_PARTICLES.map(p => (
         <div
           key={p.id}
@@ -433,7 +433,7 @@ function HeroAppMockup() {
       <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 w-[85%] h-16 rounded-full pointer-events-none"
         style={{ background: "radial-gradient(ellipse at center, hsl(190 90% 50% / 0.45), transparent 70%)", filter: "blur(30px)" }} />
 
-      {/* Window — faked glass (gradient top-edge + white glow, no backdrop-filter) */}
+      {/* Window, faked glass (gradient top-edge + white glow, no backdrop-filter) */}
       <div className="relative rounded-2xl overflow-hidden"
         style={{
           background: "linear-gradient(145deg, rgba(255,255,255,0.24) 0%, rgba(255,255,255,0.13) 35%, rgba(255,255,255,0.08) 65%, rgba(10,7,28,0.78) 100%)",
@@ -648,7 +648,7 @@ export default function Landing() {
             }} />
           </div>
 
-          {/* ── Sun streak RIGHT — pixel-perfect mirror of left via scaleX(-1) ── */}
+          {/* ── Sun streak RIGHT, pixel-perfect mirror of left via scaleX(-1) ── */}
           <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{ transform: "scaleX(-1)" }}>
             <div style={{
               position: "absolute", left: "-5%", top: "-5%",
@@ -793,7 +793,7 @@ export default function Landing() {
                 </p>
                 <p className="text-[#6B7380] leading-relaxed">
                   The BIOS Advisor analyzes firmware behavior that directly impacts latency, scheduling, and frametime
-                  consistency — without unsafe presets or blind toggles.
+                  consistency, without unsafe presets or blind toggles.
                 </p>
 
                 <div className="grid grid-cols-2 gap-3 pt-2">
@@ -978,8 +978,8 @@ export default function Landing() {
 
                   <ul className="space-y-3.5 flex-1 mb-8">
                     {[
-                      `Live activity monitoring — CPU, RAM, GPU, disk, network`,
-                      `${FREE_TWEAK_COUNT} free system tweaks — safe and explained`,
+                      `Live activity monitoring, CPU, RAM, GPU, disk, network`,
+                      `${FREE_TWEAK_COUNT} free system tweaks, safe and explained`,
                       "RAM cleanup tools",
                       "Startup app manager",
                       "System cleaner and cleanup scans",
@@ -1004,7 +1004,7 @@ export default function Landing() {
                 </div>
               </Reveal>
 
-              {/* ── Premium card — animated border ── */}
+              {/* ── Premium card, animated border ── */}
               <Reveal>
                 <div className="relative h-full rounded-[18px] p-px overflow-hidden"
                   style={{ background: "linear-gradient(135deg, hsl(270,40%,55%,0.35) 0%, hsl(200,45%,55%,0.25) 50%, hsl(270,40%,55%,0.35) 100%)" }}>

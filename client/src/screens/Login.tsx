@@ -1,10 +1,10 @@
 /**
- * Login — Electron-only sign-in screen.
+ * Login, Electron-only sign-in screen.
  *
  * Login state machine:
  *   idle → authorizing  (user clicks login)
  *   authorizing → idle  (user cancels)
- *   authorizing → recovery  (45s soft timeout — auth exchange keeps running)
+ *   authorizing → recovery  (45s soft timeout, auth exchange keeps running)
  *   authorizing → failed  (browser failed to open)
  *   recovery → authorizing  (retry)
  *   failed → idle  (try again)
@@ -13,12 +13,12 @@
  * It lives inside an expandable section in recovery state only.
  *
  * Performance rules:
- *  · Never animate the `background` CSS property — use opacity/transform only.
- *  · No scaleY/scaleX on large blurred elements — compositor can't handle it.
+ *  · Never animate the `background` CSS property, use opacity/transform only.
+ *  · No scaleY/scaleX on large blurred elements, compositor can't handle it.
  *  · Conic-gradient stack replaced by single linear-gradient beam.
  *  · Particle count: 22 (was 90). Glow only on 4 bright particles.
  *  · All full-screen layers use `will-change: opacity` implicitly via Framer opacity.
- *  · Topo SVG is static — no animated transform.
+ *  · Topo SVG is static, no animated transform.
  *  · Card halos use opacity-only; rim lines unchanged.
  */
 
@@ -58,7 +58,7 @@ function DiscordIcon({ className }: { className?: string }) {
   );
 }
 
-// ── Static particle data — defined once at module level, never re-randomised ──
+// ── Static particle data, defined once at module level, never re-randomised ──
 // 22 particles spread radially from center. Only every 6th particle gets a glow.
 
 const PARTICLES = Array.from({ length: 22 }, (_, i) => {
@@ -133,7 +133,7 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
   const [recoveryExpanded, setRecoveryExpanded] = useState(false);
   const [pastedCode, setPastedCode] = useState("");
   const [isPasting, setIsPasting] = useState(false);
-  // Delayed fallback — only reveal the code-paste section after the user
+  // Delayed fallback, only reveal the code-paste section after the user
   // has had enough time to complete the normal browser OAuth flow.
   const [showCodeFallback, setShowCodeFallback] = useState(false);
   const codeFallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -181,7 +181,7 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
     }
   }, [stopPolling, clearSoftTimeout]);
 
-  // Auth progressed successfully — clear UI back to idle / let App.tsx handle transition
+  // Auth progressed successfully, clear UI back to idle / let App.tsx handle transition
   useEffect(() => {
     if (
       electronAuthState === "callback_received" ||
@@ -208,7 +208,7 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
 
   // Start/reset the delayed code-fallback reveal whenever we enter "authorizing".
   // 18s gives plenty of time for normal browser OAuth to complete before surfacing
-  // the manual paste option — it should feel like a last resort, not a first option.
+  // the manual paste option, it should feel like a last resort, not a first option.
   useEffect(() => {
     if (codeFallbackTimerRef.current) {
       clearTimeout(codeFallbackTimerRef.current);
@@ -258,7 +258,7 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
     // Generate a random 32-char hex poll token.
     // The token is encoded in the OAuth state so it survives the round-trip,
     // and the server stores the auth code under it once the callback fires.
-    // Electron polls every 2 s — no browser deep-link required.
+    // Electron polls every 2 s, no browser deep-link required.
     const pollToken = Array.from(crypto.getRandomValues(new Uint8Array(16)))
       .map(b => b.toString(16).padStart(2, '0')).join('');
 
@@ -267,7 +267,7 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
       await api.openExternal(authUrl);
       useAuthStore.getState().setElectronAuthState("waiting_for_callback");
 
-      // Start server-side polling — fires every 2 s until the OAuth callback
+      // Start server-side polling, fires every 2 s until the OAuth callback
       // stores a code under the poll token (or the session times out).
       stopPolling();
       pollTokenRef.current = pollToken;
@@ -296,11 +296,11 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
             handlePollSuccess(data.code);
           }
         } catch {
-          // Network hiccup — retry next interval
+          // Network hiccup, retry next interval
         }
       }, 2000);
 
-      // Soft timeout: only moves the UI to recovery — polling keeps running.
+      // Soft timeout: only moves the UI to recovery, polling keeps running.
       clearSoftTimeout();
       softTimeoutRef.current = setTimeout(() => {
         const current = useAuthStore.getState().electronAuthState;
@@ -309,7 +309,7 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
           current === "exchanging" ||
           current === "authenticated"
         ) {
-          return; // auth already succeeded — ignore
+          return; // auth already succeeded, ignore
         }
         setLoginState("recovery");
         softTimeoutRef.current = null;
@@ -359,10 +359,10 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
         ── BACKGROUND LAYER STACK ────────────────────────────────────────────
         All layers use only opacity + slow translate for animation.
         No animated `background`, no scaleY/scaleX on large blurred elements.
-        Each blur is pre-applied via static `filter` — never animated.
+        Each blur is pre-applied via static `filter`, never animated.
       */}
 
-      {/* A: Purple centre haze — static gradient, slow opacity pulse */}
+      {/* A: Purple centre haze, static gradient, slow opacity pulse */}
       <div
         className="absolute pointer-events-none"
         style={{
@@ -380,7 +380,7 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
         />
       </div>
 
-      {/* B: Pink corner — static, opacity only */}
+      {/* B: Pink corner, static, opacity only */}
       <motion.div
         className="absolute inset-0 pointer-events-none"
         style={{
@@ -390,7 +390,7 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
         transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
       />
 
-      {/* C: Cyan corner — static, opacity only */}
+      {/* C: Cyan corner, static, opacity only */}
       <motion.div
         className="absolute inset-0 pointer-events-none"
         style={{
@@ -454,7 +454,7 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
         ))}
       </div>
 
-      {/* F: Topo SVG — static, no animated transform */}
+      {/* F: Topo SVG, static, no animated transform */}
       <div
         className="absolute inset-0 overflow-hidden pointer-events-none"
         style={{ transform: "rotate(-12deg) scale(1.4)", opacity: 0.10 }}
@@ -479,7 +479,7 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
         ))}
       </div>
 
-      {/* H: Static vignettes — center kept light so card glass has something to blur */}
+      {/* H: Static vignettes, center kept light so card glass has something to blur */}
       <div className="absolute inset-0 bg-gradient-to-t from-[#080810] via-transparent to-[#080810]/75 pointer-events-none" />
       <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 70% 70% at 50% 50%, transparent 32%, rgba(8,8,16,0.62) 76%)" }} />
 
@@ -631,7 +631,7 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
           <div className="relative space-y-3">
             <AnimatePresence mode="wait">
 
-              {/* ── EXCHANGING / CALLBACK — server is processing ── */}
+              {/* ── EXCHANGING / CALLBACK, server is processing ── */}
               {(electronAuthState === "exchanging" || electronAuthState === "callback_received") ? (
                 <motion.div
                   key="exchanging"
@@ -647,7 +647,7 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
                 </motion.div>
 
               ) : loginState === "authorizing" ? (
-                /* ── AUTHORIZING — waiting for browser callback ── */
+                /* ── AUTHORIZING, waiting for browser callback ── */
                 <motion.div
                   key="authorizing"
                   initial={{ opacity: 0, scale: 0.95 }}
@@ -669,7 +669,7 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
                     <p className="text-[11px] text-white/40 mt-1">If your browser asks permission, click <span className="text-white/55">Allow</span> or <span className="text-white/55">Open</span></p>
                   </div>
 
-                  {/* Paste code fallback — revealed after delay so it feels like a last resort */}
+                  {/* Paste code fallback, revealed after delay so it feels like a last resort */}
                   <AnimatePresence>
                     {showCodeFallback && (
                       <motion.div
@@ -716,7 +716,7 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
                 </motion.div>
 
               ) : loginState === "recovery" ? (
-                /* ── RECOVERY — soft timeout hit, auth still running ── */
+                /* ── RECOVERY, soft timeout hit, auth still running ── */
                 <motion.div
                   key="recovery"
                   initial={{ opacity: 0, y: 8 }}
@@ -727,7 +727,7 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
                 >
                   <div className="text-center">
                     <p className="text-sm text-white/60 font-medium">Login is taking longer than expected</p>
-                    <p className="text-[11px] text-white/30 mt-1">Still waiting for your browser — you can retry or wait a bit longer</p>
+                    <p className="text-[11px] text-white/30 mt-1">Still waiting for your browser, you can retry or wait a bit longer</p>
                   </div>
 
                   {/* Primary: retry */}
@@ -741,7 +741,7 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
                     Retry Login
                   </motion.button>
 
-                  {/* Cancel — secondary */}
+                  {/* Cancel, secondary */}
                   <button
                     onClick={handleCancel}
                     className="text-xs text-white/30 hover:text-white/55 transition-colors text-center"
@@ -807,7 +807,7 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
                 </motion.div>
 
               ) : loginState === "failed" ? (
-                /* ── FAILED — hard error (browser wouldn't open, etc.) ── */
+                /* ── FAILED, hard error (browser wouldn't open, etc.) ── */
                 <motion.div
                   key="failed"
                   initial={{ opacity: 0, y: 8 }}
@@ -828,7 +828,7 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
                 </motion.div>
 
               ) : (
-                /* ── IDLE — default login buttons ── */
+                /* ── IDLE, default login buttons ── */
                 <motion.div
                   key="buttons"
                   initial={{ opacity: 0 }}

@@ -1,5 +1,5 @@
 /**
- * optimizationStore.ts — Isolated Zustand slice for the Adaptive Optimization Engine.
+ * optimizationStore.ts, Isolated Zustand slice for the Adaptive Optimization Engine.
  *
  * Completely separate from the main store so optimization state changes
  * (phase transitions, plan loading) NEVER cause TweaksList to re-render.
@@ -51,7 +51,7 @@ export interface OptimizationState {
   sessionFailedIds: string[];
   error: string | null;
 
-  // Internal cache — not displayed in UI
+  // Internal cache, not displayed in UI
   _snapshotCache: SnapshotCache | null;
   _planCache: Partial<Record<OptimizationIntent, PlanCache>>;
 
@@ -127,7 +127,7 @@ export const useOptimizationStore = create<OptimizationState>((set, get) => ({
     set({ phase: "applying" }),
 
   finishApplying: (appliedIds, failedIds) =>
-    // Bust all plan caches — tweak state has changed; stale plans would re-offer
+    // Bust all plan caches, tweak state has changed; stale plans would re-offer
     // already-applied tweaks as recommendations on re-open.
     set({ sessionAppliedIds: appliedIds, sessionFailedIds: failedIds, phase: "done", _planCache: {} }),
 

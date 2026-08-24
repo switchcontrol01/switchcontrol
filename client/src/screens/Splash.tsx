@@ -10,7 +10,7 @@ interface SplashProps {
 
 const SPLASH_MS = 2500;
 
-// Fine dust particles — small, numerous, gently drifting
+// Fine dust particles, small, numerous, gently drifting
 const PARTICLES = Array.from({ length: 52 }, (_, i) => ({
   id: i,
   x: (i * 37 + 11) % 100,
@@ -25,7 +25,7 @@ const PARTICLES = Array.from({ length: 52 }, (_, i) => ({
   glow: i % 4 === 0 ? 'rgba(168,85,247,0.6)' : i % 4 === 1 ? 'rgba(0,210,255,0.6)' : i % 4 === 2 ? 'rgba(210,160,255,0.6)' : 'rgba(80,200,255,0.6)',
 }));
 
-// Large drifting nebula orbs — big, soft, dreamy
+// Large drifting nebula orbs, big, soft, dreamy
 const ORBS = [
   { cx: 28,  cy: 35, rx: 38, ry: 30, color: "rgba(139,92,246,0.13)", dx: 25, dy: -18, dur: 18 },
   { cx: 72,  cy: 60, rx: 42, ry: 34, color: "rgba(0,180,255,0.10)",  dx: -22, dy: 20, dur: 22 },
@@ -34,7 +34,7 @@ const ORBS = [
   { cx: 82,  cy: 25, rx: 32, ry: 26, color: "rgba(168,85,247,0.09)", dx: -20, dy: 22, dur: 24 },
 ];
 
-// Diagonal sun-streak beams — opacity only, blur is static (not animated)
+// Diagonal sun-streak beams, opacity only, blur is static (not animated)
 const STREAKS = [
   { left: "4%",  top: "-8%",  rot: "28deg", w: "170vw", h: "6px",  color: "rgba(168,85,247,0.65)",  blur: 4,   dur: 18, delay: 0   },
   { left: "14%", top: "18%",  rot: "24deg", w: "155vw", h: "4px",  color: "rgba(0,200,255,0.58)",   blur: 3,   dur: 22, delay: 1.4 },
@@ -54,7 +54,7 @@ export default function Splash({ onComplete }: SplashProps) {
   const tagline = useMemo(() => getHonestTagline(), []);
 
   // Keep a stable ref to onComplete so the timer effect below can run with
-  // empty deps — the timer fires exactly once no matter how many times the
+  // empty deps, the timer fires exactly once no matter how many times the
   // parent re-renders and passes a new function reference.
   const onCompleteRef = useRef(onComplete);
   useEffect(() => { onCompleteRef.current = onComplete; });
@@ -70,7 +70,7 @@ export default function Splash({ onComplete }: SplashProps) {
     // synchronously, so by the time main.js receives the signal and calls
     // setOpacity(0)→show(), content is already at full CSS opacity. The
     // OS-level setOpacity fade (0→1 over 280ms) then cross-fades the entire
-    // window in — premium appearance, no white flash, no instant pop.
+    // window in, premium appearance, no white flash, no instant pop.
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         document.documentElement.style.opacity = '';
@@ -78,8 +78,7 @@ export default function Splash({ onComplete }: SplashProps) {
       });
     });
 
-    // Telemetry starts in App.tsx after the authenticated phase transition —
-    // not here, so IPC polling doesn't compete with splash animations.
+    // Telemetry starts in App.tsx after the authenticated phase transition, // not here, so IPC polling doesn't compete with splash animations.
     const api = (window as any).electronAPI;
     if (api?.system?.getSpecs) {
       api.system.getSpecs()
@@ -110,7 +109,7 @@ export default function Splash({ onComplete }: SplashProps) {
 
     // Subscribe to specs:enriched so GPU/disk data that arrives during the
     // splash (WMI fast-path ~1s, full enrichment ~2-3s) updates the Zustand
-    // store before Home.tsx mounts — preventing null-on-first-render.
+    // store before Home.tsx mounts, preventing null-on-first-render.
     let enrichUnsub: (() => void) | null = null;
     if (api?.system?.onSpecsEnriched) {
       enrichUnsub = api.system.onSpecsEnriched((payload: any) => {
@@ -135,14 +134,14 @@ export default function Splash({ onComplete }: SplashProps) {
 
     const tContent  = setTimeout(() => setContentVisible(true), 60);
     const tInit     = setTimeout(() => setInitializingDone(true), 1000);
-    // Fire ~380ms before splash ends — bar snaps to 100 with a flash, creating
+    // Fire ~380ms before splash ends, bar snaps to 100 with a flash, creating
     // a satisfying "charge complete" beat before the window transitions away.
     const tBarDone  = setTimeout(() => {
       barDoneRef.current = true;
       setBarDone(true);
     }, SPLASH_MS - 380);
     const tDone     = setTimeout(() => {
-      console.log('[LAUNCH:R5] Splash onComplete — handing off to App');
+      console.log('[LAUNCH:R5] Splash onComplete, handing off to App');
       onCompleteRef.current();
     }, SPLASH_MS);
 
@@ -154,7 +153,7 @@ export default function Splash({ onComplete }: SplashProps) {
       enrichUnsub?.();
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // intentionally empty — timer must fire exactly once
+  }, []); // intentionally empty, timer must fire exactly once
 
   // rAF-based progress bar
   const progressRef = useRef(0);
@@ -170,7 +169,7 @@ export default function Splash({ onComplete }: SplashProps) {
       progressRef.current = (() => {
         const p   = progressRef.current;
         // When barDone fires, the cap lifts and the bar snaps to 100 via
-        // the spring transition on the animated div — rAF just needs to
+        // the spring transition on the animated div, rAF just needs to
         // keep supplying 100 so the motion value settles there.
         const cap = barDoneRef.current ? 100 : 96;
         if (p >= cap) return cap;
@@ -195,7 +194,7 @@ export default function Splash({ onComplete }: SplashProps) {
       className="fixed inset-0 overflow-hidden flex items-center justify-center"
       style={{ background: "#07090D" }}
     >
-      {/* ── Breathing ambient halo — pulses slowly, dreamy atmosphere ── */}
+      {/* ── Breathing ambient halo, pulses slowly, dreamy atmosphere ── */}
       <motion.div
         className="absolute pointer-events-none"
         style={{
@@ -211,7 +210,7 @@ export default function Splash({ onComplete }: SplashProps) {
         transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut" }}
       />
 
-      {/* ── Large drifting nebula orbs — soft blobs beneath everything ── */}
+      {/* ── Large drifting nebula orbs, soft blobs beneath everything ── */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none" style={{ zIndex: 1 }}>
         {ORBS.map((o, i) => (
           <motion.div
@@ -231,7 +230,7 @@ export default function Splash({ onComplete }: SplashProps) {
         ))}
       </div>
 
-      {/* ── Diagonal sun-streak beams — opacity-only animation, blur is static ── */}
+      {/* ── Diagonal sun-streak beams, opacity-only animation, blur is static ── */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {STREAKS.map((s, i) => (
           <motion.div
@@ -252,7 +251,7 @@ export default function Splash({ onComplete }: SplashProps) {
         ))}
       </div>
 
-      {/* ── Floating dust particles — opacity + transform only ── */}
+      {/* ── Floating dust particles, opacity + transform only ── */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 3 }}>
         {PARTICLES.map(p => (
           <motion.div
@@ -271,7 +270,7 @@ export default function Splash({ onComplete }: SplashProps) {
         ))}
       </div>
 
-      {/* ── Logo + text — restrained "signal lock" reveal ── */}
+      {/* ── Logo + text, restrained "signal lock" reveal ── */}
       <div className="relative flex flex-col items-center gap-7" style={{ zIndex: 10 }}>
 
         <AnimatePresence>
@@ -282,7 +281,7 @@ export default function Splash({ onComplete }: SplashProps) {
               transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
               className="relative"
             >
-              {/* Soft bloom behind the mark — a quiet powered-on reveal */}
+              {/* Soft bloom behind the mark, a quiet powered-on reveal */}
               <motion.div
                 className="absolute pointer-events-none rounded-full"
                 style={{
@@ -298,7 +297,7 @@ export default function Splash({ onComplete }: SplashProps) {
                 transition={{ duration: 1.35, times: [0, 0.54, 1], ease: [0.22, 1, 0.36, 1] }}
               />
 
-              {/* Outer glow ring — settles into a quiet ambient pulse */}
+              {/* Outer glow ring, settles into a quiet ambient pulse */}
               <motion.div
                 className="absolute rounded-[26%] pointer-events-none"
                 style={{
@@ -310,7 +309,7 @@ export default function Splash({ onComplete }: SplashProps) {
                 transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }}
               />
 
-              {/* Violet-to-cyan energy sweep — clipped to the logo surface */}
+              {/* Violet-to-cyan energy sweep, clipped to the logo surface */}
               <div className="absolute inset-0 rounded-[22%] overflow-hidden pointer-events-none">
                 <motion.div
                   className="absolute inset-y-0"
@@ -410,7 +409,7 @@ export default function Splash({ onComplete }: SplashProps) {
                 {tagline}
               </motion.p>
 
-              {/* Initializing status — fades after the first second */}
+              {/* Initializing status, fades after the first second */}
               <AnimatePresence>
                 {!initializingDone && (
                   <motion.p
@@ -426,10 +425,10 @@ export default function Splash({ onComplete }: SplashProps) {
                 )}
               </AnimatePresence>
 
-              {/* Progress bar — outer div for spark/burst positioning (no clip),
+              {/* Progress bar, outer div for spark/burst positioning (no clip),
                   inner div clips track + shimmer so nothing bleeds past the edge */}
               <div className="relative" style={{ width: "208px" }}>
-                {/* Inner track — overflow-hidden keeps fill + shimmer inside bounds */}
+                {/* Inner track, overflow-hidden keeps fill + shimmer inside bounds */}
                 <div
                   className="relative w-full rounded-full overflow-hidden"
                   style={{ height: "3px", background: "rgba(255,255,255,0.06)" }}
@@ -454,7 +453,7 @@ export default function Splash({ onComplete }: SplashProps) {
                       backgroundPosition: { duration: 3, repeat: Infinity, ease: "linear" },
                     }}
                   />
-                  {/* Shimmer sweep — stays inside clipped container */}
+                  {/* Shimmer sweep, stays inside clipped container */}
                   <motion.div
                     className="absolute top-0 h-full w-10 rounded-full"
                     style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.55), transparent)" }}
@@ -463,7 +462,7 @@ export default function Splash({ onComplete }: SplashProps) {
                   />
                 </div>
 
-                {/* Leading spark — lives in outer div so it's never clipped;
+                {/* Leading spark, lives in outer div so it's never clipped;
                     capped at 95% so it can't protrude the right edge */}
                 <AnimatePresence>
                   {progress > 2 && !barDone && (
@@ -483,7 +482,7 @@ export default function Splash({ onComplete }: SplashProps) {
                   )}
                 </AnimatePresence>
 
-                {/* Completion burst — radial flash that fires when bar snaps to 100% */}
+                {/* Completion burst, radial flash that fires when bar snaps to 100% */}
                 <AnimatePresence>
                   {barDone && (
                     <>

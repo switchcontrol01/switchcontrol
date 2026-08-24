@@ -251,7 +251,7 @@ export function SocialProofCharts() {
           </div>
         </div>
 
-        {/* Chart — progressive draw-in */}
+        {/* Chart, progressive draw-in */}
         <div style={{ height: 168 }}>
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={timelineData} margin={{ top: 8, right: 6, left: -28, bottom: 0 }}>
@@ -287,7 +287,7 @@ export function SocialProofCharts() {
               <Area type="basis" dataKey="latency" stroke="#22d3ee" strokeWidth={1.8} fill="url(#spGLat)"   dot={false} isAnimationActive={false} />
               <Area type="basis" dataKey="input"   stroke="#818cf8" strokeWidth={1.6} fill="url(#spGInput)" dot={false} isAnimationActive={false} />
 
-              {/* Leading-edge dots — only shown once draw-in completes */}
+              {/* Leading-edge dots, only shown once draw-in completes */}
               {last && timelineData.length === FULL_TIMELINE.length && (
                 <>
                   <ReferenceDot x={last.i} y={last.fps}     r={4} fill="#34d399" stroke="rgba(0,0,0,0.7)" strokeWidth={1.5} />

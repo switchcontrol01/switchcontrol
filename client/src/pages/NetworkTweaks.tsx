@@ -96,7 +96,7 @@ async function reportResult(
       body: JSON.stringify({ action, success, verified, message, disabled }),
     });
   } catch {
-    // Non-fatal — state is still tracked in-memory
+    // Non-fatal, state is still tracked in-memory
   }
 }
 const LS_KEY = 'sc-net-tweak-state-v1';
@@ -121,7 +121,7 @@ function savePersistedState(map: StateMap): void {
     }
     localStorage.setItem(LS_KEY, JSON.stringify(out));
   } catch {
-    // Storage full or unavailable — non-fatal
+    // Storage full or unavailable, non-fatal
   }
 }
 let _networkTweakStateCache: StateMap | null = null;
@@ -143,11 +143,11 @@ if (typeof window !== 'undefined') {
 function buildInitialStateMap(): StateMap {
   const cacheAge = _networkTweakStateCache ? Date.now() - _networkTweakStateCacheTime : Infinity;
   if (_networkTweakStateCache && cacheAge < CACHE_TTL_MS) {
-    console.log('[NetworkTweaks:CACHE] cache hit — rehydrating from session cache');
+    console.log('[NetworkTweaks:CACHE] cache hit, rehydrating from session cache');
     return { ..._networkTweakStateCache };
   }
   if (_networkTweakStateCache) {
-    console.log('[NetworkTweaks:CACHE] cache stale — showing cached values, background refresh queued');
+    console.log('[NetworkTweaks:CACHE] cache stale, showing cached values, background refresh queued');
     return { ..._networkTweakStateCache };
   }
   const persisted = loadPersistedState();
@@ -162,9 +162,9 @@ function buildInitialStateMap(): StateMap {
     initial[t.id] = { status };
   }
   if (persisted) {
-    console.log('[NetworkTweaks:CACHE] cold start — seeded from localStorage persisted state');
+    console.log('[NetworkTweaks:CACHE] cold start, seeded from localStorage persisted state');
   } else {
-    console.log('[NetworkTweaks:CACHE] cache miss — initialising to idle (no persisted state)');
+    console.log('[NetworkTweaks:CACHE] cache miss, initialising to idle (no persisted state)');
   }
   return initial;
 }
@@ -242,7 +242,7 @@ function NetworkVerificationBanner({ fetching, phase }: { fetching: boolean; pha
           {phase === "error" ? (
             <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-orange-500/8 border border-orange-500/15 text-xs text-orange-400/80">
               <AlertTriangle className="size-3.5 shrink-0" />
-              <span>Could not read network state — using cached values.</span>
+              <span>Could not read network state, using cached values.</span>
             </div>
           ) : (
             <div className="relative rounded-lg border border-[#1E2530] bg-[#0D1117]/40 px-3 py-2 overflow-hidden">
@@ -299,7 +299,7 @@ async function fetchVerifiedWindowsState(): Promise<StateMap> {
         };
       };
     }).electronAPI.networkTweaks;
-    console.log('[NetworkTweaks] mount — hydrating verified status');
+    console.log('[NetworkTweaks] mount, hydrating verified status');
     // Native verification can contend with startup PowerShell/WMI work. Never
     // leave the page in its breathing "verifying" state forever if the native
     // call is delayed or a Windows query becomes stuck.
@@ -334,13 +334,13 @@ async function fetchVerifiedWindowsState(): Promise<StateMap> {
       }
     }
     if (Object.keys(results).length === 0) {
-      console.warn('[NetworkTweaks] native verification timed out or returned no results — keeping cached state');
+      console.warn('[NetworkTweaks] native verification timed out or returned no results, keeping cached state');
     }
     console.log(`[NetworkTweaks] status loaded total=${Object.keys(results).length} confirmed=${verifiedCount} inconclusive=${inconclusiveCount}`);
     return map;
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.log('[NetworkTweaks] backend status failed — using stale cache:', msg);
+    console.log('[NetworkTweaks] backend status failed, using stale cache:', msg);
     return {};
   }
 }
@@ -401,7 +401,7 @@ function StatusBadge({ status, message }: { status: TweakStatus; message?: strin
   }
   if (status === "enabled_unverified") {
     return (
-      <span className="flex items-center gap-1 text-[10px] text-yellow-400" title="Applied — verification inconclusive">
+      <span className="flex items-center gap-1 text-[10px] text-yellow-400" title="Applied, verification inconclusive">
         <CheckCircle2 className="size-3" />
         Applied*
       </span>
@@ -409,7 +409,7 @@ function StatusBadge({ status, message }: { status: TweakStatus; message?: strin
   }
   if (status === "staged") {
     return (
-      <span className="flex items-center gap-1 text-[10px] text-blue-300" title="Staged — actual execution requires Electron runtime">
+      <span className="flex items-center gap-1 text-[10px] text-blue-300" title="Staged, actual execution requires Electron runtime">
         <CheckCircle2 className="size-3" />
         Staged
       </span>
@@ -862,7 +862,7 @@ function NetworkTweaksContent() {
     // short-lived navigation optimization; stale sessions still reconcile
     // against the real registry/netsh state.
     if (cacheFresh) {
-      console.log('[NetworkTweaks] cache fresh — skipping verification');
+      console.log('[NetworkTweaks] cache fresh, skipping verification');
       setFetching(false);
       setSyncPhase('idle');
       return;
@@ -909,7 +909,7 @@ function NetworkTweaksContent() {
       setFetching(false);
       setSyncPhase('windows_done');
       timingMark("fetch-state-done");
-      console.log('[NetworkTweaks] mount — hydration complete');
+      console.log('[NetworkTweaks] mount, hydration complete');
     }).catch((err) => {
       if (!mounted) return;
       console.log('[NetworkTweaks] windows state fetch failed:', err instanceof Error ? err.message : err);
@@ -921,7 +921,7 @@ function NetworkTweaksContent() {
   const toggleTweak = useCallback(async (tweak: NetworkTweak) => {
     if (tweak.unavailable) return;
     if (!isPremium) {
-      addToast(tweak.id, false, "Premium required — upgrade at switchcontrol.org/pricing");
+      addToast(tweak.id, false, "Premium required, upgrade at switchcontrol.org/pricing");
       return;
     }
     const current = stateMapRef.current[tweak.id] ?? { status: "idle" };
@@ -959,7 +959,7 @@ function NetworkTweaksContent() {
           // 'tcp-nagle' and 'tcp-throttling-index' are routed to canonical executors
           // (tweak-executor's 'tcp-no-delay' and slider-tweak-executor's
           // 'net-throttle-index').  Those executors record ownership themselves, so
-          // we must NOT double-record here under a network_tweak scope key — doing
+          // we must NOT double-record here under a network_tweak scope key, doing
           // so would create a second, independent ownership record for the same
           // Windows setting that the revert pipeline would try to revert separately.
           const isCanonicalRedirect = tweak.id === 'tcp-nagle' || tweak.id === 'tcp-throttling-index';
@@ -1000,7 +1000,7 @@ function NetworkTweaksContent() {
             const verify = await api.checkStatus(tweak.id);
             if (!verify.error && !verify.disabled && verify.applied !== null) {
               if (action === "enable") {
-                // We tried to enable — use verification result to decide confirmed vs. inconclusive
+                // We tried to enable, use verification result to decide confirmed vs. inconclusive
                 if (verify.applied) {
                   setStateMap(prev => {
                     const next = { ...prev, [tweak.id]: { status: "enabled" as TweakStatus, message: result.message } };
@@ -1009,20 +1009,19 @@ function NetworkTweaksContent() {
                   });
                   console.log(`[NetworkTweaks] apply verified tweakId=${tweak.id} applied=true`);
                 } else {
-                  // Enable ran but system still reads as not applied — inconclusive
+                  // Enable ran but system still reads as not applied, inconclusive
                   setStateMap(prev => {
-                    const next = { ...prev, [tweak.id]: { status: "enabled_unverified" as TweakStatus, message: `${result.message} — verification inconclusive` } };
+                    const next = { ...prev, [tweak.id]: { status: "enabled_unverified" as TweakStatus, message: `${result.message}, verification inconclusive` } };
                     savePersistedState(next);
                     return next;
                   });
-                  console.log(`[NetworkTweaks] apply re-check returned false — keeping enabled_unverified tweakId=${tweak.id}`);
+                  console.log(`[NetworkTweaks] apply re-check returned false, keeping enabled_unverified tweakId=${tweak.id}`);
                 }
               } else {
-                // action === "disable" — only update state when verification *confirms* the revert.
+                // action === "disable", only update state when verification *confirms* the revert.
                 // If verify.applied is still true, the system may not have reflected the change yet
                 // (common for settings that need a service restart, e.g. smb-v2v3 with Windows
-                // defaulting to SMBv2 enabled).  In that case do NOT bounce the toggle back —
-                // the execute already reported success=true and the UI is already showing "idle".
+                // defaulting to SMBv2 enabled).  In that case do NOT bounce the toggle back, // the execute already reported success=true and the UI is already showing "idle".
                 if (!verify.applied) {
                   setStateMap(prev => {
                     const next = { ...prev, [tweak.id]: { status: "idle" as TweakStatus, message: result.message } };
@@ -1031,9 +1030,9 @@ function NetworkTweaksContent() {
                   });
                   console.log(`[NetworkTweaks] revert verified tweakId=${tweak.id} applied=false`);
                 } else {
-                  // Revert ran but system still reads as applied — leave toggle in the OFF state
+                  // Revert ran but system still reads as applied, leave toggle in the OFF state
                   // the user requested; do not bounce it back to ON.
-                  console.log(`[NetworkTweaks] revert inconclusive tweakId=${tweak.id} — system still reports applied (may need restart)`);
+                  console.log(`[NetworkTweaks] revert inconclusive tweakId=${tweak.id}, system still reports applied (may need restart)`);
                 }
               }
             } else {
@@ -1046,7 +1045,7 @@ function NetworkTweaksContent() {
       } else {
         const stagedStatus: TweakStatus = action === "enable" ? "staged" : "idle";
         const msg = action === "enable"
-          ? "Staged — will apply when running in the desktop app"
+          ? "Staged, will apply when running in the desktop app"
           : "Reverted (staged)";
         await reportResult(tweak.id, ipcAction, true, false, msg);
         setStateMap(prev => ({
@@ -1174,9 +1173,9 @@ function NetworkTweaksContent() {
             <div className="flex gap-3">
               <Info className="size-5 text-[#00D4FF] shrink-0 mt-0.5" />
               <div className="space-y-2">
-                <h3 className="text-sm font-medium text-[#E6EAF0]">Real system changes — applied immediately</h3>
+                <h3 className="text-sm font-medium text-[#E6EAF0]">Real system changes, applied immediately</h3>
                 <ul className="text-xs text-muted-foreground space-y-1.5">
-                  <li>Every toggle writes real registry values or executes netsh/PowerShell commands — there is no placebo behavior.</li>
+                  <li>Every toggle writes real registry values or executes netsh/PowerShell commands, there is no placebo behavior.</li>
                   <li>Grayed-out tweaks have been audited and disabled because they are fake, legacy, duplicate, or unsafe without benefit.</li>
                   <li>Results vary based on hardware, driver quality, and network conditions. Monitor your experience across multiple sessions.</li>
                 </ul>

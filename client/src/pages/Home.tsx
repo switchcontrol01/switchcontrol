@@ -1,4 +1,4 @@
-// Module-level flag — survives navigation (component unmount/remount) for
+// Module-level flag, survives navigation (component unmount/remount) for
 // the entire app session. Prevents the spec-load effect from re-running when
 // the user navigates back to Home after specs were already successfully loaded.
 let _homeSpecsEverLoaded = false;
@@ -335,7 +335,7 @@ function useLiveStatus(): string {
 //
 // _glowColor is module-level: getSessionGlowColor() picks + saves once per
 // session, so every call returns the same colour. hasGlowPlayed() is called
-// INSIDE the component so it re-reads sessionStorage on each remount — this
+// INSIDE the component so it re-reads sessionStorage on each remount, this
 // is what prevents the animation from replaying on navigation.
 const _glowColor = getSessionGlowColor();
 
@@ -390,9 +390,9 @@ export default function Home() {
     const cachedHistory = useTelemetryStore.getState().history;
     const hasCached = cachedHistory.cpu.length > 0;
     if (hasCached) {
-      console.log('[ActivityMonitor] reused cached state — history points:', cachedHistory.cpu.length, 'status:', telStatus);
+      console.log('[ActivityMonitor] reused cached state, history points:', cachedHistory.cpu.length, 'status:', telStatus);
     } else {
-      console.log('[ActivityMonitor] mounted — no cached history yet, status:', telStatus);
+      console.log('[ActivityMonitor] mounted, no cached history yet, status:', telStatus);
     }
 
     // Signal Electron that the dashboard is stable for boot metrics + background
@@ -500,7 +500,7 @@ export default function Home() {
     specsLoadedRef.current = true;
 
     // Module-level guard: if specs were loaded in a previous mount of this
-    // component (user navigated away and back), skip all re-fetching — the
+    // component (user navigated away and back), skip all re-fetching, the
     // Zustand store already holds the last-known-good snapshot.
     if (_homeSpecsEverLoaded) {
       const s = (useStore as any).getState?.()?.stats;
@@ -511,11 +511,11 @@ export default function Home() {
     }
 
     // If specs were pre-loaded by Splash.tsx during the startup animation,
-    // the store already has real data — skip the expensive IPC call entirely.
+    // the store already has real data, skip the expensive IPC call entirely.
     try {
       const s = (useStore as any).getState?.()?.stats;
       if (s?.cpuName && s.cpuName !== 'Unavailable' && s.cpuName !== '' && (s.totalRamGb ?? 0) > 0) {
-        console.log('[Home] Specs pre-loaded from Splash — skipping getSpecs()');
+        console.log('[Home] Specs pre-loaded from Splash, skipping getSpecs()');
         _homeSpecsEverLoaded = true;
         setSpecStatus("ready");
         // GPU may still be "Detecting…" if WMI enrichment hadn't finished when
@@ -526,7 +526,7 @@ export default function Home() {
           const unsub = api.system.onSpecsEnriched((payload: any) => {
             const updates: Record<string, any> = {};
             const gpuModel: string | undefined = payload?.gpu?.model;
-            // Allow 'Unavailable' through — it replaces 'Detecting…' so the UI
+            // Allow 'Unavailable' through, it replaces 'Detecting…' so the UI
             // doesn't stay on the loading spinner permanently when GPU truly unavailable.
             if (gpuModel && gpuModel !== 'Detecting\u2026' && gpuModel !== '') {
               const cur = (useStore as any).getState?.()?.stats;
@@ -537,7 +537,7 @@ export default function Home() {
                 updates.gpuName   = gpuModel;
                 updates.gpuVendor = payload.gpu?.vendor  ?? '';
                 updates.vramGb    = payload.gpu?.vramGB  ?? 0;
-                console.log('[GPU] renderer: store updated from specs:enriched —', gpuModel);
+                console.log('[GPU] renderer: store updated from specs:enriched', gpuModel);
               }
             }
             const disk = payload?.disk;
@@ -547,7 +547,7 @@ export default function Home() {
                 updates.diskName    = disk.name;
                 updates.diskUsedGb  = disk.usedGB  ?? 0;
                 updates.diskTotalGb = disk.totalGB ?? 0;
-                console.log('[Disk] renderer: store updated from specs:enriched —', disk.name);
+                console.log('[Disk] renderer: store updated from specs:enriched', disk.name);
               }
             }
             if (Object.keys(updates).length > 0) setStats(updates);
@@ -561,7 +561,7 @@ export default function Home() {
     let cpuRetryId: ReturnType<typeof setTimeout> | null = null; // P3-H2: track AMD cold-start retry timer for cleanup
     let gpuEnrichUnsub: (() => void) | null = null; // cleanup for the onSpecsEnriched subscriber (non-Splash path)
 
-    // loadSystemSpecs() returns an instant baseline (< 1ms) — no need for a long
+    // loadSystemSpecs() returns an instant baseline (< 1ms), no need for a long
     // timeout. Keep 5 s as a generous safety net for the IPC round-trip.
     const SPEC_TIMEOUT_MS = 5_000;
 
@@ -579,7 +579,7 @@ export default function Home() {
           // didn't complete in time. Retry quickly (2s) to get the real values.
           const cpuOk = specs.cpu?.model && specs.cpu.model !== 'Unknown CPU' && (specs.cpu?.cores ?? 0) > 0;
           if (!cpuOk) {
-            console.warn('[SwitchControl] CPU data incomplete — will retry in 2s');
+            console.warn('[SwitchControl] CPU data incomplete, will retry in 2s');
             cpuRetryId = setTimeout(() => { // P3-H2: stored so cleanup can cancel it
               withTimeout(api.system.getSpecs(), 25_000, null).then((retrySpecs: SystemSpecs | null | undefined) => {
                 if (!retrySpecs) return;
@@ -630,13 +630,13 @@ export default function Home() {
             osArch: specs.system?.arch || 'Unavailable',
             hostname: specs.system?.hostname || 'Unavailable',
           });
-          console.log('[GPU] renderer: specs received — gpuName:', _gpuModelFromSpecs);
+          console.log('[GPU] renderer: specs received, gpuName:', _gpuModelFromSpecs);
           _homeSpecsEverLoaded = true;
           setSpecStatus("ready");
           // If GPU is still partial (enrichment in-flight), subscribe to the push event
-          // so the GPU card updates when enrichment completes — same as the Splash path.
+          // so the GPU card updates when enrichment completes, same as the Splash path.
           if ((_gpuModelFromSpecs === 'Detecting\u2026' || _gpuModelFromSpecs === 'Unavailable') && api?.system?.onSpecsEnriched) {
-            console.log('[GPU] renderer: GPU partial — subscribing to specs:enriched');
+            console.log('[GPU] renderer: GPU partial, subscribing to specs:enriched');
             gpuEnrichUnsub = api.system.onSpecsEnriched((payload: any) => {
               const enrichedGpu: string | undefined = payload?.gpu?.model;
               if (!enrichedGpu || enrichedGpu === 'Detecting\u2026' || enrichedGpu === '') return;
@@ -648,7 +648,7 @@ export default function Home() {
                 gpuVendor: payload.gpu?.vendor ?? '',
                 vramGb:    payload.gpu?.vramGB ?? 0,
               });
-              console.log('[GPU] renderer: store patched from specs:enriched (non-Splash path) —', enrichedGpu);
+              console.log('[GPU] renderer: store patched from specs:enriched (non-Splash path)', enrichedGpu);
             });
           }
         }).catch((err: unknown) => {
@@ -705,7 +705,7 @@ export default function Home() {
   }, [withTimeout]);
 
   useEffect(() => {
-    // Stagger disk enumeration 120ms after mount — keeps the first-paint smooth
+    // Stagger disk enumeration 120ms after mount, keeps the first-paint smooth
     // by not competing with spec-load and telemetry WS connection simultaneously.
     const t = setTimeout(() => {
       const api = (window as any).electronAPI;
@@ -732,7 +732,7 @@ export default function Home() {
   
   // Prefer live WebSocket telemetry for RAM, but only when the value is real
   // (> 0). The first telemetry "ready" tick can arrive with ram.usedGB = 0
-  // when si.mem() fails on its first cold call — using `??` instead of the
+  // when si.mem() fails on its first cold call, using `??` instead of the
   // > 0 guard would lock the card to `-- GB` even though getSpecs() already
   // placed a valid value in the store.
   const _telRamUsed  = liveTel?.ram.usedGB  ?? 0;
@@ -748,7 +748,7 @@ export default function Home() {
   const diskPercent = currentDiskTotal > 0 ? (currentDiskUsed / currentDiskTotal) * 100 : 0;
 
   const totalTweaks = TWEAKS_DATA.length;
-  // Honest absolute counts only — no fake denominators
+  // Honest absolute counts only, no fake denominators
   const servicesCount = account.stats.servicesDisabled;
   const cleanersCount = account.stats.cleanersRun;
   const startupCount = account.stats.startupAppsDisabled;
@@ -756,7 +756,7 @@ export default function Home() {
   // ── Dashboard content staging ────────────────────────────────────────────────
   // Wait until (a) the App-level entry blur has partially cleared AND (b) the
   // baseline spec load has settled (ready/unavailable) before revealing the
-  // card grid. Gating on specStatus — instead of a fixed 100ms timer — means
+  // card grid. Gating on specStatus, instead of a fixed 100ms timer, means
   // the Memory/CPU/Disk cards mount already populated with real values rather
   // than flashing a skeleton and then popping into their final state a beat
   // later. A capped fallback timeout guarantees the dashboard never hangs on
@@ -774,10 +774,10 @@ export default function Home() {
   return (
     <AppLayout>
       <div className="space-y-8">
-        {/* SystemAura — reactive ambient background */}
+        {/* SystemAura, reactive ambient background */}
         <SystemAura telemetry={liveTel} className="fixed" />
 
-        {/* DashboardStartupGlow — plays once per session, random color */}
+        {/* DashboardStartupGlow, plays once per session, random color */}
         <DashboardStartupGlow />
 
         {/* ── Dashboard hero header ── */}
@@ -785,7 +785,7 @@ export default function Home() {
           <DashboardHeaderParticles timeOfDay={timeOfDay} />
 
           <div className="relative z-10 flex items-center justify-between gap-4">
-            {/* LEFT — greeting + subtitle */}
+            {/* LEFT, greeting + subtitle */}
             <div className="min-w-0">
 
               {/* Heading row with masked upward reveal */}
@@ -829,7 +829,7 @@ export default function Home() {
               </div>
             </div>
 
-            {/* RIGHT — system chip + action buttons */}
+            {/* RIGHT, system chip + action buttons */}
             <motion.div
               className="flex items-center gap-3 shrink-0"
               initial={{ opacity: 0, x: 14 }}
@@ -857,7 +857,7 @@ export default function Home() {
           </div>
         </div>
 
-        {/* ── Staged content reveal — fades in after parent blur clears ─────── */}
+        {/* ── Staged content reveal, fades in after parent blur clears ─────── */}
         {/* contentReady delays card animations so per-card blur filters don't  */}
         {/* compound with the App-level entry blur during the handoff window.   */}
         <motion.div
@@ -867,7 +867,7 @@ export default function Home() {
           className="space-y-8"
         >
 
-        {/* Predictive warnings strip — only renders when there are real warnings */}
+        {/* Predictive warnings strip, only renders when there are real warnings */}
         <PredictiveWarnings telemetry={liveTel} warmingUp={warmingUp} />
 
         {/* Activity Monitor Grid */}
@@ -1010,7 +1010,7 @@ export default function Home() {
           </LiveGraphsGate>
          </Reveal>}
 
-        {/* Performance Lab — intelligence hub */}
+        {/* Performance Lab, intelligence hub */}
          {showDashboardCard("responsiveness") && <Reveal delay={0.06}>
           <PerformanceLab
             onClearRAM={() => setMemCleanerOpen(true)}
@@ -1018,7 +1018,7 @@ export default function Home() {
           />
          </Reveal>}
 
-        {/* System Pipeline — Latency Map */}
+        {/* System Pipeline, Latency Map */}
         {liveTel && (
           <Reveal delay={0.06}>
             <GlassCard className="p-4">
@@ -1053,7 +1053,7 @@ export default function Home() {
               <div><SystemRhythmGraph delay={0.1} /></div>
             </div>
 
-            {/* Display Signal — live intelligence panel, always shown */}
+            {/* Display Signal, live intelligence panel, always shown */}
             <DisplaySignalGraph delay={0.1} />
           </LiveGraphsGate>
         </Reveal>

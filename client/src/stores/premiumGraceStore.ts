@@ -6,7 +6,7 @@ export const GRACE_WINDOW_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 export type PremiumVerificationStatus =
   | 'active'         // verified online, within grace
   | 'grace'          // offline/degraded but within 30-day window
-  | 'expired'        // grace window elapsed — cannot trust
+  | 'expired'        // grace window elapsed, cannot trust
   | 'free'           // no premium, never was or explicitly false
   | 'unknown';       // no data yet
 
@@ -23,14 +23,14 @@ export interface PremiumGraceSnapshot {
   plan: string | null;
   userId: string | null;
   lastVerifiedAt: number | null; // epoch ms
-  /** Cached feature flags from /api/account/entitlements — null until first fetch. */
+  /** Cached feature flags from /api/account/entitlements, null until first fetch. */
   features: EntitlementFeatures | null;
 }
 
 interface PremiumGraceStore extends PremiumGraceSnapshot {
   /**
    * True once setVerified() has been called at least once this session.
-   * In-memory only — not persisted. When true, getStatus() trusts the
+   * In-memory only, not persisted. When true, getStatus() trusts the
    * live snapshot unconditionally rather than falling back to grace cache.
    */
   sessionVerified: boolean;
@@ -58,7 +58,7 @@ export const usePremiumGraceStore = create<PremiumGraceStore>()(
       setVerified(isPremium, plan, userId, features) {
         const prev = get();
         const now = Date.now();
-        console.log(`[Premium] Grace snapshot updated — isPremium=${isPremium} plan=${plan} userId=${userId}`);
+        console.log(`[Premium] Grace snapshot updated, isPremium=${isPremium} plan=${plan} userId=${userId}`);
         set({
           isPremium,
           plan,
@@ -77,7 +77,7 @@ export const usePremiumGraceStore = create<PremiumGraceStore>()(
       getStatus(isBackendReachable) {
         const { isPremium, lastVerifiedAt, sessionVerified } = get();
 
-        // A fresh verification this session always wins — no grace-cache drift.
+        // A fresh verification this session always wins, no grace-cache drift.
         if (sessionVerified) {
           if (isPremium) return 'active';
           return 'free';
@@ -88,11 +88,11 @@ export const usePremiumGraceStore = create<PremiumGraceStore>()(
           return 'free';
         }
 
-        // Backend not reachable and no in-session verification — check grace cache.
+        // Backend not reachable and no in-session verification, check grace cache.
         if (!isPremium || !lastVerifiedAt) return 'free';
         const age = Date.now() - lastVerifiedAt;
         if (age <= GRACE_WINDOW_MS) {
-          console.log(`[Premium] Grace mode — verified ${Math.round(age / 3_600_000)}h ago`);
+          console.log(`[Premium] Grace mode, verified ${Math.round(age / 3_600_000)}h ago`);
           return 'grace';
         }
         console.log('[Premium] Grace window expired');
@@ -113,7 +113,7 @@ export const usePremiumGraceStore = create<PremiumGraceStore>()(
         userId:         s.userId,
         lastVerifiedAt: s.lastVerifiedAt,
         features:       s.features,
-        // sessionVerified intentionally excluded — reset on every page load
+        // sessionVerified intentionally excluded, reset on every page load
       }),
     }
   )

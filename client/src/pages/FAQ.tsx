@@ -161,7 +161,7 @@ function HeroBackground() {
         className="absolute inset-0"
         style={{ background: "radial-gradient(ellipse 90% 75% at 50% 0%, rgba(88,28,220,0.14) 0%, transparent 65%)" }}
       />
-      {/* Animated orb — left — reduced motion aware, lower opacity/blur */}
+      {/* Animated orb, left, reduced motion aware, lower opacity/blur */}
       <motion.div
         className="absolute"
         style={{
@@ -172,7 +172,7 @@ function HeroBackground() {
         animate={{ x: [0, 30, 0], y: [0, -20, 0], scale: [1, 1.08, 1] }}
         transition={{ duration: 14, repeat: Infinity, ease: "easeInOut" }}
       />
-      {/* Animated orb — right */}
+      {/* Animated orb, right */}
       <motion.div
         className="absolute"
         style={{
@@ -581,7 +581,7 @@ export default function FAQPage() {
             {/* ── Right: questions + info cards ─────────────────────────────── */}
             <div className="flex-1 min-w-0">
 
-              {/* Active category label — simple crossfade, no AnimatePresence mode="wait" */}
+              {/* Active category label, simple crossfade, no AnimatePresence mode="wait" */}
               <motion.div
                 key={activeCategory}
                 initial={{ opacity: 0, x: -8 }}
@@ -613,7 +613,7 @@ export default function FAQPage() {
                 })()}
               </motion.div>
 
-              {/* Accordion items — all items stay mounted; hidden by CSS for instant category switching */}
+              {/* Accordion items, all items stay mounted; hidden by CSS for instant category switching */}
               <div className="space-y-2.5">
                 {FAQ_ITEMS.map((item, i) => (
                   <div

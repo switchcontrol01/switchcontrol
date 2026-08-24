@@ -376,13 +376,13 @@ export function WebsiteShell({ children, variant = "full", bgVariant, showFooter
 
   return (
     <div className="min-h-screen relative bg-[#040508]">
-      {/* WebsiteBackground is position:fixed — no animation needed */}
+      {/* WebsiteBackground is position:fixed, no animation needed */}
       <WebsiteBackground variant={resolvedBgVariant} />
 
       {variant === "full" && <FullHeader />}
       {variant === "inner" && <InnerHeader />}
 
-      {/* Opacity + y only — no blur rasterization cost on every route */}
+      {/* Opacity + y only, no blur rasterization cost on every route */}
       <motion.div
         className={cn("relative z-10", variant === "full" && "pt-16", className)}
         initial={{ opacity: 0, y: 8 }}

@@ -22,7 +22,7 @@ interface LicenseManagementModalProps {
   userId: string;
 }
 
-// ── Verified snapshot — set only after a live network check OR confirmed offline grace ──
+// ── Verified snapshot, set only after a live network check OR confirmed offline grace ──
 type VerifiedStatus = "active" | "grace" | "expired" | "free" | "unknown";
 interface VerifiedLicense {
   status: VerifiedStatus;
@@ -69,7 +69,7 @@ export function LicenseManagementModal({ open, onOpenChange, isPremium, userId }
   const networkState = useNetworkStore((s) => s.networkState);
   const isOffline = networkState === 'offline' || networkState === 'degraded';
 
-  // ── Modal-local verified state — the ONLY source of truth for the status block ──
+  // ── Modal-local verified state, the ONLY source of truth for the status block ──
   // Never read directly from grace store for display until after one of these paths completes:
   //   a) live refresh   → result from server
   //   b) offline        → confirmed valid offline-grace entry from grace store
@@ -79,20 +79,20 @@ export function LicenseManagementModal({ open, onOpenChange, isPremium, userId }
   const [isRestoring, setIsRestoring] = useState(false);
   const [appVersion, setAppVersion] = useState("1.2.9");
   const [platform, setPlatform] = useState("Web");
-  // null  = not yet loaded (show skeleton) — only used in Electron
+  // null  = not yet loaded (show skeleton), only used in Electron
   // ""    = IPC returned empty / unavailable (show "Unavailable")
   // string = real 16-char hardware-anchored device ID from hardware-fingerprint.js
   const [deviceId, setDeviceId] = useState<string | null>(null);
   // deviceIdLoading: true only while the IPC call is in-flight (Electron only)
   const [deviceIdLoading, setDeviceIdLoading] = useState(false);
 
-  // ── Resolve offline grace — reads grace store to confirm a real grace window ──
+  // ── Resolve offline grace, reads grace store to confirm a real grace window ──
   function resolveOfflineGrace(): VerifiedLicense {
-    const graceStatus = grace.getStatus(false); // pass false — we know we're offline
+    const graceStatus = grace.getStatus(false); // pass false, we know we're offline
     const graceMs = grace.graceRemainingMs();
 
     if (graceStatus === 'grace' && graceMs > 0) {
-      // Confirmed valid offline grace — premium remains accessible in the window
+      // Confirmed valid offline grace, premium remains accessible in the window
       return {
         status: 'grace',
         plan: grace.plan,
@@ -130,7 +130,7 @@ export function LicenseManagementModal({ open, onOpenChange, isPremium, userId }
       return;
     }
 
-    // Single cancelled flag — shared by both the device-ID IPC call and the
+    // Single cancelled flag, shared by both the device-ID IPC call and the
     // license verification fetch. Cleanup sets it to true so no stale setState
     // runs after the modal closes or the effect re-fires.
     let cancelled = false;
@@ -156,7 +156,7 @@ export function LicenseManagementModal({ open, onOpenChange, isPremium, userId }
       // This calls hardware-fingerprint.js → getPermanentDeviceId() in the main process,
       // which derives a SHA-256 of Windows MachineGuid, truncated to 16 hex chars.
       // Fail-closed: if the IPC call fails or returns null/empty, show "Unavailable".
-      // Never fall back to any locally-generated ID — that would silently lie to the user.
+      // Never fall back to any locally-generated ID, that would silently lie to the user.
       if (api?.getDeviceId) {
         setDeviceIdLoading(true);
         setDeviceId(null);
@@ -183,16 +183,16 @@ export function LicenseManagementModal({ open, onOpenChange, isPremium, userId }
 
     if (isOffline) {
       // Offline path: read grace store's confirmed offline-grace data.
-      // No server call possible — but we only pass through valid grace window state,
+      // No server call possible, but we only pass through valid grace window state,
       // not raw stale 'active' which could be from a previous premium session.
       const offlineResult = resolveOfflineGrace();
-      console.log('[PremiumTruth] modal opened offline — resolved:', offlineResult.status);
+      console.log('[PremiumTruth] modal opened offline, resolved:', offlineResult.status);
       if (!cancelled) { setVerifiedLicense(offlineResult); setLicenseLoading(false); }
       return () => { cancelled = true; };
     }
 
     // Online path: live server verification is the only truth.
-    console.log('[PremiumTruth] modal opened online — starting strict load, ignoring stale grace store');
+    console.log('[PremiumTruth] modal opened online, starting strict load, ignoring stale grace store');
     safeRefreshEntitlements()
       .then((result) => {
         if (cancelled) return;
@@ -206,7 +206,7 @@ export function LicenseManagementModal({ open, onOpenChange, isPremium, userId }
             lastVerifiedAt: Date.now(),
             graceRemainingMs: 0,
           };
-          console.log('[PremiumTruth] modal auto-refresh done — isPremium:', result.user.isPremium, 'status:', verified.status);
+          console.log('[PremiumTruth] modal auto-refresh done, isPremium:', result.user.isPremium, 'status:', verified.status);
           setVerifiedLicense(verified);
         } else {
           setVerifiedLicense({ status: 'free', plan: null, isPremium: false, lastVerifiedAt: null, graceRemainingMs: 0 });
@@ -216,7 +216,7 @@ export function LicenseManagementModal({ open, onOpenChange, isPremium, userId }
         if (cancelled) return;
         console.warn('[PremiumTruth] modal auto-refresh failed:', err);
         const fallback = resolveOfflineGrace();
-        console.log('[PremiumTruth] fallback after error — status:', fallback.status);
+        console.log('[PremiumTruth] fallback after error, status:', fallback.status);
         setVerifiedLicense(fallback);
       })
       .finally(() => { if (!cancelled) setLicenseLoading(false); });
@@ -318,10 +318,10 @@ export function LicenseManagementModal({ open, onOpenChange, isPremium, userId }
 
   const busy = licenseLoading || isRestoring;
 
-  // ── Status block — rendered ONLY from modal-local verified state ──────────────
+  // ── Status block, rendered ONLY from modal-local verified state ──────────────
   // Hard rule: while licenseLoading is true, never render any plan/status.
   const statusBlock = () => {
-    // Strict loading gate — never bypassed by stale grace store state.
+    // Strict loading gate, never bypassed by stale grace store state.
     if (licenseLoading || verifiedLicense === null) {
       return (
         <div className="relative rounded-xl border border-[#2A313A] bg-[#1A1F26] flex items-center justify-center py-6 gap-2">
@@ -331,7 +331,7 @@ export function LicenseManagementModal({ open, onOpenChange, isPremium, userId }
       );
     }
 
-    // Render from verified modal-local snapshot — not from grace store.
+    // Render from verified modal-local snapshot, not from grace store.
     if (verifiedLicense.status === 'active') {
       return (
         <div className="relative rounded-xl overflow-hidden border border-emerald-500/[0.22] bg-emerald-500/[0.04] shadow-[inset_0_0_28px_rgba(16,185,129,0.07)]">
@@ -411,7 +411,7 @@ export function LicenseManagementModal({ open, onOpenChange, isPremium, userId }
       );
     }
 
-    // 'free' or 'unknown' — render no-license state
+    // 'free' or 'unknown', render no-license state
     return (
       <div className="relative rounded-xl overflow-hidden border border-[#2A313A] bg-[#1A1F26]">
         <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
@@ -532,7 +532,7 @@ export function LicenseManagementModal({ open, onOpenChange, isPremium, userId }
                             </button>
                           </>
                         ) : (
-                          /* IPC returned null/empty — fail-closed, no fake fallback */
+                          /* IPC returned null/empty, fail-closed, no fake fallback */
                           <span
                             className="text-[11px] text-[#6B7380] italic px-2 py-0.5 rounded-md bg-[#21262D] border border-[#2A313A]"
                             data-testid="text-device-id-unavailable"
@@ -567,7 +567,7 @@ export function LicenseManagementModal({ open, onOpenChange, isPremium, userId }
                     onClick={handleRefreshLicense}
                     disabled={busy || isOffline}
                     data-testid="button-refresh-license"
-                    title={isOffline ? "Offline — cannot verify" : undefined}
+                    title={isOffline ? "Offline, cannot verify" : undefined}
                   >
                     {licenseLoading ? <Loader2 className="size-3.5 animate-spin shrink-0" /> : <RefreshCw className="size-3.5 shrink-0" />}
                     {isOffline ? "Unavailable Offline" : "Refresh License"}
@@ -582,7 +582,7 @@ export function LicenseManagementModal({ open, onOpenChange, isPremium, userId }
                     onClick={handleRestorePurchase}
                     disabled={busy || isOffline}
                     data-testid="button-restore-purchase"
-                    title={isOffline ? "Offline — cannot restore" : undefined}
+                    title={isOffline ? "Offline, cannot restore" : undefined}
                   >
                     {isRestoring ? <Loader2 className="size-3.5 animate-spin shrink-0" /> : <RotateCcw className="size-3.5 shrink-0" />}
                     {isOffline ? "Unavailable Offline" : "Restore Purchase"}

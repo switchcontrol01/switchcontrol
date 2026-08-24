@@ -541,7 +541,7 @@ export default function PremiumFeaturesSection() {
           </h2>
           <p className="text-[#6B7380] text-base md:text-lg max-w-xl mx-auto leading-relaxed">
             AI-powered diagnostics, firmware intelligence, driver tracking, and
-            full rollback history — built for serious gamers.
+            full rollback history, built for serious gamers.
           </p>
         </Reveal>
 

@@ -1,5 +1,5 @@
 /**
- * systemConditionsStore.ts — Tracks OS-level conditions that affect whether
+ * systemConditionsStore.ts, Tracks OS-level conditions that affect whether
  * applied tweaks will stick: Tamper Protection state and elevation (admin) status.
  *
  * Read at startup in App.tsx alongside the startup reconcile, refreshed whenever

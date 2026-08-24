@@ -69,7 +69,7 @@ export default function MagneticTilt({
 
     el.addEventListener("mousemove", onMove);
     el.addEventListener("mouseleave", onLeave);
-    // Do NOT start the loop at mount — let mousemove trigger it.
+    // Do NOT start the loop at mount, let mousemove trigger it.
 
     return () => {
       el.removeEventListener("mousemove", onMove);

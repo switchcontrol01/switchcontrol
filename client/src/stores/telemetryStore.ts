@@ -8,7 +8,7 @@ import { usePerformanceStore } from "@/stores/performanceStore";
 // progress the high/normal streak timers correctly.
 let _lastCpuReportedToLpm = 0;
 
-// History buffer length obeys ApplicationMode — Light Mode keeps a much
+// History buffer length obeys ApplicationMode, Light Mode keeps a much
 // shorter buffer (releases RAM / reduces per-tick array-copy work) since
 // graphs are paused by default in Light Mode anyway.
 const HISTORY_LEN_NORMAL = 60;
@@ -27,12 +27,12 @@ interface TelemetryStoreState {
   lastUpdateTs: number | null;
   // True for a short grace period right after the telemetry manager (re)starts.
   // During this window the backend/PowerShell probes are still spinning up and
-  // briefly consume real CPU — that is expected noise, not a genuine system
+  // briefly consume real CPU, that is expected noise, not a genuine system
   // problem, so consumers must not surface spikes/critical alerts while true.
   warmingUp: boolean;
 
   // ── Batched hot-path updater ─────────────────────────────────────────────────
-  // Single set() call per telemetry tick — replaces the previous 3 separate calls
+  // Single set() call per telemetry tick, replaces the previous 3 separate calls
   // (_setTelemetry + _setStatus + _appendHistory) which triggered 3 React render
   // passes per second. Now exactly 1 render pass per tick.
   _onTick: (
@@ -109,7 +109,7 @@ export const useTelemetryStore = create<TelemetryStoreState>((set) => ({
   // the manager has ever been started.
   warmingUp: false,
 
-  // Single batched update — one React render pass per tick.
+  // Single batched update, one React render pass per tick.
   // Also drives the LPM auto-governor via performanceStore._onCpuTick so the
   // performance store never holds its own CPU copy; it derives from us.
   _onTick: (t, newSpikes, cpu, ram, gpu, vram, rxKbps, txKbps, diskActiveTime, diskReadKBps, diskWriteKBps) => {

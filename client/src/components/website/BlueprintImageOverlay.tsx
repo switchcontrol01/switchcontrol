@@ -17,7 +17,7 @@ export function BlueprintImageOverlay() {
 
   return (
     <div className="absolute inset-0 pointer-events-none overflow-hidden">
-      {/* Blueprint images — willChange removed; bp-float-* CSS keyframes handle
+      {/* Blueprint images, willChange removed; bp-float-* CSS keyframes handle
           compositor promotion only during animation, not permanently. */}
       <div
         className="bp-layer bp-chip bp-float-1"
@@ -41,7 +41,7 @@ export function BlueprintImageOverlay() {
         />
       </div>
 
-      {/* Sun-streak glows — replaced filter:blur() divs with pre-baked radial
+      {/* Sun-streak glows, replaced filter:blur() divs with pre-baked radial
           gradients. Equivalent visual effect, zero compositor layer promotion. */}
       {!reduced && (
         <div
@@ -126,7 +126,7 @@ export function BlueprintImageOverlay() {
         />
       )}
 
-      {/* Large ambient glows — replaced two blur(40px) divs with full-coverage
+      {/* Large ambient glows, replaced two blur(40px) divs with full-coverage
           radial gradients. Same depth/mood, no GPU off-screen render targets. */}
       {!reduced && (
         <>

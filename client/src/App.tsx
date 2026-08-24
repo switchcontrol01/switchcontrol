@@ -104,7 +104,7 @@ import LatencyAnalyzer from "@/pages/LatencyAnalyzer";
 import Security from "@/pages/Security";
 import History from "@/pages/History";
 import ProcessManager from "@/pages/ProcessManager";
-// Website-only chunks — only prefetch on web (not in Electron where file:// protocol
+// Website-only chunks, only prefetch on web (not in Electron where file:// protocol
 // causes chunk fetch failures for pages that are never shown in the desktop app).
 const _isElectronRuntime =
   typeof window !== "undefined" && !!(window as any).electronAPI?.isElectron;
@@ -179,7 +179,7 @@ export type { AppAuthContextValue } from "@/lib/appAuthContext";
 export { useAppAuth } from "@/lib/appAuthContext";
 import { AppAuthContext } from "@/lib/appAuthContext";
 
-// DarkFallback — solid dark cover shown while a lazy route chunk is loading.
+// DarkFallback, solid dark cover shown while a lazy route chunk is loading.
 // Replaces fallback={null} so the compositor never sees a transparent frame
 // during the first navigation to a lazy page.
 const DarkFallback = () => (
@@ -361,7 +361,7 @@ function ElectronAppContent() {
   const flowResetTs = useAuthStore((s) => s.flowResetTs);
   const [, setLocation] = useHashLocation();
 
-  // Premium device lock — Electron only, runs after entitlements confirmed from server.
+  // Premium device lock, Electron only, runs after entitlements confirmed from server.
   // Exclude trial users: trial access is user-scoped and must never trigger device locking,
   // even if the auth store still has a stale isPremium=true from a previous session.
   const isPremiumVerified =
@@ -376,7 +376,7 @@ function ElectronAppContent() {
     user?.loggedIn ?? false,
   );
 
-  // Free-user premium promo (Discord CTA) — server decides the every-30-launches
+  // Free-user premium promo (Discord CTA), server decides the every-30-launches
   // cadence keyed by hardware fingerprint. Only for verified-free users; premium
   // and trial users are excluded both here and server-side.
   const isFreePlanForPromo =
@@ -395,7 +395,7 @@ function ElectronAppContent() {
     isFreePlan: isFreePlanForPromo,
   });
 
-  // Premium expiry — detects trial/premium→free transition, triggers safe revert
+  // Premium expiry, detects trial/premium→free transition, triggers safe revert
   const {
     revertModalOpen,
     revertReport,
@@ -443,12 +443,12 @@ function ElectronAppContent() {
     if (!revertModalOpen) return;
     if (phase !== "authenticated") return;
     console.log(
-      "[TrialExpiry] revert modal opened — redirecting to /dashboard",
+      "[TrialExpiry] revert modal opened, redirecting to /dashboard",
     );
     setLocation("/dashboard");
   }, [revertModalOpen, phase]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Pause ALL CSS animations when the tab is hidden — zero GPU work for background tabs.
+  // Pause ALL CSS animations when the tab is hidden, zero GPU work for background tabs.
   useEffect(() => {
     const sync = () =>
       document.documentElement.classList.toggle("tab-hidden", document.hidden);
@@ -457,7 +457,7 @@ function ElectronAppContent() {
     return () => document.removeEventListener("visibilitychange", sync);
   }, []);
 
-  // Backend-error listener — shows an error immediately instead of spinning for 50s.
+  // Backend-error listener, shows an error immediately instead of spinning for 50s.
   // The api.ts module-level listener already rejects the port poll; this sets the
   // UI state so the booting screen displays a human-readable message.
   useEffect(() => {
@@ -472,7 +472,7 @@ function ElectronAppContent() {
     return remove;
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // First-run baseline scan — records pre-existing applied state before the app touches anything
+  // First-run baseline scan, records pre-existing applied state before the app touches anything
   useBaselineScan();
 
   const realtimeMetricsEnabled = useStore((s) => s.realtimeMetricsEnabled);
@@ -480,7 +480,7 @@ function ElectronAppContent() {
   const setSystemConditions = useSystemConditionsStore((s) => s.setConditions);
   const { toast } = useToast();
 
-  // Startup reconciliation — fires once, non-blocking.
+  // Startup reconciliation, fires once, non-blocking.
   // Reads real Windows tweak state via a single batched PowerShell call and
   // updates the Zustand store so every page reflects reality, not stale cache.
   // This is the fix for the AppData-delete scenario: deleting %AppData%/SwitchControl
@@ -496,7 +496,7 @@ function ElectronAppContent() {
         const api = (window as any).electronAPI?.tweaks;
         if (!api) return;
 
-        // Read local cached state first — needed to detect timer-res / power-mode-overlay
+        // Read local cached state first, needed to detect timer-res / power-mode-overlay
         // cases where the user had a tweak enabled but it reset (agent died / overlay reset).
         const localState: { appliedTweaks?: Record<string, boolean> } =
           await api.getLocalState().catch(() => ({ appliedTweaks: {} }));
@@ -520,7 +520,7 @@ function ElectronAppContent() {
           const finalState = s.isApplied ?? s.applied ?? false;
           console.info(
             `[App:STARTUP-RECONCILE] source=startup_reconcile id="${tweakId}" ` +
-            `observed=${finalState} — read-only hydration`,
+            `observed=${finalState}, read-only hydration`,
           );
           setTweak(tweakId, finalState);
           verifiedStateMap[tweakId] = finalState;
@@ -533,11 +533,11 @@ function ElectronAppContent() {
           );
         }
 
-        // Part 3 — timer-res auto-restart.
+        // Part 3, timer-res auto-restart.
         // The timer-res agent dies when the app closes. If the user had it enabled,
         // restart it silently on startup rather than leaving it off.
         // Guard: skip if the slider-based keeper is already active (timer-resolution-slider
-        // at a non-default value) — that process survived the restart and is already holding
+        // at a non-default value), that process survived the restart and is already holding
         // the resolution, so spawning the toggle agent would create a duplicate.
         const timerResStatus = results["timer-res"] as
           | { isApplied?: boolean; applied?: boolean; unsupported?: boolean }
@@ -555,14 +555,14 @@ function ElectronAppContent() {
         })();
         if (timerResWasEnabled && !timerResIsRunning && !timerResStatus?.unsupported && !sliderKeeperActive) {
           console.log(
-            "[App:STARTUP-RECONCILE] timer-res: was enabled, agent not running — auto-restarting",
+            "[App:STARTUP-RECONCILE] timer-res: was enabled, agent not running, auto-restarting",
           );
           api.execute("timer-res", "apply").catch((e: unknown) => {
             console.warn("[App:STARTUP-RECONCILE] timer-res auto-restart failed:", e);
           });
         }
 
-        // Part 4 — power-mode-overlay auto-re-apply.
+        // Part 4, power-mode-overlay auto-re-apply.
         // On some systems the Best Performance overlay resets to Balanced after reboot.
         // Re-apply silently if the user had it enabled but it's no longer active.
         const overlayStatus = results["power-mode-overlay"] as
@@ -574,14 +574,14 @@ function ElectronAppContent() {
           : false;
         if (overlayWasEnabled && !overlayIsApplied && !overlayStatus?.unsupported) {
           console.log(
-            "[App:STARTUP-RECONCILE] power-mode-overlay: was enabled, not active — auto-re-applying",
+            "[App:STARTUP-RECONCILE] power-mode-overlay: was enabled, not active, auto-re-applying",
           );
           api.execute("power-mode-overlay", "apply").catch((e: unknown) => {
             console.warn("[App:STARTUP-RECONCILE] power-mode-overlay auto-re-apply failed:", e);
           });
         }
 
-        // Part 5 — Persist verified state back to tweak-state.json.
+        // Part 5, Persist verified state back to tweak-state.json.
         // Keeps the local cache accurate so the next cold start reflects real
         // Windows state without waiting for a fresh batchCheck.
         if (Object.keys(verifiedStateMap).length > 0) {
@@ -590,7 +590,7 @@ function ElectronAppContent() {
           });
         }
 
-        // Part 6 — Detect silently reverted tweaks and surface root-cause.
+        // Part 6, Detect silently reverted tweaks and surface root-cause.
         // A tweak is "silently reverted" if prevEnabled says it was ON but the
         // verified live state is OFF (Windows Tamper Protection or missing elevation
         // is the most common cause).
@@ -598,7 +598,7 @@ function ElectronAppContent() {
           (id) => prevEnabled[id] === true && verifiedStateMap[id] === false,
         );
 
-        // Fetch admin status and security status in parallel — both are needed
+        // Fetch admin status and security status in parallel, both are needed
         // to show the most accurate root-cause message.
         const [adminResult, securityResult] = await Promise.allSettled([
           (window as any).electronAPI?.isAdmin?.() as Promise<boolean>,
@@ -628,7 +628,7 @@ function ElectronAppContent() {
           const reasonStr =
             reasons.length > 0 ? reasons.join(", ") : "Windows policy";
           console.warn(
-            `[App:STARTUP-RECONCILE] ${silentlyReverted.length} tweak(s) were silently reverted — ${reasonStr}`,
+            `[App:STARTUP-RECONCILE] ${silentlyReverted.length} tweak(s) were silently reverted, ${reasonStr}`,
           );
           toast({
             title: `${silentlyReverted.length} tweak${silentlyReverted.length === 1 ? "" : "s"} reverted by Windows`,
@@ -661,7 +661,7 @@ function ElectronAppContent() {
     if (!jwt) return;
     if (!telemetryManager.authRejected) return;
     console.log(
-      "[Telemetry] JWT now available after prior auth rejection — restarting manager",
+      "[Telemetry] JWT now available after prior auth rejection, restarting manager",
     );
     telemetryManager.startWhenIdle();
   }, [jwt, phase]);
@@ -768,26 +768,26 @@ function ElectronAppContent() {
     let mounted = true;
 
     console.log(
-      "[Entitlements] post-auth hydration begin — cached isPremium:",
+      "[Entitlements] post-auth hydration begin, cached isPremium:",
       user?.isPremium,
       "plan:",
       user?.plan,
     );
     console.log(
-      "[PremiumTruth] entitlement fetch start — cached isPremium:",
+      "[PremiumTruth] entitlement fetch start, cached isPremium:",
       user?.isPremium,
     );
     refreshEntitlements()
       .then((result) => {
         if (!mounted) return;
         console.log(
-          "[Entitlements] post-auth hydration result — isPremium:",
+          "[Entitlements] post-auth hydration result, isPremium:",
           result.user?.isPremium ?? "null",
           "plan:",
           result.user?.plan ?? "null",
         );
         console.log(
-          "[PremiumTruth] entitlement fetch result — isPremium:",
+          "[PremiumTruth] entitlement fetch result, isPremium:",
           result.user?.isPremium ?? "null (no user)",
         );
         if (result.verified && result.user) {
@@ -801,33 +801,33 @@ function ElectronAppContent() {
               result.user.id ?? null,
             );
           console.log(
-            "[Entitlements] grace store updated — isPremium:",
+            "[Entitlements] grace store updated, isPremium:",
             result.user.isPremium,
             "plan:",
             result.user.plan,
           );
         } else if (result.verified) {
           console.warn(
-            "[Entitlements] server returned no user — checking grace store for fallback",
+            "[Entitlements] server returned no user, checking grace store for fallback",
           );
           console.warn(
-            "[PremiumTruth] backend returned no user — checking grace store",
+            "[PremiumTruth] backend returned no user, checking grace store",
           );
           const graceStatus = usePremiumGraceStore.getState().getStatus(true);
           console.log("[Entitlements] grace store status:", graceStatus);
           if (graceStatus === "active" || graceStatus === "grace") {
             console.log(
-              "[Entitlements] grace store active — entitlementsVerified set via grace fallback",
+              "[Entitlements] grace store active, entitlementsVerified set via grace fallback",
             );
             setEntitlementsVerified(true);
           } else {
             console.warn(
-              "[Entitlements] grace store expired/unavailable — showing free state",
+              "[Entitlements] grace store expired/unavailable, showing free state",
             );
           }
         } else {
           console.warn(
-            "[Entitlements] cloud verification unavailable — preserving prior verification state",
+            "[Entitlements] cloud verification unavailable, preserving prior verification state",
           );
           console.warn(
             "[PremiumTruth] cached user preserved, entitlement verification unchanged",
@@ -837,11 +837,11 @@ function ElectronAppContent() {
       .catch((err) => {
         if (!mounted) return;
         console.warn(
-          "[Entitlements] post-auth hydration error — checking grace store:",
+          "[Entitlements] post-auth hydration error, checking grace store:",
           err,
         );
         console.warn(
-          "[PremiumTruth] entitlement fetch failed — checking grace store fallback",
+          "[PremiumTruth] entitlement fetch failed, checking grace store fallback",
         );
          // Do not promote a grace snapshot after an unexpected refresh error.
          // The prior verification state is intentionally preserved unchanged.
@@ -865,11 +865,11 @@ function ElectronAppContent() {
     }
     const delay = 500;
     console.log(
-      `[TourTransition] phase entered authenticated — waiting ${delay}ms for dashboard to stabilize`,
+      `[TourTransition] phase entered authenticated, waiting ${delay}ms for dashboard to stabilize`,
     );
     const t = setTimeout(() => {
       setIsPhaseStable(true);
-      console.log("[TourTransition] dashboard stable — tours unblocked");
+      console.log("[TourTransition] dashboard stable, tours unblocked");
     }, delay);
     return () => clearTimeout(t);
   }, [phase, isFirstLogin]);
@@ -900,7 +900,7 @@ function ElectronAppContent() {
   useEffect(() => {
     if (flowResetTs === 0) return;
     console.log(
-      "[AppFlow] flowResetTs fired — clearing all session guards for re-eval",
+      "[AppFlow] flowResetTs fired, clearing all session guards for re-eval",
     );
     unlockFiredThisSessionRef.current = false;
     trialUnlockFiredRef.current = false;
@@ -927,7 +927,7 @@ function ElectronAppContent() {
     const isFirstTimeUser = !localStorage.getItem(tourKey);
 
     console.log(
-      "[AppFlow] Flow eval — isPremium:",
+      "[AppFlow] Flow eval, isPremium:",
       user.isPremium,
       "plan:",
       user.plan,
@@ -963,14 +963,14 @@ function ElectronAppContent() {
 
     if (!entitlementsOk) {
       console.log(
-        "[AppFlow] Waiting for entitlementsOk — skipping premium flow checks",
+        "[AppFlow] Waiting for entitlementsOk, skipping premium flow checks",
       );
       return;
     }
 
     const trialOngoing = isTrialActive(user.plan, user.trialEndsAt);
 
-    // PRIORITY 2: Trial activation (animation removed — go straight to tour)
+    // PRIORITY 2: Trial activation (animation removed, go straight to tour)
     // Mark hasSeenTrialActivation=true immediately so we don't loop, fire the
     // server save in the background, then jump directly to the tour.
     if (
@@ -979,7 +979,7 @@ function ElectronAppContent() {
       !trialUnlockFiredRef.current
     ) {
       console.log(
-        "[AppFlow] PRIORITY 2: Trial — skipping animation, going straight to tour",
+        "[AppFlow] PRIORITY 2: Trial, skipping animation, going straight to tour",
         { plan: user.plan, trialEndsAt: user.trialEndsAt },
       );
       trialUnlockFiredRef.current = true;
@@ -1002,7 +1002,7 @@ function ElectronAppContent() {
       user.hasSeenTrialTour === false &&
       !trialTourFiredThisSessionRef.current
     ) {
-      console.log("[AppFlow] PRIORITY 3: Trial tour — triggering", {
+      console.log("[AppFlow] PRIORITY 3: Trial tour, triggering", {
         plan: user.plan,
         trialEndsAt: user.trialEndsAt,
         hasSeenTrialTour: user.hasSeenTrialTour,
@@ -1012,7 +1012,7 @@ function ElectronAppContent() {
       return;
     }
 
-    // localStorage keys — act as a permanent local guard even if server save fails.
+    // localStorage keys, act as a permanent local guard even if server save fails.
     // If the server has explicitly reset hasSeenPremiumUnlock to false (e.g. admin
     // re-grants premium), clear the local guard so the animation can replay.
     const localUnlockKey = `sc_unlock_seen_${userId}`;
@@ -1030,7 +1030,7 @@ function ElectronAppContent() {
       !unlockFiredThisSessionRef.current
     ) {
       console.log(
-        "[AppFlow] PRIORITY 4: Premium unlock animation — triggering",
+        "[AppFlow] PRIORITY 4: Premium unlock animation, triggering",
       );
       localStorage.setItem(localUnlockKey, "1"); // guard immediately so restart can't re-trigger
       unlockFiredThisSessionRef.current = true;
@@ -1052,7 +1052,7 @@ function ElectronAppContent() {
       return;
     }
 
-    console.log("[AppFlow] No flow conditions met — staying idle");
+    console.log("[AppFlow] No flow conditions met, staying idle");
   }, [
     user?.loggedIn,
     user?.isPremium,
@@ -1075,7 +1075,7 @@ function ElectronAppContent() {
   const activeFlowRef = React.useRef<AppFlow>(activeFlow);
   activeFlowRef.current = activeFlow;
 
-  // Track when window last lost focus — used to skip brief focus-loss from dialogs/file pickers
+  // Track when window last lost focus, used to skip brief focus-loss from dialogs/file pickers
   const lastBlurTimeRef = React.useRef<number>(0);
   const lastEntitlementRefreshRef = React.useRef<number>(0);
   // F-6: Guard against concurrent entitlement refreshes. Without it, a focus
@@ -1130,7 +1130,7 @@ function ElectronAppContent() {
         return;
       }
       const awayMs = Date.now() - lastBlurTimeRef.current;
-      // Skip if focus returned quickly — indicates a child dialog (file picker, etc.), not an app-switch
+      // Skip if focus returned quickly, indicates a child dialog (file picker, etc.), not an app-switch
       if (awayMs < FOCUS_AWAY_THRESHOLD_MS && lastBlurTimeRef.current > 0)
         return;
       const now = Date.now();
@@ -1158,7 +1158,7 @@ function ElectronAppContent() {
     const api = (window as any).electronAPI;
 
     if (api?.onWindowFocus) {
-      // Passive handler only — must not reinitialize app state, clear auth,
+      // Passive handler only, must not reinitialize app state, clear auth,
       // reset routing, remount layout trees, or destroy active page state.
       // Overlay clearing (data-overlay DOM mutations) was causing blank-screen
       // regressions on Alt-Tab return; removed entirely.
@@ -1173,11 +1173,11 @@ function ElectronAppContent() {
     if (phase !== "authenticated") return;
     if (activeFlow !== "none") return;
     if (patchNotesCheckedRef.current) return;
-    // Never show patch notes to brand-new users — they haven't used a prior
+    // Never show patch notes to brand-new users, they haven't used a prior
     // version so there's nothing "new" to highlight, and it would clash with
     // the onboarding tour that fires on first login.
     if (isFirstLogin) return;
-    // Wait for entitlements to be confirmed first — this ensures the flow eval
+    // Wait for entitlements to be confirmed first, this ensures the flow eval
     // has already run (and set activeFlow to "trialTour" etc. if needed) before
     // we decide to show patch notes. Without this guard, patch notes can pop up
     // over the top of the trial activation tour.
@@ -1200,7 +1200,7 @@ function ElectronAppContent() {
     };
   }, [phase, activeFlow, isFirstLogin, entitlementsAttempted]);
 
-  // ── Splash completion — Splash.tsx is the sole timing authority ─────────
+  // ── Splash completion, Splash.tsx is the sole timing authority ─────────
   // Splash calls onComplete() when its exit animation finishes.
   // CameraGlow fires here, not on a raw timer, so it never overlaps the splash.
 
@@ -1225,7 +1225,7 @@ function ElectronAppContent() {
         const currentUser = useAuthStore.getState().user;
 
         console.log(
-          "[DeepLink] parsed — code:",
+          "[DeepLink] parsed, code:",
           authCode ? "present" : "missing",
           "provider:",
           provider,
@@ -1237,7 +1237,7 @@ function ElectronAppContent() {
 
         if (premiumActivated && currentUser?.loggedIn) {
           console.log(
-            "[PremiumFlow] Premium purchase return — user already logged in, refreshing entitlements...",
+            "[PremiumFlow] Premium purchase return, user already logged in, refreshing entitlements...",
           );
 
           const result = await retryRefreshEntitlements({
@@ -1249,7 +1249,7 @@ function ElectronAppContent() {
           if (!mounted) return; // P3-DL1: bail if effect cleaned up mid-await
           if (result.ok && result.user?.isPremium) {
             console.log(
-              "[PremiumFlow] Premium confirmed — hasSeenUnlock:",
+              "[PremiumFlow] Premium confirmed, hasSeenUnlock:",
               result.user.hasSeenPremiumUnlock,
               "hasSeenTour:",
               result.user.hasSeenPremiumTour,
@@ -1263,7 +1263,7 @@ function ElectronAppContent() {
           }
 
           console.warn(
-            "[PremiumFlow] Premium not confirmed after retries — showing pending modal",
+            "[PremiumFlow] Premium not confirmed after retries, showing pending modal",
           );
           setShowPendingActivation(true);
           useAuthStore.getState().setElectronAuthState("authenticated");
@@ -1274,7 +1274,7 @@ function ElectronAppContent() {
           useAuthStore.getState().setElectronAuthState("exchanging");
           useAuthStore.getState().setValidating(true);
 
-          // No hard timeout — let the exchange run to completion.
+          // No hard timeout, let the exchange run to completion.
           // The fetch() has its own browser-level timeout; our 15 s race was
           // cutting off valid (but slow) OAuth sessions before the server
           // responded, then treating a transient network delay as a failure.
@@ -1286,12 +1286,12 @@ function ElectronAppContent() {
             useAuthStore.getState().setUser(exchangedUser);
             useAuthStore.getState().setElectronAuthState("authenticated");
             console.log(
-              `[Auth] exchange success — user=${exchangedUser.id} provider=${provider}`,
+              `[Auth] exchange success, user=${exchangedUser.id} provider=${provider}`,
             );
 
             const welcomeKey = `sc_welcomed_${exchangedUser.id}`;
             const hasBeenWelcomed = localStorage.getItem(welcomeKey);
-            // Read the live phase — phaseRef is updated every render so this
+            // Read the live phase, phaseRef is updated every render so this
             // is always the current value even though this callback was
             // registered once with [] deps.
             const livePhase = phaseRef.current;
@@ -1305,18 +1305,18 @@ function ElectronAppContent() {
                 livePhase === "disclaiming"
               ) {
                 // Boot fast-path already moved us to "welcome" (or beyond) before
-                // the deep-link arrived — any login_success transition here would
+                // the deep-link arrived, any login_success transition here would
                 // flash the login screen over the welcome animation.  Only jump to
                 // "welcome" if we're not already there or past it.
                 console.log(
-                  `[Auth] first-time user but phase=${livePhase} — deep-link arrived late, no login flash`,
+                  `[Auth] first-time user but phase=${livePhase}, deep-link arrived late, no login flash`,
                 );
                 if (livePhase === "authenticated") {
                   setPhase("welcome");
                 }
-                // "welcome" / "disclaiming" — already in the right animation; leave it alone.
+                // "welcome" / "disclaiming", already in the right animation; leave it alone.
               } else {
-                // Normal path: login screen is visible — do the clean two-step
+                // Normal path: login screen is visible, do the clean two-step
                 // login_success → welcome transition.
                 setPhase("login_success");
               }
@@ -1330,19 +1330,19 @@ function ElectronAppContent() {
                 // Already showing the app (fast-path boot beat the deep-link).
                 // Navigate to dashboard without flashing the login screen.
                 console.log(
-                  `[Auth] returning user, phase=${livePhase} — navigating to dashboard`,
+                  `[Auth] returning user, phase=${livePhase}, navigating to dashboard`,
                 );
                 if (livePhase !== "authenticated") setPhase("authenticated");
                 setLocation("/dashboard");
               } else {
-                // Login screen is visible — do the polished blur-exit.
+                // Login screen is visible, do the polished blur-exit.
                 setPhase("login_success");
               }
             }
 
             if (premiumActivated) {
               console.log(
-                "[PremiumFlow] Exchange + premiumActivated — retrying entitlements...",
+                "[PremiumFlow] Exchange + premiumActivated, retrying entitlements...",
               );
               const premResult = await retryRefreshEntitlements({
                 attempts: 8,
@@ -1354,13 +1354,13 @@ function ElectronAppContent() {
                 console.log("[PremiumFlow] Premium confirmed after login");
               } else {
                 console.warn(
-                  "[PremiumFlow] Premium not confirmed — showing pending",
+                  "[PremiumFlow] Premium not confirmed, showing pending",
                 );
                 setShowPendingActivation(true);
               }
             }
           } else {
-            console.error("[Auth] Exchange failed — setting unauthenticated");
+            console.error("[Auth] Exchange failed, setting unauthenticated");
             // clear() resets electronAuthState to 'idle' and oauthError to null,
             // so set them AFTER the clear to avoid overwriting.
             useAuthStore.getState().clear();
@@ -1373,12 +1373,12 @@ function ElectronAppContent() {
           useAuthStore.getState().setValidating(false);
         } else if (!premiumActivated) {
           console.log(
-            "[DeepLink] No code and no premium flag — going to login",
+            "[DeepLink] No code and no premium flag, going to login",
           );
           useAuthStore.getState().setElectronAuthState("failed");
           useAuthStore
             .getState()
-            .setOauthError("Login failed — no authentication code received.");
+            .setOauthError("Login failed, no authentication code received.");
           setPhase("unauthenticated");
         }
       } catch (err) {
@@ -1400,7 +1400,7 @@ function ElectronAppContent() {
 
   useEffect(() => {
     if (!splashDone) return;
-    // Activate CameraGlow immediately — no rAF delay needed. The GPU layer is
+    // Activate CameraGlow immediately, no rAF delay needed. The GPU layer is
     // consolidated into a single filter:blur(12px) wrapper so there is no
     // compositor-stall risk from multiple simultaneous layer promotions.
     setShowGlow(true);
@@ -1419,7 +1419,7 @@ function ElectronAppContent() {
         user?.isPremium,
       );
       console.log(
-        "[AuthTruth] startup restore begin — hasCredential:",
+        "[AuthTruth] startup restore begin, hasCredential:",
         hasCredential,
         "cached isPremium:",
         user?.isPremium ?? "n/a",
@@ -1431,7 +1431,7 @@ function ElectronAppContent() {
       // 1. Load stored user/JWT
       // 2. FAST PATH: if cached session exists, mount dashboard immediately with cached state
       //    (eliminates the 2-3s cloud round-trip from blocking first useful content)
-      // 3. resolveAuthState() always runs — but is now non-blocking to UI when fast path fires
+      // 3. resolveAuthState() always runs, but is now non-blocking to UI when fast path fires
       // 4. Cloud result reconciles: confirms entitlementsVerified, or forces logout on 401
       //
       // Premium is NEVER downgraded on network/server failure.
@@ -1441,14 +1441,14 @@ function ElectronAppContent() {
       // ── Fast path: cached session → show dashboard immediately ──────────────
       // If we have a stored logged-in user + JWT, render the dashboard right now
       // using cached premium state. resolveAuthState() runs below as a background
-      // reconciliation — it updates entitlementsVerified and user data when the
+      // reconciliation, it updates entitlementsVerified and user data when the
       // cloud responds, without blocking first paint.
       // setEntitlementsAttempted(true) prevents the post-auth refreshEntitlements
       // effect from firing a redundant second /api/me call.
       const hasCachedSession = !!(user?.loggedIn && jwt);
       if (hasCachedSession) {
         console.log(
-          "[AuthTruth] Boot: fast path — cached session, mounting dashboard immediately",
+          "[AuthTruth] Boot: fast path, cached session, mounting dashboard immediately",
           "isPremium:", user?.isPremium, "plan:", user?.plan,
         );
         setEntitlementsOk(true);
@@ -1464,7 +1464,7 @@ function ElectronAppContent() {
         // If the grace store has a recent premium snapshot we set
         // entitlementsVerified=true immediately.  resolveAuthState() will
         // overwrite user.isPremium (and the grace store) if the server reports a
-        // different status, so this is safe — it only affects the brief startup
+        // different status, so this is safe, it only affects the brief startup
         // window before cloud truth arrives.
         if (user?.isPremium) {
           const graceSnap = usePremiumGraceStore.getState();
@@ -1475,7 +1475,7 @@ function ElectronAppContent() {
           if (graceSnap.isPremium && graceAgeMs <= GRACE_WINDOW_MS) {
             setEntitlementsVerified(true);
             console.log(
-              "[AuthTruth] Boot: grace store confirms recent premium — " +
+              "[AuthTruth] Boot: grace store confirms recent premium, " +
               "entitlementsVerified=true immediately (cloud confirmation pending)",
             );
           }
@@ -1492,7 +1492,7 @@ function ElectronAppContent() {
         }
       }
 
-      // ── Cloud reconciliation — always runs, non-blocking when fast path fired ──
+      // ── Cloud reconciliation, always runs, non-blocking when fast path fired ──
       const authState = await resolveAuthState();
       if (!mounted) return; // P3-BA1: bail if app unmounted during network call
       console.log(
@@ -1502,7 +1502,7 @@ function ElectronAppContent() {
       if (!hasCachedSession) setEntitlementsAttempted(true);
 
       if (authState.verified && authState.user) {
-        // Cloud confirmed — update entitlements and grace store
+        // Cloud confirmed, update entitlements and grace store
         setEntitlementsOk(true);
         setEntitlementsVerified(true);
         usePremiumGraceStore
@@ -1513,7 +1513,7 @@ function ElectronAppContent() {
             authState.user.id ?? null,
           );
         console.log(
-          "[AuthTruth] Boot: cloud-confirmed — entitlementsVerified=true",
+          "[AuthTruth] Boot: cloud-confirmed, entitlementsVerified=true",
         );
 
         // Proactive reissue if JWT within 1 day of expiry
@@ -1527,7 +1527,7 @@ function ElectronAppContent() {
               const nowSec = Math.floor(Date.now() / 1000);
               if (payload.exp && nowSec >= payload.exp - 86400) {
                 console.log(
-                  "[AuthTruth] Boot: JWT expiring within 24h — proactive reissue...",
+                  "[AuthTruth] Boot: JWT expiring within 24h, proactive reissue...",
                 );
                 tryReissueJwt().catch(() => {});
               }
@@ -1555,14 +1555,14 @@ function ElectronAppContent() {
       }
 
       if (authState.reason === "logged_out_by_cloud") {
-        // Cloud explicitly rejected the session — clear and force login.
+        // Cloud explicitly rejected the session, clear and force login.
         // This handles the case where a cached session is no longer valid.
-        console.warn("[AuthTruth] Boot: logged_out_by_cloud — forcing logout");
+        console.warn("[AuthTruth] Boot: logged_out_by_cloud, forcing logout");
         try {
           storeLogout();
         } catch (error) {
           // Auth cleanup must never be able to strand the app on the boot screen.
-          console.error("[AuthTruth] Boot: local logout cleanup failed — clearing auth store directly", error);
+          console.error("[AuthTruth] Boot: local logout cleanup failed, clearing auth store directly", error);
           try {
             useAuthStore.getState().clear();
           } catch (fallbackError) {
@@ -1573,10 +1573,10 @@ function ElectronAppContent() {
         return;
       }
 
-      // Unverified (network/server error) but we have cached user — preserve it
+      // Unverified (network/server error) but we have cached user, preserve it
       if (authState.user) {
         console.warn(
-          "[AuthTruth] Boot: cloud unreachable — preserving cached session. isPremium cached=",
+          "[AuthTruth] Boot: cloud unreachable, preserving cached session. isPremium cached=",
           authState.user.isPremium,
         );
         // Do NOT clear premium; mark unverified so device lock stays off
@@ -1585,7 +1585,7 @@ function ElectronAppContent() {
         const graceStatus = usePremiumGraceStore.getState().getStatus(false);
         if (graceStatus === "active" || graceStatus === "grace") {
           console.log(
-            "[AuthTruth] Boot: grace store active — entitlementsVerified via grace",
+            "[AuthTruth] Boot: grace store active, entitlementsVerified via grace",
           );
           setEntitlementsVerified(true);
         }
@@ -1605,17 +1605,17 @@ function ElectronAppContent() {
         return;
       }
 
-      // No user at all — show login
+      // No user at all, show login
       if (!hasCachedSession) {
         setPhase("unauthenticated");
       } else {
-        // Had a cached session but cloud returned no user — force logout
-        console.warn("[AuthTruth] Boot: cached session invalidated by cloud — forcing logout");
+        // Had a cached session but cloud returned no user, force logout
+        console.warn("[AuthTruth] Boot: cached session invalidated by cloud, forcing logout");
         try {
           storeLogout();
         } catch (error) {
           // Auth cleanup must never be able to strand the app on the boot screen.
-          console.error("[AuthTruth] Boot: local logout cleanup failed — clearing auth store directly", error);
+          console.error("[AuthTruth] Boot: local logout cleanup failed, clearing auth store directly", error);
           try {
             useAuthStore.getState().clear();
           } catch (fallbackError) {
@@ -1635,10 +1635,10 @@ function ElectronAppContent() {
   const handleLogout = async () => {
     if (isSigningOut) return; // prevent double-trigger
     console.log(
-      "[Auth] logout called — starting cinematic sign-out transition",
+      "[Auth] logout called, starting cinematic sign-out transition",
     );
 
-    // Capture userId now — the store is wiped by performFullLogout below.
+    // Capture userId now, the store is wiped by performFullLogout below.
     const logoutUserId = user?.id ?? null;
 
     // 0. Immediately dismiss any active flow (tour, unlock animation, etc.)
@@ -1660,7 +1660,7 @@ function ElectronAppContent() {
     // 4b. Clear the welcome key so the next login on this device re-shows
     //     the welcome animation (fresh-start feel after sign-out).
     //     We intentionally keep sc_tour_completed_* so the intro tour
-    //     doesn't replay — only the welcome animation resets.
+    //     doesn't replay, only the welcome animation resets.
     if (logoutUserId) {
       localStorage.removeItem(`sc_welcomed_${logoutUserId}`);
     }
@@ -1676,7 +1676,7 @@ function ElectronAppContent() {
     setShowPendingActivation(false);
     setShowPatchNotes(false);
 
-    // 6. Switch phase — login screen will animate in.
+    // 6. Switch phase, login screen will animate in.
     //    Also clear isSigningOut so pointer-events are restored for the
     //    login screen; leaving it true made login buttons unclickable.
     setPhase("unauthenticated");
@@ -1691,13 +1691,13 @@ function ElectronAppContent() {
     try {
       const result = await refreshEntitlements();
       console.log(
-        "[Entitlements] manual refresh result — isPremium:",
+        "[Entitlements] manual refresh result, isPremium:",
         result.user?.isPremium ?? "null",
         "plan:",
         result.user?.plan ?? "null",
       );
       console.log(
-        "[PremiumTruth] modal-triggered entitlement fetch result — isPremium:",
+        "[PremiumTruth] modal-triggered entitlement fetch result, isPremium:",
         result.user?.isPremium ?? "null (no user)",
       );
       if (result.verified && result.user) {
@@ -1711,26 +1711,26 @@ function ElectronAppContent() {
             result.user.id ?? null,
           );
         console.log(
-          "[Entitlements] manual refresh — grace store updated, UI unlocked",
+          "[Entitlements] manual refresh, grace store updated, UI unlocked",
         );
       } else if (result.verified) {
         console.warn(
-          "[Entitlements] manual refresh — server returned no user, checking grace store",
+          "[Entitlements] manual refresh, server returned no user, checking grace store",
         );
         const graceStatus = usePremiumGraceStore.getState().getStatus(true);
         console.log(
-          "[Entitlements] manual refresh — grace store status:",
+          "[Entitlements] manual refresh, grace store status:",
           graceStatus,
         );
         if (graceStatus === "active" || graceStatus === "grace") {
           console.log(
-            "[Entitlements] manual refresh — grace fallback active, entitlementsVerified set",
+            "[Entitlements] manual refresh, grace fallback active, entitlementsVerified set",
           );
           setEntitlementsVerified(true);
         }
       } else {
         console.warn(
-          "[Entitlements] manual refresh was not cloud-verified — preserving prior verification state",
+          "[Entitlements] manual refresh was not cloud-verified, preserving prior verification state",
         );
       }
       return result;
@@ -1742,7 +1742,7 @@ function ElectronAppContent() {
   }, []);
 
   const handleFactoryReset = async () => {
-    console.log("[AppFlow] Factory reset — kill switch activated");
+    console.log("[AppFlow] Factory reset, kill switch activated");
     setIsResetting(true);
     setActiveFlow("none");
     await postResetTourFlags();
@@ -1763,7 +1763,7 @@ function ElectronAppContent() {
           revertItems.some((item) => item.status === "failed" || item.status === "skipped_not_active");
 
         if (revertIncomplete) {
-          console.error("[AppFlow] Factory reset blocked — premium changes were not fully reverted", revertReport);
+          console.error("[AppFlow] Factory reset blocked, premium changes were not fully reverted", revertReport);
           setIsResetting(false);
           window.alert(
             "Factory reset was stopped because some SwitchControl changes could not be safely reverted. Resolve the failed revert first, then try again."
@@ -1771,7 +1771,7 @@ function ElectronAppContent() {
           return;
         }
       } catch (error) {
-        console.error("[AppFlow] Factory reset blocked — premium revert failed", error);
+        console.error("[AppFlow] Factory reset blocked, premium revert failed", error);
         setIsResetting(false);
         window.alert(
           "Factory reset was stopped because SwitchControl could not verify its system changes were reverted."
@@ -1791,7 +1791,7 @@ function ElectronAppContent() {
 
   // Resolve effective premium status: server value is authoritative for paid plans,
   // but for trial users we also gate on the local trial-end timestamp so the UI
-  // locks immediately when the timer fires — without waiting for a server round-trip.
+  // locks immediately when the timer fires, without waiting for a server round-trip.
   const _isTrialUser = user?.plan === "trial";
   const _trialStillValid = isTrialActive(
     user?.plan ?? "",
@@ -1810,7 +1810,7 @@ function ElectronAppContent() {
     safeRefreshEntitlements: handleSafeRefreshEntitlements,
   };
   console.log(
-    "[PremiumTruth] authContextValue — entitlementsVerified:",
+    "[PremiumTruth] authContextValue, entitlementsVerified:",
     entitlementsVerified,
     "isPremium:",
     authContextValue.isPremium,
@@ -1823,7 +1823,7 @@ function ElectronAppContent() {
       <UpgradeModalProvider>
         <CameraGlow active={showGlow} onComplete={() => setShowGlow(false)} />
 
-        {/* ── Resetting overlay — covers the blank while factory reset runs ── */}
+        {/* ── Resetting overlay, covers the blank while factory reset runs ── */}
         {isResetting && (
           <div
             className="fixed inset-0 z-50 flex flex-col items-center justify-center"
@@ -1851,11 +1851,11 @@ function ElectronAppContent() {
         )}
 
         {/* ── Persistent atmospheric background ─────────────────────────────
-          Always mounted, always opacity:1 — never conditionally hidden.
+          Always mounted, always opacity:1, never conditionally hidden.
           The Splash at zIndex:1 covers it during startup so there is no need
           to hide it; keeping it opaque prevents any white-flash gap during
           the Splash → Booting transition. During authenticated phase the
-          AppLayout AppBackground layers on top — both are transparent so
+          AppLayout AppBackground layers on top, both are transparent so
           the glows breathe through. */}
         <div
           className="fixed inset-0 pointer-events-none"
@@ -1864,7 +1864,7 @@ function ElectronAppContent() {
             background: "#14181D",
           }}
         >
-          {/* Static centre glow — no JS interpolation */}
+          {/* Static centre glow, no JS interpolation */}
           <div
             className="absolute inset-0"
             style={{
@@ -1872,7 +1872,7 @@ function ElectronAppContent() {
                 "radial-gradient(ellipse 90% 60% at 50% 48%, rgba(139,92,246,0.20) 0%, rgba(99,102,241,0.07) 35%, transparent 60%)",
             }}
           />
-          {/* CSS-animated accents — compositor-only, zero JS frames */}
+          {/* CSS-animated accents, compositor-only, zero JS frames */}
           <div
             className="absolute inset-0"
             style={{
@@ -2023,13 +2023,13 @@ function ElectronAppContent() {
                 introDelay={0.4}
                 onComplete={() => {
                   console.log(
-                    "[Handoff] intro exit complete — mounting dashboard",
+                    "[Handoff] intro exit complete, mounting dashboard",
                   );
                   // Show the first-run disclaimer for brand-new users (once only).
                   const uid = user?.id;
                   const disclaimerKey = uid ? `sc_disclaimer_seen_${uid}` : null;
                   if (isFirstLogin && disclaimerKey && !localStorage.getItem(disclaimerKey)) {
-                    console.log("[FirstRunDisclaimer] showing for first-time user — fading welcome out");
+                    console.log("[FirstRunDisclaimer] showing for first-time user, fading welcome out");
                     setPhase("disclaiming"); // triggers AnimatePresence exit on welcome div
                     setShowDisclaimer(true);
                     return; // hold off on setPhase("authenticated") until disclaimer is dismissed
@@ -2048,7 +2048,7 @@ function ElectronAppContent() {
               // Any CSS filter or transform on this wrapper creates a new containing
               // block for position:fixed descendants (the Sidebar, fixed modals).
               // That traps them inside this compositing layer, causing visual
-              // misalignment until the filter clears. Opacity alone is safe — it
+              // misalignment until the filter clears. Opacity alone is safe, it
               // does NOT create a containing block.
               // The inner AppLayout page div (0.32s, blur 6px) provides the visual
               // entrance drama; clearContainingBlock cleans that up after it completes.
@@ -2075,7 +2075,7 @@ function ElectronAppContent() {
               }
               onAnimationComplete={() =>
                 console.log(
-                  "[Handoff] dashboard fade-in complete — layout stable",
+                  "[Handoff] dashboard fade-in complete, layout stable",
                 )
               }
             >
@@ -2086,7 +2086,7 @@ function ElectronAppContent() {
           )}
         </AnimatePresence>
 
-        {/* First-run disclaimer — overlays the welcome screen for brand-new users.
+        {/* First-run disclaimer, overlays the welcome screen for brand-new users.
             Shows between welcome animation end and dashboard mount. z-9998 so it
             sits above the welcome animation (z-2) but below any potential z-9999 overlays. */}
         <FirstRunDisclaimer
@@ -2094,7 +2094,7 @@ function ElectronAppContent() {
           onComplete={() => {
             const uid = user?.id;
             if (uid) localStorage.setItem(`sc_disclaimer_seen_${uid}`, "true");
-            console.log("[FirstRunDisclaimer] dismissed — transitioning to dashboard");
+            console.log("[FirstRunDisclaimer] dismissed, transitioning to dashboard");
             setShowDisclaimer(false);
             setPhase("authenticated");
             setLocation("/dashboard");
@@ -2123,7 +2123,7 @@ function ElectronAppContent() {
           <TrialActivationAnimation
             show={activeFlow === "trialUnlock"}
             onComplete={async () => {
-              console.log("[AppFlow] Trial activation complete — persisting");
+              console.log("[AppFlow] Trial activation complete, persisting");
               const store = useAuthStore.getState();
               if (store.user)
                 store.setUser({ ...store.user, hasSeenTrialActivation: true });
@@ -2145,7 +2145,7 @@ function ElectronAppContent() {
           <TrialTour
             show={activeFlow === "trialTour"}
             onComplete={async () => {
-              console.log("[AppFlow] Trial tour complete — persisting");
+              console.log("[AppFlow] Trial tour complete, persisting");
               const store = useAuthStore.getState();
               if (store.user)
                 store.setUser({ ...store.user, hasSeenTrialTour: true });
@@ -2168,13 +2168,13 @@ function ElectronAppContent() {
             show={activeFlow === "premiumUnlock"}
             onComplete={() => {
               console.log(
-                "[AppFlow] Unlock animation complete — transitioning to premiumTour",
+                "[AppFlow] Unlock animation complete, transitioning to premiumTour",
               );
               const store = useAuthStore.getState();
               if (store.user) {
                 store.setUser({ ...store.user, hasSeenPremiumUnlock: true });
               }
-              // Fire-and-forget — do NOT await. setActiveFlow must fire immediately
+              // Fire-and-forget, do NOT await. setActiveFlow must fire immediately
               // so the tour blur-in overlaps the animation blur-out (no black gap).
               postUnlockSeen().catch(() => {});
 
@@ -2193,14 +2193,14 @@ function ElectronAppContent() {
             show={activeFlow === "premiumTour"}
             onComplete={async () => {
               console.log(
-                "[AppFlow] Premium tour complete — persisting before clearing flow",
+                "[AppFlow] Premium tour complete, persisting before clearing flow",
               );
               const store = useAuthStore.getState();
               // Optimistic: update store immediately so any concurrent entitlement
               // refresh that fires before the server responds cannot overwrite us.
               if (store.user)
                 store.setUser({ ...store.user, hasSeenPremiumTour: true });
-              // Persist to server FIRST — the flow eval must not re-run until the
+              // Persist to server FIRST, the flow eval must not re-run until the
               // server flag is saved, otherwise a concurrent /api/me refresh can
               // return hasSeenPremiumTour=false and re-trigger the tour.
               await postTourSeen();
@@ -2227,7 +2227,7 @@ function ElectronAppContent() {
           />
         )}
 
-        {/* Light Mode — global CSS class sync + one-time post-onboarding advisor.
+        {/* Light Mode, global CSS class sync + one-time post-onboarding advisor.
             `ready` is strictly gated on onboarding being fully finished so the
             recommendation can never overlap welcome/tour UI. */}
         <AppModeClassSync />
@@ -2248,7 +2248,7 @@ function ElectronAppContent() {
         {/* ~3s polished fade shown while switching Normal ↔ Light Mode */}
         <ModeTransitionOverlay />
 
-        {/* Premium expiry revert — shows after trial/premium lapses and revert runs */}
+        {/* Premium expiry revert, shows after trial/premium lapses and revert runs */}
         <PremiumRevertModal
           open={revertModalOpen}
           onClose={closeRevertModal}
@@ -2258,7 +2258,7 @@ function ElectronAppContent() {
           reason={useTrialExpiryStore((s) => s.revertReason)}
         />
 
-        {/* Free-user premium promo — Discord CTA, at most once per ~30 launches.
+        {/* Free-user premium promo, Discord CTA, at most once per ~30 launches.
             Rendered BEFORE DeviceLockModal so the lock always stays on top. */}
         <PremiumPromoPopup
           open={promoOpen}
@@ -2266,7 +2266,7 @@ function ElectronAppContent() {
           onClose={closePromo}
         />
 
-        {/* Premium device lock — must be last (highest z-order), not dismissible */}
+        {/* Premium device lock, must be last (highest z-order), not dismissible */}
         {isElectron && deviceLockStatus === "locked" && (
           <DeviceLockModal
             userEmail={user?.email ?? null}

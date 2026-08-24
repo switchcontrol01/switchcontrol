@@ -34,7 +34,7 @@ export default function CameraGlow({ active, onComplete }: CameraGlowProps) {
           exit={{ opacity: 0 }}
           transition={{ duration: 0.8, ease: "easeInOut" }}
         >
-          {/* ── Outermost ambient field — full screen dispersion ─────────── */}
+          {/* ── Outermost ambient field, full screen dispersion ─────────── */}
           <motion.div
             className="absolute"
             style={{
@@ -64,7 +64,7 @@ export default function CameraGlow({ active, onComplete }: CameraGlowProps) {
             transition={{ duration: 2.1, ease: EASE_OUT_EXPO, delay: 0.05 }}
           />
 
-          {/* ── Cyan complementary ring — color fringe ───────────────────── */}
+          {/* ── Cyan complementary ring, color fringe ───────────────────── */}
           <motion.div
             className="absolute"
             style={{

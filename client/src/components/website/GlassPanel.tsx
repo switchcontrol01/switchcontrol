@@ -13,7 +13,7 @@ export const GlassPanel = forwardRef<HTMLDivElement, GlassPanelProps>(
     const isMobile = useIsMobile();
     const overlayRef = useRef<HTMLDivElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
-    // Cached bounding rect — updated on mount, resize, and mouseenter.
+    // Cached bounding rect, updated on mount, resize, and mouseenter.
     // Never read inside mousemove to avoid per-frame layout thrash.
     const rectRef = useRef<DOMRect | null>(null);
 
@@ -30,7 +30,7 @@ export const GlassPanel = forwardRef<HTMLDivElement, GlassPanelProps>(
       return () => ro.disconnect();
     }, [isMobile]);
 
-    // Re-read rect on mouseenter — handles page scroll shifting the element
+    // Re-read rect on mouseenter, handles page scroll shifting the element
     // position without needing a scroll listener.
     const handleMouseEnter = useCallback(() => {
       if (!isMobile && containerRef.current) {
@@ -38,7 +38,7 @@ export const GlassPanel = forwardRef<HTMLDivElement, GlassPanelProps>(
       }
     }, [isMobile]);
 
-    // Hot path: zero layout reads — uses cached rect only.
+    // Hot path: zero layout reads, uses cached rect only.
     const handleMouseMove = useCallback(
       (e: React.MouseEvent<HTMLDivElement>) => {
         if (!isMobile && overlayRef.current && rectRef.current) {

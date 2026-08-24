@@ -7,9 +7,9 @@
  *  - LAZY: nothing scans at app startup. A scan only runs when the page asks
  *    for it (scan() / rescan()). The dashboard's startup path is untouched.
  *  - CACHED: once a scan completes it is cached with `scannedAt`. Re-opening
- *    the page shows the cached result instantly ("Scanned X ago — Rescan")
+ *    the page shows the cached result instantly ("Scanned X ago, Rescan")
  *    instead of re-running probes. A TTL marks the cache stale, not invalid.
- *  - STATE MACHINE: one consistent path — idle → scanning → ready | partial.
+ *  - STATE MACHINE: one consistent path, idle → scanning → ready | partial.
  *    "partial" means the scan succeeded but some fields are still unknown.
  *    A field failing to resolve degrades that single component to "unknown";
  *    it never blanks the page or flips the whole view to an error layout.
@@ -45,7 +45,7 @@ import {
   type SystemIntelligenceProfile,
 } from "@/stores/systemIntelligenceStore";
 
-const CACHE_TTL_MS = 30 * 60 * 1000; // 30 min — after this the cache is "stale" (still shown)
+const CACHE_TTL_MS = 30 * 60 * 1000; // 30 min, after this the cache is "stale" (still shown)
 
 export type ScanPhase = "idle" | "scanning" | "ready" | "partial" | "error";
 
@@ -105,7 +105,7 @@ async function fetchNews(): Promise<DriverNewsItem[]> {
     const res = await cloudApiGet<{ items: DriverNewsItem[] }>("/driver-intel/news");
     if (res?.items) return res.items;
   } catch {
-    /* ignore — news is non-critical */
+    /* ignore, news is non-critical */
   }
   return [];
 }
@@ -129,11 +129,11 @@ interface RawHardware {
 }
 
 async function acquireHardware(): Promise<RawHardware> {
-  // Ensure the shared system-intelligence profile is loaded (lazy — only now).
+  // Ensure the shared system-intelligence profile is loaded (lazy, only now).
   const sip = useSystemIntelligenceStore.getState();
   if (!sip.profile) {
     try {
-      // Cap at 6s — phase=A (CPU/GPU/RAM) lands in ~5s on most machines.
+      // Cap at 6s, phase=A (CPU/GPU/RAM) lands in ~5s on most machines.
       // phase=full (baseboard/bios) can take 7-13s on AMD WMI systems;
       // waiting for it here blocks the entire Driver Intel page. Partial
       // data shows now; the user hits Rescan once hardware finishes.
@@ -156,13 +156,13 @@ async function acquireHardware(): Promise<RawHardware> {
     gpuName = (discrete ?? p.gpu.controllers[0]).name ?? null;
   }
 
-  // SSD — prefer NVMe, then any SSD entry from the profile.
+  // SSD, prefer NVMe, then any SSD entry from the profile.
   let ssdName: string | null =
     p?.storage.layout.find((d) => d.type === "NVMe" || /ssd/i.test(d.type ?? ""))?.name
     ?? p?.storage.layout[0]?.name
     ?? null;
 
-  // Network / Bluetooth — si.networkInterfaces() returns Windows interface LABELS
+  // Network / Bluetooth, si.networkInterfaces() returns Windows interface LABELS
   // ("Ethernet", "Wi-Fi") not chip descriptions. Those labels are useless for
   // vendor detection (detectNetworkVendor("Ethernet") = null). We always prefer
   // the Electron IPC path which calls Get-NetAdapter → InterfaceDescription and
@@ -171,10 +171,10 @@ async function acquireHardware(): Promise<RawHardware> {
   let netName: string | null = null;
   let btName: string | null = null;
 
-  // Audio — from phase=full si.audio() (Win32_SoundDevice).
+  // Audio, from phase=full si.audio() (Win32_SoundDevice).
   let audioName: string | null = p?.audio?.devices?.[0]?.name ?? null;
 
-  // Motherboard — from profile baseboard (set only when si.baseboard() succeeds).
+  // Motherboard, from profile baseboard (set only when si.baseboard() succeeds).
   // On AMD/WMI-broken systems si.baseboard() times out → null. Extract as mutable
   // so the IPC fallback below can update it before the return value is built.
   let moboMaker: string | null = p?.baseboard.manufacturer ?? null;
@@ -186,7 +186,7 @@ async function acquireHardware(): Promise<RawHardware> {
   // Web mode: window.electronAPI is undefined, conditions are false, no-op.
   const eApi = typeof window !== "undefined" ? (window as any).electronAPI : null;
 
-  // Network: ALWAYS query nic.getAdapters in Electron — si networkInterfaces()
+  // Network: ALWAYS query nic.getAdapters in Electron, si networkInterfaces()
   // gives interface labels ("Ethernet"/"Wi-Fi"), not chip models. nic.getAdapters
   // calls Get-NetAdapter which returns InterfaceDescription (the actual chip name
   // needed for vendor detection). Runs unconditionally; no-op on web.
@@ -212,7 +212,7 @@ async function acquireHardware(): Promise<RawHardware> {
         );
         if (wirelessAdapter) btName = wirelessAdapter.description;
       }
-    } catch { /* ignore — IPC unavailable */ }
+    } catch { /* ignore, IPC unavailable */ }
   }
 
   // Bluetooth: dedicated PnP radio query is more accurate than guessing from
@@ -253,7 +253,7 @@ async function acquireHardware(): Promise<RawHardware> {
     } catch { /* ignore */ }
   }
 
-  // Audio: system:getAudioDevice → Get-PnpDevice MEDIA (PnP, not WMI — fast on AMD)
+  // Audio: system:getAudioDevice → Get-PnpDevice MEDIA (PnP, not WMI, fast on AMD)
   if (eApi?.system?.getAudioDevice && !audioName) {
     try {
       const res = await eApi.system.getAudioDevice();
@@ -297,7 +297,7 @@ async function acquireHardware(): Promise<RawHardware> {
 function buildComponents(hw: RawHardware, db: DriverDatabase): DriverComponent[] {
   const out: DriverComponent[] = [];
 
-  // GPU — installed driver version isn't available via systeminformation, so
+  // GPU, installed driver version isn't available via systeminformation, so
   // current stays null (we surface "latest available" + open the vendor app).
   const gpuVendor = detectGpuVendor(hw.gpuName);
   const gpuEntry = gpuVendor ? db.gpu[gpuVendor] ?? null : null;
@@ -319,7 +319,7 @@ function buildComponents(hw: RawHardware, db: DriverDatabase): DriverComponent[]
       : "Could not identify the GPU vendor. Open your GPU control panel to check for updates.",
   });
 
-  // CPU — informational; no "driver" to update, microcode ships via BIOS.
+  // CPU, informational; no "driver" to update, microcode ships via BIOS.
   const cpuVendor = detectCpuVendor(hw.cpuBrand);
   out.push({
     kind: "cpu",
@@ -332,7 +332,7 @@ function buildComponents(hw: RawHardware, db: DriverDatabase): DriverComponent[]
     safety: "safe",
     action: null,
     rationale: hw.cpuBrand
-      ? "CPU microcode updates are delivered through BIOS updates — see the BIOS / Firmware card."
+      ? "CPU microcode updates are delivered through BIOS updates, see the BIOS / Firmware card."
       : "CPU not detected.",
   });
 
@@ -375,7 +375,7 @@ function buildComponents(hw: RawHardware, db: DriverDatabase): DriverComponent[]
     safety: biosEntry?.safety ?? "caution",
     action: biosAction(moboVendor),
     rationale: hw.biosVersion
-      ? `Installed BIOS ${hw.biosVersion}${biosEntry ? `; latest reference is ${biosEntry.latest}` : ""}. We never flash automatically — only open the manufacturer page.`
+      ? `Installed BIOS ${hw.biosVersion}${biosEntry ? `; latest reference is ${biosEntry.latest}` : ""}. We never flash automatically, only open the manufacturer page.`
       : "BIOS version not detected. Open the manufacturer page to check.",
   });
 
@@ -422,8 +422,8 @@ function buildComponents(hw: RawHardware, db: DriverDatabase): DriverComponent[]
         : "No active network adapter detected.",
   });
 
-  // Audio — sourced from si.audio() in phase=full (Win32_SoundDevice on Windows).
-  // Fallback: infer from motherboard manufacturer — >95% of consumer gaming boards
+  // Audio, sourced from si.audio() in phase=full (Win32_SoundDevice on Windows).
+  // Fallback: infer from motherboard manufacturer, >95% of consumer gaming boards
   // ship Realtek HD Audio (SupremeFX on ASUS ROG is also a Realtek codec under the hood).
   const rawAudioName = hw.audioName;
   let audioVendor: string | null = detectAudioVendor(rawAudioName);
@@ -455,7 +455,7 @@ function buildComponents(hw: RawHardware, db: DriverDatabase): DriverComponent[]
       : "Audio device not detected. Visit your motherboard manufacturer's support page to check for the latest audio driver.",
   });
 
-  // Bluetooth — vendor tracks the Wi-Fi/combo card.
+  // Bluetooth, vendor tracks the Wi-Fi/combo card.
   const btVendor = detectBluetoothVendor(hw.btName);
   const btEntry = btVendor ? db.bluetooth[btVendor] ?? null : null;
   out.push({
@@ -474,7 +474,7 @@ function buildComponents(hw: RawHardware, db: DriverDatabase): DriverComponent[]
       : "Bluetooth adapter vendor not detected. Check your Wi-Fi/Bluetooth card's vendor page.",
   });
 
-  // Display / monitor — informational.
+  // Display / monitor, informational.
   out.push({
     kind: "monitor",
     title: "Display",
@@ -523,7 +523,7 @@ export const useDriverIntelStore = create<DriverIntelState>((set, get) => ({
   scan: async (force = false) => {
     const st = get();
     // Lazy + cached: skip if we already have a fresh result and nobody forced.
-    // "partial" counts as data — per-field fallback often lands here, and we
+    // "partial" counts as data, per-field fallback often lands here, and we
     // must NOT re-run the scan every visit just because some fields are unknown.
     if (!force && hasData(st.phase) && st.scannedAt && Date.now() - st.scannedAt < CACHE_TTL_MS) {
       return;

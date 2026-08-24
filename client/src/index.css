@@ -15,7 +15,7 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
 
-  /* ── SwitchControl Design System v2 — matte, structured, purposeful ── */
+  /* ── SwitchControl Design System v2, matte, structured, purposeful ── */
   --color-sc-bg: #14181D;
   --color-sc-bg-section: #1A1F26;
   --color-sc-card: #21262D;
@@ -79,7 +79,7 @@
 /* ── Hard-lock dark background at every DOM level ────────────────
    #040508 matches the WebsiteShell/WebsiteBackground base colour so
    there is zero colour difference between the pre-React paint and the
-   settled page — no visible flash even on slow connections.
+   settled page, no visible flash even on slow connections.
    !important overrides Tailwind's Preflight `background-color` reset
    and any other cascade ordering surprise. */
 html {
@@ -212,7 +212,7 @@ body {
   }
 }
 
-/* ── Sidebar ambient orb drift — CSS so a module-level negative delay can
+/* ── Sidebar ambient orb drift, CSS so a module-level negative delay can
    freeze the phase across remounts (tab navigation). ─────────────────── */
 @keyframes sc-sidebar-orb-1 {
   0%, 100% { transform: translate(0px,  0px); }
@@ -293,7 +293,7 @@ body {
   100% { transform: translateX(240%) skewX(-18deg); opacity: 0; }
 }
 
-/* Warm light source at top-left — no purple blob */
+/* Warm light source at top-left, no purple blob */
 .login-focal-glow {
   position: absolute;
   top: -8%; left: -4%;
@@ -309,7 +309,7 @@ body {
   animation: loginFocalPulse 11s ease-in-out infinite;
 }
 
-/* ── Sun streak — halved opacity, same geometry ── */
+/* ── Sun streak, halved opacity, same geometry ── */
 .login-sun-streak {
   position: absolute;
   top: 50%;
@@ -334,7 +334,7 @@ body {
   animation: loginStreakShimmer 6s ease-in-out infinite;
 }
 
-/* Inner bright core — halved */
+/* Inner bright core, halved */
 .login-sun-streak::before {
   content: '';
   position: absolute;
@@ -352,7 +352,7 @@ body {
   filter: blur(4px);
 }
 
-/* ── Cross streak — mirrors the first at -26deg ── */
+/* ── Cross streak, mirrors the first at -26deg ── */
 .login-sun-streak-2 {
   position: absolute;
   top: 50%;
@@ -394,7 +394,7 @@ body {
   filter: blur(4px);
 }
 
-/* Rotating light rays — same as before */
+/* Rotating light rays, same as before */
 .login-rays {
   position: absolute;
   top: 50%; left: 50%;
@@ -434,7 +434,7 @@ body {
   animation: loginRayRotate 140s linear infinite;
 }
 
-/* Behind-card aura — tight glow, no blob */
+/* Behind-card aura, tight glow, no blob */
 .login-card-aura {
   position: absolute;
   top: 50%; left: 50%;
@@ -450,12 +450,12 @@ body {
   z-index: 0;
 }
 
-/* Smooth GPU float — pure CSS, no Framer Motion keyframe jank */
+/* Smooth GPU float, pure CSS, no Framer Motion keyframe jank */
 .login-card-float {
   animation: loginCardFloat 6s ease-in-out infinite;
 }
 
-/* Card glass — soft lavender-white frost */
+/* Card glass, soft lavender-white frost */
 .login-card-glass {
   position: relative;
   background: linear-gradient(145deg,
@@ -472,7 +472,7 @@ body {
   -webkit-backdrop-filter: blur(40px) saturate(1.6);
 }
 
-/* Glass shimmer sweep — periodic gleam across card face */
+/* Glass shimmer sweep, periodic gleam across card face */
 .login-card-glass::after {
   content: '';
   position: absolute;
@@ -506,7 +506,7 @@ body {
   animation: loginTitleBeamGlow 6s ease-in-out infinite;
 }
 
-/* Icon halo — brighter and larger */
+/* Icon halo, brighter and larger */
 .login-icon-halo {
   position: absolute; inset: 0;
   border-radius: 12px;
@@ -675,51 +675,51 @@ body {
 :root {
   color-scheme: dark;
 
-  /* ── SwitchControl v2 — Matte, structured, purposeful ── */
-  --background: 215 18% 10%;      /* #14181D — main app bg */
-  --foreground: 220 20% 92%;     /* #E6EAF0 — main text */
+  /* ── SwitchControl v2, Matte, structured, purposeful ── */
+  --background: 215 18% 10%;      /* #14181D, main app bg */
+  --foreground: 220 20% 92%;     /* #E6EAF0, main text */
 
-  /* Cards — layered matte greys */
-  --card: 215 16% 15%;             /* #21262D — primary card */
+  /* Cards, layered matte greys */
+  --card: 215 16% 15%;             /* #21262D, primary card */
   --card-foreground: 220 20% 92%;
 
-  /* Popovers — slightly elevated */
+  /* Popovers, slightly elevated */
   --popover: 215 16% 17%;
   --popover-foreground: 220 20% 92%;
 
-  /* Primary: Cyan — active, interactive, action */
+  /* Primary: Cyan, active, interactive, action */
   --primary: 193 100% 50%;
   --primary-foreground: 210 25% 7%;   /* near-black on cyan */
 
-  /* Secondary: Amber — warning, attention, highlight */
+  /* Secondary: Amber, warning, attention, highlight */
   --secondary: 38 92% 50%;
   --secondary-foreground: 210 25% 7%;
 
-  /* Muted — section bg, subtle surfaces */
-  --muted: 215 16% 12%;            /* #1A1F26 — section bg */
-  --muted-foreground: 220 12% 55%;  /* #6B7380 — muted text */
+  /* Muted, section bg, subtle surfaces */
+  --muted: 215 16% 12%;            /* #1A1F26, section bg */
+  --muted-foreground: 220 12% 55%;  /* #6B7380, muted text */
 
   /* Accent: same as primary (cyan) */
   --accent: 193 100% 50%;
   --accent-foreground: 210 25% 7%;
 
-  /* Destructive: red — only for actual danger */
+  /* Destructive: red, only for actual danger */
   --destructive: 0 72% 51%;
   --destructive-foreground: 210 20% 98%;
 
-  /* Borders — subtle, structural */
+  /* Borders, subtle, structural */
   --border: 215 14% 17%;           /* #2A313A */
   --input: 215 14% 17%;
   --ring: 193 100% 50%;
 
-  /* Charts — cyan primary, amber secondary */
+  /* Charts, cyan primary, amber secondary */
   --chart-1: 193 100% 50%;
   --chart-2: 38 92% 50%;
   --chart-3: 160 60% 45%;
   --chart-4: 0 72% 51%;
   --chart-5: 220 12% 55%;
 
-  /* Sidebar — same as app bg, matte */
+  /* Sidebar, same as app bg, matte */
   --sidebar: 215 18% 10%;
   --sidebar-foreground: 220 20% 92%;
   --sidebar-primary: 193 100% 50%;
@@ -729,7 +729,7 @@ body {
   --sidebar-border: 215 14% 17%;
   --sidebar-ring: 193 100% 50%;
 
-  /* Legacy brand colors — keep for gradual migration */
+  /* Legacy brand colors, keep for gradual migration */
   --brand-purple: 270 60% 55%;
   --brand-purple-light: 270 65% 65%;
   --brand-purple-dark: 270 55% 45%;
@@ -888,7 +888,7 @@ html[data-theme-mode="oled"] [class~="hover:bg-[#2A313A]"]:hover {
   background: linear-gradient(90deg, transparent, hsl(var(--structural) / 0.15), transparent);
 }
 
-/* Custom Scrollbar — completely hidden, functional via wheel/trackpad */
+/* Custom Scrollbar, completely hidden, functional via wheel/trackpad */
 ::-webkit-scrollbar {
   width: 0px;
   height: 0px;
@@ -947,7 +947,7 @@ html {
   animation: cyan-glow 2s ease-in-out infinite;
 }
 
-/* Mockup side particle animations — drift outward and fade */
+/* Mockup side particle animations, drift outward and fade */
 @keyframes particle-left {
   0%   { transform: translate(0, 0) scale(1);    opacity: 0; }
   15%  { opacity: 0.35; }
@@ -1052,7 +1052,7 @@ html {
   50% { transform: translate3d(15px, 15px, 0) scale(1.02); }
 }
 
-/* Telemetry line draw animation — compositor-only, no Framer Motion needed */
+/* Telemetry line draw animation, compositor-only, no Framer Motion needed */
 @keyframes tel-draw {
   from { stroke-dashoffset: 1200; }
   to   { stroke-dashoffset: 0; }
@@ -1149,7 +1149,7 @@ html {
     rgba(180, 200, 255, 0.03) 85%,
     transparent 100%
   );
-  /* filter: blur removed — blur on an animating element forces repaint every frame */
+  /* filter: blur removed, blur on an animating element forces repaint every frame */
   transform: translateX(-150%) skewX(-18deg);
   opacity: 0;
   animation: mockupReflectionSweep 8s ease-in-out infinite;
@@ -1172,7 +1172,7 @@ html {
     rgba(140, 180, 255, 0.015) 80%,
     transparent 100%
   );
-  /* filter: blur removed — blur on an animating element forces repaint every frame */
+  /* filter: blur removed, blur on an animating element forces repaint every frame */
   transform: translateX(-150%) skewX(-12deg);
   opacity: 0;
   animation: mockupReflectionSweep 8s ease-in-out infinite;
@@ -1759,7 +1759,7 @@ a, img, button {
   draggable: false;
 }
 
-/* Global non-selectable UI chrome — fully sealed desktop shell */
+/* Global non-selectable UI chrome, fully sealed desktop shell */
 .app-root {
   user-select: none;
   -webkit-user-select: none;
@@ -1948,7 +1948,7 @@ textarea,
   animation: loginContourDrift 20s ease-in-out infinite;
 }
 
-/* Website background — SVG overlay drift animations */
+/* Website background, SVG overlay drift animations */
 @keyframes wsDrift1 {
   0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
   33% { transform: translate3d(12px, -8px, 0) scale(1.01); }
@@ -1967,7 +1967,7 @@ textarea,
 .ws-drift-2 { animation: wsDrift2 32s ease-in-out infinite; }
 .ws-drift-3 { animation: wsDrift3 18s ease-in-out infinite; }
 
-/* Website background — glow hotspot drift */
+/* Website background, glow hotspot drift */
 @keyframes wsGlowDrift1 {
   0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
   25% { transform: translate3d(40px, -30px, 0) scale(1.06); }
@@ -2006,7 +2006,7 @@ textarea,
   60% { transform: translate3d(-8px, 4px, 0) rotate(-0.3deg); opacity: 0.45; }
   85% { transform: translate3d(6px, -2px, 0) rotate(0.1deg); opacity: 0.55; }
 }
-/* will-change removed from always-animating streaks — will-change on a permanent
+/* will-change removed from always-animating streaks, will-change on a permanent
    animation just burns VRAM for a compositor layer that never gets torn down. */
 .ws-sun-streak-1 { animation: sunStreakDrift1 20s ease-in-out infinite; }
 .ws-sun-streak-2 { animation: sunStreakDrift2 25s ease-in-out infinite; }
@@ -2070,7 +2070,7 @@ textarea,
   }
 }
 
-/* Website hero app mockup — centered below hero text like ToDesktop */
+/* Website hero app mockup, centered below hero text like ToDesktop */
 @keyframes heroMockupFloat {
   0%, 100% { transform: perspective(1200px) rotateX(4deg) translateY(0); }
   50% { transform: perspective(1200px) rotateX(4deg) translateY(-12px); }
@@ -2130,7 +2130,7 @@ textarea,
   pointer-events: none;
 }
 
-/* Hero text sheen overlay — diagonal light sweep across headline */
+/* Hero text sheen overlay, diagonal light sweep across headline */
 @keyframes heroSheenSweep {
   0% { transform: translateX(-120%) rotate(-25deg); }
   100% { transform: translateX(120%) rotate(-25deg); }
@@ -2159,8 +2159,8 @@ textarea,
   pointer-events: none;
 }
 
-/* Hero text light catch — soft glow response as sheen passes */
-/* heroLightCatch — was: animating text-shadow every frame (forces full repaint).
+/* Hero text light catch, soft glow response as sheen passes */
+/* heroLightCatch, was: animating text-shadow every frame (forces full repaint).
    Fix: static blur on a pseudo-element behind the text; animate opacity + transform
    only (compositor-accelerated). Visual result is identical: pulsing light-catch glow. */
 @keyframes heroLightCatchGlow {
@@ -2177,7 +2177,7 @@ textarea,
   content: '';
   position: absolute;
   inset: -24px -12px;
-  /* static blur — painted once, then only opacity/transform are updated */
+  /* static blur, painted once, then only opacity/transform are updated */
   background: radial-gradient(ellipse at center,
     rgba(180, 225, 255, 0.55) 0%,
     rgba(140, 200, 255, 0.28) 38%,
@@ -2193,9 +2193,9 @@ textarea,
   z-index: -1;
 }
 
-/* heroShine — was: animating background-position every frame (forces full repaint).
+/* heroShine, was: animating background-position every frame (forces full repaint).
    Fix: static gradient on the text element; a ::before pseudo-element sweeps a
-   luminance-shift strip via transform: translateX() — compositor-only, zero repaint.
+   luminance-shift strip via transform: translateX(), compositor-only, zero repaint.
    mix-blend-mode: screen ensures the bright strip only affects the coloured text
    pixels and doesn't wash out the dark background behind the element. */
 @keyframes heroShineSlide {
@@ -2223,7 +2223,7 @@ textarea,
 }
 
 .hero-text-shine {
-  /* The animated gradient is clipped directly to the glyphs — no overlay box. */
+  /* The animated gradient is clipped directly to the glyphs, no overlay box. */
   background: linear-gradient(
     105deg,
     rgba(103, 232, 249, 0.9) 0%,
@@ -2254,7 +2254,7 @@ textarea,
   will-change: transform;
 }
 
-/* Website page entrance — no blur (blur causes GPU stacking with child elements) */
+/* Website page entrance, no blur (blur causes GPU stacking with child elements) */
 @keyframes wsPageEnter {
   from {
     opacity: 0;
@@ -2367,7 +2367,7 @@ button, a, nav, header, footer, label {
   75% { transform: translate(-50%, -50%) rotate(-1.5deg) scale(1.14) translateY(-16px); }
 }
 
-/* bp-float animations removed — blueprint images are at 7–14% opacity and the
+/* bp-float animations removed, blueprint images are at 7–14% opacity and the
    float (scale + translate + rotate changing every frame) costs more than it adds.
    Static positioning is visually identical at these opacities. */
 .bp-float-1 { }
@@ -2385,7 +2385,7 @@ button, a, nav, header, footer, label {
 .ws-sun-streak-bp-right { animation: bpStreakPulse 8s ease-in-out infinite; }
 .ws-sun-streak-bp-center { animation: bpStreakPulse 10s ease-in-out infinite; }
 
-/* Tour sidebar highlight — pulsing glow on the active sidebar item */
+/* Tour sidebar highlight, pulsing glow on the active sidebar item */
 @keyframes tourSidebarPulse {
   0%, 100% {
     box-shadow: inset 0 0 0 1px hsl(270 60% 55% / 0.3), 0 0 12px hsl(270 60% 55% / 0.15);
@@ -2523,9 +2523,9 @@ button, a, nav, header, footer, label {
   animation: zapPulse 2s ease-in-out infinite;
 }
 
-/* mockupLiveDot — was: animating box-shadow every frame (forces full repaint).
+/* mockupLiveDot, was: animating box-shadow every frame (forces full repaint).
    Fix: dot pulses opacity only; a ::before pseudo-element produces the ripple ring
-   via transform: scale() + opacity — both compositor-accelerated, zero repaint. */
+   via transform: scale() + opacity, both compositor-accelerated, zero repaint. */
 @keyframes mockupLiveDotFade {
   0%, 100% { opacity: 1;   }
   50%       { opacity: 0.65; }
@@ -2559,9 +2559,8 @@ button, a, nav, header, footer, label {
   border-color: hsl(190 70% 50% / 0.30);
 }
 
-/* pricingAuroraShift — was: animating background-position every frame (forces repaint).
-   Fix: static gradient; animate opacity only for the breathing aurora effect —
-   compositor-accelerated. The gradient colours are unchanged; only the movement is
+/* pricingAuroraShift, was: animating background-position every frame (forces repaint).
+   Fix: static gradient; animate opacity only for the breathing aurora effect, compositor-accelerated. The gradient colours are unchanged; only the movement is
    replaced with a subtle opacity pulse that reads as the same "living" quality. */
 @keyframes pricingAuroraShift {
   0%, 100% { opacity: 0.7; }
@@ -2582,7 +2581,7 @@ button, a, nav, header, footer, label {
 
 /* ─── Global micro-animations ─── */
 
-/* Hover lift — apply to interactive cards */
+/* Hover lift, apply to interactive cards */
 .hover-lift {
   transition: transform 0.18s cubic-bezier(0.22,1,0.36,1), box-shadow 0.18s ease, border-color 0.18s ease;
 }
@@ -2591,7 +2590,7 @@ button, a, nav, header, footer, label {
   box-shadow: 0 12px 32px rgba(0,0,0,0.28), 0 0 0 1px rgba(255,255,255,0.06);
 }
 
-/* Hover glow — add cyan glow on hover */
+/* Hover glow, add cyan glow on hover */
 .hover-glow {
   transition: box-shadow 0.22s ease, border-color 0.22s ease;
 }
@@ -2616,7 +2615,7 @@ button, a, nav, header, footer, label {
   animation: shimmer 1.6s ease-in-out infinite;
 }
 
-/* StatCard shimmer variant — shared global style to avoid per-render inline <style> */
+/* StatCard shimmer variant, shared global style to avoid per-render inline <style> */
 @keyframes sc-shimmer {
   0%   { background-position: -200% center; }
   100% { background-position:  200% center; }
@@ -2695,11 +2694,11 @@ button, a, nav, header, footer, label {
 }
 
 /* ── Glass modal surface ──────────────────────────────────────────────────────
-   Fallback (no backdrop-filter): opaque dark panel — readable without blur.
+   Fallback (no backdrop-filter): opaque dark panel, readable without blur.
    With backdrop-filter: near-transparent tint so the backdrop-blur-xl on the
    GlassModalSurface blurs directly through actual dark page content, producing
    clear dark glass. Backdrop overlays must NOT stack a second backdrop-blur or
-   the double-blur compounds into a milky grey — overlays use bg-black/35 only.
+   the double-blur compounds into a milky grey, overlays use bg-black/35 only.
    Applied to: GlassModalSurface, GlassModalLayout content, DialogContent,
    LicenseManagementModal, PendingActivationModal.
    ─────────────────────────────────────────────────────────────────────────── */
@@ -2719,7 +2718,7 @@ button, a, nav, header, footer, label {
 
 /* ═══════════════════════════════════════════════════════════════════════════
    LIGHT MODE (low-resource application profile)
-   Applied globally via `app-light-mode` class on <html> — synced from
+   Applied globally via `app-light-mode` class on <html>, synced from
    useAppModeStore in App.tsx. All effect-stripping lives here so components
    never need per-component `if (lightMode)` checks.
    ═══════════════════════════════════════════════════════════════════════════ */
@@ -2735,7 +2734,7 @@ html.app-light-mode *::after {
   scroll-behavior: auto !important;
 }
 
-/* Remove glass blur — backdrop-filter forces continuous GPU compositing */
+/* Remove glass blur, backdrop-filter forces continuous GPU compositing */
 html.app-light-mode * {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
@@ -2796,7 +2795,7 @@ html.app-light-mode *:not(.mode-transition-overlay):not(.mode-transition-spinner
    hidden outright rather than merely de-blurred.
    IMPORTANT: use CLASS selectors (.blur-xl), NOT attribute substring selectors
    ([class*="blur-xl"]). The substring form accidentally matches backdrop-blur-xl,
-   backdrop-blur-2xl, backdrop-blur-3xl — hiding dialogs, toasts, modals, and page
+   backdrop-blur-2xl, backdrop-blur-3xl, hiding dialogs, toasts, modals, and page
    sections that carry those utility classes. Class selectors match the exact Tailwind
    token (.blur-xl ≠ .backdrop-blur-xl) and are therefore safe. */
 html.app-light-mode .blur-3xl,

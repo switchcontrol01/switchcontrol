@@ -120,14 +120,14 @@ const OUTCOMES: OutcomeItem[] = [
   {
     icon: BarChart2,
     title: "Smoother frame pacing",
-    body: "Reduce frame time variance so your 144fps feels like 144fps — not a jagged average.",
+    body: "Reduce frame time variance so your 144fps feels like 144fps, not a jagged average.",
     accent: "rgba(6,182,212,",
     bars: [0.55, 0.62, 0.48, 0.81, 0.59, 0.44],
   },
   {
     icon: Brain,
     title: "Hardware-specific advice",
-    body: "The AI Advisor reads your actual hardware config and gives you system-specific recommendations — not generic tips.",
+    body: "The AI Advisor reads your actual hardware config and gives you system-specific recommendations, not generic tips.",
     accent: "rgba(168,85,247,",
     bars: [0.38, 0.44, 0.62, 0.55, 0.78, 0.69],
   },
@@ -141,7 +141,7 @@ const OUTCOMES: OutcomeItem[] = [
   {
     icon: Cpu,
     title: "BIOS-level insights",
-    body: "The BIOS Advisor scores your settings and tells you exactly what to look for — XMP, Resizable BAR, C-States, HPET.",
+    body: "The BIOS Advisor scores your settings and tells you exactly what to look for, XMP, Resizable BAR, C-States, HPET.",
     accent: "rgba(249,115,22,",
     bars: [0.33, 0.47, 0.58, 0.72, 0.61, 0.88],
   },
@@ -249,7 +249,7 @@ function TelemetryLines() {
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
     >
-      {/* Horizontal trace lines — CSS stroke-dashoffset for compositor-only paint */}
+      {/* Horizontal trace lines, CSS stroke-dashoffset for compositor-only paint */}
       {[60, 180, 300, 420, 540].map((y, i) => (
         <line
           key={`h${i}`}
@@ -264,7 +264,7 @@ function TelemetryLines() {
         />
       ))}
 
-      {/* Animated data trace — main */}
+      {/* Animated data trace, main */}
       <motion.polyline
         points="0,480 120,420 240,380 360,300 480,260 600,180 720,200 840,140 960,160 1080,90 1200,110"
         stroke="rgba(139,92,246,0.25)"
@@ -276,7 +276,7 @@ function TelemetryLines() {
         transition={{ duration: 2.0, delay: 0.4, ease: EASE }}
       />
 
-      {/* Animated data trace — secondary */}
+      {/* Animated data trace, secondary */}
       <motion.polyline
         points="0,520 200,470 400,430 600,380 800,320 1000,260 1200,220"
         stroke="rgba(6,182,212,0.18)"
@@ -304,7 +304,7 @@ function TelemetryLines() {
         />
       ))}
 
-      {/* Pulse ring on key nodes — IntersectionObserver-gated, no infinite repeat */}
+      {/* Pulse ring on key nodes, IntersectionObserver-gated, no infinite repeat */}
       {[
         { cx: 480, cy: 260, color: "rgba(139,92,246," },
         { cx: 840, cy: 140, color: "rgba(6,182,212," },
@@ -350,7 +350,7 @@ function PremiumPerfGraph() {
   return (
     <div className="mt-4 mb-2">
       <div className="flex items-center justify-between mb-1">
-        <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#00D4FF]/70">System latency — demo illustration</span>
+        <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#00D4FF]/70">System latency, demo illustration</span>
         <span className="text-[10px] font-bold text-emerald-400/40">Demo only</span>
       </div>
       <svg width="100%" viewBox={`0 0 ${w} ${h}`} fill="none" className="overflow-visible">
@@ -551,7 +551,7 @@ export default function Pricing() {
               : `Please try again in ${mins} minutes.`;
           }
         } catch {
-          // header missing or unparseable — fall back to generic message
+          // header missing or unparseable, fall back to generic message
         }
         toast({
           title: "Checkout Error",
@@ -583,7 +583,7 @@ export default function Pricing() {
 
       {/* ════════════════ HERO ════════════════ */}
       <section className="relative min-h-[88vh] flex flex-col items-center justify-center pt-24 pb-20 overflow-hidden">
-        {/* Layered bg glows — gated by IntersectionObserver, reduced-motion aware */}
+        {/* Layered bg glows, gated by IntersectionObserver, reduced-motion aware */}
         <div className="absolute inset-0 pointer-events-none">
           <ReducedMotionGate>
             {(active) => (
@@ -684,7 +684,7 @@ export default function Pricing() {
                   <span className="text-[#6B7380] text-sm">forever</span>
                 </div>
                 <p className="text-[13px] text-[#6B7380] mb-6 leading-relaxed">
-                  A solid starting point. Real tools, real value — with room to grow.
+                  A solid starting point. Real tools, real value, with room to grow.
                 </p>
 
                 <ul className="space-y-2.5 mb-8 flex-1">
@@ -821,7 +821,7 @@ export default function Pricing() {
                     ) : !isAuthenticated ? (
                       "Log in to purchase"
                     ) : (
-                      <>Get Premium — 39 USD<ArrowRight className="size-4" /></>
+                      <>Get Premium, 39 USD<ArrowRight className="size-4" /></>
                     )}
                   </GlowButton>
 
@@ -925,7 +925,7 @@ export default function Pricing() {
                 </span>
               </h2>
               <p className="text-[#E6EAF0]/38 text-[15px] max-w-lg mx-auto">
-                Exactly what you get with each plan — no vague marketing.
+                Exactly what you get with each plan, no vague marketing.
               </p>
             </div>
           </ScrollFade>
@@ -999,7 +999,7 @@ export default function Pricing() {
           className="absolute inset-0 pointer-events-none"
           style={{ background: "radial-gradient(ellipse 80% 60% at 50% 50%, rgba(139,92,246,0.06) 0%, transparent 70%)" }}
         />
-        {/* Animated scan line — gated by IntersectionObserver */}
+        {/* Animated scan line, gated by IntersectionObserver */}
         <ReducedMotionGate>
           {(active) => (
             <motion.div
@@ -1120,7 +1120,7 @@ export default function Pricing() {
               </h2>
               <p className="text-[#E6EAF0]/42 text-[15px] max-w-md mx-auto leading-relaxed mb-10">
                 One payment. Lifetime access. The complete SwitchControl
-                experience — AI, BIOS, Network, Power, and full control — forever.
+                experience, AI, BIOS, Network, Power, and full control, forever.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
@@ -1136,7 +1136,7 @@ export default function Pricing() {
                   ) : isPremium ? (
                     <><Check className="size-4" />Already Premium</>
                   ) : (
-                    <>Get Premium — 39 USD<ArrowRight className="size-4" /></>
+                    <>Get Premium, 39 USD<ArrowRight className="size-4" /></>
                   )}
                 </GlowButton>
 

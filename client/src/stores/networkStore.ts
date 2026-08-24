@@ -109,7 +109,7 @@ export const useNetworkStore = create<NetworkStore>()((set, get) => ({
 
   retryConnectionCheck() {
     if (!get().isOnline || document.hidden || get()._heartbeatInFlight) {
-      console.log('[Network] retryConnectionCheck — offline, skipping ping');
+      console.log('[Network] retryConnectionCheck, offline, skipping ping');
       return;
     }
     console.log('[Network] retryConnectionCheck triggered');

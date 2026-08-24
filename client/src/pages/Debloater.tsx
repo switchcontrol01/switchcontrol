@@ -95,13 +95,13 @@
     id: DebloatLevel; name: string; description: string;
     accent: string; bg: string; border: string;
   }[] = [
-    { id: "safe",       name: "Safe",       description: "Registry & policy only — fully reversible",
+    { id: "safe",       name: "Safe",       description: "Registry & policy only, fully reversible",
       accent: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/30" },
     { id: "balanced",   name: "Balanced",   description: "Consumer apps + telemetry",
       accent: "text-blue-400",    bg: "bg-blue-500/10",    border: "border-blue-500/30" },
     { id: "aggressive", name: "Aggressive", description: "Cortana, Copilot, Widgets, Xbox overlay",
       accent: "text-orange-400",  bg: "bg-orange-500/10",  border: "border-orange-500/30" },
-    { id: "extreme",    name: "Extreme",    description: "Services — power users only",
+    { id: "extreme",    name: "Extreme",    description: "Services, power users only",
       accent: "text-red-400",     bg: "bg-red-500/10",     border: "border-red-500/30" },
   ];
   
@@ -525,7 +525,7 @@
             <div className="flex items-center gap-2">
               <TrendingDown className={cn("size-4", currentLevel.accent)} />
               <span className={cn("text-[11px] font-bold uppercase tracking-widest", currentLevel.accent)}>
-                {currentLevel.name} — Estimated Impact
+                {currentLevel.name}, Estimated Impact
               </span>
             </div>
             <div className="text-[11px] text-muted-foreground">
@@ -615,7 +615,7 @@
                 )}
               </div>
   
-              {/* Category spectrum — animated vertical bars */}
+              {/* Category spectrum, animated vertical bars */}
               {stats.count > 0 && (
                 <div className="space-y-1.5">
                   <span className="text-[9px] uppercase tracking-widest text-muted-foreground/50">Category breakdown</span>
@@ -865,7 +865,7 @@
         if (result.ok) {
           setItemState(result.results);
           const presentCount = Object.values(result.results).filter((s: any) => s === "present").length;
-          logHistory(`Debloat: Scan complete — ${presentCount} item${presentCount !== 1 ? "s" : ""} present`, "Debloat", "Scanned", `${presentCount} removable items detected`);
+          logHistory(`Debloat: Scan complete, ${presentCount} item${presentCount !== 1 ? "s" : ""} present`, "Debloat", "Scanned", `${presentCount} removable items detected`);
         }
       } catch (e) {
         console.warn("[Debloater] scan failed", e);
@@ -1410,7 +1410,7 @@
           <PageHeader
             icon={ShieldCheck}
             title="Debloater"
-            subtitle="Role-based system reduction with real Windows integration. Items are removed via PowerShell — honest results only."
+            subtitle="Role-based system reduction with real Windows integration. Items are removed via PowerShell, honest results only."
           />
   
           {/* ── Main tab bar ─────────────────────────────────────────────────── */}
@@ -1472,7 +1472,7 @@
               )}
               {!isElectron() && (
                 <span className="ml-auto text-[9px] text-amber-500/70 flex items-center gap-1">
-                  <AlertCircle className="size-3" />Browser preview — changes execute in Electron app
+                  <AlertCircle className="size-3" />Browser preview, changes execute in Electron app
                 </span>
               )}
               <span className="ml-auto text-[9px] text-muted-foreground/50">Live</span>
@@ -1550,7 +1550,7 @@
             })}
           </div>
   
-          {/* ── Batch section — large intensity action panels ──────────────────── */}
+          {/* ── Batch section, large intensity action panels ──────────────────── */}
           <div className="space-y-3">
             <div className="flex items-center gap-2">
               <Zap className="size-4 text-[#00D4FF]" />
@@ -1768,7 +1768,7 @@
                         <div key={category} className="rounded-2xl border border-[#1E252D] bg-[#0D1117]/80 overflow-hidden">
                           {/* Category header */}
                           <div className="flex items-center gap-3 px-4 py-2.5">
-                            {/* Expand toggle — left part clickable */}
+                            {/* Expand toggle, left part clickable */}
                             <button
                               className="flex items-center gap-2.5 flex-1 min-w-0 text-left"
                               onClick={() => toggleCategory(category)}
@@ -2023,7 +2023,7 @@
                       )}
                       {!isElectron() && (
                         <span className="text-amber-500/70 flex items-center gap-1">
-                          <AlertCircle className="size-3" />Logged — execute in Electron for real changes
+                          <AlertCircle className="size-3" />Logged, execute in Electron for real changes
                         </span>
                       )}
                     </div>
@@ -2105,7 +2105,7 @@
                             <Icon className={cn("size-3.5 shrink-0", cfg.color)} />
                             <span className="text-[#E6EAF0] text-xs font-medium">{result.name}</span>
                             {result.storeRequired && (
-                              <span className="text-[10px] text-amber-400">— install from Store</span>
+                              <span className="text-[10px] text-amber-400">install from Store</span>
                             )}
                           </div>
                           <div className="flex items-center gap-3">
@@ -2228,8 +2228,7 @@
                 <span className={cn("font-semibold", currentLevel.accent)}>{currentLevel.name} mode</span>
                 <span className="text-muted-foreground ml-2">{currentLevel.description}</span>
                 {level === "extreme" && (
-                  <span className="ml-2 text-red-400/80">
-                    — Services are reversible but may require restart. Create a manual restore point before proceeding.
+                  <span className="ml-2 text-red-400/80">, Services are reversible but may require restart. Create a manual restore point before proceeding.
                   </span>
                 )}
                 {!isElectron() && (

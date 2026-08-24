@@ -3,9 +3,9 @@ import { cn } from "@/lib/utils"
 
 /* ── SwitchControl v2 Card System ──
    Three card types only:
-   • PrimaryCard   — main dashboard modules, most depth
-   • SecondaryCard — supporting panels, flatter
-   • UtilityCard   — small stats, labels, quick actions
+   • PrimaryCard, main dashboard modules, most depth
+   • SecondaryCard, supporting panels, flatter
+   • UtilityCard, small stats, labels, quick actions
 
    Rules:
    • No default glow

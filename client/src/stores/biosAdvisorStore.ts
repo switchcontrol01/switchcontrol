@@ -13,8 +13,7 @@ export interface AiExplanation {
 
 /**
  * Lightweight snapshot of BIOS Advisor state, purpose-built for AI integration.
- * Consumed by AiAdvisor.tsx via useBiosAdvisorStore.getState().getSnapshot() —
- * a static non-reactive read taken at message-send time.
+ * Consumed by AiAdvisor.tsx via useBiosAdvisorStore.getState().getSnapshot(), * a static non-reactive read taken at message-send time.
  */
 export interface BiosAdvisorSnapshot {
   hasScan: boolean;
@@ -67,7 +66,7 @@ interface BiosAdvisorState {
   setAiExplanation: (explanation: AiExplanation, hash: string) => void;
   clearAiExplanation: () => void;
   resetBiosAdvisor: () => void;
-  /** Returns a lightweight snapshot for AI context — call via getState().getSnapshot(). */
+  /** Returns a lightweight snapshot for AI context, call via getState().getSnapshot(). */
   getSnapshot: () => BiosAdvisorSnapshot;
 }
 
@@ -180,7 +179,7 @@ export const useBiosAdvisorStore = create<BiosAdvisorState>()(
             !Number.isFinite(state.scores.frametime) ||
             !Number.isFinite(state.scores.stability);
           if (hasInvalid) {
-            console.warn('[BiosStore] hydrated scores had non-finite values — clearing and resetting');
+            console.warn('[BiosStore] hydrated scores had non-finite values, clearing and resetting');
             state.scores = sanitized;
             state.hasScanned = false;
           }

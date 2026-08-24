@@ -36,7 +36,7 @@ interface PatchNotes {
   type: string;
 }
 
-// Module-level cache — one fetch per app session regardless of how many times
+// Module-level cache, one fetch per app session regardless of how many times
 // the Settings page is mounted. In Electron file:// mode there is no browser
 // HTTP cache, so without this we'd re-fetch on every Settings visit.
 let _patchNotesCache: PatchNotes | null = null;
@@ -79,7 +79,7 @@ function PatchNotesSection({ onViewFull }: { onViewFull: () => void }) {
         style={{ background: "linear-gradient(180deg, rgba(139,92,246,0.9) 0%, rgba(109,40,217,0.5) 100%)" }} />
 
       <div className="flex items-start gap-6 px-5 py-4 flex-1 min-w-0">
-        {/* Left — icon + label */}
+        {/* Left, icon + label */}
         <div className="flex flex-col items-center gap-2 shrink-0 pt-0.5">
           <div className="flex items-center justify-center size-8 rounded-lg transition-colors"
             style={{ background: "rgba(139,92,246,0.14)", border: "1px solid rgba(139,92,246,0.28)" }}>
@@ -91,7 +91,7 @@ function PatchNotesSection({ onViewFull }: { onViewFull: () => void }) {
           </span>
         </div>
 
-        {/* Middle — title + headline + date */}
+        {/* Middle, title + headline + date */}
         <div className="min-w-0 shrink-0 w-48">
           <div className="flex items-center gap-2 mb-0.5">
             <h3 className="text-[13px] font-semibold text-[#E6EAF0] leading-snug truncate">{notes.title}</h3>
@@ -113,7 +113,7 @@ function PatchNotesSection({ onViewFull }: { onViewFull: () => void }) {
         {/* Divider */}
         <div className="w-px self-stretch shrink-0" style={{ background: "rgba(255,255,255,0.06)" }} />
 
-        {/* Right — change list preview */}
+        {/* Right, change list preview */}
         <div className="flex-1 min-w-0 space-y-1.5">
           {preview.map((change, i) => (
             <motion.div
@@ -133,7 +133,7 @@ function PatchNotesSection({ onViewFull }: { onViewFull: () => void }) {
               className="text-[10.5px] pl-5 transition-colors hover:text-[rgba(192,155,255,0.8)]"
               style={{ color: "rgba(139,92,246,0.55)" }}
             >
-              +{extra} more — view all →
+              +{extra} more, view all →
             </button>
           )}
         </div>
@@ -687,7 +687,7 @@ function ApplicationModeSection() {
 
   const options: { value: ApplicationMode; label: string; desc: string; Icon: typeof Zap }[] = [
     { value: "normal", label: "Normal Mode", desc: "Full visuals, animations and live monitoring.", Icon: Gauge },
-    { value: "light", label: "Light Mode", desc: "Minimal effects, slower polling — lowest resource usage.", Icon: Zap },
+    { value: "light", label: "Light Mode", desc: "Minimal effects, slower polling, lowest resource usage.", Icon: Zap },
   ];
 
   return (
@@ -820,7 +820,7 @@ export default function Settings() {
                     data-testid="toggle-realtime-metrics"
                     onCheckedChange={(checked) => {
                       setRealtimeMetricsEnabled(checked);
-                      toast({ title: checked ? "Live Metrics Enabled" : "Live Metrics Paused", description: checked ? "Dashboard stats updating in real time." : "Stats display is frozen — no polling overhead." });
+                      toast({ title: checked ? "Live Metrics Enabled" : "Live Metrics Paused", description: checked ? "Dashboard stats updating in real time." : "Stats display is frozen, no polling overhead." });
                       logHistory(`Settings: Real-time Metrics ${checked ? "Enabled" : "Disabled"}`, "Settings", "Saved");
                     }}
                   />
@@ -887,7 +887,7 @@ export default function Settings() {
           </Card>
           </Reveal>
 
-          {/* Software Update — Electron only */}
+          {/* Software Update, Electron only */}
           {isElectron && (
             <Reveal delay={0.18}>
               <UpdateCard />
@@ -1017,14 +1017,14 @@ export default function Settings() {
           </Card>
           </Reveal>
 
-          {/* Diagnostics — export + issue report */}
+          {/* Diagnostics, export + issue report */}
           {isElectron && (
             <Reveal delay={0.22}>
               <DiagnosticsCard />
             </Reveal>
           )}
 
-          {/* Admin Panel — only visible to admin users */}
+          {/* Admin Panel, only visible to admin users */}
           {isAdmin && (
             <Reveal delay={0.24}>
             <Card className="border-orange-500/20" style={{ background: "rgba(251,146,60,0.04)" }}>
@@ -1137,7 +1137,7 @@ export default function Settings() {
                   </GlassCard>
                 </motion.button>
 
-                {/* TikTok — SwitchTech */}
+                {/* TikTok, SwitchTech */}
                 <motion.button
                   onClick={(e) => {
                     e.preventDefault();
@@ -1169,7 +1169,7 @@ export default function Settings() {
                   </GlassCard>
                 </motion.button>
 
-                {/* TikTok — SwitchControl */}
+                {/* TikTok, SwitchControl */}
                 <motion.button
                   onClick={(e) => {
                     e.preventDefault();

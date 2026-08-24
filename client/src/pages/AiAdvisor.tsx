@@ -119,11 +119,11 @@ interface SystemContext {
     realtimeMetricsEnabled: boolean;
   };
   historyTotal?: number;
-  /** Slider and preset tweaks that are enabled — includes the current value/preset label */
+  /** Slider and preset tweaks that are enabled, includes the current value/preset label */
   sliderTweaks?: Array<{ id: string; title: string; valueLabel: string }>;
   /** Items debloated by the user via the Debloater section */
   debloatApplied?: Array<{ name: string; action: string }>;
-  /** Startup apps — all entries with their current enabled/disabled state */
+  /** Startup apps, all entries with their current enabled/disabled state */
   startupApps?: Array<{ name: string; enabled: boolean; publisher?: string }>;
   /** How many times the System Cleaner has been run this session */
   cleanerRunCount?: number;
@@ -225,7 +225,7 @@ function SafeMarkdown({ text, onApply }: { text: string; onApply?: (tweakId: str
           case "bold": return <strong key={i} className="text-[#E6EAF0] font-semibold">{part.content}</strong>;
           case "code": return <code key={i} className="px-1.5 py-0.5 rounded bg-[#21262D] text-primary text-[11px] font-mono">{part.content}</code>;
           case "apply":
-            // Inline apply buttons are removed — the modern recommended tweaks
+            // Inline apply buttons are removed, the modern recommended tweaks
             // card below the message handles all apply actions.
             return null;
           case "br": return <br key={i} />;
@@ -254,8 +254,7 @@ function ThinkingDots() {
 function ThinkingStatus({ slow }: { slow?: boolean }) {
   const [phase, setPhase] = useState(0);
   useEffect(() => {
-    // Phase rotation cadence obeys the global ApplicationMode (cosmetic —
-    // slower in Light Mode, still readable).
+    // Phase rotation cadence obeys the global ApplicationMode (cosmetic, // slower in Light Mode, still readable).
     const t = setInterval(() => {
       // P1-A2: pause phase rotation when tab is hidden
       if (typeof document !== "undefined" && document.hidden) return;
@@ -792,10 +791,10 @@ function NavigationCard({ items, onNavigate }: {
                   "text-[13px] font-semibold leading-tight",
                   wasVisited ? "text-emerald-300" : meta.color
                 )}>
-                  {wasVisited ? `${item.label} — Done` : `Guide me to ${item.label}`}
+                  {wasVisited ? `${item.label}, Done` : `Guide me to ${item.label}`}
                 </p>
                 <p className="text-[11px] text-[#6B7380] mt-0.5 leading-snug">
-                  {wasVisited ? "Visited — return here any time" : meta.desc}
+                  {wasVisited ? "Visited, return here any time" : meta.desc}
                 </p>
               </div>
               {wasVisited
@@ -1020,7 +1019,7 @@ export default function AiAdvisor() {
     const api = (window as any).electronAPI;
     if (!api) return;
 
-    // Driver Intel — installed GPU/audio driver versions
+    // Driver Intel, installed GPU/audio driver versions
     if (api.driverIntel?.getInstalledVersions) {
       api.driverIntel.getInstalledVersions()
         .then((versions: Record<string, string>) => {
@@ -1029,7 +1028,7 @@ export default function AiAdvisor() {
         .catch(() => {});
     }
 
-    // Latency Analyzer — last sample + status (non-blocking; may not be running)
+    // Latency Analyzer, last sample + status (non-blocking; may not be running)
     if (api.latencyAnalyzer?.getStatus) {
       Promise.all([
         api.latencyAnalyzer.getStatus().catch(() => ({ isActive: false })),
@@ -1044,7 +1043,7 @@ export default function AiAdvisor() {
       }).catch(() => {});
     }
 
-    // Startup apps — fetch full list for AI context + compute summary counts
+    // Startup apps, fetch full list for AI context + compute summary counts
     fetch("/api/startup/apps")
       .then(r => r.ok ? r.json() : null)
       .then((apps: any) => {
@@ -1053,7 +1052,7 @@ export default function AiAdvisor() {
         const broken   = apps.filter((a: any) => a.broken).length;
         const disabled = apps.length - enabled - broken;
         setStartupSummary({ total: apps.length, enabled, disabled, broken });
-        // Store full list (name + enabled state) for AI context — cap at 40 entries
+        // Store full list (name + enabled state) for AI context, cap at 40 entries
         const appList = apps.slice(0, 40).map((a: any) => ({
           name:      typeof a.name === "string" ? a.name : (typeof a.command === "string" ? a.command : "Unknown"),
           enabled:   a.enabled === true && !a.broken,
@@ -1063,7 +1062,7 @@ export default function AiAdvisor() {
       })
       .catch(() => {});
 
-    // Debloat history — fetch applied items from the Debloater section
+    // Debloat history, fetch applied items from the Debloater section
     fetch("/api/debloat/history")
       .then(r => r.ok ? r.json() : null)
       .then((data: any) => {
@@ -1084,7 +1083,7 @@ export default function AiAdvisor() {
       .catch(() => {});
   }, []);
 
-  // ── Tier 4: Security, NIC Tuning, Process Manager — fetched LAZILY ──────────
+  // ── Tier 4: Security, NIC Tuning, Process Manager, fetched LAZILY ──────────
   // These calls are deferred until the user actually sends their first message.
   // This avoids paying the PS/WMI cost on every page mount for data that is
   // only needed when the AI builds a chat context. Each fetch is one-shot:
@@ -1093,7 +1092,7 @@ export default function AiAdvisor() {
   const extendedContextFetchingRef = useRef<Promise<void> | null>(null);
 
   const fetchExtendedContextOnce = useCallback((): Promise<void> => {
-    // Already fetched or in-flight — return the existing promise so callers
+    // Already fetched or in-flight, return the existing promise so callers
     // that `await` this don't race each other on the first message.
     if (extendedContextFetchedRef.current) return Promise.resolve();
     if (extendedContextFetchingRef.current) return extendedContextFetchingRef.current;
@@ -1107,7 +1106,7 @@ export default function AiAdvisor() {
     const work = (async () => {
       const fetches: Promise<void>[] = [];
 
-      // Security — getStatus (Defender, firewall) + getAdvancedAudit (Secure Boot, TPM, etc.)
+      // Security, getStatus (Defender, firewall) + getAdvancedAudit (Secure Boot, TPM, etc.)
       const secStatus = api.security?.getStatus?.();
       const secAudit  = api.security?.getAdvancedAudit?.();
       if (secStatus && secAudit) {
@@ -1117,14 +1116,14 @@ export default function AiAdvisor() {
               if (st?.available)  setSecurityStatus(st.data ?? null);
               if (aud?.available) setSecurityAudit(aud.data ?? null);
               if (import.meta.env.DEV) {
-                console.log("[AI:Security] lazy-fetched — status=", st?.available, "audit=", aud?.available);
+                console.log("[AI:Security] lazy-fetched, status=", st?.available, "audit=", aud?.available);
               }
             })
             .catch(() => {})
         );
       }
 
-      // NIC Tuning — find first "Up" physical adapter then read its capabilities
+      // NIC Tuning, find first "Up" physical adapter then read its capabilities
       if (api.nic?.getAdapters && api.nic?.getCapabilities) {
         fetches.push(
           api.nic.getAdapters()
@@ -1153,7 +1152,7 @@ export default function AiAdvisor() {
         );
       }
 
-      // Process Manager — prefer cached result to avoid a fresh PS spawn
+      // Process Manager, prefer cached result to avoid a fresh PS spawn
       const pcApi = api.processControl;
       if (pcApi?.getLastResult) {
         fetches.push(
@@ -1205,7 +1204,7 @@ export default function AiAdvisor() {
   const reqIdRef = useRef(0);
   const slowTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // liveTelRef — always holds the latest telemetry so useCallback closures stay fresh
+  // liveTelRef, always holds the latest telemetry so useCallback closures stay fresh
   const liveTelRef = useRef(liveTel);
   useEffect(() => { liveTelRef.current = liveTel; }, [liveTel]);
 
@@ -1325,7 +1324,7 @@ export default function AiAdvisor() {
     isRevealingRef.current = true;
     setIsStreaming(true);
 
-    // Character-by-character typewriter — 3 chars per tick at 12ms feels like real AI streaming
+    // Character-by-character typewriter, 3 chars per tick at 12ms feels like real AI streaming
     const CHARS_PER_TICK = 3;
     const TICK_MS = 12;
     let charIdx = 0;
@@ -1373,7 +1372,7 @@ export default function AiAdvisor() {
     revealTimerRef.current = setTimeout(tick, 60);
   }, [prefersReducedMotion, cancelReveal, smartScroll, forceScrollBottom]);
 
-  // Build system context — merges store specs + live telemetry + system intelligence profile
+  // Build system context, merges store specs + live telemetry + system intelligence profile
   useEffect(() => {
     const allTweaks = TWEAKS_DATA;
     const enabledTweaks = allTweaks
@@ -1419,13 +1418,13 @@ export default function AiAdvisor() {
       networkStr = `${type}${speed}${name}`;
     }
 
-    // RAM — priority order:
-    //   1. System intelligence (per-stick detail — most accurate)
+    // RAM, priority order:
+    //   1. System intelligence (per-stick detail, most accurate)
     //   2. Store stats (set by Home.tsx or self-loaded via getSpecs)
-    //   3. Live telemetry total (last resort — no stick detail but always current)
-    // Never use "0 GB" — if totalRamGb is 0 it means specs haven't loaded yet.
+    //   3. Live telemetry total (last resort, no stick detail but always current)
+    // Never use "0 GB", if totalRamGb is 0 it means specs haven't loaded yet.
     //
-    // Read live telemetry from the ref rather than the state value — this keeps
+    // Read live telemetry from the ref rather than the state value, this keeps
     // `liveTel` out of the effect's dep array so the entire context object is
     // NOT rebuilt on every 2-second poll tick.  The ref is kept fresh by a
     // dedicated single-line effect: `useEffect(() => { liveTelRef.current = liveTel; }, [liveTel])`.
@@ -1446,7 +1445,7 @@ export default function AiAdvisor() {
       else if (si.memory.totalMb) ramStr = `${Math.round(si.memory.totalMb / 1024)}GB ${type}${speed ? ` @ ${speed}MHz` : ""}`;
     }
 
-    // GPU — prefer system intelligence name + VRAM detail
+    // GPU, prefer system intelligence name + VRAM detail
     let gpuStr = stats.gpuName || "";
     if (si?.gpu.controllers.length) {
       const g = si.gpu.controllers.find(c => c.name && stats.gpuName && c.name === stats.gpuName)
@@ -1611,7 +1610,7 @@ export default function AiAdvisor() {
           active:   ownership.networkTweaks[nt.id]?.provenance === "app",
         })),
 
-      // ── Tier 4: BIOS Advisor (via getSnapshot() — single abstraction point) ─
+      // ── Tier 4: BIOS Advisor (via getSnapshot(), single abstraction point) ─
       // getState() is intentional: this callback runs at message-send time, so
       // a static non-reactive read always captures the latest persisted state.
       biosAdvisor: (() => {
@@ -1658,7 +1657,7 @@ export default function AiAdvisor() {
     contextRef.current = ctx;
     if (si) console.log(`[AI:CONTEXT] system-intelligence enriched | MB=${si.baseboard.model} | BIOS=${si.bios.version} | net=${networkStr}`);
 
-    // ── [AI Specs Input] audit log — emitted every time context rebuilds ──
+    // ── [AI Specs Input] audit log, emitted every time context rebuilds ──
     const ramTotalForLog = ctx.telemetry.ramTotalGB;
     console.log(
       `[AI Specs Input] cpu="${ctx.system.cpu || "none"}" ` +
@@ -1667,7 +1666,7 @@ export default function AiAdvisor() {
       `ramTotalGB=${ramTotalForLog ?? "null"} ` +
       `disk="${ctx.system.storage || "none"}"`
     );
-  // liveTel intentionally excluded — it updates every 2 seconds and rebuilding
+  // liveTel intentionally excluded, it updates every 2 seconds and rebuilding
   // the full context object on each poll tick causes expensive re-renders for
   // the entire session.  Live telemetry is read from liveTelRef.current (always
   // current) inside the effect body instead.
@@ -1690,9 +1689,9 @@ export default function AiAdvisor() {
     if (hasSpecs) {
       const specLine = specParts.join(" · ");
       if (enabledTweaks.length === 0) {
-        welcomeText = `System detected: **${specLine}**\n\nNo tweaks are active yet — ${disabledTweaks.length} optimizations are available. I can apply the best ones for you with one click, or walk you through any of them. Just ask "apply the best tweaks for me" or name a specific one.`;
+        welcomeText = `System detected: **${specLine}**\n\nNo tweaks are active yet, ${disabledTweaks.length} optimizations are available. I can apply the best ones for you with one click, or walk you through any of them. Just ask "apply the best tweaks for me" or name a specific one.`;
       } else if (disabledTweaks.length > 5) {
-        welcomeText = `System detected: **${specLine}**\n\n${enabledTweaks.length} tweaks active (${coveragePct}% coverage) — ${disabledTweaks.length} improvements still available. I can apply tweaks directly or guide you through them. Ask "what should I apply next?" or name a specific tweak to apply it instantly.`;
+        welcomeText = `System detected: **${specLine}**\n\n${enabledTweaks.length} tweaks active (${coveragePct}% coverage), ${disabledTweaks.length} improvements still available. I can apply tweaks directly or guide you through them. Ask "what should I apply next?" or name a specific tweak to apply it instantly.`;
       } else {
         welcomeText = `System detected: **${specLine}**\n\n${enabledTweaks.length} tweaks active. I can apply additional optimizations directly or walk you through any changes. Ask for a full audit, or name a tweak and I'll apply it.`;
       }
@@ -1723,7 +1722,7 @@ export default function AiAdvisor() {
     if (!isStreaming) return;
     const id = setInterval(() => {
       if (!isRevealingRef.current && isStreaming) {
-        console.warn('[AI:STREAM] dead-man\'s switch triggered — isStreaming reset');
+        console.warn('[AI:STREAM] dead-man\'s switch triggered, isStreaming reset');
         setIsStreaming(false);
       }
     }, 3000);
@@ -1739,7 +1738,7 @@ export default function AiAdvisor() {
 
     const MAX_SIZE = 4 * 1024 * 1024;
     if (file.size > MAX_SIZE) {
-      setImageError("Image too large — maximum is 4 MB. Please use a smaller screenshot.");
+      setImageError("Image too large, maximum is 4 MB. Please use a smaller screenshot.");
       setTimeout(() => setImageError(null), 4000);
       return;
     }
@@ -1771,14 +1770,14 @@ export default function AiAdvisor() {
   // Matches short affirmatives + "apply it/them" style messages that confirm
   // the LAST AI recommendation. When matched + last tweaks are known → bypass AI.
   // NOTE: broad affirmatives like "sounds good", "perfect", "great",
-  // "definitely", "absolutely", "correct", "right" were removed — they fire on
+  // "definitely", "absolutely", "correct", "right" were removed, they fire on
   // normal conversational replies ("great explanation, what's next?") and cause
   // the last recommendation card to surface when the user isn't asking to apply.
   const DIRECT_AFFIRMATIVE_RE =
     /^\s*(yes|yeah|yep|yup|y|k|ok|okay|sure( (apply|do it|please))?|please( (apply|do it|enable))?|alright|go|done|got it|do it|do that|do them|do it now|do it for me|just do it|apply|apply it|apply them|apply that|apply these|apply all|apply all of them|apply number \d+|apply the (first|second|third|\w+) one|apply 'em|apply em|apply please|yes apply|yes please|yes do it|go ahead|go for it|let's do it|let's go|let's apply|let me apply|let's|let me|proceed|execute|run it|run them|enable (it|them|that)|turn (it|them) on|enable all|yes enable|flip it|flip them)\s*[.!]?\s*$/i;
 
   // Scans message history for the most recent recommendation card.
-  // Wrapped in useCallback so it isn't recreated on every render — the
+  // Wrapped in useCallback so it isn't recreated on every render, the
   // function is referenced inside sendMessage and the two bypass blocks.
   const getLastRecommendedTweaks = useCallback((msgs: ChatMessage[]): AiTweakRecommendation[] => {
     for (let i = msgs.length - 1; i >= 0; i--) {
@@ -1802,7 +1801,7 @@ export default function AiAdvisor() {
       setMessages(prev => [...prev, {
         id: `offline-${Date.now()}`,
         role: "system" as const,
-        content: "You are offline. Your message is saved — connect to the internet and try again.",
+        content: "You are offline. Your message is saved, connect to the internet and try again.",
         timestamp: new Date(),
       }]);
       return;
@@ -1865,7 +1864,7 @@ export default function AiAdvisor() {
     try {
       // Lazy-fetch extended context (Security / NIC / ProcessManager) on first
       // message only. Awaited here so the data lands in state *before* contextRef
-      // is read below — giving the AI full context even on the opening message.
+      // is read below, giving the AI full context even on the opening message.
       await fetchExtendedContextOnce();
 
       const ctx = contextRef.current;
@@ -1879,7 +1878,7 @@ export default function AiAdvisor() {
       // ── Spec validation guard ─────────────────────────────────────────────
       // Cross-check the ram field in the context against live telemetry.
       // If context says < 8 GB but live shows ≥ 8 GB the context was built
-      // before specs finished loading — block the send so the AI never receives
+      // before specs finished loading, block the send so the AI never receives
       // stale/mock hardware data and can never hallucinate a wrong RAM amount.
       {
         const currentLiveTel = liveTelRef.current;
@@ -1888,14 +1887,14 @@ export default function AiAdvisor() {
         const ctxRamGb   = parseFloat(ctxRamStr);
         const ctxTelRamGb = ctx?.telemetry?.ramTotalGB ?? 0;
         // Multi-stick strings like "2x16GB DDR5 @ 6200MHz" start with the
-        // stick count ("2"), so parseFloat returns 2 — not total GB.
+        // stick count ("2"), so parseFloat returns 2, not total GB.
         // Skip the numeric comparison for any string matching NxMGB format.
         const isMultiStickStr = /^\d+x\d/i.test(ctxRamStr);
         // "suspect" = context reports a concrete but WRONG RAM value (< 8 GB)
-        // while live telemetry shows ≥ 8 GB — this means stale/partial data
+        // while live telemetry shows ≥ 8 GB, this means stale/partial data
         // reached the AI context and would cause hallucination.
         //
-        // NOTE: an *empty* ctxRamStr just means specs haven't loaded yet — the
+        // NOTE: an *empty* ctxRamStr just means specs haven't loaded yet, the
         // AI handles "I don't know your RAM" gracefully, so we do NOT block on
         // empty.  We only block when the context has a concrete wrong value.
         const ramSuspect =
@@ -1903,8 +1902,8 @@ export default function AiAdvisor() {
           (ctxTelRamGb > 0 && ctxTelRamGb < 8 && liveRamGb >= 8);
         if (ramSuspect) {
           console.warn(
-            `[AI Specs Input] MISMATCH — context ram="${ctxRamStr}" ` +
-            `telRamGB=${ctxTelRamGb} but live=${liveRamGb}GB — ` +
+            `[AI Specs Input] MISMATCH, context ram="${ctxRamStr}" ` +
+            `telRamGB=${ctxTelRamGb} but live=${liveRamGb}GB, ` +
             `context not yet populated, blocking send`
           );
           setLoading(false);
@@ -1914,7 +1913,7 @@ export default function AiAdvisor() {
           setMessages(prev => [...prev, {
             id: `specs-warn-${Date.now()}`,
             role: "system" as const,
-            content: "System specs are still loading — your hardware info will be ready in a moment. Please try again.",
+            content: "System specs are still loading, your hardware info will be ready in a moment. Please try again.",
             timestamp: new Date(),
           }]);
           return;
@@ -1923,8 +1922,7 @@ export default function AiAdvisor() {
 
       // ── DIRECT BYPASS: tweak name apply intent ────────────────────────────
       // If the user says "can you apply core iso?" or "show me timer resolution"
-      // match the tweak name directly from context and show the apply card —
-      // no server round-trip needed. This prevents "Server error" on explicit
+      // match the tweak name directly from context and show the apply card, // no server round-trip needed. This prevents "Server error" on explicit
       // apply requests when the AI previously listed tweaks without <<APPLY:>>
       // markers (e.g. using the [id:X] context format by mistake).
       if (!imgData && contextRef.current) {
@@ -1948,7 +1946,7 @@ export default function AiAdvisor() {
                 const withoutThinking = prev.filter(m => m.id !== assistantId);
                 return [
                   ...withoutThinking,
-                  { id: assistantId, role: "assistant" as const, content: `Here's **${nameMatch.title}** — ready to apply with one click.`, timestamp: new Date() },
+                  { id: assistantId, role: "assistant" as const, content: `Here's **${nameMatch.title}**, ready to apply with one click.`, timestamp: new Date() },
                   {
                     id: `recs-${assistantId}`,
                     role: "assistant" as const,
@@ -1967,7 +1965,7 @@ export default function AiAdvisor() {
             }
           }
 
-          // ── VAGUE SHOW/APPLY — "show me it", "show me that", "show it to me" ──
+          // ── VAGUE SHOW/APPLY, "show me it", "show me that", "show it to me" ──
           // No specific tweak name in message, but AI previously recommended tweaks.
           // Surface the last recommendation card instead of calling the server
           // (which would fail or produce an unhelpful generic response).
@@ -1986,7 +1984,7 @@ export default function AiAdvisor() {
                 const withoutThinking = prev.filter(m => m.id !== assistantId);
                 return [
                   ...withoutThinking,
-                  { id: assistantId, role: "assistant" as const, content: `Here's **${label}** — ready to apply.`, timestamp: new Date() },
+                  { id: assistantId, role: "assistant" as const, content: `Here's **${label}**, ready to apply.`, timestamp: new Date() },
                   {
                     id: `recs-${assistantId}`,
                     role: "assistant" as const,
@@ -2007,7 +2005,7 @@ export default function AiAdvisor() {
       // ── DIRECT BYPASS: affirmative + known last tweaks ───────────────────
       // If the user typed a short affirmative ("yes", "apply it", "go ahead",
       // etc.) AND we have a recent recommendation card in the conversation,
-      // skip the AI call entirely — surface the tweaks instantly, no hangs.
+      // skip the AI call entirely, surface the tweaks instantly, no hangs.
       if (!imgData && DIRECT_AFFIRMATIVE_RE.test(messageContent)) {
         const lastRecs = getLastRecommendedTweaks(messagesRef.current);
         if (lastRecs.length > 0) {
@@ -2199,7 +2197,7 @@ export default function AiAdvisor() {
           }
         });
       } else {
-        // Response was markers-only — no text to typewrite; drop the placeholder
+        // Response was markers-only, no text to typewrite; drop the placeholder
         setMessages(prev => prev.filter(m => m.id !== assistantId));
         inputRef.current?.focus();
       }
@@ -2270,8 +2268,8 @@ export default function AiAdvisor() {
     if (hasSpecs) {
       const specLine = [ctx?.system.cpu, ctx?.system.gpu, ctx?.system.ram].filter(Boolean).join(" · ");
       resetText = enabledCount === 0
-        ? `System detected: **${specLine}**\n\n${disabledCount}+ optimizations are ready — ask me what to diagnose first.`
-        : `System detected: **${specLine}**\n\n${enabledCount} tweaks active (${coveragePct}% coverage) — ${disabledCount} more improvements available. Ask me what to prioritize.`;
+        ? `System detected: **${specLine}**\n\n${disabledCount}+ optimizations are ready, ask me what to diagnose first.`
+        : `System detected: **${specLine}**\n\n${enabledCount} tweaks active (${coveragePct}% coverage), ${disabledCount} more improvements available. Ask me what to prioritize.`;
     } else {
       resetText = `Ask about your system state for a targeted analysis.\n\nUpload a screenshot for visual analysis.`;
     }
@@ -2364,7 +2362,7 @@ export default function AiAdvisor() {
 
       setMessages(prev => [...prev, {
         id: `applied-${Date.now()}`, role: "system" as const,
-        content: `"${tweak.title}" applied successfully${result.requiresReboot ? " — restart required" : ""}.`,
+        content: `"${tweak.title}" applied successfully${result.requiresReboot ? ", restart required" : ""}.`,
         timestamp: new Date(),
       }]);
     }
@@ -2385,7 +2383,7 @@ export default function AiAdvisor() {
     if (api?.syncAll) api.syncAll().catch(() => {});
     const successCount = results?.filter(r => r.outcome.success).length ?? 0;
     const failCount = results?.filter(r => !r.outcome.success).length ?? 0;
-    console.log(`[AI:APPLY] batch complete — ${successCount} applied, ${failCount} failed`);
+    console.log(`[AI:APPLY] batch complete, ${successCount} applied, ${failCount} failed`);
     if (successCount > 0) {
       results?.filter(r => r.outcome.success).forEach(({ rec }) => {
         logHistory(`AI Advisor: Applied ${rec.tweakId}`, "AI Advisor", "Applied", `Tweak ID: ${rec.tweakId}`, {
@@ -2609,7 +2607,7 @@ export default function AiAdvisor() {
               </AnimatePresence>
             </div>
 
-            {/* Suggested prompts — show when conversation is fresh */}
+            {/* Suggested prompts, show when conversation is fresh */}
             <AnimatePresence>
               {messages.length <= 1 && !loading && (
                 <SuggestedPrompts onSelect={p => sendMessage(p)} disabled={isBusy} />
@@ -2627,7 +2625,7 @@ export default function AiAdvisor() {
                   data-testid="status-ai-offline"
                 >
                   <AlertTriangle className="w-3 h-3 shrink-0" />
-                  AI Advisor requires internet. Your draft is preserved — send when back online.
+                  AI Advisor requires internet. Your draft is preserved, send when back online.
                 </motion.div>
               )}
             </AnimatePresence>
@@ -2692,7 +2690,7 @@ export default function AiAdvisor() {
                 type="text"
                 value={input}
                 onChange={e => setInput(e.target.value)}
-                placeholder={!isOnline ? "Offline — draft saved, send when connected…" : attachedImage ? "Ask about this image…" : "Ask about optimizations, tweaks, games…"}
+                placeholder={!isOnline ? "Offline, draft saved, send when connected…" : attachedImage ? "Ask about this image…" : "Ask about optimizations, tweaks, games…"}
                 className="flex-1 bg-transparent text-sm text-[#E6EAF0] placeholder:text-[#6B7380]"
                 style={{ outline: 'none' }}
                 disabled={isBusy}
@@ -2705,7 +2703,7 @@ export default function AiAdvisor() {
                 disabled={(!input.trim() && !attachedImage) || isBusy || !isOnline}
                 className="h-8 w-8 p-0 rounded-xl bg-primary/20 hover:bg-primary/30 text-primary border-0 disabled:opacity-30"
                 data-testid="button-send-message"
-                title={!isOnline ? "Offline — cannot send" : undefined}
+                title={!isOnline ? "Offline, cannot send" : undefined}
               >
                 {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
               </Button>
@@ -2720,7 +2718,7 @@ export default function AiAdvisor() {
               )}
               <p className="text-[10px] text-[#6B7380]/50" data-testid="text-ai-disclaimer">
                 {attachedImage
-                  ? `Image attached (${attachedImage.sizeKb} KB) — ready to send`
+                  ? `Image attached (${attachedImage.sizeKb} KB), ready to send`
                   : "AI suggestions only. You are responsible for any system changes."}
               </p>
             </div>
@@ -2746,7 +2744,7 @@ export default function AiAdvisor() {
         }}
         onDone={(results) => {
           handleAiApplyDone(results);
-          // Don't close here — user stays on the results screen until they click Close
+          // Don't close here, user stays on the results screen until they click Close
         }}
         onViewTweaks={handleViewTweakDetails}
       />

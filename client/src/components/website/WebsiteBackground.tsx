@@ -243,7 +243,7 @@ const VARIANT_CONFIG: Record<BackgroundVariant, {
   },
 };
 
-/* GPU: static particles only — no CSS animation loop */
+/* GPU: static particles only, no CSS animation loop */
 const PARTICLE_POSITIONS = [
   { x: "12%", y: "18%", size: 2 },
   { x: "72%", y: "12%", size: 1.5 },
@@ -257,7 +257,7 @@ export function WebsiteBackground({ variant = "landing" }: WebsiteBackgroundProp
   const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
   const config = VARIANT_CONFIG[variant];
 
-  /* GPU: update spotlight position directly on DOM — zero React re-renders */
+  /* GPU: update spotlight position directly on DOM, zero React re-renders */
   const skipFrame = useRef(false);
   const handleMouseMove = useCallback((e: MouseEvent) => {
     if (isMobile) return;
@@ -285,7 +285,7 @@ export function WebsiteBackground({ variant = "landing" }: WebsiteBackgroundProp
       const bf = Math.max(0.2, 1 - y / 1200);
       const c = containerRef.current;
       if (c) {
-        // Update CSS custom properties directly — zero React re-renders on scroll.
+        // Update CSS custom properties directly, zero React re-renders on scroll.
         c.style.setProperty('--po', String(po));
         c.style.setProperty('--bf-07', String(bf * 0.7));
         c.style.setProperty('--bf-035', String(bf * 0.35));
@@ -512,7 +512,7 @@ export function WebsiteBackground({ variant = "landing" }: WebsiteBackgroundProp
         </div>
       )}
 
-      {/* GPU: spotlight updated via DOM ref — zero re-renders on mouse move */}
+      {/* GPU: spotlight updated via DOM ref, zero re-renders on mouse move */}
       {!isMobile && (
         <div
           ref={spotlightRef}

@@ -48,7 +48,7 @@ export default function Tweaks() {
             transition={{ duration: 0.5, delay: 0.2 }}
           >
             {isElectron
-              ? "Real Windows optimizations — each toggle reads and writes your actual system state and verifies the change."
+              ? "Real Windows optimizations, each toggle reads and writes your actual system state and verifies the change."
               : "Windows performance optimizations. Launch the desktop app to apply real system changes."}
           </motion.p>
         </motion.div>

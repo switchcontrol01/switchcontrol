@@ -552,7 +552,7 @@ function ProtectionTab({
             {securityStatus.firewallEnabled === false && (
               <div className="flex items-center gap-1.5 mt-1.5 pt-1.5 border-t border-red-500/10 text-[11px] text-red-400/85">
                 <ShieldAlert className="size-3 shrink-0" />
-                <span>Windows Firewall is disabled — enable it in Windows Security to protect this device.</span>
+                <span>Windows Firewall is disabled, enable it in Windows Security to protect this device.</span>
               </div>
             )}
             {securityStatus.engineVersion && (
@@ -637,14 +637,14 @@ function ProtectionTab({
               </Button>
             </motion.div>
           )}
-          {/* Org-managed or no data — still offer actions */}
+          {/* Org-managed or no data, still offer actions */}
           {hasSecurity && advProtStatus === "empty" && !advancedProtection && (
             <motion.div key="adv-empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               className="space-y-4" data-testid="adv-state-empty">
               <div className="flex items-start gap-3 bg-amber-400/5 border border-amber-400/20 rounded-xl p-3">
                 <AlertCircle className="size-4 text-amber-400 mt-0.5 shrink-0" />
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Defender settings are restricted — your policy may be managed by your IT team. You can still run maintenance actions below.
+                  Defender settings are restricted, your policy may be managed by your IT team. You can still run maintenance actions below.
                 </p>
               </div>
               <div className="grid grid-cols-2 gap-2">
@@ -679,7 +679,7 @@ function ProtectionTab({
               </div>
             </motion.div>
           )}
-          {/* Success — interactive toggles + score ring */}
+          {/* Success, interactive toggles + score ring */}
           {hasSecurity && advancedProtection && (advProtStatus === "success" || advProtStatus === "empty") && (() => {
             const features = [
               { key: "cloudProtection",        label: "Cloud Protection",        icon: CloudUpload, desc: "Real-time cloud-based threat detection" },
@@ -812,7 +812,7 @@ function ProtectionTab({
               const val = item.days;
               const color = val === null ? "text-zinc-400" : val >= item.critical ? "text-red-400" : val >= item.warn ? "text-amber-400" : "text-emerald-400";
               const label = val === null ? "Unknown" : val === 0 ? "Today" : `${val} day${val !== 1 ? "s" : ""} ago`;
-              const rec = val !== null && val >= item.critical ? "Overdue — action recommended" : val !== null && val >= item.warn ? "Getting stale" : "Fresh";
+              const rec = val !== null && val >= item.critical ? "Overdue, action recommended" : val !== null && val >= item.warn ? "Getting stale" : "Fresh";
               return (
                 <div key={item.label} className="bg-[#1A1F26] rounded-xl p-3">
                   <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">{item.label}</p>
@@ -980,7 +980,7 @@ export default function Security() {
 
   // Defer the PowerShell IPC call until after the page shell has rendered.
   // security:getStatus runs Get-MpComputerStatus + Get-NetFirewallProfile via
-  // PowerShell — cold-start alone can take 2-4 s. Deferring to idle means the
+  // PowerShell, cold-start alone can take 2-4 s. Deferring to idle means the
   // page appears instantly and data fills in shortly after.
   useEffect(() => {
     if (!hasSecurity) return;
@@ -1006,13 +1006,13 @@ export default function Security() {
     }, 3000);
   }, [hasSecurity]); // eslint-disable-line
 
-  // Auto-fetch Advanced Protection on mount — same idle-defer pattern.
+  // Auto-fetch Advanced Protection on mount, same idle-defer pattern.
   // Previously this was ONLY populated by Smart Scan, leaving the card
   // permanently stuck on the placeholder unless the user ran a full scan.
   useEffect(() => {
     if (!hasSecurity) return;
     runWhenIdle(() => {
-      console.log("[AdvancedProtection] page mounted — starting fetch");
+      console.log("[AdvancedProtection] page mounted, starting fetch");
       setAdvProtStatus("loading");
       setAdvProtError(null);
       timingMark("getAdvancedProtection-start");
@@ -1022,7 +1022,7 @@ export default function Security() {
           timingMark("getAdvancedProtection-done");
           if (r?.available && r.data) {
             const hasAnyValue = Object.values(r.data).some(v => v !== null);
-            console.log("[AdvancedProtection] parsed result — hasAnyValue:", hasAnyValue, "data:", r.data);
+            console.log("[AdvancedProtection] parsed result, hasAnyValue:", hasAnyValue, "data:", r.data);
             setAdvancedProtection(r.data);
             setAdvProtStatus(hasAnyValue ? "success" : "empty");
           } else {
@@ -1062,7 +1062,7 @@ export default function Security() {
       console.log("[AdvancedProtection] IPC response:", r);
       if (r?.available && r.data) {
         const hasAnyValue = Object.values(r.data).some(v => v !== null);
-        console.log("[AdvancedProtection] parsed — hasAnyValue:", hasAnyValue);
+        console.log("[AdvancedProtection] parsed, hasAnyValue:", hasAnyValue);
         setAdvancedProtection(r.data);
         setAdvProtStatus(hasAnyValue ? "success" : "empty");
         console.log("[AdvancedProtection] UI state updated → success");
@@ -1116,7 +1116,7 @@ export default function Security() {
         toast({
           title: restricted ? `${label} restricted` : `${label} failed`,
           description: restricted
-            ? "Defender is managed by your IT policy — this action cannot be run here."
+            ? "Defender is managed by your IT policy, this action cannot be run here."
             : (r?.message || "The action did not complete. Check that Windows Defender is running."),
           variant: "destructive",
         });

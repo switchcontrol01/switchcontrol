@@ -1,5 +1,5 @@
 /**
- * System Intelligence Store — single shared source of hardware truth.
+ * System Intelligence Store, single shared source of hardware truth.
  *
  * Fetches the profile once, caches it for CACHE_TTL_MS, and exposes
  * reactive access to all components. Any page can call useSystemIntelligence()
@@ -168,7 +168,7 @@ export interface SystemIntelligenceProfile {
 
 const CACHE_TTL_MS = 30 * 60 * 1000;
 
-// Session-level flag — survives component unmount/remount across all routes.
+// Session-level flag, survives component unmount/remount across all routes.
 // Once the initial inventory is loaded, no page remount will re-trigger deep polling.
 let _initSpecsFetched = false;
 // Prevents the delayed full-profile upgrade from being scheduled more than once.
@@ -211,7 +211,7 @@ export const useSystemIntelligenceStore = create<SystemIntelligenceState>((set, 
     const generation = ++_fetchGeneration;
     set({ loading: true, error: null });
     try {
-      // Initial load uses /fast — Phase A identity data (CPU, GPU, MB, BIOS, RAM).
+      // Initial load uses /fast, Phase A identity data (CPU, GPU, MB, BIOS, RAM).
       // Returns instantly on warm launches (disk cache hit); <5s on first launch.
       // Force-refresh uses /refresh to trigger a full WMI re-collect.
       const endpoint = forceRefresh

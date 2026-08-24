@@ -8,7 +8,7 @@ export function TelemetryLineOverlay() {
   const svgPrimaryRef = useRef<SVGSVGElement>(null);
   const svgSecondaryRef = useRef<SVGSVGElement>(null);
 
-  // Drive all transforms imperatively — zero React re-renders on scroll.
+  // Drive all transforms imperatively, zero React re-renders on scroll.
   const handleScroll = useCallback(() => {
     if (isMobileInit) return;
     if (rafRef.current !== null) return;

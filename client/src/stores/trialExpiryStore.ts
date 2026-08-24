@@ -14,8 +14,7 @@
  *  3. User closes PremiumRevertModal → stopRevertFlow()             ← atomic: clears both fields
  *  4. Premium gates resume normal behaviour
  *
- * Prefer startRevertFlow / stopRevertFlow over the individual setters —
- * using them together eliminates the render frame where trialEndingFlowActive
+ * Prefer startRevertFlow / stopRevertFlow over the individual setters, * using them together eliminates the render frame where trialEndingFlowActive
  * is true but revertReason is still null/stale.
  */
 
@@ -33,14 +32,14 @@ export type RevertReason =
 interface TrialExpiryStore {
   /** True while the revert flow is running and the revert modal is open. */
   trialEndingFlowActive: boolean;
-  /** Why the premium access was lost — drives modal copy. */
+  /** Why the premium access was lost, drives modal copy. */
   revertReason: RevertReason;
 
   /**
    * Atomically activate the flow and record the reason in a single set() call.
    * Prevents the intermediate render frame where the flow is active but
    * revertReason is still null/stale from a previous run.
-   * No-ops if the flow is already active — first trigger wins, preventing a
+   * No-ops if the flow is already active, first trigger wins, preventing a
    * concurrent second trigger (e.g. webhook + client timer) from clobbering
    * the reason mid-revert.
    */
@@ -48,8 +47,8 @@ interface TrialExpiryStore {
 
   /**
    * Atomically deactivate the flow and clear the reason in a single set() call.
-   * Always call this from every close path — closeRevertModal, error boundaries,
-   * etc. — to guarantee trialEndingFlowActive never gets stuck true after a
+   * Always call this from every close path, closeRevertModal, error boundaries,
+   * etc., to guarantee trialEndingFlowActive never gets stuck true after a
    * modal crash (which would silently disable all premium gates app-wide).
    */
   stopRevertFlow: () => void;
@@ -65,11 +64,11 @@ export const useTrialExpiryStore = create<TrialExpiryStore>()((set, get) => ({
 
   startRevertFlow: (reason) => {
     if (get().trialEndingFlowActive) {
-      // Already running — first trigger wins. Log and bail so a concurrent
+      // Already running, first trigger wins. Log and bail so a concurrent
       // second trigger (e.g. webhook + client-side timer) can't overwrite the
       // reason that the active revert is already acting on.
       if (import.meta.env.DEV) {
-        console.log(`[TrialExpiry] startRevertFlow(${reason}) ignored — flow already active`);
+        console.log(`[TrialExpiry] startRevertFlow(${reason}) ignored, flow already active`);
       }
       return;
     }
@@ -81,7 +80,7 @@ export const useTrialExpiryStore = create<TrialExpiryStore>()((set, get) => ({
 
   stopRevertFlow: () => {
     if (import.meta.env.DEV) {
-      console.log('[TrialExpiry] stopRevertFlow — resetting flow');
+      console.log('[TrialExpiry] stopRevertFlow, resetting flow');
     }
     set({ trialEndingFlowActive: false, revertReason: null });
   },

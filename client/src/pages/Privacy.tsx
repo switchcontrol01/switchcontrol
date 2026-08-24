@@ -79,7 +79,7 @@ export default function Privacy() {
                 <li>Network configuration data used by network optimization features</li>
               </ul>
               <p className="text-[#A0A8B3] leading-relaxed mt-2">
-                This data is used locally to power the app's features. We collect only what is needed to provide functionality, analysis, and support — and nothing more.
+                This data is used locally to power the app's features. We collect only what is needed to provide functionality, analysis, and support, and nothing more.
               </p>
             </section>
 
@@ -119,9 +119,9 @@ export default function Privacy() {
               <h2 className="text-xl font-semibold text-[#E6EAF0] mb-3">8. Sharing and service providers</h2>
               <p className="text-[#A0A8B3] leading-relaxed mb-2">We may share data with trusted third parties who help operate the service:</p>
               <ul className="list-disc list-inside text-[#A0A8B3] space-y-1 ml-2">
-                <li><span className="text-[#E6EAF0]">Payment processors</span> — to complete and verify purchases</li>
-                <li><span className="text-[#E6EAF0]">Authentication providers</span> — such as Google, to handle sign-in</li>
-                <li><span className="text-[#E6EAF0]">Hosting and infrastructure providers</span> — to run and deliver the service</li>
+                <li><span className="text-[#E6EAF0]">Payment processors</span>, to complete and verify purchases</li>
+                <li><span className="text-[#E6EAF0]">Authentication providers</span>, such as Google, to handle sign-in</li>
+                <li><span className="text-[#E6EAF0]">Hosting and infrastructure providers</span>, to run and deliver the service</li>
               </ul>
               <p className="text-[#A0A8B3] leading-relaxed mt-3">
                 We do not sell your personal information. We do not share data for advertising purposes.

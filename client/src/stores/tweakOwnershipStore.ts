@@ -269,7 +269,7 @@ export const useTweakOwnershipStore = create<TweakOwnershipState>()(
             conflictDetected: false,
           },
         });
-        console.log(`[Ownership:PLAN] recorded apply — prev="${previousName}" (${previousGuid}) → applied="${appliedName}" (${appliedGuid})`);
+        console.log(`[Ownership:PLAN] recorded apply, prev="${previousName}" (${previousGuid}) → applied="${appliedName}" (${appliedGuid})`);
       },
 
       recordPowerPlanRevertSuccess() {
@@ -303,7 +303,7 @@ export const useTweakOwnershipStore = create<TweakOwnershipState>()(
           }
           return { appliedTweaks: remaining, networkTweaks: {}, powerPlan: null };
         });
-        console.log('[Ownership] clearPremiumOwnership — app-applied premium entries removed');
+        console.log('[Ownership] clearPremiumOwnership, app-applied premium entries removed');
       },
     }),
     {

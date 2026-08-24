@@ -214,7 +214,7 @@ function computeCustomImpact(s: CustomSettings): { latency: number; speed: numbe
   let speed   = 25;
   let battery = 72;
 
-  // Max processor state (5–100) — dominant factor
+  // Max processor state (5–100), dominant factor
   const maxR = s.maxProcessorState / 100;
   const minR = s.minProcessorState / 100;
   latency += Math.round(maxR * 26 + minR * 14);
@@ -316,7 +316,7 @@ function VerificationBadge({ match, loading }: { match?: string; loading?: boole
   if (loading) return <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#21262D] border border-[#2A313A] text-[11px] text-[#6B7380]"><span className="size-1.5 rounded-full bg-[#1A1F26]0 animate-pulse" /> Checking…</span>;
   if (!match) return null;
   const states = {
-    exact_match:      { icon: <ShieldCheck className="size-3" />, label: "Verified — Exact Match", cls: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" },
+    exact_match:      { icon: <ShieldCheck className="size-3" />, label: "Verified, Exact Match", cls: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" },
     close_match:      { icon: <AlertTriangle className="size-3" />, label: "Close Match", cls: "bg-amber-500/15 text-amber-400 border-amber-500/30" },
     custom_modified:  { icon: <Settings2 className="size-3" />, label: "Custom State", cls: "bg-blue-500/15 text-blue-400 border-blue-500/30" },
     unknown:          { icon: <ShieldX className="size-3" />, label: "Unknown State", cls: "bg-[#2A313A] text-[#6B7380] border-[#2A313A]" },
@@ -543,7 +543,7 @@ function ImpactComparisonPanel({
         <div className="flex items-center gap-2 mb-5 flex-wrap">
           <Activity className="size-4 shrink-0" style={{ color: toTheme.accent }} />
           <span className="text-sm font-semibold text-[#E6EAF0]">Performance Impact</span>
-          <span className="text-xs text-[#6B7380]">— estimated visual comparison</span>
+          <span className="text-xs text-[#6B7380]">estimated visual comparison</span>
           <span
             className="ml-auto text-[10px] px-2.5 py-0.5 rounded-full font-medium border"
             style={{ backgroundColor: `${toTheme.accent}18`, color: toTheme.accent, borderColor: `${toTheme.accent}30` }}
@@ -873,10 +873,10 @@ export default function PowerPlan() {
       const api = (window as any).electronAPI?.powerPlans;
       // Wrap in an 8-second timeout so a hung powercfg call (e.g. when the PS
       // limiter is saturated at startup) never leaves the page stuck in an
-      // invisible loading state — we surface an error + retry button instead.
+      // invisible loading state, we surface an error + retry button instead.
       const withTimeout = <T,>(p: Promise<T>, ms: number): Promise<T> => {
         const timer = new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error("Power state read timed out — try again in a moment.")), ms),
+          setTimeout(() => reject(new Error("Power state read timed out, try again in a moment.")), ms),
         );
         return Promise.race([p, timer]);
       };
@@ -904,10 +904,10 @@ export default function PowerPlan() {
 
   useEffect(() => {
     if (hasFetched.current) return;
-    console.info("[PowerPlan] mounted — isElectron=%s isPremium=%s", isElectron, isPremium);
+    console.info("[PowerPlan] mounted, isElectron=%s isPremium=%s", isElectron, isPremium);
     // 350ms grace period: if the user navigates away before the timer fires
     // (rapid sidebar spam), clearTimeout cancels cleanly and hasFetched stays
-    // false so the NEXT mount can retry — prevents powercfg.exe from being
+    // false so the NEXT mount can retry, prevents powercfg.exe from being
     // spawned on every rapid page visit.
     const t = setTimeout(() => {
       hasFetched.current = true;
@@ -965,8 +965,8 @@ export default function PowerPlan() {
     if (!profile) return;
 
     if (!isElectron) {
-      logHistory(`Power Plan: ${profile.name}`, "Power Plan", "Simulated", "Web preview — no real system change");
-      toast({ title: "Profile Activated (Demo)", description: `${profile.name} — Windows only for real changes.` });
+      logHistory(`Power Plan: ${profile.name}`, "Power Plan", "Simulated", "Web preview, no real system change");
+      toast({ title: "Profile Activated (Demo)", description: `${profile.name}, Windows only for real changes.` });
       return;
     }
 
@@ -1265,7 +1265,7 @@ export default function PowerPlan() {
         )}
 
         {/* ══════════════════════════════════════════════════════════════════
-            SECTION 1 — HERO STATUS PANEL
+            SECTION 1, HERO STATUS PANEL
         ══════════════════════════════════════════════════════════════════ */}
         <div
           className="relative overflow-hidden rounded-2xl border border-[#2A313A] p-6 md:p-8"
@@ -1292,7 +1292,7 @@ export default function PowerPlan() {
               </button>
             </div>
 
-            {/* Active plan name — always occupies space; content fades in once loaded */}
+            {/* Active plan name, always occupies space; content fades in once loaded */}
             <div className="mb-4" style={{ minHeight: "4rem" }}>
               <AnimatePresence mode="wait" initial={false}>
                 {planLoading ? (
@@ -1358,7 +1358,7 @@ export default function PowerPlan() {
         </div>
 
         {/* ══════════════════════════════════════════════════════════════════
-            SECTION 2 — TABS
+            SECTION 2, TABS
         ══════════════════════════════════════════════════════════════════ */}
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "profiles" | "custom")} className="space-y-6">
           <TabsList className="bg-[#14181D]/80 border border-[#2A313A]">
@@ -1376,7 +1376,7 @@ export default function PowerPlan() {
           <TabsContent value="profiles" className="space-y-6">
 
             {/* ── Premium Profile Cards ─────────────────────────────────── */}
-            {/* Cards use static POWER_PROFILES data — always render immediately.
+            {/* Cards use static POWER_PROFILES data, always render immediately.
                 The "Active" badge and verification badge update naturally once
                 planLoading resolves, with no skeleton flash or empty boxes. */}
             {(
@@ -1662,7 +1662,7 @@ export default function PowerPlan() {
                     <div>
                       <h3 className="text-base font-semibold text-[#E6EAF0] flex items-center gap-2">
                         <displayProfile.icon className="size-4 text-primary" />
-                        {displayProfile.name} — Windows Configuration
+                        {displayProfile.name}, Windows Configuration
                       </h3>
                       <p className="text-xs text-muted-foreground mt-0.5">
                         {backendState?.breakdown && activeProfileId === displayProfile.id
@@ -1712,7 +1712,7 @@ export default function PowerPlan() {
                     })}
                   </div>
 
-                  {/* Estimated Performance Impact — custom (live) */}
+                  {/* Estimated Performance Impact, custom (live) */}
                   {effectiveCustomApplied && (() => {
                     const impact = computeCustomImpact(localState.customSettings);
                     const t = PROFILE_THEME.custom;
@@ -1749,7 +1749,7 @@ export default function PowerPlan() {
                     );
                   })()}
 
-                  {/* Estimated Performance Impact — preset profiles */}
+                  {/* Estimated Performance Impact, preset profiles */}
                   {activeProfileId && activeProfileId !== "custom" && (() => {
                     const t = PROFILE_THEME[activeProfileId];
                     const impact = PROFILE_IMPACT[activeProfileId];
@@ -2079,7 +2079,7 @@ export default function PowerPlan() {
                   {applyingCustom ? (
                     <><Loader2 className="size-4 mr-2 animate-spin" /> Applying…</>
                   ) : effectiveCustomApplied ? (
-                    <><Check className="size-4 mr-2" /> Active — Re-apply</>
+                    <><Check className="size-4 mr-2" /> Active, Re-apply</>
                   ) : (
                     <><Zap className="size-4 mr-2" /> Apply Custom Plan</>
                   )}
