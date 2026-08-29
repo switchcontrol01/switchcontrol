@@ -78,6 +78,7 @@ import { useSystemConditionsStore } from "@/stores/systemConditionsStore";
 import { useToast } from "@/hooks/use-toast";
 import { UserPreferencesSync } from "@/components/UserPreferencesSync";
 import { I18nProvider } from "@/lib/i18n";
+import { clearTourState } from "@/lib/tour-store";
 
 import Splash from "@/screens/Splash";
 import CameraGlow from "@/screens/CameraGlow";
@@ -913,6 +914,7 @@ function ElectronAppContent() {
   useEffect(() => {
     if (isResetting) return;
     if (suppressFlowsRef.current) return;
+    if (isSigningOut) return;
     if (!user?.loggedIn) return;
     if (phase !== "authenticated") return;
     if (!isPhaseStable) return;
@@ -1076,6 +1078,7 @@ function ElectronAppContent() {
     showDisclaimer,
     showPendingActivation,
     showPatchNotes,
+    isSigningOut,
     revertModalOpen,
     promoOpen,
   ]);
@@ -1340,12 +1343,22 @@ function ElectronAppContent() {
                 livePhase === "language"
               ) {
                 // Already showing the app (fast-path boot beat the deep-link).
-                // Navigate to dashboard without flashing the login screen.
+                // Navigate to dashboard without flashing the login screen,
+                // except when the required language gate is already active.
                 console.log(
                   `[Auth] returning user, phase=${livePhase}, navigating to dashboard`,
                 );
-                if (livePhase !== "authenticated") setPhase("authenticated");
-                setLocation("/dashboard");
+                if (livePhase === "language") {
+                  // The cached-session fast path may have mounted the required
+                  // language gate before this late callback arrived. Never let
+                  // the callback bypass that gate.
+                  console.log(
+                    "[Auth] callback arrived while language gate is active; leaving gate mounted",
+                  );
+                } else {
+                  if (livePhase !== "authenticated") setPhase("authenticated");
+                  setLocation("/dashboard");
+                }
               } else {
                 // Login screen is visible, do the polished blur-exit.
                 setPhase("login_success");
@@ -1639,12 +1652,15 @@ function ElectronAppContent() {
     // Capture userId now, the store is wiped by performFullLogout below.
     const logoutUserId = user?.id ?? null;
 
-    // 0. Immediately dismiss any active flow (tour, unlock animation, etc.)
-    //    so the overlay doesn't persist into the sign-out transition.
+    // 0. Suspend flow evaluation and dismiss any active flow (tour, unlock
+    //    animation, etc.). This must happen before the auth store is wiped;
+    //    otherwise the evaluator can restart a first-run tour while sign-out
+    //    is still transitioning.
+    setIsSigningOut(true);
+    clearTourState();
     setActiveFlow("none");
 
-    // 1. Immediately lock interactions and start the visual fade-out
-    setIsSigningOut(true);
+    // 1. Lock interactions and start the visual fade-out
 
     // 2. Kick off backend logout concurrently so network time is "free"
     const logoutPromise = performFullLogout("user_clicked_signout");
