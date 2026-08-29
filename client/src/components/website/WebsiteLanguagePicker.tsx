@@ -30,6 +30,7 @@ export function WebsiteLanguagePicker({ mobile = false }: { mobile?: boolean }) 
     const value = `${locale.nativeName} ${locale.englishName} ${locale.code}`.toLowerCase();
     return value.includes(query.trim().toLowerCase());
   });
+  const shortCode = current.code.split("-")[0].toUpperCase();
 
   return (
     <div ref={pickerRef} className={`relative ${mobile ? "w-full" : "shrink-0"}`}>
@@ -41,15 +42,15 @@ export function WebsiteLanguagePicker({ mobile = false }: { mobile?: boolean }) 
         }}
         className={mobile
           ? "group flex w-full items-center justify-center gap-2 rounded-xl border border-cyan-300/25 bg-cyan-400/[0.08] px-4 py-2.5 text-sm font-semibold text-white/85 transition-all hover:border-cyan-200/50 hover:bg-cyan-300/[0.14]"
-          : "group flex h-10 items-center gap-2 rounded-xl border border-cyan-300/30 bg-cyan-400/[0.10] px-3 text-sm font-semibold text-white/90 shadow-[0_0_22px_rgba(0,212,255,0.10)] transition-all hover:border-cyan-200/60 hover:bg-cyan-300/[0.16] hover:shadow-[0_0_28px_rgba(0,212,255,0.18)]"}
+          : "group flex h-8 items-center gap-1.5 rounded-lg border border-cyan-300/30 bg-cyan-400/[0.10] px-2.5 text-xs font-semibold text-white/90 shadow-[0_0_18px_rgba(0,212,255,0.08)] transition-all hover:border-cyan-200/60 hover:bg-cyan-300/[0.16] hover:shadow-[0_0_24px_rgba(0,212,255,0.15)]"}
         aria-label={t("Website language")}
         aria-expanded={open}
         aria-haspopup="dialog"
         data-testid="button-website-language"
       >
-        <Languages className="size-4 text-cyan-200 transition-transform duration-300 group-hover:rotate-12" />
-        <span className={mobile ? "" : "hidden sm:inline"}>{current.code === "en" ? "EN" : current.code}</span>
-        <ChevronDown className={`size-3.5 text-white/50 transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
+        <Languages className={mobile ? "size-4 text-cyan-200 transition-transform duration-300 group-hover:rotate-12" : "size-3.5 text-cyan-200 transition-transform duration-300 group-hover:rotate-12"} />
+        <span className={mobile ? "" : "hidden sm:inline"}>{shortCode}</span>
+        <ChevronDown className={`size-3 text-white/50 transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
       </button>
 
       {open && (
