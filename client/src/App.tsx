@@ -85,6 +85,7 @@ import LoginScreen from "@/screens/Login";
 import { WelcomeAnimation } from "@/components/WelcomeAnimation";
 import { OnboardingTour } from "@/components/OnboardingTour";
 import { FirstRunDisclaimer } from "@/components/FirstRunDisclaimer";
+import { FirstRunLanguageModal } from "@/components/FirstRunLanguageModal";
 const _isElectronRuntime =
   typeof window !== "undefined" && !!(window as any).electronAPI?.isElectron;
 // Build-selected route map: the web build uses route chunks, while the
@@ -154,6 +155,7 @@ type AppPhase =
   | "booting"
   | "unauthenticated"
   | "login_success"
+  | "language"
   | "welcome"
   | "disclaiming"
   | "authenticated";
@@ -401,6 +403,7 @@ function ElectronAppContent() {
   // exclusive with onboarding and with each other.
   const competingOverlayActive =
     revertModalOpen ||
+    phase === "language" ||
     showDisclaimer ||
     showPendingActivation ||
     showPatchNotes ||
@@ -743,7 +746,14 @@ function ElectronAppContent() {
     const delay = isFirstLogin ? 500 : 300;
     const t = setTimeout(() => {
       if (isFirstLogin) {
-        setPhase("welcome");
+        const languageKey = user?.id
+          ? `sc_language_prompt_seen_${user.id}`
+          : null;
+        setPhase(
+          user?.loggedIn && user.id && languageKey && !localStorage.getItem(languageKey)
+            ? "language"
+            : "welcome",
+        );
       } else {
         setPhase("authenticated");
         setLocation("/dashboard");
@@ -1301,7 +1311,8 @@ function ElectronAppContent() {
               if (
                 livePhase === "authenticated" ||
                 livePhase === "welcome" ||
-                livePhase === "disclaiming"
+                livePhase === "disclaiming" ||
+                livePhase === "language"
               ) {
                 // Boot fast-path already moved us to "welcome" (or beyond) before
                 // the deep-link arrived, any login_success transition here would
@@ -1313,7 +1324,8 @@ function ElectronAppContent() {
                 if (livePhase === "authenticated") {
                   setPhase("welcome");
                 }
-                // "welcome" / "disclaiming", already in the right animation; leave it alone.
+                // "welcome" / "disclaiming" / "language", already in the right
+                // animation or required first-session gate; leave it alone.
               } else {
                 // Normal path: login screen is visible, do the clean two-step
                 // login_success → welcome transition.
@@ -1324,7 +1336,8 @@ function ElectronAppContent() {
               if (
                 livePhase === "authenticated" ||
                 livePhase === "welcome" ||
-                livePhase === "disclaiming"
+                livePhase === "disclaiming" ||
+                livePhase === "language"
               ) {
                 // Already showing the app (fast-path boot beat the deep-link).
                 // Navigate to dashboard without flashing the login screen.
@@ -1466,7 +1479,10 @@ function ElectronAppContent() {
         if (!hasBeenWelcomedFast) {
           setIsFirstLogin(true);
           localStorage.setItem(welcomeKeyFast, "true");
-          setPhase("welcome");
+          const languageKeyFast = `sc_language_prompt_seen_${user!.id}`;
+          setPhase(
+            !localStorage.getItem(languageKeyFast) ? "language" : "welcome",
+          );
         } else {
           setPhase("authenticated");
         }
@@ -1526,7 +1542,10 @@ function ElectronAppContent() {
           if (!hasBeenWelcomed) {
             setIsFirstLogin(true);
             localStorage.setItem(welcomeKey, "true");
-            setPhase("welcome");
+            const languageKey = `sc_language_prompt_seen_${targetUser.id}`;
+            setPhase(
+              !localStorage.getItem(languageKey) ? "language" : "welcome",
+            );
           } else {
             setPhase("authenticated");
           }
@@ -1573,7 +1592,10 @@ function ElectronAppContent() {
           if (!hasBeenWelcomed) {
             setIsFirstLogin(true);
             localStorage.setItem(welcomeKey, "true");
-            setPhase("welcome");
+            const languageKey = `sc_language_prompt_seen_${targetUser.id}`;
+            setPhase(
+              !localStorage.getItem(languageKey) ? "language" : "welcome",
+            );
           } else {
             setPhase("authenticated");
           }
@@ -2053,6 +2075,22 @@ function ElectronAppContent() {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Required first-session language choice. The session is already
+            authenticated at this point; the modal must complete before the
+            welcome animation and any onboarding surface can begin. */}
+        {phase === "language" && user?.loggedIn && user.id && (
+          <FirstRunLanguageModal
+            userId={user.id}
+            accountLabel={user.username || user.email || user.id}
+            onComplete={() => {
+              console.log(
+                "[FirstRunLanguage] choice saved, transitioning to welcome",
+              );
+              setPhase("welcome");
+            }}
+          />
+        )}
 
         {/* First-run disclaimer, overlays the welcome screen for brand-new users.
             Shows between welcome animation end and dashboard mount. z-9998 so it

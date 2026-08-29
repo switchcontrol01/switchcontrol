@@ -81,3 +81,4 @@
 - [Vite mode-aware config](vite-mode-config.md) — custom dev-server setup must resolve a mode-aware Vite config before spreading it into createViteServer.
 - [Public website localization](public-website-localization.md) — reviewed marketing copy needs explicit locale keys; fallback tests protect against a translated selector with English page content.
 - [Debloater result semantics](debloat-result-semantics.md) — preserve present/absent/unknown states; elevated no-ops need output markers and verification failures are never success.
+- [First-run language gate](first-run-language-gate.md) — authenticated new users must persist a language choice before welcome, disclaimer, onboarding, promos, or patch notes can start.
