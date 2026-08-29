@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from '@/lib/motionTokens';
 import { useLocation } from 'wouter';
 import { ChevronRight, ChevronLeft, X } from 'lucide-react';
-import { useTourStore } from '@/lib/tour-store';
+import { clearTourState, useTourStore } from '@/lib/tour-store';
 import { TOUR_COMPLETION_TIMING, TOUR_STEP_TIMING, tourPalette } from '@/lib/tourMotionTokens';
 import logoImg from '@/assets/logo.webp';
 
@@ -394,6 +394,16 @@ export function TourShell({
   stepsRef.current = steps;
   const [, navigate] = useLocation();
   const { setTourHighlight, setTourActive, setTourNavigating } = useTourStore();
+
+  // A parent can unmount the tour immediately (sign-out, reset, or an auth
+  // rejection) without giving this component a render where show=false. Clear
+  // the global lock on every unmount so the sidebar and future auth screen
+  // cannot inherit stale tour state.
+  useEffect(() => {
+    return () => {
+      clearTourState();
+    };
+  }, []);
 
   const applyStep = useCallback((index: number) => {
     const s = stepsRef.current[index];

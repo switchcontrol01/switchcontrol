@@ -24,3 +24,15 @@ export const useTourStore = create<TourStore>((set, get) => ({
     }
   },
 }));
+
+// TourShell can be removed directly by a parent flow change (for example,
+// sign-out) without ever rendering once with show=false. Keep a synchronous
+// reset available for those unmount paths so the sidebar cannot remain dimmed
+// or locked behind an orphaned portal.
+export function clearTourState() {
+  useTourStore.setState({
+    activeTourHighlight: null,
+    isTourActive: false,
+    isTourNavigating: false,
+  });
+}
