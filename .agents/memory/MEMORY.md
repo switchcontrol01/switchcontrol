@@ -75,3 +75,4 @@
 - [Windows msinfo32 popup](windows-msinfo32-popup.md) — hidden msinfo32 report launches can still display a System Information dialog; use direct registry probes instead.
 - [Partial system profile cache](partial-system-profile-cache.md) — focused identity results must remain stale until the complete inventory finishes, or deep polling falsely accepts partial data.
 - [Cleaner long-operation UX](cleaner-long-operation-ux.md) — native cleanup can legitimately take nearly a minute; expose elapsed state and cancellation, and always exit the cleaning phase on persistence errors.
+- [Network diagnostics polling](network-diagnostics-polling.md) — pace probes from completed responses; cooldowns are backoff feedback, not monitor failures.

@@ -71,7 +71,10 @@ function buildGraph(history: PingSample[], spikes: SpikeEvent[]) {
 // ─── Live Graph SVG ───────────────────────────────────────────────────────────
 
 function LiveGraph({ history, spikes }: { history: PingSample[]; spikes: SpikeEvent[] }) {
-  const hasData = history.length >= 2;
+  // Show the first sample immediately. The server deliberately paces probes,
+  // so waiting for a second sample made a healthy scan look like a broken
+  // empty graph for the entire first interval.
+  const hasData = history.length >= 1;
   const { linePath, areaPath, gridVals, svgY, spikePts, lastPt } = buildGraph(history, spikes);
 
   return (

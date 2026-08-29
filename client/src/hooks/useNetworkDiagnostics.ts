@@ -148,7 +148,7 @@ export function useNetworkDiagnostics(): DiagnosticsState {
   const [applyDnsError, setApplyDnsError]           = useState<string | null>(null);
   const applyDnsResetRef                            = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const intervalRef        = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pollTimerRef       = useRef<ReturnType<typeof setTimeout> | null>(null);
   const spikeTimestampsRef = useRef<number[]>([]);
   const mountedRef         = useRef(true);
   // Polling remains active only after the user explicitly starts a scan.
@@ -156,6 +156,8 @@ export function useNetworkDiagnostics(): DiagnosticsState {
   const historyRef         = useRef<PingSample[]>([]);
   const consecutiveFailRef = useRef(0);
   const sampleInFlightRef = useRef(false);
+  const monitoringRef = useRef(false);
+  const nextPollDelayRef = useRef<number | null>(null);
 
   const fetchSample = useCallback(async () => {
     if (sampleInFlightRef.current || document.hidden) return;
@@ -171,7 +173,7 @@ export function useNetworkDiagnostics(): DiagnosticsState {
 
        if (!resp.ok) {
           console.warn("[NetworkDiagnostics]", JSON.stringify({ event: "ping_response", status: resp.status, ts: new Date().toISOString() }));
-         if (resp.status === 429) {
+          if (resp.status === 429) {
            let retryAfter = 30;
            try {
              const body = await resp.json() as { retryAfter?: number };
@@ -227,10 +229,19 @@ export function useNetworkDiagnostics(): DiagnosticsState {
 
       consecutiveFailRef.current++;
       console.warn("[NetworkDiagnostics]", JSON.stringify({ event: "ping_failed", timeout: isAbort, consecutiveFailures: consecutiveFailRef.current, error: msg, ts: new Date().toISOString() }));
-       if (err instanceof Error && err.message.startsWith("Probe cooldown active")) {
-         setMonitorError(err.message);
-         setMonitorPhase("error");
-       } else if (consecutiveFailRef.current >= 2) {
+      if (err instanceof Error && err.message.startsWith("Probe cooldown active")) {
+        const retryAfter = Number(err.message.match(/in (\d+)s/)?.[1] ?? 30);
+        // A 429 is an expected server-side pacing response, not a broken
+        // monitor. Back off beyond the advertised window and keep the
+        // existing live/starting state so the graph does not flash red.
+        nextPollDelayRef.current = Math.max(1_000, (retryAfter + 1) * 1_000);
+        console.info("[NetworkDiagnostics]", JSON.stringify({
+          event: "ping_backoff",
+          retryAfter,
+          nextPollInMs: nextPollDelayRef.current,
+          ts: new Date().toISOString(),
+        }));
+      } else if (consecutiveFailRef.current >= 2) {
         setMonitorError(msg);
         setMonitorPhase("error");
       }
@@ -239,11 +250,23 @@ export function useNetworkDiagnostics(): DiagnosticsState {
     }
   }, []);
 
+  const scheduleNextPoll = useCallback((delayMs?: number) => {
+    if (!monitoringRef.current || sampleInFlightRef.current) return;
+    if (pollTimerRef.current) clearTimeout(pollTimerRef.current);
+    const delay = delayMs ?? nextPollDelayRef.current ?? Math.round(BASE_POLL_INTERVAL_MS * getPollingMultiplier());
+    nextPollDelayRef.current = null;
+    pollTimerRef.current = setTimeout(() => {
+      pollTimerRef.current = null;
+      void fetchSample().finally(() => scheduleNextPoll());
+    }, Math.max(1_000, delay));
+  }, [fetchSample]);
+
   const startMonitoring = useCallback(() => {
     if (document.hidden) return;
-    if (intervalRef.current) return;
+    if (monitoringRef.current) return;
     consecutiveFailRef.current = 0;
     historyRef.current = [];
+    monitoringRef.current = true;
     setIsMonitoring(true);
     setMonitorPhase("starting");
     setMonitorError(null);
@@ -254,33 +277,32 @@ export function useNetworkDiagnostics(): DiagnosticsState {
     setHealth(null);
     console.info("[NetworkDiagnostics]", JSON.stringify({ event: "monitoring_started", ts: new Date().toISOString() }));
     spikeTimestampsRef.current = [];
-    fetchSample();
-    intervalRef.current = setInterval(fetchSample, Math.round(BASE_POLL_INTERVAL_MS * getPollingMultiplier()));
-  }, [fetchSample]);
+    void fetchSample().finally(() => scheduleNextPoll());
+  }, [fetchSample, scheduleNextPoll]);
 
   const stopMonitoring = useCallback(() => {
     console.info("[NetworkDiagnostics]", JSON.stringify({ event: "monitoring_stopped", ts: new Date().toISOString() }));
+    monitoringRef.current = false;
     setIsMonitoring(false);
     setMonitorPhase("off");
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
+    if (pollTimerRef.current) {
+      clearTimeout(pollTimerRef.current);
+      pollTimerRef.current = null;
     }
   }, []);
 
   const retryMonitoring = useCallback(() => {
-    if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
+    monitoringRef.current = false;
+    if (pollTimerRef.current) { clearTimeout(pollTimerRef.current); pollTimerRef.current = null; }
     startMonitoring();
   }, [startMonitoring]);
 
   // Reschedule the live interval immediately when ApplicationMode changes
   // while monitoring is already active, instead of waiting for the old tick.
   useEffect(() => {
-    if (!intervalRef.current) return;
-    clearInterval(intervalRef.current);
-    intervalRef.current = setInterval(fetchSample, Math.round(BASE_POLL_INTERVAL_MS * getPollingMultiplier()));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [appMode]);
+    if (!monitoringRef.current || sampleInFlightRef.current) return;
+    scheduleNextPoll();
+  }, [appMode, scheduleNextPoll]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -292,11 +314,11 @@ export function useNetworkDiagnostics(): DiagnosticsState {
 
     return () => {
       mountedRef.current = false;
+      monitoringRef.current = false;
       document.removeEventListener("visibilitychange", handleVisibility);
-      if (intervalRef.current) clearInterval(intervalRef.current);
+      if (pollTimerRef.current) clearTimeout(pollTimerRef.current);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [stopMonitoring]);
 
   // ── Benchmark ────────────────────────────────────────────────────────────────
 
