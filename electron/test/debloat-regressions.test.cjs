@@ -15,6 +15,7 @@ const debloaterRoute = fs.readFileSync(
   path.join(process.cwd(), "server/routes/debloater.ts"),
   "utf8",
 );
+const contract = require(path.join(process.cwd(), "electron/debloat-contract.cjs"));
 
 test("curated Debloat removal captures output before classifying the result", () => {
   const removeHandler = debloat.match(
@@ -59,4 +60,51 @@ test("Debloat scan normalizes structured Electron states and preserves detailed 
     /error = eResult\.errorDetail \?\? eResult\.error/,
     "the server must prefer detailed Electron errors when persisting results",
   );
+});
+
+test("curated Debloat IPC accepts only canonical identities and values", () => {
+  assert.equal(contract.getCanonicalItemIds().length, 53);
+  const registryPayload = {
+    id: "advertising_id",
+    type: "registry",
+    regPath: "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\AdvertisingInfo",
+    regName: "Enabled",
+    regValueDisabled: 0,
+  };
+  assert.equal(contract.validateItemPayload(registryPayload, "remove"), null);
+  assert.match(
+    contract.validateItemPayload({ ...registryPayload, regPath: "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows" }, "remove"),
+    /identity/,
+  );
+  assert.match(
+    contract.validateItemPayload({
+      id: "diagtrack",
+      type: "service",
+      serviceName: "DiagTrack",
+      restoreSupported: true,
+      defaultStartType: "powershell -Command evil",
+    }, "restore"),
+    /restore value/,
+  );
+  assert.equal(contract.validateItemPayload({
+    id: "mixed_reality",
+    type: "appx",
+    packageName: "Microsoft.MixedReality.Portal",
+    restoreSupported: true,
+  }, "restore"), "Item does not support restore.");
+});
+
+test("server Debloat mutations require native results and bound result statuses", () => {
+  assert.match(debloaterRoute, /Native execution results are required/);
+  assert.match(debloaterRoute, /Duplicate Debloater items are not allowed/);
+  assert.match(debloaterRoute, /VALID_RESULT_STATUSES/);
+  assert.match(debloaterRoute, /verification-inconclusive/);
+});
+
+test("native restore captures original state before mutation and verifies it after restore", () => {
+  assert.match(debloat, /captureDebloatBaseline/);
+  assert.match(debloat, /saveDebloatBaseline\(item\.id, baseline\)/);
+  assert.match(debloat, /deleteDebloatBaseline\(item\.id\)/);
+  assert.match(debloat, /original Windows state could not be verified/);
+  assert.match(debloat, /sc\.exe config/);
 });

@@ -52,6 +52,9 @@ if (!electronBuild) {
   if (!Array.isArray(electronBuild.extraResources)) {
     failures.push('Electron build must declare extraResources explicitly');
   }
+  if (!Array.isArray(electronBuild.files) || !electronBuild.files.includes('debloat-contract.cjs')) {
+    failures.push('Electron build must include debloat-contract.cjs in its packaged files');
+  }
 }
 
 // Generated inputs consumed by electron/package.json and runtime paths in

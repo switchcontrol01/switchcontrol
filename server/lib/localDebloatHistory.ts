@@ -18,6 +18,7 @@ import { ensureDesktopDataDir } from "./localDesktopDataDir";
 
 export interface LocalHistoryEntry {
   id: number;
+  user_id?: string | null;
   item_id: string;
   item_name: string;
   action: string;
@@ -68,8 +69,9 @@ export function appendLocalHistoryEntry(entry: Omit<LocalHistoryEntry, "id" | "a
   writeAll(entries.slice(0, MAX_ENTRIES));
 }
 
-export function getLocalHistory(limit = 100): LocalHistoryEntry[] {
+export function getLocalHistory(limit = 100, userId?: string): LocalHistoryEntry[] {
   return readAll()
+    .filter(entry => !userId || entry.user_id === userId)
     .sort((a, b) => new Date(b.applied_at).getTime() - new Date(a.applied_at).getTime())
     .slice(0, limit);
 }

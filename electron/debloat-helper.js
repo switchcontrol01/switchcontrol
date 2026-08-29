@@ -27,6 +27,11 @@ const path = require('path');
 const os = require('os');
 const psLimiter = require('./powershell-limiter');
 const { runElevated } = require('./ps-shared');
+const {
+  ALLOWED_START_TYPES,
+  getCanonicalContract,
+  validateItemPayload,
+} = require('./debloat-contract.cjs');
 // ── Icon utilities (single source in file-icon.js) ────────────────────────────
 // resolveIconPath, collectExeFilesRecursive, expandEnvVars, and the EXE_SCAN_*
 // constants now live in file-icon.js so they can be reused by any future caller
@@ -79,11 +84,113 @@ function psEscape(str) {
   if (typeof str !== 'string') return '';
   return str.replace(/'/g, "''");
 }
+function getDebloatBaselinePath() {
+  try {
+    return path.join(electronApp.getPath('userData'), 'debloat-baselines.json');
+  } catch {
+    return path.join(os.tmpdir(), 'switchcontrol-debloat-baselines.json');
+  }
+}
+function readDebloatBaselines() {
+  try {
+    const parsed = JSON.parse(fs.readFileSync(getDebloatBaselinePath(), 'utf8'));
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+function writeDebloatBaselines(baselines) {
+  const target = getDebloatBaselinePath();
+  const temp = `${target}.${process.pid}.tmp`;
+  try {
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    fs.writeFileSync(temp, JSON.stringify(baselines), 'utf8');
+    fs.renameSync(temp, target);
+  } catch (err) {
+    try { fs.unlinkSync(temp); } catch {}
+    throw err;
+  }
+}
+function saveDebloatBaseline(id, baseline) {
+  const baselines = readDebloatBaselines();
+  baselines[id] = { version: 1, ...baseline, savedAt: new Date().toISOString() };
+  writeDebloatBaselines(baselines);
+}
+function getDebloatBaseline(id) {
+  const baseline = readDebloatBaselines()[id];
+  return baseline && baseline.version === 1 ? baseline : null;
+}
+function deleteDebloatBaseline(id) {
+  const baselines = readDebloatBaselines();
+  if (!Object.prototype.hasOwnProperty.call(baselines, id)) return;
+  delete baselines[id];
+  writeDebloatBaselines(baselines);
+}
+async function captureDebloatBaseline(item) {
+  const canonical = getCanonicalContract(item.id);
+  if (!canonical || canonical.type === 'appx') return null;
+  if (canonical.type === 'registry') {
+    const out = await runPS(
+      `Try {
+         $p = Get-ItemProperty -Path '${psEscape(canonical.regPath)}' -Name '${psEscape(canonical.regName)}' -ErrorAction Stop
+         [pscustomobject]@{ present = $true; value = $p.'${psEscape(canonical.regName)}' } | ConvertTo-Json -Compress
+       } Catch {
+         If (Test-Path '${psEscape(canonical.regPath)}') { throw }
+         [pscustomobject]@{ present = $false } | ConvertTo-Json -Compress
+       }`,
+      6000
+    );
+    const parsed = JSON.parse(out.trim());
+    if (typeof parsed.present !== 'boolean' || (parsed.present && (typeof parsed.value !== 'number' && typeof parsed.value !== 'string'))) {
+      throw new Error('Registry baseline was incomplete.');
+    }
+    return { type: canonical.type, ...parsed };
+  }
+  if (canonical.type === 'service') {
+    const out = await runPS(
+      `$s = Get-CimInstance Win32_Service -Filter "Name='${psEscape(canonical.serviceName)}'" -ErrorAction Stop
+       If (!$s) {
+         [pscustomobject]@{ present = $false } | ConvertTo-Json -Compress
+       } Else {
+         [pscustomobject]@{ present = $true; startMode = [string]$s.StartMode; running = ([string]$s.State -eq 'Running') } | ConvertTo-Json -Compress
+       }`,
+      6000
+    );
+    const parsed = JSON.parse(out.trim());
+    if (typeof parsed.present !== 'boolean' || (parsed.present && typeof parsed.startMode !== 'string')) {
+      throw new Error('Service baseline was incomplete.');
+    }
+    return { type: canonical.type, ...parsed };
+  }
+  if (canonical.type === 'task') {
+    const pathArr = canonical.taskPaths.map(p => `'${psEscape(p)}'`).join(', ');
+    const out = await runPS(
+      `$rows = foreach ($t in @(${pathArr})) {
+         $parent = (Split-Path $t -Parent) + '\\'
+         $leaf = Split-Path $t -Leaf
+         $s = Get-ScheduledTask -TaskPath $parent -TaskName $leaf -ErrorAction SilentlyContinue
+         [pscustomobject]@{ path = $t; present = [bool]$s; state = if ($s) { [string]$s.State } else { '' } }
+       }
+       @($rows) | ConvertTo-Json -Compress`,
+      15000
+    );
+    const parsed = JSON.parse(out.trim());
+    const rows = Array.isArray(parsed) ? parsed : [parsed];
+    if (rows.length !== canonical.taskPaths.length || rows.some(row =>
+      !row || typeof row.path !== 'string' || typeof row.present !== 'boolean' || typeof row.state !== 'string'
+    )) {
+      throw new Error('Scheduled-task baseline was incomplete.');
+    }
+    return { type: canonical.type, tasks: rows };
+  }
+  return null;
+}
 const SAFE_REG_PATH_RE   = /^HK(CU|LM):\\[A-Za-z0-9\s._-]+(\\[A-Za-z0-9\s._-]+)*$/;
 const SAFE_REG_NAME_RE   = /^[A-Za-z0-9\s._-]{1,64}$/;
 const SAFE_PACKAGE_RE    = /^[A-Za-z0-9._-]{1,128}$/;
 const SAFE_SERVICE_RE    = /^[A-Za-z0-9_-]{1,64}$/;
 const SAFE_TASK_PATH_RE  = /^(\\[A-Za-z0-9\s._-]+)+$/;
+const SAFE_UNINSTALL_KEY_RE = /^HKEY_(LOCAL_MACHINE|CURRENT_USER)\\SOFTWARE\\(?:WOW6432Node\\)?Microsoft\\Windows\\CurrentVersion\\Uninstall\\[^\\]{1,255}$/i;
 const MAX_STR_LEN        = 512;
 function isSafeRegPath(v)     { return typeof v === 'string' && v.length <= MAX_STR_LEN && SAFE_REG_PATH_RE.test(v); }
 function isSafeRegName(v)     { return typeof v === 'string' && v.length <= MAX_STR_LEN && SAFE_REG_NAME_RE.test(v); }
@@ -148,47 +255,39 @@ ipcMain.handle('debloat:scan', async (event, items) => {
   try {
   const results = {};
   for (const item of items) {
+    const itemId = item && typeof item.id === 'string' ? item.id : `invalid-${Object.keys(results).length}`;
     try {
-      if (item.type === 'appx') {
-        if (!isSafePackageName(item.packageName)) {
-          results[item.id] = { present: true, error: 'invalid-package-name' };
-          continue;
-        }
+      const validationError = validateItemPayload(item, 'remove');
+      if (validationError) {
+        results[itemId] = { present: null, error: validationError };
+        continue;
+      }
+      const canonical = getCanonicalContract(item.id);
+      if (canonical.type === 'appx') {
         const out = await runPS(
-          `$p = Get-AppxPackage -Name '${psEscape(item.packageName)}' -ErrorAction SilentlyContinue; ` +
+          `$p = Get-AppxPackage -Name '${psEscape(canonical.packageName)}' -ErrorAction SilentlyContinue; ` +
           `If ($p) { Write-Output 'present' } Else { Write-Output 'absent' }`,
           8000
         );
-        results[item.id] = { present: out.includes('present') };
-      } else if (item.type === 'registry') {
-        if (!isSafeRegPath(item.regPath) || !isSafeRegName(item.regName)) {
-          results[item.id] = { present: true, error: 'invalid-registry-key' };
-          continue;
-        }
+        results[itemId] = { present: out.includes('present') };
+      } else if (canonical.type === 'registry') {
         const out = await runPS(
-          `Try { $v = (Get-ItemProperty -Path '${psEscape(item.regPath)}' -Name '${psEscape(item.regName)}' -ErrorAction Stop).'${psEscape(item.regName)}'; Write-Output $v } Catch { Write-Output '__missing__' }`,
+          `Try { $v = (Get-ItemProperty -Path '${psEscape(canonical.regPath)}' -Name '${psEscape(canonical.regName)}' -ErrorAction Stop).'${psEscape(canonical.regName)}'; Write-Output $v } Catch { If (Test-Path '${psEscape(canonical.regPath)}') { Write-Output '__inconclusive__' } Else { Write-Output '__missing__' } }`,
           6000
         );
         const val = out.replace(/\r?\n/g, '').trim();
-        const expectedDisabled = String(item.expectedDisabledValue ?? '');
-        results[item.id] = { present: val !== expectedDisabled && val !== '__missing__' };
-      } else if (item.type === 'service') {
-        if (!isSafeServiceName(item.serviceName)) {
-          results[item.id] = { present: true, error: 'invalid-service-name' };
-          continue;
-        }
+        results[itemId] = val === '__inconclusive__'
+          ? { present: null, error: 'Registry state could not be verified.' }
+          : { present: val !== String(canonical.disabled) && val !== '__missing__' };
+      } else if (canonical.type === 'service') {
         const out = await runPS(
-          `Try { $s = Get-Service -Name '${psEscape(item.serviceName)}' -ErrorAction Stop; Write-Output $s.StartType } Catch { Write-Output '__missing__' }`,
+          `Try { $s = Get-Service -Name '${psEscape(canonical.serviceName)}' -ErrorAction Stop; Write-Output $s.StartType } Catch { Write-Output '__missing__' }`,
           6000
         );
         const startType = out.trim().toLowerCase();
-        results[item.id] = { present: startType !== 'disabled' && startType !== '__missing__' };
-      } else if (item.type === 'task') {
-        if (!Array.isArray(item.taskPaths) || item.taskPaths.length === 0 || !item.taskPaths.every(isSafeTaskPath)) {
-          results[item.id] = { present: true, error: 'invalid-task-paths' };
-          continue;
-        }
-        const pathArr = item.taskPaths.map(p => `'${psEscape(p)}'`).join(', ');
+        results[itemId] = { present: startType !== 'disabled' && startType !== '__missing__' };
+      } else if (canonical.type === 'task') {
+        const pathArr = canonical.taskPaths.map(p => `'${psEscape(p)}'`).join(', ');
         const out = await runPS(
           `$tasks = @(${pathArr})
            $allDisabled = $true
@@ -201,12 +300,12 @@ ipcMain.handle('debloat:scan', async (event, items) => {
            if ($allDisabled) { Write-Output 'absent' } else { Write-Output 'present' }`,
           15000
         );
-        results[item.id] = { present: out.includes('present') };
+        results[itemId] = { present: out.includes('present') };
       } else {
-        results[item.id] = { present: true, error: 'unsupported-type' };
+        results[itemId] = { present: null, error: 'unsupported-type' };
       }
     } catch (err) {
-      results[item.id] = { present: true, error: err.message };
+      results[itemId] = { present: null, error: err.message };
     }
   }
     return { ok: true, results };
@@ -217,24 +316,37 @@ ipcMain.handle('debloat:scan', async (event, items) => {
 // ── IPC: debloat:removeItem ───────────────────────────────────────────────────
 ipcMain.handle('debloat:removeItem', async (event, item) => {
   if (process.platform !== 'win32') return { ok: false, reason: 'not-windows', status: 'unsupported' };
+  const validationError = validateItemPayload(item, 'remove');
+  if (validationError) return { ok: false, status: 'unsupported', error: validationError };
+  const canonical = getCanonicalContract(item.id);
   const token = psLimiter.tryAcquire({ file: 'debloat-helper.js', fn: 'debloat:removeItem', reason: 'debloat-remove' });
   if (!token) return { ok: false, reason: 'busy', status: 'unavailable' };
-  if (item.type === 'appx' && DENYLIST_PACKAGES.has(item.packageName)) {
+  if (canonical.type === 'appx' && DENYLIST_PACKAGES.has(canonical.packageName)) {
     psLimiter.release(token);
     return { ok: false, status: 'unsupported', error: 'Item is on the protected denylist.' };
   }
-  if (item.type === 'service' && DENYLIST_SERVICES.has(item.serviceName)) {
+  if (canonical.type === 'service' && DENYLIST_SERVICES.has(canonical.serviceName)) {
     psLimiter.release(token);
     return { ok: false, status: 'unsupported', error: 'Service is protected and cannot be disabled.' };
   }
   try {
-    let cmd = '';
-    if (item.type === 'appx') {
-      if (!isSafePackageName(item.packageName)) {
-        return { ok: false, status: 'unsupported', error: 'Invalid package name' };
+    if (canonical.type !== 'appx') {
+      try {
+        const baseline = await captureDebloatBaseline(item);
+        if (baseline) saveDebloatBaseline(item.id, baseline);
+      } catch (err) {
+        return {
+          ok: false,
+          status: 'verification-inconclusive',
+          verified: false,
+          errorDetail: `Could not capture the original Windows state safely: ${err.message}`,
+        };
       }
+    }
+    let cmd = '';
+    if (canonical.type === 'appx') {
       cmd = `
-        $pkg = Get-AppxPackage -Name '${psEscape(item.packageName)}' -ErrorAction SilentlyContinue
+        $pkg = Get-AppxPackage -Name '${psEscape(canonical.packageName)}' -ErrorAction SilentlyContinue
         If ($pkg) {
           $pkg | Remove-AppxPackage -ErrorAction Stop
           Write-Output 'removed'
@@ -242,38 +354,29 @@ ipcMain.handle('debloat:removeItem', async (event, item) => {
           Write-Output 'already-absent'
         }
       `;
-    } else if (item.type === 'registry') {
-      if (!isSafeRegPath(item.regPath) || !isSafeRegName(item.regName)) {
-        return { ok: false, status: 'unsupported', error: 'Invalid registry key' };
-      }
-      const val = item.regValueDisabled;
+    } else if (canonical.type === 'registry') {
+      const val = canonical.disabled;
       const valType = typeof val === 'number' ? 'DWord' : 'String';
       const valLiteral = valType === 'DWord' ? parseInt(val, 10) || 0 : `'${psEscape(String(val))}'`;
       cmd = `
-        If (!(Test-Path '${psEscape(item.regPath)}')) { New-Item -Path '${psEscape(item.regPath)}' -Force | Out-Null }
-        Set-ItemProperty -Path '${psEscape(item.regPath)}' -Name '${psEscape(item.regName)}' -Value ${valLiteral} -Type ${valType} -Force
+        If (!(Test-Path '${psEscape(canonical.regPath)}')) { New-Item -Path '${psEscape(canonical.regPath)}' -Force | Out-Null }
+        Set-ItemProperty -Path '${psEscape(canonical.regPath)}' -Name '${psEscape(canonical.regName)}' -Value ${valLiteral} -Type ${valType} -Force
         Write-Output 'removed'
       `;
-    } else if (item.type === 'service') {
-      if (!isSafeServiceName(item.serviceName)) {
-        return { ok: false, status: 'unsupported', error: 'Invalid service name' };
-      }
+    } else if (canonical.type === 'service') {
       cmd = `
-        $svc = Get-CimInstance Win32_Service -Filter "Name='${psEscape(item.serviceName)}'" -ErrorAction SilentlyContinue
+        $svc = Get-CimInstance Win32_Service -Filter "Name='${psEscape(canonical.serviceName)}'" -ErrorAction SilentlyContinue
         If (!$svc) {
           Write-Output 'already-absent'
         } Else {
-          Stop-Service -Name '${psEscape(item.serviceName)}' -Force -ErrorAction SilentlyContinue
-          & sc.exe config '${psEscape(item.serviceName)}' start= disabled | Out-Null
-          If ($LASTEXITCODE -ne 0) { throw "Windows could not disable service ${psEscape(item.serviceName)} (sc.exe exit $LASTEXITCODE)" }
+          Stop-Service -Name '${psEscape(canonical.serviceName)}' -Force -ErrorAction SilentlyContinue
+          & sc.exe config '${psEscape(canonical.serviceName)}' start= disabled | Out-Null
+          If ($LASTEXITCODE -ne 0) { throw "Windows could not disable service ${psEscape(canonical.serviceName)} (sc.exe exit $LASTEXITCODE)" }
           Write-Output 'removed'
         }
       `;
-    } else if (item.type === 'task') {
-      if (!Array.isArray(item.taskPaths) || item.taskPaths.length === 0 || !item.taskPaths.every(isSafeTaskPath)) {
-        return { ok: false, status: 'unsupported', error: 'Invalid task paths' };
-      }
-      const pathArr = item.taskPaths.map(p => `'${psEscape(p)}'`).join(', ');
+    } else if (canonical.type === 'task') {
+      const pathArr = canonical.taskPaths.map(p => `'${psEscape(p)}'`).join(', ');
       cmd = `
         $tasks = @(${pathArr})
         foreach ($t in $tasks) {
@@ -291,7 +394,7 @@ ipcMain.handle('debloat:removeItem', async (event, item) => {
     // path so Delivery Optimization and similar services do not fail with
     // sc.exe exit code 5 (access denied).
     let out = '';
-    if (item.type === 'service') {
+    if (canonical.type === 'service') {
       const elevated = await runElevated(cmd, { tempFilePrefix: 'sc_debloat_' });
       if (!elevated.ok) throw new Error(elevated.error || 'Administrator permission was required.');
     } else {
@@ -301,7 +404,7 @@ ipcMain.handle('debloat:removeItem', async (event, item) => {
     // PowerShell stdout. Service commands are therefore known to have
     // completed successfully once elevation reports ok; verification below
     // supplies the authoritative post-write state.
-    const result = item.type !== 'service' && out.includes('already-absent')
+    const result = canonical.type !== 'service' && out.includes('already-absent')
       ? 'already-absent'
       : 'removed';
     let verified = false;
@@ -312,7 +415,7 @@ ipcMain.handle('debloat:removeItem', async (event, item) => {
       verificationError = err?.message || String(err);
     }
     return {
-      ok: true,
+      ok: verified,
       status: verified ? result : 'verification-failed',
       verified,
       ...(verificationError ? { errorDetail: verificationError } : {}),
@@ -327,18 +430,17 @@ ipcMain.handle('debloat:removeItem', async (event, item) => {
 // ── IPC: debloat:restoreItem ──────────────────────────────────────────────────
 ipcMain.handle('debloat:restoreItem', async (event, item) => {
   if (process.platform !== 'win32') return { ok: false, reason: 'not-windows', status: 'unsupported' };
+  const validationError = validateItemPayload(item, 'restore');
+  if (validationError) return { ok: false, status: 'unsupported', error: validationError };
+  const canonical = getCanonicalContract(item.id);
   const token = psLimiter.tryAcquire({ file: 'debloat-helper.js', fn: 'debloat:restoreItem', reason: 'debloat-restore' });
   if (!token) return { ok: false, reason: 'busy', status: 'unavailable' };
-  if (!item.restoreSupported) { psLimiter.release(token); return { ok: false, status: 'unsupported', error: 'Item does not support restore.' }; }
   try {
     let cmd = '';
-    if (item.type === 'appx') {
-      if (!isSafePackageName(item.packageName)) {
-        return { ok: false, status: 'unsupported', error: 'Invalid package name' };
-      }
+    if (canonical.type === 'appx') {
       cmd = `
         $prov = Get-AppxProvisionedPackage -Online -ErrorAction SilentlyContinue |
-          Where-Object { $_.DisplayName -like '*${psEscape(item.packageName.replace('Microsoft.', ''))}*' } |
+          Where-Object { $_.DisplayName -like '*${psEscape(canonical.packageName.replace('Microsoft.', ''))}*' } |
           Select-Object -First 1
         If ($prov) {
           Add-AppxPackage -DisableDevelopmentMode -Register "$($prov.InstallLocation)\\AppXManifest.xml" -ErrorAction Stop
@@ -347,52 +449,107 @@ ipcMain.handle('debloat:restoreItem', async (event, item) => {
           Write-Output 'store-required'
         }
       `;
-    } else if (item.type === 'registry') {
-      if (!isSafeRegPath(item.regPath) || !isSafeRegName(item.regName)) {
-        return { ok: false, status: 'unsupported', error: 'Invalid registry key' };
-      }
-      const val = item.regValueDefault;
+    } else if (canonical.type === 'registry') {
+      const baseline = getDebloatBaseline(item.id);
+      const val = baseline?.type === 'registry' && baseline.present === true
+        ? baseline.value
+        : canonical.defaultValue;
       const valType = typeof val === 'number' ? 'DWord' : 'String';
-      const valLiteral = valType === 'DWord' ? parseInt(val, 10) || 0 : `'${psEscape(String(val))}'`;
-      cmd = `
-        If (!(Test-Path '${psEscape(item.regPath)}')) { New-Item -Path '${psEscape(item.regPath)}' -Force | Out-Null }
-        Set-ItemProperty -Path '${psEscape(item.regPath)}' -Name '${psEscape(item.regName)}' -Value ${valLiteral} -Type ${valType} -Force
-        Write-Output 'restored'
-      `;
-    } else if (item.type === 'service') {
-      if (!isSafeServiceName(item.serviceName)) {
-        return { ok: false, status: 'unsupported', error: 'Invalid service name' };
+      if (baseline?.type === 'registry' && baseline.present === false) {
+        cmd = `
+          If (Test-Path '${psEscape(canonical.regPath)}') {
+            Remove-ItemProperty -Path '${psEscape(canonical.regPath)}' -Name '${psEscape(canonical.regName)}' -ErrorAction SilentlyContinue
+          }
+          Write-Output 'restored'
+        `;
+      } else {
+        const valLiteral = valType === 'DWord' ? parseInt(val, 10) || 0 : `'${psEscape(String(val))}'`;
+        cmd = `
+          If (!(Test-Path '${psEscape(canonical.regPath)}')) { New-Item -Path '${psEscape(canonical.regPath)}' -Force | Out-Null }
+          Set-ItemProperty -Path '${psEscape(canonical.regPath)}' -Name '${psEscape(canonical.regName)}' -Value ${valLiteral} -Type ${valType} -Force
+          Write-Output 'restored'
+        `;
       }
-      const startType = item.defaultStartType ?? 'Automatic';
+    } else if (canonical.type === 'service') {
+      const baseline = getDebloatBaseline(item.id);
+      const startType = canonical.defaultStartType;
+      const baselineStartType = baseline?.type === 'service' && baseline.present === true
+        ? ({ Auto: 'Automatic', Automatic: 'Automatic', Manual: 'Manual', Disabled: 'Disabled' }[baseline.startMode] || null)
+        : null;
+      const targetStartType = baselineStartType || startType;
+      const shouldStart = baseline?.type === 'service' && baseline.present === true
+        ? baseline.running === true
+        : true;
+      if (!ALLOWED_START_TYPES.has(targetStartType)) return { ok: false, status: 'unsupported', error: 'Invalid service restore type.' };
+      const configureStart = targetStartType === 'DelayedAuto'
+        ? `& sc.exe config '${psEscape(canonical.serviceName)}' start= delayed-auto
+           If ($LASTEXITCODE -ne 0) { throw "Windows could not restore service startup type." }`
+        : `Set-Service -Name '${psEscape(canonical.serviceName)}' -StartupType ${targetStartType} -ErrorAction Stop`;
+      const startCommand = shouldStart
+        ? `Start-Service -Name '${psEscape(canonical.serviceName)}' -ErrorAction Stop`
+        : `Stop-Service -Name '${psEscape(canonical.serviceName)}' -Force -ErrorAction SilentlyContinue`;
       cmd = `
-        $svc = Get-Service -Name '${psEscape(item.serviceName)}' -ErrorAction SilentlyContinue
-        If (!$svc) { Write-Output 'not-found'; Exit }
-        Set-Service -Name '${psEscape(item.serviceName)}' -StartupType ${startType} -ErrorAction Stop
-        Start-Service -Name '${psEscape(item.serviceName)}' -ErrorAction SilentlyContinue
-        Write-Output 'restored'
+        $svc = Get-Service -Name '${psEscape(canonical.serviceName)}' -ErrorAction SilentlyContinue
+        If (!$svc) {
+          Write-Output 'not-found'
+        } Else {
+          ${configureStart}
+          ${startCommand}
+          Write-Output 'restored'
+        }
       `;
-    } else if (item.type === 'task') {
-      if (!Array.isArray(item.taskPaths) || item.taskPaths.length === 0 || !item.taskPaths.every(isSafeTaskPath)) {
-        return { ok: false, status: 'unsupported', error: 'Invalid task paths' };
-      }
-      const pathArr = item.taskPaths.map(p => `'${psEscape(p)}'`).join(', ');
+    } else if (canonical.type === 'task') {
+      const pathArr = canonical.taskPaths.map(p => `'${psEscape(p)}'`).join(', ');
+      const baseline = getDebloatBaseline(item.id);
+      const taskStateLines = canonical.taskPaths.map(taskPath => {
+        const row = baseline?.type === 'task' && Array.isArray(baseline.tasks)
+          ? baseline.tasks.find(candidate => candidate.path === taskPath)
+          : null;
+        const state = row?.present === false ? 'missing' : row?.state === 'Disabled' ? 'Disabled' : 'Enabled';
+        return `$original['${psEscape(taskPath)}'] = '${state}'`;
+      }).join('\n');
       cmd = `
         $tasks = @(${pathArr})
+        $original = @{}
+        ${taskStateLines}
         foreach ($t in $tasks) {
           $parent = (Split-Path $t -Parent) + '\\'
           $leaf = Split-Path $t -Leaf
-          Enable-ScheduledTask -TaskPath $parent -TaskName $leaf -ErrorAction SilentlyContinue
+          $state = $original[$t]
+          If ($state -eq 'missing') { continue }
+          If ($state -eq 'Disabled') {
+            Disable-ScheduledTask -TaskPath $parent -TaskName $leaf -ErrorAction SilentlyContinue
+          } Else {
+            Enable-ScheduledTask -TaskPath $parent -TaskName $leaf -ErrorAction SilentlyContinue
+          }
         }
         Write-Output 'restored'
       `;
     } else {
       return { ok: false, status: 'unsupported' };
     }
-    const out = await runPS(cmd, 15000);
+    let out = '';
+    if (canonical.type === 'service') {
+      const elevated = await runElevated(cmd, { tempFilePrefix: 'sc_debloat_restore_' });
+      if (!elevated.ok) throw new Error(elevated.error || 'Administrator permission was required.');
+      out = 'restored';
+    } else {
+      out = await runPS(cmd, 15000);
+    }
     const status = out.includes('restored') ? 'restored'
       : out.includes('store-required') ? 'partial'
+      : out.includes('not-found') ? 'unsupported'
       : 'failed';
-    return { ok: status !== 'failed', status, storeRequired: out.includes('store-required') };
+    if (status === 'restored') {
+      const verified = await verifyRestoredItem(item);
+      if (!verified) return { ok: false, status: 'verification-failed', verified: false, errorDetail: 'Restore completed but the original Windows state could not be verified.' };
+      try {
+        deleteDebloatBaseline(item.id);
+      } catch (err) {
+        console.warn(`[Debloat] baseline cleanup deferred for ${item.id}: ${err.message}`);
+      }
+    }
+    return { ok: status !== 'failed', status, storeRequired: out.includes('store-required'), verified: status === 'restored' };
   } catch (err) {
     console.warn(`[Debloat] restoreItem ${item.id} ERROR: ${err.message}`);
     return { ok: false, status: 'failed', error: err.message };
@@ -403,6 +560,8 @@ ipcMain.handle('debloat:restoreItem', async (event, item) => {
 // ── IPC: debloat:verifyItem ───────────────────────────────────────────────────
 ipcMain.handle('debloat:verifyItem', async (event, item) => {
   if (process.platform !== 'win32') return { ok: false };
+  const validationError = validateItemPayload(item, 'remove');
+  if (validationError) return { ok: false, error: validationError };
   const token = psLimiter.tryAcquire({ file: 'debloat-helper.js', fn: 'debloat:verifyItem', reason: 'debloat-verify' });
   if (!token) return { ok: false, reason: 'busy' };
   try {
@@ -416,33 +575,32 @@ ipcMain.handle('debloat:verifyItem', async (event, item) => {
 });
 // ── Internal verify helper (debloat items) ────────────────────────────────────
 async function verifyItem(item) {
-  if (item.type === 'appx') {
-    if (!isSafePackageName(item.packageName)) return false;
+  const validationError = validateItemPayload(item, 'remove');
+  if (validationError) throw new Error(validationError);
+  const canonical = getCanonicalContract(item.id);
+  if (canonical.type === 'appx') {
     const out = await runPS(
-      `$p = Get-AppxPackage -Name '${psEscape(item.packageName)}' -ErrorAction SilentlyContinue; ` +
+      `$p = Get-AppxPackage -Name '${psEscape(canonical.packageName)}' -ErrorAction SilentlyContinue; ` +
       `If ($p) { Write-Output 'present' } Else { Write-Output 'absent' }`,
       8000
     );
     return out.includes('absent');
-  } else if (item.type === 'registry') {
-    if (!isSafeRegPath(item.regPath) || !isSafeRegName(item.regName)) return false;
+  } else if (canonical.type === 'registry') {
     const out = await runPS(
-      `Try { $v = (Get-ItemProperty -Path '${psEscape(item.regPath)}' -Name '${psEscape(item.regName)}' -ErrorAction Stop).'${psEscape(item.regName)}'; Write-Output $v } Catch { Write-Output '__missing__' }`,
+      `Try { $v = (Get-ItemProperty -Path '${psEscape(canonical.regPath)}' -Name '${psEscape(canonical.regName)}' -ErrorAction Stop).'${psEscape(canonical.regName)}'; Write-Output $v } Catch { If (Test-Path '${psEscape(canonical.regPath)}') { Write-Output '__inconclusive__' } Else { Write-Output '__missing__' } }`,
       6000
     );
     const val = out.trim();
-    return val === String(item.regValueDisabled) || val === '__missing__';
-  } else if (item.type === 'service') {
-    if (!isSafeServiceName(item.serviceName)) return false;
+    return val === String(canonical.disabled) || val === '__missing__';
+  } else if (canonical.type === 'service') {
     const out = await runPS(
-      `$svc = Get-CimInstance Win32_Service -Filter "Name='${psEscape(item.serviceName)}'" -ErrorAction SilentlyContinue; ` +
+      `$svc = Get-CimInstance Win32_Service -Filter "Name='${psEscape(canonical.serviceName)}'" -ErrorAction SilentlyContinue; ` +
       `If (!$svc -or $svc.StartMode -eq 'Disabled') { Write-Output 'absent' } Else { Write-Output 'present' }`,
       6000
     );
     return out.trim().toLowerCase() === 'absent';
-  } else if (item.type === 'task') {
-    if (!Array.isArray(item.taskPaths) || !item.taskPaths.every(isSafeTaskPath)) return false;
-    const pathArr = item.taskPaths.map(p => `'${psEscape(p)}'`).join(', ');
+  } else if (canonical.type === 'task') {
+    const pathArr = canonical.taskPaths.map(p => `'${psEscape(p)}'`).join(', ');
     const out = await runPS(
       `$tasks = @(${pathArr})
        $allDisabled = $true
@@ -456,6 +614,76 @@ async function verifyItem(item) {
       15000
     );
     return out.includes('absent');
+  }
+  return false;
+}
+
+async function verifyRestoredItem(item) {
+  const validationError = validateItemPayload(item, 'restore');
+  if (validationError) throw new Error(validationError);
+  const canonical = getCanonicalContract(item.id);
+  const baseline = getDebloatBaseline(item.id);
+  if (canonical.type === 'appx') {
+    const out = await runPS(
+      `$p = Get-AppxPackage -Name '${psEscape(canonical.packageName)}' -ErrorAction SilentlyContinue; ` +
+      `If ($p) { Write-Output 'present' } Else { Write-Output 'absent' }`,
+      8000
+    );
+    return out.trim().toLowerCase() === 'present';
+  }
+  if (canonical.type === 'registry') {
+    const out = await runPS(
+      `Try { $v = (Get-ItemProperty -Path '${psEscape(canonical.regPath)}' -Name '${psEscape(canonical.regName)}' -ErrorAction Stop).'${psEscape(canonical.regName)}'; Write-Output $v } Catch { If (Test-Path '${psEscape(canonical.regPath)}') { Write-Output '__inconclusive__' } Else { Write-Output '__missing__' } }`,
+      6000
+    );
+    if (baseline?.type === 'registry' && baseline.present === false) return out.trim() === '__missing__';
+    return out.trim() === String(
+      baseline?.type === 'registry' && baseline.present === true ? baseline.value : canonical.defaultValue
+    );
+  }
+  if (canonical.type === 'service') {
+    const out = await runPS(
+      `$svc = Get-CimInstance Win32_Service -Filter "Name='${psEscape(canonical.serviceName)}'" -ErrorAction SilentlyContinue; ` +
+      `If ($svc) { Write-Output "$($svc.StartMode)|$($svc.State)" } Else { Write-Output '__missing__' }`,
+      6000
+    );
+    const [startMode, state] = out.trim().split('|');
+    if (baseline?.type === 'service' && baseline.present === false) return out.trim() === '__missing__';
+    if (baseline?.type === 'service' && baseline.present === true) {
+      const expectedStart = baseline.startMode === 'Auto' ? 'Auto' : baseline.startMode;
+      return startMode === expectedStart && (baseline.running !== true || state === 'Running');
+    }
+    return startMode !== 'Disabled' && startMode !== undefined;
+  }
+  if (canonical.type === 'task') {
+    const pathArr = canonical.taskPaths.map(p => `'${psEscape(p)}'`).join(', ');
+    const out = await runPS(
+      `$tasks = @(${pathArr})
+       $allEnabled = $true
+       foreach ($t in $tasks) {
+         $parent = (Split-Path $t -Parent) + '\\'
+         $leaf = Split-Path $t -Leaf
+         $s = Get-ScheduledTask -TaskPath $parent -TaskName $leaf -ErrorAction SilentlyContinue
+         if (!$s -or $s.State -eq 'Disabled') { $allEnabled = $false; break }
+       }
+       foreach ($t in $tasks) {
+         $parent = (Split-Path $t -Parent) + '\\'
+         $leaf = Split-Path $t -Leaf
+         $s = Get-ScheduledTask -TaskPath $parent -TaskName $leaf -ErrorAction SilentlyContinue
+         If ($s) { Write-Output "$($s.State)" } Else { Write-Output '__missing__' }
+       }`,
+      15000
+    );
+    const states = out.trim().split(/\r?\n/).map(state => state.trim());
+    const rows = baseline?.type === 'task' && Array.isArray(baseline.tasks)
+      ? baseline.tasks
+      : canonical.taskPaths.map(() => ({ present: true, state: 'Ready' }));
+    return rows.length === canonical.taskPaths.length && rows.every((row, index) => {
+      if (!row || typeof row.present !== 'boolean') return false;
+      if (row.present === false) return states[index] === '__missing__';
+      if (row.state === 'Disabled') return states[index] === 'Disabled';
+      return states[index] && states[index] !== 'Disabled' && states[index] !== '__missing__';
+    });
   }
   return false;
 }
@@ -488,6 +716,70 @@ function isCurrentSwitchControlInstall(name, installLocation, uninstallString) {
   if (location && (currentDir === location || currentDir.startsWith(`${location}\\`))) return true;
   return /switchcontrol\.exe/i.test(String(uninstallString || '')) &&
     /switchcontrol/i.test(String(name || ''));
+}
+
+function normalizeUninstallRegistryPath(rawPath) {
+  if (typeof rawPath !== 'string' || !SAFE_UNINSTALL_KEY_RE.test(rawPath.trim())) return null;
+  return rawPath.trim()
+    .replace(/^HKEY_LOCAL_MACHINE\\/i, 'HKLM:\\')
+    .replace(/^HKEY_CURRENT_USER\\/i, 'HKCU:\\');
+}
+
+// The renderer's installed-app object is a display model, not an authority.
+// Re-read the exact uninstall key immediately before executing anything. This
+// prevents stale or forged uninstall strings/flags from becoming child-process
+// commands.
+async function readTrustedInstalledApp(app) {
+  if (!app || typeof app !== 'object') return { ok: false, error: 'Invalid app payload.' };
+  const registryKeyPath = typeof app.registryKeyPath === 'string' ? app.registryKeyPath.trim() : '';
+  const normalized = normalizeUninstallRegistryPath(registryKeyPath);
+  if (!normalized) return { ok: false, error: 'Invalid uninstall registry key.' };
+  const safePath = psEscape(normalized);
+  let raw;
+  try {
+    raw = await runPS(`
+$p = Get-ItemProperty -LiteralPath '${safePath}' -ErrorAction Stop
+if (!$p.DisplayName) { throw 'The uninstall record has no display name.' }
+[PSCustomObject]@{
+  N = [string]$p.DisplayName
+  Pb = [string]$p.Publisher
+  V = [string]$p.DisplayVersion
+  IL = [string]$p.InstallLocation
+  US = [string]$p.UninstallString
+  QS = [string]$p.QuietUninstallString
+  WI = $p.WindowsInstaller
+  DI = [string]$p.DisplayIcon
+} | ConvertTo-Json -Compress
+`, 10000);
+  } catch (err) {
+    return { ok: false, error: 'The uninstall record could not be re-read.' };
+  }
+  let record;
+  try { record = JSON.parse(raw); } catch { return { ok: false, error: 'The uninstall record was malformed.' }; }
+  const name = String(record?.N || '').trim();
+  const publisher = String(record?.Pb || '').trim();
+  if (!name || typeof app.name !== 'string' || name.localeCompare(app.name.trim(), undefined, { sensitivity: 'accent' }) !== 0) {
+    return { ok: false, error: 'The installed-app record changed since it was scanned.' };
+  }
+  const expectedId = require('crypto').createHash('md5')
+    .update(`${name}\0${publisher}\0${registryKeyPath.toLowerCase()}`)
+    .digest('hex').slice(0, 16);
+  if (typeof app.id !== 'string' || app.id !== expectedId) {
+    return { ok: false, error: 'The installed-app identity is stale. Scan again and retry.' };
+  }
+  return {
+    ok: true,
+    id: expectedId,
+    name,
+    publisher,
+    version: String(record.V || '').trim(),
+    installLocation: String(record.IL || '').trim(),
+    uninstallString: String(record.US || '').trim(),
+    quietUninstall: String(record.QS || '').trim(),
+    windowsInstaller: record.WI === true || record.WI === 1 || record.WI === '1',
+    displayIcon: String(record.DI || '').trim(),
+    registryKeyPath,
+  };
 }
 // ── Uninstall string parser ───────────────────────────────────────────────────
 //
@@ -590,43 +882,11 @@ async function runExeProcess(exe, argsArray, timeoutMs = 120000) {
 // Returns false → app still detected
 // Returns null  → verification inconclusive (PS error)
 async function verifyAppRemoved(appName, registryKeyPath) {
-  // Primary: check if the specific registry subkey is gone
-  if (registryKeyPath) {
-    try {
-      // Convert raw key path: HKEY_LOCAL_MACHINE\... → HKLM:\...
-      const normalized = registryKeyPath
-        .replace(/^HKEY_LOCAL_MACHINE\\/i, 'HKLM:\\')
-        .replace(/^HKEY_CURRENT_USER\\/i, 'HKCU:\\');
-      const safePath = normalized.replace(/'/g, "''");
-      const out = await queryPS(`(Test-Path '${safePath}') -eq $false`);
-      if (out !== null) {
-        const gone = out.trim().toLowerCase() === 'true';
-        if (gone) return true;
-        // Key still there — app still registered
-        return false;
-      }
-    } catch {}
-  }
-  // Fallback: scan all uninstall hives by display name
-  try {
-    const safeName = (appName || '').replace(/'/g, "''");
-    const out = await queryPS(`
-$found = $false
-foreach ($p in @(
-  'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*',
-  'HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*',
-  'HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*'
-)) {
-  $m = Get-ItemProperty -Path $p -EA SilentlyContinue | Where-Object { $_.DisplayName -eq '${safeName}' } | Select-Object -First 1
-  if ($m) { $found = $true; break }
-}
-if ($found) { 'present' } else { 'absent' }
-`, 15000);
-    if (out === null) return null;
-    return out.trim().toLowerCase() === 'absent';
-  } catch {
-    return null;
-  }
+  const normalized = normalizeUninstallRegistryPath(registryKeyPath);
+  if (!normalized) return null;
+  const out = await queryPS(`(Test-Path -LiteralPath '${psEscape(normalized)}') -eq $false`, 10000);
+  if (out === null) return null;
+  return out.trim().toLowerCase() === 'true';
 }
 // ── Classify exit code ────────────────────────────────────────────────────────
 function classifyExitCode(code, method) {
@@ -670,7 +930,8 @@ foreach ($hive in $hives) {
     $p = Get-ItemProperty -Path $key.PSPath -ErrorAction SilentlyContinue
     if (!$p -or !$p.DisplayName -or $p.DisplayName.Trim() -eq '' -or $p.SystemComponent -eq 1) { continue }
     $nm = $p.DisplayName.Trim()
-    if (!$seen.Add($nm)) { continue }
+    $dedupeKey = $nm + [char]10 + [string]$p.Publisher + [char]10 + [string]$key.Name
+    if (!$seen.Add($dedupeKey)) { continue }
     [void]$apps.Add([PSCustomObject]@{
       N  = $nm
       Pb = $p.Publisher
@@ -733,7 +994,7 @@ $apps | ConvertTo-Json -Compress -Depth 1
         else if (/microsoft/i.test(publisher)) trustLabel = 'microsoft';
         else if (!publisher)                   trustLabel = 'unknown';
         const sizeMb = a.Sz ? Math.round(Number(a.Sz) / 1024) : 0;
-        const id = crypto.createHash('md5').update(name + publisher).digest('hex').slice(0, 16);
+        const id = crypto.createHash('md5').update(`${name}\0${publisher}\0${registryKeyPath.toLowerCase()}`).digest('hex').slice(0, 16);
         return {
           id, name, publisher,
           version:         String(a.V  || '').trim(),
@@ -785,13 +1046,14 @@ ipcMain.handle('installedApps:uninstall', async (event, app) => {
   const token = psLimiter.tryAcquire({ file: 'debloat-helper.js', fn: 'installedApps:uninstall', reason: 'apps-uninstall' });
   if (!token) return { ok: false, reason: 'busy' };
   try {
-  if (!app || typeof app !== 'object' || !app.name) {
-    return { ok: false, status: 'blocked', errorDetail: 'Invalid input.' };
+  const trusted = await readTrustedInstalledApp(app);
+  if (!trusted.ok) {
+    return { ok: false, status: 'stale-record', errorDetail: trusted.error };
   }
-  if (isAppProtected(app.name)) {
+  if (isAppProtected(trusted.name)) {
     return { ok: false, status: 'blocked', errorDetail: 'App is protected and cannot be removed.' };
   }
-  if (isCurrentSwitchControlInstall(app.name, app.installLocation, app.uninstallString || app.quietUninstall)) {
+  if (isCurrentSwitchControlInstall(trusted.name, trusted.installLocation, trusted.uninstallString || trusted.quietUninstall)) {
     return {
       ok: false,
       status: 'self-uninstall-blocked',
@@ -799,18 +1061,22 @@ ipcMain.handle('installedApps:uninstall', async (event, app) => {
       errorDetail: 'SwitchControl cannot uninstall itself while it is open. Close SwitchControl first, then remove it from Windows Settings > Apps > Installed apps.',
     };
   }
-  if (!app.canUninstall) {
+  const unStr = trusted.uninstallString;
+  const quietStr = trusted.quietUninstall;
+  const hasGuid = /\{[A-F0-9\-]+\}/i.test(unStr) || /\{[A-F0-9\-]+\}/i.test(quietStr);
+  const method = (trusted.windowsInstaller && hasGuid) || (/msiexec/i.test(unStr) && hasGuid)
+    ? 'msi'
+    : (quietStr.length > 3 || unStr.length > 3) ? 'exe' : 'none';
+  if (method === 'none') {
     return {
       ok: false, status: 'no-uninstall-path',
-      errorDetail: app.uninstallString
+      errorDetail: unStr
         ? 'Uninstall string exists but could not be parsed into a supported method.'
         : 'No uninstall string found in the registry.',
     };
   }
-  const unStr    = String(app.uninstallString  || '').trim();
-  const quietStr = String(app.quietUninstall   || '').trim();
   // ── MSI path ─────────────────────────────────────────────────────────────
-  if (app.uninstallMethod === 'msi') {
+  if (method === 'msi') {
     // Extract GUID — check both strings
     const guidMatch = (unStr + ' ' + quietStr).match(/\{[A-F0-9\-]+\}/i);
     if (!guidMatch) {
@@ -818,17 +1084,18 @@ ipcMain.handle('installedApps:uninstall', async (event, app) => {
     }
     const guid = guidMatch[0];
     const args = ['/x', guid, '/qn', '/norestart'];
-    console.log(`[InstalledApps] MSI uninstall: msiexec.exe ${args.join(' ')} — ${app.name}`);
+    console.log(`[InstalledApps] MSI uninstall: msiexec.exe ${args.join(' ')} — ${trusted.name}`);
     const proc = await runExeProcess('msiexec.exe', args, 120000);
     const { ok: codeOk, label: codeLabel } = classifyExitCode(proc.exitCode, 'msi');
     let verifiedRemoved = null;
     if (codeOk) {
-      verifiedRemoved = await verifyAppRemoved(app.name, app.registryKeyPath);
+      verifiedRemoved = await verifyAppRemoved(trusted.name, trusted.registryKeyPath);
     }
-    const success = codeOk && verifiedRemoved !== false;
+    const pendingRestart = codeOk && proc.exitCode === 3010 && verifiedRemoved !== true;
+    const success = codeOk && (verifiedRemoved === true || pendingRestart);
     return {
       ok:             success,
-      status:         success ? (proc.exitCode === 3010 ? 'restart-required' : 'removed') : 'failed',
+      status:         success ? (pendingRestart ? 'pending-restart' : 'removed') : (verifiedRemoved === null ? 'verification-inconclusive' : 'failed'),
       methodUsed:     'msi',
       executable:     'msiexec.exe',
       args:           args.join(' '),
@@ -838,6 +1105,7 @@ ipcMain.handle('installedApps:uninstall', async (event, app) => {
       errorDetail:    success ? null
         : proc.error     ? `Process error: ${proc.error}`
         : proc.timedOut  ? 'Uninstall timed out'
+        : verifiedRemoved === null ? 'The uninstall completed but removal could not be verified.'
         : verifiedRemoved === false ? `Process exited ${proc.exitCode} but app still detected in registry`
         : `MSI exited with code ${proc.exitCode} (${codeLabel ?? 'unknown'})`,
     };
@@ -866,17 +1134,18 @@ ipcMain.handle('installedApps:uninstall', async (event, app) => {
     }
   }
   const argsArray = tokenizeArgs(parsed.args);
-  console.log(`[InstalledApps] EXE uninstall: "${parsed.exe}" [${argsArray.join(', ')}] — ${app.name}`);
+  console.log(`[InstalledApps] EXE uninstall: "${parsed.exe}" [${argsArray.join(', ')}] — ${trusted.name}`);
   const proc = await runExeProcess(parsed.exe, argsArray, 180000);
   const { ok: codeOk, label: codeLabel } = classifyExitCode(proc.exitCode, 'exe');
   let verifiedRemoved = null;
   if (codeOk) {
-    verifiedRemoved = await verifyAppRemoved(app.name, app.registryKeyPath);
+    verifiedRemoved = await verifyAppRemoved(trusted.name, trusted.registryKeyPath);
   }
-  const success = codeOk && verifiedRemoved !== false;
+  const pendingRestart = codeOk && proc.exitCode === 3010 && verifiedRemoved !== true;
+  const success = codeOk && (verifiedRemoved === true || pendingRestart);
   return {
     ok:             success,
-    status:         success ? (proc.exitCode === 3010 ? 'restart-required' : 'removed') : 'failed',
+    status:         success ? (pendingRestart ? 'pending-restart' : 'removed') : (verifiedRemoved === null ? 'verification-inconclusive' : 'failed'),
     methodUsed:     'exe',
     executable:     parsed.exe,
     args:           parsed.args,

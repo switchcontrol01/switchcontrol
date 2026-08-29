@@ -20,6 +20,7 @@
   import { cn } from "@/lib/utils";
   import { useToast } from "@/hooks/use-toast";
   import { cloudApiPost } from "@/lib/cloud-api";
+  import { useAppAuth } from "@/lib/appAuthContext";
   import { motion, AnimatePresence, useMotion, Reveal } from "@/lib/motion";
   import { PieChart, Pie, Cell } from "recharts";
   
@@ -31,7 +32,8 @@
   type ItemType = "appx" | "registry" | "service" | "task";
   type DebloatCategory = "consumer-apps" | "telemetry" | "gaming" | "cloud" | "system-services" | "shell-features";
   type ResultStatus = "removed" | "restored" | "already-absent" | "already-present"
-    | "failed" | "verification-failed" | "unsupported" | "partial" | "pending";
+    | "failed" | "verification-failed" | "verification-inconclusive"
+    | "pending-restart" | "unsupported" | "partial" | "pending";
   
   interface DebloatItem {
     id: string;
@@ -128,6 +130,8 @@
     "already-present":   { label: "Already present",   icon: Minus,          color: "text-muted-foreground" },
     failed:              { label: "Failed",             icon: X,              color: "text-red-400" },
     "verification-failed": { label: "Verify failed",   icon: AlertCircle,    color: "text-orange-400" },
+    "verification-inconclusive": { label: "Could not verify", icon: AlertCircle, color: "text-orange-400" },
+    "pending-restart":   { label: "Restart required",  icon: Clock,          color: "text-amber-400" },
     unsupported:         { label: "Not supported",      icon: AlertTriangle,  color: "text-muted-foreground" },
     partial:             { label: "Partial",            icon: AlertTriangle,  color: "text-amber-400" },
     pending:             { label: "Pending",            icon: Clock,          color: "text-muted-foreground" },
@@ -182,8 +186,8 @@
 
   const debloatItemsCache = new Map<string, DebloatItem[]>();
   const debloatItemsRequests = new Map<string, Promise<DebloatItem[]>>();
-  let debloatHistoryCache: HistoryEntry[] | null = null;
-  let debloatHistoryRequest: Promise<HistoryEntry[]> | null = null;
+  const debloatHistoryCache = new Map<string, HistoryEntry[]>();
+  const debloatHistoryRequests = new Map<string, Promise<HistoryEntry[]>>();
   
   function SafetyRing({ safe, medium, high }: { safe: number; medium: number; high: number }) {
     const total = safe + medium + high;
@@ -806,6 +810,7 @@
   
   export default function Debloater() {
     const { toast } = useToast();
+    const { user } = useAppAuth();
     const { prefersReducedMotion } = useMotion();
     const { telemetry: liveTel } = useLiveTelemetryValues();
   
@@ -879,24 +884,29 @@
     // ── Fetch history ───────────────────────────────────────────────────────────
   
     const fetchHistory = useCallback(async () => {
+      const cacheKey = user?.id ?? "anonymous";
       try {
-        if (debloatHistoryCache) {
-          setHistory(debloatHistoryCache);
+        const cached = debloatHistoryCache.get(cacheKey);
+        if (cached) {
+          setHistory(cached);
           return;
         }
-        if (!debloatHistoryRequest) {
-          debloatHistoryRequest = fetch("/api/debloat/history").then(async res => {
+        let request = debloatHistoryRequests.get(cacheKey);
+        if (!request) {
+          request = fetch("/api/debloat/history").then(async res => {
             const data = await res.json().catch(() => null);
             if (!res.ok || !data?.ok || !Array.isArray(data.history)) {
               throw new Error(data?.error || `Debloat history request failed (${res.status})`);
             }
-            debloatHistoryCache = data.history as HistoryEntry[];
-            return debloatHistoryCache;
+            const next = data.history as HistoryEntry[];
+            debloatHistoryCache.set(cacheKey, next);
+            return next;
           }).finally(() => {
-            debloatHistoryRequest = null;
+            debloatHistoryRequests.delete(cacheKey);
           });
+          debloatHistoryRequests.set(cacheKey, request);
         }
-        setHistory(await debloatHistoryRequest);
+        setHistory(await request);
       } catch (e) {
         toast({
           title: "Failed to load Debloat history",
@@ -904,7 +914,7 @@
           variant: "destructive",
         });
       }
-    }, [toast]);
+    }, [toast, user?.id]);
   
     useEffect(() => { fetchHistory(); }, [fetchHistory]);
   
@@ -913,6 +923,7 @@
     const runScan = useCallback(async () => {
       if (!isElectron()) return;
       setScanning(true);
+      setItemState({});
       try {
         const scanPayload = items.map(item => ({
           id: item.id, type: item.type,
@@ -931,15 +942,25 @@
             ]),
           ) as Record<string, "present" | "absent" | "unknown">;
           setItemState(normalizedState);
+          setSelected(prev => new Set([...prev].filter(id => normalizedState[id] !== "absent")));
           const presentCount = Object.values(normalizedState).filter(s => s === "present").length;
           logHistory(`Debloat: Scan complete, ${presentCount} item${presentCount !== 1 ? "s" : ""} present`, "Debloat", "Scanned", `${presentCount} removable items detected`);
+        } else {
+          setItemState({});
+          toast({
+            title: "Debloater scan failed",
+            description: result.reason === "busy" ? "Another Windows check is still running. Try again shortly." : "Windows state could not be verified.",
+            variant: "destructive",
+          });
         }
       } catch (e) {
         console.warn("[Debloater] scan failed", e);
+        setItemState({});
+        toast({ title: "Debloater scan failed", description: e instanceof Error ? e.message : "Windows state could not be verified.", variant: "destructive" });
       } finally {
         setScanning(false);
       }
-    }, [items]);
+    }, [items, toast]);
   
     // ── Compute visible items ──────────────────────────────────────────────────
   
@@ -957,8 +978,8 @@
     }, [visibleItems, itemState]);
 
     const selectedItems = useMemo(() => {
-      return visibleItems.filter(i => selected.has(i.id));
-    }, [visibleItems, selected]);
+      return visibleItems.filter(i => selected.has(i.id) && itemState[i.id] !== "absent");
+    }, [visibleItems, selected, itemState]);
   
     const activeSelectedItems = useMemo(() => {
       if (Object.keys(itemState).length === 0) return selectedItems;
@@ -1003,6 +1024,7 @@
     // ── Selection helpers ──────────────────────────────────────────────────────
   
     const toggleItem = (id: string) => {
+      if (itemState[id] === "absent") return;
       setSelected(prev => {
         const next = new Set(prev);
         if (next.has(id)) next.delete(id);
@@ -1021,7 +1043,8 @@
     };
   
     const toggleCategorySelection = (cat: DebloatCategory, catItems: DebloatItem[]) => {
-      const ids = catItems.map(i => i.id);
+      const ids = catItems.filter(i => itemState[i.id] !== "absent").map(i => i.id);
+      if (ids.length === 0) return;
       const allSelected = ids.every(id => selected.has(id));
       setSelected(prev => {
         const next = new Set(prev);
@@ -1040,12 +1063,20 @@
       });
     };
   
-    const selectAll = () => setSelected(new Set(visibleItems.map(i => i.id)));
+    const selectAll = () => setSelected(new Set(availableItems.map(i => i.id)));
     const clearAll  = () => setSelected(new Set());
   
     // ── Apply debloat ─────────────────────────────────────────────────────────
   
     const applyDebloat = useCallback(async () => {
+      if (!isElectron()) {
+        toast({
+          title: "Open the desktop app to apply changes",
+          description: "Browser preview can inspect the catalog, but it cannot modify Windows.",
+          variant: "destructive",
+        });
+        return;
+      }
       if (selectedItems.length === 0) {
         toast({ title: "Nothing selected", description: "Select items to debloat.", variant: "destructive" });
         return;
@@ -1179,7 +1210,7 @@
           setApplyProgress(p => p ? {
             ...p,
             phase: "complete",
-            completedCount: data.successCount + data.failCount,
+            completedCount: data.results.length,
             failedCount: data.failCount,
             skippedCount: skipped,
             currentItemName: null,
@@ -1195,14 +1226,10 @@
           // eslint-disable-next-line no-console
           console.log(`[DebloatApply] complete removed=${data.successCount} skipped=${skipped} failed=${data.failCount}`);
   
-          toast({
-            title: isElectron()
-              ? `${data.successCount} items processed`
-              : "Debloat queued for next boot",
-            description: isElectron()
-              ? data.failCount > 0 ? `${data.failCount} failed \u2014 see results` : "All items handled."
-              : "Running on Windows will execute changes in real-time.",
-          });
+           toast({
+             title: `${data.successCount} items processed`,
+             description: data.failCount > 0 ? `${data.failCount} failed \u2014 see results` : "All items handled.",
+           });
         }
       } catch (e) {
         setApplyProgress(p => p ? { ...p, phase: "complete", error: "Backend error occurred." } : p);
@@ -1215,6 +1242,14 @@
     // ── Restore ───────────────────────────────────────────────────────────────
   
     const restoreItems = useCallback(async (itemIds: string[]) => {
+      if (!isElectron()) {
+        toast({
+          title: "Open the desktop app to restore changes",
+          description: "Browser preview cannot modify Windows.",
+          variant: "destructive",
+        });
+        return;
+      }
       const restorableIds = itemIds.filter(id => items.find(i => i.id === id)?.canRestore);
       if (restorableIds.length === 0) {
         toast({ title: "Nothing to restore", description: "No restorable items in selection.", variant: "destructive" });
@@ -1222,6 +1257,24 @@
       }
   
       setApplying(true);
+      const restoreStart = Date.now();
+      setApplyProgress({
+        phase: "running",
+        items: restorableIds.map(id => ({
+          id,
+          name: items.find(i => i.id === id)!.name,
+          status: "pending",
+        })),
+        totalCount: restorableIds.length,
+        completedCount: 0,
+        failedCount: 0,
+        skippedCount: 0,
+        currentItemName: null,
+        startTime: restoreStart,
+        restorePointCreated: false,
+        error: null,
+      });
+      setShowApplyOverlay(true);
   
       const electronResults: Record<string, { ok: boolean; status?: string; error?: string; errorDetail?: string }> = {};
   
@@ -1229,6 +1282,11 @@
         for (const id of restorableIds) {
           const item = items.find(i => i.id === id)!;
           setProcessingId(id);
+          setApplyProgress(p => p ? {
+            ...p,
+            currentItemName: item.name,
+            items: p.items.map(i => i.id === id ? { ...i, status: "processing" } : i),
+          } : p);
           try {
             const ipcPayload = buildRestoreIpcPayload(item);
             const result = await window.electronAPI!.debloat!.restoreItem(ipcPayload);
@@ -1238,12 +1296,26 @@
               error: result.error,
               errorDetail: result.errorDetail ?? result.error,
             };
+            const failed = !result.ok;
+            setApplyProgress(p => p ? {
+              ...p,
+              completedCount: p.completedCount + 1,
+              failedCount: p.failedCount + (failed ? 1 : 0),
+              items: p.items.map(i => i.id === id ? { ...i, status: failed ? "failed" : "done" } : i),
+            } : p);
           } catch (e: any) {
             electronResults[id] = { ok: false, error: e.message, errorDetail: e.message };
+            setApplyProgress(p => p ? {
+              ...p,
+              completedCount: p.completedCount + 1,
+              failedCount: p.failedCount + 1,
+              items: p.items.map(i => i.id === id ? { ...i, status: "failed" } : i),
+            } : p);
           }
         }
       }
       setProcessingId(null);
+      setApplyProgress(p => p ? { ...p, phase: "verifying", currentItemName: null } : p);
   
       try {
         const data = await cloudApiPost("/debloat/restore", {
@@ -1254,17 +1326,49 @@
           setSession({
             role, level, results: data.results,
             successCount: data.results.filter((r: ApplyResult) => r.status === "restored").length,
-            failCount: data.results.filter((r: ApplyResult) => r.status === "failed").length,
+            failCount: data.results.filter((r: ApplyResult) =>
+              !["restored", "already-present", "partial"].includes(r.status)
+            ).length,
             requiresRestart: false, requiresSignOut: false,
             appliedAt: new Date().toISOString(), action: "restore",
           });
+           setItemState(prev => {
+             const next = { ...prev };
+             for (const result of data.results as ApplyResult[]) {
+               if (result.status === "restored" || result.status === "already-present") {
+                 next[result.id] = "present";
+               }
+             }
+             return next;
+           });
+           setApplyProgress(p => p ? {
+             ...p,
+             phase: "complete",
+             completedCount: data.results.length,
+              failedCount: data.results.filter((r: ApplyResult) =>
+                !["restored", "already-present", "partial"].includes(r.status)
+              ).length,
+             currentItemName: null,
+             completedAt: Date.now(),
+           } : p);
           setActiveView("results");
           fetchHistory();
           const restored = data.results.filter((r: ApplyResult) => r.status === "restored").length;
           logHistory(`Debloat: ${restored} item${restored !== 1 ? "s" : ""} restored`, "Debloat", "Restored", `${restored} item${restored !== 1 ? "s" : ""} restored to defaults`);
           toast({ title: "Restore processed" });
         }
-      } catch {}
+      } catch (e) {
+        setApplyProgress(p => p ? {
+          ...p,
+          phase: "complete",
+          error: e instanceof Error ? e.message : "Restore failed.",
+        } : p);
+        toast({
+          title: "Restore failed",
+          description: e instanceof Error ? e.message : "The restore request failed.",
+          variant: "destructive",
+        });
+      }
       finally {
         setApplying(false);
       }

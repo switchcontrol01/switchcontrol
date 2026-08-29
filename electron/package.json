@@ -53,6 +53,7 @@
       "security-helper.js",
       "firewall-status.js",
       "debloat-helper.js",
+      "debloat-contract.cjs",
       "file-icon.js",
       "cleaner-helper.js",
       "storage-helper.js",

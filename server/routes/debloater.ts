@@ -21,7 +21,61 @@ export type DebloatCategory = "consumer-apps" | "telemetry" | "gaming" | "cloud"
 
 export type ResultStatus =
   | "removed" | "restored" | "already-absent" | "already-present"
-  | "failed" | "verification-failed" | "unsupported" | "partial";
+  | "failed" | "verification-failed" | "verification-inconclusive"
+  | "pending-restart" | "unsupported" | "partial";
+
+const VALID_ROLES = new Set<SystemRole>(["gaming", "streaming", "workstation", "laptop", "minimal"]);
+const VALID_LEVELS = new Set<DebloatLevel>(["safe", "balanced", "aggressive", "extreme"]);
+const VALID_RESULT_STATUSES = new Set<ResultStatus>([
+  "removed", "restored", "already-absent", "already-present", "failed",
+  "verification-failed", "verification-inconclusive", "pending-restart",
+  "unsupported", "partial",
+]);
+const MAX_DEBLOAT_ITEMS = 100;
+
+function isPlainObject(value: unknown): value is Record<string, any> {
+  return !!value && typeof value === "object" && !Array.isArray(value);
+}
+
+function validRole(value: unknown): value is SystemRole {
+  return typeof value === "string" && VALID_ROLES.has(value as SystemRole);
+}
+
+function validLevel(value: unknown): value is DebloatLevel {
+  return typeof value === "string" && VALID_LEVELS.has(value as DebloatLevel);
+}
+
+function boundedText(value: unknown, max = 1000): string | undefined {
+  return typeof value === "string" && value.trim() ? value.slice(0, max) : undefined;
+}
+
+function resultFromElectron(raw: unknown, action: "remove" | "restore") {
+  if (!isPlainObject(raw) || typeof raw.ok !== "boolean") {
+    return { status: "failed" as ResultStatus, verification: "failed", error: "Native execution returned no valid result." };
+  }
+  const rawStatus = typeof raw.status === "string" && VALID_RESULT_STATUSES.has(raw.status as ResultStatus)
+    ? raw.status as ResultStatus
+    : undefined;
+  const successStatuses = action === "remove"
+    ? new Set<ResultStatus>(["removed", "already-absent", "pending-restart"])
+    : new Set<ResultStatus>(["restored", "already-present", "partial"]);
+  const failureStatuses = new Set<ResultStatus>([
+    "failed", "verification-failed", "verification-inconclusive", "unsupported", "partial",
+  ]);
+  const status = raw.ok && rawStatus && successStatuses.has(rawStatus)
+    ? rawStatus
+    : !raw.ok && rawStatus && failureStatuses.has(rawStatus) ? rawStatus
+    : "failed";
+  // Keep the detailed native message authoritative (the old route used:
+  // error = eResult.errorDetail ?? eResult.error).
+  return {
+    status,
+    verification: raw.ok && status === "partial"
+      ? "partial"
+      : raw.ok && successStatuses.has(status) ? "verified" : "failed",
+    error: boundedText(raw.errorDetail ?? raw.error),
+  };
+}
 
 interface RemovalDef {
   method: "appx" | "registry" | "service" | "task";
@@ -1407,6 +1461,9 @@ initTables().catch(e => console.error("[Debloater] table init failed:", e.messag
 router.get("/items", (req, res) => {
   const role = (req.query.role as SystemRole) ?? "gaming";
   const level = (req.query.level as DebloatLevel) ?? "safe";
+  if (!validRole(role) || !validLevel(level)) {
+    return res.status(400).json({ ok: false, error: "Invalid Debloater role or level." });
+  }
 
   const visibleItems = DEBLOAT_REGISTRY.filter(
     item => levelIndex(item.minLevel) <= levelIndex(level)
@@ -1439,15 +1496,28 @@ router.get("/items", (req, res) => {
 // POST /api/debloat/apply
 // Body: { role, level, itemIds: string[], electronResults?: Record<string, { ok, status, error, errorDetail }> }
 router.post("/apply", async (req, res) => {
-  const { role, level, itemIds, electronResults } = req.body as {
+  const body = isPlainObject(req.body) ? req.body : {};
+  const { role, level, itemIds, electronResults } = body as {
     role: SystemRole;
     level: DebloatLevel;
     itemIds: string[];
     electronResults?: Record<string, { ok: boolean; status?: string; error?: string; errorDetail?: string }>;
   };
 
-  if (!Array.isArray(itemIds) || itemIds.length === 0) {
+  if (!isPlainObject(req.body) || !validRole(role) || !validLevel(level) ||
+      !Array.isArray(itemIds) || itemIds.length === 0 || itemIds.length > MAX_DEBLOAT_ITEMS ||
+      itemIds.some(id => typeof id !== "string" || !id.trim())) {
     return res.status(400).json({ ok: false, error: "No items specified" });
+  }
+  if (new Set(itemIds).size !== itemIds.length) {
+    return res.status(400).json({ ok: false, error: "Duplicate Debloater items are not allowed." });
+  }
+  const definitions = itemIds.map(itemId => DEBLOAT_REGISTRY.find(i => i.id === itemId));
+  if (definitions.some(def => !def)) {
+    return res.status(400).json({ ok: false, error: "Unknown Debloater item." });
+  }
+  if (!isPlainObject(electronResults)) {
+    return res.status(409).json({ ok: false, error: "Native execution results are required. Run this action in the desktop app." });
   }
 
   const results: Array<{
@@ -1457,31 +1527,14 @@ router.post("/apply", async (req, res) => {
   }> = [];
 
   for (const itemId of itemIds) {
-    const def = DEBLOAT_REGISTRY.find(i => i.id === itemId);
-    if (!def) {
-      results.push({ id: itemId, name: itemId, status: "unsupported", requiresRestart: false, requiresSignOut: false });
-      continue;
-    }
+    const def = definitions[itemIds.indexOf(itemId)]!;
 
-    // Use Electron IPC result if provided, otherwise "pending"
+    // A server response is never allowed to invent a successful native action.
     const eResult = electronResults?.[itemId];
-    let status: ResultStatus = "removed";
-    let verification = "pending";
-    let error: string | undefined;
-
-    if (eResult) {
-      if (!eResult.ok) {
-        status = "failed";
-        error = eResult.errorDetail ?? eResult.error;
-        verification = "failed";
-      } else {
-        status = (eResult.status as ResultStatus) ?? "removed";
-        verification = "verified";
-        if (eResult.errorDetail ?? eResult.error) {
-          error = eResult.errorDetail ?? eResult.error;
-        }
-      }
-    }
+    const native = resultFromElectron(eResult, "remove");
+    const status = native.status;
+    const verification = native.verification;
+    const error = native.error;
 
     // Persist to DB, or a local JSON file when there is no reachable
     // database (packaged Electron desktop app).
@@ -1495,6 +1548,7 @@ router.post("/apply", async (req, res) => {
       `).catch(e => console.error("[Debloater] log insert failed:", e.message));
     } else {
       appendLocalHistoryEntry({
+        user_id: req.cloudUser?.id ?? null,
         item_id: itemId,
         item_name: def.name,
         action: "remove",
@@ -1518,10 +1572,10 @@ router.post("/apply", async (req, res) => {
     });
   }
 
-  const anyRestart = results.some(r => r.requiresRestart && r.status === "removed");
-  const anySignOut = results.some(r => r.requiresSignOut && r.status === "removed");
-  const successCount = results.filter(r => r.status === "removed" || r.status === "already-absent").length;
-  const failCount = results.filter(r => r.status === "failed" || r.status === "verification-failed").length;
+  const anyRestart = results.some(r => r.requiresRestart && (r.status === "removed" || r.status === "pending-restart"));
+  const anySignOut = results.some(r => r.requiresSignOut && (r.status === "removed" || r.status === "pending-restart"));
+  const successCount = results.filter(r => r.status === "removed" || r.status === "already-absent" || r.status === "pending-restart").length;
+  const failCount = results.filter(r => r.status === "failed" || r.status === "verification-failed" || r.status === "verification-inconclusive").length;
 
   res.json({ ok: true, results, successCount, failCount, requiresRestart: anyRestart, requiresSignOut: anySignOut });
 });
@@ -1529,59 +1583,64 @@ router.post("/apply", async (req, res) => {
 // POST /api/debloat/restore
 // Body: { itemIds: string[], electronResults?: ... }
 router.post("/restore", async (req, res) => {
-  const { itemIds, electronResults } = req.body as {
+  const body = isPlainObject(req.body) ? req.body : {};
+  const { itemIds, electronResults } = body as {
     itemIds: string[];
     electronResults?: Record<string, { ok: boolean; status?: string; error?: string; errorDetail?: string }>;
   };
 
-  if (!Array.isArray(itemIds) || itemIds.length === 0) {
+  if (!isPlainObject(req.body) || !Array.isArray(itemIds) || itemIds.length === 0 ||
+      itemIds.length > MAX_DEBLOAT_ITEMS || itemIds.some(id => typeof id !== "string" || !id.trim())) {
     return res.status(400).json({ ok: false, error: "No items specified" });
+  }
+  if (new Set(itemIds).size !== itemIds.length) {
+    return res.status(400).json({ ok: false, error: "Duplicate Debloater items are not allowed." });
+  }
+  if (!isPlainObject(electronResults)) {
+    return res.status(409).json({ ok: false, error: "Native execution results are required. Run this action in the desktop app." });
   }
 
   const results: Array<{
-    id: string; name: string; status: ResultStatus; error?: string;
+    id: string; name: string; status: ResultStatus; error?: string; verification?: string;
   }> = [];
 
   for (const itemId of itemIds) {
     const def = DEBLOAT_REGISTRY.find(i => i.id === itemId);
     if (!def) {
       results.push({ id: itemId, name: itemId, status: "unsupported" });
-      continue;
+      return res.status(400).json({ ok: false, error: "Unknown Debloater item." });
     }
     if (!def.restore.supported) {
       results.push({ id: itemId, name: def.name, status: "unsupported" });
       continue;
     }
 
-    const eResult = electronResults?.[itemId];
-    let status: ResultStatus = "restored";
-    let error: string | undefined;
-
-    if (eResult) {
-      if (!eResult.ok) { status = "failed"; error = eResult.errorDetail ?? eResult.error; }
-      else { status = (eResult.status as ResultStatus) ?? "restored"; }
-    }
+    const eResult = electronResults[itemId];
+    const native = resultFromElectron(eResult, "restore");
+    const status = native.status;
+    const error = native.error;
 
     if (!isNoDbMode && db) {
-      await db.execute(sql`
+        await db.execute(sql`
         INSERT INTO debloat_applied_items (user_id, item_id, item_name, action, status, verification)
-        VALUES (${req.cloudUser!.id}, ${itemId}, ${def.name}, 'restore', ${status}, ${eResult ? 'verified' : 'pending'})
+        VALUES (${req.cloudUser!.id}, ${itemId}, ${def.name}, 'restore', ${status}, ${native.verification})
       `).catch(() => {});
     } else {
       appendLocalHistoryEntry({
+        user_id: req.cloudUser?.id ?? null,
         item_id: itemId,
         item_name: def.name,
         action: "restore",
         status,
         role: null,
         level: null,
-        verification: eResult ? "verified" : "pending",
+        verification: native.verification,
         restart_req: false,
         signout_req: false,
       });
     }
 
-    results.push({ id: itemId, name: def.name, status, error });
+    results.push({ id: itemId, name: def.name, status, error, verification: native.verification });
   }
 
   res.json({ ok: true, results });
@@ -1590,14 +1649,18 @@ router.post("/restore", async (req, res) => {
 // POST /api/debloat/scan
 // Body: { electronResults: Record<string, { present: boolean }> }
 router.post("/scan", (req, res) => {
-  const { electronResults } = req.body as {
+  const body = isPlainObject(req.body) ? req.body : {};
+  const { electronResults } = body as {
     electronResults?: Record<string, { present: boolean; error?: string }>;
   };
 
+  if (!isPlainObject(req.body) || !isPlainObject(electronResults)) {
+    return res.status(400).json({ ok: false, error: "Native scan results are required." });
+  }
   const stateMap: Record<string, "present" | "absent" | "unknown"> = {};
 
   for (const item of DEBLOAT_REGISTRY) {
-    if (electronResults?.[item.id] !== undefined) {
+    if (isPlainObject(electronResults[item.id]) && typeof electronResults[item.id].present === "boolean") {
       stateMap[item.id] = electronResults[item.id].present ? "present" : "absent";
     } else {
       stateMap[item.id] = "unknown";
@@ -1614,7 +1677,15 @@ router.post("/apps/log", async (req, res) => {
     appName: string; publisher?: string; version?: string;
     method?: string; status?: string; source?: string;
   };
-  if (!appName || typeof appName !== "string") {
+  const validAppStatuses = new Set([
+    "removed", "restart-required", "pending-restart", "failed", "blocked", "stale-record",
+    "no-uninstall-path", "parse-error", "exe-not-found", "user-cancelled",
+    "verification-inconclusive", "verification-failed",
+  ]);
+  const validMethods = new Set(["msi", "exe", "none", ""]);
+  if (!appName || typeof appName !== "string" || appName.trim().length > 160 ||
+      (status !== undefined && (!validAppStatuses.has(status) || status.length > 64)) ||
+      (method !== undefined && (!validMethods.has(method) || method.length > 32))) {
     return res.status(400).json({ ok: false, error: "appName required" });
   }
   const itemId = `installed-app:${appName.slice(0, 80)}`;
@@ -1631,6 +1702,7 @@ router.post("/apps/log", async (req, res) => {
     `).catch(e => console.warn("[Debloater/AppsLog] insert failed:", e.message));
   } else {
     appendLocalHistoryEntry({
+      user_id: req.cloudUser?.id ?? null,
       item_id: itemId,
       item_name: appName,
       action: "uninstall-installed",
@@ -1648,7 +1720,7 @@ router.post("/apps/log", async (req, res) => {
 
 // GET /api/debloat/history
 router.get("/history", requireJwt, async (req, res) => {
-  if (isNoDbMode || !db) return res.json({ ok: true, history: getLocalHistory(100) });
+  if (isNoDbMode || !db) return res.json({ ok: true, history: getLocalHistory(100, req.cloudUser?.id) });
   try {
     const rows = await db.execute<{
       id: number; user_id: string | null; item_id: string; item_name: string; action: string;

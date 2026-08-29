@@ -939,6 +939,17 @@ export function InstalledAppsPanel() {
 
     try {
       const res = await api!.uninstall(app);
+      const loggedStatus = res.ok
+        ? (res.requiresRestart || res.status === "pending-restart" ? "restart-required" : "removed")
+        : (res.status || "failed");
+      cloudApiPost("/debloat/apps/log", {
+        appName: app.name,
+        publisher: app.publisher,
+        version: app.version,
+        method: app.uninstallMethod,
+        status: loggedStatus,
+        source: "InstalledApps",
+      }).catch(() => {});
 
       if (res.ok && res.requiresRestart) {
         setResults(prev => ({ ...prev, [app.id]: { kind: "restart-required" } }));
@@ -953,11 +964,6 @@ export function InstalledAppsPanel() {
           app.publisher ? `Publisher: ${app.publisher}` : undefined,
           { category: "non-revertible", reversible: false, reason: "Installed-app uninstall has no supported in-app restore target." }
         );
-        cloudApiPost("/debloat/apps/log", {
-          appName: app.name, publisher: app.publisher,
-          version: app.version, method: app.uninstallMethod,
-          status: "removed", source: "InstalledApps",
-        }).catch(() => {});
       } else {
         // Build a concise user-facing failure reason
         const detail = buildFailureLabel(res);
