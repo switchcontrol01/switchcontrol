@@ -79,6 +79,7 @@ interface BackendBreakdown {
 
 interface BackendState {
   success: boolean;
+  state?: "ready" | "unavailable" | "unreadable" | "missing";
   error?: string;
   activeScheme?: { guid: string; name: string };
   settings?: Record<string, number | null>;
@@ -884,6 +885,7 @@ export default function PowerPlan() {
       if (result.success) {
         setBackendState(result);
       } else {
+        setBackendState(null);
         setPlanError(result.error ?? "Could not read power plan state from Windows.");
       }
       if (api?.getCustomMeta) {
@@ -1315,11 +1317,16 @@ export default function PowerPlan() {
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
                   >
-                    <h2 className="text-2xl md:text-3xl font-bold text-[#E6EAF0] tracking-tight leading-tight">
-                      {backendState?.activeScheme?.name ?? "No Plan Detected"}
+                     <h2 className="text-2xl md:text-3xl font-bold text-[#E6EAF0] tracking-tight leading-tight">
+                       {backendState?.activeScheme?.name ??
+                         (planError ? "Power Plan Unreadable" : "No active plan reported")}
                     </h2>
                     <p className="text-sm text-muted-foreground mt-1">
-                      {backendState ? "Currently active in Windows Power Options" : "Waiting for Windows power state…"}
+                       {backendState
+                         ? "Currently active in Windows Power Options"
+                         : planError
+                           ? "Windows did not provide a trustworthy active-plan result"
+                           : "Waiting for Windows power state…"}
                     </p>
                   </motion.div>
                 )}
