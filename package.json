@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "tsx server/index.ts",
     "build": "npx tsx script/build.ts",
-    "test": "node --test electron/test/*.test.cjs",
+    "test": "node --import tsx --test electron/test/*.test.cjs",
     "start": "node dist/index.cjs",
     "postinstall": "cd electron && npm install",
     "electron:dev": "cd electron && npm start",

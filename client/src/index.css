@@ -193,6 +193,18 @@ html.sc-high-contrast .text-muted-foreground { color: hsl(var(--foreground) / 0.
 html.sc-high-contrast [class*="border-"] { border-color: hsl(var(--foreground) / 0.35) !important; }
 html.sc-colorblind-safe .text-red-400 { color: #F59E0B !important; }
 
+/* The language setting changes document direction for Arabic and Urdu. Keep
+   the fixed navigation and content gutter on the correct side without asking
+   every page component to implement its own RTL fork. */
+html[dir="rtl"] .sidebar-shell { left: auto; right: 0; }
+html[dir="rtl"] #app-scroll-root {
+  padding-left: 0 !important;
+  padding-right: 256px !important;
+}
+html[dir="rtl"] .text-left { text-align: right; }
+html[dir="rtl"] .sidebar-footer-dock,
+html[dir="rtl"] .sidebar-shell nav { direction: rtl; }
+
 body {
   background: hsl(var(--background)) !important;
   background-color: hsl(var(--background)) !important;

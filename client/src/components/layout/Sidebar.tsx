@@ -31,6 +31,7 @@ import { useEntitlementUiState } from "@/hooks/useEntitlementUiState";
 import { preloadDesktopRoute } from "@/lib/route-prefetch";
 import { useUserPreferencesStore } from "@/stores/userPreferencesStore";
 import { useShallow } from "zustand/react/shallow";
+import { useTranslation } from "@/lib/i18n";
 
 // Module-level cache for the app version. `Sidebar` is remounted on every
 // route change (each page wraps itself in <AppLayout>), so without this the
@@ -161,6 +162,7 @@ function NavItemRow({
   onClick: () => void;
 }) {
   const [hovered, setHovered] = useState(false);
+  const { t } = useTranslation();
 
   return (
     <div className="relative">
@@ -323,7 +325,7 @@ function NavItemRow({
           }
           transition={{ duration: 0.18, ease: EASE_PREMIUM }}
         >
-          {item.label}
+          {t(item.label)}
         </motion.span>
 
         {/* Premium crown chip — right-rail locked */}
@@ -377,6 +379,7 @@ export function Sidebar() {
     sidebarOrder: s.sidebarOrder,
     largeSidebar: s.largeSidebar,
   })));
+  const { t } = useTranslation();
   useEffect(() => {
     if (cachedAppVersion) return;
     const api = (window as any).electronAPI;
@@ -610,11 +613,11 @@ export function Sidebar() {
                   <span className="crown-animated">
                     <Crown className="size-2.5" style={{ color: "hsl(48 95% 70%)" }} />
                   </span>
-                  <span className="premium-badge-text">Premium</span>
+                   <span className="premium-badge-text">{t("Premium")}</span>
                 </div>
               ) : (
                 <div className="free-badge">
-                  <span className="free-badge-text">Free</span>
+                   <span className="free-badge-text">{t("Free")}</span>
                 </div>
               )}
             </div>
@@ -664,7 +667,7 @@ export function Sidebar() {
                   transition: { duration: 0.15 },
                 }}
                 whileTap={{ scale: 0.9 }}
-                title="Discord"
+               title={t("Discord")}
                 data-testid="sidebar-link-discord"
               >
                 <DiscordIcon className="size-3.5" />
@@ -687,7 +690,7 @@ export function Sidebar() {
                   transition: { duration: 0.15 },
                 }}
                 whileTap={{ scale: 0.9 }}
-                title="YouTube"
+                 title={t("YouTube")}
                 data-testid="sidebar-link-youtube"
               >
                 <YouTubeIcon className="size-3.5" />

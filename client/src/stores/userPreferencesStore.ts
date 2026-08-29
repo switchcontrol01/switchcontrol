@@ -4,6 +4,8 @@ import { persist } from "zustand/middleware";
 export type ThemeMode = "dark" | "light" | "system" | "midnight" | "oled" | "contrast";
 export type AccentName = "cyan" | "purple" | "blue" | "green" | "orange" | "red" | "custom";
 export type ConfirmationMode = "always" | "risky" | "safe";
+export type Locale = "en" | "zh-CN" | "es" | "hi" | "ar" | "pt-BR" | "bn" | "ru" | "ja" | "pa" | "de" | "id" | "ko" | "fr" | "te" | "tr" | "mr" | "ta" | "vi" | "ur";
+export const LOCALE_CODES: Locale[] = ["en", "zh-CN", "es", "hi", "ar", "pt-BR", "bn", "ru", "ja", "pa", "de", "id", "ko", "fr", "te", "tr", "mr", "ta", "vi", "ur"];
 
 export const ACCENT_COLORS: Record<Exclude<AccentName, "custom">, string> = {
   cyan: "#00D4FF",
@@ -26,6 +28,7 @@ export const DEFAULT_DASHBOARD_CARDS = [
 ] as const;
 
 export interface UserPreferences {
+  language: Locale;
   accent: AccentName;
   customAccent: string;
   theme: ThemeMode;
@@ -68,6 +71,7 @@ export interface UserPreferences {
 }
 
 const DEFAULTS: UserPreferences = {
+  language: "en",
   accent: "cyan",
   customAccent: "#00D4FF",
   theme: "dark",
@@ -159,8 +163,12 @@ export const useUserPreferencesStore = create<UserPreferencesState>()(
     }),
     {
       name: "sc-user-preferences",
-      version: 1,
-      migrate: (persisted) => ({ ...DEFAULTS, ...(persisted as Partial<UserPreferences>) }),
+      version: 2,
+      migrate: (persisted) => {
+        const next = { ...DEFAULTS, ...(persisted as Partial<UserPreferences>) };
+        if (!LOCALE_CODES.includes(next.language)) next.language = "en";
+        return next;
+      },
     },
   ),
 );

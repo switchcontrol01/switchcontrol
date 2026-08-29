@@ -26,6 +26,7 @@ import { Reveal } from "@/lib/motion";
 import { PATCH_NOTES_STORAGE_KEY, PatchNotesModal } from "@/components/PatchNotesModal";
 import { ACCENT_COLORS, useUserPreferencesStore, type ThemeMode, type ConfirmationMode } from "@/stores/userPreferencesStore";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { useTranslation } from "@/lib/i18n";
 
 interface PatchNotes {
   version: string;
@@ -336,6 +337,7 @@ function ReorderList({ items, hidden, labels, onToggle, onReorder, testPrefix }:
 
 function CustomizationSettings() {
   const preferences = useUserPreferencesStore();
+  const { t } = useTranslation();
   const set = preferences.setPreference;
   const { toast } = useToast();
   const clearHistory = useStore((s) => s.clearHistory);
@@ -353,10 +355,10 @@ function CustomizationSettings() {
   const accentOptions = Object.entries(ACCENT_COLORS) as [Exclude<keyof typeof ACCENT_COLORS, "custom">, string][];
   return (
     <div className="space-y-6">
-      <PreferenceCard icon={Palette} title="Appearance" description="Make SwitchControl feel like your workspace. Changes apply instantly and are saved locally.">
+      <PreferenceCard icon={Palette} title={t("Appearance")} description={t("Make SwitchControl feel like your workspace. Changes apply instantly and are saved locally.")}>
         <div className="space-y-4">
           <div>
-            <Label>Accent color</Label>
+            <Label>{t("Accent color")}</Label>
             <div className="mt-2 flex flex-wrap gap-2">
               {accentOptions.map(([name, color]) => (
                 <button key={name} type="button" aria-label={`Use ${name} accent`} data-testid={`accent-${name}`}
@@ -369,15 +371,15 @@ function CustomizationSettings() {
               </label>
             </div>
           </div>
-          <PreferenceSelect label="Theme" description="Choose the surface treatment used throughout the app." value={preferences.theme}
-            options={[["dark", "Dark"], ["light", "Light"], ["system", "System"], ["midnight", "Midnight"], ["oled", "OLED Black"], ["contrast", "High Contrast"]].map(([value, label]) => ({ value, label }))}
+           <PreferenceSelect label={t("Theme")} description={t("Choose the surface treatment used throughout the app.")} value={preferences.theme}
+             options={[["dark", "Dark"], ["light", "Light"], ["system", "System"], ["midnight", "Midnight"], ["oled", "OLED Black"], ["contrast", "High Contrast"]].map(([value, label]) => ({ value, label: t(label) }))}
             onChange={(value) => set("theme", value as ThemeMode)} testId="select-theme" />
-          <PreferenceSwitch label="Reduced motion" description="Minimize transitions and animated effects." checked={preferences.reducedMotion} onChange={(v) => set("reducedMotion", v)} testId="toggle-reduced-motion" />
+           <PreferenceSwitch label={t("Reduced motion")} description={t("Minimize transitions and animated effects.")} checked={preferences.reducedMotion} onChange={(v) => set("reducedMotion", v)} testId="toggle-reduced-motion" />
           <PreferenceSwitch label="Disable graph animation" description="Keep live charts updating without animated redraws." checked={preferences.disableGraphAnimation} onChange={(v) => set("disableGraphAnimation", v)} testId="toggle-disable-graph-animation" />
         </div>
       </PreferenceCard>
 
-      <PreferenceCard icon={Accessibility} title="Accessibility" description="Tune readability, contrast, focus, and interaction sizing.">
+       <PreferenceCard icon={Accessibility} title={t("Accessibility")} description={t("Tune readability, contrast, focus, and interaction sizing.")}>
         <PreferenceSwitch label="Larger text" description="Increase the base application font size." checked={preferences.largerText} onChange={(v) => set("largerText", v)} testId="toggle-larger-text" />
         <PreferenceSwitch label="High contrast controls" description="Increase contrast for borders, labels, and secondary text." checked={preferences.highContrast} onChange={(v) => set("highContrast", v)} testId="toggle-high-contrast" />
         <PreferenceSwitch label="Larger click targets" description="Give buttons and fields more room to operate." checked={preferences.largeTargets} onChange={(v) => set("largeTargets", v)} testId="toggle-large-targets" />
@@ -385,10 +387,10 @@ function CustomizationSettings() {
         <PreferenceSwitch label="Always show status labels" description="Keep text labels visible beside status indicators." checked={preferences.alwaysShowStatusLabels} onChange={(v) => set("alwaysShowStatusLabels", v)} testId="toggle-status-labels" />
       </PreferenceCard>
 
-      <PreferenceCard icon={LayoutGrid} title="Layout" description="Arrange the navigation rail and dashboard around the information you use most.">
+       <PreferenceCard icon={LayoutGrid} title={t("Layout")} description={t("Arrange the navigation rail and dashboard around the information you use most.")}>
         <div className="grid gap-6 lg:grid-cols-2">
           <div>
-            <Label className="mb-2 block">Sidebar items</Label>
+             <Label className="mb-2 block">{t("Sidebar items")}</Label>
             <ReorderList
               items={preferences.sidebarOrder.filter((id) => id !== "/settings")}
               hidden={preferences.sidebarHidden}
@@ -405,7 +407,7 @@ function CustomizationSettings() {
             <p className="text-[11px] text-muted-foreground mt-2">Settings is always available so you can recover or reset your layout.</p>
           </div>
           <div>
-            <Label className="mb-2 block">Dashboard cards</Label>
+             <Label className="mb-2 block">{t("Dashboard cards")}</Label>
             <ReorderList
               items={preferences.dashboardOrder}
               hidden={preferences.dashboardHidden}
@@ -426,7 +428,7 @@ function CustomizationSettings() {
         <Button variant="outline" size="sm" onClick={() => { if (window.confirm("Reset layout and appearance preferences to their defaults?")) preferences.resetPreferences(); }} data-testid="button-reset-customization"><RotateCcw className="size-3.5 mr-2" />Reset customization</Button>
       </PreferenceCard>
 
-      <PreferenceCard icon={SlidersHorizontal} title="Tweak behavior" description="Control sorting, confirmations, intelligence, and safety checks.">
+       <PreferenceCard icon={SlidersHorizontal} title={t("Tweak behavior")} description={t("Control sorting, confirmations, intelligence, and safety checks.")}>
         <PreferenceSelect label="Confirmation prompts" description="Choose which tweak actions ask before applying." value={preferences.confirmationMode}
           options={[["always", "Every change"], ["risky", "Risky changes only"], ["safe", "Never for safe changes"]].map(([value, label]) => ({ value, label }))}
           onChange={(value) => set("confirmationMode", value as ConfirmationMode)} testId="select-confirmation-mode" />
@@ -443,7 +445,7 @@ function CustomizationSettings() {
         <PreferenceSwitch label="Retry failed reverts automatically" description="Retry a failed revert during the next eligible check." checked={preferences.autoRevertFailed} onChange={(v) => set("autoRevertFailed", v)} testId="toggle-auto-revert" />
       </PreferenceCard>
 
-      <PreferenceCard icon={Bell} title="Notifications & startup" description="Choose what deserves your attention and how the desktop app opens.">
+       <PreferenceCard icon={Bell} title={t("Notifications & startup")} description={t("Choose what deserves your attention and how the desktop app opens.")}>
         <PreferenceSelect label="Metrics refresh" description="Set the live metrics cadence, or pause it completely." value={String(preferences.metricsRefreshSeconds)}
           options={[["0", "Paused"], ["2", "Every 2 seconds"], ["5", "Every 5 seconds"], ["10", "Every 10 seconds"]].map(([value, label]) => ({ value, label }))}
           onChange={(value) => set("metricsRefreshSeconds", Number(value) as 0 | 2 | 5 | 10)} testId="select-metrics-refresh" />
@@ -457,7 +459,7 @@ function CustomizationSettings() {
         <PreferenceSwitch label="Check for updates automatically" description="Allow the desktop app to look for new releases." checked={preferences.autoUpdateChecks} onChange={(v) => set("autoUpdateChecks", v)} testId="toggle-auto-update-checks" />
       </PreferenceCard>
 
-      <PreferenceCard icon={ShieldCheck} title="Privacy & diagnostics" description="Keep control of local diagnostics and optional product context.">
+       <PreferenceCard icon={ShieldCheck} title={t("Privacy & diagnostics")} description={t("Keep control of local diagnostics and optional product context.")}>
         <PreferenceSwitch label="Anonymous crash reports" description="Share anonymous crash details to help improve stability." checked={preferences.anonymousCrashReports} onChange={(v) => set("anonymousCrashReports", v)} testId="toggle-crash-reports" />
         <PreferenceSwitch label="Share performance diagnostics" description="Allow non-identifying performance diagnostics when support needs them." checked={preferences.sharePerformanceDiagnostics} onChange={(v) => set("sharePerformanceDiagnostics", v)} testId="toggle-performance-sharing" />
         <PreferenceSwitch label="Share hardware context with AI Advisor" description="Include your local CPU, GPU, and memory details in AI requests." checked={preferences.shareAiHardwareContext} onChange={(v) => set("shareAiHardwareContext", v)} testId="toggle-ai-hardware-context" />
@@ -781,11 +783,12 @@ export default function Settings() {
   const isAdmin = !!(user as any)?.isAdmin;
   const [licenseModalOpen, setLicenseModalOpen] = useState(false);
   const [showPatchNotesModal, setShowPatchNotesModal] = useState(false);
+  const { t, language, setLanguage, locales } = useTranslation();
 
   const handleSave = () => {
     toast({
-      title: "Settings Saved",
-      description: "Your preferences have been updated.",
+      title: t("Settings Saved"),
+      description: t("Your preferences have been updated."),
     });
   };
 
@@ -794,8 +797,8 @@ export default function Settings() {
       <Reveal className="space-y-6 max-w-4xl">
         <PageHeader
           icon={SettingsIcon}
-          title="Settings"
-          subtitle="Manage application preferences and account details."
+           title={t("Settings")}
+           subtitle={t("Manage application preferences and account details.")}
         />
 
         <PatchNotesSection onViewFull={() => setShowPatchNotesModal(true)} />
@@ -806,14 +809,32 @@ export default function Settings() {
 
         <div className="space-y-6">
           <Reveal delay={0}>
-          <PreferenceCard icon={SettingsIcon} title="General" description="Configure general app behavior.">
+           <PreferenceCard icon={SettingsIcon} title={t("General")} description={t("Configure general app behavior.")}>
             <div className="space-y-6">
+               <div className="flex items-center justify-between gap-4 py-3 px-2 -mx-2 rounded-lg hover:bg-[#1A1F26] transition-colors">
+                 <div className="min-w-0">
+                   <Label>{t("Language")}</Label>
+                   <p className="text-xs text-muted-foreground mt-1">{t("Choose your language")}</p>
+                 </div>
+                 <select
+                   value={language}
+                   onChange={(event) => setLanguage(event.target.value as typeof language)}
+                   data-testid="select-language"
+                   aria-label={t("Language")}
+                   className="max-w-[14rem] shrink-0 rounded-lg border border-border/70 bg-background/70 px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/40"
+                 >
+                   {locales.map((locale) => (
+                     <option key={locale.code} value={locale.code}>{locale.nativeName}</option>
+                   ))}
+                 </select>
+               </div>
+               <Separator className="bg-border/50" />
               {/* Real-time Metrics */}
               <motion.div initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3, delay: 0.11, ease: [0.22, 1, 0.36, 1] }}>
                 <div className="flex items-center justify-between py-1 px-2 -mx-2 rounded-lg hover:bg-[#1A1F26] transition-colors">
                   <div className="space-y-0.5">
-                    <Label>Real-time Metrics</Label>
-                     <p className="text-xs text-muted-foreground">Updates while visible and pauses automatically in the background.</p>
+                     <Label>{t("Real-time Metrics")}</Label>
+                      <p className="text-xs text-muted-foreground">{t("Updates while visible and pauses automatically in the background.")}</p>
                   </div>
                   <Switch
                     checked={realtimeMetricsEnabled}

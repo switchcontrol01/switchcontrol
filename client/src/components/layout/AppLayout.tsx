@@ -13,6 +13,7 @@ import { useTourStore } from "@/lib/tour-store";
 import { useEntitlementUiState } from "@/hooks/useEntitlementUiState";
 import { useAuth } from "@/hooks/use-auth";
 import { useUserPreferencesStore } from "@/stores/userPreferencesStore";
+import { useTranslation } from "@/lib/i18n";
 
 
 // Module-level flag — survives remounts within the same session but resets on
@@ -24,6 +25,7 @@ function TrialCountdownBanner() {
   const ent = useEntitlementUiState();
   const largeSidebar = useUserPreferencesStore((s) => s.largeSidebar);
   const [dismissed, setDismissed] = useState(_trialBannerDismissed);
+  const { t } = useTranslation();
 
   if (!ent.showTrialBanner || dismissed) return null;
 
@@ -57,7 +59,7 @@ function TrialCountdownBanner() {
         )}
         <Timer className="size-3" />
         <span>
-          {ent.isTrialUrgent ? "Trial ending soon — " : "Free trial active — "}
+          {t(ent.isTrialUrgent ? "Trial ending soon —" : "Free trial active —")}{" "}
           <span className="font-bold font-mono">{ent.countdownLabel}</span>
         </span>
       </div>
@@ -65,7 +67,7 @@ function TrialCountdownBanner() {
         <button
           onClick={() => { _trialBannerDismissed = true; setDismissed(true); }}
           className="text-[#6B7380] hover:text-[#A0A8B3] text-xs transition-colors ml-1"
-          aria-label="Dismiss"
+          aria-label={t("Dismiss")}
         >
           ✕
         </button>
@@ -82,6 +84,7 @@ const BACKEND_TIMEOUT_MS = 20_000;
 function BackendStartingBanner() {
   const [ready, setReady] = useState(isBackendReady());
   const [error, setError] = useState<string | null>(null);
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (!isPackagedElectron) return;
@@ -98,7 +101,7 @@ function BackendStartingBanner() {
     let errCleanup: (() => void) | undefined;
     if (api?.onBackendError) {
       errCleanup = api.onBackendError((data: { error: string }) => {
-        setError(data?.error || "Backend failed to start. Please restart the app.");
+        setError(data?.error || t("Backend failed to start. Please restart the app."));
       });
     }
 
@@ -106,7 +109,7 @@ function BackendStartingBanner() {
     // show an actionable error so the user is never left with a forever spinner.
     const safetyTimer = setTimeout(() => {
       if (!isBackendReady()) {
-        setError("Backend did not start in time. Please restart the app.");
+        setError(t("Backend did not start in time. Please restart the app."));
       }
     }, BACKEND_TIMEOUT_MS);
 
@@ -131,7 +134,7 @@ function BackendStartingBanner() {
   return (
     <div className="fixed bottom-4 right-4 z-50 flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#1A1F26] border border-[#2A313A] text-[11px] text-[#6B7380] backdrop-blur-md shadow-lg">
       <Loader2 className="size-3 animate-spin shrink-0 text-[#6B7380]" />
-      <span>Starting backend…</span>
+      <span>{t("Starting backend…")}</span>
     </div>
   );
 }

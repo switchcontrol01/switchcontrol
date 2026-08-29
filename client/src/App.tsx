@@ -77,6 +77,7 @@ import { useTrialExpiryStore } from "@/stores/trialExpiryStore";
 import { useSystemConditionsStore } from "@/stores/systemConditionsStore";
 import { useToast } from "@/hooks/use-toast";
 import { UserPreferencesSync } from "@/components/UserPreferencesSync";
+import { I18nProvider } from "@/lib/i18n";
 
 import Splash from "@/screens/Splash";
 import CameraGlow from "@/screens/CameraGlow";
@@ -2372,24 +2373,26 @@ export default function App() {
   return (
     <ErrorBoundary route="app-root">
       <QueryClientProvider client={queryClient}>
-        <MotionProvider>
-          <TooltipProvider>
-            <UserPreferencesSync />
-            {isElectron ? (
-              <div className="app-root">
-                <div className="titlebar">
-                  <WindowControls />
+        <I18nProvider>
+          <MotionProvider>
+            <TooltipProvider>
+              <UserPreferencesSync />
+              {isElectron ? (
+                <div className="app-root">
+                  <div className="titlebar">
+                    <WindowControls />
+                  </div>
+                  <div className="app-content">
+                    <ElectronAppContent />
+                  </div>
                 </div>
-                <div className="app-content">
-                  <ElectronAppContent />
-                </div>
-              </div>
-            ) : (
-              <WebsiteContent />
-            )}
-            <Toaster />
-          </TooltipProvider>
-        </MotionProvider>
+              ) : (
+                <WebsiteContent />
+              )}
+              <Toaster />
+            </TooltipProvider>
+          </MotionProvider>
+        </I18nProvider>
       </QueryClientProvider>
       <PerformanceOverlay />
     </ErrorBoundary>
