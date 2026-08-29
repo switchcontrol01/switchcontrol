@@ -51,6 +51,7 @@
       "config-store.js",
       "critical-logger.js",
       "security-helper.js",
+      "firewall-status.js",
       "debloat-helper.js",
       "file-icon.js",
       "cleaner-helper.js",
