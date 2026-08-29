@@ -48,7 +48,7 @@ test("localization keeps all supported locales and navigation coverage", async (
     "Every change. Fully reversible.", "Stable", "Review", "Critical",
     "AI Confidence", "Context-matched", "3 optimizations found", "Stability Score",
     "Driver Currency", "Restore Points", "History & Rollback", "Clean install",
-    "GPU drivers", "Network tweaks", "Current", "Version 1.2.9",
+    "GPU drivers", "Network tweaks", "Current", "Version 1.3.0",
     "Instant Premium Status on Launch", "Startup Revert Guard", "Driver Intelligence Hub",
     "Health Score Radial & Component Cards", "Sliding Component Detail Panel",
     "AI Advisor Integration", "AMD/WMI Compatibility & GPU VRAM Fix",

@@ -96,7 +96,7 @@ export default function ReleaseStory() {
           <Reveal>
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.03] border border-white/[0.08] text-xs font-mono text-white/30 mb-6">
               <Layers className="w-3 h-3" />
-              {t("Version 1.2.9")}
+              {t("Version 1.3.0")}
             </div>
           </Reveal>
           <Reveal delay={0.1}>

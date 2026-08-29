@@ -40,7 +40,7 @@ The token needs **Object Read & Write** permission scoped to the `switchcontrol-
 
 ### 3. Note on versioning
 
-Current release is **v1.2.9**. `npm run release` uploads whatever
+Current release is **v1.3.0**. `npm run release` uploads whatever
 `electron/dist/` contains — it does **not** bump the version automatically. To
 cut a new release, bump the version in both `package.json` (root) and
 `electron/package.json`, then rebuild on Windows before uploading.
@@ -137,7 +137,7 @@ Every release is three steps: bump → build → upload.
 Edit `electron/package.json`, increment the version:
 
 ```json
-"version": "1.2.9"
+"version": "1.3.0"
 ```
 
 Use semver: `1.0.2` for patches, `1.1.0` for features, `2.0.0` for breaking.
@@ -151,8 +151,8 @@ npm run dist:win
 ```
 
 This produces in `electron/dist/`:
-- `SwitchControl Setup 1.2.9.exe`
-- `SwitchControl Setup 1.2.9.exe.blockmap`
+- `SwitchControl Setup 1.3.0.exe`
+- `SwitchControl Setup 1.3.0.exe.blockmap`
 - `latest.yml`
 
 ### Step 3 — Upload to R2
@@ -170,18 +170,18 @@ Output looks like:
 
 ```
 Found 3 artifact(s) to upload:
-  SwitchControl Setup 1.2.9.exe  (94.3 MB)
-  SwitchControl Setup 1.2.9.exe.blockmap  (0.1 MB)
+  SwitchControl Setup 1.3.0.exe  (94.3 MB)
+  SwitchControl Setup 1.3.0.exe.blockmap  (0.1 MB)
   latest.yml  (0.0 MB)
 
-  Uploading SwitchControl Setup 1.2.9.exe ... OK
-  Uploading SwitchControl Setup 1.2.9.exe.blockmap ... OK
+  Uploading SwitchControl Setup 1.3.0.exe ... OK
+  Uploading SwitchControl Setup 1.3.0.exe.blockmap ... OK
   Uploading latest.yml ... OK
 
 Verifying public URLs ...
   https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev/latest.yml ... 200 OK
-  https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev/SwitchControl%20Setup%201.2.9.exe ... 200 OK
-  https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev/SwitchControl%20Setup%201.2.9.exe.blockmap ... 200 OK
+  https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev/SwitchControl%20Setup%201.3.0.exe ... 200 OK
+  https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev/SwitchControl%20Setup%201.3.0.exe.blockmap ... 200 OK
 
 All files live and reachable.
 ```
@@ -204,12 +204,12 @@ curl -I "https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev/SwitchControl%20Set
 `latest.yml` should return something like:
 
 ```yaml
-version: 1.2.9
+version: 1.3.0
 files:
-  - url: SwitchControl Setup 1.0.2.exe
+  - url: SwitchControl Setup 1.3.0.exe
     ...
-path: SwitchControl Setup 1.2.9.exe
-releaseDate: '2026-04-03T...'
+path: SwitchControl Setup 1.3.0.exe
+releaseDate: '2026-08-29T...'
 ```
 
 ---
@@ -230,8 +230,8 @@ Quick check (PowerShell / curl — note `%20` for spaces):
 
 ```powershell
 curl -I https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev/latest.yml
-  curl -I "https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev/SwitchControl%20Setup%201.2.9.exe"
-  curl -I "https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev/SwitchControl%20Setup%201.2.9.exe.blockmap"
+  curl -I "https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev/SwitchControl%20Setup%201.3.0.exe"
+  curl -I "https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev/SwitchControl%20Setup%201.3.0.exe.blockmap"
 ```
 
 All three should return `HTTP/2 200`.
