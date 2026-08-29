@@ -7,6 +7,17 @@ export interface TrialTimeRemaining {
   expired: boolean;
 }
 
+// Chromium clamps/swallows setTimeout delays above the signed 32-bit integer
+// limit (~24.8 days). Trials can last longer than that, so callers must arm
+// long timers in chunks and re-check the expiry after each one.
+export const MAX_TRIAL_TIMER_DELAY_MS = 2_147_000_000;
+export const TRIAL_TIMER_BUFFER_MS = 500;
+
+export function getTrialTimerDelay(msUntilExpiry: number): number {
+  if (!Number.isFinite(msUntilExpiry) || msUntilExpiry <= 0) return 0;
+  return Math.min(msUntilExpiry + TRIAL_TIMER_BUFFER_MS, MAX_TRIAL_TIMER_DELAY_MS);
+}
+
 export function getTrialTimeRemaining(trialEndsAt: string | null | undefined): TrialTimeRemaining {
   if (!trialEndsAt) {
     return { total: 0, days: 0, hours: 0, minutes: 0, seconds: 0, expired: true };

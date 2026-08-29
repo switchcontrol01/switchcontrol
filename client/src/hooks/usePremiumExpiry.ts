@@ -28,7 +28,10 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { isElectronWithTweaks } from '@/hooks/use-tweak-executor';
 import { runPremiumRevert, hasPremiumItemsToRevert, PremiumRevertReport, RevertPhase } from '@/lib/premiumRevertEngine';
-import { isTrialActive } from '@/lib/trialCountdown';
+import {
+  getTrialTimerDelay,
+  isTrialActive,
+} from '@/lib/trialCountdown';
 import { useTrialExpiryStore } from '@/stores/trialExpiryStore';
 import { useTweakOwnershipStore } from '@/stores/tweakOwnershipStore';
 import { usePremiumGraceStore } from '@/stores/premiumGraceStore';
@@ -352,20 +355,38 @@ export function usePremiumExpiry({
     if (!isLoggedIn || !entitlementsVerified) return;
     if (plan !== 'trial' || !trialEndsAt) return;
 
-    const msUntilExpiry = new Date(trialEndsAt).getTime() - Date.now();
-    if (msUntilExpiry <= 0) return;
+    let cancelled = false;
+    let timerId: ReturnType<typeof setTimeout> | null = null;
+    const trialEndMs = new Date(trialEndsAt).getTime();
+    if (!Number.isFinite(trialEndMs)) return;
 
-    console.log(`[PremiumExpiry] Trial timer armed — fires in ${Math.round(msUntilExpiry / 1000)}s`);
+    const armNextChunk = () => {
+      if (cancelled) return;
 
-    const timerId = setTimeout(() => {
-      console.log('[PremiumExpiry] Trial timer fired — triggering revert');
-      if (prevWasActive.current !== false) {
-        prevWasActive.current = false;
-        triggerRevert('trial_expired');
+      const msUntilExpiry = trialEndMs - Date.now();
+      if (msUntilExpiry <= 0 || !isTrialActive(plan, trialEndsAt)) {
+        console.log('[PremiumExpiry] Trial timer reached expiry — triggering revert');
+        if (prevWasActive.current !== false) {
+          prevWasActive.current = false;
+          triggerRevert('trial_expired');
+        }
+        return;
       }
-    }, msUntilExpiry + 500);
 
-    return () => clearTimeout(timerId);
+      const delay = getTrialTimerDelay(msUntilExpiry);
+      console.log(
+        `[PremiumExpiry] Trial timer armed — next check in ${Math.round(delay / 1000)}s ` +
+        `(remaining ${Math.round(msUntilExpiry / 1000)}s)`,
+      );
+      timerId = setTimeout(armNextChunk, delay);
+    };
+
+    armNextChunk();
+
+    return () => {
+      cancelled = true;
+      if (timerId !== null) clearTimeout(timerId);
+    };
   }, [isLoggedIn, entitlementsVerified, plan, trialEndsAt, triggerRevert]);
 
   const retryRevert = useCallback(async () => {

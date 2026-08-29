@@ -60,6 +60,7 @@
     requiresRestart?: boolean;
     requiresSignOut?: boolean;
     error?: string;
+  errorDetail?: string;
     verification?: string;
     storeRequired?: boolean;
   }
@@ -166,6 +167,18 @@
   }
   
   const isElectron = () => typeof window !== "undefined" && !!window.electronAPI?.debloat;
+
+  function normalizeDebloatScanState(value: unknown): "present" | "absent" | "unknown" {
+    if (value === "present" || value === "absent" || value === "unknown") return value;
+    if (value && typeof value === "object" && "present" in value) {
+      const result = value as { present?: unknown; error?: unknown };
+      // A failed/invalid probe is not proof that an item is installed. Keep
+      // it visible for inspection without counting it as removable.
+      if (result.error) return "unknown";
+      if (typeof result.present === "boolean") return result.present ? "present" : "absent";
+    }
+    return "unknown";
+  }
 
   const debloatItemsCache = new Map<string, DebloatItem[]>();
   const debloatItemsRequests = new Map<string, Promise<DebloatItem[]>>();
@@ -911,8 +924,14 @@
         }));
         const result = await window.electronAPI!.debloat!.scan(scanPayload);
         if (result.ok) {
-          setItemState(result.results);
-          const presentCount = Object.values(result.results).filter((s: any) => s === "present").length;
+          const normalizedState = Object.fromEntries(
+            Object.entries(result.results ?? {}).map(([id, state]) => [
+              id,
+              normalizeDebloatScanState(state),
+            ]),
+          ) as Record<string, "present" | "absent" | "unknown">;
+          setItemState(normalizedState);
+          const presentCount = Object.values(normalizedState).filter(s => s === "present").length;
           logHistory(`Debloat: Scan complete, ${presentCount} item${presentCount !== 1 ? "s" : ""} present`, "Debloat", "Scanned", `${presentCount} removable items detected`);
         }
       } catch (e) {
@@ -1073,7 +1092,7 @@
         appliedAt: new Date().toISOString(), action: "apply",
       });
   
-      const electronResults: Record<string, { ok: boolean; status?: string; error?: string }> = {};
+      const electronResults: Record<string, { ok: boolean; status?: string; error?: string; errorDetail?: string }> = {};
   
       // ── Electron execution per item ──
       if (isElectron()) {
@@ -1091,10 +1110,12 @@
           try {
             const ipcPayload = buildIpcPayload(item);
             const result = await window.electronAPI!.debloat!.removeItem(ipcPayload);
+            const errorDetail = result.errorDetail ?? result.error;
             electronResults[item.id] = {
               ok: result.ok,
               status: result.status,
               error: result.error,
+              errorDetail,
             };
             // Update live progress
             const isFailed = !result.ok;
@@ -1110,11 +1131,11 @@
             setSession(prev => prev ? {
               ...prev,
               results: prev.results.map(r => r.id === item.id
-                ? { ...r, status: result.ok ? (result.status as ResultStatus ?? "removed") : "failed", error: result.error }
+                ? { ...r, status: result.ok ? (result.status as ResultStatus ?? "removed") : "failed", error: errorDetail, errorDetail }
                 : r),
             } : null);
           } catch (e: any) {
-            electronResults[item.id] = { ok: false, error: e.message };
+            electronResults[item.id] = { ok: false, error: e.message, errorDetail: e.message };
             setApplyProgress(p => p ? {
               ...p,
               completedCount: p.completedCount + 1,
@@ -1202,7 +1223,7 @@
   
       setApplying(true);
   
-      const electronResults: Record<string, { ok: boolean; status?: string; error?: string }> = {};
+      const electronResults: Record<string, { ok: boolean; status?: string; error?: string; errorDetail?: string }> = {};
   
       if (isElectron()) {
         for (const id of restorableIds) {
@@ -1211,9 +1232,14 @@
           try {
             const ipcPayload = buildRestoreIpcPayload(item);
             const result = await window.electronAPI!.debloat!.restoreItem(ipcPayload);
-            electronResults[id] = { ok: result.ok, status: result.status, error: result.error };
+            electronResults[id] = {
+              ok: result.ok,
+              status: result.status,
+              error: result.error,
+              errorDetail: result.errorDetail ?? result.error,
+            };
           } catch (e: any) {
-            electronResults[id] = { ok: false, error: e.message };
+            electronResults[id] = { ok: false, error: e.message, errorDetail: e.message };
           }
         }
       }

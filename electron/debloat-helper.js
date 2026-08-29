@@ -100,7 +100,10 @@ function runPS(cmd, timeoutMs = 15000) {
        '-WindowStyle', 'Hidden', '-Command', cmd],
       { timeout: timeoutMs, maxBuffer: 1024 * 512, windowsHide: true },
       (err, stdout, stderr) => {
-        if (err) return reject(err);
+        if (err) {
+          const detail = String(stderr || stdout || '').trim();
+          return reject(new Error(detail || err.message));
+        }
         resolve(stdout?.trim() ?? '');
       }
     );
@@ -287,23 +290,36 @@ ipcMain.handle('debloat:removeItem', async (event, item) => {
     // PowerShell process can query the service. Use the existing hidden UAC
     // path so Delivery Optimization and similar services do not fail with
     // sc.exe exit code 5 (access denied).
+    let out = '';
     if (item.type === 'service') {
       const elevated = await runElevated(cmd, { tempFilePrefix: 'sc_debloat_' });
       if (!elevated.ok) throw new Error(elevated.error || 'Administrator permission was required.');
     } else {
-      await runPS(cmd, 15000);
+      out = await runPS(cmd, 15000);
     }
-    const result = out.includes('already-absent') ? 'already-absent' : 'removed';
+    // runElevated intentionally returns only its structured status, not the
+    // PowerShell stdout. Service commands are therefore known to have
+    // completed successfully once elevation reports ok; verification below
+    // supplies the authoritative post-write state.
+    const result = item.type !== 'service' && out.includes('already-absent')
+      ? 'already-absent'
+      : 'removed';
     let verified = false;
-    try { verified = await verifyItem(item); } catch {}
+    let verificationError = null;
+    try {
+      verified = await verifyItem(item);
+    } catch (err) {
+      verificationError = err?.message || String(err);
+    }
     return {
       ok: true,
       status: verified ? result : 'verification-failed',
       verified,
+      ...(verificationError ? { errorDetail: verificationError } : {}),
     };
   } catch (err) {
     console.warn(`[Debloat] removeItem ${item.id} ERROR: ${err.message}`);
-    return { ok: false, status: 'failed', error: err.message };
+    return { ok: false, status: 'failed', error: err.message, errorDetail: err.message };
   } finally {
     psLimiter.release(token);
   }

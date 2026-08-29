@@ -1437,13 +1437,13 @@ router.get("/items", (req, res) => {
 });
 
 // POST /api/debloat/apply
-// Body: { role, level, itemIds: string[], electronResults?: Record<string, { ok, status, error }> }
+// Body: { role, level, itemIds: string[], electronResults?: Record<string, { ok, status, error, errorDetail }> }
 router.post("/apply", async (req, res) => {
   const { role, level, itemIds, electronResults } = req.body as {
     role: SystemRole;
     level: DebloatLevel;
     itemIds: string[];
-    electronResults?: Record<string, { ok: boolean; status?: string; error?: string }>;
+    electronResults?: Record<string, { ok: boolean; status?: string; error?: string; errorDetail?: string }>;
   };
 
   if (!Array.isArray(itemIds) || itemIds.length === 0) {
@@ -1472,11 +1472,14 @@ router.post("/apply", async (req, res) => {
     if (eResult) {
       if (!eResult.ok) {
         status = "failed";
-        error = eResult.error;
+        error = eResult.errorDetail ?? eResult.error;
         verification = "failed";
       } else {
         status = (eResult.status as ResultStatus) ?? "removed";
         verification = "verified";
+        if (eResult.errorDetail ?? eResult.error) {
+          error = eResult.errorDetail ?? eResult.error;
+        }
       }
     }
 
@@ -1528,7 +1531,7 @@ router.post("/apply", async (req, res) => {
 router.post("/restore", async (req, res) => {
   const { itemIds, electronResults } = req.body as {
     itemIds: string[];
-    electronResults?: Record<string, { ok: boolean; status?: string; error?: string }>;
+    electronResults?: Record<string, { ok: boolean; status?: string; error?: string; errorDetail?: string }>;
   };
 
   if (!Array.isArray(itemIds) || itemIds.length === 0) {
@@ -1555,7 +1558,7 @@ router.post("/restore", async (req, res) => {
     let error: string | undefined;
 
     if (eResult) {
-      if (!eResult.ok) { status = "failed"; error = eResult.error; }
+      if (!eResult.ok) { status = "failed"; error = eResult.errorDetail ?? eResult.error; }
       else { status = (eResult.status as ResultStatus) ?? "restored"; }
     }
 
