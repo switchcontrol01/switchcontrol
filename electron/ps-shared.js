@@ -163,6 +163,9 @@ function queryPS(command) {
 // ShellExecute does not block, so we rely on a poll-for-resultPath loop with a
 // generous deadline (10 s). Gated by the shared semaphore.
 //
+// The result includes the command's captured stdout as `output`, allowing
+// callers to distinguish a successful no-op from a change after elevation.
+//
 // @param {string} command          — PowerShell command to run elevated
 // @param {object} [opts]
 // @param {string} [opts.tempFilePrefix='sc_ps_'] — prefix for temp file names
@@ -189,8 +192,8 @@ async function runElevated(command, { tempFilePrefix = 'sc_ps_' } = {}) {
   const scriptContent = [
     `$ErrorActionPreference = 'Stop'`,
     `try {`,
-    `  ${command}`,
-    `  $r = @{ ok = $true; error = $null }`,
+    `  $commandOutput = (& { ${command} } | Out-String).Trim()`,
+    `  $r = @{ ok = $true; error = $null; output = $commandOutput }`,
     `} catch {`,
     `  $r = @{ ok = $false; error = $_.Exception.Message }`,
     `}`,
@@ -255,7 +258,7 @@ async function runElevated(command, { tempFilePrefix = 'sc_ps_' } = {}) {
         console.log(`[runElevated] result file contents: "${raw}"`);
         try {
           const parsed = JSON.parse(raw);
-          if (parsed.ok === true) return { ok: true, error: null };
+          if (parsed.ok === true) return { ...parsed, ok: true, error: null, output: String(parsed.output || '') };
           return parsed;
         } catch {
           return { ok: false, error: `Elevated script ran but result file could not be parsed (raw: ${raw.slice(0, 200)})` };
@@ -264,7 +267,8 @@ async function runElevated(command, { tempFilePrefix = 'sc_ps_' } = {}) {
 
       return {
         ok: false,
-        error: 'Result file not found after 10s wait. The elevated script may have crashed before writing — check that PowerShell scripts can run in your temp folder.',
+        cancelled: true,
+        error: 'Administrator permission was canceled or the elevated PowerShell script did not start. Retry and approve the Windows UAC prompt; if it keeps failing, check that PowerShell scripts can run from the temporary folder.',
       };
     } catch (err) {
       const msg = (err && err.message) || String(err);

@@ -936,13 +936,13 @@
         const result = await window.electronAPI!.debloat!.scan(scanPayload);
         if (result.ok) {
           const normalizedState = Object.fromEntries(
-            Object.entries(result.results ?? {}).map(([id, state]) => [
-              id,
-              normalizeDebloatScanState(state),
+            items.map(item => [
+              item.id,
+              normalizeDebloatScanState(result.results?.[item.id]),
             ]),
           ) as Record<string, "present" | "absent" | "unknown">;
           setItemState(normalizedState);
-          setSelected(prev => new Set([...prev].filter(id => normalizedState[id] !== "absent")));
+          setSelected(prev => new Set([...prev].filter(id => normalizedState[id] !== "absent" && normalizedState[id] !== "unknown")));
           const presentCount = Object.values(normalizedState).filter(s => s === "present").length;
           logHistory(`Debloat: Scan complete, ${presentCount} item${presentCount !== 1 ? "s" : ""} present`, "Debloat", "Scanned", `${presentCount} removable items detected`);
         } else {
@@ -969,12 +969,12 @@
       return items.filter(i => LEVEL_ORDER.indexOf(i.minLevel) <= cutoff);
     }, [items, level]);
   
-    // Once the Windows scan/apply result is known, don't keep showing already
-    // removed items as recoverable. Before the first scan, the catalog remains
-    // the source of truth so the web preview still has useful estimates.
+    // Once the Windows scan result is known, don't count already removed items
+    // or inconclusive probes as actionable. Unknown items remain visible for
+    // inspection, but must not be submitted until a later scan verifies them.
     const availableItems = useMemo(() => {
       if (Object.keys(itemState).length === 0) return visibleItems;
-      return visibleItems.filter(item => itemState[item.id] !== "absent");
+      return visibleItems.filter(item => itemState[item.id] !== "absent" && itemState[item.id] !== "unknown");
     }, [visibleItems, itemState]);
 
     const selectedItems = useMemo(() => {
@@ -983,7 +983,7 @@
   
     const activeSelectedItems = useMemo(() => {
       if (Object.keys(itemState).length === 0) return selectedItems;
-      return selectedItems.filter(item => itemState[item.id] !== "absent");
+      return selectedItems.filter(item => itemState[item.id] !== "absent" && itemState[item.id] !== "unknown");
     }, [selectedItems, itemState]);
 
     // ── Stats ──────────────────────────────────────────────────────────────────
@@ -1024,7 +1024,7 @@
     // ── Selection helpers ──────────────────────────────────────────────────────
   
     const toggleItem = (id: string) => {
-      if (itemState[id] === "absent") return;
+      if (itemState[id] === "absent" || itemState[id] === "unknown") return;
       setSelected(prev => {
         const next = new Set(prev);
         if (next.has(id)) next.delete(id);
@@ -1043,7 +1043,9 @@
     };
   
     const toggleCategorySelection = (cat: DebloatCategory, catItems: DebloatItem[]) => {
-      const ids = catItems.filter(i => itemState[i.id] !== "absent").map(i => i.id);
+      const ids = catItems
+        .filter(i => itemState[i.id] !== "absent" && itemState[i.id] !== "unknown")
+        .map(i => i.id);
       if (ids.length === 0) return;
       const allSelected = ids.every(id => selected.has(id));
       setSelected(prev => {
@@ -1077,7 +1079,7 @@
         });
         return;
       }
-      if (selectedItems.length === 0) {
+      if (activeSelectedItems.length === 0) {
         toast({ title: "Nothing selected", description: "Select items to debloat.", variant: "destructive" });
         return;
       }
@@ -1089,9 +1091,9 @@
       setActiveView("results");
   
       // ── Init progress overlay ──
-      const total = selectedItems.length;
+      const total = activeSelectedItems.length;
       const startTime = Date.now();
-      const progressItems: ApplyProgressItem[] = selectedItems.map(i => ({
+      const progressItems: ApplyProgressItem[] = activeSelectedItems.map(i => ({
         id: i.id, name: i.name, status: "pending",
       }));
       const initProgress: ApplyProgressState = {
@@ -1112,7 +1114,7 @@
       console.log(`[DebloatApply] started selectedCount=${total} level=${level} role=${role}`);
   
       // Build preliminary result list
-      const prelimResults: ApplyResult[] = selectedItems.map(i => ({
+      const prelimResults: ApplyResult[] = activeSelectedItems.map(i => ({
         id: i.id, name: i.name, status: "pending",
         requiresRestart: i.requiresRestart, requiresSignOut: i.requiresSignOut,
       }));
@@ -1128,8 +1130,8 @@
       // ── Electron execution per item ──
       if (isElectron()) {
         setApplyProgress(p => p ? { ...p, phase: "running" } : p);
-        for (let idx = 0; idx < selectedItems.length; idx++) {
-          const item = selectedItems[idx];
+        for (let idx = 0; idx < activeSelectedItems.length; idx++) {
+          const item = activeSelectedItems[idx];
           setProcessingId(item.id);
           setApplyProgress(p => p ? {
             ...p,
@@ -1149,7 +1151,7 @@
               errorDetail,
             };
             // Update live progress
-            const isFailed = !result.ok;
+             const isFailed = !result.ok || result.status === "failed" || result.status === "verification-failed";
             const isSkipped = result.ok && result.status === "already-absent";
             setApplyProgress(p => p ? {
               ...p,
@@ -1185,7 +1187,7 @@
       try {
         const data = await cloudApiPost("/debloat/apply", {
           role, level,
-          itemIds: selectedItems.map(i => i.id),
+           itemIds: activeSelectedItems.map(i => i.id),
           electronResults: isElectron() ? electronResults : undefined,
         });
   
@@ -1237,7 +1239,7 @@
       } finally {
         setApplying(false);
       }
-    }, [selectedItems, role, level, toast, fetchHistory]);
+    }, [activeSelectedItems, role, level, toast, fetchHistory]);
   
     // ── Restore ───────────────────────────────────────────────────────────────
   
@@ -2063,6 +2065,19 @@
                                             {scanStatus === "absent" && (
                                               <span className="text-[9px] px-1.5 py-0 rounded border bg-emerald-500/10 border-emerald-500/20 text-emerald-400 shrink-0">
                                                 Removed
+                                              </span>
+                                            )}
+                                            {scanStatus === "present" && (
+                                              <span className="text-[9px] px-1.5 py-0 rounded border bg-cyan-500/10 border-cyan-500/20 text-cyan-300 shrink-0">
+                                                Detected
+                                              </span>
+                                            )}
+                                            {scanStatus === "unknown" && (
+                                              <span
+                                                className="text-[9px] px-1.5 py-0 rounded border bg-amber-500/10 border-amber-500/20 text-amber-400 shrink-0"
+                                                title="Windows could not verify this item. Scan again before applying changes."
+                                              >
+                                                Unable to verify
                                               </span>
                                             )}
   

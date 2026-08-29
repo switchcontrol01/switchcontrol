@@ -1660,8 +1660,9 @@ router.post("/scan", (req, res) => {
   const stateMap: Record<string, "present" | "absent" | "unknown"> = {};
 
   for (const item of DEBLOAT_REGISTRY) {
-    if (isPlainObject(electronResults[item.id]) && typeof electronResults[item.id].present === "boolean") {
-      stateMap[item.id] = electronResults[item.id].present ? "present" : "absent";
+    const result = electronResults[item.id];
+    if (isPlainObject(result) && !result.error && typeof result.present === "boolean") {
+      stateMap[item.id] = result.present ? "present" : "absent";
     } else {
       stateMap[item.id] = "unknown";
     }

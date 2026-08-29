@@ -47,8 +47,8 @@ test("Debloat scan normalizes structured Electron states and preserves detailed 
   );
   assert.match(
     debloaterPage,
-    /Object\.entries\(result\.results \?\? \{\}\)\.map/,
-    "scan results must be normalized before entering item state",
+    /items\.map\(item => \[[\s\S]*normalizeDebloatScanState\(result\.results\?\.\[item\.id\]\)/,
+    "every requested item must receive a normalized scan state",
   );
   assert.match(
     debloaterPage,
@@ -107,4 +107,62 @@ test("native restore captures original state before mutation and verifies it aft
   assert.match(debloat, /deleteDebloatBaseline\(item\.id\)/);
   assert.match(debloat, /original Windows state could not be verified/);
   assert.match(debloat, /sc\.exe config/);
+});
+
+test("Debloat treats probe errors as unknown instead of absent", () => {
+  assert.match(
+    debloaterRoute,
+    /const result = electronResults\[item\.id\][\s\S]*?isPlainObject\(result\) && !result\.error[\s\S]*?"unknown"/,
+    "a failed Windows probe must remain unknown on the server",
+  );
+  assert.match(
+    debloaterPage,
+    /result\.status === "verification-failed"/,
+    "verification failures must count as failed progress",
+  );
+  assert.match(
+    debloaterPage,
+    /itemState\[item\.id\] !== "absent" && itemState\[item\.id\] !== "unknown"/,
+    "unknown probes must not be counted as actionable items",
+  );
+  assert.match(
+    debloaterPage,
+    /scanStatus === "unknown"[\s\S]*Unable to verify/,
+    "unknown probes must be visible to the user",
+  );
+});
+
+test("Debloat removal preserves already-absent states for every Windows method", () => {
+  assert.match(
+    debloat,
+    /If \(!\$svc -or \$svc\.StartMode -eq 'Disabled'\) \{[\s\S]*?Write-Output 'already-absent'/,
+    "missing or disabled services must be reported as already absent",
+  );
+  assert.match(
+    debloat,
+    /if \(\$changed\) \{ Write-Output 'removed' \} else \{ Write-Output 'already-absent' \}/,
+    "missing or disabled scheduled tasks must be reported as already absent",
+  );
+  assert.match(
+    debloat,
+    /const result = out\.includes\('already-absent'\)/,
+    "elevated service output must participate in result classification",
+  );
+  assert.match(
+    debloaterRoute,
+    /verification:\s*raw\.ok[\s\S]*successStatuses\.has\(status\) \? "verified" : "failed"/,
+    "a verification failure must not be persisted as verified",
+  );
+});
+
+test("UAC cancellation and elevation startup failures remain actionable failures", () => {
+  const psShared = fs.readFileSync(
+    path.join(process.cwd(), "electron/ps-shared.js"),
+    "utf8",
+  );
+  assert.match(
+    psShared,
+    /cancelled: true,[\s\S]*Administrator permission was canceled or the elevated PowerShell script did not start/,
+    "elevation startup/cancellation details must tell the user how to recover",
+  );
 });

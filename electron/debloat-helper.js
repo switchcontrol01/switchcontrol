@@ -359,14 +359,20 @@ ipcMain.handle('debloat:removeItem', async (event, item) => {
       const valType = typeof val === 'number' ? 'DWord' : 'String';
       const valLiteral = valType === 'DWord' ? parseInt(val, 10) || 0 : `'${psEscape(String(val))}'`;
       cmd = `
-        If (!(Test-Path '${psEscape(canonical.regPath)}')) { New-Item -Path '${psEscape(canonical.regPath)}' -Force | Out-Null }
-        Set-ItemProperty -Path '${psEscape(canonical.regPath)}' -Name '${psEscape(canonical.regName)}' -Value ${valLiteral} -Type ${valType} -Force
-        Write-Output 'removed'
+        $current = $null
+        Try { $current = (Get-ItemProperty -Path '${psEscape(canonical.regPath)}' -Name '${psEscape(canonical.regName)}' -ErrorAction Stop).'${psEscape(canonical.regName)}' } Catch {}
+        If ($null -ne $current -and [string]$current -eq '${psEscape(String(val))}') {
+          Write-Output 'already-absent'
+        } Else {
+          If (!(Test-Path '${psEscape(canonical.regPath)}')) { New-Item -Path '${psEscape(canonical.regPath)}' -Force | Out-Null }
+          Set-ItemProperty -Path '${psEscape(canonical.regPath)}' -Name '${psEscape(canonical.regName)}' -Value ${valLiteral} -Type ${valType} -Force
+          Write-Output 'removed'
+        }
       `;
     } else if (canonical.type === 'service') {
       cmd = `
         $svc = Get-CimInstance Win32_Service -Filter "Name='${psEscape(canonical.serviceName)}'" -ErrorAction SilentlyContinue
-        If (!$svc) {
+        If (!$svc -or $svc.StartMode -eq 'Disabled') {
           Write-Output 'already-absent'
         } Else {
           Stop-Service -Name '${psEscape(canonical.serviceName)}' -Force -ErrorAction SilentlyContinue
@@ -379,12 +385,17 @@ ipcMain.handle('debloat:removeItem', async (event, item) => {
       const pathArr = canonical.taskPaths.map(p => `'${psEscape(p)}'`).join(', ');
       cmd = `
         $tasks = @(${pathArr})
+        $changed = $false
         foreach ($t in $tasks) {
           $parent = (Split-Path $t -Parent) + '\\'
           $leaf = Split-Path $t -Leaf
-          Disable-ScheduledTask -TaskPath $parent -TaskName $leaf -ErrorAction SilentlyContinue
+          $task = Get-ScheduledTask -TaskPath $parent -TaskName $leaf -ErrorAction SilentlyContinue
+          If ($task -and $task.State -ne 'Disabled') {
+            Disable-ScheduledTask -TaskPath $parent -TaskName $leaf -ErrorAction Stop
+            $changed = $true
+          }
         }
-        Write-Output 'removed'
+        if ($changed) { Write-Output 'removed' } else { Write-Output 'already-absent' }
       `;
     } else {
       return { ok: false, status: 'unsupported', error: 'Unknown item type' };
@@ -397,14 +408,11 @@ ipcMain.handle('debloat:removeItem', async (event, item) => {
     if (canonical.type === 'service') {
       const elevated = await runElevated(cmd, { tempFilePrefix: 'sc_debloat_' });
       if (!elevated.ok) throw new Error(elevated.error || 'Administrator permission was required.');
+      out = String(elevated.output || '');
     } else {
       out = await runPS(cmd, 15000);
     }
-    // runElevated intentionally returns only its structured status, not the
-    // PowerShell stdout. Service commands are therefore known to have
-    // completed successfully once elevation reports ok; verification below
-    // supplies the authoritative post-write state.
-    const result = canonical.type !== 'service' && out.includes('already-absent')
+    const result = out.includes('already-absent')
       ? 'already-absent'
       : 'removed';
     let verified = false;
