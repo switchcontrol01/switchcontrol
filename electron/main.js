@@ -5547,7 +5547,13 @@ $pwrThrot  = Reg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottl
       }
       if (tweakId === 'tcp-throttling-index') {
         const r = await sliderTweakExecutor.readSliderValue('net-throttle-index');
-        return { tweakId, applied: !r.error && !r.missing && r.value === 4294967295 };
+        const confirmed = !r.error && !r.missing && typeof r.value === 'number';
+        return {
+          tweakId,
+          applied: confirmed ? r.value === 4294967295 : null,
+          value: confirmed ? r.value : null,
+          error: confirmed ? undefined : (r.error || (r.missing ? 'Registry value is missing.' : 'Registry read was inconclusive.')),
+        };
       }
       return await networkTweakExecutor.checkNetworkTweakStatus(tweakId);
     } catch (e) {
@@ -5579,7 +5585,13 @@ $pwrThrot  = Reg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottl
       }
       try {
         const nti = await sliderTweakExecutor.readSliderValue('net-throttle-index');
-        result['tcp-throttling-index'] = { tweakId: 'tcp-throttling-index', applied: !nti.error && !nti.missing && nti.value === 4294967295 };
+        const confirmed = !nti.error && !nti.missing && typeof nti.value === 'number';
+        result['tcp-throttling-index'] = {
+          tweakId: 'tcp-throttling-index',
+          applied: confirmed ? nti.value === 4294967295 : null,
+          value: confirmed ? nti.value : null,
+          error: confirmed ? undefined : (nti.error || (nti.missing ? 'Registry value is missing.' : 'Registry read was inconclusive.')),
+        };
       } catch (e) {
         result['tcp-throttling-index'] = { tweakId: 'tcp-throttling-index', applied: null, error: e.message };
       }

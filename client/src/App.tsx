@@ -72,7 +72,7 @@ import { useVisibilityInterval } from "@/hooks/useVisibilityInterval";
 import { PremiumRevertModal } from "@/components/PremiumRevertModal";
 import { LightModeAdvisor, AppModeClassSync } from "@/components/LightModeAdvisor";
 import { ModeTransitionOverlay } from "@/components/ModeTransitionOverlay";
-import { usePremiumGraceStore, GRACE_WINDOW_MS } from "@/stores/premiumGraceStore";
+import { usePremiumGraceStore } from "@/stores/premiumGraceStore";
 import { useTrialExpiryStore } from "@/stores/trialExpiryStore";
 import { useSystemConditionsStore } from "@/stores/systemConditionsStore";
 import { useToast } from "@/hooks/use-toast";
@@ -395,6 +395,16 @@ function ElectronAppContent() {
     isLoggedIn: user?.loggedIn ?? false,
     entitlementsVerified,
   });
+
+  // All startup and promotional surfaces share this arbitration boundary.
+  // Revert is the highest-priority flow; the remaining overlays are mutually
+  // exclusive with onboarding and with each other.
+  const competingOverlayActive =
+    revertModalOpen ||
+    showDisclaimer ||
+    showPendingActivation ||
+    showPatchNotes ||
+    promoOpen;
 
   // ── Live entitlement refresh ────────────────────────────────────────────
   // Without this, admin-side plan changes (premium/trial/free) are only ever
@@ -798,18 +808,9 @@ function ElectronAppContent() {
           console.warn(
             "[PremiumTruth] backend returned no user, checking grace store",
           );
-          const graceStatus = usePremiumGraceStore.getState().getStatus(true);
-          console.log("[Entitlements] grace store status:", graceStatus);
-          if (graceStatus === "active" || graceStatus === "grace") {
-            console.log(
-              "[Entitlements] grace store active, entitlementsVerified set via grace fallback",
-            );
-            setEntitlementsVerified(true);
-          } else {
-            console.warn(
-              "[Entitlements] grace store expired/unavailable, showing free state",
-            );
-          }
+          console.warn(
+            "[Entitlements] server returned no user; grace data is not sufficient for cloud verification",
+          );
         } else {
           console.warn(
             "[Entitlements] cloud verification unavailable, preserving prior verification state",
@@ -906,6 +907,13 @@ function ElectronAppContent() {
     if (phase !== "authenticated") return;
     if (!isPhaseStable) return;
     if (activeFlow !== "none") return;
+    if (
+      showDisclaimer ||
+      showPendingActivation ||
+      showPatchNotes ||
+      revertModalOpen ||
+      promoOpen
+    ) return;
 
     const userId = user.id;
     const tourKey = `sc_tour_completed_${userId}`;
@@ -1055,6 +1063,11 @@ function ElectronAppContent() {
     isResetting,
     isPhaseStable,
     flowResetTs,
+    showDisclaimer,
+    showPendingActivation,
+    showPatchNotes,
+    revertModalOpen,
+    promoOpen,
   ]);
 
   const activeFlowRef = React.useRef<AppFlow>(activeFlow);
@@ -1167,6 +1180,7 @@ function ElectronAppContent() {
     // we decide to show patch notes. Without this guard, patch notes can pop up
     // over the top of the trial activation tour.
     if (!entitlementsAttempted) return;
+    if (promoOpen) return;
     patchNotesCheckedRef.current = true;
 
     let mounted = true;
@@ -1183,7 +1197,7 @@ function ElectronAppContent() {
     return () => {
       mounted = false;
     };
-  }, [phase, activeFlow, isFirstLogin, entitlementsAttempted]);
+  }, [phase, activeFlow, isFirstLogin, entitlementsAttempted, promoOpen]);
 
   // ── Splash completion, Splash.tsx is the sole timing authority ─────────
   // Splash calls onComplete() when its exit animation finishes.
@@ -1439,32 +1453,13 @@ function ElectronAppContent() {
         setEntitlementsOk(true);
         setEntitlementsAttempted(true); // suppress redundant post-auth /api/me call
 
-        // ── Grace fast-path: avoid "Free" flash while cloud responds ─────────
-        // resolveAuthState() runs below as a background reconciliation and will
-        // set entitlementsVerified=true once the cloud responds.  Without this
-        // check, the 1-2 s window before that response causes the UI to show
-        // "Free" for premium users because resolveEntitlementUiState() requires
-        // entitlementsVerified===true to display the Premium badge.
-        //
-        // If the grace store has a recent premium snapshot we set
-        // entitlementsVerified=true immediately.  resolveAuthState() will
-        // overwrite user.isPremium (and the grace store) if the server reports a
-        // different status, so this is safe, it only affects the brief startup
-        // window before cloud truth arrives.
-        if (user?.isPremium) {
-          const graceSnap = usePremiumGraceStore.getState();
-          const graceAgeMs =
-            graceSnap.lastVerifiedAt !== null
-              ? Date.now() - graceSnap.lastVerifiedAt
-              : Infinity;
-          if (graceSnap.isPremium && graceAgeMs <= GRACE_WINDOW_MS) {
-            setEntitlementsVerified(true);
-            console.log(
-              "[AuthTruth] Boot: grace store confirms recent premium, " +
-              "entitlementsVerified=true immediately (cloud confirmation pending)",
-            );
-          }
-        }
+        // A cached/grace snapshot may keep the shell from flashing a logged-out
+        // view, but it is not cloud verification. Keep entitlementsVerified
+        // false until resolveAuthState() receives an authoritative response;
+        // premium expiry uses this boundary before mutating Windows.
+        console.log(
+          "[AuthTruth] Boot: cached session mounted; cloud entitlement verification pending",
+        );
 
         const welcomeKeyFast = `sc_welcomed_${user!.id}`;
         const hasBeenWelcomedFast = localStorage.getItem(welcomeKeyFast);
@@ -1567,13 +1562,9 @@ function ElectronAppContent() {
         // Do NOT clear premium; mark unverified so device lock stays off
         setEntitlementsOk(true); // allow UI to proceed with cached data
         setEntitlementsVerified(false); // but mark as unverified (cloud not confirmed)
-        const graceStatus = usePremiumGraceStore.getState().getStatus(false);
-        if (graceStatus === "active" || graceStatus === "grace") {
-          console.log(
-            "[AuthTruth] Boot: grace store active, entitlementsVerified via grace",
-          );
-          setEntitlementsVerified(true);
-        }
+        // Grace can preserve the cached UI session, but it must not become
+        // entitlementsVerified: premium expiry and native mutations require a
+        // fresh cloud-confirmed entitlement.
 
         if (!hasCachedSession) {
           const targetUser = authState.user;
@@ -1702,17 +1693,9 @@ function ElectronAppContent() {
         console.warn(
           "[Entitlements] manual refresh, server returned no user, checking grace store",
         );
-        const graceStatus = usePremiumGraceStore.getState().getStatus(true);
-        console.log(
-          "[Entitlements] manual refresh, grace store status:",
-          graceStatus,
+        console.warn(
+          "[Entitlements] manual refresh returned no user; grace data is not sufficient for cloud verification",
         );
-        if (graceStatus === "active" || graceStatus === "grace") {
-          console.log(
-            "[Entitlements] manual refresh, grace fallback active, entitlementsVerified set",
-          );
-          setEntitlementsVerified(true);
-        }
       } else {
         console.warn(
           "[Entitlements] manual refresh was not cloud-verified, preserving prior verification state",
@@ -2075,7 +2058,7 @@ function ElectronAppContent() {
             Shows between welcome animation end and dashboard mount. z-9998 so it
             sits above the welcome animation (z-2) but below any potential z-9999 overlays. */}
         <FirstRunDisclaimer
-          show={showDisclaimer}
+          show={showDisclaimer && !revertModalOpen}
           onComplete={() => {
             const uid = user?.id;
             if (uid) localStorage.setItem(`sc_disclaimer_seen_${uid}`, "true");
@@ -2086,7 +2069,7 @@ function ElectronAppContent() {
           }}
         />
 
-        {!isResetting && activeFlow === "firstTime" && (
+        {!isResetting && !competingOverlayActive && activeFlow === "firstTime" && (
           <OnboardingTour
             isFirstTime={isFirstLogin}
             onComplete={() => {
@@ -2104,7 +2087,7 @@ function ElectronAppContent() {
           />
         )}
 
-        {!isResetting && activeFlow === "trialUnlock" && (
+        {!isResetting && !competingOverlayActive && activeFlow === "trialUnlock" && (
           <TrialActivationAnimation
             show={activeFlow === "trialUnlock"}
             onComplete={async () => {
@@ -2126,7 +2109,7 @@ function ElectronAppContent() {
           />
         )}
 
-        {!isResetting && activeFlow === "trialTour" && (
+        {!isResetting && !competingOverlayActive && activeFlow === "trialTour" && (
           <TrialTour
             show={activeFlow === "trialTour"}
             onComplete={async () => {
@@ -2151,7 +2134,7 @@ function ElectronAppContent() {
           />
         )}
 
-        {!isResetting && activeFlow === "premiumUnlock" && (
+        {!isResetting && !competingOverlayActive && activeFlow === "premiumUnlock" && (
           <PremiumUpgradeAnimation
             show={activeFlow === "premiumUnlock"}
             onComplete={() => {
@@ -2176,7 +2159,7 @@ function ElectronAppContent() {
           />
         )}
 
-        {!isResetting && activeFlow === "premiumTour" && (
+        {!isResetting && !competingOverlayActive && activeFlow === "premiumTour" && (
           <GuidedTour
             show={activeFlow === "premiumTour"}
             onComplete={async () => {
@@ -2200,7 +2183,12 @@ function ElectronAppContent() {
 
         {!isResetting && (
           <PendingActivationModal
-            show={showPendingActivation}
+            show={
+              showPendingActivation &&
+              !revertModalOpen &&
+              activeFlow === "none" &&
+              !showDisclaimer
+            }
             onUpgradeDetected={() => {
               setShowPendingActivation(false);
             }}
@@ -2210,7 +2198,14 @@ function ElectronAppContent() {
 
         {!isResetting && (
           <PatchNotesModal
-            show={showPatchNotes}
+            show={
+              showPatchNotes &&
+              !revertModalOpen &&
+              activeFlow === "none" &&
+              !showDisclaimer &&
+              !showPendingActivation &&
+              !promoOpen
+            }
             onDismiss={() => setShowPatchNotes(false)}
           />
         )}
@@ -2234,7 +2229,9 @@ function ElectronAppContent() {
         />
 
         {/* ~3s polished fade shown while switching Normal ↔ Light Mode */}
-        <ModeTransitionOverlay />
+        <ModeTransitionOverlay
+          blocked={competingOverlayActive || activeFlow !== "none"}
+        />
 
         {/* Premium expiry revert, shows after trial/premium lapses and revert runs */}
         <PremiumRevertModal
@@ -2249,13 +2246,20 @@ function ElectronAppContent() {
         {/* Free-user premium promo, Discord CTA, at most once per ~30 launches.
             Rendered BEFORE DeviceLockModal so the lock always stays on top. */}
         <PremiumPromoPopup
-          open={promoOpen}
+          open={
+            promoOpen &&
+            !revertModalOpen &&
+            !showDisclaimer &&
+            !showPendingActivation &&
+            !showPatchNotes &&
+            activeFlow === "none"
+          }
           discordUrl={promoDiscordUrl}
           onClose={closePromo}
         />
 
         {/* Premium device lock, must be last (highest z-order), not dismissible */}
-        {isElectron && deviceLockStatus === "locked" && (
+        {isElectron && deviceLockStatus === "locked" && !revertModalOpen && (
           <DeviceLockModal
             userEmail={user?.email ?? null}
             userId={user?.id ?? null}

@@ -292,6 +292,7 @@ async function fetchVerifiedWindowsState(): Promise<StateMap> {
           checkAll: () => Promise<Record<string, {
             tweakId: string;
             applied: boolean | null;
+          value?: number | null;
             disabled?: boolean;
             reason?: string;
             error?: string;
@@ -317,6 +318,19 @@ async function fetchVerifiedWindowsState(): Promise<StateMap> {
     let verifiedCount = 0;
     let inconclusiveCount = 0;
     for (const [id, result] of Object.entries(results)) {
+      if (
+        id === 'tcp-throttling-index' &&
+        !result.error &&
+        typeof result.value === 'number'
+      ) {
+        // This page's toggle hydration is also a confirmed hydration of the
+        // shared slider. Publish it so Slider Tweaks cannot retain a stale
+        // cached value when the user navigates there next.
+        useStore.getState().setSliderValue('net-throttle-index', result.value);
+        window.dispatchEvent(new CustomEvent('sc:slider-state-changed', {
+          detail: { sliderId: 'net-throttle-index', value: result.value },
+        }));
+      }
       if (result.disabled) {
         map[id] = { status: "unavailable", message: result.reason };
         console.log(`[NetworkTweaks] status loaded tweakId=${id} enabled=null verified=true source=disabled`);
@@ -870,8 +884,8 @@ function NetworkTweaksContent() {
     // the user briefly leaves and re-enters this page. The cache is only a
     // short-lived navigation optimization; stale sessions still reconcile
     // against the real registry/netsh state.
-    if (cacheFresh) {
-      console.log('[NetworkTweaks] cache fresh, skipping verification');
+    if (cacheFresh && !isElectron) {
+      console.log('[NetworkTweaks] browser cache fresh, skipping verification');
       setFetching(false);
       setSyncPhase('idle');
       return;
@@ -880,6 +894,10 @@ function NetworkTweaksContent() {
     timingMark("fetch-state");
     setFetching(true);
     setSyncPhase('loading');
+    // Browser navigation may use the short-lived session cache. Electron must
+    // always reconcile the real registry/netsh state because another screen,
+    // an external tool, or a prior failed write can change Windows underneath
+    // the cached UI state.
     const dbPromise      = cacheFresh ? Promise.resolve({} as StateMap) : fetchBackendState();
     const windowsPromise = isElectron
       ? fetchVerifiedWindowsState()

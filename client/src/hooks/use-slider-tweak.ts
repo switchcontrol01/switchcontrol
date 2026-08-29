@@ -123,6 +123,10 @@ export function useSliderTweak(tweakId: string, config: SliderConfig) {
   const resultTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const retryTimerRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
   const retryCountRef  = useRef(0);
+  // A user drag is never overwritten by a late hydration response. Once the
+  // native read confirms the registry, however, the confirmed value replaces
+  // the cached pending value and becomes the source for both surfaces.
+  const pendingTouchedRef = useRef(false);
 
   const clearResultTimer = useCallback(() => {
     if (resultTimerRef.current) {
@@ -209,15 +213,23 @@ export function useSliderTweak(tweakId: string, config: SliderConfig) {
           lastError:      null,
         }));
       } else {
-        // Successful read — update currentValue for display, but pendingValue stays
-        // locked to the user's cached choice so it never "jumps" to a different value.
+        // Successful native reads are authoritative over persisted session
+        // cache. Preserve only an active user edit that happened while the
+        // read was in flight.
         console.log(`[SliderHydration] ${tweakId}: value=${result.value} missing=${result.missing ?? false}`);
         retryCountRef.current = 0;
-        setSliderValue(tweakId, result.value!);
+        const confirmedValue = result.value!;
+        setSliderValue(tweakId, confirmedValue);
+        if (tweakId === 'net-throttle-index') {
+          setTweak('tcp-throttling-index', confirmedValue === 4294967295);
+          window.dispatchEvent(new CustomEvent('sc:slider-state-changed', {
+            detail: { sliderId: tweakId, value: confirmedValue },
+          }));
+        }
         setState(s => ({
           ...s,
-          currentValue:   result.value!,
-          pendingValue:   s.pendingValue ?? cached ?? result.value!,
+          currentValue:   confirmedValue,
+          pendingValue:   pendingTouchedRef.current ? s.pendingValue : confirmedValue,
           isUsingDefault: result.missing ?? false,
           status:         'idle',
           lastError:      null,
@@ -257,6 +269,7 @@ export function useSliderTweak(tweakId: string, config: SliderConfig) {
       const detail = (event as CustomEvent<{ sliderId?: string; value?: number }>).detail;
       if (detail?.sliderId !== tweakId || typeof detail.value !== "number" || !Number.isFinite(detail.value)) return;
       const value = detail.value;
+      pendingTouchedRef.current = false;
       setSliderValue(tweakId, value);
       setState(s => ({
         ...s,
@@ -273,6 +286,7 @@ export function useSliderTweak(tweakId: string, config: SliderConfig) {
   }, [config.defaultValue, setSliderValue, tweakId]);
 
   const setPending = useCallback((value: number) => {
+    pendingTouchedRef.current = true;
     setState(s => ({ ...s, pendingValue: value, verifyResult: null }));
     clearResultTimer();
   }, [clearResultTimer]);
@@ -312,6 +326,7 @@ export function useSliderTweak(tweakId: string, config: SliderConfig) {
         }
         const confirmedValue = result.actualValue ?? valueToApply;
         const restoreValue = state.currentValue;
+        pendingTouchedRef.current = false;
         // Persist confirmed value — survives app restarts and busy-limiter fallback.
         setSliderValue(tweakId, confirmedValue);
         if (tweakId === 'net-throttle-index') {
@@ -388,6 +403,7 @@ export function useSliderTweak(tweakId: string, config: SliderConfig) {
         const readback = await api.readValue(tweakId);
         if (readback.error || readback.value !== result.actualValue) throw new Error(readback.error ?? 'Reset read-back did not match the requested value.');
         const resetValue = result.actualValue ?? config.defaultValue;
+        pendingTouchedRef.current = false;
         // Persist the reset-to-default value so next startup shows default, not old applied value.
         setSliderValue(tweakId, resetValue);
         if (tweakId === 'net-throttle-index') {
@@ -440,6 +456,7 @@ export function useSliderTweak(tweakId: string, config: SliderConfig) {
     setState(s => ({ ...s, pendingValue: clampedPrev, verifyResult: null }));
     // Apply the previous value
     const prevVal = clampedPrev;
+    pendingTouchedRef.current = true;
     setState(s => ({ ...s, status: 'applying', lastError: null }));
 
     if (!isElectron) {

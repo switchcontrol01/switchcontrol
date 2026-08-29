@@ -4,11 +4,11 @@ import { useAppModeStore } from "@/lib/appModeStore";
  * Full-screen ~3s fade played while switching between Normal and Light Mode.
  * Pure CSS animation (works in both modes), no framer-motion so it stays cheap.
  */
-export function ModeTransitionOverlay() {
+export function ModeTransitionOverlay({ blocked = false }: { blocked?: boolean }) {
   const transitioning = useAppModeStore((s) => s.transitioning);
   const target = useAppModeStore((s) => s.transitionTarget);
 
-  if (!transitioning) return null;
+  if (!transitioning || blocked) return null;
 
   return (
     <div className="mode-transition-overlay" data-testid="overlay-mode-transition">

@@ -113,12 +113,20 @@ export function usePremiumExpiry({
   const graceSessionVerified = usePremiumGraceStore((s) => s.sessionVerified);
 
   const isCurrentlyActive = isPremium || isTrialActive(plan ?? '', trialEndsAt);
+  // Keep the trigger safe even when an async disk ownership check resolves
+  // after auth state has changed. A caller may have observed an old render,
+  // so the final mutation gate must consult the latest values as well.
+  const entitlementVerifiedRef = useRef(false);
+  const isCurrentlyActiveRef = useRef(isCurrentlyActive);
+  entitlementVerifiedRef.current = entitlementsVerified && graceSessionVerified;
+  isCurrentlyActiveRef.current = isCurrentlyActive;
+  const cloudEntitlementVerified = entitlementsVerified && graceSessionVerified;
 
   useEffect(() => {
-    if (entitlementsVerified && isCurrentlyActive) {
+    if (cloudEntitlementVerified && isCurrentlyActive) {
       clearAutoRevertAttempted();
     }
-  }, [entitlementsVerified, isCurrentlyActive]);
+  }, [cloudEntitlementVerified, isCurrentlyActive]);
 
   // ── Load post-update grace flag from main process ─────────────────────────
   useEffect(() => {
@@ -150,6 +158,16 @@ export function usePremiumExpiry({
 
   const triggerRevert = useCallback(async (reason: import("@/stores/trialExpiryStore").RevertReason) => {
     if (revertRunning.current) return;
+    // This is intentionally stricter than the render-time effect guard.
+    // Cached/grace entitlement data must never be sufficient to mutate
+    // Windows, and a delayed ownership lookup must not revert a reactivated
+    // account.
+    if (!entitlementVerifiedRef.current || isCurrentlyActiveRef.current) {
+      console.warn(
+        `[PremiumExpiry] Revert trigger ignored — cloudVerified=${entitlementVerifiedRef.current} active=${isCurrentlyActiveRef.current}`,
+      );
+      return;
+    }
 
     // Atomically suppress all premium gates and record the reason in one set()
     // call — no intermediate render frame with active=true but stale reason.
@@ -208,7 +226,7 @@ export function usePremiumExpiry({
 
   // ── State-change watcher ───────────────────────────────────────────────────
   useEffect(() => {
-    if (!isLoggedIn || !entitlementsVerified) {
+    if (!isLoggedIn || !cloudEntitlementVerified) {
       prevWasActive.current = null;
       return;
     }
@@ -348,11 +366,11 @@ export function usePremiumExpiry({
     prevWasActive.current = isCurrentlyActive;
     prevPlan.current = plan ?? null;
     prevTrialEndsAt.current = trialEndsAt ?? null;
-  }, [isCurrentlyActive, isLoggedIn, entitlementsVerified, triggerRevert, graceSessionVerified]);
+  }, [isCurrentlyActive, isLoggedIn, cloudEntitlementVerified, triggerRevert]);
 
   // ── Countdown timer watcher ────────────────────────────────────────────────
   useEffect(() => {
-    if (!isLoggedIn || !entitlementsVerified) return;
+    if (!isLoggedIn || !cloudEntitlementVerified) return;
     if (plan !== 'trial' || !trialEndsAt) return;
 
     let cancelled = false;
@@ -387,7 +405,7 @@ export function usePremiumExpiry({
       cancelled = true;
       if (timerId !== null) clearTimeout(timerId);
     };
-  }, [isLoggedIn, entitlementsVerified, plan, trialEndsAt, triggerRevert]);
+  }, [isLoggedIn, cloudEntitlementVerified, plan, trialEndsAt, triggerRevert]);
 
   const retryRevert = useCallback(async () => {
     revertRunning.current = false;
