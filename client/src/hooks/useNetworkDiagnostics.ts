@@ -63,11 +63,12 @@ export interface DnsBenchmarkResult {
     mostStable: string;
     bestGaming: string;
   };
+  inconclusive?: boolean;
   ts: number;
 }
 
-export type BenchmarkState     = "idle" | "baseline" | "waiting" | "comparing" | "done";
-export type PcVsInternetState  = "idle" | "running" | "done";
+export type BenchmarkState     = "idle" | "baseline" | "waiting" | "comparing" | "done" | "error";
+export type PcVsInternetState  = "idle" | "running" | "done" | "error";
 export type DnsBenchmarkState  = "idle" | "running" | "done" | "error";
 export type ApplyDnsState      = "idle" | "loading" | "done" | "error" | "cancelled";
 export type MonitorPhase       = "off" | "starting" | "live" | "error";
@@ -85,12 +86,14 @@ export interface DiagnosticsState {
   stopMonitoring: () => void;
   retryMonitoring: () => void;
   benchmarkState: BenchmarkState;
+  benchmarkError: string | null;
   benchmarkResult: BenchmarkResult | null;
   startBenchmark: () => Promise<void>;
   runBenchmarkCompare: () => Promise<void>;
   resetBenchmark: () => void;
   pcVsInternetState: PcVsInternetState;
   pcVsInternetResult: PcVsInternetResult | null;
+  pcVsInternetError: string | null;
   runPcVsInternet: () => Promise<void>;
   resetPcVsInternet: () => void;
   dnsBenchmarkState: DnsBenchmarkState;
@@ -134,8 +137,10 @@ export function useNetworkDiagnostics(): DiagnosticsState {
   const [health, setHealth]                 = useState<HealthScore | null>(null);
   const [benchmarkState, setBenchmarkState] = useState<BenchmarkState>("idle");
   const [benchmarkResult, setBenchmarkResult] = useState<BenchmarkResult | null>(null);
+  const [benchmarkError, setBenchmarkError] = useState<string | null>(null);
   const [pcVsInternetState, setPcVsInternetState] = useState<PcVsInternetState>("idle");
   const [pcVsInternetResult, setPcVsInternetResult] = useState<PcVsInternetResult | null>(null);
+  const [pcVsInternetError, setPcVsInternetError] = useState<string | null>(null);
   const [dnsBenchmarkState, setDnsBenchmarkState]   = useState<DnsBenchmarkState>("idle");
   const [dnsBenchmarkResult, setDnsBenchmarkResult] = useState<DnsBenchmarkResult | null>(null);
   const [dnsBenchmarkError, setDnsBenchmarkError]   = useState<string | null>(null);
@@ -155,6 +160,7 @@ export function useNetworkDiagnostics(): DiagnosticsState {
   const fetchSample = useCallback(async () => {
     if (sampleInFlightRef.current || document.hidden) return;
     sampleInFlightRef.current = true;
+    console.info("[NetworkDiagnostics]", JSON.stringify({ event: "ping_request_started", ts: new Date().toISOString() }));
     try {
       const controller = new AbortController();
       const tid = setTimeout(() => controller.abort(), 12000);
@@ -164,6 +170,7 @@ export function useNetworkDiagnostics(): DiagnosticsState {
       if (!mountedRef.current) return;
 
        if (!resp.ok) {
+          console.warn("[NetworkDiagnostics]", JSON.stringify({ event: "ping_response", status: resp.status, ts: new Date().toISOString() }));
          if (resp.status === 429) {
            let retryAfter = 30;
            try {
@@ -178,6 +185,7 @@ export function useNetworkDiagnostics(): DiagnosticsState {
        }
 
       const sample: PingSample = await resp.json();
+       console.info("[NetworkDiagnostics]", JSON.stringify({ event: "ping_response", status: resp.status, partial: sample.loss > 0, loss: sample.loss, ts: new Date().toISOString() }));
       if (typeof sample?.avg !== "number" || typeof sample?.ts !== "number") {
         throw new Error("Malformed sample from server");
       }
@@ -218,6 +226,7 @@ export function useNetworkDiagnostics(): DiagnosticsState {
         : err instanceof Error ? err.message : "Unknown error";
 
       consecutiveFailRef.current++;
+      console.warn("[NetworkDiagnostics]", JSON.stringify({ event: "ping_failed", timeout: isAbort, consecutiveFailures: consecutiveFailRef.current, error: msg, ts: new Date().toISOString() }));
        if (err instanceof Error && err.message.startsWith("Probe cooldown active")) {
          setMonitorError(err.message);
          setMonitorPhase("error");
@@ -243,12 +252,14 @@ export function useNetworkDiagnostics(): DiagnosticsState {
     setSpikes([]);
     setSpikesPerMin(0);
     setHealth(null);
+    console.info("[NetworkDiagnostics]", JSON.stringify({ event: "monitoring_started", ts: new Date().toISOString() }));
     spikeTimestampsRef.current = [];
     fetchSample();
     intervalRef.current = setInterval(fetchSample, Math.round(BASE_POLL_INTERVAL_MS * getPollingMultiplier()));
   }, [fetchSample]);
 
   const stopMonitoring = useCallback(() => {
+    console.info("[NetworkDiagnostics]", JSON.stringify({ event: "monitoring_stopped", ts: new Date().toISOString() }));
     setIsMonitoring(false);
     setMonitorPhase("off");
     if (intervalRef.current) {
@@ -290,56 +301,75 @@ export function useNetworkDiagnostics(): DiagnosticsState {
   // ── Benchmark ────────────────────────────────────────────────────────────────
 
   const startBenchmark = useCallback(async () => {
+    console.info("[NetworkDiagnostics]", JSON.stringify({ event: "benchmark_started", phase: "baseline", ts: new Date().toISOString() }));
     setBenchmarkState("baseline");
     setBenchmarkResult(null);
+    setBenchmarkError(null);
     try {
       await cloudApiPost("/network/benchmark/baseline");
       if (mountedRef.current) setBenchmarkState("waiting");
-    } catch {
-      if (mountedRef.current) setBenchmarkState("idle");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Baseline sampling failed";
+      console.warn("[NetworkDiagnostics]", JSON.stringify({ event: "benchmark_failed", phase: "baseline", error: msg, ts: new Date().toISOString() }));
+      if (mountedRef.current) { setBenchmarkError(msg); setBenchmarkState("error"); }
     }
   }, []);
 
   const runBenchmarkCompare = useCallback(async () => {
+    console.info("[NetworkDiagnostics]", JSON.stringify({ event: "benchmark_started", phase: "comparison", ts: new Date().toISOString() }));
     setBenchmarkState("comparing");
     try {
       const resp = await fetch("/api/network/benchmark/compare");
       if (!resp.ok) throw new Error();
       const result: BenchmarkResult = await resp.json();
-      if (mountedRef.current) { setBenchmarkResult(result); setBenchmarkState("done"); }
-    } catch {
-      if (mountedRef.current) setBenchmarkState("idle");
+      if (mountedRef.current) {
+        setBenchmarkResult(result);
+        setBenchmarkError(null);
+        setBenchmarkState("done");
+        console.info("[NetworkDiagnostics]", JSON.stringify({ event: "benchmark_completed", phase: "comparison", ts: new Date().toISOString() }));
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Comparison failed";
+      console.warn("[NetworkDiagnostics]", JSON.stringify({ event: "benchmark_failed", phase: "comparison", error: msg, ts: new Date().toISOString() }));
+      if (mountedRef.current) { setBenchmarkError(msg); setBenchmarkState("error"); }
     }
   }, []);
 
   const resetBenchmark = useCallback(() => {
     setBenchmarkState("idle");
     setBenchmarkResult(null);
+    setBenchmarkError(null);
   }, []);
 
   // ── PC vs Internet ────────────────────────────────────────────────────────────
 
   const runPcVsInternet = useCallback(async () => {
+    console.info("[NetworkDiagnostics]", JSON.stringify({ event: "pc_vs_internet_started", ts: new Date().toISOString() }));
     setPcVsInternetState("running");
     setPcVsInternetResult(null);
+    setPcVsInternetError(null);
     try {
       const resp = await fetch("/api/network/pc-vs-internet");
       if (!resp.ok) throw new Error();
       const result: PcVsInternetResult = await resp.json();
-      if (mountedRef.current) { setPcVsInternetResult(result); setPcVsInternetState("done"); }
-    } catch {
-      if (mountedRef.current) setPcVsInternetState("idle");
+      if (mountedRef.current) { setPcVsInternetResult(result); setPcVsInternetState("done"); console.info("[NetworkDiagnostics]", JSON.stringify({ event: "pc_vs_internet_completed", verdict: result.verdict, ts: new Date().toISOString() })); }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Diagnostic failed";
+      console.warn("[NetworkDiagnostics]", JSON.stringify({ event: "pc_vs_internet_failed", error: msg, ts: new Date().toISOString() }));
+      if (mountedRef.current) { setPcVsInternetError(msg); setPcVsInternetState("error"); }
     }
   }, []);
 
   const resetPcVsInternet = useCallback(() => {
     setPcVsInternetState("idle");
     setPcVsInternetResult(null);
+    setPcVsInternetError(null);
   }, []);
 
   // ── DNS Benchmark ─────────────────────────────────────────────────────────────
 
   const runDnsBenchmark = useCallback(async () => {
+    console.info("[NetworkDiagnostics]", JSON.stringify({ event: "dns_benchmark_started", desktop: !!(window as any).electronAPI?.dns?.benchmark, ts: new Date().toISOString() }));
     setDnsBenchmarkState("running");
     setDnsBenchmarkResult(null);
     setDnsBenchmarkError(null);
@@ -390,12 +420,14 @@ export function useNetworkDiagnostics(): DiagnosticsState {
         } else {
           setApplyDnsState("idle");
         }
+        console.info("[NetworkDiagnostics]", JSON.stringify({ event: "dns_benchmark_completed", providers: result.providers?.length ?? 0, partial: result.inconclusive === true || (result.providers ?? []).some(p => p.loss >= 100), ts: new Date().toISOString() }));
       }
     } catch (err: unknown) {
       if (!mountedRef.current) return;
       const msg = err instanceof Error ? err.message : "Benchmark failed";
       setDnsBenchmarkError(msg);
       setDnsBenchmarkState("error");
+      console.warn("[NetworkDiagnostics]", JSON.stringify({ event: "dns_benchmark_failed", error: msg, ts: new Date().toISOString() }));
     }
   }, []);
 
@@ -411,6 +443,7 @@ export function useNetworkDiagnostics(): DiagnosticsState {
     if (applyDnsResetRef.current) clearTimeout(applyDnsResetRef.current);
     setApplyDnsState("loading");
     setApplyDnsError(null);
+    console.info("[NetworkDiagnostics]", JSON.stringify({ event: "dns_apply_started", ts: new Date().toISOString() }));
     try {
       const result = await (window as any).electronAPI?.dns?.applyDns(ip);
       if (!mountedRef.current) return;
@@ -421,6 +454,7 @@ export function useNetworkDiagnostics(): DiagnosticsState {
         }, 5_000);
       } else if (result?.ok) {
         setApplyDnsState("done");
+        console.info("[NetworkDiagnostics]", JSON.stringify({ event: "dns_apply_completed", ok: true, ts: new Date().toISOString() }));
         applyDnsResetRef.current = setTimeout(() => {
           if (mountedRef.current) setApplyDnsState("idle");
         }, 8_000);
@@ -431,6 +465,7 @@ export function useNetworkDiagnostics(): DiagnosticsState {
       if (!mountedRef.current) return;
       setApplyDnsError(err instanceof Error ? err.message : "Apply DNS failed");
       setApplyDnsState("error");
+      console.warn("[NetworkDiagnostics]", JSON.stringify({ event: "dns_apply_failed", error: err instanceof Error ? err.message : "Apply DNS failed", ts: new Date().toISOString() }));
       applyDnsResetRef.current = setTimeout(() => {
         if (mountedRef.current) { setApplyDnsState("idle"); setApplyDnsError(null); }
       }, 8_000);
@@ -441,8 +476,8 @@ export function useNetworkDiagnostics(): DiagnosticsState {
     isMonitoring, monitorPhase, monitorError,
     history, current, spikes, spikesPerMin, health,
     startMonitoring, stopMonitoring, retryMonitoring,
-    benchmarkState, benchmarkResult, startBenchmark, runBenchmarkCompare, resetBenchmark,
-    pcVsInternetState, pcVsInternetResult, runPcVsInternet, resetPcVsInternet,
+    benchmarkState, benchmarkResult, benchmarkError, startBenchmark, runBenchmarkCompare, resetBenchmark,
+    pcVsInternetState, pcVsInternetResult, pcVsInternetError, runPcVsInternet, resetPcVsInternet,
     dnsBenchmarkState, dnsBenchmarkResult, dnsBenchmarkError, runDnsBenchmark, resetDnsBenchmark,
     applyDnsState, applyDnsError, applyDns,
   };

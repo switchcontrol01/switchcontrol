@@ -744,6 +744,15 @@ function NetworkTweaksLocked() {
 function NetworkTweaksContent() {
   const { mark: timingMark } = usePageTiming("NetworkTweaks");
   const { isPremium, user } = useAuth();
+  useEffect(() => {
+    console.info("[NetworkDiagnostics]", JSON.stringify({
+      event: "page_open",
+      premium: isPremium,
+      entitled: isPremium,
+      desktopAvailable: isElectron,
+      ts: new Date().toISOString(),
+    }));
+  }, [isPremium]);
   const { telemetry: liveTel } = useLiveTelemetryValues();
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState<NetworkCategory | "All">("All");

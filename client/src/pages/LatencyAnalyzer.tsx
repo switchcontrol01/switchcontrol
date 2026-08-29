@@ -249,7 +249,7 @@ function ControlsCard({
           {!isAdmin && isElectron && (
             <div className="flex items-start gap-1.5 text-[10px] text-amber-400/80 bg-amber-500/[0.06] border border-amber-500/20 rounded-lg px-2.5 py-2">
               <AlertTriangle className="size-3 shrink-0 mt-0.5" />
-              <span>Running without admin rights. Some Performance Counters may be unavailable. Start SwitchControl as Administrator for full accuracy.</span>
+              <span>Some low-level Windows counters may be unavailable without administrator rights. The analyzer will report a specific collection error if Windows cannot provide the data.</span>
             </div>
           )}
 
@@ -1635,6 +1635,17 @@ export default function LatencyAnalyzer() {
   // handleStart and the timeout firing.
   const handleStopRef = useRef<() => Promise<void>>(async () => {});
 
+  useEffect(() => {
+    console.info("[LatencyAnalyzer]", JSON.stringify({
+      event: "page_open",
+      premium: isPremium,
+      trial: isTrial,
+      entitled: !locked,
+      desktopAvailable: isElectron,
+      ts: new Date().toISOString(),
+    }));
+  }, [isPremium, isTrial, locked]);
+
   // Load baseline from localStorage on mount
   useEffect(() => {
     store.loadBaseline();
@@ -1659,6 +1670,7 @@ export default function LatencyAnalyzer() {
   }, []);
 
   const handleStop = useCallback(async () => {
+    console.info("[LatencyAnalyzer]", JSON.stringify({ event: "stop_requested", ts: new Date().toISOString() }));
     store.setSessionStatus("stopping");
     if (tickRef.current)          { clearInterval(tickRef.current);   tickRef.current = null; }
     if (durationTimerRef.current) { clearTimeout(durationTimerRef.current); durationTimerRef.current = null; }
@@ -1669,18 +1681,23 @@ export default function LatencyAnalyzer() {
     } catch {}
     store.finalize();
     store.setSessionStatus("stopped");
+    console.info("[LatencyAnalyzer]", JSON.stringify({ event: "scan_completed", sampleCount: store.sampleCount, ts: new Date().toISOString() }));
   }, [store]);
 
   // Keep ref in sync so duration timer always calls the current version
   handleStopRef.current = handleStop;
 
   const handleStart = useCallback(async () => {
-    if (!isElectron) return;
+    if (!isElectron) {
+      console.info("[LatencyAnalyzer]", JSON.stringify({ event: "start_blocked", reason: "desktop_unavailable", ts: new Date().toISOString() }));
+      return;
+    }
+    console.info("[LatencyAnalyzer]", JSON.stringify({ event: "start_requested", ts: new Date().toISOString() }));
     store.setSessionStatus("starting");
 
     try {
       const response = await eApi().latencyAnalyzer.start();
-      console.info("[latencyAnalyzer:renderer] start response", response);
+      console.info("[LatencyAnalyzer]", JSON.stringify({ event: "start_response", ok: response?.ok === true, ts: new Date().toISOString() }));
       if (!response?.ok) {
         throw new Error(response?.error || "The latency collector could not start");
       }
@@ -1706,13 +1723,13 @@ export default function LatencyAnalyzer() {
             eApi().latencyAnalyzer.getSample(),
             eApi().latencyAnalyzer.getStatus(),
           ]);
-          console.info("[latencyAnalyzer:renderer] sample response", { sample, status });
+          console.info("[LatencyAnalyzer]", JSON.stringify({ event: "sample_response", received: !!sample, sampleCount: status?.sampleCount ?? null, hasError: !!status?.lastError, ts: new Date().toISOString() }));
           if (!cancelled && sample) store.pushSample(sample);
           if (!cancelled && status?.lastError && !sample) {
             store.setSessionStatus("error", status.lastError);
           }
         } catch (error) {
-          console.error("[latencyAnalyzer:renderer] sample request failed", error);
+          console.error("[LatencyAnalyzer]", JSON.stringify({ event: "sample_request_failed", error: error instanceof Error ? error.message : String(error), ts: new Date().toISOString() }));
         }
         if (!cancelled) setTimeout(pollSamples, 2000);
       };
@@ -1736,6 +1753,7 @@ export default function LatencyAnalyzer() {
         if (scanActive) {
           store.setDrivers(drivers || []);
           store.setAudioDevices(audioDevices || []);
+          console.info("[LatencyAnalyzer]", JSON.stringify({ event: "inventory_scan_completed", drivers: drivers?.length ?? 0, audioDevices: audioDevices?.length ?? 0, partial: !(drivers?.length && audioDevices?.length), ts: new Date().toISOString() }));
         }
       } catch {
         // scan failed — fall through to finally so spinner is always cleared
@@ -1746,6 +1764,7 @@ export default function LatencyAnalyzer() {
       }
 
     } catch (err: any) {
+      console.error("[LatencyAnalyzer]", JSON.stringify({ event: "analysis_failed", error: err?.message || "Failed to start analysis", ts: new Date().toISOString() }));
       cancelSamplePollRef.current?.();
       cancelSamplePollRef.current = null;
       store.setSessionStatus("error", err?.message || "Failed to start analysis");

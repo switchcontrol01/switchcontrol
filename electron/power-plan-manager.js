@@ -227,15 +227,30 @@ function runPowercfg(...args) {
 function parseSchemeList(output) {
   const schemes = [];
   for (const line of output.split('\n')) {
-    const m = line.match(/Power Scheme GUID:\s*([0-9a-f-]{36})\s+\(([^)]+)\)\s*(\*)?/i);
-    if (m) schemes.push({ guid: m[1].toLowerCase(), name: m[2].trim(), isActive: !!m[3] });
+    const guidMatch = line.match(/\b([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\b/i);
+    if (!guidMatch) continue;
+    const afterGuid = line.slice((guidMatch.index || 0) + guidMatch[0].length);
+    const nameMatch = afterGuid.match(/\(([^)\r\n]*)\)/);
+    const guid = guidMatch[1].toLowerCase();
+    schemes.push({
+      guid,
+      name: nameMatch?.[1]?.trim() || `Power plan ${guid.slice(0, 8)}`,
+      isActive: /\*\s*$/.test(afterGuid.trim()),
+    });
   }
   return schemes;
 }
 
 function parseActiveScheme(output) {
-  const m = output.match(/Power Scheme GUID:\s*([0-9a-f-]{36})\s+\(([^)]+)\)/i);
-  return m ? { guid: m[1].toLowerCase(), name: m[2].trim() } : null;
+  const guidMatch = output.match(/\b([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\b/i);
+  if (!guidMatch) return null;
+  const afterGuid = output.slice((guidMatch.index || 0) + guidMatch[0].length);
+  const nameMatch = afterGuid.match(/\(([^)\r\n]*)\)/);
+  const guid = guidMatch[1].toLowerCase();
+  return {
+    guid,
+    name: nameMatch?.[1]?.trim() || `Power plan ${guid.slice(0, 8)}`,
+  };
 }
 
 function parseAcValue(output) {
@@ -273,10 +288,19 @@ async function getActivePowerScheme() {
   try {
     const out = await runPowercfg('/getactivescheme');
     const scheme = parseActiveScheme(out);
-    if (!scheme) return { success: false, error: 'Could not parse active scheme output', scheme: null };
+    if (!scheme) {
+      console.error(`[PowerPlan] active scheme parse failed: no GUID in output (length=${out?.length ?? 0})`);
+      return {
+        success: false,
+        state: 'unreadable',
+        error: 'Windows returned active power-plan output without a recognizable scheme GUID.',
+        scheme: null,
+      };
+    }
     return { success: true, scheme };
   } catch (e) {
-    return { success: false, error: e.message, scheme: null };
+    console.error(`[PowerPlan] active scheme command failed: ${e.message}`);
+    return { success: false, state: 'unavailable', error: e.message, scheme: null };
   }
 }
 
@@ -738,7 +762,11 @@ async function getPowerPlanState() {
   try {
     const activeResult = await getActivePowerScheme();
     if (!activeResult.success || !activeResult.scheme) {
-      return { success: false, error: activeResult.error || 'Could not read active power scheme' };
+      return {
+        success: false,
+        state: activeResult.state || 'unreadable',
+        error: activeResult.error || 'Could not read active power scheme',
+      };
     }
 
     const schemeGuid  = activeResult.scheme.guid;
@@ -748,6 +776,7 @@ async function getPowerPlanState() {
 
     return {
       success:      true,
+      state:        'ready',
       activeScheme: activeResult.scheme,
       settings,
       breakdown,
@@ -756,7 +785,7 @@ async function getPowerPlanState() {
     };
   } catch (e) {
     console.error('[PowerPlan] getPowerPlanState error:', e.message);
-    return { success: false, error: e.message };
+    return { success: false, state: 'unavailable', error: e.message };
   }
 }
 
@@ -1472,6 +1501,8 @@ function getStoredSchemeGuids() {
 module.exports = {
   POWER_PROFILES,
   BUILTIN_GUIDS,
+  parseSchemeList,
+  parseActiveScheme,
   getPowerPlanState,
   applyPowerProfile,
   applyPowerProfileWithOwnership,

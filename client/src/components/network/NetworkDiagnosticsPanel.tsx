@@ -486,8 +486,9 @@ export function NetworkDiagnosticsHero(props: DiagnosticsState) {
 // ─── Benchmark Card ───────────────────────────────────────────────────────────
 
 export function NetworkBenchmarkCard(props: DiagnosticsState) {
-  const { benchmarkState, benchmarkResult, startBenchmark, runBenchmarkCompare, resetBenchmark } = props;
+  const { benchmarkState, benchmarkResult, benchmarkError, startBenchmark, runBenchmarkCompare, resetBenchmark } = props;
   const isLoading = benchmarkState === "baseline" || benchmarkState === "comparing";
+  const isError = benchmarkState === "error";
 
   return (
     <motion.div
@@ -506,7 +507,7 @@ export function NetworkBenchmarkCard(props: DiagnosticsState) {
               Measure before and after applying tweaks. Results are honest — no improvements are fabricated.
             </p>
           </div>
-          {benchmarkState === "done" && (
+          {(benchmarkState === "done" || isError) && (
             <Button size="sm" variant="outline" onClick={resetBenchmark} className="text-xs border-[#2A313A] shrink-0">
               <RefreshCw className="size-3 mr-1.5" /> Reset
             </Button>
@@ -551,6 +552,16 @@ export function NetworkBenchmarkCard(props: DiagnosticsState) {
               <Button size="sm" onClick={runBenchmarkCompare} className="bg-primary hover:bg-primary/90 text-xs gap-1.5" data-testid="button-run-comparison">
                 <Activity className="size-3" /> Run Comparison
               </Button>
+            </motion.div>
+          )}
+
+          {isError && (
+            <motion.div key="error" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-start gap-2.5 p-3 rounded-xl border border-red-500/20 bg-red-500/5">
+              <AlertCircle className="size-4 text-red-400 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-xs font-medium text-red-400">Diagnostic could not be completed</p>
+                <p className="text-[11px] text-muted-foreground/70 mt-0.5">{benchmarkError ?? "The network benchmark returned no trustworthy result."}</p>
+              </div>
             </motion.div>
           )}
 

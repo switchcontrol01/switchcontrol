@@ -4,6 +4,10 @@ import { performance } from "perf_hooks";
 
 const router = Router();
 
+function diagnosticLog(event: string, fields: Record<string, unknown> = {}) {
+  console.info("[NetworkDiagnostics]", JSON.stringify({ event, ts: new Date().toISOString(), ...fields }));
+}
+
 // Strict per-IP rate limit for ping-sample: 1 call / 30 s.
 const pingSampleLastCall = new Map<string, number>();
 const PING_SAMPLE_COOLDOWN_MS = 30_000;
@@ -15,6 +19,7 @@ function pingRateLimit(req: any, res: any, next: any) {
   if (now - last < PING_SAMPLE_COOLDOWN_MS) {
     const retryAfter = Math.ceil((PING_SAMPLE_COOLDOWN_MS - (now - last)) / 1000);
     res.setHeader("Retry-After", String(retryAfter));
+    diagnosticLog("ping_cooldown", { retryAfter });
     return res.status(429).json({ error: "Rate limit: 1 ping per 30 s.", retryAfter });
   }
   pingSampleLastCall.set(ip, now);
@@ -175,10 +180,13 @@ function getClientUserKey(req: any): string {
 }
 
 router.get("/ping-sample", pingRateLimit, async (_req, res) => {
+  diagnosticLog("ping_started");
   try {
     const result = await collectSamples(3);
+    diagnosticLog("ping_completed", { loss: result.loss, partial: result.loss > 0 });
     res.json({ ...result, ts: Date.now() });
-  } catch {
+  } catch (err) {
+    diagnosticLog("ping_failed", { error: err instanceof Error ? err.message : "Sampling failed" });
     res.status(500).json({ error: "Sampling failed" });
   }
 });
@@ -186,11 +194,14 @@ router.get("/ping-sample", pingRateLimit, async (_req, res) => {
 router.post("/benchmark/baseline", async (req, res) => {
   const userKey = getClientUserKey(req);
   try {
+    diagnosticLog("benchmark_started", { phase: "baseline" });
     const result = await collectSamples(8);
     const entry: BenchmarkBaselineEntry = { ...result, ts: Date.now() };
     benchmarkBaselineMap.set(userKey, entry);
+    diagnosticLog("benchmark_completed", { phase: "baseline", loss: result.loss, partial: result.loss > 0 });
     res.json(entry);
-  } catch {
+  } catch (err) {
+    diagnosticLog("benchmark_failed", { phase: "baseline", error: err instanceof Error ? err.message : "Baseline sampling failed" });
     res.status(500).json({ error: "Baseline sampling failed" });
   }
 });
@@ -200,6 +211,7 @@ router.get("/benchmark/compare", async (req, res) => {
   const baseline = benchmarkBaselineMap.get(userKey);
   if (!baseline) return res.status(400).json({ error: "No baseline recorded" });
   try {
+    diagnosticLog("benchmark_started", { phase: "comparison" });
     const after = await collectSamples(8);
     const before = baseline;
     const deltaLabel = (b: number, a: number, threshold = 1): "improved" | "unchanged" | "worse" => {
@@ -207,7 +219,7 @@ router.get("/benchmark/compare", async (req, res) => {
       if (Math.abs(diff) < threshold) return "unchanged";
       return diff < 0 ? "improved" : "worse";
     };
-    res.json({
+    const response = {
       before: { avg: before.avg, min: before.min, max: before.max, jitter: before.jitter, loss: before.loss },
       after: { avg: after.avg, min: after.min, max: after.max, jitter: after.jitter, loss: after.loss },
       verdict: {
@@ -216,13 +228,17 @@ router.get("/benchmark/compare", async (req, res) => {
         loss: deltaLabel(before.loss, after.loss, 0.5),
       },
       ts: Date.now(),
-    });
-  } catch {
+    };
+    diagnosticLog("benchmark_completed", { phase: "comparison", partial: after.loss > 0 });
+    res.json(response);
+  } catch (err) {
+    diagnosticLog("benchmark_failed", { phase: "comparison", error: err instanceof Error ? err.message : "Comparison failed" });
     res.status(500).json({ error: "Comparison failed" });
   }
 });
 
 router.get("/pc-vs-internet", async (_req, res) => {
+  diagnosticLog("pc_vs_internet_started");
   try {
     const [r1a, r1b, r2a, r2b] = await Promise.all([
       tcpPing("1.1.1.1", 80),
@@ -235,10 +251,12 @@ router.get("/pc-vs-internet", async (_req, res) => {
     const goog = [r2a, r2b].filter((v): v is number => v !== null);
 
     if (cf.length === 0 && goog.length === 0) {
-      return res.json({
+      const response = {
         cloudflare: null, google: null, providerVariance: 0,
         verdict: "offline", explanation: "No external hosts reachable. Check your network connection.", confidence: "high", ts: Date.now(),
-      });
+      };
+      diagnosticLog("pc_vs_internet_completed", { verdict: response.verdict, partial: true });
+      return res.json(response);
     }
 
     const cfAvg = cf.length ? parseFloat((cf.reduce((a, b) => a + b, 0) / cf.length).toFixed(1)) : null;
@@ -274,8 +292,10 @@ router.get("/pc-vs-internet", async (_req, res) => {
       explanation = "Partial connectivity — one provider was unreachable. Not enough data to draw a reliable conclusion.";
     }
 
+    diagnosticLog("pc_vs_internet_completed", { verdict, partial: !cfAvg || !googAvg });
     res.json({ cloudflare: cfAvg, google: googAvg, providerVariance, verdict, explanation, confidence, ts: Date.now() });
-  } catch {
+  } catch (err) {
+    diagnosticLog("pc_vs_internet_failed", { error: err instanceof Error ? err.message : "Diagnostic failed" });
     res.status(500).json({ error: "Diagnostic failed" });
   }
 });
@@ -283,6 +303,7 @@ router.get("/pc-vs-internet", async (_req, res) => {
 // ─── DNS Optimizer: 5-provider intelligent benchmark ─────────────────────────
 
 router.get("/dns-benchmark", dnsBenchmarkRateLimit, async (_req, res) => {
+  diagnosticLog("dns_benchmark_started");
   try {
     // All 5 providers run in parallel; share a very short result cache so
     // concurrent dashboard requests do not multiply the network probes.
@@ -357,7 +378,7 @@ router.get("/dns-benchmark", dnsBenchmarkRateLimit, async (_req, res) => {
 
     const providers = ranked.map((p, i) => ({ ...p, rank: i + 1 }));
 
-    res.json({
+    const response = {
       providers,
       recommended,
       recommendedReasons,
@@ -368,8 +389,11 @@ router.get("/dns-benchmark", dnsBenchmarkRateLimit, async (_req, res) => {
       measurement: "tcp-connect-to-dns-port",
       inconclusive: alive.length === 0,
       ts: Date.now(),
-    });
+    };
+    diagnosticLog("dns_benchmark_completed", { providers: providers.length, partial: alive.length < DNS_PROVIDERS.length });
+    res.json(response);
   } catch (err) {
+    diagnosticLog("dns_benchmark_failed", { error: err instanceof Error ? err.message : "DNS benchmark failed" });
     res.status(500).json({ error: "DNS benchmark failed" });
   }
 });

@@ -145,7 +145,12 @@ async function revertCanonicalNetworkTweak(record) {
     if (after?.isApplied !== false || after?.verified === false) {
       return { success: false, action: 'revert', verified: false, error: 'Canonical network tweak is still enabled after revert verification' };
     }
-    ownershipStore.recordRevert(scopeKey);
+    // Recovery records created from renderer localStorage are intentionally
+    // transient and are not present in ownership-store. Do not emit an
+    // "unknown scope key" warning for those records.
+    if (ownershipStore.getOwnershipRecord(scopeKey)) {
+      ownershipStore.recordRevert(scopeKey);
+    }
     return { success: true, action: 'revert', verified: true };
   } catch (e) {
     return { success: false, action: 'revert', verified: false, error: e.message };
@@ -454,6 +459,20 @@ async function revertPowerPlan(record) {
 
 // ── main pipeline ─────────────────────────────────────────────────────────────
 
+function summarizeRevertDetails(details) {
+  const items = Object.values(details);
+  const reverted = items.filter(item => item.success === true && !item.skipped).length;
+  const skipped = items.filter(item => item.skipped === true).length;
+  const failed = items.filter(item => item.success !== true && !item.skipped).length;
+  return {
+    total: items.length,
+    reverted,
+    skipped,
+    failed,
+    success: failed === 0,
+  };
+}
+
 /**
  * Revert all app-owned premium changes.
  *
@@ -470,9 +489,6 @@ async function revertAllAppOwned(options = {}) {
   console.log(`[RevertPipeline] Starting — ${owned.length} app-owned item(s) to revert`);
 
   const details = {};
-  let revertedCount = 0;
-  let skippedCount  = 0;
-  let failedCount   = 0;
 
   // Split records into two groups:
   //   1. Independent items (tweak / network_tweak / nic) — safe to run in parallel.
@@ -488,7 +504,20 @@ async function revertAllAppOwned(options = {}) {
   const fallbackNetworkTweakIds = Array.isArray(options.fallbackNetworkTweakIds)
     ? options.fallbackNetworkTweakIds
       .filter(id => typeof id === 'string' && /^[\w-]+$/.test(id))
-      .filter(id => !ownedScopeKeys.has(`network_tweak:${id}`))
+      // Correlate legacy and canonical IDs before building recovery records.
+      // A localStorage list containing both names represents one system item.
+      .filter((id, index, ids) => {
+        const canonical = LEGACY_NETWORK_IDS.get(id) || id;
+        return ids.findIndex(candidate => (LEGACY_NETWORK_IDS.get(candidate) || candidate) === canonical) === index;
+      })
+      .filter(id => {
+        const canonical = LEGACY_NETWORK_IDS.get(id) || id;
+        return !owned.some(record =>
+          (record.itemType === 'network_tweak' && (LEGACY_NETWORK_IDS.get(record.itemId) || record.itemId) === canonical) ||
+          (record.itemType === 'tweak' && CANONICAL_NETWORK_TWEAK_IDS.has(record.itemId) && record.itemId === canonical) ||
+          (record.itemType === 'slider' && record.itemId === canonical)
+        );
+      })
     : [];
   const fallbackCanonicalIds = [];
   const fallbackDirectNetworkIds = [];
@@ -562,13 +591,10 @@ async function revertAllAppOwned(options = {}) {
   for (const { scopeKey, result: itemResult } of parallelResults) {
     details[scopeKey] = itemResult;
     if (itemResult.skipped) {
-      skippedCount++;
       console.warn(`[RevertPipeline] SKIP ${scopeKey} — ${itemResult.reason}`);
     } else if (itemResult.success) {
-      revertedCount++;
       console.log(`[RevertPipeline] OK   ${scopeKey} (action=${itemResult.action})`);
     } else {
-      failedCount++;
       console.error(`[RevertPipeline] FAIL ${scopeKey} — ${itemResult.error}`);
     }
   }
@@ -581,16 +607,15 @@ async function revertAllAppOwned(options = {}) {
     const { reverted: slidersReverted, failed: slidersFailed } = await getSliderTweakExecutor().revertAllPremiumSliders();
     for (const tweakId of slidersReverted) {
       details[`slider:${tweakId}`] = { success: true, action: 'reverted' };
-      revertedCount++;
       console.log(`[RevertPipeline] OK   slider:${tweakId}`);
     }
     for (const { tweakId, error } of slidersFailed) {
       details[`slider:${tweakId}`] = { success: false, error };
-      failedCount++;
       console.error(`[RevertPipeline] FAIL slider:${tweakId} — ${error}`);
     }
   } catch (e) {
     console.error(`[RevertPipeline] Slider revert sweep threw: ${e.message}`);
+    details['slider:sweep'] = { success: false, error: e.message, action: 'revert_sweep' };
   }
 
   // A legacy network card may have been recorded only in localStorage while its
@@ -604,10 +629,8 @@ async function revertAllAppOwned(options = {}) {
         ? { success: true, verified: true, action: 'recovery_reset' }
         : { success: false, verified: false, error: result.error || 'Network throttle recovery reset failed' };
       details['slider:net-throttle-index:recovery'] = detail;
-      if (detail.success) revertedCount++; else failedCount++;
     } catch (e) {
       details['slider:net-throttle-index:recovery'] = { success: false, verified: false, error: e.message };
-      failedCount++;
     }
   }
 
@@ -615,16 +638,15 @@ async function revertAllAppOwned(options = {}) {
     const { reverted: presetsReverted, failed: presetsFailed } = await getPresetTweakExecutor().revertAllPremiumPresets();
     for (const tweakId of presetsReverted) {
       details[`preset:${tweakId}`] = { success: true, action: 'reverted' };
-      revertedCount++;
       console.log(`[RevertPipeline] OK   preset:${tweakId}`);
     }
     for (const { tweakId, error } of presetsFailed) {
       details[`preset:${tweakId}`] = { success: false, error };
-      failedCount++;
       console.error(`[RevertPipeline] FAIL preset:${tweakId} — ${error}`);
     }
   } catch (e) {
     console.error(`[RevertPipeline] Preset revert sweep threw: ${e.message}`);
+    details['preset:sweep'] = { success: false, error: e.message, action: 'revert_sweep' };
   }
 
   // ── Phase 2: power plan revert — sequential, always last ─────────────────
@@ -641,13 +663,10 @@ async function revertAllAppOwned(options = {}) {
 
     details[scopeKey] = itemResult;
     if (itemResult.skipped) {
-      skippedCount++;
       console.warn(`[RevertPipeline] SKIP ${scopeKey} — ${itemResult.reason}`);
     } else if (itemResult.success) {
-      revertedCount++;
       console.log(`[RevertPipeline] OK   ${scopeKey} (action=${itemResult.action})`);
     } else {
-      failedCount++;
       console.error(`[RevertPipeline] FAIL ${scopeKey} — ${itemResult.error}`);
     }
   }
@@ -676,34 +695,74 @@ async function revertAllAppOwned(options = {}) {
         applied = status.applied;
       }
       finalNetworkAudit[itemId] = { applied };
-      if (applied === false) {
-        const ownedRecord = owned.find(r =>
-          (r.itemType === 'network_tweak' && r.itemId === itemId) ||
-          (r.itemType === 'tweak' && r.itemId === itemId) ||
+      const detailKey = [...owned, ...otherRecords].find(r => {
+        const canonical = LEGACY_NETWORK_IDS.get(r.itemId) || r.itemId;
+        return details[r.scopeKey] && (
+          (r.itemType === 'network_tweak' && canonical === itemId) ||
+          (r.itemType === 'tweak' && CANONICAL_NETWORK_TWEAK_IDS.has(r.itemId) && r.itemId === itemId) ||
           (r.itemType === 'slider' && r.itemId === itemId)
         );
+      })?.scopeKey;
+
+      if (applied === false) {
+        const ownedRecord = owned.find(r => {
+          const canonical = LEGACY_NETWORK_IDS.get(r.itemId) || r.itemId;
+          return (
+            (r.itemType === 'network_tweak' && canonical === itemId) ||
+            (r.itemType === 'tweak' && CANONICAL_NETWORK_TWEAK_IDS.has(r.itemId) && r.itemId === itemId) ||
+            (r.itemType === 'slider' && r.itemId === itemId)
+          );
+        });
         if (ownedRecord) ownershipStore.recordRevert(ownedRecord.scopeKey);
+        // The audit verifies the same item; it is not a second revert item.
+        // Correct an executor false-negative, but preserve a fail-safe skip.
+        if (detailKey && !details[detailKey].skipped) {
+          details[detailKey] = {
+            ...details[detailKey],
+            success: true,
+            verified: true,
+            auditVerified: true,
+          };
+        }
       } else {
-        failedCount++;
-        details[`network_audit:${itemId}`] = {
-          success: false,
-          verified: false,
-          error: applied === true ? 'Network tweak remains enabled after final revert audit' : 'Network state inconclusive after final revert audit',
-        };
+        const error = applied === true
+          ? 'Network tweak remains enabled after final revert audit'
+          : 'Network state inconclusive after final revert audit';
+        if (detailKey && !details[detailKey].skipped) {
+          details[detailKey] = { ...details[detailKey], success: false, verified: false, error };
+        } else if (!detailKey) {
+          // An audit without an action record is still one explicit attempted
+          // recovery item, so it must be represented in the reconciled total.
+          details[`network_audit:${itemId}`] = { success: false, verified: false, error, action: 'audit' };
+        }
       }
     } catch (e) {
-      failedCount++;
       finalNetworkAudit[itemId] = { applied: null, error: e.message };
-      details[`network_audit:${itemId}`] = { success: false, verified: false, error: e.message };
+      const detailKey = [...owned, ...otherRecords].find(r => {
+        const canonical = LEGACY_NETWORK_IDS.get(r.itemId) || r.itemId;
+        return details[r.scopeKey] && canonical === itemId;
+      })?.scopeKey;
+      if (detailKey && !details[detailKey].skipped) {
+        details[detailKey] = { ...details[detailKey], success: false, verified: false, error: e.message };
+      } else if (!detailKey) {
+        details[`network_audit:${itemId}`] = { success: false, verified: false, error: e.message, action: 'audit' };
+      }
     }
   }
 
+  // Every detail is one logical action/recovery item. Recompute from the
+  // final per-item result after audits so total = reverted + skipped + failed.
+  // This prevents ownership records, fallback records, and verification audits
+  // from being counted as different populations.
+  const counts = summarizeRevertDetails(details);
+  const { total, reverted: revertedCount, skipped: skippedCount, failed: failedCount } = counts;
+
   const summary = {
-    total:    owned.length + fallbackNetworkTweakIds.length,
+    total,
     reverted: revertedCount,
     skipped:  skippedCount,
     failed:   failedCount,
-    success:  failedCount === 0,
+    success:  counts.success,
     details,
     networkIds: Array.from(tracedNetworkIds),
     finalNetworkAudit,
@@ -810,4 +869,5 @@ module.exports = {
   revertAllAppOwned,
   previewRevert,
   runStartupPowerPlanSanityCheck,
+  summarizeRevertDetails,
 };

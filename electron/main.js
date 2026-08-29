@@ -5847,7 +5847,13 @@ $pwrThrot  = Reg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottl
   // ── Scheduler stats (lightweight — safe to call from devtools/debug panels) ────
   // ── Latency Analyzer ─────────────────────────────────────────────────────────
   ipcMain.handle('latencyAnalyzer:start', async () => {
-    console.info('[latencyAnalyzer:ipc] start request');
+    console.info('[LatencyAnalyzer]', JSON.stringify({
+      event: 'ipc_start_request',
+      available: latencyAnalyzerAvailable,
+      desktop: true,
+      entitlementBoundary: 'renderer_checked',
+      ts: new Date().toISOString(),
+    }));
     if (!latencyAnalyzerAvailable) {
       console.error('[latencyAnalyzer:ipc] start unavailable: module not packaged');
       return {
@@ -5875,7 +5881,7 @@ $pwrThrot  = Reg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottl
   });
 
   ipcMain.handle('latencyAnalyzer:stop', async () => {
-    console.info('[latencyAnalyzer:ipc] stop request');
+    console.info('[LatencyAnalyzer]', JSON.stringify({ event: 'ipc_stop_request', ts: new Date().toISOString() }));
     latencyAnalyzer.stopAnalysis();
     _latencyLastSample = null;
     _latencyLastError = null;
@@ -5886,7 +5892,7 @@ $pwrThrot  = Reg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottl
   ipcMain.handle('latencyAnalyzer:getSample', () => {
     const s = _latencyLastSample;
     _latencyLastSample = null; // consume so renderer can tell when a new sample arrives
-    if (s) console.info('[latencyAnalyzer:ipc] sample delivered to renderer');
+    if (s) console.info('[LatencyAnalyzer]', JSON.stringify({ event: 'ipc_sample_delivered', ts: new Date().toISOString() }));
     return s;
   });
 
@@ -5895,8 +5901,11 @@ $pwrThrot  = Reg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottl
   });
 
   ipcMain.handle('latencyAnalyzer:scanDrivers', async () => {
+    console.info('[LatencyAnalyzer]', JSON.stringify({ event: 'ipc_driver_scan_request', ts: new Date().toISOString() }));
     try {
-      return await latencyAnalyzer.scanDrivers();
+      const result = await latencyAnalyzer.scanDrivers();
+      console.info('[LatencyAnalyzer]', JSON.stringify({ event: 'ipc_driver_scan_response', count: result.length, partial: result.length === 0, ts: new Date().toISOString() }));
+      return result;
     } catch (e) {
       console.warn('[latencyAnalyzer:scanDrivers] error:', e.message);
       return [];
@@ -5904,8 +5913,11 @@ $pwrThrot  = Reg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottl
   });
 
   ipcMain.handle('latencyAnalyzer:scanAudioDevices', async () => {
+    console.info('[LatencyAnalyzer]', JSON.stringify({ event: 'ipc_audio_scan_request', ts: new Date().toISOString() }));
     try {
-      return await latencyAnalyzer.scanAudioDevices();
+      const result = await latencyAnalyzer.scanAudioDevices();
+      console.info('[LatencyAnalyzer]', JSON.stringify({ event: 'ipc_audio_scan_response', count: result.length, partial: result.length === 0, ts: new Date().toISOString() }));
+      return result;
     } catch (e) {
       console.warn('[latencyAnalyzer:scanAudioDevices] error:', e.message);
       return [];

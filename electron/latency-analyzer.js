@@ -5,7 +5,8 @@
  * SwitchControl Latency Analyzer — Windows user-mode backend.
  *
  * Collects system-wide DPC%, Interrupt%, and Hard Page Fault activity using
- * Windows Performance Counters via PowerShell Get-Counter.
+ * Windows' locale-independent formatted performance-data CIM classes.
+ * Get-Counter remains as a fallback for older Windows installations.
  * Also scans installed drivers (driverquery) and audio devices (WMI).
  *
  * IMPORTANT: Per-driver DPC/ISR microsecond timings require a kernel-mode ETW
@@ -39,6 +40,8 @@ let _sampleCallback   = null;     // (sample) => void — set by caller
 let _startedAt        = 0;
 let _sampleCount      = 0;
 let _lastError        = null;
+let _consecutiveFailures = 0;
+const _lifecycleLog = (event, fields = {}) => console.info('[LatencyAnalyzer]', JSON.stringify({ event, ts: new Date().toISOString(), ...fields }));
 
 // ── PowerShell runner ──────────────────────────────────────────────────────────
 
@@ -86,22 +89,45 @@ function parseCSVLine(line) {
 // ── Performance counter poll ───────────────────────────────────────────────────
 
 /**
- * Collect one snapshot of system-wide perf counters via Get-Counter.
+ * Collect one snapshot of system-wide performance counters.
  * Returns { dpcPct, intrPct, pageFaultsSec } or null on failure.
  */
 async function collectSample() {
-  // Single Get-Counter call for all three counters (one PS process, minimal overhead)
+  // The formatted CIM classes expose stable property names regardless of the
+  // display language. Get-Counter paths such as "% DPC Time" are localized on
+  // some Windows installations, which previously made the analyzer fail before
+  // it could produce its first sample.
   const script = `
 try {
-  $c = Get-Counter -Counter @(
-    '\\Processor(_Total)\\% DPC Time',
-    '\\Processor(_Total)\\% Interrupt Time',
-    '\\Memory\\Page Faults/sec'
-  ) -SampleInterval 1 -MaxSamples 1 -ErrorAction Stop
-  $vals = $c.CounterSamples | ForEach-Object { $_.CookedValue }
-  [Math]::Round($vals[0],3).ToString() + ',' + [Math]::Round($vals[1],3).ToString() + ',' + [Math]::Round($vals[2],1).ToString()
+  $p = Get-CimInstance -ClassName Win32_PerfFormattedData_PerfOS_Processor -Filter "Name='_Total'" -ErrorAction Stop
+  $m = Get-CimInstance -ClassName Win32_PerfFormattedData_PerfOS_Memory -ErrorAction Stop
+  if ($null -eq $p -or $null -eq $m) { throw 'Windows returned no formatted performance data.' }
+  $culture = [Globalization.CultureInfo]::InvariantCulture
+  $dpc = [double]$p.PercentDPCTime
+  $intr = [double]$p.PercentInterruptTime
+  $faults = [double]$m.PageFaultsPerSec
+  if ([double]::IsNaN($dpc) -or [double]::IsNaN($intr) -or [double]::IsNaN($faults)) {
+    throw 'Windows returned non-numeric performance data.'
+  }
+  @(
+    $dpc.ToString('0.###', $culture)
+    $intr.ToString('0.###', $culture)
+    $faults.ToString('0.###', $culture)
+  ) -join ','
 } catch {
-  Write-Output 'ERROR:' + $_.Exception.Message
+  try {
+    $c = Get-Counter -Counter @(
+      '\\Processor(_Total)\\% DPC Time',
+      '\\Processor(_Total)\\% Interrupt Time',
+      '\\Memory\\Page Faults/sec'
+    ) -SampleInterval 1 -MaxSamples 1 -ErrorAction Stop
+    $vals = $c.CounterSamples | ForEach-Object { $_.CookedValue }
+    [Math]::Round($vals[0],3).ToString([Globalization.CultureInfo]::InvariantCulture) + ',' +
+      [Math]::Round($vals[1],3).ToString([Globalization.CultureInfo]::InvariantCulture) + ',' +
+      [Math]::Round($vals[2],1).ToString([Globalization.CultureInfo]::InvariantCulture)
+  } catch {
+    Write-Output ('ERROR:' + $_.Exception.Message)
+  }
 }
 `.trim();
 
@@ -174,6 +200,7 @@ function getKnownDriver(name) {
  * Returns an array of DriverRow objects.
  */
 async function scanDrivers() {
+  _lifecycleLog('driver_scan_started');
   // Previously used `driverquery /fo csv` but that command:
   //   1. Can take 30-120 s with /v and 10-25 s without on systems with WMI pressure.
   //   2. Uses OEM code-page output that can confuse Node's UTF-8 reader on non-English Windows.
@@ -193,10 +220,16 @@ try {
 
   try {
     const out = await runPS(script, 30000);
-    if (!out || out === '[]') return [];
+    if (!out || out === '[]') {
+      _lifecycleLog('driver_scan_completed', { count: 0, partial: true, reason: 'no_rows' });
+      return [];
+    }
 
     let raw;
-    try { raw = JSON.parse(out); } catch { return []; }
+    try { raw = JSON.parse(out); } catch {
+      _lifecycleLog('driver_scan_completed', { count: 0, partial: true, reason: 'malformed_response' });
+      return [];
+    }
     if (!Array.isArray(raw)) raw = [raw];
 
     const rows = [];
@@ -236,10 +269,13 @@ try {
 
     // Accept any non-empty state string — Win32_SystemDriver returns English
     // state values ("Running"/"Stopped") but guard against empty/null anyway.
-    return rows
+    const result = rows
       .filter(r => r.state.length > 0)
       .slice(0, 60);   // raised cap: CIM returns data quickly so more rows is fine
+    _lifecycleLog('driver_scan_completed', { count: result.length, partial: false });
+    return result;
   } catch {
+    _lifecycleLog('driver_scan_failed', { partial: true, error: 'driver inventory query failed' });
     return [];
   }
 }
@@ -247,6 +283,7 @@ try {
 // ── Audio device scan ──────────────────────────────────────────────────────────
 
 async function scanAudioDevices() {
+  _lifecycleLog('audio_scan_started');
   // Use Get-PnpDevice instead of Win32_SoundDevice — WMI can hang on AMD systems.
   const script = `
 Get-PnpDevice -Class AudioEndpoint -Status OK -ErrorAction SilentlyContinue |
@@ -256,9 +293,15 @@ Get-PnpDevice -Class AudioEndpoint -Status OK -ErrorAction SilentlyContinue |
 
   try {
     const out = await runPS(script, 8000);
-    if (!out) return [];
+    if (!out) {
+      _lifecycleLog('audio_scan_completed', { count: 0, partial: true, reason: 'no_rows' });
+      return [];
+    }
     const lines = out.split('\n').filter(Boolean);
-    if (lines.length < 2) return [];
+    if (lines.length < 2) {
+      _lifecycleLog('audio_scan_completed', { count: 0, partial: true, reason: 'no_rows' });
+      return [];
+    }
     const rows = [];
     for (let i = 1; i < lines.length; i++) {
       const line = lines[i].trim();
@@ -269,8 +312,10 @@ Get-PnpDevice -Class AudioEndpoint -Status OK -ErrorAction SilentlyContinue |
       const stat = cols[2] || '';
       if (name) rows.push({ name, manufacturer: mfr, status: stat });
     }
+    _lifecycleLog('audio_scan_completed', { count: rows.length, partial: false });
     return rows;
   } catch {
+    _lifecycleLog('audio_scan_failed', { partial: true, error: 'audio inventory query failed' });
     return [];
   }
 }
@@ -284,6 +329,7 @@ Get-PnpDevice -Class AudioEndpoint -Status OK -ErrorAction SilentlyContinue |
  */
 async function startAnalysis(onSample, onError) {
   if (_sessionActive) {
+    _lifecycleLog('start_rejected', { reason: 'already_running' });
     throw new Error('An analysis session is already running.');
   }
   _sessionActive  = true;
@@ -291,6 +337,8 @@ async function startAnalysis(onSample, onError) {
   _startedAt      = Date.now();
   _sampleCount    = 0;
   _lastError      = null;
+  _consecutiveFailures = 0;
+  _lifecycleLog('analysis_started', { sampleIntervalMs: SAMPLE_INTERVAL_MS });
 
   async function poll() {
     if (!_sessionActive) return;
@@ -304,11 +352,27 @@ async function startAnalysis(onSample, onError) {
       if (_sessionActive && sample) {
         _sampleCount++;
         _lastError = null;
+        _consecutiveFailures = 0;
+        _lifecycleLog('sample_collected', { sampleCount: _sampleCount });
         if (_sampleCallback) _sampleCallback(sample);
       }
     } catch (err) {
       _lastError = err.message || String(err);
+      _consecutiveFailures++;
+      _lifecycleLog('counter_failure', { sampleCount: _sampleCount, error: _lastError });
       if (_sessionActive && onError) onError(_lastError);
+      // Do not leave a dead session running forever when Windows cannot expose
+      // the requested counters. The renderer can now retry cleanly instead of
+      // getting "analysis already running" from the visible Start button.
+      if (_consecutiveFailures >= 3) {
+        _sessionActive = false;
+        _sampleCallback = null;
+        _intervalHandle = null;
+        _lifecycleLog('analysis_halted', {
+          reason: 'repeated_counter_failures',
+          failures: _consecutiveFailures,
+        });
+      }
     }
     if (_sessionActive) {
       _intervalHandle = setTimeout(poll, SAMPLE_INTERVAL_MS);
@@ -323,6 +387,7 @@ async function startAnalysis(onSample, onError) {
  * Stop the current analysis session. Cleans up timers and any active child process.
  */
 function stopAnalysis() {
+  if (_sessionActive) _lifecycleLog('analysis_stopped', { sampleCount: _sampleCount });
   _sessionActive = false;
   _sampleCallback = null;
   _lastError = null;
