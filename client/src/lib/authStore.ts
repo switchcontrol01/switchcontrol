@@ -39,6 +39,8 @@ export interface AuthUser {
   hasSeenPremiumTour: boolean;
   hasSeenTrialActivation: boolean;
   hasSeenTrialTour: boolean;
+  /** Server-authoritative marker; clearing local AppData must not make an existing account new. */
+  hasInstalledApp: boolean;
   loggedIn: boolean;
 }
 

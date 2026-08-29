@@ -8,6 +8,7 @@ const read = (file) =>
 
 const app = read("client/src/App.tsx");
 const modal = read("client/src/components/FirstRunLanguageModal.tsx");
+const authRoutes = read("server/auth/google.ts");
 
 test("first-run language gate is only mounted for an authenticated user", () => {
   assert.match(
@@ -24,6 +25,21 @@ test("first-run language gate is only mounted for an authenticated user", () => 
     app,
     /\? "language" : "welcome"/,
     "the post-login flow must enter the language gate before welcome/onboarding",
+  );
+  assert.match(
+    app,
+    /const isGenuinelyNewUser = exchangedUser\.hasInstalledApp === false/,
+    "the OAuth path must use the server installation marker instead of local storage alone",
+  );
+  assert.match(
+    app,
+    /const isGenuinelyNewUserFast = user!\.hasInstalledApp === false/,
+    "the cached-session path must not treat cleared AppData as a new account",
+  );
+  assert.match(
+    authRoutes,
+    /hasInstalledApp: dbUserForExchange\?\.hasInstalledApp \|\| false/,
+    "the OAuth exchange must expose the server installation marker",
   );
 });
 

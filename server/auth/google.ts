@@ -973,6 +973,7 @@ export function setupGoogleAuth(app: Express): void {
               hasSeenPremiumTour: dbUser.hasSeenPremiumTour || false,
               hasSeenTrialActivation: dbUser.hasSeenTrialActivation || false,
               hasSeenTrialTour: dbUser.hasSeenTrialTour || false,
+              hasInstalledApp: dbUser.hasInstalledApp || false,
               authMode: 'jwt',
             });
           }
@@ -1020,6 +1021,7 @@ export function setupGoogleAuth(app: Express): void {
         hasSeenPremiumTour: dbUser?.hasSeenPremiumTour || false,
         hasSeenTrialActivation: dbUser?.hasSeenTrialActivation || false,
         hasSeenTrialTour: dbUser?.hasSeenTrialTour || false,
+        hasInstalledApp: dbUser?.hasInstalledApp || false,
         authMode: 'cookie',
       });
     }
@@ -1050,6 +1052,7 @@ export function setupGoogleAuth(app: Express): void {
         hasSeenPremiumTour: dbUser?.hasSeenPremiumTour || false,
         hasSeenTrialActivation: dbUser?.hasSeenTrialActivation || false,
         hasSeenTrialTour: dbUser?.hasSeenTrialTour || false,
+        hasInstalledApp: dbUser?.hasInstalledApp || false,
       });
     }
     return res.json({ loggedIn: false, isPremium: false, plan: "free", isAdmin: false, hasSeenPremiumUnlock: false, hasSeenPremiumTour: false, hasSeenTrialActivation: false, hasSeenTrialTour: false });
@@ -1397,6 +1400,7 @@ export function setupGoogleAuth(app: Express): void {
             hasSeenPremiumTour: dbUserForExchange?.hasSeenPremiumTour || false,
             hasSeenTrialActivation: dbUserForExchange?.hasSeenTrialActivation || false,
             hasSeenTrialTour: dbUserForExchange?.hasSeenTrialTour || false,
+            hasInstalledApp: dbUserForExchange?.hasInstalledApp || false,
           }
         });
       });

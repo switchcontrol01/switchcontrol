@@ -1308,7 +1308,8 @@ function ElectronAppContent() {
             // registered once with [] deps.
             const livePhase = phaseRef.current;
 
-            if (!hasBeenWelcomed) {
+            const isGenuinelyNewUser = exchangedUser.hasInstalledApp === false;
+            if (!hasBeenWelcomed && isGenuinelyNewUser) {
               setIsFirstLogin(true);
               localStorage.setItem(welcomeKey, "true");
               if (
@@ -1335,7 +1336,12 @@ function ElectronAppContent() {
                 setPhase("login_success");
               }
             } else {
-              // Returning user.
+              // Returning user, including an existing account on a fresh
+              // local profile. The server marker is authoritative; an empty
+              // AppData folder must not manufacture a first-run experience.
+              if (!hasBeenWelcomed) {
+                localStorage.setItem(welcomeKey, "true");
+              }
               if (
                 livePhase === "authenticated" ||
                 livePhase === "welcome" ||
@@ -1489,7 +1495,8 @@ function ElectronAppContent() {
 
         const welcomeKeyFast = `sc_welcomed_${user!.id}`;
         const hasBeenWelcomedFast = localStorage.getItem(welcomeKeyFast);
-        if (!hasBeenWelcomedFast) {
+        const isGenuinelyNewUserFast = user!.hasInstalledApp === false;
+        if (!hasBeenWelcomedFast && isGenuinelyNewUserFast) {
           setIsFirstLogin(true);
           localStorage.setItem(welcomeKeyFast, "true");
           const languageKeyFast = `sc_language_prompt_seen_${user!.id}`;
@@ -1497,6 +1504,10 @@ function ElectronAppContent() {
             !localStorage.getItem(languageKeyFast) ? "language" : "welcome",
           );
         } else {
+          if (!hasBeenWelcomedFast) {
+            localStorage.setItem(welcomeKeyFast, "true");
+          }
+          setIsFirstLogin(false);
           setPhase("authenticated");
         }
       }
@@ -1552,7 +1563,8 @@ function ElectronAppContent() {
           const targetUser = authState.user;
           const welcomeKey = `sc_welcomed_${targetUser.id}`;
           const hasBeenWelcomed = localStorage.getItem(welcomeKey);
-          if (!hasBeenWelcomed) {
+          const isGenuinelyNewUser = targetUser.hasInstalledApp === false;
+          if (!hasBeenWelcomed && isGenuinelyNewUser) {
             setIsFirstLogin(true);
             localStorage.setItem(welcomeKey, "true");
             const languageKey = `sc_language_prompt_seen_${targetUser.id}`;
@@ -1560,6 +1572,10 @@ function ElectronAppContent() {
               !localStorage.getItem(languageKey) ? "language" : "welcome",
             );
           } else {
+            if (!hasBeenWelcomed) {
+              localStorage.setItem(welcomeKey, "true");
+            }
+            setIsFirstLogin(false);
             setPhase("authenticated");
           }
         }
@@ -1602,7 +1618,8 @@ function ElectronAppContent() {
           const targetUser = authState.user;
           const welcomeKey = `sc_welcomed_${targetUser.id}`;
           const hasBeenWelcomed = localStorage.getItem(welcomeKey);
-          if (!hasBeenWelcomed) {
+          const isGenuinelyNewUser = targetUser.hasInstalledApp === false;
+          if (!hasBeenWelcomed && isGenuinelyNewUser) {
             setIsFirstLogin(true);
             localStorage.setItem(welcomeKey, "true");
             const languageKey = `sc_language_prompt_seen_${targetUser.id}`;
@@ -1610,6 +1627,10 @@ function ElectronAppContent() {
               !localStorage.getItem(languageKey) ? "language" : "welcome",
             );
           } else {
+            if (!hasBeenWelcomed) {
+              localStorage.setItem(welcomeKey, "true");
+            }
+            setIsFirstLogin(false);
             setPhase("authenticated");
           }
         }

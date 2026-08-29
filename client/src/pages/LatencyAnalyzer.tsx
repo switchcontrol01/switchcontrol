@@ -1330,6 +1330,7 @@ function delayQuality(q: string) {
   if (q === "Excellent") return { text: "text-emerald-400", badge: "bg-emerald-400/10 border-emerald-400/25" };
   if (q === "Good")      return { text: "text-cyan-400",    badge: "bg-cyan-400/10 border-cyan-400/25" };
   if (q === "Fair")      return { text: "text-amber-400",   badge: "bg-amber-400/10 border-amber-400/25" };
+  if (q === "Not enough data") return { text: "text-[#6B7380]", badge: "bg-[#6B7380]/10 border-[#6B7380]/25" };
   return                        { text: "text-red-400",     badge: "bg-red-400/10 border-red-400/25" };
 }
 
@@ -1366,8 +1367,9 @@ function InputDelaySection() {
   const latency = intel.latency;
   const store      = useLatencyAnalyzerStore();
   const hasAnalysis = store.sampleCount > 0;
+  const hasEstimate = !!latency?.ready && latency.estimatedMs != null;
 
-  const animMs = useAnimatedDelayValue(latency?.estimatedMs ?? 0);
+  const animMs = useAnimatedDelayValue(hasEstimate ? latency.estimatedMs! : 0);
 
   // Correlate live-analyzer DPC/ISR data into delay budget when available
   const dpcMs = hasAnalysis ? +(store.avgDpcPct * 0.08).toFixed(2) : null;
@@ -1402,7 +1404,7 @@ function InputDelaySection() {
               </span>
             </div>
             <div className="flex items-end gap-2">
-              {latency ? (
+              {hasEstimate ? (
                 <>
                   <span className="text-5xl font-bold tabular-nums leading-none text-[#E6EAF0]">
                     ~{animMs.toFixed(1)}
@@ -1415,6 +1417,11 @@ function InputDelaySection() {
                     </span>
                   </div>
                 </>
+              ) : latency ? (
+                <div className="flex items-end gap-2">
+                  <span className="text-4xl font-semibold text-[#6B7380]">—</span>
+                  <span className="text-sm text-[#6B7380] mb-1">Not enough data</span>
+                </div>
               ) : (
                 <div className="h-12 w-40 rounded-lg bg-[#1C2330] animate-pulse" />
               )}
@@ -1437,7 +1444,7 @@ function InputDelaySection() {
         {/* ── OS-derived breakdown ─────────────────────────────── */}
         <p className="text-[10px] text-[#6B7380] uppercase tracking-wider mb-3">OS delay breakdown</p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 mb-2">
-          {latency ? (
+          {hasEstimate ? (
             latency.breakdown.map((b, i) => (
               <div key={b.label} className="space-y-1.5">
                 <div className="flex items-start justify-between gap-2">
@@ -1452,6 +1459,10 @@ function InputDelaySection() {
                 <DelayBar ms={b.ms} max={5} color={BAR_COLORS[i] ?? BAR_COLORS[0]} />
               </div>
             ))
+          ) : latency ? (
+            <div className="md:col-span-2 rounded-lg border border-[#2A313A] bg-[#141A23] px-3 py-3 text-[10px] text-[#6B7380]">
+              {latency.reason ?? "Waiting for a complete Windows telemetry sample."}
+            </div>
           ) : (
             Array.from({ length: 4 }, (_, i) => (
               <div key={i} className="space-y-1.5">

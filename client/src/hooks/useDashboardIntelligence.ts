@@ -43,10 +43,12 @@ export interface LatencyBreakdown {
 }
 
 export interface LatencyData {
-  estimatedMs: number;
-  quality: "Excellent" | "Good" | "Fair" | "Poor";
+  estimatedMs: number | null;
+  quality: "Excellent" | "Good" | "Fair" | "Poor" | "Not enough data";
   trend: "rising" | "falling" | "stable";
   breakdown: LatencyBreakdown[];
+  ready: boolean;
+  reason?: string;
   ts: number;
 }
 

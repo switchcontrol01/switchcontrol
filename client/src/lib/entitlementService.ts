@@ -70,6 +70,7 @@ export function normalizeApiMeUser(
     hasSeenPremiumTour: !!data.hasSeenPremiumTour,
     hasSeenTrialActivation: !!data.hasSeenTrialActivation,
     hasSeenTrialTour: !!data.hasSeenTrialTour,
+    hasInstalledApp: data.hasInstalledApp ?? fallback?.hasInstalledApp ?? false,
     loggedIn: true,
   };
 }

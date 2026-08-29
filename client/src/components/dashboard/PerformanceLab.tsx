@@ -377,7 +377,8 @@ function LatencyBar({ ms, max, color }: { ms: number; max: number; color: string
 }
 
 function SystemResponsivenessCard({ data }: { data: LatencyData | null }) {
-  const animMs = useAnimatedValue(data?.estimatedMs ?? 0, 300);
+  const hasEstimate = !!data?.ready && data.estimatedMs != null;
+  const animMs = useAnimatedValue(hasEstimate ? data.estimatedMs! : 0, 300);
   const maxMs = 12;
 
   const trendIcon = data?.trend === "rising"  ? <TrendingUp  className="size-3 text-red-400" />
@@ -394,7 +395,7 @@ function SystemResponsivenessCard({ data }: { data: LatencyData | null }) {
             <Gauge className="size-4 text-muted-foreground" />
             System Responsiveness Estimate
           </h3>
-          {data && (
+          {hasEstimate && (
             <span className="text-[9px] font-medium px-1.5 py-0.5 rounded border border-[#2A313A] text-[#6B7380]">
               Model estimate
             </span>
@@ -403,7 +404,7 @@ function SystemResponsivenessCard({ data }: { data: LatencyData | null }) {
 
         {/* Big number */}
         <div className="flex items-end gap-2">
-          {data ? (
+          {hasEstimate ? (
             <>
               <span className="text-4xl font-bold tabular-nums leading-none" data-testid="text-latency-ms">
                 ~{animMs.toFixed(1)}
@@ -416,13 +417,20 @@ function SystemResponsivenessCard({ data }: { data: LatencyData | null }) {
                 </span>
               </div>
             </>
+          ) : data ? (
+            <div className="flex items-end gap-2">
+              <span className="text-3xl font-semibold text-[#6B7380]" data-testid="text-latency-ms">
+                —
+              </span>
+              <span className="text-xs text-[#6B7380] mb-0.5">Not enough data</span>
+            </div>
           ) : (
             <div className="h-10 w-28 rounded-lg bg-[#21262D] animate-pulse" />
           )}
         </div>
 
         {/* Breakdown */}
-        {data && (
+        {hasEstimate && (
           <div className="space-y-2 flex-1">
             {data.breakdown.map((b, i) => (
               <div key={b.label} className="space-y-1" data-testid={`latency-breakdown-${i}`}>
@@ -442,7 +450,13 @@ function SystemResponsivenessCard({ data }: { data: LatencyData | null }) {
           </div>
         )}
 
-        {data && (
+        {data && !hasEstimate && (
+          <div className="flex-1 flex items-center text-[10px] text-muted-foreground/50">
+            {data.reason ?? "Waiting for a complete Windows telemetry sample."}
+          </div>
+        )}
+
+        {hasEstimate && (
           <p className="text-[9px] text-muted-foreground/40">
             Load-based estimate — not directly measured. This is not mouse-to-screen input latency.
           </p>

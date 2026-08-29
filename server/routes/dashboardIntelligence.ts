@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { getCachedSnapshot } from "../lib/telemetry";
+import { getCachedSnapshot, getSnapshot } from "../lib/telemetry";
 import si from "systeminformation";
 import { execFile } from "child_process";
 import { promisify } from "util";
@@ -903,15 +903,47 @@ router.get("/active-problems", (_req, res) => {
 
 // ── System responsiveness estimate ────────────────────────────────────────────
 
-router.get("/latency-estimate", (_req, res) => {
+router.get("/latency-estimate", async (_req, res) => {
   try {
-    const snap    = getCachedSnapshot();
+    // The dashboard can mount before the first native Windows telemetry tick
+    // finishes. Never turn the loading sentinel (all zeroes) into a fabricated
+    // 1.5 ms "Excellent" result.
+    const snap    = await getSnapshot();
+    const hasCompleteSample =
+      snap.status === "ready" &&
+      Number.isFinite(snap.ts) &&
+      snap.ts > 0 &&
+      Number.isFinite(snap.cpu.load) &&
+      snap.cpu.cores > 0 &&
+      Number.isFinite(snap.ram.totalGB) &&
+      snap.ram.totalGB > 0 &&
+      Number.isFinite(snap.ram.usedPercent) &&
+      snap.ram.usedPercent >= 0 &&
+      Number.isFinite(snap.processes.total) &&
+      snap.processes.total > 0;
+
+    if (!hasCompleteSample) {
+      console.info(
+        `[LatencyEstimate] waiting for complete telemetry sample ` +
+        `(status=${snap.status}, cores=${snap.cpu.cores}, ramGB=${snap.ram.totalGB}, processes=${snap.processes.total})`,
+      );
+      return res.json({
+        estimatedMs: null,
+        quality: "Not enough data",
+        trend: "stable",
+        breakdown: [],
+        ready: false,
+        reason: "Waiting for a complete Windows telemetry sample.",
+        ts: snap.ts,
+      });
+    }
+
     const cpuLoad = snap.cpu.load;
     const ramPct  = snap.ram.usedPercent;
     const procs   = snap.processes.total;
 
-    // Continuous power-curve scaling — avoids discrete "always 1.4ms" plateau on idle PCs.
-    // Base is 1.5ms (realistic minimum Windows kernel scheduler overhead).
+    // Continuous power-curve scaling. This is a load model, not an input-latency
+    // measurement; the minimum is only used after a complete sample exists.
     // Each component scales smoothly with its load metric rather than jumping between fixed steps.
     const base = 1.5;
 
@@ -943,6 +975,7 @@ router.get("/latency-estimate", (_req, res) => {
       estimatedMs: total,
       quality,
       trend,
+      ready: true,
       breakdown: [
         { label: "Base OS overhead", ms: base,      note: "Minimum kernel scheduler latency" },
         { label: "CPU scheduling",   ms: cpuDelta,  note: `CPU at ${cpuLoad.toFixed(0)}%` },
