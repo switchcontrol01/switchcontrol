@@ -11,6 +11,10 @@ const app = fs.readFileSync(
   path.join(process.cwd(), "client/src/App.tsx"),
   "utf8",
 );
+const appLayout = fs.readFileSync(
+  path.join(process.cwd(), "client/src/components/layout/AppLayout.tsx"),
+  "utf8",
+);
 const {
   MAX_TRIAL_TIMER_DELAY_MS,
   TRIAL_TIMER_BUFFER_MS,
@@ -59,5 +63,23 @@ test("trial expiry delays stay below the browser timer limit", () => {
     fs.readFileSync(path.join(process.cwd(), "client/src/hooks/usePremiumExpiry.ts"), "utf8"),
     /const armNextChunk = \(\) =>[\s\S]*?timerId = setTimeout\(armNextChunk, delay\)/,
     "long trials must re-arm a follow-up check instead of using one overflowing timeout",
+  );
+});
+
+test("trial banner fades after tour completion or eight seconds", () => {
+  assert.match(
+    appLayout,
+    /const isTourActive = useTourStore\(\(s\) => s\.isTourActive\);/,
+    "the banner should observe the shared tour lifecycle",
+  );
+  assert.match(
+    appLayout,
+    /tourWasActive\.current = true;[\s\S]*?else if \(tourWasActive\.current\) \{\s*dismiss\(\);/,
+    "the banner should dismiss when the tour releases its active state",
+  );
+  assert.match(
+    appLayout,
+    /window\.setTimeout\(dismiss, 8_000\)/,
+    "the banner should auto-dismiss after eight seconds",
   );
 });

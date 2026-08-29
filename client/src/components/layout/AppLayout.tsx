@@ -24,8 +24,33 @@ let _trialBannerDismissed = false;
 function TrialCountdownBanner() {
   const ent = useEntitlementUiState();
   const largeSidebar = useUserPreferencesStore((s) => s.largeSidebar);
+  const isTourActive = useTourStore((s) => s.isTourActive);
   const [dismissed, setDismissed] = useState(_trialBannerDismissed);
+  const tourWasActive = useRef(false);
   const { t } = useTranslation();
+
+  const dismiss = useCallback(() => {
+    _trialBannerDismissed = true;
+    setDismissed(true);
+  }, []);
+
+  // Keep the banner from staying behind the guided tour after the tour
+  // explicitly releases the global tour lock.
+  useEffect(() => {
+    if (isTourActive) {
+      tourWasActive.current = true;
+    } else if (tourWasActive.current) {
+      dismiss();
+    }
+  }, [dismiss, isTourActive]);
+
+  // The countdown is useful context at first, but it should not remain pinned
+  // over the app when the user does not dismiss it manually.
+  useEffect(() => {
+    if (dismissed || !ent.showTrialBanner) return;
+    const timerId = window.setTimeout(dismiss, 8_000);
+    return () => window.clearTimeout(timerId);
+  }, [dismiss, dismissed, ent.showTrialBanner]);
 
   if (!ent.showTrialBanner || dismissed) return null;
 
@@ -65,7 +90,7 @@ function TrialCountdownBanner() {
       </div>
       <div className="flex items-center gap-3">
         <button
-          onClick={() => { _trialBannerDismissed = true; setDismissed(true); }}
+          onClick={dismiss}
           className="text-[#6B7380] hover:text-[#A0A8B3] text-xs transition-colors ml-1"
           aria-label={t("Dismiss")}
         >
