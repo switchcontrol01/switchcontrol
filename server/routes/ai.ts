@@ -39,6 +39,7 @@ function getCacheKey(body: any): string {
     goal: body.goal,
     game: body.game,
     system: body.system,
+    hardwareDetails: body.context?.hardwareDetails,
     telemetry: body.telemetry,
     enabledTweaks: body.enabledTweaks || [],
     disabledTweaks: body.disabledTweaks || [],
@@ -658,6 +659,57 @@ function buildChatContext(context: any, serverCtx?: Awaited<ReturnType<typeof bu
       refreshHz: parseRefreshHz(s.display),
     });
     if (hwIntel) parts.push(`HARDWARE INTELLIGENCE (adapt every recommendation to this):\n${hwIntel}`);
+  }
+
+  // ── Complete hardware profile ─────────────────────────────────────────────
+  // This is supplied by the Electron client from the user's real Windows
+  // machine. Keep it separate from the concise system summary so the model can
+  // reason about topology and multi-device setups without confusing the two.
+  const hd = context?.hardwareDetails;
+  if (hd && typeof hd === "object") {
+    const value = (v: unknown): string => v === null || v === undefined || v === "" ? "not exposed" : String(v);
+    const bool = (v: unknown): string => v === null || v === undefined ? "not exposed" : v ? "enabled" : "disabled";
+    const platform = hd.platform;
+    const cpu = hd.cpu;
+    const memory = hd.memory;
+    const counts = hd.deviceCounts;
+    const detailLines: string[] = [];
+
+    if (platform) {
+      detailLines.push(
+        `TPM: ${bool(platform.tpmPresent)}${platform.tpmVersion ? ` (${value(platform.tpmVersion)})` : ""}`,
+        `Boot mode: ${platform.uefiBoot === null || platform.uefiBoot === undefined ? "not exposed" : platform.uefiBoot ? "UEFI" : "Legacy BIOS"}`,
+        `Virtualization: ${bool(platform.virtualizationEnabled)}; Hypervisor: ${bool(platform.hypervisorPresent)}`,
+      );
+    }
+    if (cpu) detailLines.push(`CPU topology: ${value(cpu.physicalCores)} physical cores, ${value(cpu.logicalCores)} logical cores`);
+    if (memory) {
+      detailLines.push(`Memory topology: ${value(memory.totalMb)} MB total, ${memory.inferredDualChannel === null || memory.inferredDualChannel === undefined ? "channel mode not exposed" : memory.inferredDualChannel ? "dual-channel inferred" : "single-channel inferred"}`);
+      if (Array.isArray(memory.sticks) && memory.sticks.length > 0) {
+        detailLines.push(`Memory sticks: ${memory.sticks.slice(0, 16).map((s: any, i: number) =>
+          `#${i + 1} ${value(s.sizeMb)}MB ${value(s.type)} @ ${value(s.configuredClockMhz ?? s.clockMhz)}MHz${s.slot ? ` (${value(s.slot)})` : ""}`
+        ).join("; ")}`);
+      }
+    }
+    if (Array.isArray(hd.gpus) && hd.gpus.length > 0) {
+      detailLines.push(`GPU controllers (${hd.gpus.length}): ${hd.gpus.slice(0, 8).map((g: any) =>
+        `${value(g.name)}${g.vramMb ? ` ${Math.round(g.vramMb / 1024)}GB VRAM` : ""}${g.bus ? ` via ${value(g.bus)}` : ""}${g.external ? " external" : ""}`
+      ).join("; ")}`);
+    }
+    if (Array.isArray(hd.storage) && hd.storage.length > 0) {
+      detailLines.push(`Storage layout: ${hd.storage.slice(0, 16).map((d: any) =>
+        `${value(d.name)}${d.sizeGb ? ` ${value(d.sizeGb)}GB` : ""}${d.type ? ` ${value(d.type)}` : ""}${d.interfaceType ? ` (${value(d.interfaceType)})` : ""}`
+      ).join("; ")}`);
+    }
+    if (Array.isArray(hd.displays) && hd.displays.length > 0) {
+      detailLines.push(`Displays (${hd.displays.length}): ${hd.displays.slice(0, 12).map((d: any) =>
+        `${value(d.model)}${d.resolutionX && d.resolutionY ? ` ${d.resolutionX}x${d.resolutionY}` : ""}${d.refreshRate ? ` @ ${d.refreshRate}Hz` : ""}${d.connection ? ` via ${value(d.connection)}` : ""}${d.main ? " [main]" : ""}`
+      ).join("; ")}`);
+    }
+    if (counts) {
+      detailLines.push(`Device counts: ${value(counts.gpuControllers)} GPU controllers, ${value(counts.displays)} displays, ${value(counts.storageDevices)} storage devices, ${value(counts.networkInterfaces)} network interfaces, ${value(counts.audioDevices)} audio devices`);
+    }
+    if (detailLines.length > 0) parts.push(`DETAILED HARDWARE PROFILE (use for hardware-specific reasoning):\n${detailLines.map(l => `- ${l}`).join("\n")}`);
   }
 
   // ── Display signal ─────────────────────────────────────────────────────────

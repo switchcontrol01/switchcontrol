@@ -118,6 +118,7 @@ import { GlassCard } from "@/components/ui/glass-card";
 import { PremiumPageOverlay, PremiumHeaderBadge } from "@/components/ui/premium-page-overlay";
 import { useBiosAdvisorStore } from "@/stores/biosAdvisorStore";
 import { BiosAnalyticsRings, type BiosAnalyticsData } from "@/components/graphs/BiosAnalyticsRings";
+import { buildAiHardwareDetails } from "@/lib/hardware-ai-context";
 
 type ScanState = "idle" | "collecting" | "analyzing" | "explaining" | "complete";
 
@@ -966,6 +967,7 @@ export default function BiosAdvisor() {
           expoXmpState: si.inference.expoOrXmp.state,
           secureBoot: si.platform.secureBootEnabled,
           vbsEnabled: si.platform.vbsEnabled,
+          hardwareDetails: buildAiHardwareDetails(si),
         }),
       }, { signal: controller.signal });
       console.log(`[BiosAdvisor] explain response OK | overview length=${data.overview?.length} recommendations=${data.recommendations?.length}`);

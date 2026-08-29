@@ -37,6 +37,7 @@ import { NETWORK_TWEAKS } from "@/lib/network-tweaks-data";
 import { useBiosAdvisorStore } from "@/stores/biosAdvisorStore";
 import { useUserPreferencesStore } from "@/stores/userPreferencesStore";
 import { computeOptimizationScore } from "@/lib/ai-context-builder";
+import { buildAiHardwareDetails, type AiHardwareDetails } from "@/lib/hardware-ai-context";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -91,6 +92,7 @@ interface SystemContext {
     network: string;
     notes?: string;
   };
+  hardwareDetails?: AiHardwareDetails;
   enabledTweaks: Array<{ id: string; title: string; category: string; risk: string }>;
   disabledTweaks: Array<{ id: string; title: string; category: string; risk: string }>;
   telemetry: Record<string, number | string | null>;
@@ -1489,6 +1491,7 @@ export default function AiAdvisor() {
         network: networkStr,
         notes: biosNote,
       },
+      hardwareDetails: si ? buildAiHardwareDetails(si) : undefined,
       enabledTweaks,
       disabledTweaks,
       telemetry: {
@@ -2037,6 +2040,7 @@ export default function AiAdvisor() {
             system: contextWithPlatform.system
               ? { ...contextWithPlatform.system, cpu: "Not shared", gpu: "Not shared", ram: "Not shared", motherboard: "Not shared" }
               : undefined,
+            hardwareDetails: undefined,
             telemetry: {},
             platform: undefined,
           };

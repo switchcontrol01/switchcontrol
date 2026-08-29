@@ -306,6 +306,63 @@ const explainSchema = z.object({
   expoXmpState: z.enum(["confirmed", "likely", "unknown"]).optional(),
   secureBoot: z.boolean().nullable().optional(),
   vbsEnabled: z.boolean().nullable().optional(),
+  hardwareDetails: z.object({
+    platform: z.object({
+      tpmPresent: z.boolean().nullable().optional(),
+      tpmVersion: z.string().nullable().optional(),
+      uefiBoot: z.boolean().nullable().optional(),
+      virtualizationEnabled: z.boolean().nullable().optional(),
+      hypervisorPresent: z.boolean().nullable().optional(),
+    }).optional(),
+    cpu: z.object({
+      physicalCores: z.number().nullable().optional(),
+      logicalCores: z.number().nullable().optional(),
+    }).optional(),
+    memory: z.object({
+      totalMb: z.number().nullable().optional(),
+      inferredDualChannel: z.boolean().nullable().optional(),
+      sticks: z.array(z.object({
+        slot: z.string().nullable().optional(),
+        bank: z.string().nullable().optional(),
+        sizeMb: z.number().nullable().optional(),
+        type: z.string().nullable().optional(),
+        clockMhz: z.number().nullable().optional(),
+        configuredClockMhz: z.number().nullable().optional(),
+        manufacturer: z.string().nullable().optional(),
+        partNum: z.string().nullable().optional(),
+      })).max(16).optional(),
+    }).optional(),
+    gpus: z.array(z.object({
+      name: z.string().nullable().optional(),
+      vendor: z.string().nullable().optional(),
+      subVendor: z.string().nullable().optional(),
+      vramMb: z.number().nullable().optional(),
+      vramDynamic: z.boolean().nullable().optional(),
+      bus: z.string().nullable().optional(),
+      external: z.boolean().nullable().optional(),
+    })).max(8).optional(),
+    storage: z.array(z.object({
+      name: z.string().nullable().optional(),
+      type: z.string().nullable().optional(),
+      interfaceType: z.string().nullable().optional(),
+      sizeGb: z.number().nullable().optional(),
+    })).max(16).optional(),
+    displays: z.array(z.object({
+      model: z.string().nullable().optional(),
+      main: z.boolean().nullable().optional(),
+      connection: z.string().nullable().optional(),
+      resolutionX: z.number().nullable().optional(),
+      resolutionY: z.number().nullable().optional(),
+      refreshRate: z.number().nullable().optional(),
+    })).max(12).optional(),
+    deviceCounts: z.object({
+      gpuControllers: z.number().optional(),
+      displays: z.number().optional(),
+      storageDevices: z.number().optional(),
+      networkInterfaces: z.number().optional(),
+      audioDevices: z.number().optional(),
+    }).optional(),
+  }).optional(),
 });
 
 const EXPLAIN_PROMPT = `You are a firmware analysis expert for competitive gaming PCs. Given the user's hardware and detected firmware settings, provide a concise analysis.
@@ -354,7 +411,7 @@ biosRouter.post("/explain", async (req: Request, res: Response) => {
 
     const { cpuModel, gpuModel, ramTotalGB, detections, scores,
             motherboard, biosVersion, biosDate, ramLayout,
-            expoXmpState, secureBoot, vbsEnabled } = parsed.data;
+            expoXmpState, secureBoot, vbsEnabled, hardwareDetails } = parsed.data;
 
     console.log(`[BIOS:explain:${requestId}] Calling OpenAI | user=${cloudUser?.id} | cpu=${cpuModel} gpu=${gpuModel} detections=${detections.length} | MB=${motherboard ?? "?"} BIOS=${biosVersion ?? "?"}`);
 
@@ -367,6 +424,24 @@ biosRouter.post("/explain", async (req: Request, res: Response) => {
     if (expoXmpState) hwLines.push(`EXPO/XMP: ${expoXmpState === "confirmed" ? "Confirmed Active" : expoXmpState === "likely" ? "Likely Active" : "Not Detected"}`);
     if (secureBoot !== null && secureBoot !== undefined) hwLines.push(`Secure Boot: ${secureBoot ? "Enabled" : "Disabled"}`);
     if (vbsEnabled !== null && vbsEnabled !== undefined) hwLines.push(`VBS/Memory Integrity: ${vbsEnabled ? "Enabled (may reduce GPU performance)" : "Disabled"}`);
+    if (hardwareDetails) {
+      const bool = (v: boolean | null | undefined): string => v === null || v === undefined ? "not exposed" : v ? "enabled" : "disabled";
+      const platform = hardwareDetails.platform;
+      const cpu = hardwareDetails.cpu;
+      const memory = hardwareDetails.memory;
+      const counts = hardwareDetails.deviceCounts;
+      if (platform) {
+        hwLines.push(`TPM: ${bool(platform.tpmPresent)}${platform.tpmVersion ? ` (${platform.tpmVersion})` : ""}`);
+        hwLines.push(`Boot mode: ${platform.uefiBoot === null || platform.uefiBoot === undefined ? "not exposed" : platform.uefiBoot ? "UEFI" : "Legacy BIOS"}`);
+        hwLines.push(`Virtualization: ${bool(platform.virtualizationEnabled)}; Hypervisor: ${bool(platform.hypervisorPresent)}`);
+      }
+      if (cpu) hwLines.push(`CPU topology: ${cpu.physicalCores ?? "not exposed"} physical cores, ${cpu.logicalCores ?? "not exposed"} logical cores`);
+      if (memory) hwLines.push(`Memory channels: ${memory.inferredDualChannel === null || memory.inferredDualChannel === undefined ? "not exposed" : memory.inferredDualChannel ? "dual-channel inferred" : "single-channel inferred"}`);
+      if (hardwareDetails.gpus?.length) hwLines.push(`GPU controllers: ${hardwareDetails.gpus.map(g => `${g.name ?? "unknown"}${g.vramMb ? ` ${Math.round(g.vramMb / 1024)}GB VRAM` : ""}`).join("; ")}`);
+      if (hardwareDetails.storage?.length) hwLines.push(`Storage layout: ${hardwareDetails.storage.map(d => `${d.name ?? "unknown"}${d.sizeGb ? ` ${d.sizeGb}GB` : ""}${d.type ? ` ${d.type}` : ""}`).join("; ")}`);
+      if (hardwareDetails.displays?.length) hwLines.push(`Displays: ${hardwareDetails.displays.map(d => `${d.model ?? "unknown"}${d.resolutionX && d.resolutionY ? ` ${d.resolutionX}x${d.resolutionY}` : ""}${d.refreshRate ? ` @ ${d.refreshRate}Hz` : ""}`).join("; ")}`);
+      if (counts) hwLines.push(`Device counts: ${counts.gpuControllers ?? 0} GPUs, ${counts.displays ?? 0} displays, ${counts.storageDevices ?? 0} storage, ${counts.networkInterfaces ?? 0} network, ${counts.audioDevices ?? 0} audio`);
+    }
 
     const userMessage = `${hwLines.join("\n")}
 Firmware Scores: Latency ${scores.latency}/100, Frametime ${scores.frametime}/100, Stability ${scores.stability}/100, Readiness ${scores.competitiveReadiness}/100
