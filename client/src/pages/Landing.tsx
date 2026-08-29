@@ -672,7 +672,7 @@ export default function Landing() {
 
           <HeroTiltContainer>
           <div className="flex-1 flex flex-col max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 md:pt-32 lg:pt-40 pb-8 md:pb-12 relative">
-            <div className="text-center">
+            <div className="text-center" dir="ltr">
               <AnimateIn delay={360}>
                 <div className="ws-hero-text-float">
                   <h1 className="mb-7 leading-[1.03] tracking-tight relative" style={{ transform: "translateZ(20px)" }}>

@@ -3,13 +3,27 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import path from "path";
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     tailwindcss(),
   ],
   resolve: {
     alias: {
+      "@/routes/desktopRoutes": path.resolve(
+        import.meta.dirname,
+        "client",
+        "src",
+        "routes",
+        mode === "electron" ? "desktopRoutes.eager.tsx" : "desktopRoutes.lazy.tsx",
+      ),
+      "@/lib/route-prefetch": path.resolve(
+        import.meta.dirname,
+        "client",
+        "src",
+        "lib",
+        mode === "electron" ? "route-prefetch.eager.ts" : "route-prefetch.ts",
+      ),
       "@": path.resolve(import.meta.dirname, "client", "src"),
       "@shared": path.resolve(import.meta.dirname, "shared"),
       "@assets": path.resolve(import.meta.dirname, "attached_assets"),
@@ -25,4 +39,4 @@ export default defineConfig({
     host: "0.0.0.0",
     port: 5000,
   },
-});
+}));

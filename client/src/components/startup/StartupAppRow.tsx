@@ -79,8 +79,7 @@ function AppIcon({ app, size = 28, revealIndex = 0 }: { app: BootApp; size?: num
     return (
       <div
         className="sc-icon-scan-reveal rounded-lg flex items-center justify-center shrink-0 bg-[#21262D] border border-white/[0.07] overflow-hidden"
-        style={{ "--sc-icon-reveal-index": revealIndex } as React.CSSProperties}
-        style={{ width: size, height: size }}
+        style={{ "--sc-icon-reveal-index": revealIndex, width: size, height: size } as React.CSSProperties}
       >
         <img src={dataUrl} alt="" className="w-full h-full object-contain p-0.5" draggable={false} />
       </div>
@@ -92,8 +91,7 @@ function AppIcon({ app, size = 28, revealIndex = 0 }: { app: BootApp; size?: num
     return (
       <div
         className="sc-icon-scan-reveal rounded-lg flex items-center justify-center shrink-0 bg-[#21262D] border border-white/[0.07] overflow-hidden"
-        style={{ "--sc-icon-reveal-index": revealIndex } as React.CSSProperties}
-        style={{ width: size, height: size }}
+        style={{ "--sc-icon-reveal-index": revealIndex, width: size, height: size } as React.CSSProperties}
       >
         <img
           key={webSrcs[webIdx]}
@@ -115,8 +113,7 @@ function AppIcon({ app, size = 28, revealIndex = 0 }: { app: BootApp; size?: num
   return (
     <div
       className="sc-icon-scan-reveal rounded-lg flex items-center justify-center shrink-0 bg-[#21262D] border border-white/[0.07]"
-      style={{ "--sc-icon-reveal-index": revealIndex } as React.CSSProperties}
-      style={{ width: size, height: size }}
+      style={{ "--sc-icon-reveal-index": revealIndex, width: size, height: size } as React.CSSProperties}
     >
       <Icon className="size-3.5 text-muted-foreground/50" />
     </div>

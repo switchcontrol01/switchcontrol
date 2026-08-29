@@ -385,11 +385,18 @@ export function TourShell({
   const rafRefs = useRef<number[]>([]);
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const wasShownRef = useRef(false);
+  // Tour wrappers commonly build their step array during render (for example
+  // when a live trial countdown updates). Keep the current data available to
+  // step navigation without changing the identity of applyStep. If applyStep
+  // changes on every parent render, the show-effect below reinitializes the
+  // tour and can turn the sidebar lock back on after completion.
+  const stepsRef = useRef(steps);
+  stepsRef.current = steps;
   const [, navigate] = useLocation();
   const { setTourHighlight, setTourActive, setTourNavigating } = useTourStore();
 
   const applyStep = useCallback((index: number) => {
-    const s = steps[index];
+    const s = stepsRef.current[index];
     if (s?.sidebarHighlight) {
       setTourHighlight(s.sidebarHighlight);
       setTimeout(() => {
@@ -418,7 +425,7 @@ export function TourShell({
       });
       rafRefs.current.push(outer);
     }
-  }, [steps, setTourHighlight, navigate, setTourNavigating]);
+  }, [setTourHighlight, navigate, setTourNavigating]);
 
   // Unified reveal gate:
   // - On show: mount both elements at opacity:0, then after triple-rAF (three

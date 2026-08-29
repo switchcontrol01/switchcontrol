@@ -438,16 +438,13 @@ const PROCESS_NAME_DOMAINS: Record<string, string> = {
   "edgeupdatetaskmachinua":            "microsoft.com",
   "nvtmreponsible":                    "nvidia.com",
   "nvdisplay.container":               "nvidia.com",
-  "nvcontainer":                       "nvidia.com",
 
   // ── Third-party startup/registry entries (REGISTRY HKCU / task-scheduler) ───
   // These have "Unverified Publisher" so publisher-domain lookup fails;
   // process-name lookup is the only path to a correct logo.
   "volume controller sd plugin": "elgato.com",    // Stream Deck volume plugin
   "volumecontrollersdplugin":    "elgato.com",
-  "fifinecontroldeck":           "fifine-audio.com",
   "fifine control deck":         "fifine-audio.com",
-  "robloxplayerbeta":            "roblox.com",
   "startdvr":                    "microsoft.com",  // Windows Game DVR
   "startcn":                     "tencent.com",    // Honor of Kings / Tencent launcher
   "monitoring":                  "microsoft.com",  // Windows task
@@ -469,8 +466,6 @@ const PROCESS_NAME_DOMAINS: Record<string, string> = {
   "mpcrashhandlerexe":           "microsoft.com",
 
   // ── AMD tasks / services ─────────────────────────────────────────────────────
-  "amdnoisesuppression":               "amd.com",
-  "amdupdater":                        "amd.com",
   "amdrsservicemanager":               "amd.com",
   "amdrsservice":                      "amd.com",
   "amdsettings":                       "amd.com",
@@ -479,7 +474,6 @@ const PROCESS_NAME_DOMAINS: Record<string, string> = {
   "amdlogs":                           "amd.com",
 
   // ── Realtek tasks / services ─────────────────────────────────────────────────
-  "rkauduservice":                     "realtek.com",
   "rkauduservice64":                   "realtek.com",
   "rtkauduservice":                    "realtek.com",
   "rtkauduservice64":                  "realtek.com",

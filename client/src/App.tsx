@@ -85,30 +85,14 @@ import LoginScreen from "@/screens/Login";
 import { WelcomeAnimation } from "@/components/WelcomeAnimation";
 import { OnboardingTour } from "@/components/OnboardingTour";
 import { FirstRunDisclaimer } from "@/components/FirstRunDisclaimer";
-// Desktop routes are eager imports so the packaged Electron renderer never
-// gets stuck behind a file:// lazy-chunk request. The previous route-level
-// Suspense loader could leave every tab showing the shell skeleton forever
-// when one packaged chunk failed to resolve.
-import Home from "@/pages/Home";
-import Tweaks from "@/pages/Tweaks";
-import NetworkTweaks from "@/pages/NetworkTweaks";
-import SystemCleaner from "@/pages/SystemCleaner";
-import Settings from "@/pages/Settings";
-import PowerPlan from "@/pages/PowerPlan";
-import Debloater from "@/pages/Debloater";
-import StartupApps from "@/pages/StartupApps";
-import NicTuningPage from "@/pages/NicTuning";
-import BiosAdvisor from "@/pages/BiosAdvisor";
-import AiAdvisor from "@/pages/AiAdvisor";
-import DriverIntelligence from "@/pages/DriverIntelligence";
-import LatencyAnalyzer from "@/pages/LatencyAnalyzer";
-import Security from "@/pages/Security";
-import History from "@/pages/History";
-import ProcessManager from "@/pages/ProcessManager";
-// Website-only chunks, only prefetch on web (not in Electron where file:// protocol
-// causes chunk fetch failures for pages that are never shown in the desktop app).
 const _isElectronRuntime =
   typeof window !== "undefined" && !!(window as any).electronAPI?.isElectron;
+// Build-selected route map: the web build uses route chunks, while the
+// Electron build aliases this import to an eager map so file:// never needs
+// to resolve a desktop page chunk.
+import { desktopRoutes } from "@/routes/desktopRoutes";
+// Website-only chunks, only prefetch on web (not in Electron where file:// protocol
+// causes chunk fetch failures for pages that are never shown in the desktop app).
 const _landingChunk = _isElectronRuntime
   ? Promise.resolve({ default: () => null })
   : import("@/pages/Landing");
@@ -252,25 +236,25 @@ function ElectronAppRoutes() {
       <div style={{ minHeight: "100%" }}>
         <Suspense fallback={<ElectronRouteFallback />}>
           <Switch>
-            <Route path="/" component={Home} />
-            <Route path="/dashboard" component={Home} />
-            <Route path="/tweaks" component={Tweaks} />
-            <Route path="/power-plan" component={PowerPlan} />
+            <Route path="/" component={desktopRoutes.Home} />
+            <Route path="/dashboard" component={desktopRoutes.Home} />
+            <Route path="/tweaks" component={desktopRoutes.Tweaks} />
+            <Route path="/power-plan" component={desktopRoutes.PowerPlan} />
 
-            <Route path="/nic-tuning" component={NicTuningPage} />
-            <Route path="/network" component={NetworkTweaks} />
-            <Route path="/cleaner" component={SystemCleaner} />
-            <Route path="/debloat" component={Debloater} />
-            <Route path="/startup" component={StartupApps} />
-            <Route path="/bios-advisor" component={BiosAdvisor} />
-            <Route path="/ai-advisor" component={AiAdvisor} />
-            <Route path="/security" component={Security} />
-            <Route path="/history" component={History} />
-            <Route path="/driver-intel" component={DriverIntelligence} />
-            <Route path="/latency-analyzer" component={LatencyAnalyzer} />
-            <Route path="/process-manager" component={ProcessManager} />
-            <Route path="/settings" component={Settings} />
-            <Route component={Home} />
+            <Route path="/nic-tuning" component={desktopRoutes.NicTuningPage} />
+            <Route path="/network" component={desktopRoutes.NetworkTweaks} />
+            <Route path="/cleaner" component={desktopRoutes.SystemCleaner} />
+            <Route path="/debloat" component={desktopRoutes.Debloater} />
+            <Route path="/startup" component={desktopRoutes.StartupApps} />
+            <Route path="/bios-advisor" component={desktopRoutes.BiosAdvisor} />
+            <Route path="/ai-advisor" component={desktopRoutes.AiAdvisor} />
+            <Route path="/security" component={desktopRoutes.Security} />
+            <Route path="/history" component={desktopRoutes.History} />
+            <Route path="/driver-intel" component={desktopRoutes.DriverIntelligence} />
+            <Route path="/latency-analyzer" component={desktopRoutes.LatencyAnalyzer} />
+            <Route path="/process-manager" component={desktopRoutes.ProcessManager} />
+            <Route path="/settings" component={desktopRoutes.Settings} />
+            <Route component={desktopRoutes.Home} />
           </Switch>
         </Suspense>
       </div>
@@ -2158,8 +2142,11 @@ function ElectronAppContent() {
               }
               unlockFiredThisSessionRef.current = true;
               premiumTourFiredThisSessionRef.current = true;
-              await postTrialTourSeen();
+              // Dismiss the UI before persisting the server flag. The optimistic
+              // store/local guards already prevent a replay, and navigation must
+              // never remain locked behind a slow or unavailable POST request.
               setActiveFlow("none");
+              await postTrialTourSeen();
             }}
           />
         )}

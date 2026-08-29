@@ -592,7 +592,7 @@ function relativeTimeFrom(date: Date, now: Date): string {
   return `${diffYr} year${diffYr === 1 ? "" : "s"} ago`;
 }
 
-function buildChatContext(context: any, serverCtx?: Awaited<ReturnType<typeof buildAdvisorServerContext>>): string {
+export function buildChatContext(context: any, serverCtx?: Awaited<ReturnType<typeof buildAdvisorServerContext>>): string {
   const parts: string[] = [];
   const now = new Date();
 

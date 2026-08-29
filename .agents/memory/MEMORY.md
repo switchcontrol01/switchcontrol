@@ -46,6 +46,7 @@
 - [Ring graph design rule](ring-graph-design.md) — SVG ring gauges: track + value arc only; never add an inner tick/dashed ring; glow via drop-shadow on arc, not extra circle strokes.
 - [Power-plan module integrity](power-plan-module-integrity.md) — Electron power-plan manager had a committed truncated body; keep Windows-only operations explicit and verify activation rather than reporting placeholder success.
 - [Desktop route loading](desktop-route-loading.md) — lazy desktop pages need a shell fallback and shared sidebar-prefetch cache; route Suspense otherwise removes the whole AppLayout on first navigation.
+- [Tour dynamic-step stability](tour-dynamic-step-stability.md) — TourShell must keep changing step arrays in a ref so auth/countdown rerenders cannot reactivate the sidebar lock after completion.
 - [Authenticated POST conventions](authenticated-post-conventions.md) — protected raw POST callers must use the shared API helper so JWT, Electron headers, and CSRF remain intact.
 - [Fresh-install auth boot](fresh-install-auth-boot.md) — logged-out cold boots must make cleanup non-blocking so a stale logout cannot strand the app before login.
 - [Network revert verification](network-revert-verification.md) — network expiry reverts must require post-write verification; successful PowerShell alone is not enough, and revert actions must clear ownership.
@@ -76,3 +77,4 @@
 - [Partial system profile cache](partial-system-profile-cache.md) — focused identity results must remain stale until the complete inventory finishes, or deep polling falsely accepts partial data.
 - [Cleaner long-operation UX](cleaner-long-operation-ux.md) — native cleanup can legitimately take nearly a minute; expose elapsed state and cancellation, and always exit the cleaning phase on persistence errors.
 - [Network diagnostics polling](network-diagnostics-polling.md) — pace probes from completed responses; cooldowns are backoff feedback, not monitor failures.
+- [Vite mode-aware config](vite-mode-config.md) — custom dev-server setup must resolve a mode-aware Vite config before spreading it into createViteServer.

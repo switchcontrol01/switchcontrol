@@ -85,6 +85,7 @@ async function buildAll() {
   // /admin/performance) resolve correctly when served from the domain root.
   console.log("building client (web — base=/, outDir=dist)...");
   await viteBuild({
+    mode: "web",
     base: "/",
     build: { outDir: "../dist" },
   });
@@ -94,6 +95,7 @@ async function buildAll() {
   // filesystem root. This is a separate output; the web build stays intact.
   console.log("building client (electron — base=./, outDir=dist-electron)...");
   await viteBuild({
+    mode: "electron",
     base: "./",
     build: { outDir: "../dist-electron" },
   });
