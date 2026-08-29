@@ -1,17 +1,14 @@
 {
-  "version": "1.3.0",
-  "title": "Localization, Verification & OLED Improvements",
-  "headline": "SwitchControl 1.3.0 brings complete public-site localization, keeps network states verified against Windows, and makes important controls easier to discover.",
-  "date": "2026-08-29",
-  "type": "minor",
+  "version": "1.3.1",
+  "title": "Reliability, Verification & Startup Hardening",
+  "headline": "SwitchControl 1.3.1 makes entitlement changes safer, keeps Windows network state synchronized, and prevents startup flows from colliding.",
+  "date": "2026-08-30",
+  "type": "patch",
   "changes": [
-    "Added complete localized public landing-page copy, including Tamil coverage across every section and shared website surface",
-    "Added true OLED Black theming with pure-black backgrounds and near-black card surfaces across legacy and modern UI panels",
-    "Network Tweaks now always verifies live Windows registry and netsh state in Electron instead of trusting a fresh cached status",
-    "Made tweak info, graph/impact, and advanced-details controls persistently discoverable with accent styling, hover feedback, and a gentle attention pulse",
-    "Added synchronized top-to-bottom blur and fade icon reveals for Startup Apps and Debloat Installed Apps after scans",
-    "Made BIOS Advisor advanced firmware details easier to find and expanded the Startup Telemetry scan card",
-    "Added reliable drag-handle reordering for Settings sidebar and dashboard sections",
-    "Added real Windows System Restore point creation before tweak applies when the preference is enabled, with a clear failure instead of silently continuing"
+    "Prevented cached or grace entitlement data and delayed expiry timers from triggering premium reverts without fresh cloud verification",
+    "Made Network Throttling Index authoritative to live Windows state, with confirmed slider and toggle synchronization across both Tweaks surfaces",
+    "Kept missing, busy, and failed native reads inconclusive instead of presenting stale cache values as verified Windows settings",
+    "Prevented tours, onboarding, promotions, patch notes, device-lock UI, and mode transitions from overlapping during startup and revert flows",
+    "Added regression coverage for entitlement races, native hydration precedence, cross-surface synchronization, and overlay arbitration"
   ]
 }

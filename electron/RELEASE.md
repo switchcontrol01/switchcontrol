@@ -37,26 +37,26 @@ Renderer (use-updater.ts hook)
 
 | Channel | Tag pattern | Notes |
 |---------|------------|-------|
-| stable | `v1.3.0` | Default for all users |
-| beta | `v1.3.0-beta.1` | Opt-in (structure ready, not yet exposed in UI) |
+| stable | `v1.3.1` | Default for all users |
+| beta | `v1.3.1-beta.1` | Opt-in (structure ready, not yet exposed in UI) |
 
 ## How a new release reaches users
 
 1. Developer bumps version:
    ```bash
-    cd electron && npm version 1.3.0
+     cd electron && npm version 1.3.1
    ```
 2. Commit + push tag:
    ```bash
     git add package.json package-lock.json electron/package.json electron/package-lock.json
-    git commit -m "chore: bump to v1.3.0"
-    git tag v1.3.0
+    git commit -m "chore: bump to v1.3.1"
+    git tag v1.3.1
     git push origin main --tags
    ```
 3. CI (`release.yml`) triggers:
    - Builds React frontend
    - Runs `electron-builder --win --publish always`
-    - Generates `SwitchControl Setup 1.3.0.exe` + `latest.yml`
+     - Generates `SwitchControl Setup 1.3.1.exe` + `latest.yml`
    - Uploads both to GitHub Release + release server
 4. Installed apps check `https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev/latest.yml` on startup (after 8s)
 5. If `latest.yml` version > installed version → update-available event fires
@@ -77,8 +77,8 @@ Parsed from `releaseNotes` field in `latest.yml`.
 
 Example `latest.yml` release notes field:
 ```
-version: 1.3.0
-releaseDate: '2026-08-29'
+version: 1.3.1
+releaseDate: '2026-08-30'
 releaseNotes: |
   [RECOMMENDED] Fixed GPU detection crash on AMD cards.
   Improved telemetry polling performance.
