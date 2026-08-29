@@ -10,6 +10,7 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const psLimiter = require('./powershell-limiter');
+const { normalizeFirewallProbe } = require('./firewall-status');
 
 // ---------------------------------------------------------------------------
 // PowerShell helper
@@ -186,14 +187,53 @@ ipcMain.handle('security:getStatus', async () => {
     let mpData = null;
     try { mpData = JSON.parse(mpRaw); } catch {}
 
-    // Get-NetFirewallProfile (check if Private profile is enabled)
+    // Query every profile and the active network category. Checking only the
+    // Private profile produced false "firewall disabled" results on machines
+    // using Public or DomainAuthenticated profiles. Keep the probe shape
+    // explicit so the renderer can distinguish false from unavailable.
     let firewallEnabled = null;
+    let firewallProfiles = [];
+    let activeFirewallCategories = [];
     try {
-      const fwCmd = `Get-NetFirewallProfile -Name 'Private' -ErrorAction SilentlyContinue | Select-Object Enabled | ConvertTo-Json -Compress`;
+      const fwCmd = `
+        $profiles = @()
+        try {
+          $profiles = @(Get-NetFirewallProfile -ErrorAction Stop | Select-Object Name, Enabled)
+        } catch {}
+
+        # Registry fallback for Windows editions where the NetSecurity
+        # PowerShell module is unavailable or restricted.
+        if ($profiles.Count -eq 0) {
+          foreach ($entry in @(
+            @{ Name = 'Domain';  Key = 'DomainProfile' },
+            @{ Name = 'Private'; Key = 'StandardProfile' },
+            @{ Name = 'Public';  Key = 'PublicProfile' }
+          )) {
+            try {
+              $v = (Get-ItemProperty "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\SharedAccess\\Parameters\\FirewallPolicy\\$($entry.Key)" -Name EnableFirewall -ErrorAction Stop).EnableFirewall
+              $profiles += [pscustomobject]@{ Name = $entry.Name; Enabled = ([int]$v -ne 0) }
+            } catch {}
+          }
+        }
+
+        $active = @()
+        try {
+          $active = @(Get-NetConnectionProfile -ErrorAction SilentlyContinue | Select-Object -ExpandProperty NetworkCategory)
+        } catch {}
+        [pscustomobject]@{
+          profiles = $profiles
+          activeCategories = $active
+        } | ConvertTo-Json -Compress -Depth 4
+      `;
       const fwRaw = await runPowerShell(fwCmd, 5000);
       const fwData = JSON.parse(fwRaw);
-      firewallEnabled = fwData?.Enabled === true;
-    } catch {}
+      const normalized = normalizeFirewallProbe(fwData);
+      firewallEnabled = normalized.enabled;
+      firewallProfiles = normalized.profiles;
+      activeFirewallCategories = normalized.activeCategories;
+    } catch (err) {
+      console.warn(`[Security] firewall probe unavailable: ${err?.message}`);
+    }
 
     if (!mpData?.DefenderAvailable && firewallEnabled === null) {
       return { available: false, reason: 'defender-unavailable' };
@@ -210,10 +250,12 @@ ipcMain.handle('security:getStatus', async () => {
       signatureVersion: mpData?.AntivirusSignatureVersion ?? null,
       lastQuickScan:    mpData?.QuickScanEndTime          ?? null,
       lastFullScan:     mpData?.FullScanEndTime           ?? null,
+      firewallProfiles,
+      activeFirewallCategories,
       source: 'electron',
     };
 
-    console.log(`[Security] getStatus OK | realtime=${result.data.realtimeProtection} tamper=${result.data.tamperProtection} firewall=${firewallEnabled}`);
+    console.log(`[Security] getStatus OK | realtime=${result.data.realtimeProtection} tamper=${result.data.tamperProtection} firewall=${firewallEnabled} profiles=${JSON.stringify(firewallProfiles)} active=${JSON.stringify(activeFirewallCategories)}`);
     return result;
   } catch (err) {
     console.warn(`[Security] getStatus ERROR: ${err?.message}`);

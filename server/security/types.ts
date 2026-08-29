@@ -18,6 +18,8 @@ export interface SecurityStatus {
   signatureVersion: string | null;
   lastQuickScan: string | null;
   lastFullScan: string | null;
+  firewallProfiles?: Array<{ Name?: string; Enabled?: boolean | number | string }>;
+  activeFirewallCategories?: string[];
   source: "electron" | "partial" | "unavailable";
 }
 
