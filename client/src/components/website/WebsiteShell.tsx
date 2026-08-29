@@ -16,6 +16,8 @@ import {
 import { GlowButton } from "./GlowButton";
 import { WebsiteBackground } from "./WebsiteBackground";
 import type { ComponentProps } from "react";
+import { WebsiteLanguagePicker } from "./WebsiteLanguagePicker";
+import { useTranslation } from "@/lib/i18n";
 
 type BgVariant = ComponentProps<typeof WebsiteBackground>["variant"];
 
@@ -37,6 +39,7 @@ function FullHeader() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { prefersReducedMotion } = useMotion();
   const { user, isLoading, logout } = useAuth();
+  const { t } = useTranslation();
   const headerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -79,7 +82,7 @@ function FullHeader() {
               const linkClass = "relative text-sm font-semibold text-white/80 hover:text-white transition-colors duration-300 tracking-wide py-1 group";
               const inner = (
                 <>
-                  {link.label}
+                  {t(link.label)}
                   <span className="absolute inset-x-0 -bottom-px h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent scale-x-0 group-hover:scale-x-100 transition-transform duration-300" />
                 </>
               );
@@ -102,7 +105,7 @@ function FullHeader() {
                       className="text-sm font-semibold text-orange-400 hover:text-orange-300 transition-colors px-3 py-2 border border-orange-500/30 rounded-lg hover:border-orange-400/50 hover:bg-orange-500/10"
                       data-testid="link-admin-panel"
                     >
-                      Admin
+                      {t("Admin")}
                     </button>
                   </Link>
                 )}
@@ -112,7 +115,7 @@ function FullHeader() {
                   onClick={() => { window.location.href = "/download"; }}
                 >
                   <Download className="size-4" />
-                  Download
+                  {t("Download")}
                 </GlowButton>
                 <button
                   className="text-sm text-white/40 hover:text-white/70 transition-colors px-3 py-2"
@@ -126,16 +129,17 @@ function FullHeader() {
               <>
                 <Link href="/login">
                   <button className="text-sm text-white/40 hover:text-white/70 transition-colors px-4 py-2 tracking-wide">
-                    Log in
+                    {t("Log in")}
                   </button>
                 </Link>
                 <Link href="/login">
                   <GlowButton variant="cyan" data-testid="button-header-get-started">
-                    Get Started
+                    {t("Get Started")}
                   </GlowButton>
                 </Link>
               </>
             )}
+            <WebsiteLanguagePicker />
           </div>
 
           <button
@@ -169,7 +173,7 @@ function FullHeader() {
                   className="block text-sm text-white/80 hover:text-white transition-colors py-2"
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  {link.label}
+                   {t(link.label)}
                 </Link>
               ) : (
                 <a
@@ -188,7 +192,7 @@ function FullHeader() {
                   {(user as any).isAdmin && (
                     <Link href="/admin" onClick={() => setMobileMenuOpen(false)}>
                       <button className="w-full text-sm font-semibold text-orange-400 hover:text-orange-300 py-2 border border-orange-500/30 rounded-lg hover:bg-orange-500/10">
-                        Admin Panel
+                        {t("Admin Panel")}
                       </button>
                     </Link>
                   )}
@@ -201,28 +205,29 @@ function FullHeader() {
                     }}
                   >
                     <Download className="size-4" />
-                    Download
+                    {t("Download")}
                   </GlowButton>
                   <button
                     className="w-full text-sm text-white/40 hover:text-white/70 py-2 flex items-center justify-center gap-2"
                     onClick={handleLogout}
                   >
                     <LogOut className="size-4" />
-                    Log out
+                     {t("Log out")}
                   </button>
                 </>
               ) : (
                 <>
                   <Link href="/login">
-                    <button className="w-full text-sm text-white/60 py-2">Log in</button>
+                    <button className="w-full text-sm text-white/60 py-2">{t("Log in")}</button>
                   </Link>
                   <Link href="/login">
                     <GlowButton variant="cyan" className="w-full">
-                      Get Started
+                      {t("Get Started")}
                     </GlowButton>
                   </Link>
                 </>
               )}
+              <WebsiteLanguagePicker mobile />
             </div>
           </div>
         </motion.div>
@@ -232,6 +237,7 @@ function FullHeader() {
 }
 
 function InnerHeader() {
+  const { t } = useTranslation();
   return (
     <header
       className="relative z-10 bg-[rgba(255,255,255,0.07)] backdrop-blur-md border-b border-white/[0.18]"
@@ -247,7 +253,7 @@ function InnerHeader() {
             className="inline-flex items-center gap-2 text-white/80 hover:text-white transition-colors text-sm"
           >
             <ArrowLeft className="size-4" />
-            Back to home
+            {t("Back to home")}
           </Link>
           <BrandLogo size="sm" linkTo="/" />
         </div>

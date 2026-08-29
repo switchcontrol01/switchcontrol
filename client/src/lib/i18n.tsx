@@ -529,6 +529,41 @@ for (const [locale, labels] of Object.entries(LONG_FORM_LABELS) as Array<[Locale
   });
 }
 
+const WEBSITE_KEYS = [
+  "Features", "Pricing", "FAQ", "Log in", "Get Started", "Download", "Log out",
+  "Admin", "Admin Panel", "Back to home", "Website language", "Choose your website language",
+  "Choose the language for the SwitchControl website.", "Search languages", "No languages found",
+] as const;
+
+const WEBSITE_LABELS: Record<Locale, string[]> = {
+  en: [...WEBSITE_KEYS],
+  "zh-CN": ["功能", "价格", "常见问题", "登录", "开始使用", "下载", "退出登录", "管理员", "管理面板", "返回首页", "网站语言", "选择网站语言", "选择 SwitchControl 网站使用的语言。", "搜索语言", "未找到语言"],
+  es: ["Funciones", "Precios", "Preguntas frecuentes", "Iniciar sesión", "Comenzar", "Descargar", "Cerrar sesión", "Administrador", "Panel de administración", "Volver al inicio", "Idioma del sitio web", "Elige el idioma del sitio web", "Elige el idioma del sitio web de SwitchControl.", "Buscar idiomas", "No se encontraron idiomas"],
+  hi: ["सुविधाएं", "कीमत", "अक्सर पूछे जाने वाले प्रश्न", "लॉग इन", "शुरू करें", "डाउनलोड", "लॉग आउट", "एडमिन", "एडमिन पैनल", "होम पर वापस जाएं", "वेबसाइट की भाषा", "वेबसाइट की भाषा चुनें", "SwitchControl वेबसाइट के लिए भाषा चुनें।", "भाषाएं खोजें", "कोई भाषा नहीं मिली"],
+  ar: ["الميزات", "الأسعار", "الأسئلة الشائعة", "تسجيل الدخول", "ابدأ الآن", "تنزيل", "تسجيل الخروج", "المشرف", "لوحة المشرف", "العودة إلى الصفحة الرئيسية", "لغة الموقع", "اختر لغة الموقع", "اختر اللغة المستخدمة في موقع SwitchControl.", "البحث عن اللغات", "لم يتم العثور على لغات"],
+  "pt-BR": ["Recursos", "Preços", "Perguntas frequentes", "Entrar", "Começar", "Baixar", "Sair", "Administrador", "Painel administrativo", "Voltar ao início", "Idioma do site", "Escolha o idioma do site", "Escolha o idioma do site do SwitchControl.", "Pesquisar idiomas", "Nenhum idioma encontrado"],
+  bn: ["ফিচার", "মূল্য", "প্রায়শই জিজ্ঞাসিত প্রশ্ন", "লগ ইন", "শুরু করুন", "ডাউনলোড", "সাইন আউট", "অ্যাডমিন", "অ্যাডমিন প্যানেল", "হোমে ফিরে যান", "ওয়েবসাইটের ভাষা", "ওয়েবসাইটের ভাষা বেছে নিন", "SwitchControl ওয়েবসাইটের ভাষা বেছে নিন।", "ভাষা খুঁজুন", "কোনো ভাষা পাওয়া যায়নি"],
+  ru: ["Возможности", "Цены", "Частые вопросы", "Войти", "Начать", "Скачать", "Выйти", "Администратор", "Панель администратора", "На главную", "Язык сайта", "Выберите язык сайта", "Выберите язык сайта SwitchControl.", "Поиск языков", "Языки не найдены"],
+  ja: ["機能", "料金", "よくある質問", "ログイン", "始める", "ダウンロード", "ログアウト", "管理者", "管理パネル", "ホームに戻る", "ウェブサイトの言語", "ウェブサイトの言語を選択", "SwitchControlウェブサイトの言語を選択してください。", "言語を検索", "言語が見つかりません"],
+  pa: ["ਵਿਸ਼ੇਸ਼ਤਾਵਾਂ", "ਕੀਮਤ", "ਅਕਸਰ ਪੁੱਛੇ ਸਵਾਲ", "ਲੌਗ ਇਨ", "ਸ਼ੁਰੂ ਕਰੋ", "ਡਾਊਨਲੋਡ", "ਸਾਈਨ ਆਊਟ", "ਐਡਮਿਨ", "ਐਡਮਿਨ ਪੈਨਲ", "ਹੋਮ ’ਤੇ ਵਾਪਸ", "ਵੈੱਬਸਾਈਟ ਦੀ ਭਾਸ਼ਾ", "ਵੈੱਬਸਾਈਟ ਦੀ ਭਾਸ਼ਾ ਚੁਣੋ", "SwitchControl ਵੈੱਬਸਾਈਟ ਲਈ ਭਾਸ਼ਾ ਚੁਣੋ।", "ਭਾਸ਼ਾਵਾਂ ਖੋਜੋ", "ਕੋਈ ਭਾਸ਼ਾ ਨਹੀਂ ਮਿਲੀ"],
+  de: ["Funktionen", "Preise", "FAQ", "Anmelden", "Loslegen", "Download", "Abmelden", "Admin", "Adminbereich", "Zur Startseite", "Websitesprache", "Websitesprache auswählen", "Wähle die Sprache für die SwitchControl-Website.", "Sprachen suchen", "Keine Sprachen gefunden"],
+  id: ["Fitur", "Harga", "Tanya Jawab", "Masuk", "Mulai", "Unduh", "Keluar", "Admin", "Panel admin", "Kembali ke beranda", "Bahasa situs", "Pilih bahasa situs", "Pilih bahasa untuk situs SwitchControl.", "Cari bahasa", "Bahasa tidak ditemukan"],
+  ko: ["기능", "가격", "자주 묻는 질문", "로그인", "시작하기", "다운로드", "로그아웃", "관리자", "관리자 패널", "홈으로 돌아가기", "웹사이트 언어", "웹사이트 언어 선택", "SwitchControl 웹사이트에 사용할 언어를 선택하세요.", "언어 검색", "언어를 찾을 수 없음"],
+  fr: ["Fonctionnalités", "Tarifs", "FAQ", "Se connecter", "Commencer", "Télécharger", "Se déconnecter", "Admin", "Panneau d’administration", "Retour à l’accueil", "Langue du site", "Choisir la langue du site", "Choisissez la langue du site SwitchControl.", "Rechercher une langue", "Aucune langue trouvée"],
+  te: ["ఫీచర్లు", "ధరలు", "తరచుగా అడిగే ప్రశ్నలు", "లాగిన్", "ప్రారంభించండి", "డౌన్‌లోడ్", "సైన్ అవుట్", "అడ్మిన్", "అడ్మిన్ ప్యానెల్", "హోమ్‌కు తిరిగి వెళ్లు", "వెబ్‌సైట్ భాష", "వెబ్‌సైట్ భాషను ఎంచుకోండి", "SwitchControl వెబ్‌సైట్ కోసం భాషను ఎంచుకోండి.", "భాషలను వెతకండి", "భాషలు కనుగొనబడలేదు"],
+  tr: ["Özellikler", "Fiyatlandırma", "SSS", "Giriş yap", "Başlayın", "İndir", "Çıkış yap", "Yönetici", "Yönetici paneli", "Ana sayfaya dön", "Web sitesi dili", "Web sitesi dilini seçin", "SwitchControl web sitesi için dili seçin.", "Dilleri ara", "Dil bulunamadı"],
+  mr: ["वैशिष्ट्ये", "किंमत", "वारंवार विचारले जाणारे प्रश्न", "लॉग इन", "सुरू करा", "डाउनलोड", "साइन आउट", "अॅडमिन", "अॅडमिन पॅनेल", "मुख्यपृष्ठावर परत जा", "वेबसाइटची भाषा", "वेबसाइटची भाषा निवडा", "SwitchControl वेबसाइटसाठी भाषा निवडा.", "भाषा शोधा", "भाषा सापडली नाही"],
+  ta: ["அம்சங்கள்", "விலை", "அடிக்கடி கேட்கப்படும் கேள்விகள்", "உள்நுழை", "தொடங்குங்கள்", "பதிவிறக்கு", "வெளியேறு", "நிர்வாகி", "நிர்வாகப் பலகம்", "முகப்புக்குத் திரும்பு", "வலைத்தள மொழி", "வலைத்தள மொழியைத் தேர்ந்தெடுக்கவும்", "SwitchControl வலைத்தளத்திற்கான மொழியைத் தேர்ந்தெடுக்கவும்.", "மொழிகளைத் தேடுங்கள்", "மொழிகள் எதுவும் இல்லை"],
+  vi: ["Tính năng", "Bảng giá", "Câu hỏi thường gặp", "Đăng nhập", "Bắt đầu", "Tải xuống", "Đăng xuất", "Quản trị viên", "Bảng quản trị", "Về trang chủ", "Ngôn ngữ trang web", "Chọn ngôn ngữ trang web", "Chọn ngôn ngữ cho trang web SwitchControl.", "Tìm ngôn ngữ", "Không tìm thấy ngôn ngữ"],
+  ur: ["خصوصیات", "قیمتیں", "اکثر پوچھے گئے سوالات", "لاگ اِن", "شروع کریں", "ڈاؤن لوڈ", "سائن آؤٹ", "ایڈمن", "ایڈمن پینل", "ہوم پر واپس جائیں", "ویب سائٹ کی زبان", "ویب سائٹ کی زبان منتخب کریں", "SwitchControl ویب سائٹ کے لیے زبان منتخب کریں۔", "زبانیں تلاش کریں", "کوئی زبان نہیں ملی"],
+};
+
+for (const [locale, labels] of Object.entries(WEBSITE_LABELS) as Array<[Locale, string[]]>) {
+  WEBSITE_KEYS.forEach((key, index) => {
+    CATALOGS[locale][key] = labels[index] ?? key;
+  });
+}
+
 const I18nContext = createContext<{
   language: Locale;
   setLanguage: (language: Locale) => void;
