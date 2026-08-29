@@ -13,6 +13,20 @@ test("localization keeps all supported locales and navigation coverage", async (
     "BIOS Advisor", "Security", "History", "Driver Intel",
     "Latency Analyzer", "Settings",
   ];
+  const longFormKeys = [
+    "Make SwitchControl feel like your workspace. Changes apply instantly and are saved locally.",
+    "Choose the surface treatment used throughout the app.",
+    "Minimize transitions and animated effects.",
+    "Tune readability, contrast, focus, and interaction sizing.",
+    "Arrange the navigation rail and dashboard around the information you use most.",
+    "Control sorting, confirmations, intelligence, and safety checks.",
+    "Choose what deserves your attention and how the desktop app opens.",
+    "Keep control of local diagnostics and optional product context.",
+    "Configure general app behavior.",
+    "Manage application preferences and account details.",
+    "Updates while visible and pauses automatically in the background.",
+    "Click and hold the grip, then drag over another row to reorder.",
+  ];
 
   assert.deepEqual(LOCALES.map((locale) => locale.code), expectedCodes);
   assert.deepEqual(Object.keys(translationCatalogs).sort(), [...expectedCodes].sort());
@@ -21,6 +35,12 @@ test("localization keeps all supported locales and navigation coverage", async (
     for (const key of navigationKeys) {
       assert.equal(typeof catalog[key], "string", `${code} is missing ${key}`);
       assert.ok(catalog[key].trim(), `${code} has an empty ${key}`);
+    }
+    for (const key of longFormKeys) {
+      assert.equal(typeof catalog[key], "string", `${code} is missing long-form copy`);
+      if (code !== "en") {
+        assert.notEqual(catalog[key], key, `${code} is still using English fallback for long-form copy`);
+      }
     }
   }
   assert.equal(LOCALES.find((locale) => locale.code === "ar").dir, "rtl");
