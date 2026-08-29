@@ -1574,7 +1574,7 @@ const PUBLIC_TAMIL_COPY: MessageCatalog = {
   "Stability Score": "நிலைத்தன்மை மதிப்பெண்",
   "Driver Currency": "இயக்கி புதுப்பிப்பு நிலை",
   "Restore Points": "மீட்டெடுப்பு புள்ளிகள்",
-  "Version 1.2.9": "பதிப்பு 1.2.9",
+  "Version 1.3.0": "பதிப்பு 1.3.0",
   "Firmware-level intelligence for latency, stability, and competitive performance.": "தாமதம், நிலைத்தன்மை மற்றும் போட்டி செயல்திறனுக்கான ஃபார்ம்வேர்-நிலை நுண்ணறிவு.",
   "Most performance tools stop at the operating system.": "பெரும்பாலான செயல்திறன் கருவிகள் இயங்குதளத்திலேயே நின்றுவிடுகின்றன.",
   "SwitchControl goes deeper.": "SwitchControl அதைவிட ஆழமாகச் செல்கிறது.",

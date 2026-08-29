@@ -23,7 +23,7 @@ const VERSIONS = [
   { v: "v1.6", label: "May '26" },
   { v: "v1.7", label: "Jun '26" },
   { v: "v1.8", label: "Jul '26" },
-  { v: "v1.2.9", label: "Aug '26" },
+  { v: "v1.3.0", label: "Aug '26" },
 ];
 const VERSION_INDICES = [0, 2, 5, 7, 10, 12, 15, 17];
 
