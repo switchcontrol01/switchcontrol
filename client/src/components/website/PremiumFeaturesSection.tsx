@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion, Reveal } from "@/lib/motion";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/lib/i18n";
 
 /* ─────────────────────────────────────────────────────
    TYPES
@@ -252,6 +253,7 @@ function SystemCore({ activeId }: { activeId: string | null }) {
    MINI GRAPHS
 ───────────────────────────────────────────────────── */
 function ConfidenceRing({ color }: { color: string }) {
+  const { t } = useTranslation();
   const score = 94;
   const r = 28;
   const circ = 2 * Math.PI * r;
@@ -273,15 +275,16 @@ function ConfidenceRing({ color }: { color: string }) {
         <text x={36} y={40} textAnchor="middle" fill="white" fontSize={13} fontWeight={700}>{score}</text>
       </svg>
       <div className="text-xs text-white/50 leading-relaxed">
-        <div className="text-white/80 font-medium mb-1">AI Confidence</div>
-        <div className="text-[10px]">Context-matched</div>
-        <div className="text-[10px]">3 optimizations found</div>
+        <div className="text-white/80 font-medium mb-1">{t("AI Confidence")}</div>
+        <div className="text-[10px]">{t("Context-matched")}</div>
+        <div className="text-[10px]">{t("3 optimizations found")}</div>
       </div>
     </div>
   );
 }
 
 function StabilitySparkline({ color }: { color: string }) {
+  const { t } = useTranslation();
   const pts = [32, 45, 38, 52, 48, 61, 58, 72, 68, 80, 78, 85];
   const w = 160, h = 56;
   const min = Math.min(...pts), max = Math.max(...pts);
@@ -294,7 +297,7 @@ function StabilitySparkline({ color }: { color: string }) {
   return (
     <div>
       <div className="flex items-center justify-between mb-2 text-[10px] text-white/40">
-        <span>Stability Score</span><span style={{ color }}> +18 this week</span>
+        <span>{t("Stability Score")}</span><span style={{ color }}> {t("+18 this week")}</span>
       </div>
       <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} aria-hidden>
         <defs>
@@ -319,9 +322,10 @@ const DRIVER_BARS = [
 ];
 
 function DriverBars({ color }: { color: string }) {
+  const { t } = useTranslation();
   return (
     <div className="space-y-2">
-      <div className="text-[10px] text-white/40 mb-3">Driver Currency</div>
+      <div className="text-[10px] text-white/40 mb-3">{t("Driver Currency")}</div>
       {DRIVER_BARS.map((b) => (
         <div key={b.label} className="flex items-center gap-2">
           <span className="text-[10px] text-white/50 w-12">{b.label}</span>
@@ -353,9 +357,10 @@ const TIMELINE_POINTS = [
 ];
 
 function HistoryTimeline({ color }: { color: string }) {
+  const { t } = useTranslation();
   return (
     <div>
-      <div className="text-[10px] text-white/40 mb-3">Restore Points</div>
+      <div className="text-[10px] text-white/40 mb-3">{t("Restore Points")}</div>
       <div className="relative flex items-center gap-0">
         <div className="absolute top-[9px] left-2 right-2 h-px bg-white/10" />
         {TIMELINE_POINTS.map((pt, i) => (
@@ -375,7 +380,7 @@ function HistoryTimeline({ color }: { color: string }) {
               {pt.restore && <div className="w-[5px] h-[5px] rounded-full" style={{ background: color }} />}
             </div>
             <span className="mt-1.5 text-[8px] text-white/30 text-center leading-tight max-w-[44px] break-words">
-              {pt.label}
+              {t(pt.label)}
             </span>
           </div>
         ))}
@@ -394,11 +399,12 @@ const STATUS_STYLES = {
 };
 
 function StatusBadge({ status }: { status: FeatureMeta["status"] }) {
+  const { t } = useTranslation();
   const s = STATUS_STYLES[status];
   return (
     <div className={cn("inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-medium border", s.bg, s.text)}>
       <div className="w-1.5 h-1.5 rounded-full" style={{ background: s.dot, boxShadow: `0 0 4px ${s.dot}` }} />
-      {s.label}
+      {t(s.label)}
     </div>
   );
 }
@@ -415,6 +421,7 @@ function FeaturePanel({
   onHover: (id: string | null) => void;
   isActive: boolean;
 }) {
+  const { t } = useTranslation();
   const graphMap: Record<string, React.ReactNode> = {
     ai:      <ConfidenceRing color={feature.color} />,
     bios:    <StabilitySparkline color={feature.color} />,
@@ -473,8 +480,8 @@ function FeaturePanel({
               {feature.icon}
             </div>
             <div>
-              <h3 className="text-sm font-bold text-white/95 tracking-tight">{feature.label}</h3>
-              <p className="text-[11px] text-white/40 mt-0.5">{feature.tagline}</p>
+              <h3 className="text-sm font-bold text-white/95 tracking-tight">{t(feature.label)}</h3>
+              <p className="text-[11px] text-white/40 mt-0.5">{t(feature.tagline)}</p>
             </div>
           </div>
           <StatusBadge status={feature.status} />
@@ -488,7 +495,7 @@ function FeaturePanel({
           {feature.bullets.map((b) => (
             <li key={b} className="flex items-start gap-2 text-xs text-white/55">
               <div className="mt-[5px] w-1 h-1 rounded-full shrink-0" style={{ background: feature.color }} />
-              {b}
+              {t(b)}
             </li>
           ))}
         </ul>
@@ -507,6 +514,7 @@ function FeaturePanel({
 ───────────────────────────────────────────────────── */
 export default function PremiumFeaturesSection() {
   const [activeId, setActiveId] = useState<string | null>(null);
+  const { t } = useTranslation();
 
   return (
     <section
@@ -528,20 +536,19 @@ export default function PremiumFeaturesSection() {
             }}
           >
             <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse" />
-            Premium Features
+            {t("Premium Features")}
           </div>
           <h2 className="text-4xl md:text-5xl font-extrabold text-white/95 tracking-tight mb-4">
-            Four tools.{" "}
+            {t("Four tools.")}{" "}
             <span
               className="bg-clip-text text-transparent"
               style={{ backgroundImage: "linear-gradient(135deg, #8B5CF6, #00D4FF)" }}
             >
-              Total control.
+              {t("Total control.")}
             </span>
           </h2>
           <p className="text-[#6B7380] text-base md:text-lg max-w-xl mx-auto leading-relaxed">
-            AI-powered diagnostics, firmware intelligence, driver tracking, and
-            full rollback history, built for serious gamers.
+            {t("AI-powered diagnostics, firmware intelligence, driver tracking, and full rollback history, built for serious gamers.")}
           </p>
         </Reveal>
 

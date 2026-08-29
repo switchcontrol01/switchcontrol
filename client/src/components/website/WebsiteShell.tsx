@@ -263,6 +263,8 @@ function InnerHeader() {
 }
 
 function WebsiteFooter() {
+  const { t } = useTranslation();
+
   return (
     <footer className="relative z-10 border-t border-white/[0.05]">
       <div className="absolute inset-x-0 -top-px h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
@@ -271,56 +273,56 @@ function WebsiteFooter() {
           <div className="col-span-2 md:col-span-1">
             <BrandLogo size="md" className="mb-4" linkTo="/" />
             <p className="text-sm text-white/30 leading-relaxed">
-              Windows PC optimization focused on lower delay and stable FPS.
+              {t("Windows PC optimization focused on lower delay and stable FPS.")}
             </p>
           </div>
 
           <div>
-            <h4 className="font-medium text-white/60 mb-4 text-xs tracking-[0.15em] uppercase">Product</h4>
+            <h4 className="font-medium text-white/60 mb-4 text-xs tracking-[0.15em] uppercase">{t("Product")}</h4>
             <ul className="space-y-2.5 text-sm">
               <li>
                 <Link href="/features" className="text-white/30 hover:text-white/60 transition-colors">
-                  Features
+                  {t("Features")}
                 </Link>
               </li>
               <li>
                 <Link href="/pricing" className="text-white/30 hover:text-white/60 transition-colors">
-                  Pricing
+                  {t("Pricing")}
                 </Link>
               </li>
               <li>
                 <Link href="/faq" className="text-white/30 hover:text-white/60 transition-colors">
-                  FAQ
+                  {t("FAQ")}
                 </Link>
               </li>
             </ul>
           </div>
 
           <div>
-            <h4 className="font-medium text-white/60 mb-4 text-xs tracking-[0.15em] uppercase">Legal</h4>
+            <h4 className="font-medium text-white/60 mb-4 text-xs tracking-[0.15em] uppercase">{t("Legal")}</h4>
             <ul className="space-y-2.5 text-sm">
               <li>
                 <Link href="/terms" className="text-white/30 hover:text-white/60 transition-colors">
-                  Terms of Service
+                  {t("Terms of Service")}
                 </Link>
               </li>
               <li>
                 <Link href="/privacy" className="text-white/30 hover:text-white/60 transition-colors">
-                  Privacy Policy
+                  {t("Privacy Policy")}
                 </Link>
               </li>
             </ul>
           </div>
 
           <div>
-            <h4 className="font-medium text-white/60 mb-4 text-xs tracking-[0.15em] uppercase">Support</h4>
+            <h4 className="font-medium text-white/60 mb-4 text-xs tracking-[0.15em] uppercase">{t("Support")}</h4>
             <ul className="space-y-2.5 text-sm">
               <li>
                 <a
                   href="mailto:switchcontrol67@gmail.com"
                   className="text-white/30 hover:text-white/60 transition-colors"
                 >
-                  Contact
+                  {t("Contact")}
                 </a>
               </li>
               <li>
@@ -350,7 +352,7 @@ function WebsiteFooter() {
                   rel="noopener noreferrer"
                   className="text-white/30 hover:text-white/60 transition-colors"
                 >
-                  TikTok · SwitchTech
+                  {t("TikTok · SwitchTech")}
                 </a>
               </li>
               <li>
@@ -360,7 +362,7 @@ function WebsiteFooter() {
                   rel="noopener noreferrer"
                   className="text-white/30 hover:text-white/60 transition-colors"
                 >
-                  TikTok · SwitchControl
+                  {t("TikTok · SwitchControl")}
                 </a>
               </li>
             </ul>

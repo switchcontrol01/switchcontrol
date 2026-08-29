@@ -42,6 +42,7 @@ import MagneticTilt from "@/components/website/MagneticTilt";
 import PremiumFeaturesSection from "@/components/website/PremiumFeaturesSection";
 import DrawUnderline from "@/components/website/DrawUnderline";
 import { countFreeTweaks, countPremiumTweaks } from "@/lib/premium-config";
+import { useTranslation } from "@/lib/i18n";
 
 const FREE_TWEAK_COUNT = countFreeTweaks();
 const PREMIUM_TWEAK_COUNT = countPremiumTweaks();
@@ -614,6 +615,7 @@ function AnimatedLockIcon({ className }: { className?: string }) {
 export default function Landing() {
   const { prefersReducedMotion } = useMotion();
   const { user } = useAuth();
+  const { t } = useTranslation();
   useMomentumScroll();
 
   const handleAuthAwareClick = (_e: MouseEvent) => {
@@ -677,15 +679,15 @@ export default function Landing() {
                 <div className="ws-hero-text-float">
                   <h1 className="mb-7 leading-[1.03] tracking-tight relative" style={{ transform: "translateZ(20px)" }}>
                     <span className="block text-5xl md:text-7xl lg:text-8xl xl:text-[6.5rem] font-extrabold text-[#E6EAF0] hero-text-glow hero-text-light-catch">
-                      Your PC <span className="font-light italic text-[#E6EAF0]">is holding</span>
+                      {t("Your PC")} <span className="font-light italic text-[#E6EAF0]">{t("is holding")}</span>
                     </span>
                     <span className="block text-5xl md:text-7xl lg:text-8xl xl:text-[6.5rem] font-extrabold text-[#E6EAF0] hero-text-glow">
-                      <span className="font-light italic text-[#E6EAF0]">you</span> back.{" "}
+                      <span className="font-light italic text-[#E6EAF0]">{t("you")}</span> {t("back.")}{" "}
                       <span
                         className="font-black hero-text-shine hero-accent-glow"
-                        data-text="Fix it."
+                        data-text={t("Fix it.")}
                       >
-                        Fix it.
+                        {t("Fix it.")}
                       </span>
                     </span>
                   </h1>
@@ -694,8 +696,7 @@ export default function Landing() {
 
               <AnimateIn delay={540}>
                 <p className="text-base md:text-lg font-medium text-[#A0A8B3] mb-10 max-w-xl mx-auto leading-relaxed">
-                  Lower input delay, stable FPS, cleaner network.
-                  One app. Real results.
+                  {t("Lower input delay, stable FPS, cleaner network. One app. Real results.")}
                 </p>
               </AnimateIn>
 
@@ -707,11 +708,11 @@ export default function Landing() {
                     onClick={handleAuthAwareClick}
                     data-testid="button-try-free"
                   >
-                    Try Free
+                    {t("Try Free")}
                     <ArrowRight className="size-4" />
                   </GlowButton>
                   <Link href="/pricing">
-                    <GhostButton size="lg">See Pricing</GhostButton>
+                    <GhostButton size="lg">{t("See Pricing")}</GhostButton>
                   </Link>
                 </div>
               </AnimateIn>
@@ -746,8 +747,8 @@ export default function Landing() {
                         <item.icon className="size-5 text-[#A0A8B3]" />
                       )}
                     </div>
-                    <h3 className="font-semibold text-[#E6EAF0] text-sm mb-2">{item.title}</h3>
-                    <p className="text-[#6B7380] text-sm leading-relaxed max-w-[220px]">{item.desc}</p>
+                    <h3 className="font-semibold text-[#E6EAF0] text-sm mb-2">{t(item.title)}</h3>
+                    <p className="text-[#6B7380] text-sm leading-relaxed max-w-[220px]">{t(item.desc)}</p>
                   </div>
                 </Reveal>
               ))}
@@ -757,7 +758,7 @@ export default function Landing() {
           <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 mt-16 md:mt-20">
             <LandingStatsCharts />
             <p className="text-center text-[11px] text-[#6B7380]/50 mt-6 tracking-wide">
-              Based on internal testing. Results vary by hardware.
+              {t("Based on internal testing. Results vary by hardware.")}
             </p>
           </div>
         </section>
@@ -788,12 +789,11 @@ export default function Landing() {
             <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
               <Reveal className="space-y-6">
                 <p className="text-[#E6EAF0] text-lg leading-relaxed">
-                  Most performance tools stop at the operating system.{" "}
-                  <span className="text-[#E6EAF0] font-medium">SwitchControl goes deeper.</span>
+                  {t("Most performance tools stop at the operating system.")}{" "}
+                  <span className="text-[#E6EAF0] font-medium">{t("SwitchControl goes deeper.")}</span>
                 </p>
                 <p className="text-[#6B7380] leading-relaxed">
-                  The BIOS Advisor analyzes firmware behavior that directly impacts latency, scheduling, and frametime
-                  consistency, without unsafe presets or blind toggles.
+                  {t("The BIOS Advisor analyzes firmware behavior that directly impacts latency, scheduling, and frametime consistency, without unsafe presets or blind toggles.")}
                 </p>
 
                 <div className="grid grid-cols-2 gap-3 pt-2">
@@ -807,7 +807,7 @@ export default function Landing() {
                       <div className="p-1.5 rounded-lg bg-[#21262D]">
                         <item.icon className={cn("w-4 h-4", item.color)} />
                       </div>
-                      <span className="text-sm text-[#A0A8B3]">{item.label}</span>
+                      <span className="text-sm text-[#A0A8B3]">{t(item.label)}</span>
                     </div>
                   ))}
                 </div>
@@ -816,7 +816,7 @@ export default function Landing() {
                   <Link href="/pricing">
                     <GlowButton variant="primary">
                       <Crown className="size-4" />
-                      Included with Premium
+                      {t("Included with Premium")}
                     </GlowButton>
                   </Link>
                 </div>
@@ -924,13 +924,13 @@ export default function Landing() {
           <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 60% 40% at 50% 50%, hsl(270 50% 40% / 0.03) 0%, transparent 70%)" }} />
           <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
             <Reveal className="text-center">
-              <p className="text-xs text-[#6B7380] tracking-widest uppercase mb-6">Built for competitive players</p>
+              <p className="text-xs text-[#6B7380] tracking-widest uppercase mb-6">{t("Built for competitive players")}</p>
               <h2 className="text-2xl md:text-3xl leading-snug mb-4">
-                <span className="font-medium text-[#A0A8B3]">New for 2026.</span>{" "}
-                <span className="font-extrabold text-[#E6EAF0]">Faster, smarter, safer.</span>
+                <span className="font-medium text-[#A0A8B3]">{t("New for 2026.")}</span>{" "}
+                <span className="font-extrabold text-[#E6EAF0]">{t("Faster, smarter, safer.")}</span>
               </h2>
               <p className="text-[#6B7380] leading-relaxed text-sm max-w-lg mx-auto">
-                We're actively improving SwitchControl based on real user feedback. Every update is focused on measurable performance gains.
+                {t("We're actively improving SwitchControl based on real user feedback. Every update is focused on measurable performance gains.")}
               </p>
             </Reveal>
             <SocialProofCharts />
@@ -966,13 +966,13 @@ export default function Landing() {
                   {/* Hover shimmer */}
                   <div className="absolute inset-0 bg-gradient-to-br from-white/[0.03] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
 
-                  <div className="text-[10px] text-[#6B7380] uppercase tracking-widest font-semibold mb-5">Free Plan</div>
+                  <div className="text-[10px] text-[#6B7380] uppercase tracking-widest font-semibold mb-5">{t("Free Plan")}</div>
 
                   <div className="flex items-end gap-1 mb-1">
                     <span className="text-[#6B7380] text-xl font-medium self-start mt-2">$</span>
                     <span className="text-6xl font-black text-[#E6EAF0] tracking-tight leading-none">0</span>
                   </div>
-                  <p className="text-[#6B7380] text-sm mb-7">forever · no card required</p>
+                  <p className="text-[#6B7380] text-sm mb-7">{t("forever · no card required")}</p>
 
                   <div className="h-px bg-gradient-to-r from-transparent via-white/[0.07] to-transparent mb-7" />
 
@@ -993,7 +993,9 @@ export default function Landing() {
                         <span className="flex-shrink-0 w-4 h-4 rounded-full border border-[#2A313A] flex items-center justify-center">
                           <svg className="w-2.5 h-2.5 text-[#6B7380]" fill="none" viewBox="0 0 10 10"><path d="M2 5l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
                         </span>
-                        {f}
+                        {f.includes("free system tweaks")
+                          ? t("{count} free system tweaks, safe and explained", undefined, { count: FREE_TWEAK_COUNT })
+                          : t(f)}
                       </li>
                     ))}
                   </ul>
@@ -1028,17 +1030,17 @@ export default function Landing() {
                     <div className="absolute top-5 right-5 flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider"
                       style={{ background: "linear-gradient(90deg, hsl(270,70%,55%), hsl(280,65%,50%))", color: "#fff", boxShadow: "0 0 16px hsl(270,70%,55%,0.5)" }}>
                       <Crown className="size-3" />
-                      Best Value
+                      {t("Best Value")}
                     </div>
 
-                    <div className="text-[10px] text-[#00D4FF]/60 uppercase tracking-widest font-semibold mb-5">Premium Plan</div>
+                    <div className="text-[10px] text-[#00D4FF]/60 uppercase tracking-widest font-semibold mb-5">{t("Premium Plan")}</div>
 
                     <div className="flex items-end gap-1 mb-1">
                       <span className="text-[#33E0FF]/60 text-xl font-medium self-start mt-2">$</span>
                       <span className="text-6xl font-black text-[#E6EAF0] tracking-tight leading-none">39</span>
-                      <span className="mb-1 text-sm font-semibold text-[#A0A8B3]">USD</span>
+                      <span className="mb-1 text-sm font-semibold text-[#A0A8B3]">{t("USD")}</span>
                     </div>
-                    <p className="text-[#6B7380] text-sm mb-7">one-time · lifetime access</p>
+                    <p className="text-[#6B7380] text-sm mb-7">{t("one-time · lifetime access")}</p>
 
                     <div className="h-px mb-7"
                       style={{ background: "linear-gradient(90deg, transparent, hsl(270,60%,55%,0.25), hsl(190,80%,55%,0.20), transparent)" }} />
@@ -1061,14 +1063,16 @@ export default function Landing() {
                               <path d="M2 5l2 2 4-4" stroke="#a78bfa" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                             </svg>
                           </span>
-                          {f.text}
+                          {f.text.includes("advanced system tweaks")
+                            ? t("{count} advanced system tweaks", undefined, { count: PREMIUM_TWEAK_COUNT })
+                            : t(f.text)}
                         </li>
                       ))}
                     </ul>
 
                     <Link href="/pricing">
                       <GlowButton variant="cyan" className="w-full">
-                        Get Premium
+                        {t("Get Premium")}
                       </GlowButton>
                     </Link>
                   </div>
@@ -1092,7 +1096,7 @@ export default function Landing() {
               ].map(({ icon, label }) => (
                 <div key={label} className="flex items-center gap-2 text-[#6B7380] text-xs">
                   <span className="text-[#6B7380]/50">{icon}</span>
-                  {label}
+                {t(label)}
                 </div>
               ))}
             </motion.div>
@@ -1108,11 +1112,11 @@ export default function Landing() {
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative">
             <Reveal>
               <h2 className="text-3xl md:text-4xl lg:text-5xl leading-tight mb-5">
-                <span className="font-medium text-[#A0A8B3]">Stop losing frames.</span>{" "}
-                <span className="font-extrabold text-[#E6EAF0]">Start winning.</span>
+                <span className="font-medium text-[#A0A8B3]">{t("Stop losing frames.")}</span>{" "}
+                <span className="font-extrabold text-[#E6EAF0]">{t("Start winning.")}</span>
               </h2>
               <p className="text-[#6B7380] mb-10 max-w-md mx-auto leading-relaxed text-sm">
-                Download SwitchControl and see the difference in your next match.
+                {t("Download SwitchControl and see the difference in your next match.")}
               </p>
               <GlowButton
                 variant="cyan"
@@ -1120,7 +1124,7 @@ export default function Landing() {
                 onClick={handleAuthAwareClick}
                 data-testid="button-get-started-free"
               >
-                Get Started Free
+                {t("Get Started Free")}
                 <ArrowRight className="size-4" />
               </GlowButton>
             </Reveal>

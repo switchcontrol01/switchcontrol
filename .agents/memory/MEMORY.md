@@ -78,3 +78,4 @@
 - [Cleaner long-operation UX](cleaner-long-operation-ux.md) — native cleanup can legitimately take nearly a minute; expose elapsed state and cancellation, and always exit the cleaning phase on persistence errors.
 - [Network diagnostics polling](network-diagnostics-polling.md) — pace probes from completed responses; cooldowns are backoff feedback, not monitor failures.
 - [Vite mode-aware config](vite-mode-config.md) — custom dev-server setup must resolve a mode-aware Vite config before spreading it into createViteServer.
+- [Public website localization](public-website-localization.md) — reviewed marketing copy needs explicit locale keys; fallback tests protect against a translated selector with English page content.

@@ -3,6 +3,7 @@ import { motion } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 import { SectionHeader } from "./SectionHeader";
 import { useIsMobile } from "@/hooks/useIsMobile";
+import { useTranslation } from "@/lib/i18n";
 import {
   XCircle,
   AlertTriangle,
@@ -38,6 +39,7 @@ export default function StickyComparison() {
   const sectionRef = useRef<HTMLDivElement>(null);
   const [revealPct, setRevealPct] = useState(0);
   const isMobile = useIsMobile();
+  const { t } = useTranslation();
   const rafRef = useRef<number | null>(null);
   const prevPct = useRef(0);
 
@@ -144,10 +146,10 @@ export default function StickyComparison() {
                   </div>
                   <div>
                     <div className="text-[13px] font-semibold text-white/95" style={{ textShadow: `0 0 8px ${item.color}20` }}>
-                      {item.label}
+                      {t(item.label)}
                     </div>
                     <div className="text-[11px] text-white/65 mt-0.5 leading-relaxed">
-                      {item.desc}
+                      {t(item.desc)}
                     </div>
                   </div>
                 </motion.li>
@@ -178,7 +180,7 @@ export default function StickyComparison() {
                 <Sparkles className="w-4 h-4 text-cyan-400" />
               </div>
               <span className="text-sm font-semibold text-cyan-300/90 uppercase tracking-wider">
-                SwitchControl
+                {t("SwitchControl")}
               </span>
             </div>
             <ul className="space-y-3 relative">
@@ -199,10 +201,10 @@ export default function StickyComparison() {
                   </div>
                   <div>
                     <div className="text-[13px] font-semibold text-white/90" style={{ textShadow: `0 0 8px ${item.color}25` }}>
-                      {item.label}
+                      {t(item.label)}
                     </div>
                     <div className="text-[11px] text-white/55 mt-0.5 leading-relaxed group-hover:text-white/70 transition-colors">
-                      {item.desc}
+                      {t(item.desc)}
                     </div>
                   </div>
                 </motion.li>

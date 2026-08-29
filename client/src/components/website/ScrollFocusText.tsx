@@ -1,5 +1,6 @@
 import { useRef, useEffect, useState } from "react";
 import { useIsMobile } from "@/hooks/useIsMobile";
+import { useTranslation } from "@/lib/i18n";
 
 const LINES = [
   "Most tweak apps just flip settings and hope.",
@@ -15,6 +16,7 @@ export default function ScrollFocusText() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const isMobile = useIsMobile();
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (isMobile) return;
@@ -41,7 +43,7 @@ export default function ScrollFocusText() {
   }, [isMobile]);
 
   return (
-    <section className="relative py-24 md:py-40 overflow-hidden" aria-label="Why SwitchControl is different">
+    <section className="relative py-24 md:py-40 overflow-hidden" aria-label={t("Why SwitchControl is different")}>
       <div className="absolute inset-0 pointer-events-none">
         <div
           className="absolute inset-0 opacity-30"
@@ -59,11 +61,11 @@ export default function ScrollFocusText() {
       >
         <div className="mb-12 md:mb-16">
           <span className="text-xs font-mono uppercase tracking-[0.2em] text-white/25 mb-3 block">
-            Verified Difference
+            {t("Verified Difference")}
           </span>
           <h2 className="text-2xl md:text-4xl font-extrabold text-white">
-            Why SwitchControl{" "}
-            <span className="font-light italic text-white/60">is different</span>
+            {t("Why SwitchControl")}{" "}
+            <span className="font-light italic text-white/60">{t("is different")}</span>
           </h2>
         </div>
 
@@ -96,7 +98,7 @@ export default function ScrollFocusText() {
                       : "rgba(255,255,255,0.55)",
                   }}
                 >
-                  {line}
+                  {t(line)}
                 </span>
               </div>
             );

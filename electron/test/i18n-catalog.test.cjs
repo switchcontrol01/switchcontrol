@@ -32,6 +32,31 @@ test("localization keeps all supported locales and navigation coverage", async (
     "Admin", "Admin Panel", "Back to home", "Website language", "Choose your website language",
     "Choose the language for the SwitchControl website.", "Search languages", "No languages found",
   ];
+  const tamilPublicWebsiteKeys = [
+    "Your PC", "is holding", "you", "back.", "Fix it.",
+    "Lower input delay, stable FPS, cleaner network. One app. Real results.",
+    "Active Tweaks", "FPS Stability", "Gaming Pro", "Optimized ✓",
+    "System Tweaks", "Network Optimizer", "Safe & Reversible",
+    "Most performance tools stop at the operating system.",
+    "SwitchControl goes deeper.",
+    "The BIOS Advisor analyzes firmware behavior that directly impacts latency, scheduling, and frametime consistency, without unsafe presets or blind toggles.",
+    "CPU Scheduling", "Power & Voltage", "Memory & Fabric", "Signal Integrity",
+    "Included with Premium", "System Insights,", "Illustrated Impact",
+    "Premium Features", "Four tools.", "Total control.",
+    "AI-powered diagnostics, firmware intelligence, driver tracking, and full rollback history, built for serious gamers.",
+    "Real-time system intelligence", "Firmware-level insight", "Driver health at a glance",
+    "Every change. Fully reversible.", "Stable", "Review", "Critical",
+    "AI Confidence", "Context-matched", "3 optimizations found", "Stability Score",
+    "Driver Currency", "Restore Points", "History & Rollback", "Clean install",
+    "GPU drivers", "Network tweaks", "Current", "Version 1.2.9",
+    "Instant Premium Status on Launch", "Startup Revert Guard", "Driver Intelligence Hub",
+    "Health Score Radial & Component Cards", "Sliding Component Detail Panel",
+    "AI Advisor Integration", "AMD/WMI Compatibility & GPU VRAM Fix",
+    "{count} free system tweaks, safe and explained", "{count} advanced system tweaks",
+    "Everything in Free", "Premium Plan", "Get Premium", "Secure checkout",
+    "Stop losing frames.", "Start winning.", "The SwitchControl", "Difference",
+    "Why SwitchControl is different", "Verified Difference",
+  ];
 
   assert.deepEqual(LOCALES.map((locale) => locale.code), expectedCodes);
   assert.deepEqual(Object.keys(translationCatalogs).sort(), [...expectedCodes].sort());
@@ -51,6 +76,11 @@ test("localization keeps all supported locales and navigation coverage", async (
       assert.equal(typeof catalog[key], "string", `${code} is missing website copy`);
       assert.ok(catalog[key].trim(), `${code} has empty website copy`);
     }
+  }
+  for (const key of tamilPublicWebsiteKeys) {
+    assert.equal(typeof translationCatalogs.ta[key], "string", `Tamil website is missing ${key}`);
+    assert.ok(translationCatalogs.ta[key].trim(), `Tamil website has empty ${key}`);
+    assert.notEqual(translationCatalogs.ta[key], key, `Tamil website still falls back for ${key}`);
   }
   assert.equal(LOCALES.find((locale) => locale.code === "ar").dir, "rtl");
   assert.equal(LOCALES.find((locale) => locale.code === "ur").dir, "rtl");

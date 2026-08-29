@@ -1,6 +1,7 @@
 import { cn } from "@/lib/utils";
 import { Reveal } from "@/lib/motion";
 import type { ReactNode } from "react";
+import { useTranslation } from "@/lib/i18n";
 
 interface SectionHeaderProps {
   pill?: string;
@@ -13,6 +14,8 @@ interface SectionHeaderProps {
 }
 
 export function SectionHeader({ pill, pillIcon, title, titleAccent, subtitle, align = "center", className }: SectionHeaderProps) {
+  const { t } = useTranslation();
+
   return (
     <Reveal>
       <div className={cn(
@@ -26,19 +29,19 @@ export function SectionHeader({ pill, pillIcon, title, titleAccent, subtitle, al
             "bg-primary/8 border border-primary/15 text-primary/90"
           )}>
             {pillIcon}
-            {pill}
+            {t(pill)}
           </span>
         )}
         <h2 className={cn(
           "text-3xl md:text-4xl lg:text-5xl font-extrabold tracking-tight text-white leading-[1.15]",
           subtitle && "mb-5"
         )}>
-          {title}
+          {t(title)}
           {titleAccent && (
             <>
               {" "}
               <span className="bg-gradient-to-r from-primary via-[hsl(280,60%,60%)] to-[hsl(190,80%,50%)] bg-clip-text text-transparent">
-                {titleAccent}
+                {t(titleAccent)}
               </span>
             </>
           )}
@@ -48,7 +51,7 @@ export function SectionHeader({ pill, pillIcon, title, titleAccent, subtitle, al
             "text-base md:text-lg font-medium text-white/40 leading-relaxed",
             align === "center" && "max-w-2xl mx-auto"
           )}>
-            {subtitle}
+            {t(subtitle)}
           </p>
         )}
       </div>
