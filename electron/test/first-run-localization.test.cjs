@@ -12,6 +12,9 @@ test("first-run UI and legal copy are translated for every supported locale", as
   const translations = await import(
     pathToFileURL(path.join(process.cwd(), "client/src/lib/firstRunTranslations.ts")).href
   );
+  const appTranslations = await import(
+    pathToFileURL(path.join(process.cwd(), "client/src/lib/appTranslations.ts")).href
+  );
   const legal = await import(
     pathToFileURL(path.join(process.cwd(), "client/src/lib/legalContent.ts")).href
   );
@@ -24,6 +27,59 @@ test("first-run UI and legal copy are translated for every supported locale", as
     "Keep SwitchControl closed while gaming",
     "Welcome",
   ];
+  const dashboardKeys = [
+    "Premium feature",
+    "Fully Optimized",
+    "Good Configuration",
+    "Needs Improvement",
+    "Issues Found",
+    "{passed}/{total} rules passed",
+    "{count} issue(s)",
+    "Open AI Advisor",
+    "Unlock Premium",
+    "BIOS Score",
+    "BIOS configuration not yet analyzed",
+    "Scan detects XMP profiles, power limits, and scheduling settings.",
+    "Readiness Estimate",
+    "Frametime",
+    "Stability",
+    "View BIOS Analysis",
+    "Open BIOS Advisor",
+    "View Logs",
+    "Optimize Now",
+    "Activity Monitor",
+    "Memory",
+    "Clear RAM",
+    "Switching GPU…",
+    "Detecting…",
+    "Live performance graph paused",
+    "System Pipeline",
+    "Live",
+    "Telemetry Analytics",
+    "Live · Rolling window",
+    "Telemetry analytics paused",
+    "System Health",
+    "Tweaks applied",
+    "Services disabled",
+    "Cleaners run",
+    "Startup apps disabled",
+    "Last Scan",
+    "Never",
+    "Good morning,",
+    "Good afternoon,",
+    "Good evening,",
+    "System active",
+    "Telemetry unavailable",
+    "Guest",
+    "{cores} Cores / {threads} Threads",
+    "{value} GB VRAM",
+    "Inferred",
+    "Basic",
+    "Good",
+    "Advanced",
+    "Competitive",
+  ];
+  const technicalDashboardKeys = new Set(["{value} GB VRAM", "Frametime", "Live"]);
 
   assert.match(i18n, /Object\.assign\(CATALOGS\[locale\], labels\)/);
   for (const locale of locales) {
@@ -32,6 +88,14 @@ test("first-run UI and legal copy are translated for every supported locale", as
     for (const key of representativeKeys) {
       assert.ok(ui[key], `missing ${key} translation for ${locale}`);
       assert.notEqual(ui[key], key, `English fallback remains for ${locale}: ${key}`);
+    }
+    const dashboard = appTranslations.APP_UI_TRANSLATIONS[locale];
+    assert.ok(dashboard, `missing dashboard catalog for ${locale}`);
+    for (const key of dashboardKeys) {
+      assert.ok(dashboard[key], `missing dashboard translation for ${locale}: ${key}`);
+      if (!technicalDashboardKeys.has(key)) {
+        assert.notEqual(dashboard[key], key, `dashboard English fallback remains for ${locale}: ${key}`);
+      }
     }
 
     const sections = legal.getLocalizedLegalSections(locale);

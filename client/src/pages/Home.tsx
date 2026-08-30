@@ -190,7 +190,7 @@ function BiosScoreSummaryCard({ isPremium }: { isPremium: boolean }) {
   const sourceColor =
     telemetrySource === "electron" ? "text-emerald-400 border-emerald-400/20 bg-emerald-400/5" :
                                      "text-amber-400 border-amber-400/20 bg-amber-400/5";
-  const sourceLabel = telemetrySource === "electron" ? "Live" : "Inferred";
+  const sourceLabel = telemetrySource === "electron" ? t("Live") : t("Inferred");
 
   const cardContent = (
     <GlassCard className={cn(
@@ -240,7 +240,7 @@ function BiosScoreSummaryCard({ isPremium }: { isPremium: boolean }) {
             </div>
             <div className="flex items-center justify-between">
               <span className={cn("text-[10px] font-semibold px-2 py-0.5 rounded border", levelColors[optimizationLevel ?? "Basic"] ?? levelColors.Basic)}>
-                {optimizationLevel}
+                {t(optimizationLevel ?? "Basic")}
               </span>
             </div>
             <div className="grid grid-cols-3 gap-2 text-center">
@@ -296,12 +296,13 @@ function getTimeOfDay(): DashboardTimeOfDay {
 }
 
 function useLiveStatus(): string {
-  const [status, setStatus] = useState("System active");
+  const { t } = useTranslation();
+  const [status, setStatus] = useState(() => t("System active"));
   const { telemetry, status: telStatus } = useLiveTelemetryValues();
 
   useEffect(() => {
     if (!telemetry) {
-      setStatus(telStatus === "unavailable" ? "Telemetry unavailable" : "System active");
+      setStatus(telStatus === "unavailable" ? t("Telemetry unavailable") : t("System active"));
       return;
     }
     const cpu = telemetry.cpu?.usagePct ?? null;
@@ -323,9 +324,9 @@ function useLiveStatus(): string {
     if (gpu !== null) parts.push(`GPU ${gpu.toFixed(0)}%`);
 
     // Deduplicate: avoid a re-render when the string is identical to last frame
-    const next = parts.length > 0 ? parts.join(" · ") : "System active";
+    const next = parts.length > 0 ? parts.join(" · ") : t("System active");
     setStatus(prev => (prev === next ? prev : next));
-  }, [telemetry, telStatus]);
+  }, [telemetry, telStatus, t]);
 
   return status;
 }
@@ -485,7 +486,7 @@ export default function Home() {
   const getUserDisplayName = (): string => {
     if (user?.firstName) return user.firstName;
     if (user?.name) return user.name.split(' ')[0];
-    return 'Guest';
+    return t("Guest");
   };
   
   const specsLoadedRef = useRef(false);
@@ -799,7 +800,7 @@ export default function Home() {
                 className="flex items-center flex-wrap gap-x-2 gap-y-1"
               >
                 <h1 className="greeting-glow text-3xl font-bold tracking-tight text-[#E6EAF0] leading-tight">
-                  Good {greeting},
+                  {t(`Good ${greeting},`)}
                 </h1>
 
                 <span
@@ -912,11 +913,10 @@ export default function Home() {
                 value={stats.cpuName}
                 icon={Cpu}
                 onIconClick={() => setCpuModalOpen(true)}
-                subtext={
-                  liveTel
-                    ? `${stats.cpuCores} Cores / ${stats.cpuThreads} Threads`
-                    : `${stats.cpuCores} Cores / ${stats.cpuThreads} Threads`
-                }
+                 subtext={t("{cores} Cores / {threads} Threads", undefined, {
+                   cores: stats.cpuCores,
+                   threads: stats.cpuThreads,
+                 })}
                 progress={liveTel ? liveTel.cpu.load : undefined}
                 className="border-primary/40 shadow-[0_0_20px_-10px_hsl(var(--primary)/0.1)]"
                  loading={specStatus === "loading"}
@@ -955,13 +955,13 @@ export default function Home() {
                 }
                 icon={Activity}
                 onIconClick={() => setGpuModalOpen(true)}
-                subtext={
-                  gpuSwitching
-                    ? t("Switching GPU…")
-                    : stats.vramGb > 0
-                    ? `${stats.vramGb} GB VRAM`
-                    : t("Detecting…")
-                }
+                 subtext={
+                   gpuSwitching
+                     ? t("Switching GPU…")
+                     : stats.vramGb > 0
+                     ? t("{value} GB VRAM", undefined, { value: stats.vramGb })
+                     : t("Detecting…")
+                 }
                 className="border-cyan-500/20 shadow-[0_0_20px_-10px_hsl(190_100%_50%/0.1)]"
                  loading={specStatus === "loading" || stats.gpuName === 'Detecting\u2026' || gpuSwitching}
                />

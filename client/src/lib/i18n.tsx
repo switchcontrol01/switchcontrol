@@ -6,6 +6,7 @@ import { PUBLIC_WEBSITE_TRANSLATIONS as INDIC_ONE_PUBLIC_TRANSLATIONS } from "./
 import { PUBLIC_WEBSITE_TRANSLATIONS as INDIC_TWO_PUBLIC_TRANSLATIONS } from "./publicWebsiteTranslations/indicTwo";
 import { PUBLIC_WEBSITE_TRANSLATIONS as OTHER_PUBLIC_TRANSLATIONS } from "./publicWebsiteTranslations/other";
 import { FIRST_RUN_UI_TRANSLATIONS } from "./firstRunTranslations";
+import { APP_UI_TRANSLATIONS } from "./appTranslations";
 
 export type { Locale };
 
@@ -1557,6 +1558,10 @@ for (const [locale, labels] of Object.entries(FIRST_RUN_COPY) as Array<[Locale, 
 }
 
 for (const [locale, labels] of Object.entries(FIRST_RUN_UI_TRANSLATIONS) as Array<[Locale, MessageCatalog]>) {
+  Object.assign(CATALOGS[locale], labels);
+}
+
+for (const [locale, labels] of Object.entries(APP_UI_TRANSLATIONS) as Array<[Locale, MessageCatalog]>) {
   Object.assign(CATALOGS[locale], labels);
 }
 
