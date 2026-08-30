@@ -1166,7 +1166,7 @@ export default function SystemCleaner() {
                     type="button"
                     onClick={cancelClean}
                     disabled={cancelPending}
-                    className="inline-flex items-center gap-1.5 h-8 px-3 mt-2 rounded-lg text-[11px] font-semibold text-[#A0A8B3] border border-white/[0.1] hover:bg-white/[0.05] hover:text-white disabled:opacity-50 transition-colors"
+                    className="inline-flex items-center gap-1.5 h-8 px-3 mt-6 rounded-lg text-[11px] font-semibold text-[#A0A8B3] border border-white/[0.1] hover:bg-white/[0.05] hover:text-white disabled:opacity-50 transition-colors"
                   >
                     <X className="w-3 h-3" /> {cancelPending ? "Stopping…" : "Cancel"}
                   </button>
