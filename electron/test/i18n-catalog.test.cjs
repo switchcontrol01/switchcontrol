@@ -32,6 +32,11 @@ test("localization keeps all supported locales and public catalog coverage", asy
     "Admin", "Admin Panel", "Back to home", "Website language", "Choose your website language",
     "Choose the language for the SwitchControl website.", "Search languages", "No languages found",
   ];
+  const featureKeys = [
+    "System Analysis", "Clean Now", "Installed Apps", "Scan system",
+    "No items available for this role + mode combination.", "Requires admin",
+    "Risk distribution",
+  ];
 
   assert.deepEqual(LOCALES.map((locale) => locale.code), expectedCodes);
   assert.deepEqual(Object.keys(translationCatalogs).sort(), [...expectedCodes].sort());
@@ -50,6 +55,15 @@ test("localization keeps all supported locales and public catalog coverage", asy
     for (const key of websiteKeys) {
       assert.equal(typeof catalog[key], "string", `${code} is missing website copy`);
       assert.ok(catalog[key].trim(), `${code} has empty website copy`);
+    }
+    for (const key of featureKeys) {
+      const englishFeature = translationCatalogs.en[key] ?? key;
+      const value = catalog[key] ?? englishFeature;
+      assert.equal(typeof value, "string", `${code} is missing feature copy: ${key}`);
+      assert.ok(value.trim(), `${code} has empty feature copy: ${key}`);
+      if (code !== "en") {
+        assert.notEqual(value, englishFeature, `${code} falls back to English feature copy: ${key}`);
+      }
     }
   }
   assert.ok(PUBLIC_CATALOG_KEYS.length > 200, "public catalog should cover landing and chart copy");

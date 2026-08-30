@@ -201,6 +201,7 @@
   const debloatHistoryRequests = new Map<string, Promise<HistoryEntry[]>>();
   
   function SafetyRing({ safe, medium, high }: { safe: number; medium: number; high: number }) {
+    const { t } = useTranslation();
     const total = safe + medium + high;
     if (total === 0) return null;
     const pSafe   = Math.round((safe   / total) * 100);
@@ -215,9 +216,9 @@
           {pHigh   > 0 && <div className="bg-red-500/70    transition-all duration-500" style={{ width: `${pHigh}%` }} />}
         </div>
         <div className="flex items-center gap-2 text-[10px] text-muted-foreground whitespace-nowrap">
-          {safe   > 0 && <span className="text-emerald-400">{safe} safe</span>}
-          {medium > 0 && <span className="text-amber-400">{medium} med</span>}
-          {high   > 0 && <span className="text-red-400">{high} high</span>}
+          {safe   > 0 && <span className="text-emerald-400">{safe} {t("safe")}</span>}
+          {medium > 0 && <span className="text-amber-400">{medium} {t("med")}</span>}
+          {high   > 0 && <span className="text-red-400">{high} {t("high")}</span>}
         </div>
       </div>
     );
@@ -226,12 +227,13 @@
   // ── Result status chip ────────────────────────────────────────────────────────
   
   function StatusChip({ status }: { status: ResultStatus }) {
+    const { t } = useTranslation();
     const cfg = STATUS_CONFIG[status] ?? STATUS_CONFIG.pending;
     const Icon = cfg.icon;
     return (
       <span className={cn("inline-flex items-center gap-1 text-[10px] font-medium", cfg.color)}>
         <Icon className="size-3" />
-        {cfg.label}
+        {t(cfg.label)}
       </span>
     );
   }
@@ -242,6 +244,7 @@
     value: number; decimals?: number; className?: string;
   }) {
     const { prefersReducedMotion } = useMotion();
+    const { t } = useTranslation();
     const [display, setDisplay] = useState(value);
     const fromRef = useRef(value);
   
@@ -356,10 +359,11 @@
   function ResultsDonut({ success, failed, skipped }: {
     success: number; failed: number; skipped: number;
   }) {
+    const { t } = useTranslation();
     const data = [
-      { name: "Succeeded", value: success, color: "#34d399" },
-      { name: "Failed", value: failed, color: "#f43f5e" },
-      { name: "Skipped", value: skipped, color: "#6b7280" },
+      { name: t("Succeeded"), value: success, color: "#34d399" },
+      { name: t("Failed"), value: failed, color: "#f43f5e" },
+      { name: t("Skipped"), value: skipped, color: "#6b7280" },
     ].filter(d => d.value > 0);
     const total = success + failed + skipped;
     if (total === 0) return null;
@@ -558,14 +562,14 @@
             <div className="flex items-center gap-2">
               <TrendingDown className={cn("size-4", currentLevel.accent)} />
               <span className={cn("text-[11px] font-bold uppercase tracking-widest", currentLevel.accent)}>
-                {currentLevel.name}, Estimated Impact
+                {t(currentLevel.name)}, {t("Estimated Impact")}
               </span>
             </div>
             <div className="text-[11px] text-muted-foreground">
               <span className="font-mono font-bold text-[#E6EAF0]">{stats.count}</span>
               <span className="mx-1">/</span>
               <span className="font-mono">{visibleItems.length}</span>
-              <span className="ml-1">selected</span>
+              <span className="ml-1">{t("selected")}</span>
             </div>
           </div>
   
@@ -574,12 +578,12 @@
             <div className="col-span-5 flex items-center justify-around py-1">
               <ArcMetric
                 value={stats.totalRam} max={stats.allRam || 1}
-                label="RAM freed (est.)" unit="MB"
+                label={t("RAM freed (est.)")} unit="MB"
                 color={lc.main} glow={lc.glow}
               />
               <ArcMetric
                 value={stats.totalDisk} max={stats.allDisk || 1}
-                label="Disk freed (est.)" unit="MB"
+                label={t("Disk freed (est.)")} unit="MB"
                 color="#a855f7" glow="rgba(168,85,247,0.7)"
               />
             </div>
@@ -593,7 +597,7 @@
             <div className="col-span-6 space-y-4">
               {/* Risk distribution */}
               <div className="space-y-1.5">
-                <span className="text-[9px] uppercase tracking-widest text-muted-foreground/50">Risk distribution</span>
+                <span className="text-[9px] uppercase tracking-widest text-muted-foreground/50">{t("Risk distribution")}</span>
                 <div className="relative h-2 rounded-full overflow-hidden bg-[#21262D]">
                   <div className="absolute inset-0 flex h-full">
                     {pSafe > 0 && (
@@ -617,9 +621,9 @@
                   </div>
                 </div>
                 <div className="flex items-center gap-3 text-[10px]">
-                  {stats.safeCnt > 0 && <span className="text-emerald-400">{stats.safeCnt} safe</span>}
-                  {stats.medCnt  > 0 && <span className="text-amber-400">{stats.medCnt} med</span>}
-                  {stats.highCnt > 0 && <span className="text-red-400">{stats.highCnt} high</span>}
+                  {stats.safeCnt > 0 && <span className="text-emerald-400">{stats.safeCnt} {t("safe")}</span>}
+                  {stats.medCnt  > 0 && <span className="text-amber-400">{stats.medCnt} {t("med")}</span>}
+                  {stats.highCnt > 0 && <span className="text-red-400">{stats.highCnt} {t("high")}</span>}
                 </div>
               </div>
   
@@ -634,16 +638,16 @@
                     : "bg-[#1A1F26] text-muted-foreground border-[#2A313A]"
                 )}>
                   <RotateCcw className="size-3 shrink-0" />
-                  {stats.count === 0 ? "—" : `${stats.restorableCnt}/${stats.count} restorable`}
+                  {stats.count === 0 ? "—" : `${stats.restorableCnt}/${stats.count} ${t("restorable")}`}
                 </div>
                 {stats.adminReq && (
                   <div className="flex items-center gap-1.5 text-[10px] px-2.5 py-1.5 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                    <ShieldCheck className="size-3 shrink-0" />Admin required
+                    <ShieldCheck className="size-3 shrink-0" />{t("Admin required")}
                   </div>
                 )}
                 {stats.restartReq && (
                   <div className="flex items-center gap-1.5 text-[10px] px-2.5 py-1.5 rounded-lg bg-orange-500/10 text-orange-400 border border-orange-500/20">
-                    <RefreshCw className="size-3 shrink-0" />Restart needed
+                    <RefreshCw className="size-3 shrink-0" />{t("Restart needed")}
                   </div>
                 )}
               </div>
@@ -651,7 +655,7 @@
               {/* Category spectrum, animated vertical bars */}
               {stats.count > 0 && (
                 <div className="space-y-1.5">
-                  <span className="text-[9px] uppercase tracking-widest text-muted-foreground/50">Category breakdown</span>
+                  <span className="text-[9px] uppercase tracking-widest text-muted-foreground/50">{t("Category breakdown")}</span>
                   <div className="flex items-end gap-1.5 h-10">
                     {categories.map((cat, ci) => {
                       const cnt = selectedItems.filter(i => i.category === cat).length;
@@ -661,7 +665,7 @@
                       const meta = CATEGORY_META[cat];
                       const CIcon = meta.icon;
                       return (
-                        <div key={cat} className="flex flex-col items-center gap-0.5 flex-1" title={`${meta.label}: ${cnt}`}>
+                        <div key={cat} className="flex flex-col items-center gap-0.5 flex-1" title={`${t(meta.label)}: ${cnt}`}>
                           <motion.div
                             className="w-full rounded-t-sm"
                             style={{
@@ -700,6 +704,7 @@
   
   function ScanOverlay({ open }: { open: boolean }) {
     const { prefersReducedMotion } = useMotion();
+    const { t } = useTranslation();
     const [step, setStep] = useState(0);
   
     useEffect(() => {
@@ -767,8 +772,8 @@
           </div>
   
           <div className="text-center mb-1">
-            <h3 className="text-base font-bold text-[#E6EAF0]">Scanning your system</h3>
-            <p className="text-[11px] text-muted-foreground">Detecting removable components in real time</p>
+            <h3 className="text-base font-bold text-[#E6EAF0]">{t("Scanning your system")}</h3>
+            <p className="text-[11px] text-muted-foreground">{t("Detecting removable components in real time")}</p>
           </div>
   
           {/* animated progress line */}
@@ -807,7 +812,7 @@
                   <span className={cn(
                     "transition-colors",
                     done ? "text-muted-foreground line-through/0" : active ? "text-[#E6EAF0] font-medium" : "text-muted-foreground/50"
-                  )}>{s}</span>
+                  )}>{t(s)}</span>
                 </div>
               );
             })}
@@ -1620,7 +1625,7 @@
   
           {/* ── Main tab bar ─────────────────────────────────────────────────── */}
           <div className="flex gap-1 p-1 rounded-xl bg-[#21262D] border border-[#2A313A] w-fit">
-            {([
+              {([
               { id: "curated",   label: "Curated Removals",  icon: ShieldCheck },
               { id: "installed", label: "Installed Apps",     icon: Package },
             ] as const).map(tab => {
@@ -1639,7 +1644,7 @@
                   )}
                 >
                   <Icon className="size-4 shrink-0" />
-                  {tab.label}
+                  {t(tab.label)}
                 </button>
               );
             })}
@@ -1657,11 +1662,11 @@
               className="flex items-center gap-4 px-3 py-2 rounded-lg border border-[#2A313A] bg-[#1A1F26] text-[11px] text-muted-foreground"
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}
             >
-              <span>{liveTel.processes.total} processes</span>
+              <span>{liveTel.processes.total} {t("processes")}</span>
               <span className="w-px h-3 bg-[#2A313A]" />
-              <span>RAM <span className={cn("font-mono", liveTel.ram.usedPercent > 80 ? "text-red-400" : "text-cyan-400")}>{liveTel.ram.usedPercent.toFixed(0)}%</span></span>
+               <span>{t("RAM")} <span className={cn("font-mono", liveTel.ram.usedPercent > 80 ? "text-red-400" : "text-cyan-400")}>{liveTel.ram.usedPercent.toFixed(0)}%</span></span>
               <span className="w-px h-3 bg-[#2A313A]" />
-              <span>CPU <span className="font-mono">{liveTel.cpu.load.toFixed(0)}%</span></span>
+               <span>{t("CPU")} <span className="font-mono">{liveTel.cpu.load.toFixed(0)}%</span></span>
               {isElectron() && (
                 <>
                   <span className="w-px h-3 bg-[#2A313A]" />
@@ -1671,16 +1676,16 @@
                     data-testid="button-scan"
                   >
                     <RefreshCw className={cn("size-3", scanning && "animate-spin")} />
-                    {scanning ? "Scanning…" : "Scan system"}
+                    {scanning ? t("Scanning…") : t("Scan system")}
                   </button>
                 </>
               )}
               {!isElectron() && (
                 <span className="ml-auto text-[9px] text-amber-500/70 flex items-center gap-1">
-                  <AlertCircle className="size-3" />Browser preview, changes execute in Electron app
+                   <AlertCircle className="size-3" />{t("Browser preview, changes execute in Electron app")}
                 </span>
               )}
-              <span className="ml-auto text-[9px] text-muted-foreground/50">Live</span>
+               <span className="ml-auto text-[9px] text-muted-foreground/50">{t("Live")}</span>
             </motion.div>
           )}
   
@@ -1726,7 +1731,7 @@
                   />
                   <div className="relative flex items-start justify-between">
                     <div>
-                      <p className="text-[11px] text-muted-foreground mb-1.5">{s.label}</p>
+                       <p className="text-[11px] text-muted-foreground mb-1.5">{t(s.label)}</p>
                       <p className="text-2xl font-bold text-[#E6EAF0] leading-none tabular-nums">
                         <AnimatedCounter value={s.value} decimals={s.decimals} />
                         {s.unit && <span className="text-sm font-semibold text-muted-foreground ml-1">{s.unit}</span>}
@@ -1819,19 +1824,19 @@
                             initial={{ scale: 0 }} animate={{ scale: 1 }}
                             className={cn("flex items-center gap-1 text-[10px] font-semibold", panel.accent)}
                           >
-                            <CheckCircle className="size-3" />Active
+                             <CheckCircle className="size-3" />{t("Active")}
                           </motion.span>
                         )}
                       </div>
   
                       <p className={cn("text-[10px] uppercase tracking-wider font-medium mb-0.5", active ? panel.accent : "text-muted-foreground/70")}>
-                        {panel.tagline}
+                         {t(panel.tagline)}
                       </p>
                       <h3 className={cn("text-sm font-bold leading-tight", active ? "text-[#E6EAF0]" : "text-foreground/90")}>
-                        {panel.title}
+                         {t(panel.title)}
                       </h3>
                       <p className="text-[11px] text-muted-foreground mt-1.5 leading-relaxed min-h-[44px]">
-                        {panel.description}
+                         {t(panel.description)}
                       </p>
   
                       {/* impact bars */}
@@ -1851,10 +1856,10 @@
   
                       <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/5">
                         <span className={cn("flex items-center gap-1 text-[10px] font-medium", active ? panel.accent : "text-muted-foreground")}>
-                          <TrendingDown className="size-3" />{panel.gain}
+                           <TrendingDown className="size-3" />{t(panel.gain)}
                         </span>
                         <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                          <AlertTriangle className="size-2.5" />{panel.risk}
+                           <AlertTriangle className="size-2.5" />{t(panel.risk)}
                         </span>
                       </div>
                     </div>
@@ -1872,7 +1877,7 @@
             transition={{ duration: 0.4, delay: 0.3 }}
           >
             <div className="text-xs text-muted-foreground">
-              <span className="font-semibold text-[#E6EAF0]">{stats.count}</span> of {visibleItems.length} items selected at <span className={cn("font-semibold", currentLevel.accent)}>{currentLevel.name}</span> level
+              <span className="font-semibold text-[#E6EAF0]">{stats.count}</span> {t("of")} {visibleItems.length} {t("items selected at")} <span className={cn("font-semibold", currentLevel.accent)}>{t(currentLevel.name)}</span> {t("level")}
             </div>
   
             <div className="flex items-center gap-2">
@@ -1881,7 +1886,7 @@
                 className="text-xs text-muted-foreground hover:text-[#E6EAF0] flex items-center gap-1.5 px-2 py-1.5 rounded hover:bg-[#21262D] transition-colors"
                 data-testid="button-history"
               >
-                <History className="size-3.5" />History
+                <History className="size-3.5" />{t("History")}
               </button>
               {session && (
                 <button
@@ -1889,7 +1894,7 @@
                   className="text-xs text-[#00D4FF] hover:text-[#33E0FF] flex items-center gap-1.5 px-2 py-1.5 rounded hover:bg-[#00D4FF]/10 transition-colors"
                 >
                   <BarChart3 className="size-3.5" />
-                  {activeView === "results" ? "Back to items" : "View results"}
+                  {activeView === "results" ? t("Back to items") : t("View results")}
                 </button>
               )}
               <motion.div whileHover={prefersReducedMotion ? {} : { scale: 1.03 }} whileTap={prefersReducedMotion ? {} : { scale: 0.97 }}>
@@ -1907,7 +1912,7 @@
                   {applying ? (
                     <><RefreshCw className="size-3.5 animate-spin" />{t("Processing…")}</>
                   ) : (
-                    <><Play className="size-3.5" />Apply ({stats.count})</>
+                    <><Play className="size-3.5" />{t("Apply")} ({stats.count})</>
                   )}
                 </Button>
               </motion.div>
@@ -1940,8 +1945,8 @@
                 <div className="flex items-center justify-between">
                   <div className="text-xs text-muted-foreground">
                     {loading
-                      ? "Loading items…"
-                      : `${visibleItems.length} items available at ${currentLevel.name} level`}
+                      ? t("Loading items…")
+                      : `${visibleItems.length} ${t("items available at")} ${t(currentLevel.name)} ${t("level")}`}
                   </div>
                   <div className="flex gap-2">
                     <button onClick={selectAll} className="text-xs text-muted-foreground hover:text-[#E6EAF0] px-2 py-1 rounded hover:bg-[#21262D] transition-colors" data-testid="button-select-all">{t("All")}</button>
@@ -1956,7 +1961,7 @@
                   </div>
                 ) : visibleItems.length === 0 ? (
                   <div className="rounded-2xl border border-[#2A313A] bg-[#0D1117] p-8 text-center text-sm text-muted-foreground">
-                    No items available for this role + mode combination.
+                     {t("No items available for this role + mode combination.")}
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -1980,7 +1985,7 @@
                               data-testid={`category-${category}`}
                             >
                               <Icon className={cn("size-3.5 shrink-0", meta.color)} />
-                              <span className="font-semibold text-[#E6EAF0] text-[13px] leading-none">{meta.label}</span>
+                               <span className="font-semibold text-[#E6EAF0] text-[13px] leading-none">{t(meta.label)}</span>
                               <span className="text-[10px] text-muted-foreground/60 font-mono shrink-0">
                                 {selCount}/{catItems.length}
                               </span>

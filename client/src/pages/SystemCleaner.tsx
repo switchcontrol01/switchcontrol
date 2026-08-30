@@ -235,6 +235,7 @@ function ItemRow({ item, finding, selected, onToggle, cleanResult, isCleaning, d
   item: CleanItemDef; finding?: ScanFinding; selected: boolean;
   onToggle: () => void; cleanResult?: CleanResult; isCleaning: boolean; delay?: number;
 }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const found = finding?.found ?? false;
   const bytes = finding?.sizeBytes ?? 0;
@@ -287,10 +288,10 @@ function ItemRow({ item, finding, selected, onToggle, cleanResult, isCleaning, d
           <div className="flex items-center gap-2">
             <span className="text-[12px] font-semibold text-[#E6EAF0] truncate">{item.name}</span>
             {item.risk === "moderate" && (
-              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400 border border-amber-500/20 shrink-0">MOD</span>
+                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400 border border-amber-500/20 shrink-0">{t("MOD")}</span>
             )}
             {item.risk === "advanced" && (
-              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-red-500/15 text-red-400 border border-red-500/20 shrink-0">ADV</span>
+                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-red-500/15 text-red-400 border border-red-500/20 shrink-0">{t("ADV")}</span>
             )}
             {(status === "cleaned" || status === "partial" || status === "nothing") && (
               <CheckCircle2 className={cn("w-3 h-3 shrink-0", status === "cleaned" ? "text-green-400" : "text-amber-400")} />
@@ -304,16 +305,16 @@ function ItemRow({ item, finding, selected, onToggle, cleanResult, isCleaning, d
                   {bytes > 0 ? fmtBytes(bytes) : `${files} entries`}
                 </span>
                 {files > 0 && bytes > 0 && <span className="text-[10px] text-[#4a5460]">·</span>}
-                {files > 0 && bytes > 0 && <span className="text-[10px] text-[#6B7380]">{files.toLocaleString()} files</span>}
+                  {files > 0 && bytes > 0 && <span className="text-[10px] text-[#6B7380]">{files.toLocaleString()} {t("files")}</span>}
               </>
             ) : finding?.notApplicable ? (
-              <span className="text-[10px] text-[#6B7380]">Not applicable for this GPU</span>
+              <span className="text-[10px] text-[#6B7380]">{t("Not applicable for this GPU")}</span>
             ) : finding?.unsupported ? (
-              <span className="text-[10px] text-[#6B7380]">Not supported on this system</span>
+              <span className="text-[10px] text-[#6B7380]">{t("Not supported on this system")}</span>
             ) : finding?.scanStatus === "error" ? (
-              <span className="text-[10px] text-amber-400">Scan failed</span>
+              <span className="text-[10px] text-amber-400">{t("Scan failed")}</span>
             ) : (
-              <span className="text-[10px] text-[#4a5460]">Nothing found</span>
+              <span className="text-[10px] text-[#4a5460]">{t("Nothing found")}</span>
             )}
           </div>
         </div>
@@ -334,15 +335,15 @@ function ItemRow({ item, finding, selected, onToggle, cleanResult, isCleaning, d
             className="overflow-hidden"
           >
             <div className="px-4 pb-3 pt-0">
-              <p className="text-[11px] text-[#6B7380] leading-relaxed mt-2">{item.description}</p>
+              <p className="text-[11px] text-[#6B7380] leading-relaxed mt-2">{t(item.description)}</p>
               {item.warning && (
                 <p className="text-[10px] text-amber-400/90 leading-relaxed mt-2 border-l-2 border-amber-400/40 pl-2">
-                  {item.warning}
+                  {t(item.warning)}
                 </p>
               )}
               <div className="flex flex-wrap gap-3 mt-2">
-                {item.requiresAdmin && <span className="text-[10px] text-amber-400/80">Requires admin</span>}
-                {item.requiresRestart && <span className="text-[10px] text-amber-400/80">Requires restart</span>}
+                {item.requiresAdmin && <span className="text-[10px] text-amber-400/80">{t("Requires admin")}</span>}
+                {item.requiresRestart && <span className="text-[10px] text-amber-400/80">{t("Requires restart")}</span>}
                 {item.impactBootSec > 0 && <span className="text-[10px] text-primary/80">~{item.impactBootSec}s boot impact</span>}
                 {item.impactRam > 0 && <span className="text-[10px] text-purple-400/80">~{item.impactRam} MB RAM</span>}
               </div>
@@ -362,6 +363,7 @@ function CategorySection({ category, items, findings, selected, onToggle, onTogg
   onToggle: (id: string) => void; onToggleAll: (cat: CleanCategory, val: boolean) => void;
   cleanResults?: Record<string, CleanResult>; isCleaning: boolean; delay?: number;
 }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(true);
   const meta = CAT_META[category];
   const Icon = meta.icon;
@@ -388,11 +390,11 @@ function CategorySection({ category, items, findings, selected, onToggle, onTogg
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="text-[13px] font-bold text-[#E6EAF0]">{meta.label}</span>
+            <span className="text-[13px] font-bold text-[#E6EAF0]">{t(meta.label)}</span>
             {foundItems.length > 0 && (
               <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
                 style={{ background: `${meta.color}20`, color: meta.color }}>
-                {foundItems.length} found
+                {foundItems.length} {t("found")}
               </span>
             )}
           </div>
@@ -410,7 +412,7 @@ function CategorySection({ category, items, findings, selected, onToggle, onTogg
             ? { borderColor: `${meta.color}50`, background: `${meta.color}15`, color: meta.color }
             : { borderColor: "rgba(255,255,255,0.08)", color: "#6B7380" }}
         >
-          {allSel ? "Deselect all" : "Select all"}
+          {allSel ? t("Deselect all") : t("Select all")}
         </button>
         <ChevronDown className={cn("w-4 h-4 text-[#6B7380] transition-transform duration-200 shrink-0", open && "rotate-180")} />
       </div>
@@ -445,19 +447,20 @@ function CategorySection({ category, items, findings, selected, onToggle, onTogg
 function HistoryPanel({ history, scanHistory, onBack }: {
   history: HistoryEntry[]; scanHistory: ScanHistoryEntry[]; onBack: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
       <div className="flex items-center gap-3">
         <button onClick={onBack} className="flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-[#E6EAF0] transition-colors">
-          <ArrowLeft className="w-3.5 h-3.5" /> Back
+          <ArrowLeft className="w-3.5 h-3.5" /> {t("Back")}
         </button>
-        <span className="text-[13px] font-bold text-[#E6EAF0]">Clean History</span>
+        <span className="text-[13px] font-bold text-[#E6EAF0]">{t("Clean History")}</span>
       </div>
 
       {/* Sparkline of scan history */}
       {scanHistory.length >= 2 && (
         <div className="rounded-2xl border border-white/[0.07] bg-white/[0.02] p-4">
-          <p className="text-[11px] text-[#6B7380] mb-3">Bytes found per scan</p>
+          <p className="text-[11px] text-[#6B7380] mb-3">{t("Bytes found per scan")}</p>
           <Sparkline data={scanHistory.map(s => s.total_bytes)} height={48} color="#8b5cf6" id="history-panel" />
         </div>
       )}
@@ -465,7 +468,7 @@ function HistoryPanel({ history, scanHistory, onBack }: {
       {/* Clean runs */}
       <div className="space-y-2">
         {history.length === 0 ? (
-          <p className="text-[12px] text-[#6B7380] text-center py-8">No clean history yet.</p>
+          <p className="text-[12px] text-[#6B7380] text-center py-8">{t("No clean history yet.")}</p>
         ) : history.map(h => (
           <div key={h.id} className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3 flex items-center justify-between">
             <div>
@@ -855,9 +858,9 @@ export default function SystemCleaner() {
   const donutSegments: DonutSegment[] = useMemo(() => {
     if (!categoryTotals) return [];
     return (["storage", "privacy", "latency", "performance", "gaming", "apps", "browsers", "windows_system", "storage_cleanup"] as CleanCategory[])
-      .map(cat => ({ id: cat, label: CAT_META[cat].label, color: CAT_META[cat].color, bytes: categoryTotals[cat]?.sizeBytes ?? 0 }))
+      .map(cat => ({ id: cat, label: t(CAT_META[cat].label), color: CAT_META[cat].color, bytes: categoryTotals[cat]?.sizeBytes ?? 0 }))
       .filter(s => s.bytes > 0);
-  }, [categoryTotals]);
+  }, [categoryTotals, t]);
 
   const { value: resultValue, unit: resultUnit } = session
     ? fmtBytesShort(session.summary.totalBytesRemoved)
@@ -950,12 +953,12 @@ export default function SystemCleaner() {
                 )}
               >
                 {m === "safe" ? <Shield className="w-3 h-3" /> : <Zap className="w-3 h-3" />}
-                {m === "safe" ? "Safe" : "Advanced"}
+                {m === "safe" ? t("Safe") : t("Advanced")}
               </button>
             ))}
              <button onClick={() => requestInPageNavigation(() => setPhase("history"))}
               className="flex items-center gap-1.5 h-7 px-3 rounded-full text-[11px] text-[#6B7380] hover:text-[#E6EAF0] border border-white/[0.08] hover:bg-white/[0.04] transition-all">
-              <History className="w-3 h-3" /> History
+               <History className="w-3 h-3" /> {t("History")}
             </button>
           </div>
         </div>
@@ -964,7 +967,7 @@ export default function SystemCleaner() {
         {!isElectron() && (
           <div className="flex items-center gap-2 px-3 py-2 rounded-xl border border-amber-500/20 bg-amber-500/[0.07] text-[11px] text-amber-400">
             <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-            Browser preview mode — real filesystem scanning and deletion requires the Electron desktop app.
+            {t("Browser preview mode — real filesystem scanning and deletion requires the Electron desktop app.")}
           </div>
         )}
 
@@ -988,20 +991,21 @@ export default function SystemCleaner() {
                     <p className="text-[11px] font-semibold text-purple-400/80 uppercase tracking-widest mb-2">{t("System Analysis")}</p>
                     <h2 className="text-[28px] font-black text-white leading-tight">{t("Ready to scan your")}<br />{t("system for junk")}</h2>
                     <p className="text-[12px] text-[#6B7380] mt-2 mb-6 leading-relaxed max-w-sm">
-                      Scans temp files, caches, crash dumps, privacy residue, and performance waste.
-                      Every byte shown is real — from your actual filesystem.
+                    {t("Scans temp files, caches, crash dumps, privacy residue, and performance waste.")}
+                    {" "}
+                    {t("Every byte shown is real — from your actual filesystem.")}
                     </p>
 
                     <div className="flex items-center gap-3 flex-wrap">
                       <motion.button onClick={runScan} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                         className="flex items-center gap-2 h-10 px-6 rounded-xl font-bold text-[13px] text-white transition-all"
                         style={{ background: "linear-gradient(135deg, #7c3aed, #6d28d9)", boxShadow: "0 0 24px rgba(124,58,237,0.4)" }}>
-                        <Play className="w-4 h-4" /> Analyze System
+                        <Play className="w-4 h-4" /> {t("Analyze System")}
                       </motion.button>
                       {session && (
                         <button onClick={() => setPhase("result")}
                           className="flex items-center gap-1.5 h-10 px-4 rounded-xl text-[12px] font-semibold text-emerald-400 border border-emerald-500/25 bg-emerald-500/[0.07] hover:bg-emerald-500/[0.12] transition-colors">
-                          <CheckCircle2 className="w-3.5 h-3.5" /> Last Result
+                          <CheckCircle2 className="w-3.5 h-3.5" /> {t("Last Result")}
                         </button>
                       )}
                     </div>
@@ -1050,7 +1054,7 @@ export default function SystemCleaner() {
                 <div className="text-center">
                   <motion.p className="text-[22px] font-black text-white"
                     animate={{ opacity: [1, 0.6, 1] }} transition={{ duration: 1.8, repeat: Infinity }}>
-                    Scanning system…
+                    {t("Scanning system…")}
                   </motion.p>
                   <p className="text-[12px] text-[#6B7380] mt-1">{t("Analyzing filesystem, registry, and caches")}</p>
                 </div>
@@ -1093,7 +1097,7 @@ export default function SystemCleaner() {
                       </span>
                       <span className="text-[18px] font-bold text-[#6B7380] pb-0.5">{fmtBytesShort(totalFound).unit}</span>
                     </div>
-                    <p className="text-[11px] text-[#6B7380] mt-1">{scanSummary?.foundCount ?? 0} categories · {scanSummary?.totalFiles.toLocaleString() ?? 0} files</p>
+                    <p className="text-[11px] text-[#6B7380] mt-1">{scanSummary?.foundCount ?? 0} {t("categories")} · {scanSummary?.totalFiles.toLocaleString() ?? 0} {t("files")}</p>
                   </div>
 
                   {donutSegments.length > 0 && (
@@ -1119,7 +1123,7 @@ export default function SystemCleaner() {
                   <div className="ml-auto flex flex-col gap-2 min-w-[100px]">
                     <button onClick={() => { setPhase("idle"); setFindings({}); setScanSummary(null); setCategoryTotals(null); }}
                       className="flex items-center justify-center gap-1.5 h-8 px-4 rounded-xl text-[11px] text-[#6B7380] border border-white/[0.08] hover:bg-white/[0.04] hover:text-[#E6EAF0] transition-all">
-                      <RefreshCw className="w-3 h-3" /> Re-scan
+                       <RefreshCw className="w-3 h-3" /> {t("Re-scan")}
                     </button>
                   </div>
                 </div>
@@ -1151,18 +1155,18 @@ export default function SystemCleaner() {
                   <Sparkles className="w-10 h-10 text-purple-400" />
                 </motion.div>
                 <div className="text-center">
-                  <p className="text-[20px] font-black text-white">{cancelPending ? "Stopping cleanup…" : "Cleaning…"}</p>
+                   <p className="text-[20px] font-black text-white">{cancelPending ? t("Stopping cleanup…") : t("Cleaning…")}</p>
                   <p className="text-[12px] text-[#6B7380] mt-1">
                     {cancelPending
-                      ? "Finishing the current file operation safely"
+                       ? t("Finishing the current file operation safely")
                       : cleanElapsedSec >= 15
-                        ? "Large caches can take a little longer. Your cleanup is still running."
-                        : "Removing selected junk from your system"}
+                         ? t("Large caches can take a little longer. Your cleanup is still running.")
+                         : t("Removing selected junk from your system")}
                   </p>
                   <div className="flex items-center gap-3 text-[11px] text-[#6B7380]">
-                    <span className="inline-flex items-center gap-1.5"><Clock className="w-3 h-3" /> {cleanElapsedSec}s elapsed</span>
+                     <span className="inline-flex items-center gap-1.5"><Clock className="w-3 h-3" /> {cleanElapsedSec}s {t("elapsed")}</span>
                     <span>·</span>
-                    <span>{selected.size} item{selected.size === 1 ? "" : "s"} selected</span>
+                     <span>{selected.size} {t(selected.size === 1 ? "item" : "items")} {t("selected")}</span>
                   </div>
                   <button
                     type="button"
@@ -1170,7 +1174,7 @@ export default function SystemCleaner() {
                     disabled={cancelPending}
                     className="inline-flex items-center gap-1.5 h-8 px-3 mt-6 rounded-lg text-[11px] font-semibold text-[#A0A8B3] border border-white/[0.1] hover:bg-white/[0.05] hover:text-white disabled:opacity-50 transition-colors"
                   >
-                    <X className="w-3 h-3" /> {cancelPending ? "Stopping…" : "Cancel"}
+                     <X className="w-3 h-3" /> {cancelPending ? t("Stopping…") : t("Cancel")}
                   </button>
                 </div>
               </div>
@@ -1215,14 +1219,14 @@ export default function SystemCleaner() {
                         )}>{item.name}</span>
                         {isSkipped ? (
                           /* Item was deliberately unticked — show Skipped immediately, no spinner */
-                          <span className="text-[10px] text-[#3a4050] font-medium shrink-0 italic">Skipped</span>
+                           <span className="text-[10px] text-[#3a4050] font-medium shrink-0 italic">{t("Skipped")}</span>
                         ) : result ? (
                           <div className="flex items-center gap-1 shrink-0">
                             {result.status === "cleaned" || result.status === "partial" ? (
                               <>
                                 <CheckCircle2 className={cn("w-3 h-3", result.status === "cleaned" ? "text-green-400" : "text-amber-400")} />
                                 <span className={cn("text-[10px] font-semibold", result.status === "cleaned" ? "text-green-400" : "text-amber-400")}>
-                                  {result.status === "partial" && result.bytesRemoved === 0 ? "Partial" : fmtBytes(result.bytesRemoved)}
+                                   {result.status === "partial" && result.bytesRemoved === 0 ? t("Partial") : fmtBytes(result.bytesRemoved)}
                                 </span>
                               </>
                             ) : result.status === "nothing" ? (
@@ -1230,9 +1234,9 @@ export default function SystemCleaner() {
                             ) : (
                               <span
                                 className="text-[10px] text-red-400"
-                                title={result.error || "This cleanup item could not be completed"}
+                                title={result.error || t("This cleanup item could not be completed")}
                               >
-                                Err
+                                {t("Err")}
                               </span>
                             )}
                           </div>
@@ -1279,8 +1283,8 @@ export default function SystemCleaner() {
                     <span className="text-[26px] font-bold text-[#6B7380] pb-2">{resultUnit}</span>
                   </div>
                   <p className="text-[13px] text-[#6B7380]">
-                    {session.summary.successCount} items cleaned · {session.summary.totalFilesRemoved.toLocaleString()} files removed
-                    {session.summary.errors > 0 && ` · ${session.summary.errors} errors`}
+                     {session.summary.successCount} {t("items cleaned")} · {session.summary.totalFilesRemoved.toLocaleString()} {t("files removed")}
+                     {session.summary.errors > 0 && ` · ${session.summary.errors} ${t("errors")}`}
                   </p>
                 </div>
               </div>
@@ -1303,11 +1307,11 @@ export default function SystemCleaner() {
                   whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                   className="flex items-center gap-2 h-10 px-6 rounded-xl font-bold text-[13px] text-white transition-all"
                   style={{ background: "linear-gradient(135deg, #7c3aed, #6d28d9)", boxShadow: "0 0 20px rgba(124,58,237,0.35)" }}>
-                  <RefreshCw className="w-4 h-4" /> New Scan
+                  <RefreshCw className="w-4 h-4" /> {t("New Scan")}
                 </motion.button>
                  <button onClick={() => requestInPageNavigation(() => setPhase("history"))}
                   className="flex items-center gap-1.5 h-10 px-4 rounded-xl text-[12px] font-semibold text-[#6B7380] border border-white/[0.08] hover:bg-white/[0.04] hover:text-[#E6EAF0] transition-colors">
-                  <History className="w-3.5 h-3.5" /> History
+                   <History className="w-3.5 h-3.5" /> {t("History")}
                 </button>
               </div>
             </motion.div>
@@ -1338,7 +1342,7 @@ export default function SystemCleaner() {
             >
               <button
                 type="button"
-                aria-label="Close"
+                 aria-label={t("Close")}
                 onClick={() => finishNavigationRequest(false)}
                 className="absolute right-4 top-4 rounded-sm p-1 text-[#6B7380] hover:text-[#E6EAF0] focus:outline-none focus:ring-2 focus:ring-purple-400"
               >
@@ -1346,12 +1350,12 @@ export default function SystemCleaner() {
               </button>
               <div className="flex flex-col space-y-2 text-center sm:text-left">
                 <h2 id="cleaner-navigation-title" className="text-lg font-semibold text-[#E6EAF0]">
-                  Cancel the active Cleaner operation?
+                   {t("Cancel the active Cleaner operation?")}
                 </h2>
                 <p className="text-sm text-[#A0A8B3]">
-                  {phase === "scanning"
-                    ? "The scan is still running. Leaving now will discard its unfinished results."
-                    : "Cleaning may already have removed some files. Leaving now will stop after the current item and keep the completed results accurate."}
+                   {phase === "scanning"
+                     ? t("The scan is still running. Leaving now will discard its unfinished results.")
+                     : t("Cleaning may already have removed some files. Leaving now will stop after the current item and keep the completed results accurate.")}
                 </p>
               </div>
               <div className="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2">
@@ -1360,14 +1364,14 @@ export default function SystemCleaner() {
                   onClick={() => finishNavigationRequest(false)}
                   className="mt-2 sm:mt-0 inline-flex h-10 items-center justify-center rounded-md border border-[#2A313A] bg-transparent px-4 py-2 text-sm font-semibold text-[#E6EAF0] hover:bg-white/[0.06] focus:outline-none focus:ring-2 focus:ring-purple-400"
                 >
-                  Keep working
+                   {t("Keep working")}
                 </button>
                 <button
                   type="button"
                   onClick={() => finishNavigationRequest(true)}
                   className="inline-flex h-10 items-center justify-center rounded-md bg-red-500 px-4 py-2 text-sm font-semibold text-white hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-300"
                 >
-                  Cancel and leave
+                   {t("Cancel and leave")}
                 </button>
               </div>
             </div>
@@ -1390,13 +1394,13 @@ export default function SystemCleaner() {
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-purple-400 animate-pulse" />
                   <span className="text-[12px] font-semibold text-[#E6EAF0]">
-                    {selected.size} item{selected.size !== 1 ? "s" : ""} selected
+                     {selected.size} {t(selected.size === 1 ? "item" : "items")} {t("selected")}
                   </span>
                   {selectedBytes > 0 && (
                     <>
                       <span className="text-[#4a5460]">·</span>
                       <span className="text-[12px] font-bold" style={{ color: "#a78bfa" }}>
-                        {selLabel.value} {selLabel.unit} to free
+                         {selLabel.value} {selLabel.unit} {t("to free")}
                       </span>
                     </>
                   )}
@@ -1405,12 +1409,12 @@ export default function SystemCleaner() {
                 <div className="flex items-center gap-2">
                   <button onClick={() => setSelected(new Set())}
                     className="flex items-center gap-1 h-7 px-3 rounded-lg text-[11px] text-[#6B7380] hover:text-[#E6EAF0] border border-white/[0.08] hover:bg-white/[0.05] transition-all">
-                    <X className="w-3 h-3" /> Clear
+                     <X className="w-3 h-3" /> {t("Clear")}
                   </button>
                   <motion.button onClick={runClean} whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
                     className="flex items-center gap-2 h-8 px-5 rounded-xl text-[12px] font-bold text-white transition-all"
                     style={{ background: "linear-gradient(135deg, #7c3aed, #6d28d9)", boxShadow: "0 0 16px rgba(124,58,237,0.5)" }}>
-                    <Trash2 className="w-3.5 h-3.5" /> Clean Now
+                     <Trash2 className="w-3.5 h-3.5" /> {t("Clean Now")}
                   </motion.button>
                 </div>
               </div>

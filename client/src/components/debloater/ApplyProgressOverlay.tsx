@@ -9,6 +9,7 @@ import {
   Trash2, RotateCcw, ArrowRight, X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/lib/i18n";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -117,13 +118,14 @@ function MiniStatBar({
   color: string;
   icon: React.ComponentType<{ className?: string }>;
 }) {
+  const { t } = useTranslation();
   const pct = clamp((value / max) * 100, 0, 100);
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between text-[11px]">
         <div className="flex items-center gap-1.5 text-[#A0A8B3]">
           <Icon className="size-3" />
-          <span>{label}</span>
+          <span>{t(label)}</span>
         </div>
         <span className="text-[#E6EAF0] font-medium">
           {value}{unit ? ` ${unit}` : ""}
@@ -152,6 +154,7 @@ function StageTimeline({
   completedCount: number;
   totalCount: number;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="flex items-center gap-1">
       {STAGES.map((stage, i) => {
@@ -172,7 +175,7 @@ function StageTimeline({
               ) : (
                 <div className="size-2 rounded-full bg-[#1A1F26]0" />
               )}
-              {stage.label}
+              {t(stage.label)}
             </div>
             {i < STAGES.length - 1 && (
               <div className={cn(
@@ -205,6 +208,7 @@ function ScanLine() {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export function ApplyProgressOverlay({ isOpen, state, onClose, onViewResults }: ApplyProgressOverlayProps) {
+  const { t } = useTranslation();
   const closeBtnRef = useRef<HTMLButtonElement | null>(null);
   const [now, setNow] = useState(Date.now());
 
@@ -289,14 +293,14 @@ export function ApplyProgressOverlay({ isOpen, state, onClose, onViewResults }: 
               </div>
               <div>
                 <h3 className="text-sm font-bold text-[#E6EAF0]">
-                  {state.phase === "complete" ? "Debloat Complete" : "Applying Debloat"}
+                   {state.phase === "complete" ? t("Debloat Complete") : t("Applying Debloat")}
                 </h3>
                 <p className="text-[11px] text-[#6B7380]">
                   {state.phase === "complete"
-                    ? `${state.completedCount} of ${state.totalCount} items processed`
+                     ? `${state.completedCount} ${t("of")} ${state.totalCount} ${t("items processed")}`
                     : state.currentItemName
-                      ? `Processing ${state.currentItemName}…`
-                      : "Preparing selected actions…"}
+                       ? `${t("Processing")} ${state.currentItemName}…`
+                       : t("Preparing selected actions…")}
                 </p>
               </div>
             </div>
@@ -333,7 +337,7 @@ export function ApplyProgressOverlay({ isOpen, state, onClose, onViewResults }: 
               {/* Elapsed */}
               <div className="flex items-center gap-2 text-[11px] text-[#A0A8B3]">
                 <Clock className="size-3" />
-                <span>Elapsed: {formatElapsed(elapsed)}</span>
+                 <span>{t("Elapsed")}: {formatElapsed(elapsed)}</span>
               </div>
 
               {/* Mini stat bars */}
@@ -380,30 +384,30 @@ export function ApplyProgressOverlay({ isOpen, state, onClose, onViewResults }: 
                 <div className="flex flex-wrap gap-2">
                   <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-[11px] text-emerald-400">
                     <CheckCircle2 className="size-3" />
-                    {state.completedCount - state.failedCount - state.skippedCount} succeeded
+                     {state.completedCount - state.failedCount - state.skippedCount} {t("succeeded")}
                   </div>
                   {state.failedCount > 0 && (
                     <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-red-500/10 border border-red-500/20 text-[11px] text-red-400">
                       <XCircle className="size-3" />
-                      {state.failedCount} failed
+                       {state.failedCount} {t("failed")}
                     </div>
                   )}
                   {state.skippedCount > 0 && (
                     <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-400">
                       <AlertTriangle className="size-3" />
-                      {state.skippedCount} skipped
+                       {state.skippedCount} {t("skipped")}
                     </div>
                   )}
                   {state.requiresRestart && (
                     <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-orange-500/10 border border-orange-500/20 text-[11px] text-orange-400">
                       <RotateCcw className="size-3" />
-                      Restart required
+                       {t("Restart required")}
                     </div>
                   )}
                   {state.restorePointCreated && (
                     <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-500/10 border border-blue-500/20 text-[11px] text-blue-400">
                       <HardDrive className="size-3" />
-                      Restore point created
+                       {t("Restore point created")}
                     </div>
                   )}
                 </div>
@@ -423,13 +427,13 @@ export function ApplyProgressOverlay({ isOpen, state, onClose, onViewResults }: 
                     className="flex-1 h-9 text-sm"
                     onClick={onClose}
                   >
-                    Close
+                     {t("Close")}
                   </Button>
                   <Button
                     className="flex-1 h-9 text-sm gap-2 bg-primary hover:bg-primary/90"
                     onClick={onViewResults}
                   >
-                    View Results
+                     {t("View Results")}
                     <ArrowRight className="size-3.5" />
                   </Button>
                 </div>
@@ -447,15 +451,15 @@ export function ApplyProgressOverlay({ isOpen, state, onClose, onViewResults }: 
                   <Zap className="size-3 text-primary animate-pulse" />
                   <span>
                     {state.phase === "preparing"
-                      ? "Preparing selected actions…"
+                       ? t("Preparing selected actions…")
                       : state.phase === "verifying"
-                        ? "Verifying changes against system state…"
+                         ? t("Verifying changes against system state…")
                         : state.currentItemName
-                          ? `Removing ${state.currentItemName}…`
-                          : "Applying selected actions…"}
+                           ? `${t("Removing")} ${state.currentItemName}…`
+                           : t("Applying selected actions…")}
                   </span>
                 </div>
-                <span className="text-[11px] text-[#6B7380]">Please wait</span>
+                 <span className="text-[11px] text-[#6B7380]">{t("Please wait")}</span>
               </motion.div>
             )}
           </AnimatePresence>

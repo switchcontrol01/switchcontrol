@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { format, parseISO } from "date-fns";
 import { logHistory } from "@/lib/logHistory";
 import { cloudApiPost } from "@/lib/cloud-api";
+import { useTranslation } from "@/lib/i18n";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import {
   RefreshCw, Search, X, Package, Shield, ShieldOff, AlertTriangle,
@@ -478,6 +479,7 @@ function ConfirmDialog({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
+  const { t } = useTranslation();
   const isUnknown = app.trustLabel === "unknown";
   const confirmBtnRef = useRef<HTMLButtonElement | null>(null);
 
@@ -535,7 +537,7 @@ function ConfirmDialog({
               <Trash2 className="size-5 text-red-400" />
             </div>
             <div>
-              <h3 className="font-semibold text-sm">Uninstall App</h3>
+              <h3 className="font-semibold text-sm">{t("Uninstall App")}</h3>
               <p className="text-xs text-muted-foreground mt-0.5">{app.name}</p>
               {app.publisher && <p className="text-[11px] text-muted-foreground/60 mt-0.5">{app.publisher}</p>}
             </div>
@@ -545,7 +547,7 @@ function ConfirmDialog({
             <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/25">
               <AlertTriangle className="size-3.5 text-amber-400 mt-0.5 shrink-0" />
               <p className="text-[11px] text-amber-400">
-                Unknown publisher. Verify this app is safe to remove before continuing.
+                {t("Unknown publisher. Verify this app is safe to remove before continuing.")}
               </p>
             </div>
           )}
@@ -553,8 +555,8 @@ function ConfirmDialog({
           <div className="flex items-start gap-2 p-3 rounded-lg bg-[#21262D] border border-[#2A313A]">
             <Info className="size-3.5 text-muted-foreground/60 mt-0.5 shrink-0" />
             <p className="text-[11px] text-muted-foreground">
-              This will run the app's uninstaller ({app.uninstallMethod?.toUpperCase()}).
-              SwitchControl cannot undo this action.
+              {t("This will run the app's uninstaller")} ({app.uninstallMethod?.toUpperCase()}).
+              {" "}{t("SwitchControl cannot undo this action.")}
             </p>
           </div>
 
@@ -565,7 +567,7 @@ function ConfirmDialog({
               onClick={onCancel}
               data-testid="button-cancel-uninstall"
             >
-              Cancel
+              {t("Cancel")}
             </Button>
             <Button
               ref={confirmBtnRef}
@@ -574,7 +576,7 @@ function ConfirmDialog({
               onClick={handleConfirm}
               data-testid="button-confirm-uninstall"
             >
-              <Trash2 className="size-3.5" />Uninstall
+              <Trash2 className="size-3.5" />{t("Uninstall")}
             </Button>
           </div>
         </GlassCard>
@@ -603,6 +605,7 @@ function AppRow({
   revealKey: number;
   onUninstall: (app: InstalledApp) => void;
 }) {
+  const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
   const tCfg        = TRUST_CONFIG[app.trustLabel] ?? TRUST_CONFIG.unknown;
   const mCfg        = METHOD_CONFIG[app.uninstallMethod] ?? METHOD_CONFIG.none;
@@ -620,7 +623,7 @@ function AppRow({
     return (
       <div className="flex items-center gap-3 p-3 rounded-xl border border-emerald-500/20 bg-emerald-500/[0.04] opacity-60">
         <CheckCircle2 className="size-4 text-emerald-400 shrink-0" />
-        <span className="text-sm text-emerald-400">{app.name} — Uninstalled</span>
+        <span className="text-sm text-emerald-400">{app.name} — {t("Uninstalled")}</span>
       </div>
     );
   }
@@ -629,7 +632,7 @@ function AppRow({
     return (
       <div className="flex items-center gap-3 p-3 rounded-xl border border-amber-500/20 bg-amber-500/[0.04] opacity-80">
         <CheckCircle2 className="size-4 text-amber-400 shrink-0" />
-        <span className="text-sm text-amber-400">{app.name} — Uninstalled (restart required)</span>
+        <span className="text-sm text-amber-400">{app.name} — {t("Uninstalled (restart required)")}</span>
       </div>
     );
   }
@@ -650,16 +653,16 @@ function AppRow({
           <div className="flex items-center gap-1.5 flex-wrap">
             <span className="font-medium text-sm truncate max-w-[200px] sm:max-w-xs">{app.name}</span>
             <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0 border shrink-0", tCfg.cls)}>
-              {tCfg.label}
+              {t(tCfg.label)}
             </Badge>
             {app.uninstallMethod !== "none" && (
               <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0 border shrink-0", mCfg.cls)}>
-                {mCfg.label}
+                {t(mCfg.label)}
               </Badge>
             )}
             {app.isProtected && (
               <Badge variant="outline" className="text-[10px] px-1.5 py-0 border border-emerald-500/25 text-emerald-400 bg-emerald-500/10 shrink-0 gap-1">
-                <Lock className="size-2.5" />Protected
+                <Lock className="size-2.5" />{t("Protected")}
               </Badge>
             )}
           </div>
@@ -681,10 +684,10 @@ function AppRow({
           {result?.kind === "failed" && (
             <span
               className="text-[11px] text-red-400 flex items-center gap-1 max-w-[160px] truncate"
-              title={result.detail || "Uninstall failed"}
+              title={result.detail || t("Uninstall failed")}
             >
               <XCircle className="size-3 shrink-0" />
-              {result.detail ? `Failed: ${result.detail}` : "Failed"}
+              {result.detail ? `${t("Failed")}: ${result.detail}` : t("Failed")}
             </span>
           )}
           {isProcessing ? (
@@ -703,11 +706,11 @@ function AppRow({
                     ? "opacity-40 cursor-not-allowed"
                     : "hover:text-destructive hover:border-destructive/30 hover:bg-destructive/8"
               )}
-              title={app.isSelf ? "Close SwitchControl, then uninstall it from Windows Settings" : app.isProtected ? "Protected — cannot uninstall" : !app.canUninstall ? "No uninstall path" : `Uninstall ${app.name}`}
+              title={app.isSelf ? t("Close SwitchControl, then uninstall it from Windows Settings") : app.isProtected ? t("Protected — cannot uninstall") : !app.canUninstall ? t("No uninstall path") : `${t("Uninstall")} ${app.name}`}
               data-testid={`button-uninstall-${app.id}`}
             >
               {app.isSelf ? <Info className="size-3" /> : app.isProtected ? <Lock className="size-3" /> : <Trash2 className="size-3" />}
-              <span className="hidden sm:inline">{app.isSelf ? "Close app first" : app.isProtected ? "Protected" : !app.canUninstall ? "N/A" : "Uninstall"}</span>
+              <span className="hidden sm:inline">{app.isSelf ? t("Close app first") : app.isProtected ? t("Protected") : !app.canUninstall ? t("N/A") : t("Uninstall")}</span>
             </Button>
           )}
           <button
@@ -732,29 +735,29 @@ function AppRow({
             <div className=" px-3.5 sm:px-4 py-3 bg-white/[0.015] grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2.5">
               {app.version && (
                 <div>
-                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground/50 mb-0.5">Version</p>
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground/50 mb-0.5">{t("Version")}</p>
                   <p className="text-xs font-mono">{app.version}</p>
                 </div>
               )}
               {installDateFormatted && (
                 <div>
-                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground/50 mb-0.5">Installed</p>
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground/50 mb-0.5">{t("Installed")}</p>
                   <p className="text-xs">{installDateFormatted}</p>
                 </div>
               )}
               <div>
-                <p className="text-[10px] uppercase tracking-wide text-muted-foreground/50 mb-0.5">Uninstall method</p>
-                <p className="text-xs capitalize">{app.uninstallMethod === "none" ? "Not supported" : app.uninstallMethod.toUpperCase()}</p>
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground/50 mb-0.5">{t("Uninstall method")}</p>
+                <p className="text-xs capitalize">{app.uninstallMethod === "none" ? t("Not supported") : app.uninstallMethod.toUpperCase()}</p>
               </div>
               {app.sizeMb > 0 && (
                 <div>
-                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground/50 mb-0.5">Estimated size</p>
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground/50 mb-0.5">{t("Estimated size")}</p>
                   <p className="text-xs">{app.sizeMb} MB</p>
                 </div>
               )}
               {app.installLocation && (
                 <div className="col-span-2 sm:col-span-3">
-                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground/50 mb-0.5">Install location</p>
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground/50 mb-0.5">{t("Install location")}</p>
                   <p className="text-xs font-mono text-muted-foreground truncate">{app.installLocation}</p>
                 </div>
               )}
@@ -768,14 +771,14 @@ function AppRow({
               ) : app.isProtected && (
                 <div className="col-span-2 sm:col-span-3">
                   <p className="text-[11px] text-emerald-400 flex items-center gap-1.5">
-                    <Lock className="size-3" />This app is protected and cannot be uninstalled from SwitchControl.
+                    <Lock className="size-3" />{t("This app is protected and cannot be uninstalled from SwitchControl.")}
                   </p>
                 </div>
               )}
               {!app.canUninstall && !app.isProtected && !app.isSelf && (
                 <div className="col-span-2 sm:col-span-3">
                   <p className="text-[11px] text-zinc-400 flex items-center gap-1.5">
-                    <Info className="size-3" />No supported uninstall path detected for this app.
+                    <Info className="size-3" />{t("No supported uninstall path detected for this app.")}
                   </p>
                 </div>
               )}
@@ -868,6 +871,7 @@ function buildFailureLabel(res: UninstallResult): string {
 // ── InstalledAppsPanel ────────────────────────────────────────────────────────
 
 export function InstalledAppsPanel() {
+  const { t } = useTranslation();
   const [apps,          setApps]          = useState<InstalledApp[]>([]);
   const [scanning,      setScanning]      = useState(false);
   const [scannedAt,     setScannedAt]     = useState<string | null>(null);
@@ -922,10 +926,10 @@ export function InstalledAppsPanel() {
           }
         }
       } else {
-        setScanError(res.error ?? "Scan failed");
+        setScanError(res.error ?? t("Scan failed"));
       }
     } catch (e: any) {
-      setScanError(e.message ?? "Unknown error");
+      setScanError(e.message ?? t("Unknown error"));
     } finally {
       setScanning(false);
     }
@@ -1019,9 +1023,9 @@ export function InstalledAppsPanel() {
         <div className="size-12 rounded-full bg-[#21262D] border border-[#2A313A] flex items-center justify-center mx-auto">
           <Monitor className="size-5 text-muted-foreground/50" />
         </div>
-        <p className="font-medium text-sm">Installed Apps Scan</p>
+         <p className="font-medium text-sm">{t("Installed Apps Scan")}</p>
         <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-          Run SwitchControl as the Windows desktop app to scan installed programs and manage them directly from here.
+           {t("Run SwitchControl as the Windows desktop app to scan installed programs and manage them directly from here.")}
         </p>
       </GlassCard>
     );
@@ -1035,16 +1039,16 @@ export function InstalledAppsPanel() {
           <Package className="size-6 text-primary" />
         </div>
         <div>
-          <p className="font-semibold text-base">Scan Installed Apps</p>
+           <p className="font-semibold text-base">{t("Scan Installed Apps")}</p>
           <p className="text-sm text-muted-foreground mt-1.5 max-w-sm mx-auto">
-            Reads your Windows registry to list installed programs. Scan takes 5–15 seconds.
+             {t("Reads your Windows registry to list installed programs. Scan takes 5–15 seconds.")}
           </p>
         </div>
         {scanError && (
           <p className="text-sm text-red-400">{scanError}</p>
         )}
         <Button onClick={runScan} className="gap-2 mx-auto" data-testid="button-scan-apps">
-          <Search className="size-4" />Scan Now
+           <Search className="size-4" />{t("Scan Now")}
         </Button>
       </GlassCard>
     );
@@ -1058,14 +1062,14 @@ export function InstalledAppsPanel() {
         <div>
           <h3 className="font-semibold text-sm flex items-center gap-2">
             <Package className="size-4 text-primary" />
-            Installed Apps
+             {t("Installed Apps")}
             {stats.total > 0 && (
               <Badge variant="outline" className="text-xs text-muted-foreground border-[#2A313A]">{stats.total}</Badge>
             )}
           </h3>
           {scannedAt && (
             <p className="text-[11px] text-muted-foreground/60 mt-0.5">
-              Scanned {format(new Date(scannedAt), "MMM d, HH:mm")}
+               {t("Scanned")} {format(new Date(scannedAt), "MMM d, HH:mm")}
             </p>
           )}
         </div>
@@ -1078,7 +1082,7 @@ export function InstalledAppsPanel() {
           data-testid="button-rescan-apps"
         >
           <RefreshCw className={cn("size-3.5", scanning && "animate-spin")} />
-          {scanning ? "Scanning…" : "Rescan"}
+           {scanning ? t("Scanning…") : t("Rescan")}
         </Button>
       </div>
 
@@ -1092,7 +1096,7 @@ export function InstalledAppsPanel() {
             { label: "Third-party",   value: stats.thirdParty,    color: "text-amber-400" },
           ].map(s => (
             <GlassCard key={s.label} className="p-3">
-              <p className="text-[10px] uppercase tracking-wide text-muted-foreground/50">{s.label}</p>
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground/50">{t(s.label)}</p>
               <p className={cn("text-xl font-bold tabular-nums mt-0.5", s.color)}>{s.value}</p>
             </GlassCard>
           ))}
@@ -1103,8 +1107,8 @@ export function InstalledAppsPanel() {
       <div className="flex items-start gap-2 p-3 rounded-xl bg-[#1A1F26] border border-[#2A313A]">
         <ShieldOff className="size-3.5 text-muted-foreground/50 mt-0.5 shrink-0" />
         <p className="text-[11px] text-muted-foreground/60 leading-relaxed">
-          Protected system apps (Defender, Firewall, Windows Update) are locked and cannot be removed.
-          SwitchControl uses the app's own uninstaller — always check you no longer need an app before removing it.
+           {t("Protected system apps (Defender, Firewall, Windows Update) are locked and cannot be removed.")}
+           {" "}{t("SwitchControl uses the app's own uninstaller — always check you no longer need an app before removing it.")}
         </p>
       </div>
 
@@ -1116,7 +1120,7 @@ export function InstalledAppsPanel() {
             <Input
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Search name, publisher, version…"
+               placeholder={t("Search name, publisher, version…")}
               className="pl-9 bg-[#21262D] border-[#2A313A] h-9 text-sm"
               data-testid="input-search-apps"
             />
@@ -1136,7 +1140,7 @@ export function InstalledAppsPanel() {
               className="bg-transparent text-[11px] text-muted-foreground pr-1 focus:outline-none cursor-pointer"
               data-testid="select-sort-apps"
             >
-              {SORTS.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+               {SORTS.map(s => <option key={s.id} value={s.id}>{t(s.label)}</option>)}
             </select>
           </div>
         </div>
@@ -1155,12 +1159,12 @@ export function InstalledAppsPanel() {
               )}
               data-testid={`filter-apps-${f.id}`}
             >
-              {f.label}
+               {t(f.label)}
             </button>
           ))}
           {filtered.length !== apps.length && (
             <span className="px-2.5 py-1 text-[11px] text-muted-foreground/50">
-              {filtered.length} shown
+               {filtered.length} {t("shown")}
             </span>
           )}
         </div>
@@ -1170,8 +1174,8 @@ export function InstalledAppsPanel() {
       {scanning && (
         <GlassCard className="p-6 text-center">
           <Loader2 className="size-6 animate-spin mx-auto mb-2 text-primary" />
-          <p className="text-sm text-muted-foreground">Scanning installed apps…</p>
-          <p className="text-[11px] text-muted-foreground/50 mt-1">Reading Windows registry — this may take a few seconds</p>
+           <p className="text-sm text-muted-foreground">{t("Scanning installed apps…")}</p>
+           <p className="text-[11px] text-muted-foreground/50 mt-1">{t("Reading Windows registry — this may take a few seconds")}</p>
         </GlassCard>
       )}
 
@@ -1181,9 +1185,9 @@ export function InstalledAppsPanel() {
           {filtered.length === 0 ? (
             <GlassCard className="p-8 text-center space-y-2">
               <Search className="size-7 text-muted-foreground/30 mx-auto" />
-              <p className="text-sm text-muted-foreground">No apps match the current filters</p>
+               <p className="text-sm text-muted-foreground">{t("No apps match the current filters")}</p>
               <button onClick={() => { setSearch(""); setFilter("all"); }}
-                className="text-xs text-primary hover:underline">Clear filters</button>
+                 className="text-xs text-primary hover:underline">{t("Clear filters")}</button>
             </GlassCard>
           ) : filtered.length > VIRTUALIZE_THRESHOLD ? (
             <div className="space-y-2">
@@ -1201,8 +1205,8 @@ export function InstalledAppsPanel() {
               />
 
               <p className="text-center text-[11px] text-muted-foreground/40 pt-2">
-                {filtered.length} app{filtered.length !== 1 ? "s" : ""} shown
-                {stats.totalSizeMb > 0 && ` · ${stats.totalSizeMb > 1000 ? `${(stats.totalSizeMb / 1024).toFixed(1)} GB` : `${stats.totalSizeMb} MB`} total`}
+                 {filtered.length} {t(filtered.length !== 1 ? "apps" : "app")} {t("shown")}
+                 {stats.totalSizeMb > 0 && ` · ${stats.totalSizeMb > 1000 ? `${(stats.totalSizeMb / 1024).toFixed(1)} GB` : `${stats.totalSizeMb} MB`} ${t("total")}`}
               </p>
             </div>
           ) : (
