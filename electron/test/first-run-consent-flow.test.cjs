@@ -8,6 +8,7 @@ const read = (file) =>
 
 const app = read("client/src/App.tsx");
 const consent = read("client/src/components/FirstRunConsent.tsx");
+const transition = read("client/src/lib/firstRunTransition.ts");
 const terms = read("client/src/pages/Terms.tsx");
 const privacy = read("client/src/pages/Privacy.tsx");
 const legal = read("client/src/lib/legalContent.ts");
@@ -48,7 +49,9 @@ test("consent persists before the two-second exit handoff", () => {
     consent,
     /localStorage\.setItem\(`\$\{TERMS_CONSENT_KEY\}\$\{userId\}`, "true"\)[\s\S]*?setIsExiting\(true\)[\s\S]*?TRANSITION_MS/,
   );
-  assert.match(consent, /const TRANSITION_MS = 2000/);
+  assert.match(consent, /FIRST_RUN_TRANSITION_MS/);
+  assert.match(consent, /firstRunTransition\(prefersReducedMotion\)/);
+  assert.match(transition, /FIRST_RUN_TRANSITION_MS = 2000/);
   assert.match(consent, /data-animation-state=/);
   assert.match(app, /setShowDisclaimer\(false\);[\s\S]*?setPhase\("welcome"\)/);
 });

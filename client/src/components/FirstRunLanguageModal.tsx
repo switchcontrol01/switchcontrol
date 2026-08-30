@@ -1,8 +1,15 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { AnimatePresence, motion } from "@/lib/motionTokens";
+import { AnimatePresence, motion, useMotion } from "@/lib/motionTokens";
 import { Check, ChevronRight, Languages, ShieldCheck, Sparkles } from "lucide-react";
 import { LOCALES, useTranslation, type Locale } from "@/lib/i18n";
+import {
+  FIRST_RUN_TRANSITION_MS,
+  firstRunTransition,
+  firstRunVisualExit,
+  firstRunVisualInitial,
+  firstRunVisualVisible,
+} from "@/lib/firstRunTransition";
 
 interface FirstRunLanguageModalProps {
   userId: string;
@@ -13,10 +20,7 @@ interface FirstRunLanguageModalProps {
 type ModalStep = "prompt" | "picker";
 
 const LANGUAGE_PROMPT_KEY = "sc_language_prompt_seen_";
-const ENTER_DURATION_MS = 2000;
 const ENTER_START_DELAY_MS = 40;
-const EXIT_DURATION_MS = 2000;
-const SILK = [0.22, 1, 0.36, 1] as const;
 
 /**
  * Required first-session language gate.
@@ -32,6 +36,7 @@ export function FirstRunLanguageModal({
   onComplete,
 }: FirstRunLanguageModalProps) {
   const { t, language, setLanguage } = useTranslation();
+  const { prefersReducedMotion } = useMotion();
   const [step, setStep] = useState<ModalStep>("prompt");
   const [selectedLocale, setSelectedLocale] = useState<Locale>(
     language === "en" ? "en" : language,
@@ -40,25 +45,18 @@ export function FirstRunLanguageModal({
   const [isEntered, setIsEntered] = useState(false);
   const completionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const enterTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const prefersReduced = useMemo(
-    () =>
-      typeof window !== "undefined" &&
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches,
-    [],
-  );
-
   useEffect(() => {
     // Keep the first compositor frame in the blurred/hidden state. A short
     // timer is more reliable than a nested rAF here because Electron can
     // commit the portal and the parent phase update in the same paint.
     enterTimerRef.current = setTimeout(
       () => setIsEntered(true),
-      prefersReduced ? 0 : ENTER_START_DELAY_MS,
+      prefersReducedMotion ? 0 : ENTER_START_DELAY_MS,
     );
     return () => {
       if (enterTimerRef.current) clearTimeout(enterTimerRef.current);
     };
-  }, [prefersReduced]);
+  }, [prefersReducedMotion]);
 
   useEffect(
     () => () => {
@@ -80,7 +78,7 @@ export function FirstRunLanguageModal({
 
     completionTimerRef.current = setTimeout(
       () => onComplete(locale),
-      prefersReduced ? 0 : EXIT_DURATION_MS,
+      prefersReducedMotion ? 0 : FIRST_RUN_TRANSITION_MS,
     );
   };
 
@@ -107,15 +105,14 @@ export function FirstRunLanguageModal({
         data-testid="first-run-language-modal"
         data-locale={language}
         data-animation-state={isExiting ? "exiting" : isEntered ? "entered" : "entering"}
-        initial={{ opacity: 0, filter: "blur(18px)" }}
+        {...firstRunVisualInitial()}
         animate={{
-          opacity: isEntered && !isExiting ? 1 : 0,
-          filter: isEntered && !isExiting ? "blur(0px)" : "blur(18px)",
-          transition: {
-            duration: prefersReduced ? 0 : ENTER_DURATION_MS / 1000,
-            ease: SILK,
-          },
+          ...(isEntered && !isExiting
+            ? firstRunVisualVisible()
+            : firstRunVisualExit()),
+          transition: firstRunTransition(prefersReducedMotion),
         }}
+        data-first-run-transition="language"
       >
         <div
           className="absolute inset-0"
@@ -157,8 +154,7 @@ export function FirstRunLanguageModal({
             y: isExiting ? -10 : isEntered ? 0 : 18,
             scale: isExiting ? 0.96 : isEntered ? 1 : 0.97,
             transition: {
-              duration: prefersReduced ? 0 : ENTER_DURATION_MS / 1000,
-              ease: SILK,
+              ...firstRunTransition(prefersReducedMotion),
             },
           }}
         >
@@ -192,8 +188,16 @@ export function FirstRunLanguageModal({
               </p>
             </div>
 
-            {step === "prompt" ? (
-              <>
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={step}
+                {...firstRunVisualInitial()}
+                animate={firstRunVisualVisible()}
+                exit={firstRunVisualExit()}
+                transition={firstRunTransition(prefersReducedMotion)}
+              >
+                {step === "prompt" ? (
+                  <>
                 <div className="mb-5">
                   <div className="mb-2 flex items-center gap-2 text-cyan-200/70">
                     <Sparkles className="h-3.5 w-3.5" />
@@ -258,9 +262,9 @@ export function FirstRunLanguageModal({
                     <ChevronRight className="h-5 w-5 text-white/40 transition-transform group-hover:translate-x-0.5 group-hover:text-white/75" />
                   </button>
                 </div>
-              </>
-            ) : (
-              <>
+                  </>
+                ) : (
+                  <>
                 <div className="mb-4">
                   <button
                     type="button"
@@ -322,8 +326,10 @@ export function FirstRunLanguageModal({
                   </span>
                   <Check className="h-5 w-5 text-cyan-200" />
                 </button>
-              </>
-            )}
+                  </>
+                )}
+              </motion.div>
+            </AnimatePresence>
           </div>
         </motion.div>
       </motion.div>

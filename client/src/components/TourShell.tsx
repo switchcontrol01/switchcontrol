@@ -1,11 +1,18 @@
 import { useState, useEffect, useCallback, useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { motion, AnimatePresence } from '@/lib/motionTokens';
+import { motion, AnimatePresence, useMotion } from '@/lib/motionTokens';
 import { useLocation } from 'wouter';
 import { ChevronRight, ChevronLeft, X } from 'lucide-react';
 import { clearTourState, useTourStore } from '@/lib/tour-store';
 import { TOUR_COMPLETION_TIMING, TOUR_STEP_TIMING, tourPalette } from '@/lib/tourMotionTokens';
 import logoImg from '@/assets/logo.webp';
+import {
+  FIRST_RUN_TRANSITION_MS,
+  firstRunTransition,
+  firstRunVisualExit,
+  firstRunVisualInitial,
+  firstRunVisualVisible,
+} from '@/lib/firstRunTransition';
 
 export interface TourStep {
   id: string;
@@ -62,7 +69,15 @@ const STREAKS = [
 ];
 
 // ── "You're All Set" completion screen ───────────────────────────────────────
-function CompletionMoment({ onDone, isPremium }: { onDone: () => void; isPremium?: boolean }) {
+function CompletionMoment({
+  onDone,
+  isPremium,
+  prefersReducedMotion,
+}: {
+  onDone: () => void;
+  isPremium?: boolean;
+  prefersReducedMotion: boolean;
+}) {
   const [phase, setPhase] = useState<'enter' | 'hold' | 'exit'>('enter');
 
   // Keep a stable ref so that parent re-renders (which produce new onDone
@@ -73,15 +88,18 @@ function CompletionMoment({ onDone, isPremium }: { onDone: () => void; isPremium
 
   useEffect(() => {
     cancelledRef.current = false;
-    const t1 = setTimeout(() => { if (!cancelledRef.current) setPhase('hold'); }, TOUR_COMPLETION_TIMING.holdMs);
-    const t2 = setTimeout(() => { if (!cancelledRef.current) setPhase('exit'); }, TOUR_COMPLETION_TIMING.exitMs);
-    const t3 = setTimeout(() => { if (!cancelledRef.current) onDoneRef.current(); }, TOUR_COMPLETION_TIMING.doneMs);
+    const holdMs = prefersReducedMotion ? 0 : TOUR_COMPLETION_TIMING.holdMs;
+    const exitMs = prefersReducedMotion ? 0 : TOUR_COMPLETION_TIMING.exitMs;
+    const doneMs = prefersReducedMotion ? 0 : TOUR_COMPLETION_TIMING.doneMs;
+    const t1 = setTimeout(() => { if (!cancelledRef.current) setPhase('hold'); }, holdMs);
+    const t2 = setTimeout(() => { if (!cancelledRef.current) setPhase('exit'); }, exitMs);
+    const t3 = setTimeout(() => { if (!cancelledRef.current) onDoneRef.current(); }, doneMs);
     return () => {
       cancelledRef.current = true;
       clearTimeout(t1); clearTimeout(t2); clearTimeout(t3);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // intentionally empty — timers must run exactly once on mount
+  }, [prefersReducedMotion]); // timers must run exactly once per motion mode
 
   const isExiting = phase === 'exit';
   const cp = isPremium ? tourPalette.premium : tourPalette.free;
@@ -91,14 +109,9 @@ function CompletionMoment({ onDone, isPremium }: { onDone: () => void; isPremium
     <motion.div
       className="absolute inset-0 flex flex-col items-center justify-center overflow-hidden"
       style={{ background: 'rgb(4,3,14)' }}
-      initial={{ opacity: 0, filter: 'blur(20px)', scale: 0.97 }}
-      animate={isExiting
-        ? { opacity: 0, filter: 'blur(28px)', scale: 1.06 }
-        : { opacity: 1, filter: 'blur(0px)', scale: 1 }
-      }
-      transition={isExiting
-        ? { duration: 1.4, ease: [0.4, 0, 0.8, 1] }
-        : { duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+       {...firstRunVisualInitial()}
+       animate={isExiting ? firstRunVisualExit() : firstRunVisualVisible()}
+       transition={firstRunTransition(prefersReducedMotion)}
     >
       {/* ── Layer 1: Deep base gradient — upper-left purple bloom + lower-right blue-indigo */}
       <div
@@ -373,6 +386,7 @@ export function TourShell({
   testId = 'tour',
   isPremium = false,
 }: TourShellProps) {
+  const { prefersReducedMotion } = useMotion();
   const [stepIndex, setStepIndex] = useState(0);
   const [direction, setDirection] = useState(1);
   const [completing, setCompleting] = useState(false);
@@ -458,7 +472,7 @@ export function TourShell({
       dismissTimerRef.current = setTimeout(() => {
         setMounted(false);
         if (wasShownRef.current) console.log('[TourTransition] unmounted');
-      }, 500);
+      }, prefersReducedMotion ? 0 : FIRST_RUN_TRANSITION_MS);
       return;
     }
 
@@ -484,7 +498,7 @@ export function TourShell({
         });
       });
     });
-  }, [show]);
+  }, [show, prefersReducedMotion]);
 
   useEffect(() => {
     if (show) {
@@ -562,7 +576,7 @@ export function TourShell({
             opacity: revealed ? 1 : 0,
             filter: revealed ? "blur(0px)" : "blur(18px)",
           }}
-          transition={{ duration: revealed ? 0.75 : 0.55, ease: revealed ? [0.22, 1, 0.36, 1] : [0.4, 0, 0.8, 1] }}
+           transition={firstRunTransition(prefersReducedMotion)}
         >
           {/* Dark overlay — only over the CONTENT area (right of sidebar) */}
           <div
@@ -604,7 +618,7 @@ export function TourShell({
             opacity: revealed ? 1 : 0,
             filter: revealed ? "blur(0px)" : "blur(18px)",
           }}
-          transition={{ duration: revealed ? 0.82 : 0.48, ease: revealed ? [0.22, 1, 0.36, 1] : [0.4, 0, 0.8, 1] }}
+           transition={firstRunTransition(prefersReducedMotion)}
           onAnimationComplete={() => {
             if (revealed) console.log('[TourTransition] card fully visible');
           }}
@@ -618,15 +632,27 @@ export function TourShell({
                 <motion.div
                   key={stepIndex}
                   custom={direction}
-                  variants={{
-                    enter: (dir: number) => ({ opacity: 0, x: dir * 70, scale: 0.96, y: 10 }),
-                    center: { opacity: 1, x: 0, scale: 1, y: 0 },
-                    exit: (dir: number) => ({ opacity: 0, x: dir * -70, scale: 0.96, y: -10 }),
+                   variants={{
+                     enter: (dir: number) => ({
+                       opacity: 0,
+                       filter: 'blur(18px)',
+                       x: dir * 70,
+                       scale: 0.96,
+                       y: 10,
+                     }),
+                     center: { opacity: 1, filter: 'blur(0px)', x: 0, scale: 1, y: 0 },
+                     exit: (dir: number) => ({
+                       opacity: 0,
+                       filter: 'blur(18px)',
+                       x: dir * -70,
+                       scale: 0.96,
+                       y: -10,
+                     }),
                   }}
                   initial="enter"
                   animate="center"
                   exit="exit"
-                  transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
+                   transition={firstRunTransition(prefersReducedMotion)}
                   className="relative w-[460px] max-w-[calc(100vw-300px)] rounded-2xl overflow-hidden"
                   style={{
                     background: pal.cardBg,
@@ -811,12 +837,16 @@ export function TourShell({
           <motion.div
             key="completing-fullscreen"
             className="fixed inset-0 z-[210] pointer-events-auto"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.4 }}
+            {...firstRunVisualInitial()}
+            animate={firstRunVisualVisible()}
+            exit={firstRunVisualExit()}
+            transition={firstRunTransition(prefersReducedMotion)}
           >
-            <CompletionMoment onDone={handleComplete} isPremium={isPremium} />
+          <CompletionMoment
+            onDone={handleComplete}
+            isPremium={isPremium}
+            prefersReducedMotion={prefersReducedMotion}
+          />
           </motion.div>
         )}
       </AnimatePresence>

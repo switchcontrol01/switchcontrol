@@ -8,16 +8,22 @@ import {
   LockKeyhole,
   X,
 } from "lucide-react";
-import { AnimatePresence, motion } from "@/lib/motionTokens";
+import { AnimatePresence, motion, useMotion } from "@/lib/motionTokens";
 import {
   LEGAL_LAST_UPDATED,
   PRIVACY_SECTIONS,
   TERMS_SECTIONS,
   type LegalSection,
 } from "@/lib/legalContent";
+import {
+  FIRST_RUN_TRANSITION_MS,
+  firstRunTransition,
+  firstRunVisualExit,
+  firstRunVisualInitial,
+  firstRunVisualVisible,
+} from "@/lib/firstRunTransition";
 
 export const TERMS_CONSENT_KEY = "sc_terms_consent_seen_";
-const TRANSITION_MS = 2000;
 const ENTER_DELAY_MS = 40;
 const BOTTOM_THRESHOLD_PX = 12;
 
@@ -50,6 +56,7 @@ function LegalSectionView({ section }: { section: LegalSection }) {
 }
 
 export function FirstRunConsent({ userId, onComplete, onDecline }: Props) {
+  const { prefersReducedMotion } = useMotion();
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const exitTimerRef = useRef<number | null>(null);
   const completeRef = useRef(onComplete);
@@ -71,9 +78,12 @@ export function FirstRunConsent({ userId, onComplete, onDecline }: Props) {
   }, []);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => setIsEntered(true), ENTER_DELAY_MS);
+    const timer = window.setTimeout(
+      () => setIsEntered(true),
+      prefersReducedMotion ? 0 : ENTER_DELAY_MS,
+    );
     return () => window.clearTimeout(timer);
-  }, []);
+  }, [prefersReducedMotion]);
 
   useEffect(() => {
     const element = scrollRef.current;
@@ -106,14 +116,17 @@ export function FirstRunConsent({ userId, onComplete, onDecline }: Props) {
     setIsExiting(true);
     exitTimerRef.current = window.setTimeout(
       () => completeRef.current(),
-      TRANSITION_MS,
+      prefersReducedMotion ? 0 : FIRST_RUN_TRANSITION_MS,
     );
   };
 
   const decline = () => {
     if (isExiting || isDeclining) return;
     setIsDeclining(true);
-    exitTimerRef.current = window.setTimeout(onDecline, TRANSITION_MS);
+    exitTimerRef.current = window.setTimeout(
+      onDecline,
+      prefersReducedMotion ? 0 : FIRST_RUN_TRANSITION_MS,
+    );
   };
 
   return createPortal(
@@ -132,15 +145,14 @@ export function FirstRunConsent({ userId, onComplete, onDecline }: Props) {
               ? "entered"
               : "entering"
         }
-        initial={{ opacity: 0, filter: "blur(18px)" }}
+        {...firstRunVisualInitial()}
         animate={{
-          opacity: isEntered && !isExiting && !isDeclining ? 1 : 0,
-          filter:
-            isEntered && !isExiting && !isDeclining
-              ? "blur(0px)"
-              : "blur(18px)",
-          transition: { duration: TRANSITION_MS / 1000, ease: [0.22, 1, 0.36, 1] },
+          ...(isEntered && !isExiting && !isDeclining
+            ? firstRunVisualVisible()
+            : firstRunVisualExit()),
+          transition: firstRunTransition(prefersReducedMotion),
         }}
+        data-first-run-transition="consent"
       >
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_100%_90%_at_50%_0%,rgba(4,19,36,0.985)_0%,rgba(3,6,15,0.998)_72%)] backdrop-blur-[22px]" />
         <div className="absolute inset-0 pointer-events-none opacity-[0.035] [background-image:repeating-linear-gradient(0deg,transparent,transparent_3px,rgba(255,255,255,0.16)_3px,rgba(255,255,255,0.16)_4px)]" />
@@ -151,7 +163,7 @@ export function FirstRunConsent({ userId, onComplete, onDecline }: Props) {
           animate={{
             y: isExiting || isDeclining ? -10 : isEntered ? 0 : 20,
             scale: isExiting || isDeclining ? 0.96 : isEntered ? 1 : 0.97,
-            transition: { duration: TRANSITION_MS / 1000, ease: [0.22, 1, 0.36, 1] },
+            transition: firstRunTransition(prefersReducedMotion),
           }}
         >
           <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-300/80 to-transparent" />

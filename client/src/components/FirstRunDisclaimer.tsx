@@ -1,11 +1,17 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import { motion, AnimatePresence } from "@/lib/motionTokens";
+import { motion, AnimatePresence, useMotion } from "@/lib/motionTokens";
 import { Shield, AlertTriangle, Gamepad2, ExternalLink, CheckCircle2 } from "lucide-react";
+import {
+  FIRST_RUN_TRANSITION_MS,
+  firstRunTransition,
+  firstRunVisualExit,
+  firstRunVisualInitial,
+  firstRunVisualVisible,
+} from "@/lib/firstRunTransition";
 
 // ── Easing curves ────────────────────────────────────────────────────────────
 const SILK   = [0.22, 1, 0.36, 1] as const;
-const EASE_OUT = [0.16, 1, 0.3,  1] as const;
 
 // ── Deterministic particles ───────────────────────────────────────────────────
 function seededRandom(seed: number) {
@@ -49,16 +55,13 @@ interface Props {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 export function FirstRunDisclaimer({ show, onComplete }: Props) {
+  const { prefersReducedMotion } = useMotion();
   const [phase, setPhase] = useState<Phase>("done");
   const [isEntered, setIsEntered] = useState(false);
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const onCompleteRef = useRef(onComplete);
   onCompleteRef.current = onComplete;
   const enterRafRef = useRef<number | null>(null);
-
-  const prefersReduced = useMemo(() =>
-    typeof window !== "undefined" &&
-    window.matchMedia("(prefers-reduced-motion: reduce)").matches, []);
 
   // ── Entry ──────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -94,10 +97,13 @@ export function FirstRunDisclaimer({ show, onComplete }: Props) {
     if (phase !== "entering") return;
     // 620ms head-start so the welcome animation's blur-out (~0.95s) has cleared the
     // viewport before the disclaimer backdrop becomes visible.
-    const t = setTimeout(() => setPhase("warning"), prefersReduced ? 0 : 620);
+    const t = setTimeout(
+      () => setPhase("warning"),
+      prefersReducedMotion ? 0 : 620,
+    );
     timersRef.current.push(t);
     return () => clearTimeout(t);
-  }, [phase, prefersReduced]);
+  }, [phase, prefersReducedMotion]);
 
   // ── User actions ───────────────────────────────────────────────────────────
   const handleUnderstand = () => {
@@ -109,7 +115,7 @@ export function FirstRunDisclaimer({ show, onComplete }: Props) {
     const t = setTimeout(() => {
       setPhase("done");
       onCompleteRef.current();
-    }, prefersReduced ? 0 : 700);
+    }, prefersReducedMotion ? 0 : FIRST_RUN_TRANSITION_MS);
     timersRef.current.push(t);
   };
 
@@ -126,10 +132,14 @@ export function FirstRunDisclaimer({ show, onComplete }: Props) {
           key="frd-overlay"
           className="fixed inset-0 flex items-center justify-center overflow-hidden"
           style={{ zIndex: 9999 }}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: isEntered ? 1 : 0 }}
-          exit={{ opacity: 0, transition: { duration: 0.65, ease: EASE_OUT } }}
-          transition={{ duration: 0.55, ease: SILK }}
+           {...firstRunVisualInitial()}
+           animate={isEntered ? firstRunVisualVisible() : firstRunVisualExit()}
+           exit={{
+             ...firstRunVisualExit(),
+             transition: firstRunTransition(prefersReducedMotion),
+           }}
+           transition={firstRunTransition(prefersReducedMotion)}
+           data-first-run-transition="disclaimer"
         >
           {/* ── Backdrop ───────────────────────────────────────────────────── */}
           <div
@@ -274,7 +284,7 @@ export function FirstRunDisclaimer({ show, onComplete }: Props) {
                   initial={{ opacity: 0, y: 28, scale: 0.96, filter: "blur(12px)" }}
                   animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
                   exit={{ opacity: 0, y: -16, scale: 0.97, filter: "blur(8px)" }}
-                  transition={{ duration: 0.55, ease: SILK }}
+                   transition={firstRunTransition(prefersReducedMotion)}
                   className="relative overflow-hidden"
                   style={{
                     background: "linear-gradient(145deg, rgba(10,14,24,0.92) 0%, rgba(6,10,20,0.96) 100%)",
@@ -495,7 +505,7 @@ export function FirstRunDisclaimer({ show, onComplete }: Props) {
                   initial={{ opacity: 0, scale: 0.88, y: 20, filter: "blur(10px)" }}
                   animate={{ opacity: 1, scale: 1,    y: 0,  filter: "blur(0px)" }}
                   exit={{ opacity: 0, scale: 0.95, y: 12, filter: "blur(6px)" }}
-                  transition={{ duration: 0.42, ease: SILK }}
+                   transition={firstRunTransition(prefersReducedMotion)}
                   className="relative overflow-hidden mx-auto"
                   style={{
                     maxWidth: 380,

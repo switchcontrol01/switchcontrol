@@ -353,7 +353,7 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
   }, [pastedCode]);
 
   return (
-    <div className="fixed inset-0 bg-[#080810] overflow-hidden flex items-center justify-center">
+    <div className="absolute inset-0 bg-[#080810] overflow-hidden flex items-center justify-center">
 
       {/*
         ── BACKGROUND LAYER STACK ────────────────────────────────────────────

@@ -63,7 +63,7 @@ export function WelcomeAnimation({
 
   return (
     <motion.div
-      className="fixed inset-0 flex flex-col items-center justify-center overflow-hidden select-none"
+      className="absolute inset-0 flex flex-col items-center justify-center overflow-hidden select-none"
       /* Background is intentionally omitted here.
          App.tsx renders a persistent atmospheric background layer that lives
          OUTSIDE AnimatePresence and never remounts. WelcomeAnimation is a

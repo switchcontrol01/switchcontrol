@@ -8,6 +8,7 @@ const read = (file) =>
 
 const app = read("client/src/App.tsx");
 const modal = read("client/src/components/FirstRunLanguageModal.tsx");
+const transition = read("client/src/lib/firstRunTransition.ts");
 const i18n = read("client/src/lib/i18n.tsx");
 const authRoutes = read("server/auth/google.ts");
 
@@ -69,7 +70,7 @@ test("language choice is saved before the first-run transition", () => {
   assert.match(modal, /onClick=\{\(\) => finish\(selectedLocale\)\}/);
   assert.match(
     modal,
-    /const ENTER_DURATION_MS = 2000/,
+    /FIRST_RUN_TRANSITION_MS/,
     "the modal must have a full two-second entrance animation",
   );
   assert.match(
@@ -89,9 +90,13 @@ test("language choice is saved before the first-run transition", () => {
   );
   assert.match(
     modal,
-    /EXIT_DURATION_MS = 2000/,
+    /firstRunTransition\(prefersReducedMotion\)/,
     "the handoff must use the requested two-second blur/fade exit",
   );
+  assert.match(modal, /AnimatePresence mode="wait" initial=\{false\}/);
+  assert.match(modal, /key=\{step\}/, "language prompt and picker must hand off visually");
+  assert.match(transition, /FIRST_RUN_TRANSITION_MS = 2000/);
+  assert.match(transition, /FIRST_RUN_BLUR_PX = 18/);
 });
 
 test("first-run copy is present for every supported locale", () => {

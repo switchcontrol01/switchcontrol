@@ -93,6 +93,14 @@ import { OnboardingTour } from "@/components/OnboardingTour";
 import { FirstRunDisclaimer } from "@/components/FirstRunDisclaimer";
 import { FirstRunLanguageModal } from "@/components/FirstRunLanguageModal";
 import { FirstRunConsent, TERMS_CONSENT_KEY } from "@/components/FirstRunConsent";
+import {
+  FIRST_RUN_TRANSITION_MS,
+  firstRunTransition,
+  firstRunVisualExit,
+  firstRunVisualInitial,
+  firstRunVisualVisible,
+} from "@/lib/firstRunTransition";
+import { useMotion } from "@/lib/motionTokens";
 const _isElectronRuntime =
   typeof window !== "undefined" && !!(window as any).electronAPI?.isElectron;
 // Build-selected route map: the web build uses route chunks, while the
@@ -285,6 +293,44 @@ function ElectronAppRoutes() {
   );
 }
 
+function DashboardTransitionLayer({
+  active,
+  prefersReducedMotion,
+}: {
+  active: boolean;
+  prefersReducedMotion: boolean;
+}) {
+  return (
+    <AnimatePresence>
+      {active && (
+        <motion.div
+          key="dashboard-transition-scrim"
+          aria-hidden="true"
+          className="pointer-events-none fixed inset-0 z-[150]"
+          initial={{
+            opacity: 1,
+            backdropFilter: `blur(18px)`,
+            WebkitBackdropFilter: `blur(18px)`,
+          }}
+          animate={{
+            opacity: 0,
+            backdropFilter: "blur(0px)",
+            WebkitBackdropFilter: "blur(0px)",
+          }}
+          exit={{
+            opacity: 1,
+            backdropFilter: `blur(18px)`,
+            WebkitBackdropFilter: `blur(18px)`,
+          }}
+          transition={firstRunTransition(prefersReducedMotion)}
+          style={{ background: "rgba(7, 9, 13, 0.86)" }}
+          data-first-run-transition="dashboard-scrim"
+        />
+      )}
+    </AnimatePresence>
+  );
+}
+
 function WebsiteRoutes() {
   return (
     <Suspense fallback={<DarkFallback />}>
@@ -319,6 +365,7 @@ type AppFlow =
   | "premiumTour";
 
 function ElectronAppContent() {
+  const { prefersReducedMotion } = useMotion();
   const [phase, setPhase] = useState<AppPhase>("splash");
   const [splashDone, setSplashDone] = useState(false);
   const [showGlow, setShowGlow] = useState(false);
@@ -872,14 +919,13 @@ function ElectronAppContent() {
   // Phase-stabilization gate: let the dashboard's fade-in finish before any
   // tour overlay is allowed to mount.
   //
-  // Welcome exit is now 0.7s. Dashboard fade-in is 0.35s with no delay.
-  // 500ms for both paths gives a comfortable buffer after the animations settle.
+  // The tour must not mount until the shared dashboard transition has settled.
   useEffect(() => {
     if (phase !== "authenticated") {
       setIsPhaseStable(false);
       return;
     }
-    const delay = 500;
+    const delay = prefersReducedMotion ? 0 : FIRST_RUN_TRANSITION_MS;
     console.log(
       `[TourTransition] phase entered authenticated, waiting ${delay}ms for dashboard to stabilize`,
     );
@@ -888,7 +934,7 @@ function ElectronAppContent() {
       console.log("[TourTransition] dashboard stable, tours unblocked");
     }, delay);
     return () => clearTimeout(t);
-  }, [phase, isFirstLogin]);
+  }, [phase, isFirstLogin, prefersReducedMotion]);
 
   // When an admin re-grants a trial, the server resets hasSeenTrialActivation
   // and hasSeenTrialTour to false. Clear the matching session-level refs so the
@@ -2041,17 +2087,18 @@ function ElectronAppContent() {
           {(phase === "unauthenticated" || phase === "login_success") && (
             <motion.div
               key="login"
-              initial={{ opacity: 0 }}
+              {...firstRunVisualInitial()}
               animate={{
-                opacity: 1,
-                transition: { duration: 1.1, ease: [0.22, 1, 0.36, 1] },
+                ...firstRunVisualVisible(),
+                transition: firstRunTransition(prefersReducedMotion),
               }}
               exit={{
-                opacity: 0,
-                transition: { duration: 0.28, ease: [0.4, 0, 0.6, 1] },
+                ...firstRunVisualExit(),
+                transition: firstRunTransition(prefersReducedMotion),
               }}
-              className="h-full"
+              className="relative h-full"
               style={{ zIndex: 1 }}
+              data-first-run-transition="login"
             >
               <LoginScreen succeeded={phase === "login_success"} />
             </motion.div>
@@ -2060,21 +2107,18 @@ function ElectronAppContent() {
           {phase === "welcome" && (
             <motion.div
               key="welcome"
-              initial={{ opacity: 1, filter: "blur(0px)", scale: 1 }}
+              {...firstRunVisualInitial()}
               animate={{
-                opacity: 1,
-                filter: "blur(0px)",
-                scale: 1,
-                transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] },
+                ...firstRunVisualVisible(),
+                transition: firstRunTransition(prefersReducedMotion),
               }}
               exit={{
-                opacity: 0,
-                filter: "blur(24px)",
-                scale: 0.97,
-                transition: { duration: 0.95, ease: [0.4, 0, 0.2, 1] },
+                ...firstRunVisualExit(),
+                transition: firstRunTransition(prefersReducedMotion),
               }}
-              className="h-full"
+              className="relative h-full"
               style={{ zIndex: 2 }}
+              data-first-run-transition="welcome"
             >
               <WelcomeAnimation
                 userName={user?.username || null}
@@ -2100,26 +2144,27 @@ function ElectronAppContent() {
               // That traps them inside this compositing layer, causing visual
               // misalignment until the filter clears. Opacity alone is safe, it
               // does NOT create a containing block.
-              // The inner AppLayout page div (0.32s, blur 6px) provides the visual
-              // entrance drama; clearContainingBlock cleans that up after it completes.
-              initial={{ opacity: 1 }}
+               // The dedicated sibling scrim below supplies the blur without
+               // creating a containing block around fixed dashboard descendants.
+               initial={{ opacity: 0 }}
               animate={
                 isSigningOut
                   ? {
                       opacity: 0,
-                      transition: { duration: 0.95, ease: [0.4, 0, 0.2, 1] },
+                       transition: firstRunTransition(prefersReducedMotion),
                     }
                   : {
                       opacity: 1,
-                      transition: {
-                        duration: 0.35,
-                        delay: 0,
-                        ease: [0.22, 1, 0.36, 1],
-                      },
+                       transition: firstRunTransition(prefersReducedMotion),
                     }
               }
+               exit={{
+                 opacity: 0,
+                 transition: firstRunTransition(prefersReducedMotion),
+               }}
               className="h-full"
               style={{ pointerEvents: isSigningOut ? "none" : undefined }}
+              data-first-run-transition="dashboard"
               onAnimationStart={() =>
                 console.log("[Handoff] dashboard fade-in started")
               }
@@ -2135,6 +2180,11 @@ function ElectronAppContent() {
             </motion.div>
           )}
         </AnimatePresence>
+
+        <DashboardTransitionLayer
+          active={phase === "authenticated"}
+          prefersReducedMotion={prefersReducedMotion}
+        />
 
         {/* Required first-session language choice. The session is already
             authenticated at this point; the modal must complete before the
