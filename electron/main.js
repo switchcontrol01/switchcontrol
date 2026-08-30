@@ -75,6 +75,7 @@
   const { createFactoryResetHandler } = require('./factory-reset');
   const { APPDATA_DIR, TWEAK_STATE_FILE, CONFIG_FILE, DEVICE_ID_FILE, SPECS_CACHE_FILE, DEVICE_SIGNATURE_FILE } = require('./user-data-paths');
   const processControl = require('./process-control');
+  const { selectProcessCount } = require('./process-count');
 
   // Create the restore point used by the "Create restore point" preference.
   // This intentionally runs immediately before an apply operation, not when
@@ -304,7 +305,15 @@
     }
     if (liveProcessFlight) return liveProcessFlight;
 
-    liveProcessFlight = si.processes()
+    liveProcessFlight = Promise.resolve()
+      .then(() => si.processes())
+      .catch(error => {
+        console.warn(
+          '[Telemetry] systeminformation process count failed:',
+          error?.message || error,
+        );
+        return null;
+      })
       .then(async result => {
         const systemInformationCount = {
           running: Number.isFinite(result?.running) ? result.running : 0,
@@ -316,8 +325,17 @@
         // telemetry remain valid in that case, but the responsiveness model
         // would be blocked forever by total=0. Use a count-only native probe
         // as a fallback; it does not inspect process names or command lines.
-        if (systemInformationCount.total > 0) {
-          liveProcessCount = systemInformationCount;
+        const rawCount = systemInformationCount.total > 0
+          ? null
+          : await runMainPs(
+            "$ErrorActionPreference = 'Stop'; " +
+            "(Get-Process -ErrorAction Stop | Measure-Object).Count",
+            { timeout: 8_000, label: 'telemetry:getProcessCount' },
+          );
+        const selected = selectProcessCount(systemInformationCount, rawCount);
+
+        if (selected.source === 'systeminformation') {
+          liveProcessCount = selected.count;
           console.info(
             `[Telemetry] Process count source=systeminformation total=${liveProcessCount.total}`,
           );
@@ -326,14 +344,8 @@
           return liveProcessCount;
         }
 
-        const rawCount = await runMainPs(
-          "$ErrorActionPreference = 'Stop'; " +
-          "(Get-Process -ErrorAction Stop | Measure-Object).Count",
-          { timeout: 8_000, label: 'telemetry:getProcessCount' },
-        );
-        const fallbackTotal = Number.parseInt(rawCount || '', 10);
-        if (Number.isFinite(fallbackTotal) && fallbackTotal > 0) {
-          liveProcessCount = { running: fallbackTotal, total: fallbackTotal };
+        if (selected.source === 'Get-Process') {
+          liveProcessCount = selected.count;
           console.info(
             `[Telemetry] Process count source=Get-Process total=${liveProcessCount.total}`,
           );

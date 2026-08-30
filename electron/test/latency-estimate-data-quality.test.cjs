@@ -1,6 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
+const { selectProcessCount } = require("../process-count");
 
 function read(path) {
   return fs.readFileSync(path, "utf8");
@@ -44,6 +45,33 @@ test("latency estimate refuses incomplete telemetry instead of returning the flo
     electronMain,
     /label: 'telemetry:getProcessCount'/,
     "the process-count fallback must use the shared PowerShell limiter",
+  );
+});
+
+test("zero systeminformation process count recovers from native Windows count", () => {
+  const selected = selectProcessCount({ running: 0, total: 0 }, " 184\r\n");
+
+  assert.deepEqual(selected, {
+    source: "Get-Process",
+    count: { running: 184, total: 184 },
+  });
+});
+
+test("rejected systeminformation probe also uses native Windows count", () => {
+  assert.deepEqual(
+    selectProcessCount(null, " 176\r\n"),
+    { source: "Get-Process", count: { running: 176, total: 176 } },
+  );
+});
+
+test("unavailable native process count stays unavailable", () => {
+  assert.deepEqual(
+    selectProcessCount({ running: 0, total: 0 }, "0"),
+    { source: "unavailable", count: { running: 0, total: 0 } },
+  );
+  assert.deepEqual(
+    selectProcessCount({ running: 0, total: 0 }, "not-a-count"),
+    { source: "unavailable", count: { running: 0, total: 0 } },
   );
 });
 
