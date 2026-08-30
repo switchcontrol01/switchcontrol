@@ -87,4 +87,5 @@
 - [Drive optimization truth](drive-optimization-truth.md) — SwitchControl history is not Windows Optimize Drives state; label sources and never recommend from missing app history alone.
 - [Adaptive performance boundary](adaptive-performance-boundary.md) — machine capability profiles are separate from Light Mode; live invalidations must supersede in-flight snapshots.
 - [AnimatePresence exit boundary](animate-presence-exit-boundary.md) — keep component-owned motion children inside AnimatePresence; returning null immediately bypasses exit animations.
-- [First-run handoff sequencing](first-run-handoff.md) — retain the source phase until the visual cover is opaque, then mount the target under the reveal.
+ - [First-run handoff sequencing](first-run-handoff.md) — retain the source phase until the visual cover is opaque, then mount the target under the reveal.
+ - [OAuth entitlement rehydration](oauth-entitlement-rehydration.md) — fresh Electron profiles must reopen entitlement hydration after OAuth and promote UI verification on every verified refresh.

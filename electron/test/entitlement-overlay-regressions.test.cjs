@@ -34,6 +34,19 @@ test("cached or grace entitlements never become cloud verification", () => {
   );
 });
 
+test("OAuth login reopens entitlement hydration after an unauthenticated boot", () => {
+  assert.match(
+    app,
+    /setEntitlementsAttempted\(false\);\s*setEntitlementsOk\(false\);\s*setEntitlementsVerified\(false\);\s*useAuthStore\.getState\(\)\.setElectronAuthState\("authenticated"\)/,
+    "a successful OAuth exchange must not inherit the unauthenticated boot attempt",
+  );
+  assert.match(
+    app,
+    /onVerified:\s*useCallback\(\(\) =>[\s\S]*?setEntitlementsOk\(true\);[\s\S]*?setEntitlementsVerified\(true\)/,
+    "a verified focus refresh must promote the App-level entitlement gate",
+  );
+});
+
 test("expiry trigger rechecks cloud verification and current activity", () => {
   assert.match(
     premiumExpiry,

@@ -552,6 +552,15 @@ function ElectronAppContent() {
   const { refresh: refreshEntitlementsNow } = useEntitlementRefresh({
     refreshOnMount: false, // boot flow (checkAuth) already handles the initial fetch
     refreshOnFocus: true,
+    onVerified: useCallback(() => {
+      // Focus/visibility refreshes are also authoritative /api/me responses.
+      // Promote the App-level gate here as well as the grace snapshot; otherwise
+      // a fresh AppData profile can receive isPremium=true and still render every
+      // premium surface as locked because the boot-only local flags remain false.
+      setEntitlementsOk(true);
+      setEntitlementsVerified(true);
+      setEntitlementsAttempted(true);
+    }, []),
   });
 
   // Safety-net poll: SwitchControl is often left focused/visible for long
@@ -1440,6 +1449,14 @@ function ElectronAppContent() {
           if (exchangedUser) {
             useAuthStore.getState().setToken(authCode);
             useAuthStore.getState().setUser(exchangedUser);
+            // The initial boot attempt normally runs before OAuth completes and
+            // marks entitlementsAttempted=true with no authenticated user. Reopen
+            // the gate so the authenticated session gets a real /api/me
+            // verification even when the user started with a freshly deleted
+            // %AppData% directory.
+            setEntitlementsAttempted(false);
+            setEntitlementsOk(false);
+            setEntitlementsVerified(false);
             useAuthStore.getState().setElectronAuthState("authenticated");
             console.log(
               `[Auth] exchange success, user=${exchangedUser.id} provider=${provider}`,

@@ -1,16 +1,20 @@
 import { useEffect, useCallback, useRef } from 'react';
 import { useAuthStore, refreshEntitlements, safeGetJwt, AUTH_DOMAIN } from '@/lib/auth-store';
 import { usePremiumGraceStore, type EntitlementFeatures } from '@/stores/premiumGraceStore';
+import type { EntitlementRefreshResult } from '@/lib/authClient';
 
 interface UseEntitlementRefreshOptions {
   refreshOnFocus?: boolean;
   refreshOnMount?: boolean;
+  /** Called after /api/me has authoritatively verified the current session. */
+  onVerified?: (result: EntitlementRefreshResult) => void;
 }
 
 export function useEntitlementRefresh(options: UseEntitlementRefreshOptions = {}) {
   const { 
     refreshOnFocus = true, 
-    refreshOnMount = true 
+    refreshOnMount = true,
+    onVerified,
   } = options;
   
   const user = useAuthStore((state) => state.user);
@@ -37,6 +41,7 @@ export function useEntitlementRefresh(options: UseEntitlementRefreshOptions = {}
       ]);
       if (result?.verified && result.user) {
         setVerified(result.user.isPremium, result.user.plan ?? null, result.user.id ?? null, features);
+        onVerified?.(result);
         console.log(`[Premium] Grace snapshot saved — isPremium=${result.user.isPremium} features=${!!features}`);
 
         // Clear the post-update grace flag now that auth has successfully verified
@@ -59,7 +64,7 @@ export function useEntitlementRefresh(options: UseEntitlementRefreshOptions = {}
     } finally {
       isRefreshing.current = false;
     }
-  }, [user?.loggedIn, setVerified]);
+  }, [user?.loggedIn, onVerified, setVerified]);
 
   useEffect(() => {
     if (refreshOnMount && user?.loggedIn) {
