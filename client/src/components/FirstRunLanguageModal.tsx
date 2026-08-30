@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { AnimatePresence, motion, useMotion } from "@/lib/motionTokens";
+import { AnimatePresence, motion } from "@/lib/motionTokens";
 import { Check, ChevronRight, Languages, ShieldCheck, Sparkles } from "lucide-react";
 import { LOCALES, useTranslation, type Locale } from "@/lib/i18n";
 import {
@@ -9,6 +9,7 @@ import {
   firstRunVisualExit,
   firstRunVisualInitial,
   firstRunVisualVisible,
+  useFirstRunReducedMotion,
 } from "@/lib/firstRunTransition";
 
 interface FirstRunLanguageModalProps {
@@ -38,7 +39,7 @@ export function FirstRunLanguageModal({
   onTransitionStart,
 }: FirstRunLanguageModalProps) {
   const { t, language, setLanguage } = useTranslation();
-  const { prefersReducedMotion } = useMotion();
+  const prefersReducedMotion = useFirstRunReducedMotion();
   const [step, setStep] = useState<ModalStep>("prompt");
   const [selectedLocale, setSelectedLocale] = useState<Locale>(
     language === "en" ? "en" : language,

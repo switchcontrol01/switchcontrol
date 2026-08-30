@@ -23,6 +23,16 @@ const translatedTourPreviews = {
 const welcome = read("client/src/components/WelcomeAnimation.tsx");
 
 test("first-run visual contract is shared by every handoff state", () => {
+  assert.match(
+    transition,
+    /useFirstRunReducedMotion[\s\S]*useUserPreferencesStore[\s\S]*reducedMotion/,
+    "first-run motion must use the app preference instead of the Windows media query",
+  );
+  assert.match(
+    app,
+    /useFirstRunReducedMotion\(\)/,
+    "Electron first-run flow must use the app-controlled motion preference",
+  );
   assert.match(transition, /FIRST_RUN_TRANSITION_MS = 2000/);
   assert.match(transition, /FIRST_RUN_TRANSITION_SECONDS = FIRST_RUN_TRANSITION_MS \/ 1000/);
   assert.match(transition, /FIRST_RUN_BLUR_PX = 18/);

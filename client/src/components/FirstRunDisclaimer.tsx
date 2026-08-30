@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import { motion, AnimatePresence, useMotion } from "@/lib/motionTokens";
+import { motion, AnimatePresence } from "@/lib/motionTokens";
 import { Shield, AlertTriangle, Gamepad2, ExternalLink, CheckCircle2 } from "lucide-react";
 import {
   FIRST_RUN_TRANSITION_MS,
@@ -8,6 +8,7 @@ import {
   firstRunVisualExit,
   firstRunVisualInitial,
   firstRunVisualVisible,
+  useFirstRunReducedMotion,
 } from "@/lib/firstRunTransition";
 import { useTranslation } from "@/lib/i18n";
 
@@ -62,7 +63,7 @@ export function FirstRunDisclaimer({
   onTransitionStart,
 }: Props) {
   const { t } = useTranslation();
-  const { prefersReducedMotion } = useMotion();
+  const prefersReducedMotion = useFirstRunReducedMotion();
   const [phase, setPhase] = useState<Phase>("done");
   const [isEntered, setIsEntered] = useState(false);
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);

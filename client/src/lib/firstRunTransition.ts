@@ -5,10 +5,22 @@
  * (sidebar and modals) would become fixed to the filtered wrapper. In that
  * case, use the sibling dashboard scrim exported below instead.
  */
+import { useUserPreferencesStore } from "@/stores/userPreferencesStore";
+
 export const FIRST_RUN_TRANSITION_MS = 2000;
 export const FIRST_RUN_TRANSITION_SECONDS = FIRST_RUN_TRANSITION_MS / 1000;
 export const FIRST_RUN_BLUR_PX = 18;
 export const FIRST_RUN_EASE = [0.22, 1, 0.36, 1] as const;
+
+/**
+ * First-run motion is controlled by SwitchControl's own preference rather
+ * than the host OS media query. The app is a Windows tweaking utility and
+ * should not require users to enable Windows-wide animation effects just to
+ * see its own onboarding handoffs.
+ */
+export function useFirstRunReducedMotion(): boolean {
+  return useUserPreferencesStore((state) => state.reducedMotion);
+}
 
 export function firstRunTransition(prefersReducedMotion = false) {
   return {

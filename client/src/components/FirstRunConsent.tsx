@@ -8,7 +8,7 @@ import {
   LockKeyhole,
   X,
 } from "lucide-react";
-import { AnimatePresence, motion, useMotion } from "@/lib/motionTokens";
+import { AnimatePresence, motion } from "@/lib/motionTokens";
 import {
   LEGAL_LAST_UPDATED,
   PRIVACY_SECTIONS,
@@ -21,6 +21,7 @@ import {
   firstRunVisualExit,
   firstRunVisualInitial,
   firstRunVisualVisible,
+  useFirstRunReducedMotion,
 } from "@/lib/firstRunTransition";
 import { useTranslation } from "@/lib/i18n";
 
@@ -70,7 +71,7 @@ export function FirstRunConsent({
   onTransitionStart,
 }: Props) {
   const { t } = useTranslation();
-  const { prefersReducedMotion } = useMotion();
+  const prefersReducedMotion = useFirstRunReducedMotion();
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const exitTimerRef = useRef<number | null>(null);
   const completeRef = useRef(onComplete);

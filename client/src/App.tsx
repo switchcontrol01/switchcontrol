@@ -100,12 +100,12 @@ import {
   firstRunVisualExit,
   firstRunVisualInitial,
   firstRunVisualVisible,
+  useFirstRunReducedMotion,
 } from "@/lib/firstRunTransition";
 import {
   FirstRunHandoff,
   type FirstRunHandoffKind,
 } from "@/components/FirstRunHandoff";
-import { useMotion } from "@/lib/motionTokens";
 const _isElectronRuntime =
   typeof window !== "undefined" && !!(window as any).electronAPI?.isElectron;
 // Build-selected route map: web pages use route chunks, while Electron uses an
@@ -395,7 +395,10 @@ type AppFlow =
   | "premiumTour";
 
 function ElectronAppContent() {
-  const { prefersReducedMotion } = useMotion();
+  // First-run handoffs use the app preference, not Windows'
+  // prefers-reduced-motion media query. Users commonly disable Windows
+  // animation effects on performance-focused machines.
+  const prefersReducedMotion = useFirstRunReducedMotion();
   const [phase, setPhase] = useState<AppPhase>("splash");
   const [splashDone, setSplashDone] = useState(false);
   const [showGlow, setShowGlow] = useState(false);

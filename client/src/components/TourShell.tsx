@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { motion, AnimatePresence, useMotion } from '@/lib/motionTokens';
+import { motion, AnimatePresence } from '@/lib/motionTokens';
 import { useLocation } from 'wouter';
 import { ChevronRight, ChevronLeft, X } from 'lucide-react';
 import { clearTourState, useTourStore } from '@/lib/tour-store';
@@ -13,6 +13,7 @@ import {
   firstRunVisualExit,
   firstRunVisualInitial,
   firstRunVisualVisible,
+  useFirstRunReducedMotion,
 } from '@/lib/firstRunTransition';
 
 export interface TourStep {
@@ -389,7 +390,7 @@ export function TourShell({
   isPremium = false,
 }: TourShellProps) {
   const { t } = useTranslation();
-  const { prefersReducedMotion } = useMotion();
+  const prefersReducedMotion = useFirstRunReducedMotion();
   const [stepIndex, setStepIndex] = useState(0);
   const [direction, setDirection] = useState(1);
   const [completing, setCompleting] = useState(false);
