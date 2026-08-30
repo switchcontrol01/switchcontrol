@@ -473,6 +473,13 @@ function summarizeRevertDetails(details) {
   };
 }
 
+function isUnverifiableOwnershipRecord(record) {
+  return !!record &&
+    record.appliedByApp === true &&
+    record.baselineCaptured !== true &&
+    (record.previousValue === null || record.previousValue === undefined);
+}
+
 /**
  * Revert all app-owned premium changes.
  *
@@ -564,6 +571,23 @@ async function revertAllAppOwned(options = {}) {
       const { scopeKey, itemType, baselineCaptured } = record;
 
       if (!baselineCaptured) {
+        // Older builds claimed any active Windows setting as app-owned during
+        // startup reconciliation. Without a baseline that claim is not proof
+        // SwitchControl changed the setting. Preserve Windows state, release
+        // the stale claim, and let factory reset continue safely.
+        if (isUnverifiableOwnershipRecord(record)) {
+          ownershipStore.recordRevert(scopeKey);
+          return {
+            scopeKey,
+            result: {
+              success: true,
+              skipped: true,
+              safeToProceed: true,
+              action: 'released_unverifiable_ownership',
+              reason: 'No captured baseline; Windows state was preserved and the unverified ownership claim was released.',
+            },
+          };
+        }
         return { scopeKey, result: { skipped: true, reason: 'No baseline captured — failing safe.' } };
       }
 
@@ -870,4 +894,5 @@ module.exports = {
   previewRevert,
   runStartupPowerPlanSanityCheck,
   summarizeRevertDetails,
+  isUnverifiableOwnershipRecord,
 };

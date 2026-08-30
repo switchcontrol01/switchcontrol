@@ -41,13 +41,18 @@ test("expiry trigger rechecks cloud verification and current activity", () => {
   );
   assert.match(
     premiumExpiry,
-    /if \(!entitlementVerifiedRef\.current \|\| isCurrentlyActiveRef\.current\)/,
+    /automaticRevertSuspendedRef\.current \|\|\s*!entitlementVerifiedRef\.current \|\|\s*isCurrentlyActiveRef\.current/,
     "a delayed timer or ownership check must not mutate Windows from stale state",
   );
   assert.match(
     premiumExpiry,
     /if \(!isLoggedIn \|\| !cloudEntitlementVerified\)/,
     "the watcher and timer must require the verified session boundary",
+  );
+  assert.match(
+    premiumExpiry,
+    /automaticRevertSuspendedRef\.current \|\|[\s\S]*?!entitlementVerifiedRef\.current/,
+    "a first-run consent gate must remain a final mutation boundary",
   );
 });
 

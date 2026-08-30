@@ -141,3 +141,22 @@ test("renderer rejects malformed native success results", async () => {
     /config\.json: locked/,
   );
 });
+
+test("startup reconciliation does not claim active Windows settings as app-owned", () => {
+  const main = read("electron/main.js");
+  assert.doesNotMatch(main, /active unowned tweak adopted for expiry revert/);
+  assert.doesNotMatch(main, /ownershipStore\.ensureRecord\(scopeKey[\s\S]{0,300}verificationState:\s*'unverified'/);
+});
+
+test("factory reset accepts safely released unverifiable ownership", () => {
+  const app = read("client/src/App.tsx");
+  const revertEngine = read("client/src/lib/premiumRevertEngine.ts");
+  assert.match(revertEngine, /detail\?\.skipped && detail\?\.safeToProceed[\s\S]{0,100}'skipped_user_owned'/);
+  assert.doesNotMatch(app, /item\.status === "skipped_user_owned"/);
+});
+
+test("Debloater sparklines always receive a concrete static path", () => {
+  const debloater = read("client/src/pages/Debloater.tsx");
+  assert.match(debloater, /<motion\.path\s+d=\{s\.spark\}/);
+  assert.doesNotMatch(debloater, /animate=\{\{\s*d:\s*s\.spark/);
+});

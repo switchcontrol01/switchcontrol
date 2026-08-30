@@ -82,4 +82,9 @@ test("trial banner fades after tour completion or eight seconds", () => {
     /window\.setTimeout\(dismiss, 8_000\)/,
     "the banner should auto-dismiss after eight seconds",
   );
+  assert.match(
+    appLayout,
+    /<AnimatePresence>[\s\S]*?ent\.showTrialBanner && !dismissed[\s\S]*?exit=\{\{ opacity: 0, y: -6 \}\}[\s\S]*?FIRST_RUN_TRANSITION_SECONDS/,
+    "the banner must remain mounted long enough for its two-second exit fade",
+  );
 });

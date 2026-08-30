@@ -4889,28 +4889,10 @@ $clientName=if($item.CLIENTNAME){[string]$item.CLIENTNAME}else{[string]$env:CLIE
 
     _batchCheckAllInFlight = Promise.resolve()
       .then(() => tweakExecutor.batchCheckAllTweaks())
-      .then((results) => {
-        // If AppData/ownership.json was wiped, a live active tweak must still
-        // be visible to the expiry pipeline. We know the current value, but
-        // not the pre-SwitchControl baseline, so create an un-baselined record
-        // and mark it app-owned without ever claiming an exact restore value.
-        if (process.platform === 'win32' && results && typeof results === 'object') {
-          for (const [tweakId, status] of Object.entries(results)) {
-            if (!tweakExecutor.ALL_TWEAKS[tweakId]) continue;
-            if (tweakExecutor.isUnsupported(tweakId)) continue;
-            if (!status || status.error || status.inconclusive || status.isApplied !== true) continue;
-            const scopeKey = ownershipStore.buildScopeKey('tweak', tweakId);
-            if (ownershipStore.getOwnershipRecord(scopeKey)) continue;
-            ownershipStore.ensureRecord(scopeKey, { itemType: 'tweak', itemId: tweakId });
-            ownershipStore.recordApply(scopeKey, {
-              appliedValue: true,
-              verificationState: 'unverified',
-            });
-            console.warn(`[tweak:batchCheckAll] active unowned tweak adopted for expiry revert: ${tweakId} (baseline unknown)`);
-          }
-        }
-        return results;
-      })
+      // A live Windows setting is not proof that SwitchControl changed it.
+      // Ownership is created only by a successful app mutation after capturing
+      // a baseline; startup reconciliation must remain read-only.
+      .then((results) => results)
       .finally(() => {
         _batchCheckAllInFlight = null;
       });

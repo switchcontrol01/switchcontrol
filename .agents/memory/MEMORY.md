@@ -16,7 +16,7 @@
 - [SysIntelligence WMI all-null guard](sysintelligence-wmi-null-guard.md) — when all 15 WMI sources timeout, skip _saveDiskCache() to preserve previous good data; restore disk fallback into memory if both are empty.
 - [Electron log noise patterns](electron-log-noise.md) — renderer console.warn → main [ERROR]; use console.info for expected races (e.g. slider "busy"). Module-level flags for page-visit guards (useRef resets on unmount).
 - [electronAPI global typing](electron-api-typing.md) — per-page `declare global` clashes with electron.d.ts; pre-existing tsc errors, build ignores them, do not fix inline.
-- [Premium revert engine reliability](premium-revert-engine.md) — ownership-store gap: tweaks applied before ownership tracking have no store record → skipped; fixed via store-fallback sweep in runPremiumRevert().
+- [Premium revert engine reliability](premium-revert-engine.md) — startup state is not ownership proof; never adopt active Windows tweaks without a baseline, and release unverifiable claims without blocking reset.
 - [Driver Intelligence design constraints](driver-intelligence.md) — detect-and-redirect only (never flash/auto-install); cloud DB never scraped; "partial" is a cached state (gate on hasData, not "ready"); lazy scan, trial=read-only.
 - [Premium slider/preset revert](premium-slider-preset-revert.md) — slider/preset tweaks were completely skipped by trial-expiry revert engine (0% success); backend sweeps existed but had no IPC exposure and no client-side caller.
 - [ps-shared module](ps-shared.md) — single shared PS primitive module (electron/ps-shared.js); all three executors import runPS/queryPS/checkIsAdmin/runElevated from it; one semaphore, one _isAdminCache.
@@ -46,7 +46,7 @@
 - [PS limiter shared-ceiling merge](ps-limiter-shared-ceiling.md) — psLimiter rejects-on-busy; tweak-executor queues. Option C: keep both conventions, share ONE cap via psLimiter.MAX_CONCURRENT_PS=6; onRelease() hook wakes tweak-executor queue when main.js slots free.
 - [Ring graph design rule](ring-graph-design.md) — SVG ring gauges: track + value arc only; never add an inner tick/dashed ring; glow via drop-shadow on arc, not extra circle strokes.
 - [Power-plan module integrity](power-plan-module-integrity.md) — Electron power-plan manager had a committed truncated body; keep Windows-only operations explicit and verify activation rather than reporting placeholder success.
-- [Desktop route loading](desktop-route-loading.md) — lazy desktop pages need a shell fallback and shared sidebar-prefetch cache; route Suspense otherwise removes the whole AppLayout on first navigation.
+- [Desktop route loading](desktop-route-loading.md) — Electron routes load eagerly; never restore the full-route Suspense skeleton that could strand packaged file:// navigation.
 - [Tour dynamic-step stability](tour-dynamic-step-stability.md) — TourShell must keep changing step arrays in a ref so auth/countdown rerenders cannot reactivate the sidebar lock after completion.
 - [Authenticated POST conventions](authenticated-post-conventions.md) — protected raw POST callers must use the shared API helper so JWT, Electron headers, and CSRF remain intact.
 - [Fresh-install auth boot](fresh-install-auth-boot.md) — logged-out cold boots must make cleanup non-blocking so a stale logout cannot strand the app before login.
@@ -86,3 +86,4 @@
 - [Windows process-count fallback](windows-process-count-fallback.md) — systeminformation may return zero for valid Windows process lists; use a native count-only fallback and never guess.
 - [Drive optimization truth](drive-optimization-truth.md) — SwitchControl history is not Windows Optimize Drives state; label sources and never recommend from missing app history alone.
 - [Adaptive performance boundary](adaptive-performance-boundary.md) — machine capability profiles are separate from Light Mode; live invalidations must supersede in-flight snapshots.
+- [AnimatePresence exit boundary](animate-presence-exit-boundary.md) — keep component-owned motion children inside AnimatePresence; returning null immediately bypasses exit animations.

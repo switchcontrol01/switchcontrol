@@ -144,7 +144,7 @@ function OptimizationTimeline({ history, driveLetter }: { history: DriveOptHisto
     return (
       <div className="flex items-center gap-2 py-3 text-[11px] text-[#4a5460]">
         <Clock className="w-3.5 h-3.5" />
-        No optimization history for this drive yet.
+        No SwitchControl optimization history for this drive yet.
       </div>
     );
   }
@@ -655,7 +655,7 @@ export default function StorageHealthSection() {
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-2">
                             <Activity className="w-3.5 h-3.5 text-[#6B7380]" />
-                            <p className="text-[11px] font-semibold text-[#6B7380] uppercase tracking-wider">Optimization History</p>
+                            <p className="text-[11px] font-semibold text-[#6B7380] uppercase tracking-wider">SwitchControl History</p>
                           </div>
                           <button
                             onClick={() => navigate("/ai-advisor")}

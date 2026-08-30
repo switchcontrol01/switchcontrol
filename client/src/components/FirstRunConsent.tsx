@@ -31,6 +31,7 @@ interface Props {
   userId: string;
   onComplete: () => void;
   onDecline: () => void;
+  onTransitionStart?: () => void;
 }
 
 function LegalSectionView({ section }: { section: LegalSection }) {
@@ -55,13 +56,19 @@ function LegalSectionView({ section }: { section: LegalSection }) {
   );
 }
 
-export function FirstRunConsent({ userId, onComplete, onDecline }: Props) {
+export function FirstRunConsent({
+  userId,
+  onComplete,
+  onDecline,
+  onTransitionStart,
+}: Props) {
   const { prefersReducedMotion } = useMotion();
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const exitTimerRef = useRef<number | null>(null);
   const completeRef = useRef(onComplete);
   const [isEntered, setIsEntered] = useState(false);
   const [isAtBottom, setIsAtBottom] = useState(false);
+  const [scrollProgress, setScrollProgress] = useState(0);
   const [isExiting, setIsExiting] = useState(false);
   const [isDeclining, setIsDeclining] = useState(false);
   const [persistenceError, setPersistenceError] = useState(false);
@@ -71,6 +78,12 @@ export function FirstRunConsent({ userId, onComplete, onDecline }: Props) {
   const checkScrollPosition = useCallback(() => {
     const element = scrollRef.current;
     if (!element) return;
+    const scrollableDistance = element.scrollHeight - element.clientHeight;
+    const progress =
+      scrollableDistance <= 0
+        ? 1
+        : Math.min(1, Math.max(0, element.scrollTop / scrollableDistance));
+    setScrollProgress(progress);
     const reachedBottom =
       element.scrollTop + element.clientHeight >=
       element.scrollHeight - BOTTOM_THRESHOLD_PX;
@@ -114,6 +127,7 @@ export function FirstRunConsent({ userId, onComplete, onDecline }: Props) {
       return;
     }
     setIsExiting(true);
+    onTransitionStart?.();
     exitTimerRef.current = window.setTimeout(
       () => completeRef.current(),
       prefersReducedMotion ? 0 : FIRST_RUN_TRANSITION_MS,
@@ -127,6 +141,20 @@ export function FirstRunConsent({ userId, onComplete, onDecline }: Props) {
       onDecline,
       prefersReducedMotion ? 0 : FIRST_RUN_TRANSITION_MS,
     );
+  };
+
+  const greenProgress = isAtBottom ? 1 : scrollProgress;
+  const agreeButtonStyle = {
+    background: isAtBottom
+      ? "linear-gradient(135deg, rgba(52,211,153,0.30), rgba(16,185,129,0.24))"
+      : `linear-gradient(135deg, rgba(52,211,153,${0.035 + greenProgress * 0.19}), rgba(16,185,129,${0.025 + greenProgress * 0.15}))`,
+    borderColor: `rgba(110,231,183,${0.1 + greenProgress * 0.38})`,
+    color: isAtBottom
+      ? "rgba(209,250,229,1)"
+      : `rgba(209,250,229,${0.28 + greenProgress * 0.56})`,
+    boxShadow: isAtBottom
+      ? "0 0 24px rgba(52,211,153,0.22), inset 0 1px 0 rgba(255,255,255,0.10)"
+      : `0 0 ${8 + greenProgress * 16}px rgba(52,211,153,${greenProgress * 0.18}), inset 0 1px 0 rgba(255,255,255,${greenProgress * 0.07})`,
   };
 
   return createPortal(
@@ -294,11 +322,12 @@ export function FirstRunConsent({ userId, onComplete, onDecline }: Props) {
                 onClick={accept}
                 disabled={!isAtBottom || isExiting || isDeclining}
                 data-testid="button-first-run-consent-agree"
-                className={`inline-flex items-center justify-center gap-2 rounded-xl border px-5 py-3 text-xs font-semibold transition-all ${
+                className={`inline-flex items-center justify-center gap-2 rounded-xl border px-5 py-3 text-xs font-semibold transition-all duration-300 ${
                   isAtBottom
-                    ? "border-emerald-300/45 bg-emerald-300/[0.16] text-emerald-100 shadow-[0_0_24px_rgba(52,211,153,0.16)] hover:bg-emerald-300/[0.23]"
-                    : "cursor-not-allowed border-white/[0.1] bg-white/[0.04] text-white/30"
+                    ? "hover:bg-emerald-300/[0.38]"
+                    : "cursor-not-allowed"
                 }`}
+                style={agreeButtonStyle}
               >
                 <Check className="h-3.5 w-3.5" />
                 Agree &amp; continue

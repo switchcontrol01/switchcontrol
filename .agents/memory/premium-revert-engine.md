@@ -67,3 +67,10 @@ When touching the revert engine or ownership store, ensure:
 **Why:** Live entitlement refresh can re-render optimization surfaces at the same time as state hydration. Without a transition guard, a replayed batch can apply previously used Premium tweaks immediately after a grant.
 
 **How to apply:** Label apply sources (`manual_toggle`, `optimizer_apply`, `startup_reconcile`), keep startup reconciliation read-only, and enforce the guard in the shared bulk-apply entry point.
+
+### 8. Active Windows state is not ownership evidence
+**Rule:** Startup reconciliation may display verified live state but must never create app-ownership records from an enabled setting alone. Unbaselined legacy ownership claims are released without changing Windows and do not block factory reset.
+
+**Why:** A prior recovery sweep adopted every active tweak as app-owned, producing dozens of records with no baseline. Exact revert correctly refused to guess, but factory reset then became permanently blocked by settings SwitchControl could not prove it changed.
+
+**How to apply:** Create ownership only after a successful app mutation with a captured baseline. Treat missing-baseline ownership as unverifiable/user-owned: preserve the current OS value, clear the stale claim, and continue reset.

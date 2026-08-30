@@ -15,6 +15,7 @@ interface FirstRunLanguageModalProps {
   userId: string;
   accountLabel: string;
   onComplete: (locale: Locale) => void;
+  onTransitionStart?: () => void;
 }
 
 type ModalStep = "prompt" | "picker";
@@ -34,6 +35,7 @@ export function FirstRunLanguageModal({
   userId,
   accountLabel,
   onComplete,
+  onTransitionStart,
 }: FirstRunLanguageModalProps) {
   const { t, language, setLanguage } = useTranslation();
   const { prefersReducedMotion } = useMotion();
@@ -75,6 +77,7 @@ export function FirstRunLanguageModal({
     setLanguage(locale);
     localStorage.setItem(`${LANGUAGE_PROMPT_KEY}${userId}`, locale);
     setIsExiting(true);
+    onTransitionStart?.();
 
     completionTimerRef.current = setTimeout(
       () => onComplete(locale),

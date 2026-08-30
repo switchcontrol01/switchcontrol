@@ -7,11 +7,10 @@ const read = (file) =>
   fs.readFileSync(path.join(process.cwd(), file), "utf8");
 
 const vite = read("vite.config.ts");
-const routes = read("client/src/routes/desktopRoutes.lazy.tsx");
-const prefetch = read("client/src/lib/route-prefetch.ts");
+const routes = read("client/src/routes/desktopRoutes.eager.tsx");
+const prefetch = read("client/src/lib/route-prefetch.eager.ts");
 const app = read("client/src/App.tsx");
 const main = read("electron/main.js");
-const packageContract = read("electron/scripts/verify-package-contract.js");
 
 const routeNames = [
   "Home",
@@ -32,23 +31,20 @@ const routeNames = [
   "ProcessManager",
 ];
 
-test("Electron selects demand-loaded desktop routes", () => {
-  assert.match(vite, /"desktopRoutes\.lazy\.tsx"/);
-  assert.doesNotMatch(vite, /mode === ["']electron["'][^;]*desktopRoutes\.eager/);
-  assert.match(routes, /loadDesktopRoute\("home"\)/);
+test("Electron selects eager desktop routes", () => {
+  assert.match(vite, /mode === ["']electron["'] \? ["']desktopRoutes\.eager\.tsx["']/);
+  assert.match(vite, /mode === ["']electron["'] \? ["']route-prefetch\.eager\.ts["']/);
   for (const routeName of routeNames) {
-    assert.match(routes, new RegExp(`${routeName}: lazy\\(\\(\\) => loadDesktopRoute\\(`));
+    assert.match(routes, new RegExp(`import ${routeName} from`));
   }
-  assert.match(prefetch, /const loaded = new Map/);
-  assert.match(prefetch, /loaded\.delete\(route\)/);
-  assert.match(prefetch, /throw error/);
+  assert.match(prefetch, /return Promise\.resolve\(\)/);
+  assert.doesNotMatch(prefetch, /import\("@\/pages\//);
 });
 
-test("route fallback preserves the Electron shell during first navigation", () => {
-  assert.match(app, /const ElectronRouteFallback/);
-  assert.match(app, /<AppLayout noPageAnimation>/);
-  assert.match(app, /data-testid="route-loading-fallback"/);
-  assert.match(app, /<Suspense fallback=\{<ElectronRouteFallback \/>}>/);
+test("Electron routes never replace the page with a route-loading skeleton", () => {
+  assert.doesNotMatch(app, /ElectronRouteFallback/);
+  assert.doesNotMatch(app, /route-loading-fallback/);
+  assert.doesNotMatch(app, /<Suspense fallback=\{<ElectronRouteFallback \/>}>/);
 });
 
 test("native modules are lazy and optional startup follows first-frame gates", () => {
@@ -69,25 +65,4 @@ test("native modules are lazy and optional startup follows first-frame gates", (
   assert.match(main, /scheduleDeferredStartupWork\('show-fallback'\)/);
   assert.doesNotMatch(main, /void runStartupAuditSafe\(\);/);
   assert.doesNotMatch(main, /const sentinel = sliderTweakExecutor\.checkCrashSentinel\(\);[\s\S]{0,120}createWindow\(\)/);
-});
-
-test("package contract verifies all desktop route chunks", () => {
-  for (const prefix of routeNames.map(name => name === "NicTuningPage" ? "NicTuning" : name)) {
-    assert.match(packageContract, new RegExp(`['"]${prefix}['"]`));
-  }
-  assert.match(packageContract, /Missing demand-loaded desktop route chunk/);
-});
-
-test("built Electron renderer contains a separate chunk for every desktop route when present", () => {
-  const assetsDir = path.join(process.cwd(), "dist-electron", "assets");
-  if (!fs.existsSync(assetsDir)) {
-    return;
-  }
-  const assets = fs.readdirSync(assetsDir);
-  for (const prefix of routeNames.map(name => name === "NicTuningPage" ? "NicTuning" : name)) {
-    assert.ok(
-      assets.some(name => name.startsWith(`${prefix}-`) && name.endsWith(".js")),
-      `expected generated chunk for ${prefix}`,
-    );
-  }
 });

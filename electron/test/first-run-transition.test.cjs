@@ -10,9 +10,12 @@ const app = read("client/src/App.tsx");
 const transition = read("client/src/lib/firstRunTransition.ts");
 const files = {
   login: read("client/src/App.tsx"),
+  language: read("client/src/components/FirstRunLanguageModal.tsx"),
+  consent: read("client/src/components/FirstRunConsent.tsx"),
   disclaimer: read("client/src/components/FirstRunDisclaimer.tsx"),
   tour: read("client/src/components/TourShell.tsx"),
 };
+const welcome = read("client/src/components/WelcomeAnimation.tsx");
 
 test("first-run visual contract is shared by every handoff state", () => {
   assert.match(transition, /FIRST_RUN_TRANSITION_MS = 2000/);
@@ -63,5 +66,70 @@ test("tour step changes and completion honor the same transition contract", () =
     tour,
     /prefersReducedMotion \? 0 : TOUR_COMPLETION_TIMING\.doneMs/,
     "reduced-motion users must not wait through the completion cinematic",
+  );
+});
+
+test("first-run flow follows login → language → notice → welcome → tour → done", () => {
+  assert.match(
+    app,
+    /if \(phase !== "login_success"\) return;[\s\S]*?setPhase\(getFirstRunGatePhase\(user\.id\)\)/,
+    "successful login must enter the account-scoped language/consent gate resolver",
+  );
+  assert.match(
+    app,
+    /FirstRunLanguage\] choice saved, transitioning to consent[\s\S]*?setPhase\("consent"\)/,
+    "language selection must transition to consent",
+  );
+  assert.match(
+    app,
+    /FirstRunConsent\] consent saved, transitioning to gaming disclaimer[\s\S]*?setPhase\("disclaiming"\)/,
+    "consent must transition to the gaming notice",
+  );
+  assert.match(
+    app,
+    /FirstRunDisclaimer\] dismissed, transitioning to welcome[\s\S]*?setPhase\("welcome"\)/,
+    "the notice must transition to the welcome animation",
+  );
+  assert.match(
+    app,
+    /intro exit complete, mounting dashboard[\s\S]*?setPhase\("authenticated"\)[\s\S]*?setLocation\("\/dashboard"\)/,
+    "welcome must finish before the app can mount and start the tour",
+  );
+  assert.match(
+    app,
+    /activeFlow === "firstTime"[\s\S]*?<OnboardingTour/,
+    "the first-time flow must mount the onboarding tour after welcome",
+  );
+  assert.match(
+    read("client/src/components/TourShell.tsx"),
+    /CompletionMoment[\s\S]*?onDoneRef\.current\(\)/,
+    "tour completion must reach the done callback",
+  );
+
+  for (const [name, source] of Object.entries(files)) {
+    assert.match(
+      source,
+      /firstRunVisualInitial\(\)[\s\S]*?firstRunVisualVisible\(\)[\s\S]*?firstRunVisualExit\(\)/,
+      `${name} must define blurred/transparent entry, visible, and exit states`,
+    );
+    assert.match(
+      source,
+      /firstRunTransition\(prefersReducedMotion\)/,
+      `${name} must use the shared two-second transition`,
+    );
+  }
+
+  // WelcomeAnimation is nested inside App.tsx. Its child blur is two seconds,
+  // while the App wrapper owns the state-level opacity/blur entry and exit.
+  assert.match(welcome, /initial=\{\{ filter: "blur\(18px\)" \}\}/);
+  assert.match(
+    welcome,
+    /animate=\{\{ filter: "blur\(0px\)" \}\}[\s\S]*?duration: 2\.0/,
+    "welcome content must use the two-second inner blur-in",
+  );
+  assert.match(
+    app,
+    /key="welcome"[\s\S]*?firstRunVisualInitial\(\)[\s\S]*?firstRunVisualVisible\(\)[\s\S]*?firstRunVisualExit\(\)/,
+    "the App wrapper must own Welcome state-level fade/blur entry and exit",
   );
 });

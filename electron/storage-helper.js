@@ -52,6 +52,38 @@ if (Get-Command Get-ScheduledTask -ErrorAction SilentlyContinue) {
     $optState.status = 'available'
   } catch {}
 }
+$lastOptimizationByDrive = @{}
+try {
+  $events = @(Get-WinEvent -FilterHashtable @{
+    LogName = 'Application'
+    ProviderName = 'Microsoft-Windows-Defrag'
+    Id = 258
+  } -MaxEvents 200 -ErrorAction Stop)
+  foreach ($event in $events) {
+    $eventText = ''
+    try {
+      $eventText = [string]$event.Message
+      $eventText += ' ' + (($event.Properties | ForEach-Object { [string]$_.Value }) -join ' ')
+    } catch {}
+    $driveLetter = $null
+    if ($eventText -match '(?i)\(([A-Z]):\)') {
+      $driveLetter = $Matches[1].ToUpperInvariant()
+    } elseif ($eventText -match '(?i)(?:^|\s)([A-Z]):(?:\\|\s|$)') {
+      $driveLetter = $Matches[1].ToUpperInvariant()
+    }
+    if (-not $driveLetter -or $lastOptimizationByDrive.ContainsKey($driveLetter)) { continue }
+    $operation = 'optimize'
+    if ($eventText -match '(?i)re-?trim|\btrim\b') { $operation = 'trim' }
+    elseif ($eventText -match '(?i)defrag') { $operation = 'defrag' }
+    elseif ($eventText -match '(?i)analy') { $operation = 'analysis' }
+    if ($event.TimeCreated) {
+      $lastOptimizationByDrive[$driveLetter] = @{
+        at = $event.TimeCreated.ToUniversalTime().ToString('o')
+        operation = $operation
+      }
+    }
+  }
+} catch {}
 $result = @()
 $volumes = @(Get-Volume -ErrorAction Stop | Where-Object { $_.DriveLetter -and $_.Size -gt 0 })
 $volumes | ForEach-Object {
@@ -86,7 +118,14 @@ $volumes | ForEach-Object {
     model = [string]$model
     trimEnabled = ([int]$trim -eq 1)
     diskHealth = [string]$diskHealth
-    optimization = $optState
+    optimization = @{
+      scheduleEnabled = $optState.scheduleEnabled
+      status = $optState.status
+      source = $optState.source
+      lastRunAt = $(if ($lastOptimizationByDrive.ContainsKey([string]$letter)) { $lastOptimizationByDrive[[string]$letter].at } else { $null })
+      lastRunOperation = $(if ($lastOptimizationByDrive.ContainsKey([string]$letter)) { $lastOptimizationByDrive[[string]$letter].operation } else { $null })
+      lastRunSource = $(if ($lastOptimizationByDrive.ContainsKey([string]$letter)) { 'windows-defrag-event-log' } else { $null })
+    }
   }
 }
 ConvertTo-Json -InputObject @($result) -Depth 5 -Compress
@@ -114,6 +153,15 @@ ConvertTo-Json -InputObject @($result) -Depth 5 -Compress
             ? row.optimization.status
             : 'unavailable',
           source: 'windows-scheduled-task',
+          lastRunAt: typeof row?.optimization?.lastRunAt === 'string'
+            ? row.optimization.lastRunAt
+            : null,
+          lastRunOperation: ['trim', 'defrag', 'analysis', 'optimize'].includes(row?.optimization?.lastRunOperation)
+            ? row.optimization.lastRunOperation
+            : null,
+          lastRunSource: row?.optimization?.lastRunSource === 'windows-defrag-event-log'
+            ? 'windows-defrag-event-log'
+            : null,
         },
       };
     }).filter(v => v.letter.length === 1);

@@ -2,7 +2,10 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 
 const powerPlans = require("../power-plan-manager.js");
-const { summarizeRevertDetails } = require("../premium-revert-pipeline.js");
+const {
+  summarizeRevertDetails,
+  isUnverifiableOwnershipRecord,
+} = require("../premium-revert-pipeline.js");
 
 test("powercfg parsers accept localized labels and retain GUID identity", () => {
   const active = powerPlans.parseActiveScheme(
@@ -37,4 +40,22 @@ test("revert summary counts each final detail exactly once", () => {
     success: false,
   });
   assert.equal(summary.total, summary.reverted + summary.skipped + summary.failed);
+});
+
+test("unbaselined ownership is treated as unverifiable instead of proof of an app change", () => {
+  assert.equal(isUnverifiableOwnershipRecord({
+    appliedByApp: true,
+    baselineCaptured: false,
+    previousValue: null,
+  }), true);
+  assert.equal(isUnverifiableOwnershipRecord({
+    appliedByApp: true,
+    baselineCaptured: true,
+    previousValue: false,
+  }), false);
+  assert.equal(isUnverifiableOwnershipRecord({
+    appliedByApp: false,
+    baselineCaptured: false,
+    previousValue: null,
+  }), false);
 });

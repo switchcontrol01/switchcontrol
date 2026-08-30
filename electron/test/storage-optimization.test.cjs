@@ -47,6 +47,62 @@ test('global Windows task history never overrides per-drive SwitchControl histor
   assert.equal(recommendation.action, 'Windows automatic optimization is enabled');
 });
 
+test('newer per-volume Windows optimization evidence overrides stale app history', async () => {
+  const { getStorageOptimizationRecommendation } = await import(moduleUrl);
+  const recommendation = getStorageOptimizationRecommendation(
+    {
+      ...ssd,
+      optimization: {
+        scheduleEnabled: true,
+        status: 'available',
+        source: 'windows-scheduled-task',
+        lastRunAt: '2026-08-30T04:26:00.000Z',
+        lastRunOperation: 'trim',
+        lastRunSource: 'windows-defrag-event-log',
+      },
+    },
+    [{
+      drive_letter: 'C',
+      optimize_type: 'trim',
+      status: 'success',
+      ran_at: '2026-07-03T09:00:00.000Z',
+    }],
+    NOW,
+  );
+
+  assert.equal(recommendation.days, 0);
+  assert.equal(recommendation.lastRunSource, 'windows');
+  assert.equal(recommendation.lastRunLabel, 'Windows');
+  assert.equal(recommendation.lastRunAt, '2026-08-30T04:26:00.000Z');
+  assert.equal(recommendation.due, false);
+});
+
+test('future or untrusted native timestamps cannot override valid app history', async () => {
+  const { getStorageOptimizationRecommendation } = await import(moduleUrl);
+  const recommendation = getStorageOptimizationRecommendation(
+    {
+      ...ssd,
+      optimization: {
+        scheduleEnabled: true,
+        status: 'available',
+        source: 'windows-scheduled-task',
+        lastRunAt: '2026-09-30T04:26:00.000Z',
+        lastRunOperation: 'trim',
+        lastRunSource: null,
+      },
+    },
+    [{
+      drive_letter: 'C',
+      optimize_type: 'trim',
+      status: 'success',
+      ran_at: '2026-08-29T09:00:00.000Z',
+    }],
+    NOW,
+  );
+  assert.equal(recommendation.lastRunSource, 'switchcontrol');
+  assert.equal(recommendation.days, 1);
+});
+
 test('opening the app repeatedly cannot make TRIM become recommended', async () => {
   const { getStorageOptimizationRecommendation } = await import(moduleUrl);
   const drive = {
@@ -108,10 +164,15 @@ test('unavailable native status cannot expose the optimization action', async ()
   assert.equal(recommendation.action, 'TRIM status unavailable');
 });
 
-test('native storage probe treats ScheduledDefrag as global schedule state only', () => {
+test('native storage probe keeps ScheduledDefrag global and reads per-volume success events', () => {
   assert.match(storageSource, /String\.raw`/);
   assert.match(storageSource, /-TaskPath '\\Microsoft\\Windows\\Defrag\\'/);
   assert.doesNotMatch(storageSource, /Get-ScheduledTaskInfo/);
   assert.doesNotMatch(storageSource, /LastRunTime/);
+  assert.match(storageSource, /Get-WinEvent -FilterHashtable/);
+  assert.match(storageSource, /ProviderName = 'Microsoft-Windows-Defrag'/);
+  assert.match(storageSource, /Id = 258/);
+  assert.match(storageSource, /lastRunSource = \$\(if .*'windows-defrag-event-log'/);
   assert.match(storageSource, /ConvertTo-Json -InputObject @\(\$result\)/);
+  assert.match(storageUiSource, />SwitchControl History</);
 });

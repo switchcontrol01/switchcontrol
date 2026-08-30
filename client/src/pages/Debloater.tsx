@@ -1743,7 +1743,7 @@
                       d={s.spark} fill="none" stroke={s.color} strokeWidth="2"
                       strokeLinecap="round" strokeLinejoin="round"
                       initial={{ pathLength: 0, opacity: 0.4 }}
-                      animate={{ d: s.spark, pathLength: 1, opacity: 0.85 }}
+                      animate={{ pathLength: 1, opacity: 0.85 }}
                       transition={{ duration: 1.1, delay: 0.2 + 0.05 * i, ease: "easeOut" }}
                       style={{ filter: `drop-shadow(0 0 4px ${s.color}66)` }}
                     />

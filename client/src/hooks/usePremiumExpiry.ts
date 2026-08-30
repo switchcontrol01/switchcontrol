@@ -46,6 +46,7 @@ interface UsePremiumExpiryOptions {
   trialEndsAt: string | null | undefined;
   isLoggedIn: boolean;
   entitlementsVerified: boolean;
+  suspendAutomaticRevert?: boolean;
 }
 
 interface UsePremiumExpiryReturn {
@@ -93,6 +94,7 @@ export function usePremiumExpiry({
   trialEndsAt,
   isLoggedIn,
   entitlementsVerified,
+  suspendAutomaticRevert = false,
 }: UsePremiumExpiryOptions): UsePremiumExpiryReturn {
   const prevWasActive   = useRef<boolean | null>(null);
   const prevPlan        = useRef<string | null>(null);
@@ -118,8 +120,10 @@ export function usePremiumExpiry({
   // so the final mutation gate must consult the latest values as well.
   const entitlementVerifiedRef = useRef(false);
   const isCurrentlyActiveRef = useRef(isCurrentlyActive);
+  const automaticRevertSuspendedRef = useRef(suspendAutomaticRevert);
   entitlementVerifiedRef.current = entitlementsVerified && graceSessionVerified;
   isCurrentlyActiveRef.current = isCurrentlyActive;
+  automaticRevertSuspendedRef.current = suspendAutomaticRevert;
   const cloudEntitlementVerified = entitlementsVerified && graceSessionVerified;
 
   useEffect(() => {
@@ -162,9 +166,13 @@ export function usePremiumExpiry({
     // Cached/grace entitlement data must never be sufficient to mutate
     // Windows, and a delayed ownership lookup must not revert a reactivated
     // account.
-    if (!entitlementVerifiedRef.current || isCurrentlyActiveRef.current) {
+    if (
+      automaticRevertSuspendedRef.current ||
+      !entitlementVerifiedRef.current ||
+      isCurrentlyActiveRef.current
+    ) {
       console.warn(
-        `[PremiumExpiry] Revert trigger ignored — cloudVerified=${entitlementVerifiedRef.current} active=${isCurrentlyActiveRef.current}`,
+        `[PremiumExpiry] Revert trigger ignored — suspended=${automaticRevertSuspendedRef.current} cloudVerified=${entitlementVerifiedRef.current} active=${isCurrentlyActiveRef.current}`,
       );
       return;
     }
@@ -226,6 +234,10 @@ export function usePremiumExpiry({
 
   // ── State-change watcher ───────────────────────────────────────────────────
   useEffect(() => {
+    if (suspendAutomaticRevert) {
+      prevWasActive.current = null;
+      return;
+    }
     if (!isLoggedIn || !cloudEntitlementVerified) {
       prevWasActive.current = null;
       return;
@@ -366,10 +378,17 @@ export function usePremiumExpiry({
     prevWasActive.current = isCurrentlyActive;
     prevPlan.current = plan ?? null;
     prevTrialEndsAt.current = trialEndsAt ?? null;
-  }, [isCurrentlyActive, isLoggedIn, cloudEntitlementVerified, triggerRevert]);
+  }, [
+    isCurrentlyActive,
+    isLoggedIn,
+    cloudEntitlementVerified,
+    suspendAutomaticRevert,
+    triggerRevert,
+  ]);
 
   // ── Countdown timer watcher ────────────────────────────────────────────────
   useEffect(() => {
+    if (suspendAutomaticRevert) return;
     if (!isLoggedIn || !cloudEntitlementVerified) return;
     if (plan !== 'trial' || !trialEndsAt) return;
 
@@ -405,7 +424,14 @@ export function usePremiumExpiry({
       cancelled = true;
       if (timerId !== null) clearTimeout(timerId);
     };
-  }, [isLoggedIn, cloudEntitlementVerified, plan, trialEndsAt, triggerRevert]);
+  }, [
+    isLoggedIn,
+    cloudEntitlementVerified,
+    plan,
+    trialEndsAt,
+    suspendAutomaticRevert,
+    triggerRevert,
+  ]);
 
   const retryRevert = useCallback(async () => {
     revertRunning.current = false;

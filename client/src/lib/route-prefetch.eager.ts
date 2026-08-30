@@ -1,12 +1,11 @@
 /**
- * Compatibility entry point for older build overrides.
- *
- * Electron now uses the demand-loaded route map too. Keeping this module as a
- * re-export prevents a stale alias or downstream build override from silently
- * regressing to an eager/no-prefetch route implementation.
+ * Electron desktop pages are bundled eagerly so file:// navigation never waits
+ * on a route chunk. Sidebar prefetch calls remain harmless no-ops.
  */
-export {
-  loadDesktopRoute,
-  preloadDesktopRoute,
-  preloadAllDesktopRoutes,
-} from "./route-prefetch";
+export function preloadDesktopRoute(_path: string): Promise<void> {
+  return Promise.resolve();
+}
+
+export function preloadAllDesktopRoutes(): Promise<void> {
+  return Promise.resolve();
+}

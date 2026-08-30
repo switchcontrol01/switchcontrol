@@ -14,6 +14,7 @@ import { useEntitlementUiState } from "@/hooks/useEntitlementUiState";
 import { useAuth } from "@/hooks/use-auth";
 import { useUserPreferencesStore } from "@/stores/userPreferencesStore";
 import { useTranslation } from "@/lib/i18n";
+import { FIRST_RUN_TRANSITION_SECONDS } from "@/lib/firstRunTransition";
 
 
 // Module-level flag — survives remounts within the same session but resets on
@@ -52,52 +53,55 @@ function TrialCountdownBanner() {
     return () => window.clearTimeout(timerId);
   }, [dismiss, dismissed, ent.showTrialBanner]);
 
-  if (!ent.showTrialBanner || dismissed) return null;
-
   return (
-    <motion.div
-      initial={{ opacity: 0, y: -6 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -6 }}
-      transition={{ duration: 0.3 }}
-      className={`fixed ${isPackagedElectron ? "top-[38px]" : "top-0"} ${largeSidebar ? "left-72" : "left-64"} right-0 z-50 flex items-center justify-between px-4 py-1.5 backdrop-blur`}
-      style={{
-        background: ent.isTrialUrgent
-          ? "linear-gradient(90deg, rgba(220,38,38,0.18) 0%, rgba(0,212,255,0.14) 100%)"
-          : "linear-gradient(90deg, rgba(6,182,212,0.15) 0%, rgba(0,212,255,0.12) 100%)",
-        borderBottom: ent.isTrialUrgent
-          ? "1px solid rgba(220,38,38,0.3)"
-          : "1px solid rgba(6,182,212,0.25)",
-      }}
-      data-testid="trial-countdown-banner"
-    >
-      <div
-        className="flex items-center gap-2 text-xs font-medium"
-        style={{ color: ent.isTrialUrgent ? "rgba(248,113,113,0.95)" : "rgba(6,182,212,0.95)" }}
-      >
-        {ent.isTrialUrgent ? (
-          <motion.div animate={{ opacity: [1, 0.5, 1] }} transition={{ duration: 1.2, repeat: Infinity }}>
-            <div className="size-1.5 rounded-full bg-red-400" />
-          </motion.div>
-        ) : (
-          <div className="size-1.5 rounded-full" style={{ background: "rgba(6,182,212,0.85)" }} />
-        )}
-        <Timer className="size-3" />
-        <span>
-          {t(ent.isTrialUrgent ? "Trial ending soon —" : "Free trial active —")}{" "}
-          <span className="font-bold font-mono">{ent.countdownLabel}</span>
-        </span>
-      </div>
-      <div className="flex items-center gap-3">
-        <button
-          onClick={dismiss}
-          className="text-[#6B7380] hover:text-[#A0A8B3] text-xs transition-colors ml-1"
-          aria-label={t("Dismiss")}
+    <AnimatePresence>
+      {ent.showTrialBanner && !dismissed && (
+        <motion.div
+          initial={{ opacity: 0, y: -6 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -6 }}
+          transition={{ duration: FIRST_RUN_TRANSITION_SECONDS }}
+          className={`fixed ${isPackagedElectron ? "top-[38px]" : "top-0"} ${largeSidebar ? "left-72" : "left-64"} right-0 z-50 flex items-center justify-between px-4 py-1.5 backdrop-blur`}
+          style={{
+            background: ent.isTrialUrgent
+              ? "linear-gradient(90deg, rgba(220,38,38,0.18) 0%, rgba(0,212,255,0.14) 100%)"
+              : "linear-gradient(90deg, rgba(6,182,212,0.15) 0%, rgba(0,212,255,0.12) 100%)",
+            borderBottom: ent.isTrialUrgent
+              ? "1px solid rgba(220,38,38,0.3)"
+              : "1px solid rgba(6,182,212,0.25)",
+          }}
+          data-testid="trial-countdown-banner"
+          data-dismiss-transition="2s"
         >
-          ✕
-        </button>
-      </div>
-    </motion.div>
+          <div
+            className="flex items-center gap-2 text-xs font-medium"
+            style={{ color: ent.isTrialUrgent ? "rgba(248,113,113,0.95)" : "rgba(6,182,212,0.95)" }}
+          >
+            {ent.isTrialUrgent ? (
+              <motion.div animate={{ opacity: [1, 0.5, 1] }} transition={{ duration: 1.2, repeat: Infinity }}>
+                <div className="size-1.5 rounded-full bg-red-400" />
+              </motion.div>
+            ) : (
+              <div className="size-1.5 rounded-full" style={{ background: "rgba(6,182,212,0.85)" }} />
+            )}
+            <Timer className="size-3" />
+            <span>
+              {t(ent.isTrialUrgent ? "Trial ending soon —" : "Free trial active —")}{" "}
+              <span className="font-bold font-mono">{ent.countdownLabel}</span>
+            </span>
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={dismiss}
+              className="text-[#6B7380] hover:text-[#A0A8B3] text-xs transition-colors ml-1"
+              aria-label={t("Dismiss")}
+            >
+              ✕
+            </button>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
 

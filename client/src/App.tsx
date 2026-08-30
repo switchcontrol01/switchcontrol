@@ -31,7 +31,6 @@ import { TrialTour } from "@/components/TrialTour";
 
 import { GuidedTour } from "@/components/GuidedTour";
 import { WindowControls } from "@/components/WindowControls";
-import { AppLayout } from "@/components/layout/AppLayout";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   useAuthStore,
@@ -42,6 +41,7 @@ import {
   retryRefreshEntitlements,
   triggerFlowReset,
   performFullLogout,
+  clearElectronAuthCookies,
   postUnlockSeen,
   postTourSeen,
   postResetTourFlags,
@@ -95,6 +95,7 @@ import { FirstRunDisclaimer } from "@/components/FirstRunDisclaimer";
 import { FirstRunLanguageModal } from "@/components/FirstRunLanguageModal";
 import { FirstRunConsent, TERMS_CONSENT_KEY } from "@/components/FirstRunConsent";
 import {
+  FIRST_RUN_EASE,
   FIRST_RUN_TRANSITION_MS,
   firstRunTransition,
   firstRunVisualExit,
@@ -104,9 +105,8 @@ import {
 import { useMotion } from "@/lib/motionTokens";
 const _isElectronRuntime =
   typeof window !== "undefined" && !!(window as any).electronAPI?.isElectron;
-// Build-selected route map: desktop pages stay demand-loaded in both web and
-// Electron builds. The Electron renderer uses relative asset URLs, so dynamic
-// route chunks resolve beside index.html without loading every page at boot.
+// Build-selected route map: web pages use route chunks, while Electron uses an
+// eager desktop map so file:// navigation never stalls on a route chunk.
 import { desktopRoutes } from "@/routes/desktopRoutes";
 // Website-only chunks, only prefetch on web (not in Electron where file:// protocol
 // causes chunk fetch failures for pages that are never shown in the desktop app).
@@ -177,6 +177,86 @@ type AppPhase =
   | "disclaiming"
   | "authenticated";
 
+type FirstRunHandoffKind = "language-to-consent" | "consent-to-disclaimer";
+
+const FIRST_RUN_HANDOFF_EXIT_MS = 420;
+
+function FirstRunHandoff({
+  kind,
+  prefersReducedMotion,
+  onComplete,
+}: {
+  kind: FirstRunHandoffKind;
+  prefersReducedMotion: boolean;
+  onComplete: () => void;
+}) {
+  const [isExiting, setIsExiting] = React.useState(false);
+  const onCompleteRef = React.useRef(onComplete);
+  onCompleteRef.current = onComplete;
+
+  React.useEffect(() => {
+    if (prefersReducedMotion) {
+      onCompleteRef.current();
+      return;
+    }
+
+    const exitTimer = window.setTimeout(
+      () => setIsExiting(true),
+      Math.max(0, FIRST_RUN_TRANSITION_MS - FIRST_RUN_HANDOFF_EXIT_MS),
+    );
+    return () => window.clearTimeout(exitTimer);
+  }, [prefersReducedMotion]);
+
+  return (
+    <motion.div
+      key={kind}
+      className="pointer-events-none fixed inset-0 z-[10001] overflow-hidden"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: isExiting ? 0 : 1 }}
+      transition={{
+        duration: (isExiting ? FIRST_RUN_HANDOFF_EXIT_MS : 520) / 1000,
+        ease: FIRST_RUN_EASE,
+      }}
+      onAnimationComplete={() => {
+        if (isExiting) onComplete();
+      }}
+      data-testid="first-run-blue-handoff"
+      data-handoff={kind}
+      data-animation-state={isExiting ? "exiting" : "visible"}
+      aria-hidden="true"
+    >
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            "radial-gradient(ellipse 90% 75% at 50% 42%, rgba(20,134,255,0.98) 0%, rgba(20,82,190,0.98) 42%, rgba(4,24,75,0.995) 100%)",
+        }}
+      />
+      <motion.div
+        className="absolute left-1/2 top-1/2 h-[min(54vw,560px)] w-[min(54vw,560px)] -translate-x-1/2 -translate-y-1/2 rounded-full"
+        style={{
+          background:
+            "radial-gradient(circle, rgba(125,224,255,0.34) 0%, rgba(37,126,255,0.16) 38%, transparent 72%)",
+          filter: "blur(26px)",
+        }}
+        animate={
+          prefersReducedMotion
+            ? undefined
+            : { scale: [0.82, 1.08, 0.96], opacity: [0.42, 0.8, 0.58] }
+        }
+        transition={{ duration: 1.8, ease: "easeInOut" }}
+      />
+      <div className="absolute inset-0 flex items-center justify-center">
+        <div className="rounded-full border border-white/20 bg-white/[0.08] px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.3em] text-white/80 shadow-[0_0_35px_rgba(111,211,255,0.3)]">
+          {kind === "language-to-consent"
+            ? "Preparing your setup"
+            : "Saving your preferences"}
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
 function getFirstRunGatePhase(userId: string): AppPhase {
   if (!localStorage.getItem(`sc_language_prompt_seen_${userId}`)) {
     return "language";
@@ -188,6 +268,52 @@ function getFirstRunGatePhase(userId: string): AppPhase {
     return "disclaiming";
   }
   return "welcome";
+}
+
+const FIRST_RUN_PENDING_KEY = "sc_first_run_pending_";
+
+function markFirstRunPending(userId: string): void {
+  localStorage.setItem(`${FIRST_RUN_PENDING_KEY}${userId}`, "true");
+}
+
+function clearFirstRunPending(userId: string): void {
+  localStorage.removeItem(`${FIRST_RUN_PENDING_KEY}${userId}`);
+}
+
+function restartFirstRunSequence(userId: string): void {
+  [
+    `sc_language_prompt_seen_${userId}`,
+    `${TERMS_CONSENT_KEY}${userId}`,
+    `sc_disclaimer_seen_${userId}`,
+    `sc_welcomed_${userId}`,
+    `sc_tour_completed_${userId}`,
+  ].forEach((key) => localStorage.removeItem(key));
+
+  // Keep an explicit account-scoped gate so a returning server account cannot
+  // skip first-run merely because hasInstalledApp was already recorded.
+  markFirstRunPending(userId);
+}
+
+function hasIncompleteFirstRunSequence(userId: string): boolean {
+  if (localStorage.getItem(`${FIRST_RUN_PENDING_KEY}${userId}`)) return true;
+
+  // Migration for users who quit on the consent/disclaimer screens before the
+  // explicit pending marker existed. A saved language choice proves this local
+  // first-run sequence already started; missing later markers mean it did not
+  // finish. Do not infer first-run solely from empty storage, because returning
+  // users can legitimately launch with a fresh AppData directory.
+  const languageChosen = Boolean(
+    localStorage.getItem(`sc_language_prompt_seen_${userId}`),
+  );
+  if (!languageChosen) return false;
+
+  const consented = Boolean(
+    localStorage.getItem(`${TERMS_CONSENT_KEY}${userId}`),
+  );
+  const disclaimerSeen = Boolean(
+    localStorage.getItem(`sc_disclaimer_seen_${userId}`),
+  );
+  return !consented || !disclaimerSeen;
 }
 
 // AppAuthContext, AppAuthContextValue, and useAppAuth live in a dedicated
@@ -208,34 +334,6 @@ const DarkFallback = () => (
       zIndex: 0,
     }}
   />
-);
-
-// Keep the desktop shell mounted while a first-visit route chunk downloads.
-// Page components currently own AppLayout, so the route-level Suspense fallback
-// must provide the shell itself; otherwise React removes the Sidebar,
-// background, and content area together and Electron shows a blank dark frame.
-const ElectronRouteFallback = () => (
-  <AppLayout noPageAnimation>
-    <div
-      className="min-h-[calc(100vh-5rem)] space-y-7"
-      role="status"
-      aria-label="Loading page"
-      data-testid="route-loading-fallback"
-    >
-      <div className="space-y-3">
-        <div className="h-8 w-56 rounded-lg bg-white/[0.07] animate-pulse" />
-        <div className="h-4 w-[min(34rem,80%)] rounded bg-white/[0.045] animate-pulse" />
-      </div>
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {[0, 1, 2, 3, 4, 5].map((item) => (
-          <div
-            key={item}
-            className="h-36 rounded-2xl border border-white/[0.07] bg-white/[0.025] animate-pulse"
-          />
-        ))}
-      </div>
-    </div>
-  </AppLayout>
 );
 
 function ElectronAppRoutes() {
@@ -266,29 +364,27 @@ function ElectronAppRoutes() {
   return (
     <ErrorBoundary route={location}>
       <div style={{ minHeight: "100%" }}>
-        <Suspense fallback={<ElectronRouteFallback />}>
-          <Switch>
-            <Route path="/" component={desktopRoutes.Home} />
-            <Route path="/dashboard" component={desktopRoutes.Home} />
-            <Route path="/tweaks" component={desktopRoutes.Tweaks} />
-            <Route path="/power-plan" component={desktopRoutes.PowerPlan} />
+        <Switch>
+          <Route path="/" component={desktopRoutes.Home} />
+          <Route path="/dashboard" component={desktopRoutes.Home} />
+          <Route path="/tweaks" component={desktopRoutes.Tweaks} />
+          <Route path="/power-plan" component={desktopRoutes.PowerPlan} />
 
-            <Route path="/nic-tuning" component={desktopRoutes.NicTuningPage} />
-            <Route path="/network" component={desktopRoutes.NetworkTweaks} />
-            <Route path="/cleaner" component={desktopRoutes.SystemCleaner} />
-            <Route path="/debloat" component={desktopRoutes.Debloater} />
-            <Route path="/startup" component={desktopRoutes.StartupApps} />
-            <Route path="/bios-advisor" component={desktopRoutes.BiosAdvisor} />
-            <Route path="/ai-advisor" component={desktopRoutes.AiAdvisor} />
-            <Route path="/security" component={desktopRoutes.Security} />
-            <Route path="/history" component={desktopRoutes.History} />
-            <Route path="/driver-intel" component={desktopRoutes.DriverIntelligence} />
-            <Route path="/latency-analyzer" component={desktopRoutes.LatencyAnalyzer} />
-            <Route path="/process-manager" component={desktopRoutes.ProcessManager} />
-            <Route path="/settings" component={desktopRoutes.Settings} />
-            <Route component={desktopRoutes.Home} />
-          </Switch>
-        </Suspense>
+          <Route path="/nic-tuning" component={desktopRoutes.NicTuningPage} />
+          <Route path="/network" component={desktopRoutes.NetworkTweaks} />
+          <Route path="/cleaner" component={desktopRoutes.SystemCleaner} />
+          <Route path="/debloat" component={desktopRoutes.Debloater} />
+          <Route path="/startup" component={desktopRoutes.StartupApps} />
+          <Route path="/bios-advisor" component={desktopRoutes.BiosAdvisor} />
+          <Route path="/ai-advisor" component={desktopRoutes.AiAdvisor} />
+          <Route path="/security" component={desktopRoutes.Security} />
+          <Route path="/history" component={desktopRoutes.History} />
+          <Route path="/driver-intel" component={desktopRoutes.DriverIntelligence} />
+          <Route path="/latency-analyzer" component={desktopRoutes.LatencyAnalyzer} />
+          <Route path="/process-manager" component={desktopRoutes.ProcessManager} />
+          <Route path="/settings" component={desktopRoutes.Settings} />
+          <Route component={desktopRoutes.Home} />
+        </Switch>
       </div>
     </ErrorBoundary>
   );
@@ -381,6 +477,8 @@ function ElectronAppContent() {
   const [showPendingActivation, setShowPendingActivation] = useState(false);
   const [showPatchNotes, setShowPatchNotes] = useState(false);
   const [showDisclaimer, setShowDisclaimer] = useState(false);
+  const [firstRunHandoff, setFirstRunHandoff] =
+    useState<FirstRunHandoffKind | null>(null);
   // Becomes true 850ms after entering "authenticated" phase so tour flows don't
   // fire while the dashboard's own 750ms fade-in animation is still running.
   const [isPhaseStable, setIsPhaseStable] = useState(false);
@@ -416,6 +514,12 @@ function ElectronAppContent() {
   );
   const flowResetTs = useAuthStore((s) => s.flowResetTs);
   const [, setLocation] = useHashLocation();
+  const firstRunSequencePending = Boolean(
+    user?.loggedIn &&
+      user.id &&
+      (hasIncompleteFirstRunSequence(user.id) ||
+        (user.hasInstalledApp === false && phase !== "authenticated")),
+  );
 
   // Premium device lock, Electron only, runs after entitlements confirmed from server.
   // Exclude trial users: trial access is user-scoped and must never trigger device locking,
@@ -465,6 +569,7 @@ function ElectronAppContent() {
     trialEndsAt: user?.trialEndsAt,
     isLoggedIn: user?.loggedIn ?? false,
     entitlementsVerified,
+    suspendAutomaticRevert: firstRunSequencePending,
   });
 
   // All startup and promotional surfaces share this arbitration boundary.
@@ -718,6 +823,7 @@ function ElectronAppContent() {
   // entry smooth on low-end CPUs.
   useEffect(() => {
     if (phase !== "authenticated") return;
+    if (firstRunSequencePending) return;
     telemetryManager.startWhenIdle();
   }, [phase]);
 
@@ -1276,7 +1382,14 @@ function ElectronAppContent() {
     return () => {
       mounted = false;
     };
-  }, [phase, activeFlow, isFirstLogin, entitlementsAttempted, promoOpen]);
+  }, [
+    phase,
+    activeFlow,
+    isFirstLogin,
+    entitlementsAttempted,
+    promoOpen,
+    firstRunSequencePending,
+  ]);
 
   // ── Splash completion, Splash.tsx is the sole timing authority ─────────
   // Splash calls onComplete() when its exit animation finishes.
@@ -1377,6 +1490,7 @@ function ElectronAppContent() {
             const isGenuinelyNewUser = exchangedUser.hasInstalledApp === false;
             if (!hasBeenWelcomed && isGenuinelyNewUser) {
               setIsFirstLogin(true);
+              markFirstRunPending(exchangedUser.id);
               localStorage.setItem(welcomeKey, "true");
               if (
                 livePhase === "authenticated" ||
@@ -1403,6 +1517,18 @@ function ElectronAppContent() {
                 setPhase("login_success");
               }
             } else {
+              const interruptedFirstRun = hasIncompleteFirstRunSequence(
+                exchangedUser.id,
+              );
+              if (interruptedFirstRun) {
+                console.log(
+                  "[Auth] interrupted first-run sequence detected; restoring required gate",
+                );
+                setIsFirstLogin(true);
+                markFirstRunPending(exchangedUser.id);
+                setPhase(getFirstRunGatePhase(exchangedUser.id));
+                return;
+              }
               // Returning user, including an existing account on a fresh
               // local profile. The server marker is authoritative; an empty
               // AppData folder must not manufacture a first-run experience.
@@ -1568,8 +1694,10 @@ function ElectronAppContent() {
         const welcomeKeyFast = `sc_welcomed_${user!.id}`;
         const hasBeenWelcomedFast = localStorage.getItem(welcomeKeyFast);
         const isGenuinelyNewUserFast = user!.hasInstalledApp === false;
-        if (!hasBeenWelcomedFast && isGenuinelyNewUserFast) {
+        const interruptedFirstRunFast = hasIncompleteFirstRunSequence(user!.id);
+        if (interruptedFirstRunFast || isGenuinelyNewUserFast) {
           setIsFirstLogin(true);
+          markFirstRunPending(user!.id);
           localStorage.setItem(welcomeKeyFast, "true");
           setPhase(getFirstRunGatePhase(user!.id));
         } else {
@@ -1633,8 +1761,10 @@ function ElectronAppContent() {
           const welcomeKey = `sc_welcomed_${targetUser.id}`;
           const hasBeenWelcomed = localStorage.getItem(welcomeKey);
           const isGenuinelyNewUser = targetUser.hasInstalledApp === false;
-          if (!hasBeenWelcomed && isGenuinelyNewUser) {
+          const interruptedFirstRun = hasIncompleteFirstRunSequence(targetUser.id);
+          if (interruptedFirstRun || isGenuinelyNewUser) {
             setIsFirstLogin(true);
+            markFirstRunPending(targetUser.id);
             localStorage.setItem(welcomeKey, "true");
             setPhase(getFirstRunGatePhase(targetUser.id));
           } else {
@@ -1685,8 +1815,10 @@ function ElectronAppContent() {
           const welcomeKey = `sc_welcomed_${targetUser.id}`;
           const hasBeenWelcomed = localStorage.getItem(welcomeKey);
           const isGenuinelyNewUser = targetUser.hasInstalledApp === false;
-          if (!hasBeenWelcomed && isGenuinelyNewUser) {
+          const interruptedFirstRun = hasIncompleteFirstRunSequence(targetUser.id);
+          if (interruptedFirstRun || isGenuinelyNewUser) {
             setIsFirstLogin(true);
+            markFirstRunPending(targetUser.id);
             localStorage.setItem(welcomeKey, "true");
             setPhase(getFirstRunGatePhase(targetUser.id));
           } else {
@@ -2194,11 +2326,13 @@ function ElectronAppContent() {
           <FirstRunLanguageModal
             userId={user.id}
             accountLabel={user.username || user.email || user.id}
+            onTransitionStart={() => setFirstRunHandoff("language-to-consent")}
             onComplete={() => {
               console.log(
                 "[FirstRunLanguage] choice saved, transitioning to consent",
               );
               setPhase("consent");
+              setFirstRunHandoff(null);
             }}
           />
         )}
@@ -2209,25 +2343,64 @@ function ElectronAppContent() {
         {phase === "consent" && user?.loggedIn && user.id && (
           <FirstRunConsent
             userId={user.id}
+            onTransitionStart={() => setFirstRunHandoff("consent-to-disclaimer")}
             onComplete={() => {
               console.log(
                 "[FirstRunConsent] consent saved, transitioning to gaming disclaimer",
               );
               setShowDisclaimer(true);
               setPhase("disclaiming");
+              setFirstRunHandoff(null);
             }}
-            onDecline={() => {
-              console.warn("[FirstRunConsent] declined, closing authenticated session");
+            onDecline={async () => {
+              console.warn(
+                "[FirstRunConsent] declined, resetting first-run and closing authenticated session",
+              );
+              const uid = user.id;
+              restartFirstRunSequence(uid);
+              suppressFlowsRef.current = true;
+              setFirstRunHandoff(null);
+              setShowDisclaimer(false);
+              setShowPatchNotes(false);
+              setShowPendingActivation(false);
+              setActiveFlow("none");
+              setIsFirstLogin(false);
+
+              // Clear persisted auth synchronously before any native quit. This
+              // prevents startup hydration from restoring the declined session.
+              storeLogout();
+              setPhase("unauthenticated");
+              setLocation("/");
+
+              // Start the cloud logout while the Electron session cookie still
+              // exists, then explicitly remove native cookies before quitting.
+              const fullLogout = performFullLogout(
+                "first_run_terms_declined",
+              ).catch((error) => {
+                console.warn("[FirstRunConsent] full logout cleanup failed:", error);
+              });
               const api = (window as any).electronAPI;
               if (api?.quitApp) {
+                await clearElectronAuthCookies();
+                await Promise.race([
+                  fullLogout,
+                  new Promise<void>((resolve) =>
+                    window.setTimeout(resolve, 1_500),
+                  ),
+                ]);
                 api.quitApp();
                 return;
               }
-              storeLogout();
-              setIsFirstLogin(false);
-              setPhase("unauthenticated");
-              setLocation("/");
+              await fullLogout;
             }}
+          />
+        )}
+
+        {firstRunHandoff && (
+          <FirstRunHandoff
+            kind={firstRunHandoff}
+            prefersReducedMotion={prefersReducedMotion}
+            onComplete={() => setFirstRunHandoff(null)}
           />
         )}
 
@@ -2237,7 +2410,10 @@ function ElectronAppContent() {
           show={(showDisclaimer || phase === "disclaiming") && !revertModalOpen}
           onComplete={() => {
             const uid = user?.id;
-            if (uid) localStorage.setItem(`sc_disclaimer_seen_${uid}`, "true");
+            if (uid) {
+              localStorage.setItem(`sc_disclaimer_seen_${uid}`, "true");
+              clearFirstRunPending(uid);
+            }
             console.log("[FirstRunDisclaimer] dismissed, transitioning to welcome");
             setShowDisclaimer(false);
             setPhase("welcome");
@@ -2375,6 +2551,7 @@ function ElectronAppContent() {
           <PatchNotesModal
             show={
               showPatchNotes &&
+              !firstRunSequencePending &&
               !revertModalOpen &&
               activeFlow === "none" &&
               !showDisclaimer &&
@@ -2411,7 +2588,7 @@ function ElectronAppContent() {
 
         {/* Premium expiry revert, shows after trial/premium lapses and revert runs */}
         <PremiumRevertModal
-          open={revertModalOpen}
+          open={revertModalOpen && !firstRunSequencePending}
           onClose={closeRevertModal}
           report={revertReport}
           phase={revertPhase}
@@ -2424,6 +2601,7 @@ function ElectronAppContent() {
         <PremiumPromoPopup
           open={
             promoOpen &&
+            !firstRunSequencePending &&
             !revertModalOpen &&
             !showDisclaimer &&
             !showPendingActivation &&

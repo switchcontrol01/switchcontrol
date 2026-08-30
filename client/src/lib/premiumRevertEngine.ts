@@ -285,7 +285,13 @@ async function runPipelineRevert(
   const toItem = (scopeKey: string, detail: any): RevertItemResult => ({
     tweakId: scopeKey,
     label: detail?.label || scopeKey,
-    status: detail?.skipped ? 'skipped_not_active' : detail?.success ? 'reverted' : 'failed',
+    status: detail?.skipped && detail?.safeToProceed
+      ? 'skipped_user_owned'
+      : detail?.skipped
+        ? 'skipped_not_active'
+        : detail?.success
+          ? 'reverted'
+          : 'failed',
     reason: detail?.reason || detail?.error,
   });
   const entries = Object.entries(details);

@@ -65,8 +65,50 @@ test("website legal pages and consent gate share the same source sections", () =
   assert.match(legal, /export const PRIVACY_SECTIONS/);
 });
 
-test("declining consent closes Electron and safely returns web users to login", () => {
-  assert.match(app, /if \(api\?\.quitApp\) \{\s*api\.quitApp\(\);/);
-  assert.match(app, /storeLogout\(\);[\s\S]*?setPhase\("unauthenticated"\)/);
+test("declining consent resets first-run, signs out, and only then quits Electron", () => {
+  assert.match(
+    app,
+    /function restartFirstRunSequence\(userId: string\)[\s\S]*?sc_language_prompt_seen_[\s\S]*?TERMS_CONSENT_KEY[\s\S]*?sc_disclaimer_seen_[\s\S]*?sc_welcomed_[\s\S]*?sc_tour_completed_[\s\S]*?markFirstRunPending\(userId\)/,
+    "decline must reset every first-run completion marker and retain a required pending gate",
+  );
+  assert.match(
+    app,
+    /onDecline=\{async \(\) => \{[\s\S]*?restartFirstRunSequence\(uid\)[\s\S]*?storeLogout\(\)[\s\S]*?setPhase\("unauthenticated"\)[\s\S]*?performFullLogout\([\s\S]*?first_run_terms_declined[\s\S]*?await clearElectronAuthCookies\(\)[\s\S]*?Promise\.race\([\s\S]*?fullLogout[\s\S]*?1_500[\s\S]*?api\.quitApp\(\)/,
+    "Electron must clear persisted auth and cookies before quitting",
+  );
   assert.match(app, /phase === "consent" && user\?\.loggedIn && user\.id/);
+});
+
+test("an interrupted first-run sequence resumes before dashboard startup surfaces", () => {
+  assert.match(app, /const FIRST_RUN_PENDING_KEY = "sc_first_run_pending_"/);
+  assert.match(
+    app,
+    /function hasIncompleteFirstRunSequence\(userId: string\)[\s\S]*?languageChosen[\s\S]*?return !consented \|\| !disclaimerSeen/,
+    "legacy interrupted consent sessions must be recognized",
+  );
+  assert.match(
+    app,
+    /interruptedFirstRunFast \|\| isGenuinelyNewUserFast[\s\S]*?setPhase\(getFirstRunGatePhase\(user!\.id\)\)/,
+    "cached-session startup must restore the unfinished required gate",
+  );
+  assert.match(
+    app,
+    /suspendAutomaticRevert: firstRunSequencePending/,
+    "automatic premium revert must be suspended during required first-run gates",
+  );
+  assert.match(
+    app,
+    /showPatchNotes &&\s*!firstRunSequencePending/,
+    "patch notes must remain hidden while first-run consent is incomplete",
+  );
+  assert.match(
+    app,
+    /open=\{revertModalOpen && !firstRunSequencePending\}/,
+    "premium revert must remain hidden while the restarted first-run sequence is pending",
+  );
+  assert.match(
+    app,
+    /sc_disclaimer_seen_[^]*?clearFirstRunPending\(uid\)/,
+    "the pending marker must only clear after the final required gate",
+  );
 });
