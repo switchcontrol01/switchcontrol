@@ -2,7 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 
 test("localization keeps all supported locales and public catalog coverage", async () => {
-  const { LOCALES, translationCatalogs, PUBLIC_CATALOG_KEYS, PUBLIC_TECHNICAL_KEYS } = await import("../../client/src/lib/i18n.tsx");
+  const { LOCALES, translationCatalogs, PUBLIC_CATALOG_KEYS, PUBLIC_TECHNICAL_KEYS, resolveTranslation } = await import("../../client/src/lib/i18n.tsx");
   const expectedCodes = [
     "en", "zh-CN", "es", "hi", "ar", "pt-BR", "bn", "ru", "ja", "pa",
     "de", "id", "ko", "fr", "te", "tr", "mr", "ta", "vi", "ur",
@@ -65,4 +65,14 @@ test("localization keeps all supported locales and public catalog coverage", asy
   }
   assert.equal(LOCALES.find((locale) => locale.code === "ar").dir, "rtl");
   assert.equal(LOCALES.find((locale) => locale.code === "ur").dir, "rtl");
+  assert.equal(
+    resolveTranslation("es", "landingPerformanceCharts.fps.title", "FPS Consistency"),
+    "Regularidad de FPS",
+    "semantic public keys should resolve through their translated source fallback",
+  );
+  assert.equal(
+    resolveTranslation("es", "landingPerformanceCharts.legend.stockWindows", "Stock Windows"),
+    "Windows de serie",
+    "chart legends should not depend on the DOM compatibility bridge",
+  );
 });

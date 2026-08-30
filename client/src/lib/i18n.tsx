@@ -1588,6 +1588,20 @@ function preserveWhitespace(source: string, translated: string) {
   return `${leading}${translated.trim()}${trailing}`;
 }
 
+export function resolveTranslation(
+  language: Locale,
+  key: string,
+  fallback?: string,
+  values?: Record<string, string | number>,
+) {
+  const source = fallback ?? EN[key] ?? key;
+  const translated = CATALOGS[language]?.[key]
+    ?? (fallback ? CATALOGS[language]?.[fallback] : undefined)
+    ?? EN[key]
+    ?? source;
+  return interpolate(translated, values);
+}
+
 export function I18nProvider({ children }: { children: ReactNode }) {
   const storedLanguage = useUserPreferencesStore((s) => s.language);
   const setPreference = useUserPreferencesStore((s) => s.setPreference);
@@ -1600,12 +1614,17 @@ export function I18nProvider({ children }: { children: ReactNode }) {
 
   const t = useMemo(() => (key: string, fallback?: string, values?: Record<string, string | number>) => {
     const source = fallback ?? EN[key] ?? key;
-    if (import.meta.env?.DEV && language !== "en" && !CATALOGS[language]?.[key] && !missingKeys.current.has(key)) {
+    const hasFallbackTranslation = fallback !== undefined && CATALOGS[language]?.[fallback] !== undefined;
+    if (import.meta.env?.DEV && language !== "en" && !CATALOGS[language]?.[key] && !hasFallbackTranslation && !missingKeys.current.has(key)) {
       missingKeys.current.add(key);
       console.info(`[i18n] English fallback for missing ${language} key: ${key}`);
     }
-    const translated = CATALOGS[language]?.[key] ?? EN[key] ?? source;
-    return interpolate(translated, values);
+    // Public-site components use semantic namespaced keys while the
+    // translation catalog intentionally keeps source copy as its stable
+    // inventory. resolveTranslation handles that source-text lookup so
+    // components participate in React re-renders instead of relying on the
+    // asynchronous DOM compatibility bridge.
+    return resolveTranslation(language, key, fallback, values);
   }, [language]);
 
   useEffect(() => {
