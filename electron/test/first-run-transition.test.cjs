@@ -38,6 +38,13 @@ test("first-run visual contract is shared by every handoff state", () => {
   assert.match(transition, /FIRST_RUN_TRANSITION_MS = 2000/);
   assert.match(transition, /FIRST_RUN_TRANSITION_SECONDS = FIRST_RUN_TRANSITION_MS \/ 1000/);
   assert.match(transition, /FIRST_RUN_INTERACTION_MS = 200/);
+  assert.match(transition, /FIRST_RUN_NOTICE_TRANSITION_MS = 1000/);
+  assert.match(transition, /FIRST_RUN_DISCLAIMER_TO_WELCOME_MS = 1000/);
+  assert.match(
+    transition,
+    /firstRunNoticeTransition\(prefersReducedMotion = false\)/,
+    "the Gaming Notice state change must have its own one-second transition",
+  );
   assert.match(
     transition,
     /firstRunInteractionTransition\(prefersReducedMotion = false\)/,
@@ -62,6 +69,11 @@ test("first-run visual contract is shared by every handoff state", () => {
     files.language,
     /transition=\{firstRunInteractionTransition\(prefersReducedMotion\)\}/,
     "language picker view changes must use the 200ms interaction transition",
+  );
+  assert.match(
+    files.disclaimer,
+    /transition=\{firstRunNoticeTransition\(prefersReducedMotion\)\}/,
+    "warning and confirmation cards must use the one-second notice transition",
   );
 });
 
@@ -88,9 +100,14 @@ test("tour step changes use a short independent transition", () => {
   );
 });
 
-test("phase handoffs hold the swap under a two-second blur/fade cover", () => {
+test("phase handoffs hold the swap under the configured blur/fade cover", () => {
   assert.match(handoff, /const FIRST_RUN_HANDOFF_MS = FIRST_RUN_TRANSITION_MS/);
   assert.match(handoff, /const FIRST_RUN_HANDOFF_COVER_MS = FIRST_RUN_HANDOFF_MS \/ 2/);
+  assert.match(
+    handoff,
+    /kind === "disclaimer-to-welcome"[\s\S]*FIRST_RUN_DISCLAIMER_TO_WELCOME_MS/,
+    "the disclaimer-to-welcome handoff must use the dedicated one-second duration",
+  );
   assert.match(handoff, /onCoverRef\.current\(\)/);
   assert.match(
     handoff,

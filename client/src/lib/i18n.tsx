@@ -5,6 +5,7 @@ import { PUBLIC_WEBSITE_TRANSLATIONS as EUROPE_PUBLIC_TRANSLATIONS } from "./pub
 import { PUBLIC_WEBSITE_TRANSLATIONS as INDIC_ONE_PUBLIC_TRANSLATIONS } from "./publicWebsiteTranslations/indicOne";
 import { PUBLIC_WEBSITE_TRANSLATIONS as INDIC_TWO_PUBLIC_TRANSLATIONS } from "./publicWebsiteTranslations/indicTwo";
 import { PUBLIC_WEBSITE_TRANSLATIONS as OTHER_PUBLIC_TRANSLATIONS } from "./publicWebsiteTranslations/other";
+import { FIRST_RUN_UI_TRANSLATIONS } from "./firstRunTranslations";
 
 export type { Locale };
 
@@ -1552,6 +1553,10 @@ const FIRST_RUN_COPY: Record<Locale, MessageCatalog> = {
 };
 
 for (const [locale, labels] of Object.entries(FIRST_RUN_COPY) as Array<[Locale, MessageCatalog]>) {
+  Object.assign(CATALOGS[locale], labels);
+}
+
+for (const [locale, labels] of Object.entries(FIRST_RUN_UI_TRANSLATIONS) as Array<[Locale, MessageCatalog]>) {
   Object.assign(CATALOGS[locale], labels);
 }
 

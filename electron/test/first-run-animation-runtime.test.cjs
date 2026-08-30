@@ -150,6 +150,18 @@ test("every first-run handoff kind runs through the same real animation", async 
         }),
       ),
     );
+    await wait(100);
+    const handoff = document.querySelector(
+      '[data-testid="first-run-blue-handoff"]',
+    );
+    assert.ok(handoff, `${kind} handoff must mount in the DOM`);
+    const animation = handoff.getAnimations()[0];
+    assert.ok(animation, `${kind} handoff must create a browser animation`);
+    assert.equal(
+      animation.effect.getTiming().duration,
+      kind === "disclaimer-to-welcome" ? 1_000 : 2_000,
+      `${kind} must use its intended cover duration`,
+    );
     await wait(2_150);
     assert.equal(coverCount, 1, `${kind} midpoint must fire once`);
     assert.equal(completeCount, 1, `${kind} completion must fire once`);

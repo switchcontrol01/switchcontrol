@@ -6,6 +6,7 @@ import {
   FIRST_RUN_HANDOFF_BLUR_PX,
   FIRST_RUN_HANDOFF_OPACITY,
   FIRST_RUN_HANDOFF_TIMES,
+  FIRST_RUN_DISCLAIMER_TO_WELCOME_MS,
   FIRST_RUN_TRANSITION_MS,
 } from "@/lib/firstRunTransition";
 
@@ -34,6 +35,11 @@ export function FirstRunHandoff({
   const { t } = useTranslation();
   const onCoverRef = React.useRef(onCover);
   const onCompleteRef = React.useRef(onComplete);
+  const handoffDurationMs =
+    kind === "disclaimer-to-welcome"
+      ? FIRST_RUN_DISCLAIMER_TO_WELCOME_MS
+      : FIRST_RUN_HANDOFF_MS;
+  const handoffCoverMs = handoffDurationMs / 2;
   onCoverRef.current = onCover;
   onCompleteRef.current = onComplete;
 
@@ -46,10 +52,10 @@ export function FirstRunHandoff({
 
     const coverTimer = window.setTimeout(
       () => onCoverRef.current(),
-      FIRST_RUN_HANDOFF_COVER_MS,
+      handoffCoverMs,
     );
     return () => window.clearTimeout(coverTimer);
-  }, [prefersReducedMotion]);
+  }, [handoffCoverMs, prefersReducedMotion]);
 
   return (
     <motion.div
@@ -86,7 +92,7 @@ export function FirstRunHandoff({
         ],
       }}
       transition={{
-        duration: FIRST_RUN_HANDOFF_MS / 1000,
+        duration: handoffDurationMs / 1000,
         times: FIRST_RUN_HANDOFF_TIMES,
         ease: FIRST_RUN_EASE,
       }}
@@ -101,6 +107,7 @@ export function FirstRunHandoff({
       }}
       data-testid="first-run-blue-handoff"
       data-handoff={kind}
+      data-handoff-duration-ms={handoffDurationMs}
       data-animation-state="cover-swap-reveal"
       data-transition-contract="blur-in-fade-in-swap-fade-out-blur-out"
       aria-hidden="true"
@@ -124,7 +131,7 @@ export function FirstRunHandoff({
             ? undefined
             : { scale: [0.86, 1.04, 0.96], opacity: [0.18, 0.38, 0.22] }
         }
-        transition={{ duration: 1.8, ease: "easeInOut" }}
+        transition={{ duration: handoffDurationMs / 1000, ease: "easeInOut" }}
       />
       <div className="absolute inset-0 flex items-center justify-center">
         <div className="rounded-full border border-white/20 bg-white/[0.08] px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.3em] text-white/80 shadow-[0_0_35px_rgba(111,211,255,0.3)]">

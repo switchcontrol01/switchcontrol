@@ -11,8 +11,7 @@ import {
 import { AnimatePresence, motion } from "@/lib/motionTokens";
 import {
   LEGAL_LAST_UPDATED,
-  PRIVACY_SECTIONS,
-  TERMS_SECTIONS,
+  getLocalizedLegalSections,
   type LegalSection,
 } from "@/lib/legalContent";
 import {
@@ -70,7 +69,8 @@ export function FirstRunConsent({
   onDecline,
   onTransitionStart,
 }: Props) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
+  const { terms, privacy } = getLocalizedLegalSections(language);
   const prefersReducedMotion = useFirstRunReducedMotion();
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const exitTimerRef = useRef<number | null>(null);
@@ -271,7 +271,7 @@ export function FirstRunConsent({
                 <h2 className="text-base font-semibold text-cyan-100/90">
                   {t("Terms of Service")}
                 </h2>
-                {TERMS_SECTIONS.map((section) => (
+                {terms.map((section) => (
                   <LegalSectionView key={section.title} section={section} t={t} />
                 ))}
               </div>
@@ -280,7 +280,7 @@ export function FirstRunConsent({
                 <h2 className="text-base font-semibold text-cyan-100/90">
                   {t("Privacy Policy")}
                 </h2>
-                {PRIVACY_SECTIONS.map((section) => (
+                {privacy.map((section) => (
                   <LegalSectionView key={section.title} section={section} t={t} />
                 ))}
               </div>

@@ -1,3 +1,6 @@
+import type { Locale } from "@/stores/userPreferencesStore";
+import { LEGAL_TRANSLATIONS } from "./firstRunTranslations";
+
 export interface LegalSection {
   title: string;
   paragraphs?: string[];
@@ -288,3 +291,10 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
     ],
   },
 ];
+
+export function getLocalizedLegalSections(locale: Locale) {
+  return LEGAL_TRANSLATIONS[locale] ?? {
+    terms: TERMS_SECTIONS,
+    privacy: PRIVACY_SECTIONS,
+  };
+}

@@ -15,6 +15,9 @@ export const FIRST_RUN_HANDOFF_OPACITY = [0, 0.38, 0.72, 0.38, 0] as const;
 export const FIRST_RUN_HANDOFF_TIMES = [0, 0.26, 0.5, 0.74, 1] as const;
 export const FIRST_RUN_INTERACTION_MS = 200;
 export const FIRST_RUN_INTERACTION_SECONDS = FIRST_RUN_INTERACTION_MS / 1000;
+export const FIRST_RUN_NOTICE_TRANSITION_MS = 1000;
+export const FIRST_RUN_NOTICE_TRANSITION_SECONDS = FIRST_RUN_NOTICE_TRANSITION_MS / 1000;
+export const FIRST_RUN_DISCLAIMER_TO_WELCOME_MS = 1000;
 export const FIRST_RUN_EASE = [0.22, 1, 0.36, 1] as const;
 
 /**
@@ -37,6 +40,13 @@ export function firstRunTransition(prefersReducedMotion = false) {
 export function firstRunInteractionTransition(prefersReducedMotion = false) {
   return {
     duration: prefersReducedMotion ? 0 : FIRST_RUN_INTERACTION_SECONDS,
+    ease: FIRST_RUN_EASE,
+  } as const;
+}
+
+export function firstRunNoticeTransition(prefersReducedMotion = false) {
+  return {
+    duration: prefersReducedMotion ? 0 : FIRST_RUN_NOTICE_TRANSITION_SECONDS,
     ease: FIRST_RUN_EASE,
   } as const;
 }

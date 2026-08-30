@@ -12,6 +12,7 @@ const transition = read("client/src/lib/firstRunTransition.ts");
 const terms = read("client/src/pages/Terms.tsx");
 const privacy = read("client/src/pages/Privacy.tsx");
 const legal = read("client/src/lib/legalContent.ts");
+const translations = read("client/src/lib/firstRunTranslations.ts");
 
 test("first-run phases place consent and disclaimer before welcome", () => {
   assert.match(app, /"consent"/);
@@ -65,10 +66,11 @@ test("consent persists before the two-second exit handoff", () => {
 });
 
 test("website legal pages and consent gate share the same source sections", () => {
-  assert.match(terms, /TERMS_SECTIONS\.map/);
-  assert.match(privacy, /PRIVACY_SECTIONS\.map/);
-  assert.match(consent, /TERMS_SECTIONS\.map/);
-  assert.match(consent, /PRIVACY_SECTIONS\.map/);
+  assert.match(terms, /getLocalizedLegalSections\(language\)/);
+  assert.match(privacy, /getLocalizedLegalSections\(language\)/);
+  assert.match(consent, /getLocalizedLegalSections\(language\)/);
+  assert.match(legal, /LEGAL_TRANSLATIONS/);
+  assert.match(translations, /FIRST_RUN_UI_TRANSLATIONS/);
   assert.match(legal, /export const TERMS_SECTIONS/);
   assert.match(legal, /export const PRIVACY_SECTIONS/);
 });

@@ -5,6 +5,7 @@ import { Shield, AlertTriangle, Gamepad2, ExternalLink, CheckCircle2 } from "luc
 import {
   FIRST_RUN_TRANSITION_MS,
   firstRunTransition,
+  firstRunNoticeTransition,
   firstRunVisualExit,
   firstRunVisualInitial,
   firstRunVisualVisible,
@@ -293,7 +294,7 @@ export function FirstRunDisclaimer({
                   initial={{ opacity: 0, y: 28, scale: 0.96, filter: "blur(12px)" }}
                   animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
                   exit={{ opacity: 0, y: -16, scale: 0.97, filter: "blur(8px)" }}
-                   transition={firstRunTransition(prefersReducedMotion)}
+                  transition={firstRunNoticeTransition(prefersReducedMotion)}
                   className="relative overflow-hidden"
                   style={{
                     background: "linear-gradient(145deg, rgba(10,14,24,0.92) 0%, rgba(6,10,20,0.96) 100%)",
@@ -378,7 +379,6 @@ export function FirstRunDisclaimer({
                         {t("Important Notice")}
                       </span>
                       <h2 className="text-[22px] font-bold leading-tight" style={{ color: "#E6EAF0" }}>
-                        {t("Keep SwitchControl")}{" "}
                         <span
                           style={{
                             background: "linear-gradient(90deg, #00D4FF 0%, #A78BFA 100%)",
@@ -386,9 +386,8 @@ export function FirstRunDisclaimer({
                             WebkitTextFillColor: "transparent",
                           }}
                         >
-                          {t("closed")}
-                        </span>{" "}
-                        {t("while gaming")}
+                        {t("Keep SwitchControl closed while gaming")}
+                      </span>
                       </h2>
                     </motion.div>
 
@@ -408,9 +407,7 @@ export function FirstRunDisclaimer({
                         }}
                       >
                         <p className="text-[13px] leading-relaxed" style={{ color: "rgba(230,234,240,0.85)" }}>
-                          {t("SwitchControl is designed to")}{" "}
-                          <span style={{ color: "#E6EAF0", fontWeight: 600 }}>{t("configure and optimize your system before you game")}</span>
-                          {" "}{t("— not to run alongside your games. Keeping the app open while gaming may consume extra CPU and memory, which can reduce performance rather than improve it.")}
+                          {t("SwitchControl is designed to configure and optimize your system before you game — not to run alongside your games. Keeping the app open while gaming may consume extra CPU and memory, which can reduce performance rather than improve it.")}
                         </p>
                       </div>
 
@@ -513,7 +510,7 @@ export function FirstRunDisclaimer({
                   initial={{ opacity: 0, scale: 0.88, y: 20, filter: "blur(10px)" }}
                   animate={{ opacity: 1, scale: 1,    y: 0,  filter: "blur(0px)" }}
                   exit={{ opacity: 0, scale: 0.95, y: 12, filter: "blur(6px)" }}
-                   transition={firstRunTransition(prefersReducedMotion)}
+                  transition={firstRunNoticeTransition(prefersReducedMotion)}
                   className="relative overflow-hidden mx-auto"
                   style={{
                     maxWidth: 380,
@@ -575,9 +572,7 @@ export function FirstRunDisclaimer({
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.35, delay: 0.13, ease: SILK }}
                     >
-                      {t("Just to be sure — you understand that SwitchControl is meant to be")}{" "}
-                      <span style={{ color: "#E6EAF0", fontWeight: 600 }}>{t("closed before you start gaming")}</span>
-                      {t(", not run in the background?")}
+                      {t("Just to be sure — you understand that SwitchControl should be closed before you start gaming, not run in the background?")}
                     </motion.p>
 
                     <motion.div
