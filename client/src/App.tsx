@@ -239,11 +239,18 @@ function FirstRunHandoff({
         ease: FIRST_RUN_EASE,
       }}
       onAnimationComplete={() => {
+        console.info(
+          `[FirstRunHandoff] ${kind} fade-out/blur-out complete`,
+        );
         onCompleteRef.current();
       }}
+      onAnimationStart={() =>
+        console.info(`[FirstRunHandoff] ${kind} blur-in/fade-in started`)
+      }
       data-testid="first-run-blue-handoff"
       data-handoff={kind}
       data-animation-state="cover-swap-reveal"
+      data-transition-contract="blur-in-fade-in-swap-fade-out-blur-out"
       aria-hidden="true"
     >
       <div
@@ -415,9 +422,11 @@ function ElectronAppRoutes() {
 
 function DashboardTransitionLayer({
   active,
+  ready,
   prefersReducedMotion,
 }: {
   active: boolean;
+  ready: boolean;
   prefersReducedMotion: boolean;
 }) {
   return (
@@ -432,11 +441,19 @@ function DashboardTransitionLayer({
             backdropFilter: `blur(18px)`,
             WebkitBackdropFilter: `blur(18px)`,
           }}
-          animate={{
-            opacity: 0,
-            backdropFilter: "blur(0px)",
-            WebkitBackdropFilter: "blur(0px)",
-          }}
+          animate={
+            ready
+              ? {
+                  opacity: 0,
+                  backdropFilter: "blur(0px)",
+                  WebkitBackdropFilter: "blur(0px)",
+                }
+              : {
+                  opacity: 1,
+                  backdropFilter: "blur(18px)",
+                  WebkitBackdropFilter: "blur(18px)",
+                }
+          }
           exit={{
             opacity: 1,
             backdropFilter: `blur(18px)`,
@@ -502,6 +519,7 @@ function ElectronAppContent() {
   const [showDisclaimer, setShowDisclaimer] = useState(false);
   const [firstRunHandoff, setFirstRunHandoff] =
     useState<FirstRunHandoffKind | null>(null);
+  const [dashboardReady, setDashboardReady] = useState(false);
   // Becomes true 850ms after entering "authenticated" phase so tour flows don't
   // fire while the dashboard's own 750ms fade-in animation is still running.
   const [isPhaseStable, setIsPhaseStable] = useState(false);
@@ -548,6 +566,12 @@ function ElectronAppContent() {
   // The language gate is rendered in a portal, outside the phase AnimatePresence.
   // Start the same cover/swap/reveal handoff when login gives way to that gate;
   // otherwise the portal appears as an immediate cut over the login screen.
+  useEffect(() => {
+    if (phase !== "authenticated") {
+      setDashboardReady(false);
+    }
+  }, [phase]);
+
   useEffect(() => {
     const previousPhase = previousPhaseRef.current;
     if (
@@ -2346,9 +2370,10 @@ function ElectronAppContent() {
               className="h-full"
               style={{ pointerEvents: isSigningOut ? "none" : undefined }}
               data-first-run-transition="dashboard"
-              onAnimationStart={() =>
-                console.log("[Handoff] dashboard fade-in started")
-              }
+               onAnimationStart={() => {
+                 setDashboardReady(true);
+                 console.info("[Handoff] dashboard fade-in started");
+               }}
               onAnimationComplete={() =>
                 console.log(
                   "[Handoff] dashboard fade-in complete, layout stable",
@@ -2364,6 +2389,7 @@ function ElectronAppContent() {
 
         <DashboardTransitionLayer
           active={phase === "authenticated"}
+          ready={dashboardReady}
           prefersReducedMotion={prefersReducedMotion}
         />
 
@@ -2449,6 +2475,9 @@ function ElectronAppContent() {
             kind={firstRunHandoff}
             prefersReducedMotion={prefersReducedMotion}
             onCover={() => {
+              console.info(
+                `[FirstRunHandoff] ${firstRunHandoff} midpoint swap`,
+              );
               if (firstRunHandoff === "login-to-language") {
                 // Keep the login screen mounted until the cover reaches full
                 // opacity, then mount the language portal underneath it.
@@ -2463,7 +2492,12 @@ function ElectronAppContent() {
                 setPhase("welcome");
               }
             }}
-            onComplete={() => setFirstRunHandoff(null)}
+            onComplete={() => {
+              console.info(
+                `[FirstRunHandoff] ${firstRunHandoff} reveal complete`,
+              );
+              setFirstRunHandoff(null);
+            }}
           />
         )}
 

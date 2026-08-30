@@ -53,6 +53,21 @@ test("phase handoffs hold the swap under a two-second blur/fade cover", () => {
   assert.match(app, /data-animation-state="cover-swap-reveal"/);
   assert.match(
     app,
+    /data-transition-contract="blur-in-fade-in-swap-fade-out-blur-out"/,
+    "the handoff must expose the full transition contract for runtime auditing",
+  );
+  assert.match(
+    app,
+    /\[FirstRunHandoff\] \$\{kind\} blur-in\/fade-in started/,
+    "handoff start must be observable in packaged renderer logs",
+  );
+  assert.match(
+    app,
+    /\[FirstRunHandoff\] \$\{firstRunHandoff\} midpoint swap/,
+    "the exact covered midpoint swap must be observable in packaged renderer logs",
+  );
+  assert.match(
+    app,
     /firstRunHandoff === "login-to-language"/,
     "login-to-language must use the same handoff layer as later first-run phases",
   );
@@ -90,6 +105,21 @@ test("dashboard blur is a sibling scrim and fixed-position safety remains explic
     app,
     /<DashboardTransitionLayer[\s\S]*?active=\{phase === "authenticated"\}/,
     "the dashboard scrim must remain mounted independently so its exit can animate",
+  );
+  assert.match(
+    app,
+    /ready=\{dashboardReady\}/,
+    "the dashboard scrim must wait for the dashboard route to mount before revealing",
+  );
+  assert.match(
+    app,
+    /ready\s*\?[\s\S]*?opacity: 0[\s\S]*?:[\s\S]*?opacity: 1/,
+    "the dashboard scrim must hold opaque and blurred until the route is ready",
+  );
+  assert.match(
+    app,
+    /setDashboardReady\(true\)/,
+    "dashboard mount must release the held scrim",
   );
   assert.match(
     app,
