@@ -8,6 +8,7 @@ const read = (file) =>
 
 const app = read("client/src/App.tsx");
 const transition = read("client/src/lib/firstRunTransition.ts");
+const handoff = read("client/src/components/FirstRunHandoff.tsx");
 const files = {
   login: read("client/src/App.tsx"),
   language: read("client/src/components/FirstRunLanguageModal.tsx"),
@@ -42,27 +43,27 @@ test("first-run visual contract is shared by every handoff state", () => {
 });
 
 test("phase handoffs hold the swap under a two-second blur/fade cover", () => {
-  assert.match(app, /const FIRST_RUN_HANDOFF_MS = 2000/);
-  assert.match(app, /const FIRST_RUN_HANDOFF_COVER_MS = FIRST_RUN_HANDOFF_MS \/ 2/);
-  assert.match(app, /onCoverRef\.current\(\)/);
+  assert.match(handoff, /const FIRST_RUN_HANDOFF_MS = FIRST_RUN_TRANSITION_MS/);
+  assert.match(handoff, /const FIRST_RUN_HANDOFF_COVER_MS = FIRST_RUN_HANDOFF_MS \/ 2/);
+  assert.match(handoff, /onCoverRef\.current\(\)/);
   assert.match(
     app,
     /opacity: \[0, 1, 0\][\s\S]*filter: \["blur\(0px\)", "blur\(18px\)", "blur\(0px\)"\]/,
     "the handoff must visibly fade and blur in, cover the phase swap, then reveal",
   );
-  assert.match(app, /data-animation-state="cover-swap-reveal"/);
+  assert.match(handoff, /data-animation-state="cover-swap-reveal"/);
   assert.match(
-    app,
+    handoff,
     /data-transition-contract="blur-in-fade-in-swap-fade-out-blur-out"/,
     "the handoff must expose the full transition contract for runtime auditing",
   );
   assert.match(
-    app,
+    handoff,
     /\[FirstRunHandoff\] \$\{kind\} blur-in\/fade-in started/,
     "handoff start must be observable in packaged renderer logs",
   );
   assert.match(
-    app,
+    handoff,
     /\[FirstRunHandoff\] \$\{firstRunHandoff\} midpoint swap/,
     "the exact covered midpoint swap must be observable in packaged renderer logs",
   );
