@@ -30,7 +30,7 @@
     console.log('========================================');
   }
   
-  const { app, BrowserWindow, ipcMain, shell, screen, globalShortcut, Menu, Notification, dialog } = require('electron');
+  const { app, BrowserWindow, ipcMain, shell, screen, powerMonitor, globalShortcut, Menu, Notification, dialog } = require('electron');
   const { exec, execFile } = require('child_process');
   const path = require('path');
   const os = require('os');
@@ -647,6 +647,7 @@ function Write-SwitchControlProbe($status, $data, $message) {
     'telemetry:getGpu',
     'telemetry:refreshDeepHardware',
     'startTelemetryPolling-prime',
+    'system:getCapabilities',
     // On-demand reads (IPC handlers, not on the polling budget):
     'system:getRamUsage',          // on-demand RAM snapshot for System page
     'system:getAllDisks',           // on-demand disk list, not polled
@@ -749,6 +750,23 @@ function Write-SwitchControlProbe($status, $data, $message) {
   // The renderer selects the single telemetry demand profile for the active
   // route. Electron remains the sole hardware-polling owner.
   let _telemetryDemandMode = 'full';
+  let _adaptivePerformanceProfile = 'unknown';
+
+  function _profileIntervalForDemand(mode = _telemetryDemandMode) {
+    if (mode === 'paused') return TELEMETRY_SLOW_MS;
+    const profileBase =
+      _adaptivePerformanceProfile === 'efficiency' ? TELEMETRY_SLOW_MS :
+      _adaptivePerformanceProfile === 'balanced' ? 3000 :
+      _adaptivePerformanceProfile === 'enhanced' ? TELEMETRY_BASE_MS :
+      4000;
+    return mode === 'intelligence' ? Math.max(5000, profileBase) : profileBase;
+  }
+
+  function _profileHeavyWorkMultiplier() {
+    if (_adaptivePerformanceProfile === 'efficiency') return 3;
+    if (_adaptivePerformanceProfile === 'enhanced') return 1;
+    return 2;
+  }
   
   // ── Per-task TTLs — heavy tasks run NO MORE OFTEN than their TTL ──────────────
   // Only ONE heavy task fires per tick (rotation). Lightweight tasks (currentLoad,
@@ -765,12 +783,11 @@ function Write-SwitchControlProbe($status, $data, $message) {
   let _cpuTempLastTs      = 0;
   let _diskIoLastTs       = 0;    // last time si.disksIO() ran
   
-  // ── Low-end mode ──────────────────────────────────────────────────────────────
-  // Enabled when: logical CPU cores <= 4  OR  sustained average load > 50%.
-  // In low-end mode: all TTLs double, disk scanning is disabled, interval → SLOW_MS.
+  // ── Constrained capability mode ───────────────────────────────────────────────
+  // Set by the renderer after the complete capability snapshot is scored.
+  // CPU/RAM alone no longer decide this state.
   let _lowEndMode         = false;
   let _lowEndCoresKnown   = false;
-  const LOW_END_CORE_MAX  = 4;    // <= this many logical cores → low-end
   const LOAD_HIST_LEN     = 5;    // ticks to average for sustained-load check
 
   // os.cpus() and os.totalmem() are synchronous, near-zero-cost reads. Resolve
@@ -779,13 +796,9 @@ function Write-SwitchControlProbe($status, $data, $message) {
   function _detectLowEndHardware(source = 'startup') {
     if (_lowEndCoresKnown) return _lowEndMode;
     const logicalCores = os.cpus()?.length || 0;
-    if (!logicalCores) return _lowEndMode;
     const totalRamGb = os.totalmem() / 1_073_741_824;
     _lowEndCoresKnown = true;
-    if (logicalCores <= LOW_END_CORE_MAX || totalRamGb <= 6) {
-      _lowEndMode = true;
-      console.log(`[telemetry:${source}] Low-end mode ENABLED — cores=${logicalCores} ram=${totalRamGb.toFixed(1)}GB`);
-    }
+    verboseLog(`[telemetry:${source}] baseline hardware recorded — cores=${logicalCores || 'unknown'} ram=${totalRamGb.toFixed(1)}GB; awaiting capability profile`);
     return _lowEndMode;
   }
   
@@ -916,9 +929,10 @@ function Write-SwitchControlProbe($status, $data, $message) {
         !_overBudget &&
         !inCooldown
       ) {
-        const _tempTtl  = _lowEndMode ? CPU_TEMP_TTL_MS * 2 : CPU_TEMP_TTL_MS;
-        const _diskTtl  = _lowEndMode ? Infinity            : DISK_IO_TTL_MS;
-        const _fsTtl    = _lowEndMode ? FS_SIZE_TTL_MS  * 2 : FS_SIZE_TTL_MS;
+        const _heavyMultiplier = _profileHeavyWorkMultiplier();
+        const _tempTtl  = CPU_TEMP_TTL_MS * _heavyMultiplier;
+        const _diskTtl  = _lowEndMode ? Infinity : DISK_IO_TTL_MS * _heavyMultiplier;
+        const _fsTtl    = FS_SIZE_TTL_MS * _heavyMultiplier;
   
         if (now - _cpuTempLastTs > _tempTtl) {
           // Task A: CPU temperature (WMI/ACPI — most expensive per-call)
@@ -1056,12 +1070,7 @@ function Write-SwitchControlProbe($status, $data, $message) {
       const shouldBeSlow = _lowEndMode
         || cpuPct > GOVERNOR_ENGAGE_PCT
         || (_currentlySlow && cpuPct > GOVERNOR_DISENGAGE_PCT);
-      const demandMs =
-        _telemetryDemandMode === 'paused'
-          ? TELEMETRY_SLOW_MS
-          : _telemetryDemandMode === 'intelligence'
-            ? 5000
-            : TELEMETRY_BASE_MS;
+      const demandMs = _profileIntervalForDemand();
       const targetMs = _telemetryDemandMode === 'paused'
         ? TELEMETRY_SLOW_MS
         : Math.max(demandMs, shouldBeSlow ? TELEMETRY_SLOW_MS : TELEMETRY_BASE_MS);
@@ -1141,6 +1150,7 @@ function Write-SwitchControlProbe($status, $data, $message) {
               const name = (wmiGpuList[selectedGpuIndex]?.name) || rawFp.split(';;')[0].split('|')[0].trim();
               gpuExistsOnHardware = true;
               wmiGpuModelName = name;
+              invalidateAdaptiveCapabilityCache('gpu-discovered');
               console.log('[GPU] WMI fast-path resolved:', name, '| total GPUs:', wmiGpuList.length);
               if (cachedSpecs) {
                 const _rawModel = cachedSpecs.gpu?.model;
@@ -3140,6 +3150,7 @@ ConvertTo-Json -InputObject $result -Compress -Depth 2
         cachedSpecsTime = Date.now();
         if (mainWindow && !mainWindow.isDestroyed()) {
           mainWindow.webContents.send('specs:enriched', { gpu: cachedSpecs.gpu, cpu: cachedSpecs.cpu });
+          invalidateAdaptiveCapabilityCache('gpu-enriched');
           console.log(`[Enrich] Stage 1 pushed to renderer — GPU:${cachedSpecs.gpu.model} +${Date.now() - _t0}ms`);
         }
       }
@@ -4208,7 +4219,184 @@ public class DspHelper {
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('system:display-changed', { reason });
     }
+    invalidateAdaptiveCapabilityCache(reason);
   }
+
+  let _adaptiveCapabilityCache = null;
+  let _adaptiveCapabilityCacheAt = 0;
+  let _adaptiveCapabilityFlight = null;
+  let _adaptiveCapabilityGeneration = 0;
+  let _adaptiveCapabilityRefreshPending = false;
+  const ADAPTIVE_CAPABILITY_CACHE_MS = 10_000;
+
+  function _capabilitySignal(value, availability, reason = null) {
+    return {
+      value: availability === 'available' ? value : null,
+      availability,
+      reason: availability === 'available' ? null : reason,
+    };
+  }
+
+  function _gpuFeatureLooksSoftware(featureStatus) {
+    return ['gpu_compositing', 'rasterization', 'webgl', 'webgl2'].some(key =>
+      typeof featureStatus?.[key] === 'string' &&
+      /software|disabled|unavailable|blocklisted|swiftshader/i.test(featureStatus[key]));
+  }
+
+  function _isIntegratedGpuModel(model) {
+    const value = String(model || '').toLowerCase();
+    if (!value) return null;
+    if (/intel.*(?:uhd|iris|hd graphics)|(?:uhd|iris|hd graphics).*intel/.test(value)) return true;
+    if (/amd radeon\(tm\) graphics|radeon vega|ryzen.*graphics/.test(value)) return true;
+    if (/nvidia|geforce|quadro|rtx|gtx|radeon rx|intel arc/.test(value)) return false;
+    return null;
+  }
+
+  async function _readLiveRemoteSession() {
+    if (process.platform !== 'win32') {
+      return _capabilitySignal(null, 'unavailable', 'Remote-session detection is Windows-only');
+    }
+    const script = String.raw`
+$ErrorActionPreference='Stop'
+$sid=[System.Diagnostics.Process]::GetCurrentProcess().SessionId
+$path="HKCU:\Volatile Environment\$sid"
+$item=Get-ItemProperty -LiteralPath $path -ErrorAction SilentlyContinue
+$sessionName=if($item.SESSIONNAME){[string]$item.SESSIONNAME}else{[string]$env:SESSIONNAME}
+$clientName=if($item.CLIENTNAME){[string]$item.CLIENTNAME}else{[string]$env:CLIENTNAME}
+[pscustomobject]@{
+  sessionId=$sid
+  sessionName=$sessionName
+  clientName=$clientName
+  remote=(($sessionName -match '^(RDP|ICA|PCOIP|REMOTE)') -or ($clientName -and $clientName -notmatch '^Console$'))
+}|ConvertTo-Json -Compress`;
+    const result = await runMainPsDetailed(script, {
+      timeout: 3_000,
+      label: 'adaptive-capabilities.session',
+    });
+    if (!result.ok || !result.stdout) {
+      return _capabilitySignal(null, 'unknown', 'Live Windows session status was unavailable');
+    }
+    try {
+      const parsed = JSON.parse(result.stdout);
+      return _capabilitySignal(parsed.remote === true, 'available');
+    } catch {
+      return _capabilitySignal(null, 'unknown', 'Live Windows session response was invalid');
+    }
+  }
+
+  async function getAdaptiveCapabilitySnapshot({ force = false } = {}) {
+    const now = Date.now();
+    if (!force && _adaptiveCapabilityCache && now - _adaptiveCapabilityCacheAt < ADAPTIVE_CAPABILITY_CACHE_MS) {
+      return _adaptiveCapabilityCache;
+    }
+    if (_adaptiveCapabilityFlight) return _adaptiveCapabilityFlight;
+    const flightGeneration = _adaptiveCapabilityGeneration;
+    _adaptiveCapabilityFlight = (async () => {
+      const cpus = os.cpus() || [];
+      const totalRamGb = os.totalmem() > 0 ? Number((os.totalmem() / 1_073_741_824).toFixed(1)) : null;
+      const availableRamGb = os.freemem() >= 0 ? Number((os.freemem() / 1_073_741_824).toFixed(1)) : null;
+      let displays = [];
+      try { displays = screen?.getAllDisplays?.() || []; } catch {}
+      const scaleFactors = displays.map(display => Number(display?.scaleFactor))
+        .filter(value => Number.isFinite(value) && value > 0);
+      const maxScale = scaleFactors.length ? Math.max(...scaleFactors) : null;
+
+      let featureStatus = null;
+      try { featureStatus = app.isReady() ? app.getGPUFeatureStatus() : null; } catch {}
+      const featureAvailable = !!featureStatus && Object.keys(featureStatus).length > 0;
+      const commandLineDisablesGpu = app.commandLine.hasSwitch('disable-gpu') ||
+        app.commandLine.hasSwitch('disable-gpu-compositing');
+      const softwareRendering = featureAvailable
+        ? commandLineDisablesGpu || _gpuFeatureLooksSoftware(featureStatus)
+        : commandLineDisablesGpu ? true : null;
+      const hardwareAcceleration = softwareRendering === null ? null : !softwareRendering;
+      const gpuModel = gpuState.model || wmiGpuList[selectedGpuIndex]?.name || wmiGpuModelName || null;
+      const integratedGpu = _isIntegratedGpuModel(gpuModel);
+
+      const remoteSessionPromise = _readLiveRemoteSession();
+
+      let onBattery = null;
+      try {
+        if (app.isReady() && powerMonitor?.isOnBatteryPower) onBattery = !!powerMonitor.isOnBatteryPower();
+      } catch {}
+      let battery = null;
+      try {
+        assertSiCaller('system:getCapabilities');
+        battery = await siWithTimeout(() => si.battery(), 3_000, 'adaptive-capabilities.battery');
+      } catch {}
+      const remoteSession = await remoteSessionPromise;
+      const hasBattery = typeof battery?.hasBattery === 'boolean' ? battery.hasBattery : null;
+      if (typeof battery?.acConnected === 'boolean') onBattery = !battery.acConnected && hasBattery !== false;
+      const gpuAvailability = gpuModel ? 'available' : 'unknown';
+      const snapshot = {
+        capturedAt: Date.now(),
+        gpu: {
+          model: _capabilitySignal(gpuModel, gpuAvailability, 'GPU identification has not completed'),
+          vendor: _capabilitySignal(gpuState.vendor || null, gpuState.vendor ? 'available' : 'unknown', 'GPU vendor was not reported'),
+          driverVersion: _capabilitySignal(gpuState.driverVersion || null, gpuState.driverVersion ? 'available' : 'unknown', 'GPU driver version was not reported'),
+          integrated: _capabilitySignal(integratedGpu, integratedGpu === null ? 'unknown' : 'available', 'GPU type could not be classified safely'),
+          hardwareAcceleration: _capabilitySignal(hardwareAcceleration, hardwareAcceleration === null ? 'unknown' : 'available', 'Electron GPU feature status was unavailable'),
+          softwareRendering: _capabilitySignal(softwareRendering, softwareRendering === null ? 'unknown' : 'available', 'Electron renderer mode was unavailable'),
+          featureStatus: _capabilitySignal(featureStatus, featureAvailable ? 'available' : 'unknown', 'Electron GPU feature status was unavailable'),
+        },
+        rendering: {
+          software: _capabilitySignal(softwareRendering, softwareRendering === null ? 'unknown' : 'available', 'Electron renderer mode was unavailable'),
+        },
+        remoteSession,
+        display: {
+          scaleFactor: _capabilitySignal(maxScale, maxScale === null ? 'unknown' : 'available', 'Electron did not report any displays'),
+          monitorCount: _capabilitySignal(displays.length || null, displays.length ? 'available' : 'unknown', 'Electron did not report any displays'),
+          highDpi: _capabilitySignal(maxScale === null ? null : maxScale >= 1.75, maxScale === null ? 'unknown' : 'available', 'Display scale was unavailable'),
+        },
+        power: {
+          onBattery: _capabilitySignal(onBattery, onBattery === null ? 'unknown' : 'available', 'Power source was unavailable'),
+          batteryPercent: _capabilitySignal(Number.isFinite(battery?.percent) ? battery.percent : null, Number.isFinite(battery?.percent) ? 'available' : 'unavailable', hasBattery === false ? 'This PC has no battery' : 'Battery level was unavailable'),
+          charging: _capabilitySignal(typeof battery?.isCharging === 'boolean' ? battery.isCharging : null, typeof battery?.isCharging === 'boolean' ? 'available' : 'unavailable', hasBattery === false ? 'This PC has no battery' : 'Charging state was unavailable'),
+        },
+        cpu: {
+          logicalThreads: _capabilitySignal(cpus.length || null, cpus.length ? 'available' : 'unknown', 'CPU topology was unavailable'),
+          totalRamGb: _capabilitySignal(totalRamGb, totalRamGb === null ? 'unknown' : 'available', 'Total RAM was unavailable'),
+          availableRamGb: _capabilitySignal(availableRamGb, availableRamGb === null ? 'unknown' : 'available', 'Available RAM was unavailable'),
+        },
+      };
+      if (flightGeneration === _adaptiveCapabilityGeneration) {
+        _adaptiveCapabilityCache = snapshot;
+        _adaptiveCapabilityCacheAt = Date.now();
+      } else {
+        _adaptiveCapabilityRefreshPending = true;
+      }
+      return snapshot;
+    })().finally(() => {
+      _adaptiveCapabilityFlight = null;
+      if (_adaptiveCapabilityRefreshPending) {
+        _adaptiveCapabilityRefreshPending = false;
+        void getAdaptiveCapabilitySnapshot({ force: true })
+          .then(() => {
+            if (mainWindow && !mainWindow.isDestroyed()) {
+              mainWindow.webContents.send('system:capabilities-changed', {
+                reason: 'in-flight-reconciled',
+                timestamp: Date.now(),
+              });
+            }
+          })
+          .catch(() => {});
+      }
+    });
+    return _adaptiveCapabilityFlight;
+  }
+
+  function invalidateAdaptiveCapabilityCache(reason = 'capability-change') {
+    _adaptiveCapabilityCache = null;
+    _adaptiveCapabilityCacheAt = 0;
+    _adaptiveCapabilityGeneration += 1;
+    if (_adaptiveCapabilityFlight) _adaptiveCapabilityRefreshPending = true;
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('system:capabilities-changed', { reason, timestamp: Date.now() });
+    }
+  }
+
+  ipcMain.handle('system:getCapabilities', async (_event, options = {}) =>
+    getAdaptiveCapabilitySnapshot({ force: options?.force === true }));
 
   // Clear the display info cache so the next call re-runs the PowerShell scan.
   // Called by the UI refresh button and monitor hot-plug events.
@@ -5133,6 +5321,7 @@ public class DspHelper {
       lastStaticUpdate: 0, lastDynamicUpdate: 0,
     };
     try { const fs = require('fs'); fs.unlinkSync(SPECS_CACHE_FILE); } catch (_e) {}
+    invalidateAdaptiveCapabilityCache('gpu-cache-invalidated');
     console.log('[GPU] cache invalidated for GPU switch');
   }
 
@@ -6395,14 +6584,20 @@ $pwrThrot  = Reg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottl
     if (_telemetryDemandMode === mode) return { ok: true, mode };
     _telemetryDemandMode = mode;
     _telemetryDemandPaused = mode === 'paused';
-    const shouldSlow = mode !== 'full' || _lowEndMode || _telemetryCurrentIntervalMs === TELEMETRY_SLOW_MS;
-    _telemetryCurrentIntervalMs = mode === 'paused'
-      ? TELEMETRY_SLOW_MS
-      : mode === 'intelligence'
-        ? Math.max(5000, shouldSlow ? TELEMETRY_SLOW_MS : 5000)
-        : (shouldSlow ? TELEMETRY_SLOW_MS : TELEMETRY_BASE_MS);
+    _telemetryCurrentIntervalMs = _profileIntervalForDemand(mode);
     console.log(`[telemetry:demand] mode=${mode} interval=${_telemetryCurrentIntervalMs}ms`);
     return { ok: true, mode };
+  });
+
+  ipcMain.handle('telemetry:setPerformanceProfile', (_event, profile) => {
+    if (!['efficiency', 'balanced', 'enhanced', 'unknown'].includes(profile)) {
+      throw new Error('Invalid adaptive performance profile');
+    }
+    _adaptivePerformanceProfile = profile;
+    _lowEndMode = profile === 'efficiency';
+    _telemetryCurrentIntervalMs = _profileIntervalForDemand();
+    console.log(`[telemetry:profile] profile=${profile} interval=${_telemetryCurrentIntervalMs}ms`);
+    return { ok: true, profile };
   });
 
   ipcMain.handle('telemetry:getSchedulerStats', () => {
@@ -6417,6 +6612,7 @@ $pwrThrot  = Reg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottl
       taskTimings:          _taskTimings,
       currentIntervalMs:    _telemetryCurrentIntervalMs,
       demandMode:           _telemetryDemandMode,
+      performanceProfile:   _adaptivePerformanceProfile,
       baseIntervalMs:       TELEMETRY_BASE_MS,
       slowIntervalMs:       TELEMETRY_SLOW_MS,
       budgetPct:            CPU_BUDGET_PCT,
@@ -6661,7 +6857,12 @@ $pwrThrot  = Reg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottl
       screen.on('display-added', () => invalidateDisplayInfoCache('display-added'));
       screen.on('display-removed', () => invalidateDisplayInfoCache('display-removed'));
       screen.on('display-metrics-changed', () => invalidateDisplayInfoCache('display-metrics-changed'));
+      app.on('gpu-info-update', () => invalidateAdaptiveCapabilityCache('gpu-info-update'));
     }
+    powerMonitor.on('on-ac', () => invalidateAdaptiveCapabilityCache('on-ac'));
+    powerMonitor.on('on-battery', () => invalidateAdaptiveCapabilityCache('on-battery'));
+    powerMonitor.on('resume', () => invalidateAdaptiveCapabilityCache('resume'));
+    powerMonitor.on('unlock-screen', () => invalidateAdaptiveCapabilityCache('unlock-screen'));
   
     if (isDebug) {
       console.log('\n========== BOOT EVIDENCE ==========');

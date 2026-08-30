@@ -37,26 +37,19 @@ ipcMain.handle('storage:getVolumes', async () => {
   if (!token) return { ok: false, reason: 'busy', volumes: [] };
 
   try {
-    const script = `
+    const script = String.raw`
 $physDisks = @()
 try { $physDisks = @(Get-PhysicalDisk -ErrorAction Stop | Select-Object FriendlyName, MediaType, BusType, HealthStatus, @{N='SizeGB';E={[math]::Round($_.Size/1GB,2)}}) } catch {}
 $optState = @{
-  lastRunAt = $null
-  lastTaskResult = $null
   scheduleEnabled = $null
   status = 'unavailable'
   source = 'windows-scheduled-task'
 }
-if ((Get-Command Get-ScheduledTask -ErrorAction SilentlyContinue) -and (Get-Command Get-ScheduledTaskInfo -ErrorAction SilentlyContinue)) {
+if (Get-Command Get-ScheduledTask -ErrorAction SilentlyContinue) {
   try {
-    $task = Get-ScheduledTask -TaskPath '\\Microsoft\\Windows\\Defrag\\' -TaskName 'ScheduledDefrag' -ErrorAction Stop
-    $taskInfo = Get-ScheduledTaskInfo -TaskPath '\\Microsoft\\Windows\\Defrag\\' -TaskName 'ScheduledDefrag' -ErrorAction Stop
+    $task = Get-ScheduledTask -TaskPath '\Microsoft\Windows\Defrag\' -TaskName 'ScheduledDefrag' -ErrorAction Stop
     $optState.scheduleEnabled = ($task.State -ne 'Disabled')
-    $optState.lastTaskResult = [int64]$taskInfo.LastTaskResult
-    if ($taskInfo.LastRunTime -and $taskInfo.LastRunTime.Year -gt 2000) {
-      $optState.lastRunAt = $taskInfo.LastRunTime.ToUniversalTime().ToString('o')
-      $optState.status = if ($optState.lastTaskResult -eq 0) { 'available' } else { 'failed' }
-    }
+    $optState.status = 'available'
   } catch {}
 }
 $result = @()
@@ -114,10 +107,6 @@ ConvertTo-Json -InputObject @($result) -Depth 5 -Compress
         trimEnabled:  row?.trimEnabled === true,
         diskHealth:   String(row?.diskHealth ?? 'Unknown').trim(),
         optimization: {
-          lastRunAt: typeof row?.optimization?.lastRunAt === 'string' ? row.optimization.lastRunAt : null,
-          lastTaskResult: Number.isFinite(Number(row?.optimization?.lastTaskResult))
-            ? Number(row.optimization.lastTaskResult)
-            : null,
           scheduleEnabled: typeof row?.optimization?.scheduleEnabled === 'boolean'
             ? row.optimization.scheduleEnabled
             : null,

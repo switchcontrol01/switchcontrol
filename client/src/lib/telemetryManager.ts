@@ -27,6 +27,7 @@
 
 import { useTelemetryStore } from "@/stores/telemetryStore";
 import { getPollingProfile, subscribeToAppMode } from "@/lib/appModeStore";
+import { getAdaptivePerformanceTelemetryPolicy } from "@/lib/adaptivePerformanceStore";
 import { useAuthStore, bumpMeGeneration } from "@/lib/authStore";
 import { getResolvedBackendPort } from "@/lib/api";
 import { pollingRegistry } from "@/lib/pollingRegistry";
@@ -499,14 +500,16 @@ async function _ipcPollTick(): Promise<void> {
 // (Normal: 2s / Light: 8s). While the window is hidden/minimized the interval
 // is multiplied further (Light: 8s × 4 = 32s) to cut tray-idle CPU to near zero.
 function _currentIpcIntervalMs(): number {
+  const applicationProfile = getPollingProfile();
+  const adaptiveProfile = getAdaptivePerformanceTelemetryPolicy();
+  const adaptiveBase = 2000 * adaptiveProfile.intervalMultiplier;
+  const base = Math.max(applicationProfile.telemetryMs, adaptiveBase);
   if (_demandMode === "intelligence") {
     // Tweaks only needs pressure signals. Keep it responsive, but do not
     // sample as aggressively as the Dashboard's full live graphs.
-    return Math.max(5000, getPollingProfile().telemetryMs);
+    return Math.max(5000, base);
   }
-  const profile = getPollingProfile();
-  const base = profile.telemetryMs;
-  return document.hidden ? base * profile.hiddenMultiplier : base;
+  return document.hidden ? base * applicationProfile.hiddenMultiplier : base;
 }
 
 let _modeUnsub: (() => void) | null = null;
@@ -547,6 +550,9 @@ function _startIpcPolling(): void {
     _ipcVisListenerAttached = true;
     document.addEventListener("visibilitychange", () => {
       _rescheduleIpcPoll(document.hidden ? _currentIpcIntervalMs() : 50);
+    });
+    window.addEventListener("sc:adaptive-profile-changed", () => {
+      _rescheduleIpcPoll(_currentIpcIntervalMs());
     });
   }
 }

@@ -6,8 +6,6 @@ export interface StorageOptimizationRecord {
 }
 
 export interface WindowsOptimizationState {
-  lastRunAt: string | null;
-  lastTaskResult: number | null;
   scheduleEnabled: boolean | null;
   status: "available" | "failed" | "unavailable";
   source: "windows-scheduled-task";
@@ -67,20 +65,9 @@ export function getStorageOptimizationRecommendation(
   const appTimestamp = validTimestamp(appRecord?.ran_at, nowMs);
 
   const windowsState = drive.optimization;
-  const windowsTimestamp =
-    windowsState?.status === "available" && windowsState.lastTaskResult === 0
-      ? validTimestamp(windowsState.lastRunAt, nowMs)
-      : null;
-
-  let lastRunTimestamp: number | null = null;
-  let lastRunSource: StorageOptimizationRecommendation["lastRunSource"] = null;
-  if (windowsTimestamp !== null && (appTimestamp === null || windowsTimestamp >= appTimestamp)) {
-    lastRunTimestamp = windowsTimestamp;
-    lastRunSource = "windows";
-  } else if (appTimestamp !== null) {
-    lastRunTimestamp = appTimestamp;
-    lastRunSource = "switchcontrol";
-  }
+  const lastRunTimestamp = appTimestamp;
+  const lastRunSource: StorageOptimizationRecommendation["lastRunSource"] =
+    appTimestamp === null ? null : "switchcontrol";
 
   const days = lastRunTimestamp === null
     ? null
@@ -96,7 +83,7 @@ export function getStorageOptimizationRecommendation(
       due: false,
       lastRunAt: lastRunTimestamp === null ? null : new Date(lastRunTimestamp).toISOString(),
       lastRunSource,
-      lastRunLabel: lastRunSource === "windows" ? "Windows Optimize Drives" : lastRunSource === "switchcontrol" ? "SwitchControl" : "Unavailable",
+      lastRunLabel: lastRunSource === "switchcontrol" ? "SwitchControl" : "Unavailable",
       reason: "Running ReTrim is not useful until Windows delete notifications are enabled for this SSD.",
     };
   }
@@ -111,8 +98,8 @@ export function getStorageOptimizationRecommendation(
       due: false,
       lastRunAt: new Date(lastRunTimestamp).toISOString(),
       lastRunSource,
-      lastRunLabel: lastRunSource === "windows" ? "Windows Optimize Drives" : "SwitchControl",
-      reason: `A successful ${lastRunSource === "windows" ? "Windows maintenance" : "SwitchControl"} run was recorded within the last 14 days.`,
+      lastRunLabel: "SwitchControl",
+      reason: "A successful SwitchControl run was recorded within the last 14 days.",
     };
   }
 
@@ -126,8 +113,23 @@ export function getStorageOptimizationRecommendation(
       due: false,
       lastRunAt: new Date(lastRunTimestamp).toISOString(),
       lastRunSource,
-      lastRunLabel: lastRunSource === "windows" ? "Windows Optimize Drives" : "SwitchControl",
+      lastRunLabel: "SwitchControl",
       reason: "Windows normally handles drive optimization automatically; there is no need to run it on every app launch.",
+    };
+  }
+
+  if (windowsState?.scheduleEnabled === true) {
+    return {
+      action: "Windows automatic optimization is enabled",
+      duration: isHdd ? "5–15 min" : "< 5 sec",
+      urgency: "low",
+      days,
+      optimizeType,
+      due: false,
+      lastRunAt: lastRunTimestamp === null ? null : new Date(lastRunTimestamp).toISOString(),
+      lastRunSource,
+      lastRunLabel: lastRunSource === "switchcontrol" ? "SwitchControl" : "Unavailable",
+      reason: "The Windows maintenance schedule is enabled, but its global task history is not treated as proof that this specific drive ran.",
     };
   }
 
@@ -141,7 +143,7 @@ export function getStorageOptimizationRecommendation(
       due: true,
       lastRunAt: new Date(lastRunTimestamp).toISOString(),
       lastRunSource,
-      lastRunLabel: lastRunSource === "windows" ? "Windows Optimize Drives" : "SwitchControl",
+      lastRunLabel: "SwitchControl",
       reason: `No successful optimization has been recorded for ${days} days.`,
     };
   }

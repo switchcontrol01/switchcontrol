@@ -27,6 +27,11 @@ import { PATCH_NOTES_STORAGE_KEY, PatchNotesModal } from "@/components/PatchNote
 import { ACCENT_COLORS, useUserPreferencesStore, type ThemeMode, type ConfirmationMode } from "@/stores/userPreferencesStore";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useTranslation } from "@/lib/i18n";
+import {
+  refreshAdaptiveCapabilities,
+  useAdaptivePerformance,
+} from "@/lib/adaptivePerformanceStore";
+import type { AdaptivePerformanceOverride } from "@shared/adaptivePerformance";
 
 interface PatchNotes {
   version: string;
@@ -764,6 +769,94 @@ function ApplicationModeSection() {
   );
 }
 
+function AdaptivePerformanceSection() {
+  const {
+    profile,
+    detectedProfile,
+    confidence,
+    reasons,
+    refreshing,
+    override,
+  } = useAdaptivePerformance();
+  const reducedMotion = useUserPreferencesStore((state) => state.reducedMotion);
+  const setPreference = useUserPreferencesStore((state) => state.setPreference);
+  const options: Array<{ value: AdaptivePerformanceOverride; label: string; description: string }> = [
+    { value: "automatic", label: "Automatic", description: "Adapts when power, display, session, or GPU capability changes." },
+    { value: "efficiency", label: "Efficiency", description: "Static ambience and slower nonessential polling." },
+    { value: "balanced", label: "Balanced", description: "Moderate effects with a measured background cadence." },
+    { value: "enhanced", label: "Enhanced", description: "Full visuals and the normal live-monitoring cadence." },
+  ];
+  const label = profile === "unknown"
+    ? "Detecting"
+    : profile.charAt(0).toUpperCase() + profile.slice(1);
+
+  return (
+    <div className="space-y-4" data-testid="adaptive-performance-section">
+      <div className="flex items-start justify-between gap-4 rounded-lg border border-[#2A313A] bg-[#12151B] p-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <Gauge className="size-4 text-cyan-300" />
+            <span className="text-sm font-medium text-[#E6EAF0]">{label} profile active</span>
+            {override !== "automatic" && (
+              <span className="rounded-full bg-cyan-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-cyan-300">
+                Manual
+              </span>
+            )}
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {override === "automatic"
+              ? detectedProfile === "unknown"
+                ? "Waiting for enough reliable capability signals."
+                : `Automatically detected with ${confidence}% confidence.`
+              : `Automatic detection currently recommends ${detectedProfile === "unknown" ? "waiting for more data" : detectedProfile}.`}
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          className="border-border/50"
+          disabled={refreshing}
+          onClick={() => void refreshAdaptiveCapabilities(true)}
+          data-testid="button-refresh-performance-profile"
+        >
+          <RotateCcw className={`mr-1.5 size-3.5 ${refreshing ? "animate-spin" : ""}`} />
+          Refresh
+        </Button>
+      </div>
+
+      <div className="grid gap-2 sm:grid-cols-2">
+        {options.map((option) => {
+          const selected = override === option.value;
+          return (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => setPreference("performanceProfileOverride", option.value)}
+              data-testid={`button-performance-profile-${option.value}`}
+              className={`rounded-lg border p-3 text-left transition-colors ${
+                selected
+                  ? "border-cyan-400/50 bg-cyan-400/10"
+                  : "border-[#2A313A] bg-[#12151B] hover:bg-[#1A1F26]"
+              }`}
+            >
+              <div className="text-sm font-medium text-[#E6EAF0]">{option.label}</div>
+              <p className="mt-1 text-xs text-muted-foreground">{option.description}</p>
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="rounded-lg bg-white/[0.025] px-3 py-2.5">
+        <p className="text-xs font-medium text-[#AEB6C2]">Why this profile</p>
+        <ul className="mt-1.5 space-y-1 text-xs text-muted-foreground">
+          {reasons.slice(0, 4).map((reason) => <li key={reason}>• {reason}</li>)}
+          {reducedMotion && <li>• Reduced motion is enabled and takes precedence over this profile.</li>}
+        </ul>
+      </div>
+    </div>
+  );
+}
+
 export default function Settings() {
   const { 
     account, resetData, 
@@ -1239,6 +1332,8 @@ export default function Settings() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              <AdaptivePerformanceSection />
+              <Separator className="bg-border/30" />
               <ApplicationModeSection />
             </CardContent>
           </Card>

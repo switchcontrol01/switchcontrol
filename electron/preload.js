@@ -187,10 +187,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   auth: {
     onCallback: (callback) => {
       assertFunction(callback, 'auth.onCallback callback');
-      const handler = (_event, url) => {
-        if (!isProdBuild) console.log('[PremiumFlow] deep-link received:', url);
-        callback(url);
-      };
+      const handler = (_, payload) => callback(payload);
       ipcRenderer.on('auth-callback', handler);
       // Signal to main that the renderer auth listener is now registered and
       // ready to receive deep-link callbacks. Main holds any pending deep link
@@ -212,10 +209,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getRamUsage:       () => ipcRenderer.invoke('system:getRamUsage'),
     getAllDisks:        () => ipcRenderer.invoke('system:getAllDisks'),
     getDisplayInfo:        () => ipcRenderer.invoke('system:getDisplayInfo'),
+    getCapabilities:       (options) => ipcRenderer.invoke('system:getCapabilities', options),
     invalidateDisplayCache:() => ipcRenderer.invoke('display:invalidateCache'),
      onDisplayChanged: (cb) => onEvent('system:display-changed', cb, {
        log: (payload) => console.info('[DisplayInfo] display capability changed:', payload?.reason || 'unknown'),
      }),
+    onCapabilitiesChanged: (cb) => onEvent('system:capabilities-changed', cb),
     getAudioDevice:      () => ipcRenderer.invoke('system:getAudioDevice'),
     getBluetoothDevice: () => ipcRenderer.invoke('system:getBluetoothDevice'),
     getMotherboard:      () => ipcRenderer.invoke('system:getMotherboard'),
@@ -286,6 +285,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
         throw new Error('Invalid telemetry demand mode');
       }
       return ipcRenderer.invoke('telemetry:setDemandMode', mode);
+    },
+    setPerformanceProfile: (profile) => {
+      if (!['efficiency', 'balanced', 'enhanced', 'unknown'].includes(profile)) {
+        throw new Error('Invalid adaptive performance profile');
+      }
+      return ipcRenderer.invoke('telemetry:setPerformanceProfile', profile);
     },
     getEnhanced:          () => ipcRenderer.invoke('telemetry:getEnhanced'),
     getCpuCores:          () => ipcRenderer.invoke('telemetry:getCpuCores'),

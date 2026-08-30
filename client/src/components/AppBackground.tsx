@@ -1,6 +1,9 @@
 import { useEffect, useRef } from "react";
 import { useMotion } from "@/lib/motion";
 import { getSessionGlowColor } from "@/lib/startupGlow";
+import { useAdaptivePerformance } from "@/lib/adaptivePerformanceStore";
+import { useUserPreferencesStore } from "@/stores/userPreferencesStore";
+import { getAdaptiveVisualPolicy } from "@shared/adaptivePerformance";
 
 // Module-level timestamp — survives remounts so every new AppBackground
 // instance can resume CSS animations at the correct phase rather than
@@ -19,7 +22,7 @@ function _bgDelay(periodS: number, staggerS = 0): string {
    • All orb breathing uses CSS @keyframes — compositor-thread,
      zero JS interpolation per frame.
    • prefersReducedMotion → 2 fully static orbs, zero animation.
-   • Hardware-concurrency ≤ 4 (low-end) → same static path.
+   • Adaptive capability profile selects ambient, wave and cursor cost.
    • Cursor spotlight RAF starts only on first mousemove,
      stops automatically after 3 s of mouse idle.
    • GPU: removed mixBlendMode from cursor spotlight (expensive)
@@ -72,16 +75,15 @@ export function AppBackground() {
   const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const running   = useRef(false);
   const { prefersReducedMotion } = useMotion();
-
-  // ≤ 4 logical cores = ancient PC — skip all animations for guaranteed low CPU
-  const isLowEnd =
-    typeof navigator !== "undefined" && (navigator.hardwareConcurrency || 8) <= 4;
-
-  const staticOnly = prefersReducedMotion || isLowEnd;
+  const appReducedMotion = useUserPreferencesStore((state) => state.reducedMotion);
+  const { profile } = useAdaptivePerformance();
+  const effectiveReducedMotion = prefersReducedMotion || appReducedMotion;
+  const visualPolicy = getAdaptiveVisualPolicy(profile, effectiveReducedMotion);
+  const staticOnly = !visualPolicy.animateAmbient;
 
   /* ── Cursor spotlight — only active when mouse is moving ─────── */
   useEffect(() => {
-    if (staticOnly) return;
+    if (!visualPolicy.cursorSpotlight) return;
 
     const stopRaf = () => {
       if (rafId.current) {
@@ -119,9 +121,9 @@ export function AppBackground() {
       if (idleTimer.current) clearTimeout(idleTimer.current);
       stopRaf();
     };
-  }, [staticOnly]);
+  }, [visualPolicy.cursorSpotlight]);
 
-  /* ── Static-only path (reduced motion or ≤ 4 cores) ─────────── */
+  /* ── Static-only path (reduced motion or efficiency profile) ── */
   if (staticOnly) {
     return (
       <div
@@ -204,7 +206,7 @@ export function AppBackground() {
         }} />
 
         {/* Layer 2: energy-flow wave grid (CSS-animated — no framer overhead) */}
-        <div
+        {visualPolicy.waveGrid && <div
           className="absolute inset-0 overflow-hidden"
           style={{ opacity: 0.10, transform: "rotate(-8deg) scale(1.5)" }}
         >
@@ -232,7 +234,7 @@ export function AppBackground() {
               <rect width="300%" height="300%" x="-100%" y="-100%" fill="url(#bg-wv2)" />
             </svg>
           </div>
-        </div>
+        </div>}
 
         {/* Layer 2b: fine dot grid — static */}
         <div className="absolute inset-0" style={{
@@ -242,7 +244,7 @@ export function AppBackground() {
 
         {/* Layer 3: cursor spotlight — starts hidden, moved on mousemove */
         /* GPU: removed mixBlendMode: screen (very expensive compositing) */}
-        <div
+        {visualPolicy.cursorSpotlight && <div
           ref={spotRef}
           style={{
             position: "absolute",
@@ -255,7 +257,7 @@ export function AppBackground() {
             pointerEvents: "none",
             transform: "translate(-500px,-500px)",
           }}
-        />
+        />}
 
         {/* Vignette */}
         <div className="absolute inset-0" style={{

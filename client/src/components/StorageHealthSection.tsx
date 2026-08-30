@@ -360,6 +360,14 @@ export default function StorageHealthSection() {
   // ── Optimize ────────────────────────────────────────────────────────────────
 
   const optimizeDrive = useCallback(async (drive: DriveVolume) => {
+    const recommendation = getStorageOptimizationRecommendation(drive, optHistory);
+    if (!recommendation.due) {
+      toast({
+        title: "Optimization not recommended",
+        description: recommendation.reason,
+      });
+      return;
+    }
     const optType = driveIsHDD(drive) ? "defrag" : "trim";
     setOptimizing(drive.letter);
     try {
@@ -410,7 +418,7 @@ export default function StorageHealthSection() {
     } finally {
       setOptimizing(null);
     }
-  }, [toast]);
+  }, [optHistory, toast]);
 
   // ── Derived ─────────────────────────────────────────────────────────────────
 
@@ -592,7 +600,9 @@ export default function StorageHealthSection() {
                                   transition={{ duration: 1.4, repeat: Infinity }}
                                 />
                                 <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: urgencyColor }}>
-                                  {rec.urgency === "high" ? "Action recommended" : rec.urgency === "medium" ? "Suggested" : "Drive is healthy"}
+                                  {rec.due
+                                    ? rec.urgency === "high" ? "Action recommended" : "Suggested"
+                                    : rec.urgency === "low" ? "Drive is healthy" : "Windows status"}
                                 </span>
                               </div>
                               <p className="text-[13px] font-bold text-[#E6EAF0]">{rec.action}</p>
@@ -604,33 +614,35 @@ export default function StorageHealthSection() {
                               </div>
                             </div>
 
-                            <motion.button
-                              onClick={() => optimizeDrive(activeDrive)}
-                              disabled={!!optimizing}
-                              whileHover={optimizing ? {} : { scale: 1.03 }}
-                              whileTap={optimizing ? {} : { scale: 0.97 }}
-                              className="flex items-center gap-1.5 h-9 px-4 rounded-xl text-[12px] font-bold text-white shrink-0 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                              style={{
-                                background: optimizing
-                                  ? "rgba(255,255,255,0.08)"
-                                  : `linear-gradient(135deg, ${color}cc, ${color}88)`,
-                                boxShadow: optimizing ? "none" : `0 0 20px ${color}30`,
-                                border: `1px solid ${color}40`,
-                              }}
-                            >
-                              {optimizing === activeDrive.letter ? (
-                                <>
-                                  <motion.div className="w-3.5 h-3.5 rounded-full border-2 border-white border-t-transparent"
-                                    animate={{ rotate: 360 }} transition={{ duration: 0.8, repeat: Infinity, ease: "linear" }} />
-                                  <span>Optimizing…</span>
-                                </>
-                              ) : (
-                                <>
-                                  <Zap className="w-3.5 h-3.5" />
-                                  {driveIsHDD(activeDrive) ? "Defragment" : "Run TRIM"}
-                                </>
-                              )}
-                            </motion.button>
+                            {rec.due && (
+                              <motion.button
+                                onClick={() => optimizeDrive(activeDrive)}
+                                disabled={!!optimizing}
+                                whileHover={optimizing ? {} : { scale: 1.03 }}
+                                whileTap={optimizing ? {} : { scale: 0.97 }}
+                                className="flex items-center gap-1.5 h-9 px-4 rounded-xl text-[12px] font-bold text-white shrink-0 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                style={{
+                                  background: optimizing
+                                    ? "rgba(255,255,255,0.08)"
+                                    : `linear-gradient(135deg, ${color}cc, ${color}88)`,
+                                  boxShadow: optimizing ? "none" : `0 0 20px ${color}30`,
+                                  border: `1px solid ${color}40`,
+                                }}
+                              >
+                                {optimizing === activeDrive.letter ? (
+                                  <>
+                                    <motion.div className="w-3.5 h-3.5 rounded-full border-2 border-white border-t-transparent"
+                                      animate={{ rotate: 360 }} transition={{ duration: 0.8, repeat: Infinity, ease: "linear" }} />
+                                    <span>Optimizing…</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Zap className="w-3.5 h-3.5" />
+                                    {driveIsHDD(activeDrive) ? "Defragment" : "Run TRIM"}
+                                  </>
+                                )}
+                              </motion.button>
+                            )}
                           </div>
                         </div>
                       )}

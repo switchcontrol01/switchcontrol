@@ -77,6 +77,7 @@ import { useTrialExpiryStore } from "@/stores/trialExpiryStore";
 import { useSystemConditionsStore } from "@/stores/systemConditionsStore";
 import { useToast } from "@/hooks/use-toast";
 import { UserPreferencesSync } from "@/components/UserPreferencesSync";
+import { AdaptivePerformanceSync } from "@/lib/adaptivePerformanceStore";
 import { I18nProvider } from "@/lib/i18n";
 import { clearTourState } from "@/lib/tour-store";
 import {
@@ -2388,6 +2389,7 @@ function ElectronAppContent() {
             `ready` is strictly gated on onboarding being fully finished so the
             recommendation can never overlap welcome/tour UI. */}
         <AppModeClassSync />
+        <AdaptivePerformanceSync />
         <LightModeAdvisor
           ready={
             !isResetting &&

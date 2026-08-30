@@ -8,6 +8,10 @@ const moduleUrl = pathToFileURL(
   path.join(__dirname, '..', '..', 'client', 'src', 'lib', 'storageOptimization.ts'),
 ).href;
 const storageSource = fs.readFileSync(path.join(__dirname, '..', 'storage-helper.js'), 'utf8');
+const storageUiSource = fs.readFileSync(
+  path.join(__dirname, '..', '..', 'client', 'src', 'components', 'StorageHealthSection.tsx'),
+  'utf8',
+);
 
 const NOW = Date.parse('2026-08-30T12:00:00.000Z');
 const ssd = {
@@ -17,14 +21,12 @@ const ssd = {
   trimEnabled: true,
 };
 
-test('recent Windows Optimize Drives run overrides stale SwitchControl history', async () => {
+test('global Windows task history never overrides per-drive SwitchControl history', async () => {
   const { getStorageOptimizationRecommendation } = await import(moduleUrl);
   const recommendation = getStorageOptimizationRecommendation(
     {
       ...ssd,
       optimization: {
-        lastRunAt: '2026-08-29T09:00:00.000Z',
-        lastTaskResult: 0,
         scheduleEnabled: true,
         status: 'available',
         source: 'windows-scheduled-task',
@@ -39,10 +41,10 @@ test('recent Windows Optimize Drives run overrides stale SwitchControl history',
     NOW,
   );
 
-  assert.equal(recommendation.days, 1);
-  assert.equal(recommendation.lastRunSource, 'windows');
+  assert.equal(recommendation.days, 58);
+  assert.equal(recommendation.lastRunSource, 'switchcontrol');
   assert.equal(recommendation.due, false);
-  assert.equal(recommendation.action, 'TRIM is up to date');
+  assert.equal(recommendation.action, 'Windows automatic optimization is enabled');
 });
 
 test('opening the app repeatedly cannot make TRIM become recommended', async () => {
@@ -50,8 +52,6 @@ test('opening the app repeatedly cannot make TRIM become recommended', async () 
   const drive = {
     ...ssd,
     optimization: {
-      lastRunAt: '2026-08-29T09:00:00.000Z',
-      lastTaskResult: 0,
       scheduleEnabled: true,
       status: 'available',
       source: 'windows-scheduled-task',
@@ -85,11 +85,33 @@ test('TRIM-disabled SSD never recommends a ReTrim operation', async () => {
 
   assert.equal(recommendation.due, false);
   assert.equal(recommendation.action, 'TRIM is disabled in Windows');
+  assert.match(storageUiSource, /if \(!recommendation\.due\)\s*\{/);
+  assert.match(storageUiSource, /\{rec\.due && \(\s*<motion\.button/);
 });
 
-test('native storage probe reads Windows ScheduledDefrag state', () => {
-  assert.match(storageSource, /Get-ScheduledTaskInfo/);
-  assert.match(storageSource, /LastRunTime\.ToUniversalTime\(\)\.ToString\('o'\)/);
-  assert.match(storageSource, /lastTaskResult/);
+test('unavailable native status cannot expose the optimization action', async () => {
+  const { getStorageOptimizationRecommendation } = await import(moduleUrl);
+  const recommendation = getStorageOptimizationRecommendation(
+    {
+      ...ssd,
+      optimization: {
+        scheduleEnabled: null,
+        status: 'unavailable',
+        source: 'windows-scheduled-task',
+      },
+    },
+    [],
+    NOW,
+  );
+
+  assert.equal(recommendation.due, false);
+  assert.equal(recommendation.action, 'TRIM status unavailable');
+});
+
+test('native storage probe treats ScheduledDefrag as global schedule state only', () => {
+  assert.match(storageSource, /String\.raw`/);
+  assert.match(storageSource, /-TaskPath '\\Microsoft\\Windows\\Defrag\\'/);
+  assert.doesNotMatch(storageSource, /Get-ScheduledTaskInfo/);
+  assert.doesNotMatch(storageSource, /LastRunTime/);
   assert.match(storageSource, /ConvertTo-Json -InputObject @\(\$result\)/);
 });

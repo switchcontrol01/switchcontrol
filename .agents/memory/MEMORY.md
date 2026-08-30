@@ -85,3 +85,4 @@
 - [Factory reset IPC handoff](factory-reset-ipc.md) — return a structured reset result before a bounded delayed relaunch/exit; renderer must validate and time out.
 - [Windows process-count fallback](windows-process-count-fallback.md) — systeminformation may return zero for valid Windows process lists; use a native count-only fallback and never guess.
 - [Drive optimization truth](drive-optimization-truth.md) — SwitchControl history is not Windows Optimize Drives state; label sources and never recommend from missing app history alone.
+- [Adaptive performance boundary](adaptive-performance-boundary.md) — machine capability profiles are separate from Light Mode; live invalidations must supersede in-flight snapshots.

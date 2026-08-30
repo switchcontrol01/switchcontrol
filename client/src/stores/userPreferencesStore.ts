@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import type { AdaptivePerformanceOverride } from "@shared/adaptivePerformance";
 
 export type ThemeMode = "dark" | "light" | "system" | "midnight" | "oled" | "contrast";
 export type AccentName = "cyan" | "purple" | "blue" | "green" | "orange" | "red" | "custom";
@@ -68,6 +69,7 @@ export interface UserPreferences {
   sharePerformanceDiagnostics: boolean;
   shareAiHardwareContext: boolean;
   metricsRefreshSeconds: 0 | 2 | 5 | 10;
+  performanceProfileOverride: AdaptivePerformanceOverride;
 }
 
 const DEFAULTS: UserPreferences = {
@@ -111,6 +113,7 @@ const DEFAULTS: UserPreferences = {
   sharePerformanceDiagnostics: false,
   shareAiHardwareContext: true,
   metricsRefreshSeconds: 2,
+  performanceProfileOverride: "automatic",
 };
 
 interface UserPreferencesState extends UserPreferences {

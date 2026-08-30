@@ -1,3 +1,8 @@
+import type {
+  AdaptiveCapabilitySnapshot,
+  AdaptivePerformanceProfile,
+} from "@shared/adaptivePerformance";
+
 interface DiskInfo {
   mount: string;
   name: string;
@@ -220,8 +225,10 @@ declare global {
         getRamUsage: () => Promise<RamUsage>;
         getAllDisks: () => Promise<DiskInfo[]>;
          getDisplayInfo: () => Promise<DisplayInfoResult>;
+         getCapabilities: (options?: { force?: boolean }) => Promise<AdaptiveCapabilitySnapshot>;
          invalidateDisplayCache: () => Promise<{ ok: boolean }>;
          onDisplayChanged: (callback: (payload: { reason: string }) => void) => () => void;
+         onCapabilitiesChanged: (callback: (payload: { reason: string; timestamp: number }) => void) => () => void;
          getAudioDevice: () => Promise<NativeProbeResult & { name: string | null }>;
          getBluetoothDevice: () => Promise<NativeProbeResult & { name: string | null }>;
          getMotherboard: () => Promise<NativeProbeResult & { manufacturer: string | null; model: string | null }>;
@@ -230,6 +237,7 @@ declare global {
       telemetry: {
         getLive: () => Promise<LiveTelemetry>;
         setDemandMode: (mode: 'full' | 'intelligence' | 'paused') => Promise<{ ok: boolean; mode: string }>;
+        setPerformanceProfile: (profile: AdaptivePerformanceProfile) => Promise<{ ok: boolean; profile: AdaptivePerformanceProfile }>;
         getEnhanced: () => Promise<EnhancedTelemetry>;
         getHardwareTelemetry: () => Promise<HardwareTelemetryData>;
       };

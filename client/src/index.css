@@ -189,6 +189,13 @@ html.sc-disable-graph-animation .recharts-layer {
   animation-duration: 0.001ms !important;
   transition-duration: 0.001ms !important;
 }
+
+html.sc-adaptive-no-chart-animation .recharts-animation,
+html.sc-adaptive-no-chart-animation .recharts-sector,
+html.sc-adaptive-no-chart-animation .recharts-layer {
+  animation: none !important;
+  transition: none !important;
+}
 html.sc-high-contrast .text-muted-foreground { color: hsl(var(--foreground) / 0.82) !important; }
 html.sc-high-contrast [class*="border-"] { border-color: hsl(var(--foreground) / 0.35) !important; }
 html.sc-colorblind-safe .text-red-400 { color: #F59E0B !important; }
