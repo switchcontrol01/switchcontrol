@@ -6491,6 +6491,9 @@ $pwrThrot  = Reg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottl
   // These handlers must survive even if everything else in startup crashes.
   function registerCriticalIPC() {
     ipcMain.handle('app:getBackendPort',  () => backendLauncher.getBackendPort());
+    ipcMain.handle('app:getBackendConnectionInfo', () =>
+      backendLauncher.getBackendConnectionInfo ? backendLauncher.getBackendConnectionInfo() : null
+    );
     ipcMain.handle('app:isBackendReady',  () => backendLauncher.isBackendReady());
     ipcMain.handle('app:getBackendError', () => backendLauncher.getLastError ? backendLauncher.getLastError() : null);
     ipcMain.handle('app:isAdmin',         () => _appIsAdmin === true);

@@ -1,6 +1,7 @@
 import { Server as HttpServer } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { parse as parseUrl } from "url";
+import { timingSafeEqual } from "crypto";
 import { getCachedSnapshot, getSnapshot, refreshRamNow, telemetryClientConnected, telemetryClientDisconnected } from "./telemetry";
 import { verifyJwt, jwtFingerprint, peekJwtExpiry } from "./jwt";
 import { isKilled } from "./killSwitch";
@@ -48,6 +49,31 @@ function getWsToken(req: any): string | null {
   return null;
 }
 
+function getWsProtocols(req: any): string[] {
+  const value = req.headers?.["sec-websocket-protocol"];
+  if (typeof value !== "string") return [];
+  return value.split(",").map((item: string) => item.trim()).filter(Boolean);
+}
+
+function capabilityMatches(expected: string, presented: string): boolean {
+  const expectedBytes = Buffer.from(expected);
+  const presentedBytes = Buffer.from(presented);
+  return expectedBytes.length === presentedBytes.length &&
+    timingSafeEqual(expectedBytes, presentedBytes);
+}
+
+function decodeLocalUser(protocols: string[]): string | null {
+  const item = protocols.find(protocol => protocol.startsWith("switchcontrol-user."));
+  if (!item) return null;
+  try {
+    const encoded = item.substring("switchcontrol-user.".length);
+    const decoded = Buffer.from(encoded, "base64url").toString("utf8").trim();
+    return decoded.length > 0 && decoded.length <= 256 ? decoded : null;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Peek at the token's iss claim without verifying the signature.
  * Used only for diagnostic logging when validation fails.
@@ -75,6 +101,10 @@ export function setupWebSocketServer(httpServer: HttpServer) {
       concurrencyLimit: 10,
       serverNoContextTakeover: true,
     },
+    // Electron requests a constant application protocol plus private auth
+    // protocols. Echo only the constant protocol; never echo the capability.
+    handleProtocols: (protocols) =>
+      protocols.has("switchcontrol") ? "switchcontrol" : false,
   });
 
   wss.on("connection", (ws: WebSocket, req: any) => {
@@ -87,44 +117,45 @@ export function setupWebSocketServer(httpServer: HttpServer) {
     }
 
     // Auth gate
-    // In the packaged Electron app the local Express backend runs without
-    // JWT_SECRET in its env, so signature verification always fails.  The
-    // WebSocket server is bound to 127.0.0.1 and is only reachable from the
-    // same machine, so we accept any structurally-valid token without
-    // verifying the signature when running as ELECTRON_BACKEND.
+    // The packaged backend has no cloud JWT secret. Authenticate its loopback
+    // telemetry socket with a cryptographically random per-launch capability
+    // delivered through Electron IPC instead of trusting an unverified JWT.
     const isElectronBackend = process.env.ELECTRON_BACKEND === "1";
-
-    const token = getWsToken(req);
-    if (!token) {
-      console.warn("[WS:auth] phase=rejected reason=no_token");
-      ws.close(1008, "Authentication required");
-      return;
-    }
-
-    const tokenFp = jwtFingerprint(token);
 
     let userId: string;
     let iss: string;
+    let tokenFp = "(local-capability)";
 
     if (isElectronBackend) {
-      // Local-only backend: skip signature check, just read the sub claim.
-      const parts = token.split(".");
-      let sub: string | undefined;
-      try {
-        const decoded = JSON.parse(Buffer.from(parts[1], "base64url").toString("utf8"));
-        sub = decoded?.sub;
-        iss = decoded?.iss || "electron-local";
-      } catch {
-        iss = "electron-local";
-      }
-      if (!sub) {
-        console.warn(`[WS:auth] phase=rejected reason=no_sub_claim tokenFp=${tokenFp}`);
+      const protocols = getWsProtocols(req);
+      const capabilityProtocol = protocols.find(protocol =>
+        protocol.startsWith("switchcontrol-capability.")
+      );
+      const presentedCapability = capabilityProtocol?.substring("switchcontrol-capability.".length) ?? "";
+      const expectedCapability = process.env.ELECTRON_LOCAL_CAPABILITY ?? "";
+      if (!expectedCapability || !presentedCapability ||
+          !capabilityMatches(expectedCapability, presentedCapability)) {
+        console.warn("[WS:auth] phase=rejected reason=invalid_local_capability");
         ws.close(1008, "Authentication required");
         return;
       }
-      userId = sub;
-      console.log(`[WS:auth] phase=accepted (electron-local) userId=${userId} tokenFp=${tokenFp}`);
+
+      const localUserId = decodeLocalUser(protocols);
+      if (!localUserId) {
+        console.warn("[WS:auth] phase=rejected reason=missing_local_user");
+        ws.close(1008, "Authentication required");
+        return;
+      }
+      userId = localUserId;
+      iss = "electron-local-capability";
     } else {
+      const token = getWsToken(req);
+      if (!token) {
+        console.warn("[WS:auth] phase=rejected reason=no_token");
+        ws.close(1008, "Authentication required");
+        return;
+      }
+      tokenFp = jwtFingerprint(token);
       // ── Phase: validating (cloud) ────────────────────────────────────────────
       console.log(`[WS:auth] phase=validating tokenFp=${tokenFp}`);
 

@@ -119,7 +119,19 @@ function scheduleResetSpike(key: "cpu" | "ram" | "gpu") {
   }, 1200);
 }
 
-async function buildWsUrl(): Promise<string> {
+interface WsConnection {
+  url: string;
+  protocols?: string[];
+}
+
+function encodeProtocolValue(value: string): string {
+  const bytes = new TextEncoder().encode(value);
+  let binary = "";
+  bytes.forEach(byte => { binary += String.fromCharCode(byte); });
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+}
+
+async function buildWsConnection(): Promise<WsConnection> {
   const electronAPI = (window as any).electronAPI;
   // Include JWT so the server can authenticate telemetry subscribers.
   // The server rejects unauthenticated WebSocket clients (close 1008).
@@ -135,8 +147,6 @@ async function buildWsUrl(): Promise<string> {
   } else {
     console.warn("[Telemetry:ws] building url — no JWT available (unauthenticated connect will be rejected)");
   }
-  const authSuffix = jwt ? `?jwt=${encodeURIComponent(jwt)}` : "";
-
   if (electronAPI?.isElectron && window.location.protocol === "file:") {
     try {
       // F-7: Reuse api.ts's shared port resolver instead of running a duplicate
@@ -144,11 +154,29 @@ async function buildWsUrl(): Promise<string> {
       // pollForBackendPort() and the onBackendReady push, so we get the port
       // as soon as either path resolves — no extra polling pressure on Electron IPC.
       const port = await getResolvedBackendPort();
-      if (port) return `ws://127.0.0.1:${port}/ws/telemetry${authSuffix}`;
-    } catch {}
+      const connection = await electronAPI.getBackendConnectionInfo?.();
+      if (port && connection?.port === port && typeof connection.capability === "string") {
+        const localUserId = decodeJwtPayload(jwt ?? "")?.sub ||
+          useAuthStore.getState().user?.id ||
+          "electron-local";
+        return {
+          url: `ws://127.0.0.1:${port}/ws/telemetry`,
+          protocols: [
+            "switchcontrol",
+            `switchcontrol-capability.${connection.capability}`,
+            `switchcontrol-user.${encodeProtocolValue(localUserId)}`,
+          ],
+        };
+      }
+      throw new Error("Embedded backend capability is unavailable");
+    } catch (error) {
+      console.error("[Telemetry:ws] embedded connection info unavailable:", error);
+      throw error;
+    }
   }
+  const authSuffix = jwt ? `?jwt=${encodeURIComponent(jwt)}` : "";
   const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
-  return `${proto}//${window.location.host}/ws/telemetry${authSuffix}`;
+  return { url: `${proto}//${window.location.host}/ws/telemetry${authSuffix}` };
 }
 
 // ── Connection logic ───────────────────────────────────────────────────────────
@@ -164,8 +192,8 @@ function connect() {
   // resolves — NOT at the top of connect(). In Electron, buildWsUrl() polls
   // the backend port (up to 30s) before it can even create a socket, so
   // starting the timer here would race and fire before the WS is alive.
-  buildWsUrl()
-    .then((wsUrl) => {
+  buildWsConnection()
+    .then(({ url: wsUrl, protocols }) => {
       // Start the "gave up waiting for data" timer only now that we have a URL
       // and are about to open the socket.
       if (_unavailableTimer) {
@@ -179,7 +207,9 @@ function connect() {
       }, UNAVAILABLE_TIMEOUT_MS);
 
       try {
-        const socket = new WebSocket(wsUrl);
+        const socket = protocols?.length
+          ? new WebSocket(wsUrl, protocols)
+          : new WebSocket(wsUrl);
         _ws = socket;
         pollingRegistry.registerWs(wsUrl);
 

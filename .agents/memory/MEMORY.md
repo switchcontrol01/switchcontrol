@@ -84,3 +84,4 @@
 - [First-run language gate](first-run-language-gate.md) — authenticated new users must persist a language choice before welcome, disclaimer, onboarding, promos, or patch notes can start.
 - [Factory reset IPC handoff](factory-reset-ipc.md) — return a structured reset result before a bounded delayed relaunch/exit; renderer must validate and time out.
 - [Windows process-count fallback](windows-process-count-fallback.md) — systeminformation may return zero for valid Windows process lists; use a native count-only fallback and never guess.
+- [Drive optimization truth](drive-optimization-truth.md) — SwitchControl history is not Windows Optimize Drives state; label sources and never recommend from missing app history alone.

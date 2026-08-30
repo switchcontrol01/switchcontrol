@@ -3,6 +3,7 @@ const path = require('path');
 const http = require('http');
 const net = require('net');
 const fs = require('fs');
+const crypto = require('crypto');
 const configStore = require('./config-store');
 const fileLogger = require('./file-logger');
 
@@ -49,6 +50,7 @@ const _appVersion = (() => { try { return require('./package.json').version; } c
 let backendProcess = null;
 let backendReady = false;
 let backendPort = null;
+let backendCapability = null;
 let lastError = null;
 let _sigkillTimer = null; // cleared on clean exit so double-stop doesn't stack timers
 
@@ -199,10 +201,14 @@ async function startBackend(app) {
       NODE_ENV: 'production',
       PORT: String(port),
       ELECTRON_BACKEND: '1',
+      // Per-launch proof that a WebSocket client came through this Electron
+      // main process. Never persist or log this value.
+      ELECTRON_LOCAL_CAPABILITY: crypto.randomBytes(32).toString('base64url'),
       ELECTRON_RUN_AS_NODE: '1',
       ELECTRON_USER_DATA: userDataPath,
       ...(_appVersion ? { npm_package_version: _appVersion } : {}),
     };
+    backendCapability = env.ELECTRON_LOCAL_CAPABILITY;
 
     // Strip DATABASE_URL BEFORE diagnostic logging — the Replit PostgreSQL
     // server is unreachable from the user's machine and the URL contains
@@ -276,6 +282,7 @@ async function startBackend(app) {
       }
       backendProcess = null;
       backendReady = false;
+      backendCapability = null;
     });
 
     backendProcess.on('error', (err) => {
@@ -283,6 +290,7 @@ async function startBackend(app) {
       berr(lastError);
       backendProcess = null;
       backendReady = false;
+      backendCapability = null;
       try { cl()?.writeCritical({ category: 'backend_failure', severity: 'error', source: 'backend-launcher', message: lastError, stack: err.stack }); } catch (e) {}
     });
 
@@ -311,6 +319,7 @@ async function startBackend(app) {
       backendProcess = null;
     }
     backendPort = null;
+    backendCapability = null;
     console.error('[Backend] getBackendPort() will return: null');
     console.error('[Backend] isBackendReady() will return: false');
     console.error('[Backend] ========================');
@@ -340,6 +349,7 @@ function stopBackend() {
       }
     }, 3000);
     backendReady = false;
+    backendCapability = null;
   }
 }
 
@@ -355,10 +365,16 @@ function getLastError() {
   return lastError;
 }
 
+function getBackendConnectionInfo() {
+  if (!backendReady || !backendPort || !backendCapability) return null;
+  return { port: backendPort, capability: backendCapability };
+}
+
 module.exports = {
   startBackend,
   stopBackend,
   isBackendReady,
   getBackendPort,
+  getBackendConnectionInfo,
   getLastError,
 };

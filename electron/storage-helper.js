@@ -38,9 +38,30 @@ ipcMain.handle('storage:getVolumes', async () => {
 
   try {
     const script = `
-$physDisks = Get-PhysicalDisk | Select-Object FriendlyName, MediaType, BusType, HealthStatus, @{N='SizeGB';E={[math]::Round($_.Size/1GB,2)}}
+$physDisks = @()
+try { $physDisks = @(Get-PhysicalDisk -ErrorAction Stop | Select-Object FriendlyName, MediaType, BusType, HealthStatus, @{N='SizeGB';E={[math]::Round($_.Size/1GB,2)}}) } catch {}
+$optState = @{
+  lastRunAt = $null
+  lastTaskResult = $null
+  scheduleEnabled = $null
+  status = 'unavailable'
+  source = 'windows-scheduled-task'
+}
+if ((Get-Command Get-ScheduledTask -ErrorAction SilentlyContinue) -and (Get-Command Get-ScheduledTaskInfo -ErrorAction SilentlyContinue)) {
+  try {
+    $task = Get-ScheduledTask -TaskPath '\\Microsoft\\Windows\\Defrag\\' -TaskName 'ScheduledDefrag' -ErrorAction Stop
+    $taskInfo = Get-ScheduledTaskInfo -TaskPath '\\Microsoft\\Windows\\Defrag\\' -TaskName 'ScheduledDefrag' -ErrorAction Stop
+    $optState.scheduleEnabled = ($task.State -ne 'Disabled')
+    $optState.lastTaskResult = [int64]$taskInfo.LastTaskResult
+    if ($taskInfo.LastRunTime -and $taskInfo.LastRunTime.Year -gt 2000) {
+      $optState.lastRunAt = $taskInfo.LastRunTime.ToUniversalTime().ToString('o')
+      $optState.status = if ($optState.lastTaskResult -eq 0) { 'available' } else { 'failed' }
+    }
+  } catch {}
+}
 $result = @()
-Get-Volume | Where-Object { $_.DriveLetter -and $_.Size -gt 0 } | ForEach-Object {
+$volumes = @(Get-Volume -ErrorAction Stop | Where-Object { $_.DriveLetter -and $_.Size -gt 0 })
+$volumes | ForEach-Object {
   $vol = $_
   $letter = $vol.DriveLetter
   $mt = 'Unknown'; $bt = 'Unknown'; $model = ''; $diskHealth = 'Unknown'
@@ -61,26 +82,50 @@ Get-Volume | Where-Object { $_.DriveLetter -and $_.Size -gt 0 } | ForEach-Object
     $t = & fsutil behavior query DisableDeleteNotify 2>&1 | Out-String
     if ($t -match '=\s*0') { $trim = 1 }
   } catch {}
-  $entry = "$($letter)|$($vol.FileSystemLabel)|$($vol.Size)|$($vol.SizeRemaining)|$($vol.HealthStatus)|$mt|$bt|$model|$trim|$diskHealth"
-  $result += $entry
+  $result += [pscustomobject]@{
+    letter = [string]$letter
+    label = [string]$vol.FileSystemLabel
+    sizeBytes = [int64]$vol.Size
+    freeBytes = [int64]$vol.SizeRemaining
+    healthStatus = [string]$vol.HealthStatus
+    mediaType = [string]$mt
+    busType = [string]$bt
+    model = [string]$model
+    trimEnabled = ([int]$trim -eq 1)
+    diskHealth = [string]$diskHealth
+    optimization = $optState
+  }
 }
-$result -join "||END||"
+ConvertTo-Json -InputObject @($result) -Depth 5 -Compress
 `;
     const out = await runPS(script, 20000);
-    const lines = out.split('||END||').map(l => l.trim()).filter(Boolean);
-    const volumes = lines.map(line => {
-      const parts = line.split('|');
+    const parsed = JSON.parse(out || '[]');
+    const rows = Array.isArray(parsed) ? parsed : parsed ? [parsed] : [];
+    const volumes = rows.map(row => {
       return {
-        letter:       parts[0]?.trim() ?? '',
-        label:        parts[1]?.trim() ?? '',
-        sizeBytes:    parseInt(parts[2] ?? '0', 10) || 0,
-        freeBytes:    parseInt(parts[3] ?? '0', 10) || 0,
-        healthStatus: parts[4]?.trim() ?? 'Unknown',
-        mediaType:    parts[5]?.trim() ?? 'Unknown',
-        busType:      parts[6]?.trim() ?? 'Unknown',
-        model:        parts[7]?.trim() ?? '',
-        trimEnabled:  (parts[8]?.trim() ?? '0') === '1',
-        diskHealth:   parts[9]?.trim() ?? 'Unknown',
+        letter:       String(row?.letter ?? '').trim(),
+        label:        String(row?.label ?? '').trim(),
+        sizeBytes:    Number(row?.sizeBytes) || 0,
+        freeBytes:    Number(row?.freeBytes) || 0,
+        healthStatus: String(row?.healthStatus ?? 'Unknown').trim(),
+        mediaType:    String(row?.mediaType ?? 'Unknown').trim(),
+        busType:      String(row?.busType ?? 'Unknown').trim(),
+        model:        String(row?.model ?? '').trim(),
+        trimEnabled:  row?.trimEnabled === true,
+        diskHealth:   String(row?.diskHealth ?? 'Unknown').trim(),
+        optimization: {
+          lastRunAt: typeof row?.optimization?.lastRunAt === 'string' ? row.optimization.lastRunAt : null,
+          lastTaskResult: Number.isFinite(Number(row?.optimization?.lastTaskResult))
+            ? Number(row.optimization.lastTaskResult)
+            : null,
+          scheduleEnabled: typeof row?.optimization?.scheduleEnabled === 'boolean'
+            ? row.optimization.scheduleEnabled
+            : null,
+          status: ['available', 'failed'].includes(row?.optimization?.status)
+            ? row.optimization.status
+            : 'unavailable',
+          source: 'windows-scheduled-task',
+        },
       };
     }).filter(v => v.letter.length === 1);
 

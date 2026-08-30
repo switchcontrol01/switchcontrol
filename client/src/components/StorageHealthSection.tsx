@@ -10,6 +10,11 @@ import { logHistory } from "@/lib/logHistory";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
+import {
+  getStorageOptimizationRecommendation,
+  isHddForOptimization,
+  type WindowsOptimizationState,
+} from "@/lib/storageOptimization";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -17,6 +22,7 @@ export interface DriveVolume {
   letter: string; label: string; sizeBytes: number; freeBytes: number;
   healthStatus: string; mediaType: string; busType: string; model: string;
   trimEnabled: boolean; diskHealth: string;
+  optimization?: WindowsOptimizationState | null;
 }
 
 export interface DriveOptHistory {
@@ -42,9 +48,7 @@ function timeAgo(iso: string): string {
 }
 
 function driveIsHDD(d: DriveVolume): boolean {
-  const mt = d.mediaType?.toLowerCase() ?? "";
-  const bt = d.busType?.toLowerCase() ?? "";
-  return mt === "hdd" || (mt !== "ssd" && mt !== "nvme" && bt !== "nvme" && mt !== "unknown" && mt !== "");
+  return isHddForOptimization(d);
 }
 
 function driveTypeLabel(d: DriveVolume): string {
@@ -63,21 +67,6 @@ function driveTypeColor(d: DriveVolume): string {
   if (mt === "ssd") return "#22d3ee";
   if (mt === "hdd") return "#fb923c";
   return "#8b5cf6";
-}
-
-function optRec(d: DriveVolume, lastOpt?: DriveOptHistory) {
-  const days = lastOpt
-    ? Math.floor((Date.now() - new Date(lastOpt.ran_at).getTime()) / 86_400_000)
-    : null;
-  const isHdd = driveIsHDD(d);
-  const urgency = days === null ? "medium" : days > 30 ? "high" : days > 14 ? "medium" : "low";
-  return {
-    action: isHdd ? "Defragmentation recommended" : "TRIM optimization recommended",
-    duration: isHdd ? "5–15 min" : "< 5 sec",
-    urgency,
-    days,
-    optimizeType: isHdd ? "defrag" : "trim",
-  } as const;
 }
 
 const isElectron = () => typeof window !== "undefined" && !!(window as any).electronAPI?.storage;
@@ -203,22 +192,21 @@ function OptimizationTimeline({ history, driveLetter }: { history: DriveOptHisto
 
 // ── AiInsightBubble ───────────────────────────────────────────────────────────
 
-function AiInsightBubble({ drive, lastOpt }: { drive: DriveVolume; lastOpt?: DriveOptHistory }) {
-  const days = lastOpt
-    ? Math.floor((Date.now() - new Date(lastOpt.ran_at).getTime()) / 86_400_000)
-    : null;
+function AiInsightBubble({ drive, history }: { drive: DriveVolume; history: DriveOptHistory[] }) {
+  const rec = getStorageOptimizationRecommendation(drive, history);
+  const days = rec.days;
   const usedPct = drive.sizeBytes > 0 ? 1 - drive.freeBytes / drive.sizeBytes : 0;
   const isHdd = driveIsHDD(drive);
 
   let insight = "";
-  if (days !== null && days > 30) {
+  if (rec.due && days !== null) {
     insight = `${isHdd ? "Defrag" : "TRIM"} hasn't run for ${days} days on your ${drive.model || drive.letter + ":"}. ${isHdd ? "Fragmentation may be impacting load times." : "TRIM keeps SSD performance consistent."}`;
   } else if (usedPct > 0.85) {
     insight = `Drive ${drive.letter}: is ${Math.round(usedPct * 100)}% full. Low free space can impact ${isHdd ? "defrag efficiency" : "SSD wear leveling"} and system performance.`;
   } else if (days === null) {
-    insight = `No optimization history detected for ${drive.model || drive.letter + ":"}. Running ${isHdd ? "defragmentation" : "TRIM"} is recommended for peak performance.`;
+    insight = rec.reason;
   } else {
-    insight = `${drive.model || drive.letter + ":"} was optimized ${days}d ago. ${drive.healthStatus === "Healthy" ? "Drive health looks good." : "Drive health status should be checked."} No action needed right now.`;
+    insight = `${rec.lastRunLabel} reports optimization ${days}d ago. ${drive.healthStatus === "Healthy" ? "Drive health looks good." : "Drive health status should be checked."} No action needed right now.`;
   }
 
   return (
@@ -427,8 +415,9 @@ export default function StorageHealthSection() {
   // ── Derived ─────────────────────────────────────────────────────────────────
 
   const activeDrive    = drives.find(d => d.letter === activeLetter) ?? drives[0];
-  const lastOpt        = optHistory.find(h => h.drive_letter === activeLetter);
-  const rec            = activeDrive ? optRec(activeDrive, lastOpt) : null;
+  const appHistoryForDrive = optHistory.filter(h => h.drive_letter?.toUpperCase() === activeLetter.toUpperCase());
+  const lastAppOpt     = appHistoryForDrive.find(h => h.status === "success");
+  const rec            = activeDrive ? getStorageOptimizationRecommendation(activeDrive, optHistory) : null;
   const color          = activeDrive ? driveTypeColor(activeDrive) : "#8b5cf6";
   const urgencyColor   = rec?.urgency === "high" ? "#f87171" : rec?.urgency === "medium" ? "#fb923c" : "#4ade80";
   const allHealthy     = drives.length > 0 && drives.every(d => d.healthStatus?.toLowerCase() === "healthy");
@@ -610,7 +599,7 @@ export default function StorageHealthSection() {
                               <div className="flex items-center gap-3 mt-1 text-[10px] text-[#6B7380]">
                                 <span>Duration: <span className="text-[#E6EAF0] font-semibold">{rec.duration}</span></span>
                                 {rec.days !== null && (
-                                  <span>Last: <span className="text-[#E6EAF0] font-semibold">{rec.days}d ago</span></span>
+                                  <span>{rec.lastRunLabel}: <span className="text-[#E6EAF0] font-semibold">{rec.days}d ago</span></span>
                                 )}
                               </div>
                             </div>
@@ -647,7 +636,7 @@ export default function StorageHealthSection() {
                       )}
 
                       {/* AI insight */}
-                      <AiInsightBubble drive={activeDrive} lastOpt={lastOpt} />
+                      <AiInsightBubble drive={activeDrive} history={optHistory} />
 
                       {/* Optimization history */}
                       <div>
@@ -675,18 +664,18 @@ export default function StorageHealthSection() {
                       {/* Last optimized badge */}
                       <div className="rounded-xl bg-white/[0.025] border border-white/[0.06] px-3 py-2.5">
                         <p className="text-[9px] font-bold text-[#6B7380] uppercase tracking-wider mb-1">Last Optimized</p>
-                        {lastOpt ? (
+                        {rec?.lastRunAt ? (
                           <>
-                            <p className="text-[12px] font-bold text-[#E6EAF0]">{timeAgo(lastOpt.ran_at)}</p>
+                            <p className="text-[12px] font-bold text-[#E6EAF0]">{timeAgo(rec.lastRunAt)}</p>
                             <p className="text-[10px] text-[#6B7380] mt-0.5">
-                              {lastOpt.optimize_type === "trim" ? "TRIM" : "Defrag"}
-                              {lastOpt.duration_ms > 0 && ` · ${lastOpt.duration_ms > 60000
-                                ? `${Math.round(lastOpt.duration_ms / 60000)}min`
-                                : `${Math.round(lastOpt.duration_ms / 1000)}s`}`}
+                              {rec.lastRunLabel} · {rec.optimizeType === "trim" ? "TRIM" : "Defrag"}
+                              {rec.lastRunSource === "switchcontrol" && lastAppOpt?.duration_ms > 0 && ` · ${lastAppOpt.duration_ms > 60000
+                                ? `${Math.round(lastAppOpt.duration_ms / 60000)}min`
+                                : `${Math.round(lastAppOpt.duration_ms / 1000)}s`}`}
                             </p>
                           </>
                         ) : (
-                          <p className="text-[11px] text-[#4a5460]">Never recorded</p>
+                          <p className="text-[11px] text-[#4a5460]">Windows status unavailable</p>
                         )}
                       </div>
 

@@ -146,6 +146,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getPostUpdateGrace:   () => ipcRenderer.invoke('app:getPostUpdateGrace'),
   clearPostUpdateGrace: () => ipcRenderer.invoke('app:clearPostUpdateGrace'),
   getBackendPort:  () => ipcRenderer.invoke('app:getBackendPort'),
+  getBackendConnectionInfo: () => ipcRenderer.invoke('app:getBackendConnectionInfo'),
   isBackendReady:  () => ipcRenderer.invoke('app:isBackendReady'),
   getBackendError: () => ipcRenderer.invoke('app:getBackendError'),
   debugCookies:    () => ipcRenderer.invoke('auth:debugCookies'),
