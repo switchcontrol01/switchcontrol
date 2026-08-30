@@ -19,6 +19,7 @@
 - [Premium revert engine reliability](premium-revert-engine.md) — startup state is not ownership proof; never adopt active Windows tweaks without a baseline, and release unverifiable claims without blocking reset.
 - [Driver Intelligence design constraints](driver-intelligence.md) — detect-and-redirect only (never flash/auto-install); cloud DB never scraped; "partial" is a cached state (gate on hasData, not "ready"); lazy scan, trial=read-only.
 - [Premium slider/preset revert](premium-slider-preset-revert.md) — slider/preset tweaks were completely skipped by trial-expiry revert engine (0% success); backend sweeps existed but had no IPC exposure and no client-side caller.
+- [Slider hydration interaction](slider-hydration-interaction.md) — a busy native read must not prevent an explicit slider selection from becoming applyable.
 - [ps-shared module](ps-shared.md) — single shared PS primitive module (electron/ps-shared.js); all three executors import runPS/queryPS/checkIsAdmin/runElevated from it; one semaphore, one _isAdminCache.
 - [Version release process](version-release-process.md) — version strings live in 6+ files (no single constant); actual installer build/upload happens via GitHub Actions tag push, not in Replit.
 - [Electron startup spec enrichment](electron-startup-enrichment.md) — disk cache (specs-cache.json, 4h/24h TTL) eliminates WMI on repeat boots; si.graphics() removed from enrichment (AMD hangs); psLimiter gates all startup PS calls; two-stage: GPU immediately, CPU+disk deferred 3s.

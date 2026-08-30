@@ -4,6 +4,7 @@ import { isElectronWithTweaks } from '@/hooks/use-tweak-executor';
 import { SliderConfig, SliderPreset } from '@/lib/mock-data';
 import { useStore } from '@/lib/store';
 import { logHistory } from '@/lib/logHistory';
+import { isSliderDirty } from '@/lib/slider-state';
 
 // ── Cross-tweak sync constants ────────────────────────────────────────────────
 // timer-res (toggle) and timer-resolution-slider (slider) both control the same
@@ -477,6 +478,7 @@ export function useSliderTweak(tweakId: string, config: SliderConfig) {
       if (result.ok && result.verified) {
         const readback = await api.readValue(tweakId);
         if (readback.error || readback.value !== result.actualValue) throw new Error(readback.error ?? 'Revert read-back did not match the requested value.');
+        pendingTouchedRef.current = false;
         setState(s => ({
           ...s,
           currentValue:  result.actualValue ?? prevVal,
@@ -504,11 +506,15 @@ export function useSliderTweak(tweakId: string, config: SliderConfig) {
   }, [clearResultTimer]);
 
   // Guard against false-positive dirty state on load: if currentValue is still
-  // null (registry read pending or failed), pendingValue !== null would always
-  // be true even though the user hasn't changed anything.  Only mark dirty once
-  // the real registry value has landed so the Apply button doesn't light up
-  // spuriously during startup or while the PS limiter is busy.
-  const isDirty = state.currentValue !== null && state.pendingValue !== null && state.pendingValue !== state.currentValue;
+  // null (registry read pending or failed), pendingValue !== null alone would
+  // light up Apply spuriously. Once the user explicitly changes the control,
+  // pendingTouchedRef allows that choice to be applied without waiting for a
+  // successful readback.
+  const isDirty = isSliderDirty(
+    state.currentValue,
+    state.pendingValue,
+    pendingTouchedRef.current,
+  );
 
   return { state, isDirty, setPending, apply, reset, revert, refresh, dismissResult };
 }
