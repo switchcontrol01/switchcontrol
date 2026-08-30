@@ -55,6 +55,9 @@ if (!electronBuild) {
   if (!Array.isArray(electronBuild.files) || !electronBuild.files.includes('debloat-contract.cjs')) {
     failures.push('Electron build must include debloat-contract.cjs in its packaged files');
   }
+  if (!Array.isArray(electronBuild.files) || !electronBuild.files.includes('process-count.js')) {
+    failures.push('Electron build must include process-count.js in its packaged files');
+  }
 }
 
 // Generated inputs consumed by electron/package.json and runtime paths in

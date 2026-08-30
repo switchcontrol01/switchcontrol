@@ -59,6 +59,7 @@
       "storage-helper.js",
       "driver-apps-helper.js",
       "process-control.js",
+      "process-count.js",
       "latency-analyzer.js",
       "powershell-limiter.js",
       "ps-shared.js",
