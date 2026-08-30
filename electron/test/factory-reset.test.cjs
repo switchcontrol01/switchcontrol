@@ -36,18 +36,26 @@ test("preload forwards the required factory-reset confirmation token", () => {
   );
 });
 
-test("successful reset preserves device-id and schedules relaunch after returning", async () => {
+test("successful reset defers profile cleanup until the Electron process exits", async () => {
   const app = makeApp();
-  const deleted = [];
   let scheduled = null;
+  let spawned = null;
   const handler = createFactoryResetHandler({
     app,
-    fs: {
-      readdirSync: () => ["device-id.json", "config.json", "logs"],
-      rmSync: (target) => deleted.push(target),
-    },
+    fs: {},
     path: {
       join: (base, entry) => `${base}\\${entry}`,
+    },
+    spawn: (execPath, args, options) => {
+      spawned = { execPath, args, options };
+      return { unref() {} };
+    },
+    processRef: {
+      pid: 1234,
+      execPath: "C:\\Program Files\\SwitchControl\\SwitchControl.exe",
+      argv: ["SwitchControl.exe", "main.js", "--existing-flag"],
+      env: { TEST_ENV: "1" },
+      cwd: () => "C:\\Program Files\\SwitchControl",
     },
     schedule: (callback, delay) => {
       scheduled = { callback, delay };
@@ -63,43 +71,44 @@ test("successful reset preserves device-id and schedules relaunch after returnin
     failures: [],
     relaunchScheduled: true,
   });
-  assert.deepEqual(deleted, [
-    "C:\\Users\\test\\AppData\\Roaming\\SwitchControl\\config.json",
-    "C:\\Users\\test\\AppData\\Roaming\\SwitchControl\\logs",
-  ]);
+  assert.equal(spawned.execPath, "C:\\Program Files\\SwitchControl\\SwitchControl.exe");
+  assert.match(spawned.args[0], /[\\/]factory-reset-cleanup\.js$/);
+  assert.deepEqual(JSON.parse(spawned.args[1]), {
+    parentPid: 1234,
+    userDataPath: "C:\\Users\\test\\AppData\\Roaming\\SwitchControl",
+    preservedFiles: ["device-id.json"],
+    execPath: "C:\\Program Files\\SwitchControl\\SwitchControl.exe",
+    execArgs: ["main.js", "--existing-flag"],
+    cwd: "C:\\Program Files\\SwitchControl",
+  });
+  assert.equal(spawned.options.detached, true);
+  assert.equal(spawned.options.windowsHide, true);
+  assert.equal(spawned.options.stdio, "ignore");
+  assert.equal(spawned.options.env.ELECTRON_RUN_AS_NODE, "1");
   assert.equal(app.calls.length, 0, "exit must not race the IPC response");
   assert.equal(scheduled.delay, 250);
 
   scheduled.callback();
-  assert.deepEqual(app.calls, ["relaunch", ["exit", 0]]);
+  assert.deepEqual(app.calls, [["exit", 0]]);
 });
 
-test("native deletion failures propagate individually without scheduling exit", async () => {
+test("cleanup-process startup failure returns an actionable reset error", async () => {
   const app = makeApp();
-  let scheduled = false;
   const handler = createFactoryResetHandler({
     app,
-    fs: {
-      readdirSync: () => ["config.json", "cache"],
-      rmSync: (target) => {
-        throw new Error(`locked: ${target}`);
-      },
-    },
+    fs: {},
     path: {
       join: (base, entry) => `${base}\\${entry}`,
     },
-    schedule: () => {
-      scheduled = true;
+    spawn: () => {
+      throw new Error("spawn denied");
     },
   });
 
   const result = await handler({}, FACTORY_RESET_CONFIRMATION);
   assert.equal(result.ok, false);
-  assert.equal(result.error, "delete_failed");
-  assert.equal(result.failures.length, 2);
-  assert.deepEqual(result.failures.map((failure) => failure.entry), ["config.json", "cache"]);
-  assert.match(result.message, /2 item\(s\)/);
-  assert.equal(scheduled, false);
+  assert.equal(result.error, "reset_failed");
+  assert.match(result.message, /spawn denied/);
   assert.deepEqual(app.calls, []);
 });
 
@@ -153,6 +162,7 @@ test("factory reset accepts safely released unverifiable ownership", () => {
   const revertEngine = read("client/src/lib/premiumRevertEngine.ts");
   assert.match(revertEngine, /detail\?\.skipped && detail\?\.safeToProceed[\s\S]{0,100}'skipped_user_owned'/);
   assert.doesNotMatch(app, /item\.status === "skipped_user_owned"/);
+  assert.match(app, /setIsSigningOut\(true\);[\s\S]{0,100}setFactoryResetFailed\(false\);[\s\S]{0,100}clearTourState\(\);/);
 });
 
 test("Debloater sparklines always receive a concrete static path", () => {

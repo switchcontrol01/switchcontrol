@@ -406,6 +406,7 @@ function ElectronAppContent() {
   const [isFirstLogin, setIsFirstLogin] = useState(false);
   const [activeFlow, setActiveFlow] = useState<AppFlow>("none");
   const [isResetting, setIsResetting] = useState(false);
+  const [factoryResetFailed, setFactoryResetFailed] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [entitlementsAttempted, setEntitlementsAttempted] = useState(false);
   const [entitlementsOk, setEntitlementsOk] = useState(false);
@@ -1062,6 +1063,7 @@ function ElectronAppContent() {
 
   useEffect(() => {
     if (isResetting) return;
+    if (factoryResetFailed) return;
     if (suppressFlowsRef.current) return;
     if (isSigningOut) return;
     if (!user?.loggedIn) return;
@@ -1222,6 +1224,7 @@ function ElectronAppContent() {
     entitlementsAttempted,
     entitlementsOk,
     isResetting,
+    factoryResetFailed,
     isPhaseStable,
     flowResetTs,
     showDisclaimer,
@@ -1861,6 +1864,7 @@ function ElectronAppContent() {
     //    otherwise the evaluator can restart a first-run tour while sign-out
     //    is still transitioning.
     setIsSigningOut(true);
+    setFactoryResetFailed(false);
     clearTourState();
     setActiveFlow("none");
 
@@ -1955,12 +1959,11 @@ function ElectronAppContent() {
   const handleFactoryReset = async () => {
     const startedAt = new Date().toISOString();
     console.info(`[Reset] START renderer at=${startedAt}`);
+    setFactoryResetFailed(false);
     setIsResetting(true);
     setActiveFlow("none");
 
     try {
-      await postResetTourFlags();
-
       // Revert while the ownership/baseline files still exist. Wiping AppData
       // first would destroy the exact values needed to restore premium changes.
       if (isElectron) {
@@ -1993,6 +1996,13 @@ function ElectronAppContent() {
           throw new Error(describeFactoryResetFailure(nativeResult));
         }
 
+        // Only reset the server-side animation flags after native reset has
+        // actually been accepted. Doing this before native deletion succeeds
+        // makes a failed reset look like a fresh premium grant.
+        void postResetTourFlags().catch((error) => {
+          console.warn("[Reset] Post-success tour flag reset failed:", error);
+        });
+
         // Native reset has already removed the local data and scheduled exit.
         // Do not log out before that success: a failed reset must leave the
         // current session usable. Cleanup after success is best-effort because
@@ -2010,6 +2020,8 @@ function ElectronAppContent() {
     } catch (error) {
       const message = error instanceof Error ? error.message : describeFactoryResetFailure(error);
       console.error(`[Reset] FAILED at=${new Date().toISOString()}:`, error);
+      setFactoryResetFailed(true);
+      setActiveFlow("none");
       setIsResetting(false);
       window.alert(`${message} If the problem continues, restart SwitchControl and try again.`);
     }

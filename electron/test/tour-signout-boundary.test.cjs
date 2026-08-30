@@ -18,7 +18,7 @@ test("sign-out suspends flow evaluation before clearing the active tour", () => 
   );
   assert.match(
     app,
-    /setIsSigningOut\(true\);\s*clearTourState\(\);\s*setActiveFlow\("none"\)/,
+    /setIsSigningOut\(true\);[\s\S]{0,100}clearTourState\(\);\s*setActiveFlow\("none"\)/,
     "sign-out must clear the global tour state before the auth transition",
   );
   assert.match(
