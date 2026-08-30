@@ -21,6 +21,8 @@ import { pollingRegistry } from "@/lib/pollingRegistry";
 import { useTelemetryStore } from "@/stores/telemetryStore";
 import { usePerformanceStore } from "@/stores/performanceStore";
 import { useAppModeStore, getPollingMultiplier } from "@/lib/appModeStore";
+import { getAdaptivePerformanceProfile } from "@/lib/adaptivePerformanceStore";
+import { getTelemetryPollingIntervalMs, telemetryManager } from "@/lib/telemetryManager";
 
 const isElectron = typeof window !== "undefined" && !!(window as any).electronAPI?.isElectron;
 const BASE_POLL_MS = 2000;
@@ -31,6 +33,10 @@ interface BackendInfo {
     paused: boolean;
     instances: number;
     currentIntervalMs: number;
+    requestedIntervalMs: number;
+    demandMode: "full" | "intelligence" | "paused";
+    performanceProfile: "efficiency" | "balanced" | "enhanced" | "unknown";
+    heavyWorkMultiplier: number;
   };
   powerShell?: {
     callsLast60s: number;
@@ -109,6 +115,9 @@ export function PerformanceOverlay() {
   // app is exempt from Light Mode.
   const appMode = useAppModeStore(s => s.mode);
   const POLL_MS = Math.round(BASE_POLL_MS * getPollingMultiplier());
+  const rendererProfile = getAdaptivePerformanceProfile();
+  const rendererDemandMode = telemetryManager.demandMode;
+  const rendererInterval = getTelemetryPollingIntervalMs();
 
   const systemCpuPct = telemetry?.cpu?.load ?? null;
 
@@ -222,6 +231,14 @@ export function PerformanceOverlay() {
       <Row label="telemetryLoopInstances" value={String(loopInstances)} ok={loopInstances === 1} />
       <Row label="telemetryLoopPaused"    value={String(tl?.paused ?? "—")} />
       <Row label="loopIntervalMs"         value={tl?.currentIntervalMs ?? "—"} />
+      <Row label="electronProfile"        value={tl?.performanceProfile ?? "—"} ok={tl?.performanceProfile === rendererProfile} />
+      <Row label="electronDemandMode"     value={tl?.demandMode ?? "—"} ok={tl?.demandMode === rendererDemandMode} />
+      <Row label="electronRequestedMs"    value={tl?.requestedIntervalMs ?? "—"} ok={rendererDemandMode === "paused" || tl?.requestedIntervalMs === rendererInterval} />
+      <Row label="electronActualMs"       value={tl?.currentIntervalMs ?? "—"} />
+      <Row label="rendererProfile"        value={rendererProfile} />
+      <Row label="rendererDemandMode"     value={rendererDemandMode} />
+      <Row label="rendererCadenceMs"      value={rendererDemandMode === "paused" ? "paused" : rendererInterval} />
+      <Row label="heavyWorkMultiplier"    value={tl?.heavyWorkMultiplier ?? "—"} />
 
       {/* ── POWERSHELL ── */}
       <div style={{ color: "#a884ff", fontSize: 10, fontWeight: 700, letterSpacing: 1, marginBottom: 4, marginTop: 10 }}>POWERSHELL</div>

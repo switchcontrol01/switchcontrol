@@ -11,6 +11,12 @@ and AC/battery events are not faithfully available in the web development VM.
 2. Leave the performance selection on **Automatic**.
 3. Confirm the active profile and “Why this profile” reasons are visible.
 4. Keep **Reduced motion** off unless the scenario explicitly tests it.
+5. Open the performance monitor with `Ctrl+Shift+P`. Record the active
+   `rendererProfile`/`electronProfile`,
+   `rendererCadenceMs`/`electronRequestedMs`, `electronActualMs`, and
+   `electronDemandMode`. Matching profile and requested cadence values are
+   required on active routes; a paused route should report `paused` in the
+   renderer. `electronActualMs` may be slower while the CPU governor is active.
 
 ## Scenarios
 
@@ -59,6 +65,9 @@ and AC/battery events are not faithfully available in the web development VM.
 - Switch back to Automatic and confirm the detected decision becomes active.
 - Enable Reduced motion while Enhanced is selected. All ambient and chart
   animation must stop; Reduced motion always wins over the profile override.
+- Relaunch after selecting each manual profile and confirm the selected
+  override remains active. Select **Automatic**, relaunch, and confirm the
+  detected profile—not the previous manual choice—is active.
 
 ## Pass criteria
 
@@ -67,3 +76,6 @@ and AC/battery events are not faithfully available in the web development VM.
 - Background/hidden-window pausing and route demand continue to take precedence.
 - Capability changes do not reload the renderer, stack event listeners, or
   create duplicate Electron telemetry loops.
+- The performance monitor shows the same profile and cadence on both sides of
+  the Electron IPC boundary, and changing a profile updates the cadence without
+  waiting for the old interval to elapse.

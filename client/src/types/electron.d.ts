@@ -236,8 +236,15 @@ declare global {
       
       telemetry: {
         getLive: () => Promise<LiveTelemetry>;
-        setDemandMode: (mode: 'full' | 'intelligence' | 'paused') => Promise<{ ok: boolean; mode: string }>;
+        setDemandMode: (mode: 'full' | 'intelligence' | 'paused', requestedIntervalMs?: number) => Promise<{ ok: boolean; mode: string; requestedIntervalMs: number }>;
         setPerformanceProfile: (profile: AdaptivePerformanceProfile) => Promise<{ ok: boolean; profile: AdaptivePerformanceProfile }>;
+        getSchedulerStats: () => Promise<{
+          performanceProfile: AdaptivePerformanceProfile;
+          demandMode: 'full' | 'intelligence' | 'paused';
+          currentIntervalMs: number;
+          requestedIntervalMs: number;
+          heavyWorkMultiplier?: number;
+        }>;
         getEnhanced: () => Promise<EnhancedTelemetry>;
         getHardwareTelemetry: () => Promise<HardwareTelemetryData>;
       };

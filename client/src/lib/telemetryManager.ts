@@ -27,7 +27,8 @@
 
 import { useTelemetryStore } from "@/stores/telemetryStore";
 import { getPollingProfile, subscribeToAppMode } from "@/lib/appModeStore";
-import { getAdaptivePerformanceTelemetryPolicy } from "@/lib/adaptivePerformanceStore";
+import { getAdaptivePerformanceProfile } from "@/lib/adaptivePerformanceStore";
+import { getAdaptiveTelemetryIntervalMs } from "@shared/adaptivePerformance";
 import { useAuthStore, bumpMeGeneration } from "@/lib/authStore";
 import { getResolvedBackendPort } from "@/lib/api";
 import { pollingRegistry } from "@/lib/pollingRegistry";
@@ -387,7 +388,10 @@ let _demandMode: TelemetryDemandMode = "full";
 
 function _notifyElectronDemand(mode: TelemetryDemandMode): void {
   const electronAPI = (window as any).electronAPI;
-  const modeUpdate = electronAPI?.telemetry?.setDemandMode?.(mode);
+  const modeUpdate = electronAPI?.telemetry?.setDemandMode?.(
+    mode,
+    getTelemetryPollingIntervalMs(),
+  );
   if (modeUpdate && typeof modeUpdate.catch === "function") {
     void modeUpdate.catch(() => {});
   }
@@ -500,16 +504,22 @@ async function _ipcPollTick(): Promise<void> {
 // (Normal: 2s / Light: 8s). While the window is hidden/minimized the interval
 // is multiplied further (Light: 8s × 4 = 32s) to cut tray-idle CPU to near zero.
 function _currentIpcIntervalMs(): number {
+  return getTelemetryPollingIntervalMs();
+}
+
+/**
+ * The renderer-side cadence shown in diagnostics and used by the Electron IPC
+ * loop. Keeping this calculation public makes it possible to prove that both
+ * sides are following the same active profile and route demand.
+ */
+export function getTelemetryPollingIntervalMs(): number {
   const applicationProfile = getPollingProfile();
-  const adaptiveProfile = getAdaptivePerformanceTelemetryPolicy();
-  const adaptiveBase = 2000 * adaptiveProfile.intervalMultiplier;
-  const base = Math.max(applicationProfile.telemetryMs, adaptiveBase);
-  if (_demandMode === "intelligence") {
-    // Tweaks only needs pressure signals. Keep it responsive, but do not
-    // sample as aggressively as the Dashboard's full live graphs.
-    return Math.max(5000, base);
-  }
-  return document.hidden ? base * applicationProfile.hiddenMultiplier : base;
+  return getAdaptiveTelemetryIntervalMs(
+    getAdaptivePerformanceProfile(),
+    applicationProfile.telemetryMs,
+    _demandMode,
+    document.hidden ? applicationProfile.hiddenMultiplier : 1,
+  );
 }
 
 let _modeUnsub: (() => void) | null = null;
@@ -542,6 +552,7 @@ function _startIpcPolling(): void {
   if (!_modeUnsub) {
     _modeUnsub = subscribeToAppMode(() => {
       _rescheduleIpcPoll(_currentIpcIntervalMs());
+      _notifyElectronDemand(_demandMode);
     });
   }
   // Window hidden/restored → apply the hidden multiplier promptly.
@@ -550,9 +561,11 @@ function _startIpcPolling(): void {
     _ipcVisListenerAttached = true;
     document.addEventListener("visibilitychange", () => {
       _rescheduleIpcPoll(document.hidden ? _currentIpcIntervalMs() : 50);
+      _notifyElectronDemand(_demandMode);
     });
     window.addEventListener("sc:adaptive-profile-changed", () => {
       _rescheduleIpcPoll(_currentIpcIntervalMs());
+      _notifyElectronDemand(_demandMode);
     });
   }
 }

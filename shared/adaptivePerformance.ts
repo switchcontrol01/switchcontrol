@@ -13,6 +13,18 @@ export type AdaptivePerformanceOverride =
   | "automatic"
   | Exclude<AdaptivePerformanceProfile, "unknown">;
 
+/**
+ * Resolve the profile the app should actually use after applying the user's
+ * persisted override. Automatic must remain a recommendation, not a second
+ * independent profile decision.
+ */
+export function resolveAdaptivePerformanceProfile(
+  detected: AdaptivePerformanceProfile,
+  override: AdaptivePerformanceOverride,
+): AdaptivePerformanceProfile {
+  return override === "automatic" ? detected : override;
+}
+
 export interface CapabilitySignal<T> {
   value: T | null;
   availability: CapabilityAvailability;
@@ -71,6 +83,8 @@ export interface AdaptiveTelemetryPolicy {
   intervalMultiplier: number;
   heavyWorkMultiplier: number;
 }
+
+export type AdaptiveTelemetryDemandMode = "full" | "intelligence" | "paused";
 
 const AVAILABILITIES = new Set<CapabilityAvailability>([
   "available",
@@ -411,4 +425,16 @@ export function getAdaptiveTelemetryPolicy(
     default:
       return { intervalMultiplier: 2, heavyWorkMultiplier: 2 };
   }
+}
+
+export function getAdaptiveTelemetryIntervalMs(
+  profile: AdaptivePerformanceProfile,
+  applicationIntervalMs: number,
+  demandMode: AdaptiveTelemetryDemandMode,
+  hiddenMultiplier = 1,
+): number {
+  const adaptiveBase = 2000 * getAdaptiveTelemetryPolicy(profile).intervalMultiplier;
+  const base = Math.max(applicationIntervalMs, adaptiveBase);
+  const demanded = demandMode === "intelligence" ? Math.max(5000, base) : base;
+  return Math.round(demanded * hiddenMultiplier);
 }

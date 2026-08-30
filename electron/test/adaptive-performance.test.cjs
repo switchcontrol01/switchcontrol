@@ -148,8 +148,52 @@ test("reduced motion overrides every visual profile", async () => {
   assert.equal(getAdaptiveVisualPolicy("enhanced", false).cursorSpotlight, true);
 });
 
+test("the persisted override resolves one active profile for every detected profile", async () => {
+  const { resolveAdaptivePerformanceProfile } = await import("../../shared/adaptivePerformance.ts");
+  const detectedProfiles = ["unknown", "efficiency", "balanced", "enhanced"];
+  const overrides = ["efficiency", "balanced", "enhanced"];
+
+  for (const detected of detectedProfiles) {
+    assert.equal(resolveAdaptivePerformanceProfile(detected, "automatic"), detected);
+    for (const override of overrides) {
+      assert.equal(resolveAdaptivePerformanceProfile(detected, override), override);
+    }
+  }
+});
+
 test("telemetry policies retain values while reducing nonessential cadence", async () => {
-  const { getAdaptiveTelemetryPolicy } = await import("../../shared/adaptivePerformance.ts");
+  const {
+    getAdaptiveTelemetryIntervalMs,
+    getAdaptiveTelemetryPolicy,
+    getAdaptiveVisualPolicy,
+  } = await import("../../shared/adaptivePerformance.ts");
+  const expected = {
+    efficiency: { intervalMultiplier: 4, heavyWorkMultiplier: 3 },
+    balanced: { intervalMultiplier: 1.5, heavyWorkMultiplier: 2 },
+    enhanced: { intervalMultiplier: 1, heavyWorkMultiplier: 1 },
+  };
+
+  for (const [profile, policy] of Object.entries(expected)) {
+    assert.deepEqual(getAdaptiveTelemetryPolicy(profile), policy);
+  }
+  assert.deepEqual(getAdaptiveVisualPolicy("efficiency", false), {
+    animateAmbient: false,
+    cursorSpotlight: false,
+    waveGrid: false,
+    chartAnimation: false,
+  });
+  assert.deepEqual(getAdaptiveVisualPolicy("balanced", false), {
+    animateAmbient: true,
+    cursorSpotlight: false,
+    waveGrid: false,
+    chartAnimation: false,
+  });
+  assert.deepEqual(getAdaptiveVisualPolicy("enhanced", false), {
+    animateAmbient: true,
+    cursorSpotlight: true,
+    waveGrid: true,
+    chartAnimation: true,
+  });
   assert.deepEqual(getAdaptiveTelemetryPolicy("efficiency"), {
     intervalMultiplier: 4,
     heavyWorkMultiplier: 3,
@@ -158,6 +202,12 @@ test("telemetry policies retain values while reducing nonessential cadence", asy
     intervalMultiplier: 1,
     heavyWorkMultiplier: 1,
   });
+  assert.equal(getAdaptiveTelemetryIntervalMs("enhanced", 2000, "full"), 2000);
+  assert.equal(getAdaptiveTelemetryIntervalMs("balanced", 2000, "full"), 3000);
+  assert.equal(getAdaptiveTelemetryIntervalMs("efficiency", 2000, "full"), 8000);
+  assert.equal(getAdaptiveTelemetryIntervalMs("enhanced", 2000, "intelligence"), 5000);
+  assert.equal(getAdaptiveTelemetryIntervalMs("enhanced", 8000, "full"), 8000);
+  assert.equal(getAdaptiveTelemetryIntervalMs("balanced", 2000, "full", 2), 6000);
 });
 
 test("Electron, settings, visuals, and telemetry use the shared capability boundary", () => {
@@ -166,6 +216,7 @@ test("Electron, settings, visuals, and telemetry use the shared capability bound
   const background = fs.readFileSync("client/src/components/AppBackground.tsx", "utf8");
   const settings = fs.readFileSync("client/src/pages/Settings.tsx", "utf8");
   const manager = fs.readFileSync("client/src/lib/telemetryManager.ts", "utf8");
+  const preferences = fs.readFileSync("client/src/stores/userPreferencesStore.ts", "utf8");
 
   assert.match(main, /system:getCapabilities/);
   assert.match(main, /app\.getGPUFeatureStatus\(\)/);
@@ -175,6 +226,11 @@ test("Electron, settings, visuals, and telemetry use the shared capability bound
   assert.match(main, /_profileHeavyWorkMultiplier\(\)/);
   assert.match(main, /_adaptiveCapabilityGeneration/);
   assert.match(main, /in-flight-reconciled/);
+  assert.match(main, /powerMonitor\.on\('lock-screen'/);
+  assert.match(main, /_rescheduleTelemetryLoop\(\)/);
+  assert.match(main, /performanceProfile: _adaptivePerformanceProfile/);
+  assert.match(main, /requestedIntervalMs: _rendererRequestedIntervalMs/);
+  assert.match(main, /heavyWorkMultiplier: _profileHeavyWorkMultiplier\(\)/);
   assert.match(preload, /onCapabilitiesChanged/);
   assert.match(background, /getAdaptiveVisualPolicy/);
   assert.match(background, /useUserPreferencesStore\(\(state\) => state\.reducedMotion\)/);
@@ -182,8 +238,19 @@ test("Electron, settings, visuals, and telemetry use the shared capability bound
   assert.match(background, /getAdaptiveVisualPolicy\(profile, effectiveReducedMotion\)/);
   assert.doesNotMatch(background, /hardwareConcurrency/);
   assert.match(settings, /button-performance-profile-\$\{option\.value\}/);
-  assert.match(manager, /getAdaptivePerformanceTelemetryPolicy/);
+  assert.match(manager, /getAdaptivePerformanceProfile/);
+  assert.match(manager, /getAdaptiveTelemetryIntervalMs/);
+  assert.match(manager, /getTelemetryPollingIntervalMs/);
+  assert.match(manager, /setDemandMode\?\.\(\s*mode,\s*getTelemetryPollingIntervalMs\(\)/);
+  assert.match(manager, /sc:adaptive-profile-changed/);
   const store = fs.readFileSync("client/src/lib/adaptivePerformanceStore.ts", "utf8");
   assert.match(store, /getCapabilities\(\{ force \}\)/);
   assert.match(store, /pendingForcedRefresh/);
+  assert.match(store, /resolveAdaptivePerformanceProfile/);
+  assert.match(preferences, /name: "sc-user-preferences"/);
+  assert.match(preferences, /PERFORMANCE_PROFILE_OVERRIDES\.includes\(next\.performanceProfileOverride\)/);
+  assert.match(settings, /do not change Windows power plans or tweak settings/i);
+  for (const profile of ["automatic", "efficiency", "balanced", "enhanced"]) {
+    assert.match(settings, new RegExp(`value: "${profile}"`));
+  }
 });

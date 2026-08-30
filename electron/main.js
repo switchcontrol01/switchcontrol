@@ -751,6 +751,7 @@ function Write-SwitchControlProbe($status, $data, $message) {
   // route. Electron remains the sole hardware-polling owner.
   let _telemetryDemandMode = 'full';
   let _adaptivePerformanceProfile = 'unknown';
+  let _rendererRequestedIntervalMs = 4000;
 
   function _profileIntervalForDemand(mode = _telemetryDemandMode) {
     if (mode === 'paused') return TELEMETRY_SLOW_MS;
@@ -759,7 +760,8 @@ function Write-SwitchControlProbe($status, $data, $message) {
       _adaptivePerformanceProfile === 'balanced' ? 3000 :
       _adaptivePerformanceProfile === 'enhanced' ? TELEMETRY_BASE_MS :
       4000;
-    return mode === 'intelligence' ? Math.max(5000, profileBase) : profileBase;
+    const demandBase = mode === 'intelligence' ? Math.max(5000, profileBase) : profileBase;
+    return Math.max(demandBase, _rendererRequestedIntervalMs);
   }
 
   function _profileHeavyWorkMultiplier() {
@@ -828,6 +830,28 @@ function Write-SwitchControlProbe($status, $data, $message) {
   let _telemetryLoopPaused = false;
   let _telemetryDemandPaused = false;
   let _telemetryLoopCount  = 0; // incremented every time the loop actually starts; must stay ≤ 1
+  let _telemetryWakeTimer = null;
+  let _telemetryWakeResolve = null;
+
+  function _waitForTelemetryInterval() {
+    return new Promise(resolve => {
+      _telemetryWakeResolve = resolve;
+      _telemetryWakeTimer = setTimeout(() => {
+        _telemetryWakeTimer = null;
+        _telemetryWakeResolve = null;
+        resolve();
+      }, _telemetryCurrentIntervalMs);
+    });
+  }
+
+  function _rescheduleTelemetryLoop() {
+    if (!_telemetryWakeTimer || !_telemetryWakeResolve) return;
+    clearTimeout(_telemetryWakeTimer);
+    _telemetryWakeTimer = null;
+    const resolve = _telemetryWakeResolve;
+    _telemetryWakeResolve = null;
+    resolve();
+  }
   
   async function _telemetryLoop() {
     // Check before incrementing so a rejected duplicate start cannot poison the
@@ -847,8 +871,11 @@ function Write-SwitchControlProbe($status, $data, $message) {
       if (!_telemetryLoopPaused && !_telemetryDemandPaused) {
         await pollTelemetry();
       }
-      if (_telemetryLoopActive) await new Promise(r => setTimeout(r, _telemetryCurrentIntervalMs));
+      if (_telemetryLoopActive) await _waitForTelemetryInterval();
     }
+    if (_telemetryWakeTimer) clearTimeout(_telemetryWakeTimer);
+    _telemetryWakeTimer = null;
+    _telemetryWakeResolve = null;
     _telemetryLoopCount = Math.max(0, _telemetryLoopCount - 1);
     verboseLog('[telemetry:poll] async loop exited loopCount=' + _telemetryLoopCount);
   }
@@ -6559,16 +6586,25 @@ $pwrThrot  = Reg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottl
   });
 
   // ── Scheduler stats (lightweight — safe to call from devtools/debug panels) ────
-  ipcMain.handle('telemetry:setDemandMode', (_event, mode) => {
+  ipcMain.handle('telemetry:setDemandMode', (_event, mode, requestedIntervalMs) => {
     if (!['full', 'intelligence', 'paused'].includes(mode)) {
       throw new Error('Invalid telemetry demand mode');
     }
-    if (_telemetryDemandMode === mode) return { ok: true, mode };
+    const nextRequestedIntervalMs = Number.isFinite(requestedIntervalMs) &&
+      requestedIntervalMs >= 1000 && requestedIntervalMs <= 120000
+      ? Math.round(requestedIntervalMs)
+      : _rendererRequestedIntervalMs;
+    const changed = _telemetryDemandMode !== mode ||
+      _rendererRequestedIntervalMs !== nextRequestedIntervalMs;
     _telemetryDemandMode = mode;
+    _rendererRequestedIntervalMs = nextRequestedIntervalMs;
     _telemetryDemandPaused = mode === 'paused';
     _telemetryCurrentIntervalMs = _profileIntervalForDemand(mode);
-    console.log(`[telemetry:demand] mode=${mode} interval=${_telemetryCurrentIntervalMs}ms`);
-    return { ok: true, mode };
+    if (changed) {
+      _rescheduleTelemetryLoop();
+      console.log(`[telemetry:demand] mode=${mode} requested=${_rendererRequestedIntervalMs}ms interval=${_telemetryCurrentIntervalMs}ms`);
+    }
+    return { ok: true, mode, requestedIntervalMs: _rendererRequestedIntervalMs };
   });
 
   ipcMain.handle('telemetry:setPerformanceProfile', (_event, profile) => {
@@ -6578,6 +6614,7 @@ $pwrThrot  = Reg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottl
     _adaptivePerformanceProfile = profile;
     _lowEndMode = profile === 'efficiency';
     _telemetryCurrentIntervalMs = _profileIntervalForDemand();
+    _rescheduleTelemetryLoop();
     console.log(`[telemetry:profile] profile=${profile} interval=${_telemetryCurrentIntervalMs}ms`);
     return { ok: true, profile };
   });
@@ -6593,6 +6630,7 @@ $pwrThrot  = Reg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottl
       skippedTicks:         _skippedTicks,
       taskTimings:          _taskTimings,
       currentIntervalMs:    _telemetryCurrentIntervalMs,
+      requestedIntervalMs:  _rendererRequestedIntervalMs,
       demandMode:           _telemetryDemandMode,
       performanceProfile:   _adaptivePerformanceProfile,
       baseIntervalMs:       TELEMETRY_BASE_MS,
@@ -6617,7 +6655,10 @@ $pwrThrot  = Reg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottl
         paused:            _telemetryLoopPaused || _telemetryDemandPaused,
         instances:         _telemetryLoopCount,
         currentIntervalMs: _telemetryCurrentIntervalMs,
-          demandMode: _telemetryDemandMode,
+        requestedIntervalMs: _rendererRequestedIntervalMs,
+        demandMode: _telemetryDemandMode,
+        performanceProfile: _adaptivePerformanceProfile,
+        heavyWorkMultiplier: _profileHeavyWorkMultiplier(),
         baseIntervalMs:    TELEMETRY_BASE_MS,
         slowIntervalMs:    TELEMETRY_SLOW_MS,
       },
@@ -6844,6 +6885,7 @@ $pwrThrot  = Reg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottl
     powerMonitor.on('on-ac', () => invalidateAdaptiveCapabilityCache('on-ac'));
     powerMonitor.on('on-battery', () => invalidateAdaptiveCapabilityCache('on-battery'));
     powerMonitor.on('resume', () => invalidateAdaptiveCapabilityCache('resume'));
+    powerMonitor.on('lock-screen', () => invalidateAdaptiveCapabilityCache('lock-screen'));
     powerMonitor.on('unlock-screen', () => invalidateAdaptiveCapabilityCache('unlock-screen'));
   
     if (isDebug) {

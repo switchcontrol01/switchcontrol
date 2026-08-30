@@ -280,11 +280,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   telemetry: {
     getLive:              (selectedDiskMount) => ipcRenderer.invoke('telemetry:getLive', selectedDiskMount),
-    setDemandMode:        (mode) => {
+    setDemandMode:        (mode, requestedIntervalMs) => {
       if (!['full', 'intelligence', 'paused'].includes(mode)) {
         throw new Error('Invalid telemetry demand mode');
       }
-      return ipcRenderer.invoke('telemetry:setDemandMode', mode);
+      if (requestedIntervalMs !== undefined &&
+          (!Number.isFinite(requestedIntervalMs) || requestedIntervalMs < 1000 || requestedIntervalMs > 120000)) {
+        throw new Error('Invalid renderer telemetry interval');
+      }
+      return ipcRenderer.invoke('telemetry:setDemandMode', mode, requestedIntervalMs);
     },
     setPerformanceProfile: (profile) => {
       if (!['efficiency', 'balanced', 'enhanced', 'unknown'].includes(profile)) {

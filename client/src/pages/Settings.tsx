@@ -1328,7 +1328,7 @@ export default function Settings() {
                 Application Mode
               </CardTitle>
               <CardDescription>
-                Choose how much system power SwitchControl uses. All features stay available in both modes.
+                Tune SwitchControl&apos;s visuals and background monitoring. These profiles do not change Windows power plans or tweak settings.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">

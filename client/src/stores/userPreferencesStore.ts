@@ -7,6 +7,12 @@ export type AccentName = "cyan" | "purple" | "blue" | "green" | "orange" | "red"
 export type ConfirmationMode = "always" | "risky" | "safe";
 export type Locale = "en" | "zh-CN" | "es" | "hi" | "ar" | "pt-BR" | "bn" | "ru" | "ja" | "pa" | "de" | "id" | "ko" | "fr" | "te" | "tr" | "mr" | "ta" | "vi" | "ur";
 export const LOCALE_CODES: Locale[] = ["en", "zh-CN", "es", "hi", "ar", "pt-BR", "bn", "ru", "ja", "pa", "de", "id", "ko", "fr", "te", "tr", "mr", "ta", "vi", "ur"];
+const PERFORMANCE_PROFILE_OVERRIDES: AdaptivePerformanceOverride[] = [
+  "automatic",
+  "efficiency",
+  "balanced",
+  "enhanced",
+];
 
 export const ACCENT_COLORS: Record<Exclude<AccentName, "custom">, string> = {
   cyan: "#00D4FF",
@@ -166,10 +172,13 @@ export const useUserPreferencesStore = create<UserPreferencesState>()(
     }),
     {
       name: "sc-user-preferences",
-      version: 2,
+      version: 3,
       migrate: (persisted) => {
         const next = { ...DEFAULTS, ...(persisted as Partial<UserPreferences>) };
         if (!LOCALE_CODES.includes(next.language)) next.language = "en";
+        if (!PERFORMANCE_PROFILE_OVERRIDES.includes(next.performanceProfileOverride)) {
+          next.performanceProfileOverride = "automatic";
+        }
         return next;
       },
     },

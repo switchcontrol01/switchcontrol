@@ -4,6 +4,7 @@ import {
   deriveAdaptiveProfile,
   getAdaptiveTelemetryPolicy,
   getAdaptiveVisualPolicy,
+  resolveAdaptivePerformanceProfile,
   type AdaptiveCapabilitySnapshot,
   type AdaptivePerformanceDecision,
   type AdaptivePerformanceProfile,
@@ -41,7 +42,7 @@ export const useAdaptivePerformanceStore = create<AdaptivePerformanceState>((set
 export function getAdaptivePerformanceProfile(): AdaptivePerformanceProfile {
   const detected = useAdaptivePerformanceStore.getState().decision.profile;
   const override = useUserPreferencesStore.getState().performanceProfileOverride;
-  return override === "automatic" ? detected : override;
+  return resolveAdaptivePerformanceProfile(detected, override);
 }
 
 export function getAdaptivePerformanceTelemetryPolicy() {
@@ -54,7 +55,7 @@ export function useAdaptivePerformance() {
   return {
     ...state.decision,
     detectedProfile: state.decision.profile,
-    profile: override === "automatic" ? state.decision.profile : override,
+    profile: resolveAdaptivePerformanceProfile(state.decision.profile, override),
     override,
     capabilities: state.capabilities,
     refreshing: state.refreshing,
