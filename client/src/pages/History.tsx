@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils";
 import { format, isToday, isYesterday, isThisWeek, differenceInMinutes } from "date-fns";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { HistoryCharts, MODULE_COLORS } from "@/components/history/HistoryCharts";
+import { useTranslation } from "@/lib/i18n";
 import {
   History as HistoryIcon, FileJson, Trash2, Search, SlidersHorizontal,
   CheckCircle2, XCircle, AlertTriangle, RotateCcw, Info, Zap,
@@ -970,6 +971,7 @@ function FilteredEmpty({ onClear }: { onClear: () => void }) {
 // ── Main History component ────────────────────────────────────────────────
 
 export default function History() {
+  const { t } = useTranslation();
   const history = useStore((s) => s.history);
   const resetData = useStore((s) => s.resetData);
   const { prefersReducedMotion } = useMotion();
@@ -1055,10 +1057,10 @@ export default function History() {
           <div>
             <div className="flex items-center gap-2.5">
               <HistoryIcon className="size-6 text-primary" />
-              <h1 className="text-2xl font-bold tracking-tight">Activity Intelligence</h1>
+              <h1 className="text-2xl font-bold tracking-tight">{t("Activity Intelligence")}</h1>
             </div>
             <p className="text-sm text-muted-foreground mt-0.5">
-              Full audit log, analytics, and session intelligence.
+              {t("Full audit log, analytics, and session intelligence.")}
             </p>
           </div>
 
@@ -1073,7 +1075,7 @@ export default function History() {
                 data-testid="button-export"
               >
                 <Download className="size-4" />
-                <span className="hidden sm:inline">Export</span>
+                <span className="hidden sm:inline">{t("Export")}</span>
                 <ChevronDown className="size-3.5 opacity-60" />
               </Button>
               <AnimatePresence>
@@ -1085,15 +1087,15 @@ export default function History() {
                   >
                     <button className="w-full flex items-center gap-2 px-3.5 py-2.5 text-xs hover:bg-[#1A1F26] transition-colors text-left"
                       onClick={exportAllJSON} data-testid="button-export-all-json">
-                      <FileJson className="size-3.5 text-[#00D4FF]" />All history (JSON)
+                      <FileJson className="size-3.5 text-[#00D4FF]" />{t("All history (JSON)")}
                     </button>
                     <button className="w-full flex items-center gap-2 px-3.5 py-2.5 text-xs hover:bg-[#1A1F26] transition-colors text-left"
                       onClick={exportFilteredJSON} data-testid="button-export-filtered-json">
-                      <FileJson className="size-3.5 text-cyan-400" />Filtered view (JSON)
+                      <FileJson className="size-3.5 text-cyan-400" />{t("Filtered view (JSON)")}
                     </button>
                     <button className="w-full flex items-center gap-2 px-3.5 py-2.5 text-xs hover:bg-[#1A1F26] transition-colors text-left"
                       onClick={exportFilteredCSV} data-testid="button-export-csv">
-                      <FileText className="size-3.5 text-emerald-400" />Filtered view (CSV)
+                      <FileText className="size-3.5 text-emerald-400" />{t("Filtered view (CSV)")}
                     </button>
                   </motion.div>
                 )}
@@ -1107,19 +1109,19 @@ export default function History() {
               data-testid="button-clear-history"
             >
               <Trash2 className="size-4" />
-              <span className="hidden sm:inline">Clear</span>
+              <span className="hidden sm:inline">{t("Clear")}</span>
             </Button>
           </div>
         </motion.div>
 
         {/* ── Summary cards ────────────────────────────────────────────────── */}
         <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3">
-          <SummaryCard Icon={Activity}   label="Total Actions"    value={analytics.total}          delay={0.06} />
-          <SummaryCard Icon={TrendingUp} label="Success Rate"     value={`${analytics.rate}%`}     delay={0.10} valueColor={analytics.rate >= 90 ? "text-emerald-400" : analytics.rate >= 70 ? "text-amber-400" : "text-red-400"} />
-          <SummaryCard Icon={XCircle}    label="Failed Actions"   value={analytics.failed}          delay={0.14} valueColor={analytics.failed > 0 ? "text-red-400" : undefined} />
-          <SummaryCard Icon={Zap}        label="Top Module"       value={analytics.topModule}       delay={0.18} subtitle={analytics.topModule !== "—" ? `Most used` : undefined} />
-          <SummaryCard Icon={Clock}      label="Last Active"      value={analytics.lastActive}      delay={0.22} subtitle={undefined} />
-          <SummaryCard Icon={Star}       label="Sessions (7d)"    value={analytics.recentSessions}  delay={0.26} />
+          <SummaryCard Icon={Activity}   label={t("Total Actions")} value={analytics.total} delay={0.06} />
+          <SummaryCard Icon={TrendingUp} label={t("Success Rate")} value={`${analytics.rate}%`} delay={0.10} valueColor={analytics.rate >= 90 ? "text-emerald-400" : analytics.rate >= 70 ? "text-amber-400" : "text-red-400"} />
+          <SummaryCard Icon={XCircle} label={t("Failed Actions")} value={analytics.failed} delay={0.14} valueColor={analytics.failed > 0 ? "text-red-400" : undefined} />
+          <SummaryCard Icon={Zap} label={t("Top Module")} value={analytics.topModule} delay={0.18} subtitle={analytics.topModule !== "—" ? t("Most used") : undefined} />
+          <SummaryCard Icon={Clock} label={t("Last Active")} value={analytics.lastActive} delay={0.22} />
+          <SummaryCard Icon={Star} label={t("Sessions (7d)")} value={analytics.recentSessions} delay={0.26} />
         </div>
 
         {/* ── Recent Major Events ───────────────────────────────────────────── */}
@@ -1134,7 +1136,7 @@ export default function History() {
               data-testid="button-toggle-charts"
             >
               <Activity className="size-4 text-primary" />
-              Analytics Charts
+              {t("Analytics Charts")}
               {showCharts ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}
             </button>
             <AnimatePresence>
@@ -1159,7 +1161,7 @@ export default function History() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground/50 pointer-events-none" />
               <Input
                 value={search} onChange={e => setSearch(e.target.value)}
-                placeholder="Search actions, modules, results…"
+                placeholder={t("Search actions, modules, results…")}
                 className="pl-9 bg-[#21262D] border-[#2A313A] h-9 text-sm"
                 data-testid="input-search-history"
               />
@@ -1192,7 +1194,7 @@ export default function History() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                   {/* Module filter */}
                   <div>
-                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground/60 mb-1.5">Module</p>
+                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground/60 mb-1.5">{t("Module")}</p>
                     <div className="flex flex-wrap gap-1">
                       {MODULES_ALL.map(m => (
                         <button key={m} onClick={() => setModFilter(m)}
@@ -1204,7 +1206,7 @@ export default function History() {
                           )}
                           data-testid={`filter-module-${m.toLowerCase().replace(/\s/g,"-")}`}
                         >
-                          {m}
+                          {t(m)}
                         </button>
                       ))}
                     </div>
@@ -1212,7 +1214,7 @@ export default function History() {
 
                   {/* Status filter */}
                   <div>
-                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground/60 mb-1.5">Status</p>
+                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground/60 mb-1.5">{t("Status")}</p>
                     <div className="flex flex-wrap gap-1">
                       {STATUSES_ALL.map(s => {
                         const cfg = s !== "All" ? STATUS_CONFIG[s as HistoryStatus] : null;
@@ -1226,7 +1228,7 @@ export default function History() {
                             )}
                             data-testid={`filter-status-${s}`}
                           >
-                            {s}
+                          {t(s)}
                           </button>
                         );
                       })}
@@ -1238,7 +1240,7 @@ export default function History() {
                 {hasFilters && (
                   <div className="flex items-center gap-2 mt-2.5 pt-2.5 ">
                     <span className="text-[11px] text-muted-foreground">{filtered.length} of {enriched.length} events shown</span>
-                    <button onClick={clearFilters} className="text-[11px] text-primary hover:underline ml-auto">Clear all</button>
+                    <button onClick={clearFilters} className="text-[11px] text-primary hover:underline ml-auto">{t("Clear all")}</button>
                   </div>
                 )}
               </motion.div>

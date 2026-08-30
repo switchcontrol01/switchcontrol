@@ -11,6 +11,7 @@ import {
   Shield,
 } from 'lucide-react';
 import { SOCIAL_LINKS } from '@/config/socialLinks';
+import { useTranslation } from '@/lib/i18n';
 
 
 // ── Shared: Glass panel wrapper ───────────────────────────────────────────────
@@ -69,6 +70,7 @@ const CPU_POINTS = [28, 32, 25, 41, 38, 45, 35, 30, 23, 29, 27, 33, 31, 24, 22];
 const RAM_POINTS = [55, 58, 60, 57, 62, 65, 61, 63, 60, 58, 62, 64, 61, 62, 62];
 
 function DashboardPreview() {
+  const { t } = useTranslation();
   const [tick, setTick] = useState(0);
   useEffect(() => {
     const id = setInterval(() => {
@@ -85,14 +87,14 @@ function DashboardPreview() {
     <GlassPanel>
       <div className="p-3 space-y-3">
         <div className="flex items-center justify-between">
-          <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-[#6B7380]">Live Performance</span>
+          <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-[#6B7380]">{t('Live Performance')}</span>
           <motion.div
             className="flex items-center gap-1"
             animate={{ opacity: [1, 0.4, 1] }}
             transition={{ duration: 1.8, repeat: Infinity }}
           >
             <div className="w-1 h-1 rounded-full bg-emerald-400" />
-            <span className="text-[8px] text-[#6B7380]">live</span>
+            <span className="text-[8px] text-[#6B7380]">{t('live')}</span>
           </motion.div>
         </div>
 
@@ -103,7 +105,7 @@ function DashboardPreview() {
             color="rgba(168,85,247,"
             height={44}
             delay={0.1}
-            label="CPU"
+            label={t('CPU')}
             labelValue={`${cpuVal}%`}
           />
         </div>
@@ -115,7 +117,7 @@ function DashboardPreview() {
             color="rgba(0,210,255,"
             height={44}
             delay={0.35}
-            label="RAM"
+            label={t('RAM')}
             labelValue={`${ramVal}%`}
           />
         </div>
@@ -123,9 +125,9 @@ function DashboardPreview() {
         {/* Bottom metric pills */}
         <div className="flex gap-2 pt-0.5">
           {[
-            { label: 'GPU', val: '45%', color: 'rgba(236,72,153,' },
-            { label: 'Disk', val: '8%',  color: 'rgba(52,211,153,' },
-            { label: 'Temp', val: '61°', color: 'rgba(251,146,60,' },
+            { label: t('GPU'), val: '45%', color: 'rgba(236,72,153,' },
+            { label: t('Disk'), val: '8%',  color: 'rgba(52,211,153,' },
+            { label: t('Temp'), val: '61°', color: 'rgba(251,146,60,' },
           ].map((m, i) => (
             <motion.div
               key={m.label}
@@ -159,11 +161,12 @@ const TWEAKS_LIST = [
 ];
 
 function TweaksPreview() {
+  const { t } = useTranslation();
   return (
     <GlassPanel>
       <div className="p-3 space-y-3">
         <div className="flex items-center justify-between">
-          <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-[#6B7380]">Applied Tweaks</span>
+          <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-[#6B7380]">{t('Applied Tweaks')}</span>
           <motion.span
             className="text-[9px] font-semibold px-1.5 py-0.5 rounded-md"
             style={{ background: 'rgba(168,85,247,0.15)', border: '1px solid rgba(168,85,247,0.25)', color: 'rgba(168,85,247,0.9)' }}
@@ -171,7 +174,7 @@ function TweaksPreview() {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.4 }}
           >
-            4 active
+            {t('4 active')}
           </motion.span>
         </div>
 
@@ -186,7 +189,7 @@ function TweaksPreview() {
               transition={{ delay: 0.08 + i * 0.08, duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
             >
               <span className="text-[10px]" style={{ color: t.active ? 'rgba(255,255,255,0.65)' : 'rgba(255,255,255,0.25)' }}>
-                {t.label}
+                {t(t.label)}
               </span>
               <motion.div
                 className="relative flex-shrink-0"
@@ -209,20 +212,20 @@ function TweaksPreview() {
         {/* System consistency demo */}
         <div className="rounded-lg p-2" style={{ background: 'rgba(0,0,0,0.2)' }}>
           <div className="flex items-center justify-between mb-1">
-            <span className="text-[8px] uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.2)' }}>System Interference — Demo</span>
-            <span className="text-[9px] font-bold" style={{ color: 'rgba(52,211,153,0.6)' }}>Illustration only</span>
+            <span className="text-[8px] uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.2)' }}>{t('System Interference — Demo')}</span>
+            <span className="text-[9px] font-bold" style={{ color: 'rgba(52,211,153,0.6)' }}>{t('Illustration only')}</span>
           </div>
           <div className="space-y-1.5">
             <div className="flex items-center gap-2">
               <div className="w-1.5 h-1.5 rounded-full bg-white/30" />
-              <span className="text-[9px] text-white/30">Background processes creating noise</span>
+              <span className="text-[9px] text-white/30">{t('Background processes creating noise')}</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-400/50" />
-              <span className="text-[9px] text-white/30">After removing interference → more stable</span>
+              <span className="text-[9px] text-white/30">{t('After removing interference → more stable')}</span>
             </div>
           </div>
-          <p className="text-[8px] text-white/15 mt-1.5">Does not increase FPS. Removes hidden delays.</p>
+          <p className="text-[8px] text-white/15 mt-1.5">{t('Does not increase FPS. Removes hidden delays.')}</p>
         </div>
       </div>
     </GlassPanel>
@@ -235,6 +238,7 @@ const LATENCY_POINTS = [22, 19, 21, 18, 16, 14, 13, 15, 14, 12, 11, 14, 13, 12, 
 const TX_POINTS      = [42, 55, 48, 61, 58, 65, 70, 63, 68, 72, 65, 70, 74, 68, 73];
 
 function NetworkPreview() {
+  const { t } = useTranslation();
   return (
     <GlassPanel>
       <div className="p-3 space-y-3">
@@ -249,15 +253,15 @@ function NetworkPreview() {
             >
               11ms
             </motion.div>
-            <div className="text-[8px] uppercase tracking-widest" style={{ color: 'rgba(0,210,255,0.35)' }}>Ping</div>
+            <div className="text-[8px] uppercase tracking-widest" style={{ color: 'rgba(0,210,255,0.35)' }}>{t('Ping')}</div>
           </div>
           <div>
             <div className="text-[20px] font-bold font-mono leading-none" style={{ color: 'rgba(52,211,153,0.9)' }}>0.0%</div>
-            <div className="text-[8px] uppercase tracking-widest" style={{ color: 'rgba(52,211,153,0.35)' }}>Loss</div>
+            <div className="text-[8px] uppercase tracking-widest" style={{ color: 'rgba(52,211,153,0.35)' }}>{t('Loss')}</div>
           </div>
           <div className="ml-auto text-right">
             <div className="text-[13px] font-bold" style={{ color: 'rgba(255,255,255,0.65)' }}>↓ 850 Mbps</div>
-            <div className="text-[8px]" style={{ color: 'rgba(255,255,255,0.25)' }}>Throughput</div>
+            <div className="text-[8px]" style={{ color: 'rgba(255,255,255,0.25)' }}>{t('Throughput')}</div>
           </div>
         </div>
 
@@ -268,7 +272,7 @@ function NetworkPreview() {
             color="rgba(0,210,255,"
             height={40}
             delay={0.1}
-            label="Latency trace"
+            label={t('Latency trace')}
             labelValue="11ms"
           />
         </div>
@@ -280,7 +284,7 @@ function NetworkPreview() {
             color="rgba(52,211,153,"
             height={36}
             delay={0.4}
-            label="Throughput"
+            label={t('Throughput')}
             labelValue="73 Mbps"
           />
         </div>
@@ -301,6 +305,7 @@ const BIOS_ROWS = [
 ];
 
 function BiosPreview() {
+  const { t } = useTranslation();
   const circumference = 2 * Math.PI * 18;
 
   return (
@@ -338,10 +343,10 @@ function BiosPreview() {
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.6 }}
               >
-                Demo
+                {t('Demo')}
               </motion.div>
             </div>
-            <span className="text-[8px] uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.25)' }}>Example</span>
+            <span className="text-[8px] uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.25)' }}>{t('Example')}</span>
           </div>
 
           {/* Rows */}
@@ -356,7 +361,7 @@ function BiosPreview() {
               >
                 <div>
                   <div className="text-[10px]" style={{ color: 'rgba(255,255,255,0.55)' }}>{r.setting}</div>
-                  <div className="text-[8px]" style={{ color: 'rgba(255,255,255,0.22)' }}>{r.current}</div>
+                  <div className="text-[8px]" style={{ color: 'rgba(255,255,255,0.22)' }}>{t(r.current)}</div>
                 </div>
                 <span
                   className="text-[8px] px-1.5 py-0.5 rounded-md font-semibold flex-shrink-0 ml-2"
@@ -366,7 +371,7 @@ function BiosPreview() {
                     color: r.warn ? '#fbbf24' : '#22d3ee',
                   }}
                 >
-                  → {r.rec}
+                  → {t(r.rec)}
                 </span>
               </motion.div>
             ))}
@@ -380,7 +385,7 @@ function BiosPreview() {
             color="rgba(0,210,255,"
             height={32}
             delay={0.5}
-            label="Score trajectory"
+            label={t('Score trajectory')}
             labelValue="+42pts"
           />
         </div>
@@ -399,18 +404,19 @@ const MESSAGES = [
 ];
 
 function AiAdvisorPreview() {
+  const { t } = useTranslation();
   return (
     <GlassPanel>
       <div className="p-3 space-y-3">
         <div className="flex items-center justify-between">
-          <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-[#6B7380]">AI Chat</span>
+          <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-[#6B7380]">{t('AI Chat')}</span>
           <motion.span
             className="text-[8px] px-1.5 py-0.5 rounded-md"
             style={{ background: 'rgba(168,85,247,0.12)', border: '1px solid rgba(168,85,247,0.22)', color: 'rgba(168,85,247,0.8)' }}
             animate={{ opacity: [1, 0.6, 1] }}
             transition={{ duration: 2, repeat: Infinity }}
           >
-            Thinking...
+            {t('Thinking...')}
           </motion.span>
         </div>
 
@@ -435,7 +441,7 @@ function AiAdvisorPreview() {
                   boxShadow: m.from === 'user' ? '0 2px 12px rgba(168,85,247,0.2)' : 'none',
                 }}
               >
-                {m.text}
+                {t(m.text)}
               </div>
             </motion.div>
           ))}
@@ -471,7 +477,7 @@ function AiAdvisorPreview() {
             color="rgba(168,85,247,"
             height={30}
             delay={0.6}
-            label="Analysis confidence"
+            label={t('Analysis confidence')}
             labelValue="87%"
           />
         </div>
@@ -485,6 +491,7 @@ function AiAdvisorPreview() {
 const HEALTH_POINTS = [68, 70, 71, 73, 72, 75, 74, 76, 75, 78, 77, 80, 79, 82, 85];
 
 function SecurityPreview() {
+  const { t } = useTranslation();
   const circumference = 2 * Math.PI * 19;
   const checks = [
     { label: 'Defender Active', ok: true },
@@ -533,7 +540,7 @@ function SecurityPreview() {
               </svg>
               <div className="absolute inset-0 flex items-center justify-center text-xs font-bold" style={{ color: '#34d399' }}>85</div>
             </div>
-            <span className="text-[8px] uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.25)' }}>Health</span>
+            <span className="text-[8px] uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.25)' }}>{t('Health')}</span>
           </div>
 
           {/* Check list */}
@@ -552,7 +559,7 @@ function SecurityPreview() {
                   animate={{ opacity: [1, 0.5, 1] }}
                   transition={{ duration: 2.5, delay: i * 0.4, repeat: Infinity }}
                 />
-                <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.5)' }}>{c.label}</span>
+                <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.5)' }}>{t(c.label)}</span>
               </motion.div>
             ))}
           </div>
@@ -565,7 +572,7 @@ function SecurityPreview() {
             color="rgba(52,211,153,"
             height={30}
             delay={0.55}
-            label="Security health trend"
+            label={t('Security health trend')}
             labelValue="+17pts"
           />
         </div>
@@ -576,12 +583,13 @@ function SecurityPreview() {
 
 // ── Step definitions ───────────────────────────────────────────────────────────
 
-const ONBOARDING_STEPS: TourStep[] = [
+function getOnboardingSteps(t: (key: string) => string): TourStep[] {
+  return [
   {
     id: 'dashboard',
     targetSelector: '[data-tour="dashboard"]',
-    title: 'Dashboard Overview',
-    description: 'Monitor your system in real-time — CPU, RAM, GPU, and disk all at a glance.',
+    title: t('Dashboard Overview'),
+    description: t('Monitor your system in real-time — CPU, RAM, GPU, and disk all at a glance.'),
     icon: <Sparkles className="w-5 h-5" />,
     sidebarHighlight: 'dashboard',
     route: '/dashboard',
@@ -590,8 +598,8 @@ const ONBOARDING_STEPS: TourStep[] = [
   {
     id: 'tweaks',
     targetSelector: '[data-tour="tweaks"]',
-    title: 'System Tweaks',
-    description: 'Apply proven Windows optimizations to reduce latency and squeeze more FPS out of your hardware.',
+    title: t('System Tweaks'),
+    description: t('Apply proven Windows optimizations to reduce latency and squeeze more FPS out of your hardware.'),
     icon: <Zap className="w-5 h-5" />,
     sidebarHighlight: 'tweaks',
     route: '/tweaks',
@@ -600,8 +608,8 @@ const ONBOARDING_STEPS: TourStep[] = [
   {
     id: 'network',
     targetSelector: '[data-tour="network"]',
-    title: 'Network Optimization',
-    description: 'Fine-tune your network stack for lower ping, zero packet loss, and stable online sessions.',
+    title: t('Network Optimization'),
+    description: t('Fine-tune your network stack for lower ping, zero packet loss, and stable online sessions.'),
     icon: <Wifi className="w-5 h-5" />,
     sidebarHighlight: 'network',
     route: '/network',
@@ -610,8 +618,8 @@ const ONBOARDING_STEPS: TourStep[] = [
   {
     id: 'bios-advisor',
     targetSelector: '[data-tour="bios-advisor"]',
-    title: 'BIOS Advisor',
-    description: 'Get personalized BIOS optimization recommendations tailored to your exact CPU and motherboard.',
+    title: t('BIOS Advisor'),
+    description: t('Get personalized BIOS optimization recommendations tailored to your exact CPU and motherboard.'),
     icon: <Cpu className="w-5 h-5" />,
     sidebarHighlight: 'bios-advisor',
     route: '/bios-advisor',
@@ -620,8 +628,8 @@ const ONBOARDING_STEPS: TourStep[] = [
   {
     id: 'ai-advisor',
     targetSelector: '[data-tour="ai-advisor"]',
-    title: 'AI Advisor',
-    description: 'Chat with your personal optimization AI — it scans your system and recommends exactly what to change.',
+    title: t('AI Advisor'),
+    description: t('Chat with your personal optimization AI — it scans your system and recommends exactly what to change.'),
     icon: <Sparkles className="w-5 h-5" />,
     sidebarHighlight: 'ai-advisor',
     route: '/ai-advisor',
@@ -630,8 +638,8 @@ const ONBOARDING_STEPS: TourStep[] = [
   {
     id: 'security',
     targetSelector: '[data-tour="security"]',
-    title: 'Security Center',
-    description: 'Keep your system secure and integrity-checked without sacrificing gaming performance.',
+    title: t('Security Center'),
+    description: t('Keep your system secure and integrity-checked without sacrificing gaming performance.'),
     icon: <Shield className="w-5 h-5" />,
     sidebarHighlight: 'security',
     route: '/security',
@@ -640,8 +648,8 @@ const ONBOARDING_STEPS: TourStep[] = [
   {
     id: 'discord',
     targetSelector: '[data-tour="dashboard"]',
-    title: 'Join the Community',
-    description: 'Connect with thousands of gamers, get updates, and win premium giveaways on our Discord.',
+    title: t('Join the Community'),
+    description: t('Connect with thousands of gamers, get updates, and win premium giveaways on our Discord.'),
     icon: <DiscordIcon className="w-5 h-5 text-[#5865F2]" />,
     sidebarHighlight: 'dashboard',
     route: '/dashboard',
@@ -660,11 +668,12 @@ const ONBOARDING_STEPS: TourStep[] = [
         data-testid="tour-join-discord"
       >
         <DiscordIcon className="w-4 h-4" />
-        Join Discord
+        {t('Join Discord')}
       </button>
     ),
   },
-];
+  ];
+}
 
 // ── Export ─────────────────────────────────────────────────────────────────────
 
@@ -676,10 +685,11 @@ interface OnboardingTourProps {
 }
 
 export function OnboardingTour({ show = true, onComplete, onSkip, isFirstTime = true }: OnboardingTourProps) {
+  const { t } = useTranslation();
   return (
     <TourShell
       show={show}
-      steps={ONBOARDING_STEPS}
+      steps={getOnboardingSteps(t)}
       onComplete={onComplete}
       onSkip={onSkip}
       canSkip={!isFirstTime}

@@ -25,6 +25,7 @@ import { StartupRecommendations } from "@/components/startup/StartupRecommendati
 import { StartupBrokenEntries } from "@/components/startup/StartupBrokenEntries";
 import { StartupHistoryPanel }  from "@/components/startup/StartupHistoryPanel";
 import { startupColor }         from "@/lib/themeTokens";
+import { useTranslation } from "@/lib/i18n";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -63,6 +64,7 @@ function GroupHeader({
   open: boolean;
   onToggle: () => void;
 }) {
+  const { t } = useTranslation();
   const m = GROUP_META[category];
   return (
     <button
@@ -79,7 +81,7 @@ function GroupHeader({
           style={{ backgroundColor: m.color, boxShadow: `0 0 5px ${m.color}80` }}
         />
         <span className="text-xs font-bold uppercase tracking-wider" style={{ color: m.color }}>
-          {m.label}
+          {t(m.label)}
         </span>
         <span
           className="text-[9px] px-1.5 py-px rounded-full font-bold"
@@ -107,6 +109,7 @@ function GroupHeader({
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function StartupApps() {
+  const { t } = useTranslation();
   const { mark: timingMark } = usePageTiming("StartupApps");
   const { toast } = useToast();
 
@@ -155,7 +158,7 @@ export default function StartupApps() {
       timingMark("startup-scan-done");
 
       if (!result.ok) {
-        setScanError(result.error ?? "Scan failed");
+        setScanError(result.error ?? t("Scan failed"));
         setApps([]);
         setScanStatus("done");
         return;
@@ -183,11 +186,11 @@ export default function StartupApps() {
         `${enriched.filter(a => !a.entry.enabled).length} disabled, ${enriched.filter(a => a.entry.broken).length} broken`,
       );
     } catch (e: any) {
-      setScanError(e.message ?? "Unexpected error");
+      setScanError(e.message ?? t("Unexpected error"));
       setApps([]);
       setScanStatus("done");
     }
-  }, []); // eslint-disable-line
+  }, [t]); // eslint-disable-line
 
   useEffect(() => { scan(); }, [scan]); // eslint-disable-line
 
@@ -242,16 +245,16 @@ export default function StartupApps() {
           reversible: true,
         },
       );
-      toast({ title: `${app.entry.name} ${enabled ? "enabled" : "disabled"}`, variant: "default" });
+      toast({ title: `${app.entry.name} ${t(enabled ? "enabled" : "disabled")}`, variant: "default" });
     } catch (e: any) {
       setApps(prev => prev.map(a => a.entry.id === id
         ? { ...a, entry: { ...a.entry, enabled: !enabled } } : a
       ));
-      toast({ title: "Action failed", description: e.message, variant: "destructive" });
+      toast({ title: t("Action failed"), description: e.message, variant: "destructive" });
     } finally {
       setLoadingId(null);
     }
-  }, [apps, toast]);
+  }, [apps, toast, t]);
 
   // ── Optimize ──────────────────────────────────────────────────────────────
   const optimize = useCallback(async () => {
@@ -264,8 +267,8 @@ export default function StartupApps() {
       "Startup", "Optimized", recs.map(a => a.entry.name).join(", "),
       { category: "summary", reversible: false, reason: "Use the individual startup entries above to revert each app." }
     );
-    toast({ title: `Optimized — ${recs.length} app${recs.length > 1 ? "s" : ""} disabled` });
-  }, [apps, toggleEntry, toast]);
+    toast({ title: t("Optimized — {count} apps disabled").replace("{count}", String(recs.length)) });
+  }, [apps, toggleEntry, toast, t]);
 
   // ── History ───────────────────────────────────────────────────────────────
   const fetchHistory = useCallback(async () => {
@@ -334,7 +337,7 @@ export default function StartupApps() {
               onClick={() => { setShowHistory(true); fetchHistory(); }}
               className="flex items-center gap-2 px-3 py-1 rounded-lg bg-[#1A1F26] border border-white/[0.05] text-[10px] font-bold uppercase tracking-widest text-muted-foreground hover:text-[#E6EAF0] hover:bg-[#21262D] transition-colors"
             >
-              <History className="size-3.5" /> View Log
+              <History className="size-3.5" /> {t("View Log")}
             </button>
           )}
         </div>
@@ -349,10 +352,10 @@ export default function StartupApps() {
             <div className="size-16 rounded-2xl bg-white/[0.02] border border-white/[0.05] flex items-center justify-center mx-auto mb-6">
               <Laptop2 className="size-8 text-muted-foreground/40" />
             </div>
-            <h2 className="text-2xl font-bold text-[#E6EAF0]">Desktop App Required</h2>
+            <h2 className="text-2xl font-bold text-[#E6EAF0]">{t("Desktop App Required")}</h2>
             <p className="text-muted-foreground/60 max-w-md mx-auto leading-relaxed">
-              Startup scanning connects directly to the Windows registry, startup folders, and task scheduler.
-              You must use the SwitchControl desktop client for these features.
+              {t("Startup scanning connects directly to the Windows registry, startup folders, and task scheduler.")}
+              {" "}{t("You must use the SwitchControl desktop client for these features.")}
             </p>
           </motion.div>
         )}
@@ -364,7 +367,7 @@ export default function StartupApps() {
               <AlertTriangle className="size-6 text-red-400" />
             </div>
             <div className="flex-1">
-              <h3 className="text-lg font-bold text-red-400">Scanner Failure</h3>
+              <h3 className="text-lg font-bold text-red-400">{t("Scanner Failure")}</h3>
               <p className="text-sm text-red-400/70 mt-1">{scanError}</p>
             </div>
             <button
@@ -372,7 +375,7 @@ export default function StartupApps() {
               className="mt-4 sm:mt-0 px-6 py-2.5 rounded-xl text-white font-bold uppercase tracking-wider text-xs transition-colors border-0"
               style={{ background: `linear-gradient(135deg, ${startupColor.main}, ${startupColor.end})` }}
             >
-              Retry Scan
+              {t("Retry Scan")}
             </button>
           </div>
         )}
@@ -450,7 +453,7 @@ export default function StartupApps() {
                         <Input
                           value={searchQuery}
                           onChange={e => setSearchQuery(e.target.value)}
-                          placeholder="Search apps, publishers, or paths…"
+                          placeholder={t("Search apps, publishers, or paths…")}
                           className="pl-8 pr-8 h-9 text-xs bg-[#1A1F26] border-white/[0.06] placeholder:text-muted-foreground/30 focus-visible:border-white/[0.15] focus-visible:ring-0 rounded-xl"
                         />
                         {searchQuery && (
@@ -492,9 +495,9 @@ export default function StartupApps() {
                               style={{ background: "rgba(26,31,38,0.4)" }}
                             >
                               <Search className="size-8 text-muted-foreground/20 mb-3" />
-                              <p className="text-sm font-bold text-[#E6EAF0] uppercase tracking-wide">No Results</p>
+                              <p className="text-sm font-bold text-[#E6EAF0] uppercase tracking-wide">{t("No Results")}</p>
                               <p className="text-xs text-muted-foreground/50 mt-1">
-                                No startup entries match "{searchQuery}"
+                                {t("No startup entries match")} "{searchQuery}"
                               </p>
                             </div>
                           ) : (
@@ -573,8 +576,8 @@ export default function StartupApps() {
                               style={{ background: "rgba(26,31,38,0.4)" }}
                             >
                               <Laptop2 className="size-8 text-muted-foreground/20 mb-3" />
-                              <p className="text-sm font-bold text-[#E6EAF0] uppercase tracking-wide">Category Clear</p>
-                              <p className="text-xs text-muted-foreground/50 mt-1">No apps in this category.</p>
+                              <p className="text-sm font-bold text-[#E6EAF0] uppercase tracking-wide">{t("Category Clear")}</p>
+                              <p className="text-xs text-muted-foreground/50 mt-1">{t("No apps in this category.")}</p>
                             </div>
                           ) : (
                             <AnimatePresence mode="popLayout">

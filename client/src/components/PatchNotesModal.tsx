@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, ChevronRight, X } from "lucide-react";
+import { useTranslation } from "@/lib/i18n";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -54,6 +55,7 @@ const bullet = (i: number) => ({
 // ── Main modal ────────────────────────────────────────────────────────────────
 
 export function PatchNotesModal({ show, onDismiss }: PatchNotesModalProps) {
+  const { t } = useTranslation();
   const [notes, setNotes] = useState<PatchNotes | null>(null);
   const [visible, setVisible] = useState(false);
 
@@ -97,7 +99,7 @@ export function PatchNotesModal({ show, onDismiss }: PatchNotesModalProps) {
             <motion.div
               className="relative w-full max-w-[440px] pointer-events-auto"
               variants={card} initial="initial" animate="animate" exit="exit"
-              role="dialog" aria-modal="true" aria-label="What's New"
+              role="dialog" aria-modal="true" aria-label={t("What's New")}
               data-testid="modal-patch-notes"
             >
               {/* Atmospheric glows */}
@@ -155,7 +157,7 @@ export function PatchNotesModal({ show, onDismiss }: PatchNotesModalProps) {
                         data-testid="chip-whats-new"
                       >
                         <Sparkles className="size-2.5" />
-                        What&apos;s New
+                        {t("What's New")}
                       </motion.span>
                       <motion.span
                         initial={{ opacity: 0, y: -6 }}
@@ -177,7 +179,7 @@ export function PatchNotesModal({ show, onDismiss }: PatchNotesModalProps) {
                       data-testid="button-dismiss-patch-notes"
                       className="flex items-center justify-center size-7 rounded-lg opacity-35 hover:opacity-70 transition-opacity duration-200"
                       style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}
-                      aria-label="Dismiss"
+                      aria-label={t("Dismiss")}
                     >
                       <X className="size-3.5" />
                     </button>
@@ -191,7 +193,7 @@ export function PatchNotesModal({ show, onDismiss }: PatchNotesModalProps) {
                     animate={{ opacity: 1, y: 0, transition: { duration: 0.44, delay: 0.25 } }}
                     data-testid="text-patch-notes-title"
                   >
-                    {notes.title}
+                    {t(notes.title)}
                   </motion.h2>
 
                   {/* Headline */}
@@ -202,7 +204,7 @@ export function PatchNotesModal({ show, onDismiss }: PatchNotesModalProps) {
                     animate={{ opacity: 1, y: 0, transition: { duration: 0.38, delay: 0.33 } }}
                     data-testid="text-patch-notes-headline"
                   >
-                    {notes.headline}
+                    {t(notes.headline)}
                   </motion.p>
                 </div>
 
@@ -241,7 +243,7 @@ export function PatchNotesModal({ show, onDismiss }: PatchNotesModalProps) {
                         </svg>
                       </span>
                       <p className="text-[12.5px] leading-snug" style={{ color: "rgba(255,255,255,0.60)" }}>
-                        {change}
+                        {t(change)}
                       </p>
                     </motion.div>
                   ))}
@@ -251,7 +253,7 @@ export function PatchNotesModal({ show, onDismiss }: PatchNotesModalProps) {
                 <div className="px-6 pb-6 pt-3 shrink-0 border-t" style={{ borderColor: "rgba(255,255,255,0.05)" }}>
                   {/* Release date */}
                   <p className="text-[10px] text-center mb-3" style={{ color: "rgba(255,255,255,0.18)" }}>
-                    Released {new Date(notes.date).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
+                    {t("Released {date}", undefined, { date: new Date(notes.date).toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" }) })}
                   </p>
 
                   {/* CTA */}
@@ -272,7 +274,7 @@ export function PatchNotesModal({ show, onDismiss }: PatchNotesModalProps) {
                       animate={{ x: ["-100%", "200%"] }}
                       transition={{ duration: 2.4, repeat: Infinity, repeatDelay: 3, ease: "easeInOut" }}
                     />
-                    <span className="relative">Got it</span>
+                    <span className="relative">{t("Got it")}</span>
                     <ChevronRight className="relative size-4 opacity-70" />
                   </motion.button>
                 </div>

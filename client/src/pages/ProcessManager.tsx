@@ -16,6 +16,7 @@ import {
   Monitor, Gamepad2, Globe, Music, Settings2, Package,
 } from "lucide-react";
 import { publisherToDomain, processNameToDomain, iconSrcsForDomain } from "@/lib/publisherIcons";
+import { useTranslation } from "@/lib/i18n";
 // ── Process icon — native icon + web logo fallback ────────────────────────────
 // Priority:
 //   1. Native icon from .exe via Electron shell.getFileIcon (appIcons:forPath IPC)
@@ -146,16 +147,16 @@ interface ScanResult {
 type FilterTab = "all" | "safe" | "protected" | "browsers" | "heavy";
 type SortMode = "memory" | "cpu" | "name";
 // ── Helpers ─────────────────────────────────────────────────────
-function safetyBadge(s: ProcessItem["safety"]) {
+function safetyBadge(s: ProcessItem["safety"], t: (key: string) => string) {
   switch (s) {
     case "safe":
-      return { label: "Safe", class: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" };
+      return { label: t("Safe"), class: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" };
     case "moderate":
-      return { label: "Moderate", class: "bg-amber-500/10 text-amber-400 border-amber-500/20" };
+      return { label: t("Moderate"), class: "bg-amber-500/10 text-amber-400 border-amber-500/20" };
     case "unknown":
-      return { label: "Unknown", class: "bg-orange-500/10 text-orange-400 border-orange-500/20" };
+      return { label: t("Unknown"), class: "bg-orange-500/10 text-orange-400 border-orange-500/20" };
     case "protected":
-      return { label: "Protected", class: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20" };
+      return { label: t("Protected"), class: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20" };
   }
 }
 function categoryColor(cat: string): string {
@@ -221,6 +222,7 @@ function generateFakeScan(): ScanResult {
 }
 // ── Component ─────────────────────────────────────────────────────
 export default function ProcessManager() {
+  const { t } = useTranslation();
   const [scanResult, setScanResult] = useState<ScanResult | null>(null);
   const [scanning, setScanning] = useState(false);
   const [scanProgress, setScanProgress] = useState(0);
@@ -248,10 +250,10 @@ export default function ProcessManager() {
         setScanProgress(100);
         if (res.success && res.data && !res.data.error) {
           setScanResult(res.data);
-          toast({ title: `Found ${res.data.totalProcesses} processes`, variant: "default" });
+          toast({ title: t("Found {count} processes").replace("{count}", String(res.data.totalProcesses)), variant: "default" });
         } else {
           setScanResult(null);
-          toast({ title: "Scan failed", description: res.error || res.data?.error || "PowerShell execution failed — check console", variant: "destructive" });
+          toast({ title: t("Scan failed"), description: res.error || res.data?.error || t("PowerShell execution failed — check console"), variant: "destructive" });
         }
       } else {
         // Web fallback — simulated data with realistic delay
@@ -260,16 +262,16 @@ export default function ProcessManager() {
         setScanProgress(100);
         const fake = generateFakeScan();
         setScanResult(fake);
-        toast({ title: `Found ${fake.totalProcesses} processes (simulated)`, variant: "default" });
+        toast({ title: t("Found {count} processes (simulated)").replace("{count}", String(fake.totalProcesses)), variant: "default" });
       }
     } catch (err: any) {
       clearInterval(progressTimer);
       setScanResult(null);
-      toast({ title: "Scan error", description: err?.message || "Failed to scan", variant: "destructive" });
+      toast({ title: t("Scan error"), description: err?.message || t("Failed to scan"), variant: "destructive" });
     } finally {
       setTimeout(() => setScanning(false), 400); // let the 100% bar sit for a moment
     }
-  }, [toast]);
+  }, [toast, t]);
   const handleTerminate = useCallback(async (pid: number) => {
     const api = (window as any).electronAPI;
     if (api?.processControl?.terminate) {
@@ -277,19 +279,19 @@ export default function ProcessManager() {
         const res = await api.processControl.terminate(pid);
         if (res.success && res.data?.ok) {
           setTerminatedPids(prev => new Set(prev).add(pid));
-          toast({ title: `Stopped ${res.data.name}`, variant: "default" });
+          toast({ title: t("Stopped {name}").replace("{name}", res.data.name), variant: "default" });
         } else {
-          toast({ title: "Failed to stop", description: res.data?.error || res.error || "", variant: "destructive" });
+          toast({ title: t("Failed to stop"), description: res.data?.error || res.error || "", variant: "destructive" });
         }
       } catch (err: any) {
-        toast({ title: "Error", description: err?.message || "", variant: "destructive" });
+        toast({ title: t("Error"), description: err?.message || "", variant: "destructive" });
       }
     } else {
       setTerminatedPids(prev => new Set(prev).add(pid));
-      toast({ title: "Stopped process (simulated)", variant: "default" });
+      toast({ title: t("Stopped process (simulated)"), variant: "default" });
     }
     setConfirmPid(null);
-  }, [toast]);
+  }, [toast, t]);
   const filtered = useMemo(() => {
     if (!scanResult) return [];
     let list = scanResult.processes.filter(p => !terminatedPids.has(p.pid));
@@ -319,8 +321,8 @@ export default function ProcessManager() {
       <div className="sc-page-blur-in space-y-5 pb-6">
         <PageHeader
           icon={Layers}
-          title="Process Manager"
-          subtitle="Scan and manage running processes. Protected system and gaming processes are always safeguarded."
+          title={t("Process Manager")}
+          subtitle={t("Scan and manage running processes. Protected system and gaming processes are always safeguarded.")}
           actions={
             <div className="flex items-center gap-2">
               <Button
@@ -331,9 +333,9 @@ export default function ProcessManager() {
                 data-testid="button-scan-processes"
               >
                 {scanning ? (
-                  <><span className="animate-spin inline-block"><Cpu className="size-3.5" /></span> Scanning…</>
+                  <><span className="animate-spin inline-block"><Cpu className="size-3.5" /></span> {t("Scanning…")}</>
                 ) : (
-                  <><Play className="size-3.5" /> {scanResult ? "Rescan" : "Scan"}</>
+                  <><Play className="size-3.5" /> {scanResult ? t("Rescan") : t("Scan")}</>
                 )}
               </Button>
             </div>
@@ -342,7 +344,7 @@ export default function ProcessManager() {
         {!isElectron && scanResult && (
           <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-amber-500/20 bg-amber-500/10 text-[11px] text-amber-400">
             <AlertTriangle className="size-3.5" />
-            Browser preview — real process termination requires the Electron desktop app
+            {t("Browser preview — real process termination requires the Electron desktop app")}
           </div>
         )}
         {scanResult && (
@@ -350,24 +352,24 @@ export default function ProcessManager() {
             {/* Stats row */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <GlassCard className="p-3">
-                <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Total</div>
+                <div className="text-[10px] text-muted-foreground uppercase tracking-wider">{t("Total")}</div>
                 <div className="text-xl font-bold text-[#E6EAF0]">{scanResult.totalProcesses}</div>
-                <div className="text-[10px] text-muted-foreground">processes</div>
+                <div className="text-[10px] text-muted-foreground">{t("processes")}</div>
               </GlassCard>
               <GlassCard className="p-3">
-                <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Protected</div>
+                <div className="text-[10px] text-muted-foreground uppercase tracking-wider">{t("Protected")}</div>
                 <div className="text-xl font-bold text-cyan-400">{scanResult.protectedCount}</div>
-                <div className="text-[10px] text-muted-foreground">system / gaming</div>
+                <div className="text-[10px] text-muted-foreground">{t("system / gaming")}</div>
               </GlassCard>
               <GlassCard className="p-3">
-                <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Safe to Stop</div>
+                <div className="text-[10px] text-muted-foreground uppercase tracking-wider">{t("Safe to Stop")}</div>
                 <div className="text-xl font-bold text-emerald-400">{safeCount}</div>
-                <div className="text-[10px] text-muted-foreground">disposable helpers</div>
+                <div className="text-[10px] text-muted-foreground">{t("disposable helpers")}</div>
               </GlassCard>
               <GlassCard className="p-3">
-                <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Heavy</div>
+                <div className="text-[10px] text-muted-foreground uppercase tracking-wider">{t("Heavy")}</div>
                 <div className="text-xl font-bold text-amber-400">{heavyCount}</div>
-                <div className="text-[10px] text-muted-foreground">high mem / CPU</div>
+                <div className="text-[10px] text-muted-foreground">{t("high mem / CPU")}</div>
               </GlassCard>
             </div>
             {/* Controls */}
@@ -377,7 +379,7 @@ export default function ProcessManager() {
                 <input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search processes…"
+                  placeholder={t("Search processes…")}
                   className="w-full pl-8 pr-3 py-2 text-xs bg-[#21262D] border border-[#2A313A] rounded-lg text-[#E6EAF0] placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-colors"
                   data-testid="input-process-search"
                 />
@@ -400,7 +402,7 @@ export default function ProcessManager() {
                     )}
                     data-testid={`filter-${f}`}
                   >
-                    {f === "all" ? "All" : f === "safe" ? "Safe" : f === "protected" ? "Protected" : f === "browsers" ? "Browsers" : "Heavy"}
+                    {t(f === "all" ? "All" : f === "safe" ? "Safe" : f === "protected" ? "Protected" : f === "browsers" ? "Browsers" : "Heavy")}
                   </button>
                 ))}
                 <div className="relative">
@@ -410,9 +412,9 @@ export default function ProcessManager() {
                     className="appearance-none pl-2.5 pr-6 py-1 text-[11px] bg-[#21262D] border border-[#2A313A] rounded-full text-[#E6EAF0] focus:outline-none focus:border-primary cursor-pointer"
                     data-testid="select-sort"
                   >
-                    <option value="memory">Sort: Memory</option>
-                    <option value="cpu">Sort: CPU Time</option>
-                    <option value="name">Sort: Name</option>
+                    <option value="memory">{t("Sort: Memory")}</option>
+                    <option value="cpu">{t("Sort: CPU Time")}</option>
+                    <option value="name">{t("Sort: Name")}</option>
                   </select>
                   <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 size-3 pointer-events-none text-muted-foreground" />
                 </div>
@@ -422,7 +424,7 @@ export default function ProcessManager() {
             <div className="space-y-1.5">
               <AnimatePresence>
                 {filtered.map((p, i) => {
-                  const badge = safetyBadge(p.safety);
+                  const badge = safetyBadge(p.safety, t);
                   const isTerminated = terminatedPids.has(p.pid);
                   return (
                     <motion.div
@@ -468,23 +470,23 @@ export default function ProcessManager() {
                       </div>
                       {/* Stats */}
                       <div className="shrink-0 text-right min-w-[100px] hidden sm:block">
-                        <div className="text-[10px] text-muted-foreground">Memory</div>
+                        <div className="text-[10px] text-muted-foreground">{t("Memory")}</div>
                         <div className="text-xs font-semibold text-[#E6EAF0]">{p.memoryMb.toFixed(0)} MB</div>
                         <Progress value={Math.min(100, (p.memoryMb / 500) * 100)} className="h-1 mt-1" />
                       </div>
                       <div className="shrink-0 text-right min-w-[60px] hidden md:block">
-                        <div className="text-[10px] text-muted-foreground">CPU</div>
+                        <div className="text-[10px] text-muted-foreground">{t("CPU")}</div>
                         <div className="text-xs font-semibold text-[#E6EAF0]">{p.cpuTimeCumulative.toFixed(1)}s</div>
                       </div>
                       {/* Action */}
                       <div className="shrink-0">
                         {isTerminated ? (
                           <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-5 border-red-500/20 text-red-400 bg-red-500/5">
-                            Stopped
+                            {t("Stopped")}
                           </Badge>
                         ) : p.isProtected ? (
                           <span className="text-[10px] text-cyan-400/60 flex items-center gap-1">
-                            <Shield className="size-3" /> Protected
+                            <Shield className="size-3" /> {t("Protected")}
                           </span>
                         ) : (
                           <Button
@@ -494,7 +496,7 @@ export default function ProcessManager() {
                             className="h-7 px-2 text-[10px] text-red-400 hover:text-red-300 hover:bg-red-500/10"
                             data-testid={`button-stop-${p.pid}`}
                           >
-                            <Trash2 className="size-3 mr-1" /> End Task
+                            <Trash2 className="size-3 mr-1" /> {t("End Task")}
                           </Button>
                         )}
                       </div>
@@ -504,7 +506,7 @@ export default function ProcessManager() {
               </AnimatePresence>
               {filtered.length === 0 && scanResult && (
                 <div className="text-center py-10 text-muted-foreground text-sm">
-                  No processes match your filters.
+                  {t("No processes match your filters.")}
                 </div>
               )}
             </div>
@@ -540,15 +542,15 @@ export default function ProcessManager() {
                 <Cpu className="size-6 text-primary relative z-10" />
               </div>
               <h3 className="text-sm font-semibold text-[#E6EAF0] mb-1">
-                Scanning processes...
+                {t("Scanning processes...")}
               </h3>
               <p className="text-xs text-muted-foreground mb-4">
-                Reading system process list and calculating impact scores
+                {t("Reading system process list and calculating impact scores")}
               </p>
               {/* Progress bar */}
               <div className="max-w-xs mx-auto">
                 <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-1.5">
-                  <span>Analyzing memory &amp; CPU usage</span>
+                  <span>{t("Analyzing memory & CPU usage")}</span>
                   <span className="font-mono text-primary">{Math.round(scanProgress)}%</span>
                 </div>
                 <div className="h-1.5 rounded-full bg-[#21262D] overflow-hidden">
@@ -586,7 +588,7 @@ export default function ProcessManager() {
                         className="size-1.5 rounded-full bg-primary/50"
                       />
                     )}
-                    {label}
+                    {t(label)}
                   </motion.div>
                 ))}
               </div>
@@ -596,12 +598,12 @@ export default function ProcessManager() {
         {!scanResult && !scanning && (
           <GlassCard className="p-8 text-center">
             <Layers className="size-8 text-muted-foreground mx-auto mb-3" />
-            <h3 className="text-sm font-semibold text-[#E6EAF0] mb-1">No scan yet</h3>
+            <h3 className="text-sm font-semibold text-[#E6EAF0] mb-1">{t("No scan yet")}</h3>
             <p className="text-xs text-muted-foreground mb-4 max-w-xs mx-auto">
-              Scan your system to see all running processes, their memory usage, and which ones are safe to stop.
+              {t("Scan your system to see all running processes, their memory usage, and which ones are safe to stop.")}
             </p>
             <Button onClick={runScan} className="gap-1.5">
-              <Play className="size-3.5" /> Scan Now
+              <Play className="size-3.5" /> {t("Scan Now")}
             </Button>
           </GlassCard>
         )}
@@ -612,31 +614,31 @@ export default function ProcessManager() {
         onOpenChange={(o) => !o && setConfirmPid(null)}
         title={
           <span className="flex items-center gap-2 text-red-400">
-            <AlertTriangle className="size-4" /> Stop Process
+            <AlertTriangle className="size-4" /> {t("Stop Process")}
           </span>
         }
         testId="modal-terminate-confirm"
       >
         <div className="space-y-4">
           <p className="text-sm text-[#E6EAF0]">
-            Are you sure you want to stop{" "}
+            {t("Are you sure you want to stop")}{" "}
             <span className="font-semibold">
-              {scanResult?.processes.find(p => p.pid === confirmPid)?.displayName ?? "this process"}
+              {scanResult?.processes.find(p => p.pid === confirmPid)?.displayName ?? t("this process")}
             </span>
             ?
           </p>
           <p className="text-xs text-muted-foreground">
-            The process will be forcefully terminated. Any unsaved work in this process will be lost. Protected system processes cannot be stopped.
+            {t("The process will be forcefully terminated. Any unsaved work in this process will be lost. Protected system processes cannot be stopped.")}
           </p>
           <div className="flex gap-2 justify-end">
-            <Button variant="outline" size="sm" onClick={() => setConfirmPid(null)}>Cancel</Button>
+            <Button variant="outline" size="sm" onClick={() => setConfirmPid(null)}>{t("Cancel")}</Button>
             <Button
               size="sm"
               className="bg-red-500/15 text-red-400 border-red-500/30 hover:bg-red-500/25 hover:text-red-300"
               onClick={() => confirmPid !== null && handleTerminate(confirmPid)}
               data-testid="button-confirm-stop"
             >
-              <Trash2 className="size-3.5 mr-1" /> Stop Process
+              <Trash2 className="size-3.5 mr-1" /> {t("Stop Process")}
             </Button>
           </div>
         </div>

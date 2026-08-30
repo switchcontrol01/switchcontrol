@@ -23,6 +23,7 @@
   import { useAppAuth } from "@/lib/appAuthContext";
   import { motion, AnimatePresence, useMotion, Reveal } from "@/lib/motion";
   import { PieChart, Pie, Cell } from "recharts";
+  import { useTranslation } from "@/lib/i18n";
   
   // ── Types ─────────────────────────────────────────────────────────────────────
   
@@ -819,6 +820,7 @@
   // ── Main component ─────────────────────────────────────────────────────────────
   
   export default function Debloater() {
+    const { t } = useTranslation();
     const { toast } = useToast();
     const { user } = useAppAuth();
     const { prefersReducedMotion } = useMotion();
@@ -1612,8 +1614,8 @@
           {/* Header */}
           <PageHeader
             icon={ShieldCheck}
-            title="Debloater"
-            subtitle="Role-based system reduction with real Windows integration. Items are removed via PowerShell, honest results only."
+            title={t("Debloater")}
+            subtitle={t("Role-based system reduction with real Windows integration. Items are removed via PowerShell, honest results only.")}
           />
   
           {/* ── Main tab bar ─────────────────────────────────────────────────── */}
@@ -1757,8 +1759,8 @@
           <div className="space-y-3">
             <div className="flex items-center gap-2">
               <Zap className="size-4 text-[#00D4FF]" />
-              <span className="text-sm font-semibold text-[#E6EAF0]">Choose your intensity</span>
-              <span className="text-xs text-muted-foreground">Pick how deep the cleanup goes</span>
+              <span className="text-sm font-semibold text-[#E6EAF0]">{t("Choose your intensity")}</span>
+              <span className="text-xs text-muted-foreground">{t("Pick how deep the cleanup goes")}</span>
             </div>
   
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
@@ -1903,7 +1905,7 @@
                   data-testid="button-apply-debloat"
                 >
                   {applying ? (
-                    <><RefreshCw className="size-3.5 animate-spin" />Processing…</>
+                    <><RefreshCw className="size-3.5 animate-spin" />{t("Processing…")}</>
                   ) : (
                     <><Play className="size-3.5" />Apply ({stats.count})</>
                   )}
@@ -1942,15 +1944,15 @@
                       : `${visibleItems.length} items available at ${currentLevel.name} level`}
                   </div>
                   <div className="flex gap-2">
-                    <button onClick={selectAll} className="text-xs text-muted-foreground hover:text-[#E6EAF0] px-2 py-1 rounded hover:bg-[#21262D] transition-colors" data-testid="button-select-all">All</button>
-                    <button onClick={clearAll}  className="text-xs text-muted-foreground hover:text-[#E6EAF0] px-2 py-1 rounded hover:bg-[#21262D] transition-colors" data-testid="button-clear-all">None</button>
+                    <button onClick={selectAll} className="text-xs text-muted-foreground hover:text-[#E6EAF0] px-2 py-1 rounded hover:bg-[#21262D] transition-colors" data-testid="button-select-all">{t("All")}</button>
+                    <button onClick={clearAll}  className="text-xs text-muted-foreground hover:text-[#E6EAF0] px-2 py-1 rounded hover:bg-[#21262D] transition-colors" data-testid="button-clear-all">{t("None")}</button>
                   </div>
                 </div>
   
                 {loading ? (
                   <div className="rounded-2xl border border-[#2A313A] bg-[#0D1117] p-8 text-center">
                     <RefreshCw className="size-5 animate-spin mx-auto mb-2 text-primary" />
-                    <p className="text-sm text-muted-foreground">Loading items…</p>
+                    <p className="text-sm text-muted-foreground">{t("Loading items…")}</p>
                   </div>
                 ) : visibleItems.length === 0 ? (
                   <div className="rounded-2xl border border-[#2A313A] bg-[#0D1117] p-8 text-center text-sm text-muted-foreground">

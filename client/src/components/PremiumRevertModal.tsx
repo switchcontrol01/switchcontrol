@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { openPricing } from "@/lib/pricing";
 import type { PremiumRevertReport, RevertItemResult, PowerPlanRevertResult, RevertPhase } from "@/lib/premiumRevertEngine";
 import type { RevertReason } from "@/stores/trialExpiryStore";
+import { useTranslation } from "@/lib/i18n";
 
 interface PremiumRevertModalProps {
   open: boolean;
@@ -152,6 +153,7 @@ const STATUS_CONFIG = {
 } as const;
 
 function StatusRow({ result, index }: { result: RevertItemResult; index: number }) {
+  const { t } = useTranslation();
   const config = STATUS_CONFIG[result.status];
   if (!config) return null;
   const Icon = config.icon;
@@ -164,8 +166,8 @@ function StatusRow({ result, index }: { result: RevertItemResult; index: number 
       style={{ boxShadow: `inset 0 0 0 1px ${config.glow}` }}
     >
       <Icon className={cn("size-3.5 shrink-0", config.color)} />
-      <span className="flex-1 text-[#E6EAF0] text-[11px] truncate">{result.label}</span>
-      <span className={cn("text-[10px] font-medium shrink-0", config.color)}>{config.label}</span>
+      <span className="flex-1 text-[#E6EAF0] text-[11px] truncate">{t(result.label)}</span>
+      <span className={cn("text-[10px] font-medium shrink-0", config.color)}>{t(config.label)}</span>
     </motion.div>
   );
 }
@@ -173,6 +175,7 @@ function StatusRow({ result, index }: { result: RevertItemResult; index: number 
 // ── Power plan result row ─────────────────────────────────────────────────────
 
 function PowerPlanRow({ result, delay = 0 }: { result: PowerPlanRevertResult; delay?: number }) {
+  const { t } = useTranslation();
   if (result.status === 'not_applicable') return null;
   const activeName   = result.verifiedActiveName;
   const plansDeleted = result.plansDeleted ?? 0;
@@ -214,18 +217,18 @@ function PowerPlanRow({ result, delay = 0 }: { result: PowerPlanRevertResult; de
     >
       <Icon className={cn("size-3.5 shrink-0 mt-0.5", cfg.color)} />
       <div className="flex-1 min-w-0">
-        <div className={cn("text-[11px] font-medium truncate", cfg.color)}>{cfg.label}</div>
-        <div className="text-[10px] text-[#6B7380] truncate mt-0.5">{cfg.detail}</div>
+        <div className={cn("text-[11px] font-medium truncate", cfg.color)}>{t(cfg.label)}</div>
+        <div className="text-[10px] text-[#6B7380] truncate mt-0.5">{t(cfg.detail)}</div>
         {(plansDeleted > 0 || verifiedClean) && (
           <div className="flex items-center gap-2 mt-1">
             {plansDeleted > 0 && (
               <span className="text-[9px] text-[#6B7380]">
-                {plansDeleted} plan{plansDeleted !== 1 ? 's' : ''} removed from Power Options
+                {t("{count} plan{plural} removed from Power Options", undefined, { count: plansDeleted, plural: plansDeleted !== 1 ? "s" : "" })}
               </span>
             )}
             {verifiedClean && (
               <span className="text-[9px] text-emerald-400/60 flex items-center gap-0.5">
-                <CheckCircle2 className="size-2.5" /> verified clean
+                <CheckCircle2 className="size-2.5" /> {t("verified clean")}
               </span>
             )}
           </div>
@@ -238,10 +241,11 @@ function PowerPlanRow({ result, delay = 0 }: { result: PowerPlanRevertResult; de
 // ── Section header ────────────────────────────────────────────────────────────
 
 function SectionHeader({ label, count, color = "text-[#6B7380]" }: { label: string; count: number; color?: string }) {
+  const { t } = useTranslation();
   if (count === 0) return null;
   return (
     <div className={cn("text-[10px] uppercase tracking-widest font-medium px-1 pt-1", color)}>
-      {label} <span className="opacity-60">({count})</span>
+      {t(label)} <span className="opacity-60">({count})</span>
     </div>
   );
 }
@@ -250,6 +254,7 @@ function SectionHeader({ label, count, color = "text-[#6B7380]" }: { label: stri
 
 function RevertProgressView({ phase, reason }: { phase: RevertPhase; reason?: RevertReason }) {
   const currentIdx = PHASE_INDEX[phase] ?? 0;
+  const { t } = useTranslation();
 
   return (
     <div className="space-y-5">
@@ -285,7 +290,7 @@ function RevertProgressView({ phase, reason }: { phase: RevertPhase; reason?: Re
             transition={{ delay: 0.15, duration: 0.35 }}
             style={{ background: "linear-gradient(135deg, #e2d9f3, #c4b5fd, #a78bfa)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}
           >
-            Reverting premium settings…
+            {t("Reverting premium settings…")}
           </motion.h2>
           <motion.p
             className="text-[11px] text-[#A0A8B3] leading-relaxed"
@@ -293,7 +298,7 @@ function RevertProgressView({ phase, reason }: { phase: RevertPhase; reason?: Re
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.22, duration: 0.3 }}
           >
-            Restoring your system to its original state. Please wait — do not close the app.
+            {t("Restoring your system to its original state. Please wait — do not close the app.")}
           </motion.p>
         </div>
       </div>
@@ -353,7 +358,7 @@ function RevertProgressView({ phase, reason }: { phase: RevertPhase; reason?: Re
                   isActive  && "text-[#E6EAF0]",
                   isPending && "text-[#6B7380]",
                 )}>
-                  {step.label}
+                  {t(step.label)}
                 </div>
                 {isActive && (
                   <motion.div
@@ -361,7 +366,7 @@ function RevertProgressView({ phase, reason }: { phase: RevertPhase; reason?: Re
                     animate={{ opacity: 1, height: "auto" }}
                     className="text-[9px] text-[#00D4FF]/60 mt-0.5"
                   >
-                    {step.detail}
+                    {t(step.detail)}
                   </motion.div>
                 )}
               </div>
@@ -388,7 +393,7 @@ function RevertProgressView({ phase, reason }: { phase: RevertPhase; reason?: Re
         animate={{ opacity: 1 }}
         transition={{ delay: 0.7 }}
       >
-        Each step is verified and retried up to 3× before marking as failed.
+        {t("Each step is verified and retried up to 3× before marking as failed.")}
       </motion.p>
     </div>
   );
@@ -396,6 +401,7 @@ function RevertProgressView({ phase, reason }: { phase: RevertPhase; reason?: Re
 
 // ── Main modal ────────────────────────────────────────────────────────────────
 export function PremiumRevertModal({ open, onClose, report, onRetry, reason, phase }: PremiumRevertModalProps) {
+  const { t } = useTranslation();
   // Use loose != null to also exclude undefined — phase is an optional prop so
   // it defaults to undefined, not null. `phase !== null` would let undefined
   // through and show the results view before any report exists.
@@ -529,6 +535,7 @@ export function PremiumRevertModal({ open, onClose, report, onRetry, reason, pha
                   onClick={onClose}
                   className="absolute right-3 top-3 z-20 p-1.5 rounded-lg hover:bg-[#2A313A] transition-colors"
                   data-testid="button-close-revert-modal"
+                  aria-label={t("Close")}
                 >
                   <X className="size-4 text-[#6B7380] hover:text-[#E6EAF0] transition-colors" />
                 </button>
@@ -576,7 +583,7 @@ export function PremiumRevertModal({ open, onClose, report, onRetry, reason, pha
                         transition={{ delay: 0.15, duration: 0.35 }}
                         style={{ background: "linear-gradient(135deg, #e2d9f3, #c4b5fd, #a78bfa)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}
                       >
-                        {REVERT_COPY[reason ?? "premium_removed"].title}
+                        {t(REVERT_COPY[reason ?? "premium_removed"].title)}
                       </motion.h2>
                       <motion.p
                         className="text-[11px] text-[#A0A8B3] leading-relaxed"
@@ -584,7 +591,7 @@ export function PremiumRevertModal({ open, onClose, report, onRetry, reason, pha
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.22, duration: 0.3 }}
                       >
-                        {REVERT_COPY[reason ?? "premium_removed"].subtitle}
+                        {t(REVERT_COPY[reason ?? "premium_removed"].subtitle)}
                       </motion.p>
                     </div>
                   </div>
@@ -604,28 +611,28 @@ export function PremiumRevertModal({ open, onClose, report, onRetry, reason, pha
                           <span className="text-lg font-bold text-[#E6EAF0] leading-none">
                             <AnimatedNumber value={revertedItemCount} />
                           </span>
-                          <span className="text-[9px] text-[#6B7380] uppercase tracking-wider mt-0.5">reverted</span>
+                          <span className="text-[9px] text-[#6B7380] uppercase tracking-wider mt-0.5">{t("reverted")}</span>
                         </div>
                       </div>
 
                       <div className="flex-1 space-y-2">
-                        <StatBar label="Restored" value={revertedItemCount} max={totalItemCount} color="#00D4FF" delay={0} />
+                        <StatBar label={t("Restored")} value={revertedItemCount} max={totalItemCount} color="#00D4FF" delay={0} />
                         {conflictCount > 0 && (
-                          <StatBar label="Conflicts" value={conflictCount} max={totalItemCount} color="#f59e0b" delay={80} />
+                          <StatBar label={t("Conflicts")} value={conflictCount} max={totalItemCount} color="#f59e0b" delay={80} />
                         )}
                         {failedCount > 0 && (
-                          <StatBar label="Failed" value={failedCount} max={totalItemCount} color="#ef4444" delay={160} />
+                          <StatBar label={t("Failed")} value={failedCount} max={totalItemCount} color="#ef4444" delay={160} />
                         )}
                         {powerPlan?.status === 'forced_balanced' && (
                           <div className="flex items-center gap-1.5 text-[10px] text-amber-400/80">
                             <AlertCircle className="size-2.5" />
-                            <span>Power plan force-reverted to Balanced</span>
+                            <span>{t("Power plan force-reverted to Balanced")}</span>
                           </div>
                         )}
                         {powerPlan?.status === 'reverted' && (
                           <div className="flex items-center gap-1.5 text-[10px] text-emerald-400/70">
                             <Shield className="size-2.5" />
-                            <span>Power plan restored</span>
+                            <span>{t("Power plan restored")}</span>
                           </div>
                         )}
                       </div>
@@ -642,7 +649,7 @@ export function PremiumRevertModal({ open, onClose, report, onRetry, reason, pha
                       style={{ background: "rgba(52,211,153,0.08)", border: "1px solid rgba(52,211,153,0.15)" }}
                     >
                       <CheckCircle2 className="size-4 shrink-0 text-emerald-400" />
-                      <p className="text-[11px] text-emerald-300/80">No premium optimizations were active — nothing needed reverting.</p>
+                      <p className="text-[11px] text-emerald-300/80">{t("No premium optimizations were active — nothing needed reverting.")}</p>
                     </motion.div>
                   )}
 
@@ -696,7 +703,7 @@ export function PremiumRevertModal({ open, onClose, report, onRetry, reason, pha
                           fired even when all items were actually shown across the sections. */}
                       {(tweakResults.length + sliderResults.length + presetResults.length + networkResults.length) > 20 && (
                         <p className="text-[10px] text-[#6B7380] text-center pt-1">
-                          + {tweakResults.length + sliderResults.length + presetResults.length + networkResults.length - 20} more
+                          {t("+ {count} more", undefined, { count: tweakResults.length + sliderResults.length + presetResults.length + networkResults.length - 20 })}
                         </p>
                       )}
                     </div>
@@ -713,8 +720,8 @@ export function PremiumRevertModal({ open, onClose, report, onRetry, reason, pha
                     >
                       <AlertCircle className="size-3 shrink-0 mt-0.5" />
                       <span>
-                        {powerPlan.appliedPlanName ? `"${powerPlan.appliedPlanName}" was removed. ` : "Premium power plan was removed. "}
-                        {powerPlan.reason ?? "Reverted to Windows Balanced — your original plan could not be confirmed."}
+                        {powerPlan.appliedPlanName ? t('"{planName}" was removed. ', undefined, { planName: powerPlan.appliedPlanName }) : t("Premium power plan was removed. ")}
+                        {powerPlan.reason ?? t("Reverted to Windows Balanced — your original plan could not be confirmed.")}
                       </span>
                     </motion.div>
                   )}
@@ -729,7 +736,7 @@ export function PremiumRevertModal({ open, onClose, report, onRetry, reason, pha
                       style={{ background: "rgba(251,191,36,0.06)", border: "1px solid rgba(251,191,36,0.12)" }}
                     >
                       <SkipForward className="size-3 shrink-0 mt-0.5" />
-                      <span>{conflictCount} setting{conflictCount > 1 ? 's were' : ' was'} skipped because they were changed manually after the app applied them.</span>
+                      <span>{t("{count} setting{plural} skipped because they were changed manually after the app applied them.", undefined, { count: conflictCount, plural: conflictCount > 1 ? "s were" : " was" })}</span>
                     </motion.div>
                   )}
 
@@ -743,14 +750,14 @@ export function PremiumRevertModal({ open, onClose, report, onRetry, reason, pha
                       style={{ background: "rgba(248,113,113,0.07)", border: "1px solid rgba(248,113,113,0.15)" }}
                     >
                       <p className="text-[10px] text-red-400/80 flex-1">
-                        {failedCount + (powerPlan?.status === 'failed' ? 1 : 0)} revert{failedCount + (powerPlan?.status === 'failed' ? 1 : 0) > 1 ? 's' : ''} failed — original settings may still be active.
+                        {t("{count} revert{plural} failed — original settings may still be active.", undefined, { count: failedCount + (powerPlan?.status === 'failed' ? 1 : 0), plural: failedCount + (powerPlan?.status === 'failed' ? 1 : 0) > 1 ? "s" : "" })}
                       </p>
                       <button
                         onClick={onRetry}
                         data-testid="button-revert-retry"
                         className="flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-medium text-red-300 border border-red-500/20 hover:bg-red-500/15 transition-colors shrink-0"
                       >
-                        <RefreshCw className="size-2.5" /> Retry
+                        <RefreshCw className="size-2.5" /> {t("Retry")}
                       </button>
                     </motion.div>
                   )}
@@ -768,7 +775,7 @@ export function PremiumRevertModal({ open, onClose, report, onRetry, reason, pha
                       <div className="flex-1 h-px bg-[#21262D]" />
                     </div>
 
-                    <p className="text-[10px] text-[#6B7380] text-center">Re-activate your optimizations instantly</p>
+                    <p className="text-[10px] text-[#6B7380] text-center">{t("Re-activate your optimizations instantly")}</p>
 
                     <motion.button
                       onClick={() => { openPricing(); onClose(); }}
@@ -789,7 +796,7 @@ export function PremiumRevertModal({ open, onClose, report, onRetry, reason, pha
                       />
                       <span className="relative flex items-center justify-center gap-2">
                         <Zap className="size-4 text-yellow-300" />
-                        Upgrade to Premium
+                        {t("Upgrade to Premium")}
                       </span>
                     </motion.button>
 
@@ -798,7 +805,7 @@ export function PremiumRevertModal({ open, onClose, report, onRetry, reason, pha
                       data-testid="button-revert-dismiss"
                       className="w-full py-2 text-[11px] text-[#6B7380] hover:text-[#A0A8B3] transition-colors"
                     >
-                      {REVERT_COPY[reason ?? "premium_removed"].dismiss}
+                      {t(REVERT_COPY[reason ?? "premium_removed"].dismiss)}
                     </button>
                   </motion.div>
                 </>

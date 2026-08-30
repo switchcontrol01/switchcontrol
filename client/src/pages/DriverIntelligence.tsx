@@ -54,6 +54,7 @@ import { HealthRadial } from "@/components/driver-intel/HealthRadial";
 import { ComponentPanel } from "@/components/driver-intel/ComponentPanel";
 import { HistoryTimeline } from "@/components/driver-intel/HistoryTimeline";
 import type { DriverHistoryItem } from "@/lib/driver-intel-data";
+import { useTranslation } from "@/lib/i18n";
 
 const isElectron =
   typeof window !== "undefined" && !!(window as any).electronAPI?.isElectron;
@@ -84,14 +85,14 @@ async function runAction(action: UpdateAction) {
   openExternal(action.url);
 }
 
-function timeAgo(ts: number | null): string {
-  if (!ts) return "never";
+function timeAgo(ts: number | null, t: (key: string) => string): string {
+  if (!ts) return t("never");
   const s = Math.floor((Date.now() - ts) / 1000);
-  if (s < 60) return "just now";
+  if (s < 60) return t("just now");
   const m = Math.floor(s / 60);
-  if (m < 60) return `${m} min ago`;
+  if (m < 60) return `${m} ${t("min ago")}`;
   const h = Math.floor(m / 60);
-  return `${h}h ago`;
+  return `${h}${t("h ago")}`;
 }
 
 const STALE_AFTER_DAYS = 30;
@@ -110,6 +111,7 @@ function dbAgeDays(updatedAt: string | null): number | null {
 }
 
 export default function DriverIntelligence() {
+  const { t } = useTranslation();
   const [, navigate] = useLocation();
   const { isPremium } = useAuth();
   const ent = useEntitlementUiState();
@@ -356,11 +358,11 @@ export default function DriverIntelligence() {
             </div>
             <div className="space-y-1.5">
               <p className="text-[11px] font-semibold uppercase tracking-widest text-[#00D4FF]/60">
-                Premium Feature
+                {t("Premium Feature")}
               </p>
-              <h2 className="text-lg font-bold text-[#E6EAF0]">Driver Intel</h2>
+              <h2 className="text-lg font-bold text-[#E6EAF0]">{t("Driver Intel")}</h2>
               <p className="text-sm text-[#6B7380] leading-relaxed">
-                Scan your full system, compare drivers and firmware against our cloud database, and get safe guided update recommendations.
+                {t("Scan your full system, compare drivers and firmware against our cloud database, and get safe guided update recommendations.")}
               </p>
             </div>
             <button
@@ -369,7 +371,7 @@ export default function DriverIntelligence() {
               style={{ background: "linear-gradient(135deg, #00D4FF 0%, #3b82f6 100%)" }}
               data-testid="button-driver-intel-unlock"
             >
-              Unlock Premium
+              {t("Unlock Premium")}
             </button>
           </GlassCard>
           <button
@@ -377,7 +379,7 @@ export default function DriverIntelligence() {
             className="text-sm text-[#6B7380] hover:text-[#A0A8B3] transition-colors"
             data-testid="button-driver-intel-go-back"
           >
-            ← Go back
+            ← {t("Go back")}
           </button>
         </div>
       </motion.div>
@@ -431,13 +433,13 @@ export default function DriverIntelligence() {
             </motion.div>
             <div>
               <h1 className="text-lg font-bold text-[#E6EAF0] flex items-center gap-2" data-testid="text-driver-intel-title">
-                Driver Intelligence
+                 {t("Driver Intelligence")}
                 <span className="inline-flex items-center gap-1 rounded-full bg-[#00D4FF]/15 text-[#33E0FF] border border-[#00D4FF]/30 text-[10px] px-2 py-0.5">
-                  <Crown className="size-3" /> Premium
+                  <Crown className="size-3" /> {t("Premium")}
                 </span>
               </h1>
               <p className="text-[11px] text-muted-foreground">
-                System-health intelligence — detect, compare, and update safely
+                 {t("System-health intelligence — detect, compare, and update safely")}
               </p>
             </div>
           </div>
@@ -451,7 +453,7 @@ export default function DriverIntelligence() {
                 ) : (
                   <Cloud className="size-3.5 text-[#33E0FF]" />
                 )}
-                <span data-testid="text-scanned-at">Scanned {timeAgo(scannedAt)}</span>
+                <span data-testid="text-scanned-at">{t("Scanned")} {timeAgo(scannedAt, t)}</span>
               </div>
             )}
             <button
@@ -461,16 +463,16 @@ export default function DriverIntelligence() {
               className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium border border-white/12 bg-white/5 hover:bg-white/10 transition-colors disabled:opacity-50"
             >
               <RefreshCw className={`size-3.5 ${scanning ? "animate-spin" : ""}`} />
-              {scanning ? "Scanning…" : "Rescan"}
+              {scanning ? t("Scanning…") : t("Rescan")}
             </button>
             <button
               onClick={() => handleNavAway("/")}
               data-testid="button-back-dashboard"
-              title="Back to Dashboard"
+              title={t("Back to Dashboard")}
               className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium border border-white/12 bg-white/5 hover:bg-white/10 transition-colors"
             >
               <ArrowLeft className="size-3.5" />
-              Dashboard
+              {t("Dashboard")}
             </button>
           </div>
         </div>
@@ -483,15 +485,14 @@ export default function DriverIntelligence() {
           >
             <div className="flex items-center gap-2 text-sm text-amber-200">
               <AlertTriangle className="size-4 shrink-0" />
-              You're on a free trial — scanning is read-only. Upgrade to act on
-              recommendations and unlock AI guidance.
+               {t("You're on a free trial — scanning is read-only. Upgrade to act on recommendations and unlock AI guidance.")}
             </div>
             <button
               onClick={() => openUpgradeModal("Driver Intelligence")}
               className="shrink-0 rounded-lg bg-amber-400 px-3 py-1.5 text-xs font-semibold text-black hover:bg-amber-300 transition-colors"
               data-testid="button-trial-upgrade"
             >
-              Upgrade
+              {t("Upgrade")}
             </button>
           </div>
         )}
@@ -504,9 +505,7 @@ export default function DriverIntelligence() {
           >
             <AlertTriangle className="size-4 shrink-0" />
             <span>
-              Driver database may be outdated — last updated {staleDays} days ago.
-              Version checks should still be accurate, but always confirm the
-              latest release on the vendor's official page.
+               {t("Driver database may be outdated — last updated")} {staleDays} {t("days ago. Version checks should still be accurate, but always confirm the latest release on the vendor's official page.")}
             </span>
           </div>
         )}
@@ -516,7 +515,7 @@ export default function DriverIntelligence() {
           {/* Left: motherboard centerpiece */}
           <GlassCard className="relative p-6 overflow-hidden">
             <div className="flex items-center justify-between mb-2">
-              <h2 className="text-sm font-semibold text-[#E6EAF0]">System Map</h2>
+              <h2 className="text-sm font-semibold text-[#E6EAF0]">{t("System Map")}</h2>
               {dataReady && (
                 <span
                   className="text-[11px] px-2 py-0.5 rounded-full"
@@ -528,8 +527,8 @@ export default function DriverIntelligence() {
                   data-testid="text-actionable-count"
                 >
                   {actionable > 0
-                    ? `${actionable} update${actionable > 1 ? "s" : ""} available`
-                    : "All systems healthy"}
+                    ? `${actionable} ${t(actionable === 1 ? "update available" : "updates available")}`
+                    : t("All systems healthy")}
                 </span>
               )}
             </div>
@@ -553,7 +552,7 @@ export default function DriverIntelligence() {
                   <div className="rounded-xl border border-[#00D4FF]/20 bg-black/40 backdrop-blur-sm p-3">
                     <div className="flex items-center justify-between text-xs mb-2">
                       <span className="text-[#33E0FF] font-medium" data-testid="text-scan-step">
-                        {SCAN_STEPS[stepIndex]?.label ?? "Scanning…"}
+                         {SCAN_STEPS[stepIndex]?.label ?? t("Scanning…")}
                       </span>
                       <span className="text-muted-foreground tabular-nums">
                         {stepIndex + 1}/{SCAN_STEPS.length}
@@ -574,12 +573,12 @@ export default function DriverIntelligence() {
 
           {/* Right: health radial */}
           <GlassCard className="p-6 flex flex-col">
-            <h2 className="text-sm font-semibold text-[#E6EAF0] mb-4">Health Score</h2>
+            <h2 className="text-sm font-semibold text-[#E6EAF0] mb-4">{t("Health Score")}</h2>
             {score ? (
               <HealthRadial score={score} />
             ) : (
               <div className="flex-1 flex items-center justify-center text-sm text-muted-foreground py-10">
-                {scanning ? "Calculating…" : "Run a scan to see your score"}
+                 {scanning ? t("Calculating…") : t("Run a scan to see your score")}
               </div>
             )}
           </GlassCard>
@@ -587,7 +586,7 @@ export default function DriverIntelligence() {
 
         {/* Component cards grid */}
         <div className="mt-6">
-          <h2 className="text-sm font-semibold text-[#E6EAF0] mb-3">Components</h2>
+           <h2 className="text-sm font-semibold text-[#E6EAF0] mb-3">{t("Components")}</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
             {(dataReady ? displayComponents : SKELETON_KINDS).map((c, i) =>
               "kind" in c && "device" in c ? (
@@ -610,7 +609,7 @@ export default function DriverIntelligence() {
           <div className="mt-7">
             <div className="flex items-center gap-2 mb-3">
               <Newspaper className="size-4 text-[#33E0FF]" />
-              <h2 className="text-sm font-semibold text-[#E6EAF0]">Driver News</h2>
+               <h2 className="text-sm font-semibold text-[#E6EAF0]">{t("Driver News")}</h2>
               {dbVersion && (
                 <span className="text-[10px] text-muted-foreground">DB {dbVersion}</span>
               )}
@@ -655,10 +654,10 @@ export default function DriverIntelligence() {
               </div>
               <div>
                 <h3 className="text-sm font-semibold text-[#E6EAF0]">
-                  Not sure what to update first?
+                   {t("Not sure what to update first?")}
                 </h3>
                 <p className="text-xs text-muted-foreground">
-                  Ask the AI Advisor for a prioritised, plain-language plan for your system.
+                   {t("Ask the AI Advisor for a prioritised, plain-language plan for your system.")}
                 </p>
               </div>
             </div>
@@ -692,7 +691,7 @@ export default function DriverIntelligence() {
               className="inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium bg-gradient-to-r from-[#00D4FF] to-[#3b82f6] text-[#04070d] hover:opacity-90 transition-opacity"
               data-testid="button-ai-plan"
             >
-              Open AI Advisor <ChevronRight className="size-4" />
+               {t("Open AI Advisor")} <ChevronRight className="size-4" />
             </button>
           </GlassCard>
         )}
@@ -725,9 +724,9 @@ export default function DriverIntelligence() {
       {/* Premium gate */}
       {locked && (
         <PremiumPageOverlay
-          featureName="Driver Intelligence is a Premium Feature"
-          buttonText="Unlock Premium"
-          description="Scan your full system, compare drivers and firmware against our cloud database, and get safe, guided update recommendations — available with SwitchControl Premium."
+          featureName={t("Driver Intelligence is a Premium Feature")}
+          buttonText={t("Unlock Premium")}
+          description={t("Scan your full system, compare drivers and firmware against our cloud database, and get safe, guided update recommendations — available with SwitchControl Premium.")}
         />
       )}
     </motion.div>
@@ -759,6 +758,7 @@ function ComponentCard({
   reduced: boolean;
   onClick: () => void;
 }) {
+  const { t } = useTranslation();
   const meta = HEALTH_META[c.health];
   return (
     <motion.button
@@ -787,13 +787,13 @@ function ComponentCard({
       </div>
       <div className="flex items-center justify-between text-[11px] text-muted-foreground">
         <span>
-          {c.latest ? `Latest: ${c.latest}` : c.current ? `Detected` : "No data"}
+          {c.latest ? `${t("Latest")}: ${c.latest}` : c.current ? t("Detected") : t("No data")}
         </span>
         <span
           className="inline-flex items-center gap-0.5 font-medium opacity-40 group-hover:opacity-100 transition-opacity"
           style={{ color: meta.color }}
         >
-          Details <ChevronRight className="size-3" />
+          {t("Details")} <ChevronRight className="size-3" />
         </span>
       </div>
     </motion.button>

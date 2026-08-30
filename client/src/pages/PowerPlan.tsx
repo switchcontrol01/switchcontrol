@@ -24,6 +24,7 @@ import { IntentModeSelector, IntentModeDescription, type IntentMode } from "@/co
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { PremiumHeaderBadge, PremiumPageOverlay } from "@/components/ui/premium-page-overlay";
+import { useTranslation } from "@/lib/i18n";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -314,13 +315,14 @@ function EnergyLines() {
 }
 
 function VerificationBadge({ match, loading }: { match?: string; loading?: boolean }) {
-  if (loading) return <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#21262D] border border-[#2A313A] text-[11px] text-[#6B7380]"><span className="size-1.5 rounded-full bg-[#1A1F26]0 animate-pulse" /> Checking…</span>;
+  const { t } = useTranslation();
+  if (loading) return <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#21262D] border border-[#2A313A] text-[11px] text-[#6B7380]"><span className="size-1.5 rounded-full bg-[#1A1F26]0 animate-pulse" /> {t("Checking…")}</span>;
   if (!match) return null;
   const states = {
-    exact_match:      { icon: <ShieldCheck className="size-3" />, label: "Verified, Exact Match", cls: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" },
-    close_match:      { icon: <AlertTriangle className="size-3" />, label: "Close Match", cls: "bg-amber-500/15 text-amber-400 border-amber-500/30" },
-    custom_modified:  { icon: <Settings2 className="size-3" />, label: "Custom State", cls: "bg-blue-500/15 text-blue-400 border-blue-500/30" },
-    unknown:          { icon: <ShieldX className="size-3" />, label: "Unknown State", cls: "bg-[#2A313A] text-[#6B7380] border-[#2A313A]" },
+    exact_match:      { icon: <ShieldCheck className="size-3" />, label: t("Verified, Exact Match"), cls: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" },
+    close_match:      { icon: <AlertTriangle className="size-3" />, label: t("Close Match"), cls: "bg-amber-500/15 text-amber-400 border-amber-500/30" },
+    custom_modified:  { icon: <Settings2 className="size-3" />, label: t("Custom State"), cls: "bg-blue-500/15 text-blue-400 border-blue-500/30" },
+    unknown:          { icon: <ShieldX className="size-3" />, label: t("Unknown State"), cls: "bg-[#2A313A] text-[#6B7380] border-[#2A313A]" },
   } as const;
   const s = states[match as keyof typeof states] ?? states.unknown;
   if (typeof document === "undefined") return null;
@@ -516,6 +518,7 @@ function ImpactComparisonPanel({
   fromId: FrontendProfileId | null;
   toId:   FrontendProfileId;
 }) {
+  const { t } = useTranslation();
   const fromImpact = fromId ? PROFILE_IMPACT[fromId] : { latency: 0, speed: 0, battery: 0 };
   const toImpact   = PROFILE_IMPACT[toId];
   const toTheme    = PROFILE_THEME[toId];
@@ -543,8 +546,8 @@ function ImpactComparisonPanel({
       <div className="p-5">
         <div className="flex items-center gap-2 mb-5 flex-wrap">
           <Activity className="size-4 shrink-0" style={{ color: toTheme.accent }} />
-          <span className="text-sm font-semibold text-[#E6EAF0]">Performance Impact</span>
-          <span className="text-xs text-[#6B7380]">estimated visual comparison</span>
+          <span className="text-sm font-semibold text-[#E6EAF0]">{t("Performance Impact")}</span>
+          <span className="text-xs text-[#6B7380]">{t("estimated visual comparison")}</span>
           <span
             className="ml-auto text-[10px] px-2.5 py-0.5 rounded-full font-medium border"
             style={{ backgroundColor: `${toTheme.accent}18`, color: toTheme.accent, borderColor: `${toTheme.accent}30` }}
@@ -557,7 +560,7 @@ function ImpactComparisonPanel({
           {/* Before */}
           <div className="space-y-3.5">
             <div className="text-center mb-1">
-              <p className="text-[9px] uppercase tracking-widest text-[#6B7380]/50 font-semibold mb-0.5">Before</p>
+              <p className="text-[9px] uppercase tracking-widest text-[#6B7380]/50 font-semibold mb-0.5">{t("Before")}</p>
               <p className="text-sm font-bold" style={{ color: fromTheme?.accent ?? "rgba(255,255,255,0.35)" }}>
                 {fromName}
               </p>
@@ -582,7 +585,7 @@ function ImpactComparisonPanel({
           {/* After */}
           <div className="space-y-3.5">
             <div className="text-center mb-1">
-              <p className="text-[9px] uppercase tracking-widest text-[#6B7380]/50 font-semibold mb-0.5">After</p>
+              <p className="text-[9px] uppercase tracking-widest text-[#6B7380]/50 font-semibold mb-0.5">{t("After")}</p>
               <p className="text-sm font-bold" style={{ color: toTheme.accent }}>{toName}</p>
             </div>
             <AnimatedMetricBar label="Latency Reduction" from={fromImpact.latency} to={toImpact.latency}   color={toTheme.accent} />
@@ -829,6 +832,7 @@ function AppliedSettingsPanel({
 // ── Main component ─────────────────────────────────────────────────────────────
 
 export default function PowerPlan() {
+  const { t: translate } = useTranslation();
   const { isPremium } = useAuth();
   const { toast } = useToast();
   const { prefersReducedMotion } = useMotion();
@@ -1246,8 +1250,8 @@ export default function PowerPlan() {
           <div className="flex items-start gap-3 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
             <ShieldAlert className="size-5 text-amber-400 shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm font-medium text-amber-300">Windows desktop only</p>
-              <p className="text-xs text-amber-200/70 mt-0.5">Real power plan apply requires the SwitchControl Windows app. Changes here are preview only.</p>
+              <p className="text-sm font-medium text-amber-300">{translate("Windows desktop only")}</p>
+              <p className="text-xs text-amber-200/70 mt-0.5">{translate("Real power plan apply requires the SwitchControl Windows app. Changes here are preview only.")}</p>
             </div>
           </div>
         )}
@@ -1257,11 +1261,11 @@ export default function PowerPlan() {
           <div className="flex items-start gap-3 p-4 rounded-xl bg-red-500/10 border border-red-500/20">
             <AlertTriangle className="size-5 text-red-400 shrink-0 mt-0.5" />
             <div className="flex-1">
-              <p className="text-sm font-medium text-red-300">Could not read power plan state</p>
+              <p className="text-sm font-medium text-red-300">{translate("Could not read power plan state")}</p>
               <p className="text-xs text-red-200/70 mt-0.5">{planError}</p>
             </div>
             <Button variant="ghost" size="sm" onClick={fetchPowerState} className="text-red-400 hover:text-red-300 text-xs h-7">
-              <RefreshCw className="size-3 mr-1" /> Retry
+              <RefreshCw className="size-3 mr-1" /> {translate("Retry")}
             </Button>
           </div>
         )}
@@ -1504,11 +1508,11 @@ export default function PowerPlan() {
                             data-testid={`button-activate-${profile.id}`}
                           >
                             {isApplying ? (
-                              <><Loader2 className="size-4 mr-2 animate-spin" /> Applying…</>
+                              <><Loader2 className="size-4 mr-2 animate-spin" /> {translate("Applying…")}</>
                             ) : isActive ? (
-                              <><Check className="size-4 mr-2" /> Active{isCloseMatch ? " (close)" : ""}</>
+                              <><Check className="size-4 mr-2" /> {translate("Active")}{isCloseMatch ? translate(" (close)") : ""}</>
                             ) : (
-                              <><Zap className="size-4 mr-2" /> Activate</>
+                              <><Zap className="size-4 mr-2" /> {translate("Activate")}</>
                             )}
                           </Button>
                         </div>
@@ -1566,7 +1570,7 @@ export default function PowerPlan() {
                       {customPlanMeta?.guid && (
                         <p className="text-[10px] font-mono text-muted-foreground/45 mb-1 truncate">{customPlanMeta.guid}</p>
                       )}
-                      <p className="text-xs text-muted-foreground mb-4 leading-relaxed">Your personal power configuration, tuned for your exact needs.</p>
+                      <p className="text-xs text-muted-foreground mb-4 leading-relaxed">{translate("Your personal power configuration, tuned for your exact needs.")}</p>
 
                       <div className="flex flex-wrap gap-1 mb-4">
                         {PROFILE_KEY_SETTINGS.custom.map(s => (
@@ -1611,11 +1615,11 @@ export default function PowerPlan() {
                           data-testid="button-activate-custom"
                         >
                           {applyingCustom ? (
-                            <><Loader2 className="size-4 mr-2 animate-spin" /> Applying…</>
+                            <><Loader2 className="size-4 mr-2 animate-spin" /> {translate("Applying…")}</>
                           ) : effectiveCustomApplied ? (
-                            <><Check className="size-4 mr-2" /> Active</>
+                            <><Check className="size-4 mr-2" /> {translate("Active")}</>
                           ) : (
-                            <><Zap className="size-4 mr-2" /> Activate</>
+                            <><Zap className="size-4 mr-2" /> {translate("Activate")}</>
                           )}
                         </Button>
                         <Button
@@ -1682,7 +1686,7 @@ export default function PowerPlan() {
                         <Activity className="size-3" /> Live from Windows
                       </span>
                     ) : (
-                      <span className="text-[11px] px-3 py-1 rounded-full bg-[#21262D] text-[#6B7380] border border-[#2A313A]">Preset values</span>
+                      <span className="text-[11px] px-3 py-1 rounded-full bg-[#21262D] text-[#6B7380] border border-[#2A313A]">{translate("Preset values")}</span>
                     )}
                   </div>
 
@@ -1802,8 +1806,8 @@ export default function PowerPlan() {
                 <div className="p-5 rounded-xl bg-blue-500/[0.07] border border-blue-500/20 flex items-start gap-3">
                   <Settings2 className="size-5 text-blue-400 shrink-0 mt-0.5" />
                   <div>
-                    <h3 className="text-sm font-medium text-[#E6EAF0] mb-1">Custom Windows Power State</h3>
-                    <p className="text-xs text-muted-foreground">Your current Windows settings do not match any SwitchControl preset. Activate a profile to restore a known state.</p>
+                    <h3 className="text-sm font-medium text-[#E6EAF0] mb-1">{translate("Custom Windows Power State")}</h3>
+                    <p className="text-xs text-muted-foreground">{translate("Your current Windows settings do not match any SwitchControl preset. Activate a profile to restore a known state.")}</p>
                     {backendState?.activeScheme && (
                       <p className="text-xs text-[#6B7380] mt-1 font-mono">{backendState.activeScheme.name} · {backendState.activeScheme.guid.slice(0, 18)}…</p>
                     )}
@@ -1817,9 +1821,9 @@ export default function PowerPlan() {
               <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
                 <CollapsibleTrigger asChild>
                   <button className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-[#21262D] hover:bg-[#21262D] border border-[#2A313A] transition-colors text-sm font-medium text-[#E6EAF0]">
-                    <span className="flex items-center gap-2"><Settings2 className="size-4 text-primary/70" /> Advanced Overrides</span>
+                    <span className="flex items-center gap-2"><Settings2 className="size-4 text-primary/70" /> {translate("Advanced Overrides")}</span>
                     <div className="flex items-center gap-2 text-muted-foreground text-xs">
-                      <span>Fine-grained Windows controls</span>
+                      <span>{translate("Fine-grained Windows controls")}</span>
                       {advancedOpen ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
                     </div>
                   </button>
@@ -1881,7 +1885,7 @@ export default function PowerPlan() {
                     <Settings2 className="size-4 text-primary" />
                     Plan Identity
                   </h2>
-                  <p className="text-xs text-muted-foreground mt-0.5">This name appears in Windows Power Options</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{translate("This name appears in Windows Power Options")}</p>
                 </div>
                 <Button variant="ghost" size="sm" onClick={resetCustomSettings} className="text-muted-foreground hover:text-[#E6EAF0] text-xs gap-1.5">
                   <RotateCcw className="size-3.5" /> Reset
@@ -1951,7 +1955,7 @@ export default function PowerPlan() {
                         <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
                           <span className={cn("text-sm font-medium", isUnwired ? "text-[#6B7380]" : "text-[#E6EAF0]")}>{item.name}</span>
                           <span className={cn("text-[9px] px-1.5 py-0.5 rounded-full border uppercase font-medium", item.tag === "Safe" ? "text-emerald-400 border-emerald-500/30 bg-emerald-500/10" : "text-blue-400 border-blue-500/30 bg-blue-500/10")}>{item.tag}</span>
-                          {isUnwired && <span className="text-[9px] px-1.5 py-0.5 rounded border border-[#2A313A] bg-[#21262D] text-[#6B7380]">Coming soon</span>}
+                          {isUnwired && <span className="text-[9px] px-1.5 py-0.5 rounded border border-[#2A313A] bg-[#21262D] text-[#6B7380]">{translate("Coming soon")}</span>}
                         </div>
                         <p className="text-[10px] text-muted-foreground">{item.desc}</p>
                       </div>
@@ -1975,7 +1979,7 @@ export default function PowerPlan() {
               <div className="space-y-5">
                 <div className="space-y-3">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-[#E6EAF0]">Minimum Processor State</span>
+                    <span className="text-[#E6EAF0]">{translate("Minimum Processor State")}</span>
                     <span className="text-primary font-semibold tabular-nums">{localState.customSettings.minProcessorState}%</span>
                   </div>
                   <div className="px-1">
@@ -1992,7 +1996,7 @@ export default function PowerPlan() {
                 </div>
                 <div className=" pt-5 space-y-3">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-[#E6EAF0]">Maximum Processor State</span>
+                    <span className="text-[#E6EAF0]">{translate("Maximum Processor State")}</span>
                     <span className="text-primary font-semibold tabular-nums">{localState.customSettings.maxProcessorState}%</span>
                   </div>
                   <div className="px-1">

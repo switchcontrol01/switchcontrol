@@ -6,6 +6,7 @@ import { ChevronRight, ChevronLeft, X } from 'lucide-react';
 import { clearTourState, useTourStore } from '@/lib/tour-store';
 import { TOUR_COMPLETION_TIMING, TOUR_STEP_TIMING, tourPalette } from '@/lib/tourMotionTokens';
 import logoImg from '@/assets/logo.webp';
+import { useTranslation } from '@/lib/i18n';
 import {
   FIRST_RUN_TRANSITION_MS,
   firstRunTransition,
@@ -78,6 +79,7 @@ function CompletionMoment({
   isPremium?: boolean;
   prefersReducedMotion: boolean;
 }) {
+  const { t } = useTranslation();
   const [phase, setPhase] = useState<'enter' | 'hold' | 'exit'>('enter');
 
   // Keep a stable ref so that parent re-renders (which produce new onDone
@@ -295,7 +297,7 @@ function CompletionMoment({
 
         {/* "You're all set." — word-by-word blur-in (unchanged) */}
         <div className="flex flex-wrap justify-center gap-x-3 gap-y-1">
-          {["You're", 'all', 'set.'].map((word, i) => (
+          {t("You're all set.").split(' ').map((word, i) => (
             <motion.span
               key={word}
               className="text-[56px] font-extrabold leading-none tracking-tight"
@@ -325,8 +327,8 @@ function CompletionMoment({
           transition={{ delay: 1.1, duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
         >
           {isPremium
-            ? 'Full premium access unlocked. Every optimization is now yours.'
-            : 'SwitchControl is configured and ready to boost your system.'}
+            ? t('Full premium access unlocked. Every optimization is now yours.')
+            : t('SwitchControl is configured and ready to boost your system.')}
         </motion.p>
 
         {/* Glowing accent line — wider bloom, secondary halo */}
@@ -386,6 +388,7 @@ export function TourShell({
   testId = 'tour',
   isPremium = false,
 }: TourShellProps) {
+  const { t } = useTranslation();
   const { prefersReducedMotion } = useMotion();
   const [stepIndex, setStepIndex] = useState(0);
   const [direction, setDirection] = useState(1);
@@ -708,7 +711,7 @@ export function TourShell({
                         className="text-[10px] font-bold uppercase tracking-[0.18em]"
                         style={{ color: pal.text, opacity: 0.75 }}
                       >
-                        Step {stepIndex + 1} of {total}
+                        {t('Step')} {stepIndex + 1} {t('of')} {total}
                       </span>
                       {isPremium && (
                         <span
@@ -719,7 +722,7 @@ export function TourShell({
                             color: `${pal.primary}0.8)`,
                           }}
                         >
-                          Premium
+                          {t('Premium')}
                         </span>
                       )}
                     </div>
@@ -811,7 +814,7 @@ export function TourShell({
                         whileTap={{ scale: 0.97 }}
                         data-testid={`${testId}-next`}
                       >
-                        {isLast ? 'Finish' : 'Next'}
+                        {isLast ? t('Finish') : t('Next')}
                         {!isLast && (
                           <motion.span
                             animate={{ x: [0, 3, 0] }}

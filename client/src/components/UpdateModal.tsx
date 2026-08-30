@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { useUpdater } from "@/hooks/use-updater";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/lib/i18n";
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -90,6 +91,7 @@ const PALETTE = {
 // ── hero orbital ring ─────────────────────────────────────────────────────────
 
 function OrbitalRing({ version, orbitColor }: { version: string; orbitColor: string }) {
+  const { t } = useTranslation();
   return (
     <div className="relative flex items-center justify-center" style={{ width: 108, height: 108 }}>
       {/* Outer soft aura */}
@@ -159,7 +161,7 @@ function OrbitalRing({ version, orbitColor }: { version: string; orbitColor: str
           border: `1px solid ${orbitColor.replace("0.55", "0.25").replace("0.50", "0.22")}`,
         }}
       >
-        <span className="text-[9px] font-semibold tracking-widest uppercase" style={{ color: "rgba(255,255,255,0.30)" }}>Ver</span>
+        <span className="text-[9px] font-semibold tracking-widest uppercase" style={{ color: "rgba(255,255,255,0.30)" }}>{t("Ver")}</span>
         <span className="text-base font-bold leading-none" style={{ color: "rgba(255,255,255,0.92)", letterSpacing: "-0.02em" }}>
           {version}
         </span>
@@ -177,6 +179,7 @@ const IMPROVEMENTS = [
 ];
 
 function ImprovementTags({ accentColor }: { accentColor: string }) {
+  const { t } = useTranslation();
   return (
     <div className="flex items-center gap-2 flex-wrap justify-center">
       {IMPROVEMENTS.map((item, i) => (
@@ -192,7 +195,7 @@ function ImprovementTags({ accentColor }: { accentColor: string }) {
           }}
         >
           <span style={{ color: accentColor }}>{item.icon}</span>
-          <span className="text-[10px] font-medium" style={{ color: "rgba(255,255,255,0.45)" }}>{item.label}</span>
+          <span className="text-[10px] font-medium" style={{ color: "rgba(255,255,255,0.45)" }}>{t(item.label)}</span>
         </motion.div>
       ))}
     </div>
@@ -212,6 +215,7 @@ interface AvailableProps {
 
 function AvailableView({ version, urgency, onDownload, onDismiss }: AvailableProps) {
   const p = PALETTE[urgency] ?? PALETTE.normal;
+  const { t } = useTranslation();
 
   return (
     <motion.div key="available" {...slide}>
@@ -243,7 +247,7 @@ function AvailableView({ version, urgency, onDownload, onDismiss }: AvailablePro
             className="absolute top-4 right-4 size-7 rounded-lg flex items-center justify-center transition-colors"
             style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" }}
             data-testid="button-updater-dismiss"
-            aria-label="Dismiss update"
+            aria-label={t("Dismiss update")}
           >
             <X className="size-3.5" style={{ color: "rgba(255,255,255,0.35)" }} />
           </motion.button>
@@ -286,7 +290,7 @@ function AvailableView({ version, urgency, onDownload, onDismiss }: AvailablePro
               className="relative text-[10px] font-bold tracking-widest uppercase"
               style={{ color: p.badgeText }}
             >
-              {p.label}
+              {t(p.label)}
             </span>
           </motion.div>
 
@@ -298,9 +302,7 @@ function AvailableView({ version, urgency, onDownload, onDismiss }: AvailablePro
             className="text-[20px] font-bold leading-tight"
             style={{ color: "rgba(255,255,255,0.95)", letterSpacing: "-0.025em" }}
           >
-            Switchcontrol{" "}
-            <span style={{ color: p.accent }}>{version}</span>{" "}
-            is here
+            {t("Switchcontrol {version} is here", undefined, { version })}
           </motion.h2>
 
           {/* Subtext */}
@@ -311,7 +313,7 @@ function AvailableView({ version, urgency, onDownload, onDismiss }: AvailablePro
             className="text-[13px] leading-relaxed max-w-[280px]"
             style={{ color: "rgba(255,255,255,0.38)" }}
           >
-            Optimized, stable, and ready to apply.
+            {t("Optimized, stable, and ready to apply.")}
           </motion.p>
         </div>
 
@@ -354,7 +356,7 @@ function AvailableView({ version, urgency, onDownload, onDismiss }: AvailablePro
               style={{ background: "linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.16) 50%, transparent 70%)" }}
             />
             <Download className="relative size-4 opacity-85" />
-            <span className="relative">Update Now</span>
+            <span className="relative">{t("Update Now")}</span>
           </motion.button>
 
           <motion.p
@@ -364,7 +366,7 @@ function AvailableView({ version, urgency, onDownload, onDismiss }: AvailablePro
             className="text-[10px] text-center"
             style={{ color: "rgba(255,255,255,0.20)" }}
           >
-            Recommended for best performance and stability
+            {t("Recommended for best performance and stability")}
           </motion.p>
         </motion.div>
 
@@ -384,6 +386,7 @@ interface DownloadingProps {
 function DownloadingView({ percent, transferred, total, bps, urgency }: DownloadingProps) {
   const p = PALETTE[urgency] ?? PALETTE.normal;
   const pct = Math.max(0, Math.min(100, percent));
+  const { t } = useTranslation();
 
   return (
     <motion.div key="downloading" {...slide} className="p-8 space-y-5">
@@ -393,9 +396,9 @@ function DownloadingView({ percent, transferred, total, bps, urgency }: Download
           <Download className="size-4.5 text-[#E6EAF0]" />
         </div>
         <div>
-          <p className="text-sm font-semibold text-[#E6EAF0]">Downloading update…</p>
+          <p className="text-sm font-semibold text-[#E6EAF0]">{t("Downloading update…")}</p>
           <p className="text-xs text-[#6B7380] mt-0.5">
-            {total > 0 ? `${fmt(transferred)} / ${fmt(total)}` : "Calculating…"}
+            {total > 0 ? `${fmt(transferred)} / ${fmt(total)}` : t("Calculating…")}
             {bps > 0 && ` · ${fmtSpeed(bps)}`}
           </p>
         </div>
@@ -437,7 +440,7 @@ function DownloadingView({ percent, transferred, total, bps, urgency }: Download
         </div>
       </div>
 
-      <p className="text-[11px] text-[#6B7380] text-center">Do not close the app during download.</p>
+      <p className="text-[11px] text-[#6B7380] text-center">{t("Do not close the app during download.")}</p>
     </motion.div>
   );
 }
@@ -448,6 +451,7 @@ interface InstallingProps {
 }
 
 function InstallingView({ version, onInstall }: InstallingProps) {
+  const { t } = useTranslation();
   return (
     <motion.div key="installing" {...slide} className="p-8 space-y-6">
       <div className="flex items-center gap-3.5">
@@ -461,13 +465,13 @@ function InstallingView({ version, onInstall }: InstallingProps) {
           />
         </div>
         <div>
-          <p className="text-sm font-semibold text-[#E6EAF0]">Ready to install</p>
-          <p className="text-xs text-emerald-400/80 mt-0.5">Version {version} downloaded successfully</p>
+          <p className="text-sm font-semibold text-[#E6EAF0]">{t("Ready to install")}</p>
+          <p className="text-xs text-emerald-400/80 mt-0.5">{t("Version {version} downloaded successfully", undefined, { version })}</p>
         </div>
       </div>
 
       <p className="text-sm text-[#A0A8B3] leading-relaxed">
-        Switchcontrol will close and restart automatically to apply the update. Save any in-progress work before continuing.
+        {t("Switchcontrol will close and restart automatically to apply the update. Save any in-progress work before continuing.")}
       </p>
 
       <motion.button
@@ -485,13 +489,14 @@ function InstallingView({ version, onInstall }: InstallingProps) {
         )}
       >
         <RefreshCw className="size-4" />
-        Restart &amp; Install
+        {t("Restart & Install")}
       </motion.button>
     </motion.div>
   );
 }
 
 function RestartingView() {
+  const { t } = useTranslation();
   return (
     <motion.div key="restarting" {...slide} className="p-8 flex flex-col items-center gap-5">
       <div className="relative flex items-center justify-center">
@@ -517,8 +522,8 @@ function RestartingView() {
       </div>
 
       <div className="text-center space-y-1.5">
-        <p className="text-base font-semibold text-[#E6EAF0]">Restarting…</p>
-        <p className="text-sm text-[#6B7380]">Applying update and restarting Switchcontrol.</p>
+        <p className="text-base font-semibold text-[#E6EAF0]">{t("Restarting…")}</p>
+        <p className="text-sm text-[#6B7380]">{t("Applying update and restarting Switchcontrol.")}</p>
       </div>
 
       <div className="w-full h-0.5 rounded-full bg-[#21262D] overflow-hidden">

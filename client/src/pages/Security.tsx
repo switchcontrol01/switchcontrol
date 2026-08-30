@@ -30,6 +30,7 @@ import { SecurityStartupTab } from "@/components/security/SecurityStartupTab";
 import { SecurityProcessesTab } from "@/components/security/SecurityProcessesTab";
 import { SecurityAuditTab } from "@/components/security/SecurityAuditTab";
 import { useSystemConditionsStore } from "@/stores/systemConditionsStore";
+import { useTranslation } from "@/lib/i18n";
 
 const CLOUD_API_BASE = "https://switchcontrol.org/api";
 const HISTORY_KEY = "sc_security_history";
@@ -944,6 +945,7 @@ const TABS: { id: Tab; label: string; Icon: any }[] = [
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function Security() {
+  const { t } = useTranslation();
   const { prefersReducedMotion } = useMotion();
   const hasSecurity = isElectronWithSecurity();
   const { telemetry: liveTel } = useLiveTelemetryValues();
@@ -1001,7 +1003,7 @@ export default function Security() {
         .catch((err: any) => {
           console.error("[Security] getStatus IPC failed:", err);
           setSecurityStatus(null);
-          toast({ title: "Security status unavailable", description: err?.message ?? "Windows Security could not be queried.", variant: "destructive" });
+      toast({ title: t("Security status unavailable"), description: err?.message ?? t("Windows Security could not be queried."), variant: "destructive" });
         });
     }, 3000);
   }, [hasSecurity]); // eslint-disable-line
@@ -1047,7 +1049,7 @@ export default function Security() {
       }
     }).catch((err: any) => {
       console.error("[Security] refresh status IPC failed:", err);
-      toast({ title: "Security refresh failed", description: err?.message ?? "Windows Security could not be queried.", variant: "destructive" });
+      toast({ title: t("Security refresh failed"), description: err?.message ?? t("Windows Security could not be queried."), variant: "destructive" });
     });
   }, [hasSecurity]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -1087,7 +1089,7 @@ export default function Security() {
       }
     } catch (err: any) {
       console.error("[Security] Defender option IPC failed:", err);
-      toast({ title: "Security setting failed", description: err?.message ?? "The setting could not be changed.", variant: "destructive" });
+      toast({ title: t("Security setting failed"), description: err?.message ?? t("The setting could not be changed."), variant: "destructive" });
     }
     setTogglingOption(null);
   }, [hasSecurity, togglingOption]);
@@ -1266,7 +1268,7 @@ export default function Security() {
           <div>
             <div className="flex items-center gap-3">
               <Shield className="size-6 text-primary" />
-              <h1 className="text-2xl font-bold tracking-tight">System Integrity</h1>
+              <h1 className="text-2xl font-bold tracking-tight">{t("System Integrity")}</h1>
             </div>
             <p className="text-sm text-muted-foreground mt-0.5">
               Security posture, startup analysis, process trust, and advanced audit.
@@ -1288,8 +1290,8 @@ export default function Security() {
           <div className="flex items-start gap-3 p-4 rounded-xl bg-blue-500/10 border border-blue-500/20 text-sm">
             <Info className="size-4 text-blue-400 mt-0.5 shrink-0" />
             <div>
-              <span className="font-medium text-blue-400">Windows Desktop Required for System Data</span>
-              <p className="text-muted-foreground mt-0.5">Defender status, startup apps, process data, and security audit require the SwitchControl desktop app running on Windows. Screenshot analysis (AI) is available now.</p>
+              <span className="font-medium text-blue-400">{t("Windows Desktop Required for System Data")}</span>
+              <p className="text-muted-foreground mt-0.5">{t("Defender status, startup apps, process data, and security audit require the SwitchControl desktop app running on Windows. Screenshot analysis (AI) is available now.")}</p>
             </div>
           </div>
         )}
@@ -1306,12 +1308,12 @@ export default function Security() {
                 <Progress value={Math.round((scanStage / SCAN_STAGES.length) * 100)} className="h-1.5" />
               </div>
               <Button variant="ghost" size="sm" className="text-xs text-muted-foreground shrink-0"
-                onClick={() => { scanAbort.current = true; setScanStatus("idle"); }} data-testid="button-cancel-scan">Cancel</Button>
+                onClick={() => { scanAbort.current = true; setScanStatus("idle"); }} data-testid="button-cancel-scan">{t("Cancel")}</Button>
             </div>
           ) : (
             <>
-              <Button className="gap-2" onClick={() => startScan("smart")} data-testid="button-smart-scan"><Zap className="size-4" />Smart Scan</Button>
-              <Button variant="secondary" className="gap-2 text-sm" onClick={() => startScan("quick")} data-testid="button-quick-scan"><Play className="size-3.5" />Quick Scan</Button>
+              <Button className="gap-2" onClick={() => startScan("smart")} data-testid="button-smart-scan"><Zap className="size-4" />{t("Smart Scan")}</Button>
+              <Button variant="secondary" className="gap-2 text-sm" onClick={() => startScan("quick")} data-testid="button-quick-scan"><Play className="size-3.5" />{t("Quick Scan")}</Button>
               {scanStatus === "complete" && scanSummary && (
                 <div className="flex items-center gap-2 ml-auto flex-wrap">
                   {[

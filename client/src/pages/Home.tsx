@@ -35,6 +35,7 @@ import { PremiumCardOverlay } from "@/components/ui/premium-page-overlay";
 import { useBiosAdvisorStore } from "@/stores/biosAdvisorStore";
 import { useGpuSelector } from "@/hooks/useGpuSelector";
 import { useUserPreferencesStore } from "@/stores/userPreferencesStore";
+import { useTranslation } from "@/lib/i18n";
 
 const MemoryCleanerModal = lazy(() =>
   import("@/components/dashboard/MemoryCleanerModal").then((m) => ({ default: m.MemoryCleanerModal }))
@@ -104,6 +105,7 @@ function getScoreBg(score: number): string {
 }
 
 function AIAdvisorSummaryCard({ isPremium }: { isPremium: boolean }) {
+  const { t } = useTranslation();
   const [, goTo] = useLocation();
   const { runState, report } = useAdvisorStore();
   const hasReport = report && (runState === "ready" || runState === "degraded");
@@ -119,13 +121,13 @@ function AIAdvisorSummaryCard({ isPremium }: { isPremium: boolean }) {
         {isPremium ? (
           <Sparkles className="size-4 text-primary/70" />
         ) : (
-          <AnimatedCrown size="sm" tooltipText="Premium feature" />
+          <AnimatedCrown size="sm" tooltipText={t("Premium feature")} />
         )}
       </div>
       <div className="p-6 pb-3">
         <h3 className="text-base font-medium flex items-center gap-2">
           <Brain className="size-4 text-primary" />
-          AI Advisor
+          {t("AI Advisor")}
           {!isPremium && <PremiumBadge className="ml-1" />}
         </h3>
         <p className="text-[10px] text-muted-foreground mt-1">{insight.secondary}</p>
@@ -138,7 +140,7 @@ function AIAdvisorSummaryCard({ isPremium }: { isPremium: boolean }) {
                 {report.score}
               </div>
               <p className={cn("text-[10px] mt-0.5", getScoreColor(report.score))}>
-                {report.score >= 95 ? "Fully Optimized" : report.score >= 85 ? "Good Configuration" : report.score >= 60 ? "Needs Improvement" : "Issues Found"}
+                {report.score >= 95 ? t("Fully Optimized") : report.score >= 85 ? t("Good Configuration") : report.score >= 60 ? t("Needs Improvement") : t("Issues Found")}
                </p>
              </div>
             {insight.primary && (
@@ -147,9 +149,9 @@ function AIAdvisorSummaryCard({ isPremium }: { isPremium: boolean }) {
               </p>
             )}
             <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground">
-              <span>{report.findings.filter(f => f.status === "pass").length}/{report.findings.length} rules passed</span>
+              <span>{t("{passed}/{total} rules passed", undefined, { passed: report.findings.filter(f => f.status === "pass").length, total: report.findings.length })}</span>
               <span className="text-border">|</span>
-               <span>{report.topFailed.length} issue{report.topFailed.length !== 1 ? "s" : ""}</span>
+                <span>{t("{count} issue(s)", undefined, { count: report.topFailed.length })}</span>
              </div>
           </div>
         ) : (
@@ -159,7 +161,7 @@ function AIAdvisorSummaryCard({ isPremium }: { isPremium: boolean }) {
         )}
         <Button size="sm" className="w-full bg-primary/20 hover:bg-primary/30 text-primary border border-primary/20" data-testid="button-open-ai-advisor" onClick={() => goTo("/ai-advisor")}>
           <Brain className="size-3.5 mr-1.5" />
-          Open AI Advisor
+          {t("Open AI Advisor")}
           <ArrowRight className="size-3 ml-auto" />
         </Button>
       </div>
@@ -167,13 +169,14 @@ function AIAdvisorSummaryCard({ isPremium }: { isPremium: boolean }) {
   );
 
   return (
-    <PremiumCardOverlay featureName="AI Advisor" buttonText="Unlock Premium" isLocked={!isPremium}>
+    <PremiumCardOverlay featureName={t("AI Advisor")} buttonText={t("Unlock Premium")} isLocked={!isPremium}>
       {cardContent}
     </PremiumCardOverlay>
   );
 }
 
 function BiosScoreSummaryCard({ isPremium }: { isPremium: boolean }) {
+  const { t } = useTranslation();
   const [, goTo] = useLocation();
   const { hasScanned, scores, optimizationLevel, telemetrySource, lastScanTime } = useBiosAdvisorStore();
 
@@ -199,13 +202,13 @@ function BiosScoreSummaryCard({ isPremium }: { isPremium: boolean }) {
         {isPremium ? (
           <Target className="size-4 text-primary" />
         ) : (
-          <AnimatedCrown size="sm" tooltipText="Premium feature" />
+          <AnimatedCrown size="sm" tooltipText={t("Premium feature")} />
         )}
       </div>
       <div className="p-6 pb-3">
         <h3 className="text-base font-medium flex items-center gap-2">
           <Target className="size-4 text-primary" />
-          BIOS Score
+          {t("BIOS Score")}
           {!isPremium && <PremiumBadge className="ml-1" />}
         </h3>
         <p className="text-[10px] text-muted-foreground mt-1">{getBiosStatusText(hasScanned, optimizationLevel, scores?.competitiveReadiness ?? null)}</p>
@@ -214,8 +217,8 @@ function BiosScoreSummaryCard({ isPremium }: { isPremium: boolean }) {
         {(!hasScanned || !scores) ? (
           <div className="p-4 rounded-lg border border-dashed border-[#2A313A] bg-[#1A1F26] text-center space-y-2">
             <Target className="size-6 text-muted-foreground/40 mx-auto" />
-            <p className="text-xs text-muted-foreground" data-testid="text-bios-not-analyzed">BIOS configuration not yet analyzed</p>
-            <p className="text-[10px] text-muted-foreground/60">Scan detects XMP profiles, power limits, and scheduling settings.</p>
+            <p className="text-xs text-muted-foreground" data-testid="text-bios-not-analyzed">{t("BIOS configuration not yet analyzed")}</p>
+            <p className="text-[10px] text-muted-foreground/60">{t("Scan detects XMP profiles, power limits, and scheduling settings.")}</p>
           </div>
         ) : (
           <>
@@ -223,7 +226,7 @@ function BiosScoreSummaryCard({ isPremium }: { isPremium: boolean }) {
               <div className="text-2xl font-bold tabular-nums text-primary" data-testid="text-bios-dashboard-score">
                 {Number.isFinite(scores.competitiveReadiness) ? scores.competitiveReadiness : 0}
               </div>
-              <p className="text-[10px] mt-0.5 text-muted-foreground">Readiness Estimate</p>
+              <p className="text-[10px] mt-0.5 text-muted-foreground">{t("Readiness Estimate")}</p>
               <div className="flex items-center justify-center gap-2 mt-1.5">
                 {lastScanTime && (
                   <span className="text-[9px] text-muted-foreground/60">
@@ -243,22 +246,22 @@ function BiosScoreSummaryCard({ isPremium }: { isPremium: boolean }) {
             <div className="grid grid-cols-3 gap-2 text-center">
               <div className="p-1.5 rounded bg-[#21262D]">
                 <div className="text-xs font-bold text-primary">{Number.isFinite(scores.latency) ? scores.latency : 0}</div>
-                <div className="text-[9px] text-muted-foreground">Latency</div>
+                <div className="text-[9px] text-muted-foreground">{t("Latency")}</div>
               </div>
               <div className="p-1.5 rounded bg-[#21262D]">
                 <div className="text-xs font-bold text-blue-400">{Number.isFinite(scores.frametime) ? scores.frametime : 0}</div>
-                <div className="text-[9px] text-muted-foreground">Frametime</div>
+                <div className="text-[9px] text-muted-foreground">{t("Frametime")}</div>
               </div>
               <div className="p-1.5 rounded bg-[#21262D]">
                 <div className="text-xs font-bold text-emerald-400">{Number.isFinite(scores.stability) ? scores.stability : 0}</div>
-                <div className="text-[9px] text-muted-foreground">Stability</div>
+                <div className="text-[9px] text-muted-foreground">{t("Stability")}</div>
               </div>
             </div>
           </>
         )}
         <Button size="sm" className="w-full bg-primary/15 hover:bg-primary/25 text-primary border border-primary/25 hover:border-primary/40" data-testid="button-open-bios-advisor" onClick={() => goTo("/bios-advisor")}>
           <Target className="size-3.5 mr-1.5" />
-          {hasScanned && scores ? "View BIOS Analysis" : "Open BIOS Advisor"}
+          {hasScanned && scores ? t("View BIOS Analysis") : t("Open BIOS Advisor")}
           <ArrowRight className="size-3 ml-auto" />
         </Button>
       </div>
@@ -266,7 +269,7 @@ function BiosScoreSummaryCard({ isPremium }: { isPremium: boolean }) {
   );
 
   return (
-    <PremiumCardOverlay featureName="BIOS Advisor" buttonText="Unlock Premium" isLocked={!isPremium}>
+    <PremiumCardOverlay featureName={t("BIOS Advisor")} buttonText={t("Unlock Premium")} isLocked={!isPremium}>
       {cardContent}
     </PremiumCardOverlay>
   );
@@ -371,6 +374,7 @@ const DashboardStartupGlow = memo(function DashboardStartupGlow() {
 });
 
 export default function Home() {
+  const { t } = useTranslation();
   const [, navigate] = useLocation();
   const { stats, account, setStats } = useStore(
     useShallow((s) => ({ stats: s.stats, account: s.account, setStats: s.setStats })),
@@ -842,7 +846,7 @@ export default function Home() {
                 onClick={() => navigate("/history")}
               >
                 <Activity className="size-4" />
-                View Logs
+                {t("View Logs")}
               </Button>
               <Button
                 className="gap-2 bg-primary hover:bg-primary/90 text-[#E6EAF0] font-medium border-0"
@@ -850,7 +854,7 @@ export default function Home() {
                 onClick={() => navigate("/tweaks")}
               >
                 <Zap className="size-4" />
-                Optimize Now
+                {t("Optimize Now")}
               </Button>
             </motion.div>
           </div>
@@ -874,7 +878,7 @@ export default function Home() {
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold tracking-tight text-[#E6EAF0] flex items-center gap-2">
               <Activity className="size-5 text-primary" />
-              Activity Monitor
+              {t("Activity Monitor")}
             </h2>
           </div>
 
@@ -888,14 +892,14 @@ export default function Home() {
               }}
             >
               <StatCard
-                title="Memory"
+                title={t("Memory")}
                 value={Number.isFinite(liveRamUsedGb) && liveRamUsedGb > 0 ? liveRamUsedGb.toFixed(1) : '--'}
                 total={liveRamTotalGb > 0 ? liveRamTotalGb : undefined}
                 unit="GB"
                 icon={MemoryStick}
                 onIconClick={() => setMemIntelOpen(true)}
                 progress={ramPercent}
-                actionLabel="Clear RAM"
+                actionLabel={t("Clear RAM")}
                 onAction={() => setMemCleanerOpen(true)}
                 className="border-teal-500/20 shadow-[0_0_20px_-10px_hsl(170_100%_50%/0.1)]"
                  loading={ramRefreshing || (specStatus === "loading" && stats.totalRamGb === 0)}
@@ -924,7 +928,7 @@ export default function Home() {
                 title={
                   gpuList.length > 1 ? (
                     <div className="flex items-center gap-1">
-                      <span>GPU</span>
+                      <span>{t("GPU")}</span>
                       <select
                         value={selectedGpuIndex}
                         onChange={(e) => selectGpu(Number(e.target.value))}
@@ -940,7 +944,7 @@ export default function Home() {
                         ))}
                        </select>
                      </div>
-                  ) : "GPU"
+                  ) : t("GPU")
                 }
                 value={
                   gpuSwitching
@@ -953,10 +957,10 @@ export default function Home() {
                 onIconClick={() => setGpuModalOpen(true)}
                 subtext={
                   gpuSwitching
-                    ? "Switching GPU…"
+                    ? t("Switching GPU…")
                     : stats.vramGb > 0
                     ? `${stats.vramGb} GB VRAM`
-                    : "Detecting…"
+                    : t("Detecting…")
                 }
                 className="border-cyan-500/20 shadow-[0_0_20px_-10px_hsl(190_100%_50%/0.1)]"
                  loading={specStatus === "loading" || stats.gpuName === 'Detecting\u2026' || gpuSwitching}
@@ -968,7 +972,7 @@ export default function Home() {
                 title={
                   allDisks.length > 1 ? (
                     <div className="flex items-center gap-1">
-                      <span>Disk</span>
+                      <span>{t("Disk")}</span>
                       <select 
                         value={selectedDiskIndex}
                         onChange={(e) => setSelectedDiskIndex(Number(e.target.value))}
@@ -983,7 +987,7 @@ export default function Home() {
                         ))}
                        </select>
                      </div>
-                  ) : `Disk (${currentDiskName})`
+                  ) : `${t("Disk")} (${currentDiskName})`
                 }
                 value={currentDiskUsed}
                 total={currentDiskTotal}
@@ -1001,7 +1005,7 @@ export default function Home() {
 
         {/* Live Graph */}
          {showDashboardCard("network") && <Reveal delay={0.06}>
-          <LiveGraphsGate title="Live performance graph paused">
+          <LiveGraphsGate title={t("Live performance graph paused")}>
             <LiveGraph
               onTelemetryUpdate={handleTelemetryUpdate}
               selectedDiskMount={selectedDisk?.mount ?? null}
@@ -1023,8 +1027,8 @@ export default function Home() {
             <GlassCard className="p-4">
               <div className="flex items-center gap-2 mb-3">
                 <Wifi className="size-4 text-primary" />
-                <span className="text-sm font-medium">System Pipeline</span>
-                <span className="text-[10px] text-muted-foreground ml-auto">Live</span>
+                <span className="text-sm font-medium">{t("System Pipeline")}</span>
+                <span className="text-[10px] text-muted-foreground ml-auto">{t("Live")}</span>
               </div>
               <LatencyMap />
             </GlassCard>
@@ -1040,12 +1044,12 @@ export default function Home() {
         <Reveal className="space-y-3">
           <div className="flex items-center gap-2">
             <Activity className="size-4 text-primary" />
-            <h2 className="text-lg font-semibold tracking-tight text-[#E6EAF0]">Telemetry Analytics</h2>
-            <span className="ml-auto text-[9px] uppercase tracking-widest text-[#6B7380]/50 font-semibold">Live · Rolling window</span>
+            <h2 className="text-lg font-semibold tracking-tight text-[#E6EAF0]">{t("Telemetry Analytics")}</h2>
+            <span className="ml-auto text-[9px] uppercase tracking-widest text-[#6B7380]/50 font-semibold">{t("Live · Rolling window")}</span>
           </div>
 
           {/* Three live graph cards */}
-          <LiveGraphsGate title="Telemetry analytics paused">
+          <LiveGraphsGate title={t("Telemetry analytics paused")}>
             <div className="grid gap-4 md:grid-cols-3">
               <div><MemoryPressureGraph delay={0} /></div>
               <div><StorageActivityGraph delay={0.05} /></div>
@@ -1064,35 +1068,35 @@ export default function Home() {
             <div className="p-6 pb-4">
               <h3 className="text-base font-medium flex items-center gap-2">
                 <Shield className="size-4 text-emerald-400" />
-                System Health
+                {t("System Health")}
               </h3>
             </div>
             <div className="px-6 pb-6 space-y-5">
               <div className="space-y-3">
                 <div className="space-y-1.5">
                   <div className="flex justify-between text-xs font-medium">
-                    <span className="text-muted-foreground">Tweaks applied</span>
+                    <span className="text-muted-foreground">{t("Tweaks applied")}</span>
                     <span className="text-[#E6EAF0] font-mono">{account.stats.tweaksApplied} / {totalTweaks}</span>
                   </div>
                   <Progress value={(account.stats.tweaksApplied / totalTweaks) * 100} className="h-1" />
                 </div>
                 <div className="space-y-1.5">
                   <div className="flex justify-between text-xs font-medium">
-                    <span className="text-muted-foreground">Services disabled</span>
+                    <span className="text-muted-foreground">{t("Services disabled")}</span>
                     <span className="text-[#E6EAF0] font-mono">{servicesCount}</span>
                   </div>
                   <Progress value={servicesCount > 0 ? 100 : 0} className="h-1" />
                 </div>
                 <div className="space-y-1.5">
                   <div className="flex justify-between text-xs font-medium">
-                    <span className="text-muted-foreground">Cleaners run</span>
+                    <span className="text-muted-foreground">{t("Cleaners run")}</span>
                     <span className="text-[#E6EAF0] font-mono">{cleanersCount}</span>
                   </div>
                   <Progress value={cleanersCount > 0 ? 100 : 0} className="h-1" />
                 </div>
                 <div className="space-y-1.5">
                   <div className="flex justify-between text-xs font-medium">
-                    <span className="text-muted-foreground">Startup apps disabled</span>
+                    <span className="text-muted-foreground">{t("Startup apps disabled")}</span>
                     <span className="text-[#E6EAF0] font-mono">{startupCount}</span>
                   </div>
                   <Progress value={startupCount > 0 ? 100 : 0} className="h-1" />
@@ -1100,9 +1104,9 @@ export default function Home() {
               </div>
               
               <div className="pt-2 flex items-center justify-between">
-                 <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Last Scan</span>
+                 <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">{t("Last Scan")}</span>
                  <span className="text-[10px] font-mono text-emerald-400">
-                   {account.stats.lastScan ? format(new Date(account.stats.lastScan), "MMM d, HH:mm") : "Never"}
+                    {account.stats.lastScan ? format(new Date(account.stats.lastScan), "MMM d, HH:mm") : t("Never")}
                  </span>
               </div>
             </div>

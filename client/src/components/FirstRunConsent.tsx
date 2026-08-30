@@ -22,6 +22,7 @@ import {
   firstRunVisualInitial,
   firstRunVisualVisible,
 } from "@/lib/firstRunTransition";
+import { useTranslation } from "@/lib/i18n";
 
 export const TERMS_CONSENT_KEY = "sc_terms_consent_seen_";
 const ENTER_DELAY_MS = 40;
@@ -34,21 +35,27 @@ interface Props {
   onTransitionStart?: () => void;
 }
 
-function LegalSectionView({ section }: { section: LegalSection }) {
+function LegalSectionView({
+  section,
+  t,
+}: {
+  section: LegalSection;
+  t: (key: string) => string;
+}) {
   return (
     <section className="space-y-2" data-testid="consent-legal-section">
       <h3 className="text-sm font-semibold tracking-tight text-white/90">
-        {section.title}
+        {t(section.title)}
       </h3>
       {section.paragraphs?.map((paragraph) => (
         <p key={paragraph} className="text-[12px] leading-[1.65] text-white/60">
-          {paragraph}
+          {t(paragraph)}
         </p>
       ))}
       {section.bullets && (
         <ul className="ml-4 list-disc space-y-1.5 text-[12px] leading-[1.55] text-white/60">
           {section.bullets.map((bullet) => (
-            <li key={bullet}>{bullet}</li>
+            <li key={bullet}>{t(bullet)}</li>
           ))}
         </ul>
       )}
@@ -62,6 +69,7 @@ export function FirstRunConsent({
   onDecline,
   onTransitionStart,
 }: Props) {
+  const { t } = useTranslation();
   const { prefersReducedMotion } = useMotion();
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const exitTimerRef = useRef<number | null>(null);
@@ -202,32 +210,31 @@ export function FirstRunConsent({
               </div>
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-cyan-200/65">
-                  Required first step
+                  {t("Required first step")}
                 </p>
                 <h1
                   id="first-run-consent-title"
                   className="mt-1 text-[clamp(1.35rem,4vw,1.85rem)] font-semibold leading-tight tracking-[-0.035em] text-white"
                 >
-                  Review before you optimize
+                  {t("Review before you optimize")}
                 </h1>
                 <p
                   id="first-run-consent-description"
                   className="mt-2 max-w-[55ch] text-sm leading-relaxed text-white/55"
                 >
-                  Read the Terms of Service and Privacy Policy, then scroll to
-                  the end to continue with SwitchControl.
+                  {t("Read the Terms of Service and Privacy Policy, then scroll to the end to continue with SwitchControl.")}
                 </p>
               </div>
             </div>
             <div className="hidden shrink-0 items-center gap-1.5 rounded-full border border-emerald-300/15 bg-emerald-300/[0.06] px-2.5 py-1.5 text-[10px] font-medium text-emerald-200/75 sm:flex">
               <LockKeyhole className="h-3 w-3" />
-              Signed in
+              {t("Signed in")}
             </div>
           </div>
 
           <div className="mx-5 flex items-center justify-between rounded-xl border border-white/[0.08] bg-white/[0.025] px-3.5 py-2.5 sm:mx-7">
             <span className="text-[11px] text-white/50">
-              Last updated: {LEGAL_LAST_UPDATED}
+              {t("Last updated:")} {LEGAL_LAST_UPDATED}
             </span>
             <div className="flex items-center gap-3 text-[11px]">
               <a
@@ -236,7 +243,7 @@ export function FirstRunConsent({
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1 text-cyan-200/75 underline underline-offset-2 transition hover:text-cyan-100"
               >
-                Terms <ExternalLink className="h-3 w-3" />
+                {t("Terms")} <ExternalLink className="h-3 w-3" />
               </a>
               <a
                 href="https://switchcontrol.org/privacy"
@@ -244,7 +251,7 @@ export function FirstRunConsent({
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1 text-cyan-200/75 underline underline-offset-2 transition hover:text-cyan-100"
               >
-                Privacy <ExternalLink className="h-3 w-3" />
+                {t("Privacy")} <ExternalLink className="h-3 w-3" />
               </a>
             </div>
           </div>
@@ -254,31 +261,30 @@ export function FirstRunConsent({
             onScroll={checkScrollPosition}
             tabIndex={0}
             role="document"
-            aria-label="Terms of Service and Privacy Policy"
+            aria-label={t("Terms of Service and Privacy Policy")}
             data-testid="first-run-consent-scroll"
             className="mx-5 mt-4 max-h-[min(48vh,440px)] overflow-y-auto rounded-xl border border-white/[0.08] bg-black/20 px-4 py-5 outline-none transition focus:border-cyan-300/35 sm:mx-7 sm:px-6"
           >
             <div className="space-y-7">
               <div className="space-y-5">
                 <h2 className="text-base font-semibold text-cyan-100/90">
-                  Terms of Service
+                  {t("Terms of Service")}
                 </h2>
                 {TERMS_SECTIONS.map((section) => (
-                  <LegalSectionView key={section.title} section={section} />
+                  <LegalSectionView key={section.title} section={section} t={t} />
                 ))}
               </div>
               <div className="h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
               <div className="space-y-5">
                 <h2 className="text-base font-semibold text-cyan-100/90">
-                  Privacy Policy
+                  {t("Privacy Policy")}
                 </h2>
                 {PRIVACY_SECTIONS.map((section) => (
-                  <LegalSectionView key={section.title} section={section} />
+                  <LegalSectionView key={section.title} section={section} t={t} />
                 ))}
               </div>
               <p className="border-t border-white/[0.08] pt-5 text-[11px] leading-relaxed text-white/40">
-                By selecting Agree, you confirm that you have reviewed both
-                documents and agree to the Terms of Service and Privacy Policy.
+                 {t("By selecting Agree, you confirm that you have reviewed both documents and agree to the Terms of Service and Privacy Policy.")}
               </p>
             </div>
           </div>
@@ -293,7 +299,7 @@ export function FirstRunConsent({
                 />
               </div>
               <span className={isAtBottom ? "text-emerald-300/90" : "text-white/40"}>
-                {isAtBottom ? "Ready to agree" : "Scroll to continue"}
+                {isAtBottom ? t("Ready to agree") : t("Scroll to continue")}
               </span>
               {!isAtBottom && <ChevronDown className="h-3.5 w-3.5 animate-bounce text-white/35" />}
             </div>
@@ -302,8 +308,7 @@ export function FirstRunConsent({
                 className="mb-3 rounded-lg border border-red-400/25 bg-red-400/[0.06] px-3 py-2 text-[11px] leading-relaxed text-red-200/80"
                 role="alert"
               >
-                We could not save your consent. Check browser storage access and
-                try again.
+                {t("We could not save your consent. Check browser storage access and try again.")}
               </p>
             )}
             <div className="flex flex-col-reverse gap-2.5 sm:flex-row sm:items-center sm:justify-between">
@@ -315,7 +320,7 @@ export function FirstRunConsent({
                 className="inline-flex items-center justify-center gap-2 rounded-xl border border-red-400/25 bg-red-400/[0.06] px-4 py-3 text-xs font-semibold text-red-300/85 transition hover:border-red-300/45 hover:bg-red-400/[0.12] disabled:cursor-wait disabled:opacity-50"
               >
                 <X className="h-3.5 w-3.5" />
-                Decline &amp; quit
+                {t("Decline & quit")}
               </button>
               <button
                 type="button"
@@ -330,7 +335,7 @@ export function FirstRunConsent({
                 style={agreeButtonStyle}
               >
                 <Check className="h-3.5 w-3.5" />
-                Agree &amp; continue
+                {t("Agree & continue")}
               </button>
             </div>
           </div>

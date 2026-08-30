@@ -70,6 +70,7 @@ import {
   gamingScore,
   type LatencyStatus,
 } from "@/lib/latency-analyzer-config";
+import { useTranslation } from "@/lib/i18n";
 
 // ── Electron API check ────────────────────────────────────────────────────────
 
@@ -154,6 +155,7 @@ function MetricChip({
 // ── Status badge ───────────────────────────────────────────────────────────────
 
 function StatusBadge({ status }: { status: LatencyStatus }) {
+  const { t } = useTranslation();
   const meta = statusColor(status);
   const Icon =
     status === "Excellent" || status === "Good" ? CheckCircle :
@@ -172,7 +174,7 @@ function StatusBadge({ status }: { status: LatencyStatus }) {
       transition={{ duration: 0.25 }}
     >
       <Icon className="size-4" />
-      {status}
+      {t(status)}
     </motion.div>
   );
 }
@@ -194,6 +196,7 @@ function ControlsCard({
   onStop: () => void;
   onReset: () => void;
 }) {
+  const { t } = useTranslation();
   const {
     sessionStatus, sessionError, elapsedSec, sampleCount,
     durationSec, setDuration, isAdmin,
@@ -216,8 +219,8 @@ function ControlsCard({
               <Activity className="size-4 text-cyan-300" />
             </span>
             <div>
-              <h3 className="text-sm font-semibold text-[#E6EAF0]">Live Analysis</h3>
-              <p className="text-[9px] uppercase tracking-[0.18em] text-cyan-300/60">System signal monitor</p>
+              <h3 className="text-sm font-semibold text-[#E6EAF0]">{t("Live Analysis")}</h3>
+              <p className="text-[9px] uppercase tracking-[0.18em] text-cyan-300/60">{t("System signal monitor")}</p>
             </div>
           </div>
 
@@ -231,11 +234,11 @@ function ControlsCard({
             )} />
             <span className="text-xs font-medium text-[#C8D0DA]">
               {isRunning  ? `Collecting — ${fmtSec(elapsedSec)} elapsed` :
-               isStopping ? "Stopping…" :
-               sessionStatus === "starting" ? "Starting…" :
+               isStopping ? t("Stopping…") :
+               sessionStatus === "starting" ? t("Starting…") :
                sessionStatus === "stopped"  ? `Stopped — ${fmtSec(elapsedSec)} collected` :
-               sessionStatus === "error"    ? "Error — see below" :
-               "Ready to analyze"}
+               sessionStatus === "error"    ? t("Error — see below") :
+               t("Ready to analyze")}
             </span>
           </div>
 
@@ -249,14 +252,14 @@ function ControlsCard({
           {!isAdmin && isElectron && (
             <div className="flex items-start gap-1.5 text-[10px] text-amber-400/80 bg-amber-500/[0.06] border border-amber-500/20 rounded-lg px-2.5 py-2">
               <AlertTriangle className="size-3 shrink-0 mt-0.5" />
-              <span>Some low-level Windows counters may be unavailable without administrator rights. The analyzer will report a specific collection error if Windows cannot provide the data.</span>
+              <span>{t("Some low-level Windows counters may be unavailable without administrator rights. The analyzer will report a specific collection error if Windows cannot provide the data.")}</span>
             </div>
           )}
 
           {!isElectron && (
             <div className="flex items-start gap-1.5 text-[10px] text-[#6B7380] bg-[#1A1F26] border border-[#2A313A] rounded-lg px-2.5 py-2">
               <Info className="size-3 shrink-0 mt-0.5" />
-              <span>Latency Analyzer requires the SwitchControl desktop app to collect hardware metrics.</span>
+              <span>{t("Latency Analyzer requires the SwitchControl desktop app to collect hardware metrics.")}</span>
             </div>
           )}
         </div>
@@ -264,7 +267,7 @@ function ControlsCard({
         {/* Center: duration picker */}
         {!isRunning && !isStopping && (
           <div className="flex min-w-[250px] flex-col gap-2">
-            <span className="text-[9px] text-[#778292] uppercase tracking-[0.18em]">Capture window</span>
+            <span className="text-[9px] text-[#778292] uppercase tracking-[0.18em]">{t("Capture window")}</span>
             <div className="flex gap-1.5 flex-wrap">
               {DURATION_OPTIONS.map((o) => (
                 <button
@@ -294,7 +297,7 @@ function ControlsCard({
               className="bg-cyan-400/15 hover:bg-cyan-400/25 text-cyan-200 border border-cyan-300/30 gap-1.5 shadow-[0_0_20px_rgba(34,211,238,0.08)]"
             >
               <Play className="size-3.5" />
-              Start Analysis
+              {t("Start Analysis")}
             </Button>
           )}
 
@@ -308,7 +311,7 @@ function ControlsCard({
               {isStopping
                 ? <Loader2 className="size-3.5 animate-spin" />
                 : <Square className="size-3.5" />}
-              {isStopping ? "Stopping…" : "Stop"}
+              {isStopping ? t("Stopping…") : t("Stop")}
             </Button>
           )}
 
@@ -320,7 +323,7 @@ function ControlsCard({
               className="gap-1.5 text-[#A0A8B3] border-[#2A313A]"
             >
               <RotateCcw className="size-3.5" />
-              Reset
+              {t("Reset")}
             </Button>
           )}
         </div>
@@ -347,6 +350,7 @@ function ControlsCard({
 // ── 2. Overall status card ─────────────────────────────────────────────────────
 
 function OverallStatusCard() {
+  const { t } = useTranslation();
   const { status, overallScore, sampleCount, elapsedSec, avgDpcPct, avgIntrPct } = useLatencyAnalyzerStore();
   const meta = statusColor(status);
   const ar   = sampleCount > 0 ? audioRisk(avgDpcPct, avgIntrPct) : null;
@@ -362,12 +366,12 @@ function OverallStatusCard() {
         <div className="flex min-w-[240px] flex-1 flex-col gap-3">
           <div className="flex items-center gap-2 text-[9px] uppercase tracking-[0.18em] text-[#7F8997]">
             <Gauge className="size-4 text-cyan-300" />
-            Overall system signal
+             {t("Overall system signal")}
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <StatusBadge status={status} />
             <span className="text-[10px] text-[#7F8997]">
-              {sampleCount >= 8 ? "Data quality: established" : "Data quality: collecting"}
+               {sampleCount >= 8 ? t("Data quality: established") : t("Data quality: collecting")}
             </span>
           </div>
           <p className="max-w-[480px] text-[11px] leading-relaxed text-[#A0A8B3]">
@@ -395,25 +399,25 @@ function OverallStatusCard() {
                 <span className={cn("block text-2xl font-semibold tabular-nums", meta.color)}>
                   {sampleCount > 0 ? Math.round(overallScore) : "--"}
                 </span>
-                <span className="text-[8px] uppercase tracking-widest text-[#7F8997]">score</span>
+                 <span className="text-[8px] uppercase tracking-widest text-[#7F8997]">{t("score")}</span>
               </div>
             </div>
           </div>
           <div className="space-y-1.5">
-            <div className="text-[10px] text-[#7F8997]">Analysis window</div>
+             <div className="text-[10px] text-[#7F8997]">{t("Analysis window")}</div>
             <div className="text-sm font-medium tabular-nums text-[#E6EAF0]">{fmtSec(elapsedSec)}</div>
             <div className="text-[10px] text-[#A0A8B3]">{sampleCount} samples</div>
           </div>
           {ar && rc && (
             <div className={cn("hidden rounded-lg border px-2.5 py-1.5 text-[10px] font-medium md:block", rc.bg, rc.border, rc.text)}>
-              Audio risk: {ar}
+               {t("Audio risk")}: {t(ar)}
             </div>
           )}
         </div>
       </div>
       {ar && rc && (
         <div className={cn("relative mt-4 rounded-lg border px-2.5 py-1.5 text-[10px] font-medium md:hidden", rc.bg, rc.border, rc.text)}>
-          Audio risk: {ar}
+           {t("Audio risk")}: {t(ar)}
         </div>
       )}
     </GlassCard>
@@ -423,6 +427,7 @@ function OverallStatusCard() {
 // ── 3. Core metrics grid ───────────────────────────────────────────────────────
 
 function CoreMetricsGrid() {
+  const { t } = useTranslation();
   const {
     sampleCount, avgDpcPct, peakDpcPct, avgIntrPct, peakIntrPct,
     avgPageFaultsSec, peakPageFaultsSec, liveDpcPct, liveIntrPct,
@@ -432,7 +437,7 @@ function CoreMetricsGrid() {
   const metrics = [
     {
       id: "avg-dpc",
-      label: "Avg DPC Time",
+       label: t("Avg DPC Time"),
       value: hasData ? `${fmt1(avgDpcPct)}%` : "--",
       sublabel: "% CPU in DPCs",
       color: avgDpcPct < 3 ? "#34d399" : avgDpcPct < 7 ? "#fbbf24" : "#f87171",
@@ -442,7 +447,7 @@ function CoreMetricsGrid() {
     },
     {
       id: "peak-dpc",
-      label: "Peak DPC Time",
+       label: t("Peak DPC Time"),
       value: hasData ? `${fmt1(peakDpcPct)}%` : "--",
       sublabel: "highest single sample",
       color: peakDpcPct < 5 ? "#34d399" : peakDpcPct < 12 ? "#fbbf24" : "#f87171",
@@ -452,7 +457,7 @@ function CoreMetricsGrid() {
     },
     {
       id: "avg-isr",
-      label: "Avg Interrupt Time",
+       label: t("Avg Interrupt Time"),
       value: hasData ? `${fmt1(avgIntrPct)}%` : "--",
       sublabel: "% CPU in ISRs",
       color: avgIntrPct < 5 ? "#34d399" : avgIntrPct < 10 ? "#fbbf24" : "#f87171",
@@ -462,7 +467,7 @@ function CoreMetricsGrid() {
     },
     {
       id: "peak-isr",
-      label: "Peak Interrupt Time",
+       label: t("Peak Interrupt Time"),
       value: hasData ? `${fmt1(peakIntrPct)}%` : "--",
       sublabel: "highest single sample",
       color: peakIntrPct < 7 ? "#34d399" : peakIntrPct < 15 ? "#fbbf24" : "#f87171",
@@ -472,7 +477,7 @@ function CoreMetricsGrid() {
     },
     {
       id: "page-faults",
-      label: "Page Faults/sec",
+       label: t("Page Faults/sec"),
       value: hasData ? fmtInt(avgPageFaultsSec) : "--",
       sublabel: "avg per second",
       color: avgPageFaultsSec < 100 ? "#34d399" : avgPageFaultsSec < 500 ? "#fbbf24" : "#f87171",
@@ -482,7 +487,7 @@ function CoreMetricsGrid() {
     },
     {
       id: "peak-pf",
-      label: "Peak Page Faults",
+       label: t("Peak Page Faults"),
       value: hasData ? fmtInt(peakPageFaultsSec) : "--",
       sublabel: "/sec highest",
       color: peakPageFaultsSec < 200 ? "#34d399" : peakPageFaultsSec < 1000 ? "#fbbf24" : "#f87171",
@@ -492,11 +497,11 @@ function CoreMetricsGrid() {
     },
     {
       id: "intr-activity",
-      label: "Interrupt Activity",
+       label: t("Interrupt Activity"),
       value: hasData
-        ? avgIntrPct < 5 ? "Normal" : avgIntrPct < 10 ? "Elevated" : "High"
+         ? avgIntrPct < 5 ? t("Normal") : avgIntrPct < 10 ? t("Elevated") : t("High")
         : "--",
-      sublabel: "ISR load assessment",
+       sublabel: t("ISR load assessment"),
       color: avgIntrPct < 5 ? "#34d399" : avgIntrPct < 10 ? "#fbbf24" : "#f87171",
       barPct: null,
       barMax: null,
@@ -504,11 +509,11 @@ function CoreMetricsGrid() {
     },
     {
       id: "dpc-activity",
-      label: "DPC Activity",
+       label: t("DPC Activity"),
       value: hasData
-        ? avgDpcPct < 3 ? "Normal" : avgDpcPct < 7 ? "Elevated" : "High"
+         ? avgDpcPct < 3 ? t("Normal") : avgDpcPct < 7 ? t("Elevated") : t("High")
         : "--",
-      sublabel: "DPC load assessment",
+       sublabel: t("DPC load assessment"),
       color: avgDpcPct < 3 ? "#34d399" : avgDpcPct < 7 ? "#fbbf24" : "#f87171",
       barPct: null,
       barMax: null,
@@ -516,8 +521,8 @@ function CoreMetricsGrid() {
     },
     {
       id: "driver-dpc-us",
-      label: "Per-Driver DPC µs",
-      value: "Limited",
+       label: t("Per-Driver DPC µs"),
+       value: t("Limited"),
       sublabel: "user-mode restriction",
       color: "#6B7380",
       barPct: null,
@@ -526,8 +531,8 @@ function CoreMetricsGrid() {
     },
     {
       id: "driver-isr-us",
-      label: "Per-Driver ISR µs",
-      value: "Limited",
+       label: t("Per-Driver ISR µs"),
+       value: t("Limited"),
       sublabel: "user-mode restriction",
       color: "#6B7380",
       barPct: null,
@@ -536,7 +541,7 @@ function CoreMetricsGrid() {
     },
     {
       id: "samples",
-      label: "Samples Collected",
+       label: t("Samples Collected"),
       value: sampleCount > 0 ? String(sampleCount) : "0",
       sublabel: "2s interval",
       color: sampleCount >= 8 ? "#34d399" : "#fbbf24",
@@ -546,7 +551,7 @@ function CoreMetricsGrid() {
     },
     {
       id: "duration",
-      label: "Collection Duration",
+       label: t("Collection Duration"),
       value: elapsedSec > 0 ? fmtSec(elapsedSec) : "--",
       sublabel: "elapsed time",
       color: "#A0A8B3",
@@ -610,6 +615,7 @@ function CoreMetricsGrid() {
 // ── 4. Timeline chart ──────────────────────────────────────────────────────────
 
 function TimelineChart() {
+  const { t } = useTranslation();
   const { chartSamples } = useLatencyAnalyzerStore();
   const hasData = chartSamples.length > 0;
 
@@ -626,7 +632,7 @@ function TimelineChart() {
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-sm font-semibold flex items-center gap-2">
           <Activity className="size-4 text-indigo-300" />
-          Live Activity Timeline
+           {t("Live Activity Timeline")}
         </h3>
         <div className="flex items-center gap-3 text-[10px]">
           <span className="flex items-center gap-1"><span className="w-3 h-0.5 bg-[#f87171] inline-block" /> DPC%</span>
@@ -638,7 +644,7 @@ function TimelineChart() {
       {!hasData ? (
         <div className="h-40 flex flex-col items-center justify-center gap-2 text-[11px] text-[#6B7380]">
           <span className="size-2 rounded-full bg-indigo-300/50 shadow-[0_0_14px_rgba(129,140,248,0.6)]" />
-          Start analysis to establish a live signal
+           {t("Start analysis to establish a live signal")}
         </div>
       ) : (
         <div className="h-44">
@@ -669,9 +675,9 @@ function TimelineChart() {
                 formatter={(val: any, name: string) => {
                   if (name === "dpc") return [`${val}%`, "DPC"];
                   if (name === "isr") return [`${val}%`, "ISR"];
-                  return [`${(val * 100).toFixed(0)}/s`, "Page Faults"];
+                   return [`${(val * 100).toFixed(0)}/s`, t("Page Faults")];
                 }}
-                labelFormatter={(v) => `${v}s elapsed`}
+                 labelFormatter={(v) => `${v}s ${t("elapsed")}`}
               />
               <Line type="monotone" dataKey="dpc" stroke="#f87171" strokeWidth={1.5} dot={false} isAnimationActive={false} />
               <Line type="monotone" dataKey="isr" stroke="#60a5fa" strokeWidth={1.5} dot={false} isAnimationActive={false} />
@@ -1632,6 +1638,7 @@ function LockedState() {
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function LatencyAnalyzer() {
+  const { t } = useTranslation();
   const { isPremium } = useAuth();
   const ent = useEntitlementUiState();
   const isTrial  = ent.status === "trial_active";
@@ -1806,19 +1813,19 @@ export default function LatencyAnalyzer() {
           <div>
             <div className="mb-2 flex items-center gap-2 text-[9px] uppercase tracking-[0.22em] text-cyan-300/60">
               <span className="size-1.5 rounded-full bg-cyan-300 shadow-[0_0_8px_rgba(103,232,249,0.8)]" />
-              Diagnostics / Windows performance
+              {t("Diagnostics / Windows performance")}
             </div>
             <h1 className="flex items-center gap-2.5 text-xl font-semibold tracking-tight text-[#E6EAF0]">
               <Timer className="size-5 text-cyan-300" />
-              Latency Analyzer
+               {t("Latency Analyzer")}
             </h1>
             <p className="mt-1 text-[11px] text-[#7F8997]">
-              Windows user-mode DPC, interrupt &amp; driver activity analysis
+               {t("Windows user-mode DPC, interrupt & driver activity analysis")}
             </p>
           </div>
           {isTrial && !isPremium && (
             <span className="text-[10px] px-2 py-1 rounded border border-amber-500/30 text-amber-400 bg-amber-500/[0.06]">
-              Trial — read-only after expiry
+               {t("Trial — read-only after expiry")}
             </span>
           )}
         </div>
@@ -1832,7 +1839,7 @@ export default function LatencyAnalyzer() {
         {/* Core metrics */}
         <div>
           <h2 className="text-[11px] text-[#6B7380] uppercase tracking-wider mb-2 flex items-center gap-1.5">
-            <Shield className="size-3.5" /> Core Metrics
+             <Shield className="size-3.5" /> {t("Core Metrics")}
           </h2>
           <CoreMetricsGrid />
         </div>
@@ -1852,14 +1859,14 @@ export default function LatencyAnalyzer() {
           <GlassCard className="p-5">
             <div className="flex items-center gap-2 text-[11px] text-[#6B7380]">
               <Loader2 className="size-4 animate-spin" />
-              Scanning drivers…
+               {t("Scanning drivers…")}
             </div>
           </GlassCard>
         )}
         {hasData && driversScanned && drivers.length === 0 && (
           <GlassCard className="p-5">
             <div className="text-[11px] text-[#6B7380]">
-              No driver data available — driverquery returned no results on this system.
+               {t("No driver data available — driverquery returned no results on this system.")}
             </div>
           </GlassCard>
         )}

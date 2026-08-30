@@ -18,6 +18,7 @@
 
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "@/lib/motionTokens";
+import { useTranslation } from "@/lib/i18n";
 
 interface DeviceLockModalProps {
   userEmail?: string | null;
@@ -29,53 +30,54 @@ interface DeviceLockModalProps {
 
 const SUPPORT_EMAIL = "support@switchcontrol.gg";
 
-function buildMailtoUrl(userEmail: string | null | undefined, userId: string | null | undefined, deviceId: string): string {
-  const subject = "SwitchControl Premium Device Lock Support";
+function buildMailtoUrl(t: (key: string, fallback?: string, values?: Record<string, string | number>) => string, userEmail: string | null | undefined, userId: string | null | undefined, deviceId: string): string {
+  const subject = t("SwitchControl Premium Device Lock Support");
 
   const now = new Date().toISOString();
   const appVersion =
     typeof (window as any).electronAPI?.getAppVersion === "function"
-      ? "loading…"
-      : "unknown";
+      ? t("loading…")
+      : t("unknown");
 
   const body = [
-    "Hi SwitchControl Support,",
+    t("Hi SwitchControl Support,"),
     "",
-    "I'm unable to access premium because it is locked to another device.",
+    t("I'm unable to access premium because it is locked to another device."),
     "",
-    `Account: ${userEmail ?? "unknown"}`,
-    `Device ID: ${deviceId}`,
-    `App Version: ${appVersion}`,
-    `Timestamp: ${now}`,
+    t("Account: {account}", undefined, { account: userEmail ?? t("unknown") }),
+    t("Device ID: {deviceId}", undefined, { deviceId }),
+    t("App Version: {version}", undefined, { version: appVersion }),
+    t("Timestamp: {timestamp}", undefined, { timestamp: now }),
     "",
-    "Please help me reset or transfer my premium device license.",
+    t("Please help me reset or transfer my premium device license."),
     "",
     "—".repeat(40),
-    "Don't edit below this line.",
-    `[DIAGNOSTIC]`,
-    `User ID: ${userId ?? "unknown"}`,
-    `Request Time: ${now}`,
+    t("Don't edit below this line."),
+    t("[DIAGNOSTIC]"),
+    t("User ID: {userId}", undefined, { userId: userId ?? t("unknown") }),
+    t("Request Time: {timestamp}", undefined, { timestamp: now }),
   ].join("\n");
 
   return `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
 
-function useDeviceId(): string {
+function useDeviceId(unavailable: string): string {
   const [deviceId, setDeviceId] = useState<string>("…");
   useEffect(() => {
     const api = (window as any).electronAPI;
     if (api?.getDeviceId) {
-      api.getDeviceId().then((id: string | null) => setDeviceId(id ?? "unavailable")).catch(() => setDeviceId("unavailable"));
+      api.getDeviceId().then((id: string | null) => setDeviceId(id ?? unavailable)).catch(() => setDeviceId(unavailable));
     }
-  }, []);
+  }, [unavailable]);
   return deviceId;
 }
 
 export function DeviceLockModal({ userEmail, userId, onRetry, isRetrying, onLogout }: DeviceLockModalProps) {
-  const deviceId = useDeviceId();
+  const { t } = useTranslation();
+  const deviceId = useDeviceId(t("unavailable"));
 
   function handleContactSupport() {
-    const url = buildMailtoUrl(userEmail, userId, deviceId);
+    const url = buildMailtoUrl(t, userEmail, userId, deviceId);
     if ((window as any).electronAPI?.openExternal) {
       (window as any).electronAPI.openExternal(url);
     } else {
@@ -150,7 +152,7 @@ export function DeviceLockModal({ userEmail, userId, onRetry, isRetrying, onLogo
               transition={{ delay: 0.3, duration: 0.4 }}
               data-testid="device-lock-title"
             >
-              Premium Locked to Another Device
+              {t("Premium Locked to Another Device")}
             </motion.h1>
 
             {/* Body */}
@@ -161,8 +163,7 @@ export function DeviceLockModal({ userEmail, userId, onRetry, isRetrying, onLogo
               transition={{ delay: 0.38, duration: 0.4 }}
               data-testid="device-lock-body"
             >
-              This premium license is already linked to a different device and
-              can&apos;t be used here.
+              {t("This premium license is already linked to a different device and can't be used here.")}
             </motion.p>
 
             {/* Device ID display */}
@@ -195,7 +196,7 @@ export function DeviceLockModal({ userEmail, userId, onRetry, isRetrying, onLogo
                 whileTap={{ scale: 0.985 }}
                 data-testid="device-lock-contact-support"
               >
-                Contact Support
+                {t("Contact Support")}
               </motion.button>
 
               {/* Retry */}
@@ -215,10 +216,10 @@ export function DeviceLockModal({ userEmail, userId, onRetry, isRetrying, onLogo
                 {isRetrying ? (
                   <span className="flex items-center justify-center gap-2">
                     <SpinnerIcon />
-                    Checking…
+                    {t("Checking…")}
                   </span>
                 ) : (
-                  "Retry"
+                  t("Retry")
                 )}
               </motion.button>
 
@@ -236,7 +237,7 @@ export function DeviceLockModal({ userEmail, userId, onRetry, isRetrying, onLogo
                   whileTap={{ scale: 0.985 }}
                   data-testid="device-lock-logout"
                 >
-                  Log Out / Switch Account
+                  {t("Log Out / Switch Account")}
                 </motion.button>
               )}
 
@@ -253,7 +254,7 @@ export function DeviceLockModal({ userEmail, userId, onRetry, isRetrying, onLogo
                 whileTap={{ scale: 0.985 }}
                 data-testid="device-lock-exit"
               >
-                Exit App
+                  {t("Exit App")}
               </motion.button>
             </motion.div>
 
@@ -264,7 +265,7 @@ export function DeviceLockModal({ userEmail, userId, onRetry, isRetrying, onLogo
               animate={{ opacity: 1 }}
               transition={{ delay: 0.65, duration: 0.5 }}
             >
-              Premium desktop access is tied to the original activated device
+              {t("Premium desktop access is tied to the original activated device")}
             </motion.p>
           </div>
         </motion.div>

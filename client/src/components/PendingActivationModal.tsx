@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Loader2, RefreshCw, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { refreshEntitlements } from '@/lib/auth-store';
+import { useTranslation } from '@/lib/i18n';
 
 interface PendingActivationModalProps {
   show: boolean;
@@ -11,6 +12,7 @@ interface PendingActivationModalProps {
 }
 
 export function PendingActivationModal({ show, onUpgradeDetected, onDismiss }: PendingActivationModalProps) {
+  const { t } = useTranslation();
   const [status, setStatus] = useState<'syncing' | 'retrying' | 'failed'>('syncing');
   const [countdown, setCountdown] = useState(30);
   const [retryCount, setRetryCount] = useState(0);
@@ -135,12 +137,12 @@ export function PendingActivationModal({ show, onUpgradeDetected, onDismiss }: P
                   <Loader2 className="size-8 text-text-[#00D4FF] animate-spin" />
                 </motion.div>
                 <div>
-                  <h3 className="text-lg font-semibold text-[#E6EAF0]">Activating Premium</h3>
+                  <h3 className="text-lg font-semibold text-[#E6EAF0]">{t("Activating Premium")}</h3>
                   <p className="text-sm text-muted-foreground mt-2">
-                    Syncing your purchase... ({countdown}s)
+                    {t("Syncing your purchase... ({countdown}s)", undefined, { countdown })}
                   </p>
                   <p className="text-xs text-muted-foreground/60 mt-1">
-                    Attempt {retryCount + 1}
+                    {t("Attempt {count}", undefined, { count: retryCount + 1 })}
                   </p>
                 </div>
                 <div className="w-full h-1 bg-[#2A313A] rounded-full overflow-hidden">
@@ -160,9 +162,9 @@ export function PendingActivationModal({ show, onUpgradeDetected, onDismiss }: P
                   <RefreshCw className="size-8 text-text-[#00D4FF] animate-spin" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-[#E6EAF0]">Retrying...</h3>
+                  <h3 className="text-lg font-semibold text-[#E6EAF0]">{t("Retrying...")}</h3>
                   <p className="text-sm text-muted-foreground mt-2">
-                    Checking for premium status
+                    {t("Checking for premium status")}
                   </p>
                 </div>
               </>
@@ -174,9 +176,9 @@ export function PendingActivationModal({ show, onUpgradeDetected, onDismiss }: P
                   <RefreshCw className="size-8 text-yellow-400" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-[#E6EAF0]">Still Syncing</h3>
+                  <h3 className="text-lg font-semibold text-[#E6EAF0]">{t("Still Syncing")}</h3>
                   <p className="text-sm text-muted-foreground mt-2">
-                    Your payment is being processed. This usually takes a moment.
+                    {t("Your payment is being processed. This usually takes a moment.")}
                   </p>
                 </div>
                 <div className="flex flex-col gap-2 pt-2">
@@ -185,14 +187,14 @@ export function PendingActivationModal({ show, onUpgradeDetected, onDismiss }: P
                     className="w-full bg-#00D4FF hover:bg-[#00D4FF]"
                   >
                     <RefreshCw className="size-4 mr-2" />
-                    Retry Now
+                    {t("Retry Now")}
                   </Button>
                   <Button 
                     variant="ghost"
                     onClick={onDismiss}
                     className="w-full text-muted-foreground"
                   >
-                    Dismiss (Restart App Later)
+                    {t("Dismiss (Restart App Later)")}
                   </Button>
                 </div>
               </>

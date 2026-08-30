@@ -119,6 +119,7 @@ import { PremiumPageOverlay, PremiumHeaderBadge } from "@/components/ui/premium-
 import { useBiosAdvisorStore } from "@/stores/biosAdvisorStore";
 import { BiosAnalyticsRings, type BiosAnalyticsData } from "@/components/graphs/BiosAnalyticsRings";
 import { buildAiHardwareDetails } from "@/lib/hardware-ai-context";
+import { useTranslation } from "@/lib/i18n";
 
 type ScanState = "idle" | "collecting" | "analyzing" | "explaining" | "complete";
 
@@ -624,6 +625,7 @@ function AdvancedDetailRow({ label, value, tone = "neutral" }: { label: string; 
 }
 
 export default function BiosAdvisor() {
+  const { t } = useTranslation();
   const { prefersReducedMotion } = useMotion();
   const { isPremium } = useAuth();
   const { isOnline } = useNetworkStatus();
@@ -1000,11 +1002,11 @@ export default function BiosAdvisor() {
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <h1 className="text-2xl font-bold text-[#E6EAF0]" data-testid="text-bios-title">Firmware Behavior Analyzer</h1>
+                <h1 className="text-2xl font-bold text-[#E6EAF0]" data-testid="text-bios-title">{t("Firmware Behavior Analyzer")}</h1>
                 <PremiumHeaderBadge isLocked={!isPremium} />
               </div>
               <p className="text-muted-foreground text-sm">
-                Infers firmware behavior from hardware telemetry and optional BIOS photo analysis. Some settings are estimated rather than read directly from firmware.
+                {t("Infers firmware behavior from hardware telemetry and optional BIOS photo analysis. Some settings are estimated rather than read directly from firmware.")}
               </p>
             </div>
             
@@ -1023,7 +1025,7 @@ export default function BiosAdvisor() {
                   data-testid="button-clear-analysis"
                 >
                   <RefreshCw className="w-3 h-3 mr-1" />
-                  Clear
+                   {t("Clear")}
                 </Button>
               )}
               <input
@@ -1048,10 +1050,10 @@ export default function BiosAdvisor() {
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
                 data-testid="button-upload-photo"
-                title={!isOnline ? "Photo scan unavailable offline" : pendingImages.length >= MAX_IMAGES ? `Maximum ${MAX_IMAGES} images reached` : undefined}
+                title={!isOnline ? t("Photo scan unavailable offline") : pendingImages.length >= MAX_IMAGES ? `${t("Maximum")} ${MAX_IMAGES} ${t("images reached")}` : undefined}
               >
                 <ImagePlus className="w-3.5 h-3.5 mr-1.5" />
-                {!isOnline ? "Offline" : pendingImages.length > 0 ? `${pendingImages.length}/${MAX_IMAGES} added` : "Add BIOS Photos"}
+                 {!isOnline ? t("Offline") : pendingImages.length > 0 ? `${pendingImages.length}/${MAX_IMAGES} ${t("added")}` : t("Add BIOS Photos")}
               </Button>
               {pendingImages.length > 0 && (
                 <Button
@@ -1062,9 +1064,9 @@ export default function BiosAdvisor() {
                   data-testid="button-analyze-photos"
                 >
                   {photoUploading ? (
-                    <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />Analyzing {pendingImages.length} screenshot{pendingImages.length > 1 ? "s" : ""}...</>
+                    <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />{t("Analyzing")} {pendingImages.length} {t(pendingImages.length === 1 ? "screenshot..." : "screenshots...")}</>
                   ) : (
-                    <><Camera className="w-3.5 h-3.5 mr-1.5" />Analyze {pendingImages.length} screenshot{pendingImages.length > 1 ? "s" : ""}</>
+                    <><Camera className="w-3.5 h-3.5 mr-1.5" />{t("Analyze")} {pendingImages.length} {t(pendingImages.length === 1 ? "screenshot" : "screenshots")}</>
                   )}
                 </Button>
               )}
@@ -1080,7 +1082,7 @@ export default function BiosAdvisor() {
                 ) : (
                   <Activity className="w-3.5 h-3.5 mr-1.5" />
                 )}
-                {isScanning ? "Analyzing..." : hasScanned ? "Re-analyze" : "Run Analysis"}
+                 {isScanning ? t("Analyzing...") : hasScanned ? t("Re-analyze") : t("Run Analysis")}
               </Button>
             </div>
           </div>
@@ -1869,7 +1871,7 @@ export default function BiosAdvisor() {
         </Item>
       </Container>
       
-      {!isPremium && <PremiumPageOverlay featureName="Firmware Behavior Analyzer" buttonText="Unlock Firmware Analyzer" />}
+      {!isPremium && <PremiumPageOverlay featureName={t("Firmware Behavior Analyzer")} buttonText={t("Unlock Firmware Analyzer")} />}
     </AppLayout>
   );
 }

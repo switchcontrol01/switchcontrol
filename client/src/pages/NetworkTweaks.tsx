@@ -42,6 +42,7 @@ import { PremiumHeaderBadge, PremiumPageOverlay } from "@/components/ui/premium-
 import { useNetworkDiagnostics } from "@/hooks/useNetworkDiagnostics";
 import { NetworkDiagnosticsHero, NetworkDiagnosticsFooter } from "@/components/network/NetworkDiagnosticsPanel";
 import { useDynamicRecommendations } from "@/hooks/useDynamicRecommendations";
+import { useTranslation } from "@/lib/i18n";
 // ── types ─────────────────────────────────────────────────────────────────────
 type TweakStatus =
   | "idle"
@@ -170,6 +171,7 @@ function buildInitialStateMap(): StateMap {
 }
 type SyncPhase = 'idle' | 'loading' | 'db_done' | 'windows_done' | 'error';
 function SectionSyncBadge({ phase }: { phase: SyncPhase }) {
+  const { t } = useTranslation();
   const [show, setShow] = useState(true);
   useEffect(() => {
     if (phase === 'windows_done') {
@@ -187,7 +189,7 @@ function SectionSyncBadge({ phase }: { phase: SyncPhase }) {
         initial={{ opacity: 0, x: -4 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.2 }}
       >
         <span className="size-1.5 rounded-full bg-cyan-400 animate-pulse inline-block" />
-        Syncing…
+        {t("Syncing…")}
       </motion.span>
     );
   }
@@ -198,7 +200,7 @@ function SectionSyncBadge({ phase }: { phase: SyncPhase }) {
         initial={{ opacity: 0, x: -4 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.2 }}
       >
         <span className="size-1.5 rounded-full bg-sky-400 animate-pulse inline-block" />
-        Verifying…
+        {t("Verifying…")}
       </motion.span>
     );
   }
@@ -212,7 +214,7 @@ function SectionSyncBadge({ phase }: { phase: SyncPhase }) {
           transition={{ duration: 0.25 }}
         >
           <CheckCircle2 className="size-3" />
-          Synced
+          {t("Synced")}
         </motion.span>
       </AnimatePresence>
     );
@@ -221,7 +223,7 @@ function SectionSyncBadge({ phase }: { phase: SyncPhase }) {
     return (
       <span className="flex items-center gap-1 text-[10px] text-orange-400/60 font-medium ml-2">
         <AlertTriangle className="size-3" />
-        Could not verify
+        {t("Could not verify")}
       </span>
     );
   }
@@ -229,6 +231,7 @@ function SectionSyncBadge({ phase }: { phase: SyncPhase }) {
 }
 
 function NetworkVerificationBanner({ fetching, phase }: { fetching: boolean; phase: SyncPhase }) {
+  const { t } = useTranslation();
   return (
     <AnimatePresence>
       {(fetching || phase === "error") && (
@@ -242,7 +245,7 @@ function NetworkVerificationBanner({ fetching, phase }: { fetching: boolean; pha
           {phase === "error" ? (
             <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-orange-500/8 border border-orange-500/15 text-xs text-orange-400/80">
               <AlertTriangle className="size-3.5 shrink-0" />
-              <span>Could not read network state, using cached values.</span>
+              <span>{t("Could not read network state, using cached values.")}</span>
             </div>
           ) : (
             <div className="relative rounded-lg border border-[#1E2530] bg-[#0D1117]/40 px-3 py-2 overflow-hidden">
@@ -253,7 +256,7 @@ function NetworkVerificationBanner({ fetching, phase }: { fetching: boolean; pha
               />
               <div className="relative flex items-center gap-2.5 text-xs">
                 <span className="size-1.5 rounded-full bg-cyan-400/80 animate-pulse shrink-0" />
-                <span className="text-[#6B7380]">Verifying network tweak states from system…</span>
+                <span className="text-[#6B7380]">{t("Verifying network tweak states from system…")}</span>
                 <div className="ml-auto overflow-hidden rounded-full h-0.5 w-16 bg-[#1E2530]">
                   <motion.div
                     className="h-full rounded-full bg-cyan-400/50"
@@ -397,11 +400,12 @@ const ImpactPill = ({ label, value }: { label: string; value: ImpactLevel }) => 
   );
 };
 function StatusBadge({ status, message }: { status: TweakStatus; message?: string }) {
+  const { t } = useTranslation();
   if (status === "applying") {
     return (
       <span className="flex items-center gap-1 text-[10px] text-blue-400">
         <Loader2 className="size-3 animate-spin" />
-        Applying…
+        {t("Applying…")}
       </span>
     );
   }
@@ -409,23 +413,23 @@ function StatusBadge({ status, message }: { status: TweakStatus; message?: strin
     return (
       <span className="flex items-center gap-1 text-[10px] text-emerald-400">
         <CheckCircle2 className="size-3" />
-        Applied
+        {t("Applied")}
       </span>
     );
   }
   if (status === "enabled_unverified") {
     return (
-      <span className="flex items-center gap-1 text-[10px] text-yellow-400" title="Applied, verification inconclusive">
+      <span className="flex items-center gap-1 text-[10px] text-yellow-400" title={t("Applied, verification inconclusive")}>
         <CheckCircle2 className="size-3" />
-        Applied*
+        {t("Applied*")}
       </span>
     );
   }
   if (status === "staged") {
     return (
-      <span className="flex items-center gap-1 text-[10px] text-blue-300" title="Staged, actual execution requires Electron runtime">
+      <span className="flex items-center gap-1 text-[10px] text-blue-300" title={t("Staged, actual execution requires Electron runtime")}>
         <CheckCircle2 className="size-3" />
-        Staged
+        {t("Staged")}
       </span>
     );
   }
@@ -433,7 +437,7 @@ function StatusBadge({ status, message }: { status: TweakStatus; message?: strin
     return (
       <span className="flex items-center gap-1 text-[10px] text-red-400" title={message}>
         <XCircle className="size-3" />
-        Failed
+        {t("Failed")}
       </span>
     );
   }
@@ -441,7 +445,7 @@ function StatusBadge({ status, message }: { status: TweakStatus; message?: strin
     return (
       <span className="flex items-center gap-1 text-[10px] text-zinc-500">
         <Ban className="size-3" />
-        Unavailable
+        {t("Unavailable")}
       </span>
     );
   }
@@ -458,6 +462,7 @@ interface NetworkTweakCardProps {
 }
 function NetworkTweakCard({ tweak, tweakState, onToggle, onInfoClick, isVerifying = false, hardwareRec, hardwareRecAi = false }: NetworkTweakCardProps) {
   const { prefersReducedMotion } = useMotion();
+  const { t } = useTranslation();
   const isUnavailable = !!tweak.unavailable;
   const isApplying = tweakState.status === "applying";
   const isEnabled = tweakState.status === "enabled" ||
@@ -544,6 +549,7 @@ function NetworkTweakCard({ tweak, tweakState, onToggle, onInfoClick, isVerifyin
                 size="icon"
                 onClick={onInfoClick}
                 data-testid={`button-info-${tweak.id}`}
+                aria-label={t("View {name} details", undefined, { name: tweak.name })}
                 className="size-5 border border-primary/25 bg-primary/[0.06] text-muted-foreground/80 hover:text-foreground hover:bg-primary/15 opacity-75 group-hover:opacity-100 transition-all duration-300 rounded-md"
               >
                 <Info className="size-3" />
@@ -572,6 +578,7 @@ interface InfoPanelProps {
 }
 function InfoPanel({ tweak, onClose }: InfoPanelProps) {
   const { prefersReducedMotion } = useMotion();
+  const { t } = useTranslation();
   useEffect(() => {
     if (!tweak) return;
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -581,9 +588,9 @@ function InfoPanel({ tweak, onClose }: InfoPanelProps) {
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [tweak, onClose]);
   const expectedEntries: [string, ImpactLevel | undefined][] = tweak ? [
-    ["Network", tweak.expected.network],
-    ["Latency", tweak.expected.latency],
-    ["Risk", tweak.expected.stabilityRisk],
+    [t("Network"), tweak.expected.network],
+    [t("Latency"), tweak.expected.latency],
+    [t("Risk"), tweak.expected.stabilityRisk],
   ] : [];
   const activeExpected = expectedEntries.filter(([, v]) => v && v !== "None");
   return createPortal(
@@ -615,11 +622,12 @@ function InfoPanel({ tweak, onClose }: InfoPanelProps) {
                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); onClose(); }}
                 className="absolute right-4 top-4 z-[60] rounded-sm p-2 opacity-70 hover:opacity-100 hover:bg-[#2A313A] transition-opacity focus:outline-none focus:ring-2 focus:ring-ring cursor-pointer"
                 data-testid="button-close-modal"
+                aria-label={t("Close")}
                 whileHover={{ scale: prefersReducedMotion ? 1.05 : 1.1 }}
                 whileTap={{ scale: prefersReducedMotion ? 0.95 : 0.9 }}
               >
                 <X className="h-5 w-5 text-[#E6EAF0]" />
-                <span className="sr-only">Close</span>
+                <span className="sr-only">{t("Close")}</span>
               </motion.button>
               <div className="space-y-1.5 pr-8">
                 <h2 className="text-lg font-semibold text-[#E6EAF0] flex items-center gap-2 flex-wrap">
@@ -639,12 +647,12 @@ function InfoPanel({ tweak, onClose }: InfoPanelProps) {
               )}
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
-                  <h4 className="text-sm font-medium text-[#E6EAF0]">Description</h4>
+                  <h4 className="text-sm font-medium text-[#E6EAF0]">{t("Description")}</h4>
                   <p className="text-sm text-muted-foreground">{tweak.description}</p>
                 </div>
                 {activeExpected.length > 0 && (
                   <div className="space-y-2">
-                    <h4 className="text-sm font-medium text-[#E6EAF0]">Expected Change</h4>
+                    <h4 className="text-sm font-medium text-[#E6EAF0]">{t("Expected Change")}</h4>
                     <div className="flex flex-wrap gap-1.5">
                       {activeExpected.map(([label, value]) => (
                         <ImpactPill key={label} label={label} value={value!} />
@@ -653,7 +661,7 @@ function InfoPanel({ tweak, onClose }: InfoPanelProps) {
                   </div>
                 )}
                 <div className="space-y-2">
-                  <h4 className="text-sm font-medium text-[#E6EAF0]">Impact</h4>
+                  <h4 className="text-sm font-medium text-[#E6EAF0]">{t("Impact")}</h4>
                   <ul className="text-sm text-muted-foreground list-disc pl-4 space-y-1">
                     {tweak.impact.map((item, index) => (
                       <li
@@ -727,6 +735,7 @@ function ToastContainer({ toasts, onDismiss }: { toasts: Toast[]; onDismiss: (id
   );
 }
 function NetworkTweaksLocked() {
+  const { t } = useTranslation();
   return (
     <AppLayout>
       <Reveal className="p-8 space-y-8">
@@ -738,24 +747,25 @@ function NetworkTweaksLocked() {
         >
           <div className="flex items-center gap-4">
             <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">
-              Network Tweaks
+              {t("Network Tweaks")}
             </h1>
             <PremiumHeaderBadge isLocked />
           </div>
           <p className="text-muted-foreground">
-            Optimize latency, throughput, and stability. Every toggle applies a real system change.
+            {t("Optimize latency, throughput, and stability. Every toggle applies a real system change.")}
           </p>
         </motion.div>
       </Reveal>
       <PremiumPageOverlay
-        featureName="Network Tweaks is a Premium Feature"
-        buttonText="Unlock Network Tweaks"
-        description="Real-time network optimization, latency tuning, and stability tweaks are available with SwitchControl Premium."
+        featureName={t("Network Tweaks is a Premium Feature")}
+        buttonText={t("Unlock Network Tweaks")}
+        description={t("Real-time network optimization, latency tuning, and stability tweaks are available with SwitchControl Premium.")}
       />
     </AppLayout>
   );
 }
 function NetworkTweaksContent() {
+  const { t } = useTranslation();
   const { mark: timingMark } = usePageTiming("NetworkTweaks");
   const { isPremium, user } = useAuth();
   useEffect(() => {
@@ -1147,12 +1157,12 @@ function NetworkTweaksContent() {
         >
           <div className="flex items-center gap-4">
             <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">
-              Network Optimization (Latency & Stability)
+              {t("Network Optimization (Latency & Stability)")}
             </h1>
             <PremiumHeaderBadge isLocked={!isPremium} />
             {enabledCount > 0 && (
               <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-primary/10 text-primary border border-primary/20">
-                {enabledCount} active
+                {t("{count} active", undefined, { count: enabledCount })}
               </span>
             )}
           </div>
@@ -1162,15 +1172,15 @@ function NetworkTweaksContent() {
             animate={{ opacity: 1 }}
             transition={{ duration: 0.45, delay: 0.2 }}
           >
-            These tweaks don't increase FPS. They reduce delay and inconsistency between your PC and game servers.
+            {t("These tweaks don't increase FPS. They reduce delay and inconsistency between your PC and game servers.")}
           </motion.p>
           <div className="flex flex-wrap gap-2 pt-1">
-            <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-white/[0.04] text-white/50 border border-white/[0.08]">reduces packet delay variation</span>
-            <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-white/[0.04] text-white/50 border border-white/[0.08]">removes Windows network limits</span>
-            <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-white/[0.04] text-white/50 border border-white/[0.08]">reduces background interference</span>
+            <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-white/[0.04] text-white/50 border border-white/[0.08]">{t("reduces packet delay variation")}</span>
+            <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-white/[0.04] text-white/50 border border-white/[0.08]">{t("removes Windows network limits")}</span>
+            <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-white/[0.04] text-white/50 border border-white/[0.08]">{t("reduces background interference")}</span>
           </div>
           <p className="text-[10px] text-white/30 mt-1">
-            If your connection is already stable, the effect may be minimal. Impact depends on adapter, driver, router, and game server.
+            {t("If your connection is already stable, the effect may be minimal. Impact depends on adapter, driver, router, and game server.")}
           </p>
         </motion.div>
         {liveTel && (
@@ -1181,7 +1191,7 @@ function NetworkTweaksContent() {
           >
             <GlassCard className="p-4">
               <div className="flex items-center gap-2 mb-3">
-                <span className="text-xs font-medium text-muted-foreground">Live network activity</span>
+                <span className="text-xs font-medium text-muted-foreground">{t("Live network activity")}</span>
                 <span className="ml-auto text-[10px] font-mono text-muted-foreground/60">
                   ↓ {formatKbps(liveTel.network.rx_sec)} &nbsp; ↑ {formatKbps(liveTel.network.tx_sec)}
                 </span>
@@ -1200,11 +1210,11 @@ function NetworkTweaksContent() {
             <div className="flex gap-3">
               <Info className="size-5 text-primary shrink-0 mt-0.5" />
               <div className="space-y-2">
-                <h3 className="text-sm font-medium text-[#E6EAF0]">Real system changes, applied immediately</h3>
+                <h3 className="text-sm font-medium text-[#E6EAF0]">{t("Real system changes, applied immediately")}</h3>
                 <ul className="text-xs text-muted-foreground space-y-1.5">
-                  <li>Every toggle writes real registry values or executes netsh/PowerShell commands, there is no placebo behavior.</li>
-                  <li>Grayed-out tweaks have been audited and disabled because they are fake, legacy, duplicate, or unsafe without benefit.</li>
-                  <li>Results vary based on hardware, driver quality, and network conditions. Monitor your experience across multiple sessions.</li>
+                  <li>{t("Every toggle writes real registry values or executes netsh/PowerShell commands, there is no placebo behavior.")}</li>
+                  <li>{t("Grayed-out tweaks have been audited and disabled because they are fake, legacy, duplicate, or unsafe without benefit.")}</li>
+                  <li>{t("Results vary based on hardware, driver quality, and network conditions. Monitor your experience across multiple sessions.")}</li>
                 </ul>
               </div>
             </div>
@@ -1219,7 +1229,8 @@ function NetworkTweaksContent() {
             <div className="relative flex-1 max-w-md">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
               <Input
-                placeholder="Search tweaks…"
+                placeholder={t("Search tweaks…")}
+                aria-label={t("Search tweaks")}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-10 bg-[#14181D]/80 border-[#2A313A]"
@@ -1239,7 +1250,7 @@ function NetworkTweaksContent() {
                 )}
                 data-testid="filter-all"
               >
-                All
+                {t("All")}
               </Button>
               {NETWORK_CATEGORIES.map(category => (
                 <Button
@@ -1293,8 +1304,8 @@ function NetworkTweaksContent() {
                         {category}
                       </h2>
                       <span className="text-xs text-muted-foreground ml-2">
-                        ({availableCount} active
-                        {unavailableCount > 0 && `, ${unavailableCount} unavailable`})
+                        ({t("{count} active", undefined, { count: availableCount })}
+                        {unavailableCount > 0 && t(", {count} unavailable", undefined, { count: unavailableCount })})
                       </span>
                     </button>
                   </CollapsibleTrigger>
@@ -1320,7 +1331,7 @@ function NetworkTweaksContent() {
           </div>
           {filteredTweaks.length === 0 && (
             <div className="text-center py-12 text-muted-foreground">
-              No tweaks found matching your search.
+              {t("No tweaks found matching your search.")}
             </div>
           )}
         </motion.div>

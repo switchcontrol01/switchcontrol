@@ -15,6 +15,7 @@ import {
   Gamepad2, AppWindow, Globe, Monitor, FolderOpen,
 } from "lucide-react";
 import StorageHealthSection from "@/components/StorageHealthSection";
+import { useTranslation } from "@/lib/i18n";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -488,6 +489,7 @@ function HistoryPanel({ history, scanHistory, onBack }: {
 // ── Main Component ────────────────────────────────────────────────────────────
 
 export default function SystemCleaner() {
+  const { t } = useTranslation();
   const { mark } = usePageTiming("SystemCleaner");
   const { toast } = useToast();
   const { user } = useAuth();
@@ -929,8 +931,8 @@ export default function SystemCleaner() {
               <Trash2 className="w-4.5 h-4.5 text-purple-400" />
             </div>
             <div>
-              <h1 className="text-[17px] font-black text-[#E6EAF0]">System Cleaner</h1>
-              <p className="text-[11px] text-[#6B7380]">Real scan-based cleaning — every size from actual filesystem data</p>
+              <h1 className="text-[17px] font-black text-[#E6EAF0]">{t("System Cleaner")}</h1>
+              <p className="text-[11px] text-[#6B7380]">{t("Real scan-based cleaning — every size from actual filesystem data")}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -983,8 +985,8 @@ export default function SystemCleaner() {
                   <ScanOrb active={false} />
 
                   <div className="flex-1 min-w-0">
-                    <p className="text-[11px] font-semibold text-purple-400/80 uppercase tracking-widest mb-2">System Analysis</p>
-                    <h2 className="text-[28px] font-black text-white leading-tight">Ready to scan your<br />system for junk</h2>
+                    <p className="text-[11px] font-semibold text-purple-400/80 uppercase tracking-widest mb-2">{t("System Analysis")}</p>
+                    <h2 className="text-[28px] font-black text-white leading-tight">{t("Ready to scan your")}<br />{t("system for junk")}</h2>
                     <p className="text-[12px] text-[#6B7380] mt-2 mb-6 leading-relaxed max-w-sm">
                       Scans temp files, caches, crash dumps, privacy residue, and performance waste.
                       Every byte shown is real — from your actual filesystem.
@@ -1010,21 +1012,21 @@ export default function SystemCleaner() {
                     {lastScan ? (
                       <>
                         <div className="rounded-xl border border-white/[0.07] bg-white/[0.03] px-4 py-3">
-                          <p className="text-[10px] text-[#6B7380] uppercase tracking-wide mb-1">Last scan found</p>
+                        <p className="text-[10px] text-[#6B7380] uppercase tracking-wide mb-1">{t("Last scan found")}</p>
                           <p className="text-[20px] font-black text-white">{fmtBytes(lastScan.total_bytes)}</p>
                           <p className="text-[10px] text-[#6B7380] mt-0.5">{timeAgo(lastScan.ran_at)}</p>
                         </div>
                         {scanHistory.length >= 2 && (
                           <div className="rounded-xl border border-white/[0.07] bg-white/[0.03] px-4 py-3">
-                            <p className="text-[10px] text-[#6B7380] uppercase tracking-wide mb-2">Scan trend</p>
+                            <p className="text-[10px] text-[#6B7380] uppercase tracking-wide mb-2">{t("Scan trend")}</p>
                             <Sparkline data={scanHistory.slice(-8).map(s => s.total_bytes)} height={36} color="#8b5cf6" id="idle-trend" />
                           </div>
                         )}
                       </>
                     ) : (
                       <div className="rounded-xl border border-white/[0.07] bg-white/[0.03] px-4 py-3">
-                        <p className="text-[10px] text-[#6B7380] uppercase tracking-wide mb-1">First scan</p>
-                        <p className="text-[12px] text-[#4a5460] leading-relaxed">No history yet — run a scan to see results.</p>
+                        <p className="text-[10px] text-[#6B7380] uppercase tracking-wide mb-1">{t("First scan")}</p>
+                        <p className="text-[12px] text-[#4a5460] leading-relaxed">{t("No history yet — run a scan to see results.")}</p>
                       </div>
                     )}
                   </div>
@@ -1050,7 +1052,7 @@ export default function SystemCleaner() {
                     animate={{ opacity: [1, 0.6, 1] }} transition={{ duration: 1.8, repeat: Infinity }}>
                     Scanning system…
                   </motion.p>
-                  <p className="text-[12px] text-[#6B7380] mt-1">Analyzing filesystem, registry, and caches</p>
+                  <p className="text-[12px] text-[#6B7380] mt-1">{t("Analyzing filesystem, registry, and caches")}</p>
                 </div>
               </div>
 
@@ -1084,7 +1086,7 @@ export default function SystemCleaner() {
                   style={{ background: "radial-gradient(circle, rgba(34,211,238,0.06) 0%, transparent 70%)", transform: "translate(30%, -30%)" }} />
                 <div className="relative flex items-center gap-6 flex-wrap">
                   <div>
-                    <p className="text-[11px] text-[#6B7380] uppercase tracking-widest mb-1">Total found</p>
+                    <p className="text-[11px] text-[#6B7380] uppercase tracking-widest mb-1">{t("Total found")}</p>
                     <div className="flex items-end gap-2">
                       <span className="text-[36px] font-black text-white leading-none">
                         <CountUp target={parseFloat(fmtBytesShort(totalFound).value)} decimals={1} />
@@ -1269,7 +1271,7 @@ export default function SystemCleaner() {
                       <CheckCircle2 className="w-8 h-8 text-green-400" />
                     </div>
                   </motion.div>
-                  <p className="text-[11px] font-bold text-green-400/80 uppercase tracking-widest">System cleaned</p>
+                  <p className="text-[11px] font-bold text-green-400/80 uppercase tracking-widest">{t("System cleaned")}</p>
                   <div className="flex items-end gap-2">
                     <span className="text-[52px] font-black text-white leading-none">
                       <CountUp target={parseFloat(resultValue)} decimals={resultUnit !== "KB" ? 2 : 0} />
@@ -1286,11 +1288,11 @@ export default function SystemCleaner() {
               {/* Scan trend */}
               {scanHistory.length >= 2 && (
                 <div className="rounded-2xl border border-white/[0.07] bg-white/[0.02] px-5 py-4">
-                  <p className="text-[11px] text-[#6B7380] uppercase tracking-wide mb-3 font-semibold">Scan trend</p>
+                  <p className="text-[11px] text-[#6B7380] uppercase tracking-wide mb-3 font-semibold">{t("Scan trend")}</p>
                   <Sparkline data={scanHistory.slice(-12).map(s => s.total_bytes)} height={52} color="#8b5cf6" id="result-trend" />
                   <div className="flex justify-between mt-2">
                     <span className="text-[10px] text-[#4a5460]">{scanHistory.length >= 2 ? timeAgo(scanHistory[Math.max(0, scanHistory.length - 12)].ran_at) : ""}</span>
-                    <span className="text-[10px] text-[#4a5460]">now</span>
+                    <span className="text-[10px] text-[#4a5460]">{t("now")}</span>
                   </div>
                 </div>
               )}

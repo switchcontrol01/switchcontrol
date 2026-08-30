@@ -48,6 +48,7 @@ interface PatchNotes {
 let _patchNotesCache: PatchNotes | null = null;
 
 function PatchNotesSection({ onViewFull }: { onViewFull: () => void }) {
+  const { t } = useTranslation();
   const [notes, setNotes] = useState<PatchNotes | null>(_patchNotesCache);
 
   useEffect(() => {
@@ -93,7 +94,7 @@ function PatchNotesSection({ onViewFull }: { onViewFull: () => void }) {
           </div>
           <span className="text-[9px] font-bold tracking-widest uppercase leading-none"
             style={{ color: "rgba(192,155,255,0.55)" }}>
-            What's New
+            {t("What's New")}
           </span>
         </div>
 
@@ -104,7 +105,7 @@ function PatchNotesSection({ onViewFull }: { onViewFull: () => void }) {
             {isNew && (
               <span className="text-[8px] font-bold tracking-widest uppercase px-1.5 py-[3px] rounded-full shrink-0"
                 style={{ background: "rgba(139,92,246,0.22)", color: "rgba(192,155,255,0.95)", border: "1px solid rgba(139,92,246,0.30)" }}>
-                New
+                {t("New")}
               </span>
             )}
           </div>
@@ -139,7 +140,7 @@ function PatchNotesSection({ onViewFull }: { onViewFull: () => void }) {
               className="text-[10.5px] pl-5 transition-colors hover:text-[rgba(192,155,255,0.8)]"
               style={{ color: "rgba(139,92,246,0.55)" }}
             >
-              +{extra} more, view all →
+              {t("+{count} more, view all →", undefined, { count: extra })}
             </button>
           )}
         </div>
@@ -158,12 +159,13 @@ function PreferenceSwitch({ label, description, checked, onChange, testId, statu
   label: string; description: string; checked: boolean; onChange: (value: boolean) => void; testId: string;
   status?: "not-active";
 }) {
+  const { t } = useTranslation();
   return (
     <div className="flex items-center justify-between gap-4 py-3 px-3 -mx-3 rounded-xl hover:bg-white/[0.03] transition-colors">
       <div className="min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
           <Label className="text-sm">{label}</Label>
-          {status === "not-active" && <span className="text-[9px] uppercase tracking-wide rounded border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-amber-300">Not yet active</span>}
+          {status === "not-active" && <span className="text-[9px] uppercase tracking-wide rounded border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-amber-300">{t("Not yet active")}</span>}
         </div>
         <p className="text-xs text-muted-foreground mt-1">{description}</p>
       </div>
@@ -245,6 +247,7 @@ function ReorderList({ items, hidden, labels, onToggle, onReorder, testPrefix }:
   items: string[]; hidden: string[]; labels: Record<string, string>;
   onToggle: (id: string) => void; onReorder: (fromIndex: number, toIndex: number) => void; testPrefix: string;
 }) {
+  const { t } = useTranslation();
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dropIndex, setDropIndex] = useState<number | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
@@ -312,7 +315,7 @@ function ReorderList({ items, hidden, labels, onToggle, onReorder, testPrefix }:
           className={`group flex items-center gap-2 rounded-lg border px-2 py-1.5 cursor-grab active:cursor-grabbing select-none transition-all ${
             hidden.includes(id) ? "border-border/30 opacity-50" : "border-border/60 bg-background/20"
           } ${draggedId === id ? "opacity-40 border-primary/60" : dropIndex === index ? "border-primary/70 bg-primary/10" : "hover:border-primary/40"}`}
-          aria-label={`Drag to reorder ${labels[id] || id}`}
+          aria-label={t("Drag to reorder {item}", undefined, { item: labels[id] || id })}
           data-reorder-index={index}
           data-testid={`${testPrefix}-reorder-${id.replace(/[^a-z0-9]/gi, "-")}`}
         >
@@ -322,20 +325,20 @@ function ReorderList({ items, hidden, labels, onToggle, onReorder, testPrefix }:
             onPointerUp={finishDrag}
             onPointerCancel={cancelDrag}
             className="shrink-0 cursor-grab active:cursor-grabbing touch-none rounded p-1 -ml-1 hover:bg-primary/10"
-            title="Click and hold to drag"
-            aria-label={`Drag ${labels[id] || id} to reorder`}
+            title={t("Click and hold to drag")}
+            aria-label={t("Drag {item} to reorder", undefined, { item: labels[id] || id })}
             data-testid={`${testPrefix}-drag-handle-${id.replace(/[^a-z0-9]/gi, "-")}`}
           >
             <GripVertical className="size-3.5 text-muted-foreground/50 group-hover:text-primary/80" aria-hidden="true" />
           </div>
-          <button type="button" onClick={() => onToggle(id)} aria-label={`${hidden.includes(id) ? "Show" : "Hide"} ${labels[id]}`}
+          <button type="button" onClick={() => onToggle(id)} aria-label={t(hidden.includes(id) ? "Show {item}" : "Hide {item}", undefined, { item: labels[id] })}
             data-testid={`${testPrefix}-toggle-${id.replace(/[^a-z0-9]/gi, "-")}`} className="rounded-md p-1.5 text-muted-foreground hover:text-foreground">
             <Eye className="size-3.5" />
           </button>
           <span className="flex-1 text-sm">{labels[id] || id}</span>
         </div>
       ))}
-      <p className="text-[10px] text-muted-foreground/70">Click and hold the grip, then drag over another row to reorder.</p>
+      <p className="text-[10px] text-muted-foreground/70">{t("Click and hold the grip, then drag over another row to reorder.")}</p>
     </div>
   );
 }
@@ -355,7 +358,7 @@ function CustomizationSettings() {
     anchor.download = "switchcontrol-settings.json";
     anchor.click();
     URL.revokeObjectURL(url);
-    toast({ title: "Settings exported", description: "Your local preferences were downloaded." });
+    toast({ title: t("Settings exported"), description: t("Your local preferences were downloaded.") });
   };
   const accentOptions = Object.entries(ACCENT_COLORS) as [Exclude<keyof typeof ACCENT_COLORS, "custom">, string][];
   return (
@@ -366,13 +369,13 @@ function CustomizationSettings() {
             <Label>{t("Accent color")}</Label>
             <div className="mt-2 flex flex-wrap gap-2">
               {accentOptions.map(([name, color]) => (
-                <button key={name} type="button" aria-label={`Use ${name} accent`} data-testid={`accent-${name}`}
+                <button key={name} type="button" aria-label={t("Use {name} accent", undefined, { name })} data-testid={`accent-${name}`}
                   onClick={() => set("accent", name)}
                   className={`size-8 rounded-full border-2 transition-transform hover:scale-110 ${preferences.accent === name ? "border-foreground scale-110" : "border-transparent"}`}
                   style={{ backgroundColor: color, boxShadow: preferences.accent === name ? `0 0 16px ${color}88` : undefined }} />
               ))}
               <label className={`flex size-8 cursor-pointer items-center justify-center rounded-full border-2 ${preferences.accent === "custom" ? "border-foreground" : "border-border/70"}`} style={{ background: `conic-gradient(#f87171, #fbbf24, #34d399, #60a5fa, #a78bfa, #f87171)` }}>
-                <input type="color" value={preferences.customAccent} onChange={(e) => { set("customAccent", e.target.value); set("accent", "custom"); }} className="sr-only" aria-label="Choose custom accent color" />
+                <input type="color" value={preferences.customAccent} onChange={(e) => { set("customAccent", e.target.value); set("accent", "custom"); }} className="sr-only" aria-label={t("Choose custom accent color")} />
               </label>
             </div>
           </div>
@@ -380,16 +383,16 @@ function CustomizationSettings() {
              options={[["dark", "Dark"], ["light", "Light"], ["system", "System"], ["midnight", "Midnight"], ["oled", "OLED Black"], ["contrast", "High Contrast"]].map(([value, label]) => ({ value, label: t(label) }))}
             onChange={(value) => set("theme", value as ThemeMode)} testId="select-theme" />
            <PreferenceSwitch label={t("Reduced motion")} description={t("Minimize transitions and animated effects.")} checked={preferences.reducedMotion} onChange={(v) => set("reducedMotion", v)} testId="toggle-reduced-motion" />
-          <PreferenceSwitch label="Disable graph animation" description="Keep live charts updating without animated redraws." checked={preferences.disableGraphAnimation} onChange={(v) => set("disableGraphAnimation", v)} testId="toggle-disable-graph-animation" />
+          <PreferenceSwitch label={t("Disable graph animation")} description={t("Keep live charts updating without animated redraws.")} checked={preferences.disableGraphAnimation} onChange={(v) => set("disableGraphAnimation", v)} testId="toggle-disable-graph-animation" />
         </div>
       </PreferenceCard>
 
        <PreferenceCard icon={Accessibility} title={t("Accessibility")} description={t("Tune readability, contrast, focus, and interaction sizing.")}>
-        <PreferenceSwitch label="Larger text" description="Increase the base application font size." checked={preferences.largerText} onChange={(v) => set("largerText", v)} testId="toggle-larger-text" />
-        <PreferenceSwitch label="High contrast controls" description="Increase contrast for borders, labels, and secondary text." checked={preferences.highContrast} onChange={(v) => set("highContrast", v)} testId="toggle-high-contrast" />
-        <PreferenceSwitch label="Larger click targets" description="Give buttons and fields more room to operate." checked={preferences.largeTargets} onChange={(v) => set("largeTargets", v)} testId="toggle-large-targets" />
-        <PreferenceSwitch label="Color-blind-safe statuses" description="Use a shape and amber distinction alongside red status colors." checked={preferences.colorBlindSafe} onChange={(v) => set("colorBlindSafe", v)} testId="toggle-colorblind-safe" />
-        <PreferenceSwitch label="Always show status labels" description="Keep text labels visible beside status indicators." checked={preferences.alwaysShowStatusLabels} onChange={(v) => set("alwaysShowStatusLabels", v)} testId="toggle-status-labels" />
+        <PreferenceSwitch label={t("Larger text")} description={t("Increase the base application font size.")} checked={preferences.largerText} onChange={(v) => set("largerText", v)} testId="toggle-larger-text" />
+        <PreferenceSwitch label={t("High contrast controls")} description={t("Increase contrast for borders, labels, and secondary text.")} checked={preferences.highContrast} onChange={(v) => set("highContrast", v)} testId="toggle-high-contrast" />
+        <PreferenceSwitch label={t("Larger click targets")} description={t("Give buttons and fields more room to operate.")} checked={preferences.largeTargets} onChange={(v) => set("largeTargets", v)} testId="toggle-large-targets" />
+        <PreferenceSwitch label={t("Color-blind-safe statuses")} description={t("Use a shape and amber distinction alongside red status colors.")} checked={preferences.colorBlindSafe} onChange={(v) => set("colorBlindSafe", v)} testId="toggle-colorblind-safe" />
+        <PreferenceSwitch label={t("Always show status labels")} description={t("Keep text labels visible beside status indicators.")} checked={preferences.alwaysShowStatusLabels} onChange={(v) => set("alwaysShowStatusLabels", v)} testId="toggle-status-labels" />
       </PreferenceCard>
 
        <PreferenceCard icon={LayoutGrid} title={t("Layout")} description={t("Arrange the navigation rail and dashboard around the information you use most.")}>
@@ -409,7 +412,7 @@ function CustomizationSettings() {
               }}
               testPrefix="sidebar"
             />
-            <p className="text-[11px] text-muted-foreground mt-2">Settings is always available so you can recover or reset your layout.</p>
+            <p className="text-[11px] text-muted-foreground mt-2">{t("Settings is always available so you can recover or reset your layout.")}</p>
           </div>
           <div>
              <Label className="mb-2 block">{t("Dashboard cards")}</Label>
@@ -429,19 +432,19 @@ function CustomizationSettings() {
           </div>
         </div>
         <Separator className="my-5 bg-border/40" />
-        <PreferenceSwitch label="Large sidebar" description="Use a wider navigation rail for longer labels." checked={preferences.largeSidebar} onChange={(v) => set("largeSidebar", v)} testId="toggle-large-sidebar" />
-        <Button variant="outline" size="sm" onClick={() => { if (window.confirm("Reset layout and appearance preferences to their defaults?")) preferences.resetPreferences(); }} data-testid="button-reset-customization"><RotateCcw className="size-3.5 mr-2" />Reset customization</Button>
+        <PreferenceSwitch label={t("Large sidebar")} description={t("Use a wider navigation rail for longer labels.")} checked={preferences.largeSidebar} onChange={(v) => set("largeSidebar", v)} testId="toggle-large-sidebar" />
+        <Button variant="outline" size="sm" onClick={() => { if (window.confirm(t("Reset layout and appearance preferences to their defaults?"))) preferences.resetPreferences(); }} data-testid="button-reset-customization"><RotateCcw className="size-3.5 mr-2" />{t("Reset customization")}</Button>
       </PreferenceCard>
 
        <PreferenceCard icon={SlidersHorizontal} title={t("Tweak behavior")} description={t("Control sorting, confirmations, intelligence, and safety checks.")}>
-        <PreferenceSelect label="Confirmation prompts" description="Choose which tweak actions ask before applying." value={preferences.confirmationMode}
-          options={[["always", "Every change"], ["risky", "Risky changes only"], ["safe", "Never for safe changes"]].map(([value, label]) => ({ value, label }))}
+        <PreferenceSelect label={t("Confirmation prompts")} description={t("Choose which tweak actions ask before applying.")} value={preferences.confirmationMode}
+          options={[["always", "Every change"], ["risky", "Risky changes only"], ["safe", "Never for safe changes"]].map(([value, label]) => ({ value, label: t(label) }))}
           onChange={(value) => set("confirmationMode", value as ConfirmationMode)} testId="select-confirmation-mode" />
-        <PreferenceSwitch label="Recommended tweaks first" description="Keep the safest recommendations at the top." checked={preferences.showRecommendedFirst} onChange={(v) => set("showRecommendedFirst", v)} testId="toggle-recommended-first" />
-        <PreferenceSwitch label="Applied tweaks first" description="Group currently active tweaks above inactive ones." checked={preferences.showAppliedFirst} onChange={(v) => set("showAppliedFirst", v)} testId="toggle-applied-first" />
-        <PreferenceSwitch label="Hide unsupported tweaks" description="Remove tweaks that cannot run on this device." checked={preferences.hideUnsupported} onChange={(v) => set("hideUnsupported", v)} testId="toggle-hide-unsupported" />
-        <PreferenceSwitch label="Hide advanced tweaks" description="Keep advanced controls out of the default list." checked={preferences.hideAdvanced} onChange={(v) => set("hideAdvanced", v)} testId="toggle-hide-advanced" />
-        <PreferenceSwitch label="Show experimental tweaks" description="Include clearly marked experimental options." checked={preferences.showExperimental} onChange={(v) => set("showExperimental", v)} testId="toggle-show-experimental" />
+        <PreferenceSwitch label={t("Recommended tweaks first")} description={t("Keep the safest recommendations at the top.")} checked={preferences.showRecommendedFirst} onChange={(v) => set("showRecommendedFirst", v)} testId="toggle-recommended-first" />
+        <PreferenceSwitch label={t("Applied tweaks first")} description={t("Group currently active tweaks above inactive ones.")} checked={preferences.showAppliedFirst} onChange={(v) => set("showAppliedFirst", v)} testId="toggle-applied-first" />
+        <PreferenceSwitch label={t("Hide unsupported tweaks")} description={t("Remove tweaks that cannot run on this device.")} checked={preferences.hideUnsupported} onChange={(v) => set("hideUnsupported", v)} testId="toggle-hide-unsupported" />
+        <PreferenceSwitch label={t("Hide advanced tweaks")} description={t("Keep advanced controls out of the default list.")} checked={preferences.hideAdvanced} onChange={(v) => set("hideAdvanced", v)} testId="toggle-hide-advanced" />
+        <PreferenceSwitch label={t("Show experimental tweaks")} description={t("Include clearly marked experimental options.")} checked={preferences.showExperimental} onChange={(v) => set("showExperimental", v)} testId="toggle-show-experimental" />
         <PreferenceSwitch label="Expand Performance Intelligence" description="Open the intelligence panel when it becomes available." checked={preferences.expandIntelligence} onChange={(v) => set("expandIntelligence", v)} testId="toggle-expand-intelligence" />
         <PreferenceSwitch label="Refresh intelligence automatically" description="Retry intelligence data after startup and on return." checked={preferences.autoRefreshIntelligence} onChange={(v) => set("autoRefreshIntelligence", v)} testId="toggle-auto-refresh-intelligence" />
         <PreferenceSwitch label="Create restore point" description="Request a Windows restore point before system changes." checked={preferences.createRestorePoint} onChange={(v) => set("createRestorePoint", v)} testId="toggle-create-restore-point" />

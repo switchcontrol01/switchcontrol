@@ -2,6 +2,7 @@ import { useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import logoImg from "@/assets/logo.webp";
 import { Crown } from "lucide-react";
+import { useTranslation } from "@/lib/i18n";
 
 interface WelcomeAnimationProps {
   userName: string | null;
@@ -26,6 +27,7 @@ export function WelcomeAnimation({
   onComplete,
   introDelay = 0.55,
 }: WelcomeAnimationProps) {
+  const { t } = useTranslation();
   useEffect(() => {
     // 5800ms aligns with progress-bar completion:
     // introDelay 1.7s + 1.3s progress-bar delay + 2.8s fill = 5.8s (5800ms).
@@ -280,7 +282,7 @@ export function WelcomeAnimation({
         {/* Logo image with glow pulse */}
         <motion.img
           src={logoImg}
-          alt="SwitchControl"
+          alt={t("SwitchControl")}
           className="w-28 h-28 object-contain rounded-3xl relative z-10"
           draggable={false}
           initial={{ filter: "drop-shadow(0 0 16px rgba(0,212,255,0.6)) drop-shadow(0 0 40px rgba(0,212,255,0.3))" }}
@@ -303,7 +305,7 @@ export function WelcomeAnimation({
         transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1], delay: introDelay + 0.45 }}
       >
         <h1 className="text-[2.8rem] font-bold leading-none mb-3 tracking-tight">
-          <span className="text-[#E6EAF0]">Welcome</span>
+          <span className="text-[#E6EAF0]">{t("Welcome")}</span>
           {userName && (
             <motion.span
               style={{
@@ -331,14 +333,14 @@ export function WelcomeAnimation({
               <motion.span animate={{ rotate: [-8, 8, -8] }} transition={{ duration: 1.8, delay: introDelay + 1, repeat: Infinity }}>
                 <Crown className="w-4 h-4 flex-shrink-0" />
               </motion.span>
-              Premium Member
+              {t("Premium Member")}
               <motion.span animate={{ rotate: [8, -8, 8] }} transition={{ duration: 1.8, delay: introDelay + 1, repeat: Infinity }}>
                 <Crown className="w-4 h-4 flex-shrink-0" />
               </motion.span>
             </span>
           ) : (
             <p className="text-[15px] text-zinc-400">
-              Let's optimize your gaming experience
+              {t("Let's optimize your gaming experience")}
             </p>
           )}
         </motion.div>
@@ -391,6 +393,9 @@ export function WelcomeAnimation({
             />
           ))}
         </div>
+        <p className="text-[11px] font-medium tracking-[0.16em] text-cyan-100/55">
+          {t("Loading…")}
+        </p>
       </motion.div>
 
     </motion.div>

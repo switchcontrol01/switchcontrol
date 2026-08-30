@@ -78,7 +78,7 @@ import { useSystemConditionsStore } from "@/stores/systemConditionsStore";
 import { useToast } from "@/hooks/use-toast";
 import { UserPreferencesSync } from "@/components/UserPreferencesSync";
 import { AdaptivePerformanceSync } from "@/lib/adaptivePerformanceStore";
-import { I18nProvider } from "@/lib/i18n";
+import { I18nProvider, useTranslation } from "@/lib/i18n";
 import { clearTourState } from "@/lib/tour-store";
 import {
   describeFactoryResetFailure,
@@ -190,6 +190,7 @@ function FirstRunHandoff({
   prefersReducedMotion: boolean;
   onComplete: () => void;
 }) {
+  const { t } = useTranslation();
   const [isExiting, setIsExiting] = React.useState(false);
   const onCompleteRef = React.useRef(onComplete);
   onCompleteRef.current = onComplete;
@@ -249,8 +250,8 @@ function FirstRunHandoff({
       <div className="absolute inset-0 flex items-center justify-center">
         <div className="rounded-full border border-white/20 bg-white/[0.08] px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.3em] text-white/80 shadow-[0_0_35px_rgba(111,211,255,0.3)]">
           {kind === "language-to-consent"
-            ? "Preparing your setup"
-            : "Saving your preferences"}
+            ? t("Preparing your setup")
+            : t("Saving your preferences")}
         </div>
       </div>
     </motion.div>

@@ -6,6 +6,7 @@ import { TourShell, type TourStep } from "./TourShell";
 import { useAuthStore, postTourSeen } from "@/lib/auth-store";
 import { TourLineGraph } from "@/components/ui/tour-line-graph";
 import { SOCIAL_LINKS } from "@/config/socialLinks";
+import { useTranslation } from "@/lib/i18n";
 
 // ── Shared: Glass panel wrapper ───────────────────────────────────────────────
 function GlassPanel({ children, className = "" }: { children: ReactNode; className?: string }) {
@@ -31,12 +32,13 @@ const PREMIUM_FEATURES = [
 ];
 
 function WelcomePremiumPreview() {
+  const { t } = useTranslation();
   return (
     <GlassPanel>
       <div className="p-3 space-y-3">
         <div className="flex items-center justify-between">
           <span className="text-[9px] font-bold uppercase tracking-[0.18em]" style={{ color: "rgba(251,191,36,0.55)" }}>
-            Premium Upgrade
+            {t("Premium Upgrade")}
           </span>
           <motion.div
             className="flex items-center gap-1.5 px-2 py-0.5 rounded-full"
@@ -45,7 +47,7 @@ function WelcomePremiumPreview() {
             transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
           >
             <Crown className="w-2.5 h-2.5" style={{ color: "rgba(251,191,36,0.9)" }} />
-            <span className="text-[8px] font-bold" style={{ color: "rgba(251,191,36,0.85)" }}>PREMIUM</span>
+            <span className="text-[8px] font-bold" style={{ color: "rgba(251,191,36,0.85)" }}>{t("PREMIUM")}</span>
           </motion.div>
         </div>
 
@@ -53,8 +55,8 @@ function WelcomePremiumPreview() {
           {PREMIUM_FEATURES.map((f, i) => (
             <div key={f.label}>
               <div className="flex justify-between items-center mb-1">
-                <span className="text-[9px] font-medium" style={{ color: `${f.color}0.5)` }}>{f.label}</span>
-                <span className="text-[9px] font-mono" style={{ color: `${f.color}0.7)` }}>{f.detail}</span>
+                <span className="text-[9px] font-medium" style={{ color: `${f.color}0.5)` }}>{t(f.label)}</span>
+                <span className="text-[9px] font-mono" style={{ color: `${f.color}0.7)` }}>{t(f.detail)}</span>
               </div>
               <div className="h-[2px] rounded-full" style={{ background: "rgba(255,255,255,0.06)" }}>
                 <div
@@ -70,7 +72,7 @@ function WelcomePremiumPreview() {
         </div>
 
         <p className="text-[9px] text-white/30 pt-1">
-          No fake boosts. Just removing what slows your system down.
+          {t("No fake boosts. Just removing what slows your system down.")}
         </p>
       </div>
     </GlassPanel>
@@ -87,6 +89,7 @@ const POWER_PLANS = [
 const POWER_FPS = [94, 102, 98, 107, 104, 112, 109, 118, 114, 122, 119, 126, 122, 128, 124];
 
 function PowerPlanPreview() {
+  const { t } = useTranslation();
   const [selected, setSelected] = useState("ultra");
 
   return (
@@ -94,7 +97,7 @@ function PowerPlanPreview() {
       <div className="p-3 space-y-3">
         <div className="flex items-center justify-between">
           <span className="text-[9px] font-bold uppercase tracking-[0.18em]" style={{ color: "rgba(251,191,36,0.55)" }}>
-            Power Plan Control
+            {t("Power Plan Control")}
           </span>
           <motion.span
             className="text-[8px] font-semibold px-1.5 py-0.5 rounded-md"
@@ -102,7 +105,7 @@ function PowerPlanPreview() {
             animate={{ opacity: [1, 0.6, 1] }}
             transition={{ duration: 2.2, repeat: Infinity }}
           >
-            Premium only
+            {t("Premium only")}
           </motion.span>
         </div>
 
@@ -124,7 +127,7 @@ function PowerPlanPreview() {
               <span className="text-base leading-none">{plan.icon}</span>
               <div className="flex-1 min-w-0">
                 <div className="text-[10px] font-medium" style={{ color: selected === plan.id ? `${plan.color}0.9)` : "rgba(255,255,255,0.5)" }}>
-                  {plan.label}
+                  {t(plan.label)}
                 </div>
                 <div className="mt-1 h-[2px] rounded-full" style={{ background: "rgba(255,255,255,0.06)" }}>
                   <motion.div
@@ -157,7 +160,7 @@ function PowerPlanPreview() {
             color="rgba(251,191,36,"
             height={32}
             delay={0.4}
-            label="FPS stability"
+            label={t("FPS stability")}
             labelValue="124 avg"
           />
         </div>
@@ -178,6 +181,7 @@ const NET_TWEAKS = [
 ];
 
 function NetworkTweaksPreview() {
+  const { t } = useTranslation();
   return (
     <GlassPanel>
       <div className="p-3 space-y-3">
@@ -191,11 +195,11 @@ function NetworkTweaksPreview() {
             >
               11ms
             </motion.div>
-            <div className="text-[8px] uppercase tracking-widest" style={{ color: "rgba(0,210,255,0.35)" }}>Ping</div>
+            <div className="text-[8px] uppercase tracking-widest" style={{ color: "rgba(0,210,255,0.35)" }}>{t("Ping")}</div>
           </div>
           <div>
             <div className="text-[20px] font-bold font-mono leading-none" style={{ color: "rgba(52,211,153,0.9)" }}>0.0%</div>
-            <div className="text-[8px] uppercase tracking-widest" style={{ color: "rgba(52,211,153,0.35)" }}>Loss</div>
+            <div className="text-[8px] uppercase tracking-widest" style={{ color: "rgba(52,211,153,0.35)" }}>{t("Loss")}</div>
           </div>
           <div className="ml-auto">
             <div className="space-y-1">
@@ -212,7 +216,7 @@ function NetworkTweaksPreview() {
                     style={{ background: t.active ? "rgba(0,210,255,0.8)" : "rgba(255,255,255,0.15)" }}
                   />
                   <span className="text-[9px]" style={{ color: t.active ? "rgba(255,255,255,0.55)" : "rgba(255,255,255,0.2)" }}>
-                    {t.label}
+                    {t(t.label)}
                   </span>
                 </motion.div>
               ))}
@@ -225,7 +229,7 @@ function NetworkTweaksPreview() {
           color="rgba(0,210,255,"
           height={36}
           delay={0.1}
-          label="Latency trace"
+          label={t("Latency trace")}
           labelValue="11ms"
         />
 
@@ -235,7 +239,7 @@ function NetworkTweaksPreview() {
             color="rgba(52,211,153,"
             height={28}
             delay={0.35}
-            label="Throughput"
+            label={t("Throughput")}
             labelValue="73 Mbps"
           />
         </div>
@@ -255,6 +259,7 @@ const BIOS_ROWS = [
 ];
 
 function BiosAdvisorPreview() {
+  const { t } = useTranslation();
   const circumference = 2 * Math.PI * 18;
 
   return (
@@ -262,7 +267,7 @@ function BiosAdvisorPreview() {
       <div className="p-3 space-y-3">
         <div className="flex items-center justify-between">
           <span className="text-[9px] font-bold uppercase tracking-[0.18em]" style={{ color: "rgba(251,191,36,0.55)" }}>
-            BIOS Intelligence
+            {t("BIOS Intelligence")}
           </span>
           <motion.span
             className="text-[8px] px-1.5 py-0.5 rounded-md font-semibold"
@@ -271,7 +276,7 @@ function BiosAdvisorPreview() {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.8 }}
           >
-            4 recommendations
+            {t("4 recommendations")}
           </motion.span>
         </div>
 
@@ -309,7 +314,7 @@ function BiosAdvisorPreview() {
                 82
               </motion.div>
             </div>
-            <span className="text-[8px] uppercase tracking-wider" style={{ color: "rgba(255,255,255,0.25)" }}>Score</span>
+            <span className="text-[8px] uppercase tracking-wider" style={{ color: "rgba(255,255,255,0.25)" }}>{t("Score")}</span>
           </div>
 
           <div className="flex-1 space-y-1.5">
@@ -323,7 +328,7 @@ function BiosAdvisorPreview() {
               >
                 <div>
                   <div className="text-[10px]" style={{ color: "rgba(255,255,255,0.55)" }}>{r.setting}</div>
-                  <div className="text-[8px]" style={{ color: "rgba(255,255,255,0.22)" }}>{r.current}</div>
+                  <div className="text-[8px]" style={{ color: "rgba(255,255,255,0.22)" }}>{t(r.current)}</div>
                 </div>
                 <span
                   className="text-[8px] px-1.5 py-0.5 rounded-md font-semibold flex-shrink-0 ml-2"
@@ -333,7 +338,7 @@ function BiosAdvisorPreview() {
                     color: r.warn ? "#fbbf24" : "#22d3ee",
                   }}
                 >
-                  → {r.rec}
+                  → {t(r.rec)}
                 </span>
               </motion.div>
             ))}
@@ -346,7 +351,7 @@ function BiosAdvisorPreview() {
             color="rgba(251,191,36,"
             height={28}
             delay={0.5}
-            label="Score trajectory"
+            label={t("Score trajectory")}
             labelValue="+42pts"
           />
         </div>
@@ -364,12 +369,13 @@ const AI_MESSAGES = [
 ];
 
 function AiFullSystemPreview() {
+  const { t } = useTranslation();
   return (
     <GlassPanel>
       <div className="p-3 space-y-3">
         <div className="flex items-center justify-between">
           <span className="text-[9px] font-bold uppercase tracking-[0.18em]" style={{ color: "rgba(168,85,247,0.55)" }}>
-            AI System Advisor
+            {t("AI System Advisor")}
           </span>
           <motion.span
             className="text-[8px] px-1.5 py-0.5 rounded-md"
@@ -377,7 +383,7 @@ function AiFullSystemPreview() {
             animate={{ opacity: [1, 0.6, 1] }}
             transition={{ duration: 2, repeat: Infinity }}
           >
-            Analyzing…
+            {t("Analyzing…")}
           </motion.span>
         </div>
 
@@ -401,7 +407,7 @@ function AiFullSystemPreview() {
                   boxShadow: m.from === "user" ? "0 2px 12px rgba(168,85,247,0.2)" : "none",
                 }}
               >
-                {m.text}
+                {t(m.text)}
               </div>
             </motion.div>
           ))}
@@ -435,7 +441,7 @@ function AiFullSystemPreview() {
             color="rgba(168,85,247,"
             height={28}
             delay={0.6}
-            label="Analysis confidence"
+            label={t("Analysis confidence")}
             labelValue="87%"
           />
         </div>
@@ -524,12 +530,13 @@ function StagedUnlockAnimation() {
 }
 
 // ── Premium Tour steps ────────────────────────────────────────────────────────
-const PREMIUM_TOUR_STEPS: TourStep[] = [
+function getPremiumTourSteps(t: (key: string) => string): TourStep[] {
+  return [
   {
     id: "welcome-premium",
-    title: "Welcome to Premium",
+    title: t("Welcome to Premium"),
     description:
-      "You now have access to the full SwitchControl suite. Let us show you everything that just unlocked.",
+      t("You now have access to the full SwitchControl suite. Let us show you everything that just unlocked."),
     icon: <Crown className="w-5 h-5 text-amber-400" />,
     targetSelector: '[data-tour="dashboard-hero"]',
     route: "/dashboard",
@@ -538,9 +545,9 @@ const PREMIUM_TOUR_STEPS: TourStep[] = [
   },
   {
     id: "power-plan",
-    title: "Power Plan Control",
+    title: t("Power Plan Control"),
     description:
-      "Fine-tune your Windows power settings for maximum gaming performance. Choose from optimized profiles or create custom overrides tailored to your hardware.",
+      t("Fine-tune your Windows power settings for maximum gaming performance. Choose from optimized profiles or create custom overrides tailored to your hardware."),
     icon: <Zap className="w-5 h-5 text-amber-400" />,
     targetSelector: '[data-tour="power-plan"]',
     route: "/dashboard",
@@ -549,9 +556,9 @@ const PREMIUM_TOUR_STEPS: TourStep[] = [
   },
   {
     id: "network-tweaks",
-    title: "Network Tweaks",
+    title: t("Network Tweaks"),
     description:
-      "Reduce latency and packet loss with advanced TCP/IP, UDP, DNS, and SMB optimizations. Premium-only network stack tuning for competitive gaming.",
+      t("Reduce latency and packet loss with advanced TCP/IP, UDP, DNS, and SMB optimizations. Premium-only network stack tuning for competitive gaming."),
     icon: <Wifi className="w-5 h-5 text-cyan-400" />,
     targetSelector: '[data-tour="network-content"]',
     route: "/network",
@@ -560,9 +567,9 @@ const PREMIUM_TOUR_STEPS: TourStep[] = [
   },
   {
     id: "bios-advisor",
-    title: "BIOS Intelligence",
+    title: t("BIOS Intelligence"),
     description:
-      "Expert BIOS configuration guidance tailored to your specific motherboard and CPU. Get safe, performance-tested recommendations for your exact setup.",
+      t("Expert BIOS configuration guidance tailored to your specific motherboard and CPU. Get safe, performance-tested recommendations for your exact setup."),
     icon: <Cpu className="w-5 h-5 text-amber-400" />,
     targetSelector: '[data-tour="bios-content"]',
     route: "/bios-advisor",
@@ -571,9 +578,9 @@ const PREMIUM_TOUR_STEPS: TourStep[] = [
   },
   {
     id: "ai-advisor",
-    title: "Full System Visibility",
+    title: t("Full System Visibility"),
     description:
-      "Your personal AI-powered optimization assistant. It scans your system and recommends the best tweaks for your hardware — available exclusively for Premium users.",
+      t("Your personal AI-powered optimization assistant. It scans your system and recommends the best tweaks for your hardware — available exclusively for Premium users."),
     icon: <Sparkles className="w-5 h-5 text-text-[#00D4FF]" />,
     targetSelector: '[data-tour="ai-advisor"]',
     route: "/dashboard",
@@ -582,9 +589,9 @@ const PREMIUM_TOUR_STEPS: TourStep[] = [
   },
   {
     id: "premium-unlocked",
-    title: "Premium Activated",
+    title: t("Premium Activated"),
     description:
-      "Everything is unlocked. Priority support, advanced telemetry, and full optimization control are now yours. Enjoy your Premium experience.",
+      t("Everything is unlocked. Priority support, advanced telemetry, and full optimization control are now yours. Enjoy your Premium experience."),
     icon: <Crown className="w-5 h-5 text-amber-400" />,
     targetSelector: '[data-tour="dashboard-hero"]',
     route: "/dashboard",
@@ -592,9 +599,9 @@ const PREMIUM_TOUR_STEPS: TourStep[] = [
   },
   {
     id: "discord",
-    title: "Join the Community",
+    title: t("Join the Community"),
     description:
-      "Join the Discord for updates, announcements, and premium giveaways.",
+      t("Join the Discord for updates, announcements, and premium giveaways."),
     icon: <DiscordIcon className="w-5 h-5 text-[#5865F2]" />,
     targetSelector: '[data-tour="dashboard-hero"]',
     route: "/dashboard",
@@ -613,11 +620,12 @@ const PREMIUM_TOUR_STEPS: TourStep[] = [
         data-testid="premium-tour-join-discord"
       >
         <DiscordIcon className="w-4 h-4" />
-        Join Discord
+        {t("Join Discord")}
       </button>
     ),
   },
-];
+  ];
+}
 
 // ── GuidedTour component ──────────────────────────────────────────────────────
 interface GuidedTourProps {
@@ -626,10 +634,11 @@ interface GuidedTourProps {
 }
 
 export function GuidedTour({ show, onComplete }: GuidedTourProps) {
+  const { t } = useTranslation();
   return (
     <TourShell
       show={show}
-      steps={PREMIUM_TOUR_STEPS}
+      steps={getPremiumTourSteps(t)}
       onComplete={onComplete}
       returnRoute="/dashboard"
       testId="premium-guided-tour"

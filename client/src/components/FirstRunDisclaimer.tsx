@@ -9,6 +9,7 @@ import {
   firstRunVisualInitial,
   firstRunVisualVisible,
 } from "@/lib/firstRunTransition";
+import { useTranslation } from "@/lib/i18n";
 
 // ── Easing curves ────────────────────────────────────────────────────────────
 const SILK   = [0.22, 1, 0.36, 1] as const;
@@ -55,6 +56,7 @@ interface Props {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 export function FirstRunDisclaimer({ show, onComplete }: Props) {
+  const { t } = useTranslation();
   const { prefersReducedMotion } = useMotion();
   const [phase, setPhase] = useState<Phase>("done");
   const [isEntered, setIsEntered] = useState(false);
@@ -366,10 +368,10 @@ export function FirstRunDisclaimer({ show, onComplete }: Props) {
                         className="text-[11px] font-semibold tracking-[0.22em] uppercase block mb-2"
                         style={{ color: "rgba(251,191,36,0.7)" }}
                       >
-                        Important Notice
+                        {t("Important Notice")}
                       </span>
                       <h2 className="text-[22px] font-bold leading-tight" style={{ color: "#E6EAF0" }}>
-                        Keep SwitchControl{" "}
+                        {t("Keep SwitchControl")}{" "}
                         <span
                           style={{
                             background: "linear-gradient(90deg, #00D4FF 0%, #A78BFA 100%)",
@@ -377,9 +379,9 @@ export function FirstRunDisclaimer({ show, onComplete }: Props) {
                             WebkitTextFillColor: "transparent",
                           }}
                         >
-                          closed
+                          {t("closed")}
                         </span>{" "}
-                        while gaming
+                        {t("while gaming")}
                       </h2>
                     </motion.div>
 
@@ -399,20 +401,19 @@ export function FirstRunDisclaimer({ show, onComplete }: Props) {
                         }}
                       >
                         <p className="text-[13px] leading-relaxed" style={{ color: "rgba(230,234,240,0.85)" }}>
-                          SwitchControl is designed to{" "}
-                          <span style={{ color: "#E6EAF0", fontWeight: 600 }}>configure and optimize your system before you game</span>
-                          {" "}— not to run alongside your games. Keeping the app open while gaming
-                          may consume extra CPU and memory, which can reduce performance rather than improve it.
+                          {t("SwitchControl is designed to")}{" "}
+                          <span style={{ color: "#E6EAF0", fontWeight: 600 }}>{t("configure and optimize your system before you game")}</span>
+                          {" "}{t("— not to run alongside your games. Keeping the app open while gaming may consume extra CPU and memory, which can reduce performance rather than improve it.")}
                         </p>
                       </div>
 
                       {/* Two-column tips */}
                       <div className="grid grid-cols-2 gap-2.5">
                         {[
-                          { icon: "✓", text: "Apply tweaks, then close", color: "rgba(34,211,238,0.7)" },
-                          { icon: "✓", text: "Launch your game after closing", color: "rgba(34,211,238,0.7)" },
-                          { icon: "✗", text: "Don't keep it open mid-game", color: "rgba(248,113,113,0.7)" },
-                          { icon: "✗", text: "It's not a game overlay tool", color: "rgba(248,113,113,0.7)" },
+                          { icon: "✓", text: t("Apply tweaks, then close"), color: "rgba(34,211,238,0.7)" },
+                          { icon: "✓", text: t("Launch your game after closing"), color: "rgba(34,211,238,0.7)" },
+                          { icon: "✗", text: t("Don't keep it open mid-game"), color: "rgba(248,113,113,0.7)" },
+                          { icon: "✗", text: t("It's not a game overlay tool"), color: "rgba(248,113,113,0.7)" },
                         ].map((item, i) => (
                           <motion.div
                             key={i}
@@ -452,7 +453,7 @@ export function FirstRunDisclaimer({ show, onComplete }: Props) {
                       >
                         <span className="relative z-10 flex items-center justify-center gap-2">
                           <Shield className="size-4" />
-                          I Understand — Continue
+                          {t("I Understand — Continue")}
                         </span>
                         {/* Hover shimmer */}
                         <div
@@ -470,7 +471,7 @@ export function FirstRunDisclaimer({ show, onComplete }: Props) {
                       animate={{ opacity: 1 }}
                       transition={{ duration: 0.4, delay: 0.55, ease: SILK }}
                     >
-                      By continuing you agree to the{" "}
+                      {t("By continuing you agree to the")}{" "}
                       <a
                         href="https://switchcontrol.org/terms"
                         target="_blank"
@@ -479,9 +480,9 @@ export function FirstRunDisclaimer({ show, onComplete }: Props) {
                         style={{ color: "rgba(107,115,128,0.9)" }}
                         onClick={(e) => e.stopPropagation()}
                       >
-                        Terms of Service
+                        {t("Terms of Service")}
                       </a>
-                      {" "}and{" "}
+                      {" "}{t("and")}{" "}
                       <a
                         href="https://switchcontrol.org/privacy"
                         target="_blank"
@@ -490,9 +491,9 @@ export function FirstRunDisclaimer({ show, onComplete }: Props) {
                         style={{ color: "rgba(107,115,128,0.9)" }}
                         onClick={(e) => e.stopPropagation()}
                       >
-                        Privacy Policy
+                        {t("Privacy Policy")}
                       </a>
-                      . SwitchControl is a hardware optimization suite — no warranty is implied.
+                      {t(". SwitchControl is a hardware optimization suite — no warranty is implied.")}
                     </motion.p>
                   </div>
                 </motion.div>
@@ -557,7 +558,7 @@ export function FirstRunDisclaimer({ show, onComplete }: Props) {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.35, delay: 0.08, ease: SILK }}
                     >
-                      Confirm &amp; Continue
+                      {t("Confirm & Continue")}
                     </motion.h3>
 
                     <motion.p
@@ -567,10 +568,9 @@ export function FirstRunDisclaimer({ show, onComplete }: Props) {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.35, delay: 0.13, ease: SILK }}
                     >
-                      Just to be sure — you understand that SwitchControl
-                      is meant to be{" "}
-                      <span style={{ color: "#E6EAF0", fontWeight: 600 }}>closed before you start gaming</span>,
-                      not run in the background?
+                      {t("Just to be sure — you understand that SwitchControl is meant to be")}{" "}
+                      <span style={{ color: "#E6EAF0", fontWeight: 600 }}>{t("closed before you start gaming")}</span>
+                      {t(", not run in the background?")}
                     </motion.p>
 
                     <motion.div
@@ -592,7 +592,7 @@ export function FirstRunDisclaimer({ show, onComplete }: Props) {
                       >
                         <span className="relative z-10 flex items-center justify-center gap-2">
                           <CheckCircle2 className="size-3.5" />
-                          Yes, I'm ready to continue
+                          {t("Yes, I'm ready to continue")}
                         </span>
                         <div
                           className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
@@ -618,7 +618,7 @@ export function FirstRunDisclaimer({ show, onComplete }: Props) {
                           (e.currentTarget as HTMLButtonElement).style.color = "rgba(107,115,128,0.8)";
                         }}
                       >
-                        ← Go back and re-read
+                        {t("← Go back and re-read")}
                       </button>
                     </motion.div>
                   </div>

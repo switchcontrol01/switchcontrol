@@ -2,6 +2,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Wifi, WifiOff, Loader2, CloudOff } from 'lucide-react';
 import { useNetworkStatus, type NetworkState } from '@/hooks/use-network-status';
 import { cn } from '@/lib/utils';
+import { useTranslation } from '@/lib/i18n';
 
 const CONFIG: Record<NetworkState, {
   icon: React.ReactNode;
@@ -66,6 +67,7 @@ interface NetworkStatusChipProps {
 
 export function NetworkStatusChip({ className }: NetworkStatusChipProps) {
   const { networkState } = useNetworkStatus();
+  const { t } = useTranslation();
 
   const cfg = CONFIG[networkState];
   const showChip = networkState !== 'online';
@@ -93,7 +95,7 @@ export function NetworkStatusChip({ className }: NetworkStatusChipProps) {
           )} />
           <span className="shrink-0">{cfg.icon}</span>
           <span className="text-[10px] font-medium tracking-wide whitespace-nowrap">
-            {cfg.label}
+            {t(cfg.label)}
           </span>
         </motion.div>
       )}

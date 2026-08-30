@@ -38,6 +38,7 @@ import { useBiosAdvisorStore } from "@/stores/biosAdvisorStore";
 import { useUserPreferencesStore } from "@/stores/userPreferencesStore";
 import { computeOptimizationScore } from "@/lib/ai-context-builder";
 import { buildAiHardwareDetails, type AiHardwareDetails } from "@/lib/hardware-ai-context";
+import { useTranslation } from "@/lib/i18n";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -926,6 +927,7 @@ function SuggestedPrompts({ onSelect, disabled }: { onSelect: (p: string) => voi
 // ── Main Component ─────────────────────────────────────────────────────────────
 
 export default function AiAdvisor() {
+  const { t } = useTranslation();
   const { prefersReducedMotion } = useMotion();
   const { isPremium } = useAuth();
   const { openUpgradeModal } = useUpgradeModal();
@@ -2444,10 +2446,10 @@ export default function AiAdvisor() {
             </motion.div>
             <div>
               <h1 className="text-lg font-bold text-[#E6EAF0] flex items-center gap-2" data-testid="text-ai-advisor-title">
-                AI Advisor
+                 {t("AI Advisor")}
                 <PremiumHeaderBadge isLocked={!isPremium} />
               </h1>
-              <p className="text-[11px] text-muted-foreground">Precision system diagnosis engine</p>
+               <p className="text-[11px] text-muted-foreground">{t("Precision system diagnosis engine")}</p>
             </div>
             {isPremium && (
               <motion.button
@@ -2465,7 +2467,7 @@ export default function AiAdvisor() {
                 data-testid="button-optimize-my-pc"
               >
                 <Zap className="w-3 h-3" />
-                Optimize My PC
+                 {t("Optimize My PC")}
               </motion.button>
             )}
           </div>
@@ -2484,7 +2486,7 @@ export default function AiAdvisor() {
                 )}
               >
                 <SquarePen className="w-3 h-3" />
-                New Chat
+                 {t("New Chat")}
               </button>
 
               {/* Inline confirm popover */}
@@ -2505,8 +2507,8 @@ export default function AiAdvisor() {
                       data-testid="confirm-new-chat-popover"
                     >
                       <div className="px-4 pt-3.5 pb-1">
-                        <p className="text-[12px] font-semibold text-[#E6EAF0] leading-tight">Start a new chat?</p>
-                        <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">This conversation will be cleared.</p>
+                         <p className="text-[12px] font-semibold text-[#E6EAF0] leading-tight">{t("Start a new chat?")}</p>
+                         <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">{t("This conversation will be cleared.")}</p>
                       </div>
                       <div className="flex gap-2 px-3 pb-3 pt-2">
                         <button
@@ -2514,7 +2516,7 @@ export default function AiAdvisor() {
                           className="flex-1 h-7 rounded-lg text-[11px] font-medium text-muted-foreground hover:text-[#E6EAF0] border border-white/[0.08] hover:bg-white/[0.05] transition-colors"
                           data-testid="button-new-chat-cancel"
                         >
-                          Cancel
+                           {t("Cancel")}
                         </button>
                         <button
                           onClick={() => {
@@ -2667,7 +2669,7 @@ export default function AiAdvisor() {
                   "disabled:opacity-30 disabled:cursor-not-allowed"
                 )}
                 data-testid="button-attach-image"
-                title={!isOnline ? "Image upload unavailable offline" : "Attach image"}
+                title={!isOnline ? t("Image upload unavailable offline") : t("Attach image")}
                 style={{ outline: 'none' }}
               >
                 <Paperclip className="w-3.5 h-3.5" />
@@ -2678,7 +2680,7 @@ export default function AiAdvisor() {
                 type="text"
                 value={input}
                 onChange={e => setInput(e.target.value)}
-                placeholder={!isOnline ? "Offline, draft saved, send when connected…" : attachedImage ? "Ask about this image…" : "Ask about optimizations, tweaks, games…"}
+                placeholder={!isOnline ? t("Offline, draft saved, send when connected…") : attachedImage ? t("Ask about this image…") : t("Ask about optimizations, tweaks, games…")}
                 className="flex-1 bg-transparent text-sm text-[#E6EAF0] placeholder:text-[#6B7380]"
                 style={{ outline: 'none' }}
                 disabled={isBusy}
@@ -2691,7 +2693,7 @@ export default function AiAdvisor() {
                 disabled={(!input.trim() && !attachedImage) || isBusy || !isOnline}
                 className="h-8 w-8 p-0 rounded-xl bg-primary/20 hover:bg-primary/30 text-primary border-0 disabled:opacity-30"
                 data-testid="button-send-message"
-                title={!isOnline ? "Offline, cannot send" : undefined}
+                title={!isOnline ? t("Offline, cannot send") : undefined}
               >
                 {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
               </Button>
@@ -2706,8 +2708,8 @@ export default function AiAdvisor() {
               )}
               <p className="text-[10px] text-[#6B7380]/50" data-testid="text-ai-disclaimer">
                 {attachedImage
-                  ? `Image attached (${attachedImage.sizeKb} KB), ready to send`
-                  : "AI suggestions only. You are responsible for any system changes."}
+                  ? `${t("Image attached")} (${attachedImage.sizeKb} KB), ${t("ready to send")}`
+                  : t("AI suggestions only. You are responsible for any system changes.")}
               </p>
             </div>
           </motion.div>
@@ -2716,9 +2718,9 @@ export default function AiAdvisor() {
 
       {!isPremium && (
         <PremiumPageOverlay
-          featureName="AI Advisor is a Premium Feature"
-          buttonText="Unlock Premium"
-          description="System analysis, image-based troubleshooting, AI optimization suggestions, and game-specific tuning are available with SwitchControl Premium."
+          featureName={t("AI Advisor is a Premium Feature")}
+          buttonText={t("Unlock Premium")}
+          description={t("System analysis, image-based troubleshooting, AI optimization suggestions, and game-specific tuning are available with SwitchControl Premium.")}
         />
       )}
 
