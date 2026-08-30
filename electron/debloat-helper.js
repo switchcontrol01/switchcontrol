@@ -30,6 +30,8 @@ const { runElevated } = require('./ps-shared');
 const {
   ALLOWED_START_TYPES,
   getCanonicalContract,
+  getCanonicalProbeTarget,
+  normalizeNativeProbeResult,
   validateItemPayload,
 } = require('./debloat-contract.cjs');
 // ── Icon utilities (single source in file-icon.js) ────────────────────────────
@@ -132,12 +134,18 @@ async function captureDebloatBaseline(item) {
   if (canonical.type === 'registry') {
     const out = await runPS(
       `Try {
-         $p = Get-ItemProperty -Path '${psEscape(canonical.regPath)}' -Name '${psEscape(canonical.regName)}' -ErrorAction Stop
-         [pscustomobject]@{ present = $true; value = $p.'${psEscape(canonical.regName)}' } | ConvertTo-Json -Compress
-       } Catch {
-         If (Test-Path '${psEscape(canonical.regPath)}') { throw }
-         [pscustomobject]@{ present = $false } | ConvertTo-Json -Compress
-       }`,
+         If (!(Test-Path -LiteralPath '${psEscape(canonical.regPath)}' -ErrorAction Stop)) {
+           [pscustomobject]@{ present = $false } | ConvertTo-Json -Compress
+         } Else {
+           $p = Get-ItemProperty -LiteralPath '${psEscape(canonical.regPath)}' -ErrorAction Stop
+           $property = @($p.PSObject.Properties | Where-Object { $_.Name -eq '${psEscape(canonical.regName)}' })
+           If ($property.Count -eq 0) {
+             [pscustomobject]@{ present = $false } | ConvertTo-Json -Compress
+           } Else {
+             [pscustomobject]@{ present = $true; value = $property[0].Value } | ConvertTo-Json -Compress
+           }
+         }
+       } Catch { throw }`,
       6000
     );
     const parsed = JSON.parse(out.trim());
@@ -168,8 +176,14 @@ async function captureDebloatBaseline(item) {
       `$rows = foreach ($t in @(${pathArr})) {
          $parent = (Split-Path $t -Parent) + '\\'
          $leaf = Split-Path $t -Leaf
-         $s = Get-ScheduledTask -TaskPath $parent -TaskName $leaf -ErrorAction SilentlyContinue
-         [pscustomobject]@{ path = $t; present = [bool]$s; state = if ($s) { [string]$s.State } else { '' } }
+         Try {
+           $s = @(Get-ScheduledTask -TaskPath $parent -TaskName $leaf -ErrorAction Stop)
+           [pscustomobject]@{ path = $t; present = $s.Count -gt 0; state = if ($s.Count -gt 0) { [string]$s[0].State } else { '' } }
+         } Catch {
+           If ($_.FullyQualifiedErrorId -match 'TaskNotFound|NoMatching|ObjectNotFound') {
+             [pscustomobject]@{ path = $t; present = $false; state = '' }
+           } Else { throw }
+         }
        }
        @($rows) | ConvertTo-Json -Compress`,
       15000
@@ -229,6 +243,91 @@ function queryPS(cmd, timeoutMs = 12000) {
     );
   });
 }
+
+function probeTargetLabel(canonical) {
+  const target = getCanonicalProbeTarget(canonical);
+  return Array.isArray(target) ? target.join(',') : String(target ?? '');
+}
+
+function buildNativeProbeScript(canonical) {
+  const target = probeTargetLabel(canonical);
+  const emit = (state, reason) =>
+    `[pscustomobject]@{ state = '${state}'; reason = '${reason}' } | ConvertTo-Json -Compress`;
+  if (canonical.type === 'appx') {
+    return `Try {
+      $packages = @(Get-AppxPackage -Name '${psEscape(canonical.packageName)}' -ErrorAction Stop)
+      If ($packages.Count -gt 0) { ${emit('present', 'package-found')} }
+      Else { ${emit('absent', 'package-missing')} }
+    } Catch { ${emit('unknown', 'query-error')} }`;
+  }
+  if (canonical.type === 'registry') {
+    return `Try {
+      If (!(Test-Path -LiteralPath '${psEscape(canonical.regPath)}' -ErrorAction Stop)) {
+        ${emit('absent', 'key-missing')}
+      } Else {
+        $props = Get-ItemProperty -LiteralPath '${psEscape(canonical.regPath)}' -ErrorAction Stop
+        $property = @($props.PSObject.Properties | Where-Object { $_.Name -eq '${psEscape(canonical.regName)}' })
+        If ($property.Count -eq 0) { ${emit('absent', 'value-missing')} }
+        ElseIf ([string]$property[0].Value -eq '${psEscape(String(canonical.disabled))}') { ${emit('absent', 'disabled-value')} }
+        Else { ${emit('present', 'enabled-value')} }
+      }
+    } Catch { ${emit('unknown', 'query-error')} }`;
+  }
+  if (canonical.type === 'service') {
+    return `Try {
+      $services = @(Get-CimInstance Win32_Service -Filter "Name='${psEscape(canonical.serviceName)}'" -ErrorAction Stop)
+      If ($services.Count -eq 0) { ${emit('absent', 'service-missing')} }
+      ElseIf ([string]$services[0].StartMode -eq 'Disabled') { ${emit('absent', 'disabled-start-mode')} }
+      Else { ${emit('present', 'enabled-start-mode')} }
+    } Catch { ${emit('unknown', 'query-error')} }`;
+  }
+  if (canonical.type === 'task') {
+    const pathArr = canonical.taskPaths.map(p => `'${psEscape(p)}'`).join(', ');
+    return `$rows = foreach ($t in @(${pathArr})) {
+      Try {
+        $parent = (Split-Path $t -Parent) + '\\'
+        $leaf = Split-Path $t -Leaf
+        $tasks = @(Get-ScheduledTask -TaskPath $parent -TaskName $leaf -ErrorAction Stop)
+        If ($tasks.Count -eq 0) {
+          [pscustomobject]@{ state = 'absent'; reason = 'task-missing' }
+        } ElseIf ([string]$tasks[0].State -eq 'Disabled') {
+          [pscustomobject]@{ state = 'absent'; reason = 'disabled-task' }
+        } Else {
+          [pscustomobject]@{ state = 'present'; reason = 'enabled-task' }
+        }
+      } Catch {
+        If ($_.FullyQualifiedErrorId -match 'TaskNotFound|NoMatching|ObjectNotFound') {
+          [pscustomobject]@{ state = 'absent'; reason = 'task-missing' }
+        } Else {
+          [pscustomobject]@{ state = 'unknown'; reason = 'query-error' }
+        }
+      }
+    }
+    $rows = @($rows)
+    If ($rows.Count -eq 0 -or @($rows | Where-Object { $_.state -eq 'unknown' }).Count -gt 0) {
+      [pscustomobject]@{ state = 'unknown'; reason = 'query-error'; observations = $rows } | ConvertTo-Json -Compress
+    } ElseIf (@($rows | Where-Object { $_.state -eq 'present' }).Count -gt 0) {
+      [pscustomobject]@{ state = 'present'; reason = 'enabled-task'; observations = $rows } | ConvertTo-Json -Compress
+    } Else {
+      [pscustomobject]@{ state = 'absent'; reason = 'all-tasks-absent'; observations = $rows } | ConvertTo-Json -Compress
+    }`;
+  }
+  throw new Error(`Unsupported probe type for ${target}`);
+}
+
+function logNativeProbe(phase, canonical, probe) {
+  const reason = probe.reason ? ` reason=${probe.reason}` : '';
+  console.info(`[DebloatProbe] phase=${phase} type=${canonical.type} target=${probeTargetLabel(canonical)} state=${probe.state}${reason}`);
+}
+
+async function probeCanonical(item, phase = 'scan') {
+  const canonical = getCanonicalContract(item.id);
+  const timeout = canonical.type === 'task' ? 15000 : canonical.type === 'appx' ? 8000 : 6000;
+  const output = await runPS(buildNativeProbeScript(canonical), timeout);
+  const probe = normalizeNativeProbeResult(canonical.type, output, getCanonicalProbeTarget(canonical));
+  logNativeProbe(phase, canonical, probe);
+  return probe;
+}
 // ── Safety denylist ───────────────────────────────────────────────────────────
 const DENYLIST_PACKAGES = new Set([
   'Microsoft.Windows.Photos',
@@ -259,53 +358,22 @@ ipcMain.handle('debloat:scan', async (event, items) => {
     try {
       const validationError = validateItemPayload(item, 'remove');
       if (validationError) {
-        results[itemId] = { present: null, error: validationError };
+        results[itemId] = { present: null, state: 'unknown', error: validationError };
         continue;
       }
-      const canonical = getCanonicalContract(item.id);
-      if (canonical.type === 'appx') {
-        const out = await runPS(
-          `$p = Get-AppxPackage -Name '${psEscape(canonical.packageName)}' -ErrorAction SilentlyContinue; ` +
-          `If ($p) { Write-Output 'present' } Else { Write-Output 'absent' }`,
-          8000
-        );
-        results[itemId] = { present: out.includes('present') };
-      } else if (canonical.type === 'registry') {
-        const out = await runPS(
-          `Try { $v = (Get-ItemProperty -Path '${psEscape(canonical.regPath)}' -Name '${psEscape(canonical.regName)}' -ErrorAction Stop).'${psEscape(canonical.regName)}'; Write-Output $v } Catch { If (Test-Path '${psEscape(canonical.regPath)}') { Write-Output '__inconclusive__' } Else { Write-Output '__missing__' } }`,
-          6000
-        );
-        const val = out.replace(/\r?\n/g, '').trim();
-        results[itemId] = val === '__inconclusive__'
-          ? { present: null, error: 'Registry state could not be verified.' }
-          : { present: val !== String(canonical.disabled) && val !== '__missing__' };
-      } else if (canonical.type === 'service') {
-        const out = await runPS(
-          `Try { $s = Get-Service -Name '${psEscape(canonical.serviceName)}' -ErrorAction Stop; Write-Output $s.StartType } Catch { Write-Output '__missing__' }`,
-          6000
-        );
-        const startType = out.trim().toLowerCase();
-        results[itemId] = { present: startType !== 'disabled' && startType !== '__missing__' };
-      } else if (canonical.type === 'task') {
-        const pathArr = canonical.taskPaths.map(p => `'${psEscape(p)}'`).join(', ');
-        const out = await runPS(
-          `$tasks = @(${pathArr})
-           $allDisabled = $true
-           foreach ($t in $tasks) {
-             $parent = (Split-Path $t -Parent) + '\\'
-             $leaf = Split-Path $t -Leaf
-             $s = Get-ScheduledTask -TaskPath $parent -TaskName $leaf -ErrorAction SilentlyContinue
-             if ($s -and $s.State -ne 'Disabled') { $allDisabled = $false; break }
-           }
-           if ($allDisabled) { Write-Output 'absent' } else { Write-Output 'present' }`,
-          15000
-        );
-        results[itemId] = { present: out.includes('present') };
-      } else {
-        results[itemId] = { present: null, error: 'unsupported-type' };
-      }
+      const probe = await probeCanonical(item, 'scan');
+      results[itemId] = {
+        present: probe.state === 'present' ? true : probe.state === 'absent' ? false : null,
+        state: probe.state,
+        diagnostic: probe,
+        ...(probe.reason ? { error: probe.state === 'unknown' ? 'Windows state could not be verified.' : undefined } : {}),
+      };
     } catch (err) {
-      results[itemId] = { present: null, error: err.message };
+      const canonical = getCanonicalContract(item?.id);
+      const target = canonical ? getCanonicalProbeTarget(canonical) : null;
+      const probe = { state: 'unknown', target, reason: 'query-error' };
+      if (canonical) logNativeProbe('scan', canonical, probe);
+      results[itemId] = { present: null, state: 'unknown', diagnostic: probe, error: err.message };
     }
   }
     return { ok: true, results };
@@ -346,40 +414,52 @@ ipcMain.handle('debloat:removeItem', async (event, item) => {
     let cmd = '';
     if (canonical.type === 'appx') {
       cmd = `
-        $pkg = Get-AppxPackage -Name '${psEscape(canonical.packageName)}' -ErrorAction SilentlyContinue
-        If ($pkg) {
-          $pkg | Remove-AppxPackage -ErrorAction Stop
-          Write-Output 'removed'
-        } Else {
-          Write-Output 'already-absent'
-        }
+        Try {
+          $pkg = @(Get-AppxPackage -Name '${psEscape(canonical.packageName)}' -ErrorAction Stop)
+          If ($pkg.Count -eq 0) {
+            Write-Output 'already-absent'
+          } Else {
+            $pkg | Remove-AppxPackage -ErrorAction Stop
+            Write-Output 'removed'
+          }
+        } Catch { throw }
       `;
     } else if (canonical.type === 'registry') {
       const val = canonical.disabled;
       const valType = typeof val === 'number' ? 'DWord' : 'String';
       const valLiteral = valType === 'DWord' ? parseInt(val, 10) || 0 : `'${psEscape(String(val))}'`;
       cmd = `
-        $current = $null
-        Try { $current = (Get-ItemProperty -Path '${psEscape(canonical.regPath)}' -Name '${psEscape(canonical.regName)}' -ErrorAction Stop).'${psEscape(canonical.regName)}' } Catch {}
-        If ($null -ne $current -and [string]$current -eq '${psEscape(String(val))}') {
-          Write-Output 'already-absent'
-        } Else {
-          If (!(Test-Path '${psEscape(canonical.regPath)}')) { New-Item -Path '${psEscape(canonical.regPath)}' -Force | Out-Null }
-          Set-ItemProperty -Path '${psEscape(canonical.regPath)}' -Name '${psEscape(canonical.regName)}' -Value ${valLiteral} -Type ${valType} -Force
-          Write-Output 'removed'
+        Try {
+          $keyExists = Test-Path -LiteralPath '${psEscape(canonical.regPath)}' -ErrorAction Stop
+          If (!$keyExists) {
+            Write-Output 'already-absent'
+          } Else {
+            $props = Get-ItemProperty -LiteralPath '${psEscape(canonical.regPath)}' -ErrorAction Stop
+            $property = @($props.PSObject.Properties | Where-Object { $_.Name -eq '${psEscape(canonical.regName)}' })
+            If ($property.Count -gt 0 -and [string]$property[0].Value -eq '${psEscape(String(val))}') {
+              Write-Output 'already-absent'
+            } Else {
+              Set-ItemProperty -Path '${psEscape(canonical.regPath)}' -Name '${psEscape(canonical.regName)}' -Value ${valLiteral} -Type ${valType} -Force
+              Write-Output 'removed'
+            }
+          }
         }
+        Catch { throw }
       `;
     } else if (canonical.type === 'service') {
       cmd = `
-        $svc = Get-CimInstance Win32_Service -Filter "Name='${psEscape(canonical.serviceName)}'" -ErrorAction SilentlyContinue
-        If (!$svc -or $svc.StartMode -eq 'Disabled') {
-          Write-Output 'already-absent'
-        } Else {
-          Stop-Service -Name '${psEscape(canonical.serviceName)}' -Force -ErrorAction SilentlyContinue
-          & sc.exe config '${psEscape(canonical.serviceName)}' start= disabled | Out-Null
-          If ($LASTEXITCODE -ne 0) { throw "Windows could not disable service ${psEscape(canonical.serviceName)} (sc.exe exit $LASTEXITCODE)" }
-          Write-Output 'removed'
+        Try {
+          $svc = @(Get-CimInstance Win32_Service -Filter "Name='${psEscape(canonical.serviceName)}'" -ErrorAction Stop)
+          If ($svc.Count -eq 0 -or $svc[0].StartMode -eq 'Disabled') {
+            Write-Output 'already-absent'
+          } Else {
+            Stop-Service -Name '${psEscape(canonical.serviceName)}' -Force -ErrorAction SilentlyContinue
+            & sc.exe config '${psEscape(canonical.serviceName)}' start= disabled | Out-Null
+            If ($LASTEXITCODE -ne 0) { throw "Windows could not disable service ${psEscape(canonical.serviceName)} (sc.exe exit $LASTEXITCODE)" }
+            Write-Output 'removed'
+          }
         }
+        Catch { throw }
       `;
     } else if (canonical.type === 'task') {
       const pathArr = canonical.taskPaths.map(p => `'${psEscape(p)}'`).join(', ');
@@ -389,10 +469,14 @@ ipcMain.handle('debloat:removeItem', async (event, item) => {
         foreach ($t in $tasks) {
           $parent = (Split-Path $t -Parent) + '\\'
           $leaf = Split-Path $t -Leaf
-          $task = Get-ScheduledTask -TaskPath $parent -TaskName $leaf -ErrorAction SilentlyContinue
-          If ($task -and $task.State -ne 'Disabled') {
-            Disable-ScheduledTask -TaskPath $parent -TaskName $leaf -ErrorAction Stop
-            $changed = $true
+          Try {
+            $task = @(Get-ScheduledTask -TaskPath $parent -TaskName $leaf -ErrorAction Stop)
+            If ($task.Count -gt 0 -and $task[0].State -ne 'Disabled') {
+              Disable-ScheduledTask -TaskPath $parent -TaskName $leaf -ErrorAction Stop
+              $changed = $true
+            }
+          } Catch {
+            If ($_.FullyQualifiedErrorId -notmatch 'TaskNotFound|NoMatching|ObjectNotFound') { throw }
           }
         }
         if ($changed) { Write-Output 'removed' } else { Write-Output 'already-absent' }
@@ -417,15 +501,36 @@ ipcMain.handle('debloat:removeItem', async (event, item) => {
       : 'removed';
     let verified = false;
     let verificationError = null;
+    let verificationProbe = null;
     try {
-      verified = await verifyItem(item);
+      verificationProbe = await verifyItem(item);
+      verified = verificationProbe.state === 'absent';
+      logNativeProbe('remove-verify', canonical, verificationProbe);
     } catch (err) {
       verificationError = err?.message || String(err);
+      verificationProbe = {
+        state: 'unknown',
+        target: getCanonicalProbeTarget(canonical),
+        reason: 'query-error',
+      };
+      logNativeProbe('remove-verify', canonical, verificationProbe);
+    }
+    if (verificationProbe?.state === 'unknown') {
+      return {
+        ok: false,
+        status: 'verification-inconclusive',
+        verified: false,
+        nativeState: 'unknown',
+        probe: verificationProbe,
+        ...(verificationError ? { errorDetail: verificationError } : { errorDetail: 'Windows state could not be verified after the action.' }),
+      };
     }
     return {
       ok: verified,
       status: verified ? result : 'verification-failed',
       verified,
+      nativeState: verificationProbe?.state ?? 'unknown',
+      probe: verificationProbe,
       ...(verificationError ? { errorDetail: verificationError } : {}),
     };
   } catch (err) {
@@ -573,8 +678,15 @@ ipcMain.handle('debloat:verifyItem', async (event, item) => {
   const token = psLimiter.tryAcquire({ file: 'debloat-helper.js', fn: 'debloat:verifyItem', reason: 'debloat-verify' });
   if (!token) return { ok: false, reason: 'busy' };
   try {
-    const absent = await verifyItem(item);
-    return { ok: true, absent };
+    const probe = await verifyItem(item);
+    logNativeProbe('verify', getCanonicalContract(item.id), probe);
+    return {
+      ok: probe.state !== 'unknown',
+      absent: probe.state === 'absent' ? true : probe.state === 'present' ? false : null,
+      state: probe.state,
+      diagnostic: probe,
+      ...(probe.state === 'unknown' ? { error: 'Windows state could not be verified.' } : {}),
+    };
   } catch (err) {
     return { ok: false, error: err.message };
   } finally {
@@ -586,44 +698,7 @@ async function verifyItem(item) {
   const validationError = validateItemPayload(item, 'remove');
   if (validationError) throw new Error(validationError);
   const canonical = getCanonicalContract(item.id);
-  if (canonical.type === 'appx') {
-    const out = await runPS(
-      `$p = Get-AppxPackage -Name '${psEscape(canonical.packageName)}' -ErrorAction SilentlyContinue; ` +
-      `If ($p) { Write-Output 'present' } Else { Write-Output 'absent' }`,
-      8000
-    );
-    return out.includes('absent');
-  } else if (canonical.type === 'registry') {
-    const out = await runPS(
-      `Try { $v = (Get-ItemProperty -Path '${psEscape(canonical.regPath)}' -Name '${psEscape(canonical.regName)}' -ErrorAction Stop).'${psEscape(canonical.regName)}'; Write-Output $v } Catch { If (Test-Path '${psEscape(canonical.regPath)}') { Write-Output '__inconclusive__' } Else { Write-Output '__missing__' } }`,
-      6000
-    );
-    const val = out.trim();
-    return val === String(canonical.disabled) || val === '__missing__';
-  } else if (canonical.type === 'service') {
-    const out = await runPS(
-      `$svc = Get-CimInstance Win32_Service -Filter "Name='${psEscape(canonical.serviceName)}'" -ErrorAction SilentlyContinue; ` +
-      `If (!$svc -or $svc.StartMode -eq 'Disabled') { Write-Output 'absent' } Else { Write-Output 'present' }`,
-      6000
-    );
-    return out.trim().toLowerCase() === 'absent';
-  } else if (canonical.type === 'task') {
-    const pathArr = canonical.taskPaths.map(p => `'${psEscape(p)}'`).join(', ');
-    const out = await runPS(
-      `$tasks = @(${pathArr})
-       $allDisabled = $true
-       foreach ($t in $tasks) {
-         $parent = (Split-Path $t -Parent) + '\\'
-         $leaf = Split-Path $t -Leaf
-         $s = Get-ScheduledTask -TaskPath $parent -TaskName $leaf -ErrorAction SilentlyContinue
-         if ($s -and $s.State -ne 'Disabled') { $allDisabled = $false; break }
-       }
-       Write-Output $(if ($allDisabled) { 'absent' } else { 'present' })`,
-      15000
-    );
-    return out.includes('absent');
-  }
-  return false;
+  return probeCanonical(item, 'verify');
 }
 
 async function verifyRestoredItem(item) {

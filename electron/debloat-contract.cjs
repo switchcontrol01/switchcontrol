@@ -82,6 +82,7 @@ contracts.telemetry_tasks = { id: 'telemetry_tasks', type: 'task', taskPaths: te
 
 const ALLOWED_TYPES = new Set(['appx', 'registry', 'service', 'task']);
 const ALLOWED_START_TYPES = new Set(['Automatic', 'AutomaticDelayedStart', 'DelayedAuto', 'Manual', 'Disabled']);
+const PROBE_STATES = new Set(['present', 'absent', 'unknown']);
 
 function sameArray(a, b) {
   return Array.isArray(a) && Array.isArray(b) && a.length === b.length && a.every((value, index) => value === b[index]);
@@ -93,6 +94,81 @@ function sameValue(a, b) {
 
 function getCanonicalContract(id) {
   return typeof id === 'string' ? contracts[id] || null : null;
+}
+
+function getCanonicalProbeTarget(contract) {
+  if (!contract || typeof contract !== 'object') return null;
+  if (contract.type === 'appx') return contract.packageName;
+  if (contract.type === 'registry') return `${contract.regPath}\\${contract.regName}`;
+  if (contract.type === 'service') return contract.serviceName;
+  if (contract.type === 'task') return contract.taskPaths;
+  return null;
+}
+
+function parseProbeOutput(rawOutput) {
+  if (rawOutput && typeof rawOutput === 'object') return rawOutput;
+  if (typeof rawOutput !== 'string') return null;
+  const trimmed = rawOutput.trim();
+  if (!trimmed) return null;
+  try {
+    return JSON.parse(trimmed);
+  } catch {
+    // Older native callers emitted a single status line. Accept only the
+    // complete, known scalar values; arbitrary output is inconclusive.
+    return PROBE_STATES.has(trimmed.toLowerCase()) ? trimmed.toLowerCase() : null;
+  }
+}
+
+/**
+ * Normalize PowerShell output without allowing an error, malformed response,
+ * or an empty response to become "absent". Arrays are accepted because
+ * ConvertTo-Json emits a scalar for one object and an array for many.
+ */
+function normalizeNativeProbeResult(type, rawOutput, target = null) {
+  const parsed = parseProbeOutput(rawOutput);
+  const canonicalTarget = target ?? getCanonicalProbeTarget({ type });
+  const unknown = (reason = 'malformed') => ({
+    state: 'unknown',
+    target: canonicalTarget,
+    reason,
+  });
+
+  if (parsed === null) return unknown('malformed');
+  const values = Array.isArray(parsed) ? parsed : [parsed];
+  if (values.length === 0) return unknown('malformed');
+
+  const observations = [];
+  for (const value of values) {
+    if (value && typeof value === 'object' &&
+        (value.error || value.timedOut === true || value.inaccessible === true)) {
+      return unknown(typeof value.error === 'string' ? 'query-error' : 'inconclusive');
+    }
+    const state = typeof value === 'string'
+      ? value.toLowerCase()
+      : value && typeof value.state === 'string' ? value.state.toLowerCase()
+        : value && typeof value.present === 'boolean' ? (value.present ? 'present' : 'absent')
+          : null;
+    if (!PROBE_STATES.has(state)) return unknown(value?.reason || 'malformed');
+    observations.push({
+      state,
+      ...(value && typeof value === 'object' && typeof value.reason === 'string'
+        ? { reason: value.reason.slice(0, 80) }
+        : {}),
+    });
+  }
+
+  const state = observations.some(row => row.state === 'unknown')
+    ? 'unknown'
+    : observations.some(row => row.state === 'present')
+      ? 'present'
+      : 'absent';
+  const reason = observations.find(row => row.reason)?.reason;
+  return {
+    state,
+    target: canonicalTarget,
+    ...(reason ? { reason } : {}),
+    ...(values.length > 1 ? { observations } : {}),
+  };
 }
 
 function validateItemPayload(item, action = 'remove') {
@@ -120,4 +196,13 @@ function getCanonicalItemIds() {
   return Object.keys(contracts);
 }
 
-module.exports = { ALLOWED_START_TYPES, contracts, getCanonicalContract, getCanonicalItemIds, validateItemPayload };
+module.exports = {
+  ALLOWED_START_TYPES,
+  PROBE_STATES,
+  contracts,
+  getCanonicalContract,
+  getCanonicalItemIds,
+  getCanonicalProbeTarget,
+  normalizeNativeProbeResult,
+  validateItemPayload,
+};

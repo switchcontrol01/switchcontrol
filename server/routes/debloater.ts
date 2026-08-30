@@ -49,6 +49,32 @@ function boundedText(value: unknown, max = 1000): string | undefined {
   return typeof value === "string" && value.trim() ? value.slice(0, max) : undefined;
 }
 
+type NativeProbeState = "present" | "absent" | "unknown";
+interface NativeProbeDiagnostic {
+  state: NativeProbeState;
+  target?: string | string[];
+  reason?: string;
+  observations?: Array<{ state: NativeProbeState; reason?: string }>;
+}
+
+function nativeDiagnostic(raw: Record<string, any>): NativeProbeDiagnostic | undefined {
+  const state = raw.nativeState;
+  if (state !== "present" && state !== "absent" && state !== "unknown") return undefined;
+  const target = typeof raw.probe?.target === "string" || Array.isArray(raw.probe?.target)
+    ? raw.probe.target : undefined;
+  const observations = Array.isArray(raw.probe?.observations)
+    ? raw.probe.observations
+      .filter((row: any) => row && ["present", "absent", "unknown"].includes(row.state))
+      .map((row: any) => ({ state: row.state, ...(boundedText(row.reason, 80) ? { reason: boundedText(row.reason, 80) } : {}) }))
+    : undefined;
+  return {
+    state,
+    ...(target ? { target } : {}),
+    ...(boundedText(raw.probe?.reason, 80) ? { reason: boundedText(raw.probe.reason, 80) } : {}),
+    ...(observations?.length ? { observations } : {}),
+  };
+}
+
 function resultFromElectron(raw: unknown, action: "remove" | "restore") {
   if (!isPlainObject(raw) || typeof raw.ok !== "boolean") {
     return { status: "failed" as ResultStatus, verification: "failed", error: "Native execution returned no valid result." };
@@ -62,8 +88,22 @@ function resultFromElectron(raw: unknown, action: "remove" | "restore") {
   const failureStatuses = new Set<ResultStatus>([
     "failed", "verification-failed", "verification-inconclusive", "unsupported", "partial",
   ]);
-  const status = raw.ok && rawStatus && successStatuses.has(rawStatus)
-    ? rawStatus
+  const diagnostic = nativeDiagnostic(raw);
+  const nativeState = diagnostic?.state;
+  const nativelyVerified = raw.verified === true;
+  const trustedRemoveSuccess = action === "remove"
+    && raw.ok
+    && nativelyVerified
+    && nativeState === "absent"
+    && rawStatus
+    && successStatuses.has(rawStatus);
+  const trustedRestoreSuccess = action === "restore"
+    && raw.ok
+    && rawStatus
+    && successStatuses.has(rawStatus)
+    && (rawStatus === "partial" || nativelyVerified);
+  const status = trustedRemoveSuccess || trustedRestoreSuccess
+    ? rawStatus!
     : !raw.ok && rawStatus && failureStatuses.has(rawStatus) ? rawStatus
     : "failed";
   // Keep the detailed native message authoritative (the old route used:
@@ -74,6 +114,8 @@ function resultFromElectron(raw: unknown, action: "remove" | "restore") {
       ? "partial"
       : raw.ok && successStatuses.has(status) ? "verified" : "failed",
     error: boundedText(raw.errorDetail ?? raw.error),
+    ...(nativeState ? { nativeState } : {}),
+    ...(diagnostic ? { diagnostic } : {}),
   };
 }
 
@@ -1523,7 +1565,8 @@ router.post("/apply", async (req, res) => {
   const results: Array<{
     id: string; name: string; status: ResultStatus;
     requiresRestart: boolean; requiresSignOut: boolean;
-    error?: string; verification?: string;
+     error?: string; verification?: string; nativeState?: NativeProbeState;
+     diagnostic?: NativeProbeDiagnostic;
   }> = [];
 
   for (const itemId of itemIds) {
@@ -1569,6 +1612,8 @@ router.post("/apply", async (req, res) => {
       requiresSignOut: def.removal.requiresSignOut,
       error,
       verification,
+      ...(native.nativeState ? { nativeState: native.nativeState } : {}),
+      ...(native.diagnostic ? { diagnostic: native.diagnostic } : {}),
     });
   }
 
@@ -1600,8 +1645,9 @@ router.post("/restore", async (req, res) => {
     return res.status(409).json({ ok: false, error: "Native execution results are required. Run this action in the desktop app." });
   }
 
-  const results: Array<{
-    id: string; name: string; status: ResultStatus; error?: string; verification?: string;
+     const results: Array<{
+     id: string; name: string; status: ResultStatus; error?: string; verification?: string;
+     nativeState?: NativeProbeState; diagnostic?: NativeProbeDiagnostic;
   }> = [];
 
   for (const itemId of itemIds) {
@@ -1640,18 +1686,22 @@ router.post("/restore", async (req, res) => {
       });
     }
 
-    results.push({ id: itemId, name: def.name, status, error, verification: native.verification });
+    results.push({
+      id: itemId, name: def.name, status, error, verification: native.verification,
+      ...(native.nativeState ? { nativeState: native.nativeState } : {}),
+      ...(native.diagnostic ? { diagnostic: native.diagnostic } : {}),
+    });
   }
 
   res.json({ ok: true, results });
 });
 
 // POST /api/debloat/scan
-// Body: { electronResults: Record<string, { present: boolean }> }
+// Body: { electronResults: Record<string, { state: "present" | "absent" | "unknown", present?: boolean }> }
 router.post("/scan", (req, res) => {
   const body = isPlainObject(req.body) ? req.body : {};
   const { electronResults } = body as {
-    electronResults?: Record<string, { present: boolean; error?: string }>;
+    electronResults?: Record<string, { state?: NativeProbeState; present?: boolean; error?: string }>;
   };
 
   if (!isPlainObject(req.body) || !isPlainObject(electronResults)) {
@@ -1661,7 +1711,12 @@ router.post("/scan", (req, res) => {
 
   for (const item of DEBLOAT_REGISTRY) {
     const result = electronResults[item.id];
-    if (isPlainObject(result) && !result.error && typeof result.present === "boolean") {
+    if (isPlainObject(result) && !result.error &&
+        (result.state === "present" || result.state === "absent" || result.state === "unknown")) {
+      stateMap[item.id] = result.state;
+    } else if (isPlainObject(result) && !result.error && typeof result.present === "boolean") {
+      // Backward-compatible only for old desktop clients. New clients must
+      // send the explicit state so an inconclusive probe cannot be inferred.
       stateMap[item.id] = result.present ? "present" : "absent";
     } else {
       stateMap[item.id] = "unknown";

@@ -65,6 +65,13 @@
   errorDetail?: string;
     verification?: string;
     storeRequired?: boolean;
+    nativeState?: "present" | "absent" | "unknown";
+    diagnostic?: {
+      state: "present" | "absent" | "unknown";
+      target?: string | string[];
+      reason?: string;
+      observations?: Array<{ state: "present" | "absent" | "unknown"; reason?: string }>;
+    };
   }
   
   interface ApplySession {
@@ -174,10 +181,13 @@
 
   function normalizeDebloatScanState(value: unknown): "present" | "absent" | "unknown" {
     if (value === "present" || value === "absent" || value === "unknown") return value;
-    if (value && typeof value === "object" && "present" in value) {
-      const result = value as { present?: unknown; error?: unknown };
+    if (value && typeof value === "object") {
+      const result = value as { state?: unknown; present?: unknown; error?: unknown };
       // A failed/invalid probe is not proof that an item is installed. Keep
       // it visible for inspection without counting it as removable.
+      if (result.state === "present" || result.state === "absent" || result.state === "unknown") {
+        return result.state;
+      }
       if (result.error) return "unknown";
       if (typeof result.present === "boolean") return result.present ? "present" : "absent";
     }
@@ -1125,7 +1135,10 @@
         appliedAt: new Date().toISOString(), action: "apply",
       });
   
-      const electronResults: Record<string, { ok: boolean; status?: string; error?: string; errorDetail?: string }> = {};
+      const electronResults: Record<string, {
+        ok: boolean; status?: string; error?: string; errorDetail?: string;
+        verified?: boolean; nativeState?: "present" | "absent" | "unknown"; probe?: ApplyResult["diagnostic"];
+      }> = {};
   
       // ── Electron execution per item ──
       if (isElectron()) {
@@ -1149,6 +1162,9 @@
               status: result.status,
               error: result.error,
               errorDetail,
+              verified: result.verified,
+              nativeState: result.nativeState,
+              probe: result.probe,
             };
             // Update live progress
              const isFailed = !result.ok || result.status === "failed" || result.status === "verification-failed";
@@ -1278,7 +1294,10 @@
       });
       setShowApplyOverlay(true);
   
-      const electronResults: Record<string, { ok: boolean; status?: string; error?: string; errorDetail?: string }> = {};
+      const electronResults: Record<string, {
+        ok: boolean; status?: string; error?: string; errorDetail?: string;
+        verified?: boolean; nativeState?: "present" | "absent" | "unknown"; probe?: ApplyResult["diagnostic"];
+      }> = {};
   
       if (isElectron()) {
         for (const id of restorableIds) {
@@ -1297,6 +1316,9 @@
               status: result.status,
               error: result.error,
               errorDetail: result.errorDetail ?? result.error,
+              verified: result.verified,
+              nativeState: result.nativeState,
+              probe: result.probe,
             };
             const failed = !result.ok;
             setApplyProgress(p => p ? {
@@ -2310,6 +2332,21 @@
                             )}
                           </div>
                           <div className="flex items-center gap-3">
+                            {result.nativeState && (
+                              <span
+                                className={cn(
+                                  "text-[10px] max-w-56 truncate",
+                                  result.nativeState === "unknown" ? "text-amber-400/80" : "text-muted-foreground/70"
+                                )}
+                                title={result.diagnostic?.target
+                                  ? `Native ${result.nativeState}: ${Array.isArray(result.diagnostic.target)
+                                    ? result.diagnostic.target.join(", ")
+                                    : result.diagnostic.target}${result.diagnostic.reason ? ` (${result.diagnostic.reason})` : ""}`
+                                  : `Native state: ${result.nativeState}`}
+                              >
+                                Native: {result.nativeState}
+                              </span>
+                            )}
                             {result.error && (
                               <span className="text-[10px] text-red-400/80 max-w-48 truncate" title={result.error}>
                                 {result.error}

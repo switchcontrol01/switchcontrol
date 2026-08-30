@@ -57,7 +57,7 @@ test("Debloat scan normalizes structured Electron states and preserves detailed 
   );
   assert.match(
     debloaterRoute,
-    /error = eResult\.errorDetail \?\? eResult\.error/,
+    /const error = native\.error/,
     "the server must prefer detailed Electron errors when persisting results",
   );
 });
@@ -132,27 +132,90 @@ test("Debloat treats probe errors as unknown instead of absent", () => {
   );
 });
 
-test("Debloat removal preserves already-absent states for every Windows method", () => {
+test("Debloat removal preserves already-absent states only after a native re-query", () => {
   assert.match(
     debloat,
-    /If \(!\$svc -or \$svc\.StartMode -eq 'Disabled'\) \{[\s\S]*?Write-Output 'already-absent'/,
-    "missing or disabled services must be reported as already absent",
+    /Get-AppxPackage -Name[\s\S]*?-ErrorAction Stop/,
+    "AppX lookup errors must not be converted into a missing package",
   );
   assert.match(
     debloat,
-    /if \(\$changed\) \{ Write-Output 'removed' \} else \{ Write-Output 'already-absent' \}/,
-    "missing or disabled scheduled tasks must be reported as already absent",
+    /Get-CimInstance Win32_Service[\s\S]*?-ErrorAction Stop[\s\S]*?Write-Output 'already-absent'/,
+    "service lookup errors must not be converted into a missing service",
+  );
+  assert.match(
+    debloat,
+    /Get-ScheduledTask[\s\S]*?-ErrorAction Stop[\s\S]*?TaskNotFound\|NoMatching\|ObjectNotFound/,
+    "scheduled-task query errors must remain distinct from known missing tasks",
   );
   assert.match(
     debloat,
     /const result = out\.includes\('already-absent'\)/,
-    "elevated service output must participate in result classification",
+    "the native action output must still participate in result classification",
+  );
+  assert.match(
+    debloat,
+    /verificationProbe\.state === 'absent'/,
+    "already-absent requires an absent post-action probe",
   );
   assert.match(
     debloaterRoute,
-    /verification:\s*raw\.ok[\s\S]*successStatuses\.has\(status\) \? "verified" : "failed"/,
+    /nativeState === "absent"[\s\S]*raw\.ok[\s\S]*nativelyVerified/,
     "a verification failure must not be persisted as verified",
   );
+});
+
+test("native probe normalizer preserves scalar, array, missing, and inconclusive states", () => {
+  const types = ["appx", "registry", "service", "task"];
+  for (const type of types) {
+    assert.equal(contract.normalizeNativeProbeResult(type, "present", "target").state, "present");
+    assert.equal(contract.normalizeNativeProbeResult(type, JSON.stringify(["absent"]), "target").state, "absent");
+    assert.equal(contract.normalizeNativeProbeResult(type, JSON.stringify({ state: "unknown", reason: "query-error" }), "target").state, "unknown");
+    assert.equal(contract.normalizeNativeProbeResult(type, "", "target").state, "unknown");
+    assert.equal(contract.normalizeNativeProbeResult(type, JSON.stringify({ error: "timeout" }), "target").state, "unknown");
+    assert.equal(contract.normalizeNativeProbeResult(type, JSON.stringify({ state: "absent", error: "timeout" }), "target").state, "unknown");
+    assert.equal(contract.normalizeNativeProbeResult(type, JSON.stringify({ state: "absent", timedOut: true }), "target").state, "unknown");
+  }
+  assert.equal(
+    contract.normalizeNativeProbeResult(
+      "task",
+      JSON.stringify([{ state: "absent" }, { state: "present" }]),
+      ["\\Task\\Missing", "\\Task\\Enabled"],
+    ).state,
+    "present",
+  );
+  assert.equal(
+    contract.normalizeNativeProbeResult(
+      "task",
+      JSON.stringify([{ state: "absent" }, { state: "unknown", reason: "inaccessible" }]),
+      ["\\Task\\Missing", "\\Task\\Private"],
+    ).state,
+    "unknown",
+  );
+});
+
+test("canonical probe identities are exact and never derived from local baselines", () => {
+  const app = contract.getCanonicalContract("feedback_hub");
+  const registry = contract.getCanonicalContract("advertising_id");
+  const service = contract.getCanonicalContract("diagtrack");
+  const task = contract.getCanonicalContract("telemetry_tasks");
+  assert.equal(contract.getCanonicalProbeTarget(app), "Microsoft.WindowsFeedbackHub");
+  assert.equal(
+    contract.getCanonicalProbeTarget(registry),
+    "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\AdvertisingInfo\\Enabled",
+  );
+  assert.equal(contract.getCanonicalProbeTarget(service), "DiagTrack");
+  assert.deepEqual(contract.getCanonicalProbeTarget(task), task.taskPaths);
+  assert.equal(
+    contract.normalizeNativeProbeResult("registry", JSON.stringify({ state: "absent" }), contract.getCanonicalProbeTarget(registry)).target,
+    "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\AdvertisingInfo\\Enabled",
+  );
+  const verifyStart = debloat.indexOf("async function verifyItem(item)");
+  const restoreVerifyStart = debloat.indexOf("async function verifyRestoredItem(item)");
+  assert.ok(verifyStart >= 0 && restoreVerifyStart > verifyStart);
+  const verifyBody = debloat.slice(verifyStart, restoreVerifyStart);
+  assert.match(verifyBody, /return probeCanonical\(item, 'verify'\)/);
+  assert.doesNotMatch(verifyBody, /getDebloatBaseline/);
 });
 
 test("UAC cancellation and elevation startup failures remain actionable failures", () => {
