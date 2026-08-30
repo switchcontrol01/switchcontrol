@@ -82,3 +82,4 @@
 - [Public website localization](public-website-localization.md) — reviewed marketing copy needs explicit locale keys; fallback tests protect against a translated selector with English page content.
 - [Debloater result semantics](debloat-result-semantics.md) — preserve present/absent/unknown states; elevated no-ops need output markers and verification failures are never success.
 - [First-run language gate](first-run-language-gate.md) — authenticated new users must persist a language choice before welcome, disclaimer, onboarding, promos, or patch notes can start.
+- [Factory reset IPC handoff](factory-reset-ipc.md) — return a structured reset result before a bounded delayed relaunch/exit; renderer must validate and time out.

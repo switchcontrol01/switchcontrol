@@ -79,6 +79,11 @@ import { useToast } from "@/hooks/use-toast";
 import { UserPreferencesSync } from "@/components/UserPreferencesSync";
 import { I18nProvider } from "@/lib/i18n";
 import { clearTourState } from "@/lib/tour-store";
+import {
+  describeFactoryResetFailure,
+  invokeFactoryResetWithTimeout,
+  isSuccessfulFactoryResetResult,
+} from "@/lib/factoryReset";
 
 import Splash from "@/screens/Splash";
 import CameraGlow from "@/screens/CameraGlow";
@@ -1781,15 +1786,17 @@ function ElectronAppContent() {
   }, []);
 
   const handleFactoryReset = async () => {
-    console.log("[AppFlow] Factory reset, kill switch activated");
+    const startedAt = new Date().toISOString();
+    console.info(`[Reset] START renderer at=${startedAt}`);
     setIsResetting(true);
     setActiveFlow("none");
-    await postResetTourFlags();
 
-    // Revert while the ownership/baseline files still exist. Wiping AppData
-    // first would destroy the exact values needed to restore premium changes.
-    if (isElectron) {
-      try {
+    try {
+      await postResetTourFlags();
+
+      // Revert while the ownership/baseline files still exist. Wiping AppData
+      // first would destroy the exact values needed to restore premium changes.
+      if (isElectron) {
         const revertReport = await runPremiumRevert();
         const revertItems = [
           ...revertReport.tweakResults,
@@ -1803,28 +1810,41 @@ function ElectronAppContent() {
 
         if (revertIncomplete) {
           console.error("[AppFlow] Factory reset blocked, premium changes were not fully reverted", revertReport);
-          setIsResetting(false);
-          window.alert(
-            "Factory reset was stopped because some SwitchControl changes could not be safely reverted. Resolve the failed revert first, then try again."
+          throw new Error(
+            "Factory reset was stopped because some SwitchControl changes could not be safely reverted. Resolve the failed revert first, then try again.",
           );
-          return;
         }
-      } catch (error) {
-        console.error("[AppFlow] Factory reset blocked, premium revert failed", error);
-        setIsResetting(false);
-        window.alert(
-          "Factory reset was stopped because SwitchControl could not verify its system changes were reverted."
-        );
+
+        const api = (window as any).electronAPI;
+        if (!api?.resetAppData) {
+          throw new Error("Factory reset is unavailable in this desktop build. Please restart or reinstall SwitchControl.");
+        }
+
+        const nativeResult = await invokeFactoryResetWithTimeout(() => api.resetAppData());
+        console.info(`[Reset] Native result at=${new Date().toISOString()}`, nativeResult);
+        if (!isSuccessfulFactoryResetResult(nativeResult)) {
+          throw new Error(describeFactoryResetFailure(nativeResult));
+        }
+
+        // Native reset has already removed the local data and scheduled exit.
+        // Do not log out before that success: a failed reset must leave the
+        // current session usable. Cleanup after success is best-effort because
+        // the native handoff intentionally exits the app shortly afterward.
+        clearSwitchControlStorage();
+        void performFullLogout("factory_reset").catch((error) => {
+          console.warn("[Reset] Post-success logout cleanup failed:", error);
+        });
         return;
       }
-    }
 
-    await performFullLogout("factory_reset");
-    clearSwitchControlStorage();
-    if (isElectron && (window as any).electronAPI?.resetAppData) {
-      await (window as any).electronAPI.resetAppData();
-    } else {
+      clearSwitchControlStorage();
+      await performFullLogout("factory_reset");
       window.location.reload();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : describeFactoryResetFailure(error);
+      console.error(`[Reset] FAILED at=${new Date().toISOString()}:`, error);
+      setIsResetting(false);
+      window.alert(`${message} If the problem continues, restart SwitchControl and try again.`);
     }
   };
 

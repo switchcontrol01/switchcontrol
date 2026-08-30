@@ -72,6 +72,7 @@
   const configStore    = require('./config-store');
   const updaterService = require('./updater');
   const criticalLogger = require('./critical-logger');
+  const { createFactoryResetHandler } = require('./factory-reset');
   const { APPDATA_DIR, TWEAK_STATE_FILE, CONFIG_FILE, DEVICE_ID_FILE, SPECS_CACHE_FILE, DEVICE_SIGNATURE_FILE } = require('./user-data-paths');
   const processControl = require('./process-control');
 
@@ -188,8 +189,6 @@
   let _telemetryStartDelayTimer = null;
   let _showFallbackTimer = null;
   let _cookiesListenerRegistered = false;
-  const FACTORY_RESET_CONFIRMATION = 'RESET_SWITCHCONTROL_DATA';
-  
   // ── Admin / elevation state ───────────────────────────────────────────────────
   // Cached once at startup. The app manifest uses requireAdministrator — Windows
   // shows a single UAC prompt when the user launches the app, and the process
@@ -2125,36 +2124,12 @@
     app.quit();
   });
   
-  ipcMain.handle('app:resetData', async (_event, confirmation) => {
-    if (confirmation !== FACTORY_RESET_CONFIRMATION) {
-      console.warn('[Reset] Rejected: missing or incorrect confirmation token');
-      return { ok: false, error: 'confirmation_required' };
-    }
-    try {
-      const fs = require('fs');
-      const userDataPath = app.getPath('userData');
-      console.log('[Reset] Clearing userData directory:', userDataPath);
-      const preserveFiles = new Set(['device-id.json']);
-      const entries = fs.readdirSync(userDataPath);
-      for (const entry of entries) {
-        if (preserveFiles.has(entry)) {
-          console.log('[Reset] Preserving:', entry);
-          continue;
-        }
-        const fullPath = path.join(userDataPath, entry);
-        try {
-          fs.rmSync(fullPath, { recursive: true, force: true });
-        } catch (e) {
-          console.warn('[Reset] Could not delete:', fullPath, e.message);
-        }
-      }
-      console.log('[Reset] userData cleared — relaunching app');
-      app.relaunch();
-      app.exit(0);
-    } catch (err) {
-      console.error('[Reset] Error:', err);
-    }
-  });
+  ipcMain.handle('app:resetData', createFactoryResetHandler({
+    app,
+    fs,
+    path,
+    logger: console,
+  }));
   
   ipcMain.handle('app:openLogs', async () => {
     try {

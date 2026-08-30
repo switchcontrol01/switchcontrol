@@ -63,6 +63,7 @@
       "powershell-limiter.js",
       "ps-shared.js",
       "hardware-fingerprint.js",
+      "factory-reset.js",
       "node_modules/electron-updater/**/*",
       "node_modules/builder-util-runtime/**/*",
       "node_modules/semver/**/*",
