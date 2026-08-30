@@ -4,7 +4,12 @@ import { motion, AnimatePresence } from '@/lib/motionTokens';
 import { useLocation } from 'wouter';
 import { ChevronRight, ChevronLeft, X } from 'lucide-react';
 import { clearTourState, useTourStore } from '@/lib/tour-store';
-import { TOUR_COMPLETION_TIMING, TOUR_STEP_TIMING, tourPalette } from '@/lib/tourMotionTokens';
+import {
+  TOUR_COMPLETION_TIMING,
+  TOUR_STEP_TIMING,
+  tourPalette,
+  tourStepTransition,
+} from '@/lib/tourMotionTokens';
 import logoImg from '@/assets/logo.webp';
 import { useTranslation } from '@/lib/i18n';
 import {
@@ -647,16 +652,16 @@ export function TourShell({
                      center: { opacity: 1, filter: 'blur(0px)', x: 0, scale: 1, y: 0 },
                      exit: (dir: number) => ({
                        opacity: 0,
-                       filter: 'blur(18px)',
-                       x: dir * -70,
-                       scale: 0.96,
-                       y: -10,
+                        filter: 'blur(8px)',
+                        x: dir * -28,
+                        scale: 0.985,
+                        y: -3,
                      }),
                   }}
                   initial="enter"
                   animate="center"
                   exit="exit"
-                   transition={firstRunTransition(prefersReducedMotion)}
+                    transition={tourStepTransition(prefersReducedMotion)}
                   className="relative w-[460px] max-w-[calc(100vw-300px)] rounded-2xl overflow-hidden"
                   style={{
                     background: pal.cardBg,

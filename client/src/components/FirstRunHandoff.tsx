@@ -3,6 +3,9 @@ import { motion } from "framer-motion";
 import { useTranslation } from "@/lib/i18n";
 import {
   FIRST_RUN_EASE,
+  FIRST_RUN_HANDOFF_BLUR_PX,
+  FIRST_RUN_HANDOFF_OPACITY,
+  FIRST_RUN_HANDOFF_TIMES,
   FIRST_RUN_TRANSITION_MS,
 } from "@/lib/firstRunTransition";
 
@@ -59,14 +62,32 @@ export function FirstRunHandoff({
         WebkitBackdropFilter: "blur(0px)",
       }}
       animate={{
-        opacity: [0, 1, 0],
-        filter: ["blur(0px)", "blur(18px)", "blur(0px)"],
-        backdropFilter: ["blur(0px)", "blur(18px)", "blur(0px)"],
-        WebkitBackdropFilter: ["blur(0px)", "blur(18px)", "blur(0px)"],
+        opacity: FIRST_RUN_HANDOFF_OPACITY,
+        filter: [
+          "blur(0px)",
+          `blur(${FIRST_RUN_HANDOFF_BLUR_PX * 0.55}px)`,
+          `blur(${FIRST_RUN_HANDOFF_BLUR_PX}px)`,
+          `blur(${FIRST_RUN_HANDOFF_BLUR_PX * 0.55}px)`,
+          "blur(0px)",
+        ],
+        backdropFilter: [
+          "blur(0px)",
+          `blur(${FIRST_RUN_HANDOFF_BLUR_PX * 0.55}px)`,
+          `blur(${FIRST_RUN_HANDOFF_BLUR_PX}px)`,
+          `blur(${FIRST_RUN_HANDOFF_BLUR_PX * 0.55}px)`,
+          "blur(0px)",
+        ],
+        WebkitBackdropFilter: [
+          "blur(0px)",
+          `blur(${FIRST_RUN_HANDOFF_BLUR_PX * 0.55}px)`,
+          `blur(${FIRST_RUN_HANDOFF_BLUR_PX}px)`,
+          `blur(${FIRST_RUN_HANDOFF_BLUR_PX * 0.55}px)`,
+          "blur(0px)",
+        ],
       }}
       transition={{
         duration: FIRST_RUN_HANDOFF_MS / 1000,
-        times: [0, 0.5, 1],
+        times: FIRST_RUN_HANDOFF_TIMES,
         ease: FIRST_RUN_EASE,
       }}
       onAnimationStart={() =>
@@ -88,20 +109,20 @@ export function FirstRunHandoff({
         className="absolute inset-0"
         style={{
           background:
-            "radial-gradient(ellipse 90% 75% at 50% 42%, rgba(20,134,255,0.98) 0%, rgba(20,82,190,0.98) 42%, rgba(4,24,75,0.995) 100%)",
+            "linear-gradient(135deg, rgba(3,12,30,0.84) 0%, rgba(7,38,88,0.72) 52%, rgba(3,12,30,0.88) 100%)",
         }}
       />
       <motion.div
         className="absolute left-1/2 top-1/2 h-[min(54vw,560px)] w-[min(54vw,560px)] -translate-x-1/2 -translate-y-1/2 rounded-full"
         style={{
           background:
-            "radial-gradient(circle, rgba(125,224,255,0.34) 0%, rgba(37,126,255,0.16) 38%, transparent 72%)",
-          filter: "blur(26px)",
+            "radial-gradient(circle, rgba(92,202,255,0.18) 0%, rgba(37,126,255,0.09) 38%, transparent 72%)",
+          filter: "blur(22px)",
         }}
         animate={
           prefersReducedMotion
             ? undefined
-            : { scale: [0.82, 1.08, 0.96], opacity: [0.42, 0.8, 0.58] }
+            : { scale: [0.86, 1.04, 0.96], opacity: [0.18, 0.38, 0.22] }
         }
         transition={{ duration: 1.8, ease: "easeInOut" }}
       />

@@ -88,8 +88,8 @@ test("the real FirstRunHandoff animation reaches midpoint and completion", async
   const keyframes = animation.effect.getKeyframes();
   assert.deepEqual(
     keyframes.map((frame) => frame.opacity),
-    ["0", "1", "0"],
-    "the cover must fade in and out across the three keyframes",
+    ["0", "0.38", "0.72", "0.38", "0"],
+    "the cover must fade in and out without a saturated midpoint flash",
   );
   // Happy DOM exposes opacity keyframes through Web Animations but does not
   // retain filter/backdrop-filter in getKeyframes(). The source-level contract

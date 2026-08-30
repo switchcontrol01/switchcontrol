@@ -21,9 +21,20 @@ export const TOUR_COMPLETION_TIMING = {
 
 // ── Step transition timing ────────────────────────────────────────────────────
 export const TOUR_STEP_TIMING = {
+  /** Duration (ms) for the card change after Next or Back is clicked */
+  transitionMs: 200,
   /** Delay (ms) before querySelector scroll on highlight change */
   highlightScrollDelayMs: 200,
 } as const;
+
+export const TOUR_STEP_TRANSITION_SECONDS = TOUR_STEP_TIMING.transitionMs / 1000;
+
+export function tourStepTransition(reducedMotion = false) {
+  return {
+    duration: reducedMotion ? 0 : TOUR_STEP_TRANSITION_SECONDS,
+    ease: TOUR_EASE,
+  } as const;
+}
 
 // ── Shared easing curve ───────────────────────────────────────────────────────
 /** Luxury ease-out: fast snap then slow settle */

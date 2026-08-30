@@ -5,6 +5,7 @@ import { Check, ChevronRight, Languages, ShieldCheck, Sparkles } from "lucide-re
 import { LOCALES, useTranslation, type Locale } from "@/lib/i18n";
 import {
   FIRST_RUN_TRANSITION_MS,
+  firstRunInteractionTransition,
   firstRunTransition,
   firstRunVisualExit,
   firstRunVisualInitial,
@@ -198,7 +199,7 @@ export function FirstRunLanguageModal({
                 {...firstRunVisualInitial()}
                 animate={firstRunVisualVisible()}
                 exit={firstRunVisualExit()}
-                transition={firstRunTransition(prefersReducedMotion)}
+                transition={firstRunInteractionTransition(prefersReducedMotion)}
               >
                 {step === "prompt" ? (
                   <>

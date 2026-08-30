@@ -9,6 +9,8 @@ const read = (file) =>
 const app = read("client/src/App.tsx");
 const transition = read("client/src/lib/firstRunTransition.ts");
 const handoff = read("client/src/components/FirstRunHandoff.tsx");
+const tourMotion = read("client/src/lib/tourMotionTokens.ts");
+const tourShell = read("client/src/components/TourShell.tsx");
 const files = {
   login: read("client/src/App.tsx"),
   language: read("client/src/components/FirstRunLanguageModal.tsx"),
@@ -35,6 +37,12 @@ test("first-run visual contract is shared by every handoff state", () => {
   );
   assert.match(transition, /FIRST_RUN_TRANSITION_MS = 2000/);
   assert.match(transition, /FIRST_RUN_TRANSITION_SECONDS = FIRST_RUN_TRANSITION_MS \/ 1000/);
+  assert.match(transition, /FIRST_RUN_INTERACTION_MS = 200/);
+  assert.match(
+    transition,
+    /firstRunInteractionTransition\(prefersReducedMotion = false\)/,
+    "in-screen first-run interactions must have a short transition helper",
+  );
   assert.match(transition, /FIRST_RUN_BLUR_PX = 18/);
   assert.match(transition, /prefersReducedMotion \? 0 : FIRST_RUN_TRANSITION_SECONDS/);
 
@@ -50,6 +58,34 @@ test("first-run visual contract is shared by every handoff state", () => {
       `${name} must participate in the shared blur/fade endpoints`,
     );
   }
+  assert.match(
+    files.language,
+    /transition=\{firstRunInteractionTransition\(prefersReducedMotion\)\}/,
+    "language picker view changes must use the 200ms interaction transition",
+  );
+});
+
+test("tour step changes use a short independent transition", () => {
+  assert.match(
+    tourMotion,
+    /transitionMs:\s*200/,
+    "Next and Back must use a 200ms card transition",
+  );
+  assert.match(
+    tourMotion,
+    /tourStepTransition\(reducedMotion = false\)/,
+    "tour steps must have their own timing helper",
+  );
+  assert.match(
+    tourShell,
+    /transition=\{tourStepTransition\(prefersReducedMotion\)\}/,
+    "the step card must not reuse the two-second first-run handoff",
+  );
+  assert.match(
+    tourShell,
+    /filter: 'blur\(8px\)'[\s\S]*?x: dir \* -28[\s\S]*?scale: 0\.985/,
+    "step exits must use a restrained blur and slide",
+  );
 });
 
 test("phase handoffs hold the swap under a two-second blur/fade cover", () => {
@@ -58,8 +94,18 @@ test("phase handoffs hold the swap under a two-second blur/fade cover", () => {
   assert.match(handoff, /onCoverRef\.current\(\)/);
   assert.match(
     handoff,
-    /opacity: \[0, 1, 0\][\s\S]*filter: \["blur\(0px\)", "blur\(18px\)", "blur\(0px\)"\]/,
+    /opacity: FIRST_RUN_HANDOFF_OPACITY[\s\S]*FIRST_RUN_HANDOFF_BLUR_PX/,
     "the handoff must visibly fade and blur in, cover the phase swap, then reveal",
+  );
+  assert.match(
+    transition,
+    /FIRST_RUN_HANDOFF_OPACITY = \[0, 0\.38, 0\.72, 0\.38, 0\]/,
+    "the handoff must avoid a fully opaque blue midpoint",
+  );
+  assert.match(
+    transition,
+    /FIRST_RUN_HANDOFF_TIMES = \[0, 0\.26, 0\.5, 0\.74, 1\]/,
+    "the handoff must use a smooth fade-in and fade-out curve",
   );
   assert.match(handoff, /data-animation-state="cover-swap-reveal"/);
   assert.match(
