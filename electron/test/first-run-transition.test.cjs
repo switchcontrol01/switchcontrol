@@ -37,6 +37,28 @@ test("first-run visual contract is shared by every handoff state", () => {
   }
 });
 
+test("phase handoffs hold the swap under a two-second blur/fade cover", () => {
+  assert.match(app, /const FIRST_RUN_HANDOFF_MS = 2000/);
+  assert.match(app, /const FIRST_RUN_HANDOFF_COVER_MS = FIRST_RUN_HANDOFF_MS \/ 2/);
+  assert.match(app, /onCoverRef\.current\(\)/);
+  assert.match(
+    app,
+    /opacity: \[0, 1, 0\][\s\S]*filter: \["blur\(0px\)", "blur\(18px\)", "blur\(0px\)"\]/,
+    "the handoff must visibly fade and blur in, cover the phase swap, then reveal",
+  );
+  assert.match(app, /data-animation-state="cover-swap-reveal"/);
+  assert.match(
+    app,
+    /firstRunHandoff === "login-to-language"/,
+    "login-to-language must use the same handoff layer as later first-run phases",
+  );
+  assert.doesNotMatch(
+    files.disclaimer,
+    /prefersReduced\s*[?&|)]/,
+    "the disclaimer must not reference the removed undefined reduced-motion variable",
+  );
+});
+
 test("dashboard blur is a sibling scrim and fixed-position safety remains explicit", () => {
   assert.match(app, /function DashboardTransitionLayer/);
   assert.match(app, /data-first-run-transition="dashboard-scrim"/);

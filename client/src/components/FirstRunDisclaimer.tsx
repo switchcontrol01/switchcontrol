@@ -52,10 +52,15 @@ type Phase = "entering" | "warning" | "confirming" | "exiting" | "done";
 interface Props {
   show: boolean;
   onComplete: () => void;
+  onTransitionStart?: () => void;
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
-export function FirstRunDisclaimer({ show, onComplete }: Props) {
+export function FirstRunDisclaimer({
+  show,
+  onComplete,
+  onTransitionStart,
+}: Props) {
   const { t } = useTranslation();
   const { prefersReducedMotion } = useMotion();
   const [phase, setPhase] = useState<Phase>("done");
@@ -113,6 +118,7 @@ export function FirstRunDisclaimer({ show, onComplete }: Props) {
   };
 
   const handleConfirm = () => {
+    onTransitionStart?.();
     setPhase("exiting");
     const t = setTimeout(() => {
       setPhase("done");
@@ -194,7 +200,7 @@ export function FirstRunDisclaimer({ show, onComplete }: Props) {
           />
 
           {/* ── Streak lights ──────────────────────────────────────────────── */}
-          {!prefersReduced && STREAKS.map((s, i) => (
+          {!prefersReducedMotion && STREAKS.map((s, i) => (
             <motion.div
               key={i}
               className="absolute pointer-events-none origin-left"
@@ -211,7 +217,7 @@ export function FirstRunDisclaimer({ show, onComplete }: Props) {
           ))}
 
           {/* ── Particles ─────────────────────────────────────────────────── */}
-          {!prefersReduced && PARTICLES.map((p) => (
+          {!prefersReducedMotion && PARTICLES.map((p) => (
             <motion.div
               key={p.id}
               className="absolute rounded-full pointer-events-none"

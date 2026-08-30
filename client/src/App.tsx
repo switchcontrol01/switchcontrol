@@ -177,53 +177,73 @@ type AppPhase =
   | "disclaiming"
   | "authenticated";
 
-type FirstRunHandoffKind = "language-to-consent" | "consent-to-disclaimer";
+type FirstRunHandoffKind =
+  | "login-to-language"
+  | "language-to-consent"
+  | "consent-to-disclaimer"
+  | "disclaimer-to-welcome";
 
-const FIRST_RUN_HANDOFF_EXIT_MS = 420;
+const FIRST_RUN_HANDOFF_MS = 2000;
+const FIRST_RUN_HANDOFF_COVER_MS = FIRST_RUN_HANDOFF_MS / 2;
 
 function FirstRunHandoff({
   kind,
   prefersReducedMotion,
+  onCover,
   onComplete,
 }: {
   kind: FirstRunHandoffKind;
   prefersReducedMotion: boolean;
+  onCover: () => void;
   onComplete: () => void;
 }) {
   const { t } = useTranslation();
-  const [isExiting, setIsExiting] = React.useState(false);
+  const onCoverRef = React.useRef(onCover);
   const onCompleteRef = React.useRef(onComplete);
+  onCoverRef.current = onCover;
   onCompleteRef.current = onComplete;
 
   React.useEffect(() => {
     if (prefersReducedMotion) {
+      onCoverRef.current();
       onCompleteRef.current();
       return;
     }
 
-    const exitTimer = window.setTimeout(
-      () => setIsExiting(true),
-      Math.max(0, FIRST_RUN_TRANSITION_MS - FIRST_RUN_HANDOFF_EXIT_MS),
+    const coverTimer = window.setTimeout(
+      () => onCoverRef.current(),
+      FIRST_RUN_HANDOFF_COVER_MS,
     );
-    return () => window.clearTimeout(exitTimer);
+    return () => window.clearTimeout(coverTimer);
   }, [prefersReducedMotion]);
 
   return (
     <motion.div
       key={kind}
       className="pointer-events-none fixed inset-0 z-[10001] overflow-hidden"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: isExiting ? 0 : 1 }}
+      initial={{
+        opacity: 0,
+        filter: "blur(0px)",
+        backdropFilter: "blur(0px)",
+        WebkitBackdropFilter: "blur(0px)",
+      }}
+      animate={{
+        opacity: [0, 1, 0],
+        filter: ["blur(0px)", "blur(18px)", "blur(0px)"],
+        backdropFilter: ["blur(0px)", "blur(18px)", "blur(0px)"],
+        WebkitBackdropFilter: ["blur(0px)", "blur(18px)", "blur(0px)"],
+      }}
       transition={{
-        duration: (isExiting ? FIRST_RUN_HANDOFF_EXIT_MS : 520) / 1000,
+        duration: FIRST_RUN_HANDOFF_MS / 1000,
+        times: [0, 0.5, 1],
         ease: FIRST_RUN_EASE,
       }}
       onAnimationComplete={() => {
-        if (isExiting) onComplete();
+        onCompleteRef.current();
       }}
       data-testid="first-run-blue-handoff"
       data-handoff={kind}
-      data-animation-state={isExiting ? "exiting" : "visible"}
+      data-animation-state="cover-swap-reveal"
       aria-hidden="true"
     >
       <div
@@ -251,7 +271,9 @@ function FirstRunHandoff({
         <div className="rounded-full border border-white/20 bg-white/[0.08] px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.3em] text-white/80 shadow-[0_0_35px_rgba(111,211,255,0.3)]">
           {kind === "language-to-consent"
             ? t("Preparing your setup")
-            : t("Saving your preferences")}
+            : kind === "consent-to-disclaimer"
+              ? t("Saving your preferences")
+              : t("Preparing your setup")}
         </div>
       </div>
     </motion.div>
@@ -487,6 +509,7 @@ function ElectronAppContent() {
   // once ([] deps) and therefore can't read updated `phase` state via closure.
   const phaseRef = React.useRef<AppPhase>(phase);
   phaseRef.current = phase;
+  const previousPhaseRef = React.useRef<AppPhase>(phase);
 
   const patchNotesCheckedRef = React.useRef(false);
   const unlockFiredThisSessionRef = React.useRef(false);
@@ -521,6 +544,23 @@ function ElectronAppContent() {
       (hasIncompleteFirstRunSequence(user.id) ||
         (user.hasInstalledApp === false && phase !== "authenticated")),
   );
+
+  // The language gate is rendered in a portal, outside the phase AnimatePresence.
+  // Start the same cover/swap/reveal handoff when login gives way to that gate;
+  // otherwise the portal appears as an immediate cut over the login screen.
+  useEffect(() => {
+    const previousPhase = previousPhaseRef.current;
+    if (
+      phase === "language" &&
+      previousPhase !== "language" &&
+      user?.loggedIn &&
+      user.id &&
+      !firstRunHandoff
+    ) {
+      setFirstRunHandoff("login-to-language");
+    }
+    previousPhaseRef.current = phase;
+  }, [phase, user?.loggedIn, user?.id, firstRunHandoff]);
 
   // Premium device lock, Electron only, runs after entitlements confirmed from server.
   // Exclude trial users: trial access is user-scoped and must never trigger device locking,
@@ -2401,6 +2441,21 @@ function ElectronAppContent() {
           <FirstRunHandoff
             kind={firstRunHandoff}
             prefersReducedMotion={prefersReducedMotion}
+            onCover={() => {
+              if (firstRunHandoff === "login-to-language") {
+                // The language gate is already mounted; only the visual cover
+                // is needed for this initial login-to-portal handoff.
+                return;
+              } else if (firstRunHandoff === "language-to-consent") {
+                setPhase("consent");
+              } else if (firstRunHandoff === "consent-to-disclaimer") {
+                setShowDisclaimer(true);
+                setPhase("disclaiming");
+              } else if (firstRunHandoff === "disclaimer-to-welcome") {
+                setShowDisclaimer(false);
+                setPhase("welcome");
+              }
+            }}
             onComplete={() => setFirstRunHandoff(null)}
           />
         )}
@@ -2409,6 +2464,7 @@ function ElectronAppContent() {
             z-9999 keeps the required first-run surface above app content. */}
         <FirstRunDisclaimer
           show={(showDisclaimer || phase === "disclaiming") && !revertModalOpen}
+          onTransitionStart={() => setFirstRunHandoff("disclaimer-to-welcome")}
           onComplete={() => {
             const uid = user?.id;
             if (uid) {

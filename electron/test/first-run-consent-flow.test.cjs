@@ -41,7 +41,11 @@ test("consent requires the complete legal scroll before enabling agree", () => {
   assert.match(consent, /disabled=\{!isAtBottom \|\| isExiting \|\| isDeclining\}/);
   assert.match(consent, /isAtBottom \? "100%" : "28%"/);
   assert.match(consent, /data-testid="button-first-run-consent-decline"/);
-  assert.match(consent, /Decline &amp; quit/);
+  assert.match(
+    consent,
+    /(?:Decline &amp; quit|t\("Decline & quit"\))/,
+    "the consent screen must keep a localized decline action",
+  );
 });
 
 test("consent persists before the two-second exit handoff", () => {
