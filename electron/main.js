@@ -305,13 +305,47 @@
     if (liveProcessFlight) return liveProcessFlight;
 
     liveProcessFlight = si.processes()
-      .then(result => {
-        liveProcessCount = {
+      .then(async result => {
+        const systemInformationCount = {
           running: Number.isFinite(result?.running) ? result.running : 0,
           total: Number.isFinite(result?.all) ? result.all : 0,
         };
-        liveProcessCountAt = Date.now();
-        liveProcessRetryAt = 0;
+
+        // systeminformation's Windows CIM parser can return an empty result
+        // when one process has malformed/null metadata. The CPU and RAM
+        // telemetry remain valid in that case, but the responsiveness model
+        // would be blocked forever by total=0. Use a count-only native probe
+        // as a fallback; it does not inspect process names or command lines.
+        if (systemInformationCount.total > 0) {
+          liveProcessCount = systemInformationCount;
+          console.info(
+            `[Telemetry] Process count source=systeminformation total=${liveProcessCount.total}`,
+          );
+          liveProcessCountAt = Date.now();
+          liveProcessRetryAt = 0;
+          return liveProcessCount;
+        }
+
+        const rawCount = await runMainPs(
+          "$ErrorActionPreference = 'Stop'; " +
+          "(Get-Process -ErrorAction Stop | Measure-Object).Count",
+          { timeout: 8_000, label: 'telemetry:getProcessCount' },
+        );
+        const fallbackTotal = Number.parseInt(rawCount || '', 10);
+        if (Number.isFinite(fallbackTotal) && fallbackTotal > 0) {
+          liveProcessCount = { running: fallbackTotal, total: fallbackTotal };
+          console.info(
+            `[Telemetry] Process count source=Get-Process total=${liveProcessCount.total}`,
+          );
+          liveProcessCountAt = Date.now();
+          liveProcessRetryAt = 0;
+          return liveProcessCount;
+        }
+
+        console.warn(
+          '[Telemetry] Process count unavailable from systeminformation and Get-Process',
+        );
+        liveProcessRetryAt = Date.now() + PROCESS_COUNT_RETRY_MS;
         return liveProcessCount;
       })
       .catch(() => {

@@ -35,6 +35,16 @@ test("latency estimate refuses incomplete telemetry instead of returning the flo
   assert.match(dashboardHook, /processCount/);
   assert.match(electronMain, /function getLiveProcessCount\(\)/);
   assert.match(electronMain, /processes: liveProcessCount/);
+  assert.match(
+    electronMain,
+    /Get-Process -ErrorAction Stop \| Measure-Object/,
+    "Windows process count must have a native fallback when systeminformation returns zero",
+  );
+  assert.match(
+    electronMain,
+    /label: 'telemetry:getProcessCount'/,
+    "the process-count fallback must use the shared PowerShell limiter",
+  );
 });
 
 test("complete telemetry produces a load-based estimate with the full response contract", async () => {
