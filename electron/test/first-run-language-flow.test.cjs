@@ -19,13 +19,23 @@ test("first-run language gate is only mounted for an authenticated user", () => 
   );
   assert.match(
     app,
-    /user\?\.loggedIn && user\.id && languageKey && !localStorage\.getItem\(languageKey\)/,
-    "first-login routing must require an authenticated account and an unseen prompt",
+    /function getFirstRunGatePhase\(userId: string\): AppPhase/,
+    "first-login routing must use one account-scoped gate resolver",
   );
   assert.match(
     app,
-    /\? "language" : "welcome"/,
-    "the post-login flow must enter the language gate before welcome/onboarding",
+    /if \(!localStorage\.getItem\(`sc_language_prompt_seen_\$\{userId\}`\)\) \{\s*return "language";/,
+    "the language gate must be the first authenticated first-run step",
+  );
+  assert.match(
+    app,
+    /if \(!localStorage\.getItem\(`\$\{TERMS_CONSENT_KEY\}\$\{userId\}`\)\) \{\s*return "consent";/,
+    "the consent gate must follow language selection",
+  );
+  assert.match(
+    app,
+    /setPhase\(getFirstRunGatePhase\(user\.id\)\)/,
+    "the post-login flow must enter the first-run gates before welcome/onboarding",
   );
   assert.match(
     app,
@@ -113,7 +123,7 @@ test("new users remain excluded from patch notes and competing overlays", () => 
   );
   assert.match(
     app,
-    /revertModalOpen \|\|\s*phase === "language"/,
+    /revertModalOpen \|\|\s*phase === "language"[\s\S]*?phase === "consent"/,
     "the language gate must participate in overlay arbitration",
   );
   assert.match(

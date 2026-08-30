@@ -33,11 +33,11 @@ test("sign-out suspends flow evaluation before clearing the active tour", () => 
   );
 });
 
-test("a late auth callback cannot bypass the pending language gate", () => {
+test("a late auth callback cannot bypass a pending first-run gate", () => {
   const app = read("client/src/App.tsx");
   assert.match(
     app,
-    /if \(livePhase === "language"\) \{\s*\/\/ The cached-session fast path[\s\S]*?leaving gate mounted/,
-    "language-gated sessions must not be redirected to the dashboard",
+    /if \(\s*livePhase === "language" \|\|\s*livePhase === "consent" \|\|\s*livePhase === "disclaiming"\s*\) \{[\s\S]*?leaving gate mounted/,
+    "first-run-gated sessions must not be redirected to the dashboard",
   );
 });

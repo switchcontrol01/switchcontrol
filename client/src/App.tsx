@@ -87,6 +87,7 @@ import { WelcomeAnimation } from "@/components/WelcomeAnimation";
 import { OnboardingTour } from "@/components/OnboardingTour";
 import { FirstRunDisclaimer } from "@/components/FirstRunDisclaimer";
 import { FirstRunLanguageModal } from "@/components/FirstRunLanguageModal";
+import { FirstRunConsent, TERMS_CONSENT_KEY } from "@/components/FirstRunConsent";
 const _isElectronRuntime =
   typeof window !== "undefined" && !!(window as any).electronAPI?.isElectron;
 // Build-selected route map: the web build uses route chunks, while the
@@ -157,9 +158,23 @@ type AppPhase =
   | "unauthenticated"
   | "login_success"
   | "language"
+  | "consent"
   | "welcome"
   | "disclaiming"
   | "authenticated";
+
+function getFirstRunGatePhase(userId: string): AppPhase {
+  if (!localStorage.getItem(`sc_language_prompt_seen_${userId}`)) {
+    return "language";
+  }
+  if (!localStorage.getItem(`${TERMS_CONSENT_KEY}${userId}`)) {
+    return "consent";
+  }
+  if (!localStorage.getItem(`sc_disclaimer_seen_${userId}`)) {
+    return "disclaiming";
+  }
+  return "welcome";
+}
 
 // AppAuthContext, AppAuthContextValue, and useAppAuth live in a dedicated
 // file to avoid a circular import: use-auth.ts → App.tsx → SystemCleaner (lazy) → use-auth.ts
@@ -405,6 +420,8 @@ function ElectronAppContent() {
   const competingOverlayActive =
     revertModalOpen ||
     phase === "language" ||
+    phase === "consent" ||
+    phase === "disclaiming" ||
     showDisclaimer ||
     showPendingActivation ||
     showPatchNotes ||
@@ -747,14 +764,11 @@ function ElectronAppContent() {
     const delay = isFirstLogin ? 500 : 300;
     const t = setTimeout(() => {
       if (isFirstLogin) {
-        const languageKey = user?.id
-          ? `sc_language_prompt_seen_${user.id}`
-          : null;
-        setPhase(
-          user?.loggedIn && user.id && languageKey && !localStorage.getItem(languageKey)
-            ? "language"
-            : "welcome",
-        );
+        if (user?.loggedIn && user.id) {
+          setPhase(getFirstRunGatePhase(user.id));
+        } else {
+          setPhase("welcome");
+        }
       } else {
         setPhase("authenticated");
         setLocation("/dashboard");
@@ -1316,7 +1330,8 @@ function ElectronAppContent() {
                 livePhase === "authenticated" ||
                 livePhase === "welcome" ||
                 livePhase === "disclaiming" ||
-                livePhase === "language"
+                livePhase === "language" ||
+                livePhase === "consent"
               ) {
                 // Boot fast-path already moved us to "welcome" (or beyond) before
                 // the deep-link arrived, any login_success transition here would
@@ -1326,7 +1341,7 @@ function ElectronAppContent() {
                   `[Auth] first-time user but phase=${livePhase}, deep-link arrived late, no login flash`,
                 );
                 if (livePhase === "authenticated") {
-                  setPhase("welcome");
+                  setPhase(getFirstRunGatePhase(exchangedUser.id));
                 }
                 // "welcome" / "disclaiming" / "language", already in the right
                 // animation or required first-session gate; leave it alone.
@@ -1346,7 +1361,8 @@ function ElectronAppContent() {
                 livePhase === "authenticated" ||
                 livePhase === "welcome" ||
                 livePhase === "disclaiming" ||
-                livePhase === "language"
+                livePhase === "language" ||
+                livePhase === "consent"
               ) {
                 // Already showing the app (fast-path boot beat the deep-link).
                 // Navigate to dashboard without flashing the login screen,
@@ -1354,12 +1370,16 @@ function ElectronAppContent() {
                 console.log(
                   `[Auth] returning user, phase=${livePhase}, navigating to dashboard`,
                 );
-                if (livePhase === "language") {
+                if (
+                  livePhase === "language" ||
+                  livePhase === "consent" ||
+                  livePhase === "disclaiming"
+                ) {
                   // The cached-session fast path may have mounted the required
                   // language gate before this late callback arrived. Never let
                   // the callback bypass that gate.
                   console.log(
-                    "[Auth] callback arrived while language gate is active; leaving gate mounted",
+                    "[Auth] callback arrived while a first-run gate is active; leaving gate mounted",
                   );
                 } else {
                   if (livePhase !== "authenticated") setPhase("authenticated");
@@ -1499,10 +1519,7 @@ function ElectronAppContent() {
         if (!hasBeenWelcomedFast && isGenuinelyNewUserFast) {
           setIsFirstLogin(true);
           localStorage.setItem(welcomeKeyFast, "true");
-          const languageKeyFast = `sc_language_prompt_seen_${user!.id}`;
-          setPhase(
-            !localStorage.getItem(languageKeyFast) ? "language" : "welcome",
-          );
+          setPhase(getFirstRunGatePhase(user!.id));
         } else {
           if (!hasBeenWelcomedFast) {
             localStorage.setItem(welcomeKeyFast, "true");
@@ -1567,10 +1584,7 @@ function ElectronAppContent() {
           if (!hasBeenWelcomed && isGenuinelyNewUser) {
             setIsFirstLogin(true);
             localStorage.setItem(welcomeKey, "true");
-            const languageKey = `sc_language_prompt_seen_${targetUser.id}`;
-            setPhase(
-              !localStorage.getItem(languageKey) ? "language" : "welcome",
-            );
+            setPhase(getFirstRunGatePhase(targetUser.id));
           } else {
             if (!hasBeenWelcomed) {
               localStorage.setItem(welcomeKey, "true");
@@ -1622,10 +1636,7 @@ function ElectronAppContent() {
           if (!hasBeenWelcomed && isGenuinelyNewUser) {
             setIsFirstLogin(true);
             localStorage.setItem(welcomeKey, "true");
-            const languageKey = `sc_language_prompt_seen_${targetUser.id}`;
-            setPhase(
-              !localStorage.getItem(languageKey) ? "language" : "welcome",
-            );
+            setPhase(getFirstRunGatePhase(targetUser.id));
           } else {
             if (!hasBeenWelcomed) {
               localStorage.setItem(welcomeKey, "true");
@@ -1710,6 +1721,7 @@ function ElectronAppContent() {
     setIsFirstLogin(false);
     setShowPendingActivation(false);
     setShowPatchNotes(false);
+    setShowDisclaimer(false);
 
     // 6. Switch phase, login screen will animate in.
     //    Also clear isSigningOut so pointer-events are restored for the
@@ -2052,15 +2064,6 @@ function ElectronAppContent() {
                   console.log(
                     "[Handoff] intro exit complete, mounting dashboard",
                   );
-                  // Show the first-run disclaimer for brand-new users (once only).
-                  const uid = user?.id;
-                  const disclaimerKey = uid ? `sc_disclaimer_seen_${uid}` : null;
-                  if (isFirstLogin && disclaimerKey && !localStorage.getItem(disclaimerKey)) {
-                    console.log("[FirstRunDisclaimer] showing for first-time user, fading welcome out");
-                    setPhase("disclaiming"); // triggers AnimatePresence exit on welcome div
-                    setShowDisclaimer(true);
-                    return; // hold off on setPhase("authenticated") until disclaimer is dismissed
-                  }
                   setPhase("authenticated");
                   setLocation("/dashboard");
                 }}
@@ -2115,32 +2118,58 @@ function ElectronAppContent() {
 
         {/* Required first-session language choice. The session is already
             authenticated at this point; the modal must complete before the
-            welcome animation and any onboarding surface can begin. */}
+            consent gate and any onboarding surface can begin. */}
         {phase === "language" && user?.loggedIn && user.id && (
           <FirstRunLanguageModal
             userId={user.id}
             accountLabel={user.username || user.email || user.id}
             onComplete={() => {
               console.log(
-                "[FirstRunLanguage] choice saved, transitioning to welcome",
+                "[FirstRunLanguage] choice saved, transitioning to consent",
               );
-              setPhase("welcome");
+              setPhase("consent");
             }}
           />
         )}
 
-        {/* First-run disclaimer, overlays the welcome screen for brand-new users.
-            Shows between welcome animation end and dashboard mount. z-9998 so it
-            sits above the welcome animation (z-2) but below any potential z-9999 overlays. */}
+        {/* Required terms/privacy consent. It is deliberately mounted before the
+            gaming disclaimer and welcome animation, so no dashboard or tour can
+            begin until both documents have been reviewed. */}
+        {phase === "consent" && user?.loggedIn && user.id && (
+          <FirstRunConsent
+            userId={user.id}
+            onComplete={() => {
+              console.log(
+                "[FirstRunConsent] consent saved, transitioning to gaming disclaimer",
+              );
+              setShowDisclaimer(true);
+              setPhase("disclaiming");
+            }}
+            onDecline={() => {
+              console.warn("[FirstRunConsent] declined, closing authenticated session");
+              const api = (window as any).electronAPI;
+              if (api?.quitApp) {
+                api.quitApp();
+                return;
+              }
+              storeLogout();
+              setIsFirstLogin(false);
+              setPhase("unauthenticated");
+              setLocation("/");
+            }}
+          />
+        )}
+
+        {/* First-run disclaimer, shown after consent and before welcome.
+            z-9999 keeps the required first-run surface above app content. */}
         <FirstRunDisclaimer
-          show={showDisclaimer && !revertModalOpen}
+          show={(showDisclaimer || phase === "disclaiming") && !revertModalOpen}
           onComplete={() => {
             const uid = user?.id;
             if (uid) localStorage.setItem(`sc_disclaimer_seen_${uid}`, "true");
-            console.log("[FirstRunDisclaimer] dismissed, transitioning to dashboard");
+            console.log("[FirstRunDisclaimer] dismissed, transitioning to welcome");
             setShowDisclaimer(false);
-            setPhase("authenticated");
-            setLocation("/dashboard");
+            setPhase("welcome");
           }}
         />
 
