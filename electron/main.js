@@ -64,6 +64,11 @@
   const backendLauncher = require('./backend-launcher');
   const psLimiter = require('./powershell-limiter');
   const { checkIsAdmin: checkSharedIsAdmin } = require('./ps-shared');
+  const {
+    PROBE_STATUS,
+    classifyPowerShellFailure,
+    isProbeStatus,
+  } = require('./probe-status');
   require('./security-helper');
   require('./debloat-helper');
   const { getIconDataUrlForPath } = require('./file-icon');
@@ -233,6 +238,124 @@
       psLimiter.release(token);
     }
   }
+
+  /**
+   * Detailed variant for read-only capability probes. Existing callers keep
+   * using runMainPs() because they only need stdout; new probes use this
+   * function so the renderer can distinguish the reason a value is absent.
+   */
+  async function runMainPsDetailed(script, { timeout = 10000, label = '' } = {}) {
+    if (process.platform !== 'win32') {
+      return {
+        ok: false,
+        status: PROBE_STATUS.UNSUPPORTED,
+        reason: 'not-windows',
+        stdout: '',
+        stderr: '',
+      };
+    }
+    const token = psLimiter.tryAcquire({
+      file: 'main.js',
+      fn: label || 'runMainPsDetailed',
+      reason: label || 'main-probe',
+    });
+    if (!token) {
+      return {
+        ok: false,
+        status: PROBE_STATUS.TEMPORARILY_FAILED,
+        reason: 'busy',
+        stdout: '',
+        stderr: '',
+      };
+    }
+    try {
+      return await new Promise((resolve) => {
+        execFile('powershell', [
+          '-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden',
+          '-ExecutionPolicy', 'Bypass', '-Command', script,
+        ], { windowsHide: true, timeout }, (error, stdout, stderr) => {
+          const out = (stdout || '').trim();
+          const err = (stderr || '').trim();
+          if (error) {
+            resolve({
+              ok: false,
+              status: classifyPowerShellFailure(error, err),
+              reason: error.code || 'powershell-error',
+              stdout: out,
+              stderr: err,
+            });
+            return;
+          }
+          resolve({
+            ok: true,
+            status: PROBE_STATUS.OK,
+            reason: null,
+            stdout: out,
+            stderr: err,
+          });
+        });
+      });
+    } finally {
+      psLimiter.release(token);
+    }
+  }
+
+  function parseProbeResponse(result, label) {
+    if (!result.ok) return result;
+    if (!result.stdout) {
+      return {
+        ...result,
+        ok: false,
+        status: PROBE_STATUS.TEMPORARILY_FAILED,
+        reason: 'empty-output',
+      };
+    }
+    try {
+      const parsed = JSON.parse(result.stdout);
+      if (isProbeStatus(parsed?.status)) {
+        return {
+          ...result,
+          ok: parsed.status === PROBE_STATUS.OK,
+          status: parsed.status,
+          reason: parsed.reason || null,
+          message: parsed.message || null,
+          data: parsed.data ?? null,
+        };
+      }
+      return { ...result, data: parsed };
+    } catch (error) {
+      console.warn(`[${label}] invalid PowerShell JSON:`, error.message);
+      return {
+        ...result,
+        ok: false,
+        status: PROBE_STATUS.TEMPORARILY_FAILED,
+        reason: 'invalid-json',
+        data: null,
+      };
+    }
+  }
+
+  // PowerShell 5.1-compatible helper used by the small PnP/registry probes.
+  // It deliberately checks command availability before invocation and emits a
+  // machine-readable envelope instead of allowing a missing module to look
+  // like an empty device list.
+  const PS_PROBE_HELPERS = String.raw`
+function Get-SwitchControlProbeStatus($err) {
+  $text = "$($err.Exception.Message) $($err.FullyQualifiedErrorId)"
+  $lower = $text.ToLowerInvariant()
+  if ($lower -match 'access is denied|permission denied|unauthorizedaccess|requested registry access') { return 'permission_denied' }
+  if ($lower -match 'not recognized|commandnotfound|cannot find the cmdlet') { return 'unsupported' }
+  if ($lower -match 'invalid namespace|invalid class|provider load failure|provider is not capable|class not registered|wbem_e_') { return 'provider_unavailable' }
+  return 'temporarily_failed'
+}
+function Write-SwitchControlProbe($status, $data, $message) {
+  [PSCustomObject]@{
+    status = $status
+    data = $data
+    message = $message
+  } | ConvertTo-Json -Compress -Depth 6
+}
+`;
   
   // Deep-link queue for when renderer is not ready
   let pendingDeepLinkUrl = null;
@@ -2631,19 +2754,34 @@ ConvertTo-Json -InputObject $result -Compress -Depth 2
   // systems where Win32_SoundDevice WMI queries hang indefinitely.
   // Returns { name: string | null }.
   ipcMain.handle('system:getAudioDevice', async () => {
-    if (process.platform !== 'win32') return { name: null };
+    if (process.platform !== 'win32') {
+      return { name: null, status: PROBE_STATUS.UNSUPPORTED, reason: 'not-windows' };
+    }
     // Try MEDIA class first (sound cards/codecs), then AudioEndpoint (rendered devices).
     // Get-PnpDevice does NOT use WMI — it calls the PnP Manager directly.
     const cmd = [
-      '$d = Get-PnpDevice -Class MEDIA -Status OK -ErrorAction SilentlyContinue | Select-Object -First 1;',
-      'if ($d) { $d.FriendlyName }',
-      'else {',
-      '  $d2 = Get-PnpDevice -Class AudioEndpoint -Status OK -ErrorAction SilentlyContinue | Select-Object -First 1;',
-      '  if ($d2) { $d2.FriendlyName }',
-      '}',
+      PS_PROBE_HELPERS,
+      '$pnp = Get-Command Get-PnpDevice -ErrorAction SilentlyContinue;',
+      'if (-not $pnp) { Write-SwitchControlProbe "unsupported" $null "Get-PnpDevice is not available on this Windows edition."; exit }',
+      'try {',
+      '  $d = @(Get-PnpDevice -Class MEDIA -Status OK -ErrorAction Stop | Select-Object -First 1);',
+      '  if ($d.Count -eq 0) { $d = @(Get-PnpDevice -Class AudioEndpoint -Status OK -ErrorAction Stop | Select-Object -First 1) }',
+      '  if ($d.Count -eq 0) { Write-SwitchControlProbe "ok" @{ name = $null } "No active audio device was reported."; exit }',
+      '  $friendly = [string]$d[0].FriendlyName;',
+      '  if ([string]::IsNullOrWhiteSpace($friendly)) { $friendly = [string]$d[0].Description }',
+      '  Write-SwitchControlProbe "ok" @{ name = $friendly } $null',
+      '} catch { $s = Get-SwitchControlProbeStatus $_; Write-SwitchControlProbe $s $null $_.Exception.Message }',
     ].join(' ');
-    const name = await runMainPs(cmd, { timeout: 4_000, label: 'system:getAudioDevice' }) || null;
-    return { name };
+    const result = parseProbeResponse(
+      await runMainPsDetailed(cmd, { timeout: 4_000, label: 'system:getAudioDevice' }),
+      'system:getAudioDevice',
+    );
+    return {
+      name: result.data?.name || null,
+      status: result.status,
+      reason: result.reason || null,
+      message: result.message || null,
+    };
   });
   
   // Bluetooth radio name via PnP — used as a reliable fallback when WMI audio/NIC
@@ -2653,15 +2791,33 @@ ConvertTo-Json -InputObject $result -Compress -Depth 2
   // This is far more accurate than guessing from the wireless NIC adapter name.
   // Returns { name: string | null }.
   ipcMain.handle('system:getBluetoothDevice', async () => {
-    if (process.platform !== 'win32') return { name: null };
+    if (process.platform !== 'win32') {
+      return { name: null, status: PROBE_STATUS.UNSUPPORTED, reason: 'not-windows' };
+    }
     const cmd = [
-      '$d = Get-PnpDevice -Class Bluetooth -Status OK -ErrorAction SilentlyContinue |',
-      '  Where-Object { $_.Description -notmatch "enumerator|hub|root|port|hid|avrcp" } |',
-      '  Select-Object -First 1;',
-      'if ($d) { $d.FriendlyName ?? $d.Description } else { "" }',
+      PS_PROBE_HELPERS,
+      '$pnp = Get-Command Get-PnpDevice -ErrorAction SilentlyContinue;',
+      'if (-not $pnp) { Write-SwitchControlProbe "unsupported" $null "Get-PnpDevice is not available on this Windows edition."; exit }',
+      'try {',
+      '  $d = @(Get-PnpDevice -Class Bluetooth -Status OK -ErrorAction Stop |',
+      '    Where-Object { $_.Description -notmatch "enumerator|hub|root|port|hid|avrcp" } |',
+      '    Select-Object -First 1);',
+      '  if ($d.Count -eq 0) { Write-SwitchControlProbe "ok" @{ name = $null } "No active Bluetooth radio was reported."; exit }',
+      '  $friendly = [string]$d[0].FriendlyName;',
+      '  if ([string]::IsNullOrWhiteSpace($friendly)) { $friendly = [string]$d[0].Description }',
+      '  Write-SwitchControlProbe "ok" @{ name = $friendly } $null',
+      '} catch { $s = Get-SwitchControlProbeStatus $_; Write-SwitchControlProbe $s $null $_.Exception.Message }',
     ].join(' ');
-    const name = await runMainPs(cmd, { timeout: 4_000, label: 'system:getBluetoothDevice' }) || null;
-    return { name };
+    const result = parseProbeResponse(
+      await runMainPsDetailed(cmd, { timeout: 4_000, label: 'system:getBluetoothDevice' }),
+      'system:getBluetoothDevice',
+    );
+    return {
+      name: result.data?.name || null,
+      status: result.status,
+      reason: result.reason || null,
+      message: result.message || null,
+    };
   });
   
   // Motherboard info via registry — instant, no WMI/PowerShell process spawn.
@@ -2670,21 +2826,34 @@ ConvertTo-Json -InputObject $result -Compress -Depth 2
   // when si.baseboard() WMI calls time out (common on AMD X670/X870 platforms).
   // Returns { manufacturer: string | null, model: string | null }.
   ipcMain.handle('system:getMotherboard', async () => {
-    if (process.platform !== 'win32') return { manufacturer: null, model: null };
-    const cmd = [
-      '$p = "HKLM:\\HARDWARE\\DESCRIPTION\\System\\BIOS";',
-      '$r = Get-ItemProperty $p -ErrorAction SilentlyContinue;',
-      'if ($r) {',
-      '  [PSCustomObject]@{ manufacturer = $r.BaseBoardManufacturer; model = $r.BaseBoardProduct } | ConvertTo-Json -Compress',
-      '} else { \'{"manufacturer":null,"model":null}\' }',
-    ].join(' ');
-    const raw = await runMainPs(cmd, { timeout: 2_000, label: 'system:getMotherboard' });
-    try {
-      const parsed = JSON.parse(raw || '{}');
-      return { manufacturer: parsed.manufacturer ?? null, model: parsed.model ?? null };
-    } catch {
-      return { manufacturer: null, model: null };
+    if (process.platform !== 'win32') {
+      return {
+        manufacturer: null,
+        model: null,
+        status: PROBE_STATUS.UNSUPPORTED,
+        reason: 'not-windows',
+      };
     }
+    const cmd = [
+      PS_PROBE_HELPERS,
+      '$p = "HKLM:\\HARDWARE\\DESCRIPTION\\System\\BIOS";',
+      'try {',
+      '  $r = Get-ItemProperty $p -ErrorAction Stop;',
+      '  if ($r) { Write-SwitchControlProbe "ok" @{ manufacturer = $r.BaseBoardManufacturer; model = $r.BaseBoardProduct } $null }',
+      '  else { Write-SwitchControlProbe "provider_unavailable" $null "Windows BIOS registry data is unavailable." }',
+      '} catch { $s = Get-SwitchControlProbeStatus $_; Write-SwitchControlProbe $s $null $_.Exception.Message }',
+    ].join(' ');
+    const result = parseProbeResponse(
+      await runMainPsDetailed(cmd, { timeout: 2_000, label: 'system:getMotherboard' }),
+      'system:getMotherboard',
+    );
+    return {
+      manufacturer: result.data?.manufacturer || null,
+      model: result.data?.model || null,
+      status: result.status,
+      reason: result.reason || null,
+      message: result.message || null,
+    };
   });
   
   /** Race a systeminformation call against a timeout so the renderer never hangs. */
@@ -3244,21 +3413,109 @@ ConvertTo-Json -InputObject $result -Compress -Depth 2
   let _displayInfoCache = null;
   let _displayInfoCachedAt = 0;
   let _displayInfoInFlight = null; // Promise dedup — prevents parallel PS scripts
+  let _displayListenersRegistered = false;
   const DISPLAY_INFO_TTL_MS = 45_000;
+
+  function getElectronDisplaySnapshot() {
+    try {
+      const primary = screen.getPrimaryDisplay();
+      return screen.getAllDisplays().map((display, index) => ({
+        id: String(display.id),
+        name: null,
+        manufacturer: null,
+        serial: null,
+        connectionType: null,
+        currentResX: display.size?.width || null,
+        currentResY: display.size?.height || null,
+        refreshHz: null,
+        maxRefreshHz: null,
+        bitsPerPixel: null,
+        nativeResX: null,
+        nativeResY: null,
+        edidVersion: null,
+        hdrEnabled: null,
+        vrrEnabled: null,
+        vrrCapable: null,
+        freeSyncEnabled: null,
+        vrrMin: null,
+        vrrMax: null,
+        gpuName: null,
+        isPrimary: display.id === primary.id,
+        scaleFactor: typeof display.scaleFactor === 'number' ? display.scaleFactor : null,
+        bounds: display.bounds ? { ...display.bounds } : null,
+        workArea: display.workArea ? { ...display.workArea } : null,
+        workAreaSize: display.workAreaSize ? { ...display.workAreaSize } : null,
+        rotation: typeof display.rotation === 'number' ? display.rotation : null,
+        boundsX: display.bounds?.x ?? null,
+        boundsY: display.bounds?.y ?? null,
+        source: 'electron',
+        order: index,
+      }));
+    } catch (error) {
+      console.warn('[DisplayInfo] Electron display baseline unavailable:', error.message);
+      return [];
+    }
+  }
+
+  function mergeElectronDisplayBaseline(enriched, baseline) {
+    if (!baseline.length) return enriched;
+    const remaining = [...baseline];
+    return enriched.map((monitor, index) => {
+      const matchIndex = remaining.findIndex((display) =>
+        monitor.boundsX != null &&
+        monitor.boundsY != null &&
+        display.boundsX === monitor.boundsX &&
+        display.boundsY === monitor.boundsY,
+      );
+      const fallbackIndex = matchIndex >= 0 ? matchIndex : Math.min(index, remaining.length - 1);
+      const display = remaining.splice(Math.max(0, fallbackIndex), 1)[0] || baseline[index] || baseline[0];
+      return {
+        ...display,
+        ...monitor,
+        id: monitor.id || display.id,
+        isPrimary: typeof monitor.isPrimary === 'boolean' ? monitor.isPrimary : display.isPrimary,
+        scaleFactor: display.scaleFactor,
+        bounds: display.bounds,
+        workArea: display.workArea,
+        workAreaSize: display.workAreaSize,
+        rotation: display.rotation,
+        boundsX: display.boundsX,
+        boundsY: display.boundsY,
+        source: 'electron+windows',
+      };
+    }).concat(remaining);
+  }
   
   ipcMain.handle('system:getDisplayInfo', async () => {
-    if (process.platform !== 'win32') return { monitors: [] };
+    const baseline = getElectronDisplaySnapshot();
+    if (process.platform !== 'win32') {
+      return {
+        monitors: baseline,
+        status: baseline.length ? PROBE_STATUS.OK : PROBE_STATUS.TEMPORARILY_FAILED,
+        source: 'electron',
+        probeStatuses: { geometry: baseline.length ? PROBE_STATUS.OK : PROBE_STATUS.TEMPORARILY_FAILED },
+      };
+    }
     const now = Date.now();
     if (_displayInfoCache && (now - _displayInfoCachedAt) < DISPLAY_INFO_TTL_MS) {
-      return _displayInfoCache;
+      const cachedMonitors = mergeElectronDisplayBaseline(_displayInfoCache.monitors, baseline);
+      return cachedMonitors.length
+        ? { ..._displayInfoCache, monitors: cachedMonitors }
+        : _displayInfoCache;
     }
     if (_displayInfoInFlight) return _displayInfoInFlight;
-    _displayInfoInFlight = _runDisplayInfoPs().finally(() => { _displayInfoInFlight = null; });
+    _displayInfoInFlight = _runDisplayInfoPs(baseline).finally(() => { _displayInfoInFlight = null; });
     return _displayInfoInFlight;
   });
 
-  async function _runDisplayInfoPs() {
-    if (process.platform !== 'win32') return { monitors: [] };
+  async function _runDisplayInfoPs(baseline = []) {
+    if (process.platform !== 'win32') {
+      return {
+        monitors: baseline,
+        status: baseline.length ? PROBE_STATUS.OK : PROBE_STATUS.TEMPORARILY_FAILED,
+        source: 'electron',
+      };
+    }
   
     // ── Comprehensive multi-monitor detection script ─────────────────────────
     // Sources combined per monitor:
@@ -3271,7 +3528,8 @@ ConvertTo-Json -InputObject $result -Compress -Depth 2
     //   Registry (HKCU VideoSettings, GPU class) → HDR enabled, VRR/FreeSync enabled
     const ps = `
   Set-StrictMode -Off
-  $out = @{ monitors = @(); scannedAt = [int64](([datetime]::UtcNow - [datetime]'1970-01-01').TotalMilliseconds) }
+  $script:SwitchControlProbeStatuses = @{}
+  $out = @{ monitors = @(); probeStatuses = @{}; scannedAt = [int64](([datetime]::UtcNow - [datetime]'1970-01-01').TotalMilliseconds) }
   
   function Dec($bytes) {
     try { $b = $bytes | Where-Object { $_ -ne 0 }; if (-not $b) { return $null }
@@ -3287,6 +3545,28 @@ ConvertTo-Json -InputObject $result -Compress -Depth 2
       1{"VGA"} 5{"DVI"} 6{"HDMI"} 8{"Internal (eDP)"}
       10{"DisplayPort"} 11{"DisplayPort"} 12{"DisplayPort (Embedded)"} 16{"Miracast"}
       default{$null}
+    }
+  }
+  function Get-SwitchControlProbeStatus($err) {
+    $text = "$($err.Exception.Message) $($err.FullyQualifiedErrorId)"
+    $lower = $text.ToLowerInvariant()
+    if ($lower -match 'access is denied|permission denied|unauthorizedaccess|requested registry access') { return 'permission_denied' }
+    if ($lower -match 'not recognized|commandnotfound|cannot find the cmdlet') { return 'unsupported' }
+    if ($lower -match 'invalid namespace|invalid class|provider load failure|provider is not capable|class not registered|wbem_e_') { return 'provider_unavailable' }
+    return 'temporarily_failed'
+  }
+  function Get-SwitchControlCim($namespace, $className) {
+    $key = "$namespace::$className"
+    $cim = Get-Command Get-CimInstance -ErrorAction SilentlyContinue
+    $wmi = Get-Command Get-WmiObject -ErrorAction SilentlyContinue
+    try {
+      if ($cim) { return @(& $cim.Name -Namespace $namespace -ClassName $className -ErrorAction Stop) }
+      if ($wmi) { return @(& $wmi.Name -Namespace $namespace -Class $className -ErrorAction Stop) }
+      $script:SwitchControlProbeStatuses[$key] = 'unsupported'
+      return @()
+    } catch {
+      $script:SwitchControlProbeStatuses[$key] = Get-SwitchControlProbeStatus $_
+      return @()
     }
   }
   
@@ -3359,12 +3639,12 @@ public class DspHelper {
   } catch {}
   
   $vcs = @()
-  try { $vcs = @(Get-CimInstance Win32_VideoController -EA Stop |
+  try { $vcs = @(Get-SwitchControlCim 'root/cimv2' 'Win32_VideoController' |
     Select-Object Name,CurrentHorizontalResolution,CurrentVerticalResolution,CurrentRefreshRate,CurrentBitsPerPixel,VideoModeDescription) } catch {}
   
-  $monIds  = @(); try { $monIds  = @(Get-CimInstance -Namespace root/wmi -ClassName WmiMonitorID                       -EA Stop) } catch {}
-  $connPs  = @(); try { $connPs  = @(Get-CimInstance -Namespace root/wmi -ClassName WmiMonitorConnectionParams         -EA Stop) } catch {}
-  $dispFt  = @(); try { $dispFt  = @(Get-CimInstance -Namespace root/wmi -ClassName WmiMonitorSupportedDisplayFeatures -EA Stop) } catch {}
+  $monIds  = @(Get-SwitchControlCim 'root/wmi' 'WmiMonitorID')
+  $connPs  = @(Get-SwitchControlCim 'root/wmi' 'WmiMonitorConnectionParams')
+  $dispFt  = @(Get-SwitchControlCim 'root/wmi' 'WmiMonitorSupportedDisplayFeatures')
   
   # Build EDID map keyed by hardware model ID (e.g. "SAM0E4F").
   # The registry key name under HKLM:\...\Enum\DISPLAY\ IS the hardware model ID —
@@ -3728,7 +4008,9 @@ public class DspHelper {
     $monGpu = if ($vc) { $vc.Name } elseif ($vcs.Count -eq 1) { $gpuName } else { $null }
   
     $out.monitors += @{
-      id=$("mon_$i"); name=$name; manufacturer=$mfr; serial=$ser; connectionType=$conn; connectionTypeRaw=$rawConn
+       id=$("mon_$i"); name=$name; manufacturer=$mfr; serial=$ser; connectionType=$conn; connectionTypeRaw=$rawConn
+       boundsX=if($scr){$scr.x}elseif($fallbackScr){$fallbackScr.x}else{$null}
+       boundsY=if($scr){$scr.y}elseif($fallbackScr){$fallbackScr.y}else{$null}
       currentResX=$rx; currentResY=$ry; refreshHz=$hz; maxRefreshHz=$maxHzOut; bitsPerPixel=$bpp
       nativeResX=if($ed){$ed.nx}else{$null}; nativeResY=if($ed){$ed.ny}else{$null}
       edidVersion=if($ed){$ed.ver}else{$null}
@@ -3758,7 +4040,8 @@ public class DspHelper {
       $bpp = if ($vc -and [int]$vc.CurrentBitsPerPixel -gt 0) { [int]$vc.CurrentBitsPerPixel } else { $null }
        $gn  = if ($vc) { $vc.Name } elseif ($vcs.Count -eq 1) { $gpuName } else { $null }
       $out.monitors += @{
-        id="mon_$fi"; name=$null; manufacturer=$null; serial=$null; connectionType=$null
+         id="mon_$fi"; name=$null; manufacturer=$null; serial=$null; connectionType=$null
+         boundsX=if($src.x -ne $null){$src.x}else{$null}; boundsY=if($src.y -ne $null){$src.y}else{$null}
         currentResX=$src.w; currentResY=$src.h; refreshHz=$hz; bitsPerPixel=$bpp
         nativeResX=if($ed){$ed.nx}else{$null}; nativeResY=if($ed){$ed.ny}else{$null}
         edidVersion=if($ed){$ed.ver}else{$null}
@@ -3769,11 +4052,22 @@ public class DspHelper {
     }
   }
   
-  $out | ConvertTo-Json -Depth 5 -Compress`.trim();
+  $out.probeStatuses = $script:SwitchControlProbeStatuses
+  $out | ConvertTo-Json -Depth 6 -Compress`.trim();
   
     try {
-      const raw = await runMainPs(ps, { timeout: 15_000, label: 'system:getDisplayInfo' });
-      if (!raw) return { monitors: [] };
+      const probe = await runMainPsDetailed(ps, { timeout: 15_000, label: 'system:getDisplayInfo' });
+      if (!probe.ok || !probe.stdout) {
+         return {
+           monitors: baseline,
+          status: probe.status || PROBE_STATUS.TEMPORARILY_FAILED,
+          reason: probe.reason || 'empty-output',
+          message: probe.stderr || null,
+           source: baseline.length ? 'electron' : 'none',
+          probeStatuses: { enrichment: probe.status || PROBE_STATUS.TEMPORARILY_FAILED },
+         };
+       }
+      const raw = probe.stdout;
   
       const parsed = JSON.parse(raw);
       // Normalise: PS may return a single object (not array) for single-monitor systems
@@ -3817,25 +4111,52 @@ public class DspHelper {
         vrrMin:         m.vrrMin         ?? null,
         vrrMax:         m.vrrMax         ?? null,
         gpuName:        m.gpuName        ?? null,
-        isPrimary:      m.isPrimary      ?? false,
+         isPrimary:      m.isPrimary      ?? false,
+         scaleFactor:    null,
+         bounds:         null,
+         workArea:       null,
+         workAreaSize:   null,
+         rotation:       null,
+         boundsX:        m.boundsX        ?? null,
+         boundsY:        m.boundsY        ?? null,
+         source:          'windows',
         };
       });
 
-      const result = { monitors, scannedAt: parsed.scannedAt ?? Date.now() };
+       const mergedMonitors = mergeElectronDisplayBaseline(monitors, baseline);
+       const result = {
+         monitors: mergedMonitors,
+         status: PROBE_STATUS.OK,
+         source: baseline.length ? 'electron+windows' : 'windows',
+         probeStatuses: parsed.probeStatuses || {},
+         scannedAt: parsed.scannedAt ?? Date.now(),
+       };
       _displayInfoCache = result;
       _displayInfoCachedAt = Date.now();
       return result;
     } catch (e) {
       console.warn('[system:getDisplayInfo] error:', e.message);
-      return { monitors: [] };
+       return {
+         monitors: baseline,
+         status: PROBE_STATUS.TEMPORARILY_FAILED,
+         source: baseline.length ? 'electron' : 'none',
+         probeStatuses: { enrichment: PROBE_STATUS.TEMPORARILY_FAILED },
+       };
     }
   }
   
+  function invalidateDisplayInfoCache(reason = 'manual') {
+    _displayInfoCache = null;
+    _displayInfoCachedAt = 0;
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('system:display-changed', { reason });
+    }
+  }
+
   // Clear the display info cache so the next call re-runs the PowerShell scan.
   // Called by the UI refresh button and monitor hot-plug events.
   ipcMain.handle('display:invalidateCache', () => {
-    _displayInfoCache = null;
-    _displayInfoCachedAt = 0;
+    invalidateDisplayInfoCache('manual');
     return { ok: true };
   });
   
@@ -6202,6 +6523,17 @@ $pwrThrot  = Reg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottl
   
     // ── A. Register critical IPC handlers — MUST be first, before any risky code ─
     registerCriticalIPC();
+
+    // Electron owns basic display geometry and emits these events even when a
+    // Windows WMI/EDID provider is absent. Keep that baseline live so hot-plug,
+    // docking, high-DPI changes, and Remote Desktop transitions never leave the
+    // renderer displaying stale monitor data.
+    if (!_displayListenersRegistered) {
+      _displayListenersRegistered = true;
+      screen.on('display-added', () => invalidateDisplayInfoCache('display-added'));
+      screen.on('display-removed', () => invalidateDisplayInfoCache('display-removed'));
+      screen.on('display-metrics-changed', () => invalidateDisplayInfoCache('display-metrics-changed'));
+    }
   
     if (isDebug) {
       console.log('\n========== BOOT EVIDENCE ==========');

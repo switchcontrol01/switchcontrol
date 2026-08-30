@@ -50,6 +50,7 @@
       "backend-launcher.js",
       "config-store.js",
       "critical-logger.js",
+      "probe-status.js",
       "security-helper.js",
       "firewall-status.js",
       "debloat-helper.js",

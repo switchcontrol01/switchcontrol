@@ -50,6 +50,60 @@ interface RamUsage {
   ramUsedGb?: number;
 }
 
+type NativeProbeStatus =
+  | 'ok'
+  | 'unsupported'
+  | 'permission_denied'
+  | 'provider_unavailable'
+  | 'temporarily_failed';
+
+interface NativeProbeResult {
+  status: NativeProbeStatus;
+  reason?: string | null;
+  message?: string | null;
+}
+
+interface DisplayInfo {
+  id: string | null;
+  name: string | null;
+  manufacturer: string | null;
+  serial: string | null;
+  connectionType: string | null;
+  currentResX: number | null;
+  currentResY: number | null;
+  refreshHz: number | null;
+  maxRefreshHz: number | null;
+  bitsPerPixel: number | null;
+  nativeResX: number | null;
+  nativeResY: number | null;
+  edidVersion: string | null;
+  hdrEnabled: boolean | null;
+  vrrEnabled: boolean | null;
+  vrrCapable: boolean | null;
+  freeSyncEnabled: boolean | null;
+  vrrMin: number | null;
+  vrrMax: number | null;
+  gpuName: string | null;
+  isPrimary: boolean;
+  scaleFactor: number | null;
+  bounds: { x: number; y: number; width: number; height: number } | null;
+  workArea: { x: number; y: number; width: number; height: number } | null;
+  workAreaSize: { width: number; height: number } | null;
+  rotation: number | null;
+  boundsX: number | null;
+  boundsY: number | null;
+  source: 'electron' | 'windows' | 'electron+windows';
+  order?: number;
+}
+
+interface DisplayInfoResult {
+  monitors: DisplayInfo[];
+  status: NativeProbeStatus;
+  source: 'electron' | 'windows' | 'electron+windows' | 'none';
+  probeStatuses?: Record<string, NativeProbeStatus>;
+  scannedAt?: number;
+}
+
 interface LiveTelemetry {
   cpuUsage: number;
   ramUsage: number;
@@ -165,6 +219,12 @@ declare global {
         getSpecs: () => Promise<SystemSpecs>;
         getRamUsage: () => Promise<RamUsage>;
         getAllDisks: () => Promise<DiskInfo[]>;
+         getDisplayInfo: () => Promise<DisplayInfoResult>;
+         invalidateDisplayCache: () => Promise<{ ok: boolean }>;
+         onDisplayChanged: (callback: (payload: { reason: string }) => void) => () => void;
+         getAudioDevice: () => Promise<NativeProbeResult & { name: string | null }>;
+         getBluetoothDevice: () => Promise<NativeProbeResult & { name: string | null }>;
+         getMotherboard: () => Promise<NativeProbeResult & { manufacturer: string | null; model: string | null }>;
       };
       
       telemetry: {

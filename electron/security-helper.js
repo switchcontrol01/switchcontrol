@@ -11,6 +11,7 @@ const fs = require('fs');
 const os = require('os');
 const psLimiter = require('./powershell-limiter');
 const { normalizeFirewallProbe } = require('./firewall-status');
+const { classifyPowerShellFailure } = require('./probe-status');
 
 // ---------------------------------------------------------------------------
 // PowerShell helper
@@ -19,16 +20,44 @@ const { normalizeFirewallProbe } = require('./firewall-status');
 function runPowerShell(command, timeoutMs = 10000) {
   return new Promise((resolve, reject) => {
     if (process.platform !== 'win32') {
-      return reject(new Error('Windows only'));
+      const error = new Error('Windows only');
+      error.probeStatus = 'unsupported';
+      return reject(error);
     }
+    // Windows PowerShell 5.1 ships without several newer Windows modules.
+    // Check required cmdlets before running the probe so a missing module is
+    // reported as unsupported instead of an empty, apparently healthy result.
+    const knownCmdlets = [
+      'Get-CimInstance', 'Get-WmiObject', 'Get-PnpDevice', 'Get-ScheduledTask',
+      'Get-NetFirewallProfile', 'Get-NetFirewallRule', 'Get-NetAdapter',
+      'Get-ComputerInfo', 'Get-Counter', 'Get-Volume', 'Get-Disk',
+    ];
+    const requiredCmdlets = knownCmdlets.filter((cmdlet) => {
+      const escaped = cmdlet.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      return new RegExp(`\\b${escaped}\\b`, 'i').test(command);
+    });
+    const capabilityPrelude = requiredCmdlets.length
+      ? requiredCmdlets
+        .map((cmdlet) => `if (-not (Get-Command ${cmdlet} -ErrorAction SilentlyContinue)) { throw '${cmdlet} is not recognized on this Windows edition.' }`)
+        .join('; ')
+      : '';
+    const checkedCommand = capabilityPrelude ? `${capabilityPrelude}; ${command}` : command;
     execFile(
       'powershell.exe',
-      ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', command],
+      ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', checkedCommand],
       { timeout: timeoutMs, windowsHide: true },
       (err, stdout, stderr) => {
-        if (err) return reject(err);
+        if (err) {
+          err.probeStatus = classifyPowerShellFailure(err, stderr);
+          err.probeDetail = String(stderr || err.message || '').trim().split(/\r?\n/)[0];
+          return reject(err);
+        }
         const out = stdout.trim();
-        if (!out) return reject(new Error('Empty output'));
+        if (!out) {
+          const empty = new Error('PowerShell probe returned empty output');
+          empty.probeStatus = 'temporarily_failed';
+          return reject(empty);
+        }
         resolve(out);
       }
     );
@@ -109,11 +138,11 @@ function classifyProcess(name) {
 
 ipcMain.handle('security:getStatus', async () => {
   if (process.platform !== 'win32') {
-    return { available: false, reason: 'not-windows' };
+    return { available: false, reason: 'unsupported' };
   }
 
   const token = psLimiter.tryAcquire({ file: 'security-helper.js', fn: 'security:getStatus', reason: 'security-status' });
-  if (!token) return { available: false, reason: 'busy' };
+  if (!token) return { available: false, reason: 'temporarily_failed', detail: 'busy' };
   const result = { available: false, data: null, error: null };
 
   try {
@@ -236,7 +265,7 @@ ipcMain.handle('security:getStatus', async () => {
     }
 
     if (!mpData?.DefenderAvailable && firewallEnabled === null) {
-      return { available: false, reason: 'defender-unavailable' };
+      return { available: false, reason: 'provider_unavailable', detail: 'Windows Security provider is unavailable.' };
     }
 
     result.available = true;
@@ -259,7 +288,7 @@ ipcMain.handle('security:getStatus', async () => {
     return result;
   } catch (err) {
     console.warn(`[Security] getStatus ERROR: ${err?.message}`);
-    return { available: false, reason: 'error', error: err?.message };
+    return { available: false, reason: err?.probeStatus || 'temporarily_failed', error: err?.probeDetail || err?.message };
   } finally {
     psLimiter.release(token);
   }
@@ -272,15 +301,15 @@ ipcMain.handle('security:getStatus', async () => {
 
 ipcMain.handle('security:getStartupApps', async () => {
   if (process.platform !== 'win32') {
-    return { available: false, reason: 'not-windows' };
+    return { available: false, reason: 'unsupported' };
   }
   const token = psLimiter.tryAcquire({ file: 'security-helper.js', fn: 'security:getStartupApps', reason: 'security-startup-apps' });
-  if (!token) return { available: false, reason: 'busy' };
+  if (!token) return { available: false, reason: 'temporarily_failed', detail: 'The PowerShell probe queue is busy.' };
   try {
     const cmd = `Get-CimInstance Win32_StartupCommand -ErrorAction SilentlyContinue | Select-Object Name, Command, Location, User | ConvertTo-Json -Compress`;
     const raw = await runPowerShell(cmd, 12000);
     const items = safeParsePsJson(raw);
-    if (!items) return { available: false, reason: 'parse-error' };
+    if (!items) return { available: false, reason: 'temporarily_failed', detail: 'Windows returned invalid probe data.' };
 
     const startupItems = items
       .filter(item => item && item.Name)
@@ -299,7 +328,7 @@ ipcMain.handle('security:getStartupApps', async () => {
     return { available: true, data: startupItems };
   } catch (err) {
     console.warn(`[Security] getStartupApps ERROR: ${err?.message}`);
-    return { available: false, reason: 'error', error: err?.message };
+    return { available: false, reason: err?.probeStatus || 'temporarily_failed', error: err?.probeDetail || err?.message };
   } finally {
     psLimiter.release(token);
   }
@@ -312,15 +341,15 @@ ipcMain.handle('security:getStartupApps', async () => {
 
 ipcMain.handle('security:getTopProcesses', async () => {
   if (process.platform !== 'win32') {
-    return { available: false, reason: 'not-windows' };
+    return { available: false, reason: 'unsupported' };
   }
   const token = psLimiter.tryAcquire({ file: 'security-helper.js', fn: 'security:getTopProcesses', reason: 'security-top-procs' });
-  if (!token) return { available: false, reason: 'busy' };
+  if (!token) return { available: false, reason: 'temporarily_failed', detail: 'The PowerShell probe queue is busy.' };
   try {
     const cmd = `Get-Process -ErrorAction SilentlyContinue | Where-Object {$_.CPU -ne $null} | Sort-Object CPU -Descending | Select-Object -First 25 @{n='Name';e={$_.Name}}, @{n='Pid';e={$_.Id}}, @{n='CpuSec';e={[Math]::Round($_.CPU, 2)}}, @{n='MemMb';e={[Math]::Round($_.WorkingSet64/1MB, 1)}} | ConvertTo-Json -Compress`;
     const raw = await runPowerShell(cmd, 12000);
     const items = safeParsePsJson(raw);
-    if (!items) return { available: false, reason: 'parse-error' };
+    if (!items) return { available: false, reason: 'temporarily_failed', detail: 'Windows returned invalid probe data.' };
 
     const processes = items
       .filter(item => item && item.Name)
@@ -339,7 +368,7 @@ ipcMain.handle('security:getTopProcesses', async () => {
     return { available: true, data: processes };
   } catch (err) {
     console.warn(`[Security] getTopProcesses ERROR: ${err?.message}`);
-    return { available: false, reason: 'error', error: err?.message };
+    return { available: false, reason: err?.probeStatus || 'temporarily_failed', error: err?.probeDetail || err?.message };
   } finally {
     psLimiter.release(token);
   }
@@ -555,9 +584,9 @@ ipcMain.handle('startup:verifyState', async (event, { name, registryKey }) => {
 // ---------------------------------------------------------------------------
 
 ipcMain.handle('security:getAdvancedProtection', async () => {
-  if (process.platform !== 'win32') return { available: false, reason: 'not-windows' };
+  if (process.platform !== 'win32') return { available: false, reason: 'unsupported' };
   const token = psLimiter.tryAcquire({ file: 'security-helper.js', fn: 'security:getAdvancedProtection', reason: 'security-adv-protection' });
-  if (!token) return { available: false, reason: 'busy' };
+  if (!token) return { available: false, reason: 'temporarily_failed', detail: 'The PowerShell probe queue is busy.' };
   try {
     const cmd = `
       # Primary: Get-MpComputerStatus; CIM fallback when cmdlet is restricted
@@ -683,7 +712,7 @@ ipcMain.handle('security:getAdvancedProtection', async () => {
     return { available: true, data };
   } catch (err) {
     console.warn(`[Security] getAdvancedProtection ERROR: ${err?.message}`);
-    return { available: false, reason: 'error', error: err?.message };
+    return { available: false, reason: err?.probeStatus || 'temporarily_failed', error: err?.probeDetail || err?.message };
   } finally {
     psLimiter.release(token);
   }
@@ -695,9 +724,9 @@ ipcMain.handle('security:getAdvancedProtection', async () => {
 // ---------------------------------------------------------------------------
 
 ipcMain.handle('security:getAdvancedAudit', async () => {
-  if (process.platform !== 'win32') return { available: false, reason: 'not-windows' };
+  if (process.platform !== 'win32') return { available: false, reason: 'unsupported' };
   const token = psLimiter.tryAcquire({ file: 'security-helper.js', fn: 'security:getAdvancedAudit', reason: 'security-adv-audit' });
-  if (!token) return { available: false, reason: 'busy' };
+  if (!token) return { available: false, reason: 'temporarily_failed', detail: 'The PowerShell probe queue is busy.' };
   try {
     const cmd = `
       $r = @{}
@@ -848,7 +877,7 @@ ipcMain.handle('security:getAdvancedAudit', async () => {
     return { available: true, data };
   } catch (err) {
     console.warn(`[Security] getAdvancedAudit ERROR: ${err?.message}`);
-    return { available: false, reason: 'error', error: err?.message };
+    return { available: false, reason: err?.probeStatus || 'temporarily_failed', error: err?.probeDetail || err?.message };
   } finally {
     psLimiter.release(token);
   }
@@ -860,9 +889,9 @@ ipcMain.handle('security:getAdvancedAudit', async () => {
 // ---------------------------------------------------------------------------
 
 ipcMain.handle('security:getProcessDetails', async () => {
-  if (process.platform !== 'win32') return { available: false, reason: 'not-windows' };
+  if (process.platform !== 'win32') return { available: false, reason: 'unsupported' };
   const token = psLimiter.tryAcquire({ file: 'security-helper.js', fn: 'security:getProcessDetails', reason: 'security-proc-details' });
-  if (!token) return { available: false, reason: 'busy' };
+  if (!token) return { available: false, reason: 'temporarily_failed', detail: 'The PowerShell probe queue is busy.' };
   try {
     const cmd = `
       $cimMap = @{}
@@ -905,7 +934,7 @@ ipcMain.handle('security:getProcessDetails', async () => {
     `;
     const raw = await runPowerShell(cmd, 20000);
     const items = safeParsePsJson(raw);
-    if (!items) return { available: false, reason: 'parse-error' };
+    if (!items) return { available: false, reason: 'temporarily_failed', detail: 'Windows returned invalid probe data.' };
 
     const SUSPICIOUS_PATH_PATTERNS = [
       /\\AppData\\Local\\Temp\\/i,
@@ -978,7 +1007,7 @@ ipcMain.handle('security:getProcessDetails', async () => {
     return { available: true, data: processes };
   } catch (err) {
     console.warn(`[Security] getProcessDetails ERROR: ${err?.message}`);
-    return { available: false, reason: 'error', error: err?.message };
+    return { available: false, reason: err?.probeStatus || 'temporarily_failed', error: err?.probeDetail || err?.message };
   } finally {
     psLimiter.release(token);
   }
@@ -990,9 +1019,9 @@ ipcMain.handle('security:getProcessDetails', async () => {
 // ---------------------------------------------------------------------------
 
 ipcMain.handle('security:getScheduledTasks', async () => {
-  if (process.platform !== 'win32') return { available: false, reason: 'not-windows' };
+  if (process.platform !== 'win32') return { available: false, reason: 'unsupported' };
   const token = psLimiter.tryAcquire({ file: 'security-helper.js', fn: 'security:getScheduledTasks', reason: 'security-sched-tasks' });
-  if (!token) return { available: false, reason: 'busy' };
+  if (!token) return { available: false, reason: 'temporarily_failed', detail: 'The PowerShell probe queue is busy.' };
   try {
     const cmd = `
       $tasks = Get-ScheduledTask -ErrorAction SilentlyContinue |
@@ -1033,7 +1062,7 @@ ipcMain.handle('security:getScheduledTasks', async () => {
     return { available: true, data: { tasks, suspicious } };
   } catch (err) {
     console.warn(`[Security] getScheduledTasks ERROR: ${err?.message}`);
-    return { available: false, reason: 'error', error: err?.message };
+    return { available: false, reason: err?.probeStatus || 'temporarily_failed', error: err?.probeDetail || err?.message };
   } finally {
     psLimiter.release(token);
   }
@@ -1045,9 +1074,9 @@ ipcMain.handle('security:getScheduledTasks', async () => {
 // ---------------------------------------------------------------------------
 
 ipcMain.handle('security:getServices', async () => {
-  if (process.platform !== 'win32') return { available: false, reason: 'not-windows' };
+  if (process.platform !== 'win32') return { available: false, reason: 'unsupported' };
   const token = psLimiter.tryAcquire({ file: 'security-helper.js', fn: 'security:getServices', reason: 'security-services' });
-  if (!token) return { available: false, reason: 'busy' };
+  if (!token) return { available: false, reason: 'temporarily_failed', detail: 'The PowerShell probe queue is busy.' };
   try {
     const cmd = `
       Get-CimInstance Win32_Service -ErrorAction SilentlyContinue |
@@ -1097,7 +1126,7 @@ ipcMain.handle('security:getServices', async () => {
     return { available: true, data: { services: services.slice(0, 50), suspicious } };
   } catch (err) {
     console.warn(`[Security] getServices ERROR: ${err?.message}`);
-    return { available: false, reason: 'error', error: err?.message };
+    return { available: false, reason: err?.probeStatus || 'temporarily_failed', error: err?.probeDetail || err?.message };
   } finally {
     psLimiter.release(token);
   }

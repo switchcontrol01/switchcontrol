@@ -212,6 +212,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getAllDisks:        () => ipcRenderer.invoke('system:getAllDisks'),
     getDisplayInfo:        () => ipcRenderer.invoke('system:getDisplayInfo'),
     invalidateDisplayCache:() => ipcRenderer.invoke('display:invalidateCache'),
+     onDisplayChanged: (cb) => onEvent('system:display-changed', cb, {
+       log: (payload) => console.info('[DisplayInfo] display capability changed:', payload?.reason || 'unknown'),
+     }),
     getAudioDevice:      () => ipcRenderer.invoke('system:getAudioDevice'),
     getBluetoothDevice: () => ipcRenderer.invoke('system:getBluetoothDevice'),
     getMotherboard:      () => ipcRenderer.invoke('system:getMotherboard'),

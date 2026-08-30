@@ -42,6 +42,7 @@ interface TaskData { tasks: any[]; suspicious: any[]; }
 interface ServiceData { services: any[]; suspicious: any[]; }
 
 type Severity = "ok" | "warn" | "critical" | "unknown";
+type ProbeIssue = { label: string; reason: string; detail?: string };
 
 interface AuditItem {
   label: string;
@@ -60,6 +61,22 @@ const SEV_CONFIG = {
   critical: { color: "text-red-400",     bg: "bg-red-500/15 border-red-500/25",         Icon: ShieldAlert,   label: "Critical" },
   unknown:  { color: "text-zinc-400",    bg: "bg-zinc-500/15 border-zinc-500/25",       Icon: Info,          label: "Unknown" },
 };
+
+function probeReasonLabel(reason: string | undefined): string {
+  switch (reason) {
+    case "unsupported":
+      return "Unsupported on this Windows edition";
+    case "permission_denied":
+      return "Permission denied";
+    case "provider_unavailable":
+      return "Driver/provider unavailable";
+    case "temporarily_failed":
+    case "busy":
+      return "Probe temporarily failed";
+    default:
+      return "Probe unavailable";
+  }
+}
 
 function boolToAudit(val: boolean | null, okLabel: string, failLabel: string, okSev: Severity, failSev: Severity, explanation: string, fix?: string): AuditItem["severity"] {
   return val === true ? okSev : val === false ? failSev : "unknown";
@@ -255,20 +272,38 @@ export function SecurityAuditTab({ hasSecurity }: { hasSecurity: boolean }) {
   const [auditData, setAuditData]     = useState<AuditData | null>(null);
   const [taskData,  setTaskData]      = useState<TaskData | null>(null);
   const [serviceData, setServiceData] = useState<ServiceData | null>(null);
+  const [probeIssues, setProbeIssues] = useState<ProbeIssue[]>([]);
 
   const runAudit = useCallback(async () => {
     if (!hasSecurity || auditStatus === "scanning") return;
     setAuditStatus("scanning");
     try {
       const [auditRes, taskRes, svcRes] = await Promise.allSettled([
-        eAPI().security.getAdvancedAudit().catch(() => null),
-        eAPI().security.getScheduledTasks().catch(() => null),
-        eAPI().security.getServices().catch(() => null),
+        eAPI().security.getAdvancedAudit(),
+        eAPI().security.getScheduledTasks(),
+        eAPI().security.getServices(),
       ]);
+
+      const issues: ProbeIssue[] = [];
+      const collect = (label: string, result: PromiseSettledResult<any>) => {
+        if (result.status === "rejected") {
+          issues.push({ label, reason: "temporarily_failed", detail: result.reason?.message });
+        } else if (!result.value?.available) {
+          issues.push({
+            label,
+            reason: result.value?.reason,
+            detail: result.value?.error || result.value?.detail,
+          });
+        }
+      };
+      collect("Advanced security", auditRes);
+      collect("Scheduled tasks", taskRes);
+      collect("Services", svcRes);
 
       if (auditRes.status === "fulfilled" && auditRes.value?.available) setAuditData(auditRes.value.data);
       if (taskRes.status === "fulfilled"  && taskRes.value?.available)  setTaskData(taskRes.value.data);
       if (svcRes.status === "fulfilled"   && svcRes.value?.available)   setServiceData(svcRes.value.data);
+      setProbeIssues(issues);
       setAuditStatus("done");
     } catch {
       setAuditStatus("error");
@@ -316,6 +351,22 @@ export function SecurityAuditTab({ hasSecurity }: { hasSecurity: boolean }) {
         )}
         {auditStatus === "error" && (
           <p className="mt-3 text-xs text-red-400">Audit failed. Some checks may require admin privileges.</p>
+        )}
+        {probeIssues.length > 0 && (
+          <div className="mt-3 rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2.5" data-testid="audit-probe-issues">
+            <div className="flex items-start gap-2">
+              <Info className="size-3.5 mt-0.5 shrink-0 text-amber-400" />
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-amber-300">Some Windows checks need attention</p>
+                {probeIssues.map((issue) => (
+                  <p key={issue.label} className="text-[11px] text-muted-foreground">
+                    {issue.label}: {probeReasonLabel(issue.reason)}
+                    {issue.detail ? ` — ${issue.detail}` : ""}
+                  </p>
+                ))}
+              </div>
+            </div>
+          </div>
         )}
       </GlassCard>
 

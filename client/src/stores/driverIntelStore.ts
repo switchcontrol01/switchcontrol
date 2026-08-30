@@ -126,6 +126,23 @@ interface RawHardware {
   btName: string | null;
   audioName: string | null;
   monitor: string | null;
+  probeStatuses: Record<string, NativeProbeStatus>;
+}
+
+function nativeProbeHint(status: NativeProbeStatus | undefined): string | null {
+  if (!status || status === "ok") return null;
+  switch (status) {
+    case "unsupported":
+      return "Unsupported on this Windows edition.";
+    case "permission_denied":
+      return "Permission denied by Windows.";
+    case "provider_unavailable":
+      return "Driver/provider unavailable.";
+    case "temporarily_failed":
+      return "Probe temporarily failed; try scanning again.";
+    default:
+      return null;
+  }
 }
 
 async function acquireHardware(): Promise<RawHardware> {
@@ -170,6 +187,7 @@ async function acquireHardware(): Promise<RawHardware> {
   // si data is kept only as a last-resort hint for the non-Electron web path.
   let netName: string | null = null;
   let btName: string | null = null;
+  const probeStatuses: Record<string, NativeProbeStatus> = {};
 
   // Audio, from phase=full si.audio() (Win32_SoundDevice).
   let audioName: string | null = p?.audio?.devices?.[0]?.name ?? null;
@@ -223,6 +241,7 @@ async function acquireHardware(): Promise<RawHardware> {
   if (eApi?.system?.getBluetoothDevice) {
     try {
       const res = await eApi.system.getBluetoothDevice();
+      if (res?.status) probeStatuses.bluetooth = res.status;
       if (res?.name) btName = res.name;
     } catch { /* ignore */ }
   }
@@ -257,6 +276,7 @@ async function acquireHardware(): Promise<RawHardware> {
   if (eApi?.system?.getAudioDevice && !audioName) {
     try {
       const res = await eApi.system.getAudioDevice();
+      if (res?.status) probeStatuses.audio = res.status;
       if (res?.name) audioName = res.name;
     } catch { /* ignore */ }
   }
@@ -266,6 +286,7 @@ async function acquireHardware(): Promise<RawHardware> {
   if (eApi?.system?.getMotherboard && !moboMaker && !moboModel) {
     try {
       const res = await eApi.system.getMotherboard();
+      if (res?.status) probeStatuses.motherboard = res.status;
       if (res?.manufacturer) moboMaker = res.manufacturer;
       if (res?.model) moboModel = res.model;
     } catch { /* ignore */ }
@@ -289,6 +310,7 @@ async function acquireHardware(): Promise<RawHardware> {
     btName,
     audioName,
     monitor,
+    probeStatuses,
   };
 }
 
@@ -296,6 +318,9 @@ async function acquireHardware(): Promise<RawHardware> {
 
 function buildComponents(hw: RawHardware, db: DriverDatabase): DriverComponent[] {
   const out: DriverComponent[] = [];
+  const audioProbeHint = nativeProbeHint(hw.probeStatuses.audio);
+  const bluetoothProbeHint = nativeProbeHint(hw.probeStatuses.bluetooth);
+  const motherboardProbeHint = nativeProbeHint(hw.probeStatuses.motherboard);
 
   // GPU, installed driver version isn't available via systeminformation, so
   // current stays null (we surface "latest available" + open the vendor app).
@@ -375,8 +400,8 @@ function buildComponents(hw: RawHardware, db: DriverDatabase): DriverComponent[]
     safety: biosEntry?.safety ?? "caution",
     action: biosAction(moboVendor),
     rationale: hw.biosVersion
-      ? `Installed BIOS ${hw.biosVersion}${biosEntry ? `; latest reference is ${biosEntry.latest}` : ""}. We never flash automatically, only open the manufacturer page.`
-      : "BIOS version not detected. Open the manufacturer page to check.",
+      ? `Installed BIOS ${hw.biosVersion}${biosEntry ? `; latest reference is ${biosEntry.latest}` : ""}. We never flash automatically, only open the manufacturer page.${motherboardProbeHint ? ` ${motherboardProbeHint}` : ""}`
+      : `BIOS version not detected. Open the manufacturer page to check.${motherboardProbeHint ? ` ${motherboardProbeHint}` : ""}`,
   });
 
   // SSD firmware
@@ -451,8 +476,8 @@ function buildComponents(hw: RawHardware, db: DriverDatabase): DriverComponent[]
     safety: audioEntry?.safety ?? ("safe" as const),
     action: audioAction(audioVendor),
     rationale: audioVendor
-      ? `Latest ${audioVendorLabel} audio driver is ${audioEntry?.latest ?? "available on the vendor page"}.${audioDeviceName?.includes("inferred") ? " Detected from your motherboard model." : ""} Use the link below to update from the official source.`
-      : "Audio device not detected. Visit your motherboard manufacturer's support page to check for the latest audio driver.",
+      ? `Latest ${audioVendorLabel} audio driver is ${audioEntry?.latest ?? "available on the vendor page"}.${audioDeviceName?.includes("inferred") ? " Detected from your motherboard model." : ""} Use the link below to update from the official source.${audioProbeHint ? ` ${audioProbeHint}` : ""}`
+      : `Audio device not detected. Visit your motherboard manufacturer's support page to check for the latest audio driver.${audioProbeHint ? ` ${audioProbeHint}` : ""}`,
   });
 
   // Bluetooth, vendor tracks the Wi-Fi/combo card.
@@ -470,8 +495,8 @@ function buildComponents(hw: RawHardware, db: DriverDatabase): DriverComponent[]
     safety: btEntry?.safety ?? "safe",
     action: bluetoothAction(btVendor),
     rationale: btVendor
-      ? `Latest ${btVendor} Bluetooth driver is ${btEntry?.latest ?? "unknown"}. Updating can fix pairing drops and audio stutter on BT headsets.`
-      : "Bluetooth adapter vendor not detected. Check your Wi-Fi/Bluetooth card's vendor page.",
+      ? `Latest ${btVendor} Bluetooth driver is ${btEntry?.latest ?? "unknown"}. Updating can fix pairing drops and audio stutter on BT headsets.${bluetoothProbeHint ? ` ${bluetoothProbeHint}` : ""}`
+      : `Bluetooth adapter vendor not detected. Check your Wi-Fi/Bluetooth card's vendor page.${bluetoothProbeHint ? ` ${bluetoothProbeHint}` : ""}`,
   });
 
   // Display / monitor, informational.
