@@ -95,9 +95,9 @@ export default function StickyComparison() {
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <SectionHeader
-          title="The SwitchControl"
-          titleAccent="Difference"
-          subtitle="How we compare to typical tweak tools."
+          title={t("The SwitchControl")}
+          titleAccent={t("Difference")}
+          subtitle={t("How we compare to typical tweak tools.")}
           className="mb-16"
         />
 
@@ -125,7 +125,7 @@ export default function StickyComparison() {
                 <XCircle className="w-4 h-4 text-red-400" />
               </div>
               <span className="text-sm font-semibold text-red-300/90 uppercase tracking-wider">
-                Normal Tweak Apps
+                {t("Normal Tweak Apps")}
               </span>
             </div>
             <ul className="space-y-3 relative">

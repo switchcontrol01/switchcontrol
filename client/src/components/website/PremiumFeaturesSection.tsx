@@ -107,6 +107,7 @@ const LABEL_CFG: Record<string, { x: number; y: number; anchor: string }> = {
 };
 
 function SystemCore({ activeId }: { activeId: string | null }) {
+  const { t } = useTranslation();
   return (
     <div className="relative flex items-center justify-center">
       <svg
@@ -223,7 +224,7 @@ function SystemCore({ activeId }: { activeId: string | null }) {
                 fontFamily="ui-monospace,monospace"
                 style={{ transition: "fill-opacity 0.3s" }}
               >
-                {n.l1}
+                {t(n.l1)}
               </text>
               {/* Label line 2 (secondary word) */}
               {n.l2 && (
@@ -238,7 +239,7 @@ function SystemCore({ activeId }: { activeId: string | null }) {
                   fontFamily="ui-monospace,monospace"
                   style={{ transition: "fill-opacity 0.3s" }}
                 >
-                  {n.l2}
+                  {t(n.l2)}
                 </text>
               )}
             </g>
@@ -328,7 +329,7 @@ function DriverBars({ color }: { color: string }) {
       <div className="text-[10px] text-white/40 mb-3">{t("Driver Currency")}</div>
       {DRIVER_BARS.map((b) => (
         <div key={b.label} className="flex items-center gap-2">
-          <span className="text-[10px] text-white/50 w-12">{b.label}</span>
+          <span className="text-[10px] text-white/50 w-12">{t(b.label)}</span>
           <div className="flex-1 h-[5px] rounded-full bg-white/[0.06] overflow-hidden">
             <div
               className="h-full rounded-full transition-all duration-1000"

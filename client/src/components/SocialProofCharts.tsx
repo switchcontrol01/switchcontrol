@@ -4,6 +4,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip,
   ReferenceLine, ReferenceDot, ResponsiveContainer,
 } from "recharts";
+import { useTranslation } from "@/lib/i18n";
 
 /* ─── Seeded RNG ─── */
 function rng(seed: number) {
@@ -128,6 +129,7 @@ const TT_STYLE = {
 };
 
 function CustomTooltip({ active, payload }: any) {
+  const { t } = useTranslation();
   if (!active || !payload?.length) return null;
   return (
     <div style={TT_STYLE}>
@@ -135,10 +137,14 @@ function CustomTooltip({ active, payload }: any) {
         <div key={p.dataKey} className="flex items-center gap-2 py-0.5">
           <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: p.color }} />
           <span style={{ color: "rgba(255,255,255,0.4)", fontSize: "10px" }}>
-            {p.dataKey === "fps" ? "Frame Consistency" : p.dataKey === "latency" ? "Network Feel" : "Input Feel"}
+            {p.dataKey === "fps"
+              ? t("socialProofCharts.tooltip.frameConsistency", "Frame Consistency")
+              : p.dataKey === "latency"
+                ? t("socialProofCharts.tooltip.networkFeel", "Network Feel")
+                : t("socialProofCharts.tooltip.inputFeel", "Input Feel")}
           </span>
           <span className="ml-2 font-bold" style={{ color: p.color }}>
-            Trending
+            {t("socialProofCharts.tooltip.trending", "Trending")}
           </span>
         </div>
       ))}
@@ -157,6 +163,7 @@ interface MiniProps {
 }
 
 function MetricMini({ label, value, accentColor, sparkData, animDelay, inView }: MiniProps) {
+  const { t } = useTranslation();
   return (
     <div
       className="sp-mini-card rounded-xl border border-[#2A313A] px-4 pt-3 pb-3 flex flex-col gap-1 relative overflow-hidden"
@@ -188,7 +195,7 @@ function MetricMini({ label, value, accentColor, sparkData, animDelay, inView }:
 
       <div className="flex items-center gap-1.5 text-[9px]" style={{ color: accentColor, opacity: 0.65 }}>
         <span className="w-1 h-1 rounded-full chart-live-blink" style={{ backgroundColor: accentColor }} />
-        improving each version
+        {t("socialProofCharts.mini.improvingEachVersion", "improving each version")}
       </div>
     </div>
   );
@@ -198,6 +205,7 @@ function MetricMini({ label, value, accentColor, sparkData, animDelay, inView }:
    Main export
 ═══════════════════════════════════════════ */
 export function SocialProofCharts() {
+  const { t } = useTranslation();
   const { ref, inView } = useInView(0.1);
 
   /* Progressive timeline draw-in */
@@ -215,9 +223,9 @@ export function SocialProofCharts() {
     <div ref={ref} className="mt-12">
       {/* ── Three mini sparkline cards ── */}
       <div className="grid grid-cols-3 gap-3 mb-5">
-        <MetricMini label="Smoother Frames"  value="Stable" accentColor="#34d399" sparkData={fpsSpark}   animDelay="0ms"   inView={inView} />
-        <MetricMini label="Tighter Input" value="Responsive" accentColor="#22d3ee" sparkData={latSpark}   animDelay="80ms"  inView={inView} />
-        <MetricMini label="Network Feel"       value="Consistent"  accentColor="#818cf8" sparkData={inputSpark} animDelay="160ms" inView={inView} />
+        <MetricMini label={t("socialProofCharts.mini.frames.label", "Smoother Frames")} value={t("socialProofCharts.mini.frames.value", "Stable")} accentColor="#34d399" sparkData={fpsSpark} animDelay="0ms" inView={inView} />
+        <MetricMini label={t("socialProofCharts.mini.input.label", "Tighter Input")} value={t("socialProofCharts.mini.input.value", "Responsive")} accentColor="#22d3ee" sparkData={latSpark} animDelay="80ms" inView={inView} />
+        <MetricMini label={t("socialProofCharts.mini.network.label", "Network Feel")} value={t("socialProofCharts.mini.network.value", "Consistent")} accentColor="#818cf8" sparkData={inputSpark} animDelay="160ms" inView={inView} />
       </div>
 
       {/* ── Main timeline chart ── */}
@@ -233,14 +241,14 @@ export function SocialProofCharts() {
         {/* Header */}
         <div className="flex items-start justify-between mb-3 px-1">
           <div>
-            <p className="text-[10px] text-[#6B7380] uppercase tracking-widest">Performance trajectory</p>
-            <p className="text-xs text-[#A0A8B3] mt-0.5">Each release pushes the ceiling higher</p>
+            <p className="text-[10px] text-[#6B7380] uppercase tracking-widest">{t("socialProofCharts.timeline.title", "Performance trajectory")}</p>
+            <p className="text-xs text-[#A0A8B3] mt-0.5">{t("socialProofCharts.timeline.subtitle", "Each release pushes the ceiling higher")}</p>
           </div>
           <div className="flex flex-col gap-1.5 items-end">
             {[
-              { color: "#34d399", label: "Frame pacing",   value: "Stable" },
-              { color: "#22d3ee", label: "Input feel",    value: "Tighter" },
-              { color: "#818cf8", label: "Network", value: "Consistent" },
+              { color: "#34d399", label: t("socialProofCharts.timeline.legend.framePacing", "Frame pacing"), value: t("socialProofCharts.timeline.legend.stable", "Stable") },
+              { color: "#22d3ee", label: t("socialProofCharts.timeline.legend.inputFeel", "Input feel"), value: t("socialProofCharts.timeline.legend.tighter", "Tighter") },
+              { color: "#818cf8", label: t("socialProofCharts.timeline.legend.network", "Network"), value: t("socialProofCharts.timeline.legend.consistent", "Consistent") },
             ].map(({ color, label, value }) => (
               <div key={label} className="flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
@@ -302,7 +310,7 @@ export function SocialProofCharts() {
         {/* X-axis labels */}
         <div className="flex justify-between mt-1 px-1">
           {VERSIONS.map((v) => (
-            <span key={v.v} className="text-[9px] text-[#E6EAF0]/18">{v.label}</span>
+            <span key={v.v} className="text-[9px] text-[#E6EAF0]/18">{t(`socialProofCharts.month.${v.v}`, v.label)}</span>
           ))}
         </div>
       </div>

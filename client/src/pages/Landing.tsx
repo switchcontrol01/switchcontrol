@@ -192,6 +192,7 @@ function CountingNumber({
 }
 
 function StatCard({ stat, index }: { stat: (typeof STATS)[0]; index: number }) {
+  const { t } = useTranslation();
   const isNegative = stat.value.startsWith("-");
   const numericPart = stat.value.replace(/[^\d]/g, "");
   const prefix = stat.value.startsWith("-") ? "-" : "+";
@@ -218,7 +219,7 @@ function StatCard({ stat, index }: { stat: (typeof STATS)[0]; index: number }) {
           <CountingNumber value={numericPart} prefix={prefix} suffix={suffix} startDelay={index * 100 + 300} />
         </div>
         <div className="relative text-xs sm:text-sm text-[#6B7380] group-hover:text-[#A0A8B3] transition-colors tracking-wide uppercase">
-          {stat.label}
+          {t(stat.label)}
         </div>
         <div className={cn(
           "absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none",
@@ -397,6 +398,7 @@ function MiniSparkline({ pts, stroke }: { pts: string; stroke: string }) {
 }
 
 function HeroAppMockup() {
+  const { t } = useTranslation();
   const [tweakCount, setTweakCount] = useState(14);
   usePausableInterval(() => {
     setTweakCount(prev => {
@@ -469,7 +471,7 @@ function HeroAppMockup() {
           <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border"
             style={{ background: "hsl(160 80% 30% / 0.14)", borderColor: "hsl(160 70% 50% / 0.25)" }}>
             <div className="w-1.5 h-1.5 rounded-full mockup-live-dot" style={{ background: "hsl(160,80%,52%)" }} />
-            <span className="text-[8.5px] font-bold tracking-widest" style={{ color: "hsl(160,80%,58%)" }}>LIVE</span>
+            <span className="text-[8.5px] font-bold tracking-widest" style={{ color: "hsl(160,80%,58%)" }}>{t("LIVE")}</span>
           </div>
         </div>
 
@@ -495,7 +497,7 @@ function HeroAppMockup() {
           {/* ── Active Tweaks ── */}
           <div className="rounded-xl p-3 border border-[#2A313A]" style={{ background: "rgba(0,0,0,0.28)" }}>
             <div className="flex items-center justify-between mb-2.5">
-              <span className="text-[8.5px] text-[#6B7380] uppercase tracking-widest font-semibold">Active Tweaks</span>
+              <span className="text-[8.5px] text-[#6B7380] uppercase tracking-widest font-semibold">{t("Active Tweaks")}</span>
               <div className="flex items-center gap-1 px-2 py-0.5 rounded-full border"
                 style={{ background: "hsl(160 70% 28% / 0.18)", borderColor: "hsl(160 70% 50% / 0.22)" }}>
                 <span className="text-[9px] font-bold text-emerald-400 transition-all duration-500">{tweakCount}</span>
@@ -524,7 +526,7 @@ function HeroAppMockup() {
             <div className="relative rounded-xl p-3 border overflow-hidden mockup-metric-emerald">
               <div className="absolute inset-0 pointer-events-none"
                 style={{ background: "radial-gradient(ellipse at 0% 100%, hsl(160 70% 40% / 0.12), transparent 65%)" }} />
-              <div className="text-[8.5px] uppercase tracking-widest font-semibold mb-2" style={{ color: "rgba(255,255,255,0.35)" }}>Latency</div>
+              <div className="text-[8.5px] uppercase tracking-widest font-semibold mb-2" style={{ color: "rgba(255,255,255,0.35)" }}>{t("Latency")}</div>
               <div className="flex items-end justify-between">
                 <div className="text-[19px] font-bold font-mono text-emerald-400 leading-none">
                   −<LiveMockupValue base={8} range={7} suffix="ms" interval={2000} />
@@ -532,14 +534,14 @@ function HeroAppMockup() {
                 <MiniSparkline stroke="hsl(160,78%,50%)"
                   pts="2,17 6,15 10,16 14,13 18,12 22,11 26,10 30,11 34,8 38,7 44,5" />
               </div>
-              <div className="text-[7.5px] mt-1.5 font-medium" style={{ color: "hsl(160,70%,55%)" }}>↓ vs stock baseline</div>
+              <div className="text-[7.5px] mt-1.5 font-medium" style={{ color: "hsl(160,70%,55%)" }}>{t("↓ vs stock baseline")}</div>
             </div>
 
             {/* FPS Stability */}
             <div className="relative rounded-xl p-3 border overflow-hidden mockup-metric-cyan">
               <div className="absolute inset-0 pointer-events-none"
                 style={{ background: "radial-gradient(ellipse at 100% 100%, hsl(190 70% 40% / 0.12), transparent 65%)" }} />
-              <div className="text-[8.5px] uppercase tracking-widest font-semibold mb-2" style={{ color: "rgba(255,255,255,0.35)" }}>FPS Stability</div>
+              <div className="text-[8.5px] uppercase tracking-widest font-semibold mb-2" style={{ color: "rgba(255,255,255,0.35)" }}>{t("FPS Stability")}</div>
               <div className="flex items-end justify-between">
                 <div className="text-[19px] font-bold font-mono leading-none" style={{ color: "hsl(190,85%,54%)" }}>
                   +<LiveMockupValue base={13} range={9} suffix="%" interval={2000} />
@@ -547,7 +549,7 @@ function HeroAppMockup() {
                 <MiniSparkline stroke="hsl(190,80%,54%)"
                   pts="2,17 6,16 10,15 14,14 18,12 22,10 26,9 30,8 34,7 38,5 44,3" />
               </div>
-              <div className="text-[7.5px] mt-1.5 font-medium" style={{ color: "hsl(190,70%,55%)" }}>↑ frame consistency</div>
+              <div className="text-[7.5px] mt-1.5 font-medium" style={{ color: "hsl(190,70%,55%)" }}>{t("↑ frame consistency")}</div>
             </div>
           </div>
 
@@ -555,12 +557,12 @@ function HeroAppMockup() {
           <div className="flex items-center gap-3 pt-1 ">
             <div className="flex items-center gap-1.5">
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-[8px] font-semibold" style={{ color: "rgba(255,255,255,0.28)" }}>Gaming Pro</span>
+              <span className="text-[8px] font-semibold" style={{ color: "rgba(255,255,255,0.28)" }}>{t("Gaming Pro")}</span>
             </div>
             <div className="w-px h-2.5 bg-[#2A313A]" />
-            <span className="text-[8px]" style={{ color: "rgba(255,255,255,0.18)" }}>144 fps target</span>
+            <span className="text-[8px]" style={{ color: "rgba(255,255,255,0.18)" }}>{t("144 fps target")}</span>
             <div className="ml-auto">
-              <span className="text-[8px] font-semibold" style={{ color: "hsl(160,70%,52%)" }}>Optimized ✓</span>
+              <span className="text-[8px] font-semibold" style={{ color: "hsl(160,70%,52%)" }}>{t("Optimized ✓")}</span>
             </div>
           </div>
 
@@ -779,11 +781,11 @@ export default function Landing() {
 
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
             <SectionHeader
-              pill="Premium Feature"
+              pill={t("Premium Feature")}
               pillIcon={<Crown className="size-3" />}
-              title="BIOS Advisor"
-              titleAccent="Premium"
-              subtitle="Firmware-level intelligence for latency, stability, and competitive performance."
+              title={t("BIOS Advisor")}
+              titleAccent={t("Premium")}
+              subtitle={t("Firmware-level intelligence for latency, stability, and competitive performance.")}
             />
 
             <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
@@ -876,13 +878,13 @@ export default function Landing() {
                                   : "bg-amber-500/10 text-amber-400 border border-amber-500/15"
                               )}
                             >
-                              {setting.impact}
+                              {t(setting.impact)}
                             </span>
                           </div>
                           <div className="flex items-center gap-2 text-xs text-[#6B7380]">
-                            <span className="text-primary/80">{setting.status}</span>
+                            <span className="text-primary/80">{t(setting.status)}</span>
                             <span className="text-[#E6EAF0]/10">|</span>
-                            <span>{setting.desc}</span>
+                            <span>{t(setting.desc)}</span>
                           </div>
                         </div>
                       </motion.div>
@@ -902,9 +904,9 @@ export default function Landing() {
           <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 70% 40% at 50% 50%, hsl(190 70% 40% / 0.03) 0%, transparent 70%)" }} />
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <SectionHeader
-              title="System Insights,"
-              titleAccent="Illustrated Impact"
-              subtitle="Estimated behavior patterns based on tweak theory. Your results will vary by hardware, game, and network conditions. Verify with your own measurements."
+              title={t("System Insights,")}
+              titleAccent={t("Illustrated Impact")}
+              subtitle={t("Estimated behavior patterns based on tweak theory. Your results will vary by hardware, game, and network conditions. Verify with your own measurements.")}
             />
 
             <LandingPerformanceCharts />
@@ -951,9 +953,9 @@ export default function Landing() {
 
           <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative">
             <SectionHeader
-              title="Simple,"
-              titleAccent="One-Time Pricing"
-              subtitle="Pay once, own it forever. No subscriptions, no hidden fees."
+              title={t("Simple,")}
+              titleAccent={t("One-Time Pricing")}
+              subtitle={t("Pay once, own it forever. No subscriptions, no hidden fees.")}
             />
 
             <div className="grid md:grid-cols-2 gap-5 mt-14">
@@ -1001,7 +1003,7 @@ export default function Landing() {
                   </ul>
 
                   <GhostButton className="w-full" onClick={handleAuthAwareClick} data-testid="button-get-started-pricing">
-                    Get Started Free
+                    {t("Get Started Free")}
                   </GhostButton>
                 </div>
               </Reveal>

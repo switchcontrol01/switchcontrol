@@ -1,5 +1,10 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useUserPreferencesStore, type Locale } from "@/stores/userPreferencesStore";
+import { PUBLIC_WEBSITE_TRANSLATIONS as CJK_PUBLIC_TRANSLATIONS } from "./publicWebsiteTranslations/cjk";
+import { PUBLIC_WEBSITE_TRANSLATIONS as EUROPE_PUBLIC_TRANSLATIONS } from "./publicWebsiteTranslations/europe";
+import { PUBLIC_WEBSITE_TRANSLATIONS as INDIC_ONE_PUBLIC_TRANSLATIONS } from "./publicWebsiteTranslations/indicOne";
+import { PUBLIC_WEBSITE_TRANSLATIONS as INDIC_TWO_PUBLIC_TRANSLATIONS } from "./publicWebsiteTranslations/indicTwo";
+import { PUBLIC_WEBSITE_TRANSLATIONS as OTHER_PUBLIC_TRANSLATIONS } from "./publicWebsiteTranslations/other";
 
 export type { Locale };
 
@@ -1836,10 +1841,11 @@ const ADDITIONAL_LONG_COPY: Partial<Record<Locale, MessageCatalog>> = {
   },
 };
 
-// Public website copy is kept separate from the application catalog so adding
-// a marketing section does not accidentally make operating-system data
-// translatable. Tamil is complete for the landing page; other locales keep
-// the established English fallback until their reviewed copy is available.
+// Public website copy is deliberately kept separate from the desktop-app
+// catalog.  This is the canonical inventory for landing-page and website
+// content (including chart labels which are currently rendered as raw text).
+// Keep a key here when adding public copy so every supported locale receives
+// it in the same release.
 const PUBLIC_TAMIL_COPY: MessageCatalog = {
   "Your PC": "உங்கள் PC",
   "is holding": "தடுத்து நிறுத்துகிறது",
@@ -1907,7 +1913,7 @@ const PUBLIC_TAMIL_COPY: MessageCatalog = {
   "Clean install": "சுத்தமான நிறுவல்",
   "GPU drivers": "GPU இயக்கிகள்",
   "Network tweaks": "நெட்வொர்க் மாற்றங்கள்",
-  "Power plan": "Power plan",
+  "Power plan": "மின் திட்டம்",
   "Current": "தற்போதையது",
   "Analyzes your build in real time": "உங்கள் கணினி அமைப்பை நேரலையில் பகுப்பாய்வு செய்கிறது",
   "Context-aware performance recommendations": "சூழலுக்கேற்ற செயல்திறன் பரிந்துரைகள்",
@@ -1978,7 +1984,7 @@ const PUBLIC_TAMIL_COPY: MessageCatalog = {
   "Power Plan control": "Power Plan கட்டுப்பாடு",
   "Network Tweaks and DNS optimization": "Network Tweaks மற்றும் DNS மேம்படுத்தல்",
   "BIOS Advisor and firmware scoring": "BIOS Advisor மற்றும் ஃபார்ம்வேர் மதிப்பீடு",
-  "Driver Intelligence": "Driver Intelligence",
+  "Driver Intelligence": "இயக்கி நுண்ணறிவு",
   "Get Premium": "Premium பெறுங்கள்",
   "Secure checkout": "பாதுகாப்பான checkout",
   "One-time payment": "ஒருமுறை செலுத்துதல்",
@@ -2032,7 +2038,93 @@ const PUBLIC_TAMIL_COPY: MessageCatalog = {
   "TikTok · SwitchControl": "TikTok · SwitchControl",
 };
 
+const PUBLIC_RAW_CHART_COPY: MessageCatalog = {
+  "Illustrative": "Illustrative",
+  "Not measured data. Effects vary by system.": "Not measured data. Effects vary by system.",
+  "FPS Consistency": "FPS Consistency",
+  "Frame rate stability over a 60-second session": "Frame rate stability over a 60-second session",
+  "Smoother frame pacing": "Smoother frame pacing",
+  "Stock Windows": "Stock Windows",
+  "1% Low FPS · Results vary by hardware": "1% Low FPS · Results vary by hardware",
+  "Input Delay": "Input Delay",
+  "Click-to-response latency in competitive scenarios": "Click-to-response latency in competitive scenarios",
+  "More responsive input": "More responsive input",
+  "Average input delay · Results vary by hardware and game": "Average input delay · Results vary by hardware and game",
+  "Network Stability": "Network Stability",
+  "Round-trip latency jitter over a gaming session": "Round-trip latency jitter over a gaming session",
+  "Reduced jitter": "Reduced jitter",
+  "Jitter variance · Results vary by network and ISP": "Jitter variance · Results vary by network and ISP",
+  "Estimated Latency": "Estimated Latency",
+  "Estimated Input": "Estimated Input",
+  "Stock": "Stock",
+  "Optimized": "Optimized",
+  "Stock ping": "Stock ping",
+  "Optimized ping": "Optimized ping",
+  "Stock delay": "Stock delay",
+  "Optimized delay": "Optimized delay",
+  "Stock FPS": "Stock FPS",
+  "Optimized FPS": "Optimized FPS",
+  "Less Stutter": "Less Stutter",
+  "Stock lows": "Stock lows",
+  "Optimized lows": "Optimized lows",
+  "Stock 1% low": "Stock 1% low",
+  "Optimized 1% low": "Optimized 1% low",
+  "Frame pacing": "Frame pacing",
+  "Network Feel": "Network Feel",
+  "Input Feel": "Input Feel",
+  "Trending": "Trending",
+  "Smoother Frames": "Smoother Frames",
+  "Tighter Input": "Tighter Input",
+  "Responsive": "Responsive",
+  "Consistent": "Consistent",
+  "improving each version": "improving each version",
+  "Performance trajectory": "Performance trajectory",
+  "Each release pushes the ceiling higher": "Each release pushes the ceiling higher",
+};
+
+/**
+ * Public-site catalog keys. Tests consume this export rather than maintaining
+ * a second, easily stale list of marketing strings.
+ */
+export const PUBLIC_CATALOG_KEYS = Object.freeze([
+  ...Object.keys(PUBLIC_TAMIL_COPY),
+  ...Object.keys(PUBLIC_RAW_CHART_COPY),
+]);
+
+// Product and social-platform names are identifiers, not prose. Keeping these
+// unchanged is intentional and lets regression tests distinguish them from a
+// genuine English fallback.
+export const PUBLIC_TECHNICAL_KEYS = Object.freeze([
+  "SwitchControl",
+  "LIVE",
+  "Gaming Pro",
+  "Version 1.3.1",
+  "Stable",
+  "Simple,",
+  "Support",
+  "Contact",
+  "TikTok · SwitchTech",
+  "TikTok · SwitchControl",
+]);
+
+const PUBLIC_TRANSLATIONS: Record<string, Record<string, string>> = {
+  ...CJK_PUBLIC_TRANSLATIONS,
+  ...EUROPE_PUBLIC_TRANSLATIONS,
+  ...INDIC_ONE_PUBLIC_TRANSLATIONS,
+  ...OTHER_PUBLIC_TRANSLATIONS,
+  ...INDIC_TWO_PUBLIC_TRANSLATIONS,
+};
+
+for (const key of PUBLIC_CATALOG_KEYS) {
+  CATALOGS.en[key] = PUBLIC_RAW_CHART_COPY[key] ?? key;
+  for (const locale of Object.keys(PUBLIC_TRANSLATIONS) as Exclude<Locale, "en">[]) {
+    const translated = PUBLIC_TRANSLATIONS[locale]?.[key];
+    if (translated) {
+      CATALOGS[locale][key] = translated;
+    }
+  }
+}
+
 for (const [locale, labels] of Object.entries(ADDITIONAL_LONG_COPY) as Array<[Locale, MessageCatalog]>) {
   Object.assign(CATALOGS[locale], labels);
 }
-Object.assign(CATALOGS.ta, PUBLIC_TAMIL_COPY);

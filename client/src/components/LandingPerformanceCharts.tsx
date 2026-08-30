@@ -6,6 +6,7 @@ import {
 } from "recharts";
 import { TrendingUp, TrendingDown, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/lib/i18n";
 
 /* ─── Seeded RNG ─── */
 function seededRng(seed: number) {
@@ -209,6 +210,7 @@ function ChartCard({
   note: string; accentBefore: string; accentAfter: string;
   children: React.ReactNode; animDelay: string; inView: boolean;
 }) {
+  const { t } = useTranslation();
   return (
     <div
       className="landing-chart-card group relative flex flex-col rounded-2xl border border-[#2A313A] overflow-hidden"
@@ -229,7 +231,7 @@ function ChartCard({
 
       {/* Demo badge */}
       <div className="absolute top-3.5 right-4 flex items-center gap-1.5">
-        <span className="text-[9px] text-[#6B7380]/50 uppercase tracking-widest">Illustrative</span>
+        <span className="text-[9px] text-[#6B7380]/50 uppercase tracking-widest">{t("landingPerformanceCharts.badge.illustrative", "Illustrative")}</span>
       </div>
 
       {/* Header */}
@@ -247,7 +249,7 @@ function ChartCard({
 
         {/* Disclaimer */}
         <p className="text-[9px] text-[#6B7380]/60 mt-2 leading-relaxed">
-          Not measured data. Effects vary by system.
+          {t("landingPerformanceCharts.disclaimer", "Not measured data. Effects vary by system.")}
         </p>
 
         {/* Stat row */}
@@ -295,6 +297,7 @@ function DualAreaChart({
   yDomain, stockRef, optimizedRef,
   unit,
 }: DualAreaChartConfig) {
+  const { t } = useTranslation();
   const gradSId = `g${id}S`;
   const gradOId = `g${id}O`;
   return (
@@ -316,7 +319,7 @@ function DualAreaChart({
         <Tooltip
           contentStyle={TT}
           labelFormatter={() => ""}
-          formatter={(v: number, n: string) => [`${v}${unit}`, n === "stock" ? "Stock Windows" : "SwitchControl"]}
+          formatter={(v: number, n: string) => [`${v}${unit}`, n === "stock" ? t("landingPerformanceCharts.legend.stockWindows", "Stock Windows") : t("landingPerformanceCharts.legend.switchControl", "SwitchControl")]}
         />
         <ReferenceLine y={stockRef}     stroke={stockColor}     strokeDasharray="4 3" strokeWidth={1} strokeOpacity={0.3} />
         <ReferenceLine y={optimizedRef} stroke={optimizedColor} strokeDasharray="4 3" strokeWidth={1} strokeOpacity={0.3} />
@@ -355,6 +358,7 @@ function JitterChart({ active }: { active: boolean }) {
    Main export
 ═══════════════════════════════════════════ */
 export function LandingPerformanceCharts() {
+  const { t } = useTranslation();
   const { ref, inView } = useInView(0.1);
 
   /* Staggered mount gates for each card */
@@ -365,11 +369,11 @@ export function LandingPerformanceCharts() {
   return (
     <div ref={ref} className="grid md:grid-cols-3 gap-5">
       <ChartCard
-        title="FPS Consistency" subtitle="Frame rate stability over a 60-second session"
-        icon={<TrendingUp className="size-4" />} improvText="Smoother frame pacing" improvPositive
+        title={t("landingPerformanceCharts.fps.title", "FPS Consistency")} subtitle={t("landingPerformanceCharts.fps.subtitle", "Frame rate stability over a 60-second session")}
+        icon={<TrendingUp className="size-4" />} improvText={t("landingPerformanceCharts.fps.improvement", "Smoother frame pacing")} improvPositive
         beforeRaw={98} beforeUnit=" FPS" afterRaw={142} afterUnit=" FPS"
-        beforeLabel="Stock Windows" afterLabel="SwitchControl"
-        note="1% Low FPS · Results vary by hardware"
+        beforeLabel={t("landingPerformanceCharts.legend.stockWindows", "Stock Windows")} afterLabel={t("landingPerformanceCharts.legend.switchControl", "SwitchControl")}
+        note={t("landingPerformanceCharts.fps.note", "1% Low FPS · Results vary by hardware")}
         accentBefore="#f87171" accentAfter="#34d399"
         animDelay="0ms" inView={inView}
       >
@@ -377,11 +381,11 @@ export function LandingPerformanceCharts() {
       </ChartCard>
 
       <ChartCard
-        title="Input Delay" subtitle="Click-to-response latency in competitive scenarios"
-        icon={<Zap className="size-4" />} improvText="More responsive input" improvPositive={false}
+        title={t("landingPerformanceCharts.input.title", "Input Delay")} subtitle={t("landingPerformanceCharts.input.subtitle", "Click-to-response latency in competitive scenarios")}
+        icon={<Zap className="size-4" />} improvText={t("landingPerformanceCharts.input.improvement", "More responsive input")} improvPositive={false}
         beforeRaw={24} beforeUnit="ms" afterRaw={16} afterUnit="ms"
-        beforeLabel="Stock Windows" afterLabel="SwitchControl"
-        note="Average input delay · Results vary by hardware and game"
+        beforeLabel={t("landingPerformanceCharts.legend.stockWindows", "Stock Windows")} afterLabel={t("landingPerformanceCharts.legend.switchControl", "SwitchControl")}
+        note={t("landingPerformanceCharts.input.note", "Average input delay · Results vary by hardware and game")}
         accentBefore="#fb923c" accentAfter="#818cf8"
         animDelay="120ms" inView={inView}
       >
@@ -389,11 +393,11 @@ export function LandingPerformanceCharts() {
       </ChartCard>
 
       <ChartCard
-        title="Network Stability" subtitle="Round-trip latency jitter over a gaming session"
-        icon={<TrendingDown className="size-4" />} improvText="Reduced jitter" improvPositive
+        title={t("landingPerformanceCharts.network.title", "Network Stability")} subtitle={t("landingPerformanceCharts.network.subtitle", "Round-trip latency jitter over a gaming session")}
+        icon={<TrendingDown className="size-4" />} improvText={t("landingPerformanceCharts.network.improvement", "Reduced jitter")} improvPositive
         beforeRaw={18} beforeUnit="ms" beforePrefix="±" afterRaw={4} afterUnit="ms" afterPrefix="±"
-        beforeLabel="Stock Windows" afterLabel="SwitchControl"
-        note="Jitter variance · Results vary by network and ISP"
+        beforeLabel={t("landingPerformanceCharts.legend.stockWindows", "Stock Windows")} afterLabel={t("landingPerformanceCharts.legend.switchControl", "SwitchControl")}
+        note={t("landingPerformanceCharts.network.note", "Jitter variance · Results vary by network and ISP")}
         accentBefore="#f472b6" accentAfter="#22d3ee"
         animDelay="240ms" inView={inView}
       >

@@ -3,6 +3,7 @@ import { AreaChart, Area, ResponsiveContainer, Tooltip } from "recharts";
 import { motion } from "@/lib/motion";
 import { useMotion } from "@/lib/motion";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/lib/i18n";
 
 /* ─── Seeded RNG for stable data across renders ─── */
 function rng(seed: number) {
@@ -195,6 +196,7 @@ function StatChartCard({
    Main export
 ═══════════════════════════════════════════ */
 export function LandingStatsCharts() {
+  const { t } = useTranslation();
   const latencyData    = useMemo(genLatencyData, []);
   const inputData      = useMemo(genInputData, []);
   const fpsStabData    = useMemo(genFpsStabilityData, []);
@@ -204,80 +206,80 @@ export function LandingStatsCharts() {
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
       <StatChartCard
         value="~12ms"
-        label="Estimated Latency"
+        label={t("landingStatsCharts.latency.label", "Estimated Latency")}
         accent="emerald"
         beforeColor="#f87171"
         afterColor="#34d399"
-        legendBefore="Stock"
-        legendAfter="Optimized"
+        legendBefore={t("landingStatsCharts.legend.stock", "Stock")}
+        legendAfter={t("landingStatsCharts.legend.optimized", "Optimized")}
         index={0}
         spark={
           <Sparkline
             data={latencyData}
             beforeColor="#f87171"
             afterColor="#34d399"
-            beforeLabel="Stock ping"
-            afterLabel="Optimized ping"
+            beforeLabel={t("landingStatsCharts.latency.tooltip.before", "Stock ping")}
+            afterLabel={t("landingStatsCharts.latency.tooltip.after", "Optimized ping")}
             unit="ms"
           />
         }
       />
       <StatChartCard
         value="~8ms"
-        label="Estimated Input"
+        label={t("landingStatsCharts.input.label", "Estimated Input")}
         accent="cyan"
         beforeColor="#fb923c"
         afterColor="#22d3ee"
-        legendBefore="Stock"
-        legendAfter="Optimized"
+        legendBefore={t("landingStatsCharts.legend.stock", "Stock")}
+        legendAfter={t("landingStatsCharts.legend.optimized", "Optimized")}
         index={1}
         spark={
           <Sparkline
             data={inputData}
             beforeColor="#fb923c"
             afterColor="#22d3ee"
-            beforeLabel="Stock delay"
-            afterLabel="Optimized delay"
+            beforeLabel={t("landingStatsCharts.input.tooltip.before", "Stock delay")}
+            afterLabel={t("landingStatsCharts.input.tooltip.after", "Optimized delay")}
             unit="ms"
           />
         }
       />
       <StatChartCard
-        value="More Stable"
-        label="Frame Consistency"
+        value={t("landingStatsCharts.frameConsistency.value", "More Stable")}
+        label={t("landingStatsCharts.frameConsistency.label", "Frame Consistency")}
         accent="violet"
         beforeColor="#f472b6"
         afterColor="#818cf8"
-        legendBefore="Stock"
-        legendAfter="Optimized"
+        legendBefore={t("landingStatsCharts.legend.stock", "Stock")}
+        legendAfter={t("landingStatsCharts.legend.optimized", "Optimized")}
         index={2}
         spark={
           <Sparkline
             data={fpsStabData}
             beforeColor="#f472b6"
             afterColor="#818cf8"
-            beforeLabel="Stock FPS"
-            afterLabel="Optimized FPS"
+            beforeLabel={t("landingStatsCharts.frameConsistency.tooltip.before", "Stock FPS")}
+            afterLabel={t("landingStatsCharts.frameConsistency.tooltip.after", "Optimized FPS")}
             unit=" FPS"
           />
         }
       />
       <StatChartCard
-        value="Less Stutter"
-        label="Worst-Case Frames"
+        value={t("landingStatsCharts.worstCase.value", "Less Stutter")}
+        label={t("landingStatsCharts.worstCase.label", "Worst-Case Frames")}
         accent="amber"
         beforeColor="#94a3b8"
         afterColor="#fbbf24"
-        legendBefore="Stock lows"
-        legendAfter="Optimized lows"
+        legendBefore={t("landingStatsCharts.worstCase.legend.before", "Stock lows")}
+        legendAfter={t("landingStatsCharts.worstCase.legend.after", "Optimized lows")}
         index={3}
         spark={
           <Sparkline
             data={lowFpsData}
             beforeColor="#94a3b8"
             afterColor="#fbbf24"
-            beforeLabel="Stock 1% low"
-            afterLabel="Optimized 1% low"
+            beforeLabel={t("landingStatsCharts.worstCase.tooltip.before", "Stock 1% low")}
+            afterLabel={t("landingStatsCharts.worstCase.tooltip.after", "Optimized 1% low")}
             unit=" FPS"
           />
         }
