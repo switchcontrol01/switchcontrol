@@ -177,8 +177,8 @@ test("dashboard blur is a sibling scrim and fixed-position safety remains explic
   assert.match(app, /data-first-run-transition="dashboard-scrim"/);
   assert.match(
     app,
-    /<DashboardTransitionLayer[\s\S]*?active=\{phase === "authenticated"\}/,
-    "the dashboard scrim must remain mounted independently so its exit can animate",
+    /<DashboardTransitionLayer[\s\S]*?active=\{phase === "authenticated" && dashboardReady\}/,
+    "the dashboard scrim must wait until the dashboard wrapper has mounted",
   );
   assert.match(
     app,

@@ -1680,7 +1680,10 @@ function ElectronAppContent() {
         const hasBeenWelcomedFast = localStorage.getItem(welcomeKeyFast);
         const isGenuinelyNewUserFast = user!.hasInstalledApp === false;
         const interruptedFirstRunFast = hasIncompleteFirstRunSequence(user!.id);
-        if (interruptedFirstRunFast || isGenuinelyNewUserFast) {
+        if (
+          interruptedFirstRunFast ||
+          (isGenuinelyNewUserFast && !hasBeenWelcomedFast)
+        ) {
           setIsFirstLogin(true);
           markFirstRunPending(user!.id);
           localStorage.setItem(welcomeKeyFast, "true");
@@ -1747,7 +1750,7 @@ function ElectronAppContent() {
           const hasBeenWelcomed = localStorage.getItem(welcomeKey);
           const isGenuinelyNewUser = targetUser.hasInstalledApp === false;
           const interruptedFirstRun = hasIncompleteFirstRunSequence(targetUser.id);
-          if (interruptedFirstRun || isGenuinelyNewUser) {
+          if (interruptedFirstRun || (isGenuinelyNewUser && !hasBeenWelcomed)) {
             setIsFirstLogin(true);
             markFirstRunPending(targetUser.id);
             localStorage.setItem(welcomeKey, "true");
@@ -1801,7 +1804,7 @@ function ElectronAppContent() {
           const hasBeenWelcomed = localStorage.getItem(welcomeKey);
           const isGenuinelyNewUser = targetUser.hasInstalledApp === false;
           const interruptedFirstRun = hasIncompleteFirstRunSequence(targetUser.id);
-          if (interruptedFirstRun || isGenuinelyNewUser) {
+          if (interruptedFirstRun || (isGenuinelyNewUser && !hasBeenWelcomed)) {
             setIsFirstLogin(true);
             markFirstRunPending(targetUser.id);
             localStorage.setItem(welcomeKey, "true");
@@ -2301,7 +2304,11 @@ function ElectronAppContent() {
         </AnimatePresence>
 
         <DashboardTransitionLayer
-          active={phase === "authenticated"}
+          // Do not put the scrim over the Welcome exit while AnimatePresence
+          // is still waiting to mount the dashboard. The old ordering made the
+          // shared dark scrim the only visible layer for the whole wait period.
+          // Mount it only once the dashboard wrapper has actually started.
+          active={phase === "authenticated" && dashboardReady}
           ready={dashboardReady}
           prefersReducedMotion={prefersReducedMotion}
         />

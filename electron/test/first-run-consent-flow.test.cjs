@@ -98,8 +98,8 @@ test("an interrupted first-run sequence resumes before dashboard startup surface
   );
   assert.match(
     app,
-    /interruptedFirstRunFast \|\| isGenuinelyNewUserFast[\s\S]*?setPhase\(getFirstRunGatePhase\(user!\.id\)\)/,
-    "cached-session startup must restore the unfinished required gate",
+    /interruptedFirstRunFast \|\|\s*\(\s*isGenuinelyNewUserFast && !hasBeenWelcomedFast\s*\)[\s\S]*?setPhase\(getFirstRunGatePhase\(user!\.id\)\)/,
+    "cached-session startup must restore unfinished gates without replaying completed Welcome",
   );
   assert.match(
     app,

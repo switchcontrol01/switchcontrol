@@ -45,8 +45,8 @@ test("first-run language gate is only mounted for an authenticated user", () => 
   );
   assert.match(
     app,
-    /const isGenuinelyNewUserFast = user!\.hasInstalledApp === false/,
-    "the cached-session path must not treat cleared AppData as a new account",
+    /const isGenuinelyNewUserFast = user!\.hasInstalledApp === false[\s\S]*?interruptedFirstRunFast \|\|\s*\(\s*isGenuinelyNewUserFast && !hasBeenWelcomedFast\s*\)/,
+    "the cached-session path must not replay Welcome after the account has already completed it",
   );
   assert.match(
     authRoutes,
