@@ -57,7 +57,7 @@ const rows: TranslationRow[] = [
   ["Stability Score", "Puntuación de estabilidad", "Pontuação de estabilidade", "Stabilitätswert", "Indice de stabilité"],
   ["Driver Currency", "Actualidad de los controladores", "Atualização dos drivers", "Treiberaktualität", "Actualité des pilotes"],
   ["Restore Points", "Puntos de restauración", "Pontos de restauração", "Wiederherstellungspunkte", "Points de restauration"],
-  ["Version 1.3.1", "Versión 1.3.1", "Versão 1.3.1", "Version 1.3.1", "Version 1.3.1"],
+  ["Version 1.3.2", "Versión 1.3.2", "Versão 1.3.2", "Version 1.3.2", "Version 1.3.2"],
   ["Firmware-level intelligence for latency, stability, and competitive performance.", "Análisis del firmware para mejorar la latencia, la estabilidad y el rendimiento competitivo.", "Inteligência no nível do firmware para latência, estabilidade e desempenho competitivo.", "Firmware-Analyse für Latenz, Stabilität und wettbewerbsfähige Leistung.", "Analyse du firmware pour la latence, la stabilité et les performances compétitives."],
   ["Most performance tools stop at the operating system.", "La mayoría de las herramientas de rendimiento se detienen en el sistema operativo.", "A maioria das ferramentas de desempenho não vai além do sistema operacional.", "Die meisten Leistungstools enden beim Betriebssystem.", "La plupart des outils de performance s’arrêtent au système d’exploitation."],
   ["SwitchControl goes deeper.", "SwitchControl va más allá.", "O SwitchControl vai além.", "SwitchControl geht tiefer.", "SwitchControl va plus loin."],

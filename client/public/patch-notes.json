@@ -1,14 +1,14 @@
 {
-  "version": "1.3.1",
-  "title": "Reliability, Verification & Startup Hardening",
-  "headline": "SwitchControl 1.3.1 makes entitlement changes safer, keeps Windows network state synchronized, and prevents startup flows from colliding.",
+  "version": "1.3.2",
+  "title": "Localized Onboarding, Adaptive Performance & Desktop Reliability",
+  "headline": "SwitchControl 1.3.2 brings a localized first-run experience, faster demand-loaded startup, adaptive performance profiles, honest telemetry, and stronger desktop reliability.",
   "date": "2026-08-30",
   "type": "patch",
   "changes": [
-    "Prevented cached or grace entitlement data and delayed expiry timers from triggering premium reverts without fresh cloud verification",
-    "Made Network Throttling Index authoritative to live Windows state, with confirmed slider and toggle synchronization across both Tweaks surfaces",
-    "Kept missing, busy, and failed native reads inconclusive instead of presenting stale cache values as verified Windows settings",
-    "Prevented tours, onboarding, promotions, patch notes, device-lock UI, and mode transitions from overlapping during startup and revert flows",
-    "Added regression coverage for entitlement races, native hydration precedence, cross-surface synchronization, and overlay arbitration"
+    "Added a localized first-run and onboarding flow so new users can choose their language before the welcome, disclaimer, and product education surfaces begin",
+    "Made Electron startup faster and demand-loaded by moving deep hardware enrichment off the critical path while preserving accurate system context",
+    "Introduced adaptive application and machine performance profiles that tune work to available capability without conflating them with display preferences",
+    "Improved responsiveness and process telemetry honesty by labeling real system signals accurately and avoiding unsupported input-latency claims or guessed process counts",
+    "Hardened desktop reliability across entitlement refresh, startup handoffs, native verification, cleanup cancellation, GPU detection, and other Windows flows"
   ]
 }
