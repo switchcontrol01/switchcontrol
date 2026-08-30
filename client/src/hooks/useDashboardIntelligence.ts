@@ -120,6 +120,41 @@ async function fetchJSON<T>(url: string, signal?: AbortSignal): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+async function getLatencyEstimateUrl(): Promise<string> {
+  const base = "/api/dashboard-intelligence/latency-estimate";
+  const electronAPI = (window as any).electronAPI;
+  if (!electronAPI?.isElectron || !electronAPI.telemetry?.getLive) return base;
+
+  const live = await electronAPI.telemetry.getLive().catch(() => null);
+  const cpuLoad = live?.cpu?.usagePct;
+  const cpuCores = live?.cpu?.coreCount;
+  const ramTotalGB = live?.ram?.totalGb;
+  const memPct = live?.ram?.usagePct;
+  const networkKbs = (Number(live?.network?.rxKBps) || 0) + (Number(live?.network?.txKBps) || 0);
+  const processCount = live?.processes?.total;
+
+  if (
+    !Number.isFinite(cpuLoad) ||
+    !Number.isFinite(cpuCores) ||
+    !Number.isFinite(ramTotalGB) ||
+    !Number.isFinite(memPct)
+  ) {
+    return base;
+  }
+
+  const params = new URLSearchParams({
+    cpuLoad: String(cpuLoad),
+    cpuCores: String(cpuCores),
+    ramTotalGB: String(ramTotalGB),
+    memPct: String(memPct),
+    networkKbs: String(networkKbs),
+  });
+  if (Number.isFinite(processCount) && processCount > 0) {
+    params.set("processCount", String(processCount));
+  }
+  return `${base}?${params.toString()}`;
+}
+
 export function useDashboardIntelligence(enabled = true): DashboardIntelligenceState {
   const [instability,   setInstability]   = useState<InstabilityData | null>(null);
   const [problems,      setProblems]      = useState<ActiveProblemsData | null>(null);
@@ -134,10 +169,11 @@ export function useDashboardIntelligence(enabled = true): DashboardIntelligenceS
 
   const fetchAll = useCallback(async (signal?: AbortSignal) => {
     try {
+      const latencyUrl = await getLatencyEstimateUrl();
       const [inst, probs, lat, r] = await Promise.allSettled([
         fetchJSON<InstabilityData>("/api/dashboard-intelligence/instability", signal),
         fetchJSON<ActiveProblemsData>("/api/dashboard-intelligence/active-problems", signal),
-        fetchJSON<LatencyData>("/api/dashboard-intelligence/latency-estimate", signal),
+        fetchJSON<LatencyData>(latencyUrl, signal),
         fetchJSON<SmartRamProfile>("/api/dashboard-intelligence/ram-analysis", signal),
       ]);
       // F-3: Bail before any setState if the caller has aborted (unmount).
@@ -218,7 +254,8 @@ export function useDashboardIntelligence(enabled = true): DashboardIntelligenceS
         if (now - lastRunRef.current.latency >= TTL.latency) {
           lastRunRef.current.latency = now;
           tasks.push(
-            fetchJSON<LatencyData>("/api/dashboard-intelligence/latency-estimate", ac.signal)
+            getLatencyEstimateUrl()
+              .then((url) => fetchJSON<LatencyData>(url, ac.signal))
               .then(guarded(setLatency))
               .catch(() => {})
           );

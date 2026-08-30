@@ -1,5 +1,6 @@
-import { Router } from "express";
-import { getCachedSnapshot, getSnapshot } from "../lib/telemetry";
+import { Router, type Request } from "express";
+import { getCachedSnapshot, getSnapshot, type TelemetrySnapshot } from "../lib/telemetry";
+import { buildLatencyEstimate } from "../lib/latencyEstimate";
 import si from "systeminformation";
 import { execFile } from "child_process";
 import { promisify } from "util";
@@ -903,87 +904,78 @@ router.get("/active-problems", (_req, res) => {
 
 // ── System responsiveness estimate ────────────────────────────────────────────
 
-router.get("/latency-estimate", async (_req, res) => {
-  try {
-    // The dashboard can mount before the first native Windows telemetry tick
-    // finishes. Never turn the loading sentinel (all zeroes) into a fabricated
-    // 1.5 ms "Excellent" result.
-    const snap    = await getSnapshot();
-    const hasCompleteSample =
-      snap.status === "ready" &&
-      Number.isFinite(snap.ts) &&
-      snap.ts > 0 &&
-      Number.isFinite(snap.cpu.load) &&
-      snap.cpu.cores > 0 &&
-      Number.isFinite(snap.ram.totalGB) &&
-      snap.ram.totalGB > 0 &&
-      Number.isFinite(snap.ram.usedPercent) &&
-      snap.ram.usedPercent >= 0 &&
-      Number.isFinite(snap.processes.total) &&
-      snap.processes.total > 0;
+/**
+ * In Electron, native telemetry is owned by the renderer/main-process IPC
+ * loop. The embedded backend intentionally has no second polling loop, so
+ * accept the small estimator signal subset from that renderer when the server
+ * cache has not become ready yet. Web requests continue using the server cache.
+ */
+function getLatencySnapshotForRequest(
+  req: Request,
+  serverSnapshot: TelemetrySnapshot,
+  serverWasReady: boolean,
+): TelemetrySnapshot {
+  if (serverWasReady) return serverSnapshot;
 
-    if (!hasCompleteSample) {
+  const q = req.query;
+  const cpuLoad = Number(q.cpuLoad);
+  const cpuCores = Number(q.cpuCores);
+  const ramTotalGB = Number(q.ramTotalGB);
+  const memPct = Number(q.memPct);
+  const networkKbs = Number(q.networkKbs);
+  const processCount = Number(q.processCount);
+
+  const hasClientTelemetry =
+    Number.isFinite(cpuLoad) &&
+    Number.isFinite(cpuCores) &&
+    cpuCores > 0 &&
+    Number.isFinite(ramTotalGB) &&
+    ramTotalGB > 0 &&
+    Number.isFinite(memPct) &&
+    Number.isFinite(networkKbs);
+
+  if (!hasClientTelemetry) return serverSnapshot;
+
+  return {
+    ...serverSnapshot,
+    status: "ready",
+    ts: Date.now(),
+    cpu: { ...serverSnapshot.cpu, load: Math.max(0, cpuLoad), cores: cpuCores },
+    ram: {
+      ...serverSnapshot.ram,
+      totalGB: ramTotalGB,
+      usedPercent: Math.max(0, Math.min(100, memPct)),
+    },
+    network: {
+      ...serverSnapshot.network,
+      rx_sec: Math.max(0, networkKbs * 1024),
+      tx_sec: 0,
+    },
+    // Process telemetry is optional in the IPC payload. Preserve a real
+    // server-side count when one exists; never turn an unknown value into 0
+    // and call the estimate complete.
+    processes: Number.isFinite(processCount) && processCount > 0
+      ? { ...serverSnapshot.processes, total: processCount }
+      : serverSnapshot.processes,
+  };
+}
+
+router.get("/latency-estimate", async (req, res) => {
+  try {
+    const cachedBeforeRefresh = getCachedSnapshot();
+    const snap = getLatencySnapshotForRequest(
+      req,
+      await getSnapshot(),
+      cachedBeforeRefresh.status === "ready",
+    );
+    const result = buildLatencyEstimate(snap);
+    if (!result.ready) {
       console.info(
         `[LatencyEstimate] waiting for complete telemetry sample ` +
         `(status=${snap.status}, cores=${snap.cpu.cores}, ramGB=${snap.ram.totalGB}, processes=${snap.processes.total})`,
       );
-      return res.json({
-        estimatedMs: null,
-        quality: "Not enough data",
-        trend: "stable",
-        breakdown: [],
-        ready: false,
-        reason: "Waiting for a complete Windows telemetry sample.",
-        ts: snap.ts,
-      });
     }
-
-    const cpuLoad = snap.cpu.load;
-    const ramPct  = snap.ram.usedPercent;
-    const procs   = snap.processes.total;
-
-    // Continuous power-curve scaling. This is a load model, not an input-latency
-    // measurement; the minimum is only used after a complete sample exists.
-    // Each component scales smoothly with its load metric rather than jumping between fixed steps.
-    const base = 1.5;
-
-    // CPU: ~0.1ms at 0% load → ~5.5ms at 100% load (power curve, faster rise at high load)
-    const cpuDelta = parseFloat((Math.pow(Math.max(0, cpuLoad) / 100, 0.7) * 5.5).toFixed(2));
-
-    // RAM: ~0ms at 0% → ~4.5ms at 100% (slightly steeper curve than CPU — paging is expensive)
-    const ramDelta = parseFloat((Math.pow(Math.max(0, ramPct) / 100, 1.1) * 4.5).toFixed(2));
-
-    // Processes: linear from 60-process floor to 380-process ceiling (0 → 1.8ms)
-    const procNorm  = Math.min(1, Math.max(0, (procs - 60) / 320));
-    const procDelta = parseFloat((procNorm * 1.8).toFixed(2));
-
-    // Clamp to the base minimum. The estimate must only change when its source
-    // measurements change; cosmetic randomness would falsely imply a live
-    // input-latency measurement.
-    const total = Math.max(base, Math.round((base + cpuDelta + ramDelta + procDelta) * 10) / 10);
-
-    const quality =
-      total < 4   ? "Excellent" :
-      total < 7   ? "Good"      :
-      total < 11  ? "Fair"      : "Poor";
-
-    const trend =
-      snap.load_trend === "rising"  ? "rising" :
-      snap.load_trend === "falling" ? "falling" : "stable";
-
-    res.json({
-      estimatedMs: total,
-      quality,
-      trend,
-      ready: true,
-      breakdown: [
-        { label: "Base OS overhead", ms: base,      note: "Minimum kernel scheduler latency" },
-        { label: "CPU scheduling",   ms: cpuDelta,  note: `CPU at ${cpuLoad.toFixed(0)}%` },
-        { label: "Memory paging",    ms: ramDelta,  note: `RAM at ${ramPct.toFixed(0)}%` },
-        { label: "Process overhead", ms: procDelta, note: `${procs} active processes` },
-      ],
-      ts: Date.now(),
-    });
+    return res.json(result);
   } catch (e: any) {
     res.status(500).json({ error: "Failed to estimate latency" });
   }

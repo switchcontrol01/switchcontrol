@@ -285,6 +285,44 @@
   // every request. Instead a background poll runs every 2s so the differential
   // APIs have a real baseline, and getLive reads the cached snapshot.
   let liveTelemetryCache = null;
+  // Process totals are needed by the responsiveness model but are much more
+  // expensive than the lightweight CPU/RAM reads. Keep a separate, throttled
+  // cache so IPC consumers share one real count without adding processes()
+  // work to every telemetry tick.
+  const PROCESS_COUNT_TTL_MS = 90_000;
+  const PROCESS_COUNT_RETRY_MS = 15_000;
+  let liveProcessCount = { running: 0, total: 0 };
+  let liveProcessCountAt = 0;
+  let liveProcessRetryAt = 0;
+  let liveProcessFlight = null;
+
+  function getLiveProcessCount() {
+    const now = Date.now();
+    if (now < liveProcessRetryAt) return Promise.resolve(liveProcessCount);
+    if (liveProcessCountAt > 0 && now - liveProcessCountAt < PROCESS_COUNT_TTL_MS) {
+      return Promise.resolve(liveProcessCount);
+    }
+    if (liveProcessFlight) return liveProcessFlight;
+
+    liveProcessFlight = si.processes()
+      .then(result => {
+        liveProcessCount = {
+          running: Number.isFinite(result?.running) ? result.running : 0,
+          total: Number.isFinite(result?.all) ? result.all : 0,
+        };
+        liveProcessCountAt = Date.now();
+        liveProcessRetryAt = 0;
+        return liveProcessCount;
+      })
+      .catch(() => {
+        liveProcessRetryAt = Date.now() + PROCESS_COUNT_RETRY_MS;
+        return liveProcessCount;
+      })
+      .finally(() => {
+        liveProcessFlight = null;
+      });
+    return liveProcessFlight;
+  }
   // telemetryPollInterval removed — polling is now an async loop (_telemetryLoop)
   
   // Disk I/O delta tracking — mirrors server/lib/telemetry.ts approach.
@@ -3768,11 +3806,13 @@ public class DspHelper {
           gpu:     { available: gpuExistsOnHardware, model: null, usagePct: null, tempC: null, vramUsedMb: null, vramTotalMb: null, vramUsagePct: null, powerW: null, clockMhz: null },
           disk:    { selectedMount: null, usagePct: 0, activeTimePct: null, readKBps: null, writeKBps: null, available: false, source: 'warming' },
           network: { rxKBps: 0, txKBps: 0 },
+          processes: liveProcessCount,
           ssds:    [],
         };
       }
   
       const { load, mem, temps, fsData, netStats, diskIO } = liveTelemetryCache;
+      const processes = await getLiveProcessCount();
   
       const cpuLoad = safeNum(load.currentLoad || 0);
       const cpuTemp = safeNum(temps.main || 0);
@@ -3879,6 +3919,7 @@ public class DspHelper {
           rxKBps: netRxKBs,
           txKBps: netTxKBs,
         },
+        processes,
         ssds: (disks)
           .filter(d => d.size > 0)
           .map(d => ({
@@ -3899,6 +3940,7 @@ public class DspHelper {
         gpu:     { available: false, model: null, usagePct: null, tempC: null, vramUsedMb: null, vramTotalMb: null, vramUsagePct: null, powerW: null, clockMhz: null },
         disk:    { selectedMount: null, usagePct: 0, activeTimePct: null, readKBps: null, writeKBps: null, available: false, source: 'unavailable' },
         network: { rxKBps: 0, txKBps: 0 },
+        processes: liveProcessCount,
         ssds:    [],
       };
     }
