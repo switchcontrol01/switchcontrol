@@ -13,6 +13,8 @@ interface FirstRunLanguageModalProps {
 type ModalStep = "prompt" | "picker";
 
 const LANGUAGE_PROMPT_KEY = "sc_language_prompt_seen_";
+const ENTER_DURATION_MS = 2000;
+const ENTER_START_DELAY_MS = 40;
 const EXIT_DURATION_MS = 2000;
 const SILK = [0.22, 1, 0.36, 1] as const;
 
@@ -37,6 +39,7 @@ export function FirstRunLanguageModal({
   const [isExiting, setIsExiting] = useState(false);
   const [isEntered, setIsEntered] = useState(false);
   const completionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const enterTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const prefersReduced = useMemo(
     () =>
       typeof window !== "undefined" &&
@@ -45,15 +48,22 @@ export function FirstRunLanguageModal({
   );
 
   useEffect(() => {
-    const first = requestAnimationFrame(() => {
-      requestAnimationFrame(() => setIsEntered(true));
-    });
-    return () => cancelAnimationFrame(first);
-  }, []);
+    // Keep the first compositor frame in the blurred/hidden state. A short
+    // timer is more reliable than a nested rAF here because Electron can
+    // commit the portal and the parent phase update in the same paint.
+    enterTimerRef.current = setTimeout(
+      () => setIsEntered(true),
+      prefersReduced ? 0 : ENTER_START_DELAY_MS,
+    );
+    return () => {
+      if (enterTimerRef.current) clearTimeout(enterTimerRef.current);
+    };
+  }, [prefersReduced]);
 
   useEffect(
     () => () => {
       if (completionTimerRef.current) clearTimeout(completionTimerRef.current);
+      if (enterTimerRef.current) clearTimeout(enterTimerRef.current);
     },
     [],
   );
@@ -74,6 +84,15 @@ export function FirstRunLanguageModal({
     );
   };
 
+  const previewLocale = (locale: Locale) => {
+    setSelectedLocale(locale);
+    // Previewing is intentionally live: the user should not have to confirm
+    // a language while the dialog is still written in the previous language.
+    setLanguage(locale);
+  };
+
+  const currentLanguageMeta =
+    LOCALES.find((locale) => locale.code === language) ?? LOCALES[0];
   const selectedMeta =
     LOCALES.find((locale) => locale.code === selectedLocale) ?? LOCALES[0];
 
@@ -86,12 +105,14 @@ export function FirstRunLanguageModal({
         aria-labelledby="first-run-language-title"
         aria-describedby="first-run-language-description"
         data-testid="first-run-language-modal"
+        data-locale={language}
+        data-animation-state={isExiting ? "exiting" : isEntered ? "entered" : "entering"}
         initial={{ opacity: 0, filter: "blur(18px)" }}
         animate={{
           opacity: isEntered && !isExiting ? 1 : 0,
           filter: isEntered && !isExiting ? "blur(0px)" : "blur(18px)",
           transition: {
-            duration: isExiting && !prefersReduced ? 2 : prefersReduced ? 0 : 0.75,
+            duration: prefersReduced ? 0 : ENTER_DURATION_MS / 1000,
             ease: SILK,
           },
         }}
@@ -130,13 +151,13 @@ export function FirstRunLanguageModal({
         />
 
         <motion.div
-          className="relative w-full max-w-[520px] overflow-hidden rounded-[26px] border border-cyan-300/20 bg-[#09121f]/95 shadow-[0_30px_120px_-28px_rgba(0,212,255,0.38)]"
+          className="relative w-full max-w-[460px] overflow-hidden rounded-[22px] border border-cyan-300/20 bg-[#09121f]/95 shadow-[0_30px_120px_-28px_rgba(0,212,255,0.38)]"
           initial={{ y: 18, scale: 0.97 }}
           animate={{
             y: isExiting ? -10 : isEntered ? 0 : 18,
             scale: isExiting ? 0.96 : isEntered ? 1 : 0.97,
             transition: {
-              duration: isExiting && !prefersReduced ? 2 : prefersReduced ? 0 : 0.8,
+              duration: prefersReduced ? 0 : ENTER_DURATION_MS / 1000,
               ease: SILK,
             },
           }}
@@ -144,12 +165,12 @@ export function FirstRunLanguageModal({
           <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-300/80 to-transparent" />
           <div className="absolute inset-x-8 top-1 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
 
-          <div className="px-7 pb-7 pt-8 sm:px-9 sm:pb-9 sm:pt-10">
-            <div className="mb-7 flex items-center justify-between gap-4">
+          <div className="px-5 pb-5 pt-6 sm:px-6 sm:pb-6 sm:pt-7">
+            <div className="mb-5 flex items-center justify-between gap-3">
               <div className="flex items-center gap-3">
-                <div className="relative flex h-11 w-11 items-center justify-center rounded-2xl border border-cyan-300/25 bg-cyan-300/10">
+                <div className="relative flex h-9 w-9 items-center justify-center rounded-xl border border-cyan-300/25 bg-cyan-300/10">
                   <div className="absolute inset-0 rounded-2xl bg-cyan-300/10 blur-xl" />
-                  <Languages className="relative h-5 w-5 text-cyan-200" />
+                  <Languages className="relative h-4 w-4 text-cyan-200" />
                 </div>
                 <div>
                   <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-cyan-200/65">
@@ -158,13 +179,13 @@ export function FirstRunLanguageModal({
                   <p className="mt-1 text-xs text-white/45">{t("Language setup")}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-1.5 rounded-full border border-emerald-300/15 bg-emerald-300/[0.06] px-2.5 py-1.5 text-[10px] font-medium text-emerald-200/75">
-                <ShieldCheck className="h-3.5 w-3.5" />
+              <div className="flex items-center gap-1.5 rounded-full border border-emerald-300/15 bg-emerald-300/[0.06] px-2 py-1 text-[10px] font-medium text-emerald-200/75">
+                <ShieldCheck className="h-3 w-3" />
                 {t("Signed in")}
               </div>
             </div>
 
-            <div className="mb-6 rounded-xl border border-white/[0.07] bg-white/[0.025] px-3.5 py-2.5">
+            <div className="mb-4 rounded-lg border border-white/[0.07] bg-white/[0.025] px-3 py-2">
               <p className="truncate text-xs text-white/55">
                 {t("Authenticated as")}{" "}
                 <span className="font-medium text-white/80">{accountLabel}</span>
@@ -173,44 +194,48 @@ export function FirstRunLanguageModal({
 
             {step === "prompt" ? (
               <>
-                <div className="mb-7">
-                  <div className="mb-3 flex items-center gap-2 text-cyan-200/70">
-                    <Sparkles className="h-4 w-4" />
+                <div className="mb-5">
+                  <div className="mb-2 flex items-center gap-2 text-cyan-200/70">
+                    <Sparkles className="h-3.5 w-3.5" />
                     <span className="text-[10px] font-semibold uppercase tracking-[0.2em]">
                       {t("Make it yours")}
                     </span>
                   </div>
                   <h1
                     id="first-run-language-title"
-                    className="text-[clamp(1.65rem,5vw,2.15rem)] font-semibold leading-[1.08] tracking-[-0.035em] text-white"
+                    className="text-[clamp(1.5rem,5vw,1.95rem)] font-semibold leading-[1.08] tracking-[-0.035em] text-white"
                   >
                     {t("Choose your language")}
                   </h1>
                   <p
                     id="first-run-language-description"
-                    className="mt-3 max-w-[30rem] text-sm leading-6 text-white/55"
+                    className="mt-2.5 max-w-[30rem] text-sm leading-[1.4] text-white/55"
                   >
                     {t(
-                      "SwitchControl is currently set to English. Would you like to keep English or choose another language?",
+                      "SwitchControl is currently set to {language}. Would you like to keep it or choose another language?",
+                      undefined,
+                      { language: currentLanguageMeta.nativeName },
                     )}
                   </p>
                 </div>
 
-                <div className="grid gap-3">
+                <div className="grid gap-2.5">
                   <button
                     type="button"
                     autoFocus
-                    onClick={() => finish("en")}
+                    onClick={() => finish(language)}
                     disabled={isExiting}
-                    className="group flex w-full items-center justify-between rounded-2xl border border-cyan-200/30 bg-cyan-200/[0.12] px-4 py-3.5 text-left transition hover:border-cyan-200/55 hover:bg-cyan-200/[0.18] disabled:cursor-wait disabled:opacity-80"
+                    className="group flex w-full items-center justify-between rounded-xl border border-cyan-200/30 bg-cyan-200/[0.12] px-3.5 py-3 text-left transition hover:border-cyan-200/55 hover:bg-cyan-200/[0.18] disabled:cursor-wait disabled:opacity-80"
                     data-testid="button-keep-english"
                   >
                     <span>
                       <span className="block text-sm font-semibold text-white">
-                        {t("Keep English")}
+                        {t("Keep {language}", undefined, { language: currentLanguageMeta.nativeName })}
                       </span>
                       <span className="mt-1 block text-xs text-white/45">
-                        {t("Use English throughout SwitchControl")}
+                        {t("Use {language} throughout SwitchControl", undefined, {
+                          language: currentLanguageMeta.nativeName,
+                        })}
                       </span>
                     </span>
                     <Check className="h-5 w-5 text-cyan-200 transition-transform group-hover:scale-110" />
@@ -219,7 +244,7 @@ export function FirstRunLanguageModal({
                     type="button"
                     onClick={() => setStep("picker")}
                     disabled={isExiting}
-                    className="group flex w-full items-center justify-between rounded-2xl border border-white/[0.1] bg-white/[0.035] px-4 py-3.5 text-left transition hover:border-white/20 hover:bg-white/[0.07] disabled:cursor-wait disabled:opacity-80"
+                    className="group flex w-full items-center justify-between rounded-xl border border-white/[0.1] bg-white/[0.035] px-3.5 py-3 text-left transition hover:border-white/20 hover:bg-white/[0.07] disabled:cursor-wait disabled:opacity-80"
                     data-testid="button-choose-another-language"
                   >
                     <span>
@@ -236,11 +261,11 @@ export function FirstRunLanguageModal({
               </>
             ) : (
               <>
-                <div className="mb-5">
+                <div className="mb-4">
                   <button
                     type="button"
                     onClick={() => setStep("prompt")}
-                    className="mb-4 text-xs text-cyan-200/65 transition hover:text-cyan-100"
+                    className="mb-3 text-xs text-cyan-200/65 transition hover:text-cyan-100"
                     data-testid="button-language-back"
                   >
                     ← {t("Back")}
@@ -248,20 +273,20 @@ export function FirstRunLanguageModal({
                   <h1 className="text-2xl font-semibold tracking-[-0.03em] text-white">
                     {t("Choose another language")}
                   </h1>
-                  <p className="mt-2 text-sm leading-6 text-white/50">
+                  <p className="mt-1.5 text-sm leading-[1.4] text-white/50">
                     {t("Your choice will be saved before onboarding begins.")}
                   </p>
                 </div>
 
-                <div className="grid max-h-[min(42vh,340px)] grid-cols-2 gap-2 overflow-y-auto pr-1 sm:grid-cols-3">
+                <div className="grid max-h-[min(38vh,280px)] grid-cols-2 gap-2 overflow-y-auto pr-1 sm:grid-cols-3">
                   {LOCALES.map((locale) => {
                     const selected = locale.code === selectedLocale;
                     return (
                       <button
                         key={locale.code}
                         type="button"
-                        onClick={() => setSelectedLocale(locale.code)}
-                        className={`rounded-xl border px-3 py-3 text-left transition ${
+                        onClick={() => previewLocale(locale.code)}
+                        className={`rounded-lg border px-2.5 py-2.5 text-left transition ${
                           selected
                             ? "border-cyan-200/45 bg-cyan-200/[0.13] text-white"
                             : "border-white/[0.08] bg-white/[0.025] text-white/70 hover:border-white/20 hover:bg-white/[0.06]"
@@ -284,12 +309,12 @@ export function FirstRunLanguageModal({
                   type="button"
                   onClick={() => finish(selectedLocale)}
                   disabled={isExiting}
-                  className="mt-5 flex w-full items-center justify-between rounded-2xl border border-cyan-200/30 bg-cyan-200/[0.12] px-4 py-3.5 text-left transition hover:border-cyan-200/55 hover:bg-cyan-200/[0.18] disabled:cursor-wait disabled:opacity-80"
+                  className="mt-4 flex w-full items-center justify-between rounded-xl border border-cyan-200/30 bg-cyan-200/[0.12] px-3.5 py-3 text-left transition hover:border-cyan-200/55 hover:bg-cyan-200/[0.18] disabled:cursor-wait disabled:opacity-80"
                   data-testid="button-confirm-language"
                 >
                   <span>
                     <span className="block text-sm font-semibold text-white">
-                      {t("Continue with {language}", { language: selectedMeta.nativeName })}
+                      {t("Continue with {language}", undefined, { language: selectedMeta.nativeName })}
                     </span>
                     <span className="mt-1 block text-xs text-white/45">
                       {t("This will be your app language")}
