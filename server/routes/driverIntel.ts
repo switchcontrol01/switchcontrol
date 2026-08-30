@@ -66,8 +66,8 @@
    * the server data changes. Keys are normalised vendor identifiers.
    */
   const DATABASE = {
-    dbVersion: "2026.08.1",
-    updatedAt: "2026-08-22",
+    dbVersion: "2026.08.2",
+    updatedAt: "2026-08-31",
   
     gpu: {
       nvidia: {
@@ -219,6 +219,24 @@
     },
   
     audio: {
+      nvidia: {
+        latest: "Bundled with NVIDIA display driver",
+        releaseNotes:
+          "NVIDIA High Definition Audio is delivered with the official display driver package.",
+        safety: "safe",
+      } as DriverDbEntry,
+      amd: {
+        latest: "Bundled with AMD display driver",
+        releaseNotes:
+          "AMD High Definition Audio is delivered with the official Adrenalin display driver package.",
+        safety: "safe",
+      } as DriverDbEntry,
+      intel: {
+        latest: "Bundled with Intel platform/display package",
+        releaseNotes:
+          "Intel Display Audio and Smart Sound Technology packages are supplied through Intel or the system manufacturer.",
+        safety: "safe",
+      } as DriverDbEntry,
       realtek: {
         latest: "6.0.9670.1",
         releaseDate: "2026-05-19",

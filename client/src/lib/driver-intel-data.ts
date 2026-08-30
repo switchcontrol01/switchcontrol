@@ -13,11 +13,16 @@
    */
   
   import type { SystemIntelligenceProfile } from "@/stores/systemIntelligenceStore";
+  import {
+    compareDriverVersions,
+    type DriverVersionComparison,
+  } from "@shared/driverVersion";
   
   // ── Status model ──────────────────────────────────────────────────────────────
   
   export type ComponentHealth =
     | "healthy" // up to date / nothing to do
+    | "newer" // installed version is ahead of the database reference
     | "outdated" // newer version available
     | "critical" // significantly behind or known-bad
     | "unknown" // could not determine (no data)
@@ -105,6 +110,9 @@
     /** Why this status — one human sentence for the panel. */
     rationale: string;
   }
+
+  export type { DriverVersionComparison };
+  export { compareDriverVersions };
   
   // ── Official vendor pages (no third-party links) ──────────────────────────────
   
@@ -155,6 +163,9 @@
       marvell: "https://www.marvell.com/support/",
     },
     audio: {
+      nvidia: "https://www.nvidia.com/Download/index.aspx",
+      amd: "https://www.amd.com/en/support",
+      intel: "https://www.intel.com/content/www/us/en/download-center/home.html",
       realtek: "https://www.realtek.com/en/component/zoo/category/pc-audio-codecs-high-definition-audio-codecs-software",
       steelseries: "https://steelseries.com/gg",
       creative: "https://us.creative.com/p/software",
@@ -243,6 +254,21 @@
       marvell: { latest: "3.1.17.172", safety: "safe" },
     },
     audio: {
+      nvidia: {
+        latest: "Bundled with NVIDIA display driver",
+        releaseNotes: "NVIDIA High Definition Audio is delivered with the official display driver package.",
+        safety: "safe",
+      },
+      amd: {
+        latest: "Bundled with AMD display driver",
+        releaseNotes: "AMD High Definition Audio is delivered with the official Adrenalin display driver package.",
+        safety: "safe",
+      },
+      intel: {
+        latest: "Bundled with Intel platform/display package",
+        releaseNotes: "Intel Display Audio and Smart Sound Technology packages are supplied through Intel or the system manufacturer.",
+        safety: "safe",
+      },
       realtek: { latest: "6.0.9670.1", safety: "safe" },
       steelseries: { latest: "GG 90.0", safety: "caution" },
       creative: { latest: "6.0.105", safety: "caution" },
@@ -343,6 +369,9 @@
   export function detectAudioVendor(name: string | null): string | null {
     const s = lc(name);
     if (!s) return null;
+    if (s.includes("nvidia")) return "nvidia";
+    if (s.includes("amd") || s.includes("radeon")) return "amd";
+    if (s.includes("intel") || s.includes("display audio") || s.includes("smart sound")) return "intel";
     if (s.includes("realtek")) return "realtek";
     if (s.includes("steelseries")) return "steelseries";
     if (s.includes("creative") || s.includes("sound blaster")) return "creative";
@@ -362,14 +391,7 @@
   
   // ── Health resolution ─────────────────────────────────────────────────────────
   
-  /**
-   * Compare a detected current version against the cloud latest.
-   * Returns a coarse health when we have enough info. Version strings across
-   * vendors are not numerically comparable, so we use a conservative rule:
-   *  - no current  → unknown (we can still show "latest available")
-   *  - exact match → healthy
-   *  - mismatch    → outdated (or critical if DB marks it critical)
-   */
+  /** Compare a detected current version against the cloud latest. */
   export function resolveHealth(
     current: string | null,
     entry: DriverDbEntry | null,
@@ -379,9 +401,52 @@
     const a = current.trim().toLowerCase();
     const b = entry.latest.trim().toLowerCase();
     if (!a) return "unknown";
-    if (a === b || a.includes(b) || b.includes(a)) return "healthy";
+    const comparison = compareDriverVersions(current, entry.latest);
+    if (comparison === "newer") return "newer";
+    if (comparison === "same") return "healthy";
+    if (comparison === "unknown" && (a === b || a.includes(b) || b.includes(a))) return "healthy";
+    if (comparison === "unknown") return "unknown";
     if (entry.safety === "critical") return "critical";
     return "outdated";
+  }
+
+  /**
+   * Native driver versions are loaded after the hardware scan. Recalculate the
+   * status here so a newer installed version cannot retain a provisional
+   * "outdated" state from component assembly.
+   */
+  export function applyInstalledVersion(
+    component: DriverComponent,
+    current: string,
+  ): DriverComponent {
+    const health = resolveHealth(
+      current,
+      component.latest
+        ? {
+            latest: component.latest,
+            releaseDate: component.releaseDate ?? undefined,
+            releaseNotes: component.releaseNotes ?? undefined,
+            knownIssues: component.knownIssues,
+            safety: component.safety,
+          }
+        : null,
+    );
+    const rationale =
+      health === "newer"
+        ? `Installed version ${current} is newer than our database's latest known version ${component.latest}. No downgrade is recommended.`
+        : health === "healthy" && component.latest
+          ? `Installed version ${current} matches the latest known version ${component.latest}.`
+          : component.rationale;
+    return {
+      ...component,
+      current,
+      health,
+      action:
+        health === "newer" || health === "healthy"
+          ? null
+          : component.action,
+      rationale,
+    };
   }
   
   export interface HealthScore {
@@ -391,6 +456,7 @@
   
   const HEALTH_POINTS: Record<ComponentHealth, number> = {
     healthy: 100,
+    newer: 100,
     unknown: 75, // unknown ≠ broken; partial credit so the score isn't punished by probe luck
     outdated: 55,
     critical: 25,
@@ -537,6 +603,7 @@
     { label: string; color: string; glow: string }
   > = {
     healthy: { label: "Up to date", color: "#34d399", glow: "rgba(52,211,153,0.45)" },
+    newer: { label: "Newer than database", color: "#22d3ee", glow: "rgba(34,211,238,0.45)" },
     outdated: { label: "Update available", color: "#fbbf24", glow: "rgba(251,191,36,0.45)" },
     critical: { label: "Action needed", color: "#f87171", glow: "rgba(248,113,113,0.5)" },
     unknown: { label: "Not detected", color: "#94a3b8", glow: "rgba(148,163,184,0.3)" },

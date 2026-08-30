@@ -48,6 +48,7 @@ import {
   HEALTH_META,
   SCAN_STEPS,
   countActionable,
+  applyInstalledVersion,
 } from "@/lib/driver-intel-data";
 import { MotherboardMap } from "@/components/driver-intel/MotherboardMap";
 import { HealthRadial } from "@/components/driver-intel/HealthRadial";
@@ -296,7 +297,7 @@ export default function DriverIntelligence() {
       if (c.current !== null) return c; // already has a real value — never overwrite
       const detected = getInstalledVersion(c.kind, c.vendorKey);
       if (!detected) return c;
-      return { ...c, current: detected };
+       return applyInstalledVersion(c, detected);
     });
   }, [components, installedVersions, installedLoading]); // eslint-disable-line react-hooks/exhaustive-deps
 
