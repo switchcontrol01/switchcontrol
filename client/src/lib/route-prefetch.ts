@@ -2,10 +2,12 @@
  * Shared desktop route loaders.
  *
  * Keeping the importer and lazy route on the same promise cache means a
- * sidebar hover can warm the exact chunk that the router will consume later.
- * This preserves code splitting without making first navigation look blank.
+ * sidebar navigation can warm the exact chunk that the router will consume
+ * later. This preserves code splitting without making first navigation look
+ * blank.
  */
 type DesktopRoute =
+  | "home"
   | "tweaks"
   | "network"
   | "cleaner"
@@ -22,7 +24,8 @@ type DesktopRoute =
   | "history"
   | "process-manager";
 
-const loaders: Record<DesktopRoute, () => Promise<unknown>> = {
+const loaders: Record<DesktopRoute, () => Promise<any>> = {
+  home: () => import("@/pages/Home"),
   tweaks: () => import("@/pages/Tweaks"),
   network: () => import("@/pages/NetworkTweaks"),
   cleaner: () => import("@/pages/SystemCleaner"),
@@ -52,7 +55,10 @@ export function loadDesktopRoute(route: DesktopRoute): Promise<any> {
 }
 
 export function preloadDesktopRoute(path: string): Promise<void> {
-  const route = path.replace(/^\/+/, "") as DesktopRoute;
+  const normalizedPath = path.replace(/^\/+/, "");
+  const route = (normalizedPath === "" || normalizedPath === "dashboard"
+    ? "home"
+    : normalizedPath) as DesktopRoute;
   if (!loaders[route]) return Promise.resolve();
   return loadDesktopRoute(route).then(() => undefined).catch((error) => {
     // The lazy route will retry through the same importer on navigation and

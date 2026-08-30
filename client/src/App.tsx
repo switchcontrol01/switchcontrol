@@ -103,9 +103,9 @@ import {
 import { useMotion } from "@/lib/motionTokens";
 const _isElectronRuntime =
   typeof window !== "undefined" && !!(window as any).electronAPI?.isElectron;
-// Build-selected route map: the web build uses route chunks, while the
-// Electron build aliases this import to an eager map so file:// never needs
-// to resolve a desktop page chunk.
+// Build-selected route map: desktop pages stay demand-loaded in both web and
+// Electron builds. The Electron renderer uses relative asset URLs, so dynamic
+// route chunks resolve beside index.html without loading every page at boot.
 import { desktopRoutes } from "@/routes/desktopRoutes";
 // Website-only chunks, only prefetch on web (not in Electron where file:// protocol
 // causes chunk fetch failures for pages that are never shown in the desktop app).

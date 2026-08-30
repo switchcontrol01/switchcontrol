@@ -1,12 +1,12 @@
 /**
- * Electron uses eager desktop routes because the packaged renderer loads from
- * file://. Prefetching is therefore unnecessary and must not create dynamic
- * imports that Rollup tries to analyze alongside the eager page imports.
+ * Compatibility entry point for older build overrides.
+ *
+ * Electron now uses the demand-loaded route map too. Keeping this module as a
+ * re-export prevents a stale alias or downstream build override from silently
+ * regressing to an eager/no-prefetch route implementation.
  */
-export function preloadDesktopRoute(_path: string): Promise<void> {
-  return Promise.resolve();
-}
-
-export function preloadAllDesktopRoutes(): Promise<void> {
-  return Promise.resolve();
-}
+export {
+  loadDesktopRoute,
+  preloadDesktopRoute,
+  preloadAllDesktopRoutes,
+} from "./route-prefetch";

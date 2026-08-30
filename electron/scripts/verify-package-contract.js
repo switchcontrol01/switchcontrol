@@ -65,10 +65,56 @@ if (!electronBuild) {
 [
   'dist/index.cjs',
   'dist-electron/index.html',
-  'dist-electron/index.html',
   'electron/build/icon.ico',
   'electron/bin',
 ].forEach(exists);
+
+// Every desktop page must remain available as a renderer chunk. This catches
+// accidental eager imports as well as a build that silently drops a route.
+// The check runs against the generated renderer input, before electron-builder
+// copies it into the packaged resources directory.
+const desktopChunkPrefixes = [
+  'Home',
+  'Tweaks',
+  'NetworkTweaks',
+  'SystemCleaner',
+  'Settings',
+  'PowerPlan',
+  'Debloater',
+  'StartupApps',
+  'NicTuning',
+  'BiosAdvisor',
+  'AiAdvisor',
+  'DriverIntelligence',
+  'LatencyAnalyzer',
+  'Security',
+  'History',
+  'ProcessManager',
+];
+const rendererAssetsDir = path.join(ROOT_DIR, 'dist-electron', 'assets');
+if (fs.existsSync(rendererAssetsDir)) {
+  const rendererAssets = fs.readdirSync(rendererAssetsDir);
+  for (const prefix of desktopChunkPrefixes) {
+    if (!rendererAssets.some(name => name.startsWith(`${prefix}-`) && name.endsWith('.js'))) {
+      failures.push(`Missing demand-loaded desktop route chunk: ${prefix}`);
+    }
+  }
+  const routeChunkBytes = rendererAssets
+    .filter(name => desktopChunkPrefixes.some(prefix => name.startsWith(`${prefix}-`)))
+    .reduce((total, name) => total + fs.statSync(path.join(rendererAssetsDir, name)).size, 0);
+  const rendererIndex = path.join(ROOT_DIR, 'dist-electron', 'index.html');
+  let initialEntryBytes = 0;
+  if (fs.existsSync(rendererIndex)) {
+    const html = fs.readFileSync(rendererIndex, 'utf8');
+    const entryMatch = html.match(/src=["'](?:\.\/)?(assets\/[^"']+\.js)["']/);
+    if (entryMatch) {
+      const entryPath = path.join(ROOT_DIR, 'dist-electron', entryMatch[1]);
+      if (fs.existsSync(entryPath)) initialEntryBytes = fs.statSync(entryPath).size;
+    }
+  }
+  console.log(`  initial renderer entry: ${(initialEntryBytes / 1024).toFixed(0)} KiB`);
+  console.log(`  deferred desktop route chunks: ${desktopChunkPrefixes.length} (${(routeChunkBytes / 1024).toFixed(0)} KiB)`);
+}
 
 if (failures.length > 0) {
   console.error('[package-contract] FAIL');

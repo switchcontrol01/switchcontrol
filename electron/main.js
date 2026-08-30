@@ -35,18 +35,61 @@
   const path = require('path');
   const os = require('os');
   const fs = require('fs'); // top-level — never undefined, never lost inside a closure
-  const si = require('systeminformation');
-  const tweakExecutor = require('./tweak-executor');
-  const sliderTweakExecutor = require('./slider-tweak-executor');
-  const presetTweakExecutor = require('./preset-tweak-executor');
-  const nicExecutor = require('./nic-executor');
-  let networkTweakExecutor;
-  try {
-    networkTweakExecutor = require('./network-tweak-executor');
-  } catch (e) {
-    console.error('[BOOT] network-tweak-executor not found, using stub:', e.message);
-    networkTweakExecutor = {
+  // These modules are large and/or initialize native-facing state at require
+  // time. Keep one stable proxy per module, but do not pay that initialization
+  // cost until the first operation that actually needs the feature.
+  function lazyModule(modulePath, fallbackFactory) {
+    let instance;
+    let loadAttempted = false;
+    const getInstance = () => {
+      if (!loadAttempted) {
+        loadAttempted = true;
+        try {
+          instance = require(modulePath);
+        } catch (error) {
+          if (!fallbackFactory) throw error;
+          instance = fallbackFactory(error);
+        }
+      }
+      return instance;
+    };
+    return new Proxy(Object.create(null), {
+      get(_target, property) {
+        const value = getInstance()[property];
+        return typeof value === 'function' ? value.bind(getInstance()) : value;
+      },
+      has(_target, property) {
+        return property in getInstance();
+      },
+      ownKeys() {
+        return Reflect.ownKeys(getInstance());
+      },
+      getOwnPropertyDescriptor(_target, property) {
+        const value = getInstance()[property];
+        return value === undefined
+          ? undefined
+          : { enumerable: true, configurable: true, value, writable: false };
+      },
+    });
+  }
+
+  const si = lazyModule('systeminformation');
+  const tweakExecutor = lazyModule('./tweak-executor');
+  const sliderTweakExecutor = lazyModule('./slider-tweak-executor');
+  const presetTweakExecutor = lazyModule('./preset-tweak-executor');
+  const nicExecutor = lazyModule('./nic-executor');
+  const networkTweakExecutor = lazyModule('./network-tweak-executor', (error) => {
+    console.error('[BOOT] network-tweak-executor unavailable; using safe stub:', error.message);
+    return {
       executeNetworkTweak: async (tweakId, action) => ({
+        tweakId,
+        action,
+        success: false,
+        verified: false,
+        requiresRestart: false,
+        message: 'Please reinstall SwitchControl to apply network tweaks.',
+      }),
+      executeNetworkTweakWithOwnership: async (tweakId, action) => ({
         tweakId,
         action,
         success: false,
@@ -57,10 +100,13 @@
       checkNetworkTweakStatus: async () => ({ applied: false }),
       checkAllNetworkTweakStatus: async () => ({}),
       getDisabledTweaks: () => [],
+      benchmarkDnsProviders: async () => [],
+      applyDnsServers: async () => ({ ok: false, success: false, error: 'Network tweak module is unavailable.' }),
+      revertDnsServers: async () => ({ ok: false, success: false, error: 'Network tweak module is unavailable.' }),
       TWEAK_REGISTRY: {},
     };
-  }
-  const powerPlanManager = require('./power-plan-manager');
+  });
+  const powerPlanManager = lazyModule('./power-plan-manager');
   const backendLauncher = require('./backend-launcher');
   const psLimiter = require('./powershell-limiter');
   const { checkIsAdmin: checkSharedIsAdmin } = require('./ps-shared');
@@ -75,11 +121,11 @@
   require('./cleaner-helper');
   require('./storage-helper');
   const configStore    = require('./config-store');
-  const updaterService = require('./updater');
+  const updaterService = lazyModule('./updater');
   const criticalLogger = require('./critical-logger');
   const { createFactoryResetHandler } = require('./factory-reset');
   const { APPDATA_DIR, TWEAK_STATE_FILE, CONFIG_FILE, DEVICE_ID_FILE, SPECS_CACHE_FILE, DEVICE_SIGNATURE_FILE } = require('./user-data-paths');
-  const processControl = require('./process-control');
+  const processControl = lazyModule('./process-control');
   const { selectProcessCount } = require('./process-count');
 
   // Create the restore point used by the "Create restore point" preference.
@@ -123,17 +169,13 @@
       });
     });
   }
-  // The latency analyzer is an optional feature. Some packaged builds do not
-  // include latency-analyzer.js; requiring it unconditionally makes Electron
-  // crash before the window can open.
-  let latencyAnalyzer;
+  // The latency analyzer is optional and only needed after its page is opened.
+  // Keep the missing-module result actionable without making it part of boot.
   let latencyAnalyzerAvailable = true;
-  try {
-    latencyAnalyzer = require('./latency-analyzer');
-  } catch (e) {
+  const latencyAnalyzer = lazyModule('./latency-analyzer', (error) => {
     latencyAnalyzerAvailable = false;
-    console.error('[BOOT] latency-analyzer not found; latency analysis is disabled:', e.message);
-    latencyAnalyzer = {
+    console.error('[BOOT] latency-analyzer not found; latency analysis is disabled:', error.message);
+    return {
       isActive: () => false,
       startAnalysis: async () => false,
       stopAnalysis: () => {},
@@ -145,7 +187,7 @@
       scanDrivers: async () => [],
       scanAudioDevices: async () => [],
     };
-  }
+  });
   let _latencyLastSample = null; // last received sample for renderer polling
   let _latencyLastError = null;
   
@@ -194,6 +236,10 @@
   let _fallbackFadeTimer = null;
   let _telemetryStartDelayTimer = null;
   let _showFallbackTimer = null;
+  let _deferredStartupTimer = null;
+  let _updaterStartupTimer = null;
+  let _deferredStartupScheduled = false;
+  let _shutdownRequested = false;
   let _cookiesListenerRegistered = false;
   // ── Admin / elevation state ───────────────────────────────────────────────────
   // Cached once at startup. The app manifest uses requireAdministrator — Windows
@@ -376,29 +422,38 @@ function Write-SwitchControlProbe($status, $data, $message) {
   const SPECS_DISK_IGNORE_AGE_MS = 24 * 60 * 60 * 1000;// 24 h   — discard stale disk cache
   const DEEP_HARDWARE_LAUNCH_INTERVAL = 15;
   let deepHardwareProbeDue = process.platform !== 'win32';
+  let deepHardwareProbeCadenceInitialized = process.platform !== 'win32';
   let deepHardwareProbeClaimed = false;
-  try {
-    const launchStatePath = path.join(APPDATA_DIR, 'deep-hardware-launch-state.json');
-    let launchState = { launchCount: 0, lastDeepCollectionLaunch: null };
+
+  // This counter is bookkeeping, not part of the minimum identity snapshot.
+  // Initialize it after the first usable frame so a slow or unwritable profile
+  // directory can never delay BrowserWindow creation.
+  function initializeDeepHardwareCadence() {
+    if (deepHardwareProbeCadenceInitialized) return;
+    deepHardwareProbeCadenceInitialized = true;
     try {
-      const parsed = JSON.parse(fs.readFileSync(launchStatePath, 'utf8'));
-      if (Number.isInteger(parsed.launchCount) && parsed.launchCount >= 0) {
-        launchState.launchCount = parsed.launchCount;
-      }
-      if (Number.isInteger(parsed.lastDeepCollectionLaunch)) {
-        launchState.lastDeepCollectionLaunch = parsed.lastDeepCollectionLaunch;
-      }
-    } catch (_e) {}
-    launchState.launchCount += 1;
-    deepHardwareProbeDue = launchState.launchCount % DEEP_HARDWARE_LAUNCH_INTERVAL === 0;
-    fs.mkdirSync(APPDATA_DIR, { recursive: true });
-    fs.writeFileSync(launchStatePath, JSON.stringify(launchState), 'utf8');
-    console.log(`[Enrich] deep hardware launch ${launchState.launchCount}/${DEEP_HARDWARE_LAUNCH_INTERVAL}` +
-      (deepHardwareProbeDue ? ' — full enrichment eligible' : ' — cached/instant path only'));
-  } catch (e) {
-    // An unwritable counter must not make hardware detection unavailable.
-    deepHardwareProbeDue = true;
-    console.warn('[Enrich] deep hardware launch state unavailable:', e.message || e);
+      const launchStatePath = path.join(APPDATA_DIR, 'deep-hardware-launch-state.json');
+      let launchState = { launchCount: 0, lastDeepCollectionLaunch: null };
+      try {
+        const parsed = JSON.parse(fs.readFileSync(launchStatePath, 'utf8'));
+        if (Number.isInteger(parsed.launchCount) && parsed.launchCount >= 0) {
+          launchState.launchCount = parsed.launchCount;
+        }
+        if (Number.isInteger(parsed.lastDeepCollectionLaunch)) {
+          launchState.lastDeepCollectionLaunch = parsed.lastDeepCollectionLaunch;
+        }
+      } catch (_e) {}
+      launchState.launchCount += 1;
+      deepHardwareProbeDue = launchState.launchCount % DEEP_HARDWARE_LAUNCH_INTERVAL === 0;
+      fs.mkdirSync(APPDATA_DIR, { recursive: true });
+      fs.writeFileSync(launchStatePath, JSON.stringify(launchState), 'utf8');
+      console.log(`[Enrich] deep hardware launch ${launchState.launchCount}/${DEEP_HARDWARE_LAUNCH_INTERVAL}` +
+        (deepHardwareProbeDue ? ' — full enrichment eligible' : ' — cached/instant path only'));
+    } catch (e) {
+      // An unwritable counter must not make hardware detection unavailable.
+      deepHardwareProbeDue = true;
+      console.warn('[Enrich] deep hardware launch state unavailable:', e.message || e);
+    }
   }
   let lastCpuLoad = 0;
   
@@ -1637,6 +1692,7 @@ function Write-SwitchControlProbe($status, $data, $message) {
       console.log(`[LAUNCH:5] mainWindow.show() — both gates passed (chromium+react) | ${launchMs()}`);
       _bm.telemetryStart = Date.now();
       _scheduleStartupTelemetryStart('window-shown');
+      scheduleDeferredStartupWork('window-shown');
     }
   
     // Hard fallback: show after 5 s if either gate never fires (e.g. IPC lost).
@@ -1669,6 +1725,7 @@ function Write-SwitchControlProbe($status, $data, $message) {
         // duplicate start" warning on every normal launch (the internal singleton guard
         // prevents a real double-loop, but the log noise masks genuine future bugs).
         _scheduleStartupTelemetryStart('show-fallback');
+        scheduleDeferredStartupWork('show-fallback');
       }
     }, 5000);
   
@@ -6257,7 +6314,17 @@ $pwrThrot  = Reg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottl
         error: 'Latency analyzer module is not installed. Please reinstall SwitchControl.',
       };
     }
-    if (latencyAnalyzer.isActive()) {
+    const active = latencyAnalyzer.isActive();
+    // The first access is also the lazy module availability check. A packaged
+    // build missing this optional file must return the same actionable error
+    // as the old eager require path.
+    if (!latencyAnalyzerAvailable) {
+      return {
+        ok: false,
+        error: 'Latency analyzer module is not installed. Please reinstall SwitchControl.',
+      };
+    }
+    if (active) {
       return { ok: false, error: 'Analysis already running' };
     }
     _latencyLastSample = null;
@@ -6516,6 +6583,64 @@ $pwrThrot  = Reg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottl
       console.error('[STARTUP] non-critical audit failed:', auditErr && auditErr.message);
     }
   }
+
+  async function runDeferredStartupTask(name, task) {
+    for (let attempt = 1; attempt <= 2; attempt += 1) {
+      if (_shutdownRequested) return;
+      try {
+        await task();
+        return;
+      } catch (error) {
+        console.error(`[STARTUP:deferred] ${name} failed (attempt ${attempt}/2):`, error?.message || error);
+        if (attempt < 2 && !_shutdownRequested) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
+    }
+  }
+
+  // Work here is intentionally after both first-frame gates. Each operation is
+  // isolated so an audit, sentinel, or enrichment failure cannot strand the
+  // window in a hidden state or reject app.whenReady().
+  function scheduleDeferredStartupWork(reason) {
+    if (_deferredStartupScheduled) return;
+    _deferredStartupScheduled = true;
+    _deferredStartupTimer = setTimeout(async () => {
+      _deferredStartupTimer = null;
+      console.log(`[STARTUP:deferred] beginning optional startup work (${reason})`);
+
+      await runDeferredStartupTask('deep-hardware cadence', async () => {
+        initializeDeepHardwareCadence();
+      });
+      await runDeferredStartupTask('startup audit', runStartupAuditSafe);
+      await runDeferredStartupTask('crash sentinel check', async () => {
+        const sentinel = sliderTweakExecutor.checkCrashSentinel();
+        if (sentinel) {
+          console.warn(`[STARTUP] Slider crash sentinel found for "${sentinel.tweakId}" — previous write may have aborted. previousValue=${sentinel.previousValue}`);
+        }
+      });
+      await runDeferredStartupTask('hardware enrichment', async () => {
+        if (deepHardwareProbeDue) await _enrichSpecsInBackground();
+      });
+      await runDeferredStartupTask('updater initialization', async () => {
+        updaterService.setMainWindow(mainWindow);
+        updaterService.initUpdater(isDev);
+        if (!isDev) {
+          _updaterStartupTimer = setTimeout(() => {
+            _updaterStartupTimer = null;
+            if (_shutdownRequested) return;
+            verboseLog('[Updater] Startup check (8s after ready)...');
+            if (configStore.get('preference:autoUpdateChecks') !== false) {
+              updaterService.checkForUpdates();
+            } else {
+              verboseLog('[Updater] Startup check skipped — disabled in General Settings.');
+            }
+          }, 8000);
+        }
+      });
+      console.log('[STARTUP:deferred] optional startup work complete');
+    }, 0);
+  }
   
   app.whenReady().then(async () => {
     const bootStart = Date.now();
@@ -6587,20 +6712,6 @@ $pwrThrot  = Reg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottl
     app.setAsDefaultProtocolClient(PROTOCOL_NAME);
     verboseLog('[DeepLink] protocol registered:', app.isDefaultProtocolClient('switchcontrol'));
   
-    // Fire-and-forget: audit runs in parallel, any crash is caught inside the function
-    void runStartupAuditSafe();
-  
-    // Check for slider crash sentinel — warns if the previous session crashed during
-    // a reboot-required elevated write (e.g. mouclass / kbdclass driver parameters).
-    try {
-      const sentinel = sliderTweakExecutor.checkCrashSentinel();
-      if (sentinel) {
-        console.warn(`[STARTUP] Slider crash sentinel found for "${sentinel.tweakId}" — previous write may have aborted. previousValue=${sentinel.previousValue}`);
-      }
-    } catch (e) {
-      console.error('[STARTUP] Crash sentinel check failed:', e.message);
-    }
-  
     // ── C. Create main window ─────────────────────────────────────────────────────
     // Pre-warm only the synchronous snapshot before the window opens. The
     // previous call also launched WMI/systeminformation enrichment here, which
@@ -6657,21 +6768,6 @@ $pwrThrot  = Reg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottl
       // DevTools locked in production — only open in development builds.
       if (isDev) mainWindow?.webContents.openDevTools({ mode: 'detach' });
     });
-  
-    // ── Updater boot ─────────────────────────────────────────────────────────
-    updaterService.setMainWindow(mainWindow);
-    updaterService.initUpdater(isDev);
-  
-    if (!isDev) {
-      setTimeout(() => {
-        verboseLog('[Updater] Startup check (8s after ready)...');
-        if (configStore.get('preference:autoUpdateChecks') !== false) {
-          updaterService.checkForUpdates();
-        } else {
-          verboseLog('[Updater] Startup check skipped — disabled in General Settings.');
-        }
-      }, 8000);
-    }
   
     // Persist session cookies across restarts by extending their lifetime
     const { session } = require('electron');
@@ -6764,6 +6860,7 @@ $pwrThrot  = Reg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottl
   });
   
   app.on('before-quit', () => {
+    _shutdownRequested = true;
     _telemetryLoopActive = false; // signals the async loop to stop after current poll
     console.log('[telemetry:poll] async loop stop requested on quit');
     if (_telemetryStartDelayTimer) {
@@ -6774,6 +6871,8 @@ $pwrThrot  = Reg 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottl
     if (_fadeTimer)         { clearInterval(_fadeTimer);         _fadeTimer         = null; }
     if (_fallbackFadeTimer) { clearInterval(_fallbackFadeTimer); _fallbackFadeTimer = null; }
     if (_showFallbackTimer) { clearTimeout(_showFallbackTimer);  _showFallbackTimer = null; }
+    if (_deferredStartupTimer) { clearTimeout(_deferredStartupTimer); _deferredStartupTimer = null; }
+    if (_updaterStartupTimer) { clearTimeout(_updaterStartupTimer); _updaterStartupTimer = null; }
     tweakExecutor.cleanupTimerResProcess();
     backendLauncher.stopBackend();
   });
