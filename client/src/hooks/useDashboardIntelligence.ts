@@ -162,6 +162,19 @@ export function useDashboardIntelligence(enabled = true): DashboardIntelligenceS
   const [ram,           setRam]           = useState<SmartRamProfile | null>(null);
   const [ramRefreshing, setRamRefreshing] = useState(false);
   const [loading,       setLoading]       = useState(true);
+  // An incomplete sample can occur while Electron's native bridge is waking
+  // after minimize/restore. Keep the last complete estimate visible until a
+  // complete replacement arrives; otherwise a transient process-count zero
+  // makes the card flicker to "Not enough data".
+  const lastReadyLatencyRef = useRef<LatencyData | null>(null);
+  const commitLatency = useCallback((next: LatencyData) => {
+    if (next.ready && next.estimatedMs != null) {
+      lastReadyLatencyRef.current = next;
+      setLatency(next);
+    } else if (!lastReadyLatencyRef.current) {
+      setLatency(next);
+    }
+  }, []);
   const initRef = useRef(false);
   // F-3: AbortController so an unmount mid-fetch cancels the network requests
   // AND prevents the setState() calls from running on an unmounted hook.
@@ -180,12 +193,12 @@ export function useDashboardIntelligence(enabled = true): DashboardIntelligenceS
       if (signal?.aborted) return;
       if (inst.status  === "fulfilled") setInstability(inst.value);
       if (probs.status === "fulfilled") setProblems(probs.value);
-      if (lat.status   === "fulfilled") setLatency(lat.value);
+      if (lat.status   === "fulfilled") commitLatency(lat.value);
       if (r.status     === "fulfilled") setRam(r.value);
     } catch (_) {}
     if (signal?.aborted) return;
     setLoading(false);
-  }, []);
+  }, [commitLatency]);
 
   const refresh = useCallback(() => {
     setLoading(true);
@@ -256,7 +269,7 @@ export function useDashboardIntelligence(enabled = true): DashboardIntelligenceS
           tasks.push(
             getLatencyEstimateUrl()
               .then((url) => fetchJSON<LatencyData>(url, ac.signal))
-              .then(guarded(setLatency))
+              .then(guarded(commitLatency))
               .catch(() => {})
           );
         }
@@ -343,7 +356,7 @@ export function useDashboardIntelligence(enabled = true): DashboardIntelligenceS
       document.removeEventListener("visibilitychange", handleVisibility);
       initRef.current = false;
     };
-  }, [enabled, fetchAll]);
+  }, [enabled, fetchAll, commitLatency]);
 
   return { instability, problems, latency, ram, ramRefreshing, loading, refresh, refreshRam };
 }

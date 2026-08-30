@@ -908,15 +908,14 @@ router.get("/active-problems", (_req, res) => {
  * In Electron, native telemetry is owned by the renderer/main-process IPC
  * loop. The embedded backend intentionally has no second polling loop, so
  * accept the small estimator signal subset from that renderer when the server
- * cache has not become ready yet. Web requests continue using the server cache.
+ * cache has not become ready yet or is ready without its expensive process
+ * count. Web requests continue using the server cache.
  */
 function getLatencySnapshotForRequest(
   req: Request,
   serverSnapshot: TelemetrySnapshot,
   serverWasReady: boolean,
 ): TelemetrySnapshot {
-  if (serverWasReady) return serverSnapshot;
-
   const q = req.query;
   const cpuLoad = Number(q.cpuLoad);
   const cpuCores = Number(q.cpuCores);
@@ -924,6 +923,16 @@ function getLatencySnapshotForRequest(
   const memPct = Number(q.memPct);
   const networkKbs = Number(q.networkKbs);
   const processCount = Number(q.processCount);
+  const serverHasProcessCount =
+    Number.isFinite(serverSnapshot.processes.total) &&
+    serverSnapshot.processes.total > 0;
+
+  // The embedded Electron backend may have a ready CPU/RAM cache while its
+  // own expensive process probe is still empty. The renderer already owns a
+  // valid process count from the shared main-process telemetry bridge, so use
+  // it to complete the estimate instead of discarding it merely because the
+  // backend status is "ready".
+  if (serverWasReady && serverHasProcessCount) return serverSnapshot;
 
   const hasClientTelemetry =
     Number.isFinite(cpuLoad) &&

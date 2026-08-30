@@ -46,6 +46,16 @@ test("latency estimate refuses incomplete telemetry instead of returning the flo
     /label: 'telemetry:getProcessCount'/,
     "the process-count fallback must use the shared PowerShell limiter",
   );
+  assert.match(
+    route,
+    /serverHasProcessCount/,
+    "Electron renderer telemetry must complete a ready backend snapshot when its process count is missing",
+  );
+  assert.match(
+    dashboardHook,
+    /lastReadyLatencyRef/,
+    "the dashboard must retain the last complete estimate during a transient incomplete sample",
+  );
 });
 
 test("zero systeminformation process count recovers from native Windows count", () => {
