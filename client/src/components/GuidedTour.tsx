@@ -203,9 +203,9 @@ function NetworkTweaksPreview() {
           </div>
           <div className="ml-auto">
             <div className="space-y-1">
-              {NET_TWEAKS.map((t, i) => (
+              {NET_TWEAKS.map((tweak, i) => (
                 <motion.div
-                  key={t.label}
+                  key={tweak.label}
                   className="flex items-center gap-1.5"
                   initial={{ opacity: 0, x: -6 }}
                   animate={{ opacity: 1, x: 0 }}
@@ -213,10 +213,10 @@ function NetworkTweaksPreview() {
                 >
                   <div
                     className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                    style={{ background: t.active ? "rgba(0,210,255,0.8)" : "rgba(255,255,255,0.15)" }}
+                    style={{ background: tweak.active ? "rgba(0,210,255,0.8)" : "rgba(255,255,255,0.15)" }}
                   />
-                  <span className="text-[9px]" style={{ color: t.active ? "rgba(255,255,255,0.55)" : "rgba(255,255,255,0.2)" }}>
-                    {t(t.label)}
+                  <span className="text-[9px]" style={{ color: tweak.active ? "rgba(255,255,255,0.55)" : "rgba(255,255,255,0.2)" }}>
+                    {t(tweak.label)}
                   </span>
                 </motion.div>
               ))}

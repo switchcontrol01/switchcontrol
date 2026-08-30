@@ -35,8 +35,8 @@ test("first-run language gate is only mounted for an authenticated user", () => 
   );
   assert.match(
     app,
-    /setPhase\(getFirstRunGatePhase\(user\.id\)\)/,
-    "the post-login flow must enter the first-run gates before welcome/onboarding",
+    /const nextPhase = getFirstRunGatePhase\(user\.id\)[\s\S]*?setFirstRunHandoff\("login-to-language"\)/,
+    "the post-login flow must enter the first-run gates through the covered handoff",
   );
   assert.match(
     app,

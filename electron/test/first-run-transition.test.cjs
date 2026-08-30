@@ -15,6 +15,10 @@ const files = {
   disclaimer: read("client/src/components/FirstRunDisclaimer.tsx"),
   tour: read("client/src/components/TourShell.tsx"),
 };
+const translatedTourPreviews = {
+  guidedTour: read("client/src/components/GuidedTour.tsx"),
+  onboardingTour: read("client/src/components/OnboardingTour.tsx"),
+};
 const welcome = read("client/src/components/WelcomeAnimation.tsx");
 
 test("first-run visual contract is shared by every handoff state", () => {
@@ -52,10 +56,30 @@ test("phase handoffs hold the swap under a two-second blur/fade cover", () => {
     /firstRunHandoff === "login-to-language"/,
     "login-to-language must use the same handoff layer as later first-run phases",
   );
+  assert.match(
+    app,
+    /if \(nextPhase === "language"\) \{\s*setFirstRunHandoff\("login-to-language"\)/,
+    "the login screen must remain mounted until the cover midpoint",
+  );
+  assert.match(
+    app,
+    /if \(firstRunHandoff === "login-to-language"\) \{[\s\S]{0,500}setPhase\("language"\)/,
+    "the language phase must swap under the login handoff cover",
+  );
   assert.doesNotMatch(
     files.disclaimer,
     /prefersReduced\s*[?&|)]/,
     "the disclaimer must not reference the removed undefined reduced-motion variable",
+  );
+  assert.doesNotMatch(
+    translatedTourPreviews.guidedTour,
+    /NET_TWEAKS\.map\(\(t,\s*i\)[\s\S]{0,500}t\(t\.label\)/,
+    "the guided tour must not call a translated list item as a function",
+  );
+  assert.doesNotMatch(
+    translatedTourPreviews.onboardingTour,
+    /TWEAKS_LIST\.map\(\(t,\s*i\)[\s\S]{0,500}t\(t\.label\)/,
+    "the onboarding tour must not call a translated list item as a function",
   );
 });
 
@@ -94,8 +118,8 @@ test("tour step changes and completion honor the same transition contract", () =
 test("first-run flow follows login → language → notice → welcome → tour → done", () => {
   assert.match(
     app,
-    /if \(phase !== "login_success"\) return;[\s\S]*?setPhase\(getFirstRunGatePhase\(user\.id\)\)/,
-    "successful login must enter the account-scoped language/consent gate resolver",
+    /if \(phase !== "login_success"\) return;[\s\S]*?const nextPhase = getFirstRunGatePhase\(user\.id\)[\s\S]*?setFirstRunHandoff\("login-to-language"\)/,
+    "successful login must enter the account-scoped gate through the covered handoff",
   );
   assert.match(
     app,

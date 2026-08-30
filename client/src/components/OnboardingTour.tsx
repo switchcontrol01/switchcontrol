@@ -180,28 +180,28 @@ function TweaksPreview() {
 
         {/* Toggle list */}
         <div className="space-y-1.5">
-          {TWEAKS_LIST.map((t, i) => (
+          {TWEAKS_LIST.map((tweak, i) => (
             <motion.div
-              key={t.label}
+              key={tweak.label}
               className="flex items-center justify-between"
               initial={{ opacity: 0, x: -8 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.08 + i * 0.08, duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
             >
-              <span className="text-[10px]" style={{ color: t.active ? 'rgba(255,255,255,0.65)' : 'rgba(255,255,255,0.25)' }}>
-                {t(t.label)}
+              <span className="text-[10px]" style={{ color: tweak.active ? 'rgba(255,255,255,0.65)' : 'rgba(255,255,255,0.25)' }}>
+                {t(tweak.label)}
               </span>
               <motion.div
                 className="relative flex-shrink-0"
                 style={{
                   width: 28, height: 15, borderRadius: 8,
-                  background: t.active ? 'rgba(168,85,247,0.75)' : 'rgba(255,255,255,0.09)',
-                  boxShadow: t.active ? '0 0 8px rgba(168,85,247,0.4)' : 'none',
+                  background: tweak.active ? 'rgba(168,85,247,0.75)' : 'rgba(255,255,255,0.09)',
+                  boxShadow: tweak.active ? '0 0 8px rgba(168,85,247,0.4)' : 'none',
                 }}
               >
                 <motion.div
                   className="absolute top-[2px] w-[11px] h-[11px] rounded-full bg-white"
-                  animate={{ left: t.active ? 15 : 2 }}
+                  animate={{ left: tweak.active ? 15 : 2 }}
                   transition={{ type: 'spring', stiffness: 500, damping: 30 }}
                 />
               </motion.div>

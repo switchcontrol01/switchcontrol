@@ -15,7 +15,11 @@ const legal = read("client/src/lib/legalContent.ts");
 
 test("first-run phases place consent and disclaimer before welcome", () => {
   assert.match(app, /"consent"/);
-  assert.match(app, /setPhase\(getFirstRunGatePhase\(user\.id\)\)/);
+  assert.match(
+    app,
+    /const nextPhase = getFirstRunGatePhase\(user\.id\)[\s\S]*?setFirstRunHandoff\("login-to-language"\)/,
+    "successful login must enter the first-run gates through the covered handoff",
+  );
   assert.match(
     app,
     /FirstRunLanguage\] choice saved, transitioning to consent[\s\S]*?setPhase\("consent"\)/,

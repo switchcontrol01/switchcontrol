@@ -957,15 +957,22 @@ function ElectronAppContent() {
   }, [realtimeMetricsEnabled]);
 
   // login_success → next phase.
-  // First-time users: 500ms (welcome animation plays next, no need to hold long).
-  // Returning users: 300ms (get to dashboard quickly, no welcome to wait for).
+  // First-time users: keep the login screen mounted while the shared handoff
+  // cover fades/blurs in. The phase swap happens at the cover midpoint, so the
+  // language portal cannot appear as an uncovered cut.
+  // Returning users: 300ms (get to dashboard quickly, with no welcome to wait for).
   useEffect(() => {
     if (phase !== "login_success") return;
     const delay = isFirstLogin ? 500 : 300;
     const t = setTimeout(() => {
       if (isFirstLogin) {
         if (user?.loggedIn && user.id) {
-          setPhase(getFirstRunGatePhase(user.id));
+          const nextPhase = getFirstRunGatePhase(user.id);
+          if (nextPhase === "language") {
+            setFirstRunHandoff("login-to-language");
+          } else {
+            setPhase(nextPhase);
+          }
         } else {
           setPhase("welcome");
         }
@@ -975,7 +982,7 @@ function ElectronAppContent() {
       }
     }, delay);
     return () => clearTimeout(t);
-  }, [phase, isFirstLogin]);
+  }, [phase, isFirstLogin, user?.loggedIn, user?.id]);
 
   useEffect(() => {
     if (phase !== "authenticated") return;
@@ -2443,9 +2450,9 @@ function ElectronAppContent() {
             prefersReducedMotion={prefersReducedMotion}
             onCover={() => {
               if (firstRunHandoff === "login-to-language") {
-                // The language gate is already mounted; only the visual cover
-                // is needed for this initial login-to-portal handoff.
-                return;
+                // Keep the login screen mounted until the cover reaches full
+                // opacity, then mount the language portal underneath it.
+                setPhase("language");
               } else if (firstRunHandoff === "language-to-consent") {
                 setPhase("consent");
               } else if (firstRunHandoff === "consent-to-disclaimer") {
