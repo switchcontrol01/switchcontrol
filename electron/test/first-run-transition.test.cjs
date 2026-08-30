@@ -47,7 +47,7 @@ test("phase handoffs hold the swap under a two-second blur/fade cover", () => {
   assert.match(handoff, /const FIRST_RUN_HANDOFF_COVER_MS = FIRST_RUN_HANDOFF_MS \/ 2/);
   assert.match(handoff, /onCoverRef\.current\(\)/);
   assert.match(
-    app,
+    handoff,
     /opacity: \[0, 1, 0\][\s\S]*filter: \["blur\(0px\)", "blur\(18px\)", "blur\(0px\)"\]/,
     "the handoff must visibly fade and blur in, cover the phase swap, then reveal",
   );
@@ -63,7 +63,7 @@ test("phase handoffs hold the swap under a two-second blur/fade cover", () => {
     "handoff start must be observable in packaged renderer logs",
   );
   assert.match(
-    handoff,
+    app,
     /\[FirstRunHandoff\] \$\{firstRunHandoff\} midpoint swap/,
     "the exact covered midpoint swap must be observable in packaged renderer logs",
   );

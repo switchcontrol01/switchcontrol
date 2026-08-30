@@ -14,3 +14,9 @@ The final Welcome-to-Dashboard reveal has a separate constraint: hold the dashbo
 **Why:** The dashboard route waits for the Welcome exit, while an independently mounted scrim starts when the phase changes; starting both clocks together creates a race at the reveal boundary.
 
 **How to apply:** Drive the scrim reveal from a dashboard-mounted/ready signal, not from the authenticated phase alone.
+
+The handoff component can be runtime-tested in Node with Happy DOM and Framer Motion: assert the Web Animations opacity keyframes, the 1-second midpoint callback, the 2-second completion callback, and each handoff kind. Happy DOM does not retain filter keyframes or finished animation state, so blur remains a source contract and completion callback is the reliable end assertion.
+
+**Why:** Static source checks missed timing regressions, while the lightweight DOM harness exposed the actual midpoint/completion behavior without requiring a packaged Windows environment.
+
+**How to apply:** Keep the runtime test focused on browser animation objects and callbacks; do not assert Happy DOM’s unsupported filter serialization or post-completion `playState/currentTime`.
