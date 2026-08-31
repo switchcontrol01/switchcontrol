@@ -13,6 +13,10 @@ import { CLEANUP_AUTH_TRANSLATIONS } from "./authenticatedTranslations/cleanup";
 import { DRIVER_LATENCY_AUTH_TRANSLATIONS } from "./authenticatedTranslations/driverLatency";
 import { ADVISOR_AUTH_TRANSLATIONS } from "./authenticatedTranslations/advisors";
 import { SETTINGS_HISTORY_AUTH_TRANSLATIONS } from "./authenticatedTranslations/settingsHistory";
+import { AUTH_COMPLETION_CJK } from "./authenticatedTranslations/completionCjk";
+import { AUTH_COMPLETION_EUROPE } from "./authenticatedTranslations/completionEurope";
+import { AUTH_COMPLETION_INDIC_TWO } from "./authenticatedTranslations/completionIndicTwo";
+import { AUTH_COMPLETION_RTL } from "./authenticatedTranslations/completionRtl";
 
 export type { Locale };
 import { PUBLIC_PAGE_TRANSLATIONS } from "./publicWebsiteTranslations/pages";
@@ -1594,6 +1598,10 @@ for (const catalog of [
   DRIVER_LATENCY_AUTH_TRANSLATIONS,
   ADVISOR_AUTH_TRANSLATIONS,
   SETTINGS_HISTORY_AUTH_TRANSLATIONS,
+  AUTH_COMPLETION_CJK,
+  AUTH_COMPLETION_EUROPE,
+  AUTH_COMPLETION_INDIC_TWO,
+  AUTH_COMPLETION_RTL,
 ]) {
   for (const [locale, labels] of Object.entries(catalog) as Array<[Locale, MessageCatalog]>) {
     Object.assign(CATALOGS[locale], labels);
