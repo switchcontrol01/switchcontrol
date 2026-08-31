@@ -70,6 +70,12 @@ const EN: MessageCatalog = {
   Enabled: "Enabled", Disabled: "Disabled", Active: "Active", Off: "Off", Unknown: "Unknown",
   Save: "Save", Cancel: "Cancel", Close: "Close", Retry: "Retry", Reset: "Reset", Upgrade: "Upgrade",
   "Export settings": "Export settings", "Clear local history": "Clear local history", "Factory Reset": "Factory Reset",
+  "Simulate First-Time User": "Simulate First-Time User",
+  "Factory Reset permanently removes local settings, history, and saved account data from this device. Your Windows changes will be reverted first. Continue?": "Factory Reset permanently removes local settings, history, and saved account data from this device. Your Windows changes will be reverted first. Continue?",
+  "This will sign you out and replay onboarding. It will not delete app data, change entitlements, change server onboarding flags, revert Windows tweaks, or remove your device identity. Continue?": "This will sign you out and replay onboarding. It will not delete app data, change entitlements, change server onboarding flags, revert Windows tweaks, or remove your device identity. Continue?",
+  "Signs you out and replays the new-user experience without deleting your account, entitlements, device identity, or Windows changes.": "Signs you out and replays the new-user experience without deleting your account, entitlements, device identity, or Windows changes.",
+  "Simulation unavailable": "Simulation unavailable",
+  "Owner verification was not confirmed by the server.": "Owner verification was not confirmed by the server.",
   Account: "Account", Manage: "Manage", Theme: "Theme", "Accent color": "Accent color", "Reduced motion": "Reduced motion",
   "Larger text": "Larger text", "Sidebar items": "Sidebar items", "Dashboard cards": "Dashboard cards",
   "Large sidebar": "Large sidebar", "Confirmation prompts": "Confirmation prompts",
@@ -1579,6 +1585,10 @@ for (const [locale, labels] of Object.entries(APP_UI_TRANSLATIONS) as Array<[Loc
 }
 
 for (const [locale, labels] of Object.entries(APP_FEATURE_TRANSLATIONS) as Array<[Locale, MessageCatalog]>) {
+  Object.assign(CATALOGS[locale], labels);
+}
+
+for (const [locale, labels] of Object.entries(TWEAK_CONTROL_TRANSLATIONS) as Array<[Locale, MessageCatalog]>) {
   Object.assign(CATALOGS[locale], labels);
 }
 

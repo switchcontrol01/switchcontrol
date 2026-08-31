@@ -876,10 +876,15 @@ export default function Settings() {
     })),
   );
   const { toast } = useToast();
-  const { isPremium, user, factoryReset } = useAppAuth();
+  const {
+    isPremium,
+    user,
+    entitlementsVerified,
+    canSimulateFirstTimeUser: canReplayFirstRun,
+    factoryReset,
+    simulateFirstTimeUser,
+  } = useAppAuth();
   const resetPreferences = useUserPreferencesStore((s) => s.resetPreferences);
-  const isElectron = typeof window !== 'undefined' && !!(window as any).electronAPI?.isElectron;
-  const isAdmin = !!(user as any)?.isAdmin;
   const [licenseModalOpen, setLicenseModalOpen] = useState(false);
   const [showPatchNotesModal, setShowPatchNotesModal] = useState(false);
   const { t, language, setLanguage, locales } = useTranslation();
@@ -1106,9 +1111,17 @@ export default function Settings() {
                   <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} className="w-fit">
                     <Button
                       variant="outline"
-                      onClick={() => factoryReset()}
+                      onClick={() => {
+                        if (!window.confirm(t(
+                          "Factory Reset permanently removes local settings, history, and saved account data from this device. Your Windows changes will be reverted first. Continue?",
+                        ))) {
+                          return;
+                        }
+                        factoryReset();
+                      }}
                       className="border-red-500/20 hover:bg-red-500/10 text-red-400"
                       data-testid="button-factory-reset"
+                      aria-label={t("Factory Reset")}
                     >
                       <Trash2 className="size-4 mr-2" />
                       {t("Factory Reset")}
@@ -1116,6 +1129,52 @@ export default function Settings() {
                   </motion.div>
                   <p className="text-xs text-muted-foreground">{t("Logs you out and wipes all local data. You will need to sign in again.")}</p>
                 </motion.div>
+                {canReplayFirstRun && (
+                  <>
+                    <Separator className="bg-border/30" />
+                    <motion.div
+                      className="flex flex-col gap-1.5"
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                    >
+                      <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} className="w-fit">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          aria-describedby="simulate-first-time-user-description"
+                          aria-label={t("Simulate First-Time User")}
+                          onClick={async () => {
+                            if (!window.confirm(t(
+                              "This will sign you out and replay onboarding. It will not delete app data, change entitlements, change server onboarding flags, revert Windows tweaks, or remove your device identity. Continue?",
+                            ))) {
+                              return;
+                            }
+                            const started = await simulateFirstTimeUser();
+                            if (!started) {
+                              toast({
+                                title: t("Simulation unavailable"),
+                                description: t("Owner verification was not confirmed by the server."),
+                                variant: "destructive",
+                              });
+                            }
+                          }}
+                          className="border-amber-500/25 hover:bg-amber-500/10 text-amber-300"
+                          data-testid="button-simulate-first-time-user"
+                        >
+                          <RotateCcw className="size-4 mr-2" />
+                          {t("Simulate First-Time User")}
+                        </Button>
+                      </motion.div>
+                      <p
+                        id="simulate-first-time-user-description"
+                        className="text-xs text-muted-foreground"
+                      >
+                        {t("Signs you out and replays the new-user experience without deleting your account, entitlements, device identity, or Windows changes.")}
+                      </p>
+                    </motion.div>
+                  </>
+                )}
                 <Separator className="bg-border/30" />
                 <Button
                   variant="outline"

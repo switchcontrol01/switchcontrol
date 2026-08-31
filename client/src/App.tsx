@@ -81,6 +81,9 @@ import { AdaptivePerformanceSync } from "@/lib/adaptivePerformanceStore";
 import { I18nProvider, useTranslation } from "@/lib/i18n";
 import { clearTourState } from "@/lib/tour-store";
 import {
+  canSimulateFirstTimeUser as canSimulateFirstTimeUserPolicy,
+} from "@/lib/onboardingSimulation";
+import {
   describeFactoryResetFailure,
   invokeFactoryResetWithTimeout,
   isSuccessfulFactoryResetResult,
@@ -432,6 +435,20 @@ function ElectronAppContent() {
   const trialTourFiredThisSessionRef = React.useRef(false);
   const premiumTourFiredThisSessionRef = React.useRef(false);
   const suppressFlowsRef = React.useRef(false);
+  const verifiedAdminSnapshotRef = React.useRef<{
+    id: string;
+    email: string | null;
+    isAdmin: boolean;
+  } | null>(null);
+  const recordServerVerifiedUser = (verifiedUser: AuthUser | null) => {
+    verifiedAdminSnapshotRef.current = verifiedUser
+      ? {
+          id: verifiedUser.id,
+          email: verifiedUser.email,
+          isAdmin: verifiedUser.isAdmin,
+        }
+      : null;
+  };
   const {
     token,
     jwt,
@@ -564,6 +581,7 @@ function ElectronAppContent() {
       setEntitlementsOk(true);
       setEntitlementsVerified(true);
       setEntitlementsAttempted(true);
+      recordServerVerifiedUser(useAuthStore.getState().user);
     }, []),
   });
 
@@ -948,6 +966,7 @@ function ElectronAppContent() {
           result.user?.isPremium ?? "null (no user)",
         );
         if (result.verified && result.user) {
+          recordServerVerifiedUser(result.user);
           setEntitlementsOk(true);
           setEntitlementsVerified(true);
           usePremiumGraceStore
@@ -1455,6 +1474,7 @@ function ElectronAppContent() {
           if (exchangedUser) {
             useAuthStore.getState().setToken(authCode);
             useAuthStore.getState().setUser(exchangedUser);
+            recordServerVerifiedUser(exchangedUser);
             // The initial boot attempt normally runs before OAuth completes and
             // marks entitlementsAttempted=true with no authenticated user. Reopen
             // the gate so the authenticated session gets a real /api/me
@@ -1710,6 +1730,7 @@ function ElectronAppContent() {
       if (!hasCachedSession) setEntitlementsAttempted(true);
 
       if (authState.verified && authState.user) {
+        recordServerVerifiedUser(authState.user);
         // Cloud confirmed, update entitlements and grace store
         setEntitlementsOk(true);
         setEntitlementsVerified(true);
@@ -1770,6 +1791,7 @@ function ElectronAppContent() {
       }
 
       if (authState.reason === "logged_out_by_cloud") {
+        recordServerVerifiedUser(null);
         // Cloud explicitly rejected the session, clear and force login.
         // This handles the case where a cached session is no longer valid.
         console.warn("[AuthTruth] Boot: logged_out_by_cloud, forcing logout");
@@ -1858,6 +1880,7 @@ function ElectronAppContent() {
 
     // Capture userId now, the store is wiped by performFullLogout below.
     const logoutUserId = user?.id ?? null;
+    verifiedAdminSnapshotRef.current = null;
 
     // 0. Suspend flow evaluation and dismiss any active flow (tour, unlock
     //    animation, etc.). This must happen before the auth store is wiped;
@@ -1907,6 +1930,72 @@ function ElectronAppContent() {
     setLocation("/");
   };
 
+  const handleSimulateFirstTimeUser = async (): Promise<boolean> => {
+    // Check the live store at the action boundary as well as the Settings
+    // render. This prevents a forged persisted isAdmin flag from invoking the
+    // flow when the current session has not been server-verified.
+    const currentUser = useAuthStore.getState().user;
+    const serverVerifiedUser = verifiedAdminSnapshotRef.current;
+    if (
+      !canSimulateFirstTimeUser(
+        currentUser,
+        entitlementsVerified,
+        isElectron,
+      ) ||
+      isSigningOut ||
+      !serverVerifiedUser ||
+      serverVerifiedUser.id !== currentUser?.id ||
+      serverVerifiedUser.email !== currentUser?.email ||
+      serverVerifiedUser.isAdmin !== true
+    ) {
+      console.warn("[OnboardingSimulation] rejected: owner/admin verification required");
+      return false;
+    }
+
+    const simulationUserId = currentUser.id;
+    console.info("[OnboardingSimulation] starting non-destructive first-run replay");
+
+    // Markers are cleared before logout and are limited to this account. The
+    // pending marker is retained so the next authenticated session enters the
+    // normal first-run state machine even though the server account is mature.
+    restartFirstRunSequence(simulationUserId);
+    telemetryManager.pause();
+    suppressFlowsRef.current = true;
+    setIsSigningOut(true);
+    setFactoryResetFailed(false);
+    clearTourState();
+    setActiveFlow("none");
+    setFirstRunHandoff(null);
+    setShowDisclaimer(false);
+    setShowPendingActivation(false);
+    setShowPatchNotes(false);
+    setShowGlow(false);
+    closePromo();
+    closeRevertModal();
+    unlockFiredThisSessionRef.current = false;
+    trialUnlockFiredRef.current = false;
+    trialTourFiredThisSessionRef.current = false;
+    premiumTourFiredThisSessionRef.current = false;
+
+    const logoutPromise = performFullLogout("admin_onboarding_simulation");
+    await new Promise<void>((resolve) => setTimeout(resolve, 1300));
+    await logoutPromise;
+
+    setEntitlementsAttempted(false);
+    setEntitlementsOk(false);
+    setEntitlementsVerified(false);
+    verifiedAdminSnapshotRef.current = null;
+    setIsFirstLogin(false);
+    setDashboardReady(false);
+    setIsPhaseStable(false);
+    setPhase("unauthenticated");
+    setIsSigningOut(false);
+    suppressFlowsRef.current = false;
+    setLocation("/");
+    console.info("[OnboardingSimulation] complete: returned to login");
+    return true;
+  };
+
   const handleSafeRefreshEntitlements = useCallback(async () => {
     suppressFlowsRef.current = true;
     console.log("[Entitlements] manual refresh begin");
@@ -1924,6 +2013,7 @@ function ElectronAppContent() {
         result.user?.isPremium ?? "null (no user)",
       );
       if (result.verified && result.user) {
+        recordServerVerifiedUser(result.user);
         setEntitlementsOk(true);
         setEntitlementsVerified(true);
         usePremiumGraceStore
@@ -1937,6 +2027,7 @@ function ElectronAppContent() {
           "[Entitlements] manual refresh, grace store updated, UI unlocked",
         );
       } else if (result.verified) {
+        recordServerVerifiedUser(null);
         console.warn(
           "[Entitlements] manual refresh, server returned no user, checking grace store",
         );
@@ -2043,8 +2134,19 @@ function ElectronAppContent() {
     isPremium: entitlementsVerified && _resolvedIsPremium,
     entitlementsVerified,
     isSigningOut,
+    canSimulateFirstTimeUser:
+      canSimulateFirstTimeUserPolicy(
+        useAuthStore.getState().user,
+        entitlementsVerified,
+        isElectron,
+      ) &&
+      !isSigningOut &&
+      verifiedAdminSnapshotRef.current?.id === useAuthStore.getState().user?.id &&
+      verifiedAdminSnapshotRef.current?.email === useAuthStore.getState().user?.email &&
+      verifiedAdminSnapshotRef.current?.isAdmin === true,
     logout: handleLogout,
     factoryReset: handleFactoryReset,
+    simulateFirstTimeUser: handleSimulateFirstTimeUser,
     safeRefreshEntitlements: handleSafeRefreshEntitlements,
   };
   console.log(
